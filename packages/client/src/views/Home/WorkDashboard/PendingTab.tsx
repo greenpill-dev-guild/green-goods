@@ -61,6 +61,23 @@ export const PendingTab: React.FC<PendingTabProps> = ({
 
   const renderBadges = (item: Work): React.ReactNode[] => {
     const badges: React.ReactNode[] = [];
+    let submissionState: string | undefined;
+    try {
+      submissionState = JSON.parse(item.metadata || "{}").submissionState;
+    } catch {
+      /* Legacy metadata may be absent. */
+    }
+    if (submissionState)
+      badges.push(
+        <span key="confirmation" role="status">
+          {intl.formatMessage({
+            id:
+              submissionState === "reverted"
+                ? "app.work.confirmationFailed"
+                : "app.work.awaitingConfirmation",
+          })}
+        </span>
+      );
     const isGardener = isUserAddress(item.gardenerAddress);
     const isSteward = isStewardForGarden(activeAddress, reviewerGardenIds, item.gardenAddress);
     const reviewed = reviewedByYou.has(item.id);

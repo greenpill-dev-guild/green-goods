@@ -17,7 +17,13 @@ import { logger } from "../app/logger";
 import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
 import { ensureWagmiWalletChain } from "./chain-guard";
 import { assertLocalArbitrumForkWallet } from "./local-fork-safety";
-import type { ContractCall, TransactionSender, TxResult } from "./types";
+import {
+  TransactionRevertedError,
+  type ContractCall,
+  type TransactionSender,
+  type TransactionSendOptions,
+  type TxResult,
+} from "./types";
 
 /**
  * Check whether a hash is a canonical 66-char tx hash (0x + 64 hex chars).
@@ -79,7 +85,10 @@ export class WalletSender implements TransactionSender {
       ensureWagmiWalletChain(this.config, chainId);
   }
 
-  async sendContractCall(call: ContractCall): Promise<TxResult> {
+  async sendContractCall(
+    call: ContractCall,
+    options: TransactionSendOptions = {}
+  ): Promise<TxResult> {
     // TODO: Try EIP-5792 sendCalls with paymasterService first when available.
     // Fall back to direct writeContractAsync if the wallet doesn't support it.
 
@@ -97,6 +106,8 @@ export class WalletSender implements TransactionSender {
       chainId,
       ...(call.value !== null && call.value !== undefined ? { value: call.value } : {}),
     });
+
+    await options.onBroadcast?.(hash as `0x${string}`);
 
     // Some Safe-style wallets return a non-canonical hash-like identifier.
     // waitForTransactionReceipt only accepts canonical tx hashes, so skip
@@ -117,7 +128,7 @@ export class WalletSender implements TransactionSender {
     // Wait for on-chain confirmation and verify the tx was not reverted
     const receipt = await this.deps.waitForTransactionReceipt(this.config, { hash, chainId });
     if (receipt.status === "reverted") {
-      throw new Error("Transaction reverted on-chain");
+      throw new TransactionRevertedError(hash, "Transaction reverted on-chain");
     }
 
     logger.debug("Wallet transaction confirmed", {

@@ -157,7 +157,7 @@ describe("submitWork", () => {
     expect(enqueue).not.toHaveBeenCalled();
   });
 
-  it("never queues upload-phase failures even when their message looks like a network error", async () => {
+  it("queues transient upload failures for retry", async () => {
     const error = new WorkSubmissionError(
       "Gateway timeout",
       "upload",
@@ -167,9 +167,9 @@ describe("submitWork", () => {
     const { ports, enqueue } = createPorts({
       direct: vi.fn<SubmitWorkPorts["direct"]["submitWork"]>().mockRejectedValue(error),
     });
-    await expect(submitWork(baseCommand, ports)).rejects.toBe(error);
-    expect(enqueue).not.toHaveBeenCalled();
-    expect(isNetworkError(error)).toBe(false);
+    await expect(submitWork(baseCommand, ports)).resolves.toMatchObject({ kind: "queued" });
+    expect(enqueue).toHaveBeenCalled();
+    expect(isNetworkError(error)).toBe(true);
   });
 
   it("keeps expired wallet requests on the direct retry path", async () => {
@@ -292,7 +292,7 @@ describe("submitWork", () => {
     ).toMatchObject({ title: "", feedback: "" });
   });
 
-  it("surfaces an inline processing error that was not skipped", async () => {
+  it("retains the durable queued submission after an inline processing failure", async () => {
     const { ports } = createPorts({
       process: vi.fn<SubmitWorkPorts["queue"]["process"]>().mockResolvedValue({
         success: false,
@@ -300,9 +300,9 @@ describe("submitWork", () => {
         skipped: false,
       }),
     });
-    await expect(submitWork({ ...baseCommand, authMode: "embedded" }, ports)).rejects.toThrow(
-      "relayer unavailable"
-    );
+    await expect(
+      submitWork({ ...baseCommand, authMode: "embedded" }, ports)
+    ).resolves.toMatchObject({ kind: "queued", jobId: "job-1", clientWorkId: "client-work-1" });
   });
 
   it("keeps the queued hash when inline processing is skipped", async () => {
@@ -419,4 +419,31 @@ describe("submitWork", () => {
     const optimistic = onQueueFallback.mock.calls[0]?.[0];
     expect(optimistic?.metadata).toContain('"clientWorkId":"stable-work-id"');
   });
+});
+
+it("hands an offline broadcast to confirmation-only queue ownership", async () => {
+  const { ports } = createPorts({ online: false });
+  const hash = `0x${"12".repeat(32)}` as const;
+  const outcome = await submitWork(
+    {
+      ...baseCommand,
+      clientWorkId: "existing",
+      draft: {
+        ...baseCommand.draft,
+        uploadCheckpoint: { submittedAt: "2026-09-09T00:00:00Z", files: {}, transactionHash: hash },
+      },
+    },
+    ports
+  );
+  expect(outcome).toMatchObject({ kind: "awaiting-confirmation" });
+  expect(ports.direct.submitWork).not.toHaveBeenCalled();
+  expect(ports.simulate).not.toHaveBeenCalled();
+  expect(ports.queue.enqueue).toHaveBeenCalledWith(
+    expect.objectContaining({
+      clientWorkId: "existing",
+      draft: expect.objectContaining({
+        uploadCheckpoint: expect.objectContaining({ transactionHash: hash }),
+      }),
+    })
+  );
 });

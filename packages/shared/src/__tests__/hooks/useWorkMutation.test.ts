@@ -1,3 +1,7 @@
+import { IntlProvider } from "react-intl";
+vi.mock("../../modules/job-queue/draft-db", () => ({
+  draftDB: { getDraft: vi.fn(), updateDraft: vi.fn() },
+}));
 /**
  * @vitest-environment jsdom
  *
@@ -91,7 +95,8 @@ vi.mock("../../modules/app/error-tracking", () => ({
   addBreadcrumb: vi.fn(),
 }));
 
-vi.mock("../../modules/app/analytics-events", () => ({
+vi.mock("../../modules/app/analytics-events", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../../modules/app/analytics-events")>()),
   trackWorkSubmissionStarted: vi.fn(),
   trackWorkSubmissionSuccess: vi.fn(),
   trackWorkSubmissionFailed: vi.fn(),
@@ -186,7 +191,11 @@ describe("hooks/work/useWorkMutation", () => {
 
   const createWrapper = () => {
     return ({ children }: { children: ReactNode }) =>
-      createElement(QueryClientProvider, { client: queryClient }, children);
+      createElement(IntlProvider, {
+        locale: "en",
+        messages: {},
+        children: createElement(QueryClientProvider, { client: queryClient }, children),
+      });
   };
 
   beforeEach(() => {
@@ -561,7 +570,7 @@ describe("hooks/work/useWorkMutation", () => {
       });
     });
 
-    it("does NOT fall back to queue for upload-phase errors (IPFS failures)", async () => {
+    it("falls back to queue for transient IPFS failures", async () => {
       // Simulate an IPFS upload failure — the error message contains "gateway"/"timeout"
       // which would previously match isNetworkError and silently queue the work.
       const uploadError = new WorkSubmissionError(
@@ -587,11 +596,8 @@ describe("hooks/work/useWorkMutation", () => {
         }
       });
 
-      // The error should propagate to onError, NOT fall back to queue
-      expect(submitWorkToQueue).not.toHaveBeenCalled();
-      await waitFor(() => {
-        expect(result.current.isError).toBe(true);
-      });
+      expect(submitWorkToQueue).toHaveBeenCalledOnce();
+      await waitFor(() => expect(result.current.isSuccess).toBe(true));
     });
 
     it("falls back to queue for transaction-phase network errors", async () => {

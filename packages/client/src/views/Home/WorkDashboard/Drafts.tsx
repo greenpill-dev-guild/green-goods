@@ -1,4 +1,5 @@
-import { ConfirmDialog } from "@green-goods/shared/components/Dialog/ConfirmDialog";
+import { PwaSheet } from "@green-goods/shared/components/Dialog/PwaSheet";
+import { Button } from "@/components/Actions";
 import { toastService } from "@green-goods/shared/components/Toast/toast.service";
 import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
 import { useActions, useGardens } from "@green-goods/shared/hooks/blockchain/useBaseLists";
@@ -6,14 +7,13 @@ import { type DraftWithImages, useDrafts } from "@green-goods/shared/hooks/work/
 import { logger } from "@green-goods/shared/modules/app/logger";
 import type { Address } from "@green-goods/shared/types/domain";
 import { findActionByUID } from "@green-goods/shared/utils/action/parsers";
-import { cn } from "@green-goods/shared/utils/styles/cn";
-import { RiAlertLine, RiDraftLine, RiLoader4Line, RiRefreshLine } from "@remixicon/react";
+import { RiDraftLine, RiLoader4Line, RiRefreshLine } from "@remixicon/react";
+import { createPortal } from "react-dom";
 import React, { useState } from "react";
 import { useIntl } from "react-intl";
 import { useNavigate } from "react-router-dom";
 import { DraftCard } from "@/components/Cards";
 import { EmptyState } from "@/components/Communication";
-import { pwaStatusStyles } from "@/components/Pwa/statusStyles";
 import { APP_ROUTES } from "@/config/pwaRouting";
 
 export interface DraftsTabProps {
@@ -62,6 +62,7 @@ export const DraftsTab: React.FC<DraftsTabProps> = ({ headerContent, onBeforeNav
     if (draftToDelete) {
       try {
         await deleteDraft(draftToDelete.id);
+        setDraftToDelete(null);
       } catch (error) {
         logger.error("[DraftsTab] Failed to delete draft:", { error });
         toastService.error({
@@ -76,12 +77,11 @@ export const DraftsTab: React.FC<DraftsTabProps> = ({ headerContent, onBeforeNav
           context: "drafts",
         });
       }
-      setDraftToDelete(null);
     }
   };
 
   const handleCancelDelete = () => {
-    setDraftToDelete(null);
+    if (!isDeleting) setDraftToDelete(null);
   };
 
   if (isLoading) {
@@ -184,31 +184,38 @@ export const DraftsTab: React.FC<DraftsTabProps> = ({ headerContent, onBeforeNav
       </div>
 
       {/* Delete Confirmation Dialog */}
-      <ConfirmDialog
-        isOpen={!!draftToDelete}
-        onClose={handleCancelDelete}
-        onConfirm={handleConfirmDelete}
-        title={intl.formatMessage({
-          id: "app.drafts.delete.title",
-          defaultMessage: "Delete Draft?",
-        })}
-        description={intl.formatMessage({
-          id: "app.drafts.delete.description",
-          defaultMessage:
-            "This will permanently delete your draft and all associated images. This action cannot be undone.",
-        })}
-        confirmLabel={intl.formatMessage({
-          id: "app.drafts.delete.confirm",
-          defaultMessage: "Delete",
-        })}
-        cancelLabel={intl.formatMessage({
-          id: "app.drafts.delete.cancel",
-          defaultMessage: "Cancel",
-        })}
-        variant="danger"
-        isLoading={isDeleting}
-        icon={<RiAlertLine className={cn("w-6 h-6", pwaStatusStyles.error.icon)} />}
-      />
+      {createPortal(
+        <PwaSheet
+          open={!!draftToDelete}
+          onClose={handleCancelDelete}
+          ariaLabel={intl.formatMessage({ id: "app.drafts.delete.title" })}
+          dragToDismiss={!isDeleting}
+        >
+          <div className="flex flex-col gap-4 p-4">
+            <h2 className="text-lg font-semibold">
+              {intl.formatMessage({ id: "app.drafts.delete.title" })}
+            </h2>
+            <p>{intl.formatMessage({ id: "app.drafts.delete.description" })}</p>
+            <Button
+              label={intl.formatMessage({ id: "app.drafts.delete.confirm" })}
+              onClick={() => void handleConfirmDelete()}
+              disabled={isDeleting}
+              variant="primary"
+              mode="filled"
+              size="medium"
+            />
+            <Button
+              label={intl.formatMessage({ id: "app.drafts.delete.cancel" })}
+              onClick={handleCancelDelete}
+              disabled={isDeleting}
+              variant="neutral"
+              mode="stroke"
+              size="medium"
+            />
+          </div>
+        </PwaSheet>,
+        document.body
+      )}
     </div>
   );
 };

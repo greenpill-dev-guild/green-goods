@@ -1,3 +1,11 @@
+import {
+  AwaitingWorkConfirmation,
+  WorkTransactionReverted,
+  reconcileWorkTransaction,
+  rememberWorkBroadcast,
+  retainedWorkBroadcast,
+  forgetWorkBroadcast,
+} from "../work/work-confirmation";
 import { getEASConfig, type EASConfig } from "../../config/blockchain";
 import type { ApprovalJobPayload, Job, WorkJobPayload } from "../../types/job-queue";
 import {
@@ -5,7 +13,7 @@ import {
   buildWorkAttestContractCall,
 } from "../../utils/eas/transaction-builder";
 import { resolveWorkSubmissionTitle } from "../../utils/work/workTitles";
-import type { TransactionSender } from "../transactions/types";
+import { TransactionRevertedError, type TransactionSender } from "../transactions/types";
 import { jobQueueDB } from "./db";
 import { type Hex } from "viem";
 import {
@@ -32,6 +40,7 @@ type SimulateWork = typeof import("../work/simulate").simulateWorkSubmission;
 type UploadJson = typeof import("../data/ipfs/upload").uploadJSONToIPFS;
 
 export interface WorkJobExecutorDeps {
+  reconcile?: typeof reconcileWorkTransaction;
   images?: (jobId: string) => ReturnType<typeof jobQueueDB.getImagesForJob>;
   simulate?: SimulateWork;
   encodeWork?: EncodeWork;
@@ -76,10 +85,44 @@ export async function executeWorkJob(
   sender: TransactionSender,
   deps: WorkJobExecutorDeps = {}
 ): Promise<string> {
+  const knownWorkId = job.payload.clientWorkId;
+  if (knownWorkId) {
+    const knownHash = await jobQueueDB.getAttestationIdByClientWorkId(knownWorkId);
+    if (knownHash) return knownHash;
+  }
+  const payload = job.payload;
+  const onBroadcast = async (hash: `0x${string}`) => {
+    rememberWorkBroadcast(jobId, hash);
+    payload.uploadCheckpoint = {
+      submittedAt: new Date().toISOString(),
+      files: {},
+      ...payload.uploadCheckpoint,
+      transactionHash: hash,
+    };
+    job.meta = {
+      ...job.meta,
+      submittedTxHash: hash,
+      waitingForDependency: true,
+      waitingReason: "awaiting-confirmation",
+    };
+    await jobQueueDB.updateJob(job);
+  };
+  const previousHash = retainedWorkBroadcast(jobId) ?? payload.uploadCheckpoint?.transactionHash;
+  if (previousHash) {
+    await onBroadcast(previousHash);
+    const state = await (deps.reconcile ?? reconcileWorkTransaction)(previousHash, chainId);
+    if (state === "unresolved") throw new AwaitingWorkConfirmation(previousHash);
+    if (state === "reverted") {
+      job.meta = { ...job.meta, workTransactionReverted: true };
+      await jobQueueDB.updateJob(job);
+      throw new WorkTransactionReverted(previousHash);
+    }
+    forgetWorkBroadcast(jobId);
+    return previousHash;
+  }
   const getImages = deps.images ?? ((id: string) => jobQueueDB.getImagesForJob(id));
   const images = await getImages(jobId);
   const allFiles = images.map((img) => img.file);
-  const payload = job.payload as WorkJobPayload;
   const actionTitle = resolveWorkSubmissionTitle({
     draftTitle: payload.title,
     actionUID: payload.actionUID,
@@ -100,6 +143,7 @@ export async function executeWorkJob(
       feedback: payload.feedback,
       media: mediaFiles,
       details: payload.details ?? {},
+      location: payload.location,
       timeSpentMinutes: payload.timeSpentMinutes ?? 0,
       ...(payload.tags ? { tags: payload.tags } : {}),
       ...(audioFiles.length > 0 ? { audioNotes: audioFiles } : {}),
@@ -121,6 +165,7 @@ export async function executeWorkJob(
       feedback: payload.feedback,
       media: mediaFiles,
       details: payload.details ?? {},
+      location: payload.location,
       timeSpentMinutes: payload.timeSpentMinutes ?? 0,
       ...(payload.tags ? { tags: payload.tags } : {}),
       ...(audioFiles.length > 0 ? { audioNotes: audioFiles } : {}),
@@ -128,6 +173,11 @@ export async function executeWorkJob(
     chainId,
     {
       clientWorkId: payload.clientWorkId,
+      checkpoint: payload.uploadCheckpoint,
+      onCheckpoint: async (checkpoint) => {
+        payload.uploadCheckpoint = checkpoint;
+        await jobQueueDB.updateJob(job);
+      },
       gardenAddress: payload.gardenAddress,
       authMode: sender.authMode === "embedded" ? "passkey" : sender.authMode,
     }
@@ -140,8 +190,22 @@ export async function executeWorkJob(
     payload.gardenAddress as `0x${string}`,
     attestationData
   );
-  const result = await sender.sendContractCall(contractCall);
-  return result.hash;
+  try {
+    const result = await sender.sendContractCall(contractCall, { onBroadcast });
+    // Older/custom senders may only expose the hash on return.
+    if (!payload.uploadCheckpoint?.transactionHash) await onBroadcast(result.hash);
+    forgetWorkBroadcast(jobId);
+    return result.hash;
+  } catch (error) {
+    if (error instanceof TransactionRevertedError) {
+      job.meta = { ...job.meta, workTransactionReverted: true };
+      await jobQueueDB.updateJob(job);
+      throw new WorkTransactionReverted(error.hash);
+    }
+    const hash = retainedWorkBroadcast(jobId);
+    if (hash) throw new AwaitingWorkConfirmation(hash);
+    throw error;
+  }
 }
 
 /**

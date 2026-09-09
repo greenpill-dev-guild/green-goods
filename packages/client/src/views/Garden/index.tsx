@@ -1,3 +1,4 @@
+import { DraftStatus } from "./DraftStatus";
 import { useWorkSubmissionFlowController } from "@green-goods/shared/hooks/client-ui/work/useWorkSubmissionFlowController";
 import { WorkTab } from "@green-goods/shared/stores/workFlowTypes";
 import type { Address } from "@green-goods/shared/types/domain";
@@ -378,12 +379,18 @@ const Work: React.FC = () => {
       <DraftDialog
         isOpen={draft.showDraftDialog}
         onContinue={draft.handleContinueDraft}
+        onClose={draft.close}
+        legacyRecovery={draft.legacyRecovery}
         onStartFresh={draft.startFresh}
         imageCount={images.length}
       />
       <TopNav onBackClick={currentTab.backButton} overlay>
         <FormProgress
-          currentStep={submissionCompleted ? 5 : Object.values(WorkTab).indexOf(activeTab) + 1}
+          currentStep={
+            submissionCompleted && controller.submissionOutcome?.kind !== "awaiting-confirmation"
+              ? 5
+              : Object.values(WorkTab).indexOf(activeTab) + 1
+          }
           steps={Object.values(WorkTab).slice(0, 4)}
         />
       </TopNav>
@@ -398,6 +405,10 @@ const Work: React.FC = () => {
               : "padded relative flex flex-col gap-4 flex-1 pb-[calc(7rem+env(safe-area-inset-bottom))]"
           }
         >
+          {controller.submissionOutcome?.kind === "awaiting-confirmation" && (
+            <p role="status">{intl.formatMessage({ id: "app.work.awaitingConfirmation" })}</p>
+          )}
+          <DraftStatus draft={draft} submissionCompleted={submissionCompleted} />
           {renderTabContent()}
         </div>
         <div className="flex fixed left-0 bottom-0 py-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] w-full z-modal bg-bg-white-0 border-t border-stroke-soft-200 rounded-t-[var(--radius-lg)] overflow-hidden">

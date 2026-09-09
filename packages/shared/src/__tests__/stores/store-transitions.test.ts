@@ -73,7 +73,7 @@ describe("store domain transitions", () => {
   });
 
   it("owns work-flow URL and reset patches without browser side effects", () => {
-    const state = { imageObjectUrls: ["blob:one"] } as WorkFlowState;
+    const state = { imageObjectUrls: ["blob:one"], draftEpoch: 2 } as WorkFlowState;
     const initial: WorkDraftState = {
       gardenAddress: null,
       actionUID: null,
@@ -90,6 +90,13 @@ describe("store domain transitions", () => {
     expect(revokeWorkImageUrlTransition(state, "blob:one")).toEqual({ imageObjectUrls: [] });
     expect(resetWorkFlowTransition(state, initial)).toEqual({
       ...initial,
+      activeDraftId: null,
+      draftMissingAttachments: [],
+      draftEpoch: 3,
+      draftDeleting: false,
+      draftSaveState: "idle",
+      draftError: null,
+      location: undefined,
       activeTab: WorkTab.Intro,
       submissionCompleted: false,
       workSubmissionJourneyId: null,

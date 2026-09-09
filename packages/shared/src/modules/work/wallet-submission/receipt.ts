@@ -1,3 +1,5 @@
+import { TransactionRevertedError } from "../../transactions/types";
+export { TransactionRevertedError } from "../../transactions/types";
 import { waitForTransactionReceipt } from "@wagmi/core";
 import { getWagmiConfig } from "../../../config/appkit";
 import { TX_RECEIPT_TIMEOUT_MS } from "../../../utils/blockchain/polling";
@@ -10,13 +12,6 @@ export class TransactionReceiptTimeoutError extends Error {
       `Transaction confirmation timeout after ${timeoutMs / 1000}s. The transaction may still be processing.`
     );
     this.name = "TransactionReceiptTimeoutError";
-  }
-}
-
-export class TransactionRevertedError extends Error {
-  constructor(readonly hash: `0x${string}`) {
-    super("Transaction reverted on chain. The action was not recorded.");
-    this.name = "TransactionRevertedError";
   }
 }
 

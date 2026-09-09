@@ -63,7 +63,8 @@ describe("normalizeWorkMediaFiles", () => {
     expect(result.accepted).toEqual([]);
     expect(result.converted).toEqual([]);
     expect(result.rejected).toHaveLength(1);
-    expect(result.rejected[0].file).toBe(heic);
+    expect(result.rejected[0].file).not.toBe(heic);
+    expect(await result.rejected[0].file.arrayBuffer()).toEqual(await heic.arrayBuffer());
     expect(result.rejected[0].reason).toBe("heic_conversion_failed");
   });
 

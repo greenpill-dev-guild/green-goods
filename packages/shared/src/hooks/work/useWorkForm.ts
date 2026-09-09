@@ -1,3 +1,12 @@
+import { useCallback, useRef, useState, useEffect, useMemo } from "react";
+import {
+  useWatch,
+  type Control,
+  type UseFormSetValue,
+  type Resolver,
+  useForm,
+} from "react-hook-form";
+import { roundWorkLocation } from "../../modules/work/work-attachments";
 /**
  * Work Form Hook
  *
@@ -8,8 +17,6 @@
  */
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useEffect, useMemo } from "react";
-import { type Resolver, useForm } from "react-hook-form";
 import { z } from "zod";
 import type { WorkInput } from "../../types/domain";
 import { normalizeTimeSpentMinutes } from "../../utils/form/normalizers";
@@ -60,6 +67,10 @@ function buildFieldValidator(input: WorkInput): z.ZodTypeAny {
  */
 export function buildWorkFormSchema(inputs: WorkInput[]) {
   const shape: Record<string, z.ZodTypeAny> = {
+    location: z
+      .object({ lat: z.number().min(-90).max(90), lng: z.number().min(-180).max(180) })
+      .transform(roundWorkLocation)
+      .optional(),
     feedback: z.string().optional().default(""),
     timeSpentMinutes: z.preprocess(normalizeTimeSpentMinutes, z.number().nonnegative().optional()),
   };
@@ -86,6 +97,7 @@ export type WorkFormData = WorkFormDataBase & {
     | string
     | number
     | string[]
+    | { lat: number; lng: number }
     | Record<string, unknown>
     | Record<string, unknown>[]
     | undefined;
@@ -139,3 +151,62 @@ export function useWorkForm(inputs?: WorkInput[]) {
 }
 
 export type UseWorkFormReturn = ReturnType<typeof useWorkForm>;
+
+export function useWorkLocation(
+  control: Control<WorkFormData>,
+  setValue?: UseFormSetValue<WorkFormData>
+) {
+  const capturedLocation = useWatch({ control, name: "location" });
+  const locationEnabled = !!capturedLocation;
+  const locationRequest = useRef(0);
+  const [locationStatus, setLocationStatus] = useState<"idle" | "loading" | "success" | "denied">(
+    "idle"
+  );
+
+  useEffect(
+    () => () => {
+      locationRequest.current++;
+    },
+    []
+  );
+  const handleLocationToggle = useCallback(() => {
+    if (locationEnabled || locationStatus === "loading") {
+      locationRequest.current++;
+      setValue?.("location", undefined, { shouldDirty: true, shouldValidate: true });
+      setLocationStatus("idle");
+      return;
+    }
+
+    if (!navigator.geolocation) {
+      setLocationStatus("denied");
+      return;
+    }
+
+    const request = ++locationRequest.current;
+    setLocationStatus("loading");
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        if (request !== locationRequest.current) return;
+        setLocationStatus("success");
+        // Store location data in form via setValue if available
+        if (setValue) {
+          setValue(
+            "location",
+            roundWorkLocation({
+              lat: position.coords.latitude,
+              lng: position.coords.longitude,
+            }),
+            { shouldDirty: true, shouldValidate: true }
+          );
+        }
+      },
+      () => {
+        if (request !== locationRequest.current) return;
+        setLocationStatus("denied");
+      },
+      { enableHighAccuracy: false, timeout: 10000 }
+    );
+  }, [locationEnabled, locationStatus, setValue]);
+
+  return { locationEnabled, locationStatus, handleLocationToggle };
+}

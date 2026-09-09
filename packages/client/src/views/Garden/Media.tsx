@@ -1,12 +1,14 @@
 import { AudioPlayer } from "@green-goods/shared/components/Audio/AudioPlayer";
 import { toastService } from "@green-goods/shared/components/Toast/toast.service";
 import { track } from "@green-goods/shared/modules/app/posthog";
-import { mediaResourceManager } from "@green-goods/shared/modules/job-queue/media-resource-manager";
+import { useWorkPreviewUrls } from "@green-goods/shared/hooks/work/useWorkImages";
 import {
   getSafeMediaBatchMetadata,
   getSafeMediaMetadata,
   getWorkMediaId,
   isVideoFile,
+  validateWorkAttachments,
+  validateWorkVideo,
 } from "@green-goods/shared/modules/work/media-processing";
 import { prepareWorkSubmission } from "@green-goods/shared/modules/work/submission-flow";
 import type { Action } from "@green-goods/shared/types/domain";
@@ -27,11 +29,7 @@ import { Books } from "@/components/Features";
 import { pwaStatusStyles } from "@/components/Pwa/statusStyles";
 import { trackWorkMediaJourneyEvent } from "@/config/mediaAnalytics";
 
-const WORK_DRAFT_TRACKING_ID = "work-draft";
-const VIDEO_TRACKING_ID = "work-draft-video";
-
 /** Max video duration in seconds (Decision #28) */
-const MAX_VIDEO_DURATION_SECONDS = 30;
 
 interface WorkMediaProps {
   config?: Action["mediaInfo"];
@@ -69,41 +67,6 @@ const getPlatformContext = () => {
 
   return { platform, isStandalone, isOnline: navigator.onLine };
 };
-
-/**
- * Validates video duration using a temporary HTMLVideoElement.
- * Resolves to true if duration <= MAX_VIDEO_DURATION_SECONDS, false otherwise.
- */
-function validateVideoDuration(file: File): Promise<{ valid: boolean; duration: number }> {
-  return new Promise((resolve) => {
-    const video = document.createElement("video");
-    video.preload = "metadata";
-
-    const cleanup = () => {
-      URL.revokeObjectURL(video.src);
-      video.remove();
-    };
-
-    video.onloadedmetadata = () => {
-      const duration = video.duration;
-      cleanup();
-      resolve({ valid: duration <= MAX_VIDEO_DURATION_SECONDS, duration });
-    };
-
-    video.onerror = () => {
-      cleanup();
-      resolve({ valid: false, duration: 0 });
-    };
-
-    const blobUrl = URL.createObjectURL(file);
-    if (!blobUrl.startsWith("blob:")) {
-      cleanup();
-      resolve({ valid: false, duration: 0 });
-      return;
-    }
-    video.src = blobUrl;
-  });
-}
 
 /** Format seconds as m:ss */
 function formatTime(seconds: number): string {
@@ -150,15 +113,7 @@ export const WorkMedia: React.FC<WorkMediaProps> = ({
     [brokenMediaIds, images]
   );
 
-  // Stable blob URLs for all media items
-  const mediaUrls = useMemo(
-    () =>
-      images.map((file) => {
-        const trackingId = isVideoFile(file) ? VIDEO_TRACKING_ID : WORK_DRAFT_TRACKING_ID;
-        return mediaResourceManager.getOrCreateUrl(file, trackingId);
-      }),
-    [images]
-  );
+  const mediaUrls = useWorkPreviewUrls(images);
 
   // Photo-only URLs for the image preview dialog
   const photoOnlyData = useMemo(() => {
@@ -170,13 +125,6 @@ export const WorkMedia: React.FC<WorkMediaProps> = ({
     });
     return entries;
   }, [images, mediaUrls]);
-
-  // Note: blob-URL cleanup lives on the parent Work component (Garden/index.tsx),
-  // not here. Cleaning up on this component's unmount races with Review's
-  // useMemo — Review obtains the cached URL during render, then this cleanup
-  // revokes it during the same commit's passive-effect phase, breaking the
-  // browser's in-flight blob fetch and producing the "no image in Review"
-  // and "back-back-next error" regressions for gallery uploads.
 
   const handleUploadClick = useCallback((source: "gallery" | "camera") => {
     uploadSourceRef.current = source;
@@ -315,73 +263,51 @@ export const WorkMedia: React.FC<WorkMediaProps> = ({
         });
       }
 
-      // Split normalized media into images and videos
       const normalizedFiles = normalized.accepted.map((item) => item.file);
-      const imageFiles = normalizedFiles.filter((f) => !isVideoFile(f));
-      const videoFiles = normalizedFiles.filter(isVideoFile);
-
-      // --- Process videos: validate duration ---
+      const processedImages: File[] = [];
       const validVideos: File[] = [];
-      for (const vf of videoFiles) {
-        const { valid, duration } = await validateVideoDuration(vf);
-        if (valid) {
-          validVideos.push(vf);
-        } else {
-          const errorMsg =
-            duration === 0
-              ? intl.formatMessage({
-                  id: "app.garden.upload.videoCorrupt",
-                  defaultMessage: "This video could not be loaded. Please try a different file.",
-                })
-              : intl.formatMessage(
-                  {
-                    id: "app.garden.upload.videoTooLong",
-                    defaultMessage: "Video is too long. Maximum {max} seconds.",
-                  },
-                  { max: MAX_VIDEO_DURATION_SECONDS, actual: Math.round(duration) }
-                );
-          setVideoError(errorMsg);
-          track(
-            "media_upload_failed",
-            {
-              error: duration === 0 ? "video_corrupt" : "video_too_long",
-              durationBucket: duration === 0 ? "unknown" : "over-30s",
-              ...context,
-            },
-            { includeSessionId: false }
-          );
-        }
-      }
-
-      // --- Process images: compress ---
-      setProcessingPhase("compressing");
+      const newFiles: File[] = [];
       const { imageCompressor } = await import("@green-goods/shared/utils/work/image-compression");
-      const toCompress = imageFiles.filter((f) => imageCompressor.shouldCompress(f, 1024));
-      const noCompress = imageFiles.filter((f) => !imageCompressor.shouldCompress(f, 1024));
-
-      const processedImages = [...noCompress];
-
-      if (toCompress.length > 0) {
-        const results = await imageCompressor.compressImages(
-          toCompress,
-          { maxSizeMB: 0.8, maxWidthOrHeight: 2048, initialQuality: 0.8, useWebWorker: true },
-          (progress) => setCompressionProgress(progress)
-        );
-        processedImages.push(...results.map((r) => r.file));
-
-        track(
-          "media_compression_complete",
-          {
-            filesProcessed: results.length,
-            sizeBuckets: getSafeMediaBatchMetadata(toCompress).size_buckets,
-            ...context,
-          },
-          { includeSessionId: false }
-        );
+      for (const file of normalizedFiles) {
+        if (isVideoFile(file)) {
+          if (!(await validateWorkVideo(file))) {
+            setVideoError(intl.formatMessage({ id: "app.garden.attachments.invalid" }));
+            continue;
+          }
+          validVideos.push(file);
+          newFiles.push(file);
+          continue;
+        }
+        setProcessingPhase("compressing");
+        let processed = file;
+        if (imageCompressor.shouldCompress(file, 1024)) {
+          try {
+            const [result] = await imageCompressor.compressImages(
+              [file],
+              { maxSizeMB: 0.8, maxWidthOrHeight: 2048, initialQuality: 0.8, useWebWorker: true },
+              setCompressionProgress
+            );
+            processed = result.file;
+          } catch {
+            // Intake already copied the bytes. Keep this independent original,
+            // then apply the same size limits as every other attachment.
+            processed = file;
+          }
+        }
+        processedImages.push(processed);
+        newFiles.push(processed);
       }
 
-      // --- Combine and append (no mutual exclusivity) ---
-      const newFiles = [...processedImages, ...validVideos];
+      if (validateWorkAttachments([...images, ...newFiles], audioNotes).length) {
+        toastService.error({
+          title: intl.formatMessage({
+            id: "app.garden.attachments.invalid",
+            defaultMessage:
+              "Check attachment formats and sizes. Photos: 10 MB; videos: 20 MB and 30 seconds; all files: 50 MB.",
+          }),
+        });
+        return;
+      }
       const maxCount =
         config?.maxImageCount && config.maxImageCount > 0 ? config.maxImageCount : Infinity;
 
@@ -437,9 +363,7 @@ export const WorkMedia: React.FC<WorkMediaProps> = ({
         },
         { includeSessionId: false }
       );
-      // Don't fall back to uncompressed originals — they can blow IndexedDB
-      // quota and silently exceed submission size limits. Surface the failure
-      // and let the user retry.
+      // Unreadable intake leaves the existing selection and saved snapshot intact.
       toastService.error({
         title: intl.formatMessage({
           id: "app.garden.upload.compressionFailedTitle",
@@ -495,8 +419,9 @@ export const WorkMedia: React.FC<WorkMediaProps> = ({
   const optionalItems = useMemo(() => config?.optional?.filter(Boolean) ?? [], [config?.optional]);
   const maxImageCount =
     config?.maxImageCount && config.maxImageCount > 0 ? config.maxImageCount : 0;
+  const photoCount = images.filter((file) => !isVideoFile(file)).length;
   const requirementBadgeTone =
-    images.length >= minRequired ? pwaStatusStyles.success : pwaStatusStyles.warning;
+    photoCount >= minRequired ? pwaStatusStyles.success : pwaStatusStyles.warning;
 
   return (
     <div className="flex flex-col gap-4">
@@ -514,10 +439,10 @@ export const WorkMedia: React.FC<WorkMediaProps> = ({
               id: "app.garden.upload.mediaBadge",
               defaultMessage: "{current}/{required} media",
             },
-            { current: images.length, required: minRequired }
+            { current: photoCount, required: minRequired }
           )}
           {maxImageCount > 0 && ` (max ${maxImageCount})`}
-          {images.length >= minRequired && " \u2713"}
+          {photoCount >= minRequired && " \u2713"}
         </Badge>
       )}
 
@@ -559,7 +484,7 @@ export const WorkMedia: React.FC<WorkMediaProps> = ({
           ref={mediaInputRef}
           id="work-media-upload"
           type="file"
-          accept="image/jpeg,image/png,image/webp,image/heic,image/heif,.heic,.heif,video/*"
+          accept="image/jpeg,image/png,image/webp,image/heic,image/heif,.heic,.heif,video/mp4,video/webm"
           onChange={handleMediaUpload}
           multiple
           disabled={isProcessingMedia}
@@ -701,10 +626,12 @@ export const WorkMedia: React.FC<WorkMediaProps> = ({
                 <div key={mediaId} className="relative">
                   {/* eslint-disable-next-line jsx-a11y/media-has-caption -- user-generated content */}
                   <video
-                    src={url}
+                    src={url || undefined}
                     controls={isPlaying}
                     className="w-full aspect-4/3 md:aspect-square object-cover rounded-lg"
-                    onError={() => onPreviewFailed?.(file, "media")}
+                    onError={() => {
+                      if (url) onPreviewFailed?.(file, "media");
+                    }}
                     aria-label={intl.formatMessage({
                       id: "app.garden.upload.videoPreview",
                       defaultMessage: "Video preview",
@@ -764,10 +691,12 @@ export const WorkMedia: React.FC<WorkMediaProps> = ({
                   }}
                 >
                   <img
-                    src={url}
+                    src={url || undefined}
                     alt={`${intl.formatMessage({ id: "app.garden.upload.uploaded", defaultMessage: "Uploaded" })} ${index + 1}`}
                     className="w-full aspect-4/3 md:aspect-square object-cover rounded-lg"
-                    onError={() => onPreviewFailed?.(file, "media")}
+                    onError={() => {
+                      if (url) onPreviewFailed?.(file, "media");
+                    }}
                   />
                   <div className="absolute inset-0 flex items-center justify-center rounded-[var(--radius-lg)] bg-[var(--color-overlay)] opacity-0 transition-opacity duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)] group-hover:opacity-100">
                     <RiZoomInLine className="w-12 h-12 text-static-white" />

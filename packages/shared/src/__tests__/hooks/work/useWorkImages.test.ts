@@ -25,6 +25,7 @@ vi.mock("idb-keyval", () => ({
 }));
 
 vi.mock("../../../modules/app/logger", () => ({
+  createLogger: () => ({ debug: vi.fn(), error: vi.fn(), warn: vi.fn(), info: vi.fn() }),
   logger: {
     error: vi.fn(),
     warn: vi.fn(),
@@ -41,7 +42,7 @@ vi.mock("../../../utils/debug", () => ({
   debugLog: vi.fn(),
 }));
 
-import { useWorkImages } from "../../../hooks/work/useWorkImages";
+import { useWorkImages, useWorkPreviewUrls } from "../../../hooks/work/useWorkImages";
 // We need to let Zustand work normally for this hook since it directly reads/writes the store
 // But we need to reset the store between tests
 import { useWorkFlowStore } from "../../../stores/useWorkFlowStore";
@@ -79,130 +80,14 @@ describe("useWorkImages", () => {
     });
   });
 
-  // ------------------------------------------
-  // Loading from IndexedDB on mount
-  // ------------------------------------------
-
-  describe("loading from IndexedDB", () => {
-    it("loads stored images from IDB on mount", async () => {
-      const storedFiles = createMockFiles(2);
-      mockIdbGet.mockResolvedValue(storedFiles);
-
-      const { result } = renderHook(() => useWorkImages());
-
-      await waitFor(() => {
-        expect(result.current.images).toHaveLength(2);
-      });
-
-      expect(mockIdbGet).toHaveBeenCalledWith("work_images_draft");
-    });
-
-    it("does not load when IDB returns undefined", async () => {
-      mockIdbGet.mockResolvedValue(undefined);
-
-      const { result } = renderHook(() => useWorkImages());
-
-      // Give it time to potentially load
-      await new Promise((r) => setTimeout(r, 50));
-
-      expect(result.current.images).toEqual([]);
-    });
-
-    it("does not load when IDB returns empty array", async () => {
-      mockIdbGet.mockResolvedValue([]);
-
-      const { result } = renderHook(() => useWorkImages());
-
-      await new Promise((r) => setTimeout(r, 50));
-
-      expect(result.current.images).toEqual([]);
-    });
-
-    it("handles IDB load errors gracefully", async () => {
-      mockIdbGet.mockRejectedValue(new Error("IndexedDB not available"));
-
-      const { result } = renderHook(() => useWorkImages());
-
-      // Should not throw, images should remain empty
-      await new Promise((r) => setTimeout(r, 50));
-
-      expect(result.current.images).toEqual([]);
-    });
-
-    it("respects isMounted guard (Rule 3) - does not update after unmount", async () => {
-      // Simulate slow IDB read
-      let resolveIdb!: (value: File[]) => void;
-      mockIdbGet.mockReturnValue(
-        new Promise((resolve) => {
-          resolveIdb = resolve;
-        })
-      );
-
-      const { result, unmount } = renderHook(() => useWorkImages());
-
-      // Unmount before IDB resolves
-      unmount();
-
-      // Now resolve - should not update state
-      resolveIdb(createMockFiles(3));
-
-      // Store should not have been updated
-      expect(useWorkFlowStore.getState().images).toEqual([]);
-    });
-  });
-
-  // ------------------------------------------
-  // Saving to IndexedDB on change
-  // ------------------------------------------
-
-  describe("saving to IndexedDB", () => {
-    it("saves images to IDB when they change", async () => {
-      const { result } = renderHook(() => useWorkImages());
-
-      const newFiles = createMockFiles(2);
-
-      act(() => {
-        result.current.setImages(newFiles);
-      });
-
-      await waitFor(() => {
-        expect(mockIdbSet).toHaveBeenCalledWith("work_images_draft", newFiles);
-      });
-    });
-
-    it("saves empty array to IDB on reset (clears stored data)", async () => {
-      // Start with images
-      const files = createMockFiles(2);
-      useWorkFlowStore.getState().setImages(files);
-
-      const { result } = renderHook(() => useWorkImages());
-
-      // Clear images
-      act(() => {
-        result.current.setImages([]);
-      });
-
-      await waitFor(() => {
-        expect(mockIdbSet).toHaveBeenCalledWith("work_images_draft", []);
-      });
-    });
-
-    it("handles IDB save errors gracefully", async () => {
-      mockIdbSet.mockRejectedValue(new Error("Quota exceeded"));
-
-      const { result } = renderHook(() => useWorkImages());
-
-      // Should not throw
-      act(() => {
-        result.current.setImages(createMockFiles(1));
-      });
-
-      // Wait for async save to complete (or fail)
-      await new Promise((r) => setTimeout(r, 50));
-
-      // Images should still be in state even if IDB save failed
-      expect(result.current.images).toHaveLength(1);
-    });
+  it("does not read or write the retired unscoped image store", () => {
+    mockIdbGet.mockResolvedValue(createMockFiles(2));
+    const { result, unmount } = renderHook(() => useWorkImages());
+    act(() => result.current.setImages(createMockFiles(1)));
+    act(() => result.current.setImages([]));
+    unmount();
+    expect(mockIdbGet).not.toHaveBeenCalled();
+    expect(mockIdbSet).not.toHaveBeenCalled();
   });
 
   // ------------------------------------------
@@ -285,5 +170,38 @@ describe("useWorkImages", () => {
 
       expect(useWorkFlowStore.getState().images).toBe(files);
     });
+  });
+});
+
+describe("mounted preview ownership", () => {
+  it("keeps text rerenders bounded and replaces revoked URLs after remount", async () => {
+    const { mediaResourceManager } = await import(
+      "../../../modules/job-queue/media-resource-manager"
+    );
+    mediaResourceManager.cleanupAll();
+    let serial = 0;
+    const create = vi
+      .spyOn(URL, "createObjectURL")
+      .mockImplementation(() => `blob:preview-${++serial}`);
+    const revoke = vi.spyOn(URL, "revokeObjectURL");
+    const file = new File(["proof"], "photo.jpg", { type: "image/jpeg" });
+    const files = [file];
+    const first = renderHook(({ files }) => useWorkPreviewUrls(files), { initialProps: { files } });
+    await waitFor(() => expect(first.result.current[0]).toBeTruthy());
+    const old = first.result.current[0];
+    for (let n = 0; n < 20; n++) first.rerender({ files });
+    expect(create).toHaveBeenCalledTimes(1);
+    expect(mediaResourceManager.getStats().totalUrls).toBe(1);
+    first.rerender({ files: [] });
+    await waitFor(() => expect(revoke).toHaveBeenCalledWith(old));
+    expect(mediaResourceManager.getStats().totalUrls).toBe(0);
+    first.unmount();
+    const second = renderHook(() => useWorkPreviewUrls(files));
+    await waitFor(() => expect(second.result.current[0]).toBeTruthy());
+    expect(second.result.current[0]).not.toBe(old);
+    second.unmount();
+    expect(mediaResourceManager.getStats()).toEqual({ totalUrls: 0, trackedIds: 0 });
+    create.mockRestore();
+    revoke.mockRestore();
   });
 });

@@ -27,6 +27,7 @@ type WorkViewProps = {
   garden?: Garden;
   actionTitle: string;
   media?: string[];
+  mediaTypes?: string[];
   /** IPFS CIDs for gardener audio notes (from work metadata) */
   audioNoteCids?: string[];
   details: Array<{ label: string; value: string; icon?: IconComponent | null }>;
@@ -59,6 +60,7 @@ export const WorkView: React.FC<WorkViewProps> = ({
   garden,
   actionTitle,
   media = [],
+  mediaTypes = [],
   audioNoteCids,
   details,
   fulfills = null,
@@ -104,7 +106,10 @@ export const WorkView: React.FC<WorkViewProps> = ({
           <h6>
             {intl.formatMessage({ id: "app.home.workApproval.media", defaultMessage: "Media" })}
           </h6>
-          <Carousel enablePreview previewImages={media}>
+          <Carousel
+            enablePreview={!mediaTypes.some((type) => type.startsWith("video/"))}
+            previewImages={media}
+          >
             <CarouselContent>
               {media.map((item, index) => (
                 <CarouselItem
@@ -112,13 +117,25 @@ export const WorkView: React.FC<WorkViewProps> = ({
                   index={index}
                   className="max-w-40 aspect-3/4 rounded-2xl relative overflow-hidden"
                 >
-                  <ImageWithFallback
-                    src={item}
-                    alt={`Work media ${index + 1}`}
-                    className="w-full h-full aspect-3/4 object-cover rounded-2xl"
-                    fallbackClassName="w-full h-full aspect-3/4 rounded-2xl"
-                    onErrorCallback={() => onMediaError?.(item, index)}
-                  />
+                  {mediaTypes[index]?.startsWith("video/") ? (
+                    // eslint-disable-next-line jsx-a11y/media-has-caption -- user-generated evidence has no caption track
+                    <video
+                      src={item}
+                      controls
+                      playsInline
+                      preload="metadata"
+                      className="w-full h-full object-contain"
+                      onError={() => onMediaError?.(item, index)}
+                    />
+                  ) : (
+                    <ImageWithFallback
+                      src={item}
+                      alt={`Work media ${index + 1}`}
+                      className="w-full h-full aspect-3/4 object-cover rounded-2xl"
+                      fallbackClassName="w-full h-full aspect-3/4 rounded-2xl"
+                      onErrorCallback={() => onMediaError?.(item, index)}
+                    />
+                  )}
                 </CarouselItem>
               ))}
             </CarouselContent>

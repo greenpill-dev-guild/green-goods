@@ -12,7 +12,7 @@ import type { SmartAccountClient } from "permissionless";
 import { encodeFunctionData } from "viem";
 import { logger } from "../app/logger";
 import { assertLocalArbitrumForkSmartAccountsDisabled } from "./local-fork-safety";
-import type { ContractCall, TransactionSender, TxResult } from "./types";
+import type { ContractCall, TransactionSender, TransactionSendOptions, TxResult } from "./types";
 
 export interface PasskeySenderDeps {
   assertWriteSafety?: () => Promise<void>;
@@ -34,7 +34,10 @@ export class PasskeySender implements TransactionSender {
     this.deps.assertWriteSafety ??= async () => assertLocalArbitrumForkSmartAccountsDisabled();
   }
 
-  async sendContractCall(call: ContractCall): Promise<TxResult> {
+  async sendContractCall(
+    call: ContractCall,
+    options: TransactionSendOptions = {}
+  ): Promise<TxResult> {
     await this.deps.assertWriteSafety?.();
 
     const data = encodeFunctionData({
@@ -50,6 +53,8 @@ export class PasskeySender implements TransactionSender {
       value: call.value ?? 0n,
       data,
     });
+
+    await options.onBroadcast?.(hash as `0x${string}`);
 
     logger.debug("Passkey transaction sent", {
       source: "PasskeySender",

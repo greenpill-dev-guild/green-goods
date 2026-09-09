@@ -24,7 +24,13 @@ import { logger } from "../app/logger";
 import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
 import { ensureWagmiWalletChain } from "./chain-guard";
 import { assertLocalArbitrumForkWallet } from "./local-fork-safety";
-import type { ContractCall, TransactionSender, TxResult } from "./types";
+import {
+  TransactionRevertedError,
+  type ContractCall,
+  type TransactionSender,
+  type TransactionSendOptions,
+  type TxResult,
+} from "./types";
 
 /** Injectable wagmi functions for testability */
 export interface EmbeddedSenderDeps {
@@ -61,7 +67,10 @@ export class EmbeddedSender implements TransactionSender {
       ensureWagmiWalletChain(this.config, chainId);
   }
 
-  async sendContractCall(call: ContractCall): Promise<TxResult> {
+  async sendContractCall(
+    call: ContractCall,
+    options: TransactionSendOptions = {}
+  ): Promise<TxResult> {
     // TODO: Replace with EIP-5792 sendCalls + paymasterService once @wagmi/core/experimental is stable.
     const chainId = call.chainId ?? DEFAULT_CHAIN_ID;
     await this.deps.ensureWalletChain?.(chainId);
@@ -76,9 +85,11 @@ export class EmbeddedSender implements TransactionSender {
       ...(call.value !== null && call.value !== undefined ? { value: call.value } : {}),
     });
 
+    await options.onBroadcast?.(hash as `0x${string}`);
+
     const receipt = await this.deps.waitForTransactionReceipt(this.config, { hash, chainId });
     if (receipt.status === "reverted") {
-      throw new Error("Transaction reverted on-chain");
+      throw new TransactionRevertedError(hash, "Transaction reverted on-chain");
     }
 
     logger.debug("Embedded transaction sent", {

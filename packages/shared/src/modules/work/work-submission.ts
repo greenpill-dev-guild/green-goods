@@ -1,3 +1,4 @@
+import { validateWorkAttachments } from "./work-attachments";
 import type { Action, Address, Work, WorkApprovalDraft, WorkDraft } from "../../types/domain";
 import { getActionTitle } from "../../utils/action/parsers";
 import { resolveWorkSubmissionTitle } from "../../utils/work/workTitles";
@@ -132,17 +133,10 @@ export async function submitApprovalToQueue(
 }
 
 /**
- * Maximum file size for work images (10MB)
- */
-const MAX_IMAGE_SIZE_BYTES = 10 * 1024 * 1024;
-const MAX_IMAGE_COUNT = 10;
-const MAX_TOTAL_IMAGE_SIZE_BYTES = 50 * 1024 * 1024;
-const ALLOWED_IMAGE_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
-
-/**
  * Options for validating work submission context
  */
 export interface ValidateWorkContextOptions {
+  audioNotes?: File[];
   /** Minimum required images (from action config). Defaults to 0 if not provided. */
   minRequired?: number;
 }
@@ -177,33 +171,23 @@ export function validateWorkSubmissionContext(
     errors.push("Action must be selected");
   }
 
-  if (images.length < minRequired) {
-    if (minRequired === 1) {
-      errors.push("At least one image is required");
-    } else {
-      errors.push(`At least ${minRequired} images are required`);
-    }
-  }
-
-  if (images.length > MAX_IMAGE_COUNT) {
-    errors.push(`You can upload up to ${MAX_IMAGE_COUNT} images`);
-  }
-
-  // Check image file sizes
-  const oversizedImages = images.filter((img) => img.size > MAX_IMAGE_SIZE_BYTES);
-  if (oversizedImages.length > 0) {
-    errors.push(`${oversizedImages.length} image(s) exceed 10MB limit`);
-  }
-
-  const totalSize = images.reduce((acc, image) => acc + image.size, 0);
-  if (totalSize > MAX_TOTAL_IMAGE_SIZE_BYTES) {
-    errors.push("Total image upload size cannot exceed 50MB");
-  }
-
-  const invalidImageTypes = images.filter((img) => !ALLOWED_IMAGE_TYPES.has(img.type));
-  if (invalidImageTypes.length > 0) {
-    errors.push("Only JPEG, PNG, and WebP images are supported");
-  }
+  const messages: Record<string, string> = {
+    "photos-required":
+      minRequired === 1
+        ? "At least one image is required"
+        : `At least ${minRequired} images are required`,
+    "media-count": "You can upload up to 10 photos and videos",
+    "media-type": "Only JPEG, PNG, WebP, MP4, and WebM are supported",
+    "media-size": "Photos must be 10MB or smaller; videos must be 20MB or smaller",
+    "audio-type": "Audio recordings must use an audio format",
+    "empty-media": "An attachment is empty. Please select it again",
+    "total-size": "All attachments together must be 50MB or smaller",
+  };
+  errors.push(
+    ...validateWorkAttachments(images, options.audioNotes, minRequired).map(
+      (code) => messages[code]
+    )
+  );
 
   return errors;
 }

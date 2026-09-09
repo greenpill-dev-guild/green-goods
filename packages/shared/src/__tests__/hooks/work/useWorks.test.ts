@@ -88,6 +88,7 @@ vi.mock("../../../config/react-query", () => ({
 }));
 
 vi.mock("../../../modules/app/logger", () => ({
+  createLogger: () => ({ debug: vi.fn(), warn: vi.fn(), error: vi.fn() }),
   logger: { warn: vi.fn(), error: vi.fn(), info: vi.fn() },
 }));
 

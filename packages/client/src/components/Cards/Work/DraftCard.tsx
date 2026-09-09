@@ -1,5 +1,5 @@
 import { cn } from "@green-goods/shared/utils/styles/cn";
-import type { DraftWithImages } from "@green-goods/shared/hooks/work/useDrafts";
+import { useDraftThumbnail, type DraftWithImages } from "@green-goods/shared/hooks/work/useDrafts";
 import { formatRelativeTime } from "@green-goods/shared/utils/relativeTime";
 import { RiDeleteBinLine, RiDraftLine, RiImageLine } from "@remixicon/react";
 import React from "react";
@@ -31,8 +31,9 @@ export const DraftCard: React.FC<DraftCardProps> = ({
 }) => {
   const intl = useIntl();
   const timeAgo = formatRelativeTime(draft.updatedAt);
-  const imageCount = draft.images.length;
-  const thumbUrl = draft.thumbnailUrl;
+  const imageCount = draft.attachmentCount ?? draft.images.length;
+  const thumbnail = useDraftThumbnail(draft);
+  const thumbUrl = draft.thumbnailUrl ?? thumbnail.url;
 
   // Determine step progress
   const stepProgress = getStepProgress(draft.firstIncompleteStep);
@@ -44,6 +45,7 @@ export const DraftCard: React.FC<DraftCardProps> = ({
 
   return (
     <div
+      ref={thumbnail.ref}
       className={cn(
         "relative flex items-stretch gap-0 overflow-hidden rounded-[var(--radius-lg)] border w-full cursor-pointer text-left tap-feedback transition-[background-color,border-color,box-shadow,transform] duration-[var(--spring-spatial-fast-duration)] ease-[var(--spring-spatial-fast-easing)] hover:border-warning-base hover:shadow-sm",
         pwaStatusStyles.warning.surface,

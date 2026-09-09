@@ -1,5 +1,5 @@
 import { AudioPlayer } from "@green-goods/shared/components/Audio/AudioPlayer";
-import { mediaResourceManager } from "@green-goods/shared/modules/job-queue/media-resource-manager";
+import { useWorkPreviewUrls } from "@green-goods/shared/hooks/work/useWorkImages";
 import { getWorkMediaId, isVideoFile } from "@green-goods/shared/modules/work/media-processing";
 import type { Action, Garden, WorkInput } from "@green-goods/shared/types/domain";
 import { formatTimeSpent } from "@green-goods/shared/utils/form/normalizers";
@@ -18,8 +18,6 @@ import { pwaStatusStyles } from "@/components/Pwa/statusStyles";
 import type { WorkCommitmentChoice } from "./WorkCommitmentSelection";
 
 /** Stable tracking ID for work draft media URLs (shared with Media.tsx) */
-const WORK_DRAFT_TRACKING_ID = "work-draft";
-const VIDEO_TRACKING_ID = "work-draft-video";
 
 function getDisplayLabel(input: WorkInput, value: string) {
   return input.optionLabels?.[value] ?? input.bandLabels?.[value] ?? value;
@@ -141,18 +139,8 @@ export const WorkReview: React.FC<WorkReviewProps> = ({
     [brokenMediaIds, images]
   );
 
-  // Stable URLs for photos (same tracking ID as Media.tsx)
-  const photoUrls = useMemo(
-    () =>
-      photoFiles.map((file) => mediaResourceManager.getOrCreateUrl(file, WORK_DRAFT_TRACKING_ID)),
-    [photoFiles]
-  );
-
-  // Stable URLs for videos
-  const videoUrls = useMemo(
-    () => videoFiles.map((file) => mediaResourceManager.getOrCreateUrl(file, VIDEO_TRACKING_ID)),
-    [videoFiles]
-  );
+  const photoUrls = useWorkPreviewUrls(photoFiles);
+  const videoUrls = useWorkPreviewUrls(videoFiles);
 
   return (
     <div className="flex flex-col gap-4">
@@ -253,9 +241,9 @@ export const WorkReview: React.FC<WorkReviewProps> = ({
             </section>
           ) : null
         }
-        onMediaError={(_mediaUrl, index) => {
+        onMediaError={(mediaUrl, index) => {
           const file = photoFiles[index];
-          if (file) onPreviewFailed?.(file, "review");
+          if (file && mediaUrl) onPreviewFailed?.(file, "review");
         }}
       />
 
@@ -272,7 +260,7 @@ export const WorkReview: React.FC<WorkReviewProps> = ({
             /* eslint-disable-next-line jsx-a11y/media-has-caption -- user-generated content */
             <video
               key={getWorkMediaId(videoFiles[index])}
-              src={url}
+              src={url || undefined}
               controls
               aria-label={intl.formatMessage({
                 id: "app.garden.review.video",
@@ -281,7 +269,7 @@ export const WorkReview: React.FC<WorkReviewProps> = ({
               className="w-full rounded-lg"
               onError={() => {
                 const file = videoFiles[index];
-                if (file) onPreviewFailed?.(file, "review");
+                if (file && url) onPreviewFailed?.(file, "review");
               }}
             >
               <track kind="captions" />

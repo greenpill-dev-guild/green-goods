@@ -157,8 +157,8 @@ export function PwaSheet({
         onClose();
       }
     };
-    document.addEventListener("keydown", handleKey);
-    return () => document.removeEventListener("keydown", handleKey);
+    document.addEventListener("keydown", handleKey, true);
+    return () => document.removeEventListener("keydown", handleKey, true);
   }, [mounted, onClose, open]);
 
   const handleOverlayClick = useCallback(

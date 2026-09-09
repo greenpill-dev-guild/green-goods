@@ -1,3 +1,4 @@
+import { deleteWorkDraft } from "../../modules/work/draft-lifecycle";
 /**
  * Work Drafts Hook
  *
@@ -7,17 +8,13 @@
  * @module hooks/work/useDrafts
  */
 
-import type { Address } from "../../types/domain";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useCallback, useState } from "react";
-import {
-  computeFirstIncompleteStep,
-  draftDB,
-  hasMeaningfulDraftDetails,
-} from "../../modules/job-queue/draft-db";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useWorkPreviewUrls } from "./useWorkImages";
+import { computeFirstIncompleteStep, draftDB } from "../../modules/job-queue/draft-db";
 import { useWorkFlowStore } from "../../stores/useWorkFlowStore";
 import { WorkTab } from "../../stores/workFlowTypes";
-import type { DraftStep, WorkDraftRecord } from "../../types/job-queue";
+import type { DraftStep, WorkDraftRecord, MissingDraftAttachment } from "../../types/job-queue";
 import type { WorkFormData } from "./useWorkForm";
 import { createDraftErrorHandler } from "../../utils/errors/mutation-error-handler";
 import { useUser } from "../auth/useUser";
@@ -40,22 +37,6 @@ function draftStepToWorkTab(step: DraftStep): WorkTab {
   }
 }
 
-/**
- * Map WorkTab to DraftStep
- */
-function workTabToDraftStep(tab: WorkTab): DraftStep {
-  switch (tab) {
-    case WorkTab.Intro:
-      return "intro";
-    case WorkTab.Media:
-      return "media";
-    case WorkTab.Details:
-      return "details";
-    case WorkTab.Review:
-      return "review";
-  }
-}
-
 export interface DraftWithImages extends WorkDraftRecord {
   images: Array<{ id: string; file: File; url: string }>;
   thumbnailUrl: string | null;
@@ -75,7 +56,10 @@ export function useDrafts() {
   const chainId = useCurrentChain();
 
   // Track the current active draft ID
-  const [activeDraftId, setActiveDraftId] = useState<string | null>(null);
+  const activeDraftId = useWorkFlowStore((state) => state.activeDraftId);
+  const setActiveDraftId = useCallback((id: string | null) => {
+    useWorkFlowStore.setState({ activeDraftId: id });
+  }, []);
 
   // Query: Get all drafts for user
   const {
@@ -89,26 +73,7 @@ export function useDrafts() {
 
       const rawDrafts = await draftDB.getDraftsForUser(userAddress, chainId);
 
-      // Load images for each draft
-      const draftsWithImages = await Promise.all(
-        rawDrafts.map(async (draft) => {
-          const images = await draftDB.getImagesForDraft(draft.id);
-          return {
-            ...draft,
-            images,
-            thumbnailUrl: images[0]?.url || null,
-          };
-        })
-      );
-
-      // Filter out drafts with no meaningful progress
-      return draftsWithImages.filter(
-        (draft) =>
-          draft.images.length > 0 ||
-          draft.feedback.trim().length > 0 ||
-          (draft.timeSpentMinutes ?? 0) > 0 ||
-          hasMeaningfulDraftDetails(draft.details)
-      );
+      return rawDrafts.map((draft) => ({ ...draft, images: [], thumbnailUrl: null }));
     },
     enabled: !!userAddress,
     staleTime: 1000 * 60, // 1 minute
@@ -154,12 +119,7 @@ export function useDrafts() {
 
   // Mutation: Delete draft
   const deleteDraftMutation = useMutation({
-    mutationFn: async (draftId: string) => {
-      await draftDB.deleteDraft(draftId);
-      if (activeDraftId === draftId) {
-        setActiveDraftId(null);
-      }
-    },
+    mutationFn: (draftId: string) => deleteWorkDraft(draftId),
     onSuccess: () => {
       queryClient.invalidateQueries({
         queryKey: draftsKeys.list(userAddress || "", chainId),
@@ -208,57 +168,47 @@ export function useDrafts() {
   });
 
   /**
-   * Create a new draft or get existing one for the current garden/action
-   */
-  const createOrGetDraft = useCallback(
-    async (gardenAddress: Address | null, actionUID: number | null): Promise<string> => {
-      if (!userAddress) throw new Error("User not authenticated");
-
-      // Check if there's already an active draft for this garden/action
-      const existingDrafts = await draftDB.getDraftsForUser(userAddress, chainId);
-      const existing = existingDrafts.find(
-        (d) => d.gardenAddress === gardenAddress && d.actionUID === actionUID
-      );
-
-      if (existing) {
-        setActiveDraftId(existing.id);
-        return existing.id;
-      }
-
-      // Create new draft
-      const draftId = await createDraftMutation.mutateAsync({
-        gardenAddress,
-        actionUID,
-        currentStep: "intro",
-        firstIncompleteStep: "intro",
-      });
-
-      return draftId;
-    },
-    [userAddress, chainId, createDraftMutation]
-  );
-
-  /**
    * Resume a draft - load it into WorkFlowStore and navigate to first incomplete step
    * @param draftId - The draft ID to resume
    * @param options - Optional configuration including AbortSignal for cancellation
    */
   const resumeDraft = useCallback(
     async (draftId: string, options?: ResumeDraftOptions): Promise<WorkTab> => {
-      // Check if already aborted before starting
-      options?.signal?.throwIfAborted();
+      const generation = useWorkFlowStore.getState().draftEpoch;
+      const checkCurrent = () => {
+        options?.signal?.throwIfAborted();
+        const state = useWorkFlowStore.getState();
+        if (
+          state.draftEpoch !== generation ||
+          (state.draftScope && state.draftScope !== `${userAddress?.toLowerCase()}:${chainId}`)
+        )
+          throw new DOMException("Draft changed", "AbortError");
+      };
+      checkCurrent();
 
       const draft = await draftDB.getDraft(draftId);
       if (!draft) throw new Error(`Draft ${draftId} not found`);
+      if (
+        !userAddress ||
+        draft.userAddress.toLowerCase() !== userAddress.toLowerCase() ||
+        draft.chainId !== chainId
+      )
+        throw new Error("draft-owner");
 
       // Check abort after async operation
       options?.signal?.throwIfAborted();
 
-      const images = await draftDB.getImagesForDraft(draftId);
-      const files = images.map((img) => img.file);
+      const missing: MissingDraftAttachment[] = [...(draft.missingAttachments ?? [])];
+      const images = await draftDB.getImagesForDraft(draftId, (attachment) => {
+        if (!missing.some((item) => item.id === attachment.id)) missing.push(attachment);
+      });
+      const files = images.filter((img) => img.kind !== "audio").map((img) => img.file);
 
       // Check abort after async operation
       options?.signal?.throwIfAborted();
+      checkCurrent();
+      await draftDB.setActiveDraft(userAddress, chainId, draftId);
+      checkCurrent();
 
       // Load draft data into WorkFlowStore
       const store = useWorkFlowStore.getState();
@@ -268,8 +218,12 @@ export function useDrafts() {
       store.setDetails(draft.details ?? {});
       store.setTimeSpentMinutes(draft.timeSpentMinutes);
       store.setImages(files);
+      store.setAudioNotes(images.filter((img) => img.kind === "audio").map((img) => img.file));
+      store.setTags(draft.tags ?? []);
+      useWorkFlowStore.setState({ location: draft.location, draftMissingAttachments: missing });
       options?.restoreForm?.({
         ...(draft.details ?? {}),
+        location: draft.location,
         feedback: draft.feedback,
         ...(typeof draft.timeSpentMinutes === "number"
           ? { timeSpentMinutes: draft.timeSpentMinutes / 60 }
@@ -286,48 +240,23 @@ export function useDrafts() {
 
       return targetTab;
     },
-    []
-  );
-
-  /**
-   * Sync current WorkFlowStore state to active draft
-   */
-  const syncToDraft = useCallback(
-    async (draftId?: string) => {
-      const targetDraftId = draftId || activeDraftId;
-      if (!targetDraftId) return;
-
-      const store = useWorkFlowStore.getState();
-
-      await updateDraftMutation.mutateAsync({
-        draftId: targetDraftId,
-        data: {
-          gardenAddress: store.gardenAddress,
-          actionUID: store.actionUID,
-          feedback: store.feedback,
-          details: store.details,
-          timeSpentMinutes: store.timeSpentMinutes,
-          currentStep: workTabToDraftStep(store.activeTab),
-        },
-      });
-
-      // Always sync images — including empty array to clear stale draft images
-      await setImagesMutation.mutateAsync({
-        draftId: targetDraftId,
-        files: store.images,
-      });
-    },
-    [activeDraftId, updateDraftMutation, setImagesMutation]
+    [userAddress, chainId, setActiveDraftId]
   );
 
   /**
    * Clear active draft on submission complete
    */
-  const clearActiveDraft = useCallback(async () => {
-    if (activeDraftId) {
-      await deleteDraftMutation.mutateAsync(activeDraftId);
-    }
-  }, [activeDraftId, deleteDraftMutation]);
+  const clearActiveDraft = useCallback(
+    async (mode: "discard" | "retire" = "discard") => {
+      const id = useWorkFlowStore.getState().activeDraftId;
+      if (!id) return;
+      await deleteWorkDraft(id, mode);
+      await queryClient.invalidateQueries({
+        queryKey: draftsKeys.list(userAddress || "", chainId),
+      });
+    },
+    [queryClient, userAddress, chainId]
+  );
 
   /**
    * Get active draft with images
@@ -342,7 +271,7 @@ export function useDrafts() {
     return {
       ...draft,
       images,
-      thumbnailUrl: images[0]?.url || null,
+      thumbnailUrl: images.find((image) => image.file.type.startsWith("image/"))?.url || null,
     };
   }, [activeDraftId]);
 
@@ -362,9 +291,7 @@ export function useDrafts() {
     setImages: setImagesMutation.mutateAsync,
 
     // High-level operations
-    createOrGetDraft,
     resumeDraft,
-    syncToDraft,
     clearActiveDraft,
     getActiveDraft,
     setActiveDraftId,
@@ -378,3 +305,41 @@ export function useDrafts() {
 }
 
 export type UseDraftsReturn = ReturnType<typeof useDrafts>;
+
+/** A mounted card loads one photo only while it is visible. */
+export function useDraftThumbnail(draft: WorkDraftRecord) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [visible, setVisible] = useState(false);
+  const [file, setFile] = useState<File | null>(null);
+  const latestDraft = useRef(draft);
+  latestDraft.current = draft;
+  const attachmentId = draft.thumbnail?.attachmentId;
+  const hash = draft.thumbnail?.contentHash;
+  useEffect(() => {
+    if (!ref.current) return;
+    if (typeof IntersectionObserver === "undefined") {
+      setVisible(true);
+      return;
+    }
+    const observer = new IntersectionObserver(([entry]) => setVisible(entry.isIntersecting));
+    observer.observe(ref.current);
+    return () => observer.disconnect();
+  }, []);
+  useEffect(() => {
+    let active = true;
+    setFile(null);
+    if (visible)
+      void draftDB
+        .getThumbnailFile(latestDraft.current)
+        .then((value) => {
+          if (active) setFile(value);
+        })
+        .catch(() => undefined);
+    return () => {
+      active = false;
+    };
+  }, [visible, draft.id, attachmentId, hash]);
+  const files = useMemo(() => (file ? [file] : []), [file]);
+  const urls = useWorkPreviewUrls(files);
+  return { ref, url: urls[0] ?? null };
+}

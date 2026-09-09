@@ -29,6 +29,7 @@ vi.mock("../../../modules/job-queue/draft-db", () => ({
     addImageToDraft: vi.fn(),
     removeImageFromDraft: vi.fn(),
     setImagesForDraft: vi.fn(),
+    setActiveDraft: vi.fn(),
   },
   computeFirstIncompleteStep: vi.fn(() => "intro"),
   hasMeaningfulDraftDetails: (details: Record<string, unknown> | undefined) =>
@@ -152,11 +153,12 @@ describe("useDrafts", () => {
       });
 
       expect(result.current.drafts[0].id).toBe("draft-1");
-      expect(result.current.drafts[0].images).toHaveLength(1);
-      expect(result.current.drafts[0].thumbnailUrl).toBe("blob:test");
+      expect(result.current.drafts[0].images).toHaveLength(0);
+      expect(mockDraftDB.getImagesForDraft).not.toHaveBeenCalled();
+      expect(result.current.drafts[0].thumbnailUrl).toBeNull();
     });
 
-    it("filters out drafts with no images and no feedback", async () => {
+    it("keeps every stored draft visible for explicit deletion", async () => {
       const emptyDraft = createMockDraftRecord({ feedback: "", id: "empty" });
       const goodDraft = createMockDraftRecord({ feedback: "Has feedback", id: "good" });
 
@@ -171,9 +173,7 @@ describe("useDrafts", () => {
         expect(result.current.isLoading).toBe(false);
       });
 
-      // Only the draft with feedback should be included
-      expect(result.current.drafts.length).toBe(1);
-      expect(result.current.drafts[0].id).toBe("good");
+      expect(result.current.drafts.map((draft) => draft.id)).toEqual(["empty", "good"]);
     });
 
     it("does not fetch drafts when user is not authenticated", async () => {
@@ -361,54 +361,6 @@ describe("useDrafts", () => {
 
   // ------------------------------------------
   // High-level: createOrGetDraft
-  // ------------------------------------------
-
-  describe("createOrGetDraft", () => {
-    it("returns existing draft if one matches garden + action", async () => {
-      const existingDraft = createMockDraftRecord({
-        id: "existing-draft",
-        gardenAddress: MOCK_ADDRESSES.garden,
-        actionUID: 1,
-      });
-      mockDraftDB.getDraftsForUser.mockResolvedValue([existingDraft]);
-
-      const { result } = renderHook(() => useDrafts(), {
-        wrapper: createWrapper(queryClient),
-      });
-
-      await waitFor(() => expect(result.current.isLoading).toBe(false));
-
-      let draftId: string;
-      await act(async () => {
-        draftId = await result.current.createOrGetDraft(MOCK_ADDRESSES.garden, 1);
-      });
-
-      expect(draftId!).toBe("existing-draft");
-      expect(mockDraftDB.createDraft).not.toHaveBeenCalled();
-    });
-
-    it("creates a new draft if no match exists", async () => {
-      mockDraftDB.getDraftsForUser.mockResolvedValue([]);
-      mockDraftDB.createDraft.mockResolvedValue("brand-new-draft");
-
-      const { result } = renderHook(() => useDrafts(), {
-        wrapper: createWrapper(queryClient),
-      });
-
-      await waitFor(() => expect(result.current.isLoading).toBe(false));
-
-      let draftId: string;
-      await act(async () => {
-        draftId = await result.current.createOrGetDraft(MOCK_ADDRESSES.garden, 2);
-      });
-
-      expect(draftId!).toBe("brand-new-draft");
-      expect(mockDraftDB.createDraft).toHaveBeenCalled();
-    });
-  });
-
-  // ------------------------------------------
-  // High-level: resumeDraft
   // ------------------------------------------
 
   describe("resumeDraft", () => {
@@ -608,4 +560,25 @@ describe("useDrafts", () => {
       expect(result.current.isDeleting).toBe(false);
     });
   });
+});
+
+import { useWorkFlowStore } from "../../../stores/useWorkFlowStore";
+it("deleting active work clears its evidence and invalidates saves", async () => {
+  mockDraftDB.getDraftsForUser.mockResolvedValue([]);
+  mockDraftDB.deleteDraft.mockResolvedValue(undefined);
+  useWorkFlowStore.getState().reset();
+  useWorkFlowStore.setState({
+    activeDraftId: "active",
+    draftScope: `${MOCK_ADDRESSES.user.toLowerCase()}:11155111`,
+    draftHydrated: true,
+    images: [createMockFile()],
+  });
+  const epoch = useWorkFlowStore.getState().draftEpoch;
+  const client = createQueryClient();
+  const { result } = renderHook(() => useDrafts(), { wrapper: createWrapper(client) });
+  await act(async () => {
+    await result.current.deleteDraft("active");
+  });
+  expect(useWorkFlowStore.getState().draftEpoch).toBeGreaterThan(epoch);
+  expect(useWorkFlowStore.getState().images).toEqual([]);
 });

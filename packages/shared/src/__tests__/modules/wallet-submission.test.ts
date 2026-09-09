@@ -157,6 +157,28 @@ describe("wallet-submission", () => {
       new File(["image2"], "image2.jpg", { type: "image/jpeg" }),
     ];
 
+    it("reconciles an already broadcast transaction before uploading or sending again", async () => {
+      mock(wagmiCore.waitForTransactionReceipt).mockResolvedValue({ status: "success" } as any);
+      await expect(
+        submitWorkDirectly(
+          mockWorkDraft,
+          "0xGardenAddress",
+          123,
+          "Test Action",
+          mockChainId,
+          mockImages,
+          {
+            checkpoint: {
+              submittedAt: "2026-09-09T00:00:00Z",
+              files: {},
+              transactionHash: "0x1234",
+            },
+          }
+        )
+      ).resolves.toBe("0x1234");
+      expect(encoders.encodeWorkData).not.toHaveBeenCalled();
+      expect(mockWalletClient.sendTransaction).not.toHaveBeenCalled();
+    });
     it("should successfully submit work when wallet is connected", async () => {
       // Setup mocks
       mock(wagmiCore.getWalletClient).mockResolvedValue(mockWalletClient as WalletClient);

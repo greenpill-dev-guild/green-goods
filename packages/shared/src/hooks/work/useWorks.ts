@@ -4,7 +4,7 @@ import { ZERO_ADDRESS } from "../../utils/blockchain/address-constants";
 import { GC_TIMES, STALE_TIMES } from "../../config/react-query";
 import { logger } from "../../modules/app/logger";
 import { getWorkApprovals, getWorks } from "../../modules/data/eas";
-import { jobQueueDB } from "../../modules/job-queue/db";
+import { useQueuedWorkPreviews } from "./useQueuedWorkPreviews";
 import { jobQueue } from "../../modules/job-queue/default-instance";
 import { jobQueueEventBus, useJobQueueEvents } from "../../modules/job-queue/event-bus";
 import {
@@ -75,6 +75,11 @@ export function jobToWork(job: Job<WorkJobPayload>): Work {
     gardenAddress: job.payload.gardenAddress,
     feedback: job.payload.feedback,
     metadata: JSON.stringify({
+      submissionState: job.meta?.workTransactionReverted
+        ? "reverted"
+        : job.payload.uploadCheckpoint?.transactionHash
+          ? "awaiting-confirmation"
+          : undefined,
       details: job.payload.details,
       timeSpentMinutes: job.payload.timeSpentMinutes,
       tags: job.payload.tags,
@@ -150,6 +155,8 @@ async function computeWorksWithStatus(
  * // Client PWA (with offline support)
  * const { works, isLoading, offlineCount } = useWorks(gardenId, { offline: true });
  */
+const NO_QUEUED_JOBS: Job[] = [];
+
 export function useWorks(gardenId: string, options: UseWorksOptions = {}) {
   const { offline = false } = options;
   const chainId = DEFAULT_CHAIN_ID;
@@ -221,8 +228,6 @@ export function useWorks(gardenId: string, options: UseWorksOptions = {}) {
       const offlineWorks = await Promise.all(
         safeOfflineJobs.map(async (job) => {
           const work = jobToWork(job as Job<WorkJobPayload>);
-          const images = await jobQueueDB.getImagesForJob(job.id);
-          work.media = images.map((img) => img.url);
           if (primaryAddress) {
             work.gardenerAddress = primaryAddress;
           }
@@ -281,6 +286,10 @@ export function useWorks(gardenId: string, options: UseWorksOptions = {}) {
     ],
   });
 
+  const queuedPreviews = useQueuedWorkPreviews(
+    offline ? (merged.offline.data ?? NO_QUEUED_JOBS) : NO_QUEUED_JOBS
+  );
+
   // Job queue event subscription for offline mode
   useJobQueueEvents(["job:completed"], (_eventType, data) => {
     if (offline && "job" in data && data.job.kind === "work") {
@@ -296,7 +305,9 @@ export function useWorks(gardenId: string, options: UseWorksOptions = {}) {
   // ─────────────────────────────────────────────────────────────────────────
   if (offline) {
     return {
-      works: (merged.merged.data ?? []) as Work[],
+      works: ((merged.merged.data ?? []) as Work[]).map((work) =>
+        queuedPreviews.has(work.id) ? { ...work, media: queuedPreviews.get(work.id)! } : work
+      ),
       isLoading: merged.merged.isLoading,
       isFetching: merged.online.isFetching || merged.merged.isFetching,
       isError: merged.online.isError || merged.merged.isError,

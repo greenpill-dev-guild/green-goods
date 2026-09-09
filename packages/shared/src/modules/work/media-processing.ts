@@ -1,3 +1,4 @@
+import { captureWorkFile } from "./work-attachments";
 export type WorkMediaSource = "camera" | "gallery";
 export type WorkMediaKind = "image" | "video" | "unknown";
 export type MediaRejectedReason = "unsupported" | "heic_conversion_failed";
@@ -164,7 +165,8 @@ export async function normalizeWorkMediaFiles(
   const rejected: RejectedWorkMediaFile[] = [];
   const converted: ConvertedWorkMediaFile[] = [];
 
-  for (const file of files) {
+  for (const pickedFile of files) {
+    const file = await captureWorkFile(pickedFile);
     if (isVideoFile(file) || isSupportedImage(file)) {
       accepted.push({
         file,
@@ -256,3 +258,5 @@ export async function prepareMediaForUpload(
       : [];
   return { files: [...asIs, ...compressed, ...videos], rejectedCount: normalized.rejected.length };
 }
+
+export { roundWorkLocation, validateWorkAttachments, validateWorkVideo } from "./work-attachments";

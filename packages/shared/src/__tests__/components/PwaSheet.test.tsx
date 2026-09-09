@@ -1,6 +1,6 @@
 /** @vitest-environment jsdom */
 
-import { act, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { PwaSheet } from "../../components/Dialog/PwaSheet";
 
@@ -35,5 +35,17 @@ describe("PwaSheet", () => {
 
     act(() => window.dispatchEvent(new Event("pagehide")));
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+  it("dismisses with Escape from a focused child control", () => {
+    const close = vi.fn();
+    render(
+      <PwaSheet open onClose={close} ariaLabel="Draft">
+        <button>Continue</button>
+      </PwaSheet>
+    );
+    const button = screen.getByRole("button", { name: "Continue" });
+    button.focus();
+    fireEvent.keyDown(button, { key: "Escape" });
+    expect(close).toHaveBeenCalledOnce();
   });
 });

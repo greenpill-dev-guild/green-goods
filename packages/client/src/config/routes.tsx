@@ -174,7 +174,7 @@ const combinedAppRoutes = [
 
           // Auth-protected routes.
           {
-            lazy: async () => ({ Component: (await import("@/routes/RequireAuth")).default }),
+            lazy: async () => ({ Component: (await import("@/routes/SessionGate")).default }),
             children: [
               {
                 lazy: async () => ({ Component: (await import("@/routes/AppShell")).default }),

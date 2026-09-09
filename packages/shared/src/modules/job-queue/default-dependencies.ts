@@ -1,3 +1,5 @@
+import { AwaitingWorkConfirmation, WorkTransactionReverted } from "../work/work-confirmation";
+import { InvalidWorkAttachmentError } from "../work/work-attachments";
 import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
 import { getOntologyChainMaturity } from "../../ontology/query";
 import type { ApprovalJobPayload, Job, WorkJobPayload } from "../../types/job-queue";
@@ -31,10 +33,30 @@ const browserLifecycle = createBrowserJobQueueLifecycle();
 
 function createDefaultExecutorRegistry() {
   const executors: Record<string, JobExecutor> = {
-    work: async (jobId, job, chainId, sender) => ({
-      status: "complete",
-      txHash: await executeWorkJob(jobId, job as Job<WorkJobPayload>, chainId, sender),
-    }),
+    work: async (jobId, job, chainId, sender) => {
+      try {
+        return {
+          status: "complete",
+          txHash: await executeWorkJob(jobId, job as Job<WorkJobPayload>, chainId, sender),
+        };
+      } catch (error) {
+        if (error instanceof AwaitingWorkConfirmation)
+          return { status: "waiting", reason: "awaiting-confirmation" };
+        if (error instanceof WorkTransactionReverted)
+          return { status: "unavailable", reason: "work-transaction-reverted" };
+        if (
+          error instanceof InvalidWorkAttachmentError ||
+          (error instanceof Error && error.name === "AbortError") ||
+          (typeof error === "object" && error !== null && "code" in error && error.code === 4001)
+        ) {
+          return {
+            status: "unavailable",
+            reason: error instanceof Error ? error.message : "cancelled",
+          };
+        }
+        throw error;
+      }
+    },
     approval: async (_jobId, job, chainId, sender) => ({
       status: "complete",
       txHash: await executeApprovalJob(job as Job<ApprovalJobPayload>, chainId, sender),

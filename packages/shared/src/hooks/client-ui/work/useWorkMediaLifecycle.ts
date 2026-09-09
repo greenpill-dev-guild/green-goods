@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { getSafeMediaMetadata, getWorkMediaId } from "../../../modules/work/media-processing";
 import type { AuthMode } from "../../../modules/auth/session";
-import { mediaResourceManager } from "../../../modules/job-queue/media-resource-manager";
 
 type MediaSurface = "media" | "review";
 type MediaJourneyEvent =
@@ -32,13 +31,6 @@ export function useWorkMediaLifecycle({
   useEffect(() => {
     brokenMediaIdsRef.current = brokenMediaIds;
   }, [brokenMediaIds]);
-  useEffect(
-    () => () => {
-      mediaResourceManager.cleanupUrls("work-draft");
-      mediaResourceManager.cleanupUrls("work-draft-video");
-    },
-    []
-  );
 
   const markMediaPreviewFailed = useCallback(
     (file: File, surface: MediaSurface) => {

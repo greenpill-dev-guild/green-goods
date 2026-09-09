@@ -1,128 +1,113 @@
-import { cn } from "@green-goods/shared/utils/styles/cn";
-import * as Dialog from "@radix-ui/react-dialog";
-import { RiArrowRightLine, RiCloseLine, RiDeleteBinLine, RiDraftLine } from "@remixicon/react";
-import type React from "react";
+import { PwaSheet } from "@green-goods/shared/components/Dialog/PwaSheet";
+import { RiCloseLine } from "@remixicon/react";
+import { createPortal } from "react-dom";
+import { useState } from "react";
 import { useIntl } from "react-intl";
 import { Button } from "@/components/Actions";
-import { pwaDrawerStyles } from "@/components/Pwa/drawerStyles";
-import { pwaStatusStyles } from "@/components/Pwa/statusStyles";
 
 interface DraftDialogProps {
   isOpen: boolean;
-  onContinue: () => void;
-  onStartFresh: () => void;
+  onContinue: () => void | Promise<void>;
+  onStartFresh: () => void | Promise<void>;
+  onClose?: () => void;
+  legacyRecovery?: boolean;
   imageCount: number;
 }
 
-/**
- * A dialog asking the user whether to continue a previous draft or start fresh.
- * Uses Radix Dialog for accessibility and proper focus management.
- */
-export const DraftDialog: React.FC<DraftDialogProps> = ({
+export function DraftDialog({
   isOpen,
   onContinue,
   onStartFresh,
-  imageCount,
-}) => {
+  onClose,
+  legacyRecovery = false,
+}: DraftDialogProps) {
   const intl = useIntl();
-
-  return (
-    <Dialog.Root open={isOpen} onOpenChange={(open) => !open && onContinue()}>
-      <Dialog.Portal>
-        <Dialog.Overlay
-          className={cn(
-            pwaDrawerStyles.dialogOverlay,
-            "data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 duration-[var(--spring-effects-duration)] ease-[var(--spring-effects-easing)]"
-          )}
-          data-testid="draft-dialog-overlay"
+  const [pending, setPending] = useState(false);
+  const [confirmDiscard, setConfirmDiscard] = useState(false);
+  const [failed, setFailed] = useState(false);
+  const title = intl.formatMessage({
+    id: confirmDiscard
+      ? "app.garden.draft.discardTitle"
+      : legacyRecovery
+        ? "app.garden.draft.recoverTitle"
+        : "app.garden.draft.title",
+  });
+  const run = async (action: () => void | Promise<void>) => {
+    setPending(true);
+    setFailed(false);
+    try {
+      await action();
+      setConfirmDiscard(false);
+    } catch {
+      setFailed(true);
+    } finally {
+      setPending(false);
+    }
+  };
+  const close = () => {
+    if (pending) return;
+    setConfirmDiscard(false);
+    setFailed(false);
+    onClose?.();
+  };
+  return createPortal(
+    <PwaSheet
+      open={isOpen}
+      onClose={close}
+      ariaLabel={title}
+      testId="draft-dialog"
+      dragToDismiss={!pending}
+    >
+      <div className="flex flex-col gap-4 p-4">
+        <div className="flex items-center justify-between gap-4">
+          <h2 className="text-lg font-semibold">{title}</h2>
+          <button
+            type="button"
+            onClick={close}
+            disabled={pending}
+            data-testid="pwa-sheet-close"
+            className="min-h-11 min-w-11"
+            aria-label={intl.formatMessage({ id: "app.garden.draft.close" })}
+          >
+            <RiCloseLine aria-hidden="true" />
+          </button>
+        </div>
+        <p className="text-sm text-text-sub-600">
+          {intl.formatMessage({
+            id: confirmDiscard
+              ? "app.garden.draft.discardDescription"
+              : legacyRecovery
+                ? "app.garden.draft.recoverDescription"
+                : "app.garden.draft.resumeDescription",
+          })}
+        </p>
+        {failed && <p role="alert">{intl.formatMessage({ id: "app.garden.draft.failed" })}</p>}
+        <Button
+          onClick={() => void run(confirmDiscard ? onStartFresh : onContinue)}
+          disabled={pending}
+          label={intl.formatMessage({
+            id: confirmDiscard
+              ? "app.garden.draft.discard"
+              : legacyRecovery
+                ? "app.garden.draft.recover"
+                : "app.garden.draft.continue",
+          })}
+          variant="primary"
+          mode="filled"
+          size="medium"
         />
-        <Dialog.Content
-          className={cn(
-            "fixed left-1/2 top-1/2 z-modal -translate-x-1/2 -translate-y-1/2",
-            "w-full max-w-sm p-0",
-            pwaDrawerStyles.dialogSurface,
-            "data-[state=open]:animate-in data-[state=closed]:animate-out",
-            "data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
-            "data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95",
-            "data-[state=closed]:slide-out-to-bottom-4 data-[state=open]:slide-in-from-bottom-4",
-            "duration-[var(--spring-spatial-duration)] ease-[var(--spring-spatial-easing)] focus:outline-none"
-          )}
-          data-testid="draft-dialog"
-        >
-          {/* Header */}
-          <div className="flex items-center justify-between p-4 border-b border-stroke-soft-200">
-            <Dialog.Title className="text-lg font-semibold text-text-strong-950">
-              {intl.formatMessage({
-                id: "app.garden.draft.title",
-                defaultMessage: "Continue Previous Work?",
-              })}
-            </Dialog.Title>
-            <Dialog.Close asChild>
-              <button
-                className={cn("p-1.5", pwaDrawerStyles.closeButtonBase)}
-                aria-label="Close"
-                type="button"
-              >
-                <RiCloseLine className={cn("w-5 h-5", pwaDrawerStyles.closeIcon)} />
-              </button>
-            </Dialog.Close>
-          </div>
-
-          {/* Content */}
-          <div className="p-4">
-            <div className="flex items-start gap-4 mb-6">
-              <div className={cn("p-3 rounded-full shrink-0", pwaStatusStyles.primary.surface)}>
-                <RiDraftLine className={cn("w-6 h-6", pwaStatusStyles.primary.icon)} />
-              </div>
-              <Dialog.Description className="text-sm text-text-sub-600 leading-relaxed">
-                {intl.formatMessage(
-                  {
-                    id: "app.garden.draft.description",
-                    defaultMessage:
-                      "You have an unfinished work submission{imageInfo}. Would you like to continue where you left off?",
-                  },
-                  {
-                    imageInfo:
-                      imageCount > 0
-                        ? ` with ${imageCount} ${imageCount === 1 ? "image" : "images"}`
-                        : "",
-                  }
-                )}
-              </Dialog.Description>
-            </div>
-
-            {/* Actions */}
-            <div className="flex flex-col gap-3">
-              <Button
-                onClick={onContinue}
-                label={intl.formatMessage({
-                  id: "app.garden.draft.continue",
-                  defaultMessage: "Continue Draft",
-                })}
-                variant="primary"
-                mode="filled"
-                size="medium"
-                shape="regular"
-                className="w-full"
-                trailingIcon={<RiArrowRightLine className="w-5 h-5" />}
-              />
-              <Button
-                onClick={onStartFresh}
-                label={intl.formatMessage({
-                  id: "app.garden.draft.startFresh",
-                  defaultMessage: "Start Fresh",
-                })}
-                variant="neutral"
-                mode="stroke"
-                size="medium"
-                shape="regular"
-                className="w-full"
-                leadingIcon={<RiDeleteBinLine className="w-5 h-5" />}
-              />
-            </div>
-          </div>
-        </Dialog.Content>
-      </Dialog.Portal>
-    </Dialog.Root>
+        <Button
+          onClick={() => setConfirmDiscard(!confirmDiscard)}
+          disabled={pending}
+          label={intl.formatMessage({
+            id: confirmDiscard ? "app.garden.draft.keep" : "app.garden.draft.startFresh",
+          })}
+          variant="neutral"
+          mode="stroke"
+          size="medium"
+        />
+      </div>
+    </PwaSheet>,
+    document.body
   );
-};
+}

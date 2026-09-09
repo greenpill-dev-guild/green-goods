@@ -1,407 +1,183 @@
-/**
- * useDraftAutoSave Hook Tests
- * @vitest-environment jsdom
- *
- * Tests the draft save-on-exit hook including meaningful progress detection,
- * save/create logic, error handling, and concurrent save prevention.
- */
-
+/** @vitest-environment jsdom */
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { act, renderHook, waitFor } from "@testing-library/react";
+import { act, cleanup, renderHook } from "@testing-library/react";
 import { createElement, type ReactNode } from "react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, afterEach, describe, expect, it, vi } from "vitest";
+import { useWorkFlowStore } from "../../../stores/useWorkFlowStore";
+import { useDraftAutoSave, useDraftSaveStatus } from "../../../hooks/work/useDraftAutoSave";
 
-import { createMockFile, MOCK_ADDRESSES } from "../../test-utils/mock-factories";
-
-// ============================================
-// Mocks
-// ============================================
-
-// Mock useDrafts return value
-const mockCreateDraft = vi.fn();
-const mockUpdateDraft = vi.fn();
-const mockSetImages = vi.fn();
-const mockRequestPersistentStorageOnce = vi.hoisted(() => vi.fn());
-let mockActiveDraftId: string | null = null;
-
-vi.mock("../../../hooks/work/useDrafts", () => ({
-  useDrafts: () => ({
-    activeDraftId: mockActiveDraftId,
-    createDraft: mockCreateDraft,
-    updateDraft: mockUpdateDraft,
-    setImages: mockSetImages,
-  }),
-}));
-
-vi.mock("../../../modules/app/logger", () => ({
-  logger: {
-    error: vi.fn(),
-    warn: vi.fn(),
-    info: vi.fn(),
-  },
-}));
-
-vi.mock("../../../modules/app/error-tracking", () => ({
-  trackStorageError: vi.fn(),
-}));
-
+const mocks = vi.hoisted(() => ({ save: vi.fn(), persistent: vi.fn() }));
 vi.mock("../../../hooks/auth/useUser", () => ({
-  useUser: () => ({ primaryAddress: MOCK_ADDRESSES.user }),
+  useUser: () => ({ primaryAddress: "0x1111111111111111111111111111111111111111" }),
 }));
-
-vi.mock("../../../hooks/blockchain/useChainConfig", () => ({
-  useCurrentChain: () => 11155111,
-}));
-
-vi.mock("../../../utils/errors/mutation-error-handler", () => ({
-  createDraftErrorHandler: () => vi.fn(),
-}));
-
+vi.mock("../../../hooks/blockchain/useChainConfig", () => ({ useCurrentChain: () => 11155111 }));
 vi.mock("../../../modules/job-queue/draft-db", () => ({
-  draftDB: {
-    getDraftsForUser: vi.fn().mockResolvedValue([]),
-    getImagesForDraft: vi.fn().mockResolvedValue([]),
-    createDraft: vi.fn().mockResolvedValue("mock-draft-id"),
-    updateDraft: vi.fn(),
-    getDraft: vi.fn(),
-    deleteDraft: vi.fn(),
-    addImageToDraft: vi.fn(),
-    removeImageFromDraft: vi.fn(),
-    setImagesForDraft: vi.fn(),
-  },
-  computeFirstIncompleteStep: vi.fn(() => "intro"),
-  hasMeaningfulDraftDetails: (details: Record<string, unknown> | undefined) =>
-    Boolean(details && Object.values(details).some((value) => value !== undefined && value !== "")),
+  draftDB: { saveSnapshot: mocks.save },
+  hasMeaningfulDraftDetails: (data: object) => Object.keys(data).length > 0,
 }));
-
-vi.mock("../../../utils/storage/quota", () => ({
-  requestPersistentStorageOnce: mockRequestPersistentStorageOnce,
-}));
-
-import { useDraftAutoSave } from "../../../hooks/work/useDraftAutoSave";
-
-// ============================================
-// Test helpers
-// ============================================
-
-function createWrapper(queryClient: QueryClient) {
-  return function Wrapper({ children }: { children: ReactNode }) {
-    return createElement(QueryClientProvider, { client: queryClient }, children);
-  };
+vi.mock("../../../utils/storage/quota", () => ({ requestPersistentStorageOnce: mocks.persistent }));
+const emptyImages: File[] = [];
+const base = { gardenAddress: null, actionUID: null, feedback: "draft", details: {} };
+let queryClient: QueryClient;
+function wrapper({ children }: { children: ReactNode }) {
+  return createElement(QueryClientProvider, { client: queryClient }, children);
 }
 
-function createQueryClient() {
-  return new QueryClient({
-    defaultOptions: {
-      queries: { retry: false },
-      mutations: { retry: false },
-    },
+beforeEach(() => {
+  queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  vi.useFakeTimers();
+  mocks.save.mockReset().mockResolvedValue({ id: "saved" });
+  useWorkFlowStore.getState().reset();
+  useWorkFlowStore.setState({
+    draftHydrated: true,
+    draftScope: "0x1111111111111111111111111111111111111111:11155111",
   });
-}
+});
+afterEach(() => {
+  cleanup();
+  useWorkFlowStore.setState((state) => ({ draftEpoch: state.draftEpoch + 1 }));
+  vi.useRealTimers();
+});
 
-function createFormData(overrides = {}) {
-  return {
-    gardenAddress: MOCK_ADDRESSES.garden,
-    actionUID: 1,
-    feedback: "",
-    details: {},
-    plantSelection: [] as string[],
-    plantCount: null as number | null,
-    timeSpentMinutes: 0,
-    ...overrides,
-  };
-}
-
-// ============================================
-// Tests
-// ============================================
-
-describe("useDraftAutoSave", () => {
-  let queryClient: QueryClient;
-
-  beforeEach(() => {
-    vi.clearAllMocks();
-    queryClient = createQueryClient();
-    mockActiveDraftId = null;
-    mockCreateDraft.mockResolvedValue("new-draft-id");
-    mockUpdateDraft.mockResolvedValue(undefined);
-    mockSetImages.mockResolvedValue(undefined);
+describe("complete draft autosave", () => {
+  it("does not write before hydration", async () => {
+    useWorkFlowStore.setState({ draftHydrated: false });
+    const { result } = renderHook(() => useDraftAutoSave(base, emptyImages), { wrapper });
+    await act(async () => {
+      await result.current.saveOnExit();
+      await vi.advanceTimersByTimeAsync(1000);
+    });
+    expect(mocks.save).not.toHaveBeenCalled();
   });
-
-  // ------------------------------------------
-  // hasMeaningfulProgress detection
-  // ------------------------------------------
-
-  describe("hasMeaningfulProgress", () => {
-    it("returns false when no images and no form data", () => {
-      const { result } = renderHook(() => useDraftAutoSave(createFormData(), undefined), {
-        wrapper: createWrapper(queryClient),
-      });
-
-      expect(result.current.hasMeaningfulProgress).toBe(false);
+  it("saves the initial snapshot and debounces subsequent text edits", async () => {
+    const { rerender } = renderHook(
+      ({ feedback }) => useDraftAutoSave({ ...base, feedback }, emptyImages),
+      { wrapper, initialProps: { feedback: "first" } }
+    );
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(1);
     });
-
-    it("returns true when images are present", () => {
-      const images = [createMockFile()];
-      const { result } = renderHook(() => useDraftAutoSave(createFormData(), images), {
-        wrapper: createWrapper(queryClient),
-      });
-
-      expect(result.current.hasMeaningfulProgress).toBe(true);
+    expect(mocks.save).toHaveBeenCalledTimes(1);
+    expect(useWorkFlowStore.getState().draftSaveState).toBe("saved");
+    rerender({ feedback: "latest" });
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(499);
     });
-
-    it("returns true when feedback is provided", () => {
-      const { result } = renderHook(
-        () => useDraftAutoSave(createFormData({ feedback: "Some work notes" }), undefined),
-        { wrapper: createWrapper(queryClient) }
-      );
-
-      expect(result.current.hasMeaningfulProgress).toBe(true);
+    expect(mocks.save).toHaveBeenCalledTimes(1);
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(1);
     });
-
-    it("returns true when time spent is non-zero", () => {
-      const { result } = renderHook(
-        () => useDraftAutoSave(createFormData({ timeSpentMinutes: 30 }), undefined),
-        { wrapper: createWrapper(queryClient) }
-      );
-
-      expect(result.current.hasMeaningfulProgress).toBe(true);
-    });
-
-    it("returns true when action-specific details are provided", () => {
-      const { result } = renderHook(
-        () =>
-          useDraftAutoSave(
-            createFormData({ details: { capacity: 10, sessionType: "Workshop" } }),
-            undefined
-          ),
-        { wrapper: createWrapper(queryClient) }
-      );
-
-      expect(result.current.hasMeaningfulProgress).toBe(true);
-    });
+    expect(mocks.save.mock.calls[1][3].feedback).toBe("latest");
+    expect(mocks.save.mock.calls[0][2]).toBe(mocks.save.mock.calls[1][2]);
   });
-
-  // ------------------------------------------
-  // saveOnExit
-  // ------------------------------------------
-
-  describe("saveOnExit", () => {
-    it("does not save when there is no meaningful progress", async () => {
-      const { result } = renderHook(() => useDraftAutoSave(createFormData(), undefined), {
-        wrapper: createWrapper(queryClient),
-      });
-
-      let savedId: string | null;
-      await act(async () => {
-        savedId = await result.current.saveOnExit();
-      });
-
-      expect(savedId!).toBeNull();
-      expect(mockCreateDraft).not.toHaveBeenCalled();
-      expect(mockUpdateDraft).not.toHaveBeenCalled();
-      expect(mockRequestPersistentStorageOnce).not.toHaveBeenCalled();
+  it("includes audio, updates the shared resumed ID, and propagates storage failure", async () => {
+    useWorkFlowStore.setState({ activeDraftId: "resumed" });
+    const audioNotes = [new File(["audio"], "note.webm", { type: "audio/webm" })];
+    const { result } = renderHook(() => useDraftAutoSave({ ...base, audioNotes }, emptyImages), {
+      wrapper,
     });
-
-    it("creates a new draft when no active draft and there is progress", async () => {
-      const images = [createMockFile()];
-
-      const { result } = renderHook(
-        () => useDraftAutoSave(createFormData({ feedback: "My work notes" }), images),
-        { wrapper: createWrapper(queryClient) }
-      );
-
-      let savedId: string | null;
-      await act(async () => {
-        savedId = await result.current.saveOnExit();
-      });
-
-      expect(savedId!).toBe("new-draft-id");
-      expect(mockCreateDraft).toHaveBeenCalledOnce();
-      expect(mockCreateDraft).toHaveBeenCalledWith(
-        expect.objectContaining({
-          details: expect.any(Object),
+    await act(async () => {
+      await result.current.saveOnExit();
+    });
+    expect(mocks.save.mock.calls[0][2]).toBe("resumed");
+    expect(mocks.save.mock.calls[0][5]).toBe(audioNotes);
+    mocks.save.mockRejectedValueOnce(new Error("quota"));
+    await act(async () => {
+      await expect(result.current.saveOnExit()).rejects.toThrow("quota");
+    });
+    expect(useWorkFlowStore.getState().draftSaveState).toBe("failed");
+  });
+  it("serializes overlapping snapshots instead of dropping the later save", async () => {
+    let release!: () => void;
+    mocks.save.mockImplementationOnce(
+      () =>
+        new Promise<void>((resolve) => {
+          release = resolve;
         })
-      );
-      expect(mockSetImages).toHaveBeenCalledWith({
-        draftId: "new-draft-id",
-        files: images,
-      });
-      expect(mockRequestPersistentStorageOnce).toHaveBeenCalledWith("work-draft");
+    );
+    const { result, rerender } = renderHook(
+      ({ feedback }) => useDraftAutoSave({ ...base, feedback }, emptyImages),
+      { wrapper, initialProps: { feedback: "first" } }
+    );
+    let first!: Promise<string | null>;
+    await act(async () => {
+      first = result.current.saveOnExit();
+      await Promise.resolve();
     });
-
-    it("updates existing draft when active draft exists", async () => {
-      mockActiveDraftId = "existing-draft";
-
-      const { result } = renderHook(
-        () => useDraftAutoSave(createFormData({ feedback: "Updated notes" }), [createMockFile()]),
-        { wrapper: createWrapper(queryClient) }
-      );
-
-      let savedId: string | null;
-      await act(async () => {
-        savedId = await result.current.saveOnExit();
-      });
-
-      expect(savedId!).toBe("existing-draft");
-      expect(mockUpdateDraft).toHaveBeenCalledWith(
-        expect.objectContaining({
-          draftId: "existing-draft",
-          data: expect.objectContaining({
-            feedback: "Updated notes",
-          }),
-        })
-      );
+    rerender({ feedback: "second" });
+    await act(async () => {
+      const second = result.current.saveOnExit();
+      release();
+      await Promise.all([first, second]);
     });
-
-    it("does not sync images when there are none", async () => {
-      const { result } = renderHook(
-        () => useDraftAutoSave(createFormData({ feedback: "Just feedback, no images" }), []),
-        { wrapper: createWrapper(queryClient) }
-      );
-
-      await act(async () => {
-        await result.current.saveOnExit();
-      });
-
-      expect(mockSetImages).not.toHaveBeenCalled();
-    });
-
-    it("does not save when disabled", async () => {
-      const { result } = renderHook(
-        () =>
-          useDraftAutoSave(createFormData({ feedback: "Has progress" }), [createMockFile()], {
-            enabled: false,
-          }),
-        { wrapper: createWrapper(queryClient) }
-      );
-
-      let savedId: string | null;
-      await act(async () => {
-        savedId = await result.current.saveOnExit();
-      });
-
-      expect(savedId!).toBeNull();
-      expect(mockCreateDraft).not.toHaveBeenCalled();
-    });
-
-    it("returns null and does not throw on save error", async () => {
-      mockCreateDraft.mockRejectedValue(new Error("IndexedDB full"));
-
-      const { result } = renderHook(
-        () => useDraftAutoSave(createFormData({ feedback: "Will fail" }), [createMockFile()]),
-        { wrapper: createWrapper(queryClient) }
-      );
-
-      let savedId: string | null;
-      await act(async () => {
-        savedId = await result.current.saveOnExit();
-      });
-
-      // Should gracefully handle the error
-      expect(savedId!).toBeNull();
-    });
-
-    it("prevents concurrent saves via isSavingRef", async () => {
-      // Make createDraft take a while
-      let resolveCreate!: (value: string) => void;
-      mockCreateDraft.mockReturnValue(
-        new Promise((resolve) => {
-          resolveCreate = resolve;
-        })
-      );
-
-      const { result } = renderHook(
-        () => useDraftAutoSave(createFormData({ feedback: "Saving" }), [createMockFile()]),
-        { wrapper: createWrapper(queryClient) }
-      );
-
-      // Start first save
-      const firstSave = (async () => {
-        let savedId: string | null = null;
-        await act(async () => {
-          savedId = await result.current.saveOnExit();
-        });
-        return savedId;
-      })();
-
-      // Try second save while first is in progress
-      let secondResult: string | null;
-      await act(async () => {
-        secondResult = await result.current.saveOnExit();
-      });
-
-      // Second save should be rejected (returns null)
-      expect(secondResult!).toBeNull();
-
-      // Resolve first save
-      resolveCreate("first-draft");
-      await firstSave;
-
-      // Only one create call
-      expect(mockCreateDraft).toHaveBeenCalledTimes(1);
-    });
+    expect(mocks.save.mock.calls.map((call) => call[3].feedback)).toEqual(["first", "second"]);
   });
-
-  // ------------------------------------------
-  // hasDraft and draftId
-  // ------------------------------------------
-
-  describe("state exposure", () => {
-    it("exposes hasDraft as false when no active draft", () => {
-      mockActiveDraftId = null;
-
-      const { result } = renderHook(() => useDraftAutoSave(createFormData(), undefined), {
-        wrapper: createWrapper(queryClient),
-      });
-
-      expect(result.current.hasDraft).toBe(false);
-      expect(result.current.draftId).toBeNull();
+  it("cancels a delayed text save after discard", async () => {
+    const { rerender } = renderHook(
+      ({ feedback }) => useDraftAutoSave({ ...base, feedback }, emptyImages),
+      { wrapper, initialProps: { feedback: "one" } }
+    );
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(1);
     });
-
-    it("exposes hasDraft as true when active draft exists", () => {
-      mockActiveDraftId = "active-123";
-
-      const { result } = renderHook(() => useDraftAutoSave(createFormData(), undefined), {
-        wrapper: createWrapper(queryClient),
-      });
-
-      expect(result.current.hasDraft).toBe(true);
-      expect(result.current.draftId).toBe("active-123");
+    rerender({ feedback: "two" });
+    act(() => {
+      useWorkFlowStore.getState().reset();
     });
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(1000);
+    });
+    expect(mocks.save).toHaveBeenCalledTimes(1);
   });
+});
 
-  // ------------------------------------------
-  // Ref tracking (stale closure prevention)
-  // ------------------------------------------
-
-  describe("ref tracking", () => {
-    it("uses latest form data on save via ref", async () => {
-      const initialData = createFormData({ feedback: "initial" });
-      const images = [createMockFile()];
-
-      const { result, rerender } = renderHook(
-        ({ formData, imgs }) => useDraftAutoSave(formData, imgs),
-        {
-          wrapper: createWrapper(queryClient),
-          initialProps: { formData: initialData, imgs: images },
-        }
-      );
-
-      // Update form data (simulating user typing)
-      const updatedData = createFormData({ feedback: "updated text" });
-      rerender({ formData: updatedData, imgs: images });
-
-      await act(async () => {
-        await result.current.saveOnExit();
-      });
-
-      // Should use the latest "updated text", not "initial"
-      expect(mockCreateDraft).toHaveBeenCalledWith(
-        expect.objectContaining({
-          feedback: "updated text",
-        })
+describe("missing attachment choices", () => {
+  it("reselection retains identity and order, and removal cannot revive an earlier missing entry", async () => {
+    vi.useRealTimers();
+    const { identifyWorkFile } = await import("../../../modules/work/work-attachments");
+    const first = new File(["first"], "first.jpg", { type: "image/jpeg" });
+    const last = new File(["last"], "last.jpg", { type: "image/jpeg" });
+    useWorkFlowStore.setState({
+      images: [first, last],
+      draftMissingAttachments: [
+        { id: "removed", name: "missing0.jpg", order: 0, kind: "media" },
+        { id: "replace", name: "missing2.jpg", order: 2, kind: "media" },
+      ],
+    });
+    const { result } = renderHook(() => useDraftSaveStatus());
+    await act(async () => {
+      await result.current.reselectMissingAttachment(
+        "replace",
+        new File(["replacement"], "new.jpg", { type: "image/jpeg" })
       );
     });
+    const state = useWorkFlowStore.getState();
+    expect(state.images.map((file) => file.name)).toEqual(["first.jpg", "new.jpg", "last.jpg"]);
+    expect((await identifyWorkFile(state.images[1])).id).toBe("replace");
+    act(() => result.current.removeMissingAttachment("removed"));
+    expect(useWorkFlowStore.getState().draftMissingAttachments).toEqual([]);
+    expect(useWorkFlowStore.getState().images.map((file) => file.name)).toEqual([
+      "first.jpg",
+      "new.jpg",
+      "last.jpg",
+    ]);
+  });
+  it("unreadable reselection leaves existing evidence and the recovery entry intact", async () => {
+    vi.useRealTimers();
+    const file = new File(["old"], "old.jpg", { type: "image/jpeg" });
+    useWorkFlowStore.setState({
+      images: [file],
+      draftMissingAttachments: [{ id: "missing", name: "lost.jpg", order: 1, kind: "media" }],
+    });
+    const bad = new File(["bad"], "bad.jpg", { type: "image/jpeg" });
+    bad.arrayBuffer = vi.fn().mockRejectedValue(new Error("revoked"));
+    const { result } = renderHook(() => useDraftSaveStatus());
+    await act(async () => {
+      await expect(result.current.reselectMissingAttachment("missing", bad)).rejects.toThrow(
+        "revoked"
+      );
+    });
+    expect(useWorkFlowStore.getState().images).toEqual([file]);
+    expect(useWorkFlowStore.getState().draftMissingAttachments[0].id).toBe("missing");
   });
 });

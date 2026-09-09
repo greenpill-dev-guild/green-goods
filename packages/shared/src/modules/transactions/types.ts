@@ -26,6 +26,10 @@ export interface TxResult {
   sponsored: boolean;
 }
 
+export interface TransactionSendOptions {
+  onBroadcast?: (hash: Hex) => Promise<void>;
+}
+
 /**
  * Unified interface for sending contract transactions.
  *
@@ -34,7 +38,7 @@ export interface TxResult {
  */
 export interface TransactionSender {
   /** Send a single contract call */
-  sendContractCall(call: ContractCall): Promise<TxResult>;
+  sendContractCall(call: ContractCall, options?: TransactionSendOptions): Promise<TxResult>;
 
   /** Send multiple calls in a batch (optional — check supportsBatching first) */
   sendBatch?(calls: ContractCall[]): Promise<TxResult>;
@@ -47,4 +51,15 @@ export interface TransactionSender {
 
   /** The auth mode this sender handles */
   readonly authMode: "passkey" | "embedded" | "wallet";
+}
+
+/** A receipt proved failure; retry must be an explicit decision. */
+export class TransactionRevertedError extends Error {
+  constructor(
+    readonly hash: Hex,
+    message = "Transaction reverted on chain. The action was not recorded."
+  ) {
+    super(message);
+    this.name = "TransactionRevertedError";
+  }
 }

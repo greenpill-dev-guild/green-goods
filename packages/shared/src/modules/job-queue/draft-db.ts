@@ -1,3 +1,7 @@
+import { saveDraftSnapshot } from "./draft-snapshot";
+import { computeFirstIncompleteStep, hasMeaningfulDraftDetails, type DraftDB } from "./draft-state";
+export { computeFirstIncompleteStep, hasMeaningfulDraftDetails } from "./draft-state";
+import { hashWorkBytes, restoreWorkFile, roundWorkLocation } from "../work/work-attachments";
 /**
  * Draft Database Module
  *
@@ -9,12 +13,7 @@
 
 import { type IDBPDatabase, openDB } from "idb";
 import type { Address } from "../../types/domain";
-import type {
-  DraftImage,
-  DraftStep,
-  SerializedFileData,
-  WorkDraftRecord,
-} from "../../types/job-queue";
+import type { DraftImage, SerializedFileData, WorkDraftRecord } from "../../types/job-queue";
 import {
   buildFileMetadata,
   deserializeFile,
@@ -25,54 +24,8 @@ import { trackPrivateQueueEvent } from "./job-analytics";
 import { mediaResourceManager } from "./media-resource-manager";
 
 const DB_NAME = "green-goods-drafts";
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 const MAX_DRAFTS_PER_USER = 20;
-
-interface DraftDB {
-  drafts: WorkDraftRecord;
-  draft_images: DraftImage;
-}
-
-function isMeaningfulDraftValue(value: unknown): boolean {
-  if (typeof value === "string") return value.trim().length > 0;
-  if (typeof value === "number") return Number.isFinite(value);
-  if (typeof value === "boolean") return true;
-  if (Array.isArray(value)) return value.some(isMeaningfulDraftValue);
-  if (value && typeof value === "object") {
-    return Object.values(value).some(isMeaningfulDraftValue);
-  }
-  return false;
-}
-
-export function hasMeaningfulDraftDetails(details: Record<string, unknown> | undefined): boolean {
-  return details ? Object.values(details).some(isMeaningfulDraftValue) : false;
-}
-
-/**
- * Compute the first incomplete step based on draft data
- */
-export function computeFirstIncompleteStep(
-  draft: Partial<WorkDraftRecord>,
-  hasImages: boolean
-): DraftStep {
-  // Step 1: Intro - needs garden and action selected
-  if (!draft.gardenAddress || draft.actionUID === null || draft.actionUID === undefined) {
-    return "intro";
-  }
-
-  // Step 2: Media - needs at least one image
-  if (!hasImages) {
-    return "media";
-  }
-
-  // Step 3: Details - needs feedback
-  if (!draft.feedback || draft.feedback.trim() === "") {
-    return "details";
-  }
-
-  // All steps complete, ready for review
-  return "review";
-}
 
 class DraftDatabase {
   private db: IDBPDatabase<DraftDB> | null = null;
@@ -82,6 +35,8 @@ class DraftDatabase {
 
     this.db = await openDB<DraftDB>(DB_NAME, DB_VERSION, {
       upgrade(db) {
+        if (!db.objectStoreNames.contains("active_drafts"))
+          db.createObjectStore("active_drafts", { keyPath: "scope" });
         // Create drafts store
         if (!db.objectStoreNames.contains("drafts")) {
           const draftsStore = db.createObjectStore("drafts", { keyPath: "id" });
@@ -105,6 +60,28 @@ class DraftDatabase {
     return this.db;
   }
 
+  async getActiveDraft(userAddress: string, chainId: number): Promise<string | null> {
+    const db = await this.init();
+    return (
+      (await db.get("active_drafts", `${userAddress.toLowerCase()}:${chainId}`))?.draftId ?? null
+    );
+  }
+
+  async setActiveDraft(
+    userAddress: string,
+    chainId: number,
+    draftId: string | null
+  ): Promise<void> {
+    const db = await this.init();
+    await db.put("active_drafts", { scope: `${userAddress.toLowerCase()}:${chainId}`, draftId });
+  }
+
+  async saveSnapshot(
+    ...args: Parameters<typeof saveDraftSnapshot> extends [unknown, ...infer Rest] ? Rest : never
+  ): Promise<WorkDraftRecord> {
+    return saveDraftSnapshot(await this.init(), ...args);
+  }
+
   /**
    * Create a new draft. Returns the draft ID.
    */
@@ -116,9 +93,6 @@ class DraftDatabase {
     >
   ): Promise<string> {
     const db = await this.init();
-
-    // Check draft count and enforce LRU limit
-    await this.enforceDraftLimit(userAddress, chainId);
 
     const id = crypto.randomUUID();
     const now = Date.now();
@@ -140,7 +114,26 @@ class DraftDatabase {
       updatedAt: now,
     };
 
-    await retryOnceAfterQuotaCleanup(() => db.add("drafts", draft));
+    await retryOnceAfterQuotaCleanup(async () => {
+      const tx = db.transaction("drafts", "readwrite");
+      try {
+        const owned = (await tx.store.getAll()).filter(
+          (item) => item.userAddress.toLowerCase() === userAddress.toLowerCase()
+        );
+        if (owned.filter((record) => record.chainId === chainId).length >= MAX_DRAFTS_PER_USER)
+          throw new Error("draft-limit");
+        await tx.store.add(draft);
+        await tx.done;
+      } catch (error) {
+        try {
+          tx.abort();
+        } catch {
+          /* Already aborted. */
+        }
+        await tx.done.catch(() => undefined);
+        throw error;
+      }
+    });
     return id;
   }
 
@@ -152,24 +145,34 @@ class DraftDatabase {
     data: Partial<Omit<WorkDraftRecord, "id" | "userAddress" | "chainId" | "createdAt">>
   ): Promise<void> {
     const db = await this.init();
-    const existing = await db.get("drafts", draftId);
-
-    if (!existing) {
-      throw new Error(`Draft ${draftId} not found`);
-    }
-
-    // Get images to compute firstIncompleteStep
-    const images = await this.getImagesForDraft(draftId);
-    const hasImages = images.length > 0;
-
-    const updated: WorkDraftRecord = {
-      ...existing,
-      ...data,
-      firstIncompleteStep: computeFirstIncompleteStep({ ...existing, ...data }, hasImages),
-      updatedAt: Date.now(),
-    };
-
-    await retryOnceAfterQuotaCleanup(() => db.put("drafts", updated));
+    await retryOnceAfterQuotaCleanup(async () => {
+      const tx = db.transaction(["drafts", "draft_images"], "readwrite");
+      try {
+        const store = tx.objectStore("drafts");
+        const existing = await store.get(draftId);
+        if (!existing) throw new Error(`Draft ${draftId} not found`);
+        const attachments = await tx.objectStore("draft_images").index("draftId").getAll(draftId);
+        const updated = { ...existing, ...data, updatedAt: Date.now() };
+        updated.location = roundWorkLocation(updated.location);
+        updated.details = Object.fromEntries(
+          Object.entries(updated.details ?? {}).filter(([key]) => key !== "_location")
+        );
+        updated.firstIncompleteStep = computeFirstIncompleteStep(
+          updated,
+          attachments.some((entry) => entry.kind !== "audio")
+        );
+        await store.put(updated);
+        await tx.done;
+      } catch (error) {
+        try {
+          tx.abort();
+        } catch {
+          /* Already aborted. */
+        }
+        await tx.done.catch(() => undefined);
+        throw error;
+      }
+    });
   }
 
   /**
@@ -186,8 +189,9 @@ class DraftDatabase {
   async getDraftsForUser(userAddress: string, chainId: number): Promise<WorkDraftRecord[]> {
     const db = await this.init();
     const tx = db.transaction("drafts", "readonly");
-    const index = tx.objectStore("drafts").index("userAddress");
-    const userDrafts = await index.getAll(userAddress);
+    const userDrafts = (await tx.objectStore("drafts").getAll()).filter(
+      (item) => item.userAddress.toLowerCase() === userAddress.toLowerCase()
+    );
 
     // Filter by chainId and sort by updatedAt descending
     return userDrafts
@@ -202,19 +206,33 @@ class DraftDatabase {
     const db = await this.init();
 
     // Delete images first
-    const images = await this.getImagesForDraft(draftId);
-    const tx = db.transaction(["drafts", "draft_images"], "readwrite");
+    const tx = db.transaction(["drafts", "draft_images", "active_drafts"], "readwrite");
+    try {
+      const images = await tx.objectStore("draft_images").index("draftId").getAll(draftId);
+      const draft = await tx.objectStore("drafts").get(draftId);
+      if (draft) {
+        const scope = `${draft.userAddress.toLowerCase()}:${draft.chainId}`;
+        const active = await tx.objectStore("active_drafts").get(scope);
+        if (active?.draftId === draftId) await tx.objectStore("active_drafts").delete(scope);
+      }
 
-    for (const image of images) {
-      mediaResourceManager.cleanupUrl(image.url);
-      await tx.objectStore("draft_images").delete(image.id);
+      for (const image of images) {
+        await tx.objectStore("draft_images").delete(image.id);
+      }
+
+      await tx.objectStore("drafts").delete(draftId);
+      await tx.done;
+      for (const image of images) if (image.url) mediaResourceManager.cleanupUrl(image.url);
+      mediaResourceManager.cleanupUrls(draftId);
+    } catch (error) {
+      try {
+        tx.abort();
+      } catch {
+        /* Already completed or aborted. */
+      }
+      await tx.done.catch(() => undefined);
+      throw error;
     }
-
-    // Clean up all URLs for this draft
-    mediaResourceManager.cleanupUrls(draftId);
-
-    await tx.objectStore("drafts").delete(draftId);
-    await tx.done;
   }
 
   /**
@@ -225,7 +243,6 @@ class DraftDatabase {
   async addImageToDraft(draftId: string, file: File): Promise<string> {
     const db = await this.init();
     const imageId = crypto.randomUUID();
-    const url = mediaResourceManager.createUrl(file, draftId);
 
     // Serialize file BEFORE storing to avoid iOS Safari DOMException
     let fileData: SerializedFileData;
@@ -243,7 +260,6 @@ class DraftDatabase {
         id: imageId,
         draftId,
         fileData, // Store serialized data instead of File
-        url,
         createdAt: Date.now(),
       } as DraftImage;
       await retryOnceAfterQuotaCleanup(() => db.add("draft_images", image));
@@ -277,7 +293,7 @@ class DraftDatabase {
     const image = await db.get("draft_images", imageId);
 
     if (image) {
-      mediaResourceManager.cleanupUrl(image.url);
+      if (image.url) mediaResourceManager.cleanupUrl(image.url);
       await db.delete("draft_images", imageId);
 
       // Update draft's updatedAt and firstIncompleteStep
@@ -298,24 +314,75 @@ class DraftDatabase {
    * Get images for a draft.
    * Deserializes stored file data back to File objects.
    */
+  async getThumbnailFile(draft: WorkDraftRecord): Promise<File | null> {
+    const db = await this.init();
+    if (draft.thumbnail === null) return null;
+    let image = draft.thumbnail
+      ? await db.get("draft_images", draft.thumbnail.attachmentId)
+      : undefined;
+    if (!draft.thumbnail) {
+      // Legacy rows lack a summary reference. Stop at the first photo instead of restoring the draft.
+      let cursor = await db.transaction("draft_images").store.index("draftId").openCursor(draft.id);
+      while (cursor) {
+        if ((cursor.value.fileData?.type ?? cursor.value.file?.type)?.startsWith("image/")) {
+          image = cursor.value;
+          break;
+        }
+        cursor = await cursor.continue();
+      }
+    }
+    if (!image || image.draftId !== draft.id) return null;
+    const data = image.fileData?.data
+      ? image.fileData
+      : await serializeFile(deserializeFile(image, draft.id, image.id));
+    return restoreWorkFile(data, image.id, image.contentHash ?? (await hashWorkBytes(data.data)));
+  }
+
   async getImagesForDraft(
-    draftId: string
-  ): Promise<Array<{ id: string; file: File; url: string }>> {
+    draftId: string,
+    onUnreadable?: (attachment: import("../../types/job-queue").MissingDraftAttachment) => void
+  ): Promise<Array<{ id: string; file: File; url: string; kind: "media" | "audio" }>> {
     const db = await this.init();
     const tx = db.transaction("draft_images", "readonly");
     const index = tx.objectStore("draft_images").index("draftId");
     const images = await index.getAll(draftId);
 
     // Deserialize files from IndexedDB format back to File objects
-    return images.map((img) => {
-      const file = deserializeFile(img, `draft-${draftId}`, img.id);
+    const restored = await Promise.all(
+      images
+        .sort((a, b) => (a.order ?? a.createdAt) - (b.order ?? b.createdAt))
+        .map(async (img) => {
+          try {
+            if (!img.fileData?.data && !img.file) throw new Error("unreadable-media");
+            const fileData = img.fileData?.data
+              ? img.fileData
+              : await serializeFile(deserializeFile(img, `draft-${draftId}`, img.id));
+            if (!fileData.data.byteLength) throw new Error("unreadable-media");
+            const file = restoreWorkFile(
+              fileData,
+              img.id,
+              img.contentHash ?? (await hashWorkBytes(fileData.data))
+            );
 
-      return {
-        id: img.id,
-        file,
-        url: mediaResourceManager.getOrCreateUrl(file, draftId),
-      };
-    });
+            return {
+              id: img.id,
+              kind: img.kind ?? "media",
+              file,
+              url: "",
+            };
+          } catch (error) {
+            if (!onUnreadable) throw error;
+            onUnreadable({
+              id: img.id,
+              name: img.fileData?.name ?? img.file?.name ?? img.id,
+              order: img.order ?? 0,
+              kind: img.kind ?? "media",
+            });
+            return null;
+          }
+        })
+    );
+    return restored.filter((item): item is NonNullable<typeof item> => item !== null);
   }
 
   /**
@@ -336,11 +403,10 @@ class DraftDatabase {
     }
 
     const timestamp = Date.now();
-    const replacementImages = serializedFiles.map(({ file, fileData }) => ({
+    const replacementImages = serializedFiles.map(({ fileData }) => ({
       id: crypto.randomUUID(),
       draftId,
       fileData,
-      url: mediaResourceManager.createUrl(file, draftId),
       createdAt: timestamp,
     })) as DraftImage[];
     let committedPreviousImages: DraftImage[] = [];
@@ -380,7 +446,9 @@ class DraftDatabase {
         }
       });
     } catch (storeError) {
-      replacementImages.forEach((image) => mediaResourceManager.cleanupUrl(image.url));
+      replacementImages.forEach((image) => {
+        if (image.url) mediaResourceManager.cleanupUrl(image.url);
+      });
       files.forEach((file) => {
         trackPrivateQueueEvent("job_queue_draft_storage_failed", {
           ...buildFileMetadata(file),
@@ -390,22 +458,9 @@ class DraftDatabase {
     }
 
     // Old object URLs remain valid until the replacement transaction commits.
-    committedPreviousImages.forEach((image) => mediaResourceManager.cleanupUrl(image.url));
-  }
-
-  /**
-   * Enforce the max drafts limit (LRU by updatedAt)
-   */
-  private async enforceDraftLimit(userAddress: string, chainId: number): Promise<void> {
-    const drafts = await this.getDraftsForUser(userAddress, chainId);
-
-    if (drafts.length >= MAX_DRAFTS_PER_USER) {
-      // Delete oldest drafts (already sorted by updatedAt desc)
-      const draftsToDelete = drafts.slice(MAX_DRAFTS_PER_USER - 1);
-      for (const draft of draftsToDelete) {
-        await this.deleteDraft(draft.id);
-      }
-    }
+    committedPreviousImages.forEach((image) => {
+      if (image.url) mediaResourceManager.cleanupUrl(image.url);
+    });
   }
 
   /**

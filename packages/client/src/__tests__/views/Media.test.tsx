@@ -36,6 +36,8 @@ vi.mock("@green-goods/shared/utils/styles/cn", () => ({
 }));
 
 vi.mock("@green-goods/shared/modules/work/media-processing", () => ({
+  validateWorkAttachments: () => [],
+  validateWorkVideo: async () => true,
   getWorkMediaId: (file: File) => `media-${file.name}-${file.size}-${file.lastModified}`,
   isVideoFile: (file: File) => file.type.startsWith("video/"),
   getSafeMediaBatchMetadata: (files: File[]) => ({
@@ -130,7 +132,7 @@ vi.mock("@green-goods/shared/modules/job-queue/media-resource-manager", () => ({
 
 vi.mock("@green-goods/shared/utils/work/image-compression", () => ({
   imageCompressor: {
-    shouldCompress: () => false,
+    shouldCompress: vi.fn(() => false),
     compressImages: vi.fn().mockImplementation((files: File[]) => Promise.resolve(files)),
     getCompressionStats: vi.fn().mockReturnValue({}),
   },
@@ -167,6 +169,7 @@ vi.mock("@/components/Features", () => ({
 }));
 
 // Import after mocks
+import { imageCompressor } from "@green-goods/shared/utils/work/image-compression";
 import { getWorkMediaId } from "@green-goods/shared/modules/work/media-processing";
 import { WorkMedia } from "../../views/Garden/Media";
 
@@ -423,9 +426,11 @@ describe("WorkMedia", () => {
     await waitFor(() => {
       expect(screen.getByRole("img", { name: /uploaded 1/i })).toBeInTheDocument();
     });
-    expect(screen.getByRole("img", { name: /uploaded 1/i })).toHaveAttribute(
-      "src",
-      "blob:mock-url-garden.jpg"
+    await waitFor(() =>
+      expect(screen.getByRole("img", { name: /uploaded 1/i })).toHaveAttribute(
+        "src",
+        "blob:mock-url-garden.jpg"
+      )
     );
   });
 
@@ -436,6 +441,7 @@ describe("WorkMedia", () => {
     renderWithIntl(<StatefulWorkMedia initialImages={[good, broken]} />);
 
     const images = screen.getAllByRole("img");
+    await waitFor(() => expect(images[1]).toHaveAttribute("src", "blob:mock-url-broken.jpg"));
     fireEvent.error(images[1]);
 
     expect(await screen.findByText("Some media previews failed")).toBeInTheDocument();
@@ -466,5 +472,27 @@ describe("WorkMedia", () => {
     fireEvent.click(screen.getByRole("button", { name: "Remove media 2" }));
 
     expect(onRemoveMedia).toHaveBeenCalledWith(second, "media");
+  });
+  it("retains the independent original when compression fails", async () => {
+    vi.mocked(imageCompressor.shouldCompress).mockReturnValueOnce(true);
+    vi.mocked(imageCompressor.compressImages).mockRejectedValueOnce(
+      new Error("compression failed")
+    );
+    const setImages = vi.fn();
+    renderWithIntl(
+      <WorkMedia
+        images={[]}
+        setImages={setImages}
+        audioNotes={[]}
+        setAudioNotes={mockSetAudioNotes}
+        minRequired={1}
+      />
+    );
+    const file = new File(["photo"], "saved.jpg", { type: "image/jpeg" });
+    fireEvent.change(document.getElementById("work-media-upload")!, {
+      target: { files: fileListFrom([file]) },
+    });
+    await waitFor(() => expect(setImages).toHaveBeenCalled());
+    expect(setImages.mock.calls[0][0]([])[0].name).toBe("saved.jpg");
   });
 });

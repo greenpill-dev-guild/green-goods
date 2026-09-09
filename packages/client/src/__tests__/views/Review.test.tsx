@@ -5,7 +5,7 @@
  * generates media URLs for images, renders audio notes, and shows dynamic details.
  */
 
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { createElement } from "react";
 import { IntlProvider } from "react-intl";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -218,15 +218,15 @@ describe("WorkReview", () => {
     );
   });
 
-  it("generates media URLs for photo files via mediaResourceManager", () => {
+  it("generates media URLs for photo files via mediaResourceManager", async () => {
     const photo1 = new File(["img1"], "photo1.jpg", { type: "image/jpeg" });
     const photo2 = new File(["img2"], "photo2.jpg", { type: "image/jpeg" });
 
     renderReview({ images: [photo1, photo2] });
 
-    expect(mockGetOrCreateUrl).toHaveBeenCalledTimes(2);
-    expect(mockGetOrCreateUrl).toHaveBeenCalledWith(photo1, "work-draft");
-    expect(mockGetOrCreateUrl).toHaveBeenCalledWith(photo2, "work-draft");
+    await waitFor(() => expect(mockGetOrCreateUrl).toHaveBeenCalledTimes(2));
+    expect(mockGetOrCreateUrl).toHaveBeenCalledWith(photo1, expect.any(String), expect.any(String));
+    expect(mockGetOrCreateUrl).toHaveBeenCalledWith(photo2, expect.any(String), expect.any(String));
     expect(screen.getByTestId("review-media-count")).toHaveTextContent("2");
   });
 
@@ -279,12 +279,13 @@ describe("WorkReview", () => {
     expect(screen.getByText("Audio notes")).toBeInTheDocument();
   });
 
-  it("reports Review photo preview failures by file identity", () => {
+  it("reports Review photo preview failures by file identity", async () => {
     const photo = new File(["img"], "photo.jpg", { type: "image/jpeg" });
     const onPreviewFailed = vi.fn();
 
     renderReview({ images: [photo], onPreviewFailed });
 
+    await waitFor(() => expect(mockGetOrCreateUrl).toHaveBeenCalled());
     fireEvent.click(screen.getByTestId("trigger-review-media-error"));
 
     expect(onPreviewFailed).toHaveBeenCalledWith(photo, "review");

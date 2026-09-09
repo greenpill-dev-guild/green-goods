@@ -1,43 +1,27 @@
-import { beforeEach, describe, expect, it } from "vitest";
-
+import { expect, it, vi } from "vitest";
 import { mediaResourceManager } from "../../modules/job-queue/media-resource-manager";
+it("never reuses a revoked file URL", () => {
+  let n = 0;
+  URL.createObjectURL = vi.fn(() => `blob:cleanup-${++n}`);
+  URL.revokeObjectURL = vi.fn();
+  const file = new File(["bytes"], "photo.jpg", { type: "image/jpeg" });
+  const first = mediaResourceManager.getOrCreateUrl(file, "cleanup-test");
+  mediaResourceManager.cleanupFile(file);
+  const next = mediaResourceManager.getOrCreateUrl(file, "cleanup-test");
+  mediaResourceManager.cleanupUrls("cleanup-test");
+  expect(next).not.toBe(first);
+});
 
-describe("modules/job-queue/media-resource-manager", () => {
-  beforeEach(() => {
-    // Fresh manager state is fine; methods handle empty
+it("drops cached file references even when the browser rejects revocation", () => {
+  URL.createObjectURL = vi.fn().mockReturnValueOnce("blob:old").mockReturnValueOnce("blob:new");
+  URL.revokeObjectURL = vi.fn(() => {
+    throw new Error("already invalid");
   });
-
-  it("creates and cleans up URLs for single file", () => {
-    const file = new File(["x"], "x.jpg", { type: "image/jpeg" });
-    const url = mediaResourceManager.createUrl(file, "job-1");
-    expect(typeof url).toBe("string");
-
-    mediaResourceManager.cleanupUrl(url);
-    // cleanup is silent; ensure stats reflect cleanup
-    const stats = mediaResourceManager.getStats();
-    expect(stats.totalUrls).toBeGreaterThanOrEqual(0);
-  });
-
-  it("tracks and cleans up by tracking id", () => {
-    const files = [
-      new File(["a"], "a.png", { type: "image/png" }),
-      new File(["b"], "b.png", { type: "image/png" }),
-    ];
-    const urls = mediaResourceManager.createUrls(files, "job-xyz");
-    expect(urls.length).toBe(2);
-
-    mediaResourceManager.cleanupUrls("job-xyz");
-    const stats = mediaResourceManager.getStats();
-    expect(stats.trackedIds).toBeGreaterThanOrEqual(0);
-  });
-
-  it("cleanupAll clears all tracked urls", () => {
-    const f1 = new File(["1"], "1.jpg", { type: "image/jpeg" });
-    const f2 = new File(["2"], "2.jpg", { type: "image/jpeg" });
-    mediaResourceManager.createUrl(f1, "job-a");
-    mediaResourceManager.createUrl(f2, "job-b");
-    mediaResourceManager.cleanupAll();
-    const stats = mediaResourceManager.getStats();
-    expect(stats.totalUrls).toBe(0);
-  });
+  const file = new File(["bytes"], "photo.jpg", { type: "image/jpeg" });
+  const first = mediaResourceManager.getOrCreateUrl(file, "failed-revoke", "id:hash");
+  mediaResourceManager.cleanupUrl(first);
+  expect(mediaResourceManager.getStats().totalUrls).toBe(0);
+  expect(mediaResourceManager.getOrCreateUrl(file, "failed-revoke", "id:hash")).toBe("blob:new");
+  mediaResourceManager.cleanupAll();
+  expect(mediaResourceManager.getStats()).toEqual({ totalUrls: 0, trackedIds: 0 });
 });

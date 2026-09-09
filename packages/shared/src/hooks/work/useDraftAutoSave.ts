@@ -1,21 +1,22 @@
-/**
- * Draft Save Hook
- *
- * Manages draft saving when user exits the garden flow.
- * Drafts are only created/saved when explicitly triggered (on exit),
- * not automatically when images are added or form data changes.
- *
- * @module hooks/work/useDraftAutoSave
- */
-
-import type { Address } from "../../types/domain";
+import {
+  captureWorkFile,
+  identifyWorkFile,
+  restoreWorkFile,
+  validateWorkAttachments,
+  validateWorkVideo,
+} from "../../modules/work/work-attachments";
+import { normalizeWorkMediaFiles } from "../../modules/work/media-processing";
+import { queueDraftWrite } from "../../modules/work/draft-lifecycle";
+import { useCallback, useEffect, useRef } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import type { Address, ApproximateWorkLocation } from "../../types/domain";
 import type { DraftStep } from "../../types/job-queue";
-import { useCallback, useEffect, useMemo, useRef } from "react";
-import { trackStorageError } from "../../modules/app/error-tracking";
-import { logger } from "../../modules/app/logger";
-import { hasMeaningfulDraftDetails } from "../../modules/job-queue/draft-db";
+import { draftDB, hasMeaningfulDraftDetails } from "../../modules/job-queue/draft-db";
+import { useWorkFlowStore } from "../../stores/useWorkFlowStore";
 import { requestPersistentStorageOnce } from "../../utils/storage/quota";
-import { useDrafts } from "./useDrafts";
+import { useUser } from "../auth/useUser";
+import { useCurrentChain } from "../blockchain/useChainConfig";
+import { draftsKeys } from "../../config/query-keys/misc";
 
 interface DraftFormData {
   gardenAddress: Address | null;
@@ -24,161 +25,247 @@ interface DraftFormData {
   details: Record<string, unknown>;
   timeSpentMinutes?: number;
   currentStep?: DraftStep;
+  tags?: string[];
+  audioNotes?: File[];
+  location?: ApproximateWorkLocation;
 }
 
-interface UseDraftAutoSaveOptions {
-  /** Whether draft saving is enabled */
-  enabled?: boolean;
-}
-
-/**
- * Check if there's meaningful progress worth saving as a draft
- */
-function hasMeaningfulProgress(formData: DraftFormData, imageCount: number): boolean {
-  // Images are the strongest indicator of progress
-  if (imageCount > 0) return true;
-
-  // Any form input, including action-specific details, indicates progress.
-  const hasFormInput =
-    formData.feedback.trim().length > 0 ||
-    (formData.timeSpentMinutes ?? 0) > 0 ||
-    hasMeaningfulDraftDetails(formData.details);
-
-  return hasFormInput;
-}
-
-/**
- * Hook for managing draft saves on exit from garden flow.
- *
- * Drafts are NOT created automatically when images are added.
- * Instead, call `saveOnExit()` when the user navigates away from
- * the garden flow to persist their progress.
- *
- * @example
- * ```tsx
- * const { saveOnExit, hasMeaningfulProgress } = useDraftAutoSave(
- *   { gardenAddress, actionUID, feedback },
- *   images
- * );
- *
- * // Call when user navigates away
- * const handleBack = async () => {
- *   await saveOnExit();
- *   navigate('/home');
- * };
- * ```
- */
 export function useDraftAutoSave(
   formData: DraftFormData,
   images: File[] | undefined,
-  options: UseDraftAutoSaveOptions = {}
+  options: { enabled?: boolean } = {}
 ) {
-  const { enabled = true } = options;
-  // Handle undefined images array - memoize to prevent unnecessary re-renders
-  const safeImages = useMemo(() => images ?? [], [images]);
+  const { primaryAddress: userAddress } = useUser();
+  const chainId = useCurrentChain();
+  const queryClient = useQueryClient();
+  const deleting = useWorkFlowStore((state) => state.draftDeleting);
+  const hydrated = useWorkFlowStore((state) => state.draftHydrated);
+  const completed = useWorkFlowStore((state) => state.submissionCompleted);
+  const activeDraftId = useWorkFlowStore((state) => state.activeDraftId);
+  const missing = useWorkFlowStore((state) => state.draftMissingAttachments);
+  const epoch = useWorkFlowStore((state) => state.draftEpoch);
+  const latest = useRef({ formData, images: images ?? [], missing });
+  if (
+    latest.current.missing !== missing ||
+    latest.current.images !== images ||
+    latest.current.formData.audioNotes !== formData.audioNotes ||
+    JSON.stringify({ ...latest.current.formData, audioNotes: undefined }) !==
+      JSON.stringify({ ...formData, audioNotes: undefined })
+  ) {
+    latest.current = { formData, images: images ?? [], missing };
+  }
+  const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const enabled = options.enabled !== false && hydrated && !deleting && !completed && !!userAddress;
 
-  const { activeDraftId, createDraft, updateDraft, setImages: setDraftImages } = useDrafts();
-
-  // Track if a save is in progress to avoid overlapping saves
-  const isSavingRef = useRef(false);
-
-  // Use ref for formData and images so the callback always reads the latest
-  // values without being recreated on every render (stale closure prevention)
-  const formDataRef = useRef(formData);
-  useEffect(() => {
-    formDataRef.current = formData;
-  }, [formData]);
-
-  const imagesRef = useRef(safeImages);
-  useEffect(() => {
-    imagesRef.current = safeImages;
-  }, [safeImages]);
-
-  /**
-   * Save draft on exit - creates a new draft or updates existing one.
-   * Only saves if there's meaningful progress (images or form data).
-   *
-   * @returns The draft ID if saved, null otherwise
-   */
   const saveOnExit = useCallback(async (): Promise<string | null> => {
-    if (!enabled || isSavingRef.current) return null;
-
-    const currentFormData = formDataRef.current;
-    const currentImages = imagesRef.current;
-
-    // Only save if there's meaningful progress
-    if (!hasMeaningfulProgress(currentFormData, currentImages.length)) {
+    clearTimeout(timer.current);
+    if (!enabled || !userAddress) return null;
+    const snapshot = latest.current;
+    const state = useWorkFlowStore.getState();
+    const scope = `${userAddress.toLowerCase()}:${chainId}`;
+    const generation = epoch;
+    const isCurrent = () => {
+      const current = useWorkFlowStore.getState();
+      return (
+        current.draftEpoch === generation &&
+        current.draftScope === scope &&
+        !current.draftDeleting &&
+        !current.submissionCompleted
+      );
+    };
+    if (!isCurrent()) return null;
+    const { audioNotes = [], ...fields } = snapshot.formData;
+    const meaningful =
+      snapshot.images.length > 0 ||
+      audioNotes.length > 0 ||
+      !!fields.gardenAddress ||
+      fields.actionUID !== null ||
+      fields.feedback.trim() ||
+      hasMeaningfulDraftDetails(fields.details) ||
+      (fields.timeSpentMinutes ?? 0) > 0;
+    if (!state.activeDraftId && !meaningful) {
+      useWorkFlowStore.setState({ draftSaveState: "idle" });
       return null;
     }
-
-    isSavingRef.current = true;
-
-    try {
-      let draftId = activeDraftId;
-
-      // Create a new draft if we don't have one
-      if (!draftId) {
-        draftId = await createDraft({
-          gardenAddress: currentFormData.gardenAddress,
-          actionUID: currentFormData.actionUID,
-          feedback: currentFormData.feedback,
-          details: currentFormData.details,
-          timeSpentMinutes: currentFormData.timeSpentMinutes,
-          currentStep: currentFormData.currentStep ?? "intro",
-          firstIncompleteStep: "intro",
-        });
-      } else {
-        // Update existing draft
-        await updateDraft({
+    const draftId = state.activeDraftId ?? crypto.randomUUID();
+    useWorkFlowStore.setState({
+      activeDraftId: draftId,
+      draftSaveState: "saving",
+      draftError: null,
+    });
+    const task = queueDraftWrite(async () => {
+      if (!isCurrent()) return null;
+      try {
+        const saved = await draftDB.saveSnapshot(
+          userAddress,
+          chainId,
           draftId,
-          data: {
-            gardenAddress: currentFormData.gardenAddress,
-            actionUID: currentFormData.actionUID,
-            feedback: currentFormData.feedback,
-            details: currentFormData.details,
-            timeSpentMinutes: currentFormData.timeSpentMinutes,
-            ...(currentFormData.currentStep ? { currentStep: currentFormData.currentStep } : {}),
-          },
+          fields,
+          snapshot.images,
+          audioNotes,
+          isCurrent,
+          snapshot.missing
+        );
+        if (isCurrent() && latest.current === snapshot)
+          useWorkFlowStore.setState({ draftSaveState: "saved" });
+        if (isCurrent())
+          void queryClient.invalidateQueries({ queryKey: draftsKeys.list(userAddress, chainId) });
+        if (saved?.legacySourceId) {
+          const { finishLegacyRecovery } = await import("../../modules/work/legacy-draft-recovery");
+          await finishLegacyRecovery(saved);
+        }
+        void requestPersistentStorageOnce("work-draft");
+        return draftId;
+      } catch (error) {
+        if (!isCurrent() || (error instanceof DOMException && error.name === "AbortError"))
+          return null;
+        useWorkFlowStore.setState({
+          draftSaveState: "failed",
+          draftError: error instanceof Error ? error.message : "draft-save-failed",
         });
+        throw error;
       }
+    });
+    return task;
+  }, [enabled, userAddress, chainId, queryClient, epoch]);
 
-      // Sync images if there are any
-      if (draftId && currentImages.length > 0) {
-        await setDraftImages({ draftId, files: currentImages });
-      }
+  useEffect(() => {
+    clearTimeout(timer.current);
+  }, [epoch]);
 
-      if (draftId) void requestPersistentStorageOnce("work-draft");
+  const fieldsKey = JSON.stringify({ ...formData, audioNotes: undefined });
+  const immediateKey = `${formData.gardenAddress}:${formData.actionUID}:${formData.currentStep}:${JSON.stringify(formData.location)}:${JSON.stringify(formData.tags)}`;
+  const prior = useRef<
+    | { key: string; images: File[] | undefined; audio: File[] | undefined; missing: string }
+    | undefined
+  >(undefined);
+  const effectEpoch = useRef(epoch);
+  const missingKey = missing.map((item) => item.id).join(":");
+  useEffect(() => {
+    const generationChanged = effectEpoch.current !== epoch;
+    effectEpoch.current = epoch;
+    if (!enabled || generationChanged) return;
+    const previous = prior.current;
+    const immediate =
+      !previous ||
+      previous.key !== immediateKey ||
+      previous.images !== images ||
+      previous.audio !== formData.audioNotes ||
+      previous.missing !== missingKey;
+    prior.current = { key: immediateKey, images, audio: formData.audioNotes, missing: missingKey };
+    clearTimeout(timer.current);
+    useWorkFlowStore.setState({ draftSaveState: "saving" });
+    timer.current = setTimeout(
+      () => {
+        void saveOnExit().catch(() => undefined);
+      },
+      immediate ? 0 : 500
+    );
+    return () => clearTimeout(timer.current);
+  }, [
+    enabled,
+    fieldsKey,
+    immediateKey,
+    images,
+    formData.audioNotes,
+    missingKey,
+    saveOnExit,
+    epoch,
+  ]);
 
-      return draftId;
-    } catch (error) {
-      logger.error("Failed to save draft on exit", { source: "useDraftAutoSave", error });
-      trackStorageError(error, {
-        source: "useDraftAutoSave.saveOnExit",
-        userAction: "saving draft on navigation exit",
-        recoverable: true,
-        metadata: {
-          draft_id: activeDraftId,
-          has_images: currentImages.length > 0,
-          image_count: currentImages.length,
-          garden_address: currentFormData.gardenAddress,
-          action_uid: currentFormData.actionUID,
-          has_feedback: currentFormData.feedback.length > 0,
-        },
-      });
-      return null;
-    } finally {
-      isSavingRef.current = false;
-    }
-  }, [enabled, activeDraftId, createDraft, updateDraft, setDraftImages]);
+  useEffect(() => {
+    const flush = () => {
+      void saveOnExit().catch(() => undefined);
+    };
+    const onVisibility = () => {
+      if (document.visibilityState === "hidden") flush();
+    };
+    window.addEventListener("pagehide", flush);
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => {
+      window.removeEventListener("pagehide", flush);
+      document.removeEventListener("visibilitychange", onVisibility);
+      clearTimeout(timer.current);
+      flush();
+    };
+  }, [saveOnExit]);
 
   return {
-    /** Save draft when exiting the flow (only if there's meaningful progress) */
     saveOnExit,
-    /** Whether there's an active draft */
     hasDraft: !!activeDraftId,
-    /** Current draft ID */
     draftId: activeDraftId,
-    /** Whether there's meaningful progress worth saving */
-    hasMeaningfulProgress: hasMeaningfulProgress(formData, safeImages.length),
+    hasMeaningfulProgress: !!activeDraftId,
+  };
+}
+
+export function useDraftSaveStatus() {
+  const saveState = useWorkFlowStore((state) => state.draftSaveState);
+  const error = useWorkFlowStore((state) => state.draftError);
+  const missingAttachments = useWorkFlowStore((state) => state.draftMissingAttachments);
+  return {
+    saveState,
+    error,
+    missingAttachments,
+    reselectMissingAttachment: async (id: string, pickerFile: File) => {
+      const before = useWorkFlowStore.getState();
+      const missing = before.draftMissingAttachments.find((item) => item.id === id);
+      if (!missing) return;
+      try {
+        let file = await captureWorkFile(pickerFile);
+        if (missing.kind !== "audio") {
+          const normalized = await normalizeWorkMediaFiles([file]);
+          if (normalized.accepted.length !== 1) throw new Error("media-type");
+          file = normalized.accepted[0].file;
+          if (file.type.startsWith("video/") && !(await validateWorkVideo(file)))
+            throw new Error("video-duration");
+        }
+        const identity = await identifyWorkFile(file);
+        const replacement = restoreWorkFile(identity.fileData, id, identity.contentHash);
+        const current = useWorkFlowStore.getState();
+        if (
+          current.draftEpoch !== before.draftEpoch ||
+          current.draftScope !== before.draftScope ||
+          !current.draftMissingAttachments.some((item) => item.id === id)
+        )
+          return;
+        const field = missing.kind === "audio" ? "audioNotes" : "images";
+        const files = [...current[field]];
+        const earlierMissing = current.draftMissingAttachments.filter(
+          (item) => item.order < missing.order
+        ).length;
+        files.splice(
+          Math.max(
+            0,
+            missing.order - earlierMissing - (field === "audioNotes" ? current.images.length : 0)
+          ),
+          0,
+          replacement
+        );
+        if (
+          validateWorkAttachments(
+            field === "images" ? files : current.images,
+            field === "audioNotes" ? files : current.audioNotes
+          ).length
+        )
+          throw new Error("invalid-attachment");
+        useWorkFlowStore.setState({
+          [field]: files,
+          draftMissingAttachments: current.draftMissingAttachments.filter((item) => item.id !== id),
+          draftSaveState: "saving",
+          draftError: null,
+        });
+      } catch (error) {
+        if (useWorkFlowStore.getState().draftEpoch === before.draftEpoch)
+          useWorkFlowStore.setState({
+            draftSaveState: "failed",
+            draftError: error instanceof Error ? error.message : "invalid-attachment",
+          });
+        throw error;
+      }
+    },
+    removeMissingAttachment: (id: string) =>
+      useWorkFlowStore.setState((state) => ({
+        draftMissingAttachments: state.draftMissingAttachments.filter((item) => item.id !== id),
+      })),
   };
 }

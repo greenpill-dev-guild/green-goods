@@ -1,5 +1,5 @@
 /**
- * RequireAuth Route Guard Tests
+ * SessionGate Route Guard Tests
  *
  * Tests the authentication route guard behavior.
  */
@@ -16,8 +16,8 @@ vi.mock("@green-goods/shared/hooks/auth/useAuth", () => ({
   useAuthState: () => mockUseAuthState(),
 }));
 
-// Import after mocks
-import RequireAuth from "../../routes/RequireAuth";
+// Import the route gate after its auth dependency is mocked.
+import SessionGate from "../../routes/SessionGate";
 
 const ProtectedContent = () => createElement("div", null, "Protected Content");
 const LoginPage = () => {
@@ -40,7 +40,7 @@ const renderWithRouter = (initialRoute = "/protected") => {
         createElement(Route, { path: "/home/login", element: createElement(LoginPage) }),
         createElement(
           Route,
-          { element: createElement(RequireAuth) },
+          { element: createElement(SessionGate) },
           createElement(Route, { path: "/protected", element: createElement(ProtectedContent) })
         )
       )
@@ -48,7 +48,7 @@ const renderWithRouter = (initialRoute = "/protected") => {
   );
 };
 
-describe("RequireAuth", () => {
+describe("SessionGate", () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });

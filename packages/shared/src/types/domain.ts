@@ -1,3 +1,5 @@
+import type { ApproximateWorkLocation, WorkUploadCheckpoint } from "./work-media";
+export type { ApproximateWorkLocation, WorkUploadCheckpoint } from "./work-media";
 /**
  * Green Goods Domain Types
  *
@@ -363,23 +365,12 @@ export type WorkDisplayStatus =
  * This is the form input shape before processing/submission.
  * Generalized to support all 22 actions across 4 domains.
  *
- * @example
- * ```typescript
- * const submission: WorkSubmission = {
- *   actionUID: 1,
- *   title: "Cleanup Event",
- *   timeSpentMinutes: 90,
- *   feedback: "Collected lots of plastic",
- *   media: [photoFile1, photoFile2],
- *   details: { participantsCount: 12, amountRemovedKg: 32.5 },
- *   tags: ["riverbank", "plastic"],
- * };
- * ```
- *
  * @see WorkDraftRecord for the persisted draft state in IndexedDB
  * @see Work for the final on-chain work record
  */
 export interface WorkSubmission {
+  location?: ApproximateWorkLocation;
+  uploadCheckpoint?: WorkUploadCheckpoint;
   actionUID: number;
   title: string;
   /** Time spent on the work in minutes (required for all actions) */
@@ -428,6 +419,7 @@ export interface Work extends WorkCard {
  * Stored as JSON on IPFS, CID referenced in EAS attestation.
  */
 export interface WorkMetadata {
+  attachments?: Array<{ cid: string; type: string }>;
   schemaVersion: "work_metadata_v2";
   domain: Domain;
   actionSlug: string;
@@ -438,7 +430,7 @@ export interface WorkMetadata {
   clientWorkId: string;
   submittedAt: string;
   /** Optional GPS location (coarse, user-triggered) */
-  location?: { lat: number; lng: number; accuracy: number } | null;
+  location?: ApproximateWorkLocation | null;
 }
 
 /**

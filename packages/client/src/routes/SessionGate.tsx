@@ -2,7 +2,7 @@ import { useAuthState } from "@green-goods/shared/hooks/auth/useAuth";
 import { Navigate, Outlet, useLocation } from "react-router-dom";
 import { APP_ROUTES } from "@/config/pwaRouting";
 
-export default function RequireAuth() {
+export default function SessionGate() {
   const { isReady, isAuthenticated } = useAuthState();
   const location = useLocation();
 

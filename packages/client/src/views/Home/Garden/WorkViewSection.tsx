@@ -420,6 +420,7 @@ export const WorkViewSection: React.FC<WorkViewSectionProps> = ({
       actionTitle={actionTitle}
       media={media}
       audioNoteCids={audioNoteCids}
+      mediaTypes={resolveMetadata(workMetadata)?.attachments?.map((attachment) => attachment.type)}
       details={allDetails}
       fulfills={fulfills}
       isDetailsLoading={isDetailsLoading}

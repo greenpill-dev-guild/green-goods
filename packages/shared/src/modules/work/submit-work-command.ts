@@ -1,12 +1,19 @@
+import {
+  AwaitingWorkConfirmation,
+  WorkTransactionReverted,
+  reconcileWorkTransaction,
+} from "./work-confirmation";
 import { parseContractError } from "../../utils/errors/contract-errors";
 import { getActionTitle } from "../../utils/action/parsers";
-import type { Action, Address, Work, WorkDraft } from "../../types/domain";
+import type { Action, Address, Work, WorkDraft, WorkUploadCheckpoint } from "../../types/domain";
 import type { JobQueueHandle, ProcessJobResult } from "../job-queue/ports";
 import type { TransactionSender } from "../transactions/types";
 import type { SimulateWorkSubmissionParams, SimulationDeps } from "./simulate";
 import { WorkSubmissionError, type WalletSubmissionStage } from "./wallet-submission/types";
 
 export interface SubmitWorkCommand {
+  onBroadcast?: (hash: `0x${string}`) => Promise<void>;
+  onCheckpoint?: (checkpoint: WorkUploadCheckpoint) => Promise<void>;
   /** Supplied by a resumed journey; otherwise generated once before choosing a transport. */
   clientWorkId?: string;
   authMode: "wallet" | "passkey" | "embedded" | null;
@@ -34,6 +41,7 @@ interface QueuedWorkSubmission {
 }
 
 export interface SubmitWorkPorts {
+  reconcile?: typeof reconcileWorkTransaction;
   newClientWorkId?: () => string;
   connectivity: { isOnline: () => boolean };
   clock: { now: () => number };
@@ -56,7 +64,7 @@ export interface SubmitWorkPorts {
 export type SubmitWorkOutcome =
   | { kind: "direct"; txHash: `0x${string}`; sponsored: false; clientWorkId: string }
   | {
-      kind: "queued";
+      kind: "queued" | "awaiting-confirmation";
       txHash: `0x${string}`;
       sponsored: boolean;
       jobId: string;
@@ -93,8 +101,27 @@ function resolveCommand(command: SubmitWorkCommand): ResolvedSubmitWorkCommand {
 
 /** Genuine connectivity failures may fall back to the durable queue. */
 export function isNetworkError(error: unknown): boolean {
-  if (error instanceof WorkSubmissionError && error.phase === "upload") {
+  const reason = error instanceof Error && error.cause ? error.cause : error;
+  if (
+    reason &&
+    typeof reason === "object" &&
+    (("name" in reason && reason.name === "AbortError") ||
+      ("code" in reason && reason.code === 4001))
+  )
     return false;
+  if (error instanceof WorkSubmissionError && error.phase === "upload") {
+    const cause = error.cause;
+    const status =
+      cause && typeof cause === "object" && "status" in cause ? Number(cause.status) : 0;
+    const message =
+      cause instanceof Error ? cause.message.toLowerCase() : error.message.toLowerCase();
+    return (
+      [408, 429].includes(status) ||
+      status >= 500 ||
+      /network|fetch|timeout|timed out|socket|connection|gateway|\b408\b|\b429\b|\b5\d\d\b/.test(
+        message
+      )
+    );
   }
 
   const originalError =
@@ -163,6 +190,44 @@ export async function submitWork(
   });
   const online = ports.connectivity.isOnline();
 
+  const awaitConfirmation = async (): Promise<SubmitWorkOutcome> => {
+    if (!resolved.allowOfflineQueue)
+      throw new AwaitingWorkConfirmation(resolved.draft.uploadCheckpoint!.transactionHash!);
+    const queued = await ports.queue.enqueue(resolved);
+    return {
+      ...queuedOutcome(queued, ports.sender),
+      kind: "awaiting-confirmation",
+    } as SubmitWorkOutcome;
+  };
+  const checkpoint = resolved.draft.uploadCheckpoint;
+  if (checkpoint?.transactionHash) {
+    if (checkpoint.transactionReverted) {
+      delete checkpoint.transactionHash;
+      delete checkpoint.transactionReverted;
+      await resolved.onCheckpoint?.(checkpoint);
+    } else {
+      const state = online
+        ? await (ports.reconcile ?? reconcileWorkTransaction)(
+            checkpoint.transactionHash,
+            resolved.chainId
+          )
+        : "unresolved";
+      if (state === "confirmed")
+        return {
+          kind: "direct",
+          txHash: checkpoint.transactionHash,
+          sponsored: false,
+          clientWorkId: resolved.clientWorkId,
+        };
+      if (state === "reverted") {
+        checkpoint.transactionReverted = true;
+        await resolved.onCheckpoint?.(checkpoint);
+        throw new WorkTransactionReverted(checkpoint.transactionHash);
+      }
+      return awaitConfirmation();
+    }
+  }
+
   if (resolved.authMode === "wallet") {
     if (!online) {
       if (!resolved.allowOfflineQueue) {
@@ -175,6 +240,18 @@ export async function submitWork(
       const txHash = await ports.direct.submitWork(resolved, ports.onWalletStage);
       return { kind: "direct", txHash, sponsored: false, clientWorkId: resolved.clientWorkId };
     } catch (error) {
+      if (error instanceof WorkTransactionReverted) {
+        if (resolved.draft.uploadCheckpoint) {
+          resolved.draft.uploadCheckpoint.transactionReverted = true;
+          await resolved.onCheckpoint?.(resolved.draft.uploadCheckpoint);
+        }
+        throw error;
+      }
+      if (
+        resolved.draft.uploadCheckpoint?.transactionHash ||
+        error instanceof AwaitingWorkConfirmation
+      )
+        return awaitConfirmation();
       if (!isNetworkError(error)) throw error;
       if (!resolved.allowOfflineQueue) throw error;
       await ports.onQueueFallback?.(buildOptimisticWork(resolved, ports.clock));
@@ -202,9 +279,16 @@ export async function submitWork(
   const queued = await ports.queue.enqueue(resolved);
   if (online && ports.sender) {
     const processed = await ports.queue.process(queued.jobId, ports.sender);
+    // Queue admission is already durable. Failed execution stays in that queue
+    // for retry; returning it retires the editable draft instead of enqueueing again.
     if (!processed.success && processed.error && !processed.skipped) {
-      throw new Error(processed.error);
+      return queuedOutcome(queued, ports.sender);
     }
+    if (processed.error === "awaiting-confirmation")
+      return {
+        ...queuedOutcome(queued, ports.sender),
+        kind: "awaiting-confirmation",
+      } as SubmitWorkOutcome;
     if (processed.success && processed.txHash) {
       return {
         kind: "processed",
@@ -259,7 +343,13 @@ export function createDefaultSubmitWorkPorts(
           getActionTitle(input.actions, input.actionUID),
           input.chainId,
           input.images,
-          { onProgress, clientWorkId: input.clientWorkId }
+          {
+            onProgress,
+            clientWorkId: input.clientWorkId,
+            checkpoint: input.draft.uploadCheckpoint,
+            onCheckpoint: input.onCheckpoint,
+            onBroadcast: input.onBroadcast,
+          }
         );
       },
     },

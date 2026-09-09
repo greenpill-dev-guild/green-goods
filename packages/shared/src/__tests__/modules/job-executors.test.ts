@@ -19,6 +19,7 @@ import {
   executeCommitmentQueueJob,
   executeWorkJob,
 } from "../../modules/job-queue/job-executors";
+import { jobQueueDB } from "../../modules/job-queue/db";
 import { createJobExecutorRegistry } from "../../modules/job-queue/executor-registry";
 import type { Address } from "../../types/domain";
 import type { ApprovalJobPayload, Job, WorkJobPayload } from "../../types/job-queue";
@@ -152,7 +153,11 @@ describe("work and approval job executors", () => {
     expect(encodeWork).toHaveBeenCalledWith(
       expect.objectContaining({ media: [image], audioNotes: [audio], title: "Action 7" }),
       11155111,
-      { gardenAddress: GARDEN, authMode: "passkey" }
+      expect.objectContaining({
+        gardenAddress: GARDEN,
+        authMode: "passkey",
+        onCheckpoint: expect.any(Function),
+      })
     );
     expect(sender.sendContractCall).toHaveBeenCalledOnce();
   });
@@ -749,4 +754,162 @@ describe("job executor registry", () => {
       registry.execute("job-unknown", job("unknown", {}), 42161, createMockTransactionSender())
     ).toThrow("Unsupported job kind: unknown");
   });
+  it("persists upload checkpoints on the same job object used by subsequent queue writes", async () => {
+    const media = [
+      new File(["first"], "first.jpg", { type: "image/jpeg" }),
+      new File(["second"], "second.jpg", { type: "image/jpeg" }),
+    ];
+    const id = await jobQueueDB.addJob({
+      kind: "work",
+      userAddress: USER,
+      chainId: 11155111,
+      payload: {
+        clientWorkId: "queue-checkpoint-test",
+        actionUID: 7,
+        gardenAddress: GARDEN,
+        feedback: "done",
+        media,
+      },
+    });
+    const queued = (await jobQueueDB.getJob(id)) as Job<WorkJobPayload>;
+    expect(queued.payload).not.toHaveProperty("media");
+    expect((await jobQueueDB.getImagesForJob(id)).map((item) => item.file.name)).toEqual([
+      "first.jpg",
+      "second.jpg",
+    ]);
+    const checkpoint = {
+      submittedAt: "2026-09-09T00:00:00Z",
+      files: { photo: { attachmentId: "one", contentHash: "photo", cid: "confirmed" } },
+    };
+    await expect(
+      executeWorkJob(id, queued, 11155111, createMockTransactionSender(), {
+        simulate: vi.fn().mockResolvedValue(undefined),
+        encodeWork: vi.fn(async (_data, _chain, options) => {
+          await options?.onCheckpoint?.(checkpoint);
+          throw new Error("timeout after media");
+        }),
+        easConfig: EAS_CONFIG,
+      })
+    ).rejects.toThrow("timeout after media");
+    expect(queued.payload.uploadCheckpoint).toEqual(checkpoint);
+    await jobQueueDB.updateJob({ ...queued, lastAttemptAt: Date.now() });
+    expect((await jobQueueDB.getJob(id))?.payload).toMatchObject({ uploadCheckpoint: checkpoint });
+    const duplicate = await jobQueueDB.addJob({
+      kind: "work",
+      userAddress: USER,
+      chainId: 11155111,
+      payload: {
+        clientWorkId: "queue-checkpoint-test",
+        actionUID: 7,
+        gardenAddress: GARDEN,
+        feedback: "done",
+        media,
+      },
+    });
+    expect(duplicate).toBe(id);
+    expect((await jobQueueDB.getJob(id))?.payload).toMatchObject({ uploadCheckpoint: checkpoint });
+    await jobQueueDB.deleteJob(id);
+  });
+});
+
+it("queued known transaction must be reconciled before another send", async () => {
+  const sender = createMockTransactionSender();
+  const work = job<WorkJobPayload>("work", {
+    actionUID: 3,
+    gardenAddress: GARDEN,
+    feedback: "Done",
+    clientWorkId: "review-known-broadcast",
+    uploadCheckpoint: { submittedAt: new Date().toISOString(), files: {}, transactionHash: HASH },
+  });
+  await executeWorkJob(work.id, work, 11155111, sender, {
+    reconcile: vi.fn().mockResolvedValue("confirmed"),
+    images: vi.fn().mockResolvedValue([]),
+    simulate: vi.fn().mockResolvedValue(undefined),
+    encodeWork: vi.fn().mockResolvedValue(HASH),
+    easConfig: EAS_CONFIG,
+  });
+  expect(sender.sendContractCall).not.toHaveBeenCalled();
+});
+
+it("rechecks after a sender timeout without uploading or sending again", async () => {
+  const work = job<WorkJobPayload>(
+    "work",
+    { actionUID: 3, gardenAddress: GARDEN, feedback: "Done" },
+    { id: "timeout-confirmation" }
+  );
+  const sender = createMockTransactionSender();
+  vi.mocked(sender.sendContractCall).mockImplementation(async (_call, options) => {
+    await options?.onBroadcast?.(HASH);
+    throw new Error("receipt timeout");
+  });
+  const deps = {
+    images: vi.fn().mockResolvedValue([]),
+    simulate: vi.fn().mockResolvedValue(undefined),
+    encodeWork: vi.fn().mockResolvedValue(HASH),
+    easConfig: EAS_CONFIG,
+    reconcile: vi.fn().mockResolvedValue("unresolved"),
+  };
+  await expect(executeWorkJob(work.id, work, 11155111, sender, deps)).rejects.toThrow(
+    "awaiting-confirmation"
+  );
+  await expect(executeWorkJob(work.id, work, 11155111, sender, deps)).rejects.toThrow(
+    "awaiting-confirmation"
+  );
+  expect(sender.sendContractCall).toHaveBeenCalledTimes(1);
+  expect(deps.encodeWork).toHaveBeenCalledTimes(1);
+  deps.reconcile.mockResolvedValue("confirmed");
+  expect(await executeWorkJob(work.id, work, 11155111, sender, deps)).toBe(HASH);
+});
+
+it("keeps the broadcast in memory when writing its checkpoint fails", async () => {
+  const work = job<WorkJobPayload>(
+    "work",
+    { actionUID: 3, gardenAddress: GARDEN, feedback: "Done" },
+    { id: "failed-broadcast-write" }
+  );
+  const sender = createMockTransactionSender();
+  const update = vi.spyOn(jobQueueDB, "updateJob").mockRejectedValueOnce(new Error("quota"));
+  vi.mocked(sender.sendContractCall).mockImplementation(async (_call, options) => {
+    await options?.onBroadcast?.(HASH);
+    return { hash: HASH, sponsored: false };
+  });
+  const deps = {
+    images: vi.fn().mockResolvedValue([]),
+    simulate: vi.fn().mockResolvedValue(undefined),
+    encodeWork: vi.fn().mockResolvedValue(HASH),
+    easConfig: EAS_CONFIG,
+    reconcile: vi.fn().mockResolvedValue("confirmed"),
+  };
+  await expect(executeWorkJob(work.id, work, 11155111, sender, deps)).rejects.toThrow(
+    "awaiting-confirmation"
+  );
+  // A later attempt may reload the old persisted payload.
+  delete work.payload.uploadCheckpoint;
+  await executeWorkJob(work.id, work, 11155111, sender, deps);
+  expect(sender.sendContractCall).toHaveBeenCalledTimes(1);
+  update.mockRestore();
+});
+
+it("surfaces a sender-confirmed revert as explicit retry without discarding media checkpoints", async () => {
+  const { TransactionRevertedError } = await import("../../modules/transactions/types");
+  const work = job<WorkJobPayload>(
+    "work",
+    { actionUID: 3, gardenAddress: GARDEN, feedback: "Done" },
+    { id: "sender-reverted-work" }
+  );
+  const sender = createMockTransactionSender();
+  vi.mocked(sender.sendContractCall).mockImplementation(async (_call, options) => {
+    await options?.onBroadcast?.(HASH);
+    throw new TransactionRevertedError(HASH);
+  });
+  await expect(
+    executeWorkJob(work.id, work, 11155111, sender, {
+      images: vi.fn().mockResolvedValue([]),
+      simulate: vi.fn().mockResolvedValue(undefined),
+      encodeWork: vi.fn().mockResolvedValue(HASH),
+      easConfig: EAS_CONFIG,
+    })
+  ).rejects.toThrow("work-transaction-reverted");
+  expect(work.meta?.workTransactionReverted).toBe(true);
+  expect(work.payload.uploadCheckpoint?.transactionHash).toBe(HASH);
 });

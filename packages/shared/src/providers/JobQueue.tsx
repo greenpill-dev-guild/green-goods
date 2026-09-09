@@ -1,3 +1,4 @@
+import { retainedWorkBroadcast } from "../modules/work/work-confirmation";
 import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 import { queueToasts, toastService } from "../components/toast";
 import { DEFAULT_CHAIN_ID } from "../config/default-chain";
@@ -230,6 +231,7 @@ const JobQueueProviderInner: React.FC<JobQueueProviderProps> = ({ children, queu
     };
 
     const handleJobAdded = (event: QueueEvent) => {
+      if (event.job?.meta?.waitingReason === "awaiting-confirmation") setIsProcessing(false);
       void refreshStats(abortController.signal);
       void requestPersistentStorageOnce("offline-job");
 
@@ -347,6 +349,47 @@ const JobQueueProviderInner: React.FC<JobQueueProviderProps> = ({ children, queu
       unsubscribeBackgroundSync();
     };
   }, [sender, authMode, currentUserAddress, queue, refreshStats]);
+
+  // Wallet users also recheck known broadcasts, without automatically sending unsent work.
+  useEffect(() => {
+    if (!currentUserAddress || !sender) return;
+    let stopped = false;
+    let checking = false;
+    const check = async () => {
+      if (stopped || checking || !navigator.onLine) return;
+      checking = true;
+      try {
+        const jobs = await queue.getJobs(currentUserAddress, { kind: "work", synced: false });
+        for (const job of jobs) {
+          if (stopped) break;
+          if (
+            ((job.payload as WorkJobPayload).uploadCheckpoint?.transactionHash ||
+              retainedWorkBroadcast(job.id)) &&
+            !job.meta?.workTransactionReverted
+          )
+            await queue.processJob(job.id, { transactionSender: sender });
+        }
+        if (!stopped) await refreshStats();
+      } catch (error) {
+        logger.warn("Could not check work confirmation", { error });
+      } finally {
+        checking = false;
+      }
+    };
+    const run = () => {
+      void check();
+    };
+    run();
+    const timer = setInterval(run, 30_000);
+    window.addEventListener("online", run);
+    const unsubscribe = queue.subscribe(run);
+    return () => {
+      stopped = true;
+      clearInterval(timer);
+      window.removeEventListener("online", run);
+      unsubscribe();
+    };
+  }, [currentUserAddress, sender, queue, refreshStats]);
 
   // Context value - useMemo kept here as it's passed to Provider (cross-boundary)
   const contextValue: JobQueueContextValue = React.useMemo(

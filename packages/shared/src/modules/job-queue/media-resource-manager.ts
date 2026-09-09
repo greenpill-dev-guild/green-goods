@@ -7,6 +7,7 @@ const log = createLogger({ source: "media-resource-manager" });
  * Handles creation and cleanup of object URLs to prevent memory leaks
  */
 class MediaResourceManager {
+  private fileIds = new WeakMap<File, string>();
   private urlMap = new Map<string, string[]>();
   private globalUrls = new Set<string>();
   private urlCache = new Map<string, { file: File; url: string }>();
@@ -48,11 +49,16 @@ class MediaResourceManager {
    * Get or create URL - returns cached URL if file already has one
    * Prevents memory leaks from creating duplicate URLs on re-renders
    */
-  getOrCreateUrl(file: File, trackingId: string): string {
-    const cacheKey = `${trackingId}-${file.name}-${file.size}-${file.lastModified}`;
+  getOrCreateUrl(file: File, trackingId: string, attachmentKey?: string): string {
+    let fileId = this.fileIds.get(file);
+    if (!fileId) {
+      fileId = crypto.randomUUID();
+      this.fileIds.set(file, fileId);
+    }
+    const cacheKey = `${trackingId}:${attachmentKey ?? fileId}`;
     const cached = this.urlCache.get(cacheKey);
 
-    if (cached && cached.file === file) {
+    if (cached && (attachmentKey || cached.file === file)) {
       return cached.url;
     }
 
@@ -60,6 +66,12 @@ class MediaResourceManager {
     this.urlCache.set(cacheKey, { file, url });
 
     return url;
+  }
+
+  cleanupFile(file: File): void {
+    for (const cached of [...this.urlCache.values()]) {
+      if (cached.file === file) this.cleanupUrl(cached.url);
+    }
   }
 
   /**
@@ -71,18 +83,18 @@ class MediaResourceManager {
       urls.forEach((url) => {
         try {
           URL.revokeObjectURL(url);
-          this.globalUrls.delete(url);
         } catch (error) {
           // Silently handle revocation errors (URL might already be revoked)
           log.debug("Failed to revoke URL", { url, error });
         }
+        this.globalUrls.delete(url);
       });
       this.urlMap.delete(trackingId);
     }
 
     // Clear cache entries for this tracking ID
     for (const [key] of this.urlCache.entries()) {
-      if (key.startsWith(trackingId)) {
+      if (key.startsWith(`${trackingId}:`)) {
         this.urlCache.delete(key);
       }
     }
@@ -94,21 +106,15 @@ class MediaResourceManager {
   cleanupUrl(url: string): void {
     try {
       URL.revokeObjectURL(url);
-      this.globalUrls.delete(url);
-
-      // Remove from tracking maps
-      for (const [id, urls] of this.urlMap.entries()) {
-        const index = urls.indexOf(url);
-        if (index !== -1) {
-          urls.splice(index, 1);
-          if (urls.length === 0) {
-            this.urlMap.delete(id);
-          }
-          break;
-        }
-      }
     } catch (error) {
       log.debug("Failed to revoke URL", { url, error });
+    }
+    this.globalUrls.delete(url);
+    for (const [key, cached] of this.urlCache) if (cached.url === url) this.urlCache.delete(key);
+    for (const [id, urls] of this.urlMap) {
+      const retained = urls.filter((entry) => entry !== url);
+      if (retained.length) this.urlMap.set(id, retained);
+      else this.urlMap.delete(id);
     }
   }
 
@@ -127,6 +133,8 @@ class MediaResourceManager {
 
     this.globalUrls.clear();
     this.urlMap.clear();
+    this.urlCache.clear();
+    this.fileIds = new WeakMap();
   }
 
   /**

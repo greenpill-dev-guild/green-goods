@@ -428,6 +428,7 @@
     "./hooks/vault/useWrapEthToWeth": "./src/hooks/vault/useWrapEthToWeth.ts",
     "./hooks/vault/vault-helpers": "./src/hooks/vault/vault-helpers.ts",
     "./hooks/work/useAggregatedApprovals": "./src/hooks/work/useAggregatedApprovals.ts",
+    "./hooks/work/useWorkImages": "./src/hooks/work/useWorkImages.ts",
     "./hooks/work/useDrafts": "./src/hooks/work/useDrafts.ts",
     "./hooks/work/useMyWorks": "./src/hooks/work/useMyWorks.ts",
     "./hooks/work/useReviewerGardenIds": "./src/hooks/work/useReviewerGardenIds.ts",

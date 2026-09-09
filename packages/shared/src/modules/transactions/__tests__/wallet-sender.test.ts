@@ -44,6 +44,24 @@ describe("WalletSender", () => {
     sender = new WalletSender(fakeWagmi.config, mockWriteContractAsync, undefined, mockDeps);
   });
 
+  it("awaits broadcast persistence before requesting a receipt", async () => {
+    const broadcast = vi.fn(async () => {
+      expect(mockDeps.waitForTransactionReceipt).not.toHaveBeenCalled();
+    });
+    await sender.sendContractCall(TEST_CALL, { onBroadcast: broadcast });
+    expect(broadcast).toHaveBeenCalledWith(MOCK_TX_HASH);
+    expect(mockDeps.waitForTransactionReceipt).toHaveBeenCalledOnce();
+  });
+  it("does not hide a failed broadcast checkpoint", async () => {
+    await expect(
+      sender.sendContractCall(TEST_CALL, {
+        onBroadcast: async () => {
+          throw new Error("quota");
+        },
+      })
+    ).rejects.toThrow("quota");
+    expect(mockDeps.waitForTransactionReceipt).not.toHaveBeenCalled();
+  });
   describe("properties", () => {
     it("reports supportsSponsorship as false (no EIP-5792 available)", () => {
       expect(sender.supportsSponsorship).toBe(false);

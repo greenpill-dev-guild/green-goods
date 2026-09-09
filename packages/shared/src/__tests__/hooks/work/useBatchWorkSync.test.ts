@@ -1,3 +1,5 @@
+import type { Job, WorkJobPayload } from "../../../types/job-queue";
+import { IntlProvider } from "react-intl";
 /**
  * useBatchWorkSync Hook Tests
  * @vitest-environment jsdom
@@ -23,6 +25,7 @@ const mockWaitForTransactionReceipt = vi.fn();
 
 vi.mock("@wagmi/core", () => ({
   getWalletClient: (...args: unknown[]) => mockGetWalletClient(...args),
+  getTransactionReceipt: (...args: unknown[]) => mockWaitForTransactionReceipt(...args),
   waitForTransactionReceipt: (...args: unknown[]) => mockWaitForTransactionReceipt(...args),
 }));
 
@@ -35,6 +38,16 @@ vi.mock("../../../modules/job-queue/default-instance", () => ({
 
 vi.mock("../../../modules/job-queue/db", () => ({
   jobQueueDB: {
+    getJob: vi.fn(
+      async (id) =>
+        (await mockGetJobsWithImages()).find(
+          (entry: { job: { id: string } }) => entry.job.id === id
+        )?.job
+    ),
+    updateJob: vi.fn().mockResolvedValue(undefined),
+    updateJobs: vi.fn().mockResolvedValue(undefined),
+    storeClientWorkIdMapping: vi.fn().mockResolvedValue(undefined),
+    markJobTerminalFailed: vi.fn().mockResolvedValue(undefined),
     markJobSynced: vi.fn().mockResolvedValue(undefined),
     deleteJob: vi.fn().mockResolvedValue(undefined),
   },
@@ -100,6 +113,7 @@ vi.mock("../../../hooks/auth/useUser", () => ({
 }));
 
 vi.mock("../../../components/toast", () => ({
+  toastService: { info: vi.fn() },
   queueToasts: {
     queueClear: vi.fn(),
     syncSuccess: vi.fn(),
@@ -130,7 +144,11 @@ import { jobQueueEventBus } from "../../../modules/job-queue/event-bus";
 
 function createWrapper(queryClient: QueryClient) {
   return function Wrapper({ children }: { children: ReactNode }) {
-    return createElement(QueryClientProvider, { client: queryClient }, children);
+    return createElement(IntlProvider, {
+      locale: "en",
+      messages: {},
+      children: createElement(QueryClientProvider, { client: queryClient }, children),
+    });
   };
 }
 
@@ -524,7 +542,7 @@ describe("useBatchWorkSync", () => {
       expect(queueToasts.syncError).toHaveBeenCalled();
     });
 
-    it("continues marking/deleting remaining jobs even if one fails", async () => {
+    it("preserves confirmed jobs when local completion fails, then reconciles without sending again", async () => {
       const jobs = [createMockPendingJob("job-1"), createMockPendingJob("job-2")];
       mockGetJobsWithImages.mockResolvedValue(jobs);
 
@@ -545,12 +563,15 @@ describe("useBatchWorkSync", () => {
       });
 
       await act(async () => {
-        await result.current.mutateAsync();
+        await expect(result.current.mutateAsync()).rejects.toThrow("DB error");
       });
 
-      // Both jobs should still be processed
-      expect(jobQueueDB.markJobSynced).toHaveBeenCalledTimes(2);
+      expect(jobQueueDB.deleteJob).not.toHaveBeenCalled();
+      await act(async () => {
+        await result.current.mutateAsync();
+      });
       expect(jobQueueDB.deleteJob).toHaveBeenCalledTimes(2);
+      expect(mockWalletClient.sendTransaction).toHaveBeenCalledTimes(1);
     });
   });
 
@@ -585,5 +606,49 @@ describe("useBatchWorkSync", () => {
 
       invalidateSpy.mockRestore();
     });
+  });
+  it("persists the whole batch before waiting and never resends it on timeout", async () => {
+    const entries = [createMockPendingJob("pending-a"), createMockPendingJob("pending-b")];
+    mockGetJobsWithImages.mockResolvedValue(entries);
+    const wallet = await mockGetWalletClient();
+    mockWaitForTransactionReceipt.mockImplementation(async () => {
+      expect(jobQueueDB.updateJobs).toHaveBeenCalled();
+      throw new Error("timeout");
+    });
+    const { result } = renderHook(() => useBatchWorkSync(), {
+      wrapper: createWrapper(queryClient),
+    });
+    await act(async () => {
+      expect(await result.current.mutateAsync()).toMatchObject({ awaitingConfirmation: true });
+    });
+    await act(async () => {
+      await result.current.mutateAsync();
+    });
+    expect(wallet.sendTransaction).toHaveBeenCalledTimes(1);
+    expect(mockEncodeWorkData).toHaveBeenCalledTimes(2);
+    expect(jobQueueDB.deleteJob).not.toHaveBeenCalled();
+  });
+  it("retains every batch hash in memory when the atomic checkpoint write fails", async () => {
+    const entries = [createMockPendingJob("write-a"), createMockPendingJob("write-b")];
+    mockGetJobsWithImages.mockResolvedValue(entries);
+    const wallet = await mockGetWalletClient();
+    vi.mocked(jobQueueDB.updateJobs).mockRejectedValueOnce(new Error("checkpoint failed"));
+    const { result } = renderHook(() => useBatchWorkSync(), {
+      wrapper: createWrapper(queryClient),
+    });
+    await act(async () => {
+      await expect(result.current.mutateAsync()).rejects.toThrow("checkpoint failed");
+    });
+    // Simulate reloading jobs from the last committed state.
+    for (const entry of entries) {
+      const job = entry.job as Job<WorkJobPayload>;
+      delete job.payload.uploadCheckpoint;
+      job.meta = {};
+    }
+    await act(async () => {
+      await result.current.mutateAsync();
+    });
+    expect(wallet.sendTransaction).toHaveBeenCalledTimes(1);
+    expect(mockEncodeWorkData).toHaveBeenCalledTimes(2);
   });
 });

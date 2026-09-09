@@ -306,38 +306,42 @@ describe("providers/JobQueueProvider", () => {
     });
 
     it("invalidates recipient-scoped approval reads when an approval job completes", async () => {
-      let subscribedHandler: ((event: QueueEvent) => void) | undefined;
+      const subscribedHandlers = new Set<(event: QueueEvent) => void>();
       mockJobQueue.subscribe.mockImplementation((handler: (event: QueueEvent) => void) => {
-        subscribedHandler = handler;
-        return vi.fn();
+        subscribedHandlers.add(handler);
+        return () => {
+          subscribedHandlers.delete(handler);
+        };
       });
 
       renderHook(() => useJobQueue(), { wrapper: createWrapper() });
 
       await act(async () => {
-        subscribedHandler?.({
-          type: "job_completed",
-          jobId: "approval-job-1",
-          txHash: "0xabc",
-          job: {
-            id: "approval-job-1",
-            kind: "approval",
-            chainId: 11155111,
-            payload: {
-              actionUID: 1,
-              workUID: "work-1",
-              gardenAddress: "0xgarden",
-              gardenerAddress: "0xgardener",
-              approved: true,
-              confidence: 1,
-              verificationMethod: 1,
+        subscribedHandlers.forEach((handler) =>
+          handler({
+            type: "job_completed",
+            jobId: "approval-job-1",
+            txHash: "0xabc",
+            job: {
+              id: "approval-job-1",
+              kind: "approval",
+              chainId: 11155111,
+              payload: {
+                actionUID: 1,
+                workUID: "work-1",
+                gardenAddress: "0xgarden",
+                gardenerAddress: "0xgardener",
+                approved: true,
+                confidence: 1,
+                verificationMethod: 1,
+              },
+              createdAt: Date.now(),
+              attempts: 0,
+              synced: true,
+              userAddress: "0xuser",
             },
-            createdAt: Date.now(),
-            attempts: 0,
-            synced: true,
-            userAddress: "0xuser",
-          },
-        });
+          })
+        );
         await Promise.resolve();
       });
 

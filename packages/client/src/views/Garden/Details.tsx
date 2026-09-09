@@ -1,7 +1,7 @@
-import type { WorkFormData } from "@green-goods/shared/hooks/work/useWorkForm";
+import { useWorkLocation, type WorkFormData } from "@green-goods/shared/hooks/work/useWorkForm";
 import type { Action, WorkInput } from "@green-goods/shared/types/domain";
 import { RiAddLine, RiCloseLine, RiFileFill, RiMapPinLine } from "@remixicon/react";
-import React, { useCallback, useState } from "react";
+import React, { useCallback } from "react";
 import {
   type Control,
   Controller,
@@ -166,9 +166,9 @@ export const WorkDetails: React.FC<WorkDetailsProps> = ({
   setValue,
 }) => {
   const intl = useIntl();
-  const [locationEnabled, setLocationEnabled] = useState(false);
-  const [locationStatus, setLocationStatus] = useState<"idle" | "loading" | "success" | "denied">(
-    "idle"
+  const { locationEnabled, locationStatus, handleLocationToggle } = useWorkLocation(
+    control,
+    setValue
   );
 
   const detailsTitle =
@@ -207,40 +207,6 @@ export const WorkDetails: React.FC<WorkDetailsProps> = ({
       defaultMessage: "Location access denied",
     }),
   } satisfies Record<typeof locationStatus, string>;
-
-  const handleLocationToggle = useCallback(() => {
-    if (locationEnabled) {
-      setLocationEnabled(false);
-      setLocationStatus("idle");
-      return;
-    }
-
-    if (!navigator.geolocation) {
-      setLocationStatus("denied");
-      return;
-    }
-
-    setLocationStatus("loading");
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        setLocationEnabled(true);
-        setLocationStatus("success");
-        // Store location data in form via setValue if available
-        if (setValue) {
-          setValue("_location" as Path<WorkFormData>, {
-            lat: position.coords.latitude,
-            lng: position.coords.longitude,
-            accuracy: position.coords.accuracy,
-          });
-        }
-      },
-      () => {
-        setLocationStatus("denied");
-        setLocationEnabled(false);
-      },
-      { enableHighAccuracy: false, timeout: 10000 }
-    );
-  }, [locationEnabled, setValue]);
 
   const handleTextareaFocus = useCallback((event: React.FocusEvent<HTMLTextAreaElement>) => {
     const target = event.currentTarget;

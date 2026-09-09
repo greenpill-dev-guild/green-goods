@@ -8,7 +8,8 @@
  * @module modules/job-queue/job-recovery
  */
 
-import type { Job } from "../../types/job-queue";
+import { forgetWorkBroadcast } from "../work/work-confirmation";
+import type { WorkJobPayload, Job } from "../../types/job-queue";
 import type { WorkLinkJobPayload } from "../commitment-pooling/jobs";
 import type { JobQueueEvents, JobQueueStore } from "./ports";
 
@@ -21,8 +22,15 @@ import type { JobQueueEvents, JobQueueStore } from "./ports";
  * it, so composing again would file a second commitment once the first
  * materializes. Such a job stays retryable and is never discardable.
  */
-export function isDiscardableJob(job: Pick<Job, "synced" | "meta">): boolean {
+export function isDiscardableJob(
+  job: Pick<Job, "synced" | "meta"> & Partial<Pick<Job, "kind" | "payload" | "id">>
+): boolean {
   if (job.synced) return false;
+  if (
+    job.kind === "work" &&
+    (job.payload as WorkJobPayload | undefined)?.uploadCheckpoint?.transactionHash
+  )
+    return false;
   return typeof job.meta?.submittedTxHash !== "string";
 }
 
@@ -52,6 +60,13 @@ export function createJobRecovery(
         waitingReason: _waitingReason,
         ...meta
       } = job.meta ?? {};
+      if (job.kind === "work" && meta.workTransactionReverted) {
+        const payload = job.payload as WorkJobPayload;
+        if (payload.uploadCheckpoint) delete payload.uploadCheckpoint.transactionHash;
+        delete meta.submittedTxHash;
+        delete meta.workTransactionReverted;
+        forgetWorkBroadcast(jobId);
+      }
       const retried = { ...rest, attempts: 0, meta: { ...meta, waitingForDependency: false } };
       await store.updateJob(retried);
       events.emit("job:added", { jobId, job: retried });

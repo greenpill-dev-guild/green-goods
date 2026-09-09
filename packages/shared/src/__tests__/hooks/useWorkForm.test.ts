@@ -355,4 +355,12 @@ describe("hooks/work/useWorkForm", () => {
       }
     });
   });
+  it("retains only rounded, explicitly supplied location coordinates", () => {
+    const schema = buildWorkFormSchema([]);
+    expect(
+      schema.parse({ location: { lat: 12.345678, lng: -23.456789, accuracy: 1 } }).location
+    ).toEqual({ lat: 12.346, lng: -23.457 });
+    expect(schema.parse({ location: undefined }).location).toBeUndefined();
+    expect(schema.safeParse({ location: { lat: 91, lng: 0 } }).success).toBe(false);
+  });
 });

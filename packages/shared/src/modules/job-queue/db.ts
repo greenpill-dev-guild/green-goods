@@ -1,9 +1,10 @@
 import { type IDBPDatabase, openDB } from "idb";
-import type { CachedWork, Job, JobQueueDBImage } from "../../types/job-queue";
+import type { CachedWork, Job, JobQueueDBImage, WorkJobPayload } from "../../types/job-queue";
 import { deserializeFile } from "../../utils/storage/file-serialization";
 import { retryOnceAfterQuotaCleanup } from "../../utils/storage/quota";
 import { createLogger } from "../app/logger";
-import { serializeJobMedia } from "./db-media";
+import { restoreWorkFile } from "../work/work-attachments";
+import { createJobMediaRows, serializeJobPayload, findExistingWorkJob } from "./db-media";
 import { loadFailedDeleteIds, saveFailedDeleteIds } from "./failed-delete-storage";
 import { trackPrivateQueueEvent } from "./job-analytics";
 import { mediaResourceManager } from "./media-resource-manager";
@@ -185,21 +186,43 @@ class JobQueueDatabase {
       synced: false,
     } as Job<T>;
 
-    const serializedFiles = await serializeJobMedia(id, job as Pick<Job, "kind" | "payload">);
-    const imageRows = serializedFiles.map(({ file, fileData }) => ({
-      id: crypto.randomUUID(),
-      jobId: id,
-      fileData,
-      url: mediaResourceManager.createUrl(file, id),
-      createdAt: timestamp,
-    })) as JobQueueDBImage[];
+    if (jobData.kind === "work") {
+      const checkpoint = (jobData.payload as WorkJobPayload).uploadCheckpoint;
+      if (checkpoint?.transactionHash)
+        jobData.meta = {
+          ...jobData.meta,
+          submittedTxHash: checkpoint.transactionHash,
+          waitingForDependency: true,
+          waitingReason: "awaiting-confirmation",
+        };
+    }
+    const imageRows = await createJobMediaRows(id, job as Pick<Job, "kind" | "payload">, timestamp);
+    jobData.payload = serializeJobPayload(jobData) as T;
+    let savedId: string = id;
 
-    // Atomically persist job + images.
-    // If anything fails, we cleanup any created object URLs and nothing is committed.
     try {
       await retryOnceAfterQuotaCleanup(async () => {
         const tx = db.transaction(["jobs", "job_images"], "readwrite");
         try {
+          const existing = findExistingWorkJob(
+            await tx.objectStore("jobs").index("userAddress").getAll(job.userAddress),
+            jobData
+          );
+          if (existing) {
+            savedId = existing.id;
+            const incoming = (jobData.payload as WorkJobPayload).uploadCheckpoint;
+            if (incoming?.transactionHash) {
+              const payload = existing.payload as WorkJobPayload;
+              payload.uploadCheckpoint = {
+                ...incoming,
+                files: { ...payload.uploadCheckpoint?.files, ...incoming.files },
+              };
+              existing.meta = { ...existing.meta, ...jobData.meta };
+              await tx.objectStore("jobs").put(existing);
+            }
+            await tx.done;
+            return;
+          }
           await tx.objectStore("jobs").add(jobData as Job);
           for (const imageRow of imageRows) {
             await tx.objectStore("job_images").add(imageRow);
@@ -217,24 +240,16 @@ class JobQueueDatabase {
     } catch (error) {
       trackPrivateQueueEvent("job_queue_storage_failed", {
         job_kind: job.kind,
-        file_count: serializedFiles.length,
-        total_size: serializedFiles.reduce((sum, f) => sum + f.file.size, 0),
+        file_count: imageRows.length,
+        total_size: imageRows.reduce((sum, image) => sum + image.fileData.data.byteLength, 0),
       });
 
-      // Ensure we don't leak object URLs for a job that never persisted.
-      mediaResourceManager.cleanupUrls(id);
       throw error;
     }
 
-    return id;
+    return savedId;
   }
 
-  /**
-   * Get jobs filtered by user address (required) and optional additional filters.
-   * @param filter.userAddress - Required user address to scope jobs
-   * @param filter.kind - Optional job kind filter
-   * @param filter.synced - Optional synced status filter
-   */
   async getJobs(filter: { userAddress: string; kind?: string; synced?: boolean }): Promise<Job[]> {
     if (!filter.userAddress) {
       throw new Error("userAddress is required when getting jobs");
@@ -275,9 +290,22 @@ class JobQueueDatabase {
     return await db.get("jobs", id);
   }
 
+  async updateJobs(jobs: Job[]): Promise<void> {
+    const db = await this.init();
+    const tx = db.transaction("jobs", "readwrite");
+    try {
+      for (const job of jobs) await tx.store.put({ ...job, payload: serializeJobPayload(job) });
+      await tx.done;
+    } catch (error) {
+      tx.abort();
+      await tx.done.catch(() => undefined);
+      throw error;
+    }
+  }
+
   async updateJob(job: Job): Promise<void> {
     const db = await this.init();
-    await db.put("jobs", job);
+    await db.put("jobs", { ...job, payload: serializeJobPayload(job) });
   }
 
   async markJobSynced(id: string, txHash?: string): Promise<void> {
@@ -324,24 +352,22 @@ class JobQueueDatabase {
 
     // Deserialize files from IndexedDB format back to File objects.
     // Handles both new serialized format and legacy File format.
-    const result = images.map((img) => {
-      const file = deserializeFile(img, `work-${jobId}`, img.id);
+    const result = images
+      .sort((a, b) => (a.order ?? a.createdAt) - (b.order ?? b.createdAt))
+      .map((img) => {
+        const file =
+          img.contentHash && img.fileData?.data
+            ? restoreWorkFile(img.fileData, img.attachmentId ?? img.id, img.contentHash)
+            : deserializeFile(img, `work-${jobId}`, img.id);
 
-      return {
-        id: img.id,
-        file,
-        url: mediaResourceManager.getOrCreateUrl(file, jobId),
-      };
-    });
+        return {
+          id: img.id,
+          file,
+          url: "",
+        };
+      });
 
     return result;
-  }
-
-  /**
-   * Create a fresh object URL for a file (use for immediate consumption)
-   */
-  createFreshImageUrl(file: File): string {
-    return mediaResourceManager.createUrl(file);
   }
 
   async deleteJob(id: string): Promise<void> {
@@ -359,10 +385,6 @@ class JobQueueDatabase {
     await db.delete("jobs", id);
   }
 
-  /**
-   * Clear synced jobs for a specific user.
-   * @param userAddress - Required user address to scope deletion
-   */
   async clearSyncedJobs(userAddress: string): Promise<void> {
     if (!userAddress) {
       throw new Error("userAddress is required when clearing synced jobs");
@@ -376,10 +398,6 @@ class JobQueueDatabase {
     }
   }
 
-  /**
-   * Get job statistics for a specific user.
-   * @param userAddress - Required user address to scope statistics
-   */
   async getStats(
     userAddress: string
   ): Promise<{ total: number; pending: number; failed: number; synced: number }> {
@@ -397,9 +415,6 @@ class JobQueueDatabase {
     };
   }
 
-  /**
-   * Store clientWorkId -> attestationId mapping for fast deduplication
-   */
   async storeClientWorkIdMapping(
     clientWorkId: string,
     attestationId: string,
@@ -414,26 +429,17 @@ class JobQueueDatabase {
     });
   }
 
-  /**
-   * Get attestation ID for a clientWorkId (instant lookup, no IPFS fetch)
-   */
   async getAttestationIdByClientWorkId(clientWorkId: string): Promise<string | null> {
     const db = await this.init();
     const mapping = await db.get("client_work_id_mappings", clientWorkId);
     return mapping?.attestationId || null;
   }
 
-  /**
-   * Check if a clientWorkId has been uploaded (fast local check)
-   */
   async isClientWorkIdUploaded(clientWorkId: string): Promise<boolean> {
     const attestationId = await this.getAttestationIdByClientWorkId(clientWorkId);
     return attestationId !== null;
   }
 
-  /**
-   * Get all uploaded clientWorkIds for batch deduplication
-   */
   async getAllUploadedClientWorkIds(): Promise<Set<string>> {
     const db = await this.init();
     const allMappings = await db.getAll("client_work_id_mappings");

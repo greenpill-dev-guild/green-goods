@@ -360,3 +360,48 @@ describe("processJob", () => {
     expect(deps.analytics.jobProcessingError).toHaveBeenCalledOnce();
   });
 });
+
+describe("work confirmation recovery", () => {
+  const checkpoint = {
+    submittedAt: "2026-09-09",
+    files: { photo: { attachmentId: "photo", contentHash: "bytes", cid: "bafy-photo" } },
+    transactionHash: `0x${"12".repeat(32)}`,
+  };
+  it("confirmation checks and checkpoint failures do not consume submission attempts", async () => {
+    const store = createInMemoryJobQueueStore([
+      queuedJob({ payload: { uploadCheckpoint: checkpoint } }),
+    ]);
+    const executors = {
+      execute: vi.fn().mockResolvedValue({ status: "waiting", reason: "awaiting-confirmation" }),
+    };
+    const { queue } = setup({ store, executors });
+    await queue.processJob("job-1", { transactionSender: {} as never });
+    expect((await store.getJob("job-1"))?.attempts).toBe(0);
+    expect((await store.getJob("job-1"))?.meta?.waitingReason).toBe("awaiting-confirmation");
+    expect(await queue.discardJob("job-1")).toBe(false);
+    const second = setup({
+      store: createInMemoryJobQueueStore([
+        queuedJob({ payload: { uploadCheckpoint: checkpoint } }),
+      ]),
+      executors: { execute: vi.fn().mockRejectedValue(new Error("checkpoint write failed")) },
+    });
+    await second.queue.processJob("job-1", { transactionSender: {} as never });
+    expect((await second.deps.store.getJob("job-1"))?.attempts).toBe(0);
+  });
+  it("explicit retry clears the reverted broadcast while retaining uploaded media", async () => {
+    const store = createInMemoryJobQueueStore([
+      queuedJob({
+        payload: { uploadCheckpoint: { ...checkpoint } },
+        attempts: 5,
+        meta: { workTransactionReverted: true, submittedTxHash: checkpoint.transactionHash },
+      }),
+    ]);
+    const { queue } = setup({ store });
+    await queue.retryJob("job-1");
+    const retry = await store.getJob("job-1");
+    expect(retry?.payload).toMatchObject({ uploadCheckpoint: { files: checkpoint.files } });
+    expect(retry?.payload).not.toHaveProperty("uploadCheckpoint.transactionHash");
+    expect(retry?.meta).not.toHaveProperty("workTransactionReverted");
+    expect(retry?.attempts).toBe(0);
+  });
+});

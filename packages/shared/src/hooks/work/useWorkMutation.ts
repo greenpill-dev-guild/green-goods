@@ -1,11 +1,8 @@
-/**
- * Work Mutation Hook
- *
- * Manages the work submission mutation with proper auth branching,
- * toast notifications, and job queue integration.
- *
- * @module hooks/work/useWorkMutation
- */
+import { useIntl } from "react-intl";
+import { WorkTransactionReverted } from "../../modules/work/work-confirmation";
+import { createDraftUploadPersistence } from "../../modules/work/draft-upload";
+import { draftDB } from "../../modules/job-queue/draft-db";
+/** Submits work through the current auth mode and preserves durable retry progress. */
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useRef, useState } from "react";
@@ -79,10 +76,15 @@ export function useWorkMutation(options: UseWorkMutationOptions) {
     onSettled,
     dependencies,
   } = options;
+  const intl = useIntl();
   const sender = useTransactionSender();
   const chainId = DEFAULT_CHAIN_ID;
   const queryClient = useQueryClient();
   const openWorkDashboard = useUIStore((s) => s.openWorkDashboard);
+  const retainedCheckpoint = useRef<{
+    id: string;
+    checkpoint: NonNullable<WorkDraft["uploadCheckpoint"]>;
+  } | null>(null);
   const walletRequestStartedJourneyRef = useRef<string | null>(null);
   const [lastSubmissionOutcome, setLastSubmissionOutcome] = useState<SubmitWorkOutcome | null>(
     null
@@ -140,8 +142,15 @@ export function useWorkMutation(options: UseWorkMutationOptions) {
       }
 
       walletRequestStartedJourneyRef.current = null;
+      const activeDraftId = useWorkFlowStore.getState().activeDraftId;
+      const persistedDraft =
+        completeClientFlow && activeDraftId ? await draftDB.getDraft(activeDraftId) : undefined;
+      const persistence = persistedDraft
+        ? await createDraftUploadPersistence(persistedDraft, draft, retainedCheckpoint)
+        : {};
       const outcome = await submitWork(
         {
+          ...persistence,
           authMode,
           gardenAddress,
           actionUID,
@@ -273,8 +282,6 @@ export function useWorkMutation(options: UseWorkMutationOptions) {
         // For wallet mode, progress toasts are shown via onProgress callback
         workToasts.submitting();
       }
-      // For wallet mode online, the first progress toast will be shown
-      // automatically when submitWorkDirectly calls onProgress("validating")
 
       return { previousMerged };
     },
@@ -282,42 +289,41 @@ export function useWorkMutation(options: UseWorkMutationOptions) {
       const isOfflineHash = typeof txHash === "string" && isOfflineTxHash(txHash);
       const workSubmissionJourneyId = useWorkFlowStore.getState().ensureWorkSubmissionJourneyId();
 
-      // Provide haptic feedback for successful submission
-      hapticSuccess();
+      const awaiting = lastSubmissionOutcomeRef.current?.kind === "awaiting-confirmation";
+      if (awaiting) {
+        walletProgressToasts.dismiss();
+        toastService.info({
+          title: intl.formatMessage({ id: "app.work.awaitingConfirmation" }),
+          message: intl.formatMessage({ id: "app.work.confirmationExplanation" }),
+          context: "work",
+        });
+      }
+      if (!awaiting) hapticSuccess();
 
-      // Track submission success
-      trackWorkSubmissionSuccess({
-        actionUID: actionUID ?? 0,
-        authMode,
-        wasOffline: isOfflineHash,
-        workSubmissionJourneyId,
-        chainId,
-        submissionPhase: "success",
-      });
+      // Confirmation checks have not established a successful submission yet.
+      if (!awaiting)
+        trackWorkSubmissionSuccess({
+          actionUID: actionUID ?? 0,
+          authMode,
+          wasOffline: isOfflineHash,
+          workSubmissionJourneyId,
+          chainId,
+          submissionPhase: "success",
+        });
 
       if (completeClientFlow) {
-        // Mark submission as complete (triggers checkmark animation in Garden view)
-        // The Garden view useEffect will handle:
-        // 1. Clearing the draft
-        // 2. Navigating to /home
-        // 3. Opening the work dashboard
+        // Hand off the committed result to the draft retirement lifecycle.
         useWorkFlowStore.getState().setSubmissionCompleted(true);
       }
 
       if (isOfflineHash) {
-        // Offline: dismiss info toast after brief delay
         scheduleToastDismiss(() => workToasts.dismiss(), 1000);
       } else if (authMode === "wallet") {
-        // Wallet mode: success already shown by onProgress("complete") callback
-        // Just dismiss the loading toast after a delay so user sees the success
         scheduleToastDismiss(() => walletProgressToasts.dismiss(), 1500);
       } else {
-        // Passkey mode with inline processing: dismiss loading toast
-        // Success will be shown by job queue event handler
         workToasts.dismiss();
       }
 
-      // Invalidate work queries so lists reflect the new submission
       if (gardenAddress) {
         queryClient.invalidateQueries({
           queryKey: worksKeys.online(gardenAddress, chainId),
@@ -326,14 +332,11 @@ export function useWorkMutation(options: UseWorkMutationOptions) {
           queryKey: worksKeys.merged(gardenAddress, chainId),
         });
 
-        // Schedule progressive follow-up invalidations for indexer lag
         lastGardenRef.current = gardenAddress;
         scheduleFollowUp();
       }
 
       if (completeClientFlow) {
-        // Open work dashboard immediately - navigation will follow from Garden view.
-        // This creates a fluid transition: success checkmark -> dashboard slides up -> navigate.
         openWorkDashboard();
       }
 
@@ -452,7 +455,9 @@ export function useWorkMutation(options: UseWorkMutationOptions) {
 
       // Use parsed error if known, otherwise provide phase-aware fallback
       let displayMessage: string;
-      if (parsed.isKnown) {
+      if (error instanceof WorkTransactionReverted) {
+        displayMessage = intl.formatMessage({ id: "app.work.confirmationFailed" });
+      } else if (parsed.isKnown) {
         displayMessage = message;
       } else if (phase === "upload") {
         displayMessage = "Media upload failed. Please check your connection and try again.";

@@ -42,6 +42,13 @@ export function resetWorkFlowTransition(
 ): Partial<WorkFlowState> {
   return {
     ...initial,
+    activeDraftId: null,
+    draftMissingAttachments: [],
+    draftEpoch: _state.draftEpoch + 1,
+    draftDeleting: false,
+    draftSaveState: "idle",
+    draftError: null,
+    location: undefined,
     activeTab: WorkTab.Intro,
     submissionCompleted: false,
     workSubmissionJourneyId: null,

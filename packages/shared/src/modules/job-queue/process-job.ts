@@ -1,3 +1,4 @@
+import { claimWorkJobs, retainedWorkBroadcast } from "../work/work-confirmation";
 import type { Job, WorkJobPayload } from "../../types/job-queue";
 import { JobMaintenance } from "./job-maintenance";
 import type {
@@ -48,19 +49,15 @@ async function completeJob(
     (typeof job.meta?.submittedTxHash === "string"
       ? job.meta.submittedTxHash
       : createOfflineTxHash(jobId));
-  await deps.store.markJobSynced(jobId, completedTxHash);
 
   const clientWorkId =
     job.kind === "work"
       ? ((job.payload as WorkJobPayload).clientWorkId ?? job.meta?.clientWorkId)
       : undefined;
   if (job.kind === "work" && typeof clientWorkId === "string") {
-    try {
-      await deps.store.storeClientWorkIdMapping(clientWorkId, completedTxHash, jobId);
-    } catch (error) {
-      deps.logger.warn("[JobQueue] Failed to store clientWorkId mapping", { error });
-    }
+    await deps.store.storeClientWorkIdMapping(clientWorkId, completedTxHash, jobId);
   }
+  await deps.store.markJobSynced(jobId, completedTxHash);
 
   try {
     await deps.store.deleteJob(jobId);
@@ -80,10 +77,7 @@ async function completeJob(
 }
 
 export function createJobProcessor(deps: ProcessJobDependencies) {
-  return async function processJob(
-    jobId: string,
-    context: ProcessJobContext
-  ): Promise<ProcessJobResult> {
+  async function processJob(jobId: string, context: ProcessJobContext): Promise<ProcessJobResult> {
     const job = await deps.store.getJob(jobId);
     if (!job) return { success: true, skipped: true };
     if (job.synced) {
@@ -105,7 +99,15 @@ export function createJobProcessor(deps: ProcessJobDependencies) {
       };
     }
 
-    if (job.attempts >= deps.config.maxRetries) {
+    if (
+      job.attempts >= deps.config.maxRetries &&
+      !retainedWorkBroadcast(jobId) &&
+      !(
+        job.kind === "work" &&
+        (job.payload as WorkJobPayload).uploadCheckpoint?.transactionHash &&
+        !job.meta?.workTransactionReverted
+      )
+    ) {
       const errorMessage = `Max retries (${deps.config.maxRetries}) exceeded`;
       await deps.store.markJobFailed(jobId, errorMessage);
       deps.events.emit("job:failed", { jobId, job, error: errorMessage });
@@ -131,6 +133,10 @@ export function createJobProcessor(deps: ProcessJobDependencies) {
           ...job,
           meta: { ...meta, waitingReason: execution.reason },
           lastAttemptAt: deps.clock.now(),
+        });
+        deps.events.emit("job:added", {
+          jobId,
+          job: { ...job, meta: { ...meta, waitingReason: execution.reason } },
         });
         return { success: false, error: execution.reason, skipped: true };
       }
@@ -167,6 +173,29 @@ export function createJobProcessor(deps: ProcessJobDependencies) {
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Unknown error";
       const processingDuration = deps.clock.now() - startedAt;
+      if (
+        job.kind === "work" &&
+        (retainedWorkBroadcast(jobId) ||
+          (job.payload as WorkJobPayload).uploadCheckpoint?.transactionHash)
+      ) {
+        // Failed checkpoint writes cannot turn a confirmation check into a new submission.
+        deps.logger.warn("[JobQueue] Work confirmation checkpoint needs persistence", {
+          jobId,
+          error,
+        });
+        deps.events.emit("job:added", {
+          jobId,
+          job: {
+            ...job,
+            meta: {
+              ...job.meta,
+              waitingForDependency: true,
+              waitingReason: "awaiting-confirmation",
+            },
+          },
+        });
+        return { success: false, error: "awaiting-confirmation", skipped: true };
+      }
       await deps.store.markJobFailed(jobId, errorMessage);
       const updated = (await deps.store.getJob(jobId)) ?? job;
       deps.events.emit("job:failed", { jobId, job: updated, error: errorMessage });
@@ -177,6 +206,15 @@ export function createJobProcessor(deps: ProcessJobDependencies) {
         deps.config.maxRetries
       );
       return { success: false, error: errorMessage };
+    }
+  }
+  return async (jobId: string, context: ProcessJobContext): Promise<ProcessJobResult> => {
+    const release = claimWorkJobs([jobId]);
+    if (!release) return { success: false, skipped: true, error: "already-processing" };
+    try {
+      return await processJob(jobId, context);
+    } finally {
+      release();
     }
   };
 }
