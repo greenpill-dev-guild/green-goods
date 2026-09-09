@@ -38,7 +38,11 @@ kill_timeout = '30s'
   BOT_MODE = 'webhook'
   DB_PATH = '/data/agent.db'
   HOST = '0.0.0.0'
-  JOIN_REQUESTS_ENABLED = 'false'
+  # Enabling join requests is a hard boot gate: config validation refuses to
+  # start unless JOIN_REQUESTS_ENCRYPTION_KEY (32 bytes, hex or base64) and
+  # JOIN_REQUESTS_PRODUCTION_READY=true are both set as Fly secrets. Set those
+  # before the next deploy — see packages/agent/README.md § Production Checklist.
+  JOIN_REQUESTS_ENABLED = 'true'
   NODE_ENV = 'production'
   PORT = '8080'
   SAVED_OFFERS_AUDIENCE = 'agent.greengoods.app'
