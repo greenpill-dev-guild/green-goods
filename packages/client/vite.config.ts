@@ -21,7 +21,7 @@ import { createPwaShellAssetsPlugin } from "./vite/pwa-shell";
 import { createPublicSocialPreviewPlugin } from "./vite/social-preview";
 import { resolveViteWatchOptions } from "./vite/watch";
 
-const DEFAULT_INDEXER_URL = "https://indexer.hyperindex.xyz/0bf0e0f/v1/graphql";
+const DEFAULT_INDEXER_URL = "https://indexer.hyperindex.xyz/e6edffd/v1/graphql";
 const CLIENT_VERCEL_PROJECT_ID = "prj_AFl9rmdB5VJFKcpK4Art9had9DmG";
 const CLIENT_REACT_MODULES = /[\\/]node_modules[\\/](?:react|react-dom|react-is|scheduler)[\\/]/;
 const CLIENT_QUERY_MODULES =

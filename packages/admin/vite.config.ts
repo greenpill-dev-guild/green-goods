@@ -10,7 +10,7 @@ import { assertEnvParity, assertSentryDsnResolvable } from "../../scripts/lib/en
 import { defineConfig, loadEnv, type Plugin, type ProxyOptions, type UserConfig } from "vite";
 import mkcert from "vite-plugin-mkcert";
 
-const DEFAULT_INDEXER_URL = "https://indexer.hyperindex.xyz/0bf0e0f/v1/graphql";
+const DEFAULT_INDEXER_URL = "https://indexer.hyperindex.xyz/e6edffd/v1/graphql";
 const ADMIN_VERCEL_PROJECT_ID = "prj_t2gwwFBMLKM22eYKxtA0yGRBfigg";
 
 function envValue(key: string): string | undefined {
