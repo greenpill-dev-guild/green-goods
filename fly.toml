@@ -31,12 +31,18 @@ kill_timeout = '30s'
   dockerfile = 'packages/agent/Dockerfile'
 
 [env]
+  AGENT_ALLOWED_ORIGINS = 'https://greengoods.app,https://www.greengoods.app,https://beta.greengoods.app,https://admin.greengoods.app'
+  AGENT_TRUSTED_PROXY_CIDRS = '172.16.0.0/16'
+  AGENT_TRUSTED_PROXY_HOPS = '1'
   ANALYTICS_ENABLED = 'true'
   BOT_MODE = 'webhook'
   DB_PATH = '/data/agent.db'
   HOST = '0.0.0.0'
+  JOIN_REQUESTS_ENABLED = 'false'
   NODE_ENV = 'production'
   PORT = '8080'
+  SAVED_OFFERS_AUDIENCE = 'agent.greengoods.app'
+  VITE_CHAIN_ID = '42161'
   WEBHOOK_URL = 'https://agent.greengoods.app'
 
 [[mounts]]

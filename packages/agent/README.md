@@ -43,19 +43,16 @@ Run from the repo root:
 flyctl launch --no-deploy --config fly.toml --dockerfile packages/agent/Dockerfile
 
 # Persistent volume for the SQLite database
-flyctl volumes create agent_data --config fly.toml --region ams --size 1
+flyctl volumes create agent_data --config fly.toml --region jnb --size 1
 
-# Secrets (these never land in fly.toml)
+# Stable production settings, including the chain, browser origins,
+# feature flags, saved-offer audience, and trusted-proxy policy, live in fly.toml.
 flyctl secrets set --config fly.toml \
   TELEGRAM_BOT_TOKEN=<botfather-token> \
   ENCRYPTION_SECRET=<32+-char-secret> \
   SAVED_OFFERS_ENCRYPTION_KEY=<32-byte-hex-or-base64-key> \
-  JOIN_REQUESTS_ENABLED=false \
-  SAVED_OFFERS_AUDIENCE=agent.greengoods.app \
-  AGENT_TRUSTED_PROXY_HOPS=1 \
   BOT_API_TOKEN=<routine-auth-bearer-token> \
   PINATA_JWT=<pinata-jwt-for-upload-signing> \
-  AGENT_ALLOWED_ORIGINS=https://greengoods.app,https://admin.greengoods.app \
   POSTHOG_AGENT_KEY=<optional> \
   TELEGRAM_WEBHOOK_SECRET=<random-string>
 
@@ -180,6 +177,7 @@ ENCRYPTION_SECRET=your-32-character-secret-key
 SAVED_OFFERS_ENCRYPTION_KEY=your-32-byte-hex-or-base64-key
 SAVED_OFFERS_AUDIENCE=agent.greengoods.app
 AGENT_TRUSTED_PROXY_HOPS=1
+AGENT_TRUSTED_PROXY_CIDRS=172.16.0.0/16
 
 # Optional
 JOIN_REQUESTS_ENABLED=false  # Keep false until every activation gate is complete
@@ -306,7 +304,9 @@ See [agent.md](/.claude/context/agent.md) for detailed architecture documentatio
 ## Production Checklist
 
 - [ ] Set `ENCRYPTION_SECRET` (32+ characters)
-- [ ] Set `SAVED_OFFERS_ENCRYPTION_KEY`, `SAVED_OFFERS_AUDIENCE`, and `AGENT_TRUSTED_PROXY_HOPS`
+- [ ] Set `SAVED_OFFERS_ENCRYPTION_KEY`
+- [ ] Confirm `AGENT_ALLOWED_ORIGINS`, `SAVED_OFFERS_AUDIENCE`, `AGENT_TRUSTED_PROXY_HOPS`,
+      `AGENT_TRUSTED_PROXY_CIDRS`, and `VITE_CHAIN_ID` in `fly.toml`
 - [ ] Before setting `JOIN_REQUESTS_ENABLED=true`, set `JOIN_REQUESTS_ENCRYPTION_KEY`, name a backup operator, rehearse recovery, record authenticated Brave proof, update [the authoritative community interface status](/.plans/active/community-interface/status.json), then set `JOIN_REQUESTS_PRODUCTION_READY=true`.
 - [ ] Configure webhook URL with TLS
 - [ ] Consider HSM/KMS for key storage
