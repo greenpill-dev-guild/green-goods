@@ -1,6 +1,7 @@
 import { EAS, SchemaEncoder, type Transaction } from "@ethereum-attestation-service/eas-sdk";
 import { type Eip1193Provider, ethers } from "ethers";
 import type { WalletClient } from "viem";
+import { getAssessmentSchemas } from "./schemas";
 import { getEASConfig } from "../../config/blockchain";
 import type { AssessmentWorkflowParams } from "../../types/domain";
 import { getNetworkContracts } from "../../utils/blockchain/contracts";
@@ -22,6 +23,7 @@ export interface CreateAssessmentCommand {
 }
 
 interface AssessmentSchemaConfig {
+  schemaVersion: 2 | 3 | undefined;
   easAddress: string;
   schemaUid: string;
   schema: string;
@@ -147,6 +149,14 @@ export async function createAssessment(
       type: "uint256",
     },
     { name: "location", value: params.location, type: "string" },
+    // This garden-level workflow records a baseline, outside a module cycle.
+    ...(config.schemaVersion === 3
+      ? [
+          { name: "assessmentKind", value: 0, type: "uint8" },
+          { name: "cycleId", value: 0, type: "uint256" },
+          { name: "baselineUID", value: ethers.ZeroHash, type: "bytes32" },
+        ]
+      : []),
   ]);
 
   return ports.sender.attest({
@@ -183,11 +193,12 @@ export function createDefaultCreateAssessmentPorts(input: {
     reader: {
       configuration: (chainId) => {
         const contracts = getNetworkContracts(chainId);
-        const easConfig = getEASConfig(chainId);
+        const [schema] = getAssessmentSchemas(getEASConfig(chainId));
         return {
           easAddress: contracts.eas,
-          schemaUid: easConfig.ASSESSMENT.uid,
-          schema: easConfig.ASSESSMENT.schema,
+          schemaUid: schema?.uid ?? ethers.ZeroHash,
+          schema: schema?.schema ?? "",
+          schemaVersion: schema?.version,
         };
       },
       encode: (schema, values) => new SchemaEncoder(schema).encodeData(values),

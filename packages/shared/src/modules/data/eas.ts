@@ -6,6 +6,7 @@ import type {
   EASWorkApproval,
 } from "../../types/eas-responses";
 import { isZeroBytes32 } from "../../utils/blockchain/bytes";
+import { getAssessmentSchemas } from "../assessment/schemas";
 import { logger } from "../app/logger";
 import {
   parseDataToGardenAssessment,
@@ -51,8 +52,7 @@ function validatedAttestations(attestations: unknown, operation: string): EASAtt
 }
 
 /**
- * Garden assessment attestations under one schema: the v2 UID by default, or
- * the v3 registration (`getEASConfig().ASSESSMENT_V3`) when `schemaUID` names it.
+ * Read every registered assessment version unless a caller explicitly narrows the schema.
  */
 export const getGardenAssessments = async (
   gardenAddress?: string,
@@ -61,8 +61,8 @@ export const getGardenAssessments = async (
   reader: GraphQLReader = createEasClient(chainId)
 ): Promise<EASGardenAssessment[]> => {
   const QUERY = easGraphQL(/* GraphQL */ `
-    query Attestations($where: AttestationWhereInput) {
-      attestations(where: $where) {
+    query Assessments($where: AttestationWhereInput, $take: Int!, $skip: Int!) {
+      attestations(where: $where, take: $take, skip: $skip, orderBy: [{ id: asc }]) {
         id
         attester
         recipient
@@ -72,48 +72,53 @@ export const getGardenAssessments = async (
     }
   `);
 
-  const resolvedSchemaUID = schemaUID ?? getEASConfig(chainId).ASSESSMENT.uid;
-  if (isZeroBytes32(resolvedSchemaUID)) return [];
+  const schemas =
+    schemaUID === undefined
+      ? getAssessmentSchemas(getEASConfig(chainId)).map((schema) => schema.uid)
+      : [schemaUID].filter((uid) => !isZeroBytes32(uid));
+  if (schemas.length === 0) return [];
 
-  const schemaId = { equals: resolvedSchemaUID };
-  const { data, error } = await reader.query(
-    QUERY,
-    {
-      where: {
-        schemaId,
-        revoked: { equals: false },
-        ...(gardenAddress ? { recipient: { equals: gardenAddress } } : {}),
-      },
-    },
-    "getGardenAssessments"
-  );
-
-  if (error) {
-    throw new EASFetchError(
-      `Failed to fetch garden assessments: ${error.message}`,
-      "getGardenAssessments",
-      error
+  const where = {
+    schemaId: { in: schemas },
+    revoked: { equals: false },
+    ...(gardenAddress ? { recipient: { equals: gardenAddress } } : {}),
+  };
+  const pageSize = 100;
+  const attestations: EASAttestationRaw[] = [];
+  // EAS defaults to one page. A stable unique order lets every schema's history
+  // be read without one version filling the page and hiding another.
+  for (let skip = 0; ; skip += pageSize) {
+    const { data, error } = await reader.query(
+      QUERY,
+      { where, take: pageSize, skip },
+      "getGardenAssessments"
     );
-  }
 
-  if (!data?.attestations) {
-    return [];
-  }
-
-  return validatedAttestations(data.attestations, "getGardenAssessments").map(
-    ({ id, attester, recipient, timeCreated, decodedDataJson }) => {
-      const timestamp = typeof timeCreated === "string" ? Number(timeCreated) : (timeCreated ?? 0);
-      return parseDataToGardenAssessment(
-        id,
-        {
-          attester,
-          recipient,
-          time: timestamp,
-        },
-        decodedDataJson
+    if (error || !Array.isArray(data?.attestations)) {
+      throw new EASFetchError(
+        `Failed to fetch garden assessments: ${error?.message ?? "Invalid attestations response"}`,
+        "getGardenAssessments",
+        error
       );
     }
-  );
+
+    attestations.push(...validatedAttestations(data.attestations, "getGardenAssessments"));
+    // Count raw rows: skipping malformed records must not end pagination early.
+    if (data.attestations.length < pageSize) break;
+  }
+
+  return attestations.map(({ id, attester, recipient, timeCreated, decodedDataJson }) => {
+    const timestamp = typeof timeCreated === "string" ? Number(timeCreated) : (timeCreated ?? 0);
+    return parseDataToGardenAssessment(
+      id,
+      {
+        attester,
+        recipient,
+        time: timestamp,
+      },
+      decodedDataJson
+    );
+  });
 };
 
 /** Queries work attestations for a garden or multiple gardens */

@@ -37,6 +37,7 @@ import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
 import { isGardenPubliclyVisible } from "../../config/garden-visibility";
 import { publicKeys } from "../../config/query-keys/public";
 import { STALE_TIME_RARE } from "../../config/query-keys/constants";
+import { getAssessmentSchemas } from "../../modules/assessment/schemas";
 import { logger } from "../../modules/app/logger";
 import { getGardenAssessments, getWorks } from "../../modules/data/eas";
 import { getGardens } from "../../modules/data/greengoods";
@@ -165,7 +166,7 @@ export function usePublicGardenDetail(
       const unavailableSources: PublicGardenUnavailableSources = {
         works: worksResult.status === "rejected" || isZeroBytes32(easConfig.WORK.uid),
         assessments:
-          assessmentsResult.status === "rejected" || isZeroBytes32(easConfig.ASSESSMENT.uid),
+          assessmentsResult.status === "rejected" || getAssessmentSchemas(easConfig).length === 0,
       };
 
       if (worksResult.status === "rejected") {

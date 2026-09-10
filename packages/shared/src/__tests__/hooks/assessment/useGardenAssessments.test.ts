@@ -21,24 +21,7 @@ vi.mock("../../../modules/data/eas", () => ({
   getGardenAssessments: (...args: unknown[]) => mockGetGardenAssessments(...args),
 }));
 
-const V2_UID = "0x22";
-const V3_UID = "0x33";
-const mockGetEASConfig = vi.fn((_chainId?: number | string) => ({
-  ASSESSMENT: { uid: V2_UID, schema: "" },
-  ASSESSMENT_V3: { uid: V3_UID, schema: "" },
-}));
-vi.mock("../../../config/blockchain", () => ({
-  DEFAULT_CHAIN_ID: 11155111,
-  getEASConfig: (chainId?: number) => mockGetEASConfig(chainId),
-}));
-
-vi.mock("../../../config/default-chain", () => ({
-  DEFAULT_CHAIN_ID: 11155111,
-}));
-
-vi.mock("../../../utils/blockchain/vaults", () => ({
-  isZeroBytes32: (value: string) => /^0x0*$/.test(value),
-}));
+vi.mock("../../../config/default-chain", () => ({ DEFAULT_CHAIN_ID: 11155111 }));
 
 const mockUseQuery = vi.fn();
 vi.mock("@tanstack/react-query", () => ({
@@ -122,9 +105,7 @@ describe("useGardenAssessments", () => {
     const options = mockUseQuery.mock.calls[0][0];
     await options.queryFn();
 
-    // Both registered schemas: v3 first, then the still-readable v2 record.
-    expect(mockGetGardenAssessments).toHaveBeenNthCalledWith(1, GARDEN_ADDRESS, 11155111, V3_UID);
-    expect(mockGetGardenAssessments).toHaveBeenNthCalledWith(2, GARDEN_ADDRESS, 11155111, V2_UID);
+    expect(mockGetGardenAssessments).toHaveBeenCalledExactlyOnceWith(GARDEN_ADDRESS, 11155111);
   });
 
   it("uses correct staleTime and refetchInterval", () => {
@@ -162,8 +143,7 @@ describe("useGardenAssessments", () => {
     const options = mockUseQuery.mock.calls[0][0];
     await options.queryFn();
 
-    expect(mockGetGardenAssessments).toHaveBeenCalledWith(GARDEN_ADDRESS, 42161, V3_UID);
-    expect(mockGetGardenAssessments).toHaveBeenCalledWith(GARDEN_ADDRESS, 42161, V2_UID);
+    expect(mockGetGardenAssessments).toHaveBeenCalledExactlyOnceWith(GARDEN_ADDRESS, 42161);
   });
 
   it("defaults to DEFAULT_CHAIN_ID when chainId is not provided", () => {
