@@ -26,13 +26,11 @@ import { useVaultDeposits } from "@green-goods/shared/hooks/vault/useVaultDeposi
 import { useWorks } from "@green-goods/shared/hooks/work/useWorks";
 import { useUIStore } from "@green-goods/shared/stores/useUIStore";
 import type { Address } from "@green-goods/shared/types/domain";
-import { shareLink } from "@green-goods/shared/utils/app/clipboard";
 import {
   RiCalendarEventFill,
   RiErrorWarningLine,
   RiLoader4Line,
   RiMapPin2Fill,
-  RiShareLine,
   RiUserAddLine,
 } from "@remixicon/react";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -52,6 +50,7 @@ import {
 import { StandardTabs, TopNav } from "@/components/Navigation";
 import { buildGardenTabs } from "./gardenTabs";
 import { GardenPool } from "./Pool";
+import { ShareGardenButton } from "./ShareGardenButton";
 
 export const Garden: React.FC = () => {
   const intl = useIntl();
@@ -314,23 +313,6 @@ export const Garden: React.FC = () => {
 
   const { name, bannerImage, location, createdAt, assessments, description } = garden;
 
-  const handleShareGarden = async () => {
-    const url = new URL(window.location.href);
-    const path = `/home/${encodeURIComponent(garden.id)}`;
-    if (url.hash.startsWith("#/")) {
-      url.hash = path;
-    } else {
-      url.pathname = path;
-      url.hash = "";
-    }
-    url.search = "";
-    try {
-      await shareLink({ title: name, url: url.toString() });
-    } catch {
-      toastService.error({ title: intl.formatMessage({ id: "app.garden.shareFailed" }) });
-    }
-  };
-
   // Restore scroll position when switching tabs
 
   const tabs = buildGardenTabs(intl, { hasPool: Boolean(commitmentPool) });
@@ -434,14 +416,7 @@ export const Garden: React.FC = () => {
                       </span>
                     </div>
                   </div>
-                  <Button
-                    label={intl.formatMessage({ id: "app.garden.share" })}
-                    leadingIcon={<RiShareLine className="w-4 h-4" />}
-                    variant="neutral"
-                    mode="stroke"
-                    size="small"
-                    onClick={handleShareGarden}
-                  />
+                  <ShareGardenButton gardenId={garden.id} name={name} />
                   {showJoinButton && (
                     <Button
                       label={intl.formatMessage({

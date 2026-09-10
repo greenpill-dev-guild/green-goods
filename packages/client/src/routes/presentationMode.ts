@@ -77,7 +77,7 @@ function getPresentationUrl(source?: string | URL): URL | null {
  * pages even when opened from a standalone window; every other route follows
  * the shared installed/local-preview presentation contract.
  */
-export function getClientRoutePresentationMode(source?: string | URL): "website" | "pwa" {
+function getClientRoutePresentationMode(source?: string | URL): "website" | "pwa" {
   const url = getPresentationUrl(source);
   if (url && isProductionPublicWebsiteUrl(url)) return "website";
   return getClientPresentationMode(source);
