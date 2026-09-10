@@ -20,6 +20,7 @@ import {
 } from "react";
 import { logger } from "../../modules/app/logger";
 import { track } from "../../modules/app/posthog";
+import { waitForWaitingWorker } from "../../modules/app/service-worker-update";
 import { useTimeout } from "../utils/useTimeout";
 
 export type ServiceWorkerUpdatePhase =
@@ -52,8 +53,6 @@ export interface ServiceWorkerUpdateState {
   /** The waiting service worker registration, if any */
   waitingWorker: ServiceWorker | null;
 }
-
-const WAITING_WORKER_TIMEOUT_MS = 10_000;
 
 /**
  * Bound on the apply path: time allowed between posting SKIP_WAITING and the
@@ -203,6 +202,19 @@ function useServiceWorkerUpdateController(): ServiceWorkerUpdateState {
     }
   }, [markUpdateAvailable]);
 
+  // A newer worker started installing: reflect the download in phase and telemetry.
+  const markDownloading = useCallback(() => {
+    downloadStartedAtRef.current = downloadStartedAtRef.current ?? now();
+    setPhase("downloading");
+    track(
+      "sw_update_download_started",
+      buildTelemetry({
+        phase: "downloading",
+        check_duration_ms: durationSince(checkStartedAtRef.current),
+      })
+    );
+  }, [buildTelemetry]);
+
   // Handler for update found event
   const handleUpdateFound = useCallback(() => {
     const registration = registrationRef.current;
@@ -216,17 +228,9 @@ function useServiceWorkerUpdateController(): ServiceWorkerUpdateState {
 
     // Store reference and add listener
     installingWorkerRef.current = installing;
-    downloadStartedAtRef.current = downloadStartedAtRef.current ?? now();
-    setPhase("downloading");
-    track(
-      "sw_update_download_started",
-      buildTelemetry({
-        phase: "downloading",
-        check_duration_ms: durationSince(checkStartedAtRef.current),
-      })
-    );
+    markDownloading();
     installing.addEventListener("statechange", handleStateChange);
-  }, [buildTelemetry, handleStateChange]);
+  }, [handleStateChange, markDownloading]);
 
   // Setup effect - get registration and check for waiting worker
   useEffect(() => {
@@ -364,71 +368,6 @@ function useServiceWorkerUpdateController(): ServiceWorkerUpdateState {
   // Track if we've added the controllerchange listener
   const controllerChangeListenerRef = useRef(false);
 
-  const waitForWaitingWorker = useCallback(
-    async (registration: ServiceWorkerRegistration): Promise<ServiceWorker | null> => {
-      if (registration.waiting) {
-        return registration.waiting;
-      }
-
-      return new Promise((resolve) => {
-        let installing = registration.installing;
-        // eslint-disable-next-line prefer-const -- reassigned by setTimeout below
-        let timeoutId: ReturnType<typeof setTimeout> | undefined;
-
-        const cleanup = (worker: ServiceWorker | null) => {
-          if (timeoutId) {
-            clearTimeout(timeoutId);
-          }
-          registration.removeEventListener("updatefound", handleUpdateFoundOnce);
-          if (installing) {
-            installing.removeEventListener("statechange", handleStateChangeOnce);
-          }
-          resolve(worker);
-        };
-
-        const handleStateChangeOnce = () => {
-          if (installing?.state === "installed" && navigator.serviceWorker.controller) {
-            cleanup(registration.waiting ?? installing ?? null);
-          }
-        };
-
-        const handleUpdateFoundOnce = () => {
-          if (installing) {
-            installing.removeEventListener("statechange", handleStateChangeOnce);
-          }
-          installing = registration.installing;
-          if (installing) {
-            downloadStartedAtRef.current = downloadStartedAtRef.current ?? now();
-            setPhase("downloading");
-            track(
-              "sw_update_download_started",
-              buildTelemetry({
-                phase: "downloading",
-                check_duration_ms: durationSince(checkStartedAtRef.current),
-              })
-            );
-            installing.addEventListener("statechange", handleStateChangeOnce);
-          }
-        };
-
-        if (installing) {
-          installing.addEventListener("statechange", handleStateChangeOnce);
-          if (installing.state === "installed" && navigator.serviceWorker.controller) {
-            cleanup(registration.waiting ?? installing ?? null);
-            return;
-          }
-        }
-
-        registration.addEventListener("updatefound", handleUpdateFoundOnce);
-        timeoutId = setTimeout(
-          () => cleanup(registration.waiting ?? null),
-          WAITING_WORKER_TIMEOUT_MS
-        );
-      });
-    },
-    [buildTelemetry]
-  );
-
   const checkForUpdate = useCallback(async (): Promise<boolean> => {
     if (!isEnabled) return false;
 
@@ -465,7 +404,13 @@ function useServiceWorkerUpdateController(): ServiceWorkerUpdateState {
       lastAutoCheckRef.current = Date.now();
       await registration.update();
 
-      const waiting = await waitForWaitingWorker(registration);
+      // update() resolves once the browser has compared the scripts, and a newer
+      // worker is already `installing` by then, so an empty registration means the
+      // app is up to date. Only wait for an install to settle when one started.
+      const waiting =
+        registration.installing || registration.waiting
+          ? await waitForWaitingWorker(registration, markDownloading)
+          : null;
       if (!waiting) {
         setPhase("idle");
         track(
@@ -499,7 +444,7 @@ function useServiceWorkerUpdateController(): ServiceWorkerUpdateState {
       checkStartedAtRef.current = null;
       throw error;
     }
-  }, [buildTelemetry, isEnabled, markUpdateAvailable, waitForWaitingWorker]);
+  }, [buildTelemetry, isEnabled, markDownloading, markUpdateAvailable]);
 
   // Apply update handler
   const applyUpdate = useCallback(() => {

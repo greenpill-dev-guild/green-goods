@@ -1,8 +1,8 @@
 /**
  * AppSettings Component Tests
  *
- * Tests theme/language settings rendering and the refresh app flow
- * (online vs offline behavior).
+ * Tests theme/language settings rendering and the update row: the manual
+ * check that is always available, and the restart path once a worker waits.
  */
 
 import { cleanup, render, screen } from "@testing-library/react";
@@ -22,6 +22,7 @@ const mockServiceWorkerUpdateState = {
   phase: "idle",
   updateAvailable: false,
   activateNow: vi.fn(),
+  checkForUpdate: vi.fn(),
 };
 
 // Mock @green-goods/shared
@@ -119,6 +120,7 @@ describe("AppSettings", () => {
     mockThemeState.theme = "system";
     mockServiceWorkerUpdateState.phase = "idle";
     mockServiceWorkerUpdateState.updateAvailable = false;
+    mockServiceWorkerUpdateState.checkForUpdate.mockReset().mockResolvedValue(false);
   });
 
   afterEach(() => {
@@ -157,14 +159,61 @@ describe("AppSettings", () => {
     expect(screen.getByText(/set your preferred language/i)).toBeInTheDocument();
   });
 
-  it("does not render the update app card when no service worker update is waiting", () => {
+  it("always offers a manual update check while nothing is pending", () => {
     render(wrap(createElement(AppSettings)));
 
+    expect(screen.getByText("Check for updates")).toBeInTheDocument();
+    expect(screen.getByText(/newer version of green goods/i)).toBeInTheDocument();
+    expect(screen.getByTestId("btn-Check")).toBeInTheDocument();
     expect(screen.queryByText("Refresh app")).not.toBeInTheDocument();
-    expect(screen.queryByText("Update App")).not.toBeInTheDocument();
     expect(screen.queryByTestId("btn-Refresh")).not.toBeInTheDocument();
-    expect(screen.queryByTestId("btn-Update")).not.toBeInTheDocument();
     expect(screen.queryByTestId("btn-Restart to Update")).not.toBeInTheDocument();
+  });
+
+  it("reports up to date when a manual check finds no newer worker", async () => {
+    const user = userEvent.setup();
+    render(wrap(createElement(AppSettings)));
+
+    await user.click(screen.getByTestId("btn-Check"));
+
+    expect(mockServiceWorkerUpdateState.checkForUpdate).toHaveBeenCalledTimes(1);
+    expect(await screen.findByText("Up to date")).toBeInTheDocument();
+    expect(screen.getByText(/latest version of green goods/i)).toBeInTheDocument();
+    expect(screen.getByTestId("btn-Check")).toBeInTheDocument();
+  });
+
+  it("applies a waiting update found by the manual check from the same row", async () => {
+    const user = userEvent.setup();
+    mockServiceWorkerUpdateState.checkForUpdate.mockImplementation(async () => {
+      // The real hook moves to the waiting phase when the check finds a worker.
+      mockServiceWorkerUpdateState.phase = "waiting";
+      mockServiceWorkerUpdateState.updateAvailable = true;
+      return true;
+    });
+    const view = render(wrap(createElement(AppSettings)));
+
+    await user.click(screen.getByTestId("btn-Check"));
+    view.rerender(wrap(createElement(AppSettings)));
+
+    expect(screen.getByText("Ready to restart")).toBeInTheDocument();
+    expect(screen.queryByText("Up to date")).not.toBeInTheDocument();
+    await user.click(screen.getByTestId("btn-Restart to Update"));
+
+    expect(mockServiceWorkerUpdateState.activateNow).toHaveBeenCalledTimes(1);
+  });
+
+  it("asks to try again when the manual check fails", async () => {
+    const user = userEvent.setup();
+    mockServiceWorkerUpdateState.checkForUpdate.mockRejectedValue(new Error("offline"));
+    render(wrap(createElement(AppSettings)));
+
+    await user.click(screen.getByTestId("btn-Check"));
+
+    expect(await screen.findByText("Couldn't check for updates")).toBeInTheDocument();
+    expect(screen.getByText(/check your connection/i)).toBeInTheDocument();
+    await user.click(screen.getByTestId("btn-Try Again"));
+
+    expect(mockServiceWorkerUpdateState.checkForUpdate).toHaveBeenCalledTimes(2);
   });
 
   it("renders the ready update card when a service worker update is waiting", () => {

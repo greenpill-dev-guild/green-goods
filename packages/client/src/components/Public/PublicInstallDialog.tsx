@@ -4,8 +4,81 @@ import { cn } from "@green-goods/shared/utils/styles/cn";
 import { RiCloseLine } from "@remixicon/react";
 import { QRCodeSVG } from "qrcode.react";
 import type { MouseEventHandler } from "react";
-import { useIntl } from "react-intl";
-export type PublicInstallDialogMode = "desktopQr" | "mobileSteps" | "braveLaunch" | "braveInstall";
+import { type MessageDescriptor, useIntl } from "react-intl";
+
+export type PublicInstallDialogMode =
+  | "desktopQr"
+  | "mobileSteps"
+  | "braveLaunch"
+  | "braveInstall"
+  | "homeScreenLaunch";
+
+interface ModeCopy {
+  kicker: MessageDescriptor;
+  title: MessageDescriptor;
+  description: MessageDescriptor;
+}
+
+const MODE_COPY: Record<PublicInstallDialogMode, ModeCopy> = {
+  desktopQr: {
+    kicker: { id: "public.installDialog.kicker", defaultMessage: "Phone handoff" },
+    title: { id: "public.installDialog.title", defaultMessage: "Bring Green Goods into the field" },
+    description: {
+      id: "public.installDialog.description",
+      defaultMessage: "Scan the code with your phone, then install the app from Safari or Chrome.",
+    },
+  },
+  mobileSteps: {
+    kicker: { id: "public.installDialog.kicker", defaultMessage: "Phone handoff" },
+    title: {
+      id: "public.installDialog.mobileTitle",
+      defaultMessage: "Install Green Goods on this phone",
+    },
+    description: {
+      id: "public.installDialog.mobileDescription",
+      defaultMessage:
+        "Use your browser's install controls. If this browser cannot install apps, open this page in Safari or Chrome first.",
+    },
+  },
+  braveLaunch: {
+    kicker: { id: "public.installDialog.braveKicker", defaultMessage: "Open the app" },
+    title: {
+      id: "public.installDialog.braveTitle",
+      defaultMessage: "Open Green Goods from your home screen",
+    },
+    description: {
+      id: "public.installDialog.braveBody",
+      defaultMessage:
+        "Brave adds Green Goods as a home-screen app instead of launching it from this button. Tap the Green Goods icon on your home screen to open it.",
+    },
+  },
+  braveInstall: {
+    kicker: { id: "public.installDialog.braveInstallKicker", defaultMessage: "Install in Chrome" },
+    title: {
+      id: "public.installDialog.braveInstallTitle",
+      defaultMessage: "Install Green Goods in Chrome",
+    },
+    description: {
+      id: "public.installDialog.braveInstallBody",
+      defaultMessage:
+        "Brave saves Green Goods as a home-screen shortcut instead of installing the full app. Open this page in Chrome, then tap Install to add the full app.",
+    },
+  },
+  // An in-tab navigation cannot launch an installed Android app (PRD-904).
+  homeScreenLaunch: {
+    kicker: { id: "public.installDialog.homeScreenKicker", defaultMessage: "Installed app" },
+    title: {
+      id: "public.installDialog.homeScreenTitle",
+      defaultMessage: "Open Green Goods from your home screen",
+    },
+    description: {
+      id: "public.installDialog.homeScreenBody",
+      defaultMessage:
+        "This tab can't launch the installed app. Tap the Green Goods icon on your home screen to open it.",
+    },
+  },
+};
+
 export interface PublicInstallDialogProps {
   open: boolean;
   mode: PublicInstallDialogMode;
@@ -38,52 +111,14 @@ export function PublicInstallDialog({
 }: PublicInstallDialogProps) {
   const { formatMessage } = useIntl();
   const isDesktopQr = mode === "desktopQr";
-  const isBraveLaunch = mode === "braveLaunch";
+  // Both launch modes explain that the app opens from the home screen and offer
+  // the in-tab route as the fallback.
+  const isLaunchInstruction = mode === "braveLaunch" || mode === "homeScreenLaunch";
   const isBraveInstall = mode === "braveInstall";
+  const copy = MODE_COPY[mode];
   const manualSteps = guidance.manualInstructions ?? [];
   const showMobilePrimaryAction =
-    !isDesktopQr && !isBraveLaunch && !isBraveInstall && hasMobilePrimaryAction(guidance);
-
-  const kickerId = isBraveLaunch
-    ? "public.installDialog.braveKicker"
-    : isBraveInstall
-      ? "public.installDialog.braveInstallKicker"
-      : "public.installDialog.kicker";
-  const kickerDefault = isBraveLaunch
-    ? "Open the app"
-    : isBraveInstall
-      ? "Install in Chrome"
-      : "Phone handoff";
-
-  const titleId = isDesktopQr
-    ? "public.installDialog.title"
-    : isBraveLaunch
-      ? "public.installDialog.braveTitle"
-      : isBraveInstall
-        ? "public.installDialog.braveInstallTitle"
-        : "public.installDialog.mobileTitle";
-  const titleDefault = isDesktopQr
-    ? "Bring Green Goods into the field"
-    : isBraveLaunch
-      ? "Open Green Goods from your home screen"
-      : isBraveInstall
-        ? "Install Green Goods in Chrome"
-        : "Install Green Goods on this phone";
-
-  const descriptionId = isDesktopQr
-    ? "public.installDialog.description"
-    : isBraveLaunch
-      ? "public.installDialog.braveBody"
-      : isBraveInstall
-        ? "public.installDialog.braveInstallBody"
-        : "public.installDialog.mobileDescription";
-  const descriptionDefault = isDesktopQr
-    ? "Scan the code with your phone, then install the app from Safari or Chrome."
-    : isBraveLaunch
-      ? "Brave adds Green Goods as a home-screen app instead of launching it from this button. Tap the Green Goods icon on your home screen to open it."
-      : isBraveInstall
-        ? "Brave saves Green Goods as a home-screen shortcut instead of installing the full app. Open this page in Chrome, then tap Install to add the full app."
-        : "Use your browser's install controls. If this browser cannot install apps, open this page in Safari or Chrome first.";
+    !isDesktopQr && !isLaunchInstruction && !isBraveInstall && hasMobilePrimaryAction(guidance);
 
   return (
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
@@ -100,22 +135,13 @@ export function PublicInstallDialog({
             <header className="flex items-start justify-between gap-4">
               <div className="min-w-0">
                 <p className="font-mono text-[10.5px] font-medium uppercase tracking-[0.18em] text-text-soft-400">
-                  {formatMessage({
-                    id: kickerId,
-                    defaultMessage: kickerDefault,
-                  })}
+                  {formatMessage(copy.kicker)}
                 </p>
                 <Dialog.Title className="mt-2 font-serif text-2xl font-normal leading-[1.08] tracking-[-0.018em] text-text-strong-950 md:text-3xl">
-                  {formatMessage({
-                    id: titleId,
-                    defaultMessage: titleDefault,
-                  })}
+                  {formatMessage(copy.title)}
                 </Dialog.Title>
                 <Dialog.Description className="mt-3 max-w-prose text-sm leading-[1.65] text-text-sub-600">
-                  {formatMessage({
-                    id: descriptionId,
-                    defaultMessage: descriptionDefault,
-                  })}
+                  {formatMessage(copy.description)}
                 </Dialog.Description>
               </div>
 
@@ -202,7 +228,7 @@ export function PublicInstallDialog({
                   </ol>
                 </div>
               </div>
-            ) : isBraveLaunch ? (
+            ) : isLaunchInstruction ? (
               <div className="mt-6">
                 <a
                   href={launchUrl}

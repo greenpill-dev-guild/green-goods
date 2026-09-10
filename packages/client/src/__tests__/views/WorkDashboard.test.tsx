@@ -4,7 +4,6 @@ import { createElement } from "react";
 import { IntlProvider } from "react-intl";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { PullToRefresh } from "@/components/Inputs/PullToRefresh";
 
 const mockNavigate = vi.hoisted(() => vi.fn());
 const mockUseMyWorks = vi.fn();
@@ -516,48 +515,6 @@ describe("WorkDashboard", () => {
     expect(dashboardScroll.scrollTop).toBe(0);
     expect(appScroll.scrollTop).toBe(900);
     expect(dashboardScroll.querySelector(".overflow-y-auto")).toBeNull();
-  });
-
-  it("keeps Home pull-to-refresh from claiming touches inside the open dashboard", () => {
-    const appScroll = document.createElement("div");
-    appScroll.id = "app-scroll";
-    document.body.append(appScroll);
-    const onRefresh = vi.fn().mockResolvedValue(undefined);
-
-    // Same composition as Home: the dashboard sheet mounts inside the pull wrapper.
-    render(
-      createElement(
-        MemoryRouter,
-        null,
-        createElement(
-          IntlProvider,
-          { locale: "en", messages: { "app.common.loading": "Loading" } },
-          createElement(
-            PullToRefresh,
-            { onRefresh },
-            createElement(WorkDashboard, { onClose: vi.fn() })
-          )
-        )
-      )
-    );
-
-    const dashboardScroll = document.getElementById("work-dashboard-scroll");
-    if (!dashboardScroll) throw new Error("WorkDashboard scroll owner is missing");
-    const pullIndicator = screen.getByRole("status", { name: "Pull to refresh" });
-    const contentWrapper = pullIndicator.parentElement?.lastElementChild as HTMLElement;
-    expect(contentWrapper).toContainElement(dashboardScroll);
-
-    // A flick back toward the top of the list: finger moves down while Home sits at scrollTop 0.
-    fireEvent.touchStart(dashboardScroll, { touches: [{ clientY: 300 }] });
-    const nativeScrollKept = fireEvent.touchMove(dashboardScroll, {
-      touches: [{ clientY: 560 }],
-    });
-    fireEvent.touchEnd(dashboardScroll);
-
-    expect(nativeScrollKept).toBe(true);
-    expect(contentWrapper.style.transform).toBe("");
-    expect(screen.getByRole("status", { name: "Pull to refresh" })).toBeInTheDocument();
-    expect(onRefresh).not.toHaveBeenCalled();
   });
 
   it("closes from Escape while focus is inside the dialog", () => {

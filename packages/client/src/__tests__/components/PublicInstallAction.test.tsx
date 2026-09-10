@@ -219,13 +219,14 @@ describe("PublicInstallAction", () => {
     expect(cta).toHaveAttribute("data-install-action", "installing");
   });
 
-  it("uses the current origin for Open App links", () => {
+  it("turns Open App into the home-screen instruction for an installed Android tab", () => {
     mockUseIsBraveBrowser.mockReturnValue(false);
     mockUseApp.mockReturnValue({
       isMobile: true,
       platform: "android",
       isInstalled: true,
       isInstalling: false,
+      isStandalone: false,
       wasInstalled: true,
       deferredPrompt: null,
       promptInstall: vi.fn(),
@@ -243,9 +244,51 @@ describe("PublicInstallAction", () => {
 
     renderAction();
 
+    const cta = screen.getByTestId("cta");
+    expect(cta).toHaveTextContent("Open from Home Screen");
+    expect(cta).toHaveAttribute("href", "/home");
+    expect(cta).toHaveAttribute("data-install-action", "open-app");
+    // An in-tab navigation cannot launch the installed app, so the tap explains
+    // instead of reloading the tab (PWA-AND-001).
+    expect(fireEvent.click(cta)).toBe(false);
+    expect(screen.getByText("Open Green Goods from your home screen")).toBeInTheDocument();
+    expect(screen.getByText(/this tab can't launch the installed app/i)).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Open in This Tab Instead" })).toHaveAttribute(
+      "href",
+      expect.stringContaining("/home")
+    );
+    expect(mockInstallHandler).not.toHaveBeenCalled();
+  });
+
+  it("keeps Open App as a plain in-app navigation inside the installed app", () => {
+    mockUseIsBraveBrowser.mockReturnValue(false);
+    mockUseApp.mockReturnValue({
+      isMobile: true,
+      platform: "android",
+      isInstalled: true,
+      isInstalling: false,
+      isStandalone: true,
+      wasInstalled: true,
+      deferredPrompt: null,
+      promptInstall: vi.fn(),
+    });
+    mockUseInstallGuidance.mockReturnValue({
+      scenario: "already-installed",
+      primaryAction: { type: "open-app", label: "Open App" },
+      secondaryAction: null,
+      browserInfo: { browser: "chrome" },
+      showBrowserOption: false,
+      manualInstructions: null,
+      browserSwitchReason: null,
+      openInBrowserUrl: null,
+    });
+
+    renderAction();
+
+    expect(screen.getByTestId("cta")).toHaveTextContent("Open App");
     expect(screen.getByTestId("cta")).toHaveAttribute("href", "/home");
-    expect(screen.getByTestId("cta")).toHaveAttribute("data-install-action", "open-app");
     expect(fireEvent.click(screen.getByTestId("cta"))).toBe(true);
+    expect(screen.queryByText("Open Green Goods from your home screen")).not.toBeInTheDocument();
   });
 
   it("keeps Open App primary for remembered Android installs and exposes reinstall help", () => {
@@ -279,7 +322,7 @@ describe("PublicInstallAction", () => {
 
     renderAction();
 
-    expect(screen.getByTestId("cta")).toHaveTextContent("Open App");
+    expect(screen.getByTestId("cta")).toHaveTextContent("Open from Home Screen");
     expect(screen.getByTestId("fallback")).toHaveTextContent("Install Again");
 
     fireEvent.click(screen.getByTestId("fallback"));
@@ -383,7 +426,7 @@ describe("PublicInstallAction", () => {
         createElement(PublicInstallCta, { variant: "compact", destination })
       )
     );
-    for (const name of ["Open App", "Open This Work in the App"]) {
+    for (const name of ["Open from Home Screen", "Open This Work in the App"]) {
       const link = screen.getByRole("link", { name });
       const target = new URL(link.getAttribute("href")!, source);
       expect(target.pathname).toBe(source.pathname);

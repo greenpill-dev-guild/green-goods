@@ -152,11 +152,6 @@ vi.mock("@remixicon/react", async (importOriginal) => ({
 }));
 
 // Mock local components
-vi.mock("@/components/Inputs", () => ({
-  PullToRefresh: ({ children }: { children: any }) =>
-    createElement("div", { "data-testid": "pull-to-refresh" }, children),
-}));
-
 vi.mock("../../views/Home/GardenList", () => ({
   GardenList: ({ gardens, onCardClick }: { gardens: any[]; onCardClick: (id: string) => void }) =>
     createElement(
@@ -210,7 +205,6 @@ import Home from "../../views/Home";
 const messages = {
   "app.home": "Home",
   "app.home.filters.button": "Filters",
-  "app.home.pullToRefresh": "Pull to refresh gardens",
   "app.home.messages.noGardensFound": "No gardens found",
 };
 

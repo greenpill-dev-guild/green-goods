@@ -28,7 +28,6 @@ import {
 import { useIntl } from "react-intl";
 import { Outlet, useLocation, useMatch, useNavigate } from "react-router-dom";
 
-import { PullToRefresh } from "@/components/Inputs/PullToRefresh";
 import { pwaStatusStyles } from "@/components/Pwa/statusStyles";
 import { APP_ROUTES } from "@/config/pwaRouting";
 import { ARRIVAL_TOASTS, type ArrivalActionKind } from "./arrivalToast";
@@ -243,13 +242,6 @@ const Home: React.FC = () => {
     refetch();
   };
 
-  // Pull-to-refresh handler
-  const handlePullToRefresh = useCallback(async () => {
-    resetLoadingState();
-    queryClient.invalidateQueries({ queryKey: queryKeys.gardens.all });
-    await refetch();
-  }, [queryClient, refetch, resetLoadingState]);
-
   const handleCardClick = (id: string) => {
     navigate(`/home/${id}`);
     articleRef.current?.scrollIntoView();
@@ -271,24 +263,8 @@ const Home: React.FC = () => {
 
   return (
     <article ref={articleRef} className="mb-6">
-      {location.pathname === APP_ROUTES.home && !isOnline ? (
-        <p className="px-4 pt-2 text-center text-xs text-text-soft-400" role="status">
-          {intl.formatMessage({
-            id: "app.home.pullToRefreshOffline",
-            defaultMessage: "Offline. Pull to refresh is paused until you reconnect.",
-          })}
-        </p>
-      ) : null}
       {location.pathname === APP_ROUTES.home && (
-        <PullToRefresh
-          onRefresh={handlePullToRefresh}
-          isRefreshing={isFetching && !isPending}
-          disabled={!isOnline}
-          refreshLabel={intl.formatMessage({
-            id: "app.home.pullToRefresh",
-            defaultMessage: "Pull to refresh",
-          })}
-        >
+        <>
           <div className="flex items-center justify-between w-full py-6 px-4 sm:px-6 md:px-12">
             <h4 className="font-semibold flex-1">{intl.formatMessage({ id: "app.home" })}</h4>
             <div className="ml-4 flex items-center gap-2">
@@ -358,7 +334,7 @@ const Home: React.FC = () => {
               />
             </Suspense>
           ) : null}
-        </PullToRefresh>
+        </>
       )}
       <Outlet />
       {isWalletDrawerOpen ? (

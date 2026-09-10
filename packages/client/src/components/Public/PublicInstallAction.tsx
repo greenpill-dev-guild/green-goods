@@ -76,6 +76,7 @@ export function PublicInstallAction({
     platform,
     isInstalled,
     isInstalling,
+    isStandalone,
     wasInstalled,
     installedAppEvidence,
     deferredPrompt,
@@ -120,6 +121,12 @@ export function PublicInstallAction({
   const isOpenApp =
     !isInstallPending &&
     (forceOpenApp || (isMobile && (isInstalled || guidance.primaryAction.type === "open-app")));
+  // Android link capturing never hands an in-tab navigation to the installed
+  // WebAPK: the tab just reloads on the start URL (PRD-904). From a browser tab
+  // the only way into the installed app is its home-screen icon, so the control
+  // turns into that instruction. Inside the installed app the same href is an
+  // ordinary in-app route and stays a plain navigation.
+  const isHomeScreenLaunch = isOpenApp && platform === "android" && !isStandalone;
   const hasInstallFallback =
     isOpenApp &&
     isMobile &&
@@ -138,10 +145,18 @@ export function PublicInstallAction({
   const label = formatMessage({
     id: isInstallPending
       ? "public.nav.installingApp"
-      : isOpenApp
-        ? "public.nav.openApp"
-        : "public.nav.installApp",
-    defaultMessage: isInstallPending ? "Installing..." : isOpenApp ? "Open App" : "Install App",
+      : isHomeScreenLaunch
+        ? "public.nav.openFromHomeScreen"
+        : isOpenApp
+          ? "public.nav.openApp"
+          : "public.nav.installApp",
+    defaultMessage: isInstallPending
+      ? "Installing..."
+      : isHomeScreenLaunch
+        ? "Open from Home Screen"
+        : isOpenApp
+          ? "Open App"
+          : "Install App",
   });
 
   const handleClick = useCallback<MouseEventHandler<HTMLElement>>(
@@ -158,6 +173,9 @@ export function PublicInstallAction({
         if (isBrave) {
           event.preventDefault();
           setDialogMode("braveLaunch");
+        } else if (isHomeScreenLaunch) {
+          event.preventDefault();
+          setDialogMode("homeScreenLaunch");
         }
         return;
       }
@@ -188,6 +206,7 @@ export function PublicInstallAction({
       dispatchInstallAction,
       guidance.primaryAction.type,
       isBrave,
+      isHomeScreenLaunch,
       isInstallPending,
       isMobile,
       isOpenApp,

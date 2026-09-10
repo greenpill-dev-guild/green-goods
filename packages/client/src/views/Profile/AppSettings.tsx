@@ -1,13 +1,10 @@
 import { capitalize } from "@green-goods/shared/utils/app/text";
 import { hapticLight } from "@green-goods/shared/utils/app/haptics";
 import { type Locale, useApp } from "@green-goods/shared/providers/App";
-import {
-  type ServiceWorkerUpdatePhase,
-  useServiceWorkerUpdate,
-} from "@green-goods/shared/hooks/app/useServiceWorkerUpdate";
+import { useServiceWorkerUpdate } from "@green-goods/shared/hooks/app/useServiceWorkerUpdate";
 import { useTheme } from "@green-goods/shared/hooks/app/useTheme";
 import { RiEarthFill, RiRefreshLine, RiSettings2Line } from "@remixicon/react";
-import { type ReactNode, useMemo } from "react";
+import { type ReactNode, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { Button } from "@/components/Actions";
 import { Card } from "@/components/Cards";
@@ -21,10 +18,20 @@ interface ApplicationSettings {
   Icon: React.ReactNode;
 }
 
+/** What the last manual check reported once the worker settled back to idle. */
+type ManualCheckOutcome = "up-to-date" | "failed";
+
+interface UpdateRow {
+  title: string;
+  description: string;
+  action?: { label: string; onClick: () => void };
+}
+
 export const AppSettings: React.FC = () => {
   const { theme, setTheme } = useTheme();
   const { locale, switchLanguage, availableLocales } = useApp();
-  const { phase, updateAvailable, activateNow } = useServiceWorkerUpdate();
+  const { phase, checkForUpdate, activateNow } = useServiceWorkerUpdate();
+  const [manualCheck, setManualCheck] = useState<ManualCheckOutcome | null>(null);
   const intl = useIntl();
 
   const themeOptions = useMemo(
@@ -124,85 +131,137 @@ export const AppSettings: React.FC = () => {
     ]
   );
 
-  const handleUpdateClick = () => {
+  const handleCheckClick = () => {
+    hapticLight();
+    setManualCheck(null);
+    // Only ask the registration to look for a newer worker and report back.
+    // Nothing on this path unregisters the worker or clears a cache; that is
+    // what stranded installed users on the app-files screen before.
+    void checkForUpdate().then(
+      (found) => {
+        if (!found) setManualCheck("up-to-date");
+      },
+      () => setManualCheck("failed")
+    );
+  };
+
+  const handleApplyClick = () => {
     hapticLight();
     activateNow();
   };
 
-  const updateStatus = useMemo(() => {
-    const phaseCopy: Record<
-      ServiceWorkerUpdatePhase,
-      { title: string; description: string; buttonLabel?: string }
-    > = {
-      idle: {
-        title: "",
-        description: "",
-      },
-      checking: {
-        title: intl.formatMessage({
-          id: "app.update.checking.title",
-          defaultMessage: "Checking for update",
-        }),
-        description: intl.formatMessage({
-          id: "app.update.checking.description",
-          defaultMessage: "Looking for a newer version.",
-        }),
-      },
-      downloading: {
-        title: intl.formatMessage({
-          id: "app.update.downloading.title",
-          defaultMessage: "Downloading update",
-        }),
-        description: intl.formatMessage({
-          id: "app.update.downloading.description",
-          defaultMessage: "Getting the latest version in the background.",
-        }),
-      },
-      waiting: {
-        title: intl.formatMessage({
-          id: "app.update.ready.title",
-          defaultMessage: "Ready to restart",
-        }),
-        description: intl.formatMessage({
-          id: "app.update.ready.description",
-          defaultMessage: "Restart Green Goods to finish updating.",
-        }),
-        buttonLabel: intl.formatMessage({
-          id: "app.update.restartButton",
-          defaultMessage: "Restart to Update",
-        }),
-      },
-      activating: {
-        title: intl.formatMessage({
-          id: "app.update.applying.title",
-          defaultMessage: "Finishing update",
-        }),
-        description: intl.formatMessage({
-          id: "app.update.applying.description",
-          defaultMessage: "Restarting with the latest version.",
-        }),
-      },
-      error: {
-        title: intl.formatMessage({
-          id: "app.update.stalled.title",
-          defaultMessage: "Update needs a restart",
-        }),
-        description: intl.formatMessage({
-          id: "app.update.stalled.description",
-          defaultMessage: "Close and reopen the app if retrying does not finish.",
-        }),
-        buttonLabel: intl.formatMessage({
-          id: "app.update.retryButton",
-          defaultMessage: "Try Again",
-        }),
-      },
-    };
+  const checkLabel = intl.formatMessage({ id: "app.update.checkButton", defaultMessage: "Check" });
+  const retryLabel = intl.formatMessage({
+    id: "app.update.retryButton",
+    defaultMessage: "Try Again",
+  });
 
-    return phaseCopy[phase];
-  }, [intl, phase]);
-
-  const showUpdateCard = phase !== "idle" && (updateAvailable || phase !== "waiting");
-  const canApplyUpdate = phase === "waiting" || phase === "error";
+  const resolveUpdateRow = (): UpdateRow => {
+    switch (phase) {
+      case "checking":
+        return {
+          title: intl.formatMessage({
+            id: "app.update.checking.title",
+            defaultMessage: "Checking for update",
+          }),
+          description: intl.formatMessage({
+            id: "app.update.checking.description",
+            defaultMessage: "Looking for a newer version.",
+          }),
+        };
+      case "downloading":
+        return {
+          title: intl.formatMessage({
+            id: "app.update.downloading.title",
+            defaultMessage: "Downloading update",
+          }),
+          description: intl.formatMessage({
+            id: "app.update.downloading.description",
+            defaultMessage: "Getting the latest version in the background.",
+          }),
+        };
+      case "waiting":
+        return {
+          title: intl.formatMessage({
+            id: "app.update.ready.title",
+            defaultMessage: "Ready to restart",
+          }),
+          description: intl.formatMessage({
+            id: "app.update.ready.description",
+            defaultMessage: "Restart Green Goods to finish updating.",
+          }),
+          action: {
+            label: intl.formatMessage({
+              id: "app.update.restartButton",
+              defaultMessage: "Restart to Update",
+            }),
+            onClick: handleApplyClick,
+          },
+        };
+      case "activating":
+        return {
+          title: intl.formatMessage({
+            id: "app.update.applying.title",
+            defaultMessage: "Finishing update",
+          }),
+          description: intl.formatMessage({
+            id: "app.update.applying.description",
+            defaultMessage: "Restarting with the latest version.",
+          }),
+        };
+      case "error":
+        return {
+          title: intl.formatMessage({
+            id: "app.update.stalled.title",
+            defaultMessage: "Update needs a restart",
+          }),
+          description: intl.formatMessage({
+            id: "app.update.stalled.description",
+            defaultMessage: "Close and reopen the app if retrying does not finish.",
+          }),
+          action: { label: retryLabel, onClick: handleApplyClick },
+        };
+      default:
+        if (manualCheck === "up-to-date") {
+          return {
+            title: intl.formatMessage({
+              id: "app.update.upToDate.title",
+              defaultMessage: "Up to date",
+            }),
+            description: intl.formatMessage({
+              id: "app.update.upToDate.description",
+              defaultMessage: "You have the latest version of Green Goods.",
+            }),
+            action: { label: checkLabel, onClick: handleCheckClick },
+          };
+        }
+        if (manualCheck === "failed") {
+          return {
+            title: intl.formatMessage({
+              id: "app.update.checkFailed.title",
+              defaultMessage: "Couldn't check for updates",
+            }),
+            description: intl.formatMessage({
+              id: "app.update.checkFailed.description",
+              defaultMessage: "Check your connection and try again.",
+            }),
+            action: { label: retryLabel, onClick: handleCheckClick },
+          };
+        }
+        return {
+          title: intl.formatMessage({
+            id: "app.update.check.title",
+            defaultMessage: "Check for updates",
+          }),
+          description: intl.formatMessage({
+            id: "app.update.check.description",
+            defaultMessage: "See if a newer version of Green Goods is available.",
+          }),
+          action: { label: checkLabel, onClick: handleCheckClick },
+        };
+    }
+  };
+  const updateRow = resolveUpdateRow();
 
   return (
     <>
@@ -231,33 +290,32 @@ export const AppSettings: React.FC = () => {
         </Card>
       ))}
 
-      {showUpdateCard && (
-        <Card>
-          <div className="flex flex-row items-center gap-3 w-full">
-            <Avatar>
-              <div className="flex items-center justify-center text-center mx-auto text-primary">
-                <RiRefreshLine className="w-4" />
-              </div>
-            </Avatar>
-            <div className="flex flex-col gap-0.5 min-w-0 flex-1">
-              <div className="text-sm font-medium">{updateStatus.title}</div>
-              <div role="status" className="text-xs text-text-sub-600 line-clamp-2">
-                {updateStatus.description}
-              </div>
+      {/* Always present: with nothing pending there was no way to check (PWA-041). */}
+      <Card>
+        <div className="flex flex-row items-center gap-3 w-full">
+          <Avatar>
+            <div className="flex items-center justify-center text-center mx-auto text-primary">
+              <RiRefreshLine className="w-4" />
             </div>
-            {canApplyUpdate && updateStatus.buttonLabel ? (
-              <Button
-                variant="neutral"
-                mode="stroke"
-                size="small"
-                onClick={handleUpdateClick}
-                label={updateStatus.buttonLabel}
-                className="w-[148px] shrink-0 sm:w-[168px]"
-              />
-            ) : null}
+          </Avatar>
+          <div className="flex flex-col gap-0.5 min-w-0 flex-1">
+            <div className="text-sm font-medium">{updateRow.title}</div>
+            <div role="status" className="text-xs text-text-sub-600 line-clamp-2">
+              {updateRow.description}
+            </div>
           </div>
-        </Card>
-      )}
+          {updateRow.action ? (
+            <Button
+              variant="neutral"
+              mode="stroke"
+              size="small"
+              onClick={updateRow.action.onClick}
+              label={updateRow.action.label}
+              className="w-[148px] shrink-0 sm:w-[168px]"
+            />
+          ) : null}
+        </div>
+      </Card>
     </>
   );
 };

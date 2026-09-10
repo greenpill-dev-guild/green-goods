@@ -142,7 +142,7 @@ const FROZEN_ALLOWLIST = {
   "packages/contracts/src/tokens/Garden.sol": 502,
   "packages/shared/src/components/Canvas/NavigationBar.tsx": 577,
   "packages/shared/src/components/Toast/toast.service.tsx": 799,
-  "packages/shared/src/hooks/app/useServiceWorkerUpdate.ts": 581,
+  "packages/shared/src/hooks/app/useServiceWorkerUpdate.ts": 569,
   "packages/shared/src/hooks/cookie-jar/useCampaignCookieJar.ts": 727,
   "packages/shared/src/hooks/index.ts": 604,
   "packages/shared/src/hooks/work/useWorkMutation.ts": 528,

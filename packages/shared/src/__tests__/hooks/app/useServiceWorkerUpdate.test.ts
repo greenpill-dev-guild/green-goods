@@ -247,6 +247,142 @@ describe("hooks/app/useServiceWorkerUpdate", () => {
     });
   });
 
+  describe("checkForUpdate", () => {
+    async function renderCheckedHook(registration: ServiceWorkerRegistration) {
+      vi.stubEnv("VITE_ENABLE_SW_DEV", "true");
+      installServiceWorkerMock(registration);
+      const rendered = renderUpdateHook();
+      // The mount check calls update() once; manual checks count from there.
+      await waitFor(() => {
+        expect(registration.update).toHaveBeenCalledTimes(1);
+      });
+      vi.mocked(track).mockClear();
+      return rendered;
+    }
+
+    it("reports up to date right away when the browser finds no newer worker", async () => {
+      const registration = createMockRegistration();
+      const { result } = await renderCheckedHook(registration);
+      const setTimeoutSpy = vi.spyOn(globalThis, "setTimeout");
+
+      let found: boolean | undefined;
+      await act(async () => {
+        found = await result.current.checkForUpdate();
+      });
+
+      expect(found).toBe(false);
+      expect(registration.update).toHaveBeenCalledTimes(2);
+      // Nothing is installing, so there is nothing to wait for: the 10s settle
+      // timer that used to hold the checking phase must not be scheduled.
+      expect(setTimeoutSpy.mock.calls.some(([, delay]) => delay === 10_000)).toBe(false);
+      expect(result.current.phase).toBe("idle");
+      expect(result.current.updateAvailable).toBe(false);
+      expect(track).toHaveBeenCalledWith(
+        "sw_update_check_completed",
+        expect.objectContaining({ source: "manual_check", phase: "idle", found_update: false })
+      );
+      setTimeoutSpy.mockRestore();
+    });
+
+    it("surfaces a waiting worker, including one that was dismissed earlier", async () => {
+      const registration = createMockRegistration();
+      const { result } = await renderCheckedHook(registration);
+      const waitingWorker = createMockWorker({ state: "installed" });
+      Object.defineProperty(registration, "waiting", { configurable: true, value: waitingWorker });
+
+      let found: boolean | undefined;
+      await act(async () => {
+        found = await result.current.checkForUpdate();
+      });
+
+      expect(found).toBe(true);
+      expect(result.current.phase).toBe("waiting");
+      expect(result.current.updateAvailable).toBe(true);
+      expect(result.current.waitingWorker).toBe(waitingWorker);
+      expect(track).toHaveBeenCalledWith(
+        "sw_update_available",
+        expect.objectContaining({ source: "manual_check", phase: "waiting" })
+      );
+
+      act(() => {
+        result.current.dismissUpdate();
+      });
+      expect(result.current.updateAvailable).toBe(false);
+      expect(result.current.phase).toBe("idle");
+
+      await act(async () => {
+        found = await result.current.checkForUpdate();
+      });
+
+      expect(found).toBe(true);
+      expect(result.current.updateAvailable).toBe(true);
+      expect(result.current.phase).toBe("waiting");
+    });
+
+    it("waits for a worker the check found installing and surfaces it once installed", async () => {
+      const registration = createMockRegistration();
+      const { result } = await renderCheckedHook(registration);
+      const installingWorker = createMockWorker({ state: "installing" });
+      vi.mocked(registration.update).mockImplementationOnce(async () => {
+        Object.defineProperty(registration, "installing", {
+          configurable: true,
+          value: installingWorker,
+        });
+        return registration;
+      });
+
+      let check: Promise<boolean> | undefined;
+      act(() => {
+        check = result.current.checkForUpdate();
+      });
+      expect(result.current.phase).toBe("checking");
+      await waitFor(() => {
+        expect(installingWorker.addEventListener).toHaveBeenCalledWith(
+          "statechange",
+          expect.any(Function)
+        );
+      });
+
+      await act(async () => {
+        Object.defineProperty(installingWorker, "state", {
+          configurable: true,
+          value: "installed",
+        });
+        installingWorker.dispatchStateChange();
+        await expect(check).resolves.toBe(true);
+      });
+
+      expect(result.current.phase).toBe("waiting");
+      expect(result.current.updateAvailable).toBe(true);
+      expect(result.current.waitingWorker).toBe(installingWorker);
+      expect(track).toHaveBeenCalledWith(
+        "sw_update_available",
+        expect.objectContaining({ source: "manual_check", phase: "waiting" })
+      );
+    });
+
+    it("throws on a failed check and settles back to idle", async () => {
+      const registration = createMockRegistration();
+      const { result } = await renderCheckedHook(registration);
+      vi.mocked(registration.update).mockRejectedValueOnce(new Error("offline"));
+
+      await act(async () => {
+        await expect(result.current.checkForUpdate()).rejects.toThrow("offline");
+      });
+
+      expect(result.current.phase).toBe("idle");
+      expect(result.current.updateAvailable).toBe(false);
+      expect(logger.error).toHaveBeenCalledWith(
+        "Service worker update check failed",
+        expect.objectContaining({ source: "useServiceWorkerUpdate.checkForUpdate" })
+      );
+      expect(track).toHaveBeenCalledWith(
+        "sw_update_check_failed",
+        expect.objectContaining({ source: "manual_check" })
+      );
+    });
+  });
+
   describe("return type stability", () => {
     it("returns consistent shape across renders", () => {
       const { result, rerender } = renderUpdateHook();

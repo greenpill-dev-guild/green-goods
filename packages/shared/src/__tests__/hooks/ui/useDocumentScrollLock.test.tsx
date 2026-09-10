@@ -3,7 +3,6 @@
 import { act, renderHook } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 import {
-  isDocumentScrollLocked,
   useDocumentScrollLock,
   useDocumentScrollLockLifecycle,
 } from "../../../hooks/ui/useDocumentScrollLock";
@@ -28,22 +27,6 @@ describe("useDocumentScrollLock", () => {
 
     second.unmount();
     expect(document.documentElement).not.toHaveClass("modal-open");
-  });
-
-  it("reports whether any mounted owner currently holds the lock", () => {
-    expect(isDocumentScrollLocked()).toBe(false);
-
-    const owner = renderHook(({ active }) => useDocumentScrollLock(active), {
-      initialProps: { active: true },
-    });
-    expect(isDocumentScrollLocked()).toBe(true);
-
-    owner.rerender({ active: false });
-    expect(isDocumentScrollLocked()).toBe(false);
-
-    owner.rerender({ active: true });
-    owner.unmount();
-    expect(isDocumentScrollLocked()).toBe(false);
   });
 
   it("reconciles orphaned DOM state across route and app lifecycle changes", () => {
