@@ -1,7 +1,7 @@
 export type ErrorBoundaryLocale = "en" | "es" | "pt";
 
 export const defaultErrorBoundaryMessages = {
-  "app.error.boundary.action.clearData": "Clear App Data and Restart",
+  "app.error.boundary.action.clearData": "Restart App",
   "app.error.boundary.action.copied": "Copied to clipboard",
   "app.error.boundary.action.copyDetails": "Copy Error Details for Support",
   "app.error.boundary.action.copyManual": "Couldn't auto-copy. Select the text below",
@@ -10,7 +10,7 @@ export const defaultErrorBoundaryMessages = {
   "app.error.boundary.description.error":
     "Something unexpected happened. Our team has been notified and is working on a fix.",
   "app.error.boundary.description.loop":
-    "The app got stuck in a loop. Clearing app data will start you fresh — your synced work is safe on the network.",
+    "The app got stuck in a loop. Restart it to try again. Cached reads, drafts and queued work will stay on this device.",
   "app.error.boundary.description.network":
     "Your garden is temporarily offline. Don't worry - your work is safely stored locally and will sync when you're back online!",
   "app.error.boundary.description.offline":
@@ -35,7 +35,7 @@ export type ErrorBoundaryMessages = Record<keyof typeof defaultErrorBoundaryMess
 const localizedErrorBoundaryMessages: Record<ErrorBoundaryLocale, ErrorBoundaryMessages> = {
   en: defaultErrorBoundaryMessages,
   es: {
-    "app.error.boundary.action.clearData": "Borrar datos y reiniciar",
+    "app.error.boundary.action.clearData": "Reiniciar la aplicación",
     "app.error.boundary.action.copied": "Copiado al portapapeles",
     "app.error.boundary.action.copyDetails": "Copiar detalles del error para soporte",
     "app.error.boundary.action.copyManual":
@@ -45,7 +45,7 @@ const localizedErrorBoundaryMessages: Record<ErrorBoundaryLocale, ErrorBoundaryM
     "app.error.boundary.description.error":
       "Algo inesperado ocurrió. Nuestro equipo ha sido notificado y está trabajando en una solución.",
     "app.error.boundary.description.loop":
-      "La aplicación se quedó atascada. Borrar los datos te dará un inicio limpio — tu trabajo sincronizado está a salvo en la red.",
+      "La aplicación quedó en un bucle. Reiníciala para volver a intentarlo. Las lecturas guardadas, los borradores y el trabajo en cola permanecerán en este dispositivo.",
     "app.error.boundary.description.network":
       "Tu jardín está temporalmente sin conexión. No te preocupes: tu trabajo está guardado localmente y se sincronizará cuando vuelvas a estar en línea.",
     "app.error.boundary.description.offline":
@@ -65,7 +65,7 @@ const localizedErrorBoundaryMessages: Record<ErrorBoundaryLocale, ErrorBoundaryM
     "app.error.boundary.update.refreshing": "Actualizando a la última versión…",
   },
   pt: {
-    "app.error.boundary.action.clearData": "Limpar dados e reiniciar",
+    "app.error.boundary.action.clearData": "Reiniciar o aplicativo",
     "app.error.boundary.action.copied": "Copiado para a área de transferência",
     "app.error.boundary.action.copyDetails": "Copiar detalhes do erro para suporte",
     "app.error.boundary.action.copyManual":
@@ -75,7 +75,7 @@ const localizedErrorBoundaryMessages: Record<ErrorBoundaryLocale, ErrorBoundaryM
     "app.error.boundary.description.error":
       "Algo inesperado aconteceu. Nossa equipe foi notificada e está trabalhando em uma correção.",
     "app.error.boundary.description.loop":
-      "O aplicativo ficou preso em um loop. Limpar os dados dará um início limpo — seu trabalho sincronizado está seguro na rede.",
+      "O aplicativo ficou preso em um ciclo. Reinicie para tentar novamente. As leituras salvas, os rascunhos e o trabalho na fila permanecerão neste dispositivo.",
     "app.error.boundary.description.network":
       "Seu jardim está temporariamente offline. Não se preocupe - seu trabalho está guardado localmente e será sincronizado quando você voltar a ficar online!",
     "app.error.boundary.description.offline":

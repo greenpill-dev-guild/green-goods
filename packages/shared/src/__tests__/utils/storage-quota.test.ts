@@ -1,5 +1,6 @@
 /** @vitest-environment jsdom */
 
+import { PERSIST_MAX_AGE } from "../../config/query-persistence";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   cleanupRefetchableStorage,
@@ -40,12 +41,8 @@ afterEach(() => {
 describe("storage quota protection", () => {
   it("only treats persisted query snapshots older than their max age as evictable", () => {
     const now = Date.now();
-    expect(isPersistedQueryClientExpired({ timestamp: now - 24 * 60 * 60 * 1000 }, now)).toBe(
-      false
-    );
-    expect(isPersistedQueryClientExpired({ timestamp: now - 24 * 60 * 60 * 1000 - 1 }, now)).toBe(
-      true
-    );
+    expect(isPersistedQueryClientExpired({ timestamp: now - PERSIST_MAX_AGE }, now)).toBe(false);
+    expect(isPersistedQueryClientExpired({ timestamp: now - PERSIST_MAX_AGE - 1 }, now)).toBe(true);
   });
 
   it("requests persistence once after a meaningful storage reason", async () => {

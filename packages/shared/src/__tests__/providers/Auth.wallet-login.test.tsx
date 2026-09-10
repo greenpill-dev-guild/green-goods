@@ -9,6 +9,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createActor, fromPromise } from "xstate";
 
 import { AUTH_MODE_STORAGE_KEY } from "../../modules/auth/session";
+import { queryClient } from "../../config/react-query";
 import { AuthProvider, useAuthContext } from "../../providers/Auth";
 import { defaultPasskeyAdapters } from "../../workflows/auth-passkey-adapters";
 import {
@@ -55,11 +56,10 @@ vi.mock("../../config/appkit", () => ({
   getAppKit: () => mocks.mockGetAppKit(),
 }));
 
-vi.mock("../../config/react-query", () => ({
-  queryClient: {
-    clear: () => mocks.mockClearQueryClient(),
-  },
-}));
+vi.mock("../../config/react-query", async () => {
+  const { QueryClient } = await import("@tanstack/react-query");
+  return { queryClient: new QueryClient() };
+});
 
 vi.mock("../../modules/app/logger", () => ({
   logger: {
@@ -174,6 +174,58 @@ describe("AuthProvider wallet login bridge", () => {
     mocks.mockCreateAuthServices.mockReturnValue({ source: "test-auth-services" });
   });
 
+  it("signs out offline without waiting on wallet transport or erasing durable reads", async () => {
+    const view = renderAuth();
+    await waitForReady();
+    act(() => {
+      view.result.current.loginWithWallet();
+    });
+    setAccount({
+      address: TEST_WALLET,
+      isConnected: true,
+      isConnecting: false,
+      connector: rabbyConnector,
+    });
+    view.rerender();
+    await waitFor(() => expect(view.result.current.isAuthenticated).toBe(true));
+    Object.defineProperty(navigator, "onLine", { configurable: true, value: false });
+    const fetchSpy = vi.spyOn(globalThis, "fetch");
+    const gardens = ["greengoods", "gardens", 11155111];
+    queryClient.setQueryData(gardens, [{ id: "garden" }]);
+    queryClient.setQueryData(["wallet", "session"], "session-data");
+    queryClient.setQueryData(["greengoods", "works", "online", "garden"], ["submitted"]);
+    queryClient.setQueryData(["greengoods", "works", "merged", "garden"], ["private-draft"]);
+    localStorage.setItem("__rq_pc__", "persisted-reads");
+    const deleteDatabase = vi.spyOn(indexedDB, "deleteDatabase");
+    await act(async () => {
+      await view.result.current.signOut();
+    });
+    expect(view.result.current.isAuthenticated).toBe(false);
+    expect(queryClient.getQueryData(gardens)).toEqual([{ id: "garden" }]);
+    expect(queryClient.getQueryData(["wallet", "session"])).toBeUndefined();
+    expect(queryClient.getQueryData(["greengoods", "works", "online", "garden"])).toEqual([
+      "submitted",
+    ]);
+    expect(queryClient.getQueryData(["greengoods", "works", "merged", "garden"])).toBeUndefined();
+    expect(localStorage.getItem("__rq_pc__")).toBe("persisted-reads");
+    expect(deleteDatabase).not.toHaveBeenCalled();
+    expect(mocks.mockClearServiceWorkerCaches).not.toHaveBeenCalled();
+    expect(mocks.mockDisconnect).not.toHaveBeenCalled();
+    expect(fetchSpy).not.toHaveBeenCalled();
+    expect(view.result.current.walletAddress).toBeNull();
+    expect(view.result.current.authMode).toBeNull();
+    view.rerender();
+    expect(view.result.current.isAuthenticated).toBe(false);
+    // Reuse the still-connected wallet only after explicit login intent. There
+    // is no pending transport disconnect that can invalidate the new session.
+    act(() => view.result.current.loginWithWallet());
+    await waitFor(() => expect(view.result.current.isAuthenticated).toBe(true));
+    expect(mocks.mockDisconnect).not.toHaveBeenCalled();
+    fetchSpy.mockRestore();
+    deleteDatabase.mockRestore();
+    queryClient.clear();
+  });
+
   it("composes injected passkey adapters into a provider-owned auth actor", () => {
     const view = renderAuth(defaultPasskeyAdapters);
 
@@ -182,6 +234,23 @@ describe("AuthProvider wallet login bridge", () => {
     expect(mocks.mockGetAuthActor).not.toHaveBeenCalled();
 
     view.unmount();
+  });
+
+  it("keeps embedded logout local and requires explicit intent to use the connection again", async () => {
+    const view = renderAuth();
+    await waitForReady();
+    setAccount({ address: EMBEDDED_WALLET, isConnected: true, connector: embeddedConnector });
+    view.rerender();
+    act(() => view.result.current.loginWithEmbedded());
+    await waitFor(() => expect(view.result.current.authMode).toBe("embedded"));
+    await act(async () => view.result.current.signOut());
+    expect(view.result.current.isAuthenticated).toBe(false);
+    view.rerender();
+    expect(view.result.current.isAuthenticated).toBe(false);
+    expect(mocks.mockDisconnect).not.toHaveBeenCalled();
+    act(() => view.result.current.loginWithEmbedded());
+    await waitFor(() => expect(view.result.current.authMode).toBe("embedded"));
+    expect(view.result.current.embeddedAddress).toBe(EMBEDDED_WALLET);
   });
 
   it("authenticates a manual wallet login after the passive restore guard has already been spent", async () => {

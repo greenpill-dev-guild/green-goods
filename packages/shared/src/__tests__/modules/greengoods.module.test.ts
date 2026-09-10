@@ -47,7 +47,12 @@ vi.mock("../../modules/data/graphql", () => ({
   greenGoodsGraphQL: vi.fn((query) => query),
 }));
 
-import { getActions, getGardens, parseIndexerDomain } from "../../modules/data/greengoods";
+import {
+  getActions,
+  getGardeners,
+  getGardens,
+  parseIndexerDomain,
+} from "../../modules/data/greengoods";
 import type { GraphQLReader } from "../../modules/data/graphql-client";
 import { Domain } from "../../types/domain";
 import { instructionTemplates } from "../../utils/action/templates";
@@ -293,14 +298,12 @@ describe("modules/data/greengoods", () => {
       expect(result[0].domain).toBeNull();
     });
 
-    it("handles indexer unavailable gracefully", async () => {
+    it("rejects unavailable indexer reads without overwriting cached actions", async () => {
       mockQuery.mockResolvedValue({
         error: { message: "Connection refused" },
       });
 
-      const result = await getActions(reader);
-
-      expect(result).toEqual([]);
+      await expect(getActions(reader)).rejects.toMatchObject({ message: "Connection refused" });
     });
 
     it("handles action without instructions gracefully", async () => {
@@ -364,5 +367,21 @@ describe("modules/data/greengoods", () => {
         instructionTemplates["solar.site_setup"].uiConfig.media.title
       );
     });
+  });
+});
+
+describe.each([
+  ["actions", getActions, "Action"],
+  ["gardeners", getGardeners, "Gardener"],
+] as const)("%s offline read failures", (_name, fetchList, field) => {
+  it("rejects transport failures and malformed responses, but accepts a real empty list", async () => {
+    mockQuery.mockRejectedValueOnce(new Error("offline"));
+    await expect(fetchList(reader)).rejects.toThrow("offline");
+    mockQuery.mockResolvedValueOnce({ data: {} });
+    await expect(fetchList(reader)).rejects.toThrow("missing the list");
+    mockQuery.mockResolvedValueOnce({ error: { message: "offline" } });
+    await expect(fetchList(reader)).rejects.toMatchObject({ message: "offline" });
+    mockQuery.mockResolvedValueOnce({ data: { [field]: [] } });
+    await expect(fetchList(reader)).resolves.toEqual([]);
   });
 });

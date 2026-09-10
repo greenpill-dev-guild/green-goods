@@ -247,6 +247,40 @@ describe("useMyWorks", () => {
   // ------------------------------------------
 
   describe("time filtering", () => {
+    it.each([
+      true,
+      false,
+    ])("retains submitted reads on failure and rebuilds local jobs (queued: %s)", async (hasQueuedWork) => {
+      const submitted = createMockWork({ id: "submitted", status: "pending" });
+      const oldJob = createMockWork({ id: "deleted-job", status: "syncing" });
+      const newJob = createMockWork({ id: "new-job", status: "sync_failed" });
+      mockDeduplicateById.mockImplementation((works) => works);
+      mockMergeAndDeduplicateByClientId.mockImplementation((online, offline) => [
+        ...online,
+        ...offline,
+      ]);
+      mockGetWorksByGardener.mockResolvedValue([submitted]);
+      mockFetchOfflineWorks.mockResolvedValue([oldJob]);
+      const { result } = renderHook(() => useMyWorks({ includeOffline: true }), {
+        wrapper: createWrapper(queryClient),
+      });
+      await waitFor(() =>
+        expect(result.current.data?.map((work) => work.id)).toContain("submitted")
+      );
+      mockGetWorksByGardener.mockRejectedValue(new Error("offline"));
+      mockFetchOfflineWorks.mockResolvedValue(hasQueuedWork ? [newJob] : []);
+      await result.current.refetch();
+      await waitFor(() =>
+        expect(result.current.data?.map((work) => work.id).sort()).toEqual(
+          hasQueuedWork ? ["new-job", "submitted"] : ["submitted"]
+        )
+      );
+      mockGetWorksByGardener.mockResolvedValue([createMockWork({ id: "fresh" })]);
+      await result.current.refetch();
+      await waitFor(() => expect(result.current.data?.map((work) => work.id)).toContain("fresh"));
+      expect(result.current.data?.map((work) => work.id)).not.toContain("submitted");
+    });
+
     it("does not filter by time when timeFilter is not provided", async () => {
       mockGetWorksByGardener.mockResolvedValue([createMockWork()]);
 

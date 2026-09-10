@@ -6,7 +6,7 @@
  * @module hooks/work/useMyWorks
  */
 
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
 import { getWorksByGardener } from "../../modules/data/eas";
 import { filterByTimeRange, sortByCreatedAt, type TimeFilter } from "../../utils/time";
@@ -70,15 +70,11 @@ export function useMyWorks(options: UseMyWorksOptions = {}) {
   const { includeOffline = false, timeFilter, limit = 50, chainId = DEFAULT_CHAIN_ID } = options;
   const { user } = useUser();
   const activeAddress = user?.id;
+  const queryClient = useQueryClient();
+  const queryKey = worksKeys.mine(activeAddress, chainId, includeOffline, timeFilter, limit);
 
   return useQuery({
-    queryKey: worksKeys.mine(
-      activeAddress,
-      chainId,
-      includeOffline,
-      timeFilter as string | undefined,
-      limit
-    ),
+    queryKey,
     queryFn: async () => {
       if (!activeAddress) return [];
 
@@ -101,11 +97,23 @@ export function useMyWorks(options: UseMyWorksOptions = {}) {
         ...work,
         status: "pending",
       }));
+      if (onlineError) {
+        // Keep submitted reads on failed refreshes. Local jobs are rebuilt below,
+        // so deleting a queued draft cannot leave a ghost in the cached list.
+        works = (queryClient.getQueryData<Work[]>(queryKey) ?? []).filter(
+          (work) => work.status !== "syncing" && work.status !== "sync_failed"
+        );
+      }
 
       // Merge offline works if requested
       if (includeOffline) {
         const offlineWorks = await fetchOfflineWorks(activeAddress);
-        if (onlineError && offlineWorks.length === 0) {
+        if (
+          onlineError &&
+          offlineWorks.length === 0 &&
+          works.length === 0 &&
+          queryClient.getQueryData(queryKey) === undefined
+        ) {
           throw onlineError;
         }
         works = mergeAndDeduplicateByClientId(works, offlineWorks);

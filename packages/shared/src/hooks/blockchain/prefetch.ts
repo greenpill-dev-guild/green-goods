@@ -19,6 +19,9 @@ export function ensureBaseLists(chainId: number = DEFAULT_CHAIN_ID) {
     queryFn: () => getGardeners(),
   });
 
+  // Shell callers intentionally do not await warmup. Observe every rejection
+  // without changing the promises (or the query error state) for data loaders.
+  void Promise.allSettled([actionsPromise, gardensPromise, gardenersPromise]);
   return { actionsPromise, gardensPromise, gardenersPromise };
 }
 

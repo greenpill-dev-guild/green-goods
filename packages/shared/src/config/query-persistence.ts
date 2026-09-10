@@ -1,8 +1,9 @@
 import type { DehydratedState, Query } from "@tanstack/react-query";
 import { createStore, del as idbDel, get as idbGet, set as idbSet } from "idb-keyval";
 import { debugWarn } from "../utils/debug";
+import { QUERY_CACHE_SCHEMA_VERSION } from "./query-cache-policy";
 
-export const PERSIST_MAX_AGE = 24 * 60 * 60 * 1000;
+export { PERSIST_MAX_AGE, QUERY_CACHE_SCHEMA_VERSION } from "./query-cache-policy";
 
 const QUERY_PERSISTENCE_KEY = "__rq_pc__";
 
@@ -10,6 +11,8 @@ export interface CreateQueryPersisterOptions {
   dbName: string;
   storeName?: string;
   storage?: Storage;
+  /** Client-only transition from deploy-keyed snapshots to schema version 1. */
+  migrateLegacyBuster?: boolean;
 }
 
 export interface CreateShouldDehydrateQueryOptions {
@@ -145,7 +148,29 @@ export function createQueryPersister(options: CreateQueryPersisterOptions): Quer
   const { dbName, storeName = "rq" } = options;
   try {
     const storage = "storage" in options ? options.storage : resolveDefaultStorage();
-    return createIDBPersister({ dbName, storeName }) ?? createStoragePersister(storage);
+    const persister = createIDBPersister({ dbName, storeName }) ?? createStoragePersister(storage);
+    if (!options.migrateLegacyBuster) return persister;
+    return {
+      ...persister,
+      restoreClient: async () => {
+        const client = await persister.restoreClient();
+        // No read shapes changed in schema 1. Recognize the old commit/dev
+        // busters only; future schema versions must still invalidate normally.
+        if (
+          QUERY_CACHE_SCHEMA_VERSION === "1" &&
+          client &&
+          /^(?:dev|[a-f0-9]{7,40})$/i.test(client.buster) &&
+          Array.isArray(client.clientState?.queries) &&
+          Array.isArray(client.clientState?.mutations)
+        ) {
+          const migrated = { ...client, buster: QUERY_CACHE_SCHEMA_VERSION };
+          // Keep the original timestamp so migration never revives expired data.
+          await persister.persistClient(migrated);
+          return migrated;
+        }
+        return client;
+      },
+    };
   } catch (error) {
     debugWarn("[Persister] Query persistence is disabled for this session:", { error });
     return createStoragePersister(undefined);
@@ -157,8 +182,8 @@ export function createShouldDehydrateQuery({
   excludedGroups = [],
 }: CreateShouldDehydrateQueryOptions = {}) {
   return (query: Query): boolean => {
-    if (query.state.status !== "success") return false;
-    if (query.state.fetchStatus !== "idle") return false;
+    // A failed or paused refetch still carries the last successful read.
+    if (query.state.data === undefined) return false;
 
     const key = query.queryKey;
     if (!Array.isArray(key) || key[0] !== namespace) return false;

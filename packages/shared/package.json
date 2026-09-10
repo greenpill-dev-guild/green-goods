@@ -250,6 +250,7 @@
     "./modules/app/analytics-events": "./src/modules/app/analytics-events.ts",
     "./modules/app/error-events": "./src/modules/app/error-events.ts",
     "./modules/app/logger": "./src/modules/app/logger.ts",
+    "./modules/app/cache-recovery": "./src/modules/app/cache-recovery.ts",
     "./modules/data/hypercerts-filters": "./src/modules/data/hypercerts-filters.ts",
     "./modules/data/ipfs/client": "./src/modules/data/ipfs/client.ts",
     "./modules/data/ipfs/resolve": "./src/modules/data/ipfs/resolve.ts",

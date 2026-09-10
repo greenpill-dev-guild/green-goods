@@ -1,3 +1,4 @@
+import { clearObsoleteRuntimeCaches } from "@green-goods/shared/modules/app/cache-recovery";
 import { logger } from "@green-goods/shared/modules/app/logger";
 import { trackErrorBoundary } from "@green-goods/shared/modules/app/error-events";
 import {
@@ -291,38 +292,9 @@ export class AppErrorBoundary extends Component<Props, State> {
   };
 
   handleHardReset = async () => {
-    // Forceful recovery for loop bugs and persistent failures.
-    // Clears: SW caches, IndexedDB, sessionStorage flag, then full network-fresh reload.
-    try {
-      if ("caches" in window) {
-        const keys = await caches.keys();
-        await Promise.all(keys.map((key) => caches.delete(key)));
-      }
-    } catch (error) {
-      logger.warn("[AppErrorBoundary] Failed to clear caches", { error });
-    }
-    try {
-      if ("indexedDB" in window && typeof indexedDB.databases === "function") {
-        const dbs = await indexedDB.databases();
-        await Promise.all(
-          dbs
-            .filter((db) => Boolean(db.name))
-            .map(
-              (db) =>
-                new Promise<void>((resolve) => {
-                  const req = indexedDB.deleteDatabase(db.name as string);
-                  req.onsuccess = () => resolve();
-                  req.onerror = () => resolve();
-                  req.onblocked = () => resolve();
-                })
-            )
-        );
-      }
-    } catch (error) {
-      logger.warn("[AppErrorBoundary] Failed to clear IndexedDB", { error });
-    }
+    await clearObsoleteRuntimeCaches();
     clearChunkReloadAttempt();
-    window.location.replace("/");
+    window.location.reload();
   };
 
   toggleDetails = () => {

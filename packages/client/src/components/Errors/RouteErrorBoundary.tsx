@@ -1,3 +1,4 @@
+import { clearObsoleteRuntimeCaches } from "@green-goods/shared/modules/app/cache-recovery";
 /**
  * RouteErrorBoundary
  *
@@ -321,36 +322,9 @@ export const RouteErrorBoundary: React.FC = () => {
   }, [error.message]);
 
   const handleHardReset = useCallback(async () => {
-    try {
-      if ("caches" in window) {
-        const keys = await caches.keys();
-        await Promise.all(keys.map((key) => caches.delete(key)));
-      }
-    } catch (err) {
-      logger.warn("[RouteErrorBoundary] Failed to clear caches", { err });
-    }
-    try {
-      if ("indexedDB" in window && typeof indexedDB.databases === "function") {
-        const dbs = await indexedDB.databases();
-        await Promise.all(
-          dbs
-            .filter((db) => Boolean(db.name))
-            .map(
-              (db) =>
-                new Promise<void>((resolve) => {
-                  const req = indexedDB.deleteDatabase(db.name as string);
-                  req.onsuccess = () => resolve();
-                  req.onerror = () => resolve();
-                  req.onblocked = () => resolve();
-                })
-            )
-        );
-      }
-    } catch (err) {
-      logger.warn("[RouteErrorBoundary] Failed to clear IndexedDB", { err });
-    }
+    await clearObsoleteRuntimeCaches();
     clearChunkReloadAttempt();
-    window.location.replace("/");
+    window.location.reload();
   }, []);
 
   if (isAutoRecovering) {

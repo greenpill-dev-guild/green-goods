@@ -211,12 +211,11 @@ export async function getActions(reader: GraphQLReader = greenGoodsIndexer): Pro
 
     const { data, error } = await reader.query(QUERY, { chainId }, "getActions");
 
-    if (error) {
-      logger.error("[getActions] Indexer query failed", { error: error.message });
-      return [];
-    }
+    if (error) throw error;
 
-    if (!data || !data.Action || !Array.isArray(data.Action)) return [];
+    if (!data || !Array.isArray(data.Action)) {
+      throw new Error("Action indexer response is missing the list");
+    }
 
     const instructionFailures: Array<{ actionId: string; message: string }> = [];
 
@@ -312,7 +311,7 @@ export async function getActions(reader: GraphQLReader = greenGoodsIndexer): Pro
     return actions.filter((action) => action !== null);
   } catch (error) {
     logger.error("[getActions] Failed to fetch actions", { error });
-    return [];
+    throw error;
   }
 }
 
@@ -428,11 +427,10 @@ export async function getGardeners(
 
     const { data, error } = await reader.query(QUERY, { chainId }, "getGardeners");
 
-    if (error) {
-      logger.error("[getGardeners] Indexer query failed", { error: error.message });
-      return [];
+    if (error) throw error;
+    if (!data || !Array.isArray(data.Gardener)) {
+      throw new Error("Gardener indexer response is missing the list");
     }
-    if (!data || !data.Gardener || !Array.isArray(data.Gardener)) return [];
 
     return data.Gardener.map((gardener) => ({
       id: gardener.id,
@@ -446,7 +444,7 @@ export async function getGardeners(
     }));
   } catch (error) {
     logger.error("[getGardeners] Failed to fetch gardeners", { error });
-    return [];
+    throw error;
   }
 }
 

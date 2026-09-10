@@ -241,6 +241,44 @@ describe("boot error fallback handoff", () => {
     expect(window.location.reload).not.toHaveBeenCalled();
   });
 
+  it.each([
+    "app",
+    "route",
+  ])("%s hard reset preserves reads, drafts, outbox and shell", async (boundary) => {
+    const deleteDatabase = vi.fn();
+    vi.stubGlobal("indexedDB", {
+      deleteDatabase,
+      databases: vi.fn(async () => [
+        { name: "gg-react-query" },
+        { name: "gg-job-queue" },
+        { name: "drafts" },
+      ]),
+    });
+    const deleteCache = vi.fn(async (_name: string) => true);
+    vi.stubGlobal("caches", {
+      keys: async () => ["gg-pwa-shell-current", "gg-share-inbox-v1", "image-cache", "js-cache"],
+      delete: deleteCache,
+    });
+    localStorage.setItem("__rq_pc__", "last-known-reads");
+    if (boundary === "app") {
+      render(
+        <AppErrorBoundary>
+          <ThrowDuringBoot />
+        </AppErrorBoundary>
+      );
+    } else {
+      render(<RouteErrorBoundary />);
+    }
+    await act(async () => {
+      screen.getByRole("button", { name: "Restart App" }).click();
+    });
+    await waitFor(() => expect(window.location.reload).toHaveBeenCalledOnce());
+    expect(deleteDatabase).not.toHaveBeenCalled();
+    expect(localStorage.getItem("__rq_pc__")).toBe("last-known-reads");
+    expect(deleteCache).toHaveBeenCalledExactlyOnceWith("js-cache");
+    vi.unstubAllGlobals();
+  });
+
   it("clears the one-shot only after a normal route root commits", () => {
     markChunkReloadAttempt();
 

@@ -44,7 +44,6 @@ import { useAuthActor } from "../hooks/auth/useAuthActor";
 import { useWalletRestoreLifecycle } from "../hooks/auth/useWalletRestoreLifecycle";
 import { useWalletModalOpen } from "../hooks/auth/useWalletModalOpen";
 import { logger } from "../modules/app/logger";
-import { serviceWorkerManager } from "../modules/app/service-worker";
 import {
   type AuthMode,
   clearAuthMode,
@@ -494,8 +493,15 @@ export function AuthProvider({ children, adapters }: AuthProviderProps) {
     // When AppKit creates the embedded wallet, wagmi detects the connection
     // and WALLET EVENT SYNC handles the LOGIN_EMBEDDED dispatch.
     saveAuthModeToStorage("embedded");
+    if (isConnected && wagmiWalletAddress && isAppKitEmbeddedConnector(connector)) {
+      const address = wagmiWalletAddress as Hex;
+      actor.send({ type: "EXTERNAL_WALLET_CONNECTED", address, connectionType: "embedded" });
+      actor.send({ type: "LOGIN_EMBEDDED", address });
+      setEmbeddedAddress(address);
+      return;
+    }
     getAppKit()?.open();
-  }, [actor]);
+  }, [actor, isConnected, wagmiWalletAddress, connector]);
 
   const switchToWallet = useCallback(() => {
     if (!actor) return;
@@ -519,7 +525,9 @@ export function AuthProvider({ children, adapters }: AuthProviderProps) {
 
     actor.send({ type: "SIGN_OUT" });
 
-    await disconnectWallet();
+    // Sign out of the app locally. Transport disconnect can require network access
+    // and its late completion can tear down a subsequent login. The connected
+    // wallet grants no app session without explicit login intent (cleared below).
 
     // Clear auth mode and embedded address, but keep passkey recovery metadata.
     // Username + credential + expected address are the local cache for same-device fallback.
@@ -536,13 +544,17 @@ export function AuthProvider({ children, adapters }: AuthProviderProps) {
     walletRestoreAttemptedRef.current = false;
     manualWalletLoginPendingRef.current = false;
 
-    queryClient.clear();
-
-    // Clear SW caches and IndexedDB to prevent stale data leaking across sessions
-    serviceWorkerManager.clearAllCaches().catch((error) => {
-      logger.warn("[AuthProvider] clearAllCaches failed during sign-out", { error });
+    // Keep cached reads. Rebuild local work projections for the next account
+    // from its own IndexedDB jobs, without deleting those jobs or drafts.
+    queryClient.removeQueries({
+      predicate: ({ queryKey: [namespace, group, source] }) =>
+        namespace !== "greengoods" ||
+        group === "queue" ||
+        (group === "works" && (source === "offline" || source === "merged")) ||
+        (group === "workApprovals" && source === "offline"),
     });
-  }, [actor, clearRestoreAttempt, disconnectWallet]);
+    queryClient.getMutationCache().clear();
+  }, [actor, clearRestoreAttempt]);
 
   const retry = useCallback(() => {
     if (!actor) return;

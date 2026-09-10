@@ -383,34 +383,8 @@ export default defineConfig(async ({ command, mode }): Promise<UserConfig> => {
               cacheableResponse: { statuses: [0, 200] },
             },
           },
-          {
-            // Indexer API - show cached immediately, revalidate in background
-            urlPattern: /indexer\.hyperindex\.xyz|localhost:3006/,
-            handler: "StaleWhileRevalidate",
-            options: {
-              cacheName: "indexer-cache",
-              expiration: {
-                maxAgeSeconds: 24 * 60 * 60, // 24 hours for offline
-                maxEntries: 100,
-                purgeOnQuotaError: true,
-              },
-              cacheableResponse: { statuses: [0, 200] },
-            },
-          },
-          {
-            // GraphQL fallback (EAS, etc.) - show cached immediately, revalidate in background
-            urlPattern: /graphql/,
-            handler: "StaleWhileRevalidate",
-            options: {
-              cacheName: "graphql-cache",
-              expiration: {
-                maxAgeSeconds: 24 * 60 * 60, // 24 hours for offline
-                maxEntries: 100,
-                purgeOnQuotaError: true,
-              },
-              cacheableResponse: { statuses: [0, 200] },
-            },
-          },
+          // GraphQL reads use POST. Cache Storage cannot safely cache those by URL;
+          // TanStack Query's persisted, query-keyed snapshot owns offline reads.
           // Background sync for critical POSTs (users/me updates as example)
           {
             urlPattern: /\/users\/me$/,

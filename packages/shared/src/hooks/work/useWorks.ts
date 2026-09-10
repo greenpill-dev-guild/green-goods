@@ -201,6 +201,8 @@ export function useWorks(gardenId: string, options: UseWorksOptions = {}) {
       ) as Job<WorkJobPayload>[];
     },
     staleTimeOnline: STALE_TIMES.works,
+    gcTimeOnline: GC_TIMES.works,
+    gcTimeMerged: GC_TIMES.works,
     staleTimeMerged: STALE_TIMES.merged,
     merge: async (onlineWorks, offlineJobs) => {
       const safeOnlineWorks = onlineWorks ?? [];

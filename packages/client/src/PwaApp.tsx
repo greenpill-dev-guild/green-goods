@@ -3,6 +3,7 @@ import {
   createQueryPersister,
   createShouldDehydrateQuery,
   PERSIST_MAX_AGE,
+  QUERY_CACHE_SCHEMA_VERSION,
 } from "@green-goods/shared/config/query-persistence";
 import { queryClient } from "@green-goods/shared/config/react-query";
 import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
@@ -11,7 +12,11 @@ import { RouterProvider } from "react-router-dom";
 import { AppErrorBoundary } from "@/components/Errors/AppErrorBoundary";
 import { createPwaRouter } from "@/router";
 
-const persister = createQueryPersister({ dbName: "gg-react-query", storeName: "rq" });
+const persister = createQueryPersister({
+  dbName: "gg-react-query",
+  storeName: "rq",
+  migrateLegacyBuster: true,
+});
 const shouldPersistBaseQuery = createShouldDehydrateQuery({ excludedGroups: ["queue"] });
 const pwaRouter = createPwaRouter();
 
@@ -35,7 +40,7 @@ export function PwaApp() {
       persistOptions={{
         persister,
         maxAge: PERSIST_MAX_AGE,
-        buster: import.meta.env.VITE_APP_VERSION || "dev",
+        buster: QUERY_CACHE_SCHEMA_VERSION,
         dehydrateOptions: { shouldDehydrateQuery },
       }}
       onSuccess={dropPersistedPoolingReads}

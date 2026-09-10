@@ -160,6 +160,14 @@ export async function mockClientBackend(page: Page, options: MockClientBackendOp
       });
     }
 
+    if (query.includes("query Gardeners")) {
+      return route.fulfill({
+        status: 200,
+        headers: GRAPHQL_HEADERS,
+        body: JSON.stringify({ data: { Gardener: [] } }),
+      });
+    }
+
     if (query.includes("Action")) {
       return route.fulfill({
         status: 200,
