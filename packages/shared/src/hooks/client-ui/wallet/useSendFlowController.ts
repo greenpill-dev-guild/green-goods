@@ -1,3 +1,4 @@
+import { isSendableTokenAvailable } from "../../../config/tokens";
 import type { SendableTokenBalance } from "../../../hooks/blockchain/useSendableTokens";
 import { useEffect, useMemo, useReducer } from "react";
 import { useIntl } from "react-intl";
@@ -39,7 +40,11 @@ export function useSendFlowController({
 }: UseSendFlowControllerOptions) {
   const { formatMessage } = useIntl();
   const [state, dispatch] = useReducer(sendFlowReducer, initialSendFlowState);
-  const { amountInput, note, recipient, selectedToken, step } = state;
+  const { amountInput, note, recipient, step } = state;
+  const selectedToken =
+    state.selectedToken && isSendableTokenAvailable(state.selectedToken)
+      ? state.selectedToken
+      : null;
 
   useEffect(() => {
     if (resetNonce !== undefined) dispatch({ type: "reset-tab" });
@@ -57,7 +62,7 @@ export function useSendFlowController({
       ? Boolean(recipient)
       : step === "amount"
         ? validation.valid
-        : isOnline && !sendMutation.isPending;
+        : validation.valid && isOnline && !sendMutation.isPending;
   const primaryLabel =
     step === "recipient"
       ? formatMessage({ id: "app.send.continue" })
@@ -66,7 +71,8 @@ export function useSendFlowController({
         : formatMessage({ id: "app.send.sendCta" });
 
   const executeSend = () => {
-    if (!recipient || !selectedToken) return;
+    if (!recipient || !selectedToken || !validation.valid || !isOnline || sendMutation.isPending)
+      return;
     sendMutation.mutate(
       {
         token: selectedToken,
@@ -80,6 +86,8 @@ export function useSendFlowController({
 
   return {
     ...state,
+    selectedToken,
+    showConfirm: state.showConfirm && Boolean(selectedToken),
     canAdvance,
     isOnline,
     isSending: sendMutation.isPending,

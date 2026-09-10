@@ -1,3 +1,4 @@
+import { GOVERNANCE_ENABLED } from "@green-goods/shared/config/app";
 import { useCommitmentPools } from "@green-goods/shared/commitment-pooling";
 import { GardenBannerFallback } from "@green-goods/shared/components/Display/GardenBannerFallback";
 import { ImageWithFallback } from "@green-goods/shared/components/Display/ImageWithFallback";
@@ -171,7 +172,7 @@ export const Garden: React.FC = () => {
   });
   const commitmentPool = commitmentPools[0];
   const { strategies: convictionStrategies } = useConvictionStrategies(validGardenAddress, {
-    enabled: Boolean(validGardenAddress),
+    enabled: GOVERNANCE_ENABLED && Boolean(validGardenAddress),
   });
   const hasGovernanceConfigured = convictionStrategies.length > 0;
 
@@ -200,7 +201,7 @@ export const Garden: React.FC = () => {
   // governance or endowment chrome — those drawers expose protocol-shaped surfaces (signal pool,
   // hypercert, vault, treasury) that don't belong on the gardener-default path.
   const hasOwnEndowmentDeposit = hasEndowmentDeposits;
-  const showGovernanceButton = hasGovernanceConfigured && canReview;
+  const showGovernanceButton = GOVERNANCE_ENABLED && hasGovernanceConfigured && canReview;
   const showEndowmentButton = gardenVaults.length > 0 && (canReview || hasOwnEndowmentDeposit);
   const hasGovernance = showGovernanceButton;
 

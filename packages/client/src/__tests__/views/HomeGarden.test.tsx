@@ -94,7 +94,7 @@ vi.mock("@green-goods/shared/hooks/app/useBrowserNavigation", () => ({
 }));
 
 vi.mock("@green-goods/shared/hooks/conviction/useConvictionStrategies", () => ({
-  useConvictionStrategies: () => ({ strategies: [] }),
+  useConvictionStrategies: () => ({ strategies: [{ id: "configured-strategy" }] }),
 }));
 
 vi.mock("@green-goods/shared/hooks/vault/useGardenVaults", () => ({
@@ -102,7 +102,7 @@ vi.mock("@green-goods/shared/hooks/vault/useGardenVaults", () => ({
 }));
 
 vi.mock("@green-goods/shared/hooks/roles/useHasRole", () => ({
-  useHasRole: () => ({ hasRole: false }),
+  useHasRole: () => ({ hasRole: true }),
 }));
 
 vi.mock("@green-goods/shared/hooks/app/useNavigateToTop", () => ({
@@ -164,7 +164,7 @@ vi.mock("@/components/Actions", () => ({
 }));
 
 vi.mock("@/components/Dialogs", () => ({
-  ConvictionDrawer: () => null,
+  ConvictionDrawer: () => createElement("div", { "data-testid": "conviction-drawer" }),
   EndowmentDrawer: () => null,
 }));
 
@@ -186,11 +186,17 @@ vi.mock("@/components/Features", () => ({
 
 vi.mock("@/components/Navigation", () => ({
   StandardTabs: () => createElement("div", null, "Tabs"),
-  TopNav: ({ onBackClick }: { onBackClick?: () => void }) =>
+  TopNav: ({
+    onBackClick,
+    showGovernanceButton,
+  }: {
+    onBackClick?: () => void;
+    showGovernanceButton?: boolean;
+  }) =>
     createElement(
       "button",
       { type: "button", onClick: onBackClick, "data-testid": "top-nav-back" },
-      "Back"
+      showGovernanceButton ? "Governance" : "Back"
     ),
 }));
 
@@ -289,6 +295,8 @@ describe("Home garden route", () => {
         description: "Garden description",
       })
     );
+    expect(screen.queryByTestId("conviction-drawer")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /governance/i })).not.toBeInTheDocument();
   });
 
   it("does not offer a closed-garden join request to an owner", () => {

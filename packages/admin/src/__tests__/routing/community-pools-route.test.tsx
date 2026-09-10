@@ -36,3 +36,15 @@ describe("/community/pools", () => {
     expect(router.state.location.search).toBe("?gardenId=0xAAA");
   });
 });
+
+it.each([
+  "/community/governance",
+  "/community/governance/strategies",
+  "/community/governance/signal-pool/action",
+  "/community/coordination/strategies",
+  "/community/coordination/signal-pool/hypercert",
+])("redirects unavailable governance route %s while preserving the garden", async (path) => {
+  const router = renderAdminCanvasRoute(`${path}?gardenId=0xAAA`);
+  await waitFor(() => expect(router.state.location.pathname).toBe("/community/coordination"));
+  expect(router.state.location.search).toBe("?gardenId=0xAAA");
+});

@@ -76,6 +76,7 @@ describe("GardenCommunityCard yield wiring", () => {
     renderCard();
 
     expect(screen.getByText("Yield connected")).toBeInTheDocument();
+    expect(screen.queryByText("Manage Strategies")).not.toBeInTheDocument();
     expect(screen.queryByText("Connect to Yield")).not.toBeInTheDocument();
   });
 
@@ -165,7 +166,7 @@ describe("GardenCommunityCard yield wiring", () => {
     expect(screen.queryByRole("link", { name: /Connect to yield/i })).not.toBeInTheDocument();
   });
 
-  it("no-pools branch: still shows Create Signal Pools and no wiring section", () => {
+  it("no-pools branch: hides governance creation and wiring section", () => {
     mockWiring({
       wiringStatus: "missing-pool",
       wiringState: {
@@ -181,7 +182,7 @@ describe("GardenCommunityCard yield wiring", () => {
 
     renderCard({ pools: [] });
 
-    expect(screen.getByText("Create Signal Pools")).toBeInTheDocument();
+    expect(screen.queryByText("Create Signal Pools")).not.toBeInTheDocument();
     expect(screen.queryByText("Yield connected")).not.toBeInTheDocument();
     expect(screen.queryByRole("link", { name: /Connect to yield/i })).not.toBeInTheDocument();
   });

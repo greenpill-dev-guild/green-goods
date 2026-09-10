@@ -2075,6 +2075,7 @@
       "area": "Garden",
       "scenario": "Governance drawer shows the current stake to eligible roles only",
       "preconditions": [
+        "DEFERRED under PRD-917 until an approved governance rollout; do not record as passed while the feature is hidden",
         "Garden with strategies",
         "One steward or evaluator identity and one gardener identity"
       ],
@@ -2099,7 +2100,11 @@
       "kind": "transaction",
       "area": "Garden",
       "scenario": "Allocate conviction support points in the governance drawer",
-      "preconditions": ["Garden with strategies", "Steward or evaluator identity"],
+      "preconditions": [
+        "DEFERRED under PRD-917 until an approved governance rollout; do not record as passed while the feature is hidden",
+        "Garden with strategies",
+        "Steward or evaluator identity"
+      ],
       "steps": [
         "Open the governance drawer",
         "Allocate support points and submit",
@@ -3231,7 +3236,7 @@
         "Switch to Receive",
         "Toggle the network offline and return to Balance"
       ],
-      "expected": "Balance lists each token with its amount and tags governance tokens 'Governance'; a token that could not be read shows a dash with 'Balance unavailable', never a zero; an empty wallet says 'No tokens yet'; Receive shows this wallet's QR code and a copyable address; offline, the list explains the connection instead of claiming there are no tokens",
+      "expected": "Balance lists supported non-governance tokens with their amounts; GOODS and governance tags are absent, including after reload with a persisted token cache; a token that could not be read shows a dash with 'Balance unavailable', never a zero; an empty wallet says 'No tokens yet'; Receive shows this wallet's QR code and a copyable address; offline, the list explains the connection instead of claiming there are no tokens",
       "evidence": "Screenshots of Balance and Receive",
       "role": "any",
       "tags": ["wallet"],
@@ -3274,7 +3279,7 @@
       "area": "Wallet",
       "scenario": "Pick a send recipient by search, pasted address, ENS name, and QR scan",
       "preconditions": [
-        "Wallet with any token balance",
+        "Wallet with a supported non-governance token balance",
         "A second wallet address, an ENS name that resolves, and its QR code on another screen",
         "Camera access for the scan (skip that step where the browser cannot scan)"
       ],
@@ -3301,7 +3306,10 @@
       "kind": "transaction",
       "area": "Wallet",
       "scenario": "Send a governance token and read the warning-variant confirm",
-      "preconditions": ["Wallet holding a token tagged Governance"],
+      "preconditions": [
+        "DEFERRED under PRD-917 until an approved governance rollout; do not record as passed while the feature is hidden",
+        "Wallet holding a token tagged Governance"
+      ],
       "steps": [
         "Start a Send with the governance token",
         "Read the token row and the review",
@@ -5909,7 +5917,10 @@
       "kind": "transaction",
       "area": "Community · Coordination",
       "scenario": "Allocate conviction weights from the admin governance panel",
-      "preconditions": ["Steward signed in with support points to allocate"],
+      "preconditions": [
+        "DEFERRED under PRD-917 until an approved governance rollout; do not record as passed while the feature is hidden",
+        "Steward signed in with support points to allocate"
+      ],
       "steps": [
         "Open the governance panel; if prompted press Sign In to Allocate Conviction",
         "Allocate weights and save",

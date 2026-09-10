@@ -1,4 +1,6 @@
 import type { CommunityWorkspace } from "@green-goods/shared/hooks/admin-ui/community/useCommunityWorkspaceController";
+import messages from "@green-goods/shared/i18n/en.json";
+import { useGardenYieldWiringState } from "@green-goods/shared/hooks/yield/useGardenYieldWiringState";
 import { IntlProvider } from "react-intl";
 import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it, vi } from "vitest";
@@ -38,6 +40,10 @@ vi.mock("./CommunityPayoutsTab", () => ({
 }));
 vi.mock("./CommunityTabSkeleton", () => ({
   CommunityTabSkeleton: ({ mode }: { mode: string }) => <div>loading:{mode}</div>,
+}));
+
+vi.mock("@green-goods/shared/hooks/yield/useGardenYieldWiringState", () => ({
+  useGardenYieldWiringState: vi.fn(() => ({})),
 }));
 
 const noop = vi.fn();
@@ -86,7 +92,7 @@ const baseWorkspace = {
 
 function renderWorkspace(overrides: Partial<CommunityWorkspace> = {}) {
   render(
-    <IntlProvider locale="en" messages={{}}>
+    <IntlProvider locale="en" messages={messages}>
       <MemoryRouter>
         <CommunityWorkspaceContent workspace={{ ...baseWorkspace, ...overrides }} />
       </MemoryRouter>
@@ -111,7 +117,6 @@ describe("CommunityWorkspaceContent", () => {
 
   it.each([
     "members",
-    "coordination",
     "endowment",
     "payouts",
   ] as const)("routes %s to its focused tab component", (mode) => {
@@ -120,7 +125,50 @@ describe("CommunityWorkspaceContent", () => {
   });
 
   it("renders the pooling surface inside Coordination (AD-5)", () => {
-    renderWorkspace({ mode: "coordination" });
+    renderWorkspace({ mode: "coordination", communityLoading: true });
+    expect(screen.queryByTestId("coordination")).not.toBeInTheDocument();
     expect(screen.getByTestId("pools")).toHaveTextContent("canManage,chainId,garden");
+  });
+});
+
+describe("Coordination funding status with governance disabled", () => {
+  it.each([
+    "connected",
+    "missing-resolver-wiring",
+    "mismatch",
+  ] as const)("preserves %s yield status for managers", (status) => {
+    vi.mocked(useGardenYieldWiringState).mockReturnValue({
+      wiringStatus: status,
+      wiringState: { expectedHypercertPoolAddress: baseWorkspace.gardenId },
+      repairHref: "/community/coordination?gardenId=" + baseWorkspace.gardenId,
+    } as ReturnType<typeof useGardenYieldWiringState>);
+    renderWorkspace({
+      mode: "coordination",
+      pools: [{ poolType: 0, poolAddress: baseWorkspace.gardenId }] as CommunityWorkspace["pools"],
+    });
+    expect(screen.queryByTestId("coordination")).not.toBeInTheDocument();
+    expect(screen.getByTestId("pools")).toBeInTheDocument();
+    if (status === "connected") {
+      expect(screen.getByText(messages["app.community.yield.connected"])).toBeInTheDocument();
+      expect(screen.queryByRole("link")).not.toBeInTheDocument();
+    } else {
+      const id =
+        status === "mismatch" ? "app.community.yield.mismatch" : "app.community.yield.notConnected";
+      expect(screen.getByText(messages[id])).toBeInTheDocument();
+      expect(
+        screen.getByRole("link", { name: messages["app.community.yield.connectAction"] })
+      ).toHaveAttribute("href", "/community/coordination?gardenId=" + baseWorkspace.gardenId);
+    }
+  });
+  it("does not advertise a connection from stale wiring data when pools are absent", () => {
+    vi.mocked(useGardenYieldWiringState).mockReturnValue({
+      wiringStatus: "connected",
+    } as ReturnType<typeof useGardenYieldWiringState>);
+    renderWorkspace({ mode: "coordination", pools: [], communityLoading: true });
+    expect(screen.queryByText(messages["app.community.yield.connected"])).not.toBeInTheDocument();
+    expect(screen.getByTestId("pools")).toBeInTheDocument();
+    expect(useGardenYieldWiringState).toHaveBeenLastCalledWith(baseWorkspace.gardenId, {
+      enabled: false,
+    });
   });
 });

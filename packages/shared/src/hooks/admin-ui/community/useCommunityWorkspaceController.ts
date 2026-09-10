@@ -1,3 +1,4 @@
+import { GOVERNANCE_ENABLED } from "../../../config/app";
 import { useViewActions } from "../../../components/Canvas/useViewActions";
 import { useGardenStateStore } from "../../../stores/useGardenStateStore";
 import { adminRoutes } from "../../../utils/navigation/admin-routes";
@@ -54,11 +55,13 @@ export function useCommunityWorkspaceController() {
       ? "withdraw"
       : null;
   const isStrategiesRoute =
-    location.pathname.startsWith("/community/coordination/strategies") ||
-    location.pathname.startsWith("/community/governance/strategies");
+    GOVERNANCE_ENABLED &&
+    (location.pathname.startsWith("/community/coordination/strategies") ||
+      location.pathname.startsWith("/community/governance/strategies"));
   const isSignalPoolRoute =
-    location.pathname.startsWith("/community/coordination/signal-pool/") ||
-    location.pathname.startsWith("/community/governance/signal-pool/");
+    GOVERNANCE_ENABLED &&
+    (location.pathname.startsWith("/community/coordination/signal-pool/") ||
+      location.pathname.startsWith("/community/governance/signal-pool/"));
   const selectedItem = searchParams.get("item") ?? poolType ?? null;
   const sheetOpen = vaultAction !== null || isStrategiesRoute || isSignalPoolRoute;
 

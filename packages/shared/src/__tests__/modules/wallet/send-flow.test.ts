@@ -3,6 +3,7 @@ import {
   initialSendFlowState,
   sendFlowReducer,
   type SelectedRecipient,
+  validateSendAmount,
 } from "../../../modules/wallet/send-flow";
 
 const recipient: SelectedRecipient = {
@@ -54,4 +55,35 @@ describe("sendFlowReducer", () => {
       showConfirm: false,
     });
   });
+});
+
+const goods = {
+  symbol: "GOODS",
+  label: "Green Goods",
+  address: recipient.address,
+  decimals: 18,
+  confersGovernance: true,
+  supported: true,
+  balance: 100n * 10n ** 18n,
+  errored: false,
+};
+
+it("rejects cached GOODS selections and invalidates a stale review", () => {
+  expect(
+    sendFlowReducer(initialSendFlowState, { type: "start-send", token: goods }).selectedToken
+  ).toBeNull();
+  expect(
+    sendFlowReducer(initialSendFlowState, { type: "select-token", token: goods }).selectedToken
+  ).toBeNull();
+  const stale = {
+    ...initialSendFlowState,
+    selectedToken: goods,
+    step: "review" as const,
+    showConfirm: true,
+  };
+  expect(sendFlowReducer(stale, { type: "open-confirm" })).toMatchObject({
+    selectedToken: null,
+    showConfirm: false,
+  });
+  expect(validateSendAmount(goods, "1").valid).toBe(false);
 });

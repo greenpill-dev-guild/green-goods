@@ -165,15 +165,14 @@ export const CoordinationStrategiesInspector: Story = {
   decorators: communityDecorators(),
   play: async ({ canvasElement: _canvasElement }) => {
     const body = within(document.body);
-    const inspector = await body.findByRole("dialog", undefined, ADMIN_ROUTE_STORY_QUERY_OPTIONS);
-    await expect(inspector).toHaveAttribute("data-component", "AdminDialog");
     await expect(
-      await within(inspector).findByText(
-        "Conviction Voting",
-        undefined,
+      await body.findByRole(
+        "button",
+        { name: /Rio Rainforest Lab/ },
         ADMIN_ROUTE_STORY_QUERY_OPTIONS
       )
     ).toBeVisible();
+    await expect(body.queryByRole("dialog")).not.toBeInTheDocument();
   },
 };
 

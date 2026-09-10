@@ -1,3 +1,4 @@
+import { GOVERNANCE_ENABLED } from "@green-goods/shared/config/app";
 import { AddressDisplay } from "@green-goods/shared/components/AddressDisplay";
 import { toastService } from "@green-goods/shared/components/Toast/toast.service";
 import { useGardenYieldWiringState } from "@green-goods/shared/hooks/yield/useGardenYieldWiringState";
@@ -60,6 +61,8 @@ export const GardenCommunityCard: React.FC<GardenCommunityCardProps> = ({
     expectedHypercertPoolKnown &&
     Boolean(repairHref);
 
+  if (!GOVERNANCE_ENABLED && !showWiringSection) return null;
+
   return (
     <section
       className="flex flex-col gap-4"
@@ -69,69 +72,79 @@ export const GardenCommunityCard: React.FC<GardenCommunityCardProps> = ({
       })}
     >
       <AdminCard>
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-feature-lighter">
-              <RiGroupLine className="h-5 w-5 text-feature-dark" />
-            </div>
-            <div>
-              <h3 className="label-md text-text-strong sm:text-title-md">
-                {formatMessage({ id: "app.community.title" })}
-              </h3>
-              <p className="mt-0.5 flex items-center gap-1.5 text-body-md text-text-sub">
-                <span
-                  className={`inline-flex h-2 w-2 flex-shrink-0 rounded-full ${community ? "bg-success-base" : "bg-text-soft"}`}
-                  aria-hidden="true"
-                />
-                {community
-                  ? formatMessage({ id: "app.community.statusConnected" })
-                  : formatMessage({ id: "app.community.statusNotConnected" })}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div className="mt-4 rounded-lg bg-bg-weak p-3">
-          <p className="label-xs text-text-soft">
-            {formatMessage({ id: "app.community.weightScheme" })}
-          </p>
-          {communityLoading ? (
-            <p className="mt-1 text-body-md text-text-sub">
-              {formatMessage({ id: "app.community.loading" })}
-            </p>
-          ) : community ? (
-            <div className="mt-1">
-              <p className="text-body-md font-medium text-text-strong">
-                {formatMessage({
-                  id: `app.community.weightScheme.${weightSchemeLabel?.toLowerCase()}`,
-                })}
-              </p>
-              <p className="mt-0.5 text-body-sm text-text-sub">
-                {formatMessage({
-                  id: `app.community.weightScheme.${weightSchemeLabel?.toLowerCase()}Description`,
-                })}
-              </p>
-              <div className="mt-2 flex gap-3 text-body-sm text-text-sub">
-                <span>
-                  {formatMessage({ id: "app.roles.community" })}:{" "}
-                  {WEIGHT_SCHEME_VALUES[community.weightScheme as WeightScheme].community / 10_000}x
-                </span>
-                <span>
-                  {formatMessage({ id: "app.roles.gardener" })}:{" "}
-                  {WEIGHT_SCHEME_VALUES[community.weightScheme as WeightScheme].gardener / 10_000}x
-                </span>
-                <span>
-                  {formatMessage({ id: "app.roles.steward" })}:{" "}
-                  {WEIGHT_SCHEME_VALUES[community.weightScheme as WeightScheme].steward / 10_000}x
-                </span>
+        {GOVERNANCE_ENABLED && (
+          <>
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-feature-lighter">
+                  <RiGroupLine className="h-5 w-5 text-feature-dark" />
+                </div>
+                <div>
+                  <h3 className="label-md text-text-strong sm:text-title-md">
+                    {formatMessage({ id: "app.community.title" })}
+                  </h3>
+                  <p className="mt-0.5 flex items-center gap-1.5 text-body-md text-text-sub">
+                    <span
+                      className={`inline-flex h-2 w-2 flex-shrink-0 rounded-full ${community ? "bg-success-base" : "bg-text-soft"}`}
+                      aria-hidden="true"
+                    />
+                    {community
+                      ? formatMessage({ id: "app.community.statusConnected" })
+                      : formatMessage({ id: "app.community.statusNotConnected" })}
+                  </p>
+                </div>
               </div>
             </div>
-          ) : (
-            <p className="mt-1 text-body-md text-text-sub">
-              {formatMessage({ id: "app.community.noCommunity" })}
-            </p>
-          )}
-        </div>
+
+            <div className="mt-4 rounded-lg bg-bg-weak p-3">
+              <p className="label-xs text-text-soft">
+                {formatMessage({ id: "app.community.weightScheme" })}
+              </p>
+              {communityLoading ? (
+                <p className="mt-1 text-body-md text-text-sub">
+                  {formatMessage({ id: "app.community.loading" })}
+                </p>
+              ) : community ? (
+                <div className="mt-1">
+                  <p className="text-body-md font-medium text-text-strong">
+                    {formatMessage({
+                      id: `app.community.weightScheme.${weightSchemeLabel?.toLowerCase()}`,
+                    })}
+                  </p>
+                  <p className="mt-0.5 text-body-sm text-text-sub">
+                    {formatMessage({
+                      id: `app.community.weightScheme.${weightSchemeLabel?.toLowerCase()}Description`,
+                    })}
+                  </p>
+                  <div className="mt-2 flex gap-3 text-body-sm text-text-sub">
+                    <span>
+                      {formatMessage({ id: "app.roles.community" })}:{" "}
+                      {WEIGHT_SCHEME_VALUES[community.weightScheme as WeightScheme].community /
+                        10_000}
+                      x
+                    </span>
+                    <span>
+                      {formatMessage({ id: "app.roles.gardener" })}:{" "}
+                      {WEIGHT_SCHEME_VALUES[community.weightScheme as WeightScheme].gardener /
+                        10_000}
+                      x
+                    </span>
+                    <span>
+                      {formatMessage({ id: "app.roles.steward" })}:{" "}
+                      {WEIGHT_SCHEME_VALUES[community.weightScheme as WeightScheme].steward /
+                        10_000}
+                      x
+                    </span>
+                  </div>
+                </div>
+              ) : (
+                <p className="mt-1 text-body-md text-text-sub">
+                  {formatMessage({ id: "app.community.noCommunity" })}
+                </p>
+              )}
+            </div>
+          </>
+        )}
 
         {showWiringSection && wiringStatus === "connected" ? (
           <div className="mt-3 rounded-lg bg-bg-weak p-3">
@@ -186,96 +199,103 @@ export const GardenCommunityCard: React.FC<GardenCommunityCardProps> = ({
           </div>
         ) : null}
 
-        {pools.length > 0 ? (
-          <>
-            <div className="mt-3 grid grid-cols-2 gap-3">
-              <div className="rounded-lg bg-bg-weak p-3">
-                <p className="label-xs text-text-soft">
-                  {formatMessage({ id: "app.community.poolType.hypercert" })}
-                </p>
-                <div className="mt-1 text-body-md text-text-sub">
-                  {hypercertPool ? (
-                    <AddressDisplay address={hypercertPool.poolAddress} className="text-body-md" />
-                  ) : (
-                    <>&mdash;</>
-                  )}
+        {GOVERNANCE_ENABLED &&
+          (pools.length > 0 ? (
+            <>
+              <div className="mt-3 grid grid-cols-2 gap-3">
+                <div className="rounded-lg bg-bg-weak p-3">
+                  <p className="label-xs text-text-soft">
+                    {formatMessage({ id: "app.community.poolType.hypercert" })}
+                  </p>
+                  <div className="mt-1 text-body-md text-text-sub">
+                    {hypercertPool ? (
+                      <AddressDisplay
+                        address={hypercertPool.poolAddress}
+                        className="text-body-md"
+                      />
+                    ) : (
+                      <>&mdash;</>
+                    )}
+                  </div>
+                </div>
+                <div className="rounded-lg bg-bg-weak p-3">
+                  <p className="label-xs text-text-soft">
+                    {formatMessage({ id: "app.community.poolType.action" })}
+                  </p>
+                  <div className="mt-1 text-body-md text-text-sub">
+                    {actionPool ? (
+                      <AddressDisplay address={actionPool.poolAddress} className="text-body-md" />
+                    ) : (
+                      <>&mdash;</>
+                    )}
+                  </div>
                 </div>
               </div>
-              <div className="rounded-lg bg-bg-weak p-3">
-                <p className="label-xs text-text-soft">
-                  {formatMessage({ id: "app.community.poolType.action" })}
-                </p>
-                <div className="mt-1 text-body-md text-text-sub">
-                  {actionPool ? (
-                    <AddressDisplay address={actionPool.poolAddress} className="text-body-md" />
-                  ) : (
-                    <>&mdash;</>
-                  )}
+              {canManage && (
+                <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1">
+                  <Link
+                    to={adminRoutes.communityCoordinationSignalPool(
+                      "hypercert",
+                      gardenRouteContext
+                    )}
+                    className="text-label-sm font-medium text-primary-dark hover:text-primary-darker"
+                  >
+                    {formatMessage({ id: "app.signal.viewHypercertPool" })}
+                  </Link>
+                  <span className="text-text-soft" aria-hidden="true">
+                    &middot;
+                  </span>
+                  <Link
+                    to={adminRoutes.communityCoordinationSignalPool("action", gardenRouteContext)}
+                    className="text-label-sm font-medium text-primary-dark hover:text-primary-darker"
+                  >
+                    {formatMessage({ id: "app.signal.viewActionPool" })}
+                  </Link>
+                  <span className="text-text-soft" aria-hidden="true">
+                    &middot;
+                  </span>
+                  <Link
+                    to={adminRoutes.communityCoordinationStrategies(gardenRouteContext)}
+                    className="text-label-sm font-medium text-primary-dark hover:text-primary-darker"
+                  >
+                    {formatMessage({ id: "app.conviction.manageStrategies" })}
+                  </Link>
                 </div>
-              </div>
+              )}
+            </>
+          ) : (
+            <div className="mt-3 rounded-lg border border-warning-light bg-warning-lighter p-3">
+              <p className="text-body-md text-warning-dark">
+                {formatMessage({ id: "app.community.noPoolsYet" })}
+              </p>
+              {canManage && community && (
+                <AdminButton
+                  variant="filled"
+                  size="sm"
+                  className="mt-2"
+                  onClick={async () => {
+                    try {
+                      await onCreatePools();
+                      toastService.success({
+                        title: formatMessage({ id: "app.community.poolsCreated" }),
+                      });
+                      onScheduleRefetch();
+                    } catch (error) {
+                      logger.error("Failed to create community pools", { error });
+                      toastService.error({
+                        title: formatMessage({ id: "app.community.poolsCreateFailed" }),
+                      });
+                    }
+                  }}
+                  disabled={isCreatingPools}
+                  loading={isCreatingPools}
+                >
+                  {!isCreatingPools && <RiAddLine className="h-4 w-4" />}
+                  {formatMessage({ id: "app.community.createPools" })}
+                </AdminButton>
+              )}
             </div>
-            {canManage && (
-              <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1">
-                <Link
-                  to={adminRoutes.communityCoordinationSignalPool("hypercert", gardenRouteContext)}
-                  className="text-label-sm font-medium text-primary-dark hover:text-primary-darker"
-                >
-                  {formatMessage({ id: "app.signal.viewHypercertPool" })}
-                </Link>
-                <span className="text-text-soft" aria-hidden="true">
-                  &middot;
-                </span>
-                <Link
-                  to={adminRoutes.communityCoordinationSignalPool("action", gardenRouteContext)}
-                  className="text-label-sm font-medium text-primary-dark hover:text-primary-darker"
-                >
-                  {formatMessage({ id: "app.signal.viewActionPool" })}
-                </Link>
-                <span className="text-text-soft" aria-hidden="true">
-                  &middot;
-                </span>
-                <Link
-                  to={adminRoutes.communityCoordinationStrategies(gardenRouteContext)}
-                  className="text-label-sm font-medium text-primary-dark hover:text-primary-darker"
-                >
-                  {formatMessage({ id: "app.conviction.manageStrategies" })}
-                </Link>
-              </div>
-            )}
-          </>
-        ) : (
-          <div className="mt-3 rounded-lg border border-warning-light bg-warning-lighter p-3">
-            <p className="text-body-md text-warning-dark">
-              {formatMessage({ id: "app.community.noPoolsYet" })}
-            </p>
-            {canManage && community && (
-              <AdminButton
-                variant="filled"
-                size="sm"
-                className="mt-2"
-                onClick={async () => {
-                  try {
-                    await onCreatePools();
-                    toastService.success({
-                      title: formatMessage({ id: "app.community.poolsCreated" }),
-                    });
-                    onScheduleRefetch();
-                  } catch (error) {
-                    logger.error("Failed to create community pools", { error });
-                    toastService.error({
-                      title: formatMessage({ id: "app.community.poolsCreateFailed" }),
-                    });
-                  }
-                }}
-                disabled={isCreatingPools}
-                loading={isCreatingPools}
-              >
-                {!isCreatingPools && <RiAddLine className="h-4 w-4" />}
-                {formatMessage({ id: "app.community.createPools" })}
-              </AdminButton>
-            )}
-          </div>
-        )}
+          ))}
       </AdminCard>
     </section>
   );

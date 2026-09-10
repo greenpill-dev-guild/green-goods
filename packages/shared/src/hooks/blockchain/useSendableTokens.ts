@@ -1,8 +1,8 @@
 /**
  * Sendable-token balances for the client PWA "Send" flow.
  *
- * Resolves the GOODS token address from `GardensModule.goodsToken()` (module-level,
- * one GOODS per chain), builds the curated token list (GOODS + stablecoins), and
+ * When governance is enabled, resolves GOODS from `GardensModule.goodsToken()`.
+ * Builds the currently available curated token list and
  * reads each balance in parallel. Uses `Promise.allSettled` so one reverting or
  * absent token never nukes the whole list (per-token `errored` flag instead).
  *
@@ -11,11 +11,16 @@
  * @module hooks/blockchain/useSendableTokens
  */
 
+import { GOVERNANCE_ENABLED } from "../../config/app";
 import { useQuery } from "@tanstack/react-query";
 import { createPublicClientForChain } from "../../config/pimlico";
 import { tokensKeys } from "../../config/query-keys/tokens";
 import { STALE_TIME_FAST } from "../../config/query-keys/constants";
-import { buildSendableTokens, type SendableToken } from "../../config/tokens";
+import {
+  buildSendableTokens,
+  isSendableTokenAvailable,
+  type SendableToken,
+} from "../../config/tokens";
 import type { Address } from "../../types/domain";
 import { GARDENS_MODULE_ABI } from "../../utils/blockchain/abis/conviction";
 import { ERC20_BALANCE_ABI } from "../../utils/blockchain/abis/erc20";
@@ -70,7 +75,7 @@ export function useSendableTokens(
       if (!account || !chainId) return [];
       const client = createPublicClientForChain(chainId);
 
-      const goodsAddress = await resolveGoodsAddress(client, chainId);
+      const goodsAddress = GOVERNANCE_ENABLED ? await resolveGoodsAddress(client, chainId) : null;
       const tokens = buildSendableTokens(chainId, goodsAddress);
 
       const settled = await Promise.allSettled(
@@ -101,7 +106,7 @@ export function useSendableTokens(
   });
 
   return {
-    tokens: query.data ?? [],
+    tokens: (query.data ?? []).filter(isSendableTokenAvailable),
     isLoading: query.isLoading,
     isFetching: query.isFetching,
     isError: query.isError,
