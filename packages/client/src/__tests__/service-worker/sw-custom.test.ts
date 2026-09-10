@@ -34,7 +34,10 @@ async function loadServiceWorker(locationHref = "https://www.greengoods.app/sw.j
     }
   >();
   const keyFor = (request: RequestInfo | URL) =>
-    typeof request === "string" ? request : request instanceof URL ? request.href : request.url;
+    new URL(
+      typeof request === "string" ? request : request instanceof URL ? request.href : request.url,
+      locationHref
+    ).href;
   const cacheFor = (name: string) => {
     let cache = cacheObjects.get(name);
     if (cache) return cache;
@@ -186,6 +189,53 @@ describe("client public service worker migration", () => {
     });
 
     await expect(installation).resolves.toBeUndefined();
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("serves unvisited route chunks offline after one complete shell install", async () => {
+    const { fetchMock, listeners } = await loadServiceWorker();
+    const routes = ["profile", "garden", "work-detail", "wizard", "drawer"];
+    const entries: Array<[string, string]> = routes.map((route) => [
+      `/assets/${route}.js`,
+      `export const route = "${route}"`,
+    ]);
+    fetchMock.mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          version: 1,
+          digest: shellDigest(entries),
+          assets: entries.map(([asset]) => asset),
+        })
+      )
+    );
+    for (const [, code] of entries) {
+      fetchMock.mockResolvedValueOnce(
+        new Response(code, {
+          headers: { "content-type": "application/javascript" },
+        })
+      );
+    }
+    let installation: Promise<unknown> | undefined;
+    listeners.install[0]({
+      waitUntil: (promise: Promise<unknown>) => {
+        installation = promise;
+      },
+    });
+    await installation;
+
+    fetchMock.mockReset().mockRejectedValue(new TypeError("Failed to fetch"));
+    for (const [asset, code] of entries) {
+      let response: Promise<Response> | undefined;
+      const event = {
+        request: new Request(`https://www.greengoods.app${asset}`),
+        respondWith: (promise: Promise<Response>) => {
+          response = promise;
+        },
+        stopImmediatePropagation: vi.fn(),
+      };
+      listeners.fetch.forEach((listener) => listener(event));
+      expect(await (await response)?.text()).toBe(code);
+    }
     expect(fetchMock).not.toHaveBeenCalled();
   });
 

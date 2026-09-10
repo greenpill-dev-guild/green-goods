@@ -4,16 +4,22 @@ import { join } from "node:path";
 import type { Plugin } from "vite";
 
 const SHELL_MODULE_MARKERS = [
+  "/src/main.tsx",
   "/src/bootstrapPwa.tsx",
   "/src/PwaApp.tsx",
   "/src/routes/PwaRuntime.tsx",
   "/src/routes/WalletRuntimeProviders.tsx",
-  "/src/routes/RequireAuth.tsx",
+  "/src/routes/Root.tsx",
+  "/src/routes/SessionGate.tsx",
   "/src/routes/AppShell.tsx",
-  "/src/views/Login/index.tsx",
-  "/src/views/Home/index.tsx",
+  "/src/routes/ENSClaimReminder.tsx",
+  "/src/hooks/blockchain/prefetch.ts",
   "/src/i18n/en.json",
 ] as const;
+
+// Include nested views too: drawers and wizard steps can be separate lazy
+// entries even though the router does not name them. Public pages stay lazy.
+const SHELL_VIEW_MODULE = /\/packages\/client\/src\/views\/(Login|Home|Garden|Profile)\//;
 
 interface ChunkWithViteMetadata {
   type: "chunk";
@@ -21,6 +27,7 @@ interface ChunkWithViteMetadata {
   code: string;
   imports: string[];
   dynamicImports: string[];
+  facadeModuleId?: string | null;
   modules: Record<string, unknown>;
   viteMetadata?: {
     importedCss?: Set<string>;
@@ -98,11 +105,15 @@ export function createPwaShellAssetsPlugin(): Plugin {
       };
 
       for (const chunk of chunks) {
-        const moduleIds = Object.keys(chunk.modules);
+        // Rolldown can emit an empty facade for a dynamic entry whose code lives
+        // in another chunk. Cache that entry URL as well as its static closure.
+        const moduleIds = [...Object.keys(chunk.modules), chunk.facadeModuleId ?? ""];
         if (
-          moduleIds.some((moduleId) =>
-            SHELL_MODULE_MARKERS.some((marker) => moduleId.endsWith(marker))
-          )
+          moduleIds.some((moduleId) => {
+            const cleanId = moduleId.split("?")[0].replaceAll("\\", "/");
+            return SHELL_VIEW_MODULE.test(cleanId) ||
+              SHELL_MODULE_MARKERS.some((marker) => cleanId.endsWith(marker));
+          })
         ) {
           includeChunk(chunk.fileName);
         }

@@ -80,7 +80,70 @@ function generateShellManifest({
 }
 
 describe("PWA shell asset manifest", () => {
-  it("includes the marked shell and static closure but excludes lazy routes", () => {
+  it("caches route facades, drawers, and wizard dependencies without public or wallet-only chunks", async () => {
+    const emitFile = vi.fn();
+    const plugin = createPwaShellAssetsPlugin();
+    const generateBundle = plugin.generateBundle;
+    if (typeof generateBundle !== "function") throw new Error("generateBundle hook missing");
+
+    const bundle = createShellBundle();
+    // Use the actual lazy entry inventory so adding a signed-in route cannot
+    // silently leave it outside the first-install shell.
+    const routes = await readFile(new URL("../../config/routes.tsx", import.meta.url), "utf8");
+    const viewPaths = [...routes.matchAll(/import\("@\/(views\/[^"\n]+)"\)/g)].map(
+      (match) => match[1]
+    );
+    const signedInViews = viewPaths.filter((path) => !path.startsWith("views/Public/"));
+    const lazyModules = [
+      ...viewPaths,
+      "views/Home/GardenFilters/index",
+      "views/Home/WalletDrawer/index",
+      "views/Home/CommitmentsDrawer/index",
+      "views/Garden/Media",
+      "routes/Root",
+      "routes/SessionGate",
+      "routes/WalletRuntimeProviders",
+    ];
+    for (const moduleId of lazyModules) {
+      const fileName = `assets/${moduleId.replaceAll("/", "-")}.js`;
+      bundle[fileName] = {
+        type: "chunk",
+        fileName,
+        code: "export default true",
+        imports: ["assets/react.js"],
+        dynamicImports: ["assets/wallet-connect.js"],
+        modules: {},
+        facadeModuleId: `/repo/packages/client/src/${moduleId}${moduleId.startsWith("views/") && moduleId.split("/").length === 2 ? "/index" : ""}.tsx`,
+      };
+    }
+    bundle["assets/wallet-connect.js"] = {
+      type: "chunk",
+      fileName: "assets/wallet-connect.js",
+      code: "export default true",
+      imports: [],
+      dynamicImports: [],
+      modules: { "/repo/node_modules/wallet/connect.js": {} },
+    };
+    generateBundle.call({ emitFile } as never, {} as never, bundle as never, false);
+    const shell = JSON.parse(
+      (
+        emitFile.mock.calls.find(
+          ([asset]) => asset.fileName === "pwa-shell-assets.json"
+        )?.[0] as EmittedAsset
+      ).source
+    ) as { assets: string[] };
+
+    expect(signedInViews.length).toBeGreaterThan(0);
+    for (const moduleId of lazyModules) {
+      const asset = `/assets/${moduleId.replaceAll("/", "-")}.js`;
+      if (moduleId.startsWith("views/Public/")) expect(shell.assets).not.toContain(asset);
+      else expect(shell.assets).toContain(asset);
+    }
+    expect(shell.assets).toContain("/assets/react.js");
+    expect(shell.assets).not.toContain("/assets/wallet-connect.js");
+  });
+
+  it("includes signed-in lazy views before their first visit", () => {
     const emitted = generateShellManifest();
     const shell = JSON.parse(
       emitted.find((asset) => asset.fileName === "pwa-shell-assets.json")?.source ?? "{}"
@@ -90,12 +153,12 @@ describe("PWA shell asset manifest", () => {
     expect(shell.digest).toMatch(/^[a-f0-9]{16}$/);
     expect(shell.assets).toEqual([
       "/assets/app.css",
+      "/assets/lazy-proof.js",
       "/assets/pwa.js",
       "/assets/react.js",
       "/assets/standalone.css",
       "/index.html",
     ]);
-    expect(shell.assets).not.toContain("/assets/lazy-proof.js");
   });
 
   it("emits the same digest for the same shell graph", () => {
@@ -150,6 +213,7 @@ describe("PWA shell asset manifest", () => {
 
       const finalFiles = new Map<string, string>([
         ["/assets/app.css", ":root{color:green}"],
+        ["/assets/lazy-proof.js", "export const proof = true"],
         ["/assets/pwa.js", "export const bootstrap = true"],
         ["/assets/react.js", "export const react = true"],
         ["/assets/standalone.css", "body{}"],

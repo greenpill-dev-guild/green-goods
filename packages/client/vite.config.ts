@@ -18,6 +18,7 @@ import {
 } from "./src/config/pwaManifest";
 import { APP_ROUTES, createPwaRoutingConfig } from "./src/config/pwaRouting";
 import { createPwaShellAssetsPlugin } from "./vite/pwa-shell";
+import { createChainImportsPlugin } from "./vite/chain-imports";
 import { createPublicSocialPreviewPlugin } from "./vite/social-preview";
 import { resolveViteWatchOptions } from "./vite/watch";
 
@@ -301,6 +302,7 @@ export default defineConfig(async ({ command, mode }): Promise<UserConfig> => {
     babel({ presets: [reactCompilerPreset()] }),
     createPublicSocialPreviewPlugin(isIPFSBuild),
     createPwaShellAssetsPlugin(),
+    createChainImportsPlugin(),
     VitePWA({
       includeAssets: pwaBranding.includeAssets,
       injectRegister: false,
@@ -510,6 +512,18 @@ export default defineConfig(async ({ command, mode }): Promise<UserConfig> => {
       chunkSizeWarningLimit: 2000,
       manifest: true,
       rolldownOptions: {
+        treeshake: {
+          // AppKit's React barrel re-exports unused Lit button wrappers. Their
+          // module only creates those wrappers, but its imports register the
+          // entire modal UI eagerly. Keep that UI on AppKit's dynamic path when
+          // none of the wrapper exports are used by the client.
+          moduleSideEffects: [
+            {
+              test: /[\\/]@reown[\\/]appkit[\\/]dist[\\/]esm[\\/]src[\\/]library[\\/]react[\\/]components\.js$/,
+              sideEffects: false,
+            },
+          ],
+        },
         output: {
           codeSplitting: {
             groups: [
@@ -519,8 +533,21 @@ export default defineConfig(async ({ command, mode }): Promise<UserConfig> => {
               { name: "vendor-react", test: CLIENT_REACT_MODULES, priority: 40 },
               { name: "vendor-query", test: CLIENT_QUERY_MODULES, priority: 30 },
               // Public read paths use viem without needing Reown/Wagmi UI.
-              { name: "vendor-viem", test: CLIENT_VIEM_MODULES, priority: 25 },
-              { name: "vendor-wallet", test: CLIENT_WALLET_MODULES, priority: 20 },
+              {
+                name: "vendor-viem",
+                test: CLIENT_VIEM_MODULES,
+                priority: 25,
+                entriesAware: true,
+                includeDependenciesRecursively: false,
+              },
+              // Group by actual consumers so offline routes do not inherit the
+              // SDK's online-only modal and connector dependencies.
+              {
+                name: "vendor-wallet",
+                test: CLIENT_WALLET_MODULES,
+                priority: 20,
+                entriesAware: true,
+              },
               { name: "vendor-posthog", test: CLIENT_POSTHOG_MODULES, priority: 10 },
               { name: "vendor-sentry", test: CLIENT_SENTRY_MODULES, priority: 10 },
             ],
