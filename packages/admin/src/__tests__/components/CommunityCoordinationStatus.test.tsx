@@ -66,7 +66,7 @@ describe("Community coordination status actions", () => {
     vi.mocked(useGardenYieldWiringState).mockReturnValue(connectedWiringResult);
   });
 
-  it("aligns connected yield status and Manage Strategies to one compact row", () => {
+  it("keeps Manage Strategies compact and leaves the yield status to CommunityYieldStatus", () => {
     renderWithProviders(
       <IntlProvider
         locale="en"
@@ -116,14 +116,14 @@ describe("Community coordination status actions", () => {
       </IntlProvider>
     );
 
-    const connectedStatus = screen.getByText("Yield connected");
     const manageStrategies = screen.getByRole("link", { name: /Manage Strategies/i });
-    const actionRow = connectedStatus.parentElement;
 
-    expect(actionRow).toBe(manageStrategies.parentElement);
-    expect(actionRow).toHaveClass("flex", "items-center", "gap-2");
-    expect(connectedStatus).toHaveClass("h-7", "items-center");
+    expect(manageStrategies.parentElement).toHaveClass("flex", "items-center", "gap-2");
     expect(manageStrategies).toHaveClass("h-7");
     expect(manageStrategies).not.toHaveClass("h-auto");
+    // Yield wiring moved to CommunityYieldStatus so it stays visible while
+    // governance is hidden (PRD-917). The hook still reports "connected" here,
+    // so a status pill returning to this tab would fail this assertion.
+    expect(screen.queryByText("Yield connected")).not.toBeInTheDocument();
   });
 });
