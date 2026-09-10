@@ -2,6 +2,8 @@ import { getClientPresentationMode } from "@green-goods/shared/utils/app/pwa";
 import { redirect, type LoaderFunctionArgs } from "react-router-dom";
 import { APP_ROUTES, LEGACY_APP_ROUTES } from "@/config/pwaRouting";
 
+import { getSharedRecordPath } from "@/config/sharedLink";
+
 const PWA_ENTRY_ROUTE = APP_ROUTES.home;
 const WEBSITE_ENTRY_ROUTE = "/";
 const PUBLIC_WEBSITE_PATHS = new Set([
@@ -116,5 +118,8 @@ export function requireWebsitePresentationLoader({ request }: LoaderFunctionArgs
 
 export function requirePwaPresentationLoader(args?: LoaderFunctionArgs) {
   if (getClientRoutePresentationMode(args?.request.url) === "pwa") return null;
-  return redirect(WEBSITE_ENTRY_ROUTE);
+  const url = getPresentationUrl(args?.request.url);
+  return redirect(
+    (url && getSharedRecordPath(effectivePathname(url), "gardens")) || WEBSITE_ENTRY_ROUTE
+  );
 }

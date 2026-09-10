@@ -1,9 +1,11 @@
 import { useIntl } from "react-intl";
+import { createSharedLinkLaunchUrl, getSharedRecordPath } from "@/config/sharedLink";
 import { PublicInstallAction } from "./PublicInstallAction";
 
 export interface PublicInstallCtaProps {
   variant?: "section" | "compact";
   className?: string;
+  destination?: string;
 }
 
 /**
@@ -13,24 +15,66 @@ export interface PublicInstallCtaProps {
  * handoff, mobile tries native install first, and manual fallback opens in the
  * public install sheet.
  */
-export function PublicInstallCta({ variant = "section", className = "" }: PublicInstallCtaProps) {
+export function PublicInstallCta({
+  variant = "section",
+  className = "",
+  destination,
+}: PublicInstallCtaProps) {
   const { formatMessage } = useIntl();
+  const currentPath =
+    typeof window === "undefined"
+      ? ""
+      : window.location.hash.startsWith("#/")
+        ? window.location.hash.slice(1).split("?")[0]
+        : window.location.pathname;
+  const recordPath = getSharedRecordPath(destination ?? currentPath, "home");
+  const recordHref =
+    recordPath && import.meta.env.VITE_USE_HASH_ROUTER === "true"
+      ? createSharedLinkLaunchUrl(recordPath, window.location.href, true)
+      : recordPath;
+  const continuation = recordPath ? (
+    <div className="mt-4 text-center text-sm text-text-sub-600">
+      <p>
+        {formatMessage({
+          id: "public.sharedLink.installHelp",
+          defaultMessage:
+            "After installing, return to this page to continue. You can keep reading here without installing.",
+        })}
+      </p>
+      <a
+        href={recordHref ?? undefined}
+        className="mt-3 inline-flex min-h-11 items-center text-primary-action underline underline-offset-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-action"
+      >
+        {formatMessage({
+          id: recordPath.includes("/work/")
+            ? "public.sharedLink.openWork"
+            : "public.sharedLink.openGarden",
+          defaultMessage: recordPath.includes("/work/")
+            ? "Open This Work in the App"
+            : "Open This Garden in the App",
+        })}
+      </a>
+    </div>
+  ) : null;
 
   if (variant === "compact") {
     return (
-      <PublicInstallAction>
-        {({ label, href, onClick, disabled, dataInstallAction }) => (
-          <a
-            href={href}
-            onClick={onClick}
-            aria-disabled={disabled || undefined}
-            data-install-action={dataInstallAction}
-            className={`cursor-pointer rounded-full bg-primary-action px-4 py-2 text-sm font-medium text-primary-action-foreground transition-colors hover:bg-primary-action-hover ${disabled ? "cursor-not-allowed opacity-70" : ""} ${className}`}
-          >
-            {label}
-          </a>
-        )}
-      </PublicInstallAction>
+      <div className={className}>
+        <PublicInstallAction destination={recordPath ?? undefined}>
+          {({ label, href, onClick, disabled, dataInstallAction }) => (
+            <a
+              href={href}
+              onClick={onClick}
+              aria-disabled={disabled || undefined}
+              data-install-action={dataInstallAction}
+              className={`cursor-pointer rounded-full bg-primary-action px-4 py-2 text-sm font-medium text-primary-action-foreground transition-colors hover:bg-primary-action-hover ${disabled ? "cursor-not-allowed opacity-70" : ""} ${className}`}
+            >
+              {label}
+            </a>
+          )}
+        </PublicInstallAction>
+        {continuation}
+      </div>
     );
   }
 
@@ -54,7 +98,7 @@ export function PublicInstallCta({ variant = "section", className = "" }: Public
           })}
         </p>
         <div className="mt-8 flex justify-center">
-          <PublicInstallAction>
+          <PublicInstallAction destination={recordPath ?? undefined}>
             {({
               label,
               href,
@@ -88,6 +132,7 @@ export function PublicInstallCta({ variant = "section", className = "" }: Public
             )}
           </PublicInstallAction>
         </div>
+        {continuation}
       </div>
     </section>
   );

@@ -7,9 +7,21 @@ import { useApp } from "@green-goods/shared/providers/App";
 import { useIsBraveBrowser } from "@green-goods/shared/hooks/app/useIsBraveBrowser";
 import { usePublicInstallHandler } from "@green-goods/shared/hooks/app/usePublicInstallHandler";
 import { useTunnelUrl } from "@green-goods/shared/hooks/app/useTunnelUrl";
-import { type MouseEventHandler, type ReactNode, useCallback, useMemo, useState } from "react";
+import {
+  type MouseEventHandler,
+  type ReactNode,
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 import { useIntl } from "react-intl";
-import { APP_ROUTES, PUBLIC_PWA_ORIGIN, createPwaLaunchUrl } from "@/config/pwaRouting";
+import { PUBLIC_PWA_ORIGIN } from "@/config/pwaRouting";
+import {
+  createSharedLinkLaunchUrl,
+  getSharedLinkLaunchPath,
+  rememberSharedLink,
+} from "@/config/sharedLink";
 import { PublicInstallDialog, type PublicInstallDialogMode } from "./PublicInstallDialog";
 
 export interface PublicInstallActionRenderProps {
@@ -28,19 +40,37 @@ export interface PublicInstallActionProps {
   children: (props: PublicInstallActionRenderProps) => ReactNode;
   /** Used only by receipt surfaces that know the intended CTA is app-open. */
   forceOpenApp?: boolean;
+  destination?: string;
 }
 
-export function PublicInstallAction({ children, forceOpenApp = false }: PublicInstallActionProps) {
+export function PublicInstallAction({
+  children,
+  forceOpenApp = false,
+  destination,
+}: PublicInstallActionProps) {
   const { formatMessage } = useIntl();
   const tunnelUrl = useTunnelUrl();
+  const currentPath =
+    typeof window === "undefined"
+      ? ""
+      : window.location.hash.startsWith("#/")
+        ? window.location.hash.slice(1).split("?")[0]
+        : window.location.pathname;
+  const launchPath = getSharedLinkLaunchPath(destination ?? currentPath);
   const launchUrl = useMemo(() => {
-    if (typeof window === "undefined") return createPwaLaunchUrl(PUBLIC_PWA_ORIGIN);
+    if (typeof window === "undefined") return new URL(launchPath, PUBLIC_PWA_ORIGIN).href;
     const origin =
       import.meta.env.MODE === "development"
         ? (tunnelUrl ?? window.location.origin)
         : window.location.origin;
-    return createPwaLaunchUrl(origin);
-  }, [tunnelUrl]);
+    const source = new URL(window.location.href);
+    const target = new URL(source.pathname + source.search + source.hash, origin);
+    return createSharedLinkLaunchUrl(
+      launchPath,
+      target.href,
+      import.meta.env.VITE_USE_HASH_ROUTER === "true"
+    );
+  }, [launchPath, tunnelUrl]);
   const {
     isMobile,
     platform,
@@ -51,7 +81,7 @@ export function PublicInstallAction({ children, forceOpenApp = false }: PublicIn
     deferredPrompt,
     promptInstall,
   } = useApp();
-  const guidance = useInstallGuidance({
+  const baseGuidance = useInstallGuidance({
     platform,
     installedAppEvidence,
     wasInstalled,
@@ -59,13 +89,27 @@ export function PublicInstallAction({ children, forceOpenApp = false }: PublicIn
     isMobile,
     isInstalling,
   });
+  // Capture on this device before browser-menu installation, including QR arrivals.
+  useEffect(() => {
+    if (!isInstalled) rememberSharedLink(launchPath);
+  }, [isInstalled, launchPath]);
+  const guidance = useMemo(
+    () => ({
+      ...baseGuidance,
+      openInBrowserUrl:
+        baseGuidance.openInBrowserUrl && platform === "android"
+          ? getOpenInBrowserUrl(platform, "chrome", launchUrl)
+          : baseGuidance.openInBrowserUrl,
+    }),
+    [baseGuidance, platform, launchUrl]
+  );
   const dispatchInstallAction = usePublicInstallHandler(guidance, promptInstall);
   const isBrave = useIsBraveBrowser();
   // Android intent that reopens the current page in Chrome. Brave can't mint a
   // real WebAPK, so install-intent users are steered to Chrome (PRD-499).
   const openInChromeUrl = useMemo(
-    () => (platform === "android" ? getOpenInBrowserUrl(platform, "chrome") : null),
-    [platform]
+    () => (platform === "android" ? getOpenInBrowserUrl(platform, "chrome", launchUrl) : null),
+    [platform, launchUrl]
   );
   const [dialogMode, setDialogMode] = useState<PublicInstallDialogMode | null>(null);
 
@@ -107,6 +151,7 @@ export function PublicInstallAction({ children, forceOpenApp = false }: PublicIn
         return;
       }
 
+      rememberSharedLink(launchPath);
       if (isOpenApp) {
         // Brave does not mint a WebAPK on Android, so navigating to the scoped URL
         // stays in the browser tab instead of launching the installed app.
@@ -147,13 +192,18 @@ export function PublicInstallAction({ children, forceOpenApp = false }: PublicIn
       isMobile,
       isOpenApp,
       platform,
+      launchPath,
     ]
   );
 
-  const handleInstallFallbackClick = useCallback<MouseEventHandler<HTMLElement>>((event) => {
-    event.preventDefault();
-    setDialogMode("mobileSteps");
-  }, []);
+  const handleInstallFallbackClick = useCallback<MouseEventHandler<HTMLElement>>(
+    (event) => {
+      event.preventDefault();
+      rememberSharedLink(launchPath);
+      setDialogMode("mobileSteps");
+    },
+    [launchPath]
+  );
 
   const handleDialogPrimaryAction = useCallback<MouseEventHandler<HTMLButtonElement>>(
     async (event) => {
@@ -169,7 +219,11 @@ export function PublicInstallAction({ children, forceOpenApp = false }: PublicIn
     <>
       {children({
         label,
-        href: isOpenApp ? APP_ROUTES.home : "#install",
+        href: isOpenApp
+          ? import.meta.env.VITE_USE_HASH_ROUTER === "true"
+            ? launchUrl
+            : launchPath
+          : "#install",
         isOpenApp,
         disabled: isInstallPending,
         dataInstallAction,

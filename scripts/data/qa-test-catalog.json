@@ -3523,24 +3523,34 @@
     {
       "id": "PWA-023",
       "tab": "PWA",
-      "platform": "Desktop Browser (PWA shell)",
+      "platform": "Android (installed PWA)",
       "priority": "P1",
       "kind": "journey",
       "area": "App-wide",
-      "scenario": "Refresh and direct deep links preserve garden/work context",
-      "preconditions": ["Authenticated session"],
-      "steps": [
-        "Hard-refresh on /home/:gardenId/work/:workId",
-        "Paste /home/:gardenId/commitments/:commitmentId into a fresh tab",
-        "Paste /home/:gardenId/assessments/:assessmentId into a fresh tab"
+      "scenario": "[Android] Shared garden/work links and photos open the installed app",
+      "preconditions": [
+        "Install the app from the deployed HTTPS host being tested; authenticate in that installed app.",
+        "Use a real garden address and a synced work ID accessible to the signed-in tester. Replace placeholders below; use the same origin as the installation."
       ],
-      "expected": "Hard refresh on a deep work route and pasting a deep commitment or assessment URL all land on the right record with the garden context intact — no blank page, no lost context",
-      "evidence": "Screenshot after refresh",
+      "steps": [
+        "From garden detail, use Share Garden and retain the produced HTTPS link: /home/:gardenId.",
+        "From a synced work detail, use Share Work and retain the produced HTTPS link: /home/:gardenId/work/:workId.",
+        "Without installing (or when capture stays in a browser), open each shared link. It must show the matching public garden/work preview or a clear access/unavailable explanation; no homepage redirect. Confirm reading does not require installation.",
+        "On a fresh phone/browser, scan the preview QR and install using the browser menu without pressing an in-page Install button. Also start installation from the preview controls. Confirm QR/browser handoff and the explicit Open This Garden/Work link retain the exact destination. Launch within an hour on the same host/browser and verify login resumes that record; unavailable storage or another browser still has the explicit link. An empty installation query must not hide that link.",
+        "Tap each link from outside the app (for example, a messaging app), with the installed app first closed and then already open. Confirm the correct record and garden context in the installed window; a browser tab is a failure.",
+        "Hard-refresh the work route. Also open /home/:gardenId/commitments/:commitmentId and /home/:gardenId/assessments/:assessmentId and confirm record and garden context.",
+        "Share a photo from Android Photos to Green Goods. The OS sends multipart POST /home/share (title/text/url/images); the service worker redirects to /home/garden?shareTarget=<token>. This is an intake endpoint, not a garden link or a manually reusable token URL.",
+        "Confirm the photo arrives in the installed work form; select a garden and action, leave and reopen the draft, and confirm the imported photo remains.",
+        "Distinguish /gardens/:id (public website, outside /home/ manifest scope) from /home/:gardenId (installed app). Record the deployed host, Android/browser version, installed build, and whether each launch used an app window or browser tab."
+      ],
+      "expected": "Sharing a garden or synced work produces the matching same-host link. External taps open the installed app at that record, refresh preserves context, and an Android photo share opens the installed work form and survives draft persistence. Localhost and desktop checks do not prove Android link capture.",
+      "evidence": "Device recording of both external link launches and photo intake/draft recovery. The related_applications manifest URL is host-relative. An empty getInstalledRelatedApps result is inconclusive; beforeinstallprompt firing is the negative installation signal.",
       "role": "gardener",
       "tags": ["routing"],
-      "requiresProduction": false,
+      "requiresProduction": true,
       "status": "active",
-      "source": "qa-session-2026-08-29"
+      "source": "qa-session-2026-08-29",
+      "requiresDevice": true
     },
     {
       "id": "PWA-042",

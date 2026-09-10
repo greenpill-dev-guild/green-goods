@@ -1,3 +1,5 @@
+import { shareLink } from "../app/clipboard";
+
 /**
  * Utility functions for work-related actions like download
  */
@@ -82,27 +84,19 @@ export async function downloadWorkMedia(work: WorkData): Promise<void> {
  * Shares work using the Web Share API or copies to clipboard
  */
 export async function shareWork(work: WorkData): Promise<void> {
-  const shareData = {
+  const url = new URL(window.location.href);
+  const path = `/home/${encodeURIComponent(work.gardenId)}/work/${encodeURIComponent(work.id)}`;
+  // Hash-router builds keep the gateway path; HTTPS builds use the app route directly.
+  if (url.hash.startsWith("#/")) {
+    url.hash = path;
+  } else {
+    url.pathname = path;
+    url.hash = "";
+  }
+  url.search = "";
+  await shareLink({
     title: work.title || `Work ${work.id}`,
     text: work.description || work.feedback || `Check out this work from garden ${work.gardenId}`,
-    url: typeof window !== "undefined" ? window.location.href : "",
-  };
-
-  // Try Web Share API first
-  if (typeof navigator !== "undefined" && navigator.share) {
-    try {
-      await navigator.share(shareData);
-      return;
-    } catch (err) {
-      // User cancelled or share failed, fall back to clipboard
-      if ((err as Error).name === "AbortError") {
-        return; // User cancelled
-      }
-    }
-  }
-
-  // Fall back to copying URL to clipboard
-  if (typeof navigator !== "undefined" && navigator.clipboard) {
-    await navigator.clipboard.writeText(shareData.url);
-  }
+    url: url.toString(),
+  });
 }

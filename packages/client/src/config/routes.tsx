@@ -1,6 +1,7 @@
 import { type LoaderFunctionArgs, type RouteObject, redirect } from "react-router-dom";
 import { RouteErrorBoundary } from "@/components/Errors/RouteErrorBoundary";
 import { APP_ROUTES, LEGACY_APP_ROUTES } from "./pwaRouting";
+import { getSharedRecordPath, takePendingSharedLink } from "./sharedLink";
 import {
   requirePwaPresentationLoader,
   requireWebsitePresentationLoader,
@@ -31,6 +32,12 @@ export const CLIENT_ROUTE_IDS = {
 const homeLoader = async (args: LoaderFunctionArgs) => {
   const modeRedirect = requirePwaPresentationLoader(args);
   if (modeRedirect) return modeRedirect;
+
+  // An explicit app destination wins over an earlier install handoff.
+  const pending = takePendingSharedLink();
+  if (pending && new URL(args.request.url).pathname.replace(/\/$/, "") === APP_ROUTES.home) {
+    return redirect(pending);
+  }
 
   const { ensureBaseLists } = await import("@green-goods/shared/hooks/blockchain/prefetch");
   ensureBaseLists();
@@ -91,6 +98,10 @@ const combinedAppRoutes = [
             lazy: async () => ({
               Component: (await import("@/views/Public/GardenDetail")).default,
             }),
+          },
+          {
+            path: "gardens/:id/work/:workId",
+            lazy: async () => ({ Component: (await import("@/views/Public/WorkDetail")).default }),
           },
           {
             id: CLIENT_ROUTE_IDS.publicCookies,
@@ -267,7 +278,16 @@ if (!publicShell || !pwaRuntime) {
 export const publicAppRoutes: RouteObject[] = [
   {
     ...combinedRoot,
-    children: [publicShell, { path: "*", loader: () => redirect("/") }],
+    children: [
+      publicShell,
+      {
+        path: "*",
+        loader: ({ request }) => {
+          const url = new URL(request.url);
+          return redirect(getSharedRecordPath(url.pathname, "gardens") ?? "/");
+        },
+      },
+    ],
   } as RouteObject,
 ];
 

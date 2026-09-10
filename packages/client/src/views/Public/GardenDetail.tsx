@@ -221,7 +221,7 @@ export default function GardenDetail() {
         </div>
       </div>
 
-      <PublicInstallCta />
+      <PublicInstallCta destination={garden ? `/home/${garden.id}` : undefined} />
       <PublicFooter variant="soil" />
     </>
   );
@@ -229,6 +229,7 @@ export default function GardenDetail() {
 
 function GardenUnavailable({ onRetry }: { onRetry: () => void }) {
   const { formatMessage } = useIntl();
+  const { id } = useParams<{ id: string }>();
   return (
     <>
       <div className="mx-auto max-w-6xl px-6 py-32 sm:px-10">
@@ -265,6 +266,7 @@ function GardenUnavailable({ onRetry }: { onRetry: () => void }) {
           </Link>
         </div>
       </div>
+      <PublicInstallCta destination={`/home/${id}`} />
       <PublicFooter variant="soil" />
     </>
   );
@@ -272,6 +274,7 @@ function GardenUnavailable({ onRetry }: { onRetry: () => void }) {
 
 function GardenNotFound() {
   const { formatMessage } = useIntl();
+  const { id } = useParams<{ id: string }>();
   return (
     <>
       <div className="mx-auto max-w-6xl px-6 py-32 sm:px-10">
@@ -283,9 +286,9 @@ function GardenNotFound() {
         </h1>
         <p className="mt-3 text-sm text-text-sub-600">
           {formatMessage({
-            id: "public.gardenDetail.notFoundHelp",
+            id: "public.sharedLink.unavailableHelp",
             defaultMessage:
-              "The link may be stale. Browse all Gardens to find what you're looking for.",
+              "This record may require sign-in or may no longer be available. Open it in the app and sign in to check access.",
           })}
         </p>
         <Link
@@ -299,6 +302,7 @@ function GardenNotFound() {
           })}
         </Link>
       </div>
+      <PublicInstallCta destination={`/home/${id}`} />
       <PublicFooter variant="soil" />
     </>
   );

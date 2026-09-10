@@ -1,9 +1,14 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { createElement } from "react";
 import { IntlProvider } from "react-intl";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import messages from "@green-goods/shared/i18n/en.json";
+
+const mockShareLink = vi.fn().mockResolvedValue(undefined);
+vi.mock("@green-goods/shared/utils/app/clipboard", () => ({
+  shareLink: (...args: unknown[]) => mockShareLink(...args),
+}));
 
 const mockNavigate = vi.fn();
 let mockPrimaryAddress: `0x${string}` | null = null;
@@ -160,7 +165,8 @@ vi.mock("viem", () => ({
 }));
 
 vi.mock("@/components/Actions", () => ({
-  Button: ({ label }: { label: string }) => createElement("button", null, label),
+  Button: ({ label, onClick }: { label: string; onClick?: () => void }) =>
+    createElement("button", { onClick }, label),
 }));
 
 vi.mock("@/components/Dialogs", () => ({
@@ -338,5 +344,47 @@ describe("Home garden route", () => {
     );
 
     expect(screen.queryByTestId("join-request-dialog")).not.toBeInTheDocument();
+  });
+  it("shares the garden record rather than the current browser route", async () => {
+    mockUseGardens.mockReturnValue({
+      data: [
+        {
+          id: "garden-1",
+          name: "Test Garden",
+          location: "Here",
+          createdAt: 0,
+          assessments: [],
+          gardeners: [],
+          stewards: [],
+          openJoining: false,
+        },
+      ],
+      isLoading: false,
+      isFetching: false,
+    });
+    render(
+      createElement(
+        MemoryRouter,
+        { initialEntries: ["/home/garden-1"] },
+        createElement(
+          IntlProvider,
+          { locale: "en", messages },
+          createElement(
+            Routes,
+            null,
+            createElement(Route, { path: "/home/:id", element: createElement(Garden) })
+          )
+        )
+      )
+    );
+    expect(screen.queryByTestId("conviction-drawer")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /governance/i })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Share Garden" }));
+    await waitFor(() =>
+      expect(mockShareLink).toHaveBeenCalledWith({
+        title: "Test Garden",
+        url: `${window.location.origin}/home/garden-1`,
+      })
+    );
   });
 });
