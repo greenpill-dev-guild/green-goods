@@ -95,6 +95,7 @@ import {
 } from "../../modules/app/analytics-events";
 import { submitApprovalDirectly } from "../../modules/work/wallet-submission";
 import { submitApprovalToQueue } from "../../modules/work/work-submission";
+import type { OverlayWork } from "../../modules/work/local-status-overlay";
 import { Confidence, VerificationMethod } from "../../types/domain";
 import {
   createMockWork,
@@ -455,7 +456,9 @@ describe("hooks/work/useWorkApproval", () => {
       expect(cached?._pendingUntilMs).toBeGreaterThan(Date.now());
     });
 
-    it("clears the pending flag but still stamps a deadline on a confirmed decision", async () => {
+    it("holds a confirmed decision with no deadline until the indexer reports it", async () => {
+      // The receipt proved the attestation landed, so the indexer reclaims
+      // authority by reporting the decision, not by a clock running out.
       (submitApprovalDirectly as any).mockResolvedValue(MOCK_CONFIRMED_APPROVAL_RESULT);
 
       const work = createMockWork({ status: "pending" });
@@ -465,7 +468,9 @@ describe("hooks/work/useWorkApproval", () => {
         approved: true,
       });
       const mergedKey = queryKeys.works.merged(work.gardenAddress, 11155111);
+      const onlineKey = queryKeys.works.online(work.gardenAddress, 11155111);
       queryClient.setQueryData(mergedKey, [work]);
+      queryClient.setQueryData(onlineKey, [work]);
 
       const { result } = renderHook(() => useWorkApproval(), { wrapper: createWrapper() });
 
@@ -473,14 +478,13 @@ describe("hooks/work/useWorkApproval", () => {
         await result.current.mutateAsync({ draft, work });
       });
 
-      const cached =
-        queryClient.getQueryData<
-          Array<{ status: string; _isPending?: boolean; _pendingUntilMs?: number }>
-        >(mergedKey)?.[0];
-      expect(cached?.status).toBe("approved");
-      expect(cached?._isPending).toBe(false);
-      // The deadline is what lets the indexer reclaim authority afterwards.
-      expect(cached?._pendingUntilMs).toBeGreaterThan(Date.now());
+      for (const queryKey of [mergedKey, onlineKey]) {
+        const cached = queryClient.getQueryData<OverlayWork[]>(queryKey)?.[0];
+        expect(cached?.status).toBe("approved");
+        expect(cached?._isPending).toBe(false);
+        expect(cached?._txHash).toBe(MOCK_TX_HASH);
+        expect(cached?._pendingUntilMs).toBeUndefined();
+      }
     });
 
     it("leaves persisted work state unchanged when the wallet rejects the request", async () => {
@@ -578,6 +582,76 @@ describe("hooks/work/useWorkApproval", () => {
         transactionSender: mockSender,
       });
       expect(result_data?.hash).toBe(MOCK_TX_HASH);
+    });
+
+    it("holds an inline-processed decision with no deadline until the indexer reports it", async () => {
+      // The bundler waits for inclusion, so a processed hash is a confirmed one.
+      mockUseUser.mockReturnValue({
+        authMode: "passkey",
+        primaryAddress: MOCK_ADDRESSES.smartAccount,
+      });
+      (submitApprovalToQueue as any).mockResolvedValue({
+        txHash: "0xoffline_approval",
+        jobId: "job-approval-2",
+      });
+      queueProcessJob.mockResolvedValue({ success: true, txHash: MOCK_TX_HASH, skipped: false });
+
+      const work = createMockWork({ status: "pending" });
+      const draft = createMockWorkApprovalDraft({
+        actionUID: work.actionUID,
+        workUID: work.id,
+        approved: false,
+      });
+      const mergedKey = queryKeys.works.merged(work.gardenAddress, 11155111);
+      queryClient.setQueryData(mergedKey, [work]);
+
+      const { result } = renderHook(
+        () => useWorkApproval({ jobQueue: { processJob: queueProcessJob } }),
+        { wrapper: createWrapper() }
+      );
+
+      await act(async () => {
+        await result.current.mutateAsync({ draft, work });
+      });
+
+      const cached = queryClient.getQueryData<OverlayWork[]>(mergedKey)?.[0];
+      expect(cached?.status).toBe("rejected");
+      expect(cached?._isPending).toBe(false);
+      expect(cached?._txHash).toBe(MOCK_TX_HASH);
+      expect(cached?._pendingUntilMs).toBeUndefined();
+    });
+
+    it("keeps an offline decision live with no deadline until its job syncs", async () => {
+      Object.defineProperty(navigator, "onLine", { value: false });
+      mockUseUser.mockReturnValue({
+        authMode: "passkey",
+        primaryAddress: MOCK_ADDRESSES.smartAccount,
+      });
+      (submitApprovalToQueue as any).mockResolvedValue({
+        txHash: "0xoffline_xyz",
+        jobId: "job-xyz",
+      });
+
+      const work = createMockWork({ status: "pending" });
+      const draft = createMockWorkApprovalDraft({
+        actionUID: work.actionUID,
+        workUID: work.id,
+        approved: true,
+      });
+      const mergedKey = queryKeys.works.merged(work.gardenAddress, 11155111);
+      queryClient.setQueryData(mergedKey, [work]);
+
+      const { result } = renderHook(() => useWorkApproval(), { wrapper: createWrapper() });
+
+      await act(async () => {
+        await result.current.mutateAsync({ draft, work });
+      });
+
+      const cached = queryClient.getQueryData<OverlayWork[]>(mergedKey)?.[0];
+      expect(cached?.status).toBe("approved");
+      expect(cached?._isPending).toBe(true);
+      expect(cached?._txHash).toBeUndefined();
+      expect(cached?._pendingUntilMs).toBeUndefined();
     });
 
     it("returns offline hash when offline", async () => {

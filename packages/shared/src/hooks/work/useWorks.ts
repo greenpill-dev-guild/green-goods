@@ -8,11 +8,13 @@ import { useQueuedWorkPreviews } from "./useQueuedWorkPreviews";
 import { jobQueue } from "../../modules/job-queue/default-instance";
 import { jobQueueEventBus, useJobQueueEvents } from "../../modules/job-queue/event-bus";
 import {
-  isLocalOverlayLive,
+  carryOverlayMarkers,
+  type IndexedWorkStatus,
   type OverlayWork,
   resolveWorkStatus,
 } from "../../modules/work/local-status-overlay";
 import type { Work, WorkCard, WorkDisplayStatus } from "../../types/domain";
+import type { EASWorkApproval } from "../../types/eas-responses";
 import type { Job, WorkJobPayload } from "../../types/job-queue";
 import { useMerged } from "../app/useMerged";
 import { usePrimaryAddress } from "../auth/usePrimaryAddress";
@@ -30,29 +32,68 @@ function warnApprovalFetchOnce(error: unknown) {
   }
 }
 
-function isDecisionOverlay(work: OverlayWork, now: number): boolean {
-  return (
-    (work.status === "approved" || work.status === "rejected") && isLocalOverlayLive(work, now)
-  );
+type ApprovalsByWork = Map<string, EASWorkApproval>;
+
+/**
+ * Read the approvals the status computation depends on.
+ *
+ * Returns `null` when the read failed. "No approval exists" and "approvals
+ * unavailable" must stay distinct: collapsing them turned every reviewed work
+ * back to pending whenever one request failed.
+ */
+async function readApprovalsByWork(chainId: number): Promise<ApprovalsByWork | null> {
+  try {
+    const approvals = await getWorkApprovals(undefined, chainId);
+    return new Map(approvals.map((approval) => [approval.workUID, approval]));
+  } catch (error) {
+    warnApprovalFetchOnce(error);
+    return null;
+  }
 }
 
+function indexedStatusFor(work: WorkCard, approvals: ApprovalsByWork | null): IndexedWorkStatus {
+  if (approvals === null) return null;
+  const approval = approvals.get(work.id);
+  if (!approval) return "pending";
+  return approval.approved ? "approved" : "rejected";
+}
+
+/**
+ * Resolve one indexed row against the local overlay. The overlay's markers
+ * travel with the row while it still covers indexer lag, so the next refetch
+ * recognises the decision instead of falling back to pending.
+ */
+function withResolvedStatus(
+  work: WorkCard,
+  approvals: ApprovalsByWork | null,
+  cached: OverlayWork | undefined,
+  now: number
+): OverlayWork {
+  const indexedStatus = indexedStatusFor(work, approvals);
+  return {
+    ...work,
+    status: resolveWorkStatus(indexedStatus, cached, now),
+    ...carryOverlayMarkers(cached, indexedStatus, now),
+  };
+}
+
+/**
+ * Keep cached rows the indexer failed to return this cycle, so an empty or
+ * partial read cannot wipe a collection the steward is looking at.
+ */
 function reconcileIndexedWorkCollection(
   indexedWorks: WorkCard[],
   cachedWorks: OverlayWork[]
-): { works: WorkCard[]; retainDecisionOverlay: boolean } {
-  if (cachedWorks.length === 0) {
-    return { works: indexedWorks, retainDecisionOverlay: false };
-  }
+): WorkCard[] {
+  if (cachedWorks.length === 0) return indexedWorks;
 
   const indexedIds = new Set(indexedWorks.map((work) => work.id));
   const isIncomplete = cachedWorks.some((work) => !indexedIds.has(work.id));
-  if (!isIncomplete) {
-    return { works: indexedWorks, retainDecisionOverlay: false };
-  }
+  if (!isIncomplete) return indexedWorks;
 
   const reconciled = new Map(cachedWorks.map((work) => [work.id, work as WorkCard]));
   indexedWorks.forEach((work) => reconciled.set(work.id, work));
-  return { works: Array.from(reconciled.values()), retainDecisionOverlay: true };
+  return Array.from(reconciled.values());
 }
 
 /** Options for the useWorks hook */
@@ -95,7 +136,8 @@ export function jobToWork(job: Job<WorkJobPayload>): Work {
 }
 
 /**
- * Helper to compute work status from approvals
+ * Compute work status from approvals, honouring local decisions that still
+ * cover indexer lag.
  */
 async function computeWorksWithStatus(
   works: WorkCard[],
@@ -103,41 +145,15 @@ async function computeWorksWithStatus(
   queryClient: ReturnType<typeof useQueryClient>,
   gardenId: string
 ): Promise<Work[]> {
-  // Fetch work approvals to compute proper status (approved/rejected/pending)
-  let approvals: Awaited<ReturnType<typeof getWorkApprovals>> = [];
-  try {
-    approvals = await getWorkApprovals(undefined, chainId);
-  } catch (error) {
-    warnApprovalFetchOnce(error);
-  }
-  const approvalMap = new Map(approvals.map((approval) => [approval.workUID, approval]));
-
-  // Preserve optimistic updates that are still covering indexer lag
-  const cachedWorks = queryClient.getQueryData<OverlayWork[]>(worksKeys.merged(gardenId, chainId));
-  const cachedMap = new Map((cachedWorks ?? []).map((w) => [w.id, w]));
+  const approvals = await readApprovalsByWork(chainId);
+  const cachedWorks =
+    queryClient.getQueryData<OverlayWork[]>(worksKeys.merged(gardenId, chainId)) ?? [];
+  const cachedMap = new Map(cachedWorks.map((work) => [work.id, work]));
   const now = Date.now();
-  const reconciliation = reconcileIndexedWorkCollection(works, cachedWorks ?? []);
 
-  return reconciliation.works.map((work) => {
-    const approval = approvalMap.get(work.id);
-    const computedStatus = approval
-      ? approval.approved
-        ? ("approved" as const)
-        : ("rejected" as const)
-      : ("pending" as const);
-
-    const cached = cachedMap.get(work.id);
-    const status = resolveWorkStatus(computedStatus, cached, now);
-    const retainedOverlay =
-      reconciliation.retainDecisionOverlay && cached && isDecisionOverlay(cached, now)
-        ? {
-            _isPending: cached._isPending,
-            _pendingUntilMs: cached._pendingUntilMs,
-            _txHash: cached._txHash,
-          }
-        : {};
-    return { ...work, status, ...retainedOverlay };
-  });
+  return reconcileIndexedWorkCollection(works, cachedWorks).map((work) =>
+    withResolvedStatus(work, approvals, cachedMap.get(work.id), now)
+  );
 }
 
 /**
@@ -208,23 +224,13 @@ export function useWorks(gardenId: string, options: UseWorksOptions = {}) {
       const safeOnlineWorks = onlineWorks ?? [];
       const safeOfflineJobs = offlineJobs ?? [];
 
-      // Fetch approvals for status computation
-      let approvals: Awaited<ReturnType<typeof getWorkApprovals>> = [];
-      try {
-        approvals = await getWorkApprovals(undefined, chainId);
-      } catch (error) {
-        logger.warn("Failed to fetch approvals, status may be stale", {
-          source: "useWorks",
-          error,
-        });
-      }
-      const approvalMap = new Map(approvals.map((approval) => [approval.workUID, approval]));
+      const approvals = await readApprovalsByWork(chainId);
 
-      // Preserve optimistic updates that are still covering indexer lag
-      const cachedWorks = queryClient.getQueryData<OverlayWork[]>(
-        worksKeys.merged(gardenId, chainId)
-      );
-      const cachedMap = new Map((cachedWorks ?? []).map((w) => [w.id, w]));
+      // Preserve local decisions that are still covering indexer lag
+      const cachedWorks =
+        queryClient.getQueryData<OverlayWork[]>(worksKeys.merged(gardenId, chainId)) ?? [];
+      const cachedMap = new Map(cachedWorks.map((work) => [work.id, work]));
+      const now = Date.now();
 
       // Convert offline jobs to Work models
       const offlineWorks = await Promise.all(
@@ -240,14 +246,7 @@ export function useWorks(gardenId: string, options: UseWorksOptions = {}) {
       // Build work map with computed status
       const workMap = new Map<string, Work>();
       safeOnlineWorks.forEach((work) => {
-        const approval = approvalMap.get(work.id);
-        const computedStatus = approval
-          ? approval.approved
-            ? ("approved" as const)
-            : ("rejected" as const)
-          : ("pending" as const);
-        const status = resolveWorkStatus(computedStatus, cachedMap.get(work.id));
-        workMap.set(work.id, { ...work, status });
+        workMap.set(work.id, withResolvedStatus(work, approvals, cachedMap.get(work.id), now));
       });
 
       // Deduplicate offline works against online

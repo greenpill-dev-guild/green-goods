@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
+  carryOverlayMarkers,
+  clearLapsedOverlay,
   isLocalOverlayLive,
   LOCAL_OVERLAY_GRACE_MS,
   type OverlayWork,
@@ -33,6 +35,24 @@ describe("local-status-overlay", () => {
 
     it("treats an entry with no overlay markers as not live", () => {
       expect(isLocalOverlayLive(overlay({ status: "approved" }), NOW)).toBe(false);
+    });
+
+    it("holds a decision confirmed on chain until the indexer reports it", () => {
+      // The receipt proved the attestation exists, so no clock retires it.
+      const confirmed = overlay({ status: "approved", _isPending: false, _txHash: "0xabc" });
+      expect(isLocalOverlayLive(confirmed, NOW)).toBe(true);
+      expect(isLocalOverlayLive(confirmed, NOW + 10 * LOCAL_OVERLAY_GRACE_MS)).toBe(true);
+    });
+
+    it("still expires a broadcast decision that is waiting on its receipt", () => {
+      const broadcast = overlay({
+        status: "approved",
+        _isPending: true,
+        _txHash: "0xabc",
+        _pendingUntilMs: NOW + 1_000,
+      });
+      expect(isLocalOverlayLive(broadcast, NOW)).toBe(true);
+      expect(isLocalOverlayLive(broadcast, NOW + 1_001)).toBe(false);
     });
   });
 
@@ -74,6 +94,75 @@ describe("local-status-overlay", () => {
 
     it("resolves to the computed status when there is no cache entry", () => {
       expect(resolveWorkStatus("pending", undefined, NOW)).toBe("pending");
+    });
+
+    it("keeps the last displayed status when the approvals read failed", () => {
+      // "Approvals unavailable" is not "no approval exists": a reviewed work
+      // must not fall back to pending because one request failed.
+      expect(resolveWorkStatus(null, overlay({ status: "rejected" }), NOW)).toBe("rejected");
+      expect(resolveWorkStatus(null, overlay({ status: "approved", _txHash: "0xabc" }), NOW)).toBe(
+        "approved"
+      );
+    });
+
+    it("falls back to pending on a failed approvals read with nothing cached", () => {
+      expect(resolveWorkStatus(null, undefined, NOW)).toBe("pending");
+    });
+  });
+
+  describe("carryOverlayMarkers", () => {
+    const confirmed = overlay({ status: "rejected", _isPending: false, _txHash: "0xabc" });
+
+    it("carries a live overlay onto the indexed row while the indexer still reports pending", () => {
+      expect(carryOverlayMarkers(confirmed, "pending", NOW)).toEqual({
+        _isPending: false,
+        _txHash: "0xabc",
+      });
+    });
+
+    it("carries a live overlay when the approvals read failed", () => {
+      expect(carryOverlayMarkers(confirmed, null, NOW)).toEqual({
+        _isPending: false,
+        _txHash: "0xabc",
+      });
+    });
+
+    it("drops the markers once the indexer reports the decision", () => {
+      expect(carryOverlayMarkers(confirmed, "rejected", NOW)).toEqual({});
+    });
+
+    it("drops the markers once a stamped overlay lapses", () => {
+      const lapsed = overlay({ status: "approved", _isPending: true, _pendingUntilMs: NOW - 1 });
+      expect(carryOverlayMarkers(lapsed, "pending", NOW)).toEqual({});
+    });
+
+    it("carries nothing for a row without an overlay", () => {
+      expect(carryOverlayMarkers(undefined, "pending", NOW)).toEqual({});
+      expect(carryOverlayMarkers(overlay({ status: "approved" }), "pending", NOW)).toEqual({});
+    });
+  });
+
+  describe("clearLapsedOverlay", () => {
+    it("clears the in-flight flag once a stamped deadline passes", () => {
+      const lapsed = overlay({ status: "approved", _isPending: true, _pendingUntilMs: NOW - 1 });
+      expect(clearLapsedOverlay(lapsed, NOW)).toEqual({
+        ...lapsed,
+        _isPending: false,
+        _pendingUntilMs: undefined,
+      });
+    });
+
+    it("leaves a live stamped overlay alone", () => {
+      const live = overlay({ status: "approved", _isPending: true, _pendingUntilMs: NOW + 1 });
+      expect(clearLapsedOverlay(live, NOW)).toBe(live);
+    });
+
+    it("leaves offline jobs and confirmed decisions alone", () => {
+      // Neither carries a deadline; only the indexer retires them.
+      const offline = overlay({ status: "approved", _isPending: true });
+      const confirmed = overlay({ status: "approved", _isPending: false, _txHash: "0xabc" });
+      expect(clearLapsedOverlay(offline, NOW)).toBe(offline);
+      expect(clearLapsedOverlay(confirmed, NOW)).toBe(confirmed);
     });
   });
 

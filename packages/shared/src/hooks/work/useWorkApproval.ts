@@ -20,6 +20,7 @@ import {
 } from "../../modules/app/analytics-events";
 import type { JobQueueHandle } from "../../modules/job-queue/ports";
 import {
+  clearLapsedOverlay,
   LOCAL_OVERLAY_GRACE_MS,
   type OverlayWork,
   overlayDeadline,
@@ -94,6 +95,10 @@ export function useWorkApproval(dependencies: UseWorkApprovalDependencies = {}) 
       isOfflineHash = false
     ) => {
       const status = completion.approved ? ("approved" as const) : ("rejected" as const);
+      // A confirmed transaction holds until the indexer reports it. Only a
+      // decision still waiting on its receipt gets a deadline, so a dropped
+      // transaction cannot leave the work looking resolved forever.
+      const holdsUntilIndexed = isOfflineHash || !awaitingConfirmation;
       const cacheSnapshot =
         decisionCacheRef.current?.gardenId.toLowerCase() === completion.gardenId.toLowerCase()
           ? decisionCacheRef.current
@@ -108,7 +113,7 @@ export function useWorkApproval(dependencies: UseWorkApprovalDependencies = {}) 
                   status,
                   _isPending: awaitingConfirmation,
                   _txHash: isOfflineHash ? undefined : txHash,
-                  _pendingUntilMs: isOfflineHash ? undefined : overlayDeadline(),
+                  _pendingUntilMs: holdsUntilIndexed ? undefined : overlayDeadline(),
                 }
               : work
           );
@@ -309,11 +314,7 @@ export function useWorkApproval(dependencies: UseWorkApprovalDependencies = {}) 
         scheduleAutoClear(() => {
           const clearExpired = (old: PendingWork[] = []) =>
             old.map((candidate) =>
-              candidate.id === draft.workUID &&
-              candidate._isPending &&
-              (candidate._pendingUntilMs ?? 0) <= Date.now()
-                ? { ...candidate, _isPending: false, _pendingUntilMs: undefined }
-                : candidate
+              candidate.id === draft.workUID ? clearLapsedOverlay(candidate) : candidate
             );
           queryClient.setQueryData(worksKeys.merged(work.gardenAddress, chainId), clearExpired);
           queryClient.setQueryData(worksKeys.online(work.gardenAddress, chainId), clearExpired);

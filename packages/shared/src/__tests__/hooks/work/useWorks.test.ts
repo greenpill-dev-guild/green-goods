@@ -7,10 +7,11 @@
  */
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { renderHook, waitFor } from "@testing-library/react";
+import { act, renderHook, waitFor } from "@testing-library/react";
 import { createElement, type ReactNode } from "react";
 import { IntlProvider } from "react-intl";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import type { OverlayWork } from "../../../modules/work/local-status-overlay";
 import type { Job, WorkJobPayload } from "../../../types/job-queue";
 import { ZERO_ADDRESS } from "../../../utils/blockchain/address-constants";
 
@@ -396,6 +397,124 @@ describe("hooks/work/useWorks", () => {
       expect(result.current.isLoading).toBe(false);
     });
     expect(result.current.offlineCount).toBe(0);
+  });
+
+  describe("decisions covering indexer lag", () => {
+    const MERGED_KEY = ["works", "merged", TEST_GARDEN, TEST_CHAIN_ID];
+    // What the indexer returns for the reviewed work while its approval is not indexed yet.
+    const indexedRow = {
+      id: "reviewed-work",
+      title: "Reviewed work",
+      actionUID: 1,
+      gardenerAddress: "0x1",
+      gardenAddress: TEST_GARDEN,
+      feedback: "",
+      metadata: "{}",
+      media: [],
+      createdAt: 1001,
+      status: "pending" as const,
+    };
+    // The overlay useWorkApproval writes once the rejection's receipt is in.
+    const confirmedDecision = {
+      ...indexedRow,
+      status: "rejected" as const,
+      _isPending: false,
+      _txHash: "0xdecision",
+    };
+
+    it("keeps a confirmed decision through consecutive refetches while the indexer still reports pending", async () => {
+      queryClient.setQueryData(MERGED_KEY, [confirmedDecision], {
+        updatedAt: Date.now() - 31_000,
+      });
+      mockGetWorks.mockResolvedValue([indexedRow]);
+      mockGetWorkApprovals.mockResolvedValue([]);
+
+      const { result } = renderHook(() => useWorks(TEST_GARDEN), {
+        wrapper: createWrapper(queryClient),
+      });
+
+      await waitFor(() => expect(mockGetWorks).toHaveBeenCalledTimes(1));
+      await waitFor(() => expect(result.current.isFetching).toBe(false));
+      expect(result.current.works[0]).toMatchObject({ status: "rejected", _txHash: "0xdecision" });
+
+      // The indexer-lag follow-ups refetch again before the approval is indexed.
+      // Regression: the first refetch used to drop the overlay markers, so this
+      // one resolved the work back to pending.
+      await act(async () => {
+        result.current.refetch();
+      });
+      await waitFor(() => expect(mockGetWorks).toHaveBeenCalledTimes(2));
+      await waitFor(() => expect(result.current.isFetching).toBe(false));
+      expect(result.current.works[0]).toMatchObject({ status: "rejected", _txHash: "0xdecision" });
+    });
+
+    it("lets the indexer retire a confirmed decision once it reports it", async () => {
+      queryClient.setQueryData(MERGED_KEY, [confirmedDecision], {
+        updatedAt: Date.now() - 31_000,
+      });
+      mockGetWorks.mockResolvedValue([indexedRow]);
+      mockGetWorkApprovals.mockResolvedValue([{ workUID: indexedRow.id, approved: false }]);
+
+      const { result } = renderHook(() => useWorks(TEST_GARDEN), {
+        wrapper: createWrapper(queryClient),
+      });
+
+      await waitFor(() => expect(mockGetWorks).toHaveBeenCalledTimes(1));
+      await waitFor(() => expect(result.current.isFetching).toBe(false));
+      expect(result.current.works[0]).toEqual({ ...indexedRow, status: "rejected" });
+    });
+
+    it("keeps a reviewed status when the approvals read fails", async () => {
+      queryClient.setQueryData(MERGED_KEY, [{ ...indexedRow, status: "approved" as const }], {
+        updatedAt: Date.now() - 31_000,
+      });
+      mockGetWorks.mockResolvedValue([indexedRow]);
+      mockGetWorkApprovals.mockRejectedValue(new Error("Network error"));
+
+      const { result } = renderHook(() => useWorks(TEST_GARDEN), {
+        wrapper: createWrapper(queryClient),
+      });
+
+      await waitFor(() => expect(mockGetWorkApprovals).toHaveBeenCalled());
+      await waitFor(() => expect(result.current.isFetching).toBe(false));
+      expect(result.current.works[0]?.status).toBe("approved");
+    });
+
+    it("keeps a confirmed decision across offline re-merges while the indexer still reports pending", async () => {
+      renderHook(() => useWorks(TEST_GARDEN, { offline: true }), {
+        wrapper: createWrapper(queryClient),
+      });
+      const merge = latestUseMergedConfig?.merge as (
+        online: unknown[],
+        offline: unknown[]
+      ) => Promise<OverlayWork[]>;
+      expect(merge).toBeTypeOf("function");
+      queryClient.setQueryData(MERGED_KEY, [confirmedDecision]);
+      mockGetWorkApprovals.mockResolvedValue([]);
+
+      const first = await merge([indexedRow], []);
+      expect(first[0]).toMatchObject({ status: "rejected", _txHash: "0xdecision" });
+
+      // useMerged stores the merge result; the next re-merge reads it back.
+      queryClient.setQueryData(MERGED_KEY, first);
+      const second = await merge([indexedRow], []);
+      expect(second[0]).toMatchObject({ status: "rejected", _txHash: "0xdecision" });
+    });
+
+    it("keeps a reviewed status when the approvals read fails during an offline re-merge", async () => {
+      renderHook(() => useWorks(TEST_GARDEN, { offline: true }), {
+        wrapper: createWrapper(queryClient),
+      });
+      const merge = latestUseMergedConfig?.merge as (
+        online: unknown[],
+        offline: unknown[]
+      ) => Promise<OverlayWork[]>;
+      queryClient.setQueryData(MERGED_KEY, [{ ...indexedRow, status: "approved" as const }]);
+      mockGetWorkApprovals.mockRejectedValue(new Error("Network error"));
+
+      const merged = await merge([indexedRow], []);
+      expect(merged[0]?.status).toBe("approved");
+    });
   });
 
   describe("jobToWork", () => {
