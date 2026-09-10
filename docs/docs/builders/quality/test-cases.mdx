@@ -15,7 +15,7 @@ generated_from:
   - playwright.config.ts
   - scripts/data/qa-test-catalog.json
   - scripts/data/validation-policy.json
-source_digest: "sha256:3c7145373f0ef5d04319fad8e85611aeda2a14cf3f367d2d04668dd622ce251a"
+source_digest: "sha256:f47d156c15f2e310b0a8edf905d46a8f3c009804328649644177a1c000c40aef"
 source_of_truth:
   - package.json
   - packages/admin/vitest.config.ts
@@ -259,7 +259,7 @@ The catalog contract test enforces all of this, and [retired cases](#retired-cas
 
 | ID | Kind | Area | Scenario | Evidence requested |
 |---|---|---|---|---|
-| `PWA-023` | Journey | App-wide | Refresh and direct deep links preserve garden/work context | Screenshot after refresh |
+| `PWA-023` | Journey | App-wide | [Android] Shared garden/work links and photos open the installed app | Device recording of both external link launches and photo intake/draft recovery. The related_applications manifest URL is host-relative. An empty getInstalledRelatedApps result is inconclusive; beforeinstallprompt firing is the negative installation signal. |
 | `PWA-025` | Content & vocabulary | App-wide | Portuguese and Spanish spot-check: dates, plurals, and diacritics on Home, one garden, and Profile | Screenshots per locale |
 | `PWA-026` | Resilience | Auth | In-app wallet edge states: wrong network and mid-session disconnect recover | Screenshot of the network gate |
 | `PWA-034` | Transaction | Commitments | Proof composer: media and audio capture, beats, submit proof | Screenshot of composer |

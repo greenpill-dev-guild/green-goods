@@ -17,8 +17,8 @@
         "conformance": ["packages/shared/src/__tests__/modules/job-queue.db.test.ts"],
         "integration": ["packages/shared/src/__tests__/modules/job-queue.imports.test.ts"]
       },
-      "reviewedAt": "2026-09-09",
-      "evidenceFingerprint": "sha256:ec51cddede3bafbf6915e12589ca7ada3e348a50f12ea5bc2c3d83ccecb8f861"
+      "reviewedAt": "2026-09-10",
+      "evidenceFingerprint": "sha256:1cd39f0ebb3f4250f6d4c77ef970f42780bd09e1e719fde37e55eba974d691c4"
     },
     {
       "id": "shared-auth-session",
@@ -36,8 +36,8 @@
         "conformance": ["packages/shared/src/__tests__/workflows/authServices.test.ts"],
         "integration": ["packages/shared/src/__tests__/providers/Auth.wallet-login.test.tsx"]
       },
-      "reviewedAt": "2026-09-09",
-      "evidenceFingerprint": "sha256:e00851a62b3cfa91db75bf5709f54acca7b1f50203ab4e2ef43b8d7d4ed11283"
+      "reviewedAt": "2026-09-10",
+      "evidenceFingerprint": "sha256:57063cbf1d72df32d46736d56be09cb7a73c3d13d1efa47e8dd7c974194f268e"
     },
     {
       "id": "shared-work-provider-command",
@@ -57,8 +57,8 @@
         ],
         "integration": ["packages/shared/src/__tests__/providers/WorkProvider.test.tsx"]
       },
-      "reviewedAt": "2026-09-09",
-      "evidenceFingerprint": "sha256:c800742163cf599447732714d1f1a0ae62e0899a48910320524263601133dfc2"
+      "reviewedAt": "2026-09-10",
+      "evidenceFingerprint": "sha256:7f85bee2be03f4f1a89bb720265e78c96119510cf7fe9ba1889613d3f4275c58"
     },
     {
       "id": "shared-commitment-pooling-public",
@@ -76,8 +76,8 @@
         "conformance": ["packages/shared/src/__tests__/commitment-pooling-read-repository.test.ts"],
         "integration": ["packages/shared/src/__tests__/commitment-pooling-hooks.test.tsx"]
       },
-      "reviewedAt": "2026-09-09",
-      "evidenceFingerprint": "sha256:f640467911a5f4bf8d8a6f352245b59b521f99474d51f052c1881f1674cb9fe3"
+      "reviewedAt": "2026-09-10",
+      "evidenceFingerprint": "sha256:c5138cf57dc3feb93f3e6df7e6d7fa6ee5471036fa54b4923a0df186e0c39f19"
     }
   ]
 }
