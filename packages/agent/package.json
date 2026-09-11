@@ -41,6 +41,6 @@
     "@vitest/ui": "4.1.10",
     "bun-types": "latest",
     "typescript": "~7.0.2",
-    "vitest": "4.1.10"
+    "vitest": "4.1.11"
   }
 }
