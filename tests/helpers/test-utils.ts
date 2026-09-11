@@ -720,6 +720,9 @@ export class AdminTestHelper {
     // never pass against the boot fallback.
     await this.page.locator("#boot-fallback").waitFor({ state: "hidden", timeout: 30000 });
     await this.page
+      .locator('[data-component="AdminBootShell"]')
+      .waitFor({ state: "hidden", timeout: 30000 });
+    await this.page
       .locator('[data-testid="loading"], .loading, .spinner, .animate-spin')
       .waitFor({ state: "hidden", timeout: 10000 })
       .catch(() => {

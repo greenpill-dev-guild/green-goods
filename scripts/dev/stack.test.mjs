@@ -98,6 +98,44 @@ test("repository-managed client polling defaults on and honors an explicit overr
   }
 });
 
+test("disabled local Vite connections replace inherited values with non-local settings", async () => {
+  const fixture = await mkdtemp(path.join(tmpdir(), "green-goods-ecosystem-"));
+  const configPath = path.join(fixture, "ecosystem.config.cjs");
+  await copyFile(fileURLToPath(new URL("../../ecosystem.config.cjs", import.meta.url)), configPath);
+
+  const output = execFileSync(
+    process.execPath,
+    [
+      "-e",
+      `const config = require(${JSON.stringify(configPath)}); ` +
+        `process.stdout.write(JSON.stringify(config.apps.find((app) => app.name === "client").env));`,
+    ],
+    {
+      encoding: "utf8",
+      env: {
+        VITE_DISABLE_LOCAL_CHAIN: "true",
+        VITE_DISABLE_LOCAL_AGENT: "true",
+        VITE_DEV_CHAIN_MODE: "arbitrum_fork",
+        VITE_CHAIN_ID: "31337",
+        VITE_LOCAL_FORK_RPC_URL: "http://127.0.0.1:3009",
+        VITE_ENABLE_ANVIL_WALLETS: "true",
+        VITE_API_BASE_URL: "http://127.0.0.1:3005",
+      },
+    }
+  );
+
+  try {
+    const env = JSON.parse(output);
+    assert.equal(env.VITE_DEV_CHAIN_MODE, "");
+    assert.equal(env.VITE_CHAIN_ID, "11155111");
+    assert.equal(env.VITE_LOCAL_FORK_RPC_URL, "");
+    assert.equal(env.VITE_ENABLE_ANVIL_WALLETS, "false");
+    assert.equal(env.VITE_API_BASE_URL, "https://agent.greengoods.app");
+  } finally {
+    await rm(fixture, { recursive: true, force: true });
+  }
+});
+
 test("an indexer that exited before log subscription fails readiness immediately", async () => {
   let probes = 0;
   const ready = await reportReadiness([{ name: "indexer" }], {
@@ -164,6 +202,31 @@ test("live profiles preserve the configured indexer while overriding stale fork 
       assert.equal(env.VITE_API_BASE_URL, "http://127.0.0.1:3005");
       assert.equal(env.VITE_ENVIO_INDEXER_URL, "https://hosted.example/graphql");
     }
+  }
+});
+
+test("disabled local Vite connections survive the final stack profile merge", () => {
+  for (const group of ["local", "fork", "full", "web", "prod", "prod-mirror", ""]) {
+    const { env } = applyGroupEnvironment(
+      {
+        name: "client",
+        env: {
+          VITE_DISABLE_LOCAL_CHAIN: "true",
+          VITE_DISABLE_LOCAL_AGENT: "true",
+          VITE_DEV_CHAIN_MODE: "",
+          VITE_CHAIN_ID: "11155111",
+          VITE_LOCAL_FORK_RPC_URL: "",
+          VITE_ENABLE_ANVIL_WALLETS: "false",
+          VITE_API_BASE_URL: "https://agent.greengoods.app",
+        },
+      },
+      group
+    );
+    assert.equal(env.VITE_DEV_CHAIN_MODE, "");
+    assert.equal(env.VITE_CHAIN_ID, "11155111");
+    assert.equal(env.VITE_LOCAL_FORK_RPC_URL, "");
+    assert.equal(env.VITE_ENABLE_ANVIL_WALLETS, "false");
+    assert.equal(env.VITE_API_BASE_URL, "https://agent.greengoods.app");
   }
 });
 

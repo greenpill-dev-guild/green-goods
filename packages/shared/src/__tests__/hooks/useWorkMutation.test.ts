@@ -169,13 +169,13 @@ vi.mock("../../utils/errors/contract-errors", () => ({
 import { walletProgressToasts, workToasts } from "../../components/toast";
 import { worksKeys } from "../../config/query-keys/work";
 import { useWorkMutation } from "../../hooks/work/useWorkMutation";
-import { submitWorkDirectly } from "../../modules/work/wallet-submission";
-import { WorkSubmissionError } from "../../modules/work/wallet-submission/types";
-import { submitWorkToQueue } from "../../modules/work/work-submission";
 import {
   trackWorkWalletRequestExpired,
   trackWorkWalletRequestStarted,
 } from "../../modules/app/analytics-events";
+import { submitWorkDirectly } from "../../modules/work/wallet-submission";
+import { WorkSubmissionError } from "../../modules/work/wallet-submission/types";
+import { submitWorkToQueue } from "../../modules/work/work-submission";
 import {
   createMockAction,
   createMockFiles,

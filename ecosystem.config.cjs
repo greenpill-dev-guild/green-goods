@@ -38,15 +38,27 @@ const viteEnableSwDev = envValue("VITE_ENABLE_SW_DEV", "false");
 const viteDisableLocalChain = envValue("VITE_DISABLE_LOCAL_CHAIN", "false") === "true";
 const viteDisableLocalAgent = envValue("VITE_DISABLE_LOCAL_AGENT", "false") === "true";
 const localAgentApiBaseUrl = "http://127.0.0.1:3005";
+const externalAgentApiBaseUrl = rootEnv.VITE_API_BASE_URL || "https://agent.greengoods.app";
 const localViteChainEnv = viteDisableLocalChain
-  ? {}
+  ? {
+      VITE_DEV_CHAIN_MODE: "",
+      VITE_CHAIN_ID: rootEnv.VITE_CHAIN_ID || "11155111",
+      VITE_LOCAL_FORK_RPC_URL: "",
+      VITE_ENABLE_ANVIL_WALLETS: "false",
+    }
   : {
       VITE_DEV_CHAIN_MODE: "",
       VITE_CHAIN_ID: "42161",
       VITE_LOCAL_FORK_RPC_URL: "",
       VITE_ENABLE_ANVIL_WALLETS: "false",
     };
-const localViteAgentEnv = viteDisableLocalAgent ? {} : { VITE_API_BASE_URL: localAgentApiBaseUrl };
+const localViteAgentEnv = {
+  VITE_API_BASE_URL: viteDisableLocalAgent ? externalAgentApiBaseUrl : localAgentApiBaseUrl,
+};
+const localViteControlEnv = {
+  VITE_DISABLE_LOCAL_CHAIN: String(viteDisableLocalChain),
+  VITE_DISABLE_LOCAL_AGENT: String(viteDisableLocalAgent),
+};
 
 module.exports = {
   apps: [
@@ -73,11 +85,11 @@ module.exports = {
       cwd: ".",
       env: {
         NODE_ENV: "development",
-      VITE_ENVIO_INDEXER_URL: envValue(
-        "VITE_ENVIO_INDEXER_URL",
-        "http://localhost:3006/v1/graphql"
-      ),
-    
+        VITE_ENVIO_INDEXER_URL: envValue(
+          "VITE_ENVIO_INDEXER_URL",
+          "http://localhost:3006/v1/graphql"
+        ),
+        ...localViteControlEnv,
         ...localViteChainEnv,
         ...localViteAgentEnv,
       },
@@ -99,7 +111,8 @@ module.exports = {
         VITE_ENVIO_INDEXER_URL: envValue(
           "VITE_ENVIO_INDEXER_URL",
           "http://localhost:3006/v1/graphql"
-      ),
+        ),
+        ...localViteControlEnv,
         ...localViteChainEnv,
         ...localViteAgentEnv,
       },
@@ -124,6 +137,7 @@ module.exports = {
           "VITE_ENVIO_INDEXER_URL",
           "http://localhost:3006/v1/graphql"
         ),
+        ...localViteControlEnv,
         ...localViteChainEnv,
         ...localViteAgentEnv,
       },
