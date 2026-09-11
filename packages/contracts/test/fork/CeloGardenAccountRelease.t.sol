@@ -393,7 +393,7 @@ contract CeloGardenAccountReleaseForkTest is Test {
     }
 
     function _evidencePath(string memory name) private view returns (string memory) {
-        return string.concat(vm.projectRoot(), "/../../.plans/active/celo-garden-account-safe-ownership/evidence/", name);
+        return string.concat(vm.projectRoot(), "/config/celo-garden-accounts/", name);
     }
 
     function _sort(address[] memory values) private pure {

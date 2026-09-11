@@ -69,10 +69,7 @@ describe("release gas gate routing", () => {
     expect(runner).toContain("garden-safe-final-bindings-2026-08-15.json");
     expect(
       fs.existsSync(
-        path.resolve(
-          CONTRACTS_ROOT,
-          "../../.plans/active/celo-garden-account-safe-ownership/evidence/garden-safe-final-bindings-2026-08-15.json",
-        ),
+        path.resolve(CONTRACTS_ROOT, "config/celo-garden-accounts/garden-safe-final-bindings-2026-08-15.json"),
       ),
     ).toBe(true);
   });
