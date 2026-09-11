@@ -612,6 +612,42 @@ test("archive closeouts append a ledger row and delete the hub", () =>
     assert.equal((appended.match(/# Archived Plan Ledger/g) || []).length, 1);
   }));
 
+test("a failed archive releases the archive lock", () =>
+  withFixture((root) => {
+    const lock = join(root, ".plans", "_templates", ".archive.lock");
+    const archive = (slug) =>
+      runPlanHub(root, [
+        "move",
+        "--feature",
+        slug,
+        "--to",
+        "archive",
+        "--resolution",
+        "closed",
+        "--reason",
+        "Fixture closeout.",
+      ]);
+    assert.equal(runPlanHub(root, ["scaffold", "linked-hub", "--stage", "active"]).status, 0);
+    const status = readStatus(root, "active", "linked-hub");
+    status.links.ui_handoff = "handoffs/claude-ui.md";
+    writeStatus(root, "active", "linked-hub", status);
+
+    const refused = archive("linked-hub");
+    assert.notEqual(refused.status, 0);
+    assert.match(refused.stderr, /archive links must reference top-level files/);
+    assert.equal(existsSync(lock), false);
+
+    const missing = archive("missing-hub");
+    assert.notEqual(missing.status, 0);
+    assert.match(missing.stderr, /Could not find feature "missing-hub"/);
+    assert.equal(existsSync(lock), false);
+
+    delete status.links.ui_handoff;
+    writeStatus(root, "active", "linked-hub", status);
+    const archived = archive("linked-hub");
+    assert.equal(archived.status, 0, archived.stderr);
+  }));
+
 test("linear-sync manifest keeps backlog hubs parent-only", () =>
   withFixture((root) => {
     assert.equal(runPlanHub(root, ["scaffold", "linear-fixture", "--stage", "backlog"]).status, 0);
