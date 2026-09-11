@@ -1,8 +1,49 @@
-import { chromium, type FullConfig } from "@playwright/test";
+import { chromium, type FullConfig, type Page } from "@playwright/test";
 import { resolvePlaywrightApps, shouldUsePlaywrightIndexer } from "./fixtures/playwright-services";
 
 function envFlag(name: string): boolean {
   return process.env[name]?.toLowerCase() === "true";
+}
+
+const ADMIN_WARMUP_TIMEOUT_MS = 120_000;
+
+/**
+ * A fresh Vite dev server compiles the admin root on its first page load, which
+ * held the boot shell past 15 seconds for whichever spec ran first in CI. Boot
+ * the admin once here so every spec starts against a compiled module graph.
+ * Never throws: if the warm-up cannot finish, the specs report the real failure.
+ */
+async function warmAdminBoot(page: Page, adminUrl: string): Promise<void> {
+  const startedAt = Date.now();
+  try {
+    await page.goto(`${adminUrl}/hub`, {
+      waitUntil: "domcontentloaded",
+      timeout: ADMIN_WARMUP_TIMEOUT_MS,
+    });
+    // The boot shell is replaced once `import("./AdminRoot")` resolves and the
+    // workspace renders, or by the recovery screen if that import fails.
+    await page.waitForFunction(
+      () => {
+        const root = document.getElementById("root");
+        return Boolean(
+          root?.firstElementChild && !root.querySelector('[data-component="AdminBootShell"]')
+        );
+      },
+      undefined,
+      { timeout: ADMIN_WARMUP_TIMEOUT_MS }
+    );
+    const seconds = ((Date.now() - startedAt) / 1000).toFixed(1);
+    if (await page.locator('[data-component="AdminBootRecovery"]').count()) {
+      console.log(`  ⚠️  Admin warm-up reached the boot recovery screen after ${seconds}s`);
+    } else {
+      console.log(`  🔥 Admin (port 3002) - booted once in ${seconds}s to warm the dev server`);
+    }
+  } catch (error) {
+    const message = error instanceof Error ? error.message.split("\n")[0] : String(error);
+    console.log(
+      `  ⚠️  Admin warm-up did not finish (${message}); the first spec may pay the compile`
+    );
+  }
 }
 
 /**
@@ -10,6 +51,7 @@ function envFlag(name: string): boolean {
  *
  * - Sets environment variables for test configuration
  * - Performs health checks on services (client, admin, indexer)
+ * - Boots the admin once so its dev server has compiled it before the first spec
  * - Can be extended to set up virtual WebAuthn authenticator state
  */
 async function globalSetup(config: FullConfig) {
@@ -84,6 +126,7 @@ async function globalSetup(config: FullConfig) {
       } catch {
         console.log("  ⚠️  Admin (port 3002) - not available (will be started by webServer)");
       }
+      await warmAdminBoot(page, `${protocol}://localhost:3002`);
     }
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
