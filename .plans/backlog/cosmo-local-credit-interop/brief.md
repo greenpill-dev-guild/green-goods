@@ -11,7 +11,7 @@
 **Related hubs**: [`commitment-pooling`](../../active/commitment-pooling/),
 [`commitment-credit-follow-on`](../../backlog/commitment-credit-follow-on/),
 [`community-interface`](../../backlog/community-interface/),
-[`celo-garden-account-safe-ownership`](../../active/celo-garden-account-safe-ownership/)
+[`celo-garden-account-safe-ownership`](../../ARCHIVE.md) (closed 2026-09-10)
 
 ## Problem
 

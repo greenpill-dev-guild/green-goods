@@ -156,7 +156,7 @@ Each track carries the same fields. The routine reads them literally, so keep th
 **Anchors.**
 - Linear project [Capital Off-Ramp Corridors](https://linear.app/greenpill-dev-guild/project/capital-off-ramp-corridors-3f9573efe397) (Backlog). RESR-70 (confirm provider terms; Backlog, unowned, High). RESR-71 (independent review pass; Done: of 20 high-impact claims, 3 confirmed and 17 corrected).
 - `.plans/ideas/capital-offramp-corridors/brief.md` (the corrected research brief; sections 12.2 to 12.8 carry the option tables) and `reports/codex-review-2026-08-04.md`.
-- Adjacent: the House of Alignment project (G$ distribution rail decision) and `.plans/active/celo-garden-account-safe-ownership/` for the Celo settlement path.
+- Adjacent: the House of Alignment project (G$ distribution rail decision) and the Celo GardenAccount evidence in `packages/contracts/config/celo-garden-accounts/` for the Celo settlement path.
 
 **Status surface.** Project status update on *Capital Off-Ramp Corridors*.
 

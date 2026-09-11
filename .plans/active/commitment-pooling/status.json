@@ -43,7 +43,7 @@
     "eval": "acceptance-matrix.md",
     "contracts_hardening_handoff": "handoffs/claude-contracts-hardening.md",
     "garden_safe_erc6551_owner_spike": "erc6551-garden-safe-owner-spike.md",
-    "celo_garden_account_safe_ownership": "../celo-garden-account-safe-ownership/plan.todo.md",
+    "celo_garden_account_safe_ownership": "../../ARCHIVE.md",
     "celo_zodiac_roles_pin": "evidence/celo-zodiac-roles-mastercopies-2026-08-18.json",
     "work_linking_closure_handoff": "handoffs/codex-work-linking.md"
   },
