@@ -33,12 +33,21 @@ export interface ModalDrawerProps {
   className?: string;
   contentClassName?: string;
   maxHeight?: string;
+  /**
+   * `fit` sizes the sheet to its content (capped at 85dvh, or `maxHeight`);
+   * `fixed` fills the workspace height (85dvh) so tab switches never resize
+   * it. Defaults to `fixed` when `tabs` are provided and `fit` otherwise.
+   */
+  height?: "fit" | "fixed";
 }
 
 /**
- * A modal drawer matching the WorkDashboard bottom-sheet pattern.
- * Uses h-modal height (85dvh), custom CSS keyframe animations, and
- * manual focus trap — identical to DashboardModal for consistent feel.
+ * A modal drawer matching the WorkDashboard bottom-sheet pattern: custom CSS
+ * keyframe animations and a manual focus trap. Tabbed drawers fill the
+ * workspace height (85dvh) so tab switches never resize the sheet; drawers
+ * without tabs size to their content and cap at 85dvh (or `maxHeight`). The
+ * content region is the single scroll owner unless a consumer passes its own
+ * `contentClassName`.
  */
 export const ModalDrawer: React.FC<ModalDrawerProps> = ({
   isOpen,
@@ -52,6 +61,7 @@ export const ModalDrawer: React.FC<ModalDrawerProps> = ({
   className,
   contentClassName,
   maxHeight,
+  height,
 }) => {
   const { formatMessage } = useIntl();
   const [isClosing, setIsClosing] = useState(false);
@@ -102,6 +112,8 @@ export const ModalDrawer: React.FC<ModalDrawerProps> = ({
 
   if (!isOpen && !isClosing) return null;
 
+  const resolvedHeight = height ?? (tabs.length > 0 ? "fixed" : "fit");
+
   return (
     <div
       role="presentation"
@@ -123,6 +135,7 @@ export const ModalDrawer: React.FC<ModalDrawerProps> = ({
         ref={dialogRef}
         className={cn(
           pwaDrawerStyles.panel,
+          resolvedHeight === "fixed" ? pwaDrawerStyles.panelFixed : pwaDrawerStyles.panelFit,
           isClosing ? "modal-slide-exit" : "modal-slide-enter",
           className
         )}
@@ -214,9 +227,13 @@ export const ModalDrawer: React.FC<ModalDrawerProps> = ({
           </div>
         )}
 
-        {/* Content */}
+        {/* Content — the drawer's single scroll owner unless the consumer
+            takes over with contentClassName (tabbed drawers scroll per tab). */}
         <div
-          className={cn("flex-1 min-h-0", contentClassName || "p-4")}
+          className={cn(
+            "flex-1 min-h-0",
+            contentClassName || "overflow-y-auto overscroll-contain p-4"
+          )}
           role={tabs.length > 0 ? "tabpanel" : undefined}
           aria-labelledby={tabs.length > 0 && activeTab ? `tab-btn-${activeTab}` : undefined}
         >

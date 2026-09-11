@@ -515,6 +515,9 @@ describe("WorkDashboard", () => {
     expect(dashboardScroll.scrollTop).toBe(0);
     expect(appScroll.scrollTop).toBe(900);
     expect(dashboardScroll.querySelector(".overflow-y-auto")).toBeNull();
+    // A tabbed workspace keeps the fixed sheet height so tab switches never
+    // resize it; content-sized sheets are for tab-less surfaces.
+    expect(screen.getByTestId("modal-drawer")).toHaveClass("h-modal");
   });
 
   it("closes from Escape while focus is inside the dialog", () => {

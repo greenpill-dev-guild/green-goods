@@ -187,11 +187,19 @@ const meta: Meta<typeof ModalDrawer> = {
     },
     contentClassName: {
       control: "text",
-      description: "CSS classes for the inner content container (defaults to 'p-4')",
+      description:
+        "CSS classes for the inner content container (defaults to a padded region that owns scrolling)",
     },
     maxHeight: {
       control: "text",
-      description: "Maximum height of the drawer. Uses h-modal (85dvh) by default.",
+      description:
+        "Maximum height of the drawer. Content-sized drawers cap at 85dvh by default; tabbed drawers fill 85dvh.",
+    },
+    height: {
+      control: "select",
+      options: ["fit", "fixed"],
+      description:
+        "fit sizes the sheet to its content; fixed fills the workspace height. Defaults to fixed with tabs, fit without.",
     },
   },
 };
@@ -269,7 +277,7 @@ export const WithHeaderActions: Story = {
 export const LongContent: Story = {
   render: () => (
     <ModalDrawerDemo header={{ title: "Activity Log" }} maxHeight="70vh">
-      <div className="space-y-3 overflow-y-auto">
+      <div className="space-y-3">
         {Array.from({ length: 20 }, (_, i) => (
           <div key={i} className="p-3 rounded-lg bg-bg-weak-50 text-sm">
             Activity item {i + 1} - {ACTIVITY_LOG_TIMES[i % ACTIVITY_LOG_TIMES.length]}
@@ -419,4 +427,94 @@ export const Mobile: Story = {
     </ModalDrawerDemo>
   ),
   globals: { viewport: { value: "mobile" } },
+};
+
+export const ContentSizedGeometry: Story = {
+  tags: ["storybook-ci"],
+  parameters: {
+    viewport: {
+      options: MODAL_DRAWER_MOBILE_VIEWPORT,
+    },
+    docs: {
+      description: {
+        story:
+          "Without tabs the drawer grows with its content and stays anchored to the viewport bottom, so a two-item notifications sheet no longer fills most of the screen.",
+      },
+    },
+  },
+  globals: { viewport: { value: "modalDrawerMobile390x844" } },
+  render: () => (
+    <ModalDrawerDemo header={{ title: "Notifications", description: "2 pending" }} maxHeight="60vh">
+      <div className="space-y-3">
+        <div className="p-4 rounded-lg bg-bg-weak-50 text-sm">Pending work approval</div>
+        <div className="p-4 rounded-lg bg-bg-weak-50 text-sm">Pending work approval</div>
+      </div>
+    </ModalDrawerDemo>
+  ),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await canvas.findByText("Notifications");
+    const surface = canvas.getByTestId("modal-drawer");
+    await waitForSurfaceSettled(surface);
+
+    await waitFor(async () => {
+      const rect = surface.getBoundingClientRect();
+      await expect(rect.height).toBeLessThan(window.innerHeight * 0.5);
+      await expect(Math.abs(rect.bottom - window.innerHeight)).toBeLessThanOrEqual(
+        CENTER_TOLERANCE_PX
+      );
+    });
+  },
+};
+
+export const LongContentScrolls: Story = {
+  tags: ["storybook-ci"],
+  parameters: {
+    viewport: {
+      options: MODAL_DRAWER_MOBILE_VIEWPORT,
+    },
+    docs: {
+      description: {
+        story:
+          "The drawer's content region is the single scroll owner: a long list stops at maxHeight and scrolls inside the sheet instead of being clipped.",
+      },
+    },
+  },
+  globals: { viewport: { value: "modalDrawerMobile390x844" } },
+  render: () => (
+    <ModalDrawerDemo header={{ title: "Activity Log" }} maxHeight="60vh">
+      <div className="space-y-3">
+        {Array.from({ length: 30 }, (_, i) => (
+          <div
+            key={i}
+            className="p-3 rounded-lg bg-bg-weak-50 text-sm"
+            data-testid={`activity-${i}`}
+          >
+            Activity item {i + 1} - {ACTIVITY_LOG_TIMES[i % ACTIVITY_LOG_TIMES.length]}
+          </div>
+        ))}
+      </div>
+    </ModalDrawerDemo>
+  ),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await canvas.findByText("Activity Log");
+    const surface = canvas.getByTestId("modal-drawer");
+    await waitForSurfaceSettled(surface);
+    const region = canvas.getByTestId("activity-0").parentElement?.parentElement as HTMLElement;
+
+    await waitFor(async () => {
+      await expect(surface.getBoundingClientRect().height).toBeLessThanOrEqual(
+        window.innerHeight * 0.6 + CENTER_TOLERANCE_PX
+      );
+      await expect(region.scrollHeight).toBeGreaterThan(region.clientHeight);
+    });
+
+    region.scrollTop = region.scrollHeight;
+    await waitFor(async () => {
+      await expect(
+        canvas.getByTestId("activity-29").getBoundingClientRect().bottom
+      ).toBeLessThanOrEqual(surface.getBoundingClientRect().bottom + CENTER_TOLERANCE_PX);
+    });
+  },
 };

@@ -134,4 +134,50 @@ describe("ModalDrawer", () => {
 
     expect(onClose).toHaveBeenCalledOnce();
   });
+
+  it("sizes to its content and owns scrolling when it has no tabs", () => {
+    renderWithProviders(
+      <ModalDrawer isOpen onClose={vi.fn()} header={{ title: "Notifications" }} maxHeight="60vh">
+        <p>Content</p>
+      </ModalDrawer>
+    );
+    const panel = screen.getByTestId("modal-drawer");
+    expect(panel).toHaveClass("max-h-sheet");
+    expect(panel).not.toHaveClass("h-modal");
+    expect(panel.style.maxHeight).toBe("60vh");
+    const region = screen.getByText("Content").parentElement;
+    expect(region).toHaveClass("overflow-y-auto");
+    expect(region?.querySelector(".overflow-y-auto")).toBeNull();
+  });
+
+  it("fills the workspace height for tabbed drawers and leaves scrolling to the tab content", () => {
+    renderWithProviders(
+      <ModalDrawer
+        isOpen
+        onClose={vi.fn()}
+        header={{ title: "Wallet" }}
+        tabs={[{ id: "send", label: "Send" }]}
+        activeTab="send"
+        onTabChange={vi.fn()}
+        contentClassName="flex min-h-0 flex-col overflow-hidden p-0"
+        maxHeight="95vh"
+      >
+        <p>Content</p>
+      </ModalDrawer>
+    );
+    const panel = screen.getByTestId("modal-drawer");
+    expect(panel).toHaveClass("h-modal");
+    expect(panel).not.toHaveClass("max-h-sheet");
+    expect(panel.style.maxHeight).toBe("95vh");
+    expect(screen.getByRole("tabpanel")).not.toHaveClass("overflow-y-auto");
+  });
+
+  it("honors an explicit height override", () => {
+    renderWithProviders(
+      <ModalDrawer isOpen onClose={vi.fn()} header={{ title: "Signal" }} height="fixed">
+        <p>Content</p>
+      </ModalDrawer>
+    );
+    expect(screen.getByTestId("modal-drawer")).toHaveClass("h-modal");
+  });
 });

@@ -425,6 +425,7 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
         ref={dialogRef}
         className={cn(
           pwaDrawerStyles.panel,
+          pwaDrawerStyles.panelFixed,
           isClosing ? "modal-slide-exit" : "modal-slide-enter",
           className
         )}

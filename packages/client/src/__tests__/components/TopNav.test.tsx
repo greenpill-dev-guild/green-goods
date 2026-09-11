@@ -5,7 +5,7 @@
  * Verifies BUG-012: Non-stewards should not see the notification bell.
  */
 
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { createElement } from "react";
 import { IntlProvider } from "react-intl";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -128,6 +128,25 @@ describe("components/Navigation/TopNav", () => {
       // Notification button should be visible (uses aria-label="View notifications")
       const notificationButton = screen.getByRole("button", { name: /view notifications/i });
       expect(notificationButton).toBeInTheDocument();
+    });
+
+    it("opens the notifications sheet sized to its content with one scroll owner", () => {
+      renderWithIntl(
+        createElement(TopNav, {
+          garden: mockGarden as any,
+          works: mockWorks as any,
+          isSteward: true,
+        })
+      );
+
+      fireEvent.click(screen.getByRole("button", { name: /view notifications/i }));
+
+      const sheet = screen.getByTestId("modal-drawer");
+      expect(sheet).toHaveClass("max-h-sheet");
+      expect(sheet).not.toHaveClass("h-modal");
+      expect(sheet.style.maxHeight).toBe("60vh");
+      const region = screen.getByTestId("garden-notifications").parentElement;
+      expect(region).toHaveClass("overflow-y-auto");
     });
 
     it("hides notification bell when user is NOT a steward", () => {

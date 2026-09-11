@@ -74,8 +74,10 @@ export const GardenNotifications: React.FC<GardenNotificationsProps> = ({
   const navigate = useNavigateToTop();
   const pendingNotifications = notifications.filter((work) => work.status === "pending");
 
+  // The notifications sheet's content region owns scrolling; a nested
+  // scroller here has no height of its own and only clips the list.
   return (
-    <div className="flex flex-col gap-3 overflow-y-auto">
+    <div className="flex flex-col gap-3">
       {pendingNotifications.length === 0 ? (
         <EmptyState
           icon={<RiSeedlingFill />}
