@@ -54,15 +54,6 @@ export function createTransactionSender(options: TransactionSenderOptions): Tran
       if (options.smartAccountClient?.account) {
         return new PasskeySender(options.smartAccountClient);
       }
-      // Passkey auth initializing but smartAccountClient not ready yet:
-      // fall back to WalletSender if wagmi deps are available, otherwise throw.
-      if (options.wagmiConfig && options.writeContractAsync) {
-        return new WalletSender(
-          options.wagmiConfig,
-          options.writeContractAsync,
-          options.erc7677ProxyUrl
-        );
-      }
       throw new Error("smartAccountClient is required for passkey auth mode");
     }
 

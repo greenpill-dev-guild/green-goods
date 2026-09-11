@@ -1,4 +1,5 @@
 import type { IntlShape } from "react-intl";
+import { isPasskeyCredentialUnavailableError } from "../../utils/errors/tx-error-classifier";
 
 export type ProfileAvatarFailureAction = "save" | "remove" | "continue" | "discard";
 
@@ -21,8 +22,15 @@ export function getProfileAvatarStageMessage(
 
 export function getProfileAvatarFailureMessage(
   action: ProfileAvatarFailureAction,
-  formatMessage: IntlShape["formatMessage"]
+  formatMessage: IntlShape["formatMessage"],
+  error?: unknown
 ): string {
+  if (isPasskeyCredentialUnavailableError(error)) {
+    return formatMessage({
+      id: "profile.avatar.passkeyUnavailable",
+      defaultMessage: "We couldn't find this passkey. Sign in again, then try once more.",
+    });
+  }
   const messages = {
     save: {
       id: "profile.avatar.saveError",

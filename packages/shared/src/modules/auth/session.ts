@@ -136,6 +136,11 @@ export function setStoredRpId(rpId: string, storage: SessionStorage = localStora
   storage.setItem(RP_ID_STORAGE_KEY, rpId);
 }
 
+/** Get the RP ID used for the active passkey credential. */
+export function getStoredRpId(storage: SessionStorage = localStorage): string | null {
+  return storage.getItem(RP_ID_STORAGE_KEY);
+}
+
 /** Clear stored RP ID */
 export function clearStoredRpId(storage: SessionStorage = localStorage): void {
   storage.removeItem(RP_ID_STORAGE_KEY);
@@ -289,8 +294,20 @@ if (import.meta.env.DEV && typeof window !== "undefined") {
  * Only stores the fields needed to reconstruct the smart account.
  */
 interface StoredCredential {
+  version: 2;
+  idEncoding: "base64url";
   id: string;
   publicKey: `0x${string}`;
+}
+
+interface LegacyStoredCredential {
+  id: string;
+  publicKey: `0x${string}`;
+}
+
+function isAmbiguousLegacyCredentialId(id: string): boolean {
+  const hex = id.replace(/^0x/, "");
+  return hex.length > 0 && hex.length % 2 === 0 && /^[\da-f]+$/i.test(hex);
 }
 
 /**
@@ -302,6 +319,8 @@ export function setStoredCredential(
   storage: SessionStorage = localStorage
 ): void {
   const storedData: StoredCredential = {
+    version: 2,
+    idEncoding: "base64url",
     id: credential.id,
     publicKey: credential.publicKey,
   };
@@ -317,11 +336,33 @@ export function getStoredCredential(storage: SessionStorage = localStorage): P25
   if (!stored) return null;
 
   try {
-    const data = JSON.parse(stored) as StoredCredential;
+    const data = JSON.parse(stored) as Partial<StoredCredential & LegacyStoredCredential>;
+    if (typeof data.id !== "string" || typeof data.publicKey !== "string") {
+      throw new Error("Stored passkey credential is incomplete");
+    }
+
+    if (data.version === undefined) {
+      if (isAmbiguousLegacyCredentialId(data.id)) {
+        logger.warn(
+          "[Session] Legacy passkey credential ID has ambiguous encoding; sign-in is required"
+        );
+        return null;
+      }
+      const migrated = {
+        id: data.id,
+        publicKey: data.publicKey as `0x${string}`,
+        raw: undefined as unknown as PublicKeyCredential,
+      };
+      setStoredCredential(migrated, storage);
+      return migrated;
+    }
+
+    if (data.version !== 2 || data.idEncoding !== "base64url") return null;
+
     // Return as P256Credential (raw is undefined, which is fine for smart account creation)
     return {
       id: data.id,
-      publicKey: data.publicKey,
+      publicKey: data.publicKey as `0x${string}`,
       raw: undefined as unknown as PublicKeyCredential,
     };
   } catch {

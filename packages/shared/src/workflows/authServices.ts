@@ -3,6 +3,7 @@ import type { P256Credential } from "viem/account-abstraction";
 import { fromPromise } from "xstate";
 import type { AuthPasskeyReason, AuthPasskeySource } from "../modules/app/analytics-events";
 import { logger } from "../modules/app/logger";
+import { isPasskeyCredentialUnavailableError } from "../utils/errors/tx-error-classifier";
 import {
   defaultPasskeyAdapters,
   type PasskeyAdapters,
@@ -20,6 +21,9 @@ interface RestoreInput {
 }
 
 type PasskeyServerCredential = { id: string; publicKey: Hex };
+type PasskeyServerRegistrationOptions = {
+  rp?: { id?: string };
+};
 type PasskeyServerAuthenticationOptions = {
   challenge: Hex | Uint8Array | ArrayBuffer;
   rpId?: string;
@@ -50,6 +54,7 @@ const CANCELLED_ERROR_NAMES = new Set(["NotAllowedError", "AbortError"]);
 
 function classifyAuthErrorReason(error: unknown): AuthPasskeyReason {
   if (error instanceof PasskeyServerLookupError) return "server_unavailable";
+  if (isPasskeyCredentialUnavailableError(error)) return "credential_not_found";
   const name = error instanceof Error ? error.name : "";
   const message = (error instanceof Error ? error.message : String(error)).toLowerCase();
   if (
@@ -66,13 +71,6 @@ function classifyAuthErrorReason(error: unknown): AuthPasskeyReason {
     message.includes("did not match the expected account")
   ) {
     return "address_mismatch";
-  }
-  if (
-    message.includes("no passkey") ||
-    message.includes("no credential") ||
-    message.includes("credential not found")
-  ) {
-    return "credential_not_found";
   }
   if (message.includes("already registered") || message.includes("recovery name")) {
     return "recovery_context_taken";
@@ -134,20 +132,30 @@ function decodeChallenge(challenge: Hex | Uint8Array | ArrayBuffer): Uint8Array 
 
 function verifiedCredential(
   verification: PasskeyServerVerificationResult,
-  raw: P256Credential["raw"],
+  browserCredential: Pick<P256Credential, "id" | "raw">,
   failureMessage: string
 ): P256Credential {
-  if (!verification.success || !verification.id || !verification.publicKey) {
+  if (!verification.success || !verification.publicKey) {
     throw new Error(failureMessage);
   }
-  return { id: verification.id, publicKey: verification.publicKey, raw };
+  return {
+    id: browserCredential.id,
+    publicKey: verification.publicKey,
+    raw: browserCredential.raw,
+  };
 }
 
 export function createAuthServices(adapters: PasskeyAdapters = defaultPasskeyAdapters) {
   const { session, telemetry } = adapters;
 
-  const cacheSession = (credential: P256Credential, userName: string, address: Hex) => {
+  const cacheSession = (
+    credential: P256Credential,
+    userName: string,
+    address: Hex,
+    rpId: string
+  ) => {
     session.setStoredCredential(credential);
+    session.setStoredRpId(rpId);
     session.setStoredUsername(userName);
     session.setStoredSmartAccountAddress(address);
     session.clearSignedOutSentinel();
@@ -157,14 +165,15 @@ export function createAuthServices(adapters: PasskeyAdapters = defaultPasskeyAda
     credential: P256Credential,
     userName: string,
     chainId: number,
+    rpId: string,
     enforceExpectedAddress = true
   ): Promise<PasskeySessionResult> => {
-    const { client, address } = await adapters.buildSmartAccount(credential, chainId);
+    const { client, address } = await adapters.buildSmartAccount(credential, chainId, rpId);
     const expected = session.getStoredSmartAccountAddress();
     if (enforceExpectedAddress && expected && expected.toLowerCase() !== address.toLowerCase()) {
       throw new Error("Recovered passkey did not match the expected account address");
     }
-    cacheSession(credential, userName, address);
+    cacheSession(credential, userName, address, rpId);
     return {
       credential,
       smartAccountClient: client,
@@ -182,7 +191,10 @@ export function createAuthServices(adapters: PasskeyAdapters = defaultPasskeyAda
         "That recovery name is already registered. Try recovery or choose another name."
       );
     }
-    const options = await client.startRegistration({ context });
+    const options = (await client.startRegistration({
+      context,
+    })) as PasskeyServerRegistrationOptions;
+    const rpId = options.rp?.id || adapters.getRpId();
     const created = await adapters.createWebAuthnCredential(options);
     const verification = (await client.verifyRegistration({
       credential: created,
@@ -190,13 +202,14 @@ export function createAuthServices(adapters: PasskeyAdapters = defaultPasskeyAda
     })) as PasskeyServerVerificationResult;
     const credential = verifiedCredential(
       verification,
-      created.raw,
+      created,
       "Passkey server registration failed"
     );
     return buildSession(
       credential,
       verification.userName || verification.username || context.userName,
       chainId,
+      rpId,
       false
     );
   };
@@ -214,10 +227,11 @@ export function createAuthServices(adapters: PasskeyAdapters = defaultPasskeyAda
     const options = (await client.startAuthentication().catch((error: unknown) => {
       throw new PasskeyServerLookupError(error);
     })) as PasskeyServerAuthenticationOptions;
+    const rpId = options.rpId || adapters.getRpId();
     const response = await adapters.getWebAuthnCredential({
       publicKey: {
         challenge: strictArrayBuffer(decodeChallenge(options.challenge)),
-        rpId: options.rpId || adapters.getRpId(),
+        rpId,
         userVerification: options.userVerification || "required",
         allowCredentials: credentials.map((credential) => ({
           id: strictArrayBuffer(decodeCredentialId(credential.id)),
@@ -234,13 +248,17 @@ export function createAuthServices(adapters: PasskeyAdapters = defaultPasskeyAda
     } as unknown as VerifyAuthenticationInput)) as PasskeyServerVerificationResult;
     const credential = verifiedCredential(
       verification,
-      response as P256Credential["raw"],
+      {
+        id: response.id,
+        raw: response as P256Credential["raw"],
+      },
       "Passkey server authentication failed"
     );
     return buildSession(
       credential,
       verification.userName || verification.username || context.userName,
-      chainId
+      chainId,
+      rpId
     );
   };
 
@@ -252,13 +270,14 @@ export function createAuthServices(adapters: PasskeyAdapters = defaultPasskeyAda
     const credential = session.getStoredCredential();
     if (!credential) throw new Error("No passkey found. Please create a new account.");
     const storedUsername = session.getStoredUsername();
+    const rpId = session.getStoredRpId() || adapters.getRpId();
     if (requireStoredUsername && userName && !storedUsername) {
       throw new Error("No passkey credential found for that username.");
     }
     const response = await adapters.getWebAuthnCredential({
       publicKey: {
         challenge: strictArrayBuffer(adapters.randomChallenge()),
-        rpId: adapters.getRpId(),
+        rpId,
         userVerification: "required",
         allowCredentials: [
           {
@@ -271,7 +290,7 @@ export function createAuthServices(adapters: PasskeyAdapters = defaultPasskeyAda
       },
     });
     if (!response) throw new Error("Passkey authentication was cancelled");
-    return buildSession(credential, storedUsername || userName || "", chainId);
+    return buildSession(credential, storedUsername || userName || "", chainId, rpId);
   };
 
   const restoreSession = fromPromise<RestoreSessionResult | null, RestoreInput>(
@@ -283,7 +302,12 @@ export function createAuthServices(adapters: PasskeyAdapters = defaultPasskeyAda
       const credential = session.getStoredCredential();
       if (!credential) return null;
       try {
-        const { client, address } = await adapters.buildSmartAccount(credential, input.chainId);
+        const rpId = session.getStoredRpId() || adapters.getRpId();
+        const { client, address } = await adapters.buildSmartAccount(
+          credential,
+          input.chainId,
+          rpId
+        );
         const expected = session.getStoredSmartAccountAddress();
         if (expected && expected.toLowerCase() !== address.toLowerCase()) {
           telemetry.restore({
@@ -339,6 +363,7 @@ export function createAuthServices(adapters: PasskeyAdapters = defaultPasskeyAda
             await adapters.createLocalPasskey(input.userName),
             input.userName,
             input.chainId,
+            adapters.getRpId(),
             false
           );
       telemetry.registerSucceeded({

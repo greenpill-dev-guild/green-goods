@@ -34,10 +34,12 @@ import {
   clearSignedOutSentinel,
   getAuthMode,
   getStoredCredential,
+  getStoredRpId,
   getStoredSmartAccountAddress,
   getStoredUsername,
   hasSignedOutSentinel,
   setStoredCredential,
+  setStoredRpId,
   setStoredSmartAccountAddress,
   setStoredUsername,
 } from "../modules/auth/session";
@@ -52,6 +54,8 @@ export interface PasskeySessionAdapter {
   getAuthMode(): ReturnType<typeof getAuthMode>;
   getStoredCredential(): P256Credential | null;
   setStoredCredential(credential: P256Credential): void;
+  getStoredRpId(): string | null;
+  setStoredRpId(rpId: string): void;
   getStoredUsername(): string | null;
   setStoredUsername(userName: string): void;
   getStoredSmartAccountAddress(): Hex | null;
@@ -81,23 +85,32 @@ export interface PasskeyAdapters {
   randomChallenge(): Uint8Array;
   buildSmartAccount(
     credential: P256Credential,
-    chainId: number
+    chainId: number,
+    rpId: string
   ): Promise<{ client: SmartAccountClient; address: Hex }>;
+}
+
+export function createPasskeyOwner(
+  credential: P256Credential,
+  rpId: string,
+  getFn?: Parameters<typeof toWebAuthnAccount>[0]["getFn"]
+) {
+  return toWebAuthnAccount({ credential, rpId, getFn });
 }
 
 async function buildSmartAccount(
   credential: P256Credential,
-  chainId: number
+  chainId: number,
+  rpId: string
 ): Promise<{ client: SmartAccountClient; address: Hex }> {
   assertPrimaryPasskeyProfile(chainId);
   const chain = getChain(chainId);
   const publicClient = createPublicClientForChain(chainId);
   const pimlicoClient = createPimlicoClientForChain(chainId);
-  const rpId = getPasskeyRpId();
   const account = await toKernelSmartAccount({
     client: publicClient,
     version: "0.3.1",
-    owners: [toWebAuthnAccount({ credential, rpId })],
+    owners: [createPasskeyOwner(credential, rpId)],
     entryPoint: { address: entryPoint07Address, version: "0.7" },
   });
   const sponsorshipPolicyId =
@@ -128,6 +141,8 @@ export const defaultPasskeyAdapters: PasskeyAdapters = {
     getAuthMode,
     getStoredCredential,
     setStoredCredential,
+    getStoredRpId,
+    setStoredRpId,
     getStoredUsername,
     setStoredUsername,
     getStoredSmartAccountAddress: () => getStoredSmartAccountAddress() as Hex | null,

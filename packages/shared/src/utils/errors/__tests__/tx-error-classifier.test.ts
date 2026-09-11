@@ -39,6 +39,20 @@ describe("tx-error-classifier", () => {
     expect(isCancelledTxError(wrapped)).toBe(true);
   });
 
+  it("does not hide a missing passkey behind the generic NotAllowedError name", () => {
+    const unavailable = new Error("No passkey is available for this request.");
+    unavailable.name = "NotAllowedError";
+    const wrapped = new Error("Failed to request credential.");
+    (wrapped as Error & { cause?: unknown }).cause = unavailable;
+
+    expect(classifyTxError(wrapped)).toMatchObject({
+      kind: "passkeyUnavailable",
+      severity: "error",
+      messageKey: "app.errors.blockchain.passkeyUnavailable.message",
+    });
+    expect(isCancelledTxError(wrapped)).toBe(false);
+  });
+
   it("does not treat an ordinary failure as cancelled", () => {
     expect(isCancelledTxError(new Error("Connector not connected."))).toBe(false);
   });

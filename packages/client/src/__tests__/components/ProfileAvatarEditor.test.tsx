@@ -4,7 +4,7 @@
 
 import { act, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import type { CSSProperties, ReactNode } from "react";
+import type { ReactNode } from "react";
 import { IntlProvider } from "react-intl";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ProfileAvatarEditor } from "@/components/Features/Profile/ProfileAvatarEditor";
@@ -50,34 +50,56 @@ vi.mock("@green-goods/shared/components/Dialog/PwaSheet", () => ({
   PwaSheet: ({
     ariaLabel,
     children,
+    closeLabel,
+    description,
     dragToDismiss,
     onClose,
     open,
-    panelStyle,
+    role = "dialog",
     testId,
+    title,
   }: {
     ariaLabel?: string;
     children: ReactNode;
+    closeLabel?: string;
+    description?: ReactNode;
     dragToDismiss?: boolean;
     onClose: () => void;
     open: boolean;
-    panelStyle?: CSSProperties;
+    role?: "dialog" | "alertdialog";
     testId?: string;
+    title?: ReactNode;
   }) => {
     avatarEditorMocks.sheet.dragToDismiss = dragToDismiss ?? true;
     avatarEditorMocks.sheet.onClose = onClose;
     return open ? (
       <section
-        role="dialog"
-        aria-label={ariaLabel}
+        role={role}
+        aria-label={typeof title === "string" ? title : ariaLabel}
         data-testid={testId}
         data-drag-to-dismiss={String(dragToDismiss)}
-        style={panelStyle}
       >
         <span data-testid={`${testId}-drag-handle`} />
+        {title ? <h2>{title}</h2> : null}
+        {description ? <p>{description}</p> : null}
+        {title ? (
+          <button
+            type="button"
+            data-testid="pwa-sheet-close"
+            aria-label={closeLabel}
+            onClick={onClose}
+          />
+        ) : null}
         {children}
       </section>
     ) : null;
+  },
+}));
+
+vi.mock("@green-goods/shared/modules/job-queue/media-resource-manager", () => ({
+  mediaResourceManager: {
+    cleanupFile: vi.fn(),
+    getOrCreateUrl: vi.fn(() => "blob:profile-avatar-draft"),
   },
 }));
 
@@ -141,11 +163,11 @@ describe("ProfileAvatarEditor", () => {
     await openEditor();
 
     const sheet = screen.getByRole("dialog", { name: "Profile Photo" });
-    expect(sheet).toHaveStyle({ height: "auto", maxHeight: "85dvh" });
     expect(within(sheet).getByTestId("profile-photo-sheet-drag-handle")).toBeVisible();
     expect(within(sheet).getByRole("heading", { name: "Profile Photo" })).toBeVisible();
     expect(within(sheet).queryByRole("img")).not.toBeInTheDocument();
-    expect(within(sheet).getAllByLabelText("Choose Photo")).toHaveLength(1);
+    expect(within(sheet).getAllByRole("button", { name: "Choose Photo" })).toHaveLength(1);
+    expect(within(sheet).getAllByTestId("profile-photo-input")).toHaveLength(1);
     expect(within(sheet).queryByRole("button", { name: /save photo/i })).not.toBeInTheDocument();
   });
 
@@ -154,7 +176,7 @@ describe("ProfileAvatarEditor", () => {
     await openEditor();
 
     const sheet = screen.getByRole("dialog", { name: "Profile Photo" });
-    expect(within(sheet).getAllByLabelText("Replace Photo")).toHaveLength(1);
+    expect(within(sheet).getAllByRole("button", { name: "Replace Photo" })).toHaveLength(1);
     expect(within(sheet).getByRole("button", { name: "Remove Photo" })).toBeVisible();
     expect(within(sheet).queryByText("Choose Photo")).not.toBeInTheDocument();
     expect(within(sheet).queryByRole("button", { name: /save photo/i })).not.toBeInTheDocument();
@@ -166,7 +188,7 @@ describe("ProfileAvatarEditor", () => {
     const user = await openEditor();
     const file = new File(["image"], "profile.webp", { type: "image/webp" });
 
-    await user.upload(screen.getByLabelText("Replace Photo"), file);
+    await user.upload(screen.getByTestId("profile-photo-input"), file);
 
     await waitFor(() => expect(avatarEditorMocks.save).toHaveBeenCalledWith(file));
     await waitFor(() =>
@@ -181,11 +203,14 @@ describe("ProfileAvatarEditor", () => {
     const user = await openEditor();
 
     await user.upload(
-      screen.getByLabelText("Replace Photo"),
+      screen.getByTestId("profile-photo-input"),
       new File(["image"], "profile.webp", { type: "image/webp" })
     );
 
-    expect(screen.getByRole("status")).toHaveTextContent("Saving photo…");
+    expect(screen.getByRole("button", { name: "Saving photo…" })).toHaveAttribute(
+      "aria-busy",
+      "true"
+    );
     expect(screen.getByRole("button", { name: "Close" })).toBeDisabled();
     expect(avatarEditorMocks.sheet.dragToDismiss).toBe(false);
     act(() => avatarEditorMocks.sheet.onClose?.());
@@ -203,7 +228,7 @@ describe("ProfileAvatarEditor", () => {
     avatarEditorMocks.editor.stage = stage;
     renderEditor();
     await openEditor();
-    expect(screen.getByRole("status")).toHaveTextContent(label);
+    expect(screen.getByRole("button", { name: label })).toHaveAttribute("aria-busy", "true");
   });
 
   it("retains the published avatar and offers retry, change, and discard after failure", async () => {
@@ -215,18 +240,45 @@ describe("ProfileAvatarEditor", () => {
     const user = await openEditor();
 
     await user.upload(
-      screen.getByLabelText("Replace Photo"),
+      screen.getByTestId("profile-photo-input"),
       new File(["image"], "new.webp", { type: "image/webp" })
     );
 
     expect(await screen.findByRole("alert")).toHaveTextContent(/please try again/i);
     expect(screen.getByRole("button", { name: "Try Again" })).toBeEnabled();
-    expect(screen.getByLabelText("Choose a Different Photo")).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Choose a Different Photo" })).toBeEnabled();
     expect(screen.getByRole("button", { name: "Discard Draft" })).toBeEnabled();
-    expect(screen.getByRole("img", { name: /profile photo/i })).toHaveAttribute(
+    expect(screen.getByRole("img", { name: "Unpublished profile photo draft" })).toHaveAttribute(
+      "src",
+      "blob:profile-avatar-draft"
+    );
+    expect(screen.getByRole("img", { name: "Profile photo" })).toHaveAttribute(
       "src",
       "https://cdn.example/avatar.webp"
     );
+  });
+
+  it("explains how to recover when the active passkey is unavailable", async () => {
+    avatarEditorMocks.save.mockImplementationOnce(async (file: File) => {
+      avatarEditorMocks.editor.draft = { action: "set", file };
+      const unavailable = new Error("No passkey is available for this request.");
+      unavailable.name = "NotAllowedError";
+      const wrapped = new Error("Failed to request credential.");
+      (wrapped as Error & { cause?: unknown }).cause = unavailable;
+      throw wrapped;
+    });
+    renderEditor();
+    const user = await openEditor();
+
+    await user.upload(
+      screen.getByTestId("profile-photo-input"),
+      new File(["image"], "new.webp", { type: "image/webp" })
+    );
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "We couldn't find this passkey. Sign in again, then try once more."
+    );
+    expect(screen.getByRole("button", { name: "Try Again" })).toBeEnabled();
   });
 
   it("retries a durable draft and closes on success", async () => {
@@ -256,7 +308,7 @@ describe("ProfileAvatarEditor", () => {
     const user = await openEditor();
     const replacement = new File(["new"], "new.webp", { type: "image/webp" });
 
-    await user.upload(screen.getByLabelText("Choose a Different Photo"), replacement);
+    await user.upload(screen.getByTestId("profile-photo-input"), replacement);
 
     expect(avatarEditorMocks.save).toHaveBeenCalledWith(replacement);
     expect(avatarEditorMocks.continueAfterReconnect).not.toHaveBeenCalled();
@@ -278,7 +330,7 @@ describe("ProfileAvatarEditor", () => {
     );
 
     expect(avatarEditorMocks.discardDraft).toHaveBeenCalledTimes(1);
-    expect(screen.getByLabelText("Replace Photo")).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Replace Photo" })).toBeEnabled();
   });
 
   it("keeps offline retry visible but disabled", async () => {
@@ -288,7 +340,7 @@ describe("ProfileAvatarEditor", () => {
     await openEditor();
 
     expect(screen.getByRole("button", { name: /reconnect to publish/i })).toBeDisabled();
-    expect(screen.getByLabelText("Choose a Different Photo")).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Choose a Different Photo" })).toBeEnabled();
     expect(screen.getByRole("button", { name: "Discard Draft" })).toBeEnabled();
   });
 
@@ -298,10 +350,11 @@ describe("ProfileAvatarEditor", () => {
     await user.click(screen.getByRole("button", { name: "Remove Photo" }));
 
     expect(screen.getAllByRole("dialog")).toHaveLength(1);
+    expect(screen.getByRole("dialog", { name: "Remove profile photo?" })).toBeVisible();
     expect(screen.getByRole("heading", { name: "Remove profile photo?" })).toBeVisible();
     await user.click(screen.getByRole("button", { name: "Keep Photo" }));
 
-    expect(screen.getByRole("heading", { name: "Profile Photo" })).toBeVisible();
+    expect(screen.getByRole("dialog", { name: "Profile Photo" })).toBeVisible();
     expect(screen.getByRole("button", { name: "Remove Photo" })).toBeVisible();
   });
 
@@ -330,7 +383,7 @@ describe("ProfileAvatarEditor", () => {
 
     expect(await screen.findByRole("alert")).toHaveTextContent(/could not remove/i);
     expect(screen.getByRole("button", { name: "Try Again" })).toBeEnabled();
-    expect(screen.getByLabelText("Choose a Different Photo")).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Choose a Different Photo" })).toBeEnabled();
     expect(screen.getByRole("button", { name: "Discard Draft" })).toBeEnabled();
   });
 
@@ -339,13 +392,16 @@ describe("ProfileAvatarEditor", () => {
     renderEditor();
     await openEditor();
 
-    const input = screen.getByLabelText("Replace Photo");
+    const input = screen.getByTestId("profile-photo-input");
     const feedback = screen.getByRole("alert");
     expect(feedback).toHaveStyle({ blockSize: "3lh" });
     expect(feedback).toHaveAttribute("tabindex", "0");
-    expect(input).toHaveAccessibleDescription(/could not restore your saved profile photo draft/i);
+    const pickerButton = screen.getByRole("button", { name: "Replace Photo" });
     expect(input).toHaveAttribute("aria-invalid", "true");
-    expect(input.closest("label")).toHaveClass("focus-within:ring-2");
+    expect(pickerButton).toHaveAccessibleDescription(
+      /could not restore your saved profile photo draft/i
+    );
+    expect(pickerButton).toHaveAttribute("aria-invalid", "true");
   });
 
   it("closes and resets transient sheet state when the active account changes", async () => {

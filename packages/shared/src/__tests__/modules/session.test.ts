@@ -48,6 +48,8 @@ import {
   EMBEDDED_ADDRESS_KEY,
   getAuthMode,
   getEmbeddedAddress,
+  getStoredCredential,
+  getStoredRpId,
   getStoredSmartAccountAddress,
   hasSignedOutSentinel,
   RP_ID_STORAGE_KEY,
@@ -56,6 +58,8 @@ import {
   setAuthMode,
   setEmbeddedAddress,
   setSignedOutSentinel,
+  setStoredCredential,
+  setStoredRpId,
   setStoredSmartAccountAddress,
   USERNAME_STORAGE_KEY,
 } from "../../modules/auth/session";
@@ -187,6 +191,56 @@ describe("modules/auth/session", () => {
       mockLocalStorage.setItem(SMART_ACCOUNT_ADDRESS_STORAGE_KEY, TEST_ADDRESS);
       clearStoredSmartAccountAddress();
       expect(mockLocalStorage.removeItem).toHaveBeenCalledWith(SMART_ACCOUNT_ADDRESS_STORAGE_KEY);
+    });
+  });
+
+  describe("passkey credential storage", () => {
+    it("stores the browser credential ID with an explicit base64url schema", () => {
+      setStoredCredential({
+        id: "3q2-7w",
+        publicKey: "0x1234",
+        raw: undefined as unknown as PublicKeyCredential,
+      });
+
+      expect(JSON.parse(mockLocalStorage.getItem("greengoods_credential") ?? "null")).toEqual({
+        version: 2,
+        idEncoding: "base64url",
+        id: "3q2-7w",
+        publicKey: "0x1234",
+      });
+      expect(getStoredCredential()).toMatchObject({ id: "3q2-7w", publicKey: "0x1234" });
+    });
+
+    it("migrates an unambiguous legacy base64url credential", () => {
+      mockLocalStorage.setItem(
+        "greengoods_credential",
+        JSON.stringify({ id: "legacy-id_1", publicKey: "0x1234" })
+      );
+
+      expect(getStoredCredential()).toMatchObject({ id: "legacy-id_1", publicKey: "0x1234" });
+      expect(JSON.parse(mockLocalStorage.getItem("greengoods_credential") ?? "null")).toMatchObject(
+        {
+          version: 2,
+          idEncoding: "base64url",
+        }
+      );
+    });
+
+    it("requires sign-in for an ambiguous legacy hex credential ID", () => {
+      mockLocalStorage.setItem(
+        "greengoods_credential",
+        JSON.stringify({ id: "deadbeef", publicKey: "0x1234" })
+      );
+
+      expect(getStoredCredential()).toBeNull();
+    });
+  });
+
+  describe("passkey RP ID storage", () => {
+    it("reads the RP ID used for the credential", () => {
+      setStoredRpId("greengoods.app");
+
+      expect(getStoredRpId()).toBe("greengoods.app");
     });
   });
 
