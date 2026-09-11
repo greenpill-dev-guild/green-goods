@@ -346,8 +346,9 @@ that shipped without one.
    update `**Last Updated**`, and append a `## Closeout (<date>)` section
    ([template](./templates.md#closeout-section-template)) naming the PR or commit that shipped, why
    this resolution, and every open item with its destination: a Linear issue, another hub, or
-   explicitly dropped. In `status.json`, append a `closeout_recorded` history entry and leave
-   uncertified lanes as they are.
+   explicitly dropped. In `status.json`, append a `closeout_recorded` history entry, leave
+   uncertified lanes as they are, and trim `links` to the hub's top-level files (plus confined
+   `reports/` paths); the archive refuses links into `handoffs/`, other hubs, or packages.
 4. **Mirrored hubs:** make the Linear writes in Part 4 and run `confirm-linear-sync` last.
 5. **Commit the record by itself** (`docs(plans): record the closeout of <slug>`), after
    formatting `status.json` with Biome.
