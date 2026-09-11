@@ -61,8 +61,13 @@ describe("polling-backed Vite invalidation", () => {
     const clientSource = path.join(clientRoot, "src/probe.ts");
     const sharedRoot = path.join(checkoutRoot, "packages/shared/src");
     const sharedSource = path.join(sharedRoot, "i18n/probe.json");
+    // Derived from the fixture layout: the import-seam guard reads source text, and this is probe content.
+    const sharedSpecifier = path
+      .relative(path.dirname(clientSource), sharedSource)
+      .split(path.sep)
+      .join("/");
     const clientContents = (value: string) =>
-      `import shared from "../../shared/src/i18n/probe.json";\n` +
+      `import shared from "${sharedSpecifier}";\n` +
       `export const clientProbe = ${JSON.stringify(value)};\n` +
       "export const sharedProbe = shared.value;\n" +
       "if (import.meta.hot) import.meta.hot.accept();\n";

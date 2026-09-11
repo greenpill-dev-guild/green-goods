@@ -1,6 +1,6 @@
-import type { Meta, StoryObj } from "@storybook/react";
 import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
-import { yieldKeys } from "@green-goods/shared/config/query-keys/vault";
+import { queryKeys } from "@green-goods/shared/config/query-keys/registry";
+import type { Meta, StoryObj } from "@storybook/react";
 import { withRouter, withSeededQueryClient } from "../../../../../shared/.storybook/decorators";
 import { CommunityYieldStatus } from "./CommunityYieldStatus";
 
@@ -19,7 +19,7 @@ type Story = StoryObj<typeof meta>;
 function wiring(status: "connected" | "missing-resolver-wiring" | "mismatch") {
   return withSeededQueryClient([
     [
-      yieldKeys.wiring(gardenId, DEFAULT_CHAIN_ID),
+      queryKeys.yield.wiring(gardenId, DEFAULT_CHAIN_ID),
       {
         readStatus: "available",
         status,
