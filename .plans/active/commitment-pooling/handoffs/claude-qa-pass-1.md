@@ -20,7 +20,7 @@ functional defects are already found and dispositioned.
 - **Wave 1 — agent functional QA.** Dispatched via `../prompt-qa-functional.md`. Mode A
   (fixture & regression) runs unattended; Mode B (finalized 2026-08-24) is the **co-piloted
   production live loop** on the two sanctioned test gardens — the GG Community protocol pool and
-  the Aiyeloja Family garden pool — over the `dev:prod:mirror` stack in Afo's default
+  the Aiyeloja Family garden pool — over the `bun run dev -- prod-mirror` stack in Afo's default
   authenticated Brave, with Afo signing every wallet and passkey prompt under the prompt's
   friendly-window signing protocol (the agent drives everything else and never signs). Proves
   functionality: screens, states, acts, copy rules, offline queue behavior, regression classes,

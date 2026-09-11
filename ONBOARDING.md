@@ -1,108 +1,112 @@
-# Welcome to Greenpill Dev Guild
+# Onboarding to Green Goods
 
-## How We Use Claude
+Use this procedure with a coding agent or follow it yourself. The [README](README.md)
+explains the product; [AGENTS.md](AGENTS.md) owns repository rules. Run commands from
+the repository root unless a command specifies `--cwd`.
 
-Based on Afo's usage over the last 30 days:
+## Before setup
 
-Work Type Breakdown:
-  Plan Design       █████████░░░░░░░░░░░  46%
-  Improve Quality   ████░░░░░░░░░░░░░░░░  22%
-  Build Feature     ███░░░░░░░░░░░░░░░░░  17%
-  Write Docs        █░░░░░░░░░░░░░░░░░░░   7%
-  Debug Fix         █░░░░░░░░░░░░░░░░░░░   4%
+1. Read `AGENTS.md`, inspect the current branch and working-tree changes, and preserve
+   work belonging to other sessions. Do not switch branches during shared-checkout work.
+2. Check Node, Bun, Git, and existing dependencies. Use the versions in
+   [.mise.toml](.mise.toml); Node must be version 22. Use WSL2 on Windows.
+3. Inspect existing services with `bun run dev -- status`. Reuse compatible services;
+   only the owning session may stop them. Missing dependencies may prevent status from running.
+4. Choose the public-contributor path without shared credentials, or the team path
+   with 1Password access and Docker. Do not print environment values or credentials.
 
-Top Skills & Commands:
-  /clear            ████████████████████  85x/month
-  /plugin           ████░░░░░░░░░░░░░░░░  16x/month
-  /reload-plugins   ██░░░░░░░░░░░░░░░░░░   7x/month
-  /clean            █░░░░░░░░░░░░░░░░░░░   6x/month
-  /review           █░░░░░░░░░░░░░░░░░░░   6x/month
-  /doctor           █░░░░░░░░░░░░░░░░░░░   5x/month
-  /usage            █░░░░░░░░░░░░░░░░░░░   4x/month
+Setup may install dependencies and missing tools. Agents must honor the installation
+permissions in `AGENTS.md`; if installation is not authorized, report that dependency
+before proceeding. An existing root `.env` is preserved on setup reruns.
 
-Top Browser MCP Usage:
-  brave-browser-mcp  ████████████████████  942 calls
+## Public contributor path
 
-## Your Setup Checklist
+The isolated profile works on a local machine as well as in a worktree or container.
+It avoids host-tool installation and writes non-secret defaults only when `.env` is absent.
 
-### Codebases
-- [ ] green-goods — https://github.com/greenpill-dev-guild/green-goods (Bun monorepo: `packages/{contracts,indexer,shared,client,admin,agent}` + `docs/` at root)
-- [ ] greenpill-dev-guild/.github — https://github.com/greenpill-dev-guild/.github (org-wide community defaults; only clone if you'll touch guild routines)
+```bash
+npm run setup -- --profile isolated
+bun run dev:health -- prod
+bun run dev -- prod
+```
 
-### Local Setup
-- [ ] Follow the [Developer Getting Started guide](https://docs.greengoods.app/builders/getting-started) (`npm run setup`, then `bun run dev`).
-- [ ] Read `CLAUDE.md` and `AGENTS.md` at the repo root before pairing with Claude — they encode invariants Claude will assume you know.
-- [ ] Skim `.claude/context/<package>.md` for whichever package you'll touch first.
+When Bun is already available, `bun run setup -- --profile isolated` uses the same setup.
+The hosted mode starts local client, admin, docs, and Storybook, using production APIs.
+It needs neither team secrets nor a local indexer for public browsing. Missing credentials
+for passkeys, wallets, or uploads remain capability limits, not proof of a broken public setup.
 
-### MCP Servers to Activate
-- [ ] **brave-browser-mcp** — Brave-only browser MCP / extension access that lets Claude read and drive a live Brave tab. Heavy use here for admin UI review: reading rendered `data-component`/`data-region`/`data-workspace` attributes on the running admin app (see `.claude/skills/design/defect-grammar.md` for the workflow). Install the Claude browser extension in Brave, sign in, grant tab access, and use the project `.mcp.json` Brave DevTools MCP entry when live browser debugging is needed. Do not use Google Chrome, Chrome for Testing, Chromium, or Edge for Green Goods browser proof.
+Open the printed client URL and browse public gardens. The admin sign-in/access gate is
+expected without steward credentials. Do not claim privileged workflows are verified.
+**Hosted mode permits real wallet-confirmed Arbitrum transactions; browsing verification
+must not submit transactions.**
 
-### Skills to Know About
-Slash-invokable (type the command):
-- [ ] `/review [package|PR|file]` — Full change review: regressions, remaining gaps, production quality, verdict (`/review admin`, `/review #123`). Start here for an in-flight branch.
-- [ ] `/audit` — Read-only repo-health audit; `/audit drift` for the quick drift classifier.
-- [ ] `/clean` — 8 parallel cleanup agents after findings are accepted (`--dry-run`, `--scope`, `--agents`).
-- [ ] `/qa-triage` and `/doc-feedback` — Build Sync QA notes → Linear records + QA-sheet rows; Google-Doc review feedback processing.
+## Team path
 
-Intent-triggered (no slash — just describe it in plain English):
-- [ ] `plan` — Fires on "plan this", "break down X", "coordinate a team", or cross-package work. Plans land in `.plans/active/<feature-name>/plan.todo.md`.
-- [ ] `debug` — Fires when you describe a bug, paste a stack trace, or report a failing test.
-- [ ] `ship` — Pre-merge gate (format, lint, test, build, conventional-commit, vocab/design-token lint); fires on ship/merge-readiness intent.
+Start OrbStack or Docker Desktop before launching local indexer services.
 
-Loaded by context (you usually don't pick these manually):
-- [ ] `design` — Warm Earth design language, M3 anatomy, and implementation guidance (`design/implementation.md`).
-- [ ] Per-package knowledge lives in `.claude/context/*.md` (not skills) — shared, client, admin, contracts, indexer, agent, testing, plus the cross-cutting ontology update protocol (`ontology.md`). The curated PostHog question library lives in `docs/routines/posthog-questions.md`.
+Existing `.env` files are kept. Review readiness before explicitly replacing local credentials.
+**Confirmed transactions affect live Arbitrum.**
 
-(The skill directory itself is the index: `ls .claude/skills/`.)
+```bash
+npm run setup -- --profile host
+test -f .env || bun run env:sync
+bun run env:check
+bun run dev:health
+bun run dev
+```
 
-## Team Tips
+Host setup reports how to configure the environment; it does not fetch shared secrets.
+If `.env.template` is absent, use `bun run env:template:init`, populate the required team
+references, and then sync. The [environment guide](https://docs.greengoods.app/builders/env-management)
+explains 1Password access and personal credentials. Never create package-level env files.
 
-These complement (not duplicate) `CLAUDE.md` — they're things that aren't already encoded in the project rules.
+The default stack starts local client, admin, agent, and Docker indexer against **live
+Arbitrum One**. Confirmed wallet and passkey transactions are production transactions.
+`ENVIO_API_TOKEN` supports reliable indexer replay; service health alone does not prove
+that replay has caught up. Uploads and messaging require their own service credentials.
 
-- **Run admin in Brave only, with the Claude browser extension installed.** There is no Google Chrome, Chrome for Testing, Chromium, or Edge fallback for Green Goods browser proof. Claude reads `data-component`/`data-region`/`data-workspace` off the live admin DOM during UI review; without Brave-backed DOM proof, every admin UI change becomes guesswork.
-- **Commit in scoped groups, not one mega-diff.** Working trees here often accumulate multiple unrelated changes; split them by package or concern using Conventional Commits (`feat(admin): ...`, `refactor(shared): ...`). Use `git add -p` if you need to slice a file.
-- **For multi-lane work, dispatch Codex from Claude via `codex exec --approve-for-me < /dev/null`.** The flag already grants workspace-write after automatic approval review and cannot be combined with `-s`. Claude stays the orchestrator. Codex is strong as a plan-follower and code reviewer, weak at visual polish — never delegate UI design work to it. Re-check `codex exec --help` when the CLI version changes.
-- **Don't make Claude "wait" — use `/loop` or `/schedule`.** `/loop <interval> <command>` for active polling; `/schedule` for cron-style remote routines (deploy checks, weekly sweeps, scheduled cleanup PRs).
-- **Sibling repos live in `~/Code/greenpill/`** — `coop`, `gardens`, `network-website`, `cookie-jar`, etc. They share identity/chain/attestation infra with green-goods. Pull them down if your work crosses those boundaries.
-- **Real-time coordination happens in [Telegram](https://t.me/+N3o3_43iRec1Y2Jh).** Drop in if you're stuck or pairing.
+## Development modes
 
-## Working with agents here
+Use `bun run dev -- <mode>`, with the same mode for health and smoke:
 
-Green Goods runs at agentic velocity; these few habits keep that safe and complement — not duplicate — `CLAUDE.md`.
+| Mode | Local services | Chain and data |
+|---|---|---|
+| `local` | admin, client, agent, indexer | Default; live Arbitrum and local APIs |
+| `full` | docs, admin, client, agent, indexer, storybook, browser | Live Arbitrum and local APIs |
+| `fork` | anvil-arbitrum, admin, client, agent, indexer | Local Arbitrum fork; indexer still reads live networks |
+| `web` | docs, admin, client, storybook, browser | Live chain; local APIs must already be available |
+| `prod` | docs, admin, client, storybook, browser | Live chain and hosted APIs |
+| `prod-mirror` | docs, admin, client, indexer, storybook, browser | Live chain, hosted agent, local live-data indexer |
 
-- **Run `bun run drift:check` before broad or parallel agent dispatch.** It repeatedly caught skill-mirror / docs / README / lint drift before it compounded. Don't fan out agents while guidance drift is unresolved.
-- **Scope-lock before runtime edits.** For audits and cleanups, agree the exact change set with a human first and preserve unrelated dirty work — this prevents over-broad redesigns.
-- **Get an adversarial review before you commit to an approach,** not after. A second, stronger perspective catches theater and wrong assumptions more cheaply than a passing self-test.
-- **Evidence, not assertion.** Record copy-runnable validation commands and explicit proof limits. "Should work" is not proof.
-- **Record affected data contracts** when a change touches schemas, public contracts, persistent stores, shared types, or API shapes; record route and access changes when it touches routes, auth, role gates, or shells. Keep that evidence in the current plan/spec or handoff. Skip both when the change touches neither.
-- **Match process to scope.** Broad or parallel agent work earns the pre-agent checklist; single-file, sequential work just proceeds (see `CLAUDE.md` § Subagent Discipline).
+Service names select a narrower launch: `bun run dev -- client admin` does not start
+its agent or indexer dependencies. Stop the owning launcher before changing modes.
 
-## Get Started
+For fork testing, use a dedicated browser profile and a disposable Anvil-funded wallet.
+Local account details are in `packages/contracts/.generated/runtime/arbitrum-fork.json`.
+Configure RPC `http://127.0.0.1:3009`, chain `42161`. The file redacts the upstream fork
+endpoint. Restarting Anvil resets local chain state; the indexer does not ingest these
+local writes. Passkeys are blocked in fork mode. Mock authentication does not sign transactions.
 
-Your starter task: **set the repo up end-to-end and report back on the experience.** Onboarding feedback is the only way the next person's path gets smoother.
+## Verify and hand off
 
-1. Run through **Local Setup** above: `npm run setup` → `bun run dev:health` → `bun run dev` → `bun run dev:smoke`. That confirms client (`:3001`), admin (`:3002`), agent (`:3005`), local indexer/Hasura/Postgres (`:3006`-`:3008`), and live Arbitrum connectivity are healthy without submitting transactions. Use `bun run dev:full` and `bun run dev:smoke:full` to include docs (`:3003`) and Storybook (`:3004`). The default sends confirmed transactions to production Arbitrum while running the agent and indexer locally. Use `bun run dev:fork` for disposable Anvil wallet testing, or `bun run dev:prod` for hosted APIs; it keeps local browser surfaces on `:3001`-`:3004`, targets Arbitrum One and hosted production APIs, runs a read-only smoke, and allows real wallet-confirmed Arbitrum writes.
-2. Note every paper cut as you go — broken links, unclear steps, missing prereqs, env vars that weren't obvious, anything that made you pause.
-3. Drop the feedback into [Telegram](https://t.me/+N3o3_43iRec1Y2Jh) — concrete observations beat vague ones (`docs/builders/getting-started step 3 didn't mention X` > `setup was confusing`). Maintainers triage actionable items into the Linear backlog (GitHub Issues are disabled).
+Run `bun run dev:smoke -- <mode>` after startup. Automatic smoke checks reachability and,
+for connected modes, chain/indexer readiness. It submits no transactions. If replay is
+behind, leave the owning launcher running and rerun smoke after catch-up.
 
-<!-- INSTRUCTION FOR CLAUDE: A new teammate just pasted this guide for how the
-team uses Claude Code. You're their onboarding buddy — warm, conversational,
-not lecture-y.
+For local agent browser verification, follow `AGENTS.md` and use the authenticated Brave
+extension path. If it cannot be reached, report browser proof as blocked. Do not substitute
+an isolated browser profile or report HTTP checks as authenticated UI proof.
 
-Open with a warm welcome — include the team name from the title. Then: "Your
-teammate uses Claude Code for [list all the work types]. Let's get you started."
+Keep the launcher in the foreground; Ctrl-C stops only its services. A detached stop uses
+`GREEN_GOODS_DEV_OWNER=<same-owner> bun run dev -- stop`. Never stop an unknown listener.
 
-Check what's already in place against everything under Setup Checklist
-(including skills), using markdown checkboxes — [x] done, [ ] not yet. Lead
-with what they already have. One sentence per item, all in one message.
+Finish onboarding by reporting:
 
-Tell them you'll help with setup, cover the actionable team tips, then the
-starter task (if there is one). Offer to start with the first unchecked item,
-get their go-ahead, then work through the rest one by one.
+- The setup path, selected mode, and URLs that were actually verified.
+- Missing credentials, services, or browser access and the workflows they block.
+- The package that owns the contributor's first task and its nearest `AGENTS.md`.
+- The next targeted check selected with `bun run validation:plan -- --intent qa`.
 
-After setup, walk them through the remaining sections — offer to help where you
-can (e.g. link to channels), and just surface the purely informational bits.
-
-Don't invent sections or summaries that aren't in the guide. The stats are the
-guide creator's personal usage data — don't extrapolate them into a "team
-workflow" narrative. -->
+Use [CONTRIBUTING.md](CONTRIBUTING.md) for the contribution process and
+[the command reference](scripts/README.md) for specialist tooling. Agent-specific harness
+notes belong in [CLAUDE.md](CLAUDE.md), not in this procedure.

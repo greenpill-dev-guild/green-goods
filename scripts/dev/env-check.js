@@ -28,7 +28,7 @@ const projectRoot = path.resolve(__dirname, "../..");
 const schemaPath = path.join(projectRoot, ".env.schema");
 const envPath = path.join(projectRoot, ".env");
 
-// Conservative required list: only the keys that MUST be present for `bun run dev:web`
+// Conservative required list: only the keys that MUST be present for `bun run dev -- web`
 // to function. It remains a fallback until `.env.schema` carries `@required-in dev`.
 const baselineRequiredKeys = new Set([
   "APP_ENV",

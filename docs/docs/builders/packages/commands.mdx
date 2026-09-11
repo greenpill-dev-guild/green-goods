@@ -1,0 +1,630 @@
+---
+title: Command inventory
+slug: /builders/packages/commands
+audience: developer
+owner: docs
+feature_status: Live
+generated: true
+generator: scripts/docs/generate.mjs
+generated_from:
+  - docs/package.json
+  - package.json
+  - packages/admin/package.json
+  - packages/agent/package.json
+  - packages/client/package.json
+  - packages/contracts/package.json
+  - packages/indexer/package.json
+  - packages/qa/package.json
+  - packages/shared/package.json
+source_digest: "sha256:19b37285fa344b18988c7e777d2c61bef40e33502d3b82f9998729b92fa1f881"
+source_of_truth:
+  - docs/package.json
+  - package.json
+  - packages/admin/package.json
+  - packages/agent/package.json
+  - packages/client/package.json
+  - packages/contracts/package.json
+  - packages/indexer/package.json
+  - packages/qa/package.json
+  - packages/shared/package.json
+---
+
+<!-- GENERATED FILE: do not edit. Run `bun run docs:generate` or `bun run docs:generate -- --scope <scope>`. -->
+# Command inventory
+
+Generated from package manifests. Start with the getting-started guide for everyday commands. Operational scripts can write to live networks; read the owning runbook before using them.
+
+## docs (14)
+
+| Script | Invocation from repository root |
+|---|---|
+| audit | `bun run --cwd docs audit` |
+| audit:ci | `bun run --cwd docs audit:ci` |
+| build | `bun run --cwd docs build` |
+| check:search-index | `bun run --cwd docs check:search-index` |
+| clear | `bun run --cwd docs clear` |
+| dev | `bun run --cwd docs dev` |
+| docusaurus | `bun run --cwd docs docusaurus` |
+| predev | `bun run --cwd docs predev` |
+| serve | `bun run --cwd docs serve` |
+| swizzle | `bun run --cwd docs swizzle` |
+| test | `bun run --cwd docs test` |
+| typecheck | `bun run --cwd docs typecheck` |
+| write-heading-ids | `bun run --cwd docs write-heading-ids` |
+| write-translations | `bun run --cwd docs write-translations` |
+
+## Repository root (215)
+
+| Script | Invocation from repository root |
+|---|---|
+| agentic:browser-proof | `bun run agentic:browser-proof` |
+| agentic:check | `bun run agentic:check` |
+| agentic:guidance | `bun run agentic:guidance` |
+| agentic:verify | `bun run agentic:verify` |
+| anvil:start | `bun run anvil:start` |
+| anvil:start:block | `bun run anvil:start:block` |
+| browser-proof:routes | `bun run browser-proof:routes` |
+| build | `bun run build` |
+| build:admin | `bun run build:admin` |
+| build:agent | `bun run build:agent` |
+| build:client | `bun run build:client` |
+| build:contracts | `bun run build:contracts` |
+| build:docs | `bun run build:docs` |
+| build:indexer | `bun run build:indexer` |
+| build:shared | `bun run build:shared` |
+| check:browser-verification-policy | `bun run check:browser-verification-policy` |
+| check:codex-guidance | `bun run check:codex-guidance` |
+| check:contract-sizes | `bun run check:contract-sizes` |
+| check:contracts-storage-layout:hats-module | `bun run check:contracts-storage-layout:hats-module` |
+| check:dead-code | `bun run check:dead-code` |
+| check:design-generated | `bun run check:design-generated` |
+| check:design-guidance | `bun run check:design-guidance` |
+| check:design-md | `bun run check:design-md` |
+| check:design-tokens | `bun run check:design-tokens` |
+| check:docs-design-parity | `bun run check:docs-design-parity` |
+| check:docs-generated | `bun run check:docs-generated` |
+| check:foundry-version | `bun run check:foundry-version` |
+| check:guidance-links | `bun run check:guidance-links` |
+| check:immutable-plan-reports | `bun run check:immutable-plan-reports` |
+| check:ontology | `bun run check:ontology` |
+| check:qa-id-ledger | `bun run check:qa-id-ledger` |
+| check:skill-behavior | `bun run check:skill-behavior` |
+| check:solidity-test-names | `bun run check:solidity-test-names` |
+| check:source-structure | `bun run check:source-structure` |
+| check:staged-modules | `bun run check:staged-modules` |
+| check:test-quality | `bun run check:test-quality` |
+| ci:local | `bun run ci:local` |
+| contracts:assessment:upgrade:arbitrum | `bun run contracts:assessment:upgrade:arbitrum` |
+| contracts:assessment:upgrade:dry:arbitrum | `bun run contracts:assessment:upgrade:dry:arbitrum` |
+| contracts:assessment:upgrade:plan:arbitrum | `bun run contracts:assessment:upgrade:plan:arbitrum` |
+| contracts:credit:registry:deploy:arbitrum | `bun run contracts:credit:registry:deploy:arbitrum` |
+| contracts:credit:registry:dry:arbitrum | `bun run contracts:credit:registry:dry:arbitrum` |
+| contracts:credit:registry:plan:arbitrum | `bun run contracts:credit:registry:plan:arbitrum` |
+| contracts:ens:deploy:mainnet | `bun run contracts:ens:deploy:mainnet` |
+| contracts:ens:deploy:mainnet:broadcast | `bun run contracts:ens:deploy:mainnet:broadcast` |
+| contracts:ens:migrate | `bun run contracts:ens:migrate` |
+| contracts:ens:sponsor:monitor:arbitrum | `bun run contracts:ens:sponsor:monitor:arbitrum` |
+| contracts:ens:sponsor:status:arbitrum | `bun run contracts:ens:sponsor:status:arbitrum` |
+| contracts:ens:sponsor:top-up:arbitrum | `bun run contracts:ens:sponsor:top-up:arbitrum` |
+| contracts:ens:update:l1-receiver | `bun run contracts:ens:update:l1-receiver` |
+| contracts:marketplace:configure:arbitrum | `bun run contracts:marketplace:configure:arbitrum` |
+| contracts:marketplace:configure:dry:arbitrum | `bun run contracts:marketplace:configure:dry:arbitrum` |
+| contracts:marketplace:status:arbitrum | `bun run contracts:marketplace:status:arbitrum` |
+| contracts:migrate:action-instructions:v2:arbitrum | `bun run contracts:migrate:action-instructions:v2:arbitrum` |
+| contracts:migrate:action-instructions:v2:dry:arbitrum | `bun run contracts:migrate:action-instructions:v2:dry:arbitrum` |
+| contracts:migrate:action-instructions:v2:preflight:arbitrum | `bun run contracts:migrate:action-instructions:v2:preflight:arbitrum` |
+| contracts:migrate:action-instructions:v2:upload:arbitrum | `bun run contracts:migrate:action-instructions:v2:upload:arbitrum` |
+| contracts:migrate:vaults:arbitrum | `bun run contracts:migrate:vaults:arbitrum` |
+| contracts:migrate:vaults:dry:arbitrum | `bun run contracts:migrate:vaults:dry:arbitrum` |
+| contracts:pooling:backfill:arbitrum | `bun run contracts:pooling:backfill:arbitrum` |
+| contracts:pooling:backfill:dry:arbitrum | `bun run contracts:pooling:backfill:dry:arbitrum` |
+| contracts:pooling:configure:arbitrum | `bun run contracts:pooling:configure:arbitrum` |
+| contracts:pooling:configure:dry:arbitrum | `bun run contracts:pooling:configure:dry:arbitrum` |
+| contracts:pooling:deploy:arbitrum | `bun run contracts:pooling:deploy:arbitrum` |
+| contracts:pooling:deploy:dry:arbitrum | `bun run contracts:pooling:deploy:dry:arbitrum` |
+| contracts:pooling:finalize:arbitrum | `bun run contracts:pooling:finalize:arbitrum` |
+| contracts:pooling:finalize:dry:arbitrum | `bun run contracts:pooling:finalize:dry:arbitrum` |
+| contracts:pooling:finalize:plan:arbitrum | `bun run contracts:pooling:finalize:plan:arbitrum` |
+| contracts:pooling:rehearse:arbitrum-fork | `bun run contracts:pooling:rehearse:arbitrum-fork` |
+| contracts:pooling:schemas:arbitrum | `bun run contracts:pooling:schemas:arbitrum` |
+| contracts:pooling:schemas:dry:arbitrum | `bun run contracts:pooling:schemas:dry:arbitrum` |
+| contracts:pooling:schemas:plan:arbitrum | `bun run contracts:pooling:schemas:plan:arbitrum` |
+| contracts:pooling:schemas:preview:arbitrum | `bun run contracts:pooling:schemas:preview:arbitrum` |
+| contracts:pooling:upgrade:arbitrum | `bun run contracts:pooling:upgrade:arbitrum` |
+| contracts:pooling:upgrade:dry:arbitrum | `bun run contracts:pooling:upgrade:dry:arbitrum` |
+| contracts:pooling:upgrade:plan:arbitrum | `bun run contracts:pooling:upgrade:plan:arbitrum` |
+| contracts:release:core:plan:arbitrum | `bun run contracts:release:core:plan:arbitrum` |
+| contracts:release:indexer:handoff | `bun run contracts:release:indexer:handoff` |
+| contracts:release:manifest | `bun run contracts:release:manifest` |
+| contracts:release:operator | `bun run contracts:release:operator` |
+| contracts:release:ownership:arbitrum | `bun run contracts:release:ownership:arbitrum` |
+| contracts:release:ownership:celo | `bun run contracts:release:ownership:celo` |
+| contracts:release:ownership:dry:arbitrum | `bun run contracts:release:ownership:dry:arbitrum` |
+| contracts:release:ownership:dry:celo | `bun run contracts:release:ownership:dry:celo` |
+| contracts:release:ownership:plan:arbitrum | `bun run contracts:release:ownership:plan:arbitrum` |
+| contracts:release:ownership:plan:celo | `bun run contracts:release:ownership:plan:celo` |
+| contracts:release:recover:arbitrum | `bun run contracts:release:recover:arbitrum` |
+| contracts:release:recover:celo | `bun run contracts:release:recover:celo` |
+| contracts:release:recover:plan:arbitrum | `bun run contracts:release:recover:plan:arbitrum` |
+| contracts:release:recover:plan:celo | `bun run contracts:release:recover:plan:celo` |
+| contracts:release:verify:arbitrum | `bun run contracts:release:verify:arbitrum` |
+| contracts:release:verify:celo | `bun run contracts:release:verify:celo` |
+| contracts:release:verify:plan:arbitrum | `bun run contracts:release:verify:plan:arbitrum` |
+| contracts:release:verify:plan:celo | `bun run contracts:release:verify:plan:celo` |
+| contracts:release:verify:safe:arbitrum | `bun run contracts:release:verify:safe:arbitrum` |
+| contracts:release:verify:safe:celo | `bun run contracts:release:verify:safe:celo` |
+| contracts:repair:octant-assets:arbitrum | `bun run contracts:repair:octant-assets:arbitrum` |
+| contracts:repair:octant-assets:dry:arbitrum | `bun run contracts:repair:octant-assets:dry:arbitrum` |
+| contracts:settlement:courier | `bun run contracts:settlement:courier` |
+| contracts:settlement:dual-chain:down | `bun run contracts:settlement:dual-chain:down` |
+| contracts:settlement:dual-chain:up | `bun run contracts:settlement:dual-chain:up` |
+| contracts:settlement:executor:deploy:celo | `bun run contracts:settlement:executor:deploy:celo` |
+| contracts:settlement:executor:dry:celo | `bun run contracts:settlement:executor:dry:celo` |
+| contracts:settlement:executor:plan:celo | `bun run contracts:settlement:executor:plan:celo` |
+| contracts:settlement:module:deploy:arbitrum | `bun run contracts:settlement:module:deploy:arbitrum` |
+| contracts:settlement:module:dry:arbitrum | `bun run contracts:settlement:module:dry:arbitrum` |
+| contracts:settlement:module:plan:arbitrum | `bun run contracts:settlement:module:plan:arbitrum` |
+| contracts:settlement:peer:plan:arbitrum | `bun run contracts:settlement:peer:plan:arbitrum` |
+| contracts:settlement:peer:verify:arbitrum | `bun run contracts:settlement:peer:verify:arbitrum` |
+| contracts:settlement:safe:dry:celo | `bun run contracts:settlement:safe:dry:celo` |
+| contracts:settlement:safe:plan:celo | `bun run contracts:settlement:safe:plan:celo` |
+| contracts:settlement:verify-lane | `bun run contracts:settlement:verify-lane` |
+| contracts:upgrade:action-registry:arbitrum | `bun run contracts:upgrade:action-registry:arbitrum` |
+| contracts:upgrade:action-registry:arbitrum:override-sepolia-gate | `bun run contracts:upgrade:action-registry:arbitrum:override-sepolia-gate` |
+| contracts:upgrade:action-registry:dry:arbitrum | `bun run contracts:upgrade:action-registry:dry:arbitrum` |
+| contracts:upgrade:arbitrum | `bun run contracts:upgrade:arbitrum` |
+| contracts:upgrade:dry:arbitrum | `bun run contracts:upgrade:dry:arbitrum` |
+| contracts:upgrade:greenwill:arbitrum | `bun run contracts:upgrade:greenwill:arbitrum` |
+| contracts:upgrade:greenwill:dry:arbitrum | `bun run contracts:upgrade:greenwill:dry:arbitrum` |
+| contracts:upgrade:hats-module:arbitrum | `bun run contracts:upgrade:hats-module:arbitrum` |
+| contracts:upgrade:hats-module:dry:arbitrum | `bun run contracts:upgrade:hats-module:dry:arbitrum` |
+| contracts:upgrade:hats-module:dry:sepolia | `bun run contracts:upgrade:hats-module:dry:sepolia` |
+| contracts:upgrade:hats-module:plan:arbitrum | `bun run contracts:upgrade:hats-module:plan:arbitrum` |
+| contracts:upgrade:hats-module:plan:sepolia | `bun run contracts:upgrade:hats-module:plan:sepolia` |
+| contracts:upgrade:hats-module:sepolia | `bun run contracts:upgrade:hats-module:sepolia` |
+| contracts:upgrade:signal-pool-yield-wiring:arbitrum | `bun run contracts:upgrade:signal-pool-yield-wiring:arbitrum` |
+| contracts:upgrade:signal-pool-yield-wiring:dry:arbitrum | `bun run contracts:upgrade:signal-pool-yield-wiring:dry:arbitrum` |
+| contracts:upgrade:signal-pool-yield-wiring:simulate:arbitrum | `bun run contracts:upgrade:signal-pool-yield-wiring:simulate:arbitrum` |
+| contracts:verify:post-deploy:arbitrum | `bun run contracts:verify:post-deploy:arbitrum` |
+| contracts:verify:steward-upgrade:arbitrum | `bun run contracts:verify:steward-upgrade:arbitrum` |
+| contracts:verify:steward-upgrade:sepolia | `bun run contracts:verify:steward-upgrade:sepolia` |
+| design:generate | `bun run design:generate` |
+| dev | `bun run dev` |
+| dev:clean | `bun run dev:clean` |
+| dev:contracts | `bun run dev:contracts` |
+| dev:contracts:arbitrum-fork | `bun run dev:contracts:arbitrum-fork` |
+| dev:health | `bun run dev:health` |
+| dev:smoke | `bun run dev:smoke` |
+| dev:tunnel | `bun run dev:tunnel` |
+| docs:audit | `bun run docs:audit` |
+| docs:audit:ci | `bun run docs:audit:ci` |
+| docs:audit:readme | `bun run docs:audit:readme` |
+| docs:generate | `bun run docs:generate` |
+| drift:check | `bun run drift:check` |
+| env:check | `bun run env:check` |
+| env:sync | `bun run env:sync` |
+| env:template:init | `bun run env:template:init` |
+| eval:skills | `bun run eval:skills` |
+| format | `bun run format` |
+| format:check | `bun run format:check` |
+| format:contracts | `bun run format:contracts` |
+| format:contracts:check | `bun run format:contracts:check` |
+| garden:rename-batch | `bun run garden:rename-batch` |
+| garden:rename-batch:arbitrum | `bun run garden:rename-batch:arbitrum` |
+| garden:rename-batch:dry:arbitrum | `bun run garden:rename-batch:dry:arbitrum` |
+| indexer:check-boundary | `bun run indexer:check-boundary` |
+| indexer:db:down | `bun run indexer:db:down` |
+| indexer:db:up | `bun run indexer:db:up` |
+| indexer:doctor | `bun run indexer:doctor` |
+| indexer:reset | `bun run indexer:reset` |
+| ipfs:repin | `bun run ipfs:repin` |
+| ipfs:repin:audit | `bun run ipfs:repin:audit` |
+| lighthouse | `bun run lighthouse` |
+| lighthouse:admin | `bun run lighthouse:admin` |
+| lighthouse:client | `bun run lighthouse:client` |
+| lighthouse:collect | `bun run lighthouse:collect` |
+| lint | `bun run lint` |
+| lint:check | `bun run lint:check` |
+| lint:rules | `bun run lint:rules` |
+| lint:vocab | `bun run lint:vocab` |
+| metrics:month | `bun run metrics:month` |
+| ontology:generate | `bun run ontology:generate` |
+| postinstall | `bun run postinstall` |
+| prepare | `bun run prepare` |
+| qa:pull | `bun run qa:pull` |
+| qa:report | `bun run qa:report` |
+| qa:status | `bun run qa:status` |
+| qa:workbook | `bun run qa:workbook` |
+| seed:anvil | `bun run seed:anvil` |
+| seed:test | `bun run seed:test` |
+| setup | `bun run setup` |
+| sourcemaps | `bun run sourcemaps` |
+| sourcemaps:dry-run | `bun run sourcemaps:dry-run` |
+| test | `bun run test` |
+| test:admin | `bun run test:admin` |
+| test:agent | `bun run test:agent` |
+| test:agent-tools | `bun run test:agent-tools` |
+| test:client | `bun run test:client` |
+| test:contracts | `bun run test:contracts` |
+| test:contracts-verifier | `bun run test:contracts-verifier` |
+| test:docs | `bun run test:docs` |
+| test:e2e | `bun run test:e2e` |
+| test:e2e:fork | `bun run test:e2e:fork` |
+| test:e2e:passkey | `bun run test:e2e:passkey` |
+| test:e2e:smoke | `bun run test:e2e:smoke` |
+| test:e2e:testnet | `bun run test:e2e:testnet` |
+| test:e2e:ui | `bun run test:e2e:ui` |
+| test:env-schema | `bun run test:env-schema` |
+| test:fast | `bun run test:fast` |
+| test:fast:force | `bun run test:fast:force` |
+| test:fork-fixtures | `bun run test:fork-fixtures` |
+| test:indexer | `bun run test:indexer` |
+| test:indexer:contract-events | `bun run test:indexer:contract-events` |
+| test:review-guardrails | `bun run test:review-guardrails` |
+| test:shared | `bun run test:shared` |
+| test:shared:live | `bun run test:shared:live` |
+| test:validation-system | `bun run test:validation-system` |
+| upload:action-images | `bun run upload:action-images` |
+| upload:action-images:dry-run | `bun run upload:action-images:dry-run` |
+| validation:plan | `bun run validation:plan` |
+| verify:contracts | `bun run verify:contracts` |
+| verify:contracts:arbitrum-fork | `bun run verify:contracts:arbitrum-fork` |
+| verify:contracts:fast | `bun run verify:contracts:fast` |
+| version:bump | `bun run version:bump` |
+| version:check | `bun run version:check` |
+
+## packages/admin (15)
+
+| Script | Invocation from repository root |
+|---|---|
+| build | `bun run --cwd packages/admin build` |
+| dev | `bun run --cwd packages/admin dev` |
+| format | `bun run --cwd packages/admin format` |
+| format:check | `bun run --cwd packages/admin format:check` |
+| lint | `bun run --cwd packages/admin lint` |
+| predev | `bun run --cwd packages/admin predev` |
+| preview | `bun run --cwd packages/admin preview` |
+| test | `bun run --cwd packages/admin test` |
+| test:coverage | `bun run --cwd packages/admin test:coverage` |
+| test:hub | `bun run --cwd packages/admin test:hub` |
+| test:ui | `bun run --cwd packages/admin test:ui` |
+| test:watch | `bun run --cwd packages/admin test:watch` |
+| typecheck:full | `bun run --cwd packages/admin typecheck:full` |
+| typecheck:source | `bun run --cwd packages/admin typecheck:source` |
+| typecheck:tests | `bun run --cwd packages/admin typecheck:tests` |
+
+## packages/agent (17)
+
+| Script | Invocation from repository root |
+|---|---|
+| build | `bun run --cwd packages/agent build` |
+| dev | `bun run --cwd packages/agent dev` |
+| format | `bun run --cwd packages/agent format` |
+| format:check | `bun run --cwd packages/agent format:check` |
+| intake:smoke | `bun run --cwd packages/agent intake:smoke` |
+| lint | `bun run --cwd packages/agent lint` |
+| sentry:sourcemaps | `bun run --cwd packages/agent sentry:sourcemaps` |
+| start | `bun run --cwd packages/agent start` |
+| test | `bun run --cwd packages/agent test` |
+| test:coverage | `bun run --cwd packages/agent test:coverage` |
+| test:sqlite | `bun run --cwd packages/agent test:sqlite` |
+| test:ui | `bun run --cwd packages/agent test:ui` |
+| test:watch | `bun run --cwd packages/agent test:watch` |
+| typecheck | `bun run --cwd packages/agent typecheck` |
+| typecheck:full | `bun run --cwd packages/agent typecheck:full` |
+| typecheck:source | `bun run --cwd packages/agent typecheck:source` |
+| typecheck:tests | `bun run --cwd packages/agent typecheck:tests` |
+
+## packages/client (14)
+
+| Script | Invocation from repository root |
+|---|---|
+| build | `bun run --cwd packages/client build` |
+| check:pwa-precache | `bun run --cwd packages/client check:pwa-precache` |
+| coverage | `bun run --cwd packages/client coverage` |
+| dev | `bun run --cwd packages/client dev` |
+| format | `bun run --cwd packages/client format` |
+| format:check | `bun run --cwd packages/client format:check` |
+| lint | `bun run --cwd packages/client lint` |
+| predev | `bun run --cwd packages/client predev` |
+| preview | `bun run --cwd packages/client preview` |
+| test | `bun run --cwd packages/client test` |
+| test:watch | `bun run --cwd packages/client test:watch` |
+| typecheck:full | `bun run --cwd packages/client typecheck:full` |
+| typecheck:source | `bun run --cwd packages/client typecheck:source` |
+| typecheck:tests | `bun run --cwd packages/client typecheck:tests` |
+
+## packages/contracts (230)
+
+| Script | Invocation from repository root |
+|---|---|
+| assessment:upgrade:arbitrum | `bun run --cwd packages/contracts assessment:upgrade:arbitrum` |
+| assessment:upgrade:dry:arbitrum | `bun run --cwd packages/contracts assessment:upgrade:dry:arbitrum` |
+| assessment:upgrade:plan:arbitrum | `bun run --cwd packages/contracts assessment:upgrade:plan:arbitrum` |
+| build | `bun run --cwd packages/contracts build` |
+| build:abis | `bun run --cwd packages/contracts build:abis` |
+| build:changed | `bun run --cwd packages/contracts build:changed` |
+| build:core | `bun run --cwd packages/contracts build:core` |
+| build:fast | `bun run --cwd packages/contracts build:fast` |
+| build:fresh | `bun run --cwd packages/contracts build:fresh` |
+| build:full | `bun run --cwd packages/contracts build:full` |
+| build:target | `bun run --cwd packages/contracts build:target` |
+| check:foundry-version | `bun run --cwd packages/contracts check:foundry-version` |
+| check:sizes | `bun run --cwd packages/contracts check:sizes` |
+| check:storage-layout | `bun run --cwd packages/contracts check:storage-layout` |
+| check:storage-layout:hats-module | `bun run --cwd packages/contracts check:storage-layout:hats-module` |
+| clean:artifacts | `bun run --cwd packages/contracts clean:artifacts` |
+| clean:test-cache | `bun run --cwd packages/contracts clean:test-cache` |
+| credit:registry:deploy:arbitrum | `bun run --cwd packages/contracts credit:registry:deploy:arbitrum` |
+| credit:registry:dry:arbitrum | `bun run --cwd packages/contracts credit:registry:dry:arbitrum` |
+| credit:registry:plan:arbitrum | `bun run --cwd packages/contracts credit:registry:plan:arbitrum` |
+| deploy | `bun run --cwd packages/contracts deploy` |
+| deploy:arbitrum | `bun run --cwd packages/contracts deploy:arbitrum` |
+| deploy:celo | `bun run --cwd packages/contracts deploy:celo` |
+| deploy:dry:arbitrum | `bun run --cwd packages/contracts deploy:dry:arbitrum` |
+| deploy:dry:celo | `bun run --cwd packages/contracts deploy:dry:celo` |
+| deploy:dry:mainnet | `bun run --cwd packages/contracts deploy:dry:mainnet` |
+| deploy:dry:sepolia | `bun run --cwd packages/contracts deploy:dry:sepolia` |
+| deploy:mainnet | `bun run --cwd packages/contracts deploy:mainnet` |
+| deploy:octant-factory | `bun run --cwd packages/contracts deploy:octant-factory` |
+| deploy:octant-factory:arbitrum | `bun run --cwd packages/contracts deploy:octant-factory:arbitrum` |
+| deploy:octant-factory:celo | `bun run --cwd packages/contracts deploy:octant-factory:celo` |
+| deploy:octant-factory:dry:arbitrum | `bun run --cwd packages/contracts deploy:octant-factory:dry:arbitrum` |
+| deploy:octant-factory:dry:celo | `bun run --cwd packages/contracts deploy:octant-factory:dry:celo` |
+| deploy:octant-factory:dry:sepolia | `bun run --cwd packages/contracts deploy:octant-factory:dry:sepolia` |
+| deploy:octant-factory:sepolia | `bun run --cwd packages/contracts deploy:octant-factory:sepolia` |
+| deploy:preflight:arbitrum | `bun run --cwd packages/contracts deploy:preflight:arbitrum` |
+| deploy:preflight:celo | `bun run --cwd packages/contracts deploy:preflight:celo` |
+| deploy:preflight:mainnet | `bun run --cwd packages/contracts deploy:preflight:mainnet` |
+| deploy:preflight:sepolia | `bun run --cwd packages/contracts deploy:preflight:sepolia` |
+| deploy:sepolia | `bun run --cwd packages/contracts deploy:sepolia` |
+| deploy:testnet | `bun run --cwd packages/contracts deploy:testnet` |
+| dev | `bun run --cwd packages/contracts dev` |
+| dev:arbitrum-fork | `bun run --cwd packages/contracts dev:arbitrum-fork` |
+| ens:migrate:dry:mainnet | `bun run --cwd packages/contracts ens:migrate:dry:mainnet` |
+| ens:migrate:mainnet | `bun run --cwd packages/contracts ens:migrate:mainnet` |
+| ens:sponsor:monitor:arbitrum | `bun run --cwd packages/contracts ens:sponsor:monitor:arbitrum` |
+| ens:sponsor:status:arbitrum | `bun run --cwd packages/contracts ens:sponsor:status:arbitrum` |
+| ens:sponsor:top-up:arbitrum | `bun run --cwd packages/contracts ens:sponsor:top-up:arbitrum` |
+| envio:cleanup | `bun run --cwd packages/contracts envio:cleanup` |
+| envio:local | `bun run --cwd packages/contracts envio:local` |
+| format | `bun run --cwd packages/contracts format` |
+| format:check | `bun run --cwd packages/contracts format:check` |
+| greenwill:arbitrum | `bun run --cwd packages/contracts greenwill:arbitrum` |
+| greenwill:dry:arbitrum | `bun run --cwd packages/contracts greenwill:dry:arbitrum` |
+| greenwill:locks:arbitrum | `bun run --cwd packages/contracts greenwill:locks:arbitrum` |
+| greenwill:locks:dry:arbitrum | `bun run --cwd packages/contracts greenwill:locks:dry:arbitrum` |
+| greenwill:registry-upgrade:arbitrum | `bun run --cwd packages/contracts greenwill:registry-upgrade:arbitrum` |
+| greenwill:registry-upgrade:dry:arbitrum | `bun run --cwd packages/contracts greenwill:registry-upgrade:dry:arbitrum` |
+| ipfs:cache | `bun run --cwd packages/contracts ipfs:cache` |
+| ipfs:upload | `bun run --cwd packages/contracts ipfs:upload` |
+| lint | `bun run --cwd packages/contracts lint` |
+| lint:check | `bun run --cwd packages/contracts lint:check` |
+| lint:fix | `bun run --cwd packages/contracts lint:fix` |
+| marketplace:configure:arbitrum | `bun run --cwd packages/contracts marketplace:configure:arbitrum` |
+| marketplace:configure:dry:arbitrum | `bun run --cwd packages/contracts marketplace:configure:dry:arbitrum` |
+| marketplace:status | `bun run --cwd packages/contracts marketplace:status` |
+| marketplace:status:arbitrum | `bun run --cwd packages/contracts marketplace:status:arbitrum` |
+| migrate:action-instructions:v2 | `bun run --cwd packages/contracts migrate:action-instructions:v2` |
+| migrate:action-instructions:v2:arbitrum | `bun run --cwd packages/contracts migrate:action-instructions:v2:arbitrum` |
+| migrate:action-instructions:v2:dry:arbitrum | `bun run --cwd packages/contracts migrate:action-instructions:v2:dry:arbitrum` |
+| migrate:action-instructions:v2:preflight:arbitrum | `bun run --cwd packages/contracts migrate:action-instructions:v2:preflight:arbitrum` |
+| migrate:action-instructions:v2:upload:arbitrum | `bun run --cwd packages/contracts migrate:action-instructions:v2:upload:arbitrum` |
+| migrate:vaults | `bun run --cwd packages/contracts migrate:vaults` |
+| migrate:vaults:arbitrum | `bun run --cwd packages/contracts migrate:vaults:arbitrum` |
+| migrate:vaults:dry:arbitrum | `bun run --cwd packages/contracts migrate:vaults:dry:arbitrum` |
+| open-minting:arbitrum | `bun run --cwd packages/contracts open-minting:arbitrum` |
+| open-minting:sepolia | `bun run --cwd packages/contracts open-minting:sepolia` |
+| pooling:backfill:arbitrum | `bun run --cwd packages/contracts pooling:backfill:arbitrum` |
+| pooling:backfill:dry:arbitrum | `bun run --cwd packages/contracts pooling:backfill:dry:arbitrum` |
+| pooling:configure:arbitrum | `bun run --cwd packages/contracts pooling:configure:arbitrum` |
+| pooling:configure:dry:arbitrum | `bun run --cwd packages/contracts pooling:configure:dry:arbitrum` |
+| pooling:deploy:arbitrum | `bun run --cwd packages/contracts pooling:deploy:arbitrum` |
+| pooling:deploy:dry:arbitrum | `bun run --cwd packages/contracts pooling:deploy:dry:arbitrum` |
+| pooling:deploy:plan:arbitrum | `bun run --cwd packages/contracts pooling:deploy:plan:arbitrum` |
+| pooling:finalize:arbitrum | `bun run --cwd packages/contracts pooling:finalize:arbitrum` |
+| pooling:finalize:dry:arbitrum | `bun run --cwd packages/contracts pooling:finalize:dry:arbitrum` |
+| pooling:finalize:plan:arbitrum | `bun run --cwd packages/contracts pooling:finalize:plan:arbitrum` |
+| pooling:schemas:arbitrum | `bun run --cwd packages/contracts pooling:schemas:arbitrum` |
+| pooling:schemas:dry:arbitrum | `bun run --cwd packages/contracts pooling:schemas:dry:arbitrum` |
+| pooling:schemas:plan:arbitrum | `bun run --cwd packages/contracts pooling:schemas:plan:arbitrum` |
+| pooling:schemas:preview:arbitrum | `bun run --cwd packages/contracts pooling:schemas:preview:arbitrum` |
+| pooling:upgrade:arbitrum | `bun run --cwd packages/contracts pooling:upgrade:arbitrum` |
+| pooling:upgrade:dry:arbitrum | `bun run --cwd packages/contracts pooling:upgrade:dry:arbitrum` |
+| pooling:upgrade:plan:arbitrum | `bun run --cwd packages/contracts pooling:upgrade:plan:arbitrum` |
+| predev | `bun run --cwd packages/contracts predev` |
+| release:core:plan:arbitrum | `bun run --cwd packages/contracts release:core:plan:arbitrum` |
+| release:indexer:handoff | `bun run --cwd packages/contracts release:indexer:handoff` |
+| release:manifest | `bun run --cwd packages/contracts release:manifest` |
+| release:manifest:write | `bun run --cwd packages/contracts release:manifest:write` |
+| release:operator | `bun run --cwd packages/contracts release:operator` |
+| release:ownership:arbitrum | `bun run --cwd packages/contracts release:ownership:arbitrum` |
+| release:ownership:celo | `bun run --cwd packages/contracts release:ownership:celo` |
+| release:ownership:dry:arbitrum | `bun run --cwd packages/contracts release:ownership:dry:arbitrum` |
+| release:ownership:dry:celo | `bun run --cwd packages/contracts release:ownership:dry:celo` |
+| release:ownership:plan:arbitrum | `bun run --cwd packages/contracts release:ownership:plan:arbitrum` |
+| release:ownership:plan:celo | `bun run --cwd packages/contracts release:ownership:plan:celo` |
+| release:ownership:release:arbitrum | `bun run --cwd packages/contracts release:ownership:release:arbitrum` |
+| release:ownership:release:celo | `bun run --cwd packages/contracts release:ownership:release:celo` |
+| release:recover:arbitrum | `bun run --cwd packages/contracts release:recover:arbitrum` |
+| release:recover:celo | `bun run --cwd packages/contracts release:recover:celo` |
+| release:recover:plan:arbitrum | `bun run --cwd packages/contracts release:recover:plan:arbitrum` |
+| release:recover:plan:celo | `bun run --cwd packages/contracts release:recover:plan:celo` |
+| release:verify:arbitrum | `bun run --cwd packages/contracts release:verify:arbitrum` |
+| release:verify:celo | `bun run --cwd packages/contracts release:verify:celo` |
+| release:verify:plan:arbitrum | `bun run --cwd packages/contracts release:verify:plan:arbitrum` |
+| release:verify:plan:celo | `bun run --cwd packages/contracts release:verify:plan:celo` |
+| release:verify:safe:arbitrum | `bun run --cwd packages/contracts release:verify:safe:arbitrum` |
+| release:verify:safe:celo | `bun run --cwd packages/contracts release:verify:safe:celo` |
+| repair:octant-assets | `bun run --cwd packages/contracts repair:octant-assets` |
+| repair:octant-assets:arbitrum | `bun run --cwd packages/contracts repair:octant-assets:arbitrum` |
+| repair:octant-assets:dry:arbitrum | `bun run --cwd packages/contracts repair:octant-assets:dry:arbitrum` |
+| settlement:courier | `bun run --cwd packages/contracts settlement:courier` |
+| settlement:dual-chain:down | `bun run --cwd packages/contracts settlement:dual-chain:down` |
+| settlement:dual-chain:up | `bun run --cwd packages/contracts settlement:dual-chain:up` |
+| settlement:executor:deploy:celo | `bun run --cwd packages/contracts settlement:executor:deploy:celo` |
+| settlement:executor:dry:celo | `bun run --cwd packages/contracts settlement:executor:dry:celo` |
+| settlement:executor:plan:celo | `bun run --cwd packages/contracts settlement:executor:plan:celo` |
+| settlement:garden-accounts:deploy:celo | `bun run --cwd packages/contracts settlement:garden-accounts:deploy:celo` |
+| settlement:garden-accounts:plan:celo | `bun run --cwd packages/contracts settlement:garden-accounts:plan:celo` |
+| settlement:garden-accounts:release:celo | `bun run --cwd packages/contracts settlement:garden-accounts:release:celo` |
+| settlement:garden-accounts:verify:celo | `bun run --cwd packages/contracts settlement:garden-accounts:verify:celo` |
+| settlement:garden-relay:adopt | `bun run --cwd packages/contracts settlement:garden-relay:adopt` |
+| settlement:garden-relay:deploy | `bun run --cwd packages/contracts settlement:garden-relay:deploy` |
+| settlement:garden-relay:plan | `bun run --cwd packages/contracts settlement:garden-relay:plan` |
+| settlement:garden-relay:release | `bun run --cwd packages/contracts settlement:garden-relay:release` |
+| settlement:garden-relay:verify | `bun run --cwd packages/contracts settlement:garden-relay:verify` |
+| settlement:garden-roles:deploy | `bun run --cwd packages/contracts settlement:garden-roles:deploy` |
+| settlement:garden-roles:enable | `bun run --cwd packages/contracts settlement:garden-roles:enable` |
+| settlement:garden-roles:enable:release | `bun run --cwd packages/contracts settlement:garden-roles:enable:release` |
+| settlement:garden-roles:plan | `bun run --cwd packages/contracts settlement:garden-roles:plan` |
+| settlement:garden-roles:release | `bun run --cwd packages/contracts settlement:garden-roles:release` |
+| settlement:garden-roles:verify | `bun run --cwd packages/contracts settlement:garden-roles:verify` |
+| settlement:garden-routes:configure | `bun run --cwd packages/contracts settlement:garden-routes:configure` |
+| settlement:garden-routes:plan | `bun run --cwd packages/contracts settlement:garden-routes:plan` |
+| settlement:garden-routes:release | `bun run --cwd packages/contracts settlement:garden-routes:release` |
+| settlement:garden-routes:verify | `bun run --cwd packages/contracts settlement:garden-routes:verify` |
+| settlement:garden-safes:deploy:celo | `bun run --cwd packages/contracts settlement:garden-safes:deploy:celo` |
+| settlement:garden-safes:plan:celo | `bun run --cwd packages/contracts settlement:garden-safes:plan:celo` |
+| settlement:garden-safes:release:celo | `bun run --cwd packages/contracts settlement:garden-safes:release:celo` |
+| settlement:garden-safes:verify:celo | `bun run --cwd packages/contracts settlement:garden-safes:verify:celo` |
+| settlement:module:deploy:arbitrum | `bun run --cwd packages/contracts settlement:module:deploy:arbitrum` |
+| settlement:module:dry:arbitrum | `bun run --cwd packages/contracts settlement:module:dry:arbitrum` |
+| settlement:module:plan:arbitrum | `bun run --cwd packages/contracts settlement:module:plan:arbitrum` |
+| settlement:peer:plan:arbitrum | `bun run --cwd packages/contracts settlement:peer:plan:arbitrum` |
+| settlement:peer:verify:arbitrum | `bun run --cwd packages/contracts settlement:peer:verify:arbitrum` |
+| settlement:safe:dry:celo | `bun run --cwd packages/contracts settlement:safe:dry:celo` |
+| settlement:safe:plan:celo | `bun run --cwd packages/contracts settlement:safe:plan:celo` |
+| status | `bun run --cwd packages/contracts status` |
+| test | `bun run --cwd packages/contracts test` |
+| test:audit:coverage | `bun run --cwd packages/contracts test:audit:coverage` |
+| test:audit:full | `bun run --cwd packages/contracts test:audit:full` |
+| test:audit:realism | `bun run --cwd packages/contracts test:audit:realism` |
+| test:audit:realism:tooling | `bun run --cwd packages/contracts test:audit:realism:tooling` |
+| test:deep | `bun run --cwd packages/contracts test:deep` |
+| test:e2e | `bun run --cwd packages/contracts test:e2e` |
+| test:e2e:arbitrum | `bun run --cwd packages/contracts test:e2e:arbitrum` |
+| test:e2e:celo | `bun run --cwd packages/contracts test:e2e:celo` |
+| test:e2e:karma | `bun run --cwd packages/contracts test:e2e:karma` |
+| test:e2e:sepolia | `bun run --cwd packages/contracts test:e2e:sepolia` |
+| test:e2e:workflow | `bun run --cwd packages/contracts test:e2e:workflow` |
+| test:fast | `bun run --cwd packages/contracts test:fast` |
+| test:fork | `bun run --cwd packages/contracts test:fork` |
+| test:fork:arbitrum:ci | `bun run --cwd packages/contracts test:fork:arbitrum:ci` |
+| test:fork:ethereum:ci | `bun run --cwd packages/contracts test:fork:ethereum:ci` |
+| test:fork:garden-account-release | `bun run --cwd packages/contracts test:fork:garden-account-release` |
+| test:fork:garden-roles | `bun run --cwd packages/contracts test:fork:garden-roles` |
+| test:fork:gardens:ci | `bun run --cwd packages/contracts test:fork:gardens:ci` |
+| test:fork:hats-module-upgrade:arbitrum | `bun run --cwd packages/contracts test:fork:hats-module-upgrade:arbitrum` |
+| test:fork:hats-module-upgrade:sepolia | `bun run --cwd packages/contracts test:fork:hats-module-upgrade:sepolia` |
+| test:fork:octant:ci | `bun run --cwd packages/contracts test:fork:octant:ci` |
+| test:fork:pooling:arbitrum | `bun run --cwd packages/contracts test:fork:pooling:arbitrum` |
+| test:fork:protocol | `bun run --cwd packages/contracts test:fork:protocol` |
+| test:fork:protocol:ci | `bun run --cwd packages/contracts test:fork:protocol:ci` |
+| test:fork:sepolia:ci | `bun run --cwd packages/contracts test:fork:sepolia:ci` |
+| test:fork:settlement-lane | `bun run --cwd packages/contracts test:fork:settlement-lane` |
+| test:fork:shards:check | `bun run --cwd packages/contracts test:fork:shards:check` |
+| test:fork:shards:ci | `bun run --cwd packages/contracts test:fork:shards:ci` |
+| test:gas | `bun run --cwd packages/contracts test:gas` |
+| test:gas:release | `bun run --cwd packages/contracts test:gas:release` |
+| test:lite | `bun run --cwd packages/contracts test:lite` |
+| test:match | `bun run --cwd packages/contracts test:match` |
+| test:script | `bun run --cwd packages/contracts test:script` |
+| test:solidity | `bun run --cwd packages/contracts test:solidity` |
+| typecheck | `bun run --cwd packages/contracts typecheck` |
+| upgrade | `bun run --cwd packages/contracts upgrade` |
+| upgrade:action-registry:arbitrum | `bun run --cwd packages/contracts upgrade:action-registry:arbitrum` |
+| upgrade:action-registry:arbitrum:override-sepolia-gate | `bun run --cwd packages/contracts upgrade:action-registry:arbitrum:override-sepolia-gate` |
+| upgrade:action-registry:dry:arbitrum | `bun run --cwd packages/contracts upgrade:action-registry:dry:arbitrum` |
+| upgrade:arbitrum | `bun run --cwd packages/contracts upgrade:arbitrum` |
+| upgrade:celo | `bun run --cwd packages/contracts upgrade:celo` |
+| upgrade:dry:arbitrum | `bun run --cwd packages/contracts upgrade:dry:arbitrum` |
+| upgrade:dry:celo | `bun run --cwd packages/contracts upgrade:dry:celo` |
+| upgrade:dry:sepolia | `bun run --cwd packages/contracts upgrade:dry:sepolia` |
+| upgrade:hats-module:arbitrum | `bun run --cwd packages/contracts upgrade:hats-module:arbitrum` |
+| upgrade:hats-module:dry:arbitrum | `bun run --cwd packages/contracts upgrade:hats-module:dry:arbitrum` |
+| upgrade:hats-module:dry:sepolia | `bun run --cwd packages/contracts upgrade:hats-module:dry:sepolia` |
+| upgrade:hats-module:plan:arbitrum | `bun run --cwd packages/contracts upgrade:hats-module:plan:arbitrum` |
+| upgrade:hats-module:plan:sepolia | `bun run --cwd packages/contracts upgrade:hats-module:plan:sepolia` |
+| upgrade:hats-module:sepolia | `bun run --cwd packages/contracts upgrade:hats-module:sepolia` |
+| upgrade:sepolia | `bun run --cwd packages/contracts upgrade:sepolia` |
+| upgrade:signal-pool-yield-wiring:arbitrum | `bun run --cwd packages/contracts upgrade:signal-pool-yield-wiring:arbitrum` |
+| upgrade:signal-pool-yield-wiring:dry:arbitrum | `bun run --cwd packages/contracts upgrade:signal-pool-yield-wiring:dry:arbitrum` |
+| upgrade:signal-pool-yield-wiring:simulate:arbitrum | `bun run --cwd packages/contracts upgrade:signal-pool-yield-wiring:simulate:arbitrum` |
+| verify:arbitrum-fork | `bun run --cwd packages/contracts verify:arbitrum-fork` |
+| verify:etherscan:arbitrum | `bun run --cwd packages/contracts verify:etherscan:arbitrum` |
+| verify:etherscan:celo | `bun run --cwd packages/contracts verify:etherscan:celo` |
+| verify:etherscan:sepolia | `bun run --cwd packages/contracts verify:etherscan:sepolia` |
+| verify:post-deploy | `bun run --cwd packages/contracts verify:post-deploy` |
+| verify:post-deploy:arbitrum | `bun run --cwd packages/contracts verify:post-deploy:arbitrum` |
+| verify:post-deploy:celo | `bun run --cwd packages/contracts verify:post-deploy:celo` |
+| verify:post-deploy:indexer:arbitrum | `bun run --cwd packages/contracts verify:post-deploy:indexer:arbitrum` |
+| verify:post-deploy:indexer:local:arbitrum | `bun run --cwd packages/contracts verify:post-deploy:indexer:local:arbitrum` |
+| verify:post-deploy:indexer:local:mainnet | `bun run --cwd packages/contracts verify:post-deploy:indexer:local:mainnet` |
+| verify:post-deploy:indexer:local:sepolia | `bun run --cwd packages/contracts verify:post-deploy:indexer:local:sepolia` |
+| verify:post-deploy:indexer:mainnet | `bun run --cwd packages/contracts verify:post-deploy:indexer:mainnet` |
+| verify:post-deploy:indexer:sepolia | `bun run --cwd packages/contracts verify:post-deploy:indexer:sepolia` |
+| verify:post-deploy:mainnet | `bun run --cwd packages/contracts verify:post-deploy:mainnet` |
+| verify:post-deploy:sepolia | `bun run --cwd packages/contracts verify:post-deploy:sepolia` |
+| verify:steward-upgrade:arbitrum | `bun run --cwd packages/contracts verify:steward-upgrade:arbitrum` |
+| verify:steward-upgrade:sepolia | `bun run --cwd packages/contracts verify:steward-upgrade:sepolia` |
+
+## packages/indexer (22)
+
+| Script | Invocation from repository root |
+|---|---|
+| build | `bun run --cwd packages/indexer build` |
+| check:indexing-boundary | `bun run --cwd packages/indexer check:indexing-boundary` |
+| clean | `bun run --cwd packages/indexer clean` |
+| codegen | `bun run --cwd packages/indexer codegen` |
+| db:down | `bun run --cwd packages/indexer db:down` |
+| db:up | `bun run --cwd packages/indexer db:up` |
+| dev | `bun run --cwd packages/indexer dev` |
+| dev:docker | `bun run --cwd packages/indexer dev:docker` |
+| dev:docker:detach | `bun run --cwd packages/indexer dev:docker:detach` |
+| dev:docker:down | `bun run --cwd packages/indexer dev:docker:down` |
+| dev:docker:logs | `bun run --cwd packages/indexer dev:docker:logs` |
+| dev:restart | `bun run --cwd packages/indexer dev:restart` |
+| doctor | `bun run --cwd packages/indexer doctor` |
+| lint | `bun run --cwd packages/indexer lint` |
+| mocha | `bun run --cwd packages/indexer mocha` |
+| reset | `bun run --cwd packages/indexer reset` |
+| start | `bun run --cwd packages/indexer start` |
+| test | `bun run --cwd packages/indexer test` |
+| test:contract-events | `bun run --cwd packages/indexer test:contract-events` |
+| test:coverage | `bun run --cwd packages/indexer test:coverage` |
+| test:coverage:ci | `bun run --cwd packages/indexer test:coverage:ci` |
+| watch | `bun run --cwd packages/indexer watch` |
+
+## packages/qa (1)
+
+| Script | Invocation from repository root |
+|---|---|
+| build | `bun run --cwd packages/qa build` |
+
+## packages/shared (20)
+
+| Script | Invocation from repository root |
+|---|---|
+| build | `bun run --cwd packages/shared build` |
+| build-storybook | `bun run --cwd packages/shared build-storybook` |
+| check:stories | `bun run --cwd packages/shared check:stories` |
+| check:story-quality | `bun run --cwd packages/shared check:story-quality` |
+| chromatic | `bun run --cwd packages/shared chromatic` |
+| coverage | `bun run --cwd packages/shared coverage` |
+| format | `bun run --cwd packages/shared format` |
+| format:check | `bun run --cwd packages/shared format:check` |
+| lint | `bun run --cwd packages/shared lint` |
+| prestorybook | `bun run --cwd packages/shared prestorybook` |
+| storybook | `bun run --cwd packages/shared storybook` |
+| storybook:prepare-design-assets | `bun run --cwd packages/shared storybook:prepare-design-assets` |
+| test | `bun run --cwd packages/shared test` |
+| test:live | `bun run --cwd packages/shared test:live` |
+| test:stories:ci | `bun run --cwd packages/shared test:stories:ci` |
+| test:watch | `bun run --cwd packages/shared test:watch` |
+| typecheck | `bun run --cwd packages/shared typecheck` |
+| typecheck:full | `bun run --cwd packages/shared typecheck:full` |
+| typecheck:source | `bun run --cwd packages/shared typecheck:source` |
+| typecheck:tests | `bun run --cwd packages/shared typecheck:tests` |
+
+Total: 548 script entries.

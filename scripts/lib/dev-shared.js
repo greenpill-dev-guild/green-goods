@@ -480,3 +480,15 @@ export async function waitForService({ urls, deadlineMs, perAttemptMs = 2500, ga
   }
   return { ok: false, attempts: attempts.slice(-urls.length) };
 }
+
+/** Markers required by the existing setup workflow; never installs or repairs dependencies. */
+export function dependencyReadiness(root = process.cwd()) {
+  const requiredPaths = [
+    "node_modules/.bun",
+    "node_modules/.bin/turbo",
+    "node_modules/.bin/oxlint",
+    "node_modules/multiformats/basics.js",
+  ];
+  const missing = requiredPaths.filter((entry) => !existsSync(path.join(root, entry)));
+  return { ready: missing.length === 0, missing };
+}

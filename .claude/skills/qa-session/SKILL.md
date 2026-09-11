@@ -73,15 +73,15 @@ duplicate them:
 Run before the user starts walking. Print the checklist results compactly; stop on a hard fail.
 
 1. **Same-checkout guard.** Live fixes only render if they land in the checkout serving the
-   ports. Primary check: `bun run dev:stack status` — it reports each surface's lease owner and
+   ports. Primary check: `bun run dev status` — it reports each surface's lease owner and
    compatibility key without external tools (the Codex container has no `lsof`). If another
    owner holds 3001/3002, stop and say so — do not restart another session's stack. Where
    available, `lsof -nP -iTCP:3001 -sTCP:LISTEN` (then the pid's cwd) is a secondary
    cross-check that the listener really serves THIS repo root.
    **Never `EnterWorktree` during a session**; fixes land in this checkout.
-2. **Stack.** `bun run dev:prod` (docs, admin, client, storybook against real Arbitrum, hosted
-   indexer, production agent) if not already up. `dev:prod:mirror` when the session needs a local
-   indexer. Health: `bun run dev:doctor -- --profile prod`.
+2. **Stack.** `bun run dev -- prod` (docs, admin, client, storybook against real Arbitrum, hosted
+   indexer, production agent) if not already up. `bun run dev -- prod-mirror` when the session needs a local
+   indexer. Health: `bun run dev:health -- --profile prod`.
 3. **Warm-up and profile state.** Load every in-scope surface once BEFORE dictation begins. Also
    record the QA profile's stored preferences that change rendering — most importantly
    `localStorage["gg-language"]`, which overrides browser locale: a Portuguese UI on an English

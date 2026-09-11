@@ -13,7 +13,7 @@ Implementation facts come from code and configuration. Authored pages explain fl
 Run commands from the repository root:
 
 ```bash
-bun run dev:docs
+bun run dev -- docs
 ```
 
 The docs server listens on port 3003. Before handing off a change, run the docs checks selected by the validation planner:

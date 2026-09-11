@@ -6,6 +6,7 @@ import { readFileSync } from "node:fs";
 import { parseGeneratorArgs, syncProjections } from "./generator-core.mjs";
 import {
   renderApiIndex,
+  renderCommands,
   renderDeploymentStatus,
   renderErd,
   renderGitHubActions,
@@ -79,6 +80,7 @@ export function createProjections(root = REPO_ROOT) {
 
   return [
     { scope: "package", output: "docs/docs/builders/agentic/mcp-guide.mdx", sources: [".mcp.json", "AGENTS.md", ...mcpWrapperSources(root)], render: renderMcpGuide },
+    { scope: "package", output: "docs/docs/builders/packages/commands.mdx", sources: ["package.json", "docs/package.json", "packages/qa/package.json", ...PACKAGE_MANIFESTS], render: renderCommands },
     { scope: "package", output: "docs/docs/builders/packages/api-index.mdx", sources: [...PACKAGE_MANIFESTS, "packages/shared/src/public-contracts/routes.ts", ...publicAgentRoutes], render: renderApiIndex },
     { scope: "package", output: "docs/docs/builders/journeys/persona-surfaces.mdx", sources: [ONTOLOGY, "packages/client/src/config/routes.tsx", "packages/client/src/config/pwaRouting.ts", "packages/admin/src/router.tsx", "packages/admin/src/routes/views.tsx"], render: renderPersonaSurfaces },
     { scope: "integration", output: "docs/docs/builders/deployments/status.mdx", sources: integrationCommon, render: renderDeploymentStatus },

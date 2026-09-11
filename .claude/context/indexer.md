@@ -12,12 +12,12 @@ Loaded when working in `packages/indexer/`. Extends `CLAUDE.md` and
 | `bun run test` | Codegen, then Envio v3 handler tests |
 | `bun run check:indexing-boundary` | Verify contracts, chains, addresses, and block boundaries |
 | `bun run dev` | Start Envio with the local database preserved |
-| `bun run stop` / `bun run db:down` | Stop (not remove) Envio-managed containers; keeps `envio-postgres-data` |
+| `bun run db:down` | Stop (not remove) Envio-managed containers; keeps `envio-postgres-data` |
 | `bun run dev:restart` | Destructive local replay from configured start blocks |
 | `bun run reset` | Delete the local database and stop Envio |
 | `bun run dev:docker` | Validate the package's self-contained Docker image |
 
-Prerequisites are Node.js 22.12+, Bun, and OrbStack or Docker Desktop. Runtime scripts read the
+Use the Node.js and Bun versions pinned in root `.mise.toml`, and OrbStack or Docker Desktop. Runtime scripts read the
 repository-root `.env`; never add a package-level `.env`.
 
 ## Architecture
@@ -34,7 +34,7 @@ packages/indexer/
 └── docker-compose.indexer.yaml
 ```
 
-The indexer uses Envio HyperIndex `3.2.1`. `config.yaml` uses the v3 `chains` structure. Handlers
+The indexer uses the Envio HyperIndex version pinned in `package.json`. `config.yaml` uses the v3 `chains` structure. Handlers
 import `indexer` and entity types from `envio`; do not restore generated-v2 imports, ReScript
 build steps, `MockDb`, package-local pnpm workflows, or package-local Envio skills.
 
@@ -138,11 +138,10 @@ Safe commands:
 
 ```bash
 bun run clean     # remove TypeScript build metadata only
-bun run stop      # stop (not remove) Envio-managed containers; keeps envio-postgres-data
 bun run db:down   # same database-preserving container shutdown
 ```
 
-Both stop commands select containers by Envio's `dev.envio.config-hash` label, so they never touch
+The shutdown command selects containers by Envio's `dev.envio.config-hash` label, so they never touch
 the separate `docker-compose.indexer.yaml` stack.
 
 Destructive commands:
@@ -153,7 +152,7 @@ bun run reset        # delete local database and stop Envio
 ```
 
 `envio local docker down` is also destructive despite help text that names only containers: it
-removes `envio-postgres-data` too. Do not wire it into `stop` or `db:down`.
+removes `envio-postgres-data` too. Do not wire it into `db:down`.
 
 Never use a destructive command merely to resolve a port conflict. Identify the process with
 `lsof`, stop the owning attached process with Ctrl-C, or use the matching database-preserving

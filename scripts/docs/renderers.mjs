@@ -60,6 +60,7 @@ export function renderApiIndex({ root, sources, digest }) {
     "API Index",
     "Use package export specifiers and public route constants as the stable entrypoints. Source-file imports bypass package boundaries and are not public APIs."
   );
+  body += "[Runnable command inventory](./commands) is generated from the workspace manifests.\n\n";
   body += "## Public Agent routes\n\n| Name | Path | Registered methods |\n|---|---|---|\n";
   for (const route of routes) {
     const methods = routeRegistrations.get(route.name) ?? routeRegistrations.get(route.value) ?? [];
@@ -385,4 +386,26 @@ export function renderQaCatalog({ root, sources, digest }) {
   }
   body += "\n";
   return body;
+}
+
+export function renderCommands({ root, sources, digest }) {
+  let body = pageHeader(
+    { title: "Command inventory", slug: "/builders/packages/commands", sources, digest },
+    "Command inventory",
+    "Generated from package manifests. Start with the getting-started guide for everyday commands. Operational scripts can write to live networks; read the owning runbook before using them."
+  );
+  let total = 0;
+  for (const source of sources) {
+    const manifest = readJson(root, source);
+    const names = Object.keys(manifest.scripts ?? {}).sort();
+    total += names.length;
+    const directory = source === "package.json" ? "" : source.slice(0, -"/package.json".length);
+    body += `## ${esc(directory || "Repository root")} (${names.length})\n\n`;
+    body += "| Script | Invocation from repository root |\n|---|---|\n";
+    for (const name of names) {
+      body += `| ${esc(name)} | \`bun run ${directory ? `--cwd ${directory} ` : ""}${esc(name)}\` |\n`;
+    }
+    body += "\n";
+  }
+  return body + `Total: ${total} script entries.\n`;
 }

@@ -17,7 +17,7 @@ bun run test:e2e:smoke
 bun run test:e2e:ui
 ```
 
-`bun run test:e2e` delegates to `scripts/dev/test-e2e.js`. It starts `bun run dev:web`, waits for
+`bun run test:e2e` delegates to `scripts/dev/test-e2e.js`. It starts `bun run dev -- web`, waits for
 the client on port 3001 and admin on port 3002, sets `SKIP_WEBSERVER=true` for Playwright, and stops
 the stack on exit. The default wrapper does not start the local indexer.
 

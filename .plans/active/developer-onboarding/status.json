@@ -1,0 +1,147 @@
+{
+  "version": 2,
+  "feature": {
+    "slug": "developer-onboarding",
+    "title": "Simplify development and onboarding",
+    "kind": "feature",
+    "stage": "active"
+  },
+  "workflow": {
+    "overall_status": "active",
+    "priority": "p2",
+    "created_at": "2026-09-11T02:58:28.332Z",
+    "updated_at": "2026-09-11T06:38:32.697522+00:00"
+  },
+  "links": {
+    "brief": "brief.md",
+    "spec": "spec.md",
+    "plan": "plan.todo.md",
+    "eval": "eval.md"
+  },
+  "linear": {
+    "parentIssue": "PRD-918",
+    "project": null,
+    "initiative": null,
+    "syncDirection": "plans_to_linear_visibility",
+    "lastSyncedAt": null,
+    "lanes": {},
+    "laneSyncMode": "parent_only"
+  },
+  "taxonomy": {
+    "initiative": "engineering-quality",
+    "tracks": [],
+    "work_types": ["implementation"],
+    "surfaces": ["docs", "contracts"],
+    "depends_on_features": []
+  },
+  "notes": [
+    "Implementation is in the existing shared checkout; no branch change, commit, broadcast, or archival.",
+    "First-run installation permission and independent standard-port launch remain acceptance blockers.",
+    "See implementation.md for working-copy evidence and command counts."
+  ],
+  "lanes": {
+    "ui": {
+      "owner": "claude",
+      "status": "n/a",
+      "branch": null,
+      "depends_on": [],
+      "handoff": "handoffs/claude-ui.md",
+      "tdd": {
+        "mode": "not_applicable",
+        "status": "pending",
+        "red": {},
+        "green": {},
+        "note": "No application UI implementation changes."
+      },
+      "skill_tags": ["ui", "frontend-design", "react"]
+    },
+    "state_api": {
+      "owner": "codex",
+      "status": "in_progress",
+      "branch": null,
+      "depends_on": [],
+      "handoff": "handoffs/codex-state-api.md",
+      "tdd": {
+        "mode": "proof_limit",
+        "status": "green_recorded",
+        "red": {
+          "command": "node --test scripts/dev/dev-modes.test.mjs",
+          "evidence": "Initial missing-mode-module failure recorded during implementation."
+        },
+        "green": {
+          "command": "bun run test:validation-system",
+          "evidence": "Passed in this working copy; see implementation.md."
+        },
+        "note": "Code is implemented and local checks passed; leave lane open until fresh first-run acceptance is available. No commit receipt claimed."
+      },
+      "skill_tags": ["developer-workflow"]
+    },
+    "contracts": {
+      "owner": "codex",
+      "status": "in_progress",
+      "branch": null,
+      "depends_on": [],
+      "handoff": "handoffs/codex-contracts.md",
+      "tdd": {
+        "mode": "proof_limit",
+        "status": "green_recorded",
+        "red": {
+          "command": "node --test scripts/dev/dev-modes.test.mjs",
+          "evidence": "Initial missing-mode-module failure recorded during implementation."
+        },
+        "green": {
+          "command": "bun run verify:contracts:fast",
+          "evidence": "Passed in this working copy; see implementation.md."
+        },
+        "note": "Code is implemented and local checks passed; leave lane open until fresh first-run acceptance is available. No commit receipt claimed."
+      },
+      "skill_tags": ["contracts"]
+    },
+    "qa_pass_1": {
+      "owner": "claude",
+      "status": "blocked",
+      "ready_when_dependencies_met": true,
+      "manual_blocked": true,
+      "branch": null,
+      "depends_on": ["ui", "state_api", "contracts"],
+      "handoff": "handoffs/claude-qa-pass-1.md",
+      "skill_tags": ["testing", "review"]
+    },
+    "qa_pass_2": {
+      "owner": "codex",
+      "status": "blocked",
+      "ready_when_dependencies_met": true,
+      "manual_blocked": true,
+      "branch": null,
+      "depends_on": ["qa_pass_1"],
+      "handoff": "handoffs/codex-qa-pass-2.md",
+      "skill_tags": ["testing", "review"]
+    }
+  },
+  "history": [
+    {
+      "timestamp": "2026-09-11T02:58:28.337Z",
+      "actor": "human",
+      "lane": "system",
+      "status": "scaffolded",
+      "branch": null,
+      "note": "Scaffolded feature hub in active"
+    },
+    {
+      "timestamp": "2026-09-11T02:58:36.350Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "linear_recorded",
+      "branch": null,
+      "note": "Recorded Linear parent/lane issue identifiers"
+    },
+    {
+      "timestamp": "2026-09-11T02:59:19.098Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "linear_recorded",
+      "branch": null,
+      "note": "Recorded Linear parent/lane issue identifiers"
+    }
+  ]
+}

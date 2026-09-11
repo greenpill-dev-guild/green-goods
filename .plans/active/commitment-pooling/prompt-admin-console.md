@@ -93,10 +93,10 @@ client-loop worktree (`lsof` cwd = `.claude/worktrees/client-loop`).
   detached from the worktree root with the log outside the repo, then wait on the ports:
   `( nohup mise exec -- bun run dev > "$TMPDIR/gg-stack.log" 2>&1 < /dev/null & )`, then
   `npx wait-port -t 240000 localhost:3002` and `npx wait-port -t 300000 localhost:3006` (the
-  indexer leg rebuilds a Docker image). `bun run dev:stop` stops the stack wherever it was started.
-- `bun run dev:doctor` cannot see the live stack (its port probe binds `127.0.0.1`, which succeeds
+  indexer leg rebuilds a Docker image). `bun run dev -- stop` stops the stack wherever it was started.
+- `bun run dev:health` cannot see the live stack (its port probe binds `127.0.0.1`, which succeeds
   against Vite's wildcard bind on macOS); use `npx pm2 list` and
-  `lsof -nP -iTCP:<port> -sTCP:LISTEN`. `bun run dev:health` and `bun run dev:smoke:full` stay valid
+  `lsof -nP -iTCP:<port> -sTCP:LISTEN`. `bun run dev:health` and `bun run dev:smoke -- full` stay valid
   once the stack is up.
 - The local Envio builds from this worktree and mirrors live Arbitrum (18 pools registered);
   writes go to the Anvil fork, which is in-memory and resets on every stack restart. `dev:web`
@@ -104,7 +104,7 @@ client-loop worktree (`lsof` cwd = `.claude/worktrees/client-loop`).
   on the full stack.
 - Local pooling data depends on the local index having caught up. Earlier on 2026-08-21 the local
   index sat 60 M blocks behind the head while Envio HyperSync rate-limited the catch-up; later that
-  day it was 3 blocks behind and `bun run dev:smoke:full` passed. Run the smoke first and treat a
+  day it was 3 blocks behind and `bun run dev:smoke -- full` passed. Run the smoke first and treat a
   failing `local-indexer-lag` check as "no live local proof yet": build and test against fixtures,
   and do not change indexer config, compose, or env to work around it (raising the Envio plan
   limit is Afo's call).

@@ -97,4 +97,4 @@ if (inject.status !== 0) {
 
 console.log("");
 console.log("Wrote .env from .env.template.");
-console.log("Restart any running dev servers so they pick up the new env: `bun run dev:stop && bun run dev`.");
+console.log("Restart your owning dev launcher with Ctrl-C and the same mode so it picks up the new environment. Do not stop another session or silently change modes.");

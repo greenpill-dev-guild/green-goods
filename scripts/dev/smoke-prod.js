@@ -631,9 +631,9 @@ const payload = {
     timeoutMs: options.timeoutMs,
   },
   entrypoints: {
-    prod: "bun run dev:prod",
-    mirror: "bun run dev:prod:mirror",
-    smoke: "bun run dev:prod:smoke",
+    prod: "bun run dev -- prod",
+    mirror: "bun run dev -- prod-mirror",
+    smoke: "bun run dev:smoke -- prod",
   },
 };
 

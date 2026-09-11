@@ -23,7 +23,7 @@ generated_from:
   - .github/workflows/shared.yml
   - .github/workflows/supply-chain-guardrails.yml
   - package.json
-source_digest: "sha256:b529dab33fe01d7db46a76a7aabdc82e149788521d4dc046423cbb49cc61c176"
+source_digest: "sha256:4c06a98d9aa3be01dc2a3bec99dee22534942ffaf40b0dca958c3b14e270a889"
 source_of_truth:
   - .github/workflows/admin.yml
   - .github/workflows/agent.yml
@@ -132,4 +132,4 @@ Workflow files own CI triggers and jobs. Root package scripts own reusable local
 | `test:review-guardrails` | `node scripts/dev/node-cli.js node --test scripts/quality/check-codex-docs.test.mjs scripts/quality/check-guidance-links.test.mjs scripts/quality/check-skill-behavior-contracts.test.mjs scripts/quality/task-routing-contract.test.mjs scripts/quality/check-immutable-plan-reports.test.mjs scripts/quality/check-qa-id-ledger.test.mjs scripts/quality/lint-linear-issue.test.mjs scripts/design/check-guidance-examples.test.mjs scripts/contracts/check-foundry-version.test.mjs scripts/contracts/check-solidity-test-names.test.mjs` |
 | `test:shared` | `cd packages/shared && bun run test` |
 | `test:shared:live` | `cd packages/shared && bun run test:live` |
-| `test:validation-system` | `node scripts/dev/node-cli.js node --test scripts/lib/dev-shared.test.mjs scripts/quality/check-direct-tested-seams.test.mjs scripts/quality/check-source-structure.test.mjs scripts/quality/check-staged-modules.test.mjs scripts/quality/select-validation.test.mjs scripts/dev/ci-local.test.mjs scripts/dev/surface-leases.test.mjs scripts/dev/stack.test.mjs scripts/dev/smoke-full.test.mjs scripts/quality/ci-gate.test.mjs scripts/quality/workflow-performance-parity.test.mjs` |
+| `test:validation-system` | `node scripts/dev/node-cli.js node --test scripts/lib/dev-shared.test.mjs scripts/quality/check-direct-tested-seams.test.mjs scripts/quality/check-source-structure.test.mjs scripts/quality/check-staged-modules.test.mjs scripts/quality/select-validation.test.mjs scripts/dev/ci-local.test.mjs scripts/dev/surface-leases.test.mjs scripts/dev/stack.test.mjs scripts/dev/smoke-full.test.mjs scripts/quality/ci-gate.test.mjs scripts/quality/workflow-performance-parity.test.mjs scripts/dev/dev-modes.test.mjs scripts/dev/setup-env.test.mjs` |

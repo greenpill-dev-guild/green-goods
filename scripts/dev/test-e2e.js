@@ -49,9 +49,9 @@ let devProcess = null;
 
 function stopStack() {
   try {
-    execSync("bun run dev:stack:stop", { stdio: "ignore" });
+    execSync("bun run dev -- stop", { stdio: "ignore" });
   } catch {
-    // dev:stack:stop is idempotent; PM2 may already be down
+    // Owner-bound stack stop is idempotent; PM2 may already be down
   }
 }
 
@@ -101,7 +101,7 @@ async function main() {
   const logFile = "/tmp/green-goods-dev.log";
   const logStream = fs.createWriteStream(logFile, { flags: "w" });
 
-  devProcess = spawn("bun", ["run", "dev:web"], {
+  devProcess = spawn("bun", ["run", "dev", "--", "web"], {
     stdio: ["ignore", "pipe", "pipe"],
     detached: false,
     env: {

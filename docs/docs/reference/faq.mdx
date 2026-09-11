@@ -169,10 +169,10 @@ cd green-goods
 npm run setup
 bun run dev:health
 bun run dev
-bun run dev:smoke:web
+bun run dev:smoke -- web
 ```
 
-Use `bun run dev:prod` only when you intentionally want local browser surfaces
+Use `bun run dev -- prod` only when you intentionally want local browser surfaces
 against production Arbitrum, hosted indexer, and hosted agent APIs.
 
 See [Developer Getting Started](../builders/getting-started).

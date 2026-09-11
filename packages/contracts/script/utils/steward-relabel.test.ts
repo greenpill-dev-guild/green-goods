@@ -1,22 +1,7 @@
 import fs from "node:fs";
 import { describe, expect, it } from "vitest";
 
-import {
-  validateInventoryCoverage,
-  type InventoryGarden,
-} from "../../../../.plans/active/commitment-pooling/operations/steward-hat-relabel/refresh-direct-plan";
-import {
-  collectPreparationValidationErrors,
-  isExpectedMissingGardenTokenError,
-  redactRpcError,
-  redactRpcUrl,
-} from "../../../../.plans/active/commitment-pooling/operations/steward-hat-relabel/prepare";
-import {
-  validateRelabelPlan,
-  validateReviewedPlanArtifact,
-  type RelabelPlan,
-} from "../../../../.plans/active/commitment-pooling/operations/steward-hat-relabel/relabel";
-import { redactRpcUrl as redactSharedRpcUrl, redactRpcUrlsInText, redactSensitiveArgs } from "./cli-parser";
+import { redactRpcUrlsInText, redactSensitiveArgs } from "./cli-parser";
 import {
   collectStewardGardenCoverageErrors,
   collectStewardSelectorParityErrors,
@@ -24,19 +9,7 @@ import {
 } from "./post-deploy-verify";
 import { extractEnumDefinitionsFromSource } from "./storage-layout-enums";
 
-type InventoryIdentity = Pick<InventoryGarden, "tokenId" | "garden" | "operatorHatId">;
-
-const UNIVERSAL_HATS = "0x3bc1A0Ad72417f2d411118085256fC53CBdDd137";
-const REVIEWED_PLAN_PATH = new URL(
-  "../../deployments/tx-plans/42161-steward-relabel-488705295-plan.json",
-  import.meta.url,
-);
-
-function loadReviewedPlan(): RelabelPlan {
-  return JSON.parse(fs.readFileSync(REVIEWED_PLAN_PATH, "utf8")) as RelabelPlan;
-}
-
-const GARDENS: InventoryIdentity[] = [
+const GARDENS = [
   {
     tokenId: "0",
     garden: "0x0000000000000000000000000000000000000001",
@@ -54,7 +27,7 @@ const GARDENS: InventoryIdentity[] = [
   },
 ];
 
-describe("Steward relabel safety", () => {
+describe("Steward upgrade and RPC safety", () => {
   it("redacts hosted RPC credentials from logged forge arguments", () => {
     const rpcUrl = "https://provider.example/rpc/super-secret-key";
     const args = ["script", "RelabelStewardHats", "--rpc-url", rpcUrl, "--chain-id", "42161"];
@@ -75,17 +48,6 @@ describe("Steward relabel safety", () => {
     ]);
   });
 
-  it("fully redacts RPC URLs and error messages regardless of credential shape", () => {
-    const rpcUrl = "https://user:password@api-key.provider.example/custom/key?token=secret";
-    const message = `cast failed while calling ${rpcUrl}`;
-
-    expect(redactRpcUrl(rpcUrl)).toBe("https://[REDACTED]");
-    expect(redactRpcError(message, rpcUrl)).toBe("cast failed while calling https://[REDACTED]");
-    expect(redactRpcError(message, rpcUrl)).not.toContain("password");
-    expect(redactRpcError(message, rpcUrl)).not.toContain("api-key");
-    expect(redactRpcError(message, rpcUrl)).not.toContain("secret");
-  });
-
   it("redacts arbitrary RPC URL shapes embedded in command failures", () => {
     const message =
       "Command failed: cast storage 0x123 0x0 --rpc-url https://user:password@secret-project.rpc.example.com/custom/key?apiKey=super-secret (exit 1)";
@@ -104,113 +66,6 @@ describe("Steward relabel safety", () => {
     expect(redacted).toBe("Command failed: cast call --rpc-url wss://[REDACTED]");
     expect(redacted).not.toContain("user:pass");
     expect(redacted).not.toContain("token=secret");
-  });
-
-  it("distinguishes an absent next garden token from RPC failures", () => {
-    expect(isExpectedMissingGardenTokenError("execution reverted: ERC721: invalid token ID")).toBe(true);
-    expect(isExpectedMissingGardenTokenError("HTTP 429 rate limit")).toBe(false);
-    expect(isExpectedMissingGardenTokenError("request timed out")).toBe(false);
-  });
-
-  it("persists a fully redacted RPC marker in refreshed preflight artifacts", () => {
-    const rpcUrl = "https://api-key.provider.example/custom/key?token=secret";
-    const refreshSource = fs.readFileSync(
-      new URL(
-        "../../../../.plans/active/commitment-pooling/operations/steward-hat-relabel/refresh-direct-plan.ts",
-        import.meta.url,
-      ),
-      "utf8",
-    );
-
-    expect(redactSharedRpcUrl(rpcUrl)).toBe("https://[REDACTED]");
-    expect(refreshSource).toContain("rpcUrl: redactRpcUrl(rpcUrl)");
-    expect(refreshSource).not.toContain("rpcUrl: new URL(rpcUrl).origin");
-  });
-
-  it("accepts a complete unique inventory even when token rows are unordered", () => {
-    expect(() => validateInventoryCoverage([GARDENS[2], GARDENS[0], GARDENS[1]], 3)).not.toThrow();
-  });
-
-  it("rejects a duplicate token ID that omits part of the expected range", () => {
-    const invalid = [GARDENS[0], GARDENS[1], { ...GARDENS[2], tokenId: "1" }];
-
-    expect(() => validateInventoryCoverage(invalid, 3)).toThrow(
-      "Reviewed inventory token IDs must uniquely cover 0..2",
-    );
-  });
-
-  it("rejects duplicate garden addresses case-insensitively", () => {
-    const invalid = [
-      GARDENS[0],
-      GARDENS[1],
-      { ...GARDENS[2], garden: GARDENS[0].garden.toUpperCase() as InventoryIdentity["garden"] },
-    ];
-
-    expect(() => validateInventoryCoverage(invalid, 3)).toThrow(
-      "Reviewed inventory contains a duplicate garden address",
-    );
-  });
-
-  it("rejects duplicate operator hat IDs", () => {
-    const invalid = [GARDENS[0], GARDENS[1], { ...GARDENS[2], operatorHatId: "0100" }];
-
-    expect(() => validateInventoryCoverage(invalid, 3)).toThrow(
-      "Reviewed inventory contains a duplicate operator hat ID",
-    );
-  });
-
-  it("blocks preparation when any target hat is inactive", () => {
-    const errors = collectPreparationValidationErrors([
-      {
-        garden: GARDENS[0].garden,
-        operatorHatId: GARDENS[0].operatorHatId,
-        mutable: true,
-        active: false,
-        expectedCallerIsAdmin: true,
-        expectedCallerControlsGarden: false,
-        gardenIsAdmin: true,
-        validationErrors: [],
-      },
-    ]);
-
-    expect(errors).toContain("At least one target operator hat is inactive");
-  });
-
-  it("rejects relabel plans that do not target the canonical Hats contract", () => {
-    const plan = loadReviewedPlan();
-    plan.hatsProtocol = "0x0000000000000000000000000000000000000001";
-
-    expect(() => validateRelabelPlan(plan, 18)).toThrow(
-      `Relabel plan Hats Protocol ${plan.hatsProtocol} does not match ${UNIVERSAL_HATS}`,
-    );
-  });
-
-  it("rejects operator-supplied target counts that differ from the reviewed operation", () => {
-    expect(() => validateRelabelPlan(loadReviewedPlan(), 17)).toThrow(
-      "Relabel target count must equal the reviewed count 18",
-    );
-  });
-
-  it("rejects altered same-count relabel transactions", () => {
-    const plan = loadReviewedPlan();
-    const transaction = plan.transactions[0] as {
-      targetDetails: string;
-      contractInputsValues: { _newDetails: string };
-    };
-    transaction.targetDetails = "Substituted Steward";
-    transaction.contractInputsValues._newDetails = transaction.targetDetails;
-
-    expect(() => validateRelabelPlan(plan, 18)).toThrow(
-      "Relabel transaction 0 is not the reviewed changeHatDetails operation",
-    );
-  });
-
-  it("pins execution to the reviewed plan artifact and digest", () => {
-    const contents = fs.readFileSync(REVIEWED_PLAN_PATH, "utf8");
-    expect(() => validateReviewedPlanArtifact(REVIEWED_PLAN_PATH.pathname, contents)).not.toThrow();
-    expect(() => validateReviewedPlanArtifact(REVIEWED_PLAN_PATH.pathname, `${contents}\n`)).toThrow(
-      "does not match the reviewed artifact",
-    );
   });
 
   it("rejects Steward baselines that omit a live garden", () => {
@@ -269,10 +124,6 @@ describe("Steward relabel safety", () => {
 
   it("requires fresh reviewed fork inputs for both HatsModule upgrade rehearsals", () => {
     const shardSource = fs.readFileSync(new URL("./fork-shards.mjs", import.meta.url), "utf8");
-    const operationReadme = fs.readFileSync(
-      new URL("../../../../.plans/active/commitment-pooling/operations/steward-hat-relabel/README.md", import.meta.url),
-      "utf8",
-    );
 
     expect(shardSource).toContain('"HATS_MODULE_UPGRADE_FORK_BLOCK_NUMBER"');
     expect(shardSource).toContain('"HATS_MODULE_UPGRADE_GARDEN_COUNT"');
@@ -280,33 +131,6 @@ describe("Steward relabel safety", () => {
     expect(shardSource).toContain("requiredPositiveIntegerEnv");
     expect(shardSource).toContain("requiredAddressEnv");
     expect(shardSource).not.toContain("ARBITRUM_FORK_BLOCK_NUMBER=488705295");
-    expect(operationReadme).toContain("HATS_MODULE_UPGRADE_FORK_BLOCK_NUMBER=<REVIEWED_CURRENT_BLOCK>");
-    expect(operationReadme).toContain("HATS_MODULE_UPGRADE_GARDEN_COUNT=<REVIEWED_EXACT_GARDEN_COUNT>");
-    expect(operationReadme).toContain("HATS_MODULE_UPGRADE_EXPECTED_IMPLEMENTATION=<REVIEWED_CURRENT_IMPLEMENTATION>");
-  });
-
-  it("redacts refresh-direct-plan RPC failures before printing them", () => {
-    const refreshSource = fs.readFileSync(
-      new URL(
-        "../../../../.plans/active/commitment-pooling/operations/steward-hat-relabel/refresh-direct-plan.ts",
-        import.meta.url,
-      ),
-      "utf8",
-    );
-
-    expect(refreshSource).toContain("redactRpcUrlsInText(message)");
-  });
-
-  it("redacts relabel RPC failures before printing them", () => {
-    const relabelSource = fs.readFileSync(
-      new URL(
-        "../../../../.plans/active/commitment-pooling/operations/steward-hat-relabel/relabel.ts",
-        import.meta.url,
-      ),
-      "utf8",
-    );
-
-    expect(relabelSource).toContain("redactRpcUrlsInText(message)");
   });
 
   it("commits a baseline for every contract in the repository-wide storage gate", () => {

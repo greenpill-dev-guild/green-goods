@@ -19,9 +19,9 @@ Operator canvas for Green Goods stewards and deployers.
 ## Commands
 
 ```bash
-bun --filter admin dev
-bun --filter admin test
-bun --filter admin build
+bun run --cwd packages/admin dev
+bun run --cwd packages/admin test
+bun run --cwd packages/admin build
 ```
 
 ## Deployment
