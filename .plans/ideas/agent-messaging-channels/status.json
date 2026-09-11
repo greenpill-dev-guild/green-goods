@@ -10,7 +10,7 @@
     "overall_status": "idea",
     "priority": "p1",
     "created_at": "2026-04-17",
-    "updated_at": "2026-06-27T00:01:48.864Z"
+    "updated_at": "2026-09-11T01:48:09Z"
   },
   "links": {
     "brief": "brief.md",
@@ -19,65 +19,69 @@
     "eval": "eval.md"
   },
   "notes": [
-    "Outcome milestone #14 — Agent reachable on 2+ non-web channels; due 2026-06-30.",
-    "Epic #464. Hard deadline: WA business verification submitted 2026-05-10; outcome 2026-06-30.",
-    "SessionKeyValidator.sol is audit-bundled with the RWA epic (shared contract freeze 2026-05-30, audit firm engaged 2026-05-15).",
-    "SMS-only fallback is ready to ship from Phase 1.3 if WA verification slips (1–3 week Meta lead time).",
-    "No indexer changes — messaging state is off-chain per spec and CLAUDE.md indexer boundary.",
-    "Branch strategy: feature/agent-messaging-channels with phase commits for independent rollback.",
-    "Afo deferred this out of active product work on 2026-04-26 because May is not planned for large product implementation after the current closeout set.",
-    "Agent package hardening completed and archived on 2026-05-04; no longer listed as an open feature dependency.",
-    "Agent PostHog Observability completed and archived on 2026-05-10; routine telemetry remains available as completed prerequisite context, not an open feature dependency."
+    "Draft architecture refreshed on 2026-09-11 against repository 1031aa78fa93f3adfbdf9820150a79c101282414 and primary sources. Remains idea stage; no implementation authorized.",
+    "Accepted: TAS pilot in Nigeria and English, WhatsApp first; secure PWA confirmation for final approvals and binding commitments.",
+    "Proposed: private participant with independent account/channel bindings; owner-signed work initially; optional constrained reporting delegation later. These are not selected implementation decisions.",
+    "Open: one-time browser passkey setup versus RESR-75 no-sign-up criterion; provider and Nigeria provisioning; deployed account authentication; total-loss recovery; consent, retention, support, budget and pilot thresholds.",
+    "The April Twilio selection, 30-day SMS-renewed sessions, delegated approvals, custom validator/audit dates and SMS fallback assumptions are superseded by spec.md. Historical history entries are retained as history only.",
+    "All lanes manually blocked to prevent dispatch from superseded handoffs. Branch fields are unassigned plan metadata; no Git branch was changed.",
+    "Existing Linear mirror PRD-339 could not be resolved during research. Preserve its ID and historical sync timestamp; no Linear writes or sync performed.",
+    "Agent hardening and observability are historical completed context, not newly verified dependencies. Current work is documentation only; no runtime, provider or authenticated browser acceptance case has been executed."
   ],
   "lanes": {
     "ui": {
       "owner": "claude",
-      "status": "todo",
-      "branch": "claude/ui/agent-messaging-channels",
+      "status": "blocked",
+      "branch": null,
       "depends_on": ["state_api"],
       "handoff": "handoffs/claude-ui.md",
-      "handoff_note": "Phase 4.2 — packages/client/src/views/Profile/PhoneLinking/{index,LinkForm,ConfirmCode,SignSessionKey,Linked}.tsx. Depends on usePhoneLinking from state_api lane.",
-      "skill_tags": ["ui", "react", "web3"]
+      "handoff_note": "Draft only. Scope account linking, resumable browser/PWA drafts and exact-account confirmation after Gate 0 and shared/API contracts are selected; see plan.todo.md and eval.md.",
+      "skill_tags": ["ui", "react", "web3"],
+      "manual_blocked": true,
+      "ready_when_dependencies_met": false
     },
     "state_api": {
       "owner": "codex",
-      "status": "todo",
-      "branch": "codex/state-api/agent-messaging-channels",
+      "status": "blocked",
+      "branch": null,
       "depends_on": [],
       "handoff": "handoffs/codex-state-api.md",
-      "handoff_note": "Phases 1 + 2.2 + 2.3 + 3 + 4.1 — agent platforms/services/handlers + shared usePhoneLinking hook + modules/{sessionKeys,agentCommands}.ts. Barrel-export from @green-goods/shared.",
-      "skill_tags": ["react", "tanstack-query", "data-layer", "testing"]
+      "handoff_note": "Draft only. Scope verified identity bindings, backend proofs, durable evidence/intents, provider ingress and delivery after Gate 0. Existing InboundMessage/Hono patterns are starting points; see spec.md.",
+      "skill_tags": ["react", "tanstack-query", "data-layer", "testing"],
+      "manual_blocked": true,
+      "ready_when_dependencies_met": false
     },
     "contracts": {
       "owner": "codex",
-      "status": "todo",
-      "branch": "codex/contracts/agent-messaging-channels",
+      "status": "blocked",
+      "branch": null,
       "depends_on": [],
       "handoff": "handoffs/codex-contracts.md",
-      "handoff_note": "Phase 2.1 — SessionKeyValidator.sol (scoped per-user target + selector allowlist + expiry + revoke). Audit-bundled with RWA epic; contract freeze 2026-05-30.",
-      "skill_tags": ["contracts"]
+      "handoff_note": "Draft only. Baseline owner-signed work proposes no new validator. Delegation requires separately selected deployed-module and calldata-policy proof; no audit or deployment is assumed.",
+      "skill_tags": ["contracts"],
+      "manual_blocked": true,
+      "ready_when_dependencies_met": false
     },
     "qa_pass_1": {
       "owner": "claude",
       "status": "blocked",
-      "ready_when_dependencies_met": true,
-      "manual_blocked": false,
-      "branch": "claude/qa-pass-1/agent-messaging-channels",
+      "ready_when_dependencies_met": false,
+      "manual_blocked": true,
+      "branch": null,
       "depends_on": ["ui", "state_api", "contracts"],
       "handoff": "handoffs/claude-qa-pass-1.md",
-      "handoff_note": "Playwright + agent E2E against Twilio sandbox; Chrome MCP spot-check of PhoneLinking flow; i18n key validation on reply templates.",
+      "handoff_note": "Draft only. Use eval.md and authenticated Brave plus actual TAS devices/provider fixtures after implementation selection. No runtime validation has run.",
       "skill_tags": ["testing", "review"]
     },
     "qa_pass_2": {
       "owner": "codex",
       "status": "blocked",
-      "ready_when_dependencies_met": true,
-      "manual_blocked": false,
-      "branch": "codex/qa-pass-2/agent-messaging-channels",
-      "branch_trigger": "claude/qa-pass-1/agent-messaging-channels",
+      "ready_when_dependencies_met": false,
+      "manual_blocked": true,
+      "branch": null,
       "depends_on": ["qa_pass_1"],
       "handoff": "handoffs/codex-qa-pass-2.md",
-      "handoff_note": "Re-run SessionKeyValidator fuzz, rate-limit concurrency, revoke-path invariant, PII-hygiene grep.",
+      "handoff_note": "Draft only. Independently verify auth, cross-garden denial, operation recovery and conditional delegation against actual deployment after prior proof. No runtime validation has run.",
       "skill_tags": ["testing", "review", "contracts"]
     }
   },
@@ -145,6 +149,14 @@
       "status": "moved_to_ideas",
       "branch": null,
       "note": "Moved to ideas and neutralized lane mirroring until activation."
+    },
+    {
+      "timestamp": "2026-09-11T01:48:09Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "research_captured",
+      "branch": null,
+      "note": "Captured user-requested final architecture research in existing canonical hub. Distinguished accepted TAS/PWA decisions from proposed identity and delivery design, superseded April assumptions, and blocked stale execution metadata. Remains ideas; no implementation or Linear sync."
     }
   ],
   "taxonomy": {

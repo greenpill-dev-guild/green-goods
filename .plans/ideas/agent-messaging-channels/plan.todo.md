@@ -1,335 +1,94 @@
-# Agent Messaging Channels Plan
-
-**Feature Slug**: `agent-messaging-channels`
-**Epic**: [#464](https://github.com/greenpill-dev-guild/green-goods/issues/464)
-**Outcome Milestone**: [Outcome: Agent reachable on 2 non-web channels](https://github.com/greenpill-dev-guild/green-goods/milestone/14) (#14)
-**Spec**: [spec.md](./spec.md)
-**Status**: `BACKLOG`
-**Created**: `2026-04-17`
-**Last Updated**: `2026-04-17` (initial plan)
-**Hard Deadline**: Twilio + WA business verification submitted **2026-05-10**; outcome milestone **2026-06-30**
-**Branch Strategy**: `feature/agent-messaging-channels` with phase commits for independent rollback
-
-## Scheduling Update — 2026-04-26
-
-Afo deferred this out of the current active product-development push. Keep it in backlog for later sequencing after the current closeout set and the May product-development pause.
-
-## Dependency Update — 2026-05-10
-
-`agent-posthog-observability` has been completed and archived as connector-first routine guidance plus fallback script support. Messaging channels no longer depends on an open PostHog feature hub; treat PostHog routine telemetry as completed prerequisite context.
-
-> **For agentic workers:** Execute via the `plan` skill's batch flow (`.claude/skills/plan/SKILL.md § Execute Plan`) task-by-task. Steps use checkbox (`- [ ]`) syntax.
-
-## Decision Log
-
-| # | Decision | Rationale |
-|---|---|---|
-| 1 | Transactional agent with linked accounts (phone ↔ passkey account) | Users expect to act, not just read; preserves self-custody via passkey anchor. |
-| 2 | Twilio as single provider for WhatsApp + SMS | One SDK, one bill, one support channel; cheapest path to 2 channels. |
-| 3 | Tier-Y capability: read-only unlimited, transactional rate-limited | Caps blast radius on SIM swap / compromise without blocking normal usage. |
-| 4 | ERC-4337 session keys scoped per-user, granted at phone linking | On-chain enforcement of permissions; agent backend never holds EOA keys. |
-| 5 | Session TTL 30 days with auto-refresh via SMS confirmation | Forces periodic re-verification; rotation path without UX friction. |
-| 6 | Rate limits: submit 10/day, approve/reject 20/day, join 3/day, status/pending/help unlimited | Tier-Y numbers tuned to realistic operator volume; revisited post-pilot. |
-| 7 | Revoke via web (passkey) OR `REVOKE` keyword via messaging | Dual-path recovery: web for lost phone, SMS for compromised session. |
-| 8 | `SessionKeyValidator.sol` audit-bundled with RWA epic (contract freeze 2026-05-30) | One audit engagement covers both Q2 contract epics — cost efficiency. |
-
-## Requirements Coverage
-
-| Spec Requirement | Planned Phase · Task | Status |
-|---|---|---|
-| Twilio accounts provisioned (WA + SMS) | 0.2 | ⬜ |
-| WA business verification submitted by 2026-05-10 | 0.3 | ⬜ |
-| `platforms/_base.ts` — shared parsing + dispatch | 1.1 | ⬜ |
-| `platforms/whatsapp.ts` — Twilio WA webhook | 1.2 | ⬜ |
-| `platforms/sms.ts` — Twilio Programmable SMS webhook | 1.3 | ⬜ |
-| Unified `InboundMessage` normalization | 1.1 | ⬜ |
-| `SessionKeyValidator.sol` (scoped per-user) | 2.1 | ⬜ |
-| `services/sessionKeys.ts` — ERC-4337 session key mgmt | 2.2 | ⬜ |
-| `services/linking.ts` — phone ↔ account linking flow | 2.3 | ⬜ |
-| `services/rateLimit.ts` — tier-Y enforcement | 3.1 | ⬜ |
-| Existing handlers refactored to `InboundMessage` arg | 3.2 | ⬜ |
-| `shared/hooks/usePhoneLinking.ts` | 4.1 | ⬜ |
-| `shared/modules/sessionKeys.ts`, `agentCommands.ts` | 4.1 | ⬜ |
-| `client/views/Profile/PhoneLinking/` UX | 4.2 | ⬜ |
-| Revoke UX (web + `REVOKE` keyword) | 4.2, 3.2 | ⬜ |
-| E2E test (link → submit) via Twilio sandbox | 5.1 | ⬜ |
-| Season One pilot garden live on messaging | 5.2 | ⬜ |
-| Outcome milestone reached 2026-06-30 | 5.2 | ⬜ |
-
-## CLAUDE.md Compliance
-
-- ✅ All React hooks in `@green-goods/shared` (`usePhoneLinking` lives there, NOT in client)
-- ✅ Barrel imports only (`import { usePhoneLinking, sessionKeys } from "@green-goods/shared"`)
-- ✅ Agent package tests via `bun run test` (Vitest), contracts via `bun run test` (Forge) — never `bun test`
-- ✅ Never raw `forge` — all contract commands via `bun run build` / `bun run test` / `bun script/deploy.ts`
-- ✅ `SessionKeyValidator.sol` frozen for audit 2026-05-30, bundled with RWA epic
-- ✅ Logger from `@green-goods/shared` (no `console.log`)
-- ✅ Error handling: `parseContractError()` + `USER_FRIENDLY_ERRORS` for contract errors; `createMutationErrorHandler()` in shared mutation hooks
-- ✅ Query keys via `queryKeys.*` helpers
-- ✅ `Address` type (not `string`) for phone-linked account addresses
-- ✅ No indexer changes (messaging state is off-chain per spec)
-- ✅ Single `.env` at root — Twilio + KMS + Redis credentials added to `.env.schema`
-- ✅ Intent Priorities: Security #2 — rate limits + session key scope + audit gate are non-negotiable
-
-## Phase 0 — Scaffolding + Provider Setup (2026-04-17 → 2026-05-10)
-
-### 0.1 Branch + package scaffolding
-
-- [ ] Create branch `feature/agent-messaging-channels` from `develop`
-- [ ] Create `packages/agent/src/platforms/` (mkdir, `.gitkeep`)
-- [ ] Create `packages/agent/src/services/` (mkdir, `.gitkeep`)
-- [ ] Add empty files with license headers: `platforms/_base.ts`, `platforms/whatsapp.ts`, `platforms/sms.ts`
-- [ ] Add empty files: `services/linking.ts`, `services/sessionKeys.ts`, `services/rateLimit.ts`
-- [ ] Commit: `chore(agent): scaffold messaging platforms + services dirs`
-
-### 0.2 Twilio account provisioning
-
-- [ ] Create Twilio account (billing attached to Green Goods treasury)
-- [ ] Purchase 1 WhatsApp-enabled sender number
-- [ ] Purchase 1 SMS long-code per target region (US + 1 pilot region)
-- [ ] Add `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_WA_FROM`, `TWILIO_SMS_FROM` to `.env.schema`
-- [ ] Document credentials in ops runbook (1Password)
-- [ ] Commit: `chore(env): add Twilio credentials to env schema`
-
-### 0.3 WhatsApp business verification
-
-- [ ] Submit Meta Business Verification for WA sender (expect 1–3 week delay)
-- [ ] Draft initial message templates (approval reply, reject reply, onboarding) — not needed for transactional but speeds any future opt-in marketing
-- [ ] Fallback plan documented: ship SMS-only first if WA verification slips
-
-### 0.4 Dependency check
-
-- [ ] Verify `twilio` Node SDK compatible with Bun — add to `packages/agent/package.json`
-- [ ] Verify Redis client (`ioredis` or `redis`) — add if not present
-- [ ] Verify KMS SDK (`@aws-sdk/client-kms`) — add for session key encryption
-- [ ] Commit: `chore(agent): add Twilio + Redis + KMS dependencies`
-
-## Phase 1 — Platform Adapters + Unified Dispatch (2026-05-10 → 2026-05-25)
-
-### 1.1 `_base.ts` — shared parsing + dispatch
-
-**Files:**
-- Create: `packages/agent/src/platforms/_base.ts`
-- Create: `packages/agent/src/platforms/__tests__/_base.test.ts`
-
-- [ ] Define `InboundMessage` interface per spec (channel, externalId, accountAddress?, sessionKey?, text, timestamp)
-- [ ] Implement `parseCommand(text)` — keyword match (HELP/STATUS/PENDING/SUBMIT/APPROVE/REJECT/JOIN/LINK/REVOKE)
-- [ ] Implement `dispatch(msg: InboundMessage)` — routes to existing handler by command
-- [ ] Idempotency: cache message IDs in Redis with 24h TTL to drop duplicates
-- [ ] Unit tests for parse + dispatch (mock handlers)
-- [ ] Run: `cd packages/agent && bun run test -- platforms/__tests__/_base`
-- [ ] Commit: `feat(agent): add unified message dispatch with InboundMessage`
-
-### 1.2 `whatsapp.ts` — Twilio WhatsApp adapter
-
-**Files:**
-- Create: `packages/agent/src/platforms/whatsapp.ts`
-- Create: `packages/agent/src/platforms/__tests__/whatsapp.test.ts`
-- Modify: `packages/agent/src/server.ts` (register webhook)
-
-- [ ] Fastify route `POST /webhook/whatsapp` — Twilio signature verification
-- [ ] Normalize Twilio payload → `InboundMessage` (channel: 'whatsapp')
-- [ ] Resolve `accountAddress` + `sessionKey` via `services/linking.ts` lookup
-- [ ] Call `_base.dispatch`, format reply as Twilio TwiML
-- [ ] Outbound rate limit (max N replies/min per user) to prevent Twilio cost DoS
-- [ ] Tests with mock Twilio signature + payload
-- [ ] Commit: `feat(agent): add WhatsApp platform adapter via Twilio`
-
-### 1.3 `sms.ts` — Twilio Programmable SMS adapter
-
-**Files:**
-- Create: `packages/agent/src/platforms/sms.ts`
-- Create: `packages/agent/src/platforms/__tests__/sms.test.ts`
-- Modify: `packages/agent/src/server.ts` (register webhook)
-
-- [ ] Fastify route `POST /webhook/sms` — Twilio signature verification
-- [ ] Normalize payload → `InboundMessage` (channel: 'sms')
-- [ ] Chunking helper: split replies > 160 chars into ordered parts
-- [ ] Reply via Twilio TwiML
-- [ ] Same outbound rate limit as WA
-- [ ] Tests for chunking edge cases + signature verification
-- [ ] Commit: `feat(agent): add SMS platform adapter via Twilio`
-
-### 1.4 Telegram parity pass
-
-**Files:**
-- Modify: `packages/agent/src/platforms/telegram.ts` (existing)
-
-- [ ] Refactor existing Telegram adapter to emit `InboundMessage` and use `_base.dispatch`
-- [ ] Remove Telegram-specific context from existing handlers (move to `_base`)
-- [ ] Existing Telegram tests pass unchanged
-- [ ] Commit: `refactor(agent): route Telegram through unified dispatch`
-
-## Phase 2 — Session Keys + Linking (2026-05-15 → 2026-05-30)
-
-### 2.1 `SessionKeyValidator.sol` (scoped per-user)
-
-**Files:**
-- Create: `packages/contracts/src/validators/SessionKeyValidator.sol`
-- Create: `packages/contracts/test/SessionKeyValidator.t.sol`
-
-- [ ] Check if Pimlico ships a validator we can reuse — if yes, thin wrapper; if no, full implementation
-- [ ] Storage: `mapping(address account => mapping(address sessionKey => Permission))`
-- [ ] `Permission`: `{ targets, selectors, validUntil, revoked }`
-- [ ] `validateUserOp` — check target + selector allowlist + expiry + not revoked
-- [ ] `grantSession(sessionKey, targets, selectors, ttl)` — user-signed
-- [ ] `revokeSession(sessionKey)` — user-signed OR agent-signed with valid `REVOKE` proof
-- [ ] Tests: grant, revoke, expiry, wrong target rejected, wrong selector rejected
-- [ ] Fuzz: invariant `revoked session can never validate`
-- [ ] Run: `cd packages/contracts && bun run test -- --match-contract SessionKeyValidatorTest -vvv`
-- [ ] Commit: `feat(contracts): add SessionKeyValidator for agent session keys`
-
-### 2.2 `services/sessionKeys.ts` — ERC-4337 mgmt
-
-**Files:**
-- Create: `packages/agent/src/services/sessionKeys.ts`
-- Create: `packages/agent/src/services/__tests__/sessionKeys.test.ts`
-
-- [ ] Generate session key (random EOA) per linking
-- [ ] Encrypt session key private material via KMS; store ciphertext in Postgres (or existing store)
-- [ ] Decrypt in-memory only during UserOp signing
-- [ ] `buildUserOp(account, sessionKey, target, calldata)` — fill nonce, gas, signature via bundler
-- [ ] `revokeSessionKey(account, sessionKey)` — signs revoke UserOp
-- [ ] Tests with mock KMS + mock bundler
-- [ ] Commit: `feat(agent): add session key service with KMS encryption`
-
-### 2.3 `services/linking.ts` — phone ↔ account flow
-
-**Files:**
-- Create: `packages/agent/src/services/linking.ts`
-- Create: `packages/agent/src/services/__tests__/linking.test.ts`
-
-- [ ] `startLinking(accountAddress, phoneNumber, channel)` — generate 6-digit code, SMS via Twilio
-- [ ] `confirmLinking(accountAddress, code)` — verify code, return UserOp template for client to sign
-- [ ] `completeLinking(accountAddress, signedUserOp)` — submit to bundler, persist phone ↔ account ↔ sessionKey
-- [ ] `lookup(phoneNumber)` → `{ accountAddress, sessionKey }`
-- [ ] `revokeByPhone(phoneNumber)` — for `REVOKE` keyword path
-- [ ] PII hygiene: phone numbers hashed in logs
-- [ ] Tests for happy path, wrong code, expired code, duplicate linking
-- [ ] Commit: `feat(agent): add phone linking flow service`
-
-## Phase 3 — Rate Limiting + Handler Refactor (2026-05-25 → 2026-06-10)
-
-### 3.1 `services/rateLimit.ts` — tier-Y enforcement
-
-**Files:**
-- Create: `packages/agent/src/services/rateLimit.ts`
-- Create: `packages/agent/src/services/__tests__/rateLimit.test.ts`
-
-- [ ] Redis-backed counters per `(accountAddress, command)` with daily window
-- [ ] Limits per spec table: submit 10/day, approve/reject 20/day, join 3/day
-- [ ] Anti-spam 1/s on all commands (including unlimited ones)
-- [ ] `check(account, command)` → `{ allowed, remaining, resetAt }`
-- [ ] Enforce per-`accountAddress`, not per-phone (SIM swap evasion)
-- [ ] Tests for boundary, concurrent writes (Lua script or INCR+EXPIRE), window reset
-- [ ] Commit: `feat(agent): add tier-Y rate limiting service`
-
-### 3.2 Handler refactor to `InboundMessage`
-
-**Files:**
-- Modify: `packages/agent/src/handlers/approve.ts`
-- Modify: `packages/agent/src/handlers/reject.ts`
-- Modify: `packages/agent/src/handlers/submit.ts`
-- Modify: `packages/agent/src/handlers/join.ts`
-- Modify: `packages/agent/src/handlers/pending.ts`
-- Modify: `packages/agent/src/handlers/status.ts`
-- Modify: `packages/agent/src/handlers/help.ts`
-- Modify: `packages/agent/src/handlers/start.ts`
-- Create: `packages/agent/src/handlers/revoke.ts`
-- Create: `packages/agent/src/handlers/link.ts`
-
-- [ ] Change signature to `(msg: InboundMessage) => Promise<Reply>`
-- [ ] Inject `rateLimit.check` before transactional ops (submit/approve/reject/join)
-- [ ] Build UserOp via `services/sessionKeys.ts` for transactional paths
-- [ ] New `revoke.ts` handler — calls `services/linking.ts#revokeByPhone`
-- [ ] New `link.ts` handler — SMS back a short-lived web URL
-- [ ] Update / extend existing handler tests to use `InboundMessage` fixtures
-- [ ] Run: `cd packages/agent && bun run test`
-- [ ] Commit: `refactor(agent): route handlers through InboundMessage with rate limits`
-
-### 3.3 i18n message catalogue
-
-**Files:**
-- Create: `packages/shared/src/modules/agentCommands.ts`
-- Modify: `packages/shared/src/i18n/en.json` (add agent keys)
-
-- [ ] `agentCommands.ts` — command vocab, help text, reply templates (i18n keys, not strings)
-- [ ] Pull user's preferred language from account profile; fallback to `en`
-- [ ] Export from shared barrel
-- [ ] Commit: `feat(shared): add agent command vocabulary + i18n keys`
-
-## Phase 4 — Client PWA Phone-Linking UX (2026-06-01 → 2026-06-20)
-
-### 4.1 Shared hooks + modules
-
-**Files:**
-- Create: `packages/shared/src/hooks/usePhoneLinking.ts`
-- Create: `packages/shared/src/modules/sessionKeys.ts`
-- Modify: `packages/shared/src/index.ts` (barrel)
-
-- [ ] `usePhoneLinking()` — TanStack Query + mutations: `startLink`, `confirmCode`, `submitSignedOp`, `revoke`, `status`
-- [ ] `modules/sessionKeys.ts` — session key types, permission shape, TTL helpers
-- [ ] All mutations via `createMutationErrorHandler()`
-- [ ] Query keys via `queryKeys.phoneLinking(address)`
-- [ ] Export from shared barrel
-- [ ] Unit tests (mock fetch / mock signer)
-- [ ] Run: `cd packages/shared && bun run test`
-- [ ] Commit: `feat(shared): add usePhoneLinking hook + session key module`
-
-### 4.2 Client `PhoneLinking/` view
-
-**Files:**
-- Create: `packages/client/src/views/Profile/PhoneLinking/index.tsx`
-- Create: `packages/client/src/views/Profile/PhoneLinking/LinkForm.tsx`
-- Create: `packages/client/src/views/Profile/PhoneLinking/ConfirmCode.tsx`
-- Create: `packages/client/src/views/Profile/PhoneLinking/SignSessionKey.tsx`
-- Create: `packages/client/src/views/Profile/PhoneLinking/Linked.tsx`
-- Modify: `packages/client/src/views/Profile/index.tsx` (entry link)
-- Modify: `packages/client/src/router.ts` (route)
-
-- [ ] Form: enter phone, pick channel (WA / SMS / both)
-- [ ] ConfirmCode: 6-digit input, resend with cooldown
-- [ ] SignSessionKey: show permission summary (targets, selectors, 30d TTL); user signs via passkey
-- [ ] Linked state: show phone, channel, expiry, "Revoke" button (passkey-confirmed)
-- [ ] Errors via `parseContractError()` + `USER_FRIENDLY_ERRORS`
-- [ ] i18n per `.claude/skills/design/implementation.md` (§ i18n)
-- [ ] Commit: `feat(client): add phone linking UX in Profile`
-
-## Phase 5 — E2E + Pilot Rollout (2026-06-20 → 2026-06-30)
-
-### 5.1 E2E tests (Playwright + Twilio sandbox)
-
-**Files:**
-- Create: `packages/client/e2e/phoneLinking.spec.ts`
-- Create: `packages/agent/test/e2e/submitFlow.test.ts`
-
-- [ ] Playwright: passkey login → enter phone → confirm code (Twilio sandbox) → sign UserOp → linked state
-- [ ] Agent E2E: inbound SMS `SUBMIT <garden> <action>` → rate limit check → UserOp sent → reply includes tx hash
-- [ ] Revoke E2E: inbound SMS `REVOKE` → on-chain revoke → subsequent command returns "not linked"
-- [ ] Run: `bun run test:e2e`
-- [ ] Commit: `test(agent+client): add E2E messaging link + submit flows`
-
-### 5.2 Pilot garden rollout
-
-- [ ] Pick 1 Season One pilot garden (coordinate with operator)
-- [ ] Link 3–5 gardener phones via staging
-- [ ] Run one real work cycle via SMS or WA end-to-end (submit → approve)
-- [ ] Monitor: messages per channel, linking conversion rate, command frequency (per spec observability)
-- [ ] Post-pilot review: tune rate limits if needed
-- [ ] Close Outcome milestone #14 when both channels have sent ≥1 successful transactional message in production
-
-## Dependencies / Blockers
-
-- WhatsApp business verification lead time (1–3 weeks from Meta) — submit 2026-05-10
-- `SessionKeyValidator.sol` audit slot — bundled with RWA epic (audit firm engaged 2026-05-15)
-- Redis infra — confirm provisioned on Fly.io before Phase 3.1
-- AWS KMS (or equivalent) — confirm key provisioned before Phase 2.2
-- Twilio funding — top up account with ~$200 USD for pilot traffic
-
-## Risks (carry from spec)
-
-1. WA business verification delay → SMS-only fallback ready to ship from Phase 1.3 completion
-2. Session key validator complexity → reuse Pimlico's validator if available; otherwise ~1 week new contract work
-3. Twilio SMS cost in African networks (~$0.05/msg) → ~$50/month at 1k messages; acceptable for pilot
-4. SMS 160-char limits → chunking tested in 1.3; pilot feedback tunes UX copy
-5. SIM swap attack → tier-Y rate limits + 30-day key TTL + dual revoke path
+# Messaging integration delivery proposal
+
+**Feature slug:** agent-messaging-channels
+
+**Status:** DRAFT; idea stage; all implementation lanes manually blocked.
+
+**Created:** 2026-04-17
+
+**Last updated:** 2026-09-11 UTC
+
+**Specification:** [canonical architecture](spec.md)
+
+**Evaluation:** [acceptance and failure tests](eval.md)
+
+**Linear project:** [Agent Messaging Channels (WhatsApp + SMS)](https://linear.app/greenpill-dev-guild/project/agent-messaging-channels-whatsapp-sms-71cda634fcf7)
+
+**Mirror:** PRD-339 is stored historical metadata; unresolved during final research. No Linear sync was performed.
+
+This sequence is a delivery design for scope selection. It is not an active dispatch list. The full architecture lives in the spec; accepted implementation slices must be smaller than these workstreams, generally one package and three or four files per session, with exact paths and behavior proof agreed at activation.
+
+## Decision log
+
+| Decision | State | Delivery effect |
+| --- | --- | --- |
+| Nigeria, English, WhatsApp first for TAS | Accepted A1 | Prove on TAS devices/carriers and actual sender configuration. |
+| PWA confirmation for approvals and binding commitments | Accepted A2 | No approval/commitment keys in the messaging runtime. |
+| Canonical participant with independent account/channel bindings | Proposed P1 | Shared policy precedes additional adapters; no role union. |
+| Reuse accounts; private intake before account creation | Proposed P2 | Explicit provisional-to-established handoff and duplicate detection. |
+| Owner signs work in first release | Proposed P3 | No session validator or delegated signer required for baseline. |
+| Reporting-only delegation later | Proposed P4 | Separate contract/account compatibility and security gate. |
+| One business sender initially | Proposed P5 | Garden scoping belongs in workflow authorization. |
+
+## Gate 0: select a pilot that can be evaluated
+
+- [ ] Resolve O1 with TAS/product and the RESR-75 research owner: browser account setup versus private assisted intake without sign-up. Do not silently rewrite the research criterion.
+- [ ] Select O2 using real sender ownership, Nigeria provisioning, template/media tests, support model and cost evidence. Do not purchase or provision as part of this draft.
+- [ ] Agree O5 consent, raw/public evidence handling, retention, support owner, cohort and success thresholds.
+- [ ] Confirm personal account types/default chain and actual deployed account/factory/module configuration for authentication. Keep total-loss recovery limits explicit.
+- [ ] Verify the existing Linear mirror before any separately authorized sync; preserve historical Done issue descriptions.
+
+## Delivery sequence and direct proof
+
+Each numbered workstream has one clear outcome. Split implementation only after the boundary is selected; avoid speculative scaffolding or a new package. Existing files below are starting points, not an instruction to edit them now.
+
+| Step | Outcome and owning surface | Starting points | Required direct proof |
+| --- | --- | --- | --- |
+| 1 | Shared account-proof and action-intent contract | shared workflows/authMachine.ts, workflows/authServices.ts, public-contracts signed-auth patterns | Exact account/chain/purpose/revision representation; EOA, deployed Kernel and counterfactual verification fixtures; reject malformed/replayed proofs. |
+| 2 | Agent transactional identity persistence | agent services/db/schema.ts, services/db/users.ts | Unique active bindings, atomic link consumption, epochs and restart-safe migrations; preserve legacy rows/addresses without creating new keys. |
+| 3 | Agent verification and scoped browser sessions | agent api/routes/saved-offers.ts and garden-join-request-auth.ts patterns, api/http/auth.ts, api/server.ts | Independent backend proof; expiry/revocation/CSRF; public callers cannot use private-routine bearer access; hostile factory verification bounded. |
+| 4 | Agent channel pairing and admission policy | agent handlers/start.ts, handlers/join.ts; bounded new service chosen after seam review | Both directions require two-sided possession; forwarded link and cross-garden requests fail; garden context grants no role. |
+| 5 | Shared resumable account/link state | shared auth workflows and client auth hooks | Return to exact draft after login, distinguish existing/new account, preserve original Kernel address and EOA authority; no queue signer switch. |
+| 6 | Client linking and continuation journey | client profile/account and existing auth/draft views, with exact files selected before edits | Browser-to-chat and chat-to-browser happy/failure paths; in-app browser handoff; visible scope and signer; authenticated Brave proof plus TAS devices. |
+| 7 | Agent durable drafts and attachments | agent handlers/index.ts, handlers/submit.ts, services/db/schema.ts | Photo survives restart and correction; compare-and-swap edit conflicts; bounded media downloads; unauthorized attachment reads fail. |
+| 8 | Shared work-intent/queue integration | shared modules/work/bot-submission.ts and existing work/job-queue paths | Frozen payload/account/garden/revision; same logical operation through PWA/chat; lost broadcast response reconciles before another signature. |
+| 9 | Client work review and steward confirmation | client work review/approval views; shared mutations only in their owning package | Exact work UID, evidence and author displayed; gardener publishes and distinct authorized steward approves; partial success retries approval alone. |
+| 10 | Agent WhatsApp transport and delivery outbox | agent types.ts, platforms/telegram.ts as reference, api/server.ts; new adapter/service paths selected in slice | Real provider signatures, event deduplication, media, templates/window, opt-out, rate limits and dead-letter recovery. |
+| 11 | Commitment preparation and PWA confirmation, split by package | shared modules/job-queue/commitment-call-builder.ts; existing client commitment views; agent draft workflow | Each selected lifecycle action shows full binding terms and verifies its actual actor; chat affirmation never executes it. |
+| 12 | Telegram continuity and legacy transition | agent platforms/telegram.ts, handlers/start.ts, handlers/approve.ts, services/db/users.ts | Link existing records without changing original authors; no new custodial creation under enabled new flow; unresolved pending work reconciles. |
+| 13 | TAS staged rollout and incident rehearsal | Existing deployment/telemetry controls, with exact changes separately scoped | All applicable eval gates, real costs and total labor, kill switches, independent access/revoke, queue drain and rollback. |
+| 14 | Optional later extensions, each separately selected | Reporting permission proof in contracts/shared before agent signer; Nigeria SMS adapter only after inbound provisioning | Delegation's onchain negative cases and independent revoke; or actual Nigerian two-way SMS and photo handoff. Neither is a baseline release dependency. |
+
+Step 10's provider fixture investigation may happen during Gate 0, but transport integration consumes the shared identity/workflow contract. Step 11 spans several packages as a workstream only; never dispatch it as one implementation slice. If any baseline step requires a contract change, stop that slice and update the plan in contract → shared → indexer → consuming application dependency order before resuming.
+
+## Requirements coverage
+
+| User requirement | Architecture | Delivery | Proof |
+| --- | --- | --- | --- |
+| Report using an existing passkey PWA account | Spec 4–6 | 1–10 | ID-01, ID-02, AUTH-01, WORK-01 |
+| Report using an existing EOA | Spec 5–7 | 1–10 | ID-03, ID-04 |
+| New WhatsApp user continues in PWA | Spec 5–6 | Gate 0, 2–8 | ID-01, ID-05, UX-01 |
+| Switch channels/devices without duplicate work | Spec 8–9 | 5–10, 12 | DATA-01, OPS-01–04 |
+| Only intended garden members act | Spec 7 | 3–4, 8–11 | AUTH-02–04 |
+| Approve work and make commitments safely | Spec 8 | 9, 11 | WORK-02–03, COM-01–02 |
+| Account compromise containment and recovery | Spec 10–12 | 3–6, 13–14 | SEC-01–06, REC-01–05 |
+| Provider choice and TAS WhatsApp rollout | Spec 13–14 | Gate 0, 10, 13 | CH-01–05, PILOT-01–03 |
+| Telegram and Nigeria SMS path | Spec 5, 13–14 | 12, 14 | MIG-01–02, CH-04 |
+
+## Migration and rollout controls
+
+Use additive migrations that preserve platform IDs, custodial addresses, pending work and operation references. Start with an inventory and recoverable backup; rehearse against a sanitized representative database. Introduce identity backfill without signing changes, then enable new linking/drafts for one garden. Do not silently merge established participants or delete keys while unresolved legacy operations depend on them.
+
+Activate publication, approval and commitment paths separately. Keep reads and reconciliation running when writes are disabled. Preserve a rollback reader for existing records until migration acceptance; do not revert to unsafe key creation or replay old approval handlers.
+
+## Exclusions
+
+No automatic EOA conversion, new custodial identity service, global proof-of-personhood, phone-based wallet recovery, messaging-held owner keys, delegated approvals/commitments/funds, group scraping, new dependency installs, protocol upgrade or broad API-token distribution is authorized. SMS fallback and report delegation remain conditional extensions.
+
+## Validation and handoff
+
+Before any runtime slice, read the nearest package guide and render the validation selector for its exact paths and intent. Shared auth/work/job queue and contract changes retain the critical override. Use repository Bun wrappers and the selected direct tests; do not substitute clean-room browser checks for authenticated local Brave evidence.
+
+Every selected slice must name its acceptance tests from eval.md, exact file boundary, migration/rollback behavior and validation commands before implementation. Record fresh RED/GREEN evidence where behavior changes, then write the lane handoff and machine proof. No lane is ready or completed from this document.
+
+This research pass changes only the five canonical Plan Hub files. Its appropriate proof is Plan Hub validation, document-link/coverage checks and diff hygiene. Runtime tests, provider tests, cryptographic compatibility and browser QA remain unrun; document validation cannot stand in for them.

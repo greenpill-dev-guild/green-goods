@@ -1,46 +1,103 @@
-# Agent Messaging Channels Evaluation Plan
+# Messaging architecture acceptance
 
-## Release Gates
+**Status:** DRAFT evaluation contract; runtime cases below are unexecuted.
 
-1. **Correctness:** A phone linked via the web flow can execute `submit` / `approve` / `reject` / `join` over SMS and WhatsApp, with on-chain txs signed by a scoped session key (never an agent-held EOA). `REVOKE` invalidates the session key on-chain and subsequent commands return "not linked".
-2. **Security:** Tier-Y rate limits hold under concurrent writes; session key selector allowlist rejects off-allowlist calls; WhatsApp + SMS webhooks verify Twilio signatures; phone numbers are hashed in logs (PII hygiene). `SessionKeyValidator.sol` passes the shared Q2 audit alongside RWA work.
-3. **Regression safety:** Existing Telegram adapter behavior is unchanged after refactor to `InboundMessage`; existing handler tests pass with new argument shape.
+**Last updated:** 2026-09-11 UTC.
 
-## Acceptance Checks
+**Architecture:** [spec.md](spec.md). **Sequence:** [plan.todo.md](plan.todo.md).
 
-| ID | Check | Owner | Evidence |
-|---|---|---|---|
-| AC-1 | `platforms/_base.ts` normalizes all 3 channels into `InboundMessage` and dispatch is idempotent (duplicate externalId within 24h TTL dropped) | `state_api` | Unit tests in `packages/agent/src/platforms/__tests__/_base.test.ts` green |
-| AC-2 | WA + SMS webhooks pass Twilio signature verification, normalize payload, reply via TwiML (SMS chunking at 160 chars) | `state_api` | `bun run test -- platforms/__tests__/{whatsapp,sms}.test.ts` green; Twilio sandbox replay recorded in `artifacts/` |
-| AC-3 | `SessionKeyValidator.sol` enforces target + selector allowlist + expiry + revoke; invariant "revoked session can never validate" holds under fuzz | `contracts` | `bun run test -- --match-contract SessionKeyValidatorTest -vvv` green; fuzz run log in `artifacts/` |
-| AC-4 | `services/sessionKeys.ts` encrypts session-key material via KMS and only decrypts in-memory for UserOp signing | `state_api` | Unit tests with mock KMS + mock bundler; no plaintext key in Postgres or logs (grep evidence) |
-| AC-5 | Tier-Y limits hold under concurrent writes (Redis Lua or INCR+EXPIRE) — submit 10/day, approve/reject 20/day, join 3/day, anti-spam 1/s | `state_api` | `packages/agent/src/services/__tests__/rateLimit.test.ts` green; boundary + concurrency cases covered |
-| AC-6 | Client `PhoneLinking/` flow: enter phone → 6-digit code → passkey-signed UserOp → linked; revoke via passkey works | `ui` | Playwright `packages/client/e2e/phoneLinking.spec.ts` green against Twilio sandbox |
-| AC-7 | E2E: inbound SMS `SUBMIT <garden> <action>` → rate limit check → UserOp sent via bundler → reply with tx hash | `qa_pass_1` | `packages/agent/test/e2e/submitFlow.test.ts` + manual Twilio sandbox recording in `artifacts/` |
-| AC-8 | Season One pilot garden runs one real work cycle (submit → approve) via SMS or WA end-to-end | `qa_pass_1` | `history[]` entry with operator confirmation + tx hashes; milestone #14 closed |
+These checks define what must be demonstrated before a selected feature is released. They are not test results. First approve O1/O2/O5, including the actual no-sign-up interpretation, provider, support and pilot thresholds. O3 account authentication is a baseline gate; reporting delegation has an additional optional gate. O4 total-loss recovery remains a disclosed limitation until independently solved.
 
-## Test Strategy
+## Gate 1: identity continuity and real authentication
 
-- Unit: agent platforms (`_base`, `whatsapp`, `sms`), services (`sessionKeys`, `linking`, `rateLimit`), shared hook (`usePhoneLinking`), `SessionKeyValidator.sol` (Forge).
-- Integration: Fastify webhook harness with mock Twilio signer; bundler sandbox for UserOp signing; Redis in Docker for rate-limit concurrency.
-- E2E / Playwright: full phone linking UX in `packages/client`; agent E2E against Twilio sandbox.
-- Manual checks:
-  - WhatsApp business verification submitted by **2026-05-10**.
-  - Twilio funding top-up ≥ $200 before Phase 5.
-  - Season One operator coordination before Phase 5.2.
+| ID | Scenario | Required observation |
+| --- | --- | --- |
+| ID-01 | New WhatsApp intake opens in browser | Photo/description/garden survive; existing-account choice is prominent; provisional draft attaches only after correct account and channel proof; public submission waits for admission and signature. |
+| ID-02 | Existing passkey account links WhatsApp in either direction | Same expected Kernel address and history; no new account on cache miss, username lookup or browser handoff. |
+| ID-03 | Existing EOA links WhatsApp | EOA signs login and publication; original membership/author remain unchanged. |
+| ID-04 | Linked EOA and passkey account share a participant | Allowed private data is explicitly scoped; passkey cannot sign as EOA, inherit its garden roles or manage it by default; switching account does not change a pending job. |
+| ID-05 | Same user on another device/browser | Authenticate independently, resume allowed server draft; local-only drafts are labelled unavailable until synced; no cookie/key copying. |
+| ID-06 | Shared phone or organizational wallet | No name-menu impersonation; assisted collector and signing author are distinct; one Safe signer does not obtain organizational or personal authority automatically. |
+| ID-07 | Both sides already have established participants | Automatic merge blocked; dual fresh authority and explicit private-data scope required; existing history/attribution unchanged. |
+| AUTH-01 | EOA, deployed Kernel and counterfactual Kernel backend proof | Verify against actual chain/factory/account configuration; reject wrong origin/domain/chain/nonce/expiry/signature; bounded hostile factory simulation; hosted lookup/local auth flag insufficient. |
+| AUTH-02 | Garden invite/currentGarden/local steward flag without role | Private intake follows policy; member publication and operator actions denied until exact account's onchain authority is effective. |
+| AUTH-03 | Foreign garden/work/draft/attachment IDs | No unauthorized reads, metadata, signed URLs or mutations; all object paths enforce scope. |
+| AUTH-04 | Role removed, owner rotated or permission expired during action | Fresh service checks and final contract enforcement deny unauthorized mutation; queue preserves intent and gives an actionable state. |
+| AUTH-05 | Browser session expiry/logout/revocation and CSRF attempt | Host-only secure cookie policy and CSRF/origin checks work in actual deployment; revoked epochs invalidate access; private routine token is never exposed. |
 
-## QA Sequence
+## Gate 2: evidence, approval and binding actions
 
-### Claude QA Pass 1
+| ID | Scenario | Required observation |
+| --- | --- | --- |
+| WORK-01 | Photo plus description submitted through chat | Durable private attachment survives restart, appears in PWA review and reaches consented published metadata; no empty-media fallback. |
+| WORK-02 | Gardener publishes, authorized distinct steward approves | Correct separate attesters and exact work UID/garden; no approval before publication receipt; known same-participant self-approval denied. |
+| WORK-03 | Steward rejects or requests changes | Honest application/protocol state and notification; no accidental positive approval or duplicate work. |
+| COM-01 | Prepare/accept interest in chat | Nonbinding state only; no transaction or hidden financial authorization from “yes.” |
+| COM-02 | Each selected commitment lifecycle mutation in PWA | Full current payload and effects displayed; correct actor signs; edited/stale revision requires new review; incompatible role/account rejected. |
+| DATA-01 | Same draft edited in PWA and WhatsApp concurrently | Revision conflict visible; no silent overwrite; signed intent remains immutable. |
+| DATA-02 | Private/public consent and withdrawal | Publication requires appropriate content/purpose consent; opt-out stops applicable processing/delivery; deletion handles eligible private data and explains public-copy limits. |
+| DATA-03 | Oversized, misleading, redirected or malicious attachment | Bounded fetch/decode, no SSRF/token leak/executable processing; error visible; other gardens retain service capacity. |
 
-- Run Playwright + agent E2E against Twilio sandbox.
-- Validate i18n keys for all reply templates (no raw strings in `agentCommands.ts`).
-- Chrome MCP spot-check of `PhoneLinking/` flow in admin/client preview.
-- If blocked (e.g. WA verification not returned), record in `handoffs/claude-qa-pass-1.md` and ship SMS-only fallback per Phase 1.3.
+## Gate 3: retries, recovery and containment
 
-### Codex QA Pass 2
+| ID | Scenario | Required observation |
+| --- | --- | --- |
+| OPS-01 | Duplicate webhooks/taps across channels and worker restart | One reserved logical intent; no double execution by service; committed ingress and business deduplication survive restart. |
+| OPS-02 | Lost broadcast response or replaced UserOperation | submitted_unknown reconciles by persisted identity; no blind fresh publication; replacement and final failure distinguished. |
+| OPS-03 | Publication succeeds, approval fails | Persist work UID and receipt; retry only approval; transport deduplication does not strand the action as completed. |
+| OPS-04 | Reorg, delayed indexer, expired session and logout | Receipt/finality/index states separated; signer/account frozen; user resumes with required identity. |
+| OPS-05 | Outbound provider failure after chain success | Work remains confirmed in PWA; outbox retry respects consent/window and does not rebroadcast transaction. |
+| SEC-01 | Invalid Meta/Twilio/Telegram signature or replay | Reject before domain processing; provider-specific raw-body/URL/header fixtures; valid provider event still cannot bypass garden policy. |
+| SEC-02 | Forwarded link, preview GET, replay, concurrent consumption | No draft disclosure or account change from GET/locator alone; both proofs and browser binding required; only one consume succeeds. |
+| SEC-03 | Stolen phone/SIM change/recycled number | No account recovery, owner change, privileged history claim or session renewal; authorized owner can revoke channel. |
+| SEC-04 | Messaging/API credential compromise | No owner signature, approval, commitment or funds authority gained; document accessible private-data/draft exposure and legacy custodial residual risk. |
+| SEC-05 | Cross-garden flood and media/AI prompt injection | Per-garden quotas isolate availability; message content cannot select trusted roles, signatures or executable tools. |
+| SEC-06 | Kill switch and rollback | Stop new actions independently; keep reconciliation and owner access; no custodial fallback; drain/reconcile old delivery queues. |
+| REC-01 | Cache cleared, signed out or hosted credential lookup unavailable | Original account recovered when credential available; explicit retry when unavailable; never auto-register a replacement account. |
+| REC-02 | Replacement phone/channel relink | Fresh owner and new-channel proofs; binding epoch increments; old continuations/sessions/grants invalid. |
+| REC-03 | Total signer loss | No same-address recovery promise without a preconfigured, successfully tested recovery mechanism; support cannot claim the wallet. |
+| REC-04 | Owner credential actually compromised | Distinguish service freeze from onchain ownership power; disclose limits and exercise available rotation/recovery. |
+| REC-05 | Unlink/delete/STOP | User can distinguish notifications, channel access and onchain permission; required revocations tracked to effective state; eligible data purged. |
 
-- Start only after `qa_pass_1` is passed and `claude/qa-pass-1/agent-messaging-channels` exists.
-- Re-run targeted validation: contract fuzz for `SessionKeyValidator`, rate-limit concurrency under load, revoke-path invariant.
-- Verify PII-hygiene grep (no raw phone numbers in logs).
-- Close the loop on any residual defects before pilot rollout in Phase 5.2.
+## Gate 4: conditional delegation and legacy migration
+
+Delegation checks apply only if that later feature is selected. They cannot be waived by a smooth WhatsApp demo.
+
+| ID | Scenario | Required observation |
+| --- | --- | --- |
+| DEL-01 | Installed reporting policy under adversarial calldata | Actual deployed module denies wrong garden/schema/target/value, arbitrary batch/multi-attest/delegatecall, owner changes, approvals, commitments, funds and roles. Selector-only evidence fails this gate. |
+| DEL-02 | Stolen reporting key with service checks bypassed | Promised expiry/call/gas ceilings independently enforced; document permitted false-report risk and approval effects. |
+| DEL-03 | Owner revokes while messaging backend is down | Independent route available; service disabled and onchain revoked shown separately; key cannot act after effective revoke or expiry. |
+| DEL-04 | Expiry or channel-only renewal attempt | Grant stops at expiry; WhatsApp/SMS proof cannot extend onchain authority; owner must approve new policy. |
+| MIG-01 | Existing custodial Telegram user has pending work/history | Backfill preserves original IDs/addresses/provenance; no automatic key export, identity merge or ownership relabel. |
+| MIG-02 | Legacy user moves future work to passkey account | Both intended identities/authority handled explicitly; garden admission for new account; old records and unfinished operations retained; funds/active commitments separately scoped. |
+| MIG-03 | Database migration rollback and multi-worker race | Sanitized representative fixture and backup/restore rehearsal; unique bindings/operation leases hold across restarts and actual deployment topology. |
+
+## Gate 5: provider and Nigeria delivery
+
+| ID | Scenario | Required observation |
+| --- | --- | --- |
+| CH-01 | Real WhatsApp sender receives Nigerian text/photo/voice payloads used by pilot | Valid signatures and opaque sender mapping, including phone-absent/BSUID fixtures where applicable; actual feature availability recorded separately from mock coverage. |
+| CH-02 | Inside/outside customer-service window, rejected template, STOP | Correct free-form/template behavior; no unconsented SMS fallback; retry and support routes available. |
+| CH-03 | Sender/provider cutover with pending messages | Preserve participant and operation records; verify identifier continuity or re-pair; one outbound owner; no duplicate chain publication. |
+| CH-04 | Proposed Nigeria SMS extension | Provision and prove actual inbound/outbound carrier routes and opt-out; price multipart text; provide authenticated photo handoff. Twilio two-way Nigeria SMS is not assumed available. |
+| CH-05 | Human escalation and provider-policy review | Assigned support owner, limited inbox access, billing account and approved use-case/consent/template evidence; commitment/funding experience reviewed as actually offered. |
+
+## Gate 6: user experience and research acceptance
+
+| ID | Scenario | Required observation |
+| --- | --- | --- |
+| UX-01 | TAS gardeners complete first draft and publication | Clear draft/published/approved labels; exact continuation retained; account setup/installation distinction understood; no-sign-up conflict resolved explicitly. |
+| UX-02 | Low bandwidth, interrupted upload, device switch, in-app browser | Visible progress/retry; no lost confirmed draft; supported browser passkey handoff on actual TAS devices. |
+| UX-03 | Authenticated PWA and steward journeys | Local evidence uses the authenticated Brave workflow; production device proof supplements it. Capture visible account, scope, error and recovery states without sensitive material. |
+| PILOT-01 | Baseline versus pilot reporting/review cycles | Measure gardener, steward and support labor together; consent comprehension, acceptance and correction rates, completion and abandonment; threshold and sample agreed before run. |
+| PILOT-02 | Actual invoices and operating effort | Cost per accepted submission includes provider/Meta, media, gas, subscriptions and support; separate estimates from observed costs. |
+| PILOT-03 | Research owner/TAS acceptance | RESR-75 entry criteria explicitly accepted or revised by their owner; publish no “successful pilot” claim from delivery counts alone. |
+
+## Evidence recording
+
+For each executed case, record environment, fixture/device/provider, exact account type and deployment version, case ID, expected/actual result and privacy-safe artifact reference. Runtime validation receipts require tested commit, UTC timestamp, exact commands and worktree identity under the repository rules. Do not put phones, wallets, tokens, raw media or private messages in public evidence or ordinary analytics.
+
+Run the validation selector before choosing implementation checks. Use selected Bun wrappers, auth/work/contract critical gates and authenticated browser proof where applicable. Fault injection and real provider/account fixtures complement unit tests; a mock signature or sandbox success is not production compatibility evidence.
+
+Documentation validation for this research update is limited to canonical hub/schema validation, local Markdown links, coverage references and diff hygiene. No case above is marked passed by that validation.
