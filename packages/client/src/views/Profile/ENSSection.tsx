@@ -1,3 +1,4 @@
+import { Alert } from "@green-goods/shared/components/Alert";
 import { ConfirmDialog } from "@green-goods/shared/components/Dialog/ConfirmDialog";
 import { ENSProgressTimeline } from "@green-goods/shared/components/Progress/ENSProgressTimeline";
 import { useOffline } from "@green-goods/shared/hooks/app/useOffline";
@@ -65,9 +66,8 @@ function saveUsernameChangeRequest(request: Record<string, unknown>) {
 export const ENSSection: React.FC<ENSSectionProps> = ({ primaryAddress }) => {
   const intl = useIntl();
   const { isOnline } = useOffline();
-  const { data: isProtocolMember = false } = useProtocolMemberStatus(
-    primaryAddress as `0x${string}` | undefined
-  );
+  const { data: isProtocolMember = false, isLoading: isMembershipLoading } =
+    useProtocolMemberStatus(primaryAddress as `0x${string}` | undefined);
   const slugForm = useSlugForm();
   const slugValue = slugForm.watch("slug");
   const { data: isSlugAvailable, isFetching: isCheckingSlug } = useSlugAvailability(
@@ -101,7 +101,9 @@ export const ENSSection: React.FC<ENSSectionProps> = ({ primaryAddress }) => {
     Boolean(releasingSlug) ||
     registrationData?.status === "pending" ||
     registrationData?.status === "active";
-  const showENSSection = primaryAddress && isProtocolMember && !hasExistingName;
+  // The claim renders for every signed-in gardener without a name; non-members see it
+  // marked unavailable. Wait for membership to resolve so members never flash that state.
+  const showENSSection = primaryAddress && !isMembershipLoading && !hasExistingName;
   const showExistingENSSection = primaryAddress && isProtocolMember && existingSlug && !claimedSlug;
   const isReleaseUnavailable = ensRelease.isSponsoredReleaseUnavailable;
   const requestReasonOptions: Array<{ value: ENSUsernameChangeReason; label: string }> = [
@@ -506,112 +508,128 @@ export const ENSSection: React.FC<ENSSectionProps> = ({ primaryAddress }) => {
                   </div>
                 </div>
               </div>
-              <div className="flex flex-col gap-2">
-                <div className="relative">
-                  <input
-                    {...slugForm.register("slug")}
-                    aria-label={intl.formatMessage({
-                      id: "app.profile.slugHint",
-                      defaultMessage: "Choose your personal Green Goods name",
-                    })}
-                    placeholder={intl.formatMessage({
-                      id: "app.profile.slugPlaceholder",
-                      defaultMessage: "your-name",
-                    })}
-                    inputMode="text"
-                    autoCapitalize="none"
-                    autoComplete="off"
-                    spellCheck={false}
-                    className="gg-control pr-10 font-mono"
-                    data-size="sm"
-                  />
-                  {slugValue && slugValue.length >= 3 && (
-                    <span className="absolute right-3 top-1/2 -translate-y-1/2">
-                      {isCheckingSlug ? (
-                        <RiLoader4Line
-                          className="h-4 w-4 animate-spin text-text-soft-400"
-                          aria-label={intl.formatMessage({
-                            id: "app.profile.slugChecking",
-                            defaultMessage: "Checking availability",
-                          })}
-                        />
-                      ) : isSlugAvailable ? (
-                        <RiCheckLine
-                          className={`h-4 w-4 ${pwaStatusStyles.success.icon}`}
-                          aria-label={intl.formatMessage({
-                            id: "app.profile.slugAvailable",
-                            defaultMessage: "Name available",
-                          })}
-                        />
-                      ) : isSlugAvailable === false ? (
-                        <RiAlertLine
-                          className="h-4 w-4 text-error-base"
-                          aria-label={intl.formatMessage({
-                            id: "app.profile.slugTakenLabel",
-                            defaultMessage: "Name taken",
-                          })}
-                        />
-                      ) : null}
-                    </span>
-                  )}
-                </div>
-                <div className="min-h-[48px]">
-                  <span className="text-xs text-text-sub-600">
-                    {slugValue
-                      ? `${slugValue}.greengoods.eth`
-                      : intl.formatMessage({
-                          id: "app.profile.slugHint",
-                          defaultMessage: "Choose your personal Green Goods name",
-                        })}
-                  </span>
-                  {slugForm.formState.errors.slug && (
-                    <p className="text-xs text-error-base mt-0.5">
-                      {slugForm.formState.errors.slug.message}
-                    </p>
-                  )}
-                  {!isCheckingSlug && isSlugAvailable === false && slugValue && (
-                    <p className="text-xs text-error-base mt-0.5">
-                      {intl.formatMessage({
-                        id: "app.profile.slugTaken",
-                        defaultMessage: "This name is already taken",
+              {isProtocolMember ? (
+                <div className="flex flex-col gap-2">
+                  <div className="relative">
+                    <input
+                      {...slugForm.register("slug")}
+                      aria-label={intl.formatMessage({
+                        id: "app.profile.slugHint",
+                        defaultMessage: "Choose your personal Green Goods name",
                       })}
-                    </p>
-                  )}
+                      placeholder={intl.formatMessage({
+                        id: "app.profile.slugPlaceholder",
+                        defaultMessage: "your-name",
+                      })}
+                      inputMode="text"
+                      autoCapitalize="none"
+                      autoComplete="off"
+                      spellCheck={false}
+                      className="gg-control pr-10 font-mono"
+                      data-size="sm"
+                    />
+                    {slugValue && slugValue.length >= 3 && (
+                      <span className="absolute right-3 top-1/2 -translate-y-1/2">
+                        {isCheckingSlug ? (
+                          <RiLoader4Line
+                            className="h-4 w-4 animate-spin text-text-soft-400"
+                            aria-label={intl.formatMessage({
+                              id: "app.profile.slugChecking",
+                              defaultMessage: "Checking availability",
+                            })}
+                          />
+                        ) : isSlugAvailable ? (
+                          <RiCheckLine
+                            className={`h-4 w-4 ${pwaStatusStyles.success.icon}`}
+                            aria-label={intl.formatMessage({
+                              id: "app.profile.slugAvailable",
+                              defaultMessage: "Name available",
+                            })}
+                          />
+                        ) : isSlugAvailable === false ? (
+                          <RiAlertLine
+                            className="h-4 w-4 text-error-base"
+                            aria-label={intl.formatMessage({
+                              id: "app.profile.slugTakenLabel",
+                              defaultMessage: "Name taken",
+                            })}
+                          />
+                        ) : null}
+                      </span>
+                    )}
+                  </div>
+                  <div className="min-h-[48px]">
+                    <span className="text-xs text-text-sub-600">
+                      {slugValue
+                        ? `${slugValue}.greengoods.eth`
+                        : intl.formatMessage({
+                            id: "app.profile.slugHint",
+                            defaultMessage: "Choose your personal Green Goods name",
+                          })}
+                    </span>
+                    {slugForm.formState.errors.slug && (
+                      <p className="text-xs text-error-base mt-0.5">
+                        {slugForm.formState.errors.slug.message}
+                      </p>
+                    )}
+                    {!isCheckingSlug && isSlugAvailable === false && slugValue && (
+                      <p className="text-xs text-error-base mt-0.5">
+                        {intl.formatMessage({
+                          id: "app.profile.slugTaken",
+                          defaultMessage: "This name is already taken",
+                        })}
+                      </p>
+                    )}
+                  </div>
+                  <Button
+                    variant="primary"
+                    mode="filled"
+                    size="small"
+                    onClick={handleENSClaim}
+                    disabled={
+                      !isOnline ||
+                      ensClaim.isPending ||
+                      !isSlugAvailable ||
+                      isCheckingSlug ||
+                      !slugValue
+                    }
+                    aria-busy={ensClaim.isPending || undefined}
+                    leadingIcon={
+                      ensClaim.isPending ? (
+                        <RiLoader4Line className="w-4 animate-spin" aria-hidden />
+                      ) : (
+                        <RiGlobalLine className="w-4" />
+                      )
+                    }
+                    label={
+                      !isOnline
+                        ? intl.formatMessage({
+                            id: "app.profile.claimOffline",
+                            defaultMessage: "Go Online to Claim",
+                          })
+                        : intl.formatMessage({
+                            id: "app.profile.claimButton",
+                            defaultMessage: "Claim Name",
+                          })
+                    }
+                    className="w-full"
+                  />
                 </div>
-                <Button
-                  variant="primary"
-                  mode="filled"
-                  size="small"
-                  onClick={handleENSClaim}
-                  disabled={
-                    !isOnline ||
-                    ensClaim.isPending ||
-                    !isSlugAvailable ||
-                    isCheckingSlug ||
-                    !slugValue
-                  }
-                  aria-busy={ensClaim.isPending || undefined}
-                  leadingIcon={
-                    ensClaim.isPending ? (
-                      <RiLoader4Line className="w-4 animate-spin" aria-hidden />
-                    ) : (
-                      <RiGlobalLine className="w-4" />
-                    )
-                  }
-                  label={
-                    !isOnline
-                      ? intl.formatMessage({
-                          id: "app.profile.claimOffline",
-                          defaultMessage: "Go Online to Claim",
-                        })
-                      : intl.formatMessage({
-                          id: "app.profile.claimButton",
-                          defaultMessage: "Claim Name",
-                        })
-                  }
-                  className="w-full"
-                />
-              </div>
+              ) : (
+                <Alert
+                  variant="info"
+                  className="p-3"
+                  title={intl.formatMessage({
+                    id: "app.profile.claimENSUnavailable",
+                    defaultMessage: "Not available yet",
+                  })}
+                >
+                  {intl.formatMessage({
+                    id: "app.profile.claimENSJoinHint",
+                    defaultMessage: "Join a garden to unlock your Green Goods name.",
+                  })}
+                </Alert>
+              )}
             </div>
           </Card>
         </>
