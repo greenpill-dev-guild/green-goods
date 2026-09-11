@@ -5,7 +5,7 @@
  * check that is always available, and the restart path once a worker waits.
  */
 
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { createElement } from "react";
 import { IntlProvider } from "react-intl";
@@ -120,7 +120,7 @@ describe("AppSettings", () => {
     mockThemeState.theme = "system";
     mockServiceWorkerUpdateState.phase = "idle";
     mockServiceWorkerUpdateState.updateAvailable = false;
-    mockServiceWorkerUpdateState.checkForUpdate.mockReset().mockResolvedValue(false);
+    mockServiceWorkerUpdateState.checkForUpdate.mockReset().mockResolvedValue("up-to-date");
   });
 
   afterEach(() => {
@@ -182,24 +182,44 @@ describe("AppSettings", () => {
     expect(screen.getByTestId("btn-Check")).toBeInTheDocument();
   });
 
-  it("applies a waiting update found by the manual check from the same row", async () => {
+  it("applies an update found by the manual check without a second tap", async () => {
     const user = userEvent.setup();
-    mockServiceWorkerUpdateState.checkForUpdate.mockImplementation(async () => {
-      // The real hook moves to the waiting phase when the check finds a worker.
-      mockServiceWorkerUpdateState.phase = "waiting";
-      mockServiceWorkerUpdateState.updateAvailable = true;
-      return true;
-    });
-    const view = render(wrap(createElement(AppSettings)));
+    mockServiceWorkerUpdateState.checkForUpdate.mockResolvedValue("ready");
+    render(wrap(createElement(AppSettings)));
 
     await user.click(screen.getByTestId("btn-Check"));
-    view.rerender(wrap(createElement(AppSettings)));
 
-    expect(screen.getByText("Ready to restart")).toBeInTheDocument();
+    await waitFor(() => {
+      expect(mockServiceWorkerUpdateState.activateNow).toHaveBeenCalledTimes(1);
+    });
     expect(screen.queryByText("Up to date")).not.toBeInTheDocument();
-    await user.click(screen.getByTestId("btn-Restart to Update"));
+  });
 
-    expect(mockServiceWorkerUpdateState.activateNow).toHaveBeenCalledTimes(1);
+  it("leaves the row on a fresh check when the install is still pending", async () => {
+    const user = userEvent.setup();
+    mockServiceWorkerUpdateState.checkForUpdate.mockResolvedValue("pending");
+    render(wrap(createElement(AppSettings)));
+
+    await user.click(screen.getByTestId("btn-Check"));
+
+    expect(mockServiceWorkerUpdateState.checkForUpdate).toHaveBeenCalledTimes(1);
+    expect(screen.getByText("Check for updates")).toBeInTheDocument();
+    expect(screen.queryByText("Up to date")).not.toBeInTheDocument();
+    expect(mockServiceWorkerUpdateState.activateNow).not.toHaveBeenCalled();
+  });
+
+  it("offers a retry when the newer worker could not install", async () => {
+    mockServiceWorkerUpdateState.phase = "install-failed";
+    const user = userEvent.setup();
+
+    render(wrap(createElement(AppSettings)));
+
+    expect(screen.getByText("Couldn't finish the update")).toBeInTheDocument();
+    expect(screen.getByText(/check your connection/i)).toBeInTheDocument();
+    await user.click(screen.getByTestId("btn-Try Again"));
+
+    expect(mockServiceWorkerUpdateState.checkForUpdate).toHaveBeenCalledTimes(1);
+    expect(mockServiceWorkerUpdateState.activateNow).not.toHaveBeenCalled();
   });
 
   it("asks to try again when the manual check fails", async () => {

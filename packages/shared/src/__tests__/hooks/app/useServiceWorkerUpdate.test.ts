@@ -31,10 +31,12 @@ import {
   APPLY_UPDATE_TIMEOUT_MS,
   LONG_SESSION_UPDATE_PROMPT_MS,
   ServiceWorkerUpdateProvider,
+  type UpdateCheckResult,
   useServiceWorkerUpdate,
 } from "../../../hooks/app/useServiceWorkerUpdate";
 import { logger } from "../../../modules/app/logger";
 import { track } from "../../../modules/app/posthog";
+import { DOWNLOAD_TIMEOUT_MS } from "../../../modules/app/service-worker-update";
 
 type Listener = () => void;
 
@@ -88,15 +90,21 @@ function createMockRegistration(
   } as unknown as MockServiceWorkerRegistration;
 }
 
-function installServiceWorkerMock(registration: ServiceWorkerRegistration) {
+function installServiceWorkerMock(
+  registration: ServiceWorkerRegistration,
+  options: { controller?: ServiceWorker | null } = {}
+) {
   Object.defineProperty(navigator, "serviceWorker", {
     configurable: true,
     enumerable: true,
     value: {
-      controller: createMockWorker({
-        state: "activated",
-        scriptURL: "https://www.greengoods.app/sw.js?gg_v=release-old",
-      }),
+      controller:
+        options.controller === undefined
+          ? createMockWorker({
+              state: "activated",
+              scriptURL: "https://www.greengoods.app/sw.js?gg_v=release-old",
+            })
+          : options.controller,
       getRegistration: vi.fn().mockResolvedValue(registration),
       addEventListener: vi.fn(),
       removeEventListener: vi.fn(),
@@ -265,16 +273,18 @@ describe("hooks/app/useServiceWorkerUpdate", () => {
       const { result } = await renderCheckedHook(registration);
       const setTimeoutSpy = vi.spyOn(globalThis, "setTimeout");
 
-      let found: boolean | undefined;
+      let found: UpdateCheckResult | undefined;
       await act(async () => {
         found = await result.current.checkForUpdate();
       });
 
-      expect(found).toBe(false);
+      expect(found).toBe("up-to-date");
       expect(registration.update).toHaveBeenCalledTimes(2);
-      // Nothing is installing, so there is nothing to wait for: the 10s settle
-      // timer that used to hold the checking phase must not be scheduled.
-      expect(setTimeoutSpy.mock.calls.some(([, delay]) => delay === 10_000)).toBe(false);
+      // Nothing is installing, so there is nothing to wait for: neither the
+      // settle wait nor the download watchdog may be scheduled.
+      expect(setTimeoutSpy.mock.calls.some(([, delay]) => delay === DOWNLOAD_TIMEOUT_MS)).toBe(
+        false
+      );
       expect(result.current.phase).toBe("idle");
       expect(result.current.updateAvailable).toBe(false);
       expect(track).toHaveBeenCalledWith(
@@ -290,12 +300,12 @@ describe("hooks/app/useServiceWorkerUpdate", () => {
       const waitingWorker = createMockWorker({ state: "installed" });
       Object.defineProperty(registration, "waiting", { configurable: true, value: waitingWorker });
 
-      let found: boolean | undefined;
+      let found: UpdateCheckResult | undefined;
       await act(async () => {
         found = await result.current.checkForUpdate();
       });
 
-      expect(found).toBe(true);
+      expect(found).toBe("ready");
       expect(result.current.phase).toBe("waiting");
       expect(result.current.updateAvailable).toBe(true);
       expect(result.current.waitingWorker).toBe(waitingWorker);
@@ -314,7 +324,7 @@ describe("hooks/app/useServiceWorkerUpdate", () => {
         found = await result.current.checkForUpdate();
       });
 
-      expect(found).toBe(true);
+      expect(found).toBe("ready");
       expect(result.current.updateAvailable).toBe(true);
       expect(result.current.phase).toBe("waiting");
     });
@@ -331,7 +341,7 @@ describe("hooks/app/useServiceWorkerUpdate", () => {
         return registration;
       });
 
-      let check: Promise<boolean> | undefined;
+      let check: Promise<UpdateCheckResult> | undefined;
       act(() => {
         check = result.current.checkForUpdate();
       });
@@ -349,7 +359,7 @@ describe("hooks/app/useServiceWorkerUpdate", () => {
           value: "installed",
         });
         installingWorker.dispatchStateChange();
-        await expect(check).resolves.toBe(true);
+        await expect(check).resolves.toBe("ready");
       });
 
       expect(result.current.phase).toBe("waiting");
@@ -378,6 +388,177 @@ describe("hooks/app/useServiceWorkerUpdate", () => {
       );
       expect(track).toHaveBeenCalledWith(
         "sw_update_check_failed",
+        expect.objectContaining({ source: "manual_check" })
+      );
+    });
+  });
+
+  describe("install outcomes", () => {
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    async function renderMountedHook(options: { controller?: ServiceWorker | null } = {}) {
+      vi.stubEnv("VITE_ENABLE_SW_DEV", "true");
+      const registration = createMockRegistration();
+      installServiceWorkerMock(registration, options);
+      const rendered = renderUpdateHook();
+      await waitFor(() => {
+        expect(registration.update).toHaveBeenCalledTimes(1);
+      });
+      vi.mocked(track).mockClear();
+      return { registration, ...rendered };
+    }
+
+    function startInstall(registration: MockServiceWorkerRegistration) {
+      const installingWorker = createMockWorker({ state: "installing" });
+      act(() => {
+        Object.defineProperty(registration, "installing", {
+          configurable: true,
+          value: installingWorker,
+        });
+        registration.dispatchUpdateFound();
+      });
+      return installingWorker;
+    }
+
+    function settleInstall(worker: MockServiceWorker, state: ServiceWorkerState) {
+      act(() => {
+        Object.defineProperty(worker, "state", { configurable: true, value: state });
+        worker.dispatchStateChange();
+      });
+    }
+
+    it("treats a first install as up to date without reporting a download", async () => {
+      const { registration, result } = await renderMountedHook({ controller: null });
+      expect(result.current.phase).toBe("idle");
+
+      const installingWorker = startInstall(registration);
+      expect(result.current.phase).toBe("idle");
+      expect(track).not.toHaveBeenCalledWith("sw_update_download_started", expect.anything());
+
+      settleInstall(installingWorker, "installed");
+
+      expect(result.current.phase).toBe("idle");
+      expect(result.current.updateAvailable).toBe(false);
+      expect(track).toHaveBeenCalledWith(
+        "sw_update_check_completed",
+        expect.objectContaining({
+          source: "update_found",
+          first_install: true,
+          found_update: false,
+        })
+      );
+    });
+
+    it("marks a failed install and lets a fresh check recover", async () => {
+      const { registration, result } = await renderMountedHook();
+
+      const installingWorker = startInstall(registration);
+      expect(result.current.phase).toBe("downloading");
+
+      settleInstall(installingWorker, "redundant");
+
+      expect(result.current.phase).toBe("install-failed");
+      expect(track).toHaveBeenCalledWith(
+        "sw_update_install_failed",
+        expect.objectContaining({ source: "update_found", phase: "install-failed" })
+      );
+      expect(logger.warn).toHaveBeenCalledWith(
+        "Service worker update failed to install",
+        expect.objectContaining({ checkSource: "update_found" })
+      );
+
+      // Try Again runs a fresh check; with nothing newer the row settles on up to date.
+      Object.defineProperty(registration, "installing", { configurable: true, value: null });
+      let outcome: UpdateCheckResult | undefined;
+      await act(async () => {
+        outcome = await result.current.checkForUpdate();
+      });
+      expect(outcome).toBe("up-to-date");
+      expect(result.current.phase).toBe("idle");
+    });
+
+    it("stops reporting a download that never settles and still surfaces a late install", async () => {
+      const { registration, result } = await renderMountedHook();
+      vi.useFakeTimers();
+
+      const installingWorker = startInstall(registration);
+      expect(result.current.phase).toBe("downloading");
+
+      act(() => {
+        vi.advanceTimersByTime(DOWNLOAD_TIMEOUT_MS);
+      });
+
+      expect(result.current.phase).toBe("idle");
+      expect(track).toHaveBeenCalledWith(
+        "sw_update_download_timeout",
+        expect.objectContaining({ source: "update_found", timeout_ms: DOWNLOAD_TIMEOUT_MS })
+      );
+      expect(logger.warn).toHaveBeenCalledWith(
+        "Service worker download did not settle before timeout",
+        expect.objectContaining({ timeoutMs: DOWNLOAD_TIMEOUT_MS })
+      );
+
+      settleInstall(installingWorker, "installed");
+      expect(result.current.phase).toBe("waiting");
+      expect(result.current.updateAvailable).toBe(true);
+    });
+
+    it("surfaces a worker that was already waiting when an automatic check completes", async () => {
+      vi.stubEnv("VITE_ENABLE_SW_DEV", "true");
+      const waitingWorker = createMockWorker({ state: "installed" });
+      const registration = createMockRegistration();
+      vi.mocked(registration.update).mockImplementation(async () => {
+        Object.defineProperty(registration, "waiting", {
+          configurable: true,
+          value: waitingWorker,
+        });
+        return registration;
+      });
+      installServiceWorkerMock(registration);
+      const { result } = renderUpdateHook();
+
+      await waitFor(() => {
+        expect(result.current.phase).toBe("waiting");
+      });
+      expect(result.current.waitingWorker).toBe(waitingWorker);
+      expect(track).toHaveBeenCalledWith(
+        "sw_update_available",
+        expect.objectContaining({ source: "initial_check" })
+      );
+    });
+
+    it("reports a pending install when a manual check outlasts the wait", async () => {
+      const { registration, result } = await renderMountedHook();
+      const installingWorker = createMockWorker({ state: "installing" });
+      vi.mocked(registration.update).mockImplementationOnce(async () => {
+        Object.defineProperty(registration, "installing", {
+          configurable: true,
+          value: installingWorker,
+        });
+        return registration;
+      });
+      vi.useFakeTimers();
+
+      let check: Promise<UpdateCheckResult> | undefined;
+      act(() => {
+        check = result.current.checkForUpdate();
+      });
+      // Let update() resolve and the watch attach before the clock moves.
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(0);
+      });
+      expect(result.current.phase).toBe("downloading");
+
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(DOWNLOAD_TIMEOUT_MS);
+      });
+
+      await expect(check).resolves.toBe("pending");
+      expect(result.current.phase).toBe("idle");
+      expect(track).toHaveBeenCalledWith(
+        "sw_update_download_timeout",
         expect.objectContaining({ source: "manual_check" })
       );
     });

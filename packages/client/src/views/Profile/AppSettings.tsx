@@ -134,12 +134,19 @@ export const AppSettings: React.FC = () => {
   const handleCheckClick = () => {
     hapticLight();
     setManualCheck(null);
-    // Only ask the registration to look for a newer worker and report back.
-    // Nothing on this path unregisters the worker or clears a cache; that is
-    // what stranded installed users on the app-files screen before.
+    // Only ask the registration to look for a newer worker and act on what it
+    // reports. Nothing on this path unregisters the worker or clears a cache;
+    // that is what stranded installed users on the app-files screen before.
     void checkForUpdate().then(
-      (found) => {
-        if (!found) setManualCheck("up-to-date");
+      (result) => {
+        if (result === "ready") {
+          // Tapping Check carries the intent to update, so apply the waiting
+          // worker straight away instead of asking for a second tap.
+          activateNow();
+        } else if (result === "up-to-date") {
+          setManualCheck("up-to-date");
+        }
+        // "pending" and "failed" are reflected through the hook's phase.
       },
       () => setManualCheck("failed")
     );
@@ -220,6 +227,18 @@ export const AppSettings: React.FC = () => {
             defaultMessage: "Close and reopen the app if retrying does not finish.",
           }),
           action: { label: retryLabel, onClick: handleApplyClick },
+        };
+      case "install-failed":
+        return {
+          title: intl.formatMessage({
+            id: "app.update.installFailed.title",
+            defaultMessage: "Couldn't finish the update",
+          }),
+          description: intl.formatMessage({
+            id: "app.update.checkFailed.description",
+            defaultMessage: "Check your connection and try again.",
+          }),
+          action: { label: retryLabel, onClick: handleCheckClick },
         };
       default:
         if (manualCheck === "up-to-date") {
