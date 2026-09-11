@@ -11,8 +11,10 @@ in this file.
 - `.claude/skills/` is the shared Claude/Codex skill source. `.agents/skills` is its symlinked Codex
   discovery path; never create a second copy.
 - Feature execution truth lives in `.plans/{ideas|backlog|active}/<feature-slug>/`; the passive
-  `plan` skill owns lifecycle and Linear mirroring. Closed hubs are deleted at closeout and
-  indexed in `.plans/ARCHIVE.md` — Git history is the only archive.
+  `plan` skill owns lifecycle and Linear mirroring. Close a hub only through its
+  [Closing a Plan Hub](.claude/skills/plan/SKILL.md#closing-a-plan-hub) procedure: commit the
+  closeout record, then archive. Closed hubs are indexed in `.plans/ARCHIVE.md` — Git history is
+  the only archive.
 - Use [`.claude/context/codebase-architecture.md`](.claude/context/codebase-architecture.md) for
   architecture opportunities, structural review, and deep-module or seam vocabulary.
 - Use [`.claude/context/validation-pipeline.md`](.claude/context/validation-pipeline.md) for the

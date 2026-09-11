@@ -61,6 +61,8 @@ Action: follow **Architecture Opportunity Mode** below. Do not route broad oppor
 
 - "check progress on [plan]", "what's in flight?", "what plans are still relevant?"
 - `.plans/` feels stale (older than 14 days without updates)
+- "close", "archive", or "clean up" a plan, or a PR finishes a hub → follow
+  [Closing a Plan Hub](#closing-a-plan-hub)
 
 ### Cross-package breaking change → dependency-order migration
 
@@ -290,15 +292,16 @@ restate them here. Plan-specific deltas:
 Update `.plans/.../status.json` and the plan files first. If a Linear issue exists, mirror only
 the safe, stakeholder-relevant status, respecting the routing-rules privacy boundary.
 
-Close a mirrored implementation in this order:
+A mirrored hub closes through [Closing a Plan Hub](#closing-a-plan-hub). Its Linear steps:
 
-1. Update the Plan Hub lane state, handoff, and evidence.
-2. Apply the current `linear-sync` manifest so terminal implementation issues and their active
-   parent are `In Review`.
-3. Run `node scripts/harness/plan-hub.mjs confirm-linear-sync --feature <slug> --actor <actor>`.
-4. Archive the hub with the honest resolution. The command refuses a mirror that changed after
-   its last confirmation.
-5. Move the Linear implementation issue and parent to `Done` only after a human merges the PR.
+1. While the PR is open, apply the current `linear-sync` manifest so terminal implementation
+   issues and their active parent are `In Review`. Apply only forward writes; never let a manifest
+   move a `Done` issue backward.
+2. Move the implementation issues and the parent to `Done` only after a human merges the PR, each
+   with a one- or two-sentence comment on what shipped and anything still open.
+3. Run `node scripts/harness/plan-hub.mjs confirm-linear-sync --feature <slug> --actor <actor>` as
+   the last hub edit before the closeout-record commit. Archiving refuses a mirror that changed
+   after its last confirmation.
 
 ### PR Linkage
 
@@ -320,17 +323,58 @@ ACTIVE → BLOCKED        (waiting on external dependency)
 BLOCKED → ACTIVE        (dependency resolved)
 ```
 
+### Closing a Plan Hub
+
+Closing takes two commits: first the hub records its final state, then the archive deletes it.
+Git history is the only archive, so the version it keeps must be the final one. Never archive a hub
+whose closeout record is uncommitted.
+
+**When.** The PR that finishes a hub carries its closeout record (steps 1–5), and the archive
+commit (step 6) lands right after the human merge. The weekly `/audit drift plans` pass lists hubs
+that shipped without one.
+
+1. **Choose the resolution.** `completed` requires every lane to be terminal with its receipts.
+   Work that shipped without certified lanes closes as `closed`; the others are `superseded`,
+   `paused`, `cancelled`, and `closed_stale`.
+2. **Scan for references.** Run `git grep -n ".plans/<stage>/<slug>"` outside the hub and search
+   other hubs for relative links (`../<slug>/`). Code, tests, and CI configuration must not read
+   `.plans` files, so move any data they read into its package first. Update ontology
+   `spec_source` and evidence paths, `scripts/data/validation-policy.json`, workflow `paths:`
+   filters, and other hubs' `status.json` links, then regenerate with `bun run ontology:generate`
+   and `bun run docs:generate`. Never edit dated `reports/`.
+3. **Write the closeout record.** In `plan.todo.md`, set `**Status**` to `CLOSED — <what shipped>`,
+   update `**Last Updated**`, and append a `## Closeout (<date>)` section
+   ([template](./templates.md#closeout-section-template)) naming the PR or commit that shipped, why
+   this resolution, and every open item with its destination: a Linear issue, another hub, or
+   explicitly dropped. In `status.json`, append a `closeout_recorded` history entry and leave
+   uncertified lanes as they are.
+4. **Mirrored hubs:** make the Linear writes in Part 4 and run `confirm-linear-sync` last.
+5. **Commit the record by itself** (`docs(plans): record the closeout of <slug>`), after
+   formatting `status.json` with Biome.
+6. **Archive, then commit.** Run
+   `node scripts/harness/plan-hub.mjs move --feature <slug> --to archive --resolution <resolution> --reason "<one or two sentences>"`.
+   The reason becomes the `ARCHIVE.md` row and must not contain `.plans/active/`,
+   `.plans/backlog/`, or `.plans/ideas/` paths. Commit the deletion, the ledger row, and the
+   reference updates together (`chore(plans): close <slug>`).
+7. **Verify.** Run `node scripts/harness/plan-hub.mjs validate` and, when references moved,
+   `bun run check:ontology` and `bun run check:docs-generated`. Confirm that
+   `git show <archive-commit>^:.plans/<stage>/<slug>/plan.todo.md` shows the closeout section.
+
+Stage moves (`--to backlog` or `--to ideas`) keep the hub, so they take one commit: run the
+reference scan, update the `**Stage**` and `**Status**` headers, add a `status.json` history entry
+that says why, and move a mirrored parent to `Backlog` in Linear.
+
 ### Lifecycle Rules
 
-1. **Supersedes header**: When a new plan replaces an old one, the new plan MUST include `**Supersedes**: [old-plan-name.md]` in its header. Close a superseded feature hub with `plan-hub.mjs move --to archive --resolution superseded` — the hub is validated, recorded in `.plans/ARCHIVE.md`, and deleted; its reports stay recoverable from Git history.
+1. **Supersedes header**: When a new plan replaces an old one, the new plan MUST include `**Supersedes**: [old-plan-name.md]` in its header. Close a superseded feature hub through [Closing a Plan Hub](#closing-a-plan-hub) with `--resolution superseded`; its reports stay recoverable from Git history.
 
 2. **One canonical plan per feature**: Never have 2+ active plans for the same feature area. If you're writing a v2 plan, delete or archive v1 first.
 
-3. **Status updates on implementation**: When work fully implements a plan, update the plan's `**Status**` and `**Last Updated**` headers and the feature hub's `status.json`; make the same updates for a partial implementation without closing the hub. If fully implemented, close the hub with `plan-hub.mjs move --to archive` after following the mirrored closeout sequence above. Use `completed` only when the evidence supports it; otherwise choose the honest terminal resolution. The archive ledger retains the Linear parent key, and Git history retains the closed hub.
+3. **Status updates on implementation**: When work fully implements a plan, update the plan's `**Status**` and `**Last Updated**` headers and the feature hub's `status.json`; make the same updates for a partial implementation without closing the hub. If fully implemented, close the hub with `plan-hub.mjs move --to archive` only after its closeout record is committed ([Closing a Plan Hub](#closing-a-plan-hub)). Use `completed` only when the evidence supports it; otherwise choose the honest terminal resolution. The archive ledger retains the Linear parent key, and Git history retains the closed hub.
 
 4. **Divergence notes**: If implementation diverges from the plan (different approach, dropped scope), add a `## Implementation Notes` section explaining what changed and why. Don't leave the plan as-if it was followed when it wasn't.
 
-5. **Stale plan cleanup**: Periodically audit `.plans/` — any plan untouched for 14+ days should be reviewed. Either update its status, confirm it's still active, or close its feature hub via `move --to archive` with an honest resolution (`closed_stale`, `paused`, …). Closeout deletes the hub after recording it in `.plans/ARCHIVE.md`; never hand-delete report-bearing hubs outside that command.
+5. **Stale plan cleanup**: Run the weekly `/audit drift plans` pass — any plan untouched for 14+ days, or whose work already merged, should be reviewed. Either update its status, confirm it's still active, or close it through [Closing a Plan Hub](#closing-a-plan-hub) with an honest resolution (`closed_stale`, `paused`, …). Closeout deletes the hub after recording it in `.plans/ARCHIVE.md`; never hand-delete report-bearing hubs outside that command.
 
 6. **No meeting notes in `.plans/`**: Raw transcripts and meeting notes go in `notes/`, Customer Needs, or safe comments on linked Linear/PR records, not `.plans/`. Plans must be actionable specs.
 

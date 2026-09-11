@@ -2,7 +2,8 @@
 
 Closed feature hubs are deleted from the working tree; Git history is the only archive.
 Recover one with `git log --oneline -- <historical path>` and
-`git checkout <sha>^ -- <historical path>` against its closeout commit.
+`git checkout <sha>^ -- <historical path>` against its closeout commit. From 2026-09-10 on, that
+parent commit holds the hub's committed closeout record (plan skill, Closing a Plan Hub).
 
 | Archived (UTC) | Slug | Linear | Title | Resolution | Historical path | Closeout |
 |---|---|---|---|---|---|---|

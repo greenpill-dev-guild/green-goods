@@ -162,6 +162,8 @@ For ambiguous, multi-package, or high-risk work, do not jump straight into edits
 4. Surface human judgment points before editing protected or irreversible surfaces.
 5. Implement only after the research and plan are coherent. If the session went down the wrong path, summarize the useful findings and restart with clean context.
 
+Plan Hubs close through the plan skill's [Closing a Plan Hub](.claude/skills/plan/SKILL.md#closing-a-plan-hub) procedure: the finishing PR carries the hub's closeout record, and the archive commit follows the merge. Code, tests, and CI never read files under `.plans/`.
+
 ## Contract Deployment Review Phases
 
 For new or not-yet-broadcast contract work, missing addresses in
