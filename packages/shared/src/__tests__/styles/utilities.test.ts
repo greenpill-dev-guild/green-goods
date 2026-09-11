@@ -61,6 +61,7 @@ describe("shared utilities.css", () => {
   it("exports modal height utilities", () => {
     expect(utilitiesContent).toContain(".h-modal");
     expect(utilitiesContent).toContain(".max-h-modal");
+    expect(utilitiesContent).toContain(".max-h-sheet");
   });
 
   it("exports native-scroll", () => {
@@ -72,5 +73,36 @@ describe("shared utilities.css", () => {
     expect(themeContent).toContain(".gg-control-trigger");
     expect(themeContent).toContain(".gg-button");
     expect(themeContent).toContain(".gg-button-secondary");
+  });
+});
+
+describe("PwaSheet layout contract", () => {
+  // Tailwind v4 does not scan packages/shared, so the sheet's geometry must be
+  // attribute-driven CSS here rather than utility classes on the JSX.
+  const rule = (slot: string) =>
+    new RegExp(`\\[data-component="PwaSheet"\\]\\[data-slot="${slot}"\\]\\s*\\{([^}]*)\\}`);
+  const declarations = (slot: string) => utilitiesContent.match(rule(slot))?.[1] ?? "";
+
+  it("anchors the sheet to the viewport bottom from attribute rules", () => {
+    expect(declarations("overlay")).toMatch(/position:\s*fixed/);
+    expect(declarations("overlay")).toMatch(/align-items:\s*flex-end/);
+    expect(declarations("overlay")).toMatch(/z-index:\s*var\(--z-modal\)/);
+  });
+
+  it("sizes the surface to its content with an 85dvh cap", () => {
+    expect(declarations("surface")).toMatch(/height:\s*auto/);
+    expect(declarations("surface")).toMatch(/max-height:\s*85dvh/);
+    expect(declarations("surface")).toMatch(/border-top-left-radius:\s*var\(--radius-lg\)/);
+  });
+
+  it("tints the drag handle and locks its touch action", () => {
+    expect(declarations("grip")).toMatch(/background-color:\s*rgb\(var\(--tone-primary/);
+    expect(declarations("drag-handle")).toMatch(/touch-action:\s*none/);
+  });
+
+  it("ships the shared header and scrollable body", () => {
+    expect(declarations("header")).toMatch(/display:\s*flex/);
+    expect(declarations("close")).toMatch(/width:\s*2\.75rem/);
+    expect(declarations("body")).toMatch(/overflow-y:\s*auto/);
   });
 });

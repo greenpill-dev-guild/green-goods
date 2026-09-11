@@ -18,7 +18,7 @@ const meta: Meta<typeof ConfirmDialog> = {
     docs: {
       description: {
         component:
-          "Accessible confirmation dialog using Radix Dialog. Centered on desktop, slides up from bottom on mobile. Replaces window.confirm() for consistent UX.",
+          "Accessible confirmation dialog. Centered Radix dialog at 640px and wider; below that it renders the shared PwaSheet bottom sheet, so drafts, deletes, and every other confirm share one surface. Replaces window.confirm() for consistent UX.",
       },
     },
   },
@@ -323,7 +323,7 @@ export const MobileSheetGeometry: Story = {
       onClose={fn()}
       onConfirm={fn()}
       title="Mobile confirmation sheet"
-      description="Mobile anchors this confirmation dialog to the viewport bottom."
+      description="Narrow viewports render this confirmation as the shared bottom sheet."
       confirmLabel="Confirm"
       cancelLabel="Cancel"
     />
@@ -340,9 +340,11 @@ export const MobileSheetGeometry: Story = {
       { timeout: 5_000 }
     );
     const scrim = document.body.querySelector<HTMLElement>(
-      '[data-component="ConfirmDialog"][data-slot="overlay"]'
+      '[data-testid="confirm-dialog-overlay"]'
     );
 
+    await expect(surface).toHaveAttribute("data-component", "PwaSheet");
+    await expect(dialog.getByTestId("confirm-dialog-drag-handle")).toBeVisible();
     await expectViewportCoveringElement(scrim);
     await expectRealEnterAnimation(surface, /dialogSlideInFromBottom/);
     await waitForSurfaceSettled(surface);
@@ -366,7 +368,7 @@ export const MobileSheetGeometry: Story = {
     await expect(document.documentElement.scrollWidth).toBeLessThanOrEqual(
       window.innerWidth + VIEWPORT_EDGE_TOLERANCE_PX
     );
-    const closeButton = dialog.getByTestId("confirm-dialog-close");
+    const closeButton = dialog.getByTestId("pwa-sheet-close");
     await expectTouchTarget(closeButton);
     await userEvent.click(closeButton);
     await waitFor(async () => {
@@ -643,5 +645,60 @@ export const ShellSize2xl: Story = {
           "`size='2xl'` — reserved for multi-section workflows like hypercert minting, wizards, or data-dense previews.",
       },
     },
+  },
+};
+
+export const ShellMobileSheet: Story = {
+  tags: ["storybook-ci"],
+  render: () => (
+    <DialogShell
+      open={true}
+      onOpenChange={fn()}
+      title="Withdraw offer"
+      description="Narrow viewports render the shell as the shared bottom sheet."
+      size="md"
+    >
+      <p className="text-body-sm text-text-sub-600">Reason field placeholder</p>
+    </DialogShell>
+  ),
+  parameters: {
+    viewport: {
+      defaultViewport: "confirmMobile390x844",
+      viewports: CONFIRM_MOBILE_VIEWPORT,
+    },
+    docs: {
+      description: {
+        story:
+          "Below 640px DialogShell renders the same PwaSheet as ConfirmDialog and DraftDialog: drag handle, shared header, and a content-sized body anchored to the viewport bottom.",
+      },
+    },
+  },
+  play: async () => {
+    await expect(window.innerWidth).toBeLessThan(SM_BREAKPOINT_PX);
+
+    const dialog = within(document.body);
+    const surface = await dialog.findByRole(
+      "dialog",
+      {
+        name: /withdraw offer/i,
+      },
+      { timeout: 5_000 }
+    );
+
+    await expect(surface).toHaveAttribute("data-component", "PwaSheet");
+    await expect(dialog.getByTestId("dialog-shell-drag-handle")).toBeVisible();
+    await expectRealEnterAnimation(surface, /dialogSlideInFromBottom/);
+    await waitForSurfaceSettled(surface);
+
+    await waitFor(async () => {
+      const rect = surface.getBoundingClientRect();
+      await expect(Math.abs(rect.bottom - window.innerHeight)).toBeLessThanOrEqual(
+        CENTER_TOLERANCE_PX
+      );
+      await expect(rect.left).toBeGreaterThanOrEqual(-VIEWPORT_EDGE_TOLERANCE_PX);
+      await expect(rect.right).toBeLessThanOrEqual(window.innerWidth + VIEWPORT_EDGE_TOLERANCE_PX);
+    });
+
+    await expectTouchTarget(dialog.getByTestId("pwa-sheet-close"));
   },
 };

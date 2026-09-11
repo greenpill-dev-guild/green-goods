@@ -355,6 +355,13 @@
     max-height: calc(100dvh - 2rem);
   }
 
+  /* Content-sized sheets grow with their content and stop here, so a short
+     sheet never reads as a full-screen modal (matches the PwaSheet cap). */
+  .max-h-sheet {
+    max-height: 85vh;
+    max-height: 85dvh;
+  }
+
   /* ── Tap Feedback ── */
   .tap-feedback {
     transition: transform var(--spring-spatial-fast);
@@ -459,13 +466,14 @@
 }
 
 /* Dialog motion — shared across every PWA dialog primitive (PwaSheet,
- * DialogShell, ConfirmDialog, ImagePreviewDialog). Bottom-anchored mobile
- * sheets use dialogSlideIn/Out with a 60% overshoot waypoint that
- * supplies the spring feel. Centered modals (DialogShell/ConfirmDialog at
- * >= 640px) use dialogZoomIn/Out — a subtle scale, no overshoot, because
- * centered modals shouldn't bounce. ImagePreviewDialog uses dialogFadeIn/
- * Out for a clean image-viewer entrance. All driven from
- * --spring-spatial-* tokens (no new dialog-specific token family). */
+ * DialogShell, ConfirmDialog, ImagePreviewDialog). PwaSheet — the bottom
+ * sheet every dialog renders through below 640px — uses dialogSlideIn/Out
+ * with a 60% overshoot waypoint that supplies the spring feel. DialogShell
+ * and ConfirmDialog only mount their centered Radix surface at >= 640px and
+ * use dialogZoomIn/Out — a subtle scale, no overshoot, because centered
+ * modals shouldn't bounce. ImagePreviewDialog uses scrimFadeIn/Out for a
+ * clean image-viewer entrance. All driven from --spring-spatial-* tokens
+ * (no new dialog-specific token family). */
 @keyframes dialogSlideInFromBottom {
   from { transform: translate3d(0, 100%, 0); opacity: 0.8; }
   60%  { transform: translate3d(0, -2%, 0); opacity: 1; }
@@ -490,34 +498,29 @@
 @keyframes scrimFadeIn  { from { opacity: 0; } to { opacity: 1; } }
 @keyframes scrimFadeOut { from { opacity: 1; } to { opacity: 0; } }
 
-/* Bottom-anchored mobile sheet enter/exit — PwaSheet + DialogShell mobile
- * + ConfirmDialog mobile */
-[data-component="PwaSheet"][data-slot="surface"][data-state="open"],
-[data-component="DialogShell"][data-slot="surface"][data-state="open"],
-[data-component="ConfirmDialog"][data-slot="surface"][data-state="open"] {
+/* Bottom sheet enter/exit — PwaSheet */
+[data-component="PwaSheet"][data-slot="surface"][data-state="open"] {
   animation: dialogSlideInFromBottom var(--spring-spatial-slow-duration)
     var(--spring-spatial-slow-easing) both;
 }
 
-[data-component="PwaSheet"][data-slot="surface"][data-state="closed"],
-[data-component="DialogShell"][data-slot="surface"][data-state="closed"],
-[data-component="ConfirmDialog"][data-slot="surface"][data-state="closed"] {
+[data-component="PwaSheet"][data-slot="surface"][data-state="closed"] {
   animation: dialogSlideOutToBottom var(--spring-spatial-duration)
     var(--spring-spatial-easing) both;
 }
 
-/* Centered modal variant (DialogShell + ConfirmDialog at >= 640px) */
-@media (min-width: 640px) {
-  [data-component="DialogShell"][data-slot="surface"][data-state="open"],
-  [data-component="ConfirmDialog"][data-slot="surface"][data-state="open"] {
-    animation: dialogZoomIn var(--spring-spatial-slow-duration)
-      var(--spring-spatial-slow-easing) both;
-  }
-  [data-component="DialogShell"][data-slot="surface"][data-state="closed"],
-  [data-component="ConfirmDialog"][data-slot="surface"][data-state="closed"] {
-    animation: dialogZoomOut var(--spring-spatial-duration)
-      var(--spring-spatial-easing) both;
-  }
+/* Centered modal enter/exit — DialogShell + ConfirmDialog. Both render the
+ * PwaSheet below 640px, so this surface only ever mounts centered. */
+[data-component="DialogShell"][data-slot="surface"][data-state="open"],
+[data-component="ConfirmDialog"][data-slot="surface"][data-state="open"] {
+  animation: dialogZoomIn var(--spring-spatial-slow-duration)
+    var(--spring-spatial-slow-easing) both;
+}
+
+[data-component="DialogShell"][data-slot="surface"][data-state="closed"],
+[data-component="ConfirmDialog"][data-slot="surface"][data-state="closed"] {
+  animation: dialogZoomOut var(--spring-spatial-duration)
+    var(--spring-spatial-easing) both;
 }
 
 /* Image viewer — pure fade */
@@ -552,22 +555,165 @@
 
 /* ── Dialog surface radius ──
  * Tailwind v4 doesn't scan packages/shared/src/ from admin/client builds, so
- * bare utilities like `rounded-t-xl` / `sm:rounded-xl` applied to JSX inside
- * shared dialog primitives silently fail to generate. Drive the radius from
- * the attribute selector so it works regardless of scan coverage. Mobile keeps
- * top-only rounding (sheet anchored to viewport bottom); sm+ rounds all
- * corners (centered modal). */
+ * bare utilities like `rounded-xl` applied to JSX inside shared dialog
+ * primitives silently fail to generate. Drive the radius from the attribute
+ * selector so it works regardless of scan coverage. These surfaces only mount
+ * centered (>= 640px); the bottom sheet's top-only rounding lives with the
+ * PwaSheet layout below. */
 [data-component="DialogShell"][data-slot="surface"],
 [data-component="ConfirmDialog"][data-slot="surface"] {
-  border-top-left-radius: var(--radius-lg);
-  border-top-right-radius: var(--radius-lg);
+  border-radius: var(--radius-lg);
 }
 
-@media (min-width: 640px) {
-  [data-component="DialogShell"][data-slot="surface"],
-  [data-component="ConfirmDialog"][data-slot="surface"] {
-    border-bottom-left-radius: var(--radius-lg);
-    border-bottom-right-radius: var(--radius-lg);
+/* ── PwaSheet layout ──
+ * Same scan gap: the sheet's geometry is attribute-driven instead of utility
+ * classes on its JSX (`touch-none`, `cursor-grab`, and the drag-handle tint
+ * were measured missing from the client bundle). Scoped to @layer components
+ * so a consumer's `panelClassName` utilities and unlayered package CSS still
+ * override these defaults; inline `panelStyle` wins over everything. The
+ * surface sizes to its content and caps at 85dvh — consumers that need a fixed
+ * height (tabbed sheets) set it through `panelStyle`. */
+@layer components {
+  [data-component="PwaSheet"][data-slot="overlay"] {
+    position: fixed;
+    inset: 0;
+    z-index: var(--z-modal);
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+  }
+
+  [data-component="PwaSheet"][data-slot="scrim"] {
+    position: absolute;
+    inset: 0;
+  }
+
+  [data-component="PwaSheet"][data-slot="surface"] {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    height: auto;
+    max-height: 85vh;
+    max-height: 85dvh;
+    overflow: hidden;
+    border: 1px solid rgb(var(--stroke-soft-200));
+    border-bottom: 0;
+    border-top-left-radius: var(--radius-lg);
+    border-top-right-radius: var(--radius-lg);
+    background-color: var(--color-material-solid);
+    box-shadow: var(--shadow-float);
+    will-change: transform;
+  }
+
+  [data-component="PwaSheet"][data-slot="drag-handle"] {
+    display: flex;
+    flex-shrink: 0;
+    justify-content: center;
+    padding: 0.75rem 0 0.25rem;
+    cursor: grab;
+    touch-action: none;
+  }
+
+  [data-component="PwaSheet"][data-slot="drag-handle"]:active {
+    cursor: grabbing;
+  }
+
+  [data-component="PwaSheet"][data-slot="grip"] {
+    width: 2.5rem;
+    height: 0.375rem;
+    border-radius: 9999px;
+    background-color: rgb(var(--tone-primary, var(--primary-base)) / 0.32);
+  }
+
+  /* Shared header + body, rendered when a consumer passes `title`. */
+  [data-component="PwaSheet"][data-slot="header"] {
+    display: flex;
+    flex-shrink: 0;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 0.25rem 1rem 0.75rem;
+  }
+
+  [data-component="PwaSheet"][data-slot="heading"] {
+    display: flex;
+    flex: 1 1 auto;
+    min-width: 0;
+    align-items: flex-start;
+    gap: 0.75rem;
+  }
+
+  [data-component="PwaSheet"][data-slot="icon"] {
+    flex-shrink: 0;
+  }
+
+  [data-component="PwaSheet"][data-slot="text"] {
+    flex: 1 1 auto;
+    min-width: 0;
+    padding-top: 0.25rem;
+  }
+
+  [data-component="PwaSheet"][data-slot="title"] {
+    margin: 0;
+    font-size: 1.125rem;
+    line-height: 1.5rem;
+    font-weight: 600;
+    color: rgb(var(--text-strong-950));
+    overflow-wrap: anywhere;
+  }
+
+  [data-component="PwaSheet"][data-slot="description"] {
+    margin: 0.25rem 0 0;
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+    color: rgb(var(--text-sub-600));
+  }
+
+  [data-component="PwaSheet"][data-slot="close"] {
+    display: inline-flex;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    width: 2.75rem;
+    height: 2.75rem;
+    border: 0;
+    border-radius: 9999px;
+    background: transparent;
+    color: rgb(var(--text-sub-600));
+    cursor: pointer;
+    transition: background-color var(--spring-effects-fast-duration)
+      var(--spring-effects-fast-easing);
+  }
+
+  [data-component="PwaSheet"][data-slot="close"] svg {
+    width: 1.25rem;
+    height: 1.25rem;
+  }
+
+  [data-component="PwaSheet"][data-slot="close"]:hover {
+    background-color: rgb(var(--bg-soft-200));
+  }
+
+  [data-component="PwaSheet"][data-slot="close"]:focus-visible {
+    outline: 2px solid rgb(var(--tone-focus-ring, var(--primary-base)));
+    outline-offset: 2px;
+  }
+
+  [data-component="PwaSheet"][data-slot="close"]:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+  }
+
+  [data-component="PwaSheet"][data-slot="body"] {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    gap: 0.75rem;
+    min-height: 0;
+    padding: 0 1rem 1rem;
+    overflow-y: auto;
+    overscroll-behavior: contain;
   }
 }
 

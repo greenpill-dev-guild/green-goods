@@ -37,6 +37,16 @@ async function expectTouchTarget(element: HTMLElement) {
   await expect(rect.height).toBeGreaterThanOrEqual(MIN_TOUCH_TARGET_PX);
 }
 
+/** Computed color a CSS color value resolves to inside the same theme scope as `element`. */
+function resolveBackground(element: HTMLElement, cssColor: string): string {
+  const probe = document.createElement("div");
+  probe.style.backgroundColor = cssColor;
+  (element.parentElement ?? document.body).appendChild(probe);
+  const color = getComputedStyle(probe).backgroundColor;
+  probe.remove();
+  return color;
+}
+
 function hasReducedMotionRule(componentName: string): boolean {
   return Array.from(document.styleSheets).some((sheet) => {
     let rules: CSSRule[];
@@ -110,7 +120,18 @@ function SheetBody({
   );
 }
 
-function PwaSheetFixture(args: PwaSheetStoryArgs) {
+/**
+ * Consumer-owned chrome: the fixture composes its own header inside the sheet,
+ * so the story's `title` / `description` feed `SheetBody`, never the sheet's
+ * shared header (the `SharedHeader` story covers that mode).
+ */
+function PwaSheetFixture({
+  eyebrow,
+  title,
+  description,
+  sections,
+  ...sheetProps
+}: PwaSheetStoryArgs) {
   return (
     <div className="min-h-[720px] bg-bg-white-0 text-text-strong-950">
       <div className="mx-auto flex min-h-[720px] max-w-[430px] items-center justify-center px-6 text-center">
@@ -118,13 +139,13 @@ function PwaSheetFixture(args: PwaSheetStoryArgs) {
           The sheet is fixed to the viewport bottom, matching the installed PWA runtime.
         </p>
       </div>
-      <PwaSheet {...args}>
+      <PwaSheet {...sheetProps}>
         <SheetBody
-          eyebrow={args.eyebrow}
-          title={args.title}
-          description={args.description}
-          sections={args.sections}
-          onClose={args.onClose}
+          eyebrow={eyebrow}
+          title={title}
+          description={description}
+          sections={sections}
+          onClose={sheetProps.onClose}
         />
       </PwaSheet>
     </div>
@@ -141,7 +162,7 @@ const meta = {
     docs: {
       description: {
         component:
-          "Gesture-capable bottom sheet for installed PWA flows. Uses shared dialog keyframes, safe-area padding, focus trapping, Escape close, overlay click, and optional drag-to-dismiss.",
+          "Gesture-capable bottom sheet for installed PWA flows. Uses shared dialog keyframes, safe-area padding, focus trapping, Escape close, overlay click, and optional drag-to-dismiss. Pass `title` for the shared header that ConfirmDialog, DialogShell, and DraftDialog render through below 640px; the layout is attribute-driven CSS because Tailwind does not scan packages/shared.",
       },
     },
   },
@@ -224,7 +245,9 @@ export const DarkMode: Story = {
     const surface = await canvas.findByTestId("pwa-sheet");
 
     await expect(surface).toHaveAttribute("data-state", "open");
-    await expect(surface.className).toContain("bg-[var(--color-material-solid)]");
+    await expect(getComputedStyle(surface).backgroundColor).toBe(
+      resolveBackground(surface, "var(--color-material-solid)")
+    );
   },
 };
 
@@ -288,5 +311,80 @@ export const WithoutDragDismiss: Story = {
     const canvas = within(canvasElement);
     await expect(canvas.getByRole("dialog", { name: "Work draft sheet" })).toBeVisible();
     expect(canvas.queryByTestId("pwa-sheet-drag-handle")).not.toBeInTheDocument();
+  },
+};
+
+export const SharedHeader: Story = {
+  args: {
+    title: "Delete Draft?",
+    description: "This permanently deletes your draft and all associated images.",
+  },
+  render: (args) => (
+    <div className="min-h-[720px] bg-bg-white-0 text-text-strong-950">
+      <PwaSheet
+        open={args.open}
+        onClose={args.onClose}
+        title={args.title}
+        description={args.description}
+        closeLabel="Close"
+        role="alertdialog"
+        showDragHandle={args.showDragHandle}
+        dragToDismiss={args.dragToDismiss}
+      >
+        <button
+          type="button"
+          className="min-h-11 w-full rounded-lg bg-error-base px-4 py-3 text-sm font-medium text-static-white"
+        >
+          Delete
+        </button>
+        <button
+          type="button"
+          className="min-h-11 w-full rounded-lg bg-bg-weak-50 px-4 py-3 text-sm font-medium text-text-strong-950"
+        >
+          Cancel
+        </button>
+      </PwaSheet>
+    </div>
+  ),
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "The shared header every confirm-style sheet uses: drag handle, title, description, 44px close button, and a content-sized body that stays anchored to the viewport bottom.",
+      },
+    },
+  },
+  play: async ({ canvasElement, args }) => {
+    const canvas = within(canvasElement);
+    const dialog = canvas.getByRole("alertdialog", { name: "Delete Draft?" });
+    await expect(dialog).toHaveAccessibleDescription(
+      "This permanently deletes your draft and all associated images."
+    );
+    const surface = canvas.getByTestId("pwa-sheet");
+    await expectRealEnterAnimation(surface, /dialogSlideInFromBottom/);
+    await waitForSurfaceSettled(surface);
+
+    const closeButton = canvas.getByTestId("pwa-sheet-close");
+    await expectTouchTarget(closeButton);
+    const grip = surface.querySelector<HTMLElement>('[data-slot="grip"]');
+    await expect(grip).not.toBeNull();
+    await expect(getComputedStyle(grip as HTMLElement).backgroundColor).not.toBe(
+      resolveBackground(surface, "transparent")
+    );
+
+    await waitFor(async () => {
+      const rect = surface.getBoundingClientRect();
+      await expect(Math.abs(rect.bottom - window.innerHeight)).toBeLessThanOrEqual(
+        CENTER_TOLERANCE_PX
+      );
+      await expect(rect.height).toBeLessThan(window.innerHeight * 0.6);
+      await expect(rect.left).toBeLessThanOrEqual(VIEWPORT_EDGE_TOLERANCE_PX);
+      await expect(rect.right).toBeGreaterThanOrEqual(
+        window.innerWidth - VIEWPORT_EDGE_TOLERANCE_PX
+      );
+    });
+
+    await userEvent.click(closeButton);
+    await expect(args.onClose).toHaveBeenCalled();
   },
 };

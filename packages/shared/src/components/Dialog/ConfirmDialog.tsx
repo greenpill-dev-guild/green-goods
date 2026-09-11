@@ -1,9 +1,12 @@
 import * as Dialog from "@radix-ui/react-dialog";
 import { RiAlertLine, RiCloseLine, RiLoader4Line } from "@remixicon/react";
 import type { CSSProperties, ReactNode } from "react";
+import { createPortal } from "react-dom";
 import { useIntl } from "react-intl";
+import { useMediaQuery } from "../../hooks/ui/useMediaQuery";
 import { logger } from "../../modules/app/logger";
 import { cn } from "../../utils/styles/cn";
+import { PWA_SHEET_MEDIA_QUERY, PwaSheet } from "./PwaSheet";
 
 export interface ConfirmDialogProps {
   isOpen: boolean;
@@ -41,7 +44,9 @@ export interface DialogShellProps {
   size?: "md" | "lg" | "xl" | "2xl";
   className?: string;
   bodyClassName?: string;
+  /** Centered surface only; the narrow-viewport sheet owns its own header. */
   headerClassName?: string;
+  /** Centered surface only; the narrow-viewport sheet owns its own header. */
   descriptionClassName?: string;
   hideCloseButton?: boolean;
   /** When true, prevents close via overlay click or Escape — useful during in-flight mutations. */
@@ -65,6 +70,25 @@ const dialogSurfaceStyle = {
   paddingBottom: "env(safe-area-inset-bottom)",
 } satisfies CSSProperties;
 
+const dialogShellIconContainerClassName =
+  "flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-bg-soft text-text-sub sm:h-10 sm:w-10";
+
+const confirmButtonClassName =
+  "relative flex min-h-11 w-full min-w-0 items-center justify-center rounded-lg px-4 py-3 text-center text-sm font-medium transition disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-base focus-visible:ring-offset-2 sm:flex-1";
+
+const cancelButtonClassName =
+  "min-h-11 w-full min-w-0 rounded-lg bg-bg-weak px-4 py-3 text-sm font-medium text-text-strong transition hover:bg-bg-soft disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-base focus-visible:ring-offset-2 sm:flex-1";
+
+/**
+ * Below `PWA_SHEET_MEDIA_QUERY` every shared dialog renders the PwaSheet
+ * bottom sheet (portaled to `document.body`, like the Radix surface); the
+ * centered Radix surface only mounts at 640px and wider.
+ */
+function useRendersAsSheet(): boolean {
+  const isNarrow = useMediaQuery(PWA_SHEET_MEDIA_QUERY);
+  return isNarrow && typeof document !== "undefined";
+}
+
 export function DialogShell({
   open,
   onOpenChange,
@@ -82,6 +106,30 @@ export function DialogShell({
   preventClose = false,
 }: DialogShellProps) {
   const { formatMessage } = useIntl();
+  const rendersAsSheet = useRendersAsSheet();
+  const iconContainer = icon ? (
+    <div className={cn(dialogShellIconContainerClassName, iconContainerClassName)}>{icon}</div>
+  ) : null;
+
+  if (rendersAsSheet) {
+    return createPortal(
+      <PwaSheet
+        open={open}
+        onClose={() => onOpenChange(false)}
+        title={title}
+        description={description}
+        icon={iconContainer ?? undefined}
+        closeLabel={formatMessage({ id: "app.common.close" })}
+        hideCloseButton={hideCloseButton}
+        preventClose={preventClose}
+        panelClassName={className}
+        testId="dialog-shell"
+      >
+        {bodyClassName ? <div className={bodyClassName}>{children}</div> : children}
+      </PwaSheet>,
+      document.body
+    );
+  }
 
   return (
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
@@ -115,16 +163,7 @@ export function DialogShell({
             )}
           >
             <div className="flex min-w-0 flex-1 items-start gap-3">
-              {icon && (
-                <div
-                  className={cn(
-                    "flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-bg-soft text-text-sub sm:h-10 sm:w-10",
-                    iconContainerClassName
-                  )}
-                >
-                  {icon}
-                </div>
-              )}
+              {iconContainer}
               <div className="min-w-0 flex-1">
                 <Dialog.Title className="truncate text-title-lg font-semibold text-text-strong">
                   {title}
@@ -163,7 +202,9 @@ export function DialogShell({
 
 /**
  * A confirmation dialog using Radix Dialog for accessibility.
- * Centered on desktop, slides up from bottom on mobile.
+ * Centered at 640px and wider; below that it renders the shared PwaSheet
+ * bottom sheet, so drafts, deletes, and every other confirm share one
+ * surface in the installed app.
  * Replaces window.confirm() for consistent UX across the application.
  */
 export function ConfirmDialog({
@@ -182,6 +223,7 @@ export function ConfirmDialog({
   icon,
 }: ConfirmDialogProps) {
   const { formatMessage } = useIntl();
+  const rendersAsSheet = useRendersAsSheet();
   const resolvedConfirmLabel = confirmLabel ?? formatMessage({ id: "app.common.confirm" });
   const resolvedCancelLabel = cancelLabel ?? formatMessage({ id: "app.common.cancel" });
   const resolvedCloseLabel = formatMessage({ id: "app.common.close" });
@@ -250,6 +292,60 @@ export function ConfirmDialog({
     variant === "warning" || variant === "danger" ? (
       <RiAlertLine className={cn("h-5 w-5", styles.iconColor)} />
     ) : null;
+  const iconContainer =
+    icon || defaultIcon ? (
+      <div
+        className={cn(
+          "flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg",
+          styles.iconBg
+        )}
+      >
+        {icon || defaultIcon}
+      </div>
+    ) : null;
+
+  const confirmButton = (
+    <button
+      type="button"
+      onClick={handleConfirm}
+      disabled={isLoading}
+      aria-busy={isLoading || undefined}
+      className={cn(confirmButtonClassName, styles.confirmBtn)}
+    >
+      {isLoading && <RiLoader4Line className="absolute left-4 h-4 w-4 animate-spin" aria-hidden />}
+      {resolvedConfirmLabel}
+    </button>
+  );
+
+  if (rendersAsSheet) {
+    return createPortal(
+      <PwaSheet
+        open={isOpen}
+        onClose={onClose}
+        role={isDestructive ? "alertdialog" : "dialog"}
+        title={title}
+        description={description}
+        icon={iconContainer ?? undefined}
+        closeLabel={resolvedCloseLabel}
+        preventClose={isLoading}
+        testId="confirm-dialog"
+      >
+        {confirmButton}
+        <button
+          type="button"
+          disabled={isLoading}
+          onClick={() => {
+            void handleCancel();
+            onClose();
+          }}
+          className={cancelButtonClassName}
+        >
+          {resolvedCancelLabel}
+        </button>
+      </PwaSheet>,
+      document.body
+    );
+  }
 
   return (
     <Dialog.Root open={isOpen} onOpenChange={(open: boolean) => !open && onClose()}>
@@ -278,16 +374,7 @@ export function ConfirmDialog({
           {/* Header */}
           <div className="flex items-start justify-between gap-3 border-b border-stroke-soft p-4">
             <div className="flex min-w-0 flex-1 items-start gap-3">
-              {(icon || defaultIcon) && (
-                <div
-                  className={cn(
-                    "flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg",
-                    styles.iconBg
-                  )}
-                >
-                  {icon || defaultIcon}
-                </div>
-              )}
+              {iconContainer}
               <div className="min-w-0 flex-1 pt-1">
                 <Dialog.Title className="text-title-lg font-semibold text-text-strong">
                   {title}
@@ -319,26 +406,12 @@ export function ConfirmDialog({
                 type="button"
                 disabled={isLoading}
                 onClick={handleCancel}
-                className="min-h-11 w-full min-w-0 rounded-lg bg-bg-weak px-4 py-3 text-sm font-medium text-text-strong transition hover:bg-bg-soft disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-base focus-visible:ring-offset-2 sm:flex-1"
+                className={cancelButtonClassName}
               >
                 {resolvedCancelLabel}
               </button>
             </Dialog.Close>
-            <button
-              type="button"
-              onClick={handleConfirm}
-              disabled={isLoading}
-              aria-busy={isLoading || undefined}
-              className={cn(
-                "relative flex min-h-11 w-full min-w-0 items-center justify-center rounded-lg px-4 py-3 text-center text-sm font-medium transition disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-base focus-visible:ring-offset-2 sm:flex-1",
-                styles.confirmBtn
-              )}
-            >
-              {isLoading && (
-                <RiLoader4Line className="absolute left-4 h-4 w-4 animate-spin" aria-hidden />
-              )}
-              {resolvedConfirmLabel}
-            </button>
+            {confirmButton}
           </div>
         </Dialog.Content>
       </Dialog.Portal>
