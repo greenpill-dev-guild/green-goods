@@ -9,9 +9,14 @@ import { useTransactionSender } from "../hooks/blockchain/useTransactionSender";
 import { queryInvalidation } from "../config/query-keys/invalidation";
 import { queueKeys } from "../config/query-keys/misc";
 import { approvalsKeys, workApprovalsKeys, worksKeys } from "../config/query-keys/work";
+import { syncQueuedWorkBatch } from "../hooks/work/useBatchWorkSync";
 import { jobQueue } from "../modules/job-queue/default-instance";
+import { jobQueueEventBus } from "../modules/job-queue/event-bus";
 import type { JobQueueHandle } from "../modules/job-queue/ports";
+import { isTerminallyFailedJob } from "../modules/job-queue/queue-policy";
+import { trackContractError } from "../modules/app/error-tracking";
 import { logger } from "../modules/app/logger";
+import { parseContractError } from "../utils/errors/contract-errors";
 import { useUIStore } from "../stores/useUIStore";
 import type {
   ApprovalJobPayload,
@@ -71,7 +76,7 @@ interface Work {
 }
 
 const JobQueueProviderInner: React.FC<JobQueueProviderProps> = ({ children, queue = jobQueue }) => {
-  const { authMode } = useAuth();
+  const { authMode, externalWalletConnected } = useAuth();
   const sender = useTransactionSender();
 
   // Use single source of truth for primary address
@@ -390,6 +395,70 @@ const JobQueueProviderInner: React.FC<JobQueueProviderProps> = ({ children, queu
       unsubscribe();
     };
   }, [currentUserAddress, sender, queue, refreshStats]);
+
+  // Wallet users flush on reconnect too. Their one tap is the wallet's own
+  // confirmation, so every unsent job travels in one batched signature, while a
+  // job that already carries a broadcast stays with the confirmation check above.
+  const walletSyncInProgressRef = useRef(false);
+  useEffect(() => {
+    if (authMode !== "wallet" || !currentUserAddress || !externalWalletConnected) return;
+    if (typeof window === "undefined") return;
+    let stopped = false;
+    const sendUnsentWork = async () => {
+      if (stopped || walletSyncInProgressRef.current || !navigator.onLine) return;
+      walletSyncInProgressRef.current = true;
+      let unsentCount = 0;
+      let sentCount = 0;
+      try {
+        const jobs = await queue.getJobs(currentUserAddress, { kind: "work", synced: false });
+        unsentCount = jobs.filter(
+          (job) =>
+            !(job.payload as WorkJobPayload).uploadCheckpoint?.transactionHash &&
+            !retainedWorkBroadcast(job.id) &&
+            !job.meta?.workTransactionReverted &&
+            !isTerminallyFailedJob(job)
+        ).length;
+        if (stopped || unsentCount === 0) return;
+        const result = await syncQueuedWorkBatch(currentUserAddress, DEFAULT_CHAIN_ID);
+        sentCount = result.count;
+        if (!stopped && sentCount > 0) queueToasts.syncSuccess(sentCount);
+      } catch (error) {
+        if (stopped) return;
+        logger.warn("[JobQueueProvider] Queued work is still waiting on the wallet", { error });
+        if (parseContractError(error).name !== "UserRejected") {
+          trackContractError(error, {
+            source: "JobQueueProvider",
+            userAction: "sending queued work after reconnect",
+            metadata: { authMode },
+          });
+          queueToasts.syncError();
+        }
+      } finally {
+        walletSyncInProgressRef.current = false;
+        if (!stopped) {
+          // A successful batch reports completion itself; an empty or failed
+          // attempt still ends the reconnect sync that useOffline is showing.
+          if (sentCount === 0) {
+            jobQueueEventBus.emit("queue:sync-completed", {
+              result: { processed: 0, failed: unsentCount, skipped: 0 },
+            });
+          }
+          await refreshStats();
+        }
+      }
+    };
+    const run = () => {
+      void sendUnsentWork();
+    };
+    run();
+    window.addEventListener("online", run);
+    const unsubscribeBackgroundSync = queue.onBackgroundSyncRequested(run);
+    return () => {
+      stopped = true;
+      window.removeEventListener("online", run);
+      unsubscribeBackgroundSync();
+    };
+  }, [authMode, externalWalletConnected, currentUserAddress, queue, refreshStats]);
 
   // Context value - useMemo kept here as it's passed to Provider (cross-boundary)
   const contextValue: JobQueueContextValue = React.useMemo(

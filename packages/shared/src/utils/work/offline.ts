@@ -8,6 +8,7 @@
 
 import { jobToWork } from "../../hooks/work/useWorks";
 import { jobQueueDB } from "../../modules/job-queue/db";
+import { jobQueue } from "../../modules/job-queue/default-instance";
 import type { Address, Work } from "../../types/domain";
 import type { Job, WorkJobPayload } from "../../types/job-queue";
 
@@ -50,8 +51,8 @@ export async function fetchOfflineWorks(userAddress: Address, gardenId?: string)
     return [];
   }
 
-  const { jobQueue } = await import("../../modules/job-queue");
-
+  // Read the queue through a static import: this runs while offline, where a
+  // lazily loaded module cannot be fetched and the queued work would vanish.
   const jobs = await jobQueue.getJobs(userAddress, { kind: "work", synced: false });
 
   // Filter by garden if specified
