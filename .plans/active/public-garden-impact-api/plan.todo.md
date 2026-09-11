@@ -2,9 +2,9 @@
 
 **Feature Slug**: `public-garden-impact-api`
 **Stage**: `active`
-**Status**: `ACTIVE`
+**Status**: `CLOSED — shipped in PR #782; the QA lanes never ran`
 **Created**: `2026-08-29T00:24:32.707Z`
-**Last Updated**: `2026-08-29T03:15:16Z`
+**Last Updated**: `2026-09-10`
 
 ## Decision Log
 
@@ -99,3 +99,12 @@
 - [ ] `node scripts/dev/ci-local.js --quick` passes every independent check but exits at the same
   Agent join-request type errors.
 - [ ] `bun run build:agent` is blocked by the same untouched error; `bun run build:docs` passes.
+
+## Closeout (2026-09-10)
+
+Closed without a terminal proof claim. The public garden impact API shipped in PR #782 (merged
+2026-08-29). The State/API lane stayed open only because Agent typechecks were blocked by unrelated
+join-request address-type errors. That blocker is gone:
+`bun run --cwd packages/agent typecheck:full` exits 0 at `1031aa78f` (checked 2026-09-10). No
+clean receipt was recorded and the QA lanes never ran. Deployment and production proof were out of
+scope.

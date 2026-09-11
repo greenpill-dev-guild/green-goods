@@ -2,9 +2,9 @@
 
 **Feature Slug**: `karma-gap-integration-repair`  
 **Stage**: `active`  
-**Status**: `ACTIVE`  
+**Status**: `CLOSED — shipped in PR #775 but not released; release work moved to karma-gap-release`  
 **Created**: `2026-08-26`  
-**Last Updated**: `2026-08-26`  
+**Last Updated**: `2026-09-10`  
 **Linear Source**: `source:plans`
 
 ## Decision Log
@@ -116,3 +116,13 @@ Authenticated Brave proof is blocked because the browser extension connection is
 this session. Production repair is separately blocked because existing deterministic GardenAccounts,
 including Aiyeloja's generation, are immutable ERC-6551 delegates rather than AccountProxy-backed
 UUPS instances. See `release-runbook.md`.
+
+## Closeout (2026-09-10)
+
+Closed without a terminal proof claim. The Karma repair shipped in PR #775 (merged 2026-08-29), and
+PRD-839 is Done. It is not released: existing Arbitrum GardenAccounts are immutable ERC-6551
+delegates that cannot take the UUPS upgrade, and `ea8300311` deferred the GardenToken release.
+
+The compatibility design, the seeded Karma upgrade, the Aiyeloja canary, and the authenticated
+Brave `/garden` proof continue in the `karma-gap-release` backlog hub, which carries this hub's
+release runbook and inventory script.

@@ -1,9 +1,9 @@
 # QA Session Report Generator Plan
 
 **Feature Slug**: `qa-report`
-**Status**: ACTIVE
+**Status**: CLOSED — shipped in PR #793; two follow-ups remain without a hub
 **Created**: 2026-09-02
-**Last Updated**: 2026-09-03
+**Last Updated**: 2026-09-10
 
 ## Decision Log
 
@@ -161,3 +161,13 @@ paste the results blocks into the Linear parent; confirm no hand-counted numbers
 - **Result**: 193 agent-tool tests passed; guidance and skill guards green; push plan passed
 - **Validated paths**: `scripts/agents/qa-report.ts`, `scripts/agents/qa-report.test.ts`, `scripts/agents/qa-workbook-build.ts`, `package.json`, `scripts/data/validation-policy.json`
 - **Worktree identity command and result**: `git status --porcelain=v1 --untracked-files=all -- <validated paths>` → empty
+
+## Closeout (2026-09-10)
+
+Closed without a terminal proof claim. `qa:report` shipped in PR #793 (2026-09-02) after three
+hardening rounds and has since produced the 2026-09-04 and 2026-09-08 session reports (PRD-864,
+PRD-893), which covers Step 9's intent.
+
+Still open, with no hub: a Linear parent for solo sessions in `qa-triage` default mode
+(Decision 1), and a real `--public` report in place of the template block in
+`docs/docs/builders/quality/product-experience-qa.mdx`.

@@ -2,9 +2,9 @@
 
 **Feature Slug**: `ci-first-validation`
 **Stage**: `active`
-**Status**: `ACTIVE`
+**Status**: `CLOSED — shipped in PR #786; the QA passes never ran`
 **Created**: `2026-09-01T02:51:51.962Z`
-**Last Updated**: `2026-09-01T02:51:51.962Z`
+**Last Updated**: `2026-09-10`
 
 ## Decision Log
 
@@ -93,3 +93,8 @@
 - [x] Three warm routine push probes complete within 90 seconds
 - [x] `node scripts/dev/ci-local.js --intent ship --reuse-passing-receipts`
 - [ ] Required GitHub CI checks pass at the current PR head
+
+## Closeout (2026-09-10)
+
+Closed without a terminal proof claim for QA. CI-first validation shipped in PR #786 (merged
+2026-09-01), the State/API lane completed, and PRD-860 is Done. The two QA passes never ran.

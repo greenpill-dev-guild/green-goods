@@ -10,7 +10,7 @@
     "overall_status": "active",
     "priority": "p1",
     "created_at": "2026-08-26T04:44:11.922Z",
-    "updated_at": "2026-08-26T07:02:28.000Z"
+    "updated_at": "2026-09-11T01:36:19.623Z"
   },
   "links": {
     "brief": "brief.md",
@@ -24,7 +24,7 @@
     "initiative": null,
     "syncDirection": "plans_to_linear_visibility",
     "laneSyncMode": "parent_only",
-    "lastSyncedAt": "2026-08-26T07:02:27.688Z",
+    "lastSyncedAt": "2026-09-11T01:36:19.623Z",
     "lanes": {}
   },
   "taxonomy": {
@@ -175,6 +175,22 @@
       "status": "linear_synced",
       "branch": null,
       "note": "Mirrored the implementation checkpoint, immutable legacy-account blocker, authenticated Brave blocker, and no-broadcast boundary to PRD-839."
+    },
+    {
+      "timestamp": "2026-09-11T01:36:18.597Z",
+      "actor": "claude",
+      "lane": "system",
+      "status": "closeout_recorded",
+      "branch": null,
+      "note": "Closeout recorded: shipped in PR #775 but not released; release work moved to the karma-gap-release backlog hub; PRD-839 is Done."
+    },
+    {
+      "timestamp": "2026-09-11T01:36:19.623Z",
+      "actor": "claude",
+      "lane": "system",
+      "status": "linear_sync_confirmed",
+      "branch": null,
+      "note": "Confirmed that the current Plan Hub state is reflected in Linear"
     }
   ]
 }

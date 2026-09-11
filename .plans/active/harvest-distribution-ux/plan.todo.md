@@ -2,11 +2,11 @@
 
 **Feature Slug**: `harvest-distribution-ux`
 **Stage**: `active`
-**Status**: `ACTIVE`
+**Status**: `CLOSED — shipped in PR #776; the Brave keyboard and narrow-viewport check was never recorded`
 **Linear Issue**: `PRD-763`
 **Linear Source**: `source:plans`
 **Created**: `2026-08-26T18:29:53.626Z`
-**Last Updated**: `2026-08-26T19:06:18Z`
+**Last Updated**: `2026-09-10`
 
 ## Decision Log
 
@@ -94,3 +94,11 @@
 - [ ] Authenticated Brave keyboard and narrow-viewport proof
 
 Authenticated Brave reached the static state harness and visually verified confirmed and partial-success states. Real-route authenticated proof remains blocked because the local HTTPS certificate cannot be created in the managed environment and the HTTP fallback does not preserve the authenticated origin.
+
+## Closeout (2026-09-10)
+
+Closed without a terminal proof claim. The admin harvest-and-distribute workflow shipped in PR #776
+(merged 2026-08-27), and PRD-763 is Done. RED/GREEN proof was recorded on 2026-08-26, but the UI
+and State/API lanes never moved past `ready`, and the last validation item, an authenticated Brave
+keyboard and narrow-viewport check, was never recorded. The original report's on-chain check of the
+first harvest is still open on PRD-763.

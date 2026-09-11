@@ -2,9 +2,9 @@
 
 **Feature Slug**: `agent-research-grounding`
 **Stage**: `active`
-**Status**: `ACTIVE`
+**Status**: `CLOSED — research skill landed in 139bdf3bc; the live trigger eval never ran`
 **Created**: `2026-08-25T06:06:31.016Z`
-**Last Updated**: `2026-08-25T06:44:40.000Z`
+**Last Updated**: `2026-09-10`
 
 ## Decision Log
 
@@ -97,3 +97,13 @@
 - [ ] `bun format:check` (`BLOCKED` by an unchanged Commitment Pooling evidence JSON newline)
 - [ ] `bun run eval:skills` once after the external Claude endpoint becomes available (`BLOCKED`)
 - [ ] Read-only before/after Commitment Pooling discussion forward test under the same model and permissions (`BLOCKED`)
+
+## Closeout (2026-09-10)
+
+Closed without a terminal proof claim. The research skill landed on develop in `139bdf3bc`
+(2026-08-25). The State/API lane never recorded a clean commit-attributed receipt, and QA Pass 2
+stayed blocked because the sandbox could not reach the Claude and Codex endpoints for the live
+trigger eval.
+
+Still open, with no other owner: one live `bun run eval:skills` run and the read-only Commitment
+Pooling before/after forward test, whenever those endpoints are reachable.

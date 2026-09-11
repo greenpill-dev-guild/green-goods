@@ -2,9 +2,9 @@
 
 **Feature Slug**: `client-pwa-platform-hardening`
 **Stage**: `active`
-**Status**: `ACTIVE`
+**Status**: `CLOSED — shipped in 571a6abaf; device acceptance moved to the QA catalog`
 **Created**: `2026-08-30T19:17:02.663Z`
-**Last Updated**: `2026-09-01T03:28:01Z`
+**Last Updated**: `2026-09-10`
 
 ## Decision Log
 
@@ -76,3 +76,13 @@
   `SKIP_WAITING` message handler.
 - Authenticated Brave: the public shell, installed `/home` shell, and interaction-deferred funding
   wallet surface render; local indexer/analytics failures degrade without breaking navigation.
+
+## Closeout (2026-09-10)
+
+Closed without a terminal proof claim. Service-worker lifecycle, the offline shell, persistence and
+quota protection, the Share Target envelope, and the shared leaf boundaries landed in `571a6abaf`
+(2026-08-30). The State/API lane was reopened only because the original RED evidence was not kept,
+and that cannot be recreated honestly after the fact.
+
+Physical Android and WebAPK acceptance now runs through the QA catalog (`PWA-AND-001`, `PWA-023`)
+and the 2026-09-08 session slices PRD-904 and PRD-913.
