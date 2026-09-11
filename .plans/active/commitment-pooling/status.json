@@ -21,7 +21,7 @@
     "uiux_spec": "uiux-spec.md",
     "settlement_spec": "settlement-spec.md",
     "exchange_architecture_brief": "exchange-architecture-brief.md",
-    "credit_spec": "../commitment-credit-follow-on/spec.md",
+    "credit_spec": "../../backlog/commitment-credit-follow-on/spec.md",
     "diagrams": "diagrams.md",
     "wireframes": "wireframes.md",
     "acceptance_matrix": "acceptance-matrix.md",
@@ -103,14 +103,14 @@
       "packages/admin",
       "packages/community",
       "docs/docs",
-      ".plans/active/community-interface"
+      ".plans/backlog/community-interface"
     ],
     "depends_on_features": []
   },
   "notes": [
     "Production-readiness checkpoint 2026-08-22: contracts, indexer source/config, shared, and the critical repository gate pass. The core tier remains REQUEST_CHANGES because the hosted indexer serves the old schema, Arbitrum ownership is still with the deployment sender, and the corrected working candidate needs a clean committed SHA. Settlement remains COMMENT_ONLY and does not block the core tier while paused and unavailable; the live Celo protocol Safe is 1-of-4 and its ownership dry run fails closed. Full evidence and the authorized-operations order are in reports/production-readiness-review-2026-08-22.md. No broadcast, hosted deployment, cutover, Safe mutation, availability flip, ping, canary, value movement, or Linear write was authorized.",
     "Phase A release engineering was authorized on 2026-08-11 using the August 10 execution prompt and its recorded owner decisions. The pinned base and starting HEAD are 7a9c7eeef96b17c96d5a5f7e15d3e181223bbe6b; PR #694 merge c60b38dea and PR #695 merge bff3b274d are ancestors. This grants local implementation, simulation, read-only chain inspection, and PR preparation only. It grants no broadcast, deployment, Safe/Zodiac mutation, ownership transfer, value movement, indexer activation, message-only ping, canary, or Linear write.",
-    "Commitments are module-native records; the commitment-pooling release adds exactly two EAS schemas (assessment v3, community testimony). No commitment EAS schema. The separate Needs layer adds four additional EAS schemas in .plans/active/community-interface/ per plan.todo.md register #28.",
+    "Commitments are module-native records; the commitment-pooling release adds exactly two EAS schemas (assessment v3, community testimony). No commitment EAS schema. The separate Needs layer adds four additional EAS schemas in .plans/backlog/community-interface/ per plan.todo.md register #28.",
     "CommitmentPoolingModule + non-transferable ERC-1155-style CommitmentRegistry; initial classId equals commitmentId and remains the authoritative promise-instance accounting identity. A future transferable voucher owns a separate adapter-level voucherClassId and never moves promise authority.",
     "Clean room: Grassroots Economics paper and public docs only; never the AGPL Sarafu source.",
     "G$ split-state settlement is Build-phase scope via PRD-686: Arbitrum SettlementModule sends message-only CCIP commands, bounded CeloSettlementExecutor executes canonical G$ transfers through Zodiac Roles, and only authenticated acknowledgments bound to the subject's current execution key and attempt finalize state. Immutable batch membership uses a hard ceiling of 24 plus a measurement-gated configured limit; same-key idempotency, independent acknowledgment retry, one immutable router per implementation, bounded previous-peer grace, a paused/drained router-upgrade cutover, native-fee monitoring, recipient event/query surfaces, and AA-gated member delivery are mandatory. Release remains separately human-authorized.",
@@ -644,7 +644,7 @@
     "credit_register": {
       "owner": "codex",
       "status": "unblocked_into_august_wave",
-      "hub": "../commitment-credit-follow-on/",
+      "hub": "../../backlog/commitment-credit-follow-on/",
       "note": "Explicitly unblocked 2026-08-01 (plan register #73); hub promoted backlog -> active. Dispatch gates: in-code pooling/settlement interface freeze, spec revalidation, and human-owned legal/operations review. G$ leg locks settlement seam (a), DisbursementKind.LoanPrincipal."
     }
   },

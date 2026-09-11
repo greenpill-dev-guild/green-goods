@@ -140,13 +140,13 @@
     {
       "check": "ontology",
       "exact": [
-        ".plans/active/commitment-credit-follow-on/spec.md",
+        ".plans/backlog/commitment-credit-follow-on/spec.md",
         ".plans/active/commitment-pooling/contract-spec.md",
         ".plans/active/commitment-pooling/settlement-spec.md",
         ".plans/active/commitment-pooling/standing-commitments-spec.md",
         ".plans/active/commitment-pooling/status.json",
-        ".plans/active/community-interface/spec.md",
-        ".plans/active/community-interface/status.json",
+        ".plans/backlog/community-interface/spec.md",
+        ".plans/backlog/community-interface/status.json",
         ".github/workflows/ontology.yml",
         "docs/docs/builders/architecture/erd.mdx",
         "docs/docs/builders/integrations/entity-matrix.mdx",
@@ -1067,13 +1067,13 @@
     },
     "Ontology": {
       "exact": [
-        ".plans/active/commitment-credit-follow-on/spec.md",
+        ".plans/backlog/commitment-credit-follow-on/spec.md",
         ".plans/active/commitment-pooling/contract-spec.md",
         ".plans/active/commitment-pooling/settlement-spec.md",
         ".plans/active/commitment-pooling/standing-commitments-spec.md",
         ".plans/active/commitment-pooling/status.json",
-        ".plans/active/community-interface/spec.md",
-        ".plans/active/community-interface/status.json",
+        ".plans/backlog/community-interface/spec.md",
+        ".plans/backlog/community-interface/status.json",
         ".github/workflows/ontology.yml",
         "docs/docs/builders/architecture/erd.mdx",
         "docs/docs/builders/integrations/entity-matrix.mdx",

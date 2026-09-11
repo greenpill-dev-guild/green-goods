@@ -207,7 +207,7 @@
       "availability": "planned",
       "evidence": [
         {
-          "file": ".plans/active/community-interface/status.json",
+          "file": ".plans/backlog/community-interface/status.json",
           "note": "Community Needs contract, state/API, and UI lanes remain blocked."
         }
       ],
@@ -735,7 +735,7 @@
       "term_refs": ["entity:need", "entity:commitment"],
       "evidence": [
         {
-          "file": ".plans/active/community-interface/status.json",
+          "file": ".plans/backlog/community-interface/status.json",
           "note": "Community Needs remains planned with blocked implementation lanes."
         }
       ],

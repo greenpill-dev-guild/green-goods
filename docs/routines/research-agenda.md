@@ -56,7 +56,7 @@ Each track carries the same fields. The routine reads them literally, so keep th
 - PRD-650 (August proof), PRD-649 (architecture record), PRD-651 (exchange, redemption, federation; evidence-gated), PRD-796 (compatibility boundary), PRD-857 (hackathon build).
 - Linear documents: *Commitment Pooling — Lifecycle And Aggregator Semantics*, *Pool Identity + Capability Architecture*, *Settlement Capability — Vouchers On Shared Pool Identity*, *Proof Capability*, *Feedback & Notes*.
 - External canonical doc: the Green Goods Commitment Pooling Google Doc (tabs 01 External Brief and 04 Rollout Plan, owned by RESR-57).
-- `.plans/active/commitment-pooling/` (`plan.todo.md` is the entry point; `exchange-architecture-brief.md`, `pilot-evidence-spec.md`, `settlement-spec.md`), `.plans/active/commitment-credit-follow-on/`, `.plans/backlog/cosmo-local-credit-interop/`.
+- `.plans/active/commitment-pooling/` (`plan.todo.md` is the entry point; `exchange-architecture-brief.md`, `pilot-evidence-spec.md`, `settlement-spec.md`), `.plans/backlog/commitment-credit-follow-on/`, `.plans/backlog/cosmo-local-credit-interop/`.
 
 **Status surface.** Project status update on *Commitment Pooling*.
 
@@ -91,7 +91,7 @@ Each track carries the same fields. The routine reads them literally, so keep th
 - The chain, in the order the June comments fixed it: RESR-46 (base attestation schema) → RESR-49 (data standards, baselines, governance) → RESR-14 (evaluator workflow and rubric v0.1); RESR-47 (IFRS S1/S2 mapping object) downstream and optional; RESR-8 (yield-to-impact codification) consumes track 3.
 - RESR-65 (metric inventory for the House of Alignment report; Todo, unowned, Low). RESR-6 (taxonomy and glossary v1) and RESR-52 (reviewer and methodology collaborators) are Done.
 - Linear documents: *Consolidation Memo — Impact Framework v0.1 Architecture*, *Literature Review Addendum — Biodiversity Infrastructure, Standards, MRV, and Certification Layers*, *Research Memo — IFRS S1/S2 Constraint Ladder*, *Research Memo — Outcome-Based Verification: Savory EOV and Backstory's Prove (2026-08-23)*, *Impact-Claim Domain Taxonomy & Glossary v1*, *A measurement framework for Green Goods regen impact*.
-- `.plans/active/public-garden-impact-api/` (the machine-readable surface, PR 782) and `.plans/ideas/environmental-data-inputs/` with RESR-10 and RESR-72 (Open Forest Protocol and Silvi as verified-outcome inputs). Environmental data inputs are folded into this track as the MRV sub-question; they are not a separate agenda item.
+- The public garden impact API (the machine-readable surface shipped in PR 782, `packages/agent/src/api/routes/public-garden-impact.ts`) and `.plans/ideas/environmental-data-inputs/` with RESR-10 and RESR-72 (Open Forest Protocol and Silvi as verified-outcome inputs). Environmental data inputs are folded into this track as the MRV sub-question; they are not a separate agenda item.
 
 **Status surface.** Project status update on *Impact Framework v0.1 Refresh*.
 
@@ -123,7 +123,7 @@ Each track carries the same fields. The routine reads them literally, so keep th
 **Anchors.**
 - RESR-9 (RWA Yield Expansion research; Todo, assigned to Matt, in the current cycle), RESR-15 (map Season Two campaigns, vaults, and funding rails; Todo, unowned), RESR-8 (yield-to-impact codification; Backlog).
 - Linear project [Operator Yield Split Visibility & Presets](https://linear.app/greenpill-dev-guild/project/operator-yield-split-visibility-and-presets-375773578105) (Product, Backlog; PRD-351) and the Linear document *Green Goods x Octant Vault Scope Lock*.
-- `.plans/ideas/rwa-yield-expansion/` (Conservative and Balanced presets mixing Aave V3, Morpho Metamorpho, and Ondo USDY with an instant-withdrawal buffer and a FIFO redemption queue; a sustained ≥5% target) and `.plans/active/harvest-distribution-ux/`.
+- `.plans/ideas/rwa-yield-expansion/` (Conservative and Balanced presets mixing Aave V3, Morpho Metamorpho, and Ondo USDY with an instant-withdrawal buffer and a FIFO redemption queue; a sustained ≥5% target) and the admin harvest-and-distribute workflow shipped in PR 776.
 - The weekly growth-pulse status update on *Sustainability & Monetization* for TVL and yield numbers. Do not re-query PostHog or the indexer here.
 
 **Status surface.** Comment on RESR-9 (there is no research-owned project; the Product project is for the operator UX, not the strategy question).

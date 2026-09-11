@@ -250,7 +250,7 @@ Per accepted fix (or batched in a fix window):
    [linear-templates.md § Full report document](../qa-triage/linear-templates.md); attach only on
    an explicit yes — this is the one Linear write this skill makes itself, and the review of that
    exact payload is its confirmation gate — then upload the receipt. A solo session has no parent
-   today (decision 1 in `.plans/active/qa-report/spec.md` tracks that follow-up), so its
+   today (filing one needs a parent concept in `qa-triage`'s default mode, an open follow-up), so its
    privacy-grepped `report.md` uploads beside the receipt instead; the receipt, that report, and
    any media go to the restricted Drive QA folder. Apply the text,
    media, destination, and public-repository boundary in

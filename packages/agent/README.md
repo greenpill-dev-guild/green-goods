@@ -307,7 +307,7 @@ See [agent.md](/.claude/context/agent.md) for detailed architecture documentatio
 - [ ] Set `SAVED_OFFERS_ENCRYPTION_KEY`
 - [ ] Confirm `AGENT_ALLOWED_ORIGINS`, `SAVED_OFFERS_AUDIENCE`, `AGENT_TRUSTED_PROXY_HOPS`,
       `AGENT_TRUSTED_PROXY_CIDRS`, and `VITE_CHAIN_ID` in `fly.toml`
-- [ ] Before setting `JOIN_REQUESTS_ENABLED=true`, set `JOIN_REQUESTS_ENCRYPTION_KEY`, name a backup operator, rehearse recovery, record authenticated Brave proof, update [the authoritative community interface status](/.plans/active/community-interface/status.json), then set `JOIN_REQUESTS_PRODUCTION_READY=true`.
+- [ ] Before setting `JOIN_REQUESTS_ENABLED=true`, set `JOIN_REQUESTS_ENCRYPTION_KEY`, name a backup operator, rehearse recovery, record authenticated Brave proof, update [the authoritative community interface status](/.plans/backlog/community-interface/status.json), then set `JOIN_REQUESTS_PRODUCTION_READY=true`.
 - [ ] Configure webhook URL with TLS
 - [ ] Consider HSM/KMS for key storage
 - [ ] Set up monitoring for `/health` endpoint

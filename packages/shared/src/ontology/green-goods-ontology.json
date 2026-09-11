@@ -374,7 +374,7 @@
       "id": "need",
       "display": "Need",
       "definition": "A community-authored statement of a place-based problem paired with a desired outcome. A Need can gather signals, moderation, linked commitments, and verified funding attribution without becoming a commitment or payment itself.",
-      "spec_source": ".plans/active/community-interface/spec.md",
+      "spec_source": ".plans/backlog/community-interface/spec.md",
       "relationships": [
         {
           "to": "garden",
@@ -2389,7 +2389,7 @@
     {
       "id": "loan-state",
       "definition": "Records-only pool-credit loan lifecycle: Requested → Approved → Disbursed → Repaid, with recoverable Defaulted and pre-disbursement Cancelled. Default is not terminal — later repayment records LoanRepaid(recoveredFromDefault). The Repaying overlay is derived by shared consumers from indexed repayment amounts while repayment sits between zero and principal + feeAmount and is never stored as a contract or indexer hard state.",
-      "spec_source": ".plans/active/commitment-credit-follow-on/spec.md",
+      "spec_source": ".plans/backlog/commitment-credit-follow-on/spec.md",
       "canonical": {
         "ordered": true,
         "value_scheme": "index",
@@ -2446,7 +2446,7 @@
     {
       "id": "loan-rail",
       "definition": "Disbursement rail recorded on a loan and projected by the CreditRegistry indexer read model. Jar and Treasury are steward-attested Arbitrum-side records; GDollarSettlement binds the loan to its one Confirmed SettlementModule LoanPrincipal child. Repayment recording is Jar/Treasury only — the G$ rail reverts GDollarRepaymentDisabled until a bounded authenticated receipt policy clears its gates.",
-      "spec_source": ".plans/active/commitment-credit-follow-on/spec.md",
+      "spec_source": ".plans/backlog/commitment-credit-follow-on/spec.md",
       "canonical": {
         "ordered": true,
         "value_scheme": "index",
@@ -3097,7 +3097,7 @@
       "source_status": "implemented"
     },
     "need": {
-      "spec_source": ".plans/active/community-interface/spec.md",
+      "spec_source": ".plans/backlog/community-interface/spec.md",
       "name": "Green Goods Need",
       "entity": "need",
       "revocable": true,
@@ -3124,7 +3124,7 @@
       "source_status": "specified"
     },
     "needSignal": {
-      "spec_source": ".plans/active/community-interface/spec.md",
+      "spec_source": ".plans/backlog/community-interface/spec.md",
       "name": "Green Goods Need Signal",
       "entity": "need",
       "revocable": true,
@@ -3139,7 +3139,7 @@
       "source_status": "specified"
     },
     "needStatus": {
-      "spec_source": ".plans/active/community-interface/spec.md",
+      "spec_source": ".plans/backlog/community-interface/spec.md",
       "name": "Green Goods Need Status",
       "entity": "need",
       "revocable": false,
@@ -3166,7 +3166,7 @@
       "source_status": "specified"
     },
     "fundingAttribution": {
-      "spec_source": ".plans/active/community-interface/spec.md",
+      "spec_source": ".plans/backlog/community-interface/spec.md",
       "name": "Green Goods Funding Attribution",
       "entity": "need",
       "revocable": false,
@@ -3426,7 +3426,7 @@
     {
       "id": "needs-eas-envelope-reference",
       "kind": "domain-range",
-      "spec_source": ".plans/active/community-interface/spec.md",
+      "spec_source": ".plans/backlog/community-interface/spec.md",
       "planned_anchor": {
         "file": "packages/contracts/src/resolvers/Needs.sol",
         "symbol": "NeedsResolver"
@@ -3439,7 +3439,7 @@
     {
       "id": "need-signal-latest-winner",
       "kind": "functional",
-      "spec_source": ".plans/active/community-interface/spec.md",
+      "spec_source": ".plans/backlog/community-interface/spec.md",
       "planned_anchor": {
         "file": "packages/shared/src/modules/community-needs/signals.ts",
         "symbol": "NeedSignal"
@@ -3452,7 +3452,7 @@
     {
       "id": "needs-resolver-trust-boundaries",
       "kind": "closed-set",
-      "spec_source": ".plans/active/community-interface/spec.md",
+      "spec_source": ".plans/backlog/community-interface/spec.md",
       "planned_anchor": {
         "file": "packages/contracts/src/resolvers/Needs.sol",
         "symbol": "NeedsResolver"
@@ -3840,7 +3840,7 @@
     {
       "id": "commitment-loan",
       "vocabulary": "loan-state",
-      "spec_source": ".plans/active/commitment-credit-follow-on/spec.md",
+      "spec_source": ".plans/backlog/commitment-credit-follow-on/spec.md",
       "enforced_at": [
         {
           "file": "packages/contracts/src/registries/Credit.sol",
