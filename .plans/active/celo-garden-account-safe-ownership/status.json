@@ -10,32 +10,13 @@
     "overall_status": "active",
     "priority": "p1",
     "created_at": "2026-08-15T06:08:14.457Z",
-    "updated_at": "2026-08-21T07:30:00.000Z"
+    "updated_at": "2026-09-11T02:12:18.665Z"
   },
   "links": {
     "brief": "brief.md",
     "spec": "spec.md",
     "plan": "plan.todo.md",
-    "eval": "eval.md",
-    "contracts_handoff": "handoffs/codex-contracts.md",
-    "qa_pass_1_handoff": "handoffs/claude-qa-pass-1.md",
-    "qa_pass_2_handoff": "handoffs/codex-qa-pass-2.md",
-    "parent_spike": "../commitment-pooling/erc6551-garden-safe-owner-spike.md",
-    "parent_settlement_spec": "../commitment-pooling/settlement-spec.md",
-    "address_code_ledger": "../../../packages/contracts/config/celo-garden-accounts/address-code-derivation-2026-08-15.md",
-    "deterministic_deployments": "../../../packages/contracts/config/celo-garden-accounts/deterministic-deployments-42161-2026-02-19.json",
-    "garden_initializers": "../../../packages/contracts/config/celo-garden-accounts/garden-account-initializers-42161-494723355.json",
-    "celo_absence": "../../../packages/contracts/config/celo-garden-accounts/celo-account-absence-42220-74877942.json",
-    "ccip_lane": "../../../packages/contracts/config/celo-garden-accounts/ccip-arbitrum-celo-lane-2026-08-15.json",
-    "historical_rebuild": "../../../packages/contracts/config/celo-garden-accounts/historical-garden-account-rebuild-2026-08-15.json",
-    "dependency_init_code": "../../../packages/contracts/config/celo-garden-accounts/celo-dependency-init-code-2026-08-15.json",
-    "recovery_safes_live": "../../../packages/contracts/config/celo-garden-accounts/celo-recovery-safes-live-2026-08-15.json",
-    "relay_unit_gas": "../../../packages/contracts/config/celo-garden-accounts/relay-unit-gas-2026-08-15.json",
-    "celo_post_safe_upgrade_block": "../../../packages/contracts/config/celo-garden-accounts/celo-post-safe-upgrade-block-2026-08-15.json",
-    "final_safe_bindings": "../../../packages/contracts/config/celo-garden-accounts/garden-safe-final-bindings-2026-08-15.json",
-    "release_readiness": "../../../packages/contracts/config/celo-garden-accounts/celo-release-readiness-2026-08-17.json",
-    "garden_safe_deployment_artifact": "../../../packages/contracts/deployments/42220-settlement-safes.json",
-    "relay_deployment_artifact": "../../../packages/contracts/deployments/garden-account-relay.json"
+    "eval": "eval.md"
   },
   "linear": {
     "parentIssue": "PRD-821",
@@ -44,7 +25,7 @@
     "initiative": "Sustainability & Monetization",
     "syncDirection": "plans_to_linear_visibility",
     "laneSyncMode": "parent_only",
-    "lastSyncedAt": "2026-08-15T21:11:39.833Z",
+    "lastSyncedAt": "2026-09-11T02:12:18.665Z",
     "lanes": {}
   },
   "taxonomy": {
@@ -338,6 +319,22 @@
       "status": "manifest_refreeze_complete",
       "branch": "claude/celo-garden-safes-deploy-04bd67",
       "note": "Completed the post-ceremony re-freeze. settlement:garden-roles:verify and settlement:garden-routes:verify were re-run live against Celo and both passed, and all 18 rows of the committed ceremony report were diffed against the receipt ledger with no mismatch. The manifest now carries 18 gardenSafes plus the Zodiac module, moduleFactory, roleKey, allowanceKey, and a conditionsHash derived from keccak256(encodeConditions(buildTransferConditions())) rather than transcribed; caps, feePolicy, and destinationGasLimit are untouched and the lock moved only its manifestHash, to 0x2c7fd3ec4e7dc461af193e2eda2635042e63b5e2342592c3360c193705d7df6a. Three gates that hard-asserted the disabled state were re-pointed: the release-verify check now proves the freeze names all 18 boundaries, the manifest test proves the enabled shape fails closed on any cleared identity, and two release.ts strings that claimed authority was disabled were corrected. No transaction, funding, or value movement occurred."
+    },
+    {
+      "timestamp": "2026-09-11T02:12:18.620Z",
+      "actor": "claude",
+      "lane": "system",
+      "status": "closeout_recorded",
+      "branch": null,
+      "note": "Closeout recorded: all 18 Celo GardenAccounts and Garden Safes are live; PRD-821 is Done; the evidence moved to packages/contracts/config/celo-garden-accounts in 900c0dad9; the protocol recovery Safe threshold stays open with pooling release ops."
+    },
+    {
+      "timestamp": "2026-09-11T02:12:18.665Z",
+      "actor": "claude",
+      "lane": "system",
+      "status": "linear_sync_confirmed",
+      "branch": null,
+      "note": "Confirmed that the current Plan Hub state is reflected in Linear"
     }
   ]
 }

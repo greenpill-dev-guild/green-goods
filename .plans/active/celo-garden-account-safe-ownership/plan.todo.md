@@ -4,9 +4,9 @@
 **Linear Project**: Commitment Pooling  
 **Linear Source**: source:plans  
 **Feature Slug**: `celo-garden-account-safe-ownership`  
-**Status**: ACTIVE  
+**Status**: CLOSED — all 18 Celo GardenAccounts and Garden Safes are live; the review lanes were never recorded  
 **Created**: 2026-08-14  
-**Last Updated**: 2026-08-18
+**Last Updated**: 2026-09-10
 
 ## Decision Log
 
@@ -273,3 +273,21 @@ under separate human authorization. It does not authorize
 dependency installation, production deployment, broadcast, guardian trust mutation, Safe
 creation, Safe transaction execution, role/allowance/peer configuration, ownership transfer,
 value movement, canary, unpause, commit, push, or merge by itself.
+
+## Closeout (2026-09-10)
+
+Closed without a terminal proof claim. Same-address GardenAccount ownership shipped: all 18 Celo
+GardenAccounts and all 18 final 2-of-3 Garden Safes are live and independently verified
+(`packages/contracts/deployments/42220-settlement-safes.json`). The Zodiac Roles ceremony ran on
+2026-08-20, the manifest was re-frozen on 2026-08-21, settlement is live (PRD-823 is Done), and
+PRD-821 is Done. The independent security review (AC-9) and the closure review (AC-10) were never
+recorded.
+
+The evidence that contracts scripts and tests read moved to
+`packages/contracts/config/celo-garden-accounts/` in `900c0dad9`, so no code reads this hub. The
+hub's two one-off tools, `recover-dependency-init-code.ts` and `verify-recovery-safes.ts`, stay
+in Git history with it.
+
+Still open: raising the Green Goods protocol recovery Safe above 1-of-4, a risk Afo accepted on
+2026-08-17 and plans to fix separately. The Commitment Pooling release-ops lane records the Celo
+ownership transfer as waiting on it.
