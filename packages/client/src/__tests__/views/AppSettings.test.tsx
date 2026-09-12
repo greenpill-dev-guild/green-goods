@@ -1,8 +1,8 @@
 /**
  * AppSettings Component Tests
  *
- * Tests theme/language settings rendering and the update row: the manual
- * check that is always available, and the restart path once a worker waits.
+ * Tests theme/language settings rendering and the update row: a fixed title,
+ * a status line, and a control that stays in place across every phase.
  */
 
 import { cleanup, render, screen, waitFor } from "@testing-library/react";
@@ -58,15 +58,30 @@ vi.mock("@/components/Actions", () => ({
   Button: ({
     label,
     onClick,
+    isLoading,
+    disabled,
+    className,
   }: {
     label: string;
     onClick?: () => void;
+    isLoading?: boolean;
+    disabled?: boolean;
+    className?: string;
     variant?: string;
     mode?: string;
     size?: string;
-    className?: string;
     leadingIcon?: React.ReactNode;
-  }) => createElement("button", { onClick, "data-testid": `btn-${label}` }, label),
+  }) =>
+    createElement(
+      "button",
+      {
+        onClick: isLoading || disabled ? undefined : onClick,
+        "aria-busy": isLoading || undefined,
+        className,
+        "data-testid": `btn-${label}`,
+      },
+      label
+    ),
 }));
 
 vi.mock("@/components/Cards", () => ({
@@ -103,8 +118,8 @@ vi.mock("@/components/Inputs", async () => {
         children
       );
     },
-    SelectTrigger: ({ children }: any) =>
-      React.createElement("div", { "data-testid": "select-trigger" }, children),
+    SelectTrigger: ({ children, className }: any) =>
+      React.createElement("div", { "data-testid": "select-trigger", className }, children),
     SelectValue: ({ placeholder }: any) => React.createElement("span", null, placeholder),
   };
 });
@@ -113,6 +128,8 @@ import { AppSettings } from "../../views/Profile/AppSettings";
 
 const wrap = (el: React.ReactElement) =>
   createElement(IntlProvider, { locale: "en", messages: {} }, el);
+
+const TITLE = "Update";
 
 describe("AppSettings", () => {
   beforeEach(() => {
@@ -159,123 +176,130 @@ describe("AppSettings", () => {
     expect(screen.getByText(/set your preferred language/i)).toBeInTheDocument();
   });
 
-  it("always offers a manual update check while nothing is pending", () => {
-    render(wrap(createElement(AppSettings)));
+  describe("update row", () => {
+    it("always offers a manual check with the same control width as the selects", () => {
+      render(wrap(createElement(AppSettings)));
 
-    expect(screen.getByText("Check for updates")).toBeInTheDocument();
-    expect(screen.getByText(/newer version of green goods/i)).toBeInTheDocument();
-    expect(screen.getByTestId("btn-Check")).toBeInTheDocument();
-    expect(screen.queryByText("Refresh app")).not.toBeInTheDocument();
-    expect(screen.queryByTestId("btn-Refresh")).not.toBeInTheDocument();
-    expect(screen.queryByTestId("btn-Restart to Update")).not.toBeInTheDocument();
-  });
+      expect(screen.getAllByTestId("card")).toHaveLength(3);
+      expect(screen.getByText(TITLE)).toBeInTheDocument();
+      expect(screen.getByRole("status")).toHaveTextContent("Check for a newer version.");
+      const check = screen.getByTestId("btn-Check");
+      const [themeTrigger] = screen.getAllByTestId("select-trigger");
+      expect(check.className).toBe(themeTrigger.className);
+      expect(screen.queryByText("Refresh app")).not.toBeInTheDocument();
+    });
 
-  it("reports up to date when a manual check finds no newer worker", async () => {
-    const user = userEvent.setup();
-    render(wrap(createElement(AppSettings)));
+    it("keeps the title and the control in place while checking, then reports up to date", async () => {
+      const user = userEvent.setup();
+      render(wrap(createElement(AppSettings)));
 
-    await user.click(screen.getByTestId("btn-Check"));
+      await user.click(screen.getByTestId("btn-Check"));
 
-    expect(mockServiceWorkerUpdateState.checkForUpdate).toHaveBeenCalledTimes(1);
-    expect(await screen.findByText("Up to date")).toBeInTheDocument();
-    expect(screen.getByText(/latest version of green goods/i)).toBeInTheDocument();
-    expect(screen.getByTestId("btn-Check")).toBeInTheDocument();
-  });
+      expect(mockServiceWorkerUpdateState.checkForUpdate).toHaveBeenCalledTimes(1);
+      await waitFor(() => {
+        expect(screen.getByRole("status")).toHaveTextContent("You have the latest version.");
+      });
+      expect(screen.getByText(TITLE)).toBeInTheDocument();
+      expect(screen.getByTestId("btn-Check")).toBeInTheDocument();
+      expect(screen.getAllByTestId("card")).toHaveLength(3);
+    });
 
-  it("applies an update found by the manual check without a second tap", async () => {
-    const user = userEvent.setup();
-    mockServiceWorkerUpdateState.checkForUpdate.mockResolvedValue("ready");
-    render(wrap(createElement(AppSettings)));
+    it("applies an update found by the manual check without a second tap", async () => {
+      const user = userEvent.setup();
+      mockServiceWorkerUpdateState.checkForUpdate.mockResolvedValue("ready");
+      render(wrap(createElement(AppSettings)));
 
-    await user.click(screen.getByTestId("btn-Check"));
+      await user.click(screen.getByTestId("btn-Check"));
 
-    await waitFor(() => {
+      await waitFor(() => {
+        expect(mockServiceWorkerUpdateState.activateNow).toHaveBeenCalledTimes(1);
+      });
+      expect(screen.getByRole("status")).not.toHaveTextContent("You have the latest version.");
+    });
+
+    it("returns to a fresh check when the install is still pending", async () => {
+      const user = userEvent.setup();
+      mockServiceWorkerUpdateState.checkForUpdate.mockResolvedValue("pending");
+      render(wrap(createElement(AppSettings)));
+
+      await user.click(screen.getByTestId("btn-Check"));
+
+      expect(mockServiceWorkerUpdateState.checkForUpdate).toHaveBeenCalledTimes(1);
+      expect(screen.getByRole("status")).toHaveTextContent("Check for a newer version.");
+      expect(screen.getByTestId("btn-Check")).toBeInTheDocument();
+      expect(mockServiceWorkerUpdateState.activateNow).not.toHaveBeenCalled();
+    });
+
+    it("asks to try again when the manual check fails", async () => {
+      const user = userEvent.setup();
+      mockServiceWorkerUpdateState.checkForUpdate.mockRejectedValue(new Error("offline"));
+      render(wrap(createElement(AppSettings)));
+
+      await user.click(screen.getByTestId("btn-Check"));
+
+      await waitFor(() => {
+        expect(screen.getByRole("status")).toHaveTextContent("Couldn't check. Try again.");
+      });
+      expect(screen.getByText(TITLE)).toBeInTheDocument();
+      await user.click(screen.getByTestId("btn-Try Again"));
+
+      expect(mockServiceWorkerUpdateState.checkForUpdate).toHaveBeenCalledTimes(2);
+    });
+
+    it.each([
+      ["checking", "Checking", "Looking for a newer version."],
+      ["downloading", "Installing", "Installing the latest version."],
+      ["activating", "Restart", "Restarting the app."],
+    ])("shows a busy control during %s without moving anything", (phase, label, status) => {
+      mockServiceWorkerUpdateState.phase = phase;
+
+      render(wrap(createElement(AppSettings)));
+
+      expect(screen.getByText(TITLE)).toBeInTheDocument();
+      expect(screen.getByRole("status")).toHaveTextContent(status);
+      const control = screen.getByTestId(`btn-${label}`);
+      expect(control).toHaveAttribute("aria-busy", "true");
+      expect(control.className).toBe(screen.getAllByTestId("select-trigger")[0].className);
+      expect(screen.getAllByTestId("card")).toHaveLength(3);
+    });
+
+    it("offers Restart when a background check found a waiting update", async () => {
+      mockServiceWorkerUpdateState.phase = "waiting";
+      mockServiceWorkerUpdateState.updateAvailable = true;
+      const user = userEvent.setup();
+
+      render(wrap(createElement(AppSettings)));
+
+      expect(screen.getByRole("status")).toHaveTextContent("A new version is ready.");
+      await user.click(screen.getByTestId("btn-Restart"));
+
       expect(mockServiceWorkerUpdateState.activateNow).toHaveBeenCalledTimes(1);
     });
-    expect(screen.queryByText("Up to date")).not.toBeInTheDocument();
-  });
 
-  it("leaves the row on a fresh check when the install is still pending", async () => {
-    const user = userEvent.setup();
-    mockServiceWorkerUpdateState.checkForUpdate.mockResolvedValue("pending");
-    render(wrap(createElement(AppSettings)));
+    it("offers a retry of the restart when activation stalls", async () => {
+      mockServiceWorkerUpdateState.phase = "error";
+      const user = userEvent.setup();
 
-    await user.click(screen.getByTestId("btn-Check"));
+      render(wrap(createElement(AppSettings)));
 
-    expect(mockServiceWorkerUpdateState.checkForUpdate).toHaveBeenCalledTimes(1);
-    expect(screen.getByText("Check for updates")).toBeInTheDocument();
-    expect(screen.queryByText("Up to date")).not.toBeInTheDocument();
-    expect(mockServiceWorkerUpdateState.activateNow).not.toHaveBeenCalled();
-  });
+      expect(screen.getByRole("status")).toHaveTextContent("Close and reopen the app.");
+      await user.click(screen.getByTestId("btn-Try Again"));
 
-  it("offers a retry when the newer worker could not install", async () => {
-    mockServiceWorkerUpdateState.phase = "install-failed";
-    const user = userEvent.setup();
+      expect(mockServiceWorkerUpdateState.activateNow).toHaveBeenCalledTimes(1);
+      expect(mockServiceWorkerUpdateState.checkForUpdate).not.toHaveBeenCalled();
+    });
 
-    render(wrap(createElement(AppSettings)));
+    it("offers a fresh check when the newer worker could not install", async () => {
+      mockServiceWorkerUpdateState.phase = "install-failed";
+      const user = userEvent.setup();
 
-    expect(screen.getByText("Couldn't finish the update")).toBeInTheDocument();
-    expect(screen.getByText(/check your connection/i)).toBeInTheDocument();
-    await user.click(screen.getByTestId("btn-Try Again"));
+      render(wrap(createElement(AppSettings)));
 
-    expect(mockServiceWorkerUpdateState.checkForUpdate).toHaveBeenCalledTimes(1);
-    expect(mockServiceWorkerUpdateState.activateNow).not.toHaveBeenCalled();
-  });
+      expect(screen.getByRole("status")).toHaveTextContent("Couldn't finish. Try again.");
+      await user.click(screen.getByTestId("btn-Try Again"));
 
-  it("asks to try again when the manual check fails", async () => {
-    const user = userEvent.setup();
-    mockServiceWorkerUpdateState.checkForUpdate.mockRejectedValue(new Error("offline"));
-    render(wrap(createElement(AppSettings)));
-
-    await user.click(screen.getByTestId("btn-Check"));
-
-    expect(await screen.findByText("Couldn't check for updates")).toBeInTheDocument();
-    expect(screen.getByText(/check your connection/i)).toBeInTheDocument();
-    await user.click(screen.getByTestId("btn-Try Again"));
-
-    expect(mockServiceWorkerUpdateState.checkForUpdate).toHaveBeenCalledTimes(2);
-  });
-
-  it("renders the ready update card when a service worker update is waiting", () => {
-    mockServiceWorkerUpdateState.phase = "waiting";
-    mockServiceWorkerUpdateState.updateAvailable = true;
-
-    render(wrap(createElement(AppSettings)));
-
-    expect(screen.getByText("Ready to restart")).toBeInTheDocument();
-    expect(screen.getByText(/restart green goods to finish updating/i)).toBeInTheDocument();
-    expect(screen.getByTestId("btn-Restart to Update")).toBeInTheDocument();
-  });
-
-  it("renders download progress without a restart button", () => {
-    mockServiceWorkerUpdateState.phase = "downloading";
-
-    render(wrap(createElement(AppSettings)));
-
-    expect(screen.getByText("Downloading update")).toBeInTheDocument();
-    expect(screen.getByText(/latest version in the background/i)).toBeInTheDocument();
-    expect(screen.queryByTestId("btn-Restart to Update")).not.toBeInTheDocument();
-  });
-
-  it("renders stalled guidance with a retry button", () => {
-    mockServiceWorkerUpdateState.phase = "error";
-
-    render(wrap(createElement(AppSettings)));
-
-    expect(screen.getByText("Update needs a restart")).toBeInTheDocument();
-    expect(screen.getByText(/close and reopen the app/i)).toBeInTheDocument();
-    expect(screen.getByTestId("btn-Try Again")).toBeInTheDocument();
-  });
-
-  it("applies the waiting service worker update from the update card", async () => {
-    mockServiceWorkerUpdateState.phase = "waiting";
-    mockServiceWorkerUpdateState.updateAvailable = true;
-    const user = userEvent.setup();
-
-    render(wrap(createElement(AppSettings)));
-
-    await user.click(screen.getByTestId("btn-Restart to Update"));
-
-    expect(mockServiceWorkerUpdateState.activateNow).toHaveBeenCalledTimes(1);
+      expect(mockServiceWorkerUpdateState.checkForUpdate).toHaveBeenCalledTimes(1);
+      expect(mockServiceWorkerUpdateState.activateNow).not.toHaveBeenCalled();
+    });
   });
 });

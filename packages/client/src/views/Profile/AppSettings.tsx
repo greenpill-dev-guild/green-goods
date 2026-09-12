@@ -21,11 +21,23 @@ interface ApplicationSettings {
 /** What the last manual check reported once the worker settled back to idle. */
 type ManualCheckOutcome = "up-to-date" | "failed";
 
+/**
+ * The update row is a settings row like Theme and Language: a fixed title, a
+ * status line, and one control that is always present at a constant size so
+ * nothing in the card moves between states.
+ */
 interface UpdateRow {
-  title: string;
-  description: string;
-  action?: { label: string; onClick: () => void };
+  status: string;
+  label: string;
+  busy: boolean;
+  onClick?: () => void;
 }
+
+/**
+ * One width for every control in the settings column. 120px fits the widest
+ * select value ("Português") and the busiest button label with its spinner.
+ */
+const SETTING_CONTROL_WIDTH = "w-[120px] sm:w-[140px]";
 
 export const AppSettings: React.FC = () => {
   const { theme, setTheme } = useTheme();
@@ -71,7 +83,7 @@ export const AppSettings: React.FC = () => {
             value={theme}
             onValueChange={(val) => setTheme(val as "light" | "dark" | "system")}
           >
-            <SelectTrigger size="sm" className="w-[110px] sm:w-[140px]">
+            <SelectTrigger size="sm" className={SETTING_CONTROL_WIDTH}>
               <SelectValue placeholder={currentThemeOption.label} />
             </SelectTrigger>
             <SelectContent>
@@ -102,7 +114,7 @@ export const AppSettings: React.FC = () => {
         Icon: <RiEarthFill className="w-4" />,
         Option: () => (
           <Select onValueChange={(val) => switchLanguage(val as Locale)}>
-            <SelectTrigger size="sm" className="w-[110px] sm:w-[140px]">
+            <SelectTrigger size="sm" className={SETTING_CONTROL_WIDTH}>
               <SelectValue
                 className="capitalize"
                 placeholder={capitalize(intl.formatDisplayName(locale, { type: "language" }) || "")}
@@ -167,116 +179,98 @@ export const AppSettings: React.FC = () => {
     switch (phase) {
       case "checking":
         return {
-          title: intl.formatMessage({
-            id: "app.update.checking.title",
-            defaultMessage: "Checking for update",
-          }),
-          description: intl.formatMessage({
+          status: intl.formatMessage({
             id: "app.update.checking.description",
             defaultMessage: "Looking for a newer version.",
           }),
+          label: intl.formatMessage({
+            id: "app.update.checkingButton",
+            defaultMessage: "Checking",
+          }),
+          busy: true,
         };
       case "downloading":
         return {
-          title: intl.formatMessage({
-            id: "app.update.downloading.title",
-            defaultMessage: "Downloading update",
+          status: intl.formatMessage({
+            id: "app.update.installing.description",
+            defaultMessage: "Installing the latest version.",
           }),
-          description: intl.formatMessage({
-            id: "app.update.downloading.description",
-            defaultMessage: "Getting the latest version in the background.",
+          label: intl.formatMessage({
+            id: "app.update.installingButton",
+            defaultMessage: "Installing",
           }),
+          busy: true,
         };
       case "waiting":
         return {
-          title: intl.formatMessage({
-            id: "app.update.ready.title",
-            defaultMessage: "Ready to restart",
+          status: intl.formatMessage({
+            id: "app.update.subtitle",
+            defaultMessage: "A new version is ready.",
           }),
-          description: intl.formatMessage({
-            id: "app.update.ready.description",
-            defaultMessage: "Restart Green Goods to finish updating.",
-          }),
-          action: {
-            label: intl.formatMessage({
-              id: "app.update.restartButton",
-              defaultMessage: "Restart to Update",
-            }),
-            onClick: handleApplyClick,
-          },
+          label: intl.formatMessage({ id: "app.update.restartButton", defaultMessage: "Restart" }),
+          busy: false,
+          onClick: handleApplyClick,
         };
       case "activating":
         return {
-          title: intl.formatMessage({
-            id: "app.update.applying.title",
-            defaultMessage: "Finishing update",
-          }),
-          description: intl.formatMessage({
+          status: intl.formatMessage({
             id: "app.update.applying.description",
-            defaultMessage: "Restarting with the latest version.",
+            defaultMessage: "Restarting the app.",
           }),
+          label: intl.formatMessage({ id: "app.update.restartButton", defaultMessage: "Restart" }),
+          busy: true,
         };
       case "error":
         return {
-          title: intl.formatMessage({
-            id: "app.update.stalled.title",
-            defaultMessage: "Update needs a restart",
-          }),
-          description: intl.formatMessage({
+          status: intl.formatMessage({
             id: "app.update.stalled.description",
-            defaultMessage: "Close and reopen the app if retrying does not finish.",
+            defaultMessage: "Close and reopen the app.",
           }),
-          action: { label: retryLabel, onClick: handleApplyClick },
+          label: retryLabel,
+          busy: false,
+          onClick: handleApplyClick,
         };
       case "install-failed":
         return {
-          title: intl.formatMessage({
-            id: "app.update.installFailed.title",
-            defaultMessage: "Couldn't finish the update",
+          status: intl.formatMessage({
+            id: "app.update.installFailed.description",
+            defaultMessage: "Couldn't finish. Try again.",
           }),
-          description: intl.formatMessage({
-            id: "app.update.checkFailed.description",
-            defaultMessage: "Check your connection and try again.",
-          }),
-          action: { label: retryLabel, onClick: handleCheckClick },
+          label: retryLabel,
+          busy: false,
+          onClick: handleCheckClick,
         };
       default:
         if (manualCheck === "up-to-date") {
           return {
-            title: intl.formatMessage({
-              id: "app.update.upToDate.title",
-              defaultMessage: "Up to date",
-            }),
-            description: intl.formatMessage({
+            status: intl.formatMessage({
               id: "app.update.upToDate.description",
-              defaultMessage: "You have the latest version of Green Goods.",
+              defaultMessage: "You have the latest version.",
             }),
-            action: { label: checkLabel, onClick: handleCheckClick },
+            label: checkLabel,
+            busy: false,
+            onClick: handleCheckClick,
           };
         }
         if (manualCheck === "failed") {
           return {
-            title: intl.formatMessage({
-              id: "app.update.checkFailed.title",
-              defaultMessage: "Couldn't check for updates",
-            }),
-            description: intl.formatMessage({
+            status: intl.formatMessage({
               id: "app.update.checkFailed.description",
-              defaultMessage: "Check your connection and try again.",
+              defaultMessage: "Couldn't check. Try again.",
             }),
-            action: { label: retryLabel, onClick: handleCheckClick },
+            label: retryLabel,
+            busy: false,
+            onClick: handleCheckClick,
           };
         }
         return {
-          title: intl.formatMessage({
-            id: "app.update.check.title",
-            defaultMessage: "Check for updates",
-          }),
-          description: intl.formatMessage({
+          status: intl.formatMessage({
             id: "app.update.check.description",
-            defaultMessage: "See if a newer version of Green Goods is available.",
+            defaultMessage: "Check for a newer version.",
           }),
-          action: { label: checkLabel, onClick: handleCheckClick },
+          label: checkLabel,
+          busy: false,
+          onClick: handleCheckClick,
         };
     }
   };
@@ -318,21 +312,27 @@ export const AppSettings: React.FC = () => {
             </div>
           </Avatar>
           <div className="flex flex-col gap-0.5 min-w-0 flex-1">
-            <div className="text-sm font-medium">{updateRow.title}</div>
+            <div className="text-sm font-medium truncate">
+              {intl.formatMessage({
+                id: "app.update.check.title",
+                defaultMessage: "Update",
+              })}
+            </div>
             <div role="status" className="text-xs text-text-sub-600 line-clamp-2">
-              {updateRow.description}
+              {updateRow.status}
             </div>
           </div>
-          {updateRow.action ? (
+          <div className="shrink-0">
             <Button
               variant="neutral"
               mode="stroke"
               size="small"
-              onClick={updateRow.action.onClick}
-              label={updateRow.action.label}
-              className="w-[148px] shrink-0 sm:w-[168px]"
+              isLoading={updateRow.busy}
+              onClick={updateRow.onClick}
+              label={updateRow.label}
+              className={SETTING_CONTROL_WIDTH}
             />
-          ) : null}
+          </div>
         </div>
       </Card>
     </>
