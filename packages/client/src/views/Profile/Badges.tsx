@@ -1,4 +1,4 @@
-import { DialogShell } from "@green-goods/shared/components/Dialog/ConfirmDialog";
+import { DialogShell } from "@green-goods/shared/components/Dialog/DialogShell";
 import { formatAddress } from "@green-goods/shared/utils/app/text";
 import type { Address } from "@green-goods/shared/types/domain";
 import type { GreenWillBadgeView } from "@green-goods/shared/types/greenwill";

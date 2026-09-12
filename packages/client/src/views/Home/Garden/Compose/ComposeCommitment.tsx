@@ -5,7 +5,7 @@ import {
   selectBeatValidity,
 } from "@green-goods/shared/hooks/client-ui/commitment/composerBeats";
 import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
-import { DialogShell } from "@green-goods/shared/components/Dialog/ConfirmDialog";
+import { DialogShell } from "@green-goods/shared/components/Dialog/DialogShell";
 import { useCommitmentComposerController } from "@green-goods/shared/hooks/client-ui/commitment/useCommitmentComposerController";
 import { useCallback, useRef, useState } from "react";
 import { useIntl } from "react-intl";

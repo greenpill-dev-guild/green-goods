@@ -36,7 +36,7 @@ vi.mock("@green-goods/shared/utils/styles/cn", () => ({
   cn: (...args: unknown[]) => args.filter(Boolean).join(" "),
 }));
 
-vi.mock("@green-goods/shared/components/Dialog/ConfirmDialog", () => ({
+vi.mock("@green-goods/shared/components/Dialog/DialogShell", () => ({
   DialogShell: ({ open, onOpenChange, title, description, children }: any) =>
     open
       ? createElement(

@@ -343,6 +343,7 @@
     "./components/Badge/Badge": "./src/components/Badge/Badge.tsx",
     "./components/Cards/GardenCard/GardenCard": "./src/components/Cards/GardenCard/GardenCard.tsx",
     "./components/Dialog/ConfirmDialog": "./src/components/Dialog/ConfirmDialog.tsx",
+    "./components/Dialog/DialogShell": "./src/components/Dialog/DialogShell.tsx",
     "./components/Dialog/PwaSheet": "./src/components/Dialog/PwaSheet.tsx",
     "./components/DomainBadge": "./src/components/DomainBadge.tsx",
     "./components/feedback/TransactionSuccessAffordance": "./src/components/feedback/TransactionSuccessAffordance.tsx",

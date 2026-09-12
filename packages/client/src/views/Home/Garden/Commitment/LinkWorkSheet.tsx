@@ -1,5 +1,5 @@
 import type { Action, Work } from "@green-goods/shared/types/domain";
-import { DialogShell } from "@green-goods/shared/components/Dialog/ConfirmDialog";
+import { DialogShell } from "@green-goods/shared/components/Dialog/DialogShell";
 import { StatusBadge } from "@green-goods/shared/components/StatusBadge";
 import { type CommitmentRequirementRecord } from "@green-goods/shared/commitment-pooling";
 import { useEffect, useState } from "react";

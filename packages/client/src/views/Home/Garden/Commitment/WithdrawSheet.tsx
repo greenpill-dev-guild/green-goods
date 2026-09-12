@@ -1,5 +1,5 @@
 import { Alert } from "@green-goods/shared/components/Alert";
-import { DialogShell } from "@green-goods/shared/components/Dialog/ConfirmDialog";
+import { DialogShell } from "@green-goods/shared/components/Dialog/DialogShell";
 import { MAX_REASON } from "@green-goods/shared/commitment-pooling";
 import { useState } from "react";
 import { useIntl } from "react-intl";

@@ -1,4 +1,4 @@
-import { DialogShell } from "@green-goods/shared/components/Dialog/ConfirmDialog";
+import { DialogShell } from "@green-goods/shared/components/Dialog/DialogShell";
 import { PwaSheet } from "@green-goods/shared/components/Dialog/PwaSheet";
 import { cn } from "@green-goods/shared/utils/styles/cn";
 import { useMediaQuery } from "@green-goods/shared/hooks/ui/useMediaQuery";

@@ -24,6 +24,7 @@ const TARGET_FILES = [
   "packages/shared/src/components/Cards/WorkCard/WorkCard.stories.tsx",
   "packages/shared/src/components/Display/ImageWithFallback.stories.tsx",
   "packages/shared/src/components/Dialog/ConfirmDialog.stories.tsx",
+  "packages/shared/src/components/Dialog/DialogShell.stories.tsx",
   "packages/shared/src/components/Dialog/ImagePreviewDialog.stories.tsx",
   "packages/shared/src/components/Dialog/PwaSheet.stories.tsx",
   "packages/shared/src/components/Tokens/Animations.stories.tsx",
