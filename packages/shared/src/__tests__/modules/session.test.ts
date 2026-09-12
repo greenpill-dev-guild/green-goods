@@ -234,6 +234,25 @@ describe("modules/auth/session", () => {
 
       expect(getStoredCredential()).toBeNull();
     });
+
+    it("requires sign-in for a credential stored under an unknown schema version", () => {
+      mockLocalStorage.setItem(
+        "greengoods_credential",
+        JSON.stringify({ version: 3, idEncoding: "hex", id: "3q2-7w", publicKey: "0x1234" })
+      );
+
+      expect(getStoredCredential()).toBeNull();
+    });
+
+    it("clears an incomplete stored credential instead of replaying it", () => {
+      mockLocalStorage.setItem(
+        "greengoods_credential",
+        JSON.stringify({ version: 2, idEncoding: "base64url", id: "3q2-7w" })
+      );
+
+      expect(getStoredCredential()).toBeNull();
+      expect(mockLocalStorage.getItem("greengoods_credential")).toBeNull();
+    });
   });
 
   describe("passkey RP ID storage", () => {
