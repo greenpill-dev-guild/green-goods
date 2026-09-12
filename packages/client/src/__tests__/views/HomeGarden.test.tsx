@@ -188,6 +188,8 @@ vi.mock("@/components/Features", () => ({
   GardenGardeners: () => createElement("div", null, "Gardeners"),
   GardenJoinRequestDialog: () => createElement("div", { "data-testid": "join-request-dialog" }),
   GardenWork: () => createElement("div", null, "Work"),
+  JoinGardenButton: ({ gardenName }: { gardenName: string }) =>
+    createElement("button", { type: "button", "data-testid": "join-garden-button" }, gardenName),
 }));
 
 vi.mock("@/components/Navigation", () => ({
@@ -386,5 +388,45 @@ describe("Home garden route", () => {
         url: `${window.location.origin}/home/garden-1`,
       })
     );
+  });
+
+  it("offers Join Garden on an open garden the viewer has not joined", () => {
+    mockPrimaryAddress = "0x00000000000000000000000000000000000000aa";
+    mockUseGardens.mockReturnValue({
+      data: [
+        {
+          id: "garden-1",
+          name: "Open Garden",
+          bannerImage: "/banner.png",
+          location: "Test Location",
+          createdAt: Date.now(),
+          description: "Garden description",
+          assessments: [],
+          gardeners: [],
+          stewards: [],
+          openJoining: true,
+        },
+      ],
+      isLoading: false,
+      isFetching: false,
+    });
+
+    render(
+      createElement(
+        MemoryRouter,
+        { initialEntries: ["/home/garden-1"] },
+        createElement(
+          IntlProvider,
+          { locale: "en", messages },
+          createElement(
+            Routes,
+            null,
+            createElement(Route, { path: "/home/:id", element: createElement(Garden) })
+          )
+        )
+      )
+    );
+
+    expect(screen.getByTestId("join-garden-button")).toHaveTextContent("Open Garden");
   });
 });

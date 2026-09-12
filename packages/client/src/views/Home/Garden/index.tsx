@@ -2,7 +2,6 @@ import { GOVERNANCE_ENABLED } from "@green-goods/shared/config/app";
 import { useCommitmentPools } from "@green-goods/shared/commitment-pooling";
 import { GardenBannerFallback } from "@green-goods/shared/components/Display/GardenBannerFallback";
 import { ImageWithFallback } from "@green-goods/shared/components/Display/ImageWithFallback";
-import { toastService } from "@green-goods/shared/components/Toast/toast.service";
 import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
 import { useBrowserNavigation } from "@green-goods/shared/hooks/app/useBrowserNavigation";
 import { useNavigateToTop } from "@green-goods/shared/hooks/app/useNavigateToTop";
@@ -17,7 +16,6 @@ import { useConvictionStrategies } from "@green-goods/shared/hooks/conviction/us
 import { GardenTab, useGardenTabs } from "@green-goods/shared/hooks/garden/useGardenTabs";
 import {
   isGardenMember,
-  useJoinGarden,
   usePendingJoinsVersion,
 } from "@green-goods/shared/hooks/garden/useJoinGarden";
 import { useHasRole } from "@green-goods/shared/hooks/roles/useHasRole";
@@ -31,9 +29,8 @@ import {
   RiErrorWarningLine,
   RiLoader4Line,
   RiMapPin2Fill,
-  RiUserAddLine,
 } from "@remixicon/react";
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useIntl } from "react-intl";
 import { Outlet, useLocation, useParams } from "react-router-dom";
 import { isAddress } from "viem";
@@ -46,6 +43,7 @@ import {
   GardenJoinRequestDialog,
   type GardenMember,
   GardenWork,
+  JoinGardenButton,
 } from "@/components/Features";
 import { StandardTabs, TopNav } from "@/components/Navigation";
 import { buildGardenTabs } from "./gardenTabs";
@@ -216,39 +214,6 @@ export const Garden: React.FC = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps -- version counter is a deliberate cache-buster, not a read dependency
   }, [primaryAddress, garden, canManageRequests, pendingJoinsVersion]);
 
-  // Join garden functionality
-  const { joinGarden, isJoining } = useJoinGarden();
-
-  const handleJoinGarden = useCallback(async () => {
-    if (!garden?.id) return;
-
-    try {
-      const result = await joinGarden(garden.id);
-      if (result === "already-member") {
-        toastService.success({
-          title: intl.formatMessage({
-            id: "app.garden.alreadyMember",
-            defaultMessage: "You are already a member of this garden",
-          }),
-        });
-      } else {
-        toastService.success({
-          title: intl.formatMessage({
-            id: "app.garden.joinSuccess",
-            defaultMessage: "Successfully joined garden",
-          }),
-        });
-      }
-    } catch {
-      toastService.error({
-        title: intl.formatMessage({
-          id: "app.garden.joinError",
-          defaultMessage: "Failed to join garden",
-        }),
-      });
-    }
-  }, [garden?.id, joinGarden, intl]);
-
   // Determine if join button should be shown
   const showJoinButton = useMemo(() => {
     if (!primaryAddress) return false;
@@ -417,20 +382,7 @@ export const Garden: React.FC = () => {
                     </div>
                   </div>
                   <ShareGardenButton gardenId={garden.id} name={name} />
-                  {showJoinButton && (
-                    <Button
-                      label={intl.formatMessage({
-                        id: "app.garden.join",
-                        defaultMessage: "Join Garden",
-                      })}
-                      leadingIcon={<RiUserAddLine className="w-4 h-4" />}
-                      variant="primary"
-                      mode="filled"
-                      size="small"
-                      onClick={handleJoinGarden}
-                      disabled={isJoining}
-                    />
-                  )}
+                  {showJoinButton && <JoinGardenButton gardenId={garden.id} gardenName={name} />}
                   {showJoinRequestButton ? (
                     <GardenJoinRequestDialog gardenAddress={garden.id as Address} />
                   ) : null}

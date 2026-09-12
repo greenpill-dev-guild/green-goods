@@ -1,4 +1,3 @@
-import { ConfirmDialog } from "@green-goods/shared/components/Dialog/ConfirmDialog";
 import { toastService } from "@green-goods/shared/components/Toast/toast.service";
 import { useGardens } from "@green-goods/shared/hooks/blockchain/useBaseLists";
 import {
@@ -21,6 +20,7 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/Actions";
 import { Card } from "@/components/Cards";
 import { Avatar } from "@/components/Display";
+import { JoinGardenConfirmDialog } from "@/components/Features/Garden/JoinGardenConfirmDialog";
 
 interface GardensListProps {
   primaryAddress: Address | undefined;
@@ -276,39 +276,12 @@ export const GardensList: React.FC<GardensListProps> = ({ primaryAddress }) => {
         </Card>
       )}
 
-      <ConfirmDialog
+      <JoinGardenConfirmDialog
         isOpen={pendingGarden !== null}
+        gardenName={pendingGarden?.name ?? ""}
+        isJoining={isJoining}
         onClose={() => setPendingGarden(null)}
         onConfirm={handleConfirmJoinGarden}
-        title={intl.formatMessage({
-          id: "app.profile.joinGardenConfirmTitle",
-          defaultMessage: "Join Garden",
-        })}
-        description={
-          pendingGarden
-            ? intl.formatMessage(
-                {
-                  id: "app.profile.joinGardenConfirmDescription",
-                  defaultMessage:
-                    "Garden: {gardenName}. {gardenDescription} You'll join as a Gardener and be able to submit work.",
-                },
-                {
-                  gardenName: pendingGarden.name,
-                  gardenDescription: pendingGarden.description
-                    ? `${pendingGarden.description}.`
-                    : intl.formatMessage({
-                        id: "app.profile.joinGardenNoDescription",
-                        defaultMessage: "No garden description provided.",
-                      }),
-                }
-              )
-            : undefined
-        }
-        confirmLabel={intl.formatMessage({
-          id: "app.profile.joinGardenConfirmAction",
-          defaultMessage: "Join",
-        })}
-        isLoading={isJoining}
       />
     </>
   );
