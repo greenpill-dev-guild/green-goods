@@ -2,7 +2,7 @@
 name: qa-triage
 user-invocable: true
 description: Turn Build Sync QA notes or a qa-session deferred handoff into scope-locked Linear records and private QA Sheet rows. Fires on a QA call/sync/meeting, Build Sync, Product Sync (legacy name), or a request to file or triage recent meeting bugs. Pulls notes from Drive (Downloads fallback), enriches against PostHog and existing Linear/Sheet records, requires exact Test IDs for qa-session issues, then writes only after confirmation. For a live or dictated walkthrough, use qa-session instead.
-argument-hint: "[<notes-path|slug|qa-sync:YYYY-MM-DD>] [--call [<date>]] [--dry-run] [--no-codex] [--no-sheet] [--fixture]"
+argument-hint: "[<notes-path|slug|session:YYYY-MM-DD>] [--call [<date>]] [--dry-run] [--no-codex] [--no-sheet] [--fixture]"
 ---
 
 # QA Triage Skill
@@ -24,7 +24,7 @@ confirmed Linear and Sheet writes only.
 | `/qa-triage` | Discover the latest Build Sync notes (Drive → Downloads). If the [`qa-triage-pulse`](../../../docs/routines/qa-triage-pulse.md) routine has pre-staged Customer Needs for the latest sync, offer to resume from those instead. |
 | `/qa-triage <path>` | Use the supplied notes path (absolute, relative, or `~/Downloads/...`). A `tmp/qa-session/<slug>/deferred-<slug>.md` extract from the qa-session skill is a supported source — it contains only deferred observations (never fixed/answered/dropped ones), the slugged filename keeps each handoff's workspace distinct, its numbered, typed, verbatim-quoted items parse directly, and its exact `case:` Test IDs bypass fuzzy matching. For session-log inputs, use `source:qa-session` (resolve-or-create) instead of `source:drive` in Phase 6 |
 | `/qa-triage <slug>` | Resume an incomplete run from `tmp/qa-triage/<slug>/notes.md` |
-| `/qa-triage qa-sync:<YYYY-MM-DD>` | Resume from routine-pre-staged Customer Needs carrying that `qa-sync:*` label. Phases 1-3 are skipped (already done by `qa-triage-pulse`); triage gate fires immediately. |
+| `/qa-triage session:<YYYY-MM-DD>` | Resume from routine-pre-staged Customer Needs carrying that `session:*` label. Phases 1-3 are skipped (already done by `qa-triage-pulse`); triage gate fires immediately. |
 | `/qa-triage --call [<date>]` | Post-QA-call mode (§ Call mode below): join the QA app's pulled state with the call's Gemini notes, cluster into slices, and — after the Phase 4 gate — write the `QA session <date>` parent report + slice sub-issues. Interactive sibling of the [`qa-call-report`](../../../docs/routines/qa-call-report.md) routine. |
 | `/qa-triage … --dry-run` | Print payloads instead of writing to Linear; still emit Sheet CSVs |
 | `/qa-triage … --no-codex` | Skip the Codex parallel pass (default is automatic dispatch) |
@@ -97,7 +97,7 @@ Phase 3b dedupe catches the other's records if both ran.
   the fix loop takes local-verifiable slices first. Payloads use
   [linear-templates.md § QA session report / § QA slice](./linear-templates.md) — one
   `QA session <date>` parent, slices as sub-issues via `parentId`. Before drafting the parent,
-  look for an existing one — use the `qa-sync:<date>` label to narrow candidates, but require the
+  look for an existing one — use the `session:<date>` label to narrow candidates, but require the
   parent shape before reuse: the exact `QA session <date>` title and no `package:*` label (the
   pulse stamps the same label on its pre-staged tracking Issues, and Phase 3b's package-scoped
   scan cannot see the parent at all); an existing parent is reused, never duplicated.
@@ -105,7 +105,7 @@ Phase 3b dedupe catches the other's records if both ran.
   Low; Urgent when the call flagged it release-blocking, or proposed from a tester's note and
   confirmed at the gate); `polish` slices propose Low (`Todo` when a member entry sits inside the
   window, else `Backlog`); note-only items propose `Backlog`. **Human-filed issues**: list Product Issues created since the window opened,
-  whatever their labels (a teammate filing from the call rarely stamps `activity:qa`); propose a
+  whatever their labels (a teammate filing from the call rarely stamps an activity label); propose a
   match per slice by title and surface; the gate confirms each. A confirmed match is linked as
   `already tracked`, and the slice's Test IDs are posted as a comment on that Issue; the routine's
   exact-key scan reads pipeline comments as well as source lines, so the reverse lookup works next
@@ -184,7 +184,7 @@ All deviations from a real run, in one place:
 2. **Resolve Linear handles by name** at the start of every run:
    - Team: `Product` (fallback `Research` only when the user asks).
    - Workflow states: expect `Backlog`, `Todo`.
-   - Label families: `protocol:green-goods`, `package:*`, `activity:qa`, `activity:maintenance`, `source:drive`, `source:qa-triage-pulse`, `source:qa-session` (resolve-or-create; for qa-session handoff inputs), `ai:claude`, `ai:codex`, `ai:routine`. The per-week label `qa-sync:YYYY-MM-DD` is resolve-or-created on each run that needs it.
+   - Label families: `protocol:green-goods`, `package:*`, `activity:build`, `activity:design`, `activity:qa`, `activity:maintenance`, `source:drive`, `source:qa-triage-pulse`, `source:qa-session` (resolve-or-create; for qa-session handoff inputs), `ai:codex`, `ai:routine`. The per-week label `session:YYYY-MM-DD` is resolve-or-created on each run that needs it.
    - If any required label family is missing, fail loud and stop — do not invent records under a different label.
 3. **Probe PostHog reachability** with a single-event query against both `POSTHOG_PROJECT_ID_APP` (`163591`) and `POSTHOG_PROJECT_ID_ADMIN` (`262122`). If either is unreachable, mark the affected surface as `enrichment: unavailable` and continue. (Skipped in fixture mode.)
 
@@ -214,7 +214,7 @@ See [`sheet-schema.md`](./sheet-schema.md) for the canonical Defects and Test-ta
 
 Lookup order, first match wins:
 
-0. **Resume from `qa-triage-pulse` pre-stage** — if invoked as `/qa-triage qa-sync:<YYYY-MM-DD>`, OR if no explicit path/slug was given but Linear has ≥1 open Customer Need carrying both `source:qa-triage-pulse` and a `qa-sync:<latest-date>` label, surface the resume prompt:
+0. **Resume from `qa-triage-pulse` pre-stage** — if invoked as `/qa-triage session:<YYYY-MM-DD>`, OR if no explicit path/slug was given but Linear has ≥1 open Customer Need carrying both `source:qa-triage-pulse` and a `session:<latest-date>` label, surface the resume prompt:
 
    > Found {N} pre-staged Customer Needs from {date}'s Build Sync (routine: qa-triage-pulse). Resume from those, or run a fresh extract from notes? `[resume / fresh / quit]`
 
@@ -257,7 +257,7 @@ Show the candidate list (max 5, last 14 days) with title + modified date. Confir
    3. [feedback] ...
    ```
 
-   Item types: `bug` → eligible for a main `activity:qa` Issue. `idea` / `feedback` → track-only by default, meaning Customer Need + lightweight Backlog tracking Issue.
+   Item types: `bug` → eligible for a main `activity:build` Issue. `idea` / `feedback` → track-only by default, meaning Customer Need + lightweight Backlog tracking Issue.
 
 3. **Dispatch Codex automatically (required unless `--no-codex` or `--fixture` is set).** Fire the worktree dispatch on every real run that carries neither flag — no judgment override, no "skipped to keep the flow tight". The parallel extraction pass exists specifically to catch what a single-agent extraction misses; skipping defeats the dual-extraction design. Dispatch mechanics (worktree add, fixed non-secret child environment, notes/schema copy, `codex exec -s read-only --ephemeral … < /dev/null` invocation, prompt rendering) live in [codex-prompt.md § Dispatch mechanics](./codex-prompt.md); `--full-auto` no longer exists on `codex exec`, and an open stdin makes it wait forever, so use the snippet as written. Copy the resolved notes into the temporary worktree and render that absolute copy path into the prompt; a primary-checkout-relative `tmp/qa-triage/.../notes.md` path is not reachable from the separate checkout. The root `.env` is never linked because this pass needs only the copied notes and schema; a configured `CODEX_HOME` is preserved so the CLI keeps its own authentication and installed skills. Fire via `Bash` with `run_in_background: true` and continue to Phase 3 immediately. When the result lands, process it through the idempotent completion handler below; never merge the file ad hoc.
 
@@ -344,7 +344,7 @@ Output: `cross-ref.md`, one block per item:
 - Deploy correlation: commit `abc1234` (Gui · 2h before first_seen) — packages/client work-submission · [diff](https://github.com/.../compare/...)
 - Linear scan: 1 related (PRD-1234), no duplicates
 - Tracker scan: not present
-- Disposition (proposed): new Issue, package:client, activity:qa
+- Disposition (proposed): new Issue, package:pwa, activity:build
 ```
 
 ## Phase 4 — Triage gate (REQUIRED USER GATE)
@@ -391,8 +391,8 @@ Three hard constraints shape every payload — full detail, including the Codex-
 
 | Item shape | Issue created | Customer Need created |
 |---|---|---|
-| Clear actionable bug (named surface + suggestable fix) | **Main Issue** — `activity:qa` + `Todo` + priority by severity | Yes, linked via `issue` |
-| Bug with no repro or no clear surface | **Backlog Issue** — `activity:qa` + `Backlog` | Yes, linked via `issue` |
+| Clear actionable bug (named surface + suggestable fix) | **Main Issue** — `activity:build` + `Todo` + priority by severity | Yes, linked via `issue` |
+| Bug with no repro or no clear surface | **Backlog Issue** — `activity:build` + `Backlog` | Yes, linked via `issue` |
 | Idea / feedback / UX polish / strategic gap | **Track-only Issue** — `activity:maintenance` (or `activity:architecture` for strategic items) + `Backlog` + priority Low/Medium | Yes, linked via `issue` |
 | Question / "me too" / no actionable content | Skip both | Skip both |
 | Duplicate of existing record | No new Issue; link via `relatedTo` | Optional — comment on existing if user wants the verbatim quote preserved |
@@ -403,12 +403,12 @@ Title shape for track-only Issues: a plain action-verb-led sentence, no prefix �
 
 Single bulk prompt up front, then surface only the items where the proposed assignee differs from the default — never ask 27 separate questions.
 
-> Default assignee for all N filed Issues: (a) Afo, (b) `ai:claude`, (c) unassigned, (d) other engineer (name).
-> Per-item overrides? Reply with bullets like `5:gferreira525, 12-15:ai:claude, 18:unassigned` or `confirm` to accept the default for everything.
+> Default assignee for all N filed Issues: (a) Afo, (b) Claude (unlabelled), (c) unassigned, (d) other engineer (name).
+> Per-item overrides? Reply with bullets like `5:gferreira525, 12-15:claude, 18:unassigned` or `confirm` to accept the default for everything.
 
-Then, before writing, the assistant surfaces a **proposed exceptions list** for the user to ratify — items where the bulk default seems wrong given context (e.g., an admin bug when the default is Gui, a PWA architectural bug when the default is `ai:claude`). The user sees only items that need a decision, not the whole list.
+Then, before writing, the assistant surfaces a **proposed exceptions list** for the user to ratify — items where the bulk default seems wrong given context (e.g., an admin bug when the default is Gui, a PWA architectural bug when the default is Claude). The user sees only items that need a decision, not the whole list.
 
-Recall `ai:*` is single-value: when delegate (`ai:claude` / `ai:codex`) is chosen, the originating agent is implicit and goes in a comment when it matters — never in the body, whose `## Provenance` section was retired 2026-08-27. The interactive skill running in Claude Code is the origin by default.
+Recall `ai:*` is single-value: when Codex delegation (`ai:codex`) is chosen, the originating agent is implicit and goes in a comment when it matters — never in the body, whose `## Provenance` section was retired 2026-08-27. The interactive skill running in Claude Code is the origin by default.
 
 **Per-item preference capture (subtle)**:
 
@@ -451,9 +451,9 @@ Surface vocabulary on the Defects row: `Public Website | PWA iOS | PWA Android |
 
    **Linear writes** (via Linear MCP):
    - Issues first (Customer Needs require an `issue` parameter — Linear API rejects standalone Needs).
-   - **`save_issue` `labels` is REPLACE, not append.** When adding a single new label to an existing Issue, always read the current label list first and pass `[...existing, newLabel]`. Passing `["activity:qa"]` alone will strip every other label off the Issue.
+   - **`save_issue` `labels` is REPLACE, not append.** When adding a single new label to an existing Issue, always read the current label list first and pass `[...existing, newLabel]`. Passing `["build"]` alone will strip every other label off the Issue.
    - **Snapshot before in-place edits.** When updating Customer Need bodies or Issue descriptions in bulk on already-filed records, write a JSON dump of every record's pre-edit `{id, title, description, body, labels, priority, status}` to `tmp/qa-triage/<slug>/pre-edit-snapshot.json` first. Cheap safety net if the bulk write goes sideways.
-   - Issue labels: `protocol:green-goods` + ONE `package:*` (primary surface) + `activity:qa` (bug) or `activity:maintenance` (polish) or `activity:architecture` (strategic) + the source label matching the resolved input (`source:drive` for Drive/Downloads notes; `source:qa-session` for qa-session handoff extracts; keep `source:qa-triage-pulse` on records resumed from a `qa-sync:<date>` pre-stage — never stamp Drive provenance on a live-session input or strip the pulse's provenance on resume) + ONE `ai:*` (delegate-to wins). Translate every one to its **bare child name** before calling `save_issue` (`["green-goods", "client", "qa", "drive", "claude"]`): the API rejects the `group:child` display form, and one unresolvable entry rejects the whole array and files nothing.
+   - Issue labels: `protocol:green-goods` + ONE `package:*` (primary surface) + ONE activity — `activity:build` (bug), `activity:design` (visual polish), `activity:maintenance` (hygiene), or `activity:architecture` (strategic); never `activity:qa`, which marks the validation pass itself and not the defects it found — + the source label matching the resolved input (`source:drive` for Drive/Downloads notes; `source:qa-session` for qa-session handoff extracts; keep `source:qa-triage-pulse` on records resumed from a `session:<date>` pre-stage — never stamp Drive provenance on a live-session input or strip the pulse's provenance on resume) + ONE `ai:*` (delegate-to wins). Translate every one to its **bare child name** before calling `save_issue` (`["green-goods", "pwa", "build", "drive"]`): the API rejects the `group:child` display form, and one unresolvable entry rejects the whole array and files nothing.
    - Then Customer Needs, each linked to its Issue via the `issue` parameter. Customer Needs accept `body` and `issue`/`project` only — no labels per the API surface.
    - Track-only Issues are created in the same pass as the main Issues, before the Customer Needs that reference them.
 
@@ -512,7 +512,7 @@ Write `report.md` and print:
 <status: dispatched (worktree path, result file) | prompt emitted (path) | skipped | failed>
 
 ### Next step
-- Spawn implementation sessions for `ai:claude`-labelled Issues, or
+- Spawn implementation sessions for Issues assigned to Afo, or
 - Sync with the team on the deferred items, or
 - Done.
 ```

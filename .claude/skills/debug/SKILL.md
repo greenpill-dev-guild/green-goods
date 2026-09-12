@@ -53,7 +53,7 @@ message, attached user screenshot, paraphrased complaint — they all engage thi
 ### QA-slice signals → qa_slice_fix mode
 
 - "pull in the QA issues", "work the QA slices", "fix what we found in QA", "pick up the
-  qa-sync slices", "did QA earlier — start on the findings"
+  QA session slices", "did QA earlier — start on the findings"
 - The work objects are slice sub-issues of a `QA session YYYY-MM-DD` parent in Linear, written
   by `/qa-triage --call` or the `qa-call-report` routine after a team QA call.
 - Focus: one slice at a time, measured repair per `.claude/context/qa.md § Fix posture` — never
@@ -318,7 +318,7 @@ the slice being worked. The shared routing core (team routing,
 Debug-specific deltas, applied after a bug is reproduced and root-caused:
 
 - Raw user/telemetry signal → Linear **Customer Need** (Product team) using the structured body shape (Source / Customer type / Need statement / Evidence / Disposition).
-- Accepted fixes, QA follow-ups, or product investigations → Product Issue with `activity:qa` + relevant `package:*` + `protocol:*`.
+- Accepted fixes, QA follow-ups, or product investigations → Product Issue with `activity:build` (or `activity:maintenance` for hygiene) + relevant `package:*` + `protocol:*`.
 - The PostHog/Sentry-to-Linear privacy specifics live in `AGENTS.md § Linear Workspace` and
   `docs/routines/README.md`.
 
