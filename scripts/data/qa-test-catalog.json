@@ -3521,6 +3521,33 @@
       "source": "prd-888"
     },
     {
+      "id": "PWA-107",
+      "tab": "PWA",
+      "platform": "Desktop Browser (PWA shell)",
+      "priority": "P2",
+      "kind": "content",
+      "area": "Profile",
+      "scenario": "Profile passkey note reads plainly and names the sign-in link a second device shows",
+      "preconditions": [
+        "Passkey session on a profile whose stored username is set",
+        "Build under test has the passkey server lookup enabled",
+        "A second browser or device with no passkey saved for this site"
+      ],
+      "steps": [
+        "Open Profile on a passkey session and read the note under the account cards",
+        "Confirm it shows the gardener's own username and states the Apple or Google account condition",
+        "Open the sign-in screen in the second browser and confirm the link the note names is there with that exact label",
+        "Repeat in Spanish and Portuguese, then on the installed Android app"
+      ],
+      "expected": "The note is two plain sentences with no provider, sync, local-only, or lookup wording; the link it names appears with that exact label on a sign-in screen with no saved passkey; it renders as quiet helper text rather than a warning panel; Spanish and Portuguese carry the same meaning and name the same link in their own language",
+      "evidence": "Profile screenshots in all three locales beside the second browser's sign-in screen",
+      "role": "gardener",
+      "tags": ["profile", "passkey", "recovery", "copy"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "prd-919"
+    },
+    {
       "id": "PWA-023",
       "tab": "PWA",
       "platform": "Android (installed PWA)",

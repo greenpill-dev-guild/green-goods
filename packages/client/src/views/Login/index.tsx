@@ -112,7 +112,8 @@ export function Login() {
             passkeyServerEnabled
               ? intl.formatMessage({
                   id: "app.login.username.hint",
-                  defaultMessage: "Use this name later with a synced passkey on another device.",
+                  defaultMessage:
+                    "Keep this name somewhere safe. You'll use it to sign in on another device.",
                 })
               : intl.formatMessage({
                   // Local-only mode keeps the re-enrollment explainer instead
@@ -128,7 +129,7 @@ export function Login() {
     );
   }
 
-  // ─── Recover form: input (slot 1) · Recover with passkey (slot 2) · Back ────
+  // ─── Recover form: input (slot 1) · Sign in with passkey (slot 2) · Back ────
   // Flat flow: it succeeds, or the error shows and the user retries or goes
   // Back. A fresh account is created through the normal create flow instead of
   // an in-recovery fork; the passkey server still rejects registered names.
@@ -142,8 +143,8 @@ export function Login() {
           loadingState={loadingState ?? undefined}
           message={loadingMessage}
           buttonLabel={intl.formatMessage({
-            id: "app.login.button.recoverPasskey",
-            defaultMessage: "Recover with Passkey",
+            id: "app.login.button.loginPasskey",
+            defaultMessage: "Sign in with Passkey",
           })}
           errorMessage={!isAuthenticating ? loginError : null}
           usernameInput={{
@@ -164,7 +165,7 @@ export function Login() {
           infoMessage={intl.formatMessage({
             id: "app.login.recovery.info",
             defaultMessage:
-              "Synced passkeys recover on supported providers. Local-only passkeys work on this device.",
+              "Your passkey needs to be on this device or on a phone nearby. It usually arrives with your Apple or Google account.",
           })}
           tertiaryAction={backTertiaryAction}
         />

@@ -289,18 +289,17 @@ const COPY = {
   createButton: "Create Account",
   signInButton: "Sign in with Passkey",
   continueAs: "Continue as gardener.eth",
-  recoverButton: "Recover with Passkey",
   wallet: "Sign in with a Wallet",
   recoverWithUsername: "Recover with Username",
   haveAccount: "Already have an account?",
   newAccountLabel: "Display name for new account",
   newAccountPlaceholder: "e.g. alice or alice.eth",
   back: "Back",
-  usernameHint: "Use this name later with a synced passkey on another device.",
+  usernameHint: "Keep this name somewhere safe. You'll use it to sign in on another device.",
   recoveryLabel: "Username or ENS handle",
   recoveryPlaceholder: "Enter your username or ENS handle",
   recoveryInfo:
-    "Synced passkeys recover on supported providers. Local-only passkeys work on this device.",
+    "Your passkey needs to be on this device or on a phone nearby. It usually arrives with your Apple or Google account.",
   loadingAuth: "Signing you in...",
   err: {
     noPasskey: "No passkey found for that username.",
@@ -368,10 +367,10 @@ const createFormArgs: SplashStoryArgs = {
   tertiaryAction: { label: COPY.back, onClick: () => {} },
 };
 
-/** Recover form: input (slot 1) · Recover with passkey (slot 2) · Back link. */
+/** Recover form: input (slot 1) · Sign in with passkey (slot 2) · Back link. */
 const recoverFormArgs: SplashStoryArgs = {
   login: () => {},
-  buttonLabel: COPY.recoverButton,
+  buttonLabel: COPY.signInButton,
   usernameInput: {
     value: "gardener.eth",
     onChange: () => {},

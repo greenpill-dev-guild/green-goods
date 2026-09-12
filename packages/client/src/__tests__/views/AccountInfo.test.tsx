@@ -1,5 +1,5 @@
 /**
- * AccountInfo passkey persistence warning tests
+ * AccountInfo passkey recovery note tests
  * @vitest-environment jsdom
  */
 
@@ -12,7 +12,13 @@ let mockAuthMode: "passkey" | "wallet" | "embedded" | null = "passkey";
 let mockSmartAccountAddress: string | null = "0x1234567890123456789012345678901234567890";
 let mockWalletAddress: string | null = null;
 let mockEmbeddedAddress: string | null = null;
+let mockUserName: string | null = "alice";
+let mockPasskeyServerEnabled = true;
 const mockSignOut = vi.fn();
+
+vi.mock("@green-goods/shared/config/passkeyServer", () => ({
+  isPasskeyServerEnabled: () => mockPasskeyServerEnabled,
+}));
 
 vi.mock("@green-goods/shared/hooks/auth/useAuth", () => ({
   useAuthState: () => ({
@@ -20,6 +26,7 @@ vi.mock("@green-goods/shared/hooks/auth/useAuth", () => ({
     credential: { id: "test-cred" },
     walletAddress: mockWalletAddress,
     embeddedAddress: mockEmbeddedAddress,
+    userName: mockUserName,
   }),
   useAuthActions: () => ({
     signOut: mockSignOut,
@@ -78,42 +85,65 @@ function renderAccountInfo() {
   );
 }
 
-describe("AccountInfo passkey warning", () => {
+describe("AccountInfo passkey recovery note", () => {
+  const deviceLine =
+    "To sign in on another device, choose “Already have an account?” and enter alice.";
+  const genericLine =
+    "To sign in on another device, choose “Already have an account?” and enter your username.";
+  const accountLine =
+    "Your passkey is saved in your Apple or Google account, so that device needs to be signed in to the same account.";
+
   beforeEach(() => {
     vi.clearAllMocks();
     mockAuthMode = "passkey";
     mockSmartAccountAddress = "0x1234567890123456789012345678901234567890";
     mockWalletAddress = null;
     mockEmbeddedAddress = null;
+    mockUserName = "alice";
+    mockPasskeyServerEnabled = true;
   });
 
   afterEach(() => {
     cleanup();
   });
 
-  it("shows passkey persistence warning when authMode is passkey", () => {
+  it("names the gardener's own username and the account condition on a passkey session", () => {
     renderAccountInfo();
 
-    expect(screen.getByText("Recovery depends on your passkey provider")).toBeInTheDocument();
-    expect(screen.getByText(/Keep the same username or ENS handle/)).toBeInTheDocument();
-    expect(
-      screen.getByText(/Legacy local-only passkeys keep same-device login only/)
-    ).toBeInTheDocument();
+    expect(screen.getByText(deviceLine)).toBeInTheDocument();
+    expect(screen.getByText(accountLine)).toBeInTheDocument();
   });
 
-  it("does not show passkey warning when authMode is wallet", () => {
+  it("falls back to a generic username line when no name is stored", () => {
+    mockUserName = null;
+    renderAccountInfo();
+
+    expect(screen.getByText(genericLine)).toBeInTheDocument();
+    expect(screen.getByText(accountLine)).toBeInTheDocument();
+  });
+
+  it("stays hidden when the passkey server lookup is off", () => {
+    // Without the server the sign-in screen has no username door to point at.
+    mockPasskeyServerEnabled = false;
+    renderAccountInfo();
+
+    expect(screen.queryByText(deviceLine)).not.toBeInTheDocument();
+    expect(screen.queryByText(accountLine)).not.toBeInTheDocument();
+  });
+
+  it("does not show the note when authMode is wallet", () => {
     mockAuthMode = "wallet";
     renderAccountInfo();
 
-    expect(screen.queryByText("Recovery depends on your passkey provider")).not.toBeInTheDocument();
+    expect(screen.queryByText(deviceLine)).not.toBeInTheDocument();
   });
 
-  it("does not show passkey warning when authMode is null", () => {
+  it("does not show the note when authMode is null", () => {
     mockAuthMode = null;
     mockSmartAccountAddress = null;
     renderAccountInfo();
 
-    expect(screen.queryByText("Recovery depends on your passkey provider")).not.toBeInTheDocument();
+    expect(screen.queryByText(deviceLine)).not.toBeInTheDocument();
   });
 
   it("shows connected wallet state for embedded auth", () => {
@@ -125,26 +155,26 @@ describe("AccountInfo passkey warning", () => {
     expect(screen.getByText("Wallet")).toBeInTheDocument();
     expect(screen.getByText("Connected")).toBeInTheDocument();
     expect(screen.getByText("address-copy")).toBeInTheDocument();
-    expect(screen.queryByText("Recovery depends on your passkey provider")).not.toBeInTheDocument();
+    expect(screen.queryByText(deviceLine)).not.toBeInTheDocument();
   });
 
-  it("places the warning before the logout button", () => {
+  it("places the note before the logout button", () => {
     renderAccountInfo();
 
-    const warning = screen.getByText("Recovery depends on your passkey provider");
+    const note = screen.getByText(deviceLine);
     const logoutButton = screen.getByText("Logout");
 
-    // Warning should appear before logout in DOM order
+    // The note should appear before logout in DOM order
     const allElements = document.body.querySelectorAll("*");
-    let warningIndex = -1;
+    let noteIndex = -1;
     let logoutIndex = -1;
     allElements.forEach((el, i) => {
-      if (el === warning) warningIndex = i;
+      if (el === note) noteIndex = i;
       if (el === logoutButton) logoutIndex = i;
     });
 
-    expect(warningIndex).toBeGreaterThan(-1);
+    expect(noteIndex).toBeGreaterThan(-1);
     expect(logoutIndex).toBeGreaterThan(-1);
-    expect(warningIndex).toBeLessThan(logoutIndex);
+    expect(noteIndex).toBeLessThan(logoutIndex);
   });
 });
