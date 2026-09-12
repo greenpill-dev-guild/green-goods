@@ -3,7 +3,7 @@ title: Changelog / Release Notes
 slug: /reference/changelog
 audience: all
 owner: docs
-last_verified: 2026-07-30
+last_verified: 2026-09-12
 feature_status: Live
 source_of_truth:
   - https://github.com/greenpill-dev-guild/green-goods/releases
@@ -25,6 +25,14 @@ The complete, auto-generated changelog lives on [GitHub Releases](https://github
 ---
 
 ## 2026
+
+### v1.2.2 - September 2026
+
+**Passkey sign-in can approve actions again**
+
+- **Passkey accounts** — if you sign in with a passkey, approving an action (joining a garden, submitting work) no longer fails with a prompt that appears to time out. Sign-in itself was always working; it was the approval step that could not read your saved passkey. Existing passkeys are repaired automatically the next time you open the app — there is nothing to re-register.
+
+Full notes: [GitHub Releases](https://github.com/greenpill-dev-guild/green-goods/releases).
 
 ### v1.2.1 - July 2026
 
