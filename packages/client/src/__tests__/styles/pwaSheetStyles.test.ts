@@ -11,6 +11,8 @@ const requiredSlots: (keyof PwaSheetStyle)[] = [
   "dialogOverlay",
   "overlayTransition",
   "panel",
+  "panelFixed",
+  "panelFit",
   "dialogSurface",
   "header",
   "tabs",
