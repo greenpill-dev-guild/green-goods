@@ -121,12 +121,12 @@ const Home: React.FC = () => {
   const openGardenFilter = useUIStore((s) => s.openGardenFilter);
   const closeGardenFilter = useUIStore((s) => s.closeGardenFilter);
   const openWorkDashboard = useUIStore((s) => s.openWorkDashboard);
-  const isWalletDrawerOpen = useUIStore((s) => s.isWalletDrawerOpen);
-  const openWalletDrawer = useUIStore((s) => s.openWalletDrawer);
-  const closeWalletDrawer = useUIStore((s) => s.closeWalletDrawer);
-  const isCommitmentsDrawerOpen = useUIStore((s) => s.isCommitmentsDrawerOpen);
-  const openCommitmentsDrawer = useUIStore((s) => s.openCommitmentsDrawer);
-  const closeCommitmentsDrawer = useUIStore((s) => s.closeCommitmentsDrawer);
+  const isWalletSheetOpen = useUIStore((s) => s.isWalletSheetOpen);
+  const openWalletSheet = useUIStore((s) => s.openWalletSheet);
+  const closeWalletSheet = useUIStore((s) => s.closeWalletSheet);
+  const isCommitmentsSheetOpen = useUIStore((s) => s.isCommitmentsSheetOpen);
+  const openCommitmentsSheet = useUIStore((s) => s.openCommitmentsSheet);
+  const closeCommitmentsSheet = useUIStore((s) => s.closeCommitmentsSheet);
 
   // Ensure proper re-rendering on browser navigation
   useBrowserNavigation();
@@ -156,9 +156,9 @@ const Home: React.FC = () => {
   useEffect(() => {
     if (location.pathname !== APP_ROUTES.home) {
       closeGardenFilter();
-      closeWalletDrawer();
+      closeWalletSheet();
     }
-  }, [location.pathname, closeGardenFilter, closeWalletDrawer]);
+  }, [location.pathname, closeGardenFilter, closeWalletSheet]);
 
   // Resolve an arrival action to its concrete client side effect.
   const runArrivalAction = useCallback(
@@ -298,8 +298,8 @@ const Home: React.FC = () => {
                   </span>
                 )}
               </button>
-              <WalletSheetIcon onClick={openWalletDrawer} />
-              <DeferredCommitmentsSheetLauncher onClick={openCommitmentsDrawer} />
+              <WalletSheetIcon onClick={openWalletSheet} />
+              <DeferredCommitmentsSheetLauncher onClick={openCommitmentsSheet} />
               <WorkDashboardIcon />
             </div>
           </div>
@@ -337,14 +337,14 @@ const Home: React.FC = () => {
         </>
       )}
       <Outlet />
-      {isWalletDrawerOpen ? (
+      {isWalletSheetOpen ? (
         <Suspense fallback={null}>
-          <WalletSheet isOpen onClose={closeWalletDrawer} />
+          <WalletSheet isOpen onClose={closeWalletSheet} />
         </Suspense>
       ) : null}
-      {isCommitmentsDrawerOpen ? (
+      {isCommitmentsSheetOpen ? (
         <Suspense fallback={null}>
-          <CommitmentsSheet isOpen onClose={closeCommitmentsDrawer} />
+          <CommitmentsSheet isOpen onClose={closeCommitmentsSheet} />
         </Suspense>
       ) : null}
     </article>

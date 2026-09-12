@@ -131,7 +131,7 @@ describe("Display mode — AppBar visibility", () => {
       selector({
         isWorkDashboardOpen: false,
         isGardenFilterOpen: false,
-        isEndowmentDrawerOpen: false,
+        isEndowmentSheetOpen: false,
       })
     );
   });
@@ -200,9 +200,9 @@ describe("Display mode — AppBar visibility", () => {
       selector({
         isWorkDashboardOpen: false,
         isGardenFilterOpen: false,
-        isEndowmentDrawerOpen: false,
-        isWalletDrawerOpen: false,
-        isCommitmentsDrawerOpen: true,
+        isEndowmentSheetOpen: false,
+        isWalletSheetOpen: false,
+        isCommitmentsSheetOpen: true,
       })
     );
 

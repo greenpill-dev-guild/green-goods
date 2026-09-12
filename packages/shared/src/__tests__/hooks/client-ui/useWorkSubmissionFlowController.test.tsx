@@ -94,7 +94,7 @@ vi.mock("../../../modules/work/media-processing", () => ({
 
 vi.mock("../../../hooks/work/useDraftResume", () => ({
   useDraftResume: () => ({
-    showDraftDialog: false,
+    showDraftSheet: false,
     handleContinueDraft: vi.fn(),
     handleStartFresh: vi.fn(),
     clearActiveDraft: vi.fn(),

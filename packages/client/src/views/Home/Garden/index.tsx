@@ -55,9 +55,9 @@ import { ShareGardenButton } from "./ShareGardenButton";
 export const Garden: React.FC = () => {
   const intl = useIntl();
   const { primaryAddress } = useUser();
-  const isEndowmentOpen = useUIStore((s) => s.isEndowmentDrawerOpen);
-  const openEndowmentDrawer = useUIStore((s) => s.openEndowmentDrawer);
-  const closeEndowmentDrawer = useUIStore((s) => s.closeEndowmentDrawer);
+  const isEndowmentOpen = useUIStore((s) => s.isEndowmentSheetOpen);
+  const openEndowmentSheet = useUIStore((s) => s.openEndowmentSheet);
+  const closeEndowmentSheet = useUIStore((s) => s.closeEndowmentSheet);
   const [isGovernanceOpen, setIsGovernanceOpen] = useState(false);
   // Track the actual rendered height of the fixed header so the spacer below
   // matches whatever the title section rendered as (including 1, 2, or 3+ line
@@ -389,7 +389,7 @@ export const Garden: React.FC = () => {
                     onGovernanceClick={() => setIsGovernanceOpen(true)}
                     showEndowmentButton={showEndowmentButton}
                     hasEndowmentDeposits={hasEndowmentDeposits}
-                    onEndowmentClick={openEndowmentDrawer}
+                    onEndowmentClick={openEndowmentSheet}
                   />
                 </div>
               </div>
@@ -480,7 +480,7 @@ export const Garden: React.FC = () => {
         {garden && (
           <EndowmentSheet
             isOpen={isEndowmentOpen}
-            onClose={closeEndowmentDrawer}
+            onClose={closeEndowmentSheet}
             gardenAddress={garden.id as Address}
             gardenName={garden.name}
           />

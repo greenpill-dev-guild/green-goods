@@ -34,18 +34,18 @@ export const AppBar = () => {
   // Check if any drawer is open to hide AppBar beneath them
   const isWorkDashboardOpen = useUIStore((s) => s.isWorkDashboardOpen);
   const isGardenFilterOpen = useUIStore((s) => s.isGardenFilterOpen);
-  const isEndowmentDrawerOpen = useUIStore((s) => s.isEndowmentDrawerOpen);
-  const isWalletDrawerOpen = useUIStore((s) => s.isWalletDrawerOpen);
-  const isCommitmentsDrawerOpen = useUIStore((s) => s.isCommitmentsDrawerOpen);
-  const isAnyDrawerOpen =
+  const isEndowmentSheetOpen = useUIStore((s) => s.isEndowmentSheetOpen);
+  const isWalletSheetOpen = useUIStore((s) => s.isWalletSheetOpen);
+  const isCommitmentsSheetOpen = useUIStore((s) => s.isCommitmentsSheetOpen);
+  const isAnySheetOpen =
     isWorkDashboardOpen ||
     isGardenFilterOpen ||
-    isEndowmentDrawerOpen ||
-    isWalletDrawerOpen ||
-    isCommitmentsDrawerOpen;
+    isEndowmentSheetOpen ||
+    isWalletSheetOpen ||
+    isCommitmentsSheetOpen;
   // Browser mode shows SiteHeader only (D6); bottom nav is PWA-only
   const shouldHideBar =
-    !isPwaPresentation || isGarden || isWorkDetail || isCommitmentRoute || isAnyDrawerOpen;
+    !isPwaPresentation || isGarden || isWorkDetail || isCommitmentRoute || isAnySheetOpen;
 
   const tabs: {
     path: string;

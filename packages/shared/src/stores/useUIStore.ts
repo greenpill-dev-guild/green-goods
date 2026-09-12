@@ -24,28 +24,28 @@ export type UIState = {
   openWorkDashboard: (tab?: WorkDashboardTab, pendingFilter?: WorkDashboardPendingFilter) => void;
   closeWorkDashboard: () => void;
 
-  // Garden filter drawer controls (client)
+  // Garden filter sheet controls (client)
   isGardenFilterOpen: boolean;
   openGardenFilter: () => void;
   closeGardenFilter: () => void;
 
-  // Endowment/treasury drawer controls (client)
-  isEndowmentDrawerOpen: boolean;
-  openEndowmentDrawer: () => void;
-  closeEndowmentDrawer: () => void;
+  // Endowment/treasury sheet controls (client)
+  isEndowmentSheetOpen: boolean;
+  openEndowmentSheet: () => void;
+  closeEndowmentSheet: () => void;
 
-  // Wallet drawer controls (client)
-  isWalletDrawerOpen: boolean;
-  openWalletDrawer: () => void;
-  closeWalletDrawer: () => void;
+  // Wallet sheet controls (client)
+  isWalletSheetOpen: boolean;
+  openWalletSheet: () => void;
+  closeWalletSheet: () => void;
 
   // Commitments sheet controls (client)
-  isCommitmentsDrawerOpen: boolean;
-  openCommitmentsDrawer: () => void;
-  closeCommitmentsDrawer: () => void;
+  isCommitmentsSheetOpen: boolean;
+  openCommitmentsSheet: () => void;
+  closeCommitmentsSheet: () => void;
 
-  // Computed helper to check if any drawer is open (for AppBar hiding)
-  isAnyDrawerOpen: () => boolean;
+  // Computed helper to check if any sheet is open (for AppBar hiding)
+  isAnySheetOpen: () => boolean;
 
   // Sidebar controls (admin)
   sidebarOpen: boolean;
@@ -81,24 +81,24 @@ export const useUIStore = create<UIState>()(
       openGardenFilter: () => set({ isGardenFilterOpen: true }),
       closeGardenFilter: () => set({ isGardenFilterOpen: false }),
 
-      isEndowmentDrawerOpen: false,
-      openEndowmentDrawer: () => set({ isEndowmentDrawerOpen: true }),
-      closeEndowmentDrawer: () => set({ isEndowmentDrawerOpen: false }),
+      isEndowmentSheetOpen: false,
+      openEndowmentSheet: () => set({ isEndowmentSheetOpen: true }),
+      closeEndowmentSheet: () => set({ isEndowmentSheetOpen: false }),
 
-      isWalletDrawerOpen: false,
-      openWalletDrawer: () => set({ isWalletDrawerOpen: true }),
-      closeWalletDrawer: () => set({ isWalletDrawerOpen: false }),
+      isWalletSheetOpen: false,
+      openWalletSheet: () => set({ isWalletSheetOpen: true }),
+      closeWalletSheet: () => set({ isWalletSheetOpen: false }),
 
-      isCommitmentsDrawerOpen: false,
-      openCommitmentsDrawer: () => set({ isCommitmentsDrawerOpen: true }),
-      closeCommitmentsDrawer: () => set({ isCommitmentsDrawerOpen: false }),
+      isCommitmentsSheetOpen: false,
+      openCommitmentsSheet: () => set({ isCommitmentsSheetOpen: true }),
+      closeCommitmentsSheet: () => set({ isCommitmentsSheetOpen: false }),
 
-      isAnyDrawerOpen: () =>
+      isAnySheetOpen: () =>
         get().isWorkDashboardOpen ||
         get().isGardenFilterOpen ||
-        get().isEndowmentDrawerOpen ||
-        get().isWalletDrawerOpen ||
-        get().isCommitmentsDrawerOpen,
+        get().isEndowmentSheetOpen ||
+        get().isWalletSheetOpen ||
+        get().isCommitmentsSheetOpen,
 
       sidebarOpen: false,
       setSidebarOpen: (open) => set({ sidebarOpen: open }),

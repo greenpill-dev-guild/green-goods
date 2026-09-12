@@ -377,7 +377,7 @@ const Work: React.FC = () => {
   return (
     <>
       <DraftSheet
-        isOpen={draft.showDraftDialog}
+        isOpen={draft.showDraftSheet}
         onContinue={draft.handleContinueDraft}
         onClose={draft.close}
         legacyRecovery={draft.legacyRecovery}

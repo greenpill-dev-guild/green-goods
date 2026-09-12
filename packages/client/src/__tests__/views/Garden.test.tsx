@@ -132,7 +132,7 @@ vi.mock("@green-goods/shared/hooks/client-ui/work/useWorkSubmissionFlowControlle
     detailsConfig: {},
     detailInputs: [],
     draft: {
-      showDraftDialog: false,
+      showDraftSheet: false,
       handleContinueDraft: vi.fn(),
       startFresh: vi.fn(),
     },

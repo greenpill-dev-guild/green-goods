@@ -6,19 +6,19 @@ import { expect, within } from "storybook/test";
 import { withClientAppRuntime, withInstalledPwa } from "../../../../shared/.storybook/decorators";
 import { AppBar } from "./AppBar";
 
-function WithDrawerOpen({
-  drawer,
+function WithSheetOpen({
+  sheet,
   children,
 }: {
-  drawer: "isWorkDashboardOpen" | "isGardenFilterOpen" | "isEndowmentDrawerOpen";
+  sheet: "isWorkDashboardOpen" | "isGardenFilterOpen" | "isEndowmentSheetOpen";
   children: React.ReactNode;
 }) {
   useEffect(() => {
-    useUIStore.setState({ [drawer]: true });
+    useUIStore.setState({ [sheet]: true });
     return () => {
-      useUIStore.setState({ [drawer]: false });
+      useUIStore.setState({ [sheet]: false });
     };
-  }, [drawer]);
+  }, [sheet]);
   return <>{children}</>;
 }
 
@@ -104,9 +104,9 @@ export const HiddenOnWorkDetailRoute: Story = {
 export const HiddenWhenWorkDashboardOpen: Story = {
   decorators: [
     (Story) => (
-      <WithDrawerOpen drawer="isWorkDashboardOpen">
+      <WithSheetOpen sheet="isWorkDashboardOpen">
         <Story />
-      </WithDrawerOpen>
+      </WithSheetOpen>
     ),
     withRouter(["/home"]),
   ],
@@ -120,9 +120,9 @@ export const HiddenWhenWorkDashboardOpen: Story = {
 export const HiddenWhenGardenFilterOpen: Story = {
   decorators: [
     (Story) => (
-      <WithDrawerOpen drawer="isGardenFilterOpen">
+      <WithSheetOpen sheet="isGardenFilterOpen">
         <Story />
-      </WithDrawerOpen>
+      </WithSheetOpen>
     ),
     withRouter(["/home"]),
   ],
@@ -133,12 +133,12 @@ export const HiddenWhenGardenFilterOpen: Story = {
   },
 };
 
-export const HiddenWhenEndowmentDrawerOpen: Story = {
+export const HiddenWhenEndowmentSheetOpen: Story = {
   decorators: [
     (Story) => (
-      <WithDrawerOpen drawer="isEndowmentDrawerOpen">
+      <WithSheetOpen sheet="isEndowmentSheetOpen">
         <Story />
-      </WithDrawerOpen>
+      </WithSheetOpen>
     ),
     withRouter(["/home"]),
   ],

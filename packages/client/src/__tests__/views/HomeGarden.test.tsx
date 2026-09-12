@@ -122,16 +122,16 @@ vi.mock("@green-goods/shared/stores/useUIStore", () => ({
   useUIStore: Object.assign(
     vi.fn((selector: (state: Record<string, unknown>) => unknown) =>
       selector({
-        isEndowmentDrawerOpen: false,
-        openEndowmentDrawer: vi.fn(),
-        closeEndowmentDrawer: vi.fn(),
+        isEndowmentSheetOpen: false,
+        openEndowmentSheet: vi.fn(),
+        closeEndowmentSheet: vi.fn(),
       })
     ),
     {
       getState: () => ({
-        isEndowmentDrawerOpen: false,
-        openEndowmentDrawer: vi.fn(),
-        closeEndowmentDrawer: vi.fn(),
+        isEndowmentSheetOpen: false,
+        openEndowmentSheet: vi.fn(),
+        closeEndowmentSheet: vi.fn(),
       }),
     }
   ),
