@@ -1,8 +1,8 @@
 import * as Dialog from "@radix-ui/react-dialog";
 import { RiAlertLine, RiCloseLine, RiLoader4Line } from "@remixicon/react";
 import type { ReactNode } from "react";
-import { createPortal } from "react-dom";
 import { useIntl } from "react-intl";
+import { useSheetPresence } from "../../hooks/ui/useSheetPresence";
 import { logger } from "../../modules/app/logger";
 import { cn } from "../../utils/styles/cn";
 import {
@@ -68,6 +68,9 @@ export function ConfirmDialog({
 }: ConfirmDialogProps) {
   const { formatMessage } = useIntl();
   const rendersAsSheet = useRendersAsSheet();
+  // The sheet registers itself; the centered surface registers here so the
+  // installed app's AppBar also steps aside on wide screens (DL-015).
+  useSheetPresence(isOpen && !rendersAsSheet);
   const resolvedConfirmLabel = confirmLabel ?? formatMessage({ id: "app.common.confirm" });
   const resolvedCancelLabel = cancelLabel ?? formatMessage({ id: "app.common.cancel" });
   const resolvedCloseLabel = formatMessage({ id: "app.common.close" });
@@ -162,7 +165,7 @@ export function ConfirmDialog({
   );
 
   if (rendersAsSheet) {
-    return createPortal(
+    return (
       <PwaSheet
         open={isOpen}
         onClose={onClose}
@@ -186,8 +189,7 @@ export function ConfirmDialog({
         >
           {resolvedCancelLabel}
         </button>
-      </PwaSheet>,
-      document.body
+      </PwaSheet>
     );
   }
 

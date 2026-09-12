@@ -217,6 +217,7 @@
     "./hooks/roles/useEffectiveToolbarPermissions": "./src/hooks/roles/useEffectiveToolbarPermissions.ts",
     "./hooks/ui/useFormWizardStepValidation": "./src/hooks/ui/useFormWizardStepValidation.ts",
     "./hooks/ui/useMediaQuery": "./src/hooks/ui/useMediaQuery.ts",
+    "./hooks/ui/useSheetPresence": "./src/hooks/ui/useSheetPresence.ts",
     "./hooks/useSheetWidth": "./src/hooks/useSheetWidth.ts",
     "./hooks/utils/useBeforeUnloadWhilePending": "./src/hooks/utils/useBeforeUnloadWhilePending.ts",
     "./hooks/utils/useAddressInput": "./src/hooks/utils/useAddressInput.ts",

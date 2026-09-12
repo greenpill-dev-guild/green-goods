@@ -105,7 +105,7 @@ export const CommitmentsSheet: React.FC<CommitmentsSheetProps> = ({ isOpen, onCl
       activeTab={selectedTab}
       onTabChange={setActiveTab}
       contentClassName="flex min-h-0 flex-col overflow-hidden p-0"
-      maxHeight="95vh"
+      size="full"
     >
       {selectedTab === "live" && (
         <LiveTab inbox={inbox} pools={pools} gardens={gardens} onOpenCommitment={openCommitment} />

@@ -147,6 +147,7 @@ export const GardensFilterSheet = ({
           defaultMessage: "Refine the garden list by membership or sort order.",
         }),
       }}
+      size="tall"
     >
       <div className="flex flex-col gap-6">
         <section>

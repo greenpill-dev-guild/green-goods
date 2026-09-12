@@ -1,4 +1,5 @@
 import { useDocumentScrollLock } from "@green-goods/shared/hooks/ui/useDocumentScrollLock";
+import { useSheetPresence } from "@green-goods/shared/hooks/ui/useSheetPresence";
 import { useFocusTrap } from "@green-goods/shared/hooks/utils/useFocusTrap";
 import { cn } from "@green-goods/shared/utils/styles/cn";
 import { RiCloseLine } from "@remixicon/react";
@@ -36,6 +37,9 @@ export const WorkDashboardShell: React.FC<WorkDashboardShellProps> = ({
   const dialogRef = useRef<HTMLDivElement>(null);
 
   useDocumentScrollLock(!isClosing);
+  // Mounted only while the dashboard is open or playing its exit, so the
+  // AppBar stays hidden until the sheet has left the screen (DL-015).
+  useSheetPresence(true);
 
   // Focus trap: keep Tab/Shift+Tab cycling within the dialog
   useFocusTrap(dialogRef, {
@@ -69,7 +73,6 @@ export const WorkDashboardShell: React.FC<WorkDashboardShellProps> = ({
         ref={dialogRef}
         className={cn(
           pwaSheetStyles.panel,
-          pwaSheetStyles.panelFixed,
           isClosing ? "modal-slide-exit" : "modal-slide-enter",
           className
         )}
@@ -85,6 +88,7 @@ export const WorkDashboardShell: React.FC<WorkDashboardShellProps> = ({
         }}
         role="dialog"
         aria-modal="true"
+        data-sheet-size="full"
         data-testid="app-sheet"
       >
         {/* Header */}

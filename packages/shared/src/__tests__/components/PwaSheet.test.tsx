@@ -3,11 +3,13 @@
 import { act, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { PwaSheet } from "../../components/Dialog/PwaSheet";
+import { useUIStore } from "../../stores/useUIStore";
 
 describe("PwaSheet", () => {
   beforeEach(() => {
     vi.useFakeTimers();
     document.documentElement.classList.remove("modal-open");
+    useUIStore.setState({ openSheetCount: 0 });
   });
 
   afterEach(() => {
@@ -155,26 +157,56 @@ describe("PwaSheet", () => {
     expect(background).not.toHaveAttribute("aria-hidden");
     background.remove();
   });
-  it("hides the branches beside an inline sheet, not only body-level siblings", () => {
+  it("renders into <body> so a page layer can never stack it under app chrome", () => {
+    const page = (open: boolean) => (
+      <div data-testid="page-layer" style={{ position: "fixed", zIndex: 10 }}>
+        <p>Page content beside the sheet</p>
+        <PwaSheet open={open} onClose={vi.fn()} ariaLabel="Deep">
+          <p>Deep</p>
+        </PwaSheet>
+      </div>
+    );
+    const view = render(page(true));
+    const overlay = screen.getByTestId("pwa-sheet-overlay");
+    expect(overlay.parentElement).toBe(document.body);
+    expect(screen.getByTestId("page-layer")).not.toContainElement(overlay);
+    expect(view.container).toHaveAttribute("aria-hidden", "true");
+
+    view.rerender(page(false));
+    expect(view.container).not.toHaveAttribute("aria-hidden");
+  });
+
+  it("names its height tier on the surface, compact by default", () => {
     const view = render(
-      <div>
-        <p data-testid="beside">Page content beside the sheet</p>
-        <PwaSheet open onClose={vi.fn()} ariaLabel="Inline">
-          <p>Inline</p>
-        </PwaSheet>
-      </div>
+      <PwaSheet open onClose={vi.fn()} ariaLabel="Tier">
+        <p>Tier</p>
+      </PwaSheet>
     );
-    expect(screen.getByTestId("beside")).toHaveAttribute("aria-hidden", "true");
-    expect(screen.getByRole("dialog", { name: "Inline" })).toBeInTheDocument();
+    expect(screen.getByTestId("pwa-sheet")).toHaveAttribute("data-sheet-size", "compact");
+
     view.rerender(
-      <div>
-        <p data-testid="beside">Page content beside the sheet</p>
-        <PwaSheet open={false} onClose={vi.fn()} ariaLabel="Inline">
-          <p>Inline</p>
-        </PwaSheet>
-      </div>
+      <PwaSheet open onClose={vi.fn()} ariaLabel="Tier" size="tall">
+        <p>Tier</p>
+      </PwaSheet>
     );
-    expect(screen.getByTestId("beside")).not.toHaveAttribute("aria-hidden");
+    expect(screen.getByTestId("pwa-sheet")).toHaveAttribute("data-sheet-size", "tall");
+  });
+
+  it("registers as an open sheet only while open, so the AppBar can step aside", () => {
+    const sheet = (open: boolean) => (
+      <PwaSheet open={open} onClose={vi.fn()} ariaLabel="Presence">
+        <p>Presence</p>
+      </PwaSheet>
+    );
+    const view = render(sheet(true));
+    expect(useUIStore.getState().openSheetCount).toBe(1);
+
+    view.rerender(sheet(false));
+    expect(useUIStore.getState().openSheetCount).toBe(0);
+
+    view.rerender(sheet(true));
+    view.unmount();
+    expect(useUIStore.getState().openSheetCount).toBe(0);
   });
   it("hides sibling content from assistive tech only while open", () => {
     const sibling = document.createElement("main");

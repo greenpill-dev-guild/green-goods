@@ -78,6 +78,7 @@ export function ClaimContextSheet({
       title={formatMessage({ id: "app.claim.context.title" })}
       description={formatMessage({ id: "app.claim.context.body" })}
       size="md"
+      sheetSize="half"
     >
       <div className="space-y-4">
         <fieldset>

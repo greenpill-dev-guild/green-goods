@@ -1,6 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/react";
 import { useState } from "react";
 import { expect, userEvent, waitFor, within } from "storybook/test";
+import type { SheetSize } from "@green-goods/shared/components/Dialog/PwaSheet";
 import { AppSheet, type AppSheetProps } from "./AppSheet";
 
 const APP_SHEET_MOBILE_VIEWPORT = {
@@ -76,7 +77,10 @@ function hasReducedMotionRule(): boolean {
 /**
  * Interactive wrapper that manages open/close state for AppSheet stories.
  */
-function AppSheetDemo(props: Omit<AppSheetProps, "isOpen" | "onClose">) {
+function AppSheetDemo({
+  size = "compact",
+  ...props
+}: Omit<AppSheetProps, "isOpen" | "onClose" | "size"> & { size?: SheetSize }) {
   const [isOpen, setIsOpen] = useState(true);
   return (
     <div>
@@ -88,7 +92,7 @@ function AppSheetDemo(props: Omit<AppSheetProps, "isOpen" | "onClose">) {
       >
         Open Sheet
       </button>
-      <AppSheet {...props} isOpen={isOpen} onClose={() => setIsOpen(false)} />
+      <AppSheet {...props} size={size} isOpen={isOpen} onClose={() => setIsOpen(false)} />
     </div>
   );
 }
@@ -126,6 +130,7 @@ function TabbedSheetDemo() {
         tabs={tabs}
         activeTab={activeTab}
         onTabChange={setActiveTab}
+        size="full"
       >
         <div className="space-y-3">
           {activeTab === "pending" && (
@@ -190,16 +195,11 @@ const meta: Meta<typeof AppSheet> = {
       description:
         "CSS classes for the inner content container (defaults to a padded region that owns scrolling)",
     },
-    maxHeight: {
-      control: "text",
-      description:
-        "Maximum height of the sheet. Content-sized sheets cap at 85dvh by default; tabbed sheets fill 85dvh.",
-    },
-    height: {
+    size: {
       control: "select",
-      options: ["fit", "fixed"],
+      options: ["compact", "half", "tall", "full"],
       description:
-        "fit sizes the sheet to its content; fixed fills the workspace height. Defaults to fixed with tabs, fit without.",
+        "Height tier (DL-014): compact sizes to its content up to the half height; half, tall, and full hold 50%, 70%, and 85% of the viewport. Tabbed sheets use full.",
     },
   },
 };
@@ -276,7 +276,7 @@ export const WithHeaderActions: Story = {
 
 export const LongContent: Story = {
   render: () => (
-    <AppSheetDemo header={{ title: "Activity Log" }} maxHeight="70vh">
+    <AppSheetDemo header={{ title: "Activity Log" }} size="tall">
       <div className="space-y-3">
         {Array.from({ length: 20 }, (_, i) => (
           <div key={i} className="p-3 rounded-lg bg-bg-weak-50 text-sm">
@@ -289,9 +289,11 @@ export const LongContent: Story = {
 };
 
 // storybook-quality-allow dark-mode: verifies sheet token contrast inside the real dark theme scope.
+// The sheet renders into <body>, so the theme is set on the document root, as the app does.
 export const DarkMode: Story = {
+  globals: { theme: "dark" },
   render: () => (
-    <div data-theme="dark" className="bg-bg-white-0 min-h-screen">
+    <div className="bg-bg-white-0 min-h-screen">
       <AppSheetDemo header={{ title: "Garden Details", description: "Riverside Commons" }}>
         <div className="space-y-3">
           <div className="p-4 rounded-lg bg-bg-weak-50">
@@ -326,8 +328,8 @@ export const Interactive: Story = {
       <p className="text-sm text-text-sub-600">Click the close button or the overlay to dismiss.</p>
     </AppSheetDemo>
   ),
-  play: async ({ canvasElement }) => {
-    const canvas = within(canvasElement);
+  play: async () => {
+    const canvas = within(document.body);
 
     // Verify the sheet is open with correct title
     const title = await canvas.findByText("Interactive Test");
@@ -368,10 +370,10 @@ export const MobileGeometry: Story = {
       </div>
     </AppSheetDemo>
   ),
-  play: async ({ canvasElement }) => {
+  play: async () => {
     await expect(window.innerWidth).toBeLessThan(SM_BREAKPOINT_PX);
 
-    const canvas = within(canvasElement);
+    const canvas = within(document.body);
     await canvas.findByText("Mobile sheet geometry");
     const overlay = canvas.getByTestId("app-sheet-overlay");
     const surface = canvas.getByTestId("app-sheet");
@@ -405,8 +407,8 @@ export const ReducedMotionContract: Story = {
       <p className="text-sm text-text-sub-600">Reduced motion dampens sheet keyframes.</p>
     </AppSheetDemo>
   ),
-  play: async ({ canvasElement }) => {
-    const canvas = within(canvasElement);
+  play: async () => {
+    const canvas = within(document.body);
     const surface = await canvas.findByTestId("app-sheet");
 
     await waitFor(async () => {
@@ -438,21 +440,21 @@ export const ContentSizedGeometry: Story = {
     docs: {
       description: {
         story:
-          "Without tabs the sheet grows with its content and stays anchored to the viewport bottom, so a two-item notifications sheet no longer fills most of the screen.",
+          "The compact tier grows with its content and stays anchored to the viewport bottom, so a short sheet never fills most of the screen.",
       },
     },
   },
   globals: { viewport: { value: "appSheetMobile390x844" } },
   render: () => (
-    <AppSheetDemo header={{ title: "Notifications", description: "2 pending" }} maxHeight="60vh">
+    <AppSheetDemo header={{ title: "Notifications", description: "2 pending" }}>
       <div className="space-y-3">
         <div className="p-4 rounded-lg bg-bg-weak-50 text-sm">Pending work approval</div>
         <div className="p-4 rounded-lg bg-bg-weak-50 text-sm">Pending work approval</div>
       </div>
     </AppSheetDemo>
   ),
-  play: async ({ canvasElement }) => {
-    const canvas = within(canvasElement);
+  play: async () => {
+    const canvas = within(document.body);
     await canvas.findByText("Notifications");
     const surface = canvas.getByTestId("app-sheet");
     await waitForSurfaceSettled(surface);
@@ -476,13 +478,13 @@ export const LongContentScrolls: Story = {
     docs: {
       description: {
         story:
-          "The sheet's content region is the single scroll owner: a long list stops at maxHeight and scrolls inside the sheet instead of being clipped.",
+          "The sheet's content region is the single scroll owner: a long list fills the tall tier and scrolls inside the sheet instead of being clipped.",
       },
     },
   },
   globals: { viewport: { value: "appSheetMobile390x844" } },
   render: () => (
-    <AppSheetDemo header={{ title: "Activity Log" }} maxHeight="60vh">
+    <AppSheetDemo header={{ title: "Activity Log" }} size="tall">
       <div className="space-y-3">
         {Array.from({ length: 30 }, (_, i) => (
           <div
@@ -496,8 +498,8 @@ export const LongContentScrolls: Story = {
       </div>
     </AppSheetDemo>
   ),
-  play: async ({ canvasElement }) => {
-    const canvas = within(canvasElement);
+  play: async () => {
+    const canvas = within(document.body);
     await canvas.findByText("Activity Log");
     const surface = canvas.getByTestId("app-sheet");
     await waitForSurfaceSettled(surface);
@@ -505,7 +507,7 @@ export const LongContentScrolls: Story = {
 
     await waitFor(async () => {
       await expect(surface.getBoundingClientRect().height).toBeLessThanOrEqual(
-        window.innerHeight * 0.6 + CENTER_TOLERANCE_PX
+        window.innerHeight * 0.7 + CENTER_TOLERANCE_PX
       );
       await expect(region.scrollHeight).toBeGreaterThan(region.clientHeight);
     });

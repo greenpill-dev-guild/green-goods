@@ -31,18 +31,9 @@ export const AppBar = () => {
   const { data: pendingCount = 0 } = usePendingWorksCount();
   const { isPwaPresentation } = useApp();
 
-  // Check if any drawer is open to hide AppBar beneath them
-  const isWorkDashboardOpen = useUIStore((s) => s.isWorkDashboardOpen);
-  const isGardenFilterOpen = useUIStore((s) => s.isGardenFilterOpen);
-  const isEndowmentSheetOpen = useUIStore((s) => s.isEndowmentSheetOpen);
-  const isWalletSheetOpen = useUIStore((s) => s.isWalletSheetOpen);
-  const isCommitmentsSheetOpen = useUIStore((s) => s.isCommitmentsSheetOpen);
-  const isAnySheetOpen =
-    isWorkDashboardOpen ||
-    isGardenFilterOpen ||
-    isEndowmentSheetOpen ||
-    isWalletSheetOpen ||
-    isCommitmentsSheetOpen;
+  // Every sheet and dialog registers itself while open, so the bar steps aside
+  // for all of them without a hand-maintained list (DL-015).
+  const isAnySheetOpen = useUIStore((s) => s.openSheetCount > 0);
   // Browser mode shows SiteHeader only (D6); bottom nav is PWA-only
   const shouldHideBar =
     !isPwaPresentation || isGarden || isWorkDetail || isCommitmentRoute || isAnySheetOpen;

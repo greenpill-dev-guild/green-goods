@@ -1,5 +1,4 @@
 import { PwaSheet } from "@green-goods/shared/components/Dialog/PwaSheet";
-import { createPortal } from "react-dom";
 import { useState } from "react";
 import { useIntl } from "react-intl";
 import { Button } from "@/components/Actions";
@@ -61,7 +60,7 @@ export function DraftSheet({
     setFailed(false);
     onClose?.();
   };
-  return createPortal(
+  return (
     <PwaSheet
       open={isOpen}
       onClose={close}
@@ -96,7 +95,6 @@ export function DraftSheet({
         mode="stroke"
         size="medium"
       />
-    </PwaSheet>,
-    document.body
+    </PwaSheet>
   );
 }

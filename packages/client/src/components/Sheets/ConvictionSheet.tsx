@@ -278,6 +278,7 @@ export function ConvictionSheet({
         description: gardenName,
       }}
       contentClassName="overflow-y-auto p-0"
+      size="tall"
     >
       <div className="space-y-5 p-4 pb-6">
         {!isOnline && (

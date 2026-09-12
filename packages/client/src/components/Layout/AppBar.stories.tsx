@@ -6,19 +6,9 @@ import { expect, within } from "storybook/test";
 import { withClientAppRuntime, withInstalledPwa } from "../../../../shared/.storybook/decorators";
 import { AppBar } from "./AppBar";
 
-function WithSheetOpen({
-  sheet,
-  children,
-}: {
-  sheet: "isWorkDashboardOpen" | "isGardenFilterOpen" | "isEndowmentSheetOpen";
-  children: React.ReactNode;
-}) {
-  useEffect(() => {
-    useUIStore.setState({ [sheet]: true });
-    return () => {
-      useUIStore.setState({ [sheet]: false });
-    };
-  }, [sheet]);
+/** Registers one open sheet for the story's lifetime, the way every sheet does while open. */
+function WithSheetOpen({ children }: { children: React.ReactNode }) {
+  useEffect(() => useUIStore.getState().registerOpenSheet(), []);
   return <>{children}</>;
 }
 
@@ -101,42 +91,18 @@ export const HiddenOnWorkDetailRoute: Story = {
   },
 };
 
-export const HiddenWhenWorkDashboardOpen: Story = {
-  decorators: [
-    (Story) => (
-      <WithSheetOpen sheet="isWorkDashboardOpen">
-        <Story />
-      </WithSheetOpen>
-    ),
-    withRouter(["/home"]),
-  ],
-  play: async ({ canvasElement }) => {
-    const canvas = within(canvasElement);
-    const nav = canvas.getByTestId("authenticated-nav");
-    expect(nav.className).toContain("translate-y-full");
+export const HiddenWhenSheetOpen: Story = {
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Any open sheet or dialog hides the bottom nav (DL-015): sheets register themselves while open, so there is no list to keep in sync.",
+      },
+    },
   },
-};
-
-export const HiddenWhenGardenFilterOpen: Story = {
   decorators: [
     (Story) => (
-      <WithSheetOpen sheet="isGardenFilterOpen">
-        <Story />
-      </WithSheetOpen>
-    ),
-    withRouter(["/home"]),
-  ],
-  play: async ({ canvasElement }) => {
-    const canvas = within(canvasElement);
-    const nav = canvas.getByTestId("authenticated-nav");
-    expect(nav.className).toContain("translate-y-full");
-  },
-};
-
-export const HiddenWhenEndowmentSheetOpen: Story = {
-  decorators: [
-    (Story) => (
-      <WithSheetOpen sheet="isEndowmentSheetOpen">
+      <WithSheetOpen>
         <Story />
       </WithSheetOpen>
     ),

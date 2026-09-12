@@ -220,8 +220,26 @@ describe("stores/useUIStore", () => {
       isWorkDashboardOpen: false,
       isGardenFilterOpen: false,
       isWalletSheetOpen: false,
+      openSheetCount: 0,
       sidebarOpen: false,
       debugMode: false,
+    });
+  });
+
+  describe("open sheet registry", () => {
+    it("counts overlapping sheets and releases each registration once", () => {
+      const releaseFirst = useUIStore.getState().registerOpenSheet();
+      const releaseSecond = useUIStore.getState().registerOpenSheet();
+      expect(useUIStore.getState().openSheetCount).toBe(2);
+      expect(useUIStore.getState().isAnySheetOpen()).toBe(true);
+
+      releaseFirst();
+      releaseFirst();
+      expect(useUIStore.getState().openSheetCount).toBe(1);
+
+      releaseSecond();
+      expect(useUIStore.getState().openSheetCount).toBe(0);
+      expect(useUIStore.getState().isAnySheetOpen()).toBe(false);
     });
   });
 

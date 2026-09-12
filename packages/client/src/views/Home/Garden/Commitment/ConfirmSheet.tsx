@@ -133,6 +133,7 @@ export function ConfirmSheet({
       title={title}
       description={description}
       size="md"
+      sheetSize="full"
     >
       {phase === "confirmed" ? (
         <div className="space-y-4" data-component="ConfirmSheetKept">

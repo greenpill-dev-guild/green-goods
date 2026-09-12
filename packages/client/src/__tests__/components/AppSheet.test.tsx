@@ -2,6 +2,7 @@
 
 import { act, fireEvent } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { useUIStore } from "@green-goods/shared/stores/useUIStore";
 import { AppSheet } from "@/components/Sheets/AppSheet";
 import { renderWithProviders, screen } from "../test-utils";
 
@@ -20,6 +21,7 @@ describe("AppSheet", () => {
     const onTabChange = vi.fn();
     renderWithProviders(
       <AppSheet
+        size="full"
         isOpen
         onClose={onClose}
         header={{ title: "Commitments", description: "Rocinha" }}
@@ -46,7 +48,7 @@ describe("AppSheet", () => {
   it.each(["close button", "overlay", "Escape"])("closes from the %s", (path) => {
     const onClose = vi.fn();
     renderWithProviders(
-      <AppSheet isOpen onClose={onClose} header={{ title: "Commitments" }}>
+      <AppSheet size="compact" isOpen onClose={onClose} header={{ title: "Commitments" }}>
         Content
       </AppSheet>
     );
@@ -63,7 +65,7 @@ describe("AppSheet", () => {
   it("closes from Escape while focus is inside the dialog", () => {
     const onClose = vi.fn();
     renderWithProviders(
-      <AppSheet isOpen onClose={onClose} header={{ title: "Commitments" }}>
+      <AppSheet size="compact" isOpen onClose={onClose} header={{ title: "Commitments" }}>
         Content
       </AppSheet>
     );
@@ -78,7 +80,7 @@ describe("AppSheet", () => {
 
   it("stays unmounted while closed", () => {
     renderWithProviders(
-      <AppSheet isOpen={false} onClose={vi.fn()} header={{ title: "Commitments" }}>
+      <AppSheet size="compact" isOpen={false} onClose={vi.fn()} header={{ title: "Commitments" }}>
         Content
       </AppSheet>
     );
@@ -90,10 +92,10 @@ describe("AppSheet", () => {
     const secondClose = vi.fn();
     const view = renderWithProviders(
       <>
-        <AppSheet isOpen onClose={firstClose} header={{ title: "First sheet" }}>
+        <AppSheet size="compact" isOpen onClose={firstClose} header={{ title: "First sheet" }}>
           First
         </AppSheet>
-        <AppSheet isOpen onClose={secondClose} header={{ title: "Second sheet" }}>
+        <AppSheet size="compact" isOpen onClose={secondClose} header={{ title: "Second sheet" }}>
           Second
         </AppSheet>
       </>
@@ -103,10 +105,15 @@ describe("AppSheet", () => {
 
     view.rerender(
       <>
-        <AppSheet isOpen={false} onClose={firstClose} header={{ title: "First sheet" }}>
+        <AppSheet
+          size="compact"
+          isOpen={false}
+          onClose={firstClose}
+          header={{ title: "First sheet" }}
+        >
           First
         </AppSheet>
-        <AppSheet isOpen onClose={secondClose} header={{ title: "Second sheet" }}>
+        <AppSheet size="compact" isOpen onClose={secondClose} header={{ title: "Second sheet" }}>
           Second
         </AppSheet>
       </>
@@ -121,7 +128,7 @@ describe("AppSheet", () => {
   it("finishes an interrupted close immediately when the page is hidden", () => {
     const onClose = vi.fn();
     renderWithProviders(
-      <AppSheet isOpen onClose={onClose} header={{ title: "Commitments" }}>
+      <AppSheet size="compact" isOpen onClose={onClose} header={{ title: "Commitments" }}>
         Content
       </AppSheet>
     );
@@ -135,24 +142,24 @@ describe("AppSheet", () => {
     expect(onClose).toHaveBeenCalledOnce();
   });
 
-  it("sizes to its content and owns scrolling when it has no tabs", () => {
+  it("names its height tier and owns scrolling when it has no tabs", () => {
     renderWithProviders(
-      <AppSheet isOpen onClose={vi.fn()} header={{ title: "Notifications" }} maxHeight="60vh">
+      <AppSheet size="tall" isOpen onClose={vi.fn()} header={{ title: "Notifications" }}>
         <p>Content</p>
       </AppSheet>
     );
     const panel = screen.getByTestId("app-sheet");
-    expect(panel).toHaveClass("max-h-sheet");
-    expect(panel).not.toHaveClass("h-modal");
-    expect(panel.style.maxHeight).toBe("60vh");
+    expect(panel).toHaveAttribute("data-sheet-size", "tall");
+    expect(panel).not.toHaveAttribute("style");
     const region = screen.getByText("Content").parentElement;
     expect(region).toHaveClass("overflow-y-auto");
     expect(region?.querySelector(".overflow-y-auto")).toBeNull();
   });
 
-  it("fills the workspace height for tabbed sheets and leaves scrolling to the tab content", () => {
+  it("leaves scrolling to the tab content in a full-height tabbed sheet", () => {
     renderWithProviders(
       <AppSheet
+        size="full"
         isOpen
         onClose={vi.fn()}
         header={{ title: "Wallet" }}
@@ -160,24 +167,29 @@ describe("AppSheet", () => {
         activeTab="send"
         onTabChange={vi.fn()}
         contentClassName="flex min-h-0 flex-col overflow-hidden p-0"
-        maxHeight="95vh"
       >
         <p>Content</p>
       </AppSheet>
     );
-    const panel = screen.getByTestId("app-sheet");
-    expect(panel).toHaveClass("h-modal");
-    expect(panel).not.toHaveClass("max-h-sheet");
-    expect(panel.style.maxHeight).toBe("95vh");
+    expect(screen.getByTestId("app-sheet")).toHaveAttribute("data-sheet-size", "full");
     expect(screen.getByRole("tabpanel")).not.toHaveClass("overflow-y-auto");
   });
 
-  it("honors an explicit height override", () => {
-    renderWithProviders(
-      <AppSheet isOpen onClose={vi.fn()} header={{ title: "Signal" }} height="fixed">
-        <p>Content</p>
-      </AppSheet>
+  it("renders into <body> and counts as an open sheet so the AppBar steps aside", () => {
+    useUIStore.setState({ openSheetCount: 0 });
+    const view = renderWithProviders(
+      <div data-testid="garden-header" style={{ position: "absolute", zIndex: 20 }}>
+        <AppSheet size="tall" isOpen onClose={vi.fn()} header={{ title: "Notifications" }}>
+          <p>Content</p>
+        </AppSheet>
+      </div>
     );
-    expect(screen.getByTestId("app-sheet")).toHaveClass("h-modal");
+    const overlay = screen.getByTestId("app-sheet-overlay");
+    expect(overlay.parentElement).toBe(document.body);
+    expect(screen.getByTestId("garden-header")).not.toContainElement(overlay);
+    expect(useUIStore.getState().openSheetCount).toBe(1);
+
+    view.unmount();
+    expect(useUIStore.getState().openSheetCount).toBe(0);
   });
 });

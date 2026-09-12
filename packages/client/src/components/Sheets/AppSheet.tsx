@@ -1,9 +1,12 @@
+import type { SheetSize } from "@green-goods/shared/components/Dialog/PwaSheet";
 import { cn } from "@green-goods/shared/utils/styles/cn";
 import { useDocumentScrollLock } from "@green-goods/shared/hooks/ui/useDocumentScrollLock";
+import { useSheetPresence } from "@green-goods/shared/hooks/ui/useSheetPresence";
 import { useFocusTrap } from "@green-goods/shared/hooks/utils/useFocusTrap";
 import { useTimeout } from "@green-goods/shared/hooks/utils/useTimeout";
 import { RiCloseLine } from "@remixicon/react";
 import React, { useCallback, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { useIntl } from "react-intl";
 import { getPwaSheetCloseDelayMs, pwaSheetStyles } from "@/components/Pwa/sheetStyles";
 
@@ -32,22 +35,23 @@ export interface AppSheetProps {
   footer?: React.ReactNode;
   className?: string;
   contentClassName?: string;
-  maxHeight?: string;
   /**
-   * `fit` sizes the sheet to its content (capped at 85dvh, or `maxHeight`);
-   * `fixed` fills the workspace height (85dvh) so tab switches never resize
-   * it. Defaults to `fixed` when `tabs` are provided and `fit` otherwise.
+   * Height tier (DL-014). `compact` sizes to its content up to the half
+   * height; `half`, `tall`, and `full` hold 50%, 70%, and 85% of the viewport.
+   * Tabbed sheets use `full` so switching tabs never resizes them.
    */
-  height?: "fit" | "fixed";
+  size: SheetSize;
 }
 
 /**
  * A modal sheet matching the WorkDashboard bottom-sheet pattern: custom CSS
- * keyframe animations and a manual focus trap. Tabbed sheets fill the
- * workspace height (85dvh) so tab switches never resize the sheet; sheets
- * without tabs size to their content and cap at 85dvh (or `maxHeight`). The
- * content region is the single scroll owner unless a consumer passes its own
- * `contentClassName`.
+ * keyframe animations and a manual focus trap. Its height comes from one of
+ * the shared tiers (`size`, DL-014). The content region is the single scroll
+ * owner unless a consumer passes its own `contentClassName`.
+ *
+ * The sheet renders into <body> through a portal, so a page layer such as the
+ * garden header can never stack it beneath the AppBar, and it registers
+ * itself as open so the AppBar steps aside while it shows (DL-015).
  */
 export const AppSheet: React.FC<AppSheetProps> = ({
   isOpen,
@@ -60,8 +64,7 @@ export const AppSheet: React.FC<AppSheetProps> = ({
   footer,
   className,
   contentClassName,
-  maxHeight,
-  height,
+  size,
 }) => {
   const { formatMessage } = useIntl();
   const [isClosing, setIsClosing] = useState(false);
@@ -70,6 +73,7 @@ export const AppSheet: React.FC<AppSheetProps> = ({
   const { set: scheduleTimeout, clear: clearCloseTimeout } = useTimeout();
 
   useDocumentScrollLock(isOpen && !isClosing);
+  useSheetPresence(isOpen);
 
   // Focus trap: keep Tab/Shift+Tab cycling within the dialog
   useFocusTrap(dialogRef, {
@@ -115,9 +119,7 @@ export const AppSheet: React.FC<AppSheetProps> = ({
 
   if (!isOpen && !isClosing) return null;
 
-  const resolvedHeight = height ?? (tabs.length > 0 ? "fixed" : "fit");
-
-  return (
+  return createPortal(
     <div
       role="presentation"
       className={cn(
@@ -138,11 +140,10 @@ export const AppSheet: React.FC<AppSheetProps> = ({
         ref={dialogRef}
         className={cn(
           pwaSheetStyles.panel,
-          resolvedHeight === "fixed" ? pwaSheetStyles.panelFixed : pwaSheetStyles.panelFit,
           isClosing ? "modal-slide-exit" : "modal-slide-enter",
           className
         )}
-        style={maxHeight ? { maxHeight } : undefined}
+        data-sheet-size={size}
         onClick={(e) => e.stopPropagation()}
         onTouchStart={(e) => e.stopPropagation()}
         onTouchMove={(e) => e.stopPropagation()}
@@ -246,6 +247,7 @@ export const AppSheet: React.FC<AppSheetProps> = ({
         {/* Footer — fixed at bottom, above content scroll */}
         {footer && <div className={pwaSheetStyles.footer}>{footer}</div>}
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };

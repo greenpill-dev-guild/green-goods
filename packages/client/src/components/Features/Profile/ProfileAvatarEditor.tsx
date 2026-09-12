@@ -233,7 +233,6 @@ export function ProfileAvatarEditor({ fallbackAvatar, className }: ProfileAvatar
         open={open}
         onClose={closeSheet}
         ariaLabel={removeConfirmOpen ? removeTitle : sheetTitle}
-        panelStyle={{ height: "auto", maxHeight: "85dvh" }}
         dragToDismiss={!busy}
         testId="profile-photo-sheet"
       >

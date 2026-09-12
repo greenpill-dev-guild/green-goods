@@ -4,6 +4,7 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import { IntlProvider } from "react-intl";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { DialogShell } from "../../components/Dialog/DialogShell";
+import { useUIStore } from "../../stores/useUIStore";
 
 const messages = {
   "app.common.cancel": "Cancel",
@@ -100,5 +101,32 @@ describe("DialogShell", () => {
     const dialog = screen.getByRole("dialog", { name: "Garden profile" });
     expect(dialog).toHaveAttribute("data-component", "DialogShell");
     expect(screen.queryByTestId("dialog-shell-drag-handle")).not.toBeInTheDocument();
+  });
+  it("sizes its narrow-viewport sheet from sheetSize", () => {
+    stubViewportWidth(390);
+    render(
+      wrap(
+        <DialogShell open onOpenChange={vi.fn()} title="Withdraw offer" sheetSize="half">
+          <p>Reason field</p>
+        </DialogShell>
+      )
+    );
+    expect(screen.getByTestId("dialog-shell")).toHaveAttribute("data-sheet-size", "half");
+  });
+
+  it("counts the centered surface as an open sheet so the AppBar steps aside", () => {
+    stubViewportWidth(1024);
+    useUIStore.setState({ openSheetCount: 0 });
+    const view = render(
+      wrap(
+        <DialogShell open onOpenChange={vi.fn()} title="Garden profile">
+          <p>Profile</p>
+        </DialogShell>
+      )
+    );
+    expect(useUIStore.getState().openSheetCount).toBe(1);
+
+    view.unmount();
+    expect(useUIStore.getState().openSheetCount).toBe(0);
   });
 });

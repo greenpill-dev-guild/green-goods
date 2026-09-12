@@ -61,7 +61,25 @@ describe("shared utilities.css", () => {
   it("exports modal height utilities", () => {
     expect(utilitiesContent).toContain(".h-modal");
     expect(utilitiesContent).toContain(".max-h-modal");
-    expect(utilitiesContent).toContain(".max-h-sheet");
+  });
+
+  it("defines the four bottom-sheet height tiers (DL-014)", () => {
+    const tier = (name: string) =>
+      utilitiesContent.match(new RegExp(`\\[data-sheet-size="${name}"\\]\\s*\\{([^}]*)\\}`))?.[1] ??
+      "";
+    expect(tier("compact")).toMatch(/height:\s*auto/);
+    expect(tier("compact")).toMatch(/max-height:\s*50dvh/);
+    expect(tier("half")).toMatch(/height:\s*50dvh/);
+    expect(tier("tall")).toMatch(/height:\s*70dvh/);
+    expect(tier("full")).toMatch(/height:\s*85dvh/);
+    // The tiers sit in the utilities layer so they outrank the PwaSheet surface
+    // defaults in the components layer.
+    const utilitiesLayer = utilitiesContent.indexOf("@layer utilities");
+    const componentsLayer = utilitiesContent.indexOf("@layer components");
+    const compactRule = utilitiesContent.indexOf('[data-sheet-size="compact"]');
+    expect(utilitiesLayer).toBeGreaterThanOrEqual(0);
+    expect(compactRule).toBeGreaterThan(utilitiesLayer);
+    expect(compactRule).toBeLessThan(componentsLayer);
   });
 
   it("exports native-scroll", () => {
@@ -89,7 +107,7 @@ describe("PwaSheet layout contract", () => {
     expect(declarations("overlay")).toMatch(/z-index:\s*var\(--z-modal\)/);
   });
 
-  it("sizes the surface to its content with an 85dvh cap", () => {
+  it("falls back to content height with an 85dvh cap when no tier is set", () => {
     expect(declarations("surface")).toMatch(/height:\s*auto/);
     expect(declarations("surface")).toMatch(/max-height:\s*85dvh/);
     expect(declarations("surface")).toMatch(/border-top-left-radius:\s*var\(--radius-lg\)/);

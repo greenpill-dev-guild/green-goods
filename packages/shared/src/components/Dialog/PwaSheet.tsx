@@ -12,6 +12,13 @@
  * the other children of <body> are hidden from assistive tech while it is
  * open, matching the centered Radix surfaces it replaces below 640px.
  *
+ * The sheet renders into <body> through a portal, so no page layer can stack
+ * it beneath app chrome, and it registers itself as open (`useSheetPresence`)
+ * so the installed app's AppBar steps aside for it (DL-015). `size` names one
+ * of the shared height tiers (DL-014): `compact` sizes to its content and
+ * stops at the half height; `half`, `tall`, and `full` hold a fixed share of
+ * the viewport and their content scrolls inside.
+ *
  * Layout lives in shared `utilities.css` as `[data-component="PwaSheet"]`
  * attribute rules, not as utility classes on this JSX: Tailwind v4 does not
  * scan `packages/shared/src/` from the admin/client builds, so utilities
@@ -52,6 +59,7 @@
  */
 import { RiCloseLine } from "@remixicon/react";
 import { useDrag } from "@use-gesture/react";
+import { createPortal } from "react-dom";
 import {
   type CSSProperties,
   type ReactNode,
@@ -64,6 +72,7 @@ import {
 } from "react";
 import { useMediaQuery } from "../../hooks/ui/useMediaQuery";
 import { useDocumentScrollLock } from "../../hooks/ui/useDocumentScrollLock";
+import { useSheetPresence } from "../../hooks/ui/useSheetPresence";
 import { useFocusTrap } from "../../hooks/utils/useFocusTrap";
 import { DISMISS_VELOCITY_THRESHOLD } from "../Canvas/springConfig";
 
@@ -122,6 +131,13 @@ const DEFAULT_CLOSE_DURATION_MS = 300;
  */
 export const PWA_SHEET_MEDIA_QUERY = "(max-width: 639px)";
 
+/**
+ * Shared bottom-sheet height tiers (DL-014). `compact` sizes to its content up
+ * to the half height; `half`, `tall`, and `full` hold 50%, 70%, and 85% of the
+ * viewport. The rules live in shared `utilities.css` under `[data-sheet-size]`.
+ */
+export type SheetSize = "compact" | "half" | "tall" | "full";
+
 export interface PwaSheetProps {
   /** Whether the sheet is open. */
   open: boolean;
@@ -154,9 +170,11 @@ export interface PwaSheetProps {
   preventClose?: boolean;
   /** Dialog role. Use `alertdialog` for destructive confirmations. */
   role?: "dialog" | "alertdialog";
+  /** Height tier (DL-014). Defaults to `compact`. */
+  size?: SheetSize;
   /** Additional class name on the panel surface. */
   panelClassName?: string;
-  /** Optional inline style on the panel (e.g. a fixed height for tabbed sheets). */
+  /** Optional inline style on the panel. Heights come from `size`, not from here. */
   panelStyle?: CSSProperties;
   /** Auto-focus selector on open. Defaults to the close button. */
   autoFocusSelector?: string;
@@ -199,6 +217,7 @@ export function PwaSheet({
   hideCloseButton = false,
   preventClose = false,
   role = "dialog",
+  size = "compact",
   panelClassName,
   panelStyle,
   autoFocusSelector = '[data-testid="pwa-sheet-close"]',
@@ -224,6 +243,7 @@ export function PwaSheet({
 
   useFocusTrap(dialogRef, { enabled: mounted && open, autoFocusSelector });
   useDocumentScrollLock(open);
+  useSheetPresence(open);
 
   // Remember who opened the sheet and hand focus back when it closes, the way
   // the centered Radix surfaces do. The capture is a layout effect so it runs
@@ -354,7 +374,7 @@ export function PwaSheet({
   const dragStyle: CSSProperties =
     dragOffset !== null ? { transform: `translateY(${dragOffset}%)` } : {};
 
-  return (
+  return createPortal(
     <div
       ref={overlayRef}
       role="presentation"
@@ -387,6 +407,7 @@ export function PwaSheet({
         aria-describedby={hasHeader && description ? descriptionId : undefined}
         data-component="PwaSheet"
         data-slot="surface"
+        data-sheet-size={size}
         data-state={sheetState}
         data-testid={testId}
         className={panelClassName}
@@ -451,6 +472,7 @@ export function PwaSheet({
           children
         )}
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

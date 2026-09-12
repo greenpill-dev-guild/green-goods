@@ -4,6 +4,7 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import { IntlProvider } from "react-intl";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { ConfirmDialog } from "../../components/Dialog/ConfirmDialog";
+import { useUIStore } from "../../stores/useUIStore";
 
 const messages = {
   "app.common.cancel": "Cancel",
@@ -110,5 +111,30 @@ describe("ConfirmDialog", () => {
     fireEvent.keyDown(document, { key: "Escape" });
     fireEvent.click(screen.getByTestId("confirm-dialog-overlay"));
     expect(onClose).not.toHaveBeenCalled();
+  });
+  it("renders confirmations as compact sheets below 640px", () => {
+    stubViewportWidth(390);
+    render(
+      wrap(<ConfirmDialog isOpen onClose={vi.fn()} onConfirm={vi.fn()} title="Delete draft?" />)
+    );
+    expect(screen.getByTestId("confirm-dialog")).toHaveAttribute("data-sheet-size", "compact");
+  });
+
+  it("counts every open confirmation once, sheet or centered", () => {
+    useUIStore.setState({ openSheetCount: 0 });
+    stubViewportWidth(390);
+    const sheet = render(
+      wrap(<ConfirmDialog isOpen onClose={vi.fn()} onConfirm={vi.fn()} title="Delete draft?" />)
+    );
+    expect(useUIStore.getState().openSheetCount).toBe(1);
+    sheet.unmount();
+
+    stubViewportWidth(1024);
+    const centered = render(
+      wrap(<ConfirmDialog isOpen onClose={vi.fn()} onConfirm={vi.fn()} title="Delete draft?" />)
+    );
+    expect(useUIStore.getState().openSheetCount).toBe(1);
+    centered.unmount();
+    expect(useUIStore.getState().openSheetCount).toBe(0);
   });
 });

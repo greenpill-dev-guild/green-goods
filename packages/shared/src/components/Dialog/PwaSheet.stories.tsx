@@ -175,9 +175,16 @@ const meta = {
     description: "Use this bottom sheet for focused PWA tasks without changing route context.",
     showDragHandle: true,
     dragToDismiss: true,
+    size: "compact",
   },
   argTypes: {
     open: { control: "boolean" },
+    size: {
+      control: "select",
+      options: ["compact", "half", "tall", "full"],
+      description:
+        "Height tier (DL-014): compact sizes to its content up to the half height; half, tall, and full hold 50%, 70%, and 85% of the viewport.",
+    },
     showDragHandle: { control: "boolean" },
     dragToDismiss: { control: "boolean" },
     ariaLabel: { control: "text" },
@@ -193,11 +200,11 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 export const Default: Story = {
-  play: async ({ canvasElement, args }) => {
-    const canvas = within(canvasElement);
+  play: async ({ args }) => {
+    const canvas = within(document.body);
     const dialog = canvas.getByRole("dialog", { name: "Work draft sheet" });
     const surface = canvas.getByTestId("pwa-sheet");
-    const scrim = canvasElement.querySelector<HTMLElement>(
+    const scrim = document.body.querySelector<HTMLElement>(
       '[data-component="PwaSheet"][data-slot="scrim"]'
     );
 
@@ -232,16 +239,11 @@ export const Default: Story = {
 };
 
 // storybook-quality-allow dark-mode: verifies dark token inheritance for the fixed sheet surface.
+// The sheet renders into <body>, so the theme is set on the document root, as the app does.
 export const DarkMode: Story = {
-  decorators: [
-    (Story) => (
-      <div data-theme="dark">
-        <Story />
-      </div>
-    ),
-  ],
-  play: async ({ canvasElement }) => {
-    const canvas = within(canvasElement);
+  globals: { theme: "dark" },
+  play: async () => {
+    const canvas = within(document.body);
     const surface = await canvas.findByTestId("pwa-sheet");
 
     await expect(surface).toHaveAttribute("data-state", "open");
@@ -256,9 +258,10 @@ export const LongContentGeometry: Story = {
     title: "Review a long work draft",
     description: "Long mobile sheet content stays inside the fixed surface.",
     sections: LONG_SHEET_SECTIONS,
+    size: "full",
   },
-  play: async ({ canvasElement }) => {
-    const canvas = within(canvasElement);
+  play: async () => {
+    const canvas = within(document.body);
     const surface = await canvas.findByTestId("pwa-sheet");
     await waitForSurfaceSettled(surface);
 
@@ -289,8 +292,8 @@ export const LongContentGeometry: Story = {
 };
 
 export const ReducedMotionContract: Story = {
-  play: async ({ canvasElement }) => {
-    const canvas = within(canvasElement);
+  play: async () => {
+    const canvas = within(document.body);
     const surface = await canvas.findByTestId("pwa-sheet");
 
     await waitFor(async () => {
@@ -307,8 +310,8 @@ export const WithoutDragDismiss: Story = {
     title: "Review sync settings",
     description: "Use this variant when accidental drag dismissal would interrupt a critical flow.",
   },
-  play: async ({ canvasElement }) => {
-    const canvas = within(canvasElement);
+  play: async () => {
+    const canvas = within(document.body);
     await expect(canvas.getByRole("dialog", { name: "Work draft sheet" })).toBeVisible();
     expect(canvas.queryByTestId("pwa-sheet-drag-handle")).not.toBeInTheDocument();
   },
@@ -354,8 +357,8 @@ export const SharedHeader: Story = {
       },
     },
   },
-  play: async ({ canvasElement, args }) => {
-    const canvas = within(canvasElement);
+  play: async ({ args }) => {
+    const canvas = within(document.body);
     const dialog = canvas.getByRole("alertdialog", { name: "Delete Draft?" });
     await expect(dialog).toHaveAccessibleDescription(
       "This permanently deletes your draft and all associated images."

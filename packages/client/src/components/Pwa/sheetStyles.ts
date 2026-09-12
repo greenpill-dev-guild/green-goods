@@ -7,8 +7,6 @@ export interface PwaSheetStyle {
   dialogOverlay: string;
   overlayTransition: string;
   panel: string;
-  panelFixed: string;
-  panelFit: string;
   dialogSurface: string;
   header: string;
   tabs: string;
@@ -33,10 +31,6 @@ export const pwaSheetStyles = {
     "transition-opacity duration-[var(--spring-effects-duration)] ease-[var(--spring-effects-easing)]",
   panel:
     "bg-[var(--color-material-solid)] rounded-t-[var(--radius-lg)] shadow-[var(--shadow-float)] border border-stroke-soft-200 border-b-0 w-full overflow-hidden flex flex-col",
-  /** Fixed workspace height (85dvh) for tabbed sheets whose height must not jump between tabs. */
-  panelFixed: "h-modal",
-  /** Content-sized sheets: grow with their content and cap at 85dvh. */
-  panelFit: "max-h-sheet",
   dialogSurface:
     "bg-[var(--color-material-solid)] rounded-[var(--radius-2xl)] shadow-[var(--shadow-float)] border border-stroke-soft-200",
   header:

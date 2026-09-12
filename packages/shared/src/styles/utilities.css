@@ -355,11 +355,38 @@
     max-height: calc(100dvh - 2rem);
   }
 
-  /* Content-sized sheets grow with their content and stop here, so a short
-     sheet never reads as a full-screen modal (matches the PwaSheet cap). */
-  .max-h-sheet {
-    max-height: 85vh;
-    max-height: 85dvh;
+  /* ── Sheet height tiers (DL-014) ──
+     Every bottom sheet names one tier through `data-sheet-size` (PwaSheet and
+     AppSheet `size`, the Your Work shell). `compact` sizes to its content and
+     stops at the half height, so a confirmation never shows empty space under
+     its buttons; `half`, `tall`, and `full` hold their height whatever the
+     content, which scrolls inside. Attribute selectors keep the tiers out of
+     Tailwind's scan: they apply to shared and client sheets alike. */
+  [data-sheet-size="compact"] {
+    height: auto;
+    max-height: 50vh;
+    max-height: 50dvh;
+  }
+
+  [data-sheet-size="half"] {
+    height: 50vh;
+    height: 50dvh;
+    max-height: calc(100vh - 2rem);
+    max-height: calc(100dvh - 2rem);
+  }
+
+  [data-sheet-size="tall"] {
+    height: 70vh;
+    height: 70dvh;
+    max-height: calc(100vh - 2rem);
+    max-height: calc(100dvh - 2rem);
+  }
+
+  [data-sheet-size="full"] {
+    height: 85vh;
+    height: 85dvh;
+    max-height: calc(100vh - 2rem);
+    max-height: calc(100dvh - 2rem);
   }
 
   /* ── Tap Feedback ── */
@@ -570,9 +597,9 @@
  * classes on its JSX (`touch-none`, `cursor-grab`, and the drag-handle tint
  * were measured missing from the client bundle). Scoped to @layer components
  * so a consumer's `panelClassName` utilities and unlayered package CSS still
- * override these defaults; inline `panelStyle` wins over everything. The
- * surface sizes to its content and caps at 85dvh — consumers that need a fixed
- * height (tabbed sheets) set it through `panelStyle`. */
+ * override these defaults; inline `panelStyle` wins over everything. Heights
+ * come from the `[data-sheet-size]` tiers in the utilities layer above; the
+ * auto height and 85dvh cap here only apply to a surface without a tier. */
 @layer components {
   [data-component="PwaSheet"][data-slot="overlay"] {
     position: fixed;

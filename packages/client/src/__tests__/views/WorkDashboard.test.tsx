@@ -182,14 +182,21 @@ vi.mock("@green-goods/shared/hooks/utils/useTimeout", () => ({
   useTimeout: () => ({ set: vi.fn((fn: () => void) => fn()), clear: vi.fn() }),
 }));
 
+const mockRegisterOpenSheet = vi.fn(() => () => undefined);
+
 vi.mock("@green-goods/shared/stores/useUIStore", () => ({
   useUIStore: (
     selector: (s: {
       workDashboardInitialTab?: string;
       workDashboardInitialPendingFilter?: string;
+      registerOpenSheet: () => () => void;
     }) => unknown
   ) =>
-    selector({ workDashboardInitialTab: undefined, workDashboardInitialPendingFilter: undefined }),
+    selector({
+      workDashboardInitialTab: undefined,
+      workDashboardInitialPendingFilter: undefined,
+      registerOpenSheet: mockRegisterOpenSheet,
+    }),
 }));
 
 vi.mock("@green-goods/shared/hooks/auth/useUser", () => ({
@@ -515,9 +522,10 @@ describe("WorkDashboard", () => {
     expect(dashboardScroll.scrollTop).toBe(0);
     expect(appScroll.scrollTop).toBe(900);
     expect(dashboardScroll.querySelector(".overflow-y-auto")).toBeNull();
-    // A tabbed workspace keeps the fixed sheet height so tab switches never
-    // resize it; content-sized sheets are for tab-less surfaces.
-    expect(screen.getByTestId("app-sheet")).toHaveClass("h-modal");
+    // A tabbed workspace holds the full sheet tier so tab switches never resize
+    // it (DL-014), and it registers as open so the AppBar steps aside (DL-015).
+    expect(screen.getByTestId("app-sheet")).toHaveAttribute("data-sheet-size", "full");
+    expect(mockRegisterOpenSheet).toHaveBeenCalled();
   });
 
   it("closes from Escape while focus is inside the dialog", () => {

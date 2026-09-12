@@ -130,7 +130,7 @@ describe("components/Navigation/TopNav", () => {
       expect(notificationButton).toBeInTheDocument();
     });
 
-    it("opens the notifications sheet sized to its content with one scroll owner", () => {
+    it("opens the notifications sheet at the tall tier with one scroll owner", () => {
       renderWithIntl(
         createElement(TopNav, {
           garden: mockGarden as any,
@@ -142,9 +142,7 @@ describe("components/Navigation/TopNav", () => {
       fireEvent.click(screen.getByRole("button", { name: /view notifications/i }));
 
       const sheet = screen.getByTestId("app-sheet");
-      expect(sheet).toHaveClass("max-h-sheet");
-      expect(sheet).not.toHaveClass("h-modal");
-      expect(sheet.style.maxHeight).toBe("60vh");
+      expect(sheet).toHaveAttribute("data-sheet-size", "tall");
       const region = screen.getByTestId("garden-notifications").parentElement;
       expect(region).toHaveClass("overflow-y-auto");
     });

@@ -126,13 +126,9 @@ describe("Display mode — AppBar visibility", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockUsePendingWorksCount.mockReturnValue({ data: 0 });
-    // Default: no drawers open
+    // Default: no sheets open
     mockUseUIStore.mockImplementation((selector: (s: any) => any) =>
-      selector({
-        isWorkDashboardOpen: false,
-        isGardenFilterOpen: false,
-        isEndowmentSheetOpen: false,
-      })
+      selector({ openSheetCount: 0 })
     );
   });
 
@@ -194,16 +190,10 @@ describe("Display mode — AppBar visibility", () => {
     expect(screen.getByTestId("authenticated-nav").className).toMatch(/translate-y-full/);
   });
 
-  it("standalone PWA: the commitments sheet hides the bottom nav like every other drawer", () => {
+  it("standalone PWA: any open sheet or dialog hides the bottom nav (DL-015)", () => {
     mockUseApp.mockReturnValue({ isInstalled: true, isPwaPresentation: true });
     mockUseUIStore.mockImplementation((selector: (s: any) => any) =>
-      selector({
-        isWorkDashboardOpen: false,
-        isGardenFilterOpen: false,
-        isEndowmentSheetOpen: false,
-        isWalletSheetOpen: false,
-        isCommitmentsSheetOpen: true,
-      })
+      selector({ openSheetCount: 1 })
     );
 
     renderAppBar("/home");

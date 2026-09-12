@@ -176,7 +176,7 @@ export function EndowmentSheet({
       activeTab={activeTab}
       onTabChange={setActiveTab}
       contentClassName="overflow-y-auto p-0"
-      maxHeight="95vh"
+      size="full"
       footer={depositFooter}
     >
       {activeTab === "treasury" && (

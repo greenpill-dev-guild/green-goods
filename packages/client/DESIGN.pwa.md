@@ -30,7 +30,8 @@ dialect: installed-pwa
 **Layout philosophy:**
 - Mobile-first, thumb-zone optimized
 - AppBar: 3 tabs — Home (with notification badge), Garden, Profile
-- AppBar hides for immersive surfaces: garden routes (`/home/garden/*`), work detail (`/home/:id/work/:workId`), commitment detail/composer routes (`/home/:id/commitments/*` — they carry their own fixed action bar exactly where the nav would sit), and whenever any full-height drawer is open (work dashboard, garden filter, endowment, wallet, commitments)
+- AppBar hides for immersive surfaces: garden routes (`/home/garden/*`), work detail (`/home/:id/work/:workId`), commitment detail/composer routes (`/home/:id/commitments/*` — they carry their own fixed action bar exactly where the nav would sit), and whenever any sheet or dialog is open (DL-015). Sheet primitives register themselves while open, so there is no list of sheets to keep in sync
+- Sheet heights (DL-014): every bottom sheet names one tier and never sets its own height. `compact` sizes to its content up to 50% (confirmations, resume prompts, gardener and badge details, profile photo); `half` holds 50% (short choices: withdraw an offer, take a commitment up); `tall` holds 70% (lists and forms: notifications, garden filters, link work, request to join); `full` holds 85% (tabbed workspaces and long reviews: wallet, commitments, your work, endowment, vault checkout, confirm a commitment). A sheet whose actions would scroll out of view moves up a tier. Photo viewers and public records open full screen
 - SyncStatusBar sits above AppBar
 - Content height: `calc(100lvh - 69px)` minus AppBar
 - Safe areas: `env(safe-area-inset-bottom)` for notched devices

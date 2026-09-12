@@ -44,7 +44,16 @@ export type UIState = {
   openCommitmentsSheet: () => void;
   closeCommitmentsSheet: () => void;
 
-  // Computed helper to check if any sheet is open (for AppBar hiding)
+  /**
+   * How many sheets and dialogs are open right now. Every sheet surface
+   * registers itself while open (`useSheetPresence`), so chrome that must step
+   * aside for any overlay, such as the PWA AppBar, reads one count instead of
+   * a hand-maintained list of sheets (DL-015).
+   */
+  openSheetCount: number;
+  /** Register an open sheet or dialog. Returns its release function; reference-counted. */
+  registerOpenSheet: () => () => void;
+  /** True while at least one sheet or dialog is registered as open. */
   isAnySheetOpen: () => boolean;
 
   // Sidebar controls (admin)
@@ -93,12 +102,17 @@ export const useUIStore = create<UIState>()(
       openCommitmentsSheet: () => set({ isCommitmentsSheetOpen: true }),
       closeCommitmentsSheet: () => set({ isCommitmentsSheetOpen: false }),
 
-      isAnySheetOpen: () =>
-        get().isWorkDashboardOpen ||
-        get().isGardenFilterOpen ||
-        get().isEndowmentSheetOpen ||
-        get().isWalletSheetOpen ||
-        get().isCommitmentsSheetOpen,
+      openSheetCount: 0,
+      registerOpenSheet: () => {
+        set((state) => ({ openSheetCount: state.openSheetCount + 1 }));
+        let released = false;
+        return () => {
+          if (released) return;
+          released = true;
+          set((state) => ({ openSheetCount: Math.max(0, state.openSheetCount - 1) }));
+        };
+      },
+      isAnySheetOpen: () => get().openSheetCount > 0,
 
       sidebarOpen: false,
       setSidebarOpen: (open) => set({ sidebarOpen: open }),

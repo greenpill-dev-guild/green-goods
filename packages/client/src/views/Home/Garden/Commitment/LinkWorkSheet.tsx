@@ -94,6 +94,7 @@ export function LinkWorkSheet({
       title={formatMessage({ id: "app.commitment.link.title" })}
       description={formatMessage({ id: "app.commitment.link.body" })}
       size="md"
+      sheetSize="tall"
     >
       <div className="space-y-4">
         {eligibleWorks.length === 0 ? (

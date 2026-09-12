@@ -110,6 +110,7 @@ export function GardenJoinRequestDialog({ gardenAddress }: { gardenAddress: Addr
           defaultMessage: "Introduce yourself. A steward will review your request.",
         })}
         size="lg"
+        sheetSize="tall"
       >
         <div className="space-y-4">
           <div aria-live="polite" className="space-y-3">

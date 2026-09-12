@@ -114,7 +114,7 @@ const NotificationCenter: React.FC<TopNavProps & { garden: Garden }> = ({ works,
               )
             : undefined,
         }}
-        maxHeight="60vh"
+        size="tall"
       >
         <GardenNotifications
           garden={garden}

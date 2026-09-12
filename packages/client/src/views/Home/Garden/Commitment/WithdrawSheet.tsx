@@ -53,6 +53,7 @@ export function WithdrawSheet({
         id: isRequest ? "app.commitment.withdraw.bodyRequest" : "app.commitment.withdraw.bodyOffer",
       })}
       size="md"
+      sheetSize="half"
     >
       <div className="space-y-3">
         <label className="block text-sm font-medium text-text-strong-950" htmlFor="withdraw-reason">

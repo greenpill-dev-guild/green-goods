@@ -1,8 +1,8 @@
 import * as Dialog from "@radix-ui/react-dialog";
 import { RiCloseLine } from "@remixicon/react";
 import type { ReactNode } from "react";
-import { createPortal } from "react-dom";
 import { useIntl } from "react-intl";
+import { useSheetPresence } from "../../hooks/ui/useSheetPresence";
 import { cn } from "../../utils/styles/cn";
 import {
   dialogOverlayClassName,
@@ -10,7 +10,7 @@ import {
   dialogSurfaceStyle,
   useRendersAsSheet,
 } from "./dialogChrome";
-import { PwaSheet } from "./PwaSheet";
+import { PwaSheet, type SheetSize } from "./PwaSheet";
 
 export interface DialogShellProps {
   open: boolean;
@@ -20,7 +20,10 @@ export interface DialogShellProps {
   icon?: ReactNode;
   iconContainerClassName?: string;
   children: ReactNode;
+  /** Width of the centered surface at `sm` and above. */
   size?: "md" | "lg" | "xl" | "2xl";
+  /** Height tier of the narrow-viewport sheet (DL-014). Defaults to `compact`. */
+  sheetSize?: SheetSize;
   className?: string;
   bodyClassName?: string;
   /** Centered surface only; the narrow-viewport sheet owns its own header. */
@@ -51,6 +54,7 @@ export function DialogShell({
   iconContainerClassName,
   children,
   size = "md",
+  sheetSize = "compact",
   className,
   bodyClassName,
   headerClassName,
@@ -60,15 +64,19 @@ export function DialogShell({
 }: DialogShellProps) {
   const { formatMessage } = useIntl();
   const rendersAsSheet = useRendersAsSheet();
+  // The sheet registers itself; the centered surface registers here so the
+  // installed app's AppBar also steps aside on wide screens (DL-015).
+  useSheetPresence(open && !rendersAsSheet);
   const iconContainer = icon ? (
     <div className={cn(dialogShellIconContainerClassName, iconContainerClassName)}>{icon}</div>
   ) : null;
 
   if (rendersAsSheet) {
-    return createPortal(
+    return (
       <PwaSheet
         open={open}
         onClose={() => onOpenChange(false)}
+        size={sheetSize}
         title={title}
         description={description}
         icon={iconContainer ?? undefined}
@@ -79,8 +87,7 @@ export function DialogShell({
         testId="dialog-shell"
       >
         {bodyClassName ? <div className={bodyClassName}>{children}</div> : children}
-      </PwaSheet>,
-      document.body
+      </PwaSheet>
     );
   }
 

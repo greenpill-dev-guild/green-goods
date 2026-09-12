@@ -60,7 +60,7 @@ export const WalletSheet: React.FC<WalletSheetProps> = ({ isOpen, onClose }) => 
         if (id === "send") setSendResetNonce((nonce) => nonce + 1);
       }}
       contentClassName="flex min-h-0 flex-col overflow-hidden p-0"
-      maxHeight="95vh"
+      size="full"
     >
       {activeTab === "cookie-jar" && <CookieJarTab />}
       {activeTab === "send" && <SendTab resetNonce={sendResetNonce} />}
