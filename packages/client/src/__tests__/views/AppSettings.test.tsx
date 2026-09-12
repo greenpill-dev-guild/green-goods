@@ -25,7 +25,13 @@ const mockServiceWorkerUpdateState = {
   checkForUpdate: vi.fn(),
 };
 
+const mockToast = vi.hoisted(() => ({ info: vi.fn(), error: vi.fn(), success: vi.fn() }));
+
 // Mock @green-goods/shared
+vi.mock("@green-goods/shared/components/Toast/toast.service", () => ({
+  toastService: mockToast,
+}));
+
 vi.mock("@green-goods/shared/utils/app/text", () => ({
   capitalize: (s: string) => s.charAt(0).toUpperCase() + s.slice(1),
 }));
@@ -189,7 +195,7 @@ describe("AppSettings", () => {
       expect(screen.queryByText("Refresh app")).not.toBeInTheDocument();
     });
 
-    it("keeps the title and the control in place while checking, then reports up to date", async () => {
+    it("reports no update as a toast and leaves the row in its default state", async () => {
       const user = userEvent.setup();
       render(wrap(createElement(AppSettings)));
 
@@ -197,11 +203,31 @@ describe("AppSettings", () => {
 
       expect(mockServiceWorkerUpdateState.checkForUpdate).toHaveBeenCalledTimes(1);
       await waitFor(() => {
-        expect(screen.getByRole("status")).toHaveTextContent("You have the latest version.");
+        expect(mockToast.info).toHaveBeenCalledWith(
+          expect.objectContaining({
+            title: "No update available",
+            message: "You're on the latest version.",
+          })
+        );
       });
       expect(screen.getByText(TITLE)).toBeInTheDocument();
+      expect(screen.getByRole("status")).toHaveTextContent("Check for a newer version.");
       expect(screen.getByTestId("btn-Check")).toBeInTheDocument();
       expect(screen.getAllByTestId("card")).toHaveLength(3);
+    });
+
+    it("reserves two subtitle lines in every row so the cards never change height", () => {
+      render(wrap(createElement(AppSettings)));
+
+      const subtitles = [
+        screen.getByText(/choose how the app looks/i),
+        screen.getByText(/set your preferred language/i),
+        screen.getByRole("status"),
+      ];
+      for (const subtitle of subtitles) {
+        expect(subtitle.className).toContain("min-h-8");
+        expect(subtitle.className).toContain("line-clamp-2");
+      }
     });
 
     it("applies an update found by the manual check without a second tap", async () => {
@@ -214,7 +240,7 @@ describe("AppSettings", () => {
       await waitFor(() => {
         expect(mockServiceWorkerUpdateState.activateNow).toHaveBeenCalledTimes(1);
       });
-      expect(screen.getByRole("status")).not.toHaveTextContent("You have the latest version.");
+      expect(mockToast.info).not.toHaveBeenCalled();
     });
 
     it("returns to a fresh check when the install is still pending", async () => {
@@ -230,7 +256,7 @@ describe("AppSettings", () => {
       expect(mockServiceWorkerUpdateState.activateNow).not.toHaveBeenCalled();
     });
 
-    it("asks to try again when the manual check fails", async () => {
+    it("reports a failed check as a toast and keeps the row ready for another check", async () => {
       const user = userEvent.setup();
       mockServiceWorkerUpdateState.checkForUpdate.mockRejectedValue(new Error("offline"));
       render(wrap(createElement(AppSettings)));
@@ -238,10 +264,12 @@ describe("AppSettings", () => {
       await user.click(screen.getByTestId("btn-Check"));
 
       await waitFor(() => {
-        expect(screen.getByRole("status")).toHaveTextContent("Couldn't check. Try again.");
+        expect(mockToast.error).toHaveBeenCalledWith(
+          expect.objectContaining({ title: "Couldn't check for updates" })
+        );
       });
-      expect(screen.getByText(TITLE)).toBeInTheDocument();
-      await user.click(screen.getByTestId("btn-Try Again"));
+      expect(screen.getByRole("status")).toHaveTextContent("Check for a newer version.");
+      await user.click(screen.getByTestId("btn-Check"));
 
       expect(mockServiceWorkerUpdateState.checkForUpdate).toHaveBeenCalledTimes(2);
     });

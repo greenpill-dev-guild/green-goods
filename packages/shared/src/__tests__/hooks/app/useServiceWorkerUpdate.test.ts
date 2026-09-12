@@ -582,6 +582,7 @@ describe("hooks/app/useServiceWorkerUpdate", () => {
         "dismissUpdate",
         "isUpdating",
         "phase",
+        "restartedOnNewVersion",
         "shouldPrompt",
         "updateAvailable",
         "updateStalled",
@@ -705,5 +706,50 @@ describe("hooks/app/useServiceWorkerUpdate", () => {
 
       expect(result.current.shouldPrompt).toBe(true);
     });
+  });
+});
+
+describe("applyUpdate activation", () => {
+  const originalLocation = window.location;
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    sessionStorage.clear();
+    Object.defineProperty(window, "location", { configurable: true, value: originalLocation });
+  });
+
+  it("reloads onto the worker once it reports activated, even without a controller change", async () => {
+    vi.stubEnv("VITE_ENABLE_SW_DEV", "true");
+    const reload = vi.fn();
+    Object.defineProperty(window, "location", {
+      configurable: true,
+      value: { href: "https://www.greengoods.app/home/", reload },
+    });
+    const waitingWorker = createMockWorker({ state: "installed" });
+    const registration = createMockRegistration({ waiting: waitingWorker });
+    installServiceWorkerMock(registration);
+
+    const { result } = renderUpdateHook();
+    await waitFor(() => {
+      expect(result.current.updateAvailable).toBe(true);
+    });
+
+    act(() => {
+      result.current.applyUpdate();
+    });
+    expect(result.current.phase).toBe("activating");
+    expect(waitingWorker.postMessage).toHaveBeenCalledWith({ type: "SKIP_WAITING" });
+
+    act(() => {
+      Object.defineProperty(waitingWorker, "state", { configurable: true, value: "activated" });
+      waitingWorker.dispatchStateChange();
+    });
+
+    expect(reload).toHaveBeenCalledTimes(1);
+    expect(sessionStorage.getItem("gg-update-applied")).toBe("1");
+    expect(track).toHaveBeenCalledWith(
+      "sw_update_apply_completed",
+      expect.objectContaining({ phase: "activating" })
+    );
   });
 });

@@ -16,6 +16,7 @@ const sharedMocks = vi.hoisted(() => ({
   ready: vi.fn(),
   applying: vi.fn(),
   stalled: vi.fn(),
+  applied: vi.fn(),
   useApp: vi.fn(),
   useServiceWorkerUpdate: vi.fn(),
 }));
@@ -27,6 +28,7 @@ vi.mock("@green-goods/shared/components/Toast/presets/update", () => ({
     ready: sharedMocks.ready,
     applying: sharedMocks.applying,
     stalled: sharedMocks.stalled,
+    applied: sharedMocks.applied,
   }),
 }));
 
@@ -196,5 +198,46 @@ describe("PwaUpdateNotifier", () => {
     expect(sharedMocks.applying).toHaveBeenCalledTimes(1);
     expect(sharedMocks.ready).not.toHaveBeenCalled();
     expect(sharedMocks.stalled).not.toHaveBeenCalled();
+  });
+});
+
+describe("PwaUpdateNotifier after an update reload", () => {
+  function mockHookState(restartedOnNewVersion: boolean) {
+    sharedMocks.useServiceWorkerUpdate.mockReturnValue({
+      phase: "idle",
+      updateAvailable: false,
+      isUpdating: false,
+      updateStalled: false,
+      shouldPrompt: false,
+      activateNow: sharedMocks.activateNow,
+      applyUpdate: sharedMocks.applyUpdate,
+      dismissUpdate: sharedMocks.dismissUpdate,
+      checkForUpdate: vi.fn(),
+      waitingWorker: null,
+      restartedOnNewVersion,
+    });
+  }
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    sharedMocks.useApp.mockReturnValue({ isPwaPresentation: true });
+  });
+
+  it("confirms the new version once when the page load began with an update reload", () => {
+    mockHookState(true);
+
+    const view = renderNotifier();
+    expect(sharedMocks.applied).toHaveBeenCalledTimes(1);
+
+    view.rerender(
+      createElement(IntlProvider, { locale: "es", messages: {} }, createElement(PwaUpdateNotifier))
+    );
+    expect(sharedMocks.applied).toHaveBeenCalledTimes(1);
+  });
+
+  it("stays quiet on an ordinary boot", () => {
+    mockHookState(false);
+    renderNotifier();
+    expect(sharedMocks.applied).not.toHaveBeenCalled();
   });
 });

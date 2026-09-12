@@ -24,9 +24,23 @@ const updateDefaults = {
     title: "Update needs a restart",
     message: "Please close and reopen the app to finish updating.",
   },
+  applied: {
+    title: "Updated",
+    message: "Green Goods restarted on the latest version.",
+  },
 };
 
 export const updateToasts = {
+  /** Confirm, once, that a restart landed on the new version */
+  applied: () =>
+    toastService.success({
+      id: "app-update",
+      title: updateDefaults.applied.title,
+      message: updateDefaults.applied.message,
+      context: "app update",
+      suppressLogging: true,
+    }),
+
   /** Show quiet progress when an explicit update check is running */
   checking: () =>
     toastService.loading({
@@ -128,6 +142,21 @@ export const updateToasts = {
  */
 export function createUpdateToasts(formatMessage: FormatMessageFn) {
   const localizedToasts = {
+    applied: () =>
+      toastService.success({
+        id: "app-update",
+        title: formatMessage({
+          id: toastMessageIdsUpdate.applied.title,
+          defaultMessage: updateDefaults.applied.title,
+        }),
+        message: formatMessage({
+          id: toastMessageIdsUpdate.applied.message,
+          defaultMessage: updateDefaults.applied.message,
+        }),
+        context: "app update",
+        suppressLogging: true,
+      }),
+
     checking: () =>
       toastService.loading({
         id: "app-update",

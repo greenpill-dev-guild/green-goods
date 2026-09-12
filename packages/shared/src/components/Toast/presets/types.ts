@@ -171,4 +171,8 @@ export const toastMessageIdsUpdate = {
     title: "app.toast.update.stalled.title",
     message: "app.toast.update.stalled.message",
   },
+  applied: {
+    title: "app.toast.update.applied.title",
+    message: "app.toast.update.applied.message",
+  },
 } as const;

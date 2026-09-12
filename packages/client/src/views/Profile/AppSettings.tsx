@@ -1,10 +1,11 @@
+import { toastService } from "@green-goods/shared/components/Toast/toast.service";
 import { capitalize } from "@green-goods/shared/utils/app/text";
 import { hapticLight } from "@green-goods/shared/utils/app/haptics";
 import { type Locale, useApp } from "@green-goods/shared/providers/App";
 import { useServiceWorkerUpdate } from "@green-goods/shared/hooks/app/useServiceWorkerUpdate";
 import { useTheme } from "@green-goods/shared/hooks/app/useTheme";
 import { RiEarthFill, RiRefreshLine, RiSettings2Line } from "@remixicon/react";
-import { type ReactNode, useMemo, useState } from "react";
+import { type ReactNode, useMemo } from "react";
 import { useIntl } from "react-intl";
 import { Button } from "@/components/Actions";
 import { Card } from "@/components/Cards";
@@ -17,9 +18,6 @@ interface ApplicationSettings {
   Option: () => ReactNode;
   Icon: React.ReactNode;
 }
-
-/** What the last manual check reported once the worker settled back to idle. */
-type ManualCheckOutcome = "up-to-date" | "failed";
 
 /**
  * The update row is a settings row like Theme and Language: a fixed title, a
@@ -39,11 +37,16 @@ interface UpdateRow {
  */
 const SETTING_CONTROL_WIDTH = "w-[120px] sm:w-[140px]";
 
+/**
+ * Every subtitle reserves two lines whether or not it wraps, so the three
+ * cards stay the same height and a status change never moves the row.
+ */
+const SETTING_DESCRIPTION = "min-h-8 text-xs text-text-sub-600 line-clamp-2";
+
 export const AppSettings: React.FC = () => {
   const { theme, setTheme } = useTheme();
   const { locale, switchLanguage, availableLocales } = useApp();
   const { phase, checkForUpdate, activateNow } = useServiceWorkerUpdate();
-  const [manualCheck, setManualCheck] = useState<ManualCheckOutcome | null>(null);
   const intl = useIntl();
 
   const themeOptions = useMemo(
@@ -145,10 +148,11 @@ export const AppSettings: React.FC = () => {
 
   const handleCheckClick = () => {
     hapticLight();
-    setManualCheck(null);
     // Only ask the registration to look for a newer worker and act on what it
     // reports. Nothing on this path unregisters the worker or clears a cache;
     // that is what stranded installed users on the app-files screen before.
+    // The row itself returns to its default state; outcomes that need words
+    // arrive as toasts, and "pending" or "failed" show through the phase.
     void checkForUpdate().then(
       (result) => {
         if (result === "ready") {
@@ -156,11 +160,33 @@ export const AppSettings: React.FC = () => {
           // worker straight away instead of asking for a second tap.
           activateNow();
         } else if (result === "up-to-date") {
-          setManualCheck("up-to-date");
+          toastService.info({
+            title: intl.formatMessage({
+              id: "app.update.toast.upToDate.title",
+              defaultMessage: "No update available",
+            }),
+            message: intl.formatMessage({
+              id: "app.update.toast.upToDate.message",
+              defaultMessage: "You're on the latest version.",
+            }),
+            context: "app update",
+            suppressLogging: true,
+          });
         }
-        // "pending" and "failed" are reflected through the hook's phase.
       },
-      () => setManualCheck("failed")
+      () =>
+        toastService.error({
+          title: intl.formatMessage({
+            id: "app.update.toast.checkFailed.title",
+            defaultMessage: "Couldn't check for updates",
+          }),
+          message: intl.formatMessage({
+            id: "app.update.toast.checkFailed.message",
+            defaultMessage: "Check your connection and try again.",
+          }),
+          context: "app update",
+          suppressLogging: true,
+        })
     );
   };
 
@@ -241,28 +267,6 @@ export const AppSettings: React.FC = () => {
           onClick: handleCheckClick,
         };
       default:
-        if (manualCheck === "up-to-date") {
-          return {
-            status: intl.formatMessage({
-              id: "app.update.upToDate.description",
-              defaultMessage: "You have the latest version.",
-            }),
-            label: checkLabel,
-            busy: false,
-            onClick: handleCheckClick,
-          };
-        }
-        if (manualCheck === "failed") {
-          return {
-            status: intl.formatMessage({
-              id: "app.update.checkFailed.description",
-              defaultMessage: "Couldn't check. Try again.",
-            }),
-            label: retryLabel,
-            busy: false,
-            onClick: handleCheckClick,
-          };
-        }
         return {
           status: intl.formatMessage({
             id: "app.update.check.description",
@@ -294,7 +298,7 @@ export const AppSettings: React.FC = () => {
             </Avatar>
             <div className="flex flex-col gap-0.5 min-w-0 flex-1">
               <div className="text-sm font-medium truncate">{title}</div>
-              <div className="text-xs text-text-sub-600 line-clamp-2">{description}</div>
+              <div className={SETTING_DESCRIPTION}>{description}</div>
             </div>
             <div className="shrink-0">
               <Option />
@@ -318,7 +322,7 @@ export const AppSettings: React.FC = () => {
                 defaultMessage: "Update",
               })}
             </div>
-            <div role="status" className="text-xs text-text-sub-600 line-clamp-2">
+            <div role="status" className={SETTING_DESCRIPTION}>
               {updateRow.status}
             </div>
           </div>

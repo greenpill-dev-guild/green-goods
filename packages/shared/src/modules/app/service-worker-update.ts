@@ -229,10 +229,12 @@ export interface ActivationHandlers {
 }
 
 /**
- * Ask a waiting worker to take over and watch for the controller change.
- * The listener attaches before SKIP_WAITING is posted so a fast activation
- * cannot race past it. Returns a cancel function that drops the listener and
- * the timer; it is idempotent and safe to call after either handler ran.
+ * Ask a waiting worker to take over and report when the page can reload onto
+ * it. The worker never claims open pages on activation (the custom worker pins
+ * that), so a controller change is not guaranteed; the worker's own state
+ * reaching `activated` is the signal that always arrives, and a reload is then
+ * served by it. Listeners attach before SKIP_WAITING is posted so a fast
+ * activation cannot race past them. Returns an idempotent cancel function.
  */
 export function activateWaitingWorker(
   worker: ServiceWorker,
@@ -249,17 +251,28 @@ export function activateWaitingWorker(
       timeoutId = null;
     }
     navigator.serviceWorker.removeEventListener("controllerchange", handleControllerChange);
+    worker.removeEventListener("statechange", handleStateChange);
   };
 
-  const handleControllerChange = () => {
+  const settle = () => {
     if (done) return;
     finish();
     handlers.onActivated();
   };
+  const handleControllerChange = () => settle();
+  const handleStateChange = () => {
+    if (worker.state === "activated") settle();
+  };
+
+  if (worker.state === "activated") {
+    handlers.onActivated();
+    return () => {};
+  }
 
   navigator.serviceWorker.addEventListener("controllerchange", handleControllerChange, {
     once: true,
   });
+  worker.addEventListener("statechange", handleStateChange);
   worker.postMessage({ type: "SKIP_WAITING" });
   timeoutId = setTimeout(() => {
     if (done) return;
@@ -268,4 +281,34 @@ export function activateWaitingWorker(
   }, timeoutMs);
 
   return finish;
+}
+
+const UPDATE_APPLIED_KEY = "gg-update-applied";
+
+/** Remember, across the reload an update triggers, that the app restarted onto a new worker. */
+export function markUpdateApplied(): void {
+  try {
+    sessionStorage.setItem(UPDATE_APPLIED_KEY, "1");
+  } catch {
+    // Storage can be unavailable; the post-restart toast is a courtesy, not state.
+  }
+}
+
+let appliedThisLoad = false;
+
+/**
+ * True for the rest of the page load once the flag has been seen, so a reader
+ * that mounts twice (React strict mode) gets the same answer; the flag itself
+ * is cleared on the first read so the next load starts clean.
+ */
+export function consumeUpdateApplied(): boolean {
+  if (appliedThisLoad) return true;
+  try {
+    if (sessionStorage.getItem(UPDATE_APPLIED_KEY) === null) return false;
+    sessionStorage.removeItem(UPDATE_APPLIED_KEY);
+    appliedThisLoad = true;
+  } catch {
+    return false;
+  }
+  return true;
 }

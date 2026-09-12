@@ -6,8 +6,10 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   activateWaitingWorker,
   buildUpdateTelemetry,
+  consumeUpdateApplied,
   createInstallWatcher,
   DOWNLOAD_TIMEOUT_MS,
+  markUpdateApplied,
   waitForInstallToSettle,
 } from "../../../modules/app/service-worker-update";
 
@@ -357,5 +359,56 @@ describe("activateWaitingWorker", () => {
     expect(container.listenerCount("controllerchange")).toBe(0);
     expect(handlers.onActivated).not.toHaveBeenCalled();
     expect(handlers.onTimeout).not.toHaveBeenCalled();
+  });
+});
+
+describe("activateWaitingWorker without a controller change", () => {
+  it("reloads once the worker itself reports activated", () => {
+    vi.useFakeTimers();
+    const container = stubServiceWorkerContainer(createWorker("activated"));
+    const worker = createWorker("installed");
+    const handlers = { onActivated: vi.fn(), onTimeout: vi.fn() };
+
+    activateWaitingWorker(asWorker(worker), handlers, 1_000);
+    expect(worker.listenerCount("statechange")).toBe(1);
+
+    worker.state = "activating";
+    worker.dispatch("statechange");
+    expect(handlers.onActivated).not.toHaveBeenCalled();
+
+    worker.state = "activated";
+    worker.dispatch("statechange");
+    vi.advanceTimersByTime(1_000);
+
+    expect(handlers.onActivated).toHaveBeenCalledTimes(1);
+    expect(handlers.onTimeout).not.toHaveBeenCalled();
+    expect(worker.listenerCount("statechange")).toBe(0);
+    expect(container.listenerCount("controllerchange")).toBe(0);
+  });
+
+  it("settles at once for a worker that has already activated", () => {
+    stubServiceWorkerContainer(createWorker("activated"));
+    const worker = createWorker("activated");
+    const handlers = { onActivated: vi.fn(), onTimeout: vi.fn() };
+
+    activateWaitingWorker(asWorker(worker), handlers, 1_000);
+
+    expect(handlers.onActivated).toHaveBeenCalledTimes(1);
+    expect(worker.postMessage).not.toHaveBeenCalled();
+  });
+});
+
+describe("update applied flag", () => {
+  afterEach(() => {
+    sessionStorage.clear();
+  });
+
+  it("clears the stored flag on first read and stays true for the rest of the load", () => {
+    expect(consumeUpdateApplied()).toBe(false);
+    markUpdateApplied();
+    expect(sessionStorage.getItem("gg-update-applied")).toBe("1");
+    expect(consumeUpdateApplied()).toBe(true);
+    expect(sessionStorage.getItem("gg-update-applied")).toBeNull();
+    expect(consumeUpdateApplied()).toBe(true);
   });
 });
