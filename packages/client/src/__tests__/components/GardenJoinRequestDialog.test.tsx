@@ -51,6 +51,8 @@ describe("GardenJoinRequestDialog", () => {
     );
 
     await user.click(screen.getByRole("button", { name: "Request to Join" }));
+    // Rides the adaptive shell: centered here, the shared bottom sheet below 640px.
+    expect(screen.getByRole("dialog")).toHaveAttribute("data-component", "DialogShell");
     const send = screen.getByRole("button", { name: "Send Request" });
     expect(send).toHaveAttribute("aria-disabled", "true");
     await user.type(screen.getByLabelText("Display name"), "Maya");

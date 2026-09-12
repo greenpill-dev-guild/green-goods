@@ -119,6 +119,7 @@ describe("GardenGardeners", () => {
     await user.click(screen.getByRole("button", { name: /Member 0/i }));
 
     const dialog = screen.getByRole("dialog");
+    expect(dialog).toHaveAttribute("data-component", "DialogShell");
     expect(within(dialog).getByText("Member 0")).toBeInTheDocument();
   });
 });
