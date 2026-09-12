@@ -131,7 +131,6 @@ const FROZEN_ALLOWLIST = {
   "packages/client/src/components/Public/Vault/VaultManagePositionsPanel.tsx": 928,
   "packages/client/src/components/Public/atoms/EditorialAtoms.tsx": 565,
   "packages/client/src/views/Garden/Media.tsx": 828,
-  "packages/client/src/views/Profile/ENSSection.tsx": 651,
   "packages/client/src/views/Public/Fund.tsx": 775,
   "packages/client/src/views/Public/Impact.tsx": 630,
   "packages/client/src/views/Public/Vaults.tsx": 705,
