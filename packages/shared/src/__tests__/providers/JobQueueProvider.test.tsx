@@ -65,12 +65,8 @@ vi.mock("../../config/react-query", () => ({
   queryClient: mockSharedQueryClient,
 }));
 
-vi.mock("../../hooks/work/useBatchWorkSync", () => ({
-  syncQueuedWorkBatch: vi.fn(),
-}));
-
-vi.mock("../../modules/app/error-tracking", () => ({
-  trackContractError: vi.fn(),
+vi.mock("../../hooks/work/useWalletQueueSync", () => ({
+  useWalletQueueSync: vi.fn(),
 }));
 
 vi.mock("../../config/blockchain", async (importOriginal) => ({
@@ -83,8 +79,7 @@ vi.mock("../../config/default-chain", () => ({
 }));
 
 import { queueToasts } from "../../components/toast";
-import { syncQueuedWorkBatch } from "../../hooks/work/useBatchWorkSync";
-import { trackContractError } from "../../modules/app/error-tracking";
+import { useWalletQueueSync } from "../../hooks/work/useWalletQueueSync";
 import { queryKeys } from "../../config/query-keys";
 import { useAuth } from "../../hooks/auth/useAuth";
 import { usePrimaryAddress } from "../../hooks/auth/usePrimaryAddress";
@@ -414,139 +409,31 @@ describe("providers/JobQueueProvider", () => {
     });
   });
 
-  describe("wallet reconnect send", () => {
-    const walletSender = {
-      sendContractCall: vi.fn(),
-      supportsSponsorship: false,
-      supportsBatching: false,
-      authMode: "wallet" as const,
-    };
-    const unsentWorkJob = {
-      id: "work-job-1",
-      kind: "work",
-      chainId: 11155111,
-      payload: { actionUID: 1, gardenAddress: "0xgarden", feedback: "", title: "Plant" },
-      createdAt: Date.now(),
-      attempts: 0,
-      synced: false,
-      userAddress: "0xWallet123",
-    };
-    const broadcastWorkJob = {
-      ...unsentWorkJob,
-      id: "work-job-2",
-      payload: {
-        ...unsentWorkJob.payload,
-        uploadCheckpoint: {
-          submittedAt: "2026-09-11T00:00:00Z",
-          files: {},
-          transactionHash: `0x${"ab".repeat(32)}`,
-        },
-      },
-    };
-
-    beforeEach(() => {
-      Object.defineProperty(navigator, "onLine", { value: true, configurable: true });
+  describe("wallet queue sync wiring", () => {
+    it("hands the wallet queue sync its queue, sender, connection state, and address", async () => {
       mockUseAuth.mockReturnValue({
         authMode: "wallet",
         walletAddress: "0xWallet123",
         externalWalletConnected: true,
       });
-      mockUseUser.mockReturnValue({ smartAccountAddress: null, eoa: { address: "0xWallet123" } });
       mockUsePrimaryAddress.mockReturnValue("0xWallet123");
-      mockUseTransactionSender.mockReturnValue(walletSender);
-      mockJobQueue.getJobs.mockResolvedValue([]);
-      vi.mocked(syncQueuedWorkBatch).mockResolvedValue({ count: 1, gardens: ["0xgarden"] });
-    });
-
-    afterEach(() => {
-      mockJobQueue.getJobs.mockResolvedValue([]);
-    });
-
-    it("sends a wallet user's unsent work in one batch when the app comes back online", async () => {
-      renderHook(() => useJobQueue(), { wrapper: createWrapper() });
-      await waitFor(() => {
-        expect(mockJobQueue.getJobs).toHaveBeenCalledWith("0xWallet123", {
-          kind: "work",
-          synced: false,
-        });
-      });
-      expect(syncQueuedWorkBatch).not.toHaveBeenCalled();
-
-      mockJobQueue.getJobs.mockResolvedValue([unsentWorkJob]);
-      await act(async () => {
-        window.dispatchEvent(new Event("online"));
-      });
-
-      await waitFor(() => {
-        expect(syncQueuedWorkBatch).toHaveBeenCalledWith("0xWallet123", 11155111);
-      });
-      expect(syncQueuedWorkBatch).toHaveBeenCalledTimes(1);
-      expect(queueToasts.syncSuccess).toHaveBeenCalledWith(1);
-      expect(mockJobQueue.flush).not.toHaveBeenCalled();
-    });
-
-    it("does not batch-send while the wallet is disconnected", async () => {
-      mockUseAuth.mockReturnValue({
-        authMode: "wallet",
-        walletAddress: "0xWallet123",
-        externalWalletConnected: false,
-      });
-      mockJobQueue.getJobs.mockResolvedValue([unsentWorkJob]);
 
       renderHook(() => useJobQueue(), { wrapper: createWrapper() });
       await waitFor(() => {
         expect(mockJobQueue.getStats).toHaveBeenCalled();
       });
 
-      expect(syncQueuedWorkBatch).not.toHaveBeenCalled();
-    });
-
-    it("leaves work that already carries a broadcast to the confirmation check", async () => {
-      mockJobQueue.getJobs.mockResolvedValue([broadcastWorkJob]);
-
-      renderHook(() => useJobQueue(), { wrapper: createWrapper() });
-      await waitFor(() => {
-        expect(mockJobQueue.processJob).toHaveBeenCalledWith("work-job-2", {
-          transactionSender: walletSender,
-        });
-      });
-
-      expect(syncQueuedWorkBatch).not.toHaveBeenCalled();
-    });
-
-    it("reports a failed reconnect send and keeps the queue for the manual control", async () => {
-      mockJobQueue.getJobs.mockResolvedValue([unsentWorkJob]);
-      vi.mocked(syncQueuedWorkBatch).mockRejectedValueOnce(
-        new Error("Wallet not connected. Please connect your wallet and try again.")
+      expect(useWalletQueueSync).toHaveBeenCalledWith(
+        expect.objectContaining({
+          queue: mockJobQueue,
+          sender: mockTransactionSender,
+          authMode: "wallet",
+          walletConnected: true,
+          userAddress: "0xWallet123",
+          refreshStats: expect.any(Function),
+        })
       );
-
-      renderHook(() => useJobQueue(), { wrapper: createWrapper() });
-      await waitFor(() => {
-        expect(queueToasts.syncError).toHaveBeenCalled();
-      });
-
-      expect(trackContractError).toHaveBeenCalledWith(
-        expect.any(Error),
-        expect.objectContaining({ source: "JobQueueProvider" })
-      );
-      expect(mockJobQueue.discardJob).not.toHaveBeenCalled();
-      expect(mockJobQueue.retryJob).not.toHaveBeenCalled();
-    });
-
-    it("stays quiet when the wallet user rejects the reconnect send", async () => {
-      mockJobQueue.getJobs.mockResolvedValue([unsentWorkJob]);
-      vi.mocked(syncQueuedWorkBatch).mockRejectedValueOnce(new Error("User rejected the request"));
-
-      renderHook(() => useJobQueue(), { wrapper: createWrapper() });
-      await waitFor(() => {
-        expect(syncQueuedWorkBatch).toHaveBeenCalledTimes(1);
-      });
-      await waitFor(() => {
-        expect(mockJobQueue.getStats.mock.calls.length).toBeGreaterThan(1);
-      });
-
-      expect(queueToasts.syncError).not.toHaveBeenCalled();
-      expect(trackContractError).not.toHaveBeenCalled();
+      expect(mockJobQueue.flush).not.toHaveBeenCalled();
     });
   });
 });

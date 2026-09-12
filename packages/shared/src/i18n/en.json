@@ -2974,6 +2974,8 @@
   "app.toast.queue.syncSuccess.message": "Processed {count} item.",
   "app.toast.queue.syncSuccess.messagePlural": "Processed {count} items.",
   "app.toast.queue.syncSuccess.title": "Offline jobs synced",
+  "app.toast.queue.walletSendFailed.message": "Confirm it in your wallet from Send all when you're ready.",
+  "app.toast.queue.walletSendFailed.title": "Work is still waiting to send",
   "app.toast.queue.workCompleted.message": "Submission confirmed.",
   "app.toast.queue.workCompleted.title": "Work uploaded",
   "app.toast.update.applying.message": "Restarting with the latest version.",

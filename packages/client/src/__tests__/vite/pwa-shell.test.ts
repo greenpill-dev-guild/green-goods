@@ -203,7 +203,7 @@ describe("PWA shell asset manifest", () => {
     expect(shell.assets).not.toContain("/assets/wallet-connect.js");
   });
 
-  it("follows first-party dynamic imports out of the shell but leaves optional entries lazy", () => {
+  it("follows first-party and offline vendor dynamic imports but leaves public and telemetry entries lazy", () => {
     const emitFile = vi.fn();
     const plugin = createPwaShellAssetsPlugin();
     const generateBundle = plugin.generateBundle;
@@ -231,7 +231,8 @@ describe("PWA shell asset manifest", () => {
       "assets/sentry.js",
       "assets/Impact.js",
       "assets/wallet-ui.js",
-      "assets/wallet-submission.js"
+      "assets/wallet-submission.js",
+      "assets/heic-to.js"
     );
     // The queue barrel is an empty facade over code that a second facade,
     // reached only through it, still has to bring along.
@@ -256,7 +257,10 @@ describe("PWA shell asset manifest", () => {
       "/repo/packages/client/src/views/Public/Impact.tsx",
     ]);
     chunk("assets/wallet-ui.js", ["/repo/node_modules/@reown/appkit/dist/modal.js"]);
-    // Send-time code runs online only; its facade would drag the EAS SDK in.
+    // HEIC decoding is vendor-only code the media step needs offline.
+    chunk("assets/heic-to.js", ["/repo/node_modules/heic-to/dist/csp/heic-to.js"]);
+    // Send-time code is first-party too, so the shell carries it and the EAS
+    // SDK behind it: a reconnect send must not depend on fetching a chunk.
     chunk("assets/wallet-submission.js", [], {
       facadeModuleId: "/repo/packages/shared/src/modules/work/wallet-submission/index.ts",
       imports: ["assets/encoders.js"],
@@ -274,17 +278,22 @@ describe("PWA shell asset manifest", () => {
       ).source
     ) as { assets: string[] };
 
-    expect(shell.assets).toContain("/assets/job-queue.js");
-    expect(shell.assets).toContain("/assets/work-submission.js");
-    expect(shell.assets).toContain("/assets/work-submission-impl.js");
-    for (const optional of [
+    for (const needed of [
+      "/assets/job-queue.js",
+      "/assets/work-submission.js",
+      "/assets/work-submission-impl.js",
+      "/assets/wallet-submission.js",
+      "/assets/encoders.js",
       "/assets/es.js",
+      "/assets/heic-to.js",
+    ]) {
+      expect(shell.assets).toContain(needed);
+    }
+    for (const optional of [
       "/assets/sentry.js",
       "/assets/sentry-vendor.js",
       "/assets/Impact.js",
       "/assets/wallet-ui.js",
-      "/assets/wallet-submission.js",
-      "/assets/encoders.js",
     ]) {
       expect(shell.assets).not.toContain(optional);
     }

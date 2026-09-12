@@ -14,8 +14,13 @@ const LIMITS = {
   modulePreloads: Number(process.env.PWA_MODULE_PRELOAD_MAX ?? 16),
   majorRouteGzip: Number(process.env.PWA_MAJOR_ROUTE_GZIP_MAX ?? 500 * KiB),
   mediaRouteGzip: Number(process.env.PWA_MEDIA_ROUTE_GZIP_MAX ?? 850 * KiB),
-  shellRaw: Number(process.env.PWA_SHELL_RAW_MAX ?? 5 * MiB),
-  shellGzip: Number(process.env.PWA_SHELL_GZIP_MAX ?? 1.5 * MiB),
+  // The offline shell carries the whole signed-in app: every route, the HEIC
+  // decoder and image compressor for the media step, the submission adapters
+  // and attestation encoder, and every locale. Installed use is meant to feel
+  // like a native app, so the ceilings sit just above that full set to catch
+  // accidental growth, not to keep functionality out.
+  shellRaw: Number(process.env.PWA_SHELL_RAW_MAX ?? 11 * MiB),
+  shellGzip: Number(process.env.PWA_SHELL_GZIP_MAX ?? 3.25 * MiB),
 };
 
 const FORBIDDEN_PUBLIC_MODULES = [

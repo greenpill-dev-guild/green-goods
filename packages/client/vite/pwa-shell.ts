@@ -17,19 +17,19 @@ const SHELL_MODULE_MARKERS = [
   "/src/i18n/en.json",
 ] as const;
 
-// Signed-in code also loads first-party modules on demand: the wizard's image
-// compressor, the queue adapter behind the work command, and the queue barrel
-// behind the dashboard's offline reader. Rolldown emits each of those as its
-// own facade chunk that no static closure reaches, so without following them
-// the first offline use fails at the import even when the code behind the
-// facade is already cached. Vendor-only entries (wallet UI, HEIC decoding) stay
-// lazy, and so do first-party entries the shell never needs while offline:
-// public pages, the other locales, telemetry, and the send-time paths (chain
-// simulation, direct wallet submission, attestation encoding, IPFS upload),
-// which only run online and carry the EAS SDK's ethers closure.
+// Signed-in code also loads modules on demand: the wizard's image compressor
+// and HEIC decoder, the submission adapters and attestation encoder behind the
+// work command, the queue barrel behind the dashboard's offline reader, and
+// the other locales. Rolldown emits each as its own facade or vendor chunk that
+// no static closure reaches, so without following them the first offline use
+// fails at the import. The installed app is meant to work like a native one,
+// so the shell follows every first-party dynamic entry and the vendor chunks
+// it needs offline, and leaves lazy only what has no offline value: public
+// pages, telemetry, and the wallet connection UI.
 const FIRST_PARTY_MODULE = /\/packages\/(client|shared)\/src\//;
 const SHELL_OPTIONAL_MODULE =
-  /\/src\/(views\/Public|components\/Public|routes\/PublicShell|i18n|modules\/app\/sentry|modules\/app\/posthog-browser|modules\/work\/simulate|modules\/work\/wallet-submission|utils\/eas\/encoders|modules\/data\/ipfs\/upload)\b|\/src\/(PublicApp|bootstrapPublic)\.tsx$/;
+  /\/src\/(views\/Public|components\/Public|routes\/PublicShell|modules\/app\/sentry|modules\/app\/posthog-browser)\b|\/src\/(PublicApp|bootstrapPublic)\.tsx$/;
+const SHELL_VENDOR_MODULE = /\/node_modules\/heic-to\//;
 
 // Include nested views too: drawers and wizard steps can be separate lazy
 // entries even though the router does not name them. Public pages stay lazy.
@@ -140,7 +140,9 @@ export function createPwaShellAssetsPlugin(): Plugin {
           moduleId.split("?")[0].replaceAll("\\", "/")
         );
       const isOfflineShellDependency = (chunk: ChunkWithViteMetadata) => {
-        const firstParty = cleanModuleIds(chunk).filter((id) => FIRST_PARTY_MODULE.test(id));
+        const ids = cleanModuleIds(chunk);
+        if (ids.some((id) => SHELL_VENDOR_MODULE.test(id))) return true;
+        const firstParty = ids.filter((id) => FIRST_PARTY_MODULE.test(id));
         return firstParty.length > 0 && !firstParty.some((id) => SHELL_OPTIONAL_MODULE.test(id));
       };
       let followed = true;

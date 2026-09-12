@@ -29,7 +29,7 @@ import { jobQueueDB } from "../../modules/job-queue/db";
 import { jobQueue } from "../../modules/job-queue/default-instance";
 import { jobQueueEventBus } from "../../modules/job-queue/event-bus";
 import { assertLocalArbitrumForkWallet } from "../../modules/transactions/local-fork-safety";
-import type { WorkDraft } from "../../types/domain";
+import type { Address, WorkDraft } from "../../types/domain";
 import type { Job, WorkJobPayload } from "../../types/job-queue";
 import { TX_RECEIPT_TIMEOUT_MS } from "../../utils/blockchain/polling";
 import { buildBatchWorkAttestTx } from "../../utils/eas/transaction-builder";
@@ -84,7 +84,7 @@ function toWorkDraft(payload: WorkJobPayload, mediaFiles: File[]): WorkDraft {
  * "Send all" control and the provider's reconnect path share this function.
  */
 export async function syncQueuedWorkBatch(
-  primaryAddress: string,
+  primaryAddress: Address,
   chainId: number = DEFAULT_CHAIN_ID
 ): Promise<BatchWorkSyncResult> {
   const candidates = await jobQueue.getJobsWithImages(primaryAddress);

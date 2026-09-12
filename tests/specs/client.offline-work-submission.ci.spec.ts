@@ -42,7 +42,8 @@ test.describe("Offline Work Submission CI Tests", () => {
 
     const actionCard = page.getByTestId("action-card").first();
     const gardenCard = page.getByTestId("garden-card").first();
-    await expect(actionCard).toBeVisible();
+    // A cold dev server transforms the wizard route on first request.
+    await expect(actionCard).toBeVisible({ timeout: 15000 });
     await expect(gardenCard).toBeVisible();
     await actionCard.click();
     await gardenCard.click();
@@ -113,13 +114,14 @@ test.describe("Offline Work Submission CI Tests", () => {
     await expect(page.getByRole("button", { name: "Reconnect to send" })).toBeDisabled();
 
     // Reconnect: the app tries the batched wallet send by itself. Without a
-    // wallet in CI that attempt reports its failure and the work stays queued
-    // behind the one-tap control instead of being dropped or duplicated.
+    // wallet in CI that attempt reports that the work is still waiting, and it
+    // stays queued behind the one-tap control instead of being dropped or
+    // duplicated.
     await context.setOffline(false);
     await expect(page.getByRole("status", { name: "App is back online" })).toBeVisible({
       timeout: 10000,
     });
-    await expect(page.getByText("Some jobs failed to sync")).toBeVisible({ timeout: 15000 });
+    await expect(page.getByText("Work is still waiting to send")).toBeVisible({ timeout: 15000 });
     await expect(page.getByText("1 items waiting to send")).toBeVisible();
     await expect(page.getByRole("button", { name: "Send all (1)" })).toBeEnabled();
     await attachScreenshot(page, "reconnect-one-tap-send");
