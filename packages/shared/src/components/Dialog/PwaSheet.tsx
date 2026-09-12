@@ -2,11 +2,15 @@
  * PwaSheet — gesture-capable bottom sheet for the installed Green Goods PWA.
  *
  * Every narrow-viewport dialog in the client renders through this sheet:
- * `DraftDialog` directly, and `ConfirmDialog` / `DialogShell` below
+ * `DraftSheet` directly, and `ConfirmDialog` / `DialogShell` below
  * `PWA_SHEET_MEDIA_QUERY`. Passing `title` turns on the shared header
  * (title, optional description and icon, a 44px close button) above a
  * scrollable body, so those surfaces share one chrome. Without `title` the
  * consumer owns everything inside the panel.
+ *
+ * Focus returns to the element that opened the sheet when it closes, and
+ * the other children of <body> are hidden from assistive tech while it is
+ * open, matching the centered Radix surfaces it replaces below 640px.
  *
  * Layout lives in shared `utilities.css` as `[data-component="PwaSheet"]`
  * attribute rules, not as utility classes on this JSX: Tailwind v4 does not
@@ -54,6 +58,7 @@ import {
   useCallback,
   useEffect,
   useId,
+  useLayoutEffect,
   useRef,
   useState,
 } from "react";
@@ -164,6 +169,8 @@ export function PwaSheet({
   // null means "not actively dragging" — CSS keyframe drives the transform.
   const [dragOffset, setDragOffset] = useState<number | null>(null);
   const dialogRef = useRef<HTMLDivElement>(null);
+  const overlayRef = useRef<HTMLDivElement>(null);
+  const openerRef = useRef<HTMLElement | null>(null);
   const titleId = useId();
   const descriptionId = useId();
   const hasHeader = title !== undefined && title !== null;
@@ -173,6 +180,49 @@ export function PwaSheet({
 
   useFocusTrap(dialogRef, { enabled: mounted && open, autoFocusSelector });
   useDocumentScrollLock(open);
+
+  // Remember who opened the sheet and hand focus back when it closes, the way
+  // the centered Radix surfaces do. The capture is a layout effect so it runs
+  // before the focus trap moves focus into the sheet; the restore is a
+  // passive cleanup because React DOM re-focuses the pre-commit element after
+  // its mutation phase, which would undo a restore made during layout.
+  useLayoutEffect(() => {
+    if (!open) return;
+    openerRef.current =
+      document.activeElement instanceof HTMLElement ? document.activeElement : null;
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) return;
+    return () => {
+      const opener = openerRef.current;
+      openerRef.current = null;
+      if (opener?.isConnected) opener.focus({ preventScroll: true });
+    };
+  }, [open]);
+
+  // Hide everything else from assistive tech while the sheet is open. The
+  // sheet's own top-level container (its portal target, or the app root when
+  // a consumer renders it inline) stays exposed.
+  useEffect(() => {
+    if (!open || !mounted) return;
+    const overlay = overlayRef.current;
+    if (!overlay) return;
+    let own: HTMLElement | null = overlay;
+    while (own && own.parentElement !== document.body) own = own.parentElement;
+    const hidden: Array<[Element, string | null]> = [];
+    for (const sibling of Array.from(document.body.children)) {
+      if (sibling === own || sibling.tagName === "SCRIPT" || sibling.tagName === "STYLE") continue;
+      hidden.push([sibling, sibling.getAttribute("aria-hidden")]);
+      sibling.setAttribute("aria-hidden", "true");
+    }
+    return () => {
+      for (const [sibling, previous] of hidden) {
+        if (previous === null) sibling.removeAttribute("aria-hidden");
+        else sibling.setAttribute("aria-hidden", previous);
+      }
+    };
+  }, [open, mounted]);
 
   const requestClose = useCallback(() => {
     if (preventClose) return;
@@ -275,6 +325,7 @@ export function PwaSheet({
 
   return (
     <div
+      ref={overlayRef}
       role="presentation"
       data-component="PwaSheet"
       data-slot="overlay"

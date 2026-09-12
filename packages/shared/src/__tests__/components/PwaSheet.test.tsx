@@ -104,4 +104,42 @@ describe("PwaSheet", () => {
     expect(screen.getByTestId("pwa-sheet-overlay")).not.toHaveAttribute("class");
     expect(screen.getByTestId("pwa-sheet-drag-handle")).not.toHaveAttribute("class");
   });
+  it("returns focus to the element that opened it", () => {
+    const opener = document.createElement("button");
+    opener.textContent = "Open";
+    document.body.append(opener);
+    opener.focus();
+    expect(opener).toHaveFocus();
+    const view = render(
+      <PwaSheet open onClose={vi.fn()} title="Sheet" closeLabel="Close">
+        <button type="button">Inside</button>
+      </PwaSheet>
+    );
+    expect(screen.getByTestId("pwa-sheet-close")).toHaveFocus();
+    view.rerender(
+      <PwaSheet open={false} onClose={vi.fn()} title="Sheet" closeLabel="Close">
+        <button type="button">Inside</button>
+      </PwaSheet>
+    );
+    expect(opener).toHaveFocus();
+    opener.remove();
+  });
+  it("hides sibling content from assistive tech only while open", () => {
+    const sibling = document.createElement("main");
+    document.body.append(sibling);
+    const view = render(
+      <PwaSheet open onClose={vi.fn()} ariaLabel="Sheet">
+        <p>Body</p>
+      </PwaSheet>
+    );
+    expect(sibling).toHaveAttribute("aria-hidden", "true");
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
+    view.rerender(
+      <PwaSheet open={false} onClose={vi.fn()} ariaLabel="Sheet">
+        <p>Body</p>
+      </PwaSheet>
+    );
+    expect(sibling).not.toHaveAttribute("aria-hidden");
+    sibling.remove();
+  });
 });

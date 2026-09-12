@@ -162,7 +162,7 @@ const meta = {
     docs: {
       description: {
         component:
-          "Gesture-capable bottom sheet for installed PWA flows. Uses shared dialog keyframes, safe-area padding, focus trapping, Escape close, overlay click, and optional drag-to-dismiss. Pass `title` for the shared header that ConfirmDialog, DialogShell, and DraftDialog render through below 640px; the layout is attribute-driven CSS because Tailwind does not scan packages/shared.",
+          "Gesture-capable bottom sheet for installed PWA flows. Uses shared dialog keyframes, safe-area padding, focus trapping, Escape close, overlay click, and optional drag-to-dismiss. Pass `title` for the shared header that ConfirmDialog, DialogShell, and DraftSheet render through below 640px; the layout is attribute-driven CSS because Tailwind does not scan packages/shared.",
       },
     },
   },
