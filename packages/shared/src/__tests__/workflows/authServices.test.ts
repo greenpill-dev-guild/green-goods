@@ -196,7 +196,7 @@ vi.mock("../../modules/auth/session", () => ({
 }));
 
 // Import after mocks
-import { createWebAuthnCredential } from "viem/account-abstraction";
+import { createWebAuthnCredential, toWebAuthnAccount } from "viem/account-abstraction";
 import { createPasskey } from "../../config/passkeyServer";
 import {
   clearAuthMode,
@@ -204,6 +204,7 @@ import {
   clearStoredCredential,
   clearStoredSmartAccountAddress,
   clearStoredUsername,
+  setStoredCredential,
   setStoredSmartAccountAddress,
   setStoredUsername,
 } from "../../modules/auth/session";
@@ -483,6 +484,56 @@ describe("workflows/authServices (Pimlico Server Flow)", () => {
   });
 
   // ==========================================================================
+  // CREDENTIAL ID ENCODING FOR SIGNING
+  // ==========================================================================
+
+  describe("credential ID encoding for the signing ceremony", () => {
+    // ox base64URL-decodes the credential ID with no hex fallback, so a hex ID
+    // reaches the authenticator as unrelated bytes and the ceremony rejects with
+    // NotAllowedError. Authentication is unaffected because decodeCredentialId
+    // parses hex as well — which is why sign-in kept working while every
+    // signature failed.
+    const HEX_ID = "746573742d63726564656e7469616c2d6964";
+    const BASE64URL_ID = "dGVzdC1jcmVkZW50aWFsLWlk";
+
+    it("normalizes a hex credential ID to base64URL before signing", async () => {
+      mockStoredCredential = { ...MOCK_CREDENTIAL, id: HEX_ID };
+      mockStoredUsername = MOCK_USERNAME;
+
+      await invokeService(restoreSessionService, { chainId: MOCK_CHAIN_ID });
+
+      expect(toWebAuthnAccount).toHaveBeenCalledWith(
+        expect.objectContaining({
+          credential: expect.objectContaining({ id: BASE64URL_ID }),
+        })
+      );
+    });
+
+    it("rewrites the repaired credential ID back to storage", async () => {
+      mockStoredCredential = { ...MOCK_CREDENTIAL, id: HEX_ID };
+      mockStoredUsername = MOCK_USERNAME;
+
+      await invokeService(restoreSessionService, { chainId: MOCK_CHAIN_ID });
+
+      expect(mockStoredCredential).toMatchObject({ id: BASE64URL_ID });
+    });
+
+    it("leaves an already base64URL credential ID untouched", async () => {
+      mockStoredCredential = { ...MOCK_CREDENTIAL, id: BASE64URL_ID };
+      mockStoredUsername = MOCK_USERNAME;
+
+      await invokeService(restoreSessionService, { chainId: MOCK_CHAIN_ID });
+
+      expect(setStoredCredential).not.toHaveBeenCalled();
+      expect(toWebAuthnAccount).toHaveBeenCalledWith(
+        expect.objectContaining({
+          credential: expect.objectContaining({ id: BASE64URL_ID }),
+        })
+      );
+    });
+  });
+
+  // ==========================================================================
   // REGISTER PASSKEY SERVICE (Client-Only)
   // ==========================================================================
 
@@ -599,8 +650,10 @@ describe("workflows/authServices (Pimlico Server Flow)", () => {
       expect(createPasskey).not.toHaveBeenCalled();
       expect(setStoredUsername).toHaveBeenCalledWith(MOCK_USERNAME);
       expect(setStoredSmartAccountAddress).toHaveBeenCalledWith(MOCK_SMART_ACCOUNT_ADDRESS);
+      // The public key is the server's, but the ID is the browser's: only
+      // base64URL survives the signing ceremony.
       expect(result.credential).toEqual({
-        id: MOCK_SERVER_CREDENTIAL.id,
+        id: MOCK_CREDENTIAL.raw.id,
         publicKey: MOCK_SERVER_CREDENTIAL.publicKey,
         raw: MOCK_CREDENTIAL.raw,
       });
@@ -1077,6 +1130,24 @@ describe("workflows/authServices (Pimlico Server Flow)", () => {
       expect(clearStoredUsername).not.toHaveBeenCalled();
       expect(clearAuthMode).not.toHaveBeenCalled();
       expect(clearStoredSmartAccountAddress).not.toHaveBeenCalled();
+    });
+
+    it("keeps the browser credential ID rather than the passkey server's encoding", async () => {
+      // The server reports the same credential in its own hex encoding. Storing
+      // that is what left production unable to sign.
+      mockPasskeyServerClient.verifyAuthentication.mockResolvedValue({
+        success: true,
+        id: "746573742d63726564656e7469616c2d6964",
+        publicKey: MOCK_SERVER_CREDENTIAL.publicKey,
+        userName: MOCK_USERNAME,
+      });
+
+      const result = await invokeService(authenticatePasskeyService, {
+        userName: MOCK_USERNAME,
+        chainId: MOCK_CHAIN_ID,
+      });
+
+      expect(result.credential.id).toBe(MOCK_SERVER_CREDENTIAL.id);
     });
   });
 

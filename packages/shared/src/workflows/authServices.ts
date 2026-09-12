@@ -143,6 +143,31 @@ function decodeCredentialId(id: string): Uint8Array {
   }
 }
 
+/**
+ * Encode credential ID bytes as the unpadded base64URL string WebAuthn uses.
+ */
+function encodeCredentialId(bytes: Uint8Array): string {
+  let binary = "";
+  for (const byte of bytes) {
+    binary += String.fromCharCode(byte);
+  }
+  return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
+
+/**
+ * Normalize a stored credential ID to base64URL.
+ *
+ * The passkey server returns hex-encoded credential IDs, and those were written
+ * straight to storage. Authentication tolerates that because decodeCredentialId
+ * parses hex as well as base64URL, but the signing ceremony does not: viem's
+ * toWebAuthnAccount hands the ID to ox, which only ever base64URL-decodes it. A
+ * hex ID therefore reaches the authenticator as unrelated bytes, matches no
+ * credential, and the ceremony rejects with NotAllowedError.
+ */
+function toBase64UrlCredentialId(id: string): string {
+  return encodeCredentialId(decodeCredentialId(id));
+}
+
 function toStrictArrayBuffer(bytes: Uint8Array): ArrayBuffer {
   const buffer = new ArrayBuffer(bytes.byteLength);
   new Uint8Array(buffer).set(bytes);
@@ -268,12 +293,15 @@ function toVerifiedCredential(
   raw: P256Credential["raw"],
   failureMessage: string
 ): P256Credential {
-  if (!verification.success || !verification.id || !verification.publicKey) {
+  if (!verification.success || !verification.publicKey) {
     throw new Error(failureMessage);
   }
 
+  // The browser's credential ID is authoritative: it is already base64URL, the
+  // only encoding the signing ceremony can consume. verification.id is the same
+  // credential in the passkey server's own hex encoding.
   return {
-    id: verification.id,
+    id: raw.id,
     publicKey: verification.publicKey,
     raw,
   };
@@ -351,7 +379,18 @@ async function buildSmartAccountFromCredential(
   // CRITICAL: Must pass rpId to match what was used during registration
   // Without this, Android's Credential Manager rejects the credential on sign
   const rpId = getPasskeyRpId();
-  const webAuthnAccount = toWebAuthnAccount({ credential, rpId });
+
+  // Repair credential IDs already written to storage in hex. Rewriting the
+  // stored value keeps the repair to one pass per device and leaves the
+  // credential in the encoding every later reader expects.
+  const signingId = toBase64UrlCredentialId(credential.id);
+  const signingCredential =
+    signingId === credential.id ? credential : { ...credential, id: signingId };
+  if (signingCredential !== credential) {
+    setStoredCredential(signingCredential);
+  }
+
+  const webAuthnAccount = toWebAuthnAccount({ credential: signingCredential, rpId });
 
   // Create Kernel smart account with WebAuthn owner
   const account = await toKernelSmartAccount({
