@@ -470,8 +470,8 @@ T+0s    global-setup.ts runs
 
 T+5s    webServer starts (parallel)
         ├─ bun run dev -- indexer -> port 3006 ready
-        ├─ bun run dev -- client  -> port 3001 ready (60-120s)
-        └─ bun run dev -- admin   -> port 3002 ready (60-120s)
+        ├─ bun run --cwd packages/client dev -> port 3001 ready (60-120s)
+        └─ bun run --cwd packages/admin dev  -> port 3002 ready (60-120s)
 
 T+60s   Tests begin (after webServer ready)
         ├─ Chromium tests (parallel workers)
@@ -522,7 +522,7 @@ Total:  ~90-120s for full suite
 
 ```typescript
 webServer: [{
-  command: "bun run dev -- client",
+  command: "bun run --cwd packages/client dev",
   port: 3001,
   timeout: 120000,  // 2 minutes for Vite cold start
   reuseExistingServer: !process.env.CI,  // Reuse local dev server
