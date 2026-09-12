@@ -1,5 +1,5 @@
 /**
- * CommitmentsDrawer Tests — the member's own commitments sheet.
+ * CommitmentsSheet Tests — the member's own commitments sheet.
  *
  * The state ladder is the point of most of these: an unreachable data layer,
  * an offline device and a genuinely empty garden must each say their own thing.
@@ -127,9 +127,9 @@ vi.mock("@green-goods/shared/commitment-pooling", async (importOriginal) => ({
   useCommitmentsToConfirm: () => mockUseCommitmentsToConfirm(),
 }));
 
-const { CommitmentsDrawer } = await import("../../views/Home/CommitmentsDrawer");
+const { CommitmentsSheet } = await import("../../views/Home/CommitmentsSheet");
 
-describe("CommitmentsDrawer", () => {
+describe("CommitmentsSheet", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockUseOffline.mockReturnValue({ isOnline: true });
@@ -153,7 +153,7 @@ describe("CommitmentsDrawer", () => {
     });
 
     it("does not exist for a plain member", () => {
-      render(<CommitmentsDrawer isOpen onClose={vi.fn()} />);
+      render(<CommitmentsSheet isOpen onClose={vi.fn()} />);
 
       expect(screen.queryByRole("tab", { name: /to confirm/i })).not.toBeInTheDocument();
     });
@@ -171,7 +171,7 @@ describe("CommitmentsDrawer", () => {
         })
       );
 
-      render(<CommitmentsDrawer isOpen onClose={onClose} />);
+      render(<CommitmentsSheet isOpen onClose={onClose} />);
       await user.click(screen.getByRole("tab", { name: /to confirm/i }));
 
       expect(screen.getByText(/These reach you as a steward/)).toBeInTheDocument();
@@ -193,7 +193,7 @@ describe("CommitmentsDrawer", () => {
         })
       );
 
-      render(<CommitmentsDrawer isOpen onClose={vi.fn()} />);
+      render(<CommitmentsSheet isOpen onClose={vi.fn()} />);
       await user.click(screen.getByRole("tab", { name: /to confirm/i }));
 
       expect(screen.getByText("Recorded")).toBeInTheDocument();
@@ -203,7 +203,7 @@ describe("CommitmentsDrawer", () => {
       const user = userEvent.setup();
       mockUseCommitmentsToConfirm.mockReturnValue(toConfirm({ isSteward: true }));
 
-      render(<CommitmentsDrawer isOpen onClose={vi.fn()} />);
+      render(<CommitmentsSheet isOpen onClose={vi.fn()} />);
       await user.click(screen.getByRole("tab", { name: /to confirm/i }));
 
       expect(screen.getByText("Nothing waiting for the garden")).toBeInTheDocument();
@@ -216,7 +216,7 @@ describe("CommitmentsDrawer", () => {
         toConfirm({ isSteward: true, isError: true, refetch })
       );
 
-      render(<CommitmentsDrawer isOpen onClose={vi.fn()} />);
+      render(<CommitmentsSheet isOpen onClose={vi.fn()} />);
       await user.click(screen.getByRole("tab", { name: /to confirm/i }));
 
       expect(screen.getByText(/Could not load the garden's queue/)).toBeInTheDocument();
@@ -232,7 +232,7 @@ describe("CommitmentsDrawer", () => {
       inbox({ live: [{ commitment: commitment(), seat: "provider", needsYou: false }] })
     );
 
-    render(<CommitmentsDrawer isOpen onClose={onClose} />);
+    render(<CommitmentsSheet isOpen onClose={onClose} />);
     await user.click(screen.getByRole("button", { name: /3 hours/ }));
 
     expect(mockNavigate).toHaveBeenCalledWith(`/home/${GARDEN}/commitments/9`);
@@ -254,7 +254,7 @@ describe("CommitmentsDrawer", () => {
       })
     );
 
-    render(<CommitmentsDrawer isOpen onClose={onClose} />);
+    render(<CommitmentsSheet isOpen onClose={onClose} />);
     await user.click(screen.getByRole("tab", { name: /history/i }));
     await user.click(screen.getByRole("button", { name: /3 hours/ }));
 
@@ -269,7 +269,7 @@ describe("CommitmentsDrawer", () => {
       })
     );
 
-    render(<CommitmentsDrawer isOpen onClose={() => {}} />);
+    render(<CommitmentsSheet isOpen onClose={() => {}} />);
 
     expect(screen.getByText("3 hours")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /3 hours/ })).not.toBeInTheDocument();
@@ -278,7 +278,7 @@ describe("CommitmentsDrawer", () => {
   it("says the surface is not ready rather than claiming the garden is empty", () => {
     mockUseCommitmentsInbox.mockReturnValue(inbox({ availability: UNAVAILABLE }));
 
-    render(<CommitmentsDrawer isOpen onClose={() => {}} />);
+    render(<CommitmentsSheet isOpen onClose={() => {}} />);
 
     expect(screen.getByText("Commitments are not ready here yet")).toBeInTheDocument();
     expect(screen.queryByText("Nothing moving right now")).not.toBeInTheDocument();
@@ -287,7 +287,7 @@ describe("CommitmentsDrawer", () => {
   it("keeps the unavailable state ahead of loading, so nothing spins forever", () => {
     mockUseCommitmentsInbox.mockReturnValue(inbox({ availability: UNAVAILABLE, isLoading: true }));
 
-    render(<CommitmentsDrawer isOpen onClose={() => {}} />);
+    render(<CommitmentsSheet isOpen onClose={() => {}} />);
 
     expect(screen.getByText("Commitments are not ready here yet")).toBeInTheDocument();
   });
@@ -295,7 +295,7 @@ describe("CommitmentsDrawer", () => {
   it("shows a loading region while it is still finding out", () => {
     mockUseCommitmentsInbox.mockReturnValue(inbox({ isLoading: true }));
 
-    render(<CommitmentsDrawer isOpen onClose={() => {}} />);
+    render(<CommitmentsSheet isOpen onClose={() => {}} />);
 
     expect(screen.getByRole("status")).toBeInTheDocument();
     expect(screen.getByText("Gathering what is still moving…")).toBeInTheDocument();
@@ -305,7 +305,7 @@ describe("CommitmentsDrawer", () => {
     const refetch = vi.fn();
     mockUseCommitmentsInbox.mockReturnValue(inbox({ isError: true, refetch }));
 
-    render(<CommitmentsDrawer isOpen onClose={() => {}} />);
+    render(<CommitmentsSheet isOpen onClose={() => {}} />);
 
     expect(
       screen.getByText("We could not load what is still moving. Your commitments are safe.")
@@ -318,14 +318,14 @@ describe("CommitmentsDrawer", () => {
   it("says offline rather than empty when the device cannot reach anything", () => {
     mockUseOffline.mockReturnValue({ isOnline: false });
 
-    render(<CommitmentsDrawer isOpen onClose={() => {}} />);
+    render(<CommitmentsSheet isOpen onClose={() => {}} />);
 
     expect(screen.getByText("You are offline")).toBeInTheDocument();
     expect(screen.queryByText("Nothing moving right now")).not.toBeInTheDocument();
   });
 
   it("invites a member in when the garden genuinely holds nothing", () => {
-    render(<CommitmentsDrawer isOpen onClose={() => {}} />);
+    render(<CommitmentsSheet isOpen onClose={() => {}} />);
 
     expect(screen.getByText("Nothing moving right now")).toBeInTheDocument();
   });
@@ -339,7 +339,7 @@ describe("CommitmentsDrawer", () => {
       })
     );
 
-    render(<CommitmentsDrawer isOpen onClose={() => {}} />);
+    render(<CommitmentsSheet isOpen onClose={() => {}} />);
 
     expect(screen.getByText("You offered this")).toBeInTheDocument();
     expect(screen.getByText("3 hours")).toBeInTheDocument();
@@ -353,7 +353,7 @@ describe("CommitmentsDrawer", () => {
       inbox({ live: [{ commitment: commitment(), seat: "confirmer", needsYou: false }] })
     );
 
-    render(<CommitmentsDrawer isOpen onClose={() => {}} />);
+    render(<CommitmentsSheet isOpen onClose={() => {}} />);
 
     expect(screen.getByText("You took this up")).toBeInTheDocument();
     expect(screen.queryByText("You offered this")).not.toBeInTheDocument();
@@ -373,7 +373,7 @@ describe("CommitmentsDrawer", () => {
       })
     );
 
-    render(<CommitmentsDrawer isOpen onClose={() => {}} />);
+    render(<CommitmentsSheet isOpen onClose={() => {}} />);
     await user.click(screen.getByTestId("tab-over-time"));
 
     expect(screen.getByText("You are helping with this")).toBeInTheDocument();
@@ -390,7 +390,7 @@ describe("CommitmentsDrawer", () => {
       })
     );
 
-    render(<CommitmentsDrawer isOpen onClose={() => {}} />);
+    render(<CommitmentsSheet isOpen onClose={() => {}} />);
     expect(screen.getByText(/this list may be incomplete/i)).toBeInTheDocument();
   });
 
@@ -403,7 +403,7 @@ describe("CommitmentsDrawer", () => {
       })
     );
 
-    render(<CommitmentsDrawer isOpen onClose={() => {}} />);
+    render(<CommitmentsSheet isOpen onClose={() => {}} />);
     expect(screen.getByText("Didn't send")).toBeInTheDocument();
   });
 
@@ -419,7 +419,7 @@ describe("CommitmentsDrawer", () => {
       })
     );
 
-    render(<CommitmentsDrawer isOpen onClose={() => {}} />);
+    render(<CommitmentsSheet isOpen onClose={() => {}} />);
     expect(screen.getByText("Didn't send")).toBeInTheDocument();
     expect(screen.queryByText(/could not be sent after several tries/i)).not.toBeInTheDocument();
   });
@@ -428,14 +428,14 @@ describe("CommitmentsDrawer", () => {
     // A commitment that never reached the chain has no id and so no row.
     mockUseCommitmentsInbox.mockReturnValue(inbox({ failedJobCount: 1, unlistedFailureCount: 1 }));
 
-    render(<CommitmentsDrawer isOpen onClose={() => {}} />);
+    render(<CommitmentsSheet isOpen onClose={() => {}} />);
     expect(screen.getByText(/could not be sent after several tries/i)).toBeInTheDocument();
   });
 
   it("says a commitment made offline is still on its way", () => {
     mockUseCommitmentsInbox.mockReturnValue(inbox({ hasPendingCreate: true }));
 
-    render(<CommitmentsDrawer isOpen onClose={() => {}} />);
+    render(<CommitmentsSheet isOpen onClose={() => {}} />);
     expect(
       screen.getByText(/saved on this phone\. It sends when you are connected/i)
     ).toBeInTheDocument();
@@ -453,7 +453,7 @@ describe("CommitmentsDrawer", () => {
       })
     );
 
-    render(<CommitmentsDrawer isOpen onClose={() => {}} />);
+    render(<CommitmentsSheet isOpen onClose={() => {}} />);
 
     // Two rows are listed and only one needs an act, so the pill reads 1.
     expect(screen.getByTestId("tab-live")).toHaveTextContent("1");
@@ -477,7 +477,7 @@ describe("CommitmentsDrawer", () => {
       })
     );
 
-    render(<CommitmentsDrawer isOpen onClose={() => {}} />);
+    render(<CommitmentsSheet isOpen onClose={() => {}} />);
     expect(screen.getByText("3 rides")).toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: "Offers" }));
@@ -511,7 +511,7 @@ describe("CommitmentsDrawer", () => {
       })
     );
 
-    render(<CommitmentsDrawer isOpen onClose={() => {}} />);
+    render(<CommitmentsSheet isOpen onClose={() => {}} />);
     await user.click(screen.getByTestId("tab-over-time"));
 
     expect(screen.getByText("Your record")).toBeInTheDocument();

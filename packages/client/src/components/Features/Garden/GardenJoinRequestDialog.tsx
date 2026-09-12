@@ -18,7 +18,7 @@ import { useId, useState } from "react";
 import { useIntl } from "react-intl";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/Actions";
-import { pwaDrawerStyles } from "@/components/Pwa/drawerStyles";
+import { pwaSheetStyles } from "@/components/Pwa/sheetStyles";
 import { pwaStatusStyles } from "@/components/Pwa/statusStyles";
 
 export function GardenJoinRequestDialog({ gardenAddress }: { gardenAddress: Address }) {
@@ -102,12 +102,12 @@ export function GardenJoinRequestDialog({ gardenAddress }: { gardenAddress: Addr
         />
       </Dialog.Trigger>
       <Dialog.Portal>
-        <Dialog.Overlay className={pwaDrawerStyles.dialogOverlay} />
+        <Dialog.Overlay className={pwaSheetStyles.dialogOverlay} />
         <Dialog.Content
           aria-describedby={descriptionId}
           className={cn(
             "fixed left-1/2 top-1/2 z-modal w-[min(520px,92vw)] -translate-x-1/2 -translate-y-1/2 p-5 focus:outline-none",
-            pwaDrawerStyles.dialogSurface
+            pwaSheetStyles.dialogSurface
           )}
         >
           <div className="flex items-start justify-between gap-3">
@@ -128,10 +128,10 @@ export function GardenJoinRequestDialog({ gardenAddress }: { gardenAddress: Addr
             <Dialog.Close asChild>
               <button
                 type="button"
-                className={cn("min-h-11 min-w-11 p-2", pwaDrawerStyles.closeButtonBase)}
+                className={cn("min-h-11 min-w-11 p-2", pwaSheetStyles.closeButtonBase)}
                 aria-label={formatMessage({ id: "app.common.close", defaultMessage: "Close" })}
               >
-                <RiCloseLine className={cn("h-5 w-5", pwaDrawerStyles.closeIcon)} />
+                <RiCloseLine className={cn("h-5 w-5", pwaSheetStyles.closeIcon)} />
               </button>
             </Dialog.Close>
           </div>

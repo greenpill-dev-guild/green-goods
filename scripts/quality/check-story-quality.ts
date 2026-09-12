@@ -30,7 +30,7 @@ const TARGET_FILES = [
   "packages/shared/src/components/Vault/AssetSelector.stories.tsx",
   "packages/client/src/components/Layout/AppBar.stories.tsx",
   "packages/client/src/components/Communication/Offline/OfflineIndicator.stories.tsx",
-  "packages/client/src/components/Dialogs/ModalDrawer.stories.tsx",
+  "packages/client/src/components/Sheets/AppSheet.stories.tsx",
   "packages/client/src/components/Navigation/SiteHeader.stories.tsx",
   "packages/client/src/views/PwaProtectedSurfaces.stories.tsx",
   "packages/client/src/views/PublicBrowserSurfaces.stories.tsx",

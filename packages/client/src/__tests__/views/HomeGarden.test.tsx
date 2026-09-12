@@ -169,9 +169,9 @@ vi.mock("@/components/Actions", () => ({
     createElement("button", { onClick }, label),
 }));
 
-vi.mock("@/components/Dialogs", () => ({
-  ConvictionDrawer: () => createElement("div", { "data-testid": "conviction-drawer" }),
-  EndowmentDrawer: () => null,
+vi.mock("@/components/Sheets", () => ({
+  ConvictionSheet: () => createElement("div", { "data-testid": "conviction-drawer" }),
+  EndowmentSheet: () => null,
 }));
 
 vi.mock("@/components/Errors", () => ({

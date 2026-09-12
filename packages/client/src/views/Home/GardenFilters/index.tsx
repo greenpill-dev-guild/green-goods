@@ -6,7 +6,7 @@ import type {
 import { cn } from "@green-goods/shared/utils/styles/cn";
 import { useIntl } from "react-intl";
 import { Button } from "@/components/Actions";
-import { ModalDrawer } from "@/components/Dialogs/ModalDrawer";
+import { AppSheet } from "@/components/Sheets/AppSheet";
 import { pwaStatusStyles } from "@/components/Pwa/statusStyles";
 
 // Re-export types from shared for convenience
@@ -47,7 +47,7 @@ const FilterOptionButton = ({
   </button>
 );
 
-type GardensFilterDrawerProps = {
+type GardensFilterSheetProps = {
   isOpen: boolean;
   onClose: () => void;
   filters: GardenFiltersState;
@@ -59,7 +59,7 @@ type GardensFilterDrawerProps = {
   isFilterActive: boolean;
 };
 
-export const GardensFilterDrawer = ({
+export const GardensFilterSheet = ({
   isOpen,
   onClose,
   filters,
@@ -69,7 +69,7 @@ export const GardensFilterDrawer = ({
   canFilterMine,
   myGardensCount,
   isFilterActive,
-}: GardensFilterDrawerProps) => {
+}: GardensFilterSheetProps) => {
   const intl = useIntl();
 
   const scopeOptions: Array<{
@@ -134,7 +134,7 @@ export const GardensFilterDrawer = ({
   ];
 
   return (
-    <ModalDrawer
+    <AppSheet
       isOpen={isOpen}
       onClose={onClose}
       header={{
@@ -200,6 +200,6 @@ export const GardensFilterDrawer = ({
           type="button"
         />
       </div>
-    </ModalDrawer>
+    </AppSheet>
   );
 };

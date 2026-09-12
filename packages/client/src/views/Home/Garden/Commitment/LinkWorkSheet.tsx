@@ -5,7 +5,7 @@ import { type CommitmentRequirementRecord } from "@green-goods/shared/commitment
 import { useEffect, useState } from "react";
 import { useIntl } from "react-intl";
 
-export interface LinkWorkDialogProps {
+export interface LinkWorkSheetProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   /** The reader's own work in this garden that could be linked. */
@@ -31,7 +31,7 @@ export interface LinkWorkDialogProps {
  * exact requirement row it fulfils. Repeated action UIDs never fall back to
  * first-match; the row is a choice whenever there is more than one.
  */
-export function LinkWorkDialog({
+export function LinkWorkSheet({
   open,
   onOpenChange,
   works,
@@ -42,7 +42,7 @@ export function LinkWorkDialog({
   isPending,
   onSubmitRequirement,
   onConfirm,
-}: LinkWorkDialogProps) {
+}: LinkWorkSheetProps) {
   const { formatMessage, formatDate } = useIntl();
   const [workUID, setWorkUID] = useState<string | null>(null);
   const [requirementIndex, setRequirementIndex] = useState<number | null>(null);

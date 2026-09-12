@@ -4,12 +4,12 @@ import React from "react";
 import { useIntl } from "react-intl";
 import { pwaStatusStyles } from "@/components/Pwa/statusStyles";
 
-interface WalletDrawerIconProps {
+interface WalletSheetIconProps {
   onClick: () => void;
   className?: string;
 }
 
-export const WalletDrawerIcon: React.FC<WalletDrawerIconProps> = ({ onClick, className }) => {
+export const WalletSheetIcon: React.FC<WalletSheetIconProps> = ({ onClick, className }) => {
   const intl = useIntl();
   const label = intl.formatMessage({ id: "app.wallet.title" });
 

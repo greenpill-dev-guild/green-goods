@@ -9,7 +9,7 @@ import { createElement } from "react";
 import { IntlProvider } from "react-intl";
 import { describe, expect, it, vi } from "vitest";
 
-import { WalletDrawerIcon } from "../../views/Home/WalletDrawer/Icon";
+import { WalletSheetIcon } from "../../views/Home/WalletSheet/Icon";
 
 const messages: Record<string, string> = {
   "app.wallet.title": "Your Wallet",
@@ -20,12 +20,12 @@ function renderView() {
     createElement(
       IntlProvider,
       { locale: "en", messages },
-      createElement(WalletDrawerIcon, { onClick: vi.fn() })
+      createElement(WalletSheetIcon, { onClick: vi.fn() })
     )
   );
 }
 
-describe("WalletDrawerIcon", () => {
+describe("WalletSheetIcon", () => {
   it("renders the wallet trigger without a notification badge", () => {
     renderView();
     expect(screen.getByRole("button", { name: "Your Wallet" })).toBeInTheDocument();

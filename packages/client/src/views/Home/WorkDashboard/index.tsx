@@ -33,7 +33,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { useIntl } from "react-intl";
 import { useNavigate } from "react-router-dom";
 import type { StandardTab } from "@/components/Navigation";
-import { getPwaDrawerCloseDelayMs } from "@/components/Pwa/drawerStyles";
+import { getPwaSheetCloseDelayMs } from "@/components/Pwa/sheetStyles";
 import { CompletedTab } from "./CompletedTab";
 import { DraftsTab } from "./Drafts";
 import { PendingTab } from "./PendingTab";
@@ -325,7 +325,7 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
     if (isClosing) return;
     closeCompletedRef.current = false;
     setIsClosing(true);
-    scheduleTimeout(finishClose, getPwaDrawerCloseDelayMs());
+    scheduleTimeout(finishClose, getPwaSheetCloseDelayMs());
   };
 
   useEffect(() => {

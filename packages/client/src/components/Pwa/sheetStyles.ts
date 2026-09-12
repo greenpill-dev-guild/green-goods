@@ -1,8 +1,8 @@
 import { pwaStatusStyles } from "./statusStyles";
 
-export const PWA_DRAWER_CLOSE_DURATION_VAR = "--spring-spatial-duration";
+export const PWA_SHEET_CLOSE_DURATION_VAR = "--spring-spatial-duration";
 
-export interface PwaDrawerStyle {
+export interface PwaSheetStyle {
   overlay: string;
   dialogOverlay: string;
   overlayTransition: string;
@@ -20,13 +20,13 @@ export interface PwaDrawerStyle {
   footer: string;
   closeButtonBase: string;
   closeIcon: string;
-  workFeedbackDrawer: string;
+  workFeedbackSheet: string;
   workActionBar: string;
   workActionBarStandalone: string;
   workCloseButton: string;
 }
 
-export const pwaDrawerStyles = {
+export const pwaSheetStyles = {
   overlay: "fixed inset-0 z-modal flex items-end justify-center bg-[var(--color-scrim)]",
   dialogOverlay: "fixed inset-0 z-overlay bg-[var(--color-scrim)]",
   overlayTransition:
@@ -54,14 +54,14 @@ export const pwaDrawerStyles = {
     "group rounded-full border border-stroke-soft-200 transition-[color,border-color,background-color,box-shadow,transform] duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)] flex-shrink-0 tap-feedback hover:bg-bg-weak-50 focus:outline-none focus-visible:shadow-button-primary-focus active:border-primary active:scale-95",
   closeIcon:
     "text-text-soft-400 transition-colors duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)] group-focus-visible:text-primary group-active:text-primary",
-  workFeedbackDrawer:
+  workFeedbackSheet:
     "absolute bottom-full left-0 right-0 bg-[var(--color-material-solid)] rounded-t-[var(--radius-lg)] shadow-[var(--shadow-float)] border border-stroke-soft-200 border-b-0 overflow-hidden transition-transform duration-[var(--spring-spatial-duration)] ease-[var(--spring-spatial-easing)] origin-bottom",
   workActionBar: "bg-[var(--color-material-solid)] overflow-hidden",
   workActionBarStandalone:
     "border-t border-stroke-soft-200 rounded-t-[var(--radius-lg)] shadow-[var(--shadow-float)]",
   workCloseButton:
     "rounded-[var(--radius-md)] text-text-soft-400 transition-[color,box-shadow,transform] duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)] hover:text-text-strong-950 focus:outline-none focus-visible:shadow-button-primary-focus active:text-primary active:scale-95",
-} satisfies PwaDrawerStyle;
+} satisfies PwaSheetStyle;
 
 export function parsePwaCssDurationToMs(value: string): number {
   const trimmed = value.trim();
@@ -82,14 +82,12 @@ export function parsePwaCssDurationToMs(value: string): number {
   return numeric;
 }
 
-export function getPwaDrawerCloseDelayMs(): number {
+export function getPwaSheetCloseDelayMs(): number {
   if (typeof window === "undefined" || typeof document === "undefined") {
     return 0;
   }
 
   return parsePwaCssDurationToMs(
-    window
-      .getComputedStyle(document.documentElement)
-      .getPropertyValue(PWA_DRAWER_CLOSE_DURATION_VAR)
+    window.getComputedStyle(document.documentElement).getPropertyValue(PWA_SHEET_CLOSE_DURATION_VAR)
   );
 }

@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useIntl } from "react-intl";
 import { Button } from "@/components/Actions";
 
-interface DraftDialogProps {
+interface DraftSheetProps {
   isOpen: boolean;
   onContinue: () => void | Promise<void>;
   onStartFresh: () => void | Promise<void>;
@@ -18,13 +18,13 @@ interface DraftDialogProps {
  * PwaSheet with its built-in header, the same sheet the delete confirmation
  * and every other confirm-style action use in the installed app.
  */
-export function DraftDialog({
+export function DraftSheet({
   isOpen,
   onContinue,
   onStartFresh,
   onClose,
   legacyRecovery = false,
-}: DraftDialogProps) {
+}: DraftSheetProps) {
   const intl = useIntl();
   const [pending, setPending] = useState(false);
   const [confirmDiscard, setConfirmDiscard] = useState(false);
@@ -69,7 +69,7 @@ export function DraftDialog({
       description={description}
       closeLabel={intl.formatMessage({ id: "app.garden.draft.close" })}
       preventClose={pending}
-      testId="draft-dialog"
+      testId="draft-sheet"
     >
       {failed && <p role="alert">{intl.formatMessage({ id: "app.garden.draft.failed" })}</p>}
       <Button

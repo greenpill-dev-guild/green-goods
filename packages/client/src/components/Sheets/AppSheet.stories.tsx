@@ -1,11 +1,11 @@
 import type { Meta, StoryObj } from "@storybook/react";
 import { useState } from "react";
 import { expect, userEvent, waitFor, within } from "storybook/test";
-import { ModalDrawer, type ModalDrawerProps } from "./ModalDrawer";
+import { AppSheet, type AppSheetProps } from "./AppSheet";
 
-const MODAL_DRAWER_MOBILE_VIEWPORT = {
-  modalDrawerMobile390x844: {
-    name: "Modal drawer mobile 390 x 844",
+const APP_SHEET_MOBILE_VIEWPORT = {
+  appSheetMobile390x844: {
+    name: "Modal sheet mobile 390 x 844",
     styles: { width: "390px", height: "844px" },
     type: "mobile",
   },
@@ -74,9 +74,9 @@ function hasReducedMotionRule(): boolean {
 }
 
 /**
- * Interactive wrapper that manages open/close state for ModalDrawer stories.
+ * Interactive wrapper that manages open/close state for AppSheet stories.
  */
-function ModalDrawerDemo(props: Omit<ModalDrawerProps, "isOpen" | "onClose">) {
+function AppSheetDemo(props: Omit<AppSheetProps, "isOpen" | "onClose">) {
   const [isOpen, setIsOpen] = useState(true);
   return (
     <div>
@@ -84,11 +84,11 @@ function ModalDrawerDemo(props: Omit<ModalDrawerProps, "isOpen" | "onClose">) {
         type="button"
         onClick={() => setIsOpen(true)}
         className="px-4 py-2 text-sm font-medium bg-primary-base text-primary-foreground rounded-lg"
-        data-testid="open-drawer"
+        data-testid="open-sheet"
       >
-        Open Drawer
+        Open Sheet
       </button>
-      <ModalDrawer {...props} isOpen={isOpen} onClose={() => setIsOpen(false)} />
+      <AppSheet {...props} isOpen={isOpen} onClose={() => setIsOpen(false)} />
     </div>
   );
 }
@@ -96,7 +96,7 @@ function ModalDrawerDemo(props: Omit<ModalDrawerProps, "isOpen" | "onClose">) {
 /**
  * Tab-switching wrapper for the tabbed story.
  */
-function TabbedDrawerDemo() {
+function TabbedSheetDemo() {
   const [isOpen, setIsOpen] = useState(true);
   const [activeTab, setActiveTab] = useState("pending");
 
@@ -112,11 +112,11 @@ function TabbedDrawerDemo() {
         type="button"
         onClick={() => setIsOpen(true)}
         className="px-4 py-2 text-sm font-medium bg-primary-base text-primary-foreground rounded-lg"
-        data-testid="open-drawer"
+        data-testid="open-sheet"
       >
-        Open Tabbed Drawer
+        Open Tabbed Sheet
       </button>
-      <ModalDrawer
+      <AppSheet
         isOpen={isOpen}
         onClose={() => setIsOpen(false)}
         header={{
@@ -142,14 +142,14 @@ function TabbedDrawerDemo() {
             <div className="p-3 rounded-lg bg-bg-weak-50">2 rejected submissions</div>
           )}
         </div>
-      </ModalDrawer>
+      </AppSheet>
     </div>
   );
 }
 
-const meta: Meta<typeof ModalDrawer> = {
-  title: "Client/Dialogs/ModalDrawer",
-  component: ModalDrawer,
+const meta: Meta<typeof AppSheet> = {
+  title: "Client/Sheets/AppSheet",
+  component: AppSheet,
   tags: ["autodocs"],
   globals: { viewport: { value: "mobile" } },
   parameters: {
@@ -158,10 +158,10 @@ const meta: Meta<typeof ModalDrawer> = {
   argTypes: {
     isOpen: {
       control: "boolean",
-      description: "Controls whether the drawer is visible",
+      description: "Controls whether the sheet is visible",
     },
     onClose: {
-      description: "Callback when the drawer is dismissed (overlay click or close button)",
+      description: "Callback when the sheet is dismissed (overlay click or close button)",
     },
     header: {
       control: "object",
@@ -183,7 +183,7 @@ const meta: Meta<typeof ModalDrawer> = {
     },
     className: {
       control: "text",
-      description: "Additional CSS classes for the drawer panel",
+      description: "Additional CSS classes for the sheet panel",
     },
     contentClassName: {
       control: "text",
@@ -193,7 +193,7 @@ const meta: Meta<typeof ModalDrawer> = {
     maxHeight: {
       control: "text",
       description:
-        "Maximum height of the drawer. Content-sized drawers cap at 85dvh by default; tabbed drawers fill 85dvh.",
+        "Maximum height of the sheet. Content-sized sheets cap at 85dvh by default; tabbed sheets fill 85dvh.",
     },
     height: {
       control: "select",
@@ -205,16 +205,16 @@ const meta: Meta<typeof ModalDrawer> = {
 };
 
 export default meta;
-type Story = StoryObj<typeof ModalDrawer>;
+type Story = StoryObj<typeof AppSheet>;
 
 export const Default: Story = {
   render: () => (
-    <ModalDrawerDemo
+    <AppSheetDemo
       header={{ title: "Garden Details", description: "Riverside Commons garden information" }}
     >
       <div className="space-y-4">
         <p className="text-sm text-text-sub-600">
-          This drawer slides up from the bottom of the screen with a manual focus trap, keyboard
+          This sheet slides up from the bottom of the screen with a manual focus trap, keyboard
           dismissal, and CSS keyframe animations matching the WorkDashboard pattern.
         </p>
         <div className="p-4 rounded-lg bg-bg-weak-50">
@@ -226,27 +226,27 @@ export const Default: Story = {
           <p className="text-sm text-text-sub-600 mt-1">12 gardeners, 3 stewards</p>
         </div>
       </div>
-    </ModalDrawerDemo>
+    </AppSheetDemo>
   ),
 };
 
 export const WithTabs: Story = {
-  render: () => <TabbedDrawerDemo />,
+  render: () => <TabbedSheetDemo />,
 };
 
 export const HeaderOnly: Story = {
   render: () => (
-    <ModalDrawerDemo header={{ title: "Notifications" }}>
+    <AppSheetDemo header={{ title: "Notifications" }}>
       <div className="flex items-center justify-center h-32 text-sm text-text-soft-400">
         No notifications yet
       </div>
-    </ModalDrawerDemo>
+    </AppSheetDemo>
   ),
 };
 
 export const WithHeaderActions: Story = {
   render: () => (
-    <ModalDrawerDemo
+    <AppSheetDemo
       header={{
         title: "Wallet",
         description: "Manage your assets",
@@ -270,13 +270,13 @@ export const WithHeaderActions: Story = {
           <span className="text-sm text-text-sub-600">125.00</span>
         </div>
       </div>
-    </ModalDrawerDemo>
+    </AppSheetDemo>
   ),
 };
 
 export const LongContent: Story = {
   render: () => (
-    <ModalDrawerDemo header={{ title: "Activity Log" }} maxHeight="70vh">
+    <AppSheetDemo header={{ title: "Activity Log" }} maxHeight="70vh">
       <div className="space-y-3">
         {Array.from({ length: 20 }, (_, i) => (
           <div key={i} className="p-3 rounded-lg bg-bg-weak-50 text-sm">
@@ -284,21 +284,21 @@ export const LongContent: Story = {
           </div>
         ))}
       </div>
-    </ModalDrawerDemo>
+    </AppSheetDemo>
   ),
 };
 
-// storybook-quality-allow dark-mode: verifies drawer token contrast inside the real dark theme scope.
+// storybook-quality-allow dark-mode: verifies sheet token contrast inside the real dark theme scope.
 export const DarkMode: Story = {
   render: () => (
     <div data-theme="dark" className="bg-bg-white-0 min-h-screen">
-      <ModalDrawerDemo header={{ title: "Garden Details", description: "Riverside Commons" }}>
+      <AppSheetDemo header={{ title: "Garden Details", description: "Riverside Commons" }}>
         <div className="space-y-3">
           <div className="p-4 rounded-lg bg-bg-weak-50">
             <p className="text-sm text-text-sub-600">Content in dark mode</p>
           </div>
         </div>
-      </ModalDrawerDemo>
+      </AppSheetDemo>
     </div>
   ),
 };
@@ -307,14 +307,14 @@ export const StateCatalog: Story = {
   render: () => (
     <div className="flex flex-col gap-6 p-4">
       <p className="text-sm text-text-sub-600">
-        ModalDrawer is a bottom-sheet pattern matching the WorkDashboard modal. Click &ldquo;Open
-        Drawer&rdquo; buttons below to see each variant. The Gallery shows the trigger buttons only
-        since multiple portalled drawers cannot be rendered side-by-side.
+        AppSheet is a bottom-sheet pattern matching the WorkDashboard modal. Click &ldquo;Open
+        Sheet&rdquo; buttons below to see each variant. The Gallery shows the trigger buttons only
+        since multiple portalled sheets cannot be rendered side-by-side.
       </p>
       <div className="flex flex-wrap gap-3">
-        <ModalDrawerDemo header={{ title: "Simple" }}>
-          <p className="text-sm">Simple drawer content</p>
-        </ModalDrawerDemo>
+        <AppSheetDemo header={{ title: "Simple" }}>
+          <p className="text-sm">Simple sheet content</p>
+        </AppSheetDemo>
       </div>
     </div>
   ),
@@ -322,14 +322,14 @@ export const StateCatalog: Story = {
 
 export const Interactive: Story = {
   render: () => (
-    <ModalDrawerDemo header={{ title: "Interactive Test", description: "Testing close behavior" }}>
+    <AppSheetDemo header={{ title: "Interactive Test", description: "Testing close behavior" }}>
       <p className="text-sm text-text-sub-600">Click the close button or the overlay to dismiss.</p>
-    </ModalDrawerDemo>
+    </AppSheetDemo>
   ),
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
 
-    // Verify the drawer is open with correct title
+    // Verify the sheet is open with correct title
     const title = await canvas.findByText("Interactive Test");
     await expect(title).toBeVisible();
 
@@ -337,14 +337,14 @@ export const Interactive: Story = {
     await expect(canvas.getByText("Testing close behavior")).toBeVisible();
 
     // Verify close button is present
-    const closeButton = canvas.getByTestId("modal-drawer-close");
+    const closeButton = canvas.getByTestId("app-sheet-close");
     await expect(closeButton).toBeVisible();
 
     // Click close
     await userEvent.click(closeButton);
 
-    // Verify the open button is still present (drawer has closed)
-    const openButton = canvas.getByTestId("open-drawer");
+    // Verify the open button is still present (sheet has closed)
+    const openButton = canvas.getByTestId("open-sheet");
     await expect(openButton).toBeVisible();
   },
 };
@@ -353,28 +353,28 @@ export const MobileGeometry: Story = {
   tags: ["storybook-ci"],
   parameters: {
     viewport: {
-      options: MODAL_DRAWER_MOBILE_VIEWPORT,
+      options: APP_SHEET_MOBILE_VIEWPORT,
     },
   },
-  globals: { viewport: { value: "modalDrawerMobile390x844" } },
+  globals: { viewport: { value: "appSheetMobile390x844" } },
   render: () => (
-    <ModalDrawerDemo
-      header={{ title: "Mobile drawer geometry", description: "Full-width bottom sheet" }}
+    <AppSheetDemo
+      header={{ title: "Mobile sheet geometry", description: "Full-width bottom sheet" }}
     >
       <div className="space-y-3">
         <div className="p-4 rounded-lg bg-bg-weak-50">
-          <p className="text-sm">Drawer content optimized for mobile geometry checks.</p>
+          <p className="text-sm">Sheet content optimized for mobile geometry checks.</p>
         </div>
       </div>
-    </ModalDrawerDemo>
+    </AppSheetDemo>
   ),
   play: async ({ canvasElement }) => {
     await expect(window.innerWidth).toBeLessThan(SM_BREAKPOINT_PX);
 
     const canvas = within(canvasElement);
-    await canvas.findByText("Mobile drawer geometry");
-    const overlay = canvas.getByTestId("modal-drawer-overlay");
-    const surface = canvas.getByTestId("modal-drawer");
+    await canvas.findByText("Mobile sheet geometry");
+    const overlay = canvas.getByTestId("app-sheet-overlay");
+    const surface = canvas.getByTestId("app-sheet");
 
     await expectViewportCoveringElement(overlay);
     await expectRealEnterAnimation(surface, /modalSlideIn/);
@@ -394,20 +394,20 @@ export const MobileGeometry: Story = {
     await expect(document.documentElement.scrollWidth).toBeLessThanOrEqual(
       window.innerWidth + VIEWPORT_EDGE_TOLERANCE_PX
     );
-    await expectTouchTarget(canvas.getByTestId("modal-drawer-close"));
+    await expectTouchTarget(canvas.getByTestId("app-sheet-close"));
   },
 };
 
 export const ReducedMotionContract: Story = {
   tags: ["storybook-ci"],
   render: () => (
-    <ModalDrawerDemo header={{ title: "Drawer reduced motion", description: "Motion guard" }}>
-      <p className="text-sm text-text-sub-600">Reduced motion dampens drawer keyframes.</p>
-    </ModalDrawerDemo>
+    <AppSheetDemo header={{ title: "Sheet reduced motion", description: "Motion guard" }}>
+      <p className="text-sm text-text-sub-600">Reduced motion dampens sheet keyframes.</p>
+    </AppSheetDemo>
   ),
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    const surface = await canvas.findByTestId("modal-drawer");
+    const surface = await canvas.findByTestId("app-sheet");
 
     await waitFor(async () => {
       await expect(getComputedStyle(surface).animationName).toMatch(/modalSlideIn/);
@@ -418,13 +418,13 @@ export const ReducedMotionContract: Story = {
 
 export const Mobile: Story = {
   render: () => (
-    <ModalDrawerDemo header={{ title: "Mobile View", description: "Full-width bottom sheet" }}>
+    <AppSheetDemo header={{ title: "Mobile View", description: "Full-width bottom sheet" }}>
       <div className="space-y-3">
         <div className="p-4 rounded-lg bg-bg-weak-50">
-          <p className="text-sm">Drawer content optimized for mobile viewports</p>
+          <p className="text-sm">Sheet content optimized for mobile viewports</p>
         </div>
       </div>
-    </ModalDrawerDemo>
+    </AppSheetDemo>
   ),
   globals: { viewport: { value: "mobile" } },
 };
@@ -433,28 +433,28 @@ export const ContentSizedGeometry: Story = {
   tags: ["storybook-ci"],
   parameters: {
     viewport: {
-      options: MODAL_DRAWER_MOBILE_VIEWPORT,
+      options: APP_SHEET_MOBILE_VIEWPORT,
     },
     docs: {
       description: {
         story:
-          "Without tabs the drawer grows with its content and stays anchored to the viewport bottom, so a two-item notifications sheet no longer fills most of the screen.",
+          "Without tabs the sheet grows with its content and stays anchored to the viewport bottom, so a two-item notifications sheet no longer fills most of the screen.",
       },
     },
   },
-  globals: { viewport: { value: "modalDrawerMobile390x844" } },
+  globals: { viewport: { value: "appSheetMobile390x844" } },
   render: () => (
-    <ModalDrawerDemo header={{ title: "Notifications", description: "2 pending" }} maxHeight="60vh">
+    <AppSheetDemo header={{ title: "Notifications", description: "2 pending" }} maxHeight="60vh">
       <div className="space-y-3">
         <div className="p-4 rounded-lg bg-bg-weak-50 text-sm">Pending work approval</div>
         <div className="p-4 rounded-lg bg-bg-weak-50 text-sm">Pending work approval</div>
       </div>
-    </ModalDrawerDemo>
+    </AppSheetDemo>
   ),
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     await canvas.findByText("Notifications");
-    const surface = canvas.getByTestId("modal-drawer");
+    const surface = canvas.getByTestId("app-sheet");
     await waitForSurfaceSettled(surface);
 
     await waitFor(async () => {
@@ -471,18 +471,18 @@ export const LongContentScrolls: Story = {
   tags: ["storybook-ci"],
   parameters: {
     viewport: {
-      options: MODAL_DRAWER_MOBILE_VIEWPORT,
+      options: APP_SHEET_MOBILE_VIEWPORT,
     },
     docs: {
       description: {
         story:
-          "The drawer's content region is the single scroll owner: a long list stops at maxHeight and scrolls inside the sheet instead of being clipped.",
+          "The sheet's content region is the single scroll owner: a long list stops at maxHeight and scrolls inside the sheet instead of being clipped.",
       },
     },
   },
-  globals: { viewport: { value: "modalDrawerMobile390x844" } },
+  globals: { viewport: { value: "appSheetMobile390x844" } },
   render: () => (
-    <ModalDrawerDemo header={{ title: "Activity Log" }} maxHeight="60vh">
+    <AppSheetDemo header={{ title: "Activity Log" }} maxHeight="60vh">
       <div className="space-y-3">
         {Array.from({ length: 30 }, (_, i) => (
           <div
@@ -494,12 +494,12 @@ export const LongContentScrolls: Story = {
           </div>
         ))}
       </div>
-    </ModalDrawerDemo>
+    </AppSheetDemo>
   ),
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     await canvas.findByText("Activity Log");
-    const surface = canvas.getByTestId("modal-drawer");
+    const surface = canvas.getByTestId("app-sheet");
     await waitForSurfaceSettled(surface);
     const region = canvas.getByTestId("activity-0").parentElement?.parentElement as HTMLElement;
 

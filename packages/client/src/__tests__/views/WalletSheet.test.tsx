@@ -1,5 +1,5 @@
 /**
- * WalletDrawer Tests — host drawer: tab badge counting and tab membership.
+ * WalletSheet Tests — host drawer: tab badge counting and tab membership.
  * @vitest-environment jsdom
  */
 
@@ -95,9 +95,9 @@ vi.mock("@green-goods/shared/hooks/cookie-jar/useAccessibleCookieJars", async (i
   };
 });
 
-import { WalletDrawer } from "../../views/Home/WalletDrawer";
+import { WalletSheet } from "../../views/Home/WalletSheet";
 
-describe("WalletDrawer", () => {
+describe("WalletSheet", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockUseAccessibleCookieJars.mockReturnValue(jarsState([baseJar]));
@@ -107,7 +107,7 @@ describe("WalletDrawer", () => {
     // One claimable, one drained (balance 0), one paused → badge shows 1.
     mockUseAccessibleCookieJars.mockReturnValue(jarsState([baseJar, emptyJar, pausedJar]));
 
-    render(<WalletDrawer isOpen onClose={() => {}} />);
+    render(<WalletSheet isOpen onClose={() => {}} />);
 
     expect(within(screen.getByTestId("tab-cookie-jar")).getByText("1")).toBeInTheDocument();
   });
@@ -115,7 +115,7 @@ describe("WalletDrawer", () => {
   it("shows no badge when nothing is claimable", () => {
     mockUseAccessibleCookieJars.mockReturnValue(jarsState([emptyJar, pausedJar]));
 
-    render(<WalletDrawer isOpen onClose={() => {}} />);
+    render(<WalletSheet isOpen onClose={() => {}} />);
 
     const cookiesTab = within(screen.getByTestId("tab-cookie-jar"));
     expect(cookiesTab.queryByText("0")).not.toBeInTheDocument();
@@ -123,7 +123,7 @@ describe("WalletDrawer", () => {
   });
 
   it("holds only the two balances, with commitments gone to their own sheet", () => {
-    render(<WalletDrawer isOpen onClose={() => {}} />);
+    render(<WalletSheet isOpen onClose={() => {}} />);
 
     expect(screen.getByTestId("tab-cookie-jar")).toBeInTheDocument();
     expect(screen.getByTestId("tab-send")).toBeInTheDocument();

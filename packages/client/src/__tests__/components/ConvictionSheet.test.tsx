@@ -83,9 +83,9 @@ vi.mock(
   }
 );
 
-const { ConvictionDrawer } = await import("@/components/Dialogs/ConvictionDrawer");
+const { ConvictionSheet } = await import("@/components/Sheets/ConvictionSheet");
 
-describe("ConvictionDrawer", () => {
+describe("ConvictionSheet", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.isOnline = true;
@@ -94,7 +94,7 @@ describe("ConvictionDrawer", () => {
 
   it("opens with an eligible allocation control and submits valid support", () => {
     renderWithProviders(
-      <ConvictionDrawer isOpen onClose={vi.fn()} gardenAddress={GARDEN} gardenName="Rocinha" />
+      <ConvictionSheet isOpen onClose={vi.fn()} gardenAddress={GARDEN} gardenName="Rocinha" />
     );
     const input = screen.getByRole("spinbutton", { name: /points to allocate/i });
     const submit = screen.getByRole("button", { name: "Support" });
@@ -111,7 +111,7 @@ describe("ConvictionDrawer", () => {
   it("disables allocation while offline", () => {
     mocks.isOnline = false;
     renderWithProviders(
-      <ConvictionDrawer isOpen onClose={vi.fn()} gardenAddress={GARDEN} gardenName="Rocinha" />
+      <ConvictionSheet isOpen onClose={vi.fn()} gardenAddress={GARDEN} gardenName="Rocinha" />
     );
     expect(screen.getByRole("status")).toBeInTheDocument();
     expect(screen.getByRole("spinbutton", { name: /points to allocate/i })).toBeDisabled();
@@ -120,7 +120,7 @@ describe("ConvictionDrawer", () => {
   it("retries both failed reads", () => {
     mocks.isError = true;
     renderWithProviders(
-      <ConvictionDrawer isOpen onClose={vi.fn()} gardenAddress={GARDEN} gardenName="Rocinha" />
+      <ConvictionSheet isOpen onClose={vi.fn()} gardenAddress={GARDEN} gardenName="Rocinha" />
     );
     fireEvent.click(screen.getByRole("button", { name: /try again/i }));
     expect(mocks.refetchWeights).toHaveBeenCalledOnce();
@@ -129,7 +129,7 @@ describe("ConvictionDrawer", () => {
 
   it("stays closed when the drawer is not open", () => {
     renderWithProviders(
-      <ConvictionDrawer
+      <ConvictionSheet
         isOpen={false}
         onClose={vi.fn()}
         gardenAddress={GARDEN}

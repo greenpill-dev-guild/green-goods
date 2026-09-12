@@ -86,7 +86,7 @@ test.describe("Work Approval CI Tests", () => {
         await page.waitForTimeout(500);
 
         // Should open a modal/drawer
-        const modal = page.locator('[data-testid="modal-drawer"], [role="dialog"]');
+        const modal = page.locator('[data-testid="app-sheet"], [role="dialog"]');
         const isModalVisible = await modal.isVisible({ timeout: 5000 }).catch(() => false);
         expect(isModalVisible).toBe(true);
       } else {

@@ -16,7 +16,7 @@ vi.mock("@/components/Display", () => ({
   ),
 }));
 
-import { ImagePreviewDialog } from "../../components/Dialogs/ImagePreviewDialog";
+import { ImagePreviewDialog } from "../../components/Display/ImagePreviewDialog";
 
 const IMAGES = [
   "https://via.placeholder.co/300x300?text=1",

@@ -23,7 +23,7 @@ import { Button } from "@/components/Actions";
 import { Badge, EmptyState } from "@/components/Communication";
 import { Avatar, AvatarFallback, AvatarImage, AvatarSkeleton } from "@/components/Display";
 import { AddressCopy } from "@/components/Inputs";
-import { pwaDrawerStyles } from "@/components/Pwa/drawerStyles";
+import { pwaSheetStyles } from "@/components/Pwa/sheetStyles";
 import { pwaStatusStyles } from "@/components/Pwa/statusStyles";
 import { GardenJoinRequestsQueue } from "./GardenJoinRequestsQueue";
 
@@ -234,14 +234,14 @@ export const GardenGardeners = forwardRef<HTMLUListElement, GardenGardenersProps
           <Dialog.Portal>
             <Dialog.Overlay
               className={cn(
-                pwaDrawerStyles.dialogOverlay,
+                pwaSheetStyles.dialogOverlay,
                 "data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 duration-[var(--spring-effects-duration)] ease-[var(--spring-effects-easing)]"
               )}
             />
             <Dialog.Content
               className={cn(
                 "fixed z-modal top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[min(520px,92vw)] p-5 focus:outline-none",
-                pwaDrawerStyles.dialogSurface,
+                pwaSheetStyles.dialogSurface,
                 "data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 duration-[var(--spring-spatial-duration)] ease-[var(--spring-spatial-easing)]"
               )}
             >
@@ -251,11 +251,11 @@ export const GardenGardeners = forwardRef<HTMLUListElement, GardenGardenersProps
                 </Dialog.Title>
                 <Dialog.Close asChild>
                   <button
-                    className={cn("p-1", pwaDrawerStyles.closeButtonBase)}
+                    className={cn("p-1", pwaSheetStyles.closeButtonBase)}
                     aria-label="Close modal"
                     type="button"
                   >
-                    <RiCloseLine className={cn("w-5 h-5", pwaDrawerStyles.closeIcon)} />
+                    <RiCloseLine className={cn("w-5 h-5", pwaSheetStyles.closeIcon)} />
                   </button>
                 </Dialog.Close>
               </div>

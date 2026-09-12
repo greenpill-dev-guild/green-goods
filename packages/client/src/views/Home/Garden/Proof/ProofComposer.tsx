@@ -8,7 +8,7 @@ import { useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { useNavigate, useParams } from "react-router-dom";
 
-import { ImagePreviewDialog } from "@/components/Dialogs";
+import { ImagePreviewDialog } from "@/components/Display";
 import { ProofBar } from "./ProofBar";
 import { ProofDetails } from "./ProofDetails";
 import { ProofMedia } from "./ProofMedia";

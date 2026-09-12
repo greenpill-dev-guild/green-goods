@@ -5,7 +5,7 @@ import { RiCloseLine } from "@remixicon/react";
 import React, { useRef } from "react";
 import { useIntl } from "react-intl";
 import { type StandardTab, StandardTabs } from "@/components/Navigation";
-import { pwaDrawerStyles } from "@/components/Pwa/drawerStyles";
+import { pwaSheetStyles } from "@/components/Pwa/sheetStyles";
 
 interface WorkDashboardShellProps {
   className?: string;
@@ -38,16 +38,19 @@ export const WorkDashboardShell: React.FC<WorkDashboardShellProps> = ({
   useDocumentScrollLock(!isClosing);
 
   // Focus trap: keep Tab/Shift+Tab cycling within the dialog
-  useFocusTrap(dialogRef, { enabled: !isClosing });
+  useFocusTrap(dialogRef, {
+    enabled: !isClosing,
+    autoFocusSelector: '[data-testid="app-sheet-close"]',
+  });
 
   return (
     <div
       role="presentation"
       className={cn(
-        pwaDrawerStyles.overlay,
+        pwaSheetStyles.overlay,
         isClosing ? "modal-backdrop-exit" : "modal-backdrop-enter"
       )}
-      data-testid="modal-drawer-overlay"
+      data-testid="app-sheet-overlay"
       onClick={(e) => {
         // Only close if clicking directly on backdrop, not from propagated events
         if (e.target === e.currentTarget) {
@@ -65,8 +68,8 @@ export const WorkDashboardShell: React.FC<WorkDashboardShellProps> = ({
       <div
         ref={dialogRef}
         className={cn(
-          pwaDrawerStyles.panel,
-          pwaDrawerStyles.panelFixed,
+          pwaSheetStyles.panel,
+          pwaSheetStyles.panelFixed,
           isClosing ? "modal-slide-exit" : "modal-slide-enter",
           className
         )}
@@ -82,10 +85,10 @@ export const WorkDashboardShell: React.FC<WorkDashboardShellProps> = ({
         }}
         role="dialog"
         aria-modal="true"
-        data-testid="modal-drawer"
+        data-testid="app-sheet"
       >
         {/* Header */}
-        <div className={pwaDrawerStyles.header}>
+        <div className={pwaSheetStyles.header}>
           <div className="flex-1 min-w-0">
             <h2 className="title-section truncate">
               {intl.formatMessage({
@@ -105,15 +108,15 @@ export const WorkDashboardShell: React.FC<WorkDashboardShellProps> = ({
               onClick={onRequestClose}
               className={cn(
                 "min-h-11 min-w-11 flex items-center justify-center",
-                pwaDrawerStyles.closeButtonBase
+                pwaSheetStyles.closeButtonBase
               )}
-              data-testid="modal-drawer-close"
+              data-testid="app-sheet-close"
               aria-label={intl.formatMessage({
                 id: "app.workDashboard.closeModal",
                 defaultMessage: "Close Modal",
               })}
             >
-              <RiCloseLine className={cn("w-5 h-5", pwaDrawerStyles.closeIcon)} />
+              <RiCloseLine className={cn("w-5 h-5", pwaSheetStyles.closeIcon)} />
             </button>
           </div>
         </div>

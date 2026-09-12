@@ -175,24 +175,23 @@ vi.mock("../../views/Home/GardenList", () => ({
 vi.mock("../../views/Home/GardenFilters", () => ({
   GardenFilterScope: {},
   GardenSortOrder: {},
-  GardensFilterDrawer: () => null,
+  GardensFilterSheet: () => null,
 }));
 
-vi.mock("../../views/Home/WalletDrawer/Icon", () => ({
-  WalletDrawerIcon: () => createElement("button", { "data-testid": "wallet-drawer-icon" }),
+vi.mock("../../views/Home/WalletSheet/Icon", () => ({
+  WalletSheetIcon: () => createElement("button", { "data-testid": "wallet-drawer-icon" }),
 }));
 
-vi.mock("../../views/Home/CommitmentsDrawer/Icon", () => ({
-  CommitmentsDrawerIcon: () =>
-    createElement("button", { "data-testid": "commitments-drawer-icon" }),
+vi.mock("../../views/Home/CommitmentsSheet/Icon", () => ({
+  CommitmentsSheetIcon: () => createElement("button", { "data-testid": "commitments-sheet-icon" }),
 }));
 
-vi.mock("../../views/Home/CommitmentsDrawer", () => ({
-  CommitmentsDrawer: () => null,
+vi.mock("../../views/Home/CommitmentsSheet", () => ({
+  CommitmentsSheet: () => null,
 }));
 
-vi.mock("../../views/Home/WalletDrawer", () => ({
-  WalletDrawer: () => null,
+vi.mock("../../views/Home/WalletSheet", () => ({
+  WalletSheet: () => null,
 }));
 
 vi.mock("../../views/Home/WorkDashboard/Icon", () => ({

@@ -31,32 +31,32 @@ import { Outlet, useLocation, useMatch, useNavigate } from "react-router-dom";
 import { pwaStatusStyles } from "@/components/Pwa/statusStyles";
 import { APP_ROUTES } from "@/config/pwaRouting";
 import { ARRIVAL_TOASTS, type ArrivalActionKind } from "./arrivalToast";
-import { CommitmentsDrawerIcon } from "./CommitmentsDrawer/Icon";
+import { CommitmentsSheetIcon } from "./CommitmentsSheet/Icon";
 import { GardenList } from "./GardenList";
-import { WalletDrawerIcon } from "./WalletDrawer/Icon";
+import { WalletSheetIcon } from "./WalletSheet/Icon";
 import { WorkDashboardIcon } from "./WorkDashboard/Icon";
 
-const CommitmentsDrawer = lazy(() =>
-  import("./CommitmentsDrawer").then(({ CommitmentsDrawer }) => ({ default: CommitmentsDrawer }))
+const CommitmentsSheet = lazy(() =>
+  import("./CommitmentsSheet").then(({ CommitmentsSheet }) => ({ default: CommitmentsSheet }))
 );
-const CommitmentsDrawerLauncher = lazy(
+const CommitmentsSheetLauncher = lazy(
   (): Promise<{ default: ComponentType<{ onClick: () => void }> }> =>
-    import("./CommitmentsDrawer/Launcher")
-      .then(({ CommitmentsDrawerLauncher }) => ({
-        default: CommitmentsDrawerLauncher,
+    import("./CommitmentsSheet/Launcher")
+      .then(({ CommitmentsSheetLauncher }) => ({
+        default: CommitmentsSheetLauncher,
       }))
       // Ambient adjunct: if the launcher chunk cannot load (offline dev serving),
       // hide it rather than failing the whole Home route.
       .catch(() => ({ default: () => null }))
 );
-const GardensFilterDrawer = lazy(() =>
-  import("./GardenFilters").then(({ GardensFilterDrawer }) => ({ default: GardensFilterDrawer }))
+const GardensFilterSheet = lazy(() =>
+  import("./GardenFilters").then(({ GardensFilterSheet }) => ({ default: GardensFilterSheet }))
 );
-const WalletDrawer = lazy(() =>
-  import("./WalletDrawer").then(({ WalletDrawer }) => ({ default: WalletDrawer }))
+const WalletSheet = lazy(() =>
+  import("./WalletSheet").then(({ WalletSheet }) => ({ default: WalletSheet }))
 );
 
-function DeferredCommitmentsDrawerLauncher({ onClick }: { onClick: () => void }) {
+function DeferredCommitmentsSheetLauncher({ onClick }: { onClick: () => void }) {
   const [loadCounts, setLoadCounts] = useState(false);
 
   useEffect(() => {
@@ -70,10 +70,10 @@ function DeferredCommitmentsDrawerLauncher({ onClick }: { onClick: () => void })
     };
   }, []);
 
-  if (!loadCounts) return <CommitmentsDrawerIcon onClick={onClick} actCount={0} />;
+  if (!loadCounts) return <CommitmentsSheetIcon onClick={onClick} actCount={0} />;
   return (
-    <Suspense fallback={<CommitmentsDrawerIcon onClick={onClick} actCount={0} />}>
-      <CommitmentsDrawerLauncher onClick={onClick} />
+    <Suspense fallback={<CommitmentsSheetIcon onClick={onClick} actCount={0} />}>
+      <CommitmentsSheetLauncher onClick={onClick} />
     </Suspense>
   );
 }
@@ -298,8 +298,8 @@ const Home: React.FC = () => {
                   </span>
                 )}
               </button>
-              <WalletDrawerIcon onClick={openWalletDrawer} />
-              <DeferredCommitmentsDrawerLauncher onClick={openCommitmentsDrawer} />
+              <WalletSheetIcon onClick={openWalletDrawer} />
+              <DeferredCommitmentsSheetLauncher onClick={openCommitmentsDrawer} />
               <WorkDashboardIcon />
             </div>
           </div>
@@ -321,7 +321,7 @@ const Home: React.FC = () => {
           </div>
           {isGardenFilterOpen ? (
             <Suspense fallback={null}>
-              <GardensFilterDrawer
+              <GardensFilterSheet
                 isOpen
                 onClose={closeGardenFilter}
                 filters={filters}
@@ -339,12 +339,12 @@ const Home: React.FC = () => {
       <Outlet />
       {isWalletDrawerOpen ? (
         <Suspense fallback={null}>
-          <WalletDrawer isOpen onClose={closeWalletDrawer} />
+          <WalletSheet isOpen onClose={closeWalletDrawer} />
         </Suspense>
       ) : null}
       {isCommitmentsDrawerOpen ? (
         <Suspense fallback={null}>
-          <CommitmentsDrawer isOpen onClose={closeCommitmentsDrawer} />
+          <CommitmentsSheet isOpen onClose={closeCommitmentsDrawer} />
         </Suspense>
       ) : null}
     </article>

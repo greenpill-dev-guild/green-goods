@@ -5,9 +5,9 @@ import { useTimeout } from "@green-goods/shared/hooks/utils/useTimeout";
 import { RiCloseLine } from "@remixicon/react";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useIntl } from "react-intl";
-import { getPwaDrawerCloseDelayMs, pwaDrawerStyles } from "@/components/Pwa/drawerStyles";
+import { getPwaSheetCloseDelayMs, pwaSheetStyles } from "@/components/Pwa/sheetStyles";
 
-export interface ModalDrawerTab {
+export interface AppSheetTab {
   id: string;
   label: string;
   icon?: React.ReactNode;
@@ -15,17 +15,17 @@ export interface ModalDrawerTab {
   badge?: React.ReactNode;
 }
 
-export interface ModalDrawerHeaderProps {
+export interface AppSheetHeaderProps {
   title: string;
   description?: string;
   actions?: React.ReactNode;
 }
 
-export interface ModalDrawerProps {
+export interface AppSheetProps {
   isOpen: boolean;
   onClose: () => void;
-  header: ModalDrawerHeaderProps;
-  tabs?: ModalDrawerTab[];
+  header: AppSheetHeaderProps;
+  tabs?: AppSheetTab[];
   activeTab?: string;
   onTabChange?: (tabId: string) => void;
   children: React.ReactNode;
@@ -42,14 +42,14 @@ export interface ModalDrawerProps {
 }
 
 /**
- * A modal drawer matching the WorkDashboard bottom-sheet pattern: custom CSS
- * keyframe animations and a manual focus trap. Tabbed drawers fill the
- * workspace height (85dvh) so tab switches never resize the sheet; drawers
+ * A modal sheet matching the WorkDashboard bottom-sheet pattern: custom CSS
+ * keyframe animations and a manual focus trap. Tabbed sheets fill the
+ * workspace height (85dvh) so tab switches never resize the sheet; sheets
  * without tabs size to their content and cap at 85dvh (or `maxHeight`). The
  * content region is the single scroll owner unless a consumer passes its own
  * `contentClassName`.
  */
-export const ModalDrawer: React.FC<ModalDrawerProps> = ({
+export const AppSheet: React.FC<AppSheetProps> = ({
   isOpen,
   onClose,
   header,
@@ -72,7 +72,10 @@ export const ModalDrawer: React.FC<ModalDrawerProps> = ({
   useDocumentScrollLock(isOpen && !isClosing);
 
   // Focus trap: keep Tab/Shift+Tab cycling within the dialog
-  useFocusTrap(dialogRef, { enabled: isOpen && !isClosing });
+  useFocusTrap(dialogRef, {
+    enabled: isOpen && !isClosing,
+    autoFocusSelector: '[data-testid="app-sheet-close"]',
+  });
 
   useEffect(() => {
     if (isOpen && !isClosing) closeCompletedRef.current = false;
@@ -90,7 +93,7 @@ export const ModalDrawer: React.FC<ModalDrawerProps> = ({
     if (isClosing) return;
     closeCompletedRef.current = false;
     setIsClosing(true);
-    scheduleTimeout(finishClose, getPwaDrawerCloseDelayMs());
+    scheduleTimeout(finishClose, getPwaSheetCloseDelayMs());
   };
 
   useEffect(() => {
@@ -118,10 +121,10 @@ export const ModalDrawer: React.FC<ModalDrawerProps> = ({
     <div
       role="presentation"
       className={cn(
-        pwaDrawerStyles.overlay,
+        pwaSheetStyles.overlay,
         isClosing ? "modal-backdrop-exit" : "modal-backdrop-enter"
       )}
-      data-testid="modal-drawer-overlay"
+      data-testid="app-sheet-overlay"
       onClick={(e) => {
         if (e.target === e.currentTarget) handleClose();
       }}
@@ -134,8 +137,8 @@ export const ModalDrawer: React.FC<ModalDrawerProps> = ({
       <div
         ref={dialogRef}
         className={cn(
-          pwaDrawerStyles.panel,
-          resolvedHeight === "fixed" ? pwaDrawerStyles.panelFixed : pwaDrawerStyles.panelFit,
+          pwaSheetStyles.panel,
+          resolvedHeight === "fixed" ? pwaSheetStyles.panelFixed : pwaSheetStyles.panelFit,
           isClosing ? "modal-slide-exit" : "modal-slide-enter",
           className
         )}
@@ -155,10 +158,10 @@ export const ModalDrawer: React.FC<ModalDrawerProps> = ({
         }}
         role="dialog"
         aria-modal="true"
-        data-testid="modal-drawer"
+        data-testid="app-sheet"
       >
         {/* Header */}
-        <div className={pwaDrawerStyles.header}>
+        <div className={pwaSheetStyles.header}>
           <div className="flex-1 min-w-0">
             <h2 className="title-section truncate">{header.title}</h2>
             {header.description && (
@@ -171,19 +174,19 @@ export const ModalDrawer: React.FC<ModalDrawerProps> = ({
               onClick={handleClose}
               className={cn(
                 "min-h-11 min-w-11 flex items-center justify-center",
-                pwaDrawerStyles.closeButtonBase
+                pwaSheetStyles.closeButtonBase
               )}
-              data-testid="modal-drawer-close"
+              data-testid="app-sheet-close"
               aria-label={formatMessage({ id: "app.common.close" })}
             >
-              <RiCloseLine className={cn("w-5 h-5", pwaDrawerStyles.closeIcon)} />
+              <RiCloseLine className={cn("w-5 h-5", pwaSheetStyles.closeIcon)} />
             </button>
           </div>
         </div>
 
         {/* Tabs */}
         {tabs.length > 0 && (
-          <div className={pwaDrawerStyles.tabs} role="tablist">
+          <div className={pwaSheetStyles.tabs} role="tablist">
             {tabs.map((tab) => (
               <button
                 key={tab.id}
@@ -192,8 +195,8 @@ export const ModalDrawer: React.FC<ModalDrawerProps> = ({
                 role="tab"
                 aria-selected={activeTab === tab.id}
                 className={cn(
-                  pwaDrawerStyles.tabTrigger,
-                  activeTab === tab.id ? pwaDrawerStyles.tabActive : pwaDrawerStyles.tabInactive
+                  pwaSheetStyles.tabTrigger,
+                  activeTab === tab.id ? pwaSheetStyles.tabActive : pwaSheetStyles.tabInactive
                 )}
                 data-testid={`tab-${tab.id}`}
               >
@@ -207,7 +210,7 @@ export const ModalDrawer: React.FC<ModalDrawerProps> = ({
                   <span
                     className={cn(
                       "inline-flex items-center justify-center text-xs font-medium rounded-full min-w-[16px] h-4 px-1 flex-shrink-0",
-                      pwaDrawerStyles.tabBadge
+                      pwaSheetStyles.tabBadge
                     )}
                   >
                     {tab.count > 99 ? "99+" : tab.count}
@@ -218,7 +221,7 @@ export const ModalDrawer: React.FC<ModalDrawerProps> = ({
                   <div
                     className={cn(
                       "absolute bottom-0 left-0 right-0 h-0.5",
-                      pwaDrawerStyles.tabIndicator
+                      pwaSheetStyles.tabIndicator
                     )}
                   />
                 )}
@@ -227,8 +230,8 @@ export const ModalDrawer: React.FC<ModalDrawerProps> = ({
           </div>
         )}
 
-        {/* Content — the drawer's single scroll owner unless the consumer
-            takes over with contentClassName (tabbed drawers scroll per tab). */}
+        {/* Content — the sheet's single scroll owner unless the consumer
+            takes over with contentClassName (tabbed sheets scroll per tab). */}
         <div
           className={cn(
             "flex-1 min-h-0",
@@ -241,7 +244,7 @@ export const ModalDrawer: React.FC<ModalDrawerProps> = ({
         </div>
 
         {/* Footer — fixed at bottom, above content scroll */}
-        {footer && <div className={pwaDrawerStyles.footer}>{footer}</div>}
+        {footer && <div className={pwaSheetStyles.footer}>{footer}</div>}
       </div>
     </div>
   );

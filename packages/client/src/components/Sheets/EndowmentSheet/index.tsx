@@ -17,23 +17,23 @@ import { useIntl } from "react-intl";
 import { parseUnits } from "viem";
 import { Button } from "@/components/Actions";
 import { useBalance } from "wagmi";
-import { ModalDrawer, type ModalDrawerTab } from "../ModalDrawer";
+import { AppSheet, type AppSheetTab } from "../AppSheet";
 import { CookieJarTabContent } from "./CookieJarTabContent";
 import { TreasuryTabContent } from "./TreasuryTabContent";
 
-interface EndowmentDrawerProps {
+interface EndowmentSheetProps {
   isOpen: boolean;
   onClose: () => void;
   gardenAddress: Address;
   gardenName: string;
 }
 
-export function EndowmentDrawer({
+export function EndowmentSheet({
   isOpen,
   onClose,
   gardenAddress,
   gardenName,
-}: EndowmentDrawerProps) {
+}: EndowmentSheetProps) {
   const { formatMessage } = useIntl();
   const { primaryAddress } = useUser();
   const { isOnline } = useOffline();
@@ -135,7 +135,7 @@ export function EndowmentDrawer({
     );
   };
 
-  const tabs: ModalDrawerTab[] = [
+  const tabs: AppSheetTab[] = [
     { id: "treasury", label: formatMessage({ id: "app.treasury.endowmentsTab" }) },
     { id: "cookie-jar", label: formatMessage({ id: "app.cookieJar.title" }) },
   ];
@@ -168,7 +168,7 @@ export function EndowmentDrawer({
     ) : undefined;
 
   return (
-    <ModalDrawer
+    <AppSheet
       isOpen={isOpen}
       onClose={onClose}
       header={{ title: formatMessage({ id: "app.treasury.title" }), description: gardenName }}
@@ -210,6 +210,6 @@ export function EndowmentDrawer({
           hasDetailReadFailure={jarsDetailReadFailure}
         />
       )}
-    </ModalDrawer>
+    </AppSheet>
   );
 }

@@ -14,7 +14,7 @@ import type { WalletMode } from "@green-goods/shared/modules/wallet/send-flow";
 import { RiArrowLeftLine, RiLoader4Line, RiPencilLine } from "@remixicon/react";
 import React from "react";
 import { useIntl } from "react-intl";
-import { PWA_DRAWER_SCROLL_CLASSNAME } from "@/components/Pwa/drawerScrollStyles";
+import { PWA_SHEET_SCROLL_CLASSNAME } from "@/components/Pwa/sheetScrollStyles";
 import { AmountStep } from "./Send/AmountStep";
 import { BalanceView } from "./Send/BalanceView";
 import { ReceiveView } from "./Send/ReceiveView";
@@ -95,7 +95,7 @@ export const SendTab: React.FC<SendTabProps> = ({ resetNonce }) => {
       </div>
 
       {mode === "balance" ? (
-        <div className={PWA_DRAWER_SCROLL_CLASSNAME}>
+        <div className={PWA_SHEET_SCROLL_CLASSNAME}>
           <BalanceView
             tokens={tokens}
             isLoading={isLoading}
@@ -106,12 +106,12 @@ export const SendTab: React.FC<SendTabProps> = ({ resetNonce }) => {
           />
         </div>
       ) : mode === "receive" ? (
-        <div className={PWA_DRAWER_SCROLL_CLASSNAME}>
+        <div className={PWA_SHEET_SCROLL_CLASSNAME}>
           <ReceiveView />
         </div>
       ) : (
         <>
-          <div className={PWA_DRAWER_SCROLL_CLASSNAME}>
+          <div className={PWA_SHEET_SCROLL_CLASSNAME}>
             {!isOnline ? (
               <div className="px-4 pt-4">
                 <Alert variant="warning">{formatMessage({ id: "app.send.review.offline" })}</Alert>

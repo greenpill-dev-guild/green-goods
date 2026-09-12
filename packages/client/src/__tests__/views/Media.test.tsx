@@ -159,7 +159,7 @@ vi.mock("@/components/Communication", () => ({
   Badge: ({ children }: any) => <span data-testid="badge">{children}</span>,
 }));
 
-vi.mock("@/components/Dialogs", () => ({
+vi.mock("@/components/Sheets", () => ({
   ImagePreviewDialog: ({ isOpen }: any) =>
     isOpen ? <div data-testid="image-preview-dialog">Preview</div> : null,
 }));

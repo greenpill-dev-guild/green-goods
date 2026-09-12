@@ -21,7 +21,7 @@ import { RiLoader4Line } from "@remixicon/react";
 import { useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { pwaStatusStyles } from "@/components/Pwa/statusStyles";
-import { ModalDrawer } from "./ModalDrawer";
+import { AppSheet } from "./AppSheet";
 
 function SectionSkeleton({ rows = 3 }: { rows?: number }) {
   return (
@@ -36,7 +36,7 @@ function SectionSkeleton({ rows = 3 }: { rows?: number }) {
   );
 }
 
-interface ConvictionDrawerProps {
+interface ConvictionSheetProps {
   isOpen: boolean;
   onClose: () => void;
   gardenAddress: Address;
@@ -181,12 +181,12 @@ function SupportInput({
   );
 }
 
-export function ConvictionDrawer({
+export function ConvictionSheet({
   isOpen,
   onClose,
   gardenAddress,
   gardenName,
-}: ConvictionDrawerProps) {
+}: ConvictionSheetProps) {
   const { formatMessage } = useIntl();
   const { primaryAddress } = useUser();
   const { isOnline } = useOffline();
@@ -270,7 +270,7 @@ export function ConvictionDrawer({
   const isError = weightsError || powerError;
 
   return (
-    <ModalDrawer
+    <AppSheet
       isOpen={isOpen}
       onClose={onClose}
       header={{
@@ -565,6 +565,6 @@ export function ConvictionDrawer({
           </>
         )}
       </div>
-    </ModalDrawer>
+    </AppSheet>
   );
 }

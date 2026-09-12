@@ -3,7 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { IntlProvider } from "react-intl";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import messages from "@green-goods/shared/i18n/en.json";
-import { DraftDialog } from "../../components/Dialogs/DraftDialog";
+import { DraftSheet } from "../../components/Sheets/DraftSheet";
 
 afterEach(cleanup);
 function setup(extra = {}) {
@@ -17,7 +17,7 @@ function setup(extra = {}) {
   };
   render(
     <IntlProvider locale="en" messages={messages}>
-      <DraftDialog {...props} />
+      <DraftSheet {...props} />
     </IntlProvider>
   );
   return props;

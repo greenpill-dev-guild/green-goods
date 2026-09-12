@@ -4,7 +4,7 @@ import { MAX_REASON } from "@green-goods/shared/commitment-pooling";
 import { useState } from "react";
 import { useIntl } from "react-intl";
 
-export interface WithdrawDialogProps {
+export interface WithdrawSheetProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   direction: "OFFER" | "REQUEST";
@@ -27,14 +27,14 @@ export interface WithdrawDialogProps {
  * The reason leaves here as words. Pinning it is the shared hook's job, so the
  * dialog never holds a CID and can never send the text in a CID's place.
  */
-export function WithdrawDialog({
+export function WithdrawSheet({
   open,
   onOpenChange,
   direction,
   isPending,
   pinFailed = false,
   onConfirm,
-}: WithdrawDialogProps) {
+}: WithdrawSheetProps) {
   const { formatMessage } = useIntl();
   const [reason, setReason] = useState("");
   const isRequest = direction === "REQUEST";

@@ -12,12 +12,12 @@ import React, { useCallback, useState } from "react";
 import { useIntl } from "react-intl";
 import { useNavigate } from "react-router-dom";
 
-import { ModalDrawer, type ModalDrawerTab } from "@/components/Dialogs/ModalDrawer";
+import { AppSheet, type AppSheetTab } from "@/components/Sheets/AppSheet";
 import { LiveTab } from "./LiveTab";
 import { OverTimeTab } from "./OverTimeTab";
 import { ToConfirmTab } from "./ToConfirmTab";
 
-interface CommitmentsDrawerProps {
+interface CommitmentsSheetProps {
   isOpen: boolean;
   onClose: () => void;
 }
@@ -34,7 +34,7 @@ interface CommitmentsDrawerProps {
  * A steward gets a third, "To confirm", for what reaches them through their
  * garden's Hat rather than through their own account.
  */
-export const CommitmentsDrawer: React.FC<CommitmentsDrawerProps> = ({ isOpen, onClose }) => {
+export const CommitmentsSheet: React.FC<CommitmentsSheetProps> = ({ isOpen, onClose }) => {
   const { formatMessage } = useIntl();
   const [activeTab, setActiveTab] = useState("live");
   const chainId = DEFAULT_CHAIN_ID;
@@ -63,7 +63,7 @@ export const CommitmentsDrawer: React.FC<CommitmentsDrawerProps> = ({ isOpen, on
     [onClose, navigate, gardens]
   );
 
-  const tabs: ModalDrawerTab[] = [
+  const tabs: AppSheetTab[] = [
     {
       id: "live",
       label: formatMessage({ id: "app.commitments.tab.live" }),
@@ -88,13 +88,13 @@ export const CommitmentsDrawer: React.FC<CommitmentsDrawerProps> = ({ isOpen, on
       : []),
   ];
 
-  // The drawer stays mounted, so a steward who loses the role (or switches
+  // The sheet stays mounted, so a steward who loses the role (or switches
   // account) while To confirm is selected would reopen it with a tab that no
   // longer exists and no panel under it. Fall back to the tab that always does.
   const selectedTab = tabs.some((tab) => tab.id === activeTab) ? activeTab : "live";
 
   return (
-    <ModalDrawer
+    <AppSheet
       isOpen={isOpen}
       onClose={onClose}
       header={{
@@ -122,6 +122,6 @@ export const CommitmentsDrawer: React.FC<CommitmentsDrawerProps> = ({ isOpen, on
       {selectedTab === "to-confirm" && toConfirm.isSteward && (
         <ToConfirmTab toConfirm={toConfirm} onOpenCommitment={openCommitment} />
       )}
-    </ModalDrawer>
+    </AppSheet>
   );
 };

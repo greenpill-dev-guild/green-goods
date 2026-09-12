@@ -5,7 +5,7 @@ import { useIntl } from "react-intl";
 
 import { pwaStatusStyles } from "@/components/Pwa/statusStyles";
 
-export interface CommitmentsDrawerIconProps {
+export interface CommitmentsSheetIconProps {
   onClick: () => void;
   /**
    * How many things need an act from this member right now. It is the sum of
@@ -16,7 +16,7 @@ export interface CommitmentsDrawerIconProps {
   className?: string;
 }
 
-export const CommitmentsDrawerIcon: React.FC<CommitmentsDrawerIconProps> = ({
+export const CommitmentsSheetIcon: React.FC<CommitmentsSheetIconProps> = ({
   onClick,
   actCount = 0,
   className,
@@ -43,7 +43,7 @@ export const CommitmentsDrawerIcon: React.FC<CommitmentsDrawerIconProps> = ({
           ? intl.formatMessage({ id: "app.commitments.openButtonWaiting" }, { count: actCount })
           : intl.formatMessage({ id: "app.commitments.openButton" })
       }
-      data-testid="commitments-drawer-button"
+      data-testid="commitments-sheet-button"
     >
       <RiHandHeartLine className="h-4 w-4" />
       {hasActs && (

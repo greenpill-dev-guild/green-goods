@@ -225,8 +225,8 @@ vi.mock("@/components/Communication", () => ({
   FormProgress: () => createElement("div", { "data-testid": "form-progress" }),
 }));
 
-vi.mock("@/components/Dialogs", () => ({
-  DraftDialog: () => null,
+vi.mock("@/components/Sheets", () => ({
+  DraftSheet: () => null,
 }));
 
 vi.mock("@/components/Features/Work", () => ({

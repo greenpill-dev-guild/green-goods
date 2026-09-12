@@ -38,7 +38,7 @@ import { useIntl } from "react-intl";
 import { Outlet, useLocation, useParams } from "react-router-dom";
 import { isAddress } from "viem";
 import { Button } from "@/components/Actions";
-import { ConvictionDrawer, EndowmentDrawer } from "@/components/Dialogs";
+import { ConvictionSheet, EndowmentSheet } from "@/components/Sheets";
 import { GardenErrorBoundary } from "@/components/Errors";
 import {
   GardenAssessments,
@@ -478,7 +478,7 @@ export const Garden: React.FC = () => {
           </>
         )}
         {garden && (
-          <EndowmentDrawer
+          <EndowmentSheet
             isOpen={isEndowmentOpen}
             onClose={closeEndowmentDrawer}
             gardenAddress={garden.id as Address}
@@ -486,7 +486,7 @@ export const Garden: React.FC = () => {
           />
         )}
         {garden && hasGovernance && (
-          <ConvictionDrawer
+          <ConvictionSheet
             isOpen={isGovernanceOpen}
             onClose={() => setIsGovernanceOpen(false)}
             gardenAddress={garden.id as Address}

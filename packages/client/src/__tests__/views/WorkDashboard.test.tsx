@@ -331,7 +331,7 @@ describe("WorkDashboard", () => {
     expect(screen.getByTestId("tab-pending")).toBeInTheDocument();
     expect(screen.getByTestId("tab-completed")).toBeInTheDocument();
     expect(screen.queryByTestId("tab-recent")).not.toBeInTheDocument();
-    expect(screen.getByTestId("modal-drawer").className).toContain("rounded-t-[var(--radius-lg)]");
+    expect(screen.getByTestId("app-sheet").className).toContain("rounded-t-[var(--radius-lg)]");
     expect(screen.getByText("Queued tree planting")).toBeInTheDocument();
     expect(mockUseMyWorks).toHaveBeenCalledWith({ includeOffline: true });
     expect(mockUseMyOnlineWorks).not.toHaveBeenCalled();
@@ -517,12 +517,12 @@ describe("WorkDashboard", () => {
     expect(dashboardScroll.querySelector(".overflow-y-auto")).toBeNull();
     // A tabbed workspace keeps the fixed sheet height so tab switches never
     // resize it; content-sized sheets are for tab-less surfaces.
-    expect(screen.getByTestId("modal-drawer")).toHaveClass("h-modal");
+    expect(screen.getByTestId("app-sheet")).toHaveClass("h-modal");
   });
 
   it("closes from Escape while focus is inside the dialog", () => {
     const { onClose } = renderDashboard();
-    const closeButton = screen.getByTestId("modal-drawer-close");
+    const closeButton = screen.getByTestId("app-sheet-close");
     closeButton.focus();
 
     fireEvent.keyDown(closeButton, { key: "Escape" });

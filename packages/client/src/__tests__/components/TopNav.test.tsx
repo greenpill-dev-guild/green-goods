@@ -141,7 +141,7 @@ describe("components/Navigation/TopNav", () => {
 
       fireEvent.click(screen.getByRole("button", { name: /view notifications/i }));
 
-      const sheet = screen.getByTestId("modal-drawer");
+      const sheet = screen.getByTestId("app-sheet");
       expect(sheet).toHaveClass("max-h-sheet");
       expect(sheet).not.toHaveClass("h-modal");
       expect(sheet.style.maxHeight).toBe("60vh");
