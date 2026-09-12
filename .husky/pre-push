@@ -5,7 +5,7 @@ set -eu
 (set -o pipefail) 2>/dev/null && set -o pipefail
 
 # Add common package manager bin paths to PATH
-export PATH="$HOME/.bun/bin:$HOME/.local/bin:$PATH"
+export PATH="$PATH:$HOME/.bun/bin:$HOME/.local/bin"
 
 # Only try nvm when running in bash (nvm isn't POSIX-sh safe)
 if [ -n "${BASH_VERSION-}" ] && [ -f .nvmrc ]; then

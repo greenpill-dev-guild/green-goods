@@ -16,7 +16,7 @@ const USER = "testuser";
 const ADDRESS = "0x1111111111111111111111111111111111111111" as Hex;
 const OTHER_ADDRESS = "0x9999999999999999999999999999999999999999" as Hex;
 const CREDENTIAL: P256Credential = {
-  id: "dGVzdC1jcmVkZW50aWFsLWlk",
+  id: "3q2-7w",
   publicKey: "0x1234",
   raw: undefined as unknown as PublicKeyCredential,
 };
@@ -243,11 +243,14 @@ describe("createAuthServices", () => {
       ).resolves.toMatchObject({ smartAccountAddress: ADDRESS, userName: USER });
       expect(harness.calls.createLocalPasskey).toHaveBeenCalledWith(USER);
       expect(harness.calls.buildSmartAccount).toHaveBeenCalledWith(
-        CREDENTIAL,
+        { ...CREDENTIAL, signingId: CREDENTIAL.id },
         CHAIN_ID,
         "localhost"
       );
-      expect(harness.sessionSpies.setCredential).toHaveBeenCalledWith(CREDENTIAL);
+      expect(harness.sessionSpies.setCredential).toHaveBeenCalledWith({
+        ...CREDENTIAL,
+        signingId: CREDENTIAL.id,
+      });
       expect(harness.sessionSpies.setRpId).toHaveBeenCalledWith("localhost");
       expect(harness.sessionSpies.clearSignedOut).toHaveBeenCalledTimes(1);
     });
@@ -262,7 +265,8 @@ describe("createAuthServices", () => {
         })
       ).resolves.toMatchObject({
         credential: expect.objectContaining({
-          id: CREDENTIAL.id,
+          id: SERVER_CREDENTIAL.id,
+          signingId: CREDENTIAL.id,
           publicKey: SERVER_CREDENTIAL.publicKey,
         }),
         userName: USER,
@@ -270,7 +274,7 @@ describe("createAuthServices", () => {
       expect(harness.server.getCredentials).toHaveBeenCalledWith({ context: { userName: USER } });
       expect(harness.calls.createLocalPasskey).not.toHaveBeenCalled();
       expect(harness.calls.buildSmartAccount).toHaveBeenCalledWith(
-        expect.objectContaining({ id: CREDENTIAL.id }),
+        expect.objectContaining({ id: SERVER_CREDENTIAL.id, signingId: CREDENTIAL.id }),
         CHAIN_ID,
         "greengoods.app"
       );
@@ -322,7 +326,8 @@ describe("createAuthServices", () => {
         invoke(harness.services.authenticatePasskey, { userName: USER, chainId: CHAIN_ID })
       ).resolves.toMatchObject({
         credential: expect.objectContaining({
-          id: CREDENTIAL.id,
+          id: SERVER_CREDENTIAL.id,
+          signingId: CREDENTIAL.id,
           publicKey: SERVER_CREDENTIAL.publicKey,
         }),
         smartAccountAddress: ADDRESS,
@@ -331,11 +336,15 @@ describe("createAuthServices", () => {
         expect.objectContaining({ uuid: "auth-uuid" })
       );
       expect(harness.sessionSpies.setCredential).toHaveBeenCalledWith(
-        expect.objectContaining({ id: CREDENTIAL.id, publicKey: SERVER_CREDENTIAL.publicKey })
+        expect.objectContaining({
+          id: SERVER_CREDENTIAL.id,
+          signingId: CREDENTIAL.id,
+          publicKey: SERVER_CREDENTIAL.publicKey,
+        })
       );
       expect(harness.sessionSpies.setRpId).toHaveBeenCalledWith("greengoods.app");
       expect(harness.calls.buildSmartAccount).toHaveBeenCalledWith(
-        expect.objectContaining({ id: CREDENTIAL.id }),
+        expect.objectContaining({ id: SERVER_CREDENTIAL.id, signingId: CREDENTIAL.id }),
         CHAIN_ID,
         "greengoods.app"
       );
@@ -415,6 +424,85 @@ describe("createAuthServices", () => {
       expect(harness.telemetry.loginFailed).toHaveBeenCalledWith(
         expect.objectContaining({ source: "local_cache", reason: "cancelled" })
       );
+    });
+
+    it.each([
+      SERVER_CREDENTIAL.id,
+      CREDENTIAL.id,
+    ])("preserves the saved account derived from %s during server recovery", async (identity) => {
+      harness.state.serverEnabled = true;
+      harness.state.expectedAddress = ADDRESS;
+      harness.server.getCredentials.mockResolvedValue([SERVER_CREDENTIAL]);
+      harness.calls.buildSmartAccount.mockImplementation(async (credential: P256Credential) => ({
+        client: {} as SmartAccountClient,
+        address: credential.id === identity ? ADDRESS : OTHER_ADDRESS,
+      }));
+      await expect(
+        invoke(harness.services.authenticatePasskey, { userName: USER, chainId: CHAIN_ID })
+      ).resolves.toMatchObject({
+        credential: { id: identity, signingId: CREDENTIAL.id },
+        smartAccountAddress: ADDRESS,
+      });
+      expect(harness.sessionSpies.setAddress).toHaveBeenCalledExactlyOnceWith(ADDRESS);
+      expect(harness.sessionSpies.setCredential).toHaveBeenCalledExactlyOnceWith(
+        expect.objectContaining({ id: identity })
+      );
+    });
+
+    it("preserves an authenticated legacy ID spelling when it matches the expected address", async () => {
+      harness.state.serverEnabled = true;
+      harness.state.expectedAddress = ADDRESS;
+      harness.state.credential = { ...CREDENTIAL, ...SERVER_CREDENTIAL, id: "0xDEADBEEF" };
+      harness.server.getCredentials.mockResolvedValue([SERVER_CREDENTIAL]);
+      harness.calls.buildSmartAccount.mockImplementation(async (credential: P256Credential) => ({
+        client: {} as SmartAccountClient,
+        address: credential.id === "0xDEADBEEF" ? ADDRESS : OTHER_ADDRESS,
+      }));
+      await expect(
+        invoke(harness.services.authenticatePasskey, { userName: USER, chainId: CHAIN_ID })
+      ).resolves.toMatchObject({ credential: { id: "0xDEADBEEF", signingId: CREDENTIAL.id } });
+    });
+
+    it("does not use an unrelated cached key to satisfy the saved address", async () => {
+      harness.state.serverEnabled = true;
+      harness.state.expectedAddress = OTHER_ADDRESS;
+      harness.state.credential = { ...CREDENTIAL, id: "0xDEADBEEF" };
+      harness.server.getCredentials.mockResolvedValue([SERVER_CREDENTIAL]);
+      await expect(
+        invoke(harness.services.authenticatePasskey, { userName: USER, chainId: CHAIN_ID })
+      ).rejects.toThrow("expected account address");
+      expect(
+        harness.calls.buildSmartAccount.mock.calls.map(([credential]) => credential.id)
+      ).not.toContain("0xDEADBEEF");
+      expect(harness.sessionSpies.setCredential).not.toHaveBeenCalled();
+    });
+
+    it.each([
+      undefined,
+      "",
+      "cafe",
+    ])("rejects an absent or unrelated verified server ID (%s)", async (id) => {
+      harness.state.serverEnabled = true;
+      harness.server.getCredentials.mockResolvedValue([SERVER_CREDENTIAL]);
+      harness.server.verifyAuthentication.mockResolvedValue({
+        success: true,
+        id,
+        publicKey: SERVER_CREDENTIAL.publicKey,
+      });
+      await expect(
+        invoke(harness.services.authenticatePasskey, { userName: USER, chainId: CHAIN_ID })
+      ).rejects.toThrow("authentication failed");
+      expect(harness.calls.buildSmartAccount).not.toHaveBeenCalled();
+      expect(harness.sessionSpies.setCredential).not.toHaveBeenCalled();
+    });
+
+    it("pins the browser ID after a legacy cached hex ceremony without changing identity", async () => {
+      harness.state.credential = { ...CREDENTIAL, id: SERVER_CREDENTIAL.id };
+      await expect(
+        invoke(harness.services.authenticatePasskey, { userName: USER, chainId: CHAIN_ID })
+      ).resolves.toMatchObject({
+        credential: { id: SERVER_CREDENTIAL.id, signingId: CREDENTIAL.id },
+      });
     });
 
     it("fails closed when a recovered credential rebuilds a different expected address", async () => {

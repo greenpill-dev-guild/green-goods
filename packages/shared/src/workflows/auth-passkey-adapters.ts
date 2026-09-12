@@ -37,6 +37,8 @@ import {
   getStoredRpId,
   getStoredSmartAccountAddress,
   getStoredUsername,
+  getPasskeyRequestIds,
+  type PasskeyCredential,
   hasSignedOutSentinel,
   setStoredCredential,
   setStoredRpId,
@@ -52,8 +54,8 @@ export interface PasskeySessionAdapter {
   hasSignedOutSentinel(): boolean;
   clearSignedOutSentinel(): void;
   getAuthMode(): ReturnType<typeof getAuthMode>;
-  getStoredCredential(): P256Credential | null;
-  setStoredCredential(credential: P256Credential): void;
+  getStoredCredential(): PasskeyCredential | null;
+  setStoredCredential(credential: PasskeyCredential): void;
   getStoredRpId(): string | null;
   setStoredRpId(rpId: string): void;
   getStoredUsername(): string | null;
@@ -84,22 +86,40 @@ export interface PasskeyAdapters {
   getRpId(): string;
   randomChallenge(): Uint8Array;
   buildSmartAccount(
-    credential: P256Credential,
+    credential: PasskeyCredential,
     chainId: number,
     rpId: string
   ): Promise<{ client: SmartAccountClient; address: Hex }>;
 }
 
 export function createPasskeyOwner(
-  credential: P256Credential,
+  credential: PasskeyCredential,
   rpId: string,
   getFn?: Parameters<typeof toWebAuthnAccount>[0]["getFn"]
 ) {
-  return toWebAuthnAccount({ credential, rpId, getFn });
+  const getCredential: NonNullable<Parameters<typeof toWebAuthnAccount>[0]["getFn"]> =
+    getFn ?? ((options) => navigator.credentials.get(options as CredentialRequestOptions));
+  return toWebAuthnAccount({
+    credential,
+    rpId,
+    getFn: (options) => {
+      if (!options?.publicKey?.allowCredentials) return getCredential(options);
+      return getCredential({
+        ...options,
+        publicKey: {
+          ...options.publicKey,
+          allowCredentials: getPasskeyRequestIds(credential).map((id) => ({
+            type: "public-key",
+            id,
+          })),
+        },
+      });
+    },
+  });
 }
 
 async function buildSmartAccount(
-  credential: P256Credential,
+  credential: PasskeyCredential,
   chainId: number,
   rpId: string
 ): Promise<{ client: SmartAccountClient; address: Hex }> {

@@ -195,7 +195,7 @@ describe("modules/auth/session", () => {
   });
 
   describe("passkey credential storage", () => {
-    it("stores the browser credential ID with an explicit base64url schema", () => {
+    it("stores identity separately from the browser credential ID", () => {
       setStoredCredential({
         id: "3q2-7w",
         publicKey: "0x1234",
@@ -203,8 +203,8 @@ describe("modules/auth/session", () => {
       });
 
       expect(JSON.parse(mockLocalStorage.getItem("greengoods_credential") ?? "null")).toEqual({
-        version: 2,
-        idEncoding: "base64url",
+        version: 3,
+        signingId: null,
         id: "3q2-7w",
         publicKey: "0x1234",
       });
@@ -220,25 +220,56 @@ describe("modules/auth/session", () => {
       expect(getStoredCredential()).toMatchObject({ id: "legacy-id_1", publicKey: "0x1234" });
       expect(JSON.parse(mockLocalStorage.getItem("greengoods_credential") ?? "null")).toMatchObject(
         {
-          version: 2,
-          idEncoding: "base64url",
+          version: 3,
+          signingId: null,
         }
       );
     });
 
-    it("requires sign-in for an ambiguous legacy hex credential ID", () => {
+    it("preserves a legacy hex identity and its expected address", () => {
       mockLocalStorage.setItem(
         "greengoods_credential",
         JSON.stringify({ id: "deadbeef", publicKey: "0x1234" })
       );
+      mockLocalStorage.setItem(SMART_ACCOUNT_ADDRESS_STORAGE_KEY, "saved-address");
+      expect(getStoredCredential()).toMatchObject({ id: "deadbeef", publicKey: "0x1234" });
+      expect(mockLocalStorage.getItem(SMART_ACCOUNT_ADDRESS_STORAGE_KEY)).toBe("saved-address");
+    });
 
-      expect(getStoredCredential()).toBeNull();
+    it("migrates a hex-shaped v2 browser ID without reinterpreting its encoding", () => {
+      mockLocalStorage.setItem(
+        "greengoods_credential",
+        JSON.stringify({
+          version: 2,
+          idEncoding: "base64url",
+          id: "deadbeef",
+          publicKey: "0x1234",
+        })
+      );
+      expect(getStoredCredential()).toMatchObject({ id: "deadbeef", signingId: "deadbeef" });
+      expect(getStoredCredential()).toMatchObject({ id: "deadbeef", signingId: "deadbeef" });
+      expect(JSON.parse(mockLocalStorage.getItem("greengoods_credential")!)).toEqual({
+        version: 3,
+        id: "deadbeef",
+        signingId: "deadbeef",
+        publicKey: "0x1234",
+      });
+    });
+
+    it("round-trips a hex identity with an explicit browser signing ID", () => {
+      setStoredCredential({
+        id: "deadbeef",
+        signingId: "3q2-7w",
+        publicKey: "0x1234",
+        raw: undefined as unknown as PublicKeyCredential,
+      });
+      expect(getStoredCredential()).toMatchObject({ id: "deadbeef", signingId: "3q2-7w" });
     });
 
     it("requires sign-in for a credential stored under an unknown schema version", () => {
       mockLocalStorage.setItem(
         "greengoods_credential",
-        JSON.stringify({ version: 3, idEncoding: "hex", id: "3q2-7w", publicKey: "0x1234" })
+        JSON.stringify({ version: 4, idEncoding: "hex", id: "3q2-7w", publicKey: "0x1234" })
       );
 
       expect(getStoredCredential()).toBeNull();
