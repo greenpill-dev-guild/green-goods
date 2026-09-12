@@ -67,6 +67,50 @@ import { useDocumentScrollLock } from "../../hooks/ui/useDocumentScrollLock";
 import { useFocusTrap } from "../../hooks/utils/useFocusTrap";
 import { DISMISS_VELOCITY_THRESHOLD } from "../Canvas/springConfig";
 
+/**
+ * Branches currently hidden from assistive tech by open sheets, with how
+ * many sheets hold each one and the attribute value to restore. Module
+ * scope so overlapping sheets share one ledger.
+ */
+const hiddenBranches = new Map<Element, { count: number; previous: string | null }>();
+
+/**
+ * Hide every sibling along `target`'s ancestor path up to <body>, the way
+ * Radix hides the rest of the page behind a dialog. Works for portaled and
+ * inline sheets alike: only the sheet's own ancestors stay exposed. Returns
+ * the release function; a branch is restored once its last holder releases.
+ */
+function hideOthers(target: Element): () => void {
+  const held: Element[] = [];
+  let node: Element | null = target;
+  while (node && node !== document.body && node.parentElement) {
+    const parent: Element = node.parentElement;
+    for (const sibling of Array.from(parent.children)) {
+      if (sibling === node || sibling.tagName === "SCRIPT" || sibling.tagName === "STYLE") continue;
+      const entry = hiddenBranches.get(sibling);
+      if (entry) {
+        entry.count += 1;
+      } else {
+        hiddenBranches.set(sibling, { count: 1, previous: sibling.getAttribute("aria-hidden") });
+        sibling.setAttribute("aria-hidden", "true");
+      }
+      held.push(sibling);
+    }
+    node = parent;
+  }
+  return () => {
+    for (const sibling of held) {
+      const entry = hiddenBranches.get(sibling);
+      if (!entry) continue;
+      entry.count -= 1;
+      if (entry.count > 0) continue;
+      hiddenBranches.delete(sibling);
+      if (entry.previous === null) sibling.removeAttribute("aria-hidden");
+      else sibling.setAttribute("aria-hidden", entry.previous);
+    }
+  };
+}
+
 const DRAG_DISMISS_DISTANCE_PX = 120;
 const DRAG_PULL_RESISTANCE_FACTOR = 0.86;
 const DEFAULT_CLOSE_DURATION_MS = 300;
@@ -201,27 +245,14 @@ export function PwaSheet({
     };
   }, [open]);
 
-  // Hide everything else from assistive tech while the sheet is open. The
-  // sheet's own top-level container (its portal target, or the app root when
-  // a consumer renders it inline) stays exposed.
+  // Hide the rest of the page from assistive tech while the sheet is open;
+  // overlapping sheets compose because the manager reference-counts what it
+  // hides and restores each branch only when the last sheet releases it.
   useEffect(() => {
     if (!open || !mounted) return;
     const overlay = overlayRef.current;
     if (!overlay) return;
-    let own: HTMLElement | null = overlay;
-    while (own && own.parentElement !== document.body) own = own.parentElement;
-    const hidden: Array<[Element, string | null]> = [];
-    for (const sibling of Array.from(document.body.children)) {
-      if (sibling === own || sibling.tagName === "SCRIPT" || sibling.tagName === "STYLE") continue;
-      hidden.push([sibling, sibling.getAttribute("aria-hidden")]);
-      sibling.setAttribute("aria-hidden", "true");
-    }
-    return () => {
-      for (const [sibling, previous] of hidden) {
-        if (previous === null) sibling.removeAttribute("aria-hidden");
-        else sibling.setAttribute("aria-hidden", previous);
-      }
-    };
+    return hideOthers(overlay);
   }, [open, mounted]);
 
   const requestClose = useCallback(() => {

@@ -124,6 +124,58 @@ describe("PwaSheet", () => {
     expect(opener).toHaveFocus();
     opener.remove();
   });
+  it("keeps the page hidden until the last of two overlapping sheets closes", () => {
+    const background = document.createElement("main");
+    document.body.append(background);
+    const first = render(
+      <PwaSheet open onClose={vi.fn()} ariaLabel="First">
+        <p>First</p>
+      </PwaSheet>
+    );
+    const second = render(
+      <PwaSheet open onClose={vi.fn()} ariaLabel="Second">
+        <p>Second</p>
+      </PwaSheet>
+    );
+    expect(background).toHaveAttribute("aria-hidden", "true");
+
+    // Close the first sheet while the second is still open.
+    first.rerender(
+      <PwaSheet open={false} onClose={vi.fn()} ariaLabel="First">
+        <p>First</p>
+      </PwaSheet>
+    );
+    expect(background).toHaveAttribute("aria-hidden", "true");
+
+    second.rerender(
+      <PwaSheet open={false} onClose={vi.fn()} ariaLabel="Second">
+        <p>Second</p>
+      </PwaSheet>
+    );
+    expect(background).not.toHaveAttribute("aria-hidden");
+    background.remove();
+  });
+  it("hides the branches beside an inline sheet, not only body-level siblings", () => {
+    const view = render(
+      <div>
+        <p data-testid="beside">Page content beside the sheet</p>
+        <PwaSheet open onClose={vi.fn()} ariaLabel="Inline">
+          <p>Inline</p>
+        </PwaSheet>
+      </div>
+    );
+    expect(screen.getByTestId("beside")).toHaveAttribute("aria-hidden", "true");
+    expect(screen.getByRole("dialog", { name: "Inline" })).toBeInTheDocument();
+    view.rerender(
+      <div>
+        <p data-testid="beside">Page content beside the sheet</p>
+        <PwaSheet open={false} onClose={vi.fn()} ariaLabel="Inline">
+          <p>Inline</p>
+        </PwaSheet>
+      </div>
+    );
+    expect(screen.getByTestId("beside")).not.toHaveAttribute("aria-hidden");
+  });
   it("hides sibling content from assistive tech only while open", () => {
     const sibling = document.createElement("main");
     document.body.append(sibling);
