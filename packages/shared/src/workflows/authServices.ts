@@ -149,6 +149,58 @@ function toStrictArrayBuffer(bytes: Uint8Array): ArrayBuffer {
   return buffer;
 }
 
+type CredentialGetter = NonNullable<Parameters<typeof toWebAuthnAccount>[0]["getFn"]>;
+
+// ox models WebAuthn requests with its own structural types while the browser API takes
+// the DOM ones; ox bridges the same gap the same way when it calls its default getter.
+const getBrowserCredential: CredentialGetter = (options) =>
+  window.navigator.credentials.get(options as never);
+
+/**
+ * Build the WebAuthn owner that signs for a passkey smart account.
+ *
+ * The stored credential ID is load-bearing in two incompatible ways:
+ *
+ * - Kernel derives the smart-account address from `keccak256(Base64.toBytes(owner.id))`,
+ *   so the ID must reach the account exactly as it was when the account was first built.
+ *   Normalizing it moves the user to a different address, which the restore and recovery
+ *   guards then reject.
+ * - ox names the credential for the signing ceremony by base64URL-decoding that same ID.
+ *   Credentials from the passkey server carry hex IDs, so the authenticator is asked for
+ *   bytes it does not hold and the ceremony fails with NotAllowedError.
+ *
+ * So the ID stays untouched and only the ceremony request is corrected, using the same
+ * hex-aware decoding that authentication already relies on. The on-chain signature does
+ * not include the credential ID, so the account is unaffected.
+ */
+export function createPasskeyOwner(
+  credential: P256Credential,
+  rpId: string,
+  getCredential: CredentialGetter = getBrowserCredential
+) {
+  return toWebAuthnAccount({
+    credential,
+    rpId,
+    getFn: (options) => {
+      const publicKey = options?.publicKey;
+      if (!publicKey?.allowCredentials) {
+        return getCredential(options);
+      }
+
+      // Decoded per ceremony, so a malformed ID fails signing (as it already did) rather
+      // than failing session restore.
+      const id = toStrictArrayBuffer(decodeCredentialId(credential.id));
+      return getCredential({
+        ...options,
+        publicKey: {
+          ...publicKey,
+          allowCredentials: publicKey.allowCredentials.map((descriptor) => ({ ...descriptor, id })),
+        },
+      });
+    },
+  });
+}
+
 function decodeChallenge(challenge: Hex | Uint8Array | ArrayBuffer): Uint8Array {
   if (typeof challenge === "string") {
     return hexToBytes(challenge);
@@ -272,6 +324,10 @@ function toVerifiedCredential(
     throw new Error(failureMessage);
   }
 
+  // Keep the server's credential ID exactly as returned, even though it is hex rather
+  // than base64URL. The smart-account address is derived from it, so rewriting it would
+  // move the user to a different account; createPasskeyOwner corrects the encoding only
+  // where the signing ceremony needs it.
   return {
     id: verification.id,
     publicKey: verification.publicKey,
@@ -351,7 +407,7 @@ async function buildSmartAccountFromCredential(
   // CRITICAL: Must pass rpId to match what was used during registration
   // Without this, Android's Credential Manager rejects the credential on sign
   const rpId = getPasskeyRpId();
-  const webAuthnAccount = toWebAuthnAccount({ credential, rpId });
+  const webAuthnAccount = createPasskeyOwner(credential, rpId);
 
   // Create Kernel smart account with WebAuthn owner
   const account = await toKernelSmartAccount({

@@ -76,7 +76,10 @@ if (typeof global.navigator === "undefined") {
 // Mock viem/account-abstraction
 vi.mock("viem/account-abstraction", () => ({
   createWebAuthnCredential: vi.fn(),
-  toWebAuthnAccount: vi.fn(() => ({ address: "0xWebAuthnAccount" })),
+  toWebAuthnAccount: vi.fn(({ credential }: { credential: { id: string } }) => ({
+    id: credential.id,
+    address: "0xWebAuthnAccount",
+  })),
   entryPoint07Address: "0x0000000000000000000000000000000000000007",
 }));
 
@@ -196,7 +199,8 @@ vi.mock("../../modules/auth/session", () => ({
 }));
 
 // Import after mocks
-import { createWebAuthnCredential } from "viem/account-abstraction";
+import { toKernelSmartAccount } from "permissionless/accounts";
+import { createWebAuthnCredential, toWebAuthnAccount } from "viem/account-abstraction";
 import { createPasskey } from "../../config/passkeyServer";
 import {
   clearAuthMode,
@@ -204,6 +208,7 @@ import {
   clearStoredCredential,
   clearStoredSmartAccountAddress,
   clearStoredUsername,
+  setStoredCredential,
   setStoredSmartAccountAddress,
   setStoredUsername,
 } from "../../modules/auth/session";
@@ -479,6 +484,53 @@ describe("workflows/authServices (Pimlico Server Flow)", () => {
 
       expect(result).not.toBeNull();
       expect(result?.smartAccountAddress).toBe(MOCK_SMART_ACCOUNT_ADDRESS);
+    });
+  });
+
+  // ==========================================================================
+  // ACCOUNT IDENTITY
+  // ==========================================================================
+
+  describe("account identity across the signing fix", () => {
+    // Kernel derives the smart-account address from the owner's credential ID, so the
+    // passkey server's hex ID must reach it untouched. Normalizing it to base64URL would
+    // move every existing passkey user to a different account.
+    const HEX_ID = "746573742d63726564656e7469616c2d6964";
+
+    it("hands Kernel the stored credential ID unchanged", async () => {
+      mockStoredCredential = { ...MOCK_CREDENTIAL, id: HEX_ID };
+      mockStoredUsername = MOCK_USERNAME;
+
+      const result = await invokeService(restoreSessionService, { chainId: MOCK_CHAIN_ID });
+
+      expect(result?.smartAccountAddress).toBe(MOCK_SMART_ACCOUNT_ADDRESS);
+      expect(toKernelSmartAccount).toHaveBeenCalledWith(
+        expect.objectContaining({ owners: [expect.objectContaining({ id: HEX_ID })] })
+      );
+    });
+
+    it("does not rewrite the stored credential while restoring", async () => {
+      mockStoredCredential = { ...MOCK_CREDENTIAL, id: HEX_ID };
+      mockStoredUsername = MOCK_USERNAME;
+
+      await invokeService(restoreSessionService, { chainId: MOCK_CHAIN_ID });
+
+      expect(setStoredCredential).not.toHaveBeenCalled();
+      expect(mockStoredCredential).toMatchObject({ id: HEX_ID });
+    });
+
+    it("signs through a credential getter that corrects the ceremony request", async () => {
+      mockStoredCredential = { ...MOCK_CREDENTIAL, id: HEX_ID };
+      mockStoredUsername = MOCK_USERNAME;
+
+      await invokeService(restoreSessionService, { chainId: MOCK_CHAIN_ID });
+
+      expect(toWebAuthnAccount).toHaveBeenCalledWith(
+        expect.objectContaining({
+          credential: expect.objectContaining({ id: HEX_ID }),
+          getFn: expect.any(Function),
+        })
+      );
     });
   });
 
@@ -1077,6 +1129,26 @@ describe("workflows/authServices (Pimlico Server Flow)", () => {
       expect(clearStoredUsername).not.toHaveBeenCalled();
       expect(clearAuthMode).not.toHaveBeenCalled();
       expect(clearStoredSmartAccountAddress).not.toHaveBeenCalled();
+    });
+
+    it("keeps the passkey server's hex credential ID so recovery lands on the same account", async () => {
+      const serverHexId = "746573742d63726564656e7469616c2d6964";
+      mockPasskeyServerClient.verifyAuthentication.mockResolvedValue({
+        success: true,
+        id: serverHexId,
+        publicKey: MOCK_SERVER_CREDENTIAL.publicKey,
+        userName: MOCK_USERNAME,
+      });
+
+      const result = await invokeService(authenticatePasskeyService, {
+        userName: MOCK_USERNAME,
+        chainId: MOCK_CHAIN_ID,
+      });
+
+      expect(result.credential.id).toBe(serverHexId);
+      expect(toKernelSmartAccount).toHaveBeenCalledWith(
+        expect.objectContaining({ owners: [expect.objectContaining({ id: serverHexId })] })
+      );
     });
   });
 
