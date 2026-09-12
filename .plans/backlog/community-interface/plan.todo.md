@@ -80,7 +80,7 @@ Commitment Pooling amendment history (2026-07-04): historical PRD-672 added `nee
 
 ### Track A: September needs app
 
-7. [ ] PRD-682 scaffolds the independent Community PWA only after PRD-758 closes and shared-foundation, state/API, and paymaster proof are complete; member UI exposes Support / Do not support / Clear with separate counts. PRD-691 admin `/community/needs` owns triage, moderation, gathering, seed-from-Need, and Need lineage/export; existing `/community/coordination` retains pool/cycle operations. PRD-758 does not block the core Commitment Pooling backend, and the membership queue remains gated in `/community/members`
+7. [ ] PRD-691 scaffolds the independent Community PWA once the hackathon is scheduled (deferred 2026-09-07 in favor of QA) and shared-foundation, state/API, and paymaster proof are complete; PRD-758 closed 2026-08-29 and PRD-682 was canceled as superseded on 2026-09-11; member UI exposes Support / Do not support / Clear with separate counts. PRD-691 admin `/community/needs` owns triage, moderation, gathering, seed-from-Need, and Need lineage/export; existing `/community/coordination` retains pool/cycle operations. PRD-758 does not block the core Commitment Pooling backend, and the membership queue remains gated in `/community/members`
 8. [ ] PRD-691 funder-lens sub-lane after the PRD-687 state/API aggregate and editorial grammar are GREEN (historical PRD-692 is not dispatchable)
 9. [ ] PRD-691 admin seeding-gate intake after the Community state/API aggregate and Commitment Pooling admin substrate are GREEN (canceled PRD-683 is not dispatchable)
 10. [ ] PRD-691 docs sub-lane after Community PWA, admin, and funder surfaces ship for screenshots (historical PRD-693 is not dispatchable)
@@ -129,7 +129,7 @@ Agent eligibility mirrors the CP convention: contracts / indexer / shared-founda
 - [ ] Client public views only; editorial guardrails; `public.needs.*` i18n; route decision recorded (CP decision #21)
 - [ ] Write `handoffs/claude-funder-lens.md`
 
-### Shared Foundation + Community App (CP Track C): PRD-682
+### Shared Foundation + Community App (CP Track C): PRD-691
 - [ ] Migrate client to extracted shared foundations with auth/offline/build proof before scaffolding Community
 - [ ] Independent Community PWA: `community.greengoods.app`, local 3010, isolated manifest/service worker/telemetry/routes
 

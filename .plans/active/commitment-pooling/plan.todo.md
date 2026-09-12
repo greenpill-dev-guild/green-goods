@@ -1964,15 +1964,14 @@ does not begin against moving contracts or indexer queries.
 16. [ ] **Walkthrough-video completion (PRD-728):** after QA Pass 2, record, edit, caption, transcribe, privacy-review, and replay the approved client PWA, admin, editorial, gardener, Garden Steward, evaluator, and operational walkthroughs against the final source SHA.
 17. [ ] **Cycle 1 and separately authorized value operations:** open Cycle 1 from the approved mandate artifacts only when its readiness gate passes. Settlement broadcast/canary/exit proof remains human-owned and independently authorized; one Fulfilled commitment may read Confirmed only after the authenticated acknowledgment. The `CreditRegistry` remains an August-wave companion, but its contracts lane cannot dispatch until the in-code pooling/settlement interface freeze, spec revalidation, and human legal/operations review gates all clear.
 
-PRD-758 is a parallel Community Needs & Signals architecture gate. It blocks PRD-682 only and is
-not part of the Commitment Pooling backend critical path.
+PRD-758 closed on 2026-08-29. It was never part of the Commitment Pooling backend critical path.
 
 ### Track C: September community interface
 
-- [ ] PRD-682 shared-foundation extraction, then independent `packages/community` scaffold at `community.greengoods.app` / local port 3010 (after PRD-723 substrate; canonical artifacts in `.plans/active/community-interface/`)
-- [ ] PRD-691 Community admin seeding intake after the Commitment Pooling admin and PRD-682 Community substrate are GREEN (canceled PRD-683 is historical only)
+- [ ] Deferred 2026-09-07 in favor of QA: shared-foundation extraction, then the independent `packages/community` scaffold at `community.greengoods.app` / local port 3010. This is a hackathon build tracked by PRD-691; canonical artifacts are in `.plans/backlog/community-interface/`. PRD-682 was canceled as superseded on 2026-09-11.
+- [ ] PRD-691 Community admin seeding intake after the Commitment Pooling admin and the Community substrate are GREEN (canceled PRD-683 is historical only)
 
-The Needs layer consumed by PRD-682 and PRD-691 (Need/NeedSignal/NeedStatus/FundingAttribution schemas, shared substrate, admin triage, funder lens) is planned and tracked separately in `.plans/active/community-interface/` and the **Community Needs & Signals** Linear project. Canceled PRD-683 remains historical traceability only; register #28 records the schema-count amendment.
+The Needs layer consumed by PRD-691 (Need/NeedSignal/NeedStatus/FundingAttribution schemas, shared substrate, admin triage, funder lens) is planned and tracked separately in `.plans/backlog/community-interface/` and the **Community Needs & Signals** Linear project. Canceled PRD-683 remains historical traceability only; register #28 records the schema-count amendment.
 
 ## TDD / Proof Order
 

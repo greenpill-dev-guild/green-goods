@@ -82,7 +82,7 @@
       "note": "Historical aggregate trackers remain for context; thin execution sub-lane issues are the current dispatch mirrors. Lane content and proof remain in this hub. linear.lastSyncedAt intentionally records the last completed external write/re-read and is not advanced by local review corrections; live convergence must update it only after verified Linear/source-document writes.",
       "august_proof": "PRD-650",
       "august_settlement": "PRD-686",
-      "september_interface": "PRD-682",
+      "september_interface": "PRD-691",
       "july_dry_run": "COM-7",
       "needs_substrate": "PRD-687",
       "needs_app": "PRD-691",
@@ -251,7 +251,7 @@
       "depends_on": ["state_api"],
       "handoff": "handoffs/claude-ui.md",
       "handoff_note": "The machine UI lane aggregates runtime client, admin, and editorial implementation only. Documentation polish starts after QA Pass 1, walkthrough videos finish after QA Pass 2, and September Community remains a separate follow-on.",
-      "linear_issues": ["PRD-650", "PRD-682"],
+      "linear_issues": ["PRD-650"],
       "tdd": {
         "mode": "required",
         "status": "pending",
@@ -441,7 +441,7 @@
         "parentIssue": "PRD-650",
         "milestone": "build"
       },
-      "linear_issues": ["PRD-725", "PRD-650", "PRD-682"],
+      "linear_issues": ["PRD-725", "PRD-650"],
       "acceptance_amendment_2026_08_02": "Group linked instances by internal series and present them as one ongoing Offer. Show holder-authorized Story/context without giving stewards authority to edit another holder's metadata or rest/resume/retire their series. Keep saved Offer metadata and person-level Story out of cross-garden/public views.",
       "acceptance": "Garden Pool operations, /community/pools Protocol plus current-garden mode, capability-gated Operations cross-garden mode with showOperations = isDeployer || canQueueFunding || canOperateSettlement and independent per-action authorization, repeatable DomainImpact requirement creation/progress, accountable lead plus contributor roster/credit visibility, Work-UID credit deduplication, explicit evidence attribution, provider open-commitment cap readiness, state-count and exact-label unit summaries with no mixed-label arithmetic, six-role allocation plus RecognitionPolicy encoded atomically at open, cycle-less certificate-selection exclusion, direct Fulfilled dispute resolution freeze/policy/credit gates, provider-garden payout-plan creation/edit/finalization/retention/child preparation, stored claim acceptance/decline/supersession and exchange-pair oversight, dispute restoration, immutable-batch per-member reconciliation, native fee reserves, command/ack message state, same-key retry, acknowledgment retry, and failure/new-attempt controls. The queueFunding form requires protocol-steward or SettlementModule-owner authority, deployer alone cannot submit, cancel creates no row, and success renders an emitted Funding/ProtocolToGarden Queued row with no commitment ID."
     },
@@ -571,19 +571,19 @@
       "status": "blocked",
       "ready_when_dependencies_met": true,
       "manual_blocked": true,
-      "blocked_reason": "Wait for shared foundation/state_api and the Community core gates. RESR-64 blocks only the membership-persistence slice, not the non-membership Community PWA core.",
+      "blocked_reason": "Deferred 2026-09-07: the Community PWA is a hackathon build and the team chose QA instead. The gates this lane used to cite are closed (PRD-758 Done 2026-08-29, PRD-723 Done 2026-09-06); what remains is shared_foundation plus an explicit dispatch. Execution truth and the Linear record live in the community-interface hub under PRD-691. PRD-682 was canceled as superseded on 2026-09-11, so this lane no longer mirrors to Linear.",
       "branch": "feature/commitment-pooling-community",
       "depends_on": ["state_api"],
       "handoff": "handoffs/claude-community.md",
       "linear": {
-        "sync": true,
-        "issue": "PRD-682",
+        "sync": false,
+        "issue": null,
         "parentIssue": null,
         "milestone": null,
-        "dueDate": "2026-09-30"
+        "dueDate": null
       },
-      "linear_issues": ["PRD-682"],
-      "acceptance": "September Community core after the August substrate lands; membership persistence remains excluded until RESR-64, without blocking view/signal/testimony/confirmation core."
+      "linear_issues": [],
+      "acceptance": "Community core ships from the community-interface hub when the hackathon is scheduled. This lane stays open only as the settlement_evidence dependency; it carries no dated commitment here."
     },
     "settlement_evidence": {
       "machine_lane": null,
@@ -1263,6 +1263,14 @@
       "status": "validated",
       "branch": "develop",
       "note": "Validated the selected one-command Arbitrum ownership ceremony using the existing release operator password lease. The full repository tests and builds, contract release verifier, package typechecks, ontology, plan integrity, guidance, and test-quality checks passed. Eight onchain boundaries remain independently nonce-pinned, receipt-verified, checkpointed, resumable, and stop-on-first-failure; no transaction was broadcast during implementation."
+    },
+    {
+      "timestamp": "2026-09-11T00:00:00Z",
+      "actor": "claude",
+      "lane": "community",
+      "status": "deferred",
+      "branch": null,
+      "note": "Resolved the duplicate Community tracker. The Community PWA is a hackathon build that was deferred on 2026-09-07 in favor of QA, so PRD-682 was canceled as superseded and the work is tracked solely by PRD-691 in the community-interface hub. Cleared this lane's stale PRD-758 gate, its 2026-09-30 due date, and its Linear sync. COM-11 now waits on PRD-691 instead of PRD-682."
     }
   ]
 }
