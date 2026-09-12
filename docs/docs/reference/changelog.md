@@ -30,7 +30,7 @@ The complete, auto-generated changelog lives on [GitHub Releases](https://github
 
 **Passkey sign-in can approve actions again**
 
-- **Passkey accounts** — if you sign in with a passkey, approving an action (joining a garden, submitting work) no longer fails with a prompt that appears to time out. Sign-in itself was always working; it was the approval step that could not read your saved passkey. Existing passkeys are repaired automatically the next time you open the app — there is nothing to re-register.
+- **Passkey accounts** — if you sign in with a passkey, approving an action (joining a garden, submitting work) no longer fails with a prompt that appears to time out. Sign-in itself was always working; it was the approval step that could not find your saved passkey. Once the app updates, your existing passkey and your account work as before — there is nothing to re-register.
 
 Full notes: [GitHub Releases](https://github.com/greenpill-dev-guild/green-goods/releases).
 

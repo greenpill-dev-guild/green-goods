@@ -143,35 +143,62 @@ function decodeCredentialId(id: string): Uint8Array {
   }
 }
 
-/**
- * Encode credential ID bytes as the unpadded base64URL string WebAuthn uses.
- */
-function encodeCredentialId(bytes: Uint8Array): string {
-  let binary = "";
-  for (const byte of bytes) {
-    binary += String.fromCharCode(byte);
-  }
-  return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
-}
-
-/**
- * Normalize a stored credential ID to base64URL.
- *
- * The passkey server returns hex-encoded credential IDs, and those were written
- * straight to storage. Authentication tolerates that because decodeCredentialId
- * parses hex as well as base64URL, but the signing ceremony does not: viem's
- * toWebAuthnAccount hands the ID to ox, which only ever base64URL-decodes it. A
- * hex ID therefore reaches the authenticator as unrelated bytes, matches no
- * credential, and the ceremony rejects with NotAllowedError.
- */
-function toBase64UrlCredentialId(id: string): string {
-  return encodeCredentialId(decodeCredentialId(id));
-}
-
 function toStrictArrayBuffer(bytes: Uint8Array): ArrayBuffer {
   const buffer = new ArrayBuffer(bytes.byteLength);
   new Uint8Array(buffer).set(bytes);
   return buffer;
+}
+
+type CredentialGetter = NonNullable<Parameters<typeof toWebAuthnAccount>[0]["getFn"]>;
+
+// ox models WebAuthn requests with its own structural types while the browser API takes
+// the DOM ones; ox bridges the same gap the same way when it calls its default getter.
+const getBrowserCredential: CredentialGetter = (options) =>
+  window.navigator.credentials.get(options as never);
+
+/**
+ * Build the WebAuthn owner that signs for a passkey smart account.
+ *
+ * The stored credential ID is load-bearing in two incompatible ways:
+ *
+ * - Kernel derives the smart-account address from `keccak256(Base64.toBytes(owner.id))`,
+ *   so the ID must reach the account exactly as it was when the account was first built.
+ *   Normalizing it moves the user to a different address, which the restore and recovery
+ *   guards then reject.
+ * - ox names the credential for the signing ceremony by base64URL-decoding that same ID.
+ *   Credentials from the passkey server carry hex IDs, so the authenticator is asked for
+ *   bytes it does not hold and the ceremony fails with NotAllowedError.
+ *
+ * So the ID stays untouched and only the ceremony request is corrected, using the same
+ * hex-aware decoding that authentication already relies on. The on-chain signature does
+ * not include the credential ID, so the account is unaffected.
+ */
+export function createPasskeyOwner(
+  credential: P256Credential,
+  rpId: string,
+  getCredential: CredentialGetter = getBrowserCredential
+) {
+  return toWebAuthnAccount({
+    credential,
+    rpId,
+    getFn: (options) => {
+      const publicKey = options?.publicKey;
+      if (!publicKey?.allowCredentials) {
+        return getCredential(options);
+      }
+
+      // Decoded per ceremony, so a malformed ID fails signing (as it already did) rather
+      // than failing session restore.
+      const id = toStrictArrayBuffer(decodeCredentialId(credential.id));
+      return getCredential({
+        ...options,
+        publicKey: {
+          ...publicKey,
+          allowCredentials: publicKey.allowCredentials.map((descriptor) => ({ ...descriptor, id })),
+        },
+      });
+    },
+  });
 }
 
 function decodeChallenge(challenge: Hex | Uint8Array | ArrayBuffer): Uint8Array {
@@ -293,15 +320,16 @@ function toVerifiedCredential(
   raw: P256Credential["raw"],
   failureMessage: string
 ): P256Credential {
-  if (!verification.success || !verification.publicKey) {
+  if (!verification.success || !verification.id || !verification.publicKey) {
     throw new Error(failureMessage);
   }
 
-  // The browser's credential ID is authoritative: it is already base64URL, the
-  // only encoding the signing ceremony can consume. verification.id is the same
-  // credential in the passkey server's own hex encoding.
+  // Keep the server's credential ID exactly as returned, even though it is hex rather
+  // than base64URL. The smart-account address is derived from it, so rewriting it would
+  // move the user to a different account; createPasskeyOwner corrects the encoding only
+  // where the signing ceremony needs it.
   return {
-    id: raw.id,
+    id: verification.id,
     publicKey: verification.publicKey,
     raw,
   };
@@ -379,18 +407,7 @@ async function buildSmartAccountFromCredential(
   // CRITICAL: Must pass rpId to match what was used during registration
   // Without this, Android's Credential Manager rejects the credential on sign
   const rpId = getPasskeyRpId();
-
-  // Repair credential IDs already written to storage in hex. Rewriting the
-  // stored value keeps the repair to one pass per device and leaves the
-  // credential in the encoding every later reader expects.
-  const signingId = toBase64UrlCredentialId(credential.id);
-  const signingCredential =
-    signingId === credential.id ? credential : { ...credential, id: signingId };
-  if (signingCredential !== credential) {
-    setStoredCredential(signingCredential);
-  }
-
-  const webAuthnAccount = toWebAuthnAccount({ credential: signingCredential, rpId });
+  const webAuthnAccount = createPasskeyOwner(credential, rpId);
 
   // Create Kernel smart account with WebAuthn owner
   const account = await toKernelSmartAccount({

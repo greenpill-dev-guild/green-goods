@@ -76,7 +76,10 @@ if (typeof global.navigator === "undefined") {
 // Mock viem/account-abstraction
 vi.mock("viem/account-abstraction", () => ({
   createWebAuthnCredential: vi.fn(),
-  toWebAuthnAccount: vi.fn(() => ({ address: "0xWebAuthnAccount" })),
+  toWebAuthnAccount: vi.fn(({ credential }: { credential: { id: string } }) => ({
+    id: credential.id,
+    address: "0xWebAuthnAccount",
+  })),
   entryPoint07Address: "0x0000000000000000000000000000000000000007",
 }));
 
@@ -196,6 +199,7 @@ vi.mock("../../modules/auth/session", () => ({
 }));
 
 // Import after mocks
+import { toKernelSmartAccount } from "permissionless/accounts";
 import { createWebAuthnCredential, toWebAuthnAccount } from "viem/account-abstraction";
 import { createPasskey } from "../../config/passkeyServer";
 import {
@@ -484,50 +488,47 @@ describe("workflows/authServices (Pimlico Server Flow)", () => {
   });
 
   // ==========================================================================
-  // CREDENTIAL ID ENCODING FOR SIGNING
+  // ACCOUNT IDENTITY
   // ==========================================================================
 
-  describe("credential ID encoding for the signing ceremony", () => {
-    // ox base64URL-decodes the credential ID with no hex fallback, so a hex ID
-    // reaches the authenticator as unrelated bytes and the ceremony rejects with
-    // NotAllowedError. Authentication is unaffected because decodeCredentialId
-    // parses hex as well — which is why sign-in kept working while every
-    // signature failed.
+  describe("account identity across the signing fix", () => {
+    // Kernel derives the smart-account address from the owner's credential ID, so the
+    // passkey server's hex ID must reach it untouched. Normalizing it to base64URL would
+    // move every existing passkey user to a different account.
     const HEX_ID = "746573742d63726564656e7469616c2d6964";
-    const BASE64URL_ID = "dGVzdC1jcmVkZW50aWFsLWlk";
 
-    it("normalizes a hex credential ID to base64URL before signing", async () => {
+    it("hands Kernel the stored credential ID unchanged", async () => {
       mockStoredCredential = { ...MOCK_CREDENTIAL, id: HEX_ID };
       mockStoredUsername = MOCK_USERNAME;
 
-      await invokeService(restoreSessionService, { chainId: MOCK_CHAIN_ID });
+      const result = await invokeService(restoreSessionService, { chainId: MOCK_CHAIN_ID });
 
-      expect(toWebAuthnAccount).toHaveBeenCalledWith(
-        expect.objectContaining({
-          credential: expect.objectContaining({ id: BASE64URL_ID }),
-        })
+      expect(result?.smartAccountAddress).toBe(MOCK_SMART_ACCOUNT_ADDRESS);
+      expect(toKernelSmartAccount).toHaveBeenCalledWith(
+        expect.objectContaining({ owners: [expect.objectContaining({ id: HEX_ID })] })
       );
     });
 
-    it("rewrites the repaired credential ID back to storage", async () => {
+    it("does not rewrite the stored credential while restoring", async () => {
       mockStoredCredential = { ...MOCK_CREDENTIAL, id: HEX_ID };
-      mockStoredUsername = MOCK_USERNAME;
-
-      await invokeService(restoreSessionService, { chainId: MOCK_CHAIN_ID });
-
-      expect(mockStoredCredential).toMatchObject({ id: BASE64URL_ID });
-    });
-
-    it("leaves an already base64URL credential ID untouched", async () => {
-      mockStoredCredential = { ...MOCK_CREDENTIAL, id: BASE64URL_ID };
       mockStoredUsername = MOCK_USERNAME;
 
       await invokeService(restoreSessionService, { chainId: MOCK_CHAIN_ID });
 
       expect(setStoredCredential).not.toHaveBeenCalled();
+      expect(mockStoredCredential).toMatchObject({ id: HEX_ID });
+    });
+
+    it("signs through a credential getter that corrects the ceremony request", async () => {
+      mockStoredCredential = { ...MOCK_CREDENTIAL, id: HEX_ID };
+      mockStoredUsername = MOCK_USERNAME;
+
+      await invokeService(restoreSessionService, { chainId: MOCK_CHAIN_ID });
+
       expect(toWebAuthnAccount).toHaveBeenCalledWith(
         expect.objectContaining({
-          credential: expect.objectContaining({ id: BASE64URL_ID }),
+          credential: expect.objectContaining({ id: HEX_ID }),
+          getFn: expect.any(Function),
         })
       );
     });
@@ -650,10 +651,8 @@ describe("workflows/authServices (Pimlico Server Flow)", () => {
       expect(createPasskey).not.toHaveBeenCalled();
       expect(setStoredUsername).toHaveBeenCalledWith(MOCK_USERNAME);
       expect(setStoredSmartAccountAddress).toHaveBeenCalledWith(MOCK_SMART_ACCOUNT_ADDRESS);
-      // The public key is the server's, but the ID is the browser's: only
-      // base64URL survives the signing ceremony.
       expect(result.credential).toEqual({
-        id: MOCK_CREDENTIAL.raw.id,
+        id: MOCK_SERVER_CREDENTIAL.id,
         publicKey: MOCK_SERVER_CREDENTIAL.publicKey,
         raw: MOCK_CREDENTIAL.raw,
       });
@@ -1132,12 +1131,11 @@ describe("workflows/authServices (Pimlico Server Flow)", () => {
       expect(clearStoredSmartAccountAddress).not.toHaveBeenCalled();
     });
 
-    it("keeps the browser credential ID rather than the passkey server's encoding", async () => {
-      // The server reports the same credential in its own hex encoding. Storing
-      // that is what left production unable to sign.
+    it("keeps the passkey server's hex credential ID so recovery lands on the same account", async () => {
+      const serverHexId = "746573742d63726564656e7469616c2d6964";
       mockPasskeyServerClient.verifyAuthentication.mockResolvedValue({
         success: true,
-        id: "746573742d63726564656e7469616c2d6964",
+        id: serverHexId,
         publicKey: MOCK_SERVER_CREDENTIAL.publicKey,
         userName: MOCK_USERNAME,
       });
@@ -1147,7 +1145,10 @@ describe("workflows/authServices (Pimlico Server Flow)", () => {
         chainId: MOCK_CHAIN_ID,
       });
 
-      expect(result.credential.id).toBe(MOCK_SERVER_CREDENTIAL.id);
+      expect(result.credential.id).toBe(serverHexId);
+      expect(toKernelSmartAccount).toHaveBeenCalledWith(
+        expect.objectContaining({ owners: [expect.objectContaining({ id: serverHexId })] })
+      );
     });
   });
 
