@@ -10,13 +10,7 @@ import {
   getProfileAvatarStageMessage,
 } from "@green-goods/shared/modules/profile-avatar/editor-messages";
 import { cn } from "@green-goods/shared/utils/styles/cn";
-import {
-  RiCameraLine,
-  RiCloseLine,
-  RiDeleteBinLine,
-  RiImageAddLine,
-  RiRefreshLine,
-} from "@remixicon/react";
+import { RiCameraLine, RiCloseLine, RiDeleteBinLine, RiImageAddLine } from "@remixicon/react";
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { useIntl } from "react-intl";
 
@@ -187,7 +181,9 @@ export function ProfileAvatarEditor({ fallbackAvatar, className }: ProfileAvatar
     <Button
       type="button"
       label={pickerInProgress ? progressLabel : label}
-      leadingIcon={<RiImageAddLine className="h-5 w-5" aria-hidden="true" />}
+      leadingIcon={
+        secondary ? undefined : <RiImageAddLine className="h-5 w-5" aria-hidden="true" />
+      }
       variant={secondary ? "neutral" : "primary"}
       mode={secondary ? "stroke" : "filled"}
       isLoading={pickerInProgress}
@@ -196,7 +192,7 @@ export function ProfileAvatarEditor({ fallbackAvatar, className }: ProfileAvatar
       aria-invalid={Boolean(displayedError) || undefined}
       aria-describedby={displayedError ? `${inputId}-error` : undefined}
       onClick={() => inputRef.current?.click()}
-      className="w-full justify-center"
+      className="w-full min-w-0 justify-center whitespace-normal [&>span]:whitespace-normal [&>span]:overflow-visible [&>span]:text-clip"
     />
   );
 
@@ -341,35 +337,36 @@ export function ProfileAvatarEditor({ fallbackAvatar, className }: ProfileAvatar
                   })}
                 />
               ) : null}
-              <Button
-                type="button"
-                label={
-                  retryInProgress
-                    ? progressLabel
-                    : isOnline
-                      ? formatMessage({
-                          id: "profile.avatar.tryAgain",
-                          defaultMessage: "Try Again",
-                        })
-                      : formatMessage({
-                          id: "profile.avatar.reconnect",
-                          defaultMessage: "Reconnect to publish",
-                        })
-                }
-                leadingIcon={<RiRefreshLine className="h-5 w-5" aria-hidden="true" />}
-                isLoading={retryInProgress}
-                disabled={!isOnline || (busy && !retryInProgress)}
-                aria-live={retryInProgress ? "polite" : undefined}
-                onClick={() => void recoverDraft()}
-                className="w-full justify-center"
-              />
-              {picker(
-                formatMessage({
-                  id: "profile.avatar.chooseDifferent",
-                  defaultMessage: "Choose a Different Photo",
-                }),
-                true
-              )}
+              <div className="grid grid-cols-2 items-stretch gap-3">
+                <Button
+                  type="button"
+                  label={
+                    retryInProgress
+                      ? progressLabel
+                      : isOnline
+                        ? formatMessage({
+                            id: "profile.avatar.tryAgain",
+                            defaultMessage: "Try Again",
+                          })
+                        : formatMessage({
+                            id: "profile.avatar.reconnect",
+                            defaultMessage: "Reconnect to publish",
+                          })
+                  }
+                  isLoading={retryInProgress}
+                  disabled={!isOnline || (busy && !retryInProgress)}
+                  aria-live={retryInProgress ? "polite" : undefined}
+                  onClick={() => void recoverDraft()}
+                  className="w-full min-w-0 justify-center whitespace-normal [&>span]:whitespace-normal [&>span]:overflow-visible [&>span]:text-clip"
+                />
+                {picker(
+                  formatMessage({
+                    id: "profile.avatar.chooseDifferent",
+                    defaultMessage: "Choose a Different Photo",
+                  }),
+                  true
+                )}
+              </div>
               <Button
                 type="button"
                 label={formatMessage({
