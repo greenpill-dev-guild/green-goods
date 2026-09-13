@@ -7,6 +7,7 @@
 import { cleanup, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { useState } from "react";
+import { useUIStore } from "@green-goods/shared/stores/useUIStore";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 // Mock ImageWithFallback to avoid image loading issues
@@ -68,6 +69,23 @@ describe("ImagePreviewDialog", () => {
     render(<ImagePreviewDialog isOpen onClose={() => {}} images={[]} initialIndex={0} />);
 
     expect(screen.queryByTestId("image-preview-dialog")).not.toBeInTheDocument();
+  });
+
+  it("hides the app bar only while the preview actually renders (DL-015)", () => {
+    useUIStore.setState({ openSheetCount: 0 });
+    const view = render(
+      <ImagePreviewDialog isOpen onClose={() => {}} images={[]} initialIndex={0} />
+    );
+    expect(useUIStore.getState().openSheetCount).toBe(0);
+
+    view.rerender(
+      <ImagePreviewDialog isOpen onClose={() => {}} images={IMAGES} initialIndex={0} />
+    );
+    expect(useUIStore.getState().openSheetCount).toBe(1);
+
+    // Removing the last photo while the preview is open releases the app bar.
+    view.rerender(<ImagePreviewDialog isOpen onClose={() => {}} images={[]} initialIndex={0} />);
+    expect(useUIStore.getState().openSheetCount).toBe(0);
   });
 
   it("calls onClose when close button is clicked", async () => {
