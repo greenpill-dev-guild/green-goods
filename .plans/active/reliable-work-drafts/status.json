@@ -10,7 +10,7 @@
     "overall_status": "active",
     "priority": "p2",
     "created_at": "2026-09-09T01:57:56.995Z",
-    "updated_at": "2026-09-09T04:32:54.642389+00:00"
+    "updated_at": "2026-09-12T23:27:01.147688+00:00"
   },
   "links": {
     "brief": "brief.md",
@@ -19,7 +19,7 @@
     "eval": "eval.md"
   },
   "linear": {
-    "parentIssue": null,
+    "parentIssue": "PRD-920",
     "project": null,
     "initiative": null,
     "syncDirection": "plans_to_linear_visibility",
@@ -38,7 +38,8 @@
     ".plans/ is the durable repo truth; any tool-local or .claude/agent-memory surface stays environment-local until freshness and ownership rules exist.",
     "User authorized the complete plan in this task. Local implementation first; external coordination not yet mirrored. Physical Android acceptance remains required.",
     "Runtime implementation and automated validation are recorded in validation.md. Lanes remain nonterminal because authenticated Brave/full media and physical Android acceptance are pending. The implementation is committed locally, but no commit-attributed receipt is claimed.",
-    "The four approved review repairs are implemented. Fresh working-tree regression and selected-gate evidence is recorded in repair-validation.md. Implementation lanes remain in progress because authenticated Brave is blocked (Debugger unattached), physical Android acceptance is pending, and no clean-commit receipt exists."
+    "The four approved review repairs are implemented. Fresh working-tree regression and selected-gate evidence is recorded in repair-validation.md. Implementation lanes remain in progress because authenticated Brave is blocked (Debugger unattached), physical Android acceptance is pending, and no clean-commit receipt exists.",
+    "2026-09-12: Full offline extension accepted for implementation; PRD-920 parent mirror. Historical green receipts invalidated for current scope. Concurrent shell/scroll/passkey edits preserved; installed Android/iOS and live reconnect acceptance pending."
   ],
   "lanes": {
     "ui": {
@@ -133,6 +134,14 @@
       "status": "scaffolded",
       "branch": null,
       "note": "Scaffolded feature hub in active"
+    },
+    {
+      "timestamp": "2026-09-12T23:25:00.875Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "linear_recorded",
+      "branch": null,
+      "note": "Recorded Linear parent/lane issue identifiers"
     }
   ]
 }
