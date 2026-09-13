@@ -11,11 +11,10 @@ import { useUser } from "@green-goods/shared/hooks/auth/useUser";
 import { useVaultDeposit } from "@green-goods/shared/hooks/vault/useVaultDeposit";
 import { useVaultDeposits } from "@green-goods/shared/hooks/vault/useVaultDeposits";
 import { useVaultPreview } from "@green-goods/shared/hooks/vault/useVaultPreview";
-import { RiLoader4Line } from "@remixicon/react";
+import type { SheetActionsProps } from "@green-goods/shared/components/Dialog/SheetActions";
 import { useEffect, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { parseUnits } from "viem";
-import { Button } from "@/components/Actions";
 import { useBalance } from "wagmi";
 import { AppSheet, type AppSheetTab } from "../AppSheet";
 import { CookieJarTabContent } from "./CookieJarTabContent";
@@ -140,32 +139,22 @@ export function EndowmentSheet({
     { id: "cookie-jar", label: formatMessage({ id: "app.cookieJar.title" }) },
   ];
 
-  const depositFooter =
-    activeTab === "treasury" && primaryAddress ? (
-      <Button
-        type="button"
-        label={formatMessage({ id: "app.treasury.deposit" })}
-        onClick={onDeposit}
-        aria-busy={depositMutation.isPending || undefined}
-        leadingIcon={
-          depositMutation.isPending ? (
-            <RiLoader4Line className="h-4 w-4 animate-spin" aria-hidden />
-          ) : undefined
+  const depositActions: SheetActionsProps | undefined =
+    activeTab === "treasury" && primaryAddress
+      ? {
+          primary: {
+            label: formatMessage({ id: "app.treasury.deposit" }),
+            onClick: onDeposit,
+            loading: depositMutation.isPending,
+            disabled:
+              !isOnline ||
+              !selectedVault ||
+              !primaryAddress ||
+              amount <= 0n ||
+              amount > (balance?.value ?? 0n),
+          },
         }
-        disabled={
-          !isOnline ||
-          !selectedVault ||
-          !primaryAddress ||
-          amount <= 0n ||
-          amount > (balance?.value ?? 0n) ||
-          depositMutation.isPending
-        }
-        variant="primary"
-        mode="filled"
-        size="medium"
-        className="w-full"
-      />
-    ) : undefined;
+      : undefined;
 
   return (
     <AppSheet
@@ -177,7 +166,7 @@ export function EndowmentSheet({
       onTabChange={setActiveTab}
       contentClassName="overflow-y-auto p-0"
       size="full"
-      footer={depositFooter}
+      actions={depositActions}
     >
       {activeTab === "treasury" && (
         <TreasuryTabContent

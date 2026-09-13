@@ -1,5 +1,6 @@
+import { SheetActions, type SheetActionsProps } from "./SheetActions";
 import * as Dialog from "@radix-ui/react-dialog";
-import { RiAlertLine, RiCloseLine, RiLoader4Line } from "@remixicon/react";
+import { RiAlertLine, RiCloseLine } from "@remixicon/react";
 import type { ReactNode } from "react";
 import { useIntl } from "react-intl";
 import { useSheetPresence } from "../../hooks/ui/useSheetPresence";
@@ -38,17 +39,13 @@ export interface ConfirmDialogProps {
   icon?: ReactNode;
 }
 
-const confirmButtonClassName =
-  "relative flex min-h-11 w-full min-w-0 items-center justify-center rounded-lg px-4 py-3 text-center text-sm font-medium transition disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-base focus-visible:ring-offset-2 sm:flex-1";
-
-const cancelButtonClassName =
-  "min-h-11 w-full min-w-0 rounded-lg bg-bg-weak px-4 py-3 text-sm font-medium text-text-strong transition hover:bg-bg-soft disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-base focus-visible:ring-offset-2 sm:flex-1";
-
 /**
  * A confirmation dialog using Radix Dialog for accessibility.
  * Centered at 640px and wider; below that it renders the shared PwaSheet
  * bottom sheet, so drafts, deletes, and every other confirm share one
- * surface in the installed app.
+ * surface in the installed app. Both presentations render their buttons
+ * through the shared action bar (`SheetActions`, DL-016): stacked with the
+ * confirm on top in the sheet, one right-aligned row when centered.
  * Replaces window.confirm() for consistent UX across the application.
  */
 export function ConfirmDialog({
@@ -118,17 +115,14 @@ export function ConfirmDialog({
 
   const variantStyles = {
     default: {
-      confirmBtn: "bg-primary-action hover:bg-primary-action-hover text-primary-action-foreground",
       iconBg: "bg-primary/10",
       iconColor: "text-primary",
     },
     warning: {
-      confirmBtn: "bg-warning-base hover:bg-warning-dark text-static-white",
       iconBg: "bg-warning-lighter",
       iconColor: "text-warning-base",
     },
     danger: {
-      confirmBtn: "bg-error-base hover:bg-error-dark text-static-white",
       iconBg: "bg-error-lighter",
       iconColor: "text-error-base",
     },
@@ -151,18 +145,22 @@ export function ConfirmDialog({
       </div>
     ) : null;
 
-  const confirmButton = (
-    <button
-      type="button"
-      onClick={handleConfirm}
-      disabled={isLoading}
-      aria-busy={isLoading || undefined}
-      className={cn(confirmButtonClassName, styles.confirmBtn)}
-    >
-      {isLoading && <RiLoader4Line className="absolute left-4 h-4 w-4 animate-spin" aria-hidden />}
-      {resolvedConfirmLabel}
-    </button>
-  );
+  const actions: SheetActionsProps = {
+    primary: {
+      label: resolvedConfirmLabel,
+      onClick: handleConfirm,
+      loading: isLoading,
+      tone: variant,
+    },
+    secondary: {
+      label: resolvedCancelLabel,
+      disabled: isLoading,
+      onClick: () => {
+        void handleCancel();
+        onClose();
+      },
+    },
+  };
 
   if (rendersAsSheet) {
     return (
@@ -176,20 +174,8 @@ export function ConfirmDialog({
         closeLabel={resolvedCloseLabel}
         preventClose={isLoading}
         testId="confirm-dialog"
-      >
-        {confirmButton}
-        <button
-          type="button"
-          disabled={isLoading}
-          onClick={() => {
-            void handleCancel();
-            onClose();
-          }}
-          className={cancelButtonClassName}
-        >
-          {resolvedCancelLabel}
-        </button>
-      </PwaSheet>
+        actions={actions}
+      />
     );
   }
 
@@ -245,20 +231,7 @@ export function ConfirmDialog({
             </Dialog.Close>
           </div>
 
-          {/* Actions */}
-          <div className="flex flex-col gap-3 p-4 sm:flex-row">
-            <Dialog.Close asChild>
-              <button
-                type="button"
-                disabled={isLoading}
-                onClick={handleCancel}
-                className={cancelButtonClassName}
-              >
-                {resolvedCancelLabel}
-              </button>
-            </Dialog.Close>
-            {confirmButton}
-          </div>
+          <SheetActions {...actions} />
         </Dialog.Content>
       </Dialog.Portal>
     </Dialog.Root>

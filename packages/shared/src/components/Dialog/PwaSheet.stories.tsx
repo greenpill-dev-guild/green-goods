@@ -94,6 +94,7 @@ function SheetBody({
       </header>
       <div
         data-testid="pwa-sheet-body"
+        data-scroll-edge="bottom"
         className="flex flex-1 flex-col gap-3 overflow-y-auto px-5 py-4"
       >
         {sections.map((label) => (
@@ -108,14 +109,6 @@ function SheetBody({
           </div>
         ))}
       </div>
-      <footer data-testid="pwa-sheet-footer" className="border-t border-stroke-soft-200 px-5 py-4">
-        <button
-          type="button"
-          className="h-11 w-full rounded-full bg-primary-action px-4 text-label-lg font-semibold text-primary-action-foreground transition-colors hover:bg-primary-action-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-action"
-        >
-          Keep editing
-        </button>
-      </footer>
     </>
   );
 }
@@ -139,7 +132,7 @@ function PwaSheetFixture({
           The sheet is fixed to the viewport bottom, matching the installed PWA runtime.
         </p>
       </div>
-      <PwaSheet {...sheetProps}>
+      <PwaSheet {...sheetProps} actions={{ primary: { label: "Keep Editing" } }}>
         <SheetBody
           eyebrow={eyebrow}
           title={title}
@@ -283,10 +276,15 @@ export const LongContentGeometry: Story = {
       body.clientWidth + VIEWPORT_EDGE_TOLERANCE_PX
     );
 
-    const footer = canvas.getByTestId("pwa-sheet-footer");
-    await expect(footer).toBeVisible();
-    await expect(footer.getBoundingClientRect().bottom).toBeLessThanOrEqual(
+    // The action bar stays pinned under the scrolling body (DL-016).
+    const actions = surface.querySelector<HTMLElement>('[data-component="SheetActions"]');
+    await expect(actions).not.toBeNull();
+    await expect(actions).toBeVisible();
+    await expect(actions?.getBoundingClientRect().bottom ?? Infinity).toBeLessThanOrEqual(
       surface.getBoundingClientRect().bottom + VIEWPORT_EDGE_TOLERANCE_PX
+    );
+    await expect(actions?.getBoundingClientRect().top ?? 0).toBeGreaterThanOrEqual(
+      body.getBoundingClientRect().bottom - VIEWPORT_EDGE_TOLERANCE_PX
     );
   },
 };
@@ -333,27 +331,18 @@ export const SharedHeader: Story = {
         role="alertdialog"
         showDragHandle={args.showDragHandle}
         dragToDismiss={args.dragToDismiss}
-      >
-        <button
-          type="button"
-          className="min-h-11 w-full rounded-lg bg-error-base px-4 py-3 text-sm font-medium text-static-white"
-        >
-          Delete
-        </button>
-        <button
-          type="button"
-          className="min-h-11 w-full rounded-lg bg-bg-weak-50 px-4 py-3 text-sm font-medium text-text-strong-950"
-        >
-          Cancel
-        </button>
-      </PwaSheet>
+        actions={{
+          primary: { label: "Delete", tone: "danger" },
+          secondary: { label: "Cancel", onClick: args.onClose },
+        }}
+      />
     </div>
   ),
   parameters: {
     docs: {
       description: {
         story:
-          "The shared header every confirm-style sheet uses: drag handle, title, description, 44px close button, and a content-sized body that stays anchored to the viewport bottom.",
+          "The shared header every confirm-style sheet uses: drag handle, title, description, 44px close button, and the shared action bar (DL-016) stacking the actions full width with the primary on top, anchored to the viewport bottom.",
       },
     },
   },
@@ -374,6 +363,14 @@ export const SharedHeader: Story = {
     await expect(getComputedStyle(grip as HTMLElement).backgroundColor).not.toBe(
       resolveBackground(surface, "transparent")
     );
+
+    const deleteRect = canvas.getByRole("button", { name: "Delete" }).getBoundingClientRect();
+    const cancelRect = canvas.getByRole("button", { name: "Cancel" }).getBoundingClientRect();
+    await expect(deleteRect.bottom).toBeLessThanOrEqual(cancelRect.top);
+    await expect(Math.abs(deleteRect.width - cancelRect.width)).toBeLessThanOrEqual(
+      VIEWPORT_EDGE_TOLERANCE_PX
+    );
+    await expectTouchTarget(canvas.getByRole("button", { name: "Delete" }));
 
     await waitFor(async () => {
       const rect = surface.getBoundingClientRect();

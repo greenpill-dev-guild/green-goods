@@ -226,4 +226,47 @@ describe("PwaSheet", () => {
     expect(sibling).not.toHaveAttribute("aria-hidden");
     sibling.remove();
   });
+
+  it("pins its actions in the shared bar under the body (DL-016)", () => {
+    const onConfirm = vi.fn();
+    render(
+      <PwaSheet
+        open
+        onClose={vi.fn()}
+        title="Continue Previous Work?"
+        closeLabel="Close"
+        actions={{
+          primary: { label: "Continue Draft", onClick: onConfirm },
+          secondary: { label: "Start Fresh" },
+        }}
+      >
+        <p>Saved on this device</p>
+      </PwaSheet>
+    );
+    const surface = screen.getByRole("dialog", { name: "Continue Previous Work?" });
+    const body = surface.querySelector('[data-component="PwaSheet"][data-slot="body"]');
+    const actions = surface.querySelector('[data-component="SheetActions"]');
+    expect(body).toHaveAttribute("data-scroll-edge", "bottom");
+    expect(actions?.parentElement).toBe(surface);
+    expect(body?.nextElementSibling).toBe(actions);
+    fireEvent.click(screen.getByRole("button", { name: "Continue Draft" }));
+    expect(onConfirm).toHaveBeenCalledOnce();
+  });
+  it("skips the empty body when a titled sheet only has actions", () => {
+    render(
+      <PwaSheet
+        open
+        onClose={vi.fn()}
+        title="Join Garden"
+        closeLabel="Close"
+        actions={{ primary: { label: "Join" }, secondary: { label: "Cancel" } }}
+      />
+    );
+    const surface = screen.getByRole("dialog", { name: "Join Garden" });
+    expect(surface.querySelector('[data-slot="body"]')).toBeNull();
+    expect(surface.querySelector('[data-slot="header"]')?.nextElementSibling).toHaveAttribute(
+      "data-component",
+      "SheetActions"
+    );
+  });
 });

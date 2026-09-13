@@ -193,6 +193,10 @@ export const ShellMobileSheet: Story = {
       title="Withdraw offer"
       description="Narrow viewports render the shell as the shared bottom sheet."
       size="md"
+      actions={{
+        primary: { label: "Withdraw This Offer", tone: "danger", onClick: fn() },
+        secondary: { label: "Keep It Open", onClick: fn() },
+      }}
     >
       <p className="text-body-sm text-text-sub-600">Reason field placeholder</p>
     </DialogShell>
@@ -205,7 +209,7 @@ export const ShellMobileSheet: Story = {
     docs: {
       description: {
         story:
-          "Below 640px DialogShell renders the same PwaSheet as ConfirmDialog and DraftSheet: drag handle, shared header, and a content-sized body anchored to the viewport bottom.",
+          "Below 640px DialogShell renders the same PwaSheet as ConfirmDialog and DraftSheet: drag handle, shared header, a content-sized body, and the shared action bar (DL-016) stacked with the primary on top, anchored to the viewport bottom.",
       },
     },
   },
@@ -236,5 +240,14 @@ export const ShellMobileSheet: Story = {
     });
 
     await expectTouchTarget(dialog.getByTestId("pwa-sheet-close"));
+
+    const withdraw = dialog.getByRole("button", { name: "Withdraw This Offer" });
+    const keep = dialog.getByRole("button", { name: "Keep It Open" });
+    await expect(withdraw.getBoundingClientRect().bottom).toBeLessThanOrEqual(
+      keep.getBoundingClientRect().top
+    );
+    await expect(
+      Math.abs(keep.getBoundingClientRect().bottom - surface.getBoundingClientRect().bottom)
+    ).toBeLessThan(40);
   },
 };

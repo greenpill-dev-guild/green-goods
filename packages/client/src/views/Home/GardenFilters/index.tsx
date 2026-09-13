@@ -5,7 +5,6 @@ import type {
 } from "@green-goods/shared/hooks/garden/useFilteredGardens";
 import { cn } from "@green-goods/shared/utils/styles/cn";
 import { useIntl } from "react-intl";
-import { Button } from "@/components/Actions";
 import { AppSheet } from "@/components/Sheets/AppSheet";
 import { pwaStatusStyles } from "@/components/Pwa/statusStyles";
 
@@ -148,6 +147,16 @@ export const GardensFilterSheet = ({
         }),
       }}
       size="tall"
+      actions={{
+        secondary: {
+          label: intl.formatMessage({
+            id: "app.home.filters.reset",
+            defaultMessage: "Reset Filters",
+          }),
+          onClick: onReset,
+          disabled: !isFilterActive,
+        },
+      }}
     >
       <div className="flex flex-col gap-6">
         <section>
@@ -187,19 +196,6 @@ export const GardensFilterSheet = ({
             ))}
           </div>
         </section>
-
-        <Button
-          label={intl.formatMessage({
-            id: "app.home.filters.reset",
-            defaultMessage: "Reset Filters",
-          })}
-          variant="neutral"
-          mode="stroke"
-          size="xsmall"
-          onClick={onReset}
-          disabled={!isFilterActive}
-          type="button"
-        />
       </div>
     </AppSheet>
   );

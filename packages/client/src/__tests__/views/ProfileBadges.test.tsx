@@ -5,6 +5,7 @@ import { IntlProvider } from "react-intl";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import messages from "@green-goods/shared/i18n/en.json";
+import { SheetActions } from "@green-goods/shared/components/Dialog/SheetActions";
 
 const GREENWILL_BADGE_IDS = {
   GENESIS: "0x019f6193080fa2ce1eb4082321d3fc1563ca3ee6f96dc5b2092d4bd08cc1b2cb",
@@ -37,7 +38,7 @@ vi.mock("@green-goods/shared/utils/styles/cn", () => ({
 }));
 
 vi.mock("@green-goods/shared/components/Dialog/DialogShell", () => ({
-  DialogShell: ({ open, onOpenChange, title, description, children }: any) =>
+  DialogShell: ({ open, onOpenChange, title, description, children, actions }: any) =>
     open
       ? createElement(
           "div",
@@ -45,6 +46,7 @@ vi.mock("@green-goods/shared/components/Dialog/DialogShell", () => ({
           createElement("h2", null, title),
           description ? createElement("p", null, description) : null,
           children,
+          actions ? createElement(SheetActions, actions) : null,
           createElement(
             "button",
             { type: "button", onClick: () => onOpenChange(false), "aria-label": "Close" },

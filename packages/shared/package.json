@@ -346,6 +346,7 @@
     "./components/Dialog/ConfirmDialog": "./src/components/Dialog/ConfirmDialog.tsx",
     "./components/Dialog/DialogShell": "./src/components/Dialog/DialogShell.tsx",
     "./components/Dialog/PwaSheet": "./src/components/Dialog/PwaSheet.tsx",
+    "./components/Dialog/SheetActions": "./src/components/Dialog/SheetActions.tsx",
     "./components/DomainBadge": "./src/components/DomainBadge.tsx",
     "./components/feedback/TransactionSuccessAffordance": "./src/components/feedback/TransactionSuccessAffordance.tsx",
     "./components/Form/FormattedAmountInput": "./src/components/Form/FormattedAmountInput.tsx",

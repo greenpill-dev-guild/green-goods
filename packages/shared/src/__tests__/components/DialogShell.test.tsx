@@ -129,4 +129,50 @@ describe("DialogShell", () => {
     view.unmount();
     expect(useUIStore.getState().openSheetCount).toBe(0);
   });
+
+  it("passes its actions to the narrow-viewport sheet", () => {
+    stubViewportWidth(390);
+    render(
+      wrap(
+        <DialogShell
+          open
+          onOpenChange={vi.fn()}
+          title="Take This Up…"
+          actions={{ primary: { label: "Take This Up" }, secondary: { label: "Cancel" } }}
+        >
+          <p>Who takes this up</p>
+        </DialogShell>
+      )
+    );
+    const sheet = screen.getByTestId("dialog-shell");
+    expect(sheet.querySelector('[data-component="SheetActions"]')).not.toBeNull();
+    expect(screen.getByRole("button", { name: "Take This Up" })).toBeInTheDocument();
+  });
+
+  it("pins the same actions under the centered surface's scrolling body", () => {
+    stubViewportWidth(1024);
+    const onCancel = vi.fn();
+    render(
+      wrap(
+        <DialogShell
+          open
+          onOpenChange={vi.fn()}
+          title="Commitment kept?"
+          actions={{
+            primary: { label: "Confirm It Was Kept" },
+            secondary: { label: "Not Yet", onClick: onCancel },
+          }}
+        >
+          <p>Evidence</p>
+        </DialogShell>
+      )
+    );
+    const surface = screen.getByRole("dialog", { name: "Commitment kept?" });
+    const body = surface.querySelector('[data-component="DialogShell"][data-slot="body"]');
+    expect(surface).toHaveAttribute("data-has-actions");
+    expect(body).toHaveAttribute("data-scroll-edge", "bottom");
+    expect(body?.nextElementSibling).toHaveAttribute("data-component", "SheetActions");
+    fireEvent.click(screen.getByRole("button", { name: "Not Yet" }));
+    expect(onCancel).toHaveBeenCalledOnce();
+  });
 });

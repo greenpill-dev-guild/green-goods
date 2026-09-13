@@ -15,10 +15,10 @@ import { useMyVaultDeposits } from "@green-goods/shared/hooks/vault/useMyVaultDe
 import { useMyOnlineWorks } from "@green-goods/shared/hooks/work/useMyWorks";
 import { usePrimaryAddress } from "@green-goods/shared/hooks/auth/usePrimaryAddress";
 import { useProtocolMemberStatus } from "@green-goods/shared/hooks/ens/useProtocolMemberStatus";
+import type { SheetAction } from "@green-goods/shared/components/Dialog/SheetActions";
 import { RiAwardLine, RiCoinsLine, RiHammerLine, RiSeedlingLine } from "@remixicon/react";
 import { useMemo, useState } from "react";
 import { useIntl } from "react-intl";
-import { Button } from "@/components/Actions";
 import { EmptyState } from "@/components/Communication";
 
 const BADGE_ORDER = ["genesis", "first-work", "first-support"] as const;
@@ -169,95 +169,64 @@ export const ProfileBadges: React.FC = () => {
     />
   );
 
-  const renderAction = (badge: GreenWillBadgeView) => {
-    if (badge.slug === "genesis") {
-      if (!isProtocolMember) {
-        return (
-          <p className="text-xs text-text-sub-600">
-            {intl.formatMessage({
-              id: "app.profile.badges.notEligible",
-              defaultMessage: "Complete the qualifying action to unlock this badge.",
-            })}
-          </p>
-        );
-      }
+  // A claimable badge's claim lives in the dialog's action bar (DL-016); an
+  // ineligible one explains itself in the body instead.
+  const claimFor = (badge: GreenWillBadgeView): { action?: SheetAction; note?: string } => {
+    const notEligible = intl.formatMessage({
+      id: "app.profile.badges.notEligible",
+      defaultMessage: "Complete the qualifying action to unlock this badge.",
+    });
 
-      return (
-        <Button
-          variant="primary"
-          mode="filled"
-          size="small"
-          label={intl.formatMessage({
+    if (badge.slug === "genesis") {
+      if (!isProtocolMember) return { note: notEligible };
+      return {
+        action: {
+          label: intl.formatMessage({
             id: "app.profile.badges.claimGenesis",
             defaultMessage: "Claim Genesis",
-          })}
-          onClick={() => genesisClaim.mutate(undefined)}
-          disabled={genesisClaim.isPending}
-        />
-      );
+          }),
+          loading: genesisClaim.isPending,
+          onClick: () => genesisClaim.mutate(undefined),
+        },
+      };
     }
 
     if (badge.slug === "first-work") {
-      if (!firstWorkUid) {
-        return (
-          <p className="text-xs text-text-sub-600">
-            {intl.formatMessage({
-              id: "app.profile.badges.notEligible",
-              defaultMessage: "Complete the qualifying action to unlock this badge.",
-            })}
-          </p>
-        );
-      }
-
-      return (
-        <Button
-          variant="primary"
-          mode="filled"
-          size="small"
-          label={intl.formatMessage({
+      if (!firstWorkUid) return { note: notEligible };
+      return {
+        action: {
+          label: intl.formatMessage({
             id: "app.profile.badges.claimFirstWork",
             defaultMessage: "Claim First Work",
-          })}
-          onClick={() => firstWorkClaim.mutate({ uid: firstWorkUid })}
-          disabled={firstWorkClaim.isPending}
-        />
-      );
+          }),
+          loading: firstWorkClaim.isPending,
+          onClick: () => firstWorkClaim.mutate({ uid: firstWorkUid }),
+        },
+      };
     }
 
     if (badge.slug === "first-support") {
-      if (!firstSupportPosition) {
-        return (
-          <p className="text-xs text-text-sub-600">
-            {intl.formatMessage({
-              id: "app.profile.badges.notEligible",
-              defaultMessage: "Complete the qualifying action to unlock this badge.",
-            })}
-          </p>
-        );
-      }
-
-      return (
-        <Button
-          variant="primary"
-          mode="filled"
-          size="small"
-          label={intl.formatMessage({
+      if (!firstSupportPosition) return { note: notEligible };
+      return {
+        action: {
+          label: intl.formatMessage({
             id: "app.profile.badges.claimFirstSupport",
             defaultMessage: "Claim First Support",
-          })}
-          onClick={() =>
+          }),
+          loading: firstSupportClaim.isPending,
+          onClick: () =>
             firstSupportClaim.mutate({
               gardenAddress: firstSupportPosition.garden,
               assetAddress: firstSupportPosition.asset,
-            })
-          }
-          disabled={firstSupportClaim.isPending}
-        />
-      );
+            }),
+        },
+      };
     }
 
-    return null;
+    return {};
   };
+
+  const selectedClaim = selectedBadge?.profileStatus === "claimable" ? claimFor(selectedBadge) : {};
 
   if (!primaryAddress) {
     return renderBadgeState(
@@ -389,6 +358,7 @@ export const ProfileBadges: React.FC = () => {
 
       <DialogShell
         open={selectedBadge !== null}
+        actions={selectedClaim.action ? { primary: selectedClaim.action } : undefined}
         onOpenChange={(open) => {
           if (!open) setSelectedBadge(null);
         }}
@@ -417,9 +387,9 @@ export const ProfileBadges: React.FC = () => {
             <p className="text-sm leading-relaxed text-text-sub-600">
               {badgeDescription(intl, selectedBadge.slug)}
             </p>
-            {selectedBadge.profileStatus === "claimable" && (
-              <div className="pt-1">{renderAction(selectedBadge)}</div>
-            )}
+            {selectedClaim.note ? (
+              <p className="text-xs text-text-sub-600">{selectedClaim.note}</p>
+            ) : null}
           </div>
         )}
       </DialogShell>

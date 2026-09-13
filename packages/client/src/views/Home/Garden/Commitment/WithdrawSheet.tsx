@@ -53,7 +53,27 @@ export function WithdrawSheet({
         id: isRequest ? "app.commitment.withdraw.bodyRequest" : "app.commitment.withdraw.bodyOffer",
       })}
       size="md"
-      sheetSize="half"
+      sheetSize="tall"
+      actions={{
+        primary: {
+          label: formatMessage({
+            id: pinFailed
+              ? "app.commitment.withdraw.retry"
+              : isRequest
+                ? "app.commitment.withdraw.confirmRequest"
+                : "app.commitment.withdraw.confirmOffer",
+          }),
+          tone: "danger",
+          disabled: reason.trim().length === 0,
+          loading: isPending,
+          onClick: () => onConfirm(reason.trim()),
+        },
+        secondary: {
+          label: formatMessage({ id: "app.commitment.withdraw.keep" }),
+          disabled: isPending,
+          onClick: () => onOpenChange(false),
+        },
+      }}
     >
       <div className="space-y-3">
         <label className="block text-sm font-medium text-text-strong-950" htmlFor="withdraw-reason">
@@ -75,29 +95,6 @@ export function WithdrawSheet({
             {formatMessage({ id: "app.commitment.withdraw.reasonUnsaved" })}
           </Alert>
         ) : null}
-        <button
-          type="button"
-          disabled={reason.trim().length === 0 || isPending}
-          aria-busy={isPending}
-          onClick={() => onConfirm(reason.trim())}
-          className="w-full rounded-[var(--radius-lg)] border border-error-base px-4 py-3 text-sm font-medium text-error-base tap-target-lg disabled:opacity-60"
-        >
-          {formatMessage({
-            id: pinFailed
-              ? "app.commitment.withdraw.retry"
-              : isRequest
-                ? "app.commitment.withdraw.confirmRequest"
-                : "app.commitment.withdraw.confirmOffer",
-          })}
-        </button>
-        <button
-          type="button"
-          disabled={isPending}
-          onClick={() => onOpenChange(false)}
-          className="w-full rounded-[var(--radius-lg)] px-4 py-3 text-sm font-medium text-text-sub-600 tap-target-lg"
-        >
-          {formatMessage({ id: "app.commitment.withdraw.keep" })}
-        </button>
       </div>
     </DialogShell>
   );

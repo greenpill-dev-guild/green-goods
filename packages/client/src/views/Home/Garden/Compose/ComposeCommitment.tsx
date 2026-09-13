@@ -218,29 +218,26 @@ function ComposeCommitmentForm({ direction }: { direction: Direction }) {
             : undefined
         }
         size="md"
+        actions={{
+          primary: {
+            label: formatMessage({ id: "app.compose.draft.resume" }),
+            onClick: controller.resumeDraft,
+          },
+          secondary: {
+            label: formatMessage({ id: "app.compose.draft.fresh" }),
+            onClick: controller.startFresh,
+          },
+        }}
       >
-        <div className="space-y-3">
-          {typeof controller.savedDraft?.values.title === "string" &&
-          controller.savedDraft.values.title ? (
-            <p className="truncate text-sm font-medium text-text-strong-950">
-              {controller.savedDraft.values.title}
-            </p>
-          ) : null}
-          <button
-            type="button"
-            onClick={controller.resumeDraft}
-            className="w-full rounded-[var(--radius-lg)] bg-primary-action px-4 py-3 text-sm font-medium text-primary-action-foreground tap-target-lg"
+        {typeof controller.savedDraft?.values.title === "string" &&
+        controller.savedDraft.values.title ? (
+          <p
+            className="truncate text-sm font-medium text-text-strong-950"
+            title={controller.savedDraft.values.title}
           >
-            {formatMessage({ id: "app.compose.draft.resume" })}
-          </button>
-          <button
-            type="button"
-            onClick={controller.startFresh}
-            className="w-full rounded-[var(--radius-lg)] px-4 py-3 text-sm font-medium text-text-sub-600 tap-target-lg"
-          >
-            {formatMessage({ id: "app.compose.draft.fresh" })}
-          </button>
-        </div>
+            {controller.savedDraft.values.title}
+          </p>
+        ) : null}
       </DialogShell>
     </>
   );

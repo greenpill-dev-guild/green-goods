@@ -300,6 +300,15 @@ export const DesktopGeometry: Story = {
       );
     });
 
+    // From 640px the shared action bar is one right-aligned row, primary rightmost (DL-016).
+    const confirmRect = dialog.getByRole("button", { name: "Confirm" }).getBoundingClientRect();
+    const cancelRect = dialog.getByRole("button", { name: "Cancel" }).getBoundingClientRect();
+    await expect(Math.abs(confirmRect.top - cancelRect.top)).toBeLessThanOrEqual(
+      CENTER_TOLERANCE_PX
+    );
+    await expect(cancelRect.right).toBeLessThanOrEqual(confirmRect.left);
+    await expect(surface.getBoundingClientRect().right - confirmRect.right).toBeLessThan(32);
+
     const closeButton = dialog.getByTestId("confirm-dialog-close");
     await expectTouchTarget(closeButton);
     await userEvent.click(closeButton);

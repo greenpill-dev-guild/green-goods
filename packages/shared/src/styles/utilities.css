@@ -742,6 +742,124 @@
     overflow-y: auto;
     overscroll-behavior: contain;
   }
+
+  /* ── Sheet actions (DL-016) ──
+   * One bar pinned under the body of every sheet and dialog. Below 640px the
+   * actions stack full width with the primary on top and wrap a label rather
+   * than cut it off; `steps` keeps Back / Continue in one row. From 640px the
+   * bar is one right-aligned row: primary rightmost, tertiary at the start. */
+  [data-component="SheetActions"] {
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+    gap: 0.5rem;
+    padding: 0.75rem 1rem 1rem;
+    background-color: var(--color-material-solid);
+  }
+
+  [data-component="SheetActions"][data-safe-area] {
+    padding-bottom: calc(1rem + env(safe-area-inset-bottom));
+  }
+
+  [data-component="SheetActions"] > .gg-button {
+    width: 100%;
+    min-width: 0;
+    white-space: normal;
+    text-wrap: balance;
+  }
+
+  [data-component="SheetActions"] > [data-action="primary"][data-tone="warning"] {
+    background: rgb(var(--warning-base));
+    color: rgb(var(--static-white, var(--neutral-0)));
+  }
+
+  [data-component="SheetActions"] > [data-action="primary"][data-tone="warning"]:hover {
+    background: rgb(var(--warning-dark));
+  }
+
+  [data-component="SheetActions"] > [data-action="secondary"][data-tone="danger"] {
+    border-color: rgb(var(--error-base));
+    color: rgb(var(--error-base));
+  }
+
+  [data-component="SheetActions"] > [data-action="tertiary"][data-tone="danger"] {
+    color: rgb(var(--error-base));
+  }
+
+  [data-component="SheetActions"][data-layout="steps"] {
+    flex-direction: row;
+  }
+
+  [data-component="SheetActions"][data-layout="steps"] > [data-action="secondary"] {
+    flex: 0 0 auto;
+    width: auto;
+  }
+
+  [data-component="SheetActions"][data-layout="steps"] > [data-action="primary"] {
+    flex: 1 1 0%;
+  }
+
+  @media (min-width: 40rem) {
+    [data-component="SheetActions"] {
+      flex-direction: row;
+      align-items: center;
+      justify-content: flex-end;
+    }
+
+    [data-component="SheetActions"] > .gg-button {
+      width: auto;
+      white-space: nowrap;
+    }
+
+    [data-component="SheetActions"][data-layout="stack"] > [data-action="primary"] {
+      order: 2;
+    }
+
+    [data-component="SheetActions"][data-layout="steps"] > [data-action="primary"] {
+      flex: 0 0 auto;
+    }
+
+    [data-component="SheetActions"] > [data-action="tertiary"] {
+      order: -1;
+      margin-inline-end: auto;
+    }
+  }
+
+  /* A body that scrolls under the actions shows a hairline at its bottom
+   * edge. The locally attached layer rides the end of the content, so it
+   * covers the line whenever the content fits or the scroll reaches the end. */
+  [data-scroll-edge="bottom"] {
+    background-image:
+      linear-gradient(var(--color-material-solid), var(--color-material-solid)),
+      linear-gradient(rgb(var(--stroke-soft-200)), rgb(var(--stroke-soft-200)));
+    background-position: bottom, bottom;
+    background-repeat: no-repeat;
+    background-size: 100% 1px, 100% 1px;
+    background-attachment: local, scroll;
+  }
+
+  /* Centered dialogs with actions: the body scrolls between a fixed header and
+   * the pinned bar, and the bar matches each surface's own padding. */
+  [data-component="DialogShell"][data-slot="surface"][data-has-actions] {
+    display: flex;
+    flex-direction: column;
+    max-height: 90vh;
+  }
+
+  [data-component="DialogShell"][data-slot="surface"][data-has-actions]
+    > [data-component="DialogShell"][data-slot="body"] {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+  }
+
+  [data-component="DialogShell"][data-slot="surface"] > [data-component="SheetActions"] {
+    padding: 1rem 1.5rem;
+  }
+
+  [data-component="ConfirmDialog"][data-slot="surface"] > [data-component="SheetActions"] {
+    padding: 1rem;
+  }
 }
 
 /* ── Image preview: constraints the utilities can't carry ──

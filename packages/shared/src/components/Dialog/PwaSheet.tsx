@@ -19,6 +19,9 @@
  * stops at the half height; `half`, `tall`, and `full` hold a fixed share of
  * the viewport and their content scrolls inside.
  *
+ * `actions` pins the shared action bar (`SheetActions`, DL-016) under the
+ * body, so the sheet's buttons stay at its bottom edge whatever its height.
+ *
  * Layout lives in shared `utilities.css` as `[data-component="PwaSheet"]`
  * attribute rules, not as utility classes on this JSX: Tailwind v4 does not
  * scan `packages/shared/src/` from the admin/client builds, so utilities
@@ -57,10 +60,12 @@
  *
  * @module components/Dialog/PwaSheet
  */
+import { SheetActions, type SheetActionsProps } from "./SheetActions";
 import { RiCloseLine } from "@remixicon/react";
 import { useDrag } from "@use-gesture/react";
 import { createPortal } from "react-dom";
 import {
+  Children,
   type CSSProperties,
   type ReactNode,
   useCallback,
@@ -145,9 +150,9 @@ export interface PwaSheetProps {
   onClose: () => void;
   /**
    * Sheet contents. Rendered inside the shared scrollable body when `title`
-   * is set; otherwise the consumer owns all header/footer chrome.
+   * is set; otherwise the consumer owns the header and body chrome.
    */
-  children: ReactNode;
+  children?: ReactNode;
   /** Accessible label for the dialog when no `title` is rendered. */
   ariaLabel?: string;
   /**
@@ -168,6 +173,12 @@ export interface PwaSheetProps {
    * the sheet — use during in-flight work.
    */
   preventClose?: boolean;
+  /**
+   * The sheet's actions, rendered as the shared action bar pinned under the
+   * body (DL-016). A consumer that owns its body marks its scroller with
+   * `data-scroll-edge="bottom"` to get the bar's divider.
+   */
+  actions?: SheetActionsProps;
   /** Dialog role. Use `alertdialog` for destructive confirmations. */
   role?: "dialog" | "alertdialog";
   /** Height tier (DL-014). Defaults to `compact`. */
@@ -209,6 +220,7 @@ export function PwaSheet({
   open,
   onClose,
   children,
+  actions,
   ariaLabel,
   title,
   description,
@@ -237,6 +249,7 @@ export function PwaSheet({
   const titleId = useId();
   const descriptionId = useId();
   const hasHeader = title !== undefined && title !== null;
+  const hasBody = Children.toArray(children).length > 0;
   const canDrag = dragToDismiss && !preventClose;
 
   const sheetState = open ? "open" : "closed";
@@ -465,12 +478,19 @@ export function PwaSheet({
           </header>
         )}
         {hasHeader ? (
-          <div data-component="PwaSheet" data-slot="body">
-            {children}
-          </div>
+          hasBody ? (
+            <div
+              data-component="PwaSheet"
+              data-slot="body"
+              data-scroll-edge={actions ? "bottom" : undefined}
+            >
+              {children}
+            </div>
+          ) : null
         ) : (
           children
         )}
+        {actions ? <SheetActions {...actions} /> : null}
       </div>
     </div>,
     document.body

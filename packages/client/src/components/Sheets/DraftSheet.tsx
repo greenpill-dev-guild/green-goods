@@ -1,7 +1,6 @@
 import { PwaSheet } from "@green-goods/shared/components/Dialog/PwaSheet";
 import { useState } from "react";
 import { useIntl } from "react-intl";
-import { Button } from "@/components/Actions";
 
 interface DraftSheetProps {
   isOpen: boolean;
@@ -14,8 +13,8 @@ interface DraftSheetProps {
 
 /**
  * Resume / recover / discard prompt for a saved work draft. Renders the shared
- * PwaSheet with its built-in header, the same sheet the delete confirmation
- * and every other confirm-style action use in the installed app.
+ * PwaSheet with its built-in header and action bar, the same sheet the delete
+ * confirmation and every other confirm-style action use in the installed app.
  */
 export function DraftSheet({
   isOpen,
@@ -69,32 +68,29 @@ export function DraftSheet({
       closeLabel={intl.formatMessage({ id: "app.garden.draft.close" })}
       preventClose={pending}
       testId="draft-sheet"
+      actions={{
+        primary: {
+          label: intl.formatMessage({
+            id: confirmDiscard
+              ? "app.garden.draft.discard"
+              : legacyRecovery
+                ? "app.garden.draft.recover"
+                : "app.garden.draft.continue",
+          }),
+          tone: confirmDiscard ? "danger" : "default",
+          loading: pending,
+          onClick: () => void run(confirmDiscard ? onStartFresh : onContinue),
+        },
+        secondary: {
+          label: intl.formatMessage({
+            id: confirmDiscard ? "app.garden.draft.keep" : "app.garden.draft.startFresh",
+          }),
+          disabled: pending,
+          onClick: () => setConfirmDiscard(!confirmDiscard),
+        },
+      }}
     >
       {failed && <p role="alert">{intl.formatMessage({ id: "app.garden.draft.failed" })}</p>}
-      <Button
-        onClick={() => void run(confirmDiscard ? onStartFresh : onContinue)}
-        disabled={pending}
-        label={intl.formatMessage({
-          id: confirmDiscard
-            ? "app.garden.draft.discard"
-            : legacyRecovery
-              ? "app.garden.draft.recover"
-              : "app.garden.draft.continue",
-        })}
-        variant="primary"
-        mode="filled"
-        size="medium"
-      />
-      <Button
-        onClick={() => setConfirmDiscard(!confirmDiscard)}
-        disabled={pending}
-        label={intl.formatMessage({
-          id: confirmDiscard ? "app.garden.draft.keep" : "app.garden.draft.startFresh",
-        })}
-        variant="neutral"
-        mode="stroke"
-        size="medium"
-      />
     </PwaSheet>
   );
 }

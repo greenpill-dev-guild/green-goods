@@ -137,4 +137,56 @@ describe("ConfirmDialog", () => {
     centered.unmount();
     expect(useUIStore.getState().openSheetCount).toBe(0);
   });
+
+  it("renders both presentations' buttons through the shared action bar", () => {
+    stubViewportWidth(1024);
+    const onCancel = vi.fn();
+    const onClose = vi.fn();
+    render(
+      wrap(
+        <ConfirmDialog
+          isOpen
+          onClose={onClose}
+          onConfirm={vi.fn()}
+          onCancel={onCancel}
+          title="Delete Draft?"
+          confirmLabel="Delete"
+          variant="danger"
+        />
+      )
+    );
+    const bar = screen
+      .getByTestId("confirm-dialog")
+      .querySelector('[data-component="SheetActions"]');
+    expect(bar).not.toBeNull();
+    const confirm = screen.getByRole("button", { name: "Delete" });
+    expect(confirm).toHaveAttribute("data-action", "primary");
+    expect(confirm).toHaveClass("gg-button-danger");
+    fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+    expect(onCancel).toHaveBeenCalledOnce();
+    expect(onClose).toHaveBeenCalledOnce();
+  });
+
+  it("keeps a loading confirm focusable instead of dropping focus", () => {
+    stubViewportWidth(390);
+    const onConfirm = vi.fn();
+    render(
+      wrap(
+        <ConfirmDialog
+          isOpen
+          onClose={vi.fn()}
+          onConfirm={onConfirm}
+          title="Sending"
+          confirmLabel="Send"
+          isLoading
+        />
+      )
+    );
+    const send = screen.getByRole("button", { name: "Send" });
+    expect(send).not.toBeDisabled();
+    expect(send).toHaveAttribute("aria-disabled", "true");
+    fireEvent.click(send);
+    expect(onConfirm).not.toHaveBeenCalled();
+    expect(screen.getByRole("button", { name: "Cancel" })).toBeDisabled();
+  });
 });

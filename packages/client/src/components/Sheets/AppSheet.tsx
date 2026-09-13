@@ -4,6 +4,10 @@ import { useDocumentScrollLock } from "@green-goods/shared/hooks/ui/useDocumentS
 import { useSheetPresence } from "@green-goods/shared/hooks/ui/useSheetPresence";
 import { useFocusTrap } from "@green-goods/shared/hooks/utils/useFocusTrap";
 import { useTimeout } from "@green-goods/shared/hooks/utils/useTimeout";
+import {
+  SheetActions,
+  type SheetActionsProps,
+} from "@green-goods/shared/components/Dialog/SheetActions";
 import { RiCloseLine } from "@remixicon/react";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
@@ -32,7 +36,11 @@ export interface AppSheetProps {
   activeTab?: string;
   onTabChange?: (tabId: string) => void;
   children: React.ReactNode;
-  footer?: React.ReactNode;
+  /**
+   * The sheet's actions, pinned under the content in the shared action bar
+   * (DL-016). The bar pads the device's bottom safe area.
+   */
+  actions?: SheetActionsProps;
   className?: string;
   contentClassName?: string;
   /**
@@ -61,7 +69,7 @@ export const AppSheet: React.FC<AppSheetProps> = ({
   activeTab,
   onTabChange,
   children,
-  footer,
+  actions,
   className,
   contentClassName,
   size,
@@ -238,14 +246,14 @@ export const AppSheet: React.FC<AppSheetProps> = ({
             "flex-1 min-h-0",
             contentClassName || "overflow-y-auto overscroll-contain p-4"
           )}
+          data-scroll-edge={actions ? "bottom" : undefined}
           role={tabs.length > 0 ? "tabpanel" : undefined}
           aria-labelledby={tabs.length > 0 && activeTab ? `tab-btn-${activeTab}` : undefined}
         >
           {children}
         </div>
 
-        {/* Footer — fixed at bottom, above content scroll */}
-        {footer && <div className={pwaSheetStyles.footer}>{footer}</div>}
+        {actions ? <SheetActions {...actions} safeArea /> : null}
       </div>
     </div>,
     document.body

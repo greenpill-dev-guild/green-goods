@@ -192,4 +192,26 @@ describe("AppSheet", () => {
     view.unmount();
     expect(useUIStore.getState().openSheetCount).toBe(0);
   });
+
+  it("pins its actions in the shared bar under the content, padding the safe area (DL-016)", () => {
+    const onDeposit = vi.fn();
+    renderWithProviders(
+      <AppSheet
+        size="full"
+        isOpen
+        onClose={vi.fn()}
+        header={{ title: "Endowment" }}
+        actions={{ primary: { label: "Deposit", onClick: onDeposit } }}
+      >
+        <p>Vault</p>
+      </AppSheet>
+    );
+
+    const panel = screen.getByTestId("app-sheet");
+    const bar = panel.querySelector('[data-component="SheetActions"]');
+    expect(bar).toHaveAttribute("data-safe-area");
+    expect(bar?.previousElementSibling).toHaveAttribute("data-scroll-edge", "bottom");
+    fireEvent.click(screen.getByRole("button", { name: "Deposit" }));
+    expect(onDeposit).toHaveBeenCalledOnce();
+  });
 });

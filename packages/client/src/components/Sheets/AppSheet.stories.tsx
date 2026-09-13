@@ -520,3 +520,56 @@ export const LongContentScrolls: Story = {
     });
   },
 };
+
+export const PinnedActionBar: Story = {
+  tags: ["storybook-ci"],
+  parameters: {
+    viewport: {
+      options: APP_SHEET_MOBILE_VIEWPORT,
+    },
+    docs: {
+      description: {
+        story:
+          "`actions` pins the shared action bar (DL-016) under the content: the list scrolls above it, and the stacked primary stays at the sheet's bottom edge.",
+      },
+    },
+  },
+  globals: { viewport: { value: "appSheetMobile390x844" } },
+  render: () => (
+    <AppSheetDemo
+      header={{ title: "Endowment", description: "Riverside Commons" }}
+      size="full"
+      actions={{ primary: { label: "Deposit" } }}
+    >
+      <div className="space-y-3">
+        {Array.from({ length: 30 }, (_, i) => (
+          <div key={i} className="p-3 rounded-lg bg-bg-weak-50 text-sm" data-testid={`vault-${i}`}>
+            Vault position {i + 1}
+          </div>
+        ))}
+      </div>
+    </AppSheetDemo>
+  ),
+  play: async () => {
+    const canvas = within(document.body);
+    await canvas.findByText("Endowment");
+    const surface = canvas.getByTestId("app-sheet");
+    await waitForSurfaceSettled(surface);
+    const deposit = canvas.getByRole("button", { name: "Deposit" });
+    const region = canvas.getByTestId("vault-0").parentElement?.parentElement as HTMLElement;
+
+    await waitFor(async () => {
+      await expect(region.scrollHeight).toBeGreaterThan(region.clientHeight);
+      await expect(region).toHaveAttribute("data-scroll-edge", "bottom");
+      await expect(region.getBoundingClientRect().bottom).toBeLessThanOrEqual(
+        deposit.getBoundingClientRect().top
+      );
+      await expect(
+        surface.getBoundingClientRect().bottom - deposit.getBoundingClientRect().bottom
+      ).toBeLessThan(40);
+    });
+    await expect(deposit.getBoundingClientRect().height).toBeGreaterThanOrEqual(
+      MIN_TOUCH_TARGET_PX
+    );
+  },
+};

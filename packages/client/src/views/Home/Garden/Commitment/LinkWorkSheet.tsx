@@ -95,6 +95,21 @@ export function LinkWorkSheet({
       description={formatMessage({ id: "app.commitment.link.body" })}
       size="md"
       sheetSize="tall"
+      actions={{
+        primary: {
+          label: formatMessage({ id: "app.commitment.link.confirm" }),
+          disabled: !canConfirm,
+          loading: isPending,
+          onClick: () => {
+            if (workUID && chosenRow) onConfirm(workUID, chosenRow.requirementIndex, operationId);
+          },
+        },
+        secondary: {
+          label: formatMessage({ id: "app.commitment.link.cancel" }),
+          disabled: isPending,
+          onClick: () => onOpenChange(false),
+        },
+      }}
     >
       <div className="space-y-4">
         {eligibleWorks.length === 0 ? (
@@ -219,26 +234,6 @@ export function LinkWorkSheet({
             )}
           </p>
         ) : null}
-
-        <button
-          type="button"
-          disabled={!canConfirm}
-          aria-busy={isPending}
-          onClick={() => {
-            if (workUID && chosenRow) onConfirm(workUID, chosenRow.requirementIndex, operationId);
-          }}
-          className="w-full rounded-[var(--radius-lg)] bg-primary-action px-4 py-3 text-sm font-medium text-primary-action-foreground tap-target-lg disabled:opacity-60"
-        >
-          {formatMessage({ id: "app.commitment.link.confirm" })}
-        </button>
-        <button
-          type="button"
-          disabled={isPending}
-          onClick={() => onOpenChange(false)}
-          className="w-full rounded-[var(--radius-lg)] px-4 py-3 text-sm font-medium text-text-sub-600 tap-target-lg"
-        >
-          {formatMessage({ id: "app.commitment.link.cancel" })}
-        </button>
       </div>
     </DialogShell>
   );

@@ -11,7 +11,8 @@ import { useSendableTokens } from "@green-goods/shared/hooks/blockchain/useSenda
 import { useSendToken } from "@green-goods/shared/hooks/blockchain/useSendToken";
 import { useUser } from "@green-goods/shared/hooks/auth/useUser";
 import type { WalletMode } from "@green-goods/shared/modules/wallet/send-flow";
-import { RiArrowLeftLine, RiLoader4Line, RiPencilLine } from "@remixicon/react";
+import { SheetActions } from "@green-goods/shared/components/Dialog/SheetActions";
+import { RiArrowLeftLine, RiPencilLine } from "@remixicon/react";
 import React from "react";
 import { useIntl } from "react-intl";
 import { PWA_SHEET_SCROLL_CLASSNAME } from "@/components/Pwa/sheetScrollStyles";
@@ -26,9 +27,6 @@ const WALLET_MODES: ReadonlyArray<{ value: WalletMode; labelId: string }> = [
   { value: "send", labelId: "app.send.mode.send" },
   { value: "receive", labelId: "app.send.mode.receive" },
 ];
-
-const SEND_ACTION_BAR_CLASSNAME =
-  "flex shrink-0 items-center gap-2 border-t border-stroke-soft-200 bg-bg-white-0 px-4 pt-4 pb-[calc(1rem+env(safe-area-inset-bottom))]";
 
 interface SendTabProps {
   /** Bumped by the parent when the Tokens tab is (re)selected, to reset to Balance. */
@@ -111,7 +109,7 @@ export const SendTab: React.FC<SendTabProps> = ({ resetNonce }) => {
         </div>
       ) : (
         <>
-          <div className={PWA_SHEET_SCROLL_CLASSNAME}>
+          <div className={PWA_SHEET_SCROLL_CLASSNAME} data-scroll-edge="bottom">
             {!isOnline ? (
               <div className="px-4 pt-4">
                 <Alert variant="warning">{formatMessage({ id: "app.send.review.offline" })}</Alert>
@@ -164,31 +162,26 @@ export const SendTab: React.FC<SendTabProps> = ({ resetNonce }) => {
               />
             ) : null}
           </div>
-          <div className={SEND_ACTION_BAR_CLASSNAME}>
-            {step !== "recipient" ? (
-              <button
-                type="button"
-                onClick={acts.back}
-                className="flex min-h-11 items-center gap-1 rounded-md border border-stroke-sub-300 bg-bg-white-0 px-3 py-2 text-sm font-medium text-text-sub-600 hover:bg-bg-weak-50"
-              >
-                <RiArrowLeftLine className="h-4 w-4" aria-hidden />
-                {formatMessage({ id: "app.send.back" })}
-              </button>
-            ) : null}
-            <button
-              type="button"
-              onClick={acts.primary}
-              disabled={!canAdvance}
-              aria-busy={isSending || undefined}
-              className={cn(
-                "inline-flex min-h-11 flex-1 items-center justify-center gap-2 rounded-md px-3 py-2.5 text-sm font-medium transition duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)] disabled:cursor-not-allowed disabled:opacity-60",
-                "bg-primary-base text-primary-accent-foreground hover:bg-primary-darker"
-              )}
-            >
-              {isSending ? <RiLoader4Line className="h-4 w-4 animate-spin" aria-hidden /> : null}
-              {primaryLabel}
-            </button>
-          </div>
+          {/* Step navigation keeps Back and the next step in one row (DL-016). */}
+          <SheetActions
+            layout="steps"
+            safeArea
+            secondary={
+              step !== "recipient"
+                ? {
+                    label: formatMessage({ id: "app.send.back" }),
+                    icon: <RiArrowLeftLine className="h-4 w-4" aria-hidden />,
+                    onClick: acts.back,
+                  }
+                : undefined
+            }
+            primary={{
+              label: primaryLabel,
+              onClick: acts.primary,
+              disabled: !canAdvance,
+              loading: isSending,
+            }}
+          />
         </>
       )}
 

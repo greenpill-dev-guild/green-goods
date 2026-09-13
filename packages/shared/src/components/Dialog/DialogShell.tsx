@@ -1,3 +1,4 @@
+import { SheetActions, type SheetActionsProps } from "./SheetActions";
 import * as Dialog from "@radix-ui/react-dialog";
 import { RiCloseLine } from "@remixicon/react";
 import type { ReactNode } from "react";
@@ -19,7 +20,12 @@ export interface DialogShellProps {
   description?: ReactNode;
   icon?: ReactNode;
   iconContainerClassName?: string;
-  children: ReactNode;
+  children?: ReactNode;
+  /**
+   * The dialog's actions, pinned under the body in the shared action bar
+   * (DL-016): stacked below 640px, one right-aligned row from 640px.
+   */
+  actions?: SheetActionsProps;
   /** Width of the centered surface at `sm` and above. */
   size?: "md" | "lg" | "xl" | "2xl";
   /** Height tier of the narrow-viewport sheet (DL-014). Defaults to `compact`. */
@@ -53,6 +59,7 @@ export function DialogShell({
   icon,
   iconContainerClassName,
   children,
+  actions,
   size = "md",
   sheetSize = "compact",
   className,
@@ -85,6 +92,7 @@ export function DialogShell({
         preventClose={preventClose}
         panelClassName={className}
         testId="dialog-shell"
+        actions={actions}
       >
         {bodyClassName ? <div className={bodyClassName}>{children}</div> : children}
       </PwaSheet>
@@ -109,6 +117,7 @@ export function DialogShell({
             className
           )}
           style={dialogSurfaceStyle}
+          data-has-actions={actions ? "" : undefined}
           onPointerDownOutside={(event) => {
             if (preventClose) event.preventDefault();
           }}
@@ -151,9 +160,19 @@ export function DialogShell({
             )}
           </div>
 
-          <div className={cn("max-h-[calc(90vh-80px)] overflow-y-auto p-4 sm:p-6", bodyClassName)}>
+          <div
+            data-component="DialogShell"
+            data-slot="body"
+            data-scroll-edge={actions ? "bottom" : undefined}
+            className={cn(
+              !actions && "max-h-[calc(90vh-80px)]",
+              "overflow-y-auto p-4 sm:p-6",
+              bodyClassName
+            )}
+          >
             {children}
           </div>
+          {actions ? <SheetActions {...actions} /> : null}
         </Dialog.Content>
       </Dialog.Portal>
     </Dialog.Root>

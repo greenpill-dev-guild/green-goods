@@ -133,6 +133,7 @@ export {
 export { ConfirmDialog, type ConfirmDialogProps } from "./Dialog";
 export { DialogShell, type DialogShellProps } from "./Dialog";
 export { PwaSheet, type PwaSheetProps } from "./Dialog";
+export { type SheetAction, SheetActions, type SheetActionsProps } from "./Dialog";
 export { ImagePreviewDialog, type ImagePreviewDialogProps } from "./Dialog";
 // Display Components
 export {

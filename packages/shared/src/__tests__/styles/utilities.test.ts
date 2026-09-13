@@ -124,3 +124,43 @@ describe("PwaSheet layout contract", () => {
     expect(declarations("body")).toMatch(/overflow-y:\s*auto/);
   });
 });
+
+describe("SheetActions layout contract (DL-016)", () => {
+  const block = (selector: string) => {
+    const escaped = selector.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    return utilitiesContent.match(new RegExp(`${escaped}\\s*\\{([^}]*)\\}`))?.[1] ?? "";
+  };
+
+  it("stacks full-width actions in the components layer", () => {
+    const componentsLayer = utilitiesContent.indexOf("@layer components");
+    expect(utilitiesContent.indexOf('[data-component="SheetActions"] {')).toBeGreaterThan(
+      componentsLayer
+    );
+    expect(block('[data-component="SheetActions"]')).toMatch(/flex-direction:\s*column/);
+    expect(block('[data-component="SheetActions"] > .gg-button')).toMatch(/width:\s*100%/);
+    expect(block('[data-component="SheetActions"] > .gg-button')).toMatch(/white-space:\s*normal/);
+  });
+
+  it("keeps step navigation in one row", () => {
+    expect(block('[data-component="SheetActions"][data-layout="steps"]')).toMatch(
+      /flex-direction:\s*row/
+    );
+  });
+
+  it("becomes one right-aligned row with the primary rightmost from 640px", () => {
+    const media = utilitiesContent.indexOf("@media (min-width: 40rem)");
+    expect(media).toBeGreaterThan(utilitiesContent.indexOf('[data-component="SheetActions"] {'));
+    const wide = utilitiesContent.slice(
+      media,
+      utilitiesContent.indexOf("[data-scroll-edge", media)
+    );
+    expect(wide).toMatch(/justify-content:\s*flex-end/);
+    expect(wide).toMatch(/\[data-layout="stack"\] > \[data-action="primary"\]\s*\{\s*order:\s*2/);
+  });
+
+  it("draws the scroll-edge divider without script", () => {
+    expect(block('[data-scroll-edge="bottom"]')).toMatch(
+      /background-attachment:\s*local,\s*scroll/
+    );
+  });
+});
