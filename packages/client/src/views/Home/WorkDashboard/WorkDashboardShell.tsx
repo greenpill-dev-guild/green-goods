@@ -35,7 +35,7 @@ export const WorkDashboardShell: React.FC<WorkDashboardShellProps> = ({
   const intl = useIntl();
   const dialogRef = useRef<HTMLDivElement>(null);
 
-  useDocumentScrollLock(!isClosing);
+  useDocumentScrollLock(true);
 
   // Focus trap: keep Tab/Shift+Tab cycling within the dialog
   useFocusTrap(dialogRef, { enabled: !isClosing });

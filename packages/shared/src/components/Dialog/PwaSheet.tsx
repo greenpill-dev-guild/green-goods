@@ -172,7 +172,7 @@ export function PwaSheet({
   const sheetState = open ? "open" : "closed";
 
   useFocusTrap(dialogRef, { enabled: mounted && open, autoFocusSelector });
-  useDocumentScrollLock(open);
+  useDocumentScrollLock(open || mounted);
 
   const requestClose = useCallback(() => {
     if (preventClose) return;

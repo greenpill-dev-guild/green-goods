@@ -1,3 +1,4 @@
+import { useDocumentScrollLock } from "@green-goods/shared/hooks/ui/useDocumentScrollLock";
 import { RiCloseLine } from "@remixicon/react";
 import { type ReactNode, useEffect } from "react";
 import { createPortal } from "react-dom";
@@ -32,17 +33,15 @@ export function PublicSourceDialog({
   sourceLabel,
 }: PublicSourceDialogProps) {
   const { formatMessage } = useIntl();
+  useDocumentScrollLock(open);
 
   useEffect(() => {
     if (!open) return;
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
     const handler = (event: KeyboardEvent) => {
       if (event.key === "Escape") onClose();
     };
     document.addEventListener("keydown", handler);
     return () => {
-      document.body.style.overflow = previousOverflow;
       document.removeEventListener("keydown", handler);
     };
   }, [open, onClose]);

@@ -297,7 +297,7 @@ export function useWorkSubmissionFlowController({
     } catch {
       return;
     }
-    document.getElementById("app-scroll")?.scrollTo({ top: 0, behavior: "instant" });
+    window.scrollTo({ top: 0, behavior: "instant" });
     setActiveTab(tab);
   };
   const submit = async () => {

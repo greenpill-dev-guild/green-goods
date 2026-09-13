@@ -362,9 +362,7 @@ describe("presentation-specific boot fallback", () => {
     expect(styles).not.toMatch(
       /(?:html\[data-boot-presentation="pwa"\] #boot-fallback|\.boot-pwa-shell)\s*{[^}]*--color-bg-white-0/s
     );
-    expect(documentRule).toBeDefined();
-    expect(documentRule).not.toContain("--color-static-white");
-    expect(documentRule).not.toContain("background:");
+    expect(documentRule).toBeUndefined();
   });
 
   it("uses one compact anchored layout without an empty action gap", () => {
@@ -394,7 +392,7 @@ describe("presentation-specific boot fallback", () => {
     expect(zoomStyles).toMatch(
       /\.boot-pwa-action-slot \.boot-reload-button\s*{[^}]*max-width:\s*100%[^}]*padding-inline:\s*12px[^}]*font-size:\s*0\.875rem/s
     );
-    expect(styles).toMatch(
+    expect(styles).not.toMatch(
       /html\[data-boot-presentation="pwa"\] body\s*{[^}]*height:\s*100%[^}]*margin:\s*0[^}]*overflow:\s*hidden/s
     );
   });

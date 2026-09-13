@@ -69,7 +69,7 @@ export const ModalDrawer: React.FC<ModalDrawerProps> = ({
   const closeCompletedRef = useRef(false);
   const { set: scheduleTimeout, clear: clearCloseTimeout } = useTimeout();
 
-  useDocumentScrollLock(isOpen && !isClosing);
+  useDocumentScrollLock(isOpen);
 
   // Focus trap: keep Tab/Shift+Tab cycling within the dialog
   useFocusTrap(dialogRef, { enabled: isOpen && !isClosing });

@@ -1,8 +1,12 @@
+import { getDocumentScrollPosition } from "@green-goods/shared/hooks/ui/useDocumentScrollLock";
 import {
   type InstallAction,
   useInstallGuidance,
 } from "@green-goods/shared/hooks/app/useInstallGuidance";
-import { getOpenInBrowserUrl } from "@green-goods/shared/utils/app/browser";
+import {
+  createAndroidAppLaunchUrl,
+  getOpenInBrowserUrl,
+} from "@green-goods/shared/utils/app/browser";
 import { useApp } from "@green-goods/shared/providers/App";
 import { useIsBraveBrowser } from "@green-goods/shared/hooks/app/useIsBraveBrowser";
 import { usePublicInstallHandler } from "@green-goods/shared/hooks/app/usePublicInstallHandler";
@@ -121,12 +125,16 @@ export function PublicInstallAction({
   const isOpenApp =
     !isInstallPending &&
     (forceOpenApp || (isMobile && (isInstalled || guidance.primaryAction.type === "open-app")));
-  // Android link capturing never hands an in-tab navigation to the installed
-  // WebAPK: the tab just reloads on the start URL (PRD-904). From a browser tab
-  // the only way into the installed app is its home-screen icon, so the control
-  // turns into that instruction. Inside the installed app the same href is an
-  // ordinary in-app route and stays a plain navigation.
-  const isHomeScreenLaunch = isOpenApp && platform === "android" && !isStandalone;
+  const isAndroidLaunch =
+    isOpenApp &&
+    platform === "android" &&
+    !isStandalone &&
+    import.meta.env.VITE_USE_HASH_ROUTER !== "true";
+  const appHref = isAndroidLaunch
+    ? createAndroidAppLaunchUrl(launchUrl, window.location.href)
+    : import.meta.env.VITE_USE_HASH_ROUTER === "true"
+      ? launchUrl
+      : launchPath;
   const hasInstallFallback =
     isOpenApp &&
     isMobile &&
@@ -145,18 +153,10 @@ export function PublicInstallAction({
   const label = formatMessage({
     id: isInstallPending
       ? "public.nav.installingApp"
-      : isHomeScreenLaunch
-        ? "public.nav.openFromHomeScreen"
-        : isOpenApp
-          ? "public.nav.openApp"
-          : "public.nav.installApp",
-    defaultMessage: isInstallPending
-      ? "Installing..."
-      : isHomeScreenLaunch
-        ? "Open from Home Screen"
-        : isOpenApp
-          ? "Open App"
-          : "Install App",
+      : isOpenApp
+        ? "public.nav.openApp"
+        : "public.nav.installApp",
+    defaultMessage: isInstallPending ? "Installing..." : isOpenApp ? "Open App" : "Install App",
   });
 
   const handleClick = useCallback<MouseEventHandler<HTMLElement>>(
@@ -168,14 +168,13 @@ export function PublicInstallAction({
 
       rememberSharedLink(launchPath);
       if (isOpenApp) {
-        // Brave does not mint a WebAPK on Android, so navigating to the scoped URL
-        // stays in the browser tab instead of launching the installed app.
-        if (isBrave) {
-          event.preventDefault();
-          setDialogMode("braveLaunch");
-        } else if (isHomeScreenLaunch) {
-          event.preventDefault();
-          setDialogMode("homeScreenLaunch");
+        if (isAndroidLaunch) {
+          // Keep the navigation directly attached to the tap. Capture the current
+          // route and position now, not when a long-lived header last rendered.
+          event.currentTarget.setAttribute(
+            "href",
+            createAndroidAppLaunchUrl(launchUrl, window.location.href, getDocumentScrollPosition())
+          );
         }
         return;
       }
@@ -206,7 +205,8 @@ export function PublicInstallAction({
       dispatchInstallAction,
       guidance.primaryAction.type,
       isBrave,
-      isHomeScreenLaunch,
+      isAndroidLaunch,
+      launchUrl,
       isInstallPending,
       isMobile,
       isOpenApp,
@@ -238,11 +238,7 @@ export function PublicInstallAction({
     <>
       {children({
         label,
-        href: isOpenApp
-          ? import.meta.env.VITE_USE_HASH_ROUTER === "true"
-            ? launchUrl
-            : launchPath
-          : "#install",
+        href: isOpenApp ? appHref : "#install",
         isOpenApp,
         disabled: isInstallPending,
         dataInstallAction,

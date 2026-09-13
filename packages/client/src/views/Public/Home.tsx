@@ -56,13 +56,15 @@ export default function Home() {
             onClick={onClick}
             aria-disabled={disabled || undefined}
             data-install-action={dataInstallAction}
-            className={`inline-flex min-h-12 cursor-pointer items-center justify-center gap-2 rounded-full bg-primary-action px-6 py-3 text-sm font-semibold text-primary-action-foreground transition-colors hover:bg-primary-action-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-action focus-visible:ring-offset-2 ${disabled ? "cursor-not-allowed opacity-70" : ""}`}
+            className={`inline-flex min-h-12 cursor-pointer items-center justify-center gap-2 rounded-full border border-transparent bg-primary-action px-6 py-3 text-sm font-semibold text-primary-action-foreground transition-colors hover:bg-primary-action-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-action focus-visible:ring-offset-2 ${disabled ? "cursor-not-allowed opacity-70" : ""}`}
           >
             {label}
           </a>
         )}
       </PublicInstallAction>
-      <EditorialGhostLink to="/gardens">{exploreLabel}</EditorialGhostLink>
+      <EditorialGhostLink to="/gardens" className="min-h-12 font-semibold">
+        {exploreLabel}
+      </EditorialGhostLink>
     </>
   ) : (
     <EditorialPrimaryLink to="/gardens">{exploreLabel}</EditorialPrimaryLink>

@@ -51,6 +51,7 @@ function WorkDetailRoute() {
 
 describe("AppShell", () => {
   beforeEach(() => {
+    vi.spyOn(window, "scrollTo").mockImplementation(() => {});
     useUIStore.getState().closeWorkDashboard();
     document.documentElement.classList.remove("modal-open");
     Object.defineProperty(HTMLElement.prototype, "scrollTo", {
@@ -91,7 +92,7 @@ describe("AppShell", () => {
     expect(screen.getByText("Work detail")).toBeInTheDocument();
     expect(useUIStore.getState().isWorkDashboardOpen).toBe(false);
     expect(document.documentElement).not.toHaveClass("modal-open");
-    expect(appScroll.scrollTop).toBe(0);
+    expect(window.scrollTo).toHaveBeenLastCalledWith(0, 0);
   });
 
   it("preserves an intentionally opened dashboard when submission returns home", () => {

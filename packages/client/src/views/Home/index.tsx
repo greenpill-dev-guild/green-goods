@@ -147,14 +147,14 @@ const Home: React.FC = () => {
 
   // Reset loading state when navigating back to home
   useEffect(() => {
-    if (location.pathname === APP_ROUTES.home) {
+    if (location.pathname.replace(/\/$/, "") === APP_ROUTES.home) {
       resetLoadingState();
     }
   }, [location.pathname, resetLoadingState]);
 
   // Close home drawers when navigating away
   useEffect(() => {
-    if (location.pathname !== APP_ROUTES.home) {
+    if (location.pathname.replace(/\/$/, "") !== APP_ROUTES.home) {
       closeGardenFilter();
       closeWalletDrawer();
     }
@@ -195,7 +195,7 @@ const Home: React.FC = () => {
   // useArrivalState already gates on data confidence, so we fire only when arrivalKind !== "none".
   useEffect(() => {
     if (!isAuthenticated || hasShownArrivalRef.current) return;
-    if (location.pathname !== APP_ROUTES.home) return;
+    if (location.pathname.replace(/\/$/, "") !== APP_ROUTES.home) return;
     if (!normalizedAddress || arrivalKind === "none") return;
 
     const shownKey = `greengoods:arrival-shown:${normalizedAddress}`;
@@ -263,7 +263,7 @@ const Home: React.FC = () => {
 
   return (
     <article ref={articleRef} className="mb-6">
-      {location.pathname === APP_ROUTES.home && (
+      {location.pathname.replace(/\/$/, "") === APP_ROUTES.home && (
         <>
           <div className="flex items-center justify-between w-full py-6 px-4 sm:px-6 md:px-12">
             <h4 className="font-semibold flex-1">{intl.formatMessage({ id: "app.home" })}</h4>

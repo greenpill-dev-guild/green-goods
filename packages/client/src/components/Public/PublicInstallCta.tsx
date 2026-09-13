@@ -1,5 +1,5 @@
 import { useIntl } from "react-intl";
-import { createSharedLinkLaunchUrl, getSharedRecordPath } from "@/config/sharedLink";
+import { getSharedRecordPath } from "@/config/sharedLink";
 import { PublicInstallAction } from "./PublicInstallAction";
 
 export interface PublicInstallCtaProps {
@@ -28,10 +28,6 @@ export function PublicInstallCta({
         ? window.location.hash.slice(1).split("?")[0]
         : window.location.pathname;
   const recordPath = getSharedRecordPath(destination ?? currentPath, "home");
-  const recordHref =
-    recordPath && import.meta.env.VITE_USE_HASH_ROUTER === "true"
-      ? createSharedLinkLaunchUrl(recordPath, window.location.href, true)
-      : recordPath;
   const continuation = recordPath ? (
     <div className="mt-4 text-center text-sm text-text-sub-600">
       <p>
@@ -41,19 +37,25 @@ export function PublicInstallCta({
             "After installing, return to this page to continue. You can keep reading here without installing.",
         })}
       </p>
-      <a
-        href={recordHref ?? undefined}
-        className="mt-3 inline-flex min-h-11 items-center text-primary-action underline underline-offset-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-action"
-      >
-        {formatMessage({
-          id: recordPath.includes("/work/")
-            ? "public.sharedLink.openWork"
-            : "public.sharedLink.openGarden",
-          defaultMessage: recordPath.includes("/work/")
-            ? "Open This Work in the App"
-            : "Open This Garden in the App",
-        })}
-      </a>
+      <PublicInstallAction forceOpenApp destination={recordPath}>
+        {({ href, onClick, disabled }) => (
+          <a
+            href={href}
+            onClick={onClick}
+            aria-disabled={disabled || undefined}
+            className="mt-3 inline-flex min-h-11 items-center text-primary-action underline underline-offset-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-action"
+          >
+            {formatMessage({
+              id: recordPath.includes("/work/")
+                ? "public.sharedLink.openWork"
+                : "public.sharedLink.openGarden",
+              defaultMessage: recordPath.includes("/work/")
+                ? "Open This Work in the App"
+                : "Open This Garden in the App",
+            })}
+          </a>
+        )}
+      </PublicInstallAction>
     </div>
   ) : null;
 

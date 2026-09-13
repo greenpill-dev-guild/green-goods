@@ -41,12 +41,15 @@ describe("document scroll rules", () => {
   it("keeps the body out of the overscroll decision entirely", () => {
     const body = ruleBody(INDEX_CSS, "body");
 
-    expect(body).toMatch(/position:\s*fixed/);
+    expect(body).not.toMatch(/position:\s*fixed|overflow-hidden|overflow:\s*hidden/);
     expect(body).not.toMatch(/overscroll-behavior/);
   });
 
   it("keeps the boot shell styles out of the overscroll decision", () => {
     expect(INDEX_HTML).not.toMatch(/overscroll-behavior/);
+    expect(INDEX_HTML).not.toMatch(
+      /html\[data-boot-presentation="pwa"\] body\s*\{[^}]*overflow:\s*hidden/s
+    );
   });
 
   it("lets the modal scroll lock own pull-to-refresh while a sheet or dialog holds the document", () => {

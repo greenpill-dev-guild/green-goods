@@ -30,7 +30,7 @@
 }
 
 html {
-  @apply relative overflow-x-hidden bg-bg-white-0;
+  @apply relative overflow-x-clip bg-bg-white-0;
   /* Keep horizontal overscroll contained so a sideways drag never reveals a gap
      beside the shell. Vertical overscroll stays at the browser default: the root
      is where the browser and the installed app chain pull-to-refresh, so nothing
@@ -40,20 +40,17 @@ html {
   overscroll-behavior-x: none;
 }
 body {
-  /* Fixed positioning prevents iOS Safari rubber-band scrolling from shifting the body */
-  @apply m-0 bg-bg-white-0 text-text-strong-950 overflow-hidden;
-  position: fixed;
-  inset: 0;
+  @apply m-0 min-h-dvh bg-bg-white-0 text-text-strong-950;
   /* Note: Safe area insets are handled at component level for fixed-position elements.
      See AppBar.tsx, Work.tsx, Garden/index.tsx for examples. */
 }
 
 #root {
-  @apply w-full h-full mx-auto flex flex-col overflow-x-hidden;
+  @apply w-full min-h-dvh mx-auto flex flex-col overflow-x-clip;
 }
 
 #root > div {
-  @apply w-full h-full mx-auto flex flex-col overflow-x-hidden;
+  @apply w-full min-h-dvh mx-auto flex flex-col overflow-x-clip;
 }
 
 .vault-checkout-mobile-overlay {

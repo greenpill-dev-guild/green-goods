@@ -128,7 +128,7 @@ describe("ModalDrawer", () => {
 
     fireEvent.click(screen.getByTestId("modal-drawer-close"));
     expect(onClose).not.toHaveBeenCalled();
-    expect(document.documentElement).not.toHaveClass("modal-open");
+    expect(document.documentElement).toHaveClass("modal-open");
 
     act(() => window.dispatchEvent(new Event("pagehide")));
 

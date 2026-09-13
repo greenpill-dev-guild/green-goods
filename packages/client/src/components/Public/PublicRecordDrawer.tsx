@@ -1,3 +1,4 @@
+import { useDocumentScrollLock } from "@green-goods/shared/hooks/ui/useDocumentScrollLock";
 import { RiCloseLine } from "@remixicon/react";
 import { type ReactNode, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
@@ -43,6 +44,7 @@ export function PublicRecordDrawer({
   children,
 }: PublicRecordDrawerProps) {
   const { formatMessage } = useIntl();
+  useDocumentScrollLock(open);
   const closeRef = useRef<HTMLButtonElement | null>(null);
 
   // Focus the close control when the drawer opens, and only then. An inline
@@ -55,14 +57,11 @@ export function PublicRecordDrawer({
 
   useEffect(() => {
     if (!open) return;
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
     const handler = (event: KeyboardEvent) => {
       if (event.key === "Escape" && dismissOnEscape) onClose();
     };
     document.addEventListener("keydown", handler);
     return () => {
-      document.body.style.overflow = previousOverflow;
       document.removeEventListener("keydown", handler);
     };
   }, [open, onClose, dismissOnEscape]);
