@@ -1,4 +1,4 @@
-import { DialogShell } from "@green-goods/shared/components/Dialog/ConfirmDialog";
+import { DialogShell } from "@green-goods/shared/components/Dialog/DialogShell";
 import { PwaSheet } from "@green-goods/shared/components/Dialog/PwaSheet";
 import { cn } from "@green-goods/shared/utils/styles/cn";
 import { useMediaQuery } from "@green-goods/shared/hooks/ui/useMediaQuery";
@@ -184,10 +184,9 @@ export function CheckoutSurface({
         overlayClassName="vault-checkout-mobile-overlay"
         panelClassName={cn(
           "vault-checkout-mobile-panel vault-checkout-surface rounded-t-none",
-          "flex flex-col overflow-hidden",
-          "h-[85dvh] max-h-[85dvh]"
+          "flex flex-col overflow-hidden"
         )}
-        panelStyle={{ height: "85dvh", maxHeight: "85dvh" }}
+        size="full"
         autoFocusSelector='[data-testid="vault-checkout-sheet-close"]'
       >
         <div className="flex min-h-0 flex-1 flex-col overflow-hidden">

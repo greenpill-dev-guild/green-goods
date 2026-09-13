@@ -10,7 +10,7 @@ import {
 } from "@remixicon/react";
 import { useState } from "react";
 import { useIntl } from "react-intl";
-import { ModalDrawer } from "@/components/Dialogs";
+import { AppSheet } from "@/components/Sheets";
 import { type PwaStatusTone, pwaStatusStyles } from "@/components/Pwa/statusStyles";
 import { GardenNotifications } from "@/views/Home/Garden/Notifications";
 
@@ -96,7 +96,7 @@ const NotificationCenter: React.FC<TopNavProps & { garden: Garden }> = ({ works,
         {hasNotifications && <NotificationBadge count={workNotifications.length} />}
         <NotificationIcon className={styles.icon} />
       </button>
-      <ModalDrawer
+      <AppSheet
         isOpen={isOpen}
         onClose={() => setIsOpen(false)}
         header={{
@@ -114,14 +114,14 @@ const NotificationCenter: React.FC<TopNavProps & { garden: Garden }> = ({ works,
               )
             : undefined,
         }}
-        maxHeight="60vh"
+        size="tall"
       >
         <GardenNotifications
           garden={garden}
           notifications={works}
           onClose={() => setIsOpen(false)}
         />
-      </ModalDrawer>
+      </AppSheet>
     </>
   );
 };

@@ -322,7 +322,7 @@ describe("Home garden work detail", () => {
       )
     );
 
-    const feedbackDrawer = screen.getByTestId("work-feedback-drawer");
+    const feedbackDrawer = screen.getByTestId("work-feedback-sheet");
     const actionBar = screen.getByTestId("work-approval-action-bar");
     const feedback = screen.getByRole("textbox", { name: "Feedback" });
     const cancel = screen.getByRole("button", { name: "Cancel" });

@@ -236,7 +236,7 @@ export const AppSettings: React.FC = () => {
           status: activationBlocked
             ? intl.formatMessage({
                 id: "app.update.finishWork",
-                defaultMessage: "Finish your current work before restarting.",
+                defaultMessage: "Finish saving or sending your work before restarting.",
               })
             : intl.formatMessage({
                 id: "app.update.subtitle",

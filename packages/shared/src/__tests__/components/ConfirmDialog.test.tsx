@@ -3,7 +3,8 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { IntlProvider } from "react-intl";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { ConfirmDialog, DialogShell } from "../../components/Dialog/ConfirmDialog";
+import { ConfirmDialog } from "../../components/Dialog/ConfirmDialog";
+import { useUIStore } from "../../stores/useUIStore";
 
 const messages = {
   "app.common.cancel": "Cancel",
@@ -111,66 +112,81 @@ describe("ConfirmDialog", () => {
     fireEvent.click(screen.getByTestId("confirm-dialog-overlay"));
     expect(onClose).not.toHaveBeenCalled();
   });
-});
-
-describe("DialogShell", () => {
-  it("renders the shared bottom sheet below 640px with the shell's header", () => {
+  it("renders confirmations as compact sheets below 640px", () => {
     stubViewportWidth(390);
-    const onOpenChange = vi.fn();
     render(
-      wrap(
-        <DialogShell
-          open
-          onOpenChange={onOpenChange}
-          title="Withdraw offer"
-          description="Tell the garden why."
-        >
-          <p>Reason field</p>
-        </DialogShell>
-      )
+      wrap(<ConfirmDialog isOpen onClose={vi.fn()} onConfirm={vi.fn()} title="Delete draft?" />)
     );
-    const dialog = screen.getByRole("dialog", { name: "Withdraw offer" });
-    expect(dialog).toHaveAttribute("data-component", "PwaSheet");
-    expect(dialog).toHaveAttribute("data-testid", "dialog-shell");
-    expect(dialog).toHaveAccessibleDescription("Tell the garden why.");
-    expect(screen.getByText("Reason field").parentElement).toHaveAttribute("data-slot", "body");
-    fireEvent.click(screen.getByRole("button", { name: "Close" }));
-    expect(onOpenChange).toHaveBeenCalledWith(false);
+    expect(screen.getByTestId("confirm-dialog")).toHaveAttribute("data-sheet-size", "compact");
   });
 
-  it("honors preventClose and hideCloseButton on the sheet", () => {
+  it("counts every open confirmation once, sheet or centered", () => {
+    useUIStore.setState({ openSheetCount: 0 });
     stubViewportWidth(390);
-    const onOpenChange = vi.fn();
-    render(
-      wrap(
-        <DialogShell
-          open
-          onOpenChange={onOpenChange}
-          title="Linking work"
-          preventClose
-          hideCloseButton
-        >
-          <p>Working…</p>
-        </DialogShell>
-      )
+    const sheet = render(
+      wrap(<ConfirmDialog isOpen onClose={vi.fn()} onConfirm={vi.fn()} title="Delete draft?" />)
     );
-    expect(screen.queryByTestId("pwa-sheet-close")).not.toBeInTheDocument();
-    fireEvent.keyDown(document, { key: "Escape" });
-    fireEvent.click(screen.getByTestId("dialog-shell-overlay"));
-    expect(onOpenChange).not.toHaveBeenCalled();
-  });
+    expect(useUIStore.getState().openSheetCount).toBe(1);
+    sheet.unmount();
 
-  it("keeps the centered Radix surface at 640px and wider", () => {
     stubViewportWidth(1024);
+    const centered = render(
+      wrap(<ConfirmDialog isOpen onClose={vi.fn()} onConfirm={vi.fn()} title="Delete draft?" />)
+    );
+    expect(useUIStore.getState().openSheetCount).toBe(1);
+    centered.unmount();
+    expect(useUIStore.getState().openSheetCount).toBe(0);
+  });
+
+  it("renders both presentations' buttons through the shared action bar", () => {
+    stubViewportWidth(1024);
+    const onCancel = vi.fn();
+    const onClose = vi.fn();
     render(
       wrap(
-        <DialogShell open onOpenChange={vi.fn()} title="Garden profile">
-          <p>Fields</p>
-        </DialogShell>
+        <ConfirmDialog
+          isOpen
+          onClose={onClose}
+          onConfirm={vi.fn()}
+          onCancel={onCancel}
+          title="Delete Draft?"
+          confirmLabel="Delete"
+          variant="danger"
+        />
       )
     );
-    const dialog = screen.getByRole("dialog", { name: "Garden profile" });
-    expect(dialog).toHaveAttribute("data-component", "DialogShell");
-    expect(screen.queryByTestId("dialog-shell-drag-handle")).not.toBeInTheDocument();
+    const bar = screen
+      .getByTestId("confirm-dialog")
+      .querySelector('[data-component="SheetActions"]');
+    expect(bar).not.toBeNull();
+    const confirm = screen.getByRole("button", { name: "Delete" });
+    expect(confirm).toHaveAttribute("data-action", "primary");
+    expect(confirm).toHaveClass("gg-button-danger");
+    fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+    expect(onCancel).toHaveBeenCalledOnce();
+    expect(onClose).toHaveBeenCalledOnce();
+  });
+
+  it("keeps a loading confirm focusable instead of dropping focus", () => {
+    stubViewportWidth(390);
+    const onConfirm = vi.fn();
+    render(
+      wrap(
+        <ConfirmDialog
+          isOpen
+          onClose={vi.fn()}
+          onConfirm={onConfirm}
+          title="Sending"
+          confirmLabel="Send"
+          isLoading
+        />
+      )
+    );
+    const send = screen.getByRole("button", { name: "Send" });
+    expect(send).not.toBeDisabled();
+    expect(send).toHaveAttribute("aria-disabled", "true");
+    fireEvent.click(send);
+    expect(onConfirm).not.toHaveBeenCalled();
+    expect(screen.getByRole("button", { name: "Cancel" })).toBeDisabled();
   });
 });

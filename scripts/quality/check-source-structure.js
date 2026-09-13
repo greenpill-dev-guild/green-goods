@@ -117,7 +117,7 @@ const FROZEN_ALLOWLIST = {
   "packages/agent/src/handlers/index.ts": 508,
   "packages/agent/src/platforms/telegram.ts": 590,
   "packages/agent/src/services/blockchain.ts": 627,
-  "packages/client/src/components/Dialogs/ConvictionDrawer.tsx": 569,
+  "packages/client/src/components/Sheets/ConvictionSheet.tsx": 569,
   "packages/client/src/components/Errors/AppErrorBoundary.tsx": 529,
   "packages/client/src/components/Errors/RouteErrorBoundary.tsx": 541,
   "packages/client/src/components/Public/PublicCookieJarCard.tsx": 797,

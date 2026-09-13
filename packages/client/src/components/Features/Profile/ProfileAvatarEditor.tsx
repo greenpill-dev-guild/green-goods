@@ -10,6 +10,10 @@ import {
   getProfileAvatarStageMessage,
 } from "@green-goods/shared/modules/profile-avatar/editor-messages";
 import { cn } from "@green-goods/shared/utils/styles/cn";
+import type {
+  SheetAction,
+  SheetActionsProps,
+} from "@green-goods/shared/components/Dialog/SheetActions";
 import {
   RiCameraLine,
   RiCloseLine,
@@ -19,8 +23,6 @@ import {
 } from "@remixicon/react";
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { useIntl } from "react-intl";
-
-import { Button } from "@/components/Actions/Button";
 
 interface ProfileAvatarEditorProps {
   fallbackAvatar: string;
@@ -183,22 +185,90 @@ export function ProfileAvatarEditor({ fallbackAvatar, className }: ProfileAvatar
       ? formatMessage({ id: "profile.avatar.replace", defaultMessage: "Replace Photo" })
       : formatMessage({ id: "profile.avatar.chooseFile", defaultMessage: "Choose Photo" });
 
-  const picker = (label: string, secondary = false) => (
-    <Button
-      type="button"
-      label={pickerInProgress ? progressLabel : label}
-      leadingIcon={<RiImageAddLine className="h-5 w-5" aria-hidden="true" />}
-      variant={secondary ? "neutral" : "primary"}
-      mode={secondary ? "stroke" : "filled"}
-      isLoading={pickerInProgress}
-      disabled={busy && !pickerInProgress}
-      aria-live={pickerInProgress ? "polite" : undefined}
-      aria-invalid={Boolean(displayedError) || undefined}
-      aria-describedby={displayedError ? `${inputId}-error` : undefined}
-      onClick={() => inputRef.current?.click()}
-      className="w-full justify-center"
-    />
-  );
+  const picker = (label: string): SheetAction => ({
+    label: pickerInProgress ? progressLabel : label,
+    icon: <RiImageAddLine className="h-5 w-5" aria-hidden="true" />,
+    loading: pickerInProgress,
+    disabled: busy && !pickerInProgress,
+    "aria-live": pickerInProgress ? "polite" : undefined,
+    "aria-invalid": Boolean(displayedError) || undefined,
+    "aria-describedby": displayedError ? `${inputId}-error` : undefined,
+    onClick: () => inputRef.current?.click(),
+  });
+
+  // The sheet's actions follow its state and sit in the pinned bar (DL-016).
+  const removeAction: SheetAction = {
+    label:
+      activeAction === "remove"
+        ? progressLabel
+        : formatMessage({ id: "profile.avatar.remove", defaultMessage: "Remove Photo" }),
+    icon: <RiDeleteBinLine className="h-5 w-5" aria-hidden="true" />,
+    tone: "danger",
+  };
+  const actions: SheetActionsProps = removeConfirmOpen
+    ? {
+        primary: {
+          ...removeAction,
+          loading: activeAction === "remove",
+          disabled: busy && activeAction !== "remove",
+          "aria-live": activeAction === "remove" ? "polite" : undefined,
+          onClick: () => void remove(),
+        },
+        secondary: {
+          label: formatMessage({ id: "profile.avatar.keep", defaultMessage: "Keep Photo" }),
+          disabled: busy,
+          onClick: () => setRemoveConfirmOpen(false),
+        },
+      }
+    : recoverableDraft
+      ? {
+          primary: {
+            label: retryInProgress
+              ? progressLabel
+              : isOnline
+                ? formatMessage({ id: "profile.avatar.tryAgain", defaultMessage: "Try Again" })
+                : formatMessage({
+                    id: "profile.avatar.reconnect",
+                    defaultMessage: "Reconnect to publish",
+                  }),
+            icon: <RiRefreshLine className="h-5 w-5" aria-hidden="true" />,
+            loading: retryInProgress,
+            disabled: !isOnline || (busy && !retryInProgress),
+            "aria-live": retryInProgress ? "polite" : undefined,
+            onClick: () => void recoverDraft(),
+          },
+          secondary: picker(
+            formatMessage({
+              id: "profile.avatar.chooseDifferent",
+              defaultMessage: "Choose a Different Photo",
+            })
+          ),
+          tertiary: {
+            label: formatMessage({
+              id: "profile.avatar.discardDraft",
+              defaultMessage: "Discard Draft",
+            }),
+            tone: "danger",
+            loading: activeAction === "discard",
+            disabled: busy && activeAction !== "discard",
+            "aria-live": activeAction === "discard" ? "polite" : undefined,
+            onClick: () => void discardDraft(),
+          },
+        }
+      : {
+          primary: picker(pickerLabel),
+          secondary:
+            resolved.source === "app"
+              ? {
+                  ...removeAction,
+                  disabled: busy,
+                  onClick: () => {
+                    setError(null);
+                    setRemoveConfirmOpen(true);
+                  },
+                }
+              : undefined,
+        };
 
   return (
     <>
@@ -238,11 +308,11 @@ export function ProfileAvatarEditor({ fallbackAvatar, className }: ProfileAvatar
         open={open}
         onClose={closeSheet}
         ariaLabel={removeConfirmOpen ? removeTitle : sheetTitle}
-        panelStyle={{ height: "auto", maxHeight: "85dvh" }}
         dragToDismiss={!busy}
         testId="profile-photo-sheet"
+        actions={actions}
       >
-        <header className="flex shrink-0 items-start justify-between gap-4 px-5 pb-3 pt-2">
+        <header className="flex shrink-0 items-start justify-between gap-4 px-4 pb-3 pt-2">
           <div className="min-w-0 space-y-1">
             <h2 className="text-lg font-semibold text-text-strong">
               {removeConfirmOpen ? removeTitle : sheetTitle}
@@ -263,7 +333,10 @@ export function ProfileAvatarEditor({ fallbackAvatar, className }: ProfileAvatar
           </button>
         </header>
 
-        <div className="min-h-0 overflow-y-auto overscroll-contain px-5 pb-5">
+        <div
+          className="min-h-0 overflow-y-auto overscroll-contain px-4 pb-4"
+          data-scroll-edge="bottom"
+        >
           <input
             ref={inputRef}
             id={inputId}
@@ -296,118 +369,19 @@ export function ProfileAvatarEditor({ fallbackAvatar, className }: ProfileAvatar
             {displayedError}
           </p>
 
-          {removeConfirmOpen ? (
-            <div className="grid grid-cols-2 gap-3">
-              <Button
-                type="button"
-                label={formatMessage({ id: "profile.avatar.keep", defaultMessage: "Keep Photo" })}
-                variant="neutral"
-                mode="stroke"
-                disabled={busy}
-                onClick={() => setRemoveConfirmOpen(false)}
-                className="justify-center"
-              />
-              <Button
-                type="button"
-                label={
-                  activeAction === "remove"
-                    ? progressLabel
-                    : formatMessage({
-                        id: "profile.avatar.remove",
-                        defaultMessage: "Remove Photo",
-                      })
-                }
-                leadingIcon={<RiDeleteBinLine className="h-5 w-5" aria-hidden="true" />}
-                variant="error"
-                isLoading={activeAction === "remove"}
-                disabled={busy && activeAction !== "remove"}
-                aria-live={activeAction === "remove" ? "polite" : undefined}
-                onClick={() => void remove()}
-                className="justify-center"
-              />
-            </div>
-          ) : recoverableDraft ? (
-            <div className="flex flex-col gap-3">
-              {editor.draft?.file ? (
-                <DraftPhotoPreview
-                  file={editor.draft.file}
-                  alt={formatMessage({
-                    id: "profile.avatar.draftPreviewAlt",
-                    defaultMessage: "Unpublished profile photo draft",
-                  })}
-                  caption={formatMessage({
-                    id: "profile.avatar.unpublishedDraft",
-                    defaultMessage: "This draft photo has not been published.",
-                  })}
-                />
-              ) : null}
-              <Button
-                type="button"
-                label={
-                  retryInProgress
-                    ? progressLabel
-                    : isOnline
-                      ? formatMessage({
-                          id: "profile.avatar.tryAgain",
-                          defaultMessage: "Try Again",
-                        })
-                      : formatMessage({
-                          id: "profile.avatar.reconnect",
-                          defaultMessage: "Reconnect to publish",
-                        })
-                }
-                leadingIcon={<RiRefreshLine className="h-5 w-5" aria-hidden="true" />}
-                isLoading={retryInProgress}
-                disabled={!isOnline || (busy && !retryInProgress)}
-                aria-live={retryInProgress ? "polite" : undefined}
-                onClick={() => void recoverDraft()}
-                className="w-full justify-center"
-              />
-              {picker(
-                formatMessage({
-                  id: "profile.avatar.chooseDifferent",
-                  defaultMessage: "Choose a Different Photo",
-                }),
-                true
-              )}
-              <Button
-                type="button"
-                label={formatMessage({
-                  id: "profile.avatar.discardDraft",
-                  defaultMessage: "Discard Draft",
-                })}
-                variant="error"
-                mode="ghost"
-                isLoading={activeAction === "discard"}
-                disabled={busy && activeAction !== "discard"}
-                aria-live={activeAction === "discard" ? "polite" : undefined}
-                onClick={() => void discardDraft()}
-                className="self-center"
-              />
-            </div>
-          ) : (
-            <div className="flex flex-col gap-2">
-              {picker(pickerLabel)}
-              {resolved.source === "app" ? (
-                <Button
-                  type="button"
-                  label={formatMessage({
-                    id: "profile.avatar.remove",
-                    defaultMessage: "Remove Photo",
-                  })}
-                  leadingIcon={<RiDeleteBinLine className="h-5 w-5" aria-hidden="true" />}
-                  variant="error"
-                  mode="ghost"
-                  disabled={busy}
-                  onClick={() => {
-                    setError(null);
-                    setRemoveConfirmOpen(true);
-                  }}
-                  className="self-center"
-                />
-              ) : null}
-            </div>
-          )}
+          {!removeConfirmOpen && recoverableDraft && editor.draft?.file ? (
+            <DraftPhotoPreview
+              file={editor.draft.file}
+              alt={formatMessage({
+                id: "profile.avatar.draftPreviewAlt",
+                defaultMessage: "Unpublished profile photo draft",
+              })}
+              caption={formatMessage({
+                id: "profile.avatar.unpublishedDraft",
+                defaultMessage: "This draft photo has not been published.",
+              })}
+            />
+          ) : null}
         </div>
       </PwaSheet>
     </>

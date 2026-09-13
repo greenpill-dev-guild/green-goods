@@ -94,6 +94,7 @@ function SheetBody({
       </header>
       <div
         data-testid="pwa-sheet-body"
+        data-scroll-edge="bottom"
         className="flex flex-1 flex-col gap-3 overflow-y-auto px-5 py-4"
       >
         {sections.map((label) => (
@@ -108,14 +109,6 @@ function SheetBody({
           </div>
         ))}
       </div>
-      <footer data-testid="pwa-sheet-footer" className="border-t border-stroke-soft-200 px-5 py-4">
-        <button
-          type="button"
-          className="h-11 w-full rounded-full bg-primary-action px-4 text-label-lg font-semibold text-primary-action-foreground transition-colors hover:bg-primary-action-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-action"
-        >
-          Keep editing
-        </button>
-      </footer>
     </>
   );
 }
@@ -139,7 +132,7 @@ function PwaSheetFixture({
           The sheet is fixed to the viewport bottom, matching the installed PWA runtime.
         </p>
       </div>
-      <PwaSheet {...sheetProps}>
+      <PwaSheet {...sheetProps} actions={{ primary: { label: "Keep Editing" } }}>
         <SheetBody
           eyebrow={eyebrow}
           title={title}
@@ -162,7 +155,7 @@ const meta = {
     docs: {
       description: {
         component:
-          "Gesture-capable bottom sheet for installed PWA flows. Uses shared dialog keyframes, safe-area padding, focus trapping, Escape close, overlay click, and optional drag-to-dismiss. Pass `title` for the shared header that ConfirmDialog, DialogShell, and DraftDialog render through below 640px; the layout is attribute-driven CSS because Tailwind does not scan packages/shared.",
+          "Gesture-capable bottom sheet for installed PWA flows. Uses shared dialog keyframes, safe-area padding, focus trapping, Escape close, overlay click, and optional drag-to-dismiss. Pass `title` for the shared header that ConfirmDialog, DialogShell, and DraftSheet render through below 640px; the layout is attribute-driven CSS because Tailwind does not scan packages/shared.",
       },
     },
   },
@@ -175,9 +168,16 @@ const meta = {
     description: "Use this bottom sheet for focused PWA tasks without changing route context.",
     showDragHandle: true,
     dragToDismiss: true,
+    size: "compact",
   },
   argTypes: {
     open: { control: "boolean" },
+    size: {
+      control: "select",
+      options: ["compact", "half", "tall", "full"],
+      description:
+        "Height tier (DL-014): compact sizes to its content up to the half height; half, tall, and full hold 50%, 70%, and 85% of the viewport.",
+    },
     showDragHandle: { control: "boolean" },
     dragToDismiss: { control: "boolean" },
     ariaLabel: { control: "text" },
@@ -193,11 +193,11 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 export const Default: Story = {
-  play: async ({ canvasElement, args }) => {
-    const canvas = within(canvasElement);
+  play: async ({ args }) => {
+    const canvas = within(document.body);
     const dialog = canvas.getByRole("dialog", { name: "Work draft sheet" });
     const surface = canvas.getByTestId("pwa-sheet");
-    const scrim = canvasElement.querySelector<HTMLElement>(
+    const scrim = document.body.querySelector<HTMLElement>(
       '[data-component="PwaSheet"][data-slot="scrim"]'
     );
 
@@ -232,16 +232,11 @@ export const Default: Story = {
 };
 
 // storybook-quality-allow dark-mode: verifies dark token inheritance for the fixed sheet surface.
+// The sheet renders into <body>, so the theme is set on the document root, as the app does.
 export const DarkMode: Story = {
-  decorators: [
-    (Story) => (
-      <div data-theme="dark">
-        <Story />
-      </div>
-    ),
-  ],
-  play: async ({ canvasElement }) => {
-    const canvas = within(canvasElement);
+  globals: { theme: "dark" },
+  play: async () => {
+    const canvas = within(document.body);
     const surface = await canvas.findByTestId("pwa-sheet");
 
     await expect(surface).toHaveAttribute("data-state", "open");
@@ -256,9 +251,10 @@ export const LongContentGeometry: Story = {
     title: "Review a long work draft",
     description: "Long mobile sheet content stays inside the fixed surface.",
     sections: LONG_SHEET_SECTIONS,
+    size: "full",
   },
-  play: async ({ canvasElement }) => {
-    const canvas = within(canvasElement);
+  play: async () => {
+    const canvas = within(document.body);
     const surface = await canvas.findByTestId("pwa-sheet");
     await waitForSurfaceSettled(surface);
 
@@ -280,17 +276,22 @@ export const LongContentGeometry: Story = {
       body.clientWidth + VIEWPORT_EDGE_TOLERANCE_PX
     );
 
-    const footer = canvas.getByTestId("pwa-sheet-footer");
-    await expect(footer).toBeVisible();
-    await expect(footer.getBoundingClientRect().bottom).toBeLessThanOrEqual(
+    // The action bar stays pinned under the scrolling body (DL-016).
+    const actions = surface.querySelector<HTMLElement>('[data-component="SheetActions"]');
+    await expect(actions).not.toBeNull();
+    await expect(actions).toBeVisible();
+    await expect(actions?.getBoundingClientRect().bottom ?? Infinity).toBeLessThanOrEqual(
       surface.getBoundingClientRect().bottom + VIEWPORT_EDGE_TOLERANCE_PX
+    );
+    await expect(actions?.getBoundingClientRect().top ?? 0).toBeGreaterThanOrEqual(
+      body.getBoundingClientRect().bottom - VIEWPORT_EDGE_TOLERANCE_PX
     );
   },
 };
 
 export const ReducedMotionContract: Story = {
-  play: async ({ canvasElement }) => {
-    const canvas = within(canvasElement);
+  play: async () => {
+    const canvas = within(document.body);
     const surface = await canvas.findByTestId("pwa-sheet");
 
     await waitFor(async () => {
@@ -307,8 +308,8 @@ export const WithoutDragDismiss: Story = {
     title: "Review sync settings",
     description: "Use this variant when accidental drag dismissal would interrupt a critical flow.",
   },
-  play: async ({ canvasElement }) => {
-    const canvas = within(canvasElement);
+  play: async () => {
+    const canvas = within(document.body);
     await expect(canvas.getByRole("dialog", { name: "Work draft sheet" })).toBeVisible();
     expect(canvas.queryByTestId("pwa-sheet-drag-handle")).not.toBeInTheDocument();
   },
@@ -330,32 +331,23 @@ export const SharedHeader: Story = {
         role="alertdialog"
         showDragHandle={args.showDragHandle}
         dragToDismiss={args.dragToDismiss}
-      >
-        <button
-          type="button"
-          className="min-h-11 w-full rounded-lg bg-error-base px-4 py-3 text-sm font-medium text-static-white"
-        >
-          Delete
-        </button>
-        <button
-          type="button"
-          className="min-h-11 w-full rounded-lg bg-bg-weak-50 px-4 py-3 text-sm font-medium text-text-strong-950"
-        >
-          Cancel
-        </button>
-      </PwaSheet>
+        actions={{
+          primary: { label: "Delete", tone: "danger" },
+          secondary: { label: "Cancel", onClick: args.onClose },
+        }}
+      />
     </div>
   ),
   parameters: {
     docs: {
       description: {
         story:
-          "The shared header every confirm-style sheet uses: drag handle, title, description, 44px close button, and a content-sized body that stays anchored to the viewport bottom.",
+          "The shared header every confirm-style sheet uses: drag handle, title, description, 44px close button, and the shared action bar (DL-016) stacking the actions full width with the primary on top, anchored to the viewport bottom.",
       },
     },
   },
-  play: async ({ canvasElement, args }) => {
-    const canvas = within(canvasElement);
+  play: async ({ args }) => {
+    const canvas = within(document.body);
     const dialog = canvas.getByRole("alertdialog", { name: "Delete Draft?" });
     await expect(dialog).toHaveAccessibleDescription(
       "This permanently deletes your draft and all associated images."
@@ -371,6 +363,14 @@ export const SharedHeader: Story = {
     await expect(getComputedStyle(grip as HTMLElement).backgroundColor).not.toBe(
       resolveBackground(surface, "transparent")
     );
+
+    const deleteRect = canvas.getByRole("button", { name: "Delete" }).getBoundingClientRect();
+    const cancelRect = canvas.getByRole("button", { name: "Cancel" }).getBoundingClientRect();
+    await expect(deleteRect.bottom).toBeLessThanOrEqual(cancelRect.top);
+    await expect(Math.abs(deleteRect.width - cancelRect.width)).toBeLessThanOrEqual(
+      VIEWPORT_EDGE_TOLERANCE_PX
+    );
+    await expectTouchTarget(canvas.getByRole("button", { name: "Delete" }));
 
     await waitFor(async () => {
       const rect = surface.getBoundingClientRect();

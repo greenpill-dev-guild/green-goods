@@ -521,7 +521,7 @@
           "snippet": "garden: { id: string; tokenAddress?: string | null };"
         },
         {
-          "file": "packages/client/src/components/Dialogs/TreasuryDrawer/TreasuryTabContent.tsx",
+          "file": "packages/client/src/components/Sheets/EndowmentSheet/TreasuryTabContent.tsx",
           "line": 25,
           "snippet": "primaryAddress: string | null;"
         },
@@ -1836,42 +1836,42 @@
           "snippet": "\"hover:bg-red-700\","
         },
         {
-          "file": "packages/client/src/components/Dialogs/ConvictionDrawer.tsx",
+          "file": "packages/client/src/components/Sheets/ConvictionSheet.tsx",
           "line": 316,
           "snippet": "className={`inline-flex h-2 w-2 flex-shrink-0 rounded-full ${community ? \"bg-emerald-500\" : \"bg-text-soft\"}`}"
         },
         {
-          "file": "packages/client/src/components/Dialogs/ConvictionDrawer.tsx",
+          "file": "packages/client/src/components/Sheets/ConvictionSheet.tsx",
           "line": 383,
           "snippet": "className={`inline-flex h-2 w-2 rounded-full ${power.isEligible ? \"bg-emerald-500\" : \"bg-text-soft\"}`}"
         },
         {
-          "file": "packages/client/src/components/Dialogs/ConvictionDrawer.tsx",
+          "file": "packages/client/src/components/Sheets/ConvictionSheet.tsx",
           "line": 468,
           "snippet": "<div className=\"h-full bg-emerald-500\" style={{ width: `${cookieJarPct}%` }} />"
         },
         {
-          "file": "packages/client/src/components/Dialogs/ConvictionDrawer.tsx",
+          "file": "packages/client/src/components/Sheets/ConvictionSheet.tsx",
           "line": 470,
           "snippet": "<div className=\"h-full bg-amber-500\" style={{ width: `${juiceboxPct}%` }} />"
         },
         {
-          "file": "packages/client/src/components/Dialogs/ConvictionDrawer.tsx",
+          "file": "packages/client/src/components/Sheets/ConvictionSheet.tsx",
           "line": 476,
           "snippet": "className=\"inline-block h-2 w-2 rounded-full bg-emerald-500\""
         },
         {
-          "file": "packages/client/src/components/Dialogs/ConvictionDrawer.tsx",
+          "file": "packages/client/src/components/Sheets/ConvictionSheet.tsx",
           "line": 490,
           "snippet": "className=\"inline-block h-2 w-2 rounded-full bg-amber-500\""
         },
         {
-          "file": "packages/client/src/components/Dialogs/ModalDrawer.tsx",
+          "file": "packages/client/src/components/Sheets/AppSheet.tsx",
           "line": 143,
           "snippet": "\"focus:outline-none focus:ring-2 focus:ring-emerald-200 focus:text-emerald-700\","
         },
         {
-          "file": "packages/client/src/components/Dialogs/ModalDrawer.tsx",
+          "file": "packages/client/src/components/Sheets/AppSheet.tsx",
           "line": 144,
           "snippet": "\"active:text-emerald-700\","
         },
@@ -1956,7 +1956,7 @@
           "snippet": "\"focus:outline-none focus:ring-2 focus:ring-emerald-200 focus:border-emerald-600 active:border-emerald-600\","
         },
         {
-          "file": "packages/client/src/views/Home/WalletDrawer/Icon.tsx",
+          "file": "packages/client/src/views/Home/WalletSheet/Icon.tsx",
           "line": 38,
           "snippet": "\"focus:outline-none focus:ring-2 focus:ring-emerald-200 focus:border-emerald-600 active:border-emerald-600\","
         },
@@ -2111,27 +2111,27 @@
           "snippet": "<span className=\"text-xs font-medium px-2 py-0.5 rounded-full border flex-shrink-0 bg-warning-lighter text-warning-dark border-warning-light\">"
         },
         {
-          "file": "packages/client/src/components/Dialogs/ConvictionDrawer.tsx",
+          "file": "packages/client/src/components/Sheets/ConvictionSheet.tsx",
           "line": 279,
           "snippet": "className=\"rounded-md border border-warning-light bg-warning-lighter px-3 py-2 text-xs text-warning-dark\""
         },
         {
-          "file": "packages/client/src/components/Dialogs/ConvictionDrawer.tsx",
+          "file": "packages/client/src/components/Sheets/ConvictionSheet.tsx",
           "line": 288,
           "snippet": "className=\"rounded-md border border-error-light bg-error-lighter px-3 py-2 text-xs text-error-dark\""
         },
         {
-          "file": "packages/client/src/components/Dialogs/TreasuryDrawer/CookieJarTabContent.tsx",
+          "file": "packages/client/src/components/Sheets/EndowmentSheet/CookieJarTabContent.tsx",
           "line": 47,
           "snippet": "className=\"m-4 rounded-md border border-error-light bg-error-lighter px-3 py-2 text-xs text-error-dark\""
         },
         {
-          "file": "packages/client/src/components/Dialogs/TreasuryDrawer/TreasuryTabContent.tsx",
+          "file": "packages/client/src/components/Sheets/EndowmentSheet/TreasuryTabContent.tsx",
           "line": 64,
           "snippet": "className=\"rounded-md border border-warning-light bg-warning-lighter px-3 py-2 text-xs text-warning-dark\""
         },
         {
-          "file": "packages/client/src/components/Dialogs/TreasuryDrawer/TreasuryTabContent.tsx",
+          "file": "packages/client/src/components/Sheets/EndowmentSheet/TreasuryTabContent.tsx",
           "line": 73,
           "snippet": "className=\"rounded-md border border-error-light bg-error-lighter px-3 py-2 text-xs text-error-dark\""
         },

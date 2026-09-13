@@ -31,32 +31,32 @@ import { Outlet, useLocation, useMatch, useNavigate } from "react-router-dom";
 import { pwaStatusStyles } from "@/components/Pwa/statusStyles";
 import { APP_ROUTES } from "@/config/pwaRouting";
 import { ARRIVAL_TOASTS, type ArrivalActionKind } from "./arrivalToast";
-import { CommitmentsDrawerIcon } from "./CommitmentsDrawer/Icon";
+import { CommitmentsSheetIcon } from "./CommitmentsSheet/Icon";
 import { GardenList } from "./GardenList";
-import { WalletDrawerIcon } from "./WalletDrawer/Icon";
+import { WalletSheetIcon } from "./WalletSheet/Icon";
 import { WorkDashboardIcon } from "./WorkDashboard/Icon";
 
-const CommitmentsDrawer = lazy(() =>
-  import("./CommitmentsDrawer").then(({ CommitmentsDrawer }) => ({ default: CommitmentsDrawer }))
+const CommitmentsSheet = lazy(() =>
+  import("./CommitmentsSheet").then(({ CommitmentsSheet }) => ({ default: CommitmentsSheet }))
 );
-const CommitmentsDrawerLauncher = lazy(
+const CommitmentsSheetLauncher = lazy(
   (): Promise<{ default: ComponentType<{ onClick: () => void }> }> =>
-    import("./CommitmentsDrawer/Launcher")
-      .then(({ CommitmentsDrawerLauncher }) => ({
-        default: CommitmentsDrawerLauncher,
+    import("./CommitmentsSheet/Launcher")
+      .then(({ CommitmentsSheetLauncher }) => ({
+        default: CommitmentsSheetLauncher,
       }))
       // Ambient adjunct: if the launcher chunk cannot load (offline dev serving),
       // hide it rather than failing the whole Home route.
       .catch(() => ({ default: () => null }))
 );
-const GardensFilterDrawer = lazy(() =>
-  import("./GardenFilters").then(({ GardensFilterDrawer }) => ({ default: GardensFilterDrawer }))
+const GardensFilterSheet = lazy(() =>
+  import("./GardenFilters").then(({ GardensFilterSheet }) => ({ default: GardensFilterSheet }))
 );
-const WalletDrawer = lazy(() =>
-  import("./WalletDrawer").then(({ WalletDrawer }) => ({ default: WalletDrawer }))
+const WalletSheet = lazy(() =>
+  import("./WalletSheet").then(({ WalletSheet }) => ({ default: WalletSheet }))
 );
 
-function DeferredCommitmentsDrawerLauncher({ onClick }: { onClick: () => void }) {
+function DeferredCommitmentsSheetLauncher({ onClick }: { onClick: () => void }) {
   const [loadCounts, setLoadCounts] = useState(false);
 
   useEffect(() => {
@@ -70,10 +70,10 @@ function DeferredCommitmentsDrawerLauncher({ onClick }: { onClick: () => void })
     };
   }, []);
 
-  if (!loadCounts) return <CommitmentsDrawerIcon onClick={onClick} actCount={0} />;
+  if (!loadCounts) return <CommitmentsSheetIcon onClick={onClick} actCount={0} />;
   return (
-    <Suspense fallback={<CommitmentsDrawerIcon onClick={onClick} actCount={0} />}>
-      <CommitmentsDrawerLauncher onClick={onClick} />
+    <Suspense fallback={<CommitmentsSheetIcon onClick={onClick} actCount={0} />}>
+      <CommitmentsSheetLauncher onClick={onClick} />
     </Suspense>
   );
 }
@@ -121,12 +121,12 @@ const Home: React.FC = () => {
   const openGardenFilter = useUIStore((s) => s.openGardenFilter);
   const closeGardenFilter = useUIStore((s) => s.closeGardenFilter);
   const openWorkDashboard = useUIStore((s) => s.openWorkDashboard);
-  const isWalletDrawerOpen = useUIStore((s) => s.isWalletDrawerOpen);
-  const openWalletDrawer = useUIStore((s) => s.openWalletDrawer);
-  const closeWalletDrawer = useUIStore((s) => s.closeWalletDrawer);
-  const isCommitmentsDrawerOpen = useUIStore((s) => s.isCommitmentsDrawerOpen);
-  const openCommitmentsDrawer = useUIStore((s) => s.openCommitmentsDrawer);
-  const closeCommitmentsDrawer = useUIStore((s) => s.closeCommitmentsDrawer);
+  const isWalletSheetOpen = useUIStore((s) => s.isWalletSheetOpen);
+  const openWalletSheet = useUIStore((s) => s.openWalletSheet);
+  const closeWalletSheet = useUIStore((s) => s.closeWalletSheet);
+  const isCommitmentsSheetOpen = useUIStore((s) => s.isCommitmentsSheetOpen);
+  const openCommitmentsSheet = useUIStore((s) => s.openCommitmentsSheet);
+  const closeCommitmentsSheet = useUIStore((s) => s.closeCommitmentsSheet);
 
   // Ensure proper re-rendering on browser navigation
   useBrowserNavigation();
@@ -156,9 +156,9 @@ const Home: React.FC = () => {
   useEffect(() => {
     if (location.pathname.replace(/\/$/, "") !== APP_ROUTES.home) {
       closeGardenFilter();
-      closeWalletDrawer();
+      closeWalletSheet();
     }
-  }, [location.pathname, closeGardenFilter, closeWalletDrawer]);
+  }, [location.pathname, closeGardenFilter, closeWalletSheet]);
 
   // Resolve an arrival action to its concrete client side effect.
   const runArrivalAction = useCallback(
@@ -298,8 +298,8 @@ const Home: React.FC = () => {
                   </span>
                 )}
               </button>
-              <WalletDrawerIcon onClick={openWalletDrawer} />
-              <DeferredCommitmentsDrawerLauncher onClick={openCommitmentsDrawer} />
+              <WalletSheetIcon onClick={openWalletSheet} />
+              <DeferredCommitmentsSheetLauncher onClick={openCommitmentsSheet} />
               <WorkDashboardIcon />
             </div>
           </div>
@@ -321,7 +321,7 @@ const Home: React.FC = () => {
           </div>
           {isGardenFilterOpen ? (
             <Suspense fallback={null}>
-              <GardensFilterDrawer
+              <GardensFilterSheet
                 isOpen
                 onClose={closeGardenFilter}
                 filters={filters}
@@ -337,14 +337,14 @@ const Home: React.FC = () => {
         </>
       )}
       <Outlet />
-      {isWalletDrawerOpen ? (
+      {isWalletSheetOpen ? (
         <Suspense fallback={null}>
-          <WalletDrawer isOpen onClose={closeWalletDrawer} />
+          <WalletSheet isOpen onClose={closeWalletSheet} />
         </Suspense>
       ) : null}
-      {isCommitmentsDrawerOpen ? (
+      {isCommitmentsSheetOpen ? (
         <Suspense fallback={null}>
-          <CommitmentsDrawer isOpen onClose={closeCommitmentsDrawer} />
+          <CommitmentsSheet isOpen onClose={closeCommitmentsSheet} />
         </Suspense>
       ) : null}
     </article>

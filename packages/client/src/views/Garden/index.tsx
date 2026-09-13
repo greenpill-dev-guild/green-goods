@@ -18,7 +18,7 @@ import { useIntl } from "react-intl";
 import { Button } from "@/components/Actions";
 import { ActionCardSkeleton, FormInfo, GardenCardSkeleton } from "@/components/Cards";
 import { FormProgress } from "@/components/Communication";
-import { DraftDialog } from "@/components/Dialogs";
+import { DraftSheet } from "@/components/Sheets";
 import { WorkViewSkeleton } from "@/components/Features/Work";
 import { TopNav } from "@/components/Navigation";
 import { pwaStatusStyles } from "@/components/Pwa/statusStyles";
@@ -376,8 +376,8 @@ const Work: React.FC = () => {
 
   return (
     <>
-      <DraftDialog
-        isOpen={draft.showDraftDialog}
+      <DraftSheet
+        isOpen={draft.showDraftSheet}
         onContinue={draft.handleContinueDraft}
         onClose={draft.close}
         legacyRecovery={draft.legacyRecovery}

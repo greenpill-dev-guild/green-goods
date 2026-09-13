@@ -24,28 +24,37 @@ export type UIState = {
   openWorkDashboard: (tab?: WorkDashboardTab, pendingFilter?: WorkDashboardPendingFilter) => void;
   closeWorkDashboard: () => void;
 
-  // Garden filter drawer controls (client)
+  // Garden filter sheet controls (client)
   isGardenFilterOpen: boolean;
   openGardenFilter: () => void;
   closeGardenFilter: () => void;
 
-  // Endowment/treasury drawer controls (client)
-  isEndowmentDrawerOpen: boolean;
-  openEndowmentDrawer: () => void;
-  closeEndowmentDrawer: () => void;
+  // Endowment/treasury sheet controls (client)
+  isEndowmentSheetOpen: boolean;
+  openEndowmentSheet: () => void;
+  closeEndowmentSheet: () => void;
 
-  // Wallet drawer controls (client)
-  isWalletDrawerOpen: boolean;
-  openWalletDrawer: () => void;
-  closeWalletDrawer: () => void;
+  // Wallet sheet controls (client)
+  isWalletSheetOpen: boolean;
+  openWalletSheet: () => void;
+  closeWalletSheet: () => void;
 
   // Commitments sheet controls (client)
-  isCommitmentsDrawerOpen: boolean;
-  openCommitmentsDrawer: () => void;
-  closeCommitmentsDrawer: () => void;
+  isCommitmentsSheetOpen: boolean;
+  openCommitmentsSheet: () => void;
+  closeCommitmentsSheet: () => void;
 
-  // Computed helper to check if any drawer is open (for AppBar hiding)
-  isAnyDrawerOpen: () => boolean;
+  /**
+   * How many sheets and dialogs are open right now. Every sheet surface
+   * registers itself while open (`useSheetPresence`), so chrome that must step
+   * aside for any overlay, such as the PWA AppBar, reads one count instead of
+   * a hand-maintained list of sheets (DL-015).
+   */
+  openSheetCount: number;
+  /** Register an open sheet or dialog. Returns its release function; reference-counted. */
+  registerOpenSheet: () => () => void;
+  /** True while at least one sheet or dialog is registered as open. */
+  isAnySheetOpen: () => boolean;
 
   // Sidebar controls (admin)
   sidebarOpen: boolean;
@@ -81,24 +90,29 @@ export const useUIStore = create<UIState>()(
       openGardenFilter: () => set({ isGardenFilterOpen: true }),
       closeGardenFilter: () => set({ isGardenFilterOpen: false }),
 
-      isEndowmentDrawerOpen: false,
-      openEndowmentDrawer: () => set({ isEndowmentDrawerOpen: true }),
-      closeEndowmentDrawer: () => set({ isEndowmentDrawerOpen: false }),
+      isEndowmentSheetOpen: false,
+      openEndowmentSheet: () => set({ isEndowmentSheetOpen: true }),
+      closeEndowmentSheet: () => set({ isEndowmentSheetOpen: false }),
 
-      isWalletDrawerOpen: false,
-      openWalletDrawer: () => set({ isWalletDrawerOpen: true }),
-      closeWalletDrawer: () => set({ isWalletDrawerOpen: false }),
+      isWalletSheetOpen: false,
+      openWalletSheet: () => set({ isWalletSheetOpen: true }),
+      closeWalletSheet: () => set({ isWalletSheetOpen: false }),
 
-      isCommitmentsDrawerOpen: false,
-      openCommitmentsDrawer: () => set({ isCommitmentsDrawerOpen: true }),
-      closeCommitmentsDrawer: () => set({ isCommitmentsDrawerOpen: false }),
+      isCommitmentsSheetOpen: false,
+      openCommitmentsSheet: () => set({ isCommitmentsSheetOpen: true }),
+      closeCommitmentsSheet: () => set({ isCommitmentsSheetOpen: false }),
 
-      isAnyDrawerOpen: () =>
-        get().isWorkDashboardOpen ||
-        get().isGardenFilterOpen ||
-        get().isEndowmentDrawerOpen ||
-        get().isWalletDrawerOpen ||
-        get().isCommitmentsDrawerOpen,
+      openSheetCount: 0,
+      registerOpenSheet: () => {
+        set((state) => ({ openSheetCount: state.openSheetCount + 1 }));
+        let released = false;
+        return () => {
+          if (released) return;
+          released = true;
+          set((state) => ({ openSheetCount: Math.max(0, state.openSheetCount - 1) }));
+        };
+      },
+      isAnySheetOpen: () => get().openSheetCount > 0,
 
       sidebarOpen: false,
       setSidebarOpen: (open) => set({ sidebarOpen: open }),

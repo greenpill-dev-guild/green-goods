@@ -3,11 +3,13 @@
 import { act, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { PwaSheet } from "../../components/Dialog/PwaSheet";
+import { useUIStore } from "../../stores/useUIStore";
 
 describe("PwaSheet", () => {
   beforeEach(() => {
     vi.useFakeTimers();
     document.documentElement.classList.remove("modal-open");
+    useUIStore.setState({ openSheetCount: 0 });
   });
 
   afterEach(() => {
@@ -103,5 +105,168 @@ describe("PwaSheet", () => {
     expect(screen.getByRole("dialog").getAttribute("class")).toBe("consumer-panel");
     expect(screen.getByTestId("pwa-sheet-overlay")).not.toHaveAttribute("class");
     expect(screen.getByTestId("pwa-sheet-drag-handle")).not.toHaveAttribute("class");
+  });
+  it("returns focus to the element that opened it", () => {
+    const opener = document.createElement("button");
+    opener.textContent = "Open";
+    document.body.append(opener);
+    opener.focus();
+    expect(opener).toHaveFocus();
+    const view = render(
+      <PwaSheet open onClose={vi.fn()} title="Sheet" closeLabel="Close">
+        <button type="button">Inside</button>
+      </PwaSheet>
+    );
+    expect(screen.getByTestId("pwa-sheet-close")).toHaveFocus();
+    view.rerender(
+      <PwaSheet open={false} onClose={vi.fn()} title="Sheet" closeLabel="Close">
+        <button type="button">Inside</button>
+      </PwaSheet>
+    );
+    expect(opener).toHaveFocus();
+    opener.remove();
+  });
+  it("keeps the page hidden until the last of two overlapping sheets closes", () => {
+    const background = document.createElement("main");
+    document.body.append(background);
+    const first = render(
+      <PwaSheet open onClose={vi.fn()} ariaLabel="First">
+        <p>First</p>
+      </PwaSheet>
+    );
+    const second = render(
+      <PwaSheet open onClose={vi.fn()} ariaLabel="Second">
+        <p>Second</p>
+      </PwaSheet>
+    );
+    expect(background).toHaveAttribute("aria-hidden", "true");
+
+    // Close the first sheet while the second is still open.
+    first.rerender(
+      <PwaSheet open={false} onClose={vi.fn()} ariaLabel="First">
+        <p>First</p>
+      </PwaSheet>
+    );
+    expect(background).toHaveAttribute("aria-hidden", "true");
+
+    second.rerender(
+      <PwaSheet open={false} onClose={vi.fn()} ariaLabel="Second">
+        <p>Second</p>
+      </PwaSheet>
+    );
+    expect(background).not.toHaveAttribute("aria-hidden");
+    background.remove();
+  });
+  it("renders into <body> so a page layer can never stack it under app chrome", () => {
+    const page = (open: boolean) => (
+      <div data-testid="page-layer" style={{ position: "fixed", zIndex: 10 }}>
+        <p>Page content beside the sheet</p>
+        <PwaSheet open={open} onClose={vi.fn()} ariaLabel="Deep">
+          <p>Deep</p>
+        </PwaSheet>
+      </div>
+    );
+    const view = render(page(true));
+    const overlay = screen.getByTestId("pwa-sheet-overlay");
+    expect(overlay.parentElement).toBe(document.body);
+    expect(screen.getByTestId("page-layer")).not.toContainElement(overlay);
+    expect(view.container).toHaveAttribute("aria-hidden", "true");
+
+    view.rerender(page(false));
+    expect(view.container).not.toHaveAttribute("aria-hidden");
+  });
+
+  it("names its height tier on the surface, compact by default", () => {
+    const view = render(
+      <PwaSheet open onClose={vi.fn()} ariaLabel="Tier">
+        <p>Tier</p>
+      </PwaSheet>
+    );
+    expect(screen.getByTestId("pwa-sheet")).toHaveAttribute("data-sheet-size", "compact");
+
+    view.rerender(
+      <PwaSheet open onClose={vi.fn()} ariaLabel="Tier" size="tall">
+        <p>Tier</p>
+      </PwaSheet>
+    );
+    expect(screen.getByTestId("pwa-sheet")).toHaveAttribute("data-sheet-size", "tall");
+  });
+
+  it("registers as an open sheet only while open, so the AppBar can step aside", () => {
+    const sheet = (open: boolean) => (
+      <PwaSheet open={open} onClose={vi.fn()} ariaLabel="Presence">
+        <p>Presence</p>
+      </PwaSheet>
+    );
+    const view = render(sheet(true));
+    expect(useUIStore.getState().openSheetCount).toBe(1);
+
+    view.rerender(sheet(false));
+    expect(useUIStore.getState().openSheetCount).toBe(0);
+
+    view.rerender(sheet(true));
+    view.unmount();
+    expect(useUIStore.getState().openSheetCount).toBe(0);
+  });
+  it("hides sibling content from assistive tech only while open", () => {
+    const sibling = document.createElement("main");
+    document.body.append(sibling);
+    const view = render(
+      <PwaSheet open onClose={vi.fn()} ariaLabel="Sheet">
+        <p>Body</p>
+      </PwaSheet>
+    );
+    expect(sibling).toHaveAttribute("aria-hidden", "true");
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
+    view.rerender(
+      <PwaSheet open={false} onClose={vi.fn()} ariaLabel="Sheet">
+        <p>Body</p>
+      </PwaSheet>
+    );
+    expect(sibling).not.toHaveAttribute("aria-hidden");
+    sibling.remove();
+  });
+
+  it("pins its actions in the shared bar under the body (DL-016)", () => {
+    const onConfirm = vi.fn();
+    render(
+      <PwaSheet
+        open
+        onClose={vi.fn()}
+        title="Continue Previous Work?"
+        closeLabel="Close"
+        actions={{
+          primary: { label: "Continue Draft", onClick: onConfirm },
+          secondary: { label: "Start Fresh" },
+        }}
+      >
+        <p>Saved on this device</p>
+      </PwaSheet>
+    );
+    const surface = screen.getByRole("dialog", { name: "Continue Previous Work?" });
+    const body = surface.querySelector('[data-component="PwaSheet"][data-slot="body"]');
+    const actions = surface.querySelector('[data-component="SheetActions"]');
+    expect(body).toHaveAttribute("data-scroll-edge", "bottom");
+    expect(actions?.parentElement).toBe(surface);
+    expect(body?.nextElementSibling).toBe(actions);
+    fireEvent.click(screen.getByRole("button", { name: "Continue Draft" }));
+    expect(onConfirm).toHaveBeenCalledOnce();
+  });
+  it("skips the empty body when a titled sheet only has actions", () => {
+    render(
+      <PwaSheet
+        open
+        onClose={vi.fn()}
+        title="Join Garden"
+        closeLabel="Close"
+        actions={{ primary: { label: "Join" }, secondary: { label: "Cancel" } }}
+      />
+    );
+    const surface = screen.getByRole("dialog", { name: "Join Garden" });
+    expect(surface.querySelector('[data-slot="body"]')).toBeNull();
+    expect(surface.querySelector('[data-slot="header"]')?.nextElementSibling).toHaveAttribute(
+      "data-component",
+      "SheetActions"
+    );
   });
 });

@@ -81,7 +81,7 @@ describe("draft hydration and recovery", () => {
     mocks.active.mockResolvedValue("saved-id");
     const { result } = renderHook(() => useDraftResume(options()));
     expect(useWorkFlowStore.getState().draftHydrated).toBe(false);
-    await waitFor(() => expect(result.current.showDraftDialog).toBe(true));
+    await waitFor(() => expect(result.current.showDraftSheet).toBe(true));
     expect(mocks.resume).toHaveBeenCalledWith(
       "saved-id",
       expect.objectContaining({ restoreForm: expect.any(Function) })
@@ -134,11 +134,11 @@ describe("draft hydration and recovery", () => {
       return "intro";
     });
     const { result } = renderHook(() => useDraftResume(options()));
-    await waitFor(() => expect(result.current.showDraftDialog).toBe(true));
+    await waitFor(() => expect(result.current.showDraftSheet).toBe(true));
     await act(async () => {
       await expect(result.current.handleStartFresh()).rejects.toThrow("quota");
     });
-    expect(result.current.showDraftDialog).toBe(true);
+    expect(result.current.showDraftSheet).toBe(true);
   });
   it("clears the visible form on logout before another account can hydrate", async () => {
     const input = options();
