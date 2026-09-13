@@ -41,7 +41,7 @@ const BUTTON_VARIANT_TONES = {
 } as const satisfies Record<ButtonVariant, PwaStatusTone>;
 
 // Header actions are compact outlined IconButtons (32px, 48px hit area); the
-// icon carries the status tone (DL-021, DL-023).
+// icon carries the status tone (DL-023, DL-026).
 const iconTone = (variant: ButtonVariant = "work") =>
   pwaStatusStyles[BUTTON_VARIANT_TONES[variant]].icon;
 

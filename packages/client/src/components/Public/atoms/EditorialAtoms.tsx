@@ -216,7 +216,7 @@ export function EditorialMetaRow({ items, tone = "default", className }: Editori
 // Action atoms — buttons + links
 // ============================================================================
 
-// The capsule and secondary atoms are the editorial dialect over the shared
+// The primary and secondary atoms are the editorial dialect over the shared
 // Button (DL-024): shape, height, press morph, and hit area come from the
 // primitive, and `size` picks the step (lg 48 for hero actions, md 44 for
 // section and panel actions, sm 40 for row actions). The atoms only add the
@@ -241,7 +241,7 @@ export interface EditorialPrimaryButtonProps extends EditorialButtonProps {
   children: ReactNode;
 }
 
-/** Capsule green primary action. Use for the rare on-page action (subscribe). */
+/** Green primary action. Use for the rare on-page action (subscribe). */
 export function EditorialPrimaryButton({
   children,
   type = "button",
@@ -296,7 +296,7 @@ export interface EditorialPrimaryLinkProps extends LinkProps {
   size?: ButtonSize;
 }
 
-/** Capsule green primary action that routes via React Router Link. */
+/** Green primary action that routes via React Router Link. */
 export function EditorialPrimaryLink({
   children,
   className,
@@ -355,7 +355,7 @@ export interface EditorialLinkArrowProps {
 
 /**
  * Inline green underline link with a trailing arrow. Doubles as a ghost CTA in
- * places where capsule buttons would feel too loud (section footers, lede asides).
+ * places where filled buttons would feel too loud (section footers, lede asides).
  */
 export function EditorialLinkArrow({
   to,

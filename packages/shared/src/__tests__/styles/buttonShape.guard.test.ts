@@ -1,11 +1,10 @@
 /**
  * Guard: button and field shape follow the locked rules.
  *
- * DL-003 was codified for months while no primitive encoded it, and the
- * secondary corner drifted from 12px to 20px because the guidance named a
- * Tailwind class whose token had changed. This guard reads the shipped CSS so
- * the shape per emphasis (DL-021), the field corner (DL-022), and the shared
- * height scale (DL-023) cannot drift silently again.
+ * Button corners drifted for months because no primitive encoded them, and the
+ * guidance named a Tailwind class whose token had changed. This guard reads the
+ * shipped CSS so the button corner per surface (DL-026), the field corner
+ * (DL-022), and the shared height scale (DL-023) cannot drift silently again.
  */
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
@@ -15,9 +14,19 @@ const theme = readFileSync(resolve(__dirname, "../../styles/theme.css"), "utf-8"
 const generated = readFileSync(resolve(__dirname, "../../styles/design-md.generated.css"), "utf-8");
 
 const escape = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-/** Declarations of the first rule whose selector list is exactly `selector`. */
-const block = (selector: string, source = theme) =>
-  source.match(new RegExp(`(?:^|\\n)\\s*${escape(selector)}\\s*\\{([^}]*)\\}`))?.[1] ?? "";
+/** Declarations of the first rule whose selector list is `selector`, ignoring whitespace between selectors. */
+const block = (selector: string, source = theme) => {
+  const selectorList = selector
+    .split(",")
+    .map((part) => escape(part.trim()))
+    .join("\\s*,\\s*");
+  return source.match(new RegExp(`(?:^|\\n)\\s*${selectorList}\\s*\\{([^}]*)\\}`))?.[1] ?? "";
+};
+/** Declarations of the `:root` rule that declares `property`. */
+const rootBlockWith = (property: string) =>
+  Array.from(theme.matchAll(/(?:^|\n)\s*:root\s*\{([^}]*)\}/g), (match) => match[1]).find((body) =>
+    body.includes(`${property}:`)
+  ) ?? "";
 const declaration = (body: string, property: string) =>
   body.match(new RegExp(`(?:^|[;\\s])${escape(property)}:\\s*([^;]+);`))?.[1]?.trim();
 
@@ -47,22 +56,33 @@ const hitAreaPx = (inset: string, sizePx: number, border: number) => {
   return sizePx - 2 * border - 2 * offset;
 };
 
-describe("button shape guard (DL-021, DL-023)", () => {
+describe("button shape guard (DL-023, DL-026)", () => {
   it("projects the 12px squircle step from DesignMD", () => {
     expect(generated).toMatch(/--gg-radius-squircle:\s*12px;/);
     expect(theme).toMatch(/--radius-squircle:\s*var\(--gg-radius-squircle\);/);
   });
 
-  it("makes a primary a capsule and a secondary or tertiary the squircle", () => {
-    expect(declaration(block('.gg-button[data-emphasis="primary"]'), "border-radius")).toBe(
-      "calc(var(--gg-button-block, 2.75rem) / 2)"
-    );
-    expect(declaration(block('.gg-button[data-emphasis="secondary"]'), "border-radius")).toBe(
-      "var(--radius-squircle)"
-    );
-    expect(declaration(block('.gg-button[data-emphasis="tertiary"]'), "border-radius")).toBe(
-      "var(--radius-squircle)"
-    );
+  it("gives every emphasis the surface corner, with no corner of its own", () => {
+    const emphasis = block(".gg-button[data-emphasis]");
+    expect(declaration(emphasis, "border-radius")).toBe("var(--gg-button-radius)");
+    expect(declaration(emphasis, "font-weight")).toBe("var(--gg-button-weight)");
+    for (const name of ["primary", "secondary", "tertiary"]) {
+      expect(
+        declaration(block(`.gg-button[data-emphasis="${name}"]`), "border-radius")
+      ).toBeUndefined();
+    }
+  });
+
+  it("uses the 12px squircle in the app and 16px on the public website", () => {
+    const app = rootBlockWith("--gg-button-radius");
+    expect(declaration(app, "--gg-button-radius")).toBe("var(--radius-squircle)");
+    expect(declaration(app, "--gg-button-radius-pressed")).toBe("var(--radius-md)");
+    expect(declaration(app, "--gg-button-weight")).toBe("var(--text-label-sm--font-weight)");
+
+    const website = block(':root:has([data-site="website"])');
+    expect(declaration(website, "--gg-button-radius")).toBe("var(--radius-lg)");
+    expect(declaration(website, "--gg-button-radius-pressed")).toBe("var(--radius-squircle)");
+    expect(declaration(website, "--gg-button-weight")).toBe("var(--font-weight-semibold, 600)");
   });
 
   it.each([
@@ -116,20 +136,12 @@ describe("button shape guard (DL-021, DL-023)", () => {
     expect(hitAreaPx(inset, height, borderPx(".gg-chip"))).toBe(44);
   });
 
-  it("morphs on press and keeps the resting shape under reduced motion (DL-001)", () => {
-    expect(declaration(block('.gg-button[data-emphasis="primary"]:active'), "border-radius")).toBe(
-      "var(--radius-squircle)"
-    );
-    expect(
-      declaration(block('.gg-button[data-emphasis="secondary"]:active'), "border-radius")
-    ).toBe("var(--radius-md)");
+  it("tightens one step on press and keeps the resting corner under reduced motion (DL-001)", () => {
+    const pressed =
+      '.gg-button[data-emphasis="primary"]:active, .gg-button[data-emphasis="secondary"]:active';
+    expect(declaration(block(pressed), "border-radius")).toBe("var(--gg-button-radius-pressed)");
     const reduced = theme.slice(theme.lastIndexOf("@media (prefers-reduced-motion: reduce)"));
-    expect(
-      declaration(block('.gg-button[data-emphasis="primary"]:active', reduced), "border-radius")
-    ).toBe("calc(var(--gg-button-block, 2.75rem) / 2)");
-    expect(
-      declaration(block('.gg-button[data-emphasis="secondary"]:active', reduced), "border-radius")
-    ).toBe("var(--radius-squircle)");
+    expect(declaration(block(pressed, reduced), "border-radius")).toBe("var(--gg-button-radius)");
   });
 
   it("draws icon buttons as circles and chips as capsules", () => {

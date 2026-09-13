@@ -8,7 +8,7 @@ interface WalletSheetIconProps {
   className?: string;
 }
 
-/** Header launcher for the wallet sheet: a compact outlined icon button (DL-021, DL-023). */
+/** Header launcher for the wallet sheet: a compact outlined icon button (DL-023, DL-026). */
 export const WalletSheetIcon: React.FC<WalletSheetIconProps> = ({ onClick, className }) => {
   const intl = useIntl();
   const label = intl.formatMessage({ id: "app.wallet.title" });

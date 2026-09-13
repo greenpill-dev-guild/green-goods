@@ -22,7 +22,7 @@ const meta = {
     docs: {
       description: {
         component:
-          "The one action button. Shape follows emphasis (DL-021): primary is a capsule, secondary the 12px squircle, tertiary text with a squircle fill on hover. Heights match the field scale (DL-023): lg 48, md 44, sm 40, compact 32 with a 48px hit area. A loading button stays focusable. `variant` is the legacy class contract kept for shared internals admin still renders.",
+          'The one action button. Emphasis sets fill, outline, and colour; the corner comes from the surface and is the same for every emphasis (DL-026): the 12px squircle in the installed app, 16px on the public website (inside `data-site="website"`). Heights match the field scale (DL-023): lg 48, md 44, sm 40, compact 32 with a 48px hit area. A loading button stays focusable. `variant` is the legacy class contract kept for shared internals admin still renders.',
       },
     },
   },
@@ -46,8 +46,8 @@ export const Primary: Story = {
     const button = within(canvasElement).getByRole("button", { name: "Create Garden" });
     const style = getComputedStyle(button);
     await expect(button.getBoundingClientRect().height).toBe(44);
-    // A capsule: the corner is half the height.
-    await expect(px(style.borderTopLeftRadius)).toBe(22);
+    // The app corner is the 12px squircle for every emphasis.
+    await expect(px(style.borderTopLeftRadius)).toBe(12);
   },
 };
 
@@ -89,7 +89,7 @@ export const AsLink: Story = {
   ),
 };
 
-/** Every emphasis at every size, with the heights and corners the scale promises. */
+/** Every emphasis at every size, with the heights the scale promises and one app corner. */
 export const EmphasisCatalog: Story = {
   render: () => (
     <div className="flex flex-col gap-4">
@@ -110,9 +110,7 @@ export const EmphasisCatalog: Story = {
       const row = canvasElement.querySelector(`[data-size-row="${size}"]`);
       for (const button of Array.from(row?.querySelectorAll("button") ?? [])) {
         await expect(button.getBoundingClientRect().height).toBe(height);
-        const radius = px(getComputedStyle(button).borderTopLeftRadius);
-        const emphasis = button.getAttribute("data-emphasis");
-        await expect(radius).toBe(emphasis === "primary" ? height / 2 : 12);
+        await expect(px(getComputedStyle(button).borderTopLeftRadius)).toBe(12);
         // The two short sizes still reach a 48px hit area (DL-023).
         if (height < 44) {
           await expect(px(getComputedStyle(button, "::after").height)).toBe(48);
@@ -140,6 +138,28 @@ export const FieldPairing: Story = {
     await expect(button.getBoundingClientRect().height).toBe(44);
     await expect(px(getComputedStyle(field).borderTopLeftRadius)).toBe(16);
     await expect(px(getComputedStyle(button).borderTopLeftRadius)).toBe(12);
+  },
+};
+
+/** On the public website every emphasis takes the 16px corner and a semibold label (DL-026). */
+export const WebsiteSurface: Story = {
+  render: () => (
+    <div data-site="website" className="flex flex-wrap items-center gap-3">
+      {EMPHASES.map((emphasis) => (
+        <Button key={emphasis} emphasis={emphasis}>
+          {`Website ${emphasis}`}
+        </Button>
+      ))}
+    </div>
+  ),
+  play: async ({ canvasElement }) => {
+    for (const emphasis of EMPHASES) {
+      const button = within(canvasElement).getByRole("button", { name: `Website ${emphasis}` });
+      const style = getComputedStyle(button);
+      await expect(button.getBoundingClientRect().height).toBe(44);
+      await expect(px(style.borderTopLeftRadius)).toBe(16);
+      await expect(style.fontWeight).toBe("600");
+    }
   },
 };
 

@@ -11,7 +11,7 @@ const meta = {
     docs: {
       description: {
         component:
-          "A capsule toggle for filters and choices (DL-021): 32px with a 44px hit area. A selected chip uses the action fill with white text (DL-017) and announces itself with aria-pressed, or aria-checked / aria-selected when it plays a radio or tab role.",
+          "A capsule toggle for filters and choices (DL-026): 32px with a 44px hit area. A selected chip uses the action fill with white text (DL-017) and announces itself with aria-pressed, or aria-checked / aria-selected when it plays a radio or tab role.",
       },
     },
   },

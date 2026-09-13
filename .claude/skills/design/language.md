@@ -45,7 +45,7 @@ Adapted from Apple's Liquid Glass, these three types create geometric harmony ac
 | Type | Behavior | When to Use | Examples |
 |------|----------|-------------|----------|
 | **Fixed** | Constant corner radius regardless of context | Small elements that don't nest | Avatars, badges, status dots, chips |
-| **Capsule** | Radius = half the container height | Elements that signal emphasis or interactivity | Primary buttons, pills, sliders, nav active indicators, icon buttons |
+| **Capsule** | Radius = half the container height | Elements that signal interactivity at a glance | Chips, pills, sliders, nav active indicators, icon buttons |
 | **Concentric** | Radius = parent radius - padding | Elements nested inside containers | Cards inside panels, content inside cards, inputs inside dialogs |
 
 ### Concentricity Rule
@@ -81,7 +81,7 @@ Token names come from root `DESIGN.md` (`rounded.*`), not stock Tailwind. In cli
 Tailwind classes resolve to that runtime scale: `rounded-md` 8px, `rounded-lg` 16px, `rounded-xl` 20px,
 `rounded-2xl` 24px (admin remaps `rounded-xl` and `rounded-2xl` to 16px). The 12px step has no Tailwind
 class; use `var(--radius-squircle)`. Buttons and fields never take a radius class: their shared primitives
-own the shape (DL-021, DL-022). Naming stock Tailwind classes here once let the secondary corner drift
+own the shape (DL-022, DL-026). Naming stock Tailwind classes here once let the secondary corner drift
 from 12px to 20px.
 
 | Element | Radius | Runtime token | Shape Type | Concentric Parent |
@@ -92,24 +92,24 @@ from 12px to 20px.
 | Cards, fields (DL-022) | 16px | `--radius-lg` · `rounded-lg` · `.gg-control` | Concentric | Panel (20px) - 4px |
 | Panels, sheets | 20px | `--radius-xl` · `rounded-xl` | Concentric | Page (24px) - 4px |
 | Modals, dialogs, bottom sheets | 24px | `--radius-2xl` · `rounded-2xl` | Concentric | Viewport edge |
-| Primary buttons | half the height | `.gg-button[data-emphasis="primary"]` | Capsule | — |
 | Icon buttons | circle | `.gg-icon-button` | Capsule | — |
 | Chips (filters, choices) | capsule | `.gg-chip` · `--radius-full` | Capsule | — |
-| Secondary and tertiary buttons | 12px | `--radius-squircle` | Fixed | — |
+| Buttons in the installed app, every emphasis (DL-026) | 12px | `--gg-button-radius` → `--radius-squircle` | Fixed | — |
+| Buttons on the public website, every emphasis (DL-026) | 16px | `--gg-button-radius` → `--radius-lg` | Fixed | — |
 
-### Shape & Emphasis Hierarchy
+### Button Corners and Emphasis
 
-Shape communicates emphasis level. This is the core Warm Earth principle for buttons and interactive elements:
+Emphasis is carried by fill, outline, and colour. The corner belongs to the surface, so a primary and the secondary beside it always share one shape (DL-026):
 
-| Emphasis | Shape | Morph on Press | Use |
-|----------|-------|----------------|-----|
-| **Primary / hero** | Capsule (half the height) | Tightens to the 12px squircle | CTAs, FABs, hero actions, "Create Garden"; the error fill when destructive |
-| **Secondary / functional** | Squircle (12px, `--radius-squircle`) | Tightens to 8px | Second actions, "Cancel" (DL-016), "Add Link" |
-| **Tertiary / text** | No container at rest; 12px fill on hover and focus | — | Inline actions, a rare third action; 44px hit area |
-| **Icon buttons** | Circle | Tightens to the 12px squircle | Close, back, share, menu, remove |
-| **Chips** | Capsule | — | Filters and choices; selected uses the action fill (DL-017) |
+| Element | Installed app | Public website | Morph on Press | Use |
+|---------|---------------|----------------|----------------|-----|
+| **Primary** (filled; the error fill when destructive) | 12px | 16px | One step tighter: 8px in the app, 12px on the website | CTAs, hero actions, "Create Garden" |
+| **Secondary** (outlined, "Cancel" included) | 12px | 16px | One step tighter: 8px in the app, 12px on the website | Second actions, "Cancel" (DL-016), "Add Link" |
+| **Tertiary** (text) | No container at rest; 12px fill on hover and focus | 16px fill on hover and focus | — | Inline actions, a rare third action; 44px hit area |
+| **Icon buttons** | Circle | Circle | Tightens to the 12px squircle | Close, back, share, menu, remove |
+| **Chips** | Capsule | Capsule | — | Filters and choices; selected uses the action fill (DL-017) |
 
-**Rule (DL-021)**: shape follows emphasis and nothing else. When a capsule button sits next to a squircle button, the capsule reads as primary and the squircle as secondary — no color difference needed. Shape alone creates hierarchy. The shared `Button` (`emphasis`), `IconButton`, and `Chip` encode the rule and have no shape prop; client code never hand-rolls a button (DL-025).
+**Rule (DL-026)**: one button corner per surface. The public website's shell carries `data-site="website"`, and the corner tokens (`--gg-button-radius`, `--gg-button-radius-pressed`) sit on `:root`, so dialogs and sheets that portal out of the shell match the page. Labels are regular weight in the app and semibold on the website (`--gg-button-weight`). The shared `Button` (`emphasis`), `IconButton`, and `Chip` encode this and have no shape prop; client code never hand-rolls a button (DL-025). The capsule-primary rule (DL-003) is superseded: applied everywhere, it mismatched every button pair.
 
 **Admin note**: cockpit buttons are pills (`AdminButton`, Title Case action labels per DL-012), sized on the DL-011 compact metric (28/32/40 with preserved 44px hit targets), and the admin FAB follows the capsule rule at both sizes (`rounded-full` — 48px dock circle, 56px extended floating capsule; DL-010). Admin radii are the fixed 4/8/12/16/9999 set with no 20/24/28px steps — the capsule is that set's 9999 step.
 
@@ -117,11 +117,10 @@ Shape communicates emphasis level. This is the core Warm Earth principle for but
 
 Interactive elements shift shape on engagement. This creates physical, tactile feedback — the "Expressive touch" from M3 that makes interfaces feel alive.
 
-**Buttons** (DL-001, built in DL-021):
-- Capsule buttons (primary) and icon buttons: tighten to the 12px squircle on press, spring back on release
-- Squircle buttons (secondary): tighten from 12px to 8px on press, spring back
+**Buttons** (DL-001, built in DL-026):
+- Primary and secondary buttons tighten one step on press and spring back on release: 12px to 8px in the app, 16px to 12px on the website
+- Icon buttons tighten from a circle to the 12px squircle
 - All use `--spring-spatial-fast` for the morph transition; under `prefers-reduced-motion` they keep their resting shape
-- A primary's resting corner is half its height (`calc(var(--gg-button-block) / 2)`), not `9999px`, so the morph travels visibly instead of snapping at the end
 
 **Cards** (complements lift-and-press):
 - Hover: scale(1.008) + green shadow glow (lift-and-press)
@@ -132,20 +131,21 @@ Interactive elements shift shape on engagement. This creates physical, tactile f
 
 **Shipped CSS** (shared `theme.css`, components layer; abridged):
 ```css
-/* Primary — capsule at rest, squircle while pressed */
-.gg-button[data-emphasis="primary"] {
-  border-radius: calc(var(--gg-button-block, 2.75rem) / 2);
+/* One corner per surface for every emphasis (DL-026) */
+:root {
+  --gg-button-radius: var(--radius-squircle);
+  --gg-button-radius-pressed: var(--radius-md);
 }
-.gg-button[data-emphasis="primary"]:active {
-  border-radius: var(--radius-squircle);
+:root:has([data-site="website"]) {
+  --gg-button-radius: var(--radius-lg);
+  --gg-button-radius-pressed: var(--radius-squircle);
 }
-
-/* Secondary — squircle at rest, one step tighter while pressed */
-.gg-button[data-emphasis="secondary"] {
-  border-radius: var(--radius-squircle);
+.gg-button[data-emphasis] {
+  border-radius: var(--gg-button-radius);
 }
+.gg-button[data-emphasis="primary"]:active,
 .gg-button[data-emphasis="secondary"]:active {
-  border-radius: var(--radius-md);
+  border-radius: var(--gg-button-radius-pressed);
 }
 
 /* Card — complement lift-and-press with radius tighten */
@@ -162,7 +162,7 @@ From Apple's Liquid Glass talk — watch for these as you build:
 1. **Pinched corners** — Inner element radius too small relative to outer. Fix: make it concentric.
 2. **Flared corners** — Inner radius larger than outer minus padding. Fix: use `concentricShape(fallback)`.
 3. **Near device edges** — On phone, use capsule + extra margin near screen edge. On tablet/desktop, use concentric shape aligned to window edge.
-4. **Mixing shape types** — Don't put a capsule button inside a fixed-radius container if the radii clash. The capsule's geometry naturally supports concentricity.
+4. **Mixing shape types** — Don't put a capsule (a chip or pill) inside a fixed-radius container if the radii clash. The capsule's geometry naturally supports concentricity.
 
 ### Concentricity Reference (copy this shape)
 
@@ -237,7 +237,7 @@ Motion is built into components, not applied externally:
 
 | Component | Motion | Spring Token |
 |-----------|--------|-------------|
-| **Buttons** | Shape morph on press (capsule → squircle or squircle → tighter) | `--spring-spatial-fast` |
+| **Buttons** | Shape morph on press (the corner tightens one step) | `--spring-spatial-fast` |
 | **Cards** | Client: hover lift (scale 1.008) + press (scale 0.985 + radius tighten). Admin: no lift/scale/glow — elevation 1→2 or the neutral 8% ink layer | `--spring-spatial-fast` |
 | **Client/PWA sheets** | Slide from source element; client shell depth may respond | `--spring-spatial` |
 | **Navigation** | Active indicator slides with spring transition | `--spring-spatial` |
@@ -661,7 +661,7 @@ append-only ledger where all ongoing design decisions land:
 |----------|--------|-----------|
 | Interaction model | Complement: lift-and-press (cards) + shape morph (buttons) | Different elements get different physics; richer tactile vocabulary |
 | Motion system | Named spring tokens replacing hardcoded beziers | Semantic names enable motion scheme switching; consistent vocabulary |
-| Button shape | Context-dependent: capsule = primary, squircle = secondary | Shape as emphasis hierarchy; capsule draws eye, squircle recedes |
+| Button shape | One corner per surface, whatever the emphasis: 12px in the app, 16px on the website (DL-026, superseding the capsule-primary rule) | A primary and its secondary sit side by side, so mixed shapes read as inconsistent; fill and colour already carry emphasis |
 | Component scope | Admin-relevant subset (3 button sizes, toolbar, sheets, nav, progress) | Focus on what the revamp needs now; extend vocabulary later |
 | Document depth | Comprehensive standalone spec | language.md should be self-contained enough to guide implementation without jumping between files |
 | Spatial arch integration | Deep — all beziers → tokens, radii → concentric types, full vocabulary alignment | Spatial architecture is the first consumer of Warm Earth; coherence matters |

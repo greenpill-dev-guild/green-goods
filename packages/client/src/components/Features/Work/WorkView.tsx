@@ -249,7 +249,7 @@ export const WorkView: React.FC<WorkViewProps> = ({
           <div className="flex flex-col gap-3">
             {visibleActions.map((a) => {
               // Approve is the one filled action; reject and the utility actions are
-              // outlined (DL-021), reject in the error tone.
+              // outlined (DL-026), reject in the error tone.
               const isReject = a.id === "reject";
               return (
                 <Button

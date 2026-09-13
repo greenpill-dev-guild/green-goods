@@ -20,7 +20,7 @@ const meta = {
     docs: {
       description: {
         component:
-          "A circular icon-only button for close, back, share, menu, and remove (DL-021). The accessible name is required. Sizes follow the Button scale; sm and compact keep a 48px hit area. Tertiary is transparent, secondary outlined, primary filled.",
+          "A circular icon-only button for close, back, share, menu, and remove (DL-026). The accessible name is required. Sizes follow the Button scale; sm and compact keep a 48px hit area. Tertiary is transparent, secondary outlined, primary filled.",
       },
     },
   },
@@ -97,8 +97,9 @@ export const WithBadge: Story = {
     const buttonRect = button.getBoundingClientRect();
     const badgeRect = canvas.getByTestId("count").getBoundingClientRect();
     await expect(buttonRect.height).toBe(32);
-    // The count overhangs the top-right corner rather than covering the icon.
-    await expect(badgeRect.top).toBeLessThan(buttonRect.top);
+    // The count sits level with the top edge, so a strip above never covers it, and
+    // overhangs to the right rather than covering the icon.
+    await expect(badgeRect.top).toBe(buttonRect.top);
     await expect(badgeRect.right).toBeGreaterThan(buttonRect.right);
   },
 };

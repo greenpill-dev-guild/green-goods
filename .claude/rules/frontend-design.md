@@ -237,9 +237,10 @@ The five enforceable invariants of the admin cockpit finish — treat violations
 ## Rule 19: Client Buttons and Controls Come From the Shared Family
 
 In `packages/client`, every action is the shared `Button` (`emphasis` primary / secondary /
-tertiary), `IconButton`, or `Chip`, and every field a shared field primitive (DL-025). Shape follows
-emphasis and the primitive owns it (DL-021); the height comes from `size` on the shared scale
-48 / 44 / 40 / 32 (DL-023). Never pass a radius, height, or vertical padding class to them.
+tertiary), `IconButton`, or `Chip`, and every field a shared field primitive (DL-025). The
+primitive owns the corner, one per surface for every emphasis: 12px in the app and 16px on the
+public website (DL-026). The height comes from `size` on the shared scale 48 / 44 / 40 / 32
+(DL-023). Never pass a radius, height, or vertical padding class to them.
 
 A raw element is allowed only when it declares why: a `<button>` with a `role` of `tab`, `switch`,
 or `radio`, or a `data-pressable` of `card`, `row`, `scrim`, `media`, `trigger`, `fab`, or `tab` (a

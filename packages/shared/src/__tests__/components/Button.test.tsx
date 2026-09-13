@@ -5,7 +5,7 @@ import { describe, expect, it, vi } from "vitest";
 import { Button } from "../../components/Button";
 
 describe("Button", () => {
-  it("emits the emphasis contract with primary and md by default (DL-021, DL-023)", () => {
+  it("emits the emphasis contract with primary and md by default (DL-023, DL-026)", () => {
     render(<Button>Continue</Button>);
     const button = screen.getByRole("button", { name: "Continue" });
     expect(button).toHaveClass("gg-button");

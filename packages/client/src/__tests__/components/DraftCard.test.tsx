@@ -217,7 +217,7 @@ describe("DraftCard", () => {
     );
 
     const deleteBtn = screen.getByLabelText("Delete Draft");
-    // The md IconButton is a 44px circle (DL-021, DL-023); theme.css owns the size.
+    // The md IconButton is a 44px circle (DL-023, DL-026); theme.css owns the size.
     expect(deleteBtn).toHaveClass("gg-icon-button");
     expect(deleteBtn).toHaveAttribute("data-size", "md");
   });

@@ -30,7 +30,10 @@ const meta: Meta = {
   decorators: [
     (Story) => (
       <MemoryRouter>
-        <Story />
+        {/* The atoms only render on the public website, whose shell sets data-site (DL-026). */}
+        <div data-site="website">
+          <Story />
+        </div>
       </MemoryRouter>
     ),
   ],
@@ -155,7 +158,11 @@ export const ButtonSizes: Story = {
       const actions = Array.from(row?.querySelectorAll<HTMLElement>(".gg-button") ?? []);
       await expect(actions).toHaveLength(3);
       for (const action of actions) {
+        const style = getComputedStyle(action);
         await expect(action.getBoundingClientRect().height).toBe(height);
+        // Every website button, link or not, takes the 16px corner and a semibold label.
+        await expect(Number.parseFloat(style.borderTopLeftRadius)).toBe(16);
+        await expect(style.fontWeight).toBe("600");
       }
     }
   },

@@ -470,7 +470,7 @@
 
   /* ── Radius Aliases ── Public runtime aliases for DesignMD-generated radii. */
   --radius-md: var(--gg-radius-md);
-  /* 12px: secondary and tertiary buttons, and actions inside a field (DL-021). */
+  /* 12px: app buttons of every emphasis, and actions inside a field (DL-026). */
   --radius-squircle: var(--gg-radius-squircle);
   --radius-lg: var(--gg-radius-lg);
   --radius-xl: var(--gg-radius-xl);
@@ -1107,16 +1107,36 @@
     justify-content: center;
   }
 
-  /* ── Button emphasis API (DL-021, DL-023) ──
-   * The shared Button emits data-emphasis / data-tone / data-size. Shape follows
-   * emphasis: a primary is a capsule (half its height, so the press morph can
-   * travel), a secondary or tertiary is the 12px squircle. Heights match the
-   * field scale (48 / 44 / 40 / 32), and the two short sizes carry a 48px hit
-   * area. The legacy variant classes above keep their old values for the shared
-   * internals admin still renders. */
+  /* ── Button emphasis API (DL-023, DL-026) ──
+   * The shared Button emits data-emphasis / data-tone / data-size. Emphasis sets
+   * the fill, outline, and colour; the corner comes from the surface, the same
+   * for every emphasis. Heights match the field scale (48 / 44 / 40 / 32), and
+   * the two short sizes carry a 48px hit area. The legacy variant classes above
+   * keep their old values for the shared internals admin still renders. */
   .gg-button[data-size] {
     position: relative;
     cursor: pointer;
+  }
+
+  /* Button corner and label weight per surface (DL-026): the 12px squircle in the
+   * installed app and 16px on the public website, one step tighter while pressed.
+   * The website shell carries data-site="website"; the tokens sit on :root so
+   * dialogs and sheets that portal out of the shell match the page. */
+  :root {
+    --gg-button-radius: var(--radius-squircle);
+    --gg-button-radius-pressed: var(--radius-md);
+    --gg-button-weight: var(--text-label-sm--font-weight);
+  }
+
+  :root:has([data-site="website"]) {
+    --gg-button-radius: var(--radius-lg);
+    --gg-button-radius-pressed: var(--radius-squircle);
+    --gg-button-weight: var(--font-weight-semibold, 600);
+  }
+
+  .gg-button[data-emphasis] {
+    border-radius: var(--gg-button-radius);
+    font-weight: var(--gg-button-weight);
   }
 
   .gg-button[data-size="lg"] {
@@ -1159,7 +1179,6 @@
   }
 
   .gg-button[data-emphasis="primary"] {
-    border-radius: calc(var(--gg-button-block, 2.75rem) / 2);
     background: rgb(var(--tone-action, var(--primary-action)));
     color: rgb(var(--tone-on-action, var(--primary-action-foreground)));
   }
@@ -1188,7 +1207,6 @@
 
   .gg-button[data-emphasis="secondary"] {
     border-color: rgb(var(--stroke-sub-300));
-    border-radius: var(--radius-squircle);
     background: rgb(var(--bg-white-0));
     color: rgb(var(--text-strong-950));
   }
@@ -1208,7 +1226,6 @@
 
   .gg-button[data-emphasis="tertiary"] {
     border-color: transparent;
-    border-radius: var(--radius-squircle);
     background: transparent;
     color: rgb(var(--text-sub-600));
   }
@@ -1227,18 +1244,14 @@
     color: rgb(var(--error-base));
   }
 
-  /* Press morph (DL-001): a capsule tightens to the squircle, a squircle one
-   * step further. Reduced motion keeps the resting shape (see the end of this
-   * layer). */
-  .gg-button[data-emphasis="primary"]:active {
-    border-radius: var(--radius-squircle);
-  }
-
+  /* Press morph (DL-001): a filled or outlined button tightens one step while
+   * pressed. Reduced motion keeps the resting corner (see the end of this layer). */
+  .gg-button[data-emphasis="primary"]:active,
   .gg-button[data-emphasis="secondary"]:active {
-    border-radius: var(--radius-md);
+    border-radius: var(--gg-button-radius-pressed);
   }
 
-  /* ── Icon button (DL-021) ── A circle at 48 / 44 / 40 / 32 whose hit area never
+  /* ── Icon button (DL-026) ── A circle at 48 / 44 / 40 / 32 whose hit area never
    * drops below 48px. Tertiary (transparent) by default; secondary is outlined;
    * primary is filled. */
   .gg-icon-button {
@@ -1350,12 +1363,14 @@
   /* A launcher's count or status dot, pinned to the top-right corner. */
   .gg-icon-button-badge {
     position: absolute;
-    inset-block-start: -0.375rem;
+    /* Level with the button's top edge (the border is 1px), so a strip or bar
+     * above the launcher never covers the count; it overhangs to the side only. */
+    inset-block-start: -1px;
     inset-inline-end: -0.375rem;
     display: inline-flex;
   }
 
-  /* ── Chip (DL-021) ── A capsule toggle for filters and choices: 32px with a
+  /* ── Chip (DL-026) ── A capsule toggle for filters and choices: 32px with a
    * 44px hit area. Selected chips carry text on a green fill, so they use the
    * action fill with white text (DL-017). */
   .gg-chip {
@@ -1544,13 +1559,10 @@
       transition: none;
     }
 
-    /* No press morph: every emphasis keeps its resting shape. */
-    .gg-button[data-emphasis="primary"]:active {
-      border-radius: calc(var(--gg-button-block, 2.75rem) / 2);
-    }
-
+    /* No press morph: buttons keep their resting corner. */
+    .gg-button[data-emphasis="primary"]:active,
     .gg-button[data-emphasis="secondary"]:active {
-      border-radius: var(--radius-squircle);
+      border-radius: var(--gg-button-radius);
     }
 
     .gg-icon-button:active {

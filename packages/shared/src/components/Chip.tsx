@@ -1,5 +1,5 @@
 /**
- * Chip — a capsule toggle for filters and choices (DL-021).
+ * Chip — a capsule toggle for filters and choices (DL-026).
  *
  * 32px tall with a 44px hit area (`size="sm"` is 40px). The selected state is
  * announced with the attribute that matches the role: `aria-pressed` for a

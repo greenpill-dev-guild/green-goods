@@ -32,7 +32,7 @@ export interface CommitmentActionBarProps {
  * a queue the phone cannot read, which is not the same as an empty one.
  *
  * The act is the page's primary (the error fill when destructive) and the rarer
- * act its secondary, both at the page-level lg size (DL-021, DL-023).
+ * act its secondary, both at the page-level lg size (DL-023, DL-026).
  */
 export function CommitmentActionBar({
   act,

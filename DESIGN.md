@@ -94,12 +94,18 @@ components:
     textColor: "{colors.on-tertiary-action}"
     typography: "{typography.label-md}"
     padding: "{spacing.md}"
-    rounded: "{rounded.full}"
+    rounded: "{rounded.squircle}"
   button-primary-hover:
     backgroundColor: "{colors.tertiary-action-hover}"
     textColor: "{colors.on-tertiary-action}"
     typography: "{typography.label-md}"
-    rounded: "{rounded.full}"
+    rounded: "{rounded.squircle}"
+  button-primary-website:
+    backgroundColor: "{colors.tertiary-action}"
+    textColor: "{colors.on-tertiary-action}"
+    typography: "{typography.label-md}"
+    padding: "{spacing.md}"
+    rounded: "{rounded.lg}"
   button-secondary:
     textColor: "{colors.primary}"
     typography: "{typography.label-md}"
@@ -254,7 +260,7 @@ Surface-specific copy patterns (browser editorial, PWA gardener-facing, admin ut
 
 Full specs in [`.claude/skills/design/language.md`](.claude/skills/design/language.md). AI prompts should honor these one-line rules:
 
-- **Shape** — *Fixed* (badges, avatars), *Capsule* (primary CTA, icon buttons, chips), *Concentric* (nested: `child_radius = parent_radius − padding`). Shape alone creates hierarchy — capsule reads as primary next to the 12px squircle secondary (`rounded.squircle`); fields are 16px (`rounded.lg`). Buttons and fields share one height scale: 48 / 44 / 40 / 32px.
+- **Shape** — *Fixed* (badges, avatars), *Capsule* (icon buttons, chips), *Concentric* (nested: `child_radius = parent_radius − padding`). Buttons take one corner per surface whatever their emphasis: the 12px squircle (`rounded.squircle`) in the installed app, 16px (`rounded.lg`) on the public website; fill, outline, and colour carry emphasis. Fields are 16px (`rounded.lg`). Buttons and fields share one height scale: 48 / 44 / 40 / 32px.
 - **Motion** — Named spring tokens only (`--spring-spatial`, `--spring-spatial-fast`, `--spring-effects`, etc.). Never hardcoded `cubic-bezier` or `duration`. Things settle like a leaf on water.
 - **Material** — Five thicknesses (ultrathin 20% / thin 40% / regular 65% / thick 85% / solid 100%). Match thickness to content density. Never body text on ultrathin. Admin limits glass to Navigation/FAB chrome only; the admin `AppBar` root stays transparent and dialogs/side sheets stay solid.
 - **Elevation** — Five Z-layers (Z0 substrate → Z4 overlay). Admin workspace action/detail flows open in centered `AdminDialog`; the canvas stays at rest and depth comes from the dialog scrim/elevation. Global AppBar surfaces use solid `AdminSideSheet`. Viewport dialogs and PWA sheets may use the shared scrim token.
@@ -267,7 +273,7 @@ Full specs in [`.claude/skills/design/language.md`](.claude/skills/design/langua
 - Use role vocabulary (canvas/ink/stone/green) when describing designs to AI tools
 - Use semantic color tokens in code, never raw values
 - Let the canvas breathe — generous whitespace
-- Use shape to create hierarchy (capsule > squircle > concentric)
+- Give every button on a surface the same corner; show importance with fill, outline, and colour
 - Celebrate milestone moments with expressive motion
 - Design for sunlight readability (high contrast on warm backgrounds)
 - Use spring physics for all transitions

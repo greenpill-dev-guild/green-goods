@@ -1,6 +1,6 @@
 /**
  * IconButton — a circular button that carries only an icon: close, back,
- * share, menu, remove (DL-021).
+ * share, menu, remove (DL-026).
  *
  * The accessible name is required. Sizes match the Button scale (lg 48, md 44,
  * sm 40, compact 32) and the two short sizes keep a 48px hit area. Tertiary is

@@ -2,9 +2,9 @@
  * Button — the one action button for the installed PWA, the public site, and
  * shared chrome such as SheetActions.
  *
- * Shape follows emphasis (DL-021): a primary is a capsule, a secondary is the
- * 12px squircle, and a tertiary is text with a squircle fill on hover. There is
- * no shape prop. Heights ride the field scale (DL-023): lg 48, md 44, sm 40,
+ * Emphasis sets fill, outline, and colour; the corner comes from the surface
+ * (DL-026): the 12px squircle in the installed app and 16px on the public
+ * website, for every emphasis. There is no shape prop. Heights ride the field scale (DL-023): lg 48, md 44, sm 40,
  * compact 32, and the two short sizes keep a 48px hit area. The styles live in
  * shared `theme.css` as `.gg-button[data-*]` rules because Tailwind does not
  * scan `packages/shared/src/` from the app builds.
@@ -51,7 +51,7 @@ export type ButtonTone = "default" | "danger" | "warning";
 export type ButtonSize = "lg" | "md" | "sm" | "compact";
 
 export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-  /** Primary is the filled capsule, secondary the outlined squircle, tertiary text. */
+  /** Primary is filled, secondary outlined, tertiary text; the surface sets the corner (DL-026). */
   emphasis?: ButtonEmphasis;
   /** `danger` fills a primary with the error color and tints the others; `warning` fills a primary. */
   tone?: ButtonTone;
