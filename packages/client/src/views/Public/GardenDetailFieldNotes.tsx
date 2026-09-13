@@ -1,3 +1,4 @@
+import { Button } from "@green-goods/shared/components/Button";
 import type { PublicFieldNote } from "@green-goods/shared/hooks/public/usePublicGardenDetail";
 import { useRef, useState } from "react";
 import { useIntl } from "react-intl";
@@ -101,16 +102,16 @@ export function FieldNotesSection({
               )}
             </p>
             {visible.length < notes.length ? (
-              <button
+              <Button
                 type="button"
+                emphasis="tertiary"
                 onClick={() => setVisibleCount((count) => count + NOTES_PAGE_SIZE)}
-                className="border-b border-primary-action/35 pb-0.5 text-sm font-medium text-primary-action transition-colors hover:border-primary-action-hover hover:text-primary-action-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-action focus-visible:ring-offset-2"
               >
                 {formatMessage({
                   id: "public.gardenDetail.notes.loadMore",
                   defaultMessage: "Show more entries",
                 })}
-              </button>
+              </Button>
             ) : null}
           </div>
         </>

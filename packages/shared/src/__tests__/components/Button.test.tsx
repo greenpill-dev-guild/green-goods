@@ -93,6 +93,34 @@ describe("Button", () => {
     expect(link).toHaveAttribute("data-size", "lg");
   });
 
+  it("keeps the child's own aria-disabled through asChild", () => {
+    render(
+      <Button asChild size="lg">
+        <a href="#install" aria-disabled="true">
+          Install App
+        </a>
+      </Button>
+    );
+    const link = screen.getByRole("link", { name: "Install App" });
+    expect(link).toHaveAttribute("aria-disabled", "true");
+    expect(link).toHaveAttribute("data-size", "lg");
+  });
+
+  it("runs both the child's and its own click handler through asChild", () => {
+    const onButtonClick = vi.fn();
+    const onLinkClick = vi.fn();
+    render(
+      <Button asChild onClick={onButtonClick}>
+        <a href="#fund" onClick={onLinkClick}>
+          Fund
+        </a>
+      </Button>
+    );
+    fireEvent.click(screen.getByRole("link", { name: "Fund" }));
+    expect(onLinkClick).toHaveBeenCalledTimes(1);
+    expect(onButtonClick).toHaveBeenCalledTimes(1);
+  });
+
   it("keeps the legacy class contract when a variant is passed", () => {
     const onClick = vi.fn();
     render(

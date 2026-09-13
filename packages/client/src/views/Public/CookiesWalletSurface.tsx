@@ -1,3 +1,4 @@
+import { Button } from "@green-goods/shared/components/Button";
 import { Alert } from "@green-goods/shared/components/Alert";
 import type { Address } from "@green-goods/shared/types/domain";
 import type { CampaignCookieJarCampaign } from "@green-goods/shared/types/cookie-jar";
@@ -144,13 +145,16 @@ function ConnectionStatusLine({
         )}
       </span>
       <span aria-hidden="true">·</span>
-      <button
+      {/* An inline text action in the meta line, with the 48px hit area. */}
+      <Button
         type="button"
+        emphasis="tertiary"
+        size="compact"
         onClick={onAction}
-        className="cursor-pointer border-b border-current pb-px text-text-sub-600 transition-colors hover:text-text-strong-950"
+        className="-my-2 px-1.5 font-mono text-[11px] uppercase tracking-[0.16em] underline"
       >
         {formatMessage({ id: "public.cookies.disconnect", defaultMessage: "Disconnect" })}
-      </button>
+      </Button>
     </p>
   );
 }

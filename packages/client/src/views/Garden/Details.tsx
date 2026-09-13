@@ -1,3 +1,6 @@
+import { Button } from "@green-goods/shared/components/Button";
+import { Chip } from "@green-goods/shared/components/Chip";
+import { Switch } from "@green-goods/shared/components/Form/ControlPrimitives";
 import { useWorkLocation, type WorkFormData } from "@green-goods/shared/hooks/work/useWorkForm";
 import type { Action, WorkInput } from "@green-goods/shared/types/domain";
 import { RiAddLine, RiCloseLine, RiFileFill, RiMapPinLine } from "@remixicon/react";
@@ -136,24 +139,25 @@ const WorkRepeaterInput: React.FC<WorkRepeaterInputProps> = ({
               />
             );
           })}
-          <button
+          <Button
             type="button"
+            emphasis="secondary"
             onClick={() => remove(index)}
-            className="inline-flex min-h-11 items-center justify-center gap-2 self-start rounded-lg border border-stroke-sub-300 px-3 text-sm font-medium text-text-sub-600"
+            leadingIcon={<RiCloseLine className="h-4 w-4" aria-hidden="true" />}
+            className="self-start"
           >
-            <RiCloseLine className="h-4 w-4" aria-hidden="true" />
             {removeLabel}
-          </button>
+          </Button>
         </div>
       ))}
-      <button
+      <Button
         type="button"
+        emphasis="secondary"
         onClick={() => append({} as never)}
-        className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border border-stroke-sub-300 px-3 text-sm font-medium text-text-sub-600"
+        leadingIcon={<RiAddLine className="h-4 w-4" aria-hidden="true" />}
       >
-        <RiAddLine className="h-4 w-4" aria-hidden="true" />
         {addLabel}
-      </button>
+      </Button>
     </fieldset>
   );
 };
@@ -344,10 +348,9 @@ export const WorkDetails: React.FC<WorkDetailsProps> = ({
                         const isSelected = selected.includes(option);
                         const label = optionLabels?.[option] ?? option;
                         return (
-                          <button
+                          <Chip
                             key={option}
-                            type="button"
-                            aria-pressed={isSelected}
+                            selected={isSelected}
                             onClick={() =>
                               field.onChange(
                                 isSelected
@@ -355,14 +358,9 @@ export const WorkDetails: React.FC<WorkDetailsProps> = ({
                                   : [...selected, option]
                               )
                             }
-                            className={`min-h-11 px-3 py-2.5 rounded-full text-sm font-medium transition-colors duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)] border ${
-                              isSelected
-                                ? "bg-primary-action text-primary-action-foreground border-primary-action"
-                                : "bg-bg-weak-50 text-text-sub-600 border-stroke-sub-300 hover:bg-bg-soft-200"
-                            }`}
                           >
                             {label}
-                          </button>
+                          </Chip>
                         );
                       })}
                     </div>
@@ -447,24 +445,14 @@ export const WorkDetails: React.FC<WorkDetailsProps> = ({
             </div>
           </div>
         </div>
-        <button
-          type="button"
-          role="switch"
-          aria-checked={locationEnabled}
+        <Switch
+          checked={locationEnabled}
           aria-busy={locationStatus === "loading" || undefined}
           aria-labelledby="share-location-label"
           onClick={handleLocationToggle}
           disabled={locationStatus === "loading"}
-          className={`relative inline-flex h-6 w-11 shrink-0 self-center items-center rounded-full transition-colors duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-base ${
-            locationEnabled ? "bg-primary-base" : "bg-bg-soft-200"
-          }`}
-        >
-          <span
-            className={`inline-block h-4 w-4 rounded-full bg-static-white transition-transform duration-[var(--spring-spatial-fast-duration)] ease-[var(--spring-spatial-fast-easing)] ${
-              locationEnabled ? "translate-x-6" : "translate-x-1"
-            }`}
-          />
-        </button>
+          className="self-center"
+        />
       </div>
 
       <FormText

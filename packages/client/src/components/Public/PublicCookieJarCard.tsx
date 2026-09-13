@@ -604,7 +604,7 @@ function CampaignCookieJarInlineActions({
               onValueChange={setClaimAmount}
               error={claimErrorMessage}
               errorClassName="mt-3 text-sm text-error-dark"
-              inputClassName="mt-2 w-full rounded-lg border border-stroke-soft-200 bg-bg-white-0 px-3 py-2 text-sm text-text-strong-950 outline-none focus:border-primary-base focus:ring-2 focus:ring-primary-base/30"
+              containerClassName="mt-2"
               placeholder="0.00"
             />
           </div>
@@ -641,7 +641,7 @@ function CampaignCookieJarInlineActions({
             onValueChange={setDepositAmount}
             error={depositErrorMessage}
             errorClassName="mt-3 text-sm text-error-dark"
-            inputClassName="mt-2 w-full rounded-lg border border-stroke-soft-200 bg-bg-white-0 px-3 py-2 text-sm text-text-strong-950 outline-none focus:border-primary-base focus:ring-2 focus:ring-primary-base/30"
+            containerClassName="mt-2"
             placeholder="0.00"
           />
         </div>

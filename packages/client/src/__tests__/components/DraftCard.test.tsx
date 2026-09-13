@@ -205,7 +205,7 @@ describe("DraftCard", () => {
     expect(onResume).not.toHaveBeenCalled();
   });
 
-  it("delete button uses a 44x44 tap target (h-11 w-11)", () => {
+  it("delete button is the shared 44px icon button", () => {
     render(
       wrap(
         createElement(DraftCard, {
@@ -217,8 +217,8 @@ describe("DraftCard", () => {
     );
 
     const deleteBtn = screen.getByLabelText("Delete Draft");
-    // Class assertion proxies for the actual tap target dimension.
-    expect(deleteBtn.className).toContain("h-11");
-    expect(deleteBtn.className).toContain("w-11");
+    // The md IconButton is a 44px circle (DL-021, DL-023); theme.css owns the size.
+    expect(deleteBtn).toHaveClass("gg-icon-button");
+    expect(deleteBtn).toHaveAttribute("data-size", "md");
   });
 });

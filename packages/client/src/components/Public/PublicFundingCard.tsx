@@ -1,4 +1,8 @@
+import { Button } from "@green-goods/shared/components/Button";
+import { Chip } from "@green-goods/shared/components/Chip";
 import { TransactionSuccessAffordance } from "@green-goods/shared/components/feedback/TransactionSuccessAffordance";
+import { TextInput } from "@green-goods/shared/components/Form/ControlPrimitives";
+import { IconButton } from "@green-goods/shared/components/IconButton";
 import { useAuth } from "@green-goods/shared/hooks/auth/useAuth";
 import { useUser } from "@green-goods/shared/hooks/auth/useUser";
 import { useEthUsdPrice } from "@green-goods/shared/hooks/blockchain/useEthUsdPrice";
@@ -389,15 +393,12 @@ export function PublicFundingCard({ open, garden, intent, onClose }: PublicFundi
             </h2>
             <p className="text-xs leading-[1.45] text-text-soft-400">{pathText}</p>
           </div>
-          <button
-            type="button"
+          <IconButton
             aria-label={formatMessage({ id: "public.fund.dialog.close", defaultMessage: "Close" })}
-            onClick={status === "submitting" ? undefined : onClose}
+            onClick={onClose}
             disabled={status === "submitting"}
-            className="rounded-full p-1 text-text-sub-600 transition-colors hover:bg-bg-weak-50 disabled:cursor-not-allowed disabled:opacity-40"
-          >
-            <RiCloseLine className="h-5 w-5" />
-          </button>
+            icon={<RiCloseLine aria-hidden="true" />}
+          />
         </header>
 
         {status === "loading" ? (
@@ -530,7 +531,7 @@ export function SuccessBody({
             )}
       </p>
       <div className="mt-2 flex w-full flex-col gap-2 sm:flex-row sm:justify-center">
-        <EditorialPrimaryButton onClick={onDonateAgain} className="px-5 py-2.5 text-sm">
+        <EditorialPrimaryButton onClick={onDonateAgain}>
           {isDonate
             ? formatMessage({
                 id: "public.fund.card.donateAgain",
@@ -541,7 +542,7 @@ export function SuccessBody({
                 defaultMessage: "Endow Again",
               })}
         </EditorialPrimaryButton>
-        <EditorialGhostButton onClick={onClose} className="px-5 py-2.5 text-sm">
+        <EditorialGhostButton onClick={onClose}>
           {formatMessage({ id: "public.fund.dialog.close", defaultMessage: "Close" })}
         </EditorialGhostButton>
       </div>
@@ -739,11 +740,7 @@ function IdleBody(props: IdleBodyProps) {
 
       {txError ? <InlineErrorBlock title={txError.title} message={txError.message} /> : null}
 
-      <EditorialPrimaryButton
-        onClick={onSubmit}
-        disabled={submitDisabled}
-        className="w-full px-6 py-3 text-sm"
-      >
+      <EditorialPrimaryButton onClick={onSubmit} disabled={submitDisabled} className="w-full">
         {submitLabel}
       </EditorialPrimaryButton>
 
@@ -757,16 +754,16 @@ function IdleBody(props: IdleBodyProps) {
             {
               address: truncateAddress(primaryAddress),
               disconnect: (
-                <button
+                // An inline text action: underlined in the sentence, with the 48px hit area.
+                <Button
                   type="button"
+                  emphasis="tertiary"
+                  size="compact"
                   onClick={() => openWalletModal()}
-                  className="underline transition-colors hover:text-text-sub-600"
+                  className="-my-2 px-1.5 text-[11px] underline"
                 >
-                  {formatMessage({
-                    id: "public.fund.card.disconnect",
-                    defaultMessage: "Manage",
-                  })}
-                </button>
+                  {formatMessage({ id: "public.fund.card.disconnect", defaultMessage: "Manage" })}
+                </Button>
               ),
             }
           )}
@@ -813,20 +810,15 @@ export function DenominationToggle({
       {choices.map((choice) => {
         const isSelected = denomination === choice.value;
         return (
-          <button
+          <Chip
             key={choice.value}
-            type="button"
+            selected={isSelected}
             onClick={() => onChange(choice.value)}
             disabled={disabled}
-            aria-pressed={isSelected}
-            className={`border px-2.5 py-1 font-mono text-[11px] uppercase tracking-[0.1em] transition-colors disabled:cursor-not-allowed disabled:opacity-60 ${
-              isSelected
-                ? "border-primary-action bg-editorial-warm text-text-strong-950"
-                : "border-stroke-soft-200 bg-bg-white-0 text-text-soft-400 hover:bg-editorial-warm/40"
-            }`}
+            className="font-mono text-[11px] uppercase tracking-[0.1em]"
           >
             {choice.label}
-          </button>
+          </Chip>
         );
       })}
     </fieldset>
@@ -891,7 +883,7 @@ export function AmountInput({
           />
         ) : null}
       </div>
-      <div className="flex items-center gap-2 border border-stroke-soft-200 bg-bg-white-0 px-4 py-3 transition-colors focus-within:border-primary-action">
+      <div className="flex items-center gap-2">
         {isWethDenomination ? (
           <span className="font-mono text-sm uppercase tracking-[0.08em] text-text-soft-400">
             {symbol}
@@ -899,7 +891,7 @@ export function AmountInput({
         ) : (
           <span className="font-serif text-2xl text-text-soft-400">$</span>
         )}
-        <input
+        <TextInput
           ref={inputRef}
           id="public-fund-amount"
           type="text"
@@ -909,7 +901,8 @@ export function AmountInput({
           onChange={(e) => onChange(e.target.value)}
           placeholder={isWethDenomination ? "0.0" : "0.00"}
           disabled={disabled}
-          className="flex-1 bg-transparent font-serif text-2xl text-text-strong-950 outline-none placeholder:text-text-soft-400 disabled:opacity-60"
+          controlSize="lg"
+          className="flex-1 font-serif text-2xl"
         />
       </div>
       <div className="flex min-h-[1rem] flex-col gap-1">

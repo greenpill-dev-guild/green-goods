@@ -64,6 +64,11 @@ describe("button shape guard (DL-021, DL-023)", () => {
     expect(2 + paddingBlock * 2 + tokenPx(lineHeightToken)).toBe(height);
   });
 
+  it("shows the pointer on every emphasis-API button, as on IconButton and Chip", () => {
+    expect(declaration(block(".gg-button[data-size]"), "cursor")).toBe("pointer");
+    expect(declaration(block(".gg-icon-button"), "cursor")).toBe("pointer");
+  });
+
   it("keeps a 48px hit area on the two short sizes", () => {
     const hitArea = block(
       '.gg-button[data-size="sm"]::after,\n  .gg-button[data-size="compact"]::after'
@@ -119,5 +124,11 @@ describe("field shape guard (DL-022)", () => {
         "border-color"
       )
     ).toBe("rgb(var(--error-base))");
+  });
+
+  it("keeps a chevron lane on the editorial underline select", () => {
+    const select = block('.gg-control-select[data-surface="editorial"]');
+    expect(declaration(select, "padding-right")).toBe("1.75rem");
+    expect(declaration(select, "background-position")).toBe("right 0.125rem center");
   });
 });

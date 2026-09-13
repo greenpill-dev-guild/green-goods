@@ -1116,6 +1116,7 @@
    * internals admin still renders. */
   .gg-button[data-size] {
     position: relative;
+    cursor: pointer;
   }
 
   .gg-button[data-size="lg"] {
@@ -1437,6 +1438,12 @@
 
   .gg-control[data-surface="editorial"]::placeholder {
     color: color-mix(in oklab, currentColor 45%, transparent);
+  }
+
+  /* The underline select keeps a lane for its chevron at the right edge. */
+  .gg-control-select[data-surface="editorial"] {
+    padding-right: 1.75rem;
+    background-position: right 0.125rem center;
   }
 
   .gg-control[data-surface="editorial"]:focus-visible {

@@ -1,9 +1,9 @@
+import { Button } from "@green-goods/shared/components/Button";
 import { toastService } from "@green-goods/shared/components/Toast/toast.service";
 import { useJoinGarden } from "@green-goods/shared/hooks/garden/useJoinGarden";
 import { logger } from "@green-goods/shared/modules/app/logger";
 import { useState } from "react";
 import { useIntl } from "react-intl";
-import { Button } from "@/components/Actions";
 import { JoinGardenConfirmDialog } from "./JoinGardenConfirmDialog";
 
 export interface JoinGardenButtonProps {
@@ -54,17 +54,12 @@ export function JoinGardenButton({ gardenId, gardenName }: JoinGardenButtonProps
 
   return (
     <>
-      <Button
-        label={intl.formatMessage({
+      <Button type="button" size="compact" onClick={() => setConfirmOpen(true)} loading={isJoining}>
+        {intl.formatMessage({
           id: "app.garden.join",
           defaultMessage: "Join Garden",
         })}
-        variant="primary"
-        mode="filled"
-        size="compact"
-        onClick={() => setConfirmOpen(true)}
-        disabled={isJoining}
-      />
+      </Button>
       <JoinGardenConfirmDialog
         isOpen={confirmOpen}
         gardenName={gardenName}

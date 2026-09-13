@@ -1,4 +1,5 @@
 import { Button } from "@green-goods/shared/components/Button";
+import { TextInput } from "@green-goods/shared/components/Form/ControlPrimitives";
 import {
   isLocalArbitrumForkMode,
   LOCAL_ARBITRUM_FORK_CHAIN_ID,
@@ -896,14 +897,13 @@ function VaultCheckoutDialogContent({
                   defaultMessage: "Amount to endow",
                 })}
               </label>
-              <div className="flex items-center gap-2 rounded-none border border-stroke-soft-200 bg-bg-white-0 px-4 py-3 transition-colors focus-within:border-primary-action">
+              <div className="flex items-center gap-2">
                 <span className="font-serif text-2xl text-text-soft-400" aria-hidden>
                   $
                 </span>
-                <input
+                <TextInput
                   ref={amountRef}
                   id={amountInputId}
-                  type="text"
                   inputMode="decimal"
                   autoComplete="off"
                   value={amountInput}
@@ -919,7 +919,7 @@ function VaultCheckoutDialogContent({
                   onChange={(event) => handleAmountChange(event.target.value)}
                   onBlur={normalizeAmountInput}
                   placeholder="0.00"
-                  className="min-w-0 flex-1 bg-transparent font-serif text-2xl text-text-strong-950 outline-none placeholder:text-text-soft-400 disabled:cursor-not-allowed disabled:text-text-soft-400"
+                  className="min-w-0 flex-1 font-serif text-2xl"
                 />
               </div>
               <p id={amountHelpId} className="text-xs leading-[1.5] text-text-soft-400">

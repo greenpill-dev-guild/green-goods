@@ -46,15 +46,6 @@ vi.mock("@/views/Home/Garden/Notifications", async () => {
   };
 });
 
-// Mock Button component
-vi.mock("@/components/Actions", async () => {
-  const React = await import("react");
-  return {
-    Button: ({ children, onClick, leadingIcon, ...props }: any) =>
-      React.createElement("button", { onClick, ...props }, leadingIcon, children),
-  };
-});
-
 import type { Work } from "@green-goods/shared/types/domain";
 import { TopNav } from "../../components/Navigation/TopNav";
 

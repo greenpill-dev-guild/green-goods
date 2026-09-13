@@ -6,6 +6,7 @@
  * rollout — see .plans/archive/nyc-vault-crowdfunding/brief.md. Do not remove as
  * "dead code".
  */
+import { Button } from "@green-goods/shared/components/Button";
 import { createPublicClientForChain } from "@green-goods/shared/config/pimlico";
 import { getOctantVaultAssetDisplayPolicy } from "@green-goods/shared/modules/vault-crowdfunding/copy";
 import {
@@ -25,8 +26,6 @@ import { defineChain, ethereum } from "thirdweb/chains";
 import { formatUnits } from "viem";
 import {
   CHECKOUT_FIELD_LABEL,
-  CHECKOUT_GHOST_BUTTON,
-  CHECKOUT_PRIMARY_BUTTON,
   CheckoutScreen,
   CheckoutStageHeader,
   CheckoutSummary,
@@ -491,11 +490,11 @@ export default function VaultCardPaymentPanel({
   const footer =
     phase === "ready" ? (
       <div className="flex flex-col gap-2">
-        <button
+        <Button
           type="button"
-          disabled={busy !== "idle"}
+          loading={busy !== "idle"}
           onClick={handleOpenCheckout}
-          className={CHECKOUT_PRIMARY_BUTTON}
+          className="w-full"
         >
           {busy === "preparing"
             ? formatMessage({
@@ -506,16 +505,16 @@ export default function VaultCardPaymentPanel({
                 id: "public.vaults.cardEndow.panel.openCheckout",
                 defaultMessage: "Open Secure Card Checkout",
               })}
-        </button>
+        </Button>
         {backButton}
       </div>
     ) : cardFundingComplete ? null : (
       <div className="flex flex-col gap-2">
-        <button
+        <Button
           type="button"
-          disabled={busy !== "idle"}
+          loading={busy !== "idle"}
           onClick={handleCheckStatus}
-          className={CHECKOUT_PRIMARY_BUTTON}
+          className="w-full"
         >
           {busy === "checking"
             ? formatMessage({
@@ -526,7 +525,7 @@ export default function VaultCardPaymentPanel({
                 id: "public.vaults.cardEndow.panel.checkStatus",
                 defaultMessage: "Check payment status",
               })}
-        </button>
+        </Button>
       </div>
     );
 
@@ -637,17 +636,14 @@ export default function VaultCardPaymentPanel({
           {planDetails}
 
           {session && phase === "opened" ? (
-            <a
-              href={session.link}
-              target="_blank"
-              rel="noopener noreferrer"
-              className={CHECKOUT_GHOST_BUTTON}
-            >
-              {formatMessage({
-                id: "public.vaults.cardEndow.panel.openCheckoutLink",
-                defaultMessage: "Open Secure Checkout Link",
-              })}
-            </a>
+            <Button asChild emphasis="secondary" className="w-full">
+              <a href={session.link} target="_blank" rel="noopener noreferrer">
+                {formatMessage({
+                  id: "public.vaults.cardEndow.panel.openCheckoutLink",
+                  defaultMessage: "Open Secure Checkout Link",
+                })}
+              </a>
+            </Button>
           ) : null}
 
           {session && phase === "opened" ? (

@@ -1,10 +1,10 @@
-import { Button } from "@green-goods/shared/components/Button";
 import { getOctantVaultCampaigns } from "@green-goods/shared/modules/vault-crowdfunding/copy";
 import type { OctantVaultCampaignManifest } from "@green-goods/shared/modules/vault-crowdfunding/manifest";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { FormattedMessage, useIntl } from "react-intl";
 import { Link, Navigate, useLocation, useSearchParams } from "react-router-dom";
 import {
+  EditorialGhostButton,
   EditorialHeading,
   EditorialKicker,
   EditorialLede,
@@ -198,9 +198,8 @@ export function VaultsPageContent({
               </EditorialLede>
             </div>
             <div className="flex justify-end sm:shrink-0">
-              <Button
-                type="button"
-                emphasis="secondary"
+              <EditorialGhostButton
+                variant="warm"
                 onClick={openManage}
                 data-testid="vault-manage-positions-entry"
               >
@@ -208,7 +207,7 @@ export function VaultsPageContent({
                   id: "public.vaults.manage.entry",
                   defaultMessage: "Manage Endowments",
                 })}
-              </Button>
+              </EditorialGhostButton>
             </div>
           </header>
 

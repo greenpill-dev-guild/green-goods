@@ -1,3 +1,4 @@
+import { Button } from "@green-goods/shared/components/Button";
 import { useIntl } from "react-intl";
 import type { useWorkSubmissionFlowController } from "@green-goods/shared/hooks/client-ui/work/useWorkSubmissionFlowController";
 export function DraftStatus({
@@ -34,19 +35,19 @@ export function DraftStatus({
               }}
             />
           </label>
-          <button
+          <Button
             type="button"
-            className="min-h-11 underline"
+            emphasis="tertiary"
             onClick={() => draft.removeMissingAttachment(attachment.id)}
           >
             {intl.formatMessage({ id: "app.common.remove" })}
-          </button>
+          </Button>
         </div>
       ))}
       {draft.legacyRecovery && !draft.showDraftSheet && (
-        <button type="button" className="min-h-11 underline" onClick={draft.recover}>
+        <Button type="button" emphasis="tertiary" onClick={draft.recover}>
           {intl.formatMessage({ id: "app.garden.draft.recover" })}
-        </button>
+        </Button>
       )}
       {draft.saveState === "failed" && (
         <div role="alert" className="flex flex-col gap-2">
@@ -58,17 +59,17 @@ export function DraftStatus({
                   : "app.garden.draft.failed",
             })}
           </p>
-          <button
+          <Button
             type="button"
-            className="min-h-11 underline"
+            emphasis="tertiary"
             onClick={() => void draft.retry().catch(() => undefined)}
           >
             {intl.formatMessage({ id: "app.garden.draft.retry" })}
-          </button>
+          </Button>
           {draft.error === "draft-limit" && (
-            <button type="button" className="min-h-11 underline" onClick={draft.manage}>
+            <Button type="button" emphasis="tertiary" onClick={draft.manage}>
               {intl.formatMessage({ id: "app.garden.draft.manage" })}
-            </button>
+            </Button>
           )}
         </div>
       )}

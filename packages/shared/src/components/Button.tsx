@@ -116,13 +116,33 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
       </>
     );
 
+    const handleClick = (event: React.MouseEvent<HTMLButtonElement>) => {
+      if (!legacy && loading) {
+        event.preventDefault();
+        return;
+      }
+      onClick?.(event);
+    };
+
     if (asChild && React.isValidElement(children)) {
       const child = children as React.ReactElement<SlottableChildProps>;
+      const childOnClick = child.props.onClick as
+        | ((event: React.MouseEvent<HTMLButtonElement>) => void)
+        | undefined;
+      // Unset state attributes must not erase the child's own (an aria-disabled link).
+      const childStateProps = Object.fromEntries(
+        Object.entries(stateProps).filter(([, value]) => value !== undefined)
+      );
       return React.cloneElement(child, {
         ...(props as SlottableChildProps),
-        ...stateProps,
+        ...childStateProps,
         ref,
         className: cn(baseClassName, child.props.className, className),
+        // The child's own handler runs first, as with a Radix Slot.
+        onClick: (event: React.MouseEvent<HTMLButtonElement>) => {
+          childOnClick?.(event);
+          if (!event.defaultPrevented) handleClick(event);
+        },
         children: content(child.props.children),
       });
     }
@@ -135,13 +155,7 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         className={cn(baseClassName, className)}
         // Legacy buttons disable natively while loading; the emphasis API stays focusable.
         disabled={legacy ? disabled || loading : loading ? undefined : disabled}
-        onClick={(event) => {
-          if (!legacy && loading) {
-            event.preventDefault();
-            return;
-          }
-          onClick?.(event);
-        }}
+        onClick={handleClick}
       >
         {content(children)}
       </button>

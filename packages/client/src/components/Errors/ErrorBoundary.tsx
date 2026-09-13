@@ -3,7 +3,7 @@ import { trackErrorBoundary } from "@green-goods/shared/modules/app/error-events
 import { RiArrowGoBackLine, RiLeafFill, RiRefreshLine } from "@remixicon/react";
 import React, { Component, type ReactNode } from "react";
 import { type IntlShape, useIntl } from "react-intl";
-import { Button } from "../Actions";
+import { Button } from "@green-goods/shared/components/Button";
 
 interface ErrorBoundaryState {
   hasError: boolean;
@@ -86,31 +86,26 @@ class GardenErrorBoundaryClass extends Component<ErrorBoundaryProps, ErrorBounda
             </p>
             <div className="flex flex-col sm:flex-row gap-3 justify-center">
               <Button
-                variant="primary"
-                mode="filled"
-                size="medium"
-                label={
-                  intl?.formatMessage({
-                    id: "app.error.garden.tryAgain",
-                    defaultMessage: "Try Again",
-                  }) || "Try Again"
-                }
-                leadingIcon={<RiRefreshLine className="w-5 h-5" />}
+                type="button"
+                leadingIcon={<RiRefreshLine className="h-5 w-5" aria-hidden="true" />}
                 onClick={this.resetErrorState}
-              />
+              >
+                {intl?.formatMessage({
+                  id: "app.error.garden.tryAgain",
+                  defaultMessage: "Try Again",
+                }) || "Try Again"}
+              </Button>
               <Button
-                variant="neutral"
-                mode="stroke"
-                size="medium"
-                label={
-                  intl?.formatMessage({
-                    id: "app.error.garden.goBack",
-                    defaultMessage: "Go Back",
-                  }) || "Go Back"
-                }
-                leadingIcon={<RiArrowGoBackLine className="w-5 h-5" />}
+                type="button"
+                emphasis="secondary"
+                leadingIcon={<RiArrowGoBackLine className="h-5 w-5" aria-hidden="true" />}
                 onClick={() => window.history.back()}
-              />
+              >
+                {intl?.formatMessage({
+                  id: "app.error.garden.goBack",
+                  defaultMessage: "Go Back",
+                }) || "Go Back"}
+              </Button>
             </div>
             {this.state.error && (
               <details className="mt-6 text-left">

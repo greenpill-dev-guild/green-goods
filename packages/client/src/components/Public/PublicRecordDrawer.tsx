@@ -1,3 +1,4 @@
+import { Button } from "@green-goods/shared/components/Button";
 import { useDocumentScrollLock } from "@green-goods/shared/hooks/ui/useDocumentScrollLock";
 import { RiCloseLine } from "@remixicon/react";
 import { type ReactNode, useEffect, useRef } from "react";
@@ -88,18 +89,17 @@ export function PublicRecordDrawer({
           <p className="font-mono text-[10.5px] font-medium uppercase tracking-[0.18em] text-text-soft-400">
             {eyebrow}
           </p>
-          <button
+          <Button
             ref={closeRef}
             type="button"
-            aria-label={closeLabel}
+            emphasis="secondary"
+            size="compact"
             onClick={onClose}
-            className="inline-flex items-center gap-1 rounded-full border border-stroke-soft-200 px-3 py-1 font-mono text-[10.5px] uppercase tracking-[0.06em] text-text-strong-950 transition-colors hover:bg-bg-weak-50"
+            leadingIcon={<RiCloseLine className="h-3.5 w-3.5" aria-hidden="true" />}
+            className="font-mono text-[10.5px] uppercase tracking-[0.06em]"
           >
-            <span aria-hidden="true">
-              <RiCloseLine className="h-3.5 w-3.5" />
-            </span>
             {closeLabel}
-          </button>
+          </Button>
         </header>
 
         <div className="flex-1 overflow-y-auto px-6 py-8 sm:px-10 sm:py-10">{children}</div>

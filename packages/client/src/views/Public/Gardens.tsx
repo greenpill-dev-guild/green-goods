@@ -1,3 +1,4 @@
+import { TextInput } from "@green-goods/shared/components/Form/ControlPrimitives";
 import {
   type PublicGardenSummary,
   usePublicGardens,
@@ -115,15 +116,16 @@ export default function GardensGallery() {
                   defaultMessage: "Search gardens",
                 })}
               </span>
-              <input
+              <TextInput
                 type="search"
+                surface="editorial"
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
                 placeholder={formatMessage({
                   id: "public.gardens.searchPlaceholder",
                   defaultMessage: "Search Gardens…",
                 })}
-                className="w-full border-b border-stroke-soft-200 bg-transparent px-1 pb-2 font-serif text-lg text-text-strong-950 placeholder-text-soft-400 transition-colors duration-[var(--spring-effects-duration)] ease-[var(--spring-effects-easing)] focus:border-primary-action focus:outline-none"
+                className="text-text-strong-950"
               />
             </label>
           </header>

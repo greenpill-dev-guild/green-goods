@@ -2,8 +2,6 @@
 # Format: <raw usage hit><TAB><category><TAB><owner><TAB><expires><TAB><note>
 # The raw usage hit must exactly match scripts/design/check-tokens.sh collect_usage_hits output.
 # Expired entries, entries more than 250 days out, and duplicate hits fail check:design-tokens.
-packages/client/src/components/Layout/Hero.tsx bgColor={isDark ? "#1a1a1a" : "#ffffff"}	legacy-runtime	client	2026-12-31	legacy literal tracked for migration to Warm Earth tokens
-packages/client/src/components/Layout/Hero.tsx fgColor={isDark ? "#ffffff" : "#000000"}	legacy-runtime	client	2026-12-31	legacy literal tracked for migration to Warm Earth tokens
 packages/client/src/config/pwaManifest.ts backgroundColor: "#fff",	legacy-runtime	client	2026-12-31	web manifest requires serialized literal colors pending token export
 packages/client/src/config/pwaManifest.ts const STAGING_DARK_SURFACE = "#111b13";	legacy-runtime	client	2026-12-31	web manifest requires serialized literal colors pending token export
 packages/client/src/config/pwaManifest.ts htmlThemeColorDark: "#171717",	legacy-runtime	client	2026-12-31	web manifest requires serialized literal colors pending token export
@@ -67,8 +65,6 @@ packages/admin/src/components/Hypercerts/CreateListingDialog.tsx <RiCheckLine cl
 packages/admin/src/components/Hypercerts/Steps/MintProgress.tsx : "border-error-base bg-error-base text-white"),	legacy-runtime	admin	2026-12-31	legacy literal tracked for migration to Warm Earth tokens
 packages/admin/src/components/Hypercerts/Steps/MintProgress.tsx ? "border-warning-base bg-warning-base text-white"	legacy-runtime	admin	2026-12-31	legacy literal tracked for migration to Warm Earth tokens
 packages/admin/src/components/Hypercerts/Steps/MintProgress.tsx isStepComplete && "border-success-base bg-success-base text-white",	legacy-runtime	admin	2026-12-31	legacy literal tracked for migration to Warm Earth tokens
-packages/client/src/components/Layout/Hero.tsx <Dialog.Overlay className="fixed inset-0 bg-black/30 backdrop-blur-sm animate-fade-in z-overlay" />	legacy-runtime	client	2026-12-31	legacy literal tracked for migration to Warm Earth tokens
-packages/client/src/components/Layout/Hero.tsx <div className="rounded-xl shadow-sm bg-white dark:bg-gray-800 transition-colors border border-transparent dark:border-gray-600">	legacy-runtime	client	2026-12-31	legacy literal tracked for migration to Warm Earth tokens
 packages/shared/src/components/Audio/AudioPlayer.tsx "bg-primary-base text-white hover:bg-primary-dark"	legacy-runtime	shared	2026-12-31	legacy literal tracked for migration to Warm Earth tokens
 packages/shared/src/components/Audio/AudioRecorder.tsx "bg-error-base text-white hover:bg-error-dark transition-colors",	legacy-runtime	shared	2026-12-31	legacy literal tracked for migration to Warm Earth tokens
 packages/shared/src/components/Badge/Badge.tsx black: "bg-black text-white",	legacy-runtime	shared	2026-12-31	legacy literal tracked for migration to Warm Earth tokens

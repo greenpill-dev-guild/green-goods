@@ -1,10 +1,18 @@
+import { Button } from "@green-goods/shared/components/Button";
+import { IconButton } from "@green-goods/shared/components/IconButton";
 import { cn } from "@green-goods/shared/utils/styles/cn";
 import { useApp } from "@green-goods/shared/providers/App";
 import {
   useConnectivityStatus,
   useOnlineStatus,
 } from "@green-goods/shared/hooks/app/useOnlineStatus";
-import { RiCheckLine, RiCloudOffLine, RiDownloadLine, RiUserLine } from "@remixicon/react";
+import {
+  RiCheckLine,
+  RiCloseLine,
+  RiCloudOffLine,
+  RiDownloadLine,
+  RiUserLine,
+} from "@remixicon/react";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { useNavigate } from "react-router-dom";
@@ -152,28 +160,30 @@ export const OfflineIndicator: React.FC<OfflineIndicatorProps> = ({
                 defaultMessage: "Install for full experience.",
               })}
             </span>
-            <button
+            {/* Compact actions keep 48px hit areas; the negative margin keeps the strip thin. */}
+            <Button
               type="button"
+              emphasis="tertiary"
+              size="compact"
               onClick={() => navigate(APP_ROUTES.profile, { viewTransition: true })}
-              className="ml-1 inline-flex items-center gap-1 rounded-full border border-stroke-sub-300 bg-bg-white-0 px-2 py-0.5 text-[10px] hover:bg-bg-weak-50 active:scale-95 transition-transform duration-[var(--spring-spatial-fast-duration)] ease-[var(--spring-spatial-fast-easing)]"
+              leadingIcon={<RiUserLine className="h-3 w-3" aria-hidden="true" />}
+              className="-my-2 text-[10px]"
             >
-              <RiUserLine className="h-3 w-3" />
               {formatMessage({
                 id: "app.offline.installPromptProfile",
                 defaultMessage: "Profile",
               })}
-            </button>
-            <button
-              type="button"
+            </Button>
+            <IconButton
+              size="compact"
               onClick={() => setInstallDismissed(true)}
-              className="ml-1 text-[10px] text-text-sub-600 hover:text-text-strong-950"
+              className="-my-2"
               aria-label={formatMessage({
                 id: "app.offline.installPromptDismiss",
                 defaultMessage: "Dismiss",
               })}
-            >
-              ✕
-            </button>
+              icon={<RiCloseLine aria-hidden="true" />}
+            />
           </div>
         );
 

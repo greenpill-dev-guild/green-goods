@@ -1,3 +1,5 @@
+import { Button } from "@green-goods/shared/components/Button";
+import { IconButton } from "@green-goods/shared/components/IconButton";
 import { useDocumentScrollLock } from "@green-goods/shared/hooks/ui/useDocumentScrollLock";
 import { APP_NAME } from "@green-goods/shared/config/app";
 import { useEventListener } from "@green-goods/shared/hooks/utils/useEventListener";
@@ -144,33 +146,29 @@ export const SiteHeader = () => {
 
                 {/* Desktop: Install App | Mobile: hamburger */}
                 <div className="flex items-center gap-3">
-                  <a
-                    href={href}
-                    onClick={onClick}
-                    aria-disabled={disabled || undefined}
-                    data-install-action={dataInstallAction}
-                    className={cn(
-                      "hidden cursor-pointer rounded-full bg-primary-action px-4 py-2 text-sm font-semibold text-primary-action-foreground transition-colors hover:bg-primary-action-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-action focus-visible:ring-offset-2 md:inline-flex",
-                      disabled && "cursor-not-allowed opacity-70"
-                    )}
-                  >
-                    {label}
-                  </a>
+                  <Button asChild className="hidden md:inline-flex">
+                    <a
+                      href={href}
+                      onClick={onClick}
+                      aria-disabled={disabled || undefined}
+                      data-install-action={dataInstallAction}
+                    >
+                      {label}
+                    </a>
+                  </Button>
 
-                  {/* Mobile hamburger */}
-                  <button
-                    type="button"
+                  {/* Mobile hamburger: light ink over the hero image */}
+                  <IconButton
                     onClick={() => setIsDrawerOpen(true)}
-                    className="flex h-10 w-10 items-center justify-center rounded-lg text-static-white/90 transition-colors hover:text-static-white md:hidden"
+                    className="text-static-white/90 hover:bg-static-white/10 hover:text-static-white md:hidden"
                     aria-label={intl.formatMessage({
                       id: "public.nav.openMenu",
                       defaultMessage: "Open Menu",
                     })}
                     aria-expanded={isDrawerOpen}
                     aria-controls="mobile-nav-drawer"
-                  >
-                    <RiMenuLine className="h-6 w-6" />
-                  </button>
+                    icon={<RiMenuLine aria-hidden="true" />}
+                  />
                 </div>
               </div>
             </div>
@@ -208,17 +206,14 @@ export const SiteHeader = () => {
                   >
                     <img src="/icon.png" alt={APP_NAME} className="h-8 w-auto" />
                   </Link>
-                  <button
-                    type="button"
+                  <IconButton
                     onClick={() => setIsDrawerOpen(false)}
-                    className="flex h-10 w-10 items-center justify-center rounded-lg text-text-sub-600 hover:text-text-strong-950"
                     aria-label={intl.formatMessage({
                       id: "public.nav.closeMenu",
                       defaultMessage: "Close Menu",
                     })}
-                  >
-                    <RiCloseLine className="h-6 w-6" />
-                  </button>
+                    icon={<RiCloseLine aria-hidden="true" />}
+                  />
                 </div>
 
                 <div className="flex flex-1 flex-col gap-1 p-4">
@@ -244,29 +239,28 @@ export const SiteHeader = () => {
                 </div>
 
                 <div className="border-t border-stroke-soft-200 p-4">
-                  <a
-                    href={href}
-                    data-install-action={dataInstallAction}
-                    aria-disabled={disabled || undefined}
-                    onClick={(event) => {
-                      if (!disabled) closeDrawer();
-                      onClick(event);
-                    }}
-                    className={cn(
-                      "block w-full cursor-pointer rounded-lg bg-primary-action px-4 py-3 text-center text-sm font-medium text-primary-action-foreground transition-colors hover:bg-primary-action-hover",
-                      disabled && "cursor-not-allowed opacity-70"
-                    )}
-                  >
-                    {label}
-                  </a>
+                  <Button asChild className="w-full">
+                    <a
+                      href={href}
+                      data-install-action={dataInstallAction}
+                      aria-disabled={disabled || undefined}
+                      onClick={(event) => {
+                        if (!disabled) closeDrawer();
+                        onClick(event);
+                      }}
+                    >
+                      {label}
+                    </a>
+                  </Button>
                   {hasInstallFallback ? (
-                    <button
+                    <Button
                       type="button"
+                      emphasis="secondary"
                       onClick={onInstallFallbackClick}
-                      className="mt-3 w-full cursor-pointer rounded-lg border border-stroke-soft-200 bg-bg-white-0 px-4 py-3 text-center text-sm font-medium text-text-sub-600 transition-colors hover:bg-bg-weak-50 hover:text-text-strong-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-action focus-visible:ring-offset-2"
+                      className="mt-3 w-full"
                     >
                       {fallbackLabel}
-                    </button>
+                    </Button>
                   ) : null}
                 </div>
               </nav>

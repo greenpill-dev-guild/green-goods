@@ -11,7 +11,7 @@ import {
   RiWifiOffLine,
 } from "@remixicon/react";
 import { Component, type ErrorInfo, type ReactNode } from "react";
-import { Button } from "../Actions";
+import { Button } from "@green-goods/shared/components/Button";
 import {
   defaultErrorBoundaryMessages,
   type ErrorBoundaryLocale as Locale,
@@ -396,51 +396,59 @@ export class AppErrorBoundary extends Component<Props, State> {
                 {isLoopBug ? (
                   <>
                     <Button
-                      variant="primary"
-                      size="medium"
+                      type="button"
+                      size="lg"
                       onClick={this.handleHardReset}
-                      label={this.t("app.error.boundary.action.clearData")}
-                      leadingIcon={<RiRefreshLine className="h-5 w-5" />}
-                      className="w-full shadow-lg"
-                    />
+                      leadingIcon={<RiRefreshLine className="h-5 w-5" aria-hidden="true" />}
+                      className="w-full"
+                    >
+                      {this.t("app.error.boundary.action.clearData")}
+                    </Button>
                     <Button
-                      variant="neutral"
-                      size="medium"
+                      type="button"
+                      emphasis="secondary"
+                      size="lg"
                       onClick={() => {
                         window.location.href = "/";
                       }}
-                      label={this.t("app.error.boundary.action.returnHome")}
-                      leadingIcon={<RiHomeLine className="h-5 w-5" />}
-                      className="w-full border-2 hover:bg-bg-weak-50"
-                    />
+                      leadingIcon={<RiHomeLine className="h-5 w-5" aria-hidden="true" />}
+                      className="w-full"
+                    >
+                      {this.t("app.error.boundary.action.returnHome")}
+                    </Button>
                   </>
                 ) : (
                   <>
                     <Button
-                      variant="primary"
-                      size="medium"
+                      type="button"
+                      size="lg"
                       onClick={this.handleRetry}
-                      label={this.t("app.error.boundary.action.tryAgain")}
-                      leadingIcon={<RiRefreshLine className="h-5 w-5" />}
-                      className="w-full shadow-lg"
-                    />
+                      leadingIcon={<RiRefreshLine className="h-5 w-5" aria-hidden="true" />}
+                      className="w-full"
+                    >
+                      {this.t("app.error.boundary.action.tryAgain")}
+                    </Button>
                     <Button
-                      variant="neutral"
-                      size="medium"
+                      type="button"
+                      emphasis="secondary"
+                      size="lg"
                       onClick={() => {
                         window.location.href = "/";
                       }}
-                      label={this.t("app.error.boundary.action.returnHome")}
-                      leadingIcon={<RiHomeLine className="h-5 w-5" />}
-                      className="w-full border-2 hover:bg-bg-weak-50"
-                    />
-                    <button
+                      leadingIcon={<RiHomeLine className="h-5 w-5" aria-hidden="true" />}
+                      className="w-full"
+                    >
+                      {this.t("app.error.boundary.action.returnHome")}
+                    </Button>
+                    <Button
                       type="button"
+                      emphasis="tertiary"
+                      size="compact"
                       onClick={this.handleHardReset}
-                      className="text-xs text-text-sub-600 underline hover:text-text-strong-950 transition-colors"
+                      className="self-center"
                     >
                       {this.t("app.error.boundary.action.clearData")}
-                    </button>
+                    </Button>
                   </>
                 )}
               </div>
@@ -456,35 +464,36 @@ export class AppErrorBoundary extends Component<Props, State> {
                 <div className="mt-8 w-full">
                   <div className="flex flex-col gap-2">
                     <Button
-                      variant="neutral"
-                      mode="stroke"
-                      size="small"
+                      type="button"
+                      emphasis="secondary"
+                      size="sm"
                       onClick={this.handleCopyDetails}
-                      label={
-                        this.state.copyState === "copied"
-                          ? this.t("app.error.boundary.action.copied")
-                          : this.state.copyState === "fallback"
-                            ? this.t("app.error.boundary.action.copyManual")
-                            : this.t("app.error.boundary.action.copyDetails")
-                      }
                       leadingIcon={
                         this.state.copyState === "copied" ? (
-                          <RiCheckLine className="h-4 w-4" />
+                          <RiCheckLine className="h-4 w-4" aria-hidden="true" />
                         ) : (
-                          <RiClipboardLine className="h-4 w-4" />
+                          <RiClipboardLine className="h-4 w-4" aria-hidden="true" />
                         )
                       }
                       className="w-full"
-                    />
-                    <button
+                    >
+                      {this.state.copyState === "copied"
+                        ? this.t("app.error.boundary.action.copied")
+                        : this.state.copyState === "fallback"
+                          ? this.t("app.error.boundary.action.copyManual")
+                          : this.t("app.error.boundary.action.copyDetails")}
+                    </Button>
+                    <Button
                       type="button"
+                      emphasis="tertiary"
+                      size="compact"
                       onClick={this.toggleDetails}
-                      className="text-xs text-text-sub-600 underline hover:text-text-strong-950 transition-colors"
+                      className="self-center"
                     >
                       {showDetails
                         ? this.t("app.error.boundary.devMode.hide")
                         : this.t("app.error.boundary.devMode.show")}
-                    </button>
+                    </Button>
                   </div>
                   {showDetails && (
                     <div className="mt-3 text-left bg-bg-soft-200 border border-stroke-soft-200 rounded-lg p-4">

@@ -40,7 +40,7 @@ import {
 } from "@remixicon/react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { isRouteErrorResponse, useRouteError } from "react-router-dom";
-import { Button } from "../Actions";
+import { Button } from "@green-goods/shared/components/Button";
 import {
   defaultErrorBoundaryMessages,
   type ErrorBoundaryLocale as Locale,
@@ -408,51 +408,59 @@ export const RouteErrorBoundary: React.FC = () => {
               {isLoopBug ? (
                 <>
                   <Button
-                    variant="primary"
-                    size="medium"
+                    type="button"
+                    size="lg"
                     onClick={handleHardReset}
-                    label={t("app.error.boundary.action.clearData")}
-                    leadingIcon={<RiRefreshLine className="h-5 w-5" />}
-                    className="w-full shadow-lg"
-                  />
+                    leadingIcon={<RiRefreshLine className="h-5 w-5" aria-hidden="true" />}
+                    className="w-full"
+                  >
+                    {t("app.error.boundary.action.clearData")}
+                  </Button>
                   <Button
-                    variant="neutral"
-                    size="medium"
+                    type="button"
+                    emphasis="secondary"
+                    size="lg"
                     onClick={() => {
                       window.location.href = "/";
                     }}
-                    label={t("app.error.boundary.action.returnHome")}
-                    leadingIcon={<RiHomeLine className="h-5 w-5" />}
-                    className="w-full border-2 hover:bg-bg-weak-50"
-                  />
+                    leadingIcon={<RiHomeLine className="h-5 w-5" aria-hidden="true" />}
+                    className="w-full"
+                  >
+                    {t("app.error.boundary.action.returnHome")}
+                  </Button>
                 </>
               ) : (
                 <>
                   <Button
-                    variant="primary"
-                    size="medium"
+                    type="button"
+                    size="lg"
                     onClick={handleRetry}
-                    label={t("app.error.boundary.action.tryAgain")}
-                    leadingIcon={<RiRefreshLine className="h-5 w-5" />}
-                    className="w-full shadow-lg"
-                  />
+                    leadingIcon={<RiRefreshLine className="h-5 w-5" aria-hidden="true" />}
+                    className="w-full"
+                  >
+                    {t("app.error.boundary.action.tryAgain")}
+                  </Button>
                   <Button
-                    variant="neutral"
-                    size="medium"
+                    type="button"
+                    emphasis="secondary"
+                    size="lg"
                     onClick={() => {
                       window.location.href = "/";
                     }}
-                    label={t("app.error.boundary.action.returnHome")}
-                    leadingIcon={<RiHomeLine className="h-5 w-5" />}
-                    className="w-full border-2 hover:bg-bg-weak-50"
-                  />
-                  <button
+                    leadingIcon={<RiHomeLine className="h-5 w-5" aria-hidden="true" />}
+                    className="w-full"
+                  >
+                    {t("app.error.boundary.action.returnHome")}
+                  </Button>
+                  <Button
                     type="button"
+                    emphasis="tertiary"
+                    size="compact"
                     onClick={handleHardReset}
-                    className="text-xs text-text-sub-600 underline hover:text-text-strong-950 transition-colors"
+                    className="self-center"
                   >
                     {t("app.error.boundary.action.clearData")}
-                  </button>
+                  </Button>
                 </>
               )}
             </div>
@@ -460,35 +468,36 @@ export const RouteErrorBoundary: React.FC = () => {
             <div className="mt-8 w-full">
               <div className="flex flex-col gap-2">
                 <Button
-                  variant="neutral"
-                  mode="stroke"
-                  size="small"
+                  type="button"
+                  emphasis="secondary"
+                  size="sm"
                   onClick={handleCopy}
-                  label={
-                    copyState === "copied"
-                      ? t("app.error.boundary.action.copied")
-                      : copyState === "fallback"
-                        ? t("app.error.boundary.action.copyManual")
-                        : t("app.error.boundary.action.copyDetails")
-                  }
                   leadingIcon={
                     copyState === "copied" ? (
-                      <RiCheckLine className="h-4 w-4" />
+                      <RiCheckLine className="h-4 w-4" aria-hidden="true" />
                     ) : (
-                      <RiClipboardLine className="h-4 w-4" />
+                      <RiClipboardLine className="h-4 w-4" aria-hidden="true" />
                     )
                   }
                   className="w-full"
-                />
-                <button
+                >
+                  {copyState === "copied"
+                    ? t("app.error.boundary.action.copied")
+                    : copyState === "fallback"
+                      ? t("app.error.boundary.action.copyManual")
+                      : t("app.error.boundary.action.copyDetails")}
+                </Button>
+                <Button
                   type="button"
+                  emphasis="tertiary"
+                  size="compact"
                   onClick={() => setShowDetails((v) => !v)}
-                  className="text-xs text-text-sub-600 underline hover:text-text-strong-950 transition-colors"
+                  className="self-center"
                 >
                   {showDetails
                     ? t("app.error.boundary.devMode.hide")
                     : t("app.error.boundary.devMode.show")}
-                </button>
+                </Button>
               </div>
               {showDetails && (
                 <div className="mt-3 text-left bg-bg-soft-200 border border-stroke-soft-200 rounded-lg p-4">

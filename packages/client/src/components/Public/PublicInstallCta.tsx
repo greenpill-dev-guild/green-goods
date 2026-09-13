@@ -1,3 +1,4 @@
+import { Button } from "@green-goods/shared/components/Button";
 import { useIntl } from "react-intl";
 import { getSharedRecordPath } from "@/config/sharedLink";
 import { PublicInstallAction } from "./PublicInstallAction";
@@ -39,21 +40,18 @@ export function PublicInstallCta({
       </p>
       <PublicInstallAction forceOpenApp destination={recordPath}>
         {({ href, onClick, disabled }) => (
-          <a
-            href={href}
-            onClick={onClick}
-            aria-disabled={disabled || undefined}
-            className="mt-3 inline-flex min-h-11 items-center text-primary-action underline underline-offset-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-action"
-          >
-            {formatMessage({
-              id: recordPath.includes("/work/")
-                ? "public.sharedLink.openWork"
-                : "public.sharedLink.openGarden",
-              defaultMessage: recordPath.includes("/work/")
-                ? "Open This Work in the App"
-                : "Open This Garden in the App",
-            })}
-          </a>
+          <Button asChild emphasis="tertiary" className="mt-3">
+            <a href={href} onClick={onClick} aria-disabled={disabled || undefined}>
+              {formatMessage({
+                id: recordPath.includes("/work/")
+                  ? "public.sharedLink.openWork"
+                  : "public.sharedLink.openGarden",
+                defaultMessage: recordPath.includes("/work/")
+                  ? "Open This Work in the App"
+                  : "Open This Garden in the App",
+              })}
+            </a>
+          </Button>
         )}
       </PublicInstallAction>
     </div>
@@ -64,15 +62,16 @@ export function PublicInstallCta({
       <div className={className}>
         <PublicInstallAction destination={recordPath ?? undefined}>
           {({ label, href, onClick, disabled, dataInstallAction }) => (
-            <a
-              href={href}
-              onClick={onClick}
-              aria-disabled={disabled || undefined}
-              data-install-action={dataInstallAction}
-              className={`cursor-pointer rounded-full bg-primary-action px-4 py-2 text-sm font-medium text-primary-action-foreground transition-colors hover:bg-primary-action-hover ${disabled ? "cursor-not-allowed opacity-70" : ""} ${className}`}
-            >
-              {label}
-            </a>
+            <Button asChild>
+              <a
+                href={href}
+                onClick={onClick}
+                aria-disabled={disabled || undefined}
+                data-install-action={dataInstallAction}
+              >
+                {label}
+              </a>
+            </Button>
           )}
         </PublicInstallAction>
         {continuation}
@@ -112,23 +111,20 @@ export function PublicInstallCta({
               onInstallFallbackClick,
             }) => (
               <div className="flex flex-col items-center gap-3">
-                <a
-                  href={href}
-                  onClick={onClick}
-                  aria-disabled={disabled || undefined}
-                  data-install-action={dataInstallAction}
-                  className={`cursor-pointer rounded-full bg-primary-action px-6 py-3 text-sm font-semibold text-primary-action-foreground transition-colors hover:bg-primary-action-hover ${disabled ? "cursor-not-allowed opacity-70" : ""}`}
-                >
-                  {label}
-                </a>
-                {hasInstallFallback ? (
-                  <button
-                    type="button"
-                    onClick={onInstallFallbackClick}
-                    className="cursor-pointer text-sm font-medium text-text-sub-600 underline-offset-4 hover:text-text-strong-950 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-action focus-visible:ring-offset-2"
+                <Button asChild>
+                  <a
+                    href={href}
+                    onClick={onClick}
+                    aria-disabled={disabled || undefined}
+                    data-install-action={dataInstallAction}
                   >
+                    {label}
+                  </a>
+                </Button>
+                {hasInstallFallback ? (
+                  <Button type="button" emphasis="tertiary" onClick={onInstallFallbackClick}>
                     {fallbackLabel}
-                  </button>
+                  </Button>
                 ) : null}
               </div>
             )}
