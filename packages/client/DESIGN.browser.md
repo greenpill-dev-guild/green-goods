@@ -97,20 +97,20 @@ An ordinary editorial page, not a modal. It was briefly wired to a Radix dialog 
 
 ## `/fund`
 
-- Editorial header is scoped to the June 1 NYC vault/endow sprint: Wallet Endow plus public Manage Endowments. Public Donate is hidden from `/fund` for this sprint and deferred to separate non-Cookie-Jar planning; the low-level Cookie Jar code remains outside this surface.
+- **Donate is always present on `/fund`, beside Endow (DL-027).** The hero lede names both paths, § 02 Ways to Support explains them once (Donate is direct support to a Garden's shared fund through its Cookie Jar; Endow is a withdrawable deposit in the Garden Vault whose yield supports the Garden), and every Garden row in § 03 carries both actions. Do not hide Donate. A Garden without a donation jar keeps the button, and its funding card says donations are not enabled yet.
 - `?intent=<id>` mounts `PublicFundingReceipt` above the Garden grid. Receipt UI reads the in-memory token (already scrubbed by Root) and only renders redacted public fields: Garden, intent, amount, status, `fundingTxHash`, receiver wallet (Card Endow), and the management CTA when the receipt is an Endow receipt.
 - `?manage=endowments` opens `PublicEndowmentPanel`; the URL never carries wallet addresses, account ids, or receipt tokens.
 - `?garden=<id-or-slug>` resolves exact id/address first, then unique-slug match via `publicGardenHelpers.deriveSlug`. Stale / missing / zero-match / ambiguous queries render the regular Fund page with a localized non-blocking message and the matched Garden (if any) scrolls into view with a soft ring highlight.
-- Garden grid uses public Garden rows with Endow CTAs only. Section 3 also carries an always-visible `Manage Endowments` secondary action (the 12px squircle, warm tone) aligned to the section header on desktop and stacked under the title on mobile.
+- Garden grid uses public Garden rows with a `Donate` primary and an `Endow` warm secondary on every row, both 40 px (DL-023). Section 3 also carries an always-visible `Manage Endowments` secondary action (the website's 16px corner, warm tone) aligned to the section header on desktop and stacked under the title on mobile.
 
 ### Funding UX
 
-Wallet Endow uses `PublicFundingCard` directly from each Garden row:
+Wallet Donate and Wallet Endow share `PublicFundingCard`, which each Garden row opens with the matching intent:
 
-1. **Amount** — USD-first input with token selection resolved from the selected Garden vault.
-2. **Wallet** — Reown/wagmi wallet connect folds into the submit button and deposits directly to the selected Garden vault with the connected wallet as receiver.
+1. **Amount** — USD-first input with token selection resolved from the Garden's Cookie Jars (Donate) or Garden Vaults (Endow).
+2. **Wallet** — Reown/wagmi wallet connect folds into the submit button and deposits directly to the selected jar or vault; an Endow names the connected wallet as receiver.
 
-Card Endow remains part of the project scope but hidden until recovered-wallet ownership, exact vault-share verification, public visibility, and successful withdrawal proof pass. Card Donate proof never reveals Card Endow, and public Donate/Card Donate do not appear on `/fund` during this sprint.
+Card Endow remains part of the project scope but hidden until recovered-wallet ownership, exact vault-share verification, public visibility, and successful withdrawal proof pass. Card Donate proof never reveals Card Endow, and Card Donate does not appear on `/fund`; wallet Donate does (DL-027).
 
 Manage Endowments is the only public withdrawal surface in v1. It is wallet-owned only, opens a right-side panel on desktop and a bottom sheet on mobile, leads with what the funder has supported, groups positions by Garden, and expands each asset row inline for Withdraw / Max / confirm / pending / error / success. It does not include public address lookup, admin Vault management, auto-buy claims, custody claims, public Donate, Card Donate, or visible Card Endow.
 
