@@ -829,9 +829,7 @@
    * edge. The locally attached layer rides the end of the content, so it
    * covers the line whenever the content fits or the scroll reaches the end. */
   [data-scroll-edge="bottom"] {
-    background-image:
-      linear-gradient(var(--color-material-solid), var(--color-material-solid)),
-      linear-gradient(rgb(var(--stroke-soft-200)), rgb(var(--stroke-soft-200)));
+    background-image: var(--sheet-scroll-edge-cover), var(--sheet-scroll-edge-line);
     background-position: bottom, bottom;
     background-repeat: no-repeat;
     background-size: 100% 1px, 100% 1px;

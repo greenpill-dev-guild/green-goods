@@ -495,6 +495,10 @@
   --color-material-regular: oklch(0.97 0 0 / 0.65);
   --color-material-thick: oklch(0.96 0 0 / 0.85);
   --color-material-solid: rgb(var(--bg-white-0));
+  /* Scroll edge above pinned sheet actions (DL-016): a hairline image and the
+   * surface-colored cover that rides the end of the content to hide it. */
+  --sheet-scroll-edge-line: linear-gradient(rgb(var(--stroke-soft-200)), rgb(var(--stroke-soft-200)));
+  --sheet-scroll-edge-cover: linear-gradient(var(--color-material-solid), var(--color-material-solid));
 
   --blur-material-ultrathin: 30px;
   --blur-material-thin: 20px;
@@ -734,6 +738,10 @@
   --color-material-regular: oklch(0.18 0 0 / 0.65);
   --color-material-thick: oklch(0.12 0 0 / 0.85);
   --color-material-solid: rgb(var(--bg-white-0));
+  /* Scroll edge above pinned sheet actions (DL-016): a hairline image and the
+   * surface-colored cover that rides the end of the content to hide it. */
+  --sheet-scroll-edge-line: linear-gradient(rgb(var(--stroke-soft-200)), rgb(var(--stroke-soft-200)));
+  --sheet-scroll-edge-cover: linear-gradient(var(--color-material-solid), var(--color-material-solid));
   --border-material: 1px solid oklch(1 0 0 / 0.06);
 
   /* Social colors - invert for dark mode */
