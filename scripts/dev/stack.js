@@ -493,13 +493,38 @@ function productionProfileEnv(group) {
   };
 }
 
+/** Apply a stack profile without re-enabling explicitly disabled local Vite connections. */
 export function applyGroupEnvironment(app, group) {
-  const env = productionProfileEnv(group);
+  const profileEnv = productionProfileEnv(group);
+  const configuredIndexerUrl = app.env?.VITE_ENVIO_INDEXER_URL;
+  const disableLocalChain = app.env?.VITE_DISABLE_LOCAL_CHAIN === "true";
+  const disableLocalAgent = app.env?.VITE_DISABLE_LOCAL_AGENT === "true";
+  const preserveConfiguredIndexer = !["prod", "prod-mirror"].includes(group);
+  const { VITE_ENVIO_INDEXER_URL: profileIndexerUrl, ...sharedProfileEnv } = profileEnv;
+  const configuredChainEnv = disableLocalChain
+    ? {
+        VITE_DEV_CHAIN_MODE: app.env.VITE_DEV_CHAIN_MODE,
+        VITE_CHAIN_ID: app.env.VITE_CHAIN_ID,
+        VITE_LOCAL_FORK_RPC_URL: app.env.VITE_LOCAL_FORK_RPC_URL,
+        VITE_ENABLE_ANVIL_WALLETS: app.env.VITE_ENABLE_ANVIL_WALLETS,
+      }
+    : {};
+  const configuredAgentEnv = disableLocalAgent
+    ? { VITE_API_BASE_URL: app.env.VITE_API_BASE_URL }
+    : {};
+
   return {
     ...app,
     env: {
       ...(app.env || {}),
-      ...env,
+      ...sharedProfileEnv,
+      ...(preserveConfiguredIndexer
+        ? configuredIndexerUrl === undefined
+          ? {}
+          : { VITE_ENVIO_INDEXER_URL: configuredIndexerUrl }
+        : { VITE_ENVIO_INDEXER_URL: profileIndexerUrl }),
+      ...configuredChainEnv,
+      ...configuredAgentEnv,
     },
   };
 }
