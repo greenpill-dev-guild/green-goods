@@ -14,6 +14,7 @@ import {
 } from "@remixicon/react";
 import { useIntl } from "react-intl";
 import { Link, useLocation } from "react-router-dom";
+import { pwaStatusStyles } from "@/components/Pwa/statusStyles";
 import { APP_ROUTES, LEGACY_APP_ROUTES } from "@/config/pwaRouting";
 
 export const AppBar = () => {
@@ -110,7 +111,12 @@ export const AppBar = () => {
                   <InactiveIcon className="w-6 h-6" />
                 )}
                 {showBadge && (
-                  <span className="absolute -top-1 -right-1.5 min-w-4 h-4 flex items-center justify-center rounded-full bg-primary text-primary-accent-foreground text-[10px] font-bold leading-none px-1">
+                  <span
+                    className={cn(
+                      "absolute -top-1 -right-1.5 min-w-4 h-4 flex items-center justify-center rounded-full text-[10px] font-bold leading-none px-1",
+                      pwaStatusStyles.primary.badge
+                    )}
+                  >
                     {pendingCount > 9 ? "9+" : pendingCount}
                   </span>
                 )}

@@ -124,7 +124,7 @@ export const OfflineIndicator: React.FC<OfflineIndicatorProps> = ({
       case "back-online":
         return (
           <div
-            className={`${baseBarClasses} bg-primary/95 text-primary-accent-foreground pointer-events-auto pulse-success`}
+            className={`${baseBarClasses} bg-primary-action/95 text-primary-action-foreground pointer-events-auto pulse-success`}
             role="status"
             aria-live="polite"
             aria-label={formatMessage({

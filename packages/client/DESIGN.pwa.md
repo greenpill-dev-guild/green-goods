@@ -60,8 +60,8 @@ dialect: installed-pwa
 ## Color Adaptation
 
 The PWA inherits the Warm Earth core. The current green rhythm is protected:
-- Bright tertiary garden green stays on icons, active nav states, badges, progress, soft highlights, and value-flow indicators.
-- Text-bearing filled CTAs use contrast-safe action tokens, not bright green with white body text.
+- Bright tertiary garden green stays on text-free marks: icons, active nav states, dots, progress lines, soft highlights, and value-flow indicators.
+- Any green fill that carries text, a number, or a glyph (filled CTAs, count badges, step markers, selected chips, pills) uses the contrast-safe action tokens with white text, never bright green (DL-017).
 - No PWA-specific token overrides; values come from shared tokens.
 
 **Dynamic garden theming** (future): Each garden can tint the experience with accent color derived from its banner image. Foundation palette remains — only the accent shifts.

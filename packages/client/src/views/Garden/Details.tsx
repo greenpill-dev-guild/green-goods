@@ -356,7 +356,7 @@ export const WorkDetails: React.FC<WorkDetailsProps> = ({
                             }
                             className={`min-h-11 px-3 py-2.5 rounded-full text-sm font-medium transition-colors duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)] border ${
                               isSelected
-                                ? "bg-primary-base text-primary-accent-foreground border-primary-base"
+                                ? "bg-primary-action text-primary-action-foreground border-primary-action"
                                 : "bg-bg-weak-50 text-text-sub-600 border-stroke-sub-300 hover:bg-bg-soft-200"
                             }`}
                           >
