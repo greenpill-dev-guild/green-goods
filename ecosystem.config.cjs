@@ -43,14 +43,19 @@ const localAgentApiBaseUrl = "http://127.0.0.1:3005";
 // replaces the local agent only when it is an absolute, non-loopback http(s) URL.
 function isExternalHttpUrl(value) {
   try {
-    const { protocol, hostname } = new URL(value);
+    const url = new URL(value);
+    // Drop a trailing DNS root dot so "localhost." still reads as loopback.
+    const hostname = url.hostname.replace(/\.$/, "");
     const loopback =
       hostname === "localhost" ||
       hostname.endsWith(".localhost") ||
-      hostname === "[::1]" ||
       hostname === "0.0.0.0" ||
-      /^127\./.test(hostname);
-    return (protocol === "http:" || protocol === "https:") && !loopback;
+      /^127\./.test(hostname) ||
+      hostname === "[::]" ||
+      hostname === "[::1]" ||
+      // IPv4-mapped loopback, e.g. [::ffff:127.0.0.1] serializes as [::ffff:7f00:1].
+      /^\[::ffff:7f[0-9a-f]{2}:[0-9a-f]{1,4}\]$/.test(hostname);
+    return (url.protocol === "http:" || url.protocol === "https:") && !loopback;
   } catch {
     return false;
   }

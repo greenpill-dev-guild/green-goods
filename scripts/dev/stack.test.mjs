@@ -156,8 +156,15 @@ test("disabling the local agent ignores a loopback agent URL from the root env f
   };
 
   try {
-    assert.equal(await readAgentUrl("http://127.0.0.1:3005"), "https://agent.greengoods.app");
-    assert.equal(await readAgentUrl("http://localhost:3005"), "https://agent.greengoods.app");
+    for (const loopback of [
+      "http://127.0.0.1:3005",
+      "http://localhost:3005",
+      "http://localhost.:3005",
+      "http://[::ffff:127.0.0.1]:3005",
+      "http://[::]:3005",
+    ]) {
+      assert.equal(await readAgentUrl(loopback), "https://agent.greengoods.app", loopback);
+    }
     assert.equal(await readAgentUrl("https://agent.staging.example"), "https://agent.staging.example");
   } finally {
     await rm(fixture, { recursive: true, force: true });
