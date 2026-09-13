@@ -153,7 +153,6 @@ function SupportInput({
             aria-label={formatMessage({ id: "app.signal.allocatePoints" })}
             aria-describedby={inputError ? `support-error-${hypercertId}` : undefined}
             aria-invalid={inputError ? true : undefined}
-            invalid={Boolean(inputError)}
           />
           <Button
             type="button"

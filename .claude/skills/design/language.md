@@ -396,7 +396,8 @@ No action is shorter than 32px and no hit area is smaller than 44px. Fields use 
 
 **Primitives**: `Button` (`emphasis` primary / secondary / tertiary, `tone` default / danger / warning,
 `size`, `loading` stays focusable), `IconButton` (a circle at the same four sizes, `aria-label`
-required), `Chip` (a 32px capsule toggle with a 44px hit area). All live in `@green-goods/shared`.
+required; a header launcher's count or status dot rides its `badge` slot), `Chip` (a 32px capsule
+toggle with a 44px hit area). All live in `@green-goods/shared`.
 
 **Color variants** (from M3): Filled (primary), Outlined (secondary), Text (tertiary). A tonal fill is not a separate emphasis. Combined with shape, these give sufficient hierarchy without introducing more sizes.
 

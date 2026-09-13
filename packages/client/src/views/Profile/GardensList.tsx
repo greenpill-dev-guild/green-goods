@@ -1,3 +1,4 @@
+import { Button } from "@green-goods/shared/components/Button";
 import { toastService } from "@green-goods/shared/components/Toast/toast.service";
 import { useGardens } from "@green-goods/shared/hooks/blockchain/useBaseLists";
 import {
@@ -17,7 +18,6 @@ import { RiCheckLine, RiMapPinLine, RiPlantLine } from "@remixicon/react";
 import { useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { useNavigate } from "react-router-dom";
-import { Button } from "@/components/Actions";
 import { Card } from "@/components/Cards";
 import { Avatar } from "@/components/Display";
 import { JoinGardenConfirmDialog } from "@/components/Features/Garden/JoinGardenConfirmDialog";
@@ -173,16 +173,12 @@ export const GardensList: React.FC<GardensListProps> = ({ primaryAddress }) => {
                 defaultMessage: "Gardens are unavailable right now.",
               })}
             </p>
-            <Button
-              variant="neutral"
-              mode="stroke"
-              size="xsmall"
-              onClick={() => void refetchGardens()}
-              label={intl.formatMessage({
+            <Button type="button" emphasis="secondary" onClick={() => void refetchGardens()}>
+              {intl.formatMessage({
                 id: "app.home.retry",
                 defaultMessage: "Retry",
               })}
-            />
+            </Button>
           </div>
         </Card>
       ) : allGardens.length > 0 ? (
@@ -226,17 +222,17 @@ export const GardensList: React.FC<GardensListProps> = ({ primaryAddress }) => {
                     </div>
                   ) : (
                     <Button
-                      variant="primary"
-                      mode="filled"
-                      size="small"
+                      type="button"
+                      size="sm"
                       onClick={() => handleJoinGarden(garden)}
-                      label={intl.formatMessage({
+                      loading={isJoiningThis}
+                      className="shrink-0"
+                    >
+                      {intl.formatMessage({
                         id: "app.profile.join",
                         defaultMessage: "Join",
                       })}
-                      disabled={isJoiningThis}
-                      className="shrink-0"
-                    />
+                    </Button>
                   )}
                 </div>
               </Card>
@@ -262,16 +258,15 @@ export const GardensList: React.FC<GardensListProps> = ({ primaryAddress }) => {
               </p>
             </div>
             <Button
-              variant="primary"
-              mode="filled"
-              size="xsmall"
+              type="button"
               onClick={() => navigate("/home")}
-              leadingIcon={<RiPlantLine className="w-4" />}
-              label={intl.formatMessage({
+              leadingIcon={<RiPlantLine className="h-4 w-4" aria-hidden="true" />}
+            >
+              {intl.formatMessage({
                 id: "app.profile.discoverGardens",
                 defaultMessage: "Open Gardens",
               })}
-            />
+            </Button>
           </div>
         </Card>
       )}

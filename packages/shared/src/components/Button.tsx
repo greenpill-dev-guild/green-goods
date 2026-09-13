@@ -94,13 +94,14 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     const legacy = variant !== undefined;
     const legacySize = size === "compact" ? "sm" : size;
     const baseClassName = legacy ? buttonVariants({ variant, size: legacySize }) : "gg-button";
+    const busy = loading || props["aria-busy"] || undefined;
     const stateProps = legacy
-      ? { "aria-busy": loading || undefined }
+      ? { "aria-busy": busy }
       : {
           "data-emphasis": emphasis,
           "data-tone": tone === "default" ? undefined : tone,
           "data-size": size,
-          "aria-busy": loading || undefined,
+          "aria-busy": busy,
           "aria-disabled": loading || props["aria-disabled"] || undefined,
         };
     const content = (inner: React.ReactNode) => (

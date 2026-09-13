@@ -27,7 +27,7 @@ interface QRScannerProps {
 }
 
 /** Reads `0x…` or `ethereum:0x…` QR payloads and resolves them to an address. */
-export function extractAddress(raw: string): Address | null {
+function extractAddress(raw: string): Address | null {
   const value = raw
     .trim()
     .replace(/^ethereum:/i, "")

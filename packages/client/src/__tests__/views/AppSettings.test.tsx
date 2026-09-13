@@ -67,41 +67,12 @@ vi.mock("@green-goods/shared/hooks/app/useTheme", () => ({
 // Mock @remixicon/react
 vi.mock("@remixicon/react", () => ({
   RiEarthFill: (props: any) => createElement("span", props),
+  RiLoader4Line: (props: any) => createElement("span", props),
   RiRefreshLine: (props: any) => createElement("span", props),
   RiSettings2Line: (props: any) => createElement("span", props),
 }));
 
 // Mock client components
-vi.mock("@/components/Actions", () => ({
-  Button: ({
-    label,
-    onClick,
-    isLoading,
-    disabled,
-    className,
-  }: {
-    label: string;
-    onClick?: () => void;
-    isLoading?: boolean;
-    disabled?: boolean;
-    className?: string;
-    variant?: string;
-    mode?: string;
-    size?: string;
-    leadingIcon?: React.ReactNode;
-  }) =>
-    createElement(
-      "button",
-      {
-        onClick: isLoading || disabled ? undefined : onClick,
-        "aria-busy": isLoading || undefined,
-        className,
-        "data-testid": `btn-${label}`,
-      },
-      label
-    ),
-}));
-
 vi.mock("@/components/Cards", () => ({
   Card: ({ children }: { children: React.ReactNode }) =>
     createElement("div", { "data-testid": "card" }, children),
@@ -203,9 +174,9 @@ describe("AppSettings", () => {
       expect(screen.getByRole("status", { name: "Update" })).toHaveTextContent(
         "Check for a newer version."
       );
-      const check = screen.getByTestId("btn-Check");
+      const check = screen.getByRole("button", { name: "Check" });
       const [themeTrigger] = screen.getAllByTestId("select-trigger");
-      expect(check.className).toBe(themeTrigger.className);
+      expect(check).toHaveClass(...themeTrigger.className.split(" "));
       expect(screen.queryByText("Refresh app")).not.toBeInTheDocument();
     });
 
@@ -213,7 +184,7 @@ describe("AppSettings", () => {
       const user = userEvent.setup();
       render(wrap(createElement(AppSettings)));
 
-      await user.click(screen.getByTestId("btn-Check"));
+      await user.click(screen.getByRole("button", { name: "Check" }));
 
       expect(mockServiceWorkerUpdateState.checkForUpdate).toHaveBeenCalledTimes(1);
       await waitFor(() => {
@@ -228,7 +199,7 @@ describe("AppSettings", () => {
       expect(screen.getByRole("status", { name: "Update" })).toHaveTextContent(
         "Check for a newer version."
       );
-      expect(screen.getByTestId("btn-Check")).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Check" })).toBeInTheDocument();
       expect(screen.getAllByTestId("card")).toHaveLength(4);
     });
 
@@ -251,7 +222,7 @@ describe("AppSettings", () => {
       mockServiceWorkerUpdateState.checkForUpdate.mockResolvedValue("ready");
       render(wrap(createElement(AppSettings)));
 
-      await user.click(screen.getByTestId("btn-Check"));
+      await user.click(screen.getByRole("button", { name: "Check" }));
 
       await waitFor(() => {
         expect(mockServiceWorkerUpdateState.activateNow).toHaveBeenCalledTimes(1);
@@ -264,13 +235,13 @@ describe("AppSettings", () => {
       mockServiceWorkerUpdateState.checkForUpdate.mockResolvedValue("pending");
       render(wrap(createElement(AppSettings)));
 
-      await user.click(screen.getByTestId("btn-Check"));
+      await user.click(screen.getByRole("button", { name: "Check" }));
 
       expect(mockServiceWorkerUpdateState.checkForUpdate).toHaveBeenCalledTimes(1);
       expect(screen.getByRole("status", { name: "Update" })).toHaveTextContent(
         "Check for a newer version."
       );
-      expect(screen.getByTestId("btn-Check")).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Check" })).toBeInTheDocument();
       expect(mockServiceWorkerUpdateState.activateNow).not.toHaveBeenCalled();
     });
 
@@ -279,7 +250,7 @@ describe("AppSettings", () => {
       mockServiceWorkerUpdateState.checkForUpdate.mockRejectedValue(new Error("offline"));
       render(wrap(createElement(AppSettings)));
 
-      await user.click(screen.getByTestId("btn-Check"));
+      await user.click(screen.getByRole("button", { name: "Check" }));
 
       await waitFor(() => {
         expect(mockToast.error).toHaveBeenCalledWith(
@@ -289,7 +260,7 @@ describe("AppSettings", () => {
       expect(screen.getByRole("status", { name: "Update" })).toHaveTextContent(
         "Check for a newer version."
       );
-      await user.click(screen.getByTestId("btn-Check"));
+      await user.click(screen.getByRole("button", { name: "Check" }));
 
       expect(mockServiceWorkerUpdateState.checkForUpdate).toHaveBeenCalledTimes(2);
     });
@@ -305,9 +276,11 @@ describe("AppSettings", () => {
 
       expect(screen.getByText(TITLE)).toBeInTheDocument();
       expect(screen.getByRole("status", { name: "Update" })).toHaveTextContent(status);
-      const control = screen.getByTestId(`btn-${label}`);
+      const control = screen.getByRole("button", { name: label });
       expect(control).toHaveAttribute("aria-busy", "true");
-      expect(control.className).toBe(screen.getAllByTestId("select-trigger")[0].className);
+      expect(control).toHaveClass(
+        ...screen.getAllByTestId("select-trigger")[0].className.split(" ")
+      );
       expect(screen.getAllByTestId("card")).toHaveLength(4);
     });
 
@@ -321,7 +294,7 @@ describe("AppSettings", () => {
       expect(screen.getByRole("status", { name: "Update" })).toHaveTextContent(
         "A new version is ready."
       );
-      await user.click(screen.getByTestId("btn-Restart"));
+      await user.click(screen.getByRole("button", { name: "Restart" }));
 
       expect(mockServiceWorkerUpdateState.activateNow).toHaveBeenCalledTimes(1);
     });
@@ -335,7 +308,7 @@ describe("AppSettings", () => {
       expect(screen.getByRole("status", { name: "Update" })).toHaveTextContent(
         "Close and reopen the app."
       );
-      await user.click(screen.getByTestId("btn-Try Again"));
+      await user.click(screen.getByRole("button", { name: "Try Again" }));
 
       expect(mockServiceWorkerUpdateState.activateNow).toHaveBeenCalledTimes(1);
       expect(mockServiceWorkerUpdateState.checkForUpdate).not.toHaveBeenCalled();
@@ -350,7 +323,7 @@ describe("AppSettings", () => {
       expect(screen.getByRole("status", { name: "Update" })).toHaveTextContent(
         "Couldn't finish. Try again."
       );
-      await user.click(screen.getByTestId("btn-Try Again"));
+      await user.click(screen.getByRole("button", { name: "Try Again" }));
 
       expect(mockServiceWorkerUpdateState.checkForUpdate).toHaveBeenCalledTimes(1);
       expect(mockServiceWorkerUpdateState.activateNow).not.toHaveBeenCalled();

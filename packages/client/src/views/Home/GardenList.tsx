@@ -1,3 +1,4 @@
+import { Button } from "@green-goods/shared/components/Button";
 import type { GardenFilterScope } from "@green-goods/shared/hooks/garden/useFilteredGardens";
 import type { Garden } from "@green-goods/shared/types/domain";
 import { RiRefreshLine } from "@remixicon/react";
@@ -50,17 +51,16 @@ export function GardenList({
             defaultMessage: "Loading is taking longer than expected",
           })}
         </p>
-        <button
+        <Button
           type="button"
           onClick={onRetry}
-          className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary-action text-primary-action-foreground font-medium hover:bg-primary-action-hover transition-colors duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)]"
+          leadingIcon={<RiRefreshLine className="h-4 w-4" aria-hidden="true" />}
         >
-          <RiRefreshLine className="w-4 h-4" />
           {intl.formatMessage({
             id: "app.home.retry",
             defaultMessage: "Retry",
           })}
-        </button>
+        </Button>
       </div>
     );
   }
@@ -129,16 +129,12 @@ export function GardenList({
             })}
           </p>
           {onBrowseAll ? (
-            <button
-              type="button"
-              onClick={onBrowseAll}
-              className="rounded-full bg-primary-action px-4 py-2 text-sm font-medium text-primary-action-foreground transition hover:bg-primary-action-hover"
-            >
+            <Button type="button" onClick={onBrowseAll}>
               {intl.formatMessage({
                 id: "app.home.gardens.mineEmptyCta",
                 defaultMessage: "Browse All Gardens",
               })}
-            </button>
+            </Button>
           ) : null}
         </div>
       );

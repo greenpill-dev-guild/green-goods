@@ -51,6 +51,38 @@ describe("IconButton", () => {
     expect(onClick).not.toHaveBeenCalled();
   });
 
+  it("pins a badge inside the button and keeps it while loading", () => {
+    const { rerender } = render(
+      <IconButton
+        aria-label="Open Your Work, 3 pending"
+        icon={<svg data-testid="icon" />}
+        badge={<span data-testid="count">3</span>}
+      />
+    );
+    const button = screen.getByRole("button", { name: "Open Your Work, 3 pending" });
+    const count = screen.getByTestId("count");
+    expect(button).toContainElement(count);
+    expect(count.parentElement).toHaveClass("gg-icon-button-badge");
+
+    rerender(
+      <IconButton
+        aria-label="Open Your Work, 3 pending"
+        icon={<svg data-testid="icon" />}
+        badge={<span data-testid="count">3</span>}
+        loading
+      />
+    );
+    expect(screen.queryByTestId("icon")).toBeNull();
+    expect(screen.getByTestId("count")).toBeInTheDocument();
+  });
+
+  it("keeps a consumer aria-busy on a launcher that is not ready", () => {
+    render(<IconButton aria-label="Open Your Work" icon={<svg />} disabled aria-busy />);
+    const button = screen.getByRole("button", { name: "Open Your Work" });
+    expect(button).toBeDisabled();
+    expect(button).toHaveAttribute("aria-busy", "true");
+  });
+
   it("works as a Radix close through asChild", () => {
     const onOpenChange = vi.fn();
     render(

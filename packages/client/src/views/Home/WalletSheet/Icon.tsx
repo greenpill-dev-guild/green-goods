@@ -1,35 +1,26 @@
-import { cn } from "@green-goods/shared/utils/styles/cn";
+import { IconButton } from "@green-goods/shared/components/IconButton";
 import { RiWallet3Line } from "@remixicon/react";
 import React from "react";
 import { useIntl } from "react-intl";
-import { pwaStatusStyles } from "@/components/Pwa/statusStyles";
 
 interface WalletSheetIconProps {
   onClick: () => void;
   className?: string;
 }
 
+/** Header launcher for the wallet sheet: a compact outlined icon button (DL-021, DL-023). */
 export const WalletSheetIcon: React.FC<WalletSheetIconProps> = ({ onClick, className }) => {
   const intl = useIntl();
   const label = intl.formatMessage({ id: "app.wallet.title" });
 
   return (
-    <button
-      type="button"
+    <IconButton
+      emphasis="secondary"
+      size="compact"
       onClick={onClick}
-      className={cn(
-        "relative p-1 rounded-lg border transition-[color,border-color,box-shadow,transform] duration-[var(--spring-spatial-fast-duration)] ease-[var(--spring-spatial-fast-easing)] tap-feedback",
-        "active:scale-95",
-        "flex items-center justify-center w-8 h-8 tap-target-lg",
-        "focus:outline-none focus:ring-2",
-        pwaStatusStyles.primary.focus,
-        pwaStatusStyles.neutral.border,
-        pwaStatusStyles.neutral.icon,
-        className
-      )}
+      className={className}
       aria-label={label}
-    >
-      <RiWallet3Line className="h-4 w-4" />
-    </button>
+      icon={<RiWallet3Line aria-hidden="true" />}
+    />
   );
 };

@@ -3,6 +3,7 @@ import type {
   CommitmentCycleRecord,
   CycleMetadataNameResolution,
 } from "@green-goods/shared/commitment-pooling";
+import { TextInput } from "@green-goods/shared/components/Form/ControlPrimitives";
 import { RiHandHeartLine, RiLeafLine } from "@remixicon/react";
 import { type UseFormReturn, useWatch } from "react-hook-form";
 import { useIntl } from "react-intl";
@@ -163,7 +164,7 @@ export function ComposeWhat({ form, openCycles, cycleNames }: ComposeWhatProps) 
         <label className="block text-sm font-medium text-text-strong-950" htmlFor="compose-title">
           {formatMessage({ id: "app.compose.what.titleLabel" })}
         </label>
-        <input
+        <TextInput
           id="compose-title"
           type="text"
           value={title}
@@ -176,7 +177,7 @@ export function ComposeWhat({ form, openCycles, cycleNames }: ComposeWhatProps) 
           onChange={(event) =>
             form.setValue("title", event.target.value, { shouldValidate: true, shouldDirty: true })
           }
-          className="gg-control mt-1.5"
+          className="mt-1.5"
         />
         <p className="mt-1.5 text-xs text-text-soft-400">
           {formatMessage({ id: "app.compose.what.titleHelp" })}

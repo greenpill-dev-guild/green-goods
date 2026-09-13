@@ -1,5 +1,6 @@
+import { Chip } from "@green-goods/shared/components/Chip";
+import { TextInput } from "@green-goods/shared/components/Form/ControlPrimitives";
 import type { Action } from "@green-goods/shared/types/domain";
-import { cn } from "@green-goods/shared/utils/styles/cn";
 import { type CommitmentComposerValues } from "@green-goods/shared/commitment-pooling";
 import { type UseFormReturn, useWatch } from "react-hook-form";
 import { useIntl } from "react-intl";
@@ -19,15 +20,6 @@ const UNIT_CHOICES = ["hours", "sessions", "rides", "meals", "repairs"] as const
 const COUNT_CHOICES = [1, 2, 3, 4, 6] as const;
 const HOUR_CHOICES = [1, 2, 4, 6, 12] as const;
 const DAY_CHOICES = [7, 14, 30] as const;
-
-function chipClass(selected: boolean) {
-  return cn(
-    "rounded-full border px-3 py-1.5 text-xs font-medium tap-target-lg",
-    selected
-      ? "border-primary-alpha-24 bg-primary-alpha-10 text-primary"
-      : "border-stroke-soft-200 text-text-sub-600"
-  );
-}
 
 /**
  * How much is put in, by when, and on what terms it is kept.
@@ -85,24 +77,22 @@ export function ComposeHowMuch({ form, chainId, actions }: ComposeHowMuchProps) 
               const label = formatMessage({ id: `app.compose.unit.${unit}` });
               const selected = unitLabel === label;
               return (
-                <button
+                <Chip
                   key={unit}
-                  type="button"
-                  aria-pressed={selected}
+                  selected={selected}
                   onClick={() =>
                     form.setValue("unitLabel", label, { shouldValidate: true, shouldDirty: true })
                   }
-                  className={chipClass(selected)}
                 >
                   {label}
-                </button>
+                </Chip>
               );
             })}
           </div>
           <label className="mt-2 block text-xs text-text-soft-400" htmlFor="compose-label">
             {formatMessage({ id: "app.compose.what.unitHelp" })}
           </label>
-          <input
+          <TextInput
             id="compose-label"
             type="text"
             value={unitLabel}
@@ -114,7 +104,7 @@ export function ComposeHowMuch({ form, chainId, actions }: ComposeHowMuchProps) 
                 shouldDirty: true,
               })
             }
-            className="gg-control mt-1.5"
+            className="mt-1.5"
           />
         </fieldset>
       )}
@@ -127,28 +117,22 @@ export function ComposeHowMuch({ form, chainId, actions }: ComposeHowMuchProps) 
         </legend>
         <div className="mt-2 flex flex-wrap gap-2">
           {(isGardenWork ? HOUR_CHOICES : COUNT_CHOICES).map((count) => (
-            <button
-              key={count}
-              type="button"
-              aria-pressed={targetUnits === count}
-              onClick={() => setUnits(count)}
-              className={chipClass(targetUnits === count)}
-            >
+            <Chip key={count} selected={targetUnits === count} onClick={() => setUnits(count)}>
               {count}
-            </button>
+            </Chip>
           ))}
         </div>
         <label className="mt-2 block text-xs text-text-soft-400" htmlFor="compose-units">
           {formatMessage({ id: "app.compose.howMuch.customCount" })}
         </label>
-        <input
+        <TextInput
           id="compose-units"
           type="number"
           inputMode="numeric"
           min={1}
           value={Number.isFinite(targetUnits) ? targetUnits : ""}
           onChange={(event) => setUnits(Number(event.target.value))}
-          className="gg-control mt-1.5"
+          className="mt-1.5"
         />
       </fieldset>
 
@@ -158,17 +142,15 @@ export function ComposeHowMuch({ form, chainId, actions }: ComposeHowMuchProps) 
         </legend>
         <div className="mt-2 flex gap-2">
           {DAY_CHOICES.map((days) => (
-            <button
+            <Chip
               key={days}
-              type="button"
-              aria-pressed={dueInDays === days}
+              selected={dueInDays === days}
               onClick={() =>
                 form.setValue("dueInDays", days, { shouldValidate: true, shouldDirty: true })
               }
-              className={chipClass(dueInDays === days)}
             >
               {formatMessage({ id: "app.compose.terms.days" }, { count: days })}
-            </button>
+            </Chip>
           ))}
         </div>
         <p className="mt-2 text-xs text-text-soft-400">

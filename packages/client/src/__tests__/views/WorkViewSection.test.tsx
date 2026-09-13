@@ -28,11 +28,6 @@ vi.mock("@green-goods/shared/utils/form/normalizers", async (importOriginal) => 
   };
 });
 
-vi.mock("@/components/Actions", () => ({
-  Button: ({ label, onClick }: { label: string; onClick?: () => void }) =>
-    createElement("button", { onClick, type: "button" }, label),
-}));
-
 vi.mock("@/components/Features/Work", () => ({
   WorkView: ({ title, info }: { title: string; info: string }) =>
     createElement("div", { "data-testid": "work-view" }, [

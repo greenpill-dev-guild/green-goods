@@ -12,10 +12,8 @@ import { createElement, Fragment, useEffect } from "react";
 import { IntlProvider } from "react-intl";
 import { MemoryRouter, useLocation } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import VaultsWalletSurface, {
-  CampaignCard,
-  VaultsPageContent,
-} from "../../views/Public/VaultsWalletSurface";
+import { CampaignCard } from "../../views/Public/VaultsCampaignCard";
+import VaultsWalletSurface, { VaultsPageContent } from "../../views/Public/VaultsWalletSurface";
 
 const sharedHookMocks = vi.hoisted(() => ({
   loginWithWallet: vi.fn(),

@@ -111,11 +111,6 @@ vi.mock("@/components/Cards", () => ({
   Card: ({ children, ...props }: any) => createElement("div", props, children),
 }));
 
-vi.mock("@/components/Actions", () => ({
-  Button: ({ label, onClick, ...props }: any) =>
-    createElement("button", { ...props, onClick, type: "button" }, label),
-}));
-
 import { ProfileBadges } from "../../views/Profile/Badges";
 
 const wrap = (el: React.ReactElement) =>

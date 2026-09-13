@@ -1,3 +1,4 @@
+import { IconButton } from "@green-goods/shared/components/IconButton";
 import { toastService } from "@green-goods/shared/components/Toast/toast.service";
 import { queryKeys } from "@green-goods/shared/config/query-keys/registry";
 import { useArrivalState } from "@green-goods/shared/hooks/app/useArrivalState";
@@ -268,36 +269,34 @@ const Home: React.FC = () => {
           <div className="flex items-center justify-between w-full py-6 px-4 sm:px-6 md:px-12">
             <h4 className="font-semibold flex-1">{intl.formatMessage({ id: "app.home" })}</h4>
             <div className="ml-4 flex items-center gap-2">
-              <button
-                type="button"
+              <IconButton
+                emphasis="secondary"
+                size="compact"
                 onClick={openGardenFilter}
-                className={cn(
-                  "relative p-1 rounded-lg border transition-[color,border-color,box-shadow,transform] duration-[var(--spring-spatial-fast-duration)] ease-[var(--spring-spatial-fast-easing)] tap-feedback",
-                  "active:scale-95",
-                  "flex items-center justify-center w-8 h-8 tap-target-lg",
-                  "focus:outline-none focus:ring-2",
-                  pwaStatusStyles.primary.focus,
+                // Active filters tint the outline and icon, and count on the badge.
+                className={
                   isFilterActive
                     ? cn(pwaStatusStyles.primary.border, pwaStatusStyles.primary.icon)
-                    : cn(pwaStatusStyles.neutral.border, pwaStatusStyles.neutral.icon)
-                )}
+                    : undefined
+                }
                 aria-label={intl.formatMessage({
                   id: "app.home.filters.button",
                   defaultMessage: "Filters",
                 })}
-              >
-                <RiFilterLine className="h-4 w-4" />
-                {isFilterActive && (
-                  <span
-                    className={cn(
-                      "absolute -top-1.5 -right-1.5 inline-flex min-w-[16px] items-center justify-center rounded-full px-1 text-[10px] font-semibold leading-none",
-                      pwaStatusStyles.primary.badge
-                    )}
-                  >
-                    {activeFilterCount}
-                  </span>
-                )}
-              </button>
+                icon={<RiFilterLine aria-hidden="true" />}
+                badge={
+                  isFilterActive ? (
+                    <span
+                      className={cn(
+                        "inline-flex min-w-[16px] items-center justify-center rounded-full px-1 text-[10px] font-semibold leading-none",
+                        pwaStatusStyles.primary.badge
+                      )}
+                    >
+                      {activeFilterCount}
+                    </span>
+                  ) : undefined
+                }
+              />
               <WalletSheetIcon onClick={openWalletSheet} />
               <DeferredCommitmentsSheetLauncher onClick={openCommitmentsSheet} />
               <WorkDashboardIcon />

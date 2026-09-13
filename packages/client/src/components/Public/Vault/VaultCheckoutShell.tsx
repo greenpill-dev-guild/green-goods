@@ -460,13 +460,7 @@ export function CheckoutSummary({
           ))}
         </dl>
         {onEdit ? (
-          <Button
-            type="button"
-            emphasis="tertiary"
-            size="compact"
-            onClick={onEdit}
-            className="shrink-0"
-          >
+          <Button type="button" emphasis="tertiary" size="compact" onClick={onEdit}>
             {editLabel ??
               formatMessage({ id: "public.vaults.checkout.edit", defaultMessage: "Edit" })}
           </Button>

@@ -57,6 +57,17 @@ describe("Button", () => {
     expect(onClick).not.toHaveBeenCalled();
   });
 
+  it("keeps a consumer aria-busy on a button that is waiting but not loading", () => {
+    render(
+      <Button disabled aria-busy>
+        Open
+      </Button>
+    );
+    const button = screen.getByRole("button", { name: "Open" });
+    expect(button).toHaveAttribute("aria-busy", "true");
+    expect(button).toBeDisabled();
+  });
+
   it("never submits a form while loading", () => {
     const onSubmit = vi.fn((event: React.FormEvent) => event.preventDefault());
     render(

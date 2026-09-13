@@ -1,5 +1,6 @@
 import { GOVERNANCE_ENABLED } from "@green-goods/shared/config/app";
 import { useCommitmentPools } from "@green-goods/shared/commitment-pooling";
+import { Button } from "@green-goods/shared/components/Button";
 import { GardenBannerFallback } from "@green-goods/shared/components/Display/GardenBannerFallback";
 import { ImageWithFallback } from "@green-goods/shared/components/Display/ImageWithFallback";
 import { toastService } from "@green-goods/shared/components/Toast/toast.service";
@@ -35,7 +36,6 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useIntl } from "react-intl";
 import { Outlet, useLocation, useParams } from "react-router-dom";
 import { isAddress } from "viem";
-import { Button } from "@/components/Actions";
 import { ConvictionSheet, EndowmentSheet } from "@/components/Sheets";
 import { GardenErrorBoundary } from "@/components/Errors";
 import {
@@ -252,16 +252,12 @@ export const Garden: React.FC = () => {
               defaultMessage: "Couldn't load this garden. Check your connection and try again.",
             })}
           </p>
-          <Button
-            variant="primary"
-            mode="filled"
-            size="small"
-            onClick={() => refetchGardens()}
-            label={intl.formatMessage({
+          <Button type="button" onClick={() => refetchGardens()}>
+            {intl.formatMessage({
               id: "app.garden.loadRetry",
               defaultMessage: "Try Again",
             })}
-          />
+          </Button>
         </div>
       );
     }

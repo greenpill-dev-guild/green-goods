@@ -5,8 +5,9 @@
  * The accessible name is required. Sizes match the Button scale (lg 48, md 44,
  * sm 40, compact 32) and the two short sizes keep a 48px hit area. Tertiary is
  * transparent until hover, secondary is outlined, primary is filled. While
- * pressed the circle tightens to the 12px squircle. Styles live in shared
- * `theme.css` as `.gg-icon-button` rules.
+ * pressed the circle tightens to the 12px squircle. A launcher's count or
+ * status dot rides the `badge` slot. Styles live in shared `theme.css` as
+ * `.gg-icon-button` rules.
  *
  * @module components/IconButton
  */
@@ -20,6 +21,11 @@ export interface IconButtonProps
   /** The accessible name; icon-only buttons have no visible label. */
   "aria-label": string;
   icon: React.ReactNode;
+  /**
+   * Overlay pinned to the top-right corner, such as a count or a status dot.
+   * It stays visible while loading; say what it shows in `aria-label` too.
+   */
+  badge?: React.ReactNode;
   emphasis?: ButtonEmphasis;
   tone?: "default" | "danger";
   size?: ButtonSize;
@@ -31,6 +37,7 @@ export const IconButton = React.forwardRef<HTMLButtonElement, IconButtonProps>(
   (
     {
       icon,
+      badge,
       emphasis = "tertiary",
       tone = "default",
       size = "md",
@@ -53,7 +60,7 @@ export const IconButton = React.forwardRef<HTMLButtonElement, IconButtonProps>(
       data-size={size}
       disabled={loading ? undefined : disabled}
       aria-disabled={loading || props["aria-disabled"] || undefined}
-      aria-busy={loading || undefined}
+      aria-busy={loading || props["aria-busy"] || undefined}
       onClick={(event) => {
         if (loading) {
           event.preventDefault();
@@ -63,6 +70,7 @@ export const IconButton = React.forwardRef<HTMLButtonElement, IconButtonProps>(
       }}
     >
       {loading ? <RiLoader4Line className="animate-spin" aria-hidden="true" /> : icon}
+      {badge ? <span className="gg-icon-button-badge">{badge}</span> : null}
     </button>
   )
 );

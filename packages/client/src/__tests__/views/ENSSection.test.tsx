@@ -116,18 +116,6 @@ vi.mock("@green-goods/shared/components/Dialog/ConfirmDialog", () => ({
       : null,
 }));
 
-vi.mock("@/components/Actions", () => ({
-  Button: ({
-    label,
-    onClick,
-    disabled,
-  }: {
-    label: string;
-    onClick?: () => void;
-    disabled?: boolean;
-  }) => createElement("button", { onClick, disabled }, label),
-}));
-
 vi.mock("@/components/Cards", () => ({
   Card: ({ children }: { children: ReactNode }) => createElement("div", null, children),
 }));

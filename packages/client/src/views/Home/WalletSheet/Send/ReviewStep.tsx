@@ -1,4 +1,5 @@
 import { Alert } from "@green-goods/shared/components/Alert";
+import { Textarea } from "@green-goods/shared/components/Form/ControlPrimitives";
 import { formatTokenAmount } from "@green-goods/shared/utils/blockchain/vaults";
 import type { SendableTokenBalance } from "@green-goods/shared/hooks/blockchain/useSendableTokens";
 import { RiPencilLine } from "@remixicon/react";
@@ -103,13 +104,13 @@ export function ReviewStep({
         >
           {formatMessage({ id: "app.send.note.label" })}
         </label>
-        <textarea
+        <Textarea
           id="send-note"
           value={note}
           onChange={(event) => onNoteChange(event.target.value)}
           placeholder={formatMessage({ id: "app.send.note.placeholder" })}
           rows={2}
-          className="gg-control gg-control-textarea resize-none"
+          className="resize-none"
         />
       </div>
 

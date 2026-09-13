@@ -1,5 +1,6 @@
 import type { Address } from "@green-goods/shared/types/domain";
 import { Alert } from "@green-goods/shared/components/Alert";
+import { Button } from "@green-goods/shared/components/Button";
 import { ConfirmDialog } from "@green-goods/shared/components/Dialog/ConfirmDialog";
 import { cn } from "@green-goods/shared/utils/styles/cn";
 import { formatTokenAmount } from "@green-goods/shared/utils/blockchain/vaults";
@@ -116,17 +117,24 @@ export const SendTab: React.FC<SendTabProps> = ({ resetNonce }) => {
               </div>
             ) : null}
             {step !== "recipient" && recipient ? (
-              <button
-                type="button"
-                onClick={acts.editRecipient}
-                title={recipient.address}
-                className="flex w-full items-center gap-1 px-4 pt-4 text-left text-xs text-text-soft-400 hover:text-text-sub-600"
-              >
-                <span className="min-w-0 flex-1 truncate">
-                  {formatMessage({ id: "app.send.recipient.selected" })}: {recipientDisplayName}
-                </span>
-                <RiPencilLine className="h-3.5 w-3.5 shrink-0" aria-hidden />
-              </button>
+              <div className="px-4 pt-3">
+                <Button
+                  type="button"
+                  emphasis="tertiary"
+                  size="compact"
+                  onClick={acts.editRecipient}
+                  title={recipient.address}
+                  trailingIcon={
+                    <RiPencilLine className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                  }
+                  // The negative margin keeps the label on the content edge at rest.
+                  className="-ml-3 max-w-[calc(100%+0.75rem)]"
+                >
+                  <span className="min-w-0 truncate">
+                    {formatMessage({ id: "app.send.recipient.selected" })}: {recipientDisplayName}
+                  </span>
+                </Button>
+              </div>
             ) : null}
 
             {step === "recipient" ? (

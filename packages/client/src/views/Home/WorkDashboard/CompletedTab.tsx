@@ -1,3 +1,4 @@
+import { NativeSelect } from "@green-goods/shared/components/Form/ControlPrimitives";
 import type { TimeFilter } from "@green-goods/shared/utils/time";
 import type { Work } from "@green-goods/shared/types/domain";
 import { RiCheckLine } from "@remixicon/react";
@@ -87,13 +88,13 @@ export const CompletedTab: React.FC<CompletedTabProps> = ({
       emptyIcon={<RiCheckLine />}
       headerContent={
         <div className="flex items-center gap-2">
-          <select
+          <NativeSelect
             aria-label={intl.formatMessage({
               id: "app.workDashboard.completedFilter.label",
               defaultMessage: "Completed work filter",
             })}
-            className="gg-control gg-control-select w-auto"
-            data-size="sm"
+            controlSize="sm"
+            className="w-auto"
             value={completedFilter}
             onChange={(e) =>
               onCompletedFilterChange(e.target.value as "reviewedByYou" | "myWorkReviewed")
@@ -111,7 +112,7 @@ export const CompletedTab: React.FC<CompletedTabProps> = ({
                 defaultMessage: "My work reviewed",
               })}
             </option>
-          </select>
+          </NativeSelect>
           <TimeFilterControl value={timeFilter} onChange={onTimeFilterChange} />
         </div>
       }

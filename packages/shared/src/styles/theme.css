@@ -1344,6 +1344,14 @@
     color: rgb(var(--static-white, var(--neutral-0)));
   }
 
+  /* A launcher's count or status dot, pinned to the top-right corner. */
+  .gg-icon-button-badge {
+    position: absolute;
+    inset-block-start: -0.375rem;
+    inset-inline-end: -0.375rem;
+    display: inline-flex;
+  }
+
   /* ── Chip (DL-021) ── A capsule toggle for filters and choices: 32px with a
    * 44px hit area. Selected chips carry text on a green fill, so they use the
    * action fill with white text (DL-017). */

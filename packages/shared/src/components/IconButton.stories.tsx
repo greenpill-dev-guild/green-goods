@@ -1,4 +1,4 @@
-import { RiCloseLine, RiShareLine, RiStopFill } from "@remixicon/react";
+import { RiCloseLine, RiShareLine, RiStopFill, RiTaskLine } from "@remixicon/react";
 import type { Meta, StoryObj } from "@storybook/react";
 import { expect, fn, within } from "storybook/test";
 import type { ButtonEmphasis, ButtonSize } from "./Button";
@@ -67,6 +67,39 @@ export const Recording: Story = {
       getComputedStyle(probe).backgroundColor
     );
     probe.remove();
+  },
+};
+
+/** A header launcher: compact, outlined, with a count pinned to its corner. */
+export const WithBadge: Story = {
+  args: {
+    "aria-label": "Open Your Work, 3 pending",
+    emphasis: "secondary",
+    size: "compact",
+    icon: <RiTaskLine aria-hidden="true" />,
+    badge: (
+      <span
+        data-testid="count"
+        className="inline-flex h-[18px] min-w-[18px] items-center justify-center rounded-full border-2 border-bg-white-0 bg-primary-action px-1 text-xs font-semibold text-primary-action-foreground"
+      >
+        3
+      </span>
+    ),
+  },
+  render: (args) => (
+    <div className="p-4">
+      <IconButton {...args} />
+    </div>
+  ),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const button = canvas.getByRole("button", { name: "Open Your Work, 3 pending" });
+    const buttonRect = button.getBoundingClientRect();
+    const badgeRect = canvas.getByTestId("count").getBoundingClientRect();
+    await expect(buttonRect.height).toBe(32);
+    // The count overhangs the top-right corner rather than covering the icon.
+    await expect(badgeRect.top).toBeLessThan(buttonRect.top);
+    await expect(badgeRect.right).toBeGreaterThan(buttonRect.right);
   },
 };
 

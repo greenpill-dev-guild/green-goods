@@ -1,4 +1,5 @@
 import { AudioPlayer } from "@green-goods/shared/components/Audio/AudioPlayer";
+import { IconButton } from "@green-goods/shared/components/IconButton";
 import { cn } from "@green-goods/shared/utils/styles/cn";
 import { isVideoFile } from "@green-goods/shared/modules/work/media-processing";
 import { mediaResourceManager } from "@green-goods/shared/modules/job-queue/media-resource-manager";
@@ -153,14 +154,14 @@ export function ProofMedia({
                   <img src={urls[index]} alt="" className="aspect-[4/3] w-full object-cover" />
                 </button>
               )}
-              <button
-                type="button"
+              <IconButton
+                emphasis="secondary"
+                size="compact"
                 onClick={() => onRemoveMedia(index)}
                 aria-label={formatMessage({ id: "app.proof.media.remove" }, { name: file.name })}
-                className="absolute right-2 top-2 rounded-full bg-bg-white-0/90 p-1.5 text-text-strong-950 shadow-sm tap-target-lg"
-              >
-                <RiCloseLine className="h-4 w-4" aria-hidden="true" />
-              </button>
+                className="absolute right-2 top-2 shadow-sm"
+                icon={<RiCloseLine aria-hidden="true" />}
+              />
             </li>
           ))}
           {audioNotes.map((file, index) => (

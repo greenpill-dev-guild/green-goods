@@ -1,5 +1,6 @@
 import { AddressDisplay } from "@green-goods/shared/components/AddressDisplay";
 import { Button } from "@green-goods/shared/components/Button";
+import { Textarea } from "@green-goods/shared/components/Form/ControlPrimitives";
 import type { Address } from "@green-goods/shared/types/domain";
 import {
   type CommitmentClaimRequestRecord,
@@ -65,13 +66,12 @@ export function ClaimDecisionPanel({
                 >
                   {formatMessage({ id: "app.claim.decide.reasonLabel" })}
                 </label>
-                <textarea
+                <Textarea
                   id={`decline-${request.id}`}
                   value={reason}
                   onChange={(event) => setReason(event.target.value)}
                   rows={3}
                   maxLength={MAX_REASON}
-                  className="gg-control gg-control-textarea"
                 />
                 <div className="grid grid-cols-2 gap-2">
                   <Button
