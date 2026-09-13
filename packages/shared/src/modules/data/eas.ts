@@ -7,49 +7,14 @@ import type {
 } from "../../types/eas-responses";
 import { isZeroBytes32 } from "../../utils/blockchain/bytes";
 import { getAssessmentSchemas } from "../assessment/schemas";
-import { logger } from "../app/logger";
-import {
-  parseDataToGardenAssessment,
-  parseDataToWork,
-  parseDataToWorkApproval,
-  parseEasAttestationRecord,
-} from "./eas-parse";
+import { parseDataToGardenAssessment, parseDataToWork, parseDataToWorkApproval } from "./eas-parse";
 export { parseWorkApprovalAttestation } from "./eas-parse";
 import { easGraphQL } from "./graphql";
 import { createEasClient, type GraphQLReader } from "./graphql-client";
 
-/** Custom error for EAS fetch failures - allows React Query to properly retry/error */
-export class EASFetchError extends Error {
-  constructor(
-    message: string,
-    public readonly operation: string,
-    public readonly cause?: unknown
-  ) {
-    super(message);
-    this.name = "EASFetchError";
-  }
-}
-
-function validatedAttestations(attestations: unknown, operation: string): EASAttestationRaw[] {
-  if (!Array.isArray(attestations)) return [];
-
-  return attestations.flatMap((attestation) => {
-    try {
-      return [parseEasAttestationRecord(attestation)];
-    } catch (error) {
-      logger.warn("Skipping malformed EAS attestation", {
-        source: "eas",
-        operation,
-        attestationId:
-          attestation && typeof attestation === "object" && "id" in attestation
-            ? String(attestation.id)
-            : undefined,
-        error,
-      });
-      return [];
-    }
-  });
-}
+import { EASFetchError, validatedAttestations } from "./eas-read-validation";
+export { EASFetchError } from "./eas-read-validation";
+export { getRecentWorks, getPreparedWorkApprovals } from "./eas-preparation";
 
 /**
  * Read every registered assessment version unless a caller explicitly narrows the schema.

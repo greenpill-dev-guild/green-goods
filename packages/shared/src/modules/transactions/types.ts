@@ -20,13 +20,25 @@ export interface ContractCall {
   value?: bigint;
 }
 
+export type BroadcastReference =
+  | { kind: "transaction"; hash: Hex }
+  | { kind: "user-operation"; hash: Hex };
+
+export type BroadcastConfirmation =
+  | { status: "confirmed"; transactionHash: Hex }
+  | { status: "reverted" | "unresolved" };
+
 /** Result of a transaction submission */
 export interface TxResult {
+  /** Opaque wallet identifiers have no execution receipt yet. */
+  confirmation?: "pending";
   hash: Hex;
   sponsored: boolean;
 }
 
 export interface TransactionSendOptions {
+  assertOwnership?: () => void | Promise<void>;
+  onBroadcastReference?: (reference: BroadcastReference) => Promise<void>;
   onBroadcast?: (hash: Hex) => Promise<void>;
 }
 
@@ -37,6 +49,8 @@ export interface TransactionSendOptions {
  * mechanisms (UserOps, EIP-5792, direct wallet tx).
  */
 export interface TransactionSender {
+  assertOwnership?: (address: Address, chainId: number) => void | Promise<void>;
+  reconcileBroadcast?: (reference: BroadcastReference) => Promise<BroadcastConfirmation>;
   /** Send a single contract call */
   sendContractCall(call: ContractCall, options?: TransactionSendOptions): Promise<TxResult>;
 

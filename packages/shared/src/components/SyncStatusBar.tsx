@@ -1,17 +1,15 @@
 import { RiLoader4Line, RiUploadCloud2Line, RiWifiOffLine } from "@remixicon/react";
-import React, { lazy, Suspense, useCallback, useState } from "react";
+import React, { useCallback, useState } from "react";
 import { useIntl } from "react-intl";
 import { useOffline } from "../hooks/app/useOffline";
 import { useAuth } from "../hooks/auth/useAuth";
 import { usePendingWorksCount } from "../hooks/work/usePendingWorksCount";
 import { useUIStore } from "../stores/useUIStore";
 import { cn } from "../utils/styles/cn";
-
-const SyncStatusBarWalletAction = lazy(() =>
-  import("./SyncStatusBarWalletAction").then(({ SyncStatusBarWalletAction }) => ({
-    default: SyncStatusBarWalletAction,
-  }))
-);
+// Imported statically on purpose: the first time a wallet user sees this bar
+// is right after queueing work offline, when a lazy chunk cannot load and the
+// route error boundary would replace the queued view with the offline screen.
+import { SyncStatusBarWalletAction } from "./SyncStatusBarWalletAction";
 
 interface SyncStatusBarProps {
   className?: string;
@@ -84,13 +82,11 @@ export const SyncStatusBar: React.FC<SyncStatusBarProps> = ({ className }) => {
         </div>
 
         {isWalletUser && (
-          <Suspense fallback={null}>
-            <SyncStatusBarWalletAction
-              isOnline={isOnline}
-              pendingCount={pendingCount}
-              onSyncingChange={handleSyncingChange}
-            />
-          </Suspense>
+          <SyncStatusBarWalletAction
+            isOnline={isOnline}
+            pendingCount={pendingCount}
+            onSyncingChange={handleSyncingChange}
+          />
         )}
       </div>
     </div>

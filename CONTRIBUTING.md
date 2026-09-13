@@ -2,19 +2,11 @@
 
 Green Goods is open source infrastructure stewarded by the Greenpill Dev Guild. This file is the repo-level quick reference; the full contributor guide lives at [docs.greengoods.app/builders/how-to-contribute](https://docs.greengoods.app/builders/how-to-contribute).
 
-## First Setup
+## First setup
 
-Install Node.js 22+ and Git first. Install Docker Desktop if you plan to run the full stack or indexer locally.
-
-```bash
-git clone https://github.com/greenpill-dev-guild/green-goods.git
-cd green-goods
-npm run setup
-bun run dev:health
-bun run dev
-```
-
-`npm run setup` is the only normal npm entrypoint. It installs Bun if needed, installs workspace dependencies, and creates the root `.env` from `.env.schema`. After setup, use `bun run ...` for repo scripts.
+Follow [ONBOARDING.md](ONBOARDING.md). Public contributors can browse with hosted APIs;
+team members can run the connected local stack with shared credentials and Docker.
+Both modes use live Arbitrum; transaction confirmations can affect production.
 
 ## Contribution Flow
 
@@ -51,23 +43,25 @@ Green Goods does not run open-ended bounties. Paid implementation work is grant-
 
 If compensation is part of the work, confirm the scope, budget, acceptance criteria, and review path in writing before implementing. Unlabeled issues and general roadmap items should not be treated as funded tasks.
 
-## Quality Gate
+## Validate your change
 
-Run the lightest validation that honestly proves your change. Before opening a normal pull request, expect to run:
+From the root, select the checks for your change:
 
 ```bash
-bun run format:check
-bun run lint
-bun run check:source-structure
-bun run test
-bun run build
+bun run validation:plan -- --intent qa
 ```
 
-If formatting fails, run `bun run format`, then rerun `bun run format:check`.
+Start with the focused behavior test and add the selected package checks. Before an
+ordinary push, use the targeted ready-for-CI gate:
 
-For E2E or authentication changes, run the matching Playwright CI project: client work uses
-`PLAYWRIGHT_APP=client APP_ENV=test bunx playwright test --project=client-ci`; admin work uses
-`PLAYWRIGHT_APP=admin APP_ENV=test bunx playwright test --project=admin-ci`.
+```bash
+node scripts/dev/ci-local.js --intent push --reuse-passing-receipts --test-path client:src/example.test.tsx
+```
+
+Replace the example with the package and test that prove your change. CI owns broad
+regression coverage; critical and release changes retain their complete local requirements.
+See the [validation contract](.claude/context/validation-pipeline.md) for exact gates.
+Formatting changes use `bun run format`; `bun run format:check` is read-only.
 
 ## Repo Rules
 

@@ -58,14 +58,14 @@ export const DraftCard: React.FC<DraftCardProps> = ({
         type="button"
         className="flex min-w-0 flex-1 items-stretch gap-0 text-left focus:outline-none focus-visible:shadow-button-primary-focus"
       >
-        {/* Media thumbnail */}
-        <div className="w-22 flex-shrink-0 bg-warning-light overflow-hidden relative aspect-square">
+        {/* Media thumbnail: a fixed square the photo can't resize, same as work cards (DL-019) */}
+        <div className="relative h-22 w-22 flex-shrink-0 self-start overflow-hidden bg-warning-light">
           {thumbUrl ? (
             <ImageWithFallback
               src={thumbUrl}
               alt=""
-              className="w-full h-full object-cover"
-              fallbackClassName="w-22 aspect-square"
+              className="absolute inset-0 h-full w-full object-cover"
+              fallbackClassName="absolute inset-0 h-full w-full"
             />
           ) : (
             <div className="w-full h-full flex items-center justify-center text-warning-base">

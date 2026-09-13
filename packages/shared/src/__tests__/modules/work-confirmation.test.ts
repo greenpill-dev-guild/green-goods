@@ -16,7 +16,7 @@ describe("work confirmation", () => {
   });
   it("preserves opaque wallet identifiers without a receipt query", async () => {
     const read = vi.fn();
-    expect(await reconcileWorkTransaction("0xsafe", 11155111, read)).toBe("confirmed");
+    expect(await reconcileWorkTransaction("0xsafe", 11155111, read)).toBe("unresolved");
     expect(read).not.toHaveBeenCalled();
   });
   it("excludes a batch and an ordinary attempt on the same job", () => {

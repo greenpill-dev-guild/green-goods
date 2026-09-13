@@ -7,10 +7,11 @@ import {
   RiGovernmentLine,
   RiNotificationFill,
   RiNotificationLine,
+  RiShareLine,
 } from "@remixicon/react";
 import { useState } from "react";
 import { useIntl } from "react-intl";
-import { ModalDrawer } from "@/components/Dialogs";
+import { AppSheet } from "@/components/Sheets";
 import { type PwaStatusTone, pwaStatusStyles } from "@/components/Pwa/statusStyles";
 import { GardenNotifications } from "@/views/Home/Garden/Notifications";
 
@@ -26,6 +27,8 @@ type TopNavProps = {
   onEndowmentClick?: () => void;
   showGovernanceButton?: boolean;
   onGovernanceClick?: () => void;
+  /** Shares the garden; renders last in the action stack so the other buttons keep their places. */
+  onShareClick?: () => void;
 } & React.HTMLAttributes<HTMLDivElement>;
 
 type ButtonVariant = "work" | "sync" | "offline";
@@ -96,7 +99,7 @@ const NotificationCenter: React.FC<TopNavProps & { garden: Garden }> = ({ works,
         {hasNotifications && <NotificationBadge count={workNotifications.length} />}
         <NotificationIcon className={styles.icon} />
       </button>
-      <ModalDrawer
+      <AppSheet
         isOpen={isOpen}
         onClose={() => setIsOpen(false)}
         header={{
@@ -114,14 +117,14 @@ const NotificationCenter: React.FC<TopNavProps & { garden: Garden }> = ({ works,
               )
             : undefined,
         }}
-        maxHeight="60vh"
+        size="tall"
       >
         <GardenNotifications
           garden={garden}
           notifications={works}
           onClose={() => setIsOpen(false)}
         />
-      </ModalDrawer>
+      </AppSheet>
     </>
   );
 };
@@ -173,6 +176,25 @@ const GovernanceButton: React.FC<{
   );
 };
 
+const ShareButton: React.FC<{
+  onClick: () => void;
+  ariaLabel: string;
+}> = ({ onClick, ariaLabel }) => {
+  const styles = createButtonStyles("work");
+
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={styles.button}
+      aria-label={ariaLabel}
+      title={ariaLabel}
+    >
+      <RiShareLine className={styles.icon} />
+    </button>
+  );
+};
+
 // Determine button variant based on app state
 const getButtonVariant = (syncStatus: string, isOnline: boolean): "work" | "sync" | "offline" => {
   if (syncStatus === "syncing") return "sync";
@@ -192,6 +214,7 @@ export const TopNav: React.FC<TopNavProps> = ({
   onEndowmentClick,
   showGovernanceButton = false,
   onGovernanceClick,
+  onShareClick,
   ...htmlProps
 }: TopNavProps) => {
   const { formatMessage } = useIntl();
@@ -250,6 +273,12 @@ export const TopNav: React.FC<TopNavProps> = ({
             hasDeposits={hasEndowmentDeposits}
             onClick={onEndowmentClick}
             ariaLabel={formatMessage({ id: "app.treasury.open" })}
+          />
+        )}
+        {garden && onShareClick && (
+          <ShareButton
+            onClick={onShareClick}
+            ariaLabel={formatMessage({ id: "app.garden.share", defaultMessage: "Share Garden" })}
           />
         )}
       </div>

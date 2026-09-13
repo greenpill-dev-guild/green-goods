@@ -63,6 +63,25 @@ describe("shared utilities.css", () => {
     expect(utilitiesContent).toContain(".max-h-modal");
   });
 
+  it("defines the four bottom-sheet height tiers (DL-014)", () => {
+    const tier = (name: string) =>
+      utilitiesContent.match(new RegExp(`\\[data-sheet-size="${name}"\\]\\s*\\{([^}]*)\\}`))?.[1] ??
+      "";
+    expect(tier("compact")).toMatch(/height:\s*auto/);
+    expect(tier("compact")).toMatch(/max-height:\s*50dvh/);
+    expect(tier("half")).toMatch(/height:\s*50dvh/);
+    expect(tier("tall")).toMatch(/height:\s*70dvh/);
+    expect(tier("full")).toMatch(/height:\s*85dvh/);
+    // The tiers sit in the utilities layer so they outrank the PwaSheet surface
+    // defaults in the components layer.
+    const utilitiesLayer = utilitiesContent.indexOf("@layer utilities");
+    const componentsLayer = utilitiesContent.indexOf("@layer components");
+    const compactRule = utilitiesContent.indexOf('[data-sheet-size="compact"]');
+    expect(utilitiesLayer).toBeGreaterThanOrEqual(0);
+    expect(compactRule).toBeGreaterThan(utilitiesLayer);
+    expect(compactRule).toBeLessThan(componentsLayer);
+  });
+
   it("exports native-scroll", () => {
     expect(utilitiesContent).toContain(".native-scroll");
   });
@@ -72,5 +91,76 @@ describe("shared utilities.css", () => {
     expect(themeContent).toContain(".gg-control-trigger");
     expect(themeContent).toContain(".gg-button");
     expect(themeContent).toContain(".gg-button-secondary");
+  });
+});
+
+describe("PwaSheet layout contract", () => {
+  // Tailwind v4 does not scan packages/shared, so the sheet's geometry must be
+  // attribute-driven CSS here rather than utility classes on the JSX.
+  const rule = (slot: string) =>
+    new RegExp(`\\[data-component="PwaSheet"\\]\\[data-slot="${slot}"\\]\\s*\\{([^}]*)\\}`);
+  const declarations = (slot: string) => utilitiesContent.match(rule(slot))?.[1] ?? "";
+
+  it("anchors the sheet to the viewport bottom from attribute rules", () => {
+    expect(declarations("overlay")).toMatch(/position:\s*fixed/);
+    expect(declarations("overlay")).toMatch(/align-items:\s*flex-end/);
+    expect(declarations("overlay")).toMatch(/z-index:\s*var\(--z-modal\)/);
+  });
+
+  it("falls back to content height with an 85dvh cap when no tier is set", () => {
+    expect(declarations("surface")).toMatch(/height:\s*auto/);
+    expect(declarations("surface")).toMatch(/max-height:\s*85dvh/);
+    expect(declarations("surface")).toMatch(/border-top-left-radius:\s*var\(--radius-lg\)/);
+  });
+
+  it("tints the drag handle and locks its touch action", () => {
+    expect(declarations("grip")).toMatch(/background-color:\s*rgb\(var\(--tone-primary/);
+    expect(declarations("drag-handle")).toMatch(/touch-action:\s*none/);
+  });
+
+  it("ships the shared header and scrollable body", () => {
+    expect(declarations("header")).toMatch(/display:\s*flex/);
+    expect(declarations("close")).toMatch(/width:\s*2\.75rem/);
+    expect(declarations("body")).toMatch(/overflow-y:\s*auto/);
+  });
+});
+
+describe("SheetActions layout contract (DL-016)", () => {
+  const block = (selector: string) => {
+    const escaped = selector.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    return utilitiesContent.match(new RegExp(`${escaped}\\s*\\{([^}]*)\\}`))?.[1] ?? "";
+  };
+
+  it("stacks full-width actions in the components layer", () => {
+    const componentsLayer = utilitiesContent.indexOf("@layer components");
+    expect(utilitiesContent.indexOf('[data-component="SheetActions"] {')).toBeGreaterThan(
+      componentsLayer
+    );
+    expect(block('[data-component="SheetActions"]')).toMatch(/flex-direction:\s*column/);
+    expect(block('[data-component="SheetActions"] > .gg-button')).toMatch(/width:\s*100%/);
+    expect(block('[data-component="SheetActions"] > .gg-button')).toMatch(/white-space:\s*normal/);
+  });
+
+  it("keeps step navigation in one row", () => {
+    expect(block('[data-component="SheetActions"][data-layout="steps"]')).toMatch(
+      /flex-direction:\s*row/
+    );
+  });
+
+  it("becomes one right-aligned row with the primary rightmost from 640px", () => {
+    const media = utilitiesContent.indexOf("@media (min-width: 40rem)");
+    expect(media).toBeGreaterThan(utilitiesContent.indexOf('[data-component="SheetActions"] {'));
+    const wide = utilitiesContent.slice(
+      media,
+      utilitiesContent.indexOf("[data-scroll-edge", media)
+    );
+    expect(wide).toMatch(/justify-content:\s*flex-end/);
+    expect(wide).toMatch(/\[data-layout="stack"\] > \[data-action="primary"\]\s*\{\s*order:\s*2/);
+  });
+
+  it("draws the scroll-edge divider without script", () => {
+    expect(block('[data-scroll-edge="bottom"]')).toMatch(
+      /background-attachment:\s*local,\s*scroll/
+    );
   });
 });

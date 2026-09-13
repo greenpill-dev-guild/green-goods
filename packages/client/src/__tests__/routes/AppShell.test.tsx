@@ -6,6 +6,13 @@ import { Link, MemoryRouter, Route, Routes } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useUIStore } from "@green-goods/shared/stores/useUIStore";
 
+vi.mock("@green-goods/shared/hooks/offline/useOfflineContent", () => ({
+  useOfflineContentPreparation: vi.fn(),
+}));
+vi.mock("@green-goods/shared/hooks/app/useOnlineStatus", () => ({
+  configureConnectivityProbe: () => () => {},
+}));
+
 vi.mock("@green-goods/shared/providers/JobQueue", () => ({
   JobQueueProvider: ({ children }: { children: ReactNode }) => children,
 }));
@@ -51,6 +58,7 @@ function WorkDetailRoute() {
 
 describe("AppShell", () => {
   beforeEach(() => {
+    vi.spyOn(window, "scrollTo").mockImplementation(() => {});
     useUIStore.getState().closeWorkDashboard();
     document.documentElement.classList.remove("modal-open");
     Object.defineProperty(HTMLElement.prototype, "scrollTo", {
@@ -91,7 +99,7 @@ describe("AppShell", () => {
     expect(screen.getByText("Work detail")).toBeInTheDocument();
     expect(useUIStore.getState().isWorkDashboardOpen).toBe(false);
     expect(document.documentElement).not.toHaveClass("modal-open");
-    expect(appScroll.scrollTop).toBe(0);
+    expect(window.scrollTo).toHaveBeenLastCalledWith(0, 0);
   });
 
   it("preserves an intentionally opened dashboard when submission returns home", () => {

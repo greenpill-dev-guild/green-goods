@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { groupByGarden } from "../../views/Home/CommitmentsDrawer/grouping";
+import { groupByGarden } from "../../views/Home/CommitmentsSheet/grouping";
 
 const row = (id: string, poolId: bigint) =>
   ({ commitment: { id, poolId }, seat: "provider", needsYou: false }) as never;

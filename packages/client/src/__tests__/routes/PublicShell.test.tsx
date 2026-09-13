@@ -142,6 +142,10 @@ function renderShellWithRoute(initialRoute: string, priorEntries: string[] = [])
 describe("PublicShell", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    Object.defineProperty(window, "scrollY", { configurable: true, writable: true, value: 0 });
+    vi.spyOn(window, "scrollTo").mockImplementation((options: any) => {
+      window.scrollY = options.top ?? 0;
+    });
   });
 
   it("renders SiteHeader above route outlet content", () => {
@@ -191,20 +195,18 @@ describe("PublicShell", () => {
     expect(screen.queryByTestId("authenticated-nav")).not.toBeInTheDocument();
   });
 
-  it("resets the public scroll container on route changes", () => {
+  it("resets the document scroll position on route changes", () => {
     renderShellWithRoute("/fund");
 
-    const scrollRoot = document.getElementById("client-scroll-root");
-    expect(scrollRoot).toBeInTheDocument();
-    scrollRoot!.scrollTop = 720;
+    window.scrollY = 720;
 
     fireEvent.click(screen.getByRole("link", { name: "Open gardens" }));
 
     expect(screen.getByTestId("gardens-content")).toBeInTheDocument();
-    expect(scrollRoot!.scrollTop).toBe(0);
+    expect(window.scrollY).toBe(0);
   });
 
-  it("restores the public scroll container on back navigation", () => {
+  it("restores the document scroll position on back navigation", () => {
     // <ScrollRestoration> restores `window`; this shell scrolls
     // `#client-scroll-root`, so it has to bank and restore that itself. Before
     // `/gardens/:id` became a route, going back to the archive cost nothing
@@ -212,21 +214,18 @@ describe("PublicShell", () => {
     // deep in the list has to come back to where they were.
     renderShellWithRoute("/fund");
 
-    const scrollRoot = document.getElementById("client-scroll-root");
-    expect(scrollRoot).toBeInTheDocument();
-
-    scrollRoot!.scrollTop = 1850;
-    fireEvent.scroll(scrollRoot!);
+    window.scrollY = 1850;
+    fireEvent.scroll(window);
 
     fireEvent.click(screen.getByRole("link", { name: "Open gardens" }));
     expect(screen.getByTestId("gardens-content")).toBeInTheDocument();
     // Forward navigation still starts at the top.
-    expect(scrollRoot!.scrollTop).toBe(0);
+    expect(window.scrollY).toBe(0);
 
     fireEvent.click(screen.getByRole("button", { name: "Go back" }));
 
     expect(screen.getByTestId("fund-content")).toBeInTheDocument();
-    expect(scrollRoot!.scrollTop).toBe(1850);
+    expect(window.scrollY).toBe(1850);
   });
 
   it("resets to the top on back navigation with no banked position", () => {
@@ -237,43 +236,36 @@ describe("PublicShell", () => {
     // nothing is banked for it — exactly the state after a hard reload.
     renderShellWithRoute("/gardens", ["/fund"]);
 
-    const scrollRoot = document.getElementById("client-scroll-root");
-    expect(scrollRoot).toBeInTheDocument();
-
-    scrollRoot!.scrollTop = 900;
-    fireEvent.scroll(scrollRoot!);
+    window.scrollY = 900;
+    fireEvent.scroll(window);
     fireEvent.click(screen.getByRole("button", { name: "Go back" }));
 
     expect(screen.getByTestId("fund-content")).toBeInTheDocument();
-    expect(scrollRoot!.scrollTop).toBe(0);
+    expect(window.scrollY).toBe(0);
   });
 
-  it("preserves the public scroll container on search-only route changes", () => {
+  it("preserves the document scroll position on search-only route changes", () => {
     renderShellWithRoute("/fund");
 
-    const scrollRoot = document.getElementById("client-scroll-root");
-    expect(scrollRoot).toBeInTheDocument();
-    scrollRoot!.scrollTop = 720;
-    fireEvent.scroll(scrollRoot!);
+    window.scrollY = 720;
+    fireEvent.scroll(window);
 
     fireEvent.click(screen.getByRole("link", { name: "Open endowments" }));
 
     expect(screen.getByTestId("fund-content")).toBeInTheDocument();
-    expect(scrollRoot!.scrollTop).toBe(720);
+    expect(window.scrollY).toBe(720);
   });
 
-  it("preserves the public scroll container when opening management from receipt search params", () => {
+  it("preserves the document scroll position when opening management from receipt search params", () => {
     renderShellWithRoute("/fund?intent=receipt_123");
 
-    const scrollRoot = document.getElementById("client-scroll-root");
-    expect(scrollRoot).toBeInTheDocument();
-    scrollRoot!.scrollTop = 720;
-    fireEvent.scroll(scrollRoot!);
+    window.scrollY = 720;
+    fireEvent.scroll(window);
 
     fireEvent.click(screen.getByRole("link", { name: "Open endowments" }));
 
     expect(screen.getByTestId("fund-content")).toBeInTheDocument();
-    expect(scrollRoot!.scrollTop).toBe(720);
+    expect(window.scrollY).toBe(720);
   });
 
   it("no bottom nav (AppBar) visible in browser mode", () => {

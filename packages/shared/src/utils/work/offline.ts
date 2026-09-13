@@ -6,8 +6,10 @@
  * @module utils/work/offline
  */
 
+import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
 import { jobToWork } from "../../hooks/work/useWorks";
 import { jobQueueDB } from "../../modules/job-queue/db";
+import { jobQueue } from "../../modules/job-queue/default-instance";
 import type { Address, Work } from "../../types/domain";
 import type { Job, WorkJobPayload } from "../../types/job-queue";
 
@@ -45,19 +47,30 @@ export async function convertJobsToWorks(
  * @param gardenId - Optional garden ID to filter by
  * @returns Work objects from job queue
  */
-export async function fetchOfflineWorks(userAddress: Address, gardenId?: string): Promise<Work[]> {
+export async function fetchOfflineWorks(
+  userAddress: Address,
+  gardenId?: string,
+  chainId = DEFAULT_CHAIN_ID,
+  options: { includeMedia?: boolean } = {}
+): Promise<Work[]> {
   if (!userAddress) {
     return [];
   }
 
-  const { jobQueue } = await import("../../modules/job-queue");
-
+  // Read the queue through a static import: this runs while offline, where a
+  // lazily loaded module cannot be fetched and the queued work would vanish.
   const jobs = await jobQueue.getJobs(userAddress, { kind: "work", synced: false });
 
   // Filter by garden if specified
-  const filteredJobs = gardenId
-    ? jobs.filter((job) => (job.payload as WorkJobPayload).gardenAddress === gardenId)
-    : jobs;
+  const filteredJobs = jobs.filter(
+    (job) =>
+      (job.chainId ?? DEFAULT_CHAIN_ID) === chainId &&
+      job.userAddress.toLowerCase() === userAddress.toLowerCase() &&
+      (!gardenId ||
+        (job.payload as WorkJobPayload).gardenAddress.toLowerCase() === gardenId.toLowerCase())
+  );
 
-  return convertJobsToWorks(filteredJobs as Job<WorkJobPayload>[], userAddress);
+  return options.includeMedia === false
+    ? filteredJobs.map((job) => jobToWork(job as Job<WorkJobPayload>))
+    : convertJobsToWorks(filteredJobs as Job<WorkJobPayload>[], userAddress);
 }

@@ -279,12 +279,13 @@ Use two queries for two different questions:
   Staleness defaults to 30 days and can be changed with `--stale-days <N>`. It uses each case's
   newest `entry.at` timestamp because the store has no build SHA; the result is recency evidence,
   not build-aware coverage.
-- Open Linear Issues carrying `activity:qa` answer what work remains outstanding. Resolve the
+- Open Linear Issues carrying `activity:build` answer what defect work remains outstanding
+  (`activity:qa` marks the validation pass itself, not its findings). Resolve the
   Product team and labels live rather than hardcoding workspace IDs.
 
 The repository intentionally has no Linear credential. To render open work beside failing cases:
 
-1. Use the Linear MCP to list open Product Issues carrying `activity:qa`, read their Test ID source
+1. Use the Linear MCP to list open Product Issues carrying `activity:build`, read their Test ID source
    lines, and write only the reverse lookup to a gitignored temporary file:
 
    ```json

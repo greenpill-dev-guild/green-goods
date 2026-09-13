@@ -1,5 +1,6 @@
 import type { IntlShape } from "react-intl";
 import type { Platform } from "../../../utils/app/pwa";
+import { isPasskeyCredentialUnavailableError } from "../../../utils/errors/tx-error-classifier";
 import type { InstallGuidance } from "../../app/useInstallGuidance";
 
 export function getBrowserGuidanceLabel(
@@ -30,6 +31,12 @@ export function getBrowserGuidanceLabel(
 }
 
 export function getFriendlyLoginErrorMessage(error: unknown, intl: IntlShape): string {
+  if (isPasskeyCredentialUnavailableError(error)) {
+    return intl.formatMessage({
+      id: "app.login.error.noPasskey",
+      defaultMessage: "No passkey found for that username.",
+    });
+  }
   if (!(error instanceof Error)) {
     return intl.formatMessage({
       id: "app.login.error.generic",

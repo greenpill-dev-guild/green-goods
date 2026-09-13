@@ -1,0 +1,143 @@
+[
+  {
+    "url": "https://book.getfoundry.sh/getting-started/installation",
+    "unavailable": "HTTP Error 308: Permanent Redirect"
+  },
+  {
+    "url": "https://consensys.github.io/smart-contract-best-practices/",
+    "status": 200,
+    "destination": "https://consensys.github.io/smart-contract-best-practices/",
+    "title": "Repository Moved"
+  },
+  {
+    "url": "https://docs.greengoods.app",
+    "status": 200,
+    "destination": "https://docs.greengoods.app",
+    "title": "Welcome to Green Goods | Green Goods Documentation"
+  },
+  {
+    "url": "https://docs.greengoods.app/builders/architecture",
+    "status": 200,
+    "destination": "https://docs.greengoods.app/builders/architecture",
+    "title": "Architecture | Green Goods Documentation"
+  },
+  {
+    "url": "https://docs.greengoods.app/builders/env-management",
+    "status": 200,
+    "destination": "https://docs.greengoods.app/builders/env-management",
+    "title": "Environment Management | Green Goods Documentation"
+  },
+  {
+    "url": "https://docs.greengoods.app/builders/getting-started",
+    "status": 200,
+    "destination": "https://docs.greengoods.app/builders/getting-started",
+    "title": "Getting Started | Green Goods Documentation"
+  },
+  {
+    "url": "https://docs.greengoods.app/builders/how-to-contribute",
+    "status": 200,
+    "destination": "https://docs.greengoods.app/builders/how-to-contribute",
+    "title": "How To Contribute | Green Goods Documentation"
+  },
+  {
+    "url": "https://docs.greengoods.app/builders/integrations/karma",
+    "status": 200,
+    "destination": "https://docs.greengoods.app/builders/integrations/karma",
+    "title": "Karma GAP | Green Goods Documentation"
+  },
+  {
+    "url": "https://docs.greengoods.app/builders/packages/admin",
+    "status": 200,
+    "destination": "https://docs.greengoods.app/builders/packages/admin",
+    "title": "Admin Dashboard | Green Goods Documentation"
+  },
+  {
+    "url": "https://docs.greengoods.app/builders/packages/agent",
+    "status": 200,
+    "destination": "https://docs.greengoods.app/builders/packages/agent",
+    "title": "Agent Package | Green Goods Documentation"
+  },
+  {
+    "url": "https://docs.greengoods.app/builders/packages/api-index",
+    "status": 200,
+    "destination": "https://docs.greengoods.app/builders/packages/api-index",
+    "title": "API Index | Green Goods Documentation"
+  },
+  {
+    "url": "https://docs.greengoods.app/builders/packages/contracts",
+    "status": 200,
+    "destination": "https://docs.greengoods.app/builders/packages/contracts",
+    "title": "Contracts Package | Green Goods Documentation"
+  },
+  {
+    "url": "https://docs.greengoods.app/builders/packages/indexer",
+    "status": 200,
+    "destination": "https://docs.greengoods.app/builders/packages/indexer",
+    "title": "Indexer Package | Green Goods Documentation"
+  },
+  {
+    "url": "https://docs.greengoods.app/builders/testing/forge",
+    "status": 200,
+    "destination": "https://docs.greengoods.app/builders/testing/forge",
+    "title": "Forge Contract Testing | Green Goods Documentation"
+  },
+  {
+    "url": "https://docusaurus.io/docs",
+    "status": 200,
+    "destination": "https://docusaurus.io/docs",
+    "title": "Introduction | Docusaurus"
+  },
+  {
+    "url": "https://fly.io/docs/flyctl/install/",
+    "status": 200,
+    "destination": "https://fly.io/docs/flyctl/install/",
+    "title": "Install flyctl \u00b7 Fly Docs"
+  },
+  {
+    "url": "https://github.com/greenpill-dev-guild/green-goods/releases",
+    "status": 200,
+    "destination": "https://github.com/greenpill-dev-guild/green-goods/releases",
+    "title": "Releases \u00b7 greenpill-dev-guild/green-goods \u00b7 GitHub"
+  },
+  {
+    "url": "https://greengoods.app",
+    "status": 200,
+    "destination": "https://www.greengoods.app/",
+    "title": "Green Goods"
+  },
+  {
+    "url": "https://img.shields.io/badge/license-MIT-green.svg",
+    "status": 200,
+    "destination": "https://img.shields.io/badge/license-MIT-green.svg",
+    "title": "license: MIT"
+  },
+  {
+    "url": "https://img.shields.io/github/v/tag/greenpill-dev-guild/green-goods",
+    "status": 200,
+    "destination": "https://img.shields.io/github/v/tag/greenpill-dev-guild/green-goods",
+    "title": "tag: v1.2.1"
+  },
+  {
+    "url": "https://sepolia-faucet.pk910.de/",
+    "status": 200,
+    "destination": "https://sepolia-faucet.pk910.de/",
+    "title": "Sepolia PoW Faucet"
+  },
+  {
+    "url": "https://vercel.com/docs/git",
+    "status": 200,
+    "destination": "https://vercel.com/docs/git",
+    "title": "Deploying Git Repositories with Vercel"
+  },
+  {
+    "url": "https://getfoundry.sh/introduction/installation",
+    "status": 200,
+    "destination": "https://www.getfoundry.sh/introduction/installation",
+    "note": "Replacement verified after the older book URL returned redirects/403."
+  },
+  {
+    "url": "https://scsfg.io/",
+    "status": 200,
+    "note": "Verified with web tool; linked from the retired Consensys best-practices resource as its maintained successor."
+  }
+]

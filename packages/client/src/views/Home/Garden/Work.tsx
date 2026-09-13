@@ -15,7 +15,7 @@ import { useIntl } from "react-intl";
 import { Button } from "@/components/Actions";
 import { WorkViewSkeleton } from "@/components/Features/Work";
 import { TopNav } from "@/components/Navigation";
-import { pwaDrawerStyles } from "@/components/Pwa/drawerStyles";
+import { pwaSheetStyles } from "@/components/Pwa/sheetStyles";
 import { WorkFulfills } from "./WorkFulfills";
 import { WorkViewSection } from "./WorkViewSection";
 
@@ -147,8 +147,8 @@ export const GardenWork: React.FC = () => {
         {/* Backdrop - Fades in over content */}
         <div
           className={cn(
-            pwaDrawerStyles.dialogOverlay,
-            pwaDrawerStyles.overlayTransition,
+            pwaSheetStyles.dialogOverlay,
+            pwaSheetStyles.overlayTransition,
             feedbackMode ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
           )}
           onClick={handleCancelFeedback}
@@ -159,9 +159,9 @@ export const GardenWork: React.FC = () => {
         <div className="fixed left-0 right-0 bottom-0 z-modal">
           {/* Feedback Drawer - Slides up from behind the footer bar */}
           <div // eslint-disable-line jsx-a11y/no-noninteractive-element-interactions -- dialog surface; handler stops propagation and closes on Escape
-            data-testid="work-feedback-drawer"
+            data-testid="work-feedback-sheet"
             className={cn(
-              pwaDrawerStyles.workFeedbackDrawer,
+              pwaSheetStyles.workFeedbackSheet,
               feedbackMode ? "translate-y-0" : "translate-y-full"
             )}
             onClick={(e) => e.stopPropagation()}
@@ -190,7 +190,7 @@ export const GardenWork: React.FC = () => {
                 <button
                   type="button"
                   onClick={handleCancelFeedback}
-                  className={cn("p-1", pwaDrawerStyles.workCloseButton)}
+                  className={cn("p-1", pwaSheetStyles.workCloseButton)}
                   aria-label={intl.formatMessage({
                     id: "app.home.workApproval.closeFeedback",
                     defaultMessage: "Close Feedback",
@@ -247,8 +247,8 @@ export const GardenWork: React.FC = () => {
           <div
             data-testid="work-approval-action-bar"
             className={cn(
-              pwaDrawerStyles.workActionBar,
-              !feedbackMode && pwaDrawerStyles.workActionBarStandalone,
+              pwaSheetStyles.workActionBar,
+              !feedbackMode && pwaSheetStyles.workActionBarStandalone,
               "p-4 pb-[calc(1.5rem+env(safe-area-inset-bottom))] relative"
             )}
           >
@@ -424,6 +424,14 @@ export const GardenWork: React.FC = () => {
           footerSpacerClassName="h-[calc(112px+env(safe-area-inset-bottom))]"
         />
 
+        {metadataStatus === "unavailable" && (
+          <p role="status" className="mt-4 text-sm text-text-sub-600">
+            {intl.formatMessage({
+              id: "app.offline.detailsUnavailable",
+              defaultMessage: "These details haven’t been downloaded. Connect to load them.",
+            })}
+          </p>
+        )}
         {metadataStatus === "error" && (
           <div className="mt-4 rounded-xl border border-error-light bg-error-lighter px-4 py-3 flex items-start gap-3">
             <RiErrorWarningLine className="w-5 h-5 text-error-base flex-shrink-0 mt-0.5" />

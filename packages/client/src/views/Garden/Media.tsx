@@ -24,7 +24,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { useIntl } from "react-intl";
 import { FormInfo } from "@/components/Cards";
 import { Badge } from "@/components/Communication";
-import { ImagePreviewDialog } from "@/components/Dialogs";
+import { ImagePreviewDialog } from "@/components/Display";
 import { Books } from "@/components/Features";
 import { pwaStatusStyles } from "@/components/Pwa/statusStyles";
 import { trackWorkMediaJourneyEvent } from "@/config/mediaAnalytics";

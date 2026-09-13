@@ -11,9 +11,7 @@ import { act, renderHook, waitFor } from "@testing-library/react";
 import { createElement, type ReactNode } from "react";
 import { IntlProvider } from "react-intl";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import type { OverlayWork } from "../../../modules/work/local-status-overlay";
 import type { Job, WorkJobPayload } from "../../../types/job-queue";
-import { ZERO_ADDRESS } from "../../../utils/blockchain/address-constants";
 
 // ── Constants ───────────────────────────────────────────────────────────────
 const TEST_CHAIN_ID = 11155111;
@@ -26,7 +24,6 @@ const mockGetWorkApprovals = vi.fn();
 const mockGetJobs = vi.fn();
 const mockGetImagesForJob = vi.fn();
 const mockOnMultiple = vi.fn().mockReturnValue(() => {});
-let latestUseMergedConfig: Record<string, unknown> | undefined;
 
 vi.mock("../../../config/blockchain", () => ({
   DEFAULT_CHAIN_ID: TEST_CHAIN_ID,
@@ -38,6 +35,7 @@ vi.mock("../../../config/default-chain", () => ({
 
 vi.mock("../../../modules/data/eas", () => ({
   getWorks: (...args: unknown[]) => mockGetWorks(...args),
+  getRecentWorks: (...args: unknown[]) => mockGetWorks(args[0], args[2]),
   getWorkApprovals: (...args: unknown[]) => mockGetWorkApprovals(...args),
 }));
 
@@ -65,24 +63,6 @@ vi.mock("../../../hooks/auth/usePrimaryAddress", () => ({
   usePrimaryAddress: () => TEST_PRIMARY_ADDRESS,
 }));
 
-vi.mock("../../../hooks/app/useMerged", () => ({
-  useMerged: (config: Record<string, unknown>) => {
-    latestUseMergedConfig = config;
-    return {
-      online: { data: null, isFetching: false, isError: false, error: null, refetch: vi.fn() },
-      offline: { data: [], refetch: vi.fn() },
-      merged: {
-        data: null,
-        isLoading: false,
-        isFetching: false,
-        isError: false,
-        error: null,
-        refetch: vi.fn(),
-      },
-    };
-  },
-}));
-
 vi.mock("../../../config/react-query", () => ({
   STALE_TIMES: { works: 30_000, merged: 15_000, queue: 10_000 },
   GC_TIMES: { works: 300_000, queue: 60_000 },
@@ -96,7 +76,34 @@ vi.mock("../../../modules/app/logger", () => ({
 vi.mock("../../../config/query-keys/work", () => ({
   worksKeys: {
     online: (gardenId: string, chainId: number) => ["works", "online", gardenId, chainId],
-    offline: (gardenId: string) => ["works", "offline", gardenId],
+    offline: (gardenId: string, chainId?: number, account?: string) => [
+      "works",
+      "offline",
+      gardenId,
+      chainId,
+      account,
+    ],
+    local: (gardenId: string, chainId: number, account?: string) => [
+      "works",
+      "local",
+      gardenId,
+      chainId,
+      account,
+    ],
+    preparedRecent: (gardenId: string, chainId: number) => [
+      "works",
+      "preparedRecent",
+      gardenId,
+      chainId,
+    ],
+    preparedApprovals: (gardenId: string, chainId: number) => [
+      "works",
+      "preparedApprovals",
+      gardenId,
+      chainId,
+    ],
+    metadata: (raw: string) => ["works", "metadata", raw],
+    approvals: (_address?: string, chainId?: number) => ["works", "approvals", chainId],
     merged: (gardenId: string, chainId: number) => ["works", "merged", gardenId, chainId],
   },
 }));
@@ -135,7 +142,6 @@ describe("hooks/work/useWorks", () => {
     mockGetWorkApprovals.mockResolvedValue([]);
     mockGetJobs.mockResolvedValue([]);
     mockGetImagesForJob.mockResolvedValue([]);
-    latestUseMergedConfig = undefined;
   });
 
   afterEach(() => {
@@ -177,20 +183,6 @@ describe("hooks/work/useWorks", () => {
       expect(result.current.works).toHaveLength(1);
     });
     expect(mockGetWorks).toHaveBeenCalledWith(TEST_GARDEN, TEST_CHAIN_ID);
-  });
-
-  it("keeps the disabled offline merge observer off the live online-only cache key", () => {
-    renderHook(() => useWorks(TEST_GARDEN), {
-      wrapper: createWrapper(queryClient),
-    });
-
-    expect(latestUseMergedConfig?.enabled).toBe(false);
-    expect(latestUseMergedConfig?.mergedKey).not.toEqual([
-      "works",
-      "merged",
-      TEST_GARDEN,
-      TEST_CHAIN_ID,
-    ]);
   });
 
   it("computes work status from approvals (approved/rejected/pending)", async () => {
@@ -480,40 +472,28 @@ describe("hooks/work/useWorks", () => {
       expect(result.current.works[0]?.status).toBe("approved");
     });
 
-    it("keeps a confirmed decision across offline re-merges while the indexer still reports pending", async () => {
-      renderHook(() => useWorks(TEST_GARDEN, { offline: true }), {
+    it("keeps a confirmed decision across offline refreshes while the indexer still reports pending", async () => {
+      queryClient.setQueryData(MERGED_KEY, [confirmedDecision]);
+      mockGetWorks.mockResolvedValue([indexedRow]);
+      const { result } = renderHook(() => useWorks(TEST_GARDEN, { offline: true }), {
         wrapper: createWrapper(queryClient),
       });
-      const merge = latestUseMergedConfig?.merge as (
-        online: unknown[],
-        offline: unknown[]
-      ) => Promise<OverlayWork[]>;
-      expect(merge).toBeTypeOf("function");
-      queryClient.setQueryData(MERGED_KEY, [confirmedDecision]);
-      mockGetWorkApprovals.mockResolvedValue([]);
-
-      const first = await merge([indexedRow], []);
-      expect(first[0]).toMatchObject({ status: "rejected", _txHash: "0xdecision" });
-
-      // useMerged stores the merge result; the next re-merge reads it back.
-      queryClient.setQueryData(MERGED_KEY, first);
-      const second = await merge([indexedRow], []);
-      expect(second[0]).toMatchObject({ status: "rejected", _txHash: "0xdecision" });
+      await waitFor(() =>
+        expect(result.current.works[0]).toMatchObject({ status: "rejected", _txHash: "0xdecision" })
+      );
+      act(() => result.current.refetch());
+      await waitFor(() => expect(result.current.isFetching).toBe(false));
+      expect(result.current.works[0]).toMatchObject({ status: "rejected", _txHash: "0xdecision" });
     });
 
-    it("keeps a reviewed status when the approvals read fails during an offline re-merge", async () => {
-      renderHook(() => useWorks(TEST_GARDEN, { offline: true }), {
+    it("keeps a reviewed status when the approvals read fails during an offline refresh", async () => {
+      queryClient.setQueryData(MERGED_KEY, [{ ...indexedRow, status: "approved" as const }]);
+      mockGetWorks.mockResolvedValue([indexedRow]);
+      mockGetWorkApprovals.mockRejectedValue(new Error("Network error"));
+      const { result } = renderHook(() => useWorks(TEST_GARDEN, { offline: true }), {
         wrapper: createWrapper(queryClient),
       });
-      const merge = latestUseMergedConfig?.merge as (
-        online: unknown[],
-        offline: unknown[]
-      ) => Promise<OverlayWork[]>;
-      queryClient.setQueryData(MERGED_KEY, [{ ...indexedRow, status: "approved" as const }]);
-      mockGetWorkApprovals.mockRejectedValue(new Error("Network error"));
-
-      const merged = await merge([indexedRow], []);
-      expect(merged[0]?.status).toBe("approved");
+      await waitFor(() => expect(result.current.works[0]?.status).toBe("approved"));
     });
   });
 
@@ -546,11 +526,11 @@ describe("hooks/work/useWorks", () => {
       expect(work.actionUID).toBe(42);
       expect(work.gardenAddress).toBe(TEST_GARDEN);
       expect(work.feedback).toBe("Planted 50 oaks");
-      expect(work.gardenerAddress).toBe(ZERO_ADDRESS);
+      expect(work.gardenerAddress).toBe(TEST_PRIMARY_ADDRESS);
       expect(work.media).toEqual([]);
       // createdAt should be converted from ms to seconds (EAS format)
       expect(work.createdAt).toBe(Math.floor(1700000000000 / 1000));
-      expect(work.status).toBe("syncing");
+      expect(work.status).toBe("offline");
     });
 
     it("uses action UID as fallback title when title is empty", () => {

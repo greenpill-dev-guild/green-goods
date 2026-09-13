@@ -1,10 +1,13 @@
+import { useOfflinePreparationStatus } from "@green-goods/shared/hooks/offline/useOfflineContent";
+import { useOnlineStatus } from "@green-goods/shared/hooks/app/useOnlineStatus";
+import { toastService } from "@green-goods/shared/components/Toast/toast.service";
 import { capitalize } from "@green-goods/shared/utils/app/text";
 import { hapticLight } from "@green-goods/shared/utils/app/haptics";
 import { type Locale, useApp } from "@green-goods/shared/providers/App";
 import { useServiceWorkerUpdate } from "@green-goods/shared/hooks/app/useServiceWorkerUpdate";
 import { useTheme } from "@green-goods/shared/hooks/app/useTheme";
 import { RiEarthFill, RiRefreshLine, RiSettings2Line } from "@remixicon/react";
-import { type ReactNode, useMemo, useState } from "react";
+import { type ReactNode, useMemo } from "react";
 import { useIntl } from "react-intl";
 import { Button } from "@/components/Actions";
 import { Card } from "@/components/Cards";
@@ -18,20 +21,36 @@ interface ApplicationSettings {
   Icon: React.ReactNode;
 }
 
-/** What the last manual check reported once the worker settled back to idle. */
-type ManualCheckOutcome = "up-to-date" | "failed";
-
+/**
+ * The update row is a settings row like Theme and Language: a fixed title, a
+ * status line, and one control that is always present at a constant size so
+ * nothing in the card moves between states.
+ */
 interface UpdateRow {
-  title: string;
-  description: string;
-  action?: { label: string; onClick: () => void };
+  status: string;
+  label: string;
+  busy: boolean;
+  onClick?: () => void;
 }
+
+/**
+ * One width for every control in the settings column. 120px fits the widest
+ * select value ("Português") and the busiest button label with its spinner.
+ */
+const SETTING_CONTROL_WIDTH = "w-[120px] sm:w-[140px]";
+
+/**
+ * Every subtitle reserves two lines whether or not it wraps, so the three
+ * cards stay the same height and a status change never moves the row.
+ */
+const SETTING_DESCRIPTION = "min-h-8 text-xs text-text-sub-600 line-clamp-2";
 
 export const AppSettings: React.FC = () => {
   const { theme, setTheme } = useTheme();
+  const preparation = useOfflinePreparationStatus();
+  const isOnline = useOnlineStatus();
   const { locale, switchLanguage, availableLocales } = useApp();
-  const { phase, checkForUpdate, activateNow } = useServiceWorkerUpdate();
-  const [manualCheck, setManualCheck] = useState<ManualCheckOutcome | null>(null);
+  const { phase, checkForUpdate, activateNow, activationBlocked } = useServiceWorkerUpdate();
   const intl = useIntl();
 
   const themeOptions = useMemo(
@@ -71,7 +90,7 @@ export const AppSettings: React.FC = () => {
             value={theme}
             onValueChange={(val) => setTheme(val as "light" | "dark" | "system")}
           >
-            <SelectTrigger size="sm" className="w-[110px] sm:w-[140px]">
+            <SelectTrigger size="sm" className={SETTING_CONTROL_WIDTH}>
               <SelectValue placeholder={currentThemeOption.label} />
             </SelectTrigger>
             <SelectContent>
@@ -102,7 +121,7 @@ export const AppSettings: React.FC = () => {
         Icon: <RiEarthFill className="w-4" />,
         Option: () => (
           <Select onValueChange={(val) => switchLanguage(val as Locale)}>
-            <SelectTrigger size="sm" className="w-[110px] sm:w-[140px]">
+            <SelectTrigger size="sm" className={SETTING_CONTROL_WIDTH}>
               <SelectValue
                 className="capitalize"
                 placeholder={capitalize(intl.formatDisplayName(locale, { type: "language" }) || "")}
@@ -133,15 +152,45 @@ export const AppSettings: React.FC = () => {
 
   const handleCheckClick = () => {
     hapticLight();
-    setManualCheck(null);
-    // Only ask the registration to look for a newer worker and report back.
-    // Nothing on this path unregisters the worker or clears a cache; that is
-    // what stranded installed users on the app-files screen before.
+    // Only ask the registration to look for a newer worker and act on what it
+    // reports. Nothing on this path unregisters the worker or clears a cache;
+    // that is what stranded installed users on the app-files screen before.
+    // The row itself returns to its default state; outcomes that need words
+    // arrive as toasts, and "pending" or "failed" show through the phase.
     void checkForUpdate().then(
-      (found) => {
-        if (!found) setManualCheck("up-to-date");
+      (result) => {
+        if (result === "ready") {
+          // Tapping Check carries the intent to update, so apply the waiting
+          // worker straight away instead of asking for a second tap.
+          activateNow();
+        } else if (result === "up-to-date") {
+          toastService.info({
+            title: intl.formatMessage({
+              id: "app.update.toast.upToDate.title",
+              defaultMessage: "No update available",
+            }),
+            message: intl.formatMessage({
+              id: "app.update.toast.upToDate.message",
+              defaultMessage: "You're on the latest version.",
+            }),
+            context: "app update",
+            suppressLogging: true,
+          });
+        }
       },
-      () => setManualCheck("failed")
+      () =>
+        toastService.error({
+          title: intl.formatMessage({
+            id: "app.update.toast.checkFailed.title",
+            defaultMessage: "Couldn't check for updates",
+          }),
+          message: intl.formatMessage({
+            id: "app.update.toast.checkFailed.message",
+            defaultMessage: "Check your connection and try again.",
+          }),
+          context: "app update",
+          suppressLogging: true,
+        })
     );
   };
 
@@ -160,104 +209,81 @@ export const AppSettings: React.FC = () => {
     switch (phase) {
       case "checking":
         return {
-          title: intl.formatMessage({
-            id: "app.update.checking.title",
-            defaultMessage: "Checking for update",
-          }),
-          description: intl.formatMessage({
+          status: intl.formatMessage({
             id: "app.update.checking.description",
             defaultMessage: "Looking for a newer version.",
           }),
+          label: intl.formatMessage({
+            id: "app.update.checkingButton",
+            defaultMessage: "Checking",
+          }),
+          busy: true,
         };
       case "downloading":
         return {
-          title: intl.formatMessage({
-            id: "app.update.downloading.title",
-            defaultMessage: "Downloading update",
+          status: intl.formatMessage({
+            id: "app.update.installing.description",
+            defaultMessage: "Installing the latest version.",
           }),
-          description: intl.formatMessage({
-            id: "app.update.downloading.description",
-            defaultMessage: "Getting the latest version in the background.",
+          label: intl.formatMessage({
+            id: "app.update.installingButton",
+            defaultMessage: "Installing",
           }),
+          busy: true,
         };
       case "waiting":
         return {
-          title: intl.formatMessage({
-            id: "app.update.ready.title",
-            defaultMessage: "Ready to restart",
-          }),
-          description: intl.formatMessage({
-            id: "app.update.ready.description",
-            defaultMessage: "Restart Green Goods to finish updating.",
-          }),
-          action: {
-            label: intl.formatMessage({
-              id: "app.update.restartButton",
-              defaultMessage: "Restart to Update",
-            }),
-            onClick: handleApplyClick,
-          },
+          status: activationBlocked
+            ? intl.formatMessage({
+                id: "app.update.finishWork",
+                defaultMessage: "Finish saving or sending your work before restarting.",
+              })
+            : intl.formatMessage({
+                id: "app.update.subtitle",
+                defaultMessage: "A new version is ready.",
+              }),
+          label: intl.formatMessage({ id: "app.update.restartButton", defaultMessage: "Restart" }),
+          busy: false,
+          onClick: handleApplyClick,
         };
       case "activating":
         return {
-          title: intl.formatMessage({
-            id: "app.update.applying.title",
-            defaultMessage: "Finishing update",
-          }),
-          description: intl.formatMessage({
+          status: intl.formatMessage({
             id: "app.update.applying.description",
-            defaultMessage: "Restarting with the latest version.",
+            defaultMessage: "Restarting the app.",
           }),
+          label: intl.formatMessage({ id: "app.update.restartButton", defaultMessage: "Restart" }),
+          busy: true,
         };
       case "error":
         return {
-          title: intl.formatMessage({
-            id: "app.update.stalled.title",
-            defaultMessage: "Update needs a restart",
-          }),
-          description: intl.formatMessage({
+          status: intl.formatMessage({
             id: "app.update.stalled.description",
-            defaultMessage: "Close and reopen the app if retrying does not finish.",
+            defaultMessage: "Close and reopen the app.",
           }),
-          action: { label: retryLabel, onClick: handleApplyClick },
+          label: retryLabel,
+          busy: false,
+          onClick: handleApplyClick,
+        };
+      case "install-failed":
+        return {
+          status: intl.formatMessage({
+            id: "app.update.installFailed.description",
+            defaultMessage: "Couldn't finish. Try again.",
+          }),
+          label: retryLabel,
+          busy: false,
+          onClick: handleCheckClick,
         };
       default:
-        if (manualCheck === "up-to-date") {
-          return {
-            title: intl.formatMessage({
-              id: "app.update.upToDate.title",
-              defaultMessage: "Up to date",
-            }),
-            description: intl.formatMessage({
-              id: "app.update.upToDate.description",
-              defaultMessage: "You have the latest version of Green Goods.",
-            }),
-            action: { label: checkLabel, onClick: handleCheckClick },
-          };
-        }
-        if (manualCheck === "failed") {
-          return {
-            title: intl.formatMessage({
-              id: "app.update.checkFailed.title",
-              defaultMessage: "Couldn't check for updates",
-            }),
-            description: intl.formatMessage({
-              id: "app.update.checkFailed.description",
-              defaultMessage: "Check your connection and try again.",
-            }),
-            action: { label: retryLabel, onClick: handleCheckClick },
-          };
-        }
         return {
-          title: intl.formatMessage({
-            id: "app.update.check.title",
-            defaultMessage: "Check for updates",
-          }),
-          description: intl.formatMessage({
+          status: intl.formatMessage({
             id: "app.update.check.description",
-            defaultMessage: "See if a newer version of Green Goods is available.",
+            defaultMessage: "Check for a newer version.",
           }),
-          action: { label: checkLabel, onClick: handleCheckClick },
+          label: checkLabel,
+          busy: false,
+          onClick: handleCheckClick,
         };
     }
   };
@@ -281,7 +307,7 @@ export const AppSettings: React.FC = () => {
             </Avatar>
             <div className="flex flex-col gap-0.5 min-w-0 flex-1">
               <div className="text-sm font-medium truncate">{title}</div>
-              <div className="text-xs text-text-sub-600 line-clamp-2">{description}</div>
+              <div className={SETTING_DESCRIPTION}>{description}</div>
             </div>
             <div className="shrink-0">
               <Option />
@@ -289,6 +315,79 @@ export const AppSettings: React.FC = () => {
           </div>
         </Card>
       ))}
+
+      <Card>
+        <div className="flex items-center gap-3 w-full">
+          <Avatar>
+            <RiRefreshLine className="w-4 text-primary" />
+          </Avatar>
+          <div className="flex flex-col gap-0.5 min-w-0 flex-1">
+            <div className="text-sm font-medium">
+              {intl.formatMessage({
+                id: "app.offline.preparation.title",
+                defaultMessage: "Offline content",
+              })}
+            </div>
+            <div
+              role="status"
+              aria-label={intl.formatMessage({
+                id: "app.offline.preparation.title",
+                defaultMessage: "Offline content",
+              })}
+              className="text-xs text-text-sub-600"
+            >
+              {intl.formatMessage({
+                id: preparation.busy
+                  ? "app.offline.preparation.preparing"
+                  : preparation.partial
+                    ? "app.offline.preparation.partial"
+                    : "app.offline.preparation.ready",
+                defaultMessage: preparation.busy
+                  ? "Preparing content…"
+                  : preparation.partial
+                    ? "Partially available offline"
+                    : "Ready to use offline",
+              })}
+              {" · "}
+              {intl.formatMessage(
+                { id: "app.offline.preparation.storage", defaultMessage: "{used} of {budget} MiB" },
+                {
+                  used: (preparation.bytes / 1024 / 1024).toFixed(1),
+                  budget: preparation.budget / 1024 / 1024,
+                }
+              )}
+              {preparation.updatedAt && (
+                <div>
+                  {intl.formatMessage(
+                    { id: "app.offline.preparation.updated", defaultMessage: "Updated {date}" },
+                    {
+                      date: intl.formatDate(preparation.updatedAt, {
+                        month: "short",
+                        day: "numeric",
+                        hour: "numeric",
+                        minute: "numeric",
+                      }),
+                    }
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+          <Button
+            variant="neutral"
+            mode="stroke"
+            size="small"
+            className={SETTING_CONTROL_WIDTH}
+            disabled={!isOnline || preparation.busy}
+            isLoading={preparation.busy}
+            onClick={preparation.retry}
+            label={intl.formatMessage({
+              id: "app.offline.preparation.retry",
+              defaultMessage: "Retry",
+            })}
+          />
+        </div>
+      </Card>
 
       {/* Always present: with nothing pending there was no way to check (PWA-041). */}
       <Card>
@@ -299,21 +398,35 @@ export const AppSettings: React.FC = () => {
             </div>
           </Avatar>
           <div className="flex flex-col gap-0.5 min-w-0 flex-1">
-            <div className="text-sm font-medium">{updateRow.title}</div>
-            <div role="status" className="text-xs text-text-sub-600 line-clamp-2">
-              {updateRow.description}
+            <div className="text-sm font-medium truncate">
+              {intl.formatMessage({
+                id: "app.update.check.title",
+                defaultMessage: "Update",
+              })}
+            </div>
+            <div
+              role="status"
+              aria-label={intl.formatMessage({
+                id: "app.update.check.title",
+                defaultMessage: "Update",
+              })}
+              className={SETTING_DESCRIPTION}
+            >
+              {updateRow.status}
             </div>
           </div>
-          {updateRow.action ? (
+          <div className="shrink-0">
             <Button
               variant="neutral"
               mode="stroke"
               size="small"
-              onClick={updateRow.action.onClick}
-              label={updateRow.action.label}
-              className="w-[148px] shrink-0 sm:w-[168px]"
+              isLoading={updateRow.busy}
+              disabled={phase === "waiting" && activationBlocked}
+              onClick={updateRow.onClick}
+              label={updateRow.label}
+              className={SETTING_CONTROL_WIDTH}
             />
-          ) : null}
+          </div>
         </div>
       </Card>
     </>

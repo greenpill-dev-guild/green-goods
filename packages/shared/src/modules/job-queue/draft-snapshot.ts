@@ -3,7 +3,7 @@ import type { Address } from "../../types/domain";
 import type { DraftImage, WorkDraftRecord, MissingDraftAttachment } from "../../types/job-queue";
 import { identifyWorkFile, roundWorkLocation } from "../work/work-attachments";
 import { retryOnceAfterQuotaCleanup } from "../../utils/storage/quota";
-import { computeFirstIncompleteStep, type DraftDB } from "./draft-state";
+import { computeFirstIncompleteStep, isWorkDraft, type DraftDB } from "./draft-state";
 const MAX_DRAFTS_PER_USER = 20;
 export async function saveDraftSnapshot(
   db: IDBPDatabase<DraftDB>,
@@ -43,15 +43,16 @@ export async function saveDraftSnapshot(
     try {
       const drafts = tx.objectStore("drafts");
       const previous = await drafts.get(draftId);
+      if (previous && !isWorkDraft(previous)) throw new Error("draft-kind-conflict");
       if (
         previous &&
         (previous.userAddress.toLowerCase() !== userAddress.toLowerCase() ||
           previous.chainId !== chainId)
       )
         throw new Error("draft-owner");
-      const owned = (await drafts.getAll()).filter(
-        (item) => item.userAddress.toLowerCase() === userAddress.toLowerCase()
-      );
+      const owned = (await drafts.getAll())
+        .filter(isWorkDraft)
+        .filter((item) => item.userAddress.toLowerCase() === userAddress.toLowerCase());
       if (
         !previous &&
         owned.filter((draft) => draft.chainId === chainId).length >= MAX_DRAFTS_PER_USER
@@ -67,6 +68,7 @@ export async function saveDraftSnapshot(
         firstIncompleteStep: "intro",
         ...previous,
         ...data,
+        kind: "work",
         id: draftId,
         userAddress,
         chainId,

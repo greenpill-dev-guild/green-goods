@@ -17,6 +17,20 @@ const SHELL_MODULE_MARKERS = [
   "/src/i18n/en.json",
 ] as const;
 
+// Signed-in code also loads modules on demand: the wizard's image compressor
+// and HEIC decoder, the submission adapters and attestation encoder behind the
+// work command, the queue barrel behind the dashboard's offline reader, and
+// the other locales. Rolldown emits each as its own facade or vendor chunk that
+// no static closure reaches, so without following them the first offline use
+// fails at the import. The installed app is meant to work like a native one,
+// so the shell follows every first-party dynamic entry and the vendor chunks
+// it needs offline, and leaves lazy only what has no offline value: public
+// pages, telemetry, and the wallet connection UI.
+const FIRST_PARTY_MODULE = /\/packages\/(client|shared)\/src\//;
+const SHELL_OPTIONAL_MODULE =
+  /\/src\/(views\/Public|components\/Public|routes\/PublicShell|modules\/app\/sentry|modules\/app\/posthog-browser)\b|\/src\/(PublicApp|bootstrapPublic)\.tsx$/;
+const SHELL_VENDOR_MODULE = /\/node_modules\/heic-to\//;
+
 // Include nested views too: drawers and wizard steps can be separate lazy
 // entries even though the router does not name them. Public pages stay lazy.
 const SHELL_VIEW_MODULE = /\/packages\/client\/src\/views\/(Login|Home|Garden|Profile)\//;
@@ -111,11 +125,37 @@ export function createPwaShellAssetsPlugin(): Plugin {
         if (
           moduleIds.some((moduleId) => {
             const cleanId = moduleId.split("?")[0].replaceAll("\\", "/");
-            return SHELL_VIEW_MODULE.test(cleanId) ||
-              SHELL_MODULE_MARKERS.some((marker) => cleanId.endsWith(marker));
+            return (
+              SHELL_VIEW_MODULE.test(cleanId) ||
+              SHELL_MODULE_MARKERS.some((marker) => cleanId.endsWith(marker))
+            );
           })
         ) {
           includeChunk(chunk.fileName);
+        }
+      }
+
+      const cleanModuleIds = (chunk: ChunkWithViteMetadata) =>
+        [...Object.keys(chunk.modules), chunk.facadeModuleId ?? ""].map((moduleId) =>
+          moduleId.split("?")[0].replaceAll("\\", "/")
+        );
+      const isOfflineShellDependency = (chunk: ChunkWithViteMetadata) => {
+        const ids = cleanModuleIds(chunk);
+        if (ids.some((id) => SHELL_VENDOR_MODULE.test(id))) return true;
+        const firstParty = ids.filter((id) => FIRST_PARTY_MODULE.test(id));
+        return firstParty.length > 0 && !firstParty.some((id) => SHELL_OPTIONAL_MODULE.test(id));
+      };
+      let followed = true;
+      while (followed) {
+        followed = false;
+        for (const fileName of [...visited]) {
+          for (const target of chunksByFile.get(fileName)?.dynamicImports ?? []) {
+            if (visited.has(target)) continue;
+            const targetChunk = chunksByFile.get(target);
+            if (!targetChunk || !isOfflineShellDependency(targetChunk)) continue;
+            includeChunk(target);
+            followed = true;
+          }
         }
       }
 

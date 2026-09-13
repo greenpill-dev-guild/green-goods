@@ -2,18 +2,18 @@
 
 Smart contracts for the Green Goods Protocol - a decentralized platform for environmental and community impact work.
 
-## Quick Start
+## Development setup
 
-Get up and running with Green Goods contract deployment in minutes.
+Follow [repository onboarding](../../ONBOARDING.md) first, using the tool versions pinned in
+[.mise.toml](../../.mise.toml). Contract work also needs the pinned Foundry toolchain and
+initialized contract submodules. Setup preserves existing environments and submodule edits.
+Run package commands from the repository root with `bun run --cwd packages/contracts`.
+Direct `bun script/...` examples below run from `packages/contracts` and load the root environment.
 
-### Prerequisites (One-Time Setup)
-
-#### 1. Install Dependencies
-
-```bash
-cd packages/contracts
-bun install
-```
+Select focused proof with `bun run validation:plan -- --intent qa`. Package-native build and test
+commands remain available; the selector's critical contract checks must be retained.
+Deployment is a separate operation requiring an explicit network, reviewed signer, and authorization.
+The following keystore steps are for release operators, not ordinary contributor onboarding.
 
 > **⚠️ Important: FFI Requirement**
 > 
@@ -82,7 +82,7 @@ Perfect for rapid iteration and testing:
 
 ```bash
 # Terminal 1: Start local blockchain
-bun run dev
+bun run --cwd packages/contracts dev
 
 # Terminal 2: Deploy contracts (uses default deploy script)
 bun deploy
@@ -104,11 +104,11 @@ Test against real network state without spending gas:
 
 ```bash
 # Run E2E tests against forked networks
-bun run test:e2e:celo       # Fork and test Celo mainnet
-bun run test:e2e:arbitrum   # Fork and test Arbitrum mainnet
+bun run --cwd packages/contracts test:e2e:celo       # Fork and test Celo mainnet
+bun run --cwd packages/contracts test:e2e:arbitrum   # Fork and test Arbitrum mainnet
 
 # For an interactive local Arbitrum fork surface, use the package wrapper
-bun run dev:arbitrum-fork
+bun run --cwd packages/contracts dev:arbitrum-fork
 ```
 
 **Use when:** Testing upgrades, validating against real state, debugging production issues
@@ -167,18 +167,18 @@ bun upgrade:celo        # Upgrade Celo mainnet
 bun upgrade:arbitrum    # Upgrade Arbitrum mainnet
 
 # 🧪 TESTING
-bun run test                # Run all tests
-bun run test:e2e:celo       # Fork and test Celo mainnet
-bun run test:e2e:arbitrum   # Fork and test Arbitrum mainnet
+bun run --cwd packages/contracts test                # Run all tests
+bun run --cwd packages/contracts test:e2e:celo       # Fork and test Celo mainnet
+bun run --cwd packages/contracts test:e2e:arbitrum   # Fork and test Arbitrum mainnet
 
 # 🔧 DEVELOPMENT
-bun run build           # Adaptive compile (changed Solidity targets)
+bun run --cwd packages/contracts build           # Adaptive compile (changed Solidity targets)
 bun build:changed       # Compile changed Solidity in src/test/script
 bun build:target -- src/registries/ENS.sol  # Compile a specific Solidity target
 bun build:fast          # Compile src only (skip Foundry test/script)
 bun build:full          # Full compile incl. tests/scripts (CI/deploy)
-bun lint                # Format and lint
-bun run dev             # Start local blockchain
+bun run --cwd packages/contracts lint                # Format and lint
+bun run --cwd packages/contracts dev             # Start local blockchain
 ```
 
 ---
@@ -330,11 +330,11 @@ Green Goods integrates with the **Karma Grantee Accountability Protocol (GAP)** 
 **Testing:**
 ```bash
 # Run E2E tests (includes GAP integration)
-bun run test:e2e
+bun run --cwd packages/contracts test:e2e
 
 # Test specific networks
-bun run test:e2e:arbitrum   # Fork Arbitrum
-bun run test:e2e:celo       # Fork Celo
+bun run --cwd packages/contracts test:e2e:arbitrum   # Fork Arbitrum
+bun run --cwd packages/contracts test:e2e:celo       # Fork Celo
 bun run test:e2e:testnet    # Fork Sepolia
 ```
 
@@ -521,8 +521,8 @@ See the [deployment runbook](deployments/README.md) for the maintained upgrade e
 ### Development Setup
 
 **Prerequisites:**
-- [Foundry](https://book.getfoundry.sh/getting-started/installation) installed
-- Node.js (v18 or higher) and bun
+- [Foundry](https://getfoundry.sh/introduction/installation) installed
+- Node.js and Bun versions pinned in the root `.mise.toml`
 - Git
 
 **Development Tools:**
@@ -541,23 +541,22 @@ See the [deployment runbook](deployments/README.md) for the maintained upgrade e
 
 **Basic Commands:**
 ```bash
-# Install dependencies
-bun install
+# Complete repository onboarding first; run from the repository root.
 
 # Build contracts with IR optimization
-bun run build
+bun run --cwd packages/contracts build
 
 # Run comprehensive test suite
-bun run test
+bun run --cwd packages/contracts test
 
 # Format Solidity code
-bun format
+bun run --cwd packages/contracts format
 
 # Lint contracts for security and style
-bun lint
+bun run --cwd packages/contracts lint
 
 # Start local blockchain
-bun run dev
+bun run --cwd packages/contracts dev
 ```
 
 **Contract Development:**
@@ -566,22 +565,22 @@ bun run dev
 bun compile
 
 # Run tests with gas reporting
-bun run test
+bun run --cwd packages/contracts test
 
 # Run specific test contract
-bun run test:match test/unit/YourTestContract.t.sol
+bun run --cwd packages/contracts test:match test/unit/YourTestContract.t.sol
 
 # Run specific test function
-bun run test:match test/unit/YourTestContract.t.sol
+bun run --cwd packages/contracts test:match test/unit/YourTestContract.t.sol
 
 # Watch mode for continuous testing
-bun run test --watch
+bun run --cwd packages/contracts test --watch
 ```
 
 **Local Development:**
 ```bash
 # Start Anvil local blockchain
-bun run dev
+bun run --cwd packages/contracts dev
 
 # Deploy contracts to local network
 bun deploy
@@ -652,18 +651,18 @@ Networks are configured in `deployments/networks.json`. The system automatically
 **Advanced Testing:**
 ```bash
 # Fork testing against live networks
-bun run test:e2e:celo       # Automated fork test
+bun run --cwd packages/contracts test:e2e:celo       # Automated fork test
 # Or use the package local Arbitrum fork wrapper
-bun run dev:arbitrum-fork
+bun run --cwd packages/contracts dev:arbitrum-fork
 
 # Gas profiling
-bun run test:gas
+bun run --cwd packages/contracts test:gas
 
 # Coverage analysis
-bun run test:audit:coverage
+bun run --cwd packages/contracts test:audit:coverage
 
 # Invariant testing
-bun run test:match test/invariant/InvariantTest.t.sol
+bun run --cwd packages/contracts test:match test/invariant/InvariantTest.t.sol
 ```
 
 **Test Best Practices:**
@@ -678,17 +677,17 @@ bun run test:match test/invariant/InvariantTest.t.sol
 **Formatting & Linting:**
 ```bash
 # Format Solidity files
-bun format
+bun run --cwd packages/contracts format
 
 # Lint with security rules
-bun lint
+bun run --cwd packages/contracts lint
 
 # Combined format and lint
-bun lint
+bun run --cwd packages/contracts lint
 ```
 
 **Security Considerations:**
-- Follow [Solidity best practices](https://consensys.github.io/smart-contract-best-practices/)
+- Follow [Smart Contract Security Field Guide](https://scsfg.io/)
 - Use OpenZeppelin contracts for standard functionality
 - Implement proper access controls
 - Consider reentrancy protection
@@ -764,7 +763,7 @@ bun envio:cleanup
 - Use events instead of storage for non-critical data
 - Consider CREATE2 for deterministic addresses
 - Batch operations when possible
-- Use `bun run test:gas` to profile gas usage
+- Use `bun run --cwd packages/contracts test:gas` to profile gas usage
 
 ### Troubleshooting
 
@@ -773,11 +772,11 @@ bun envio:cleanup
 **Compilation Errors:**
 ```bash
 # Clean and rebuild
-bun run clean:artifacts
-bun run build
+bun run --cwd packages/contracts clean:artifacts
+bun run --cwd packages/contracts build
 
 # From the repo root, check local tool and env readiness without printing secret values
-bun run dev:doctor
+bun run dev:health
 ```
 
 **Deployment Failures:**
@@ -786,28 +785,28 @@ bun run dev:doctor
 bun run env:check
 
 # Run a non-broadcast preflight through the package wrapper
-bun run deploy:preflight:celo
+bun run --cwd packages/contracts deploy:preflight:celo
 ```
 
 **Test Failures:**
 ```bash
 # Run with maximum verbosity
-bun run test
+bun run --cwd packages/contracts test
 
 # Debug specific test
-bun run test:match test/unit/YourTestContract.t.sol
+bun run --cwd packages/contracts test:match test/unit/YourTestContract.t.sol
 
 # Check coverage
-bun run test:audit:coverage
+bun run --cwd packages/contracts test:audit:coverage
 ```
 
 **Gas Issues:**
 ```bash
 # Profile gas usage
-bun run test:gas
+bun run --cwd packages/contracts test:gas
 
 # Re-run the relevant network preflight through a package wrapper
-bun run deploy:preflight:celo
+bun run --cwd packages/contracts deploy:preflight:celo
 ```
 
 **Environment Issues:**
@@ -816,7 +815,7 @@ bun run deploy:preflight:celo
 bun run env:check
 
 # Inspect package deployment status through the wrapper
-bun run status
+bun run --cwd packages/contracts status
 ```
 
 ### Performance Optimization

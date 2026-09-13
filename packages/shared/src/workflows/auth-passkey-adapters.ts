@@ -34,10 +34,14 @@ import {
   clearSignedOutSentinel,
   getAuthMode,
   getStoredCredential,
+  getStoredRpId,
   getStoredSmartAccountAddress,
   getStoredUsername,
+  getPasskeyRequestIds,
+  type PasskeyCredential,
   hasSignedOutSentinel,
   setStoredCredential,
+  setStoredRpId,
   setStoredSmartAccountAddress,
   setStoredUsername,
 } from "../modules/auth/session";
@@ -50,8 +54,10 @@ export interface PasskeySessionAdapter {
   hasSignedOutSentinel(): boolean;
   clearSignedOutSentinel(): void;
   getAuthMode(): ReturnType<typeof getAuthMode>;
-  getStoredCredential(): P256Credential | null;
-  setStoredCredential(credential: P256Credential): void;
+  getStoredCredential(): PasskeyCredential | null;
+  setStoredCredential(credential: PasskeyCredential): void;
+  getStoredRpId(): string | null;
+  setStoredRpId(rpId: string): void;
   getStoredUsername(): string | null;
   setStoredUsername(userName: string): void;
   getStoredSmartAccountAddress(): Hex | null;
@@ -80,24 +86,51 @@ export interface PasskeyAdapters {
   getRpId(): string;
   randomChallenge(): Uint8Array;
   buildSmartAccount(
-    credential: P256Credential,
-    chainId: number
+    credential: PasskeyCredential,
+    chainId: number,
+    rpId: string
   ): Promise<{ client: SmartAccountClient; address: Hex }>;
 }
 
+export function createPasskeyOwner(
+  credential: PasskeyCredential,
+  rpId: string,
+  getFn?: Parameters<typeof toWebAuthnAccount>[0]["getFn"]
+) {
+  const getCredential: NonNullable<Parameters<typeof toWebAuthnAccount>[0]["getFn"]> =
+    getFn ?? ((options) => navigator.credentials.get(options as CredentialRequestOptions));
+  return toWebAuthnAccount({
+    credential,
+    rpId,
+    getFn: (options) => {
+      if (!options?.publicKey?.allowCredentials) return getCredential(options);
+      return getCredential({
+        ...options,
+        publicKey: {
+          ...options.publicKey,
+          allowCredentials: getPasskeyRequestIds(credential).map((id) => ({
+            type: "public-key",
+            id,
+          })),
+        },
+      });
+    },
+  });
+}
+
 async function buildSmartAccount(
-  credential: P256Credential,
-  chainId: number
+  credential: PasskeyCredential,
+  chainId: number,
+  rpId: string
 ): Promise<{ client: SmartAccountClient; address: Hex }> {
   assertPrimaryPasskeyProfile(chainId);
   const chain = getChain(chainId);
   const publicClient = createPublicClientForChain(chainId);
   const pimlicoClient = createPimlicoClientForChain(chainId);
-  const rpId = getPasskeyRpId();
   const account = await toKernelSmartAccount({
     client: publicClient,
     version: "0.3.1",
-    owners: [toWebAuthnAccount({ credential, rpId })],
+    owners: [createPasskeyOwner(credential, rpId)],
     entryPoint: { address: entryPoint07Address, version: "0.7" },
   });
   const sponsorshipPolicyId =
@@ -128,6 +161,8 @@ export const defaultPasskeyAdapters: PasskeyAdapters = {
     getAuthMode,
     getStoredCredential,
     setStoredCredential,
+    getStoredRpId,
+    setStoredRpId,
     getStoredUsername,
     setStoredUsername,
     getStoredSmartAccountAddress: () => getStoredSmartAccountAddress() as Hex | null,

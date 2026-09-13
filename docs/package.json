@@ -6,7 +6,6 @@
     "docusaurus": "docusaurus",
     "predev": "node ../scripts/dev/check-port.js 3003 docs",
     "dev": "node ../scripts/dev/node-cli.js docusaurus start --port 3003 --no-open",
-    "start": "node ../scripts/dev/node-cli.js docusaurus start --port 3003 --no-open",
     "test": "bun test",
     "build": "node ../scripts/dev/node-cli.js docusaurus build && node scripts/check-search-index.mjs",
     "check:search-index": "node scripts/check-search-index.mjs",

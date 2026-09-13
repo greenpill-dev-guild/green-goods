@@ -77,6 +77,7 @@ vi.mock("react-router-dom", async (importOriginal) => {
 // Mock @remixicon/react
 vi.mock("@remixicon/react", () => ({
   RiAlertLine: (props: any) => createElement("span", props),
+  RiCloseLine: (props: any) => createElement("span", props),
   RiDraftLine: (props: any) => createElement("span", props),
   RiLoader4Line: (props: any) => createElement("span", { ...props, "data-testid": "spinner" }),
   RiRefreshLine: (props: any) => createElement("span", props),
@@ -203,8 +204,8 @@ describe("DraftsTab", () => {
     // Click delete on the draft card
     await user.click(screen.getByTestId("delete-d1"));
 
-    // Confirm dialog should appear
-    expect(screen.getByRole("dialog")).toBeInTheDocument();
+    // Destructive confirm renders as an alertdialog
+    expect(screen.getByRole("alertdialog")).toBeInTheDocument();
     expect(screen.getByText("app.drafts.delete.title")).toBeInTheDocument();
 
     // Confirm the delete
@@ -221,10 +222,10 @@ describe("DraftsTab", () => {
     render(wrap(createElement(DraftsTab)));
 
     await user.click(screen.getByTestId("delete-d1"));
-    expect(screen.getByRole("dialog")).toBeInTheDocument();
+    expect(screen.getByRole("alertdialog")).toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: "app.drafts.delete.cancel" }));
-    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+    await waitFor(() => expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument());
     expect(mockDraftsState.deleteDraft).not.toHaveBeenCalled();
   });
 

@@ -1,5 +1,4 @@
-import { PwaSheet } from "@green-goods/shared/components/Dialog/PwaSheet";
-import { Button } from "@/components/Actions";
+import { ConfirmDialog } from "@green-goods/shared/components/Dialog/ConfirmDialog";
 import { toastService } from "@green-goods/shared/components/Toast/toast.service";
 import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
 import { useActions, useGardens } from "@green-goods/shared/hooks/blockchain/useBaseLists";
@@ -8,7 +7,6 @@ import { logger } from "@green-goods/shared/modules/app/logger";
 import type { Address } from "@green-goods/shared/types/domain";
 import { findActionByUID } from "@green-goods/shared/utils/action/parsers";
 import { RiDraftLine, RiLoader4Line, RiRefreshLine } from "@remixicon/react";
-import { createPortal } from "react-dom";
 import React, { useState } from "react";
 import { useIntl } from "react-intl";
 import { useNavigate } from "react-router-dom";
@@ -183,39 +181,19 @@ export const DraftsTab: React.FC<DraftsTabProps> = ({ headerContent, onBeforeNav
         </ul>
       </div>
 
-      {/* Delete Confirmation Dialog */}
-      {createPortal(
-        <PwaSheet
-          open={!!draftToDelete}
-          onClose={handleCancelDelete}
-          ariaLabel={intl.formatMessage({ id: "app.drafts.delete.title" })}
-          dragToDismiss={!isDeleting}
-        >
-          <div className="flex flex-col gap-4 p-4">
-            <h2 className="text-lg font-semibold">
-              {intl.formatMessage({ id: "app.drafts.delete.title" })}
-            </h2>
-            <p>{intl.formatMessage({ id: "app.drafts.delete.description" })}</p>
-            <Button
-              label={intl.formatMessage({ id: "app.drafts.delete.confirm" })}
-              onClick={() => void handleConfirmDelete()}
-              disabled={isDeleting}
-              variant="primary"
-              mode="filled"
-              size="medium"
-            />
-            <Button
-              label={intl.formatMessage({ id: "app.drafts.delete.cancel" })}
-              onClick={handleCancelDelete}
-              disabled={isDeleting}
-              variant="neutral"
-              mode="stroke"
-              size="medium"
-            />
-          </div>
-        </PwaSheet>,
-        document.body
-      )}
+      {/* Delete confirmation — the shared confirm surface (bottom sheet on
+          narrow viewports, centered dialog otherwise). */}
+      <ConfirmDialog
+        isOpen={draftToDelete !== null}
+        onClose={handleCancelDelete}
+        onConfirm={handleConfirmDelete}
+        title={intl.formatMessage({ id: "app.drafts.delete.title" })}
+        description={intl.formatMessage({ id: "app.drafts.delete.description" })}
+        confirmLabel={intl.formatMessage({ id: "app.drafts.delete.confirm" })}
+        cancelLabel={intl.formatMessage({ id: "app.drafts.delete.cancel" })}
+        variant="danger"
+        isLoading={isDeleting}
+      />
     </div>
   );
 };

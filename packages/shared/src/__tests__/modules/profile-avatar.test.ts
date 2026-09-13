@@ -170,9 +170,10 @@ describe("profile avatar drafts", () => {
     expect(restored?.file?.type).toBe("image/webp");
     expect(restored?.cid).toBe(cid);
     expect(restored).not.toHaveProperty("signature");
-    const db = await openDB("green-goods-profile-avatar-drafts", 1);
-    const stored = await db.get("drafts", `42161:${address}`);
+    const db = await openDB("green-goods-drafts");
+    const stored = await db.get("drafts", `avatar:42161:${address}`);
     expect(stored).not.toHaveProperty("signature");
+    db.close();
     await clearProfileAvatarDraft(42161, address);
     await expect(loadProfileAvatarDraft(42161, address)).resolves.toBeNull();
   });

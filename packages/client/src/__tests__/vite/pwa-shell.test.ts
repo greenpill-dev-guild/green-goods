@@ -97,8 +97,8 @@ describe("PWA shell asset manifest", () => {
     const lazyModules = [
       ...viewPaths,
       "views/Home/GardenFilters/index",
-      "views/Home/WalletDrawer/index",
-      "views/Home/CommitmentsDrawer/index",
+      "views/Home/WalletSheet/index",
+      "views/Home/CommitmentsSheet/index",
       "views/Garden/Media",
       "routes/Root",
       "routes/SessionGate",
@@ -141,6 +141,162 @@ describe("PWA shell asset manifest", () => {
     }
     expect(shell.assets).toContain("/assets/react.js");
     expect(shell.assets).not.toContain("/assets/wallet-connect.js");
+  });
+
+  it("precaches the media step's on-demand image compressor with its facade", () => {
+    const emitFile = vi.fn();
+    const plugin = createPwaShellAssetsPlugin();
+    const generateBundle = plugin.generateBundle;
+    if (typeof generateBundle !== "function") throw new Error("generateBundle hook missing");
+
+    const bundle = createShellBundle();
+    bundle["assets/Garden.js"] = {
+      type: "chunk",
+      fileName: "assets/Garden.js",
+      code: "export default true",
+      imports: ["assets/react.js"],
+      // Rolldown emits the dynamic entry as an empty facade over the code chunk.
+      dynamicImports: ["assets/image-compression.js", "assets/wallet-connect.js"],
+      modules: { "/repo/packages/client/src/views/Garden/Media.tsx": {} },
+      facadeModuleId: "/repo/packages/client/src/views/Garden/index.tsx",
+    };
+    bundle["assets/image-compression.js"] = {
+      type: "chunk",
+      fileName: "assets/image-compression.js",
+      code: "export * from './image-compression-impl.js'",
+      imports: ["assets/image-compression-impl.js"],
+      dynamicImports: [],
+      modules: {},
+      facadeModuleId: "/repo/packages/shared/src/utils/work/image-compression.ts",
+    };
+    bundle["assets/image-compression-impl.js"] = {
+      type: "chunk",
+      fileName: "assets/image-compression-impl.js",
+      code: "export const imageCompressor = true",
+      imports: [],
+      dynamicImports: [],
+      modules: {
+        "/repo/node_modules/browser-image-compression/dist/browser-image-compression.mjs": {},
+        "/repo/packages/shared/src/utils/work/image-compression.ts": {},
+      },
+    };
+    bundle["assets/wallet-connect.js"] = {
+      type: "chunk",
+      fileName: "assets/wallet-connect.js",
+      code: "export default true",
+      imports: [],
+      dynamicImports: [],
+      modules: { "/repo/node_modules/wallet/connect.js": {} },
+    };
+    generateBundle.call({ emitFile } as never, {} as never, bundle as never, false);
+    const shell = JSON.parse(
+      (
+        emitFile.mock.calls.find(
+          ([asset]) => asset.fileName === "pwa-shell-assets.json"
+        )?.[0] as EmittedAsset
+      ).source
+    ) as { assets: string[] };
+
+    expect(shell.assets).toContain("/assets/Garden.js");
+    expect(shell.assets).toContain("/assets/image-compression.js");
+    expect(shell.assets).toContain("/assets/image-compression-impl.js");
+    expect(shell.assets).not.toContain("/assets/wallet-connect.js");
+  });
+
+  it("follows first-party and offline vendor dynamic imports but leaves public and telemetry entries lazy", () => {
+    const emitFile = vi.fn();
+    const plugin = createPwaShellAssetsPlugin();
+    const generateBundle = plugin.generateBundle;
+    if (typeof generateBundle !== "function") throw new Error("generateBundle hook missing");
+
+    const bundle = createShellBundle();
+    const chunk = (
+      fileName: string,
+      modules: string[],
+      extra: Partial<{ imports: string[]; dynamicImports: string[]; facadeModuleId: string }> = {}
+    ) => {
+      bundle[fileName] = {
+        type: "chunk",
+        fileName,
+        code: `export default "${fileName}"`,
+        imports: extra.imports ?? [],
+        dynamicImports: extra.dynamicImports ?? [],
+        modules: Object.fromEntries(modules.map((moduleId) => [moduleId, {}])),
+        ...(extra.facadeModuleId ? { facadeModuleId: extra.facadeModuleId } : {}),
+      };
+    };
+    (bundle["assets/pwa.js"] as { dynamicImports: string[] }).dynamicImports.push(
+      "assets/job-queue.js",
+      "assets/es.js",
+      "assets/sentry.js",
+      "assets/Impact.js",
+      "assets/wallet-ui.js",
+      "assets/wallet-submission.js",
+      "assets/heic-to.js"
+    );
+    // The queue barrel is an empty facade over code that a second facade,
+    // reached only through it, still has to bring along.
+    chunk("assets/job-queue.js", [], {
+      facadeModuleId: "/repo/packages/shared/src/modules/job-queue/index.ts",
+      dynamicImports: ["assets/work-submission.js"],
+    });
+    chunk("assets/work-submission.js", [], {
+      facadeModuleId: "/repo/packages/shared/src/modules/work/work-submission.ts",
+      imports: ["assets/work-submission-impl.js"],
+    });
+    chunk("assets/work-submission-impl.js", [
+      "/repo/packages/shared/src/modules/work/work-submission.ts",
+    ]);
+    chunk("assets/es.js", ["/repo/packages/shared/src/i18n/es.json"]);
+    chunk("assets/sentry.js", ["/repo/packages/shared/src/modules/app/sentry.ts"], {
+      imports: ["assets/sentry-vendor.js"],
+    });
+    chunk("assets/sentry-vendor.js", ["/repo/node_modules/@sentry/browser/index.js"]);
+    chunk("assets/Impact.js", [
+      "/repo/packages/client/src/components/Public/PublicCommitmentsBand.tsx",
+      "/repo/packages/client/src/views/Public/Impact.tsx",
+    ]);
+    chunk("assets/wallet-ui.js", ["/repo/node_modules/@reown/appkit/dist/modal.js"]);
+    // HEIC decoding is vendor-only code the media step needs offline.
+    chunk("assets/heic-to.js", ["/repo/node_modules/heic-to/dist/csp/heic-to.js"]);
+    // Send-time code is first-party too, so the shell carries it and the EAS
+    // SDK behind it: a reconnect send must not depend on fetching a chunk.
+    chunk("assets/wallet-submission.js", [], {
+      facadeModuleId: "/repo/packages/shared/src/modules/work/wallet-submission/index.ts",
+      imports: ["assets/encoders.js"],
+    });
+    chunk("assets/encoders.js", [
+      "/repo/node_modules/@ethereum-attestation-service/eas-sdk/dist/index.js",
+      "/repo/packages/shared/src/utils/eas/encoders.ts",
+    ]);
+    generateBundle.call({ emitFile } as never, {} as never, bundle as never, false);
+    const shell = JSON.parse(
+      (
+        emitFile.mock.calls.find(
+          ([asset]) => asset.fileName === "pwa-shell-assets.json"
+        )?.[0] as EmittedAsset
+      ).source
+    ) as { assets: string[] };
+
+    for (const needed of [
+      "/assets/job-queue.js",
+      "/assets/work-submission.js",
+      "/assets/work-submission-impl.js",
+      "/assets/wallet-submission.js",
+      "/assets/encoders.js",
+      "/assets/es.js",
+      "/assets/heic-to.js",
+    ]) {
+      expect(shell.assets).toContain(needed);
+    }
+    for (const optional of [
+      "/assets/sentry.js",
+      "/assets/sentry-vendor.js",
+      "/assets/Impact.js",
+      "/assets/wallet-ui.js",
+    ]) {
+      expect(shell.assets).not.toContain(optional);
+    }
   });
 
   it("includes signed-in lazy views before their first visit", () => {

@@ -4,18 +4,16 @@ Platform-agnostic bot for Green Goods. Currently supports Telegram, with archite
 
 📖 **[Agent Documentation](https://docs.greengoods.app/builders/packages/agent)** — Bot architecture and deployment guide
 
-## Quick Start
+## Local development
 
-```bash
-# Install dependencies
-bun install
+Follow [repository onboarding](../../ONBOARDING.md) for tools and the root environment.
+The default `bun run dev` starts the local API with Telegram disabled alongside the browser
+apps and indexer. To start only that API surface, use `bun run dev -- agent`; dependencies
+must already be available. All commands in this guide run from the repository root.
 
-# Development (polling mode)
-bun run dev
-
-# Production (webhook mode)
-bun run build && bun run start
-```
+Use the package-native command only when intentionally testing the messaging runtime with
+its required credentials: `bun run --cwd packages/agent dev`.
+Select focused tests with `bun run validation:plan -- --intent qa`.
 
 ## Deploy to Fly.io (recommended)
 
@@ -158,7 +156,7 @@ Deploys: pushing to `main` ships the agent via Fly's GitHub integration. The `fl
    - `BOT_MODE=polling` (recommended to start; switch to `webhook` later)
    - `DB_PATH=/data/agent.db`
    - Optional for webhook: `WEBHOOK_URL=https://your-domain.com/telegram/webhook`, `PORT=3000`, `TELEGRAM_WEBHOOK_SECRET=...`
-4) Deploy: Railway will run `bun run start` from `packages/agent` (see Dockerfile).
+4) Deploy: Railway will run `bun run --cwd packages/agent start` from `packages/agent` (see Dockerfile).
 5) Verify health: `curl https://<railway-url>/health` (or `/ready` if voice-model readiness matters).
 6) Talk to the bot in Telegram (`/start`, `/status`) to confirm.
 
@@ -221,14 +219,14 @@ The bot parses natural language to extract tasks, then prompts for confirmation.
 
 ```bash
 bun run dev          # Start in polling mode with hot reload
-bun run build        # TypeScript compilation
-bun run start        # Run production build
-bun run test         # Run tests
-bun run test:watch   # Watch mode
-bun run test:coverage # Coverage report
-bun run lint         # Lint with oxlint
-bun run format       # Format with Biome
-bun run typecheck    # TypeScript type check
+bun run --cwd packages/agent build        # TypeScript compilation
+bun run --cwd packages/agent start        # Run production build
+bun run --cwd packages/agent test         # Run tests
+bun run --cwd packages/agent test:watch   # Watch mode
+bun run --cwd packages/agent test:coverage # Coverage report
+bun run --cwd packages/agent lint         # Lint with oxlint
+bun run --cwd packages/agent format       # Format with Biome
+bun run --cwd packages/agent typecheck    # TypeScript type check
 ```
 
 ## Security Features
@@ -256,16 +254,16 @@ Uses **Vitest** for unit tests with an in-memory SQLite mock for database operat
 
 ```bash
 # Run all tests
-bun run test
+bun run --cwd packages/agent test
 
 # Watch mode
-bun run test:watch
+bun run --cwd packages/agent test:watch
 
 # Coverage report
-bun run test:coverage
+bun run --cwd packages/agent test:coverage
 
 # Interactive UI
-bun run test:ui
+bun run --cwd packages/agent test:ui
 ```
 
 ### Test Structure

@@ -67,8 +67,15 @@ components:
     typography: "{typography.label-md}"
   accent-indicator:
     backgroundColor: "{colors.tertiary}"
-    textColor: "{colors.on-tertiary}"
     rounded: "{rounded.full}"
+  count-badge:
+    backgroundColor: "{colors.tertiary-action}"
+    textColor: "{colors.on-tertiary-action}"
+    typography: "{typography.label-md}"
+    rounded: "{rounded.full}"
+  accent-ink:
+    textColor: "{colors.on-tertiary}"
+    typography: "{typography.label-md}"
   warning-badge:
     backgroundColor: "{colors.amber}"
     textColor: "{colors.neutral-dark}"
@@ -110,9 +117,9 @@ components:
 
 This file uses **role vocabulary** (neutral/primary/secondary/tertiary = canvas/ink/stone/accent). The codebase uses its own internal token naming — `--color-primary`, `bg-primary`, and `bg-primary-base` are historical implementation labels that resolve to the **green accent/action family**, not the DesignMD `primary` role. Neither renames — this file translates between them.
 
-Text-bearing filled CTAs use the darker `tertiary-action` role so white text passes contrast. The brighter `tertiary` garden green stays available for icons, active nav, badges, progress, soft highlights, and low-volume brand accents.
+Any green fill that carries text, a number, or a glyph uses the darker `tertiary-action` role with white `on-tertiary-action`: filled CTAs, count badges, step markers, selected chips, and pills. White on `tertiary-action` measures 5.72:1; white on bright `tertiary` is 2.36:1, and dark `on-tertiary` on it reads muddy at 4.64:1 (DL-017).
 
-Tiny text on bright `tertiary` surfaces uses `on-tertiary` so count badges and selected chips can stay visually bright without failing contrast.
+The brighter `tertiary` garden green stays on text-free accents: icons, active nav, dots, progress lines, soft highlights, and low-volume brand accents.
 
 ---
 

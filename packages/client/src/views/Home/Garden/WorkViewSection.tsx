@@ -1,3 +1,4 @@
+import { useOnlineStatus } from "@green-goods/shared/hooks/app/useOnlineStatus";
 import type {
   Garden,
   Work,
@@ -23,7 +24,7 @@ import { WorkView, type WorkViewAction } from "@/components/Features/Work";
 
 type ViewingMode = "steward" | "gardener" | "viewer";
 
-type MetadataStatus = "idle" | "loading" | "success" | "error";
+type MetadataStatus = "idle" | "loading" | "success" | "error" | "unavailable";
 
 type WorkViewSectionProps = {
   garden?: Garden;
@@ -187,6 +188,13 @@ export const WorkViewSection: React.FC<WorkViewSectionProps> = ({
   footerSpacerClassName,
 }) => {
   const intl = useIntl();
+  const isOnline = useOnlineStatus();
+  let submissionState: string | undefined;
+  try {
+    submissionState = JSON.parse(work.metadata).submissionState;
+  } catch {
+    /* Remote metadata may be a CID. */
+  }
 
   const { feedback: workFeedback, media } = work;
 
@@ -199,6 +207,16 @@ export const WorkViewSection: React.FC<WorkViewSectionProps> = ({
   // Dynamic title based on status and viewing mode
   const getTitle = () => {
     if (isOfflineStatus) {
+      if (submissionState === "awaiting-confirmation")
+        return intl.formatMessage({
+          id: "app.work.awaitingConfirmation",
+          defaultMessage: "Awaiting confirmation",
+        });
+      if (submissionState === "checking-submission")
+        return intl.formatMessage({
+          id: "app.work.checkingSubmission",
+          defaultMessage: "Checking whether this work was sent",
+        });
       if (effectiveStatus === "sync_failed") {
         return intl.formatMessage({
           id: "app.home.work.syncFailed",
@@ -252,13 +270,27 @@ export const WorkViewSection: React.FC<WorkViewSectionProps> = ({
   // Dynamic info text based on status and viewing mode
   const getInfo = () => {
     if (isOfflineStatus) {
-      if (effectiveStatus === "sync_failed") {
+      if (submissionState === "awaiting-confirmation")
         return intl.formatMessage({
-          id: "app.home.work.syncFailedInfo",
-          defaultMessage: "We couldn't send this just now. We'll keep trying when you're online.",
+          id: "app.work.confirmationExplanation",
+          defaultMessage: "Your work was sent. We will check its status automatically when online.",
+        });
+      if (submissionState === "checking-submission")
+        return intl.formatMessage({
+          id: "app.work.checkingSubmissionInfo",
+          defaultMessage: "We’re checking whether this work was sent. Your media stays saved.",
+        });
+      if (
+        submissionState === "reverted" ||
+        submissionState === "retry-required" ||
+        effectiveStatus === "sync_failed"
+      ) {
+        return intl.formatMessage({
+          id: "app.work.retryRequiredInfo",
+          defaultMessage: "Your media stays saved. Choose Retry when you’re ready to send again.",
         });
       }
-      if (effectiveStatus === "syncing" || effectiveStatus === "uploading") {
+      if (isOnline && submissionState === "sending") {
         return intl.formatMessage({
           id: "app.home.work.syncingInfo",
           defaultMessage: "Sending to the garden record...",

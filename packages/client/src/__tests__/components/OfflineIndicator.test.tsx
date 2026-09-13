@@ -26,6 +26,7 @@ vi.mock("@green-goods/shared/utils/styles/cn", () => ({
 
 vi.mock("@green-goods/shared/hooks/app/useOnlineStatus", () => ({
   useOnlineStatus: () => mockOfflineState.isOnline,
+  useConnectivityStatus: () => ({ state: mockOfflineState.isOnline ? "online" : "offline" }),
 }));
 
 vi.mock("@green-goods/shared/providers/App", () => ({

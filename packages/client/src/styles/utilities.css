@@ -69,18 +69,10 @@
     border-radius: 1.25rem;
   }
 
-  /* Modal Scroll Lock Utilities
-     Note: body already has position:fixed + overflow:hidden in index.css,
-     so only the html element needs the lock. useDocumentScrollLock owns this
-     class. While it is held, the vertical overscroll rule keeps browser
-     pull-to-refresh inert underneath the sheet or dialog; index.css leaves the
-     root vertical overscroll at its default so the gesture works everywhere
-     else, and it must stay that way. */
+  /* Only active overlay owners suppress document scrolling and native refresh. */
   .modal-open {
     overflow: hidden;
     overscroll-behavior-y: none;
-    height: 100vh;
-    height: 100dvh;
   }
 }
 

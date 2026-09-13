@@ -132,9 +132,8 @@ export function FormattedAmountInput({
         tabIndex={error ? 0 : undefined}
         className={cn(errorClassName)}
         style={{
-          blockSize: "var(--form-feedback-block-size, 3lh)",
+          minBlockSize: "var(--form-feedback-block-size, 2lh)",
           flexShrink: 0,
-          overflowY: "auto",
           overflowWrap: "anywhere",
         }}
       >

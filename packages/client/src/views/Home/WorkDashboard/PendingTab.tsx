@@ -32,7 +32,7 @@ const PENDING_MESSAGES = {
     id: "app.workDashboard.pending.itemsPending",
     defaultMessage: "{count} items in progress",
   },
-  loading: { id: "app.workDashboard.loading", defaultMessage: "Loading pending work..." },
+  loading: { id: "app.workDashboard.loading", defaultMessage: "Loading your work..." },
   emptyTitle: { id: "app.workDashboard.pending.noPending", defaultMessage: "No pending work" },
   emptyDescription: {
     id: "app.workDashboard.pending.description",
@@ -74,7 +74,15 @@ export const PendingTab: React.FC<PendingTabProps> = ({
             id:
               submissionState === "reverted"
                 ? "app.work.confirmationFailed"
-                : "app.work.awaitingConfirmation",
+                : submissionState === "queued"
+                  ? "app.work.queued"
+                  : submissionState === "sending"
+                    ? "app.home.work.syncingInfo"
+                    : submissionState === "retry-required"
+                      ? "app.work.retryRequiredInfo"
+                      : submissionState === "checking-submission"
+                        ? "app.work.checkingSubmission"
+                        : "app.work.awaitingConfirmation",
           })}
         </span>
       );

@@ -38,6 +38,15 @@
         "packages/shared/storybook-static"
       ],
       "port": 4620
+    },
+    {
+      "name": "client-http-3011",
+      "runtimeExecutable": "bash",
+      "runtimeArgs": [
+        "-c",
+        "SKIP_MKCERT=true VITE_ENABLE_SW_DEV=true VITE_CHAIN_ID=11155111 exec bun run --filter @green-goods/client dev -- --port 3011 --strictPort"
+      ],
+      "port": 3011
     }
   ]
 }

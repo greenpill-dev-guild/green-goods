@@ -7,6 +7,7 @@
  * install dependencies, start services, write .env, or print secret values.
  */
 
+import { groups, parseHealthArgs } from "../lib/dev-modes.mjs";
 import fs from "node:fs";
 import net from "node:net";
 import path from "node:path";
@@ -19,6 +20,7 @@ import {
 import {
   SUBMODULE_RECOVERY_COMMAND,
   commandExists,
+  dependencyReadiness,
   dockerEnvironment,
   commandVersion,
   inspectPinnedSubmodules,
@@ -32,7 +34,6 @@ const __dirname = path.dirname(__filename);
 const projectRoot = path.resolve(__dirname, "../..");
 const requiredFoundryVersion = readPinnedFoundryVersion(projectRoot);
 
-const validProfiles = new Set(["web", "full", "contracts", "upload", "prod", "prod-mirror"]);
 
 const profileLabels = {
   web: "Frontend QA",
@@ -41,46 +42,6 @@ const profileLabels = {
   upload: "Upload-capable QA",
   prod: "Production-backed local dev",
   "prod-mirror": "Production-backed local dev with local indexer mirror",
-};
-
-const profilePorts = {
-  web: [
-    { port: 3001, label: "client" },
-    { port: 3002, label: "admin" },
-    { port: 3003, label: "docs" },
-    { port: 3004, label: "storybook" },
-  ],
-  full: [
-    { port: 3001, label: "client" },
-    { port: 3002, label: "admin" },
-    { port: 3003, label: "docs" },
-    { port: 3008, label: "indexer postgres" },
-    { port: 3004, label: "storybook" },
-    { port: 3005, label: "agent" },
-    { port: 3006, label: "indexer graphql" },
-    { port: 3007, label: "envio indexer" },
-  ],
-  contracts: [],
-  upload: [
-    { port: 3001, label: "client" },
-    { port: 3002, label: "admin" },
-    { port: 3003, label: "docs" },
-  ],
-  prod: [
-    { port: 3001, label: "client" },
-    { port: 3002, label: "admin" },
-    { port: 3003, label: "docs" },
-    { port: 3004, label: "storybook" },
-  ],
-  "prod-mirror": [
-    { port: 3001, label: "client" },
-    { port: 3002, label: "admin" },
-    { port: 3003, label: "docs" },
-    { port: 3004, label: "storybook" },
-    { port: 3006, label: "indexer graphql" },
-    { port: 3007, label: "envio indexer" },
-    { port: 3008, label: "indexer postgres" },
-  ],
 };
 
 const serviceByPort = {
@@ -94,6 +55,14 @@ const serviceByPort = {
   3008: "indexer",
   3009: "anvil-arbitrum",
 };
+
+const modePorts = Object.fromEntries(Object.entries(groups).map(([mode, services]) => [
+  mode,
+  Object.entries(serviceByPort)
+    .filter(([, service]) => services.includes(service))
+    .map(([port, service]) => ({ port: Number(port), label: service })),
+]));
+const profilePorts = { ...modePorts, contracts: [], upload: modePorts.web.filter(({ port }) => port !== 3004) };
 
 const dockerEnv = dockerEnvironment();
 
@@ -116,50 +85,19 @@ let opReady = null;
 function usage(exitCode = 0) {
   const stream = exitCode === 0 ? process.stdout : process.stderr;
   stream.write(
-    `Usage: node scripts/dev/doctor.js [--profile web|full|contracts|upload|prod|prod-mirror] [--core] [--json]\n`
+    `Usage: bun run dev:health -- [${Object.keys(groups).join("|")}] [--json]\nAdvanced: --profile web|full|contracts|upload|prod|prod-mirror [--core]\n`
   );
   process.exit(exitCode);
 }
 
-function parseArgs(argv) {
-  const options = { profile: "web", json: false };
-
-  for (let index = 0; index < argv.length; index++) {
-    const arg = argv[index];
-
-    if (arg === "--core") {
-      options.core = true;
-      continue;
-    }
-    if (arg === "--help" || arg === "-h") usage(0);
-    if (arg === "--json") {
-      options.json = true;
-      continue;
-    }
-
-    if (arg === "--profile") {
-      options.profile = argv[++index] || "";
-      continue;
-    }
-
-    if (arg.startsWith("--profile=")) {
-      options.profile = arg.slice("--profile=".length);
-      continue;
-    }
-
-    process.stderr.write(`Unknown option: ${arg}\n`);
-    usage(1);
-  }
-
-  if (!validProfiles.has(options.profile)) {
-    process.stderr.write(`Invalid profile: ${options.profile || "(missing)"}\n`);
-    usage(1);
-  }
-
-  return options;
+let options;
+try {
+  options = parseHealthArgs(process.argv.slice(2));
+  if (options.help) usage(0);
+} catch (error) {
+  console.error(error.message);
+  usage(1);
 }
-
-const options = parseArgs(process.argv.slice(2));
 
 function add(level, title, detail = "", fix = "", metadata = {}) {
   results.push({ level, title, detail, fix, ...metadata });
@@ -173,7 +111,7 @@ function expectedCompatibilityKey(port) {
   const profile =
     options.profile === "prod" || options.profile === "prod-mirror"
       ? options.profile
-      : "local-live";
+      : options.fork ? "fork" : "local-live";
   return `${serviceByPort[port]}:${profile}`;
 }
 
@@ -311,7 +249,7 @@ function checkTools() {
 
   }
 
-  if (options.profile === "contracts") {
+  if (options.profile === "contracts" || options.fork) {
     if (!commandExists("forge")) {
       add(
         "fail",
@@ -350,7 +288,7 @@ function checkDocker() {
       "fail",
       "Docker daemon is not running",
       "Full-stack/indexer work needs Docker.",
-      process.platform === "darwin" ? "Open OrbStack or Docker Desktop, then rerun bun run dev:doctor -- --profile full." : "",
+      process.platform === "darwin" ? "Open OrbStack or Docker Desktop, then rerun bun run dev:health -- --profile full." : "",
       { check: "docker-daemon" }
     );
   }
@@ -488,7 +426,11 @@ function checkEnv() {
   const pinataJwt = valueFor(envFile, "PINATA_JWT");
   const envioApiToken = valueFor(envFile, "ENVIO_API_TOKEN");
   const envioApiTokenOpRef = valueFor(envFile, "ENVIO_API_TOKEN_OP_REF");
-  const apiBaseUrl = options.profile === "full" ? "http://127.0.0.1:3005" : valueFor(envFile, "VITE_API_BASE_URL") || schema.VITE_API_BASE_URL;
+  const apiBaseUrl = ["prod", "prod-mirror"].includes(options.profile)
+    ? "https://agent.greengoods.app"
+    : ["full", "web"].includes(options.profile)
+      ? "http://127.0.0.1:3005"
+      : valueFor(envFile, "VITE_API_BASE_URL") || schema.VITE_API_BASE_URL;
   const hasPinataOpRef = hasOpRef(pinataJwtOpRef);
   const hasPinataServer =
     hasUsableValue(pinataJwt) || (options.profile === "upload" && hasPinataOpRef && opReady);
@@ -567,7 +509,7 @@ function checkEnv() {
         : "The default stack can start without it, but the local Docker indexer mirrors live configured networks and may fall behind or receive HyperSync 429s without a token.",
       hasEnvioApiToken
         ? ""
-        : "Set ENVIO_API_TOKEN in root .env when you need `bun run dev:smoke:full` or `bun run dev:prod:mirror` to prove fresh indexer catch-up.",
+        : "Set ENVIO_API_TOKEN in root .env when you need `bun run dev:smoke -- full` or `bun run dev -- prod-mirror` to prove fresh indexer catch-up.",
       { check: "env:envio-api-token" }
     );
   }
@@ -653,11 +595,11 @@ function checkEnv() {
       "",
       { check: "env:chain-id" }
     );
-  } else if (options.profile === "full") {
+  } else if (options.profile === "full" || options.mode === "web") {
     add(
       "pass",
-      "Local stack targets live Arbitrum One",
-      "bun run dev clears fork mode, selects chain 42161, and routes the client/admin to the local agent and local live indexer. Confirmed transactions write to production Arbitrum.",
+      options.fork ? "Local Arbitrum fork selected" : "Local stack targets live Arbitrum One",
+      options.fork ? "Disposable wallet transactions stay in Anvil; passkeys are blocked. The indexer mirrors live networks, not fork-only writes." : "bun run dev clears fork mode, selects chain 42161, and routes the client/admin to the local agent and local live indexer. Confirmed transactions write to production Arbitrum.",
       "",
       { check: "env:chain-id" }
     );
@@ -749,7 +691,7 @@ function checkIndexerGenerated() {
 }
 
 async function checkPorts() {
-  for (const item of profilePorts[options.profile].filter(({ port }) => !options.core || ![3003, 3004].includes(port))) {
+  for (const item of (options.mode ? modePorts[options.mode] : profilePorts[options.profile]).filter(({ port }) => !options.core || ![3003, 3004].includes(port))) {
     const available = await checkPort(item.port);
     const ownership = inspectSurface({ port: item.port, portLive: !available });
     if (available) {
@@ -826,6 +768,7 @@ function summary() {
   const failures = results.filter((result) => result.level === "fail");
   const warnings = results.filter((result) => result.level === "warn");
   return {
+    mode: options.mode,
     profile: options.profile,
     label: profileLabels[options.profile],
     ready: failures.length === 0,
@@ -836,6 +779,7 @@ function summary() {
 
 function printJson() {
   const payload = {
+    mode: options.mode,
     profile: options.profile,
     label: profileLabels[options.profile],
     results,
@@ -843,17 +787,17 @@ function printJson() {
     entrypoints: {
       firstClone: "npm run setup",
       isolatedSetup: "npm run setup -- --profile isolated",
-      doctor: "bun run dev:doctor -- --profile web",
-      webStack: "bun run dev:web",
-      webSmoke: "bun run dev:smoke:web",
+      doctor: "bun run dev:health -- --profile web",
+      webStack: "bun run dev -- web",
+      webSmoke: "bun run dev:smoke -- web",
       fullStack: "bun run dev",
-      productionStack: "bun run dev:prod",
-      productionHealth: "bun run dev:prod:health",
-      productionMirrorStack: "bun run dev:prod:mirror",
-      productionMirrorHealth: "bun run dev:prod:mirror:health",
-      productionSmoke: "bun run dev:prod:smoke",
+      productionStack: "bun run dev -- prod",
+      productionHealth: "bun run dev:health -- prod",
+      productionMirrorStack: "bun run dev -- prod-mirror",
+      productionMirrorHealth: "bun run dev:health -- prod-mirror",
+      productionSmoke: "bun run dev:smoke -- prod",
       clean: "bun run dev:clean",
-      stop: "bun run dev:stack:stop",
+      stop: "bun run dev -- stop",
     },
   };
 
@@ -884,16 +828,16 @@ function printText() {
   console.log("\nRecommended entrypoints");
   console.log("- First clone: npm run setup");
   console.log("- Isolated worktree/container setup: npm run setup -- --profile isolated");
-  console.log("- Doctor profile: bun run dev:doctor -- --profile web");
+  console.log("- Doctor profile: bun run dev:health -- --profile web");
   console.log("- Full local environment: bun run dev");
-  console.log("- Production-backed local environment: bun run dev:prod");
-  console.log("- Production local indexer mirror: bun run dev:prod:mirror");
-  console.log("- Production smoke: bun run dev:prod:smoke");
-  console.log("- PM2 fallback frontend stack: bun run dev:web");
-  console.log("- Web smoke: bun run dev:smoke:web");
+  console.log("- Production-backed local environment: bun run dev -- prod");
+  console.log("- Production local indexer mirror: bun run dev -- prod-mirror");
+  console.log("- Production smoke: bun run dev:smoke -- prod");
+  console.log("- PM2 fallback frontend stack: bun run dev -- web");
+  console.log("- Web smoke: bun run dev:smoke -- web");
   console.log("- Clean current checkout artifacts: bun run dev:clean");
-  console.log("- Stop repo-owned services: bun run dev:stop");
-  console.log("- Stop PM2 services directly: bun run dev:stack:stop");
+  console.log("- Stop repo-owned services: bun run dev -- stop");
+  console.log("- Stop PM2 services directly: bun run dev -- stop");
 
   const currentSummary = summary();
   if (!currentSummary.ready) {
@@ -911,6 +855,9 @@ function printText() {
 
 checkPlatform();
 checkTools();
+const dependencies = dependencyReadiness(projectRoot);
+add(dependencies.ready ? "pass" : "fail", dependencies.ready ? "Workspace dependencies are ready" : "Workspace dependencies are missing or incomplete",
+  dependencies.missing.join(", "), dependencies.ready ? "" : "Run setup with the appropriate profile after authorizing dependency installation.", { check: "dependencies" });
 checkContractSubmodules();
 checkDocker();
 checkEnv();

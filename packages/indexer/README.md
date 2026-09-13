@@ -8,29 +8,27 @@ architecture and builder contract.
 
 ## Prerequisites
 
-- Node.js `22.12.x`
-- Bun `1.x`
+- Node.js and Bun versions pinned in the root [`.mise.toml`](../../.mise.toml)
 - OrbStack or Docker Desktop for a local runtime
-- A completed root `bun install --frozen-lockfile`
+- Completed [repository onboarding](../../ONBOARDING.md)
 
 Use the root `.env` only. `ENVIO_API_TOKEN` is required for reliable live Arbitrum catch-up.
 
 ## Development
 
 ```bash
-cd packages/indexer
 
 # Generate Envio v3 declarations in .envio/
-bun run codegen
+bun run --cwd packages/indexer codegen
 
 # Typecheck handlers and tests
-bun run build
+bun run --cwd packages/indexer build
 
 # Run the real Envio v3 test indexer
-bun run test
+bun run --cwd packages/indexer test
 
 # Start Envio with its local database preserved
-bun run dev
+bun run --cwd packages/indexer dev
 ```
 
 Native `envio dev` exposes GraphQL at `http://localhost:8080/v1/graphql` with local admin secret
@@ -41,18 +39,18 @@ to stop the attached development process while preserving the database.
 intentional:
 
 ```bash
-bun run dev:restart
+bun run --cwd packages/indexer dev:restart
 ```
 
-`bun run stop` and `bun run db:down` stop the Envio-managed PostgreSQL and Hasura containers
-without removing them, so the `envio-postgres-data` volume and the indexed state survive. They
-select the containers by Envio's `dev.envio.config-hash` label, which leaves the separate
-`docker-compose.indexer.yaml` stack untouched. `bun run clean` removes TypeScript build metadata
+`bun run --cwd packages/indexer db:down` stops the Envio-managed PostgreSQL and Hasura containers
+without removing them, so the `envio-postgres-data` volume and the indexed state survive. It
+selects the containers by Envio's `dev.envio.config-hash` label, which leaves the separate
+`docker-compose.indexer.yaml` stack untouched. `bun run --cwd packages/indexer clean` removes TypeScript build metadata
 only. `dev:restart` and `reset` are destructive to the local Envio database and require explicit
 intent. Hosted deployment and reindexing are separate release operations and are not performed by
 local validation.
 
-> Do not implement `stop`/`db:down` with `envio local docker down`. Despite its help text naming
+> Do not implement `db:down` with `envio local docker down`. Despite its help text naming
 > only containers, it also removes the `envio-postgres-data` volume, which discards the local
 > indexed state and forces a full replay from the configured start blocks.
 
@@ -61,9 +59,9 @@ local validation.
 For the full package-local stack:
 
 ```bash
-bun run dev:docker
-bun run dev:docker:logs
-bun run dev:docker:down
+bun run --cwd packages/indexer dev:docker
+bun run --cwd packages/indexer dev:docker:logs
+bun run --cwd packages/indexer dev:docker:down
 ```
 
 This exposes PostgreSQL on `3008`, Hasura GraphQL on `3006`, and the Envio service on `3007`.
@@ -83,17 +81,16 @@ The Docker build uses the repository root `bun.lock`; there is no nested generat
 ## Commands
 
 ```bash
-bun run check:indexing-boundary  # verify chain, contract, address, and block invariants
-bun run codegen                  # regenerate .envio/ declarations
-bun run build                    # codegen plus strict TypeScript validation
-bun run test                     # codegen plus Mocha handler tests
-bun run test:coverage            # coverage over the v3 test indexer
-bun run lint                     # indexer source and test lint
-bun run doctor                   # full local-stack readiness checks
-bun run db:up                    # start Envio-managed local containers
-bun run db:down                  # stop (not remove) those containers; keeps the database volume
-bun run stop                     # same volume-preserving stop as db:down
-bun run reset                    # destructive: delete the local database and stop Envio
+bun run --cwd packages/indexer check:indexing-boundary  # verify chain, contract, address, and block invariants
+bun run --cwd packages/indexer codegen                  # regenerate .envio/ declarations
+bun run --cwd packages/indexer build                    # codegen plus strict TypeScript validation
+bun run --cwd packages/indexer test                     # codegen plus Mocha handler tests
+bun run --cwd packages/indexer test:coverage            # coverage over the v3 test indexer
+bun run --cwd packages/indexer lint                     # indexer source and test lint
+bun run --cwd packages/indexer doctor                   # full local-stack readiness checks
+bun run --cwd packages/indexer db:up                    # start Envio-managed local containers
+bun run --cwd packages/indexer db:down                  # stop (not remove) those containers; keeps the database volume
+bun run --cwd packages/indexer reset                    # destructive: delete the local database and stop Envio
 ```
 
 ## Dynamic discovery

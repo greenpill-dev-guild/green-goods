@@ -118,10 +118,10 @@ const cases: SenderCase[] = [
       supportsBatching: false,
       batch: true,
       chainSource: "client",
-      receipt: "none",
-      revertedReceipt: "the bundler returns an included transaction hash without a receipt wait",
+      receipt: "always",
+      revertedReceipt: true,
       nonCanonicalHash: "the bundler result is returned directly and has no receipt branch",
-      guardOrder: ["safety", "send"],
+      guardOrder: ["safety", "send", "receipt"],
       omittedValue: 0n,
     },
     make: (scenario = {}) => {
@@ -129,15 +129,24 @@ const cases: SenderCase[] = [
       const forwarded: ForwardedCall[] = [];
       const hashes = sequence(scenario.hashes ?? [], SECOND_TX_HASH);
       const client = createFakeSmartAccountClient();
-      client.sendTransaction.mockImplementation(async (call) => {
+      client.sendUserOperation.mockImplementation(async (call) => {
         trace.push("send");
-        const transaction = call as { chain?: { id: number }; value?: bigint };
+        const transaction = (call as { calls: Array<{ value?: bigint }> }).calls[0];
         forwarded.push({
-          clientChainId: transaction.chain?.id,
+          clientChainId: client.chain?.id,
           value: transaction.value,
         });
         if (scenario.transportFailure) throw scenario.transportFailure;
         return hashes();
+      });
+      const receiptHashes: Hex[] = [];
+      vi.mocked(client.waitForUserOperationReceipt).mockImplementation(async ({ hash }) => {
+        trace.push("receipt");
+        receiptHashes.push(hash);
+        return {
+          success: scenario.receiptStatus !== "reverted",
+          receipt: { status: "success", transactionHash: hash },
+        } as Awaited<ReturnType<typeof client.waitForUserOperationReceipt>>;
       });
       const assertWriteSafety = vi.fn(async () => {
         trace.push("safety");
@@ -147,7 +156,7 @@ const cases: SenderCase[] = [
         trace,
         forwarded,
         guardedChains: [],
-        receiptHashes: [],
+        receiptHashes,
       };
     },
   },
@@ -277,9 +286,7 @@ const laws: ConformanceLaw<SenderCase>[] = [
     applicable: ({ expectations }) => expectations.revertedReceipt,
     verify: async ({ make }) => {
       const { sender } = make({ receiptStatus: "reverted" });
-      await expect(sender.sendContractCall(createMockContractCall())).rejects.toThrow(
-        "Transaction reverted on-chain"
-      );
+      await expect(sender.sendContractCall(createMockContractCall())).rejects.toThrow(/reverted/i);
     },
   },
   {
@@ -290,6 +297,7 @@ const laws: ConformanceLaw<SenderCase>[] = [
       await expect(harness.sender.sendContractCall(createMockContractCall())).resolves.toEqual({
         hash: NON_CANONICAL_HASH,
         sponsored: false,
+        confirmation: "pending",
       });
       expect(harness.receiptHashes).toEqual([]);
     },

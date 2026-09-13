@@ -132,6 +132,10 @@ export const toastMessageIds = {
     stillQueued: {
       title: "app.toast.queue.stillQueued.title",
     },
+    walletSendFailed: {
+      title: "app.toast.queue.walletSendFailed.title",
+      message: "app.toast.queue.walletSendFailed.message",
+    },
     queueClear: {
       title: "app.toast.queue.queueClear.title",
       message: "app.toast.queue.queueClear.message",
@@ -166,5 +170,9 @@ export const toastMessageIdsUpdate = {
   stalled: {
     title: "app.toast.update.stalled.title",
     message: "app.toast.update.stalled.message",
+  },
+  applied: {
+    title: "app.toast.update.applied.title",
+    message: "app.toast.update.applied.message",
   },
 } as const;

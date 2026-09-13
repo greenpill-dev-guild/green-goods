@@ -10,6 +10,13 @@ import userEvent from "@testing-library/user-event";
 import { createElement } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+const offlineState = { online: true, assets: {} as Record<string, boolean> };
+vi.mock("@green-goods/shared/hooks/offline/useOfflineAssetAvailability", () => ({
+  useOfflineAssetAvailability: () => offlineState.assets,
+}));
+vi.mock("@green-goods/shared/hooks/app/useOnlineStatus", () => ({
+  useOnlineStatus: () => offlineState.online,
+}));
 vi.mock("react-intl", () => ({
   useIntl: () => ({
     formatMessage: ({ defaultMessage }: { defaultMessage?: string }) => defaultMessage ?? "",
@@ -86,6 +93,8 @@ describe("WorkView", () => {
   });
 
   afterEach(() => {
+    offlineState.online = true;
+    offlineState.assets = {};
     cleanup();
   });
 
@@ -292,4 +301,27 @@ describe("WorkView", () => {
       expect(spacer).toBeInTheDocument();
     });
   });
+});
+
+it("keeps photo previews visible but disables unavailable original downloads and playback offline", () => {
+  offlineState.online = false;
+  render(
+    createElement(WorkView, {
+      title: "Work",
+      info: "Saved",
+      actionTitle: "Action",
+      details: [],
+      media: ["https://media.test/photo", "https://media.test/video"],
+      mediaTypes: ["image/jpeg", "video/mp4"],
+      audioNoteCids: ["audio"],
+      primaryActions: [{ id: "download-media", label: "Download originals", onClick: vi.fn() }],
+    })
+  );
+  expect(screen.getByTestId("media-image")).toBeInTheDocument();
+  expect(screen.queryByTestId("audio-player")).toBeNull();
+  expect(document.querySelector("video")).toBeNull();
+  expect(screen.getByRole("button", { name: "Download originals" })).toBeDisabled();
+  expect(screen.getByRole("status")).toHaveTextContent("Photo previews may still be available");
+  cleanup();
+  offlineState.online = true;
 });

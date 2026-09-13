@@ -14,6 +14,7 @@ import {
 } from "@remixicon/react";
 import { useIntl } from "react-intl";
 import { Link, useLocation } from "react-router-dom";
+import { pwaStatusStyles } from "@/components/Pwa/statusStyles";
 import { APP_ROUTES, LEGACY_APP_ROUTES } from "@/config/pwaRouting";
 
 export const AppBar = () => {
@@ -31,21 +32,12 @@ export const AppBar = () => {
   const { data: pendingCount = 0 } = usePendingWorksCount();
   const { isPwaPresentation } = useApp();
 
-  // Check if any drawer is open to hide AppBar beneath them
-  const isWorkDashboardOpen = useUIStore((s) => s.isWorkDashboardOpen);
-  const isGardenFilterOpen = useUIStore((s) => s.isGardenFilterOpen);
-  const isEndowmentDrawerOpen = useUIStore((s) => s.isEndowmentDrawerOpen);
-  const isWalletDrawerOpen = useUIStore((s) => s.isWalletDrawerOpen);
-  const isCommitmentsDrawerOpen = useUIStore((s) => s.isCommitmentsDrawerOpen);
-  const isAnyDrawerOpen =
-    isWorkDashboardOpen ||
-    isGardenFilterOpen ||
-    isEndowmentDrawerOpen ||
-    isWalletDrawerOpen ||
-    isCommitmentsDrawerOpen;
+  // Every sheet and dialog registers itself while open, so the bar steps aside
+  // for all of them without a hand-maintained list (DL-015).
+  const isAnySheetOpen = useUIStore((s) => s.openSheetCount > 0);
   // Browser mode shows SiteHeader only (D6); bottom nav is PWA-only
   const shouldHideBar =
-    !isPwaPresentation || isGarden || isWorkDetail || isCommitmentRoute || isAnyDrawerOpen;
+    !isPwaPresentation || isGarden || isWorkDetail || isCommitmentRoute || isAnySheetOpen;
 
   const tabs: {
     path: string;
@@ -119,7 +111,12 @@ export const AppBar = () => {
                   <InactiveIcon className="w-6 h-6" />
                 )}
                 {showBadge && (
-                  <span className="absolute -top-1 -right-1.5 min-w-4 h-4 flex items-center justify-center rounded-full bg-primary text-primary-accent-foreground text-[10px] font-bold leading-none px-1">
+                  <span
+                    className={cn(
+                      "absolute -top-1 -right-1.5 min-w-4 h-4 flex items-center justify-center rounded-full text-[10px] font-bold leading-none px-1",
+                      pwaStatusStyles.primary.badge
+                    )}
+                  >
                     {pendingCount > 9 ? "9+" : pendingCount}
                   </span>
                 )}

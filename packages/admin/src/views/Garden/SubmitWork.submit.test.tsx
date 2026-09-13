@@ -1,6 +1,6 @@
 import enMessages from "@green-goods/shared/i18n/en";
 import { type Action, Domain } from "@green-goods/shared/types/domain";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { onlineManager, QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { ReactNode } from "react";
@@ -528,6 +528,7 @@ function uploadFile(container: HTMLElement, fileName = "before.png", type = "ima
 }
 
 function setNavigatorOnline(isOnline: boolean) {
+  onlineManager.setOnline(isOnline);
   Object.defineProperty(window.navigator, "onLine", {
     configurable: true,
     get: () => isOnline,

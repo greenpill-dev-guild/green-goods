@@ -25,7 +25,7 @@ const COMPLETED_MESSAGES = {
     id: "app.workDashboard.completed.itemsCompleted",
     defaultMessage: "{count} items completed",
   },
-  loading: { id: "app.workDashboard.loading", defaultMessage: "Loading completed work..." },
+  loading: { id: "app.workDashboard.loading", defaultMessage: "Loading your work..." },
   emptyTitle: {
     id: "app.workDashboard.completed.noCompleted",
     defaultMessage: "No completed work",

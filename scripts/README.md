@@ -19,27 +19,67 @@ scripts/
 └── data/           data files (baselines, fixtures) consumed by scripts
 ```
 
+## Development interface
+
+Follow [ONBOARDING.md](../ONBOARDING.md) for public or team setup. Run commands here from the
+repository root. `bun run dev` starts local services on live Arbitrum. Mode arguments select
+`local`, `full`, `fork`, `web`, `prod`, or `prod-mirror`; service arguments start only those services.
+`bun run dev:health -- <mode>` checks prerequisites; `bun run dev:smoke -- <mode>` checks running
+services. Both default to `local`. Use `--help` for diagnostic flags and advanced health profiles.
+Ctrl-C releases this session's services. Explicit stop requires its existing owner identity;
+indexed database volumes survive either shutdown path.
+
+The [command inventory](../docs/docs/builders/packages/commands.mdx) is generated from all
+workspace manifests by `bun run docs:generate`. The table below records callers and purpose.
+
+## Command migration
+
+Old names in this table are historical labels, not runnable examples.
+
+| Retired command | Replacement from repository root |
+|---|---|
+| `setup:host`, `setup:isolated`, `setup:cloud` | `npm run setup -- --profile <profile>` |
+| `setup:doctor`, `dev:doctor` | `bun run dev:health` |
+| `dev:<mode>`, `dev:<service>`, `dev:stack` | `bun run dev -- <mode-or-services>` |
+| `dev:prod:mirror` | `bun run dev -- prod-mirror` |
+| Mode-specific health/smoke aliases | `bun run dev:health -- <mode>`, `bun run dev:smoke -- <mode>` |
+| `dev:stop`, `dev:stack:stop` | `bun run dev -- stop` (existing owner identity required) |
+| `dev:clean:dry` | `bun run dev:clean -- --dry-run` |
+| `env:validate` | `bun run env:check` |
+| `env:bootstrap` | `npm run setup -- --profile isolated` for a missing baseline |
+| Indexer `dev:manual`, `test:full`, `stop` | Package `dev`, `test`, `db:down` |
+| Admin `build:deploy`, `test:all`, `test:legacy`, `test:views:hub-detail` | Package `build`, `test` (optionally a test path) |
+| Docs `start` | `bun run --cwd docs dev` |
+| Root `contracts:ens:migrate:mainnet` | `bun run --cwd packages/contracts ens:migrate:mainnet` |
+| Root and contract-package steward-relabel dry/broadcast commands | Completed operation; execution evidence remains historical |
+
+Other contract wrappers retain their environment, signer, keystore, network, and verification
+behavior. In particular, the two login-shell dry wrappers retain their existing argument behavior;
+replacing them with direct package calls would newly forward arguments. Similar names alone do
+not establish equivalent operations.
+
 ## Inventory
 
 ### `dev/` — local dev workflow
 | Script | Caller | Purpose |
 |---|---|---|
-| `setup.js` | `npm run setup`, `bun run setup`, `setup:host`, `setup:isolated`, `setup:cloud` | First-clone and workspace setup; checks deps, bootstraps Bun when allowed, installs dependencies, and handles host/isolated/cloud env posture |
-| `clean.js` | `bun run dev:clean`, `bun run dev:clean:dry` | Remove disposable build/test/cache artifacts from the current checkout only; never stops services, removes dependencies, touches env files, or inspects sibling worktrees |
-| `doctor.js` | `bun run dev:doctor` / `setup:doctor` / `dev:prod:health` / `dev:prod:mirror:health` | Non-mutating readiness check (ports, tools, env, profiles) |
+| `setup.js` | `npm run setup -- --profile host`, `npm run setup -- --profile isolated`, `npm run setup -- --profile cloud` | First-clone and workspace setup; checks deps, bootstraps Bun when allowed, installs dependencies, and handles host/isolated/cloud env posture |
+| `clean.js` | `bun run dev:clean`, `bun run dev:clean -- --dry-run` | Remove disposable build/test/cache artifacts from the current checkout only; never stops services, removes dependencies, touches env files, or inspects sibling worktrees |
+| `doctor.js` | `bun run dev:health -- <mode>` | Non-mutating readiness check (ports, tools, env, profiles) |
 | `env-template-init.js` | `bun run env:template:init` | Generate `.env.template` skeleton from `.env.schema` (one-shot) |
 | `env-sync.js` | `bun run env:sync` | Run `op inject` against `.env.template` to materialize `.env` |
-| `env-bootstrap.js` | `bun run env:bootstrap` | Append `.env.schema` defaults to `.env` for keys missing there (one-shot post-varlock-removal) |
 | `env-check.js` | `bun run env:check`, called from `doctor.js` | Validate `.env` has all required `.env.schema` keys non-empty |
 | `node-cli.js` | `packages/client dev`, `packages/admin dev`, `packages/shared storybook`, `docs dev` | Run local JS dev CLIs under real system Node instead of Bun's injected `node` shim |
 | `remove-public-sourcemaps.js` | `packages/client build`, `packages/admin build` | Remove emitted `.map` files after Sentry upload so Vercel does not publish browser source maps |
-| `stack.js` | `bun run dev:stack` / `dev:web` / `dev:full` / `dev:fork` / `dev:prod` / `dev:prod:mirror` / `dev:stack:stop` | Start/stop PM2 groups; default local services against live Arbitrum, explicit fork mode, optional full browser tools, Docker preflight, early exit detection, automatic QA smoke, and polling-backed client HMR (`VITE_USE_POLLING=false` opts out) |
-| `smoke-web.js` | `bun run dev:smoke:web` | Verify client/admin/docs/storybook respond on local ports |
-| `smoke-full.js` | `bun run dev:smoke` / `dev:smoke:full` / `dev:fork:smoke` | Verify local services (full adds docs and Storybook), completed Arbitrum replay with gardens and bounded lag, live Arbitrum chain id `42161`, deployed bytecode, and indexer lag against live head (`dev:fork:smoke` explicitly checks Anvil and funded wallets) |
-| `smoke-prod.js` | `bun run dev:prod:smoke`; auto-run by `bun run dev:prod` and `bun run dev:prod:mirror` | Verify local browser surfaces plus read-only production agent health, Arbitrum RPC, contract bytecode, production/local indexer health, and indexer lag |
+| `stack.js` | `bun run dev -- <mode>`, `bun run dev -- stop` | Start/stop PM2 groups; default local services against live Arbitrum, explicit fork mode, optional full browser tools, Docker preflight, early exit detection, automatic QA smoke, and polling-backed client HMR (`VITE_USE_POLLING=false` opts out) |
+| `smoke.js` | `bun run dev:smoke` | Select the existing read-only smoke by shared launch mode and forward diagnostic arguments |
+| `dev-modes.test.mjs`, `setup-env.test.mjs` | `bun run test:validation-system` | Launcher argument, mode overlay, public baseline, and environment preservation regression fixtures |
+| `smoke-web.js` | `bun run dev:smoke -- web` | Verify client/admin/docs/storybook respond on local ports |
+| `smoke-full.js` | `smoke.js` local/full/fork modes | Verify local services (full adds docs and Storybook), completed Arbitrum replay with gardens and bounded lag, live Arbitrum chain id `42161`, deployed bytecode, and indexer lag against live head (fork smoke explicitly checks Anvil and funded wallets) |
+| `smoke-prod.js` | `bun run dev:smoke -- prod`; auto-run by `bun run dev -- prod` and `bun run dev -- prod-mirror` | Verify local browser surfaces plus read-only production agent health, Arbitrum RPC, contract bytecode, production/local indexer health, and indexer lag |
 | `tunnel.js` | `bun run dev:tunnel`, `ecosystem.config.cjs` | Cloudflared tunnel(s) for client + admin device testing. Spawns one tunnel per `--port` arg (defaults to client 3001 + admin 3002); writes `.tunnel-url` (client) and `.tunnel-url-admin` (admin) |
 | `open-urls.sh` | `ecosystem.config.cjs` (PM2 app) | Wait on dev ports, open Brave to localhost URLs |
-| `test-e2e.js` | `bun run test:e2e[:smoke]` | Boot the web stack (client + admin + docs + storybook) via `bun run dev:web`, wait on health, run Playwright, stop the PM2 stack via `bun run dev:stack:stop` |
+| `test-e2e.js` | `bun run test:e2e` | Boot the web stack (client + admin + docs + storybook) via `bun run dev -- web`, wait on health, run Playwright, stop the PM2 stack via `bun run dev -- stop` |
 | `seed-test-data.ts` | `bun run seed:test` / `seed:anvil` | Seed local/anvil chain with test fixtures |
 | `ci-local.js` | `bun run ci:local` | Selector-driven local executor with change-aware plans, fail-fast stopping, explicit blocked/cancelled results, and opt-in exact passing receipts |
 | `ci-local.test.mjs` | `bun run test:validation-system`, CI Gate | Fixture coverage for local fail-fast, cancellation, blocking, and exact passing-receipt behavior |
@@ -127,16 +167,16 @@ Client startup prints one `[vite-watch]` line with the checkout, client root, wa
 | `validate-test-realism-tooling.sh` | `contracts.yml`, `packages/contracts test:audit:realism:tooling` | Meta-test that exercises the realism audit script itself |
 | `run-coverage-audit.sh` | `packages/contracts test:audit:coverage` | Run unit + integration coverage and write `output/contracts-test-audit/` reports |
 | `coverage-policy.mjs` | `run-coverage-audit.sh` | Per-file coverage thresholds policy |
-| `verify-production.sh` | `bun run verify:contracts[:fast]` | Pre-deploy contract verification gate |
+| `verify-production.sh` | `bun run verify:contracts` | Pre-deploy contract verification gate |
 | `verify-production.test.mjs` | `bun run test:contracts-verifier` | Black-box regression test for contract verifier path resolution and working directory |
 
 ### `ops/` — chain operations + release artifacts
 | Script | Caller | Purpose |
 |---|---|---|
-| `garden-rename-batch.ts` | `bun run garden:rename-batch[:dry:arbitrum/:arbitrum]` | Build Safe txs to rename gardens in batch |
-| `ipfs-repin.ts` | `bun run ipfs:repin[:audit]` | Re-pin / audit Pinata content |
-| `upload-action-images.ts` | `bun run upload:action-images[:dry-run]` | Upload action images to IPFS |
-| `upload-sourcemaps.js` | `bun run sourcemaps[:dry-run]`, `client.yml`, `admin.yml` | Build sourcemap-enabled bundles in GitHub Actions, upload maps to PostHog, then remove local map files |
+| `garden-rename-batch.ts` | `bun run garden:rename-batch:dry:arbitrum` | Build Safe txs to rename gardens in batch |
+| `ipfs-repin.ts` | `bun run ipfs:repin` | Re-pin / audit Pinata content |
+| `upload-action-images.ts` | `bun run upload:action-images` | Upload action images to IPFS |
+| `upload-sourcemaps.js` | `bun run sourcemaps`, `client.yml`, `admin.yml` | Build sourcemap-enabled bundles in GitHub Actions, upload maps to PostHog, then remove local map files |
 | `bump-version.mjs` | `bun run version:bump <x.y.z> [--dry-run]`, `bun run version:check <x.y.z>` | Keep root + 6 package versions and the supported release in `SECURITY.md` aligned; release CI uses check mode to block stale release metadata |
 | `month-metrics.mjs` | `bun run metrics:month -- --month YYYY-MM [--json]` | Manual, read-only month-in-review aggregates for reviewed PRs, E2E static skips, active plans, and alias-folded contributor counts; no schedule or CI caller |
 
@@ -206,3 +246,8 @@ A script earns a place here only if it has a durable caller in (1) root `package
 One-shot ops (single-deploy fixes, batch migrations, ad-hoc audits) do not belong here — keep them in `.plans/<feature>/` or delete after use.
 
 `stack.test.mjs` and `smoke-full.test.mjs` run through `bun run test:validation-system`; they cover dev profile selection, ownership, readiness, and live-versus-fork RPC checks.
+
+Shared development helpers: `lib/dev-modes.mjs` supplies launcher, health, and smoke selection;
+`lib/setup-env.mjs` creates setup baselines exclusively without overwriting an existing environment.
+The docs audit imports `docs/scripts/developer-guides.mjs` for local guide links, anchors,
+manifest commands, validation intents, and mode checks; its fixtures run in Docs CI.

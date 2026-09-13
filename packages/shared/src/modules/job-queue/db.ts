@@ -1,5 +1,6 @@
-import { type IDBPDatabase, openDB } from "idb";
-import type { CachedWork, Job, JobQueueDBImage, WorkJobPayload } from "../../types/job-queue";
+import type { IDBPDatabase } from "idb";
+import { openJobQueueDatabase, type JobQueueDB, type WorkCompletion } from "./db-schema";
+import type { Job, WorkJobPayload } from "../../types/job-queue";
 import { deserializeFile } from "../../utils/storage/file-serialization";
 import { retryOnceAfterQuotaCleanup } from "../../utils/storage/quota";
 import { createLogger } from "../app/logger";
@@ -11,120 +12,26 @@ import { mediaResourceManager } from "./media-resource-manager";
 
 const log = createLogger({ source: "job-queue/db" });
 
-const DB_NAME = "green-goods-job-queue";
-const DB_VERSION = 6; // Commitment Pooling client-id materialization mappings
-
-interface ClientWorkIdMapping {
-  clientWorkId: string;
-  attestationId: string; // EAS attestation ID
-  jobId: string; // Original job ID
-  createdAt: number;
-}
-
-interface ClientCommitmentIdMapping {
-  clientCommitmentId: string;
-  commitmentId: string;
-  jobId: string;
-  chainId: number;
-  createdAt: number;
-}
-
-interface ClientSeriesIdMapping {
-  clientSeriesId: string;
-  seriesId: string;
-  jobId: string;
-  chainId: number;
-  createdAt: number;
-}
-
-interface JobQueueDB {
-  jobs: Job;
-  job_images: JobQueueDBImage;
-  cached_work: CachedWork;
-  client_work_id_mappings: ClientWorkIdMapping;
-  client_commitment_id_mappings: ClientCommitmentIdMapping;
-  client_series_id_mappings: ClientSeriesIdMapping;
-}
-
 class JobQueueDatabase {
   private db: IDBPDatabase<JobQueueDB> | null = null;
+  private opening: Promise<IDBPDatabase<JobQueueDB>> | null = null;
 
   async init(): Promise<IDBPDatabase<JobQueueDB>> {
     if (this.db) return this.db;
+    if (this.opening) return this.opening;
 
-    this.db = await openDB<JobQueueDB>(DB_NAME, DB_VERSION, {
-      upgrade(db, oldVersion, _newVersion, transaction) {
-        // Create jobs store
-        if (!db.objectStoreNames.contains("jobs")) {
-          const jobsStore = db.createObjectStore("jobs", { keyPath: "id" });
-          jobsStore.createIndex("kind", "kind");
-          jobsStore.createIndex("synced", "synced");
-          jobsStore.createIndex("createdAt", "createdAt");
-          jobsStore.createIndex("attempts", "attempts");
-          // Add compound index for better query performance
-          jobsStore.createIndex("kind_synced", ["kind", "synced"]);
-          // Add userAddress index for user-scoped queries
-          jobsStore.createIndex("userAddress", "userAddress");
-        }
-
-        // Create job images store
-        if (!db.objectStoreNames.contains("job_images")) {
-          const imagesStore = db.createObjectStore("job_images", { keyPath: "id" });
-          imagesStore.createIndex("jobId", "jobId");
-          imagesStore.createIndex("createdAt", "createdAt");
-        }
-
-        // Keep cached work for backward compatibility
-        if (!db.objectStoreNames.contains("cached_work")) {
-          const cachedWorkStore = db.createObjectStore("cached_work", { keyPath: "id" });
-          cachedWorkStore.createIndex("gardenAddress", "gardenAddress");
-          cachedWorkStore.createIndex("gardenerAddress", "gardenerAddress");
-        }
-
-        // Create client work ID mappings store for fast deduplication
-        if (!db.objectStoreNames.contains("client_work_id_mappings")) {
-          const mappingsStore = db.createObjectStore("client_work_id_mappings", {
-            keyPath: "clientWorkId",
-          });
-          mappingsStore.createIndex("attestationId", "attestationId");
-          mappingsStore.createIndex("jobId", "jobId");
-          mappingsStore.createIndex("createdAt", "createdAt");
-        }
-
-        if (!db.objectStoreNames.contains("client_commitment_id_mappings")) {
-          const mappingsStore = db.createObjectStore("client_commitment_id_mappings", {
-            keyPath: "clientCommitmentId",
-          });
-          mappingsStore.createIndex("commitmentId", "commitmentId");
-          mappingsStore.createIndex("jobId", "jobId");
-          mappingsStore.createIndex("chainId", "chainId");
-        }
-
-        if (!db.objectStoreNames.contains("client_series_id_mappings")) {
-          const mappingsStore = db.createObjectStore("client_series_id_mappings", {
-            keyPath: "clientSeriesId",
-          });
-          mappingsStore.createIndex("seriesId", "seriesId");
-          mappingsStore.createIndex("jobId", "jobId");
-          mappingsStore.createIndex("chainId", "chainId");
-        }
-
-        // Migration: Add userAddress index to existing jobs store (v4 -> v5)
-        if (oldVersion >= 1 && oldVersion < 5) {
-          const jobsStore = transaction.objectStore("jobs");
-          // Add userAddress index if it doesn't exist
-          if (!jobsStore.indexNames.contains("userAddress")) {
-            jobsStore.createIndex("userAddress", "userAddress");
-          }
-        }
-      },
+    this.opening = openJobQueueDatabase(() => {
+      this.db?.close();
+      this.db = null;
     });
 
-    // Clean up stale URLs after init completes (awaited to prevent
-    // concurrent transactions on iOS Safari which can deadlock).
-    await this.cleanupStaleUrls();
-
-    return this.db;
+    try {
+      this.db = await this.opening;
+      await this.cleanupStaleUrls();
+      return this.db;
+    } finally {
+      this.opening = null;
+    }
   }
 
   /**
@@ -175,11 +82,19 @@ class JobQueueDatabase {
     }
 
     const db = await this.init();
+    if (job.kind === "work") {
+      const clientId = (job.payload as WorkJobPayload).clientWorkId;
+      if (clientId && job.chainId) {
+        const completed = await this.getWorkCompletion(job.userAddress, job.chainId, clientId);
+        if (completed) return completed.jobId;
+      }
+    }
     const id = crypto.randomUUID();
     const timestamp = Date.now();
 
     const jobData: Job<T> = {
       ...job,
+      userAddress: job.userAddress.toLowerCase() as Job["userAddress"],
       id,
       createdAt: timestamp,
       attempts: 0,
@@ -202,24 +117,51 @@ class JobQueueDatabase {
 
     try {
       await retryOnceAfterQuotaCleanup(async () => {
-        const tx = db.transaction(["jobs", "job_images"], "readwrite");
+        const tx = db.transaction(
+          ["jobs", "job_images", "work_completions", "client_work_id_mappings"],
+          "readwrite"
+        );
         try {
+          if (jobData.kind === "work") {
+            const clientId = (jobData.payload as WorkJobPayload).clientWorkId;
+            if (clientId) {
+              const completed = await tx
+                .objectStore("work_completions")
+                .get(this.workScope(jobData.userAddress, jobData.chainId!, clientId));
+              const legacy = await tx.objectStore("client_work_id_mappings").get(clientId);
+              const legacyIsUnscoped =
+                legacy &&
+                !(await tx.objectStore("work_completions").getAll()).some(
+                  (row) => row.clientWorkId === clientId
+                );
+              if (completed) {
+                savedId = completed.jobId;
+                await tx.done;
+                return;
+              }
+              if (legacyIsUnscoped) {
+                const payload = jobData.payload as WorkJobPayload;
+                payload.uploadCheckpoint = {
+                  submittedAt: new Date(legacy.createdAt).toISOString(),
+                  files: {},
+                  ...payload.uploadCheckpoint,
+                  transactionHash: legacy.attestationId as `0x${string}`,
+                };
+                jobData.meta = {
+                  ...jobData.meta,
+                  legacyConfirmation: true,
+                  waitingForDependency: true,
+                  waitingReason: "awaiting-confirmation",
+                };
+              }
+            }
+          }
           const existing = findExistingWorkJob(
-            await tx.objectStore("jobs").index("userAddress").getAll(job.userAddress),
+            await tx.objectStore("jobs").index("userAddress").getAll(jobData.userAddress),
             jobData
           );
           if (existing) {
             savedId = existing.id;
-            const incoming = (jobData.payload as WorkJobPayload).uploadCheckpoint;
-            if (incoming?.transactionHash) {
-              const payload = existing.payload as WorkJobPayload;
-              payload.uploadCheckpoint = {
-                ...incoming,
-                files: { ...payload.uploadCheckpoint?.files, ...incoming.files },
-              };
-              existing.meta = { ...existing.meta, ...jobData.meta };
-              await tx.objectStore("jobs").put(existing);
-            }
             await tx.done;
             return;
           }
@@ -261,7 +203,7 @@ class JobQueueDatabase {
     // This is more compatible with fake-indexeddb used in tests
     const tx = db.transaction("jobs", "readonly");
     const index = tx.objectStore("jobs").index("userAddress");
-    let result: Job[] = await index.getAll(filter.userAddress);
+    let result: Job[] = await index.getAll(filter.userAddress.toLowerCase());
 
     // Apply synced filter in memory
     if (filter.synced !== undefined) {
@@ -421,12 +363,70 @@ class JobQueueDatabase {
     jobId: string
   ): Promise<void> {
     const db = await this.init();
-    await db.put("client_work_id_mappings", {
-      clientWorkId,
-      attestationId,
-      jobId,
-      createdAt: Date.now(),
-    });
+    const tx = db.transaction(["jobs", "work_completions", "client_work_id_mappings"], "readwrite");
+    const job = await tx.objectStore("jobs").get(jobId);
+    if (job?.chainId) {
+      await tx.objectStore("work_completions").put({
+        scope: this.workScope(job.userAddress, job.chainId, clientWorkId),
+        clientWorkId,
+        userAddress: job.userAddress.toLowerCase(),
+        chainId: job.chainId,
+        transactionHash: attestationId,
+        jobId,
+        createdAt: Date.now(),
+      });
+    }
+    await tx
+      .objectStore("client_work_id_mappings")
+      .put({ clientWorkId, attestationId, jobId, createdAt: Date.now() });
+    await tx.done;
+  }
+
+  private workScope(address: string, chainId: number, clientWorkId: string): string {
+    return `${chainId}:${address.toLowerCase()}:${clientWorkId}`;
+  }
+
+  async getWorkCompletion(
+    address: string,
+    chainId: number,
+    clientWorkId: string
+  ): Promise<WorkCompletion | undefined> {
+    const db = await this.init();
+    return db.get("work_completions", this.workScope(address, chainId, clientWorkId));
+  }
+
+  async acquireExecutionClaim(ids: string[], token: string): Promise<boolean> {
+    const db = await this.init();
+    const tx = db.transaction("execution_claims", "readwrite");
+    const now = Date.now();
+    const claims = await Promise.all(ids.map((id) => tx.store.get(id)));
+    if (claims.some((claim) => claim && claim.token !== token && claim.expiresAt > now)) {
+      await tx.done;
+      return false;
+    }
+    for (const id of ids) await tx.store.put({ id, token, expiresAt: now + 60_000 });
+    await tx.done;
+    return true;
+  }
+
+  async renewExecutionClaim(ids: string[], token: string): Promise<boolean> {
+    const db = await this.init();
+    const tx = db.transaction("execution_claims", "readwrite");
+    const claims = await Promise.all(ids.map((id) => tx.store.get(id)));
+    if (claims.some((claim) => claim?.token !== token)) {
+      await tx.done;
+      return false;
+    }
+    for (const id of ids) await tx.store.put({ id, token, expiresAt: Date.now() + 60_000 });
+    await tx.done;
+    return true;
+  }
+
+  async releaseExecutionClaim(ids: string[], token: string): Promise<void> {
+    const db = await this.init();
+    const tx = db.transaction("execution_claims", "readwrite");
+    for (const id of ids) if ((await tx.store.get(id))?.token === token) await tx.store.delete(id);
+    await tx.done;
   }
 
   async getAttestationIdByClientWorkId(clientWorkId: string): Promise<string | null> {
@@ -494,17 +494,7 @@ class JobQueueDatabase {
    * Cleanup old mappings (older than 30 days)
    */
   async cleanupOldMappings(): Promise<void> {
-    const db = await this.init();
-    const thirtyDaysAgo = Date.now() - 30 * 24 * 60 * 60 * 1000;
-    const tx = db.transaction("client_work_id_mappings", "readwrite");
-    const index = tx.objectStore("client_work_id_mappings").index("createdAt");
-    const oldMappings = await index.getAll(IDBKeyRange.upperBound(thirtyDaysAgo));
-
-    for (const mapping of oldMappings) {
-      await tx.objectStore("client_work_id_mappings").delete(mapping.clientWorkId);
-    }
-
-    await tx.done;
+    // Completion identities protect residual drafts indefinitely. Their compact rows are never browsing cache.
   }
 
   /**

@@ -3,442 +3,130 @@
 [![Version](https://img.shields.io/github/v/tag/greenpill-dev-guild/green-goods)](https://github.com/greenpill-dev-guild/green-goods/releases)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
-**Bringing community and environmental actions onchain to better measure, track and reward impact.**
+**Community infrastructure for documenting, reviewing, and funding regenerative work.**
 
-Green Goods is an offline-first platform for documenting ecological and social work and proving impact on-chain. Operators approve gardener submissions, and the protocol anchors results in Ethereum attestation infrastructure.
+Green Goods helps communities organize environmental and social work, from tree planting
+and waste collection to solar maintenance and education. A community workspace is called
+a **garden**: it can represent a neighborhood, cooperative, campus, or local project.
 
-## Getting Started
+Gardeners record their contributions through a mobile web app. Stewards review the evidence,
+and approved work becomes an onchain record. Communities use these records alongside
+shared governance and funding tools to coordinate their work and support contributors.
 
-### Prerequisites
+The repository includes the public website and installed PWA, the steward admin app,
+smart contracts, shared application code, an event indexer, and a messaging/API service.
+The PWA supports local drafts and queued submissions; connected capabilities depend on
+the sign-in method and available services.
 
-Install **Node.js 22+** and **Git**. Install **OrbStack or Docker Desktop** if you plan to run the full stack or indexer locally. Node includes `npm`, and `npm run setup` installs Bun automatically if it is missing.
+[Explore Green Goods](https://greengoods.app) · [Read the docs](https://docs.greengoods.app)
 
-**Optional tools:** Foundry is needed for contract work. `cloudflared` is useful for mobile-device PWA testing. macOS and Linux are supported natively; use WSL2 or a dev container on Windows.
+## Get started with your agent
 
-### Clone
-
-[![Clone on GitHub](https://img.shields.io/badge/Clone-on%20GitHub-2da44e?logo=github)](https://github.com/greenpill-dev-guild/green-goods)
-
-Use GitHub's **Code** button to choose the SSH or HTTPS remote that matches your local Git setup. Then run the setup commands from the repo root.
-
-### Agent-Assisted Setup
-
-If you are using Codex, Claude Code, or another coding agent, start by loading [ONBOARDING.md](./ONBOARDING.md). It gives the agent the repo context, setup flow, environment model, and first-run checks before it starts changing files.
+Clone this repository, open it in your coding agent, and use this prompt:
 
 ```text
-Read ONBOARDING.md and AGENTS.md, then walk me through first-time setup for this repo.
-Start with prerequisites, run npm run setup, check web readiness, start the browser
-stack, and explain any env blockers before making changes.
+Read AGENTS.md and ONBOARDING.md. Help me set up Green Goods and understand
+where to make my first contribution. Check what is already installed, choose
+the public-contributor or team setup path with me, and explain any missing
+credentials. Verify the supported workflow and report its limits. Preserve
+existing environment files and other sessions' services.
 ```
 
-### Setup
+[ONBOARDING.md](ONBOARDING.md) owns the complete procedure for Codex, Claude Code,
+and other agents. [AGENTS.md](AGENTS.md) owns repository rules; the nearest package
+guide explains the area you will edit.
 
-#### Install dependencies
+## Manual setup
+
+Use **Node 22** and Git. Exact tool versions are pinned in [.mise.toml](.mise.toml).
+Use macOS or Linux; on Windows, use WSL2. Team full-stack development also needs
+OrbStack or Docker. Contract work requires the pinned Foundry version.
 
 ```bash
-npm run setup
+git clone https://github.com/greenpill-dev-guild/green-goods.git
+cd green-goods
 ```
 
-After setup, use `bun` for repo scripts and package operations. `npm run setup` is the only documented npm entrypoint because fresh machines may not have Bun yet.
+Run commands from the repository root. `npm run setup` can install Bun when it is
+missing; after that, use Bun for repository commands.
 
-For isolated worktrees, containers, or agent-owned checkouts, use the same npm bridge with the isolated profile:
+### Public contributors
+
+This path creates a non-secret root `.env` and uses hosted APIs for public browsing.
+It does not require shared team credentials or a local Docker indexer.
 
 ```bash
 npm run setup -- --profile isolated
+bun run dev:health -- prod
+bun run dev -- prod
 ```
 
-The isolated profile can bootstrap Bun when Node/npm and network access are available, then uses `bun install --frozen-lockfile` once Bun is present. It avoids host-only setup such as Docker checks, Foundry installation, service starts/stops, browser launches, and sibling-worktree cleanup.
+Open the client URL printed by the launcher. Authentication, uploads, and steward
+workflows may require additional credentials or roles; public browsing does not prove them.
+**This mode uses production APIs and live Arbitrum. Confirmed transactions are real.**
 
-#### Environment defaults
+### Team members
 
-Green Goods uses a single root `.env`, materialized from `.env.template` via the [1Password CLI](https://developer.1password.com/docs/cli/) (`op inject`). Bun, Vite, and Node read it natively — no per-command secret fetch.
+Use the host profile and your team's 1Password access. Environment requirements and
+recovery are explained in [Environment Management](https://docs.greengoods.app/builders/env-management).
 
-```bash
-bun run env:template:init   # one-time: scaffold .env.template from .env.schema
-bun run env:sync             # materialize .env from .env.template (runs `op inject`)
-bun run env:check            # validate .env satisfies .env.schema
-```
-
-`.env.schema` defines the contract; `.env.template` is the team-shared file with `op://Vault/Item/field` refs for shared secrets and plain values for non-secrets. Keep personal local-only credentials directly in `.env`.
-
-| Variable | Needed for | Default setup state |
-| --- | --- | --- |
-| `APP_ENV` | Local tooling mode | Generated as `development` |
-| `GG_WORKSPACE_PROFILE` | Setup posture for host, isolated worktree, or cloud/container runtime | `host`; use `isolated` for worktree/container flows |
-| `GG_SETUP_INSTALL` | Dependency install policy for setup | `auto`; use `skip` for pre-baked containers |
-| `GG_SETUP_ENV_MODE` | Baseline `.env` creation policy for setup | `auto`; isolated auto creates non-secret web defaults |
-| `VITE_CHAIN_ID` | Client/admin chain selection | Generated for Sepolia |
-| `VITE_DEV_CHAIN_MODE` | Optional local fork marker | Set by the repo-native dev stack for Green Goods fork mode |
-| `VITE_LOCAL_FORK_RPC_URL` | Optional local fork RPC | Set by the repo-native dev stack to `http://127.0.0.1:3009` |
-| `VITE_ENVIO_INDEXER_URL` | Local indexer reads | Generated for local GraphQL; needs the indexer running for live local data |
-| `VITE_API_BASE_URL` | Upload-capable media browser API origin | Generated for the local agent; set to the deployed agent for upload-capable QA |
-| `PINATA_JWT` / `PINATA_JWT_OP_REF` | Server/API Pinata upload authority | Add through `.env.template` / 1Password for upload-capable QA; never embed this in browser bundles |
-| `VITE_PINATA_GATEWAY_URL` | Public Pinata gateway for reading media | Generated from the shared gateway default |
-| `VITE_PIMLICO_API_KEY` | Passkey auth | Add only when testing passkey flows |
-| `VITE_WALLETCONNECT_PROJECT_ID` | Wallet auth | Add only when testing wallet flows |
-| `TELEGRAM_BOT_TOKEN` | Agent service | Add only when running a useful local agent |
-
-For shared team secrets, edit `.env.template` and set the value to `op://Vault/Item/field`, then run `bun run env:sync`. For personal local credentials, set the variable directly in the root `.env`. Never create package-level `.env` files.
-
-### Check readiness
+Existing `.env` files are kept. Review readiness before explicitly replacing local credentials.
+**Confirmed transactions affect live Arbitrum.**
 
 ```bash
+npm run setup -- --profile host
+test -f .env || bun run env:sync
 bun run dev:health
-```
-
-`bun run dev:health` checks the default local services. Use
-`bun run dev:doctor -- --profile web` when you only need the browser-facing
-readiness check.
-
-### Start stack
-
-```bash
 bun run dev
 ```
 
-Starts client, admin, agent, the Docker indexer, and Anvil under PM2. Open
-OrbStack or Docker Desktop first; the launcher checks Docker before starting
-services and repairs a stale local Docker socket when OrbStack is running.
-Client and admin URLs print when ready. Use `bun run dev:full` to also start
-docs and Storybook and open review tabs. Public tunnels are opt-in through
-`bun run dev:tunnel`. Ctrl+C stops services owned by this launch.
-
-The indexer preserves its local database between runs. If Envio reports an
-incompatible saved configuration, startup stops; replaying that local dataset
-requires an explicit decision. A successful fresh-database check does not prove
-that an older dataset can resume with the current contracts.
-
-The default
-chain target is an Arbitrum One fork on port `3009`, so client/admin reads and
-wallet writes use chain id `42161` while transactions are mined only in local
-Anvil state.
-
-Plain local Anvil is still available for contract-only work, but it is
-explicit-only:
-
-```bash
-dev stop green-goods:anvil-arbitrum
-dev launch green-goods:anvil
-```
-
-For fork-mode transaction testing, use a dedicated dev browser profile and a
-disposable wallet. The Arbitrum fork launcher keeps Anvil startup output quiet
-so fork RPC credentials do not appear in logs; local test-account details are
-written to `packages/contracts/.generated/runtime/arbitrum-fork.json` with the
-fork endpoint redacted. Import one of those local-only accounts, configure that
-wallet to use `http://127.0.0.1:3009` on chain `42161`, and never use a real
-everyday wallet profile with Anvil keys. `?mockAuth=operator` is only a UI state
-override; it does not sign transactions.
-
-### Testing
-
-Use `bun run dev:smoke:full` after `bun run dev:full` to include docs and
-Storybook in the checks.
-
-```bash
-bun run dev:smoke:web
-bun run dev:smoke
-```
-
-`bun run dev` automatically runs the local smoke after the service ports open.
-It reports QA readiness only after the client, admin, agent, database, and
-Arbitrum fork respond and the indexer has completed its initial replay, contains
-Arbitrum gardens, and is within 2,000 blocks of its source. A failed smoke leaves
-services running so replay can continue; rerun `bun run dev:smoke` to check again.
-Use `bun run dev:smoke:web` for browser services alone.
-
-The local indexer mirrors configured live networks into PostgreSQL. Normal
-restarts retain the data and resume indexing. `ENVIO_API_TOKEN` is required for
-HyperSync access, but a configured token can still exhaust its quota and delay
-replay. A healthy container alone does not establish data readiness.
-
-Keep `bun run dev` open in your terminal. Ctrl-C stops the services it owns,
-including the indexer containers, and preserves the indexed database. If the
-terminal or launcher crashes, the next `bun run dev` automatically recovers
-leftover services after verifying their PM2 owner and checkout against the
-saved leases. Startup and recovery are serialized so two launches cannot take
-ownership concurrently. Services owned by a live launcher or an unverified
-external process are not stopped by recovery.
-
-## Tech Stack
-
-### Stack Overview
-
-- Node.js 22+ provides `npm` for first-clone setup.
-- `npm run setup` installs or confirms Bun, installs dependencies, and prints the env-sync path.
-- `npm run setup -- --profile isolated` is the portable worktree/container profile; it can write a non-secret baseline `.env`.
-- Bun is the workspace runtime after setup.
-- `.env.schema` (key contract) + `.env.template` (1Password refs) materialize `.env` via `bun run env:sync` (`op inject`).
-- The repo-native PM2 stack manages normal single-repo local dev services.
-- The shared dev workbench is for cross-repo orchestration and narrow targets.
-- Docker powers full-stack indexer development.
-- Storybook runs from the shared package.
-- Full-stack work adds Docker-backed indexer services, the agent, tunnel, and workflow-specific env or secrets.
-
-### Core Local URLs
-
-Client and admin can start with generated defaults. Live data, uploads, authenticated onchain flows, and the local agent depend on the matching env and services.
-
-| Surface | URL | Started by |
-| --- | --- | --- |
-| Client PWA + editorial website | <https://localhost:3001> | `bun run dev`; narrow target: `dev launch green-goods:client` |
-| Admin | <https://localhost:3002> | `bun run dev`; narrow target: `dev launch green-goods:admin` |
-| Docs | <http://localhost:3003> | `bun run dev:full`; narrow target: `dev launch green-goods:docs` |
-| Storybook | <http://localhost:3004> | `bun run dev:full`; narrow target: `dev launch green-goods:storybook` |
-| Agent | <http://localhost:3005/health> | `bun run dev`; narrow target: `dev launch green-goods:agent` |
-| Indexer | <http://localhost:3006/v1/graphql> | `bun run dev` with Docker running; narrow target: `dev launch green-goods:indexer-graphql` |
-| Arbitrum fork | <http://127.0.0.1:3009> | explicit `bun run dev:fork`; narrow target: `dev launch green-goods:anvil-arbitrum` |
-
-### Dev Commands
-
-#### Start the local stack
-
-```bash
-bun run dev
-```
-
-Runs the local client, admin, agent, and Docker indexer against live Arbitrum One.
-The client and admin use the local agent on `3005` and local indexer on `3006`;
-confirmed wallet and passkey transactions write to production. Anvil stays stopped.
-Use `bun run dev:full` to add docs, Storybook, and browser opening. Both client
-presentations are available on port `3001`:
-
-- <https://localhost:3001/?presentation=pwa>
-- <https://localhost:3001/?presentation=website>
-
-For cross-repo orchestration or a narrower workbench target, use the global
-workbench from anywhere:
-
-```bash
-dev launch green-goods:client
-dev launch green-goods:admin
-dev launch green-goods:indexer-graphql
-```
-
-#### Use local Anvil wallets
-
-Fork-mode transaction testing uses wallet auth, not mock auth:
-
-1. Start the fork-backed stack with `bun run dev:fork`.
-2. Open a dedicated dev browser profile.
-3. Add a wallet network named `Green Goods Local Arbitrum Fork` with RPC
-   `http://127.0.0.1:3009`, chain id `42161`, and currency symbol `ETH`.
-4. Import one disposable Anvil-funded account from
-   `packages/contracts/.generated/runtime/arbitrum-fork.json`; the fork
-   endpoint is redacted in that generated file.
-5. Connect that wallet in the app and sign normally.
-
-The fork uses the real Arbitrum deployment artifact, but writes are mined only
-in local Anvil state. The indexer still mirrors live networks and does not ingest Anvil-only writes.
-Use `bun run dev:fork:smoke` for fork checks. Restarting the fork resets local chain state. Passkey and
-smart-account writes are intentionally blocked in fork mode until local account
-abstraction infrastructure exists. `?mockAuth=operator` is useful for UI state
-review, but it does not sign transactions and cannot replace the wallet step.
-
-#### Start full local stack
-
-Check full-stack readiness first:
-
-```bash
-bun run dev:doctor -- --profile full
-```
-
-Then start the full repo-native stack:
-
-```bash
-bun run dev
-```
-
-Use the full stack for Docker/indexer, agent, or local transaction work. Run the
-full doctor first; some services need workflow-specific env or secrets before
-they are useful.
-
-After the stack is up, run the non-mutating full-local smoke:
-
-```bash
-bun run dev:smoke
-```
-
-This proves both client presentations, admin, local agent
-health, live Arbitrum chain id `42161`, deployed contract bytecode,
-local Envio/Hasura GraphQL, local indexer service health, and
-the Postgres TCP listener. The indexer lag check proves the local read model is
-close enough to live configured chain state for review; set `ENVIO_API_TOKEN` in
-the root `.env` for reliable HyperSync catch-up. It does not submit
-transactions.
-
-#### Start production-backed local stack
-
-The default runs local services against live Arbitrum. Optional modes select
-a local fork or hosted agent/indexer services. Stop the current owning launcher
-with Ctrl-C before switching modes; the launcher rejects incompatible live processes.
-
-| Mode | Command | Chain target | Indexer | Agent/API | Writes |
-| --- | --- | --- | --- | --- | --- |
-| Default | `bun run dev` | Live Arbitrum One `42161` | Local Docker-backed live indexer on `3006`-`3008` | Local agent on `3005` | Wallet and passkey transactions write to production |
-| Explicit fork | `bun run dev:fork` | Local Arbitrum fork on `3009`, chain `42161` | Local indexer mirrors live networks; it does not ingest Anvil-only writes | Local agent on `3005` | Disposable wallet writes are mined in Anvil; passkeys are blocked |
-| Hosted production-backed | `bun run dev:prod` | Arbitrum One `42161` | Hosted production indexer | `https://agent.greengoods.app` | Wallet-confirmed writes are real Arbitrum transactions |
-| Local live-indexer mirror | `bun run dev:prod:mirror` | Arbitrum One `42161` | Local Docker-backed Envio/Hasura indexing live Arbitrum | `https://agent.greengoods.app` | Wallet-confirmed writes are real Arbitrum transactions |
-
-Start hosted production-backed mode from the repo root:
-
-```bash
-bun run dev:prod
-```
-
-`bun run dev:prod` starts the client, admin, docs, and Storybook locally. It
-does not start local Anvil, the local indexer, the local agent, or a public
-tunnel. The stack overlays Arbitrum One (`VITE_CHAIN_ID=42161`), the hosted
-production indexer, and `https://agent.greengoods.app`, then runs a read-only
-production smoke after the local ports are ready.
-
-Live wallet writes are allowed in production-backed modes. If you connect a
-wallet on Arbitrum One and confirm a transaction, it is a real production
-transaction and can spend funds. The automatic smoke never submits transactions.
-
-The production smoke proves:
-
-| Check | What it proves |
-| --- | --- |
-| Local browser ports | Client `3001`, admin `3002`, docs `3003`, and Storybook `3004` respond |
-| RPC chain id | The configured Arbitrum RPC returns `eth_chainId=42161` |
-| Contract bytecode | At least one deployed Arbitrum contract address from `packages/contracts/deployments/42161-latest.json` has bytecode |
-| Production agent health | `https://agent.greengoods.app/health` returns HTTP 200 with `status: "ok"` |
-| Indexer GraphQL | Hosted production indexer, or the local mirror in mirror mode, returns Arbitrum chain metadata |
-| Indexer lag | Indexed block is within the smoke threshold of Arbitrum head; override with `--max-indexer-lag-blocks <blocks>` when debugging |
-| Local-service boundary | `dev:prod` skips local indexer services; `dev:prod:mirror` expects local indexer services |
-
-The production smoke does not prove a full click-through, wallet confirmation,
-or production transaction broadcast. Use this manual live-write checklist when
-you need that proof:
-
-1. Use a dedicated QA wallet with only the funds you intend to risk.
-2. Select Arbitrum One in the wallet.
-3. Start `bun run dev:prod` or `bun run dev:prod:mirror`.
-4. Navigate to the action you need to validate and stop at wallet confirmation
-   if you only need reachability proof.
-5. Broadcast only when the test intentionally mutates production state.
-6. Record the route, wallet network, expected contract/action, and transaction
-   hash if a broadcast is intentionally submitted.
-
-The hosted production agent has two health surfaces: `/health` and `/ready`.
-The local production smoke intentionally uses `/health`. `/ready` is stricter
-and can return 503 while optional AI/voice model readiness is still loading,
-even when the agent, webhook, and routine API are usable.
-
-For local indexer development against live Arbitrum, use the mirror mode:
-
-```bash
-bun run dev:prod:mirror:health
-bun run dev:prod:mirror
-```
-
-This starts the same browser surfaces plus the local Docker-backed
-Postgres/Hasura/Envio stack on ports `3006`-`3008`, while still targeting
-Arbitrum One rather than the local fork. The mirror smoke checks local GraphQL,
-the local indexer service, and indexer lag against live Arbitrum head; if it
-fails lag, the mirror is reachable but not caught up enough to trust for
-production-data review.
-
-`bun run dev:health` and `bun run dev:prod:mirror:health` warn or fail clearly
-when `ENVIO_API_TOKEN` is missing for reliable HyperSync catch-up. Without it,
-the containers can still become healthy, but the local mirror may stall or
-receive `429 Too Many Requests` from HyperSync and smoke should fail on indexer
-lag. Set `ENVIO_API_TOKEN` directly in the root `.env`, or set
-`ENVIO_API_TOKEN_OP_REF` in `.env.template` and run `bun run env:sync`.
-
-Run the production checks on demand:
-
-```bash
-bun run dev:prod:health -- --json
-bun run dev:prod:mirror:health -- --json
-bun run dev:prod:smoke
-bun run dev:prod:smoke -- --mode mirror
-bun run dev:prod:smoke -- --max-indexer-lag-blocks 5000
-```
-
-Expected production-backed port boundary:
-
-- `dev:prod`: `3001`-`3004` listening; `3005`-`3009` free.
-- `dev:prod:mirror`: `3001`-`3004` and `3006`-`3008` listening; `3005` and
-  `3009` free.
-
-`bun run dev:web`, `bun run dev:stack`, and `bun run dev:stack:stop` remain
-available for focused PM2 debugging. Day-to-day agent and developer work should
-use `bun run dev`.
-
-#### Stop local services
-
-```bash
-bun run dev:stop
-```
-
-#### Clean local artifacts
-
-```bash
-bun run dev:clean:dry
-bun run dev:clean
-```
-
-`dev:clean` only removes disposable build, test, cache, docs, Storybook, tunnel, tmp, and Turbo artifacts from the current checkout. It does not stop PM2/Docker services, remove dependencies, touch env files, or clean sibling worktrees.
-
-## Contributing
-
-### Guides
-
-Read the [Greenpill Dev Guild contributing guide](https://github.com/greenpill-dev-guild/.github/blob/main/CONTRIBUTING.md) and the full [How to Contribute](https://docs.greengoods.app/builders/how-to-contribute) guide before opening a pull request.
-
-### Before Pushing
-
-Run each command from the repo root before pushing.
-
-#### Check formatting
-
-```bash
-bun run format:check
-```
-
-#### Run lint
-
-```bash
-bun run lint
-```
-
-#### Run tests
-
-```bash
-bun run test
-```
-
-#### Build workspace
-
-```bash
-bun run build
-```
-
-### Funded Scoped Work
-
-Paid implementation work is grant-dependent and must be clearly scoped with maintainers before work begins. Green Goods does not run open-ended bounties.
+Host setup installs dependencies and reports the environment steps; it does not create
+a secret-filled `.env`. Use `bun run env:template:init` only if no template exists.
+Keep personal credentials in the root `.env` and shared references in `.env.template`.
+
+**Default development uses live Arbitrum**, with local client, admin, agent, and indexer
+services. It does not start Anvil. Wallet and passkey confirmations can send real transactions.
+
+## Everyday development
+
+| Task | Command |
+|---|---|
+| Start the default local services | `bun run dev` |
+| Include docs and Storybook | `bun run dev -- full` |
+| Use an explicit local fork | `bun run dev -- fork` |
+| Start selected services | `bun run dev -- client admin` |
+| Check prerequisites for a mode | `bun run dev:health -- prod` |
+| Check running services | `bun run dev:smoke` |
+| Inspect service ownership | `bun run dev -- status` |
+| Preview disposable-artifact cleanup | `bun run dev:clean -- --dry-run` |
+| Select checks for a change | `bun run validation:plan -- --intent qa` |
+| Run a focused package test | `bun run --cwd packages/client test path/to/example.test.tsx` |
+
+Keep the launcher terminal open. **Ctrl-C stops services that launch owns** and preserves
+indexed data. Detached stopping requires the same `GREEN_GOODS_DEV_OWNER` identity;
+see [the command guide](scripts/README.md). Selected services do not automatically start
+their dependencies.
+
+The default launch checks service and indexer readiness automatically. If replay is still
+catching up, services remain running; rerun the smoke check when ready. A reachable page
+or healthy container does not establish that data or authenticated actions work.
+
+Fork mode uses disposable Anvil wallets. Its indexer still mirrors live networks and
+cannot display fork-only writes; passkey writes are blocked. See
+[onboarding mode details](ONBOARDING.md#development-modes) before transaction testing.
+
+## Contribute
+
+Agree on a bounded task with maintainers. Linear holds the backlog; GitHub hosts code
+and pull requests. Read [CONTRIBUTING.md](CONTRIBUTING.md) for branches, targeted
+validation, and releases. Paid work requires an agreed scope and budget.
 
 ## Resources
 
-### Documentation
-
-- [Developer Getting Started](https://docs.greengoods.app/builders/getting-started) - setup, env bootstrap, local services, and first-run workflow
-- [Architecture](https://docs.greengoods.app/builders/architecture) - system design, boundaries, and diagrams
-- [Builder API Index](https://docs.greengoods.app/builders/packages/api-index) - package APIs, contracts, and shared surfaces
-- [Contributor and release workflow](CONTRIBUTING.md) - branch, validation, release, and hotfix guidance
-- [Contract deployment runbook](packages/contracts/deployments/README.md) - simulation, broadcast, artifacts, and verification
-- [How to Contribute](https://docs.greengoods.app/builders/how-to-contribute) - contributor workflow and expectations
-
-### Agent References
-
-- [ONBOARDING.md](./ONBOARDING.md) - paste into Claude Code on day one for a guided setup walkthrough
-- [AGENTS.md](./AGENTS.md) - runtime rules and repo invariants for Codex and other coding agents
-- [CLAUDE.md](./CLAUDE.md) - Claude Code commands, patterns, and working conventions
-
-### Community and Security
-
-- [Code of Conduct](https://github.com/greenpill-dev-guild/.github/blob/main/CODE_OF_CONDUCT.md)
-- [Security Policy](https://github.com/greenpill-dev-guild/.github/blob/main/SECURITY.md)
-- [MIT License](./LICENSE)
+- [Onboarding](ONBOARDING.md): first run, environment choices, and agent handoff
+- [Developer guide](https://docs.greengoods.app/builders/getting-started): find your package
+- [Architecture](https://docs.greengoods.app/builders/architecture): system boundaries
+- [Commands](scripts/README.md): modes, diagnostics, and migration from old aliases
+- [API index](https://docs.greengoods.app/builders/packages/api-index): generated package references
+- [Contract operations](packages/contracts/deployments/README.md): simulation, broadcast, and verification
+- [Code of conduct](CODE_OF_CONDUCT.md) · [Security policy](SECURITY.md) · [License](LICENSE)

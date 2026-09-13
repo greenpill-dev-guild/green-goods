@@ -37,14 +37,14 @@ export function FormFieldWrapper({
         id={id ? `${id}-helper-text` : undefined}
         role={error ? "alert" : undefined}
         tabIndex={helperText || error ? 0 : undefined}
-        // Reserve wrapped feedback; longer messages stay readable without moving the form.
+        // Reserve two lines so hints and errors appear without moving the form; a rare third
+        // line grows the slot instead of scrolling inside it (DL-018).
         style={{
-          blockSize: "3lh",
+          minBlockSize: "2lh",
           flexShrink: 0,
           fontSize: "var(--type-body-sm)",
           letterSpacing: "var(--type-body-sm-ls)",
           lineHeight: "var(--type-body-sm-lh)",
-          overflowY: "auto",
           overflowWrap: "anywhere",
         }}
         className={cn("gg-field-feedback", error ? "text-error-dark" : "text-text-sub-600")}

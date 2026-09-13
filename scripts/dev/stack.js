@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { groups, smokeInvocation } from "../lib/dev-modes.mjs";
 
 /**
  * Start or stop PM2-backed development stacks.
@@ -40,14 +41,7 @@ const PRODUCTION_AGENT_URL = "https://agent.greengoods.app";
 const LOCAL_INDEXER_URL = "http://localhost:3006/v1/graphql";
 const ARBITRUM_PUBLIC_RPC_URL = "https://arb1.arbitrum.io/rpc";
 
-const groups = {
-  local: ["admin", "client", "agent", "indexer"],
-  fork: ["anvil-arbitrum", "admin", "client", "agent", "indexer"],
-  web: ["docs", "admin", "client", "storybook", "browser"],
-  full: ["docs", "admin", "client", "agent", "indexer", "storybook", "browser"],
-  prod: ["docs", "admin", "client", "storybook", "browser"],
-  "prod-mirror": ["docs", "admin", "client", "indexer", "storybook", "browser"],
-};
+
 
 const validNames = new Set([...Object.values(groups).flat(), "tunnel"]);
 
@@ -72,7 +66,7 @@ const forbiddenPortsByGroup = {
 };
 
 export function parseArgs(argv) {
-  const args = argv.slice(2);
+  const args = argv.slice(2).filter((arg) => arg !== "--");
 
   if (args.includes("--help") || args.includes("-h")) {
     return { mode: "help" };
@@ -105,7 +99,7 @@ export function parseArgs(argv) {
 function usage(stream = process.stdout) {
   stream.write(
     [
-      "Usage: node scripts/dev/stack.js [<group>|<app>...|status|stop]",
+      "Usage: bun run dev -- [<mode>|<service>...|status|stop]",
       "",
       "Groups:",
       ...Object.entries(groups).map(([name, apps]) => `  ${name.padEnd(11)} ${apps.join(", ")}`),
@@ -563,10 +557,9 @@ export function runStartupSmoke(group, spawnProcess = spawn) {
   const isLocal = ["local", "full", "fork"].includes(group);
   if (!smokeMode && !isLocal) return Promise.resolve(true);
 
-  const scriptPath = path.join(projectRoot, isLocal ? "scripts/dev/smoke-full.js" : "scripts/dev/smoke-prod.js");
-  const args = isLocal
-    ? [...(group === "full" ? [] : ["--core"]), ...(group === "fork" ? ["--fork"] : [])]
-    : ["--mode", smokeMode];
+  const invocation = smokeInvocation([group]);
+  const scriptPath = path.join(projectRoot, "scripts/dev", invocation.script);
+  const args = invocation.args;
   const label = isLocal ? "local QA" : "production";
   return new Promise((resolve) => {
     console.log(`[stack] checking ${label} readiness, including Arbitrum indexer progress...`);

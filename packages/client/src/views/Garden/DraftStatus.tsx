@@ -43,7 +43,7 @@ export function DraftStatus({
           </button>
         </div>
       ))}
-      {draft.legacyRecovery && !draft.showDraftDialog && (
+      {draft.legacyRecovery && !draft.showDraftSheet && (
         <button type="button" className="min-h-11 underline" onClick={draft.recover}>
           {intl.formatMessage({ id: "app.garden.draft.recover" })}
         </button>

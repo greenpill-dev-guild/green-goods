@@ -57,7 +57,7 @@ decision log is a human-gated local step, never yours.
 - Resolve Linear team (`Product`), workflow states (`Todo`, `Backlog`, `In Progress`), and label
   families by name at run start; never hardcode IDs. Required label families:
   `protocol:green-goods`, `package:*`, `activity:qa`, `source:qa-session` (resolve-or-create),
-  `ai:routine`, and the per-session `qa-sync:<YYYY-MM-DD>` (resolve-or-create). A missing family
+  `ai:routine`, and the per-session `session:<YYYY-MM-DD>` (resolve-or-create). A missing family
   fails loud — do not invent records under a different label.
 - Issue bodies follow [`.claude/context/linear-routing-rules.md`](../../.claude/context/linear-routing-rules.md)
   § Issue structure (clear, simple, concise, human-friendly; 6-heading / 600-word backstops — the
@@ -65,7 +65,7 @@ decision log is a human-gated local step, never yours.
   [`.claude/skills/qa-triage/linear-templates.md`](../../.claude/skills/qa-triage/linear-templates.md)
   § QA session report / § QA slice.
 - Pass labels to `save_issue` as **bare child names**: `protocol:green-goods`, `activity:qa`,
-  `source:qa-session`, `ai:routine`, and `qa-sync:<date>` are written as
+  `source:qa-session`, `ai:routine`, and `session:<date>` are written as
   `["green-goods", "qa", "qa-session", "routine", "2026-09-02"]` — the `group:child` display
   form is rejected, and one unresolvable entry files nothing. Every label list in this prompt names
   the canonical `group:child` label; the bare child name is only the wire form.
@@ -226,17 +226,17 @@ the Discord summary, never a stopped run.
 
 ## Phase 5: Dedupe against Linear
 
-First the parent itself: the `qa-sync:<date>` label only **narrows candidates** — the pulse
+First the parent itself: the `session:<date>` label only **narrows candidates** — the pulse
 stamps that label on its own pre-staged tracking Issues, so the label alone can point at an
 ordinary Backlog defect. Reuse requires the parent shape: **this run's exact expected title**
 (`QA session <date>`, or `QA session <date> · 2` for a second same-day call — the counter is
-the call's identity, since the week's `qa-sync` label is shared) and no `package:*` label. When that parent exists (the interactive sibling may have filed it),
+the call's identity, since the week's `session` label is shared) and no `package:*` label. When that parent exists (the interactive sibling may have filed it),
 **reuse it** — add missing children under it and a comment for new context; never a second
 parent, and never attach slices to anything that fails the shape test.
 
-Then the findings: list open Product Issues carrying `activity:qa` or any `qa-sync:*` label, plus
+Then the findings: list open Product Issues carrying `activity:build` or any `session:*` label, plus
 every Issue created on the team since the window opened whatever its labels (a teammate filing
-from the call rarely stamps `activity:qa`).
+from the call rarely stamps an activity label).
 "Already tracked" needs an **exact key**: the same catalog Test ID in the existing Issue's
 source line or in a comment the QA pipeline posted on it (the interactive mode records confirmed
 matches that way), or the same PostHog error hash. Wording or surface similarity alone never earns it
@@ -266,7 +266,7 @@ exposure: redact in place and fail loud in the Discord summary.
    `tmp/qa-session/<slug>/report.md`, Decisions from the call (omit in app-only mode), Decisions needed (when
    any), Slices, Not sliced, `Done when`, source line with the Drive notes link. The lede names
    the run the call recorded into (`Run N · <label>`) and its environment. State `Todo`. Labels: `green-goods` + `qa` + `qa-session` + `routine` +
-   `qa-sync:<date>`; **no `package:*`** on the parent. The parent's `Done when` defines its
+   `session:<date>`; **no `package:*`** on the parent. The parent's `Done when` defines its
    closure — every slice Done or explicitly deferred, re-QA re-recorded; the fix flow closes it,
    never this routine. **One exception**: an all-pass session — zero fail or blocked verdicts inside the window,
    zero slices, zero related Issues, and no decisions child — creates its parent directly in

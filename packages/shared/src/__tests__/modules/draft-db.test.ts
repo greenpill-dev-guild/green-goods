@@ -172,7 +172,7 @@ describe("complete draft snapshots", () => {
   it("retains unreadable legacy evidence until explicit removal", async () => {
     const owner = "0x1111111111111111111111111111111111111111";
     const id = await draftDB.createDraft(owner, 11155111, { feedback: "keep" });
-    const raw = await openDB("green-goods-drafts", 2);
+    const raw = await openDB("green-goods-drafts");
     await raw.put("draft_images", {
       id: "unreadable",
       draftId: id,

@@ -1,6 +1,9 @@
 import { cn } from "@green-goods/shared/utils/styles/cn";
 import { useApp } from "@green-goods/shared/providers/App";
-import { useOnlineStatus } from "@green-goods/shared/hooks/app/useOnlineStatus";
+import {
+  useConnectivityStatus,
+  useOnlineStatus,
+} from "@green-goods/shared/hooks/app/useOnlineStatus";
 import { RiCheckLine, RiCloudOffLine, RiDownloadLine, RiUserLine } from "@remixicon/react";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
@@ -10,10 +13,10 @@ import { APP_ROUTES } from "@/config/pwaRouting";
 interface OfflineIndicatorProps {
   className?: string;
   forceShow?: boolean;
-  testState?: "offline" | "back-online" | "install" | null;
+  testState?: IndicatorState;
 }
 
-type IndicatorState = "offline" | "back-online" | "install" | null;
+type IndicatorState = "offline" | "unavailable" | "checking" | "back-online" | "install" | null;
 
 export const OfflineIndicator: React.FC<OfflineIndicatorProps> = ({
   className,
@@ -23,6 +26,7 @@ export const OfflineIndicator: React.FC<OfflineIndicatorProps> = ({
   const navigate = useNavigate();
   const { formatMessage } = useIntl();
   const isOnline = useOnlineStatus();
+  const connection = useConnectivityStatus();
   const { isMobile, isInstalled } = useApp();
 
   // State for tracking "back online" message
@@ -53,6 +57,8 @@ export const OfflineIndicator: React.FC<OfflineIndicatorProps> = ({
   const displayPriority = useMemo((): IndicatorState => {
     if (testState !== undefined) return testState;
 
+    if (connection.state === "checking") return "checking";
+    if (connection.state === "unavailable") return "unavailable";
     if (!isOnline) return "offline";
     if (showBackOnline) return "back-online";
 
@@ -61,20 +67,54 @@ export const OfflineIndicator: React.FC<OfflineIndicatorProps> = ({
 
     if (forceShow) return "offline";
     return null;
-  }, [isOnline, showBackOnline, testState, forceShow, isMobile, isInstalled, installDismissed]);
+  }, [
+    connection.state,
+    isOnline,
+    showBackOnline,
+    testState,
+    forceShow,
+    isMobile,
+    isInstalled,
+    installDismissed,
+  ]);
 
   const renderIndicator = useCallback(() => {
     const baseBarClasses =
       "w-full flex items-center justify-center gap-2 px-3 py-1 text-xs font-medium transition-all duration-[var(--spring-effects-duration)] ease-[var(--spring-effects-easing)] backdrop-blur-md shadow-sm";
 
     switch (displayPriority) {
+      case "checking":
+      case "unavailable":
+        return (
+          <div
+            className={`${baseBarClasses} bg-bg-strong-950/95 text-text-white-0 pointer-events-auto`}
+            role="status"
+            aria-live="polite"
+          >
+            <RiCloudOffLine size={12} aria-hidden="true" />
+            <span>
+              {displayPriority === "checking"
+                ? formatMessage({
+                    id: "app.offline.checking",
+                    defaultMessage: "Checking connection…",
+                  })
+                : formatMessage({
+                    id: "app.offline.unavailable",
+                    defaultMessage: "Connection unavailable. Your work stays saved.",
+                  })}
+            </span>
+          </div>
+        );
       case "offline":
         return (
           <div
             className={`${baseBarClasses} bg-bg-strong-950/95 text-text-white-0 pointer-events-auto`}
             role="status"
             aria-live="polite"
-            aria-label="App is in offline mode"
+            aria-label={formatMessage({
+              id: "app.offline.label",
+              defaultMessage: "App is in offline mode",
+            })}
           >
             <RiCloudOffLine size={8} aria-hidden="true" />
             <span>{formatMessage({ id: "app.offline.mode", defaultMessage: "Offline Mode" })}</span>
@@ -84,10 +124,13 @@ export const OfflineIndicator: React.FC<OfflineIndicatorProps> = ({
       case "back-online":
         return (
           <div
-            className={`${baseBarClasses} bg-primary/95 text-primary-accent-foreground pointer-events-auto pulse-success`}
+            className={`${baseBarClasses} bg-primary-action/95 text-primary-action-foreground pointer-events-auto pulse-success`}
             role="status"
             aria-live="polite"
-            aria-label="App is back online"
+            aria-label={formatMessage({
+              id: "app.offline.backOnlineLabel",
+              defaultMessage: "App is back online",
+            })}
           >
             <RiCheckLine size={10} aria-hidden="true" />
             <span>
@@ -146,7 +189,11 @@ export const OfflineIndicator: React.FC<OfflineIndicatorProps> = ({
   );
 
   return (
-    <div className={containerClasses} data-testid="offline-indicator">
+    <div
+      className={containerClasses}
+      style={{ top: "env(safe-area-inset-top, 0px)", zIndex: "calc(var(--z-nav, 30) + 1)" }}
+      data-testid="offline-indicator"
+    >
       {renderIndicator()}
     </div>
   );

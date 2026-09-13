@@ -585,10 +585,10 @@ async function main() {
       timeoutMs: options.timeoutMs,
     },
     entrypoints: {
-      start: options.fork ? "bun run dev:fork" : "bun run dev",
-      smoke: options.fork ? "bun run dev:fork:smoke" : options.core ? "bun run dev:smoke" : "bun run dev:smoke:full",
+      start: options.fork ? "bun run dev -- fork" : "bun run dev",
+      smoke: options.fork ? "bun run dev:smoke -- fork" : options.core ? "bun run dev:smoke" : "bun run dev:smoke -- full",
       health: "bun run dev:health",
-      stop: "bun run dev:stop",
+      stop: "bun run dev -- stop",
     },
   };
 

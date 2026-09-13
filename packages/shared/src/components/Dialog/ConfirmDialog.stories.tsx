@@ -2,7 +2,7 @@ import type { Meta, StoryObj } from "@storybook/react";
 import { useState } from "react";
 import { IntlProvider } from "react-intl";
 import { expect, fn, userEvent, waitFor, within } from "storybook/test";
-import { ConfirmDialog, type ConfirmDialogProps, DialogShell } from "./ConfirmDialog";
+import { ConfirmDialog, type ConfirmDialogProps } from "./ConfirmDialog";
 
 const DIALOG_MESSAGES = {
   "app.common.cancel": "Cancel",
@@ -18,7 +18,7 @@ const meta: Meta<typeof ConfirmDialog> = {
     docs: {
       description: {
         component:
-          "Accessible confirmation dialog using Radix Dialog. Centered on desktop, slides up from bottom on mobile. Replaces window.confirm() for consistent UX.",
+          "Accessible confirmation dialog. Centered Radix dialog at 640px and wider; below that it renders the shared PwaSheet bottom sheet, so drafts, deletes, and every other confirm share one surface. Replaces window.confirm() for consistent UX.",
       },
     },
   },
@@ -300,6 +300,15 @@ export const DesktopGeometry: Story = {
       );
     });
 
+    // From 640px the shared action bar is one right-aligned row, primary rightmost (DL-016).
+    const confirmRect = dialog.getByRole("button", { name: "Confirm" }).getBoundingClientRect();
+    const cancelRect = dialog.getByRole("button", { name: "Cancel" }).getBoundingClientRect();
+    await expect(Math.abs(confirmRect.top - cancelRect.top)).toBeLessThanOrEqual(
+      CENTER_TOLERANCE_PX
+    );
+    await expect(cancelRect.right).toBeLessThanOrEqual(confirmRect.left);
+    await expect(surface.getBoundingClientRect().right - confirmRect.right).toBeLessThan(32);
+
     const closeButton = dialog.getByTestId("confirm-dialog-close");
     await expectTouchTarget(closeButton);
     await userEvent.click(closeButton);
@@ -323,7 +332,7 @@ export const MobileSheetGeometry: Story = {
       onClose={fn()}
       onConfirm={fn()}
       title="Mobile confirmation sheet"
-      description="Mobile anchors this confirmation dialog to the viewport bottom."
+      description="Narrow viewports render this confirmation as the shared bottom sheet."
       confirmLabel="Confirm"
       cancelLabel="Cancel"
     />
@@ -340,9 +349,11 @@ export const MobileSheetGeometry: Story = {
       { timeout: 5_000 }
     );
     const scrim = document.body.querySelector<HTMLElement>(
-      '[data-component="ConfirmDialog"][data-slot="overlay"]'
+      '[data-testid="confirm-dialog-overlay"]'
     );
 
+    await expect(surface).toHaveAttribute("data-component", "PwaSheet");
+    await expect(dialog.getByTestId("confirm-dialog-drag-handle")).toBeVisible();
     await expectViewportCoveringElement(scrim);
     await expectRealEnterAnimation(surface, /dialogSlideInFromBottom/);
     await waitForSurfaceSettled(surface);
@@ -366,7 +377,7 @@ export const MobileSheetGeometry: Story = {
     await expect(document.documentElement.scrollWidth).toBeLessThanOrEqual(
       window.innerWidth + VIEWPORT_EDGE_TOLERANCE_PX
     );
-    const closeButton = dialog.getByTestId("confirm-dialog-close");
+    const closeButton = dialog.getByTestId("pwa-sheet-close");
     await expectTouchTarget(closeButton);
     await userEvent.click(closeButton);
     await waitFor(async () => {
@@ -529,119 +540,5 @@ export const InteractiveClose: Story = {
     const closeButton = await dialog.findByTestId("confirm-dialog-close");
     await userEvent.click(closeButton);
     await expect(args.onClose).toHaveBeenCalled();
-  },
-};
-
-export const ShellPattern: Story = {
-  render: () => (
-    <DialogShell
-      open={true}
-      onOpenChange={fn()}
-      title="Garden Profile"
-      description="Shared dialog shell for admin workbench and detail flows."
-      size="xl"
-    >
-      <div className="space-y-4">
-        <div className="rounded-lg border border-stroke-soft bg-bg-weak p-4">
-          Primary content block
-        </div>
-        <div className="rounded-lg border border-stroke-soft bg-bg-weak p-4">
-          Secondary content block
-        </div>
-      </div>
-    </DialogShell>
-  ),
-  parameters: {
-    docs: {
-      description: {
-        story:
-          "Reusable shell for admin dialogs. Prefer extending this for domain-specific modal content instead of rebuilding Radix overlay, header, sizing, and mobile sheet behavior repeatedly.",
-      },
-    },
-  },
-};
-
-export const ShellSizeMd: Story = {
-  render: () => (
-    <DialogShell
-      open={true}
-      onOpenChange={fn()}
-      title="Remove Member"
-      description="Confirm before revoking access — size=md"
-      size="md"
-    >
-      <p className="text-body-sm text-text-sub-600">
-        Medium shell (max-w-md). Use for simple confirmations that do not need form layout.
-      </p>
-    </DialogShell>
-  ),
-  parameters: {
-    docs: {
-      description: {
-        story: "`size='md'` — default for small confirmations and single-field edits.",
-      },
-    },
-  },
-};
-
-export const ShellSizeLg: Story = {
-  render: () => (
-    <DialogShell
-      open={true}
-      onOpenChange={fn()}
-      title="Edit garden profile"
-      description="Multi-field edit — size=lg"
-      size="lg"
-    >
-      <div className="grid gap-3 sm:grid-cols-2">
-        <div className="rounded-lg border border-stroke-soft bg-bg-weak p-4">Name field</div>
-        <div className="rounded-lg border border-stroke-soft bg-bg-weak p-4">Domain field</div>
-        <div className="rounded-lg border border-stroke-soft bg-bg-weak p-4 sm:col-span-2">
-          Description field
-        </div>
-      </div>
-    </DialogShell>
-  ),
-  parameters: {
-    docs: {
-      description: {
-        story: "`size='lg'` — use when content is a 2-column form or a medium detail view.",
-      },
-    },
-  },
-};
-
-export const ShellSize2xl: Story = {
-  render: () => (
-    <DialogShell
-      open={true}
-      onOpenChange={fn()}
-      title="Hypercert minting preview"
-      description="Full-size shell for multi-section flows — size=2xl"
-      size="2xl"
-    >
-      <div className="grid gap-4 md:grid-cols-[1fr_2fr]">
-        <div className="rounded-lg border border-stroke-soft bg-bg-weak p-4">
-          <div className="text-label-sm text-text-sub-600">Summary</div>
-        </div>
-        <div className="space-y-3">
-          <div className="rounded-lg border border-stroke-soft bg-bg-weak p-4">
-            Attestation selector
-          </div>
-          <div className="rounded-lg border border-stroke-soft bg-bg-weak p-4">
-            Distribution config
-          </div>
-          <div className="rounded-lg border border-stroke-soft bg-bg-weak p-4">Metadata editor</div>
-        </div>
-      </div>
-    </DialogShell>
-  ),
-  parameters: {
-    docs: {
-      description: {
-        story:
-          "`size='2xl'` — reserved for multi-section workflows like hypercert minting, wizards, or data-dense previews.",
-      },
-    },
   },
 };

@@ -5,8 +5,6 @@ import {
 } from "@green-goods/shared/config/query-keys/constants";
 import { queryKeys } from "@green-goods/shared/config/query-keys/registry";
 import { useUser } from "@green-goods/shared/hooks/auth/useUser";
-import { useDocumentScrollLock } from "@green-goods/shared/hooks/ui/useDocumentScrollLock";
-import { useFocusTrap } from "@green-goods/shared/hooks/utils/useFocusTrap";
 import { useTimeout } from "@green-goods/shared/hooks/utils/useTimeout";
 import { fetchApprovalsByRecipients } from "@green-goods/shared/hooks/work/useAggregatedApprovals";
 import { useDrafts } from "@green-goods/shared/hooks/work/useDrafts";
@@ -23,23 +21,23 @@ import {
 import type { Address, Work } from "@green-goods/shared/types/domain";
 import { hapticLight } from "@green-goods/shared/utils/app/haptics";
 import { isUserAddress as sharedIsUserAddress } from "@green-goods/shared/utils/blockchain/address";
-import { cn } from "@green-goods/shared/utils/styles/cn";
 import { filterByTimeRange, type TimeFilter } from "@green-goods/shared/utils/time";
 import {
   collectApprovalRecipientsForWorks,
   collectApprovedWorkUIDs,
   filterPendingNeedsReview,
 } from "@green-goods/shared/utils/work/pending-review";
-import { RiCheckLine, RiCloseLine, RiDraftLine, RiTaskLine } from "@remixicon/react";
+import { RiCheckLine, RiDraftLine, RiTaskLine } from "@remixicon/react";
 import { useQuery } from "@tanstack/react-query";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useIntl } from "react-intl";
 import { useNavigate } from "react-router-dom";
-import { type StandardTab, StandardTabs } from "@/components/Navigation";
-import { getPwaDrawerCloseDelayMs, pwaDrawerStyles } from "@/components/Pwa/drawerStyles";
+import type { StandardTab } from "@/components/Navigation";
+import { getPwaSheetCloseDelayMs } from "@/components/Pwa/sheetStyles";
 import { CompletedTab } from "./CompletedTab";
 import { DraftsTab } from "./Drafts";
 import { PendingTab } from "./PendingTab";
+import { WorkDashboardShell } from "./WorkDashboardShell";
 import {
   approvalsToCompletedWorks,
   buildWorkMap,
@@ -95,14 +93,6 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
     "reviewedByYou"
   );
   const [timeFilter, setTimeFilter] = useState<TimeFilter>("month");
-
-  // Ref for focus trap on the dialog panel
-  const dialogRef = useRef<HTMLDivElement>(null);
-
-  useDocumentScrollLock(!isClosing);
-
-  // Focus trap: keep Tab/Shift+Tab cycling within the dialog
-  useFocusTrap(dialogRef, { enabled: !isClosing });
 
   // Use shared hooks for reviewer garden detection and works fetching
   const { reviewerGardenIds } = useReviewerGardenIds(activeAddress);
@@ -335,7 +325,7 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
     if (isClosing) return;
     closeCompletedRef.current = false;
     setIsClosing(true);
-    scheduleTimeout(finishClose, getPwaDrawerCloseDelayMs());
+    scheduleTimeout(finishClose, getPwaSheetCloseDelayMs());
   };
 
   useEffect(() => {
@@ -400,103 +390,15 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
   };
 
   return (
-    <div
-      role="presentation"
-      className={cn(
-        pwaDrawerStyles.overlay,
-        isClosing ? "modal-backdrop-exit" : "modal-backdrop-enter"
-      )}
-      data-testid="modal-drawer-overlay"
-      onClick={(e) => {
-        // Only close if clicking directly on backdrop, not from propagated events
-        if (e.target === e.currentTarget) {
-          handleClose();
-        }
-      }}
-      onKeyDown={(e) => {
-        if (e.key === "Escape") {
-          handleClose();
-        }
-      }}
-      tabIndex={-1}
+    <WorkDashboardShell
+      className={className}
+      isClosing={isClosing}
+      onRequestClose={handleClose}
+      tabs={tabs}
+      activeTab={activeTab}
+      onTabChange={(tabId: string) => setActiveTab(tabId as WorkDashboardTab)}
     >
-      {/* eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions -- dialog surface; handler only stops propagation to the overlay */}
-      <div
-        ref={dialogRef}
-        className={cn(
-          pwaDrawerStyles.panel,
-          isClosing ? "modal-slide-exit" : "modal-slide-enter",
-          className
-        )}
-        onClick={(e) => e.stopPropagation()}
-        onKeyDown={(e) => {
-          if (e.key === "Escape") {
-            e.preventDefault();
-            e.stopPropagation();
-            handleClose();
-            return;
-          }
-          e.stopPropagation();
-        }}
-        role="dialog"
-        aria-modal="true"
-        data-testid="modal-drawer"
-      >
-        {/* Header */}
-        <div className={pwaDrawerStyles.header}>
-          <div className="flex-1 min-w-0">
-            <h2 className="title-section truncate">
-              {intl.formatMessage({
-                id: "app.workDashboard.title",
-                defaultMessage: "Your work",
-              })}
-            </h2>
-            <p className="text-sm text-text-sub-600 truncate">
-              {intl.formatMessage({
-                id: "app.workDashboard.description",
-                defaultMessage: "Track work submissions and reviews",
-              })}
-            </p>
-          </div>
-          <div className="flex items-center gap-2 ml-4">
-            <button
-              onClick={handleClose}
-              className={cn(
-                "min-h-11 min-w-11 flex items-center justify-center",
-                pwaDrawerStyles.closeButtonBase
-              )}
-              data-testid="modal-drawer-close"
-              aria-label={intl.formatMessage({
-                id: "app.workDashboard.closeModal",
-                defaultMessage: "Close Modal",
-              })}
-            >
-              <RiCloseLine className={cn("w-5 h-5", pwaDrawerStyles.closeIcon)} />
-            </button>
-          </div>
-        </div>
-
-        {/* Standardized Tabs */}
-        <StandardTabs
-          tabs={tabs}
-          activeTab={activeTab}
-          onTabChange={(tabId: string) => setActiveTab(tabId as WorkDashboardTab)}
-          ariaLabel={intl.formatMessage({
-            id: "app.work.tabs.label",
-            defaultMessage: "Work sections",
-          })}
-          triggerClassName="text-xs"
-          scrollTargetSelector="#work-dashboard-scroll"
-        />
-
-        {/* Content */}
-        <div
-          id="work-dashboard-scroll"
-          className="flex-1 min-h-0 overflow-x-hidden overflow-y-auto overscroll-contain"
-        >
-          {renderTabContent()}
-        </div>
-      </div>
-    </div>
+      {renderTabContent()}
+    </WorkDashboardShell>
   );
 };

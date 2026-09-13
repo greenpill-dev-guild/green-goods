@@ -191,7 +191,7 @@ export function CookieJarDepositModal({
         {/* Amount */}
         <AdminTextField
           id="deposit-amount"
-          label={formatMessage({ id: "app.cookieJar.amount", defaultMessage: "Amount" })}
+          label={formatMessage({ id: "app.cookieJar.amount", defaultMessage: "How much" })}
           type="text"
           value={depositAmount}
           onChange={(e) => setDepositAmount(e.target.value)}

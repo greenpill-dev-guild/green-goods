@@ -1,5 +1,11 @@
+import { draftConnection } from "./draft-connection";
 import { saveDraftSnapshot } from "./draft-snapshot";
-import { computeFirstIncompleteStep, hasMeaningfulDraftDetails, type DraftDB } from "./draft-state";
+import {
+  computeFirstIncompleteStep,
+  hasMeaningfulDraftDetails,
+  isWorkDraft,
+  type DraftDB,
+} from "./draft-state";
 export { computeFirstIncompleteStep, hasMeaningfulDraftDetails } from "./draft-state";
 import { hashWorkBytes, restoreWorkFile, roundWorkLocation } from "../work/work-attachments";
 /**
@@ -11,7 +17,7 @@ import { hashWorkBytes, restoreWorkFile, roundWorkLocation } from "../work/work-
  * @module modules/job-queue/draft-db
  */
 
-import { type IDBPDatabase, openDB } from "idb";
+import type { IDBPDatabase } from "idb";
 import type { Address } from "../../types/domain";
 import type { DraftImage, SerializedFileData, WorkDraftRecord } from "../../types/job-queue";
 import {
@@ -23,41 +29,11 @@ import { retryOnceAfterQuotaCleanup } from "../../utils/storage/quota";
 import { trackPrivateQueueEvent } from "./job-analytics";
 import { mediaResourceManager } from "./media-resource-manager";
 
-const DB_NAME = "green-goods-drafts";
-const DB_VERSION = 2;
 const MAX_DRAFTS_PER_USER = 20;
 
 class DraftDatabase {
-  private db: IDBPDatabase<DraftDB> | null = null;
-
   async init(): Promise<IDBPDatabase<DraftDB>> {
-    if (this.db) return this.db;
-
-    this.db = await openDB<DraftDB>(DB_NAME, DB_VERSION, {
-      upgrade(db) {
-        if (!db.objectStoreNames.contains("active_drafts"))
-          db.createObjectStore("active_drafts", { keyPath: "scope" });
-        // Create drafts store
-        if (!db.objectStoreNames.contains("drafts")) {
-          const draftsStore = db.createObjectStore("drafts", { keyPath: "id" });
-          draftsStore.createIndex("userAddress", "userAddress");
-          draftsStore.createIndex("chainId", "chainId");
-          draftsStore.createIndex("gardenAddress", "gardenAddress");
-          draftsStore.createIndex("updatedAt", "updatedAt");
-          // Compound index for user + chain scoped queries
-          draftsStore.createIndex("userAddress_chainId", ["userAddress", "chainId"]);
-        }
-
-        // Create draft images store
-        if (!db.objectStoreNames.contains("draft_images")) {
-          const imagesStore = db.createObjectStore("draft_images", { keyPath: "id" });
-          imagesStore.createIndex("draftId", "draftId");
-          imagesStore.createIndex("createdAt", "createdAt");
-        }
-      },
-    });
-
-    return this.db;
+    return draftConnection.init();
   }
 
   async getActiveDraft(userAddress: string, chainId: number): Promise<string | null> {
@@ -98,6 +74,7 @@ class DraftDatabase {
     const now = Date.now();
 
     const draft: WorkDraftRecord = {
+      kind: "work",
       id,
       userAddress,
       chainId,
@@ -117,9 +94,9 @@ class DraftDatabase {
     await retryOnceAfterQuotaCleanup(async () => {
       const tx = db.transaction("drafts", "readwrite");
       try {
-        const owned = (await tx.store.getAll()).filter(
-          (item) => item.userAddress.toLowerCase() === userAddress.toLowerCase()
-        );
+        const owned = (await tx.store.getAll())
+          .filter(isWorkDraft)
+          .filter((item) => item.userAddress.toLowerCase() === userAddress.toLowerCase());
         if (owned.filter((record) => record.chainId === chainId).length >= MAX_DRAFTS_PER_USER)
           throw new Error("draft-limit");
         await tx.store.add(draft);
@@ -150,7 +127,7 @@ class DraftDatabase {
       try {
         const store = tx.objectStore("drafts");
         const existing = await store.get(draftId);
-        if (!existing) throw new Error(`Draft ${draftId} not found`);
+        if (!existing || !isWorkDraft(existing)) throw new Error(`Draft ${draftId} not found`);
         const attachments = await tx.objectStore("draft_images").index("draftId").getAll(draftId);
         const updated = { ...existing, ...data, updatedAt: Date.now() };
         updated.location = roundWorkLocation(updated.location);
@@ -180,7 +157,8 @@ class DraftDatabase {
    */
   async getDraft(draftId: string): Promise<WorkDraftRecord | undefined> {
     const db = await this.init();
-    return await db.get("drafts", draftId);
+    const draft = await db.get("drafts", draftId);
+    return draft && isWorkDraft(draft) ? draft : undefined;
   }
 
   /**
@@ -189,9 +167,9 @@ class DraftDatabase {
   async getDraftsForUser(userAddress: string, chainId: number): Promise<WorkDraftRecord[]> {
     const db = await this.init();
     const tx = db.transaction("drafts", "readonly");
-    const userDrafts = (await tx.objectStore("drafts").getAll()).filter(
-      (item) => item.userAddress.toLowerCase() === userAddress.toLowerCase()
-    );
+    const userDrafts = (await tx.objectStore("drafts").getAll())
+      .filter(isWorkDraft)
+      .filter((item) => item.userAddress.toLowerCase() === userAddress.toLowerCase());
 
     // Filter by chainId and sort by updatedAt descending
     return userDrafts
@@ -210,6 +188,7 @@ class DraftDatabase {
     try {
       const images = await tx.objectStore("draft_images").index("draftId").getAll(draftId);
       const draft = await tx.objectStore("drafts").get(draftId);
+      if (draft && !isWorkDraft(draft)) throw new Error("draft-kind-conflict");
       if (draft) {
         const scope = `${draft.userAddress.toLowerCase()}:${draft.chainId}`;
         const active = await tx.objectStore("active_drafts").get(scope);
@@ -418,7 +397,7 @@ class DraftDatabase {
           const draftStore = tx.objectStore("drafts");
           const imageStore = tx.objectStore("draft_images");
           const draft = await draftStore.get(draftId);
-          if (!draft) throw new Error(`Draft ${draftId} not found`);
+          if (!draft || !isWorkDraft(draft)) throw new Error(`Draft ${draftId} not found`);
 
           const previousImages = await imageStore.index("draftId").getAll(draftId);
           for (const image of previousImages) {

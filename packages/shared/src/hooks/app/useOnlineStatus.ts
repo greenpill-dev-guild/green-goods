@@ -9,3 +9,16 @@ export function useOnlineStatus(): boolean {
     connectivityStore.getServerSnapshot
   );
 }
+
+/** Rich status for connectivity banners; existing boolean consumers stay compatible. */
+export function useConnectivityStatus() {
+  return useSyncExternalStore(
+    connectivityStore.subscribeStatus,
+    connectivityStore.getStatusSnapshot,
+    connectivityStore.getServerStatusSnapshot
+  );
+}
+
+/** Installed app composition opts into the uncached same-origin probe. */
+export const configureConnectivityProbe = connectivityStore.configureProbe;
+export const reportConnectivityFailure = connectivityStore.reportNetworkFailure;

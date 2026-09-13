@@ -26,11 +26,23 @@ keywords:
 
 ## First run
 
-1. Clone the repository and run `npm run setup` only if Bun is not installed yet.
-2. Configure the root environment through [Environment Management](./env-management).
-3. Run `bun run setup:doctor` to check the local toolchain.
-4. Read `AGENTS.md`, then the nearest package `AGENTS.md` for the surface you will change.
-5. Start only the surface you need using the scripts documented in `scripts/README.md`.
+Start with the repository's [ONBOARDING.md](https://github.com/greenpill-dev-guild/green-goods/blob/develop/ONBOARDING.md).
+It is the setup procedure for humans and agents. Run these commands from the repository root.
+
+Public contributors can browse with a non-secret baseline and hosted APIs:
+
+```bash
+npm run setup -- --profile isolated
+bun run dev:health -- prod
+bun run dev -- prod
+```
+
+Team members use `npm run setup -- --profile host`, resolve shared credentials with
+`bun run env:sync` only when `.env` is absent, check `bun run dev:health`, then start `bun run dev`.
+Confirmed transactions affect live Arbitrum. Setup preserves an existing environment.
+See [Environment Management](./env-management) for credential and capability blockers.
+The launcher prints local URLs; verify running services with `bun run dev:smoke -- prod`
+for the public path or `bun run dev:smoke` for the team path.
 
 ## Find the owner
 
@@ -48,6 +60,6 @@ and [deployment status](./deployments/status) for volatile inventories.
 
 ## Validate
 
-Run `bun run validation:plan -- --intent <your change>` before selecting tests. Start with the
+Run `bun run validation:plan -- --intent qa` before selecting tests. Start with the
 targeted proof it returns, then escalate only when a public contract, shared dependency, or critical
 surface requires it.

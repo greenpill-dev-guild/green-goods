@@ -671,7 +671,7 @@
     },
     {
       "id": "docs-authority",
-      "command": "node --test scripts/docs/generate.test.mjs docs/scripts/docs-audit.test.mjs && bun run docs:audit:ci && bun run check:docs-generated",
+      "command": "node --test scripts/docs/generate.test.mjs docs/scripts/docs-audit.test.mjs docs/scripts/developer-guides.test.mjs && bun run docs:audit:ci && bun run check:docs-generated",
       "risk": "documentation authorities, generated sources, or committed projections drift",
       "expectedSignal": "generator fixtures, authority links, navigation targets, and committed projections are current",
       "freshness": "exact-inputs-and-toolchain",
@@ -1030,6 +1030,7 @@
         "packages/indexer/config.yaml",
         "packages/indexer/schema.graphql",
         "packages/shared/package.json",
+        "packages/qa/package.json",
         "packages/shared/vitest.config.ts",
         "packages/shared/src/config/chains.ts",
         "packages/shared/src/config/gardens-subgraph.ts",

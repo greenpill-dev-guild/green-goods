@@ -192,11 +192,13 @@ export const WorkDetails: React.FC<WorkDetailsProps> = ({
   const locationMessages = {
     idle: intl.formatMessage({
       id: "app.garden.details.locationHint",
-      defaultMessage: "Share your location to auto-fill coordinates",
+      defaultMessage:
+        "Share approximate location (about 100 m). It will be published with this work.",
     }),
     loading: intl.formatMessage({
       id: "app.garden.details.locationHint",
-      defaultMessage: "Share your location to auto-fill coordinates",
+      defaultMessage:
+        "Share approximate location (about 100 m). It will be published with this work.",
     }),
     success: intl.formatMessage({
       id: "app.garden.details.locationCaptured",
@@ -216,8 +218,9 @@ export const WorkDetails: React.FC<WorkDetailsProps> = ({
   }, []);
 
   return (
-    <div className="flex flex-col gap-4">
-      <FormInfo title={detailsTitle} info={detailsDescription} Icon={RiFileFill} />
+    // Fields sit 8px apart; each one already reserves two lines for its hint or error below.
+    <div className="flex flex-col gap-2">
+      <FormInfo title={detailsTitle} info={detailsDescription} Icon={RiFileFill} className="mb-2" />
 
       {/* Time Spent Input - Always shown as a default field */}
       <FormInput
@@ -354,7 +357,7 @@ export const WorkDetails: React.FC<WorkDetailsProps> = ({
                             }
                             className={`min-h-11 px-3 py-2.5 rounded-full text-sm font-medium transition-colors duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)] border ${
                               isSelected
-                                ? "bg-primary-base text-primary-accent-foreground border-primary-base"
+                                ? "bg-primary-action text-primary-action-foreground border-primary-action"
                                 : "bg-bg-weak-50 text-text-sub-600 border-stroke-sub-300 hover:bg-bg-soft-200"
                             }`}
                           >
@@ -414,7 +417,7 @@ export const WorkDetails: React.FC<WorkDetailsProps> = ({
       })}
 
       {/* Share location toggle (decision #27: optional, user-triggered, privacy-first) */}
-      <div className="flex items-start justify-between gap-3 rounded-xl border border-stroke-sub-300 bg-bg-weak-50 p-3">
+      <div className="my-2 flex items-start justify-between gap-3 rounded-xl border border-stroke-sub-300 bg-bg-weak-50 p-3">
         <div className="flex min-w-0 flex-1 items-start gap-2">
           <RiMapPinLine className="h-5 w-5 shrink-0 text-text-sub-600" />
           <div className="min-w-0 flex-1">

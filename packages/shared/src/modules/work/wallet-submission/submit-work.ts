@@ -69,6 +69,19 @@ export async function submitWorkDirectly(
     throw new Error("Wallet not connected. Please connect your wallet and try again.");
   }
 
+  const originatingAccount = options.userAddress ?? walletClient.account?.address;
+  const assertOwnership = async () => {
+    await options.assertOwnership?.();
+    const current = await getWalletClient(wagmiConfig, { chainId });
+    if (
+      !originatingAccount ||
+      current?.account?.address.toLowerCase() !== originatingAccount.toLowerCase() ||
+      (current.chain?.id !== undefined && current.chain.id !== chainId)
+    )
+      throw new Error("submission-ownership-changed");
+    return current;
+  };
+  await assertOwnership();
   if (walletClient.account?.address) {
     try {
       debugLog("[WalletSubmission] Simulating transaction before upload...");
@@ -139,17 +152,26 @@ export async function submitWorkDirectly(
     debugLog("[WalletSubmission] Sending transaction", { to: txParams.to });
     await assertLocalArbitrumForkWallet();
 
-    hash = await walletClient.sendTransaction({
-      ...txParams,
-      chain: getChain(chainId),
-      account: walletClient.account,
-    });
-
+    const currentWallet = await assertOwnership();
     draft.uploadCheckpoint = {
       submittedAt: new Date().toISOString(),
       files: {},
       ...draft.uploadCheckpoint,
+      broadcastPending: true,
+    };
+    await options.onCheckpoint?.(draft.uploadCheckpoint);
+    await options.assertOwnership?.();
+    hash = await currentWallet.sendTransaction({
+      ...txParams,
+      chain: getChain(chainId),
+      account: currentWallet.account,
+    });
+
+    draft.uploadCheckpoint = {
+      ...draft.uploadCheckpoint,
       transactionHash: hash,
+      broadcast: { kind: "transaction", hash },
+      broadcastPending: false,
     };
     await options.onBroadcast?.(hash);
     debugLog("[WalletSubmission] Transaction sent", { hash });

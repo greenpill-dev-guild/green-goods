@@ -96,7 +96,7 @@ export function createJobQueue(deps: JobQueueDependencies): JobQueueHandle {
         chainId,
         userAddress,
       });
-      const job: Job = {
+      const pendingJob: Job = {
         id: jobId,
         kind,
         payload: persistedPayload,
@@ -107,6 +107,9 @@ export function createJobQueue(deps: JobQueueDependencies): JobQueueHandle {
         attempts: 0,
         synced: false,
       };
+      // A repeated admission must project the stored job, not a newer editable draft.
+      const job = kind === "work" ? await deps.store.getJob(jobId) : pendingJob;
+      if (!job) return jobId;
       deps.analytics.jobCreated(kind, isOnline, chainId);
       if (import.meta.env?.VITE_QUEUE_DEBUG === "true") {
         const value = persistedPayload as unknown as Record<string, unknown>;

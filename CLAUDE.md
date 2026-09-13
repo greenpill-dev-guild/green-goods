@@ -25,9 +25,9 @@ in this file.
 ## Claude Commands
 
 ```bash
-bun run dev:doctor -- --profile web  # Non-mutating local readiness check
+bun run dev:health -- --profile web  # Non-mutating local readiness check
 bun run dev                          # Start the repo-native PM2 development stack
-bun run dev:stop                     # Stop repo-owned development services
+bun run dev -- stop                     # Stop repo-owned development services
 bun run test:fast                    # Cache-aware full-scope iteration after targeted proof
 bun run test:fast:force              # Same scope without cache reuse
 bun run eval:skills                  # One semantic routing run after skill trigger wording stabilizes

@@ -59,17 +59,17 @@
     {
       "designToken": "colors.tertiary",
       "implementation": "--color-primary, --primary-base, bg-primary, text-primary, text-primary-base",
-      "purpose": "Protected PWA accent rhythm for active nav, icons, badges, progress, filters, and highlights."
+      "purpose": "Protected PWA accent rhythm for text-free marks: active nav, icons, dots, progress lines, filters, and highlights."
     },
     {
       "designToken": "colors.on-tertiary",
       "implementation": "--primary-accent-foreground, text-primary-accent-foreground",
-      "purpose": "Readable foreground for tiny text on bright tertiary accents; keeps the bright green background intact."
+      "purpose": "Dark green ink token. Not used for text on bright tertiary fills; those use the tertiary-action pair (DL-017)."
     },
     {
       "designToken": "colors.tertiary-action",
       "implementation": "--primary-action, --color-primary-action, bg-primary-action",
-      "purpose": "Contrast-safe filled text actions."
+      "purpose": "Contrast-safe fill for every green shape that carries text: filled actions, count badges, step markers, selected chips."
     },
     {
       "designToken": "colors.tertiary-action-hover",
@@ -79,7 +79,7 @@
     {
       "designToken": "colors.on-tertiary-action",
       "implementation": "--primary-action-foreground, --color-primary-action-foreground, text-primary-action-foreground",
-      "purpose": "Foreground for contrast-safe filled text actions."
+      "purpose": "Foreground for every text-bearing green fill."
     },
     {
       "designToken": "rounded.*",
@@ -90,7 +90,7 @@
   "pwaProtection": {
     "primaryRole": "DesignMD colors.primary is ink/charcoal and must not be mapped to --color-primary.",
     "tertiaryRole": "DesignMD colors.tertiary is the existing bright PWA green accent implementation.",
-    "actionRole": "DesignMD colors.tertiary-action is reserved for filled text actions that need white foreground contrast.",
+    "actionRole": "DesignMD colors.tertiary-action is the fill for every green shape that carries text, numbers, or glyphs, with white foreground.",
     "shellFreeze": "Token generation must not change AppShell height, bottom AppBar behavior, safe-area padding, or /home/garden and /home/:id/work/:workId AppBar hiding."
   }
 }

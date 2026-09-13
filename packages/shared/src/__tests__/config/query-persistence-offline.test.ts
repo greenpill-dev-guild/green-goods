@@ -86,3 +86,64 @@ describe("durable offline reads", () => {
     queryClient.unmount();
   });
 });
+
+describe("prepared query retention", () => {
+  it("keeps verified prepared reads after seven days while unrelated reads expire", async () => {
+    const { createQueryPersister } = await import("../../config/query-persistence");
+    vi.stubGlobal("indexedDB", undefined);
+    const source = new QueryClient();
+    const prepared = worksKeys.online("prepared-garden", 11155111);
+    source.setQueryData(prepared, [{ id: "kept" }]);
+    const query = source.getQueryCache().find({ queryKey: prepared })!;
+    query.setOptions({ ...query.options, meta: { offlinePrepared: true } });
+    source.setQueryData(gardensKeys.byChain(1), [{ id: "ordinary" }]);
+    const storage = window.localStorage;
+    storage.clear();
+    const persister = createQueryPersister({
+      dbName: "retention-test",
+      storage,
+      preservePreparedContent: true,
+    });
+    await persister.persistClient({
+      timestamp: Date.now() - PERSIST_MAX_AGE - 1,
+      buster: "1",
+      clientState: dehydrate(source),
+    });
+    const restored = await persister.restoreClient();
+    expect(restored?.clientState.queries.map((entry) => entry.queryKey)).toEqual([prepared]);
+    source.clear();
+    storage.clear();
+  });
+});
+
+it("rebuilds old local projections while preserving remote approval overlays", async () => {
+  const { createQueryPersister, isDurableWorkRead, restoreDurableWorkQuery } = await import(
+    "../../config/query-persistence"
+  );
+  vi.stubGlobal("indexedDB", undefined);
+  const source = new QueryClient();
+  const remote = { id: `0x${"a".repeat(64)}`, status: "approved", _txHash: "known-approval" };
+  const mergedKey = worksKeys.merged("garden", 1);
+  source.setQueryData(mergedKey, [
+    remote,
+    { id: "0xoffline_job", status: "offline", media: ["blob:old"] },
+    { id: "residual-uuid", status: "pending" },
+  ]);
+  source.setQueryData(["greengoods", "works", "offline", "garden", 1], ["old-job"]);
+  source.setQueryData(["greengoods", "works", "mine", "account", 1, true], ["old-job"]);
+  const persister = createQueryPersister({
+    dbName: "test-projections",
+    storage: window.localStorage,
+    shouldRestoreQuery: (query) => isDurableWorkRead(query.queryKey),
+    transformRestoredQuery: restoreDurableWorkQuery,
+  });
+  await persister.persistClient({
+    timestamp: Date.now(),
+    buster: "1",
+    clientState: dehydrate(source),
+  });
+  const restored = await persister.restoreClient();
+  expect(restored?.clientState.queries).toHaveLength(1);
+  expect(restored?.clientState.queries[0].state.data).toEqual([remote]);
+  source.clear();
+});

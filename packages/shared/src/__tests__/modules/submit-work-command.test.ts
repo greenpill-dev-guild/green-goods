@@ -1,6 +1,7 @@
 /** @vitest-environment node */
 
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { onlineManager } from "@tanstack/react-query";
 
 const defaultAdapters = vi.hoisted(() => ({
   simulate: vi.fn(),
@@ -328,6 +329,7 @@ describe("submitWork", () => {
   });
 
   it("binds the lazy default adapters without changing their call contracts", async () => {
+    onlineManager.setOnline(false);
     Object.defineProperty(globalThis.navigator, "onLine", {
       configurable: true,
       value: false,
@@ -350,6 +352,7 @@ describe("submitWork", () => {
     };
 
     expect(ports.connectivity.isOnline()).toBe(false);
+    onlineManager.setOnline(true);
     expect(ports.clock.now()).toBeGreaterThan(0);
     expect(ports.sender).toBe(sender);
     expect(ports.onWalletStage).toBe(onWalletStage);
@@ -394,7 +397,11 @@ describe("submitWork", () => {
       "Repair paths",
       resolved.chainId,
       resolved.images,
-      { onProgress: onWalletStage, clientWorkId: "client-default" }
+      expect.objectContaining({
+        onProgress: onWalletStage,
+        clientWorkId: "client-default",
+        userAddress: baseCommand.userAddress,
+      })
     );
   });
 

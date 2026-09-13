@@ -65,7 +65,7 @@ test.describe("Work Approval Flows (Steward)", () => {
         await page.waitForTimeout(1000);
 
         // Work details should show title, description, images, or modal
-        const detailModal = page.locator('[data-testid="modal-drawer"], [role="dialog"]');
+        const detailModal = page.locator('[data-testid="app-sheet"], [role="dialog"]');
         const workTitle = page.getByRole("heading");
         const workImage = page.locator('img[src*="ipfs"], img[alt*="work"], img[alt*="photo"]');
 

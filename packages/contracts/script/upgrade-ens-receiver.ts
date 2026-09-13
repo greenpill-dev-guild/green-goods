@@ -781,7 +781,7 @@ function formatRpcResolutionError(options: Options, error: unknown): Error {
       `${message}\n\n` +
         "Mainnet ENS migration broadcasts need a reachable Ethereum mainnet RPC before the deployer runs.\n" +
         "Use the deployer-backed scripts:\n" +
-        "  bun run contracts:ens:migrate:mainnet\n" +
+        "  bun run --cwd packages/contracts ens:migrate:mainnet\n" +
         "  cd packages/contracts && bun run ens:migrate:mainnet\n\n" +
         "If that still fails, set one of ETHEREUM_RPC_URL, MAINNET_RPC_URL, " +
         "ALCHEMY_API_KEY, ALCHEMY_KEY, or VITE_ALCHEMY_API_KEY in the root env source. " +

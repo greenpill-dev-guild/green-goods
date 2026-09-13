@@ -65,6 +65,10 @@ vi.mock("../../config/react-query", () => ({
   queryClient: mockSharedQueryClient,
 }));
 
+vi.mock("../../hooks/work/useWalletQueueSync", () => ({
+  useWalletQueueSync: vi.fn(),
+}));
+
 vi.mock("../../config/blockchain", async (importOriginal) => ({
   ...(await importOriginal<typeof import("../../config/blockchain")>()),
   DEFAULT_CHAIN_ID: 11155111,
@@ -75,6 +79,7 @@ vi.mock("../../config/default-chain", () => ({
 }));
 
 import { queueToasts } from "../../components/toast";
+import { useWalletQueueSync } from "../../hooks/work/useWalletQueueSync";
 import { queryKeys } from "../../config/query-keys";
 import { useAuth } from "../../hooks/auth/useAuth";
 import { usePrimaryAddress } from "../../hooks/auth/usePrimaryAddress";
@@ -401,6 +406,34 @@ describe("providers/JobQueueProvider", () => {
         error: "Queue flush exploded",
       });
       expect(result.current.isProcessing).toBe(false);
+    });
+  });
+
+  describe("wallet queue sync wiring", () => {
+    it("hands the wallet queue sync its queue, sender, connection state, and address", async () => {
+      mockUseAuth.mockReturnValue({
+        authMode: "wallet",
+        walletAddress: "0xWallet123",
+        externalWalletConnected: true,
+      });
+      mockUsePrimaryAddress.mockReturnValue("0xWallet123");
+
+      renderHook(() => useJobQueue(), { wrapper: createWrapper() });
+      await waitFor(() => {
+        expect(mockJobQueue.getStats).toHaveBeenCalled();
+      });
+
+      expect(useWalletQueueSync).toHaveBeenCalledWith(
+        expect.objectContaining({
+          queue: mockJobQueue,
+          sender: mockTransactionSender,
+          authMode: "wallet",
+          walletConnected: true,
+          userAddress: "0xWallet123",
+          refreshStats: expect.any(Function),
+        })
+      );
+      expect(mockJobQueue.flush).not.toHaveBeenCalled();
     });
   });
 });

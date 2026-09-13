@@ -20,6 +20,7 @@ const mockGetValues = vi.fn(() => "river");
 const mockReset = vi.fn();
 
 let mockProtocolMember = true;
+let mockProtocolMemberLoading = false;
 let mockRegistrationData: Record<string, unknown> | undefined;
 let mockSlugValue = "";
 let mockExistingGreenGoodsEnsName: string | null = null;
@@ -38,7 +39,10 @@ vi.mock("@green-goods/shared/hooks/app/useOffline", () => ({
 }));
 
 vi.mock("@green-goods/shared/hooks/ens/useProtocolMemberStatus", () => ({
-  useProtocolMemberStatus: () => ({ data: mockProtocolMember }),
+  useProtocolMemberStatus: () => ({
+    data: mockProtocolMember,
+    isLoading: mockProtocolMemberLoading,
+  }),
 }));
 
 vi.mock("@green-goods/shared/hooks/ens/useSlugForm", () => ({
@@ -150,6 +154,7 @@ describe("Profile ENSSection", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockProtocolMember = true;
+    mockProtocolMemberLoading = false;
     mockRegistrationData = undefined;
     mockSlugValue = "";
     mockExistingGreenGoodsEnsName = null;
@@ -181,6 +186,32 @@ describe("Profile ENSSection", () => {
     ).toBeInTheDocument();
     expect(screen.getByText("Claim Name")).toBeInTheDocument();
     expect(mockUseENSRegistrationStatus).toHaveBeenCalledWith(undefined);
+  });
+
+  it("marks the claim unavailable with the join hint for gardeners without a garden", () => {
+    mockProtocolMember = false;
+
+    renderENSSection();
+
+    expect(screen.getByText("Claim your name")).toBeInTheDocument();
+    expect(screen.getByText("Claim your Green Goods name")).toBeInTheDocument();
+    const status = screen.getByRole("status");
+    expect(status).toHaveTextContent("Not available yet");
+    expect(status).toHaveTextContent("Join a garden to unlock your Green Goods name.");
+    expect(screen.queryByText("Claim Name")).not.toBeInTheDocument();
+    expect(
+      screen.queryByLabelText("Choose your personal Green Goods name")
+    ).not.toBeInTheDocument();
+  });
+
+  it("keeps the claim hidden until membership has resolved", () => {
+    mockProtocolMember = false;
+    mockProtocolMemberLoading = true;
+
+    renderENSSection();
+
+    expect(screen.queryByText("Claim your name")).not.toBeInTheDocument();
+    expect(screen.queryByRole("status")).not.toBeInTheDocument();
   });
 
   it("hides claim form after successful ENS claim and shows progress timeline", async () => {

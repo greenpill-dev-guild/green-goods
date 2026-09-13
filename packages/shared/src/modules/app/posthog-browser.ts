@@ -41,6 +41,43 @@ export function dropExtensionExceptions(event: CaptureResult | null): CaptureRes
   return isKnownFramelessExtensionError ? null : event;
 }
 
+/** Development hosts whose exceptions must never reach the shared production project. */
+function isDevelopmentHost(hostname: string): boolean {
+  const normalized = hostname.toLowerCase();
+  return (
+    normalized === "localhost" ||
+    normalized.endsWith(".localhost") ||
+    normalized === "127.0.0.1" ||
+    normalized === "0.0.0.0" ||
+    normalized === "::1" ||
+    normalized === "[::1]" ||
+    // `bun run dev:tunnel` exposes the local dev server over a generated
+    // Cloudflare quick-tunnel host for mobile/device QA.
+    normalized.endsWith(".trycloudflare.com")
+  );
+}
+
+/** Resolve the host that raised an exception, preferring the event's own captured URL. */
+function exceptionHost(event: CaptureResult): string | null {
+  const currentUrl = event.properties?.$current_url;
+  if (typeof currentUrl === "string") {
+    try {
+      return new URL(currentUrl).hostname;
+    } catch {
+      // A malformed URL falls through to the live location below.
+    }
+  }
+  return typeof window !== "undefined" ? window.location.hostname : null;
+}
+
+/** Drop exceptions raised on a development host so local QA never mints issues in production. */
+export function dropDevelopmentHostExceptions(event: CaptureResult | null): CaptureResult | null {
+  if (!event || event.event !== "$exception") return event;
+
+  const host = exceptionHost(event);
+  return host && isDevelopmentHost(host) ? null : event;
+}
+
 /** Load and connect the browser analytics transport after the application is interactive. */
 export function initializePostHog(apiKey: string): void {
   if (!apiKey || initializedKey === apiKey) return;
@@ -48,7 +85,11 @@ export function initializePostHog(apiKey: string): void {
   posthog.init(apiKey, {
     api_host: POSTHOG_API_HOST,
     capture_exceptions: true,
-    before_send: [restoreExceptionTopLevelProps, dropExtensionExceptions],
+    before_send: [
+      dropDevelopmentHostExceptions,
+      restoreExceptionTopLevelProps,
+      dropExtensionExceptions,
+    ],
     debug: import.meta.env.VITE_POSTHOG_DEBUG === "true",
   });
 

@@ -52,6 +52,7 @@ on:
       - "packages/indexer/config.yaml"
       - "packages/indexer/schema.graphql"
       - "packages/shared/package.json"
+      - "packages/qa/package.json"
       - "packages/shared/vitest.config.ts"
       - "packages/shared/src/config/chains.ts"
       - "packages/shared/src/config/gardens-subgraph.ts"
@@ -109,6 +110,7 @@ on:
       - "packages/indexer/config.yaml"
       - "packages/indexer/schema.graphql"
       - "packages/shared/package.json"
+      - "packages/qa/package.json"
       - "packages/shared/vitest.config.ts"
       - "packages/shared/src/config/chains.ts"
       - "packages/shared/src/config/gardens-subgraph.ts"
@@ -141,7 +143,7 @@ jobs:
         uses: ./.github/actions/setup-js
 
       - name: Test deterministic docs generators
-        run: node --test scripts/docs/generate.test.mjs docs/scripts/docs-audit.test.mjs docs/scripts/check-search-index.test.mjs scripts/quality/task-routing-contract.test.mjs
+        run: node --test scripts/docs/generate.test.mjs docs/scripts/docs-audit.test.mjs docs/scripts/developer-guides.test.mjs docs/scripts/check-search-index.test.mjs scripts/quality/task-routing-contract.test.mjs
 
       - name: Audit documentation authority
         run: bun run docs:audit:ci

@@ -52,7 +52,7 @@ subtree is only honest if that index actually enumerates the tree (this failed r
 | `prompt-editorial-backend.md` | Codex dispatch prompt for the editorial backend readers (merged as PR #745 / #746) | Dispatch prompt — historical once merged |
 | `prompt-client-loop.md` | Claude Code dispatch prompt to finish the client PWA in a worktree: Phase 0 fixes, D1 close-the-loop (W2a, W4, DomainImpact rows, WFLOW, claims, W25), D2 Offer over time (W32, W34, W35); written from `reports/build-review-2026-08-21.md` | Dispatch prompt — re-verify its "Present state" before use |
 | `prompt-admin-console.md` | Claude Code dispatch prompt for the steward console in a worktree: Phase 0 shared foundation (pool/cycle mutations, resumable write chains, steward readers), D1 run-the-season (W7, W11, W8, W10, W13, W12), D2 close-the-season (W7C, W26, W9, W14, W7M); written 2026-08-21 from the build review plus a code read of `develop@bcf6adfc2` and PR #749; scope recorded in `handoffs/claude-ui-admin.md` § Narrowed dispatch option | Dispatch prompt — stacked on PR #749; the D1 PR opens after #749 lands; re-verify its "Present state" before use |
-| `prompt-qa-functional.md` | Agent dispatch prompt for QA Pass 1 · Wave 1 (functional QA across client PWA, steward console, and editorial): Mode A fixture & regression (unattended) or Mode B co-piloted production live loop (two sanctioned test gardens, `dev:prod:mirror`, Afo signs every prompt under the friendly-window protocol); tier-labeled coverage, routed defects, no fixes; written and finalized 2026-08-24 from `develop@cc8722a7e` after #748/#749/#752 merged. Wave 2 (human experience QA) lives in `handoffs/claude-qa-pass-1.md` | Dispatch prompt — re-verify its "Present state" before use |
+| `prompt-qa-functional.md` | Agent dispatch prompt for QA Pass 1 · Wave 1 (functional QA across client PWA, steward console, and editorial): Mode A fixture & regression (unattended) or Mode B co-piloted production live loop (two sanctioned test gardens, `bun run dev -- prod-mirror`, Afo signs every prompt under the friendly-window protocol); tier-labeled coverage, routed defects, no fixes; written and finalized 2026-08-24 from `develop@cc8722a7e` after #748/#749/#752 merged. Wave 2 (human experience QA) lives in `handoffs/claude-qa-pass-1.md` | Dispatch prompt — re-verify its "Present state" before use |
 | `prompt-qa-experience-audit.md` | Agent dispatch prompt for the design & experience audit feeding Wave 2: read-only, no signatures — Half 1 design-system conformance (review-checklist Lenses 1–5, interaction-patterns, defect-grammar identifiers, accepted-deviation awareness) + Half 2 experience walk reusing `flow-audit-prompt.md`'s six-qualities/relay/arc method against the shipped surfaces; Storybook + fixture-world capture grid across themes/widths/locales; output = ranked improvement backlog + Wave 2 judgment shortlist; written 2026-08-24 from `develop@557abcb74` | Dispatch prompt — judgment-heavy; recommended for Fable/Claude, not Codex |
 | `reports/build-review-2026-08-21.md` | Layer-by-layer build review of the PRD-650 tree: status board, coverage tables, severity-ordered findings, tracking drift, ranked risks, next moves, and the commands run | Dated review evidence — findings carry file:line anchors as of `develop@665e8a573` |
 | `reports/client-loop-2026-08-21.md` | D1 session report for `feature/commitment-pooling-client-loop` (PR #749): built/not-built table keyed to every state id, the seven open decisions, and the demo-world addendum | Dated session evidence — the branch's own account of itself |
@@ -1964,15 +1964,14 @@ does not begin against moving contracts or indexer queries.
 16. [ ] **Walkthrough-video completion (PRD-728):** after QA Pass 2, record, edit, caption, transcribe, privacy-review, and replay the approved client PWA, admin, editorial, gardener, Garden Steward, evaluator, and operational walkthroughs against the final source SHA.
 17. [ ] **Cycle 1 and separately authorized value operations:** open Cycle 1 from the approved mandate artifacts only when its readiness gate passes. Settlement broadcast/canary/exit proof remains human-owned and independently authorized; one Fulfilled commitment may read Confirmed only after the authenticated acknowledgment. The `CreditRegistry` remains an August-wave companion, but its contracts lane cannot dispatch until the in-code pooling/settlement interface freeze, spec revalidation, and human legal/operations review gates all clear.
 
-PRD-758 is a parallel Community Needs & Signals architecture gate. It blocks PRD-682 only and is
-not part of the Commitment Pooling backend critical path.
+PRD-758 closed on 2026-08-29. It was never part of the Commitment Pooling backend critical path.
 
 ### Track C: September community interface
 
-- [ ] PRD-682 shared-foundation extraction, then independent `packages/community` scaffold at `community.greengoods.app` / local port 3010 (after PRD-723 substrate; canonical artifacts in `.plans/active/community-interface/`)
-- [ ] PRD-691 Community admin seeding intake after the Commitment Pooling admin and PRD-682 Community substrate are GREEN (canceled PRD-683 is historical only)
+- [ ] Deferred 2026-09-07 in favor of QA: shared-foundation extraction, then the independent `packages/community` scaffold at `community.greengoods.app` / local port 3010. This is a hackathon build tracked by PRD-691; canonical artifacts are in `.plans/backlog/community-interface/`. PRD-682 was canceled as superseded on 2026-09-11.
+- [ ] PRD-691 Community admin seeding intake after the Commitment Pooling admin and the Community substrate are GREEN (canceled PRD-683 is historical only)
 
-The Needs layer consumed by PRD-682 and PRD-691 (Need/NeedSignal/NeedStatus/FundingAttribution schemas, shared substrate, admin triage, funder lens) is planned and tracked separately in `.plans/active/community-interface/` and the **Community Needs & Signals** Linear project. Canceled PRD-683 remains historical traceability only; register #28 records the schema-count amendment.
+The Needs layer consumed by PRD-691 (Need/NeedSignal/NeedStatus/FundingAttribution schemas, shared substrate, admin triage, funder lens) is planned and tracked separately in `.plans/backlog/community-interface/` and the **Community Needs & Signals** Linear project. Canceled PRD-683 remains historical traceability only; register #28 records the schema-count amendment.
 
 ## TDD / Proof Order
 
@@ -2193,7 +2192,7 @@ Per the Validation Intent Ladder: lane work uses targeted proof; the coordinator
 - [ ] Lane-targeted: lane handoff Validation sections name the commands for each Afo-dispatched work unit
 - [ ] Checkpoint: `node scripts/dev/ci-local.js --quick` after multi-lane merges
 - [ ] Ship Gate before release: `bun format && bun lint && bun run test && bun run build` + `bun run lint:vocab` + `bun run agentic:check` + `bun run check:design-md` + `bun run check:design-generated` + `bun run check:design-tokens` + `bun run --filter @green-goods/shared check:stories` and `check:story-quality` where Storybook-covered surfaces changed
-- [ ] Full-local dogfood before cycle 1: `bun run dev` + `bun run dev:smoke:full`
+- [ ] Full-local dogfood before cycle 1: `bun run dev` + `bun run dev:smoke -- full`
 
 ## Follow-ups from the 2026-07-18 audit response (Linear MCP was unauthenticated this session — file these when it reconnects)
 

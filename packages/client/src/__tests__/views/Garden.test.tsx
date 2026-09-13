@@ -132,7 +132,7 @@ vi.mock("@green-goods/shared/hooks/client-ui/work/useWorkSubmissionFlowControlle
     detailsConfig: {},
     detailInputs: [],
     draft: {
-      showDraftDialog: false,
+      showDraftSheet: false,
       handleContinueDraft: vi.fn(),
       startFresh: vi.fn(),
     },
@@ -225,8 +225,8 @@ vi.mock("@/components/Communication", () => ({
   FormProgress: () => createElement("div", { "data-testid": "form-progress" }),
 }));
 
-vi.mock("@/components/Dialogs", () => ({
-  DraftDialog: () => null,
+vi.mock("@/components/Sheets", () => ({
+  DraftSheet: () => null,
 }));
 
 vi.mock("@/components/Features/Work", () => ({

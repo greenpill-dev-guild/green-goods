@@ -11,7 +11,8 @@ const badgeVariants = tv({
       outline: "text-foreground border-stroke-soft-200 p-1 px-1.5 text-xs",
     },
     tint: {
-      primary: "bg-primary text-primary-foreground",
+      // Text on a green fill uses the action pair; bright green with text fails contrast (DL-017).
+      primary: "bg-primary-action text-primary-action-foreground",
       secondary: "bg-secondary text-secondary-foreground",
       tertiary: "bg-tertiary text-tertiary-foreground",
       accent: "bg-accent text-accent-foreground",

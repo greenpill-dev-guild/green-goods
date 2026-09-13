@@ -11,7 +11,7 @@
       "name": "client PWA + editorial website",
       "kind": "ui",
       "ports": [3001],
-      "command": ["bun", "run", "dev:client"],
+      "command": ["bun", "run", "dev", "--", "client"],
       "env": {
         "VITE_DEV_CHAIN_MODE": "",
         "VITE_CHAIN_ID": "42161",
@@ -36,7 +36,7 @@
       "name": "admin UI",
       "kind": "ui",
       "ports": [3002],
-      "command": ["bun", "run", "dev:admin"],
+      "command": ["bun", "run", "dev", "--", "admin"],
       "env": {
         "VITE_DEV_CHAIN_MODE": "",
         "VITE_CHAIN_ID": "42161",
@@ -59,7 +59,7 @@
       "name": "docs",
       "kind": "docs",
       "ports": [3003],
-      "command": ["bun", "run", "dev:docs"],
+      "command": ["bun", "run", "dev", "--", "docs"],
       "urls": ["http://localhost:3003/"],
       "health": [
         {
@@ -88,7 +88,7 @@
       "name": "agent/API",
       "kind": "api",
       "ports": [3005],
-      "command": ["bun", "run", "dev:agent"],
+      "command": ["bun", "run", "dev", "--", "agent"],
       "env": {
         "PORT": "3005",
         "HOST": "127.0.0.1",
@@ -114,7 +114,7 @@
       "name": "production-backed local browser stack",
       "kind": "project-mode",
       "ports": [3001, 3002, 3003, 3004],
-      "command": ["bun", "run", "dev:prod"],
+      "command": ["bun", "run", "dev", "--", "prod"],
       "autostart": false,
       "urls": [
         "https://localhost:3001/?presentation=pwa",
@@ -126,7 +126,7 @@
       "health": [
         {
           "type": "command",
-          "command": ["bun", "run", "dev:prod:smoke"]
+          "command": ["bun", "run", "dev:smoke", "--", "prod"]
         }
       ]
     },
@@ -135,7 +135,7 @@
       "name": "production-backed local browser stack with local live-indexer mirror",
       "kind": "project-mode",
       "ports": [3001, 3002, 3003, 3004, 3006, 3007, 3008],
-      "command": ["bun", "run", "dev:prod:mirror"],
+      "command": ["bun", "run", "dev", "--", "prod-mirror"],
       "autostart": false,
       "urls": [
         "https://localhost:3001/?presentation=pwa",
@@ -148,7 +148,7 @@
       "health": [
         {
           "type": "command",
-          "command": ["bun", "run", "dev:prod:smoke", "--", "--mode", "mirror"]
+          "command": ["bun", "run", "dev:smoke", "--", "prod-mirror"]
         }
       ]
     },
@@ -227,13 +227,13 @@
       "name": "explicit local Arbitrum fork stack",
       "kind": "project-mode",
       "ports": [3001, 3002, 3005, 3006, 3007, 3008, 3009],
-      "command": ["bun", "run", "dev:fork"],
+      "command": ["bun", "run", "dev", "--", "fork"],
       "autostart": false,
       "urls": ["https://localhost:3001/?presentation=pwa", "https://localhost:3002/"],
       "health": [
         {
           "type": "command",
-          "command": ["bun", "run", "dev:fork:smoke"]
+          "command": ["bun", "run", "dev:smoke", "--", "fork"]
         }
       ]
     }

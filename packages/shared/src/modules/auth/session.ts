@@ -136,6 +136,11 @@ export function setStoredRpId(rpId: string, storage: SessionStorage = localStora
   storage.setItem(RP_ID_STORAGE_KEY, rpId);
 }
 
+/** Get the RP ID used for the active passkey credential. */
+export function getStoredRpId(storage: SessionStorage = localStorage): string | null {
+  return storage.getItem(RP_ID_STORAGE_KEY);
+}
+
 /** Clear stored RP ID */
 export function clearStoredRpId(storage: SessionStorage = localStorage): void {
   storage.removeItem(RP_ID_STORAGE_KEY);
@@ -288,22 +293,46 @@ if (import.meta.env.DEV && typeof window !== "undefined") {
  * Serializable credential data for localStorage storage.
  * Only stores the fields needed to reconstruct the smart account.
  */
+export type PasskeyCredential = P256Credential & {
+  /** Browser credential ID, always base64url. `id` remains the Kernel identity input. */
+  signingId?: string;
+};
+
 interface StoredCredential {
+  version: 3;
   id: string;
   publicKey: `0x${string}`;
+  signingId: string | null;
+}
+
+/** Unknown legacy IDs may be hex or base64url; offer both without changing account identity. */
+export function getPasskeyRequestIds(
+  credential: Pick<PasskeyCredential, "id" | "signingId">
+): ArrayBuffer[] {
+  const id = credential.signingId ?? credential.id;
+  const base64 = id.replace(/-/g, "+").replace(/_/g, "/");
+  const decoded = Uint8Array.from(atob(base64), (character) => character.charCodeAt(0));
+  const ids: ArrayBuffer[] = [decoded.buffer];
+  const hex = id.replace(/^0x/, "");
+  if (!credential.signingId && hex.length > 0 && hex.length % 2 === 0 && /^[\da-f]+$/i.test(hex)) {
+    ids.unshift(Uint8Array.from(hex.match(/.{2}/g)!, (byte) => parseInt(byte, 16)).buffer);
+  }
+  return ids;
 }
 
 /**
  * Store passkey credential in localStorage.
- * Only stores id and publicKey (raw cannot be serialized).
+ * Keeps account identity separate from the browser ID used for signing.
  */
 export function setStoredCredential(
-  credential: P256Credential,
+  credential: PasskeyCredential,
   storage: SessionStorage = localStorage
 ): void {
   const storedData: StoredCredential = {
+    version: 3,
     id: credential.id,
     publicKey: credential.publicKey,
+    signingId: credential.signingId ?? credential.raw?.id ?? null,
   };
   storage.setItem(CREDENTIAL_STORAGE_KEY, JSON.stringify(storedData));
 }
@@ -312,18 +341,45 @@ export function setStoredCredential(
  * Get stored credential from localStorage.
  * Returns a P256Credential-compatible object (without raw).
  */
-export function getStoredCredential(storage: SessionStorage = localStorage): P256Credential | null {
+export function getStoredCredential(
+  storage: SessionStorage = localStorage
+): PasskeyCredential | null {
   const stored = storage.getItem(CREDENTIAL_STORAGE_KEY);
   if (!stored) return null;
 
   try {
-    const data = JSON.parse(stored) as StoredCredential;
-    // Return as P256Credential (raw is undefined, which is fine for smart account creation)
-    return {
+    const data = JSON.parse(stored) as {
+      version?: unknown;
+      idEncoding?: unknown;
+      id?: unknown;
+      publicKey?: unknown;
+      signingId?: unknown;
+    } | null;
+    if (!data || typeof data.id !== "string" || !data.id || typeof data.publicKey !== "string") {
+      throw new Error("Stored passkey credential is incomplete");
+    }
+
+    if (data.version === 2 && data.idEncoding !== "base64url") return null;
+    if (data.version !== undefined && data.version !== 2 && data.version !== 3) return null;
+    if (
+      data.version === 3 &&
+      data.signingId !== null &&
+      (typeof data.signingId !== "string" || !data.signingId)
+    )
+      return null;
+
+    const credential: PasskeyCredential = {
       id: data.id,
-      publicKey: data.publicKey,
+      publicKey: data.publicKey as `0x${string}`,
       raw: undefined as unknown as PublicKeyCredential,
+      ...(data.version === 2
+        ? { signingId: data.id }
+        : data.version === 3 && typeof data.signingId === "string"
+          ? { signingId: data.signingId }
+          : {}),
     };
+    if (data.version !== 3) setStoredCredential(credential, storage);
+    return credential;
   } catch {
     logger.warn("[Session] Failed to parse stored credential, clearing...");
     storage.removeItem(CREDENTIAL_STORAGE_KEY);

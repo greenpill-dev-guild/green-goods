@@ -217,7 +217,7 @@
       "branch": "codex/shared-foundation/community-interface",
       "depends_on": [],
       "handoff": "handoffs/codex-shared-foundation.md",
-      "linear_issues": ["PRD-682"],
+      "linear_issues": ["PRD-691"],
       "acceptance": "Shared runtime/auth/passkey/offline/install/update/error/shell foundations with client parity proof; app routes/manifests/service workers/telemetry/copy remain package-owned."
     },
     "state_api": {
@@ -249,11 +249,11 @@
       "status": "blocked",
       "ready_when_dependencies_met": false,
       "manual_blocked": true,
-      "blocked_reason": "PRD-758 must close before PRD-682 implementation. This Community Needs architecture gate does not block the core Commitment Pooling backend.",
+      "blocked_reason": "Deferred 2026-09-07 in favor of QA. This is the hackathon build tracked by PRD-691; the PRD-758 architecture gate closed 2026-08-29 and PRD-682 was canceled as superseded on 2026-09-11. shared_foundation plus an explicit dispatch remain before implementation.",
       "branch": "claude/ui-community/community-interface",
       "depends_on": ["shared_foundation", "state_api", "ops_paymaster"],
       "handoff": "handoffs/claude-ui-community.md",
-      "linear_issues": ["PRD-682", "PRD-691"],
+      "linear_issues": ["PRD-691"],
       "acceptance": "Independent Community PWA at community.greengoods.app, served locally on port 3010, with Needs/Create/Profile, Support/Do not support/Clear signal states, separate counts without a net score, isolated app identity and service-worker scope, complete queue/recovery states, and en/es/pt accessibility proof. Membership queue remains excluded until its manual gate clears."
     },
     "ui_admin": {

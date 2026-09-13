@@ -1,8 +1,9 @@
+import { useDocumentScrollLock } from "@green-goods/shared/hooks/ui/useDocumentScrollLock";
 import { APP_NAME } from "@green-goods/shared/config/app";
 import { useEventListener } from "@green-goods/shared/hooks/utils/useEventListener";
 import { cn } from "@green-goods/shared/utils/styles/cn";
 import { RiCloseLine, RiMenuLine } from "@remixicon/react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useIntl } from "react-intl";
 import { Link, useLocation } from "react-router-dom";
 import { PublicInstallAction } from "@/components/Public/PublicInstallAction";
@@ -34,30 +35,6 @@ const NAV_ITEMS = [
 // hero image has scrolled past, but the fade is gradual.
 const HEADER_FADE_DISTANCE_PX = 220;
 
-/**
- * Walks up from the given node to find the nearest scrollable ancestor.
- * Returns `window` if no element ancestor scrolls — the page-level scroll
- * container in this app is the wrapper from `routes/Root.tsx`, not window,
- * because that wrapper is `h-full overflow-x-hidden`.
- */
-function findScrollAncestor(node: HTMLElement | null): HTMLElement | Window {
-  if (typeof window === "undefined") return null as unknown as Window;
-  let el: HTMLElement | null = node?.parentElement ?? null;
-  while (el) {
-    const cs = window.getComputedStyle(el);
-    const overflowY = cs.overflowY;
-    if (overflowY === "auto" || overflowY === "scroll") {
-      if (el.scrollHeight > el.clientHeight) return el;
-    }
-    el = el.parentElement;
-  }
-  return window;
-}
-
-function readScrollTop(target: HTMLElement | Window): number {
-  return target instanceof Window ? target.scrollY : target.scrollTop;
-}
-
 function computeHeaderOpacity(scrollTop: number): number {
   // Defensive: jsdom and some older browsers can return undefined for
   // `window.scrollY` / `el.scrollTop`. Treat any non-finite value as 0
@@ -72,30 +49,21 @@ export const SiteHeader = () => {
   const { pathname } = useLocation();
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [headerOpacity, setHeaderOpacity] = useState(1);
-  const [scrollTarget, setScrollTarget] = useState<HTMLElement | Window | null>(null);
-  const headerRef = useRef<HTMLElement | null>(null);
 
   const closeDrawer = useCallback(() => setIsDrawerOpen(false), []);
 
-  // Locate the real scroll container once mounted, then mirror its scroll
-  // position into the fade opacity. The page-level scroll container is the
-  // wrapper div from routes/Root.tsx (overflow-x-hidden + h-full), not window,
-  // so window.scrollY would never change.
   useEffect(() => {
-    const target = findScrollAncestor(headerRef.current);
-    setScrollTarget(target);
-    setHeaderOpacity(computeHeaderOpacity(readScrollTop(target)));
+    setHeaderOpacity(computeHeaderOpacity(window.scrollY));
   }, [pathname]);
-
   useEventListener(
-    scrollTarget,
+    window,
     "scroll",
     () => {
-      if (!scrollTarget) return;
-      setHeaderOpacity(computeHeaderOpacity(readScrollTop(scrollTarget)));
+      setHeaderOpacity(computeHeaderOpacity(window.scrollY));
     },
     { passive: true }
   );
+  useDocumentScrollLock(isDrawerOpen);
 
   // Close drawer on route change.
   useEffect(() => {
@@ -110,18 +78,6 @@ export const SiteHeader = () => {
     };
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [isDrawerOpen]);
-
-  // Prevent body scroll when drawer is open.
-  useEffect(() => {
-    if (isDrawerOpen) {
-      document.body.style.overflow = "hidden";
-    } else {
-      document.body.style.overflow = "";
-    }
-    return () => {
-      document.body.style.overflow = "";
-    };
   }, [isDrawerOpen]);
 
   // Drawer pins the header fully visible regardless of scroll position; the
@@ -143,7 +99,6 @@ export const SiteHeader = () => {
       }) => (
         <>
           <header
-            ref={headerRef}
             className={cn(
               "fixed inset-x-0 top-0 z-sticky border-0 bg-transparent transition-opacity duration-[var(--spring-effects-fast-duration)] ease-out",
               isFullyHidden && "pointer-events-none"

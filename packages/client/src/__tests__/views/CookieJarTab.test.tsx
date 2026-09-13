@@ -74,7 +74,7 @@ vi.mock("@green-goods/shared/hooks/cookie-jar/useAccessibleCookieJars", async (i
   };
 });
 
-import { CookieJarTab } from "../../views/Home/WalletDrawer/CookieJarTab";
+import { CookieJarTab } from "../../views/Home/WalletSheet/CookieJarTab";
 
 describe("CookieJarTab", () => {
   beforeEach(() => {

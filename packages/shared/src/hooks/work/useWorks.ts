@@ -1,12 +1,13 @@
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useEffect, useMemo, useSyncExternalStore } from "react";
+import { useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
 import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
 import { ZERO_ADDRESS } from "../../utils/blockchain/address-constants";
 import { GC_TIMES, STALE_TIMES } from "../../config/react-query";
-import { logger } from "../../modules/app/logger";
 import { getWorkApprovals, getWorks } from "../../modules/data/eas";
+import { useSendingWorkIds } from "./useSendingWorkIds";
 import { useQueuedWorkPreviews } from "./useQueuedWorkPreviews";
 import { jobQueue } from "../../modules/job-queue/default-instance";
-import { jobQueueEventBus, useJobQueueEvents } from "../../modules/job-queue/event-bus";
+import { useJobQueueEvents } from "../../modules/job-queue/event-bus";
 import {
   carryOverlayMarkers,
   type IndexedWorkStatus,
@@ -16,40 +17,19 @@ import {
 import type { Work, WorkCard, WorkDisplayStatus } from "../../types/domain";
 import type { EASWorkApproval } from "../../types/eas-responses";
 import type { Job, WorkJobPayload } from "../../types/job-queue";
-import { useMerged } from "../app/useMerged";
+import { useOnlineStatus, reportConnectivityFailure } from "../app/useOnlineStatus";
+import { extractClientWorkId } from "../../utils/work/deduplication";
 import { usePrimaryAddress } from "../auth/usePrimaryAddress";
 import { queueKeys } from "../../config/query-keys/misc";
 import { worksKeys } from "../../config/query-keys/work";
+import {
+  getOfflineContentSnapshot,
+  subscribeOfflineContent,
+} from "../../modules/offline-content/store";
+import { gardenPreparationKey } from "../../modules/offline-content/types";
 export { usePendingWorksCount } from "./usePendingWorksCount";
 
-// Throttle approval-fetch warnings to avoid console spam (at most once per 10s)
-let _lastApprovalWarnAt = 0;
-function warnApprovalFetchOnce(error: unknown) {
-  const now = Date.now();
-  if (now - _lastApprovalWarnAt > 10_000) {
-    _lastApprovalWarnAt = now;
-    logger.warn("Failed to fetch approvals, status may be stale", { source: "useWorks", error });
-  }
-}
-
 type ApprovalsByWork = Map<string, EASWorkApproval>;
-
-/**
- * Read the approvals the status computation depends on.
- *
- * Returns `null` when the read failed. "No approval exists" and "approvals
- * unavailable" must stay distinct: collapsing them turned every reviewed work
- * back to pending whenever one request failed.
- */
-async function readApprovalsByWork(chainId: number): Promise<ApprovalsByWork | null> {
-  try {
-    const approvals = await getWorkApprovals(undefined, chainId);
-    return new Map(approvals.map((approval) => [approval.workUID, approval]));
-  } catch (error) {
-    warnApprovalFetchOnce(error);
-    return null;
-  }
-}
 
 function indexedStatusFor(work: WorkCard, approvals: ApprovalsByWork | null): IndexedWorkStatus {
   if (approvals === null) return null;
@@ -108,19 +88,34 @@ export interface UseWorksOptions {
 
 // Helper function to convert job payload to Work model
 export function jobToWork(job: Job<WorkJobPayload>): Work {
+  const checkpoint = job.payload.uploadCheckpoint;
+  const awaiting = Boolean(
+    checkpoint?.broadcast || checkpoint?.transactionHash || checkpoint?.broadcastPending
+  );
+  const failed = Boolean(
+    job.meta?.workTransactionReverted ||
+      checkpoint?.transactionReverted ||
+      (job.lastError && !awaiting)
+  );
   return {
     id: job.id, // Use job ID as temporary work ID
     title: job.payload.title || `Action ${job.payload.actionUID}`,
     actionUID: job.payload.actionUID,
-    gardenerAddress: ZERO_ADDRESS, // Unresolved offline; hydration overwrites with the active address
+    gardenerAddress: job.userAddress ?? ZERO_ADDRESS, // Unresolved offline; hydration overwrites with the active address
     gardenAddress: job.payload.gardenAddress,
     feedback: job.payload.feedback,
     metadata: JSON.stringify({
-      submissionState: job.meta?.workTransactionReverted
-        ? "reverted"
-        : job.payload.uploadCheckpoint?.transactionHash
-          ? "awaiting-confirmation"
-          : undefined,
+      clientWorkId: job.payload.clientWorkId,
+      submissionState:
+        job.meta?.workTransactionReverted || job.payload.uploadCheckpoint?.transactionReverted
+          ? "reverted"
+          : job.payload.uploadCheckpoint?.broadcast || job.payload.uploadCheckpoint?.transactionHash
+            ? "awaiting-confirmation"
+            : job.payload.uploadCheckpoint?.broadcastPending
+              ? "checking-submission"
+              : job.lastError
+                ? "retry-required"
+                : "queued",
       details: job.payload.details,
       timeSpentMinutes: job.payload.timeSpentMinutes,
       tags: job.payload.tags,
@@ -129,210 +124,260 @@ export function jobToWork(job: Job<WorkJobPayload>): Work {
     createdAt: Math.floor(job.createdAt / 1000), // Convert ms (Date.now()) to seconds (EAS format)
     status: (job.synced
       ? "pending" // Synced but awaiting on-chain approval
-      : job.lastError
+      : failed
         ? "sync_failed" // Failed to sync to chain
-        : "syncing") as WorkDisplayStatus, // Waiting to sync
+        : "offline") as WorkDisplayStatus, // Admitted locally; a processing event confirms actual sending
   };
 }
 
-/**
- * Compute work status from approvals, honouring local decisions that still
- * cover indexer lag.
- */
-async function computeWorksWithStatus(
-  works: WorkCard[],
-  chainId: number,
-  queryClient: ReturnType<typeof useQueryClient>,
-  gardenId: string
-): Promise<Work[]> {
-  const approvals = await readApprovalsByWork(chainId);
-  const cachedWorks =
-    queryClient.getQueryData<OverlayWork[]>(worksKeys.merged(gardenId, chainId)) ?? [];
-  const cachedMap = new Map(cachedWorks.map((work) => [work.id, work]));
-  const now = Date.now();
-
-  return reconcileIndexedWorkCollection(works, cachedWorks).map((work) =>
-    withResolvedStatus(work, approvals, cachedMap.get(work.id), now)
-  );
-}
-
-/**
- * Hook for fetching works with optional offline support.
- *
- * @param gardenId - The garden address to fetch works for
- * @param options - Configuration options
- * @param options.offline - Enable offline job queue integration (default: false)
- *
- * @example
- * // Admin dashboard (online only)
- * const { works, isLoading } = useWorks(gardenId);
- *
- * @example
- * // Client PWA (with offline support)
- * const { works, isLoading, offlineCount } = useWorks(gardenId, { offline: true });
- */
-const NO_QUEUED_JOBS: Job[] = [];
+/** Availability describes local data, independently from a remote refresh. */
+export type WorkAvailability = "available" | "partial" | "unavailable" | "empty";
+const NO_QUEUED_JOBS: Job<WorkJobPayload>[] = [];
 
 export function useWorks(gardenId: string, options: UseWorksOptions = {}) {
   const { offline = false } = options;
   const chainId = DEFAULT_CHAIN_ID;
   const queryClient = useQueryClient();
   const primaryAddress = usePrimaryAddress();
-  const mergedWorksKey = worksKeys.merged(gardenId, chainId);
-  const onlineOnlyQueryKey = offline
-    ? ([...mergedWorksKey, "online-only-disabled"] as const)
-    : mergedWorksKey;
-  const offlineMergedQueryKey = offline
-    ? mergedWorksKey
-    : ([...mergedWorksKey, "offline-merge-disabled"] as const);
-
-  // ─────────────────────────────────────────────────────────────────────────
-  // Online-only mode: Simple query without offline job queue integration
-  // ─────────────────────────────────────────────────────────────────────────
-  const onlineOnlyQuery = useQuery({
-    queryKey: onlineOnlyQueryKey,
+  const isOnline = useOnlineStatus();
+  const sendingJobs = useSendingWorkIds(primaryAddress, chainId);
+  const downloads = useSyncExternalStore(
+    subscribeOfflineContent,
+    getOfflineContentSnapshot,
+    getOfflineContentSnapshot
+  );
+  const coverage = primaryAddress
+    ? downloads.gardens[gardenPreparationKey(gardenId, chainId, primaryAddress)]
+    : undefined;
+  const projectionKey = offline
+    ? worksKeys.local(gardenId, chainId, primaryAddress ?? undefined)
+    : worksKeys.merged(gardenId, chainId);
+  const online = useQuery({
+    queryKey: worksKeys.online(gardenId, chainId),
     queryFn: async () => {
-      const onlineWorks = await getWorks(gardenId, chainId);
-      return computeWorksWithStatus(onlineWorks, chainId, queryClient, gardenId);
+      try {
+        return await getWorks(gardenId, chainId);
+      } catch (error) {
+        void reportConnectivityFailure();
+        throw error;
+      }
     },
-    enabled: !offline && !!gardenId,
+    enabled: !!gardenId,
+    networkMode: "online",
     staleTime: STALE_TIMES.works,
     gcTime: GC_TIMES.works,
   });
-
-  // ─────────────────────────────────────────────────────────────────────────
-  // Offline mode: Merged online + offline with job queue integration
-  // ─────────────────────────────────────────────────────────────────────────
-  const merged = useMerged<WorkCard[], Job<WorkJobPayload>[], Work[]>({
-    onlineKey: worksKeys.online(gardenId, chainId),
-    offlineKey: worksKeys.offline(gardenId),
-    mergedKey: offlineMergedQueryKey,
-    enabled: offline && !!gardenId,
-    fetchOnline: () => getWorks(gardenId, chainId),
-    fetchOffline: async () => {
-      if (!primaryAddress) return [];
+  const approvals = useQuery({
+    queryKey: worksKeys.approvals(undefined, chainId),
+    queryFn: () => getWorkApprovals(undefined, chainId),
+    enabled: !!gardenId,
+    networkMode: "online",
+    staleTime: STALE_TIMES.works,
+    gcTime: GC_TIMES.works,
+  });
+  const prepared = useQuery<WorkCard[]>({
+    queryKey: worksKeys.preparedRecent(gardenId, chainId),
+    enabled: false,
+  });
+  const preparedApprovals = useQuery<EASWorkApproval[]>({
+    queryKey: worksKeys.preparedApprovals(gardenId, chainId),
+    enabled: false,
+  });
+  const remoteData = online.data ?? (offline ? prepared.data : undefined);
+  const queued = useQuery({
+    queryKey: worksKeys.offline(gardenId, chainId, primaryAddress ?? undefined),
+    queryFn: async () => {
+      if (!primaryAddress) return NO_QUEUED_JOBS;
       const jobs = await jobQueue.getJobs(primaryAddress, { kind: "work", synced: false });
       return jobs.filter(
-        (job) => (job.payload as WorkJobPayload).gardenAddress === gardenId
+        (job) =>
+          (job.chainId ?? DEFAULT_CHAIN_ID) === chainId &&
+          job.userAddress?.toLowerCase() === primaryAddress.toLowerCase() &&
+          (job.payload as WorkJobPayload).gardenAddress.toLowerCase() === gardenId.toLowerCase()
       ) as Job<WorkJobPayload>[];
     },
-    staleTimeOnline: STALE_TIMES.works,
-    gcTimeOnline: GC_TIMES.works,
-    gcTimeMerged: GC_TIMES.works,
-    staleTimeMerged: STALE_TIMES.merged,
-    merge: async (onlineWorks, offlineJobs) => {
-      const safeOnlineWorks = onlineWorks ?? [];
-      const safeOfflineJobs = offlineJobs ?? [];
-
-      const approvals = await readApprovalsByWork(chainId);
-
-      // Preserve local decisions that are still covering indexer lag
-      const cachedWorks =
-        queryClient.getQueryData<OverlayWork[]>(worksKeys.merged(gardenId, chainId)) ?? [];
-      const cachedMap = new Map(cachedWorks.map((work) => [work.id, work]));
-      const now = Date.now();
-
-      // Convert offline jobs to Work models
-      const offlineWorks = await Promise.all(
-        safeOfflineJobs.map(async (job) => {
-          const work = jobToWork(job as Job<WorkJobPayload>);
-          if (primaryAddress) {
-            work.gardenerAddress = primaryAddress;
-          }
-          return work;
-        })
-      );
-
-      // Build work map with computed status
-      const workMap = new Map<string, Work>();
-      safeOnlineWorks.forEach((work) => {
-        workMap.set(work.id, withResolvedStatus(work, approvals, cachedMap.get(work.id), now));
-      });
-
-      // Deduplicate offline works against online
-      const onlineTimestampsByAction = new Map<number, number[]>();
-      safeOnlineWorks.forEach((work) => {
-        const timestamps = onlineTimestampsByAction.get(work.actionUID) ?? [];
-        timestamps.push(work.createdAt);
-        onlineTimestampsByAction.set(work.actionUID, timestamps);
-      });
-
-      const DUPLICATE_TIME_WINDOW_MS = 5 * 60 * 1000;
-
-      offlineWorks.forEach((work) => {
-        const onlineTimestamps = onlineTimestampsByAction.get(work.actionUID);
-        const isDuplicate = onlineTimestamps?.some(
-          (timestamp) => Math.abs(timestamp - work.createdAt) < DUPLICATE_TIME_WINDOW_MS
-        );
-        if (!isDuplicate) {
-          workMap.set(work.id, work);
-        }
-      });
-
-      return Array.from(workMap.values()).sort((a, b) => b.createdAt - a.createdAt);
-    },
-    events: [
-      {
-        subscribe: (listener: () => void) =>
-          jobQueueEventBus.onMultiple(
-            ["job:added", "job:completed", "job:failed"],
-            (_type, data) => {
-              if ("job" in data && data.job.kind === "work") {
-                const jobGardenId = (data.job.payload as WorkJobPayload).gardenAddress;
-                if (jobGardenId === gardenId) listener();
-              }
-            }
-          ),
-      },
-    ],
+    enabled: offline && !!gardenId && !!primaryAddress,
+    networkMode: "always",
+    staleTime: STALE_TIMES.queue,
+    gcTime: GC_TIMES.queue,
   });
+  // Observe approval overlays written by existing consumers. PWA queued rows
+  // are kept under an account/chain key and never restored from legacy merges.
+  const overlay = useQuery<OverlayWork[]>({
+    queryKey: worksKeys.merged(gardenId, chainId),
+    enabled: false,
+  });
+  const projection = useQuery<OverlayWork[]>({ queryKey: projectionKey, enabled: false });
+  const queuedJobs = offline ? (queued.data ?? NO_QUEUED_JOBS) : NO_QUEUED_JOBS;
+  const queuedPreviews = useQueuedWorkPreviews(queuedJobs);
+  const metadataQueries = useQueries({
+    queries: (remoteData ?? []).map((work) => ({
+      queryKey: worksKeys.metadata(work.metadata.trim()),
+      enabled: false,
+    })),
+  });
+  const works = useMemo(() => {
+    const metadataByKey = new Map(
+      (remoteData ?? []).map((work, index) => [
+        work.metadata.trim(),
+        metadataQueries[index]?.data as { clientWorkId?: string } | undefined,
+      ])
+    );
+    const cachedWorks = (projection.data ?? overlay.data ?? []).filter(
+      (work) =>
+        !["syncing", "sync_failed", "offline", "uploading"].includes(work.status) &&
+        !work.id.startsWith("0xoffline_")
+    );
+    const cachedMap = new Map(cachedWorks.map((work) => [work.id, work]));
+    for (const work of overlay.data ?? []) {
+      if (
+        !["syncing", "sync_failed", "offline", "uploading"].includes(work.status) &&
+        !work.id.startsWith("0xoffline_")
+      )
+        cachedMap.set(work.id, work);
+    }
+    const indexed = offline
+      ? (remoteData ?? cachedWorks)
+      : reconcileIndexedWorkCollection(online.data ?? [], cachedWorks);
+    const globalApprovalsKnown = approvals.data !== undefined && !approvals.isError;
+    const preparedIds = new Set(
+      offline && preparedApprovals.data !== undefined ? prepared.data?.map((work) => work.id) : []
+    );
+    const knownApprovals = new Map(
+      [...(offline ? (preparedApprovals.data ?? []) : []), ...(approvals.data ?? [])]
+        .sort((a, b) => (a.createdAt ?? 0) - (b.createdAt ?? 0))
+        .map((approval) => [approval.workUID, approval])
+    );
+    const now = Date.now();
+    const rows: Work[] = indexed.map((work) =>
+      withResolvedStatus(
+        work,
+        globalApprovalsKnown || preparedIds.has(work.id) ? knownApprovals : null,
+        cachedMap.get(work.id) ?? (work as OverlayWork),
+        now
+      )
+    );
+    // Identity must agree on submitter and clientWorkId. A CID whose metadata
+    // has not been downloaded cannot prove a match, so retain the local work.
+    const identities = new Set(
+      rows.flatMap((work) => {
+        const metadata =
+          metadataByKey.get(work.metadata.trim()) ??
+          queryClient.getQueryData<{ clientWorkId?: string }>(
+            worksKeys.metadata(work.metadata.trim())
+          );
+        const id = extractClientWorkId(work.metadata) ?? metadata?.clientWorkId;
+        return id ? [`${work.gardenerAddress.toLowerCase()}:${id}`] : [];
+      })
+    );
+    for (const job of queuedJobs) {
+      const identity =
+        job.payload.clientWorkId && `${job.userAddress.toLowerCase()}:${job.payload.clientWorkId}`;
+      if (identity && identities.has(identity)) continue;
+      if (rows.some((work) => work.id === job.id)) continue;
+      const work = jobToWork(job);
+      if (isOnline && sendingJobs.has(job.id) && work.status === "offline") {
+        work.status = "uploading";
+        work.metadata = JSON.stringify({
+          ...JSON.parse(work.metadata),
+          submissionState: "sending",
+        });
+      }
+      rows.push(
+        queuedPreviews.has(job.id) ? { ...work, media: queuedPreviews.get(job.id)! } : work
+      );
+    }
+    return rows.sort((a, b) => b.createdAt - a.createdAt);
+  }, [
+    online.data,
+    remoteData,
+    prepared.data,
+    preparedApprovals.data,
+    approvals.data,
+    approvals.isError,
+    projection.data,
+    overlay.data,
+    queuedJobs,
+    queuedPreviews,
+    offline,
+    queryClient,
+    metadataQueries,
+    sendingJobs,
+    isOnline,
+  ]);
 
-  const queuedPreviews = useQueuedWorkPreviews(
-    offline ? (merged.offline.data ?? NO_QUEUED_JOBS) : NO_QUEUED_JOBS
-  );
-
-  // Job queue event subscription for offline mode
-  useJobQueueEvents(["job:completed"], (_eventType, data) => {
-    if (offline && "job" in data && data.job.kind === "work") {
-      const jobGardenId = (data.job.payload as WorkJobPayload).gardenAddress;
-      if (jobGardenId === gardenId) {
-        queryClient.invalidateQueries({ queryKey: worksKeys.online(gardenId, chainId) });
+  useEffect(() => {
+    if (remoteData !== undefined) {
+      // Persist remote status overlays only; local object URLs and queued work
+      // are reconstructed from the durable queue after each restore.
+      const remoteIds = new Set(remoteData.map((work) => work.id));
+      const records = works.filter((work) => !offline || remoteIds.has(work.id));
+      if (JSON.stringify(queryClient.getQueryData(projectionKey)) !== JSON.stringify(records)) {
+        queryClient.setQueryData(projectionKey, records);
       }
     }
-  });
+  }, [remoteData, works, queryClient, projectionKey, offline]);
 
-  // ─────────────────────────────────────────────────────────────────────────
-  // Return appropriate data based on mode
-  // ─────────────────────────────────────────────────────────────────────────
-  if (offline) {
-    return {
-      works: ((merged.merged.data ?? []) as Work[]).map((work) =>
-        queuedPreviews.has(work.id) ? { ...work, media: queuedPreviews.get(work.id)! } : work
-      ),
-      isLoading: merged.merged.isLoading,
-      isFetching: merged.online.isFetching || merged.merged.isFetching,
-      isError: merged.online.isError || merged.merged.isError,
-      error: merged.online.error || merged.merged.error,
-      offlineCount: (merged.offline.data ?? []).length,
-      onlineCount: (merged.online.data ?? []).length,
-      refetch: () => {
-        merged.online.refetch();
-        merged.offline.refetch();
-        merged.merged.refetch();
-      },
-    };
-  }
+  // Existing approval consumers invalidate the public merged key. Preserve
+  // that contract while keeping remote reads separate from local projection.
+  useEffect(
+    () =>
+      queryClient.getQueryCache().subscribe((event) => {
+        if (event.type !== "updated" || event.action.type !== "invalidate") return;
+        if (
+          JSON.stringify(event.query.queryKey) !==
+          JSON.stringify(worksKeys.merged(gardenId, chainId))
+        )
+          return;
+        void queryClient.invalidateQueries({ queryKey: worksKeys.online(gardenId, chainId) });
+        void queryClient.invalidateQueries({ queryKey: worksKeys.approvals(undefined, chainId) });
+      }),
+    [queryClient, gardenId, chainId]
+  );
 
+  useJobQueueEvents(
+    ["job:added", "job:processing", "job:completed", "job:failed", "queue:sync-completed"],
+    (event, data) => {
+      if (!offline) return;
+      if ("job" in data && data.job.kind !== "work") return;
+      void queryClient.invalidateQueries({
+        queryKey: worksKeys.offline(gardenId, chainId, primaryAddress ?? undefined),
+      });
+      if (event === "job:completed")
+        void queryClient.invalidateQueries({ queryKey: worksKeys.online(gardenId, chainId) });
+    }
+  );
+  const hasRemote = remoteData !== undefined || (projection.data?.length ?? 0) > 0;
+  const availability: WorkAvailability = hasRemote
+    ? works.length === 0
+      ? "empty"
+      : offline && coverage?.state === "partial"
+        ? "partial"
+        : "available"
+    : works.length > 0
+      ? "partial"
+      : "unavailable";
   return {
-    works: (onlineOnlyQuery.data ?? []) as Work[],
-    isLoading: onlineOnlyQuery.isLoading,
-    isFetching: onlineOnlyQuery.isFetching,
-    isError: onlineOnlyQuery.isError,
-    error: onlineOnlyQuery.error,
-    offlineCount: 0,
-    onlineCount: (onlineOnlyQuery.data ?? []).length,
+    works,
+    availability,
+    lastSuccessfulRefresh:
+      online.dataUpdatedAt || (offline ? prepared.dataUpdatedAt : 0) || undefined,
+    truncated: online.data !== undefined ? false : coverage?.truncated,
+    fetchStatus: online.fetchStatus,
+    isPaused: !isOnline || online.isPaused,
+    isLoading: isOnline && online.isPending && works.length === 0,
+    isFetching: isOnline && online.isFetching,
+    isError: online.isError || (offline && queued.isError),
+    refreshWarning: hasRemote && (online.isError || approvals.isError),
+    error: online.error || (offline ? queued.error : null),
+    offlineCount: queuedJobs.length,
+    onlineCount: remoteData?.length ?? 0,
     refetch: () => {
-      onlineOnlyQuery.refetch();
+      if (isOnline) {
+        void online.refetch();
+        void approvals.refetch();
+      }
+      if (offline) void queued.refetch();
     },
   };
 }
@@ -360,9 +405,12 @@ export function useQueueStatistics() {
   });
 
   // Listen to events to update stats
-  useJobQueueEvents(["job:added", "job:completed", "job:failed", "queue:sync-completed"], () => {
-    queryClient.invalidateQueries({ queryKey: queueKeys.stats() });
-  });
+  useJobQueueEvents(
+    ["job:added", "job:processing", "job:completed", "job:failed", "queue:sync-completed"],
+    () => {
+      queryClient.invalidateQueries({ queryKey: queueKeys.stats() });
+    }
+  );
 
   return query;
 }

@@ -1,4 +1,4 @@
-import { APP_ROUTES } from "./pwaRouting";
+import { PWA_APP_ENTRY_PATH } from "./pwaRouting";
 
 const PENDING_LINK_KEY = "gg-pending-shared-link";
 const PENDING_LINK_TTL = 60 * 60 * 1000;
@@ -38,7 +38,7 @@ export function takePendingSharedLink(): string | null {
 }
 
 export function getSharedLinkLaunchPath(pathname: string): string {
-  return getSharedRecordPath(pathname, "home") ?? APP_ROUTES.home;
+  return getSharedRecordPath(pathname, "home") ?? PWA_APP_ENTRY_PATH;
 }
 
 /** Build a document navigation, including when the route itself lives in a fragment. */
@@ -54,6 +54,6 @@ export function createSharedLinkLaunchUrl(
   // A fragment-only change leaves the public router mounted. Change the document
   // URL as well, even when returning from an earlier app-opening attempt.
   url.searchParams.set("pwaLaunch", previousLaunch === "1" ? "0" : "1");
-  url.hash = pathname;
+  url.hash = pathname === PWA_APP_ENTRY_PATH ? "/home" : pathname;
   return url.href;
 }

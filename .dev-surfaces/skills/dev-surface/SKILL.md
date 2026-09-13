@@ -5,19 +5,15 @@ description: Use when working in Green Goods and needing the local client, admin
 
 # Green Goods Dev Surface
 
-Inside this repo, use the repo-native command:
+Follow [ONBOARDING.md](../../../ONBOARDING.md) for setup and environment selection.
+The default `bun run dev` targets live Arbitrum; confirmed transactions are real.
+Use `bun run dev -- prod` for public browsing through hosted APIs.
 
-```sh
-bun install
-# configure .env from .env.template/.env.schema
-bun run dev
-```
+`bun run dev` runs `node scripts/dev/stack.js` with local as its default mode. It starts client, admin, agent and indexer under PM2 against live Arbitrum One, prints local URLs, streams logs in the foreground, and cleans up owned services on Ctrl-C. Start OrbStack or Docker Desktop first; Docker readiness is checked before services launch, and a missing local Docker socket is redirected to a running OrbStack socket.
 
-`bun run dev` runs `node scripts/dev/stack.js local`. It starts client, admin, agent and indexer under PM2 against live Arbitrum One, prints local URLs, streams logs in the foreground, and cleans up owned services on Ctrl-C. Start OrbStack or Docker Desktop first; Docker readiness is checked before services launch, and a missing local Docker socket is redirected to a running OrbStack socket.
+Docs and Storybook are optional: `bun run dev -- full` includes them and opens browser tabs. Tunnels are explicit through `bun run dev:tunnel`.
 
-Docs and Storybook are optional: `bun run dev:full` includes them and opens browser tabs. Tunnels are explicit through `bun run dev:tunnel`.
-
-Default ports (docs and Storybook require `bun run dev:full`):
+Default ports (docs and Storybook require `bun run dev -- full`):
 
 - `3001`: client PWA and editorial website
 - `3002`: admin UI
@@ -27,9 +23,9 @@ Default ports (docs and Storybook require `bun run dev:full`):
 - `3006`: indexer GraphQL/Hasura
 - `3007`: indexer service
 - `3008`: indexer Postgres
-- `3009`: Anvil Arbitrum fork, started only by explicit `bun run dev:fork`
+- `3009`: Anvil Arbitrum fork, started only by explicit `bun run dev -- fork`
 
-The default clears fork settings, keeps the browser API on the local agent, and permits production wallet and passkey transactions. For explicit fork transaction QA, stop the owning launcher, run `bun run dev:fork`, and add RPC `http://127.0.0.1:3009` with chain id `42161` to a dedicated dev browser wallet and use an Anvil-funded private key from `packages/contracts/.generated/runtime/arbitrum-fork.json`. The launcher silences Anvil startup output and redacts the fork endpoint in that generated file so provider credentials do not appear in logs. Mock-auth URLs do not sign transactions.
+The default clears fork settings, keeps the browser API on the local agent, and permits production wallet and passkey transactions. For explicit fork transaction QA, stop the owning launcher, run `bun run dev -- fork`, and add RPC `http://127.0.0.1:3009` with chain id `42161` to a dedicated dev browser wallet and use an Anvil-funded private key from `packages/contracts/.generated/runtime/arbitrum-fork.json`. The launcher silences Anvil startup output and redacts the fork endpoint in that generated file so provider credentials do not appear in logs. Mock-auth URLs do not sign transactions.
 
 After `bun run dev` is up, run `bun run dev:smoke` for a current
 local proof. It checks both client presentations and admin,
@@ -40,12 +36,12 @@ infrastructure, but it mirrors the configured live networks; set
 `ENVIO_API_TOKEN` in the root `.env` when you need fresh catch-up and a passing
 indexer-lag proof. Without it, HyperSync can return `429 Too Many Requests` and
 the smoke should fail on lag instead of claiming the local mirror is current. It
-never submits transactions. `bun run dev:fork:smoke` selects Anvil checks. The
+never submits transactions. `bun run dev:smoke -- fork` selects Anvil checks. The
 indexer continues to mirror live networks in fork mode and does not ingest
 Anvil-only writes. Restart the owning launcher before switching profiles; never
 reuse a fork process as a live one.
 
-For production-backed local review, use `bun run dev:prod` from the repo root.
+For production-backed local review, use `bun run dev -- prod` from the repo root.
 It starts the local client, admin, docs, and Storybook against Arbitrum One, the
 hosted production indexer, and `https://agent.greengoods.app`. It does not start
 local Anvil, the local indexer, the local agent, or a tunnel. Wallet-confirmed
@@ -56,14 +52,14 @@ free. From the shared workbench, inspect this mode with
 `dev launch green-goods:prod` only when you want the workbench to start and open
 that explicit mode.
 
-For indexer work against live Arbitrum, use `bun run dev:prod:mirror`. It starts
+For indexer work against live Arbitrum, use `bun run dev -- prod-mirror`. It starts
 the same browser surfaces plus local Postgres/Hasura/Envio on ports `3006`-`3008`
 while keeping the chain target at Arbitrum One. Expected ports are `3001`-`3004`
 plus `3006`-`3008`; Anvil on `3009` should stay stopped. From the shared
 workbench, inspect this mode with `dev status green-goods:prod-mirror` or
 `dev health green-goods:prod-mirror`. Use `dev launch green-goods:prod-mirror`
 only when you want the workbench to start and open that explicit mode.
-`bun run dev:prod:mirror:health` requires `ENVIO_API_TOKEN`; without it, the
+`bun run dev:health -- prod-mirror` requires `ENVIO_API_TOKEN`; without it, the
 containers can start but HyperSync may rate-limit and the smoke should fail on
 mirror lag.
 
@@ -71,7 +67,7 @@ mirror lag.
 production-backed Green Goods is the intentional active mode, use
 `dev health green-goods:prod coop portfolio greenpill-network wefa`.
 
-`bun run dev:prod:smoke` verifies local browser ports, Arbitrum RPC chain id
+`bun run dev:smoke -- prod` verifies local browser ports, Arbitrum RPC chain id
 `42161`, deployed Arbitrum contract bytecode, production agent `/health`, indexer
 GraphQL metadata, and indexer lag against Arbitrum head. It never submits
 transactions. Use `--max-indexer-lag-blocks <blocks>` only when intentionally
@@ -81,20 +77,20 @@ Useful native commands:
 
 ```sh
 bun run dev
-bun run dev:web
+bun run dev -- web
 bun run dev:smoke
-bun run dev:full
-bun run dev:fork
-bun run dev:fork:smoke
-bun run dev:smoke:full
-bun run dev:prod
-bun run dev:prod:health
-bun run dev:prod:mirror
-bun run dev:prod:mirror:health
-bun run dev:prod:smoke
-bun run dev:prod:smoke -- --mode mirror
+bun run dev -- full
+bun run dev -- fork
+bun run dev:smoke -- fork
+bun run dev:smoke -- full
+bun run dev -- prod
+bun run dev:health -- prod
+bun run dev -- prod-mirror
+bun run dev:health -- prod-mirror
+bun run dev:smoke -- prod
+bun run dev:smoke -- prod-mirror
 bun run dev:health
-bun run dev:stop
+bun run dev -- stop
 bun run dev:contracts:arbitrum-fork
 ```
 
