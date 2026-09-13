@@ -2,6 +2,7 @@ import { GOVERNANCE_ENABLED } from "@green-goods/shared/config/app";
 import { useCommitmentPools } from "@green-goods/shared/commitment-pooling";
 import { GardenBannerFallback } from "@green-goods/shared/components/Display/GardenBannerFallback";
 import { ImageWithFallback } from "@green-goods/shared/components/Display/ImageWithFallback";
+import { toastService } from "@green-goods/shared/components/Toast/toast.service";
 import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
 import { useBrowserNavigation } from "@green-goods/shared/hooks/app/useBrowserNavigation";
 import { useNavigateToTop } from "@green-goods/shared/hooks/app/useNavigateToTop";
@@ -48,7 +49,7 @@ import {
 import { StandardTabs, TopNav } from "@/components/Navigation";
 import { buildGardenTabs } from "./gardenTabs";
 import { GardenPool } from "./Pool";
-import { ShareGardenButton } from "./ShareGardenButton";
+import { shareGarden } from "./shareGarden";
 
 export const Garden: React.FC = () => {
   const intl = useIntl();
@@ -218,6 +219,13 @@ export const Garden: React.FC = () => {
   }, [primaryAddress, isMember, garden?.openJoining]);
   const showJoinRequestButton = Boolean(primaryAddress && !isMember && !garden?.openJoining);
 
+  const handleShareGarden = () => {
+    if (!garden) return;
+    shareGarden(garden.id, garden.name).catch(() => {
+      toastService.error({ title: intl.formatMessage({ id: "app.garden.shareFailed" }) });
+    });
+  };
+
   if (!garden) {
     if (gardensInitialLoading) {
       return (
@@ -272,6 +280,7 @@ export const Garden: React.FC = () => {
   }
 
   const { name, bannerImage, location, createdAt, assessments, description } = garden;
+  const foundedLabel = `${intl.formatMessage({ id: "app.home.founded" })} ${new Date(createdAt).toLocaleDateString()}`;
 
   // Restore scroll position when switching tabs
 
@@ -346,6 +355,7 @@ export const Garden: React.FC = () => {
                     showEndowmentButton={showEndowmentButton}
                     hasEndowmentDeposits={hasEndowmentDeposits}
                     onEndowmentClick={openEndowmentSheet}
+                    onShareClick={handleShareGarden}
                   />
                 </div>
               </div>
@@ -364,15 +374,14 @@ export const Garden: React.FC = () => {
                       </span>
                     </div>
                     <span className="hidden sm:inline text-text-soft-400">•</span>
-                    <div className="flex items-center gap-1.5 text-sm text-text-sub-600">
+                    <div className="flex min-w-0 items-center gap-1.5 text-sm text-text-sub-600">
                       <RiCalendarEventFill className="h-4 w-4 text-primary flex-shrink-0" />
-                      <span>
-                        {intl.formatMessage({ id: "app.home.founded" })}{" "}
-                        {new Date(createdAt).toLocaleDateString()}
+                      <span className="truncate" title={foundedLabel}>
+                        {foundedLabel}
                       </span>
                     </div>
                   </div>
-                  <ShareGardenButton gardenId={garden.id} name={name} />
+                  {/* One compact action at most; Share lives in the banner actions (DL-020). */}
                   {showJoinButton && <JoinGardenButton gardenId={garden.id} gardenName={name} />}
                   {showJoinRequestButton ? (
                     <GardenJoinRequestDialog gardenAddress={garden.id as Address} />

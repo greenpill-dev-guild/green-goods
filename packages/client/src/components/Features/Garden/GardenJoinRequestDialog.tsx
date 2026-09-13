@@ -13,7 +13,6 @@ import {
 } from "@green-goods/shared/modules/garden-join-requests";
 import type { Address } from "@green-goods/shared/types/domain";
 import type { SheetActionsProps } from "@green-goods/shared/components/Dialog/SheetActions";
-import { RiUserAddLine } from "@remixicon/react";
 import { useId, useState } from "react";
 import { useIntl } from "react-intl";
 import { useNavigate } from "react-router-dom";
@@ -142,10 +141,9 @@ export function GardenJoinRequestDialog({ gardenAddress }: { gardenAddress: Addr
           id: "app.garden.joinRequest.action",
           defaultMessage: "Request to Join",
         })}
-        leadingIcon={<RiUserAddLine className="h-4 w-4" />}
         variant="primary"
         mode="filled"
-        size="small"
+        size="compact"
         onClick={() => setOpen(true)}
       />
       <DialogShell

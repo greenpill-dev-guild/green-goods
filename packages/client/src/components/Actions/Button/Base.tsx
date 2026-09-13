@@ -40,6 +40,10 @@ const clientButtonVariants = tv({
       xsmall: {
         root: "gg-button-size-xs",
       },
+      compact: {
+        // The 48px tap area extends past the 32px button, so the root can't clip it.
+        root: "gg-button-size-compact overflow-visible tap-target-lg",
+      },
       xxsmall: {
         root: "gg-button-size-2xs",
       },

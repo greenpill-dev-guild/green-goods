@@ -197,14 +197,23 @@ vi.mock("@/components/Navigation", () => ({
   TopNav: ({
     onBackClick,
     showGovernanceButton,
+    onShareClick,
   }: {
     onBackClick?: () => void;
     showGovernanceButton?: boolean;
+    onShareClick?: () => void;
   }) =>
     createElement(
-      "button",
-      { type: "button", onClick: onBackClick, "data-testid": "top-nav-back" },
-      showGovernanceButton ? "Governance" : "Back"
+      "div",
+      null,
+      createElement(
+        "button",
+        { type: "button", onClick: onBackClick, "data-testid": "top-nav-back" },
+        showGovernanceButton ? "Governance" : "Back"
+      ),
+      onShareClick
+        ? createElement("button", { type: "button", onClick: onShareClick }, "Share Garden")
+        : null
     ),
 }));
 

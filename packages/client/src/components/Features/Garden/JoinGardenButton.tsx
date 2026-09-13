@@ -1,7 +1,6 @@
 import { toastService } from "@green-goods/shared/components/Toast/toast.service";
 import { useJoinGarden } from "@green-goods/shared/hooks/garden/useJoinGarden";
 import { logger } from "@green-goods/shared/modules/app/logger";
-import { RiUserAddLine } from "@remixicon/react";
 import { useState } from "react";
 import { useIntl } from "react-intl";
 import { Button } from "@/components/Actions";
@@ -60,10 +59,9 @@ export function JoinGardenButton({ gardenId, gardenName }: JoinGardenButtonProps
           id: "app.garden.join",
           defaultMessage: "Join Garden",
         })}
-        leadingIcon={<RiUserAddLine className="w-4 h-4" />}
         variant="primary"
         mode="filled"
-        size="small"
+        size="compact"
         onClick={() => setConfirmOpen(true)}
         disabled={isJoining}
       />

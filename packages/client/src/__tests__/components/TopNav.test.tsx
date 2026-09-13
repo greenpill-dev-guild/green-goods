@@ -245,6 +245,55 @@ describe("components/Navigation/TopNav", () => {
     });
   });
 
+  describe("Share action (DL-020)", () => {
+    it("puts Share last in the action stack, after notifications and endowment", () => {
+      const handleShare = vi.fn();
+
+      renderWithIntl(
+        createElement(TopNav, {
+          garden: mockGarden as any,
+          works: mockWorks as any,
+          isSteward: true,
+          showEndowmentButton: true,
+          onEndowmentClick: vi.fn(),
+          onShareClick: handleShare,
+        })
+      );
+
+      const share = screen.getByRole("button", { name: "Share Garden" });
+      const stack = share.parentElement as HTMLElement;
+      const labels = Array.from(stack.querySelectorAll(":scope > button")).map((button) =>
+        button.getAttribute("aria-label")
+      );
+      expect(labels[labels.length - 1]).toBe("Share Garden");
+      expect(labels).toContain("View notifications");
+
+      fireEvent.click(share);
+      expect(handleShare).toHaveBeenCalledTimes(1);
+    });
+
+    it("shows Share to visitors who see no other banner actions", () => {
+      renderWithIntl(
+        createElement(TopNav, {
+          garden: mockGarden as any,
+          works: mockWorks as any,
+          onShareClick: vi.fn(),
+        })
+      );
+
+      expect(screen.getByRole("button", { name: "Share Garden" })).toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: /view notifications/i })).not.toBeInTheDocument();
+    });
+
+    it("renders no Share button without a garden or a share handler", () => {
+      renderWithIntl(createElement(TopNav, { garden: mockGarden as any, works: mockWorks as any }));
+      expect(screen.queryByRole("button", { name: "Share Garden" })).not.toBeInTheDocument();
+
+      renderWithIntl(createElement(TopNav, { onShareClick: vi.fn() }));
+      expect(screen.queryByRole("button", { name: "Share Garden" })).not.toBeInTheDocument();
+    });
+  });
+
   describe("Children rendering", () => {
     it("renders children in the center area", () => {
       renderWithIntl(
