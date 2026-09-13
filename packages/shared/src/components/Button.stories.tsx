@@ -113,6 +113,10 @@ export const EmphasisCatalog: Story = {
         const radius = px(getComputedStyle(button).borderTopLeftRadius);
         const emphasis = button.getAttribute("data-emphasis");
         await expect(radius).toBe(emphasis === "primary" ? height / 2 : 12);
+        // The two short sizes still reach a 48px hit area (DL-023).
+        if (height < 44) {
+          await expect(px(getComputedStyle(button, "::after").height)).toBe(48);
+        }
       }
     }
   },

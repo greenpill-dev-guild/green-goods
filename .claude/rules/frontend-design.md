@@ -242,10 +242,15 @@ emphasis and the primitive owns it (DL-021); the height comes from `size` on the
 48 / 44 / 40 / 32 (DL-023). Never pass a radius, height, or vertical padding class to them.
 
 A raw element is allowed only when it declares why: a `<button>` with a `role` of `tab`, `switch`,
-or `radio`, or a `data-pressable` of `card`, `row`, `scrim`, `media`, or `trigger` (a whole card or
-list row that opens something, a sheet scrim, a photo, a hidden picker's trigger); an `<input>` of
-type `file`, `radio`, `checkbox`, `hidden`, or `range`. A link that looks like a button is
-`<Button asChild>`.
+or `radio`, or a `data-pressable` of `card`, `row`, `scrim`, `media`, `trigger`, `fab`, or `tab` (a
+whole card or list row that opens something, a sheet scrim, a photo, the trigger for a hidden
+picker or popover, a floating action button and its speed-dial choices, a tab without tab ARIA);
+an `<input>` of type `file`, `radio`, `checkbox`, `hidden`, or `range`. A link that looks like a
+button is `<Button asChild>`. Radii stay on the scale: no `rounded-sm`, `rounded-3xl`, or
+`rounded-4xl` in client source.
+
+`bun run lint:rules` enforces this rule (`rule-19-client-shared-controls` in
+`scripts/quality/check-react-patterns.js`) and fails on any hit; there is no baseline.
 
 ```tsx
 // Bad — a hand-rolled secondary that drifts from the system

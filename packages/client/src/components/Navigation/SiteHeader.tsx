@@ -184,6 +184,7 @@ export const SiteHeader = () => {
             >
               <button
                 type="button"
+                data-pressable="scrim"
                 className="absolute inset-0 bg-static-black/40"
                 onClick={() => setIsDrawerOpen(false)}
                 aria-label={intl.formatMessage({

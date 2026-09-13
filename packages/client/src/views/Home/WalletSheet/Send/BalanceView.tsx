@@ -123,6 +123,7 @@ export function BalanceView({
           <button
             key={`${token.symbol}-${token.address}`}
             type="button"
+            data-pressable="row"
             onClick={() => onSend(token)}
             aria-label={formatMessage(
               { id: "app.balance.sendToken" },

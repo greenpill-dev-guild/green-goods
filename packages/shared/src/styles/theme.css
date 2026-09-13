@@ -1148,11 +1148,13 @@
     padding: 0.3125rem 0.75rem;
   }
 
+  /* Hit areas: an absolute box is laid out against the padding box, inside the
+   * 1px border, so each inset gives the border back to reach the full size. */
   .gg-button[data-size="sm"]::after,
   .gg-button[data-size="compact"]::after {
     content: "";
     position: absolute;
-    inset: calc((var(--gg-button-block) - 3rem) / 2) -0.25rem;
+    inset: calc((var(--gg-button-block) - 3rem) / 2 - 1px) calc(-0.25rem - 1px);
     border-radius: inherit;
   }
 
@@ -1287,7 +1289,7 @@
   .gg-icon-button[data-size="compact"]::after {
     content: "";
     position: absolute;
-    inset: calc((var(--gg-icon-button-size) - 3rem) / 2);
+    inset: calc((var(--gg-icon-button-size) - 3rem) / 2 - 1px);
     border-radius: 50%;
   }
 
@@ -1383,7 +1385,7 @@
   .gg-chip::after {
     content: "";
     position: absolute;
-    inset: -0.375rem -0.125rem;
+    inset: calc((2rem - 2.75rem) / 2 - 1px) calc(-0.125rem - 1px);
     border-radius: inherit;
   }
 
@@ -1418,7 +1420,7 @@
   }
 
   .gg-chip[data-size="sm"]::after {
-    inset: -0.125rem;
+    inset: calc((2.5rem - 2.75rem) / 2 - 1px) calc(-0.125rem - 1px);
   }
 
   /* ── Editorial field surface (DL-024) ── The public site's underline field:

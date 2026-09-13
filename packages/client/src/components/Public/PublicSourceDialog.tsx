@@ -58,6 +58,7 @@ export function PublicSourceDialog({
     >
       <button
         type="button"
+        data-pressable="scrim"
         aria-label={formatMessage({ id: "public.source.close", defaultMessage: "Close" })}
         className="absolute inset-0"
         onClick={onClose}

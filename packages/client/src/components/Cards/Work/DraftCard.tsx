@@ -57,6 +57,7 @@ export const DraftCard: React.FC<DraftCardProps> = ({
       <button
         onClick={onResume}
         type="button"
+        data-pressable="card"
         className="flex min-w-0 flex-1 items-stretch gap-0 text-left focus:outline-none focus-visible:shadow-button-primary-focus"
       >
         {/* Media thumbnail: a fixed square the photo can't resize, same as work cards (DL-019) */}

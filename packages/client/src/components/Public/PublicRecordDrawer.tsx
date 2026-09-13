@@ -80,6 +80,7 @@ export function PublicRecordDrawer({
     >
       <button
         type="button"
+        data-pressable="scrim"
         aria-label={closeLabel}
         onClick={onClose}
         className="absolute inset-0 bg-static-black/40 backdrop-blur-[2px]"

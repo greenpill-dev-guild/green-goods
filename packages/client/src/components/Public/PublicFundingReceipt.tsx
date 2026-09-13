@@ -82,7 +82,7 @@ export function PublicFundingReceipt({ intentId }: PublicFundingReceiptProps) {
 
   if (state.status === "loading") {
     return (
-      <section className="mx-auto max-w-2xl rounded-3xl border border-stroke-soft-200 bg-bg-white-0 p-8 shadow-sm">
+      <section className="mx-auto max-w-2xl rounded-2xl border border-stroke-soft-200 bg-bg-white-0 p-8 shadow-sm">
         <p className="text-sm text-text-sub-600">
           {formatMessage({
             id: "public.fund.receipt.loading",
@@ -95,7 +95,7 @@ export function PublicFundingReceipt({ intentId }: PublicFundingReceiptProps) {
 
   if (state.status === "error") {
     return (
-      <section className="mx-auto max-w-2xl rounded-3xl border border-stroke-soft-200 bg-bg-white-0 p-8 shadow-sm">
+      <section className="mx-auto max-w-2xl rounded-2xl border border-stroke-soft-200 bg-bg-white-0 p-8 shadow-sm">
         <h2 className="font-serif text-2xl text-text-strong-950">
           {formatMessage({
             id: "public.fund.receipt.errorTitle",
@@ -153,7 +153,7 @@ function ReceiptBody({
 
   return (
     <section
-      className="mx-auto max-w-2xl rounded-3xl border border-stroke-soft-200 bg-bg-white-0 p-8 shadow-sm"
+      className="mx-auto max-w-2xl rounded-2xl border border-stroke-soft-200 bg-bg-white-0 p-8 shadow-sm"
       aria-labelledby="public-fund-receipt-title"
     >
       <p className="text-xs font-medium uppercase tracking-wide text-text-soft-400">

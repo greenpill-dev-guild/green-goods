@@ -345,7 +345,7 @@ export const RouteErrorBoundary: React.FC = () => {
   return (
     <div className="min-h-screen bg-bg-white-0 flex items-center justify-center p-4">
       <div className="max-w-lg w-full">
-        <div className="bg-bg-weak-50 backdrop-blur-sm rounded-3xl shadow-2xl border border-stroke-soft-200 p-8 transform animate-fade-in">
+        <div className="bg-bg-weak-50 backdrop-blur-sm rounded-2xl shadow-2xl border border-stroke-soft-200 p-8 transform animate-fade-in">
           <div className="flex flex-col items-center text-center">
             <div className="relative mb-8">
               <div className="absolute inset-0 rounded-full animate-pulse">

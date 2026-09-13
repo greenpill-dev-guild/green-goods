@@ -646,6 +646,7 @@ export const WorkMedia: React.FC<WorkMediaProps> = ({
                   {!isPlaying && (
                     <button
                       type="button"
+                      data-pressable="media"
                       className="absolute inset-0 flex items-center justify-center rounded-[var(--radius-lg)] bg-[var(--color-overlay)]"
                       onClick={() => setPlayingVideoId(mediaId)}
                     >
@@ -687,6 +688,7 @@ export const WorkMedia: React.FC<WorkMediaProps> = ({
               <div key={mediaId} className="relative">
                 <button
                   type="button"
+                  data-pressable="media"
                   className="relative group cursor-pointer w-full"
                   disabled={isBroken}
                   onClick={() => {

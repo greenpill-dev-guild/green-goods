@@ -49,6 +49,7 @@ function SummaryRow({
     return (
       <button
         type="button"
+        data-pressable="row"
         onClick={onEdit}
         aria-label={editLabel}
         className="flex w-full items-center justify-between gap-3 py-2 text-left transition duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)] hover:opacity-80"

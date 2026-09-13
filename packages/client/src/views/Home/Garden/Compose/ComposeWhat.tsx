@@ -77,6 +77,7 @@ export function ComposeWhat({ form, openCycles, cycleNames }: ComposeWhatProps) 
               <button
                 key={option.id}
                 type="button"
+                data-pressable="card"
                 aria-pressed={selected}
                 onClick={() => {
                   form.setValue("kind", option.id, { shouldValidate: true, shouldDirty: true });
@@ -132,6 +133,7 @@ export function ComposeWhat({ form, openCycles, cycleNames }: ComposeWhatProps) 
                 <button
                   key={option.value}
                   type="button"
+                  data-pressable="card"
                   aria-pressed={selected}
                   onClick={() =>
                     form.setValue("cycleId", option.value, {

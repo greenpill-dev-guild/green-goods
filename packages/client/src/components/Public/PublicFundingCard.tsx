@@ -371,6 +371,7 @@ export function PublicFundingCard({ open, garden, intent, onClose }: PublicFundi
     >
       <button
         type="button"
+        data-pressable="scrim"
         aria-label={formatMessage({ id: "public.fund.dialog.close", defaultMessage: "Close" })}
         className="absolute inset-0"
         onClick={status === "submitting" ? undefined : onClose}
@@ -977,6 +978,7 @@ export function TokenPicker({ options, selectedAddress, onSelect, disabled }: To
             <button
               key={option.assetAddress}
               type="button"
+              data-pressable="card"
               onClick={() => onSelect(option.assetAddress)}
               disabled={disabled}
               aria-pressed={isSelected}

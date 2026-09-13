@@ -78,6 +78,7 @@ function JarCard({ jar, gardenName }: JarCardProps) {
     <div className="rounded-lg border border-stroke-soft-200 bg-bg-white-0 p-3">
       <button
         type="button"
+        data-pressable="row"
         onClick={() => setExpanded(!expanded)}
         aria-expanded={expanded}
         aria-controls={panelId}

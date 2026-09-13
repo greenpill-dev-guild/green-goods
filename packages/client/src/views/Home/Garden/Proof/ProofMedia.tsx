@@ -92,6 +92,7 @@ export function ProofMedia({
 
       <button
         type="button"
+        data-pressable="trigger"
         onClick={() => inputRef.current?.click()}
         disabled={isProcessing}
         className="flex w-full flex-col items-center justify-center gap-2 rounded-[var(--radius-lg)] border border-dashed border-stroke-soft-200 bg-bg-weak-50 p-6 text-sm text-text-sub-600 tap-target-lg disabled:opacity-60"
@@ -147,6 +148,7 @@ export function ProofMedia({
               ) : (
                 <button
                   type="button"
+                  data-pressable="media"
                   onClick={() => onPreview(index)}
                   className="block w-full"
                   aria-label={formatMessage({ id: "app.proof.media.preview" }, { name: file.name })}

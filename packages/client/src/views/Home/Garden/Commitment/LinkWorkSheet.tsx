@@ -126,6 +126,7 @@ export function LinkWorkSheet({
                 <li key={row.id}>
                   <button
                     type="button"
+                    data-pressable="row"
                     onClick={() => onSubmitRequirement(row)}
                     aria-label={formatMessage(
                       { id: "app.commitment.link.submitRequirement" },

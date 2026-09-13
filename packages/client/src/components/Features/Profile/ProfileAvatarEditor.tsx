@@ -275,6 +275,7 @@ export function ProfileAvatarEditor({ fallbackAvatar, className }: ProfileAvatar
     <>
       <button
         type="button"
+        data-pressable="trigger"
         onClick={() => setOpen(true)}
         className={cn(
           "relative block h-24 w-24 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--tone-focus-ring,var(--m3-primary)))] focus-visible:ring-offset-2",

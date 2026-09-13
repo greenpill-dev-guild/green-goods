@@ -68,6 +68,7 @@ export function AmountStep({
                 <button
                   key={`${token.symbol}-${token.address}`}
                   type="button"
+                  data-pressable="row"
                   disabled={!selectable}
                   onClick={() => onSelectToken(token)}
                   aria-pressed={selected}

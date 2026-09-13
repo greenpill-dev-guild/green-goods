@@ -64,6 +64,7 @@ export function MemberRow({
   return (
     <button
       type="button"
+      data-pressable="row"
       onClick={onSelect}
       aria-pressed={selected}
       className={cn(

@@ -29,6 +29,7 @@ export const Unselected: Story = {
     await expect(
       Number.parseFloat(getComputedStyle(chip).borderTopLeftRadius)
     ).toBeGreaterThanOrEqual(16);
+    await expect(Number.parseFloat(getComputedStyle(chip, "::after").height)).toBe(44);
   },
 };
 

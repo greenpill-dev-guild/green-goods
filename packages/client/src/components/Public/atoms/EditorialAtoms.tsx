@@ -510,6 +510,7 @@ export function EditorialTermTooltip({ term, definition, className }: EditorialT
     >
       <button
         type="button"
+        data-pressable="trigger"
         aria-describedby={open ? popoverId : undefined}
         aria-expanded={open}
         onClick={() => setOpen((value) => !value)}

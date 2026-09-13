@@ -128,6 +128,12 @@ export const EmphasisCatalog: Story = {
       for (const button of Array.from(row?.querySelectorAll("button") ?? [])) {
         await expect(button.getBoundingClientRect().height).toBe(diameter);
         await expect(button.getBoundingClientRect().width).toBe(diameter);
+        // The hit area never drops below 48px, however small the circle.
+        if (diameter < 44) {
+          const hitArea = getComputedStyle(button, "::after");
+          await expect(Number.parseFloat(hitArea.height)).toBe(48);
+          await expect(Number.parseFloat(hitArea.width)).toBe(48);
+        }
       }
     }
   },

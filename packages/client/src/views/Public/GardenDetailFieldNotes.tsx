@@ -150,6 +150,7 @@ function FieldNoteTile({
     <li>
       <button
         type="button"
+        data-pressable="card"
         onClick={(event) => onOpen(event.currentTarget)}
         className="group flex h-full w-full flex-col gap-4 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-action focus-visible:ring-offset-2"
       >

@@ -329,14 +329,14 @@ export const Garden: React.FC = () => {
           <>
             {/* Fixed Header (banner + TopNav + title/metadata) */}
             <div ref={headerRef} className="fixed top-0 left-0 right-0 bg-bg-white-0 z-20">
-              <div className="relative w-full h-36 md:h-44 overflow-hidden rounded-b-3xl">
+              <div className="relative w-full h-36 md:h-44 overflow-hidden rounded-b-2xl">
                 <ImageWithFallback
                   src={bannerImage || ""}
                   alt={`${name} banner`}
                   loading="eager"
                   className="absolute inset-0 w-full h-full object-cover object-center"
                   backgroundFallback={
-                    <GardenBannerFallback name={name} className="rounded-b-3xl" />
+                    <GardenBannerFallback name={name} className="rounded-b-2xl" />
                   }
                 />
                 <div className="absolute top-0 left-0 right-0 z-20">

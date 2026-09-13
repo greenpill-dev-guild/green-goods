@@ -106,6 +106,7 @@ export function ComposeActionRail({ form, chainId, actions: allActions }: Compos
               <button
                 key={action.id}
                 type="button"
+                data-pressable="card"
                 aria-pressed={selected}
                 onClick={() => toggleAction(action)}
                 className={cn(

@@ -267,6 +267,7 @@ export function RecipientPicker({ selectedAddress, onSelect }: RecipientPickerPr
                 <button
                   key={group.gardenId}
                   type="button"
+                  data-pressable="row"
                   onClick={() => setBrowseGardenId(group.gardenId)}
                   className="flex w-full items-center justify-between gap-3 rounded-lg border border-stroke-soft-200 bg-bg-white-0 p-2.5 text-left transition duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)] hover:bg-bg-weak-50"
                 >

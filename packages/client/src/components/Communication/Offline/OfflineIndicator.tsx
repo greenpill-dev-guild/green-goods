@@ -150,7 +150,7 @@ export const OfflineIndicator: React.FC<OfflineIndicatorProps> = ({
       case "install":
         return (
           <div
-            className={`${baseBarClasses} bg-bg-white-0/95 text-text-strong-950 border-b border-stroke-soft-200 pointer-events-auto`}
+            className={`${baseBarClasses} overflow-y-clip bg-bg-white-0/95 text-text-strong-950 border-b border-stroke-soft-200 pointer-events-auto`}
             role="status"
           >
             <RiDownloadLine size={10} className="text-primary" aria-hidden="true" />
@@ -160,7 +160,9 @@ export const OfflineIndicator: React.FC<OfflineIndicatorProps> = ({
                 defaultMessage: "Install for full experience.",
               })}
             </span>
-            {/* Compact actions keep 48px hit areas; the negative margin keeps the strip thin. */}
+            {/* The strip sits in the 24px the page headers leave at the top, so it is thinner than
+                its compact actions. The negative margins keep it thin, and the vertical clip stops
+                their boxes and hit areas from covering the header controls beneath. */}
             <Button
               type="button"
               emphasis="tertiary"

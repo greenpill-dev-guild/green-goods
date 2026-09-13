@@ -30,6 +30,22 @@ const px = (value: string) => {
 };
 const tokenPx = (token: string) =>
   px(theme.match(new RegExp(`${escape(token)}:\\s*([^;]+);`))?.[1] ?? "");
+const borderPx = (selector: string) =>
+  px((declaration(block(selector), "border") ?? "").split(/\s+/)[0]);
+
+/**
+ * Rendered hit-area height of a `::after` whose block inset reads
+ * `calc((<size> - <target>) / 2 - <gap>)`. An absolute box is laid out against the
+ * padding box, inside the border, so the hit area is `size - 2 * border - 2 * inset`:
+ * it reaches the target only when the gap gives the border back.
+ */
+const hitAreaPx = (inset: string, sizePx: number, border: number) => {
+  const blockInset = inset.match(/^calc\(\((\S+) - (\S+)\) \/ 2 - (\S+)\)/);
+  if (!blockInset) throw new Error(`Unexpected hit-area inset: ${inset}`);
+  const [, size, target, gap] = blockInset;
+  const offset = ((size.startsWith("var(") ? sizePx : px(size)) - px(target)) / 2 - px(gap);
+  return sizePx - 2 * border - 2 * offset;
+};
 
 describe("button shape guard (DL-021, DL-023)", () => {
   it("projects the 12px squircle step from DesignMD", () => {
@@ -69,13 +85,35 @@ describe("button shape guard (DL-021, DL-023)", () => {
     expect(declaration(block(".gg-icon-button"), "cursor")).toBe("pointer");
   });
 
-  it("keeps a 48px hit area on the two short sizes", () => {
-    const hitArea = block(
-      '.gg-button[data-size="sm"]::after,\n  .gg-button[data-size="compact"]::after'
+  it.each([
+    ["sm", 40],
+    ["compact", 32],
+  ])("gives the %s button and icon button a 48px hit area", (size, height) => {
+    const buttonInset = declaration(
+      block('.gg-button[data-size="sm"]::after,\n  .gg-button[data-size="compact"]::after'),
+      "inset"
     );
-    expect(declaration(hitArea, "inset")).toBe(
-      "calc((var(--gg-button-block) - 3rem) / 2) -0.25rem"
+    expect(
+      px(declaration(block(`.gg-button[data-size="${size}"]`), "--gg-button-block") ?? "")
+    ).toBe(height);
+    expect(hitAreaPx(buttonInset ?? "", height, borderPx(".gg-button"))).toBe(48);
+
+    const iconInset = declaration(
+      block(
+        '.gg-icon-button[data-size="sm"]::after,\n  .gg-icon-button[data-size="compact"]::after'
+      ),
+      "inset"
     );
+    expect(hitAreaPx(iconInset ?? "", height, borderPx(".gg-icon-button"))).toBe(48);
+  });
+
+  it.each([
+    [".gg-chip", ".gg-chip::after"],
+    ['.gg-chip[data-size="sm"]', '.gg-chip[data-size="sm"]::after'],
+  ])("gives the %s chip a 44px hit area", (selector, afterSelector) => {
+    const height = px(declaration(block(selector), "min-block-size") ?? "");
+    const inset = declaration(block(afterSelector), "inset") ?? "";
+    expect(hitAreaPx(inset, height, borderPx(".gg-chip"))).toBe(44);
   });
 
   it("morphs on press and keeps the resting shape under reduced motion (DL-001)", () => {

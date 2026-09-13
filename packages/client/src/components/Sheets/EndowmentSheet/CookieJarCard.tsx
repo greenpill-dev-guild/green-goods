@@ -70,6 +70,7 @@ export function CookieJarCard({ jar, gardenAddress, gardenName }: CookieJarCardP
     <div className="rounded-lg border border-stroke-soft-200 bg-bg-white-0 p-3">
       <button
         type="button"
+        data-pressable="row"
         onClick={() => setExpanded(!expanded)}
         className="flex w-full items-center justify-between gap-2"
       >

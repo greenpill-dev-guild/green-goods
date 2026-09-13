@@ -76,6 +76,7 @@ const GardenMemberItem = memo(function GardenMemberItem({
       )}
       onClick={onClick}
       type="button"
+      data-pressable="row"
     >
       {member.isSteward ? (
         <Badge
