@@ -68,6 +68,12 @@ The PWA inherits the Warm Earth core. The current green rhythm is protected:
 
 ---
 
+## Forms and Lists
+
+- Every form field reserves two lines (`min-block-size: 2lh`, 32 px at 12/16 px type) under its control for a hint or error, and fields in a form sit 8 px apart. A longer message grows the slot instead of scrolling inside it (DL-018).
+
+---
+
 ## Do's and Don'ts
 
 **Do:**

@@ -401,7 +401,7 @@ describe("ProfileAvatarEditor", () => {
 
     const input = screen.getByTestId("profile-photo-input");
     const feedback = screen.getByRole("alert");
-    expect(feedback).toHaveStyle({ blockSize: "3lh" });
+    expect(feedback).toHaveStyle({ minBlockSize: "2lh" });
     expect(feedback).toHaveAttribute("tabindex", "0");
     const pickerButton = screen.getByRole("button", { name: "Replace Photo" });
     expect(input).toHaveAttribute("aria-invalid", "true");

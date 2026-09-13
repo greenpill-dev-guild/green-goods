@@ -360,9 +360,8 @@ export function ProfileAvatarEditor({ fallbackAvatar, className }: ProfileAvatar
             tabIndex={displayedError ? 0 : undefined}
             className="text-sm text-error-base"
             style={{
-              blockSize: "3lh",
+              minBlockSize: "2lh",
               flexShrink: 0,
-              overflowY: "auto",
               overflowWrap: "anywhere",
             }}
           >

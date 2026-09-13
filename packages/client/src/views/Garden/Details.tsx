@@ -218,8 +218,9 @@ export const WorkDetails: React.FC<WorkDetailsProps> = ({
   }, []);
 
   return (
-    <div className="flex flex-col gap-4">
-      <FormInfo title={detailsTitle} info={detailsDescription} Icon={RiFileFill} />
+    // Fields sit 8px apart; each one already reserves two lines for its hint or error below.
+    <div className="flex flex-col gap-2">
+      <FormInfo title={detailsTitle} info={detailsDescription} Icon={RiFileFill} className="mb-2" />
 
       {/* Time Spent Input - Always shown as a default field */}
       <FormInput
@@ -416,7 +417,7 @@ export const WorkDetails: React.FC<WorkDetailsProps> = ({
       })}
 
       {/* Share location toggle (decision #27: optional, user-triggered, privacy-first) */}
-      <div className="flex items-start justify-between gap-3 rounded-xl border border-stroke-sub-300 bg-bg-weak-50 p-3">
+      <div className="my-2 flex items-start justify-between gap-3 rounded-xl border border-stroke-sub-300 bg-bg-weak-50 p-3">
         <div className="flex min-w-0 flex-1 items-start gap-2">
           <RiMapPinLine className="h-5 w-5 shrink-0 text-text-sub-600" />
           <div className="min-w-0 flex-1">
