@@ -71,6 +71,7 @@ The PWA inherits the Warm Earth core. The current green rhythm is protected:
 ## Forms and Lists
 
 - Every form field reserves two lines (`min-block-size: 2lh`, 32 px at 12/16 px type) under its control for a hint or error, and fields in a form sit 8 px apart. A longer message grows the slot instead of scrolling inside it (DL-018).
+- Work and draft cards in lists use a fixed 88 px square thumbnail with the photo positioned inside it, so a photo's shape never sets the card's height (DL-019).
 
 ---
 
