@@ -166,7 +166,7 @@ export const WorkView: React.FC<WorkViewProps> = ({
         label={intl.formatMessage({ id: "app.home.workApproval.action", defaultMessage: "Action" })}
         value={
           actionTitle ||
-          intl.formatMessage({ id: "app.action.selected", defaultMessage: "Selected Action" })
+          intl.formatMessage({ id: "app.action.selected", defaultMessage: "Selected" })
         }
         Icon={RiExternalLinkLine}
       />

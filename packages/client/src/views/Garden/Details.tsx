@@ -192,11 +192,13 @@ export const WorkDetails: React.FC<WorkDetailsProps> = ({
   const locationMessages = {
     idle: intl.formatMessage({
       id: "app.garden.details.locationHint",
-      defaultMessage: "Share your location to auto-fill coordinates",
+      defaultMessage:
+        "Share approximate location (about 100 m). It will be published with this work.",
     }),
     loading: intl.formatMessage({
       id: "app.garden.details.locationHint",
-      defaultMessage: "Share your location to auto-fill coordinates",
+      defaultMessage:
+        "Share approximate location (about 100 m). It will be published with this work.",
     }),
     success: intl.formatMessage({
       id: "app.garden.details.locationCaptured",

@@ -186,7 +186,7 @@ export function KarmaIntegrationPanel({ integration }: KarmaIntegrationPanelProp
                   ? "cockpit.garden.karma.action.retry"
                   : "cockpit.garden.karma.action.reconcile",
               defaultMessage:
-                integration.status.status === "failed" ? "Retry Karma sync" : "Retry sync",
+                integration.status.status === "failed" ? "Retry Karma Sync" : "Retry Sync",
             })}
           </AdminButton>
         ) : null}

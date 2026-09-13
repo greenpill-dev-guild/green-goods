@@ -134,7 +134,7 @@ export function GardenJoinRequestsQueue({ gardenAddress }: { gardenAddress: Addr
         <Button
           label={formatMessage({
             id: loaded ? "app.common.refresh" : "app.garden.joinQueue.load",
-            defaultMessage: loaded ? "Refresh" : "Check requests",
+            defaultMessage: loaded ? "Refresh" : "Check Requests",
           })}
           variant="neutral"
           mode="stroke"

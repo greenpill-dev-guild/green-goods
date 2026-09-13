@@ -376,13 +376,13 @@ export function useWorkSubmissionFlowController({
     }
     if (syncStatus === "syncing" || workMutation.isPending) {
       return intl.formatMessage(
-        { id: "app.syncBar.syncing", defaultMessage: "Syncing {count} items..." },
+        { id: "app.syncBar.syncing", defaultMessage: "Sending {count} items..." },
         { count: Math.max(pendingCount, 1) }
       );
     }
     return pendingCount > 0
       ? intl.formatMessage(
-          { id: "app.syncBar.pendingOnline", defaultMessage: "{count} items waiting to sync" },
+          { id: "app.syncBar.pendingOnline", defaultMessage: "{count} items waiting to send" },
           { count: pendingCount }
         )
       : null;

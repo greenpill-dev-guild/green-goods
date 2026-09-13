@@ -42,7 +42,7 @@ export function FormWizard({
 }: FormWizardProps) {
   const { formatMessage } = useIntl();
   const resolvedNextLabel =
-    nextLabel ?? formatMessage({ id: "app.form.next", defaultMessage: "Next" });
+    nextLabel ?? formatMessage({ id: "app.form.next", defaultMessage: "Continue" });
   const resolvedSubmitLabel =
     submitLabel ?? formatMessage({ id: "app.form.submit", defaultMessage: "Submit" });
   const contentRef = useRef<HTMLDivElement>(null);

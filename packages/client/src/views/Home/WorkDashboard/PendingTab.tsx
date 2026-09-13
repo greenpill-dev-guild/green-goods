@@ -32,7 +32,7 @@ const PENDING_MESSAGES = {
     id: "app.workDashboard.pending.itemsPending",
     defaultMessage: "{count} items in progress",
   },
-  loading: { id: "app.workDashboard.loading", defaultMessage: "Loading pending work..." },
+  loading: { id: "app.workDashboard.loading", defaultMessage: "Loading your work..." },
   emptyTitle: { id: "app.workDashboard.pending.noPending", defaultMessage: "No pending work" },
   emptyDescription: {
     id: "app.workDashboard.pending.description",

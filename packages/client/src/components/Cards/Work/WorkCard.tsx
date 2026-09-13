@@ -21,7 +21,7 @@ export interface MinimalWorkCardProps {
 
 function getWorkCardLabels(formatMessage: ReturnType<typeof useIntl>["formatMessage"]) {
   return {
-    error: formatMessage({ id: "app.workCard.error", defaultMessage: "Error" }),
+    error: formatMessage({ id: "app.workCard.error", defaultMessage: "Error loading work" }),
     feedback: formatMessage({ id: "app.workCard.feedback", defaultMessage: "Feedback" }),
     status: {
       approved: formatMessage({ id: "app.status.approved", defaultMessage: "Approved" }),

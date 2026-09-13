@@ -215,7 +215,7 @@ export function PublicCookieJarCard({
       return {
         value: formatTokenAmount(jar.totalWithdrawn, decimals, 4),
         label: intl.formatMessage(
-          { id: "public.cookies.metric.youClaimed", defaultMessage: "{symbol} claimed" },
+          { id: "public.cookies.metric.youClaimed", defaultMessage: "{symbol} you've claimed" },
           { symbol }
         ),
       };
