@@ -6,6 +6,7 @@ import { useIntl } from "react-intl";
 import { useSheetPresence } from "../../hooks/ui/useSheetPresence";
 import { logger } from "../../modules/app/logger";
 import { cn } from "../../utils/styles/cn";
+import { IconButton } from "../IconButton";
 import {
   dialogOverlayClassName,
   dialogOverlayStyle,
@@ -219,15 +220,12 @@ export function ConfirmDialog({
               </div>
             </div>
             <Dialog.Close asChild>
-              <button
-                type="button"
-                className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-lg text-text-soft transition hover:bg-bg-soft active:scale-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-base focus-visible:ring-offset-2"
+              <IconButton
                 data-testid="confirm-dialog-close"
                 aria-label={resolvedCloseLabel}
                 disabled={isLoading}
-              >
-                <RiCloseLine className="h-5 w-5" />
-              </button>
+                icon={<RiCloseLine aria-hidden="true" />}
+              />
             </Dialog.Close>
           </div>
 

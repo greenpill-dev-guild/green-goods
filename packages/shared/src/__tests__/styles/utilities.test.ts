@@ -120,7 +120,9 @@ describe("PwaSheet layout contract", () => {
 
   it("ships the shared header and scrollable body", () => {
     expect(declarations("header")).toMatch(/display:\s*flex/);
-    expect(declarations("close")).toMatch(/width:\s*2\.75rem/);
+    // The close control is the shared IconButton; its 44px circle lives in theme.css.
+    expect(declarations("close")).toBe("");
+    expect(themeContent).toMatch(/\.gg-icon-button\s*\{[^}]*--gg-icon-button-size:\s*2\.75rem/);
     expect(declarations("body")).toMatch(/overflow-y:\s*auto/);
   });
 });

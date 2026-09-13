@@ -23,7 +23,6 @@
  *
  * @module components/Dialog/SheetActions
  */
-import { RiLoader4Line } from "@remixicon/react";
 import type { ButtonHTMLAttributes, ReactNode } from "react";
 import { Button } from "../Button";
 
@@ -64,10 +63,9 @@ export interface SheetActionsProps {
 
 type ActionRole = "primary" | "secondary" | "tertiary";
 
-const variantFor = (role: ActionRole, tone: SheetAction["tone"]) => {
-  if (role === "primary") return tone === "danger" ? "danger" : "primary";
-  return role === "secondary" ? "secondary" : "ghost";
-};
+/** Warning only colors a filled primary; the other roles fall back to their default tone. */
+const toneFor = (role: ActionRole, tone: SheetAction["tone"] = "default") =>
+  role === "primary" || tone === "danger" ? tone : "default";
 
 function renderAction(role: ActionRole, action: SheetAction | undefined) {
   if (!action) return null;
@@ -88,13 +86,14 @@ function renderAction(role: ActionRole, action: SheetAction | undefined) {
       {...buttonProps}
       key={role}
       type={type ?? "button"}
-      variant={variantFor(role, tone)}
+      emphasis={role}
+      tone={toneFor(role, tone)}
       size="md"
-      disabled={loading ? undefined : disabled}
+      loading={loading}
+      disabled={disabled}
       aria-disabled={inert || undefined}
-      aria-busy={loading || undefined}
+      leadingIcon={icon}
       data-action={role}
-      data-tone={tone === "default" ? undefined : tone}
       data-testid={testId}
       onClick={(event) => {
         if (inert) {
@@ -104,7 +103,6 @@ function renderAction(role: ActionRole, action: SheetAction | undefined) {
         onClick?.(event);
       }}
     >
-      {loading ? <RiLoader4Line className="h-4 w-4 animate-spin" aria-hidden="true" /> : icon}
       {label}
     </Button>
   );

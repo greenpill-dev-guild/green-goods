@@ -39,6 +39,7 @@ typography:
     lineHeight: 1.1
 rounded:
   md: 8px
+  squircle: 12px
   lg: 16px
   xl: 20px
   2xl: 24px
@@ -97,6 +98,19 @@ components:
   button-primary-hover:
     backgroundColor: "{colors.tertiary-action-hover}"
     textColor: "{colors.on-tertiary-action}"
+    typography: "{typography.label-md}"
+    rounded: "{rounded.full}"
+  button-secondary:
+    textColor: "{colors.primary}"
+    typography: "{typography.label-md}"
+    padding: "{spacing.md}"
+    rounded: "{rounded.squircle}"
+  field:
+    textColor: "{colors.primary}"
+    typography: "{typography.body-md}"
+    rounded: "{rounded.lg}"
+  chip:
+    textColor: "{colors.primary}"
     typography: "{typography.label-md}"
     rounded: "{rounded.full}"
   app-title:
@@ -240,7 +254,7 @@ Surface-specific copy patterns (browser editorial, PWA gardener-facing, admin ut
 
 Full specs in [`.claude/skills/design/language.md`](.claude/skills/design/language.md). AI prompts should honor these one-line rules:
 
-- **Shape** — *Fixed* (badges, avatars), *Capsule* (primary CTA, icon buttons), *Concentric* (nested: `child_radius = parent_radius − padding`). Shape alone creates hierarchy — capsule reads as primary next to squircle secondary.
+- **Shape** — *Fixed* (badges, avatars), *Capsule* (primary CTA, icon buttons, chips), *Concentric* (nested: `child_radius = parent_radius − padding`). Shape alone creates hierarchy — capsule reads as primary next to the 12px squircle secondary (`rounded.squircle`); fields are 16px (`rounded.lg`). Buttons and fields share one height scale: 48 / 44 / 40 / 32px.
 - **Motion** — Named spring tokens only (`--spring-spatial`, `--spring-spatial-fast`, `--spring-effects`, etc.). Never hardcoded `cubic-bezier` or `duration`. Things settle like a leaf on water.
 - **Material** — Five thicknesses (ultrathin 20% / thin 40% / regular 65% / thick 85% / solid 100%). Match thickness to content density. Never body text on ultrathin. Admin limits glass to Navigation/FAB chrome only; the admin `AppBar` root stays transparent and dialogs/side sheets stay solid.
 - **Elevation** — Five Z-layers (Z0 substrate → Z4 overlay). Admin workspace action/detail flows open in centered `AdminDialog`; the canvas stays at rest and depth comes from the dialog scrim/elevation. Global AppBar surfaces use solid `AdminSideSheet`. Viewport dialogs and PWA sheets may use the shared scrim token.

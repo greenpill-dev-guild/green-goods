@@ -138,8 +138,11 @@ the wrapper-adoption sweep in `check:design-tokens`. For an inline **setting row
 left, `Switch` or compact control right), use `AdminSettingRow`.
 
 **Client**: use the `FormField` component from `@green-goods/shared` for label+input+error
-patterns. Mark required fields in both surfaces (the admin family renders its own aria-hidden
-asterisk from `required` — never hardcode `" *"` into label strings).
+patterns, with the shared `TextInput`, `Textarea`, `NativeSelect`, `Switch`, and
+`FormattedAmountInput` as the controls — never a raw `<input>`, `<textarea>`, or `<select>` with its
+own classes (Rule 19). Fields are 16px on the default surface and an underline on the public
+editorial surface (DL-022, DL-024). Mark required fields in both surfaces (the admin family renders
+its own aria-hidden asterisk from `required` — never hardcode `" *"` into label strings).
 
 **A field-input label is never a hand-rolled eyebrow.** Labelling an input, toggle, or
 selectable-card group with `label-xs text-text-soft` (the eyebrow/metadata token) makes that
@@ -230,5 +233,36 @@ The five enforceable invariants of the admin cockpit finish — treat violations
 - **Four-use tone budget** — workspace tone appears only in the active tab underline/label, the active nav pill, one filled `--tone-action` header action, and the nav-shell FAB fill (plus the faint canvas wash).
 - **Hover rule** — hovers are an elevation step-up or the neutral ink layer `rgb(var(--m3-on-surface) / 0.08)`; never translate/scale lifts or hue shifts.
 - **AdminButton only** — pill shape, Title Case action labels (en; DL-012); the shared `Button` (`gg-button`) must not appear in admin. Control heights ride the DL-011 compact metric (buttons 28/32/40, fields 44, pills 36).
+
+## Rule 19: Client Buttons and Controls Come From the Shared Family
+
+In `packages/client`, every action is the shared `Button` (`emphasis` primary / secondary /
+tertiary), `IconButton`, or `Chip`, and every field a shared field primitive (DL-025). Shape follows
+emphasis and the primitive owns it (DL-021); the height comes from `size` on the shared scale
+48 / 44 / 40 / 32 (DL-023). Never pass a radius, height, or vertical padding class to them.
+
+A raw element is allowed only when it declares why: a `<button>` with a `role` of `tab`, `switch`,
+or `radio`, or a `data-pressable` of `card`, `row`, `scrim`, `media`, or `trigger` (a whole card or
+list row that opens something, a sheet scrim, a photo, a hidden picker's trigger); an `<input>` of
+type `file`, `radio`, `checkbox`, `hidden`, or `range`. A link that looks like a button is
+`<Button asChild>`.
+
+```tsx
+// Bad — a hand-rolled secondary that drifts from the system
+<button className="rounded-lg border px-4 py-2.5 text-sm">{formatMessage({ id: "app.common.retry" })}</button>
+<input className="w-full rounded-md border px-3 py-2" value={amount} onChange={onChange} />
+
+// Good
+import { Button } from "@green-goods/shared/components/Button";
+import { IconButton } from "@green-goods/shared/components/IconButton";
+import { TextInput } from "@green-goods/shared/components/Form/ControlPrimitives";
+
+<Button emphasis="secondary" onClick={retry}>{formatMessage({ id: "app.common.retry" })}</Button>
+<IconButton aria-label={formatMessage({ id: "app.common.close" })} icon={<RiCloseLine />} onClick={close} />
+<TextInput value={amount} onChange={onChange} aria-label={formatMessage({ id: "app.send.amount" })} />
+
+// Good — a whole card that opens a detail view declares itself
+<button type="button" data-pressable="card" onClick={openWork} className="rounded-lg ...">…</button>
+```
 
 > Full surface context: [.claude/context/client.md](../context/client.md) / [.claude/context/admin.md](../context/admin.md); implementation runbook: [.claude/skills/design/implementation.md](../skills/design/implementation.md).

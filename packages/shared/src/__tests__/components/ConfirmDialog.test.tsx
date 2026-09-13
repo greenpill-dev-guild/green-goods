@@ -161,7 +161,8 @@ describe("ConfirmDialog", () => {
     expect(bar).not.toBeNull();
     const confirm = screen.getByRole("button", { name: "Delete" });
     expect(confirm).toHaveAttribute("data-action", "primary");
-    expect(confirm).toHaveClass("gg-button-danger");
+    expect(confirm).toHaveAttribute("data-emphasis", "primary");
+    expect(confirm).toHaveAttribute("data-tone", "danger");
     fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
     expect(onCancel).toHaveBeenCalledOnce();
     expect(onClose).toHaveBeenCalledOnce();

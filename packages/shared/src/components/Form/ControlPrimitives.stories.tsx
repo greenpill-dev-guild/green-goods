@@ -131,6 +131,42 @@ type Story = StoryObj<typeof ControlPrimitiveCatalog>;
 
 export const StateCatalog: Story = {};
 
+/**
+ * The client field scale: a 16px rounded rectangle at sm 40, md 44, lg 48 (DL-022,
+ * DL-023), and the public site's editorial underline field (DL-024).
+ */
+export const DefaultSurfaceSizes: Story = {
+  tags: ["storybook-ci"],
+  render: () => (
+    <section className="flex w-[320px] max-w-full flex-col gap-3 bg-bg-white-0 p-3 text-text-strong-950">
+      <TextInput aria-label="Small field" controlSize="sm" placeholder="sm · 40px" />
+      <TextInput aria-label="Medium field" placeholder="md · 44px" />
+      <TextInput aria-label="Large field" controlSize="lg" placeholder="lg · 48px" />
+      <NativeSelect aria-label="Medium select" defaultValue="all">
+        <option value="all">All Gardens</option>
+      </NativeSelect>
+      <TextInput aria-label="Invalid field" invalid defaultValue="0x00" />
+      <TextInput aria-label="Editorial field" surface="editorial" placeholder="you@example.com" />
+    </section>
+  ),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const radius = (element: HTMLElement) =>
+      Number.parseFloat(getComputedStyle(element).borderTopLeftRadius);
+    for (const [name, height] of [
+      ["Small field", 40],
+      ["Medium field", 44],
+      ["Large field", 48],
+    ] as const) {
+      const field = canvas.getByRole("textbox", { name });
+      await expect(field.getBoundingClientRect().height).toBe(height);
+      await expect(radius(field)).toBe(16);
+    }
+    await expect(radius(canvas.getByRole("combobox", { name: "Medium select" }))).toBe(16);
+    await expect(radius(canvas.getByRole("textbox", { name: "Editorial field" }))).toBe(0);
+  },
+};
+
 export const FocusedTopInputMobile: Story = {
   parameters: {
     viewport: { defaultViewport: "mobile1" },

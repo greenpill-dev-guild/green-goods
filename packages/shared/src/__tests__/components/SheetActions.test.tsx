@@ -26,13 +26,20 @@ describe("SheetActions", () => {
     );
     expect(bar()).toHaveAttribute("data-layout", "stack");
     expect(actionRoles()).toEqual(["primary", "secondary", "tertiary"]);
-    expect(screen.getByRole("button", { name: "Confirm It Was Kept" })).toHaveClass(
-      "gg-button-primary"
+    expect(screen.getByRole("button", { name: "Confirm It Was Kept" })).toHaveAttribute(
+      "data-emphasis",
+      "primary"
     );
-    expect(screen.getByRole("button", { name: "Not Yet" })).toHaveClass("gg-button-secondary");
+    expect(screen.getByRole("button", { name: "Not Yet" })).toHaveAttribute(
+      "data-emphasis",
+      "secondary"
+    );
     const tertiary = screen.getByRole("button", { name: "Discard Draft" });
-    expect(tertiary).toHaveClass("gg-button-ghost");
+    expect(tertiary).toHaveAttribute("data-emphasis", "tertiary");
     expect(tertiary).toHaveAttribute("data-tone", "danger");
+    for (const button of screen.getAllByRole("button")) {
+      expect(button).toHaveAttribute("data-size", "md");
+    }
   });
 
   it("puts Back before Continue for step navigation", () => {
@@ -50,10 +57,26 @@ describe("SheetActions", () => {
         secondary={{ label: "Remove Photo", tone: "danger" }}
       />
     );
-    expect(screen.getByRole("button", { name: "Delete" })).toHaveClass("gg-button-danger");
+    const primary = screen.getByRole("button", { name: "Delete" });
+    expect(primary).toHaveAttribute("data-emphasis", "primary");
+    expect(primary).toHaveAttribute("data-tone", "danger");
     const secondary = screen.getByRole("button", { name: "Remove Photo" });
-    expect(secondary).toHaveClass("gg-button-secondary");
+    expect(secondary).toHaveAttribute("data-emphasis", "secondary");
     expect(secondary).toHaveAttribute("data-tone", "danger");
+  });
+
+  it("colors only a primary with the warning tone", () => {
+    render(
+      <SheetActions
+        primary={{ label: "Withdraw", tone: "warning" }}
+        secondary={{ label: "Cancel", tone: "warning" }}
+      />
+    );
+    expect(screen.getByRole("button", { name: "Withdraw" })).toHaveAttribute(
+      "data-tone",
+      "warning"
+    );
+    expect(screen.getByRole("button", { name: "Cancel" })).not.toHaveAttribute("data-tone");
   });
 
   it("keeps a loading action focusable but inert", () => {
