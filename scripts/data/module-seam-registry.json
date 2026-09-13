@@ -17,8 +17,8 @@
         "conformance": ["packages/shared/src/__tests__/modules/job-queue.db.test.ts"],
         "integration": ["packages/shared/src/__tests__/modules/job-queue.imports.test.ts"]
       },
-      "reviewedAt": "2026-09-10",
-      "evidenceFingerprint": "sha256:54a31dfa99a915ec09d78a23213a36499b540f1803ebffb90bfec764eb28579c"
+      "reviewedAt": "2026-09-12",
+      "evidenceFingerprint": "sha256:2b3a0ac996fb7157033e21c9581aeb68154147c243a0fdaedaf3c9f963a9ac41"
     },
     {
       "id": "shared-auth-session",
@@ -36,8 +36,8 @@
         "conformance": ["packages/shared/src/__tests__/workflows/authServices.test.ts"],
         "integration": ["packages/shared/src/__tests__/providers/Auth.wallet-login.test.tsx"]
       },
-      "reviewedAt": "2026-09-11",
-      "evidenceFingerprint": "sha256:bfbda3561e5af44e31d6dfe103aaaec47c2059c42a972f08aef594b67210a8b0"
+      "reviewedAt": "2026-09-12",
+      "evidenceFingerprint": "sha256:d75d8c341966a1fbc3e7683b65062e7ebe5ecb11b44b1bfc52aa043057ffa7aa"
     },
     {
       "id": "shared-work-provider-command",
@@ -57,8 +57,8 @@
         ],
         "integration": ["packages/shared/src/__tests__/providers/WorkProvider.test.tsx"]
       },
-      "reviewedAt": "2026-09-10",
-      "evidenceFingerprint": "sha256:6077720c2248bdac94c8caa3df3e64b0f4c17362630891e9ab578008d9838547"
+      "reviewedAt": "2026-09-12",
+      "evidenceFingerprint": "sha256:30d4cbb2bd2add109121096e27060a6684d18cb7f7fb32d6bee8499fe8993497"
     },
     {
       "id": "shared-commitment-pooling-public",
@@ -76,8 +76,8 @@
         "conformance": ["packages/shared/src/__tests__/commitment-pooling-read-repository.test.ts"],
         "integration": ["packages/shared/src/__tests__/commitment-pooling-hooks.test.tsx"]
       },
-      "reviewedAt": "2026-09-10",
-      "evidenceFingerprint": "sha256:4a8c8b040da1a69ae10237462237a827ec5ded21b3bee7993f525c7280022d87"
+      "reviewedAt": "2026-09-12",
+      "evidenceFingerprint": "sha256:a4fe83378c7051f66ac9b62a35de808979a08afba4944db28ddfc10e7a5eb7e7"
     }
   ]
 }
