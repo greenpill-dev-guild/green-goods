@@ -41,9 +41,10 @@ function withSignalPool({ eligible = true, weights = true, online = true } = {})
     mocked(useMemberVotingPower).mockReturnValue({
       power: {
         totalStake: 250n * WEI,
-        pointsBudget: 100n,
+        // Points share the 18-decimal scale the sheet formats them with.
+        pointsBudget: 100n * WEI,
         isEligible: eligible,
-        allocations: eligible ? [{ hypercertId: 1204n, amount: 40n }] : [],
+        allocations: eligible ? [{ hypercertId: 1204n, amount: 40n * WEI }] : [],
       },
       isLoading: false,
       isError: false,

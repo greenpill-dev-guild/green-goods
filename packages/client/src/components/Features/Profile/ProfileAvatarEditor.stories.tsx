@@ -7,6 +7,7 @@ import type { Address } from "@green-goods/shared/types/domain";
 import type { Meta, StoryObj } from "@storybook/react";
 import { expect, fn, mocked, screen, userEvent, within } from "storybook/test";
 import {
+  FIXTURE_IMAGE_BANNER,
   FIXTURE_IMAGE_PROFILE,
   STORYBOOK_NOW_SECONDS,
 } from "../../../../../shared/.storybook/fixtures";
@@ -14,7 +15,7 @@ import { ProfileAvatarEditor } from "./ProfileAvatarEditor";
 import { resetHookMocks } from "../../../../../shared/.storybook/moduleMocks";
 
 const ACCOUNT = "0x2aa64E6d80390F5C017F0313cB908051BE2FD35e" as Address;
-const FALLBACK_AVATAR = "/images/avatar.png";
+const FALLBACK_AVATAR = FIXTURE_IMAGE_BANNER;
 
 type Editor = ReturnType<typeof useProfileAvatarEditor>;
 type Resolved = ReturnType<typeof useResolvedProfileAvatar>;
