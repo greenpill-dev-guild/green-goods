@@ -1,3 +1,4 @@
+import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
 import { useActions, useGardens } from "@green-goods/shared/hooks/blockchain/useBaseLists";
 import {
   type DraftWithImages,
@@ -23,7 +24,7 @@ function draft(id: string, overrides: Partial<DraftWithImages> = {}): DraftWithI
   return {
     id,
     userAddress: ACCOUNT,
-    chainId: 42161,
+    chainId: DEFAULT_CHAIN_ID,
     gardenAddress: GARDEN,
     actionUID: 44,
     feedback: "Planted twelve seedlings along the swale.",
@@ -54,8 +55,8 @@ function withDrafts({ isDeleting = false } = {}) {
     } as unknown as ReturnType<typeof useDraftThumbnail>);
     mocked(useActions).mockReturnValue({
       data: [
-        { id: "42161-44", title: "Planting Event" },
-        { id: "42161-45", title: "Survival Check" },
+        { id: `${DEFAULT_CHAIN_ID}-44`, title: "Planting Event" },
+        { id: `${DEFAULT_CHAIN_ID}-45`, title: "Survival Check" },
       ],
     } as unknown as ReturnType<typeof useActions>);
     mocked(useGardens).mockReturnValue({

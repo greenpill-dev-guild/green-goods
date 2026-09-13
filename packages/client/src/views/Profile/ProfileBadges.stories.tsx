@@ -1,3 +1,4 @@
+import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
 import { usePrimaryAddress } from "@green-goods/shared/hooks/auth/usePrimaryAddress";
 import { useEnsName } from "@green-goods/shared/hooks/blockchain/useEnsName";
 import { useGreenGoodsEnsName } from "@green-goods/shared/hooks/ens/useGreenGoodsEnsName";
@@ -28,8 +29,8 @@ function badge(
   const badgeId =
     `0x${slug === "genesis" ? "01" : slug === "first-work" ? "02" : "03"}` as `0x${string}`;
   return {
-    id: `42161-${badgeId}`,
-    chainId: 42161,
+    id: `${DEFAULT_CHAIN_ID}-${badgeId}`,
+    chainId: DEFAULT_CHAIN_ID,
     badgeId,
     slug,
     metadataURI: "",

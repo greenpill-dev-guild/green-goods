@@ -1,3 +1,4 @@
+import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
 import { useOffline } from "@green-goods/shared/hooks/app/useOffline";
 import { useUser } from "@green-goods/shared/hooks/auth/useUser";
 import { useCookieJarWithdraw } from "@green-goods/shared/hooks/cookie-jar/useCookieJarWithdraw";
@@ -16,7 +17,7 @@ import { withWagmi } from "../../../../../shared/.storybook/decorators";
 import { EndowmentSheet } from "./index";
 import { resetHookMocks } from "../../../../../shared/.storybook/moduleMocks";
 
-const CHAIN_ID = 42161;
+const CHAIN_ID = DEFAULT_CHAIN_ID;
 const GARDEN = "0xf401f34378384713222d1d21f63359cc4e8a858a" as Address;
 const ACCOUNT = "0x2aa64e6d80390f5c017f0313cb908051be2fd35e" as Address;
 const DAI = "0xda10009cbd5d07dd0cecc66161fc93d7c9000da1" as Address;

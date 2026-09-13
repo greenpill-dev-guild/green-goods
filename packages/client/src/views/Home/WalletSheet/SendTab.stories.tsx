@@ -1,3 +1,4 @@
+import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
 import { useOffline } from "@green-goods/shared/hooks/app/useOffline";
 import { useUser } from "@green-goods/shared/hooks/auth/useUser";
 import { useCurrentChain } from "@green-goods/shared/hooks/blockchain/useChainConfig";
@@ -90,7 +91,7 @@ function controller({
 function withSendFlow(state: Parameters<typeof controller>[0]) {
   return () => {
     mocked(useUser).mockReturnValue({ primaryAddress: ACCOUNT } as ReturnType<typeof useUser>);
-    mocked(useCurrentChain).mockReturnValue(42161);
+    mocked(useCurrentChain).mockReturnValue(DEFAULT_CHAIN_ID);
     mocked(useOffline).mockReturnValue({ isOnline: state.isOnline ?? true } as ReturnType<
       typeof useOffline
     >);

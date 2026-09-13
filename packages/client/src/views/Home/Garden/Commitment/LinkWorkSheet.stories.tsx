@@ -1,10 +1,11 @@
+import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
 import type { CommitmentRequirementRecord } from "@green-goods/shared/commitment-pooling";
 import type { Action, Address, Work } from "@green-goods/shared/types/domain";
 import type { Meta, StoryObj } from "@storybook/react";
 import { expect, fn, screen, userEvent, within } from "storybook/test";
 import { LinkWorkSheet } from "./LinkWorkSheet";
 
-const CHAIN_ID = 42161;
+const CHAIN_ID = DEFAULT_CHAIN_ID;
 const GARDEN = "0xf401f34378384713222d1d21f63359cc4e8a858a" as Address;
 const GARDENER = "0x1111111111111111111111111111111111111111" as Address;
 

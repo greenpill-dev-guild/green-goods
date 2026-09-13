@@ -1,3 +1,4 @@
+import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
 import { useOffline } from "@green-goods/shared/hooks/app/useOffline";
 import { usePrimaryAddress } from "@green-goods/shared/hooks/auth/usePrimaryAddress";
 import { useActions, useGardens } from "@green-goods/shared/hooks/blockchain/useBaseLists";
@@ -20,7 +21,8 @@ import { STORYBOOK_NOW_SECONDS } from "../../../../../../shared/.storybook/fixtu
 import { ComposeCommitment } from "./ComposeCommitment";
 import { resetHookMocks } from "../../../../../../shared/.storybook/moduleMocks";
 
-const CHAIN_ID = 42161;
+// The composer keys drafts by the default chain, so the seeded draft must too.
+const CHAIN_ID = DEFAULT_CHAIN_ID;
 const GARDEN = "0xf401f34378384713222d1d21f63359cc4e8a858a" as Address;
 const VIEWER = "0x2aa64e6d80390f5c017f0313cb908051be2fd35e" as Address;
 const DRAFT_KEY = commitmentComposerDraftKey({

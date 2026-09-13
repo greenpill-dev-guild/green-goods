@@ -1,3 +1,4 @@
+import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
 import { useOnlineStatus } from "@green-goods/shared/hooks/app/useOnlineStatus";
 import {
   useProfileAvatarEditor,
@@ -7,6 +8,7 @@ import type { Address } from "@green-goods/shared/types/domain";
 import type { Meta, StoryObj } from "@storybook/react";
 import { expect, fn, mocked, screen, userEvent, within } from "storybook/test";
 import {
+  FIXTURE_IMAGE_AGROFORESTRY,
   FIXTURE_IMAGE_BANNER,
   FIXTURE_IMAGE_PROFILE,
   STORYBOOK_NOW_SECONDS,
@@ -20,9 +22,12 @@ const FALLBACK_AVATAR = FIXTURE_IMAGE_BANNER;
 type Editor = ReturnType<typeof useProfileAvatarEditor>;
 type Resolved = ReturnType<typeof useResolvedProfileAvatar>;
 
+// The draft photo reuses a shared Storybook fixture image, so no raw colors live in this story.
 const DRAFT_FILE = new File(
   [
-    '<svg xmlns="http://www.w3.org/2000/svg" width="160" height="160"><rect width="160" height="160" fill="#4fb07a"/><circle cx="80" cy="70" r="34" fill="#e4f2e9"/></svg>',
+    decodeURIComponent(
+      FIXTURE_IMAGE_AGROFORESTRY.slice(FIXTURE_IMAGE_AGROFORESTRY.indexOf(",") + 1)
+    ),
   ],
   "garden-portrait.svg",
   { type: "image/svg+xml" }
@@ -58,7 +63,7 @@ function resolved(source: "app" | "fallback"): Resolved {
 }
 
 const savedDraft = {
-  chainId: 42161,
+  chainId: DEFAULT_CHAIN_ID,
   address: ACCOUNT,
   fileData: null,
   action: "set" as const,
