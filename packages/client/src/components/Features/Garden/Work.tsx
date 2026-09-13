@@ -1,3 +1,4 @@
+import { useGardenOfflineContent } from "@green-goods/shared/hooks/offline/useOfflineContent";
 import { useNavigateToTop } from "@green-goods/shared/hooks/app/useNavigateToTop";
 import type { Action, Work } from "@green-goods/shared/types/domain";
 import { RiErrorWarningLine, RiInboxLine, RiLoader4Line, RiRefreshLine } from "@remixicon/react";
@@ -9,8 +10,26 @@ import { EmptyState, Loader } from "@/components/Communication";
 interface GardenWorkProps {
   actions: Action[];
   works: Work[];
-  workFetchStatus: "pending" | "success" | "error";
+  gardenId?: string;
+  chainId?: number;
+  readState?: {
+    isError: boolean;
+    isLoading: boolean;
+    isPaused: boolean;
+    availability: "available" | "partial" | "unavailable" | "empty";
+    lastSuccessfulRefresh?: number;
+  };
+  workFetchStatus?: "pending" | "success" | "error";
   isFetching?: boolean;
+  isOffline?: boolean;
+  availability?: "available" | "partial" | "unavailable" | "empty";
+  lastSuccessfulRefresh?: number;
+  preparation?: {
+    state: "unavailable" | "partial" | "ready" | "preparing";
+    updatedAt?: number;
+    workCount: number;
+  };
+
   onRefresh?: () => void;
   handleScroll?: (event: UIEvent<HTMLUListElement>) => void;
 }
@@ -18,7 +37,6 @@ interface GardenWorkProps {
 interface WorkListProps {
   works: Work[];
   actions: Action[];
-  workFetchStatus: "pending" | "success" | "error";
 }
 
 interface WorkListItemProps {
@@ -61,8 +79,7 @@ const WorkListItem = memo(function WorkListItem({
   );
 });
 
-const WorkList = ({ works, actions, workFetchStatus }: WorkListProps) => {
-  const intl = useIntl();
+const WorkList = ({ works, actions }: WorkListProps) => {
   const navigate = useNavigateToTop();
 
   const actionById = useMemo(() => {
@@ -81,69 +98,87 @@ const WorkList = ({ works, actions, workFetchStatus }: WorkListProps) => {
     });
   }, [works]);
 
-  switch (workFetchStatus) {
-    case "pending":
-      return (
-        <div className="grid gap-3">
-          {[...Array(8)].map((_, i) => (
-            <li key={i}>
-              <div className="flex flex-col gap-2 rounded-lg border border-stroke-soft-200 p-3 bg-bg-white-0">
-                <div className="h-4 w-40 bg-bg-soft-200 rounded animate-pulse" />
-                <div className="h-3 w-64 bg-bg-soft-200 rounded animate-pulse" />
-              </div>
-            </li>
-          ))}
-        </div>
-      );
-    case "success": {
-      if (!sorted.length) {
-        return (
-          <EmptyState
-            icon={<RiInboxLine />}
-            title={intl.formatMessage({
-              id: "app.garden.work.noWork",
-              description: "No work yet",
-            })}
-          />
-        );
-      }
-
-      return (
-        <>
-          {sorted.map((_, i) => (
-            <WorkListItem
-              key={sorted[i].id}
-              index={i}
-              sorted={sorted}
-              actionById={actionById}
-              navigate={navigate}
-            />
-          ))}
-        </>
-      );
-    }
-    case "error":
-      return (
-        <EmptyState
-          tone="error"
-          icon={<RiErrorWarningLine />}
-          title={intl.formatMessage({
-            id: "app.garden.work.errorLoadingWorks",
-            description: "Error loading works",
-          })}
-        />
-      );
-  }
-
-  return null;
+  return sorted.map((_, index) => (
+    <WorkListItem
+      key={sorted[index].id}
+      index={index}
+      sorted={sorted}
+      actionById={actionById}
+      navigate={navigate}
+    />
+  ));
 };
 
 export const GardenWork = forwardRef<HTMLUListElement, GardenWorkProps>(
-  ({ works, actions, workFetchStatus, isFetching, onRefresh, handleScroll }, ref) => {
+  (
+    {
+      works,
+      actions,
+      workFetchStatus: statusProp,
+      isFetching,
+      isOffline: offlineProp = false,
+      availability: availabilityProp,
+      lastSuccessfulRefresh: updatedProp,
+      preparation: preparationProp,
+      gardenId,
+      chainId,
+      readState,
+      onRefresh,
+      handleScroll,
+    },
+    ref
+  ) => {
     const intl = useIntl();
-    const isEmpty = workFetchStatus === "success" && works.length === 0;
-    const hasError = workFetchStatus === "error";
-    const isLoading = workFetchStatus === "pending";
+    const workFetchStatus =
+      statusProp ?? (readState?.isError ? "error" : readState?.isLoading ? "pending" : "success");
+    const downloaded = useGardenOfflineContent(gardenId ?? "", chainId);
+    const preparation = preparationProp ?? (gardenId ? downloaded : undefined);
+    const isOffline = readState?.isPaused ?? offlineProp;
+    const availability = readState?.availability ?? availabilityProp;
+    const lastSuccessfulRefresh = readState?.lastSuccessfulRefresh ?? updatedProp;
+    const hasRows = works.length > 0;
+    const unavailable =
+      isOffline && (availability === "unavailable" || (!availability && !hasRows));
+    const isEmpty =
+      workFetchStatus === "success" &&
+      works.length === 0 &&
+      (availability === "empty" || (availability === undefined && !isOffline));
+    const hasError = !hasRows && !isOffline && workFetchStatus === "error";
+    const isLoading = !hasRows && !isOffline && workFetchStatus === "pending";
+    const updatedAt = preparation?.updatedAt ?? lastSuccessfulRefresh;
+    const context = unavailable
+      ? intl.formatMessage({
+          id: "app.offline.workUnavailable",
+          defaultMessage: "This garden’s work hasn’t been downloaded. Connect to load it.",
+        })
+      : preparation?.state === "partial" ||
+          availability === "partial" ||
+          (isOffline && hasRows && preparation?.state === "unavailable")
+        ? intl.formatMessage({
+            id: "app.offline.workPartial",
+            defaultMessage: "Partially available offline. Some photos or details may be missing.",
+          })
+        : workFetchStatus === "error" && hasRows
+          ? intl.formatMessage({
+              id: "app.offline.refreshWarning",
+              defaultMessage: "Couldn’t refresh. Showing saved work.",
+            })
+          : isOffline
+            ? intl.formatMessage({
+                id: "app.offline.savedWork",
+                defaultMessage: "Offline · Showing saved work",
+              })
+            : preparation?.state === "ready"
+              ? intl.formatMessage({
+                  id: "app.offline.workReady",
+                  defaultMessage: "Recent work is available offline",
+                })
+              : preparation?.state === "preparing"
+                ? intl.formatMessage({
+                    id: "app.offline.workPreparing",
+                    defaultMessage: "Preparing recent work for offline use…",
+                  })
+                : null;
 
     return (
       <ul
@@ -152,93 +187,108 @@ export const GardenWork = forwardRef<HTMLUListElement, GardenWorkProps>(
         className={
           !isEmpty && !hasError && !isLoading
             ? "grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-3 w-full"
-            : "flex items-center justify-center w-full"
+            : "flex flex-col items-center justify-center w-full"
         }
       >
+        {context && (
+          <li className="col-span-full w-full text-sm text-text-sub-600" role="status">
+            <p>{context}</p>
+            {updatedAt && (
+              <p>
+                {intl.formatMessage(
+                  { id: "app.offline.lastUpdated", defaultMessage: "Last updated {date}" },
+                  { date: intl.formatDate(updatedAt, { dateStyle: "medium", timeStyle: "short" }) }
+                )}
+              </p>
+            )}
+          </li>
+        )}
         {isLoading && (
-          <div className="flex items-center justify-center p-8">
+          <li className="flex items-center justify-center p-8">
             <Loader />
-          </div>
+          </li>
         )}
 
         {hasError && (
-          <EmptyState
-            tone="error"
-            icon={<RiErrorWarningLine />}
-            title={intl.formatMessage({
-              id: "app.garden.work.errorLoadingWorks",
-              defaultMessage: "Error loading works",
-            })}
-            action={
-              onRefresh ? (
-                <button
-                  onClick={onRefresh}
-                  disabled={isFetching}
-                  className="flex items-center gap-2 rounded-[var(--radius-md)] bg-primary-action px-4 py-2 text-sm font-medium text-primary-action-foreground transition-colors duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)] hover:bg-primary-action-hover disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                  {isFetching ? (
-                    <>
-                      <RiLoader4Line className="w-4 h-4 animate-spin" />
-                      {intl.formatMessage({
-                        id: "app.common.refreshing",
-                        defaultMessage: "Refreshing...",
-                      })}
-                    </>
-                  ) : (
-                    <>
-                      <RiRefreshLine className="h-4 w-4" />
-                      {intl.formatMessage({
-                        id: "app.common.tryAgain",
-                        defaultMessage: "Try Again",
-                      })}
-                    </>
-                  )}
-                </button>
-              ) : null
-            }
-          />
+          <li>
+            <EmptyState
+              tone="error"
+              icon={<RiErrorWarningLine />}
+              title={intl.formatMessage({
+                id: "app.garden.work.errorLoadingWorks",
+                defaultMessage: "Error loading works",
+              })}
+              action={
+                onRefresh && !isOffline ? (
+                  <button
+                    onClick={onRefresh}
+                    disabled={isFetching}
+                    className="flex items-center gap-2 rounded-[var(--radius-md)] bg-primary-action px-4 py-2 text-sm font-medium text-primary-action-foreground transition-colors duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)] hover:bg-primary-action-hover disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    {isFetching ? (
+                      <>
+                        <RiLoader4Line className="w-4 h-4 animate-spin" />
+                        {intl.formatMessage({
+                          id: "app.common.refreshing",
+                          defaultMessage: "Refreshing...",
+                        })}
+                      </>
+                    ) : (
+                      <>
+                        <RiRefreshLine className="h-4 w-4" />
+                        {intl.formatMessage({
+                          id: "app.common.tryAgain",
+                          defaultMessage: "Try Again",
+                        })}
+                      </>
+                    )}
+                  </button>
+                ) : null
+              }
+            />
+          </li>
         )}
 
         {isEmpty && (
-          <EmptyState
-            icon={<RiInboxLine />}
-            title={intl.formatMessage({
-              id: "app.garden.work.noWork",
-              defaultMessage: "No work yet, get started by submitting new work.",
-            })}
-            action={
-              onRefresh ? (
-                <button
-                  onClick={onRefresh}
-                  disabled={isFetching}
-                  className="flex items-center gap-1.5 rounded-[var(--radius-md)] border border-stroke-soft-200 px-3 py-1.5 text-xs font-medium text-text-sub-600 transition-colors duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)] hover:bg-bg-weak-50 disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                  {isFetching ? (
-                    <>
-                      <RiLoader4Line className="w-3 h-3 animate-spin" />
-                      {intl.formatMessage({
-                        id: "app.common.refreshing",
-                        defaultMessage: "Refreshing...",
-                      })}
-                    </>
-                  ) : (
-                    <>
-                      <RiRefreshLine className="h-3.5 w-3.5" />
-                      {intl.formatMessage({
-                        id: "app.common.refresh",
-                        defaultMessage: "Refresh",
-                      })}
-                    </>
-                  )}
-                </button>
-              ) : null
-            }
-          />
+          <li>
+            <EmptyState
+              icon={<RiInboxLine />}
+              title={intl.formatMessage({
+                id: "app.garden.work.noWork",
+                defaultMessage: "No work yet, get started by submitting new work.",
+              })}
+              action={
+                onRefresh && !isOffline ? (
+                  <button
+                    onClick={onRefresh}
+                    disabled={isFetching}
+                    className="flex items-center gap-1.5 rounded-[var(--radius-md)] border border-stroke-soft-200 px-3 py-1.5 text-xs font-medium text-text-sub-600 transition-colors duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)] hover:bg-bg-weak-50 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    {isFetching ? (
+                      <>
+                        <RiLoader4Line className="w-3 h-3 animate-spin" />
+                        {intl.formatMessage({
+                          id: "app.common.refreshing",
+                          defaultMessage: "Refreshing...",
+                        })}
+                      </>
+                    ) : (
+                      <>
+                        <RiRefreshLine className="h-3.5 w-3.5" />
+                        {intl.formatMessage({
+                          id: "app.common.refresh",
+                          defaultMessage: "Refresh",
+                        })}
+                      </>
+                    )}
+                  </button>
+                ) : null
+              }
+            />
+          </li>
         )}
 
-        {!isLoading && !hasError && !isEmpty && (
-          <WorkList works={works} actions={actions} workFetchStatus={workFetchStatus} />
-        )}
+        {hasRows && <WorkList works={works} actions={actions} />}
       </ul>
     );
   }

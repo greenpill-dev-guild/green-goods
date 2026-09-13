@@ -9,6 +9,7 @@ import type { TransactionSender } from "../transactions/types";
 
 export interface ProcessJobContext {
   transactionSender: TransactionSender | null;
+  assertOwnership?: () => void | Promise<void>;
 }
 
 export interface ProcessJobResult {

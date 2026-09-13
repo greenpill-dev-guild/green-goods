@@ -175,7 +175,7 @@ describe("wallet-submission", () => {
             },
           }
         )
-      ).resolves.toBe("0x1234");
+      ).rejects.toThrow("awaiting-confirmation");
       expect(encoders.encodeWorkData).not.toHaveBeenCalled();
       expect(mockWalletClient.sendTransaction).not.toHaveBeenCalled();
     });

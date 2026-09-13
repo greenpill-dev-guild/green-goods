@@ -1,3 +1,4 @@
+import { connectivityStore } from "../../stores/connectivity";
 import { useEffect, useRef } from "react";
 import { useIntl } from "react-intl";
 import { createQueueToasts } from "../../components/toast";
@@ -28,6 +29,8 @@ interface WalletQueueSyncOptions {
 function hasKnownBroadcast(job: Job): boolean {
   return Boolean(
     (job.payload as WorkJobPayload).uploadCheckpoint?.transactionHash ||
+      (job.payload as WorkJobPayload).uploadCheckpoint?.broadcast ||
+      (job.payload as WorkJobPayload).uploadCheckpoint?.broadcastPending ||
       retainedWorkBroadcast(job.id)
   );
 }
@@ -65,8 +68,17 @@ export function useWalletQueueSync({
       if (!sender) return;
       for (const job of jobs) {
         if (stopped) return;
-        if (hasKnownBroadcast(job) && !job.meta?.workTransactionReverted)
-          await queue.processJob(job.id, { transactionSender: sender });
+        if (
+          (job.chainId ?? DEFAULT_CHAIN_ID) === DEFAULT_CHAIN_ID &&
+          hasKnownBroadcast(job) &&
+          !job.meta?.workTransactionReverted
+        )
+          await queue.processJob(job.id, {
+            transactionSender: sender,
+            assertOwnership: () => {
+              if (stopped) throw new Error("submission-ownership-changed");
+            },
+          });
       }
     };
 
@@ -74,6 +86,7 @@ export function useWalletQueueSync({
       if (authMode !== "wallet" || !walletConnected) return;
       const unsent = jobs.filter(
         (job) =>
+          (job.chainId ?? DEFAULT_CHAIN_ID) === DEFAULT_CHAIN_ID &&
           !hasKnownBroadcast(job) &&
           !job.meta?.workTransactionReverted &&
           !isTerminallyFailedJob(job)
@@ -81,7 +94,9 @@ export function useWalletQueueSync({
       let sent = 0;
       try {
         if (unsent.length > 0) {
-          const result = await syncQueuedWorkBatch(userAddress, DEFAULT_CHAIN_ID);
+          const result = await syncQueuedWorkBatch(userAddress, DEFAULT_CHAIN_ID, () => {
+            if (stopped) throw new Error("submission-ownership-changed");
+          });
           sent = result.count;
           if (!stopped && sent > 0) toastsRef.current.syncSuccess(sent);
         }
@@ -108,7 +123,7 @@ export function useWalletQueueSync({
     };
 
     const pass = async (send: boolean) => {
-      if (!navigator.onLine) return;
+      if (!connectivityStore.getSnapshot()) return;
       const jobs = await queue.getJobs(userAddress, { kind: "work", synced: false });
       if (stopped) return;
       await confirmKnownBroadcasts(jobs);
@@ -154,13 +169,15 @@ export function useWalletQueueSync({
 
     reconnect();
     const timer = setInterval(check, CONFIRMATION_POLL_MS);
-    window.addEventListener("online", reconnect);
+    const unsubscribeConnectivity = connectivityStore.subscribe(() => {
+      if (connectivityStore.getSnapshot()) reconnect();
+    });
     const unsubscribeEvents = queue.subscribe(check);
     const unsubscribeBackgroundSync = queue.onBackgroundSyncRequested(reconnect);
     return () => {
       stopped = true;
       clearInterval(timer);
-      window.removeEventListener("online", reconnect);
+      unsubscribeConnectivity();
       unsubscribeEvents();
       unsubscribeBackgroundSync();
     };

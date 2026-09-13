@@ -1,4 +1,9 @@
-import { AwaitingWorkConfirmation, WorkTransactionReverted } from "../work/work-confirmation";
+import { connectivityStore } from "../../stores/connectivity";
+import {
+  AwaitingWorkConfirmation,
+  WorkTransactionReverted,
+  isWorkSubmissionCancelled,
+} from "../work/work-confirmation";
 import { InvalidWorkAttachmentError } from "../work/work-attachments";
 import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
 import { getOntologyChainMaturity } from "../../ontology/query";
@@ -44,11 +49,7 @@ function createDefaultExecutorRegistry() {
           return { status: "waiting", reason: "awaiting-confirmation" };
         if (error instanceof WorkTransactionReverted)
           return { status: "unavailable", reason: "work-transaction-reverted" };
-        if (
-          error instanceof InvalidWorkAttachmentError ||
-          (error instanceof Error && error.name === "AbortError") ||
-          (typeof error === "object" && error !== null && "code" in error && error.code === 4001)
-        ) {
+        if (error instanceof InvalidWorkAttachmentError || isWorkSubmissionCancelled(error)) {
           return {
             status: "unavailable",
             reason: error instanceof Error ? error.message : "cancelled",
@@ -99,7 +100,7 @@ export function createDefaultJobQueueDependencies(): JobQueueDependencies {
       yield: yieldToMain,
     },
     connectivity: {
-      isOnline: () => (typeof navigator === "undefined" ? true : navigator.onLine),
+      isOnline: () => connectivityStore.getSnapshot(),
     },
     backgroundSync: {
       request() {

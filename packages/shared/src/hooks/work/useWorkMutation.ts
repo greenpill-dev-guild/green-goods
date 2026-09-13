@@ -1,5 +1,6 @@
+import { connectivityStore } from "../../stores/connectivity";
 import { useIntl } from "react-intl";
-import { WorkTransactionReverted } from "../../modules/work/work-confirmation";
+import { showWorkSubmissionFailure } from "./workSubmissionFeedback";
 import { createDraftUploadPersistence } from "../../modules/work/draft-upload";
 import { draftDB } from "../../modules/job-queue/draft-db";
 /** Submits work through the current auth mode and preserves durable retry progress. */
@@ -14,19 +15,11 @@ import {
 } from "../../components/toast";
 import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
 import {
-  trackWorkSubmissionFailed,
   trackWorkSubmissionStarted,
   trackWorkSubmissionSuccess,
-  trackWorkWalletRequestExpired,
-  trackWorkWalletRequestFailed,
   trackWorkWalletRequestStarted,
 } from "../../modules/app/analytics-events";
-import {
-  addBreadcrumb,
-  trackContractError,
-  trackUploadError,
-} from "../../modules/app/error-tracking";
-import { WorkSubmissionError } from "../../modules/work/wallet-submission/types";
+import { addBreadcrumb } from "../../modules/app/error-tracking";
 import { isOfflineTxHash } from "../../modules/job-queue/queue-policy";
 import {
   createDefaultSubmitWorkPorts,
@@ -38,8 +31,7 @@ import { useWorkFlowStore } from "../../stores/useWorkFlowStore";
 import type { Work, WorkDraft } from "../../types/domain";
 import { getActionTitle } from "../../utils/action/parsers";
 import { hapticError, hapticSuccess } from "../../utils/app/haptics";
-import { DEBUG_ENABLED, debugError, debugLog } from "../../utils/debug";
-import { parseAndFormatError } from "../../utils/errors/contract-errors";
+import { DEBUG_ENABLED, debugLog } from "../../utils/debug";
 import { INDEXER_LAG_SCHEDULE_MS } from "../../config/query-keys/constants";
 import { worksKeys } from "../../config/query-keys/work";
 import { useTransactionSender } from "../blockchain/useTransactionSender";
@@ -80,6 +72,28 @@ export function useWorkMutation(options: UseWorkMutationOptions) {
   const sender = useTransactionSender();
   const chainId = DEFAULT_CHAIN_ID;
   const queryClient = useQueryClient();
+  const identity = `${authMode}:${userAddress?.toLowerCase()}:${chainId}`;
+  const session = useRef({ identity, generation: 0 });
+  if (session.current.identity !== identity)
+    session.current = { identity, generation: session.current.generation + 1 };
+  type Variables = { draft: WorkDraft; images: File[] };
+  type Origin = {
+    identity: string;
+    generation: number;
+    activeDraftId: string | null | undefined;
+    journeyId: string;
+    outcome?: SubmitWorkOutcome;
+  };
+  const origins = useRef(new WeakMap<Variables, Origin>());
+  const ownsSession = (origin: Origin | undefined) =>
+    Boolean(
+      origin &&
+        origin.identity === session.current.identity &&
+        origin.generation === session.current.generation
+    );
+  const ownsFlow = (origin: Origin | undefined) =>
+    ownsSession(origin) &&
+    (!completeClientFlow || origin?.activeDraftId === useWorkFlowStore.getState().activeDraftId);
   const openWorkDashboard = useUIStore((s) => s.openWorkDashboard);
   const retainedCheckpoint = useRef<{
     id: string;
@@ -110,8 +124,11 @@ export function useWorkMutation(options: UseWorkMutationOptions) {
   );
 
   const mutation = useMutation({
-    mutationFn: async ({ draft, images }: { draft: WorkDraft; images: File[] }) => {
-      const workSubmissionJourneyId = useWorkFlowStore.getState().ensureWorkSubmissionJourneyId();
+    mutationFn: async (variables: Variables) => {
+      const { draft, images } = variables;
+      const origin = origins.current.get(variables);
+      if (!origin || !ownsSession(origin)) throw new Error("submission-ownership-changed");
+      const workSubmissionJourneyId = origin.journeyId;
 
       if (!gardenAddress) {
         throw new Error("Garden must be selected before submitting work");
@@ -142,7 +159,7 @@ export function useWorkMutation(options: UseWorkMutationOptions) {
       }
 
       walletRequestStartedJourneyRef.current = null;
-      const activeDraftId = useWorkFlowStore.getState().activeDraftId;
+      const activeDraftId = origin.activeDraftId;
       const persistedDraft =
         completeClientFlow && activeDraftId ? await draftDB.getDraft(activeDraftId) : undefined;
       const persistence = persistedDraft
@@ -151,6 +168,9 @@ export function useWorkMutation(options: UseWorkMutationOptions) {
       const outcome = await submitWork(
         {
           ...persistence,
+          assertOwnership: () => {
+            if (!ownsSession(origin)) throw new Error("submission-ownership-changed");
+          },
           authMode,
           gardenAddress,
           actionUID,
@@ -165,6 +185,7 @@ export function useWorkMutation(options: UseWorkMutationOptions) {
           sender,
           jobQueue: dependencies?.jobQueue,
           onWalletStage: (stage, message) => {
+            if (!ownsFlow(origin)) return;
             if (
               stage === "confirming" &&
               walletRequestStartedJourneyRef.current !== workSubmissionJourneyId
@@ -188,6 +209,7 @@ export function useWorkMutation(options: UseWorkMutationOptions) {
             onProgress?.(stage, message);
           },
           onQueueFallback: (optimisticWork) => {
+            if (!ownsSession(origin)) return;
             queryClient.setQueryData(
               worksKeys.merged(gardenAddress, chainId),
               (old: Work[] = []) => [optimisticWork, ...old]
@@ -195,12 +217,22 @@ export function useWorkMutation(options: UseWorkMutationOptions) {
           },
         })
       );
-      lastSubmissionOutcomeRef.current = outcome;
-      setLastSubmissionOutcome(outcome);
+      origin.outcome = outcome;
+      if (ownsFlow(origin)) {
+        lastSubmissionOutcomeRef.current = outcome;
+        setLastSubmissionOutcome(outcome);
+      }
       return outcome.txHash;
     },
     onMutate: async (variables) => {
-      const workSubmissionJourneyId = useWorkFlowStore.getState().ensureWorkSubmissionJourneyId();
+      const flow = useWorkFlowStore.getState();
+      const origin: Origin = {
+        ...session.current,
+        activeDraftId: flow.activeDraftId,
+        journeyId: flow.ensureWorkSubmissionJourneyId(),
+      };
+      origins.current.set(variables, origin);
+      const workSubmissionJourneyId = origin.journeyId;
 
       if (DEBUG_ENABLED && variables) {
         debugLog("[WorkMutation] Starting work submission", {
@@ -233,13 +265,14 @@ export function useWorkMutation(options: UseWorkMutationOptions) {
       // Only insert here for passkey users and offline wallet users (queue path).
       // NOTE: If the wallet path hits a network error and falls back to the queue,
       // the catch block inserts an optimistic entry at that point.
-      const isWalletOnline = authMode === "wallet" && navigator.onLine;
+      const isWalletOnline = authMode === "wallet" && connectivityStore.getSnapshot();
       let previousMerged: Work[] | undefined;
       if (gardenAddress && userAddress) {
         await queryClient.cancelQueries({
           queryKey: worksKeys.merged(gardenAddress, chainId),
         });
 
+        if (!ownsSession(origin)) throw new Error("submission-ownership-changed");
         previousMerged = queryClient.getQueryData<Work[]>(worksKeys.merged(gardenAddress, chainId));
 
         if (allowOfflineQueue && !isWalletOnline) {
@@ -274,7 +307,7 @@ export function useWorkMutation(options: UseWorkMutationOptions) {
         }
       }
 
-      const isOffline = !navigator.onLine;
+      const isOffline = !connectivityStore.getSnapshot();
 
       if (allowOfflineQueue && isOffline) {
         workToasts.savedOffline();
@@ -285,11 +318,13 @@ export function useWorkMutation(options: UseWorkMutationOptions) {
 
       return { previousMerged };
     },
-    onSuccess: (txHash) => {
+    onSuccess: (txHash, variables) => {
+      const origin = origins.current.get(variables);
+      if (!origin || !ownsFlow(origin)) return;
       const isOfflineHash = typeof txHash === "string" && isOfflineTxHash(txHash);
-      const workSubmissionJourneyId = useWorkFlowStore.getState().ensureWorkSubmissionJourneyId();
+      const workSubmissionJourneyId = origin.journeyId;
 
-      const awaiting = lastSubmissionOutcomeRef.current?.kind === "awaiting-confirmation";
+      const awaiting = origin.outcome?.kind === "awaiting-confirmation";
       if (awaiting) {
         walletProgressToasts.dismiss();
         toastService.info({
@@ -353,7 +388,9 @@ export function useWorkMutation(options: UseWorkMutationOptions) {
       }
     },
     onError: (error: unknown, variables, context) => {
-      const workSubmissionJourneyId = useWorkFlowStore.getState().ensureWorkSubmissionJourneyId();
+      const origin = origins.current.get(variables);
+      if (!origin || !ownsFlow(origin)) return;
+      const workSubmissionJourneyId = origin.journeyId;
 
       // Provide haptic feedback for error
       hapticError();
@@ -374,139 +411,20 @@ export function useWorkMutation(options: UseWorkMutationOptions) {
         }
       }
 
-      // Extract phase information from WorkSubmissionError for category-aware tracking.
-      // This lets us distinguish IPFS upload failures from transaction failures in PostHog.
-      const isPhased = error instanceof WorkSubmissionError;
-      const phase = isPhased ? error.phase : "unknown";
-      const uploadBatchId = isPhased ? error.uploadBatchId : undefined;
-
-      // Unwrap the original error from `cause` if the wallet-submission layer wrapped it.
-      // This ensures tracking sees the real error, not the user-friendly formatted message.
-      const originalError =
-        error instanceof Error && error.cause instanceof Error ? error.cause : error;
-
-      // Parse contract error for user-friendly message
-      const { title, message, parsed } = parseAndFormatError(originalError);
-
-      // Track submission failure - funnel event
-      trackWorkSubmissionFailed({
-        actionUID: actionUID ?? 0,
-        error: parsed.name,
+      showWorkSubmissionFailure(error, {
+        intl,
         authMode,
+        actionUID,
+        gardenAddress,
+        chainId,
         imageCount: variables?.images.length ?? 0,
         workSubmissionJourneyId,
-        chainId,
-        submissionPhase: phase,
-        parsedErrorFamily: parsed.name,
       });
-
-      if (authMode === "wallet" && parsed.name === "WalletRequestExpired") {
-        trackWorkWalletRequestExpired({
-          workSubmissionJourneyId,
-          authMode,
-          chainId,
-          actionUID: actionUID ?? undefined,
-          imageCount: variables?.images.length ?? 0,
-          submissionPhase: phase,
-          parsedErrorFamily: parsed.name,
-        });
-      } else if (authMode === "wallet" && phase === "transaction") {
-        trackWorkWalletRequestFailed({
-          workSubmissionJourneyId,
-          authMode,
-          chainId,
-          actionUID: actionUID ?? undefined,
-          imageCount: variables?.images.length ?? 0,
-          submissionPhase: phase,
-          parsedErrorFamily: parsed.name,
-        });
-      }
-
-      // Route tracking by phase: upload failures go to storage category,
-      // transaction failures go to contract category
-      if (phase === "upload") {
-        trackUploadError(originalError, {
-          uploadCategory: "file_upload",
-          source: "useWorkMutation",
-          authMode,
-          userAction: "submitting work",
-          severity: "error",
-          recoverable: true,
-          metadata: {
-            actionUID,
-            imageCount: variables?.images.length ?? 0,
-            submission_phase: phase,
-          },
-        });
-      } else {
-        trackContractError(originalError, {
-          source: "useWorkMutation",
-          authMode,
-          userAction: "submitting work",
-          metadata: {
-            actionUID,
-            imageCount: variables?.images.length ?? 0,
-            parsedErrorName: parsed.name,
-            isKnown: parsed.isKnown,
-            submission_phase: phase,
-          },
-        });
-      }
-
-      // Use parsed error if known, otherwise provide phase-aware fallback
-      let displayMessage: string;
-      if (error instanceof WorkTransactionReverted) {
-        displayMessage = intl.formatMessage({ id: "app.work.confirmationFailed" });
-      } else if (parsed.isKnown) {
-        displayMessage = message;
-      } else if (phase === "upload") {
-        displayMessage = "Media upload failed. Please check your connection and try again.";
-      } else if (authMode === "wallet") {
-        displayMessage = "Transaction failed. Check your wallet and try again.";
-      } else {
-        displayMessage = "We couldn't submit your work. It'll retry shortly.";
-      }
-
-      if (authMode === "wallet") {
-        // Use wallet progress toast for consistent UX
-        walletProgressToasts.error(displayMessage, parsed.recoverable ?? false);
-      } else {
-        const displayTitle = parsed.isKnown
-          ? title
-          : phase === "upload"
-            ? "Upload failed"
-            : "Work submission failed";
-        const description = parsed.isKnown
-          ? parsed.action || undefined
-          : "You can stay on this page; the queue will keep retrying.";
-
-        toastService.error({
-          id: "work-upload",
-          title: displayTitle,
-          message: displayMessage,
-          context: "work upload",
-          description,
-          error,
-        });
-      }
-
-      if (DEBUG_ENABLED) {
-        debugError("[WorkMutation] Work submission failed", error, {
-          gardenAddress,
-          actionUID,
-          authMode,
-          phase,
-          uploadBatchId,
-          imageCount: variables?.images.length ?? 0,
-          parsedError: parsed.name,
-          message: displayMessage,
-        });
-      }
 
       onError?.(error);
     },
-    onSettled: () => {
-      onSettled?.();
+    onSettled: (_data, _error, variables) => {
+      if (ownsFlow(origins.current.get(variables))) onSettled?.();
     },
   });
 

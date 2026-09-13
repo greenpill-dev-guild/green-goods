@@ -27,8 +27,11 @@ export function isDiscardableJob(
 ): boolean {
   if (job.synced) return false;
   if (
-    job.kind === "work" &&
-    (job.payload as WorkJobPayload | undefined)?.uploadCheckpoint?.transactionHash
+    (job.kind === "work" &&
+      (job.payload as WorkJobPayload | undefined)?.uploadCheckpoint?.transactionHash) ||
+    (job.kind === "work" &&
+      ((job.payload as WorkJobPayload | undefined)?.uploadCheckpoint?.broadcast ||
+        (job.payload as WorkJobPayload | undefined)?.uploadCheckpoint?.broadcastPending))
   )
     return false;
   return typeof job.meta?.submittedTxHash !== "string";
@@ -62,7 +65,12 @@ export function createJobRecovery(
       } = job.meta ?? {};
       if (job.kind === "work" && meta.workTransactionReverted) {
         const payload = job.payload as WorkJobPayload;
-        if (payload.uploadCheckpoint) delete payload.uploadCheckpoint.transactionHash;
+        if (payload.uploadCheckpoint) {
+          delete payload.uploadCheckpoint.transactionHash;
+          delete payload.uploadCheckpoint.broadcast;
+          delete payload.uploadCheckpoint.broadcastPending;
+          delete payload.uploadCheckpoint.transactionReverted;
+        }
         delete meta.submittedTxHash;
         delete meta.workTransactionReverted;
         forgetWorkBroadcast(jobId);

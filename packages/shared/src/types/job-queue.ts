@@ -240,6 +240,7 @@ export interface MissingDraftAttachment {
 }
 
 export interface WorkDraftRecord {
+  kind?: "work";
   missingAttachments?: MissingDraftAttachment[];
   legacySourceId?: string;
   legacyEntries?: Array<{ id: string; index: number; name: string }>;

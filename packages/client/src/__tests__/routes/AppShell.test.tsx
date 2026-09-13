@@ -6,6 +6,13 @@ import { Link, MemoryRouter, Route, Routes } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useUIStore } from "@green-goods/shared/stores/useUIStore";
 
+vi.mock("@green-goods/shared/hooks/offline/useOfflineContent", () => ({
+  useOfflineContentPreparation: vi.fn(),
+}));
+vi.mock("@green-goods/shared/hooks/app/useOnlineStatus", () => ({
+  configureConnectivityProbe: () => () => {},
+}));
+
 vi.mock("@green-goods/shared/providers/JobQueue", () => ({
   JobQueueProvider: ({ children }: { children: ReactNode }) => children,
 }));

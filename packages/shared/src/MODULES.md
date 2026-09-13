@@ -60,6 +60,7 @@ i18n catalogs, and Storybook-backed UI primitives.
 | `data/` | Data-fetching adapters -- GraphQL clients, EAS/indexer/gardens reads, IPFS upload/resolve, marketplace and vault reads | `getGardens`, `getWorks`, `uploadFileToIPFS`, `resolveIPFSUrl`, `greenGoodsIndexer` |
 | `job-queue/` | Offline job queue -- IndexedDB queue, draft persistence, media resource manager, event bus | `jobQueue`, `jobQueueDB`, `jobQueueEventBus`, `mediaResourceManager` |
 | `marketplace/` | HypercertExchange SDK integration -- maker ask signing, approvals, validation | `getMarketplaceClient`, `buildMakerAsk`, `signMakerAsk`, `checkMarketplaceApprovals` |
+| `offline-content/` | Prepared reading coverage, verified media, retention and storage budgets | `OfflineDownloadCoordinator`, manifest and policy helpers |
 | `profile-avatar/` | Avatar drafts, normalization, signing, publishing, and resolution | Profile avatar transport and persistence helpers |
 | `transactions/` | Abstract transaction sending -- passkey, wallet, and embedded sender strategies | `createTransactionSender`, `PasskeySender`, `WalletSender`, `EmbeddedSender` |
 | `translation/` | Browser translation engine -- LibreTranslate client, IndexedDB cache, diagnostics | `browserTranslator`, `translationCache`, `runTranslationDiagnostics` |
@@ -89,6 +90,7 @@ The folder inventory is checked against the source tree; avoid hand-maintained f
 | `greenwill/` | GreenWill reads and mutations |
 | `hypercerts/` | Minting, listings, attestations, allowlists, and contracts |
 | `navigation/` | URL synchronization and canvas search params |
+| `offline/` | Content preparation lifecycle, coverage and local media availability |
 | `profile/` | Profile data and editing workflows |
 | `public/` | Public-route reads and presentation state |
 | `roles/` | Role checks and toolbar permissions |

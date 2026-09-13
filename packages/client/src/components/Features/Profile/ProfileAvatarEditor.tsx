@@ -216,6 +216,11 @@ export function ProfileAvatarEditor({ fallbackAvatar, className }: ProfileAvatar
       >
         <img
           src={resolved.avatarUri ?? fallbackAvatar}
+          onError={(event) => {
+            const image = event.currentTarget;
+            if (image.src !== new URL(fallbackAvatar, window.location.origin).href)
+              image.src = fallbackAvatar;
+          }}
           alt={formatMessage({ id: "profile.avatar.alt", defaultMessage: "Profile photo" })}
           width={96}
           height={96}

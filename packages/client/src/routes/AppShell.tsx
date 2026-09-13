@@ -1,3 +1,4 @@
+import { configureConnectivityProbe } from "@green-goods/shared/hooks/app/useOnlineStatus";
 import { useDocumentScrollLockLifecycle } from "@green-goods/shared/hooks/ui/useDocumentScrollLock";
 import { JobQueueProvider } from "@green-goods/shared/providers/JobQueue";
 import { WorkProvider } from "@green-goods/shared/providers/Work";
@@ -8,6 +9,10 @@ import { OfflineIndicator } from "@/components/Communication/Offline/OfflineIndi
 import { PwaBadgeCoordinator } from "@/components/Communication/PwaBadgeCoordinator";
 import { AppBar } from "@/components/Layout/AppBar";
 import { APP_ROUTES } from "@/config/pwaRouting";
+
+const OfflineContentPreparation = lazy(
+  () => import("@/components/Communication/Offline/OfflineContentPreparation")
+);
 
 const ENSClaimReminder = lazy(() =>
   import("./ENSClaimReminder")
@@ -41,6 +46,7 @@ function DeferredEnsClaimReminder() {
 
 export default function AppShell() {
   const { pathname } = useLocation();
+  useEffect(() => configureConnectivityProbe("/connectivity-check.txt"), []);
   const closeWorkDashboard = useUIStore((state) => state.closeWorkDashboard);
   const previousPathnameRef = useRef(pathname);
 
@@ -62,6 +68,9 @@ export default function AppShell() {
 
   return (
     <JobQueueProvider>
+      <Suspense fallback={null}>
+        <OfflineContentPreparation />
+      </Suspense>
       <PwaBadgeCoordinator />
       <WorkProvider>
         <DeferredEnsClaimReminder />

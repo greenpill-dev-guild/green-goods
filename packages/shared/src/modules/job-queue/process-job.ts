@@ -1,4 +1,9 @@
-import { claimWorkJobs, retainedWorkBroadcast } from "../work/work-confirmation";
+import type { TransactionSender } from "../transactions/types";
+import {
+  acquireWorkJobs,
+  retainedWorkBroadcast,
+  WorkTransactionReverted,
+} from "../work/work-confirmation";
 import type { Job, WorkJobPayload } from "../../types/job-queue";
 import { JobMaintenance } from "./job-maintenance";
 import type {
@@ -99,12 +104,19 @@ export function createJobProcessor(deps: ProcessJobDependencies) {
       };
     }
 
+    const checkpoint =
+      job.kind === "work" ? (job.payload as WorkJobPayload).uploadCheckpoint : undefined;
+    if (
+      job.kind === "work" &&
+      (checkpoint?.transactionReverted || job.meta?.workTransactionReverted)
+    )
+      return { success: false, error: "work-transaction-reverted", skipped: true };
     if (
       job.attempts >= deps.config.maxRetries &&
       !retainedWorkBroadcast(jobId) &&
       !(
         job.kind === "work" &&
-        (job.payload as WorkJobPayload).uploadCheckpoint?.transactionHash &&
+        (checkpoint?.transactionHash || checkpoint?.broadcast || checkpoint?.broadcastPending) &&
         !job.meta?.workTransactionReverted
       )
     ) {
@@ -126,7 +138,23 @@ export function createJobProcessor(deps: ProcessJobDependencies) {
     const startedAt = deps.clock.now();
 
     try {
-      const execution = await deps.executors.execute(jobId, job, chainId, sender);
+      await context.assertOwnership?.();
+      await sender.assertOwnership?.(job.userAddress, chainId);
+      const guardedSender = Object.create(sender) as TransactionSender;
+      guardedSender.assertOwnership = async (address, chainId) => {
+        await context.assertOwnership?.();
+        await sender.assertOwnership?.(address, chainId);
+      };
+      guardedSender.sendContractCall = (call, options = {}) =>
+        sender.sendContractCall(call, {
+          ...options,
+          assertOwnership: async () => {
+            await context.assertOwnership?.();
+            await sender.assertOwnership?.(job.userAddress, chainId);
+            await options.assertOwnership?.();
+          },
+        });
+      const execution = await deps.executors.execute(jobId, job, chainId, guardedSender);
       if (execution.status === "waiting") {
         const meta = { ...(job.meta ?? {}), waitingForDependency: true };
         await deps.store.updateJob({
@@ -173,10 +201,19 @@ export function createJobProcessor(deps: ProcessJobDependencies) {
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Unknown error";
       const processingDuration = deps.clock.now() - startedAt;
+      if (errorMessage === "submission-ownership-changed")
+        return { success: false, error: errorMessage, skipped: true };
+      if (error instanceof WorkTransactionReverted) {
+        await deps.store.markJobTerminalFailed(jobId, errorMessage);
+        deps.events.emit("job:failed", { jobId, job, error: errorMessage });
+        return { success: false, error: errorMessage };
+      }
       if (
         job.kind === "work" &&
         (retainedWorkBroadcast(jobId) ||
-          (job.payload as WorkJobPayload).uploadCheckpoint?.transactionHash)
+          (job.payload as WorkJobPayload).uploadCheckpoint?.transactionHash ||
+          (job.payload as WorkJobPayload).uploadCheckpoint?.broadcast ||
+          (job.payload as WorkJobPayload).uploadCheckpoint?.broadcastPending)
       ) {
         // Failed checkpoint writes cannot turn a confirmation check into a new submission.
         deps.logger.warn("[JobQueue] Work confirmation checkpoint needs persistence", {
@@ -209,12 +246,18 @@ export function createJobProcessor(deps: ProcessJobDependencies) {
     }
   }
   return async (jobId: string, context: ProcessJobContext): Promise<ProcessJobResult> => {
-    const release = claimWorkJobs([jobId]);
-    if (!release) return { success: false, skipped: true, error: "already-processing" };
+    const claim = await acquireWorkJobs([jobId]);
+    if (!claim) return { success: false, skipped: true, error: "already-processing" };
     try {
-      return await processJob(jobId, context);
+      return await processJob(jobId, {
+        ...context,
+        assertOwnership: async () => {
+          await claim.assertOwned();
+          await context.assertOwnership?.();
+        },
+      });
     } finally {
-      release();
+      await claim.release();
     }
   };
 }

@@ -30,7 +30,9 @@ async function loadServiceWorker(locationHref = "https://www.greengoods.app/sw.j
       delete: ReturnType<typeof vi.fn>;
       keys: ReturnType<typeof vi.fn>;
       match: ReturnType<typeof vi.fn>;
-      put: ReturnType<typeof vi.fn>;
+      put: ReturnType<
+        typeof vi.fn<(request: RequestInfo | URL, response: Response) => Promise<void>>
+      >;
     }
   >();
   const keyFor = (request: RequestInfo | URL) =>
@@ -529,5 +531,105 @@ describe("client public service worker migration", () => {
     expect(response?.status).toBe(303);
     expect(response?.headers.get("location")).toBe("/home/garden?shareTargetError=invalid");
     expect(cacheFor("gg-share-inbox-v1").put).not.toHaveBeenCalled();
+  });
+});
+
+describe("verified offline media routes", () => {
+  it.each([
+    "https://avatars.example/account",
+    "https://avatars.example/photo.png?size=96",
+    "https://bafyreicid.ipfs.dweb.link/",
+  ])("serves managed display bytes offline for %s", async (url) => {
+    const { cacheFor, listeners, fetchMock } = await loadServiceWorker();
+    await cacheFor("gg-prepared-media-v1").put(
+      url,
+      new Response("saved-photo", { headers: { "content-type": "image/jpeg" } })
+    );
+    fetchMock.mockRejectedValue(new TypeError("offline"));
+    const request = new Request(url);
+    Object.defineProperty(request, "destination", { value: "image" });
+    let result: Promise<Response> | undefined;
+    const event = {
+      request,
+      respondWith: (response: Promise<Response>) => {
+        result = response;
+      },
+      stopImmediatePropagation: vi.fn(),
+    };
+    listeners.fetch.forEach((listener) => listener(event));
+    expect(await (await result)?.text()).toBe("saved-photo");
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+  it("never substitutes a display variant for the original", async () => {
+    const { cacheFor, listeners, fetchMock } = await loadServiceWorker();
+    await cacheFor("gg-prepared-media-v1").put(
+      "https://media.example/photo?width=800",
+      new Response("display")
+    );
+    const request = new Request("https://media.example/photo");
+    Object.defineProperty(request, "destination", { value: "image" });
+    let result: Promise<Response> | undefined;
+    listeners.fetch.forEach((listener) =>
+      listener({
+        request,
+        respondWith: (response: Promise<Response>) => {
+          result = response;
+        },
+        stopImmediatePropagation: vi.fn(),
+      })
+    );
+    expect(await (await result)?.text()).toBe("network");
+    expect(fetchMock).toHaveBeenCalledWith(request);
+  });
+  it("bypasses even an existing cached reachability probe", async () => {
+    const { cacheFor, listeners, fetchMock } = await loadServiceWorker();
+    const url = "https://www.greengoods.app/connectivity-check.txt";
+    await cacheFor("old-worker").put(url, new Response("cached"));
+    let result: Promise<Response> | undefined;
+    listeners.fetch.forEach((listener) =>
+      listener({
+        request: new Request(url),
+        respondWith: (response: Promise<Response>) => {
+          result = response;
+        },
+        stopImmediatePropagation: vi.fn(),
+      })
+    );
+    expect(await (await result)?.text()).toBe("network");
+    expect(fetchMock.mock.calls[0][0].cache).toBe("no-store");
+  });
+});
+
+describe("offline worker compatibility and ordinary image retention", () => {
+  it("advertises prepared media support to the installed app", async () => {
+    const { listeners } = await loadServiceWorker();
+    const postMessage = vi.fn();
+    listeners.message.forEach((listener) =>
+      listener({ data: { type: "OFFLINE_CONTENT_CAPABILITIES" }, ports: [{ postMessage }] })
+    );
+    expect(postMessage).toHaveBeenCalledWith({ offlineContentVersion: 1 });
+  });
+  it("expires ordinary images after 30 days while managed photos keep their retention policy", async () => {
+    const { cacheFor, listeners, fetchMock } = await loadServiceWorker();
+    const url = "https://media.example/ordinary.png";
+    await cacheFor("image-cache").put(url, new Response("expired"));
+    await cacheFor("gg-image-cache-meta").put(
+      url,
+      new Response(String(Date.now() - 31 * 86400000))
+    );
+    const request = new Request(url);
+    Object.defineProperty(request, "destination", { value: "image" });
+    let result: Promise<Response> | undefined;
+    listeners.fetch.forEach((listener) =>
+      listener({
+        request,
+        respondWith: (value: Promise<Response>) => {
+          result = value;
+        },
+        stopImmediatePropagation: vi.fn(),
+      })
+    );
+    expect(await (await result)?.text()).toBe("network");
+    expect(fetchMock).toHaveBeenCalledWith(request);
   });
 });

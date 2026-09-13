@@ -33,12 +33,12 @@ const TEST_CALL = createMockContractCall({ chainId: undefined });
 
 describe("PasskeySender", () => {
   let sender: PasskeySender;
-  let mockSendTransaction: ReturnType<typeof createFakeSmartAccountClient>["sendTransaction"];
+  let mockSendUserOperation: ReturnType<typeof createFakeSmartAccountClient>["sendUserOperation"];
 
   beforeEach(() => {
     vi.clearAllMocks();
     const client = createFakeSmartAccountClient();
-    mockSendTransaction = client.sendTransaction;
+    mockSendUserOperation = client.sendUserOperation;
     sender = new PasskeySender(client);
   });
 
@@ -57,18 +57,22 @@ describe("PasskeySender", () => {
   });
 
   describe("sendContractCall", () => {
-    it("sends transaction via smartAccountClient.sendTransaction", async () => {
+    it("sends transaction via smartAccountClient.sendUserOperation", async () => {
       const result = await sender.sendContractCall(TEST_CALL);
 
       expect(result.hash).toBe(MOCK_TX_HASH);
       expect(result.sponsored).toBe(true);
-      expect(mockSendTransaction).toHaveBeenCalledOnce();
+      expect(mockSendUserOperation).toHaveBeenCalledOnce();
     });
 
     it("encodes function data and passes correct parameters", async () => {
       await sender.sendContractCall(TEST_CALL);
 
-      const sendTxArgs = mockSendTransaction.mock.calls[0][0] as {
+      const sendTxArgs = (
+        mockSendUserOperation.mock.calls[0][0] as {
+          calls: Array<{ to: string; value: bigint; data: string }>;
+        }
+      ).calls[0] as {
         to: string;
         value: bigint;
         data: string;
@@ -86,12 +90,16 @@ describe("PasskeySender", () => {
       };
       await sender.sendContractCall(callWithValue);
 
-      const sendTxArgs = mockSendTransaction.mock.calls[0][0] as { value: bigint };
+      const sendTxArgs = (
+        mockSendUserOperation.mock.calls[0][0] as {
+          calls: Array<{ to: string; value: bigint; data: string }>;
+        }
+      ).calls[0] as { value: bigint };
       expect(sendTxArgs.value).toBe(1000000n);
     });
 
-    it("propagates errors from sendTransaction", async () => {
-      mockSendTransaction.mockRejectedValueOnce(new Error("UserOp failed"));
+    it("propagates errors from sendUserOperation", async () => {
+      mockSendUserOperation.mockRejectedValueOnce(new Error("UserOp failed"));
 
       await expect(sender.sendContractCall(TEST_CALL)).rejects.toThrow("UserOp failed");
     });
@@ -101,14 +109,14 @@ describe("PasskeySender", () => {
     it("sends multiple calls sequentially and returns the last hash", async () => {
       const hash1 = `0x${"a".repeat(64)}` as `0x${string}`;
       const hash2 = `0x${"b".repeat(64)}` as `0x${string}`;
-      mockSendTransaction.mockResolvedValueOnce(hash1).mockResolvedValueOnce(hash2);
+      mockSendUserOperation.mockResolvedValueOnce(hash1).mockResolvedValueOnce(hash2);
 
       const calls: ContractCall[] = [TEST_CALL, { ...TEST_CALL, args: [VALID_RECIPIENT, 2000n] }];
       const result = await sender.sendBatch(calls);
 
       expect(result.hash).toBe(hash2);
       expect(result.sponsored).toBe(true);
-      expect(mockSendTransaction).toHaveBeenCalledTimes(2);
+      expect(mockSendUserOperation).toHaveBeenCalledTimes(2);
     });
 
     it("throws on empty batch", async () => {

@@ -64,3 +64,18 @@ export const InstallPrompt: Story = {
     await expect(canvas.getByRole("button", { name: "Dismiss" })).toBeVisible();
   },
 };
+
+export const Checking: Story = {
+  args: { testState: "checking" },
+  play: async ({ canvasElement }) => {
+    await expect(within(canvasElement).getByText("Checking connection…")).toBeVisible();
+  },
+};
+export const Unavailable: Story = {
+  args: { testState: "unavailable" },
+  play: async ({ canvasElement }) => {
+    await expect(
+      within(canvasElement).getByText("Connection unavailable. Your work stays saved.")
+    ).toBeVisible();
+  },
+};

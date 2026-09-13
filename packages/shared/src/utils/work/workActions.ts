@@ -1,3 +1,6 @@
+import { mediaResourceManager } from "../../modules/job-queue/media-resource-manager";
+import { resolveIPFSUrl } from "../../modules/data/ipfs/resolve";
+import { connectivityStore } from "../../stores/connectivity";
 import { shareLink } from "../app/clipboard";
 
 /**
@@ -51,6 +54,42 @@ export function downloadWorkData(work: WorkData): void {
  */
 export async function downloadWorkMedia(work: WorkData): Promise<void> {
   if (!work.media || work.media.length === 0) return;
+
+  if (!connectivityStore.getSnapshot()) {
+    // A new tab on a remote origin cannot read this app's Cache Storage.
+    // Materialize verified originals locally before handing them to the browser.
+    const owner = `work-download-${crypto.randomUUID()}`;
+    try {
+      const urls = await Promise.all(
+        work.media.map(async (source) => {
+          if (/^(blob:|data:)/.test(source)) return source;
+          const url = resolveIPFSUrl(source);
+          for (const name of ["image-cache", "ipfs-cache"]) {
+            const response = await (await caches.open(name)).match(url);
+            if (!response?.ok || response.type === "opaque") continue;
+            const blob = await response.blob();
+            if (blob.size === 0) continue;
+            return mediaResourceManager.createUrl(
+              new File([blob], "work-media", { type: blob.type }),
+              owner
+            );
+          }
+          throw new Error("Original media is not available offline");
+        })
+      );
+      for (const [index, url] of urls.entries()) {
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = `work-${work.id}-media-${index + 1}`;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+      }
+    } finally {
+      setTimeout(() => mediaResourceManager.cleanupUrls(owner), 1_000);
+    }
+    return;
+  }
 
   // For single file, download directly
   if (work.media.length === 1) {

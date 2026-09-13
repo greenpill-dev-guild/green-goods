@@ -1,11 +1,4 @@
-/**
- * Service Worker Update Hook
- *
- * Manages service worker updates with user control.
- * Uses utility hooks for proper event listener and async cleanup.
- *
- * @module hooks/app/useServiceWorkerUpdate
- */
+/** User-controlled worker updates with active-work protection. */
 
 import {
   createContext,
@@ -43,14 +36,11 @@ export type ServiceWorkerUpdatePhase =
   | "error"
   | "install-failed";
 
-/**
- * Outcome of a manual check: `ready` (a worker waits to apply), `up-to-date`,
- * `pending` (still installing past the wait), or `failed` (the newer worker
- * could not install). Rejects when the check itself fails, typically offline.
- */
+/** Result of a manual update check; rejects when the check itself fails. */
 export type UpdateCheckResult = "up-to-date" | "ready" | "pending" | "failed";
 
 export interface ServiceWorkerUpdateState {
+  activationBlocked: boolean;
   /** Current user-facing update phase */
   phase: ServiceWorkerUpdatePhase;
   /** Whether a new service worker is waiting to activate */
@@ -83,17 +73,20 @@ export interface ServiceWorkerUpdateState {
 export const APPLY_UPDATE_TIMEOUT_MS = 7_000;
 export const LONG_SESSION_UPDATE_PROMPT_MS = 30 * 60 * 1000;
 
-/**
- * Minimum gap between automatic `focus` / `visibilitychange` checks. Manual
- * `checkForUpdate()` calls and the initial mount check are not throttled.
- */
+/** Throttle automatic checks; manual checks and initial mount bypass the gap. */
 const MIN_AUTO_CHECK_INTERVAL_MS = 15 * 60 * 1000;
 
 /**
  * Exposes the update phase and actions so the UI can show progress and let
  * the user choose when to restart, instead of reloading under them.
  */
-function useServiceWorkerUpdateController(): ServiceWorkerUpdateState {
+type ActivationProtection = { activationBlocked?: boolean; isActivationBlocked?: () => boolean };
+const allowActivation = () => false;
+
+function useServiceWorkerUpdateController({
+  activationBlocked = false,
+  isActivationBlocked = allowActivation,
+}: ActivationProtection): ServiceWorkerUpdateState {
   const [phase, setPhase] = useState<ServiceWorkerUpdatePhase>("idle");
   const [updateAvailable, setUpdateAvailable] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
@@ -166,9 +159,7 @@ function useServiceWorkerUpdateController(): ServiceWorkerUpdateState {
     );
   }, [buildTelemetry]);
 
-  // A worker installed while nothing controls the page is the first install,
-  // not an update: the browser takes it live on the next load, so there is
-  // nothing to restart into and the row reads as up to date.
+  // First installs need no restart because nothing controls the page yet.
   const settleFirstInstall = useCallback(
     (source: string) => {
       setPhase((current) =>
@@ -458,6 +449,11 @@ function useServiceWorkerUpdateController(): ServiceWorkerUpdateState {
     const worker =
       registrationRef.current?.waiting ?? waitingWorkerRef.current ?? waitingWorker ?? null;
     if (!worker) return;
+    if (isActivationBlocked()) {
+      setPhase("waiting");
+      track("sw_update_deferred", { reason: "active_work" });
+      return;
+    }
 
     cancelActivationRef.current?.();
     waitingWorkerRef.current = worker;
@@ -510,7 +506,7 @@ function useServiceWorkerUpdateController(): ServiceWorkerUpdateState {
       },
       APPLY_UPDATE_TIMEOUT_MS
     );
-  }, [waitingWorker, buildTelemetry]);
+  }, [waitingWorker, buildTelemetry, isActivationBlocked]);
 
   // Drop a pending activation and the long-session prompt on unmount.
   useEffect(() => {
@@ -546,6 +542,7 @@ function useServiceWorkerUpdateController(): ServiceWorkerUpdateState {
     checkForUpdate,
     applyUpdate,
     activateNow: applyUpdate,
+    activationBlocked,
     dismissUpdate,
     waitingWorker,
     restartedOnNewVersion,
@@ -554,8 +551,11 @@ function useServiceWorkerUpdateController(): ServiceWorkerUpdateState {
 
 const ServiceWorkerUpdateContext = createContext<ServiceWorkerUpdateState | null>(null);
 
-export function ServiceWorkerUpdateProvider({ children }: { children: ReactNode }) {
-  const value = useServiceWorkerUpdateController();
+export function ServiceWorkerUpdateProvider({
+  children,
+  ...protection
+}: { children: ReactNode } & ActivationProtection) {
+  const value = useServiceWorkerUpdateController(protection);
   return createElement(ServiceWorkerUpdateContext.Provider, { value }, children);
 }
 

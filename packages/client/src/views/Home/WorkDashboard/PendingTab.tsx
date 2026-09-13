@@ -74,7 +74,15 @@ export const PendingTab: React.FC<PendingTabProps> = ({
             id:
               submissionState === "reverted"
                 ? "app.work.confirmationFailed"
-                : "app.work.awaitingConfirmation",
+                : submissionState === "queued"
+                  ? "app.work.queued"
+                  : submissionState === "sending"
+                    ? "app.home.work.syncingInfo"
+                    : submissionState === "retry-required"
+                      ? "app.work.retryRequiredInfo"
+                      : submissionState === "checking-submission"
+                        ? "app.work.checkingSubmission"
+                        : "app.work.awaitingConfirmation",
           })}
         </span>
       );

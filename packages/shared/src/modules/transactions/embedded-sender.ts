@@ -76,6 +76,8 @@ export class EmbeddedSender implements TransactionSender {
     await this.deps.ensureWalletChain?.(chainId);
     await this.deps.assertWriteSafety?.();
 
+    await options.assertOwnership?.();
+
     const hash = await this.deps.writeContract(this.config, {
       address: call.address,
       abi: call.abi,
@@ -85,6 +87,7 @@ export class EmbeddedSender implements TransactionSender {
       ...(call.value !== null && call.value !== undefined ? { value: call.value } : {}),
     });
 
+    await options.onBroadcastReference?.({ kind: "transaction", hash: hash as `0x${string}` });
     await options.onBroadcast?.(hash as `0x${string}`);
 
     const receipt = await this.deps.waitForTransactionReceipt(this.config, { hash, chainId });

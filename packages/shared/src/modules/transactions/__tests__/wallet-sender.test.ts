@@ -146,6 +146,7 @@ describe("WalletSender", () => {
       const result = await sender.sendContractCall(TEST_CALL);
 
       expect(result.hash).toBe(safeStyleHash);
+      expect(result.confirmation).toBe("pending");
       expect(result.sponsored).toBe(false);
       expect(mockDeps.waitForTransactionReceipt).not.toHaveBeenCalled();
     });

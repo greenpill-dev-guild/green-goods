@@ -61,8 +61,28 @@ export const MinimalWorkCard: React.FC<MinimalWorkCardProps> = ({
   const { data: gardenEnsName } = useEnsName(showGardenInfo ? work.gardenAddress : null, {
     enabled: Boolean(showGardenInfo && work.gardenAddress),
   });
-  const isOfflineWork = work.id.startsWith("0xoffline_");
-  const effectiveStatus = isOfflineWork ? "uploading" : work.status;
+  const effectiveStatus = work.status;
+  let submissionState: string | undefined;
+  try {
+    submissionState = JSON.parse(work.metadata).submissionState;
+  } catch {
+    /* Remote metadata can be a CID. */
+  }
+  if (submissionState === "queued")
+    labels.status.offline = formatMessage({
+      id: "app.work.queued",
+      defaultMessage: "Saved · Waiting to send",
+    });
+  if (submissionState === "awaiting-confirmation")
+    labels.status.offline = formatMessage({
+      id: "app.work.awaitingConfirmation",
+      defaultMessage: "Awaiting confirmation",
+    });
+  if (submissionState === "checking-submission")
+    labels.status.offline = formatMessage({
+      id: "app.work.checkingSubmission",
+      defaultMessage: "Checking whether this work was sent",
+    });
   const mediaPreview = work.media.length > 0 ? work.media : undefined;
   const hasFeedback = Boolean(work.feedback && work.feedback.trim().length > 0);
   const mediaCount = Array.isArray(work.media) ? work.media.length : 0;

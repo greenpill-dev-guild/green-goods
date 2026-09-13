@@ -1,3 +1,5 @@
+import { useOfflinePreparationStatus } from "@green-goods/shared/hooks/offline/useOfflineContent";
+import { useOnlineStatus } from "@green-goods/shared/hooks/app/useOnlineStatus";
 import { toastService } from "@green-goods/shared/components/Toast/toast.service";
 import { capitalize } from "@green-goods/shared/utils/app/text";
 import { hapticLight } from "@green-goods/shared/utils/app/haptics";
@@ -45,8 +47,10 @@ const SETTING_DESCRIPTION = "min-h-8 text-xs text-text-sub-600 line-clamp-2";
 
 export const AppSettings: React.FC = () => {
   const { theme, setTheme } = useTheme();
+  const preparation = useOfflinePreparationStatus();
+  const isOnline = useOnlineStatus();
   const { locale, switchLanguage, availableLocales } = useApp();
-  const { phase, checkForUpdate, activateNow } = useServiceWorkerUpdate();
+  const { phase, checkForUpdate, activateNow, activationBlocked } = useServiceWorkerUpdate();
   const intl = useIntl();
 
   const themeOptions = useMemo(
@@ -229,10 +233,15 @@ export const AppSettings: React.FC = () => {
         };
       case "waiting":
         return {
-          status: intl.formatMessage({
-            id: "app.update.subtitle",
-            defaultMessage: "A new version is ready.",
-          }),
+          status: activationBlocked
+            ? intl.formatMessage({
+                id: "app.update.finishWork",
+                defaultMessage: "Finish your current work before restarting.",
+              })
+            : intl.formatMessage({
+                id: "app.update.subtitle",
+                defaultMessage: "A new version is ready.",
+              }),
           label: intl.formatMessage({ id: "app.update.restartButton", defaultMessage: "Restart" }),
           busy: false,
           onClick: handleApplyClick,
@@ -307,6 +316,79 @@ export const AppSettings: React.FC = () => {
         </Card>
       ))}
 
+      <Card>
+        <div className="flex items-center gap-3 w-full">
+          <Avatar>
+            <RiRefreshLine className="w-4 text-primary" />
+          </Avatar>
+          <div className="flex flex-col gap-0.5 min-w-0 flex-1">
+            <div className="text-sm font-medium">
+              {intl.formatMessage({
+                id: "app.offline.preparation.title",
+                defaultMessage: "Offline content",
+              })}
+            </div>
+            <div
+              role="status"
+              aria-label={intl.formatMessage({
+                id: "app.offline.preparation.title",
+                defaultMessage: "Offline content",
+              })}
+              className="text-xs text-text-sub-600"
+            >
+              {intl.formatMessage({
+                id: preparation.busy
+                  ? "app.offline.preparation.preparing"
+                  : preparation.partial
+                    ? "app.offline.preparation.partial"
+                    : "app.offline.preparation.ready",
+                defaultMessage: preparation.busy
+                  ? "Preparing content…"
+                  : preparation.partial
+                    ? "Partially available offline"
+                    : "Ready to use offline",
+              })}
+              {" · "}
+              {intl.formatMessage(
+                { id: "app.offline.preparation.storage", defaultMessage: "{used} of {budget} MiB" },
+                {
+                  used: (preparation.bytes / 1024 / 1024).toFixed(1),
+                  budget: preparation.budget / 1024 / 1024,
+                }
+              )}
+              {preparation.updatedAt && (
+                <div>
+                  {intl.formatMessage(
+                    { id: "app.offline.preparation.updated", defaultMessage: "Updated {date}" },
+                    {
+                      date: intl.formatDate(preparation.updatedAt, {
+                        month: "short",
+                        day: "numeric",
+                        hour: "numeric",
+                        minute: "numeric",
+                      }),
+                    }
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+          <Button
+            variant="neutral"
+            mode="stroke"
+            size="small"
+            className={SETTING_CONTROL_WIDTH}
+            disabled={!isOnline || preparation.busy}
+            isLoading={preparation.busy}
+            onClick={preparation.retry}
+            label={intl.formatMessage({
+              id: "app.offline.preparation.retry",
+              defaultMessage: "Retry",
+            })}
+          />
+        </div>
+      </Card>
+
       {/* Always present: with nothing pending there was no way to check (PWA-041). */}
       <Card>
         <div className="flex flex-row items-center gap-3 w-full">
@@ -322,7 +404,14 @@ export const AppSettings: React.FC = () => {
                 defaultMessage: "Update",
               })}
             </div>
-            <div role="status" className={SETTING_DESCRIPTION}>
+            <div
+              role="status"
+              aria-label={intl.formatMessage({
+                id: "app.update.check.title",
+                defaultMessage: "Update",
+              })}
+              className={SETTING_DESCRIPTION}
+            >
               {updateRow.status}
             </div>
           </div>
@@ -332,6 +421,7 @@ export const AppSettings: React.FC = () => {
               mode="stroke"
               size="small"
               isLoading={updateRow.busy}
+              disabled={phase === "waiting" && activationBlocked}
               onClick={updateRow.onClick}
               label={updateRow.label}
               className={SETTING_CONTROL_WIDTH}

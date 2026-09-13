@@ -1,3 +1,4 @@
+import { connectivityStore } from "../../../stores/connectivity";
 import { type FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { type IntlShape, useIntl } from "react-intl";
 import { toastService, validationToasts } from "../../../components/toast";
@@ -24,7 +25,7 @@ export type SubmitWorkAuthSnapshot = Pick<AuthStateValue, "authMode" | "isAuthen
 
 export type SubmitWorkStepId = "action" | "media" | "details" | "review";
 
-export const SUBMIT_WORK_STEP_IDS: SubmitWorkStepId[] = ["action", "media", "details", "review"];
+const SUBMIT_WORK_STEP_IDS: SubmitWorkStepId[] = ["action", "media", "details", "review"];
 
 export function getMinRequiredWorkImages(action: Action | null) {
   if (!action?.mediaInfo?.required) return 0;
@@ -32,7 +33,7 @@ export function getMinRequiredWorkImages(action: Action | null) {
 }
 
 function browserIsOffline() {
-  return typeof navigator !== "undefined" && navigator.onLine === false;
+  return !connectivityStore.getSnapshot();
 }
 
 interface UseSubmitWorkControllerOptions {

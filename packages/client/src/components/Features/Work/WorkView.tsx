@@ -1,3 +1,5 @@
+import { useOfflineAssetAvailability } from "@green-goods/shared/hooks/offline/useOfflineAssetAvailability";
+import { useOnlineStatus } from "@green-goods/shared/hooks/app/useOnlineStatus";
 import { AudioPlayer } from "@green-goods/shared/components/Audio/AudioPlayer";
 import { resolveIPFSUrl } from "@green-goods/shared/modules/data/ipfs/resolve";
 import type { Garden } from "@green-goods/shared/types/domain";
@@ -75,10 +77,24 @@ export const WorkView: React.FC<WorkViewProps> = ({
   onMediaError,
 }) => {
   const intl = useIntl();
+  const isOnline = useOnlineStatus();
+  const mediaUrls = media.map((url) =>
+    /^(blob:|data:|https?:)/.test(url) ? url : resolveIPFSUrl(url)
+  );
+  const audioUrls = (audioNoteCids ?? []).map((cid) => resolveIPFSUrl(cid));
+  const offlineAssets = useOfflineAssetAvailability([...mediaUrls, ...audioUrls]);
+  const missingOriginals =
+    !isOnline && [...mediaUrls, ...audioUrls].some((url) => !offlineAssets[url]);
 
   const hasMedia = showMedia && Array.isArray(media) && media.length > 0;
   const hasAudioNotes = audioNoteCids && audioNoteCids.length > 0;
-  const visibleActions = primaryActions.filter((a) => a.visible !== false);
+  const visibleActions = primaryActions
+    .filter((a) => a.visible !== false)
+    .map((action) =>
+      action.id === "download-media" && !isOnline && mediaUrls.some((url) => !offlineAssets[url])
+        ? { ...action, disabled: true }
+        : action
+    );
 
   return (
     <div className="flex flex-col gap-4">
@@ -101,13 +117,24 @@ export const WorkView: React.FC<WorkViewProps> = ({
         <GardenCardSkeleton media="small" height="default" showBanner={false} />
       )}
 
+      {missingOriginals && (
+        <p role="status" className="text-sm text-text-sub-600">
+          {intl.formatMessage({
+            id: "app.offline.originalsUnavailable",
+            defaultMessage:
+              "Original media isn’t saved on this device. Photo previews may still be available.",
+          })}
+        </p>
+      )}
       {hasMedia && (
         <>
           <h6>
             {intl.formatMessage({ id: "app.home.workApproval.media", defaultMessage: "Media" })}
           </h6>
           <Carousel
-            enablePreview={!mediaTypes.some((type) => type.startsWith("video/"))}
+            enablePreview={
+              !missingOriginals && !mediaTypes.some((type) => type.startsWith("video/"))
+            }
             previewImages={media}
           >
             <CarouselContent>
@@ -117,10 +144,19 @@ export const WorkView: React.FC<WorkViewProps> = ({
                   index={index}
                   className="max-w-40 aspect-3/4 rounded-2xl relative overflow-hidden"
                 >
-                  {mediaTypes[index]?.startsWith("video/") ? (
+                  {mediaTypes[index]?.startsWith("video/") &&
+                  !isOnline &&
+                  !offlineAssets[mediaUrls[index]] ? (
+                    <p className="p-3 text-sm text-text-sub-600">
+                      {intl.formatMessage({
+                        id: "app.offline.attachmentUnavailable",
+                        defaultMessage: "Not downloaded for offline use",
+                      })}
+                    </p>
+                  ) : mediaTypes[index]?.startsWith("video/") ? (
                     // eslint-disable-next-line jsx-a11y/media-has-caption -- user-generated evidence has no caption track
                     <video
-                      src={item}
+                      src={mediaUrls[index]}
                       controls
                       playsInline
                       preload="metadata"
@@ -152,9 +188,18 @@ export const WorkView: React.FC<WorkViewProps> = ({
             })}
           </h6>
           <div className="flex flex-col gap-2">
-            {audioNoteCids.map((cid) => (
-              <AudioPlayer key={cid} src={resolveIPFSUrl(cid)} compact={false} />
-            ))}
+            {audioNoteCids.map((cid, index) =>
+              isOnline || offlineAssets[audioUrls[index]] ? (
+                <AudioPlayer key={cid} src={audioUrls[index]} compact={false} />
+              ) : (
+                <p key={cid} className="text-sm text-text-sub-600">
+                  {intl.formatMessage({
+                    id: "app.offline.attachmentUnavailable",
+                    defaultMessage: "Not downloaded for offline use",
+                  })}
+                </p>
+              )
+            )}
           </div>
         </>
       )}

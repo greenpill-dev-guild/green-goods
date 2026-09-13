@@ -58,7 +58,7 @@ describe("modules/job-queue/db", () => {
     expect(typeof id).toBe("string");
     const job = await jobQueueDB.getJob(id);
     expect(job?.kind).toBe("work");
-    expect(job?.userAddress).toBe(TEST_USER_ADDRESS);
+    expect(job?.userAddress).toBe(TEST_USER_ADDRESS.toLowerCase());
 
     const images = await jobQueueDB.getImagesForJob(id);
     expect(images.length).toBe(1);
@@ -90,5 +90,92 @@ describe("modules/job-queue/db", () => {
     });
 
     await jobQueueDB.deleteJob(id);
+  });
+});
+
+describe("durable work admission", () => {
+  const address = "0x123456789012345678901234567890123456789a" as const;
+  const draft = (clientWorkId: string, chainId = 11155111, userAddress: string = address) =>
+    ({
+      kind: "work",
+      chainId,
+      userAddress,
+      payload: { clientWorkId, feedback: "work", media: [] },
+    }) as Parameters<typeof jobQueueDB.addJob>[0];
+  it("admits concurrent submissions once despite account casing", async () => {
+    const clientWorkId = crypto.randomUUID();
+    const ids = await Promise.all([
+      jobQueueDB.addJob(draft(clientWorkId)),
+      jobQueueDB.addJob(draft(clientWorkId, 11155111, address.toUpperCase())),
+    ]);
+    expect(ids[0]).toBe(ids[1]);
+    expect(await jobQueueDB.getJobs({ userAddress: address.toUpperCase() })).toEqual(
+      expect.arrayContaining([expect.objectContaining({ id: ids[0] })])
+    );
+  });
+  it("retains completion after cleanup and permits the same id only in a different scope", async () => {
+    const clientWorkId = crypto.randomUUID();
+    const id = await jobQueueDB.addJob(draft(clientWorkId));
+    await jobQueueDB.storeClientWorkIdMapping(clientWorkId, "0xcompleted", id);
+    await jobQueueDB.deleteJob(id);
+    const now = vi.spyOn(Date, "now").mockReturnValue(Date.now() + 60 * 24 * 60 * 60 * 1000);
+    try {
+      await jobQueueDB.cleanupOldMappings();
+    } finally {
+      now.mockRestore();
+    }
+    expect(await jobQueueDB.addJob(draft(clientWorkId))).toBe(id);
+    expect(await jobQueueDB.getWorkCompletion(address, 11155111, clientWorkId)).toMatchObject({
+      transactionHash: "0xcompleted",
+    });
+    expect(await jobQueueDB.addJob(draft(clientWorkId, 42161))).not.toBe(id);
+  });
+  it("allows only one claim token and prevents another token from releasing it", async () => {
+    const id = crypto.randomUUID();
+    expect(await jobQueueDB.acquireExecutionClaim([id], "first")).toBe(true);
+    expect(await jobQueueDB.acquireExecutionClaim([id], "second")).toBe(false);
+    await jobQueueDB.releaseExecutionClaim([id], "second");
+    expect(await jobQueueDB.acquireExecutionClaim([id], "second")).toBe(false);
+    await jobQueueDB.releaseExecutionClaim([id], "first");
+    expect(await jobQueueDB.acquireExecutionClaim([id], "second")).toBe(true);
+    await jobQueueDB.releaseExecutionClaim([id], "second");
+  });
+  it("keeps legacy hash mappings unresolved with durable evidence instead of inferring a completed account", async () => {
+    const clientWorkId = crypto.randomUUID();
+    const db = await jobQueueDB.init();
+    await db.put("client_work_id_mappings", {
+      clientWorkId,
+      attestationId: "0xlegacy",
+      jobId: "removed-legacy-job",
+      createdAt: Date.now(),
+    });
+    expect(await jobQueueDB.getWorkCompletion(address, 11155111, clientWorkId)).toBeUndefined();
+    const id = await jobQueueDB.addJob(draft(clientWorkId));
+    expect(await jobQueueDB.getJob(id)).toMatchObject({
+      synced: false,
+      meta: { legacyConfirmation: true },
+      payload: { uploadCheckpoint: { transactionHash: "0xlegacy" } },
+    });
+  });
+  it("does not let a repeated admission replace a newer broadcast checkpoint", async () => {
+    const clientWorkId = crypto.randomUUID();
+    const id = await jobQueueDB.addJob(draft(clientWorkId));
+    const current = (await jobQueueDB.getJob(id))!;
+    (current.payload as { uploadCheckpoint?: unknown }).uploadCheckpoint = {
+      files: {},
+      submittedAt: "2026-09-12",
+      broadcast: { kind: "user-operation", hash: "0xnew" },
+    };
+    await jobQueueDB.updateJob(current);
+    await jobQueueDB.addJob({
+      ...draft(clientWorkId),
+      payload: {
+        clientWorkId,
+        uploadCheckpoint: { files: {}, submittedAt: "2026-09-01", transactionHash: "0xold" },
+      },
+    });
+    expect((await jobQueueDB.getJob(id))?.payload).toMatchObject({
+      uploadCheckpoint: { broadcast: { kind: "user-operation", hash: "0xnew" } },
+    });
   });
 });

@@ -270,6 +270,52 @@ describe("processJob", () => {
     });
   });
 
+  it("still reconciles a persisted UserOperation at the retry ceiling", async () => {
+    const store = createInMemoryJobQueueStore([
+      queuedJob({
+        attempts: 5,
+        payload: {
+          uploadCheckpoint: {
+            files: {},
+            submittedAt: "2026-09-12",
+            broadcast: { kind: "user-operation", hash: "0xop" },
+          },
+        },
+      }),
+    ]);
+    const executors = {
+      execute: vi.fn().mockResolvedValue({ status: "waiting", reason: "awaiting-confirmation" }),
+    };
+    const { queue } = setup({ store, executors });
+    expect(await queue.processJob("job-1", { transactionSender: {} as never })).toMatchObject({
+      error: "awaiting-confirmation",
+    });
+    expect(executors.execute).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not automatically execute a proved failed operation again", async () => {
+    const store = createInMemoryJobQueueStore([
+      queuedJob({
+        attempts: 5,
+        meta: { workTransactionReverted: true },
+        payload: {
+          uploadCheckpoint: {
+            files: {},
+            submittedAt: "2026-09-12",
+            broadcast: { kind: "user-operation", hash: "0xop" },
+            transactionReverted: true,
+          },
+        },
+      }),
+    ]);
+    const executors = { execute: vi.fn() };
+    const { queue } = setup({ store, executors });
+    expect(await queue.processJob("job-1", { transactionSender: {} as never })).toMatchObject({
+      error: "work-transaction-reverted",
+    });
+    expect(executors.execute).not.toHaveBeenCalled();
+  });
+
   it("permanently fails a job at the retry ceiling", async () => {
     const store = createInMemoryJobQueueStore([queuedJob({ attempts: 5 })]);
     const { deps, queue } = setup({ store });

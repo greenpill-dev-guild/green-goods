@@ -437,6 +437,49 @@ self.addEventListener("fetch", (event) => {
   event.stopImmediatePropagation?.();
 });
 
+// Probes must prove a network round trip, including with an old app shell.
+self.addEventListener("fetch", (event) => {
+  if (new URL(event.request.url).pathname !== "/connectivity-check.txt") return;
+  event.respondWith(fetch(new Request(event.request, { cache: "no-store" })));
+  event.stopImmediatePropagation?.();
+});
+
+// Managed display photos are verified by the app's byte-budget coordinator.
+// A cache miss uses the ordinary runtime image cache; no original is inferred
+// from a differently sized display URL and no cache is cleared on activation.
+self.addEventListener("fetch", (event) => {
+  const request = event.request;
+  const url = new URL(request.url);
+  if (request.method !== "GET" || request.destination !== "image" ||
+      !(url.protocol === "https:" || url.origin === self.location.origin)) return;
+  event.respondWith((async () => {
+    const prepared = await caches.open("gg-prepared-media-v1");
+    const saved = await prepared.match(request);
+    if (saved) return saved;
+    const runtime = await caches.open("image-cache");
+    const metadata = await caches.open("gg-image-cache-meta");
+    const previous = await runtime.match(request);
+    const savedTime = await metadata.match(request);
+    const cachedAt = savedTime ? Number(await savedTime.text()) : Date.parse(previous?.headers.get("date") ?? "");
+    if (previous && Number.isFinite(cachedAt) && Date.now() - cachedAt <= 30 * 24 * 60 * 60 * 1000) return previous;
+    if (previous) { await runtime.delete(request); await metadata.delete(request); }
+    const response = await fetch(request);
+    if (response.ok || response.type === "opaque") {
+      try {
+        await runtime.put(request, response.clone());
+        await metadata.put(request, new Response(String(Date.now())));
+        const keys = await runtime.keys();
+        for (const key of keys.slice(0, Math.max(0, keys.length - 100))) {
+          await runtime.delete(key);
+          await metadata.delete(key);
+        }
+      } catch { /* Opportunistic images never establish prepared coverage. */ }
+    }
+    return response;
+  })());
+  event.stopImmediatePropagation?.();
+});
+
 // Clear stale runtime caches when a new worker activates. Activation is controlled
 // by the app update prompt so startup is not interrupted by a forced takeover.
 self.addEventListener("activate", (event) => {
@@ -445,6 +488,10 @@ self.addEventListener("activate", (event) => {
 
 self.addEventListener("message", (event) => {
   const type = event.data?.type;
+  if (type === "OFFLINE_CONTENT_CAPABILITIES") {
+    event.ports?.[0]?.postMessage({offlineContentVersion: 1});
+    return;
+  }
 
   if (type === "REGISTER_SYNC") {
     event.waitUntil(
