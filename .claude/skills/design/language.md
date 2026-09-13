@@ -381,8 +381,8 @@ Admin-relevant subset. Components not listed here (button groups, split button, 
 
 ### Button System
 
-Size sets the height; emphasis sets the shape (see Shape & Emphasis Hierarchy). Buttons and fields share
-one height scale, so a field and its action line up in a row (DL-023):
+Size sets the height; the surface sets the corner (see Button Corners and Emphasis). Buttons and fields
+share one height scale, so a field and its action line up in a row (DL-023):
 
 | Size | Height | Hit area | Use |
 |------|--------|----------|-----|
@@ -392,7 +392,8 @@ one height scale, so a field and its action line up in a row (DL-023):
 | **compact** | 32px | 48px | Actions that sit in a line of text (DL-020), header icon buttons |
 
 No action is shorter than 32px and no hit area is smaller than 44px. Fields use the same steps
-(`controlSize` sm 40, md 44, lg 48).
+(`controlSize` sm 40, md 44, lg 48), and a single-line field is exactly its step whatever its text:
+display-size digits and editorial type sit centered inside it instead of growing it.
 
 **Primitives**: `Button` (`emphasis` primary / secondary / tertiary, `tone` default / danger / warning,
 `size`, `loading` stays focusable), `IconButton` (a circle at the same four sizes, `aria-label`

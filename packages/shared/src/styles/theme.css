@@ -841,6 +841,28 @@
     padding: 0.6875rem 1rem;
   }
 
+  /* A single-line field is exactly its scale height, whatever its text (DL-023).
+     Browsers grow a text input to its font's natural line box, so display-size
+     digits and editorial type pushed min-height fields to 45-56px. A fixed block
+     size with no vertical padding holds the step, and the browser centers the
+     text. The matching minimum keeps a flex-1 field in a stacked row from
+     collapsing to its text. The admin surface keeps its own metrics. */
+  input.gg-control:not([data-surface="admin"]) {
+    min-block-size: 2.75rem;
+    block-size: 2.75rem;
+    padding-block: 0;
+  }
+
+  input.gg-control[data-size="sm"]:not([data-surface="admin"]) {
+    min-block-size: 2.5rem;
+    block-size: 2.5rem;
+  }
+
+  input.gg-control[data-size="lg"]:not([data-surface="admin"]) {
+    min-block-size: 3rem;
+    block-size: 3rem;
+  }
+
   .gg-control[data-surface="admin"] {
     border-color: rgb(var(--stroke-sub-300));
     /* 8px to match the admin text fields (AdminTextField) — keeps every admin
@@ -873,6 +895,12 @@
     background-repeat: no-repeat;
     background-position: right 0.75rem center;
     background-size: 1rem 1rem;
+  }
+
+  /* The size rules reset the padding shorthand at a higher specificity, which
+     closed the lane: a small Month filter ran its label under the chevron. */
+  .gg-control-select[data-size] {
+    padding-right: 2.25rem;
   }
 
   :root[data-theme="dark"] .gg-control-select,

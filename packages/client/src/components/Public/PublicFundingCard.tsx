@@ -902,7 +902,6 @@ export function AmountInput({
           onChange={(e) => onChange(e.target.value)}
           placeholder={isWethDenomination ? "0.0" : "0.00"}
           disabled={disabled}
-          controlSize="lg"
           className="flex-1 font-serif text-2xl"
         />
       </div>

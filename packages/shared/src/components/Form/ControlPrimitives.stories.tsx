@@ -133,7 +133,8 @@ export const StateCatalog: Story = {};
 
 /**
  * The client field scale: a 16px rounded rectangle at sm 40, md 44, lg 48 (DL-022,
- * DL-023), and the public site's editorial underline field (DL-024).
+ * DL-023), and the public site's editorial underline field (DL-024). Display-size
+ * text keeps the field's height, and a small select keeps its chevron lane.
  */
 export const DefaultSurfaceSizes: Story = {
   tags: ["storybook-ci"],
@@ -145,8 +146,24 @@ export const DefaultSurfaceSizes: Story = {
       <NativeSelect aria-label="Medium select" defaultValue="all">
         <option value="all">All Gardens</option>
       </NativeSelect>
+      <NativeSelect
+        aria-label="Small select"
+        controlSize="sm"
+        defaultValue="month"
+        className="w-auto"
+      >
+        <option value="day">Day</option>
+        <option value="month">Month</option>
+      </NativeSelect>
       <TextInput aria-label="Invalid field" invalid defaultValue="0x00" />
       <TextInput aria-label="Editorial field" surface="editorial" placeholder="you@example.com" />
+      <TextInput aria-label="Display amount" className="font-serif text-2xl" defaultValue="25.00" />
+      <TextInput
+        aria-label="Editorial display field"
+        surface="editorial"
+        className="text-2xl"
+        placeholder="you@example.com"
+      />
     </section>
   ),
   play: async ({ canvasElement }) => {
@@ -164,6 +181,12 @@ export const DefaultSurfaceSizes: Story = {
     }
     await expect(radius(canvas.getByRole("combobox", { name: "Medium select" }))).toBe(16);
     await expect(radius(canvas.getByRole("textbox", { name: "Editorial field" }))).toBe(0);
+    // A 24px serif value sits inside the 44px step instead of growing the field.
+    for (const name of ["Display amount", "Editorial display field"]) {
+      await expect(canvas.getByRole("textbox", { name }).getBoundingClientRect().height).toBe(44);
+    }
+    const smallSelect = canvas.getByRole("combobox", { name: "Small select" });
+    await expect(getComputedStyle(smallSelect).paddingRight).toBe("36px");
   },
 };
 

@@ -122,7 +122,7 @@ const FROZEN_ALLOWLIST = {
   "packages/client/src/components/Errors/RouteErrorBoundary.tsx": 522,
   "packages/client/src/components/Public/PublicCookieJarCard.tsx": 756,
   "packages/client/src/components/Public/PublicEndowmentPanel.tsx": 719,
-  "packages/client/src/components/Public/PublicFundingCard.tsx": 1011,
+  "packages/client/src/components/Public/PublicFundingCard.tsx": 1010,
   "packages/client/src/components/Public/Vault/VaultCardEndowFlow.tsx": 1503,
   "packages/client/src/components/Public/Vault/VaultCardPaymentPanel.tsx": 705,
   "packages/client/src/components/Public/Vault/VaultCardWalletManage.tsx": 688,

@@ -157,11 +157,37 @@ describe("button shape guard (DL-023, DL-026)", () => {
   });
 });
 
-describe("field shape guard (DL-022)", () => {
+describe("field shape guard (DL-022, DL-023)", () => {
   it("gives every default field the 16px corner at the 44px md height", () => {
     const control = block(".gg-control");
     expect(declaration(control, "border-radius")).toBe("var(--radius-lg)");
     expect(declaration(control, "min-height")).toBe("2.75rem");
+  });
+
+  // Browsers grow a text input to its font's line box, so a min-height alone let
+  // display-size digits render 45-56px tall.
+  it.each([
+    ['input.gg-control:not([data-surface="admin"])', 44],
+    ['input.gg-control[data-size="sm"]:not([data-surface="admin"])', 40],
+    ['input.gg-control[data-size="lg"]:not([data-surface="admin"])', 48],
+  ])("holds %s at exactly %ipx, whatever its text size", (selector, height) => {
+    const body = block(selector);
+    expect(px(declaration(body, "block-size") ?? "")).toBe(height);
+    expect(px(declaration(body, "min-block-size") ?? "")).toBe(height);
+  });
+
+  it("gives single-line fields no vertical padding, so the text centers in the fixed height", () => {
+    expect(
+      declaration(block('input.gg-control:not([data-surface="admin"])'), "padding-block")
+    ).toBe("0");
+  });
+
+  it("restates the select chevron lane after the size rules reset the padding", () => {
+    const lane = ".gg-control-select[data-size] {";
+    expect(declaration(block(".gg-control-select[data-size]"), "padding-right")).toBe("2.25rem");
+    for (const size of ["sm", "lg"]) {
+      expect(theme.indexOf(`.gg-control[data-size="${size}"] {`)).toBeLessThan(theme.indexOf(lane));
+    }
   });
 
   it("keeps the editorial field an underline with a visible invalid state", () => {
