@@ -28,6 +28,7 @@ describe("useOnlineStatus", () => {
   });
   it("shares offline state with late subscribers and recovers on resume", () => {
     Object.defineProperty(navigator, "onLine", { configurable: true, value: false });
+    act(() => window.dispatchEvent(new Event("offline")));
     const first = renderHook(() => useOnlineStatus());
     const second = renderHook(() => useOnlineStatus());
     expect(first.result.current).toBe(false);

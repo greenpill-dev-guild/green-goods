@@ -80,7 +80,7 @@ export const AppSheet: React.FC<AppSheetProps> = ({
   const closeCompletedRef = useRef(false);
   const { set: scheduleTimeout, clear: clearCloseTimeout } = useTimeout();
 
-  useDocumentScrollLock(isOpen && !isClosing);
+  useDocumentScrollLock(isOpen);
   useSheetPresence(isOpen);
 
   // Focus trap: keep Tab/Shift+Tab cycling within the dialog

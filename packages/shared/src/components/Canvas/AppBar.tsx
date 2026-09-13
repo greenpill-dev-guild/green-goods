@@ -183,7 +183,10 @@ export function AppBar({
           {onOpenSearch && (
             <TopBarIconButton
               slot="search-button"
-              tooltip={formatMessage({ id: "cockpit.topBar.openSearch", defaultMessage: "Search" })}
+              tooltip={formatMessage({
+                id: "cockpit.topBar.openSearch",
+                defaultMessage: "Open Search",
+              })}
               onClick={onOpenSearch}
               className="hidden min-[600px]:flex"
             >

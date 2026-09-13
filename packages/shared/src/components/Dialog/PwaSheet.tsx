@@ -255,7 +255,7 @@ export function PwaSheet({
   const sheetState = open ? "open" : "closed";
 
   useFocusTrap(dialogRef, { enabled: mounted && open, autoFocusSelector });
-  useDocumentScrollLock(open);
+  useDocumentScrollLock(open || mounted);
   useSheetPresence(open);
 
   // Remember who opened the sheet and hand focus back when it closes, the way

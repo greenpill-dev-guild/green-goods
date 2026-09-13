@@ -22,7 +22,18 @@ export const worksKeys = {
   mineByUser: (userAddress: string) => ["greengoods", "works", "mine", userAddress] as const,
   online: (gardenId: string, chainId: number) =>
     ["greengoods", "works", "online", gardenId, chainId] as const,
-  offline: (gardenId: string) => ["greengoods", "works", "offline", gardenId] as const,
+  offline: (gardenId: string, chainId?: number, account?: string) =>
+    chainId === undefined && account === undefined
+      ? (["greengoods", "works", "offline", gardenId] as const)
+      : (["greengoods", "works", "offline", gardenId, chainId, account?.toLowerCase()] as const),
+  preparedRecentAll: ["greengoods", "works", "preparedRecent"] as const,
+  preparedRecent: (gardenId: string, chainId: number) =>
+    ["greengoods", "works", "preparedRecent", gardenId, chainId] as const,
+  preparedApprovals: (gardenId: string, chainId: number) =>
+    ["greengoods", "works", "preparedApprovals", gardenId, chainId] as const,
+  local: (gardenId: string, chainId: number, account?: string) =>
+    ["greengoods", "works", "local", gardenId, chainId, account?.toLowerCase()] as const,
+  metadata: (raw: string) => ["greengoods", "works", "metadata", raw] as const,
   merged: (gardenId: string, chainId: number) =>
     ["greengoods", "works", "merged", gardenId, chainId] as const,
   approvals: (userAddress?: string, chainId?: number) =>

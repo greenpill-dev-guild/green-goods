@@ -84,7 +84,7 @@ const meta: Meta<typeof FormWizard> = {
     },
     nextLabel: {
       control: "text",
-      description: "Custom label for the Next button (defaults to i18n 'Next')",
+      description: "Custom label for the Next button (defaults to i18n 'Continue')",
     },
     submitLabel: {
       control: "text",

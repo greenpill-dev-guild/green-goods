@@ -15,7 +15,7 @@ generated_from:
   - playwright.config.ts
   - scripts/data/qa-test-catalog.json
   - scripts/data/validation-policy.json
-source_digest: "sha256:d8a6ea3a193168187a4ea6ef3a65c5b530ba2558bd1a4e0031ab7da33d042fb2"
+source_digest: "sha256:8d68ddaf1423685f07a7db4046778fd7cd5e10e2adeffb49ac4e61e9afda03c4"
 source_of_truth:
   - package.json
   - packages/admin/vitest.config.ts
@@ -278,7 +278,7 @@ The catalog contract test enforces all of this, and [retired cases](#retired-cas
 | `PWA-063` | Transaction | Profile | Claim a badge and read the feedback on success and failure | Screenshots of both outcomes |
 | `PWA-064` | Journey | Auth | Log out from the profile and log back in | Screenshot of the login screen after logout |
 | `PWA-065` | Resilience | App-wide | Cold start on the hosted build stays under the boot watchdog | Console timings screenshot |
-| `PWA-067` | Resilience | Home | Pull to refresh the garden list online, then read the paused notice offline | Screenshots of the online refresh and the offline notice |
+| `PWA-067` | Resilience | Home | Native page refresh works in Android Chrome and the installed app | Android screen recording covering browser and installed app; desktop emulation is insufficient |
 | `PWA-068` | Journey | Home | Filter the garden list by scope and sort order, then reset | Screenshot of the filtered list with the badge |
 | `PWA-069` | Journey | Home | Arrival toast names the signed-in state and its action lands | Screenshot of the toast and where its action landed |
 | `PWA-070` | Journey | Wallet | Tokens tab reads balances and the Receive QR without sending | Screenshots of Balance and Receive |
@@ -314,7 +314,7 @@ The catalog contract test enforces all of this, and [retired cases](#retired-cas
 | `PWA-ROLE-006` | Journey | Work | Insufficient-role user cannot approve or reject on Android | Screenshot plus account role |
 | `XPLAT-005` | Journey | Install | Website-to-install handoff keeps browser and PWA shells separate | Screen recording across the handoff |
 
-### P2 (6) {#pwa-p2}
+### P2 (7) {#pwa-p2}
 
 | ID | Kind | Area | Scenario | Evidence requested |
 |---|---|---|---|---|
@@ -324,6 +324,7 @@ The catalog contract test enforces all of this, and [retired cases](#retired-cas
 | `PWA-095` | Journey | Home | ENS claim reminder toast fires once per address and routes to the profile | Screenshot of the toast |
 | `PWA-096` | Journey | Home | AppBar badge counts pending work and the bar hides during flows and drawers | Screenshots with and without the bar |
 | `PWA-104` | Journey | Commitments | Offer It Again on an expired offer returns to the garden to compose anew | Screenshots of the expired band and where Offer It Again lands |
+| `PWA-107` | Content & vocabulary | Profile | Profile passkey note reads plainly and names the sign-in link a second device shows | Profile screenshots in all three locales beside the second browser's sign-in screen |
 
 ## Admin Dashboard
 

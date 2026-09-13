@@ -17,7 +17,7 @@ describe("PwaSheet", () => {
     document.documentElement.classList.remove("modal-open");
   });
 
-  it("releases its lock when close starts and finishes closing on page hide", () => {
+  it("keeps its lock while closing and finishes closing on page hide", () => {
     const view = render(
       <PwaSheet open onClose={vi.fn()} ariaLabel="Work sheet">
         <button type="button">Inside</button>
@@ -33,7 +33,7 @@ describe("PwaSheet", () => {
     );
 
     expect(screen.getByRole("dialog")).toHaveAttribute("data-state", "closed");
-    expect(document.documentElement).not.toHaveClass("modal-open");
+    expect(document.documentElement).toHaveClass("modal-open");
 
     act(() => window.dispatchEvent(new Event("pagehide")));
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();

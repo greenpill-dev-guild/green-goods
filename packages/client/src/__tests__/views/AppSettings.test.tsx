@@ -27,6 +27,18 @@ const mockServiceWorkerUpdateState = {
 
 const mockToast = vi.hoisted(() => ({ info: vi.fn(), error: vi.fn(), success: vi.fn() }));
 
+const mockPreparation = vi.hoisted(() => ({
+  bytes: 1024 * 1024,
+  budget: 150 * 1024 * 1024,
+  busy: false,
+  partial: true,
+  retry: vi.fn(),
+}));
+vi.mock("@green-goods/shared/hooks/offline/useOfflineContent", () => ({
+  useOfflinePreparationStatus: () => mockPreparation,
+}));
+vi.mock("@green-goods/shared/hooks/app/useOnlineStatus", () => ({ useOnlineStatus: () => true }));
+
 // Mock @green-goods/shared
 vi.mock("@green-goods/shared/components/Toast/toast.service", () => ({
   toastService: mockToast,
@@ -186,9 +198,11 @@ describe("AppSettings", () => {
     it("always offers a manual check with the same control width as the selects", () => {
       render(wrap(createElement(AppSettings)));
 
-      expect(screen.getAllByTestId("card")).toHaveLength(3);
+      expect(screen.getAllByTestId("card")).toHaveLength(4);
       expect(screen.getByText(TITLE)).toBeInTheDocument();
-      expect(screen.getByRole("status")).toHaveTextContent("Check for a newer version.");
+      expect(screen.getByRole("status", { name: "Update" })).toHaveTextContent(
+        "Check for a newer version."
+      );
       const check = screen.getByTestId("btn-Check");
       const [themeTrigger] = screen.getAllByTestId("select-trigger");
       expect(check.className).toBe(themeTrigger.className);
@@ -211,9 +225,11 @@ describe("AppSettings", () => {
         );
       });
       expect(screen.getByText(TITLE)).toBeInTheDocument();
-      expect(screen.getByRole("status")).toHaveTextContent("Check for a newer version.");
+      expect(screen.getByRole("status", { name: "Update" })).toHaveTextContent(
+        "Check for a newer version."
+      );
       expect(screen.getByTestId("btn-Check")).toBeInTheDocument();
-      expect(screen.getAllByTestId("card")).toHaveLength(3);
+      expect(screen.getAllByTestId("card")).toHaveLength(4);
     });
 
     it("reserves two subtitle lines in every row so the cards never change height", () => {
@@ -222,7 +238,7 @@ describe("AppSettings", () => {
       const subtitles = [
         screen.getByText(/choose how the app looks/i),
         screen.getByText(/set your preferred language/i),
-        screen.getByRole("status"),
+        screen.getByRole("status", { name: "Update" }),
       ];
       for (const subtitle of subtitles) {
         expect(subtitle.className).toContain("min-h-8");
@@ -251,7 +267,9 @@ describe("AppSettings", () => {
       await user.click(screen.getByTestId("btn-Check"));
 
       expect(mockServiceWorkerUpdateState.checkForUpdate).toHaveBeenCalledTimes(1);
-      expect(screen.getByRole("status")).toHaveTextContent("Check for a newer version.");
+      expect(screen.getByRole("status", { name: "Update" })).toHaveTextContent(
+        "Check for a newer version."
+      );
       expect(screen.getByTestId("btn-Check")).toBeInTheDocument();
       expect(mockServiceWorkerUpdateState.activateNow).not.toHaveBeenCalled();
     });
@@ -268,7 +286,9 @@ describe("AppSettings", () => {
           expect.objectContaining({ title: "Couldn't check for updates" })
         );
       });
-      expect(screen.getByRole("status")).toHaveTextContent("Check for a newer version.");
+      expect(screen.getByRole("status", { name: "Update" })).toHaveTextContent(
+        "Check for a newer version."
+      );
       await user.click(screen.getByTestId("btn-Check"));
 
       expect(mockServiceWorkerUpdateState.checkForUpdate).toHaveBeenCalledTimes(2);
@@ -284,11 +304,11 @@ describe("AppSettings", () => {
       render(wrap(createElement(AppSettings)));
 
       expect(screen.getByText(TITLE)).toBeInTheDocument();
-      expect(screen.getByRole("status")).toHaveTextContent(status);
+      expect(screen.getByRole("status", { name: "Update" })).toHaveTextContent(status);
       const control = screen.getByTestId(`btn-${label}`);
       expect(control).toHaveAttribute("aria-busy", "true");
       expect(control.className).toBe(screen.getAllByTestId("select-trigger")[0].className);
-      expect(screen.getAllByTestId("card")).toHaveLength(3);
+      expect(screen.getAllByTestId("card")).toHaveLength(4);
     });
 
     it("offers Restart when a background check found a waiting update", async () => {
@@ -298,7 +318,9 @@ describe("AppSettings", () => {
 
       render(wrap(createElement(AppSettings)));
 
-      expect(screen.getByRole("status")).toHaveTextContent("A new version is ready.");
+      expect(screen.getByRole("status", { name: "Update" })).toHaveTextContent(
+        "A new version is ready."
+      );
       await user.click(screen.getByTestId("btn-Restart"));
 
       expect(mockServiceWorkerUpdateState.activateNow).toHaveBeenCalledTimes(1);
@@ -310,7 +332,9 @@ describe("AppSettings", () => {
 
       render(wrap(createElement(AppSettings)));
 
-      expect(screen.getByRole("status")).toHaveTextContent("Close and reopen the app.");
+      expect(screen.getByRole("status", { name: "Update" })).toHaveTextContent(
+        "Close and reopen the app."
+      );
       await user.click(screen.getByTestId("btn-Try Again"));
 
       expect(mockServiceWorkerUpdateState.activateNow).toHaveBeenCalledTimes(1);
@@ -323,11 +347,27 @@ describe("AppSettings", () => {
 
       render(wrap(createElement(AppSettings)));
 
-      expect(screen.getByRole("status")).toHaveTextContent("Couldn't finish. Try again.");
+      expect(screen.getByRole("status", { name: "Update" })).toHaveTextContent(
+        "Couldn't finish. Try again."
+      );
       await user.click(screen.getByTestId("btn-Try Again"));
 
       expect(mockServiceWorkerUpdateState.checkForUpdate).toHaveBeenCalledTimes(1);
       expect(mockServiceWorkerUpdateState.activateNow).not.toHaveBeenCalled();
     });
+  });
+});
+
+describe("offline preparation status", () => {
+  it("shows partial coverage and retries preparation", async () => {
+    render(
+      <IntlProvider locale="en">
+        <AppSettings />
+      </IntlProvider>
+    );
+    expect(screen.getByText(/Partially available offline/)).toBeInTheDocument();
+    expect(screen.getByText(/1.0 of 150 MiB/)).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Retry" }));
+    expect(mockPreparation.retry).toHaveBeenCalled();
   });
 });

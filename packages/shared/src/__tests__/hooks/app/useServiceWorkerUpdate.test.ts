@@ -1,3 +1,5 @@
+import { useWorkUpdateGuard, isWorkUpdateBlocked } from "../../../hooks/app/useWorkUpdateGuard";
+import { useWorkFlowStore } from "../../../stores/useWorkFlowStore";
 /**
  * useServiceWorkerUpdate Hook Tests
  *
@@ -112,10 +114,18 @@ function installServiceWorkerMock(
   });
 }
 
+function ProtectedUpdateProvider({ children }: PropsWithChildren) {
+  const activationBlocked = useWorkUpdateGuard();
+  return createElement(ServiceWorkerUpdateProvider, {
+    activationBlocked,
+    isActivationBlocked: isWorkUpdateBlocked,
+    children,
+  });
+}
+
 function renderUpdateHook() {
   return renderHook(() => useServiceWorkerUpdate(), {
-    wrapper: ({ children }: PropsWithChildren) =>
-      createElement(ServiceWorkerUpdateProvider, null, children),
+    wrapper: ProtectedUpdateProvider,
   });
 }
 
@@ -577,6 +587,7 @@ describe("hooks/app/useServiceWorkerUpdate", () => {
       expect(keys1).toEqual(keys2);
       expect(keys1).toEqual([
         "activateNow",
+        "activationBlocked",
         "applyUpdate",
         "checkForUpdate",
         "dismissUpdate",
@@ -752,4 +763,58 @@ describe("applyUpdate activation", () => {
       expect.objectContaining({ phase: "activating" })
     );
   });
+});
+
+describe("active work update protection", () => {
+  it("defers worker activation while the current draft is saving", async () => {
+    vi.stubEnv("VITE_ENABLE_SW_DEV", "true");
+    const worker = createMockWorker({ state: "installed" });
+    installServiceWorkerMock(createMockRegistration({ waiting: worker }));
+    const { result, unmount } = renderUpdateHook();
+    await waitFor(() => expect(result.current.updateAvailable).toBe(true));
+    act(() =>
+      useWorkFlowStore.setState({
+        activeDraftId: "unfinished",
+        draftSaveState: "saving",
+        submissionCompleted: false,
+      })
+    );
+    act(() => result.current.activateNow());
+    expect(worker.postMessage).not.toHaveBeenCalled();
+    expect(result.current.activationBlocked).toBe(true);
+    expect(result.current.phase).toBe("waiting");
+    act(() =>
+      useWorkFlowStore.setState({
+        activeDraftId: null,
+        draftSaveState: "idle",
+        submissionCompleted: false,
+      })
+    );
+    unmount();
+    vi.unstubAllEnvs();
+  });
+});
+
+it("allows an uninitialized surface and safely saved drafts but blocks active execution", async () => {
+  const { isWorkUpdateBlocked } = await import("../../../hooks/app/useWorkUpdateGuard");
+  const { claimWorkJobs } = await import("../../../modules/work/execution-state");
+  const original = useWorkFlowStore.getState();
+  try {
+    useWorkFlowStore.setState({ draftScope: null, activeDraftId: null, draftSaveState: "loading" });
+    expect(isWorkUpdateBlocked()).toBe(false);
+    useWorkFlowStore.setState({
+      draftScope: "account:chain",
+      activeDraftId: "saved",
+      draftSaveState: "saved",
+    });
+    expect(isWorkUpdateBlocked()).toBe(false);
+    const release = claimWorkJobs(["worker-update-test"]);
+    expect(isWorkUpdateBlocked()).toBe(true);
+    release?.();
+    expect(isWorkUpdateBlocked()).toBe(false);
+    useWorkFlowStore.setState({ draftSaveState: "failed" });
+    expect(isWorkUpdateBlocked()).toBe(true);
+  } finally {
+    useWorkFlowStore.setState(original);
+  }
 });

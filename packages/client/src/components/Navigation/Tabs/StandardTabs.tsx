@@ -62,12 +62,7 @@ export const StandardTabs: React.FC<StandardTabsProps> = ({
       nearest.scrollTop = 0;
       return;
     }
-    // 3) Fallback to main app scroll container or window
-    const appScroll = document.getElementById("app-scroll");
-    if (appScroll) {
-      appScroll.scrollTop = 0;
-      return;
-    }
+    // 3) Ordinary page content scrolls with the document.
     if (typeof window !== "undefined") {
       window.scrollTo({ top: 0, behavior: "auto" });
     }

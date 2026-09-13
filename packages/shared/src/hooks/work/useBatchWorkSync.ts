@@ -1,10 +1,13 @@
+import { useRef } from "react";
+import { isTerminallyFailedJob } from "../../modules/job-queue/queue-policy";
 import { useIntl } from "react-intl";
 import {
-  claimWorkJobs,
+  acquireWorkJobs,
   reconcileWorkTransaction,
   rememberWorkBroadcast,
   retainedWorkBroadcast,
   forgetWorkBroadcast,
+  isWorkSubmissionCancelled,
 } from "../../modules/work/work-confirmation";
 /**
  * Batch Work Sync Hook
@@ -85,11 +88,22 @@ function toWorkDraft(payload: WorkJobPayload, mediaFiles: File[]): WorkDraft {
  */
 export async function syncQueuedWorkBatch(
   primaryAddress: Address,
-  chainId: number = DEFAULT_CHAIN_ID
+  chainId: number = DEFAULT_CHAIN_ID,
+  assertSession?: () => void | Promise<void>
 ): Promise<BatchWorkSyncResult> {
-  const candidates = await jobQueue.getJobsWithImages(primaryAddress);
-  const release = claimWorkJobs(candidates.map(({ job }) => job.id));
-  if (!release) return { count: 0, gardens: [], awaitingConfirmation: true };
+  const jobs = await jobQueue.getJobs(primaryAddress, { kind: "work", synced: false });
+  const candidates: Array<{ job: Job<WorkJobPayload> }> = jobs
+    .filter(
+      (job) =>
+        (job.chainId ?? DEFAULT_CHAIN_ID) === chainId &&
+        job.userAddress.toLowerCase() === primaryAddress.toLowerCase() &&
+        !job.meta?.workTransactionReverted &&
+        (!isTerminallyFailedJob(job) ||
+          Boolean((job.payload as WorkJobPayload).uploadCheckpoint?.transactionHash))
+    )
+    .map((job) => ({ job: job as Job<WorkJobPayload> }));
+  const claim = await acquireWorkJobs(candidates.map(({ job }) => job.id));
+  if (!claim) return { count: 0, gardens: [], awaitingConfirmation: true };
   try {
     const pendingJobs: typeof candidates = [];
     let awaitingConfirmation = false;
@@ -101,8 +115,20 @@ export async function syncQueuedWorkBatch(
         confirmationFailed = true;
         continue;
       }
+      if (
+        (fresh.chainId ?? DEFAULT_CHAIN_ID) !== chainId ||
+        fresh.userAddress.toLowerCase() !== primaryAddress.toLowerCase()
+      )
+        continue;
       entry.job = fresh as Job<WorkJobPayload>;
       const payload = fresh.payload as WorkJobPayload;
+      if (
+        payload.uploadCheckpoint?.broadcast?.kind === "user-operation" ||
+        (payload.uploadCheckpoint?.broadcastPending && !payload.uploadCheckpoint.transactionHash)
+      ) {
+        awaitingConfirmation = true;
+        continue;
+      }
       const hash = retainedWorkBroadcast(fresh.id) ?? payload.uploadCheckpoint?.transactionHash;
       if (hash) {
         payload.uploadCheckpoint = {
@@ -118,7 +144,12 @@ export async function syncQueuedWorkBatch(
           waitingReason: "awaiting-confirmation",
         };
         await jobQueueDB.updateJob(fresh);
-        const state = await reconcileWorkTransaction(hash, chainId);
+        const state =
+          fresh.meta?.legacyConfirmation || fresh.meta?.authMode === "passkey"
+            ? await (
+                await import("../../modules/work/work-confirmation")
+              ).reconcileLegacyPasskeyWork(hash, fresh as Job<WorkJobPayload>, chainId)
+            : await reconcileWorkTransaction(hash, chainId);
         if (state === "confirmed") {
           if (payload.clientWorkId)
             await jobQueueDB.storeClientWorkIdMapping(payload.clientWorkId, hash, fresh.id);
@@ -132,7 +163,7 @@ export async function syncQueuedWorkBatch(
           await jobQueueDB.updateJob(fresh);
           await jobQueueDB.markJobTerminalFailed(fresh.id, "work-transaction-reverted");
         } else awaitingConfirmation = true;
-      } else pendingJobs.push(entry);
+      } else if (!isTerminallyFailedJob(fresh)) pendingJobs.push(entry);
     }
     if (pendingJobs.length === 0) {
       return { count: 0, gardens: [], awaitingConfirmation, confirmationFailed };
@@ -140,7 +171,20 @@ export async function syncQueuedWorkBatch(
 
     const wagmiConfig = getWagmiConfig();
     await ensureWagmiWalletChain(wagmiConfig, chainId);
-    const walletClient = await getWalletClient(wagmiConfig, { chainId });
+    const assertOwnership = async () => {
+      await claim.assertOwned();
+      await assertSession?.();
+      const current = await getWalletClient(wagmiConfig, { chainId });
+      if (!current?.account)
+        throw new Error("Wallet not connected. Please connect your wallet and try again.");
+      if (
+        current.account.address.toLowerCase() !== primaryAddress.toLowerCase() ||
+        (current.chain?.id !== undefined && current.chain.id !== chainId)
+      )
+        throw new Error("submission-ownership-changed");
+      return current;
+    };
+    const walletClient = await assertOwnership();
     if (!walletClient?.account) {
       throw new Error("Wallet not connected. Please connect your wallet and try again.");
     }
@@ -151,7 +195,9 @@ export async function syncQueuedWorkBatch(
     // sync bar, and must stay within its precache budget.
     const { encodeWorkData } = await import("../../utils/eas/encoders");
     const encodedJobs = (await Promise.all(
-      pendingJobs.map(async ({ job, images }): Promise<EncodedWorkJob> => {
+      pendingJobs.map(async ({ job }): Promise<EncodedWorkJob> => {
+        await assertOwnership();
+        const images = await jobQueueDB.getImagesForJob(job.id);
         const payload = job.payload as WorkJobPayload;
         const mediaFiles = images.map((image) => image.file);
         const draft = toWorkDraft(payload, mediaFiles);
@@ -160,6 +206,7 @@ export async function syncQueuedWorkBatch(
           clientWorkId: payload.clientWorkId,
           checkpoint: payload.uploadCheckpoint,
           onCheckpoint: async (checkpoint) => {
+            await assertOwnership();
             payload.uploadCheckpoint = checkpoint;
             await jobQueueDB.updateJob(job);
           },
@@ -186,11 +233,36 @@ export async function syncQueuedWorkBatch(
 
     await assertLocalArbitrumForkWallet();
 
-    const hash = await walletClient.sendTransaction({
-      ...txParams,
-      chain: getChain(chainId),
-      account: walletClient.account,
-    });
+    const currentWallet = await assertOwnership();
+    for (const { job } of encodedJobs) {
+      const payload = job.payload as WorkJobPayload;
+      payload.uploadCheckpoint = {
+        submittedAt: new Date().toISOString(),
+        files: {},
+        ...payload.uploadCheckpoint,
+        broadcastPending: true,
+      };
+    }
+    await jobQueueDB.updateJobs(encodedJobs.map(({ job }) => job));
+    await assertOwnership();
+    let hash: `0x${string}`;
+    try {
+      hash = await currentWallet.sendTransaction({
+        ...txParams,
+        chain: getChain(chainId),
+        account: currentWallet.account,
+      });
+    } catch (error) {
+      const cancelled = isWorkSubmissionCancelled(error);
+      if (cancelled) {
+        for (const { job } of encodedJobs) {
+          (job.payload as WorkJobPayload).uploadCheckpoint!.broadcastPending = false;
+          await jobQueueDB.updateJob(job);
+          await jobQueueDB.markJobTerminalFailed(job.id, "cancelled");
+        }
+      }
+      throw error;
+    }
 
     for (const { job } of encodedJobs) {
       rememberWorkBroadcast(job.id, hash);
@@ -200,6 +272,8 @@ export async function syncQueuedWorkBatch(
         files: {},
         ...payload.uploadCheckpoint,
         transactionHash: hash,
+        broadcast: { kind: "transaction", hash },
+        broadcastPending: false,
       };
       job.meta = {
         ...job.meta,
@@ -276,7 +350,7 @@ export async function syncQueuedWorkBatch(
       gardens: [...new Set(encodedJobs.map(({ gardenAddress }) => gardenAddress))],
     };
   } finally {
-    release();
+    await claim.release();
   }
 }
 
@@ -289,6 +363,10 @@ export function useBatchWorkSync() {
   const primaryAddress = usePrimaryAddress();
   const { authMode } = useUser();
   const chainId = DEFAULT_CHAIN_ID;
+  const identity = `${authMode}:${primaryAddress?.toLowerCase()}:${chainId}`;
+  const session = useRef({ identity, generation: 0 });
+  if (session.current.identity !== identity)
+    session.current = { identity, generation: session.current.generation + 1 };
 
   return useMutation({
     mutationFn: async (): Promise<BatchWorkSyncResult> => {
@@ -299,7 +377,11 @@ export function useBatchWorkSync() {
         throw new Error("Wallet address not available. Please reconnect and try again.");
       }
 
-      return syncQueuedWorkBatch(primaryAddress, chainId);
+      const generation = session.current.generation;
+      return syncQueuedWorkBatch(primaryAddress, chainId, () => {
+        if (generation !== session.current.generation || identity !== session.current.identity)
+          throw new Error("submission-ownership-changed");
+      });
     },
     onSuccess: ({ count, gardens, awaitingConfirmation, confirmationFailed }) => {
       if (awaitingConfirmation || confirmationFailed) {

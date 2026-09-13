@@ -424,6 +424,14 @@ export const GardenWork: React.FC = () => {
           footerSpacerClassName="h-[calc(112px+env(safe-area-inset-bottom))]"
         />
 
+        {metadataStatus === "unavailable" && (
+          <p role="status" className="mt-4 text-sm text-text-sub-600">
+            {intl.formatMessage({
+              id: "app.offline.detailsUnavailable",
+              defaultMessage: "These details haven’t been downloaded. Connect to load them.",
+            })}
+          </p>
+        )}
         {metadataStatus === "error" && (
           <div className="mt-4 rounded-xl border border-error-light bg-error-lighter px-4 py-3 flex items-start gap-3">
             <RiErrorWarningLine className="w-5 h-5 text-error-base flex-shrink-0 mt-0.5" />

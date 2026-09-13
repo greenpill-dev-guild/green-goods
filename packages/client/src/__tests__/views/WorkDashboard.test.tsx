@@ -385,7 +385,7 @@ describe("WorkDashboard", () => {
     renderDashboard();
 
     expect(screen.getByText("Queued tree planting")).toBeInTheDocument();
-    expect(screen.queryByText("Loading pending work...")).not.toBeInTheDocument();
+    expect(screen.queryByText("Loading your work...")).not.toBeInTheDocument();
   });
 
   it("waits for review-exclusion approvals before showing steward work as needing review", () => {
@@ -427,7 +427,7 @@ describe("WorkDashboard", () => {
 
     renderDashboard();
 
-    expect(screen.getByText("Loading pending work...")).toBeInTheDocument();
+    expect(screen.getByText("Loading your work...")).toBeInTheDocument();
     expect(screen.queryByText("Already reviewed planting")).not.toBeInTheDocument();
   });
 

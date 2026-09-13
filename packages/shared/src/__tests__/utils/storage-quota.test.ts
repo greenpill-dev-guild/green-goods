@@ -71,7 +71,12 @@ describe("storage quota protection", () => {
 
     const result = await cleanupRefetchableStorage();
 
-    expect(deleted).toEqual(["indexer-cache", "graphql-cache", "image-cache"]);
+    expect(deleted).toEqual([
+      "indexer-cache",
+      "graphql-cache",
+      "image-cache",
+      "gg-image-cache-meta",
+    ]);
     expect(deleted).not.toContain("ipfs-cache");
     expect(deleted).not.toContain("gg-job-queue");
     expect(deleted).not.toContain("gg-drafts");

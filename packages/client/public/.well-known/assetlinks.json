@@ -3,7 +3,14 @@
     "relation": ["delegate_permission/common.query_webapk"],
     "target": {
       "namespace": "web",
-      "site": "https://www.greengoods.app"
+      "site": "https://www.greengoods.app/manifest.webmanifest"
+    }
+  },
+  {
+    "relation": ["delegate_permission/common.query_webapk"],
+    "target": {
+      "namespace": "web",
+      "site": "https://beta.greengoods.app/manifest.webmanifest"
     }
   }
 ]

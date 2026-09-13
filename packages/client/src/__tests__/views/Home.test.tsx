@@ -236,8 +236,8 @@ describe("Home View", () => {
     expect(screen.getByRole("article")).toBeInTheDocument();
   });
 
-  it("displays home title", () => {
-    renderWithProviders();
+  it.each(["/home", "/home/"])("displays Home at the compatible entry %s", (entry) => {
+    renderWithProviders(entry);
 
     expect(screen.getByText("Home")).toBeInTheDocument();
   });

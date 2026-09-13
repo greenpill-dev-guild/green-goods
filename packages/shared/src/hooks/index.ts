@@ -586,7 +586,6 @@ export {
   useQueueStatistics,
   useWorks,
 } from "./work/useWorks";
-// YIELD
 export { useAllocateYield } from "./yield/useAllocateYield";
 export {
   type GardenYieldSummary,
@@ -602,3 +601,4 @@ export {
 } from "./yield/useProtocolYieldSummary";
 export { useSplitConfig } from "./yield/useSplitConfig";
 export { useYieldAllocations } from "./yield/useYieldAllocations";
+export * from "./offline/useOfflineContent";

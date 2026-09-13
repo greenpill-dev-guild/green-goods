@@ -304,7 +304,7 @@ export default defineConfig(async ({ command, mode }): Promise<UserConfig> => {
     createPwaShellAssetsPlugin(),
     createChainImportsPlugin(),
     VitePWA({
-      includeAssets: pwaBranding.includeAssets,
+      includeAssets: [...pwaBranding.includeAssets, "images/avatar.png"],
       injectRegister: false,
       registerType: "prompt",
       workbox: {
@@ -357,7 +357,13 @@ export default defineConfig(async ({ command, mode }): Promise<UserConfig> => {
         importScripts: ["sw-custom.js"],
         runtimeCaching: [
           {
-            urlPattern: /.*\.(png|jpg|jpeg|svg|gif|webp)$/,
+            urlPattern: ({ url }) => url.pathname === "/connectivity-check.txt",
+            handler: "NetworkOnly",
+          },
+          {
+            // Destination covers extensionless avatars, query variants and IPFS subdomains.
+            urlPattern: ({ request, url, sameOrigin }) =>
+              request.destination === "image" && (url.protocol === "https:" || sameOrigin),
             handler: "CacheFirst",
             options: {
               cacheName: "image-cache",

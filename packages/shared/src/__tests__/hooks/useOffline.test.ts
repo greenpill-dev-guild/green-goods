@@ -7,7 +7,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { createElement, type ReactNode } from "react";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 // Mock dependencies - use vi.hoisted to ensure mocks are available at hoist time
 const { mockFlush, mockJobQueueEventBus } = vi.hoisted(() => ({
@@ -30,7 +30,10 @@ vi.mock("../../hooks/work/usePendingWorksCount", () => ({
   usePendingWorksCount: () => ({ data: 0 }),
 }));
 
-import { useOffline } from "../../hooks/app/useOffline";
+let useOffline: typeof import("../../hooks/app/useOffline")["useOffline"];
+beforeAll(async () => {
+  ({ useOffline } = await import("../../hooks/app/useOffline"));
+});
 
 describe("hooks/app/useOffline", () => {
   let queryClient: QueryClient;
@@ -54,6 +57,7 @@ describe("hooks/app/useOffline", () => {
       value: true,
       writable: true,
     });
+    window.dispatchEvent(new Event("online"));
   });
 
   afterEach(() => {
@@ -72,6 +76,7 @@ describe("hooks/app/useOffline", () => {
 
     it("returns offline when navigator.onLine is false", () => {
       Object.defineProperty(navigator, "onLine", { value: false });
+      window.dispatchEvent(new Event("offline"));
 
       const { result } = renderHook(() => useOffline(), {
         wrapper: createWrapper(),
@@ -92,6 +97,7 @@ describe("hooks/app/useOffline", () => {
       act(() => {
         Object.defineProperty(navigator, "onLine", { value: false });
         window.dispatchEvent(new Event("offline"));
+        window.dispatchEvent(new Event("offline"));
       });
 
       await waitFor(() => {
@@ -101,6 +107,7 @@ describe("hooks/app/useOffline", () => {
 
     it("updates to online when online event fires", async () => {
       Object.defineProperty(navigator, "onLine", { value: false });
+      window.dispatchEvent(new Event("offline"));
 
       const { result } = renderHook(() => useOffline(), {
         wrapper: createWrapper(),
@@ -123,6 +130,7 @@ describe("hooks/app/useOffline", () => {
   describe("sync status", () => {
     it("sets sync status to syncing when coming online", async () => {
       Object.defineProperty(navigator, "onLine", { value: false });
+      window.dispatchEvent(new Event("offline"));
 
       const { result } = renderHook(() => useOffline(), {
         wrapper: createWrapper(),

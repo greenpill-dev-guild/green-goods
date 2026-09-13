@@ -1513,8 +1513,14 @@
       "area": "Install",
       "scenario": "[Android] Fresh Android install launches standalone",
       "preconditions": ["Android device available; app not installed or removed"],
-      "steps": ["Open site in Chrome", "Install app", "Launch from icon"],
-      "expected": "Standalone PWA opens and bottom AppBar is present",
+      "steps": [
+        "Open the website in Android Chrome and install the app",
+        "Return to the website and tap Open App",
+        "Repeat with an existing installation and a public garden or work link",
+        "Remove the app and try the remembered Open App action",
+        "Reload the fallback page"
+      ],
+      "expected": "Open App launches the standalone app at the intended destination with its bottom AppBar. If Android cannot open it, the editorial page remains usable and shows the apps guidance toast once; reloading does not repeat the toast. Launching from the app icon also works.",
       "evidence": "Screen recording",
       "role": "any",
       "tags": ["install", "presentation"],
@@ -1705,23 +1711,24 @@
     {
       "id": "PWA-067",
       "tab": "PWA",
-      "platform": "Desktop Browser (PWA shell)",
+      "platform": "Android Chrome Installed PWA",
       "priority": "P1",
       "kind": "resilience",
       "area": "Home",
-      "scenario": "Pull to refresh the garden list online, then read the paused notice offline",
+      "scenario": "Native page refresh works in Android Chrome and the installed app",
       "preconditions": [
-        "Authenticated session",
-        "A touch screen, or the DevTools device toolbar with touch emulation: pull to refresh listens to touch only",
-        "DevTools network panel to toggle offline"
+        "Android device with Chrome and an installed Green Goods app",
+        "A saved work draft for recovery verification"
       ],
       "steps": [
-        "On Home, pull the garden list down to refresh while online",
-        "Toggle the network offline and pull again",
-        "Reconnect and pull once more"
+        "Pull down at the top of short and long editorial pages in Chrome",
+        "Repeat on Home, a garden page, and Profile in the installed app",
+        "Open a sheet, try the gesture, close it, and try again; repeat with nested sheets",
+        "Verify the work dashboard blocks the gesture and retains its Refresh control",
+        "Reload offline, reconnect, and confirm the saved draft remains available"
       ],
-      "expected": "Online, the pull shows the refresh indicator and reloads the list; offline, Home shows 'Offline. Pull to refresh is paused until you reconnect.' and the pull does nothing; after reconnecting the pull refreshes again",
-      "evidence": "Screenshots of the online refresh and the offline notice",
+      "expected": "Ordinary pages use Chrome's native refresh without a custom pull indicator or paused-pull notice. Sheets block refresh through their closing animation; it works again after the final sheet closes. Page position is restored after closing overlays, and saved drafts survive reloads.",
+      "evidence": "Android screen recording covering browser and installed app; desktop emulation is insufficient",
       "role": "gardener",
       "tags": ["home", "offline"],
       "requiresProduction": false,
@@ -3519,6 +3526,33 @@
       "requiresProduction": false,
       "status": "active",
       "source": "prd-888"
+    },
+    {
+      "id": "PWA-107",
+      "tab": "PWA",
+      "platform": "Desktop Browser (PWA shell)",
+      "priority": "P2",
+      "kind": "content",
+      "area": "Profile",
+      "scenario": "Profile passkey note reads plainly and names the sign-in link a second device shows",
+      "preconditions": [
+        "Passkey session on a profile whose stored username is set",
+        "Build under test has the passkey server lookup enabled",
+        "A second browser or device with no passkey saved for this site"
+      ],
+      "steps": [
+        "Open Profile on a passkey session and read the note under the account cards",
+        "Confirm it shows the gardener's own username and states the Apple or Google account condition",
+        "Open the sign-in screen in the second browser and confirm the link the note names is there with that exact label",
+        "Repeat in Spanish and Portuguese, then on the installed Android app"
+      ],
+      "expected": "The note is two plain sentences with no provider, sync, local-only, or lookup wording; the link it names appears with that exact label on a sign-in screen with no saved passkey; it renders as quiet helper text rather than a warning panel; Spanish and Portuguese carry the same meaning and name the same link in their own language",
+      "evidence": "Profile screenshots in all three locales beside the second browser's sign-in screen",
+      "role": "gardener",
+      "tags": ["profile", "passkey", "recovery", "copy"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "prd-919"
     },
     {
       "id": "PWA-023",

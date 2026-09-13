@@ -1,9 +1,10 @@
 import type { DehydratedState, Query } from "@tanstack/react-query";
 import { createStore, del as idbDel, get as idbGet, set as idbSet } from "idb-keyval";
 import { debugWarn } from "../utils/debug";
-import { QUERY_CACHE_SCHEMA_VERSION } from "./query-cache-policy";
+import { PERSIST_MAX_AGE, QUERY_CACHE_SCHEMA_VERSION } from "./query-cache-policy";
 
 export { PERSIST_MAX_AGE, QUERY_CACHE_SCHEMA_VERSION } from "./query-cache-policy";
+export { isDurableWorkRead, restoreDurableWorkQuery } from "./query-persistence-work";
 
 const QUERY_PERSISTENCE_KEY = "__rq_pc__";
 
@@ -13,6 +14,13 @@ export interface CreateQueryPersisterOptions {
   storage?: Storage;
   /** Client-only transition from deploy-keyed snapshots to schema version 1. */
   migrateLegacyBuster?: boolean;
+  /** Installed client only: verified prepared reads have no age expiry. */
+  preservePreparedContent?: boolean;
+  onPersistenceError?: () => void;
+  shouldRestoreQuery?: (query: DehydratedState["queries"][number]) => boolean;
+  transformRestoredQuery?: (
+    query: DehydratedState["queries"][number]
+  ) => DehydratedState["queries"][number];
 }
 
 export interface CreateShouldDehydrateQueryOptions {
@@ -30,6 +38,8 @@ export interface PersistedClient {
 
 export interface QueryPersister {
   persistClient: (client: PersistedClient) => MaybePromise<void>;
+  /** Strict write acknowledgement for download coverage, never inferred from memory. */
+  persistClientVerified?: (client: PersistedClient) => Promise<void>;
   restoreClient: () => MaybePromise<PersistedClient | undefined>;
   removeClient: () => MaybePromise<void>;
 }
@@ -46,10 +56,19 @@ function createIDBPersister({
   if (typeof indexedDB === "undefined" || !indexedDB) return undefined;
   try {
     const store = createStore(dbName, storeName);
+    let writing = Promise.resolve();
+    const write = (client: PersistedClient) => {
+      const operation = writing.then(() => idbSet(QUERY_PERSISTENCE_KEY, client, store));
+      writing = operation.catch(() => {});
+      return operation;
+    };
     return {
+      persistClientVerified: async (client: PersistedClient) => {
+        await write(client);
+      },
       persistClient: async (client: PersistedClient) => {
         try {
-          await idbSet(QUERY_PERSISTENCE_KEY, client, store);
+          await write(client);
         } catch (error) {
           debugWarn("[Persister] Failed to persist client to IndexedDB:", { error });
         }
@@ -90,6 +109,10 @@ function createIDBPersister({
 
 function createStoragePersister(storage?: Storage): QueryPersister {
   return {
+    persistClientVerified: async (client: PersistedClient) => {
+      if (!storage) throw new Error("Reading cache is unavailable");
+      storage.setItem(QUERY_PERSISTENCE_KEY, JSON.stringify(client));
+    },
     persistClient: async (client: PersistedClient) => {
       if (!storage) return;
       try {
@@ -149,14 +172,56 @@ export function createQueryPersister(options: CreateQueryPersisterOptions): Quer
   try {
     const storage = "storage" in options ? options.storage : resolveDefaultStorage();
     const persister = createIDBPersister({ dbName, storeName }) ?? createStoragePersister(storage);
-    if (!options.migrateLegacyBuster) return persister;
     return {
       ...persister,
+      persistClient: async (client) => {
+        try {
+          await persister.persistClientVerified!(client);
+        } catch (error) {
+          options.onPersistenceError?.();
+          debugWarn("[Persister] Reading cache write failed", { error });
+        }
+      },
       restoreClient: async () => {
-        const client = await persister.restoreClient();
+        let client = await persister.restoreClient();
+        if (client && options.shouldRestoreQuery) {
+          client = {
+            ...client,
+            clientState: {
+              ...client.clientState,
+              queries: client.clientState.queries.filter(options.shouldRestoreQuery),
+            },
+          };
+        }
+        if (client && options.transformRestoredQuery) {
+          client = {
+            ...client,
+            clientState: {
+              ...client.clientState,
+              queries: client.clientState.queries.map(options.transformRestoredQuery),
+            },
+          };
+        }
+        if (
+          client &&
+          options.preservePreparedContent &&
+          Date.now() - client.timestamp > PERSIST_MAX_AGE
+        ) {
+          client = {
+            ...client,
+            clientState: {
+              ...client.clientState,
+              queries: client.clientState.queries.filter(
+                (query) => query.meta?.offlinePrepared === true
+              ),
+              mutations: [],
+            },
+          };
+        }
         // No read shapes changed in schema 1. Recognize the old commit/dev
         // busters only; future schema versions must still invalidate normally.
         if (
+          options.migrateLegacyBuster &&
           QUERY_CACHE_SCHEMA_VERSION === "1" &&
           client &&
           /^(?:dev|[a-f0-9]{7,40})$/i.test(client.buster) &&

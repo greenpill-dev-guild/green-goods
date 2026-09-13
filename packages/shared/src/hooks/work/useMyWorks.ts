@@ -6,7 +6,8 @@
  * @module hooks/work/useMyWorks
  */
 
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMemo, useSyncExternalStore } from "react";
+import { useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
 import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
 import { getWorksByGardener } from "../../modules/data/eas";
 import { filterByTimeRange, sortByCreatedAt, type TimeFilter } from "../../utils/time";
@@ -14,7 +15,12 @@ import { deduplicateById, mergeAndDeduplicateByClientId } from "../../utils/work
 import { fetchOfflineWorks } from "../../utils/work/offline";
 import { useUser } from "../auth/useUser";
 import { worksKeys } from "../../config/query-keys/work";
+import { useJobQueueEvents } from "../../modules/job-queue/event-bus";
+import { useQueuedWorkPreviews } from "./useQueuedWorkPreviews";
+import { useSendingWorkIds } from "./useSendingWorkIds";
+import { useOnlineStatus } from "../app/useOnlineStatus";
 import type { Work } from "../../types/domain";
+import type { EASWorkApproval } from "../../types/eas-responses";
 
 export interface UseMyWorksOptions {
   /**
@@ -71,66 +77,162 @@ export function useMyWorks(options: UseMyWorksOptions = {}) {
   const { user } = useUser();
   const activeAddress = user?.id;
   const queryClient = useQueryClient();
-  const queryKey = worksKeys.mine(activeAddress, chainId, includeOffline, timeFilter, limit);
+  const queryKey = worksKeys.mine(activeAddress, chainId, false, timeFilter, limit);
 
-  return useQuery({
+  const isOnline = useOnlineStatus();
+  const sendingJobs = useSendingWorkIds(activeAddress, chainId);
+  const online = useQuery({
     queryKey,
     queryFn: async () => {
       if (!activeAddress) return [];
-
-      // Fetch online works. In offline-inclusive mode, keep local queued work
-      // visible even when the indexer or network is unavailable.
-      let onlineWorksRaw: Awaited<ReturnType<typeof getWorksByGardener>>;
-      let onlineError: unknown;
-      try {
-        onlineWorksRaw = await getWorksByGardener(activeAddress, chainId);
-      } catch (error) {
-        if (!includeOffline) {
-          throw error;
-        }
-        onlineError = error;
-        onlineWorksRaw = [];
-      }
-
-      // Deduplicate online works
-      let works: Work[] = deduplicateById(onlineWorksRaw).map((work) => ({
-        ...work,
-        status: "pending",
-      }));
-      if (onlineError) {
-        // Keep submitted reads on failed refreshes. Local jobs are rebuilt below,
-        // so deleting a queued draft cannot leave a ghost in the cached list.
-        works = (queryClient.getQueryData<Work[]>(queryKey) ?? []).filter(
-          (work) => work.status !== "syncing" && work.status !== "sync_failed"
-        );
-      }
-
-      // Merge offline works if requested
-      if (includeOffline) {
-        const offlineWorks = await fetchOfflineWorks(activeAddress);
-        if (
-          onlineError &&
-          offlineWorks.length === 0 &&
-          works.length === 0 &&
-          queryClient.getQueryData(queryKey) === undefined
-        ) {
-          throw onlineError;
-        }
-        works = mergeAndDeduplicateByClientId(works, offlineWorks);
-      }
-
-      // Filter by time if specified
-      if (timeFilter) {
-        works = filterByTimeRange(works, timeFilter);
-      }
-
-      // Sort and limit
-      const sorted = sortByCreatedAt(works);
-      return sorted.slice(0, limit);
+      const rows = await getWorksByGardener(activeAddress, chainId);
+      return deduplicateById(rows).map((work) => ({ ...work, status: "pending" as const }));
     },
     enabled: !!activeAddress,
-    staleTime: includeOffline ? 10_000 : 30_000, // Faster refresh when including offline
+    networkMode: "online",
+    staleTime: includeOffline ? 10_000 : 30_000,
   });
+  const localKey = worksKeys.offline("mine", chainId, activeAddress);
+  const local = useQuery({
+    queryKey: localKey,
+    queryFn: () =>
+      activeAddress
+        ? fetchOfflineWorks(activeAddress, undefined, chainId, { includeMedia: false })
+        : Promise.resolve([]),
+    enabled: includeOffline && !!activeAddress,
+    networkMode: "always",
+    staleTime: 10_000,
+  });
+  useJobQueueEvents(
+    ["job:added", "job:completed", "job:failed", "queue:sync-completed"],
+    (event) => {
+      if (!includeOffline) return;
+      void queryClient.invalidateQueries({ queryKey: localKey });
+      if (event === "job:completed") void queryClient.invalidateQueries({ queryKey });
+    }
+  );
+  const queuedPreviews = useQueuedWorkPreviews(includeOffline ? (local.data ?? []) : []);
+  // Prepared garden rows live in the same query store. Reading this projection
+  // does not require having opened the personal dashboard before going offline.
+  const cache = queryClient.getQueryCache();
+  const preparedVersion = useSyncExternalStore(
+    (notify) =>
+      cache.subscribe((event) => {
+        if (["preparedRecent", "preparedApprovals"].includes(String(event.query.queryKey[2])))
+          notify();
+      }),
+    () =>
+      cache
+        .findAll({ queryKey: worksKeys.all })
+        .filter((query) =>
+          ["preparedRecent", "preparedApprovals"].includes(String(query.queryKey[2]))
+        )
+        .map((query) => `${query.queryHash}:${query.state.dataUpdateCount}`)
+        .join("|"),
+    () => ""
+  );
+  const prepared = useMemo(() => {
+    if (!preparedVersion) return { rows: [] as Work[], updatedAt: undefined };
+    const queries =
+      includeOffline && activeAddress
+        ? cache
+            .findAll({ queryKey: worksKeys.preparedRecentAll })
+            .filter((query) => query.queryKey[4] === chainId)
+        : [];
+    const rows = queries.flatMap((query) => {
+      const approvals = queryClient.getQueryData<EASWorkApproval[]>(
+        worksKeys.preparedApprovals(String(query.queryKey[3]), chainId)
+      );
+      const known = new Map(approvals?.map((approval) => [approval.workUID, approval]));
+      return ((query.state.data as Work[] | undefined) ?? [])
+        .filter((work) => work.gardenerAddress.toLowerCase() === activeAddress?.toLowerCase())
+        .map((work) => ({
+          ...work,
+          status: known.has(work.id)
+            ? known.get(work.id)!.approved
+              ? ("approved" as const)
+              : ("rejected" as const)
+            : (work.status ?? ("pending" as const)),
+        }));
+    });
+    const updated = queries.map((query) => query.state.dataUpdatedAt).filter(Boolean);
+    return { rows, updatedAt: updated.length ? Math.min(...updated) : undefined };
+  }, [cache, preparedVersion, includeOffline, activeAddress, chainId, queryClient]);
+  const preparedWorks = prepared.rows;
+  const metadataQueries = useQueries({
+    queries: (online.data ?? preparedWorks).map((work) => ({
+      queryKey: worksKeys.metadata(work.metadata.trim()),
+      enabled: false,
+    })),
+  });
+  const works = useMemo(() => {
+    const metadataByKey = new Map(
+      (online.data ?? preparedWorks).map((work, index) => [
+        work.metadata.trim(),
+        metadataQueries[index]?.data,
+      ])
+    );
+    const remote = deduplicateById((online.data ?? preparedWorks) as Work[])
+      .filter(
+        (work) =>
+          !["syncing", "sync_failed", "offline", "uploading"].includes(work.status) &&
+          !work.id.startsWith("0xoffline_")
+      )
+      .map((work) => {
+        const metadata = metadataByKey.get(work.metadata.trim());
+        return metadata ? { ...work, metadata: JSON.stringify(metadata) } : work;
+      });
+    const localRows = (local.data ?? []).map((record) => {
+      const work = queuedPreviews.has(record.id)
+        ? { ...record, media: queuedPreviews.get(record.id)! }
+        : record;
+      return isOnline && sendingJobs.has(work.id) && work.status === "offline"
+        ? {
+            ...work,
+            status: "uploading" as const,
+            metadata: JSON.stringify({ ...JSON.parse(work.metadata), submissionState: "sending" }),
+          }
+        : work;
+    });
+    let rows: Work[] = includeOffline ? mergeAndDeduplicateByClientId(remote, localRows) : remote;
+    if (timeFilter) rows = filterByTimeRange(rows, timeFilter);
+    return sortByCreatedAt(rows).slice(0, limit);
+  }, [
+    online.data,
+    preparedWorks,
+    queuedPreviews,
+    local.data,
+    includeOffline,
+    timeFilter,
+    limit,
+    metadataQueries,
+    sendingJobs,
+    isOnline,
+  ]);
+  const hasRows = works.length > 0;
+  return {
+    ...online,
+    data: works,
+    isSuccess: online.isSuccess || hasRows,
+    isError: online.isError && !hasRows,
+    isLoading: isOnline && online.isLoading && !hasRows,
+    isFetching: isOnline && online.isFetching,
+    isPaused: !isOnline || online.isPaused,
+    availability:
+      online.data !== undefined
+        ? hasRows
+          ? "available"
+          : "empty"
+        : hasRows
+          ? "partial"
+          : "unavailable",
+    lastSuccessfulRefresh: online.dataUpdatedAt || prepared.updatedAt,
+    refreshWarning: online.isError && hasRows,
+    refetch: async () => {
+      if (includeOffline) await local.refetch();
+      return isOnline ? online.refetch() : online;
+    },
+  };
 }
 
 /**

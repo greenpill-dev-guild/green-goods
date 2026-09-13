@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { createPwaRoutingConfig } from "../../config/pwaRouting";
 
@@ -30,4 +31,12 @@ describe("PWA routing config", () => {
     expect(relatedApplicationManifestUrl).toBe("./manifest.webmanifest");
     expect(new URL(relatedApplicationManifestUrl, manifestUrl).href).toBe(manifestUrl);
   });
+});
+
+it("allows the supported editorial origins to query the installed WebAPK by manifest URL", () => {
+  const associations = JSON.parse(readFileSync("public/.well-known/assetlinks.json", "utf8"));
+  expect(associations.map((entry: { target: { site: string } }) => entry.target.site)).toEqual([
+    "https://www.greengoods.app/manifest.webmanifest",
+    "https://beta.greengoods.app/manifest.webmanifest",
+  ]);
 });

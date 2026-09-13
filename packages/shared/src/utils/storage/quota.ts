@@ -61,7 +61,7 @@ const QUOTA_CLEANUP_THRESHOLD = 80;
 const QUOTA_CLEANUP_TARGET = 65;
 const REFETCHABLE_CACHE_GROUPS = [
   ["indexer-cache", "graphql-cache"],
-  ["image-cache"],
+  ["image-cache", "gg-image-cache-meta"],
   ["ipfs-cache"],
 ] as const;
 
@@ -128,7 +128,15 @@ async function clearExpiredPersistedQueryStorage(): Promise<boolean> {
     const persister = createQueryPersister({ dbName: "gg-react-query", storeName: "rq" });
     const persisted = await persister.restoreClient();
     if (!persisted || !isPersistedQueryClientExpired(persisted)) return false;
-    await persister.removeClient();
+    const prepared = persisted.clientState.queries.filter(
+      (query) => query.meta?.offlinePrepared === true
+    );
+    if (prepared.length) {
+      await persister.persistClientVerified?.({
+        ...persisted,
+        clientState: { ...persisted.clientState, queries: prepared, mutations: [] },
+      });
+    } else await persister.removeClient();
     return true;
   } catch {
     return false;
@@ -147,6 +155,24 @@ export async function cleanupRefetchableStorage(
   };
   if (!force && before.percentUsed < QUOTA_CLEANUP_THRESHOLD) return result;
 
+  // Managed downloads evict individual browsing owners. Work drafts, job media,
+  // completion identities and the active profile live outside this cleanup.
+  try {
+    const [{ evictPreparedContent, getOfflineContentSnapshot, readingBytes }, { queryClient }] =
+      await Promise.all([
+        import("../../modules/offline-content/store"),
+        import("../../config/react-query"),
+      ]);
+    const reclaim = Math.max(0, before.used - (before.quota * QUOTA_CLEANUP_TARGET) / 100);
+    if (reclaim > 0)
+      await evictPreparedContent(
+        queryClient,
+        0,
+        Math.max(0, readingBytes(getOfflineContentSnapshot()) - reclaim)
+      );
+  } catch {
+    /* Unavailable reading storage must not block saving work. */
+  }
   result.clearedPersistedQueries = await clearExpiredPersistedQueryStorage();
   let cleanupTargetReached = false;
   if (result.clearedPersistedQueries) {

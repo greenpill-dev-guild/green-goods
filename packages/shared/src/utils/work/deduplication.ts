@@ -25,7 +25,9 @@ export function extractClientWorkId(metadata?: string | null): string | null {
   if (!metadata) return null;
   try {
     const parsed = JSON.parse(metadata);
-    return parsed.clientWorkId || null;
+    return typeof parsed?.clientWorkId === "string" && parsed.clientWorkId.length > 0
+      ? parsed.clientWorkId
+      : null;
   } catch {
     return null;
   }
@@ -41,19 +43,27 @@ export function extractClientWorkId(metadata?: string | null): string | null {
  * @param offlineWorks - Pending local works from job queue
  * @returns Merged and deduplicated work array, sorted by creation time (newest first)
  */
-export function mergeAndDeduplicateByClientId<T extends { metadata?: string; createdAt: number }>(
-  onlineWorks: T[],
-  offlineWorks: T[]
-): T[] {
-  // Build set of clientWorkIds from online works
-  const onlineClientIds = new Set(
-    onlineWorks.map((w) => extractClientWorkId(w.metadata)).filter(Boolean)
-  );
+export function mergeAndDeduplicateByClientId<
+  T extends {
+    metadata?: string;
+    createdAt: number;
+    gardenerAddress?: string;
+    gardenAddress?: string;
+  },
+>(onlineWorks: T[], offlineWorks: T[]): T[] {
+  const identity = (work: T) => {
+    const clientWorkId = extractClientWorkId(work.metadata);
+    return clientWorkId
+      ? `${work.gardenAddress?.toLowerCase() ?? ""}:${work.gardenerAddress?.toLowerCase() ?? ""}:${clientWorkId}`
+      : null;
+  };
+  // Build set of scoped identities from online works
+  const onlineClientIds = new Set(onlineWorks.map(identity).filter(Boolean));
 
   // Filter out offline works that have been uploaded (matching clientWorkId)
   const dedupedOffline = offlineWorks.filter((work) => {
-    const clientWorkId = extractClientWorkId(work.metadata);
-    return !clientWorkId || !onlineClientIds.has(clientWorkId);
+    const key = identity(work);
+    return !key || !onlineClientIds.has(key);
   });
 
   // Merge and sort by creation time (newest first)

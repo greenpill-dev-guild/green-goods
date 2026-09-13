@@ -75,6 +75,7 @@ type SmartAccountSendTransaction = SmartAccountClient["sendTransaction"];
 
 export type FakeSmartAccountClient = SmartAccountClient & {
   sendTransaction: ReturnType<typeof vi.fn<SmartAccountSendTransaction>>;
+  sendUserOperation: ReturnType<typeof vi.fn<SmartAccountClient["sendUserOperation"]>>;
 };
 
 export interface FakeSmartAccountClientOptions {
@@ -101,9 +102,21 @@ export function createFakeSmartAccountClient(
     account: { address: accountAddress } as NonNullable<SmartAccountClient["account"]>,
     chain,
     sendTransaction,
+    sendUserOperation: vi.fn(async () => {
+      if (fail !== undefined) throw fail;
+      return result;
+    }),
+    waitForUserOperationReceipt: vi.fn(async ({ hash }: { hash: Hex }) => ({
+      success: true,
+      receipt: { status: "success", transactionHash: hash },
+    })),
+    getUserOperationReceipt: vi.fn(async ({ hash }: { hash: Hex }) => ({
+      success: true,
+      receipt: { status: "success", transactionHash: hash },
+    })),
   };
 
-  return client as FakeSmartAccountClient;
+  return client as unknown as FakeSmartAccountClient;
 }
 
 type WalletWriteContract = ConstructorParameters<typeof WalletSender>[1];

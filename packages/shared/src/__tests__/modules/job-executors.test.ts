@@ -813,7 +813,7 @@ describe("job executor registry", () => {
 });
 
 it("queued known transaction must be reconciled before another send", async () => {
-  const sender = createMockTransactionSender();
+  const sender = createMockTransactionSender({ authMode: "wallet" });
   const work = job<WorkJobPayload>("work", {
     actionUID: 3,
     gardenAddress: GARDEN,
@@ -837,7 +837,7 @@ it("rechecks after a sender timeout without uploading or sending again", async (
     { actionUID: 3, gardenAddress: GARDEN, feedback: "Done" },
     { id: "timeout-confirmation" }
   );
-  const sender = createMockTransactionSender();
+  const sender = createMockTransactionSender({ authMode: "wallet" });
   vi.mocked(sender.sendContractCall).mockImplementation(async (_call, options) => {
     await options?.onBroadcast?.(HASH);
     throw new Error("receipt timeout");
@@ -867,7 +867,7 @@ it("keeps the broadcast in memory when writing its checkpoint fails", async () =
     { actionUID: 3, gardenAddress: GARDEN, feedback: "Done" },
     { id: "failed-broadcast-write" }
   );
-  const sender = createMockTransactionSender();
+  const sender = createMockTransactionSender({ authMode: "wallet" });
   const update = vi.spyOn(jobQueueDB, "updateJob").mockRejectedValueOnce(new Error("quota"));
   vi.mocked(sender.sendContractCall).mockImplementation(async (_call, options) => {
     await options?.onBroadcast?.(HASH);
@@ -897,7 +897,7 @@ it("surfaces a sender-confirmed revert as explicit retry without discarding medi
     { actionUID: 3, gardenAddress: GARDEN, feedback: "Done" },
     { id: "sender-reverted-work" }
   );
-  const sender = createMockTransactionSender();
+  const sender = createMockTransactionSender({ authMode: "wallet" });
   vi.mocked(sender.sendContractCall).mockImplementation(async (_call, options) => {
     await options?.onBroadcast?.(HASH);
     throw new TransactionRevertedError(HASH);
@@ -912,4 +912,100 @@ it("surfaces a sender-confirmed revert as explicit retry without discarding medi
   ).rejects.toThrow("work-transaction-reverted");
   expect(work.meta?.workTransactionReverted).toBe(true);
   expect(work.payload.uploadCheckpoint?.transactionHash).toBe(HASH);
+});
+
+it("reconciles a persisted UserOperation after restart without reading or uploading its evidence", async () => {
+  const operation = `0x${"ab".repeat(32)}` as const;
+  const work = job<WorkJobPayload>(
+    "work",
+    {
+      actionUID: 3,
+      gardenAddress: GARDEN,
+      feedback: "Done",
+      uploadCheckpoint: {
+        files: {},
+        submittedAt: "2026-09-12",
+        broadcast: { kind: "user-operation", hash: operation },
+      },
+    },
+    { id: crypto.randomUUID() }
+  );
+  const sender = createMockTransactionSender();
+  sender.reconcileBroadcast = vi
+    .fn()
+    .mockResolvedValueOnce({ status: "unresolved" })
+    .mockResolvedValueOnce({ status: "confirmed", transactionHash: HASH });
+  const images = vi.fn();
+  await expect(executeWorkJob(work.id, work, 11155111, sender, { images })).rejects.toThrow(
+    "awaiting-confirmation"
+  );
+  await expect(executeWorkJob(work.id, work, 11155111, sender, { images })).resolves.toBe(HASH);
+  expect(images).not.toHaveBeenCalled();
+  expect(sender.sendContractCall).not.toHaveBeenCalled();
+});
+it("keeps a proved failed UserOperation terminal until explicit Retry", async () => {
+  const operation = `0x${"ac".repeat(32)}` as const;
+  const work = job<WorkJobPayload>(
+    "work",
+    {
+      actionUID: 3,
+      gardenAddress: GARDEN,
+      feedback: "Done",
+      uploadCheckpoint: {
+        files: {},
+        submittedAt: "2026-09-12",
+        broadcast: { kind: "user-operation", hash: operation },
+      },
+    },
+    { id: crypto.randomUUID() }
+  );
+  const sender = createMockTransactionSender();
+  sender.reconcileBroadcast = vi.fn().mockResolvedValue({ status: "reverted" });
+  await expect(executeWorkJob(work.id, work, 11155111, sender)).rejects.toThrow(
+    "work-transaction-reverted"
+  );
+  expect(work.meta?.workTransactionReverted).toBe(true);
+  expect(work.payload.uploadCheckpoint?.broadcast).toEqual({
+    kind: "user-operation",
+    hash: operation,
+  });
+  expect(sender.sendContractCall).not.toHaveBeenCalled();
+});
+
+it("retains the operation identity in memory when its durable checkpoint write fails", async () => {
+  const operation = `0x${"bc".repeat(32)}` as const;
+  const work = job<WorkJobPayload>(
+    "work",
+    { actionUID: 3, gardenAddress: GARDEN, feedback: "Done" },
+    { id: crypto.randomUUID() }
+  );
+  const sender = createMockTransactionSender();
+  const update = vi.spyOn(jobQueueDB, "updateJob").mockRejectedValueOnce(new Error("quota"));
+  vi.mocked(sender.sendContractCall).mockImplementation(async (_call, options) => {
+    await options?.onBroadcastReference?.({ kind: "user-operation", hash: operation });
+    return { hash: HASH, sponsored: true };
+  });
+  sender.reconcileBroadcast = vi
+    .fn()
+    .mockResolvedValue({ status: "confirmed", transactionHash: HASH });
+  const deps = {
+    images: vi.fn().mockResolvedValue([]),
+    simulate: vi.fn().mockResolvedValue(undefined),
+    encodeWork: vi.fn().mockResolvedValue(HASH),
+    easConfig: EAS_CONFIG,
+  };
+  try {
+    await expect(executeWorkJob(work.id, work, 11155111, sender, deps)).rejects.toThrow(
+      "awaiting-confirmation"
+    );
+    delete work.payload.uploadCheckpoint;
+    await expect(executeWorkJob(work.id, work, 11155111, sender, deps)).resolves.toBe(HASH);
+    expect(sender.reconcileBroadcast).toHaveBeenCalledWith({
+      kind: "user-operation",
+      hash: operation,
+    });
+    expect(sender.sendContractCall).toHaveBeenCalledTimes(1);
+  } finally {
+    update.mockRestore();
+  }
 });

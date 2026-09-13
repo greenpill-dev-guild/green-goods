@@ -107,13 +107,8 @@ export const Garden: React.FC = () => {
       : "pending";
   const { data: allGardeners = [] } = useGardeners();
   const { data: actions = [] } = useActions(chainId);
-  const {
-    works: mergedWorks,
-    isLoading: worksLoading,
-    isFetching: worksFetching,
-    isError: worksError,
-    refetch: refetchWorks,
-  } = useWorks(gardenIdParam || "", { offline: true });
+  const workRead = useWorks(gardenIdParam || "", { offline: true });
+  const { works: mergedWorks, isFetching: worksFetching, refetch: refetchWorks } = workRead;
   const members = useMemo<GardenMember[]>(() => {
     if (!garden) return [];
 
@@ -285,18 +280,14 @@ export const Garden: React.FC = () => {
   const renderTabContent = () => {
     switch (activeTab) {
       case GardenTab.Work: {
-        // Determine fetch status from actual hook states
-        const workFetchStatus: "pending" | "success" | "error" = worksError
-          ? "error"
-          : worksLoading
-            ? "pending"
-            : "success";
         return (
           <GardenWork
-            workFetchStatus={workFetchStatus}
             actions={actions}
             works={mergedWorks}
             isFetching={worksFetching}
+            readState={workRead}
+            gardenId={gardenIdParam}
+            chainId={chainId}
             onRefresh={refetchWorks}
           />
         );

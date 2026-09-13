@@ -46,6 +46,8 @@ import {
   getWorkApprovals,
   getWorkApprovalsForWork,
   getWorks,
+  getRecentWorks,
+  getPreparedWorkApprovals,
   getWorksByGardener,
   parseWorkApprovalAttestation,
 } from "../../modules/data/eas";
@@ -402,5 +404,32 @@ describe("modules/data/eas", () => {
 
       expect(approval.gardenerAddress).toBe("0x9999999999999999999999999999999999999999");
     });
+  });
+});
+
+describe("bounded offline preparation reads", () => {
+  it("requests only the newest records in a deterministic server order", async () => {
+    mockQuery.mockResolvedValueOnce({ data: { attestations: [] } });
+    expect(await getRecentWorks("0xGarden", 50, 11155111, reader)).toEqual([]);
+    const [document, variables] = mockQuery.mock.calls.at(-1)!;
+    expect(String(document)).toContain("orderBy: [{ timeCreated: desc }, { id: desc }]");
+    expect(variables.take).toBe(50);
+    expect(variables.where.recipient.equals).toBe("0xGarden");
+  });
+});
+
+describe("prepared approval reads", () => {
+  it("bounds approval candidates to the selected works", async () => {
+    mockQuery.mockResolvedValueOnce({ data: { attestations: [] } });
+    expect(await getPreparedWorkApprovals(["0xwork1", "0xwork2"], 11155111, reader)).toEqual({
+      approvals: [],
+      truncated: false,
+    });
+    const [, variables] = mockQuery.mock.calls.at(-1)!;
+    expect(variables.take).toBe(250);
+    expect(variables.where.OR).toEqual([
+      { decodedDataJson: { contains: "0xwork1" } },
+      { decodedDataJson: { contains: "0xwork2" } },
+    ]);
   });
 });

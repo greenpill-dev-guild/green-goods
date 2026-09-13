@@ -1,6 +1,7 @@
 import { RiImageLine } from "@remixicon/react";
 import React, { useEffect, useRef, useState } from "react";
 import { getIPFSFallbackGateways } from "../../modules/data/ipfs/resolve";
+import { displayImageUrl } from "../../modules/offline-content/policy";
 import { cn } from "../../utils/styles/cn";
 
 /**
@@ -24,11 +25,7 @@ const resolvedUrlCache = new Map<string, string>();
  * Requests width=800 (good for 2x retina at typical banner sizes) and auto format
  * (Pinata serves WebP/AVIF based on browser Accept header).
  */
-function optimizeForDisplay(url: string): string {
-  if (!url.includes("mypinata.cloud/")) return url;
-  const separator = url.includes("?") ? "&" : "?";
-  return `${url}${separator}img-width=800&img-format=auto`;
-}
+const optimizeForDisplay = displayImageUrl;
 
 interface ImageRace {
   promise: Promise<string>;
@@ -226,8 +223,8 @@ export const ImageWithFallback: React.FC<ImageWithFallbackProps> = ({
   };
 
   const handleError = () => {
-    // For IPFS URLs, the parallel race handles gateway fallback
-    if (ipfsPath) return;
+    // A previously winning gateway can fail after an offline restart too.
+    if (ipfsPath) resolvedUrlCache.delete(ipfsPath);
     setHasError(true);
     setIsLoading(false);
     onErrorCallback?.();

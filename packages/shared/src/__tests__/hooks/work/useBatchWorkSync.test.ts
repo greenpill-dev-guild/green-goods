@@ -33,11 +33,22 @@ const mockGetJobsWithImages = vi.fn();
 vi.mock("../../../modules/job-queue/default-instance", () => ({
   jobQueue: {
     getJobsWithImages: (...args: unknown[]) => mockGetJobsWithImages(...args),
+    getJobs: async (...args: unknown[]) =>
+      (await mockGetJobsWithImages(...args)).map((entry: { job: unknown }) => entry.job),
   },
 }));
 
 vi.mock("../../../modules/job-queue/db", () => ({
   jobQueueDB: {
+    acquireExecutionClaim: vi.fn().mockResolvedValue(true),
+    renewExecutionClaim: vi.fn().mockResolvedValue(true),
+    releaseExecutionClaim: vi.fn().mockResolvedValue(undefined),
+    getImagesForJob: vi.fn(
+      async (id) =>
+        (await mockGetJobsWithImages()).find(
+          (entry: { job: { id: string } }) => entry.job.id === id
+        )?.images ?? []
+    ),
     getJob: vi.fn(
       async (id) =>
         (await mockGetJobsWithImages()).find(
@@ -632,7 +643,9 @@ describe("useBatchWorkSync", () => {
     const entries = [createMockPendingJob("write-a"), createMockPendingJob("write-b")];
     mockGetJobsWithImages.mockResolvedValue(entries);
     const wallet = await mockGetWalletClient();
-    vi.mocked(jobQueueDB.updateJobs).mockRejectedValueOnce(new Error("checkpoint failed"));
+    vi.mocked(jobQueueDB.updateJobs)
+      .mockResolvedValueOnce(undefined)
+      .mockRejectedValueOnce(new Error("checkpoint failed"));
     const { result } = renderHook(() => useBatchWorkSync(), {
       wrapper: createWrapper(queryClient),
     });
@@ -650,5 +663,49 @@ describe("useBatchWorkSync", () => {
     });
     expect(wallet.sendTransaction).toHaveBeenCalledTimes(1);
     expect(mockEncodeWorkData).toHaveBeenCalledTimes(2);
+  });
+  it("excludes terminally failed jobs when a healthy job triggers a batch", async () => {
+    const failed = createMockPendingJob("review-terminal");
+    failed.job.attempts = 5;
+    const healthy = createMockPendingJob("review-healthy");
+    mockGetJobsWithImages.mockResolvedValue([failed, healthy]);
+    const { result } = renderHook(() => useBatchWorkSync(), {
+      wrapper: createWrapper(queryClient),
+    });
+    await act(async () => {
+      await result.current.mutateAsync();
+    });
+    expect(mockEncodeWorkData).toHaveBeenCalledTimes(1);
+    expect(jobQueueDB.getImagesForJob).not.toHaveBeenCalledWith("review-terminal");
+    expect(jobQueueDB.markJobSynced).not.toHaveBeenCalledWith("review-terminal", expect.anything());
+  });
+  it("refuses to send an old account queue with a different wallet account", async () => {
+    mockGetJobsWithImages.mockResolvedValue([createMockPendingJob("review-account")]);
+    const wallet = await mockGetWalletClient();
+    wallet.account = { address: "0x2222222222222222222222222222222222222222" };
+    const { result } = renderHook(() => useBatchWorkSync(), {
+      wrapper: createWrapper(queryClient),
+    });
+    await act(async () => {
+      await result.current.mutateAsync().catch(() => undefined);
+    });
+    expect(wallet.sendTransaction).not.toHaveBeenCalled();
+  });
+
+  it("cancels when the wallet changes during the upload", async () => {
+    mockGetJobsWithImages.mockResolvedValue([createMockPendingJob("upload-owner")]);
+    const wallet = await mockGetWalletClient();
+    mockEncodeWorkData.mockImplementationOnce(async () => {
+      wallet.account = { address: "0x2222222222222222222222222222222222222222" };
+      return "0xencoded";
+    });
+    const { result } = renderHook(() => useBatchWorkSync(), {
+      wrapper: createWrapper(queryClient),
+    });
+    await act(async () => {
+      await expect(result.current.mutateAsync()).rejects.toThrow("submission-ownership-changed");
+    });
+    expect(wallet.sendTransaction).not.toHaveBeenCalled();
+    expect(jobQueueDB.deleteJob).not.toHaveBeenCalled();
   });
 });

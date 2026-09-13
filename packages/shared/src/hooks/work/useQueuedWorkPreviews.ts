@@ -3,7 +3,7 @@ import type { Job } from "../../types/job-queue";
 import { jobQueueDB } from "../../modules/job-queue/db";
 import { useWorkPreviewUrls } from "./useWorkImages";
 
-export function useQueuedWorkPreviews(jobs: Job[]) {
+export function useQueuedWorkPreviews(jobs: Array<Pick<Job, "id">>) {
   const [loaded, setLoaded] = useState<Array<{ jobId: string; file: File }>>([]);
   const jobIds = jobs.map((job) => job.id).join(":");
   const latestJobs = useRef(jobs);

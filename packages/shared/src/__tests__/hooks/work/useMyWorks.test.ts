@@ -24,6 +24,9 @@ vi.mock("../../../modules/data/eas", () => ({
 }));
 
 const mockFetchOfflineWorks = vi.fn();
+vi.mock("../../../hooks/work/useQueuedWorkPreviews", () => ({
+  useQueuedWorkPreviews: () => new Map(),
+}));
 vi.mock("../../../utils/work/offline", () => ({
   fetchOfflineWorks: (...args: unknown[]) => mockFetchOfflineWorks(...args),
 }));
@@ -97,6 +100,15 @@ describe("useMyWorks", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    mockDeduplicateById.mockImplementation((works) => works);
+    mockMergeAndDeduplicateByClientId.mockImplementation((online, offline) => [
+      ...online,
+      ...offline,
+    ]);
+    mockFilterByTimeRange.mockImplementation((works) => works);
+    mockSortByCreatedAt.mockImplementation((works) =>
+      [...works].sort((a, b) => b.createdAt - a.createdAt)
+    );
     queryClient = createQueryClient();
     mockUser = { id: MOCK_ADDRESSES.user, address: MOCK_ADDRESSES.user };
     mockGetWorksByGardener.mockResolvedValue([]);
@@ -217,8 +229,12 @@ describe("useMyWorks", () => {
         expect(result.current.isSuccess).toBe(true);
       });
 
-      expect(mockFetchOfflineWorks).toHaveBeenCalledWith(MOCK_ADDRESSES.user);
-      expect(mockMergeAndDeduplicateByClientId).toHaveBeenCalledWith(onlineWorks, offlineWorks);
+      expect(mockFetchOfflineWorks).toHaveBeenCalledWith(MOCK_ADDRESSES.user, undefined, 11155111, {
+        includeMedia: false,
+      });
+      await waitFor(() =>
+        expect(mockMergeAndDeduplicateByClientId).toHaveBeenCalledWith(onlineWorks, offlineWorks)
+      );
     });
 
     it("returns offline queued works when online fetch fails and includeOffline is true", async () => {
@@ -236,8 +252,12 @@ describe("useMyWorks", () => {
         expect(result.current.isSuccess).toBe(true);
       });
 
-      expect(mockFetchOfflineWorks).toHaveBeenCalledWith(MOCK_ADDRESSES.user);
-      expect(mockMergeAndDeduplicateByClientId).toHaveBeenCalledWith([], offlineWorks);
+      expect(mockFetchOfflineWorks).toHaveBeenCalledWith(MOCK_ADDRESSES.user, undefined, 11155111, {
+        includeMedia: false,
+      });
+      await waitFor(() =>
+        expect(mockMergeAndDeduplicateByClientId).toHaveBeenCalledWith([], offlineWorks)
+      );
       expect(result.current.data).toEqual(offlineWorks);
     });
   });
@@ -441,7 +461,9 @@ describe("useMyWorks", () => {
         expect(result.current.isError).toBe(true);
       });
 
-      expect(mockFetchOfflineWorks).toHaveBeenCalledWith(MOCK_ADDRESSES.user);
+      expect(mockFetchOfflineWorks).toHaveBeenCalledWith(MOCK_ADDRESSES.user, undefined, 11155111, {
+        includeMedia: false,
+      });
       expect(result.current.error?.message).toBe("Indexer unavailable");
     });
   });

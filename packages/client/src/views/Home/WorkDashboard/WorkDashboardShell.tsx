@@ -36,7 +36,7 @@ export const WorkDashboardShell: React.FC<WorkDashboardShellProps> = ({
   const intl = useIntl();
   const dialogRef = useRef<HTMLDivElement>(null);
 
-  useDocumentScrollLock(!isClosing);
+  useDocumentScrollLock(true);
   // Mounted only while the dashboard is open or playing its exit, so the
   // AppBar stays hidden until the sheet has left the screen (DL-015).
   useSheetPresence(true);

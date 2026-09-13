@@ -135,7 +135,7 @@ describe("AppSheet", () => {
 
     fireEvent.click(screen.getByTestId("app-sheet-close"));
     expect(onClose).not.toHaveBeenCalled();
-    expect(document.documentElement).not.toHaveClass("modal-open");
+    expect(document.documentElement).toHaveClass("modal-open");
 
     act(() => window.dispatchEvent(new Event("pagehide")));
 

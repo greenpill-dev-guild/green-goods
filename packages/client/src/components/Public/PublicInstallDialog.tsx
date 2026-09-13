@@ -1,3 +1,4 @@
+import { useDocumentScrollLock } from "@green-goods/shared/hooks/ui/useDocumentScrollLock";
 import * as Dialog from "@radix-ui/react-dialog";
 import type { InstallGuidance } from "@green-goods/shared/hooks/app/useInstallGuidance";
 import { cn } from "@green-goods/shared/utils/styles/cn";
@@ -6,12 +7,7 @@ import { QRCodeSVG } from "qrcode.react";
 import type { MouseEventHandler } from "react";
 import { type MessageDescriptor, useIntl } from "react-intl";
 
-export type PublicInstallDialogMode =
-  | "desktopQr"
-  | "mobileSteps"
-  | "braveLaunch"
-  | "braveInstall"
-  | "homeScreenLaunch";
+export type PublicInstallDialogMode = "desktopQr" | "mobileSteps" | "braveInstall";
 
 interface ModeCopy {
   kicker: MessageDescriptor;
@@ -40,18 +36,6 @@ const MODE_COPY: Record<PublicInstallDialogMode, ModeCopy> = {
         "Use your browser's install controls. If this browser cannot install apps, open this page in Safari or Chrome first.",
     },
   },
-  braveLaunch: {
-    kicker: { id: "public.installDialog.braveKicker", defaultMessage: "Open the app" },
-    title: {
-      id: "public.installDialog.braveTitle",
-      defaultMessage: "Open Green Goods from your home screen",
-    },
-    description: {
-      id: "public.installDialog.braveBody",
-      defaultMessage:
-        "Brave adds Green Goods as a home-screen app instead of launching it from this button. Tap the Green Goods icon on your home screen to open it.",
-    },
-  },
   braveInstall: {
     kicker: { id: "public.installDialog.braveInstallKicker", defaultMessage: "Install in Chrome" },
     title: {
@@ -62,19 +46,6 @@ const MODE_COPY: Record<PublicInstallDialogMode, ModeCopy> = {
       id: "public.installDialog.braveInstallBody",
       defaultMessage:
         "Brave saves Green Goods as a home-screen shortcut instead of installing the full app. Open this page in Chrome, then tap Install to add the full app.",
-    },
-  },
-  // An in-tab navigation cannot launch an installed Android app (PRD-904).
-  homeScreenLaunch: {
-    kicker: { id: "public.installDialog.homeScreenKicker", defaultMessage: "Installed app" },
-    title: {
-      id: "public.installDialog.homeScreenTitle",
-      defaultMessage: "Open Green Goods from your home screen",
-    },
-    description: {
-      id: "public.installDialog.homeScreenBody",
-      defaultMessage:
-        "This tab can't launch the installed app. Tap the Green Goods icon on your home screen to open it.",
     },
   },
 };
@@ -100,6 +71,12 @@ function hasMobilePrimaryAction(guidance: InstallGuidance): boolean {
   );
 }
 
+// Radix keeps Content mounted through its exit animation. Match that lifetime.
+function InstallDialogScrollLock() {
+  useDocumentScrollLock(true);
+  return null;
+}
+
 export function PublicInstallDialog({
   open,
   mode,
@@ -111,14 +88,11 @@ export function PublicInstallDialog({
 }: PublicInstallDialogProps) {
   const { formatMessage } = useIntl();
   const isDesktopQr = mode === "desktopQr";
-  // Both launch modes explain that the app opens from the home screen and offer
-  // the in-tab route as the fallback.
-  const isLaunchInstruction = mode === "braveLaunch" || mode === "homeScreenLaunch";
   const isBraveInstall = mode === "braveInstall";
   const copy = MODE_COPY[mode];
   const manualSteps = guidance.manualInstructions ?? [];
   const showMobilePrimaryAction =
-    !isDesktopQr && !isLaunchInstruction && !isBraveInstall && hasMobilePrimaryAction(guidance);
+    !isDesktopQr && !isBraveInstall && hasMobilePrimaryAction(guidance);
 
   return (
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
@@ -131,6 +105,7 @@ export function PublicInstallDialog({
             isDesktopQr ? "sm:max-w-[44rem]" : "sm:max-w-lg"
           )}
         >
+          <InstallDialogScrollLock />
           <div className="flex max-h-[calc(100vh-2rem)] flex-col overflow-y-auto p-5 sm:p-7">
             <header className="flex items-start justify-between gap-4">
               <div className="min-w-0">
@@ -227,18 +202,6 @@ export function PublicInstallDialog({
                     ))}
                   </ol>
                 </div>
-              </div>
-            ) : isLaunchInstruction ? (
-              <div className="mt-6">
-                <a
-                  href={launchUrl}
-                  className="inline-flex min-h-11 w-full cursor-pointer items-center justify-center rounded-full bg-primary-action px-5 py-3 text-sm font-semibold text-primary-action-foreground transition-colors hover:bg-primary-action-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-action focus-visible:ring-offset-2 sm:w-fit"
-                >
-                  {formatMessage({
-                    id: "public.installDialog.braveFallback",
-                    defaultMessage: "Open in This Tab Instead",
-                  })}
-                </a>
               </div>
             ) : isBraveInstall ? (
               chromeUrl ? (

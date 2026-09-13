@@ -13,16 +13,16 @@ import {
 describe("PWA routing manifest config", () => {
   it("builds launch URLs from the provided origin", () => {
     expect(createPwaLaunchUrl("https://staging.greengoods.app")).toBe(
-      "https://staging.greengoods.app/home"
+      "https://staging.greengoods.app/home/"
     );
     expect(createPwaLaunchUrl("https://www.greengoods.app")).toBe(
-      "https://www.greengoods.app/home"
+      "https://www.greengoods.app/home/"
     );
   });
 
   it("keeps the production launch URL as the fallback export", () => {
-    expect(PUBLIC_PWA_LAUNCH_URL).toBe(`${PUBLIC_PWA_ORIGIN}${APP_ROUTES.home}`);
-    expect(PUBLIC_PWA_LAUNCH_URL).toBe("https://www.greengoods.app/home");
+    expect(PUBLIC_PWA_LAUNCH_URL).toBe(`${PUBLIC_PWA_ORIGIN}/home/`);
+    expect(PUBLIC_PWA_LAUNCH_URL).toBe("https://www.greengoods.app/home/");
   });
 
   it("serves the dev service worker from the origin root, not relative to nested routes", () => {
@@ -37,7 +37,10 @@ describe("PWA routing manifest config", () => {
     expect(config.manifestId).toBe(PWA_MANIFEST_ID);
     expect(config.manifestScope).toBe(PWA_APP_SCOPE);
     expect(config.serviceWorkerScriptUrl).toBe("/sw.js");
-    expect(config.startUrl).toBe(APP_ROUTES.home);
+    expect(config.startUrl).toBe("/home/");
+    expect(config.startUrl.startsWith(config.manifestScope)).toBe(true);
+    expect(APP_ROUTES.home.startsWith(config.manifestScope)).toBe(true);
+    expect(config.shortcutUrl(APP_ROUTES.home)).toBe("/home/");
     expect(config.shortcutUrl(APP_ROUTES.garden)).toBe("/home/garden");
     expect(config.shortcutUrl(APP_ROUTES.profile)).toBe("/home/profile");
   });

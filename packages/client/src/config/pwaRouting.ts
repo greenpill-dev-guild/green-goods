@@ -1,5 +1,7 @@
 export const PWA_MANIFEST_ID = "/";
-export const PWA_APP_SCOPE = "/home/";
+// Include the existing /home route as well as its /home/ descendants.
+export const PWA_APP_SCOPE = "/home";
+export const PWA_APP_ENTRY_PATH = "/home/";
 const PWA_IPFS_SCOPE = "./";
 /**
  * URL vite-plugin-pwa serves the generated worker from in dev (generateSW dev mode).
@@ -24,7 +26,7 @@ export const LEGACY_APP_ROUTES = {
 export const PUBLIC_PWA_ORIGIN = "https://www.greengoods.app";
 
 export function createPwaLaunchUrl(origin: string): string {
-  return new URL(APP_ROUTES.home, origin).toString();
+  return new URL(PWA_APP_ENTRY_PATH, origin).toString();
 }
 
 export const PUBLIC_PWA_LAUNCH_URL = createPwaLaunchUrl(PUBLIC_PWA_ORIGIN);
@@ -47,7 +49,8 @@ export interface PwaRoutingConfig {
 }
 
 export function createPwaRoutingConfig(isIPFSBuild: boolean): PwaRoutingConfig {
-  const shortcutUrl = (path: string) => (isIPFSBuild ? `./#${path}` : path);
+  const shortcutUrl = (path: string) =>
+    isIPFSBuild ? `./#${path}` : path === APP_ROUTES.home ? PWA_APP_ENTRY_PATH : path;
 
   return {
     assetBasePath: isIPFSBuild ? "./" : "/",

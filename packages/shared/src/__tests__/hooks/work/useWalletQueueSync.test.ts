@@ -1,3 +1,4 @@
+import { onlineManager } from "@tanstack/react-query";
 /**
  * @vitest-environment jsdom
  *
@@ -117,6 +118,7 @@ describe("useWalletQueueSync", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     Object.defineProperty(navigator, "onLine", { value: true, configurable: true });
+    onlineManager.setOnline(true);
     queueListeners.clear();
     backgroundListeners.clear();
     vi.mocked(queue.getJobs).mockResolvedValue([]);
@@ -132,6 +134,17 @@ describe("useWalletQueueSync", () => {
     mockSyncQueuedWorkBatch.mockResolvedValue({ count: 1, gardens: ["0xgarden"] });
   });
 
+  it("skips other-chain broadcasts and unsent jobs in the active-chain session", async () => {
+    vi.mocked(queue.getJobs).mockResolvedValue([
+      { ...broadcastJob, chainId: 1 },
+      { ...unsentJob, chainId: 1 },
+    ]);
+    render();
+    await waitFor(() => expect(refreshStats).toHaveBeenCalled());
+    expect(queue.processJob).not.toHaveBeenCalled();
+    expect(mockSyncQueuedWorkBatch).not.toHaveBeenCalled();
+  });
+
   it("sends unsent work in one batch when the app comes back online", async () => {
     render();
     await waitFor(() => {
@@ -141,11 +154,12 @@ describe("useWalletQueueSync", () => {
 
     vi.mocked(queue.getJobs).mockResolvedValue([unsentJob]);
     await act(async () => {
-      window.dispatchEvent(new Event("online"));
+      onlineManager.setOnline(false);
+      onlineManager.setOnline(true);
     });
 
     await waitFor(() => {
-      expect(mockSyncQueuedWorkBatch).toHaveBeenCalledWith(USER, 11155111);
+      expect(mockSyncQueuedWorkBatch).toHaveBeenCalledWith(USER, 11155111, expect.any(Function));
     });
     expect(mockSyncQueuedWorkBatch).toHaveBeenCalledTimes(1);
     expect(mockToasts.syncSuccess).toHaveBeenCalledWith(1);
@@ -162,6 +176,7 @@ describe("useWalletQueueSync", () => {
 
     expect(queue.processJob).toHaveBeenCalledWith("broadcast-1", {
       transactionSender: walletSender,
+      assertOwnership: expect.any(Function),
     });
     expect(queue.processJob).not.toHaveBeenCalledWith("unsent-1", expect.anything());
     expect(vi.mocked(queue.processJob).mock.invocationCallOrder[0]).toBeLessThan(
@@ -182,8 +197,10 @@ describe("useWalletQueueSync", () => {
     });
 
     await act(async () => {
-      window.dispatchEvent(new Event("online"));
-      window.dispatchEvent(new Event("online"));
+      onlineManager.setOnline(false);
+      onlineManager.setOnline(true);
+      onlineManager.setOnline(false);
+      onlineManager.setOnline(true);
     });
     expect(mockSyncQueuedWorkBatch).toHaveBeenCalledTimes(1);
 
@@ -206,6 +223,7 @@ describe("useWalletQueueSync", () => {
     await waitFor(() => {
       expect(queue.processJob).toHaveBeenCalledWith("broadcast-1", {
         transactionSender: walletSender,
+        assertOwnership: expect.any(Function),
       });
     });
 
