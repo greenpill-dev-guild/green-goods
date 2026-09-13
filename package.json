@@ -249,7 +249,7 @@
     "react-dom": "19.2.8",
     "protobufjs": "7.6.1",
     "basic-ftp": "5.3.1",
-    "hono": "4.12.30",
+    "hono": "4.13.5",
     "rollup": "4.59.0",
     "lodash": "4.18.1",
     "lodash-es": "4.18.1",
@@ -295,7 +295,7 @@
     "@types/react-dom": "19.2.3",
     "@vercel/blob": "^2.3.0",
     "@vitejs/plugin-react": "6.0.5",
-    "@vitest/coverage-v8": "4.1.10",
+    "@vitest/coverage-v8": "4.1.11",
     "babel-plugin-react-compiler": "^1.0.0",
     "exceljs": "4.4.0",
     "fake-indexeddb": "^6.2.5",
@@ -317,7 +317,7 @@
     "typescript": "~7.0.2",
     "vite": "8.2.1",
     "vite-plugin-mkcert": "2.1.0",
-    "vitest": "4.1.10",
+    "vitest": "4.1.11",
     "wait-port": "1.1.0"
   },
   "engines": {
