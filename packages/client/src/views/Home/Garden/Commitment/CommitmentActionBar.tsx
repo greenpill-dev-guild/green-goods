@@ -1,3 +1,4 @@
+import { Button } from "@green-goods/shared/components/Button";
 import { useIntl } from "react-intl";
 
 import type { CommitmentAct } from "./commitmentActions";
@@ -29,6 +30,9 @@ export interface CommitmentActionBarProps {
  * answers a question its reader did not ask. The disabling here is for an act
  * already in flight, for the one act that genuinely needs the network, and for
  * a queue the phone cannot read, which is not the same as an empty one.
+ *
+ * The act is the page's primary (the error fill when destructive) and the rarer
+ * act its secondary, both at the page-level lg size (DL-021, DL-023).
  */
 export function CommitmentActionBar({
   act,
@@ -44,7 +48,7 @@ export function CommitmentActionBar({
   const needsNetwork = act.kind === "withdraw";
   const reasonId =
     blockedReasonId ?? (needsNetwork && !isOnline ? "app.commitment.act.needsNetwork" : null);
-  const blocked = isPending || reasonId !== null;
+  const unavailable = reasonId !== null;
 
   return (
     <div className="shrink-0 border-t border-stroke-soft-200 bg-bg-white-0 p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
@@ -53,31 +57,31 @@ export function CommitmentActionBar({
           {formatMessage({ id: reasonId })}
         </p>
       ) : null}
-      <button
+      <Button
         type="button"
+        size="lg"
+        tone={act.destructive ? "danger" : "default"}
         onClick={onRun}
-        disabled={blocked}
-        aria-busy={isPending}
+        loading={isPending}
+        disabled={unavailable}
         data-component="CommitmentActionBar"
         data-act={act.kind}
-        className={
-          act.destructive
-            ? "w-full rounded-[var(--radius-lg)] border border-error-base px-4 py-3 text-sm font-medium text-error-base tap-target-lg disabled:opacity-60"
-            : "w-full rounded-[var(--radius-lg)] bg-primary-action px-4 py-3 text-sm font-medium text-primary-action-foreground tap-target-lg disabled:opacity-60"
-        }
+        className="w-full"
       >
         {formatMessage({ id: act.labelId })}
-      </button>
+      </Button>
       {secondary ? (
-        <button
+        <Button
           type="button"
+          emphasis="secondary"
+          size="lg"
           onClick={secondary.onRun}
-          disabled={blocked || secondary.disabled}
+          disabled={isPending || unavailable || secondary.disabled}
           data-component="CommitmentActionBarSecondary"
-          className="mt-2 w-full rounded-[var(--radius-lg)] border border-stroke-soft-200 bg-bg-white-0 px-4 py-3 text-sm font-medium text-text-strong-950 tap-target-lg disabled:opacity-60"
+          className="mt-2 w-full"
         >
           {formatMessage({ id: secondary.labelId })}
-        </button>
+        </Button>
       ) : null}
     </div>
   );

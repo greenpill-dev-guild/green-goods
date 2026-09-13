@@ -1,3 +1,5 @@
+import { Button } from "@green-goods/shared/components/Button";
+import { TextInput } from "@green-goods/shared/components/Form/ControlPrimitives";
 import type { Address } from "@green-goods/shared/types/domain";
 import { ConfirmDialog } from "@green-goods/shared/components/Dialog/ConfirmDialog";
 import {
@@ -12,7 +14,6 @@ import { useOffline } from "@green-goods/shared/hooks/app/useOffline";
 import { useUser } from "@green-goods/shared/hooks/auth/useUser";
 import { useVaultPreview } from "@green-goods/shared/hooks/vault/useVaultPreview";
 import { useVaultWithdraw } from "@green-goods/shared/hooks/vault/useVaultWithdraw";
-import { RiLoader4Line } from "@remixicon/react";
 import { useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { formatUnits, parseUnits } from "viem";
@@ -89,7 +90,7 @@ export function MyDepositRow({ deposit, vault, gardenAddress }: MyDepositRowProp
       </p>
 
       <div className="flex items-center gap-2">
-        <input
+        <TextInput
           type="text"
           inputMode="decimal"
           value={amountInput}
@@ -97,16 +98,15 @@ export function MyDepositRow({ deposit, vault, gardenAddress }: MyDepositRowProp
           placeholder={`0.0 ${assetSymbol}`}
           aria-label={formatMessage({ id: "app.treasury.withdrawAmount" })}
           aria-invalid={Boolean(inputError)}
-          data-invalid={Boolean(inputError) || undefined}
-          className="gg-control"
+          invalid={Boolean(inputError)}
         />
-        <button
+        <Button
           type="button"
+          emphasis="secondary"
           onClick={() => setAmountInput(formatUnits(maxWithdrawable, assetDecimals))}
-          className="min-h-11 min-w-11 rounded-md border border-stroke-sub-300 bg-bg-white-0 px-3 py-2.5 text-xs font-medium text-text-sub-600 hover:bg-bg-weak-50"
         >
           {formatMessage({ id: "app.treasury.max" })}
-        </button>
+        </Button>
       </div>
       {inputError && (
         <p className="mt-1 text-xs text-error-dark" role="alert">
@@ -114,23 +114,19 @@ export function MyDepositRow({ deposit, vault, gardenAddress }: MyDepositRowProp
         </p>
       )}
 
-      <button
+      <Button
         type="button"
+        emphasis="secondary"
         onClick={() => setShowWithdrawConfirm(true)}
+        loading={withdrawMutation.isPending}
         disabled={
-          !isOnline ||
-          parsedAmount <= 0n ||
-          parsedAmount > maxWithdrawable ||
-          withdrawMutation.isPending
+          !withdrawMutation.isPending &&
+          (!isOnline || parsedAmount <= 0n || parsedAmount > maxWithdrawable)
         }
-        aria-busy={withdrawMutation.isPending || undefined}
-        className="mt-2 inline-flex w-full items-center justify-center gap-2 rounded-md border border-stroke-sub-300 bg-bg-white-0 px-3 py-2 text-sm font-medium text-text-sub-600 transition hover:bg-bg-weak-50 disabled:cursor-not-allowed disabled:opacity-60"
+        className="mt-2 w-full"
       >
-        {withdrawMutation.isPending && (
-          <RiLoader4Line className="h-4 w-4 animate-spin" aria-hidden />
-        )}
         {formatMessage({ id: "app.treasury.withdraw" })}
-      </button>
+      </Button>
 
       <ConfirmDialog
         isOpen={showWithdrawConfirm}

@@ -1,4 +1,5 @@
 import { PwaSheet } from "@green-goods/shared/components/Dialog/PwaSheet";
+import { IconButton } from "@green-goods/shared/components/IconButton";
 import { useOnlineStatus } from "@green-goods/shared/hooks/app/useOnlineStatus";
 import {
   useProfileAvatarEditor,
@@ -321,16 +322,13 @@ export function ProfileAvatarEditor({ fallbackAvatar, className }: ProfileAvatar
               {removeConfirmOpen ? removalDescription : privacyNotice}
             </p>
           </div>
-          <button
-            type="button"
+          <IconButton
             onClick={closeSheet}
             disabled={busy}
             data-testid="pwa-sheet-close"
-            className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-text-sub transition-colors hover:bg-bg-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--tone-focus-ring,var(--m3-primary)))] disabled:cursor-not-allowed disabled:opacity-50"
             aria-label={formatMessage({ id: "app.common.close", defaultMessage: "Close" })}
-          >
-            <RiCloseLine className="h-5 w-5" aria-hidden="true" />
-          </button>
+            icon={<RiCloseLine aria-hidden="true" />}
+          />
         </header>
 
         <div

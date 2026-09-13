@@ -1,3 +1,4 @@
+import { Button } from "@green-goods/shared/components/Button";
 import { Alert } from "@green-goods/shared/components/Alert";
 import { cn } from "@green-goods/shared/utils/styles/cn";
 import { type CommitmentPoolingAvailability } from "@green-goods/shared/commitment-pooling";
@@ -108,14 +109,15 @@ export function CommitmentStateLadder({
         <Alert variant="error" className="p-3">
           {formatMessage({ id: copy.errorId })}
         </Alert>
-        <button
+        <Button
           type="button"
+          emphasis="secondary"
           onClick={onRetry}
-          className="flex w-full items-center justify-center gap-2 rounded-[var(--radius-lg)] border border-stroke-soft-200 p-3 text-sm font-medium text-text-strong-950 tap-target-lg"
+          className="w-full"
+          leadingIcon={<RiRefreshLine className="h-4 w-4" aria-hidden="true" />}
         >
-          <RiRefreshLine className="h-4 w-4" aria-hidden="true" />
           {formatMessage({ id: "app.commitments.retry" })}
-        </button>
+        </Button>
       </Region>
     );
   }

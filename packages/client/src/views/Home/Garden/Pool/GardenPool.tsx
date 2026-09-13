@@ -1,3 +1,5 @@
+import { Button } from "@green-goods/shared/components/Button";
+import { Chip } from "@green-goods/shared/components/Chip";
 import {
   type GardenPoolDirection,
   useGardenPoolController,
@@ -86,22 +88,21 @@ export function GardenPool({ pool }: GardenPoolProps) {
         // there is nothing to scroll past, and the invitation is the screen.
         emptyAction: controller.canCreate ? (
           <div className="flex w-full max-w-xs flex-col gap-2">
-            <button
+            <Button
               type="button"
               onClick={() => openDoor("offer")}
-              className="flex items-center justify-center gap-2 rounded-[var(--radius-lg)] bg-primary-action px-4 py-3 text-sm font-medium text-primary-action-foreground tap-target-lg"
+              leadingIcon={<RiSeedlingLine className="h-4 w-4" aria-hidden="true" />}
             >
-              <RiSeedlingLine className="h-4 w-4" aria-hidden="true" />
               {formatMessage({ id: "app.pool.empty.offer" })}
-            </button>
-            <button
+            </Button>
+            <Button
               type="button"
+              emphasis="secondary"
               onClick={() => openDoor("request")}
-              className="flex items-center justify-center gap-2 rounded-[var(--radius-lg)] border border-stroke-soft-200 bg-bg-white-0 px-4 py-3 text-sm font-medium text-text-strong-950 tap-target-lg"
+              leadingIcon={<RiHandHeartLine className="h-4 w-4" aria-hidden="true" />}
             >
-              <RiHandHeartLine className="h-4 w-4" aria-hidden="true" />
               {formatMessage({ id: "app.pool.empty.request" })}
-            </button>
+            </Button>
           </div>
         ) : undefined,
       }}
@@ -127,41 +128,30 @@ export function GardenPool({ pool }: GardenPoolProps) {
         {DIRECTION_FILTERS.map((filter) => {
           const selected = filter.id === controller.direction;
           return (
-            <button
+            <Chip
               key={filter.id}
-              type="button"
-              aria-pressed={selected}
+              selected={selected}
               onClick={() => controller.setDirection(filter.id)}
-              className={
-                selected
-                  ? "rounded-full border border-primary-alpha-24 bg-primary-alpha-10 px-3 py-1.5 text-xs font-medium text-primary tap-target-lg"
-                  : "rounded-full border border-stroke-soft-200 px-3 py-1.5 text-xs font-medium text-text-sub-600 tap-target-lg"
-              }
             >
               {formatMessage({ id: filter.labelId })}
-            </button>
+            </Chip>
           );
         })}
         {/* The daily list holds the living; how things ended folds behind one
             quiet scope, the way the drawer splits Live from History. */}
         {controller.settledCount > 0 || controller.liveness === "settled" ? (
-          <button
-            type="button"
-            aria-pressed={controller.liveness === "settled"}
+          <Chip
+            selected={controller.liveness === "settled"}
             onClick={() =>
               controller.setLiveness(controller.liveness === "settled" ? "live" : "settled")
             }
-            className={
-              controller.liveness === "settled"
-                ? "ml-auto rounded-full border border-primary-alpha-24 bg-primary-alpha-10 px-3 py-1.5 text-xs font-medium text-primary tap-target-lg"
-                : "ml-auto rounded-full border border-stroke-soft-200 px-3 py-1.5 text-xs font-medium text-text-sub-600 tap-target-lg"
-            }
+            className="ml-auto"
           >
             {formatMessage(
               { id: "app.commitments.filter.settled" },
               { count: controller.settledCount }
             )}
-          </button>
+          </Chip>
         ) : null}
       </div>
 

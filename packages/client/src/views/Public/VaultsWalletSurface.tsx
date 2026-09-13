@@ -1,3 +1,4 @@
+import { Button } from "@green-goods/shared/components/Button";
 import { useOctantVaultHarvestableYield } from "@green-goods/shared/hooks/vault/useOctantVaultHarvestableYield";
 import { useOctantVaultStats } from "@green-goods/shared/hooks/vault/useOctantVaultStats";
 import { useOctantVaultStrategyApy } from "@green-goods/shared/hooks/vault/useOctantVaultStrategyApy";
@@ -36,9 +37,6 @@ const copyFieldMessageIds = {
   recipientLogic: "recipientLogic",
   riskNote: "riskNote",
 } as const;
-
-const VAULT_ENDOW_BUTTON_CLASS =
-  "inline-flex min-h-12 w-full items-center justify-center gap-2 border border-primary-action bg-primary-action px-6 py-3 text-sm font-semibold text-primary-action-foreground transition-colors hover:bg-primary-action-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-action focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60";
 
 const campaignLearnMoreLinks: Record<
   string,
@@ -432,7 +430,7 @@ export function CampaignCard({
         </h4>
         <div className="mt-4">
           {ready ? (
-            <button
+            <Button
               type="button"
               onClick={() => onEndow?.(campaign)}
               aria-label={formatMessage(
@@ -442,13 +440,13 @@ export function CampaignCard({
                 },
                 { campaign: campaign.displayName }
               )}
-              className={VAULT_ENDOW_BUTTON_CLASS}
+              className="w-full"
             >
               {formatMessage({
                 id: "public.vaults.endow.cta",
                 defaultMessage: "Endow",
               })}
-            </button>
+            </Button>
           ) : (
             <CampaignPreviewNote />
           )}
@@ -586,17 +584,17 @@ export function VaultsPageContent({
               </EditorialLede>
             </div>
             <div className="flex justify-end sm:shrink-0">
-              <button
+              <Button
                 type="button"
+                emphasis="secondary"
                 onClick={openManage}
                 data-testid="vault-manage-positions-entry"
-                className="inline-flex items-center text-sm font-medium text-primary-base underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-action focus-visible:ring-offset-2"
               >
                 {formatMessage({
                   id: "public.vaults.manage.entry",
                   defaultMessage: "Manage Endowments",
                 })}
-              </button>
+              </Button>
             </div>
           </header>
 

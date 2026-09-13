@@ -1334,6 +1334,16 @@
     color: rgb(var(--error-base));
   }
 
+  .gg-icon-button[data-emphasis="primary"][data-tone="danger"] {
+    background-color: rgb(var(--error-base));
+    color: rgb(var(--static-white, var(--neutral-0)));
+  }
+
+  .gg-icon-button[data-emphasis="primary"][data-tone="danger"]:hover {
+    background-color: rgb(var(--error-dark, var(--red-700)));
+    color: rgb(var(--static-white, var(--neutral-0)));
+  }
+
   /* ── Chip (DL-021) ── A capsule toggle for filters and choices: 32px with a
    * 44px hit area. Selected chips carry text on a green fill, so they use the
    * action fill with white text (DL-017). */

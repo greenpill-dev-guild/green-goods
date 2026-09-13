@@ -1,3 +1,4 @@
+import { Button } from "@green-goods/shared/components/Button";
 import {
   isLocalArbitrumForkMode,
   LOCAL_ARBITRUM_FORK_CHAIN_ID,
@@ -35,8 +36,6 @@ import { useIntl } from "react-intl";
 import WalletRuntimeProviders from "@/routes/WalletRuntimeProviders";
 import {
   CHECKOUT_FIELD_LABEL,
-  CHECKOUT_GHOST_BUTTON,
-  CHECKOUT_PRIMARY_BUTTON,
   CheckoutScreen,
   CheckoutStageHeader,
   CheckoutSummary,
@@ -786,24 +785,21 @@ function VaultCheckoutDialogContent({
           footer={
             <div className="flex flex-col gap-2">
               {onManagePositions ? (
-                <button
-                  type="button"
-                  onClick={onManagePositions}
-                  className={CHECKOUT_PRIMARY_BUTTON}
-                >
+                <Button type="button" onClick={onManagePositions} className="w-full">
                   {formatMessage({
                     id: "public.vaults.checkout.manageEndowments",
                     defaultMessage: "Manage Endowments",
                   })}
-                </button>
+                </Button>
               ) : null}
-              <button
+              <Button
                 type="button"
+                emphasis={onManagePositions ? "secondary" : "primary"}
                 onClick={onClose}
-                className={onManagePositions ? CHECKOUT_GHOST_BUTTON : CHECKOUT_PRIMARY_BUTTON}
+                className="w-full"
               >
                 {formatMessage({ id: "public.vaults.checkout.done", defaultMessage: "Done" })}
-              </button>
+              </Button>
             </div>
           }
         >
@@ -864,14 +860,15 @@ function VaultCheckoutDialogContent({
     >
       <CheckoutScreen
         footer={
-          <button
+          <Button
             type="button"
             onClick={handleSubmit}
             disabled={actionDisabled}
-            className={CHECKOUT_PRIMARY_BUTTON}
+            loading={walletBusy}
+            className="w-full"
           >
             {actionLabel}
-          </button>
+          </Button>
         }
       >
         <div className="flex flex-col gap-4" data-testid="vault-wallet-endow-path">

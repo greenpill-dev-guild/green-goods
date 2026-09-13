@@ -1,4 +1,5 @@
 import type { SheetSize } from "@green-goods/shared/components/Dialog/PwaSheet";
+import { IconButton } from "@green-goods/shared/components/IconButton";
 import { cn } from "@green-goods/shared/utils/styles/cn";
 import { useDocumentScrollLock } from "@green-goods/shared/hooks/ui/useDocumentScrollLock";
 import { useSheetPresence } from "@green-goods/shared/hooks/ui/useSheetPresence";
@@ -179,17 +180,13 @@ export const AppSheet: React.FC<AppSheetProps> = ({
           </div>
           <div className="flex items-center gap-2 ml-4">
             {header.actions}
-            <button
+            <IconButton
+              emphasis="secondary"
               onClick={handleClose}
-              className={cn(
-                "min-h-11 min-w-11 flex items-center justify-center",
-                pwaSheetStyles.closeButtonBase
-              )}
               data-testid="app-sheet-close"
               aria-label={formatMessage({ id: "app.common.close" })}
-            >
-              <RiCloseLine className={cn("w-5 h-5", pwaSheetStyles.closeIcon)} />
-            </button>
+              icon={<RiCloseLine aria-hidden="true" />}
+            />
           </div>
         </div>
 

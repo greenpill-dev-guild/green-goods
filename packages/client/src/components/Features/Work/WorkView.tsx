@@ -6,7 +6,7 @@ import type { Garden } from "@green-goods/shared/types/domain";
 import { RiDownloadLine, RiExternalLinkLine } from "@remixicon/react";
 import React from "react";
 import { useIntl } from "react-intl";
-import { Button } from "@/components/Actions";
+import { Button } from "@green-goods/shared/components/Button";
 import { FormCard, FormInfo, GardenCard, GardenCardSkeleton } from "@/components/Cards";
 import { Carousel, CarouselContent, CarouselItem, ImageWithFallback } from "@/components/Display";
 
@@ -17,7 +17,6 @@ export type WorkViewAction = {
   icon?: React.ReactNode;
   disabled?: boolean;
   visible?: boolean;
-  className?: string;
 };
 
 // Icon component type for details and header
@@ -249,31 +248,22 @@ export const WorkView: React.FC<WorkViewProps> = ({
           </h6>
           <div className="flex flex-col gap-3">
             {visibleActions.map((a) => {
-              // Approval actions get special styling
-              const isApprovalAction = a.id === "approve" || a.id === "reject";
+              // Approve is the one filled action; reject and the utility actions are
+              // outlined (DL-021), reject in the error tone.
               const isReject = a.id === "reject";
-
-              // Use custom styling for utility actions (no variant colors)
-              const hasCustomStyling = !!a.className;
-
               return (
                 <Button
                   key={a.id}
                   onClick={a.onClick}
-                  label={a.label}
-                  className={
-                    a.className
-                      ? `w-full touch-manipulation ${a.className}`
-                      : "w-full touch-manipulation"
-                  }
-                  variant={hasCustomStyling ? undefined : isReject ? "error" : "primary"}
+                  className="w-full touch-manipulation"
+                  emphasis={a.id === "approve" ? "primary" : "secondary"}
+                  tone={isReject ? "danger" : "default"}
                   type="button"
-                  shape="regular"
-                  mode={hasCustomStyling ? undefined : isApprovalAction ? "filled" : "stroke"}
-                  size="medium"
-                  leadingIcon={a.icon ?? <RiDownloadLine className="w-6 h-6" />}
+                  leadingIcon={a.icon ?? <RiDownloadLine className="h-5 w-5" aria-hidden="true" />}
                   disabled={a.disabled}
-                />
+                >
+                  {a.label}
+                </Button>
               );
             })}
           </div>

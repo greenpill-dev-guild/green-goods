@@ -1,4 +1,4 @@
-import { RiCloseLine, RiShareLine } from "@remixicon/react";
+import { RiCloseLine, RiShareLine, RiStopFill } from "@remixicon/react";
 import type { Meta, StoryObj } from "@storybook/react";
 import { expect, fn, within } from "storybook/test";
 import type { ButtonEmphasis, ButtonSize } from "./Button";
@@ -46,6 +46,28 @@ export const Close: Story = {
 
 export const Loading: Story = {
   args: { "aria-label": "Refreshing", loading: true },
+};
+
+/** A capture tool while recording (Submit Work, the proof composer): the error fill. */
+export const Recording: Story = {
+  args: {
+    "aria-label": "Stop Recording",
+    "aria-pressed": true,
+    emphasis: "primary",
+    tone: "danger",
+    size: "lg",
+    icon: <RiStopFill aria-hidden="true" />,
+  },
+  play: async ({ canvasElement }) => {
+    const button = within(canvasElement).getByRole("button", { name: "Stop Recording" });
+    const probe = document.createElement("span");
+    probe.style.backgroundColor = "rgb(var(--error-base))";
+    canvasElement.appendChild(probe);
+    await expect(getComputedStyle(button).backgroundColor).toBe(
+      getComputedStyle(probe).backgroundColor
+    );
+    probe.remove();
+  },
 };
 
 /** Every emphasis at every size. */

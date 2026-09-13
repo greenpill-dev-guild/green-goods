@@ -1,3 +1,4 @@
+import { Button } from "@green-goods/shared/components/Button";
 import { lazy, Suspense, useState } from "react";
 import { useIntl } from "react-intl";
 import { EditorialHeading, EditorialKicker, EditorialTitleAccent } from "@/components/Public/atoms";
@@ -49,16 +50,12 @@ function CookiesReadOnlyPage({ onExplore }: { onExplore: () => void }) {
                 "Connect a wallet to see which jars you can claim from, or add funds to support a seasonal campaign.",
             })}
           </p>
-          <button
-            type="button"
-            onClick={onExplore}
-            className="mt-8 inline-flex min-h-12 items-center justify-center border border-primary-action bg-primary-action px-6 py-3 text-sm font-semibold text-primary-action-foreground transition-colors hover:bg-primary-action-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-action focus-visible:ring-offset-2"
-          >
+          <Button type="button" size="lg" onClick={onExplore} className="mt-8">
             {formatMessage({
               id: "public.cookies.openWalletSurface",
               defaultMessage: "Explore Cookie Jars",
             })}
-          </button>
+          </Button>
         </div>
       </section>
       <PublicFooter variant="soil" />

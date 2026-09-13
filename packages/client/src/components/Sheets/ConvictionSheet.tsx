@@ -1,3 +1,5 @@
+import { Button } from "@green-goods/shared/components/Button";
+import { TextInput } from "@green-goods/shared/components/Form/ControlPrimitives";
 import type { Address } from "@green-goods/shared/types/domain";
 import { cn } from "@green-goods/shared/utils/styles/cn";
 import type { ConvictionWeight } from "@green-goods/shared/types/conviction";
@@ -17,7 +19,6 @@ import { useMemberVotingPower } from "@green-goods/shared/hooks/conviction/useMe
 import { useOffline } from "@green-goods/shared/hooks/app/useOffline";
 import { useUser } from "@green-goods/shared/hooks/auth/useUser";
 import { useYieldAllocations } from "@green-goods/shared/hooks/yield/useYieldAllocations";
-import { RiLoader4Line } from "@remixicon/react";
 import { useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { pwaStatusStyles } from "@/components/Pwa/statusStyles";
@@ -139,7 +140,7 @@ function SupportInput({
           </span>
         </div>
         <div className="mt-1 flex items-center gap-2">
-          <input
+          <TextInput
             type="number"
             min="1"
             value={input}
@@ -152,19 +153,17 @@ function SupportInput({
             aria-label={formatMessage({ id: "app.signal.allocatePoints" })}
             aria-describedby={inputError ? `support-error-${hypercertId}` : undefined}
             aria-invalid={inputError ? true : undefined}
-            data-invalid={Boolean(inputError) || undefined}
-            className="gg-control"
+            invalid={Boolean(inputError)}
           />
-          <button
+          <Button
             type="button"
             onClick={handleAllocate}
-            disabled={disabled || isPending || !input.trim()}
-            aria-busy={isPending || undefined}
-            className="inline-flex min-h-11 min-w-11 items-center justify-center gap-2 rounded-md bg-primary-action px-4 py-2.5 text-sm font-medium whitespace-nowrap text-primary-action-foreground transition duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)] hover:bg-primary-action-hover active:scale-95 disabled:cursor-not-allowed disabled:opacity-60"
+            loading={isPending}
+            disabled={!isPending && (disabled || !input.trim())}
+            className="shrink-0"
           >
-            {isPending && <RiLoader4Line className="h-4 w-4 animate-spin" aria-hidden />}
             {formatMessage({ id: "app.signal.support" })}
-          </button>
+          </Button>
         </div>
         {inputError && (
           <p
@@ -296,16 +295,16 @@ export function ConvictionSheet({
             className="rounded-md border border-error-light bg-error-lighter px-3 py-2 text-xs text-error-dark"
           >
             <p>{formatMessage({ id: "app.conviction.errorLoadingFailed" })}</p>
-            <button
+            <Button
               type="button"
               onClick={() => {
                 refetchWeights?.();
                 refetchPower?.();
               }}
-              className="mt-2 rounded-lg bg-primary-action px-4 py-2.5 text-sm font-medium text-primary-action-foreground transition-colors duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)] hover:bg-primary-action-hover active:scale-95"
+              className="mt-2"
             >
               {formatMessage({ id: "app.common.tryAgain" })}
-            </button>
+            </Button>
           </div>
         )}
 
@@ -547,16 +546,17 @@ export function ConvictionSheet({
                       </div>
                     ))}
                     {allocations.length > 3 && (
-                      <button
+                      <Button
                         type="button"
+                        emphasis="tertiary"
                         onClick={() => setShowAllAllocations((prev) => !prev)}
                         aria-expanded={showAllAllocations}
-                        className="mt-1 min-h-11 w-full rounded px-4 text-center text-xs font-medium text-primary-base transition duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)] hover:text-primary-darker focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-base/40"
+                        className="mt-1 w-full"
                       >
                         {showAllAllocations
                           ? formatMessage({ id: "app.signal.collapse" })
                           : `${formatMessage({ id: "app.yield.viewAll" })} (${allocations.length})`}
-                      </button>
+                      </Button>
                     )}
                   </div>
                 )}

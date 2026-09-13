@@ -356,9 +356,7 @@ export const WorkViewSection: React.FC<WorkViewSectionProps> = ({
         defaultMessage: "Download Data",
       }),
       onClick: onDownloadData,
-      icon: <RiDownloadLine className="w-6 h-6" />,
-      className:
-        "!bg-bg-white-0 !border-2 !border-primary-base !text-primary-base hover:!bg-primary-alpha-10 !outline-none",
+      icon: <RiDownloadLine className="h-5 w-5" aria-hidden="true" />,
     },
     ...(media && media.length > 0 && onDownloadMedia
       ? [
@@ -369,9 +367,7 @@ export const WorkViewSection: React.FC<WorkViewSectionProps> = ({
               defaultMessage: "Download Media",
             }),
             onClick: onDownloadMedia,
-            icon: <RiDownloadLine className="w-6 h-6" />,
-            className:
-              "!bg-bg-white-0 !border-2 !border-warning-base !text-warning-dark hover:!bg-warning-lighter !outline-none",
+            icon: <RiDownloadLine className="h-5 w-5" aria-hidden="true" />,
           },
         ]
       : []),
@@ -379,9 +375,7 @@ export const WorkViewSection: React.FC<WorkViewSectionProps> = ({
       id: "share",
       label: intl.formatMessage({ id: "app.home.work.share", defaultMessage: "Share Work" }),
       onClick: onShare,
-      icon: <RiShareLine className="w-6 h-6" />,
-      className:
-        "!bg-bg-white-0 !border-2 !border-warning-dark !text-warning-dark hover:!bg-warning-lighter !outline-none",
+      icon: <RiShareLine className="h-5 w-5" aria-hidden="true" />,
     },
     ...(onViewAttestation
       ? [
@@ -392,9 +386,7 @@ export const WorkViewSection: React.FC<WorkViewSectionProps> = ({
               defaultMessage: "View Certificate",
             }),
             onClick: onViewAttestation,
-            icon: <RiExternalLinkLine className="w-6 h-6" />,
-            className:
-              "!bg-bg-white-0 !border-2 !border-verified-base !text-verified-dark hover:!bg-verified-lighter !outline-none",
+            icon: <RiExternalLinkLine className="h-5 w-5" aria-hidden="true" />,
           },
         ]
       : []),

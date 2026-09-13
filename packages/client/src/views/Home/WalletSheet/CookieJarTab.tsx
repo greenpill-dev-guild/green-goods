@@ -1,3 +1,5 @@
+import { Button } from "@green-goods/shared/components/Button";
+import { Textarea } from "@green-goods/shared/components/Form/ControlPrimitives";
 import { Alert } from "@green-goods/shared/components/Alert";
 import { ConfirmDialog } from "@green-goods/shared/components/Dialog/ConfirmDialog";
 import {
@@ -13,13 +15,7 @@ import {
   formatTokenAmount,
   getVaultAssetSymbol,
 } from "@green-goods/shared/utils/blockchain/vaults";
-import {
-  RiArrowDownSLine,
-  RiErrorWarningLine,
-  RiInboxLine,
-  RiLoader4Line,
-  RiWifiOffLine,
-} from "@remixicon/react";
+import { RiArrowDownSLine, RiErrorWarningLine, RiInboxLine, RiWifiOffLine } from "@remixicon/react";
 import React, { useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { formatUnits } from "viem";
@@ -132,19 +128,14 @@ function JarCard({ jar, gardenName }: JarCardProps) {
                 onValueChange={setAmountInput}
                 placeholder={formatMessage({ id: "app.cookieJar.amount" })}
                 aria-label={formatMessage({ id: "app.cookieJar.amount" })}
-                inputClassName={`w-full rounded-md border px-3 py-2.5 text-sm text-text-strong-950 focus:outline-none focus:ring-2 focus:ring-primary-base/20 ${
-                  inputError
-                    ? "border-error-base focus:border-error-base"
-                    : "border-stroke-sub-300 bg-bg-white-0 focus:border-primary-base"
-                }`}
                 endSlot={
-                  <button
+                  <Button
                     type="button"
+                    emphasis="secondary"
                     onClick={() => setAmountInput(formatUnits(claimableNow, decimals))}
-                    className="min-h-11 min-w-11 rounded-md border border-stroke-sub-300 bg-bg-white-0 px-3 py-2.5 text-xs font-medium text-text-sub-600 hover:bg-bg-weak-50"
                   >
                     {formatMessage({ id: "app.treasury.max" })}
-                  </button>
+                  </Button>
                 }
                 errorClassName="mt-2 text-xs text-error-dark"
                 error={inputError ? formatMessage({ id: inputError }) : null}
@@ -160,14 +151,14 @@ function JarCard({ jar, gardenName }: JarCardProps) {
                     *
                   </span>
                 </label>
-                <textarea
+                <Textarea
                   id={`${panelId}-purpose`}
                   value={purpose}
                   onChange={(e) => setPurpose(e.target.value)}
                   placeholder={formatMessage({ id: "app.cookieJar.purposePlaceholder" })}
                   required
                   aria-required="true"
-                  className="gg-control gg-control-textarea resize-none"
+                  className="resize-none"
                   rows={2}
                 />
                 <p className="text-xs text-text-soft-400">
@@ -188,25 +179,22 @@ function JarCard({ jar, gardenName }: JarCardProps) {
                 </p>
               ) : null}
 
-              <button
+              <Button
                 type="button"
                 onClick={() => setShowConfirm(true)}
+                loading={withdrawMutation.isPending}
                 disabled={
-                  !isOnline ||
-                  parsedAmount <= 0n ||
-                  parsedAmount > jar.maxWithdrawal ||
-                  parsedAmount > jar.balance ||
-                  !purpose.trim() ||
-                  withdrawMutation.isPending
+                  !withdrawMutation.isPending &&
+                  (!isOnline ||
+                    parsedAmount <= 0n ||
+                    parsedAmount > jar.maxWithdrawal ||
+                    parsedAmount > jar.balance ||
+                    !purpose.trim())
                 }
-                aria-busy={withdrawMutation.isPending || undefined}
-                className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-md bg-primary-action px-3 py-2 text-sm font-medium text-primary-action-foreground transition duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)] hover:bg-primary-action-hover disabled:cursor-not-allowed disabled:opacity-60"
+                className="w-full"
               >
-                {withdrawMutation.isPending && (
-                  <RiLoader4Line className="h-4 w-4 animate-spin" aria-hidden />
-                )}
                 {formatMessage({ id: "app.cookieJar.withdraw" })}
-              </button>
+              </Button>
 
               <ConfirmDialog
                 isOpen={showConfirm}

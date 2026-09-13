@@ -1,3 +1,4 @@
+import { IconButton } from "@green-goods/shared/components/IconButton";
 import type { Address } from "@green-goods/shared/types/domain";
 import {
   type BarcodeScannerPort,
@@ -73,14 +74,11 @@ export function QRScanner({
         <p className="text-sm font-medium text-text-strong-950">
           {formatMessage({ id: "app.send.qr.title" })}
         </p>
-        <button
-          type="button"
+        <IconButton
           onClick={onClose}
           aria-label={formatMessage({ id: "app.common.close" })}
-          className="flex min-h-11 min-w-11 items-center justify-center rounded-md text-text-sub-600 hover:bg-bg-weak-50"
-        >
-          <RiCloseLine className="h-5 w-5" aria-hidden />
-        </button>
+          icon={<RiCloseLine aria-hidden="true" />}
+        />
       </div>
       {error ? (
         <p className="text-sm text-warning-dark" role="alert">

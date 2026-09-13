@@ -1,3 +1,4 @@
+import { Button } from "@green-goods/shared/components/Button";
 import { lazy, Suspense, useState } from "react";
 import { useIntl } from "react-intl";
 import { useSearchParams } from "react-router-dom";
@@ -65,16 +66,17 @@ export default function VaultsPage() {
                 "Each endowment helps back a campaign today, while the yield it generates can keep supporting the work over time. You are not earning personal yield; the campaign is the beneficiary.",
             })}
           </p>
-          <button
+          <Button
             type="button"
+            size="lg"
             onClick={() => setShowWalletSurface(true)}
-            className="mt-8 inline-flex min-h-12 items-center justify-center border border-primary-action bg-primary-action px-6 py-3 text-sm font-semibold text-primary-action-foreground transition-colors hover:bg-primary-action-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-action focus-visible:ring-offset-2"
+            className="mt-8"
           >
             {formatMessage({
               id: "public.vaults.openWalletSurface",
               defaultMessage: "View Campaign Vaults",
             })}
-          </button>
+          </Button>
         </div>
       </section>
       <PublicFooter variant="soil" />
