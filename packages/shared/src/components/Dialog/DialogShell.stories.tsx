@@ -251,3 +251,88 @@ export const ShellMobileSheet: Story = {
     ).toBeLessThan(40);
   },
 };
+
+const LONG_BODY_ROWS = Array.from({ length: 24 }, (_, index) => `Proof row ${index + 1}`);
+
+export const ShellCenteredPinnedActions: Story = {
+  tags: ["storybook-ci"],
+  render: () => (
+    <DialogShell
+      open={true}
+      onOpenChange={fn()}
+      title="Link work to this commitment"
+      description="Long content scrolls under the pinned action bar."
+      size="lg"
+      actions={{
+        primary: { label: "Link This Work", onClick: fn() },
+        secondary: { label: "Not Now", onClick: fn() },
+      }}
+    >
+      <ul className="space-y-3">
+        {LONG_BODY_ROWS.map((row) => (
+          <li key={row} className="rounded-lg border border-stroke-soft bg-bg-weak p-4">
+            {row}
+          </li>
+        ))}
+      </ul>
+    </DialogShell>
+  ),
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "From 640px a DialogShell with `actions` becomes a column (DL-016): the body takes the remaining height inside the 90vh surface and scrolls, and the action bar stays pinned inside the surface instead of being pushed below it.",
+      },
+    },
+  },
+  play: async () => {
+    await expect(window.innerWidth).toBeGreaterThanOrEqual(SM_BREAKPOINT_PX);
+
+    const dialog = within(document.body);
+    const surface = await dialog.findByRole(
+      "dialog",
+      { name: /link work to this commitment/i },
+      { timeout: 5_000 }
+    );
+    await expect(surface).toHaveAttribute("data-has-actions");
+    await waitForSurfaceSettled(surface);
+
+    const body = surface.querySelector<HTMLElement>(
+      '[data-component="DialogShell"][data-slot="body"]'
+    );
+    const bar = surface.querySelector<HTMLElement>('[data-component="SheetActions"]');
+    await expect(body).not.toBeNull();
+    await expect(bar).not.toBeNull();
+    if (!body || !bar) return;
+
+    await waitFor(async () => {
+      const surfaceRect = surface.getBoundingClientRect();
+      const barRect = bar.getBoundingClientRect();
+      await expect(surfaceRect.height).toBeLessThanOrEqual(
+        window.innerHeight * 0.9 + VIEWPORT_EDGE_TOLERANCE_PX
+      );
+      await expect(surfaceRect.bottom).toBeLessThanOrEqual(
+        window.innerHeight + VIEWPORT_EDGE_TOLERANCE_PX
+      );
+      // The bar sits inside the surface's bottom edge, under the scrolling body.
+      await expect(barRect.bottom).toBeLessThanOrEqual(
+        surfaceRect.bottom + VIEWPORT_EDGE_TOLERANCE_PX
+      );
+      await expect(body.getBoundingClientRect().bottom).toBeLessThanOrEqual(
+        barRect.top + VIEWPORT_EDGE_TOLERANCE_PX
+      );
+      await expect(body.scrollHeight).toBeGreaterThan(body.clientHeight);
+    });
+
+    await expect(dialog.getByRole("button", { name: "Link This Work" })).toBeVisible();
+
+    // The last row is reachable above the bar once the body scrolls to its end.
+    body.scrollTop = body.scrollHeight;
+    await waitFor(async () => {
+      const lastRow = within(body).getByText(LONG_BODY_ROWS[LONG_BODY_ROWS.length - 1]);
+      await expect(lastRow.getBoundingClientRect().bottom).toBeLessThanOrEqual(
+        bar.getBoundingClientRect().top + VIEWPORT_EDGE_TOLERANCE_PX
+      );
+    });
+  },
+};
