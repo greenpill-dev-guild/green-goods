@@ -221,7 +221,8 @@ test("rule 19 flags off-scale radii and ignores commented-out code and URLs", ()
   const stripped = stripJsComments(source);
   assert.equal(stripped.length, source.length);
   assert.equal(stripped.split("\n").length, source.split("\n").length);
-  assert.ok(stripped.includes("https://example.com/rounded-3xl"));
+  // The `//` inside the link's address is not a comment, so its line survives unchanged.
+  assert.equal(stripped.split("\n")[5], source.split("\n")[5]);
 });
 
 test("rule 19 flags every import of the retired client Button", () => {
