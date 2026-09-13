@@ -2,10 +2,10 @@ import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
 import test from "node:test";
 import { EventEmitter } from "node:events";
-import { copyFile, mkdtemp, rm } from "node:fs/promises";
+import { copyFile, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import { applyGroupEnvironment, compatibilityKey, findOrphanedApps, parseArgs, reportReadiness, runStartupSmoke } from "./stack.js";
+import { applyGroupEnvironment, compatibilityKey, connectionMismatches, findOrphanedApps, launchConnections, parseArgs, productionModeNotice, reportReadiness, runStartupSmoke } from "./stack.js";
 import { fileURLToPath } from "node:url";
 
 const checkout = fileURLToPath(new URL("../..", import.meta.url));
@@ -136,6 +136,34 @@ test("disabled local Vite connections replace inherited values with non-local se
   }
 });
 
+test("disabling the local agent ignores a loopback agent URL from the root env file", async () => {
+  const fixture = await mkdtemp(path.join(tmpdir(), "green-goods-ecosystem-"));
+  const configPath = path.join(fixture, "ecosystem.config.cjs");
+  await copyFile(fileURLToPath(new URL("../../ecosystem.config.cjs", import.meta.url)), configPath);
+
+  // Setup's baseline root env file names the local agent; only a real remote URL replaces it.
+  const readAgentUrl = async (rootValue) => {
+    await writeFile(path.join(fixture, ".env"), `VITE_API_BASE_URL=${rootValue}\n`);
+    return execFileSync(
+      process.execPath,
+      [
+        "-e",
+        `const config = require(${JSON.stringify(configPath)}); ` +
+          `process.stdout.write(config.apps.find((app) => app.name === "client").env.VITE_API_BASE_URL);`,
+      ],
+      { encoding: "utf8", env: { VITE_DISABLE_LOCAL_AGENT: "true" } }
+    );
+  };
+
+  try {
+    assert.equal(await readAgentUrl("http://127.0.0.1:3005"), "https://agent.greengoods.app");
+    assert.equal(await readAgentUrl("http://localhost:3005"), "https://agent.greengoods.app");
+    assert.equal(await readAgentUrl("https://agent.staging.example"), "https://agent.staging.example");
+  } finally {
+    await rm(fixture, { recursive: true, force: true });
+  }
+});
+
 test("an indexer that exited before log subscription fails readiness immediately", async () => {
   let probes = 0;
   const ready = await reportReadiness([{ name: "indexer" }], {
@@ -228,6 +256,74 @@ test("disabled local Vite connections survive the final stack profile merge", ()
     assert.equal(env.VITE_ENABLE_ANVIL_WALLETS, "false");
     assert.equal(env.VITE_API_BASE_URL, "https://agent.greengoods.app");
   }
+});
+
+test("fork keeps its local indexer even when a hosted indexer is configured", () => {
+  const { env } = applyGroupEnvironment(
+    { name: "client", env: { VITE_ENVIO_INDEXER_URL: "https://hosted.example/v1/graphql" } },
+    "fork"
+  );
+  assert.equal(env.VITE_ENVIO_INDEXER_URL, "http://localhost:3006/v1/graphql");
+});
+
+const launchClient = (env, group = "local") => [applyGroupEnvironment({ name: "client", env }, group)];
+
+test("the startup notice reports the connections the apps received", () => {
+  assert.deepEqual(productionModeNotice("prod").slice(1, 4), [
+    "[stack] Production-backed Green Goods dev mode is active.",
+    "[stack] Chain: Arbitrum One (42161); indexer: hosted production indexer.",
+    "[stack] Agent API: https://agent.greengoods.app.",
+  ]);
+
+  const local = launchConnections(launchClient({ VITE_ENVIO_INDEXER_URL: "http://localhost:3006/v1/graphql" }), "local");
+  assert.deepEqual(local.customKeys, []);
+  assert.equal(
+    productionModeNotice("local", local)[2],
+    "[stack] Chain: Arbitrum One (42161); indexer: local live-indexer mirror on localhost:3006."
+  );
+
+  const hosted = launchConnections(launchClient({ VITE_ENVIO_INDEXER_URL: "https://hosted.example/v1/graphql?key=private" }), "local");
+  assert.deepEqual(hosted.customKeys, ["VITE_ENVIO_INDEXER_URL"]);
+  const hostedNotice = productionModeNotice("local", hosted).join("\n");
+  assert.match(hostedNotice, /indexer: configured indexer at https:\/\/hosted\.example\./);
+  assert.doesNotMatch(hostedNotice, /key=private|localhost:3006/);
+
+  const sepolia = launchConnections(launchClient({
+    VITE_DISABLE_LOCAL_CHAIN: "true", VITE_DISABLE_LOCAL_AGENT: "true",
+    VITE_DEV_CHAIN_MODE: "", VITE_CHAIN_ID: "11155111", VITE_LOCAL_FORK_RPC_URL: "",
+    VITE_ENABLE_ANVIL_WALLETS: "false", VITE_ENVIO_INDEXER_URL: "http://localhost:3006/v1/graphql",
+    VITE_API_BASE_URL: "https://agent.greengoods.app",
+  }), "local");
+  assert.deepEqual(sepolia.customKeys, ["VITE_CHAIN_ID", "VITE_API_BASE_URL"]);
+  assert.deepEqual(productionModeNotice("local", sepolia).slice(1, 5), [
+    "[stack] Green Goods dev mode is active.",
+    "[stack] Chain: chain 11155111; indexer: local live-indexer mirror on localhost:3006.",
+    "[stack] Agent API: https://agent.greengoods.app.",
+    "[stack] Connected wallet transactions are real onchain writes and can spend funds.",
+  ]);
+});
+
+test("custom connections skip the startup smoke instead of certifying other services", async () => {
+  const connections = launchConnections(launchClient({ VITE_ENVIO_INDEXER_URL: "https://hosted.example/v1/graphql" }), "local");
+  let spawned = false;
+  const ready = await runStartupSmoke("local", () => { spawned = true; }, connections);
+  assert.equal(ready, false);
+  assert.equal(spawned, false);
+});
+
+test("reuse is refused when a live service was started with different connections", () => {
+  const [requested] = launchClient({ VITE_ENVIO_INDEXER_URL: "https://hosted.example/v1/graphql" });
+  const running = (env) => [{ name: "client", pm2_env: { ...requested.env, ...env } }];
+  assert.deepEqual(connectionMismatches([requested], running({})), []);
+  assert.deepEqual(
+    connectionMismatches([requested], running({
+      VITE_ENVIO_INDEXER_URL: "http://localhost:3006/v1/graphql",
+      VITE_API_BASE_URL: "https://agent.greengoods.app",
+    })),
+    ["client (VITE_ENVIO_INDEXER_URL, VITE_API_BASE_URL)"]
+  );
+  // Without a running process to compare, reuse is left to the lease contract.
+  assert.deepEqual(connectionMismatches([requested], []), []);
 });
 
 test("fork must be explicit and cannot reuse live or legacy local services", () => {

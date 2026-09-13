@@ -38,7 +38,27 @@ const viteEnableSwDev = envValue("VITE_ENABLE_SW_DEV", "false");
 const viteDisableLocalChain = envValue("VITE_DISABLE_LOCAL_CHAIN", "false") === "true";
 const viteDisableLocalAgent = envValue("VITE_DISABLE_LOCAL_AGENT", "false") === "true";
 const localAgentApiBaseUrl = "http://127.0.0.1:3005";
-const externalAgentApiBaseUrl = rootEnv.VITE_API_BASE_URL || "https://agent.greengoods.app";
+
+// Setup writes the local agent URL into the baseline root .env, so a configured value
+// replaces the local agent only when it is an absolute, non-loopback http(s) URL.
+function isExternalHttpUrl(value) {
+  try {
+    const { protocol, hostname } = new URL(value);
+    const loopback =
+      hostname === "localhost" ||
+      hostname.endsWith(".localhost") ||
+      hostname === "[::1]" ||
+      hostname === "0.0.0.0" ||
+      /^127\./.test(hostname);
+    return (protocol === "http:" || protocol === "https:") && !loopback;
+  } catch {
+    return false;
+  }
+}
+
+const externalAgentApiBaseUrl = isExternalHttpUrl(rootEnv.VITE_API_BASE_URL)
+  ? rootEnv.VITE_API_BASE_URL
+  : "https://agent.greengoods.app";
 const localViteChainEnv = viteDisableLocalChain
   ? {
       VITE_DEV_CHAIN_MODE: "",

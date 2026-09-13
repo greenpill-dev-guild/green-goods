@@ -40,6 +40,16 @@ const PRODUCTION_INDEXER_URL = "https://indexer.hyperindex.xyz/0bf0e0f/v1/graphq
 const PRODUCTION_AGENT_URL = "https://agent.greengoods.app";
 const LOCAL_INDEXER_URL = "http://localhost:3006/v1/graphql";
 const ARBITRUM_PUBLIC_RPC_URL = "https://arb1.arbitrum.io/rpc";
+// Settings that decide which chain, indexer, and agent the browser apps talk to.
+const CONNECTION_KEYS = [
+  "VITE_CHAIN_ID",
+  "VITE_DEV_CHAIN_MODE",
+  "VITE_LOCAL_FORK_RPC_URL",
+  "VITE_ENABLE_ANVIL_WALLETS",
+  "VITE_ENVIO_INDEXER_URL",
+  "VITE_API_BASE_URL",
+];
+const BROWSER_APPS = ["client", "admin", "docs"];
 
 
 
@@ -428,6 +438,25 @@ async function claimApps(apps, group, ownerId) {
   return { appsToStart, reusedApps, skippedHelpers, claimedPorts };
 }
 
+/**
+ * Name reused services whose running process was started with different connection
+ * settings. Compatibility keys cover only the profile, so without this check a
+ * second session would silently test the first session's chain, indexer, or agent.
+ */
+export function connectionMismatches(reusedApps, processes) {
+  return reusedApps.flatMap((app) => {
+    const running = processes
+      .filter((entry) => entry.name === app.name)
+      .map((entry) => entry.pm2_env || {});
+    const keys = CONNECTION_KEYS.filter(
+      (key) =>
+        app.env?.[key] !== undefined &&
+        running.some((env) => `${env[key] ?? ""}` !== `${app.env[key]}`)
+    );
+    return keys.length > 0 ? [`${app.name} (${keys.join(", ")})`] : [];
+  });
+}
+
 export async function reportReadiness(apps, {
   processes,
   probe = portIsLive,
@@ -493,13 +522,17 @@ function productionProfileEnv(group) {
   };
 }
 
-/** Apply a stack profile without re-enabling explicitly disabled local Vite connections. */
+/**
+ * Apply a stack profile without re-enabling explicitly disabled local Vite connections.
+ * Hosted and fork profiles always use their own indexer: fork writes land only in the
+ * local fork indexer, so a configured hosted indexer would hide them.
+ */
 export function applyGroupEnvironment(app, group) {
   const profileEnv = productionProfileEnv(group);
   const configuredIndexerUrl = app.env?.VITE_ENVIO_INDEXER_URL;
   const disableLocalChain = app.env?.VITE_DISABLE_LOCAL_CHAIN === "true";
   const disableLocalAgent = app.env?.VITE_DISABLE_LOCAL_AGENT === "true";
-  const preserveConfiguredIndexer = !["prod", "prod-mirror"].includes(group);
+  const preserveConfiguredIndexer = !["prod", "prod-mirror", "fork"].includes(group);
   const { VITE_ENVIO_INDEXER_URL: profileIndexerUrl, ...sharedProfileEnv } = profileEnv;
   const configuredChainEnv = disableLocalChain
     ? {
@@ -529,21 +562,51 @@ export function applyGroupEnvironment(app, group) {
   };
 }
 
-function printProductionModeNotice(group) {
-  if (group === "fork") return;
+/**
+ * Resolve the connection settings the launched browser apps receive, and which of
+ * them depart from the group profile (a configured indexer or a disable flag).
+ */
+export function launchConnections(apps, group) {
+  const profileEnv = productionProfileEnv(group);
+  const appEnv =
+    BROWSER_APPS.map((name) => apps.find((app) => app.name === name)?.env).find(Boolean) ??
+    profileEnv;
+  const env = Object.fromEntries(CONNECTION_KEYS.map((key) => [key, `${appEnv[key] ?? ""}`]));
+  const customKeys = CONNECTION_KEYS.filter((key) => env[key] !== `${profileEnv[key] ?? ""}`);
+  return { env, customKeys };
+}
 
+// Print only the origin: a configured URL can carry a path or query we should not echo.
+function urlOrigin(value) {
+  try {
+    return new URL(value).origin;
+  } catch {
+    return "an unparseable URL";
+  }
+}
+
+/** Describe the topology the apps actually received, not the group's defaults. */
+export function productionModeNotice(group, connections = launchConnections([], group)) {
+  if (group === "fork") return [];
+
+  const { VITE_CHAIN_ID: chainId, VITE_ENVIO_INDEXER_URL: indexerUrl } = connections.env;
+  const arbitrum = chainId === "42161";
   const indexerMode =
-    group === "prod" ? "hosted production indexer" : "local live-indexer mirror on localhost:3006";
+    indexerUrl === PRODUCTION_INDEXER_URL
+      ? "hosted production indexer"
+      : indexerUrl === LOCAL_INDEXER_URL
+        ? "local live-indexer mirror on localhost:3006"
+        : `configured indexer at ${urlOrigin(indexerUrl)}`;
 
-  console.log("");
-  console.log("[stack] Production-backed Green Goods dev mode is active.");
-  console.log(`[stack] Chain: Arbitrum One (42161); indexer: ${indexerMode}.`);
-  console.log(`[stack] Agent API: ${productionProfileEnv(group).VITE_API_BASE_URL}.`);
-  console.log(
-    "[stack] Connected wallet transactions are real Arbitrum writes and can spend funds."
-  );
-  console.log("[stack] The automatic smoke is read-only and never submits transactions.");
-  console.log("");
+  return [
+    "",
+    `[stack] ${arbitrum ? "Production-backed Green Goods" : "Green Goods"} dev mode is active.`,
+    `[stack] Chain: ${arbitrum ? "Arbitrum One (42161)" : `chain ${chainId}`}; indexer: ${indexerMode}.`,
+    `[stack] Agent API: ${urlOrigin(connections.env.VITE_API_BASE_URL)}.`,
+    `[stack] Connected wallet transactions are real ${arbitrum ? "Arbitrum" : "onchain"} writes and can spend funds.`,
+    "[stack] The automatic smoke is read-only and never submits transactions.",
+    "",
+  ];
 }
 
 function smokeModeForGroup(group) {
@@ -552,15 +615,28 @@ function smokeModeForGroup(group) {
   return "";
 }
 
-export function runStartupSmoke(group, spawnProcess = spawn) {
+export function runStartupSmoke(
+  group,
+  spawnProcess = spawn,
+  connections = launchConnections([], group)
+) {
   const smokeMode = smokeModeForGroup(group);
   const isLocal = ["local", "full", "fork"].includes(group);
   if (!smokeMode && !isLocal) return Promise.resolve(true);
 
+  const label = isLocal ? "local QA" : "production";
+  // Each smoke checks its profile's own chain, indexer, and agent. Passing it would
+  // certify services the apps are not using, so custom connections skip it.
+  if (connections.customKeys.length > 0) {
+    console.log(
+      `[stack] skipped the ${label} smoke: the apps use custom ${connections.customKeys.join(", ")} settings that it does not check. QA readiness is not verified.`
+    );
+    return Promise.resolve(false);
+  }
+
   const invocation = smokeInvocation([group]);
   const scriptPath = path.join(projectRoot, "scripts/dev", invocation.script);
   const args = invocation.args;
-  const label = isLocal ? "local QA" : "production";
   return new Promise((resolve) => {
     console.log(`[stack] checking ${label} readiness, including Arbitrum indexer progress...`);
     const child = spawnProcess(process.execPath, [scriptPath, ...args], {
@@ -657,6 +733,7 @@ async function main() {
   if (apps.length === 0) {
     throw new Error(`No PM2 apps matched: ${parsed.names.join(", ")}`);
   }
+  const connections = launchConnections(apps, group);
 
   const dockerEnv = dockerEnvironment();
   if (apps.some((app) => app.name === "indexer")) assertDockerReady(dockerEnv);
@@ -667,6 +744,18 @@ async function main() {
     // Retire verified orphans from the previous profile, including its Anvil process.
     await recoverOrphanedApps(allApps);
     const claims = await claimApps(apps, group, ownerId);
+    try {
+      const running = claims.reusedApps.length > 0 ? await listPm2Apps() : [];
+      const mismatched = connectionMismatches(claims.reusedApps, running);
+      if (mismatched.length > 0) {
+        throw new Error(
+          `Refusing to reuse live services started with different connection settings: ${mismatched.join("; ")}. Launch with the owning session's settings, or stop those services from that session first.`
+        );
+      }
+    } catch (error) {
+      await releaseClaims(claims.claimedPorts, ownerId);
+      throw error;
+    }
     const ownedApps = claims.appsToStart.map((app) => ({
       ...app,
       env: { ...dockerEnv, ...(app.env || {}), GREEN_GOODS_DEV_OWNER: ownerId },
@@ -697,7 +786,7 @@ async function main() {
   if (ownedApps.length === 0) {
     console.log(`[stack] all requested services are already live; owner remains unchanged.`);
     const ready = await reportReadiness(apps);
-    if (ready) await runStartupSmoke(group);
+    if (ready) await runStartupSmoke(group, spawn, connections);
     disconnect();
     return;
   }
@@ -705,7 +794,7 @@ async function main() {
   const label = parsed.mode === "group" ? `${parsed.group} stack` : "custom stack";
   console.log(`Started Green Goods ${label}: ${ownedApps.map((app) => app.name).join(", ")}`);
   console.log(`[stack] lease owner: ${ownerId}`);
-  printProductionModeNotice(group);
+  for (const line of productionModeNotice(group, connections)) console.log(line);
   console.log("Press Ctrl+C to stop services.\n");
 
   for (const signal of ["SIGINT", "SIGTERM", "SIGHUP"]) {
@@ -722,7 +811,7 @@ async function main() {
 
   // Run readiness probe in the background so logs flow uninterrupted.
   reportReadiness(apps, { processes: listPm2Apps }).then(async (ready) => {
-    if (ready) await runStartupSmoke(group);
+    if (ready) await runStartupSmoke(group, spawn, connections);
     else await stopAndExit(ownedApps.map((app) => app.name), ownerId, claimedPorts, 1);
   }).catch(async (error) => {
     console.error(`[stack] readiness probe failed: ${error.message}`);
