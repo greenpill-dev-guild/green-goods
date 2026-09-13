@@ -1,18 +1,14 @@
 import { Alert } from "@green-goods/shared/components/Alert";
+import { Button } from "@green-goods/shared/components/Button";
 import { ConfidenceSelector } from "@green-goods/shared/components/Form/ConfidenceSelector";
+import { Textarea } from "@green-goods/shared/components/Form/ControlPrimitives";
+import { IconButton } from "@green-goods/shared/components/IconButton";
 import { useWorkDetailController } from "@green-goods/shared/hooks/client-ui/work/useWorkDetailController";
 import { cn } from "@green-goods/shared/utils/styles/cn";
-import {
-  RiCheckLine,
-  RiCloseLine,
-  RiErrorWarningLine,
-  RiLoader4Line,
-  RiUploadCloudLine,
-} from "@remixicon/react";
+import { RiCheckLine, RiCloseLine, RiErrorWarningLine, RiUploadCloudLine } from "@remixicon/react";
 import React from "react";
 import { useIntl } from "react-intl";
 
-import { Button } from "@/components/Actions";
 import { WorkViewSkeleton } from "@/components/Features/Work";
 import { TopNav } from "@/components/Navigation";
 import { pwaSheetStyles } from "@/components/Pwa/sheetStyles";
@@ -105,30 +101,22 @@ export const GardenWork: React.FC = () => {
           </p>
           <Button
             onClick={handleRetry}
-            disabled={isRetrying || !isOnline}
-            label={
-              isRetrying
-                ? intl.formatMessage({
-                    id: "app.home.work.uploading",
-                    defaultMessage: "Sending...",
-                  })
-                : intl.formatMessage({
-                    id: "app.home.work.uploadNow",
-                    defaultMessage: "Send Now",
-                  })
-            }
+            size="lg"
+            loading={isRetrying}
+            disabled={!isOnline && !isRetrying}
             className="w-full"
-            variant="primary"
-            mode="filled"
-            shape="regular"
-            leadingIcon={
-              isRetrying ? (
-                <RiLoader4Line className="w-5 h-5 animate-spin" />
-              ) : (
-                <RiUploadCloudLine className="w-5 h-5" />
-              )
-            }
-          />
+            leadingIcon={<RiUploadCloudLine className="h-5 w-5" aria-hidden="true" />}
+          >
+            {isRetrying
+              ? intl.formatMessage({
+                  id: "app.home.work.uploading",
+                  defaultMessage: "Sending...",
+                })
+              : intl.formatMessage({
+                  id: "app.home.work.uploadNow",
+                  defaultMessage: "Send Now",
+                })}
+          </Button>
           {!isOnline && (
             <p className="text-xs text-warning-base mt-2 text-center">
               {intl.formatMessage({
@@ -187,17 +175,14 @@ export const GardenWork: React.FC = () => {
                         defaultMessage: "Please add feedback for the gardener.",
                       })}
                 </h2>
-                <button
-                  type="button"
+                <IconButton
                   onClick={handleCancelFeedback}
-                  className={cn("p-1", pwaSheetStyles.workCloseButton)}
                   aria-label={intl.formatMessage({
                     id: "app.home.workApproval.closeFeedback",
                     defaultMessage: "Close Feedback",
                   })}
-                >
-                  <RiCloseLine className="w-5 h-5" />
-                </button>
+                  icon={<RiCloseLine aria-hidden="true" />}
+                />
               </div>
 
               <p id="feedback-drawer-description" className="sr-only">
@@ -226,7 +211,7 @@ export const GardenWork: React.FC = () => {
                   defaultMessage: "Feedback",
                 })}
               </label>
-              <textarea
+              <Textarea
                 id="approval-feedback-input"
                 value={inlineFeedback}
                 onChange={(e) => setInlineFeedback(e.target.value)}
@@ -235,7 +220,7 @@ export const GardenWork: React.FC = () => {
                   defaultMessage:
                     "Add feedback for the gardener (optional for approval, required for rejection)...",
                 })}
-                className="gg-control gg-control-textarea min-h-[120px] max-h-[40vh] resize-none overflow-y-auto [touch-action:pan-y] [overscroll-behavior-y:auto]"
+                className="min-h-[120px] max-h-[40vh] resize-none overflow-y-auto [touch-action:pan-y] [overscroll-behavior-y:auto]"
               />
             </div>
 
@@ -279,76 +264,74 @@ export const GardenWork: React.FC = () => {
                   <>
                     <Button
                       onClick={handleRejectPress}
-                      label={intl.formatMessage({
+                      className="flex-1 touch-manipulation"
+                      emphasis="secondary"
+                      tone="danger"
+                      type="button"
+                      size="lg"
+                      leadingIcon={<RiCloseLine className="h-5 w-5" aria-hidden="true" />}
+                      disabled={workApprovalMutation.isPending || isActionExpired}
+                    >
+                      {intl.formatMessage({
                         id: "app.home.workApproval.reject",
                         defaultMessage: "Reject",
                       })}
-                      className="flex-1 touch-manipulation"
-                      variant="error"
-                      type="button"
-                      shape="regular"
-                      mode="stroke"
-                      size="medium"
-                      leadingIcon={<RiCloseLine className="w-5 h-5" />}
-                      disabled={workApprovalMutation.isPending || isActionExpired}
-                    />
+                    </Button>
                     <Button
                       onClick={handleApprovePress}
                       type="button"
-                      label={intl.formatMessage({
+                      className="flex-1 touch-manipulation"
+                      size="lg"
+                      leadingIcon={<RiCheckLine className="h-5 w-5" aria-hidden="true" />}
+                      disabled={workApprovalMutation.isPending || isActionExpired}
+                    >
+                      {intl.formatMessage({
                         id: "app.home.workApproval.approve",
                         defaultMessage: "Approve",
                       })}
-                      className="flex-1 touch-manipulation"
-                      variant="primary"
-                      mode="filled"
-                      size="medium"
-                      shape="regular"
-                      leadingIcon={<RiCheckLine className="w-5 h-5" />}
-                      disabled={workApprovalMutation.isPending || isActionExpired}
-                    />
+                    </Button>
                   </>
                 ) : (
                   // Feedback mode: Cancel/Submit
                   <>
                     <Button
                       onClick={handleCancelFeedback}
-                      label={intl.formatMessage({
+                      className="flex-1 touch-manipulation"
+                      emphasis="secondary"
+                      type="button"
+                      size="lg"
+                      disabled={workApprovalMutation.isPending}
+                    >
+                      {intl.formatMessage({
                         id: "app.common.cancel",
                         defaultMessage: "Cancel",
                       })}
-                      className="flex-1 touch-manipulation"
-                      variant="neutral"
-                      type="button"
-                      shape="regular"
-                      mode="stroke"
-                      size="medium"
-                      disabled={workApprovalMutation.isPending}
-                    />
+                    </Button>
                     <Button
                       onClick={handleSubmitApproval}
                       type="button"
-                      label={intl.formatMessage({
+                      className="flex-1 touch-manipulation"
+                      tone={feedbackMode === "reject" ? "danger" : "default"}
+                      size="lg"
+                      leadingIcon={
+                        feedbackMode === "approve" ? (
+                          <RiCheckLine className="h-5 w-5" aria-hidden="true" />
+                        ) : (
+                          <RiCloseLine className="h-5 w-5" aria-hidden="true" />
+                        )
+                      }
+                      loading={workApprovalMutation.isPending}
+                      disabled={
+                        !workApprovalMutation.isPending &&
+                        feedbackMode === "reject" &&
+                        !inlineFeedback
+                      }
+                    >
+                      {intl.formatMessage({
                         id: "app.common.submit",
                         defaultMessage: "Submit",
                       })}
-                      className="flex-1 touch-manipulation"
-                      variant={feedbackMode === "reject" ? "error" : "primary"}
-                      mode="filled"
-                      size="medium"
-                      shape="regular"
-                      leadingIcon={
-                        feedbackMode === "approve" ? (
-                          <RiCheckLine className="w-5 h-5" />
-                        ) : (
-                          <RiCloseLine className="w-5 h-5" />
-                        )
-                      }
-                      disabled={
-                        workApprovalMutation.isPending ||
-                        (feedbackMode === "reject" && !inlineFeedback)
-                      }
-                    />
+                    </Button>
                   </>
                 )}
               </div>
@@ -446,16 +429,19 @@ export const GardenWork: React.FC = () => {
               {metadataErrorDetail && (
                 <p className="mt-1 text-xs text-error-base">{metadataErrorDetail}</p>
               )}
-              <button
+              <Button
                 type="button"
+                emphasis="tertiary"
+                tone="danger"
+                size="compact"
                 onClick={handleRetryMetadataFetch}
-                className="mt-2 text-xs font-medium text-error-dark underline underline-offset-2 hover:text-error-base"
+                className="mt-2"
               >
                 {intl.formatMessage({
                   id: "app.home.work.retryMetadataLoad",
                   defaultMessage: "Retry Loading Details",
                 })}
-              </button>
+              </Button>
             </div>
           </div>
         )}

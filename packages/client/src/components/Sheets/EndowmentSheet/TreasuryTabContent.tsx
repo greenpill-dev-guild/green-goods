@@ -1,3 +1,5 @@
+import { Button } from "@green-goods/shared/components/Button";
+import { TextInput } from "@green-goods/shared/components/Form/ControlPrimitives";
 import type { Address } from "@green-goods/shared/types/domain";
 import { AssetSelector } from "@green-goods/shared/components/Vault/AssetSelector";
 import {
@@ -75,13 +77,9 @@ export function TreasuryTabContent({
           title={formatMessage({ id: "app.treasury.errorLoading" })}
           action={
             refetchVaults ? (
-              <button
-                type="button"
-                onClick={() => refetchVaults()}
-                className="rounded-[var(--radius-md)] bg-primary-action px-4 py-2.5 text-sm font-medium text-primary-action-foreground transition-colors duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)] hover:bg-primary-action-hover active:scale-95"
-              >
+              <Button type="button" onClick={() => refetchVaults()}>
                 {formatMessage({ id: "app.common.tryAgain" })}
-              </button>
+              </Button>
             ) : null
           }
         />
@@ -195,7 +193,7 @@ export function TreasuryTabContent({
 
             <div className="mt-3 space-y-2">
               <div className="flex items-center gap-2">
-                <input
+                <TextInput
                   type="text"
                   inputMode="decimal"
                   value={amountInput}
@@ -203,19 +201,18 @@ export function TreasuryTabContent({
                   placeholder={formatMessage({ id: "app.treasury.depositAmount" })}
                   aria-label={formatMessage({ id: "app.treasury.depositAmount" })}
                   aria-invalid={Boolean(inputError)}
-                  data-invalid={Boolean(inputError) || undefined}
-                  className="gg-control"
+                  invalid={Boolean(inputError)}
                 />
-                <button
+                <Button
                   type="button"
+                  emphasis="secondary"
                   onClick={() => {
                     if (!balance) return;
                     onAmountChange(formatUnits(balance.value, balance.decimals));
                   }}
-                  className="min-h-11 min-w-11 rounded-md border border-stroke-sub-300 bg-bg-white-0 px-3 py-2.5 text-xs font-medium text-text-sub-600 hover:bg-bg-weak-50"
                 >
                   {formatMessage({ id: "app.treasury.max" })}
-                </button>
+                </Button>
               </div>
 
               {inputError && (

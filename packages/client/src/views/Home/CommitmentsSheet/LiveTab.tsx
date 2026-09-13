@@ -1,5 +1,5 @@
 import { Alert } from "@green-goods/shared/components/Alert";
-import { cn } from "@green-goods/shared/utils/styles/cn";
+import { Chip } from "@green-goods/shared/components/Chip";
 import type { Garden } from "@green-goods/shared/types/domain";
 import { useOffline } from "@green-goods/shared/hooks/app/useOffline";
 import {
@@ -12,7 +12,6 @@ import { useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 
 import { CommitmentRow, CommitmentStateLadder } from "@/components/Features/Commitments";
-import { pwaStatusStyles } from "@/components/Pwa/statusStyles";
 import { PWA_SHEET_SCROLL_CLASSNAME } from "@/components/Pwa/sheetScrollStyles";
 import { gardenAddressFor, groupByGarden } from "./grouping";
 
@@ -125,24 +124,9 @@ export function LiveTab({ inbox, pools, gardens, onOpenCommitment }: LiveTabProp
         {DIRECTION_FILTERS.map((filter) => {
           const selected = filter.id === direction;
           return (
-            <button
-              key={filter.id}
-              type="button"
-              aria-pressed={selected}
-              onClick={() => setDirection(filter.id)}
-              className={cn(
-                "rounded-full border px-3 py-1.5 text-xs font-medium tap-target-lg",
-                selected
-                  ? cn(
-                      pwaStatusStyles.primary.border,
-                      pwaStatusStyles.primary.surface,
-                      pwaStatusStyles.primary.text
-                    )
-                  : "border-stroke-soft-200 text-text-sub-600"
-              )}
-            >
+            <Chip key={filter.id} selected={selected} onClick={() => setDirection(filter.id)}>
               {formatMessage({ id: filter.labelId })}
-            </button>
+            </Chip>
           );
         })}
       </div>

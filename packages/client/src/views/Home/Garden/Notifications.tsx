@@ -92,23 +92,13 @@ export const GardenNotifications: React.FC<GardenNotificationsProps> = ({
           action={
             <Button
               type="button"
-              variant="ghost"
-              size="sm"
+              emphasis="tertiary"
               onClick={() => {
                 onClose?.();
                 navigate(APP_ROUTES.garden, { state: { gardenId: garden.id } });
               }}
-              style={{
-                color: "rgb(var(--tone-action, var(--primary-action)))",
-                maxWidth: "100%",
-                minHeight: "44px",
-                minWidth: "44px",
-                overflowWrap: "anywhere",
-                paddingInline: "0.25rem",
-                whiteSpace: "normal",
-              }}
+              leadingIcon={<RiSeedlingFill className="h-4 w-4 shrink-0" aria-hidden="true" />}
             >
-              <RiSeedlingFill className="h-4 w-4 shrink-0" />
               {intl.formatMessage({
                 id: "app.home.notifications.visitGarden",
                 defaultMessage: "Visit Your Garden",

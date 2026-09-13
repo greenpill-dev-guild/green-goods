@@ -19,7 +19,9 @@
     color: var(--color-header-text);
   }
 
-  * {
+  /* This layer outranks the shared controls' components layer, so the editorial field keeps
+     its own serif face. */
+  *:where(:not(.gg-control[data-surface="editorial"])) {
     font-family: var(--font-family-sans);
   }
 
@@ -174,8 +176,13 @@
   }
 
   a {
-    color: var(--color-primary);
     text-decoration: none;
+  }
+
+  /* Links rendered as shared buttons take their colour from their emphasis, not the link
+     colour; this layer would otherwise outrank the shared controls. */
+  a:where(:not(.gg-button, .gg-icon-button, .gg-chip)) {
+    color: var(--color-primary);
   }
 
   ul {

@@ -1,3 +1,6 @@
+import { Button } from "@green-goods/shared/components/Button";
+import { TextInput } from "@green-goods/shared/components/Form/ControlPrimitives";
+import { IconButton } from "@green-goods/shared/components/IconButton";
 import type { Address } from "@green-goods/shared/types/domain";
 import {
   buildRecipientDirectory,
@@ -93,23 +96,20 @@ export function RecipientPicker({ selectedAddress, onSelect }: RecipientPickerPr
     <div className="space-y-3 p-4">
       {/* Search / paste / ENS input with QR affordance */}
       <div className="flex items-center gap-2">
-        <input
+        <TextInput
           type="text"
           value={query}
           onChange={(event) => setQuery(event.target.value)}
           placeholder={formatMessage({ id: "app.send.recipient.searchPlaceholder" })}
           aria-label={formatMessage({ id: "app.send.recipient.searchPlaceholder" })}
-          className="gg-control"
         />
         {isQrScanSupported() ? (
-          <button
-            type="button"
+          <IconButton
+            emphasis="secondary"
             onClick={() => setShowScanner(true)}
             aria-label={formatMessage({ id: "app.send.qr.scan" })}
-            className="flex min-h-11 min-w-11 items-center justify-center rounded-md border border-stroke-sub-300 bg-bg-white-0 text-text-sub-600 hover:bg-bg-weak-50"
-          >
-            <RiQrScan2Line className="h-5 w-5" aria-hidden />
-          </button>
+            icon={<RiQrScan2Line aria-hidden="true" />}
+          />
         ) : null}
       </div>
 
@@ -171,14 +171,17 @@ export function RecipientPicker({ selectedAddress, onSelect }: RecipientPickerPr
       {/* Garden drill-down: members of one browsed garden */}
       {!trimmed && browseGarden ? (
         <section className="space-y-2">
-          <button
+          <Button
             type="button"
+            emphasis="tertiary"
+            size="compact"
             onClick={() => setBrowseGardenId(null)}
-            className="flex items-center gap-1 text-xs font-medium text-text-sub-600 hover:text-text-strong-950"
+            leadingIcon={<RiArrowLeftLine className="h-4 w-4" aria-hidden="true" />}
+            // The negative margin keeps the label on the content edge at rest.
+            className="-ml-3"
           >
-            <RiArrowLeftLine className="h-4 w-4" aria-hidden />
             {formatMessage({ id: "app.send.recipient.backToGardens" })}
-          </button>
+          </Button>
           <h4
             className="truncate text-xs font-medium uppercase tracking-wide text-text-soft-400"
             title={browseGarden.gardenName}
@@ -264,6 +267,7 @@ export function RecipientPicker({ selectedAddress, onSelect }: RecipientPickerPr
                 <button
                   key={group.gardenId}
                   type="button"
+                  data-pressable="row"
                   onClick={() => setBrowseGardenId(group.gardenId)}
                   className="flex w-full items-center justify-between gap-3 rounded-lg border border-stroke-soft-200 bg-bg-white-0 p-2.5 text-left transition duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)] hover:bg-bg-weak-50"
                 >

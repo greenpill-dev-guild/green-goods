@@ -1,4 +1,5 @@
 import { AudioPlayer } from "@green-goods/shared/components/Audio/AudioPlayer";
+import { IconButton } from "@green-goods/shared/components/IconButton";
 import { cn } from "@green-goods/shared/utils/styles/cn";
 import { isVideoFile } from "@green-goods/shared/modules/work/media-processing";
 import { mediaResourceManager } from "@green-goods/shared/modules/job-queue/media-resource-manager";
@@ -91,6 +92,7 @@ export function ProofMedia({
 
       <button
         type="button"
+        data-pressable="trigger"
         onClick={() => inputRef.current?.click()}
         disabled={isProcessing}
         className="flex w-full flex-col items-center justify-center gap-2 rounded-[var(--radius-lg)] border border-dashed border-stroke-soft-200 bg-bg-weak-50 p-6 text-sm text-text-sub-600 tap-target-lg disabled:opacity-60"
@@ -146,6 +148,7 @@ export function ProofMedia({
               ) : (
                 <button
                   type="button"
+                  data-pressable="media"
                   onClick={() => onPreview(index)}
                   className="block w-full"
                   aria-label={formatMessage({ id: "app.proof.media.preview" }, { name: file.name })}
@@ -153,14 +156,14 @@ export function ProofMedia({
                   <img src={urls[index]} alt="" className="aspect-[4/3] w-full object-cover" />
                 </button>
               )}
-              <button
-                type="button"
+              <IconButton
+                emphasis="secondary"
+                size="compact"
                 onClick={() => onRemoveMedia(index)}
                 aria-label={formatMessage({ id: "app.proof.media.remove" }, { name: file.name })}
-                className="absolute right-2 top-2 rounded-full bg-bg-white-0/90 p-1.5 text-text-strong-950 shadow-sm tap-target-lg"
-              >
-                <RiCloseLine className="h-4 w-4" aria-hidden="true" />
-              </button>
+                className="absolute right-2 top-2 shadow-sm"
+                icon={<RiCloseLine aria-hidden="true" />}
+              />
             </li>
           ))}
           {audioNotes.map((file, index) => (

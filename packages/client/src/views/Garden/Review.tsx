@@ -1,3 +1,4 @@
+import { Button } from "@green-goods/shared/components/Button";
 import { AudioPlayer } from "@green-goods/shared/components/Audio/AudioPlayer";
 import { useWorkPreviewUrls } from "@green-goods/shared/hooks/work/useWorkImages";
 import { getWorkMediaId, isVideoFile } from "@green-goods/shared/modules/work/media-processing";
@@ -170,16 +171,17 @@ export const WorkReview: React.FC<WorkReviewProps> = ({
               { count: brokenCount }
             )}
           </p>
-          <button
+          <Button
             type="button"
-            className="self-start min-h-11 rounded-[var(--radius-md)] border border-stroke-sub-300 bg-bg-white-0 px-3 text-sm font-medium text-text-strong-950"
+            emphasis="secondary"
+            className="self-start"
             onClick={() => onRemoveBrokenMedia?.("review")}
           >
             {intl.formatMessage({
               id: "app.garden.review.removeBrokenMedia",
               defaultMessage: "Remove Broken Media",
             })}
-          </button>
+          </Button>
         </div>
       )}
 
@@ -226,17 +228,19 @@ export const WorkReview: React.FC<WorkReviewProps> = ({
                     </p>
                   </div>
                 </div>
-                <button
+                <Button
                   type="button"
+                  emphasis="tertiary"
+                  size="compact"
                   onClick={onClearCommitment}
-                  className="flex min-h-11 shrink-0 items-center gap-1 rounded-[var(--radius-md)] px-2 text-xs font-medium text-text-sub-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-alpha-24"
+                  leadingIcon={<RiCloseLine className="h-4 w-4" aria-hidden="true" />}
+                  className="shrink-0"
                 >
-                  <RiCloseLine className="h-4 w-4" aria-hidden />
                   {intl.formatMessage({
                     id: "app.garden.commitment.none",
                     defaultMessage: "Not for a Commitment",
                   })}
-                </button>
+                </Button>
               </div>
             </section>
           ) : null

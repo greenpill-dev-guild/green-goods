@@ -1,5 +1,6 @@
 import { Alert } from "@green-goods/shared/components/Alert";
-import { cn } from "@green-goods/shared/utils/styles/cn";
+import { Chip } from "@green-goods/shared/components/Chip";
+import { Textarea } from "@green-goods/shared/components/Form/ControlPrimitives";
 import { RiWifiOffLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
 
@@ -40,20 +41,9 @@ export function ConfirmNotYet({
           const label = formatMessage({ id: `app.confirm.notYet.chip.${chip}` });
           const selected = draftReason.trim() === label;
           return (
-            <button
-              key={chip}
-              type="button"
-              aria-pressed={selected}
-              onClick={() => setDraftReason(label)}
-              className={cn(
-                "rounded-full border px-3 py-1.5 text-xs font-medium tap-target-lg",
-                selected
-                  ? "border-primary-alpha-24 bg-primary-alpha-10 text-primary"
-                  : "border-stroke-soft-200 text-text-sub-600"
-              )}
-            >
+            <Chip key={chip} selected={selected} onClick={() => setDraftReason(label)}>
               {label}
-            </button>
+            </Chip>
           );
         })}
       </div>
@@ -61,14 +51,14 @@ export function ConfirmNotYet({
         <label className="block text-sm font-medium text-text-strong-950" htmlFor="confirm-not-yet">
           {formatMessage({ id: "app.confirm.notYet.label" })}
         </label>
-        <textarea
+        <Textarea
           id="confirm-not-yet"
           value={draftReason}
           rows={3}
           maxLength={2000}
           placeholder={formatMessage({ id: `app.confirm.notYet.placeholder.${cast}` })}
           onChange={(event) => setDraftReason(event.target.value)}
-          className="gg-control gg-control-textarea mt-1.5"
+          className="mt-1.5"
         />
       </div>
       {notYetFailed ? (

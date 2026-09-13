@@ -1,3 +1,5 @@
+import { Button } from "@green-goods/shared/components/Button";
+import { IconButton } from "@green-goods/shared/components/IconButton";
 import { AudioPlayer } from "@green-goods/shared/components/Audio/AudioPlayer";
 import { toastService } from "@green-goods/shared/components/Toast/toast.service";
 import { track } from "@green-goods/shared/modules/app/posthog";
@@ -564,16 +566,17 @@ export const WorkMedia: React.FC<WorkMediaProps> = ({
               { count: brokenCount }
             )}
           </p>
-          <button
+          <Button
             type="button"
-            className="self-start min-h-11 rounded-[var(--radius-md)] border border-stroke-sub-300 bg-bg-white-0 px-3 text-sm font-medium text-text-strong-950"
+            emphasis="secondary"
+            className="self-start"
             onClick={removeBrokenMedia}
           >
             {intl.formatMessage({
               id: "app.garden.upload.removeBrokenMedia",
               defaultMessage: "Remove Broken Media",
             })}
-          </button>
+          </Button>
         </div>
       )}
 
@@ -643,6 +646,7 @@ export const WorkMedia: React.FC<WorkMediaProps> = ({
                   {!isPlaying && (
                     <button
                       type="button"
+                      data-pressable="media"
                       className="absolute inset-0 flex items-center justify-center rounded-[var(--radius-lg)] bg-[var(--color-overlay)]"
                       onClick={() => setPlayingVideoId(mediaId)}
                     >
@@ -658,8 +662,9 @@ export const WorkMedia: React.FC<WorkMediaProps> = ({
                     </div>
                   )}
                   {/* Remove button */}
-                  <button
-                    type="button"
+                  <IconButton
+                    emphasis="secondary"
+                    size="compact"
                     aria-label={intl.formatMessage(
                       {
                         id: "app.garden.upload.removeMedia",
@@ -667,13 +672,12 @@ export const WorkMedia: React.FC<WorkMediaProps> = ({
                       },
                       { index: index + 1 }
                     )}
-                    className="flex items-center justify-center min-h-11 min-w-11 bg-bg-white-0 border border-stroke-sub-300 rounded-lg absolute top-2 right-2 z-10"
+                    className="absolute top-2 right-2 z-10"
                     onClick={() => {
                       removeMedia(file);
                     }}
-                  >
-                    <RiCloseLine className="w-4 h-4" />
-                  </button>
+                    icon={<RiCloseLine aria-hidden="true" />}
+                  />
                 </div>
               );
             }
@@ -684,6 +688,7 @@ export const WorkMedia: React.FC<WorkMediaProps> = ({
               <div key={mediaId} className="relative">
                 <button
                   type="button"
+                  data-pressable="media"
                   className="relative group cursor-pointer w-full"
                   disabled={isBroken}
                   onClick={() => {
@@ -710,20 +715,20 @@ export const WorkMedia: React.FC<WorkMediaProps> = ({
                     })}
                   </div>
                 )}
-                <button
-                  type="button"
+                <IconButton
+                  emphasis="secondary"
+                  size="compact"
                   aria-label={intl.formatMessage(
                     { id: "app.garden.upload.removeMedia", defaultMessage: "Remove media {index}" },
                     { index: index + 1 }
                   )}
-                  className="flex items-center justify-center min-h-11 min-w-11 bg-bg-white-0 border border-stroke-sub-300 rounded-lg absolute top-2 right-2 z-10"
+                  className="absolute top-2 right-2 z-10"
                   onClick={(e) => {
                     e.stopPropagation();
                     removeMedia(file);
                   }}
-                >
-                  <RiCloseLine className="w-4 h-4" />
-                </button>
+                  icon={<RiCloseLine aria-hidden="true" />}
+                />
               </div>
             );
           })}

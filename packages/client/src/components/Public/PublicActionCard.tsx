@@ -37,6 +37,7 @@ export function PublicActionCard({ action, onOpen }: PublicActionCardProps) {
   return (
     <button
       type="button"
+      data-pressable="card"
       onClick={() => onOpen(action)}
       className="group flex h-full flex-col gap-4 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-action focus-visible:ring-offset-2"
     >

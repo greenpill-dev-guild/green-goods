@@ -1,10 +1,11 @@
+import { Button } from "@green-goods/shared/components/Button";
+import { TextInput } from "@green-goods/shared/components/Form/ControlPrimitives";
 import { APP_NAME } from "@green-goods/shared/config/app";
 import { cn } from "@green-goods/shared/utils/styles/cn";
 import type React from "react";
 import { useIntl } from "react-intl";
 import { Link } from "react-router-dom";
 
-import { Button } from "../Actions";
 import { SplashScaffold } from "./SplashScaffold";
 import { pwaStatusStyles } from "@/components/Pwa/statusStyles";
 
@@ -100,13 +101,13 @@ export const Splash: React.FC<SplashProps> = ({
   ]
     .filter(Boolean)
     .join(" ");
+  // Keeps the shared press morph (border-radius, transform) in the transition
+  // list while the reserve pattern fades the slot's opacity.
   const effectsTransition =
-    "transition-[opacity,color,border-color,background-color,box-shadow] duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)]";
+    "transition-[opacity,color,border-color,background-color,box-shadow,border-radius,transform] duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)]";
   const tertiaryClassName = cn(
-    "text-xs underline transition-[color,opacity] duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)]",
-    !busy
-      ? "text-foreground hover:text-primary opacity-100"
-      : "text-text-soft-400 opacity-0 pointer-events-none"
+    effectsTransition,
+    !busy ? "opacity-100" : "opacity-0 pointer-events-none"
   );
 
   const inputElement = usernameInput ? (
@@ -121,7 +122,7 @@ export const Splash: React.FC<SplashProps> = ({
             defaultMessage: "Username or ENS handle",
           })}
       </label>
-      <input
+      <TextInput
         id={usernameInputId}
         type="text"
         value={usernameInput.value ?? ""}
@@ -132,8 +133,7 @@ export const Splash: React.FC<SplashProps> = ({
         aria-describedby={usernameDescription || undefined}
         aria-invalid={Boolean(errorMessage)}
         data-testid="username-input"
-        data-invalid={Boolean(errorMessage) || undefined}
-        className="gg-control rounded-full px-4 text-center"
+        className="px-4 text-center"
         disabled={busy}
         onKeyDown={(e) => {
           if (e.key === "Enter" && login && !isLoginDisabled && !busy) {
@@ -149,28 +149,26 @@ export const Splash: React.FC<SplashProps> = ({
 
   const primaryButton = login ? (
     <Button
+      type="button"
       onClick={login}
+      loading={Boolean(loadingState)}
       disabled={isLoggingIn || isLoginDisabled}
-      isLoading={Boolean(loadingState)}
       className={cn("w-full", effectsTransition)}
-      shape="pilled"
       data-testid="login-button"
-      label={buttonLabel}
       title={buttonTitle}
-    />
+    >
+      <span className="min-w-0 truncate">{buttonLabel}</span>
+    </Button>
   ) : null;
 
   // Secondary renders only on entry screens; the reserve pattern (opacity +
   // tabIndex + aria-hidden) keeps the slot stable when no action is offered.
   const secondaryButton = usernameInput ? null : (
     <Button
-      variant="primary"
-      mode="stroke"
-      size="small"
-      shape="pilled"
+      type="button"
+      emphasis="secondary"
       onClick={secondaryAction?.onSelect}
       disabled={!secondaryAction || secondaryAction.isDisabled || busy}
-      label={secondaryAction?.label || "Login with wallet"}
       data-testid="secondary-action-button"
       className={cn(
         "w-full",
@@ -181,7 +179,9 @@ export const Splash: React.FC<SplashProps> = ({
       )}
       aria-hidden={!secondaryAction}
       tabIndex={secondaryAction ? 0 : -1}
-    />
+    >
+      {secondaryAction?.label || "Login with wallet"}
+    </Button>
   );
 
   return (
@@ -243,8 +243,10 @@ export const Splash: React.FC<SplashProps> = ({
       tertiary={
         tertiaryAction ? (
           tertiaryAction.onClick ? (
-            <button
+            <Button
               type="button"
+              emphasis="tertiary"
+              size="compact"
               onClick={tertiaryAction.onClick}
               className={tertiaryClassName}
               tabIndex={!busy ? 0 : -1}
@@ -252,17 +254,18 @@ export const Splash: React.FC<SplashProps> = ({
               disabled={busy}
             >
               {tertiaryAction.label}
-            </button>
+            </Button>
           ) : (
-            <Link
-              to={tertiaryAction.href || "#"}
-              viewTransition
-              className={tertiaryClassName}
-              tabIndex={!busy ? 0 : -1}
-              aria-hidden={busy}
-            >
-              {tertiaryAction.label}
-            </Link>
+            <Button asChild emphasis="tertiary" size="compact" className={tertiaryClassName}>
+              <Link
+                to={tertiaryAction.href || "#"}
+                viewTransition
+                tabIndex={!busy ? 0 : -1}
+                aria-hidden={busy}
+              >
+                {tertiaryAction.label}
+              </Link>
+            </Button>
           )
         ) : (
           <span className="text-xs text-transparent"> </span>

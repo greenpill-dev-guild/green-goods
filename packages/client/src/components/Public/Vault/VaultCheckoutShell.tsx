@@ -1,5 +1,7 @@
+import { Button } from "@green-goods/shared/components/Button";
 import { DialogShell } from "@green-goods/shared/components/Dialog/DialogShell";
 import { PwaSheet } from "@green-goods/shared/components/Dialog/PwaSheet";
+import { IconButton } from "@green-goods/shared/components/IconButton";
 import { cn } from "@green-goods/shared/utils/styles/cn";
 import { useMediaQuery } from "@green-goods/shared/hooks/ui/useMediaQuery";
 import { RiCloseLine, RiInformationLine } from "@remixicon/react";
@@ -19,22 +21,11 @@ import { useIntl, type IntlShape } from "react-intl";
  * Shared layout + control primitives for the /vaults checkout surface.
  *
  * Desktop renders through DialogShell while mobile renders through the PWA bottom
- * sheet primitive. Controls are square per the transaction-flow treatment; these
- * classes are scoped to vault checkout and do not touch the global editorial CTA
- * atoms.
+ * sheet primitive. The surface stays square as an editorial panel, while its
+ * actions come from the shared Button and IconButton (DL-024).
  */
 
 export type CheckoutMethod = "wallet";
-
-// Square transaction controls (no rounded capsules inside the checkout).
-export const CHECKOUT_PRIMARY_BUTTON =
-  "inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-none border border-primary-action bg-primary-action px-6 py-3 text-sm font-semibold text-primary-action-foreground transition-colors hover:bg-primary-action-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-action focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:border-stroke-soft-200 disabled:bg-stroke-soft-200 disabled:text-text-soft-400";
-
-export const CHECKOUT_GHOST_BUTTON =
-  "inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-none border border-stroke-soft-200 bg-bg-white-0 px-6 py-3 text-sm font-semibold text-text-sub-600 transition-colors hover:bg-bg-weak-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-action focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:bg-stroke-soft-200 disabled:text-text-soft-400";
-
-export const CHECKOUT_INPUT =
-  "w-full rounded-none border border-stroke-soft-200 bg-bg-white-0 px-4 py-3 text-base text-text-strong-950 outline-none transition-colors placeholder:text-text-soft-400 focus:border-primary-action disabled:cursor-not-allowed disabled:bg-bg-weak-50 disabled:text-text-soft-400";
 
 export const CHECKOUT_FIELD_LABEL =
   "block font-mono text-[11px] uppercase tracking-[0.16em] text-text-soft-400";
@@ -196,15 +187,13 @@ export function CheckoutSurface({
               <p className="sr-only">{description}</p>
             </div>
             {!hideCloseButton ? (
-              <button
-                type="button"
+              <IconButton
                 data-testid="vault-checkout-sheet-close"
                 aria-label={closeLabel}
                 onClick={handleClose}
-                className="inline-flex size-10 shrink-0 items-center justify-center rounded-none text-text-sub-600 transition-colors hover:bg-bg-weak-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-action"
-              >
-                <RiCloseLine className="size-5" aria-hidden />
-              </button>
+                className="shrink-0"
+                icon={<RiCloseLine aria-hidden="true" />}
+              />
             ) : null}
           </div>
           <div className="flex min-h-0 flex-1 flex-col overflow-hidden">{children}</div>
@@ -379,18 +368,21 @@ export function CheckoutTransactionDetails({
 
   return (
     <div className={cn("relative border-t border-stroke-soft-200 pt-3", className)}>
-      <button
+      <Button
         ref={triggerRef}
         type="button"
+        emphasis="tertiary"
+        size="compact"
         aria-haspopup="dialog"
         aria-expanded={open}
         aria-controls={contentId}
         onClick={() => setOpen((value) => !value)}
-        className="inline-flex items-center gap-1.5 font-mono text-[11px] uppercase tracking-[0.16em] text-text-soft-400 underline-offset-2 transition-colors hover:text-text-sub-600 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-action focus-visible:ring-offset-2"
+        leadingIcon={<RiInformationLine className="size-3.5" aria-hidden />}
+        // The negative margin keeps the label on the content edge at rest.
+        className="-ml-3 font-mono text-[11px] uppercase tracking-[0.16em]"
       >
-        <RiInformationLine className="size-3.5" aria-hidden />
         {label}
-      </button>
+      </Button>
       {open ? (
         <div // eslint-disable-line jsx-a11y/no-noninteractive-element-interactions -- popover dialog is focusable via tabIndex={-1}; Escape closes it
           ref={contentRef}
@@ -457,14 +449,10 @@ export function CheckoutSummary({
           ))}
         </dl>
         {onEdit ? (
-          <button
-            type="button"
-            onClick={onEdit}
-            className="shrink-0 rounded-none px-2 py-1 text-xs font-semibold text-primary-base underline-offset-2 transition-colors hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-action focus-visible:ring-offset-1"
-          >
+          <Button type="button" emphasis="tertiary" size="compact" onClick={onEdit}>
             {editLabel ??
               formatMessage({ id: "public.vaults.checkout.edit", defaultMessage: "Edit" })}
-          </button>
+          </Button>
         ) : null}
       </div>
     </div>

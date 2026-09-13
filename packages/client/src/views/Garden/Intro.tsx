@@ -1,12 +1,12 @@
+import { Button } from "@green-goods/shared/components/Button";
 import { type Action, Domain, type Garden } from "@green-goods/shared/types/domain";
 import { expandDomainMask, hasDomain } from "@green-goods/shared/utils/domain";
 import { hapticSelection } from "@green-goods/shared/utils/app/haptics";
 import { parseActionUID } from "@green-goods/shared/utils/action/parsers";
 import { localizeAction } from "@green-goods/shared/utils/action/translations";
-import { RiHammerFill, RiLoader4Line, RiPlantFill, RiUserAddLine } from "@remixicon/react";
+import { RiHammerFill, RiPlantFill, RiUserAddLine } from "@remixicon/react";
 import React, { useMemo } from "react";
 import { useIntl } from "react-intl";
-import { Button } from "@/components/Actions";
 import { ActionCard } from "@/components/Cards/Action/ActionCard";
 import { ActionCardSkeleton } from "@/components/Cards/Action/ActionCardSkeleton";
 import { FormInfo } from "@/components/Cards/Form/FormInfo";
@@ -360,25 +360,18 @@ export const WorkIntro: React.FC<WorkIntroProps> = ({
                     </div>
                   </div>
                   <Button
-                    variant="primary"
-                    mode="filled"
-                    size="small"
+                    type="button"
+                    size="sm"
                     onClick={onJoinCommunityGarden}
-                    disabled={isJoiningCommunityGarden}
-                    aria-busy={isJoiningCommunityGarden || undefined}
-                    leadingIcon={
-                      isJoiningCommunityGarden ? (
-                        <RiLoader4Line className="h-4 w-4 animate-spin" aria-hidden />
-                      ) : (
-                        <RiUserAddLine className="h-4 w-4" />
-                      )
-                    }
-                    label={intl.formatMessage({
+                    loading={isJoiningCommunityGarden}
+                    leadingIcon={<RiUserAddLine className="h-4 w-4" aria-hidden="true" />}
+                    className="w-full"
+                  >
+                    {intl.formatMessage({
                       id: "app.garden.communityOnramp.action",
                       defaultMessage: "Join Garden",
                     })}
-                    className="w-full"
-                  />
+                  </Button>
                 </div>
               </CarouselItem>
             )}

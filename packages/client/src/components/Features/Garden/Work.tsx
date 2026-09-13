@@ -1,7 +1,8 @@
+import { Button } from "@green-goods/shared/components/Button";
 import { useGardenOfflineContent } from "@green-goods/shared/hooks/offline/useOfflineContent";
 import { useNavigateToTop } from "@green-goods/shared/hooks/app/useNavigateToTop";
 import type { Action, Work } from "@green-goods/shared/types/domain";
-import { RiErrorWarningLine, RiInboxLine, RiLoader4Line, RiRefreshLine } from "@remixicon/react";
+import { RiErrorWarningLine, RiInboxLine, RiRefreshLine } from "@remixicon/react";
 import React, { forwardRef, memo, type UIEvent, useCallback, useMemo } from "react";
 import { useIntl } from "react-intl";
 import { MinimalWorkCard } from "@/components/Cards";
@@ -220,29 +221,22 @@ export const GardenWork = forwardRef<HTMLUListElement, GardenWorkProps>(
               })}
               action={
                 onRefresh && !isOffline ? (
-                  <button
+                  <Button
+                    type="button"
                     onClick={onRefresh}
-                    disabled={isFetching}
-                    className="flex items-center gap-2 rounded-[var(--radius-md)] bg-primary-action px-4 py-2 text-sm font-medium text-primary-action-foreground transition-colors duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)] hover:bg-primary-action-hover disabled:cursor-not-allowed disabled:opacity-50"
+                    loading={isFetching}
+                    leadingIcon={<RiRefreshLine className="h-4 w-4" aria-hidden="true" />}
                   >
-                    {isFetching ? (
-                      <>
-                        <RiLoader4Line className="w-4 h-4 animate-spin" />
-                        {intl.formatMessage({
+                    {isFetching
+                      ? intl.formatMessage({
                           id: "app.common.refreshing",
                           defaultMessage: "Refreshing...",
-                        })}
-                      </>
-                    ) : (
-                      <>
-                        <RiRefreshLine className="h-4 w-4" />
-                        {intl.formatMessage({
+                        })
+                      : intl.formatMessage({
                           id: "app.common.tryAgain",
                           defaultMessage: "Try Again",
                         })}
-                      </>
-                    )}
-                  </button>
+                  </Button>
                 ) : null
               }
             />
@@ -259,29 +253,23 @@ export const GardenWork = forwardRef<HTMLUListElement, GardenWorkProps>(
               })}
               action={
                 onRefresh && !isOffline ? (
-                  <button
+                  <Button
+                    type="button"
+                    emphasis="secondary"
                     onClick={onRefresh}
-                    disabled={isFetching}
-                    className="flex items-center gap-1.5 rounded-[var(--radius-md)] border border-stroke-soft-200 px-3 py-1.5 text-xs font-medium text-text-sub-600 transition-colors duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)] hover:bg-bg-weak-50 disabled:cursor-not-allowed disabled:opacity-50"
+                    loading={isFetching}
+                    leadingIcon={<RiRefreshLine className="h-4 w-4" aria-hidden="true" />}
                   >
-                    {isFetching ? (
-                      <>
-                        <RiLoader4Line className="w-3 h-3 animate-spin" />
-                        {intl.formatMessage({
+                    {isFetching
+                      ? intl.formatMessage({
                           id: "app.common.refreshing",
                           defaultMessage: "Refreshing...",
-                        })}
-                      </>
-                    ) : (
-                      <>
-                        <RiRefreshLine className="h-3.5 w-3.5" />
-                        {intl.formatMessage({
+                        })
+                      : intl.formatMessage({
                           id: "app.common.refresh",
                           defaultMessage: "Refresh",
                         })}
-                      </>
-                    )}
-                  </button>
+                  </Button>
                 ) : null
               }
             />

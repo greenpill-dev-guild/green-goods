@@ -1,5 +1,6 @@
 import { cn } from "@green-goods/shared/utils/styles/cn";
 import { formatTokenAmount } from "@green-goods/shared/utils/blockchain/vaults";
+import { Button } from "@green-goods/shared/components/Button";
 import { FormattedAmountInput } from "@green-goods/shared/components/Form/FormattedAmountInput";
 import type { SendableTokenBalance } from "@green-goods/shared/hooks/blockchain/useSendableTokens";
 import { RiCheckLine } from "@remixicon/react";
@@ -67,6 +68,7 @@ export function AmountStep({
                 <button
                   key={`${token.symbol}-${token.address}`}
                   type="button"
+                  data-pressable="row"
                   disabled={!selectable}
                   onClick={() => onSelectToken(token)}
                   aria-pressed={selected}
@@ -137,20 +139,10 @@ export function AmountStep({
             placeholder="0.0"
             aria-label={formatMessage({ id: "app.send.amount.label" })}
             aria-invalid={Boolean(validation.formatErrorId || validation.insufficient)}
-            inputClassName={cn(
-              "w-full rounded-md border px-3 py-2.5 text-sm text-text-strong-950 focus:outline-none focus:ring-2 focus:ring-primary-base/20",
-              validation.formatErrorId || validation.insufficient
-                ? "border-error-base focus:border-error-base"
-                : "border-stroke-sub-300 bg-bg-white-0 focus:border-primary-base"
-            )}
             endSlot={
-              <button
-                type="button"
-                onClick={onMax}
-                className="min-h-11 min-w-11 rounded-md border border-stroke-sub-300 bg-bg-white-0 px-3 py-2.5 text-xs font-medium text-text-sub-600 hover:bg-bg-weak-50"
-              >
+              <Button type="button" emphasis="secondary" onClick={onMax}>
                 {formatMessage({ id: "app.treasury.max" })}
-              </button>
+              </Button>
             }
             errorClassName="mt-2 text-xs text-error-dark"
             error={

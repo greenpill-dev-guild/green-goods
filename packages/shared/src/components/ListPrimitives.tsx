@@ -39,8 +39,9 @@ export function EmptyState({ icon, title, description, action }: EmptyStateProps
           {description}
         </p>
       )}
+      {/* Legacy variant: admin renders this empty state and keeps its current button. */}
       {action && (
-        <Button className="mt-4" size="sm" {...action}>
+        <Button className="mt-4" variant="primary" size="sm" {...action}>
           {action.label}
         </Button>
       )}

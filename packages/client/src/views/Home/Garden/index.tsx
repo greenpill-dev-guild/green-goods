@@ -1,5 +1,6 @@
 import { GOVERNANCE_ENABLED } from "@green-goods/shared/config/app";
 import { useCommitmentPools } from "@green-goods/shared/commitment-pooling";
+import { Button } from "@green-goods/shared/components/Button";
 import { GardenBannerFallback } from "@green-goods/shared/components/Display/GardenBannerFallback";
 import { ImageWithFallback } from "@green-goods/shared/components/Display/ImageWithFallback";
 import { toastService } from "@green-goods/shared/components/Toast/toast.service";
@@ -35,7 +36,6 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useIntl } from "react-intl";
 import { Outlet, useLocation, useParams } from "react-router-dom";
 import { isAddress } from "viem";
-import { Button } from "@/components/Actions";
 import { ConvictionSheet, EndowmentSheet } from "@/components/Sheets";
 import { GardenErrorBoundary } from "@/components/Errors";
 import {
@@ -252,16 +252,12 @@ export const Garden: React.FC = () => {
               defaultMessage: "Couldn't load this garden. Check your connection and try again.",
             })}
           </p>
-          <Button
-            variant="primary"
-            mode="filled"
-            size="small"
-            onClick={() => refetchGardens()}
-            label={intl.formatMessage({
+          <Button type="button" onClick={() => refetchGardens()}>
+            {intl.formatMessage({
               id: "app.garden.loadRetry",
               defaultMessage: "Try Again",
             })}
-          />
+          </Button>
         </div>
       );
     }
@@ -333,14 +329,14 @@ export const Garden: React.FC = () => {
           <>
             {/* Fixed Header (banner + TopNav + title/metadata) */}
             <div ref={headerRef} className="fixed top-0 left-0 right-0 bg-bg-white-0 z-20">
-              <div className="relative w-full h-36 md:h-44 overflow-hidden rounded-b-3xl">
+              <div className="relative w-full h-36 md:h-44 overflow-hidden rounded-b-2xl">
                 <ImageWithFallback
                   src={bannerImage || ""}
                   alt={`${name} banner`}
                   loading="eager"
                   className="absolute inset-0 w-full h-full object-cover object-center"
                   backgroundFallback={
-                    <GardenBannerFallback name={name} className="rounded-b-3xl" />
+                    <GardenBannerFallback name={name} className="rounded-b-2xl" />
                   }
                 />
                 <div className="absolute top-0 left-0 right-0 z-20">

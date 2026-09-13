@@ -1,3 +1,5 @@
+import { Button } from "@green-goods/shared/components/Button";
+import { TextInput, Textarea } from "@green-goods/shared/components/Form/ControlPrimitives";
 import type { Address } from "@green-goods/shared/types/domain";
 import { ConfirmDialog } from "@green-goods/shared/components/Dialog/ConfirmDialog";
 import type { CookieJar } from "@green-goods/shared/types/cookie-jar";
@@ -8,7 +10,6 @@ import {
 } from "@green-goods/shared/utils/blockchain/vaults";
 import { useCookieJarWithdraw } from "@green-goods/shared/hooks/cookie-jar/useCookieJarWithdraw";
 import { useOffline } from "@green-goods/shared/hooks/app/useOffline";
-import { RiLoader4Line } from "@remixicon/react";
 import { useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { formatUnits, parseUnits } from "viem";
@@ -69,6 +70,7 @@ export function CookieJarCard({ jar, gardenAddress, gardenName }: CookieJarCardP
     <div className="rounded-lg border border-stroke-soft-200 bg-bg-white-0 p-3">
       <button
         type="button"
+        data-pressable="row"
         onClick={() => setExpanded(!expanded)}
         className="flex w-full items-center justify-between gap-2"
       >
@@ -102,7 +104,7 @@ export function CookieJarCard({ jar, gardenAddress, gardenName }: CookieJarCardP
       {expanded && !jar.isPaused && (
         <div className="mt-3 space-y-2 border-t border-stroke-soft-200 pt-3">
           <div className="flex items-center gap-2">
-            <input
+            <TextInput
               type="text"
               inputMode="decimal"
               value={amountInput}
@@ -110,19 +112,18 @@ export function CookieJarCard({ jar, gardenAddress, gardenName }: CookieJarCardP
               placeholder={formatMessage({ id: "app.cookieJar.amount" })}
               aria-label={formatMessage({ id: "app.cookieJar.amount" })}
               aria-invalid={Boolean(inputError)}
-              data-invalid={Boolean(inputError) || undefined}
-              className="gg-control"
+              invalid={Boolean(inputError)}
             />
-            <button
+            <Button
               type="button"
+              emphasis="secondary"
               onClick={() => {
                 const max = jar.maxWithdrawal < jar.balance ? jar.maxWithdrawal : jar.balance;
                 setAmountInput(formatUnits(max, decimals));
               }}
-              className="min-h-11 min-w-11 rounded-md border border-stroke-sub-300 bg-bg-white-0 px-3 py-2.5 text-xs font-medium text-text-sub-600 hover:bg-bg-weak-50"
             >
               {formatMessage({ id: "app.treasury.max" })}
-            </button>
+            </Button>
           </div>
           {inputError && (
             <p className="text-xs text-error-dark" role="alert">
@@ -130,34 +131,32 @@ export function CookieJarCard({ jar, gardenAddress, gardenName }: CookieJarCardP
             </p>
           )}
 
-          <textarea
+          <Textarea
             value={purpose}
             onChange={(e) => setPurpose(e.target.value)}
             placeholder={formatMessage({ id: "app.cookieJar.purposePlaceholder" })}
             aria-label={formatMessage({ id: "app.cookieJar.purpose" })}
-            className="gg-control gg-control-textarea resize-none"
+            className="resize-none"
             rows={2}
           />
 
-          <button
+          <Button
             type="button"
+            emphasis="secondary"
             onClick={() => setShowConfirm(true)}
+            loading={withdrawMutation.isPending}
             disabled={
-              !isOnline ||
-              parsedAmount <= 0n ||
-              parsedAmount > jar.maxWithdrawal ||
-              parsedAmount > jar.balance ||
-              !purpose.trim() ||
-              withdrawMutation.isPending
+              !withdrawMutation.isPending &&
+              (!isOnline ||
+                parsedAmount <= 0n ||
+                parsedAmount > jar.maxWithdrawal ||
+                parsedAmount > jar.balance ||
+                !purpose.trim())
             }
-            aria-busy={withdrawMutation.isPending || undefined}
-            className="inline-flex w-full items-center justify-center gap-2 rounded-md border border-stroke-sub-300 bg-bg-white-0 px-3 py-2 text-sm font-medium text-text-sub-600 transition hover:bg-bg-weak-50 disabled:cursor-not-allowed disabled:opacity-60"
+            className="w-full"
           >
-            {withdrawMutation.isPending && (
-              <RiLoader4Line className="h-4 w-4 animate-spin" aria-hidden />
-            )}
             {formatMessage({ id: "app.cookieJar.withdraw" })}
-          </button>
+          </Button>
 
           <ConfirmDialog
             isOpen={showConfirm}

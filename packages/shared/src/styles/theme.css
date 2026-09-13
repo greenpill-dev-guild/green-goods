@@ -470,6 +470,8 @@
 
   /* ── Radius Aliases ── Public runtime aliases for DesignMD-generated radii. */
   --radius-md: var(--gg-radius-md);
+  /* 12px: app buttons of every emphasis, and actions inside a field (DL-026). */
+  --radius-squircle: var(--gg-radius-squircle);
   --radius-lg: var(--gg-radius-lg);
   --radius-xl: var(--gg-radius-xl);
   --radius-2xl: var(--gg-radius-2xl);
@@ -784,7 +786,8 @@
     width: 100%;
     min-height: 2.75rem;
     border: 1px solid rgb(var(--stroke-sub-300));
-    border-radius: var(--radius-xl);
+    /* Fields are a 16px rounded rectangle, never a pill (DL-022). */
+    border-radius: var(--radius-lg);
     /* background-color (not the shorthand) so .gg-control-select's chevron
        background-image survives — the shorthand resets background-image. */
     background-color: rgb(var(--bg-white-0));
@@ -838,6 +841,28 @@
     padding: 0.6875rem 1rem;
   }
 
+  /* A single-line field is exactly its scale height, whatever its text (DL-023).
+     Browsers grow a text input to its font's natural line box, so display-size
+     digits and editorial type pushed min-height fields to 45-56px. A fixed block
+     size with no vertical padding holds the step, and the browser centers the
+     text. The matching minimum keeps a flex-1 field in a stacked row from
+     collapsing to its text. The admin surface keeps its own metrics. */
+  input.gg-control:not([data-surface="admin"]) {
+    min-block-size: 2.75rem;
+    block-size: 2.75rem;
+    padding-block: 0;
+  }
+
+  input.gg-control[data-size="sm"]:not([data-surface="admin"]) {
+    min-block-size: 2.5rem;
+    block-size: 2.5rem;
+  }
+
+  input.gg-control[data-size="lg"]:not([data-surface="admin"]) {
+    min-block-size: 3rem;
+    block-size: 3rem;
+  }
+
   .gg-control[data-surface="admin"] {
     border-color: rgb(var(--stroke-sub-300));
     /* 8px to match the admin text fields (AdminTextField) — keeps every admin
@@ -872,6 +897,12 @@
     background-size: 1rem 1rem;
   }
 
+  /* The size rules reset the padding shorthand at a higher specificity, which
+     closed the lane: a small Month filter ran its label under the chevron. */
+  .gg-control-select[data-size] {
+    padding-right: 2.25rem;
+  }
+
   :root[data-theme="dark"] .gg-control-select,
   [data-theme="dark"] .gg-control-select {
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23a3a3a3' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
@@ -894,6 +925,12 @@
 
   .gg-control-trigger[data-placeholder] {
     color: rgb(var(--text-soft-400));
+  }
+
+  /* Select options sit concentric inside the 8px menu and its 4px padding. The
+   * utility class never generated in the apps (Tailwind skips shared JSX). */
+  [data-component="SelectItem"] {
+    border-radius: calc(var(--radius-md) - 0.25rem);
   }
 
   .gg-button {
@@ -1098,6 +1135,372 @@
     justify-content: center;
   }
 
+  /* ── Button emphasis API (DL-023, DL-026) ──
+   * The shared Button emits data-emphasis / data-tone / data-size. Emphasis sets
+   * the fill, outline, and colour; the corner comes from the surface, the same
+   * for every emphasis. Heights match the field scale (48 / 44 / 40 / 32), and
+   * the two short sizes carry a 48px hit area. The legacy variant classes above
+   * keep their old values for the shared internals admin still renders. */
+  .gg-button[data-size] {
+    position: relative;
+    cursor: pointer;
+  }
+
+  /* Button corner and label weight per surface (DL-026): the 12px squircle in the
+   * installed app and 16px on the public website, one step tighter while pressed.
+   * The website shell carries data-site="website"; the tokens sit on :root so
+   * dialogs and sheets that portal out of the shell match the page. */
+  :root {
+    --gg-button-radius: var(--radius-squircle);
+    --gg-button-radius-pressed: var(--radius-md);
+    --gg-button-weight: var(--text-label-sm--font-weight);
+  }
+
+  :root:has([data-site="website"]) {
+    --gg-button-radius: var(--radius-lg);
+    --gg-button-radius-pressed: var(--radius-squircle);
+    --gg-button-weight: var(--font-weight-semibold, 600);
+  }
+
+  .gg-button[data-emphasis] {
+    border-radius: var(--gg-button-radius);
+    font-weight: var(--gg-button-weight);
+  }
+
+  .gg-button[data-size="lg"] {
+    --gg-button-block: 3rem;
+    min-block-size: 3rem;
+    padding: 0.6875rem 1.25rem;
+    font-size: var(--text-label-md);
+    line-height: var(--text-label-md--line-height);
+  }
+
+  .gg-button[data-size="md"] {
+    --gg-button-block: 2.75rem;
+    min-block-size: 2.75rem;
+    padding: 0.5625rem 1rem;
+    font-size: var(--text-label-md);
+    line-height: var(--text-label-md--line-height);
+  }
+
+  .gg-button[data-size="sm"] {
+    --gg-button-block: 2.5rem;
+    min-block-size: 2.5rem;
+    padding: 0.5625rem 0.875rem;
+  }
+
+  .gg-button[data-size="compact"] {
+    --gg-button-block: 2rem;
+    min-block-size: 2rem;
+    gap: 0.375rem;
+    padding: 0.3125rem 0.75rem;
+  }
+
+  /* Hit areas: an absolute box is laid out against the padding box, inside the
+   * 1px border, so each inset gives the border back to reach the full size. */
+  .gg-button[data-size="sm"]::after,
+  .gg-button[data-size="compact"]::after {
+    content: "";
+    position: absolute;
+    inset: calc((var(--gg-button-block) - 3rem) / 2 - 1px) calc(-0.25rem - 1px);
+    border-radius: inherit;
+  }
+
+  .gg-button[data-emphasis="primary"] {
+    background: rgb(var(--tone-action, var(--primary-action)));
+    color: rgb(var(--tone-on-action, var(--primary-action-foreground)));
+  }
+
+  .gg-button[data-emphasis="primary"]:hover {
+    background: rgb(var(--tone-action-hover, var(--primary-action-hover)));
+  }
+
+  .gg-button[data-emphasis="primary"][data-tone="danger"] {
+    background: rgb(var(--error-base));
+    color: rgb(var(--static-white, var(--neutral-0)));
+  }
+
+  .gg-button[data-emphasis="primary"][data-tone="danger"]:hover {
+    background: rgb(var(--error-dark, var(--red-700)));
+  }
+
+  .gg-button[data-emphasis="primary"][data-tone="warning"] {
+    background: rgb(var(--warning-base));
+    color: rgb(var(--static-white, var(--neutral-0)));
+  }
+
+  .gg-button[data-emphasis="primary"][data-tone="warning"]:hover {
+    background: rgb(var(--warning-dark));
+  }
+
+  .gg-button[data-emphasis="secondary"] {
+    border-color: rgb(var(--stroke-sub-300));
+    background: rgb(var(--bg-white-0));
+    color: rgb(var(--text-strong-950));
+  }
+
+  .gg-button[data-emphasis="secondary"]:hover {
+    background: rgb(var(--bg-weak-50));
+  }
+
+  .gg-button[data-emphasis="secondary"][data-tone="danger"] {
+    border-color: rgb(var(--error-base));
+    color: rgb(var(--error-base));
+  }
+
+  .gg-button[data-emphasis="secondary"][data-tone="danger"]:hover {
+    background: rgb(var(--error-base) / 0.08);
+  }
+
+  .gg-button[data-emphasis="tertiary"] {
+    border-color: transparent;
+    background: transparent;
+    color: rgb(var(--text-sub-600));
+  }
+
+  .gg-button[data-emphasis="tertiary"]:hover {
+    background: rgb(var(--bg-weak-50));
+    color: rgb(var(--text-strong-950));
+  }
+
+  .gg-button[data-emphasis="tertiary"][data-tone="danger"] {
+    color: rgb(var(--error-base));
+  }
+
+  .gg-button[data-emphasis="tertiary"][data-tone="danger"]:hover {
+    background: rgb(var(--error-base) / 0.08);
+    color: rgb(var(--error-base));
+  }
+
+  /* Press morph (DL-001): a filled or outlined button tightens one step while
+   * pressed. Reduced motion keeps the resting corner (see the end of this layer). */
+  .gg-button[data-emphasis="primary"]:active,
+  .gg-button[data-emphasis="secondary"]:active {
+    border-radius: var(--gg-button-radius-pressed);
+  }
+
+  /* ── Icon button (DL-026) ── A circle at 48 / 44 / 40 / 32 whose hit area never
+   * drops below 48px. Tertiary (transparent) by default; secondary is outlined;
+   * primary is filled. */
+  .gg-icon-button {
+    --gg-icon-button-size: 2.75rem;
+    position: relative;
+    display: inline-flex;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    inline-size: var(--gg-icon-button-size);
+    block-size: var(--gg-icon-button-size);
+    padding: 0;
+    border: 1px solid transparent;
+    border-radius: calc(var(--gg-icon-button-size) / 2);
+    background-color: transparent;
+    color: rgb(var(--text-sub-600));
+    cursor: pointer;
+    transition:
+      background-color var(--spring-effects-fast-duration, 150ms) var(--spring-effects-fast-easing, ease-out),
+      border-color var(--spring-effects-fast-duration, 150ms) var(--spring-effects-fast-easing, ease-out),
+      color var(--spring-effects-fast-duration, 150ms) var(--spring-effects-fast-easing, ease-out),
+      border-radius var(--spring-spatial-fast-duration, 180ms) var(--spring-spatial-fast-easing, ease-out);
+  }
+
+  .gg-icon-button svg {
+    inline-size: 1.25rem;
+    block-size: 1.25rem;
+  }
+
+  .gg-icon-button[data-size="lg"] {
+    --gg-icon-button-size: 3rem;
+  }
+
+  .gg-icon-button[data-size="sm"] {
+    --gg-icon-button-size: 2.5rem;
+  }
+
+  .gg-icon-button[data-size="compact"] {
+    --gg-icon-button-size: 2rem;
+  }
+
+  .gg-icon-button[data-size="compact"] svg {
+    inline-size: 1rem;
+    block-size: 1rem;
+  }
+
+  .gg-icon-button[data-size="sm"]::after,
+  .gg-icon-button[data-size="compact"]::after {
+    content: "";
+    position: absolute;
+    inset: calc((var(--gg-icon-button-size) - 3rem) / 2 - 1px);
+    border-radius: 50%;
+  }
+
+  .gg-icon-button:hover {
+    background-color: rgb(var(--bg-weak-50));
+    color: rgb(var(--text-strong-950));
+  }
+
+  .gg-icon-button:focus-visible {
+    outline: 2px solid rgb(var(--tone-focus-ring, var(--primary-base)));
+    outline-offset: 2px;
+  }
+
+  .gg-icon-button:active {
+    border-radius: var(--radius-squircle);
+  }
+
+  .gg-icon-button:disabled,
+  .gg-icon-button[aria-disabled="true"] {
+    pointer-events: none;
+    cursor: not-allowed;
+    opacity: 0.5;
+  }
+
+  .gg-icon-button[data-emphasis="secondary"] {
+    border-color: rgb(var(--stroke-soft-200));
+    background-color: rgb(var(--bg-white-0));
+  }
+
+  .gg-icon-button[data-emphasis="secondary"]:hover {
+    background-color: rgb(var(--bg-weak-50));
+  }
+
+  .gg-icon-button[data-emphasis="primary"] {
+    background-color: rgb(var(--tone-action, var(--primary-action)));
+    color: rgb(var(--tone-on-action, var(--primary-action-foreground)));
+  }
+
+  .gg-icon-button[data-emphasis="primary"]:hover {
+    background-color: rgb(var(--tone-action-hover, var(--primary-action-hover)));
+    color: rgb(var(--tone-on-action, var(--primary-action-foreground)));
+  }
+
+  .gg-icon-button[data-tone="danger"] {
+    color: rgb(var(--error-base));
+  }
+
+  .gg-icon-button[data-emphasis="primary"][data-tone="danger"] {
+    background-color: rgb(var(--error-base));
+    color: rgb(var(--static-white, var(--neutral-0)));
+  }
+
+  .gg-icon-button[data-emphasis="primary"][data-tone="danger"]:hover {
+    background-color: rgb(var(--error-dark, var(--red-700)));
+    color: rgb(var(--static-white, var(--neutral-0)));
+  }
+
+  /* A launcher's count or status dot, pinned to the top-right corner. */
+  .gg-icon-button-badge {
+    position: absolute;
+    /* Level with the button's top edge (the border is 1px), so a strip or bar
+     * above the launcher never covers the count; it overhangs to the side only. */
+    inset-block-start: -1px;
+    inset-inline-end: -0.375rem;
+    display: inline-flex;
+  }
+
+  /* ── Chip (DL-026) ── A capsule toggle for filters and choices: 32px with a
+   * 44px hit area. Selected chips carry text on a green fill, so they use the
+   * action fill with white text (DL-017). */
+  .gg-chip {
+    position: relative;
+    display: inline-flex;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    gap: 0.375rem;
+    min-block-size: 2rem;
+    padding: 0.3125rem 0.875rem;
+    border: 1px solid rgb(var(--stroke-sub-300));
+    border-radius: var(--radius-full);
+    background-color: rgb(var(--bg-white-0));
+    color: rgb(var(--text-sub-600));
+    font-size: var(--text-label-sm);
+    font-weight: var(--text-label-sm--font-weight);
+    line-height: var(--text-label-sm--line-height);
+    white-space: nowrap;
+    cursor: pointer;
+    transition:
+      background-color var(--spring-effects-fast-duration, 150ms) var(--spring-effects-fast-easing, ease-out),
+      border-color var(--spring-effects-fast-duration, 150ms) var(--spring-effects-fast-easing, ease-out),
+      color var(--spring-effects-fast-duration, 150ms) var(--spring-effects-fast-easing, ease-out);
+  }
+
+  .gg-chip::after {
+    content: "";
+    position: absolute;
+    inset: calc((2rem - 2.75rem) / 2 - 1px) calc(-0.125rem - 1px);
+    border-radius: inherit;
+  }
+
+  .gg-chip:hover {
+    background-color: rgb(var(--bg-weak-50));
+    color: rgb(var(--text-strong-950));
+  }
+
+  .gg-chip:focus-visible {
+    box-shadow: 0 0 0 3px rgb(var(--focus-ring, var(--primary-base)) / 0.16);
+    outline: none;
+  }
+
+  .gg-chip[aria-pressed="true"],
+  .gg-chip[aria-checked="true"],
+  .gg-chip[aria-selected="true"] {
+    border-color: transparent;
+    background-color: rgb(var(--primary-action));
+    color: rgb(var(--primary-action-foreground));
+  }
+
+  .gg-chip:disabled,
+  .gg-chip[aria-disabled="true"] {
+    pointer-events: none;
+    cursor: not-allowed;
+    opacity: 0.6;
+  }
+
+  .gg-chip[data-size="sm"] {
+    min-block-size: 2.5rem;
+    padding: 0.5625rem 1rem;
+  }
+
+  .gg-chip[data-size="sm"]::after {
+    inset: calc((2.5rem - 2.75rem) / 2 - 1px) calc(-0.125rem - 1px);
+  }
+
+  /* ── Editorial field surface (DL-024) ── The public site's underline field:
+   * no box, a hairline in the text color, serif input text. */
+  .gg-control[data-surface="editorial"] {
+    min-block-size: 2.75rem;
+    border-width: 0 0 1px;
+    border-color: color-mix(in oklab, currentColor 30%, transparent);
+    border-radius: 0;
+    background-color: transparent;
+    padding: 0.5rem 0.125rem;
+    color: inherit;
+    font-family: var(--font-serif);
+    font-size: 1.125rem;
+    line-height: 1.5rem;
+  }
+
+  .gg-control[data-surface="editorial"]::placeholder {
+    color: color-mix(in oklab, currentColor 45%, transparent);
+  }
+
+  /* The underline select keeps a lane for its chevron at the right edge. */
+  .gg-control-select[data-surface="editorial"] {
+    padding-right: 1.75rem;
+    background-position: right 0.125rem center;
+  }
+
+  .gg-control[data-surface="editorial"]:focus-visible {
+    border-color: rgb(var(--primary-action));
+    box-shadow: 0 1px 0 0 rgb(var(--primary-action));
+  }
+
+  .gg-control[data-surface="editorial"][data-invalid="true"] {
+    border-color: rgb(var(--error-base));
+    box-shadow: 0 1px 0 0 rgb(var(--error-base));
+  }
+
   .gg-switch {
     position: relative;
     display: inline-flex;
@@ -1177,9 +1580,21 @@
   @media (prefers-reduced-motion: reduce) {
     .gg-control,
     .gg-button,
+    .gg-icon-button,
+    .gg-chip,
     .gg-switch,
     .gg-switch-thumb {
       transition: none;
+    }
+
+    /* No press morph: buttons keep their resting corner. */
+    .gg-button[data-emphasis="primary"]:active,
+    .gg-button[data-emphasis="secondary"]:active {
+      border-radius: var(--gg-button-radius);
+    }
+
+    .gg-icon-button:active {
+      border-radius: calc(var(--gg-icon-button-size) / 2);
     }
   }
 }

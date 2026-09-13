@@ -164,11 +164,6 @@ vi.mock("viem", () => ({
   isAddress: () => true,
 }));
 
-vi.mock("@/components/Actions", () => ({
-  Button: ({ label, onClick }: { label: string; onClick?: () => void }) =>
-    createElement("button", { onClick }, label),
-}));
-
 vi.mock("@/components/Sheets", () => ({
   ConvictionSheet: () => createElement("div", { "data-testid": "conviction-drawer" }),
   EndowmentSheet: () => null,

@@ -28,6 +28,7 @@ const FilterOptionButton = ({
 }: FilterOptionButtonProps) => (
   <button
     type="button"
+    data-pressable="card"
     onClick={onClick}
     disabled={disabled}
     className={cn(

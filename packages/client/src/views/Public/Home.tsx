@@ -1,3 +1,4 @@
+import { Button } from "@green-goods/shared/components/Button";
 import { useApp } from "@green-goods/shared/providers/App";
 import { usePublicStats } from "@green-goods/shared/hooks/public/usePublicStats";
 import { useIntl } from "react-intl";
@@ -51,23 +52,26 @@ export default function Home() {
     <>
       <PublicInstallAction>
         {({ label, href, onClick, disabled, dataInstallAction }) => (
-          <a
-            href={href}
-            onClick={onClick}
-            aria-disabled={disabled || undefined}
-            data-install-action={dataInstallAction}
-            className={`inline-flex min-h-12 cursor-pointer items-center justify-center gap-2 rounded-full border border-transparent bg-primary-action px-6 py-3 text-sm font-semibold text-primary-action-foreground transition-colors hover:bg-primary-action-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-action focus-visible:ring-offset-2 ${disabled ? "cursor-not-allowed opacity-70" : ""}`}
-          >
-            {label}
-          </a>
+          <Button asChild size="lg">
+            <a
+              href={href}
+              onClick={onClick}
+              aria-disabled={disabled || undefined}
+              data-install-action={dataInstallAction}
+            >
+              {label}
+            </a>
+          </Button>
         )}
       </PublicInstallAction>
-      <EditorialGhostLink to="/gardens" className="min-h-12 font-semibold">
+      <EditorialGhostLink to="/gardens" size="lg">
         {exploreLabel}
       </EditorialGhostLink>
     </>
   ) : (
-    <EditorialPrimaryLink to="/gardens">{exploreLabel}</EditorialPrimaryLink>
+    <EditorialPrimaryLink to="/gardens" size="lg">
+      {exploreLabel}
+    </EditorialPrimaryLink>
   );
 
   return (

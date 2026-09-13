@@ -1,5 +1,6 @@
 import { Alert } from "@green-goods/shared/components/Alert";
 import { DialogShell } from "@green-goods/shared/components/Dialog/DialogShell";
+import { Textarea } from "@green-goods/shared/components/Form/ControlPrimitives";
 import { MAX_REASON } from "@green-goods/shared/commitment-pooling";
 import { useState } from "react";
 import { useIntl } from "react-intl";
@@ -79,7 +80,7 @@ export function WithdrawSheet({
         <label className="block text-sm font-medium text-text-strong-950" htmlFor="withdraw-reason">
           {formatMessage({ id: "app.commitment.withdraw.reasonLabel" })}
         </label>
-        <textarea
+        <Textarea
           id="withdraw-reason"
           value={reason}
           onChange={(event) => setReason(event.target.value)}
@@ -87,7 +88,6 @@ export function WithdrawSheet({
           // Matches the pinned document's limit, so the words that are stored
           // are the words that were on screen.
           maxLength={MAX_REASON}
-          className="gg-control gg-control-textarea"
           placeholder={formatMessage({ id: "app.commitment.withdraw.reasonPlaceholder" })}
         />
         {pinFailed ? (

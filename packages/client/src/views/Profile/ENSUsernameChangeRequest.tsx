@@ -1,9 +1,14 @@
+import { Button } from "@green-goods/shared/components/Button";
+import {
+  NativeSelect,
+  Textarea,
+  TextInput,
+} from "@green-goods/shared/components/Form/ControlPrimitives";
 import type { Address } from "@green-goods/shared/types/domain";
 import { validateSlug } from "@green-goods/shared/utils/blockchain/ens";
 import { cn } from "@green-goods/shared/utils/styles/cn";
 import { useEffect, useState } from "react";
 import { useIntl } from "react-intl";
-import { Button } from "@/components/Actions";
 import { pwaStatusStyles } from "@/components/Pwa/statusStyles";
 
 type ENSUsernameChangeReason = "same-passkey" | "lost-passkey" | "other";
@@ -178,7 +183,7 @@ export const ENSUsernameChangeRequest: React.FC<ENSUsernameChangeRequestProps> =
               id: "app.profile.ensChangeDesiredSlug",
               defaultMessage: "Desired username",
             })}
-            <input
+            <TextInput
               value={requestedSlug}
               onChange={(event) => setRequestedSlug(event.target.value)}
               placeholder={intl.formatMessage({
@@ -189,8 +194,8 @@ export const ENSUsernameChangeRequest: React.FC<ENSUsernameChangeRequestProps> =
               autoCapitalize="none"
               autoComplete="off"
               spellCheck={false}
-              className="gg-control font-mono"
-              data-size="sm"
+              controlSize="sm"
+              className="font-mono"
             />
           </label>
           <label className="flex flex-col gap-1 text-xs text-text-sub-600">
@@ -198,33 +203,31 @@ export const ENSUsernameChangeRequest: React.FC<ENSUsernameChangeRequestProps> =
               id: "app.profile.ensChangeReason",
               defaultMessage: "What happened?",
             })}
-            <select
+            <NativeSelect
               value={requestReason}
               onChange={(event) => setRequestReason(event.target.value as ENSUsernameChangeReason)}
-              className="gg-control gg-control-select"
-              data-size="sm"
+              controlSize="sm"
             >
               {requestReasonOptions.map((option) => (
                 <option key={option.value} value={option.value}>
                   {option.label}
                 </option>
               ))}
-            </select>
+            </NativeSelect>
           </label>
           <label className="flex flex-col gap-1 text-xs text-text-sub-600">
             {intl.formatMessage({
               id: "app.profile.ensChangeContact",
               defaultMessage: "Contact",
             })}
-            <input
+            <TextInput
               value={requestContact}
               onChange={(event) => setRequestContact(event.target.value)}
               placeholder={intl.formatMessage({
                 id: "app.profile.ensChangeContactPlaceholder",
                 defaultMessage: "@telegram, email, or phone",
               })}
-              className="gg-control"
-              data-size="sm"
+              controlSize="sm"
             />
           </label>
           <label className="flex flex-col gap-1 text-xs text-text-sub-600">
@@ -232,7 +235,7 @@ export const ENSUsernameChangeRequest: React.FC<ENSUsernameChangeRequestProps> =
               id: "app.profile.ensChangeNotes",
               defaultMessage: "Notes",
             })}
-            <textarea
+            <Textarea
               value={requestNotes}
               onChange={(event) => setRequestNotes(event.target.value)}
               placeholder={intl.formatMessage({
@@ -240,8 +243,8 @@ export const ENSUsernameChangeRequest: React.FC<ENSUsernameChangeRequestProps> =
                 defaultMessage: "Anything support should know",
               })}
               rows={3}
-              className="gg-control gg-control-textarea resize-none"
-              data-size="sm"
+              controlSize="sm"
+              className="resize-none"
             />
           </label>
           {requestError && <p className="text-xs text-error-base">{requestError}</p>}
@@ -269,38 +272,36 @@ export const ENSUsernameChangeRequest: React.FC<ENSUsernameChangeRequestProps> =
                   defaultMessage: "Request details",
                 })}
               </label>
-              <textarea
+              <Textarea
                 id="ens-change-request-details"
                 readOnly
                 value={preparedRequest.message}
                 rows={6}
-                className="w-full resize-none rounded-lg border border-stroke-soft-200 bg-bg-white-0 px-2 py-1 font-mono text-[11px] text-text-sub-600"
+                controlSize="sm"
+                className="resize-none font-mono text-[11px] text-text-sub-600"
               />
             </div>
           )}
           <div className="flex flex-col gap-2">
             <Button
-              variant="primary"
-              mode="filled"
-              size="small"
+              type="button"
+              size="sm"
               onClick={handlePrepareUsernameChangeRequest}
-              label={intl.formatMessage({
+              className="w-full"
+            >
+              {intl.formatMessage({
                 id: "app.profile.ensChangePrepareRequest",
                 defaultMessage: "Prepare request",
               })}
-              className="w-full"
-            />
-            <a
-              href={ENS_SUPPORT_URL}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-center text-sm font-medium text-primary"
-            >
-              {intl.formatMessage({
-                id: "app.profile.ensChangeOpenSupport",
-                defaultMessage: "Open Telegram Support",
-              })}
-            </a>
+            </Button>
+            <Button asChild emphasis="tertiary" size="sm" className="w-full">
+              <a href={ENS_SUPPORT_URL} target="_blank" rel="noopener noreferrer">
+                {intl.formatMessage({
+                  id: "app.profile.ensChangeOpenSupport",
+                  defaultMessage: "Open Telegram Support",
+                })}
+              </a>
+            </Button>
           </div>
         </div>
       )}

@@ -19,12 +19,9 @@ const requiredSlots: (keyof PwaSheetStyle)[] = [
   "tabInactive",
   "tabBadge",
   "tabIndicator",
-  "closeButtonBase",
-  "closeIcon",
   "workFeedbackSheet",
   "workActionBar",
   "workActionBarStandalone",
-  "workCloseButton",
 ];
 
 const primitivePattern =

@@ -36,7 +36,7 @@ const customStyles: StylesConfig = {
       ...provided,
       backgroundColor: "rgb(var(--bg-white-0))",
       borderColor,
-      borderRadius: "var(--radius-xl)",
+      borderRadius: "var(--radius-lg)",
       borderWidth: "1px",
       minHeight: "2.75rem",
       boxShadow: state.isFocused

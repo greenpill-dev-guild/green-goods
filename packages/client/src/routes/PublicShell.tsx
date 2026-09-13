@@ -279,7 +279,9 @@ export default function PublicShell() {
   }, [formatMessage]);
 
   return (
-    <div className="flex min-h-screen flex-col bg-bg-white-0">
+    // data-site gives shared buttons the website corner and weight (DL-026), including in
+    // dialogs that portal out of this shell.
+    <div className="flex min-h-screen flex-col bg-bg-white-0" data-site="website">
       <SiteHeader />
       <main className="vt-main flex-1">
         <Outlet />

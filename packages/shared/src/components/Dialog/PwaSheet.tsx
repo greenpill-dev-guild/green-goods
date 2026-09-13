@@ -80,6 +80,7 @@ import { useDocumentScrollLock } from "../../hooks/ui/useDocumentScrollLock";
 import { useSheetPresence } from "../../hooks/ui/useSheetPresence";
 import { useFocusTrap } from "../../hooks/utils/useFocusTrap";
 import { DISMISS_VELOCITY_THRESHOLD } from "../Canvas/springConfig";
+import { IconButton } from "../IconButton";
 
 /**
  * Branches currently hidden from assistive tech by open sheets, with how
@@ -463,17 +464,16 @@ export function PwaSheet({
               </div>
             </div>
             {!hideCloseButton && (
-              <button
-                type="button"
+              <IconButton
                 data-component="PwaSheet"
                 data-slot="close"
                 data-testid="pwa-sheet-close"
-                aria-label={closeLabel}
+                // The header renders only with a title, which requires closeLabel (see prop docs).
+                aria-label={closeLabel as string}
                 disabled={preventClose}
                 onClick={requestClose}
-              >
-                <RiCloseLine aria-hidden="true" />
-              </button>
+                icon={<RiCloseLine aria-hidden="true" />}
+              />
             )}
           </header>
         )}

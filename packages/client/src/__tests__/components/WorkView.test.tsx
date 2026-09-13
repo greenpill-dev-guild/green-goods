@@ -23,18 +23,6 @@ vi.mock("react-intl", () => ({
   }),
 }));
 
-vi.mock("@/components/Actions", () => ({
-  Button: ({
-    label,
-    onClick,
-    disabled,
-  }: {
-    label: string;
-    onClick?: () => void;
-    disabled?: boolean;
-  }) => createElement("button", { onClick, disabled, type: "button" }, label),
-}));
-
 vi.mock("@/components/Cards", () => ({
   FormCard: ({ label, value }: { label: string; value: string }) =>
     createElement("div", { "data-testid": `form-card-${label}` }, `${label}: ${value}`),

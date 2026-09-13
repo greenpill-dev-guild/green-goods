@@ -1,3 +1,4 @@
+import { Button } from "@green-goods/shared/components/Button";
 import { toastService } from "@green-goods/shared/components/Toast/toast.service";
 import { isPasskeyServerEnabled } from "@green-goods/shared/config/passkeyServer";
 import { useAuthActions, useAuthState } from "@green-goods/shared/hooks/auth/useAuth";
@@ -9,7 +10,6 @@ import { debugError } from "@green-goods/shared/utils/debug";
 import { RiKeyLine, RiLogoutBoxRLine, RiUserLine, RiWalletLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
 import { useNavigate } from "react-router-dom";
-import { Button } from "@/components/Actions";
 import { Card } from "@/components/Cards";
 import { Avatar } from "@/components/Display";
 import { AddressCopy } from "@/components/Inputs";
@@ -165,17 +165,17 @@ export const AccountInfo: React.FC = () => {
       )}
 
       <Button
-        variant="neutral"
-        mode="stroke"
-        size="small"
+        type="button"
+        emphasis="secondary"
         onClick={handleLogout}
-        label={intl.formatMessage({
+        leadingIcon={<RiLogoutBoxRLine className="h-4 w-4" aria-hidden="true" />}
+        className="w-full"
+      >
+        {intl.formatMessage({
           id: "app.profile.logout",
           defaultMessage: "Logout",
         })}
-        leadingIcon={<RiLogoutBoxRLine className="w-4" />}
-        className="w-full"
-      />
+      </Button>
     </>
   );
 };

@@ -52,18 +52,6 @@ vi.mock("@green-goods/shared/utils/action/translations", () => ({
 }));
 
 // Mock child components used by WorkIntro
-vi.mock("@/components/Actions", () => ({
-  Button: ({
-    label,
-    onClick,
-    disabled,
-  }: {
-    label: string;
-    onClick?: () => void;
-    disabled?: boolean;
-  }) => createElement("button", { onClick, disabled, type: "button" }, label),
-}));
-
 vi.mock("@/components/Cards/Action/ActionCard", () => ({
   ActionCard: ({ action, selected }: { action: { title: string }; selected: boolean }) =>
     createElement(

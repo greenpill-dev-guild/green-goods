@@ -5,6 +5,7 @@ import type { ReactNode } from "react";
 import { useIntl } from "react-intl";
 import { useSheetPresence } from "../../hooks/ui/useSheetPresence";
 import { cn } from "../../utils/styles/cn";
+import { IconButton } from "../IconButton";
 import {
   dialogOverlayClassName,
   dialogOverlayStyle,
@@ -148,14 +149,11 @@ export function DialogShell({
             </div>
             {!hideCloseButton && (
               <Dialog.Close asChild>
-                <button
-                  type="button"
+                <IconButton
                   data-slot="close"
-                  className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg text-text-soft transition hover:bg-bg-soft active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-base focus-visible:ring-offset-2"
                   aria-label={formatMessage({ id: "app.common.close" })}
-                >
-                  <RiCloseLine className="h-5 w-5" />
-                </button>
+                  icon={<RiCloseLine aria-hidden="true" />}
+                />
               </Dialog.Close>
             )}
           </div>

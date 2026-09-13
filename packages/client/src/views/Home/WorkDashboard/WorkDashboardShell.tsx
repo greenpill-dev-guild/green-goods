@@ -1,3 +1,4 @@
+import { IconButton } from "@green-goods/shared/components/IconButton";
 import { useDocumentScrollLock } from "@green-goods/shared/hooks/ui/useDocumentScrollLock";
 import { useSheetPresence } from "@green-goods/shared/hooks/ui/useSheetPresence";
 import { useFocusTrap } from "@green-goods/shared/hooks/utils/useFocusTrap";
@@ -108,20 +109,16 @@ export const WorkDashboardShell: React.FC<WorkDashboardShellProps> = ({
             </p>
           </div>
           <div className="flex items-center gap-2 ml-4">
-            <button
+            <IconButton
+              emphasis="secondary"
               onClick={onRequestClose}
-              className={cn(
-                "min-h-11 min-w-11 flex items-center justify-center",
-                pwaSheetStyles.closeButtonBase
-              )}
               data-testid="app-sheet-close"
               aria-label={intl.formatMessage({
                 id: "app.workDashboard.closeModal",
                 defaultMessage: "Close Modal",
               })}
-            >
-              <RiCloseLine className={cn("w-5 h-5", pwaSheetStyles.closeIcon)} />
-            </button>
+              icon={<RiCloseLine aria-hidden="true" />}
+            />
           </div>
         </div>
 

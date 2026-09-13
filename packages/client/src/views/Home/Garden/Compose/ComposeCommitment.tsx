@@ -4,6 +4,7 @@ import {
   type ComposerBlockedReason,
   selectBeatValidity,
 } from "@green-goods/shared/hooks/client-ui/commitment/composerBeats";
+import { Button } from "@green-goods/shared/components/Button";
 import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
 import { DialogShell } from "@green-goods/shared/components/Dialog/DialogShell";
 import { useCommitmentComposerController } from "@green-goods/shared/hooks/client-ui/commitment/useCommitmentComposerController";
@@ -104,13 +105,9 @@ function ComposeCommitmentForm({ direction }: { direction: Direction }) {
               { direction }
             )}
           </p>
-          <button
-            type="button"
-            onClick={back}
-            className="mt-2 rounded-[var(--radius-lg)] bg-primary-action px-4 py-3 text-sm font-medium text-primary-action-foreground tap-target-lg"
-          >
+          <Button type="button" size="lg" onClick={back} className="mt-2">
             {formatMessage({ id: "app.compose.done.back" })}
-          </button>
+          </Button>
         </div>
       </ComposeShell>
     );
@@ -137,33 +134,35 @@ function ComposeCommitmentForm({ direction }: { direction: Direction }) {
               </p>
             ) : null}
             {isReview && !readToEnd ? (
-              <button
+              <Button
                 type="button"
+                emphasis="tertiary"
                 onClick={() => {
                   reviewEndRef.current?.scrollIntoView({ block: "end" });
                   setReadToEnd(true);
                 }}
-                className="mb-2 flex w-full items-center justify-center rounded-[var(--radius-lg)] px-4 py-2 text-sm font-medium text-text-sub-600 tap-target-lg"
+                className="mb-2 w-full"
               >
                 {formatMessage({ id: "app.compose.review.readToEnd" })}
-              </button>
+              </Button>
             ) : null}
-            <button
+            <Button
               aria-describedby={
                 !validity.canAdvance && blockingReasonId ? "compose-blocked" : undefined
               }
               type="button"
-              disabled={primaryBlocked}
-              aria-busy={controller.isPending}
+              size="lg"
+              loading={controller.isPending}
+              disabled={primaryBlocked && !controller.isPending}
               onClick={() =>
                 isReview
                   ? void controller.place()
                   : setBeat(COMPOSER_BEATS[beatIndex + 1] as ComposerBeat)
               }
-              className="w-full rounded-[var(--radius-lg)] bg-primary-action px-4 py-3 text-sm font-medium text-primary-action-foreground tap-target-lg disabled:opacity-60"
+              className="w-full"
             >
               {formatMessage({ id: isReview ? placeLabelId : "app.compose.next" })}
-            </button>
+            </Button>
           </div>
         }
       >

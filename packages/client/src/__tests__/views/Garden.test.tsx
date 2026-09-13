@@ -203,18 +203,6 @@ vi.mock("../../views/Garden/Review", () => ({
 }));
 
 // Mock UI components
-vi.mock("@/components/Actions", () => ({
-  Button: ({
-    label,
-    onClick,
-    disabled,
-  }: {
-    label: string;
-    onClick?: () => void;
-    disabled?: boolean;
-  }) => createElement("button", { onClick, disabled, type: "button" }, label),
-}));
-
 vi.mock("@/components/Cards", () => ({
   ActionCardSkeleton: () => createElement("div", { "data-testid": "action-skeleton" }),
   FormInfo: ({ title }: { title: string }) => createElement("div", null, title),

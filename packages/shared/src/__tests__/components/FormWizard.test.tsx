@@ -273,7 +273,9 @@ describe("components/Form/FormWizard", () => {
       );
 
       const submitButton = screen.getByRole("button", { name: "Submit" });
-      expect(submitButton).toBeDisabled();
+      // A submitting button stays focusable but inert (shared Button loading contract).
+      expect(submitButton).not.toBeDisabled();
+      expect(submitButton).toHaveAttribute("aria-disabled", "true");
       expect(submitButton).toHaveAttribute("aria-busy", "true");
     });
   });

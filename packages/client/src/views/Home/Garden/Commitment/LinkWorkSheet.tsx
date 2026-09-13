@@ -1,5 +1,6 @@
 import type { Action, Work } from "@green-goods/shared/types/domain";
 import { DialogShell } from "@green-goods/shared/components/Dialog/DialogShell";
+import { NativeSelect } from "@green-goods/shared/components/Form/ControlPrimitives";
 import { StatusBadge } from "@green-goods/shared/components/StatusBadge";
 import { type CommitmentRequirementRecord } from "@green-goods/shared/commitment-pooling";
 import { useEffect, useState } from "react";
@@ -125,6 +126,7 @@ export function LinkWorkSheet({
                 <li key={row.id}>
                   <button
                     type="button"
+                    data-pressable="row"
                     onClick={() => onSubmitRequirement(row)}
                     aria-label={formatMessage(
                       { id: "app.commitment.link.submitRequirement" },
@@ -201,14 +203,14 @@ export function LinkWorkSheet({
             <label className="block text-sm font-medium text-text-strong-950" htmlFor="link-row">
               {formatMessage({ id: "app.commitment.link.row" })}
             </label>
-            <select
+            <NativeSelect
               id="link-row"
               value={requirementIndex ?? ""}
               onChange={(event) => {
                 setRequirementIndex(event.target.value === "" ? null : Number(event.target.value));
                 setOperationId(crypto.randomUUID());
               }}
-              className="gg-control gg-control-select mt-1.5"
+              className="mt-1.5"
             >
               <option value="">{formatMessage({ id: "app.commitment.link.rowChoose" })}</option>
               {eligibleRows.map((row) => (
@@ -224,7 +226,7 @@ export function LinkWorkSheet({
                   )}
                 </option>
               ))}
-            </select>
+            </NativeSelect>
           </div>
         ) : chosenRow ? (
           <p className="text-sm text-text-sub-600">

@@ -1,3 +1,4 @@
+import { Button } from "@green-goods/shared/components/Button";
 import { DialogShell } from "@green-goods/shared/components/Dialog/DialogShell";
 import type { Address, Garden, GardenerCard } from "@green-goods/shared/types/domain";
 import { cn } from "@green-goods/shared/utils/styles/cn";
@@ -18,7 +19,6 @@ import {
 import { forwardRef, memo, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { List, type RowComponentProps } from "react-window";
-import { Button } from "@/components/Actions";
 import { Badge, EmptyState } from "@/components/Communication";
 import { Avatar, AvatarFallback, AvatarImage, AvatarSkeleton } from "@/components/Display";
 import { AddressCopy } from "@/components/Inputs";
@@ -76,6 +76,7 @@ const GardenMemberItem = memo(function GardenMemberItem({
       )}
       onClick={onClick}
       type="button"
+      data-pressable="row"
     >
       {member.isSteward ? (
         <Badge
@@ -244,16 +245,14 @@ export const GardenGardeners = forwardRef<HTMLUListElement, GardenGardenersProps
                         </span>
                       </div>
                       <Button
-                        variant="neutral"
-                        mode="stroke"
-                        size="xxsmall"
-                        label={intl.formatMessage({
-                          id: "app.common.copy",
-                          defaultMessage: "Copy",
-                        })}
-                        leadingIcon={<RiFileCopyLine className="w-4 h-4" />}
+                        type="button"
+                        emphasis="secondary"
+                        size="compact"
+                        leadingIcon={<RiFileCopyLine className="h-4 w-4" aria-hidden="true" />}
                         onClick={() => copy(selectedPreferredEnsName)}
-                      />
+                      >
+                        {intl.formatMessage({ id: "app.common.copy", defaultMessage: "Copy" })}
+                      </Button>
                     </div>
                     <div className="flex items-center justify-between gap-2">
                       <div className="flex items-center gap-2 text-sm">
@@ -263,16 +262,14 @@ export const GardenGardeners = forwardRef<HTMLUListElement, GardenGardenersProps
                         </span>
                       </div>
                       <Button
-                        variant="neutral"
-                        mode="stroke"
-                        size="xxsmall"
-                        label={intl.formatMessage({
-                          id: "app.common.copy",
-                          defaultMessage: "Copy",
-                        })}
-                        leadingIcon={<RiFileCopyLine className="w-4 h-4" />}
+                        type="button"
+                        emphasis="secondary"
+                        size="compact"
+                        leadingIcon={<RiFileCopyLine className="h-4 w-4" aria-hidden="true" />}
                         onClick={() => copy(selected.account)}
-                      />
+                      >
+                        {intl.formatMessage({ id: "app.common.copy", defaultMessage: "Copy" })}
+                      </Button>
                     </div>
                   </>
                 ) : (
@@ -291,16 +288,14 @@ export const GardenGardeners = forwardRef<HTMLUListElement, GardenGardenersProps
                     </span>
                   </div>
                   <Button
-                    variant="neutral"
-                    mode="stroke"
-                    size="xxsmall"
-                    label={intl.formatMessage({
-                      id: "app.common.copy",
-                      defaultMessage: "Copy",
-                    })}
-                    leadingIcon={<RiFileCopyLine className="w-4 h-4" />}
+                    type="button"
+                    emphasis="secondary"
+                    size="compact"
+                    leadingIcon={<RiFileCopyLine className="h-4 w-4" aria-hidden="true" />}
                     onClick={() => copy(selected.email)}
-                  />
+                  >
+                    {intl.formatMessage({ id: "app.common.copy", defaultMessage: "Copy" })}
+                  </Button>
                 </div>
               )}
               {selected.phone && (
@@ -312,16 +307,14 @@ export const GardenGardeners = forwardRef<HTMLUListElement, GardenGardenersProps
                     </span>
                   </div>
                   <Button
-                    variant="neutral"
-                    mode="stroke"
-                    size="xxsmall"
-                    label={intl.formatMessage({
-                      id: "app.common.copy",
-                      defaultMessage: "Copy",
-                    })}
-                    leadingIcon={<RiFileCopyLine className="w-4 h-4" />}
+                    type="button"
+                    emphasis="secondary"
+                    size="compact"
+                    leadingIcon={<RiFileCopyLine className="h-4 w-4" aria-hidden="true" />}
                     onClick={() => copy(selected.phone)}
-                  />
+                  >
+                    {intl.formatMessage({ id: "app.common.copy", defaultMessage: "Copy" })}
+                  </Button>
                 </div>
               )}
             </div>

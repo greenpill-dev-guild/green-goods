@@ -45,6 +45,7 @@ function NoteMediaMosaic({
     <button
       key={src}
       type="button"
+      data-pressable="media"
       onClick={() => onOpen(media.indexOf(src))}
       aria-label={formatMessage(
         { id: "public.gardenDetail.notes.viewPhoto", defaultMessage: "View photo {n}" },

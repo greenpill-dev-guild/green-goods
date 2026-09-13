@@ -1,3 +1,5 @@
+import { Textarea, TextInput } from "@green-goods/shared/components/Form/ControlPrimitives";
+import { Button } from "@green-goods/shared/components/Button";
 import { DialogShell } from "@green-goods/shared/components/Dialog/DialogShell";
 import {
   useGardenJoinRequestAvailability,
@@ -16,7 +18,6 @@ import type { SheetActionsProps } from "@green-goods/shared/components/Dialog/Sh
 import { useId, useState } from "react";
 import { useIntl } from "react-intl";
 import { useNavigate } from "react-router-dom";
-import { Button } from "@/components/Actions";
 
 export function GardenJoinRequestDialog({ gardenAddress }: { gardenAddress: Address }) {
   const { formatMessage } = useIntl();
@@ -136,16 +137,12 @@ export function GardenJoinRequestDialog({ gardenAddress }: { gardenAddress: Addr
 
   return (
     <>
-      <Button
-        label={formatMessage({
+      <Button type="button" size="compact" onClick={() => setOpen(true)}>
+        {formatMessage({
           id: "app.garden.joinRequest.action",
           defaultMessage: "Request to Join",
         })}
-        variant="primary"
-        mode="filled"
-        size="compact"
-        onClick={() => setOpen(true)}
-      />
+      </Button>
       <DialogShell
         open={open}
         onOpenChange={setOpen}
@@ -241,12 +238,11 @@ export function GardenJoinRequestDialog({ gardenAddress }: { gardenAddress: Addr
                     defaultMessage: "Display name",
                   })}
                 </span>
-                <input
+                <TextInput
                   required
                   maxLength={GARDEN_JOIN_REQUEST_DISPLAY_NAME_MAX_LENGTH}
                   value={displayName}
                   onChange={(event) => setDisplayName(event.target.value)}
-                  className="gg-control"
                 />
               </label>
               <label className="block space-y-1.5">
@@ -256,12 +252,11 @@ export function GardenJoinRequestDialog({ gardenAddress }: { gardenAddress: Addr
                     defaultMessage: "Note (optional)",
                   })}
                 </span>
-                <textarea
+                <Textarea
                   maxLength={GARDEN_JOIN_REQUEST_NOTE_MAX_LENGTH}
                   rows={4}
                   value={note}
                   onChange={(event) => setNote(event.target.value)}
-                  className="gg-control gg-control-textarea"
                 />
               </label>
             </form>

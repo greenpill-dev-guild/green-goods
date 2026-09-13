@@ -1,5 +1,7 @@
 import { Alert } from "@green-goods/shared/components/Alert";
+import { Button } from "@green-goods/shared/components/Button";
 import { ConfirmDialog } from "@green-goods/shared/components/Dialog/ConfirmDialog";
+import { TextInput } from "@green-goods/shared/components/Form/ControlPrimitives";
 import { ENSProgressTimeline } from "@green-goods/shared/components/Progress/ENSProgressTimeline";
 import { useOffline } from "@green-goods/shared/hooks/app/useOffline";
 import { useENSClaim } from "@green-goods/shared/hooks/ens/useENSClaim";
@@ -20,7 +22,6 @@ import {
 } from "@remixicon/react";
 import { useEffect, useRef, useState } from "react";
 import { useIntl } from "react-intl";
-import { Button } from "@/components/Actions";
 import { Card } from "@/components/Cards";
 import { Avatar } from "@/components/Display";
 import { pwaStatusStyles } from "@/components/Pwa/statusStyles";
@@ -151,44 +152,41 @@ export const ENSSection: React.FC<ENSSectionProps> = ({ primaryAddress }) => {
                 </div>
               </div>
               <Button
-                variant="neutral"
-                mode="stroke"
-                size="small"
+                type="button"
+                emphasis="secondary"
+                size="sm"
                 onClick={handleENSRelease}
-                disabled={!isOnline || ensRelease.isPending || releasingSlug === existingSlug}
-                aria-busy={ensRelease.isPending || undefined}
+                loading={ensRelease.isPending}
+                disabled={!isOnline || releasingSlug === existingSlug}
                 leadingIcon={
-                  ensRelease.isPending ? (
-                    <RiLoader4Line className="w-4 animate-spin" aria-hidden />
-                  ) : isReleaseUnavailable ? (
-                    <RiHeadphoneLine className="w-4" />
+                  isReleaseUnavailable ? (
+                    <RiHeadphoneLine className="h-4 w-4" aria-hidden="true" />
                   ) : (
-                    <RiCloseCircleLine className="w-4" />
+                    <RiCloseCircleLine className="h-4 w-4" aria-hidden="true" />
                   )
                 }
-                label={
-                  !isOnline
-                    ? intl.formatMessage({
-                        id: "app.profile.releaseOffline",
-                        defaultMessage: "Go Online to Release",
-                      })
-                    : isReleaseUnavailable
-                      ? intl.formatMessage({
-                          id: "app.profile.ensChangeRequestButton",
-                          defaultMessage: "Request Username Change",
-                        })
-                      : releasingSlug === existingSlug
-                        ? intl.formatMessage({
-                            id: "app.profile.releaseStarted",
-                            defaultMessage: "Release started",
-                          })
-                        : intl.formatMessage({
-                            id: "app.profile.releaseENSButton",
-                            defaultMessage: "Release Username",
-                          })
-                }
                 className="w-full"
-              />
+              >
+                {!isOnline
+                  ? intl.formatMessage({
+                      id: "app.profile.releaseOffline",
+                      defaultMessage: "Go Online to Release",
+                    })
+                  : isReleaseUnavailable
+                    ? intl.formatMessage({
+                        id: "app.profile.ensChangeRequestButton",
+                        defaultMessage: "Request Username Change",
+                      })
+                    : releasingSlug === existingSlug
+                      ? intl.formatMessage({
+                          id: "app.profile.releaseStarted",
+                          defaultMessage: "Release started",
+                        })
+                      : intl.formatMessage({
+                          id: "app.profile.releaseENSButton",
+                          defaultMessage: "Release Username",
+                        })}
+              </Button>
               {isReleaseUnavailable && (
                 <ENSUsernameChangeRequest
                   primaryAddress={primaryAddress}
@@ -236,7 +234,7 @@ export const ENSSection: React.FC<ENSSectionProps> = ({ primaryAddress }) => {
               {isProtocolMember ? (
                 <div className="flex flex-col gap-2">
                   <div className="relative">
-                    <input
+                    <TextInput
                       {...slugForm.register("slug")}
                       aria-label={intl.formatMessage({
                         id: "app.profile.slugHint",
@@ -250,8 +248,8 @@ export const ENSSection: React.FC<ENSSectionProps> = ({ primaryAddress }) => {
                       autoCapitalize="none"
                       autoComplete="off"
                       spellCheck={false}
-                      className="gg-control pr-10 font-mono"
-                      data-size="sm"
+                      controlSize="sm"
+                      className="pr-10 font-mono"
                     />
                     {slugValue && slugValue.length >= 3 && (
                       <span className="absolute right-3 top-1/2 -translate-y-1/2">
@@ -307,38 +305,24 @@ export const ENSSection: React.FC<ENSSectionProps> = ({ primaryAddress }) => {
                     )}
                   </div>
                   <Button
-                    variant="primary"
-                    mode="filled"
-                    size="small"
+                    type="button"
+                    size="sm"
                     onClick={handleENSClaim}
-                    disabled={
-                      !isOnline ||
-                      ensClaim.isPending ||
-                      !isSlugAvailable ||
-                      isCheckingSlug ||
-                      !slugValue
-                    }
-                    aria-busy={ensClaim.isPending || undefined}
-                    leadingIcon={
-                      ensClaim.isPending ? (
-                        <RiLoader4Line className="w-4 animate-spin" aria-hidden />
-                      ) : (
-                        <RiGlobalLine className="w-4" />
-                      )
-                    }
-                    label={
-                      !isOnline
-                        ? intl.formatMessage({
-                            id: "app.profile.claimOffline",
-                            defaultMessage: "Go Online to Claim",
-                          })
-                        : intl.formatMessage({
-                            id: "app.profile.claimButton",
-                            defaultMessage: "Claim Name",
-                          })
-                    }
+                    loading={ensClaim.isPending}
+                    disabled={!isOnline || !isSlugAvailable || isCheckingSlug || !slugValue}
+                    leadingIcon={<RiGlobalLine className="h-4 w-4" aria-hidden="true" />}
                     className="w-full"
-                  />
+                  >
+                    {!isOnline
+                      ? intl.formatMessage({
+                          id: "app.profile.claimOffline",
+                          defaultMessage: "Go Online to Claim",
+                        })
+                      : intl.formatMessage({
+                          id: "app.profile.claimButton",
+                          defaultMessage: "Claim Name",
+                        })}
+                  </Button>
                 </div>
               ) : (
                 <Alert

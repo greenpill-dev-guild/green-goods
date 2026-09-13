@@ -1,3 +1,4 @@
+import { Button } from "@green-goods/shared/components/Button";
 import { formatTokenAmount } from "@green-goods/shared/utils/blockchain/vaults";
 import type { SendableTokenBalance } from "@green-goods/shared/hooks/blockchain/useSendableTokens";
 import {
@@ -19,9 +20,6 @@ interface BalanceViewProps {
   /** Start a send pre-filled with this token. */
   onSend: (token: SendableTokenBalance) => void;
 }
-
-const retryButtonClass =
-  "min-h-11 shrink-0 rounded-md border border-stroke-sub-300 bg-bg-white-0 px-3 py-2 text-xs font-medium text-text-sub-600 transition hover:bg-bg-weak-50 duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)]";
 
 /**
  * "Balance" side of the Tokens tab: what the user holds. Each row starts a
@@ -74,9 +72,9 @@ export function BalanceView({
             title={formatMessage({ id: "app.balance.loadError" })}
             description={formatMessage({ id: "app.balance.loadErrorDescription" })}
             action={
-              <button type="button" onClick={onRetry} className={retryButtonClass}>
+              <Button type="button" emphasis="secondary" onClick={onRetry}>
                 {formatMessage({ id: "app.common.retry" })}
-              </button>
+              </Button>
             }
           />
         </div>
@@ -107,9 +105,15 @@ export function BalanceView({
           <p className="text-xs text-warning-dark">
             {formatMessage({ id: "app.balance.partialError" })}
           </p>
-          <button type="button" onClick={onRetry} className={retryButtonClass}>
+          <Button
+            type="button"
+            emphasis="secondary"
+            size="compact"
+            onClick={onRetry}
+            className="shrink-0"
+          >
             {formatMessage({ id: "app.common.retry" })}
-          </button>
+          </Button>
         </div>
       ) : null}
       {tokens.map((token) => {
@@ -119,6 +123,7 @@ export function BalanceView({
           <button
             key={`${token.symbol}-${token.address}`}
             type="button"
+            data-pressable="row"
             onClick={() => onSend(token)}
             aria-label={formatMessage(
               { id: "app.balance.sendToken" },

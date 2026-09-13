@@ -68,6 +68,7 @@ export function WorkFulfills({ chainId, workUID, gardenId }: WorkFulfillsProps) 
     <div data-component="WorkFulfillsRow">
       <button
         type="button"
+        data-pressable="row"
         onClick={() =>
           navigateToTop(
             `/home/${commitmentGarden}/commitments/${attribution.commitmentId.toString()}`

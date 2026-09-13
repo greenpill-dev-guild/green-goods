@@ -1,5 +1,8 @@
 import type { Address } from "@green-goods/shared/types/domain";
 import { AddressDisplay } from "@green-goods/shared/components/AddressDisplay";
+import { Button } from "@green-goods/shared/components/Button";
+import { Textarea, TextInput } from "@green-goods/shared/components/Form/ControlPrimitives";
+import { IconButton } from "@green-goods/shared/components/IconButton";
 import { cn } from "@green-goods/shared/utils/styles/cn";
 import { formatAddress } from "@green-goods/shared/utils/app/text";
 import { MAX_EVIDENCE_LINKS } from "@green-goods/shared/commitment-pooling";
@@ -131,14 +134,14 @@ export function ProofDetails({
         <label className="block text-sm font-medium text-text-strong-950" htmlFor="proof-note">
           {formatMessage({ id: "app.proof.details.noteLabel" })}
         </label>
-        <textarea
+        <Textarea
           id="proof-note"
           value={note}
           rows={3}
           maxLength={2000}
           placeholder={formatMessage({ id: "app.proof.details.notePlaceholder" })}
           onChange={(event) => onNote(event.target.value)}
-          className="gg-control gg-control-textarea mt-1.5"
+          className="mt-1.5"
         />
       </div>
 
@@ -147,7 +150,7 @@ export function ProofDetails({
           {formatMessage({ id: "app.compose.details.linkLabel" })}
         </label>
         <div className="mt-1.5 flex gap-2">
-          <input
+          <TextInput
             id="proof-link"
             type="url"
             inputMode="url"
@@ -160,17 +163,18 @@ export function ProofDetails({
                 addLink();
               }
             }}
-            className="gg-control min-w-0 flex-1"
+            className="min-w-0 flex-1"
           />
-          <button
+          <Button
             type="button"
+            emphasis="secondary"
             onClick={addLink}
             disabled={pendingLink.trim().length === 0 || linksFull}
-            className="flex shrink-0 items-center gap-1 rounded-[var(--radius-lg)] border border-stroke-soft-200 px-3 text-sm font-medium text-text-strong-950 tap-target-lg disabled:opacity-60"
+            leadingIcon={<RiAddLine className="h-4 w-4" aria-hidden="true" />}
+            className="shrink-0"
           >
-            <RiAddLine className="h-4 w-4" aria-hidden="true" />
             {formatMessage({ id: "app.compose.details.addLink" })}
-          </button>
+          </Button>
         </div>
         {linkInvalid ? (
           <p className="mt-1.5 text-xs text-error-base" role="alert">
@@ -190,14 +194,12 @@ export function ProofDetails({
                 <span className="min-w-0 truncate text-text-strong-950" title={url}>
                   {url}
                 </span>
-                <button
-                  type="button"
+                <IconButton
+                  size="compact"
                   onClick={() => onLinks(links.filter((_, i) => i !== index))}
                   aria-label={formatMessage({ id: "app.compose.details.removeLink" }, { url })}
-                  className="shrink-0 rounded-full p-1 text-text-sub-600 tap-target-lg"
-                >
-                  <RiCloseLine className="h-4 w-4" aria-hidden="true" />
-                </button>
+                  icon={<RiCloseLine aria-hidden="true" />}
+                />
               </li>
             ))}
           </ul>
