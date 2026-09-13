@@ -2,6 +2,7 @@ import { type Hex, hexToBytes } from "viem";
 import type { P256Credential } from "viem/account-abstraction";
 import { fromPromise } from "xstate";
 import type { AuthPasskeyReason, AuthPasskeySource } from "../modules/app/analytics-events";
+import { getPasskeyRequestIds, type PasskeyCredential } from "../modules/auth/session";
 import { logger } from "../modules/app/logger";
 import { isPasskeyCredentialUnavailableError } from "../utils/errors/tx-error-classifier";
 import {
@@ -103,19 +104,23 @@ function classifyAuthErrorReason(error: unknown): AuthPasskeyReason {
   return "unknown";
 }
 
-function decodeCredentialId(id: string): Uint8Array {
-  const hex = id.replace(/^0x/, "");
-  if (hex.length > 0 && hex.length % 2 === 0 && /^[\da-f]+$/i.test(hex)) {
-    return new Uint8Array(hex.match(/.{2}/g)?.map((byte) => parseInt(byte, 16)) ?? []);
-  }
+function matchesBrowserId(
+  credential: Pick<PasskeyCredential, "id" | "signingId">,
+  browserId: string
+): boolean {
   try {
-    let base64 = id.replace(/-/g, "+").replace(/_/g, "/");
-    const padding = base64.length % 4;
-    if (padding === 2) base64 += "==";
-    else if (padding === 3) base64 += "=";
-    return Uint8Array.from(atob(base64), (character) => character.charCodeAt(0));
+    const browserBytes = new Uint8Array(
+      getPasskeyRequestIds({ id: browserId, signingId: browserId })[0]
+    );
+    return getPasskeyRequestIds(credential).some((id) => {
+      const bytes = new Uint8Array(id);
+      return (
+        bytes.length === browserBytes.length &&
+        bytes.every((byte, index) => byte === browserBytes[index])
+      );
+    });
   } catch {
-    throw new Error("Invalid credential ID format");
+    return false;
   }
 }
 
@@ -134,12 +139,18 @@ function verifiedCredential(
   verification: PasskeyServerVerificationResult,
   browserCredential: Pick<P256Credential, "id" | "raw">,
   failureMessage: string
-): P256Credential {
-  if (!verification.success || !verification.publicKey) {
+): PasskeyCredential {
+  if (
+    !verification.success ||
+    !verification.publicKey ||
+    !verification.id ||
+    !matchesBrowserId({ id: verification.id }, browserCredential.id)
+  ) {
     throw new Error(failureMessage);
   }
   return {
-    id: browserCredential.id,
+    id: verification.id,
+    signingId: browserCredential.id,
     publicKey: verification.publicKey,
     raw: browserCredential.raw,
   };
@@ -149,7 +160,7 @@ export function createAuthServices(adapters: PasskeyAdapters = defaultPasskeyAda
   const { session, telemetry } = adapters;
 
   const cacheSession = (
-    credential: P256Credential,
+    credential: PasskeyCredential,
     userName: string,
     address: Hex,
     rpId: string
@@ -162,24 +173,28 @@ export function createAuthServices(adapters: PasskeyAdapters = defaultPasskeyAda
   };
 
   const buildSession = async (
-    credential: P256Credential,
+    credential: PasskeyCredential,
     userName: string,
     chainId: number,
     rpId: string,
-    enforceExpectedAddress = true
+    enforceExpectedAddress = true,
+    alternatives: PasskeyCredential[] = []
   ): Promise<PasskeySessionResult> => {
-    const { client, address } = await adapters.buildSmartAccount(credential, chainId, rpId);
-    const expected = session.getStoredSmartAccountAddress();
-    if (enforceExpectedAddress && expected && expected.toLowerCase() !== address.toLowerCase()) {
-      throw new Error("Recovered passkey did not match the expected account address");
+    const expected = enforceExpectedAddress ? session.getStoredSmartAccountAddress() : null;
+    // Without a saved address, always use the canonical server identity.
+    const candidates = expected ? [credential, ...alternatives] : [credential];
+    for (const candidate of candidates) {
+      const { client, address } = await adapters.buildSmartAccount(candidate, chainId, rpId);
+      if (expected && expected.toLowerCase() !== address.toLowerCase()) continue;
+      cacheSession(candidate, userName, address, rpId);
+      return {
+        credential: candidate,
+        smartAccountClient: client,
+        smartAccountAddress: address,
+        userName,
+      };
     }
-    cacheSession(credential, userName, address, rpId);
-    return {
-      credential,
-      smartAccountClient: client,
-      smartAccountAddress: address,
-      userName,
-    };
+    throw new Error("Recovered passkey did not match the expected account address");
   };
 
   const registerWithServer = async (userName: string, chainId: number) => {
@@ -233,11 +248,13 @@ export function createAuthServices(adapters: PasskeyAdapters = defaultPasskeyAda
         challenge: strictArrayBuffer(decodeChallenge(options.challenge)),
         rpId,
         userVerification: options.userVerification || "required",
-        allowCredentials: credentials.map((credential) => ({
-          id: strictArrayBuffer(decodeCredentialId(credential.id)),
-          type: "public-key",
-          transports: ["internal", "hybrid"],
-        })),
+        allowCredentials: credentials.flatMap((credential) =>
+          getPasskeyRequestIds(credential).map((id) => ({
+            id,
+            type: "public-key",
+            transports: ["internal", "hybrid"],
+          }))
+        ),
         timeout: 60_000,
       },
     });
@@ -254,11 +271,26 @@ export function createAuthServices(adapters: PasskeyAdapters = defaultPasskeyAda
       },
       "Passkey server authentication failed"
     );
+    const alternatives: PasskeyCredential[] = [{ ...credential, id: response.id }];
+    const cached = session.getStoredCredential();
+    if (
+      cached &&
+      cached.publicKey.toLowerCase() === credential.publicKey.toLowerCase() &&
+      matchesBrowserId(cached, response.id)
+    ) {
+      alternatives.push({ ...credential, id: cached.id });
+    }
     return buildSession(
       credential,
       verification.userName || verification.username || context.userName,
       chainId,
-      rpId
+      rpId,
+      true,
+      alternatives.filter(
+        (candidate, index, all) =>
+          candidate.id !== credential.id &&
+          all.findIndex((other) => other.id === candidate.id) === index
+      )
     );
   };
 
@@ -279,18 +311,23 @@ export function createAuthServices(adapters: PasskeyAdapters = defaultPasskeyAda
         challenge: strictArrayBuffer(adapters.randomChallenge()),
         rpId,
         userVerification: "required",
-        allowCredentials: [
-          {
-            id: strictArrayBuffer(decodeCredentialId(credential.id)),
-            type: "public-key",
-            transports: ["internal", "hybrid"],
-          },
-        ],
+        allowCredentials: getPasskeyRequestIds(credential).map((id) => ({
+          id,
+          type: "public-key",
+          transports: ["internal", "hybrid"],
+        })),
         timeout: 60_000,
       },
     });
     if (!response) throw new Error("Passkey authentication was cancelled");
-    return buildSession(credential, storedUsername || userName || "", chainId, rpId);
+    if (!matchesBrowserId(credential, response.id))
+      throw new Error("Passkey authentication verification failed");
+    return buildSession(
+      { ...credential, signingId: response.id },
+      storedUsername || userName || "",
+      chainId,
+      rpId
+    );
   };
 
   const restoreSession = fromPromise<RestoreSessionResult | null, RestoreInput>(
@@ -360,7 +397,9 @@ export function createAuthServices(adapters: PasskeyAdapters = defaultPasskeyAda
       const result = serverEnabled
         ? await registerWithServer(input.userName, input.chainId)
         : await buildSession(
-            await adapters.createLocalPasskey(input.userName),
+            await adapters
+              .createLocalPasskey(input.userName)
+              .then((credential) => ({ ...credential, signingId: credential.id })),
             input.userName,
             input.chainId,
             adapters.getRpId(),
