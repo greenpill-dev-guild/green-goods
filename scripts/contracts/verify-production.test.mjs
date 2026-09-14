@@ -51,7 +51,7 @@ test("runs every verification tool from the contracts package", () => {
       assert.equal(invocation.split("|")[1], CONTRACTS_DIR, invocation);
     }
     const commands = invocations.map((invocation) => invocation.split("|")[2]);
-    assert.ok(commands.includes("run test:e2e workflow"));
+    assert.ok(commands.includes("run browser e2e --preset all workflow"));
     for (const network of ["sepolia", "arbitrum", "celo"]) {
       assert.ok(commands.includes(`run contracts -- deploy core --network ${network} --mode preflight`));
     }
