@@ -1,4 +1,5 @@
 import { configureConnectivityProbe } from "@green-goods/shared/hooks/app/useOnlineStatus";
+import { scrollAppToTop } from "@green-goods/shared/hooks/app/useScrollToTop";
 import { useDocumentScrollLockLifecycle } from "@green-goods/shared/hooks/ui/useDocumentScrollLock";
 import { JobQueueProvider } from "@green-goods/shared/providers/JobQueue";
 import { WorkProvider } from "@green-goods/shared/providers/Work";
@@ -52,7 +53,7 @@ export default function AppShell() {
 
   useDocumentScrollLockLifecycle(pathname);
 
-  // Route transitions reset the document; submission returns preserve dashboard state.
+  // Route transitions reset the app scroller; submission returns preserve dashboard state.
   useLayoutEffect(() => {
     const previousPathname = previousPathnameRef.current;
     const isSubmissionReturn =
@@ -62,7 +63,7 @@ export default function AppShell() {
     // dashboard before returning Home. Every other route transition clears
     // stale dashboard state.
     if (!isSubmissionReturn) closeWorkDashboard();
-    window.scrollTo(0, 0);
+    scrollAppToTop();
     previousPathnameRef.current = pathname;
   }, [closeWorkDashboard, pathname]);
 
@@ -74,9 +75,17 @@ export default function AppShell() {
       <PwaBadgeCoordinator />
       <WorkProvider>
         <DeferredEnsClaimReminder />
-        {/* Main content area with view-transition-name for SPA transitions */}
-        <main className="vt-main flex min-h-dvh flex-col pb-[calc(69px+env(safe-area-inset-bottom))]">
-          <div id="app-scroll" className="flex-1">
+        {/* Content scrolls inside #app-scroll, never the document. Android Chrome
+            stretches everything on an overscrolled document, the fixed AppBar
+            included; an inner scroller stretches only its own content. A pull
+            from the top still chains to the unscrollable document, so native
+            refresh keeps working. overflow-clip stops Chrome from promoting
+            #app-scroll to the document scroller. */}
+        <main className="vt-main flex h-dvh flex-col overflow-clip">
+          <div
+            id="app-scroll"
+            className="native-scroll min-h-0 flex-1 overflow-y-auto overflow-x-hidden pb-[calc(69px+env(safe-area-inset-bottom))]"
+          >
             <Outlet />
           </div>
         </main>

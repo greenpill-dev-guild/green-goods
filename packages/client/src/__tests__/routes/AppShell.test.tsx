@@ -30,7 +30,7 @@ vi.mock("@/components/Communication/PwaBadgeCoordinator", () => ({
 }));
 
 vi.mock("@/components/Layout/AppBar", () => ({
-  AppBar: () => null,
+  AppBar: () => <nav data-testid="authenticated-nav" />,
 }));
 
 vi.mock("@/routes/ENSClaimReminder", () => ({
@@ -70,8 +70,35 @@ describe("AppShell", () => {
   });
 
   afterEach(() => {
+    vi.restoreAllMocks();
     useUIStore.getState().closeWorkDashboard();
     document.documentElement.classList.remove("modal-open");
+  });
+
+  it("scrolls content inside #app-scroll so the app bar stays outside any overscroll stretch", () => {
+    render(
+      <MemoryRouter initialEntries={["/home"]}>
+        <Routes>
+          <Route element={<AppShell />}>
+            <Route path="home" element={<HomeRoute />} />
+          </Route>
+        </Routes>
+      </MemoryRouter>
+    );
+
+    const main = screen.getByRole("main");
+    const appScroll = document.getElementById("app-scroll");
+    if (!appScroll) throw new Error("App scroll container is missing");
+
+    // A viewport-height shell keeps the document unscrollable: Android Chrome
+    // then has no document overscroll to stretch, and pulls from the top still
+    // chain to it for native refresh.
+    expect(main).toHaveClass("h-dvh", "overflow-clip");
+    expect(appScroll).toHaveClass("overflow-y-auto");
+    // Contained overscroll would stop the pull from reaching the document.
+    expect(appScroll.className).not.toMatch(/overscroll-(?:y-)?(?:contain|none)/);
+    expect(main).toContainElement(appScroll);
+    expect(appScroll).not.toContainElement(screen.getByTestId("authenticated-nav"));
   });
 
   it("clears stale dashboard state and document locks on route changes", () => {
@@ -99,7 +126,8 @@ describe("AppShell", () => {
     expect(screen.getByText("Work detail")).toBeInTheDocument();
     expect(useUIStore.getState().isWorkDashboardOpen).toBe(false);
     expect(document.documentElement).not.toHaveClass("modal-open");
-    expect(window.scrollTo).toHaveBeenLastCalledWith(0, 0);
+    expect(appScroll.scrollTop).toBe(0);
+    expect(window.scrollTo).not.toHaveBeenCalled();
   });
 
   it("preserves an intentionally opened dashboard when submission returns home", () => {

@@ -86,12 +86,13 @@ describe("StandardTabs", () => {
     explicitOwner.remove();
   });
 
-  it("scrolls the document when no inner scroll owner is provided", async () => {
+  it("falls back to the app scroller when no explicit owner is provided", async () => {
     const user = userEvent.setup();
-    const scroll = vi.spyOn(window, "scrollTo").mockImplementation(() => {});
+    const windowScroll = vi.spyOn(window, "scrollTo").mockImplementation(() => {});
     const appScroll = document.createElement("div");
     appScroll.id = "app-scroll";
-    appScroll.scrollTop = 240;
+    const appScrollTo = vi.fn();
+    appScroll.scrollTo = appScrollTo;
     document.body.append(appScroll);
 
     render(
@@ -104,9 +105,9 @@ describe("StandardTabs", () => {
 
     await user.click(screen.getByTestId("tab-tab2"));
 
-    expect(scroll).toHaveBeenCalledWith({ top: 0, behavior: "auto" });
-    expect(appScroll.scrollTop).toBe(240);
-    scroll.mockRestore();
+    expect(appScrollTo).toHaveBeenCalledWith({ top: 0, behavior: "auto" });
+    expect(windowScroll).not.toHaveBeenCalled();
+    windowScroll.mockRestore();
     appScroll.remove();
   });
 

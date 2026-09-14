@@ -23,6 +23,7 @@ import { WorkTab } from "../../../stores/workFlowTypes";
 import { findActionByUID } from "../../../utils/action/parsers";
 import { parseContractError } from "../../../utils/errors/contract-errors";
 import { useOffline } from "../../app/useOffline";
+import { scrollAppToTop } from "../../app/useScrollToTop";
 import { useUser } from "../../auth/useUser";
 import { useCommitmentJobs } from "../../commitment-pooling/useCommitmentJobs";
 import { useWorkLinkChoices } from "../../commitment-pooling/useWorkLinkChoices";
@@ -297,7 +298,7 @@ export function useWorkSubmissionFlowController({
     } catch {
       return;
     }
-    window.scrollTo({ top: 0, behavior: "instant" });
+    scrollAppToTop("instant");
     setActiveTab(tab);
   };
   const submit = async () => {
