@@ -40,9 +40,9 @@ describe("release gas gate routing", () => {
     for (const profile of ["standard", "deep", "fast", "lite"] as const) {
       const plan = resolvePackageCommand("test", ["--suite", "solidity", "--profile", profile]);
       const forge = plan.steps.find((step) => step.command === "forge");
-      const exclusionIndex = forge?.args.indexOf("--no-match-test") ?? -1;
+      const exclusionIndex = forge?.args?.indexOf("--no-match-test") ?? -1;
       expect(exclusionIndex, profile).toBeGreaterThan(-1);
-      expect(forge?.args[exclusionIndex + 1], profile).toBe(exclusion);
+      expect(forge?.args?.[exclusionIndex + 1], profile).toBe(exclusion);
     }
   });
 
