@@ -48,6 +48,11 @@ function avatarUrl(address = ADDRESS, chainId = CHAIN_ID) {
   return `/public/profile-avatars/${chainId}/${address}`;
 }
 
+function batchUrl(addresses: string[] | null, chainId = CHAIN_ID) {
+  const base = `/public/profile-avatars/${chainId}`;
+  return addresses ? `${base}?addresses=${addresses.join(",")}` : base;
+}
+
 function mutation(
   overrides: Partial<{
     avatarUri: string | null;
@@ -490,5 +495,98 @@ describe("profile avatar public API", () => {
       429,
       "rate_limited"
     );
+  });
+});
+
+describe("profile avatar batch read", () => {
+  it("returns one record per unique address in request order without caching", async () => {
+    const { app, store } = createAvatarApp();
+    await store.compareAndSwap({
+      chainId: CHAIN_ID,
+      address: ADDRESS as `0x${string}`,
+      avatarUri: URI,
+      expectedVersion: 0,
+      updatedAt: new Date(NOW).toISOString(),
+    });
+    const mixedCase = `0x${ADDRESS.slice(2).toUpperCase()}`;
+
+    const preflight = await app.request(batchUrl([ADDRESS]), {
+      method: "OPTIONS",
+      headers: { origin: ORIGIN },
+    });
+    const response = await app.request(batchUrl([OTHER_ADDRESS, mixedCase, OTHER_ADDRESS]), {
+      headers: { origin: ORIGIN },
+    });
+
+    expect(preflight.status).toBe(204);
+    expect(response.status).toBe(200);
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(await response.json()).toEqual({
+      ok: true,
+      records: [
+        {
+          chainId: CHAIN_ID,
+          address: OTHER_ADDRESS,
+          avatarUri: null,
+          version: 0,
+          updatedAt: null,
+        },
+        {
+          chainId: CHAIN_ID,
+          address: ADDRESS,
+          avatarUri: URI,
+          version: 1,
+          updatedAt: new Date(NOW).toISOString(),
+        },
+      ],
+    });
+  });
+
+  it("rejects malformed lists, unsupported chains, untrusted origins, and storage failures", async () => {
+    const { app, store } = createAvatarApp();
+    const tooMany = Array.from(
+      { length: 51 },
+      (_, index) => `0x${index.toString(16).padStart(40, "0")}`
+    );
+    const request = (url: string, origin = ORIGIN) => app.request(url, { headers: { origin } });
+
+    await expectErrorCode(await request(batchUrl(null)), 400, "invalid_request");
+    await expectErrorCode(await request(batchUrl([ADDRESS, "0x1234"])), 400, "invalid_request");
+    await expectErrorCode(await request(batchUrl(tooMany)), 400, "invalid_request");
+    await expectErrorCode(await request(batchUrl([ADDRESS], 1)), 400, "chain_unsupported");
+    await expectErrorCode(
+      await request(batchUrl([ADDRESS]), "https://example.invalid"),
+      403,
+      "origin_not_allowed"
+    );
+
+    store.get = vi.fn(async () => {
+      throw new Error("database unavailable");
+    });
+    await expectErrorCode(await request(batchUrl([ADDRESS])), 503, "provider_unavailable");
+
+    const unconfigured = createAvatarApp({ configuredChainId: null });
+    await expectErrorCode(
+      await unconfigured.app.request(batchUrl([ADDRESS]), { headers: { origin: ORIGIN } }),
+      503,
+      "provider_unavailable"
+    );
+  });
+
+  it("spends its own rate budget so lists cannot lock out single reads", async () => {
+    const { app } = createAvatarApp();
+
+    for (let index = 0; index < 600; index += 1) {
+      const response = await app.request(batchUrl([ADDRESS, OTHER_ADDRESS]), {
+        headers: { origin: ORIGIN },
+      });
+      expect(response.status).toBe(200);
+    }
+    await expectErrorCode(
+      await app.request(batchUrl([ADDRESS]), { headers: { origin: ORIGIN } }),
+      429,
+      "rate_limited"
+    );
+    expect((await app.request(avatarUrl(), { headers: { origin: ORIGIN } })).status).toBe(200);
   });
 });
