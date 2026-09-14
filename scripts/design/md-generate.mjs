@@ -26,11 +26,14 @@ const PWA_AUDIT_EXCLUDED_FILES = new Set([
   "packages/client/src/components/Layout/Hero.tsx",
   "packages/client/src/views/Landing/index.tsx",
 ]);
+// Text on bright tertiary green fails at app text sizes: white is 2.36:1 and the dark
+// on-tertiary pair reads muddy at 4.64:1. Text-bearing green fills use the primary-action
+// pair instead (DL-017), so no foreground is approved on these backgrounds. The lookahead
+// keeps `bg-primary-action` and `bg-primary-alpha-*` from matching as `bg-primary`.
 const BRIGHT_GREEN_BACKGROUND_PATTERN =
-  /\b(?:bg-primary(?:-base)?|bg-green-(?:400|500|600)|bg-emerald-(?:400|500|600))\b/;
-const APPROVED_BRIGHT_GREEN_FOREGROUND_PATTERN = /\btext-primary-accent-foreground\b/;
-const UNAPPROVED_BRIGHT_GREEN_FOREGROUND_PATTERN =
-  /\b(?:text-white|text-white-0|text-primary-foreground|text-neutral-0|text-static-white)\b/;
+  /\b(?:bg-primary(?:-base)?|bg-success-base|bg-green-(?:400|500|600)|bg-emerald-(?:400|500|600))(?![\w-])/;
+const BRIGHT_GREEN_FOREGROUND_PATTERN =
+  /\b(?:text-white|text-white-0|text-primary-foreground|text-primary-accent-foreground|text-neutral-0|text-static-white)(?![\w-])/;
 
 function readDesignFrontMatter() {
   const source = readFileSync(DESIGN_PATH, "utf8");
@@ -73,18 +76,19 @@ function getExpectedTokenData(design) {
         implementation:
           "--color-primary, --primary-base, bg-primary, text-primary, text-primary-base",
         purpose:
-          "Protected PWA accent rhythm for active nav, icons, badges, progress, filters, and highlights.",
+          "Protected PWA accent rhythm for text-free marks: active nav, icons, dots, progress lines, filters, and highlights.",
       },
       {
         designToken: "colors.on-tertiary",
         implementation: "--primary-accent-foreground, text-primary-accent-foreground",
         purpose:
-          "Readable foreground for tiny text on bright tertiary accents; keeps the bright green background intact.",
+          "Dark green ink token. Not used for text on bright tertiary fills; those use the tertiary-action pair (DL-017).",
       },
       {
         designToken: "colors.tertiary-action",
         implementation: "--primary-action, --color-primary-action, bg-primary-action",
-        purpose: "Contrast-safe filled text actions.",
+        purpose:
+          "Contrast-safe fill for every green shape that carries text: filled actions, count badges, step markers, selected chips.",
       },
       {
         designToken: "colors.tertiary-action-hover",
@@ -95,7 +99,7 @@ function getExpectedTokenData(design) {
         designToken: "colors.on-tertiary-action",
         implementation:
           "--primary-action-foreground, --color-primary-action-foreground, text-primary-action-foreground",
-        purpose: "Foreground for contrast-safe filled text actions.",
+        purpose: "Foreground for every text-bearing green fill.",
       },
       {
         designToken: "rounded.*",
@@ -109,7 +113,7 @@ function getExpectedTokenData(design) {
       tertiaryRole:
         "DesignMD colors.tertiary is the existing bright PWA green accent implementation.",
       actionRole:
-        "DesignMD colors.tertiary-action is reserved for filled text actions that need white foreground contrast.",
+        "DesignMD colors.tertiary-action is the fill for every green shape that carries text, numbers, or glyphs, with white foreground.",
       shellFreeze:
         "Token generation must not change AppShell height, bottom AppBar behavior, safe-area padding, or /home/garden and /home/:id/work/:workId AppBar hiding.",
     },
@@ -183,11 +187,8 @@ function classifyUsage({ file, line, token }) {
   const rel = relative(REPO_ROOT, file);
   const lowerLine = line.toLowerCase();
   const hasBrightGreenBackground = BRIGHT_GREEN_BACKGROUND_PATTERN.test(line);
-  if (hasBrightGreenBackground && UNAPPROVED_BRIGHT_GREEN_FOREGROUND_PATTERN.test(line)) {
+  if (hasBrightGreenBackground && BRIGHT_GREEN_FOREGROUND_PATTERN.test(line)) {
     return "contrast-risk";
-  }
-  if (hasBrightGreenBackground && APPROVED_BRIGHT_GREEN_FOREGROUND_PATTERN.test(line)) {
-    return "contrast-exception";
   }
   if (token.includes("primary-action")) return "action";
   if (/(focus|ring|border|outline|active|selected|data-state|aria-selected)/.test(lowerLine)) {
@@ -242,14 +243,14 @@ function generateAuditMarkdown(rows) {
     acc[row.classification] = (acc[row.classification] ?? 0) + 1;
     return acc;
   }, {});
-  const countLine = ["accent", "action", "state", "contrast-exception", "contrast-risk"]
+  const countLine = ["accent", "action", "state", "contrast-risk"]
     .map((key) => `${key}: ${counts[key] ?? 0}`)
     .join(", ");
   const contrastRiskRows = rows.filter((row) => row.classification === "contrast-risk");
   const riskLine =
     contrastRiskRows.length > 0
-      ? `Unapproved bright-green text-bearing combinations: ${contrastRiskRows.length}.`
-      : "Unapproved bright-green text-bearing combinations: 0.";
+      ? `Text on bright green: ${contrastRiskRows.length}.`
+      : "Text on bright green: 0.";
   const table = rows
     .map((row) => {
       const rel = relative(REPO_ROOT, row.file);
@@ -269,15 +270,9 @@ ${riskLine}
 
 Classification rules:
 - \`accent\`: bright tertiary green should stay visually bright.
-- \`action\`: filled text actions should use \`primary-action\` aliases.
+- \`action\`: any green fill that carries text, a number, or a glyph uses the \`primary-action\` aliases (DL-017).
 - \`state\`: focus, border, selected, or active state usage.
-- \`contrast-exception\`: approved tiny text on bright green using \`text-primary-accent-foreground\`.
-- \`contrast-risk\`: unapproved white/light foreground currently placed directly on a bright green surface.
-
-Approved contrast exceptions:
-- Tiny count badges keep bright \`bg-primary\` / \`bg-primary-base\` backgrounds but use \`text-primary-accent-foreground\`.
-- Selected chips keep bright \`bg-primary-base\` backgrounds but use \`text-primary-accent-foreground\`.
-- The back-online bar keeps a bright green material background but uses \`text-primary-accent-foreground\`.
+- \`contrast-risk\`: a text colour placed directly on a bright green surface (\`bg-primary\`, \`bg-primary-base\`, or \`bg-success-base\`). There are no approved exceptions.
 
 | Location | Token | Classification | Source Line |
 |---|---:|---|---|

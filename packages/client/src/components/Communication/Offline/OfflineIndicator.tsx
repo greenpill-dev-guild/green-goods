@@ -1,10 +1,18 @@
+import { Button } from "@green-goods/shared/components/Button";
+import { IconButton } from "@green-goods/shared/components/IconButton";
 import { cn } from "@green-goods/shared/utils/styles/cn";
 import { useApp } from "@green-goods/shared/providers/App";
 import {
   useConnectivityStatus,
   useOnlineStatus,
 } from "@green-goods/shared/hooks/app/useOnlineStatus";
-import { RiCheckLine, RiCloudOffLine, RiDownloadLine, RiUserLine } from "@remixicon/react";
+import {
+  RiCheckLine,
+  RiCloseLine,
+  RiCloudOffLine,
+  RiDownloadLine,
+  RiUserLine,
+} from "@remixicon/react";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { useNavigate } from "react-router-dom";
@@ -124,7 +132,7 @@ export const OfflineIndicator: React.FC<OfflineIndicatorProps> = ({
       case "back-online":
         return (
           <div
-            className={`${baseBarClasses} bg-primary/95 text-primary-accent-foreground pointer-events-auto pulse-success`}
+            className={`${baseBarClasses} bg-primary-action/95 text-primary-action-foreground pointer-events-auto pulse-success`}
             role="status"
             aria-live="polite"
             aria-label={formatMessage({
@@ -142,7 +150,7 @@ export const OfflineIndicator: React.FC<OfflineIndicatorProps> = ({
       case "install":
         return (
           <div
-            className={`${baseBarClasses} bg-bg-white-0/95 text-text-strong-950 border-b border-stroke-soft-200 pointer-events-auto`}
+            className={`${baseBarClasses} overflow-y-clip bg-bg-white-0/95 text-text-strong-950 border-b border-stroke-soft-200 pointer-events-auto`}
             role="status"
           >
             <RiDownloadLine size={10} className="text-primary" aria-hidden="true" />
@@ -152,28 +160,32 @@ export const OfflineIndicator: React.FC<OfflineIndicatorProps> = ({
                 defaultMessage: "Install for full experience.",
               })}
             </span>
-            <button
+            {/* The strip sits in the 24px the page headers leave at the top, so it is thinner than
+                its compact actions. The negative margins keep it thin, and the vertical clip stops
+                their boxes and hit areas from covering the header controls beneath. */}
+            <Button
               type="button"
+              emphasis="tertiary"
+              size="compact"
               onClick={() => navigate(APP_ROUTES.profile, { viewTransition: true })}
-              className="ml-1 inline-flex items-center gap-1 rounded-full border border-stroke-sub-300 bg-bg-white-0 px-2 py-0.5 text-[10px] hover:bg-bg-weak-50 active:scale-95 transition-transform duration-[var(--spring-spatial-fast-duration)] ease-[var(--spring-spatial-fast-easing)]"
+              leadingIcon={<RiUserLine className="h-3 w-3" aria-hidden="true" />}
+              className="-my-2 text-[10px]"
             >
-              <RiUserLine className="h-3 w-3" />
               {formatMessage({
                 id: "app.offline.installPromptProfile",
                 defaultMessage: "Profile",
               })}
-            </button>
-            <button
-              type="button"
+            </Button>
+            <IconButton
+              size="compact"
               onClick={() => setInstallDismissed(true)}
-              className="ml-1 text-[10px] text-text-sub-600 hover:text-text-strong-950"
+              className="-my-2"
               aria-label={formatMessage({
                 id: "app.offline.installPromptDismiss",
                 defaultMessage: "Dismiss",
               })}
-            >
-              ✕
-            </button>
+              icon={<RiCloseLine aria-hidden="true" />}
+            />
           </div>
         );
 

@@ -1,3 +1,4 @@
+import { NativeSelect } from "@green-goods/shared/components/Form/ControlPrimitives";
 import type { Address, Work } from "@green-goods/shared/types/domain";
 import { cn } from "@green-goods/shared/utils/styles/cn";
 import type { TimeFilter } from "@green-goods/shared/utils/time";
@@ -163,13 +164,13 @@ export const PendingTab: React.FC<PendingTabProps> = ({
       emptyIcon={<RiTimeLine />}
       headerContent={
         <div className="flex items-center gap-2">
-          <select
+          <NativeSelect
             aria-label={intl.formatMessage({
               id: "app.workDashboard.pendingFilter.label",
               defaultMessage: "Pending work filter",
             })}
-            className="gg-control gg-control-select w-auto"
-            data-size="sm"
+            controlSize="sm"
+            className="w-auto"
             value={pendingFilter}
             onChange={(e) =>
               onPendingFilterChange(e.target.value as "all" | "needsReview" | "mySubmissions")
@@ -193,7 +194,7 @@ export const PendingTab: React.FC<PendingTabProps> = ({
                 defaultMessage: "My submissions",
               })}
             </option>
-          </select>
+          </NativeSelect>
           <TimeFilterControl value={timeFilter} onChange={onTimeFilterChange} />
         </div>
       }

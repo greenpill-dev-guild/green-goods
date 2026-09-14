@@ -80,6 +80,7 @@ export const StandardTabs: React.FC<StandardTabsProps> = ({
       {tabs.map((tab) => (
         <button
           type="button"
+          data-pressable="tab"
           key={tab.id}
           aria-current={activeTab === tab.id || undefined}
           onClick={(event) => {

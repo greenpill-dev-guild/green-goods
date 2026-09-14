@@ -32,14 +32,6 @@ vi.mock("@green-goods/shared/hooks/ens/useGreenGoodsEnsName", () => ({
   useGreenGoodsEnsName: () => ({ data: null }),
 }));
 
-vi.mock("@/components/Actions", () => ({
-  Button: ({ label, onClick }: { label: string; onClick?: () => void }) => (
-    <button type="button" onClick={onClick}>
-      {label}
-    </button>
-  ),
-}));
-
 vi.mock("@/components/Communication", () => ({
   Badge: ({ children }: { children: ReactNode }) => <span>{children}</span>,
   EmptyState: ({ title }: { title: string }) => <p>{title}</p>,
@@ -119,6 +111,7 @@ describe("GardenGardeners", () => {
     await user.click(screen.getByRole("button", { name: /Member 0/i }));
 
     const dialog = screen.getByRole("dialog");
+    expect(dialog).toHaveAttribute("data-component", "DialogShell");
     expect(within(dialog).getByText("Member 0")).toBeInTheDocument();
   });
 });

@@ -15,8 +15,18 @@ describe("AdminTextField", () => {
     render(<AdminTextField ref={restoreValue} label="Impact quantity" type="number" />);
 
     expect(screen.getByRole("spinbutton", { name: "Impact quantity" })).toHaveValue(10);
-    expect(screen.getByText("Impact quantity")).toHaveClass("top-2");
+    expect(screen.getByText("Impact quantity")).toHaveClass("top-0.5", "leading-4");
     expect(screen.getByText("Impact quantity")).not.toHaveClass("top-1/2");
+  });
+
+  it("keeps focused placeholder text below the floating label slot", () => {
+    render(<AdminTextField label="Search" placeholder="Search by title" />);
+
+    const control = screen.getByRole("textbox", { name: "Search" });
+    fireEvent.focus(control);
+
+    expect(screen.getByText("Search")).toHaveClass("top-0.5", "leading-4");
+    expect(control).toHaveClass("pt-5", "pb-1", "leading-5");
   });
 });
 
@@ -50,7 +60,8 @@ describe("AdminTextArea", () => {
 
     expect(screen.getByText("Reason")).toHaveClass("top-1/2");
     fireEvent.focus(control);
-    expect(screen.getByText("Reason")).not.toHaveClass("top-1/2");
+    expect(screen.getByText("Reason")).toHaveClass("top-0.5", "leading-4");
+    expect(control).toHaveClass("pt-5", "pb-1", "leading-5");
   });
 });
 
@@ -68,8 +79,9 @@ describe("AdminSelect", () => {
     expect(control.tagName).toBe("SELECT");
     // A native select always displays its selected option's text, so the
     // label can never rest in the centered position without overlapping it.
-    expect(screen.getByText("Cycle")).toHaveClass("top-2");
+    expect(screen.getByText("Cycle")).toHaveClass("top-0.5", "leading-4");
     expect(screen.getByText("Cycle")).not.toHaveClass("top-1/2");
+    expect(control).toHaveClass("pt-5", "pb-1", "leading-5");
 
     fireEvent.change(control, { target: { value: "c1" } });
     expect(onChange).toHaveBeenCalledTimes(1);

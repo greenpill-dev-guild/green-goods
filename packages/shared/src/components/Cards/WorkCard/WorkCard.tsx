@@ -100,6 +100,13 @@ export interface WorkCardProps extends WorkCardVariantProps {
   labels?: WorkCardLabels;
 }
 
+/**
+ * Compact list thumbnail: a fixed 88px square with the photo positioned inside it, so a
+ * portrait photo can never set the card's height (DL-019). Inline because shared utility
+ * classes are not in the client's Tailwind scan.
+ */
+const COMPACT_THUMBNAIL_STYLE: React.CSSProperties = { width: 88, height: 88 };
+
 /** Maps work status to a left-border accent color class. */
 export function getStatusBorderClass(status: WorkDisplayStatus | string): string {
   switch (status) {
@@ -183,10 +190,9 @@ export const WorkCard: React.FC<WorkCardProps> = ({
         <div
           className={cn(
             "relative overflow-hidden bg-bg-weak-50",
-            isCompact
-              ? "w-20 shrink-0 self-stretch"
-              : "w-full aspect-video @[480px]:w-56 @[480px]:flex-shrink-0"
+            isCompact ? "shrink-0" : "w-full aspect-video @[480px]:w-56 @[480px]:flex-shrink-0"
           )}
+          style={isCompact ? COMPACT_THUMBNAIL_STYLE : undefined}
         >
           {thumbUrl ? (
             canOpenPreview ? (
@@ -202,16 +208,16 @@ export const WorkCard: React.FC<WorkCardProps> = ({
                 <ImageWithFallback
                   src={thumbUrl}
                   alt=""
-                  className="h-full w-full object-cover"
-                  fallbackClassName="h-full w-full"
+                  className="absolute inset-0 h-full w-full object-cover"
+                  fallbackClassName="absolute inset-0 h-full w-full"
                 />
               </button>
             ) : (
               <ImageWithFallback
                 src={thumbUrl}
                 alt=""
-                className="h-full w-full object-cover"
-                fallbackClassName="h-full w-full"
+                className="absolute inset-0 h-full w-full object-cover"
+                fallbackClassName="absolute inset-0 h-full w-full"
               />
             )
           ) : (

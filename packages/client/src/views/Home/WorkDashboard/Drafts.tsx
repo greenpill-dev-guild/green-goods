@@ -1,4 +1,5 @@
 import { ConfirmDialog } from "@green-goods/shared/components/Dialog/ConfirmDialog";
+import { IconButton } from "@green-goods/shared/components/IconButton";
 import { toastService } from "@green-goods/shared/components/Toast/toast.service";
 import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
 import { useActions, useGardens } from "@green-goods/shared/hooks/blockchain/useBaseLists";
@@ -111,16 +112,15 @@ export const DraftsTab: React.FC<DraftsTabProps> = ({ headerContent, onBeforeNav
         {headerContent && (
           <div className="flex items-center justify-between px-4 py-2 border-b border-stroke-soft-200">
             {headerContent}
-            <button
+            <IconButton
+              size="compact"
               onClick={() => refetchDrafts()}
-              className="p-2 hover:bg-bg-weak-50 rounded-lg tap-target-lg transition-colors duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)]"
               aria-label={intl.formatMessage({
                 id: "app.drafts.refresh",
                 defaultMessage: "Refresh Drafts",
               })}
-            >
-              <RiRefreshLine className="w-4 h-4 text-text-sub-600" />
-            </button>
+              icon={<RiRefreshLine aria-hidden="true" />}
+            />
           </div>
         )}
         <EmptyState
@@ -152,16 +152,15 @@ export const DraftsTab: React.FC<DraftsTabProps> = ({ headerContent, onBeforeNav
             )}
           </span>
         </div>
-        <button
+        <IconButton
+          size="compact"
           onClick={() => refetchDrafts()}
-          className="p-2 hover:bg-bg-weak-50 rounded-lg tap-target-lg transition-colors duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)]"
           aria-label={intl.formatMessage({
             id: "app.drafts.refresh",
             defaultMessage: "Refresh Drafts",
           })}
-        >
-          <RiRefreshLine className="w-4 h-4 text-text-sub-600" />
-        </button>
+          icon={<RiRefreshLine aria-hidden="true" />}
+        />
       </div>
 
       {/* List */}

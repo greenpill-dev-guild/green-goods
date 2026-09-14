@@ -1,3 +1,5 @@
+import { Button } from "@green-goods/shared/components/Button";
+import { IconButton } from "@green-goods/shared/components/IconButton";
 import { useDocumentScrollLock } from "@green-goods/shared/hooks/ui/useDocumentScrollLock";
 import * as Dialog from "@radix-ui/react-dialog";
 import type { InstallGuidance } from "@green-goods/shared/hooks/app/useInstallGuidance";
@@ -121,16 +123,14 @@ export function PublicInstallDialog({
               </div>
 
               <Dialog.Close asChild>
-                <button
-                  type="button"
-                  className="inline-flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-full border border-stroke-soft-200 bg-bg-white-0 text-text-sub-600 transition-colors hover:bg-bg-weak-50 hover:text-text-strong-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-action focus-visible:ring-offset-2"
+                <IconButton
+                  emphasis="secondary"
                   aria-label={formatMessage({
                     id: "app.common.close",
                     defaultMessage: "Close",
                   })}
-                >
-                  <RiCloseLine className="h-5 w-5" />
-                </button>
+                  icon={<RiCloseLine aria-hidden="true" />}
+                />
               </Dialog.Close>
             </header>
 
@@ -206,15 +206,14 @@ export function PublicInstallDialog({
             ) : isBraveInstall ? (
               chromeUrl ? (
                 <div className="mt-6">
-                  <a
-                    href={chromeUrl}
-                    className="inline-flex min-h-11 w-full cursor-pointer items-center justify-center rounded-full bg-primary-action px-5 py-3 text-sm font-semibold text-primary-action-foreground transition-colors hover:bg-primary-action-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-action focus-visible:ring-offset-2 sm:w-fit"
-                  >
-                    {formatMessage({
-                      id: "public.installDialog.braveInstallAction",
-                      defaultMessage: "Open in Chrome",
-                    })}
-                  </a>
+                  <Button asChild className="w-full sm:w-fit">
+                    <a href={chromeUrl}>
+                      {formatMessage({
+                        id: "public.installDialog.braveInstallAction",
+                        defaultMessage: "Open in Chrome",
+                      })}
+                    </a>
+                  </Button>
                 </div>
               ) : null
             ) : (
@@ -263,26 +262,23 @@ export function PublicInstallDialog({
                 )}
 
                 {showMobilePrimaryAction && onPrimaryAction ? (
-                  <button
+                  <Button
                     type="button"
                     onClick={onPrimaryAction}
                     data-install-action={guidance.primaryAction.type}
-                    className="inline-flex min-h-11 w-full cursor-pointer items-center justify-center rounded-full bg-primary-action px-5 py-3 text-sm font-semibold text-primary-action-foreground transition-colors hover:bg-primary-action-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-action focus-visible:ring-offset-2 sm:w-fit"
+                    className="w-full sm:w-fit"
                   >
                     {guidance.primaryAction.label}
-                  </button>
+                  </Button>
                 ) : manualSteps.length === 0 ? (
-                  <a
-                    href={launchUrl}
-                    target="_blank"
-                    rel="noreferrer noopener"
-                    className="inline-flex min-h-11 w-full cursor-pointer items-center justify-center rounded-full bg-primary-action px-5 py-3 text-sm font-semibold text-primary-action-foreground transition-colors hover:bg-primary-action-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-action focus-visible:ring-offset-2 sm:w-fit"
-                  >
-                    {formatMessage({
-                      id: "public.installDialog.openInBrowser",
-                      defaultMessage: "Open Green Goods",
-                    })}
-                  </a>
+                  <Button asChild className="w-full sm:w-fit">
+                    <a href={launchUrl} target="_blank" rel="noreferrer noopener">
+                      {formatMessage({
+                        id: "public.installDialog.openInBrowser",
+                        defaultMessage: "Open Green Goods",
+                      })}
+                    </a>
+                  </Button>
                 ) : null}
               </div>
             )}

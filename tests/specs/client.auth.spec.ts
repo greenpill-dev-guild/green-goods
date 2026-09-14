@@ -172,7 +172,7 @@ test.describe("Client Authentication Flows", () => {
           'button:has-text("Cancel")',
           'button:has-text("Close")',
           '[data-testid="modal-close"]',
-          '[data-testid="modal-drawer-close"]',
+          '[data-testid="app-sheet-close"]',
         ];
 
         let closed = false;

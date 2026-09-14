@@ -46,15 +46,6 @@ vi.mock("@/views/Home/Garden/Notifications", async () => {
   };
 });
 
-// Mock Button component
-vi.mock("@/components/Actions", async () => {
-  const React = await import("react");
-  return {
-    Button: ({ children, onClick, leadingIcon, ...props }: any) =>
-      React.createElement("button", { onClick, ...props }, leadingIcon, children),
-  };
-});
-
 import type { Work } from "@green-goods/shared/types/domain";
 import { TopNav } from "../../components/Navigation/TopNav";
 
@@ -130,7 +121,7 @@ describe("components/Navigation/TopNav", () => {
       expect(notificationButton).toBeInTheDocument();
     });
 
-    it("opens the notifications sheet sized to its content with one scroll owner", () => {
+    it("opens the notifications sheet at the tall tier with one scroll owner", () => {
       renderWithIntl(
         createElement(TopNav, {
           garden: mockGarden as any,
@@ -141,10 +132,8 @@ describe("components/Navigation/TopNav", () => {
 
       fireEvent.click(screen.getByRole("button", { name: /view notifications/i }));
 
-      const sheet = screen.getByTestId("modal-drawer");
-      expect(sheet).toHaveClass("max-h-sheet");
-      expect(sheet).not.toHaveClass("h-modal");
-      expect(sheet.style.maxHeight).toBe("60vh");
+      const sheet = screen.getByTestId("app-sheet");
+      expect(sheet).toHaveAttribute("data-sheet-size", "tall");
       const region = screen.getByTestId("garden-notifications").parentElement;
       expect(region).toHaveClass("overflow-y-auto");
     });
@@ -244,6 +233,55 @@ describe("components/Navigation/TopNav", () => {
       // Should not have any buttons when no back click and no garden
       const buttons = container.querySelectorAll("button");
       expect(buttons.length).toBe(0);
+    });
+  });
+
+  describe("Share action (DL-020)", () => {
+    it("puts Share last in the action stack, after notifications and endowment", () => {
+      const handleShare = vi.fn();
+
+      renderWithIntl(
+        createElement(TopNav, {
+          garden: mockGarden as any,
+          works: mockWorks as any,
+          isSteward: true,
+          showEndowmentButton: true,
+          onEndowmentClick: vi.fn(),
+          onShareClick: handleShare,
+        })
+      );
+
+      const share = screen.getByRole("button", { name: "Share Garden" });
+      const stack = share.parentElement as HTMLElement;
+      const labels = Array.from(stack.querySelectorAll(":scope > button")).map((button) =>
+        button.getAttribute("aria-label")
+      );
+      expect(labels[labels.length - 1]).toBe("Share Garden");
+      expect(labels).toContain("View notifications");
+
+      fireEvent.click(share);
+      expect(handleShare).toHaveBeenCalledTimes(1);
+    });
+
+    it("shows Share to visitors who see no other banner actions", () => {
+      renderWithIntl(
+        createElement(TopNav, {
+          garden: mockGarden as any,
+          works: mockWorks as any,
+          onShareClick: vi.fn(),
+        })
+      );
+
+      expect(screen.getByRole("button", { name: "Share Garden" })).toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: /view notifications/i })).not.toBeInTheDocument();
+    });
+
+    it("renders no Share button without a garden or a share handler", () => {
+      renderWithIntl(createElement(TopNav, { garden: mockGarden as any, works: mockWorks as any }));
+      expect(screen.queryByRole("button", { name: "Share Garden" })).not.toBeInTheDocument();
+
+      renderWithIntl(createElement(TopNav, { onShareClick: vi.fn() }));
+      expect(screen.queryByRole("button", { name: "Share Garden" })).not.toBeInTheDocument();
     });
   });
 

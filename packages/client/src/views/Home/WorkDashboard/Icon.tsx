@@ -1,3 +1,4 @@
+import { IconButton } from "@green-goods/shared/components/IconButton";
 import { useOffline } from "@green-goods/shared/hooks/app/useOffline";
 import { useUIStore } from "@green-goods/shared/stores/useUIStore";
 import { cn } from "@green-goods/shared/utils/styles/cn";
@@ -60,7 +61,6 @@ export const WorkDashboardIcon: React.FC<WorkDashboardIconProps> = ({ className 
   // Determine primary icon and styling based on status priority
   let PrimaryIcon = RiTaskLine;
   let statusTone: PwaStatusTone = hasPendingItems ? "primary" : "neutral";
-  const bgColor = "bg-bg-white-0";
 
   if (isSyncing) {
     PrimaryIcon = RiLoader4Line;
@@ -70,72 +70,61 @@ export const WorkDashboardIcon: React.FC<WorkDashboardIconProps> = ({ className 
     statusTone = "warning";
   }
   const statusStyles = pwaStatusStyles[statusTone];
+  // The status tone tints the outline while work is pending, syncing, or offline.
   const borderColor =
-    isSyncing || hasOfflineStatus || hasPendingItems
-      ? statusStyles.border
-      : pwaStatusStyles.neutral.border;
+    isSyncing || hasOfflineStatus || hasPendingItems ? statusStyles.border : undefined;
   const primaryIcon = (
-    <PrimaryIcon className={cn("w-4 h-4", statusStyles.icon, isSyncing && "animate-spin")} />
+    <PrimaryIcon
+      className={cn(statusStyles.icon, isSyncing && "animate-spin")}
+      aria-hidden="true"
+    />
   );
 
-  // Dashboard state and handlers
+  // A count for actual pending items; otherwise a dot while offline or syncing.
+  let badge: React.ReactNode;
+  if (hasPendingItems) {
+    badge = (
+      <span
+        className={cn(
+          "inline-flex items-center justify-center text-xs font-semibold rounded-full min-w-[18px] h-[18px] px-1",
+          pwaStatusStyles.primary.badge,
+          "shadow-sm border-2 border-bg-white-0"
+        )}
+        data-testid="notification-badge"
+      >
+        {pendingCount > 99 ? "99+" : pendingCount}
+      </span>
+    );
+  } else if (hasOfflineStatus || isSyncing) {
+    badge = (
+      <span
+        className={cn(
+          "w-3 h-3 rounded-full border-2 border-bg-white-0",
+          statusStyles.dot,
+          isSyncing && "animate-pulse"
+        )}
+        data-testid="status-dot"
+      />
+    );
+  }
 
   return (
     <>
-      <button
+      <IconButton
+        emphasis="secondary"
+        size="compact"
         onClick={() => openWorkDashboard()}
         disabled={!isDashboardReady}
-        className={cn(
-          "relative p-1 rounded-lg border",
-          "transition-[color,border-color,box-shadow,transform] duration-[var(--spring-spatial-fast-duration)] ease-[var(--spring-spatial-fast-easing)]",
-          "hover:shadow-lg hover:scale-105 active:scale-95",
-          "flex items-center justify-center w-8 h-8 tap-target-lg",
-          "focus:outline-none focus:ring-2",
-          statusStyles.focus,
-          bgColor,
-          borderColor,
-          statusStyles.icon,
-          className
-        )}
+        aria-busy={!isDashboardReady}
+        className={cn(borderColor, className)}
         aria-label={intl.formatMessage({
           id: "app.workDashboard.openButton",
           defaultMessage: "Open Your Work",
         })}
-        aria-busy={!isDashboardReady}
         data-testid="work-dashboard-button"
-      >
-        {primaryIcon}
-
-        {/* Only show badge for actual pending items */}
-        {hasPendingItems && (
-          <div className="absolute -top-1.5 -right-1.5">
-            <div
-              className={cn(
-                "inline-flex items-center justify-center text-xs font-semibold rounded-full min-w-[18px] h-[18px] px-1",
-                pwaStatusStyles.primary.badge,
-                "shadow-sm border-2 border-bg-white-0"
-              )}
-              data-testid="notification-badge"
-            >
-              {pendingCount > 99 ? "99+" : pendingCount}
-            </div>
-          </div>
-        )}
-
-        {/* Status indicator dot for offline/syncing without pending items */}
-        {(hasOfflineStatus || isSyncing) && !hasPendingItems && (
-          <div className="absolute -top-1 -right-1">
-            <span
-              className={cn(
-                "w-3 h-3 rounded-full border-2 border-bg-white-0",
-                statusStyles.dot,
-                isSyncing && "animate-pulse"
-              )}
-              data-testid="status-dot"
-            />
-          </div>
-        )}
-      </button>
+        icon={primaryIcon}
+        badge={badge}
+      />
 
       {/* The launcher is enabled only after this split module is cached locally. */}
       {isWorkDashboardOpen ? (

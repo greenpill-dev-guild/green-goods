@@ -2,6 +2,10 @@
  * @vitest-environment jsdom
  */
 
+import {
+  SheetActions,
+  type SheetActionsProps,
+} from "@green-goods/shared/components/Dialog/SheetActions";
 import { act, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { ReactNode } from "react";
@@ -48,6 +52,7 @@ avatarEditorMocks.editor.save = avatarEditorMocks.save;
 
 vi.mock("@green-goods/shared/components/Dialog/PwaSheet", () => ({
   PwaSheet: ({
+    actions,
     ariaLabel,
     children,
     closeLabel,
@@ -59,6 +64,7 @@ vi.mock("@green-goods/shared/components/Dialog/PwaSheet", () => ({
     testId,
     title,
   }: {
+    actions?: SheetActionsProps;
     ariaLabel?: string;
     children: ReactNode;
     closeLabel?: string;
@@ -91,6 +97,7 @@ vi.mock("@green-goods/shared/components/Dialog/PwaSheet", () => ({
           />
         ) : null}
         {children}
+        {actions ? <SheetActions {...actions} /> : null}
       </section>
     ) : null;
   },
@@ -394,7 +401,7 @@ describe("ProfileAvatarEditor", () => {
 
     const input = screen.getByTestId("profile-photo-input");
     const feedback = screen.getByRole("alert");
-    expect(feedback).toHaveStyle({ blockSize: "3lh" });
+    expect(feedback).toHaveStyle({ minBlockSize: "2lh" });
     expect(feedback).toHaveAttribute("tabindex", "0");
     const pickerButton = screen.getByRole("button", { name: "Replace Photo" });
     expect(input).toHaveAttribute("aria-invalid", "true");

@@ -79,6 +79,7 @@ export function CycleRail({ cycles, selectedCycleId, onSelect }: CycleRailProps)
           <button
             key={cycle.id}
             type="button"
+            data-pressable="card"
             aria-pressed={selected}
             onClick={() => onSelect(selected ? null : cycle.cycleId)}
             className={cn(

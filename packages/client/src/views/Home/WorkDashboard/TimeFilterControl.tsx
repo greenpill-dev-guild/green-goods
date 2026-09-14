@@ -1,3 +1,4 @@
+import { NativeSelect } from "@green-goods/shared/components/Form/ControlPrimitives";
 import { useIntl } from "react-intl";
 
 interface TimeFilterControlProps<T extends string> {
@@ -11,13 +12,13 @@ export function TimeFilterControl<T extends string>({
 }: TimeFilterControlProps<T>) {
   const { formatMessage } = useIntl();
   return (
-    <select
+    <NativeSelect
       aria-label={formatMessage({
         id: "app.workDashboard.timeFilter.label",
         defaultMessage: "Time period",
       })}
-      className="gg-control gg-control-select w-auto"
-      data-size="sm"
+      controlSize="sm"
+      className="w-auto"
       value={value}
       onChange={(e) => onChange(e.target.value as T)}
     >
@@ -33,6 +34,6 @@ export function TimeFilterControl<T extends string>({
       <option value={"year" as T}>
         {formatMessage({ id: "app.workDashboard.timeFilter.year", defaultMessage: "Year" })}
       </option>
-    </select>
+    </NativeSelect>
   );
 }

@@ -111,6 +111,20 @@ describe("OfflineIndicator", () => {
       expect(mockNavigate).toHaveBeenCalledWith("/home/profile", { viewTransition: true });
     });
 
+    it("clips its actions to the strip so they cannot cover the header controls beneath", () => {
+      renderWithIntl(
+        createElement(MemoryRouter, null, createElement(OfflineIndicator, { testState: "install" }))
+      );
+
+      // The strip is thinner than its 32px actions and their 48px hit areas. Without the
+      // vertical clip, a tap on the top of a Home launcher lands on Profile or Dismiss.
+      expect(screen.getByRole("status")).toHaveClass("overflow-y-clip");
+      expect(screen.getByRole("button", { name: "Profile" })).toHaveAttribute(
+        "data-size",
+        "compact"
+      );
+    });
+
     it("dismiss button hides the install nudge", async () => {
       const user = userEvent.setup();
 

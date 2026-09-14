@@ -69,7 +69,7 @@ export const Home: Story = {
             <RiFilterLine className="h-4 w-4" />
             <span
               data-testid="pwa-filter-badge"
-              className="absolute -right-1.5 -top-1.5 inline-flex min-w-[16px] items-center justify-center rounded-full bg-primary px-1 text-[10px] font-semibold leading-none text-primary-accent-foreground"
+              className="absolute -right-1.5 -top-1.5 inline-flex min-w-[16px] items-center justify-center rounded-full bg-primary-action px-1 text-[10px] font-semibold leading-none text-primary-action-foreground"
             >
               2
             </span>
@@ -99,9 +99,13 @@ export const Home: Story = {
     expect(nav.className).not.toContain("translate-y-full");
     const badge = canvas.getByTestId("pwa-filter-badge");
     const progress = canvas.getByTestId("pwa-queue-progress");
-    expect(badge.className).toContain("text-primary-accent-foreground");
-    expect(getComputedStyle(badge).color).toBe(hexToRgb(tokens.colors["on-tertiary"]));
-    expect(getComputedStyle(badge).backgroundColor).toBe(hexToRgb(tokens.colors.tertiary));
+    // A count badge carries a number, so it takes the action pair; the text-free progress bar
+    // keeps the bright accent (DL-017).
+    expect(badge.className).toContain("text-primary-action-foreground");
+    expect(getComputedStyle(badge).color).toBe(hexToRgb(tokens.colors["on-tertiary-action"]));
+    expect(getComputedStyle(badge).backgroundColor).toBe(
+      hexToRgb(tokens.colors["tertiary-action"])
+    );
     expect(getComputedStyle(progress).backgroundColor).toBe(hexToRgb(tokens.colors.tertiary));
   },
 };
@@ -184,8 +188,8 @@ export const OfflineAndSyncStatus: Story = {
     const canvas = within(canvasElement);
     await expect(canvas.getByTestId("offline-indicator")).toBeVisible();
     const backOnline = canvas.getByRole("status", { name: "App is back online" });
-    expect(backOnline.className).toContain("bg-primary/95");
-    expect(backOnline.className).toContain("text-primary-accent-foreground");
+    expect(backOnline.className).toContain("bg-primary-action/95");
+    expect(backOnline.className).toContain("text-primary-action-foreground");
     await expect(canvas.getByText("Back Online")).toBeVisible();
   },
 };

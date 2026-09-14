@@ -1,12 +1,7 @@
+import { Button, type ButtonProps, type ButtonSize } from "@green-goods/shared/components/Button";
+import { Chip } from "@green-goods/shared/components/Chip";
 import { cn } from "@green-goods/shared/utils/styles/cn";
-import {
-  type ButtonHTMLAttributes,
-  type ReactNode,
-  useEffect,
-  useId,
-  useRef,
-  useState,
-} from "react";
+import { type ReactNode, useEffect, useId, useRef, useState } from "react";
 import { Link, type LinkProps } from "react-router-dom";
 
 /**
@@ -221,148 +216,132 @@ export function EditorialMetaRow({ items, tone = "default", className }: Editori
 // Action atoms — buttons + links
 // ============================================================================
 
-// Editorial action atoms split into two motion vocabularies on purpose:
-//
-//   1. Capsule action atoms — `EditorialPrimaryButton`, `EditorialGhostButton`,
-//      `EditorialPrimaryLink`, `EditorialGhostLink`. These are *primary*
-//      affordances (CTAs, capsule pills). They get `ACTION_MOTION_CLASSES`
-//      below: a unified press/hover scale (1.02 hover, 0.98 press) on
-//      `--spring-spatial-fast` so the eye registers a tactile "settle" and
-//      "depress." Disabled buttons opt out via `disabled:hover:scale-100` +
-//      `disabled:active:scale-100` resets in each consumer's class list.
-//
-//   2. Quiet inline atoms — `EditorialLinkArrow` (text link with trailing →)
-//      and `EditorialDomainChip` (filter chip). These are *secondary*
-//      affordances that should recede inside body copy or filter rows; a
-//      hover scale on every text link would feel hyperactive. They keep
-//      `transition-colors` only — the `EditorialLinkArrow` arrow span gets a
-//      4px translate-x on hover instead, which is the directional cue. Don't
-//      reach for `ACTION_MOTION_CLASSES` here.
-//
-// `motion-safe` gates the transforms behind `prefers-reduced-motion`; color
-// transitions stay unconditional so disabled-state contrast animates
-// predictably even with motion suppressed.
-const ACTION_MOTION_CLASSES =
-  "transition-[background-color,border-color,color,transform] duration-[var(--spring-spatial-fast-duration)] ease-[var(--spring-spatial-fast-easing)] motion-safe:hover:scale-[1.02] motion-safe:active:scale-[0.98]";
+// The primary and secondary atoms are the editorial dialect over the shared
+// Button (DL-024): shape, height, press morph, and hit area come from the
+// primitive, and `size` picks the step (lg 48 for hero actions, md 44 for
+// section and panel actions, sm 40 for row actions). The atoms only add the
+// dialect's colours, a warm linen secondary that pairs with a primary and a
+// secondary for walnut surfaces. `EditorialLinkArrow` and the domain chip stay
+// quiet inline affordances and never scale on hover.
+const WARM_CLASSES =
+  "border-editorial-deep/15 bg-editorial-warm text-text-strong-950 hover:border-editorial-deep/25 hover:bg-editorial-deep/10";
 
-const PRIMARY_CLASSES =
-  "inline-flex items-center justify-center gap-2 rounded-full bg-primary-action px-6 py-3 text-sm font-semibold text-primary-action-foreground shadow-sm hover:bg-primary-action-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-action focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:scale-100 disabled:active:scale-100";
+const DARK_CLASSES =
+  "border-editorial-deep-fg/40 bg-transparent text-editorial-deep-fg hover:bg-editorial-deep-fg/10";
 
-const GHOST_CLASSES =
-  "inline-flex items-center justify-center gap-2 rounded-full border border-stroke-soft-200 bg-bg-white-0 px-6 py-3 text-sm font-medium text-text-strong-950 hover:bg-bg-weak-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-action focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:scale-100 disabled:active:scale-100";
+function ghostClasses(variant: EditorialGhostVariant, tone: Tone) {
+  if (variant === "warm") return WARM_CLASSES;
+  return tone === "dark" ? DARK_CLASSES : undefined;
+}
 
-const GHOST_DARK_CLASSES =
-  "inline-flex items-center justify-center gap-2 rounded-full border border-editorial-deep-fg/40 bg-transparent px-6 py-3 text-sm font-medium text-editorial-deep-fg hover:bg-editorial-deep-fg/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-editorial-deep-fg focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:scale-100 disabled:active:scale-100";
+/** The shared Button's props, minus the emphasis and tone each atom fixes. */
+type EditorialButtonProps = Omit<ButtonProps, "emphasis" | "tone" | "variant" | "asChild">;
 
-// Warm tonal capsule — `bg-editorial-warm` linen with walnut ink. Sits between
-// primary (green) and ghost (white): more presence than ghost, less authority
-// than primary. Use when a secondary action needs to feel paired with the
-// primary (e.g. Donate / Endow CTAs that are equally important).
-const GHOST_WARM_CLASSES =
-  "inline-flex items-center justify-center gap-2 rounded-full border border-editorial-deep/15 bg-editorial-warm px-6 py-3 text-sm font-medium text-text-strong-950 hover:bg-editorial-deep/10 hover:border-editorial-deep/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-action focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:scale-100 disabled:active:scale-100";
-
-export interface EditorialPrimaryButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
+export interface EditorialPrimaryButtonProps extends EditorialButtonProps {
   children: ReactNode;
 }
 
-/** Capsule green primary action. Use for the rare on-page action (subscribe). */
+/** Green primary action. Use for the rare on-page action (subscribe). */
 export function EditorialPrimaryButton({
   children,
-  className,
   type = "button",
+  size = "md",
   ...rest
 }: EditorialPrimaryButtonProps) {
   return (
-    <button type={type} className={cn(PRIMARY_CLASSES, ACTION_MOTION_CLASSES, className)} {...rest}>
+    <Button type={type} size={size} {...rest}>
       {children}
-    </button>
+    </Button>
   );
 }
 
 export type EditorialGhostVariant = "ghost" | "warm";
 
-export interface EditorialGhostButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
+export interface EditorialGhostButtonProps extends EditorialButtonProps {
   children: ReactNode;
   tone?: Tone;
   /**
-   * Visual variant. `ghost` (default) is the quiet white capsule with a thin
-   * gray border. `warm` is a tonal linen capsule that pairs with primary CTAs
-   * when the secondary action carries similar weight (e.g. Donate / Endow).
-   * The `tone` prop only applies to `ghost` (default vs. dark walnut surface).
+   * Visual variant. `ghost` (default) is the quiet white secondary. `warm` is a
+   * tonal linen secondary that pairs with primary CTAs when the secondary action
+   * carries similar weight (e.g. Donate / Endow). `tone` only applies to `ghost`.
    */
   variant?: EditorialGhostVariant;
 }
 
-/** Capsule transparent secondary action. Default tone for linen, dark for walnut. */
+/** Secondary action. Default tone for linen, dark for walnut. */
 export function EditorialGhostButton({
   children,
   className,
   tone = "default",
   variant = "ghost",
   type = "button",
+  size = "md",
   ...rest
 }: EditorialGhostButtonProps) {
-  const baseClasses =
-    variant === "warm" ? GHOST_WARM_CLASSES : tone === "dark" ? GHOST_DARK_CLASSES : GHOST_CLASSES;
   return (
-    <button type={type} className={cn(baseClasses, ACTION_MOTION_CLASSES, className)} {...rest}>
+    <Button
+      type={type}
+      emphasis="secondary"
+      size={size}
+      className={cn(ghostClasses(variant, tone), className)}
+      {...rest}
+    >
       {children}
-    </button>
+    </Button>
   );
 }
 
 export interface EditorialPrimaryLinkProps extends LinkProps {
   children: ReactNode;
+  size?: ButtonSize;
 }
 
-/** Capsule green primary action that routes via React Router Link. */
+/** Green primary action that routes via React Router Link. */
 export function EditorialPrimaryLink({
   children,
   className,
+  size = "md",
   viewTransition = true,
   ...rest
 }: EditorialPrimaryLinkProps) {
   return (
-    <Link
-      className={cn(PRIMARY_CLASSES, ACTION_MOTION_CLASSES, className)}
-      viewTransition={viewTransition}
-      {...rest}
-    >
-      {children}
-    </Link>
+    <Button asChild size={size} className={className}>
+      <Link viewTransition={viewTransition} {...rest}>
+        {children}
+      </Link>
+    </Button>
   );
 }
 
 export interface EditorialGhostLinkProps extends LinkProps {
   children: ReactNode;
   tone?: Tone;
-  /**
-   * Visual variant. Mirrors `EditorialGhostButton` so route-backed secondary
-   * CTAs can keep the same editorial treatment as button-backed controls.
-   */
+  /** Mirrors `EditorialGhostButton` so route-backed secondaries keep the same treatment. */
   variant?: EditorialGhostVariant;
+  size?: ButtonSize;
 }
 
-/** Capsule transparent secondary action that routes via React Router Link. */
+/** Secondary action that routes via React Router Link. */
 export function EditorialGhostLink({
   children,
   className,
   tone = "default",
   variant = "ghost",
+  size = "md",
   viewTransition = true,
   ...rest
 }: EditorialGhostLinkProps) {
-  const baseClasses =
-    variant === "warm" ? GHOST_WARM_CLASSES : tone === "dark" ? GHOST_DARK_CLASSES : GHOST_CLASSES;
-
   return (
-    <Link
-      className={cn(baseClasses, ACTION_MOTION_CLASSES, className)}
-      viewTransition={viewTransition}
-      {...rest}
+    <Button
+      asChild
+      emphasis="secondary"
+      size={size}
+      className={cn(ghostClasses(variant, tone), className)}
     >
-      {children}
-    </Link>
+      <Link viewTransition={viewTransition} {...rest}>
+        {children}
+      </Link>
+    </Button>
   );
 }
 
@@ -376,7 +355,7 @@ export interface EditorialLinkArrowProps {
 
 /**
  * Inline green underline link with a trailing arrow. Doubles as a ghost CTA in
- * places where capsule buttons would feel too loud (section footers, lede asides).
+ * places where filled buttons would feel too loud (section footers, lede asides).
  */
 export function EditorialLinkArrow({
   to,
@@ -444,9 +423,9 @@ const ACTIVE_DOMAIN_CLASSES: Record<EditorialDomain, string> = {
 };
 
 /**
- * Filter chip for /actions, /impact, /gardens. Active state uses the domain's
- * own ink (or strong ink for "All") — never green, freeing the green accent
- * for primary action.
+ * Filter chip for /actions, /impact, /gardens: the shared Chip with the
+ * domain's own ink when active (or strong ink for "All"), never green, which
+ * keeps the green accent for primary action.
  */
 export function EditorialDomainChip({
   domain,
@@ -457,21 +436,14 @@ export function EditorialDomainChip({
   className,
 }: EditorialDomainChipProps) {
   const isEmpty = count === 0 && !active;
-  const inactiveClasses =
-    "border-stroke-soft-200 bg-bg-white-0 text-text-sub-600 hover:bg-bg-weak-50";
-  const emptyClasses =
-    "border-stroke-soft-200/60 bg-bg-weak-50 text-text-soft-400 hover:bg-bg-weak-50";
   return (
-    <button
-      type="button"
+    <Chip
+      selected={active}
       onClick={onClick}
-      aria-pressed={active}
       className={cn(
-        "inline-flex cursor-pointer items-center gap-2 rounded-full border px-4 py-1.5 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2",
-        active ? ACTIVE_DOMAIN_CLASSES[domain] : isEmpty ? emptyClasses : inactiveClasses,
-        active && domain === "all"
-          ? "focus-visible:ring-text-strong-950"
-          : `focus-visible:ring-primary-action`,
+        active
+          ? ACTIVE_DOMAIN_CLASSES[domain]
+          : isEmpty && "border-stroke-soft-200/60 bg-bg-weak-50 text-text-soft-400",
         className
       )}
     >
@@ -483,7 +455,7 @@ export function EditorialDomainChip({
           {count}
         </span>
       ) : null}
-    </button>
+    </Chip>
   );
 }
 
@@ -538,6 +510,7 @@ export function EditorialTermTooltip({ term, definition, className }: EditorialT
     >
       <button
         type="button"
+        data-pressable="trigger"
         aria-describedby={open ? popoverId : undefined}
         aria-expanded={open}
         onClick={() => setOpen((value) => !value)}

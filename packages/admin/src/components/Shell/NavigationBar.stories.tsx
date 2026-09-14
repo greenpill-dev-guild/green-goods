@@ -2,7 +2,9 @@ import { RiAppsLine, RiHammerLine, RiSeedlingLine, RiTeamLine } from "@remixicon
 import type { Meta, StoryObj } from "@storybook/react";
 import { expect, fn, userEvent, within } from "storybook/test";
 import type { ToolbarSlot } from "@green-goods/shared/components/Canvas/NavigationBar";
+import ptMessages from "@green-goods/shared/i18n/pt.json";
 import { withCanvasFrame } from "../../../../shared/.storybook/decorators";
+import { IntlProvider } from "react-intl";
 import { NavigationBar } from "./NavigationBar";
 
 const slots: ToolbarSlot[] = [
@@ -49,7 +51,7 @@ const meta = {
     docs: {
       description: {
         component:
-          "Admin fork of the Canvas navigation dock (Cockpit M3, finished). Centered floating pill of equal 94px wells; the active item carries the tone-primary-container icon pill and a weight-600 ink label — one of the three sanctioned workspace-tone uses. Material comes from the `.canvas-navigation-bar` chrome rules in admin-m3-tokens.css.",
+          "Admin fork of the Canvas navigation dock (Cockpit M3, finished). Centered floating pill of 94px minimum wells that grow for localized labels; the active item carries the tone-primary-container icon pill and a weight-600 ink label — one of the three sanctioned workspace-tone uses. Material comes from the `.canvas-navigation-bar` chrome rules in admin-m3-tokens.css.",
       },
     },
   },
@@ -95,4 +97,12 @@ export const TwoSlots: Story = {
     );
     await expect(canvas.queryByRole("button", { name: /community/i })).not.toBeInTheDocument();
   },
+};
+
+export const PortugueseLabels: Story = {
+  render: (args) => (
+    <IntlProvider locale="pt" messages={ptMessages}>
+      <NavigationBar {...args} />
+    </IntlProvider>
+  ),
 };

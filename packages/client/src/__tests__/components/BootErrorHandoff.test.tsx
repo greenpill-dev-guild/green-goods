@@ -20,14 +20,6 @@ vi.mock("react-router-dom", async (importOriginal) => ({
   useRouteError: () => mocks.routeError,
 }));
 
-vi.mock("../../components/Actions", () => ({
-  Button: ({ label, onClick }: { label: string; onClick?: () => void }) => (
-    <button type="button" onClick={onClick}>
-      {label}
-    </button>
-  ),
-}));
-
 vi.mock("@green-goods/shared/components/Alert", () => ({
   Alert: ({ children }: { children: ReactNode }) => <div>{children}</div>,
 }));

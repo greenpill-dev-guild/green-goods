@@ -1,7 +1,7 @@
 import type { Address } from "@green-goods/shared/types/domain";
 import { AddressDisplay } from "@green-goods/shared/components/AddressDisplay";
 import { Alert } from "@green-goods/shared/components/Alert";
-import { DialogShell } from "@green-goods/shared/components/Dialog/ConfirmDialog";
+import { DialogShell } from "@green-goods/shared/components/Dialog/DialogShell";
 import {
   type CommitmentContributorRecord,
   type CommitmentReadModel,
@@ -10,10 +10,12 @@ import {
   type EvidenceAttributionRow,
   useCommitmentEvidence,
 } from "@green-goods/shared/commitment-pooling";
+import type { SheetActionsProps } from "@green-goods/shared/components/Dialog/SheetActions";
 import {
   RiCheckboxCircleFill,
   RiCheckLine,
   RiImageLine,
+  RiRefreshLine,
   RiShieldCheckLine,
   RiTimeLine,
 } from "@remixicon/react";
@@ -122,6 +124,46 @@ export function ConfirmSheet({
     onNotYet(reason);
   };
 
+  const done = formatMessage({ id: "app.confirm.done" });
+  const actions: SheetActionsProps =
+    phase === "confirmed"
+      ? { primary: { label: done, onClick: onDone } }
+      : phase === "pending"
+        ? { secondary: { label: done, onClick: onDone } }
+        : mode === "notYet"
+          ? {
+              primary: {
+                label: formatMessage({
+                  id: notYetFailed ? "app.confirm.notYet.retry" : "app.confirm.notYet.send",
+                }),
+                icon: notYetFailed ? (
+                  <RiRefreshLine className="h-4 w-4" aria-hidden="true" />
+                ) : null,
+                disabled: draftReason.trim().length === 0 || !isOnline,
+                loading: isPending,
+                onClick: sendNotYet,
+              },
+              secondary: {
+                label: formatMessage({ id: "app.confirm.notYet.back" }),
+                disabled: isPending,
+                onClick: () => setMode("ask"),
+              },
+            }
+          : {
+              primary: {
+                label: formatMessage({ id: `app.confirm.act.${cast}` }),
+                loading: isPending,
+                onClick: onConfirm,
+              },
+              secondary: canNotYet
+                ? {
+                    label: formatMessage({ id: "app.confirm.notYet.act" }),
+                    disabled: isPending,
+                    onClick: () => setMode("notYet"),
+                  }
+                : undefined,
+            };
+
   return (
     <DialogShell
       open={open}
@@ -133,6 +175,8 @@ export function ConfirmSheet({
       title={title}
       description={description}
       size="md"
+      sheetSize="full"
+      actions={actions}
     >
       {phase === "confirmed" ? (
         <div className="space-y-4" data-component="ConfirmSheetKept">
@@ -146,13 +190,6 @@ export function ConfirmSheet({
             </p>
           </div>
           <Provenance commitment={commitment} />
-          <button
-            type="button"
-            onClick={onDone}
-            className="w-full rounded-[var(--radius-lg)] bg-primary-action px-4 py-3 text-sm font-medium text-primary-action-foreground tap-target-lg"
-          >
-            {formatMessage({ id: "app.confirm.done" })}
-          </button>
         </div>
       ) : phase === "pending" ? (
         <div className="space-y-4" data-component="ConfirmSheetPending">
@@ -166,13 +203,6 @@ export function ConfirmSheet({
               id: isOnline ? "app.confirm.pending.online" : "app.confirm.pending.offline",
             })}
           </Alert>
-          <button
-            type="button"
-            onClick={onDone}
-            className="w-full rounded-[var(--radius-lg)] border border-stroke-soft-200 px-4 py-3 text-sm font-medium text-text-strong-950 tap-target-lg"
-          >
-            {formatMessage({ id: "app.confirm.done" })}
-          </button>
         </div>
       ) : mode === "notYet" ? (
         <ConfirmNotYet
@@ -180,10 +210,7 @@ export function ConfirmSheet({
           draftReason={draftReason}
           setDraftReason={setDraftReason}
           isOnline={isOnline}
-          isPending={isPending}
           notYetFailed={notYetFailed}
-          onSend={sendNotYet}
-          onBack={() => setMode("ask")}
         />
       ) : (
         <div className="space-y-4" data-component="ConfirmSheetAsk">
@@ -275,27 +302,6 @@ export function ConfirmSheet({
               {formatMessage({ id: "app.confirm.notYet.unavailable" })}
             </p>
           ) : null}
-          <div className={canNotYet ? "grid grid-cols-2 gap-2" : "grid grid-cols-1 gap-2"}>
-            {canNotYet ? (
-              <button
-                type="button"
-                onClick={() => setMode("notYet")}
-                disabled={isPending}
-                className="rounded-[var(--radius-lg)] border border-stroke-soft-200 px-4 py-3 text-sm font-medium text-text-strong-950 tap-target-lg disabled:opacity-60"
-              >
-                {formatMessage({ id: "app.confirm.notYet.act" })}
-              </button>
-            ) : null}
-            <button
-              type="button"
-              onClick={onConfirm}
-              disabled={isPending}
-              aria-busy={isPending}
-              className="rounded-[var(--radius-lg)] bg-primary-action px-4 py-3 text-sm font-medium text-primary-action-foreground tap-target-lg disabled:opacity-60"
-            >
-              {formatMessage({ id: `app.confirm.act.${cast}` })}
-            </button>
-          </div>
         </div>
       )}
     </DialogShell>

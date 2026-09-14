@@ -1,3 +1,4 @@
+import { Button } from "@green-goods/shared/components/Button";
 import type { Work } from "@green-goods/shared/types/domain";
 import { RiErrorWarningLine, RiRefreshLine } from "@remixicon/react";
 import React from "react";
@@ -87,12 +88,13 @@ export const WorkListTab: React.FC<WorkListTabProps> = ({
             }
             action={
               onRefresh ? (
-                <button
+                <Button
+                  type="button"
+                  emphasis="secondary"
                   onClick={onRefresh}
-                  disabled={isFetching}
-                  className="inline-flex items-center gap-2 rounded-[var(--radius-md)] border border-stroke-soft-200 px-3 py-1.5 text-sm font-medium text-primary transition-colors duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)] hover:bg-bg-weak-50 disabled:opacity-50"
+                  loading={isFetching}
+                  leadingIcon={<RiRefreshLine className="h-4 w-4" aria-hidden="true" />}
                 >
-                  <RiRefreshLine className="h-4 w-4" />
                   {isFetching
                     ? intl.formatMessage({
                         id: "app.common.refreshing",
@@ -102,7 +104,7 @@ export const WorkListTab: React.FC<WorkListTabProps> = ({
                         id: "app.workDashboard.error.retry",
                         defaultMessage: "Retry",
                       })}
-                </button>
+                </Button>
               ) : null
             }
           />
@@ -113,12 +115,13 @@ export const WorkListTab: React.FC<WorkListTabProps> = ({
             description={intl.formatMessage(messages.emptyDescription)}
             action={
               onRefresh ? (
-                <button
+                <Button
+                  type="button"
+                  emphasis="secondary"
                   onClick={onRefresh}
-                  disabled={isFetching}
-                  className="inline-flex items-center gap-1.5 rounded-[var(--radius-md)] border border-stroke-soft-200 px-3 py-1.5 text-xs font-medium text-text-sub-600 transition-colors duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)] hover:bg-bg-weak-50 disabled:opacity-50"
+                  loading={isFetching}
+                  leadingIcon={<RiRefreshLine className="h-4 w-4" aria-hidden="true" />}
                 >
-                  <RiRefreshLine className="h-3.5 w-3.5" />
                   {isFetching
                     ? intl.formatMessage({
                         id: "app.common.refreshing",
@@ -128,7 +131,7 @@ export const WorkListTab: React.FC<WorkListTabProps> = ({
                         id: "app.common.refresh",
                         defaultMessage: "Refresh",
                       })}
-                </button>
+                </Button>
               ) : null
             }
           />

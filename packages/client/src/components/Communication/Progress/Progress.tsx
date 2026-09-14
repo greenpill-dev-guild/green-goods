@@ -20,19 +20,8 @@ export const FormProgress = ({ currentStep, steps }: FormProgressProps) => {
                 aria-current={isCurrentStep ? "step" : undefined}
                 className={cn(
                   "relative grid h-6 w-6 place-items-center rounded-full border border-stroke-soft-200 text-xs font-medium transition-[color,border-color,background-color] duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)]",
-                  isCompletedStep &&
-                    cn(
-                      pwaStatusStyles.success.progress,
-                      pwaStatusStyles.success.border,
-                      "border-0"
-                    ),
-                  isCurrentStep &&
-                    cn(
-                      pwaStatusStyles.primary.border,
-                      pwaStatusStyles.primary.progress,
-                      pwaStatusStyles.primary.foreground,
-                      "font-semibold"
-                    )
+                  isCompletedStep && cn(pwaStatusStyles.success.badge, "border-0"),
+                  isCurrentStep && cn(pwaStatusStyles.primary.badge, "border-0 font-semibold")
                 )}
               >
                 {isCompletedStep ? (

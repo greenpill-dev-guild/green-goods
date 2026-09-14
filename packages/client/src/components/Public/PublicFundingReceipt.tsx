@@ -1,3 +1,4 @@
+import { Button } from "@green-goods/shared/components/Button";
 import { logger } from "@green-goods/shared/modules/app/logger";
 import type {
   PublicFundingReceipt as PublicFundingReceiptShape,
@@ -5,12 +6,11 @@ import type {
 } from "@green-goods/shared/public-contracts/core";
 import { useCallback, useEffect, useState } from "react";
 import { useIntl } from "react-intl";
-import { Link } from "react-router-dom";
 import {
   RECEIPT_TOKEN_SESSION_KEY,
   scrubReceiptTokenFragmentFromLocation,
 } from "@/routes/receiptToken";
-import { EditorialGhostLink, EditorialLinkArrow } from "./atoms";
+import { EditorialGhostLink, EditorialLinkArrow, EditorialPrimaryButton } from "./atoms";
 import { PublicInstallAction } from "./PublicInstallAction";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "";
@@ -82,7 +82,7 @@ export function PublicFundingReceipt({ intentId }: PublicFundingReceiptProps) {
 
   if (state.status === "loading") {
     return (
-      <section className="mx-auto max-w-2xl rounded-3xl border border-stroke-soft-200 bg-bg-white-0 p-8 shadow-sm">
+      <section className="mx-auto max-w-2xl rounded-2xl border border-stroke-soft-200 bg-bg-white-0 p-8 shadow-sm">
         <p className="text-sm text-text-sub-600">
           {formatMessage({
             id: "public.fund.receipt.loading",
@@ -95,7 +95,7 @@ export function PublicFundingReceipt({ intentId }: PublicFundingReceiptProps) {
 
   if (state.status === "error") {
     return (
-      <section className="mx-auto max-w-2xl rounded-3xl border border-stroke-soft-200 bg-bg-white-0 p-8 shadow-sm">
+      <section className="mx-auto max-w-2xl rounded-2xl border border-stroke-soft-200 bg-bg-white-0 p-8 shadow-sm">
         <h2 className="font-serif text-2xl text-text-strong-950">
           {formatMessage({
             id: "public.fund.receipt.errorTitle",
@@ -110,26 +110,19 @@ export function PublicFundingReceipt({ intentId }: PublicFundingReceiptProps) {
         </p>
         <div className="mt-6 flex flex-wrap gap-3">
           {state.messageId === "public.fund.receipt.error.network" ? (
-            <button
-              type="button"
-              onClick={retryReceipt}
-              className="inline-flex w-fit rounded-full bg-primary-action px-5 py-2.5 text-sm font-semibold text-primary-action-foreground transition-colors hover:bg-primary-action-hover"
-            >
+            <EditorialPrimaryButton onClick={retryReceipt}>
               {formatMessage({
                 id: "public.fund.receipt.tryAgain",
                 defaultMessage: "Try Again",
               })}
-            </button>
+            </EditorialPrimaryButton>
           ) : null}
-          <Link
-            to="/fund"
-            className="inline-flex w-fit rounded-full border border-stroke-soft-200 bg-bg-white-0 px-5 py-2.5 text-sm font-medium text-text-strong-950 hover:bg-bg-weak-50"
-          >
+          <EditorialGhostLink to="/fund" viewTransition={false}>
             {formatMessage({
               id: "public.fund.receipt.backToFund",
               defaultMessage: "Back to Fund",
             })}
-          </Link>
+          </EditorialGhostLink>
         </div>
       </section>
     );
@@ -160,7 +153,7 @@ function ReceiptBody({
 
   return (
     <section
-      className="mx-auto max-w-2xl rounded-3xl border border-stroke-soft-200 bg-bg-white-0 p-8 shadow-sm"
+      className="mx-auto max-w-2xl rounded-2xl border border-stroke-soft-200 bg-bg-white-0 p-8 shadow-sm"
       aria-labelledby="public-fund-receipt-title"
     >
       <p className="text-xs font-medium uppercase tracking-wide text-text-soft-400">
@@ -255,7 +248,6 @@ function ReceiptBody({
               preventScrollReset
               variant="warm"
               data-app-cta={receipt.appManagementCta}
-              className="px-5 py-2.5 text-sm"
             >
               {formatMessage({
                 id: "public.fund.receipt.manageEndowments",
@@ -265,16 +257,17 @@ function ReceiptBody({
           ) : (
             <PublicInstallAction forceOpenApp={receipt.appManagementCta === "open_app"}>
               {({ label, href, onClick, disabled, dataInstallAction }) => (
-                <a
-                  href={href}
-                  onClick={onClick}
-                  aria-disabled={disabled || undefined}
-                  data-app-cta={receipt.appManagementCta}
-                  data-install-action={dataInstallAction}
-                  className={`cursor-pointer rounded-full bg-primary-action px-5 py-2.5 text-sm font-semibold text-primary-action-foreground hover:bg-primary-action-hover ${disabled ? "cursor-not-allowed opacity-70" : ""}`}
-                >
-                  {label}
-                </a>
+                <Button asChild>
+                  <a
+                    href={href}
+                    onClick={onClick}
+                    aria-disabled={disabled || undefined}
+                    data-app-cta={receipt.appManagementCta}
+                    data-install-action={dataInstallAction}
+                  >
+                    {label}
+                  </a>
+                </Button>
               )}
             </PublicInstallAction>
           )}

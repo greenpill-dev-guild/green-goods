@@ -26,7 +26,16 @@ export {
 export { Alert, type AlertProps, type AlertVariant } from "./Alert";
 // Badge Component
 export { Badge, type BadgeProps, type BadgeVariantProps, badgeVariants } from "./Badge";
-export { Button, type ButtonProps, buttonVariants } from "./Button";
+export {
+  Button,
+  type ButtonEmphasis,
+  type ButtonProps,
+  type ButtonSize,
+  type ButtonTone,
+  buttonVariants,
+} from "./Button";
+export { Chip, type ChipProps } from "./Chip";
+export { IconButton, type IconButtonProps } from "./IconButton";
 // Card Components
 export {
   Card,
@@ -133,6 +142,7 @@ export {
 export { ConfirmDialog, type ConfirmDialogProps } from "./Dialog";
 export { DialogShell, type DialogShellProps } from "./Dialog";
 export { PwaSheet, type PwaSheetProps } from "./Dialog";
+export { type SheetAction, SheetActions, type SheetActionsProps } from "./Dialog";
 export { ImagePreviewDialog, type ImagePreviewDialogProps } from "./Dialog";
 // Display Components
 export {

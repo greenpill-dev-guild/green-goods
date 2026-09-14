@@ -1,3 +1,4 @@
+import { Button } from "@green-goods/shared/components/Button";
 import type { Address } from "@green-goods/shared/types/domain";
 import { AddressDisplay } from "@green-goods/shared/components/AddressDisplay";
 import { StatusBadge } from "@green-goods/shared/components/StatusBadge";
@@ -134,31 +135,31 @@ export function CommitmentClaimPanel({
       </dl>
 
       {state === "DECLINED" && canAskAgain ? (
-        <button
+        <Button
           type="button"
           onClick={onAskAgain}
-          disabled={isPending}
-          aria-busy={isPending}
-          className="mt-3 flex w-full items-center justify-center gap-2 rounded-[var(--radius-lg)] bg-primary-action px-4 py-3 text-sm font-medium text-primary-action-foreground tap-target-lg disabled:opacity-60"
+          loading={isPending}
+          className="mt-3 w-full"
+          leadingIcon={<RiRefreshLine className="h-4 w-4" aria-hidden="true" />}
         >
-          <RiRefreshLine className="h-4 w-4" aria-hidden="true" />
           {formatMessage({
             id:
               commitment.claimMode === "APPROVAL_GATED"
                 ? "app.claim.askAgain"
                 : "app.claim.takeUpAgain",
           })}
-        </button>
+        </Button>
       ) : null}
       {state === "SUPERSEDED" ? (
-        <button
+        <Button
           type="button"
+          emphasis="secondary"
           onClick={onBackToBrowse}
-          className="mt-3 flex w-full items-center justify-center gap-2 rounded-[var(--radius-lg)] border border-stroke-soft-200 px-4 py-3 text-sm font-medium text-text-strong-950 tap-target-lg"
+          className="mt-3 w-full"
+          leadingIcon={<RiArrowLeftLine className="h-4 w-4" aria-hidden="true" />}
         >
-          <RiArrowLeftLine className="h-4 w-4" aria-hidden="true" />
           {formatMessage({ id: "app.claim.backToBrowse" })}
-        </button>
+        </Button>
       ) : null}
     </section>
   );

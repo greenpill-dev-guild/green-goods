@@ -298,7 +298,7 @@ test.describe("Offline Sync Flows", () => {
         await page.waitForTimeout(500);
 
         // Dashboard should contain queued work items
-        const dashboardModal = page.locator('[data-testid="modal-drawer"]');
+        const dashboardModal = page.locator('[data-testid="app-sheet"]');
         await expect(dashboardModal).toBeVisible({ timeout: 5000 });
 
         // Look for work item or pending indicator in dashboard
@@ -390,7 +390,7 @@ test.describe("Offline Sync Flows", () => {
         await page.waitForTimeout(500);
 
         // Dashboard should be visible and functional
-        const dashboardModal = page.locator('[data-testid="modal-drawer"]');
+        const dashboardModal = page.locator('[data-testid="app-sheet"]');
         await expect(dashboardModal).toBeVisible({ timeout: 5000 });
 
         // Look for any synced/completed work or empty state
@@ -471,7 +471,7 @@ test.describe("Offline Sync Flows", () => {
         await page.waitForTimeout(500);
 
         // Dashboard should be open
-        const dashboardModal = page.locator('[data-testid="modal-drawer"]');
+        const dashboardModal = page.locator('[data-testid="app-sheet"]');
         await expect(dashboardModal).toBeVisible({ timeout: 5000 });
 
         // Look for sync button in dashboard
@@ -533,7 +533,7 @@ test.describe("Offline Sync Flows", () => {
         await page.waitForTimeout(500);
 
         // Dashboard should be visible
-        const dashboardModal = page.locator('[data-testid="modal-drawer"]');
+        const dashboardModal = page.locator('[data-testid="app-sheet"]');
         await expect(dashboardModal).toBeVisible({ timeout: 5000 });
 
         // Storage info may be shown as text or progress bar

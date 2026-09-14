@@ -1,5 +1,6 @@
 import { useOfflinePreparationStatus } from "@green-goods/shared/hooks/offline/useOfflineContent";
 import { useOnlineStatus } from "@green-goods/shared/hooks/app/useOnlineStatus";
+import { Button } from "@green-goods/shared/components/Button";
 import { toastService } from "@green-goods/shared/components/Toast/toast.service";
 import { capitalize } from "@green-goods/shared/utils/app/text";
 import { hapticLight } from "@green-goods/shared/utils/app/haptics";
@@ -9,7 +10,6 @@ import { useTheme } from "@green-goods/shared/hooks/app/useTheme";
 import { RiEarthFill, RiRefreshLine, RiSettings2Line } from "@remixicon/react";
 import { type ReactNode, useMemo } from "react";
 import { useIntl } from "react-intl";
-import { Button } from "@/components/Actions";
 import { Card } from "@/components/Cards";
 import { Avatar } from "@/components/Display";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/Inputs";
@@ -236,7 +236,7 @@ export const AppSettings: React.FC = () => {
           status: activationBlocked
             ? intl.formatMessage({
                 id: "app.update.finishWork",
-                defaultMessage: "Finish your current work before restarting.",
+                defaultMessage: "Finish saving or sending your work before restarting.",
               })
             : intl.formatMessage({
                 id: "app.update.subtitle",
@@ -374,18 +374,19 @@ export const AppSettings: React.FC = () => {
             </div>
           </div>
           <Button
-            variant="neutral"
-            mode="stroke"
-            size="small"
+            type="button"
+            emphasis="secondary"
+            size="sm"
             className={SETTING_CONTROL_WIDTH}
-            disabled={!isOnline || preparation.busy}
-            isLoading={preparation.busy}
+            loading={preparation.busy}
+            disabled={!isOnline}
             onClick={preparation.retry}
-            label={intl.formatMessage({
+          >
+            {intl.formatMessage({
               id: "app.offline.preparation.retry",
               defaultMessage: "Retry",
             })}
-          />
+          </Button>
         </div>
       </Card>
 
@@ -417,15 +418,16 @@ export const AppSettings: React.FC = () => {
           </div>
           <div className="shrink-0">
             <Button
-              variant="neutral"
-              mode="stroke"
-              size="small"
-              isLoading={updateRow.busy}
+              type="button"
+              emphasis="secondary"
+              size="sm"
+              loading={updateRow.busy}
               disabled={phase === "waiting" && activationBlocked}
               onClick={updateRow.onClick}
-              label={updateRow.label}
               className={SETTING_CONTROL_WIDTH}
-            />
+            >
+              {updateRow.label}
+            </Button>
           </div>
         </div>
       </Card>

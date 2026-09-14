@@ -92,11 +92,6 @@
   transform: translateX(-50%);
 }
 
-[data-component="DialogShell"][data-slot="surface"].vault-checkout-surface
-  [data-slot="close"] {
-  border-radius: 0;
-}
-
 @media (min-width: 640px) {
   [data-component="DialogShell"][data-slot="surface"].vault-checkout-surface {
     top: 50%;

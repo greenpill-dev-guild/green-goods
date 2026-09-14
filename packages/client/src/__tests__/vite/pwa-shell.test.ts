@@ -97,8 +97,8 @@ describe("PWA shell asset manifest", () => {
     const lazyModules = [
       ...viewPaths,
       "views/Home/GardenFilters/index",
-      "views/Home/WalletDrawer/index",
-      "views/Home/CommitmentsDrawer/index",
+      "views/Home/WalletSheet/index",
+      "views/Home/CommitmentsSheet/index",
       "views/Garden/Media",
       "routes/Root",
       "routes/SessionGate",

@@ -1,6 +1,7 @@
 import { Alert } from "@green-goods/shared/components/Alert";
-import { cn } from "@green-goods/shared/utils/styles/cn";
-import { RiRefreshLine, RiWifiOffLine } from "@remixicon/react";
+import { Chip } from "@green-goods/shared/components/Chip";
+import { Textarea } from "@green-goods/shared/components/Form/ControlPrimitives";
+import { RiWifiOffLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
 
 import { type ConfirmCast, REASON_CHIPS } from "./confirmCast";
@@ -10,10 +11,7 @@ export interface ConfirmNotYetProps {
   draftReason: string;
   setDraftReason: (reason: string) => void;
   isOnline: boolean;
-  isPending: boolean;
   notYetFailed: boolean;
-  onSend: () => void;
-  onBack: () => void;
 }
 
 /**
@@ -22,16 +20,14 @@ export interface ConfirmNotYetProps {
  * A reason is required and the chips are only a head start on the words. It
  * raises a dispute and never cancels anything, and because that is an online
  * act it says so when the signal is gone rather than pretending to queue.
+ * Its Send and Back actions live in the confirmation sheet's action bar.
  */
 export function ConfirmNotYet({
   cast,
   draftReason,
   setDraftReason,
   isOnline,
-  isPending,
   notYetFailed,
-  onSend,
-  onBack,
 }: ConfirmNotYetProps) {
   const { formatMessage } = useIntl();
   return (
@@ -45,20 +41,9 @@ export function ConfirmNotYet({
           const label = formatMessage({ id: `app.confirm.notYet.chip.${chip}` });
           const selected = draftReason.trim() === label;
           return (
-            <button
-              key={chip}
-              type="button"
-              aria-pressed={selected}
-              onClick={() => setDraftReason(label)}
-              className={cn(
-                "rounded-full border px-3 py-1.5 text-xs font-medium tap-target-lg",
-                selected
-                  ? "border-primary-alpha-24 bg-primary-alpha-10 text-primary"
-                  : "border-stroke-soft-200 text-text-sub-600"
-              )}
-            >
+            <Chip key={chip} selected={selected} onClick={() => setDraftReason(label)}>
               {label}
-            </button>
+            </Chip>
           );
         })}
       </div>
@@ -66,14 +51,14 @@ export function ConfirmNotYet({
         <label className="block text-sm font-medium text-text-strong-950" htmlFor="confirm-not-yet">
           {formatMessage({ id: "app.confirm.notYet.label" })}
         </label>
-        <textarea
+        <Textarea
           id="confirm-not-yet"
           value={draftReason}
           rows={3}
           maxLength={2000}
           placeholder={formatMessage({ id: `app.confirm.notYet.placeholder.${cast}` })}
           onChange={(event) => setDraftReason(event.target.value)}
-          className="gg-control gg-control-textarea mt-1.5"
+          className="mt-1.5"
         />
       </div>
       {notYetFailed ? (
@@ -92,26 +77,6 @@ export function ConfirmNotYet({
           {formatMessage({ id: "app.confirm.notYet.neverCancels" })}
         </p>
       )}
-      <button
-        type="button"
-        disabled={draftReason.trim().length === 0 || isPending || !isOnline}
-        aria-busy={isPending}
-        onClick={onSend}
-        className="flex w-full items-center justify-center gap-2 rounded-[var(--radius-lg)] bg-primary-action px-4 py-3 text-sm font-medium text-primary-action-foreground tap-target-lg disabled:opacity-60"
-      >
-        {notYetFailed ? <RiRefreshLine className="h-4 w-4" aria-hidden="true" /> : null}
-        {formatMessage({
-          id: notYetFailed ? "app.confirm.notYet.retry" : "app.confirm.notYet.send",
-        })}
-      </button>
-      <button
-        type="button"
-        disabled={isPending}
-        onClick={onBack}
-        className="w-full rounded-[var(--radius-lg)] px-4 py-3 text-sm font-medium text-text-sub-600 tap-target-lg"
-      >
-        {formatMessage({ id: "app.confirm.notYet.back" })}
-      </button>
     </div>
   );
 }

@@ -1,3 +1,4 @@
+import { Button } from "@green-goods/shared/components/Button";
 import { toastService } from "@green-goods/shared/components/Toast/toast.service";
 import { useInstallGuidance } from "@green-goods/shared/hooks/app/useInstallGuidance";
 import { useApp } from "@green-goods/shared/providers/App";
@@ -12,7 +13,6 @@ import {
 } from "@remixicon/react";
 import { useMemo } from "react";
 import { useIntl } from "react-intl";
-import { Button } from "@/components/Actions";
 import { Card } from "@/components/Cards";
 import { Avatar } from "@/components/Display";
 
@@ -106,25 +106,24 @@ export const InstallCta: React.FC = () => {
             </div>
             {guidance.openInBrowserUrl ? (
               <Button
-                variant="primary"
-                mode="filled"
-                size="xsmall"
+                type="button"
+                size="sm"
                 onClick={() => {
                   hapticLight();
                   window.location.href = guidance.openInBrowserUrl as string;
                 }}
-                leadingIcon={<RiExternalLinkLine className="w-4" />}
-                label={intl.formatMessage({
+                leadingIcon={<RiExternalLinkLine className="h-4 w-4" aria-hidden="true" />}
+                className="shrink-0"
+              >
+                {intl.formatMessage({
                   id: "app.profile.openChrome",
                   defaultMessage: "Open in Chrome",
                 })}
-                className="shrink-0"
-              />
+              </Button>
             ) : (
               <Button
-                variant="primary"
-                mode="filled"
-                size="xsmall"
+                type="button"
+                size="sm"
                 onClick={async () => {
                   hapticLight();
                   const success = await copyToClipboard(window.location.href);
@@ -143,13 +142,14 @@ export const InstallCta: React.FC = () => {
                     });
                   }
                 }}
-                leadingIcon={<RiFileCopyLine className="w-4" />}
-                label={intl.formatMessage({
+                leadingIcon={<RiFileCopyLine className="h-4 w-4" aria-hidden="true" />}
+                className="shrink-0"
+              >
+                {intl.formatMessage({
                   id: "app.profile.copyLink",
                   defaultMessage: "Copy Link",
                 })}
-                className="shrink-0"
-              />
+              </Button>
             )}
           </div>
         </Card>
@@ -174,31 +174,25 @@ export const InstallCta: React.FC = () => {
             </div>
             {guidance.scenario === "native-prompt-available" && (
               <Button
-                variant="primary"
-                mode="filled"
-                size="xsmall"
+                type="button"
+                size="sm"
                 onClick={promptInstall}
-                leadingIcon={<RiDownloadLine className="w-4" />}
-                label={intl.formatMessage({
+                leadingIcon={<RiDownloadLine className="h-4 w-4" aria-hidden="true" />}
+                className="shrink-0"
+              >
+                {intl.formatMessage({
                   id: "app.profile.installButton",
                   defaultMessage: "Install",
                 })}
-                className="shrink-0"
-              />
+              </Button>
             )}
             {guidance.scenario === "installing" && (
-              <Button
-                variant="primary"
-                mode="filled"
-                size="xsmall"
-                disabled
-                leadingIcon={<RiDownloadLine className="w-4" />}
-                label={intl.formatMessage({
+              <Button type="button" size="sm" loading className="shrink-0">
+                {intl.formatMessage({
                   id: "app.profile.installingButton",
                   defaultMessage: "Installing",
                 })}
-                className="shrink-0"
-              />
+              </Button>
             )}
           </div>
         </Card>

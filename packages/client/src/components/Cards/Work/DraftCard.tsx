@@ -1,3 +1,4 @@
+import { IconButton } from "@green-goods/shared/components/IconButton";
 import { cn } from "@green-goods/shared/utils/styles/cn";
 import { useDraftThumbnail, type DraftWithImages } from "@green-goods/shared/hooks/work/useDrafts";
 import { formatRelativeTime } from "@green-goods/shared/utils/relativeTime";
@@ -56,16 +57,17 @@ export const DraftCard: React.FC<DraftCardProps> = ({
       <button
         onClick={onResume}
         type="button"
+        data-pressable="card"
         className="flex min-w-0 flex-1 items-stretch gap-0 text-left focus:outline-none focus-visible:shadow-button-primary-focus"
       >
-        {/* Media thumbnail */}
-        <div className="w-22 flex-shrink-0 bg-warning-light overflow-hidden relative aspect-square">
+        {/* Media thumbnail: a fixed square the photo can't resize, same as work cards (DL-019) */}
+        <div className="relative h-22 w-22 flex-shrink-0 self-start overflow-hidden bg-warning-light">
           {thumbUrl ? (
             <ImageWithFallback
               src={thumbUrl}
               alt=""
-              className="w-full h-full object-cover"
-              fallbackClassName="w-22 aspect-square"
+              className="absolute inset-0 h-full w-full object-cover"
+              fallbackClassName="absolute inset-0 h-full w-full"
             />
           ) : (
             <div className="w-full h-full flex items-center justify-center text-warning-base">
@@ -126,17 +128,15 @@ export const DraftCard: React.FC<DraftCardProps> = ({
 
       {/* Delete button — vertically centered, 44x44 px tap target separated
           from the Resume button content. */}
-      <button
-        type="button"
+      <IconButton
         onClick={handleDelete}
-        className="absolute top-1/2 right-2 -translate-y-1/2 flex h-11 w-11 items-center justify-center rounded-full text-text-soft-400 transition-colors duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)] hover:bg-error-lighter hover:text-error-base focus:outline-none focus-visible:shadow-button-primary-focus"
+        className="absolute top-1/2 right-2 -translate-y-1/2"
         aria-label={intl.formatMessage({
           id: "app.draft.delete",
           defaultMessage: "Delete Draft",
         })}
-      >
-        <RiDeleteBinLine className="w-4 h-4" />
-      </button>
+        icon={<RiDeleteBinLine aria-hidden="true" />}
+      />
     </div>
   );
 };

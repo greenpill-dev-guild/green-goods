@@ -20,12 +20,13 @@ export const pwaStatusStyles = {
     surface: "bg-primary-alpha-10",
     border: "border-primary-alpha-24",
     dot: "bg-primary",
-    badge: "bg-primary text-primary-accent-foreground",
+    // Green fills that carry a number, glyph, or word use the action pair (DL-017).
+    badge: "bg-primary-action text-primary-action-foreground",
     progress: "bg-primary",
     spinnerBorder: "border-t-primary",
     focus:
       "focus-visible:ring-2 focus-visible:ring-primary-alpha-24 focus-visible:border-primary active:border-primary",
-    foreground: "text-primary-accent-foreground",
+    foreground: "text-primary-action-foreground",
   },
   information: {
     text: "text-information-dark",
@@ -59,12 +60,12 @@ export const pwaStatusStyles = {
     surface: "bg-success-lighter",
     border: "border-success-light",
     dot: "bg-success-base",
-    badge: "bg-success-base text-static-white",
+    badge: "bg-primary-action text-primary-action-foreground",
     progress: "bg-success-base",
     spinnerBorder: "border-t-success-base",
     focus:
       "focus-visible:ring-2 focus-visible:ring-success-light focus-visible:border-success-base active:border-success-base",
-    foreground: "text-static-white",
+    foreground: "text-primary-action-foreground",
   },
   error: {
     text: "text-error-dark",

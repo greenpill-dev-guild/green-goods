@@ -212,7 +212,8 @@ describe("SiteHeader", () => {
     renderHeader();
     const desktopCta = screen.getByRole("link", { name: "Install App" });
     expect(desktopCta.getAttribute("data-install-action")).toBe("continue-in-browser");
-    expect(desktopCta.className).toMatch(/cursor-pointer/);
+    // The shared Button owns the corner and the pointer cursor (DL-026).
+    expect(desktopCta).toHaveClass("gg-button");
     fireEvent.click(desktopCta);
     expect(mockInstallHandler).not.toHaveBeenCalled();
     expect(

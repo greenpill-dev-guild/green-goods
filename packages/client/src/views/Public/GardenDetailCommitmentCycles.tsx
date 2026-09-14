@@ -1,3 +1,4 @@
+import { Button } from "@green-goods/shared/components/Button";
 import { cn } from "@green-goods/shared/utils/styles/cn";
 import {
   type CommitmentUnitSummaryRecord,
@@ -280,21 +281,20 @@ export function FinishedCycles({
           )}
         </p>
         {visible.length < total ? (
-          <button
+          <Button
             type="button"
-            disabled={loadingMore}
-            aria-busy={loadingMore}
+            emphasis="tertiary"
+            loading={loadingMore}
             onClick={() => {
               focusPending.current = true;
               onShowMore();
             }}
-            className="border-b border-primary-action/35 pb-0.5 text-sm font-medium text-primary-action transition-colors hover:border-primary-action-hover hover:text-primary-action-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-action focus-visible:ring-offset-2 disabled:cursor-wait disabled:text-text-soft-400"
           >
             {formatMessage({
               id: "public.pool.garden.history.loadMore",
               defaultMessage: "Show More Seasons",
             })}
-          </button>
+          </Button>
         ) : null}
       </div>
     </div>

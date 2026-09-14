@@ -43,7 +43,7 @@ export function useDraftResume({
   const { resumeDraft, clearActiveDraft } = useDrafts();
   const { primaryAddress: userAddress } = useUser();
   const chainId = useCurrentChain();
-  const [showDraftDialog, setShowDraftDialog] = useState(false);
+  const [showDraftSheet, setShowDraftSheet] = useState(false);
   const [legacyRecovery, setLegacyRecovery] = useState(false);
   const [loadAttempt, setLoadAttempt] = useState(0);
   const hydrated = useWorkFlowStore((state) => state.draftHydrated);
@@ -57,7 +57,7 @@ export function useDraftResume({
         useWorkFlowStore.getState().reset();
         latest.current.restoreForm?.({ feedback: "" });
       }
-      setShowDraftDialog(false);
+      setShowDraftSheet(false);
       setLegacyRecovery(false);
       useWorkFlowStore.setState((state) => ({
         draftHydrated: false,
@@ -68,7 +68,7 @@ export function useDraftResume({
     }
     const scope = `${userAddress.toLowerCase()}:${chainId}`;
     setLegacyRecovery(false);
-    setShowDraftDialog(false);
+    setShowDraftSheet(false);
     const state = useWorkFlowStore.getState();
     if (state.draftScope === scope && state.draftHydrated && !explicitId) return;
     if (state.draftScope && state.draftScope !== scope) {
@@ -92,14 +92,14 @@ export function useDraftResume({
             signal: controller.signal,
             restoreForm: latest.current.restoreForm,
           });
-          if (!explicitId) setShowDraftDialog(true);
+          if (!explicitId) setShowDraftSheet(true);
         } else {
           const legacy = await get<File[]>(LEGACY_KEY);
           controller.signal.throwIfAborted();
           const marker = await getLegacyRecoveryMarker();
           if (Array.isArray(legacy) && legacy.length && (!marker || marker.scope === scope)) {
             setLegacyRecovery(true);
-            setShowDraftDialog(true);
+            setShowDraftSheet(true);
           }
         }
         controller.signal.throwIfAborted();
@@ -169,7 +169,7 @@ export function useDraftResume({
       }
       setLegacyRecovery(false);
     }
-    setShowDraftDialog(false);
+    setShowDraftSheet(false);
   }, [legacyRecovery, userAddress, chainId, resumeDraft, restoreForm]);
 
   const handleStartFresh = useCallback(async () => {
@@ -199,13 +199,13 @@ export function useDraftResume({
     }
     if (useWorkFlowStore.getState().draftScope === scope) {
       setLegacyRecovery(false);
-      setShowDraftDialog(false);
+      setShowDraftSheet(false);
     }
   }, [legacyRecovery, clearActiveDraft, userAddress, chainId, restoreForm]);
 
   return {
-    showDraftDialog,
-    setShowDraftDialog,
+    showDraftSheet,
+    setShowDraftSheet,
     handleContinueDraft,
     handleStartFresh,
     clearActiveDraft,

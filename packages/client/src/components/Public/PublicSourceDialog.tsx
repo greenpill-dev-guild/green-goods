@@ -1,3 +1,4 @@
+import { IconButton } from "@green-goods/shared/components/IconButton";
 import { useDocumentScrollLock } from "@green-goods/shared/hooks/ui/useDocumentScrollLock";
 import { RiCloseLine } from "@remixicon/react";
 import { type ReactNode, useEffect } from "react";
@@ -57,6 +58,7 @@ export function PublicSourceDialog({
     >
       <button
         type="button"
+        data-pressable="scrim"
         aria-label={formatMessage({ id: "public.source.close", defaultMessage: "Close" })}
         className="absolute inset-0"
         onClick={onClose}
@@ -74,15 +76,12 @@ export function PublicSourceDialog({
               <p className="mt-1 text-xs uppercase tracking-wide text-text-soft-400">{subtitle}</p>
             ) : null}
           </div>
-          <button
+          <IconButton
             ref={(node) => node?.focus()}
-            type="button"
             aria-label={formatMessage({ id: "public.source.close", defaultMessage: "Close" })}
             onClick={onClose}
-            className="rounded-full p-1 text-text-sub-600 transition-colors hover:bg-bg-weak-50"
-          >
-            <RiCloseLine className="h-5 w-5" />
-          </button>
+            icon={<RiCloseLine aria-hidden="true" />}
+          />
         </header>
         <div className="flex flex-col gap-4 text-sm text-text-strong-950">{children}</div>
         {sourceHref ? (

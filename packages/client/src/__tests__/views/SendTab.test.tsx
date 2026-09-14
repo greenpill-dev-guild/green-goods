@@ -141,7 +141,7 @@ vi.mock("@green-goods/shared/hooks/blockchain/useSendToken", async (importOrigin
   };
 });
 
-import { SendTab } from "../../views/Home/WalletDrawer/SendTab";
+import { SendTab } from "../../views/Home/WalletSheet/SendTab";
 
 async function pickMemberAndToken(user: ReturnType<typeof userEvent.setup>, tokenName: RegExp) {
   // The Tokens tab opens on Balance — switch to the Send flow first.

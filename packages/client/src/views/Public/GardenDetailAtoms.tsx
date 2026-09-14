@@ -1,3 +1,4 @@
+import { Button } from "@green-goods/shared/components/Button";
 import type { Address } from "@green-goods/shared/types/domain";
 import { formatAddress } from "@green-goods/shared/utils/app/text";
 // `getRelativeTimeParts` is not on the root barrel — only the declared
@@ -125,14 +126,16 @@ export function SectionNotice({
 }) {
   return (
     <p role="status" className={className}>
-      {message}{" "}
-      <button
+      {message} {/* An inline text action: underlined in the sentence, with the 48px hit area. */}
+      <Button
         type="button"
+        emphasis="tertiary"
+        size="compact"
         onClick={onRetry}
-        className="border-b border-primary-action/35 pb-0.5 font-medium text-primary-action transition-colors hover:border-primary-action-hover hover:text-primary-action-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-action focus-visible:ring-offset-2"
+        className="-my-2 px-1.5 underline"
       >
         <RetryLabel />
-      </button>
+      </Button>
     </p>
   );
 }

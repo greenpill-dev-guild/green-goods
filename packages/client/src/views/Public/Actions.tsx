@@ -1,3 +1,4 @@
+import { Button } from "@green-goods/shared/components/Button";
 import type { Action } from "@green-goods/shared/types/domain";
 import { cn } from "@green-goods/shared/utils/styles/cn";
 import { useActions } from "@green-goods/shared/hooks/blockchain/useBaseLists";
@@ -463,15 +464,16 @@ export default function ActionsGallery() {
           </p>
           <PublicInstallAction>
             {({ label, href, onClick, disabled, dataInstallAction }) => (
-              <a
-                href={href}
-                onClick={onClick}
-                aria-disabled={disabled || undefined}
-                data-install-action={dataInstallAction}
-                className={`inline-flex w-fit cursor-pointer items-center gap-2 rounded-full bg-primary-action px-5 py-2.5 text-sm font-semibold text-primary-action-foreground hover:bg-primary-action-hover ${disabled ? "cursor-not-allowed opacity-70" : ""}`}
-              >
-                {label}
-              </a>
+              <Button asChild className="w-fit">
+                <a
+                  href={href}
+                  onClick={onClick}
+                  aria-disabled={disabled || undefined}
+                  data-install-action={dataInstallAction}
+                >
+                  {label}
+                </a>
+              </Button>
             )}
           </PublicInstallAction>
         </PublicSourceDialog>

@@ -35,7 +35,55 @@ function envValue(key, fallback = "") {
 }
 
 const viteEnableSwDev = envValue("VITE_ENABLE_SW_DEV", "false");
+const viteDisableLocalChain = envValue("VITE_DISABLE_LOCAL_CHAIN", "false") === "true";
+const viteDisableLocalAgent = envValue("VITE_DISABLE_LOCAL_AGENT", "false") === "true";
 const localAgentApiBaseUrl = "http://127.0.0.1:3005";
+
+// Setup writes the local agent URL into the baseline root .env, so a configured value
+// replaces the local agent only when it is an absolute, non-loopback http(s) URL.
+function isExternalHttpUrl(value) {
+  try {
+    const url = new URL(value);
+    // Drop a trailing DNS root dot so "localhost." still reads as loopback.
+    const hostname = url.hostname.replace(/\.$/, "");
+    const loopback =
+      hostname === "localhost" ||
+      hostname.endsWith(".localhost") ||
+      hostname === "0.0.0.0" ||
+      /^127\./.test(hostname) ||
+      hostname === "[::]" ||
+      hostname === "[::1]" ||
+      // IPv4-mapped loopback, e.g. [::ffff:127.0.0.1] serializes as [::ffff:7f00:1].
+      /^\[::ffff:7f[0-9a-f]{2}:[0-9a-f]{1,4}\]$/.test(hostname);
+    return (url.protocol === "http:" || url.protocol === "https:") && !loopback;
+  } catch {
+    return false;
+  }
+}
+
+const externalAgentApiBaseUrl = isExternalHttpUrl(rootEnv.VITE_API_BASE_URL)
+  ? rootEnv.VITE_API_BASE_URL
+  : "https://agent.greengoods.app";
+const localViteChainEnv = viteDisableLocalChain
+  ? {
+      VITE_DEV_CHAIN_MODE: "",
+      VITE_CHAIN_ID: rootEnv.VITE_CHAIN_ID || "11155111",
+      VITE_LOCAL_FORK_RPC_URL: "",
+      VITE_ENABLE_ANVIL_WALLETS: "false",
+    }
+  : {
+      VITE_DEV_CHAIN_MODE: "",
+      VITE_CHAIN_ID: "42161",
+      VITE_LOCAL_FORK_RPC_URL: "",
+      VITE_ENABLE_ANVIL_WALLETS: "false",
+    };
+const localViteAgentEnv = {
+  VITE_API_BASE_URL: viteDisableLocalAgent ? externalAgentApiBaseUrl : localAgentApiBaseUrl,
+};
+const localViteControlEnv = {
+  VITE_DISABLE_LOCAL_CHAIN: String(viteDisableLocalChain),
+  VITE_DISABLE_LOCAL_AGENT: String(viteDisableLocalAgent),
+};
 
 module.exports = {
   apps: [
@@ -62,12 +110,13 @@ module.exports = {
       cwd: ".",
       env: {
         NODE_ENV: "development",
-        VITE_DEV_CHAIN_MODE: "",
-        VITE_CHAIN_ID: "42161",
-        VITE_ENVIO_INDEXER_URL: "http://localhost:3006/v1/graphql",
-        VITE_LOCAL_FORK_RPC_URL: "",
-        VITE_ENABLE_ANVIL_WALLETS: "false",
-        VITE_API_BASE_URL: localAgentApiBaseUrl,
+        VITE_ENVIO_INDEXER_URL: envValue(
+          "VITE_ENVIO_INDEXER_URL",
+          "http://localhost:3006/v1/graphql"
+        ),
+        ...localViteControlEnv,
+        ...localViteChainEnv,
+        ...localViteAgentEnv,
       },
       merge_logs: true,
       autorestart: true,
@@ -84,12 +133,13 @@ module.exports = {
       cwd: ".",
       env: {
         NODE_ENV: "development",
-        VITE_DEV_CHAIN_MODE: "",
-        VITE_CHAIN_ID: "42161",
-        VITE_ENVIO_INDEXER_URL: "http://localhost:3006/v1/graphql",
-        VITE_LOCAL_FORK_RPC_URL: "",
-        VITE_ENABLE_ANVIL_WALLETS: "false",
-        VITE_API_BASE_URL: localAgentApiBaseUrl,
+        VITE_ENVIO_INDEXER_URL: envValue(
+          "VITE_ENVIO_INDEXER_URL",
+          "http://localhost:3006/v1/graphql"
+        ),
+        ...localViteControlEnv,
+        ...localViteChainEnv,
+        ...localViteAgentEnv,
       },
       merge_logs: true,
       autorestart: true,
@@ -108,12 +158,13 @@ module.exports = {
         NODE_ENV: "development",
         VITE_ENABLE_SW_DEV: viteEnableSwDev,
         VITE_USE_POLLING: envValue("VITE_USE_POLLING", "true"),
-        VITE_API_BASE_URL: localAgentApiBaseUrl,
-        VITE_DEV_CHAIN_MODE: "",
-        VITE_CHAIN_ID: "42161",
-        VITE_ENVIO_INDEXER_URL: "http://localhost:3006/v1/graphql",
-        VITE_LOCAL_FORK_RPC_URL: "",
-        VITE_ENABLE_ANVIL_WALLETS: "false",
+        VITE_ENVIO_INDEXER_URL: envValue(
+          "VITE_ENVIO_INDEXER_URL",
+          "http://localhost:3006/v1/graphql"
+        ),
+        ...localViteControlEnv,
+        ...localViteChainEnv,
+        ...localViteAgentEnv,
       },
       merge_logs: true,
       autorestart: true,

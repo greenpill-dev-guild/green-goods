@@ -1,8 +1,13 @@
 import * as React from "react";
 import { cn } from "../../utils/styles/cn";
 
-type ControlSurface = "default" | "admin";
-type ControlSize = "sm" | "md";
+/**
+ * `default` is the 16px field (DL-022); `admin` rides the cockpit field family;
+ * `editorial` is the public site's underline field (DL-024).
+ */
+type ControlSurface = "default" | "admin" | "editorial";
+/** Heights match the Button scale: sm 40, md 44, lg 48 (DL-023). */
+type ControlSize = "sm" | "md" | "lg";
 
 function ariaInvalid(value: React.AriaAttributes["aria-invalid"]): boolean {
   return value === true || value === "true" || value === "grammar" || value === "spelling";

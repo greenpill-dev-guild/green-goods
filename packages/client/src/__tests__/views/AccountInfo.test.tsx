@@ -60,10 +60,6 @@ vi.mock("react-router-dom", () => ({
   useNavigate: () => vi.fn(),
 }));
 
-vi.mock("@/components/Actions", () => ({
-  Button: ({ label }: { label: string }) => createElement("button", null, label),
-}));
-
 vi.mock("@/components/Cards", () => ({
   Card: ({ children }: { children: ReactNode }) => createElement("div", null, children),
 }));

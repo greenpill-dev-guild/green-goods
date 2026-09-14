@@ -18,9 +18,9 @@ import { CommitmentTeam } from "./CommitmentTeam";
 import { CommitmentWork } from "./CommitmentWork";
 import { ConfirmSheet } from "./ConfirmSheet";
 import { FailedActAlert } from "./FailedActAlert";
-import { LinkWorkDialog } from "./LinkWorkDialog";
+import { LinkWorkSheet } from "./LinkWorkSheet";
 import { selectStatusBand } from "./statusBand";
-import { WithdrawDialog } from "./WithdrawDialog";
+import { WithdrawSheet } from "./WithdrawSheet";
 
 function parseCommitmentId(value: string | undefined): bigint | null {
   if (!value) return null;
@@ -267,7 +267,7 @@ export function GardenCommitment() {
         }}
         onDone={() => setConfirmOpen(false)}
       />
-      <LinkWorkDialog
+      <LinkWorkSheet
         open={linkOpen !== null}
         onOpenChange={(open) => !open && setLinkOpen(null)}
         works={controller.linkableWorks}
@@ -286,7 +286,7 @@ export function GardenCommitment() {
             .catch(() => undefined);
         }}
       />
-      <WithdrawDialog
+      <WithdrawSheet
         open={withdrawOpen}
         onOpenChange={setWithdrawOpen}
         direction={commitment.direction === "REQUEST" ? "REQUEST" : "OFFER"}

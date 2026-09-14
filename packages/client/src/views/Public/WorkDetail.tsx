@@ -1,3 +1,4 @@
+import { Button } from "@green-goods/shared/components/Button";
 import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
 import { usePublicGardenDetail } from "@green-goods/shared/hooks/public/usePublicGardenDetail";
 import { useIntl } from "react-intl";
@@ -101,13 +102,9 @@ export default function WorkDetail() {
               })}
             </p>
             {unavailable ? (
-              <button
-                type="button"
-                onClick={() => void refetch()}
-                className="inline-flex min-h-11 items-center text-primary-action underline underline-offset-4"
-              >
+              <Button type="button" emphasis="tertiary" onClick={() => void refetch()}>
                 {formatMessage({ id: "public.gardenDetail.retry", defaultMessage: "Try Again" })}
-              </button>
+              </Button>
             ) : null}
           </div>
         )}

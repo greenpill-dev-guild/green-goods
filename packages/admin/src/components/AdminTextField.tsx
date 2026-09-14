@@ -175,7 +175,7 @@ const AdminTextFieldBase = React.forwardRef<AdminTextFieldControl, AdminTextFiel
       "peer w-full bg-transparent",
       // 14px (DL-011). [color:…] form so tailwind-merge can't read the color
       // as a font-size and drop text-body-md (the AdminSortSelect trap).
-      "text-body-md [color:rgb(var(--m3-on-surface))]",
+      "text-body-md leading-5 [color:rgb(var(--m3-on-surface))]",
       // Remove browser defaults
       "outline-none border-none focus:outline-none focus:border-none",
       // Caret color
@@ -188,7 +188,7 @@ const AdminTextFieldBase = React.forwardRef<AdminTextFieldControl, AdminTextFiel
       // Disabled text
       disabled && "[color:rgb(var(--m3-on-surface)/0.38)] cursor-not-allowed",
       // Push the control below the floating label space
-      "pb-1.5 pt-5",
+      "pb-1 pt-5",
       multiline && "resize-y",
       // Selects drop the native chrome; the chevron renders in the trailing
       // icon slot and clicks fall through it to the control.
@@ -257,7 +257,7 @@ const AdminTextFieldBase = React.forwardRef<AdminTextFieldControl, AdminTextFiel
             ? floatedClasses
             : [
                 // Resting: vertically centered, body-md (compact metric)
-                "top-1/2 -translate-y-1/2 text-body-md",
+                "top-1/2 -translate-y-1/2 text-body-md leading-5",
                 hasError
                   ? "text-[rgb(var(--m3-error))]"
                   : "text-[rgb(var(--m3-on-surface-variant))]",
@@ -327,8 +327,8 @@ const AdminTextFieldBase = React.forwardRef<AdminTextFieldControl, AdminTextFiel
             ) : null}
 
             {floatingLabel([
-              // Floating: top-2, body-sm
-              "top-2 text-body-sm",
+              // Floating: 2–18px label slot; the control text starts at 20px.
+              "top-0.5 text-body-sm leading-4",
               hasError
                 ? "text-[rgb(var(--m3-error))]"
                 : focused
@@ -406,7 +406,7 @@ const AdminTextFieldBase = React.forwardRef<AdminTextFieldControl, AdminTextFiel
 
           {floatingLabel([
             // Floating: sits on the top outline edge
-            "top-0 -translate-y-1/2 text-body-sm",
+            "top-0 -translate-y-1/2 text-body-sm leading-4",
             // Small background notch to visually break the outline
             "bg-[rgb(var(--m3-surface-container-lowest))] px-1",
             hasError

@@ -15,10 +15,11 @@ import {
 } from "@remixicon/react";
 import React from "react";
 import { useIntl } from "react-intl";
-import { Button } from "@/components/Actions";
+import { Button } from "@green-goods/shared/components/Button";
+import { IconButton } from "@green-goods/shared/components/IconButton";
 import { ActionCardSkeleton, FormInfo, GardenCardSkeleton } from "@/components/Cards";
 import { FormProgress } from "@/components/Communication";
-import { DraftDialog } from "@/components/Dialogs";
+import { DraftSheet } from "@/components/Sheets";
 import { WorkViewSkeleton } from "@/components/Features/Work";
 import { TopNav } from "@/components/Navigation";
 import { pwaStatusStyles } from "@/components/Pwa/statusStyles";
@@ -192,50 +193,40 @@ const Work: React.FC = () => {
       }),
       customSecondary: (
         <>
-          <Button
+          <IconButton
             onClick={() => {
               if (mediaClickRef.current) mediaClickRef.current();
               else document.getElementById("work-media-upload")?.click();
             }}
-            label=""
             aria-label={intl.formatMessage({ id: "app.proof.media.gallery" })}
-            className="min-w-11 w-11 px-0 shrink-0"
-            variant="neutral"
-            type="button"
-            shape="regular"
-            mode="stroke"
-            leadingIcon={<RiImageFill className={`w-5 h-5 ${pwaStatusStyles.primary.icon}`} />}
+            emphasis="secondary"
+            size="lg"
+            icon={<RiImageFill className={pwaStatusStyles.primary.icon} aria-hidden="true" />}
           />
-          <Button
+          <IconButton
             onClick={() => {
               if (cameraClickRef.current) cameraClickRef.current();
               else document.getElementById("work-media-camera")?.click();
             }}
-            label=""
             aria-label={intl.formatMessage({ id: "app.proof.media.camera" })}
-            className="min-w-11 w-11 px-0 shrink-0"
-            variant="neutral"
-            type="button"
-            shape="regular"
-            mode="stroke"
-            leadingIcon={<RiCameraFill className={`w-5 h-5 ${pwaStatusStyles.primary.icon}`} />}
+            emphasis="secondary"
+            size="lg"
+            icon={<RiCameraFill className={pwaStatusStyles.primary.icon} aria-hidden="true" />}
           />
-          <Button
+          <IconButton
             onClick={toggleAudioRecording}
-            label=""
             aria-label={intl.formatMessage({
               id: isRecording ? "app.proof.media.stopRecording" : "app.proof.media.record",
             })}
-            className="min-w-11 w-11 px-0 shrink-0"
-            variant={isRecording ? "error" : "neutral"}
-            type="button"
-            shape="regular"
-            mode={isRecording ? "filled" : "stroke"}
-            leadingIcon={
+            aria-pressed={isRecording}
+            emphasis={isRecording ? "primary" : "secondary"}
+            tone={isRecording ? "danger" : "default"}
+            size="lg"
+            icon={
               isRecording ? (
-                <RiStopFill className={`w-5 h-5 ${pwaStatusStyles.error.foreground}`} />
+                <RiStopFill aria-hidden="true" />
               ) : (
-                <RiMicLine className={`w-5 h-5 ${pwaStatusStyles.primary.icon}`} />
+                <RiMicLine className={pwaStatusStyles.primary.icon} aria-hidden="true" />
               )
             }
           />
@@ -376,8 +367,8 @@ const Work: React.FC = () => {
 
   return (
     <>
-      <DraftDialog
-        isOpen={draft.showDraftDialog}
+      <DraftSheet
+        isOpen={draft.showDraftSheet}
         onContinue={draft.handleContinueDraft}
         onClose={draft.close}
         legacyRecovery={draft.legacyRecovery}
@@ -447,35 +438,34 @@ const Work: React.FC = () => {
                       "Your work was submitted, but its commitment link could not be queued.",
                   })}
                 </span>
-                <button
+                <Button
                   type="button"
+                  emphasis="tertiary"
+                  size="compact"
                   onClick={() => void retryLinkOnly()}
-                  disabled={isSchedulingDependentLink}
-                  aria-busy={isSchedulingDependentLink}
-                  className="flex min-h-11 shrink-0 items-center gap-1 rounded-[var(--radius-md)] px-2 font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-alpha-24 disabled:opacity-60"
+                  loading={isSchedulingDependentLink}
+                  leadingIcon={<RiRefreshLine className="h-4 w-4" aria-hidden="true" />}
+                  className="shrink-0"
                 >
-                  <RiRefreshLine className="h-4 w-4" aria-hidden="true" />
                   {intl.formatMessage({
                     id: "app.garden.commitment.retryLink",
                     defaultMessage: "Retry Link",
                   })}
-                </button>
+                </Button>
               </div>
             ) : null}
             <div className="flex flex-row gap-4 w-full">
               {currentTab.customSecondary}
               <Button
                 onClick={currentTab.primary}
-                label={currentTab.primaryLabel}
                 disabled={!canProceed || isSchedulingDependentLink || hasPendingLinkRecovery}
                 className="w-full"
-                variant="primary"
-                mode="filled"
-                size="medium"
+                size="lg"
                 type="button"
-                shape="regular"
-                trailingIcon={<RiArrowRightSLine className="w-5 h-5" />}
-              />
+                trailingIcon={<RiArrowRightSLine className="h-5 w-5" aria-hidden="true" />}
+              >
+                {currentTab.primaryLabel}
+              </Button>
             </div>
           </div>
         </div>

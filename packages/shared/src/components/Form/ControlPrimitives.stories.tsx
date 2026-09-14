@@ -131,6 +131,65 @@ type Story = StoryObj<typeof ControlPrimitiveCatalog>;
 
 export const StateCatalog: Story = {};
 
+/**
+ * The client field scale: a 16px rounded rectangle at sm 40, md 44, lg 48 (DL-022,
+ * DL-023), and the public site's editorial underline field (DL-024). Display-size
+ * text keeps the field's height, and a small select keeps its chevron lane.
+ */
+export const DefaultSurfaceSizes: Story = {
+  tags: ["storybook-ci"],
+  render: () => (
+    <section className="flex w-[320px] max-w-full flex-col gap-3 bg-bg-white-0 p-3 text-text-strong-950">
+      <TextInput aria-label="Small field" controlSize="sm" placeholder="sm · 40px" />
+      <TextInput aria-label="Medium field" placeholder="md · 44px" />
+      <TextInput aria-label="Large field" controlSize="lg" placeholder="lg · 48px" />
+      <NativeSelect aria-label="Medium select" defaultValue="all">
+        <option value="all">All Gardens</option>
+      </NativeSelect>
+      <NativeSelect
+        aria-label="Small select"
+        controlSize="sm"
+        defaultValue="month"
+        className="w-auto"
+      >
+        <option value="day">Day</option>
+        <option value="month">Month</option>
+      </NativeSelect>
+      <TextInput aria-label="Invalid field" invalid defaultValue="0x00" />
+      <TextInput aria-label="Editorial field" surface="editorial" placeholder="you@example.com" />
+      <TextInput aria-label="Display amount" className="font-serif text-2xl" defaultValue="25.00" />
+      <TextInput
+        aria-label="Editorial display field"
+        surface="editorial"
+        className="text-2xl"
+        placeholder="you@example.com"
+      />
+    </section>
+  ),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const radius = (element: HTMLElement) =>
+      Number.parseFloat(getComputedStyle(element).borderTopLeftRadius);
+    for (const [name, height] of [
+      ["Small field", 40],
+      ["Medium field", 44],
+      ["Large field", 48],
+    ] as const) {
+      const field = canvas.getByRole("textbox", { name });
+      await expect(field.getBoundingClientRect().height).toBe(height);
+      await expect(radius(field)).toBe(16);
+    }
+    await expect(radius(canvas.getByRole("combobox", { name: "Medium select" }))).toBe(16);
+    await expect(radius(canvas.getByRole("textbox", { name: "Editorial field" }))).toBe(0);
+    // A 24px serif value sits inside the 44px step instead of growing the field.
+    for (const name of ["Display amount", "Editorial display field"]) {
+      await expect(canvas.getByRole("textbox", { name }).getBoundingClientRect().height).toBe(44);
+    }
+    const smallSelect = canvas.getByRole("combobox", { name: "Small select" });
+    await expect(getComputedStyle(smallSelect).paddingRight).toBe("36px");
+  },
+};
+
 export const FocusedTopInputMobile: Story = {
   parameters: {
     viewport: { defaultViewport: "mobile1" },

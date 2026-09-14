@@ -60,6 +60,7 @@ EXPECTED_TOKENS=(
   "material|--border-material"
   # Runtime radius aliases
   "radius|--radius-md"
+  "radius|--radius-squircle"
   "radius|--radius-lg"
   "radius|--radius-xl"
   "radius|--radius-2xl"
@@ -68,6 +69,7 @@ EXPECTED_TOKENS=(
 
 GENERATED_RADIUS_TOKENS=(
   "--gg-radius-md"
+  "--gg-radius-squircle"
   "--gg-radius-lg"
   "--gg-radius-xl"
   "--gg-radius-2xl"
