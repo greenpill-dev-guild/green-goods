@@ -66,7 +66,7 @@ If the Product team, expected Issue statuses, or required canonical labels are m
 Codified from the 2026-05-13 `/qa-triage` first-run findings. These three constraints apply to every Linear write this routine makes:
 
 1. **`ai:*` is single-value-per-Issue.** Default to `ai:routine` (cron'd provenance). When an accepted Issue clears the **Codex-ready bar** (clear behavior + named surface + suggestable fix + validation — see [`README.md` § Codex hand-off](README.md)), set `ai:codex` *instead* (single value — never both; Linear rejects multi-value writes to this group), and **delegate** the Issue to the Codex agent when it also clears the **autonomous-confident bar** (the human stays assignee/reviewer).
-2. **`package:*` is single-value-per-Issue.** When a bug spans more than one package, pick the **primary surface** as the label and name the secondary package(s) in the Issue body's `## Surface` block. Omit the label entirely when the surface is genuinely unknown.
+2. **`package:*` is single-value-per-Issue.** When a bug spans more than one package, pick the **primary surface** as the label and name the secondary package(s) in the problem sentence (the `## Surface` block is retired). Omit the label entirely when the surface is genuinely unknown.
 3. **Customer Needs cannot be standalone.** Linear's `save_customer_need` API rejects calls without an `issue` (or `project`) parameter — `Exactly one of projectId or issueId must be defined`. Every Customer Need this routine creates must link to an Issue. For items that aren't actionable accepted-bug Issues, the routine creates a **lightweight tracking Issue** (`activity:maintenance` + `Backlog`) and links the Need to it. There is no standalone Need path.
 
 ### Linear label scheme (canonical)
@@ -78,7 +78,7 @@ Issues created from Customer Needs (whether accepted bugs or lightweight trackin
 | Label family | Values used by bug-intake | Single-value? | Where applied |
 |---|---|---|---|
 | `protocol:green-goods` | always | n/a (binary) | every Issue this routine creates |
-| `package:*` | `package:pwa` (installed app), `package:editorial` (public website), `package:client` (plumbing both client surfaces share), `package:admin`, `package:shared`, `package:contracts`, `package:indexer`, `package:agent`, `package:docs` | **yes** | Issue. One value only. Pick primary surface; note secondary in body. Omit if surface is genuinely unknown. |
+| `package:*` | `package:client`, `package:admin`, `package:shared`, `package:contracts`, `package:indexer`, `package:agent`, `package:docs` | **yes** | Issue. One value only. Pick primary surface; note secondary in body. Omit if surface is genuinely unknown. |
 | `activity:*` | `activity:build` for confirmed bugs / behavioral defects; `activity:maintenance` for cleanup/polish/ideas/unactionable feedback that still warrants a tracking Issue | **yes** | Issue. One value only. |
 | `source:*` | `source:discord`, `source:telegram`, `source:drive` | n/a (multi-value family — used as provenance flags) | **Always** on every Issue this routine creates, one per origin (Discord→`source:discord`, Telegram→`source:telegram`, Drive→`source:drive`). This stamp is what scopes the Phase 7 triage count to this routine's own writes, so it is non-optional. Never on the Customer Need — Needs carry no labels. |
 | `ai:*` | `ai:routine` (default) · `ai:codex` (Codex-ready accepted bugs) | **yes** | Issue. Default `ai:routine`; swap to `ai:codex` when the accepted bug clears the Codex-ready bar (see [`README.md` § Codex hand-off](README.md)), and delegate to Codex when it also clears the autonomous-confident bar. The `/qa-triage` skill applies the same rule on human promotion. |
@@ -149,7 +149,7 @@ Issue these against the PostHog connector and keep the responses in private rout
 2. **Error detail for the matching hash** — top-line message, normalized stack frame, first/last seen, affected-session count, affected-user count, app surface inferred from URL host (`client` vs `admin`), and the replay link (private).
 3. **Reporter session lookup** — only when the reporter identifier is known and consented. Returns recent sessions (private), distinct ID (private), and any errors observed in those sessions.
 4. **Recurring-pattern probe** — for each candidate match, ask "how many distinct sessions has this error hit in the last 30 days?" Used by Phase 4 below.
-5. **Free-text fuzzy match** — when there is no stack trace, match the verbatim quote against recent error messages and against `event` names (`work_submitted`, `sync_failed`, etc.) from `.claude/skills/debug/posthog.md`.
+5. **Free-text fuzzy match** — when there is no stack trace, match the verbatim quote against recent error messages and current event names in the owning PostHog module.
 
 ### Privacy boundary (strict)
 
@@ -177,7 +177,11 @@ Issue these against the PostHog connector and keep the responses in private rout
 
 ### Linking private replay evidence
 
-Replay URLs, session IDs, and distinct IDs are useful for the human triaging the Customer Need and for `/debug` later. Hand them off via Linear's **private** comment surface (Slack-equivalent if Linear's Discord/Slack integration exposes a private channel mirror) **or** via the routine's daily Discord summary as a private DM to `<@${DISCORD_USER_ID_AFO}>` — never as a public message. If neither private surface is available, drop the link from the routine output entirely and let `/debug` re-query PostHog by the public error hash.
+Replay URLs, session IDs, and distinct IDs are useful for the human triaging the Customer Need and for `/debug` later. Hand them off **only** as a private DM to `<@${DISCORD_USER_ID_AFO}>` in the routine's daily Discord summary.
+
+**Never put them in a Linear comment.** Linear has no private comment surface — a comment is visible to everyone who can see the issue, exactly like the description, and the shared contract counts comments inside the privacy boundary (`.claude/context/linear-routing-rules.md` § Invariant rules). An earlier version of this file described comments as a private hand-off channel; that was wrong, and following it would have published session identifiers.
+
+If the DM path is unavailable, drop the link from the routine output entirely and let `/debug` re-query PostHog by the public error hash.
 
 ### Fallback when the connector is unavailable
 
@@ -246,7 +250,7 @@ Source: the dedicated `#bug-report` channel (`DISCORD_BUGS_CHANNEL_ID`). The ret
 2. **Filter actionable reports** — skip:
    - Bot messages (including yours)
    - Simple reactions, emojis, "me too" replies
-   - Already acknowledged (✅ reaction from your bot)
+   - Already acknowledged — **either** a ✅ reaction from your bot **or** an existing bot-authored `Tracked →` reply to that message (check both; a prior run may have landed one and not the other, and re-replying would double-post)
    - General discussion not framed as a report
    - Native `/linear issue` invocations — the team is using the Linear/Discord integration directly; Linear already owns the record, do not create a duplicate
 
@@ -326,31 +330,26 @@ Source: the dedicated `#bug-report` channel (`DISCORD_BUGS_CHANNEL_ID`). The ret
 
    Associate the Customer Need with the customer/garden when known. Customer Needs live unprojected on the Product team — do not associate with the retired `Green Goods` umbrella project or any other staging/completed project. The Customer Need carries **no labels** — `save_customer_need` has no `labels` field; provenance and triage metadata live in the body, and the canonical labels go on the linked Issue created in step 6. Before saving the record, re-check the body against the privacy boundary table in `## PostHog telemetry enrichment`; if any forbidden field slipped in, drop it.
 
-6. **Create accepted-bug Issue** only when the report is actionable per the table above. Issue title is a concise verb-led summary. Body:
+6. **Create accepted-bug Issue** only when the report is actionable per the table above. Issue title is a concise verb-led sentence with no prefix. Body follows the contract in [`.claude/context/linear-routing-rules.md`](../../.claude/context/linear-routing-rules.md) § Issue structure — clear, simple, concise, human-friendly (**backstops: 6 headings / 600 words**), and a `PreToolUse` hook rejects writes that break it:
 
    ```markdown
-   ## What
+   {What breaks, for whom, and where — one or two short paragraphs of plain
+   prose. Name the surface and the concrete files inside the sentences rather
+   than giving each its own heading.}
 
-   {one-sentence description of the bug or task}
+   **Done when**
+   - {observable, checkable outcome}
+   - {second outcome, if the fix has two halves}
 
-   ## Where
-
-   {file paths or surfaces — concrete enough that the human triage handoff (or downstream `.plans/` execution) can scope it}
-
-   ## Suggested fix
-
-   {one paragraph — actionable. "Needs investigation" is not enough; if the fix isn't suggestable yet, fall back to the lightweight tracking-Issue pattern: `activity:maintenance` + `Backlog` + body that has Summary + Surface + Source only}
-
-   ## Linked Customer Need
-   {Linear URL of the Customer Need created in step 4}
-
-   ## Source
-   {Discord message URL — same as the Customer Need}
+   {One source line: the Discord message URL, same as the Customer Need. Add a
+   single counts line only when telemetry is the evidence.}
    ```
+
+   Drop anything you cannot fill rather than writing a placeholder — if the fix is not suggestable yet, that is the lightweight tracking pattern (`activity:maintenance` + `Backlog`), not a "Needs investigation" heading. Do not restate the verbatim quote or the reporter list; those live on the linked Customer Need.
 
    Project: leave **unprojected** on the Product team. Apply labels: `protocol:green-goods` + `activity:build` + `package:<inferred>` (omit if unknown) + `source:discord` + `ai:routine`. Status: `Todo`. Link the Issue to the Customer Need via Linear's relationship surface ("relates to" or the Customer Need's linked-issues field, whichever the Linear API exposes). The Issue body inherits the same privacy boundary — never paste replay URLs, session IDs, distinct IDs, wallet addresses, or reporter identifiers into it.
 
-7. **Acknowledge on Discord** — reply with the Linear URL and add ✅ reaction in `#bug-report`. When acknowledging, link the Customer Need (not the Issue), because the Customer Need is the user-facing record:
+7. **Acknowledge on Discord** — reply with the Linear URL and add ✅ reaction in `#bug-report`. Since the standalone ack post was retired (Phase 6), this threaded reply IS the reporter's acknowledgement. When acknowledging, link the Customer Need (not the Issue), because the Customer Need is the user-facing record:
 
    ```
    POST https://discord.com/api/v10/channels/${DISCORD_BUGS_CHANNEL_ID}/messages
@@ -359,6 +358,8 @@ Source: the dedicated `#bug-report` channel (`DISCORD_BUGS_CHANNEL_ID`). The ret
    ```
    PUT https://discord.com/api/v10/channels/${DISCORD_BUGS_CHANNEL_ID}/messages/{message_id}/reactions/%E2%9C%85/@me
    ```
+
+   **Treat the reply and the reaction as two independent steps.** Attempt both and record each outcome separately, so a later run retries only the one that failed — the step-2 filter recognizes either signal, so a message that got a reply but no ✅ is never re-replied to, it only gets its reaction retried. Surface any step still failing at the end of the run in the Phase 7 failures block: a report whose reply never landed is the one case where a reporter gets nothing back at all.
 
 ## Phase 2: Telegram capture topics
 
@@ -387,7 +388,9 @@ Run the sub-flow below twice — once with `inferred_type=bug` (ack target `#bug
    GET ${BOT_API_URL}/api/messages?inferred_type=${TYPE}&status=processing&limit=100
    Authorization: Bearer ${BOT_API_TOKEN}
    ```
-   For `processing` rows, only attempt recovery when `updatedAt` is more than 6 hours old. The response is `{ messages: [...], count }`. Each message carries `id`, `chatId`, `threadId`, `senderPlatformId`, `senderDisplayName`, `text`, `inferredType`, `postedAt`, `updatedAt`, and `attachments[]` with embedded `downloadUrl`s. `chatId` and `threadId` are informational (useful for constructing `t.me/c/<chat>/<thread>/<message>` deep links in Linear bodies and digest item lines) — do not hardcode them.
+   For `processing` rows, only attempt recovery when `updatedAt` is more than 6 hours old. The response is `{ messages: [...], count }`. Each message carries `id`, `platform`, `chatId`, `threadId`, **`messageId`**, `senderPlatformId`, `senderDisplayName`, `text`, `replyToMessageId`, `inferredType`, `status`, `postedAt`, `updatedAt`, and `attachments[]` with embedded `downloadUrl`s.
+
+   **Source identity — use one field, consistently.** `id` is a **composite** the agent builds as `{platform}:{chatId}:{messageId}`; it is the claim/PATCH handle, not a Telegram message id. The raw Telegram message id is its own field, **`messageId`**. Use `messageId` (with `chatId` and `threadId`) everywhere a Telegram message must be identified: the `t.me/c/<chat>/<thread>/<message>` deep link, the Customer Need `## Source` block, the Phase 7 digest item line, and the Phase 2 step 4 dedupe. Never parse a message id back out of the composite `id`, and never hardcode chat or thread ids.
 
 2. **Claim before processing** — for every candidate, immediately claim it before any PostHog, Linear, Discord, or media-upload work:
    ```
@@ -399,7 +402,7 @@ Run the sub-flow below twice — once with `inferred_type=bug` (ack target `#bug
 
 3. **Filter actionable reports** — apply the same filter as Phase 1 step 2 (skip reactions / "me too" / general discussion). Pure media-only messages are kept if they look like reports (a screenshot in the bug topic almost always is). Non-actionable claimed messages should be marked `rejected`, not returned to `new`.
 
-4. **Dedupe against Linear** — list open Customer Needs on the Product team that carry `protocol:green-goods` + `source:telegram`, match on `chat_messages.id`, the message-id segment of it, garden context, and described behavior. When a duplicate exists, comment on the existing record with the safe display name (or `anonymous`), source message reference, and one-sentence quote; do not include `senderPlatformId`, Telegram handles, or numeric IDs. Do not create a new Customer Need. Carry the existing Customer Need URL forward to Phase 7 so the duplicate capture is still visible in the digest's merged-duplicates line.
+4. **Dedupe against Linear** — list open Customer Needs on the Product team that carry `protocol:green-goods` + `source:telegram`, match on the capture's `messageId` (with its `chatId`), the composite `chat_messages.id`, garden context, and described behavior. When a duplicate exists, comment on the existing record with the safe display name (or `anonymous`), source message reference, and one-sentence quote; do not include `senderPlatformId`, Telegram handles, or numeric IDs. Do not create a new Customer Need. Carry the existing Customer Need URL forward to Phase 7 so the duplicate capture is still visible in the digest's merged-duplicates line.
 
 5. **Enrich with PostHog + optional Sentry (private context)** — same procedure as Phase 1 step 4. Treat `senderPlatformId` as private. `senderDisplayName` is allowed only in the Customer Need `## Source` block and the Phase 7 digest item line; do not use it in the PostHog or Sentry evidence block or telemetry lookup unless the reporter explicitly consented.
 
@@ -414,7 +417,7 @@ Run the sub-flow below twice — once with `inferred_type=bug` (ack target `#bug
 
    ```markdown
    ## Source
-   Telegram · {bug topic | idea topic} — message `{message.id}`
+   Telegram · {bug topic | idea topic} — message `{message.messageId}` (capture `{message.id}`)
    Reported by **{senderDisplayName or "anonymous"}** on {ISO timestamp from postedAt}
 
    > {message.text — verbatim, scrubbed of any wallet/email/replay accidentally pasted}
@@ -500,24 +503,33 @@ After Phases 1–3, before the umbrella check, fold every PostHog match collecte
 2. **Threshold gate**: a hash is a recurring pattern when its 30-day distinct-session count is **≥ 50**. Below threshold, the per-report Customer Needs from Phases 1–3 stand on their own. Do not aggregate.
 3. **Find or create the parent Issue** unprojected on the Product team:
    - Look for an open Issue carrying `protocol:green-goods` + `ai:routine` + `activity:build` + a `pattern:posthog-{error-hash-prefix}` label. If the label set is missing on the team, fail loud in the Phase 7 summary and skip aggregation rather than inventing a parent.
-   - If none exists and the threshold is met, create one Issue with title `Recurring: {top-line-error-message-redacted}` (verb-led when possible). Status `Todo`, labels `protocol:green-goods` + `activity:build` + `package:<inferred>` + `ai:routine` + `pattern:posthog-{error-hash-prefix}`. The parent Issue body uses the safe-summary fields only:
+   - If none exists and the threshold is met, create one Issue whose title is a plain verb-led sentence naming the failure — "Fix the credential request that never resolves on garden join", not `Recurring: {error}`. The `Recurring:` prefix was retired 2026-08-27 and a `PreToolUse` hook now rejects it; the `pattern:posthog-*` label marks the record as a recurring parent. Status `Todo`, labels `protocol:green-goods` + `activity:build` + `package:<inferred>` + `ai:routine` + `pattern:posthog-{error-hash-prefix}`. The parent Issue body uses the safe-summary fields only:
 
      ```markdown
-     ## Recurring pattern
+     {What keeps failing, for whom, and on which surface — two or three plain
+     sentences. Name the redacted top-line message inside them.}
 
-     - Error hash: `{posthog-error-hash}`
-     - Top-line message: `{redacted-error-message}`
-     - Distinct sessions (last 30d): {S}
-     - Distinct users (last 30d): {U}
-     - First seen: {YYYY-MM-DDTHH:MM:SSZ}
-     - Last seen: {YYYY-MM-DDTHH:MM:SSZ}
-     - App surface: {client | admin}
+     Seen {S} sessions and {U} users over 30 days, first {YYYY-MM-DD}, last
+     {YYYY-MM-DD}. Error hash `{posthog-error-hash}`.
 
-     ## Linked Customer Needs
-     {bullet list of Linear URLs for every Customer Need this routine has ever associated with this error hash}
+     **Done when**
+     - {the observable recovery — the failing path succeeds again, or the error
+       is understood and deliberately accepted}
+     - {second outcome, when the pattern has two halves}
      ```
 
-   - If a parent Issue already exists, append any new Customer Need URLs to its `## Linked Customer Needs` list and refresh the safe-summary numbers in place.
+     This parent is filed as `Todo`, so **`Done when` is required** — without
+     checkable outcomes a Codex hand-off stops at the readiness gate. If no
+     outcome can be named yet, file it `Backlog` instead.
+
+     **The contributing Customer Needs are not listed in the body.** Step 4
+     below already backlinks each one through Linear's relation surface, which
+     renders them in the Issue's right rail and stays correct as the list
+     grows. A markdown copy would be a second home for the same fact, and an
+     unbounded one — the body has a 600-word backstop, so a long-lived pattern
+     would eventually make its own refresh unwritable.
+
+   - If a parent Issue already exists, add the new Customer Needs through the relation surface (step 4) and refresh the counts and last-seen date in the body. Do not accumulate URLs in the description — the relations are the list.
 4. **Backlink** every contributing Customer Need to the parent Issue via Linear's relation surface (`relates to` or the parent's linked-issues field). The Customer Needs themselves are not edited beyond adding the relation.
 5. **Attach Sentry matches as root-cause context** when they point at the same top-line message/surface/release. Sentry issue IDs enrich the parent Issue body or comment with release and stack context; they do not replace the PostHog distinct-session threshold because Sentry event counts and PostHog session counts are not comparable.
 5. **Cap**: at most **2 new parent Issues per run** to keep human triage from drowning. Carry overflow into the next run.
@@ -532,7 +544,7 @@ After Phases 1–4, before posting the summary:
 2. List every linked Issue this run created (per-report and recurring-pattern parent) and confirm it has the expected labels, status, source URL, and Customer Need link.
 3. List every duplicate detection — every existing Customer Need or Issue this run commented on — and confirm the comment landed.
 4. List every rejection — every signal you read but did not act on — and the reason.
-5. Run a privacy grep across every body created or edited this run **and across every captured `chat_messages.text` and attachment caption that this run consumed** for the strings `replay`, `session_id`, `distinct_id`, `0x`, the reporter identifiers seen this run, and any other token from the "private" column of the privacy-boundary table. Any hit in a Linear body means the routine leaked private context — fail loud in Phase 7's `⚠ Failures this run` block and edit the offending body in place to redact before the run completes. Hits in raw `chat_messages.text` or captions cause the run to drop that record's quote from the Phase 7 digest (Linear still records it, scrubbed) — never leak the raw text downstream.
+5. Run a privacy grep across every body created or edited this run, **every comment this run posted**, **and across every captured `chat_messages.text` and attachment caption that this run consumed** for the strings `replay`, `session_id`, `distinct_id`, `0x`, the reporter identifiers seen this run, and any other token from the "private" column of the privacy-boundary table. Any hit in a Linear body or comment means the routine leaked private context — fail loud in Phase 7's `⚠ Failures this run` block and edit the offending body or comment in place to redact before the run completes. Hits in raw `chat_messages.text` or captions cause the run to drop that record's quote from the Phase 7 digest (Linear still records it, scrubbed) — never leak the raw text downstream.
 
 Carry these into Phase 7 so the digest is verifiable.
 
@@ -556,7 +568,7 @@ Post to `#product`:
 POST https://discord.com/api/v10/channels/${DISCORD_PRODUCT_CHANNEL_ID}/messages
 ```
 
-Determine if @mention is needed by counting **this routine's own** open Issues awaiting triage. Every accepted item this routine creates is a Customer Need linked to an Issue (Linear API constraint 3), so the addressable triage signal lives on the Issues — never on the label-less Customer Needs, and there is no team-wide "list Customer Needs" query. Scope the count to bug-intake's writes with the compound filter — `ai:routine` **plus** a `source:{discord|telegram|drive}` origin label **plus** an `activity:{qa|maintenance}` label. That compound is what excludes sibling routines: grant-scout is `activity:research` (so the activity clause drops it even though it also stamps `source:discord`/`source:drive`); health-watch carries no `source:` origin label; qa-triage-pulse uses `source:qa-triage-pulse`, not the three origins.
+Determine if @mention is needed by counting **this routine's own** open Issues awaiting triage. Every accepted item this routine creates is a Customer Need linked to an Issue (Linear API constraint 3), so the addressable triage signal lives on the Issues — never on the label-less Customer Needs, and there is no team-wide "list Customer Needs" query. Scope the count to bug-intake's writes with the compound filter — a `source:{discord|telegram|drive}` origin label **plus** an `activity:{build|maintenance}` label. Query by `ai:routine` first because it is the cheapest single-value `label` filter the API accepts, but do **not** require an `ai:*` value when narrowing the results: delegation swaps `ai:routine` for `ai:codex` or `ai:claude`, and a delegated Issue is still awaiting triage. The source-plus-activity pair is what actually scopes the count. That compound is what excludes sibling routines: grant-scout is `activity:research` (so the activity clause drops it even though it also stamps `source:discord`/`source:drive`); health-watch carries no `source:` origin label; qa-triage-pulse uses `source:qa-triage-pulse`, not the three origins.
 
 ```
 # list_issues' `label` param is single-value: query by ai:routine, then narrow
@@ -577,7 +589,7 @@ accepted_count   = count Issues on team=Product where:
 
 **When the run captured or merged anything, or anything failed:**
 
-```
+```text
 {if raw_signal_count + accepted_count > 3 OR any_failure: "<@${DISCORD_USER_ID_AFO}> "}**🐛 Bug Intake · {YYYY-MM-DD}**
 
 {Lede: 1–2 sentences a teammate would write — what came in and what matters most. e.g. "Three new reports; the passkey-register failure from Telegram matches live telemetry and is the one to look at."}
@@ -595,13 +607,13 @@ Source-by-source count breakdowns, ack tallies, and enrichment telemetry stay OU
 
 **Quiet run (zero captured, zero merged, zero failures): exactly one line, no mention** — never a skeleton of zero-count bullets:
 
-```
+```text
 🐛 Bug intake · {YYYY-MM-DD}: quiet run · nothing new in #bug-report, Telegram, or Drive.
 ```
 
 This digest is **public**. Replay URLs, session IDs, distinct IDs, wallet/user identifiers, and reporter identifiers must not appear here. If a private replay link needs to reach Afo, send it via DM to `<@${DISCORD_USER_ID_AFO}>` in a separate message — never inline in this `#product` digest.
 
-The @mention only fires when triage is piling up OR a setup failure needs human attention. This keeps Discord notifications signal-heavy and matches the existing notification policy.
+The @mention fires when triage is piling up (`raw_signal_count + accepted_count > 3`) or when anything in `any_failure` needs human attention — that covers setup and wiring failures, an unreachable PostHog, a privacy-grep hit, and a failed in-thread acknowledgement. This keeps Discord notifications signal-heavy and matches the existing notification policy.
 
 ## Caps and guardrails
 
@@ -618,5 +630,5 @@ The @mention only fires when triage is piling up OR a setup failure needs human 
 - **No duplicate of `/linear issue` records.** When a teammate already filed via the Linear/Discord integration, the Linear record exists; this routine merges context but does not create a parallel record.
 - **1-hour runtime cap.** Intake is lightweight. If the run takes longer than an hour, something is wrong.
 - **Project routing discipline.** Customer Needs and accepted-bug Issues live unprojected on the Product team. Never route into the retired `Green Goods`, `Coop`, `Network Website`, `Cookie Jar`, or `Story Board` projects. Graduate to a bounded active project only when one already exists for this work.
-- **Acknowledgement model (2026-07-30).** Discord-source reports are acknowledged with the inline `Tracked → ${linear_url}` threaded reply + ✅ reaction in `#bug-report` (Phase 1 step 7) — never with standalone ack messages. Telegram and Drive records are acknowledged as item lines in the Phase 7 digest; Telegram reporters get NO Telegram-side ack — no DM, no group reply — by design.
+- **Acknowledgement model (2026-07-30).** Discord-source reports are acknowledged with the inline `Tracked → ${customer_need_url}` threaded reply + ✅ reaction in `#bug-report` (Phase 1 step 7; reply and reaction are attempted, recorded, and retried independently) — never with standalone ack messages. Telegram and Drive records are acknowledged as item lines in the Phase 7 digest; Telegram reporters get NO Telegram-side ack — no DM, no group reply — by design.
 - **Fail loud, not silent.** A missing Linear project, a missing label, a 401 from Linear, or a 401/503 from the agent messages API (`${BOT_API_URL}/api/messages`, per the Phase 2 preflight) must appear in the Discord summary so the user can fix the wiring. Do not skip records to keep the run "green."

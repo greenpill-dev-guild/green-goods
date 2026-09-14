@@ -32,6 +32,16 @@
             "statusMessage": "Checking Green Goods edit policy..."
           }
         ]
+      },
+      {
+        "matcher": "mcp__.*__save_issue",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$(git rev-parse --show-toplevel)/.claude/scripts/lint-linear-issue.sh\"",
+            "statusMessage": "Checking Linear issue shape..."
+          }
+        ]
       }
     ],
     "PostToolUse": [

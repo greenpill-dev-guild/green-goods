@@ -47,6 +47,16 @@
         ]
       },
       {
+        "matcher": "mcp__.*__save_issue",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/scripts/lint-linear-issue.sh\"",
+            "statusMessage": "Checking Linear issue shape..."
+          }
+        ]
+      },
+      {
         "matcher": "Bash",
         "hooks": [
           {
