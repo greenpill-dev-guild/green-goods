@@ -374,14 +374,47 @@ export function applyCompatibilityFilters(plan, options) {
     return false;
   };
   const checks = plan.checks.filter(keep);
+  // The toolchain comparison upstream runs over the unfiltered plan, so a tool
+  // that only a dropped check needed — Foundry for contracts-test, say — would
+  // otherwise keep every surviving check blocked. `bun run check --only
+  // design-tokens` on a runner without Foundry is the case that bit CI. Work
+  // out which tools the remaining checks actually require, by the same rule the
+  // comparison uses, and drop the blockers that no longer apply.
+  const requiredTools = new Set(["node"]);
+  if (checks.some((check) => check.command?.includes("bun"))) requiredTools.add("bun");
+  if (checks.some((check) => check.capabilities?.includes("foundry"))) requiredTools.add("foundry");
+  const priorBlockers = plan.environmentBlockers ?? [];
+  // A blocker is a { capability } record from the toolchain comparison, or a
+  // bare capability string from a caller that built the plan by hand.
+  const capabilityOf = (blocker) =>
+    typeof blocker === "string" ? blocker : String(blocker?.capability ?? "");
+  const environmentBlockers = priorBlockers.filter((blocker) =>
+    requiredTools.has(capabilityOf(blocker).replace(/^toolchain\./, "")),
+  );
+  const lifted = new Set(
+    priorBlockers
+      .filter((blocker) => !environmentBlockers.includes(blocker))
+      .map(capabilityOf),
+  );
+  // A lifted toolchain blocker was stamped onto every check, including the ones
+  // that survived; clear it there too, leaving capability blocks untouched.
+  const rescoped =
+    lifted.size === 0
+      ? checks
+      : checks.map((check) => {
+          const blockedBy = (check.blockedBy ?? []).filter(
+            (capability) => !lifted.has(capability),
+          );
+          return { ...check, blockedBy, state: blockedBy.length > 0 ? "blocked" : "pending" };
+        });
   // Recompute rather than inheriting plan.status: when the only blocked checks
   // are the ones a compatibility filter just dropped, the remaining plan is
   // runnable and must not keep reporting blocked.
   const stillBlocked =
-    checks.some((check) => check.state === "blocked") || plan.environmentBlockers?.length > 0;
+    rescoped.some((check) => check.state === "blocked") || environmentBlockers.length > 0;
   const status = stillBlocked ? "blocked" : plan.status === "blocked" ? "ready" : plan.status;
-  const budget = summarizeBudget(plan.effectiveIntent, checks, plan.risk);
-  return { ...plan, checks, status, budget, skipped };
+  const budget = summarizeBudget(plan.effectiveIntent, rescoped, plan.risk);
+  return { ...plan, checks: rescoped, status, budget, skipped, environmentBlockers };
 }
 
 export function isSupportedCiNodeVersion(version) {

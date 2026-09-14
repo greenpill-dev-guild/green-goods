@@ -700,9 +700,78 @@ test("a mandatory blocked check is never dropped by a compatibility filter", () 
 
 test("environment blockers keep the plan blocked even with no blocked checks", () => {
   const plan = filterablePlan([
-    { id: "format", state: "pending", mandatory: false, budgetSeconds: 5 },
+    {
+      id: "format",
+      state: "pending",
+      mandatory: false,
+      budgetSeconds: 5,
+      command: "bunx @biomejs/biome format",
+    },
   ]);
   plan.environmentBlockers = ["toolchain.bun"];
 
   assert.equal(applyCompatibilityFilters(plan, {}).status, "blocked");
+});
+
+test("a toolchain blocker only a dropped check needed stops blocking the plan", () => {
+  // `bun run check --only design-tokens` on a runner without Foundry: the
+  // toolchain comparison upstream sees contracts-test and blocks everything,
+  // but the surviving check is a shell script that never touches Foundry.
+  const plan = filterablePlan([
+    {
+      id: "design-tokens",
+      state: "blocked",
+      blockedBy: ["toolchain.foundry"],
+      mandatory: false,
+      budgetSeconds: 60,
+      command: "bash scripts/design/check-tokens.sh",
+      capabilities: ["dependencies"],
+    },
+    {
+      id: "contracts-test",
+      state: "blocked",
+      blockedBy: ["toolchain.foundry"],
+      mandatory: false,
+      budgetSeconds: 60,
+      capabilities: ["foundry"],
+    },
+  ]);
+  plan.environmentBlockers = [{ capability: "toolchain.foundry", expected: "1.0.0", actual: null }];
+
+  const filtered = applyCompatibilityFilters(plan, { onlyChecks: ["design-tokens"] });
+
+  assert.deepEqual(
+    filtered.checks.map((check) => check.id),
+    ["design-tokens"],
+  );
+  assert.deepEqual(filtered.checks[0].blockedBy, []);
+  assert.equal(filtered.checks[0].state, "pending");
+  assert.deepEqual(filtered.environmentBlockers, []);
+  assert.equal(filtered.status, "ready");
+});
+
+test("a toolchain blocker a surviving check still needs keeps the plan blocked", () => {
+  const plan = filterablePlan([
+    {
+      id: "contracts-test",
+      state: "blocked",
+      blockedBy: ["toolchain.foundry"],
+      mandatory: false,
+      budgetSeconds: 60,
+      capabilities: ["foundry"],
+    },
+    {
+      id: "indexer-test",
+      state: "blocked",
+      blockedBy: ["toolchain.foundry"],
+      mandatory: false,
+      budgetSeconds: 60,
+    },
+  ]);
+  plan.environmentBlockers = [{ capability: "toolchain.foundry", expected: "1.0.0", actual: null }];
+
+  const filtered = applyCompatibilityFilters(plan, { skipIndexer: true });
+
+  assert.equal(filtered.checks[0].state, "blocked");
+  assert.equal(filtered.status, "blocked");
 });
