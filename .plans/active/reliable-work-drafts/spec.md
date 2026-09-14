@@ -48,3 +48,42 @@ identity or confirmed mappings deduplicate; uncertainty retains the local item. 
 prepared content, explain unavailable content without spinning, show partial photos/details and
 reserve “No work yet” for a successfully fetched empty collection. Failed refresh retains data;
 reconnect must preserve edits, scroll and submission identity. New copy ships in en/es/pt.
+
+## Revised offline preparation (accepted 2026-09-14)
+
+This revision replaces the preparation, retention and presentation parts of the 2026-09-12 policy;
+submission, drafts and connectivity rules above are unchanged. The reasons are in
+[the online regression report](reports/2026-09-14-online-regression.md).
+
+Background preparation fills the queries the screens read: garden work lists, work approvals and
+work details. There is no separate prepared copy and no download manifest. Every joined garden keeps
+its lists, approvals and details; photos are kept for the garden in view, the account's own work and
+the account's avatar. Content is keyed by chain, garden and URL, never by account, so another account
+on the same phone reuses it.
+
+Preparation never competes with the screen. It starts a few seconds after launch, on reconnect, when
+a stale app becomes visible, when garden membership changes, and a few seconds after a garden opens.
+Each task waits until no query or mutation is running and the browser is idle. The garden in view
+moves to the front of the queue mid-run. Photos download one at a time on cellular and two otherwise,
+pause under Data Saver unless the person resumes, and never bypass the HTTP cache. Lists already
+fetched within 15 minutes are reused. The reading cache is written at most every five seconds during
+a run and once at its end; the query persister writes only the newest snapshot, at most once a second,
+and flushes when the page hides.
+
+The service worker owns `ipfs-cache` for gateway media. It answers from the cache, then from photos
+the previous worker prepared, then from the network with a CORS request, and stores a sized copy
+without `Vary` after answering. It trims unprotected copies oldest-first above 150 MiB when asked and
+after every 25 stores. Range requests and non-gateway images keep their existing paths.
+
+A restored snapshot keeps the offline read model (gardens, actions, gardeners, profiles, ENS and the
+work reads) whatever its age. Garden segments in work query keys are lowercase, and restore maps
+older checksummed keys onto them.
+
+Settings is the only place offline preparation is shown. The row title is one line ("Offline",
+"Sin conexión"); the status is two truncated lines: Downloading with megabytes and percentage, Paused
+with progress or No connection, Photos paused with Data Saver on, Ready with megabytes saved, or
+Incomplete with photos missing or Storage full. The control is Pause, Resume, Refresh or Retry. The
+garden list shows one line only when offline ("Offline · Saved 4:05 PM", "Not saved yet · Connect to
+load it") or when a refresh failed ("Couldn’t refresh · Saved 4:05 PM"), renders the newest 50 cards,
+and offers "Show older work" for the rest. Images request one gateway at a time, move on after a
+failure or a six-second stall while visible, and retry on reconnect after an offline failure.

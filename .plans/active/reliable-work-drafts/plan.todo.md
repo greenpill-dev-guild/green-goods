@@ -47,3 +47,23 @@ Execution ownership: submission module and queue execution; offline read/connect
 preparation coordinator/persistence/media/settings; coordinator-owned draft migration and integration.
 Existing shell, scrolling and passkey diffs are preserved. No contract changes, dependency installs,
 branch changes, commits, pushes or deployment are part of this implementation pass.
+
+
+## Background offline preparation and online browsing — accepted 2026-09-14
+
+**Status**: ACTIVE — implementation committed locally; device measurements pending
+**Linear Issue**: PRD-920
+**Last Updated**: 2026-09-14
+
+Afo accepted one read model, tiered preparation, photos on cellular and the two-line Settings copy
+after [the online regression report](reports/2026-09-14-online-regression.md). The revised policy is
+in [spec.md](spec.md#revised-offline-preparation-accepted-2026-09-14).
+
+- [x] Service worker answers gateway media from `ipfs-cache` before storing a sized copy; legacy prepared photos read through; Workbox no longer owns that cache.
+- [x] Images request one gateway at a time, fall back on failure or a visible stall, and retry after an offline failure.
+- [x] Replace the coordinator and manifest with a scheduler that yields to screen activity, reprioritizes the garden in view and pauses photos under Data Saver.
+- [x] Fill the screens' own work, approval and detail queries; remove the prepared queries and the useWorks manifest subscription; keep metadata lookups referentially stable.
+- [x] Coalesce query persistence and keep the offline read model by query group; normalize garden segments in work keys and on restore.
+- [x] Move offline status to the Settings row with one-line title and two status lines; keep only offline and refresh-failure lines in gardens; render 50 works with "Show older work"; en/es/pt copy.
+- [ ] Measure on an installed Android phone before and after: time to first work photo, long tasks, gateway requests by initiator, cache entry counts, banner text during a run.
+- [ ] Confirm the photo cache contract on the installed app: prepared photos open offline, the legacy cache retires after a complete run, Data Saver holds photos.

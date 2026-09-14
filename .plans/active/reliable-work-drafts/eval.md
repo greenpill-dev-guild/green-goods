@@ -41,3 +41,16 @@ correct Work attestation and evidence retained until confirmation. Record build,
 worker version, connectivity events and banner geometry. Run installed iOS storage/migration/safe-area
 compatibility. Do not force worker activation during active work; stage the rollout first. Aggregate
 telemetry excludes payloads and identifiers. Production readiness stays blocked until observed.
+
+## Required proof for the revised preparation (2026-09-14)
+
+Automated: scheduler yield, reprioritization, Data Saver hold and resume, pause without loss, offline
+pause and reconnect, per-interval persistence, cross-account reuse and legacy retirement; service
+worker answer-before-store, shared image and download copies, legacy read-through, range and CORS
+fallbacks, sweep and stats; image gateway fallback and reconnect retry; persister coalescing and
+read-model retention; garden list lines, older-work paging and the Settings row states.
+
+Device: on an installed Android phone, record before and after the change the time to first work
+photo in a warm garden, long tasks over 50 ms in the first minute, gateway requests split by initiator,
+Cache Storage entry counts for `ipfs-cache`, `image-cache` and `gg-prepared-media-v1`, and the
+banner text during a run on working Wi-Fi.
