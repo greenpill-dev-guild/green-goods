@@ -1,5 +1,17 @@
 const GREEN_GOODS_SYNC_TAG = "green-goods-sync";
-const STALE_RUNTIME_CACHES = ["js-cache", "indexer-cache", "graphql-cache"];
+const STALE_RUNTIME_CACHES = ["js-cache", "indexer-cache", "graphql-cache", "gg-image-cache-meta"];
+const OFFLINE_CONTENT_VERSION = 2;
+const IPFS_MEDIA_CACHE = "ipfs-cache";
+const LEGACY_PREPARED_MEDIA_CACHE = "gg-prepared-media-v1";
+const IPFS_GATEWAY_HOSTS = new Set([
+  "greengoods.mypinata.cloud",
+  "gateway.pinata.cloud",
+  "ipfs.io",
+]);
+const MEDIA_STORED_AT_HEADER = "x-gg-stored-at";
+const MEDIA_KEPT_HEADERS = ["content-type", "cache-control", "etag", "last-modified"];
+const MEDIA_BUDGET_BYTES = 150 * 1024 * 1024;
+const MEDIA_STORES_PER_SWEEP = 25;
 const PWA_SHELL_CACHE_PREFIX = "gg-pwa-shell-";
 const PWA_SHELL_META_CACHE = "gg-pwa-shell-meta";
 const PWA_SHELL_META_URL = "/__gg_pwa_shell_current__";
@@ -444,39 +456,127 @@ self.addEventListener("fetch", (event) => {
   event.stopImmediatePropagation?.();
 });
 
-// Managed display photos are verified by the app's byte-budget coordinator.
-// A cache miss uses the ordinary runtime image cache; no original is inferred
-// from a differently sized display URL and no cache is cleared on activation.
-self.addEventListener("fetch", (event) => {
-  const request = event.request;
-  const url = new URL(request.url);
-  if (request.method !== "GET" || request.destination !== "image" ||
-      !(url.protocol === "https:" || url.origin === self.location.origin)) return;
-  event.respondWith((async () => {
-    const prepared = await caches.open("gg-prepared-media-v1");
-    const saved = await prepared.match(request);
-    if (saved) return saved;
-    const runtime = await caches.open("image-cache");
-    const metadata = await caches.open("gg-image-cache-meta");
-    const previous = await runtime.match(request);
-    const savedTime = await metadata.match(request);
-    const cachedAt = savedTime ? Number(await savedTime.text()) : Date.parse(previous?.headers.get("date") ?? "");
-    if (previous && Number.isFinite(cachedAt) && Date.now() - cachedAt <= 30 * 24 * 60 * 60 * 1000) return previous;
-    if (previous) { await runtime.delete(request); await metadata.delete(request); }
-    const response = await fetch(request);
-    if (response.ok || response.type === "opaque") {
-      try {
-        await runtime.put(request, response.clone());
-        await metadata.put(request, new Response(String(Date.now())));
-        const keys = await runtime.keys();
-        for (const key of keys.slice(0, Math.max(0, keys.length - 100))) {
-          await runtime.delete(key);
-          await metadata.delete(key);
-        }
-      } catch { /* Opportunistic images never establish prepared coverage. */ }
+function isIpfsMediaRequest(request) {
+  if (request.method !== "GET" || request.headers?.get?.("range")) return false;
+  try {
+    const url = new URL(request.url);
+    return (
+      url.protocol === "https:" &&
+      IPFS_GATEWAY_HOSTS.has(url.hostname) &&
+      url.pathname.startsWith("/ipfs/")
+    );
+  } catch {
+    return false;
+  }
+}
+
+// Stored copies carry their own size and age, and no Vary header, so an <img>
+// request and the app's download of the same URL always find each other.
+async function storedMediaCopy(response) {
+  const body = await response.blob();
+  const headers = new Headers();
+  for (const name of MEDIA_KEPT_HEADERS) {
+    const value = response.headers.get(name);
+    if (value) headers.set(name, value);
+  }
+  headers.set("content-length", String(body.size));
+  headers.set(MEDIA_STORED_AT_HEADER, String(Date.now()));
+  return () => new Response(body, { status: 200, headers });
+}
+
+let mediaStoresSinceSweep = 0;
+let keptMedia = [];
+
+async function scanMediaCache(cache) {
+  const entries = [];
+  let bytes = 0;
+  for (const request of await cache.keys()) {
+    const response = await cache.match(request);
+    const size = Number(response?.headers.get("content-length")) || 0;
+    const storedAt = Number(response?.headers.get(MEDIA_STORED_AT_HEADER)) || 0;
+    entries.push({ request, url: request.url, bytes: size, storedAt });
+    bytes += size;
+  }
+  return { entries, bytes };
+}
+
+// Oldest unprotected copies go first. Copies without a recorded size came from
+// an older worker, so they are removed before any photo the app sized itself.
+async function sweepMediaCache({ budgetBytes = MEDIA_BUDGET_BYTES, keep = keptMedia } = {}) {
+  keptMedia = keep;
+  const cache = await caches.open(IPFS_MEDIA_CACHE);
+  const { entries, bytes } = await scanMediaCache(cache);
+  const protectedUrls = new Set(keep);
+  let total = bytes;
+  let count = entries.length;
+  const evictable = entries
+    .filter((entry) => !protectedUrls.has(entry.url))
+    .sort((a, b) => a.storedAt - b.storedAt);
+  for (const entry of evictable) {
+    if (total <= budgetBytes) break;
+    if (await cache.delete(entry.request)) {
+      total -= entry.bytes;
+      count -= 1;
     }
-    return response;
-  })());
+  }
+  return { bytes: total, count };
+}
+
+async function storeMedia(url, response) {
+  const cache = await caches.open(IPFS_MEDIA_CACHE);
+  const copy = await storedMediaCopy(response);
+  try {
+    await cache.put(url, copy());
+  } catch (error) {
+    if (error?.name !== "QuotaExceededError") throw error;
+    await sweepMediaCache({ budgetBytes: Math.floor(MEDIA_BUDGET_BYTES / 2) });
+    await cache.put(url, copy());
+  }
+  mediaStoresSinceSweep += 1;
+  if (mediaStoresSinceSweep >= MEDIA_STORES_PER_SWEEP) {
+    mediaStoresSinceSweep = 0;
+    await sweepMediaCache();
+  }
+}
+
+// Answer first, store afterwards: the page never waits on a cache write.
+async function respondWithMedia(event) {
+  const request = event.request;
+  const url = request.url;
+  const cache = await caches.open(IPFS_MEDIA_CACHE);
+  const cached = await cache.match(url, { ignoreVary: true });
+  if (cached) return cached;
+  if (await caches.has(LEGACY_PREPARED_MEDIA_CACHE)) {
+    const legacy = await (await caches.open(LEGACY_PREPARED_MEDIA_CACHE)).match(url, {
+      ignoreVary: true,
+    });
+    if (legacy) {
+      event.waitUntil(storeMedia(url, legacy.clone()).catch(() => {}));
+      return legacy;
+    }
+  }
+  let response;
+  try {
+    response = await fetch(url, {
+      mode: "cors",
+      credentials: "omit",
+      headers: { accept: request.headers?.get?.("accept") || "*/*" },
+      signal: request.signal,
+    });
+  } catch (error) {
+    if (request.signal?.aborted) throw error;
+    // A gateway without CORS still displays; it just is not kept for offline.
+    return fetch(request);
+  }
+  if (response.status === 200) {
+    event.waitUntil(storeMedia(url, response.clone()).catch(() => {}));
+  }
+  return response;
+}
+
+self.addEventListener("fetch", (event) => {
+  if (!isIpfsMediaRequest(event.request)) return;
+  event.respondWith(respondWithMedia(event));
   event.stopImmediatePropagation?.();
 });
 
@@ -489,7 +589,25 @@ self.addEventListener("activate", (event) => {
 self.addEventListener("message", (event) => {
   const type = event.data?.type;
   if (type === "OFFLINE_CONTENT_CAPABILITIES") {
-    event.ports?.[0]?.postMessage({offlineContentVersion: 1});
+    event.ports?.[0]?.postMessage({ offlineContentVersion: OFFLINE_CONTENT_VERSION });
+    return;
+  }
+
+  if (type === "MEDIA_STATS" || type === "MEDIA_SWEEP") {
+    const port = event.ports?.[0];
+    const sweep =
+      type === "MEDIA_SWEEP"
+        ? sweepMediaCache({
+            budgetBytes: Number(event.data?.budgetBytes) || MEDIA_BUDGET_BYTES,
+            keep: Array.isArray(event.data?.keep) ? event.data.keep.map(String) : keptMedia,
+          })
+        : sweepMediaCache({ budgetBytes: Number.POSITIVE_INFINITY });
+    event.waitUntil(
+      sweep.then(
+        (stats) => port?.postMessage(stats),
+        () => port?.postMessage({ bytes: 0, count: 0, failed: true })
+      )
+    );
     return;
   }
 

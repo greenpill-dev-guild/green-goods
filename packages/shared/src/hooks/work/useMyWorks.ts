@@ -112,67 +112,67 @@ export function useMyWorks(options: UseMyWorksOptions = {}) {
     }
   );
   const queuedPreviews = useQueuedWorkPreviews(includeOffline ? (local.data ?? []) : []);
-  // Prepared garden rows live in the same query store. Reading this projection
-  // does not require having opened the personal dashboard before going offline.
+  // Own work opens offline from any garden list already downloaded, whether a
+  // garden screen or background preparation fetched it; the personal dashboard
+  // does not need to have been opened first.
   const cache = queryClient.getQueryCache();
-  const preparedVersion = useSyncExternalStore(
+  const gardenReads = useSyncExternalStore(
     (notify) =>
       cache.subscribe((event) => {
-        if (["preparedRecent", "preparedApprovals"].includes(String(event.query.queryKey[2])))
+        const source = String(event.query.queryKey[2]);
+        if (event.query.queryKey[1] === "works" && (source === "online" || source === "approvals"))
           notify();
       }),
     () =>
       cache
         .findAll({ queryKey: worksKeys.all })
-        .filter((query) =>
-          ["preparedRecent", "preparedApprovals"].includes(String(query.queryKey[2]))
-        )
+        .filter((query) => ["online", "approvals"].includes(String(query.queryKey[2])))
         .map((query) => `${query.queryHash}:${query.state.dataUpdateCount}`)
         .join("|"),
     () => ""
   );
-  const prepared = useMemo(() => {
-    if (!preparedVersion) return { rows: [] as Work[], updatedAt: undefined };
-    const queries =
-      includeOffline && activeAddress
-        ? cache
-            .findAll({ queryKey: worksKeys.preparedRecentAll })
-            .filter((query) => query.queryKey[4] === chainId)
-        : [];
-    const rows = queries.flatMap((query) => {
-      const approvals = queryClient.getQueryData<EASWorkApproval[]>(
-        worksKeys.preparedApprovals(String(query.queryKey[3]), chainId)
-      );
-      const known = new Map(approvals?.map((approval) => [approval.workUID, approval]));
-      return ((query.state.data as Work[] | undefined) ?? [])
-        .filter((work) => work.gardenerAddress.toLowerCase() === activeAddress?.toLowerCase())
-        .map((work) => ({
-          ...work,
-          status: known.has(work.id)
-            ? known.get(work.id)!.approved
-              ? ("approved" as const)
-              : ("rejected" as const)
-            : (work.status ?? ("pending" as const)),
-        }));
-    });
+  const downloaded = useMemo(() => {
+    if (!gardenReads || !includeOffline || !activeAddress || online.data !== undefined) {
+      return { rows: [] as Work[], updatedAt: undefined };
+    }
+    const approvals = queryClient.getQueryData<EASWorkApproval[]>(
+      worksKeys.approvals(undefined, chainId)
+    );
+    const known = new Map(approvals?.map((approval) => [approval.workUID, approval]));
+    const queries = cache
+      .findAll({ queryKey: ["greengoods", "works", "online"] })
+      .filter((query) => query.queryKey[4] === chainId && query.state.data !== undefined);
+    const rows = queries.flatMap((query) =>
+      ((query.state.data as Work[] | undefined) ?? [])
+        .filter((work) => work.gardenerAddress.toLowerCase() === activeAddress.toLowerCase())
+        .map((work) => {
+          const approval = known.get(work.id);
+          return {
+            ...work,
+            status: approval
+              ? approval.approved
+                ? ("approved" as const)
+                : ("rejected" as const)
+              : ("pending" as const),
+          };
+        })
+    );
     const updated = queries.map((query) => query.state.dataUpdatedAt).filter(Boolean);
     return { rows, updatedAt: updated.length ? Math.min(...updated) : undefined };
-  }, [cache, preparedVersion, includeOffline, activeAddress, chainId, queryClient]);
-  const preparedWorks = prepared.rows;
-  const metadataQueries = useQueries({
-    queries: (online.data ?? preparedWorks).map((work) => ({
+  }, [cache, gardenReads, includeOffline, activeAddress, chainId, queryClient, online.data]);
+  const remoteRows = online.data ?? downloaded.rows;
+  const metadataByWork = useQueries({
+    queries: remoteRows.map((work) => ({
       queryKey: worksKeys.metadata(work.metadata.trim()),
       enabled: false,
     })),
+    combine: (results) => results.map((result) => result.data),
   });
   const works = useMemo(() => {
     const metadataByKey = new Map(
-      (online.data ?? preparedWorks).map((work, index) => [
-        work.metadata.trim(),
-        metadataQueries[index]?.data,
-      ])
+      remoteRows.map((work, index) => [work.metadata.trim(), metadataByWork[index]])
     );
-    const remote = deduplicateById((online.data ?? preparedWorks) as Work[])
+    const remote = deduplicateById(remoteRows as Work[])
       .filter(
         (work) =>
           !["syncing", "sync_failed", "offline", "uploading"].includes(work.status) &&
@@ -198,14 +198,13 @@ export function useMyWorks(options: UseMyWorksOptions = {}) {
     if (timeFilter) rows = filterByTimeRange(rows, timeFilter);
     return sortByCreatedAt(rows).slice(0, limit);
   }, [
-    online.data,
-    preparedWorks,
+    remoteRows,
     queuedPreviews,
     local.data,
     includeOffline,
     timeFilter,
     limit,
-    metadataQueries,
+    metadataByWork,
     sendingJobs,
     isOnline,
   ]);
@@ -226,7 +225,7 @@ export function useMyWorks(options: UseMyWorksOptions = {}) {
         : hasRows
           ? "partial"
           : "unavailable",
-    lastSuccessfulRefresh: online.dataUpdatedAt || prepared.updatedAt,
+    lastSuccessfulRefresh: online.dataUpdatedAt || downloaded.updatedAt,
     refreshWarning: online.isError && hasRows,
     refetch: async () => {
       if (includeOffline) await local.refetch();

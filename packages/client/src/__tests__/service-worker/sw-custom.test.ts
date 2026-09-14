@@ -64,6 +64,7 @@ async function loadServiceWorker(locationHref = "https://www.greengoods.app/sw.j
   const caches = {
     keys: vi.fn().mockResolvedValue([]),
     delete: vi.fn().mockResolvedValue(true),
+    has: vi.fn(async (name: string) => cacheStores.has(name)),
     match: vi.fn(async (request: RequestInfo | URL) => {
       for (const store of cacheStores.values()) {
         const response = store.get(keyFor(request));
@@ -357,6 +358,8 @@ describe("client public service worker migration", () => {
       "js-cache",
       "image-cache",
       "graphql-cache",
+      "gg-image-cache-meta",
+      "ipfs-cache",
       "workbox-precache",
       "gg-pwa-shell-old",
       "gg-pwa-shell-current",
@@ -375,7 +378,9 @@ describe("client public service worker migration", () => {
     expect(clients.matchAll).not.toHaveBeenCalled();
     expect(caches.delete).toHaveBeenCalledWith("js-cache");
     expect(caches.delete).toHaveBeenCalledWith("graphql-cache");
+    expect(caches.delete).toHaveBeenCalledWith("gg-image-cache-meta");
     expect(caches.delete).not.toHaveBeenCalledWith("image-cache");
+    expect(caches.delete).not.toHaveBeenCalledWith("ipfs-cache");
     expect(caches.delete).not.toHaveBeenCalledWith("workbox-precache");
     expect(caches.delete).toHaveBeenCalledWith("gg-pwa-shell-old");
     expect(caches.delete).not.toHaveBeenCalledWith("gg-pwa-shell-current");
@@ -533,54 +538,206 @@ describe("client public service worker migration", () => {
     expect(cacheFor("gg-share-inbox-v1").put).not.toHaveBeenCalled();
   });
 });
+const photoUrl =
+  "https://greengoods.mypinata.cloud/ipfs/bafkreiphoto?img-width=800&img-format=auto";
 
-describe("verified offline media routes", () => {
-  it.each([
-    "https://avatars.example/account",
-    "https://avatars.example/photo.png?size=96",
-    "https://bafyreicid.ipfs.dweb.link/",
-  ])("serves managed display bytes offline for %s", async (url) => {
-    const { cacheFor, listeners, fetchMock } = await loadServiceWorker();
-    await cacheFor("gg-prepared-media-v1").put(
-      url,
-      new Response("saved-photo", { headers: { "content-type": "image/jpeg" } })
-    );
-    fetchMock.mockRejectedValue(new TypeError("offline"));
-    const request = new Request(url);
-    Object.defineProperty(request, "destination", { value: "image" });
-    let result: Promise<Response> | undefined;
-    const event = {
-      request,
-      respondWith: (response: Promise<Response>) => {
-        result = response;
-      },
-      stopImmediatePropagation: vi.fn(),
-    };
-    listeners.fetch.forEach((listener) => listener(event));
-    expect(await (await result)?.text()).toBe("saved-photo");
-    expect(fetchMock).not.toHaveBeenCalled();
-  });
-  it("never substitutes a display variant for the original", async () => {
-    const { cacheFor, listeners, fetchMock } = await loadServiceWorker();
-    await cacheFor("gg-prepared-media-v1").put(
-      "https://media.example/photo?width=800",
-      new Response("display")
-    );
-    const request = new Request("https://media.example/photo");
-    Object.defineProperty(request, "destination", { value: "image" });
-    let result: Promise<Response> | undefined;
-    listeners.fetch.forEach((listener) =>
+function mediaEvent(request: Request) {
+  let response: Promise<Response> | undefined;
+  const stored: Promise<unknown>[] = [];
+  const event = {
+    request,
+    respondWith: vi.fn((value: Promise<Response>) => {
+      response = value;
+    }),
+    waitUntil: vi.fn((value: Promise<unknown>) => {
+      stored.push(value);
+    }),
+    stopImmediatePropagation: vi.fn(),
+  };
+  return {
+    event,
+    response: () => response,
+    settled: () => Promise.all(stored),
+  };
+}
+
+function imageRequest(url: string, headers?: HeadersInit) {
+  const request = new Request(url, { headers });
+  Object.defineProperty(request, "destination", { value: "image" });
+  return request;
+}
+
+function ask(listeners: Record<string, Listener[]>, data: Record<string, unknown>) {
+  return new Promise<Record<string, unknown>>((resolve) => {
+    const pending: Promise<unknown>[] = [];
+    listeners.message.forEach((listener) =>
       listener({
-        request,
-        respondWith: (response: Promise<Response>) => {
-          result = response;
-        },
-        stopImmediatePropagation: vi.fn(),
+        data,
+        ports: [{ postMessage: resolve }],
+        waitUntil: (promise: Promise<unknown>) => pending.push(promise),
       })
     );
-    expect(await (await result)?.text()).toBe("network");
-    expect(fetchMock).toHaveBeenCalledWith(request);
   });
+}
+
+describe("IPFS media cache", () => {
+  it("answers a photo from the media cache without touching the network", async () => {
+    const { cacheFor, fetchMock, listeners } = await loadServiceWorker();
+    await cacheFor("ipfs-cache").put(photoUrl, new Response("saved-photo"));
+    const { event, response } = mediaEvent(imageRequest(photoUrl));
+
+    listeners.fetch.forEach((listener) => listener(event));
+
+    expect(await (await response())?.text()).toBe("saved-photo");
+    expect(event.stopImmediatePropagation).toHaveBeenCalled();
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("hands the photo to the page before the stored copy is written", async () => {
+    const { cacheFor, fetchMock, listeners } = await loadServiceWorker();
+    fetchMock.mockResolvedValueOnce(
+      new Response("photo", { headers: { "content-type": "image/webp", vary: "Accept" } })
+    );
+    const media = cacheFor("ipfs-cache");
+    let releaseWrite!: () => void;
+    const writeStarted = new Promise<void>((started) => {
+      media.put.mockImplementationOnce(
+        () =>
+          new Promise<void>((finish) => {
+            started();
+            releaseWrite = finish;
+          })
+      );
+    });
+    const { event, response, settled } = mediaEvent(
+      imageRequest(photoUrl, { accept: "image/avif,image/webp" })
+    );
+
+    listeners.fetch.forEach((listener) => listener(event));
+
+    expect(await (await response())?.text()).toBe("photo");
+    await writeStarted;
+    releaseWrite();
+    await settled();
+    expect(fetchMock).toHaveBeenCalledWith(
+      photoUrl,
+      expect.objectContaining({ mode: "cors", credentials: "omit" })
+    );
+    expect(fetchMock.mock.calls[0][1].headers).toEqual({ accept: "image/avif,image/webp" });
+    const [, copy] = media.put.mock.calls[0];
+    expect(copy.headers.get("content-length")).toBe("5");
+    expect(copy.headers.get("content-type")).toBe("image/webp");
+    expect(copy.headers.get("vary")).toBeNull();
+    expect(Number(copy.headers.get("x-gg-stored-at"))).toBeGreaterThan(0);
+  });
+
+  it("serves the app's own download of a photo to a later image request", async () => {
+    const { cacheStores, fetchMock, listeners } = await loadServiceWorker();
+    fetchMock.mockResolvedValueOnce(new Response("prepared"));
+    const download = mediaEvent(new Request(photoUrl));
+    listeners.fetch.forEach((listener) => listener(download.event));
+    await (await download.response())?.text();
+    await download.settled();
+
+    fetchMock.mockClear();
+    const display = mediaEvent(imageRequest(photoUrl));
+    listeners.fetch.forEach((listener) => listener(display.event));
+
+    expect(await (await display.response())?.text()).toBe("prepared");
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(cacheStores.get("ipfs-cache")?.has(photoUrl)).toBe(true);
+  });
+
+  it("reads through photos the previous worker prepared and keeps them in the media cache", async () => {
+    const { cacheFor, cacheStores, fetchMock, listeners } = await loadServiceWorker();
+    await cacheFor("gg-prepared-media-v1").put(
+      photoUrl,
+      new Response("legacy-photo", { headers: { "content-type": "image/jpeg" } })
+    );
+    fetchMock.mockRejectedValue(new TypeError("offline"));
+    const { event, response, settled } = mediaEvent(imageRequest(photoUrl));
+
+    listeners.fetch.forEach((listener) => listener(event));
+
+    expect(await (await response())?.text()).toBe("legacy-photo");
+    await settled();
+    expect(await cacheStores.get("ipfs-cache")?.get(photoUrl)?.clone().text()).toBe("legacy-photo");
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("leaves ranged audio and video requests and other hosts to the network", async () => {
+    const { listeners } = await loadServiceWorker();
+    const ranged = mediaEvent(new Request(photoUrl, { headers: { range: "bytes=0-" } }));
+    const avatar = mediaEvent(imageRequest("https://avatars.example/photo.png"));
+
+    listeners.fetch[4](ranged.event);
+    listeners.fetch[4](avatar.event);
+
+    expect(ranged.event.respondWith).not.toHaveBeenCalled();
+    expect(avatar.event.respondWith).not.toHaveBeenCalled();
+  });
+
+  it("still shows a photo from a gateway without CORS, but does not keep it", async () => {
+    const { cacheFor, fetchMock, listeners } = await loadServiceWorker();
+    fetchMock
+      .mockRejectedValueOnce(new TypeError("CORS"))
+      .mockResolvedValueOnce(new Response("opaque-display"));
+    const request = imageRequest(photoUrl);
+    const { event, response, settled } = mediaEvent(request);
+
+    listeners.fetch.forEach((listener) => listener(event));
+
+    expect(await (await response())?.text()).toBe("opaque-display");
+    await settled();
+    expect(fetchMock).toHaveBeenLastCalledWith(request);
+    expect(cacheFor("ipfs-cache").put).not.toHaveBeenCalled();
+  });
+
+  it("removes the oldest unprotected copies when the app asks for a sweep", async () => {
+    const { cacheFor, listeners } = await loadServiceWorker();
+    const media = cacheFor("ipfs-cache");
+    const copy = (bytes: number, storedAt: number) =>
+      new Response("x".repeat(bytes), {
+        headers: { "content-length": String(bytes), "x-gg-stored-at": String(storedAt) },
+      });
+    await media.put("https://ipfs.io/ipfs/oldest", copy(40, 1));
+    await media.put("https://ipfs.io/ipfs/kept", copy(40, 2));
+    await media.put("https://ipfs.io/ipfs/newest", copy(40, 3));
+
+    const stats = await ask(listeners, {
+      type: "MEDIA_SWEEP",
+      budgetBytes: 80,
+      keep: ["https://ipfs.io/ipfs/kept"],
+    });
+
+    expect(stats).toEqual({ bytes: 80, count: 2 });
+    expect(media.delete).toHaveBeenCalledTimes(1);
+    expect((media.delete.mock.calls[0][0] as Request).url).toBe("https://ipfs.io/ipfs/oldest");
+  });
+
+  it("reports stored bytes without removing anything", async () => {
+    const { cacheFor, listeners } = await loadServiceWorker();
+    const media = cacheFor("ipfs-cache");
+    await media.put(
+      "https://ipfs.io/ipfs/one",
+      new Response("12345", { headers: { "content-length": "5" } })
+    );
+
+    await expect(ask(listeners, { type: "MEDIA_STATS" })).resolves.toEqual({
+      bytes: 5,
+      count: 1,
+    });
+    expect(media.delete).not.toHaveBeenCalled();
+  });
+
+  it("advertises the media cache contract to the installed app", async () => {
+    const { listeners } = await loadServiceWorker();
+
+    await expect(ask(listeners, { type: "OFFLINE_CONTENT_CAPABILITIES" })).resolves.toEqual({
+      offlineContentVersion: 2,
+    });
+  });
+
   it("bypasses even an existing cached reachability probe", async () => {
     const { cacheFor, listeners, fetchMock } = await loadServiceWorker();
     const url = "https://www.greengoods.app/connectivity-check.txt";
@@ -597,39 +754,5 @@ describe("verified offline media routes", () => {
     );
     expect(await (await result)?.text()).toBe("network");
     expect(fetchMock.mock.calls[0][0].cache).toBe("no-store");
-  });
-});
-
-describe("offline worker compatibility and ordinary image retention", () => {
-  it("advertises prepared media support to the installed app", async () => {
-    const { listeners } = await loadServiceWorker();
-    const postMessage = vi.fn();
-    listeners.message.forEach((listener) =>
-      listener({ data: { type: "OFFLINE_CONTENT_CAPABILITIES" }, ports: [{ postMessage }] })
-    );
-    expect(postMessage).toHaveBeenCalledWith({ offlineContentVersion: 1 });
-  });
-  it("expires ordinary images after 30 days while managed photos keep their retention policy", async () => {
-    const { cacheFor, listeners, fetchMock } = await loadServiceWorker();
-    const url = "https://media.example/ordinary.png";
-    await cacheFor("image-cache").put(url, new Response("expired"));
-    await cacheFor("gg-image-cache-meta").put(
-      url,
-      new Response(String(Date.now() - 31 * 86400000))
-    );
-    const request = new Request(url);
-    Object.defineProperty(request, "destination", { value: "image" });
-    let result: Promise<Response> | undefined;
-    listeners.fetch.forEach((listener) =>
-      listener({
-        request,
-        respondWith: (value: Promise<Response>) => {
-          result = value;
-        },
-        stopImmediatePropagation: vi.fn(),
-      })
-    );
-    expect(await (await result)?.text()).toBe("network");
-    expect(fetchMock).toHaveBeenCalledWith(request);
   });
 });

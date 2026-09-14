@@ -27,17 +27,25 @@ const mockServiceWorkerUpdateState = {
 
 const mockToast = vi.hoisted(() => ({ info: vi.fn(), error: vi.fn(), success: vi.fn() }));
 
-const mockPreparation = vi.hoisted(() => ({
-  bytes: 1024 * 1024,
-  budget: 150 * 1024 * 1024,
-  busy: false,
-  partial: true,
-  retry: vi.fn(),
+const mockOffline = vi.hoisted(() => ({
+  status: {
+    progress: {
+      state: "ready",
+      runBytes: 0,
+      runRatio: 0,
+      savedBytes: 42_000_000,
+      missingPhotos: 0,
+      storageFull: false,
+    } as Record<string, unknown>,
+    online: true,
+    pause: vi.fn(),
+    resume: vi.fn(),
+    refresh: vi.fn(),
+  },
 }));
 vi.mock("@green-goods/shared/hooks/offline/useOfflineContent", () => ({
-  useOfflinePreparationStatus: () => mockPreparation,
+  useOfflineStatus: () => mockOffline.status,
 }));
-vi.mock("@green-goods/shared/hooks/app/useOnlineStatus", () => ({ useOnlineStatus: () => true }));
 
 // Mock @green-goods/shared
 vi.mock("@green-goods/shared/components/Toast/toast.service", () => ({
@@ -66,6 +74,7 @@ vi.mock("@green-goods/shared/hooks/app/useTheme", () => ({
 
 // Mock @remixicon/react
 vi.mock("@remixicon/react", () => ({
+  RiDownloadCloud2Line: (props: any) => createElement("span", props),
   RiEarthFill: (props: any) => createElement("span", props),
   RiLoader4Line: (props: any) => createElement("span", props),
   RiRefreshLine: (props: any) => createElement("span", props),
@@ -331,16 +340,89 @@ describe("AppSettings", () => {
   });
 });
 
-describe("offline preparation status", () => {
-  it("shows partial coverage and retries preparation", async () => {
-    render(
-      <IntlProvider locale="en">
-        <AppSettings />
-      </IntlProvider>
-    );
-    expect(screen.getByText(/Partially available offline/)).toBeInTheDocument();
-    expect(screen.getByText(/1.0 of 150 MiB/)).toBeInTheDocument();
+describe("offline content row", () => {
+  const renderRow = (progress: Record<string, unknown>, online = true) => {
+    mockOffline.status.progress = {
+      runBytes: 0,
+      runRatio: 0,
+      savedBytes: 0,
+      missingPhotos: 0,
+      storageFull: false,
+      ...progress,
+    };
+    mockOffline.status.online = online;
+    render(wrap(createElement(AppSettings)));
+    const status = screen.getByRole("status", { name: "Offline" });
+    return { status, lines: [...status.querySelectorAll("span")].map((line) => line.textContent) };
+  };
+
+  afterEach(() => {
+    cleanup();
+    vi.clearAllMocks();
+  });
+
+  it("keeps the title on one line and the status on exactly two truncated lines", () => {
+    const { status } = renderRow({ state: "ready", savedBytes: 42_000_000 });
+
+    expect(screen.getByText("Offline")).toHaveClass("truncate");
+    expect(status).toHaveClass("min-h-8");
+    const lines = status.querySelectorAll("span");
+    expect(lines).toHaveLength(2);
+    for (const line of lines) expect(line).toHaveClass("block", "truncate");
+  });
+
+  it("shows megabytes and progress while downloading, with Pause instead of Retry", async () => {
+    const { lines } = renderRow({ state: "downloading", runBytes: 12_400_000, runRatio: 0.38 });
+
+    expect(lines).toEqual(["Downloading", "12 MB · 38%"]);
+    expect(screen.queryByRole("button", { name: "Retry" })).toBeNull();
+    await userEvent.click(screen.getByRole("button", { name: "Pause" }));
+    expect(mockOffline.status.pause).toHaveBeenCalledTimes(1);
+  });
+
+  it("offers Resume where the download stopped", async () => {
+    const { lines } = renderRow({
+      state: "paused",
+      pauseReason: "user",
+      runBytes: 4_300_000,
+      runRatio: 0.2,
+    });
+
+    expect(lines).toEqual(["Paused", "4.3 MB · 20%"]);
+    await userEvent.click(screen.getByRole("button", { name: "Resume" }));
+    expect(mockOffline.status.resume).toHaveBeenCalledTimes(1);
+  });
+
+  it("disables Resume while there is no connection", () => {
+    const { lines } = renderRow({ state: "downloading", runRatio: 0.5 }, false);
+
+    expect(lines).toEqual(["Paused", "No connection"]);
+    expect(screen.getByRole("button", { name: "Resume" })).toBeDisabled();
+  });
+
+  it("explains photos held for Data Saver", () => {
+    const { lines } = renderRow({ state: "paused", pauseReason: "dataSaver" });
+
+    expect(lines).toEqual(["Photos paused", "Data Saver on"]);
+    expect(screen.getByRole("button", { name: "Resume" })).toBeEnabled();
+  });
+
+  it("reports saved megabytes when ready and refreshes on request", async () => {
+    const { lines } = renderRow({ state: "ready", savedBytes: 42_000_000 });
+
+    expect(lines).toEqual(["Ready", "42 MB saved"]);
+    await userEvent.click(screen.getByRole("button", { name: "Refresh" }));
+    expect(mockOffline.status.refresh).toHaveBeenCalledTimes(1);
+  });
+
+  it("says Retry only after photos failed or storage filled up", async () => {
+    const missing = renderRow({ state: "incomplete", missingPhotos: 12 });
+    expect(missing.lines).toEqual(["Incomplete", "12 photos missing"]);
     await userEvent.click(screen.getByRole("button", { name: "Retry" }));
-    expect(mockPreparation.retry).toHaveBeenCalled();
+    expect(mockOffline.status.refresh).toHaveBeenCalledTimes(1);
+    cleanup();
+
+    const full = renderRow({ state: "ready", storageFull: true });
+    expect(full.lines).toEqual(["Incomplete", "Storage full"]);
   });
 });

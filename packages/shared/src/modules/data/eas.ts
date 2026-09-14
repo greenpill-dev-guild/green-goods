@@ -14,7 +14,6 @@ import { createEasClient, type GraphQLReader } from "./graphql-client";
 
 import { EASFetchError, validatedAttestations } from "./eas-read-validation";
 export { EASFetchError } from "./eas-read-validation";
-export { getRecentWorks, getPreparedWorkApprovals } from "./eas-preparation";
 
 /**
  * Read every registered assessment version unless a caller explicitly narrows the schema.

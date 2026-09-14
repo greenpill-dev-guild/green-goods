@@ -15,7 +15,6 @@ const seams = vi.hoisted(() => ({
 vi.mock("../../../modules/data/eas", () => ({
   getWorks: seams.works,
   getWorksByGardener: seams.mine,
-  getRecentWorks: seams.works,
   getWorkApprovals: seams.approvals,
 }));
 vi.mock("../../../modules/job-queue/default-instance", () => ({
@@ -184,9 +183,11 @@ it("refreshes remote approvals when existing mutation consumers invalidate the m
   await client.invalidateQueries({ queryKey: worksKeys.merged(garden, 11155111) });
   await waitFor(() => expect(result.current.works[0].status).toBe("approved"));
 });
-it("uses prepared records and approval status after the ordinary browsing snapshot is missing", async () => {
-  client.setQueryData(worksKeys.preparedRecent(garden, 11155111), [cachedWork]);
-  client.setQueryData(worksKeys.preparedApprovals(garden, 11155111), [
+it("opens a garden offline from the same restored read background preparation fills", async () => {
+  client.setQueryData(worksKeys.online(garden.toUpperCase().replace("0X", "0x"), 11155111), [
+    cachedWork,
+  ]);
+  client.setQueryData(worksKeys.approvals(undefined, 11155111), [
     { workUID: cachedWork.id, approved: true },
   ]);
   const { result } = mount();
@@ -195,15 +196,15 @@ it("uses prepared records and approval status after the ordinary browsing snapsh
   expect(seams.works).not.toHaveBeenCalled();
 });
 
-it("opens personal work offline from prepared gardens scoped to the account and chain", async () => {
+it("opens personal work offline from downloaded garden lists scoped to the account and chain", async () => {
   const own = { ...cachedWork, gardenerAddress: queuedJob.userAddress, status: undefined };
   client.setQueryData(
-    worksKeys.preparedRecent(garden, 11155111),
+    worksKeys.online(garden, 11155111),
     [own, { ...cachedWork, id: "other-owner" }],
     { updatedAt: 1000 }
   );
-  client.setQueryData(worksKeys.preparedRecent(garden, 42161), [{ ...own, id: "other-chain" }]);
-  client.setQueryData(worksKeys.preparedApprovals(garden, 11155111), [
+  client.setQueryData(worksKeys.online(garden, 42161), [{ ...own, id: "other-chain" }]);
+  client.setQueryData(worksKeys.approvals(undefined, 11155111), [
     { workUID: own.id, approved: true },
   ]);
   client.setQueryData(worksKeys.mine(queuedJob.userAddress, 11155111, true, undefined, 50), [

@@ -35,7 +35,6 @@ vi.mock("../../../config/default-chain", () => ({
 
 vi.mock("../../../modules/data/eas", () => ({
   getWorks: (...args: unknown[]) => mockGetWorks(...args),
-  getRecentWorks: (...args: unknown[]) => mockGetWorks(args[0], args[2]),
   getWorkApprovals: (...args: unknown[]) => mockGetWorkApprovals(...args),
 }));
 
@@ -89,18 +88,6 @@ vi.mock("../../../config/query-keys/work", () => ({
       gardenId,
       chainId,
       account,
-    ],
-    preparedRecent: (gardenId: string, chainId: number) => [
-      "works",
-      "preparedRecent",
-      gardenId,
-      chainId,
-    ],
-    preparedApprovals: (gardenId: string, chainId: number) => [
-      "works",
-      "preparedApprovals",
-      gardenId,
-      chainId,
     ],
     metadata: (raw: string) => ["works", "metadata", raw],
     approvals: (_address?: string, chainId?: number) => ["works", "approvals", chainId],

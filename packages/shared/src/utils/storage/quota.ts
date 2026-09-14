@@ -16,6 +16,7 @@ import { logger } from "../../modules/app/logger";
 import { track } from "../../modules/app/posthog";
 import {
   createQueryPersister,
+  isOfflineReadModelQuery,
   PERSIST_MAX_AGE,
   type PersistedClient,
 } from "../../config/query-persistence";
@@ -62,6 +63,7 @@ const QUOTA_CLEANUP_TARGET = 65;
 const REFETCHABLE_CACHE_GROUPS = [
   ["indexer-cache", "graphql-cache"],
   ["image-cache", "gg-image-cache-meta"],
+  ["gg-prepared-media-v1"],
   ["ipfs-cache"],
 ] as const;
 
@@ -128,13 +130,13 @@ async function clearExpiredPersistedQueryStorage(): Promise<boolean> {
     const persister = createQueryPersister({ dbName: "gg-react-query", storeName: "rq" });
     const persisted = await persister.restoreClient();
     if (!persisted || !isPersistedQueryClientExpired(persisted)) return false;
-    const prepared = persisted.clientState.queries.filter(
-      (query) => query.meta?.offlinePrepared === true
+    const readModel = persisted.clientState.queries.filter((query) =>
+      isOfflineReadModelQuery(query.queryKey)
     );
-    if (prepared.length) {
+    if (readModel.length) {
       await persister.persistClientVerified?.({
         ...persisted,
-        clientState: { ...persisted.clientState, queries: prepared, mutations: [] },
+        clientState: { ...persisted.clientState, queries: readModel, mutations: [] },
       });
     } else await persister.removeClient();
     return true;
@@ -155,23 +157,15 @@ export async function cleanupRefetchableStorage(
   };
   if (!force && before.percentUsed < QUOTA_CLEANUP_THRESHOLD) return result;
 
-  // Managed downloads evict individual browsing owners. Work drafts, job media,
-  // completion identities and the active profile live outside this cleanup.
+  // The photo cache gives back space first, oldest copies first. Work drafts, job
+  // media and completion identities live outside this cleanup.
   try {
-    const [{ evictPreparedContent, getOfflineContentSnapshot, readingBytes }, { queryClient }] =
-      await Promise.all([
-        import("../../modules/offline-content/store"),
-        import("../../config/react-query"),
-      ]);
+    const { readMediaStats, sweepMedia } = await import("../../modules/offline-content/media");
     const reclaim = Math.max(0, before.used - (before.quota * QUOTA_CLEANUP_TARGET) / 100);
-    if (reclaim > 0)
-      await evictPreparedContent(
-        queryClient,
-        0,
-        Math.max(0, readingBytes(getOfflineContentSnapshot()) - reclaim)
-      );
+    const stats = reclaim > 0 ? await readMediaStats() : undefined;
+    if (stats) await sweepMedia([], Math.max(0, stats.bytes - reclaim));
   } catch {
-    /* Unavailable reading storage must not block saving work. */
+    /* Unavailable photo storage must not block saving work. */
   }
   result.clearedPersistedQueries = await clearExpiredPersistedQueryStorage();
   let cleanupTargetReached = false;

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useSyncExternalStore } from "react";
+import { useEffect, useMemo } from "react";
 import { useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
 import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
 import { ZERO_ADDRESS } from "../../utils/blockchain/address-constants";
@@ -22,11 +22,6 @@ import { extractClientWorkId } from "../../utils/work/deduplication";
 import { usePrimaryAddress } from "../auth/usePrimaryAddress";
 import { queueKeys } from "../../config/query-keys/misc";
 import { worksKeys } from "../../config/query-keys/work";
-import {
-  getOfflineContentSnapshot,
-  subscribeOfflineContent,
-} from "../../modules/offline-content/store";
-import { gardenPreparationKey } from "../../modules/offline-content/types";
 export { usePendingWorksCount } from "./usePendingWorksCount";
 
 type ApprovalsByWork = Map<string, EASWorkApproval>;
@@ -141,14 +136,6 @@ export function useWorks(gardenId: string, options: UseWorksOptions = {}) {
   const primaryAddress = usePrimaryAddress();
   const isOnline = useOnlineStatus();
   const sendingJobs = useSendingWorkIds(primaryAddress, chainId);
-  const downloads = useSyncExternalStore(
-    subscribeOfflineContent,
-    getOfflineContentSnapshot,
-    getOfflineContentSnapshot
-  );
-  const coverage = primaryAddress
-    ? downloads.gardens[gardenPreparationKey(gardenId, chainId, primaryAddress)]
-    : undefined;
   const projectionKey = offline
     ? worksKeys.local(gardenId, chainId, primaryAddress ?? undefined)
     : worksKeys.merged(gardenId, chainId);
@@ -175,15 +162,9 @@ export function useWorks(gardenId: string, options: UseWorksOptions = {}) {
     staleTime: STALE_TIMES.works,
     gcTime: GC_TIMES.works,
   });
-  const prepared = useQuery<WorkCard[]>({
-    queryKey: worksKeys.preparedRecent(gardenId, chainId),
-    enabled: false,
-  });
-  const preparedApprovals = useQuery<EASWorkApproval[]>({
-    queryKey: worksKeys.preparedApprovals(gardenId, chainId),
-    enabled: false,
-  });
-  const remoteData = online.data ?? (offline ? prepared.data : undefined);
+  // Offline, the restored screen read is the downloaded copy: background
+  // preparation fills this same query, so there is no second source to consult.
+  const remoteData = online.data;
   const queued = useQuery({
     queryKey: worksKeys.offline(gardenId, chainId, primaryAddress ?? undefined),
     queryFn: async () => {
@@ -210,18 +191,19 @@ export function useWorks(gardenId: string, options: UseWorksOptions = {}) {
   const projection = useQuery<OverlayWork[]>({ queryKey: projectionKey, enabled: false });
   const queuedJobs = offline ? (queued.data ?? NO_QUEUED_JOBS) : NO_QUEUED_JOBS;
   const queuedPreviews = useQueuedWorkPreviews(queuedJobs);
-  const metadataQueries = useQueries({
+  // `combine` keeps one array identity until a metadata read actually changes;
+  // without it every render rebuilt the list and re-rendered each work card.
+  const metadataByWork = useQueries({
     queries: (remoteData ?? []).map((work) => ({
       queryKey: worksKeys.metadata(work.metadata.trim()),
       enabled: false,
     })),
+    combine: (results) =>
+      results.map((result) => result.data as { clientWorkId?: string } | undefined),
   });
   const works = useMemo(() => {
     const metadataByKey = new Map(
-      (remoteData ?? []).map((work, index) => [
-        work.metadata.trim(),
-        metadataQueries[index]?.data as { clientWorkId?: string } | undefined,
-      ])
+      (remoteData ?? []).map((work, index) => [work.metadata.trim(), metadataByWork[index]])
     );
     const cachedWorks = (projection.data ?? overlay.data ?? []).filter(
       (work) =>
@@ -239,12 +221,9 @@ export function useWorks(gardenId: string, options: UseWorksOptions = {}) {
     const indexed = offline
       ? (remoteData ?? cachedWorks)
       : reconcileIndexedWorkCollection(online.data ?? [], cachedWorks);
-    const globalApprovalsKnown = approvals.data !== undefined && !approvals.isError;
-    const preparedIds = new Set(
-      offline && preparedApprovals.data !== undefined ? prepared.data?.map((work) => work.id) : []
-    );
+    const approvalsKnown = approvals.data !== undefined && !approvals.isError;
     const knownApprovals = new Map(
-      [...(offline ? (preparedApprovals.data ?? []) : []), ...(approvals.data ?? [])]
+      [...(approvals.data ?? [])]
         .sort((a, b) => (a.createdAt ?? 0) - (b.createdAt ?? 0))
         .map((approval) => [approval.workUID, approval])
     );
@@ -252,7 +231,7 @@ export function useWorks(gardenId: string, options: UseWorksOptions = {}) {
     const rows: Work[] = indexed.map((work) =>
       withResolvedStatus(
         work,
-        globalApprovalsKnown || preparedIds.has(work.id) ? knownApprovals : null,
+        approvalsKnown ? knownApprovals : null,
         cachedMap.get(work.id) ?? (work as OverlayWork),
         now
       )
@@ -291,8 +270,6 @@ export function useWorks(gardenId: string, options: UseWorksOptions = {}) {
   }, [
     online.data,
     remoteData,
-    prepared.data,
-    preparedApprovals.data,
     approvals.data,
     approvals.isError,
     projection.data,
@@ -301,7 +278,7 @@ export function useWorks(gardenId: string, options: UseWorksOptions = {}) {
     queuedPreviews,
     offline,
     queryClient,
-    metadataQueries,
+    metadataByWork,
     sendingJobs,
     isOnline,
   ]);
@@ -351,18 +328,14 @@ export function useWorks(gardenId: string, options: UseWorksOptions = {}) {
   const availability: WorkAvailability = hasRemote
     ? works.length === 0
       ? "empty"
-      : offline && coverage?.state === "partial"
-        ? "partial"
-        : "available"
+      : "available"
     : works.length > 0
       ? "partial"
       : "unavailable";
   return {
     works,
     availability,
-    lastSuccessfulRefresh:
-      online.dataUpdatedAt || (offline ? prepared.dataUpdatedAt : 0) || undefined,
-    truncated: online.data !== undefined ? false : coverage?.truncated,
+    lastSuccessfulRefresh: online.dataUpdatedAt || undefined,
     fetchStatus: online.fetchStatus,
     isPaused: !isOnline || online.isPaused,
     isLoading: isOnline && online.isPending && works.length === 0,

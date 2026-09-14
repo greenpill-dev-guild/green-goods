@@ -1,5 +1,10 @@
 import type { Address } from "../../types/domain";
 
+/** Some callers hold a garden from a ref that can still be empty at runtime. */
+function gardenSegment(gardenId: string): string {
+  return typeof gardenId === "string" ? gardenId.toLowerCase() : gardenId;
+}
+
 export const worksKeys = {
   all: ["greengoods", "works"] as const,
   mine: (
@@ -20,22 +25,33 @@ export const worksKeys = {
       limit,
     ] as const,
   mineByUser: (userAddress: string) => ["greengoods", "works", "mine", userAddress] as const,
+  // Garden addresses arrive checksummed from the gardens list and lowercase from
+  // indexed work rows; one spelling keeps a garden on one cached read.
   online: (gardenId: string, chainId: number) =>
-    ["greengoods", "works", "online", gardenId, chainId] as const,
+    ["greengoods", "works", "online", gardenSegment(gardenId), chainId] as const,
   offline: (gardenId: string, chainId?: number, account?: string) =>
     chainId === undefined && account === undefined
-      ? (["greengoods", "works", "offline", gardenId] as const)
-      : (["greengoods", "works", "offline", gardenId, chainId, account?.toLowerCase()] as const),
-  preparedRecentAll: ["greengoods", "works", "preparedRecent"] as const,
-  preparedRecent: (gardenId: string, chainId: number) =>
-    ["greengoods", "works", "preparedRecent", gardenId, chainId] as const,
-  preparedApprovals: (gardenId: string, chainId: number) =>
-    ["greengoods", "works", "preparedApprovals", gardenId, chainId] as const,
+      ? (["greengoods", "works", "offline", gardenSegment(gardenId)] as const)
+      : ([
+          "greengoods",
+          "works",
+          "offline",
+          gardenSegment(gardenId),
+          chainId,
+          account?.toLowerCase(),
+        ] as const),
   local: (gardenId: string, chainId: number, account?: string) =>
-    ["greengoods", "works", "local", gardenId, chainId, account?.toLowerCase()] as const,
+    [
+      "greengoods",
+      "works",
+      "local",
+      gardenSegment(gardenId),
+      chainId,
+      account?.toLowerCase(),
+    ] as const,
   metadata: (raw: string) => ["greengoods", "works", "metadata", raw] as const,
   merged: (gardenId: string, chainId: number) =>
-    ["greengoods", "works", "merged", gardenId, chainId] as const,
+    ["greengoods", "works", "merged", gardenSegment(gardenId), chainId] as const,
   approvals: (userAddress?: string, chainId?: number) =>
     ["greengoods", "works", "approvals", userAddress, chainId] as const,
 } as const;

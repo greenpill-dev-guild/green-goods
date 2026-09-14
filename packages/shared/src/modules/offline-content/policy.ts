@@ -1,52 +1,46 @@
 import type { Garden } from "../../types/domain";
 
-export const OFFLINE_READING_BUDGET = 150 * 1024 * 1024;
-export const OFFLINE_MEDIA_CACHE = "gg-prepared-media-v1";
-export const OFFLINE_REFRESH_MS = 5 * 60_000;
-export type GardenVisit = { address: string; chainId: number; visitedAt: number };
-export type PreparationTarget = GardenVisit & { limit: number; priority: number };
+/** The photo cache removes its oldest unprotected copies above this size. */
+export const OFFLINE_MEDIA_BUDGET_BYTES = 150 * 1024 * 1024;
+/** Background refreshes skip lists and approvals fetched more recently than this. */
+export const OFFLINE_REFRESH_MS = 15 * 60_000;
 
-/** Stable priorities also own eviction order; no work history of the catalogue is read. */
-export function selectPreparationTargets(
+export interface OfflinePlan {
+  /** Gardens whose work lists and details are kept offline, in download order. */
+  lists: string[];
+  /** The garden whose photos are downloaded too, besides the account's own work. */
+  photoGarden?: string;
+}
+
+/**
+ * Tiered preparation: work lists, approvals and details for every garden the
+ * account belongs to, plus photos for the garden in view and the account's own
+ * work. Garden identifiers keep the gardens list's spelling, which is what the
+ * screens use in their query keys. Content is public, so nothing here is keyed
+ * by account; the account only decides what comes first.
+ */
+export function planOfflineContent(
   gardens: Garden[],
   account: string,
   chainId: number,
-  visits: GardenVisit[],
-  active?: string
-): PreparationTarget[] {
-  const joined = gardens.filter(
-    (garden) =>
-      garden.chainId === chainId &&
+  activeGarden?: string
+): OfflinePlan {
+  const member = account.toLowerCase();
+  const onChain = gardens.filter((garden) => garden.chainId === chainId);
+  const joined = onChain
+    .filter((garden) =>
       [...garden.gardeners, ...garden.stewards, ...garden.owners].some(
-        (address) => address.toLowerCase() === account.toLowerCase()
+        (address) => address.toLowerCase() === member
       )
-  );
-  const byRecent = (a: GardenVisit, b: GardenVisit) =>
-    b.visitedAt - a.visitedAt || a.address.localeCompare(b.address);
-  const visitById = new Map(
-    visits.filter((v) => v.chainId === chainId).map((v) => [v.address.toLowerCase(), v])
-  );
-  const joinedIds = new Set(joined.map((g) => g.id.toLowerCase()));
-  const targets = joined.map((garden) => ({
-    address: garden.id,
-    chainId,
-    visitedAt: visitById.get(garden.id.toLowerCase())?.visitedAt ?? 0,
-    limit: 50,
-    priority: 1,
-  }));
-  targets.push(
-    ...[...visitById.values()]
-      .filter((v) => !joinedIds.has(v.address.toLowerCase()))
-      .sort(byRecent)
-      .slice(0, 5)
-      .map((v) => ({ ...v, limit: 20, priority: 2 }))
-  );
-  return targets
-    .map((target) => ({
-      ...target,
-      priority: target.address.toLowerCase() === active?.toLowerCase() ? 0 : target.priority,
-    }))
-    .sort((a, b) => a.priority - b.priority || byRecent(a, b));
+    )
+    .map((garden) => garden.id);
+  const active = activeGarden
+    ? (onChain.find((garden) => garden.id.toLowerCase() === activeGarden.toLowerCase())?.id ??
+      activeGarden)
+    : undefined;
+  if (!active) return { lists: joined };
+  const others = joined.filter((id) => id.toLowerCase() !== active.toLowerCase());
+  return { lists: [active, ...others], photoGarden: active };
 }
 
 /** Match the same display variant the image component actually requests. */
@@ -64,15 +58,4 @@ export function displayImageUrl(url: string): string {
   } catch {
     return url;
   }
-}
-
-export function serializeReadingData(value: unknown): string {
-  return JSON.stringify(value, (_key, entry) =>
-    typeof entry === "bigint" ? entry.toString() : entry
-  );
-}
-export async function hashReadingData(value: unknown): Promise<string> {
-  const bytes = new TextEncoder().encode(serializeReadingData(value));
-  const hash = await crypto.subtle.digest("SHA-256", bytes);
-  return [...new Uint8Array(hash)].map((byte) => byte.toString(16).padStart(2, "0")).join("");
 }

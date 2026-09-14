@@ -3,6 +3,7 @@ import {
   createQueryPersister,
   createShouldDehydrateQuery,
   isDurableWorkRead,
+  isOfflineReadModelQuery,
   restoreDurableWorkQuery,
   QUERY_CACHE_SCHEMA_VERSION,
 } from "@green-goods/shared/config/query-persistence";
@@ -20,7 +21,7 @@ const persister = createQueryPersister({
   dbName: "gg-react-query",
   storeName: "rq",
   migrateLegacyBuster: true,
-  preservePreparedContent: true,
+  preserveQuery: (query) => isOfflineReadModelQuery(query.queryKey),
   onPersistenceError: reportOfflineStorageFailure,
   shouldRestoreQuery: (query) => isDurableWorkRead(query.queryKey),
   transformRestoredQuery: restoreDurableWorkQuery,

@@ -1,336 +1,367 @@
 /** @vitest-environment jsdom */
-import "fake-indexeddb/auto";
-import { beforeEach, describe, expect, it, vi } from "vitest";
 import { QueryClient } from "@tanstack/react-query";
-import type { Garden } from "../../types/domain";
-import {
-  selectPreparationTargets,
-  displayImageUrl,
-  OFFLINE_READING_BUDGET,
-} from "../../modules/offline-content/policy";
-import { OfflineDownloadCoordinator } from "../../modules/offline-content/coordinator";
-import {
-  evictPreparedContent,
-  getOfflineContentSnapshot,
-  readingBytes,
-  updateDownloadManifest,
-  verifyPreparedContent,
-} from "../../modules/offline-content/store";
-import { emptyDownloadManifest } from "../../modules/offline-content/types";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { worksKeys } from "../../config/query-keys/work";
+import { planOfflineContent } from "../../modules/offline-content/policy";
+import {
+  OfflineScheduler,
+  type OfflineSchedulerPorts,
+} from "../../modules/offline-content/scheduler";
+import {
+  getOfflineProgress,
+  resetOfflineProgress,
+  subscribeOfflineProgress,
+  updateOfflineProgress,
+} from "../../modules/offline-content/store";
+import type { Garden } from "../../types/domain";
+import type { EASWork } from "../../types/eas-responses";
 
-const account = "0x123";
 const chainId = 11155111;
-function garden(id: string): Garden {
-  return { id, chainId, gardeners: [account], owners: [], stewards: [] } as unknown as Garden;
-}
-function response(bytes = 12) {
-  return new Response(new Uint8Array(bytes), { headers: { "content-type": "image/jpeg" } });
-}
-let cache: Map<string, Response>;
-beforeEach(async () => {
-  cache = new Map();
-  vi.stubGlobal("caches", {
-    open: async () => ({
-      match: async (url: string) => cache.get(url)?.clone(),
-      put: async (url: string, value: Response) => {
-        cache.set(url, value.clone());
-      },
-      delete: async (url: string) => cache.delete(url),
-    }),
-  });
-  await updateDownloadManifest(() => emptyDownloadManifest());
-});
+const account = "0x1111111111111111111111111111111111111111";
+const neighbour = "0x9999999999999999999999999999999999999999";
+const gardenA = "0xAAAA00000000000000000000000000000000aAaA";
+const gardenB = "0xBBBB00000000000000000000000000000000bBbB";
+const visited = "0xCCCC00000000000000000000000000000000cCcC";
 
-describe("offline preparation policy", () => {
-  it("orders active then joined gardens, limiting outside visits to five", () => {
-    const visits = Array.from({ length: 8 }, (_, i) => ({
-      address: `other-${i}`,
-      chainId,
-      visitedAt: i,
-    }));
-    const selected = selectPreparationTargets(
-      [garden("joined")],
-      account,
-      chainId,
-      visits,
-      "other-7"
-    );
-    expect(selected.map((item) => item.address)).toEqual([
-      "other-7",
-      "joined",
-      "other-6",
-      "other-5",
-      "other-4",
-      "other-3",
-    ]);
-    expect(selected.map((item) => item.limit)).toEqual([20, 50, 20, 20, 20, 20]);
-    expect(OFFLINE_READING_BUDGET).toBe(150 * 1024 * 1024);
-  });
-  it("preserves URL variants and makes display optimization idempotent", () => {
-    const optimized = displayImageUrl("https://greengoods.mypinata.cloud/ipfs/cid?token=abc");
-    expect(displayImageUrl(optimized)).toBe(optimized);
-    expect(optimized).toContain("token=abc");
-    expect(displayImageUrl("https://avatar.example/user?size=96")).toContain("size=96");
-  });
-});
+function garden(id: string, members: string[], chain = chainId): Garden {
+  return {
+    id,
+    chainId: chain,
+    gardeners: members,
+    stewards: [],
+    owners: [],
+    bannerImage: cid(`banner-${id.slice(2, 6)}`),
+  } as unknown as Garden;
+}
 
-function coordinator(client: QueryClient, overrides = {}) {
-  return new OfflineDownloadCoordinator({
+function work(
+  id: string,
+  gardenId: string,
+  gardener: string,
+  extra: Partial<EASWork> = {}
+): EASWork {
+  return {
+    id,
+    gardenAddress: gardenId,
+    gardenerAddress: gardener,
+    actionUID: 1,
+    title: id,
+    feedback: "",
+    metadata: "{}",
+    media: [cid(id)],
+    createdAt: 1,
+    ...extra,
+  } as EASWork;
+}
+
+/** A CID-shaped reference, so the real IPFS resolver maps it onto the gateway. */
+const cid = (name: string) => `bafy${name.toLowerCase().replace(/[^a-z0-9]/g, "")}`.padEnd(32, "0");
+const photo = (name: string) =>
+  `https://greengoods.mypinata.cloud/ipfs/${cid(name)}?img-width=800&img-format=auto`;
+
+function harness(options: { gardens?: Garden[]; account?: string } = {}) {
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  const conditions = { online: true, visible: true, dataSaver: false, mediaReady: true };
+  const events: string[] = [];
+  const saved = new Set<string>();
+  const works: Record<string, EASWork[]> = {
+    [gardenA.toLowerCase()]: [
+      work("a-neighbour", gardenA, neighbour),
+      work("a-own", gardenA, account, { metadata: "bafy-a-own", media: [] }),
+    ],
+    [gardenB.toLowerCase()]: [
+      work("b-neighbour", gardenB, neighbour, { metadata: "bafy-b-neighbour", media: [] }),
+      work("b-own", gardenB, account),
+    ],
+  };
+  const ports: OfflineSchedulerPorts = {
     client,
-    persistQueries: vi.fn(async () => {}),
-    canRun: () => true,
-    getWorks: vi.fn(async () => [{ id: "work", metadata: "", media: [] }] as never),
-    getDetails: vi.fn(async () => ({ reads: [], photos: ["https://media.example/photo"] })),
-    getApprovals: vi.fn(async () => ({ key: worksKeys.approvals(undefined, chainId), data: [] })),
-    workKey: worksKeys.preparedRecent,
-    fetchMedia: vi.fn(async () => response()),
-    ...overrides,
-  });
+    chainId,
+    account: () => options.account ?? account,
+    gardens: () =>
+      options.gardens ?? [
+        garden(gardenA, [account]),
+        garden(gardenB, [account]),
+        garden(visited, [neighbour]),
+      ],
+    avatarUrl: () => undefined,
+    online: () => conditions.online,
+    visible: () => conditions.visible,
+    dataSaver: () => conditions.dataSaver,
+    cellular: () => false,
+    mediaReady: () => conditions.mediaReady,
+    fetchWorks: vi.fn(async (gardenId: string) => {
+      events.push(`list:${gardenId.toLowerCase()}`);
+      return works[gardenId.toLowerCase()] ?? [];
+    }),
+    fetchApprovals: vi.fn(async () => {
+      events.push("approvals");
+      return [];
+    }),
+    readMetadata: vi.fn(async (raw: string) => {
+      events.push(`details:${raw}`);
+      return { attachments: [{ cid: cid(raw), type: "image/jpeg" }] } as never;
+    }),
+    media: {
+      isCached: vi.fn(async (url: string) => saved.has(url)),
+      download: vi.fn(async (url: string) => {
+        events.push(`photo:${url}`);
+        saved.add(url);
+        return 1_000;
+      }),
+      sweep: vi.fn(async () => ({ bytes: 42_000_000 })),
+      retireLegacy: vi.fn(async () => {}),
+    },
+    persist: vi.fn(async () => {}),
+    sleep: vi.fn(async () => {}),
+    idle: vi.fn(async () => {}),
+    now: () => 1_000,
+  };
+  return { client, conditions, events, ports, saved, works };
 }
-const targets = [{ address: "garden", chainId, limit: 50, visitedAt: 1, priority: 0 }];
 
-describe("verified download coverage", () => {
-  it("does not declare readiness when a query write fails", async () => {
-    const client = new QueryClient();
-    const run = coordinator(client, {
-      persistQueries: vi.fn(async () => {
-        throw new Error("quota");
-      }),
-    });
-    await run.prepare(account, targets);
-    expect(Object.values(getOfflineContentSnapshot().gardens)[0].state).toBe("partial");
-    expect(Object.values(getOfflineContentSnapshot().queries)).toEqual([]);
-    client.clear();
-  });
-  it("verifies local bytes after restoration and downgrades an evicted image", async () => {
-    const client = new QueryClient();
-    await coordinator(client).prepare(account, targets);
-    expect(Object.values(getOfflineContentSnapshot().gardens)[0].state).toBe("ready");
-    cache.clear();
-    await verifyPreparedContent(client);
-    expect(Object.values(getOfflineContentSnapshot().gardens)[0].state).toBe("partial");
-    client.clear();
-  });
-  it("evicts lower-priority browsing photos while protecting profile bytes", async () => {
-    const client = new QueryClient();
-    const run = coordinator(client);
-    await run.prepare(account, targets);
-    await run.prepareEssentials(
-      "profile",
-      [{ key: worksKeys.approvals(undefined, chainId), data: [] }],
-      ["https://profile.example/avatar"]
-    );
-    const bytes = readingBytes(getOfflineContentSnapshot());
-    await evictPreparedContent(client, 0, bytes - 1);
-    expect(cache.has("https://profile.example/avatar")).toBe(true);
-    expect(cache.has("https://media.example/photo")).toBe(false);
-    expect(Object.values(getOfflineContentSnapshot().gardens)[0].state).toBe("unavailable");
-    client.clear();
-  });
-  it("leaves higher-priority prepared work intact when a lower-priority download cannot fit", async () => {
-    const client = new QueryClient();
-    await coordinator(client).prepare(account, targets);
-    const [activeKey, active] = Object.entries(getOfflineContentSnapshot().gardens)[0];
-    const visitorKey = "visitor";
-    await updateDownloadManifest((manifest) => ({
-      ...manifest,
-      gardens: {
-        ...manifest.gardens,
-        [visitorKey]: {
-          ...active,
-          address: "visitor",
-          priority: 2,
-          workIds: [],
-          queries: [],
-          assets: [],
-        },
-      },
-    }));
-    const budget = readingBytes(getOfflineContentSnapshot());
-    expect(await evictPreparedContent(client, 100, budget, visitorKey)).toBe(false);
-    expect(getOfflineContentSnapshot().gardens[activeKey].state).toBe("ready");
-    expect(cache.has("https://media.example/photo")).toBe(true);
-    client.clear();
-  });
-  it("reclaims superseded unowned profile queries without any garden downloads", async () => {
-    const client = new QueryClient();
-    const run = coordinator(client);
-    const oldKey = ["greengoods", "ens", "name", "old"];
-    const newKey = ["greengoods", "ens", "name", "current"];
-    const photo = ["https://profile.example/avatar"];
-    await run.prepareEssentials("old", [{ key: oldKey, data: "x".repeat(2048) }], photo);
-    await run.prepareEssentials("current", [{ key: newKey, data: "current" }], photo);
-    const budget = readingBytes(getOfflineContentSnapshot()) - 1;
-    expect(await evictPreparedContent(client, 0, budget)).toBe(true);
-    expect(client.getQueryData(oldKey)).toBeUndefined();
-    expect(client.getQueryData(newKey)).toBe("current");
-    expect(getOfflineContentSnapshot().essentialReady).toBe(true);
-    client.clear();
-  });
-  it("bounds automatic history reads to 500 records", async () => {
-    const client = new QueryClient();
-    const getWorks = vi.fn(async (address: string, limit: number) =>
-      Array.from({ length: limit }, (_, i) => ({ id: `${address}-${i}`, metadata: "", media: [] }))
-    );
-    const run = coordinator(client, {
-      getWorks,
-      getDetails: async () => ({ reads: [], photos: [] }),
-    });
-    await run.prepare(
-      account,
-      Array.from({ length: 12 }, (_, i) => ({ ...targets[0], address: `garden-${i}` }))
-    );
-    expect(getWorks.mock.calls.reduce((sum, call) => sum + call[1], 0)).toBe(500);
-    expect(
-      Object.values(getOfflineContentSnapshot().gardens).filter(
-        (entry) => entry.state === "partial"
-      )
-    ).toHaveLength(2);
-    client.clear();
-  });
-  it("downgrades a persisted record snapshot that no longer matches verified content", async () => {
-    const client = new QueryClient();
-    await coordinator(client).prepare(account, targets);
-    client.setQueryData(worksKeys.preparedRecent("garden", chainId), [
-      { id: "different-snapshot" },
-    ]);
-    await verifyPreparedContent(client);
-    expect(Object.values(getOfflineContentSnapshot().gardens)[0].state).toBe("partial");
-    expect(
-      client.getQueryCache().find({ queryKey: worksKeys.preparedRecent("garden", chainId) })?.meta
-        ?.offlinePrepared
-    ).not.toBe(true);
-    client.clear();
-  });
-  it("refreshes active priorities even when already-prepared content is reused", async () => {
-    const client = new QueryClient();
-    const run = coordinator(client);
-    const two = [
-      { ...targets[0], address: "a" },
-      { ...targets[0], address: "b", priority: 1 },
+beforeEach(() => resetOfflineProgress());
+afterEach(() => {
+  vi.useRealTimers();
+  resetOfflineProgress();
+});
+
+describe("offline plan", () => {
+  it("keeps every joined garden's lists, with the garden in view first in the list's spelling", () => {
+    const gardens = [
+      garden(gardenA, [account]),
+      garden(gardenB, [account.toUpperCase().replace("0X", "0x")]),
+      garden(visited, [neighbour]),
+      garden("0xDDDD00000000000000000000000000000000dDdD", [account], 42161),
     ];
-    await run.prepare(account, two);
-    await run.prepare(account, [
-      { ...two[1], priority: 0, visitedAt: 3 },
-      { ...two[0], priority: 1, visitedAt: 2 },
-    ]);
-    const entries = Object.values(getOfflineContentSnapshot().gardens);
-    expect(entries.find((item) => item.address === "a")?.priority).toBe(1);
-    expect(entries.find((item) => item.address === "b")?.priority).toBe(0);
-    client.clear();
-  });
-  it("limits concurrent downloads to two and resumes an interrupted preparation", async () => {
-    const client = new QueryClient();
-    let downloading = 0;
-    let max = 0;
-    let enabled = true;
-    const run = coordinator(client, {
-      canRun: () => enabled,
-      getWorks: async () => [1, 2, 3].map((id) => ({ id: String(id), media: [], metadata: "" })),
-      getDetails: async (work: { id: string }) => ({
-        reads: [],
-        photos: [`https://media.example/${work.id}`],
-      }),
-      fetchMedia: async () => {
-        downloading++;
-        max = Math.max(max, downloading);
-        await new Promise((resolve) => setTimeout(resolve, 5));
-        downloading--;
-        return response();
-      },
+
+    expect(planOfflineContent(gardens, account, chainId)).toEqual({ lists: [gardenA, gardenB] });
+    expect(planOfflineContent(gardens, account, chainId, gardenB.toLowerCase())).toEqual({
+      lists: [gardenB, gardenA],
+      photoGarden: gardenB,
     });
-    await run.prepare(account, targets);
-    expect(max).toBe(2);
-    enabled = false;
-    run.pause();
-    enabled = true;
-    await run.prepareEssentials(
-      "profile",
-      [{ key: worksKeys.approvals(undefined, chainId), data: [] }],
-      ["https://avatar.example/avatar"]
-    );
-    expect(getOfflineContentSnapshot().essentialReady).toBe(true);
-    client.clear();
-  });
-  it("serializes two competing cache writes at the 150 MiB boundary", async () => {
-    const client = new QueryClient();
-    await updateDownloadManifest((manifest) => ({
-      ...manifest,
-      assets: {
-        "https://profile.example/protected": {
-          url: "https://profile.example/protected",
-          bytes: OFFLINE_READING_BUDGET - 5000,
-          protected: true,
-          accessedAt: 1,
-          owners: ["essential:profile"],
-          intent: "display",
-        },
-      },
-    }));
-    const run = coordinator(client, {
-      getWorks: async () => [1, 2].map((id) => ({ id: String(id), media: [], metadata: "" })),
-      getDetails: async (work: { id: string }) => ({
-        reads: [],
-        photos: [`https://media.example/${work.id}`],
-      }),
-      fetchMedia: async () => response(3000),
+    expect(planOfflineContent(gardens, account, chainId, visited.toLowerCase())).toEqual({
+      lists: [visited, gardenA, gardenB],
+      photoGarden: visited,
     });
-    await run.prepare(account, targets);
-    expect(readingBytes(getOfflineContentSnapshot())).toBeLessThanOrEqual(OFFLINE_READING_BUDGET);
-    expect(
-      [...cache.keys()].filter((url) => url.startsWith("https://media.example/"))
-    ).toHaveLength(1);
-    expect(Object.values(getOfflineContentSnapshot().gardens)[0].state).toBe("partial");
-    client.clear();
-  });
-  it("releases superseded photos only after replacement coverage commits", async () => {
-    const client = new QueryClient();
-    let version = 1;
-    const run = coordinator(client, {
-      getWorks: async () => [{ id: String(version), media: [], metadata: "" }],
-      getDetails: async (work: { id: string }) => ({
-        reads: [],
-        photos: [`https://media.example/${work.id}`],
-      }),
-    });
-    await run.prepare(account, targets);
-    expect(cache.has("https://media.example/1")).toBe(true);
-    const now = Date.now();
-    const clock = vi.spyOn(Date, "now").mockReturnValue(now + 300001);
-    version = 2;
-    await run.prepare(account, targets);
-    expect(cache.has("https://media.example/1")).toBe(false);
-    expect(cache.has("https://media.example/2")).toBe(true);
-    clock.mockRestore();
-    client.clear();
-  });
-  it("removes orphaned prepared flags after an interrupted eviction", async () => {
-    const client = new QueryClient();
-    const key = worksKeys.online("orphan", chainId);
-    client.setQueryData(key, [{ id: "old" }]);
-    const query = client.getQueryCache().find({ queryKey: key })!;
-    query.setOptions({ ...query.options, meta: { offlinePrepared: true } });
-    await verifyPreparedContent(client);
-    expect(client.getQueryData(key)).toBeUndefined();
-    client.clear();
   });
 });
 
-it("keeps missing essential images and failed required profile reads partial after restart", async () => {
-  const client = new QueryClient();
-  const run = coordinator(client);
-  const reads = [{ key: ["greengoods", "profile", "current"], data: { name: "Garden keeper" } }];
-  const avatar = "https://media.example/avatar";
-  const actionPhoto = "https://media.example/action";
-  await run.prepareEssentials("account:chain", reads, [avatar], [actionPhoto]);
-  expect(getOfflineContentSnapshot().essentialReady).toBe(true);
-  cache.delete(actionPhoto);
-  await verifyPreparedContent(client);
-  expect(getOfflineContentSnapshot().essentialReady).toBe(false);
-  await verifyPreparedContent(client);
-  expect(getOfflineContentSnapshot().essentialReady).toBe(false);
-  await run.prepareEssentials("account:chain", reads, [avatar], [], false);
-  await verifyPreparedContent(client);
-  expect(getOfflineContentSnapshot().essentialReady).toBe(false);
+describe("offline scheduler", () => {
+  it("prepares lists and details everywhere, photos only for the garden in view and own work", async () => {
+    const { client, events, ports } = harness();
+    const scheduler = new OfflineScheduler(ports);
+    scheduler.setActiveGarden(gardenA.toLowerCase());
+
+    await scheduler.run();
+
+    expect(ports.fetchWorks).toHaveBeenCalledTimes(2);
+    expect(ports.readMetadata).toHaveBeenCalledWith("bafy-a-own", expect.anything());
+    expect(ports.readMetadata).toHaveBeenCalledWith("bafy-b-neighbour", expect.anything());
+    const photos = events.filter((event) => event.startsWith("photo:"));
+    expect(photos).toEqual(
+      expect.arrayContaining([
+        `photo:${photo("a-neighbour")}`,
+        `photo:${photo("bafy-a-own")}`,
+        `photo:${photo("banner-AAAA")}`,
+        `photo:${photo("b-own")}`,
+      ])
+    );
+    expect(photos).not.toContain(`photo:${photo("bafy-b-neighbour")}`);
+    expect(client.getQueryData(worksKeys.online(gardenB, chainId))).toHaveLength(2);
+    expect(client.getQueryData(worksKeys.metadata("bafy-b-neighbour"))).toBeDefined();
+    expect(getOfflineProgress()).toMatchObject({
+      state: "ready",
+      runRatio: 1,
+      runBytes: photos.length * 1_000,
+      savedBytes: 42_000_000,
+      missingPhotos: 0,
+    });
+  });
+
+  it("reuses lists a screen fetched moments ago instead of downloading them again", async () => {
+    const { client, ports, works } = harness();
+    client.setQueryData(worksKeys.online(gardenA, chainId), works[gardenA.toLowerCase()]);
+    client.setQueryData(worksKeys.approvals(undefined, chainId), []);
+
+    await new OfflineScheduler(ports).run();
+
+    expect(ports.fetchApprovals).not.toHaveBeenCalled();
+    expect(ports.fetchWorks).toHaveBeenCalledTimes(1);
+    expect(ports.fetchWorks).toHaveBeenCalledWith(gardenB);
+  });
+
+  it("waits while the screen is fetching before starting each download", async () => {
+    const { client, events, ports } = harness();
+    vi.spyOn(client, "isFetching").mockReturnValueOnce(1).mockReturnValueOnce(1).mockReturnValue(0);
+    vi.mocked(ports.sleep).mockImplementation(async () => {
+      events.push("waited");
+    });
+
+    await new OfflineScheduler(ports).run();
+
+    expect(events.slice(0, 3)).toEqual(["waited", "waited", "approvals"]);
+    expect(ports.idle).toHaveBeenCalled();
+  });
+
+  it("moves a garden opened mid-run to the front and adds its photos", async () => {
+    const { events, ports } = harness({
+      gardens: [garden(gardenB, [account]), garden(gardenA, [account])],
+    });
+    const scheduler = new OfflineScheduler(ports);
+    vi.mocked(ports.fetchWorks).mockImplementation(async (gardenId: string) => {
+      events.push(`list:${gardenId.toLowerCase()}`);
+      if (gardenId === gardenB) scheduler.setActiveGarden(gardenA);
+      return harness().works[gardenId.toLowerCase()];
+    });
+
+    await scheduler.run();
+
+    const listA = events.indexOf(`list:${gardenA.toLowerCase()}`);
+    expect(listA).toBeGreaterThan(-1);
+    expect(listA).toBeLessThan(events.indexOf("details:bafy-b-neighbour"));
+    expect(events).toContain(`photo:${photo("a-neighbour")}`);
+  });
+
+  it("keeps lists current under Data Saver, holds photos, and downloads them on Resume", async () => {
+    const { conditions, ports } = harness();
+    conditions.dataSaver = true;
+    const scheduler = new OfflineScheduler(ports);
+
+    await scheduler.run();
+
+    expect(ports.fetchWorks).toHaveBeenCalledTimes(2);
+    expect(ports.media.download).not.toHaveBeenCalled();
+    expect(getOfflineProgress()).toMatchObject({ state: "paused", pauseReason: "dataSaver" });
+
+    scheduler.resume();
+
+    await vi.waitFor(() => expect(getOfflineProgress().state).toBe("ready"));
+    expect(ports.media.download).toHaveBeenCalled();
+  });
+
+  it("pauses while offline and continues on reconnect", async () => {
+    const { conditions, ports } = harness();
+    conditions.online = false;
+    const scheduler = new OfflineScheduler(ports);
+
+    const run = scheduler.run();
+    await vi.waitFor(() =>
+      expect(getOfflineProgress()).toMatchObject({ state: "paused", pauseReason: "offline" })
+    );
+    expect(ports.fetchApprovals).not.toHaveBeenCalled();
+
+    conditions.online = true;
+    scheduler.environmentChanged();
+    await run;
+
+    expect(ports.fetchWorks).toHaveBeenCalledTimes(2);
+    expect(getOfflineProgress().state).toBe("ready");
+  });
+
+  it("retries a photo interrupted by Pause instead of counting it missing", async () => {
+    const { ports, saved } = harness({ gardens: [garden(gardenA, [account])] });
+    const scheduler = new OfflineScheduler(ports);
+    let interrupted = false;
+    vi.mocked(ports.media.download).mockImplementation(async (url, signal) => {
+      if (!interrupted) {
+        interrupted = true;
+        const aborted = new Promise<never>((_, reject) =>
+          signal.addEventListener("abort", () => reject(new DOMException("Paused", "AbortError")))
+        );
+        scheduler.pause();
+        return aborted;
+      }
+      saved.add(url);
+      return 500;
+    });
+
+    const run = scheduler.run();
+    await vi.waitFor(() =>
+      expect(getOfflineProgress()).toMatchObject({ state: "paused", pauseReason: "user" })
+    );
+    scheduler.resume();
+    await run;
+
+    expect(getOfflineProgress()).toMatchObject({ state: "ready", missingPhotos: 0 });
+  });
+
+  it("reports photos that could not be downloaded and keeps the old worker's copies", async () => {
+    const { ports } = harness({ gardens: [garden(gardenB, [account])] });
+    vi.mocked(ports.media.download).mockRejectedValueOnce(new Error("Photo download failed (500)"));
+
+    await new OfflineScheduler(ports).run();
+
+    expect(getOfflineProgress()).toMatchObject({ state: "incomplete", missingPhotos: 1 });
+    expect(ports.media.retireLegacy).not.toHaveBeenCalled();
+  });
+
+  it("writes the reading cache once per interval, not once per record", async () => {
+    const { ports } = harness();
+
+    await new OfflineScheduler(ports).run();
+
+    expect(ports.persist).toHaveBeenCalledTimes(1);
+  });
+
+  it("lets another account on the same phone reuse downloaded lists and photos", async () => {
+    const first = harness();
+    const firstScheduler = new OfflineScheduler(first.ports);
+    firstScheduler.setActiveGarden(gardenA);
+    await firstScheduler.run();
+    const downloads = vi.mocked(first.ports.media.download).mock.calls.length;
+
+    const steward = "0x2222222222222222222222222222222222222222";
+    const second = new OfflineScheduler({
+      ...first.ports,
+      account: () => steward,
+      gardens: () => [garden(gardenA, [account, steward])],
+    });
+    second.setActiveGarden(gardenA);
+    await second.run();
+
+    expect(first.ports.fetchWorks).toHaveBeenCalledTimes(2);
+    expect(vi.mocked(first.ports.media.download).mock.calls.length).toBe(downloads);
+  });
+
+  it("retires photos prepared by the previous worker once, after a complete run", async () => {
+    const { ports } = harness();
+    const scheduler = new OfflineScheduler(ports);
+
+    await scheduler.run();
+    await scheduler.run();
+
+    expect(ports.media.retireLegacy).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not download photos through a worker that cannot keep them", async () => {
+    const { conditions, ports } = harness();
+    conditions.mediaReady = false;
+
+    await new OfflineScheduler(ports).run();
+
+    expect(ports.media.download).not.toHaveBeenCalled();
+    expect(ports.media.sweep).not.toHaveBeenCalled();
+    expect(getOfflineProgress().state).toBe("ready");
+  });
+});
+
+describe("offline progress store", () => {
+  it("announces state changes at once and coalesces byte updates", () => {
+    vi.useFakeTimers();
+    const listener = vi.fn();
+    const unsubscribe = subscribeOfflineProgress(listener);
+
+    updateOfflineProgress({ state: "downloading" });
+    expect(listener).toHaveBeenCalledTimes(1);
+
+    updateOfflineProgress({ runBytes: 1_000 });
+    updateOfflineProgress({ runBytes: 2_000, runRatio: 0.5 });
+    expect(listener).toHaveBeenCalledTimes(1);
+
+    vi.advanceTimersByTime(250);
+    expect(listener).toHaveBeenCalledTimes(2);
+    expect(getOfflineProgress()).toMatchObject({ runBytes: 2_000, runRatio: 0.5 });
+    unsubscribe();
+  });
 });

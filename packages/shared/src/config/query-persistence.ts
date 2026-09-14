@@ -4,7 +4,11 @@ import { debugWarn } from "../utils/debug";
 import { PERSIST_MAX_AGE, QUERY_CACHE_SCHEMA_VERSION } from "./query-cache-policy";
 
 export { PERSIST_MAX_AGE, QUERY_CACHE_SCHEMA_VERSION } from "./query-cache-policy";
-export { isDurableWorkRead, restoreDurableWorkQuery } from "./query-persistence-work";
+export {
+  isDurableWorkRead,
+  isOfflineReadModelQuery,
+  restoreDurableWorkQuery,
+} from "./query-persistence-work";
 
 const QUERY_PERSISTENCE_KEY = "__rq_pc__";
 
@@ -14,8 +18,10 @@ export interface CreateQueryPersisterOptions {
   storage?: Storage;
   /** Client-only transition from deploy-keyed snapshots to schema version 1. */
   migrateLegacyBuster?: boolean;
-  /** Installed client only: verified prepared reads have no age expiry. */
-  preservePreparedContent?: boolean;
+  /** Installed client only: reads a restored snapshot keeps whatever its age. */
+  preserveQuery?: (query: DehydratedState["queries"][number]) => boolean;
+  /** Ordinary writes wait at least this long after the previous one. Defaults to 1 second. */
+  writeIntervalMs?: number;
   onPersistenceError?: () => void;
   shouldRestoreQuery?: (query: DehydratedState["queries"][number]) => boolean;
   transformRestoredQuery?: (
@@ -38,7 +44,7 @@ export interface PersistedClient {
 
 export interface QueryPersister {
   persistClient: (client: PersistedClient) => MaybePromise<void>;
-  /** Strict write acknowledgement for download coverage, never inferred from memory. */
+  /** Writes now, without waiting for the interval, and rejects when the write fails. */
   persistClientVerified?: (client: PersistedClient) => Promise<void>;
   restoreClient: () => MaybePromise<PersistedClient | undefined>;
   removeClient: () => MaybePromise<void>;
@@ -56,19 +62,13 @@ function createIDBPersister({
   if (typeof indexedDB === "undefined" || !indexedDB) return undefined;
   try {
     const store = createStore(dbName, storeName);
-    let writing = Promise.resolve();
-    const write = (client: PersistedClient) => {
-      const operation = writing.then(() => idbSet(QUERY_PERSISTENCE_KEY, client, store));
-      writing = operation.catch(() => {});
-      return operation;
-    };
     return {
       persistClientVerified: async (client: PersistedClient) => {
-        await write(client);
+        await idbSet(QUERY_PERSISTENCE_KEY, client, store);
       },
       persistClient: async (client: PersistedClient) => {
         try {
-          await write(client);
+          await idbSet(QUERY_PERSISTENCE_KEY, client, store);
         } catch (error) {
           debugWarn("[Persister] Failed to persist client to IndexedDB:", { error });
         }
@@ -162,6 +162,81 @@ function resolveDefaultStorage(): Storage | undefined {
   }
 }
 
+interface PendingWrite {
+  resolve: () => void;
+  reject: (error: unknown) => void;
+}
+
+/**
+ * Every query cache event hands the persister a full snapshot. Writing each one
+ * copied the whole cache into storage on the main thread many times a second, so
+ * only the newest snapshot is written: at most one write at a time, ordinary
+ * writes spaced by `intervalMs`, and a pending write flushed when the page hides.
+ */
+function createCoalescingWriter(
+  write: (client: PersistedClient) => Promise<void>,
+  intervalMs: number
+) {
+  let latest: PersistedClient | undefined;
+  let waiting: PendingWrite[] = [];
+  let urgent = false;
+  let running = false;
+  let lastWriteAt = Number.NEGATIVE_INFINITY;
+  let timer: ReturnType<typeof setTimeout> | undefined;
+
+  const onHide = () => {
+    if (typeof document !== "undefined" && document.visibilityState === "hidden") flush();
+  };
+  const watchHide = (active: boolean) => {
+    if (typeof document === "undefined") return;
+    if (active) document.addEventListener("visibilitychange", onHide);
+    else document.removeEventListener("visibilitychange", onHide);
+  };
+
+  async function drain() {
+    if (running || !latest) return;
+    const wait = urgent ? 0 : lastWriteAt + intervalMs - Date.now();
+    if (wait > 0) {
+      clearTimeout(timer);
+      timer = setTimeout(() => void drain(), wait);
+      return;
+    }
+    clearTimeout(timer);
+    running = true;
+    const client = latest;
+    const settled = waiting;
+    latest = undefined;
+    waiting = [];
+    urgent = false;
+    try {
+      await write(client);
+      settled.forEach((pending) => pending.resolve());
+    } catch (error) {
+      settled.forEach((pending) => pending.reject(error));
+    } finally {
+      lastWriteAt = Date.now();
+      running = false;
+      if (latest) void drain();
+      else watchHide(false);
+    }
+  }
+
+  function flush() {
+    if (!latest) return;
+    urgent = true;
+    void drain();
+  }
+
+  return (client: PersistedClient, immediate: boolean) =>
+    new Promise<void>((resolve, reject) => {
+      latest = client;
+      waiting.push({ resolve, reject });
+      if (immediate) urgent = true;
+      watchHide(true);
+      void drain();
+    });
+}
+
 /**
  * Build the query persister for an app. Never throws: IndexedDB is preferred,
  * web storage is the fallback, and when neither can be reached the persister
@@ -172,11 +247,16 @@ export function createQueryPersister(options: CreateQueryPersisterOptions): Quer
   try {
     const storage = "storage" in options ? options.storage : resolveDefaultStorage();
     const persister = createIDBPersister({ dbName, storeName }) ?? createStoragePersister(storage);
+    const writeLatest = createCoalescingWriter(
+      (client) => persister.persistClientVerified!(client),
+      options.writeIntervalMs ?? 1_000
+    );
     return {
       ...persister,
+      persistClientVerified: (client) => writeLatest(client, true),
       persistClient: async (client) => {
         try {
-          await persister.persistClientVerified!(client);
+          await writeLatest(client, false);
         } catch (error) {
           options.onPersistenceError?.();
           debugWarn("[Persister] Reading cache write failed", { error });
@@ -202,18 +282,12 @@ export function createQueryPersister(options: CreateQueryPersisterOptions): Quer
             },
           };
         }
-        if (
-          client &&
-          options.preservePreparedContent &&
-          Date.now() - client.timestamp > PERSIST_MAX_AGE
-        ) {
+        if (client && options.preserveQuery && Date.now() - client.timestamp > PERSIST_MAX_AGE) {
           client = {
             ...client,
             clientState: {
               ...client.clientState,
-              queries: client.clientState.queries.filter(
-                (query) => query.meta?.offlinePrepared === true
-              ),
+              queries: client.clientState.queries.filter(options.preserveQuery),
               mutations: [],
             },
           };

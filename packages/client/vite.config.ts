@@ -361,7 +361,8 @@ export default defineConfig(async ({ command, mode }): Promise<UserConfig> => {
             handler: "NetworkOnly",
           },
           {
-            // Destination covers extensionless avatars, query variants and IPFS subdomains.
+            // Avatars and app images. IPFS gateway media never reaches Workbox:
+            // sw-custom.js answers those first and owns the sized "ipfs-cache".
             urlPattern: ({ request, url, sameOrigin }) =>
               request.destination === "image" && (url.protocol === "https:" || sameOrigin),
             handler: "CacheFirst",
@@ -370,22 +371,6 @@ export default defineConfig(async ({ command, mode }): Promise<UserConfig> => {
               expiration: {
                 maxEntries: 100,
                 maxAgeSeconds: 30 * 24 * 60 * 60,
-                purgeOnQuotaError: true,
-              },
-              cacheableResponse: { statuses: [0, 200] },
-            },
-          },
-          {
-            // IPFS content is immutable (same CID = same bytes forever), so cache aggressively.
-            // Matches dedicated Pinata gateway + public IPFS gateways.
-            urlPattern:
-              /https:\/\/(greengoods\.mypinata\.cloud|gateway\.pinata\.cloud|ipfs\.io)\/ipfs\/.+/,
-            handler: "CacheFirst",
-            options: {
-              cacheName: "ipfs-cache",
-              expiration: {
-                maxEntries: 500,
-                maxAgeSeconds: 365 * 24 * 60 * 60, // 1 year — CIDs are immutable
                 purgeOnQuotaError: true,
               },
               cacheableResponse: { statuses: [0, 200] },

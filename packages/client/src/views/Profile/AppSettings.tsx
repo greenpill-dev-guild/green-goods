@@ -1,5 +1,3 @@
-import { useOfflinePreparationStatus } from "@green-goods/shared/hooks/offline/useOfflineContent";
-import { useOnlineStatus } from "@green-goods/shared/hooks/app/useOnlineStatus";
 import { Button } from "@green-goods/shared/components/Button";
 import { toastService } from "@green-goods/shared/components/Toast/toast.service";
 import { capitalize } from "@green-goods/shared/utils/app/text";
@@ -13,6 +11,7 @@ import { useIntl } from "react-intl";
 import { Card } from "@/components/Cards";
 import { Avatar } from "@/components/Display";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/Inputs";
+import { OfflineContentRow } from "./OfflineContentRow";
 
 interface ApplicationSettings {
   title: string;
@@ -47,8 +46,6 @@ const SETTING_DESCRIPTION = "min-h-8 text-xs text-text-sub-600 line-clamp-2";
 
 export const AppSettings: React.FC = () => {
   const { theme, setTheme } = useTheme();
-  const preparation = useOfflinePreparationStatus();
-  const isOnline = useOnlineStatus();
   const { locale, switchLanguage, availableLocales } = useApp();
   const { phase, checkForUpdate, activateNow, activationBlocked } = useServiceWorkerUpdate();
   const intl = useIntl();
@@ -316,79 +313,7 @@ export const AppSettings: React.FC = () => {
         </Card>
       ))}
 
-      <Card>
-        <div className="flex items-center gap-3 w-full">
-          <Avatar>
-            <RiRefreshLine className="w-4 text-primary" />
-          </Avatar>
-          <div className="flex flex-col gap-0.5 min-w-0 flex-1">
-            <div className="text-sm font-medium">
-              {intl.formatMessage({
-                id: "app.offline.preparation.title",
-                defaultMessage: "Offline content",
-              })}
-            </div>
-            <div
-              role="status"
-              aria-label={intl.formatMessage({
-                id: "app.offline.preparation.title",
-                defaultMessage: "Offline content",
-              })}
-              className="text-xs text-text-sub-600"
-            >
-              {intl.formatMessage({
-                id: preparation.busy
-                  ? "app.offline.preparation.preparing"
-                  : preparation.partial
-                    ? "app.offline.preparation.partial"
-                    : "app.offline.preparation.ready",
-                defaultMessage: preparation.busy
-                  ? "Preparing content…"
-                  : preparation.partial
-                    ? "Partially available offline"
-                    : "Ready to use offline",
-              })}
-              {" · "}
-              {intl.formatMessage(
-                { id: "app.offline.preparation.storage", defaultMessage: "{used} of {budget} MiB" },
-                {
-                  used: (preparation.bytes / 1024 / 1024).toFixed(1),
-                  budget: preparation.budget / 1024 / 1024,
-                }
-              )}
-              {preparation.updatedAt && (
-                <div>
-                  {intl.formatMessage(
-                    { id: "app.offline.preparation.updated", defaultMessage: "Updated {date}" },
-                    {
-                      date: intl.formatDate(preparation.updatedAt, {
-                        month: "short",
-                        day: "numeric",
-                        hour: "numeric",
-                        minute: "numeric",
-                      }),
-                    }
-                  )}
-                </div>
-              )}
-            </div>
-          </div>
-          <Button
-            type="button"
-            emphasis="secondary"
-            size="sm"
-            className={SETTING_CONTROL_WIDTH}
-            loading={preparation.busy}
-            disabled={!isOnline}
-            onClick={preparation.retry}
-          >
-            {intl.formatMessage({
-              id: "app.offline.preparation.retry",
-              defaultMessage: "Retry",
-            })}
-          </Button>
-        </div>
-      </Card>
+      <OfflineContentRow controlClassName={SETTING_CONTROL_WIDTH} />
 
       {/* Always present: with nothing pending there was no way to check (PWA-041). */}
       <Card>
