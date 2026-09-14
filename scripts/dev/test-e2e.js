@@ -16,6 +16,31 @@ const presets = {
   testnet: { args: ['test', '--project=testnet'], env: { TESTNET: 'true' } },
 };
 
+// Playwright treats bare tokens as test-file filters and --grep values as regular expressions.
+// The all and smoke presets boot a web stack before Playwright runs, so a malformed pattern is worth
+// catching here rather than paying for a stack boot first. Compiling the pattern to test it would
+// build a regular expression out of argv, so instead this scans for the three defects that actually
+// come from a typo: an unbalanced group, an unterminated character class, and a trailing backslash.
+// The scan tracks escapes and character classes, so it never rejects a valid pattern; exotic invalid
+// patterns Playwright still reports itself.
+const MAX_PATTERN_LENGTH = 512;
+
+export function assertUsablePattern(pattern, invalidMessage) {
+  if (pattern.length > MAX_PATTERN_LENGTH) throw new Error(`${invalidMessage} (limit ${MAX_PATTERN_LENGTH} characters)`);
+  let depth = 0;
+  let escaped = false;
+  let inClass = false;
+  for (const character of pattern) {
+    if (escaped) escaped = false;
+    else if (character === '\\') escaped = true;
+    else if (inClass) inClass = character !== ']';
+    else if (character === '[') inClass = true;
+    else if (character === '(') depth += 1;
+    else if (character === ')' && (depth -= 1) < 0) throw new Error(invalidMessage);
+  }
+  if (depth !== 0 || escaped || inClass) throw new Error(invalidMessage);
+}
+
 export function validatePlaywrightArgs(args, preset) {
   const boolean = new Set(['--fail-on-flaky-tests', '--forbid-only', '--fully-parallel', '--headed', '--ignore-snapshots', '--last-failed', '--list', '--no-deps', '--pass-with-no-tests', '--quiet', '-x', '--help', '-h']);
   const values = new Set(['--grep', '-g', '--global-timeout', '--grep-invert', '--workers', '-j', '--max-failures', '--output', '--repeat-each', '--reporter', '--retries', '--run-agents', '--shard', '--test-list', '--test-list-invert', '--timeout', '--trace', '--tsconfig', '--ui-host', '--ui-port', '--update-source-method']);
@@ -24,7 +49,7 @@ export function validatePlaywrightArgs(args, preset) {
   const seen = new Set();
   for (let index = 0; index < args.length; index++) {
     const token = args[index];
-    if (!token.startsWith('-')) { try { new RegExp(token); } catch { throw new Error(`Invalid test-file filter: ${token}`); } continue; }
+    if (!token.startsWith('-')) { assertUsablePattern(token, `Invalid test-file filter: ${token}`); continue; }
     const [flag, ...inline] = token.split('=');
     if (['--project', '--config', '-c', '--browser', '--ui'].includes(flag)) throw new Error(`${flag} conflicts with the selected preset; choose --preset instead`);
     if (!boolean.has(flag) && !values.has(flag) && !optional.has(flag)) throw new Error(`Unknown Playwright argument: ${flag}`);
@@ -39,7 +64,7 @@ export function validatePlaywrightArgs(args, preset) {
     if (['--global-timeout', '--max-failures', '--repeat-each', '--retries', '--timeout', '--ui-port'].includes(flag) && (!/^\d+$/.test(value) || !Number.isSafeInteger(Number(value)))) throw new Error(`${flag} requires a non-negative integer`);
     if (['--workers', '-j'].includes(flag) && !/^[1-9]\d*%?$/.test(value)) throw new Error(`${flag} requires a positive worker count or percentage`);
     if (flag === '--shard' && (!/^[1-9]\d*\/[1-9]\d*$/.test(value) || Number(value.split('/')[0]) > Number(value.split('/')[1]))) throw new Error('--shard requires current/total with current <= total');
-    if (['--grep', '-g', '--grep-invert'].includes(flag)) { try { new RegExp(value); } catch { throw new Error(`Invalid ${flag} regular expression`); } }
+    if (['--grep', '-g', '--grep-invert'].includes(flag)) assertUsablePattern(value, `Invalid ${flag} regular expression`);
     if (['--ui-host', '--ui-port'].includes(flag) && preset !== 'ui') throw new Error(`${flag} requires --preset ui`);
   }
   return { list: seen.has('--list'), help: seen.has('--help') };
