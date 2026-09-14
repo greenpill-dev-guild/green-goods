@@ -22,7 +22,7 @@ test("command admission rejects restored variants and permits documented excepti
   const root = fixture(t, "# Start\n");
   writeFileSync(path.join(root, "package.json"), JSON.stringify({ scripts: { test: "node test.js", fast: "node test.js --fast" } }));
   writeFileSync(path.join(root, "scripts/data/command-policy.json"), JSON.stringify({ root: { test: { owner: "repo", purpose: "tests", consumer: "CI" }, fast: { owner: "repo", purpose: "iteration", consumer: "CI" } }, packages: {} }));
-  writeFileSync(path.join(root, "scripts/data/command-migration.json"), JSON.stringify({ entries: [{ manifest: "package.json", name: "fast", status: "replacement" }] }));
+  writeFileSync(path.join(root, "scripts/data/command-migration.json"), JSON.stringify({ replacements: { "package.json": { fast: "bun run test --fast" } } }));
   const issues = await auditCommandPolicy(root);
   assert.ok(issues.some((item) => item.message.includes("Option-only")));
   assert.ok(issues.some((item) => item.message.includes("Retired alias")));
@@ -148,14 +148,45 @@ test("retired caller audit catches source argv and aliases without matching file
   assert.ok(issues.some((issue) => issue.message.includes("deploy at line 3")));
 });
 
+test("retired caller audit catches a caller outside the package that owned the command", async (t) => {
+  const { auditRetiredCommandCallers } = await import("./developer-guides.mjs");
+  const root = fixture(t, "# Start\n");
+  mkdirSync(path.join(root, "packages/contracts/config"), { recursive: true });
+  mkdirSync(path.join(root, "packages/shared"), { recursive: true });
+  writeFileSync(path.join(root, "packages/contracts/config/command-migration.json"), JSON.stringify({ entries: [] }));
+  // Retired from the shared package but called from a root-level runner: the
+  // caller's own manifest is package.json, so only the dead-everywhere rule sees it.
+  writeFileSync(path.join(root, "scripts/data/command-migration.json"), JSON.stringify({
+    replacements: { "packages/shared/package.json": { "storybook:prepare": "node .storybook/prepare.mjs" } },
+  }));
+  writeFileSync(path.join(root, "packages/shared/package.json"), JSON.stringify({ scripts: {} }));
+  writeFileSync(path.join(root, "runner.mjs"), "spawnSync('bun', ['run', 'storybook:prepare']);\n");
+  const issues = await auditRetiredCommandCallers(root, ["runner.mjs"]);
+  assert.equal(issues.length, 1);
+  assert.match(issues[0].message, /storybook:prepare/);
+});
+
+test("retired caller audit leaves a name another package still defines alone", async (t) => {
+  const { auditRetiredCommandCallers } = await import("./developer-guides.mjs");
+  const root = fixture(t, "# Start\n");
+  mkdirSync(path.join(root, "packages/contracts/config"), { recursive: true });
+  mkdirSync(path.join(root, "packages/shared"), { recursive: true });
+  writeFileSync(path.join(root, "packages/contracts/config/command-migration.json"), JSON.stringify({ entries: [] }));
+  writeFileSync(path.join(root, "scripts/data/command-migration.json"), JSON.stringify({
+    replacements: { "packages/shared/package.json": { lint: "bun run check --only lint" } },
+  }));
+  // packages/client still defines lint, so a bare caller is not provably dead.
+  writeFileSync(path.join(root, "packages/client/package.json"), JSON.stringify({ scripts: { lint: "oxlint" } }));
+  writeFileSync(path.join(root, "runner.mjs"), "spawnSync('bun', ['run', 'lint']);\n");
+  assert.deepEqual(await auditRetiredCommandCallers(root, ["runner.mjs"]), []);
+});
+
 test("retired caller audit includes the repository-wide replacement ledger", async (t) => {
   const { auditRetiredCommandCallers } = await import("./developer-guides.mjs");
   const root = fixture(t, "# Start\n");
   mkdirSync(path.join(root, "packages/contracts/config"), { recursive: true });
   writeFileSync(path.join(root, "packages/contracts/config/command-migration.json"), JSON.stringify({ entries: [] }));
-  writeFileSync(path.join(root, "scripts/data/command-migration.json"), JSON.stringify({ entries: [
-    { manifest: "package.json", name: "test:cache", status: "replacement" },
-  ] }));
+  writeFileSync(path.join(root, "scripts/data/command-migration.json"), JSON.stringify({ replacements: { "package.json": { "test:cache": "bun run test --cache" } } }));
   writeFileSync(path.join(root, "caller.mjs"), "const command = 'bun run test:cache';\n");
   const issues = await auditRetiredCommandCallers(root, ["caller.mjs"]);
   assert.equal(issues.length, 1);

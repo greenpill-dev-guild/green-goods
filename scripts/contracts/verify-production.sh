@@ -95,7 +95,7 @@ bun run check --only foundry-version || fail "Foundry version does not match the
 phase "Phase 1/4: Full Compilation"
 phase_start "build"
 
-bun build:full || fail "Compilation failed"
+bun run build --mode full || fail "Compilation failed"
 success "Build passed"
 
 phase_end

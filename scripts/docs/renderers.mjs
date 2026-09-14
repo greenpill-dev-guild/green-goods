@@ -389,6 +389,13 @@ export function renderQaCatalog({ root, sources, digest }) {
   return body;
 }
 
+// The ledger stores manifest -> name -> replacement; flatten it back to rows.
+function migrationRows(migration, status) {
+  return Object.entries(migration[status === "replacement" ? "replacements" : "retained"] ?? {}).flatMap(
+    ([manifest, names]) => Object.entries(names).map(([name, replacement]) => ({ manifest, name, replacement, status })),
+  );
+}
+
 export function renderCommands({ root, sources, digest }) {
   const manifestSources = sources.filter((source) => source.endsWith("package.json"));
   const migration = readJson(root, declaredSource(sources, "scripts/data/command-migration.json"));
@@ -419,7 +426,7 @@ export function renderCommands({ root, sources, digest }) {
   for (const source of implementationSources) body += `- \`${esc(source)}\`\n`;
   body += "\n## Removed command replacements\n\nThe former names below are not runnable aliases. Use the replacement exactly as shown, including its working directory and flags.\n\n";
   body += "| Previous manifest | Previous name | Replacement |\n|---|---|---|\n";
-  for (const entry of migration.entries.filter((entry) => entry.status === "replacement")) {
+  for (const entry of migrationRows(migration, "replacement")) {
     const replacement = esc(entry.replacement)
       .replaceAll("<", "&lt;")
       .replaceAll(">", "&gt;")

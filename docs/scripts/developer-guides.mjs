@@ -225,10 +225,13 @@ export async function auditRetiredCommandCallers(root, paths) {
   const consolidatedRaw = await readOptional(path.join(root, "scripts/data/command-migration.json"));
   if (raw === null && consolidatedRaw === null) return [];
   const contractEntries = raw === null ? [] : JSON.parse(raw).entries;
-  const consolidatedEntries = consolidatedRaw === null ? [] : JSON.parse(consolidatedRaw).entries;
+  // The consolidated ledger stores manifest -> name -> replacement; flatten it to rows.
+  const consolidated = consolidatedRaw === null ? {} : JSON.parse(consolidatedRaw);
   const entries = [
     ...contractEntries,
-    ...consolidatedEntries.filter((entry) => entry.status === "replacement"),
+    ...Object.entries(consolidated.replacements ?? {}).flatMap(([manifest, names]) =>
+      Object.keys(names).map((name) => ({ manifest, name, status: "replacement" })),
+    ),
   ];
   const manifestForScope = { root: "package.json", contracts: "packages/contracts/package.json", docs: "docs/package.json" };
   const retiredByManifest = new Map();
@@ -248,6 +251,17 @@ export async function auditRetiredCommandCallers(root, paths) {
     const packageMatch = filePath.match(/^(packages\/[^/]+|docs)\//);
     return packageMatch ? `${packageMatch[1]}/package.json` : "package.json";
   };
+  const retiredAnywhere = new Set([...retiredByManifest.values()].flatMap((names) => [...names]));
+  // Every workspace manifest, not just the ones the ledger names: a command
+  // retired from one package may still be defined by another.
+  const workspaceManifests = new Set([...retiredByManifest.keys(), "package.json", "docs/package.json"]);
+  for (const entry of await fs.readdir(path.join(root, "packages"), { withFileTypes: true }).catch(() => [])) {
+    if (entry.isDirectory()) workspaceManifests.add(`packages/${entry.name}/package.json`);
+  }
+  const liveAnywhere = new Set();
+  for (const manifest of workspaceManifests) {
+    for (const name of Object.keys(await currentScripts(manifest))) liveAnywhere.add(name);
+  }
   const files = paths ?? execFileSync("git", ["ls-files", "-co", "--exclude-standard", "-z"], { cwd: root, encoding: "utf8" }).split("\0").filter(Boolean);
   for (const filePath of new Set(files)) {
     // Plan Hubs and dated reports are execution history, never audit inputs. Do not open them.
@@ -258,7 +272,11 @@ export async function auditRetiredCommandCallers(root, paths) {
     const fail = (name, index) => issues.push({ filePath, message: `Retired command caller ${name} at line ${text.slice(0, index).split("\n").length}` });
     const defaultManifest = sourceManifest(filePath);
     const checkRetired = async (name, manifest, index) => {
-      if (!retiredByManifest.get(manifest)?.has(name)) return;
+      // A caller in one package can invoke another package's script, so the manifest
+      // inferred from the file path is only a hint. A name that every manifest has
+      // dropped is dead wherever it is called from.
+      const deadEverywhere = retiredAnywhere.has(name) && !liveAnywhere.has(name);
+      if (!retiredByManifest.get(manifest)?.has(name) && !deadEverywhere) return;
       if (Object.hasOwn(await currentScripts(manifest), name)) return;
       fail(name, index);
     };
@@ -301,7 +319,7 @@ export async function auditCommandPolicy(root) {
   const raw = await readOptional(path.join(root, "scripts/data/command-policy.json"));
   if (raw === null) return [];
   const policy = JSON.parse(raw);
-  const migration = JSON.parse(await readOptional(path.join(root, "scripts/data/command-migration.json")) ?? '{"entries":[]}');
+  const migration = JSON.parse(await readOptional(path.join(root, "scripts/data/command-migration.json")) ?? "{}");
   const issues = [];
   const manifests = ["package.json", ...Object.keys(policy.packages ?? {})];
   for (const filePath of manifests) {
@@ -318,7 +336,7 @@ export async function auditCommandPolicy(root) {
       }
       if (!exception(name) && /^bun run (?:--cwd [\w/.-]+ )?[\w:-]+(?:\s+--[^;&|]*)?$/.test(command)) fail("Plain forwarding alias; use the owning command and arguments");
       if (!exception(name) && Object.entries(scripts).some(([other, value]) => other !== name && command.startsWith(`${value} --`))) fail("Option-only alias; expose the option on its owning command");
-      if (migration.entries.some((entry) => entry.manifest === filePath && entry.name === name && entry.status === "replacement")) fail("Retired alias restored");
+      if (Object.hasOwn(migration.replacements?.[filePath] ?? {}, name)) fail("Retired alias restored");
     }
     for (const name of allowed) if (!Object.hasOwn(scripts, name)) issues.push({ filePath, message: `Registered command is missing: ${name}` });
   }

@@ -716,7 +716,7 @@ function materializeCheck(check, environment, mandatory, testPaths, context) {
   } else if (focusedPaths.length > 0) {
     command =
       check.id === "contracts-test"
-        ? focusedPaths.map((path) => `bun run test:match ${path}`).join(" && ")
+        ? focusedPaths.map((path) => `bun run test --suite solidity --profile match ${path}`).join(" && ")
         : `${check.command} ${focusedPaths.join(" ")}`;
   }
   const laneCheckpoint =

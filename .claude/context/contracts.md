@@ -9,10 +9,10 @@ Loaded when working in `packages/contracts/`. Extends CLAUDE.md.
 | `bun run test` | Run unit tests (skips E2E) |
 | `bun run --cwd packages/contracts test --suite solidity --profile gas` | Tests with gas report |
 | `bun run build` | Adaptive build (changed Solidity targets with shared-file fallback to `src`) |
-| `bun build:changed` | Build changed Solidity under `src/test/script` only |
-| `bun build:target -- <path...>` | Build explicit Solidity target(s) only |
-| `bun build:fast` | Explicit fast mode (`src` only, skips Foundry test/script) |
-| `bun build:full` | Full compilation including tests (>180s cold) |
+| `bun run --cwd packages/contracts build --mode changed` | Build changed Solidity under `src/test/script` only |
+| `bun run --cwd packages/contracts build --mode target <path...>` | Build explicit Solidity target(s) only |
+| `bun run --cwd packages/contracts build --mode fast` | Explicit fast mode (`src` only, skips Foundry test/script) |
+| `bun run --cwd packages/contracts build --mode full` | Full compilation including tests (>180s cold) |
 | `bun run --cwd packages/contracts test --suite solidity --profile lite` | ~35 fast tests, excludes heavy/account suites |
 | `bun lint` | Format & lint with forge fmt + solhint |
 | `bun run contracts -- deploy core --network sepolia --mode simulate` | Simulate Sepolia deployment |

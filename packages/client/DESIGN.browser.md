@@ -139,7 +139,7 @@ Swap two places to test an alternative serif on the public browser:
 1. `packages/client/index.html` — replace the Fraunces `<link>` family parameter with the new family's Google Fonts URL.
 2. `packages/shared/src/styles/theme.css` (`@theme` block) — change the first family in `--font-serif` from `"Fraunces"` to the new family name.
 
-That's it. No JSX touches; every `font-serif` headline picks up the new family. Validate with `bun run check:design-tokens` and a Storybook spot-check.
+That's it. No JSX touches; every `font-serif` headline picks up the new family. Validate with `bun run check --only design-tokens` and a Storybook spot-check.
 
 #### Serif options (similar tone to Fraunces)
 

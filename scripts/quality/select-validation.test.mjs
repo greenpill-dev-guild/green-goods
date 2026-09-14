@@ -632,7 +632,7 @@ test("focused Solidity tests use the contracts match-path wrapper", () => {
   });
 
   const contractsTest = plan.checks.find((check) => check.id === "contracts-test");
-  assert.equal(contractsTest.command, "bun run test:match test/unit/Garden.t.sol");
+  assert.equal(contractsTest.command, "bun run test --suite solidity --profile match test/unit/Garden.t.sol");
   assert.deepEqual(contractsTest.focusedPaths, ["test/unit/Garden.t.sol"]);
 });
 
@@ -648,7 +648,7 @@ test("multiple focused Solidity tests invoke the contracts wrapper once per path
   const contractsTest = plan.checks.find((check) => check.id === "contracts-test");
   assert.equal(
     contractsTest.command,
-    "bun run test:match test/unit/Action.t.sol && bun run test:match test/unit/Garden.t.sol",
+    "bun run test --suite solidity --profile match test/unit/Action.t.sol && bun run test --suite solidity --profile match test/unit/Garden.t.sol",
   );
   assert.deepEqual(contractsTest.focusedPaths, [
     "test/unit/Action.t.sol",
