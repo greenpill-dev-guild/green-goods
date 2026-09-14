@@ -2,6 +2,10 @@ import { CID } from "multiformats/cid";
 import type { Address, PublicApiError } from "./index";
 
 export const PROFILE_AVATAR_ROUTE = "/public/profile-avatars/:chainId/:address" as const;
+/** Batch read: `?addresses=` carries a comma-separated list of account addresses. */
+export const PROFILE_AVATAR_BATCH_ROUTE = "/public/profile-avatars/:chainId" as const;
+/** Keeps a full batch query string near 2 KB. */
+export const PROFILE_AVATAR_BATCH_LIMIT = 50;
 
 export type ProfileAvatarApiErrorCode =
   | PublicApiError["errorCode"]
@@ -79,6 +83,22 @@ function isPositiveInteger(value: unknown): value is number {
 
 export function normalizeProfileAvatarAddress(value: string): Address | null {
   return ADDRESS_PATTERN.test(value) ? (value.toLowerCase() as Address) : null;
+}
+
+/**
+ * Parses a batch `addresses` query value into unique lowercase addresses in request order.
+ * Returns null when the list is empty, over the limit, or holds anything that is not an address.
+ */
+export function parseProfileAvatarAddressList(value: string | null | undefined): Address[] | null {
+  const parts = value ? value.split(",") : [];
+  if (parts.length === 0 || parts.length > PROFILE_AVATAR_BATCH_LIMIT) return null;
+  const addresses: Address[] = [];
+  for (const part of parts) {
+    const address = normalizeProfileAvatarAddress(part.trim());
+    if (!address) return null;
+    if (!addresses.includes(address)) addresses.push(address);
+  }
+  return addresses;
 }
 
 export function isCanonicalProfileAvatarUri(value: unknown): value is string {
