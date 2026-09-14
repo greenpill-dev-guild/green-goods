@@ -81,7 +81,7 @@ Produce a developer-facing draft for `vX.Y.0`, grouped by type (this approximate
 
 ## Phase 3 — Version and security-policy reminder
 
-State the commands `bun run version:bump X.Y.0` and `bun run version:check X.Y.0`. The bump updates the seven `package.json` files plus the supported release in `SECURITY.md`; the check must pass before tagging. The tag is created on the **merged-main HEAD**, never before merge.
+State the commands `node scripts/ops/bump-version.mjs X.Y.0` and `node scripts/ops/bump-version.mjs --check X.Y.0`. The bump updates the seven `package.json` files plus the supported release in `SECURITY.md`; the check must pass before tagging. The tag is created on the **merged-main HEAD**, never before merge.
 
 ## Phase 4 — Doc-freshness scan
 
@@ -96,7 +96,7 @@ State the commands `bun run version:bump X.Y.0` and `bun run version:check X.Y.0
 
 ## Phase 6 — Draft gardener announcement
 
-Write 3-5 plain-language lines announcing the release. **Self-check the prose against the enforced term list** in `scripts/data/banned-vocabulary.json` (`.linter_enforced.terms`) and list any hits. Note: `bun run lint:vocab` does **not** cover prose — it scans only `packages/{shared,client,admin}/src/i18n/*.json` — so this manual check is the gate for announcement copy.
+Write 3-5 plain-language lines announcing the release. **Self-check the prose against the enforced term list** in `scripts/data/banned-vocabulary.json` (`.linter_enforced.terms`) and list any hits. Note: `bun run check --only vocabulary` does **not** cover prose — it scans only `packages/{shared,client,admin}/src/i18n/*.json` — so this manual check is the gate for announcement copy.
 
 ## Phase 7 — Post and exit
 

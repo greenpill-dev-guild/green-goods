@@ -35,7 +35,7 @@ uploads, and privileged actions have additional requirements. Confirmed transact
 ## Team members
 
 Run `npm run setup -- --profile host`, then resolve shared values with `bun run env:sync`.
-If no template exists, `bun run env:template:init` creates its shareable shape. 1Password CLI
+If no template exists, `node scripts/dev/env-template-init.js` creates its shareable shape. 1Password CLI
 integration and access to the referenced vault items are required. Synchronization is an explicit
 write to the root environment; inspect its impact before replacing existing local values.
 

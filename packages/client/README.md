@@ -35,12 +35,12 @@ Use the root `.env` only. Shared imports must use declared package exports.
 Commands below run from the repository root. Replace the test path with a real affected test.
 
 ```bash
-bun run validation:plan -- --intent qa
+bun run check --plan -- --intent qa
 bun run --cwd packages/client test src/path/to/changed.test.tsx
 ```
 
 For build or route risk, select the application build through the validation plan. The root
-`build:client` command builds upstream dependencies first. Package-native `dev`, `test`, and
+`build` command preserves dependency order. Package-native `dev`, `test`, and
 `build` remain available for focused work and process supervision.
 
 For visible changes, follow the authenticated Brave proof procedure in [AGENTS.md](./AGENTS.md).

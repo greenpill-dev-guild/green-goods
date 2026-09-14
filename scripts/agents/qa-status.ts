@@ -5,7 +5,7 @@
  * The report contains catalog IDs, verdict counts, entry timestamps, and
  * optional Linear issue keys. It never projects notes or shard owners.
  *
- *   bun run qa:status [--stale-days 30] [--issues tmp/qa-status-issues.json]
+ *   bun run qa status [--stale-days 30] [--issues tmp/qa-status-issues.json]
  */
 
 import { readFileSync } from "node:fs";
@@ -193,7 +193,7 @@ async function main(): Promise<void> {
     pulled = await readRun(token, "open", undefined, () => {});
   } catch {
     // qa:pull owns shard-level diagnostics. Status output remains identity-free.
-    throw new Error("the QA store could not be read; run bun run qa:pull for shard-level diagnostics");
+    throw new Error("the QA store could not be read; run bun run qa pull for shard-level diagnostics");
   }
   const issues = options.issuesPath
     ? parseIssueMap(readFileSync(options.issuesPath, "utf8"))

@@ -469,13 +469,13 @@ Rollback:
 
 Examples:
   # Phase A plans
-  bun run assessment:upgrade:dry:arbitrum
-  bun run assessment:upgrade:plan:arbitrum --expected-nonce <fresh-pending-nonce>
-  bun run pooling:upgrade:dry:arbitrum
-  bun run pooling:upgrade:plan:arbitrum --expected-nonce <fresh-pending-nonce>
+  bun run contracts -- upgrade assessment-resolver --network arbitrum --mode preflight
+  bun run contracts -- upgrade assessment-resolver --network arbitrum --mode plan --sender 0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6 --expected-nonce <fresh-pending-nonce>
+  bun run contracts -- upgrade commitment-pooling --network arbitrum --mode preflight
+  bun run contracts -- upgrade commitment-pooling --network arbitrum --mode plan --sender 0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6 --expected-nonce <fresh-pending-nonce>
 
   # Phase B form only; each invocation executes and verifies one reviewed boundary
-  bun run assessment:upgrade:arbitrum --plan <reviewed-plan.json> --step <index> \
+  bun run contracts -- upgrade assessment-resolver --network arbitrum --mode broadcast --sender 0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6 --plan <reviewed-plan.json> --step <index> \
     --expected-nonce <boundary-nonce> --override-sepolia-gate
   `);
 }

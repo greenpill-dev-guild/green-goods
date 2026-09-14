@@ -8,16 +8,16 @@ are the supported entrypoints.
 
 ```bash
 # Starts the web stack, runs the selected desktop projects, then cleans up
-bun run test:e2e
+bun run browser e2e --preset all
 
 # Client and admin smoke projects only
-bun run test:e2e:smoke
+bun run browser e2e --preset smoke
 
 # Playwright UI against services you have already started
-bun run test:e2e:ui
+bun run browser e2e --preset ui
 ```
 
-`bun run test:e2e` delegates to `scripts/dev/test-e2e.js`. It starts `bun run dev -- web`, waits for
+`bun run browser e2e --preset all` delegates to `scripts/dev/test-e2e.js`. It starts `bun run dev -- web`, waits for
 the client on port 3001 and admin on port 3002, sets `SKIP_WEBSERVER=true` for Playwright, and stops
 the stack on exit. The default wrapper does not start the local indexer.
 
@@ -58,9 +58,9 @@ bun x playwright test --project=client-ci
 bun x playwright test --project=admin-ci
 bun x playwright test tests/specs/client.navigation.spec.ts
 
-bun run test:e2e:fork
-bun run test:e2e:passkey
-bun run test:e2e:testnet
+bun run browser e2e --preset fork
+bun run browser e2e --preset passkey
+bun run browser e2e --preset testnet
 ```
 
 Fork and testnet projects have 120-second test timeouts. The default config uses one local retry,

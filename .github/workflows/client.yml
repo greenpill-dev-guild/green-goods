@@ -5,6 +5,7 @@ on:
     branches: [main, develop]
     paths:
       - "package.json"
+      - "scripts/dev/package-commands.mjs"
       - "bun.lock"
       - "biome.json"
       - ".env.schema"
@@ -34,6 +35,7 @@ on:
   pull_request:
     paths:
       - "package.json"
+      - "scripts/dev/package-commands.mjs"
       - "bun.lock"
       - "biome.json"
       - ".env.schema"
@@ -111,7 +113,7 @@ jobs:
         uses: ./.github/actions/setup-js
 
       - name: Run env schema parser tests
-        run: bun run test:env-schema
+        run: bun run check --only env-schema-test
 
       - name: Check source structure
         env:
@@ -119,10 +121,10 @@ jobs:
         run: node scripts/quality/check-source-structure.js
 
       - name: Check test quality
-        run: bun run check:test-quality
+        run: bun run check --only test-quality
 
       - name: Check staged client modules
-        run: bun run check:staged-modules
+        run: bun run check --only staged-modules
 
       - name: Run client lint
         working-directory: packages/client
@@ -130,7 +132,7 @@ jobs:
 
       - name: Typecheck client tests and stories
         working-directory: packages/client
-        run: bun run typecheck:tests
+        run: bun run typecheck --scope tests
 
       - name: Build client
         working-directory: packages/client
@@ -157,7 +159,7 @@ jobs:
         uses: ./.github/actions/setup-js
 
       - name: Run env schema parser tests
-        run: bun run test:env-schema
+        run: bun run check --only env-schema-test
 
       - name: Check client source map environment
         run: bun run env:check --profile sourcemaps-client --env-source process
@@ -254,7 +256,7 @@ jobs:
         uses: ./.github/actions/setup-js
 
       - name: Run Lighthouse advisory
-        run: bun run lighthouse:client
+        run: bun run browser lighthouse --app client
         env:
           VITE_CHAIN_ID: "11155111"
           VITE_WALLETCONNECT_PROJECT_ID: ${{ secrets.VITE_WALLETCONNECT_PROJECT_ID || 'test' }}

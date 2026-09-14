@@ -32,7 +32,7 @@ Codebase cleanup in two explicit phases: 8 focused lanes assess the code read-on
 Before assessment:
 
 1. **Inspect repository state**: `git status --short --branch`. If unrelated or unknown changes overlap the requested scope, stop and surface them; do not format, stash, branch, or edit around them.
-2. **Run a non-mutating baseline**: `bun format:check`, `bun lint`, and `bun run test` — capture pass/fail counts without rewriting files.
+2. **Run a non-mutating baseline**: `bun run format --check`, `bun run lint`, and `bun run test` — capture pass/fail counts without rewriting files.
 3. **Load prior accepted findings when requested**: query current Linear issues in the approved scope; do not treat old repo-local reports as a registry.
 4. **Stay on the current branch**: never create or switch branches during pre-flight.
 5. **Record the assessment base**: `CHECKPOINT_SHA="$(git rev-parse HEAD)"`.
@@ -209,7 +209,7 @@ Use `--no-codex` when:
 
 ```bash
 git diff --check                # Whitespace / conflict marker sanity
-bun format:check && bun lint    # Non-mutating style gate
+bun run format --check && bun run lint    # Non-mutating style gate
 bun run test                    # Correctness
 bun run build                   # Build integrity
 madge --circular --extensions ts,tsx packages/  # Only when locally installed or explicitly approved

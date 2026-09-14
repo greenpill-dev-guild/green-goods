@@ -7,7 +7,7 @@
  * expects, so a session that ran in the browser closes out exactly like one
  * driven from the terminal.
  *
- *   bun run qa:pull [--slug 2026-09-02] [--run open|latest-closed|run-N] [--out tmp/qa-session/<slug>] [--force]
+ *   bun run qa pull [--slug 2026-09-02] [--run open|latest-closed|run-N] [--out tmp/qa-session/<slug>] [--force]
  *
  * Reads the per-tester shards of ONE run straight from the Blob store with
  * BLOB_READ_WRITE_TOKEN, NOT through the deployed app — so ingestion works

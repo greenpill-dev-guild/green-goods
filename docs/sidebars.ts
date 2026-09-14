@@ -96,6 +96,7 @@ const sidebars: SidebarsConfig = {
         {type: 'doc', id: 'builders/packages/agent', label: 'Agent'},
         {type: 'doc', id: 'builders/packages/api-index', label: 'API Index'},
         {type: 'doc', id: 'builders/packages/commands', label: 'Command inventory'},
+        {type: 'doc', id: 'builders/packages/contract-operations', label: 'Contract operations'},
       ],
     },
     {

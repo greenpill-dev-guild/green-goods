@@ -18,8 +18,8 @@ forge script script/Deploy.s.sol --broadcast --rpc-url $RPC
 # Good
 cd packages/contracts && bun run build           # Adaptive build (~2s cached)
 cd packages/contracts && bun run test            # Unit tests (excludes E2E)
-cd packages/contracts && bun run test:e2e:workflow  # E2E workflow
-cd packages/contracts && bun run test:fork       # Fork tests
+bun run --cwd packages/contracts test:e2e workflow  # E2E workflow
+bun run --cwd packages/contracts test:fork       # Fork tests
 bun script/deploy.ts core --network sepolia --broadcast  # Deploy
 ```
 

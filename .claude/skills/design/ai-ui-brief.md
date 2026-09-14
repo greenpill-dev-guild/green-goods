@@ -12,7 +12,7 @@ Reusable prompt contract for asking an AI agent or design tool to build strong G
    - `packages/client/DESIGN.browser.md` for public browser
    - `docs/DESIGN.md` for docs
    - `prompt-contract.md` for admin or `client-prompt-contract.md` for client
-3. For implementation or review work, refresh repo Modern Web Guidance with `bun run agentic:guidance` before making browser-facing CSS decisions when tooling access allows.
+3. For implementation or review work, refresh repo Modern Web Guidance with `DISABLE_TELEMETRY=1 bun --bun modern-web-guidance search "agentic frontend CSS accessibility browser validation DevTools MCP" && DISABLE_TELEMETRY=1 bun --bun modern-web-guidance retrieve accessibility` before making browser-facing CSS decisions when tooling access allows.
 4. Ask for one screen or component per pass.
 5. Treat generated UI as a draft. Map it back to existing Green Goods primitives and prove it in Storybook or a real browser before shipping.
 
@@ -42,7 +42,7 @@ Surface:
 Source context:
 - Follow root DESIGN.md and the matching surface DESIGN.md.
 - Follow the matching prompt contract when the surface is admin or client.
-- Before browser-facing CSS or accessibility implementation, use repo Modern Web Guidance (`bun run agentic:guidance`) to retrieve current browser guidance when available; if blocked, report the blocker and rely on repo-local guidance.
+- Before browser-facing CSS or accessibility implementation, use repo Modern Web Guidance (`DISABLE_TELEMETRY=1 bun --bun modern-web-guidance search "agentic frontend CSS accessibility browser validation DevTools MCP" && DISABLE_TELEMETRY=1 bun --bun modern-web-guidance retrieve accessibility`) to retrieve current browser guidance when available; if blocked, report the blocker and rely on repo-local guidance.
 - Use the AI UI Brief reference role map:
   - web.dev/Baseline for native CSS, responsive layout, accessibility, and safe browser features.
   - Refactoring UI for visual hierarchy, spacing, typography, and polish.

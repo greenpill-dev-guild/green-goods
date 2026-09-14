@@ -47,10 +47,10 @@ decision log is a human-gated local step, never yours.
 ## Setup
 
 - All env vars are loaded; do not read `.env`. `BLOB_READ_WRITE_TOKEN` must be present — without
-  it `bun run qa:pull` cannot read the QA app's shards; fail loud in the Discord summary rather
+  it `bun run qa pull` cannot read the QA app's shards; fail loud in the Discord summary rather
   than shipping a notes-only report silently.
 - The capability check is the file, not the branch name: `scripts/agents/qa-state-pull.ts`,
-  `scripts/agents/qa-report.ts`, and the root `qa:pull` and `qa:report` scripts must exist in
+  `scripts/agents/qa-report.ts`, and the root `qa pull` and `qa report` actions must exist in
   the checkout. Today that means `develop` (they have not
   shipped to `main` yet); once a release carries them, either branch works. Missing → report the
   checkout problem and stop.
@@ -95,7 +95,7 @@ and modifiedTime > '<24h-ago RFC3339>' and mimeType = 'application/vnd.google-ap
 
 ## Phase 2: Pull the QA app state
 
-Run `bun run qa:pull --slug <YYYY-MM-DD> --run <id>` (the call date; a **second call on the same
+Run `bun run qa pull --slug <YYYY-MM-DD> --run <id>` (the call date; a **second call on the same
 date** takes the slug `<YYYY-MM-DD>-2`, mirroring qa-session's slug rule, and everything
 downstream — window, parent title, artifacts — keys off that slug). The run id is the `run-N` the
 session header names, or the one in the parent's lede on a rerun; when the team rolled the run
@@ -110,11 +110,11 @@ calendar day up to run time — say so in the report and treat that wider window
 proportionate caution. Only session entries are this call's verdicts — they alone back slices
 and the Results rollup; the same interval bounds the Phase 4 telemetry queries. Older entries
 are standing state: at most one context line in the report, and never the backing for a slice. Then run
-`bun run qa:report --slug <slug> --window <start>..<end>` — it joins the session entries to
+`bun run qa report --slug <slug> --window <start>..<end>` — it joins the session entries to
 `scripts/data/qa-test-catalog.json` by Test ID and writes `tmp/qa-session/<slug>/report.md`:
 results by priority and by kind, the fail/blocked list with attributed notes, coverage gaps,
 and standing state. Every rollup in the parent comes from that file, never from hand counting.
-When the call was a re-QA, also pull the run it checks — `bun run qa:pull --slug <slug> --run
+When the call was a re-QA, also pull the run it checks — `bun run qa pull --slug <slug> --run
 <previous id> --out tmp/qa-session/<slug>/previous` — and pass
 `--previous tmp/qa-session/<slug>/previous/qa-state.json` so the report's delta names both runs
 and reads a verdict on a since-retired case onto its successors as inherited.
@@ -123,7 +123,7 @@ deterministic, so re-running is free) and add `--public` for the Discord lede. T
 postdate the window: a pull taken before the padded window closes cannot hold entries recorded
 later, so `qa:report` clamps such a window to the pull time and says so in its header. When that
 happens, pull again once the window has closed — into a fresh directory
-(`bun run qa:pull --slug <slug> --run <the same run id> --out tmp/qa-session/<slug>-final` — the
+(`bun run qa pull --slug <slug> --run <the same run id> --out tmp/qa-session/<slug>-final` — the
 run selector travels with every follow-up pull, or a rollover in between would swap in the next
 run's verdicts; the pull refuses to overwrite a pulled session and `--force` would discard any
 redactions) — and run `qa:report` with the same `--out` so the final report and its `--build`
@@ -352,7 +352,7 @@ the @mention.
 | Create one Issue per failed test case | The slice is the work unit (one slice = one branch = one PR); test-case detail lives inside the slice body and the report |
 | Set `In Progress` or assignees — or `Done` on anything with open work | Fix sessions and humans drive those; you create `Todo`/`Backlog` records, plus the one carve-out: an all-pass session's parent is created `Done`, a record with nothing to fix |
 | Write Customer Needs or Sheet rows | The report + slices are the session record; the Sheet belongs to the interactive skill with its privacy re-acknowledgement |
-| Hand-count coverage or derive severity | Rollups come from `bun run qa:report` (the pull joined to the catalog); case priority + verdict only seed Linear queue priority, while defect severity remains an independent triage decision |
+| Hand-count coverage or derive severity | Rollups come from `bun run qa report` (the pull joined to the catalog); case priority + verdict only seed Linear queue priority, while defect severity remains an independent triage decision |
 | Copy tester names, wallets, or replay URLs into Linear | Aggregate coverage only — the privacy boundary in [`.claude/context/qa.md`](../../.claude/context/qa.md) |
 | File when `/qa-triage --call` already ran this session | One writer per session — dedupe links instead |
 | Run from a checkout missing the qa scripts | Verify `scripts/agents/qa-state-pull.ts` exists rather than trusting a branch name; today the scripts ship on `develop` only |

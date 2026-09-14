@@ -602,25 +602,29 @@ async function main() {
     return;
   }
 
-  // Load credentials only when launching/stopping, never on import, help, or status.
-  const allApps = require(path.join(projectRoot, "ecosystem.config.cjs")).apps || [];
-
+  let stopOwnerId = "";
   if (parsed.mode === "stop") {
-    const ownerId = (process.env.GREEN_GOODS_DEV_OWNER || "").trim();
-    if (!ownerId) {
+    stopOwnerId = (process.env.GREEN_GOODS_DEV_OWNER || "").trim();
+    if (!stopOwnerId) {
       throw new Error(
         "Refusing an ownerless stop. Use Ctrl+C in the launching terminal, or rerun with the same GREEN_GOODS_DEV_OWNER used to start the stack."
       );
     }
+  }
+
+  // Load service configuration only after argument and stop-ownership validation.
+  const allApps = require(path.join(projectRoot, "ecosystem.config.cjs")).apps || [];
+
+  if (parsed.mode === "stop") {
     await connect();
     await deleteOwnedApps(
       allApps.map((app) => app.name),
-      ownerId
+      stopOwnerId
     );
-    const released = releaseOwnerClaims({ ownerId });
+    const released = releaseOwnerClaims({ ownerId: stopOwnerId });
     disconnect();
     console.log(
-      `Stopped Green Goods dev services owned by ${ownerId}; released ${released.length} claim(s).`
+      `Stopped Green Goods dev services owned by ${stopOwnerId}; released ${released.length} claim(s).`
     );
     return;
   }

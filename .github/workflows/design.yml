@@ -115,19 +115,19 @@ jobs:
         uses: ./.github/actions/setup-js
 
       - name: Check DesignMD
-        run: bun run check:design-md
+        run: bun run check --only design-md
 
       - name: Check generated DesignMD artifacts
-        run: bun run check:design-generated
+        run: bun run check --only design-generated
 
       - name: Check design tokens
-        run: bun run check:design-tokens
+        run: bun run check --only design-tokens
 
       - name: Run design guidance guardrail tests
         run: node --test scripts/design/check-guidance-examples.test.mjs
 
       - name: Check banned vocabulary
-        run: bun run lint:vocab
+        run: bun run check --only vocabulary
 
   storybook:
     name: Storybook
@@ -150,7 +150,7 @@ jobs:
         run: bun run --filter @green-goods/shared check:story-quality
 
       - name: Produce client PWA token audit
-        run: bun run check:design-tokens
+        run: bun run check --only design-tokens
 
       - name: Install Playwright Chromium
         timeout-minutes: 15

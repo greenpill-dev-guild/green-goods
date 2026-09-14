@@ -64,16 +64,16 @@ Root `DESIGN.md` front matter is the canonical DesignMD token source. Surface `D
 
 | When you change… | Do |
 |------------------|-----|
-| Root `DESIGN.md` front matter tokens or token implementation aliases | Regenerate artifacts (`bun run design:generate`); bump `token_version` if the spec changed |
+| Root `DESIGN.md` front matter tokens or token implementation aliases | Regenerate artifacts (`node scripts/design/md-generate.mjs`); bump `token_version` if the spec changed |
 | Tokens in `language.md` (radii, springs, materials, color roles) | Bump `token_version` |
 | Only implementation guidance in `implementation.md` | Nothing to bump |
 | Only direction in `design/` | `design/SKILL.md version` only |
 
 **Drift detection** (wire into Design CI and selector-chosen local validation):
 ```bash
-bun run check:design-generated # verifies DesignMD generated artifacts are current
-bun run check:design-tokens   # verifies implementation tokens and versions are synced
-bun run lint:vocab            # lint-enforced banned terms in i18n strings only
+bun run check --only design-generated # verifies DesignMD generated artifacts are current
+bun run check --only design-tokens   # verifies implementation tokens and versions are synced
+bun run check --only vocabulary            # lint-enforced banned terms in i18n strings only
 ```
 
 ---

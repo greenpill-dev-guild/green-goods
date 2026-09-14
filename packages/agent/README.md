@@ -13,7 +13,7 @@ must already be available. All commands in this guide run from the repository ro
 
 Use the package-native command only when intentionally testing the messaging runtime with
 its required credentials: `bun run --cwd packages/agent dev`.
-Select focused tests with `bun run validation:plan -- --intent qa`.
+Select focused tests with `bun run check --plan -- --intent qa`.
 
 ## Deploy to Fly.io (recommended)
 
@@ -222,8 +222,8 @@ bun run dev          # Start in polling mode with hot reload
 bun run --cwd packages/agent build        # TypeScript compilation
 bun run --cwd packages/agent start        # Run production build
 bun run --cwd packages/agent test         # Run tests
-bun run --cwd packages/agent test:watch   # Watch mode
-bun run --cwd packages/agent test:coverage # Coverage report
+bun run --cwd packages/agent test --scope unit --watch   # Watch mode
+bun run --cwd packages/agent test --scope unit --coverage # Coverage report
 bun run --cwd packages/agent lint         # Lint with oxlint
 bun run --cwd packages/agent format       # Format with Biome
 bun run --cwd packages/agent typecheck    # TypeScript type check
@@ -257,13 +257,13 @@ Uses **Vitest** for unit tests with an in-memory SQLite mock for database operat
 bun run --cwd packages/agent test
 
 # Watch mode
-bun run --cwd packages/agent test:watch
+bun run --cwd packages/agent test --scope unit --watch
 
 # Coverage report
-bun run --cwd packages/agent test:coverage
+bun run --cwd packages/agent test --scope unit --coverage
 
 # Interactive UI
-bun run --cwd packages/agent test:ui
+bun run --cwd packages/agent test --scope unit --ui
 ```
 
 ### Test Structure

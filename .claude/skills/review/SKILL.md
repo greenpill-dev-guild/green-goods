@@ -47,7 +47,7 @@ Resolve intent separately from code scope:
   CI on the current head SHA. Run the full local Production Review Readiness Gate only for explicit
   offline/full-local readiness or a critical surface.
 
-Render the planned checks with `bun run validation:plan -- --intent review`. For explicit
+Render the planned checks with `bun run check --plan -- --intent review`. For explicit
 offline/full-local production readiness, use `--intent readiness` so the plan remains non-mutating
 while criticality can only add checks. For a live PR, use `--intent review` for direct local
 evidence and inspect required CI at the current head SHA; criticality may still escalate the local
@@ -77,7 +77,7 @@ Correctness of what changed. Prioritize high-signal risk areas:
 - retry, trust-boundary, migration, or destructive-operation changes
 - missing or misleading tests on changed behavior (bugfix with no regression test; public API change with no test update)
 
-**Repo invariants** (the durable list lives in CLAUDE.md § Key Patterns and `.claude/context/<pkg>.md` — check the diff against them): hooks only in `@green-goods/shared`; imports only from declared `packages/shared/package.json#exports` paths (never `shared/src/**` internals); addresses from deployment artifacts; `Address` type; no package-level `.env`; `bun run test` never `bun test`; user-facing strings localized (en/es/pt); `parseContractError` + `createMutationErrorHandler` on mutation paths; `logger` not `console.log`; query keys via `queryKeys.*` helpers; vocabulary/enum/EAS-schema/glossary-entity edits update the ontology sidecar in the same change — `bun run check:ontology` gates it (protocol: `.claude/context/ontology.md`).
+**Repo invariants** (the durable list lives in CLAUDE.md § Key Patterns and `.claude/context/<pkg>.md` — check the diff against them): hooks only in `@green-goods/shared`; imports only from declared `packages/shared/package.json#exports` paths (never `shared/src/**` internals); addresses from deployment artifacts; `Address` type; no package-level `.env`; `bun run test` never `bun test`; user-facing strings localized (en/es/pt); `parseContractError` + `createMutationErrorHandler` on mutation paths; `logger` not `console.log`; query keys via `queryKeys.*` helpers; vocabulary/enum/EAS-schema/glossary-entity edits update the ontology sidecar in the same change — `bun run check --only ontology` gates it (protocol: `.claude/context/ontology.md`).
 
 **Structural lenses** — apply when the diff shows the signal, not ritually:
 
@@ -220,7 +220,7 @@ Only on explicit request ("fix the findings", `--fix`). Report first, then group
 should-fix items by root-cause class and address at most three classes per iteration; leave
 nice-to-have and all Human Call-Outs alone. Complete the sibling and recurrence sweeps from Finding
 Closure, then re-run the Pass 3 rung. Contract-touching fixes also run
-`bun run verify:contracts:fast`.
+`bun run check --only contracts-verify-fast`.
 
 ## Linear Routing
 

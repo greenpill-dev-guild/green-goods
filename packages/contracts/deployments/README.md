@@ -39,23 +39,23 @@ pattern, not a guard for these three keys.
 
 ## Deployment runbook
 
-Use package scripts and `script/deploy.ts`; never run raw `forge` deployment commands. The root
-environment supplies chain RPCs and keystore configuration.
+Use the package-owned contracts CLI; never run raw `forge` deployment commands. The root
+environment supplies chain RPCs and keystore configuration. Run these examples from the repository root.
 
-```bash
-cd packages/contracts
-
+```sh
 # Compile-only preflight, then target-chain simulation.
-bun run deploy:preflight:sepolia
-bun run deploy:dry:sepolia
+bun run contracts -- deploy core --network sepolia --mode preflight
+bun run contracts -- deploy core --network sepolia --mode simulate
 
 # Broadcast only after release-owner approval.
-bun run deploy:sepolia
-bun run verify:post-deploy:sepolia
+bun run contracts -- deploy core --network sepolia --mode broadcast
+bun run contracts -- verify --network sepolia
 ```
 
-Equivalent `:arbitrum` and `:mainnet` deployment scripts exist in `package.json`. The current
-`deploy:celo` wrapper is schema-only and must not be used as an equivalent core deployment path.
+Use command-specific help for supported networks and modes. Legacy `deploy:celo` selected a
+schema-only path; it is not an equivalent core-deployment recipe. Consult the generated
+[operation reference](../../../docs/docs/builders/packages/contract-operations.mdx) before replacing
+historical commands.
 A deploy is not complete until its `*-latest.json` artifact is persisted, dependent indexer/config
 inputs are updated, and the matching post-deploy verifier passes.
 

@@ -28,9 +28,9 @@ safe path for a code change.
 2. Confirm the owning package and keep the change within its public boundary.
 3. Preserve unrelated working-tree changes; multiple agents may share the checkout.
 4. Make the smallest coherent change and add direct proof for the behavior or contract moved.
-5. Run `bun run validation:plan -- --intent qa` and execute its selected checks.
+5. Run `bun run check --plan -- --intent qa` and execute its selected checks.
 6. Follow the repository commit and PR conventions in `AGENTS.md` and `CONTRIBUTING.md`.
 
 For documentation, cite exact authority paths, keep conceptual prose stable, and use generated
 pages for routes, exports, deployments, workflows, ontology matrices, and QA inventories. Run
-`bun run docs:audit:ci`, `bun run check:docs-generated`, and `bun run build:docs` before handoff.
+`node docs/scripts/docs-audit.mjs --ci`, `bun run check --only docs-generated`, and `bun run --cwd docs build` before handoff.

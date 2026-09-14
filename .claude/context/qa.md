@@ -30,10 +30,10 @@ connects them.
 3. **Session** — [`qa-session`](../skills/qa-session/SKILL.md) runs the live, paired, or transcript
    loop: pre-flight, observation capture, bounded fix-now work, revalidation, deferred handoff, and
    receipt preparation.
-4. **Pull** — `bun run qa:pull --slug <slug> --run <open | latest-closed | run-N>` reads one
+4. **Pull** — `bun run qa pull --slug <slug> --run <open | latest-closed | run-N>` reads one
    run's shards into gitignored `tmp/qa-session/<slug>/results.csv` and `qa-state.json` (the
    default is the open run; `qa-state.json` names the run it came from). It is the private
-   close-out artifact, not a public coverage report. `bun run qa:report --slug <slug>` then
+   close-out artifact, not a public coverage report. `bun run qa report --slug <slug>` then
    derives `report.md` from that pull — results by priority and by kind, the fail/blocked list,
    coverage gaps, standing state, a run-versus-run delta when `--previous` names the earlier
    run's pull, and per-tester coverage, private and attributed — and, with `--public`,
@@ -81,7 +81,7 @@ deferred handoff, or a live session — works in this order:
 | Test-case definitions | `scripts/data/qa-test-catalog.json` in git | Product or engineering change, reviewed like code |
 | Verdicts and notes | QA app private Blob store | The allowlisted signing address through the app |
 | Session log, pulled results, generated report, local handoff | `tmp/qa-session/<slug>/` | `qa-session`, `qa:pull`, and `qa:report`; local and gitignored — `report.md` leaves only as the session parent's attached Linear document (below), `report.public.md` only for the docs example or the Discord lede |
-| Coverage report | Standard output from `bun run qa:status` | Read-only command; nothing is persisted |
+| Coverage report | Standard output from `bun run qa status` | Read-only command; nothing is persisted |
 | Defect tracking | Linear plus the private Green Goods v1.1 QA Sheet | `qa-triage`, after explicit scope and write confirmation |
 | Session report and fix slices | Linear Product team — `QA session YYYY-MM-DD` parent plus slice sub-issues | [`qa-call-report`](../../docs/routines/qa-call-report.md) after a team call, or `/qa-triage --call` interactively |
 | Full session report, attributed | Linear document `QA session YYYY-MM-DD · full report` attached to the session parent; beside the receipt in the restricted Drive QA folder when a solo session has no parent | [`qa-call-report`](../../docs/routines/qa-call-report.md), `/qa-triage --call`, or the `qa-session` close, after the privacy grep |
@@ -273,7 +273,7 @@ completed.
 
 Use two queries for two different questions:
 
-- `bun run qa:status` answers what has been walked in the open run of the live store. Its first
+- `bun run qa status` answers what has been walked in the open run of the live store. Its first
   line names that run; it then reports per-surface walked/total and verdict counts, never-walked
   cases, stale cases, and failing or blocked Test IDs.
   Staleness defaults to 30 days and can be changed with `--stale-days <N>`. It uses each case's
@@ -295,7 +295,7 @@ The repository intentionally has no Linear credential. To render open work besid
    }
    ```
 
-2. Run `bun run qa:status --issues tmp/qa-status-issues.json`.
+2. Run `bun run qa status --issues tmp/qa-status-issues.json`.
 
 The command validates that the file contains only Test IDs and Linear-style issue keys. The agent
 must include only open issues; `qa:status` does not query Linear or infer workflow state.
@@ -313,7 +313,7 @@ case definition.
 
 ## Workbook exception
 
-`bun run qa:workbook` is the exception path for production passes, installed-device passes, and
+`bun run qa workbook` is the exception path for production passes, installed-device passes, and
 work that needs a Sheet-compatible file. Generated workbooks carry private QA state, belong in the
 restricted Drive QA folder, and never enter git. The QA app remains the default recording surface
 for networked sessions.

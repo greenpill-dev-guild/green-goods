@@ -221,14 +221,14 @@ or the repository root `.env`; do not add a package-level `.env`.
 ## Getting results back into the repo
 
 ```bash
-bun run qa:pull --slug <slug> --run open        # or latest-closed, or run-N
+bun run qa pull --slug <slug> --run open        # or latest-closed, or run-N
 ```
 
 Reads one run's shards straight from the Blob store (needs `BLOB_READ_WRITE_TOKEN` in the process
 environment or root `.env`) and writes `tmp/qa-session/<slug>/results.csv` plus `qa-state.json`
 (which names the run), the artifacts the `qa-session` skill closes out with. Pull the previous run
-into `tmp/qa-session/<slug>/previous` and hand it to `qa:report --previous` for a run-versus-run
-delta; `bun run qa:status` reads the open run and names it first. It reads the store rather than the app, so it needs no browser session and
+into `tmp/qa-session/<slug>/previous` and hand it to `qa report --previous` for a run-versus-run
+delta; `bun run qa status` reads the open run and names it first. It reads the store rather than the app, so it needs no browser session and
 still works if the deployment is down. Results stay in gitignored `tmp/` —
 definitions live in git, results never do. It lists address-keyed shards from the store rather than
 copying the deployment allowlist into the repository.

@@ -50,6 +50,6 @@ jobs:
 
       - name: Run deep fuzz and invariant suite
         working-directory: packages/contracts
-        run: bun run test:deep
+        run: bun run test --suite solidity --profile deep
         env:
           CI: true

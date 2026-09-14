@@ -32,8 +32,8 @@ test("the durable Bun caller re-enters the selector under real Node", () => {
   );
 
   assert.equal(
-    packageJson.scripts["validation:plan"],
-    "node scripts/dev/node-cli.js scripts/quality/select-validation.mjs",
+    packageJson.scripts.check,
+    "node scripts/dev/ci-local.js",
   );
 });
 
@@ -78,7 +78,7 @@ test("skill and documented skill-inventory changes select direct guidance contra
     assert.ok(guidance, changedPath);
     assert.equal(
       guidance.command,
-      "bun run check:codex-guidance && bun run check:skill-behavior && bun run check:guidance-links",
+      "node scripts/quality/check-codex-docs.js && node scripts/quality/check-skill-behavior-contracts.mjs && node scripts/quality/check-guidance-links.mjs",
     );
     assert.ok(guidance.selectedBy.includes("conditional:agent-guidance"), changedPath);
   }
@@ -93,7 +93,7 @@ test("agent-tool changes select their direct tests for QA and review", () => {
 
     const agentTools = plan.checks.find((check) => check.id === "agent-tools-test");
     assert.ok(agentTools, intent);
-    assert.equal(agentTools.command, "bun run test:agent-tools");
+    assert.equal(agentTools.command, "bun --bun x vitest run --dir scripts/agents");
     assert.ok(agentTools.selectedBy.includes("conditional:agent-tools-test"), intent);
   }
 });
@@ -314,16 +314,16 @@ test("client changes select the staged Card Endow boundary", () => {
 
 test("recognized root tests select their durable acceptance commands", () => {
   for (const [changedPath, checkId, command] of [
-    ["scripts/lib/env-schema.test.mjs", "env-schema-test", "bun run test:env-schema"],
+    ["scripts/lib/env-schema.test.mjs", "env-schema-test", "node scripts/dev/node-cli.js node --test scripts/lib/env-schema.test.mjs"],
     [
       "scripts/lib/dev-shared.test.mjs",
       "validation-system-test",
-      "bun run test:validation-system",
+      loadPolicy().checks.find((check) => check.id === "validation-system-test").command,
     ],
     [
       "scripts/quality/select-validation.test.mjs",
       "validation-system-test",
-      "bun run test:validation-system",
+      loadPolicy().checks.find((check) => check.id === "validation-system-test").command,
     ],
   ]) {
     for (const input of [
@@ -364,7 +364,7 @@ test("workspace checkpoint keeps repository-wide format and lint commands", () =
   });
 
   assert.equal(plan.checkpointScope, "workspace");
-  assert.equal(plan.checks.find((check) => check.id === "format").command, "bun run format:check");
+  assert.equal(plan.checks.find((check) => check.id === "format").command, "bunx @biomejs/biome format .");
   assert.equal(plan.checks.find((check) => check.id === "lint").command, "bun run lint");
 });
 
@@ -894,7 +894,7 @@ test("strict indexer contract changes select the real event integration", () => 
       const plan = selectValidation({ intent, changedPaths: [changedPath] });
       const integration = plan.checks.find((check) => check.id === "indexer-contract-events");
       assert.ok(integration, `${intent}: ${changedPath}`);
-      assert.equal(integration.command, "bun run test:contract-events");
+      assert.equal(integration.command, "bun run test --scope contract-events");
       assert.equal(integration.cwd, "packages/indexer");
       assert.equal(integration.budgetSeconds, 480);
       assert.deepEqual(integration.capabilities, [
@@ -988,7 +988,10 @@ test("ship scopes docs-only work to the exact impacted strict surface", () => {
   assert.equal(plan.checkpointScope, "workspace");
   assert.deepEqual(plan.surfaces, ["docs"]);
   assert.deepEqual(ids(plan), ["format", "lint", "docs-authority", "docs-test", "docs-build"]);
-  assert.equal(plan.checks.find((check) => check.id === "format").command, "bun format");
+  assert.equal(
+    plan.checks.find((check) => check.id === "format").command,
+    "bunx @biomejs/biome format .",
+  );
   assert.ok(plan.checks.every((check) => check.mandatory));
 });
 
@@ -1040,7 +1043,10 @@ test("push requires focused client proof while ship retains the full local surfa
     "browser-proof",
   ];
   assert.deepEqual(ids(ship), shipExpected);
-  assert.equal(ship.checks.find((check) => check.id === "format").command, "bun format");
+  assert.equal(
+    ship.checks.find((check) => check.id === "format").command,
+    "bunx @biomejs/biome format .",
+  );
   assert.ok(ship.checks.every((check) => check.mandatory));
 });
 
@@ -1219,8 +1225,8 @@ test("local merge and merge --ci select identical checks while preserving CI pac
   assert.deepEqual(ids(local), expected);
   assert.deepEqual(ids(ci), expected);
   assert.deepEqual(ids(local), ids(ci));
-  assert.equal(local.checks.find((check) => check.id === "format").command, "bun format");
-  assert.equal(ci.checks.find((check) => check.id === "format").command, "bun run format:check");
+  assert.equal(local.checks.find((check) => check.id === "format").command, "bunx @biomejs/biome format .");
+  assert.equal(ci.checks.find((check) => check.id === "format").command, "bunx @biomejs/biome format .");
   assert.equal(
     local.checks.find((check) => check.id === "admin-test").command,
     turboTestCommand("admin"),
@@ -1318,7 +1324,7 @@ test("readiness and release remain full scope while empty ship falls back to ful
     assert.deepEqual(ids(plan), fullStrictChecks, intent);
     assert.equal(
       plan.checks.find((check) => check.id === "format").command,
-      "bun format",
+      "bunx @biomejs/biome format .",
       intent,
     );
     for (const surface of ["shared", "client", "admin", "agent", "indexer", "docs"]) {
@@ -1722,4 +1728,16 @@ test("workflow mapping preserves exact live and intended trigger parity", () => 
       changedPath,
     );
   }
+});
+
+
+test("contract script changes retain the full critical test gate despite inferred TypeScript paths", () => {
+  const plan = selectValidation({
+    intent: "qa",
+    changedPaths: ["packages/contracts/script/release-operator.ts", "packages/contracts/script/release-operator.test.ts"],
+  });
+  const check = plan.checks.find((candidate) => candidate.id === "contracts-test");
+  assert.equal(check.mandatory, true);
+  assert.equal(check.command, "bun run test");
+  assert.deepEqual(check.focusedPaths, []);
 });

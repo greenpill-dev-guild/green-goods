@@ -57,7 +57,7 @@ tests/
 ### Local Development
 ```bash
 # Run all E2E tests
-bun test:e2e
+bun run browser e2e --preset all
 
 # Run specific test file
 bun exec playwright test client.auth.spec.ts

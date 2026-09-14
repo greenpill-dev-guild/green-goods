@@ -230,8 +230,7 @@ export default defineConfig({
     // ========================================================================
 
     // Anvil Fork - Tests with local Anvil fork of Sepolia
-    // Run with: bun test:e2e:fork
-    // Requires Anvil running: bun anvil:start
+    // Run with: bun run browser e2e --preset fork
     {
       name: "anvil-fork",
       testMatch: /.*\.fork\.spec\.ts$/,
@@ -242,7 +241,7 @@ export default defineConfig({
 
     // Passkey Mock - Tests with mocked Pimlico bundler/paymaster
     // Enables full passkey E2E tests without real infrastructure
-    // Run with: bun test:e2e:passkey
+    // Run with: bun run browser e2e --preset passkey
     {
       name: "passkey-mock",
       testMatch: /.*\.passkey\.spec\.ts$/,
@@ -250,7 +249,7 @@ export default defineConfig({
     },
 
     // Testnet - Tests against real Sepolia (manual only)
-    // Run with: bun test:e2e:testnet
+    // Run with: bun run browser e2e --preset testnet
     // Requires: TEST_WALLET_PRIVATE_KEY env var
     {
       name: "testnet",

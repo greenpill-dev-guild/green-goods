@@ -202,7 +202,7 @@
       "kind": "chain",
       "ports": [3009],
       "portGroup": "green-goods-anvil-3009",
-      "command": ["bun", "run", "dev:contracts"],
+      "command": ["bun", "run", "--cwd", "packages/contracts", "dev"],
       "env": {
         "ANVIL_PORT": "3009"
       },
@@ -215,7 +215,7 @@
       "kind": "chain",
       "ports": [3009],
       "portGroup": "green-goods-anvil-3009",
-      "command": ["bun", "run", "dev:contracts:arbitrum-fork"],
+      "command": ["bun", "run", "--cwd", "packages/contracts", "dev:arbitrum-fork"],
       "env": {
         "ANVIL_PORT": "3009"
       },

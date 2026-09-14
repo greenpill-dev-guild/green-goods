@@ -3,6 +3,6 @@
   "framework": "docusaurus-2",
   "cleanUrls": true,
   "installCommand": "cd .. && bun install --frozen-lockfile",
-  "buildCommand": "cd .. && bun run docs:audit:ci && bun run check:docs-generated && bun run check:ontology && bun run check:skill-behavior && bun run test:docs && bun run build:docs",
+  "buildCommand": "cd .. && node docs/scripts/docs-audit.mjs --ci && bun run check --only docs-generated && bun run check --only ontology && bun run check --only skill-behavior && bun run --cwd docs test && bun run --cwd docs build",
   "outputDirectory": "build"
 }

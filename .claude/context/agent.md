@@ -9,9 +9,9 @@ Loaded when working in `packages/agent/`. Extends CLAUDE.md.
 | `bun dev` | Start in polling mode (local) |
 | `bun start` | Start in webhook mode (production) |
 | `bun run test` | Run tests (Vitest) |
-| `bun run test:watch` | Watch mode |
-| `bun run test:coverage` | Tests with coverage |
-| `bun run test:ui` | Interactive test UI |
+| `bun run --cwd packages/agent test --scope unit --watch` | Watch mode |
+| `bun run --cwd packages/agent test --scope unit --coverage` | Tests with coverage |
+| `bun run --cwd packages/agent test --scope unit --ui` | Interactive test UI |
 
 ## Contents
 - [Architecture](#architecture)

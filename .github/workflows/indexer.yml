@@ -5,6 +5,7 @@ on:
     branches: [main, develop]
     paths:
       - "package.json"
+      - "scripts/dev/package-commands.mjs"
       - "bun.lock"
       - ".env.schema"
       - "packages/indexer/**"
@@ -16,6 +17,7 @@ on:
   pull_request:
     paths:
       - "package.json"
+      - "scripts/dev/package-commands.mjs"
       - "bun.lock"
       - ".env.schema"
       - "packages/indexer/**"
@@ -53,7 +55,7 @@ jobs:
 
       - name: Run indexer tests with coverage
         working-directory: packages/indexer
-        run: bun run test:coverage:ci
+        run: bun run test --scope handlers --coverage --reporter text --reporter json
         env:
           CI: true
 

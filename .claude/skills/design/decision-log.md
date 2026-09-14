@@ -2,7 +2,7 @@
 
 Append-only ledger of locked design and UX decisions. This is the canonical `DL-NNN` registry:
 any `DL-NNN` cited anywhere in the design skill or `.claude/rules/frontend-design.md` must exist
-as a row here (checked by `bun run check:guidance-links`).
+as a row here (checked by `bun run check --only guidance-links`).
 
 **Append paths**: the `qa-session` skill's close-phase decision lock gate, or any design round
 where the user locks a decision. **IDs are never reused** — supersede, don't delete.

@@ -3,7 +3,8 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import {fileURLToPath} from "node:url";
 import * as yaml from "js-yaml";
-import { auditDeveloperGuides } from "./developer-guides.mjs";
+import { auditDeveloperGuides, auditWorkflowCommands, auditRetiredCommandCallers, auditCommandPolicy } from "./developer-guides.mjs";
+import { resolveCommand } from "../../packages/contracts/script/cli/operations.mjs";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -835,7 +836,10 @@ auditDocumentAnchors();
 await auditStaticAssets();
 await auditInternalAuthorityEdges();
 await auditReadme(docSlugSet);
-errors.push(...await auditDeveloperGuides(repoRoot));
+errors.push(...await auditDeveloperGuides(repoRoot, undefined, { resolveContracts: resolveCommand }));
+errors.push(...await auditWorkflowCommands(repoRoot));
+errors.push(...await auditRetiredCommandCallers(repoRoot));
+errors.push(...await auditCommandPolicy(repoRoot));
 
 const sortedWarnings = warnings.sort((a, b) => {
   if (a.filePath === b.filePath) {

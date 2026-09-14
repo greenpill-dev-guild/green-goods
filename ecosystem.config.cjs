@@ -182,7 +182,7 @@ module.exports = {
       name: "tunnel",
       script: "node",
       // Opt-in: tunnel both client (3001) and admin (3002). Standalone
-      // `bun run dev:tunnel -- --port 3001` still works for single-port use.
+      // `node scripts/dev/tunnel.js -- --port 3001` still works for single-port use.
       args: "scripts/dev/tunnel.js --port 3001 --port 3002",
       cwd: ".",
       env: {

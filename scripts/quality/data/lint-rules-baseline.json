@@ -1,5 +1,5 @@
 {
-  "note": "Historical advisory inventory. Default lint ignores this file and blocks every high-confidence hit; regenerate it only for dedicated heuristic cleanup with `bun run lint:rules -- --baseline-write`.",
+  "note": "Historical advisory inventory. Default lint ignores this file and blocks every high-confidence hit; regenerate it only for dedicated heuristic cleanup with `bun run check --only react-patterns -- --baseline-write`.",
   "generatedAt": "2026-04-26T00:10:11.232Z",
   "rules": {
     "rule-1-raw-timer": {

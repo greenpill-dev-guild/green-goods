@@ -701,7 +701,7 @@ function materializeCheck(check, environment, mandatory, testPaths, context) {
   );
   const surface = check.id.endsWith("-test") ? check.id.slice(0, -5) : null;
   const focusedPaths =
-    surface && ["diagnose", "review", "qa", "checkpoint", "push"].includes(context.intent)
+    surface && !(mandatory && context.risk === "critical") && ["diagnose", "review", "qa", "checkpoint", "push"].includes(context.intent)
       ? testPaths[surface] ?? []
       : [];
   let command = check.command;
@@ -726,7 +726,7 @@ function materializeCheck(check, environment, mandatory, testPaths, context) {
     (path) => !deletedPaths.has(path),
   );
   if (check.id === "format" && !context.ci && ["ship", "merge", "release"].includes(context.intent)) {
-    command = "bun format";
+    command = "bunx @biomejs/biome format .";
   }
   const fastPush = context.intent === "push" && context.risk !== "critical";
   if (

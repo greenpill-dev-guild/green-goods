@@ -81,7 +81,7 @@ bun run dev
 ```
 
 Host setup installs dependencies and reports the environment steps; it does not create
-a secret-filled `.env`. Use `bun run env:template:init` only if no template exists.
+a secret-filled `.env`. Use `node scripts/dev/env-template-init.js` only if no template exists.
 Keep personal credentials in the root `.env` and shared references in `.env.template`.
 
 **Default development uses live Arbitrum**, with local client, admin, agent, and indexer
@@ -99,7 +99,7 @@ services. It does not start Anvil. Wallet and passkey confirmations can send rea
 | Check running services | `bun run dev:smoke` |
 | Inspect service ownership | `bun run dev -- status` |
 | Preview disposable-artifact cleanup | `bun run dev:clean -- --dry-run` |
-| Select checks for a change | `bun run validation:plan -- --intent qa` |
+| Select checks for a change | `bun run check --plan -- --intent qa` |
 | Run a focused package test | `bun run --cwd packages/client test path/to/example.test.tsx` |
 
 Keep the launcher terminal open. **Ctrl-C stops services that launch owns** and preserves

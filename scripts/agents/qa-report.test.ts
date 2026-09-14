@@ -572,11 +572,11 @@ describe("QA report CLI", () => {
     expect(publicReport).not.toContain("Afo");
   });
 
-  it("names qa:pull when the session has not been pulled, and never echoes a malformed state file", async () => {
+  it("names qa pull when the session has not been pulled, and never echoes a malformed state file", async () => {
     const root = mkdtempSync(path.join(tmpdir(), "qa-report-"));
     const catalog: Catalog = { version: 2, tabs: ["Public Website"], kinds: KINDS, statuses: [], cases: [makeCase()] };
 
-    await expect(runReport(parseArgs(["--slug", "2026-09-03"]), { catalog, repoRoot: root })).rejects.toThrow(/qa:pull --slug 2026-09-03/);
+    await expect(runReport(parseArgs(["--slug", "2026-09-03"]), { catalog, repoRoot: root })).rejects.toThrow(/qa pull --slug 2026-09-03/);
 
     const sessionDir = path.join(root, "tmp", "qa-session", "2026-09-03");
     mkdirSync(sessionDir, { recursive: true });

@@ -167,7 +167,7 @@ branch = one PR, and the posture is repair, not feature building.
    in the PR's `Fixes PRD-NNN` line.
 6. **Repair to the slice's "Done when"** — the catalog Test IDs' expected results — and stop
    there.
-7. **Validate via the selector**: render `bun run validation:plan -- --intent qa` for the
+7. **Validate via the selector**: render `bun run check --plan -- --intent qa` for the
    touched paths and run the returned plan, plus the slice's named validation command — never an
    invented fixed suite (the selector owns criticality overrides and stop conditions).
 8. **Ship**: the `ship` skill gates the push; the PR references the issue (`Fixes PRD-NNN`), one
@@ -302,7 +302,7 @@ After debugging provide:
 
 ### Verification
 - Commands executed and outcomes
-- Contract-touching fixes should also run: `bun run verify:contracts:fast`
+- Contract-touching fixes should also run: `bun run check --only contracts-verify-fast`
 
 ### Next Step
 - `DONE`, `NEEDS_INPUT`, or `ESCALATE`

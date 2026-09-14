@@ -27,7 +27,7 @@ Branch from `develop` and PR into `develop`. Don't target `main` directly except
 
 ### Releases and hotfixes
 
-Green Goods ships a **monthly release** at the start of each month (minor bump: `1.1.0` → `1.2.0`; patch for hotfixes; major for breaking). Releases are cut from a `release/<ship-month>-<version>` branch off `develop`, versioned with `bun run version:bump <x.y.z>`, checked with `bun run version:check <x.y.z>`, PR'd into `main`, and tagged `vX.Y.0` after merge. Pushing the tag triggers `.github/workflows/release.yml`, which creates the GitHub Release from the merged production history.
+Green Goods ships a **monthly release** at the start of each month (minor bump: `1.1.0` → `1.2.0`; patch for hotfixes; major for breaking). Releases are cut from a `release/<ship-month>-<version>` branch off `develop`, versioned with `node scripts/ops/bump-version.mjs <x.y.z>`, checked with `node scripts/ops/bump-version.mjs --check <x.y.z>`, PR'd into `main`, and tagged `vX.Y.0` after merge. Pushing the tag triggers `.github/workflows/release.yml`, which creates the GitHub Release from the merged production history.
 
 After every release or hotfix, fetch the merged `main` branch and merge it back into `develop`. Never open a back-merge PR with `main` as the head branch: GitHub is configured to delete merged PR head branches. If direct back-merge is unavailable, push `origin/main` to a temporary `chore/backmerge-main-<date>` branch and use that branch as the PR head.
 
@@ -48,7 +48,7 @@ If compensation is part of the work, confirm the scope, budget, acceptance crite
 From the root, select the checks for your change:
 
 ```bash
-bun run validation:plan -- --intent qa
+bun run check --plan -- --intent qa
 ```
 
 Start with the focused behavior test and add the selected package checks. Before an
@@ -61,7 +61,7 @@ node scripts/dev/ci-local.js --intent push --reuse-passing-receipts --test-path 
 Replace the example with the package and test that prove your change. CI owns broad
 regression coverage; critical and release changes retain their complete local requirements.
 See the [validation contract](.claude/context/validation-pipeline.md) for exact gates.
-Formatting changes use `bun run format`; `bun run format:check` is read-only.
+Formatting changes use `bun run format`; `bun run format --check` is read-only.
 
 ## Repo Rules
 

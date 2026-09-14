@@ -201,7 +201,7 @@ Per accepted fix (or batched in a fix window):
    remind them the boot watchdog may flash on slow transforms.
 2. Mechanical proof at QA-Speed depth (validation-pipeline § Partial rungs): path-scoped
    format/lint for style-only edits, `bun run --filter <pkg> test <file>` for behavior, or
-   `bun run validation:plan -- --intent qa` when the touched set is broader. Full rungs wait for
+   `bun run check --plan -- --intent qa` when the touched set is broader. Full rungs wait for
    close.
 3. Record on the OBS: `fix: <files> · proof: <command → result> · revalidated: yes|no`.
 4. Commit per fix: `fix(<pkg>): <what> (qa-session <slug> OBS-NN)`. Commits stay local until
@@ -221,10 +221,10 @@ Per accepted fix (or batched in a fix window):
    meeting notes; this input is agent-authored and structured. qa-triage's PostHog cross-ref,
    scope lock, Linear templates, and Sheet Defects flow run unchanged. If the user is out of
    time, the handoff command is the named next step in the receipt.
-3. **Pull results, then report.** Run `bun run qa:pull --slug <slug> --run <run id from the
+3. **Pull results, then report.** Run `bun run qa pull --slug <slug> --run <run id from the
    header>` (`latest-closed` if the run was rolled over after the walk), and when the walk was a
-   re-QA also `bun run qa:pull --slug <slug> --run <previous run id> --out
-   tmp/qa-session/<slug>/previous`, then `bun run qa:report --slug <slug> --window <walk
+   re-QA also `bun run qa pull --slug <slug> --run <previous run id> --out
+   tmp/qa-session/<slug>/previous`, then `bun run qa report --slug <slug> --window <walk
    start>..<walk end>` (add `--previous tmp/qa-session/<slug>/previous/qa-state.json` for the
    run-versus-run delta) — the UTC times the walk
    actually began and ended, noted at pre-flight and at close (an OBS span would drop pass-only
@@ -257,7 +257,7 @@ Per accepted fix (or batched in a fix window):
    [`.claude/context/qa.md`](../../context/qa.md). An unresolved
    privacy finding fails closed; do not upload or delete the local evidence.
 6. **Ship — only when the session changed the repo.** If the session produced commits, run the
-   full `bun run validation:plan -- --intent review` on the accumulated branch, then the
+   full `bun run check --plan -- --intent review` on the accumulated branch, then the
    [`ship`](../ship/SKILL.md) skill for the push/PR decision. A session with no repository
    changes (all-pass, or every observation deferred) has nothing to ship: skip the push/PR path
    entirely — the receipt, results, and handoff complete the session, and `ship` would rightly
@@ -330,7 +330,7 @@ in the handoff, and let one agent take it after the session with the other's sli
 same-checkout guard (Phase 0.1) applies per walker — a fix must land in the checkout serving
 that walker's ports.
 
-**Close is shared, once.** A single `bun run qa:pull` collects both testers' work; it does not
+**Close is shared, once.** A single `bun run qa pull` collects both testers' work; it does not
 need running per person. For a team call where walkers recorded app-only, the per-walker
 artifacts in this section do **not** apply — with no per-walker agent there is no OBS log,
 deferred handoff, or per-walker receipt to produce, and none should be fabricated. That call's

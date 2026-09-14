@@ -63,8 +63,24 @@ function validateCommand(command, scripts, relBaseDir, label) {
     if (!stripped) continue;
 
     if (stripped.startsWith("bun run ")) {
-      const scriptName = stripped.slice("bun run ".length).split(/\s+/)[0];
-      if (!scripts[scriptName]) {
+      const words = stripped.slice("bun run ".length).split(/\s+/);
+      let available = scripts;
+      if (words[0] === "--cwd") {
+        const directory = words[1];
+        const candidates = directory ? [
+          path.resolve(repoRoot, directory, "package.json"),
+          path.resolve(repoRoot, relBaseDir, directory, "package.json"),
+        ] : [];
+        const manifest = candidates.find((candidate) => candidate.startsWith(`${repoRoot}${path.sep}`) && fs.existsSync(candidate));
+        if (!manifest || !manifest.startsWith(`${repoRoot}${path.sep}`) || !fs.existsSync(manifest)) {
+          fail(`${label}: missing package manifest for command \`${segment}\``);
+          continue;
+        }
+        available = JSON.parse(fs.readFileSync(manifest, "utf8")).scripts ?? {};
+        words.splice(0, 2);
+      }
+      const scriptName = words[0];
+      if (!available[scriptName]) {
         fail(`${label}: missing package script "${scriptName}" for command \`${segment}\``);
       }
       continue;
@@ -182,11 +198,8 @@ function validateRootGuide() {
     fail("AGENTS.md: missing canonical Implementation Quality Contract reference");
   }
 
-  if (rootScripts["lint:rules"] !== "node scripts/quality/check-react-patterns.js") {
-    fail("package.json: lint:rules must execute the high-confidence pattern gate directly");
-  }
-  if (!rootScripts.lint?.includes("bun run lint:rules")) {
-    fail("package.json: root lint must include lint:rules");
+  if (!rootScripts.lint?.includes("node scripts/quality/check-react-patterns.js")) {
+    fail("package.json: root lint must execute the high-confidence pattern gate directly");
   }
 
   const patternGate = read("scripts/quality/check-react-patterns.js");

@@ -19,6 +19,26 @@ import {
 
 const GIBIBYTE = 1024 ** 3;
 
+test("check selects explicit checks without dropping mandatory overrides", () => {
+  const options = parseArguments(["--only", "lint", "--plan", "--json"]);
+  assert.equal(options.intent, "diagnose");
+  assert.deepEqual(options.onlyChecks, ["lint"]);
+  const input = plan(["format", "lint", "contracts-test"]);
+  input.checks[2].mandatory = true;
+  const selected = applyCompatibilityFilters(input, options);
+  assert.deepEqual(selected.checks.map((check) => check.id), ["lint", "contracts-test"]);
+  assert.equal(options.planOnly, true);
+  assert.equal(options.json, true);
+});
+
+test("check rejects malformed discovery and selection before execution", () => {
+  for (const argv of [["--only"], ["--only", "--plan"], ["--json"], ["--list", "--only", "lint"], ["--unknown"]]) {
+    assert.throws(() => parseArguments(argv));
+  }
+  assert.equal(parseArguments(["--list", "--json"]).list, true);
+  assert.equal(parseArguments(["--only", "lint", "--intent", "release"]).intent, "release");
+});
+
 test("ci-local re-entry is wired only inside the direct-run guard", () => {
   const source = readFileSync(new URL("./ci-local.js", import.meta.url), "utf8");
   const directRunGuard = source.indexOf("if (isDirectRun) {");
@@ -71,7 +91,7 @@ test("ci-local detects the Arbitrum fork from an RPC override or port probe", as
 });
 
 test("environment blockers name their recovery commands", () => {
-  assert.match(capabilityRecoveryHint("arbitrumFork"), /bun run dev:contracts:arbitrum-fork/);
+  assert.match(capabilityRecoveryHint("arbitrumFork"), /bun run --cwd packages\/contracts dev:arbitrum-fork/);
   assert.match(
     capabilityRecoveryHint("contractSubmodules", "uninitialized"),
     /git submodule update --init --recursive/,

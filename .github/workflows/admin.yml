@@ -5,6 +5,7 @@ on:
     branches: [main, develop]
     paths:
       - "package.json"
+      - "scripts/dev/package-commands.mjs"
       - "bun.lock"
       - "biome.json"
       - ".env.schema"
@@ -32,6 +33,7 @@ on:
   pull_request:
     paths:
       - "package.json"
+      - "scripts/dev/package-commands.mjs"
       - "bun.lock"
       - "biome.json"
       - ".env.schema"
@@ -107,7 +109,7 @@ jobs:
         uses: ./.github/actions/setup-js
 
       - name: Run env schema parser tests
-        run: bun run test:env-schema
+        run: bun run check --only env-schema-test
 
       - name: Check source structure
         env:
@@ -115,7 +117,7 @@ jobs:
         run: node scripts/quality/check-source-structure.js
 
       - name: Check test quality
-        run: bun run check:test-quality
+        run: bun run check --only test-quality
 
       - name: Run admin lint
         working-directory: packages/admin
@@ -123,7 +125,7 @@ jobs:
 
       - name: Typecheck admin tests and stories
         working-directory: packages/admin
-        run: bun run typecheck:tests
+        run: bun run typecheck --scope tests
 
       - name: Build admin
         working-directory: packages/admin
@@ -149,7 +151,7 @@ jobs:
         uses: ./.github/actions/setup-js
 
       - name: Run env schema parser tests
-        run: bun run test:env-schema
+        run: bun run check --only env-schema-test
 
       - name: Check admin source map environment
         run: bun run env:check --profile sourcemaps-admin --env-source process
@@ -244,7 +246,7 @@ jobs:
         uses: ./.github/actions/setup-js
 
       - name: Run Lighthouse advisory
-        run: bun run lighthouse:admin
+        run: bun run browser lighthouse --app admin
         env:
           VITE_CHAIN_ID: "11155111"
           VITE_WALLETCONNECT_PROJECT_ID: ${{ secrets.VITE_WALLETCONNECT_PROJECT_ID || 'test' }}

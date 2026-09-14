@@ -97,7 +97,7 @@ Use these terms when describing admin UI:
 
 ## Never Use (in admin prompts)
 
-> **Machine policy**: the full admin-banned phrase list lives in [`scripts/data/banned-vocabulary.json`](../../../scripts/data/banned-vocabulary.json) (`prompt_vocabulary_admin_banned`). `bun run lint:vocab` reads the same file for lint-enforced cross-surface terms.
+> **Machine policy**: the full admin-banned phrase list lives in [`scripts/data/banned-vocabulary.json`](../../../scripts/data/banned-vocabulary.json) (`prompt_vocabulary_admin_banned`). `bun run check --only vocabulary` reads the same file for lint-enforced cross-surface terms.
 
 The categories below are contract-specific framing — *why* admin output should reject these patterns. The exact phrase set is the glossary's job:
 

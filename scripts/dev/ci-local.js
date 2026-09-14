@@ -18,6 +18,7 @@ import {
   buildReceiptInputs,
   fingerprintReceiptInputs,
   resolveGitInputs,
+  loadPolicy,
   selectValidation,
   summarizeBudget,
 } from "../quality/select-validation.mjs";
@@ -62,6 +63,7 @@ export function parseArguments(argv) {
     changedPaths: [],
     testPaths: {},
     checkIds: [],
+    onlyChecks: [],
     capabilities: {},
     skipContracts: false,
     skipIndexer: false,
@@ -81,7 +83,7 @@ export function parseArguments(argv) {
     const arg = argv[index];
     const next = () => {
       const value = argv[++index];
-      if (!value) throw new Error(`${arg} requires a value`);
+      if (!value || value.startsWith("--")) throw new Error(`${arg} requires a value`);
       return value;
     };
 
@@ -118,6 +120,23 @@ export function parseArguments(argv) {
         break;
       case "--no-fail-fast":
         options.failFast = false;
+        break;
+      case "--plan":
+        options.planOnly = true;
+        break;
+      case "--list":
+        options.list = true;
+        break;
+      case "--json":
+        options.json = true;
+        break;
+      case "--only": {
+        const id = next();
+        options.onlyChecks.push(id);
+        options.checkIds.push(id);
+        break;
+      }
+      case "--":
         break;
       case "--plan-json":
         options.planJson = true;
@@ -173,6 +192,13 @@ export function parseArguments(argv) {
         throw new Error(`Unknown argument: ${arg}`);
     }
   }
+  if (options.onlyChecks.length && !argv.includes("--intent")) options.intent = "diagnose";
+  if (options.json && !options.planOnly && !options.planJson && !options.list) {
+    throw new Error("--json requires --plan or --list");
+  }
+  if (options.list && (options.checkIds.length || options.planOnly || options.planJson)) {
+    throw new Error("--list cannot be combined with check selection or --plan");
+  }
   if (
     options.intent === "checkpoint" &&
     options.checkpointScope === "lane" &&
@@ -185,7 +211,7 @@ export function parseArguments(argv) {
 }
 
 function showHelp() {
-  console.log(`Usage: node scripts/dev/ci-local.js [options]
+  console.log(`Usage: bun run check -- [options]
 
 Selector options:
   --intent <intent>       diagnose|qa|review|checkpoint|readiness|push|ship|merge|release
@@ -196,6 +222,10 @@ Selector options:
   --risk <risk>           routine|sensitive|critical
   --test-path <pkg:path>  Direct behavior proof for push, e.g. shared:src/utils/date.test.ts
   --check <check-id>      Add an explicit acceptance check; repeatable
+  --only <check-id>       Select checks plus mandatory checks; repeatable
+  --plan                 Show the plan without executing checks
+  --list                 List stable checks without probing services
+  --json                 JSON output for --plan or --list
   --capability k=true     Declare an environment capability; repeatable
   --plan-json             Print the exact plan as JSON without running it
   --cancelled             Emit a terminal cancelled plan
@@ -265,7 +295,7 @@ export async function arbitrumForkAvailable({
 
 export function capabilityRecoveryHint(capability, contractSubmoduleState) {
   if (capability === "arbitrumFork") {
-    return "Start the local fork with `bun run dev:contracts:arbitrum-fork`.";
+    return "Start the local fork with `bun run --cwd packages/contracts dev:arbitrum-fork`.";
   }
   if (capability === "contractSubmodules") {
     if (contractSubmoduleState === "modified") {
@@ -322,6 +352,7 @@ export function applyCompatibilityFilters(plan, options) {
   const skipped = [];
   const keep = (check) => {
     let requestedSkip = false;
+    if (options.onlyChecks?.length && !options.onlyChecks.includes(check.id)) requestedSkip = true;
     if (options.onlyLint && !["format", "lint"].includes(check.id)) requestedSkip = true;
     if (
       options.skipContracts &&
@@ -780,6 +811,16 @@ async function main() {
     showHelp();
     return;
   }
+  const policy = loadPolicy();
+  if (!policy.intentOrder.includes(options.intent)) throw new Error(`Unknown validation intent: ${options.intent}`);
+  for (const id of options.checkIds) {
+    if (!policy.checks.some((check) => check.id === id)) throw new Error(`Unknown validation check: ${id}`);
+  }
+  if (options.list) {
+    const checks = policy.checks.map(({ id, command, capabilities, risk, expectedSignal }) => ({ id, command, capabilities: capabilities ?? [], risk, expectedSignal }));
+    console.log(options.json ? JSON.stringify(checks, null, 2) : checks.map((check) => `${check.id}: ${check.expectedSignal}`).join("\n"));
+    return;
+  }
 
   const gitInputs = options.cancelled
     ? {
@@ -795,12 +836,13 @@ async function main() {
     : await detectEnvironment(options);
   const plan = buildLocalValidationPlan(options, gitInputs, environment);
 
-  if (options.planJson) {
+  if (options.planJson || options.planOnly && options.json) {
     console.log(JSON.stringify(plan, null, 2));
     return;
   }
 
   printPlan(plan);
+  if (options.planOnly) return;
   if (options.generateIndexer) {
     console.log(
       `${colors.yellow}Note:${colors.reset} --generate-indexer is retained for compatibility; selected Indexer package commands own code generation.`,

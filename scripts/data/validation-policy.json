@@ -368,7 +368,7 @@
   "checks": [
     {
       "id": "format",
-      "command": "bun run format:check",
+      "command": "bunx @biomejs/biome format .",
       "risk": "unformatted tracked files produce misleading package failures",
       "expectedSignal": "repository formatting is unchanged",
       "freshness": "exact-inputs",
@@ -388,7 +388,7 @@
     },
     {
       "id": "validation-system-test",
-      "command": "bun run test:validation-system",
+      "command": "node scripts/dev/node-cli.js node --test scripts/lib/dev-shared.test.mjs scripts/quality/check-direct-tested-seams.test.mjs scripts/quality/check-source-structure.test.mjs scripts/quality/check-staged-modules.test.mjs scripts/quality/select-validation.test.mjs scripts/dev/ci-local.test.mjs scripts/dev/surface-leases.test.mjs scripts/dev/stack.test.mjs scripts/dev/smoke-full.test.mjs scripts/quality/ci-gate.test.mjs scripts/quality/workflow-performance-parity.test.mjs scripts/dev/dev-modes.test.mjs scripts/dev/setup-env.test.mjs scripts/dev/package-commands.test.mjs scripts/dev/command-runners.test.mjs",
       "risk": "validation selector or workflow routing changes are not exercised by their durable regression suite",
       "expectedSignal": "the validation-system regression suite passes",
       "freshness": "exact-inputs-and-toolchain",
@@ -398,7 +398,7 @@
     },
     {
       "id": "test-quality",
-      "command": "bun run check:test-quality",
+      "command": "bash scripts/quality/check-test-quality.sh",
       "risk": "direct-test seams, registry evidence, or test architecture can drift behind passing suites",
       "expectedSignal": "test-quality and certified seam guardrails pass without baseline debt",
       "freshness": "exact-test-guidance-registry-inputs-and-toolchain",
@@ -408,7 +408,7 @@
     },
     {
       "id": "env-schema-test",
-      "command": "bun run test:env-schema",
+      "command": "node scripts/dev/node-cli.js node --test scripts/lib/env-schema.test.mjs",
       "risk": "environment schema behavior changes without executing its direct regression test",
       "expectedSignal": "the environment schema regression test passes",
       "freshness": "exact-inputs-and-toolchain",
@@ -440,7 +440,7 @@
     },
     {
       "id": "shared-test-typecheck",
-      "command": "bun run typecheck:tests",
+      "command": "bun run typecheck --scope tests",
       "cwd": "packages/shared",
       "risk": "shared tests and stories no longer satisfy their strict TypeScript contract",
       "expectedSignal": "shared test and story TypeScript graph has no errors",
@@ -474,7 +474,7 @@
     },
     {
       "id": "client-test-typecheck",
-      "command": "bun run typecheck:tests",
+      "command": "bun run typecheck --scope tests",
       "cwd": "packages/client",
       "risk": "client tests and stories no longer satisfy their strict TypeScript contract",
       "expectedSignal": "client test and story TypeScript graph has no errors",
@@ -508,7 +508,7 @@
     },
     {
       "id": "admin-test-typecheck",
-      "command": "bun run typecheck:tests",
+      "command": "bun run typecheck --scope tests",
       "cwd": "packages/admin",
       "risk": "admin tests and stories no longer satisfy their strict TypeScript contract",
       "expectedSignal": "admin test and story TypeScript graph has no errors",
@@ -531,7 +531,7 @@
     },
     {
       "id": "admin-hub-test",
-      "command": "bun run test:hub",
+      "command": "bun run test --suite hub",
       "cwd": "packages/admin",
       "risk": "admin Hub checkpoint behavior regresses",
       "expectedSignal": "focused admin Hub tests pass",
@@ -565,7 +565,7 @@
     },
     {
       "id": "agent-test-typecheck",
-      "command": "bun run typecheck:tests",
+      "command": "bun run typecheck --scope tests",
       "cwd": "packages/agent",
       "risk": "agent tests no longer satisfy their strict TypeScript contract",
       "expectedSignal": "agent test TypeScript graph has no errors",
@@ -621,10 +621,10 @@
     },
     {
       "id": "indexer-contract-events",
-      "command": "bun run test:contract-events",
+      "command": "bun run test --scope contract-events",
       "cwd": "packages/indexer",
       "risk": "contract ABI or indexed event compatibility drifts from mined logs",
-      "expectedSignal": "real mined-log integration passes after starting the local fork with bun run dev:contracts:arbitrum-fork",
+      "expectedSignal": "real mined-log integration passes after starting the local fork with bun run --cwd packages/contracts dev:arbitrum-fork",
       "freshness": "exact-inputs-and-toolchain-and-local-fork",
       "budgetSeconds": 480,
       "stopRule": "stop-dependent-checks",
@@ -661,7 +661,7 @@
     },
     {
       "id": "contracts-verify-fast",
-      "command": "bun run verify:contracts:fast",
+      "command": "./scripts/contracts/verify-production.sh --skip-e2e --skip-dry-run",
       "risk": "contract size, storage, artifact, or deployment path safety regresses",
       "expectedSignal": "fast contract verification suite passes",
       "freshness": "exact-inputs-and-toolchain",
@@ -671,7 +671,7 @@
     },
     {
       "id": "docs-authority",
-      "command": "node --test scripts/docs/generate.test.mjs docs/scripts/docs-audit.test.mjs docs/scripts/developer-guides.test.mjs && bun run docs:audit:ci && bun run check:docs-generated",
+      "command": "node --test scripts/docs/generate.test.mjs docs/scripts/docs-audit.test.mjs docs/scripts/developer-guides.test.mjs && node docs/scripts/docs-audit.mjs --ci && node scripts/docs/generate.mjs --check",
       "risk": "documentation authorities, generated sources, or committed projections drift",
       "expectedSignal": "generator fixtures, authority links, navigation targets, and committed projections are current",
       "freshness": "exact-inputs-and-toolchain",
@@ -704,7 +704,7 @@
     },
     {
       "id": "staged-modules",
-      "command": "bun run check:staged-modules",
+      "command": "node scripts/quality/check-staged-modules.mjs",
       "risk": "deferred Card Endow code becomes live without an explicit activation decision",
       "expectedSignal": "all staged Card Endow modules remain marked and have no live importer",
       "freshness": "exact-inputs",
@@ -714,7 +714,7 @@
     },
     {
       "id": "source-structure",
-      "command": "bun run check:source-structure",
+      "command": "node scripts/quality/check-source-structure.js",
       "risk": "changed package source violates repository structure policy",
       "expectedSignal": "changed source structure is accepted",
       "freshness": "exact-inputs",
@@ -724,7 +724,7 @@
     },
     {
       "id": "design-guardrails",
-      "command": "bun run check:design-md && bun run check:design-generated && bun run check:design-tokens && bun run lint:vocab",
+      "command": "design.md lint --format json DESIGN.md && design.md lint --format json packages/admin/DESIGN.md && design.md lint --format json packages/client/DESIGN.pwa.md && design.md lint --format json packages/client/DESIGN.browser.md && design.md lint --format json docs/DESIGN.md && node scripts/design/md-generate.mjs --check && bash scripts/design/check-tokens.sh && bash scripts/design/check-vocab.sh",
       "risk": "frontend design tokens, generated artifacts, or vocabulary drift",
       "expectedSignal": "design and vocabulary guardrails pass",
       "freshness": "exact-inputs-and-toolchain",
@@ -734,7 +734,7 @@
     },
     {
       "id": "ontology",
-      "command": "bun run check:ontology",
+      "command": "node scripts/dev/node-cli.js node --test scripts/quality/check-ontology.test.mjs && node scripts/quality/check-ontology.mjs",
       "risk": "domain ontology and generated references diverge",
       "expectedSignal": "ontology source and projections agree",
       "freshness": "exact-inputs",
@@ -744,7 +744,7 @@
     },
     {
       "id": "agent-guidance",
-      "command": "bun run check:codex-guidance && bun run check:skill-behavior && bun run check:guidance-links",
+      "command": "node scripts/quality/check-codex-docs.js && node scripts/quality/check-skill-behavior-contracts.mjs && node scripts/quality/check-guidance-links.mjs",
       "risk": "agent skill routing, behavior contracts, or documented guidance inventory drifts",
       "expectedSignal": "Codex guidance, skill behavior, and guidance links agree with the canonical skill tree",
       "freshness": "exact-guidance-inputs-and-toolchain",
@@ -754,7 +754,7 @@
     },
     {
       "id": "qa-id-ledger",
-      "command": "bun run check:qa-id-ledger",
+      "command": "node scripts/quality/check-qa-id-ledger.mjs",
       "risk": "a QA Test ID is removed, reintroduced, or reactivated after retirement, so OBS records, Linear slices, and past verdicts keyed on it change meaning",
       "expectedSignal": "every Test ID present at the merge-base survives in the ledger and catalog, none repeats or is reintroduced, and retired ids remain retired",
       "freshness": "exact-inputs-and-toolchain",
@@ -764,7 +764,7 @@
     },
     {
       "id": "supply-chain",
-      "command": "bun run check:codex-guidance && bun run check:guidance-links && bun run check:immutable-plan-reports && bun run check:test-quality && node scripts/harness/plan-hub.mjs validate && node --test scripts/harness/plan-hub.test.mjs",
+      "command": "node scripts/quality/check-codex-docs.js && node scripts/quality/check-guidance-links.mjs && node scripts/quality/check-immutable-plan-reports.mjs && bash scripts/quality/check-test-quality.sh && node scripts/harness/plan-hub.mjs validate && node --test scripts/harness/plan-hub.test.mjs",
       "risk": "dependency or repository guidance integrity regresses",
       "expectedSignal": "supply-chain and guidance guardrails pass",
       "freshness": "exact-inputs-and-toolchain",
@@ -828,9 +828,249 @@
     },
     {
       "id": "agent-tools-test",
-      "command": "bun run test:agent-tools",
+      "command": "bun --bun x vitest run --dir scripts/agents",
       "risk": "agent query surfaces or the QA catalog, projections, and live-status report regress without a required gate",
       "expectedSignal": "agent query and QA tooling suites pass",
+      "freshness": "exact-inputs-and-toolchain",
+      "budgetSeconds": 60,
+      "stopRule": "stop-dependent-checks",
+      "capabilities": ["dependencies"]
+    },
+    {
+      "id": "codex-guidance",
+      "command": "node scripts/quality/check-codex-docs.js",
+      "risk": "Independently selectable repository verification must retain its behavior.",
+      "expectedSignal": "codex-guidance completes successfully",
+      "freshness": "exact-inputs-and-toolchain",
+      "budgetSeconds": 60,
+      "stopRule": "stop-dependent-checks",
+      "capabilities": ["dependencies"]
+    },
+    {
+      "id": "guidance-links",
+      "command": "node scripts/quality/check-guidance-links.mjs",
+      "risk": "Independently selectable repository verification must retain its behavior.",
+      "expectedSignal": "guidance-links completes successfully",
+      "freshness": "exact-inputs-and-toolchain",
+      "budgetSeconds": 60,
+      "stopRule": "stop-dependent-checks",
+      "capabilities": ["dependencies"]
+    },
+    {
+      "id": "skill-behavior",
+      "command": "node scripts/quality/check-skill-behavior-contracts.mjs",
+      "risk": "Independently selectable repository verification must retain its behavior.",
+      "expectedSignal": "skill-behavior completes successfully",
+      "freshness": "exact-inputs-and-toolchain",
+      "budgetSeconds": 60,
+      "stopRule": "stop-dependent-checks",
+      "capabilities": ["dependencies"]
+    },
+    {
+      "id": "immutable-plan-reports",
+      "command": "node scripts/quality/check-immutable-plan-reports.mjs",
+      "risk": "Independently selectable repository verification must retain its behavior.",
+      "expectedSignal": "immutable-plan-reports completes successfully",
+      "freshness": "exact-inputs-and-toolchain",
+      "budgetSeconds": 60,
+      "stopRule": "stop-dependent-checks",
+      "capabilities": ["dependencies"]
+    },
+    {
+      "id": "browser-verification-policy",
+      "command": "bun scripts/check-browser-verification-policy.mjs",
+      "risk": "Independently selectable repository verification must retain its behavior.",
+      "expectedSignal": "browser-verification-policy completes successfully",
+      "freshness": "exact-inputs-and-toolchain",
+      "budgetSeconds": 60,
+      "stopRule": "stop-dependent-checks",
+      "capabilities": ["dependencies"]
+    },
+    {
+      "id": "design-generated",
+      "command": "node scripts/design/md-generate.mjs --check",
+      "risk": "Independently selectable repository verification must retain its behavior.",
+      "expectedSignal": "design-generated completes successfully",
+      "freshness": "exact-inputs-and-toolchain",
+      "budgetSeconds": 60,
+      "stopRule": "stop-dependent-checks",
+      "capabilities": ["dependencies"]
+    },
+    {
+      "id": "design-tokens",
+      "command": "bash scripts/design/check-tokens.sh",
+      "risk": "Independently selectable repository verification must retain its behavior.",
+      "expectedSignal": "design-tokens completes successfully",
+      "freshness": "exact-inputs-and-toolchain",
+      "budgetSeconds": 60,
+      "stopRule": "stop-dependent-checks",
+      "capabilities": ["dependencies"]
+    },
+    {
+      "id": "design-guidance",
+      "command": "node scripts/design/check-guidance-examples.mjs",
+      "risk": "Independently selectable repository verification must retain its behavior.",
+      "expectedSignal": "design-guidance completes successfully",
+      "freshness": "exact-inputs-and-toolchain",
+      "budgetSeconds": 60,
+      "stopRule": "stop-dependent-checks",
+      "capabilities": ["dependencies"]
+    },
+    {
+      "id": "design-md",
+      "command": "design.md lint --format json DESIGN.md && design.md lint --format json packages/admin/DESIGN.md && design.md lint --format json packages/client/DESIGN.pwa.md && design.md lint --format json packages/client/DESIGN.browser.md && design.md lint --format json docs/DESIGN.md",
+      "risk": "Independently selectable repository verification must retain its behavior.",
+      "expectedSignal": "design-md completes successfully",
+      "freshness": "exact-inputs-and-toolchain",
+      "budgetSeconds": 60,
+      "stopRule": "stop-dependent-checks",
+      "capabilities": ["dependencies"]
+    },
+    {
+      "id": "docs-design-parity",
+      "command": "node scripts/quality/check-docs-design-parity.mjs",
+      "risk": "Independently selectable repository verification must retain its behavior.",
+      "expectedSignal": "docs-design-parity completes successfully",
+      "freshness": "exact-inputs-and-toolchain",
+      "budgetSeconds": 60,
+      "stopRule": "stop-dependent-checks",
+      "capabilities": ["dependencies"]
+    },
+    {
+      "id": "foundry-version",
+      "command": "node scripts/contracts/check-foundry-version.mjs",
+      "risk": "Independently selectable repository verification must retain its behavior.",
+      "expectedSignal": "foundry-version completes successfully",
+      "freshness": "exact-inputs-and-toolchain",
+      "budgetSeconds": 60,
+      "stopRule": "stop-dependent-checks",
+      "capabilities": ["dependencies"]
+    },
+    {
+      "id": "solidity-test-names",
+      "command": "node scripts/contracts/check-solidity-test-names.mjs",
+      "risk": "Independently selectable repository verification must retain its behavior.",
+      "expectedSignal": "solidity-test-names completes successfully",
+      "freshness": "exact-inputs-and-toolchain",
+      "budgetSeconds": 60,
+      "stopRule": "stop-dependent-checks",
+      "capabilities": ["dependencies"]
+    },
+    {
+      "id": "dead-code",
+      "command": "bun --bun node_modules/.bin/knip",
+      "risk": "Independently selectable repository verification must retain its behavior.",
+      "expectedSignal": "dead-code completes successfully",
+      "freshness": "exact-inputs-and-toolchain",
+      "budgetSeconds": 60,
+      "stopRule": "stop-dependent-checks",
+      "capabilities": ["dependencies"]
+    },
+    {
+      "id": "docs-generated",
+      "command": "node scripts/docs/generate.mjs --check",
+      "risk": "Independently selectable repository verification must retain its behavior.",
+      "expectedSignal": "docs-generated completes successfully",
+      "freshness": "exact-inputs-and-toolchain",
+      "budgetSeconds": 60,
+      "stopRule": "stop-dependent-checks",
+      "capabilities": ["dependencies"]
+    },
+    {
+      "id": "contracts-verifier-test",
+      "command": "node scripts/dev/node-cli.js node --test scripts/contracts/verify-production.test.mjs",
+      "risk": "Independently selectable repository verification must retain its behavior.",
+      "expectedSignal": "contracts-verifier-test completes successfully",
+      "freshness": "exact-inputs-and-toolchain",
+      "budgetSeconds": 60,
+      "stopRule": "stop-dependent-checks",
+      "capabilities": ["dependencies"]
+    },
+    {
+      "id": "review-guardrails-test",
+      "command": "node scripts/dev/node-cli.js node --test scripts/quality/check-codex-docs.test.mjs scripts/quality/check-guidance-links.test.mjs scripts/quality/check-skill-behavior-contracts.test.mjs scripts/quality/task-routing-contract.test.mjs scripts/quality/check-immutable-plan-reports.test.mjs scripts/quality/check-qa-id-ledger.test.mjs scripts/quality/lint-linear-issue.test.mjs scripts/design/check-guidance-examples.test.mjs scripts/contracts/check-foundry-version.test.mjs scripts/contracts/check-solidity-test-names.test.mjs",
+      "risk": "Independently selectable repository verification must retain its behavior.",
+      "expectedSignal": "review-guardrails-test completes successfully",
+      "freshness": "exact-inputs-and-toolchain",
+      "budgetSeconds": 60,
+      "stopRule": "stop-dependent-checks",
+      "capabilities": ["dependencies"]
+    },
+    {
+      "id": "fork-fixtures-test",
+      "command": "vitest run tests/fixtures/*.test.ts --environment node",
+      "risk": "Independently selectable repository verification must retain its behavior.",
+      "expectedSignal": "fork-fixtures-test completes successfully",
+      "freshness": "exact-inputs-and-toolchain",
+      "budgetSeconds": 60,
+      "stopRule": "stop-dependent-checks",
+      "capabilities": ["dependencies"]
+    },
+    {
+      "id": "agentic-readiness",
+      "command": "DISABLE_TELEMETRY=1 bun --bun modern-web-guidance search \"agentic frontend CSS accessibility browser validation DevTools MCP\" && DISABLE_TELEMETRY=1 bun --bun modern-web-guidance retrieve accessibility && bun scripts/check-browser-verification-policy.mjs && node scripts/quality/check-skill-behavior-contracts.mjs && design.md lint --format json DESIGN.md && design.md lint --format json packages/admin/DESIGN.md && design.md lint --format json packages/client/DESIGN.pwa.md && design.md lint --format json packages/client/DESIGN.browser.md && design.md lint --format json docs/DESIGN.md && node scripts/design/md-generate.mjs --check && bash scripts/design/check-tokens.sh && node scripts/dev/node-cli.js node --test scripts/quality/check-ontology.test.mjs && node scripts/quality/check-ontology.mjs && bun run --filter @green-goods/shared check:stories && bun run --filter @green-goods/shared check:story-quality",
+      "risk": "Independently selectable repository verification must retain its behavior.",
+      "expectedSignal": "agentic-readiness completes successfully",
+      "freshness": "exact-inputs-and-toolchain",
+      "budgetSeconds": 60,
+      "stopRule": "stop-dependent-checks",
+      "capabilities": ["dependencies"]
+    },
+    {
+      "id": "drift",
+      "command": "node scripts/quality/drift-check.mjs",
+      "risk": "Independently selectable repository verification must retain its behavior.",
+      "expectedSignal": "drift completes successfully",
+      "freshness": "exact-inputs-and-toolchain",
+      "budgetSeconds": 60,
+      "stopRule": "stop-dependent-checks",
+      "capabilities": ["dependencies"]
+    },
+    {
+      "id": "skill-evaluation",
+      "command": "node scripts/harness/skill-trigger-eval.mjs",
+      "risk": "Independently selectable repository verification must retain its behavior.",
+      "expectedSignal": "skill-evaluation completes successfully",
+      "freshness": "exact-inputs-and-toolchain",
+      "budgetSeconds": 60,
+      "stopRule": "stop-dependent-checks",
+      "capabilities": ["dependencies"]
+    },
+    {
+      "id": "vocabulary",
+      "command": "bash scripts/design/check-vocab.sh",
+      "risk": "Independently selectable repository verification must retain its behavior.",
+      "expectedSignal": "vocabulary completes successfully",
+      "freshness": "exact-inputs-and-toolchain",
+      "budgetSeconds": 60,
+      "stopRule": "stop-dependent-checks",
+      "capabilities": ["dependencies"]
+    },
+    {
+      "id": "react-patterns",
+      "command": "node scripts/quality/check-react-patterns.js",
+      "risk": "Independently selectable repository verification must retain its behavior.",
+      "expectedSignal": "react-patterns completes successfully",
+      "freshness": "exact-inputs-and-toolchain",
+      "budgetSeconds": 60,
+      "stopRule": "stop-dependent-checks",
+      "capabilities": ["dependencies"]
+    },
+    {
+      "id": "static-lint",
+      "command": "bun --bun run oxlint packages/client/src packages/admin/src packages/shared/src packages/indexer/src packages/agent/src packages/contracts/script --deny-warnings && bun run --cwd packages/contracts lint --check",
+      "risk": "Independently selectable repository verification must retain its behavior.",
+      "expectedSignal": "static-lint completes successfully",
+      "freshness": "exact-inputs-and-toolchain",
+      "budgetSeconds": 60,
+      "stopRule": "stop-dependent-checks",
+      "capabilities": ["dependencies"]
+    },
+    {
+      "id": "contracts-verify",
+      "command": "./scripts/contracts/verify-production.sh",
+      "risk": "Independently selectable repository verification must retain its behavior.",
+      "expectedSignal": "contracts-verify completes successfully",
       "freshness": "exact-inputs-and-toolchain",
       "budgetSeconds": 60,
       "stopRule": "stop-dependent-checks",
@@ -1000,6 +1240,12 @@
         "scripts/data/banned-vocabulary.json",
         "scripts/data/qa-test-catalog.json",
         "scripts/data/validation-policy.json",
+        "scripts/data/command-migration.json",
+        "scripts/data/command-policy.json",
+        "scripts/dev/browser.js",
+        "scripts/dev/package-commands.mjs",
+        "scripts/dev/test.js",
+        "scripts/agents/qa.mjs",
         "scripts/quality/check-ontology.mjs",
         "scripts/quality/ontology-render.mjs",
         "scripts/quality/task-routing-contract.mjs",
@@ -1038,7 +1284,10 @@
         "packages/shared/src/utils/blockchain/ens.ts",
         "playwright.config.ts",
         ".github/actions/setup-js/action.yml",
-        ".github/workflows/docs.yml"
+        ".github/workflows/docs.yml",
+        "packages/contracts/config/command-migration.json",
+        "packages/contracts/script/cli/operations.mjs",
+        "packages/contracts/script/utils/package-commands.mjs"
       ],
       "prefixes": [
         ".claude/skills/",
