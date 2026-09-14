@@ -394,6 +394,8 @@ export const Garden: React.FC = () => {
                   tabs={tabs}
                   activeTab={activeTab}
                   onTabChange={(tabId) => setActiveTab(tabId as GardenTab)}
+                  className="overflow-x-auto"
+                  triggerClassName="flex-auto min-w-max whitespace-nowrap"
                   ariaLabel={intl.formatMessage({
                     id: "app.garden.tabs.label",
                     defaultMessage: "Garden sections",
