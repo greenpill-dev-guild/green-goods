@@ -32,7 +32,7 @@ import {
   RiLoader4Line,
   RiMapPin2Fill,
 } from "@remixicon/react";
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { Outlet, useLocation, useParams } from "react-router-dom";
 import { isAddress } from "viem";
@@ -61,11 +61,12 @@ export const Garden: React.FC = () => {
   // Track the actual rendered height of the fixed header so the spacer below
   // matches whatever the title section rendered as (including 1, 2, or 3+ line
   // garden names). Avoids overflow when names exceed the previous hardcoded
-  // ~288px estimate.
-  const headerRef = useRef<HTMLDivElement | null>(null);
+  // ~288px estimate. The header is absent while the garden loads and on child
+  // routes (work, assessments, commitments), so each header element gets its
+  // own observer, disconnected before the element leaves: a removed element
+  // reports a height of 0, which would slide the list under the header.
   const [headerHeight, setHeaderHeight] = useState<number | null>(null);
-  useEffect(() => {
-    const element = headerRef.current;
+  const measureHeader = useCallback((element: HTMLDivElement | null) => {
     if (!element || typeof ResizeObserver === "undefined") return;
     const observer = new ResizeObserver((entries) => {
       for (const entry of entries) {
@@ -85,8 +86,6 @@ export const Garden: React.FC = () => {
 
   const navigate = useNavigateToTop();
   const { activeTab, setActiveTab } = useGardenTabs();
-
-  // Header uses CSS sticky; no JS height measurement needed
 
   const { id: gardenIdParam } = useParams<{ id: string }>();
   const { pathname } = useLocation();
@@ -328,7 +327,11 @@ export const Garden: React.FC = () => {
         pathname.includes("commitments") ? null : (
           <>
             {/* Fixed Header (banner + TopNav + title/metadata) */}
-            <div ref={headerRef} className="fixed top-0 left-0 right-0 bg-bg-white-0 z-20">
+            <div
+              ref={measureHeader}
+              data-testid="garden-header"
+              className="fixed top-0 left-0 right-0 bg-bg-white-0 z-20"
+            >
               <div className="relative w-full h-36 md:h-44 overflow-hidden rounded-b-2xl">
                 <ImageWithFallback
                   src={bannerImage || ""}
@@ -407,6 +410,7 @@ export const Garden: React.FC = () => {
                 static height for the brief moment before ResizeObserver
                 reports a value. */}
             <div
+              data-testid="garden-header-spacer"
               className="flex-shrink-0"
               style={{ height: headerHeight !== null ? `${headerHeight}px` : undefined }}
               aria-hidden="true"

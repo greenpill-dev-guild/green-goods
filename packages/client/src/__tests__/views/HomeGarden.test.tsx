@@ -1,8 +1,8 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { createElement } from "react";
 import { IntlProvider } from "react-intl";
-import { MemoryRouter, Route, Routes } from "react-router-dom";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { MemoryRouter, type NavigateFunction, Route, Routes, useNavigate } from "react-router-dom";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import messages from "@green-goods/shared/i18n/en.json";
 
 const mockShareLink = vi.fn().mockResolvedValue(undefined);
@@ -432,5 +432,137 @@ describe("Home garden route", () => {
     );
 
     expect(screen.getByTestId("join-garden-button")).toHaveTextContent("Open Garden");
+  });
+});
+
+describe("Home garden header spacer", () => {
+  const HEADER_HEIGHT = 291;
+  const resizeObservers = new Set<FakeResizeObserver>();
+  const originalResizeObserver = globalThis.ResizeObserver;
+
+  class FakeResizeObserver {
+    private readonly targets = new Set<Element>();
+
+    constructor(private readonly callback: ResizeObserverCallback) {
+      resizeObservers.add(this);
+    }
+
+    observe(target: Element) {
+      this.targets.add(target);
+    }
+
+    unobserve(target: Element) {
+      this.targets.delete(target);
+    }
+
+    disconnect() {
+      this.targets.clear();
+      resizeObservers.delete(this);
+    }
+
+    /** Browsers report a target removed from the document as 0 × 0. */
+    report() {
+      const entries = [...this.targets].map((target) => ({
+        target,
+        contentRect: { height: target.isConnected ? HEADER_HEIGHT : 0 },
+      }));
+      if (entries.length === 0) return;
+      this.callback(entries as unknown as ResizeObserverEntry[], this as unknown as ResizeObserver);
+    }
+  }
+
+  const flushResizeObservations = () =>
+    act(() => {
+      for (const observer of [...resizeObservers]) observer.report();
+    });
+
+  const garden = {
+    id: "garden-1",
+    name: "Test Garden",
+    location: "Here",
+    createdAt: 0,
+    assessments: [],
+    gardeners: [],
+    stewards: [],
+    openJoining: false,
+  };
+
+  let navigate: NavigateFunction;
+  function CaptureNavigate() {
+    navigate = useNavigate();
+    return null;
+  }
+
+  const gardenRoutes = () =>
+    createElement(
+      MemoryRouter,
+      { initialEntries: ["/home/garden-1"] },
+      createElement(
+        IntlProvider,
+        { locale: "en", messages },
+        createElement(CaptureNavigate),
+        createElement(
+          Routes,
+          null,
+          createElement(
+            Route,
+            { path: "/home/:id", element: createElement(Garden) },
+            createElement(Route, {
+              path: "work/:workId",
+              element: createElement("p", null, "Work detail"),
+            })
+          )
+        )
+      )
+    );
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockPrimaryAddress = null;
+    mockUseGardenTabs.mockReturnValue({ activeTab: "Work", setActiveTab: vi.fn() });
+    globalThis.ResizeObserver = FakeResizeObserver as unknown as typeof ResizeObserver;
+  });
+
+  afterEach(() => {
+    globalThis.ResizeObserver = originalResizeObserver;
+    resizeObservers.clear();
+  });
+
+  it("keeps the list below the header after returning from a work", () => {
+    mockUseGardens.mockReturnValue({ data: [garden], isLoading: false, isFetching: false });
+    render(gardenRoutes());
+    flushResizeObservations();
+    expect(screen.getByTestId("garden-header-spacer")).toHaveStyle({
+      height: `${HEADER_HEIGHT}px`,
+    });
+
+    // Approving a work, or pressing Back, returns to the garden route while Garden stays mounted.
+    act(() => {
+      void navigate("/home/garden-1/work/work-1");
+    });
+    expect(screen.getByText("Work detail")).toBeInTheDocument();
+    expect(screen.queryByTestId("garden-header")).not.toBeInTheDocument();
+    flushResizeObservations();
+
+    act(() => {
+      void navigate("/home/garden-1");
+    });
+    flushResizeObservations();
+    expect(screen.getByTestId("garden-header-spacer")).toHaveStyle({
+      height: `${HEADER_HEIGHT}px`,
+    });
+  });
+
+  it("measures the header when the garden arrives after the route mounts", () => {
+    mockUseGardens.mockReturnValue({ data: [], isLoading: true, isFetching: true });
+    const view = render(gardenRoutes());
+    expect(screen.getByText("Loading garden...")).toBeInTheDocument();
+
+    mockUseGardens.mockReturnValue({ data: [garden], isLoading: false, isFetching: false });
+    view.rerender(gardenRoutes());
+    flushResizeObservations();
+    expect(screen.getByTestId("garden-header-spacer")).toHaveStyle({
+      height: `${HEADER_HEIGHT}px`,
+    });
   });
 });
