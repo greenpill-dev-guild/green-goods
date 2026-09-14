@@ -2,6 +2,7 @@
 
 import { spawnSync } from "node:child_process";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { config as loadDotenv } from "dotenv";
 
 const NO_MATCH_TEST = ".*[cC]elo.*|.*[uU]nlock.*";
@@ -27,12 +28,12 @@ const DEFAULTS = {
   CELO_FORK_BLOCK_NUMBER: "74700818",
 };
 
-const SHARDS = {
+export const SHARDS = {
   arbitrum: {
     chain: "ARBITRUM",
     description: "Arbitrum core, ENS, Gardens module, EAS, Hypercerts, Karma GAP, and full-protocol fork coverage",
     glob:
-      "test/fork/{ArbitrumActionRegistry,ArbitrumCommitmentPooling,ArbitrumConvictionVoting,ArbitrumENS,ArbitrumGardenAccount,ArbitrumGardenAccountConfig,ArbitrumGardenAccountMembership,ArbitrumGardenAccountMetadata,ArbitrumGardenToken,ArbitrumGardensModule,ArbitrumGardensNegativePaths,ArbitrumGoodsToken,ArbitrumHats,ArbitrumHatsModuleUpgrade,ArbitrumHypercerts,ArbitrumKarmaGAP,ArbitrumLiveGardenSignalPoolRepair,ArbitrumMultiGardenIsolation,ArbitrumNegativePaths,ArbitrumRoleRevocation,e2e/ArbitrumFullProtocolE2E,eas/ArbitrumEASAttestationLifecycle}.t.sol",
+      "test/fork/{ArbitrumActionRegistry,ArbitrumAssessmentReleaseSequence,ArbitrumCommitmentPooling,ArbitrumConvictionVoting,ArbitrumENS,ArbitrumGardenAccount,ArbitrumGardenAccountConfig,ArbitrumGardenAccountMembership,ArbitrumGardenAccountMetadata,ArbitrumGardenToken,ArbitrumGardensModule,ArbitrumGardensNegativePaths,ArbitrumGoodsToken,ArbitrumHats,ArbitrumHatsModuleUpgrade,ArbitrumHypercerts,ArbitrumKarmaGAP,ArbitrumLiveGardenSignalPoolRepair,ArbitrumMultiGardenIsolation,ArbitrumNegativePaths,ArbitrumRoleRevocation,e2e/ArbitrumFullProtocolE2E,eas/ArbitrumEASAttestationLifecycle}.t.sol",
     testEnv: {
       HATS_MODULE_UPGRADE_FORK_BLOCK_NUMBER: "488774048",
       HATS_MODULE_UPGRADE_GARDEN_COUNT: "18",
@@ -104,13 +105,22 @@ const SHARDS = {
       },
     ],
   },
+  "garden-account-release": {
+    description: "Pinned Celo garden-account release proof with regenerated reviewed planner fixture",
+    glob: "test/fork/CeloGardenAccountRelease.t.sol",
+    runner: "run-garden-account-release.ts",
+  },
+  "garden-roles": {
+    description: "Pinned Celo Roles permission proof with reviewed Safe bindings and isolated transactions",
+    glob: "test/fork/CeloGardenRolesPermission.t.sol",
+    runner: "run-garden-roles-proof.ts",
+  },
 };
 
-const SHARD_ORDER = ["arbitrum", "settlement-lane", "sepolia", "ethereum", "gardens", "octant"];
+export const SHARD_ORDER = ["arbitrum", "settlement-lane", "sepolia", "ethereum", "gardens", "octant", "garden-account-release", "garden-roles"];
 
 function loadEnv() {
   loadDotenv({ path: path.resolve(process.cwd(), "../../.env"), override: false, quiet: true });
-  loadDotenv({ path: path.resolve(process.cwd(), ".env"), override: false, quiet: true });
 }
 
 function forgeEnv(profile = "fork", overrides = {}) {
@@ -212,6 +222,14 @@ function runShard(name) {
 
   console.log(`[fork-shard] ${name}: ${shard.description}`);
   console.log(`[fork-shard] match-path: ${shard.glob}`);
+  if (shard.runner) {
+    // These suites require planner artifacts and execution isolation. Running their glob through
+    // generic Forge arguments would bypass those prerequisites.
+    const result = spawnSync("bun", [`script/utils/${shard.runner}`], { env: forgeEnv(), stdio: "inherit" });
+    if (result.error) throw result.error;
+    if (result.status !== 0) process.exit(result.status ?? 1);
+    return;
+  }
   const forkArgs = forkArgsForChain(shard.chain);
   if (forkArgs.length) {
     console.log(`[fork-shard] ${name}: using pinned ${shard.chain.toLowerCase()} process fork`);
@@ -321,11 +339,12 @@ function usage(exitCode = 0) {
   process.exit(exitCode);
 }
 
-loadEnv();
-
+if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
 const command = process.argv[2];
 const target = process.argv[3] || "all";
-
+if (process.argv.length > 4 || (command !== "run" && process.argv[3])) usage(1);
+if (command === "run" && target !== "all" && !SHARDS[target]) usage(1);
+if (command === "run" || command === "check") loadEnv();
 if (command === "run") {
   const shardNames = target === "all" ? SHARD_ORDER : [target];
   for (const name of shardNames) runShard(name);
@@ -334,5 +353,6 @@ if (command === "run") {
 } else if (command === "manifest") {
   printManifest();
 } else {
-  usage(command ? 1 : 0);
+  usage(!command || command === "--help" ? 0 : 1);
+}
 }

@@ -7,11 +7,11 @@ The contracts package contains Solidity smart contracts for the Green Goods prot
 - `bun run build`
 - `bun run test`
 - `bun run lint`
-- `bun run test:audit:full`
+- `bun run test:audit full`
 
 ## Validation
 
-- QA Speed Mode: run `bun run test:match -- test/<path>.t.sol`; add `bun run build:target -- src/<path>.sol` when the compiled contract surface moves.
+- QA Speed Mode: run `bun run test --suite solidity --profile match -- test/<path>.t.sol`; add `bun run build --mode target -- src/<path>.sol` when the compiled contract surface moves.
 - Package loop: `bun run test`.
 - Conditional proof: storage, size, fork, script, release, and deployment checks come from the root selector and must all pass when selected.
 - Broader impact: run the root Repo Quick Gate when ABI or deployment artifacts change downstream consumers.
@@ -20,17 +20,17 @@ The contracts package contains Solidity smart contracts for the Green Goods prot
 
 - Use package scripts for deploys, upgrades, migrations, and verification. Do not hand operators raw
   `forge` commands or ad hoc shell sequences.
-- Root `contracts:*:arbitrum` wrappers set `FOUNDRY_KEYSTORE_ACCOUNT=green-goods-deployer`.
-- Contract wrappers clear `PINATA_JWT_OP_REF`; media upload credentials must not block contract
+- The contracts CLI preserves operation-specific Arbitrum defaults, including `FOUNDRY_KEYSTORE_ACCOUNT=green-goods-deployer`.
+- Applicable contract operations clear `PINATA_JWT_OP_REF`; media upload credentials must not block contract
   upgrades.
 - Arbitrum upgrade/broadcast scripts that need the proxy owner use sender
   `0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6`.
 - Signal-pool/yield lane commands, in order:
-  - `bun run contracts:upgrade:signal-pool-yield-wiring:simulate:arbitrum`
-  - `bun run contracts:upgrade:signal-pool-yield-wiring:arbitrum`
-  - `bun run contracts:migrate:vaults:dry:arbitrum`
-  - `bun run contracts:migrate:vaults:arbitrum`
-  - `bun run contracts:verify:post-deploy:arbitrum`
+  - `bun run contracts -- upgrade signal-pool-yield-wiring --network arbitrum --mode simulate`
+  - `bun run contracts -- upgrade signal-pool-yield-wiring --network arbitrum --mode broadcast`
+  - `bun run contracts -- migrate vaults --network arbitrum --mode simulate`
+  - `bun run contracts -- migrate vaults --network arbitrum --mode broadcast`
+  - `bun run contracts -- verify --network arbitrum`
 
 ## Architecture Overview
 
@@ -343,23 +343,22 @@ Tracks contract deployments across networks.
 
 ## Deployment
 
-### Using deploy.ts (Required)
+### Using the contracts CLI (Required)
 
-**Always use the TypeScript deployment CLI:**
+**Always use the package-owned contracts CLI:**
 
 ```bash
 # Dry run
-bun script/deploy.ts core --network sepolia
+bun run contracts -- deploy core --network sepolia --mode simulate
 
 # Deploy for real
-bun script/deploy.ts core --network sepolia --broadcast
+bun run contracts -- deploy core --network sepolia --mode broadcast
 
 # Register an approved new schema through its standalone deploy path.
 # Bulk --update-schemas remains prohibited.
 
-# Or use package scripts
-bun deploy:testnet     # Sepolia
-bun deploy:mainnet     # Production
+# Inspect other supported targets, networks, and modes
+bun run contracts -- help
 ```
 
 **Never use raw forge commands for deployment.**
@@ -406,7 +405,7 @@ deployments/
 ```bash
 bun run test                                              # all selected tests pass
 bun run build                                             # Clean compilation, no errors
-bun script/deploy.ts core --network sepolia               # Dry run (omit --broadcast)
+bun run contracts -- deploy core --network sepolia --mode simulate
 ```
 
 ### Phase-Aware Artifact Review
@@ -496,7 +495,7 @@ bun run test -- --match-test testGardenToken
 bun run test:fork
 
 # E2E workflow
-bun run test:e2e:workflow
+bun run test:e2e workflow
 ```
 
 ### Test Structure

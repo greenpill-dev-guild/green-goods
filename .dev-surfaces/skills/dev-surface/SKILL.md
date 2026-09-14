@@ -11,7 +11,7 @@ Use `bun run dev -- prod` for public browsing through hosted APIs.
 
 `bun run dev` runs `node scripts/dev/stack.js` with local as its default mode. It starts client, admin, agent and indexer under PM2 against live Arbitrum One, prints local URLs, streams logs in the foreground, and cleans up owned services on Ctrl-C. Start OrbStack or Docker Desktop first; Docker readiness is checked before services launch, and a missing local Docker socket is redirected to a running OrbStack socket.
 
-Docs and Storybook are optional: `bun run dev -- full` includes them and opens browser tabs. Tunnels are explicit through `bun run dev:tunnel`.
+Docs and Storybook are optional: `bun run dev -- full` includes them and opens browser tabs. Tunnels are explicit through `node scripts/dev/tunnel.js`.
 
 Default ports (docs and Storybook require `bun run dev -- full`):
 
@@ -91,7 +91,7 @@ bun run dev:smoke -- prod
 bun run dev:smoke -- prod-mirror
 bun run dev:health
 bun run dev -- stop
-bun run dev:contracts:arbitrum-fork
+bun run --cwd packages/contracts dev:arbitrum-fork
 ```
 
 For cross-repo orchestration from anywhere, use the global workbench:

@@ -9,19 +9,12 @@
   "scripts": {
     "predev": "node ../../scripts/dev/check-port.js 3002 admin",
     "dev": "APP_ENV=development node ../../scripts/dev/node-cli.js vite",
-    "test": "APP_ENV=test node ../../scripts/dev/node-cli.js vitest run",
-    "test:hub": "APP_ENV=test node ../../scripts/dev/node-cli.js vitest run src/__tests__/routing/command-palette-routes.test.tsx src/__tests__/routing/public-garden-redirect.test.ts src/__tests__/routing/route-folding.test.ts src/__tests__/routing/runtime-navigation.test.tsx src/__tests__/routing/toolbar-visibility.test.tsx src/__tests__/workspace-state.test.tsx src/__tests__/components/CanvasLayout.test.tsx src/__tests__/components/mobile-nav.test.tsx src/__tests__/components/empty-state.test.tsx src/__tests__/views/HubDetail.test.tsx src/components/Layout/commandPalette.results.test.ts src/views/Actions/actions.workspaceModel.test.ts src/views/Hub/hub.workbenchModel.test.ts",
-    "test:watch": "APP_ENV=test vitest --standalone",
-    "test:coverage": "APP_ENV=test node ../../scripts/dev/node-cli.js vitest run --coverage",
-    "test:ui": "APP_ENV=test vitest --ui",
-    "format": "biome format --write .",
-    "format:check": "biome format .",
+    "test": "node ../../scripts/dev/package-commands.mjs admin test",
+    "format": "node ../../scripts/dev/package-commands.mjs admin format",
     "lint": "bun --bun run oxlint src --deny-warnings",
-    "typecheck:source": "cd ../.. && node scripts/dev/node-cli.js tsc --noEmit -p packages/admin/tsconfig.app.json",
-    "typecheck:tests": "cd ../.. && node scripts/dev/node-cli.js tsc --noEmit -p packages/admin/tsconfig.test.json",
-    "typecheck:full": "cd ../.. && node scripts/dev/node-cli.js tsc -b packages/admin/tsconfig.json",
     "build": "cd ../.. && APP_ENV=production node scripts/dev/node-cli.js tsc -b packages/admin/tsconfig.json && APP_ENV=production node scripts/dev/node-cli.js vite build --config packages/admin/vite.config.ts && node scripts/dev/remove-public-sourcemaps.js packages/admin/dist",
-    "preview": "cd ../.. && APP_ENV=production bun --bun vite preview --config packages/admin/vite.config.ts"
+    "preview": "cd ../.. && APP_ENV=production bun --bun vite preview --config packages/admin/vite.config.ts",
+    "typecheck": "node ../../scripts/dev/package-commands.mjs admin typecheck"
   },
   "dependencies": {
     "@green-goods/shared": "workspace:*",

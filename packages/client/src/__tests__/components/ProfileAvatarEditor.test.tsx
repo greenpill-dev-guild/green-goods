@@ -229,7 +229,7 @@ describe("ProfileAvatarEditor", () => {
   it.each([
     ["normalizing", /preparing photo/i],
     ["uploading", /uploading photo/i],
-    ["signing", /saving photo/i],
+    ["signing", /approve photo change/i],
     ["saving", /saving photo/i],
   ])("shows the %s stage in the active action row", async (stage, label) => {
     avatarEditorMocks.editor.stage = stage;

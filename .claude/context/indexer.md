@@ -13,9 +13,9 @@ Loaded when working in `packages/indexer/`. Extends `CLAUDE.md` and
 | `bun run check:indexing-boundary` | Verify contracts, chains, addresses, and block boundaries |
 | `bun run dev` | Start Envio with the local database preserved |
 | `bun run db:down` | Stop (not remove) Envio-managed containers; keeps `envio-postgres-data` |
-| `bun run dev:restart` | Destructive local replay from configured start blocks |
+| `bun run --cwd packages/indexer dev --restart` | Destructive local replay from configured start blocks |
 | `bun run reset` | Delete the local database and stop Envio |
-| `bun run dev:docker` | Validate the package's self-contained Docker image |
+| `bun run --cwd packages/indexer docker up --build` | Validate the package's self-contained Docker image |
 
 Use the Node.js and Bun versions pinned in root `.mise.toml`, and OrbStack or Docker Desktop. Runtime scripts read the
 repository-root `.env`; never add a package-level `.env`.
@@ -123,9 +123,9 @@ shutdowns. Press Ctrl-C to stop an attached development process.
 Use the package Docker profile only when validating the containerized image:
 
 ```bash
-bun run dev:docker
-bun run dev:docker:logs
-bun run dev:docker:down
+bun run --cwd packages/indexer docker up --build
+bun run --cwd packages/indexer docker logs -f indexer
+bun run --cwd packages/indexer docker down
 ```
 
 The package Docker profile exposes PostgreSQL on `3008`, Hasura GraphQL on `3006`, and the Envio
@@ -147,7 +147,7 @@ the separate `docker-compose.indexer.yaml` stack.
 Destructive commands:
 
 ```bash
-bun run dev:restart  # clear local state, then replay
+bun run --cwd packages/indexer dev --restart  # clear local state, then replay
 bun run reset        # delete local database and stop Envio
 ```
 

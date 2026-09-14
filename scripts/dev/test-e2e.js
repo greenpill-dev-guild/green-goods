@@ -1,195 +1,133 @@
 #!/usr/bin/env node
+import { spawn } from 'node:child_process';
+import { randomUUID } from 'node:crypto';
+import fs from 'node:fs';
+import { tmpdir } from 'node:os';
+import path from 'node:path';
+import { createCommandRunner, isDirectRun, parseOptions, REPO_ROOT } from '../lib/command-runner.mjs';
+import { waitForService, findSystemNode } from '../lib/dev-shared.js';
 
-/**
- * E2E test runner.
- *
- * Boots the web stack (`docs` + `admin` + `client` + `storybook` only — not the
- * indexer/agent/browser launcher that `dev:full` adds), waits for client and
- * admin to respond, runs Playwright, and stops the stack on exit.
- *
- * Usage:
- *   node scripts/dev/test-e2e.js          # each desktop spec once
- *   node scripts/dev/test-e2e.js smoke    # smoke specs only
- */
-
-import { spawn, spawnSync, execSync } from "node:child_process";
-import fs from "node:fs";
-import path from "node:path";
-import { fileURLToPath } from "node:url";
-import { waitForService, reexecUnderSystemNodeIfNeeded, findSystemNode } from "../lib/dev-shared.js";
-
-const __filename = fileURLToPath(import.meta.url);
-const projectRoot = path.resolve(path.dirname(__filename), "../..");
-
-reexecUnderSystemNodeIfNeeded({
-  scriptPath: __filename,
-  sentinel: "GREEN_GOODS_E2E_NODE_REEXEC",
-  cwd: projectRoot,
-});
-
-const c = {
-  reset: "\x1b[0m",
-  green: "\x1b[32m",
-  yellow: "\x1b[33m",
-  red: "\x1b[31m",
-  cyan: "\x1b[36m",
-  blue: "\x1b[34m",
-  dim: "\x1b[2m",
+const presets = {
+  all: { stack: true, args: ['test', '--project=client-full', '--project=chromium', '--project=performance'] },
+  smoke: { stack: true, args: ['test', 'tests/specs/client.smoke.spec.ts', 'tests/specs/admin.smoke.spec.ts', '--project=client-ci', '--project=admin-ci'] },
+  ui: { args: ['test', '--ui'], env: { SKIP_WEBSERVER: 'true', SKIP_HEALTH_CHECK: 'true' } },
+  fork: { args: ['test', '--project=anvil-fork'], env: { RUN_FORK_TESTS: 'true' } },
+  passkey: { args: ['test', '--project=passkey-mock'] },
+  testnet: { args: ['test', '--project=testnet'], env: { TESTNET: 'true' } },
 };
 
-const log = {
-  info: (msg) => console.log(`${c.cyan}ℹ${c.reset}  ${msg}`),
-  success: (msg) => console.log(`${c.green}✓${c.reset}  ${msg}`),
-  warning: (msg) => console.log(`${c.yellow}⚠${c.reset}  ${msg}`),
-  error: (msg) => console.log(`${c.red}✗${c.reset}  ${msg}`),
-  step: (msg) => console.log(`${c.blue}▶${c.reset}  ${msg}`),
-};
+// Playwright treats bare tokens as test-file filters and --grep values as regular expressions.
+// The all and smoke presets boot a web stack before Playwright runs, so a malformed pattern is worth
+// catching here rather than paying for a stack boot first. Compiling the pattern to test it would
+// build a regular expression out of argv, so instead this scans for the three defects that actually
+// come from a typo: an unbalanced group, an unterminated character class, and a trailing backslash.
+// The scan tracks escapes and character classes, so it never rejects a valid pattern; exotic invalid
+// patterns Playwright still reports itself.
+const MAX_PATTERN_LENGTH = 512;
 
-let devProcess = null;
+export function assertUsablePattern(pattern, invalidMessage) {
+  if (pattern.length > MAX_PATTERN_LENGTH) throw new Error(`${invalidMessage} (limit ${MAX_PATTERN_LENGTH} characters)`);
+  let depth = 0;
+  let escaped = false;
+  let inClass = false;
+  for (const character of pattern) {
+    if (escaped) escaped = false;
+    else if (character === '\\') escaped = true;
+    else if (inClass) inClass = character !== ']';
+    else if (character === '[') inClass = true;
+    else if (character === '(') depth += 1;
+    else if (character === ')' && (depth -= 1) < 0) throw new Error(invalidMessage);
+  }
+  if (depth !== 0 || escaped || inClass) throw new Error(invalidMessage);
+}
 
-function stopStack() {
+export function validatePlaywrightArgs(args, preset) {
+  const boolean = new Set(['--fail-on-flaky-tests', '--forbid-only', '--fully-parallel', '--headed', '--ignore-snapshots', '--last-failed', '--list', '--no-deps', '--pass-with-no-tests', '--quiet', '-x', '--help', '-h']);
+  const values = new Set(['--grep', '-g', '--global-timeout', '--grep-invert', '--workers', '-j', '--max-failures', '--output', '--repeat-each', '--reporter', '--retries', '--run-agents', '--shard', '--test-list', '--test-list-invert', '--timeout', '--trace', '--tsconfig', '--ui-host', '--ui-port', '--update-source-method']);
+  const optional = new Set(['--debug', '--only-changed', '--update-snapshots', '-u']);
+  const choices = { '--trace': ['on', 'off', 'on-first-retry', 'on-all-retries', 'retain-on-failure', 'retain-on-first-failure', 'retain-on-failure-and-retries'], '--run-agents': ['missing', 'all', 'none'], '--update-source-method': ['overwrite', '3way', 'patch'], '--debug': ['inspector', 'cli'], '--update-snapshots': ['all', 'changed', 'missing', 'none'], '-u': ['all', 'changed', 'missing', 'none'] };
+  const seen = new Set();
+  for (let index = 0; index < args.length; index++) {
+    const token = args[index];
+    if (!token.startsWith('-')) { assertUsablePattern(token, `Invalid test-file filter: ${token}`); continue; }
+    const [flag, ...inline] = token.split('=');
+    if (['--project', '--config', '-c', '--browser', '--ui'].includes(flag)) throw new Error(`${flag} conflicts with the selected preset; choose --preset instead`);
+    if (!boolean.has(flag) && !values.has(flag) && !optional.has(flag)) throw new Error(`Unknown Playwright argument: ${flag}`);
+    const identity = ({ '-g': '--grep', '-j': '--workers', '-u': '--update-snapshots', '-h': '--help' })[flag] || flag;
+    if (seen.has(identity)) throw new Error(`Duplicate Playwright option: ${flag}`);
+    seen.add(identity);
+    if (boolean.has(flag)) { if (inline.length) throw new Error(`${flag} does not take a value`); continue; }
+    let value = inline.length ? inline.join('=') : undefined;
+    if (value === undefined && args[index + 1] && !args[index + 1].startsWith('-')) value = args[++index];
+    if (!value && !optional.has(flag)) throw new Error(`${flag} requires a value`);
+    if (value !== undefined && choices[flag] && !choices[flag].includes(value)) throw new Error(`Invalid ${flag} value`);
+    if (['--global-timeout', '--max-failures', '--repeat-each', '--retries', '--timeout', '--ui-port'].includes(flag) && (!/^\d+$/.test(value) || !Number.isSafeInteger(Number(value)))) throw new Error(`${flag} requires a non-negative integer`);
+    if (['--workers', '-j'].includes(flag) && !/^[1-9]\d*%?$/.test(value)) throw new Error(`${flag} requires a positive worker count or percentage`);
+    if (flag === '--shard' && (!/^[1-9]\d*\/[1-9]\d*$/.test(value) || Number(value.split('/')[0]) > Number(value.split('/')[1]))) throw new Error('--shard requires current/total with current <= total');
+    if (['--grep', '-g', '--grep-invert'].includes(flag)) assertUsablePattern(value, `Invalid ${flag} regular expression`);
+    if (['--ui-host', '--ui-port'].includes(flag) && preset !== 'ui') throw new Error(`${flag} requires --preset ui`);
+  }
+  return { list: seen.has('--list'), help: seen.has('--help') };
+}
+
+export function resolveE2e(argv) {
+  const options = parseOptions(argv, { flags: ['--help', '-h'], values: ['--preset'], passthrough: true });
+  if (options['--help'] || options['-h']) return { help: 'Usage: bun run browser e2e [--preset all|smoke|ui|fork|passkey|testnet] [-- <Playwright arguments>]\nDefault: all. all/smoke start and clean up an owner-bound web stack; other presets preserve Playwright startup policy.' };
+  const preset = options['--preset'] || 'all';
+  if (!Object.hasOwn(presets, preset)) throw new Error(`Unknown E2E preset: ${preset}`);
+  const selection = presets[preset];
+  const downstream = validatePlaywrightArgs(options.rest || [], preset);
+  if (downstream.help) return resolveE2e(['--help']);
+  return { preset, stack: Boolean(selection.stack) && !downstream.list, rest: options.rest || [], args: [...selection.args, ...(options.rest || [])], env: { APP_ENV: 'test', ...selection.env, ...(selection.stack ? { SKIP_WEBSERVER: 'true', SKIP_HEALTH_CHECK: 'true' } : {}) } };
+}
+
+export async function executeE2e(selection, dependencies = {}) {
+  const spawnImpl = dependencies.spawnImpl || spawn;
+  const wait = dependencies.wait || waitForService;
+  const runner = createCommandRunner({ ...dependencies, spawnImpl });
+  let stack;
+  let stackDone;
+  let logStream;
+  const owner = `e2e-${randomUUID()}`;
+  const stackEnv = { ...process.env, APP_ENV: 'test', VITE_ENABLE_SW_DEV: 'true', GREEN_GOODS_DEV_OWNER: owner };
   try {
-    execSync("bun run dev -- stop", { stdio: "ignore" });
-  } catch {
-    // Owner-bound stack stop is idempotent; PM2 may already be down
-  }
-}
-
-function cleanup() {
-  log.info("Cleaning up...");
-  if (devProcess && !devProcess.killed) {
-    try {
-      devProcess.kill("SIGTERM");
-    } catch {
-      // best-effort
+    if (selection.stack) {
+      const directory = fs.mkdtempSync(path.join(tmpdir(), 'green-goods-e2e-'));
+      const logFile = path.join(directory, 'dev.log');
+      logStream = fs.createWriteStream(logFile, { flags: 'wx' });
+      console.log(`E2E web-stack log: ${logFile}`);
+      stack = runner.track(spawnImpl('bun', ['run', 'dev', '--', 'web'], { cwd: REPO_ROOT, stdio: ['ignore', 'pipe', 'pipe'], detached: false, shell: false, env: stackEnv }));
+      stack.stdout.pipe(logStream);
+      stack.stderr.pipe(logStream);
+      stackDone = new Promise((resolve) => { stack.once('error', () => resolve(1)); stack.once('close', (code) => resolve(code ?? 1)); });
+      const deadlineMs = Date.now() + 90_000;
+      for (const port of [3001, 3002]) {
+        const ready = await Promise.race([
+          wait({ urls: [`https://localhost:${port}`, `http://localhost:${port}`], deadlineMs }),
+          runner.cancellation.then(() => ({ ok: false })),
+          stackDone.then((code) => code === 0 ? new Promise(() => {}) : ({ ok: false })),
+        ]);
+        if (!ready.ok) { console.error(`E2E service on ${port} did not become ready; see ${logFile}`); return runner.cancelled || 1; }
+      }
     }
+    if (runner.cancelled) return runner.cancelled;
+    const systemNode = dependencies.systemNode || findSystemNode() || process.execPath;
+    return await runner.run([{ command: systemNode, args: [path.join(REPO_ROOT, 'node_modules/@playwright/test/cli.js'), ...selection.args], env: selection.env }]);
+  } finally {
+    if (stack) {
+      if (stack.exitCode === null && stack.signalCode === null) stack.kill('SIGTERM');
+      // The owning launcher performs PM2 cleanup on termination. Its unique owner is
+      // also passed to an explicit stop if startup failed before handlers attached.
+      await Promise.race([stackDone, new Promise((resolve) => { const timer = setTimeout(resolve, 5000); timer.unref(); })]);
+      const cleanup = createCommandRunner({ ...dependencies, spawnImpl });
+      try { await cleanup.run([{ command: 'bun', args: ['run', 'dev', '--', 'stop'], env: { GREEN_GOODS_DEV_OWNER: owner } }]); }
+      finally { cleanup.dispose(); }
+    }
+    logStream?.end();
+    runner.dispose();
   }
-  stopStack();
-  log.success("Cleanup complete");
 }
-
-process.on("exit", cleanup);
-process.on("SIGINT", () => {
-  console.log("\n");
-  cleanup();
-  process.exit(130);
-});
-process.on("SIGTERM", () => {
-  cleanup();
-  process.exit(143);
-});
-
-async function waitFor(name, urls, deadlineMs) {
-  log.step(`Waiting for ${name}...`);
-  const result = await waitForService({ urls, deadlineMs });
-  if (result.ok) {
-    log.success(`${name} is ready (${result.url})`);
-    return true;
-  }
-  console.log("");
-  return false;
+if (isDirectRun(import.meta.url)) {
+  try { const plan = resolveE2e(process.argv.slice(2)); if (plan.help) console.log(plan.help); else process.exitCode = await executeE2e(plan); }
+  catch (error) { console.error(error.message); process.exitCode = 1; }
 }
-
-async function main() {
-  const testMode = process.argv[2] || "all";
-
-  console.log("");
-  log.step("Starting E2E tests...");
-  console.log("");
-
-  log.step("Starting web stack (client + admin + docs + storybook)...");
-  const logFile = "/tmp/green-goods-dev.log";
-  const logStream = fs.createWriteStream(logFile, { flags: "w" });
-
-  devProcess = spawn("bun", ["run", "dev", "--", "web"], {
-    stdio: ["ignore", "pipe", "pipe"],
-    detached: false,
-    env: {
-      ...process.env,
-      VITE_ENABLE_SW_DEV: "true",
-    },
-  });
-  devProcess.stdout.pipe(logStream);
-  devProcess.stderr.pipe(logStream);
-
-  // 90s deadline covers a cold mkcert + vite first-build + dependency
-  // re-optimization restart on a slow machine.
-  const deadline = Date.now() + 90_000;
-  const clientReady = await waitFor(
-    "Client",
-    ["https://localhost:3001", "http://localhost:3001"],
-    deadline,
-  );
-  if (!clientReady) {
-    log.error(`Client failed to start. Check logs at: ${logFile}`);
-    process.exit(1);
-  }
-
-  const adminReady = await waitFor(
-    "Admin",
-    ["https://localhost:3002", "http://localhost:3002"],
-    deadline,
-  );
-  if (!adminReady) {
-    log.error(`Admin failed to start. Check logs at: ${logFile}`);
-    process.exit(1);
-  }
-
-  console.log("");
-  log.step("Running Playwright tests...");
-  console.log("");
-
-  // The config retains focused/mobile/integration projects for explicit runs.
-  // The root wrapper selects non-overlapping desktop projects so its default
-  // does not execute the same smoke and CI specs across several projects.
-  const testArgs =
-    testMode === "smoke"
-      ? [
-          "test",
-          "tests/specs/client.smoke.spec.ts",
-          "tests/specs/admin.smoke.spec.ts",
-          "--project=client-ci",
-          "--project=admin-ci",
-        ]
-      : [
-          "test",
-          "--project=client-full",
-          "--project=chromium",
-          "--project=performance",
-        ];
-
-  // Invoke Playwright via system Node directly. Going through `npx playwright`
-  // resolves Node via the parent's PATH, which `bun run` populates with a
-  // bun-node shim (`/private/tmp/bun-node-XXXX/node` -> bun). Playwright's TS
-  // config loader skips ESM-loader registration under Bun and then crashes
-  // trying to import the synthetic `<config>.ts.esm.preflight` URL. Spawning
-  // the CLI under a real node binary keeps the loader hook active.
-  const systemNode = findSystemNode() || process.execPath;
-  const playwrightCli = path.join(projectRoot, "node_modules/@playwright/test/cli.js");
-  const result = spawnSync(systemNode, [playwrightCli, ...testArgs], {
-    cwd: projectRoot,
-    stdio: "inherit",
-    env: {
-      ...process.env,
-      SKIP_WEBSERVER: "true",
-      SKIP_HEALTH_CHECK: "true",
-    },
-  });
-  if (result.error) {
-    log.error(`Failed to launch Playwright: ${result.error.message}`);
-    process.exit(1);
-  }
-  if (result.status === 0) {
-    console.log("");
-    log.success("All tests passed!");
-    process.exit(0);
-  }
-  console.log("");
-  log.error(`Some tests failed (exit code: ${result.status ?? 1})`);
-  process.exit(result.status ?? 1);
-}
-
-main().catch((err) => {
-  log.error(err.message);
-  process.exit(1);
-});

@@ -28,9 +28,9 @@ in this file.
 bun run dev:health -- --profile web  # Non-mutating local readiness check
 bun run dev                          # Start the repo-native PM2 development stack
 bun run dev -- stop                     # Stop repo-owned development services
-bun run test:fast                    # Cache-aware full-scope iteration after targeted proof
-bun run test:fast:force              # Same scope without cache reuse
-bun run eval:skills                  # One semantic routing run after skill trigger wording stabilizes
+bun run test --cache                    # Cache-aware full-scope iteration after targeted proof
+bun run test --cache --force              # Same scope without cache reuse
+bun run check --only skill-evaluation                  # One semantic routing run after skill trigger wording stabilizes
 ```
 
 Use `bun run test`, never `bun test`. Commands shared by all agents are listed in `AGENTS.md`; package

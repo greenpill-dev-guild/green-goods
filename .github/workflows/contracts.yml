@@ -130,14 +130,14 @@ jobs:
       - name: Check new Solidity test names
         env:
           SOLIDITY_TEST_BASE_REF: ${{ github.event_name == 'pull_request' && format('origin/{0}', github.base_ref) || (github.event.before != '0000000000000000000000000000000000000000' && github.event.before || '') }}
-        run: bun run check:solidity-test-names
+        run: bun run check --only solidity-test-names
 
       - name: Run Solidity naming guardrail tests
         run: node --test scripts/contracts/check-solidity-test-names.test.mjs
 
       - name: Run contract lint
         working-directory: packages/contracts
-        run: bun run lint:check
+        run: bun run lint --check
 
       - name: Build contracts
         working-directory: packages/contracts
@@ -220,10 +220,8 @@ jobs:
         include:
           - shard: sepolia
             label: Sepolia
-            script: test:fork:sepolia:ci
           - shard: ethereum
             label: Ethereum ENS
-            script: test:fork:ethereum:ci
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
@@ -320,7 +318,7 @@ jobs:
 
       - name: Run ${{ matrix.label }} fork shard
         working-directory: packages/contracts
-        run: bun run ${{ matrix.script }}
+        run: bun run test:shard run ${{ matrix.shard }}
         env:
           COOKIE_JAR_FACTORY_ADDRESS: ${{ secrets.COOKIE_JAR_FACTORY_ADDRESS }}
           CI: true
@@ -427,16 +425,16 @@ jobs:
         run: |
           set +e
 
-          bun run test:fork:arbitrum:ci
+          bun run test:shard run arbitrum
           arbitrum_status=$?
 
-          bun run test:fork:gardens:ci
+          bun run test:shard run gardens
           gardens_status=$?
 
-          bun run test:fork:octant:ci
+          bun run test:shard run octant
           octant_status=$?
 
-          bun run test:fork:settlement-lane
+          bun run test:shard run settlement-lane
           settlement_lane_status=$?
 
           set -e

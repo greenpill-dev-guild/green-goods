@@ -65,7 +65,7 @@ foundations.
 ## Commands
 
 - `bun run test`
-- `bun run test:coverage`
+- `bun run test --coverage`
 - `bun run build`
 - `bun run lint`
 

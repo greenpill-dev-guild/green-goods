@@ -12,7 +12,7 @@
  *   bun scripts/seed-test-data.ts
  *
  * Prerequisites:
- *   - Anvil running: bun anvil:start
+ *   - Anvil running on the configured fork URL and port
  *
  * The script outputs the created data addresses for use in tests.
  */

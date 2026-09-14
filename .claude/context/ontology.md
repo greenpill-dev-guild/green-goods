@@ -6,8 +6,8 @@ ontology constraints or state machines, capability evidence, or the ontology sid
 ## Quick reference
 
 ```bash
-bun run ontology:generate    # Regenerate all five projections from the sidecar and projection data
-bun run check:ontology       # Verify declarations, anchors, generated output, and accepted drift
+node scripts/quality/check-ontology.mjs --generate    # Regenerate all five projections from the sidecar and projection data
+bun run check --only ontology       # Verify declarations, anchors, generated output, and accepted drift
 node --test scripts/quality/check-ontology.test.mjs   # Run the checker fixtures directly
 ```
 
@@ -24,7 +24,7 @@ loads `agent-manifest.generated.json`.
 
 ## What the gate proves
 
-`bun run check:ontology` performs exact checks for declared Solidity, GraphQL, and TypeScript
+`bun run check --only ontology` performs exact checks for declared Solidity, GraphQL, and TypeScript
 vocabularies; EAS schema shapes; mappings; glossary definitions; stable source symbols; generated
 artifacts; and the bidirectional drift baseline. It validates state-machine structure, planned
 implementation arrival, and evidence-file presence.
@@ -46,8 +46,8 @@ that its contents still support a claim.
 ## Change protocol
 
 1. Edit the implementation, sidecar, and projection data together.
-2. Run `bun run ontology:generate`; never hand-edit generated projections.
-3. Run `bun run check:ontology` and fix every unlisted or stale finding.
+2. Run `node scripts/quality/check-ontology.mjs --generate`; never hand-edit generated projections.
+3. Run `bun run check --only ontology` and fix every unlisted or stale finding.
 4. If temporary drift is intentional, add one bounded baseline entry with an owner, expiry, and
    concrete burn-down direction.
 
@@ -80,7 +80,7 @@ Never merge or cross-map these vocabularies because they share only an identifie
 
 ## Generated projections
 
-`bun run ontology:generate` owns all five outputs:
+`node scripts/quality/check-ontology.mjs --generate` owns all five outputs:
 
 - `docs/docs/reference/ontology.generated.mdx`
 - `docs/docs/builders/integrations/entity-matrix.mdx`

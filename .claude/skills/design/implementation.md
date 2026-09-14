@@ -17,7 +17,7 @@ Linear path from blank file to merge-ready.
 | 7 | A11y | Label inputs, errors via `aria-describedby`, color never the sole indicator, hit targets ≥ 44px, focus via Radix. | — |
 | 8 | i18n | Every string via `intl.formatMessage` / `FormattedMessage`; update en/es/pt; action labels Title Case in en only (DL-012 — es/pt native casing); keep `lint:vocab` terms out. | i18n below |
 | 9 | Storybook | CSF3, `tags: ["autodocs"]`, default + loading + error + empty variants. | Storybook below |
-| 10 | Review | Four-lens self-review (Regenerative → Spatial → Ecosystem → Compliance); `bun run check:design-tokens` before merge. | [review-checklist.md](./review-checklist.md) |
+| 10 | Review | Four-lens self-review (Regenerative → Spatial → Ecosystem → Compliance); `bun run check --only design-tokens` before merge. | [review-checklist.md](./review-checklist.md) |
 
 **Admin shortcut**: steps 1–4 are pre-answered (Command + solid + the reduced 4/8/12/16/9999 M3 shape scale + Standard motion) — start at step 5.
 **Client shortcut**: hero components (garden creation, hypercert mint) override step 4 → Expressive, step 2 → dramatic material. See [language.md § Hero Moments](./language.md).
@@ -56,7 +56,7 @@ Unified instance hosted from `packages/shared`, indexing shared + admin + client
 
 ## i18n
 
-react-intl, 3 bundled locales. Every user-facing string via `FormattedMessage` / `intl.formatMessage`; format dates/numbers with `Intl`, never by hand. **Coverage gate**: every new key must land in all three of `packages/shared/src/i18n/{en,es,pt}.json` in the same change — parity is mandatory. Keys are semantic (`app.feature.action`). Keep banned copy out (`bun run lint:vocab`).
+react-intl, 3 bundled locales. Every user-facing string via `FormattedMessage` / `intl.formatMessage`; format dates/numbers with `Intl`, never by hand. **Coverage gate**: every new key must land in all three of `packages/shared/src/i18n/{en,es,pt}.json` in the same change — parity is mandatory. Keys are semantic (`app.feature.action`). Keep banned copy out (`bun run check --only vocabulary`).
 
 ## View Transitions
 
@@ -64,4 +64,4 @@ Baseline + directional (forwards / backwards / fade) + reduced-motion gating are
 
 ## Validation roll-up
 
-`bun run check:design-tokens` (spec ↔ theme.css drift + version coupling) · `bun run lint:vocab` · when a component / story / Storybook surface changes: `bun run --filter @green-goods/shared check:stories` + `check:story-quality`.
+`bun run check --only design-tokens` (spec ↔ theme.css drift + version coupling) · `bun run check --only vocabulary` · when a component / story / Storybook surface changes: `bun run --filter @green-goods/shared check:stories` + `check:story-quality`.

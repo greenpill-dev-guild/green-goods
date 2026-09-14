@@ -90,7 +90,7 @@ function main() {
   const env = readEnvironment({ source: options.envSource, envFilePath: envPath });
   if (!env) {
     console.error("error: .env not found.");
-    console.error("  fix: Run `bun run env:template:init` then `bun run env:sync` to create one.");
+    console.error("  fix: Run `node scripts/dev/env-template-init.js` then `bun run env:sync` to create one.");
     process.exit(1);
   }
 

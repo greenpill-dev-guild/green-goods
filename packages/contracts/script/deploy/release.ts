@@ -376,17 +376,17 @@ Release options:
   --override-sepolia-gate Keep the repository production-chain gate explicit when authorized
 
 Examples (Phase A, no broadcast):
-  bun run release:manifest
-  bun run release:core:plan:arbitrum
-  bun run settlement:module:plan:arbitrum --expected-nonce <fresh-pending-nonce>
-  bun run credit:registry:plan:arbitrum --expected-nonce <fresh-pending-nonce>
-  bun run settlement:executor:plan:celo --expected-nonce <fresh-pending-nonce>
-  bun run settlement:safe:plan:celo
-  bun run release:verify:plan:arbitrum
-  bun run release:indexer:handoff
+  bun run contracts -- release manifest --network arbitrum
+  bun run contracts -- release core --network arbitrum --mode preflight
+  bun run contracts -- deploy settlement-module --network arbitrum --mode preflight --expected-nonce <fresh-pending-nonce>
+  bun run contracts -- deploy credit-registry --network arbitrum --mode preflight --expected-nonce <fresh-pending-nonce>
+  bun run contracts -- deploy settlement-executor --network celo --mode preflight --expected-nonce <fresh-pending-nonce>
+  bun run contracts -- settlement safe --network celo --mode preflight
+  bun run contracts -- release verify --network arbitrum --mode preflight
+  bun run contracts -- release indexer-handoff --network arbitrum --mode preflight
 
 Phase B boundary form (not authorized by Phase A):
-  bun run settlement:module:deploy:arbitrum --step <index> --expected-nonce <n>
+  bun run contracts -- deploy settlement-module --network arbitrum --mode broadcast --step <index> --expected-nonce <n>
 `);
   }
 
@@ -473,40 +473,47 @@ Phase B boundary form (not authorized by Phase A):
       stages: [
         {
           index: 1,
-          command: "bun run assessment:upgrade:plan:arbitrum --expected-nonce <fresh-pending-nonce>",
+          command:
+            "bun run contracts -- upgrade assessment-resolver --network arbitrum --mode plan --sender 0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6 --expected-nonce <fresh-pending-nonce>",
           outcome:
             "actual AssessmentResolver implementation/owner/code hash, final creation-code hash, rollback calldata, and a separate canonical-v2-UID pin boundary when live v2 is zero",
           nextStageRule: "rebuild this nonce-bound plan immediately before its separately authorized stage",
         },
         {
           index: 2,
-          command: "bun run pooling:schemas:plan:arbitrum --expected-nonce <fresh-pending-nonce>",
+          command:
+            "bun run contracts -- deploy commitment-schemas --network arbitrum --mode plan --sender 0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6 --expected-nonce <fresh-pending-nonce>",
           outcome: "testimony resolver prediction plus AssessmentV3 preparation; no Community Testimony activation",
         },
         {
           index: 3,
-          command: "bun run pooling:deploy:dry:arbitrum --expected-nonce <fresh-pending-nonce>",
+          command:
+            "bun run contracts -- deploy pooling --network arbitrum --mode simulate --expected-nonce <fresh-pending-nonce>",
           outcome:
             "one complete paused pooling transaction plan with explicit libraries, module/register identities, and module-side dependency/schema wiring",
         },
         {
           index: 4,
-          command: "bun run pooling:finalize:plan:arbitrum --expected-nonce <fresh-pending-nonce>",
+          command:
+            "bun run contracts -- deploy commitment-schemas --network arbitrum --mode plan --finalize-community-testimony --sender 0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6 --expected-nonce <fresh-pending-nonce>",
           outcome: "exact record reconciliation and final resolver activation",
         },
         {
           index: 5,
-          command: "bun run settlement:module:plan:arbitrum --expected-nonce <fresh-pending-nonce>",
+          command:
+            "bun run contracts -- deploy settlement-module --network arbitrum --mode preflight --expected-nonce <fresh-pending-nonce>",
           outcome: "paused message-only source candidate; no peer and no value authority",
         },
         {
           index: 6,
-          command: "bun run credit:registry:plan:arbitrum --expected-nonce <fresh-pending-nonce>",
+          command:
+            "bun run contracts -- deploy credit-registry --network arbitrum --mode preflight --expected-nonce <fresh-pending-nonce>",
           outcome: "paused records-only registry plus two-way settlement binding; G$ pool rail remains disabled",
         },
         {
           index: 7,
-          command: "bun run pooling:upgrade:plan:arbitrum --expected-nonce <fresh-pending-nonce>",
+          command:
+            "bun run contracts -- upgrade commitment-pooling --network arbitrum --mode plan --sender 0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6 --expected-nonce <fresh-pending-nonce>",
           outcome:
             "KarmaGAPModule upgraded before WorkApprovalResolver, with exact implementations/owners/code hashes, WorkApproval reverse wiring, and per-proxy rollback calldata while pooling stays paused; GardenToken remains deferred until its GardenAccount compatibility release",
           nextStageRule:

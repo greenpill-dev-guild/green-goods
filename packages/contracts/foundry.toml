@@ -109,7 +109,7 @@ cache_path = ".generated/foundry/cache/test"
 # ═══════════════════════════════════════════════════════════════════════════════
 # CI PROFILE — Nightly Deep Fuzz + Invariants (scheduled lane, not the PR path)
 # ═══════════════════════════════════════════════════════════════════════════════
-# Used by .github/workflows/contracts-nightly.yml via `bun run test:deep`.
+# Used by .github/workflows/contracts-nightly.yml via `bun run --cwd packages/contracts test --suite solidity --profile deep`.
 # PR CI runs profile.test (capped); this profile restores full fuzz/invariant
 # depth with optimized bytecode so deep runs execute at realistic speed.
 [profile.ci]

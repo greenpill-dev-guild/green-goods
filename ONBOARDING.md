@@ -56,7 +56,7 @@ bun run dev
 ```
 
 Host setup reports how to configure the environment; it does not fetch shared secrets.
-If `.env.template` is absent, use `bun run env:template:init`, populate the required team
+If `.env.template` is absent, use `node scripts/dev/env-template-init.js`, populate the required team
 references, and then sync. The [environment guide](https://docs.greengoods.app/builders/env-management)
 explains 1Password access and personal credentials. Never create package-level env files.
 
@@ -105,7 +105,7 @@ Finish onboarding by reporting:
 - The setup path, selected mode, and URLs that were actually verified.
 - Missing credentials, services, or browser access and the workflows they block.
 - The package that owns the contributor's first task and its nearest `AGENTS.md`.
-- The next targeted check selected with `bun run validation:plan -- --intent qa`.
+- The next targeted check selected with `bun run check --plan -- --intent qa`.
 
 Use [CONTRIBUTING.md](CONTRIBUTING.md) for the contribution process and
 [the command reference](scripts/README.md) for specialist tooling. Agent-specific harness

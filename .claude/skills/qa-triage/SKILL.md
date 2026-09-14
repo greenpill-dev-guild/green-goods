@@ -38,7 +38,7 @@ The post-QA-call variant: same phases, three deltas. The unattended sibling is t
 write rules; this mode runs them interactively at the desk. Run one of the two per session; the
 Phase 3b dedupe catches the other's records if both ran.
 
-- **Phases 1-2** — the source is threefold: `bun run qa:pull --slug <slug> --run <id>` (the QA
+- **Phases 1-2** — the source is threefold: `bun run qa pull --slug <slug> --run <id>` (the QA
   app's verdicts and notes, exact Test IDs, from the run the call recorded into: the `run-N` id
   in the session header, or in the parent's lede on a rerun; `--run latest-closed` when the run
   was rolled over before this ran), the call's Gemini notes from Drive (title contains "QA" or
@@ -47,21 +47,21 @@ Phase 3b dedupe catches the other's records if both ran.
   verdicts recorded **during the call window** are ground truth — a run can hold several
   sessions, so filter joined entries by their `at` timestamps (the routine's session-window rule)
   before calling anything verdict-backed; older entries are standing state. For a re-QA also pull
-  the run it checks (`bun run qa:pull --slug <slug> --run <previous id> --out
+  the run it checks (`bun run qa pull --slug <slug> --run <previous id> --out
   tmp/qa-session/<slug>/previous`) and pass `--previous tmp/qa-session/<slug>/previous/qa-state.json`
-  to `qa:report`, whose delta then names both runs. `N/A` means out of scope, never skipped
+  to `qa report`, whose delta then names both runs. `N/A` means out of scope, never skipped
   ([`.claude/context/qa.md § Verdict vocabulary`](../../context/qa.md)); ask the tester to clear a
   skipped case in the app before the pull; when that cannot happen, pass those IDs to
-  `qa:report --skipped <ID,ID>` so the generator counts them as not walked and lists them in its
+  `qa report --skipped <ID,ID>` so the generator counts them as not walked and lists them in its
   header, never as covered. Then
-  `bun run qa:report --slug <slug> --window <start>..<end>` — with `--out <the directory you
+  `bun run qa report --slug <slug> --window <start>..<end>` — with `--out <the directory you
   pulled into>` whenever the collision branch below sent the pull to `tmp/qa-session/<slug>-call`,
   so the report reads that pull and not the earlier session's (add `--build client=<sha>,admin=<sha>`
   once Phase 6 has the deploys): the `report.md` written beside that pull is where both results
   blocks of the parent come from — never count by hand. Note items without a Test ID may be
   fuzzy-matched into *proposals* here, because the Phase 4 gate confirms each one with you — the
   unattended routine never guesses an ID. If `tmp/qa-session/<slug>/` already holds a pulled
-  session (a local close, or an earlier failed run), `qa:pull` refuses to overwrite it: pull to a
+  session (a local close, or an earlier failed run), `qa pull` refuses to overwrite it: pull to a
   fresh directory with `--out tmp/qa-session/<slug>-call` and continue from that path — never
   `--force` over an existing pull, whose severity edits and redactions are sacred.
 - **Phase 2b — split, then classify.** A dictated app note is several observations, not one

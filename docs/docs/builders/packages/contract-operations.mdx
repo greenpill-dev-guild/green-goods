@@ -1,0 +1,449 @@
+---
+title: Contract operations
+slug: /builders/packages/contract-operations
+audience: developer
+owner: docs
+feature_status: Live
+generated: true
+generator: scripts/docs/generate.mjs
+generated_from:
+  - packages/contracts/config/command-migration.json
+  - packages/contracts/script/cli/operations.mjs
+source_digest: "sha256:aa469dc69b6011c65ecf7e5a1ea9d1d877fb29917b8d4ed64fd3384c7fd3e5bd"
+source_of_truth:
+  - packages/contracts/config/command-migration.json
+  - packages/contracts/script/cli/operations.mjs
+---
+
+<!-- GENERATED FILE: do not edit. Run `node scripts/docs/generate.mjs` or `node scripts/docs/generate.mjs -- --scope <scope>`. -->
+# Contract operations
+
+Generated from the package-owned CLI definitions. Use `bun run contracts -- help` for discovery, or append `--help` to a command. Deployments, upgrades, migrations, and repairs require an explicit network and execution mode.
+
+`--explain --json` describes resolution without credentials, service access, or execution. Broadcasts require release authorization. Planning, compilation, simulation, and upload can write artifacts. Read the owning runbook before executing an operation.
+
+## Execution modes
+
+| Mode | Meaning |
+|---|---|
+| preflight | Compile/artifact checks without RPC |
+| simulate | RPC simulation without broadcasting |
+| plan | Produce transaction-plan artifacts |
+| broadcast | Execute transactions |
+| upload | Upload content and write associated artifacts |
+
+Only the modes listed for each operation are accepted. Read-only operations do not require a mode. Release sessions retain the existing operator's stage, commit, credential, and transaction-boundary checks.
+
+## Operations
+
+| Command after `bun run contracts --` | Networks | Modes | Additional options |
+|---|---|---|---|
+| <code>deploy core</code> | localhost, sepolia, arbitrum, celo, mainnet | simulate, broadcast, preflight | <code>--save-artifacts, --update-schemas, --force, --finalize-community-testimony, --skip-envio, --skip-verification, --start-indexer, --save-report, --override-sepolia-gate, --sender &lt;value&gt;, --salt &lt;value&gt;, --stage &lt;value&gt;, --step &lt;value&gt;, --expected-nonce &lt;value&gt;, --receipt &lt;value&gt;, --artifact &lt;value&gt;, --owner-phase &lt;value&gt;, --owner &lt;value&gt;, --genesis-hat-id &lt;value&gt;, --genesis-lock &lt;value&gt;, --first-work-lock &lt;value&gt;, --first-support-lock &lt;value&gt;, --genesis-metadata-uri &lt;value&gt;, --first-work-metadata-uri &lt;value&gt;, --first-support-metadata-uri &lt;value&gt;</code> |
+| <code>deploy goods</code> | localhost, sepolia, arbitrum, celo, mainnet | simulate, broadcast, preflight | <code>--save-artifacts, --update-schemas, --force, --finalize-community-testimony, --skip-envio, --skip-verification, --start-indexer, --save-report, --override-sepolia-gate, --sender &lt;value&gt;, --salt &lt;value&gt;, --stage &lt;value&gt;, --step &lt;value&gt;, --expected-nonce &lt;value&gt;, --receipt &lt;value&gt;, --artifact &lt;value&gt;, --owner-phase &lt;value&gt;, --owner &lt;value&gt;, --genesis-hat-id &lt;value&gt;, --genesis-lock &lt;value&gt;, --first-work-lock &lt;value&gt;, --first-support-lock &lt;value&gt;, --genesis-metadata-uri &lt;value&gt;, --first-work-metadata-uri &lt;value&gt;, --first-support-metadata-uri &lt;value&gt;</code> |
+| <code>deploy juicebox</code> | localhost, sepolia, arbitrum, celo, mainnet | simulate, broadcast, preflight | <code>--save-artifacts, --update-schemas, --force, --finalize-community-testimony, --skip-envio, --skip-verification, --start-indexer, --save-report, --override-sepolia-gate, --sender &lt;value&gt;, --salt &lt;value&gt;, --stage &lt;value&gt;, --step &lt;value&gt;, --expected-nonce &lt;value&gt;, --receipt &lt;value&gt;, --artifact &lt;value&gt;, --owner-phase &lt;value&gt;, --owner &lt;value&gt;, --genesis-hat-id &lt;value&gt;, --genesis-lock &lt;value&gt;, --first-work-lock &lt;value&gt;, --first-support-lock &lt;value&gt;, --genesis-metadata-uri &lt;value&gt;, --first-work-metadata-uri &lt;value&gt;, --first-support-metadata-uri &lt;value&gt;</code> |
+| <code>deploy octant-factory</code> | localhost, sepolia, arbitrum, celo, mainnet | simulate, broadcast, preflight | <code>--save-artifacts, --update-schemas, --force, --finalize-community-testimony, --skip-envio, --skip-verification, --start-indexer, --save-report, --override-sepolia-gate, --sender &lt;value&gt;, --salt &lt;value&gt;, --stage &lt;value&gt;, --step &lt;value&gt;, --expected-nonce &lt;value&gt;, --receipt &lt;value&gt;, --artifact &lt;value&gt;, --owner-phase &lt;value&gt;, --owner &lt;value&gt;, --genesis-hat-id &lt;value&gt;, --genesis-lock &lt;value&gt;, --first-work-lock &lt;value&gt;, --first-support-lock &lt;value&gt;, --genesis-metadata-uri &lt;value&gt;, --first-work-metadata-uri &lt;value&gt;, --first-support-metadata-uri &lt;value&gt;</code> |
+| <code>deploy garden &lt;input&gt;</code> | localhost, sepolia, arbitrum, celo, mainnet | simulate, broadcast, preflight | <code>--save-artifacts, --update-schemas, --force, --finalize-community-testimony, --skip-envio, --skip-verification, --start-indexer, --save-report, --override-sepolia-gate, --sender &lt;value&gt;, --salt &lt;value&gt;, --stage &lt;value&gt;, --step &lt;value&gt;, --expected-nonce &lt;value&gt;, --receipt &lt;value&gt;, --artifact &lt;value&gt;, --owner-phase &lt;value&gt;, --owner &lt;value&gt;, --genesis-hat-id &lt;value&gt;, --genesis-lock &lt;value&gt;, --first-work-lock &lt;value&gt;, --first-support-lock &lt;value&gt;, --genesis-metadata-uri &lt;value&gt;, --first-work-metadata-uri &lt;value&gt;, --first-support-metadata-uri &lt;value&gt;</code> |
+| <code>deploy actions &lt;input&gt;</code> | localhost, sepolia, arbitrum, celo, mainnet | simulate, broadcast, preflight | <code>--save-artifacts, --update-schemas, --force, --finalize-community-testimony, --skip-envio, --skip-verification, --start-indexer, --save-report, --override-sepolia-gate, --sender &lt;value&gt;, --salt &lt;value&gt;, --stage &lt;value&gt;, --step &lt;value&gt;, --expected-nonce &lt;value&gt;, --receipt &lt;value&gt;, --artifact &lt;value&gt;, --owner-phase &lt;value&gt;, --owner &lt;value&gt;, --genesis-hat-id &lt;value&gt;, --genesis-lock &lt;value&gt;, --first-work-lock &lt;value&gt;, --first-support-lock &lt;value&gt;, --genesis-metadata-uri &lt;value&gt;, --first-work-metadata-uri &lt;value&gt;, --first-support-metadata-uri &lt;value&gt;</code> |
+| <code>deploy hats-tree</code> | localhost, sepolia, arbitrum, celo, mainnet | simulate, broadcast | <code>--save-artifacts, --update-schemas, --force, --finalize-community-testimony, --skip-envio, --skip-verification, --start-indexer, --save-report, --override-sepolia-gate, --sender &lt;value&gt;, --salt &lt;value&gt;, --stage &lt;value&gt;, --step &lt;value&gt;, --expected-nonce &lt;value&gt;, --receipt &lt;value&gt;, --artifact &lt;value&gt;, --owner-phase &lt;value&gt;, --owner &lt;value&gt;, --genesis-hat-id &lt;value&gt;, --genesis-lock &lt;value&gt;, --first-work-lock &lt;value&gt;, --first-support-lock &lt;value&gt;, --genesis-metadata-uri &lt;value&gt;, --first-work-metadata-uri &lt;value&gt;, --first-support-metadata-uri &lt;value&gt;</code> |
+| <code>deploy badge-locks</code> | localhost, sepolia, arbitrum, celo, mainnet | broadcast, preflight | <code>--save-artifacts, --update-schemas, --force, --finalize-community-testimony, --skip-envio, --skip-verification, --start-indexer, --save-report, --override-sepolia-gate, --sender &lt;value&gt;, --salt &lt;value&gt;, --stage &lt;value&gt;, --step &lt;value&gt;, --expected-nonce &lt;value&gt;, --receipt &lt;value&gt;, --artifact &lt;value&gt;, --owner-phase &lt;value&gt;, --owner &lt;value&gt;, --genesis-hat-id &lt;value&gt;, --genesis-lock &lt;value&gt;, --first-work-lock &lt;value&gt;, --first-support-lock &lt;value&gt;, --genesis-metadata-uri &lt;value&gt;, --first-work-metadata-uri &lt;value&gt;, --first-support-metadata-uri &lt;value&gt;</code> |
+| <code>deploy greenwill</code> | localhost, sepolia, arbitrum, celo, mainnet | simulate, broadcast | <code>--save-artifacts, --update-schemas, --force, --finalize-community-testimony, --skip-envio, --skip-verification, --start-indexer, --save-report, --override-sepolia-gate, --sender &lt;value&gt;, --salt &lt;value&gt;, --stage &lt;value&gt;, --step &lt;value&gt;, --expected-nonce &lt;value&gt;, --receipt &lt;value&gt;, --artifact &lt;value&gt;, --owner-phase &lt;value&gt;, --owner &lt;value&gt;, --genesis-hat-id &lt;value&gt;, --genesis-lock &lt;value&gt;, --first-work-lock &lt;value&gt;, --first-support-lock &lt;value&gt;, --genesis-metadata-uri &lt;value&gt;, --first-work-metadata-uri &lt;value&gt;, --first-support-metadata-uri &lt;value&gt;</code> |
+| <code>deploy badge-schemas</code> | localhost, sepolia, arbitrum, celo, mainnet | broadcast, preflight | <code>--save-artifacts, --update-schemas, --force, --finalize-community-testimony, --skip-envio, --skip-verification, --start-indexer, --save-report, --override-sepolia-gate, --sender &lt;value&gt;, --salt &lt;value&gt;, --stage &lt;value&gt;, --step &lt;value&gt;, --expected-nonce &lt;value&gt;, --receipt &lt;value&gt;, --artifact &lt;value&gt;, --owner-phase &lt;value&gt;, --owner &lt;value&gt;, --genesis-hat-id &lt;value&gt;, --genesis-lock &lt;value&gt;, --first-work-lock &lt;value&gt;, --first-support-lock &lt;value&gt;, --genesis-metadata-uri &lt;value&gt;, --first-work-metadata-uri &lt;value&gt;, --first-support-metadata-uri &lt;value&gt;</code> |
+| <code>deploy commitment-schemas</code> | localhost, sepolia, arbitrum, celo, mainnet | simulate, broadcast, preflight, plan | <code>--save-artifacts, --update-schemas, --force, --finalize-community-testimony, --skip-envio, --skip-verification, --start-indexer, --save-report, --override-sepolia-gate, --sender &lt;value&gt;, --salt &lt;value&gt;, --stage &lt;value&gt;, --step &lt;value&gt;, --expected-nonce &lt;value&gt;, --receipt &lt;value&gt;, --artifact &lt;value&gt;, --owner-phase &lt;value&gt;, --owner &lt;value&gt;, --genesis-hat-id &lt;value&gt;, --genesis-lock &lt;value&gt;, --first-work-lock &lt;value&gt;, --first-support-lock &lt;value&gt;, --genesis-metadata-uri &lt;value&gt;, --first-work-metadata-uri &lt;value&gt;, --first-support-metadata-uri &lt;value&gt;</code> |
+| <code>deploy pooling</code> | arbitrum | simulate, broadcast, preflight, plan | <code>--save-artifacts, --update-schemas, --force, --finalize-community-testimony, --skip-envio, --skip-verification, --start-indexer, --save-report, --override-sepolia-gate, --sender &lt;value&gt;, --salt &lt;value&gt;, --stage &lt;value&gt;, --step &lt;value&gt;, --expected-nonce &lt;value&gt; (required), --receipt &lt;value&gt;, --artifact &lt;value&gt;, --owner-phase &lt;value&gt;, --owner &lt;value&gt;, --genesis-hat-id &lt;value&gt;, --genesis-lock &lt;value&gt;, --first-work-lock &lt;value&gt;, --first-support-lock &lt;value&gt;, --genesis-metadata-uri &lt;value&gt;, --first-work-metadata-uri &lt;value&gt;, --first-support-metadata-uri &lt;value&gt;</code> |
+| <code>deploy pooling-configure</code> | localhost, sepolia, arbitrum, celo, mainnet | simulate, broadcast, preflight | <code>--save-artifacts, --update-schemas, --force, --finalize-community-testimony, --skip-envio, --skip-verification, --start-indexer, --save-report, --override-sepolia-gate, --sender &lt;value&gt;, --salt &lt;value&gt;, --stage &lt;value&gt;, --step &lt;value&gt;, --expected-nonce &lt;value&gt;, --receipt &lt;value&gt;, --artifact &lt;value&gt;, --owner-phase &lt;value&gt;, --owner &lt;value&gt;, --genesis-hat-id &lt;value&gt;, --genesis-lock &lt;value&gt;, --first-work-lock &lt;value&gt;, --first-support-lock &lt;value&gt;, --genesis-metadata-uri &lt;value&gt;, --first-work-metadata-uri &lt;value&gt;, --first-support-metadata-uri &lt;value&gt;</code> |
+| <code>deploy ownership-transfer</code> | localhost, sepolia, arbitrum, celo, mainnet | simulate, broadcast, preflight, plan | <code>--save-artifacts, --update-schemas, --force, --finalize-community-testimony, --skip-envio, --skip-verification, --start-indexer, --save-report, --override-sepolia-gate, --sender &lt;value&gt;, --salt &lt;value&gt;, --stage &lt;value&gt;, --step &lt;value&gt;, --expected-nonce &lt;value&gt;, --receipt &lt;value&gt;, --artifact &lt;value&gt;, --owner-phase &lt;value&gt;, --owner &lt;value&gt;, --genesis-hat-id &lt;value&gt;, --genesis-lock &lt;value&gt;, --first-work-lock &lt;value&gt;, --first-support-lock &lt;value&gt;, --genesis-metadata-uri &lt;value&gt;, --first-work-metadata-uri &lt;value&gt;, --first-support-metadata-uri &lt;value&gt;</code> |
+| <code>deploy settlement-module</code> | arbitrum | simulate, broadcast, preflight, plan | <code>--save-artifacts, --update-schemas, --force, --finalize-community-testimony, --skip-envio, --skip-verification, --start-indexer, --save-report, --override-sepolia-gate, --sender &lt;value&gt;, --salt &lt;value&gt;, --stage &lt;value&gt;, --step &lt;value&gt;, --expected-nonce &lt;value&gt; (required), --receipt &lt;value&gt;, --artifact &lt;value&gt;, --owner-phase &lt;value&gt;, --owner &lt;value&gt;, --genesis-hat-id &lt;value&gt;, --genesis-lock &lt;value&gt;, --first-work-lock &lt;value&gt;, --first-support-lock &lt;value&gt;, --genesis-metadata-uri &lt;value&gt;, --first-work-metadata-uri &lt;value&gt;, --first-support-metadata-uri &lt;value&gt;</code> |
+| <code>deploy credit-registry</code> | arbitrum | simulate, broadcast, preflight, plan | <code>--save-artifacts, --update-schemas, --force, --finalize-community-testimony, --skip-envio, --skip-verification, --start-indexer, --save-report, --override-sepolia-gate, --sender &lt;value&gt;, --salt &lt;value&gt;, --stage &lt;value&gt;, --step &lt;value&gt;, --expected-nonce &lt;value&gt; (required), --receipt &lt;value&gt;, --artifact &lt;value&gt;, --owner-phase &lt;value&gt;, --owner &lt;value&gt;, --genesis-hat-id &lt;value&gt;, --genesis-lock &lt;value&gt;, --first-work-lock &lt;value&gt;, --first-support-lock &lt;value&gt;, --genesis-metadata-uri &lt;value&gt;, --first-work-metadata-uri &lt;value&gt;, --first-support-metadata-uri &lt;value&gt;</code> |
+| <code>deploy settlement-executor</code> | celo | simulate, broadcast, preflight, plan | <code>--save-artifacts, --update-schemas, --force, --finalize-community-testimony, --skip-envio, --skip-verification, --start-indexer, --save-report, --override-sepolia-gate, --sender &lt;value&gt;, --salt &lt;value&gt;, --stage &lt;value&gt;, --step &lt;value&gt;, --expected-nonce &lt;value&gt; (required), --receipt &lt;value&gt;, --artifact &lt;value&gt;, --owner-phase &lt;value&gt;, --owner &lt;value&gt;, --genesis-hat-id &lt;value&gt;, --genesis-lock &lt;value&gt;, --first-work-lock &lt;value&gt;, --first-support-lock &lt;value&gt;, --genesis-metadata-uri &lt;value&gt;, --first-work-metadata-uri &lt;value&gt;, --first-support-metadata-uri &lt;value&gt;</code> |
+| <code>upgrade action-registry</code> | localhost, sepolia, arbitrum, celo, mainnet | preflight, simulate, plan, broadcast | <code>--override-sepolia-gate, --sender &lt;value&gt;, --expected-nonce &lt;value&gt;, --plan &lt;value&gt;, --step &lt;value&gt;, --receipt &lt;value&gt;</code> |
+| <code>upgrade garden-token</code> | localhost, sepolia, arbitrum, celo, mainnet | preflight, simulate, plan, broadcast | <code>--override-sepolia-gate, --sender &lt;value&gt;, --expected-nonce &lt;value&gt;, --plan &lt;value&gt;, --step &lt;value&gt;, --receipt &lt;value&gt;</code> |
+| <code>upgrade yield-resolver</code> | localhost, sepolia, arbitrum, celo, mainnet | preflight, simulate, plan, broadcast | <code>--override-sepolia-gate, --sender &lt;value&gt;, --expected-nonce &lt;value&gt;, --plan &lt;value&gt;, --step &lt;value&gt;, --receipt &lt;value&gt;</code> |
+| <code>upgrade gardens-module</code> | localhost, sepolia, arbitrum, celo, mainnet | preflight, simulate, plan, broadcast | <code>--override-sepolia-gate, --sender &lt;value&gt;, --expected-nonce &lt;value&gt;, --plan &lt;value&gt;, --step &lt;value&gt;, --receipt &lt;value&gt;</code> |
+| <code>upgrade signal-pool-yield-wiring</code> | localhost, sepolia, arbitrum, celo, mainnet | preflight, simulate, plan, broadcast | <code>--override-sepolia-gate, --sender &lt;value&gt;, --expected-nonce &lt;value&gt;, --plan &lt;value&gt;, --step &lt;value&gt;, --receipt &lt;value&gt;</code> |
+| <code>upgrade yield-gardens-wiring</code> | localhost, sepolia, arbitrum, celo, mainnet | preflight, simulate, plan, broadcast | <code>--override-sepolia-gate, --sender &lt;value&gt;, --expected-nonce &lt;value&gt;, --plan &lt;value&gt;, --step &lt;value&gt;, --receipt &lt;value&gt;</code> |
+| <code>upgrade octant-module</code> | localhost, sepolia, arbitrum, celo, mainnet | preflight, simulate, plan, broadcast | <code>--override-sepolia-gate, --sender &lt;value&gt;, --expected-nonce &lt;value&gt;, --plan &lt;value&gt;, --step &lt;value&gt;, --receipt &lt;value&gt;</code> |
+| <code>upgrade hats-module</code> | localhost, sepolia, arbitrum, celo, mainnet | preflight, simulate, plan, broadcast | <code>--override-sepolia-gate, --sender &lt;value&gt;, --expected-nonce &lt;value&gt;, --plan &lt;value&gt;, --step &lt;value&gt;, --receipt &lt;value&gt;</code> |
+| <code>upgrade karma-gap-module</code> | localhost, sepolia, arbitrum, celo, mainnet | preflight, simulate, plan, broadcast | <code>--override-sepolia-gate, --sender &lt;value&gt;, --expected-nonce &lt;value&gt;, --plan &lt;value&gt;, --step &lt;value&gt;, --receipt &lt;value&gt;</code> |
+| <code>upgrade work-resolver</code> | localhost, sepolia, arbitrum, celo, mainnet | preflight, simulate, plan, broadcast | <code>--override-sepolia-gate, --sender &lt;value&gt;, --expected-nonce &lt;value&gt;, --plan &lt;value&gt;, --step &lt;value&gt;, --receipt &lt;value&gt;</code> |
+| <code>upgrade work-approval-resolver</code> | localhost, sepolia, arbitrum, celo, mainnet | preflight, simulate, plan, broadcast | <code>--override-sepolia-gate, --sender &lt;value&gt;, --expected-nonce &lt;value&gt;, --plan &lt;value&gt;, --step &lt;value&gt;, --receipt &lt;value&gt;</code> |
+| <code>upgrade assessment-resolver</code> | localhost, sepolia, arbitrum, celo, mainnet | preflight, simulate, plan, broadcast | <code>--override-sepolia-gate, --sender &lt;value&gt;, --expected-nonce &lt;value&gt;, --plan &lt;value&gt;, --step &lt;value&gt;, --receipt &lt;value&gt;</code> |
+| <code>upgrade testimony-resolver</code> | localhost, sepolia, arbitrum, celo, mainnet | preflight, simulate, plan, broadcast | <code>--override-sepolia-gate, --sender &lt;value&gt;, --expected-nonce &lt;value&gt;, --plan &lt;value&gt;, --step &lt;value&gt;, --receipt &lt;value&gt;</code> |
+| <code>upgrade deployment-registry</code> | localhost, sepolia, arbitrum, celo, mainnet | preflight, simulate, plan, broadcast | <code>--override-sepolia-gate, --sender &lt;value&gt;, --expected-nonce &lt;value&gt;, --plan &lt;value&gt;, --step &lt;value&gt;, --receipt &lt;value&gt;</code> |
+| <code>upgrade greenwill</code> | localhost, sepolia, arbitrum, celo, mainnet | preflight, simulate, plan, broadcast | <code>--override-sepolia-gate, --sender &lt;value&gt;, --expected-nonce &lt;value&gt;, --plan &lt;value&gt;, --step &lt;value&gt;, --receipt &lt;value&gt;</code> |
+| <code>upgrade commitment-pooling</code> | localhost, sepolia, arbitrum, celo, mainnet | preflight, simulate, plan, broadcast | <code>--override-sepolia-gate, --sender &lt;value&gt;, --expected-nonce &lt;value&gt;, --plan &lt;value&gt;, --step &lt;value&gt;, --receipt &lt;value&gt;</code> |
+| <code>upgrade all</code> | localhost, sepolia, arbitrum, celo, mainnet | preflight, simulate, plan, broadcast | <code>--override-sepolia-gate, --sender &lt;value&gt;, --expected-nonce &lt;value&gt;, --plan &lt;value&gt;, --step &lt;value&gt;, --receipt &lt;value&gt;</code> |
+| <code>verify</code> | localhost, sepolia, arbitrum, celo, mainnet | none | <code>--check-etherscan, --check-indexer-runtime, --check-steward-upgrade, --skip-indexer, --skip-indexer-runtime, --skip-local-indexer-start, --start-local-indexer, --stop-local-indexer-after-check, --no-octant, --no-cookiejar, --ack-product-copy, --require-product-copy, --rpc-url &lt;value&gt;, --chain-id &lt;value&gt;, --community-slug &lt;value&gt;, --expected-hats-implementation &lt;value&gt;, --indexer-poll-seconds &lt;value&gt;, --indexer-timeout-seconds &lt;value&gt;, --indexer-url &lt;value&gt;, --steward-baseline &lt;value&gt;, --steward-probe-account &lt;value&gt;</code> |
+| <code>verify arbitrum-fork</code> | arbitrum | none | <code>none</code> |
+| <code>status</code> | localhost, sepolia, arbitrum, celo, mainnet | none | <code>none</code> |
+| <code>fork</code> | localhost, sepolia, arbitrum, celo, mainnet | none | <code>none</code> |
+| <code>migrate vaults</code> | localhost, sepolia, arbitrum, celo, mainnet | simulate, broadcast | <code>--sender &lt;value&gt;, --rpc-url &lt;value&gt;, --chain-id &lt;value&gt;</code> |
+| <code>migrate action-instructions-v2</code> | localhost, sepolia, arbitrum, celo, mainnet | preflight, upload, broadcast | <code>--force, --rpc-url &lt;value&gt;, --chain-id &lt;value&gt;, --slug &lt;value&gt;, --uid &lt;value&gt;, --translations &lt;value&gt;, --preview-dir &lt;value&gt;</code> |
+| <code>migrate action-instructions-v2 check</code> | localhost, sepolia, arbitrum, celo, mainnet | simulate | <code>--rpc-url &lt;value&gt;, --chain-id &lt;value&gt;</code> |
+| <code>repair octant-assets</code> | localhost, sepolia, arbitrum, celo, mainnet | preflight, simulate, broadcast | <code>--sender &lt;value&gt;</code> |
+| <code>ens migrate</code> | mainnet | preflight, simulate, broadcast | <code>--sender &lt;value&gt;, --registrations-file &lt;value&gt;, --new-receiver &lt;value&gt;</code> |
+| <code>ens sponsor status</code> | localhost, sepolia, arbitrum, celo, mainnet | none | <code>--account &lt;value&gt;, --amount &lt;value&gt;, --min-sponsored-claims &lt;value&gt;, --sample-owner &lt;value&gt;, --sample-slug &lt;value&gt;</code> |
+| <code>ens sponsor monitor</code> | localhost, sepolia, arbitrum, celo, mainnet | none | <code>--account &lt;value&gt;, --amount &lt;value&gt;, --min-sponsored-claims &lt;value&gt;, --sample-owner &lt;value&gt;, --sample-slug &lt;value&gt;</code> |
+| <code>ens sponsor top-up</code> | localhost, sepolia, arbitrum, celo, mainnet | broadcast | <code>--account &lt;value&gt;, --amount &lt;value&gt;, --min-sponsored-claims &lt;value&gt;, --sample-owner &lt;value&gt;, --sample-slug &lt;value&gt;</code> |
+| <code>ens deploy-mainnet</code> | mainnet | preflight, simulate, broadcast | <code>--new-receiver &lt;value&gt;, --sender &lt;value&gt;, --registrations-file &lt;value&gt;</code> |
+| <code>ens deploy-sepolia</code> | sepolia | preflight, simulate, broadcast | <code>--new-receiver &lt;value&gt;, --sender &lt;value&gt;, --registrations-file &lt;value&gt;</code> |
+| <code>ens update-l1-receiver</code> | arbitrum | preflight, simulate, broadcast | <code>--new-receiver &lt;value&gt;, --sender &lt;value&gt;, --registrations-file &lt;value&gt;</code> |
+| <code>marketplace status</code> | localhost, sepolia, arbitrum, celo, mainnet | none | <code>--rpc-url &lt;value&gt;, --chain-id &lt;value&gt;, --expected-owner &lt;value&gt;</code> |
+| <code>marketplace configure</code> | localhost, sepolia, arbitrum, celo, mainnet | simulate, broadcast | <code>--rpc-url &lt;value&gt;, --chain-id &lt;value&gt;, --expected-owner &lt;value&gt;</code> |
+| <code>pooling backfill</code> | arbitrum | simulate, broadcast | <code>--override-sepolia-gate, --authority &lt;value&gt;, --plan &lt;value&gt;, --step &lt;value&gt;, --expected-nonce &lt;value&gt;, --expected-safe-nonce &lt;value&gt;, --receipt &lt;value&gt;</code> |
+| <code>release manifest</code> | localhost, sepolia, arbitrum, celo, mainnet | preflight (optional) | <code>--save-artifacts, --sender &lt;value&gt;, --salt &lt;value&gt;, --stage &lt;value&gt;, --step &lt;value&gt;, --expected-nonce &lt;value&gt;, --receipt &lt;value&gt;, --artifact &lt;value&gt;, --owner-phase &lt;value&gt;, --owner &lt;value&gt;, --genesis-hat-id &lt;value&gt;, --genesis-lock &lt;value&gt;, --first-work-lock &lt;value&gt;, --first-support-lock &lt;value&gt;, --genesis-metadata-uri &lt;value&gt;, --first-work-metadata-uri &lt;value&gt;, --first-support-metadata-uri &lt;value&gt;</code> |
+| <code>release core</code> | localhost, sepolia, arbitrum, celo, mainnet | preflight (optional) | <code>--save-artifacts, --sender &lt;value&gt;, --salt &lt;value&gt;, --stage &lt;value&gt;, --step &lt;value&gt;, --expected-nonce &lt;value&gt;, --receipt &lt;value&gt;, --artifact &lt;value&gt;, --owner-phase &lt;value&gt;, --owner &lt;value&gt;, --genesis-hat-id &lt;value&gt;, --genesis-lock &lt;value&gt;, --first-work-lock &lt;value&gt;, --first-support-lock &lt;value&gt;, --genesis-metadata-uri &lt;value&gt;, --first-work-metadata-uri &lt;value&gt;, --first-support-metadata-uri &lt;value&gt;</code> |
+| <code>release recover</code> | localhost, sepolia, arbitrum, celo, mainnet | preflight, simulate (optional) | <code>--save-artifacts, --sender &lt;value&gt;, --salt &lt;value&gt;, --stage &lt;value&gt;, --step &lt;value&gt;, --expected-nonce &lt;value&gt;, --receipt &lt;value&gt;, --artifact &lt;value&gt;, --owner-phase &lt;value&gt;, --owner &lt;value&gt;, --genesis-hat-id &lt;value&gt;, --genesis-lock &lt;value&gt;, --first-work-lock &lt;value&gt;, --first-support-lock &lt;value&gt;, --genesis-metadata-uri &lt;value&gt;, --first-work-metadata-uri &lt;value&gt;, --first-support-metadata-uri &lt;value&gt;</code> |
+| <code>release verify</code> | localhost, sepolia, arbitrum, celo, mainnet | preflight, simulate (optional) | <code>--save-artifacts, --sender &lt;value&gt;, --salt &lt;value&gt;, --stage &lt;value&gt;, --step &lt;value&gt;, --expected-nonce &lt;value&gt;, --receipt &lt;value&gt;, --artifact &lt;value&gt;, --owner-phase &lt;value&gt;, --owner &lt;value&gt;, --genesis-hat-id &lt;value&gt;, --genesis-lock &lt;value&gt;, --first-work-lock &lt;value&gt;, --first-support-lock &lt;value&gt;, --genesis-metadata-uri &lt;value&gt;, --first-work-metadata-uri &lt;value&gt;, --first-support-metadata-uri &lt;value&gt;</code> |
+| <code>release indexer-handoff</code> | localhost, sepolia, arbitrum, celo, mainnet | preflight (optional) | <code>--save-artifacts, --sender &lt;value&gt;, --salt &lt;value&gt;, --stage &lt;value&gt;, --step &lt;value&gt;, --expected-nonce &lt;value&gt;, --receipt &lt;value&gt;, --artifact &lt;value&gt;, --owner-phase &lt;value&gt;, --owner &lt;value&gt;, --genesis-hat-id &lt;value&gt;, --genesis-lock &lt;value&gt;, --first-work-lock &lt;value&gt;, --first-support-lock &lt;value&gt;, --genesis-metadata-uri &lt;value&gt;, --first-work-metadata-uri &lt;value&gt;, --first-support-metadata-uri &lt;value&gt;</code> |
+| <code>settlement safe</code> | celo | preflight, simulate (optional) | <code>--save-artifacts, --sender &lt;value&gt;, --salt &lt;value&gt;, --stage &lt;value&gt;, --step &lt;value&gt;, --expected-nonce &lt;value&gt;, --receipt &lt;value&gt;, --artifact &lt;value&gt;, --owner-phase &lt;value&gt;, --owner &lt;value&gt;, --genesis-hat-id &lt;value&gt;, --genesis-lock &lt;value&gt;, --first-work-lock &lt;value&gt;, --first-support-lock &lt;value&gt;, --genesis-metadata-uri &lt;value&gt;, --first-work-metadata-uri &lt;value&gt;, --first-support-metadata-uri &lt;value&gt;</code> |
+| <code>settlement peer</code> | arbitrum | preflight (optional) | <code>--save-artifacts, --sender &lt;value&gt;, --salt &lt;value&gt;, --stage &lt;value&gt;, --step &lt;value&gt;, --expected-nonce &lt;value&gt;, --receipt &lt;value&gt;, --artifact &lt;value&gt;, --owner-phase &lt;value&gt;, --owner &lt;value&gt;, --genesis-hat-id &lt;value&gt;, --genesis-lock &lt;value&gt;, --first-work-lock &lt;value&gt;, --first-support-lock &lt;value&gt;, --genesis-metadata-uri &lt;value&gt;, --first-work-metadata-uri &lt;value&gt;, --first-support-metadata-uri &lt;value&gt;</code> |
+| <code>settlement peer-verify</code> | arbitrum | none | <code>--save-artifacts, --sender &lt;value&gt;, --salt &lt;value&gt;, --stage &lt;value&gt;, --step &lt;value&gt;, --expected-nonce &lt;value&gt;, --receipt &lt;value&gt; (required), --artifact &lt;value&gt;, --owner-phase &lt;value&gt;, --owner &lt;value&gt;, --genesis-hat-id &lt;value&gt;, --genesis-lock &lt;value&gt;, --first-work-lock &lt;value&gt;, --first-support-lock &lt;value&gt;, --genesis-metadata-uri &lt;value&gt;, --first-work-metadata-uri &lt;value&gt;, --first-support-metadata-uri &lt;value&gt;</code> |
+| <code>release operator</code> | not network-scoped | none | <code>--stage &lt;value&gt;, --commit &lt;value&gt; (required)</code> |
+| <code>settlement garden-accounts plan</code> | celo | none | <code>--plan &lt;value&gt;, --raw-bundle &lt;value&gt;, --step &lt;value&gt;, --receipt &lt;value&gt;</code> |
+| <code>settlement garden-accounts verify</code> | celo | none | <code>--plan &lt;value&gt;, --raw-bundle &lt;value&gt;, --step &lt;value&gt;, --receipt &lt;value&gt;</code> |
+| <code>settlement garden-accounts deploy</code> | celo | broadcast | <code>--plan &lt;value&gt;, --raw-bundle &lt;value&gt;, --step &lt;value&gt; (required), --receipt &lt;value&gt;</code> |
+| <code>settlement garden-safes plan</code> | celo | none | <code>--plan &lt;value&gt;, --inventory &lt;value&gt;, --step &lt;value&gt;, --receipt &lt;value&gt;</code> |
+| <code>settlement garden-safes verify</code> | celo | none | <code>--plan &lt;value&gt;, --inventory &lt;value&gt;, --step &lt;value&gt;, --receipt &lt;value&gt;</code> |
+| <code>settlement garden-safes deploy</code> | celo | broadcast | <code>--plan &lt;value&gt;, --inventory &lt;value&gt;, --step &lt;value&gt; (required), --receipt &lt;value&gt;</code> |
+| <code>settlement garden-roles plan</code> | celo | none | <code>--plan &lt;value&gt;, --safe-plan &lt;value&gt;, --step &lt;value&gt;</code> |
+| <code>settlement garden-roles verify</code> | celo | none | <code>--plan &lt;value&gt;, --safe-plan &lt;value&gt;, --step &lt;value&gt;</code> |
+| <code>settlement garden-roles deploy</code> | celo | broadcast | <code>--plan &lt;value&gt;, --safe-plan &lt;value&gt;, --step &lt;value&gt; (required)</code> |
+| <code>settlement garden-roles enable</code> | celo | broadcast | <code>--plan &lt;value&gt;, --safe-plan &lt;value&gt;, --step &lt;value&gt; (required)</code> |
+| <code>settlement garden-routes plan</code> | celo | none | <code>--plan &lt;value&gt;, --safe-plan &lt;value&gt;, --step &lt;value&gt;</code> |
+| <code>settlement garden-routes verify</code> | celo | none | <code>--plan &lt;value&gt;, --safe-plan &lt;value&gt;, --step &lt;value&gt;</code> |
+| <code>settlement garden-routes configure</code> | celo | broadcast | <code>--plan &lt;value&gt;, --safe-plan &lt;value&gt;, --step &lt;value&gt; (required)</code> |
+| <code>settlement garden-relay plan</code> | celo | none | <code>--plan &lt;value&gt;, --safe-plan &lt;value&gt;, --step &lt;value&gt;, --receipt &lt;value&gt;</code> |
+| <code>settlement garden-relay verify</code> | celo | none | <code>--plan &lt;value&gt;, --safe-plan &lt;value&gt;, --step &lt;value&gt;, --receipt &lt;value&gt;</code> |
+| <code>settlement garden-relay deploy</code> | celo | broadcast | <code>--plan &lt;value&gt;, --safe-plan &lt;value&gt;, --step &lt;value&gt; (required), --receipt &lt;value&gt;</code> |
+| <code>settlement garden-relay adopt</code> | celo | none | <code>--plan &lt;value&gt;, --safe-plan &lt;value&gt;, --step &lt;value&gt; (required), --receipt &lt;value&gt; (required)</code> |
+| <code>settlement dual-chain up</code> | not network-scoped | none | <code>none</code> |
+| <code>settlement dual-chain down</code> | not network-scoped | none | <code>none</code> |
+| <code>settlement dual-chain courier</code> | not network-scoped | none | <code>none</code> |
+| <code>indexer update &lt;input&gt;</code> | not network-scoped | none | <code>none</code> |
+| <code>indexer watch &lt;input&gt;</code> | not network-scoped | none | <code>none</code> |
+| <code>indexer start</code> | not network-scoped | none | <code>none</code> |
+| <code>indexer restore</code> | not network-scoped | none | <code>none</code> |
+| <code>ipfs upload</code> | not network-scoped | none | <code>none</code> |
+| <code>ipfs cache</code> | not network-scoped | none | <code>none</code> |
+| <code>minting open</code> | sepolia, arbitrum | broadcast | <code>none</code> |
+
+## Command migration
+
+Old names below are historical labels. Replacements run from the repository root. Explicit network and execution mode replace implicit defaults; operation-owned safeguards still apply.
+
+| Previous manifest | Retired name | Replacement |
+|---|---|---|
+| root | <code>contracts:upgrade:dry:arbitrum</code> | <code>bun run contracts -- upgrade all --network arbitrum --mode preflight</code> |
+| root | <code>contracts:upgrade:arbitrum</code> | <code>bun run contracts -- upgrade all --network arbitrum --mode broadcast</code> |
+| root | <code>contracts:upgrade:action-registry:dry:arbitrum</code> | <code>bun run contracts -- upgrade action-registry --network arbitrum --mode preflight</code> |
+| root | <code>contracts:upgrade:action-registry:arbitrum</code> | <code>bun run contracts -- upgrade action-registry --network arbitrum --mode broadcast</code> |
+| root | <code>contracts:upgrade:action-registry:arbitrum:override-sepolia-gate</code> | <code>bun run contracts -- upgrade action-registry --network arbitrum --mode broadcast --override-sepolia-gate</code> |
+| root | <code>contracts:upgrade:hats-module:dry:sepolia</code> | <code>bun run contracts -- upgrade hats-module --network sepolia --mode preflight</code> |
+| root | <code>contracts:upgrade:hats-module:plan:sepolia</code> | <code>bun run contracts -- upgrade hats-module --network sepolia --mode plan --sender 0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6</code> |
+| root | <code>contracts:upgrade:hats-module:sepolia</code> | <code>bun run contracts -- upgrade hats-module --network sepolia --mode broadcast --sender 0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6</code> |
+| root | <code>contracts:upgrade:hats-module:dry:arbitrum</code> | <code>bun run contracts -- upgrade hats-module --network arbitrum --mode preflight</code> |
+| root | <code>contracts:upgrade:hats-module:plan:arbitrum</code> | <code>bun run contracts -- upgrade hats-module --network arbitrum --mode plan --sender 0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6</code> |
+| root | <code>contracts:upgrade:hats-module:arbitrum</code> | <code>bun run contracts -- upgrade hats-module --network arbitrum --mode broadcast --sender 0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6</code> |
+| root | <code>contracts:upgrade:greenwill:dry:arbitrum</code> | <code>bun run contracts -- upgrade greenwill --network arbitrum --mode preflight</code> |
+| root | <code>contracts:upgrade:greenwill:arbitrum</code> | <code>bun run contracts -- upgrade greenwill --network arbitrum --mode broadcast</code> |
+| root | <code>contracts:pooling:finalize:dry:arbitrum</code> | <code>bun run contracts -- deploy commitment-schemas --network arbitrum --mode simulate --finalize-community-testimony</code> |
+| root | <code>contracts:pooling:finalize:plan:arbitrum</code> | <code>bun run contracts -- deploy commitment-schemas --network arbitrum --mode plan --finalize-community-testimony --sender 0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6</code> |
+| root | <code>contracts:pooling:finalize:arbitrum</code> | <code>bun run contracts -- deploy commitment-schemas --network arbitrum --mode broadcast --finalize-community-testimony --sender 0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6</code> |
+| root | <code>contracts:pooling:schemas:dry:arbitrum</code> | <code>bun run contracts -- deploy commitment-schemas --network arbitrum --mode simulate</code> |
+| root | <code>contracts:pooling:schemas:preview:arbitrum</code> | <code>bun run contracts -- deploy commitment-schemas --network arbitrum --mode preflight</code> |
+| root | <code>contracts:pooling:schemas:plan:arbitrum</code> | <code>bun run contracts -- deploy commitment-schemas --network arbitrum --mode plan --sender 0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6</code> |
+| root | <code>contracts:pooling:schemas:arbitrum</code> | <code>bun run contracts -- deploy commitment-schemas --network arbitrum --mode broadcast --sender 0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6</code> |
+| root | <code>contracts:pooling:deploy:dry:arbitrum</code> | <code>bun run contracts -- deploy pooling --network arbitrum --mode simulate</code> |
+| root | <code>contracts:pooling:deploy:arbitrum</code> | <code>bun run contracts -- deploy pooling --network arbitrum --mode broadcast</code> |
+| root | <code>contracts:pooling:configure:dry:arbitrum</code> | <code>bun run contracts -- deploy pooling-configure --network arbitrum --mode simulate</code> |
+| root | <code>contracts:pooling:configure:arbitrum</code> | <code>bun run contracts -- deploy pooling-configure --network arbitrum --mode broadcast</code> |
+| root | <code>contracts:assessment:upgrade:dry:arbitrum</code> | <code>bun run contracts -- upgrade assessment-resolver --network arbitrum --mode preflight</code> |
+| root | <code>contracts:assessment:upgrade:plan:arbitrum</code> | <code>bun run contracts -- upgrade assessment-resolver --network arbitrum --mode plan --sender 0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6</code> |
+| root | <code>contracts:assessment:upgrade:arbitrum</code> | <code>bun run contracts -- upgrade assessment-resolver --network arbitrum --mode broadcast --sender 0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6</code> |
+| root | <code>contracts:pooling:upgrade:dry:arbitrum</code> | <code>bun run contracts -- upgrade commitment-pooling --network arbitrum --mode preflight</code> |
+| root | <code>contracts:pooling:upgrade:plan:arbitrum</code> | <code>bun run contracts -- upgrade commitment-pooling --network arbitrum --mode plan --sender 0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6</code> |
+| root | <code>contracts:pooling:upgrade:arbitrum</code> | <code>bun run contracts -- upgrade commitment-pooling --network arbitrum --mode broadcast --sender 0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6</code> |
+| root | <code>contracts:pooling:backfill:dry:arbitrum</code> | <code>bun run contracts -- pooling backfill --network arbitrum --mode simulate --authority deployer</code> |
+| root | <code>contracts:pooling:backfill:arbitrum</code> | <code>bun run contracts -- pooling backfill --network arbitrum --mode broadcast --authority deployer</code> |
+| root | <code>contracts:pooling:rehearse:arbitrum-fork</code> | <code>APP_ENV=development bun run --cwd packages/contracts test:shard run pooling-arbitrum</code> |
+| root | <code>contracts:settlement:verify-lane</code> | <code>APP_ENV=development bun run --cwd packages/contracts test:shard run settlement-lane</code> |
+| root | <code>contracts:release:manifest</code> | <code>bun run contracts -- release manifest --network arbitrum</code> |
+| root | <code>contracts:release:operator</code> | <code>bun run contracts -- release operator</code> |
+| root | <code>contracts:release:core:plan:arbitrum</code> | <code>bun run contracts -- release core --network arbitrum --mode preflight</code> |
+| root | <code>contracts:release:ownership:plan:arbitrum</code> | <code>bun run contracts -- deploy ownership-transfer --network arbitrum --mode preflight</code> |
+| root | <code>contracts:release:ownership:dry:arbitrum</code> | <code>bun run contracts -- deploy ownership-transfer --network arbitrum --mode simulate</code> |
+| root | <code>contracts:release:ownership:arbitrum</code> | <code>bun run contracts -- release operator --stage ownership-arbitrum --commit &lt;exact-commit&gt;</code> |
+| root | <code>contracts:release:ownership:plan:celo</code> | <code>bun run contracts -- deploy ownership-transfer --network celo --mode preflight</code> |
+| root | <code>contracts:release:ownership:dry:celo</code> | <code>bun run contracts -- deploy ownership-transfer --network celo --mode simulate</code> |
+| root | <code>contracts:release:ownership:celo</code> | <code>bun run contracts -- release operator --stage ownership-celo --commit &lt;exact-commit&gt;</code> |
+| root | <code>contracts:settlement:module:plan:arbitrum</code> | <code>bun run contracts -- deploy settlement-module --network arbitrum --mode preflight</code> |
+| root | <code>contracts:settlement:module:dry:arbitrum</code> | <code>bun run contracts -- deploy settlement-module --network arbitrum --mode simulate</code> |
+| root | <code>contracts:settlement:module:deploy:arbitrum</code> | <code>bun run contracts -- deploy settlement-module --network arbitrum --mode broadcast</code> |
+| root | <code>contracts:credit:registry:plan:arbitrum</code> | <code>bun run contracts -- deploy credit-registry --network arbitrum --mode preflight</code> |
+| root | <code>contracts:credit:registry:dry:arbitrum</code> | <code>bun run contracts -- deploy credit-registry --network arbitrum --mode simulate</code> |
+| root | <code>contracts:credit:registry:deploy:arbitrum</code> | <code>bun run contracts -- deploy credit-registry --network arbitrum --mode broadcast</code> |
+| root | <code>contracts:settlement:executor:plan:celo</code> | <code>bun run contracts -- deploy settlement-executor --network celo --mode preflight</code> |
+| root | <code>contracts:settlement:executor:dry:celo</code> | <code>bun run contracts -- deploy settlement-executor --network celo --mode simulate</code> |
+| root | <code>contracts:settlement:executor:deploy:celo</code> | <code>bun run contracts -- deploy settlement-executor --network celo --mode broadcast</code> |
+| root | <code>contracts:settlement:safe:plan:celo</code> | <code>bun run contracts -- settlement safe --network celo --mode preflight</code> |
+| root | <code>contracts:settlement:safe:dry:celo</code> | <code>bun run contracts -- settlement safe --network celo --mode simulate</code> |
+| root | <code>contracts:settlement:peer:plan:arbitrum</code> | <code>bun run contracts -- settlement peer --network arbitrum --mode preflight</code> |
+| root | <code>contracts:settlement:peer:verify:arbitrum</code> | <code>bun run contracts -- settlement peer-verify --network arbitrum</code> |
+| root | <code>contracts:settlement:dual-chain:up</code> | <code>bun run contracts -- settlement dual-chain up</code> |
+| root | <code>contracts:settlement:dual-chain:down</code> | <code>bun run contracts -- settlement dual-chain down</code> |
+| root | <code>contracts:settlement:courier</code> | <code>bun run contracts -- settlement dual-chain courier</code> |
+| root | <code>contracts:release:verify:arbitrum</code> | <code>bun run contracts -- release verify --network arbitrum</code> |
+| root | <code>contracts:release:verify:celo</code> | <code>bun run contracts -- release verify --network celo</code> |
+| root | <code>contracts:release:verify:safe:arbitrum</code> | <code>bun run contracts -- release verify --network arbitrum --owner-phase safe</code> |
+| root | <code>contracts:release:verify:safe:celo</code> | <code>bun run contracts -- release verify --network celo --owner-phase safe</code> |
+| root | <code>contracts:release:verify:plan:arbitrum</code> | <code>bun run contracts -- release verify --network arbitrum --mode preflight</code> |
+| root | <code>contracts:release:verify:plan:celo</code> | <code>bun run contracts -- release verify --network celo --mode preflight</code> |
+| root | <code>contracts:release:recover:arbitrum</code> | <code>bun run contracts -- release recover --network arbitrum</code> |
+| root | <code>contracts:release:recover:celo</code> | <code>bun run contracts -- release recover --network celo</code> |
+| root | <code>contracts:release:recover:plan:arbitrum</code> | <code>bun run contracts -- release recover --network arbitrum --mode preflight</code> |
+| root | <code>contracts:release:recover:plan:celo</code> | <code>bun run contracts -- release recover --network celo --mode preflight</code> |
+| root | <code>contracts:release:indexer:handoff</code> | <code>bun run contracts -- release indexer-handoff --network arbitrum --mode preflight</code> |
+| root | <code>contracts:upgrade:signal-pool-yield-wiring:dry:arbitrum</code> | <code>bun run contracts -- upgrade signal-pool-yield-wiring --network arbitrum --mode preflight</code> |
+| root | <code>contracts:upgrade:signal-pool-yield-wiring:simulate:arbitrum</code> | <code>bun run contracts -- upgrade signal-pool-yield-wiring --network arbitrum --mode simulate --sender 0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6</code> |
+| root | <code>contracts:upgrade:signal-pool-yield-wiring:arbitrum</code> | <code>bun run contracts -- upgrade signal-pool-yield-wiring --network arbitrum --mode broadcast --sender 0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6</code> |
+| root | <code>contracts:repair:octant-assets:dry:arbitrum</code> | <code>bun run contracts -- repair octant-assets --network arbitrum --mode preflight</code> |
+| root | <code>contracts:repair:octant-assets:arbitrum</code> | <code>bun run contracts -- repair octant-assets --network arbitrum --mode broadcast</code> |
+| root | <code>contracts:migrate:vaults:dry:arbitrum</code> | <code>bun run contracts -- migrate vaults --network arbitrum --mode simulate</code> |
+| root | <code>contracts:migrate:vaults:arbitrum</code> | <code>bun run contracts -- migrate vaults --network arbitrum --mode broadcast --sender 0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6</code> |
+| root | <code>contracts:marketplace:status:arbitrum</code> | <code>bun run contracts -- marketplace status --network arbitrum</code> |
+| root | <code>contracts:marketplace:configure:dry:arbitrum</code> | <code>bun run contracts -- marketplace configure --network arbitrum --mode simulate</code> |
+| root | <code>contracts:marketplace:configure:arbitrum</code> | <code>bun run contracts -- marketplace configure --network arbitrum --mode broadcast</code> |
+| root | <code>contracts:verify:post-deploy:arbitrum</code> | <code>bun run contracts -- verify --network arbitrum</code> |
+| root | <code>contracts:verify:steward-upgrade:sepolia</code> | <code>bun run contracts -- verify --network sepolia --check-steward-upgrade --skip-indexer --no-octant --no-cookiejar</code> |
+| root | <code>contracts:verify:steward-upgrade:arbitrum</code> | <code>bun run contracts -- verify --network arbitrum --check-steward-upgrade --skip-indexer --no-octant --no-cookiejar</code> |
+| root | <code>contracts:ens:deploy:mainnet</code> | <code>bun run contracts -- ens deploy-mainnet --network mainnet --mode simulate</code> |
+| root | <code>contracts:ens:deploy:mainnet:broadcast</code> | <code>bun run contracts -- ens deploy-mainnet --network mainnet --mode broadcast</code> |
+| root | <code>contracts:ens:update:l1-receiver</code> | <code>bun run contracts -- ens update-l1-receiver --network arbitrum --mode simulate</code> |
+| root | <code>contracts:ens:migrate</code> | <code>bun run contracts -- ens migrate --network mainnet --mode simulate</code> |
+| root | <code>contracts:ens:sponsor:status:arbitrum</code> | <code>bun run contracts -- ens sponsor status --network arbitrum</code> |
+| root | <code>contracts:ens:sponsor:monitor:arbitrum</code> | <code>bun run contracts -- ens sponsor monitor --network arbitrum</code> |
+| root | <code>contracts:ens:sponsor:top-up:arbitrum</code> | <code>bun run contracts -- ens sponsor top-up --network arbitrum --mode broadcast</code> |
+| root | <code>contracts:migrate:action-instructions:v2:dry:arbitrum</code> | <code>bun run contracts -- migrate action-instructions-v2 --network arbitrum --mode preflight</code> |
+| root | <code>contracts:migrate:action-instructions:v2:preflight:arbitrum</code> | <code>bun run contracts -- migrate action-instructions-v2 check --network arbitrum --mode simulate</code> |
+| root | <code>contracts:migrate:action-instructions:v2:upload:arbitrum</code> | <code>bun run contracts -- migrate action-instructions-v2 --network arbitrum --mode upload</code> |
+| root | <code>contracts:migrate:action-instructions:v2:arbitrum</code> | <code>bun run contracts -- migrate action-instructions-v2 --network arbitrum --mode broadcast</code> |
+| contracts | <code>deploy</code> | <code>bun run contracts -- deploy core --network &lt;network&gt; --mode &lt;mode&gt;</code> |
+| contracts | <code>deploy:dry:sepolia</code> | <code>bun run contracts -- deploy core --network sepolia --mode simulate</code> |
+| contracts | <code>deploy:dry:arbitrum</code> | <code>bun run contracts -- deploy core --network arbitrum --mode simulate</code> |
+| contracts | <code>deploy:dry:celo</code> | <code>bun run contracts -- deploy core --network celo --mode simulate</code> |
+| contracts | <code>deploy:dry:mainnet</code> | <code>bun run contracts -- deploy core --network mainnet --mode simulate</code> |
+| contracts | <code>deploy:preflight:sepolia</code> | <code>bun run contracts -- deploy core --network sepolia --mode preflight</code> |
+| contracts | <code>deploy:preflight:arbitrum</code> | <code>bun run contracts -- deploy core --network arbitrum --mode preflight</code> |
+| contracts | <code>deploy:preflight:celo</code> | <code>bun run contracts -- deploy core --network celo --mode preflight</code> |
+| contracts | <code>deploy:preflight:mainnet</code> | <code>bun run contracts -- deploy core --network mainnet --mode preflight</code> |
+| contracts | <code>deploy:testnet</code> | <code>bun run contracts -- deploy core --network sepolia --mode broadcast</code> |
+| contracts | <code>deploy:sepolia</code> | <code>bun run contracts -- deploy core --network sepolia --mode broadcast</code> |
+| contracts | <code>deploy:arbitrum</code> | <code>bun run contracts -- deploy core --network arbitrum --mode broadcast</code> |
+| contracts | <code>deploy:celo</code> | <code>bun run contracts -- deploy core --network celo --mode broadcast --update-schemas</code> |
+| contracts | <code>deploy:mainnet</code> | <code>bun run contracts -- deploy core --network mainnet --mode broadcast</code> |
+| contracts | <code>ens:migrate:dry:mainnet</code> | <code>bun run contracts -- ens migrate --network mainnet --mode simulate</code> |
+| contracts | <code>ens:migrate:mainnet</code> | <code>bun run contracts -- ens migrate --network mainnet --mode broadcast</code> |
+| contracts | <code>ens:sponsor:status:arbitrum</code> | <code>bun run contracts -- ens sponsor status --network arbitrum</code> |
+| contracts | <code>ens:sponsor:monitor:arbitrum</code> | <code>bun run contracts -- ens sponsor monitor --network arbitrum</code> |
+| contracts | <code>ens:sponsor:top-up:arbitrum</code> | <code>bun run contracts -- ens sponsor top-up --network arbitrum --mode broadcast</code> |
+| contracts | <code>deploy:octant-factory</code> | <code>bun run contracts -- deploy octant-factory --network &lt;network&gt; --mode &lt;mode&gt;</code> |
+| contracts | <code>deploy:octant-factory:dry:sepolia</code> | <code>bun run contracts -- deploy octant-factory --network sepolia --mode preflight</code> |
+| contracts | <code>deploy:octant-factory:dry:arbitrum</code> | <code>bun run contracts -- deploy octant-factory --network arbitrum --mode preflight</code> |
+| contracts | <code>deploy:octant-factory:dry:celo</code> | <code>bun run contracts -- deploy octant-factory --network celo --mode preflight</code> |
+| contracts | <code>deploy:octant-factory:sepolia</code> | <code>bun run contracts -- deploy octant-factory --network sepolia --mode broadcast</code> |
+| contracts | <code>deploy:octant-factory:arbitrum</code> | <code>bun run contracts -- deploy octant-factory --network arbitrum --mode broadcast</code> |
+| contracts | <code>deploy:octant-factory:celo</code> | <code>bun run contracts -- deploy octant-factory --network celo --mode broadcast</code> |
+| contracts | <code>greenwill:registry-upgrade:dry:arbitrum</code> | <code>bun run contracts -- upgrade deployment-registry --network arbitrum --mode preflight</code> |
+| contracts | <code>greenwill:registry-upgrade:arbitrum</code> | <code>bun run contracts -- upgrade deployment-registry --network arbitrum --mode broadcast --sender 0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6</code> |
+| contracts | <code>greenwill:locks:dry:arbitrum</code> | <code>bun run contracts -- deploy badge-locks --network arbitrum --mode preflight</code> |
+| contracts | <code>greenwill:locks:arbitrum</code> | <code>bun run contracts -- deploy badge-locks --network arbitrum --mode broadcast</code> |
+| contracts | <code>greenwill:dry:arbitrum</code> | <code>bun run contracts -- deploy greenwill --network arbitrum --mode simulate</code> |
+| contracts | <code>greenwill:arbitrum</code> | <code>bun run contracts -- deploy greenwill --network arbitrum --mode broadcast</code> |
+| contracts | <code>pooling:finalize:dry:arbitrum</code> | <code>bun run contracts -- deploy commitment-schemas --network arbitrum --mode simulate --finalize-community-testimony</code> |
+| contracts | <code>pooling:finalize:plan:arbitrum</code> | <code>bun run contracts -- deploy commitment-schemas --network arbitrum --mode plan --finalize-community-testimony --sender 0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6</code> |
+| contracts | <code>pooling:finalize:arbitrum</code> | <code>bun run contracts -- deploy commitment-schemas --network arbitrum --mode broadcast --finalize-community-testimony --sender 0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6</code> |
+| contracts | <code>pooling:schemas:dry:arbitrum</code> | <code>bun run contracts -- deploy commitment-schemas --network arbitrum --mode simulate</code> |
+| contracts | <code>pooling:schemas:preview:arbitrum</code> | <code>bun run contracts -- deploy commitment-schemas --network arbitrum --mode preflight</code> |
+| contracts | <code>pooling:schemas:plan:arbitrum</code> | <code>bun run contracts -- deploy commitment-schemas --network arbitrum --mode plan --sender 0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6</code> |
+| contracts | <code>pooling:schemas:arbitrum</code> | <code>bun run contracts -- deploy commitment-schemas --network arbitrum --mode broadcast --sender 0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6</code> |
+| contracts | <code>pooling:deploy:dry:arbitrum</code> | <code>bun run contracts -- deploy pooling --network arbitrum --mode simulate</code> |
+| contracts | <code>pooling:deploy:plan:arbitrum</code> | <code>bun run contracts -- deploy pooling --network arbitrum --mode preflight</code> |
+| contracts | <code>pooling:deploy:arbitrum</code> | <code>bun run contracts -- deploy pooling --network arbitrum --mode broadcast</code> |
+| contracts | <code>release:manifest</code> | <code>bun run contracts -- release manifest --network arbitrum</code> |
+| contracts | <code>release:manifest:write</code> | <code>bun run contracts -- release manifest --network arbitrum --save-artifacts</code> |
+| contracts | <code>release:operator</code> | <code>bun run contracts -- release operator</code> |
+| contracts | <code>release:core:plan:arbitrum</code> | <code>bun run contracts -- release core --network arbitrum --mode preflight</code> |
+| contracts | <code>release:ownership:plan:arbitrum</code> | <code>bun run contracts -- deploy ownership-transfer --network arbitrum --mode preflight</code> |
+| contracts | <code>release:ownership:dry:arbitrum</code> | <code>bun run contracts -- deploy ownership-transfer --network arbitrum --mode simulate</code> |
+| contracts | <code>release:ownership:arbitrum</code> | <code>bun run contracts -- deploy ownership-transfer --network arbitrum --mode broadcast</code> |
+| contracts | <code>release:ownership:release:arbitrum</code> | <code>bun run contracts -- release operator --stage ownership-arbitrum --commit &lt;exact-commit&gt;</code> |
+| contracts | <code>release:ownership:plan:celo</code> | <code>bun run contracts -- deploy ownership-transfer --network celo --mode preflight</code> |
+| contracts | <code>release:ownership:dry:celo</code> | <code>bun run contracts -- deploy ownership-transfer --network celo --mode simulate</code> |
+| contracts | <code>release:ownership:celo</code> | <code>bun run contracts -- deploy ownership-transfer --network celo --mode broadcast</code> |
+| contracts | <code>release:ownership:release:celo</code> | <code>bun run contracts -- release operator --stage ownership-celo --commit &lt;exact-commit&gt;</code> |
+| contracts | <code>settlement:module:dry:arbitrum</code> | <code>bun run contracts -- deploy settlement-module --network arbitrum --mode simulate</code> |
+| contracts | <code>settlement:module:plan:arbitrum</code> | <code>bun run contracts -- deploy settlement-module --network arbitrum --mode preflight</code> |
+| contracts | <code>settlement:module:deploy:arbitrum</code> | <code>bun run contracts -- deploy settlement-module --network arbitrum --mode broadcast</code> |
+| contracts | <code>credit:registry:dry:arbitrum</code> | <code>bun run contracts -- deploy credit-registry --network arbitrum --mode simulate</code> |
+| contracts | <code>credit:registry:plan:arbitrum</code> | <code>bun run contracts -- deploy credit-registry --network arbitrum --mode preflight</code> |
+| contracts | <code>credit:registry:deploy:arbitrum</code> | <code>bun run contracts -- deploy credit-registry --network arbitrum --mode broadcast</code> |
+| contracts | <code>settlement:executor:dry:celo</code> | <code>bun run contracts -- deploy settlement-executor --network celo --mode simulate</code> |
+| contracts | <code>settlement:executor:plan:celo</code> | <code>bun run contracts -- deploy settlement-executor --network celo --mode preflight</code> |
+| contracts | <code>settlement:executor:deploy:celo</code> | <code>bun run contracts -- deploy settlement-executor --network celo --mode broadcast</code> |
+| contracts | <code>settlement:dual-chain:up</code> | <code>bun run contracts -- settlement dual-chain up</code> |
+| contracts | <code>settlement:dual-chain:down</code> | <code>bun run contracts -- settlement dual-chain down</code> |
+| contracts | <code>settlement:courier</code> | <code>bun run contracts -- settlement dual-chain courier</code> |
+| contracts | <code>settlement:safe:plan:celo</code> | <code>bun run contracts -- settlement safe --network celo --mode preflight</code> |
+| contracts | <code>settlement:safe:dry:celo</code> | <code>bun run contracts -- settlement safe --network celo --mode simulate</code> |
+| contracts | <code>settlement:garden-accounts:plan:celo</code> | <code>bun run contracts -- settlement garden-accounts plan --network celo</code> |
+| contracts | <code>settlement:garden-accounts:verify:celo</code> | <code>bun run contracts -- settlement garden-accounts verify --network celo</code> |
+| contracts | <code>settlement:garden-accounts:deploy:celo</code> | <code>bun run contracts -- settlement garden-accounts deploy --network celo --mode broadcast</code> |
+| contracts | <code>settlement:garden-accounts:release:celo</code> | <code>bun run contracts -- release operator --stage garden-accounts</code> |
+| contracts | <code>settlement:garden-safes:plan:celo</code> | <code>bun run contracts -- settlement garden-safes plan --network celo</code> |
+| contracts | <code>settlement:garden-safes:verify:celo</code> | <code>bun run contracts -- settlement garden-safes verify --network celo</code> |
+| contracts | <code>settlement:garden-safes:deploy:celo</code> | <code>bun run contracts -- settlement garden-safes deploy --network celo --mode broadcast</code> |
+| contracts | <code>settlement:garden-safes:release:celo</code> | <code>bun run contracts -- release operator --stage garden-safes</code> |
+| contracts | <code>settlement:garden-roles:plan</code> | <code>bun run contracts -- settlement garden-roles plan --network celo</code> |
+| contracts | <code>settlement:garden-roles:verify</code> | <code>bun run contracts -- settlement garden-roles verify --network celo</code> |
+| contracts | <code>settlement:garden-roles:deploy</code> | <code>bun run contracts -- settlement garden-roles deploy --network celo --mode broadcast</code> |
+| contracts | <code>settlement:garden-roles:release</code> | <code>bun run contracts -- release operator --stage garden-roles</code> |
+| contracts | <code>settlement:garden-roles:enable</code> | <code>bun run contracts -- settlement garden-roles enable --network celo --mode broadcast</code> |
+| contracts | <code>settlement:garden-roles:enable:release</code> | <code>bun run contracts -- release operator --stage garden-roles-enable</code> |
+| contracts | <code>settlement:garden-routes:plan</code> | <code>bun run contracts -- settlement garden-routes plan --network celo</code> |
+| contracts | <code>settlement:garden-routes:verify</code> | <code>bun run contracts -- settlement garden-routes verify --network celo</code> |
+| contracts | <code>settlement:garden-routes:configure</code> | <code>bun run contracts -- settlement garden-routes configure --network celo --mode broadcast</code> |
+| contracts | <code>settlement:garden-routes:release</code> | <code>bun run contracts -- release operator --stage garden-routes</code> |
+| contracts | <code>settlement:garden-relay:plan</code> | <code>bun run contracts -- settlement garden-relay plan --network celo</code> |
+| contracts | <code>settlement:garden-relay:verify</code> | <code>bun run contracts -- settlement garden-relay verify --network celo</code> |
+| contracts | <code>settlement:garden-relay:deploy</code> | <code>bun run contracts -- settlement garden-relay deploy --network celo --mode broadcast</code> |
+| contracts | <code>settlement:garden-relay:adopt</code> | <code>bun run contracts -- settlement garden-relay adopt --network celo</code> |
+| contracts | <code>settlement:garden-relay:release</code> | <code>bun run contracts -- release operator --stage relay</code> |
+| contracts | <code>settlement:peer:plan:arbitrum</code> | <code>bun run contracts -- settlement peer --network arbitrum --mode preflight</code> |
+| contracts | <code>settlement:peer:verify:arbitrum</code> | <code>bun run contracts -- settlement peer-verify --network arbitrum</code> |
+| contracts | <code>release:recover:arbitrum</code> | <code>bun run contracts -- release recover --network arbitrum</code> |
+| contracts | <code>release:recover:celo</code> | <code>bun run contracts -- release recover --network celo</code> |
+| contracts | <code>release:recover:plan:arbitrum</code> | <code>bun run contracts -- release recover --network arbitrum --mode preflight</code> |
+| contracts | <code>release:recover:plan:celo</code> | <code>bun run contracts -- release recover --network celo --mode preflight</code> |
+| contracts | <code>release:verify:arbitrum</code> | <code>bun run contracts -- release verify --network arbitrum</code> |
+| contracts | <code>release:verify:celo</code> | <code>bun run contracts -- release verify --network celo</code> |
+| contracts | <code>release:verify:safe:arbitrum</code> | <code>bun run contracts -- release verify --network arbitrum --owner-phase safe</code> |
+| contracts | <code>release:verify:safe:celo</code> | <code>bun run contracts -- release verify --network celo --owner-phase safe</code> |
+| contracts | <code>release:verify:plan:arbitrum</code> | <code>bun run contracts -- release verify --network arbitrum --mode preflight</code> |
+| contracts | <code>release:verify:plan:celo</code> | <code>bun run contracts -- release verify --network celo --mode preflight</code> |
+| contracts | <code>release:indexer:handoff</code> | <code>bun run contracts -- release indexer-handoff --network arbitrum --mode preflight</code> |
+| contracts | <code>pooling:configure:dry:arbitrum</code> | <code>bun run contracts -- deploy pooling-configure --network arbitrum --mode simulate</code> |
+| contracts | <code>pooling:configure:arbitrum</code> | <code>bun run contracts -- deploy pooling-configure --network arbitrum --mode broadcast</code> |
+| contracts | <code>assessment:upgrade:dry:arbitrum</code> | <code>bun run contracts -- upgrade assessment-resolver --network arbitrum --mode preflight</code> |
+| contracts | <code>assessment:upgrade:plan:arbitrum</code> | <code>bun run contracts -- upgrade assessment-resolver --network arbitrum --mode plan --sender 0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6</code> |
+| contracts | <code>assessment:upgrade:arbitrum</code> | <code>bun run contracts -- upgrade assessment-resolver --network arbitrum --mode broadcast --sender 0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6</code> |
+| contracts | <code>pooling:upgrade:dry:arbitrum</code> | <code>bun run contracts -- upgrade commitment-pooling --network arbitrum --mode preflight</code> |
+| contracts | <code>pooling:upgrade:plan:arbitrum</code> | <code>bun run contracts -- upgrade commitment-pooling --network arbitrum --mode plan --sender 0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6</code> |
+| contracts | <code>pooling:upgrade:arbitrum</code> | <code>bun run contracts -- upgrade commitment-pooling --network arbitrum --mode broadcast --sender 0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6</code> |
+| contracts | <code>pooling:backfill:dry:arbitrum</code> | <code>bun run contracts -- pooling backfill --network arbitrum --mode simulate --authority deployer</code> |
+| contracts | <code>pooling:backfill:arbitrum</code> | <code>bun run contracts -- pooling backfill --network arbitrum --mode broadcast --authority deployer</code> |
+| contracts | <code>verify:post-deploy</code> | <code>bun run contracts -- verify --network &lt;network&gt;</code> |
+| contracts | <code>verify:arbitrum-fork</code> | <code>bun run contracts -- verify arbitrum-fork --network arbitrum</code> |
+| contracts | <code>verify:post-deploy:sepolia</code> | <code>bun run contracts -- verify --network sepolia</code> |
+| contracts | <code>verify:post-deploy:arbitrum</code> | <code>bun run contracts -- verify --network arbitrum</code> |
+| contracts | <code>verify:post-deploy:celo</code> | <code>bun run contracts -- verify --network celo</code> |
+| contracts | <code>verify:post-deploy:mainnet</code> | <code>bun run contracts -- verify --network mainnet</code> |
+| contracts | <code>verify:steward-upgrade:sepolia</code> | <code>bun run contracts -- verify --network sepolia --check-steward-upgrade --skip-indexer --no-octant --no-cookiejar</code> |
+| contracts | <code>verify:steward-upgrade:arbitrum</code> | <code>bun run contracts -- verify --network arbitrum --check-steward-upgrade --skip-indexer --no-octant --no-cookiejar</code> |
+| contracts | <code>verify:post-deploy:indexer:sepolia</code> | <code>bun run contracts -- verify --network sepolia --check-indexer-runtime</code> |
+| contracts | <code>verify:post-deploy:indexer:arbitrum</code> | <code>bun run contracts -- verify --network arbitrum --check-indexer-runtime</code> |
+| contracts | <code>verify:post-deploy:indexer:mainnet</code> | <code>bun run contracts -- verify --network mainnet --check-indexer-runtime</code> |
+| contracts | <code>verify:post-deploy:indexer:local:sepolia</code> | <code>bun run contracts -- verify --network sepolia --check-indexer-runtime --skip-local-indexer-start</code> |
+| contracts | <code>verify:post-deploy:indexer:local:arbitrum</code> | <code>bun run contracts -- verify --network arbitrum --check-indexer-runtime --skip-local-indexer-start</code> |
+| contracts | <code>verify:post-deploy:indexer:local:mainnet</code> | <code>bun run contracts -- verify --network mainnet --check-indexer-runtime --skip-local-indexer-start</code> |
+| contracts | <code>verify:etherscan:sepolia</code> | <code>bun run contracts -- verify --network sepolia --check-etherscan --skip-indexer</code> |
+| contracts | <code>verify:etherscan:arbitrum</code> | <code>bun run contracts -- verify --network arbitrum --check-etherscan --skip-indexer</code> |
+| contracts | <code>verify:etherscan:celo</code> | <code>bun run contracts -- verify --network celo --check-etherscan --skip-indexer</code> |
+| contracts | <code>marketplace:status</code> | <code>bun run contracts -- marketplace status --network &lt;network&gt;</code> |
+| contracts | <code>marketplace:status:arbitrum</code> | <code>bun run contracts -- marketplace status --network arbitrum</code> |
+| contracts | <code>marketplace:configure:dry:arbitrum</code> | <code>bun run contracts -- marketplace configure --network arbitrum --mode simulate</code> |
+| contracts | <code>marketplace:configure:arbitrum</code> | <code>bun run contracts -- marketplace configure --network arbitrum --mode broadcast</code> |
+| contracts | <code>migrate:action-instructions:v2</code> | <code>bun run contracts -- migrate action-instructions-v2 --network &lt;network&gt; --mode &lt;mode&gt;</code> |
+| contracts | <code>migrate:action-instructions:v2:dry:arbitrum</code> | <code>bun run contracts -- migrate action-instructions-v2 --network arbitrum --mode preflight</code> |
+| contracts | <code>migrate:action-instructions:v2:preflight:arbitrum</code> | <code>bun run contracts -- migrate action-instructions-v2 check --network arbitrum --mode simulate</code> |
+| contracts | <code>migrate:action-instructions:v2:upload:arbitrum</code> | <code>bun run contracts -- migrate action-instructions-v2 --network arbitrum --mode upload</code> |
+| contracts | <code>migrate:action-instructions:v2:arbitrum</code> | <code>bun run contracts -- migrate action-instructions-v2 --network arbitrum --mode broadcast</code> |
+| contracts | <code>migrate:vaults</code> | <code>bun run contracts -- migrate vaults --network &lt;network&gt; --mode &lt;mode&gt;</code> |
+| contracts | <code>migrate:vaults:dry:arbitrum</code> | <code>bun run contracts -- migrate vaults --network arbitrum --mode simulate</code> |
+| contracts | <code>migrate:vaults:arbitrum</code> | <code>bun run contracts -- migrate vaults --network arbitrum --mode broadcast --sender 0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6</code> |
+| contracts | <code>open-minting:sepolia</code> | <code>bun run contracts -- minting open --network sepolia --mode broadcast</code> |
+| contracts | <code>open-minting:arbitrum</code> | <code>bun run contracts -- minting open --network arbitrum --mode broadcast</code> |
+| contracts | <code>repair:octant-assets</code> | <code>bun run contracts -- repair octant-assets --network &lt;network&gt; --mode &lt;mode&gt;</code> |
+| contracts | <code>repair:octant-assets:dry:arbitrum</code> | <code>bun run contracts -- repair octant-assets --network arbitrum --mode preflight</code> |
+| contracts | <code>repair:octant-assets:arbitrum</code> | <code>bun run contracts -- repair octant-assets --network arbitrum --mode broadcast</code> |
+| contracts | <code>upgrade</code> | <code>bun run contracts -- upgrade &lt;target&gt; --network &lt;network&gt; --mode &lt;mode&gt;</code> |
+| contracts | <code>upgrade:dry:sepolia</code> | <code>bun run contracts -- upgrade all --network sepolia --mode preflight</code> |
+| contracts | <code>upgrade:dry:arbitrum</code> | <code>bun run contracts -- upgrade all --network arbitrum --mode preflight</code> |
+| contracts | <code>upgrade:action-registry:dry:arbitrum</code> | <code>bun run contracts -- upgrade action-registry --network arbitrum --mode preflight</code> |
+| contracts | <code>upgrade:action-registry:arbitrum</code> | <code>bun run contracts -- upgrade action-registry --network arbitrum --mode broadcast</code> |
+| contracts | <code>upgrade:action-registry:arbitrum:override-sepolia-gate</code> | <code>bun run contracts -- upgrade action-registry --network arbitrum --mode broadcast --override-sepolia-gate</code> |
+| contracts | <code>upgrade:hats-module:dry:sepolia</code> | <code>bun run contracts -- upgrade hats-module --network sepolia --mode preflight</code> |
+| contracts | <code>upgrade:hats-module:plan:sepolia</code> | <code>bun run contracts -- upgrade hats-module --network sepolia --mode plan --sender 0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6</code> |
+| contracts | <code>upgrade:hats-module:sepolia</code> | <code>bun run contracts -- upgrade hats-module --network sepolia --mode broadcast --sender 0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6</code> |
+| contracts | <code>upgrade:hats-module:dry:arbitrum</code> | <code>bun run contracts -- upgrade hats-module --network arbitrum --mode preflight</code> |
+| contracts | <code>upgrade:hats-module:plan:arbitrum</code> | <code>bun run contracts -- upgrade hats-module --network arbitrum --mode plan --sender 0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6</code> |
+| contracts | <code>upgrade:hats-module:arbitrum</code> | <code>bun run contracts -- upgrade hats-module --network arbitrum --mode broadcast --sender 0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6</code> |
+| contracts | <code>upgrade:signal-pool-yield-wiring:dry:arbitrum</code> | <code>bun run contracts -- upgrade signal-pool-yield-wiring --network arbitrum --mode preflight</code> |
+| contracts | <code>upgrade:signal-pool-yield-wiring:simulate:arbitrum</code> | <code>bun run contracts -- upgrade signal-pool-yield-wiring --network arbitrum --mode simulate --sender 0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6</code> |
+| contracts | <code>upgrade:signal-pool-yield-wiring:arbitrum</code> | <code>bun run contracts -- upgrade signal-pool-yield-wiring --network arbitrum --mode broadcast --sender 0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6</code> |
+| contracts | <code>upgrade:dry:celo</code> | <code>bun run contracts -- upgrade all --network celo --mode preflight</code> |
+| contracts | <code>upgrade:sepolia</code> | <code>bun run contracts -- upgrade all --network sepolia --mode broadcast</code> |
+| contracts | <code>upgrade:arbitrum</code> | <code>bun run contracts -- upgrade all --network arbitrum --mode broadcast</code> |
+| contracts | <code>upgrade:celo</code> | <code>bun run contracts -- upgrade all --network celo --mode broadcast</code> |
+| contracts | <code>status</code> | <code>bun run contracts -- status --network &lt;network&gt;</code> |
+| contracts | <code>envio:local</code> | <code>bun run contracts -- indexer update 31337</code> |
+| contracts | <code>envio:cleanup</code> | <code>bun run contracts -- indexer restore</code> |
+| contracts | <code>ipfs:upload</code> | <code>bun run contracts -- ipfs upload</code> |
+| contracts | <code>ipfs:cache</code> | <code>bun run contracts -- ipfs cache</code> |
+| root | <code>format:contracts</code> | <code>bun run --cwd packages/contracts format</code> |
+| root | <code>format:contracts:check</code> | <code>bun run --cwd packages/contracts format --check</code> |
+| root | <code>indexer:doctor</code> | <code>bun run dev:health -- --profile full</code> |
+| root | <code>indexer:check-boundary</code> | <code>bun run --cwd packages/indexer check:indexing-boundary</code> |
+| root | <code>indexer:db:up</code> | <code>bun run --cwd packages/indexer db:up</code> |
+| root | <code>indexer:db:down</code> | <code>bun run --cwd packages/indexer db:down</code> |
+| root | <code>indexer:reset</code> | <code>bun run --cwd packages/indexer reset</code> |
+| root | <code>dev:contracts</code> | <code>bun run --cwd packages/contracts dev</code> |
+| root | <code>dev:contracts:arbitrum-fork</code> | <code>bun run --cwd packages/contracts dev:arbitrum-fork</code> |
+| root | <code>verify:contracts:arbitrum-fork</code> | <code>bun run contracts -- verify arbitrum-fork --network arbitrum</code> |
+| root | <code>test:client</code> | <code>bun run --cwd packages/client test</code> |
+| root | <code>test:admin</code> | <code>bun run --cwd packages/admin test</code> |
+| root | <code>test:agent</code> | <code>bun run --cwd packages/agent test</code> |
+| root | <code>test:docs</code> | <code>bun run --cwd docs test</code> |
+| root | <code>test:shared</code> | <code>bun run --cwd packages/shared test</code> |
+| root | <code>test:shared:live</code> | <code>bun run --cwd packages/shared test --scope live</code> |
+| root | <code>test:indexer</code> | <code>bun run --cwd packages/indexer test</code> |
+| root | <code>test:indexer:contract-events</code> | <code>bun run --cwd packages/indexer test --scope contract-events</code> |
+| root | <code>test:contracts</code> | <code>bun run --cwd packages/contracts test</code> |
+| root | <code>build:docs</code> | <code>bun run --cwd docs build</code> |
+| root | <code>build:client</code> | <code>bun run --cwd packages/client build</code> |
+| root | <code>build:admin</code> | <code>bun run --cwd packages/admin build</code> |
+| root | <code>build:agent</code> | <code>bun run --cwd packages/agent build</code> |
+| root | <code>build:shared</code> | <code>bun run --cwd packages/shared build</code> |
+| root | <code>build:indexer</code> | <code>bun run --cwd packages/indexer build</code> |
+| root | <code>build:contracts</code> | <code>bun run --cwd packages/contracts build</code> |
+| root | <code>check:contract-sizes</code> | <code>bun run --cwd packages/contracts check:sizes</code> |
+| root | <code>check:contracts-storage-layout:hats-module</code> | <code>bun run --cwd packages/contracts check:storage-layout -- --contract HatsModule</code> |
+| root | <code>docs:audit:ci</code> | <code>node docs/scripts/docs-audit.mjs --ci</code> |
+| root | <code>docs:audit:readme</code> | <code>node docs/scripts/docs-audit.mjs --strict-readme</code> |
+| root | <code>upload:action-images:dry-run</code> | <code>APP_ENV=development bun scripts/ops/upload-action-images.ts --dry-run</code> |
+| contracts | <code>test:e2e:workflow</code> | <code>bun run --cwd packages/contracts test:e2e workflow</code> |
+| contracts | <code>test:e2e:karma</code> | <code>bun run --cwd packages/contracts test:e2e karma</code> |
+| contracts | <code>test:e2e:sepolia</code> | <code>bun run --cwd packages/contracts test:e2e sepolia</code> |
+| contracts | <code>test:e2e:arbitrum</code> | <code>bun run --cwd packages/contracts test:e2e arbitrum</code> |
+| contracts | <code>test:e2e:celo</code> | <code>bun run --cwd packages/contracts test:e2e celo</code> |
+| contracts | <code>test:fork:arbitrum:ci</code> | <code>bun run --cwd packages/contracts test:shard run arbitrum</code> |
+| contracts | <code>test:fork:hats-module-upgrade:arbitrum</code> | <code>bun run --cwd packages/contracts test:shard run hats-module-upgrade-arbitrum</code> |
+| contracts | <code>test:fork:hats-module-upgrade:sepolia</code> | <code>bun run --cwd packages/contracts test:shard run hats-module-upgrade-sepolia</code> |
+| contracts | <code>test:fork:pooling:arbitrum</code> | <code>bun run --cwd packages/contracts test:shard run pooling-arbitrum</code> |
+| contracts | <code>test:fork:settlement-lane</code> | <code>bun run --cwd packages/contracts test:shard run settlement-lane</code> |
+| contracts | <code>test:fork:sepolia:ci</code> | <code>bun run --cwd packages/contracts test:shard run sepolia</code> |
+| contracts | <code>test:fork:ethereum:ci</code> | <code>bun run --cwd packages/contracts test:shard run ethereum</code> |
+| contracts | <code>test:fork:gardens:ci</code> | <code>bun run --cwd packages/contracts test:shard run gardens</code> |
+| contracts | <code>test:fork:octant:ci</code> | <code>bun run --cwd packages/contracts test:shard run octant</code> |
+| contracts | <code>test:fork:shards:ci</code> | <code>bun run --cwd packages/contracts test:shard run all</code> |
+| contracts | <code>test:fork:shards:check</code> | <code>bun run --cwd packages/contracts test:shard check</code> |
+| docs | <code>audit:ci</code> | <code>bun run --cwd docs audit -- --ci</code> |

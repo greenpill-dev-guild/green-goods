@@ -9,7 +9,7 @@
  * only the CLI at the bottom touches the filesystem, and nothing here reads the
  * Blob store.
  *
- *   bun run qa:report --slug <slug> [--window a..b] [--previous <earlier run's qa-state.json>]
+ *   bun run qa report --slug <slug> [--window a..b] [--previous <earlier run's qa-state.json>]
  *     [--build client=sha,admin=sha] [--public] [--stale-days n] [--out dir]
  *
  * `report.md` is the private variant: attributed notes and per-tester coverage,
@@ -336,7 +336,7 @@ export function buildReportModel(cases: CatalogCase[], entries: MergedEntries, o
   // cannot hold entries recorded after it, so say exactly what the report covers.
   if (Number.isFinite(pulledAtMs) && pulledAtMs < Date.parse(window.end)) {
     const clampedTo = new Date(pulledAtMs).toISOString();
-    windowNote = `Window end clamped to the pull time ${clampedTo}: entries recorded after it are not in this snapshot — re-run qa:pull once the window has closed, then re-run this report.`;
+    windowNote = `Window end clamped to the pull time ${clampedTo}: entries recorded after it are not in this snapshot — re-run qa pull once the window has closed, then re-run this report.`;
     window = { ...window, end: clampedTo, clampedTo };
   }
   const staleDays = options.staleDays ?? DEFAULT_STALE_DAYS;
@@ -731,7 +731,7 @@ export async function runReport(
   const statePath = path.join(outDir, "qa-state.json");
   if (!existsSync(statePath)) {
     throw new Error(
-      `${path.relative(deps.repoRoot, statePath)} is missing — run bun run qa:pull --slug ${options.slug} first`,
+      `${path.relative(deps.repoRoot, statePath)} is missing — run bun run qa pull --slug ${options.slug} first`,
     );
   }
   const lock = acquirePrivateSessionLock(outDir, "qa:report");
@@ -767,7 +767,7 @@ export async function runReport(
       // before the close, which the delta would then read as newly walked or fixed.
       if (previousState.run && !previousState.run.closedAt) {
         throw new Error(
-          `--previous was pulled while ${previousState.run.id} was still open — pull the closed run with qa:pull --run ${previousState.run.id} and try again`,
+          `--previous was pulled while ${previousState.run.id} was still open — pull the closed run with qa pull --run ${previousState.run.id} and try again`,
         );
       }
       previous = { path: options.previous, entries: previousState.entries, run: previousState.run };

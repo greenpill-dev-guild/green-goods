@@ -19,6 +19,26 @@ import {
 
 const GIBIBYTE = 1024 ** 3;
 
+test("check selects explicit checks without dropping mandatory overrides", () => {
+  const options = parseArguments(["--only", "lint", "--plan", "--json"]);
+  assert.equal(options.intent, "diagnose");
+  assert.deepEqual(options.onlyChecks, ["lint"]);
+  const input = plan(["format", "lint", "contracts-test"]);
+  input.checks[2].mandatory = true;
+  const selected = applyCompatibilityFilters(input, options);
+  assert.deepEqual(selected.checks.map((check) => check.id), ["lint", "contracts-test"]);
+  assert.equal(options.planOnly, true);
+  assert.equal(options.json, true);
+});
+
+test("check rejects malformed discovery and selection before execution", () => {
+  for (const argv of [["--only"], ["--only", "--plan"], ["--json"], ["--list", "--only", "lint"], ["--unknown"]]) {
+    assert.throws(() => parseArguments(argv));
+  }
+  assert.equal(parseArguments(["--list", "--json"]).list, true);
+  assert.equal(parseArguments(["--only", "lint", "--intent", "release"]).intent, "release");
+});
+
 test("ci-local re-entry is wired only inside the direct-run guard", () => {
   const source = readFileSync(new URL("./ci-local.js", import.meta.url), "utf8");
   const directRunGuard = source.indexOf("if (isDirectRun) {");
@@ -71,7 +91,7 @@ test("ci-local detects the Arbitrum fork from an RPC override or port probe", as
 });
 
 test("environment blockers name their recovery commands", () => {
-  assert.match(capabilityRecoveryHint("arbitrumFork"), /bun run dev:contracts:arbitrum-fork/);
+  assert.match(capabilityRecoveryHint("arbitrumFork"), /bun run --cwd packages\/contracts dev:arbitrum-fork/);
   assert.match(
     capabilityRecoveryHint("contractSubmodules", "uninitialized"),
     /git submodule update --init --recursive/,
@@ -680,9 +700,78 @@ test("a mandatory blocked check is never dropped by a compatibility filter", () 
 
 test("environment blockers keep the plan blocked even with no blocked checks", () => {
   const plan = filterablePlan([
-    { id: "format", state: "pending", mandatory: false, budgetSeconds: 5 },
+    {
+      id: "format",
+      state: "pending",
+      mandatory: false,
+      budgetSeconds: 5,
+      command: "bunx @biomejs/biome format",
+    },
   ]);
   plan.environmentBlockers = ["toolchain.bun"];
 
   assert.equal(applyCompatibilityFilters(plan, {}).status, "blocked");
+});
+
+test("a toolchain blocker only a dropped check needed stops blocking the plan", () => {
+  // `bun run check --only design-tokens` on a runner without Foundry: the
+  // toolchain comparison upstream sees contracts-test and blocks everything,
+  // but the surviving check is a shell script that never touches Foundry.
+  const plan = filterablePlan([
+    {
+      id: "design-tokens",
+      state: "blocked",
+      blockedBy: ["toolchain.foundry"],
+      mandatory: false,
+      budgetSeconds: 60,
+      command: "bash scripts/design/check-tokens.sh",
+      capabilities: ["dependencies"],
+    },
+    {
+      id: "contracts-test",
+      state: "blocked",
+      blockedBy: ["toolchain.foundry"],
+      mandatory: false,
+      budgetSeconds: 60,
+      capabilities: ["foundry"],
+    },
+  ]);
+  plan.environmentBlockers = [{ capability: "toolchain.foundry", expected: "1.0.0", actual: null }];
+
+  const filtered = applyCompatibilityFilters(plan, { onlyChecks: ["design-tokens"] });
+
+  assert.deepEqual(
+    filtered.checks.map((check) => check.id),
+    ["design-tokens"],
+  );
+  assert.deepEqual(filtered.checks[0].blockedBy, []);
+  assert.equal(filtered.checks[0].state, "pending");
+  assert.deepEqual(filtered.environmentBlockers, []);
+  assert.equal(filtered.status, "ready");
+});
+
+test("a toolchain blocker a surviving check still needs keeps the plan blocked", () => {
+  const plan = filterablePlan([
+    {
+      id: "contracts-test",
+      state: "blocked",
+      blockedBy: ["toolchain.foundry"],
+      mandatory: false,
+      budgetSeconds: 60,
+      capabilities: ["foundry"],
+    },
+    {
+      id: "indexer-test",
+      state: "blocked",
+      blockedBy: ["toolchain.foundry"],
+      mandatory: false,
+      budgetSeconds: 60,
+    },
+  ]);
+  plan.environmentBlockers = [{ capability: "toolchain.foundry", expected: "1.0.0", actual: null }];
+
+  const filtered = applyCompatibilityFilters(plan, { skipIndexer: true });
+
+  assert.equal(filtered.checks[0].state, "blocked");
+  assert.equal(filtered.status, "blocked");
 });

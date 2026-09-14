@@ -1507,7 +1507,7 @@ function checkGeneratedArtifacts(ontology, projections) {
     const abs = path.join(REPO_ROOT, relPath);
     const current = existsSync(abs) ? readFileSync(abs, "utf8").replace(/\r\n/g, "\n") : null;
     if (current !== expected) {
-      errors.push(`[generated-staleness] stale generated artifact: ${relPath} — run \`bun run ontology:generate\` and commit`);
+      errors.push(`[generated-staleness] stale generated artifact: ${relPath} — run \`node scripts/quality/check-ontology.mjs --generate\` and commit`);
     }
   }
   return { errors, rendered: first };

@@ -6754,7 +6754,7 @@
       "area": "Site",
       "scenario": "Local search returns relevant results with keyboard flow",
       "preconditions": [
-        "Built docs site (bun run build:docs, served) or the deployed docs site — the dev server has no search index"
+        "Built docs site (bun run --cwd docs build, served) or the deployed docs site — the dev server has no search index"
       ],
       "steps": [
         "Focus the search input",

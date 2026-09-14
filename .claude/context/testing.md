@@ -56,7 +56,7 @@ module through its own specifier outside every `vi.mock` factory. That subject-n
 not mock the same specifier. Importing a barrel that re-exports the module, importing the real
 module only from a mock factory, or testing a mocked copy does not prove the seam.
 
-`bun run check:test-quality` enforces this rule for conventionally named tests. Existing audited
+`bun run check --only test-quality` enforces this rule for conventionally named tests. Existing audited
 violations live in `scripts/data/direct-tested-seam-baseline.json`; the baseline is exact and must
 shrink when a violation is fixed, while every new or stale entry fails the check.
 

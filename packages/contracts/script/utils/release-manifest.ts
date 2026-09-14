@@ -1087,7 +1087,7 @@ export function buildReleaseLock(manifest = loadReleaseManifest(), baseSalt?: st
         `${actualCounts.implementations} implementations, ${actualCounts.proxies} proxies, ` +
         `${Object.keys(libraryMap).length} library-map entries, and ${uniqueAddresses} unique addresses. ` +
         "Production artifacts may already contain linked bytecode; restore them with " +
-        "FOUNDRY_PROFILE=production bun run build:fast before regenerating the release lock.",
+        "FOUNDRY_PROFILE=production bun run --cwd packages/contracts build --mode fast before regenerating the release lock.",
     );
   }
 

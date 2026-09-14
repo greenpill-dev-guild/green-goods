@@ -271,7 +271,7 @@ describe("AccountProfileAvatarEditor", () => {
   it.each([
     ["normalizing", /preparing photo/i],
     ["uploading", /uploading photo/i],
-    ["signing", /saving photo/i],
+    ["signing", /approve photo change/i],
     ["saving", /saving photo/i],
   ])("announces %s", async (stage, text) => {
     mocks.editor.stage = stage;

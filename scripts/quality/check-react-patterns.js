@@ -916,7 +916,7 @@ function writeBaseline(allHits) {
   }
   const baseline = {
     note:
-      "Auto-generated advisory inventory from `bun run lint:rules -- --baseline-write`. Default lint ignores this file and blocks every high-confidence hit. Use the inventory only for dedicated heuristic cleanup. See .claude/rules/ for rule sources.",
+      "Auto-generated advisory inventory from `bun run check --only react-patterns -- --baseline-write`. Default lint ignores this file and blocks every high-confidence hit. Use the inventory only for dedicated heuristic cleanup. See .claude/rules/ for rule sources.",
     generatedAt: new Date().toISOString(),
     rules: grouped,
   };

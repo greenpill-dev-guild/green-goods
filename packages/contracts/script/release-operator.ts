@@ -15,6 +15,7 @@ import {
 } from "./deploy/garden-safe-owners";
 import { buildReleaseLock, loadReleaseManifest, type ReleaseLock, type ReleaseStage } from "./utils/release-manifest";
 import { NetworkManager } from "./utils/network";
+import { OPERATOR_ARGUMENTS, resolveOperatorBoundary } from "./cli/operations.mjs";
 import { retryRpcAvailability } from "./utils/rpc-retry";
 
 const CONTRACTS_ROOT = path.join(__dirname, "..");
@@ -35,14 +36,14 @@ const INTERACTIVE_ARTIFACT_MUTATIONS = new Set([
 ]);
 
 export const RELEASE_OPERATOR_COMMANDS = new Map<string, string>([
-  ["release:ownership:arbitrum", "one protocol ownership-transfer boundary"],
-  ["release:ownership:celo", "one protocol ownership-transfer boundary"],
-  ["settlement:garden-accounts:deploy:celo", "one exact GardenAccount coordinator boundary"],
-  ["settlement:garden-safes:deploy:celo", "one final native/G$-clear 2-of-3 Garden Safe boundary"],
-  ["settlement:garden-relay:deploy", "one zero-value Garden-bound relay boundary"],
-  ["settlement:garden-roles:deploy", "one zero-value Roles modifier configuration boundary"],
-  ["settlement:garden-roles:enable", "one pre-approved Garden Safe module enable boundary"],
-  ["settlement:garden-routes:configure", "one write-once Garden route boundary on the settlement executor"],
+  ["ownership-arbitrum", "one protocol ownership-transfer boundary"],
+  ["ownership-celo", "one protocol ownership-transfer boundary"],
+  ["garden-accounts", "one exact GardenAccount coordinator boundary"],
+  ["garden-safes", "one final native/G$-clear 2-of-3 Garden Safe boundary"],
+  ["garden-relay", "one zero-value Garden-bound relay boundary"],
+  ["garden-roles", "one zero-value Roles modifier configuration boundary"],
+  ["garden-roles-enable", "one pre-approved Garden Safe module enable boundary"],
+  ["garden-routes", "one write-once Garden route boundary on the settlement executor"],
 ] as const);
 
 const FORBIDDEN_ARGUMENTS = new Set([
@@ -56,16 +57,9 @@ const FORBIDDEN_ARGUMENTS = new Set([
   "--sender",
 ]);
 
-const RELEASE_OPERATOR_ARGUMENTS = new Map<string, ReadonlySet<string>>([
-  ["release:ownership:arbitrum", new Set(["--step", "--expected-nonce"])],
-  ["release:ownership:celo", new Set(["--step", "--expected-nonce"])],
-  ["settlement:garden-accounts:deploy:celo", new Set(["--plan", "--step", "--receipt"])],
-  ["settlement:garden-safes:deploy:celo", new Set(["--plan", "--inventory", "--step", "--receipt"])],
-  ["settlement:garden-relay:deploy", new Set(["--plan", "--safe-plan", "--step", "--receipt"])],
-  ["settlement:garden-roles:deploy", new Set(["--plan", "--safe-plan", "--broadcast", "--step"])],
-  ["settlement:garden-roles:enable", new Set(["--plan", "--broadcast", "--step"])],
-  ["settlement:garden-routes:configure", new Set(["--plan", "--safe-plan", "--broadcast", "--step"])],
-]);
+const RELEASE_OPERATOR_ARGUMENTS = new Map<string, ReadonlySet<string>>(
+  Object.entries(OPERATOR_ARGUMENTS).map(([boundary, flags]) => [boundary, new Set(flags)]),
+);
 
 /**
  * A ceremony stage is the complete, ordered boundary set for one release lane. Running a stage
@@ -87,7 +81,7 @@ export const CEREMONY_STAGES = new Map<CeremonyStage, { script: string; boundari
   [
     "ownership-arbitrum",
     {
-      script: "release:ownership:arbitrum",
+      script: "ownership-arbitrum",
       boundaries: 9,
       label: "Arbitrum protocol ownership handover",
     },
@@ -95,7 +89,7 @@ export const CEREMONY_STAGES = new Map<CeremonyStage, { script: string; boundari
   [
     "ownership-celo",
     {
-      script: "release:ownership:celo",
+      script: "ownership-celo",
       boundaries: 1,
       label: "Celo protocol ownership handover",
     },
@@ -103,7 +97,7 @@ export const CEREMONY_STAGES = new Map<CeremonyStage, { script: string; boundari
   [
     "garden-accounts",
     {
-      script: "settlement:garden-accounts:deploy:celo",
+      script: "garden-accounts",
       boundaries: 2,
       label: "exact Celo GardenAccount coordinator and atomic initialization",
     },
@@ -111,7 +105,7 @@ export const CEREMONY_STAGES = new Map<CeremonyStage, { script: string; boundari
   [
     "garden-safes",
     {
-      script: "settlement:garden-safes:deploy:celo",
+      script: "garden-safes",
       boundaries: 18,
       label: "final 2-of-3 Garden Safes",
     },
@@ -119,7 +113,7 @@ export const CEREMONY_STAGES = new Map<CeremonyStage, { script: string; boundari
   [
     "relay",
     {
-      script: "settlement:garden-relay:deploy",
+      script: "garden-relay",
       boundaries: 4,
       label: "Garden-bound relay router, relay, destination binding, and Guardian trust",
     },
@@ -127,7 +121,7 @@ export const CEREMONY_STAGES = new Map<CeremonyStage, { script: string; boundari
   [
     "garden-roles",
     {
-      script: "settlement:garden-roles:deploy",
+      script: "garden-roles",
       boundaries: 126,
       label: "Roles modifier deployment, scoping, allowance, executor assignment, and ownership transfer",
     },
@@ -135,7 +129,7 @@ export const CEREMONY_STAGES = new Map<CeremonyStage, { script: string; boundari
   [
     "garden-roles-enable",
     {
-      script: "settlement:garden-roles:enable",
+      script: "garden-roles-enable",
       boundaries: 18,
       label: "pre-approved Garden Safe module enables",
     },
@@ -143,7 +137,7 @@ export const CEREMONY_STAGES = new Map<CeremonyStage, { script: string; boundari
   [
     "garden-routes",
     {
-      script: "settlement:garden-routes:configure",
+      script: "garden-routes",
       boundaries: 18,
       label: "write-once Garden route bindings on the settlement executor",
     },
@@ -236,7 +230,7 @@ export function tokenizeOperatorCommand(line: string): string[] {
 
 export function assertAllowedOperatorCommand(tokens: string[]): { script: string; args: string[] } {
   if (tokens[0] !== "run" || !tokens[1]) {
-    throw new Error("Use: run <allowlisted-package-script> [reviewed arguments]");
+    throw new Error("Use: run <allowlisted-boundary> [reviewed arguments]");
   }
   const script = tokens[1];
   if (!RELEASE_OPERATOR_COMMANDS.has(script)) {
@@ -298,8 +292,8 @@ function showHelp(): void {
 Green Goods release operator session
 
 Usage:
-  bun run release:operator -- --commit <exact-40-character-candidate>
-  bun run release:operator -- --commit <candidate> --stage <ceremony-stage>
+  bun run contracts -- release operator --commit <exact-40-character-candidate>
+  bun run contracts -- release operator --commit <candidate> --stage <ceremony-stage>
 
 The session verifies the exact candidate plus any receipt-backed deployment artifacts, prompts for
 the Foundry keystore password, verifies that it unlocks the frozen deployment sender, and accepts
@@ -308,7 +302,7 @@ network override, sender override, raw Forge command, or arbitrary shell command
 
 Inside the session:
   help
-  run <package-script> [reviewed arguments]
+  run <boundary> [reviewed arguments]
   exit
 
 Stage mode runs one lane's complete ordered boundary set from a single password entry. The exact
@@ -333,7 +327,7 @@ boundary separately authorized by the release owner. The credential session clos
 wrapper verifies and checkpoints the selected boundary. The completed core deployment, pool
 backfill, and pooling-unpause orchestrators are retired and cannot be replayed from this operator.
 
-Allowlisted package scripts:
+Allowlisted transaction boundaries:
 ${[...RELEASE_OPERATOR_COMMANDS].map(([name, description]) => `  ${name.padEnd(40)} ${description}`).join("\n")}
 `);
 }
@@ -870,12 +864,13 @@ function runStageBoundary(
   candidateCommit: string,
   capture: boolean,
 ): string {
-  console.log(`Running Bun wrapper: ${script} ${args.join(" ")}`.trim());
+  const invocation = resolveOperatorBoundary(script, args);
+  console.log(`Running release boundary: ${script} ${args.join(" ")}`.trim());
   assertInteractiveSessionStart(candidateCommit);
-  const result = spawnSync("bun", ["run", script, ...args], {
-    cwd: CONTRACTS_ROOT,
+  const result = spawnSync(invocation.command, invocation.args, {
+    cwd: invocation.cwd,
     encoding: "utf8",
-    env: environment,
+    env: { ...invocation.env, ...environment },
     stdio: capture ? ["inherit", "pipe", "inherit"] : "inherit",
   });
   const output = capture ? (result.stdout ?? "") : "";
@@ -1034,17 +1029,7 @@ async function runSession(candidateCommit: string, stage?: CeremonyStage): Promi
           continue;
         }
         const command = assertAllowedOperatorCommand(tokenizeOperatorCommand(line));
-        console.log(`Running Bun wrapper: ${command.script} ${command.args.join(" ")}`.trim());
-        assertInteractiveSessionStart(candidateCommit);
-        const result = spawnSync("bun", ["run", command.script, ...command.args], {
-          cwd: CONTRACTS_ROOT,
-          stdio: "inherit",
-          env: boundaryEnvironment,
-        });
-        if (result.status !== 0) {
-          throw new Error(`Bun wrapper ${command.script} failed; the credential session is closed`);
-        }
-        assertInteractiveSessionStart(candidateCommit);
+        runStageBoundary(command.script, command.args, boundaryEnvironment, candidateCommit, false);
         console.log(
           "Boundary script returned successfully with no concurrent checkout drift. The credential session is closed.",
         );

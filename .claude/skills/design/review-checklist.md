@@ -157,20 +157,20 @@ Each lens has a manual review pass. Some lenses also have automation that runs t
 
 | Lens | Manual Review | Automation | Status |
 |------|--------------|-----------|--------|
-| **1 — Regenerative** | Value-flow, succession, recovery, motivation, capability, and aesthetic checks | `bun run lint:vocab` — scans `packages/*/src/i18n/*.json` for `linter_enforced.terms` from `scripts/data/banned-vocabulary.json`; prompt-only admin/client vocabulary is guidance, not a runtime check | **Wired** |
+| **1 — Regenerative** | Value-flow, succession, recovery, motivation, capability, and aesthetic checks | `bun run check --only vocabulary` — scans `packages/*/src/i18n/*.json` for `linter_enforced.terms` from `scripts/data/banned-vocabulary.json`; prompt-only admin/client vocabulary is guidance, not a runtime check | **Wired** |
 | **2 — Spatial** | Paradigm declared, material thickness matches content density | Chromatic visual regression on paradigm-tagged stories; `@container` coverage lint | **Proposed** |
 | **3 — Ecosystem** | Archetype mapping, cascade visibility, surrogate flows | Playwright role-based flows (gardener / steward / evaluator / funder); vitest surrogate-path tests; indexer archetype-span checks | **Proposed** |
 | **4 — Compliance** | WCAG 2.1 AA, i18n readiness, responsive breakpoints | `@storybook/addon-a11y` (installed, not CI-gating); viewport tests at 320/768/1280; i18n-key coverage lint; `prefers-reduced-motion` vitest matcher | **Partial** — addon installed, no CI gate |
-| **Cross-cutting** | Token consistency across docs and implementation | `bun run check:design-tokens` — spec ↔ `theme.css` (shared) + `packages/admin/src/styles/admin-m3-tokens.css` / `admin-m3-components.css` + `token_version` declared in `design/SKILL.md` | **Wired** |
+| **Cross-cutting** | Token consistency across docs and implementation | `bun run check --only design-tokens` — spec ↔ `theme.css` (shared) + `packages/admin/src/styles/admin-m3-tokens.css` / `admin-m3-components.css` + `token_version` declared in `design/SKILL.md` | **Wired** |
 
 ### Quick wiring reference — currently runnable
 
 ```bash
 # Lens 1 — lint-enforced banned vocabulary in user-facing i18n strings
-bun run lint:vocab
+bun run check --only vocabulary
 
 # Cross-cutting — Warm Earth token spec ↔ theme.css + admin-m3-tokens.css/admin-m3-components.css + version coupling
-bun run check:design-tokens
+bun run check --only design-tokens
 ```
 
 ### Roadmap — not yet wired

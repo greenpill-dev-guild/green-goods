@@ -15,7 +15,7 @@ generated_from:
   - playwright.config.ts
   - scripts/data/qa-test-catalog.json
   - scripts/data/validation-policy.json
-source_digest: "sha256:98befb855f7ac4fdbf407a2acfa7e25beed4301f8e6741c13e933b345a90288e"
+source_digest: "sha256:8cc734e1b82e536b664099117fe1b10d998e470a1b4bee189a3e42a97913e08c"
 source_of_truth:
   - package.json
   - packages/admin/vitest.config.ts
@@ -27,7 +27,7 @@ source_of_truth:
   - scripts/data/validation-policy.json
 ---
 
-<!-- GENERATED FILE: do not edit. Run `bun run docs:generate` or `bun run docs:generate -- --scope <scope>`. -->
+<!-- GENERATED FILE: do not edit. Run `node scripts/docs/generate.mjs` or `node scripts/docs/generate.mjs -- --scope <scope>`. -->
 # Test Cases
 
 This page projects scenario definitions only. Live results, identities, owners, defect links, and session evidence are intentionally excluded.
@@ -145,7 +145,7 @@ Check discretionary funding readiness, queue a ProtocolToGarden top-up when auth
 - A new case enters as `active`, takes the next number in its surface prefix, is appended to the ID ledger (`scripts/data/qa-test-id-ledger.json`), and names where it came from in `source`.
 - Wording, step, and evidence edits happen in place — the ID keeps meaning the same check.
 - When what a case proves changes, it is retired with `retiredOn`, `retiredReason`, and `replacedBy` when successors exist, and the new check gets a new ID — so every past verdict keeps its meaning.
-- After a catalog change merges, redeploy the QA app (a deployment pins the catalog revision it shipped with) and regenerate this page with `bun run docs:generate`; CI rejects a stale copy.
+- After a catalog change merges, redeploy the QA app (a deployment pins the catalog revision it shipped with) and regenerate this page with `node scripts/docs/generate.mjs`; CI rejects a stale copy.
 
 The catalog contract test enforces all of this, and [retired cases](#retired-cases) are listed at the end of this page.
 

@@ -32,7 +32,7 @@ Use the lightest validation that proves the change:
 
 - `node scripts/quality/check-codex-docs.js`
 - `node scripts/dev/ci-local.js --quick`
-- `bun run format:check && bun lint`
+- `bun run format --check && bun lint`
 - `bun run test`
 - `VITE_CHAIN_ID=11155111 bun run build`
 

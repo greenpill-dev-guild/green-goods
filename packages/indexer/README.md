@@ -39,14 +39,14 @@ to stop the attached development process while preserving the database.
 intentional:
 
 ```bash
-bun run --cwd packages/indexer dev:restart
+bun run --cwd packages/indexer dev --restart
 ```
 
 `bun run --cwd packages/indexer db:down` stops the Envio-managed PostgreSQL and Hasura containers
 without removing them, so the `envio-postgres-data` volume and the indexed state survive. It
 selects the containers by Envio's `dev.envio.config-hash` label, which leaves the separate
 `docker-compose.indexer.yaml` stack untouched. `bun run --cwd packages/indexer clean` removes TypeScript build metadata
-only. `dev:restart` and `reset` are destructive to the local Envio database and require explicit
+only. `dev --restart` and `reset` are destructive to the local Envio database and require explicit
 intent. Hosted deployment and reindexing are separate release operations and are not performed by
 local validation.
 
@@ -59,9 +59,9 @@ local validation.
 For the full package-local stack:
 
 ```bash
-bun run --cwd packages/indexer dev:docker
-bun run --cwd packages/indexer dev:docker:logs
-bun run --cwd packages/indexer dev:docker:down
+bun run --cwd packages/indexer docker up
+bun run --cwd packages/indexer docker logs
+bun run --cwd packages/indexer docker down
 ```
 
 This exposes PostgreSQL on `3008`, Hasura GraphQL on `3006`, and the Envio service on `3007`.
@@ -85,9 +85,9 @@ bun run --cwd packages/indexer check:indexing-boundary  # verify chain, contract
 bun run --cwd packages/indexer codegen                  # regenerate .envio/ declarations
 bun run --cwd packages/indexer build                    # codegen plus strict TypeScript validation
 bun run --cwd packages/indexer test                     # codegen plus Mocha handler tests
-bun run --cwd packages/indexer test:coverage            # coverage over the v3 test indexer
+bun run --cwd packages/indexer test --scope handlers --coverage            # coverage over the v3 test indexer
 bun run --cwd packages/indexer lint                     # indexer source and test lint
-bun run --cwd packages/indexer doctor                   # full local-stack readiness checks
+(cd packages/indexer && bun run dev:health -- --profile full)                   # full local-stack readiness checks
 bun run --cwd packages/indexer db:up                    # start Envio-managed local containers
 bun run --cwd packages/indexer db:down                  # stop (not remove) those containers; keeps the database volume
 bun run --cwd packages/indexer reset                    # destructive: delete the local database and stop Envio

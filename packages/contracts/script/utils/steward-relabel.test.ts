@@ -1,5 +1,6 @@
 import fs from "node:fs";
 import { describe, expect, it } from "vitest";
+import { resolveCommand } from "../cli/operations.mjs";
 
 import { redactRpcUrlsInText, redactSensitiveArgs } from "./cli-parser";
 import {
@@ -102,24 +103,23 @@ describe("Steward upgrade and RPC safety", () => {
     );
   });
 
-  it("runs the HatsModule storage check before either broadcast wrapper", () => {
+  it("runs the HatsModule storage check and reviewed fork before either broadcast", () => {
     const packageJson = JSON.parse(fs.readFileSync(new URL("../../package.json", import.meta.url), "utf8")) as {
       scripts: Record<string, string>;
     };
 
     expect(packageJson.scripts["check:storage-layout"]).toBe("bash script/check-storage-layout.sh");
-    expect(packageJson.scripts["test:fork:hats-module-upgrade:sepolia"]).toBe(
-      "bun script/utils/fork-shards.mjs run hats-module-upgrade-sepolia",
-    );
-    expect(packageJson.scripts["test:fork:hats-module-upgrade:arbitrum"]).toBe(
-      "bun script/utils/fork-shards.mjs run hats-module-upgrade-arbitrum",
-    );
-    expect(packageJson.scripts["upgrade:hats-module:sepolia"]).toMatch(
-      /^bun run check:storage-layout:hats-module && bun run test:fork:hats-module-upgrade:sepolia && bun script\/upgrade\.ts hats-module /,
-    );
-    expect(packageJson.scripts["upgrade:hats-module:arbitrum"]).toMatch(
-      /^bun run check:storage-layout:hats-module && bun run test:fork:hats-module-upgrade:arbitrum && bun script\/upgrade\.ts hats-module /,
-    );
+    expect(packageJson.scripts["test:shard"]).toBe("bun script/utils/fork-shards.mjs");
+    for (const network of ["sepolia", "arbitrum"]) {
+      const operation = resolveCommand(["upgrade", "hats-module", "--network", network, "--mode", "broadcast"]);
+      if ("help" in operation) throw new Error("Expected an executable operation");
+      expect(operation.checks.map((check) => [check.command, ...check.args])).toEqual([
+        ["bash", "script/check-storage-layout.sh", "--contract", "HatsModule"],
+        ["bun", "script/utils/fork-shards.mjs", "run", `hats-module-upgrade-${network}`],
+      ]);
+      expect(operation.args.slice(0, 2)).toEqual(["script/upgrade.ts", "hats-module"]);
+      expect(operation.env.FOUNDRY_KEYSTORE_ACCOUNT).toBe("green-goods-deployer");
+    }
   });
 
   it("requires fresh reviewed fork inputs for both HatsModule upgrade rehearsals", () => {

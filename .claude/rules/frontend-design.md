@@ -250,7 +250,7 @@ an `<input>` of type `file`, `radio`, `checkbox`, `hidden`, or `range`. A link t
 button is `<Button asChild>`. Radii stay on the scale: no `rounded-sm`, `rounded-3xl`, or
 `rounded-4xl` in client source.
 
-`bun run lint:rules` enforces this rule (`rule-19-client-shared-controls` in
+`bun run check --only react-patterns` enforces this rule (`rule-19-client-shared-controls` in
 `scripts/quality/check-react-patterns.js`) and fails on any hit; there is no baseline.
 
 ```tsx

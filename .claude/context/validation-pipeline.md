@@ -23,7 +23,7 @@ wiring, production composition, or a fresh readiness gate.
 Render the repository-owned plan first:
 
 ```bash
-bun run validation:plan -- --intent <intent>
+bun run check --plan -- --intent <intent>
 ```
 
 The selector combines intent, changed paths, dependency impact, and criticality. Agents execute the
@@ -67,7 +67,7 @@ rather than trusted.
 
 `node scripts/dev/ci-local.js` renders and executes Ship intent by default. Prefer an explicit
 intent in agent workflows: `--intent push` for the ready-for-CI contract and `--intent ship` only
-for a requested full local gate. Use `bun run test:fast` for a cache-aware full-scope iteration
+for a requested full local gate. Use `bun run test --cache` for a cache-aware full-scope iteration
 loop; keep the exact uncached `bun run test` for gates that name it.
 
 Never reuse failures. User cancellation is terminal: stop active validation, schedule nothing else,
@@ -91,7 +91,7 @@ The strict local evidence gate for an explicit production-readiness review. It p
 readiness without editing tracked files:
 
 ```bash
-bun format:check && bun lint && bun run test && VITE_CHAIN_ID=11155111 bun run build
+bun run format --check && bun run lint && bun run test && VITE_CHAIN_ID=11155111 bun run build
 ```
 
 Run every selected stage fresh unless an exact matching receipt satisfies the freshness contract
@@ -105,24 +105,24 @@ the PR approved.
 
 Conditional additions when the change touches the relevant surface:
 
-- Design/tokens/CSS: `bun run check:design-md`, `bun run check:design-generated`,
-  `bun run check:design-tokens`
-- i18n / user-visible copy: `bun run lint:vocab` (locale parity runs inside
+- Design/tokens/CSS: `bun run check --only design-md`, `bun run check --only design-generated`,
+  `bun run check --only design-tokens`
+- i18n / user-visible copy: `bun run check --only vocabulary` (locale parity runs inside
   `bun run test` via `packages/shared/src/__tests__/i18n/locale-coverage.test.ts`)
 - Stories / Storybook-covered surfaces:
   `bun run --filter @green-goods/shared check:stories` and
   `bun run --filter @green-goods/shared check:story-quality`
-- Changed non-test source under `packages/*/src/**`: `bun run check:source-structure`
-- Contract-touching changes: `bun run verify:contracts:fast`; when protocol behavior changed,
+- Changed non-test source under `packages/*/src/**`: `bun run check --only source-structure`
+- Contract-touching changes: `bun run check --only contracts-verify-fast`; when protocol behavior changed,
   also run `bun run --filter @green-goods/contracts test:fork`
 - Frontend, UI, CSS, accessibility, or web-design changes: retrieve current guidance with
-  `bun run agentic:guidance`, then run `bun run agentic:check`
+  `DISABLE_TELEMETRY=1 bun --bun modern-web-guidance search "agentic frontend CSS accessibility browser validation DevTools MCP" && DISABLE_TELEMETRY=1 bun --bun modern-web-guidance retrieve accessibility`, then run `bun run check --only agentic-readiness`
 - Changed E2E specs or CI auth paths (`AuthGate`, `DevAuthProvider`, CI auth helpers): run the
   matching Playwright CI project — client: `PLAYWRIGHT_APP=client APP_ENV=test bunx playwright
   test --project=client-ci`; admin: `PLAYWRIGHT_APP=admin APP_ENV=test bunx playwright test
   --project=admin-ci`
-- Agent runtime changes: `bun run build:agent`
-- Docs runtime, navigation, or build configuration changes: `bun run build:docs`
+- Agent runtime changes: `bun run --cwd packages/agent build`
+- Docs runtime, navigation, or build configuration changes: `bun run --cwd docs build`
 
 The root `bun run build` covers Contracts, Shared, Indexer, Client, and Admin. It does not build
 Agent or Docs; the conditional commands above close those scopes.
@@ -189,9 +189,9 @@ that proves the touched behavior (see the intent ladder). Common shapes:
   path-scoped and non-mutating. Do not use workspace-mutating `bun format` or broad `bun lint` for
   isolated style-only QA.
 - One behavior: `bun run --filter <pkg> test <path/to/file>`
-- Baseline capture before a sweep: non-mutating `bun run format:check && bun lint`, then the
+- Baseline capture before a sweep: non-mutating `bun run format --check && bun lint`, then the
   selector-chosen tests. Use the mutating `bun format` only in explicit fix/Ship intent.
   (build intentionally omitted until the sweep lands)
 
 Failing tests are never cached and never skipped around — fix the test, not
-the cache (`bun run test:fast:force` for a suspicious cache hit).
+the cache (`bun run test --cache --force` for a suspicious cache hit).

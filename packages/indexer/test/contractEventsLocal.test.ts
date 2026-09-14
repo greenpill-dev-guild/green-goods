@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 
 import { describe, it } from "mocha";
+import { resolvePackageCommand } from "../../../scripts/dev/package-commands.mjs";
 
 import {
   buildLocalContractEventConfig,
@@ -152,15 +153,14 @@ describe("local contract event indexer config", () => {
     assert.equal(LOCAL_ARBITRUM_RPC_URL, "http://127.0.0.1:3009");
   });
 
-  it("reserves enough Mocha time for the operation deadline and teardown", async () => {
-    const packageJson = JSON.parse(
-      await readFile(new URL("../package.json", import.meta.url), "utf8")
-    ) as { scripts?: { "test:contract-events"?: string } };
-    const configuredTimeout = Number(
-      packageJson.scripts?.["test:contract-events"]?.match(/--timeout (\d+)/)?.[1]
-    );
+  it("reserves enough Mocha time for the operation deadline and teardown", () => {
+    const plan = resolvePackageCommand("indexer", "test", ["--scope", "contract-events"]);
+    const testStep = plan.steps.find((step) => step.args.includes("mocha"));
+    const timeoutIndex = testStep?.args.indexOf("--timeout") ?? -1;
+    const configuredTimeout = Number(testStep?.args[timeoutIndex + 1]);
 
     assert.equal(configuredTimeout, LOCAL_CONTRACT_EVENT_MOCHA_TIMEOUT_MS);
+    assert.equal(testStep?.env.GG_RUN_LOCAL_CONTRACT_EVENT_INTEGRATION, "1");
     assert.ok(
       LOCAL_CONTRACT_EVENT_OPERATION_TIMEOUT_MS + LOCAL_CONTRACT_EVENT_CLEANUP_BUDGET_MS <
         LOCAL_CONTRACT_EVENT_MOCHA_TIMEOUT_MS,

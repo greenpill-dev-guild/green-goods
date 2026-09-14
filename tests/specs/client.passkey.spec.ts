@@ -5,7 +5,7 @@
  * Uses Playwright's route interception to mock Pimlico API responses, enabling
  * full passkey E2E testing without real infrastructure.
  *
- * Run with: bun test:e2e:passkey
+ * Run with: bun run browser e2e --preset passkey
  */
 import { expect, type Page, type Route, test } from "@playwright/test";
 import { ClientTestHelper, TEST_URLS } from "../helpers/test-utils";

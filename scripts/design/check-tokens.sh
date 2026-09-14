@@ -105,7 +105,7 @@ if [[ ${#MISSING_GENERATED[@]} -gt 0 ]]; then
   echo "❌ DesignMD radius tokens missing from $GENERATED_CSS:"
   printf '  %s\n' "${MISSING_GENERATED[@]}"
   echo
-  echo "Update root $CANONICAL_DESIGN and run bun run design:generate."
+  echo "Update root $CANONICAL_DESIGN and run node scripts/design/md-generate.mjs."
   exit 1
 fi
 

@@ -252,7 +252,7 @@ payload alone, so an `{id, description}` update without the title is rejected as
 (append patches under the backstop pass either way).
 
 Both results blocks are pasted verbatim from `tmp/qa-session/<slug>/report.md`, written by
-`bun run qa:report --slug <slug> --window <start>..<end>` — the pull joined to the catalog's
+`bun run qa report --slug <slug> --window <start>..<end>` — the pull joined to the catalog's
 per-case priority and kind, never hand-counted — and cover **this session's entries only** (the
 call-window rule; the store is long-lived). The generator already includes the `n/a` and
 noted-without-a-verdict counts (recorded states without which the walked numerator does not

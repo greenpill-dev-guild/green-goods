@@ -5,6 +5,7 @@ on:
     branches: [main, develop]
     paths:
       - "package.json"
+      - "scripts/dev/package-commands.mjs"
       - "bun.lock"
       - "biome.json"
       - ".env.schema"
@@ -17,6 +18,7 @@ on:
   pull_request:
     paths:
       - "package.json"
+      - "scripts/dev/package-commands.mjs"
       - "bun.lock"
       - "biome.json"
       - ".env.schema"
@@ -148,4 +150,4 @@ jobs:
 
       - name: Typecheck shared tests and stories
         working-directory: packages/shared
-        run: bun run typecheck:tests
+        run: bun run typecheck --scope tests

@@ -13,10 +13,10 @@
  *   any other port      → .tunnel-url-<port>
  *
  * Usage:
- *   bun run dev:tunnel                              # default: client (3001) + admin (3002)
- *   bun run dev:tunnel -- --port 3001               # client only
- *   bun run dev:tunnel -- --port 3001 --port 3002   # both, explicit
- *   bun run dev:tunnel -- --ports 3001,3002         # both, shorthand
+ *   node scripts/dev/tunnel.js                              # default: client (3001) + admin (3002)
+ *   node scripts/dev/tunnel.js -- --port 3001               # client only
+ *   node scripts/dev/tunnel.js -- --port 3001 --port 3002   # both, explicit
+ *   node scripts/dev/tunnel.js -- --ports 3001,3002         # both, shorthand
  *
  * Prerequisites:
  *   brew install cloudflared

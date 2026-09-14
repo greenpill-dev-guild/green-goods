@@ -48,7 +48,7 @@ jobs:
           no-cache: true
 
       - name: Verify release version markers
-        run: bun run version:check "${GITHUB_REF_NAME#v}"
+        run: node scripts/ops/bump-version.mjs --check "${GITHUB_REF_NAME#v}"
 
       - name: Resolve ship-month title
         id: meta

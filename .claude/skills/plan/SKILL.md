@@ -340,8 +340,8 @@ that shipped without one.
    other hubs for relative links (`../<slug>/`). Code, tests, and CI configuration must not read
    `.plans` files, so move any data they read into its package first. Update ontology
    `spec_source` and evidence paths, `scripts/data/validation-policy.json`, workflow `paths:`
-   filters, and other hubs' `status.json` links, then regenerate with `bun run ontology:generate`
-   and `bun run docs:generate`. Never edit dated `reports/`.
+   filters, and other hubs' `status.json` links, then regenerate with `node scripts/quality/check-ontology.mjs --generate`
+   and `node scripts/docs/generate.mjs`. Never edit dated `reports/`.
 3. **Write the closeout record.** In `plan.todo.md`, set `**Status**` to `CLOSED — <what shipped>`,
    update `**Last Updated**`, and append a `## Closeout (<date>)` section
    ([template](./templates.md#closeout-section-template)) naming the PR or commit that shipped, why
@@ -358,7 +358,7 @@ that shipped without one.
    `.plans/backlog/`, or `.plans/ideas/` paths. Commit the deletion, the ledger row, and the
    reference updates together (`chore(plans): close <slug>`).
 7. **Verify.** Run `node scripts/harness/plan-hub.mjs validate` and, when references moved,
-   `bun run check:ontology` and `bun run check:docs-generated`. Confirm that
+   `bun run check --only ontology` and `bun run check --only docs-generated`. Confirm that
    `git show <archive-commit>^:.plans/<stage>/<slug>/plan.todo.md` shows the closeout section.
 
 Stage moves (`--to backlog` or `--to ideas`) keep the hub, so they take one commit: run the

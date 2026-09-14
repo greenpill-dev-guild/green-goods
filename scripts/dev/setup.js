@@ -453,7 +453,7 @@ function reportEnvState() {
     log.info(".env.template found — run `bun run env:sync` to materialize .env via `op inject`\n");
   } else if (fs.existsSync(".env.schema")) {
     log.info("No .env yet. Bootstrap:");
-    console.log(`  1. ${c.cyan}bun run env:template:init${c.reset}  -- generate .env.template from .env.schema`);
+    console.log(`  1. ${c.cyan}node scripts/dev/env-template-init.js${c.reset}  -- generate .env.template from .env.schema`);
     console.log(`  2. Edit .env.template, replacing op://YOUR_VAULT/... with real 1Password refs`);
     console.log(`  3. ${c.cyan}bun run env:sync${c.reset}            -- materialize .env via \`op inject\``);
     console.log(`  Or for a portable baseline: ${c.cyan}npm run setup -- --profile isolated${c.reset}\n`);
@@ -546,17 +546,17 @@ ${c.dim}Isolated setup avoids host installs, secret resolution, Docker starts, b
   console.log(`${c.cyan}Next steps:${c.reset}
   1. If .env is absent, materialize it from 1Password: bun run env:sync
      Keep an existing .env; inspect health before explicitly replacing credentials.
-     (First time? Run \`bun run env:template:init\` first to scaffold .env.template.)
+     (First time? Run \`node scripts/dev/env-template-init.js\` first to scaffold .env.template.)
   2. Check environment readiness: bun run dev:health
      • PM2-only fallback check: bun run dev:health -- --profile web
   3. Confirmed transactions affect live Arbitrum. Start local services: bun run dev
      • PM2-only fallback frontend services: bun run dev -- web
   4. Check the connected local services: bun run dev:smoke
-  5. Select focused checks: bun run validation:plan -- --intent qa
+  5. Select focused checks: bun run check --plan -- --intent qa
 
 ${c.dim}Individual packages:${c.reset}
   • bun run dev -- client    - React PWA (port 3001)
   • bun run dev -- indexer   - Blockchain indexer GraphQL (port 3006)
-  • bun run dev:contracts - Local blockchain (Anvil)
+  • bun run --cwd packages/contracts dev - Local blockchain (Anvil)
 `);
 }

@@ -84,7 +84,7 @@ fi
 
 cd "$CONTRACTS_DIR"
 
-bun run check:foundry-version || fail "Foundry version does not match the repository pin"
+bun run check --only foundry-version || fail "Foundry version does not match the repository pin"
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # Phase 1: Full Compilation
@@ -95,7 +95,7 @@ bun run check:foundry-version || fail "Foundry version does not match the reposi
 phase "Phase 1/4: Full Compilation"
 phase_start "build"
 
-bun build:full || fail "Compilation failed"
+bun run build --mode full || fail "Compilation failed"
 success "Build passed"
 
 phase_end
@@ -110,7 +110,7 @@ phase_end
 phase "Phase 2/4: Lint"
 phase_start "lint"
 
-bun run lint:check || fail "Contract lint failed"
+bun run check --only static-lint || fail "Contract lint failed"
 success "Contract lint passed"
 phase_end
 
@@ -130,8 +130,8 @@ success "Unit tests passed"
 
 if [ "$SKIP_E2E" = false ]; then
   echo -e "  ${DIM}Running E2E workflow test...${NC}"
-  # Use bun run test:e2e:workflow which includes adaptive build (cache hit ~2s)
-  bun run test:e2e:workflow || fail "E2E workflow test failed"
+  # Use bun run browser e2e --preset all workflow which includes adaptive build (cache hit ~2s)
+  bun run browser e2e --preset all workflow || fail "E2E workflow test failed"
   success "E2E workflow passed"
 else
   info "E2E skipped (--skip-e2e)"
@@ -156,7 +156,7 @@ if [ "$SKIP_DRY_RUN" = false ]; then
 
   for i in "${!NETWORKS[@]}"; do
     echo -e "  ${DIM}${NETWORKS[$i]} (${CHAIN_IDS[$i]})...${NC}"
-    bun run "deploy:dry:${NETWORKS[$i]}" || fail "${NETWORKS[$i]} dry run failed"
+    bun run contracts -- deploy core --network "${NETWORKS[$i]}" --mode preflight || fail "${NETWORKS[$i]} dry run failed"
     success "${NETWORKS[$i]} dry run passed"
   done
 
