@@ -192,7 +192,8 @@ const AdminTextFieldBase = React.forwardRef<AdminTextFieldControl, AdminTextFiel
       multiline && "resize-y",
       // Selects drop the native chrome; the chevron renders in the trailing
       // icon slot and clicks fall through it to the control.
-      select && "appearance-none cursor-pointer disabled:cursor-not-allowed",
+      select &&
+        "appearance-none cursor-pointer disabled:cursor-not-allowed [&>option]:bg-[rgb(var(--neutral-0))] [&>option]:text-[rgb(var(--neutral-950))]",
       LeadingIcon && "pl-9",
       TrailingIcon && "pr-9"
     );
