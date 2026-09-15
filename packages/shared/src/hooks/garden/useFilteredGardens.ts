@@ -1,5 +1,6 @@
-import type { Garden } from "../../types/domain";
+import type { Domain, Garden } from "../../types/domain";
 import { gardenHasMember } from "../../utils/app/garden";
+import { expandDomainMask } from "../../utils/domain";
 
 export type GardenFilterScope = "all" | "mine";
 export type GardenSortOrder = "default" | "name" | "recent";
@@ -7,7 +8,10 @@ export type GardenSortOrder = "default" | "name" | "recent";
 export interface GardenFiltersState {
   scope: GardenFilterScope;
   sort: GardenSortOrder;
+  /** Case-insensitive match on the garden's name or location. */
   search?: string;
+  /** Keep gardens tagged with any of these domains; empty or unset keeps all. */
+  domains?: Domain[];
 }
 
 export interface UseFilteredGardensResult {
@@ -17,7 +21,7 @@ export interface UseFilteredGardensResult {
   myGardensCount: number;
   /** Whether any filter is active (not default) */
   isFilterActive: boolean;
-  /** Count of active filters (0-2) */
+  /** Count of active filters (0-3) */
   activeFilterCount: number;
 }
 
@@ -46,7 +50,7 @@ export function useFilteredGardens(
   filters: GardenFiltersState,
   userAddress: string | null
 ): UseFilteredGardensResult {
-  const { scope, sort, search } = filters;
+  const { scope, sort, search, domains = [] } = filters;
 
   // Count user's gardens
   const myGardensCount = userAddress
@@ -79,6 +83,14 @@ export function useFilteredGardens(
     );
   }
 
+  // Filter by domain: a garden stays when it carries any of the chosen domains
+  if (domains.length > 0) {
+    const wanted = new Set(domains);
+    working = working.filter((garden) =>
+      expandDomainMask(garden.domainMask ?? 0).some((domain) => wanted.has(domain))
+    );
+  }
+
   // Sort
   let filteredGardens: Garden[];
   if (sort === "name") {
@@ -95,9 +107,13 @@ export function useFilteredGardens(
   const isScopeFiltered = scope !== "all";
   const isSortFiltered = sort !== "default";
   const isSearchActive = !!search;
-  const isFilterActive = isScopeFiltered || isSortFiltered || isSearchActive;
+  const isDomainFiltered = domains.length > 0;
+  const isFilterActive = isScopeFiltered || isSortFiltered || isSearchActive || isDomainFiltered;
   const activeFilterCount =
-    (isScopeFiltered ? 1 : 0) + (isSortFiltered ? 1 : 0) + (isSearchActive ? 1 : 0);
+    (isScopeFiltered ? 1 : 0) +
+    (isSortFiltered ? 1 : 0) +
+    (isSearchActive ? 1 : 0) +
+    (isDomainFiltered ? 1 : 0);
 
   return {
     filteredGardens,

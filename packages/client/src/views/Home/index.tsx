@@ -12,6 +12,7 @@ import {
   type GardenFiltersState,
   useFilteredGardens,
 } from "@green-goods/shared/hooks/garden/useFilteredGardens";
+import type { Domain } from "@green-goods/shared/types/domain";
 import { useTimeout } from "@green-goods/shared/hooks/utils/useTimeout";
 import { useUIStore } from "@green-goods/shared/stores/useUIStore";
 import { cn } from "@green-goods/shared/utils/styles/cn";
@@ -258,6 +259,14 @@ const Home: React.FC = () => {
     setFilters((current) => (current.sort === nextSort ? current : { ...current, sort: nextSort }));
   };
 
+  const handleSearchChange = (search: string) => {
+    setFilters((current) => ({ ...current, search: search.trim() ? search : undefined }));
+  };
+
+  const handleDomainsChange = (domains: Domain[]) => {
+    setFilters((current) => ({ ...current, domains: domains.length > 0 ? domains : undefined }));
+  };
+
   const handleResetFilters = () => {
     setFilters({ scope: "all", sort: "default" });
   };
@@ -326,6 +335,8 @@ const Home: React.FC = () => {
                 filters={filters}
                 onScopeChange={handleScopeChange}
                 onSortChange={handleSortChange}
+                onSearchChange={handleSearchChange}
+                onDomainsChange={handleDomainsChange}
                 onReset={handleResetFilters}
                 canFilterMine={Boolean(normalizedAddress)}
                 myGardensCount={myGardensCount}
