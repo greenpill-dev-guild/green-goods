@@ -31,11 +31,6 @@
     font-weight: var(--text-title-screen-font-weight);
   }
 
-  .title-section {
-    font-size: var(--text-title-section-font-size);
-    line-height: var(--text-title-section-line-height);
-    font-weight: var(--text-title-section-font-weight);
-  }
 
   .title-subsection {
     font-size: var(--text-title-subsection-font-size);
@@ -97,11 +92,6 @@
     font-weight: var(--text-body-md-medium-font-weight);
   }
 
-  .body-sm-regular {
-    font-size: var(--text-body-sm-regular-font-size);
-    line-height: var(--text-body-sm-regular-line-height);
-    font-weight: var(--text-body-sm-regular-font-weight);
-  }
 
   .body-sm-medium {
     font-size: var(--text-body-sm-medium-font-size);
@@ -141,39 +131,12 @@
     font-weight: var(--text-doc-paragraph-font-weight);
   }
 
-  h1 {
-    font-size: 2em;
-    font-weight: bold;
-  }
 
-  h2 {
-    font-size: 1.5em;
-    font-weight: bold;
-  }
 
-  h3 {
-    font-size: 1.25em;
-    font-weight: bold;
-  }
 
-  h4 {
-    font-size: 1.125em;
-    font-weight: bold;
-  }
 
-  h5 {
-    font-size: 1.125em;
-    font-weight: bold;
-  }
 
-  h6 {
-    font-size: 1em;
-    font-weight: 600;
-  }
 
-  p {
-    font-size: 1em;
-  }
 
   a {
     text-decoration: none;

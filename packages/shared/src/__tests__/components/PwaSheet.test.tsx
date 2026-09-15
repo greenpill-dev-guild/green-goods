@@ -157,6 +157,52 @@ describe("PwaSheet", () => {
     expect(background).not.toHaveAttribute("aria-hidden");
     background.remove();
   });
+  it("closes only the topmost of two stacked sheets on Escape", () => {
+    const closeFirst = vi.fn();
+    const closeSecond = vi.fn();
+    const first = render(
+      <PwaSheet open onClose={closeFirst} title="Profile Photo" closeLabel="Close">
+        <p>Photo</p>
+      </PwaSheet>
+    );
+    const second = render(
+      <PwaSheet
+        open
+        onClose={closeSecond}
+        role="alertdialog"
+        title="Remove Photo?"
+        closeLabel="Close"
+      />
+    );
+
+    fireEvent.keyDown(document.body, { key: "Escape" });
+    expect(closeSecond).toHaveBeenCalledOnce();
+    expect(closeFirst).not.toHaveBeenCalled();
+
+    // A parent re-render of the lower sheet must not lift it above the confirmation.
+    first.rerender(
+      <PwaSheet open onClose={closeFirst} title="Profile Photo" closeLabel="Close">
+        <p>Photo again</p>
+      </PwaSheet>
+    );
+    fireEvent.keyDown(document.body, { key: "Escape" });
+    expect(closeSecond).toHaveBeenCalledTimes(2);
+    expect(closeFirst).not.toHaveBeenCalled();
+
+    second.rerender(
+      <PwaSheet
+        open={false}
+        onClose={closeSecond}
+        role="alertdialog"
+        title="Remove Photo?"
+        closeLabel="Close"
+      />
+    );
+    fireEvent.keyDown(document.body, { key: "Escape" });
+    expect(closeFirst).toHaveBeenCalledOnce();
+    first.unmount();
+    second.unmount();
+  });
   it("renders into <body> so a page layer can never stack it under app chrome", () => {
     const page = (open: boolean) => (
       <div data-testid="page-layer" style={{ position: "fixed", zIndex: 10 }}>
@@ -246,7 +292,7 @@ describe("PwaSheet", () => {
     const surface = screen.getByRole("dialog", { name: "Continue Previous Work?" });
     const body = surface.querySelector('[data-component="PwaSheet"][data-slot="body"]');
     const actions = surface.querySelector('[data-component="SheetActions"]');
-    expect(body).toHaveAttribute("data-scroll-edge", "bottom");
+    expect(body).toHaveAttribute("data-scroll-edge", "both");
     expect(actions?.parentElement).toBe(surface);
     expect(body?.nextElementSibling).toBe(actions);
     fireEvent.click(screen.getByRole("button", { name: "Continue Draft" }));
@@ -264,9 +310,8 @@ describe("PwaSheet", () => {
     );
     const surface = screen.getByRole("dialog", { name: "Join Garden" });
     expect(surface.querySelector('[data-slot="body"]')).toBeNull();
-    expect(surface.querySelector('[data-slot="header"]')?.nextElementSibling).toHaveAttribute(
-      "data-component",
-      "SheetActions"
-    );
+    expect(
+      surface.querySelector('[data-component="SheetHeader"][data-slot="root"]')?.nextElementSibling
+    ).toHaveAttribute("data-component", "SheetActions");
   });
 });

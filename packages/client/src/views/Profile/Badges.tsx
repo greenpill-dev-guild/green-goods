@@ -375,7 +375,6 @@ export const ProfileBadges: React.FC = () => {
               )
             : undefined
         }
-        icon={selectedBadge ? badgeIcon(selectedBadge.slug) : <RiAwardLine className="h-5 w-5" />}
         size="md"
       >
         {selectedBadge && (

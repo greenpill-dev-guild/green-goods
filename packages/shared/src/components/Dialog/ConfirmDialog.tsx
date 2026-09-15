@@ -1,12 +1,9 @@
 import { SheetActions, type SheetActionsProps } from "./SheetActions";
+import { SheetHeader } from "./SheetHeader";
 import * as Dialog from "@radix-ui/react-dialog";
-import { RiAlertLine, RiCloseLine } from "@remixicon/react";
-import type { ReactNode } from "react";
 import { useIntl } from "react-intl";
 import { useSheetPresence } from "../../hooks/ui/useSheetPresence";
 import { logger } from "../../modules/app/logger";
-import { cn } from "../../utils/styles/cn";
-import { IconButton } from "../IconButton";
 import {
   dialogOverlayClassName,
   dialogOverlayStyle,
@@ -35,18 +32,23 @@ export interface ConfirmDialogProps {
   description?: string;
   confirmLabel?: string;
   cancelLabel?: string;
+  /**
+   * `warning` and `danger` fill the confirm with the warning or error color
+   * and announce the dialog as an alertdialog. The header carries no icon
+   * (DL-028): the tone lives in the primary action and the role.
+   */
   variant?: "default" | "warning" | "danger";
   isLoading?: boolean;
-  icon?: ReactNode;
 }
 
 /**
  * A confirmation dialog using Radix Dialog for accessibility.
  * Centered at 640px and wider; below that it renders the shared PwaSheet
  * bottom sheet, so drafts, deletes, and every other confirm share one
- * surface in the installed app. Both presentations render their buttons
- * through the shared action bar (`SheetActions`, DL-016): stacked with the
- * confirm on top in the sheet, one right-aligned row when centered.
+ * surface in the installed app. Both presentations render the shared
+ * header (`SheetHeader`, DL-028) and their buttons through the shared
+ * action bar (`SheetActions`, DL-016): stacked with the confirm on top in
+ * the sheet, one right-aligned row when centered.
  * Replaces window.confirm() for consistent UX across the application.
  */
 export function ConfirmDialog({
@@ -62,7 +64,6 @@ export function ConfirmDialog({
   cancelLabel,
   variant = "default",
   isLoading = false,
-  icon,
 }: ConfirmDialogProps) {
   const { formatMessage } = useIntl();
   const rendersAsSheet = useRendersAsSheet();
@@ -114,38 +115,6 @@ export function ConfirmDialog({
 
   const isDestructive = variant === "danger" || variant === "warning";
 
-  const variantStyles = {
-    default: {
-      iconBg: "bg-primary/10",
-      iconColor: "text-primary",
-    },
-    warning: {
-      iconBg: "bg-warning-lighter",
-      iconColor: "text-warning-base",
-    },
-    danger: {
-      iconBg: "bg-error-lighter",
-      iconColor: "text-error-base",
-    },
-  };
-
-  const styles = variantStyles[variant];
-  const defaultIcon =
-    variant === "warning" || variant === "danger" ? (
-      <RiAlertLine className={cn("h-5 w-5", styles.iconColor)} />
-    ) : null;
-  const iconContainer =
-    icon || defaultIcon ? (
-      <div
-        className={cn(
-          "flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg",
-          styles.iconBg
-        )}
-      >
-        {icon || defaultIcon}
-      </div>
-    ) : null;
-
   const actions: SheetActionsProps = {
     primary: {
       label: resolvedConfirmLabel,
@@ -171,7 +140,6 @@ export function ConfirmDialog({
         role={isDestructive ? "alertdialog" : "dialog"}
         title={title}
         description={description}
-        icon={iconContainer ?? undefined}
         closeLabel={resolvedCloseLabel}
         preventClose={isLoading}
         testId="confirm-dialog"
@@ -204,31 +172,17 @@ export function ConfirmDialog({
             if (isLoading) e.preventDefault();
           }}
         >
-          {/* Header */}
-          <div className="flex items-start justify-between gap-3 border-b border-stroke-soft p-4">
-            <div className="flex min-w-0 flex-1 items-start gap-3">
-              {iconContainer}
-              <div className="min-w-0 flex-1 pt-1">
-                <Dialog.Title className="text-title-lg font-semibold text-text-strong">
-                  {title}
-                </Dialog.Title>
-                {description && (
-                  <Dialog.Description className="mt-1 text-body-lg text-text-sub">
-                    {description}
-                  </Dialog.Description>
-                )}
-              </div>
-            </div>
-            <Dialog.Close asChild>
-              <IconButton
-                data-testid="confirm-dialog-close"
-                aria-label={resolvedCloseLabel}
-                disabled={isLoading}
-                icon={<RiCloseLine aria-hidden="true" />}
-              />
-            </Dialog.Close>
-          </div>
-
+          <SheetHeader
+            title={title}
+            description={description}
+            titleAs={Dialog.Title}
+            descriptionAs={Dialog.Description}
+            closeLabel={resolvedCloseLabel}
+            onClose={onClose}
+            closeDisabled={isLoading}
+            closeTestId="confirm-dialog-close"
+            standalone
+          />
           <SheetActions {...actions} />
         </Dialog.Content>
       </Dialog.Portal>

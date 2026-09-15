@@ -1,6 +1,7 @@
 import { Button } from "@green-goods/shared/components/Button";
 import { TextInput } from "@green-goods/shared/components/Form/ControlPrimitives";
 import { IconButton } from "@green-goods/shared/components/IconButton";
+import { SheetHeading } from "@green-goods/shared/components/Dialog/SheetHeading";
 import type { Address } from "@green-goods/shared/types/domain";
 import {
   buildRecipientDirectory,
@@ -182,12 +183,9 @@ export function RecipientPicker({ selectedAddress, onSelect }: RecipientPickerPr
           >
             {formatMessage({ id: "app.send.recipient.backToGardens" })}
           </Button>
-          <h4
-            className="truncate text-xs font-medium uppercase tracking-wide text-text-soft-400"
-            title={browseGarden.gardenName}
-          >
+          <SheetHeading as="h4" className="truncate" title={browseGarden.gardenName}>
             {browseGarden.gardenName}
-          </h4>
+          </SheetHeading>
           {browseGarden.members.map((member) => (
             <MemberRow
               key={member.address}
@@ -214,9 +212,9 @@ export function RecipientPicker({ selectedAddress, onSelect }: RecipientPickerPr
         <>
           {recents.length > 0 ? (
             <section className="space-y-2">
-              <h4 className="text-xs font-medium uppercase tracking-wide text-text-soft-400">
+              <SheetHeading as="h4">
                 {formatMessage({ id: "app.send.recipient.recentTitle" })}
-              </h4>
+              </SheetHeading>
               {recents.map((recent) => (
                 <MemberRow
                   key={recent.address}
@@ -232,12 +230,9 @@ export function RecipientPicker({ selectedAddress, onSelect }: RecipientPickerPr
 
           {directory.myGardens.map((group) => (
             <section key={group.gardenId} className="space-y-2">
-              <h4
-                className="truncate text-xs font-medium uppercase tracking-wide text-text-soft-400"
-                title={group.gardenName}
-              >
+              <SheetHeading as="h4" className="truncate" title={group.gardenName}>
                 {group.gardenName}
-              </h4>
+              </SheetHeading>
               {group.members.map((member) => (
                 <MemberRow
                   key={member.address}
@@ -260,9 +255,9 @@ export function RecipientPicker({ selectedAddress, onSelect }: RecipientPickerPr
 
           {directory.otherGardens.length > 0 ? (
             <section className="space-y-2">
-              <h4 className="text-xs font-medium uppercase tracking-wide text-text-soft-400">
+              <SheetHeading as="h4">
                 {formatMessage({ id: "app.send.recipient.allGardens" })}
-              </h4>
+              </SheetHeading>
               {directory.otherGardens.map((group) => (
                 <button
                   key={group.gardenId}

@@ -12,6 +12,7 @@ import {
   type GardenFiltersState,
   useFilteredGardens,
 } from "@green-goods/shared/hooks/garden/useFilteredGardens";
+import type { Domain } from "@green-goods/shared/types/domain";
 import { useTimeout } from "@green-goods/shared/hooks/utils/useTimeout";
 import { useUIStore } from "@green-goods/shared/stores/useUIStore";
 import { cn } from "@green-goods/shared/utils/styles/cn";
@@ -258,6 +259,14 @@ const Home: React.FC = () => {
     setFilters((current) => (current.sort === nextSort ? current : { ...current, sort: nextSort }));
   };
 
+  const handleSearchChange = (search: string) => {
+    setFilters((current) => ({ ...current, search: search.trim() ? search : undefined }));
+  };
+
+  const handleDomainsChange = (domains: Domain[]) => {
+    setFilters((current) => ({ ...current, domains: domains.length > 0 ? domains : undefined }));
+  };
+
   const handleResetFilters = () => {
     setFilters({ scope: "all", sort: "default" });
   };
@@ -267,7 +276,9 @@ const Home: React.FC = () => {
       {location.pathname.replace(/\/$/, "") === APP_ROUTES.home && (
         <>
           <div className="flex items-center justify-between w-full py-6 px-4 sm:px-6 md:px-12">
-            <h4 className="font-semibold flex-1">{intl.formatMessage({ id: "app.home" })}</h4>
+            <h4 className="flex-1 text-[1.125rem] font-semibold">
+              {intl.formatMessage({ id: "app.home" })}
+            </h4>
             <div className="ml-4 flex items-center gap-2">
               <IconButton
                 emphasis="secondary"
@@ -326,6 +337,8 @@ const Home: React.FC = () => {
                 filters={filters}
                 onScopeChange={handleScopeChange}
                 onSortChange={handleSortChange}
+                onSearchChange={handleSearchChange}
+                onDomainsChange={handleDomainsChange}
                 onReset={handleResetFilters}
                 canFilterMine={Boolean(normalizedAddress)}
                 myGardensCount={myGardensCount}

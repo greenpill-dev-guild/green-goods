@@ -324,6 +324,14 @@ describe("Home garden work detail", () => {
 
     const feedbackDrawer = screen.getByTestId("work-feedback-sheet");
     const actionBar = screen.getByTestId("work-approval-action-bar");
+    // The drawer renders the shared sheet header (DL-028): title, description, Close.
+    const drawerDialog = screen.getByRole("dialog", { name: "Add Feedback" });
+    expect(drawerDialog).toBe(feedbackDrawer);
+    expect(drawerDialog).toHaveAccessibleDescription("Required when you reject work.");
+    expect(
+      feedbackDrawer.querySelector('[data-component="SheetHeader"][data-slot="root"]')
+    ).toHaveAttribute("data-standalone");
+    expect(screen.getByTestId("work-feedback-close")).toHaveAccessibleName("Close");
     const feedback = screen.getByRole("textbox", { name: "Feedback" });
     const cancel = screen.getByRole("button", { name: "Cancel" });
 

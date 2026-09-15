@@ -169,8 +169,7 @@ describe("DialogShell", () => {
     );
     const surface = screen.getByRole("dialog", { name: "Commitment kept?" });
     const body = surface.querySelector('[data-component="DialogShell"][data-slot="body"]');
-    expect(surface).toHaveAttribute("data-has-actions");
-    expect(body).toHaveAttribute("data-scroll-edge", "bottom");
+    expect(body).toHaveAttribute("data-scroll-edge", "both");
     expect(body?.nextElementSibling).toHaveAttribute("data-component", "SheetActions");
     fireEvent.click(screen.getByRole("button", { name: "Not Yet" }));
     expect(onCancel).toHaveBeenCalledOnce();

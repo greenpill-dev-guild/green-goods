@@ -83,7 +83,7 @@ export const SplashScaffold: React.FC<SplashScaffoldProps> = ({
 
       {/* TITLE / MESSAGE — fixed-height slot. */}
       <div className="h-8 flex items-center justify-center mb-5">
-        <h3 className="text-center font-bold text-primary-dark transition-colors duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)]">
+        <h3 className="text-center text-[1.25rem] font-bold text-primary-dark transition-colors duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)]">
           {title}
         </h3>
       </div>

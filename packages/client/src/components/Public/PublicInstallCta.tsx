@@ -84,7 +84,7 @@ export function PublicInstallCta({
       <div className="mx-auto max-w-3xl px-6 text-center sm:px-10">
         <h2
           id="public-install-title"
-          className="font-serif text-2xl text-text-strong-950 md:text-3xl"
+          className="font-serif text-2xl font-bold text-text-strong-950 md:text-3xl"
         >
           {formatMessage({
             id: "public.home.install.title",

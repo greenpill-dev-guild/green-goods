@@ -170,11 +170,13 @@ const meta: Meta<typeof AppSheet> = {
     },
     header: {
       control: "object",
-      description: "Header configuration with title, optional description, and optional actions",
+      description:
+        "Header configuration with title and optional description (the shared header, DL-028)",
     },
     tabs: {
       control: "object",
-      description: "Array of tab definitions. When provided, renders a tab bar below the header.",
+      description:
+        "Array of tab definitions. When provided, renders a tab rail directly under the shared header.",
     },
     activeTab: {
       control: "text",
@@ -214,8 +216,8 @@ export const Default: Story = {
     >
       <div className="space-y-4">
         <p className="text-sm text-text-sub-600">
-          This sheet slides up from the bottom of the screen with a manual focus trap, keyboard
-          dismissal, and CSS keyframe animations matching the WorkDashboard pattern.
+          This sheet is the shared bottom sheet with the one sheet header (DL-028): a grip that
+          drags to dismiss, a wrapping title and description, and a borderless Close button.
         </p>
         <div className="p-4 rounded-lg bg-bg-weak-50">
           <h4 className="font-medium text-sm">Location</h4>
@@ -239,36 +241,6 @@ export const HeaderOnly: Story = {
     <AppSheetDemo header={{ title: "Notifications" }}>
       <div className="flex items-center justify-center h-32 text-sm text-text-soft-400">
         No notifications yet
-      </div>
-    </AppSheetDemo>
-  ),
-};
-
-export const WithHeaderActions: Story = {
-  render: () => (
-    <AppSheetDemo
-      header={{
-        title: "Wallet",
-        description: "Manage your assets",
-        actions: (
-          <button
-            type="button"
-            className="px-3 py-1.5 text-xs font-medium rounded-full bg-primary-base text-primary-foreground"
-          >
-            Deposit
-          </button>
-        ),
-      }}
-    >
-      <div className="space-y-3">
-        <div className="flex items-center justify-between p-3 rounded-lg bg-bg-weak-50">
-          <span className="text-sm font-medium">ETH</span>
-          <span className="text-sm text-text-sub-600">0.42</span>
-        </div>
-        <div className="flex items-center justify-between p-3 rounded-lg bg-bg-weak-50">
-          <span className="text-sm font-medium">USDC</span>
-          <span className="text-sm text-text-sub-600">125.00</span>
-        </div>
       </div>
     </AppSheetDemo>
   ),
@@ -379,7 +351,7 @@ export const MobileGeometry: Story = {
     const surface = canvas.getByTestId("app-sheet");
 
     await expectViewportCoveringElement(overlay);
-    await expectRealEnterAnimation(surface, /modalSlideIn/);
+    await expectRealEnterAnimation(surface, /dialogSlideInFromBottom/);
     await waitForSurfaceSettled(surface);
 
     await waitFor(async () => {
@@ -412,7 +384,7 @@ export const ReducedMotionContract: Story = {
     const surface = await canvas.findByTestId("app-sheet");
 
     await waitFor(async () => {
-      await expect(getComputedStyle(surface).animationName).toMatch(/modalSlideIn/);
+      await expect(getComputedStyle(surface).animationName).toMatch(/dialogSlideInFromBottom/);
     });
     await expect(hasReducedMotionRule()).toBe(true);
   },
@@ -560,7 +532,7 @@ export const PinnedActionBar: Story = {
 
     await waitFor(async () => {
       await expect(region.scrollHeight).toBeGreaterThan(region.clientHeight);
-      await expect(region).toHaveAttribute("data-scroll-edge", "bottom");
+      await expect(region).toHaveAttribute("data-scroll-edge", "both");
       await expect(region.getBoundingClientRect().bottom).toBeLessThanOrEqual(
         deposit.getBoundingClientRect().top
       );

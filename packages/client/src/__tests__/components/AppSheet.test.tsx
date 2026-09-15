@@ -36,7 +36,10 @@ describe("AppSheet", () => {
       </AppSheet>
     );
 
-    expect(screen.getByRole("dialog")).toBeInTheDocument();
+    const dialog = screen.getByRole("dialog", { name: "Commitments" });
+    const rail = dialog.querySelector('[data-component="SheetHeader"][data-slot="rail"]');
+    expect(rail?.previousElementSibling).toHaveAttribute("data-slot", "root");
+    expect(rail).toContainElement(screen.getByRole("tablist"));
     expect(screen.getByRole("tab", { name: "Open4" })).toHaveAttribute("aria-selected", "true");
     fireEvent.click(screen.getByRole("tab", { name: "Kept" }));
     expect(onTabChange).toHaveBeenCalledWith("kept");
@@ -125,21 +128,56 @@ describe("AppSheet", () => {
     expect(document.documentElement).not.toHaveClass("modal-open");
   });
 
-  it("finishes an interrupted close immediately when the page is hidden", () => {
+  it("calls onClose at once and finishes its exit on page hide", () => {
     const onClose = vi.fn();
-    renderWithProviders(
+    const view = renderWithProviders(
       <AppSheet size="compact" isOpen onClose={onClose} header={{ title: "Commitments" }}>
         Content
       </AppSheet>
     );
 
     fireEvent.click(screen.getByTestId("app-sheet-close"));
-    expect(onClose).not.toHaveBeenCalled();
+    expect(onClose).toHaveBeenCalledOnce();
+
+    view.rerender(
+      <AppSheet size="compact" isOpen={false} onClose={onClose} header={{ title: "Commitments" }}>
+        Content
+      </AppSheet>
+    );
+    // The sheet stays mounted for its exit keyframe and keeps the page locked meanwhile.
+    expect(screen.getByRole("dialog")).toHaveAttribute("data-state", "closed");
     expect(document.documentElement).toHaveClass("modal-open");
 
     act(() => window.dispatchEvent(new Event("pagehide")));
 
-    expect(onClose).toHaveBeenCalledOnce();
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(document.documentElement).not.toHaveClass("modal-open");
+  });
+
+  it("renders the shared header: grip, wrapping title and description, and a Close button that names the dialog (DL-028)", () => {
+    renderWithProviders(
+      <AppSheet
+        size="tall"
+        isOpen
+        onClose={vi.fn()}
+        header={{
+          title: "Filter Gardens",
+          description: "Search, narrow, and sort the garden list.",
+        }}
+      >
+        <p>Content</p>
+      </AppSheet>
+    );
+    const dialog = screen.getByRole("dialog", { name: "Filter Gardens" });
+    expect(dialog).toHaveAccessibleDescription("Search, narrow, and sort the garden list.");
+    expect(screen.getByTestId("app-sheet-drag-handle")).toBeInTheDocument();
+    const title = dialog.querySelector('[data-component="SheetHeader"][data-slot="title"]');
+    expect(title).toHaveTextContent("Filter Gardens");
+    expect(title).not.toHaveClass("truncate");
+    const close = screen.getByRole("button", { name: "Close" });
+    expect(close).toHaveAttribute("data-testid", "app-sheet-close");
+    expect(close).toHaveAttribute("data-emphasis", "tertiary");
+    expect(dialog.querySelector('[data-component="SheetHeader"][data-slot="rail"]')).toBeNull();
   });
 
   it("names its height tier and owns scrolling when it has no tabs", () => {
@@ -151,8 +189,10 @@ describe("AppSheet", () => {
     const panel = screen.getByTestId("app-sheet");
     expect(panel).toHaveAttribute("data-sheet-size", "tall");
     expect(panel).not.toHaveAttribute("style");
+    // The shared body is the single scroll owner (attribute CSS, no utility class).
     const region = screen.getByText("Content").parentElement;
-    expect(region).toHaveClass("overflow-y-auto");
+    expect(region).toHaveAttribute("data-slot", "body");
+    expect(region).toHaveAttribute("data-scroll-edge", "top");
     expect(region?.querySelector(".overflow-y-auto")).toBeNull();
   });
 
@@ -193,7 +233,7 @@ describe("AppSheet", () => {
     expect(useUIStore.getState().openSheetCount).toBe(0);
   });
 
-  it("pins its actions in the shared bar under the content, padding the safe area (DL-016)", () => {
+  it("pins its actions in the shared bar under the content inside the safe-area padded surface (DL-016)", () => {
     const onDeposit = vi.fn();
     renderWithProviders(
       <AppSheet
@@ -209,8 +249,10 @@ describe("AppSheet", () => {
 
     const panel = screen.getByTestId("app-sheet");
     const bar = panel.querySelector('[data-component="SheetActions"]');
-    expect(bar).toHaveAttribute("data-safe-area");
-    expect(bar?.previousElementSibling).toHaveAttribute("data-scroll-edge", "bottom");
+    // The surface pads the safe area itself, so the bar carries no padding of its own.
+    expect(bar).not.toHaveAttribute("data-safe-area");
+    expect(bar).toBe(panel.lastElementChild);
+    expect(bar?.previousElementSibling).toHaveAttribute("data-scroll-edge", "both");
     fireEvent.click(screen.getByRole("button", { name: "Deposit" }));
     expect(onDeposit).toHaveBeenCalledOnce();
   });

@@ -1,17 +1,11 @@
-import { IconButton } from "@green-goods/shared/components/IconButton";
-import { useDocumentScrollLock } from "@green-goods/shared/hooks/ui/useDocumentScrollLock";
-import { useSheetPresence } from "@green-goods/shared/hooks/ui/useSheetPresence";
-import { useFocusTrap } from "@green-goods/shared/hooks/utils/useFocusTrap";
-import { cn } from "@green-goods/shared/utils/styles/cn";
-import { RiCloseLine } from "@remixicon/react";
-import React, { useRef } from "react";
+import { PwaSheet } from "@green-goods/shared/components/Dialog/PwaSheet";
+import type React from "react";
 import { useIntl } from "react-intl";
 import { type StandardTab, StandardTabs } from "@/components/Navigation";
-import { pwaSheetStyles } from "@/components/Pwa/sheetStyles";
 
 interface WorkDashboardShellProps {
   className?: string;
-  /** True once the close animation has started: locks release and the exit pose plays. */
+  /** True once the close animation has started: the sheet plays its exit pose. */
   isClosing: boolean;
   onRequestClose: () => void;
   tabs: StandardTab[];
@@ -21,9 +15,12 @@ interface WorkDashboardShellProps {
 }
 
 /**
- * The dashboard's bottom-sheet chrome: scrim, focus-trapped dialog panel, header,
- * tab rail, and the single scroll owner for tab content. Open/close state stays
- * with WorkDashboard so the data hooks and the close timer share one owner.
+ * The dashboard's sheet chrome: the shared bottom sheet at the full tier with
+ * the one sheet header (DL-028), the tab rail directly under it, and the
+ * sheet body as the single scroll owner for tab content. Open/close state
+ * stays with WorkDashboard so the data hooks and the close timer share one
+ * owner; the sheet itself registers as open so the AppBar steps aside
+ * (DL-015).
  */
 export const WorkDashboardShell: React.FC<WorkDashboardShellProps> = ({
   className,
@@ -35,94 +32,25 @@ export const WorkDashboardShell: React.FC<WorkDashboardShellProps> = ({
   children,
 }) => {
   const intl = useIntl();
-  const dialogRef = useRef<HTMLDivElement>(null);
-
-  useDocumentScrollLock(true);
-  // Mounted only while the dashboard is open or playing its exit, so the
-  // AppBar stays hidden until the sheet has left the screen (DL-015).
-  useSheetPresence(true);
-
-  // Focus trap: keep Tab/Shift+Tab cycling within the dialog
-  useFocusTrap(dialogRef, {
-    enabled: !isClosing,
-    autoFocusSelector: '[data-testid="app-sheet-close"]',
-  });
 
   return (
-    <div
-      role="presentation"
-      className={cn(
-        pwaSheetStyles.overlay,
-        isClosing ? "modal-backdrop-exit" : "modal-backdrop-enter"
-      )}
-      data-testid="app-sheet-overlay"
-      onClick={(e) => {
-        // Only close if clicking directly on backdrop, not from propagated events
-        if (e.target === e.currentTarget) {
-          onRequestClose();
-        }
-      }}
-      onKeyDown={(e) => {
-        if (e.key === "Escape") {
-          onRequestClose();
-        }
-      }}
-      tabIndex={-1}
-    >
-      {/* eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions -- dialog surface; handler only stops propagation to the overlay */}
-      <div
-        ref={dialogRef}
-        className={cn(
-          pwaSheetStyles.panel,
-          isClosing ? "modal-slide-exit" : "modal-slide-enter",
-          className
-        )}
-        onClick={(e) => e.stopPropagation()}
-        onKeyDown={(e) => {
-          if (e.key === "Escape") {
-            e.preventDefault();
-            e.stopPropagation();
-            onRequestClose();
-            return;
-          }
-          e.stopPropagation();
-        }}
-        role="dialog"
-        aria-modal="true"
-        data-sheet-size="full"
-        data-testid="app-sheet"
-      >
-        {/* Header */}
-        <div className={pwaSheetStyles.header}>
-          <div className="flex-1 min-w-0">
-            <h2 className="title-section truncate">
-              {intl.formatMessage({
-                id: "app.workDashboard.title",
-                defaultMessage: "Your work",
-              })}
-            </h2>
-            <p className="text-sm text-text-sub-600 truncate">
-              {intl.formatMessage({
-                id: "app.workDashboard.description",
-                defaultMessage: "Track work submissions and reviews",
-              })}
-            </p>
-          </div>
-          <div className="flex items-center gap-2 ml-4">
-            <IconButton
-              emphasis="secondary"
-              onClick={onRequestClose}
-              data-testid="app-sheet-close"
-              aria-label={intl.formatMessage({
-                id: "app.workDashboard.closeModal",
-                defaultMessage: "Close Modal",
-              })}
-              icon={<RiCloseLine aria-hidden="true" />}
-            />
-          </div>
-        </div>
-
-        {/* Standardized Tabs */}
+    <PwaSheet
+      open={!isClosing}
+      onClose={onRequestClose}
+      size="full"
+      title={intl.formatMessage({
+        id: "app.workDashboard.title",
+        defaultMessage: "Your Work",
+      })}
+      description={intl.formatMessage({
+        id: "app.workDashboard.description",
+        defaultMessage: "Track work submissions and reviews",
+      })}
+      closeLabel={intl.formatMessage({ id: "app.common.close", defaultMessage: "Close" })}
+      closeTestId="app-sheet-close"
+      testId="app-sheet"
+      panelClassName={className}
+      tabs={
         <StandardTabs
           tabs={tabs}
           activeTab={activeTab}
@@ -134,15 +62,11 @@ export const WorkDashboardShell: React.FC<WorkDashboardShellProps> = ({
           triggerClassName="text-xs"
           scrollTargetSelector="#work-dashboard-scroll"
         />
-
-        {/* Content */}
-        <div
-          id="work-dashboard-scroll"
-          className="flex-1 min-h-0 overflow-x-hidden overflow-y-auto overscroll-contain"
-        >
-          {children}
-        </div>
-      </div>
-    </div>
+      }
+      bodyProps={{ id: "work-dashboard-scroll" }}
+      bodyClassName="overflow-x-hidden p-0"
+    >
+      {children}
+    </PwaSheet>
   );
 };
