@@ -1,3 +1,4 @@
+/// <reference lib="webworker" />
 import {
   CONNECTIVITY_CHECK_PATH,
   GREEN_GOODS_SYNC_TAG,
@@ -30,7 +31,7 @@ function isConnectivityProbe(request: Request): boolean {
 /** Answer here and keep Workbox's router from seeing the request. */
 function answer(event: FetchEvent, response: Promise<Response>): void {
   event.respondWith(response);
-  event.stopImmediatePropagation();
+  event.stopImmediatePropagation?.();
 }
 
 /**

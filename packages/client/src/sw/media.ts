@@ -1,3 +1,4 @@
+/// <reference lib="webworker" />
 import {
   isKeptMediaUrl,
   type MediaStatsReply,

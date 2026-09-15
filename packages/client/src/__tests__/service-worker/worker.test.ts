@@ -1,17 +1,8 @@
 import { createHash, webcrypto } from "node:crypto";
-import { existsSync } from "node:fs";
-import { readFile } from "node:fs/promises";
-import { resolve } from "node:path";
-import vm from "node:vm";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { installGreenGoodsWorker } from "@/sw/worker";
 
 type Listener = (event: Record<string, unknown>) => void;
-
-const swCustomPath =
-  [
-    resolve(process.cwd(), "public/sw-custom.js"),
-    resolve(process.cwd(), "packages/client/public/sw-custom.js"),
-  ].find(existsSync) ?? resolve(process.cwd(), "public/sw-custom.js");
 
 function shellDigest(entries: Array<[asset: string, contents: string]>): string {
   const digestInput = entries
@@ -97,6 +88,7 @@ async function loadServiceWorker(
   const clients = {
     claim: vi.fn().mockResolvedValue(undefined),
     matchAll: vi.fn().mockResolvedValue([]),
+    openWindow: vi.fn().mockResolvedValue(undefined),
   };
   const caches = {
     keys: vi.fn(async () => [...cacheStores.keys()]),
@@ -120,23 +112,14 @@ async function loadServiceWorker(
     skipWaiting: vi.fn(),
     crypto: { randomUUID: vi.fn(() => "share-token"), subtle: webcrypto.subtle },
     location: { href: locationHref, origin: new URL(locationHref).origin },
+    registration: { showNotification: vi.fn().mockResolvedValue(undefined) },
   };
 
-  vm.runInNewContext(await readFile(swCustomPath, "utf8"), {
-    AbortController,
-    caches,
-    console,
-    fetch: fetchMock,
-    Promise,
-    File,
-    FormData,
-    Headers,
-    Request,
-    Response,
-    self,
-    TextEncoder,
-    URL,
-  });
+  // The worker reads these off the global scope at call time, the way it does
+  // inside a real ServiceWorkerGlobalScope.
+  vi.stubGlobal("caches", caches);
+  vi.stubGlobal("fetch", fetchMock);
+  installGreenGoodsWorker(self as unknown as Parameters<typeof installGreenGoodsWorker>[0]);
 
   return { cacheFor, cacheStores, caches, clients, fetchMock, listeners, self };
 }
@@ -150,34 +133,24 @@ function htmlNavigationRequest(url: string) {
   };
 }
 
+afterEach(() => {
+  vi.unstubAllGlobals();
+});
+
 describe("client public service worker migration", () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it("serves public website navigations from the network on refresh", async () => {
+  it("leaves every navigation to the precache router", async () => {
     const { fetchMock, listeners } = await loadServiceWorker();
-    const request = htmlNavigationRequest("https://www.greengoods.app/gardens/atlanta");
-    let responsePromise: Promise<Response> | undefined;
-    const respondWith = vi.fn((promise: Promise<Response>) => {
-      responsePromise = promise;
-    });
-    const stopImmediatePropagation = vi.fn();
-
-    listeners.fetch[1]({ request, respondWith, stopImmediatePropagation });
-
-    expect(respondWith).toHaveBeenCalledTimes(1);
-    expect(stopImmediatePropagation).toHaveBeenCalledTimes(1);
-    expect(fetchMock).toHaveBeenCalledWith(request, { cache: "reload" });
-    await expect(responsePromise?.then((response) => response.text())).resolves.toBe("network");
-  });
-
-  it("leaves protected PWA navigations on the Workbox app-shell path", async () => {
-    const { fetchMock, listeners } = await loadServiceWorker();
-    const request = htmlNavigationRequest("https://www.greengoods.app/home");
     const respondWith = vi.fn();
 
-    listeners.fetch[1]({ request, respondWith });
+    // The worker is scoped to /home, so an app navigation is the only kind it sees.
+    listeners.fetch[0]({
+      request: htmlNavigationRequest("https://www.greengoods.app/home"),
+      respondWith,
+    });
 
     expect(respondWith).not.toHaveBeenCalled();
     expect(fetchMock).not.toHaveBeenCalled();
@@ -213,7 +186,8 @@ describe("client public service worker migration", () => {
     expect(self.skipWaiting).not.toHaveBeenCalled();
 
     const waitUntil = vi.fn();
-    listeners.message?.[0]?.({ data: { type: "SKIP_WAITING" }, waitUntil });
+    // A prompt with no reply port still carries the (empty) port list.
+    listeners.message?.[0]?.({ data: { type: "SKIP_WAITING" }, ports: [], waitUntil });
     await waitUntil.mock.calls[0][0];
 
     expect(self.skipWaiting).toHaveBeenCalledTimes(1);
@@ -584,7 +558,7 @@ describe("client public service worker migration", () => {
       })
     );
 
-    listeners.fetch[2]({ request, respondWith, stopImmediatePropagation });
+    listeners.fetch[0]({ request, respondWith, stopImmediatePropagation });
 
     expect(respondWith).toHaveBeenCalledTimes(1);
     expect(stopImmediatePropagation).toHaveBeenCalledTimes(1);
@@ -611,7 +585,7 @@ describe("client public service worker migration", () => {
     );
     let responsePromise: Promise<Response> | undefined;
 
-    listeners.fetch[2]({
+    listeners.fetch[0]({
       request,
       respondWith: vi.fn((promise: Promise<Response>) => {
         responsePromise = promise;
@@ -876,8 +850,8 @@ describe("IPFS media cache", () => {
     const ranged = mediaEvent(new Request(photoUrl, { headers: { range: "bytes=0-" } }));
     const avatar = mediaEvent(imageRequest("https://avatars.example/photo.png"));
 
-    listeners.fetch[4](ranged.event);
-    listeners.fetch[4](avatar.event);
+    listeners.fetch[0](ranged.event);
+    listeners.fetch[0](avatar.event);
 
     expect(ranged.event.respondWith).not.toHaveBeenCalled();
     expect(avatar.event.respondWith).not.toHaveBeenCalled();

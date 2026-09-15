@@ -1,3 +1,4 @@
+/// <reference lib="webworker" />
 import { SW_CACHES } from "@green-goods/shared/modules/app/service-worker-protocol";
 import { BackgroundSyncPlugin } from "workbox-background-sync";
 import { CacheableResponsePlugin } from "workbox-cacheable-response";

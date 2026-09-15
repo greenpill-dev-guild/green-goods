@@ -234,18 +234,22 @@ export function useWorks(gardenId: string, options: UseWorksOptions = {}) {
       )
         cachedMap.set(work.id, work);
     }
-    const indexed =
-      remoteData === undefined
-        ? cachedWorks
-        : reconcileIndexedWorkCollection(remoteData, cachedWorks);
     // Each row carries the latest approval read with it; a row without the
-    // field came from a read whose approvals could not be fetched.
+    // field came from a read whose approvals could not be fetched. The
+    // approval stays in the stored read and leaves the projected row, whose
+    // status already carries it.
     const approvalsKnown =
       remoteData !== undefined && remoteData.every((row) => row.approval !== undefined);
     const knownApprovals = new Map<string, EASWorkApproval>();
-    for (const row of remoteData ?? []) {
-      if (row.approval) knownApprovals.set(row.id, row.approval);
+    const remoteRows: WorkCard[] = [];
+    for (const { approval, ...row } of remoteData ?? []) {
+      if (approval) knownApprovals.set(row.id, approval);
+      remoteRows.push(row);
     }
+    const indexed =
+      remoteData === undefined
+        ? cachedWorks
+        : reconcileIndexedWorkCollection(remoteRows, cachedWorks);
     const now = Date.now();
     const rows: Work[] = indexed.map((work) =>
       withResolvedStatus(

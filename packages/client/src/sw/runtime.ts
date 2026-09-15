@@ -1,3 +1,4 @@
+/// <reference lib="webworker" />
 import {
   type BackgroundSyncNotice,
   GREEN_GOODS_SYNC_TAG,

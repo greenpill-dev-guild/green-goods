@@ -90,13 +90,9 @@ function harness(options: { gardens?: Garden[]; account?: string } = {}) {
     dataSaver: () => conditions.dataSaver,
     cellular: () => false,
     mediaReady: () => conditions.mediaReady,
-    fetchWorks: vi.fn(async (gardenId: string) => {
-      events.push(`list:${gardenId.toLowerCase()}`);
+    fetchWorks: vi.fn(async (gardenId: string, take: number) => {
+      events.push(`list:${gardenId.toLowerCase()}:${take}`);
       return works[gardenId.toLowerCase()] ?? [];
-    }),
-    fetchApprovals: vi.fn(async () => {
-      events.push("approvals");
-      return [];
     }),
     readMetadata: vi.fn(async (raw: string) => {
       events.push(`details:${raw}`);
@@ -183,13 +179,11 @@ describe("offline scheduler", () => {
   it("reuses lists a screen fetched moments ago instead of downloading them again", async () => {
     const { client, ports, works } = harness();
     client.setQueryData(worksKeys.online(gardenA, chainId), works[gardenA.toLowerCase()]);
-    client.setQueryData(worksKeys.approvals(undefined, chainId), []);
 
     await new OfflineScheduler(ports).run();
 
-    expect(ports.fetchApprovals).not.toHaveBeenCalled();
     expect(ports.fetchWorks).toHaveBeenCalledTimes(1);
-    expect(ports.fetchWorks).toHaveBeenCalledWith(gardenB);
+    expect(ports.fetchWorks).toHaveBeenCalledWith(gardenB, 50);
   });
 
   it("waits while the screen is fetching before starting each download", async () => {
@@ -201,7 +195,7 @@ describe("offline scheduler", () => {
 
     await new OfflineScheduler(ports).run();
 
-    expect(events.slice(0, 3)).toEqual(["waited", "waited", "approvals"]);
+    expect(events.slice(0, 3)).toEqual(["waited", "waited", `list:${gardenA.toLowerCase()}:50`]);
     expect(ports.idle).toHaveBeenCalled();
   });
 
@@ -210,15 +204,15 @@ describe("offline scheduler", () => {
       gardens: [garden(gardenB, [account]), garden(gardenA, [account])],
     });
     const scheduler = new OfflineScheduler(ports);
-    vi.mocked(ports.fetchWorks).mockImplementation(async (gardenId: string) => {
-      events.push(`list:${gardenId.toLowerCase()}`);
+    vi.mocked(ports.fetchWorks).mockImplementation(async (gardenId: string, take: number) => {
+      events.push(`list:${gardenId.toLowerCase()}:${take}`);
       if (gardenId === gardenB) scheduler.setActiveGarden(gardenA);
       return harness().works[gardenId.toLowerCase()];
     });
 
     await scheduler.run();
 
-    const listA = events.indexOf(`list:${gardenA.toLowerCase()}`);
+    const listA = events.indexOf(`list:${gardenA.toLowerCase()}:50`);
     expect(listA).toBeGreaterThan(-1);
     expect(listA).toBeLessThan(events.indexOf("details:bafy-b-neighbour"));
     expect(events).toContain(`photo:${photo("a-neighbour")}`);
@@ -250,7 +244,7 @@ describe("offline scheduler", () => {
     await vi.waitFor(() =>
       expect(getOfflineProgress()).toMatchObject({ state: "paused", pauseReason: "offline" })
     );
-    expect(ports.fetchApprovals).not.toHaveBeenCalled();
+    expect(ports.fetchWorks).not.toHaveBeenCalled();
 
     conditions.online = true;
     scheduler.environmentChanged();
@@ -303,7 +297,6 @@ describe("offline scheduler", () => {
     await new OfflineScheduler(ports).run();
 
     const persisted = vi.mocked(ports.persistQuery).mock.calls.map(([key]) => key[2]);
-    expect(persisted).toContain("approvals");
     expect(persisted).toContain("online");
     expect(vi.mocked(ports.fetchWorks).mock.calls.length).toBeGreaterThan(0);
     expect(persisted.filter((source) => source === "online")).toHaveLength(

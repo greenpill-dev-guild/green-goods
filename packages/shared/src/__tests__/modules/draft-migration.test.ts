@@ -1,7 +1,7 @@
 import "fake-indexeddb/auto";
 import { IDBObjectStore, IDBOpenDBRequest } from "fake-indexeddb";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { deleteDB, openDB } from "idb";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { serializeFile } from "../../utils/storage/file-serialization";
 
 const account = "0x1234567890abcdef1234567890abcdef12345678";
@@ -54,7 +54,7 @@ describe("canonical work and avatar drafts", () => {
       action: "set",
       file: new File(["photo"], "picked.png", { type: "image/png" }),
     });
-    const records = await db.getAll("drafts");
+    const records = await db.drafts.toArray();
     expect(records).toEqual([
       expect.objectContaining({
         kind: "profile-avatar",
@@ -77,7 +77,7 @@ describe("canonical work and avatar drafts", () => {
     const { db, loadProfileAvatarDraft } = await api();
     const loaded = await loadProfileAvatarDraft(chain, account);
     expect(loaded?.fileData?.data).toEqual(legacy.fileData.data);
-    expect(await db.getAll("drafts")).toEqual([
+    expect(await db.drafts.toArray()).toEqual([
       expect.objectContaining({ kind: "profile-avatar", updatedAt: 100 }),
     ]);
     const old = await openDB(legacyName);
@@ -101,7 +101,7 @@ describe("canonical work and avatar drafts", () => {
     expect(
       await loadProfileAvatarDraft(chain, "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
     ).toBeNull();
-    expect(await db.count("drafts")).toBe(2);
+    expect(await db.drafts.count()).toBe(2);
   });
 
   it("retains recoverable source bytes on quota failure and resumes the copy", async () => {
@@ -120,14 +120,14 @@ describe("canonical work and avatar drafts", () => {
     expect((await loadProfileAvatarDraft(chain, account))?.fileData?.data).toEqual(
       legacy.fileData.data
     );
-    expect(await db.count("drafts")).toBe(0);
+    expect(await db.drafts.count()).toBe(0);
     const old = await openDB(legacyName);
     expect(await old.count("drafts")).toBe(1);
     failure.mockRestore();
     expect((await loadProfileAvatarDraft(chain, account))?.fileData?.data).toEqual(
       legacy.fileData.data
     );
-    expect(await db.count("drafts")).toBe(1);
+    expect(await db.drafts.count()).toBe(1);
     expect(await old.count("drafts")).toBe(0);
     old.close();
   });
@@ -143,12 +143,12 @@ describe("canonical work and avatar drafts", () => {
       return remove.call(this, key);
     });
     const { db, loadProfileAvatarDraft } = await api();
-    expect(await db.count("drafts")).toBe(1);
-    expect(await db.count("draft_migrations")).toBe(1);
-    const copied = await db.getAll("drafts");
+    expect(await db.drafts.count()).toBe(1);
+    expect(await db.draft_migrations.count()).toBe(1);
+    const copied = await db.drafts.toArray();
     failure.mockRestore();
     await loadProfileAvatarDraft(chain, account);
-    expect(await db.getAll("drafts")).toEqual(copied);
+    expect(await db.drafts.toArray()).toEqual(copied);
     const old = await openDB(legacyName);
     expect(await old.count("drafts")).toBe(0);
     old.close();
@@ -211,13 +211,13 @@ describe("canonical work and avatar drafts", () => {
     old.close();
     await seedLegacy();
     const { db, draftDB } = await api();
-    expect(db.version).toBe(3);
+    expect(db.verno).toBe(4);
     expect(await draftDB.getDraft("work-id")).toMatchObject({
       kind: "work",
       clientWorkId: "submission-id",
       feedback: "keep",
     });
-    expect(await db.get("draft_images", "attachment-id")).toMatchObject({
+    expect(await db.draft_images.get("attachment-id")).toMatchObject({
       fileData: bytes,
       contentHash: "retained-hash",
     });
@@ -233,8 +233,8 @@ describe("canonical work and avatar drafts", () => {
     // The abandoned request may now finish; its result must close before a retry.
     const db = await draftDB.init();
     close = () => db.close();
-    const next = await openDB(canonicalName, 4);
-    expect(next.version).toBe(4);
+    const next = await openDB(canonicalName);
+    expect(next.version).toBe(40);
     next.close();
   });
 
@@ -289,14 +289,14 @@ describe("canonical work and avatar drafts", () => {
   it("preserves malformed legacy entries and equal-time conflicts for recovery", async () => {
     const legacy = await seedLegacy();
     const { db, loadProfileAvatarDraft } = await api();
-    const row = await db.get("drafts", `avatar:${chain}:${account}`);
+    const row = await db.drafts.get(`avatar:${chain}:${account}`);
     expect(row).toBeDefined();
     const old = await openDB(legacyName);
     const different = { ...legacy, cid: "different-content" };
     await old.put("drafts", different);
     await old.put("drafts", { key: "unresolved", action: "set", fileData: { data: "invalid" } });
     await loadProfileAvatarDraft(chain, account);
-    expect(await db.get("drafts", `avatar:${chain}:${account}`)).toEqual(row);
+    expect(await db.drafts.get(`avatar:${chain}:${account}`)).toEqual(row);
     expect(await old.count("drafts")).toBe(2);
     old.close();
   });

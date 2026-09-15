@@ -1,3 +1,4 @@
+/// <reference lib="webworker" />
 import {
   type MediaStatsReply,
   OFFLINE_CONTENT_VERSION,

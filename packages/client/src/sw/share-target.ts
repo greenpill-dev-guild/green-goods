@@ -1,3 +1,4 @@
+/// <reference lib="webworker" />
 import {
   SHARE_ENVELOPE_PREFIX,
   SHARE_FILE_PREFIX,

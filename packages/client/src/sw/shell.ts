@@ -1,3 +1,4 @@
+/// <reference lib="webworker" />
 import {
   OBSOLETE_RUNTIME_CACHES,
   SW_CACHES,

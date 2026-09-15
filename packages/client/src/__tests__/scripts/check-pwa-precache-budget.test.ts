@@ -1,5 +1,5 @@
 import { execFileSync } from "node:child_process";
-import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
@@ -94,7 +94,10 @@ function createFixture(options: FixtureOptions = {}) {
   writeFileSync(resolve(directory, "index.html"), options.html ?? "<!doctype html>");
   writeFileSync(
     resolve(directory, "sw.js"),
-    `precacheAndRoute([${precache.map((url) => `{url:${JSON.stringify(url)}}`).join(",")}])`
+    // The shape Workbox injects: each entry pairs a revision with its url.
+    `precacheAndRoute([${precache
+      .map((url) => `{"revision":null,"url":${JSON.stringify(url)}}`)
+      .join(",")}])`
   );
   writeFileSync(resolve(directory, ".vite/manifest.json"), JSON.stringify(manifest));
   writeFileSync(
