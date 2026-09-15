@@ -10,6 +10,7 @@ import {
   createInstallWatcher,
   DOWNLOAD_TIMEOUT_MS,
   markUpdateApplied,
+  resolveUpdateTarget,
   waitForInstallToSettle,
 } from "../../../modules/app/service-worker-update";
 
@@ -348,14 +349,14 @@ describe("activateWaitingWorker", () => {
 
     expect(container.addEventListener).toHaveBeenCalledWith(
       "controllerchange",
-      expect.any(Function),
-      { once: true }
+      expect.any(Function)
     );
     expect(container.addEventListener.mock.invocationCallOrder[0]).toBeLessThan(
       worker.postMessage.mock.invocationCallOrder[0]
     );
     expect(worker.postMessage).toHaveBeenCalledWith({ type: "SKIP_WAITING" });
 
+    container.controller = asWorker(worker);
     container.dispatch("controllerchange");
     vi.advanceTimersByTime(1_000);
 
@@ -449,5 +450,55 @@ describe("update applied flag", () => {
     expect(consumeUpdateApplied()).toBe(true);
     expect(sessionStorage.getItem("gg-update-applied")).toBeNull();
     expect(consumeUpdateApplied()).toBe(true);
+  });
+});
+
+describe("update retry target", () => {
+  it("rejects obsolete references and follows the live replacement or already active target", () => {
+    const obsolete = asWorker(createWorker("redundant"));
+    const replacement = asWorker(createWorker("installed"));
+    const active = asWorker(createWorker("activated"));
+    const registration = { waiting: null, active } as unknown as ServiceWorkerRegistration;
+    expect(resolveUpdateTarget(registration, obsolete)).toBeNull();
+    expect(resolveUpdateTarget(registration, active)).toBe(active);
+    expect(resolveUpdateTarget({ ...registration, waiting: replacement }, obsolete)).toBe(
+      replacement
+    );
+  });
+});
+
+describe("activation acknowledgment", () => {
+  it("does not mistake acknowledgment or an unrelated controller change for activation", () => {
+    vi.useFakeTimers();
+    const container = stubServiceWorkerContainer(createWorker("activated"));
+    const worker = createWorker("installed");
+    const port1 = {
+      onmessage: null as ((event: { data: unknown }) => void) | null,
+      close: vi.fn(),
+    };
+    const port2 = { close: vi.fn() };
+    vi.stubGlobal(
+      "MessageChannel",
+      class {
+        port1 = port1;
+        port2 = port2;
+      }
+    );
+    const handlers = { onActivated: vi.fn(), onTimeout: vi.fn(), onProgress: vi.fn() };
+    try {
+      activateWaitingWorker(asWorker(worker), handlers, 1000);
+      port1.onmessage?.({ data: { type: "GG_UPDATE_ACK", status: "requested" } });
+      expect(handlers.onProgress).toHaveBeenCalledWith("requested");
+      container.dispatch("controllerchange");
+      expect(handlers.onActivated).not.toHaveBeenCalled();
+      vi.advanceTimersByTime(1000);
+      expect(handlers.onTimeout).toHaveBeenCalledOnce();
+      expect(port1.close).toHaveBeenCalledOnce();
+      worker.state = "activated";
+      worker.dispatch("statechange");
+      expect(handlers.onActivated).not.toHaveBeenCalled();
+    } finally {
+      vi.unstubAllGlobals();
+    }
   });
 });

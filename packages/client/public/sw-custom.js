@@ -629,7 +629,16 @@ self.addEventListener("message", (event) => {
   }
 
   if (type === "SKIP_WAITING") {
-    self.skipWaiting();
+    const port = event.ports?.[0];
+    const reply = (status) => port?.postMessage({ type: "GG_UPDATE_ACK", status });
+    reply("received");
+    event.waitUntil(
+      Promise.resolve().then(() => self.skipWaiting()).then(
+        () => reply("requested"),
+        () => reply("rejected")
+      )
+    );
+    return;
   }
 
   if (type === "ENS_REGISTRATION_COMPLETE") {

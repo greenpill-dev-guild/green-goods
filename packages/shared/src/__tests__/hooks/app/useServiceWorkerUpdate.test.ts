@@ -167,6 +167,23 @@ describe("hooks/app/useServiceWorkerUpdate", () => {
     });
   });
 
+  it("clears an obsolete update and checks again instead of messaging a redundant worker", async () => {
+    vi.stubEnv("PROD", true);
+    const worker = createMockWorker({ state: "installed" });
+    const registration = createMockRegistration({ waiting: worker });
+    installServiceWorkerMock(registration);
+    const { result } = renderUpdateHook();
+    await waitFor(() => expect(result.current.updateAvailable).toBe(true));
+    Object.assign(worker, { state: "redundant" });
+    Object.assign(registration, { waiting: null });
+    act(() => result.current.applyUpdate());
+    await waitFor(() => expect(result.current.phase).toBe("idle"));
+    expect(worker.postMessage).not.toHaveBeenCalled();
+    expect(registration.update).toHaveBeenCalled();
+    expect(result.current.updateAvailable).toBe(false);
+    expect(result.current.waitingWorker).toBeNull();
+  });
+
   describe("applyUpdate with no waiting worker", () => {
     it("does nothing when no waiting worker", () => {
       const { result } = renderUpdateHook();
@@ -742,14 +759,16 @@ describe("hooks/app/useServiceWorkerUpdate", () => {
       expect(result.current.isUpdating).toBe(true);
       expect(result.current.updateStalled).toBe(false);
       expect(result.current.phase).toBe("activating");
-      expect(waitingWorker.postMessage).toHaveBeenCalledWith({ type: "SKIP_WAITING" });
+      expect(waitingWorker.postMessage).toHaveBeenCalledWith(
+        { type: "SKIP_WAITING" },
+        expect.any(Array)
+      );
       const addServiceWorkerListener = navigator.serviceWorker
         .addEventListener as unknown as ReturnType<typeof vi.fn>;
       const postWorkerMessage = waitingWorker.postMessage as ReturnType<typeof vi.fn>;
       expect(addServiceWorkerListener).toHaveBeenCalledWith(
         "controllerchange",
-        expect.any(Function),
-        { once: true }
+        expect.any(Function)
       );
       expect(addServiceWorkerListener.mock.invocationCallOrder.at(-1)).toBeLessThan(
         postWorkerMessage.mock.invocationCallOrder[0]
@@ -769,6 +788,7 @@ describe("hooks/app/useServiceWorkerUpdate", () => {
           phase: "error",
           duration_ms: expect.any(Number),
           timeout_ms: APPLY_UPDATE_TIMEOUT_MS,
+          acknowledgment: "not_received",
         })
       );
       expect(logger.warn).toHaveBeenCalledWith(
@@ -861,7 +881,10 @@ describe("applyUpdate activation", () => {
       result.current.applyUpdate();
     });
     expect(result.current.phase).toBe("activating");
-    expect(waitingWorker.postMessage).toHaveBeenCalledWith({ type: "SKIP_WAITING" });
+    expect(waitingWorker.postMessage).toHaveBeenCalledWith(
+      { type: "SKIP_WAITING" },
+      expect.any(Array)
+    );
 
     act(() => {
       Object.defineProperty(waitingWorker, "state", { configurable: true, value: "activated" });

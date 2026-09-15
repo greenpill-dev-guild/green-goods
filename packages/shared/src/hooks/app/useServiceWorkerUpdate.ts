@@ -24,6 +24,7 @@ import {
   markUpdateApplied,
   now,
   observeUpdateAttempt,
+  resolveUpdateTarget,
   waitForInstallToSettle,
 } from "../../modules/app/service-worker-update";
 import { useTimeout } from "../utils/useTimeout";
@@ -96,9 +97,7 @@ function useServiceWorkerUpdateController({
   const checkStartedAtRef = useRef<number | null>(null);
   const downloadStartedAtRef = useRef<number | null>(null);
   const reloadGuardRef = useRef(false);
-  // Last auto-check time; throttles focus/visibility checks, never manual ones.
   const lastAutoCheckRef = useRef(0);
-  // Cancels the in-flight activation (listener + timer), if any.
   const cancelActivationRef = useRef<(() => void) | null>(null);
   const stopActivationDiagnosticsRef = useRef<(() => void) | null>(null);
 
@@ -153,7 +152,6 @@ function useServiceWorkerUpdateController({
     );
   }, [buildTelemetry]);
 
-  // First installs need no restart because nothing controls the page yet.
   const settleFirstInstall = useCallback(
     (source: string) => {
       setPhase((current) =>
@@ -265,7 +263,6 @@ function useServiceWorkerUpdateController({
           registration.removeEventListener("updatefound", handleUpdateFound);
         });
 
-        // `force` skips the throttle so the initial-load check always runs.
         const checkForUpdates = async (force = false) => {
           if (!force) {
             const elapsed = Date.now() - lastAutoCheckRef.current;
@@ -307,11 +304,9 @@ function useServiceWorkerUpdateController({
                 duration_ms: durationSince(checkStartedAtRef.current),
               })
             );
-            // Silently ignore update check failures (offline, etc.)
           }
         };
 
-        // A worker already waiting is ready UI; a check would only overwrite it.
         if (registration.waiting) {
           markUpdateAvailable(registration.waiting, "initial_check");
         } else {
@@ -396,9 +391,6 @@ function useServiceWorkerUpdateController({
       lastAutoCheckRef.current = Date.now();
       await registration.update();
 
-      // update() resolves once the browser has compared the scripts, and a newer
-      // worker is already `installing` by then, so an empty registration means the
-      // app is up to date. Only wait for an install to settle when one started.
       if (!registration.installing && !registration.waiting) return completeWithoutUpdate();
 
       const watchManualInstall = () => {
@@ -444,11 +436,13 @@ function useServiceWorkerUpdateController({
   }, [buildTelemetry, installWatcher, isEnabled, markUpdateAvailable]);
 
   const applyUpdate = useCallback(() => {
-    // Prefer the registration's live waiting worker over a remembered one.
-    const worker =
-      registrationRef.current?.waiting ?? waitingWorkerRef.current ?? waitingWorker ?? null;
+    const worker = resolveUpdateTarget(registrationRef.current, waitingWorkerRef.current);
     if (!worker) {
       track("sw_update_state_observed", buildTelemetry({ source: "apply_no_target" }));
+      setUpdateAvailable(false);
+      setWaitingWorker(null);
+      waitingWorkerRef.current = null;
+      void checkForUpdate().catch(() => {});
       return;
     }
     if (isActivationBlocked()) {
@@ -469,6 +463,7 @@ function useServiceWorkerUpdateController({
       (properties) => track("sw_update_target_state_changed", properties)
     );
     stopActivationDiagnosticsRef.current = diagnostics.dispose;
+    let acknowledgment = "not_received";
     const telemetry = diagnostics.telemetry({ phase: "activating" });
     track("sw_update_applied", telemetry);
     track("sw_update_apply_started", telemetry);
@@ -476,6 +471,10 @@ function useServiceWorkerUpdateController({
     cancelActivationRef.current = activateWaitingWorker(
       worker,
       {
+        onProgress: (status) => {
+          acknowledgment = status;
+          track("sw_update_activation_ack", diagnostics.telemetry({ acknowledgment: status }));
+        },
         onActivated: () => {
           cancelActivationRef.current = null;
           if (reloadGuardRef.current) return;
@@ -484,8 +483,6 @@ function useServiceWorkerUpdateController({
           markUpdateApplied();
           window.location.reload();
         },
-        // Fail open after a bounded wait (PRD-500's indefinite "Updating…" hang)
-        // so the user can retry or keep using the current version.
         onTimeout: () => {
           diagnostics.markTimedOut();
           cancelActivationRef.current = null;
@@ -498,15 +495,18 @@ function useServiceWorkerUpdateController({
           });
           track(
             "sw_update_apply_timeout",
-            diagnostics.telemetry({ phase: "error", timeout_ms: APPLY_UPDATE_TIMEOUT_MS })
+            diagnostics.telemetry({
+              phase: "error",
+              timeout_ms: APPLY_UPDATE_TIMEOUT_MS,
+              acknowledgment,
+            })
           );
         },
       },
       APPLY_UPDATE_TIMEOUT_MS
     );
-  }, [waitingWorker, buildTelemetry, isActivationBlocked]);
+  }, [buildTelemetry, checkForUpdate, isActivationBlocked]);
 
-  // Drop a pending activation and the long-session prompt on unmount.
   useEffect(() => {
     return () => {
       cancelActivationRef.current?.();

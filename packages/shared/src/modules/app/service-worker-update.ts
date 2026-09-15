@@ -272,16 +272,18 @@ export interface ActivationHandlers {
   onActivated: () => void;
   /** Nothing took control within the timeout. */
   onTimeout: () => void;
+  onProgress?: (status: "received" | "requested" | "rejected" | "send_failed") => void;
 }
 
-/**
- * Ask a waiting worker to take over and report when the page can reload onto
- * it. The worker never claims open pages on activation (the custom worker pins
- * that), so a controller change is not guaranteed; the worker's own state
- * reaching `activated` is the signal that always arrives, and a reload is then
- * served by it. Listeners attach before SKIP_WAITING is posted so a fast
- * activation cannot race past them. Returns an idempotent cancel function.
- */
+export function resolveUpdateTarget(
+  registration: ServiceWorkerRegistration | null,
+  remembered: ServiceWorker | null
+) {
+  if (registration?.waiting) return registration.waiting;
+  return remembered && remembered === registration?.active ? remembered : null;
+}
+
+/** Wait for the target to activate; an acknowledgment alone never permits a reload. */
 export function activateWaitingWorker(
   worker: ServiceWorker,
   handlers: ActivationHandlers,
@@ -289,6 +291,7 @@ export function activateWaitingWorker(
 ): () => void {
   let done = false;
   let timeoutId: ReturnType<typeof setTimeout> | null = null;
+  const channel = handlers.onProgress ? new MessageChannel() : null;
 
   const finish = () => {
     done = true;
@@ -298,6 +301,8 @@ export function activateWaitingWorker(
     }
     navigator.serviceWorker.removeEventListener("controllerchange", handleControllerChange);
     worker.removeEventListener("statechange", handleStateChange);
+    channel?.port1.close();
+    channel?.port2.close();
   };
 
   const settle = () => {
@@ -305,26 +310,43 @@ export function activateWaitingWorker(
     finish();
     handlers.onActivated();
   };
-  const handleControllerChange = () => settle();
+  const handleControllerChange = () => {
+    if (navigator.serviceWorker.controller === worker) settle();
+  };
   const handleStateChange = () => {
     if (worker.state === "activated") settle();
   };
 
   if (worker.state === "activated") {
+    channel?.port1.close();
+    channel?.port2.close();
     handlers.onActivated();
     return () => {};
   }
 
-  navigator.serviceWorker.addEventListener("controllerchange", handleControllerChange, {
-    once: true,
-  });
+  navigator.serviceWorker.addEventListener("controllerchange", handleControllerChange);
   worker.addEventListener("statechange", handleStateChange);
-  worker.postMessage({ type: "SKIP_WAITING" });
+  if (channel) {
+    channel.port1.onmessage = ({ data }) => {
+      if (done || data?.type !== "GG_UPDATE_ACK") return;
+      if (["received", "requested", "rejected"].includes(data.status)) {
+        handlers.onProgress?.(data.status);
+      }
+    };
+  }
   timeoutId = setTimeout(() => {
     if (done) return;
     finish();
     handlers.onTimeout();
   }, timeoutMs);
+  try {
+    if (channel) worker.postMessage({ type: "SKIP_WAITING" }, [channel.port2]);
+    else worker.postMessage({ type: "SKIP_WAITING" });
+  } catch {
+    handlers.onProgress?.("send_failed");
+    finish();
+    handlers.onTimeout();
+  }
 
   return finish;
 }

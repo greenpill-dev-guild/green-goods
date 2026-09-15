@@ -174,9 +174,25 @@ describe("client public service worker migration", () => {
     );
     expect(self.skipWaiting).not.toHaveBeenCalled();
 
-    listeners.message?.[0]?.({ data: { type: "SKIP_WAITING" } });
+    const waitUntil = vi.fn();
+    listeners.message?.[0]?.({ data: { type: "SKIP_WAITING" }, waitUntil });
+    await waitUntil.mock.calls[0][0];
 
     expect(self.skipWaiting).toHaveBeenCalledTimes(1);
+  });
+
+  it("acknowledges activation without claiming that skipWaiting completed the update", async () => {
+    const { self, listeners } = await loadServiceWorker();
+    const postMessage = vi.fn();
+    const waitUntil = vi.fn();
+    listeners.message[0]({ data: { type: "SKIP_WAITING" }, ports: [{ postMessage }], waitUntil });
+    expect(postMessage).toHaveBeenCalledWith({ type: "GG_UPDATE_ACK", status: "received" });
+    await waitUntil.mock.calls[0][0];
+    expect(postMessage).toHaveBeenLastCalledWith({ type: "GG_UPDATE_ACK", status: "requested" });
+    self.skipWaiting.mockRejectedValueOnce(new Error("blocked"));
+    listeners.message[0]({ data: { type: "SKIP_WAITING" }, ports: [{ postMessage }], waitUntil });
+    await waitUntil.mock.calls[1][0];
+    expect(postMessage).toHaveBeenLastCalledWith({ type: "GG_UPDATE_ACK", status: "rejected" });
   });
 
   it("skips production shell population for the Vite development worker", async () => {
