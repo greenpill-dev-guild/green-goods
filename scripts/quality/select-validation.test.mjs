@@ -920,7 +920,7 @@ test("exact toolchain parity is enforced only for tools selected checks need", (
     changedPaths: ["docs/docs/builders/getting-started.mdx"],
     environment: {
       profile: "local",
-      toolchain: { node: "22.22.1", bun: "1.3.14" },
+      toolchain: { node: "22.22.1", bun: "1.4.2" },
       capabilities: { dependencies: true },
     },
   });
@@ -960,7 +960,7 @@ test("direct CLI toolchain detection blocks a stale Bun plan", () => {
 
   assert.equal(plan.status, "blocked");
   assert.deepEqual(plan.environmentBlockers, [
-    { capability: "toolchain.bun", expected: "1.3.14", actual: "1.3.10" },
+    { capability: "toolchain.bun", expected: "1.4.2", actual: "1.3.10" },
   ]);
 });
 
@@ -1359,7 +1359,7 @@ test("receipt inputs authorize only opt-in passing reuse", () => {
     changedPaths: ["packages/agent/src/index.ts"],
     environment: {
       profile: "local",
-      toolchain: { node: "22.22.1", bun: "1.3.14" },
+      toolchain: { node: "22.22.1", bun: "1.4.2" },
       capabilities: { dependencies: true },
     },
   });
