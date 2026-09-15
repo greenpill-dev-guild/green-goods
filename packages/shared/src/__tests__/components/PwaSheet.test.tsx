@@ -157,6 +157,52 @@ describe("PwaSheet", () => {
     expect(background).not.toHaveAttribute("aria-hidden");
     background.remove();
   });
+  it("closes only the topmost of two stacked sheets on Escape", () => {
+    const closeFirst = vi.fn();
+    const closeSecond = vi.fn();
+    const first = render(
+      <PwaSheet open onClose={closeFirst} title="Profile Photo" closeLabel="Close">
+        <p>Photo</p>
+      </PwaSheet>
+    );
+    const second = render(
+      <PwaSheet
+        open
+        onClose={closeSecond}
+        role="alertdialog"
+        title="Remove Photo?"
+        closeLabel="Close"
+      />
+    );
+
+    fireEvent.keyDown(document.body, { key: "Escape" });
+    expect(closeSecond).toHaveBeenCalledOnce();
+    expect(closeFirst).not.toHaveBeenCalled();
+
+    // A parent re-render of the lower sheet must not lift it above the confirmation.
+    first.rerender(
+      <PwaSheet open onClose={closeFirst} title="Profile Photo" closeLabel="Close">
+        <p>Photo again</p>
+      </PwaSheet>
+    );
+    fireEvent.keyDown(document.body, { key: "Escape" });
+    expect(closeSecond).toHaveBeenCalledTimes(2);
+    expect(closeFirst).not.toHaveBeenCalled();
+
+    second.rerender(
+      <PwaSheet
+        open={false}
+        onClose={closeSecond}
+        role="alertdialog"
+        title="Remove Photo?"
+        closeLabel="Close"
+      />
+    );
+    fireEvent.keyDown(document.body, { key: "Escape" });
+    expect(closeFirst).toHaveBeenCalledOnce();
+    first.unmount();
+    second.unmount();
+  });
   it("renders into <body> so a page layer can never stack it under app chrome", () => {
     const page = (open: boolean) => (
       <div data-testid="page-layer" style={{ position: "fixed", zIndex: 10 }}>

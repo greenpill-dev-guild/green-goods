@@ -259,6 +259,27 @@ describe("useFilteredGardens", () => {
       expect(result.filteredGardens).toHaveLength(2);
     });
 
+    it("ignores leading and trailing spaces in the search term", () => {
+      const gardens = [
+        createGarden({ id: "g1", name: "Solar Farm" }),
+        createGarden({ id: "g2", name: "Urban Garden" }),
+      ];
+
+      const result = useFilteredGardens(gardens, defaultFilters({ search: "  solar " }), null);
+
+      expect(result.filteredGardens.map((g) => g.id)).toEqual(["g1"]);
+      expect(result.isFilterActive).toBe(true);
+    });
+
+    it("does not filter or count a search of only spaces", () => {
+      const gardens = [createGarden({ id: "g1" }), createGarden({ id: "g2" })];
+
+      const result = useFilteredGardens(gardens, defaultFilters({ search: "   " }), null);
+
+      expect(result.filteredGardens).toHaveLength(2);
+      expect(result.isFilterActive).toBe(false);
+    });
+
     it("does not filter when search is undefined", () => {
       const gardens = [createGarden({ id: "g1" }), createGarden({ id: "g2" })];
 

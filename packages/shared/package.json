@@ -340,6 +340,7 @@
     "./modules/commitment-pooling/data-settlement-chain": "./src/modules/commitment-pooling/data-settlement-chain.ts",
     "./utils/relativeTime": "./src/utils/relativeTime.ts",
     "./hooks/profile/useProfileAvatar": "./src/hooks/profile/useProfileAvatar.ts",
+    "./hooks/profile/useProfileAvatarDraftPreview": "./src/hooks/profile/useProfileAvatarDraftPreview.ts",
     "./modules/profile-avatar/editor-messages": "./src/modules/profile-avatar/editor-messages.ts",
     "./components/Badge/Badge": "./src/components/Badge/Badge.tsx",
     "./components/Cards/GardenCard/GardenCard": "./src/components/Cards/GardenCard/GardenCard.tsx",

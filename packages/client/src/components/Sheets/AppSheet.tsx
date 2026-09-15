@@ -1,16 +1,16 @@
 import { PwaSheet, type SheetSize } from "@green-goods/shared/components/Dialog/PwaSheet";
 import type { SheetActionsProps } from "@green-goods/shared/components/Dialog/SheetActions";
 import { cn } from "@green-goods/shared/utils/styles/cn";
-import type React from "react";
+import { type FC, type ReactNode, useId } from "react";
 import { useIntl } from "react-intl";
 import { pwaSheetStyles } from "@/components/Pwa/sheetStyles";
 
 export interface AppSheetTab {
   id: string;
   label: string;
-  icon?: React.ReactNode;
+  icon?: ReactNode;
   count?: number;
-  badge?: React.ReactNode;
+  badge?: ReactNode;
 }
 
 export interface AppSheetHeaderProps {
@@ -25,7 +25,7 @@ export interface AppSheetProps {
   tabs?: AppSheetTab[];
   activeTab?: string;
   onTabChange?: (tabId: string) => void;
-  children: React.ReactNode;
+  children: ReactNode;
   /**
    * The sheet's actions, pinned under the content in the shared action bar
    * (DL-016). The sheet pads the device's bottom safe area itself.
@@ -52,7 +52,7 @@ export interface AppSheetProps {
  * open, so the AppBar steps aside while it shows (DL-015); it drags to
  * dismiss like every other sheet.
  */
-export const AppSheet: React.FC<AppSheetProps> = ({
+export const AppSheet: FC<AppSheetProps> = ({
   isOpen,
   onClose,
   header,
@@ -66,6 +66,9 @@ export const AppSheet: React.FC<AppSheetProps> = ({
   size,
 }) => {
   const { formatMessage } = useIntl();
+  const idPrefix = useId();
+  const tabPanelId = `${idPrefix}-panel`;
+  const tabId = (id: string) => `${idPrefix}-tab-${id}`;
   const hasTabs = tabs.length > 0;
 
   const rail = hasTabs ? (
@@ -73,10 +76,11 @@ export const AppSheet: React.FC<AppSheetProps> = ({
       {tabs.map((tab) => (
         <button
           key={tab.id}
-          id={`tab-btn-${tab.id}`}
+          id={tabId(tab.id)}
           onClick={() => onTabChange?.(tab.id)}
           role="tab"
           aria-selected={activeTab === tab.id}
+          aria-controls={tabPanelId}
           className={cn(
             pwaSheetStyles.tabTrigger,
             activeTab === tab.id ? pwaSheetStyles.tabActive : pwaSheetStyles.tabInactive
@@ -126,8 +130,9 @@ export const AppSheet: React.FC<AppSheetProps> = ({
       bodyProps={
         hasTabs
           ? {
+              id: tabPanelId,
               role: "tabpanel",
-              "aria-labelledby": activeTab ? `tab-btn-${activeTab}` : undefined,
+              "aria-labelledby": activeTab ? tabId(activeTab) : undefined,
             }
           : undefined
       }

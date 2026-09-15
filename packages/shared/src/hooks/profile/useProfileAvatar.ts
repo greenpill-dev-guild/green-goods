@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useSignMessage } from "wagmi";
 import type { Address } from "../../types/domain";
 import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
@@ -9,7 +9,6 @@ import { useAuth } from "../auth/useAuth";
 import { useCurrentChain } from "../blockchain/useChainConfig";
 import { useEnsAvatar } from "../blockchain/useEnsAvatar";
 import { uploadFileToIPFS } from "../../modules/data/ipfs/upload";
-import { mediaResourceManager } from "../../modules/job-queue/media-resource-manager";
 import {
   clearProfileAvatarDraft,
   classifyProfileAvatarFailure,
@@ -259,20 +258,4 @@ export function useProfileAvatarEditor(chainIdOrOptions?: number | ProfileAvatar
     discardDraft,
     refetch: avatar.refetch,
   };
-}
-
-/**
- * Object URL for an unpublished profile photo draft, released together with
- * the file so the preview never leaks a blob URL.
- */
-export function useProfileAvatarDraftPreview(file: File | null): string | null {
-  const url = useMemo(
-    () => (file ? mediaResourceManager.getOrCreateUrl(file, "profile-avatar-draft") : null),
-    [file]
-  );
-  useEffect(() => {
-    if (!file) return;
-    return () => mediaResourceManager.cleanupFile(file);
-  }, [file]);
-  return url;
 }

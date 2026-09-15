@@ -73,9 +73,10 @@ export function useFilteredGardens(
     }
   }
 
-  // Filter by search text
-  if (search) {
-    const term = search.toLowerCase();
+  // Filter by search text. The field keeps what was typed, spaces included, so
+  // the term drops leading and trailing whitespace before matching.
+  const term = search?.trim().toLowerCase() ?? "";
+  if (term) {
     working = working.filter(
       (garden) =>
         (garden.name || "").toLowerCase().includes(term) ||
@@ -106,7 +107,7 @@ export function useFilteredGardens(
   // Compute filter state
   const isScopeFiltered = scope !== "all";
   const isSortFiltered = sort !== "default";
-  const isSearchActive = !!search;
+  const isSearchActive = term.length > 0;
   const isDomainFiltered = domains.length > 0;
   const isFilterActive = isScopeFiltered || isSortFiltered || isSearchActive || isDomainFiltered;
   const activeFilterCount =

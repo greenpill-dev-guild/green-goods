@@ -8,10 +8,10 @@ import { IconButton } from "@green-goods/shared/components/IconButton";
 import { Spinner } from "@green-goods/shared/components/Spinner";
 import { useOnlineStatus } from "@green-goods/shared/hooks/app/useOnlineStatus";
 import {
-  useProfileAvatarDraftPreview,
   useProfileAvatarEditor,
   useResolvedProfileAvatar,
 } from "@green-goods/shared/hooks/profile/useProfileAvatar";
+import { useProfileAvatarDraftPreview } from "@green-goods/shared/hooks/profile/useProfileAvatarDraftPreview";
 import {
   getProfileAvatarFailureMessage,
   getProfileAvatarStageMessage,
