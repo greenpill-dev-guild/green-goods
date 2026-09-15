@@ -30,7 +30,7 @@ export interface FileUploadFieldProps {
   onRemoveFile?: (index: number) => void;
   /**
    * `default` is the 16px app field; `admin` rides the cockpit field tier
-   * (8px corner, 44px on touch widths and 40px from 640px; DL-029, DL-030).
+   * (8px corner, 44px on touch widths and 40px from 640px; DL-030, DL-031).
    */
   surface?: "default" | "admin";
 }
@@ -42,7 +42,7 @@ export interface FileUploadFieldProps {
  * surface's own corner and height with a dashed edge, so it lines up with the
  * fields beside it. The label and help text ride `gg-field-label` /
  * `gg-field-help`, and a staged file's remove control is the shared compact
- * `IconButton` (DL-030).
+ * `IconButton` (DL-031).
  */
 export function FileUploadField({
   id,

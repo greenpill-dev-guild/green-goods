@@ -32,7 +32,7 @@ const meta = {
     docs: {
       description: {
         component:
-          "Shared components that render inside the admin cockpit. Every one rides the shared family (Button, IconButton, Chip, and the control classes), and the cockpit sets that family's tokens in its index.css (DL-030): pills, one 14px label, the 28 / 32 / 40 tiers, the 44px finger box, and the responsive field tier. Each specimen is the real component measured live against the cockpit rules.",
+          "Shared components that render inside the admin cockpit. Every one rides the shared family (Button, IconButton, Chip, and the control classes), and the cockpit sets that family's tokens in its index.css (DL-031): pills, one 14px label, the 28 / 32 / 40 tiers, the 44px finger box, and the responsive field tier. Each specimen is the real component measured live against the cockpit rules.",
       },
     },
   },
@@ -86,7 +86,7 @@ function Pieces() {
       <Section
         id="actions"
         title="Actions"
-        lede="EmptyState takes a ready AdminButton element (Rule 18). Toast actions and the AudioRecorder controls are the shared Button at its sm size, which the cockpit's tokens land on the 32px md pill with a 14px label and a 44px finger box (DL-030)."
+        lede="EmptyState takes a ready AdminButton element (Rule 18). Toast actions and the AudioRecorder controls are the shared Button at its sm size, which the cockpit's tokens land on the 32px md pill with a 14px label and a 44px finger box (DL-031)."
       >
         <Row>
           <Specimen title="EmptyState action · AdminButton (Actions workspace)" target="button" expect={ADMIN.button("md")} wide>
@@ -131,7 +131,7 @@ function Pieces() {
       <Section
         id="fields"
         title="Fields"
-        lede="FileUploadField's upload well and the DatePicker trigger are shared controls on the admin surface: the 8px corner and the responsive field tier (44px with 16px text on touch widths, 40px with 14px text from 640px), with a 14px title above, like a setting-row label (DL-029, DL-030). AdminSortSelect stays the 36px toolbar pill, and the shared Switch takes the M3 track at the cockpit's 32px md height."
+        lede="FileUploadField's upload well and the DatePicker trigger are shared controls on the admin surface: the 8px corner and the responsive field tier (44px with 16px text on touch widths, 40px with 14px text from 640px), with a 14px title above, like a setting-row label (DL-030, DL-031). AdminSortSelect stays the 36px toolbar pill, and the shared Switch takes the M3 track at the cockpit's 32px md height."
       >
         <Row>
           <Specimen title="FileUploadField · upload well" targets={FIELD_TARGETS('[data-component="FileUploadTrigger"]')} wide>
@@ -231,7 +231,7 @@ export const Pieces_: Story = {
   render: () => (
     <Page
       title="Admin cockpit · Shared pieces"
-      lede="Rule 18 keeps admin views on the Admin* family. Shared components still render inside the cockpit; they ride the shared family, and the cockpit sets that family's tokens, so one primitive update reaches every surface (DL-030)."
+      lede="Rule 18 keeps admin views on the Admin* family. Shared components still render inside the cockpit; they ride the shared family, and the cockpit sets that family's tokens, so one primitive update reaches every surface (DL-031)."
     >
       <Pieces />
     </Page>

@@ -33,7 +33,7 @@ const closeButtonClasses = cn(
   "absolute right-3 top-1.5 z-10",
   "flex h-10 w-10 items-center justify-center",
   "rounded-full",
-  // 44px finger box on the 40px circle (DL-029).
+  // 44px finger box on the 40px circle (DL-030).
   "m3-state-layer admin-hit-target-lg",
   "[--state-layer-color:var(--m3-on-surface)]",
   "text-[rgb(var(--m3-on-surface-variant))]",

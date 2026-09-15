@@ -78,7 +78,7 @@ const adminButtonVariants = tv({
     size: {
       // Compact cockpit metric (DL-011): 28 / 32 / 40. Every tier carries a
       // 44px finger box (admin-hit-target for sm and md, the 2px-margin
-      // admin-hit-target-lg for lg) and the one 14px label (DL-029): the size
+      // admin-hit-target-lg for lg) and the one 14px label (DL-030): the size
       // difference carries the emphasis, never a type jump.
       // Densest action — list rows, table actions, inline text buttons.
       sm: "admin-hit-target h-7 px-2.5 text-label-lg",
@@ -262,7 +262,7 @@ const adminIconButtonVariants = tv({
       ],
     },
     size: {
-      // DL-011 compact tiers; every tier carries the 44px finger box (DL-029).
+      // DL-011 compact tiers; every tier carries the 44px finger box (DL-030).
       // Glyphs ride 16px in sm, 18px in md/lg.
       sm: "admin-hit-target h-7 w-7 [&_svg]:h-4 [&_svg]:w-4",
       md: "admin-hit-target h-8 w-8 [&_svg]:h-[18px] [&_svg]:w-[18px]",

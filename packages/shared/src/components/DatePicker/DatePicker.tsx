@@ -33,7 +33,7 @@ export interface DatePickerProps {
   formatDate?: (date: Date) => string;
   /**
    * `default` is the 16px app field; `admin` rides the cockpit field tier
-   * (8px corner, 44px on touch widths and 40px from 640px; DL-029, DL-030).
+   * (8px corner, 44px on touch widths and 40px from 640px; DL-030, DL-031).
    */
   surface?: "default" | "admin";
 }
@@ -70,7 +70,7 @@ function dateToTimestamp(date: Date | undefined): number | null {
  *
  * The trigger is a shared control (`gg-control gg-control-trigger`, like the
  * Select trigger), so it takes the surface's field corner and height and lines
- * up with the fields beside it; the label rides `gg-field-label` (DL-030).
+ * up with the fields beside it; the label rides `gg-field-label` (DL-031).
  *
  * @example
  * <DatePicker

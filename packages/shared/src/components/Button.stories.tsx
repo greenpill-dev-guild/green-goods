@@ -22,7 +22,7 @@ const meta = {
     docs: {
       description: {
         component:
-          'The one action button. Emphasis sets fill, outline, and colour; the corner comes from the surface and is the same for every emphasis (DL-026, DL-028): the 16px field corner in the installed app and no corner on the public website (inside `data-site="website"`). Heights match the field scale (DL-023): lg 48, md 44, sm 40, compact 32 with a 48px hit area. A loading button stays focusable.',
+          'The one action button. Emphasis sets fill, outline, and colour; the corner comes from the surface and is the same for every emphasis (DL-026, DL-029): the 16px field corner in the installed app and no corner on the public website (inside `data-site="website"`). Heights match the field scale (DL-023): lg 48, md 44, sm 40, compact 32 with a 48px hit area. A loading button stays focusable.',
       },
     },
   },
@@ -46,7 +46,7 @@ export const Primary: Story = {
     const button = within(canvasElement).getByRole("button", { name: "Create Garden" });
     const style = getComputedStyle(button);
     await expect(button.getBoundingClientRect().height).toBe(44);
-    // The app corner is the 16px field corner for every emphasis (DL-028).
+    // The app corner is the 16px field corner for every emphasis (DL-029).
     await expect(px(style.borderTopLeftRadius)).toBe(16);
   },
 };
@@ -120,7 +120,7 @@ export const EmphasisCatalog: Story = {
   },
 };
 
-/** A field and its action share one height and one 16px corner (DL-022, DL-028). */
+/** A field and its action share one height and one 16px corner (DL-022, DL-029). */
 export const FieldPairing: Story = {
   render: () => (
     <div className="flex max-w-md items-start gap-2">
@@ -141,7 +141,7 @@ export const FieldPairing: Story = {
   },
 };
 
-/** On the public website every emphasis is square with a semibold label (DL-026, DL-028). */
+/** On the public website every emphasis is square with a semibold label (DL-026, DL-029). */
 export const WebsiteSurface: Story = {
   render: () => (
     <div data-site="website" className="flex flex-wrap items-center gap-3">

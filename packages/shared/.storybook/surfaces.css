@@ -10,7 +10,7 @@
  *
  * Every value below mirrors what production resolves, measured on 2026-09-13
  * against a local admin (`?mockAuth=deployer`) and client (`?presentation=pwa`
- * / `?presentation=website`) and updated with DL-028 / DL-029. The Design
+ * / `?presentation=website`) and updated with DL-029 / DL-030. The Design
  * System foundation stories pin these numbers, so a product change shows up
  * here as a failing parity check instead of silent drift. Sources:
  *   - admin:   packages/admin/src/index.css (`@theme` type + radius aliases,
@@ -65,7 +65,7 @@
   --text-label-sm: var(--type-label-sm);
 
   /* M3 shape scale — index.css `@theme` plus its unlayered `:root` remap, so
-     rounded-xl / rounded-2xl land on the 16px page-container step (DL-029). */
+     rounded-xl / rounded-2xl land on the 16px page-container step (DL-030). */
   --admin-radius-xs: 4px;
   --admin-radius-sm: 8px;
   --admin-radius-md: 12px;
@@ -104,7 +104,7 @@
   --r-lg: var(--admin-radius-lg);
   --r-full: var(--admin-radius-full);
 
-  /* The shared control family in the cockpit (DL-030) — index.css `:root`.
+  /* The shared control family in the cockpit (DL-031) — index.css `:root`.
      Shared pieces rendered in admin ride Button / IconButton / Chip / control
      classes that read these tokens: pills, one 14px / 500 label, the 28 / 32 /
      40 tiers and the 44px finger box. AdminDensityScale.guard pins this block

@@ -24,7 +24,7 @@ export const APP = {
   cornerPressed: 12,
   weight: 400,
   rules: [
-    "Every button: the 16px field corner, 12px while pressed, label weight 400 (DL-026, DL-028)",
+    "Every button: the 16px field corner, 12px while pressed, label weight 400 (DL-026, DL-029)",
     "Heights 48 / 44 / 40 / 32; sm and compact keep a 48px hit area (DL-023)",
     "Icon buttons are circles, chips are 32px capsules with a 44px hit area",
     "Fields: 16px corner, a single-line field is exactly its step (DL-022)",
@@ -65,7 +65,7 @@ export const WEBSITE = {
   cornerPressed: 0,
   weight: 600,
   rules: [
-    "Every button: square, no press morph, label weight 600 (DL-026, DL-028)",
+    "Every button: square, no press morph, label weight 600 (DL-026, DL-029)",
     "Same heights as the app: 48 hero, 44 section and dialog, 40 row actions (DL-024)",
     "Fields on editorial sections: underline, serif text (surface=\"editorial\")",
     "Dialogs, cards, panels, and buttons are all square; icon buttons stay circles, chips capsules",
@@ -95,13 +95,13 @@ export const ADMIN = {
   family: "Plus Jakarta Sans",
   corners: [4, 8, 12, 16, 9999],
   rules: [
-    "AdminButton pills at 28 / 32 / 40, each with a 44px finger box (DL-011, DL-029)",
+    "AdminButton pills at 28 / 32 / 40, each with a 44px finger box (DL-011, DL-030)",
     "One 14px label on every button size; 11px only inside chips",
-    "Fields 44px / 16px text on touch widths, 40px / 14px from 640px, 12px floating label (DL-029)",
+    "Fields 44px / 16px text on touch widths, 40px / 14px from 640px, 12px floating label (DL-030)",
     "Inline fields 32px; toolbar pills and tabs 36px; chips 32px with 8px corners; identity pill 36px",
     "Corners only from 4 / 8 / 12 / 16 / 9999px; rounded-xl and rounded-2xl land on 16px",
     "Plus Jakarta Sans; admin views use the Admin* family, never the shared Button (Rule 18)",
-    "Shared pieces ride the shared family, which takes this metric from tokens in index.css: lg and md land on 40, sm on 32, compact on 28, with the 44px finger box (DL-030)",
+    "Shared pieces ride the shared family, which takes this metric from tokens in index.css: lg and md land on 40, sm on 32, compact on 28, with the 44px finger box (DL-031)",
   ],
   button: (size: AdminSize): Expectation => ({
     height: ADMIN_HEIGHT[size],
@@ -135,7 +135,7 @@ export const ADMIN = {
   checkbox: (): Expectation => ({ hit: 44 }),
   /** A shared field's title above the control (`gg-field-label`): the setting-row title. */
   fieldTitle: (): Expectation => ({ labelSize: 14, weight: 500, family: "Plus Jakarta Sans" }),
-  /** The shared Button at its sm size, which the cockpit lands on the 32px md pill (DL-030). */
+  /** The shared Button at its sm size, which the cockpit lands on the 32px md pill (DL-031). */
   sharedButton: (): Expectation => ({
     height: 32,
     radius: "pill",

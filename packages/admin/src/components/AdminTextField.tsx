@@ -72,7 +72,7 @@ interface AdminTextFieldBaseProps extends AdminTextFieldCommonProps {
 /**
  * Shared M3 text-field anatomy behind {@link AdminTextField},
  * {@link AdminTextArea}, and {@link AdminSelect}, on the responsive field tier
- * (DL-011, DL-029): 44dp / 16px text below 640px (the installed app's touch
+ * (DL-011, DL-030): 44dp / 16px text below 640px (the installed app's touch
  * fields), 40dp / 14px text from 640px, balanced with the 32 / 40dp buttons:
  * - Floating label that animates between resting (body-md) and floating (body-sm)
  * - Active indicator line (filled) or outline ring (outlined) reflecting focus/error state
@@ -174,7 +174,7 @@ const AdminTextFieldBase = React.forwardRef<AdminTextFieldControl, AdminTextFiel
     const controlClasses = cn(
       // Layout — sits above the active indicator
       "peer w-full bg-transparent",
-      // 16px on touch widths (no iOS zoom, PWA parity), 14px from 640px (DL-029).
+      // 16px on touch widths (no iOS zoom, PWA parity), 14px from 640px (DL-030).
       "text-body-lg leading-5 sm:text-body-md [color:rgb(var(--m3-on-surface))]",
       // Remove browser defaults
       "outline-none border-none focus:outline-none focus:border-none",
@@ -305,7 +305,7 @@ const AdminTextFieldBase = React.forwardRef<AdminTextFieldControl, AdminTextFiel
               // (--m3-shape-sm, the chip/sm tier) is a deliberate step up from the 4px
               // M3 xs, which read as too square; the field's own tier across admin fields.
               "rounded-t-[var(--m3-shape-sm)] rounded-b-none",
-              // Height: 44 on touch widths, 40 from 640px (DL-029)
+              // Height: 44 on touch widths, 40 from 640px (DL-030)
               "min-h-11 sm:min-h-10",
               // Background
               disabled
@@ -380,7 +380,7 @@ const AdminTextFieldBase = React.forwardRef<AdminTextFieldControl, AdminTextFiel
             // deliberate step up from the 4px M3 xs, which read as too square.
             // (Field's own tier; not matched to the sibling cards at 12-20px.)
             "rounded-[var(--m3-shape-sm)]",
-            // Height: 44 on touch widths, 40 from 640px (DL-029)
+            // Height: 44 on touch widths, 40 from 640px (DL-030)
             "min-h-11 sm:min-h-10",
             // Background
             "bg-transparent",

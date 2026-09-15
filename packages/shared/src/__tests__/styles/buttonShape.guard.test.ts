@@ -78,7 +78,7 @@ describe("button shape guard (DL-023, DL-026)", () => {
     }
   });
 
-  it("uses the 16px field corner in the app and no corner on the public website (DL-028)", () => {
+  it("uses the 16px field corner in the app and no corner on the public website (DL-029)", () => {
     const app = rootBlockWith("--gg-button-radius");
     expect(declaration(app, "--gg-button-radius")).toBe("var(--radius-lg)");
     expect(declaration(app, "--gg-button-radius-pressed")).toBe("var(--radius-squircle)");
@@ -104,7 +104,7 @@ describe("button shape guard (DL-023, DL-026)", () => {
     ["md", 44, "--text-label-md--line-height"],
     ["sm", 40, "--text-label-sm--line-height"],
     ["compact", 32, "--text-label-sm--line-height"],
-  ])("sizes %s to %ipx by default from one surface token, matching the field scale (DL-030)", (size, height, lineHeightToken) => {
+  ])("sizes %s to %ipx by default from one surface token, matching the field scale (DL-031)", (size, height, lineHeightToken) => {
     const body = block(`.gg-button[data-size="${size}"]`);
     const blockToken = declaration(body, "--gg-button-block") ?? "";
     expect(blockToken).toMatch(new RegExp(`^var\\(--gg-button-block-${size}, [^)]+\\)$`));
@@ -239,7 +239,7 @@ describe("field shape guard (DL-022, DL-023)", () => {
     expect(declaration(select, "background-position")).toBe("right 0.125rem center");
   });
 
-  it("holds a single-line admin control at the cockpit tier: 44px on touch widths, 40px from 640px (DL-029)", () => {
+  it("holds a single-line admin control at the cockpit tier: 44px on touch widths, 40px from 640px (DL-030)", () => {
     const singleLine =
       'input.gg-control[data-surface="admin"],\n  select.gg-control[data-surface="admin"],\n  .gg-control-trigger[data-surface="admin"],\n  .gg-control-dropzone[data-surface="admin"]';
     const touch = block(singleLine);
@@ -252,7 +252,7 @@ describe("field shape guard (DL-022, DL-023)", () => {
     );
   });
 
-  it("gives the upload well and the field label their own shared classes (DL-030)", () => {
+  it("gives the upload well and the field label their own shared classes (DL-031)", () => {
     expect(declaration(block(".gg-control-dropzone"), "border-style")).toBe("dashed");
     expect(declaration(block(".gg-field-label"), "font-size")).toBe("var(--gg-label-sm)");
     expect(declaration(block(".gg-field-label"), "font-weight")).toBe(
@@ -261,7 +261,7 @@ describe("field shape guard (DL-022, DL-023)", () => {
   });
 });
 
-describe("switch guard (DL-030)", () => {
+describe("switch guard (DL-031)", () => {
   it("draws a 44 × 24 track with a 44px hit box, and the M3 52 × 32 track on the admin surface", () => {
     const track = block(".gg-switch");
     expect(px(declaration(track, "--gg-switch-inline") ?? "")).toBe(44);

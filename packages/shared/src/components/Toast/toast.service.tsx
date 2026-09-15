@@ -130,7 +130,7 @@ const STATUS_ARIA_ROLE: Record<ToastStatus, "status" | "alert"> = {
 };
 
 // The shared Button carries its own finger box (48px in the app, 44px in the
-// cockpit; DL-030), so the action keeps the surface's sm height and only widens
+// cockpit; DL-031), so the action keeps the surface's sm height and only widens
 // to a 44px minimum for one-word labels.
 const ACTION_BUTTON_STYLE: React.CSSProperties = {
   color: "rgb(var(--tone-action, var(--primary-action)))",

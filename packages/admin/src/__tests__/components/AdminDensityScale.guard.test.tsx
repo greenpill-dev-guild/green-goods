@@ -3,7 +3,7 @@
  *
  * The cockpit control scale is 28 / 32 / 36 / 40 / 44:
  *   buttons 28 (sm) / 32 (md) / 40 (lg) · fields 44 on touch widths and 40 from
- *   640px (DL-029) · toolbar pills 36 · inline field 32 (button-row axis) ·
+ *   640px (DL-030) · toolbar pills 36 · inline field 32 (button-row axis) ·
  *   chips 32 · identity pill 36.
  * Shell chrome (AppBar, FAB, nav dock) is deliberately outside this scale.
  *
@@ -43,7 +43,7 @@ describe("AdminDensityScale.guard (DL-011)", () => {
     expect(md).toHaveClass("h-8");
     expect(md).toHaveClass("admin-hit-target");
     expect(lg).toHaveClass("h-10", "admin-hit-target-lg");
-    // One 14px label at every size (DL-029): sm no longer drops to label-sm.
+    // One 14px label at every size (DL-030): sm no longer drops to label-sm.
     expect(sm).toHaveClass("text-label-lg");
     expect(sm).not.toHaveClass("text-label-sm");
     expect(lg).not.toHaveClass("text-body-lg");
@@ -75,7 +75,7 @@ describe("AdminDensityScale.guard (DL-011)", () => {
     expect(md).toHaveAttribute("title", "Remove Photo");
   });
 
-  it("fields ride the responsive tier: 44px / 16px on touch widths, 40px / 14px from 640px (DL-029)", () => {
+  it("fields ride the responsive tier: 44px / 16px on touch widths, 40px / 14px from 640px (DL-030)", () => {
     render(<AdminTextField label="Garden name" />);
 
     const container = screen.getByRole("textbox", { name: "Garden name" }).parentElement;
@@ -97,7 +97,7 @@ describe("AdminDensityScale.guard (DL-011)", () => {
     expect(screen.getByRole("textbox", { name: /Action id/ })).toHaveClass("h-8");
   });
 
-  it("maps the shared family onto the cockpit tiers through index.css tokens, mirrored in Storybook (DL-030)", () => {
+  it("maps the shared family onto the cockpit tiers through index.css tokens, mirrored in Storybook (DL-031)", () => {
     const adminCss = readFileSync(resolve(__dirname, "../../index.css"), "utf-8");
     const surfacesCss = readFileSync(
       resolve(__dirname, "../../../../shared/.storybook/surfaces.css"),

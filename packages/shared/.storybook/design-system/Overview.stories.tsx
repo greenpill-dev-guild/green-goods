@@ -23,7 +23,7 @@ const meta = {
     docs: {
       description: {
         component:
-          "The three button and control systems side by side, rendered from the real components and measured live: the installed app and public website share one primitive family with one corner per surface (DL-026, DL-028: the 16px field corner in the app, square on the website), and the admin cockpit keeps its M3 pills on the DL-011 / DL-029 compact metric. Each specimen reads its own height, corner, label size, weight, font, and hit area from the browser and grades them against that surface's rules.",
+          "The three button and control systems side by side, rendered from the real components and measured live: the installed app and public website share one primitive family with one corner per surface (DL-026, DL-029: the 16px field corner in the app, square on the website), and the admin cockpit keeps its M3 pills on the DL-011 / DL-030 compact metric. Each specimen reads its own height, corner, label size, weight, font, and hit area from the browser and grades them against that surface's rules.",
       },
     },
   },
@@ -211,7 +211,7 @@ function AdminColumn() {
           <Specimen
             title="Hit areas (dashed)"
             expect={{ height: 28, hit: 44 }}
-            note="Every tier carries a 44px finger box: admin-hit-target below 40px, admin-hit-target-lg on the 40px tier (DL-029)."
+            note="Every tier carries a 44px finger box: admin-hit-target below 40px, admin-hit-target-lg on the 40px tier (DL-030)."
           >
             <div className="sb-show-hit flex flex-wrap items-center gap-4 py-2">
               <AdminButton size="sm" variant="outlined">
@@ -241,8 +241,8 @@ function AdminTokens() {
           { name: "--text-label-md", expected: "12px", note: "meta, count chips" },
           { name: "--text-label-sm", expected: "11px", note: "chips only" },
           { name: "--text-body-md", expected: "14px", note: "field text" },
-          { name: "--radius-xl", expected: "16px", note: "the 16px page-container step (DL-029)" },
-          { name: "--radius-2xl", expected: "16px", note: "the 16px page-container step (DL-029)" },
+          { name: "--radius-xl", expected: "16px", note: "the 16px page-container step (DL-030)" },
+          { name: "--radius-2xl", expected: "16px", note: "the 16px page-container step (DL-030)" },
           { name: "--m3-shape-full", expected: "9999px", note: "the pill" },
         ]}
       />
@@ -267,7 +267,7 @@ export const ThreeSystems: Story = {
       </Section>
       <Section
         title="Where to go deeper"
-        lede="Foundations and Components per surface are the canonical pages and read green while a system holds. Admin · Shared pieces measures the shared components the cockpit renders on the cockpit's own metric (DL-030)."
+        lede="Foundations and Components per surface are the canonical pages and read green while a system holds. Admin · Shared pieces measures the shared components the cockpit renders on the cockpit's own metric (DL-031)."
       >
         <div className="sb-ds-links">
           <StoryLink id="design-system-app-foundations--tokens">App · Foundations</StoryLink>
@@ -295,7 +295,7 @@ export const ThreeSystems: Story = {
     const column = (surface: string) =>
       canvasElement.querySelector<HTMLElement>(`[data-column="${surface}"]`);
 
-    // Installed app: the 16px field corner, weight 400, Inter (DL-028).
+    // Installed app: the 16px field corner, weight 400, Inter (DL-029).
     const app = within(column("app") as HTMLElement);
     const appPrimary = app.getAllByRole("button", { name: "Create Garden" })[0];
     await expect(appPrimary.getBoundingClientRect().height).toBe(44);
@@ -303,7 +303,7 @@ export const ThreeSystems: Story = {
     await expect(getComputedStyle(appPrimary).fontWeight).toBe("400");
     await expect(first(getComputedStyle(appPrimary).fontFamily)).toBe("Inter");
 
-    // Public website: square, weight 600, serif editorial field (DL-028).
+    // Public website: square, weight 600, serif editorial field (DL-029).
     const site = within(column("website") as HTMLElement);
     const sitePrimary = site.getAllByRole("button", { name: "Create Garden" })[0];
     await expect(px(getComputedStyle(sitePrimary).borderTopLeftRadius)).toBe(0);
@@ -312,7 +312,7 @@ export const ThreeSystems: Story = {
     await expect(first(getComputedStyle(editorial).fontFamily)).toBe("Fraunces");
     await expect(px(getComputedStyle(editorial).borderTopLeftRadius)).toBe(0);
 
-    // Admin cockpit (DL-029): one 14px label at every size, Plus Jakarta Sans,
+    // Admin cockpit (DL-030): one 14px label at every size, Plus Jakarta Sans,
     // 32px pills, a 12px floating label, and xl / 2xl on the 16px step.
     const admin = within(column("admin") as HTMLElement);
     const adminMd = admin.getAllByRole("button", { name: "Create Garden" })[0];

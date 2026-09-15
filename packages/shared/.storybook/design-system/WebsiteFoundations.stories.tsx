@@ -40,7 +40,7 @@ export const Tokens: Story = {
       <Section id="tokens" title="Surface tokens" lede="Read live while this story renders inside the website surface.">
         <ClientTokens rules={WEBSITE} />
       </Section>
-      <Section id="corners" title="Corners" lede="Square at rest and while pressed, for every emphasis (DL-028); icon buttons stay circles and chips capsules.">
+      <Section id="corners" title="Corners" lede="Square at rest and while pressed, for every emphasis (DL-029); icon buttons stay circles and chips capsules.">
         <div className="sb-ds-row">
           <Specimen title="rest · 0px" target=".gg-button" all expect={{ radius: 0, weight: 600 }}>
             <Button>Explore Gardens</Button>

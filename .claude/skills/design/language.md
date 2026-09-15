@@ -81,7 +81,7 @@ Token names come from root `DESIGN.md` (`rounded.*`), not stock Tailwind. In cli
 Tailwind classes resolve to that runtime scale: `rounded-md` 8px, `rounded-lg` 16px, `rounded-xl` 20px,
 `rounded-2xl` 24px (admin remaps `rounded-xl` and `rounded-2xl` to 16px). The 12px step has no Tailwind
 class; use `var(--radius-squircle)`. Buttons and fields never take a radius class: their shared primitives
-own the shape (DL-022, DL-026, DL-028). Naming stock Tailwind classes here once let the secondary corner
+own the shape (DL-022, DL-026, DL-029). Naming stock Tailwind classes here once let the secondary corner
 drift from 12px to 20px.
 
 | Element | Radius | Runtime token | Shape Type | Concentric Parent |
@@ -94,12 +94,12 @@ drift from 12px to 20px.
 | Modals, dialogs, bottom sheets | 24px | `--radius-2xl` · `rounded-2xl` | Concentric | Viewport edge |
 | Icon buttons | circle | `.gg-icon-button` | Capsule | — |
 | Chips (filters, choices) | capsule | `.gg-chip` · `--radius-full` | Capsule | — |
-| Buttons in the installed app, every emphasis (DL-028) | 16px | `--gg-button-radius` → `--radius-lg` | Fixed | matches the field beside it |
-| Buttons on the public website, every emphasis (DL-028) | 0px | `--gg-button-radius` → `--radius-none` | Fixed | square, like editorial cards and panels |
+| Buttons in the installed app, every emphasis (DL-029) | 16px | `--gg-button-radius` → `--radius-lg` | Fixed | matches the field beside it |
+| Buttons on the public website, every emphasis (DL-029) | 0px | `--gg-button-radius` → `--radius-none` | Fixed | square, like editorial cards and panels |
 
 ### Button Corners and Emphasis
 
-Emphasis is carried by fill, outline, and colour. The corner belongs to the surface, so a primary and the secondary beside it always share one shape (DL-026), and in the app that shape is the field's (DL-028):
+Emphasis is carried by fill, outline, and colour. The corner belongs to the surface, so a primary and the secondary beside it always share one shape (DL-026), and in the app that shape is the field's (DL-029):
 
 | Element | Installed app | Public website | Morph on Press | Use |
 |---------|---------------|----------------|----------------|-----|
@@ -109,15 +109,15 @@ Emphasis is carried by fill, outline, and colour. The corner belongs to the surf
 | **Icon buttons** | Circle | Circle | Tightens to the 12px squircle | Close, back, share, menu, remove |
 | **Chips** | Capsule | Capsule | — | Filters and choices; selected uses the action fill (DL-017) |
 
-**Rule (DL-026, values DL-028)**: one button corner per surface. In the installed app it is the 16px field corner (`rounded.lg`), so a button and the field beside it share one shape; at the 32px compact size that corner is a capsule, which is accepted because compact actions sit beside text, not fields. On the public website buttons are square (`rounded.none`), like its editorial cards, dialogs, and panels. The website's shell carries `data-site="website"`, and the corner tokens (`--gg-button-radius`, `--gg-button-radius-pressed`) sit on `:root`, so dialogs and sheets that portal out of the shell match the page. Labels are regular weight in the app and semibold on the website (`--gg-button-weight`). The shared `Button` (`emphasis`), `IconButton`, and `Chip` encode this and have no shape prop and no legacy `variant`; client code never hand-rolls a button (DL-025). The capsule-primary rule (DL-003) is superseded: applied everywhere, it mismatched every button pair.
+**Rule (DL-026, values DL-029)**: one button corner per surface. In the installed app it is the 16px field corner (`rounded.lg`), so a button and the field beside it share one shape; at the 32px compact size that corner is a capsule, which is accepted because compact actions sit beside text, not fields. On the public website buttons are square (`rounded.none`), like its editorial cards, dialogs, and panels. The website's shell carries `data-site="website"`, and the corner tokens (`--gg-button-radius`, `--gg-button-radius-pressed`) sit on `:root`, so dialogs and sheets that portal out of the shell match the page. Labels are regular weight in the app and semibold on the website (`--gg-button-weight`). The shared `Button` (`emphasis`), `IconButton`, and `Chip` encode this and have no shape prop and no legacy `variant`; client code never hand-rolls a button (DL-025). The capsule-primary rule (DL-003) is superseded: applied everywhere, it mismatched every button pair.
 
-**Admin note**: cockpit buttons are pills (`AdminButton`, Title Case action labels per DL-012), sized on the DL-011 compact metric (28/32/40 with a 44px finger box on every tier and one 14px label, DL-029), and the admin FAB follows the capsule rule at both sizes (`rounded-full` — 48px dock circle, 56px extended floating capsule; DL-010). Admin radii are the fixed 4/8/12/16/9999 set with no 20/24/28px steps — the capsule is that set's 9999 step.
+**Admin note**: cockpit buttons are pills (`AdminButton`, Title Case action labels per DL-012), sized on the DL-011 compact metric (28/32/40 with a 44px finger box on every tier and one 14px label, DL-030), and the admin FAB follows the capsule rule at both sizes (`rounded-full` — 48px dock circle, 56px extended floating capsule; DL-010). Admin radii are the fixed 4/8/12/16/9999 set with no 20/24/28px steps — the capsule is that set's 9999 step.
 
 ### Shape Morphing
 
 Interactive elements shift shape on engagement. This creates physical, tactile feedback — the "Expressive touch" from M3 that makes interfaces feel alive.
 
-**Buttons** (DL-001, built in DL-026, values DL-028):
+**Buttons** (DL-001, built in DL-026, values DL-029):
 - In the installed app, primary and secondary buttons tighten one step on press and spring back on release: 16px to 12px. Website buttons are square and do not morph
 - Icon buttons tighten from a circle to the 12px squircle
 - All use `--spring-spatial-fast` for the morph transition; under `prefers-reduced-motion` they keep their resting shape
@@ -131,7 +131,7 @@ Interactive elements shift shape on engagement. This creates physical, tactile f
 
 **Shipped CSS** (shared `theme.css`, components layer; abridged):
 ```css
-/* One corner per surface for every emphasis (DL-026, values DL-028) */
+/* One corner per surface for every emphasis (DL-026, values DL-029) */
 :root {
   --gg-button-radius: var(--radius-lg);
   --gg-button-radius-pressed: var(--radius-squircle);
@@ -401,16 +401,16 @@ required; a header launcher's count or status dot rides its `badge` slot), `Chip
 toggle with a 44px hit area), `Switch` (a 44 × 24 track with a 44px hit box). All live in
 `@green-goods/shared`. Composite pieces ride the same anatomy: `DatePicker` and `FileUploadField`
 are field-shaped triggers (`gg-control`), `ConfidenceSelector` and `AssetSelector` are radio
-chips, `AudioRecorder` and toasts use `Button`, `ImagePreviewDialog` uses `IconButton` (DL-030).
+chips, `AudioRecorder` and toasts use `Button`, `ImagePreviewDialog` uses `IconButton` (DL-031).
 
 **Surface tokens**: every size reads one block token (`--gg-button-block-*`, `--gg-icon-size-*`)
 plus `--gg-button-inline-*`, `--gg-hit-block`, and the label sizes `--gg-label-md/sm`, with the app
 scale as the fallback, beside the corner and weight tokens. A surface moves the whole family by
-setting the tokens, never by restyling a component (DL-030).
+setting the tokens, never by restyling a component (DL-031).
 
 **Color variants** (from M3): Filled (primary), Outlined (secondary), Text (tertiary). A tonal fill is not a separate emphasis. Combined with shape, these give sufficient hierarchy without introducing more sizes.
 
-**Admin carve-out**: the size/morph table above is client canon. Cockpit buttons are `AdminButton` — pill at every size on the 28/32/40 compact metric (DL-011), Title Case labels (DL-012), no press-morph; the filled variant is `--tone-action` stepping elevation 1→2. Shared pieces the cockpit renders keep the shared family, and admin `index.css` sets the family's tokens so a shared `Button` lands on the cockpit tiers (lg and md → 40, sm → 32, compact → 28) as a pill with a 14px / 500 label and a 44px finger box; `surface="admin"` puts a shared field on the responsive field tier and the switch on the M3 52 × 32 track (DL-030).
+**Admin carve-out**: the size/morph table above is client canon. Cockpit buttons are `AdminButton` — pill at every size on the 28/32/40 compact metric (DL-011), Title Case labels (DL-012), no press-morph; the filled variant is `--tone-action` stepping elevation 1→2. Shared pieces the cockpit renders keep the shared family, and admin `index.css` sets the family's tokens so a shared `Button` lands on the cockpit tiers (lg and md → 40, sm → 32, compact → 28) as a pill with a 14px / 500 label and a 44px finger box; `surface="admin"` puts a shared field on the responsive field tier and the switch on the M3 52 × 32 track (DL-031).
 
 ### Floating Toolbar
 
@@ -670,7 +670,7 @@ append-only ledger where all ongoing design decisions land:
 |----------|--------|-----------|
 | Interaction model | Complement: lift-and-press (cards) + shape morph (buttons) | Different elements get different physics; richer tactile vocabulary |
 | Motion system | Named spring tokens replacing hardcoded beziers | Semantic names enable motion scheme switching; consistent vocabulary |
-| Button shape | One corner per surface, whatever the emphasis: 16px in the app, square on the website (DL-026, values DL-028; superseding the capsule-primary rule) | A primary and its secondary sit side by side, so mixed shapes read as inconsistent; fill and colour already carry emphasis |
+| Button shape | One corner per surface, whatever the emphasis: 16px in the app, square on the website (DL-026, values DL-029; superseding the capsule-primary rule) | A primary and its secondary sit side by side, so mixed shapes read as inconsistent; fill and colour already carry emphasis |
 | Component scope | Admin-relevant subset (3 button sizes, toolbar, sheets, nav, progress) | Focus on what the revamp needs now; extend vocabulary later |
 | Document depth | Comprehensive standalone spec | language.md should be self-contained enough to guide implementation without jumping between files |
 | Spatial arch integration | Deep — all beziers → tokens, radii → concentric types, full vocabulary alignment | Spatial architecture is the first consumer of Warm Earth; coherence matters |

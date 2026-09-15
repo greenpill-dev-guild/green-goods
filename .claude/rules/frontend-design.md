@@ -232,16 +232,16 @@ The six enforceable invariants of the admin cockpit finish — treat violations 
 - **Admin radius set** — 4/8/12/16/9999px only; no 20/24/28px radii (`rounded-xl`/`rounded-2xl` remap to 16px in admin).
 - **Four-use tone budget** — workspace tone appears only in the active tab underline/label, the active nav pill, one filled `--tone-action` header action, and the nav-shell FAB fill (plus the faint canvas wash).
 - **Hover rule** — hovers are an elevation step-up or the neutral ink layer `rgb(var(--m3-on-surface) / 0.08)`; never translate/scale lifts or hue shifts.
-- **AdminButton only** — pill shape, one 14px label at every size, Title Case action labels (en; DL-012); admin views never render the shared `Button` (`gg-button`; `EmptyState` takes an `AdminButton` element as its action). Control heights ride the DL-011 compact metric (buttons 28/32/40 with a 44px finger box on every tier, fields 44 on touch widths and 40 from 640px, pills and tabs 36; DL-029).
-- **Shared pieces ride the shared family** — the shared components the cockpit renders (FileUploadField, DatePicker, ConfidenceSelector, AudioRecorder, ImagePreviewDialog, toast actions, AssetSelector, AddressDisplay, Alert) keep their shared `Button` / `IconButton` / `Chip` / control anatomy, and `index.css` sets the family's `--gg-*` tokens so they land on the cockpit metric: pills, one 14px label, lg and md on 40, sm on 32, compact on 28, a 44px finger box, and the responsive field tier through `surface="admin"` (DL-030). Never restyle a shared piece from admin; move the token.
+- **AdminButton only** — pill shape, one 14px label at every size, Title Case action labels (en; DL-012); admin views never render the shared `Button` (`gg-button`; `EmptyState` takes an `AdminButton` element as its action). Control heights ride the DL-011 compact metric (buttons 28/32/40 with a 44px finger box on every tier, fields 44 on touch widths and 40 from 640px, pills and tabs 36; DL-030).
+- **Shared pieces ride the shared family** — the shared components the cockpit renders (FileUploadField, DatePicker, ConfidenceSelector, AudioRecorder, ImagePreviewDialog, toast actions, AssetSelector, AddressDisplay, Alert) keep their shared `Button` / `IconButton` / `Chip` / control anatomy, and `index.css` sets the family's `--gg-*` tokens so they land on the cockpit metric: pills, one 14px label, lg and md on 40, sm on 32, compact on 28, a 44px finger box, and the responsive field tier through `surface="admin"` (DL-031). Never restyle a shared piece from admin; move the token.
 
 ## Rule 19: Client Buttons and Controls Come From the Shared Family
 
 In `packages/client`, every action is the shared `Button` (`emphasis` primary / secondary /
 tertiary), `IconButton`, or `Chip`, and every field a shared field primitive (`TextInput`,
 `Textarea`, `NativeSelect`, `Switch`, `FormattedAmountInput`, `DatePicker`, `FileUploadField`;
-DL-025, DL-030). The primitive owns the corner, one per surface for every emphasis: the 16px field
-corner in the app and no corner on the public website (DL-026, DL-028). The height comes from
+DL-025, DL-031). The primitive owns the corner, one per surface for every emphasis: the 16px field
+corner in the app and no corner on the public website (DL-026, DL-029). The height comes from
 `size` on the shared scale 48 / 44 / 40 / 32 (DL-023). Never pass a radius, height, or vertical
 padding class to them, and never a `variant`: the legacy class contract is gone.
 

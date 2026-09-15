@@ -474,7 +474,7 @@
   /* The shared control family's own label sizes (16 / 14px). They stay the same
      on every surface: the admin cockpit remaps --text-label-* for its M3
      utilities, and reading those keys shrank shared buttons and chips rendered
-     there (toast actions, empty-state actions) to 11 and 12px (DL-028). */
+     there (toast actions, empty-state actions) to 11 and 12px (DL-029). */
   --gg-label-md: 1rem;
   --gg-label-sm: 0.875rem;
   /* 12px: app buttons of every emphasis, and actions inside a field (DL-026). */
@@ -879,7 +879,7 @@
        background-image survives — the shorthand resets background-image. */
     background-color: rgb(var(--m3-surface, var(--bg-white-0)));
     color: rgb(var(--m3-on-surface, var(--text-strong-950)));
-    /* The cockpit field tier (DL-029): 16px text on touch widths, where the
+    /* The cockpit field tier (DL-030): 16px text on touch widths, where the
        field matches the installed app, and 14px from 640px. */
     font-size: var(--type-body-lg, 1rem);
     line-height: var(--type-body-lg-lh, 1.5rem);
@@ -887,7 +887,7 @@
   }
 
   /* A single-line admin control is exactly its tier, like AdminTextField:
-     44px on touch widths and 40px from 640px (DL-029, DL-030). */
+     44px on touch widths and 40px from 640px (DL-030, DL-031). */
   input.gg-control[data-surface="admin"],
   select.gg-control[data-surface="admin"],
   .gg-control-trigger[data-surface="admin"],
@@ -965,7 +965,7 @@
     color: rgb(var(--text-soft-400));
   }
 
-  /* ── Upload well (DL-030) ── A field-shaped trigger for a hidden file input:
+  /* ── Upload well (DL-031) ── A field-shaped trigger for a hidden file input:
    * the control's own corner and height with a dashed edge, so it lines up with
    * the fields beside it on every surface (FileUploadField). */
   .gg-control-dropzone {
@@ -991,7 +991,7 @@
     flex-shrink: 0;
   }
 
-  /* ── Field label and help (DL-030) ── The label above a shared field and the
+  /* ── Field label and help (DL-031) ── The label above a shared field and the
    * supporting line under it. The label reads the surface's small label size
    * (14px in the app; the cockpit sets --gg-label-sm) at weight 500, the same
    * as the cockpit's setting-row titles, so a shared field never reads smaller
@@ -1065,15 +1065,15 @@
     opacity: 0.6;
   }
 
-  /* ── Button emphasis API (DL-023, DL-026, DL-028) ──
+  /* ── Button emphasis API (DL-023, DL-026, DL-029) ──
    * The shared Button emits data-emphasis / data-tone / data-size. Emphasis sets
    * the fill, outline, and colour; the corner comes from the surface, the same
    * for every emphasis. Heights match the field scale (48 / 44 / 40 / 32), and
    * the two short sizes carry a 48px hit area. This is the only button contract:
-   * the legacy gg-button-<variant> classes were retired with DL-028. */
+   * the legacy gg-button-<variant> classes were retired with DL-029. */
   /* Sizes read one block token each, with the app scale as the fallback, so a
    * surface can move the whole family onto its own metric: the admin cockpit
-   * sets --gg-button-block-* / --gg-button-inline-* in its index.css (DL-030)
+   * sets --gg-button-block-* / --gg-button-inline-* in its index.css (DL-031)
    * and every shared piece rendered there lands on the 28 / 32 / 40 tiers. The
    * vertical padding derives from the block and the line, so a one-line button
    * is exactly its step on any surface. */
@@ -1084,7 +1084,7 @@
     padding-block: calc((var(--gg-button-block) - var(--gg-button-line) - 2px) / 2);
   }
 
-  /* Button corner and label weight per surface (DL-026, values DL-028): the
+  /* Button corner and label weight per surface (DL-026, values DL-029): the
    * installed app takes the 16px field corner so a button and the field beside
    * it share one shape, one step tighter (12px) while pressed; the public
    * website's buttons are square like its editorial cards, dialogs, and panels,
@@ -1092,7 +1092,7 @@
    * tokens sit on :root so dialogs and sheets that portal out of the shell
    * match the page. Icon buttons stay circles and chips capsules on both. The
    * admin cockpit sets the same tokens, plus the block, inline, icon, and hit
-   * tokens read below, in packages/admin/src/index.css (DL-030). */
+   * tokens read below, in packages/admin/src/index.css (DL-031). */
   :root {
     --gg-button-radius: var(--radius-lg);
     --gg-button-radius-pressed: var(--radius-squircle);
@@ -1446,7 +1446,7 @@
 
   /* ── Switch ── A 44 × 24 track in the app; the admin surface takes the M3
    * 52 × 32 track (the cockpit's md-button height). Both carry a 44px hit box
-   * (DL-030). */
+   * (DL-031). */
   .gg-switch {
     --gg-switch-inline: 2.75rem;
     --gg-switch-block: 1.5rem;

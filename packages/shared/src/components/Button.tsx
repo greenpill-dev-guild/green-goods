@@ -3,7 +3,7 @@
  * shared chrome such as SheetActions, EmptyState, and toasts.
  *
  * Emphasis sets fill, outline, and colour; the corner comes from the surface
- * (DL-026, DL-028): the 16px field corner in the installed app, so a button and
+ * (DL-026, DL-029): the 16px field corner in the installed app, so a button and
  * the field beside it share one shape, and no corner on the public website,
  * whose editorial cards, dialogs, and panels are square. There is no shape
  * prop. Heights ride the field scale (DL-023): lg 48, md 44, sm 40, compact 32,

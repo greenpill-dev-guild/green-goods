@@ -14,7 +14,7 @@ export interface ConfidenceSelectorProps {
 /**
  * A four-choice radio group for the verification confidence level, rendered as
  * shared `Chip`s with `role="radio"` (the same anatomy as AssetSelector), so it
- * takes the surface's capsule, label, and 44px hit area (DL-030).
+ * takes the surface's capsule, label, and 44px hit area (DL-031).
  *
  * When `disabled` (e.g., for rejections), defaults to None and disables interaction.
  * When `required` (e.g., for approvals), the user must select Low or higher.

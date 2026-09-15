@@ -52,7 +52,7 @@ export const Tokens: Story = {
       title="Admin cockpit · Foundations"
       lede="Strict M3 backbone, Warm Earth material. Everything below is read from the admin surface as the runtime resolves it."
     >
-      <Section id="shape" title="Shape set" lede="4 / 8 / 12 / 16 / 9999px. The shared rounded-xl and rounded-2xl utilities land on the 16px page-container step through the unlayered remap in index.css (DL-029).">
+      <Section id="shape" title="Shape set" lede="4 / 8 / 12 / 16 / 9999px. The shared rounded-xl and rounded-2xl utilities land on the 16px page-container step through the unlayered remap in index.css (DL-030).">
         <div className="sb-ds-row" style={{ marginBottom: 14 }}>
           <CornerSwatch radiusVar="--m3-shape-xs" label="4px" />
           <CornerSwatch radiusVar="--m3-shape-sm" label="8px" />
@@ -107,7 +107,7 @@ export const Tokens: Story = {
         </div>
       </Section>
 
-      <Section id="heights" title="Compact metric (DL-011)" lede="28 / 32 / 36 / 40 / 44: buttons 28 / 32 / 40, toolbar pills and tabs 36, chips 32, identity pill 36, fields 40 from 640px and 44 on touch widths (DL-029). Shell chrome (56px app bar, 48 / 56px FAB, the nav dock) sits outside the scale by design.">
+      <Section id="heights" title="Compact metric (DL-011)" lede="28 / 32 / 36 / 40 / 44: buttons 28 / 32 / 40, toolbar pills and tabs 36, chips 32, identity pill 36, fields 40 from 640px and 44 on touch widths (DL-030). Shell chrome (56px app bar, 48 / 56px FAB, the nav dock) sits outside the scale by design.">
         <div className="sb-ds-row">
           <Specimen title="28 · sm button" expect={{ height: 28, hit: 44 }}>
             <AdminButton size="sm" variant="outlined">
@@ -230,7 +230,7 @@ export const Tokens: Story = {
     await expect(token("--text-label-sm")).toBe("11px");
     await expect(token("--text-body-md")).toBe("14px");
     await expect(token("--radius-sm")).toBe("8px");
-    // DL-029: the xl / 2xl radii land on the 16px page-container step.
+    // DL-030: the xl / 2xl radii land on the 16px page-container step.
     await expect(token("--radius-xl")).toBe("16px");
     await expect(token("--radius-2xl")).toBe("16px");
     const button = within(canvasElement).getAllByRole("button", { name: "Create Garden" })[0];

@@ -35,7 +35,7 @@ export const Tokens: Story = {
       <Section id="tokens" title="Surface tokens" lede="Read from the page root while this story renders on the app surface.">
         <ClientTokens rules={APP} />
       </Section>
-      <Section id="corners" title="Corner pair" lede="The 16px field corner at rest, 12px pressed, for every emphasis (DL-028), so a button and the field beside it share one shape. Icon buttons are circles and chips capsules on both surfaces.">
+      <Section id="corners" title="Corner pair" lede="The 16px field corner at rest, 12px pressed, for every emphasis (DL-029), so a button and the field beside it share one shape. Icon buttons are circles and chips capsules on both surfaces.">
         <div className="sb-ds-row">
           <Specimen title="rest · 16px" target=".gg-button" all expect={{ radius: 16 }}>
             <Button>Create Garden</Button>

@@ -66,7 +66,7 @@ function ButtonSections() {
       <Section
         id="buttons"
         title="AdminButton"
-        lede="Pill at every size with one 14px label and a 44px finger box (DL-012, DL-029), no press morph."
+        lede="Pill at every size with one 14px label and a 44px finger box (DL-012, DL-030), no press morph."
       >
         {ADMIN_SIZES.map((size) => (
           <Row key={size}>
@@ -179,7 +179,7 @@ function Fields() {
     <Section
       id="fields"
       title="Fields"
-      lede="AdminTextField, AdminTextArea, and AdminSelect on the responsive tier (DL-029): 44px with 16px text on touch widths, 40px with 14px text from 640px, a 12px floating label. AdminInlineField shares the 32px md-button axis. Use the viewport toolbar to see the touch tier."
+      lede="AdminTextField, AdminTextArea, and AdminSelect on the responsive tier (DL-030): 44px with 16px text on touch widths, 40px with 14px text from 640px, a 12px floating label. AdminInlineField shares the 32px md-button axis. Use the viewport toolbar to see the touch tier."
     >
       <Row>
         <Specimen title="filled · empty" targets={FIELD_TARGETS("AdminTextField", "input", false)}>
@@ -441,7 +441,7 @@ function Chrome() {
     <Section
       id="chrome"
       title="AppBar icons and the identity pill"
-      lede="The 56px bar carries 40px round icon buttons (each with the 44px finger box, DL-029) and the 36px garden switcher pill. Shell chrome sits outside the DL-011 scale by design."
+      lede="The 56px bar carries 40px round icon buttons (each with the 44px finger box, DL-030) and the 36px garden switcher pill. Shell chrome sits outside the DL-011 scale by design."
     >
       <Row>
         <Specimen
@@ -494,7 +494,7 @@ export const Buttons: Story = {
   ),
 };
 
-/** AdminDialog's close button: a 40px circle with the 44px finger box (DL-029). */
+/** AdminDialog's close button: a 40px circle with the 44px finger box (DL-030). */
 export const DialogCloseButton: Story = {
   tags: ["storybook-ci"],
   render: () => (

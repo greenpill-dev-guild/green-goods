@@ -34,7 +34,7 @@ export interface ImagePreviewDialogProps {
   /**
    * Control chrome. `app` (default) is the installed-PWA dialect: the shared
    * `IconButton` circles (the surface's md size: 44px in the app, the cockpit's
-   * 40px in admin; DL-030) with the translucent viewer palette from
+   * 40px in admin; DL-031) with the translucent viewer palette from
    * utilities.css. `editorial` matches the public website's record drawer —
    * hairline pills with mono uppercase labels. The two surface identities are
    * deliberately not mixed.

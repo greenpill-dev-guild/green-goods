@@ -27,7 +27,7 @@ import { useIntl } from "react-intl";
 // ----------------------------------------------------------------------------
 
 const ICON_BTN = cn(
-  // 40px circle with the 44px finger box (DL-029).
+  // 40px circle with the 44px finger box (DL-030).
   "group/icon relative flex h-10 w-10 items-center justify-center rounded-full admin-hit-target-lg",
   "text-[rgb(var(--m3-on-surface-variant))]",
   "hover:bg-[rgb(var(--m3-on-surface)/0.08)]",

@@ -160,7 +160,7 @@ export const ButtonSizes: Story = {
       for (const action of actions) {
         const style = getComputedStyle(action);
         await expect(action.getBoundingClientRect().height).toBe(height);
-        // Every website button, link or not, is square with a semibold label (DL-028).
+        // Every website button, link or not, is square with a semibold label (DL-029).
         await expect(Number.parseFloat(style.borderTopLeftRadius)).toBe(0);
         await expect(style.fontWeight).toBe("600");
       }

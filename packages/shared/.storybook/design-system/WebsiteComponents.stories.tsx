@@ -27,7 +27,7 @@ const meta = {
     docs: {
       description: {
         component:
-          "The public website's controls: the same shared family inside data-site=\"website\", where every button is square with a semibold label (DL-024, DL-026, DL-028), plus the editorial atoms that wrap it and the underline field. Measured live against the website rules.",
+          "The public website's controls: the same shared family inside data-site=\"website\", where every button is square with a semibold label (DL-024, DL-026, DL-029), plus the editorial atoms that wrap it and the underline field. Measured live against the website rules.",
       },
     },
   },
