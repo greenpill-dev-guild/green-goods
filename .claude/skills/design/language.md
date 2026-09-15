@@ -117,8 +117,8 @@ Emphasis is carried by fill, outline, and colour. The corner belongs to the surf
 
 Interactive elements shift shape on engagement. This creates physical, tactile feedback — the "Expressive touch" from M3 that makes interfaces feel alive.
 
-**Buttons** (DL-001, built in DL-026):
-- Primary and secondary buttons tighten one step on press and spring back on release: 12px to 8px in the app, 16px to 12px on the website
+**Buttons** (DL-001, built in DL-026, values DL-028):
+- In the installed app, primary and secondary buttons tighten one step on press and spring back on release: 16px to 12px. Website buttons are square and do not morph
 - Icon buttons tighten from a circle to the 12px squircle
 - All use `--spring-spatial-fast` for the morph transition; under `prefers-reduced-motion` they keep their resting shape
 
@@ -131,14 +131,14 @@ Interactive elements shift shape on engagement. This creates physical, tactile f
 
 **Shipped CSS** (shared `theme.css`, components layer; abridged):
 ```css
-/* One corner per surface for every emphasis (DL-026) */
+/* One corner per surface for every emphasis (DL-026, values DL-028) */
 :root {
-  --gg-button-radius: var(--radius-squircle);
-  --gg-button-radius-pressed: var(--radius-md);
-}
-:root:has([data-site="website"]) {
   --gg-button-radius: var(--radius-lg);
   --gg-button-radius-pressed: var(--radius-squircle);
+}
+:root:has([data-site="website"]) {
+  --gg-button-radius: var(--radius-none);
+  --gg-button-radius-pressed: var(--radius-none);
 }
 .gg-button[data-emphasis] {
   border-radius: var(--gg-button-radius);
@@ -237,7 +237,7 @@ Motion is built into components, not applied externally:
 
 | Component | Motion | Spring Token |
 |-----------|--------|-------------|
-| **Buttons** | Shape morph on press (the corner tightens one step) | `--spring-spatial-fast` |
+| **Buttons** | App: shape morph on press (the corner tightens one step). Website: square, no morph | `--spring-spatial-fast` |
 | **Cards** | Client: hover lift (scale 1.008) + press (scale 0.985 + radius tighten). Admin: no lift/scale/glow — elevation 1→2 or the neutral 8% ink layer | `--spring-spatial-fast` |
 | **Client/PWA sheets** | Slide from source element; client shell depth may respond | `--spring-spatial` |
 | **Navigation** | Active indicator slides with spring transition | `--spring-spatial` |
@@ -670,7 +670,7 @@ append-only ledger where all ongoing design decisions land:
 |----------|--------|-----------|
 | Interaction model | Complement: lift-and-press (cards) + shape morph (buttons) | Different elements get different physics; richer tactile vocabulary |
 | Motion system | Named spring tokens replacing hardcoded beziers | Semantic names enable motion scheme switching; consistent vocabulary |
-| Button shape | One corner per surface, whatever the emphasis: 12px in the app, 16px on the website (DL-026, superseding the capsule-primary rule) | A primary and its secondary sit side by side, so mixed shapes read as inconsistent; fill and colour already carry emphasis |
+| Button shape | One corner per surface, whatever the emphasis: 16px in the app, square on the website (DL-026, values DL-028; superseding the capsule-primary rule) | A primary and its secondary sit side by side, so mixed shapes read as inconsistent; fill and colour already carry emphasis |
 | Component scope | Admin-relevant subset (3 button sizes, toolbar, sheets, nav, progress) | Focus on what the revamp needs now; extend vocabulary later |
 | Document depth | Comprehensive standalone spec | language.md should be self-contained enough to guide implementation without jumping between files |
 | Spatial arch integration | Deep — all beziers → tokens, radii → concentric types, full vocabulary alignment | Spatial architecture is the first consumer of Warm Earth; coherence matters |

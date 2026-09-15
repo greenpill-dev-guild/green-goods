@@ -101,7 +101,7 @@ An ordinary editorial page, not a modal. It was briefly wired to a Radix dialog 
 - `?intent=<id>` mounts `PublicFundingReceipt` above the Garden grid. Receipt UI reads the in-memory token (already scrubbed by Root) and only renders redacted public fields: Garden, intent, amount, status, `fundingTxHash`, receiver wallet (Card Endow), and the management CTA when the receipt is an Endow receipt.
 - `?manage=endowments` opens `PublicEndowmentPanel`; the URL never carries wallet addresses, account ids, or receipt tokens.
 - `?garden=<id-or-slug>` resolves exact id/address first, then unique-slug match via `publicGardenHelpers.deriveSlug`. Stale / missing / zero-match / ambiguous queries render the regular Fund page with a localized non-blocking message and the matched Garden (if any) scrolls into view with a soft ring highlight.
-- Garden grid uses public Garden rows with a `Donate` primary and an `Endow` warm secondary on every row, both 40 px (DL-023). Section 3 also carries an always-visible `Manage Endowments` secondary action (the website's 16px corner, warm tone) aligned to the section header on desktop and stacked under the title on mobile.
+- Garden grid uses public Garden rows with a `Donate` primary and an `Endow` warm secondary on every row, both 40 px (DL-023). Section 3 also carries an always-visible `Manage Endowments` secondary action (the website's square corner, warm tone) aligned to the section header on desktop and stacked under the title on mobile.
 
 ### Funding UX
 
