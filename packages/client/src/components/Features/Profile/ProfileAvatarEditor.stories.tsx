@@ -90,10 +90,13 @@ async function openSheet(name = "Profile Photo") {
 }
 
 /**
- * The profile photo sheet. Its bar follows the photo's state (DL-016): Choose Photo when none is
- * set; Replace Photo over an outlined red Remove Photo once one is; a red Remove Photo over Keep Photo
- * to confirm removal; and, when a chosen photo failed to publish, Try Again over Choose a Different
- * Photo with Discard Draft as a red text action. The editor hooks are mocked per story.
+ * The profile photo sheet at the half tier (DL-014, DL-028). Four regions hold still across every
+ * state: the shared header (title only), an 80px preview of the current photo, the fallback, or
+ * the unpublished draft, a two-line status slot (the privacy notice by default), and the shared
+ * bar with at most two actions (DL-016): Choose Photo when none is set; Replace Photo over an
+ * outlined red Remove Photo once one is; Try Again over Choose a Different Photo when a chosen
+ * photo failed to publish, with the draft's own discard control beside its pill. Remove asks
+ * through the shared confirmation stacked over the sheet. The editor hooks are mocked per story.
  */
 const meta: Meta<typeof ProfileAvatarEditor> = {
   title: "Client/Sheets/ProfileAvatarEditor",
@@ -141,8 +144,11 @@ export const RemoveConfirm: Story = {
   beforeEach: withAvatar({ source: "app" }),
   play: async () => {
     const sheet = await openSheet();
+    await expect(sheet.getByRole("img", { name: "Your current profile photo" })).toBeVisible();
     await userEvent.click(sheet.getByRole("button", { name: "Remove Photo" }));
-    const confirm = within(await screen.findByRole("dialog", { name: "Remove profile photo?" }));
+    const confirm = within(
+      await screen.findByRole("alertdialog", { name: "Remove profile photo?" })
+    );
     const confirmRemove = confirm.getByRole("button", { name: "Remove Photo" });
     await expect(confirmRemove).toHaveAttribute("data-emphasis", "primary");
     await expect(confirmRemove).toHaveAttribute("data-tone", "danger");
@@ -166,11 +172,28 @@ export const DraftToRetry: Story = {
   play: async () => {
     const sheet = await openSheet();
     await expect(sheet.getByText("This draft photo has not been published.")).toBeVisible();
+    await expect(sheet.getByRole("img", { name: "Unpublished profile photo draft" })).toBeVisible();
     await expect(sheet.getByRole("button", { name: "Try Again" })).toBeEnabled();
     await expect(sheet.getByRole("button", { name: "Choose a Different Photo" })).toBeVisible();
+    // The draft's discard control sits beside its pill, not in the bar (DL-028).
     const discard = sheet.getByRole("button", { name: "Discard Draft" });
-    await expect(discard).toHaveAttribute("data-emphasis", "tertiary");
     await expect(discard).toHaveAttribute("data-tone", "danger");
+    await expect(discard.closest('[data-component="SheetActions"]')).toBeNull();
+    await expect(
+      sheet.getByRole("button", { name: "Try Again" }).closest('[data-component="SheetActions"]')
+    ).not.toBeNull();
+  },
+};
+
+export const RestoreFailed: Story = {
+  beforeEach: withAvatar({ source: "app", error: new Error("draft restore failed") }),
+  play: async () => {
+    const sheet = await openSheet();
+    await expect(sheet.getByRole("alert")).toHaveTextContent(/could not restore/i);
+    await expect(sheet.getByRole("button", { name: "Replace Photo" })).toHaveAttribute(
+      "aria-invalid",
+      "true"
+    );
   },
 };
 

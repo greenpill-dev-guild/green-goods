@@ -11,6 +11,7 @@ import {
   useCommitmentEvidence,
 } from "@green-goods/shared/commitment-pooling";
 import type { SheetActionsProps } from "@green-goods/shared/components/Dialog/SheetActions";
+import { SheetHeading } from "@green-goods/shared/components/Dialog/SheetHeading";
 import {
   RiCheckboxCircleFill,
   RiCheckLine,
@@ -182,9 +183,7 @@ export function ConfirmSheet({
         <div className="space-y-4" data-component="ConfirmSheetKept">
           <div className="flex flex-col items-center gap-2 rounded-[var(--radius-lg)] border border-success-light bg-success-lighter p-5 text-center">
             <RiCheckboxCircleFill className="h-8 w-8 text-success-base" aria-hidden="true" />
-            <p className="text-base font-medium text-text-strong-950">
-              {formatMessage({ id: "app.confirm.kept.heading" })}
-            </p>
+            <SheetHeading>{formatMessage({ id: "app.confirm.kept.heading" })}</SheetHeading>
             <p className="text-sm text-text-sub-600">
               {formatMessage({ id: `app.confirm.kept.${cast}` })}
             </p>
@@ -260,9 +259,7 @@ export function ConfirmSheet({
           </ul>
 
           <div className="space-y-2">
-            <p className="text-xs font-medium uppercase tracking-wide text-text-soft-400">
-              {formatMessage({ id: "app.confirm.evidence.title" })}
-            </p>
+            <SheetHeading>{formatMessage({ id: "app.confirm.evidence.title" })}</SheetHeading>
             <EvidencePreview
               evidence={evidence}
               isLoading={evidenceLoading}

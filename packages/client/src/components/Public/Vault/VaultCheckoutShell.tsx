@@ -183,7 +183,7 @@ export function CheckoutSurface({
         <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
           <div className="flex shrink-0 items-start justify-between gap-3 border-b border-stroke-soft-200 px-4 py-3">
             <div className="min-w-0">
-              <h2 className="text-left">{title}</h2>
+              <h2 className="text-left text-lg font-normal">{title}</h2>
               <p className="sr-only">{description}</p>
             </div>
             {!hideCloseButton ? (

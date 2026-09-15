@@ -2,6 +2,7 @@ import { Button } from "@green-goods/shared/components/Button";
 import { TextInput } from "@green-goods/shared/components/Form/ControlPrimitives";
 import type { Address } from "@green-goods/shared/types/domain";
 import { AssetSelector } from "@green-goods/shared/components/Vault/AssetSelector";
+import { SheetHeading } from "@green-goods/shared/components/Dialog/SheetHeading";
 import {
   formatTokenAmount,
   getNetDeposited,
@@ -86,9 +87,7 @@ export function TreasuryTabContent({
       )}
 
       <section>
-        <h3 className="text-sm font-semibold text-text-strong-950">
-          {formatMessage({ id: "app.treasury.overview" })}
-        </h3>
+        <SheetHeading>{formatMessage({ id: "app.treasury.overview" })}</SheetHeading>
         {vaultsLoading && (
           <div className="mt-2 space-y-2.5 animate-pulse">
             {Array.from({ length: 2 }, (_, i) => (
@@ -138,9 +137,7 @@ export function TreasuryTabContent({
       </section>
 
       <section>
-        <h3 className="text-sm font-semibold text-text-strong-950">
-          {formatMessage({ id: "app.treasury.activeDeposits" })}
-        </h3>
+        <SheetHeading>{formatMessage({ id: "app.treasury.activeDeposits" })}</SheetHeading>
         {myDeposits.length === 0 && (
           <p className="mt-2 text-sm text-text-soft-400">
             {formatMessage({ id: "app.treasury.supportGardenCta" })}
@@ -169,9 +166,7 @@ export function TreasuryTabContent({
       </section>
 
       <section>
-        <h3 className="text-sm font-semibold text-text-strong-950">
-          {formatMessage({ id: "app.treasury.deposit" })}
-        </h3>
+        <SheetHeading>{formatMessage({ id: "app.treasury.deposit" })}</SheetHeading>
 
         {!primaryAddress ? (
           <p className="mt-2 text-sm text-text-soft-400">

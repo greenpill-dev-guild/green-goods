@@ -17,9 +17,6 @@
 --text-body-sm-medium-font-size	packages/client/src/styles/typography.css	migration-debt	codex	2026-09-30	Client typography uses legacy expanded text token names; reconcile with shared @theme tokens.
 --text-body-sm-medium-font-weight	packages/client/src/styles/typography.css	migration-debt	codex	2026-09-30	Client typography uses legacy expanded text token names; reconcile with shared @theme tokens.
 --text-body-sm-medium-line-height	packages/client/src/styles/typography.css	migration-debt	codex	2026-09-30	Client typography uses legacy expanded text token names; reconcile with shared @theme tokens.
---text-body-sm-regular-font-size	packages/client/src/styles/typography.css	migration-debt	codex	2026-09-30	Client typography uses legacy expanded text token names; reconcile with shared @theme tokens.
---text-body-sm-regular-font-weight	packages/client/src/styles/typography.css	migration-debt	codex	2026-09-30	Client typography uses legacy expanded text token names; reconcile with shared @theme tokens.
---text-body-sm-regular-line-height	packages/client/src/styles/typography.css	migration-debt	codex	2026-09-30	Client typography uses legacy expanded text token names; reconcile with shared @theme tokens.
 --text-body-xs-medium-font-size	packages/client/src/styles/typography.css	migration-debt	codex	2026-09-30	Client typography uses legacy expanded text token names; reconcile with shared @theme tokens.
 --text-body-xs-medium-font-weight	packages/client/src/styles/typography.css	migration-debt	codex	2026-09-30	Client typography uses legacy expanded text token names; reconcile with shared @theme tokens.
 --text-body-xs-medium-line-height	packages/client/src/styles/typography.css	migration-debt	codex	2026-09-30	Client typography uses legacy expanded text token names; reconcile with shared @theme tokens.
@@ -53,9 +50,6 @@
 --text-title-screen-font-size	packages/client/src/styles/typography.css	migration-debt	codex	2026-09-30	Client typography uses legacy expanded text token names; reconcile with shared @theme tokens.
 --text-title-screen-font-weight	packages/client/src/styles/typography.css	migration-debt	codex	2026-09-30	Client typography uses legacy expanded text token names; reconcile with shared @theme tokens.
 --text-title-screen-line-height	packages/client/src/styles/typography.css	migration-debt	codex	2026-09-30	Client typography uses legacy expanded text token names; reconcile with shared @theme tokens.
---text-title-section-font-size	packages/client/src/styles/typography.css	migration-debt	codex	2026-09-30	Client typography uses legacy expanded text token names; reconcile with shared @theme tokens.
---text-title-section-font-weight	packages/client/src/styles/typography.css	migration-debt	codex	2026-09-30	Client typography uses legacy expanded text token names; reconcile with shared @theme tokens.
---text-title-section-line-height	packages/client/src/styles/typography.css	migration-debt	codex	2026-09-30	Client typography uses legacy expanded text token names; reconcile with shared @theme tokens.
 --text-title-subsection-font-size	packages/client/src/styles/typography.css	migration-debt	codex	2026-09-30	Client typography uses legacy expanded text token names; reconcile with shared @theme tokens.
 --text-title-subsection-font-weight	packages/client/src/styles/typography.css	migration-debt	codex	2026-09-30	Client typography uses legacy expanded text token names; reconcile with shared @theme tokens.
 --text-title-subsection-line-height	packages/client/src/styles/typography.css	migration-debt	codex	2026-09-30	Client typography uses legacy expanded text token names; reconcile with shared @theme tokens.

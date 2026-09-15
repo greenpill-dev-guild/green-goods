@@ -6,13 +6,11 @@ import {
   type PwaSheetStyle,
 } from "../../components/Pwa/sheetStyles";
 
+// The sheet chrome itself (overlay, panel, header) is the shared PwaSheet since DL-028;
+// only the tab rail and the work approval drawer keep client-side classes.
 const requiredSlots: (keyof PwaSheetStyle)[] = [
-  "overlay",
   "dialogOverlay",
   "overlayTransition",
-  "panel",
-  "dialogSurface",
-  "header",
   "tabs",
   "tabTrigger",
   "tabActive",
@@ -41,9 +39,7 @@ describe("pwaSheetStyles", () => {
   });
 
   it("uses the PWA scrim token for modal backdrops", () => {
-    expect(pwaSheetStyles.overlay).toContain("bg-[var(--color-scrim)]");
     expect(pwaSheetStyles.dialogOverlay).toContain("bg-[var(--color-scrim)]");
-    expect(pwaSheetStyles.overlay).not.toContain("--color-overlay");
     expect(pwaSheetStyles.dialogOverlay).not.toContain("--color-overlay");
   });
 

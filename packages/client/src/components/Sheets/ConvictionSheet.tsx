@@ -1,5 +1,6 @@
 import { Button } from "@green-goods/shared/components/Button";
 import { TextInput } from "@green-goods/shared/components/Form/ControlPrimitives";
+import { SheetHeading } from "@green-goods/shared/components/Dialog/SheetHeading";
 import type { Address } from "@green-goods/shared/types/domain";
 import { cn } from "@green-goods/shared/utils/styles/cn";
 import type { ConvictionWeight } from "@green-goods/shared/types/conviction";
@@ -309,9 +310,7 @@ export function ConvictionSheet({
 
         {/* Community status + weight scheme indicator */}
         <section>
-          <h3 className="text-sm font-semibold text-text-strong-950">
-            {formatMessage({ id: "app.community.title" })}
-          </h3>
+          <SheetHeading>{formatMessage({ id: "app.community.title" })}</SheetHeading>
           <div className="mt-2 rounded-lg border border-stroke-soft-200 bg-bg-white-0 p-3">
             <div className="flex items-center justify-between">
               <p className="text-sm font-medium text-text-strong-950">
@@ -375,9 +374,7 @@ export function ConvictionSheet({
           <>
             {/* Voter status */}
             <section>
-              <h3 className="text-sm font-semibold text-text-strong-950">
-                {formatMessage({ id: "app.signal.governance" })}
-              </h3>
+              <SheetHeading>{formatMessage({ id: "app.signal.governance" })}</SheetHeading>
               {isLoading ? (
                 <SectionSkeleton rows={4} />
               ) : (
@@ -430,9 +427,7 @@ export function ConvictionSheet({
 
             {/* Conviction weights */}
             <section>
-              <h3 className="text-sm font-semibold text-text-strong-950">
-                {formatMessage({ id: "app.signal.conviction" })}
-              </h3>
+              <SheetHeading>{formatMessage({ id: "app.signal.conviction" })}</SheetHeading>
               {isLoading && <SectionSkeleton rows={3} />}
               {!isLoading && weights.length === 0 && (
                 <p className="mt-2 text-sm text-text-soft-400">
@@ -463,9 +458,7 @@ export function ConvictionSheet({
 
             {/* Yield allocation visibility */}
             <section>
-              <h3 className="text-sm font-semibold text-text-strong-950">
-                {formatMessage({ id: "app.yield.title" })}
-              </h3>
+              <SheetHeading>{formatMessage({ id: "app.yield.title" })}</SheetHeading>
               <div className="mt-2 rounded-lg border border-stroke-soft-200 bg-bg-white-0 p-3">
                 {/* Three-way split summary bar */}
                 <div className="flex items-center gap-2">

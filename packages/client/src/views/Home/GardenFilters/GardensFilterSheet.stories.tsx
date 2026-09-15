@@ -1,11 +1,13 @@
+import { Domain } from "@green-goods/shared/types/domain";
 import type { Meta, StoryObj } from "@storybook/react";
-import { expect, fn, screen, userEvent, waitFor } from "storybook/test";
+import { expect, fn, screen, userEvent, waitFor, within } from "storybook/test";
 import { GardensFilterSheet } from "./index";
 
 /**
- * Filtering the Home garden list by membership and sort order. Reset Filters is the sheet's only
- * action, pinned to the bottom edge in the shared bar (DL-016), and stays disabled until a filter
- * differs from the defaults.
+ * Filtering the Home garden list at the full tier: search by name or place, membership, the four
+ * action domains as chips, and sort order, under the shared header (DL-028). Reset Filters is the
+ * sheet's only action, pinned to the bottom edge in the shared bar (DL-016), and stays disabled
+ * until a filter differs from the defaults.
  */
 const meta: Meta<typeof GardensFilterSheet> = {
   title: "Client/Sheets/GardensFilterSheet",
@@ -19,6 +21,8 @@ const meta: Meta<typeof GardensFilterSheet> = {
     filters: { scope: "all", sort: "default" },
     onScopeChange: fn(),
     onSortChange: fn(),
+    onSearchChange: fn(),
+    onDomainsChange: fn(),
     onReset: fn(),
     canFilterMine: true,
     myGardensCount: 2,
@@ -32,8 +36,41 @@ type Story = StoryObj<typeof GardensFilterSheet>;
 export const Defaults: Story = {
   play: async ({ args }) => {
     await expect(await screen.findByRole("button", { name: "Reset Filters" })).toBeDisabled();
-    await userEvent.click(screen.getByRole("button", { name: /My gardens \(2\)/ }));
+    const sheet = within(await screen.findByRole("dialog", { name: "Filter Gardens" }));
+    await expect(sheet.getByRole("searchbox", { name: "Search gardens" })).toHaveValue("");
+    await userEvent.click(sheet.getByRole("button", { name: /My gardens \(2\)/ }));
     await expect(args.onScopeChange).toHaveBeenCalledWith("mine");
+    await userEvent.click(sheet.getByRole("button", { name: "Agroforestry" }));
+    await expect(args.onDomainsChange).toHaveBeenCalledWith([Domain.AGRO]);
+  },
+};
+
+export const SearchAndDomains: Story = {
+  args: {
+    filters: {
+      scope: "all",
+      sort: "default",
+      search: "São Paulo",
+      domains: [Domain.AGRO, Domain.EDU],
+    },
+    isFilterActive: true,
+  },
+  play: async ({ args }) => {
+    const sheet = within(await screen.findByRole("dialog", { name: "Filter Gardens" }));
+    await expect(sheet.getByRole("searchbox", { name: "Search gardens" })).toHaveValue("São Paulo");
+    await expect(sheet.getByRole("button", { name: "Agroforestry" })).toHaveAttribute(
+      "aria-pressed",
+      "true"
+    );
+    await expect(sheet.getByRole("button", { name: "Solar" })).toHaveAttribute(
+      "aria-pressed",
+      "false"
+    );
+    await userEvent.click(sheet.getByRole("button", { name: "Education" }));
+    await expect(args.onDomainsChange).toHaveBeenCalledWith([Domain.AGRO]);
+    await userEvent.type(sheet.getByRole("searchbox", { name: "Search gardens" }), "!");
+    await expect(args.onSearchChange).toHaveBeenCalledWith("São Paulo!");
+    await expect(sheet.getByRole("button", { name: "Reset Filters" })).toBeEnabled();
   },
 };
 

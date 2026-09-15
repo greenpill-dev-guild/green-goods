@@ -96,7 +96,7 @@ export function PublicFundingReceipt({ intentId }: PublicFundingReceiptProps) {
   if (state.status === "error") {
     return (
       <section className="mx-auto max-w-2xl rounded-2xl border border-stroke-soft-200 bg-bg-white-0 p-8 shadow-sm">
-        <h2 className="font-serif text-2xl text-text-strong-950">
+        <h2 className="font-serif text-2xl font-bold text-text-strong-950">
           {formatMessage({
             id: "public.fund.receipt.errorTitle",
             defaultMessage: "We couldn't load this receipt",
@@ -161,7 +161,7 @@ function ReceiptBody({
       </p>
       <h2
         id="public-fund-receipt-title"
-        className="mt-2 font-serif text-2xl text-text-strong-950 md:text-3xl"
+        className="mt-2 font-serif text-2xl font-bold text-text-strong-950 md:text-3xl"
       >
         {receipt.garden.name}
       </h2>

@@ -119,7 +119,10 @@ export function GardenJoinRequestsQueue({ gardenAddress }: { gardenAddress: Addr
     >
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h2 id="garden-join-requests-title" className="font-semibold text-text-strong-950">
+          <h2
+            id="garden-join-requests-title"
+            className="text-[1.5rem] font-semibold text-text-strong-950"
+          >
             {formatMessage({
               id: "app.garden.joinQueue.title",
               defaultMessage: "Join Requests",
@@ -188,7 +191,7 @@ export function GardenJoinRequestsQueue({ gardenAddress }: { gardenAddress: Addr
             className="space-y-3 rounded-[var(--radius-lg)] bg-bg-white-0 p-4 shadow-sm"
           >
             <div>
-              <h3 className="font-semibold">{request.displayName}</h3>
+              <h3 className="text-[1.25rem] font-semibold">{request.displayName}</h3>
               <p className="font-mono text-xs text-text-sub-600">
                 {formatAddress(request.accountAddress)}
               </p>

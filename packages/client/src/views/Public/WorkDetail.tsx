@@ -36,7 +36,7 @@ export default function WorkDetail() {
           {data?.garden?.name ||
             formatMessage({ id: "public.sharedLink.garden", defaultMessage: "View Garden" })}
         </Link>
-        <h1 className="mt-6 font-serif text-3xl text-text-strong-950 md:text-4xl">
+        <h1 className="mt-6 font-serif text-3xl font-bold text-text-strong-950 md:text-4xl">
           {isLoading
             ? formatMessage({
                 id: "public.sharedLink.loading",

@@ -1,5 +1,6 @@
 import { Alert } from "@green-goods/shared/components/Alert";
 import { Chip } from "@green-goods/shared/components/Chip";
+import { SheetHeading } from "@green-goods/shared/components/Dialog/SheetHeading";
 import type { Garden } from "@green-goods/shared/types/domain";
 import { useOffline } from "@green-goods/shared/hooks/app/useOffline";
 import {
@@ -138,12 +139,9 @@ export function LiveTab({ inbox, pools, gardens, onOpenCommitment }: LiveTabProp
       ) : (
         groups.map((group) => (
           <div key={group.key}>
-            <h4
-              className="mb-2 truncate text-xs font-medium uppercase tracking-wide text-text-soft-400"
-              title={group.gardenName}
-            >
+            <SheetHeading as="h4" className="mb-2 truncate" title={group.gardenName}>
               {group.gardenName}
-            </h4>
+            </SheetHeading>
             <div className="space-y-2">
               {group.rows.map((row) => {
                 const gardenAddress = gardenAddressFor(row, pools);

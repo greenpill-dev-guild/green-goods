@@ -342,19 +342,6 @@
     overscroll-behavior-y: auto;
   }
 
-  /* ── Modal Height ── */
-  .h-modal {
-    height: 85vh;
-    height: 85dvh;
-    max-height: calc(100vh - 2rem);
-    max-height: calc(100dvh - 2rem);
-  }
-
-  .max-h-modal {
-    max-height: calc(100vh - 2rem);
-    max-height: calc(100dvh - 2rem);
-  }
-
   /* ── Sheet height tiers (DL-014) ──
      Every bottom sheet names one tier through `data-sheet-size` (PwaSheet and
      AppSheet `size`, the Your Work shell). `compact` sizes to its content and
@@ -598,8 +585,8 @@
  * were measured missing from the client bundle). Scoped to @layer components
  * so a consumer's `panelClassName` utilities and unlayered package CSS still
  * override these defaults; inline `panelStyle` wins over everything. Heights
- * come from the `[data-sheet-size]` tiers in the utilities layer above; the
- * auto height and 85dvh cap here only apply to a surface without a tier. */
+ * come from the `[data-sheet-size]` tiers in the utilities layer above; every
+ * sheet names one, so the surface itself sets no cap. */
 @layer components {
   [data-component="PwaSheet"][data-slot="overlay"] {
     position: fixed;
@@ -621,8 +608,6 @@
     flex-direction: column;
     width: 100%;
     height: auto;
-    max-height: 85vh;
-    max-height: 85dvh;
     overflow: hidden;
     border: 1px solid rgb(var(--stroke-soft-200));
     border-bottom: 0;
@@ -653,8 +638,13 @@
     background-color: rgb(var(--tone-primary, var(--primary-base)) / 0.32);
   }
 
-  /* Shared header + body, rendered when a consumer passes `title`. */
-  [data-component="PwaSheet"][data-slot="header"] {
+  /* ── Sheet header (DL-028) ──
+   * One header for every sheet and dialog: the title, an optional
+   * description, and a borderless close on the title's line. No icon and no
+   * rule under it; a rail (tabs) may sit directly below and keeps its own
+   * bottom rule. The title and description sizes live here, in the components
+   * layer, so no consumer stylesheet may carry unlayered element type rules. */
+  [data-component="SheetHeader"][data-slot="root"] {
     display: flex;
     flex-shrink: 0;
     align-items: flex-start;
@@ -663,25 +653,18 @@
     padding: 0.25rem 1rem 0.75rem;
   }
 
-  [data-component="PwaSheet"][data-slot="heading"] {
-    display: flex;
-    flex: 1 1 auto;
-    min-width: 0;
-    align-items: flex-start;
-    gap: 0.75rem;
+  /* Without a drag handle above it (centered dialogs) the header opens the surface. */
+  [data-component="SheetHeader"][data-slot="root"][data-standalone] {
+    padding-top: 1rem;
   }
 
-  [data-component="PwaSheet"][data-slot="icon"] {
-    flex-shrink: 0;
-  }
-
-  [data-component="PwaSheet"][data-slot="text"] {
+  [data-component="SheetHeader"][data-slot="text"] {
     flex: 1 1 auto;
     min-width: 0;
     padding-top: 0.25rem;
   }
 
-  [data-component="PwaSheet"][data-slot="title"] {
+  [data-component="SheetHeader"][data-slot="title"] {
     margin: 0;
     font-size: 1.125rem;
     line-height: 1.5rem;
@@ -690,11 +673,29 @@
     overflow-wrap: anywhere;
   }
 
-  [data-component="PwaSheet"][data-slot="description"] {
+  [data-component="SheetHeader"][data-slot="description"] {
     margin: 0.25rem 0 0;
     font-size: 0.875rem;
     line-height: 1.25rem;
+    font-weight: 400;
     color: rgb(var(--text-sub-600));
+    overflow-wrap: anywhere;
+  }
+
+  [data-component="SheetHeader"][data-slot="rail"] {
+    flex-shrink: 0;
+  }
+
+  /* Headings inside a sheet body (DL-028): section headings, group labels, and
+   * empty, error, and success state titles share one style under the header. */
+  [data-component="SheetHeading"] {
+    margin: 0;
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+    font-weight: 600;
+    letter-spacing: normal;
+    text-transform: none;
+    color: rgb(var(--text-strong-950));
   }
 
   [data-component="PwaSheet"][data-slot="body"] {
@@ -783,16 +784,37 @@
     background-attachment: local, scroll;
   }
 
-  /* Centered dialogs with actions: the body scrolls between a fixed header and
-   * the pinned bar, and the bar matches each surface's own padding. */
-  [data-component="DialogShell"][data-slot="surface"][data-has-actions] {
+  /* The same trick at the top edge: the hairline under the header shows only
+   * while content has scrolled under it (DL-028). */
+  [data-scroll-edge="top"] {
+    background-image: var(--sheet-scroll-edge-cover), var(--sheet-scroll-edge-line);
+    background-position: top, top;
+    background-repeat: no-repeat;
+    background-size: 100% 1px, 100% 1px;
+    background-attachment: local, scroll;
+  }
+
+  [data-scroll-edge="both"] {
+    background-image:
+      var(--sheet-scroll-edge-cover),
+      var(--sheet-scroll-edge-line),
+      var(--sheet-scroll-edge-cover),
+      var(--sheet-scroll-edge-line);
+    background-position: top, top, bottom, bottom;
+    background-repeat: no-repeat;
+    background-size: 100% 1px, 100% 1px, 100% 1px, 100% 1px;
+    background-attachment: local, scroll, local, scroll;
+  }
+
+  /* Centered dialogs: the body scrolls between the header and the pinned bar
+   * under one 90vh cap, and the bar matches each surface's own padding. */
+  [data-component="DialogShell"][data-slot="surface"] {
     display: flex;
     flex-direction: column;
     max-height: 90vh;
   }
 
-  [data-component="DialogShell"][data-slot="surface"][data-has-actions]
-    > [data-component="DialogShell"][data-slot="body"] {
+  [data-component="DialogShell"][data-slot="surface"] > [data-component="DialogShell"][data-slot="body"] {
     flex: 1 1 auto;
     min-height: 0;
     overflow-y: auto;

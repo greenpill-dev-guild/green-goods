@@ -2,6 +2,7 @@ import type { Action, Work } from "@green-goods/shared/types/domain";
 import { DialogShell } from "@green-goods/shared/components/Dialog/DialogShell";
 import { NativeSelect } from "@green-goods/shared/components/Form/ControlPrimitives";
 import { StatusBadge } from "@green-goods/shared/components/StatusBadge";
+import { SheetHeading } from "@green-goods/shared/components/Dialog/SheetHeading";
 import { type CommitmentRequirementRecord } from "@green-goods/shared/commitment-pooling";
 import { useEffect, useState } from "react";
 import { useIntl } from "react-intl";
@@ -145,9 +146,9 @@ export function LinkWorkSheet({
           </div>
         ) : (
           <fieldset>
-            <legend className="text-sm font-medium text-text-strong-950">
+            <SheetHeading as="legend">
               {formatMessage({ id: "app.commitment.link.work" })}
-            </legend>
+            </SheetHeading>
             <ul className="mt-2 space-y-2">
               {eligibleWorks.map((work) => {
                 const selected = workUID?.toLowerCase() === work.id.toLowerCase();

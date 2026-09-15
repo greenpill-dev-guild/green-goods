@@ -2,6 +2,7 @@ import { Button } from "@green-goods/shared/components/Button";
 import { Textarea } from "@green-goods/shared/components/Form/ControlPrimitives";
 import { Alert } from "@green-goods/shared/components/Alert";
 import { ConfirmDialog } from "@green-goods/shared/components/Dialog/ConfirmDialog";
+import { SheetHeading } from "@green-goods/shared/components/Dialog/SheetHeading";
 import {
   FormattedAmountInput,
   useFormattedAmountInput,
@@ -372,12 +373,9 @@ export const CookieJarTab: React.FC = () => {
         {diagnosticBlock}
         {groupedJars.map((group) => (
           <div key={group.gardenName}>
-            <h4
-              className="mb-2 truncate text-xs font-medium text-text-soft-400 uppercase tracking-wide"
-              title={group.gardenName}
-            >
+            <SheetHeading as="h4" className="mb-2 truncate" title={group.gardenName}>
               {group.gardenName}
-            </h4>
+            </SheetHeading>
             <div className="space-y-2">
               {group.jars.map((jar) => (
                 <JarCard key={jar.jarAddress} jar={jar} gardenName={group.gardenName} />

@@ -4,9 +4,10 @@
  * Every narrow-viewport dialog in the client renders through this sheet:
  * `DraftSheet` directly, and `ConfirmDialog` / `DialogShell` below
  * `PWA_SHEET_MEDIA_QUERY`. Passing `title` turns on the shared header
- * (title, optional description and icon, a 44px close button) above a
- * scrollable body, so those surfaces share one chrome. Without `title` the
- * consumer owns everything inside the panel.
+ * (`SheetHeader`, DL-028: title, optional description, a 44px close button,
+ * and an optional `tabs` rail) above a scrollable body, so those surfaces
+ * share one chrome. Without `title` the consumer owns everything inside the
+ * panel.
  *
  * Focus returns to the element that opened the sheet when it closes, and
  * the other children of <body> are hidden from assistive tech while it is
@@ -61,12 +62,14 @@
  * @module components/Dialog/PwaSheet
  */
 import { SheetActions, type SheetActionsProps } from "./SheetActions";
-import { RiCloseLine } from "@remixicon/react";
+import { SheetHeader } from "./SheetHeader";
+import { hideOthers, openSheetLayer } from "./sheetLayers";
 import { useDrag } from "@use-gesture/react";
 import { createPortal } from "react-dom";
 import {
   Children,
   type CSSProperties,
+  type HTMLAttributes,
   type ReactNode,
   useCallback,
   useEffect,
@@ -80,51 +83,6 @@ import { useDocumentScrollLock } from "../../hooks/ui/useDocumentScrollLock";
 import { useSheetPresence } from "../../hooks/ui/useSheetPresence";
 import { useFocusTrap } from "../../hooks/utils/useFocusTrap";
 import { DISMISS_VELOCITY_THRESHOLD } from "../Canvas/springConfig";
-import { IconButton } from "../IconButton";
-
-/**
- * Branches currently hidden from assistive tech by open sheets, with how
- * many sheets hold each one and the attribute value to restore. Module
- * scope so overlapping sheets share one ledger.
- */
-const hiddenBranches = new Map<Element, { count: number; previous: string | null }>();
-
-/**
- * Hide every sibling along `target`'s ancestor path up to <body>, the way
- * Radix hides the rest of the page behind a dialog. Works for portaled and
- * inline sheets alike: only the sheet's own ancestors stay exposed. Returns
- * the release function; a branch is restored once its last holder releases.
- */
-function hideOthers(target: Element): () => void {
-  const held: Element[] = [];
-  let node: Element | null = target;
-  while (node && node !== document.body && node.parentElement) {
-    const parent: Element = node.parentElement;
-    for (const sibling of Array.from(parent.children)) {
-      if (sibling === node || sibling.tagName === "SCRIPT" || sibling.tagName === "STYLE") continue;
-      const entry = hiddenBranches.get(sibling);
-      if (entry) {
-        entry.count += 1;
-      } else {
-        hiddenBranches.set(sibling, { count: 1, previous: sibling.getAttribute("aria-hidden") });
-        sibling.setAttribute("aria-hidden", "true");
-      }
-      held.push(sibling);
-    }
-    node = parent;
-  }
-  return () => {
-    for (const sibling of held) {
-      const entry = hiddenBranches.get(sibling);
-      if (!entry) continue;
-      entry.count -= 1;
-      if (entry.count > 0) continue;
-      hiddenBranches.delete(sibling);
-      if (entry.previous === null) sibling.removeAttribute("aria-hidden");
-      else sibling.setAttribute("aria-hidden", entry.previous);
-    }
-  };
-}
 
 const DRAG_DISMISS_DISTANCE_PX = 120;
 const DRAG_PULL_RESISTANCE_FACTOR = 0.86;
@@ -144,7 +102,7 @@ export const PWA_SHEET_MEDIA_QUERY = "(max-width: 639px)";
  */
 export type SheetSize = "compact" | "half" | "tall" | "full";
 
-export interface PwaSheetProps {
+interface PwaSheetBaseProps {
   /** Whether the sheet is open. */
   open: boolean;
   /** Called when the sheet should close (drag dismiss, Escape, backdrop, X). */
@@ -156,19 +114,16 @@ export interface PwaSheetProps {
   children?: ReactNode;
   /** Accessible label for the dialog when no `title` is rendered. */
   ariaLabel?: string;
-  /**
-   * Renders the shared header (title, optional description and icon, close
-   * button) above a scrollable body. The title labels the dialog.
-   */
-  title?: ReactNode;
   /** Secondary line under the title; becomes the dialog's accessible description. */
   description?: ReactNode;
-  /** Leading block in the shared header, typically an icon in a tinted square. */
-  icon?: ReactNode;
-  /** Accessible name of the shared header's close button. Required whenever `title` is set. */
-  closeLabel?: string;
-  /** Omit the shared header's close button. */
-  hideCloseButton?: boolean;
+  /** A rail directly under the shared header, typically tabs (DL-028). */
+  tabs?: ReactNode;
+  /** Classes on the shared body, e.g. to hand scrolling to a tab's own content. */
+  bodyClassName?: string;
+  /** Attributes on the shared body, e.g. an id for a scroll target or a tabpanel role. */
+  bodyProps?: HTMLAttributes<HTMLDivElement>;
+  /** Test id of the shared header's close button. Defaults to `pwa-sheet-close`. */
+  closeTestId?: string;
   /**
    * When true, Escape, the scrim, drag, and the close button stop dismissing
    * the sheet — use during in-flight work.
@@ -188,7 +143,7 @@ export interface PwaSheetProps {
   panelClassName?: string;
   /** Optional inline style on the panel. Heights come from `size`, not from here. */
   panelStyle?: CSSProperties;
-  /** Auto-focus selector on open. Defaults to the close button. */
+  /** Auto-focus selector on open. Defaults to the shared header's close button. */
   autoFocusSelector?: string;
   /** When true, render the drag handle. Default `true`. */
   showDragHandle?: boolean;
@@ -199,6 +154,19 @@ export interface PwaSheetProps {
   /** When false, dragging the sheet down does not dismiss it. */
   dragToDismiss?: boolean;
 }
+
+/**
+ * `title` renders the shared header (title, optional description, close
+ * button) above a scrollable body, and the title labels the dialog. The
+ * header's close button needs an accessible name, so a titled sheet passes
+ * `closeLabel` unless it sets `hideCloseButton`.
+ */
+type PwaSheetHeaderProps =
+  | { title?: undefined; closeLabel?: string; hideCloseButton?: boolean }
+  | { title: ReactNode; closeLabel: string; hideCloseButton?: boolean }
+  | { title: ReactNode; closeLabel?: string; hideCloseButton: true };
+
+export type PwaSheetProps = PwaSheetBaseProps & PwaSheetHeaderProps;
 
 function readCssDurationMs(varName: string): number {
   if (typeof window === "undefined" || typeof document === "undefined") {
@@ -225,7 +193,10 @@ export function PwaSheet({
   ariaLabel,
   title,
   description,
-  icon,
+  tabs,
+  bodyClassName,
+  bodyProps,
+  closeTestId = "pwa-sheet-close",
   closeLabel,
   hideCloseButton = false,
   preventClose = false,
@@ -233,7 +204,7 @@ export function PwaSheet({
   size = "compact",
   panelClassName,
   panelStyle,
-  autoFocusSelector = '[data-testid="pwa-sheet-close"]',
+  autoFocusSelector,
   showDragHandle = true,
   testId = "pwa-sheet",
   overlayClassName,
@@ -255,7 +226,10 @@ export function PwaSheet({
 
   const sheetState = open ? "open" : "closed";
 
-  useFocusTrap(dialogRef, { enabled: mounted && open, autoFocusSelector });
+  useFocusTrap(dialogRef, {
+    enabled: mounted && open,
+    autoFocusSelector: autoFocusSelector ?? `[data-testid="${closeTestId}"]`,
+  });
   useDocumentScrollLock(open || mounted);
   useSheetPresence(open);
 
@@ -325,18 +299,34 @@ export function PwaSheet({
     };
   }, [open, prefersReducedMotion]);
 
-  // Escape closes.
+  // Escape closes the topmost sheet only. The sheet joins the stack when it
+  // opens and leaves when it closes; a parent re-render must not move it up,
+  // so the handler reads the latest close request through a ref.
+  const requestCloseRef = useRef(requestClose);
+  useEffect(() => {
+    requestCloseRef.current = requestClose;
+  }, [requestClose]);
+
   useEffect(() => {
     if (!mounted || !open) return;
+    const layer = openSheetLayer();
     const handleKey = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        event.preventDefault();
-        requestClose();
-      }
+      if (event.key !== "Escape" || !layer.isTopmost()) return;
+      // A centered dialog opened over the sheet handles its own Escape.
+      const dialog =
+        event.target instanceof Element
+          ? event.target.closest('[role="dialog"],[role="alertdialog"]')
+          : null;
+      if (dialog && dialogRef.current && !dialogRef.current.contains(dialog)) return;
+      event.preventDefault();
+      requestCloseRef.current();
     };
     document.addEventListener("keydown", handleKey, true);
-    return () => document.removeEventListener("keydown", handleKey, true);
-  }, [mounted, open, requestClose]);
+    return () => {
+      document.removeEventListener("keydown", handleKey, true);
+      layer.close();
+    };
+  }, [mounted, open]);
 
   const handleOverlayClick = useCallback(
     (event: React.MouseEvent) => {
@@ -399,9 +389,6 @@ export function PwaSheet({
       className={overlayClassName}
       style={{ pointerEvents: "auto" }}
       onClick={handleOverlayClick}
-      onKeyDown={(event) => {
-        if (event.key === "Escape") requestClose();
-      }}
       tabIndex={-1}
     >
       <div
@@ -445,44 +432,29 @@ export function PwaSheet({
           </div>
         )}
         {hasHeader && (
-          <header data-component="PwaSheet" data-slot="header">
-            <div data-component="PwaSheet" data-slot="heading">
-              {icon ? (
-                <div data-component="PwaSheet" data-slot="icon">
-                  {icon}
-                </div>
-              ) : null}
-              <div data-component="PwaSheet" data-slot="text">
-                <h2 id={titleId} data-component="PwaSheet" data-slot="title">
-                  {title}
-                </h2>
-                {description ? (
-                  <p id={descriptionId} data-component="PwaSheet" data-slot="description">
-                    {description}
-                  </p>
-                ) : null}
-              </div>
-            </div>
-            {!hideCloseButton && (
-              <IconButton
-                data-component="PwaSheet"
-                data-slot="close"
-                data-testid="pwa-sheet-close"
-                // The header renders only with a title, which requires closeLabel (see prop docs).
-                aria-label={closeLabel as string}
-                disabled={preventClose}
-                onClick={requestClose}
-                icon={<RiCloseLine aria-hidden="true" />}
-              />
-            )}
-          </header>
+          <SheetHeader
+            title={title}
+            titleId={titleId}
+            description={description}
+            descriptionId={descriptionId}
+            // PwaSheetHeaderProps requires closeLabel whenever the close button shows.
+            closeLabel={closeLabel ?? ""}
+            onClose={requestClose}
+            closeDisabled={preventClose}
+            hideCloseButton={hideCloseButton}
+            closeTestId={closeTestId}
+          >
+            {tabs}
+          </SheetHeader>
         )}
         {hasHeader ? (
           hasBody ? (
             <div
+              {...bodyProps}
               data-component="PwaSheet"
               data-slot="body"
-              data-scroll-edge={actions ? "bottom" : undefined}
+              data-scroll-edge={actions ? "both" : "top"}
+              className={bodyClassName}
             >
               {children}
             </div>

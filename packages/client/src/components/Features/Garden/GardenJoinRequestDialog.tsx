@@ -15,6 +15,7 @@ import {
 } from "@green-goods/shared/modules/garden-join-requests";
 import type { Address } from "@green-goods/shared/types/domain";
 import type { SheetActionsProps } from "@green-goods/shared/components/Dialog/SheetActions";
+import { SheetHeading } from "@green-goods/shared/components/Dialog/SheetHeading";
 import { useId, useState } from "react";
 import { useIntl } from "react-intl";
 import { useNavigate } from "react-router-dom";
@@ -189,12 +190,12 @@ export function GardenJoinRequestDialog({ gardenAddress }: { gardenAddress: Addr
 
           {join.request?.state === "pending" ? (
             <section className="space-y-3 rounded-[var(--radius-lg)] border border-stroke-soft-200 p-4">
-              <h3 className="font-semibold">
+              <SheetHeading>
                 {formatMessage({
                   id: "app.garden.joinRequest.pendingTitle",
                   defaultMessage: "Request awaiting review",
                 })}
-              </h3>
+              </SheetHeading>
               <p className="text-sm text-text-sub-600">
                 {formatMessage({
                   id: "app.garden.joinRequest.pendingDescription",
@@ -204,12 +205,12 @@ export function GardenJoinRequestDialog({ gardenAddress }: { gardenAddress: Addr
             </section>
           ) : join.request?.state === "welcomed" ? (
             <section className="space-y-3 rounded-[var(--radius-lg)] bg-success-lighter p-4">
-              <h3 className="font-semibold text-success-dark">
+              <SheetHeading>
                 {formatMessage({
                   id: "app.garden.joinRequest.welcomedTitle",
                   defaultMessage: "Welcome to the garden",
                 })}
-              </h3>
+              </SheetHeading>
               <p className="text-sm text-text-sub-600">
                 {formatMessage({
                   id: "app.garden.joinRequest.welcomedDescription",

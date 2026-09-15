@@ -2,6 +2,7 @@ import { cn } from "@green-goods/shared/utils/styles/cn";
 import { formatTokenAmount } from "@green-goods/shared/utils/blockchain/vaults";
 import { Button } from "@green-goods/shared/components/Button";
 import { FormattedAmountInput } from "@green-goods/shared/components/Form/FormattedAmountInput";
+import { SheetHeading } from "@green-goods/shared/components/Dialog/SheetHeading";
 import type { SendableTokenBalance } from "@green-goods/shared/hooks/blockchain/useSendableTokens";
 import { RiCheckLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
@@ -37,9 +38,7 @@ export function AmountStep({
   return (
     <div className="space-y-4 p-4">
       <section className="space-y-2">
-        <h4 className="text-xs font-medium uppercase tracking-wide text-text-soft-400">
-          {formatMessage({ id: "app.send.token.title" })}
-        </h4>
+        <SheetHeading as="h4">{formatMessage({ id: "app.send.token.title" })}</SheetHeading>
 
         {isLoading ? (
           <div className="space-y-2.5" role="status">
@@ -130,9 +129,7 @@ export function AmountStep({
 
       {selectedToken ? (
         <section className="space-y-2">
-          <h4 className="text-xs font-medium uppercase tracking-wide text-text-soft-400">
-            {formatMessage({ id: "app.send.amount.label" })}
-          </h4>
+          <SheetHeading as="h4">{formatMessage({ id: "app.send.amount.label" })}</SheetHeading>
           <FormattedAmountInput
             value={amountInput}
             onValueChange={onAmountChange}
