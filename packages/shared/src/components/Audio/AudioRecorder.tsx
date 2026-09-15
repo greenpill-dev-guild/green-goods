@@ -224,6 +224,7 @@ export function AudioRecorder({
       {/* Recording controls */}
       {state === "idle" && (
         <Button
+          type="button"
           emphasis="secondary"
           size="sm"
           onClick={handleStart}
@@ -270,6 +271,7 @@ export function AudioRecorder({
           <div className="flex-1" />
 
           <Button
+            type="button"
             emphasis="primary"
             tone="danger"
             size="sm"
@@ -289,6 +291,7 @@ export function AudioRecorder({
 
           <div className="flex items-center gap-2">
             <Button
+              type="button"
               size="sm"
               onClick={handleConfirm}
               aria-label="Confirm recording"
@@ -298,6 +301,7 @@ export function AudioRecorder({
             </Button>
 
             <Button
+              type="button"
               emphasis="secondary"
               size="sm"
               onClick={handleCancel}
