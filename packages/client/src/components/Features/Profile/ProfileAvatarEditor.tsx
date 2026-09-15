@@ -8,17 +8,17 @@ import { IconButton } from "@green-goods/shared/components/IconButton";
 import { Spinner } from "@green-goods/shared/components/Spinner";
 import { useOnlineStatus } from "@green-goods/shared/hooks/app/useOnlineStatus";
 import {
+  useProfileAvatarDraftPreview,
   useProfileAvatarEditor,
   useResolvedProfileAvatar,
 } from "@green-goods/shared/hooks/profile/useProfileAvatar";
-import { mediaResourceManager } from "@green-goods/shared/modules/job-queue/media-resource-manager";
 import {
   getProfileAvatarFailureMessage,
   getProfileAvatarStageMessage,
 } from "@green-goods/shared/modules/profile-avatar/editor-messages";
 import { cn } from "@green-goods/shared/utils/styles/cn";
 import { RiCameraLine, RiDeleteBinLine, RiImageAddLine, RiRefreshLine } from "@remixicon/react";
-import { useEffect, useId, useMemo, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { useIntl } from "react-intl";
 
 interface ProfileAvatarEditorProps {
@@ -27,19 +27,6 @@ interface ProfileAvatarEditorProps {
 }
 
 type ActiveAction = "choose" | "retry" | "remove" | "discard" | null;
-
-/** Object URL for the unpublished draft, released together with the file. */
-function useDraftPreviewUrl(file: File | null): string | null {
-  const url = useMemo(
-    () => (file ? mediaResourceManager.getOrCreateUrl(file, "profile-avatar-draft") : null),
-    [file]
-  );
-  useEffect(() => {
-    if (!file) return;
-    return () => mediaResourceManager.cleanupFile(file);
-  }, [file]);
-  return url;
-}
 
 /**
  * The profile photo sheet (half tier). Four regions hold still across every
@@ -64,7 +51,7 @@ export function ProfileAvatarEditor({ fallbackAvatar, className }: ProfileAvatar
   const [removeConfirmOpen, setRemoveConfirmOpen] = useState(false);
   const [activeAction, setActiveAction] = useState<ActiveAction>(null);
   const draftFile = editor.draft?.file ?? null;
-  const draftPreviewUrl = useDraftPreviewUrl(draftFile);
+  const draftPreviewUrl = useProfileAvatarDraftPreview(draftFile);
   const displayedError =
     error ??
     (editor.error
