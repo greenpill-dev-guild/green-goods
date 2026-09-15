@@ -76,16 +76,16 @@ const adminButtonVariants = tv({
       ],
     },
     size: {
-      // Compact cockpit metric (DL-011): 28 / 32 / 40. Visual heights sit
-      // below the 44px accessibility floor for sm and md, so both carry
-      // admin-hit-target (28dp/32dp visual, 44px effective).
+      // Compact cockpit metric (DL-011): 28 / 32 / 40. Every tier carries a
+      // 44px finger box (admin-hit-target for sm and md, the 2px-margin
+      // admin-hit-target-lg for lg) and the one 14px label (DL-029): the size
+      // difference carries the emphasis, never a type jump.
       // Densest action — list rows, table actions, inline text buttons.
-      sm: "admin-hit-target h-7 px-2.5 text-label-sm",
+      sm: "admin-hit-target h-7 px-2.5 text-label-lg",
       // Standard action (32dp).
       md: "admin-hit-target h-8 px-4 text-label-lg",
-      // Prominent first-action button (40dp). Label stays 14px — size
-      // difference carries the emphasis, not a type jump.
-      lg: "h-10 px-5 text-label-lg",
+      // Prominent first-action button (40dp).
+      lg: "admin-hit-target-lg h-10 px-5 text-label-lg",
     },
     hasLeadingIcon: {
       true: "pl-3",
@@ -262,11 +262,11 @@ const adminIconButtonVariants = tv({
       ],
     },
     size: {
-      // DL-011 compact tiers; sm and md sit under the 44px floor and carry
-      // the expanded hit target. Glyphs ride 16px in sm, 18px in md/lg.
+      // DL-011 compact tiers; every tier carries the 44px finger box (DL-029).
+      // Glyphs ride 16px in sm, 18px in md/lg.
       sm: "admin-hit-target h-7 w-7 [&_svg]:h-4 [&_svg]:w-4",
       md: "admin-hit-target h-8 w-8 [&_svg]:h-[18px] [&_svg]:w-[18px]",
-      lg: "h-10 w-10 [&_svg]:h-[18px] [&_svg]:w-[18px]",
+      lg: "admin-hit-target-lg h-10 w-10 [&_svg]:h-[18px] [&_svg]:w-[18px]",
     },
   },
   defaultVariants: {

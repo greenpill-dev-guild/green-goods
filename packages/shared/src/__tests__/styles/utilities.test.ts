@@ -90,7 +90,8 @@ describe("shared utilities.css", () => {
     expect(themeContent).toContain(".gg-control");
     expect(themeContent).toContain(".gg-control-trigger");
     expect(themeContent).toContain(".gg-button");
-    expect(themeContent).toContain(".gg-button-secondary");
+    expect(themeContent).toContain('.gg-button[data-emphasis="secondary"]');
+    expect(themeContent).not.toContain(".gg-button-secondary");
   });
 });
 
@@ -122,7 +123,9 @@ describe("PwaSheet layout contract", () => {
     expect(declarations("header")).toMatch(/display:\s*flex/);
     // The close control is the shared IconButton; its 44px circle lives in theme.css.
     expect(declarations("close")).toBe("");
-    expect(themeContent).toMatch(/\.gg-icon-button\s*\{[^}]*--gg-icon-button-size:\s*2\.75rem/);
+    expect(themeContent).toMatch(
+      /\.gg-icon-button\s*\{[^}]*--gg-icon-button-size:\s*var\(--gg-icon-size-md, 2\.75rem\)/
+    );
     expect(declarations("body")).toMatch(/overflow-y:\s*auto/);
   });
 });

@@ -290,6 +290,24 @@
     height: max(100%, 2.75rem);
     transform: translateY(-50%);
   }
+
+  /* The 40px tier (lg buttons and icon buttons, dialog and sheet close buttons,
+     AppBar icons, the search pill's clear button): the same 44px finger box with
+     2px margins, so the outer box reaches 44 without changing row rhythm. */
+  .admin-hit-target-lg {
+    margin-block: 0.125rem;
+    overflow: visible;
+  }
+
+  .admin-hit-target-lg::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 50%;
+    height: max(100%, 2.75rem);
+    transform: translateY(-50%);
+  }
 }
 
 /* --------------------------------------------------------------------------
