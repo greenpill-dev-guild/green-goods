@@ -7,6 +7,7 @@ import type { Work } from "@green-goods/shared/types/domain";
 import { hoursSince } from "@green-goods/shared/utils/garden-detail";
 import { RiCheckboxCircleLine, RiSearchLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
+import { AdminButton } from "@/components/AdminButton";
 import { formatEnsAddressName } from "@/components/EnsAddressText";
 import { HubWorkCard } from "./HubWorkCard";
 import { HubWorkbenchSkeletonRows } from "./HubWorkbenchSkeletonRows";
@@ -113,15 +114,14 @@ export function HubWorkQueue({
             },
             { query: debouncedSearch }
           )}
-          action={{
-            label: formatMessage({
-              id: "cockpit.hub.clearSearch",
-              defaultMessage: "Clear Search",
-            }),
-            variant: "ghost",
-            size: "sm",
-            onClick: onClearSearch,
-          }}
+          action={
+            <AdminButton variant="text" size="sm" onClick={onClearSearch}>
+              {formatMessage({
+                id: "cockpit.hub.clearSearch",
+                defaultMessage: "Clear Search",
+              })}
+            </AdminButton>
+          }
         />
       </EmptyStateShell>
     );

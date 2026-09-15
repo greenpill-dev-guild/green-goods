@@ -68,7 +68,7 @@ function HypercertWizardHarness({
       }
       actions={
         <>
-          <Button type="button" variant="secondary" onClick={fn()} disabled={isSubmitting}>
+          <Button type="button" emphasis="secondary" onClick={fn()} disabled={isSubmitting}>
             Cancel
           </Button>
           <Button type="button" onClick={fn()} disabled={nextDisabled} loading={isSubmitting}>

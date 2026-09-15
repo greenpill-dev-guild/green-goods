@@ -90,7 +90,8 @@ describe("shared utilities.css", () => {
     expect(themeContent).toContain(".gg-control");
     expect(themeContent).toContain(".gg-control-trigger");
     expect(themeContent).toContain(".gg-button");
-    expect(themeContent).toContain(".gg-button-secondary");
+    expect(themeContent).toContain('.gg-button[data-emphasis="secondary"]');
+    expect(themeContent).not.toContain(".gg-button-secondary");
   });
 });
 
@@ -158,7 +159,9 @@ describe("SheetHeader anatomy contract (DL-028)", () => {
 
   it("keeps the close control on the shared 44px IconButton and shows a hairline only while the body scrolls", () => {
     expect(declarations("close")).toBe("");
-    expect(themeContent).toMatch(/\.gg-icon-button\s*\{[^}]*--gg-icon-button-size:\s*2\.75rem/);
+    expect(themeContent).toMatch(
+      /\.gg-icon-button\s*\{[^}]*--gg-icon-button-size:\s*var\(--gg-icon-size-md, 2\.75rem\)/
+    );
     expect(utilitiesContent).toMatch(
       /\[data-scroll-edge="top"\]\s*\{[^}]*background-attachment:\s*local,\s*scroll/
     );

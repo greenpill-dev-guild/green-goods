@@ -1,0 +1,198 @@
+/* ============================================================================
+ * SURFACE PARITY (Storybook-only)
+ *
+ * One Storybook build serves shared, admin, and client stories, so each
+ * surface's tokens must load only where that surface's stories render. The
+ * `withSurface` decorator (decorators.tsx) stamps `data-surface="app|website|admin"`
+ * on <html>, so dialogs and sheets that portal out of a story still match; a
+ * `[data-surface-scope]` wrapper scopes the same tokens to one subtree for
+ * side-by-side pages (Design System/Overview).
+ *
+ * Every value below mirrors what production resolves, measured on 2026-09-13
+ * against a local admin (`?mockAuth=deployer`) and client (`?presentation=pwa`
+ * / `?presentation=website`) and updated with DL-029 / DL-030. The Design
+ * System foundation stories pin these numbers, so a product change shows up
+ * here as a failing parity check instead of silent drift. Sources:
+ *   - admin:   packages/admin/src/index.css (`@theme` type + radius aliases,
+ *              the Plus Jakarta Sans body font, the Tier 1a colour aliases)
+ *   - client:  packages/client/index.html (Inter / Fraunces) and
+ *              packages/client/src/styles/typography.css
+ * Never import packages/admin/src/index.css wholesale: its document-level
+ * shell resets would leak into every story.
+ * ============================================================================ */
+
+/* Admin's M3 type aliases (`text-body-*`, `text-title-*`, `text-headline-*`,
+ * `text-display-*`) exist only in packages/admin/src/index.css `@theme`, so the
+ * shared build never generated those utilities and admin stories inherited
+ * 16px everywhere those classes appear. Declaring the keys here makes Tailwind
+ * emit the utilities. Outside the admin scopes below they resolve to `1em`, the
+ * parent's size, which is exactly what the client build renders where these
+ * utilities do not exist (the class emits nothing, so the size inherits). */
+@theme {
+  --text-display-lg: 1em;
+  --text-display-md: 1em;
+  --text-display-sm: 1em;
+  --text-headline-lg: 1em;
+  --text-headline-md: 1em;
+  --text-headline-sm: 1em;
+  --text-title-lg: 1em;
+  --text-title-md: 1em;
+  --text-title-sm: 1em;
+  --text-body-lg: 1em;
+  --text-body-md: 1em;
+  --text-body-sm: 1em;
+}
+
+/* ── Admin cockpit ─────────────────────────────────────────────────────── */
+:root[data-surface="admin"],
+[data-surface-scope="admin"] {
+  /* M3 type scale — packages/admin/src/index.css `@theme` → `--type-*` in theme.css.
+     Labels are 14 / 12 / 11px where the shared theme says 18 / 16 / 14. */
+  --text-display-lg: var(--type-display-lg);
+  --text-display-md: var(--type-display-md);
+  --text-display-sm: var(--type-display-sm);
+  --text-headline-lg: var(--type-headline-lg);
+  --text-headline-md: var(--type-headline-md);
+  --text-headline-sm: var(--type-headline-sm);
+  --text-title-lg: var(--type-title-lg);
+  --text-title-md: var(--type-title-md);
+  --text-title-sm: var(--type-title-sm);
+  --text-body-lg: var(--type-body-lg);
+  --text-body-md: var(--type-body-md);
+  --text-body-sm: var(--type-body-sm);
+  --text-label-lg: var(--type-label-lg);
+  --text-label-md: var(--type-label-md);
+  --text-label-sm: var(--type-label-sm);
+
+  /* M3 shape scale — index.css `@theme` plus its unlayered `:root` remap, so
+     rounded-xl / rounded-2xl land on the 16px page-container step (DL-030). */
+  --admin-radius-xs: 4px;
+  --admin-radius-sm: 8px;
+  --admin-radius-md: 12px;
+  --admin-radius-lg: 16px;
+  --admin-radius-full: 9999px;
+  --radius-xs: var(--admin-radius-xs);
+  --radius-sm: var(--admin-radius-sm);
+  --radius-xl: var(--admin-radius-lg);
+  --radius-2xl: var(--admin-radius-lg);
+
+  /* Typeface — index.css `@layer base body` + the `--font-heading` alias. */
+  --font-heading: "Plus Jakarta Sans", system-ui, sans-serif;
+  --font-sans: var(--font-heading);
+
+  /* Tier 1a Warm-Earth aliases — index.css `:root` (additive; no admin component
+     consumes them today, only the Admin/Tokens/Admin Revamp (Tier 1a) story). */
+  --canvas: rgb(var(--m3-surface-container));
+  --ink: rgb(var(--neutral-800));
+  --stone: rgb(var(--neutral-500));
+  --on-surface-muted: rgb(var(--neutral-600));
+  --on-surface-soft: rgb(var(--neutral-500));
+  --surface: var(--canvas);
+  /* --surface-sunken / --surface-quiet are literal hex in index.css and have no consumer;
+     the token guard forbids raw colours here, so they are the two aliases not mirrored. */
+  --hairline-strong: rgb(var(--neutral-800) / 0.14);
+  --outline-strong: rgb(var(--neutral-800) / 0.18);
+  --g-action: rgb(var(--green-800));
+  --g-action-hover: rgb(var(--green-900));
+  --g-action-ring: rgb(var(--green-800) / 0.16);
+  --g-soft-bg: rgb(var(--green-800) / 0.1);
+  --g-soft-fg: rgb(var(--green-800));
+  --g-on-action: rgb(var(--neutral-0));
+  --r-xs: var(--admin-radius-xs);
+  --r-sm: var(--admin-radius-sm);
+  --r-md: var(--admin-radius-md);
+  --r-lg: var(--admin-radius-lg);
+  --r-full: var(--admin-radius-full);
+
+  /* The shared control family in the cockpit (DL-031) — index.css `:root`.
+     Shared pieces rendered in admin ride Button / IconButton / Chip / control
+     classes that read these tokens: pills, one 14px / 500 label, the 28 / 32 /
+     40 tiers and the 44px finger box. AdminDensityScale.guard pins this block
+     against index.css. */
+  --gg-button-radius: var(--radius-full);
+  --gg-button-radius-pressed: var(--radius-full);
+  --gg-button-weight: 500;
+  --gg-label-md: 0.875rem;
+  --gg-label-sm: 0.875rem;
+  --gg-button-block-lg: 2.5rem;
+  --gg-button-block-md: 2.5rem;
+  --gg-button-block-sm: 2rem;
+  --gg-button-block-compact: 1.75rem;
+  --gg-button-inline-lg: 1.25rem;
+  --gg-button-inline-md: 1.25rem;
+  --gg-button-inline-sm: 1rem;
+  --gg-button-inline-compact: 0.625rem;
+  --gg-icon-size-lg: 2.5rem;
+  --gg-icon-size-md: 2.5rem;
+  --gg-icon-size-sm: 2rem;
+  --gg-icon-size-compact: 1.75rem;
+  --gg-hit-block: 2.75rem;
+}
+
+:root[data-surface="admin"][data-theme="dark"],
+[data-theme="dark"] [data-surface-scope="admin"],
+[data-surface-scope="admin"][data-theme="dark"] {
+  --canvas: rgb(var(--m3-surface));
+  --ink: rgb(var(--neutral-50));
+  --stone: rgb(var(--neutral-400));
+  --on-surface-muted: rgb(var(--neutral-300));
+  --on-surface-soft: rgb(var(--neutral-400));
+  --surface: var(--canvas);
+  --hairline-strong: rgb(var(--neutral-50) / 0.14);
+  --outline-strong: rgb(var(--neutral-50) / 0.18);
+  --g-action: rgb(var(--green-500));
+  --g-action-hover: rgb(var(--green-400));
+  --g-action-ring: rgb(var(--green-400) / 0.2);
+  --g-soft-bg: rgb(var(--green-400) / 0.16);
+  --g-soft-fg: rgb(var(--green-300));
+  --g-on-action: rgb(var(--neutral-950));
+}
+
+/* The cockpit body font. Production sets it on <body> in `@layer base` and has
+   no `*` font rule, so everything inherits Plus Jakarta Sans; the Storybook
+   frame and the <body> (for portaled dialogs and sheets) carry it here. */
+:root[data-surface="admin"] body,
+:root[data-surface="admin"] .storybook-browser-preview,
+[data-surface-scope="admin"] {
+  font-family: "Plus Jakarta Sans", system-ui, sans-serif;
+}
+
+/* ── Installed app and public website ──────────────────────────────────── */
+/* Both client presentations load Inter (index.html) and set it on :root. The
+   button corner and label weight tokens live on :root in shared theme.css
+   (`:root:has([data-site="website"])` flips them); a scope wrapper re-declares
+   them so an app column and a website column can share one document. */
+[data-surface-scope="app"],
+[data-surface-scope="website"] {
+  /* Back to the app scale inside an admin document: the label sizes take
+     their theme.css values and the metric tokens fall back to the defaults
+     the family declares (`initial` makes `var(--x, fallback)` use the fallback). */
+  --gg-label-md: 1rem;
+  --gg-label-sm: 0.875rem;
+  --gg-button-block-lg: initial;
+  --gg-button-block-md: initial;
+  --gg-button-block-sm: initial;
+  --gg-button-block-compact: initial;
+  --gg-button-inline-lg: initial;
+  --gg-button-inline-md: initial;
+  --gg-button-inline-sm: initial;
+  --gg-button-inline-compact: initial;
+  --gg-icon-size-lg: initial;
+  --gg-icon-size-md: initial;
+  --gg-icon-size-sm: initial;
+  --gg-icon-size-compact: initial;
+  --gg-hit-block: initial;
+  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+}
+
+[data-surface-scope="app"] {
+  --gg-button-radius: var(--radius-lg);
+  --gg-button-radius-pressed: var(--radius-squircle);
+  --gg-button-weight: var(--text-label-sm--font-weight);
+}
+
+[data-surface-scope="website"] {
+  --gg-button-radius: var(--radius-none);
+  --gg-button-radius-pressed: var(--radius-none);
+  --gg-button-weight: var(--font-weight-semibold, 600);
+}

@@ -77,6 +77,7 @@ export function CampaignImageInput({
   return (
     <div className="space-y-3 md:col-span-2">
       <FileUploadField
+        surface="admin"
         label={formatMessage({
           id: "cockpit.community.cookies.campaignImageUpload",
           defaultMessage: "Campaign image",

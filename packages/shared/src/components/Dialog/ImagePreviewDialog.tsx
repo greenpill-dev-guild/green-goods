@@ -19,6 +19,7 @@ import React, {
 import { useSheetPresence } from "../../hooks/ui/useSheetPresence";
 import { cn } from "../../utils/styles/cn";
 import { ImageWithFallback } from "../Display/ImageWithFallback";
+import { IconButton } from "../IconButton";
 import { defaultLabels, type ImagePreviewDialogLabels } from "./ImagePreviewDialog.labels";
 
 export type { ImagePreviewDialogLabels };
@@ -31,12 +32,63 @@ export interface ImagePreviewDialogProps {
   className?: string;
   labels?: Partial<ImagePreviewDialogLabels>;
   /**
-   * Control chrome. `app` (default) is the installed-PWA dialect: filled round
-   * icon buttons. `editorial` matches the public website's record drawer —
+   * Control chrome. `app` (default) is the installed-PWA dialect: the shared
+   * `IconButton` circles (the surface's md size: 44px in the app, the cockpit's
+   * 40px in admin; DL-031) with the translucent viewer palette from
+   * utilities.css. `editorial` matches the public website's record drawer —
    * hairline pills with mono uppercase labels. The two surface identities are
    * deliberately not mixed.
    */
   variant?: "app" | "editorial";
+}
+
+type ViewerControlProps = {
+  editorial: boolean;
+  onClick?: () => void;
+  label: string;
+  icon: React.ReactNode;
+  testId?: string;
+  optional?: "desktop";
+  direction?: "prev" | "next";
+};
+
+/** One viewer control: a raw button dressed by editorial.css, or the shared IconButton. */
+function ViewerControl({
+  editorial,
+  onClick,
+  label,
+  icon,
+  testId,
+  optional,
+  direction,
+}: ViewerControlProps) {
+  if (editorial) {
+    return (
+      <button
+        onClick={onClick}
+        data-slot="control"
+        data-optional={optional}
+        data-direction={direction}
+        aria-label={label}
+        type="button"
+        data-testid={testId}
+      >
+        {icon}
+      </button>
+    );
+  }
+  return (
+    <IconButton
+      onClick={onClick}
+      emphasis="secondary"
+      data-slot="control"
+      data-optional={optional}
+      data-direction={direction}
+      aria-label={label}
+      data-testid={testId}
+      icon={icon}
+    />
+  );
 }
 
 export const ImagePreviewDialog: React.FC<ImagePreviewDialogProps> = ({
@@ -57,7 +109,6 @@ export const ImagePreviewDialog: React.FC<ImagePreviewDialogProps> = ({
   // never generate. Its chrome is dressed from `[data-variant="editorial"]`
   // rules in the client's editorial.css, beside the tokens it uses.
   const editorial = variant === "editorial";
-  const iconBtn = editorial ? undefined : "btn-icon tap-feedback";
   const counter = editorial ? undefined : "text-sm font-medium";
   const [currentIndex, setCurrentIndex] = useState(initialIndex);
   const [scale, setScale] = useState(1);
@@ -292,63 +343,60 @@ export const ImagePreviewDialog: React.FC<ImagePreviewDialogProps> = ({
               <div className="flex items-center gap-2">
                 {/* Zoom Controls — hidden on mobile (pinch-to-zoom is native) so close button
                     stays on-screen at narrow widths. */}
-                <button
+                <ViewerControl
+                  editorial={editorial}
                   onClick={zoomOut}
-                  data-slot="control"
-                  data-optional="desktop"
-                  className={iconBtn}
-                  aria-label={resolvedLabels.zoomOut}
-                  type="button"
-                >
-                  <RiZoomOutLine className="w-5 h-5" />
-                </button>
-                <button
+                  optional="desktop"
+                  label={resolvedLabels.zoomOut}
+                  icon={<RiZoomOutLine className="w-5 h-5" />}
+                />
+                <ViewerControl
+                  editorial={editorial}
                   onClick={resetZoom}
-                  data-slot="control"
-                  data-optional="desktop"
-                  className={iconBtn}
-                  aria-label={resolvedLabels.resetZoom}
-                  type="button"
-                >
-                  <RiFocus3Line className="w-5 h-5" />
-                </button>
-                <button
+                  optional="desktop"
+                  label={resolvedLabels.resetZoom}
+                  icon={<RiFocus3Line className="w-5 h-5" />}
+                />
+                <ViewerControl
+                  editorial={editorial}
                   onClick={zoomIn}
-                  data-slot="control"
-                  data-optional="desktop"
-                  className={iconBtn}
-                  aria-label={resolvedLabels.zoomIn}
-                  type="button"
-                >
-                  <RiZoomInLine className="w-5 h-5" />
-                </button>
+                  optional="desktop"
+                  label={resolvedLabels.zoomIn}
+                  icon={<RiZoomInLine className="w-5 h-5" />}
+                />
 
                 {/* Download Button */}
-                <button
+                <ViewerControl
+                  editorial={editorial}
                   onClick={handleDownload}
-                  data-slot="control"
-                  className={iconBtn}
-                  aria-label={resolvedLabels.downloadImage}
-                  type="button"
-                  data-testid="image-preview-download"
-                >
-                  <RiDownloadLine className="w-5 h-5" />
-                </button>
+                  label={resolvedLabels.downloadImage}
+                  icon={<RiDownloadLine className="w-5 h-5" />}
+                  testId="image-preview-download"
+                />
 
                 {/* Close Button — separated visually from zoom/download cluster */}
                 <span data-slot="divider" className="ml-3 flex items-center">
                   <Dialog.Close asChild>
-                    <button
-                      data-slot="control"
-                      data-shape={editorial ? "pill" : undefined}
-                      className={editorial ? undefined : "btn-icon tap-feedback"}
-                      aria-label={resolvedLabels.closePreview}
-                      data-testid="image-preview-close"
-                      type="button"
-                    >
-                      <RiCloseLine className={editorial ? "h-3.5 w-3.5" : "w-6 h-6"} />
-                      {editorial ? resolvedLabels.close : null}
-                    </button>
+                    {editorial ? (
+                      <button
+                        data-slot="control"
+                        data-shape="pill"
+                        aria-label={resolvedLabels.closePreview}
+                        data-testid="image-preview-close"
+                        type="button"
+                      >
+                        <RiCloseLine className="h-3.5 w-3.5" />
+                        {resolvedLabels.close}
+                      </button>
+                    ) : (
+                      <IconButton
+                        emphasis="secondary"
+                        data-slot="control"
+                        aria-label={resolvedLabels.closePreview}
+                        data-testid="image-preview-close"
+                        icon={<RiCloseLine className="w-6 h-6" />}
+                      />
+                    )}
                   </Dialog.Close>
                 </span>
               </div>
@@ -394,29 +442,23 @@ export const ImagePreviewDialog: React.FC<ImagePreviewDialogProps> = ({
               {images.length > 1 && (
                 <>
                   {currentIndex > 0 && (
-                    <button
+                    <ViewerControl
+                      editorial={editorial}
                       onClick={navigatePrev}
-                      data-slot="control"
-                      data-direction="prev"
-                      className={iconBtn}
-                      aria-label={resolvedLabels.previousImage}
-                      type="button"
-                    >
-                      <RiArrowLeftSLine className="w-6 h-6" />
-                    </button>
+                      direction="prev"
+                      label={resolvedLabels.previousImage}
+                      icon={<RiArrowLeftSLine className="w-6 h-6" />}
+                    />
                   )}
 
                   {currentIndex < images.length - 1 && (
-                    <button
+                    <ViewerControl
+                      editorial={editorial}
                       onClick={navigateNext}
-                      data-slot="control"
-                      data-direction="next"
-                      className={iconBtn}
-                      aria-label={resolvedLabels.nextImage}
-                      type="button"
-                    >
-                      <RiArrowRightSLine className="w-6 h-6" />
-                    </button>
+                      direction="next"
+                      label={resolvedLabels.nextImage}
+                      icon={<RiArrowRightSLine className="w-6 h-6" />}
+                    />
                   )}
                 </>
               )}

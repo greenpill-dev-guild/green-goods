@@ -101,7 +101,7 @@ An ordinary editorial page, not a modal. It was briefly wired to a Radix dialog 
 - `?intent=<id>` mounts `PublicFundingReceipt` above the Garden grid. Receipt UI reads the in-memory token (already scrubbed by Root) and only renders redacted public fields: Garden, intent, amount, status, `fundingTxHash`, receiver wallet (Card Endow), and the management CTA when the receipt is an Endow receipt.
 - `?manage=endowments` opens `PublicEndowmentPanel`; the URL never carries wallet addresses, account ids, or receipt tokens.
 - `?garden=<id-or-slug>` resolves exact id/address first, then unique-slug match via `publicGardenHelpers.deriveSlug`. Stale / missing / zero-match / ambiguous queries render the regular Fund page with a localized non-blocking message and the matched Garden (if any) scrolls into view with a soft ring highlight.
-- Garden grid uses public Garden rows with a `Donate` primary and an `Endow` warm secondary on every row, both 40 px (DL-023). Section 3 also carries an always-visible `Manage Endowments` secondary action (the website's 16px corner, warm tone) aligned to the section header on desktop and stacked under the title on mobile.
+- Garden grid uses public Garden rows with a `Donate` primary and an `Endow` warm secondary on every row, both 40 px (DL-023). Section 3 also carries an always-visible `Manage Endowments` secondary action (the website's square corner, warm tone) aligned to the section header on desktop and stacked under the title on mobile.
 
 ### Funding UX
 
@@ -183,7 +183,7 @@ Pairing rule: keep Inter as the sans companion; **never** pair two serifs on the
 
 The public site uses the same button and field system as the installed app (DL-024):
 
-- **Actions** come from the shared `Button`, `IconButton`, and `Chip`. Every button takes the website's 16px corner and a semibold label, whatever its emphasis; a text action (arrow links such as `Show more entries`) has no container, a close is a circle, and a filter chip is a capsule (DL-026). The vault and cookie flows follow the same rule; their surfaces stay square, their buttons do not.
+- **Actions** come from the shared `Button`, `IconButton`, and `Chip`. Every button is square with a semibold label, whatever its emphasis, and does not morph on press (DL-026, DL-029); a text action (arrow links such as `Show more entries`) has no container, a close is a circle, and a filter chip is a capsule. The vault and cookie flows follow the same rule: square surfaces, square buttons.
 - **Editorial atoms** (`EditorialPrimaryButton`, `EditorialGhostButton`, their link variants, and `EditorialDomainChip`) are thin wrappers over the shared primitives that pass `size` through and add only the dialect's colors: the warm linen secondary, the walnut-surface secondary, and each domain's ink on an active filter chip.
 - **Sizes** follow the shared scale (DL-023): 48 px for hero actions, 44 px for section actions and dialog actions, 40 px for row actions (Donate, Endow), 32 px chips with a 44 px tap area. One size per context: the `Install App` CTA is 48 px in the hero and 44 px everywhere else, including the header drawer.
 - **Fields** are the editorial underline field (`surface="editorial"`: no box, a hairline in the text color, serif input text) on editorial sections, and the 16px shared field inside funding and account panels (DL-022). Display-size text never changes a field's height: the Get in Touch email and both funding amounts are 44 px, level with the actions beside and below them.

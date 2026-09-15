@@ -32,7 +32,6 @@ export {
   type ButtonProps,
   type ButtonSize,
   type ButtonTone,
-  buttonVariants,
 } from "./Button";
 export { Chip, type ChipProps } from "./Chip";
 export { IconButton, type IconButtonProps } from "./IconButton";

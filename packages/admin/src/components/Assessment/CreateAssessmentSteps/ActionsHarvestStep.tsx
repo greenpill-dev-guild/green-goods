@@ -2,8 +2,8 @@ import { DatePicker } from "@green-goods/shared/components/DatePicker/DatePicker
 import { useActions } from "@green-goods/shared/hooks/blockchain/useBaseLists";
 import { useCurrentChain } from "@green-goods/shared/hooks/blockchain/useChainConfig";
 import { useCreateAssessmentStore } from "@green-goods/shared/stores/useCreateAssessmentStore";
-import { fromCalendarDateKey, toCalendarDateKey } from "@green-goods/shared/utils/time";
 import { cn } from "@green-goods/shared/utils/styles/cn";
+import { fromCalendarDateKey, toCalendarDateKey } from "@green-goods/shared/utils/time";
 import { useEffect, useMemo, useRef } from "react";
 import { useIntl } from "react-intl";
 import { AdminButton } from "@/components/AdminButton";
@@ -220,6 +220,7 @@ export function ActionsHarvestStep({ showValidation, isSubmitting }: ActionsHarv
       >
         <div className="grid gap-2.5 md:grid-cols-2 md:gap-3">
           <DatePicker
+            surface="admin"
             id="reportingPeriodStart"
             label={formatMessage({
               id: "app.admin.assessment.sdgHarvest.reportingStartLabel",
@@ -241,6 +242,7 @@ export function ActionsHarvestStep({ showValidation, isSubmitting }: ActionsHarv
             error={(showValidation && fieldErrors.reportingPeriodStart) || undefined}
           />
           <DatePicker
+            surface="admin"
             id="reportingPeriodEnd"
             label={formatMessage({
               id: "app.admin.assessment.sdgHarvest.reportingEndLabel",

@@ -3,8 +3,8 @@ import { useEffect, useRef, useState } from "react";
 import { useIntl } from "react-intl";
 import { logger } from "../modules/app/logger";
 import { extractErrorMessage } from "../utils/errors/extract-message";
-import { cn } from "../utils/styles/cn";
 import { imageCompressor } from "../utils/work/image-compression";
+import { IconButton } from "./IconButton";
 import { toastService } from "./Toast/toast.service";
 
 const PREVIEWABLE_IMAGE_TYPES = new Set([
@@ -28,8 +28,22 @@ export interface FileUploadFieldProps {
   helpText?: string;
   currentFiles?: File[];
   onRemoveFile?: (index: number) => void;
+  /**
+   * `default` is the 16px app field; `admin` rides the cockpit field tier
+   * (8px corner, 44px on touch widths and 40px from 640px; DL-030, DL-031).
+   */
+  surface?: "default" | "admin";
 }
 
+/**
+ * FileUploadField — a hidden file input behind a field-shaped upload well.
+ *
+ * The well is a shared control (`gg-control gg-control-dropzone`): the
+ * surface's own corner and height with a dashed edge, so it lines up with the
+ * fields beside it. The label and help text ride `gg-field-label` /
+ * `gg-field-help`, and a staged file's remove control is the shared compact
+ * `IconButton` (DL-031).
+ */
 export function FileUploadField({
   id,
   onFilesChange,
@@ -42,6 +56,7 @@ export function FileUploadField({
   helpText,
   currentFiles = [],
   onRemoveFile,
+  surface = "default",
 }: FileUploadFieldProps) {
   const { formatMessage } = useIntl();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -183,9 +198,13 @@ export function FileUploadField({
   }, [filesKey, showPreview]);
 
   return (
-    <div className="space-y-2">
-      {label && <label className="block text-sm font-medium text-text-sub">{label}</label>}
-      {helpText && <p className="text-xs text-text-soft">{helpText}</p>}
+    <div className="space-y-2" data-component="FileUploadField">
+      {label && (
+        <label className="gg-field-label" htmlFor={id}>
+          {label}
+        </label>
+      )}
+      {helpText && <p className="gg-field-help">{helpText}</p>}
 
       <input
         id={id}
@@ -202,14 +221,13 @@ export function FileUploadField({
         type="button"
         onClick={handleButtonClick}
         disabled={disabled || isProcessing}
-        className={cn(
-          "flex w-full items-center justify-center gap-2 rounded-md border border-dashed border-stroke-sub bg-bg-white px-4 py-3 text-sm font-medium text-text-sub transition hover:border-primary-base hover:bg-bg-weak/80",
-          (disabled || isProcessing) && "cursor-not-allowed opacity-60"
-        )}
+        data-component="FileUploadTrigger"
+        data-surface={surface}
+        className="gg-control gg-control-dropzone"
       >
         {isProcessing ? (
           <>
-            <RiLoader4Line className="h-5 w-5 animate-spin" />
+            <RiLoader4Line className="animate-spin" aria-hidden="true" />
             <span>
               {formatMessage(
                 { id: "admin.fileUpload.processing", defaultMessage: "Processing... {progress}%" },
@@ -219,7 +237,7 @@ export function FileUploadField({
           </>
         ) : (
           <>
-            <RiUploadCloudLine className="h-5 w-5" />
+            <RiUploadCloudLine aria-hidden="true" />
             <span>
               {multiple
                 ? formatMessage({
@@ -260,17 +278,16 @@ export function FileUploadField({
                   <p className="text-xs text-text-soft">{(file.size / 1024).toFixed(1)} KB</p>
                 </div>
                 {onRemoveFile && (
-                  <button
-                    type="button"
+                  <IconButton
+                    size="compact"
+                    tone="danger"
                     onClick={() => handleRemove(index)}
-                    className="rounded-md p-1 text-error-base transition hover:bg-error-lighter"
                     aria-label={formatMessage(
                       { id: "admin.fileUpload.remove", defaultMessage: "Remove {filename}" },
                       { filename: safeFileName }
                     )}
-                  >
-                    <RiCloseLine className="h-5 w-5" />
-                  </button>
+                    icon={<RiCloseLine />}
+                  />
                 )}
               </div>
             );
