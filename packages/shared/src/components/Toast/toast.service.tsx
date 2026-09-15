@@ -129,10 +129,12 @@ const STATUS_ARIA_ROLE: Record<ToastStatus, "status" | "alert"> = {
   error: "alert",
 };
 
+// The shared Button carries its own finger box (48px in the app, 44px in the
+// cockpit; DL-030), so the action keeps the surface's sm height and only widens
+// to a 44px minimum for one-word labels.
 const ACTION_BUTTON_STYLE: React.CSSProperties = {
   color: "rgb(var(--tone-action, var(--primary-action)))",
   maxWidth: "100%",
-  minHeight: "44px",
   minWidth: "44px",
   overflowWrap: "anywhere",
   paddingInline: "0.25rem",
@@ -526,93 +528,35 @@ function ToastMessage({
     "focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary-base)] focus-visible:ring-offset-2"
   );
 
-  // Dismissible toasts use a clickable container.
-  // We avoid role="button" since there are nested <button> elements inside (invalid HTML).
-  // Instead, we make the container focusable and handle keyboard events directly.
-  // The inner action buttons remain as real <button> elements for proper semantics.
-  if (dismissible) {
-    const handleKeyDown = (e: React.KeyboardEvent) => {
-      // Only handle keyboard dismiss if the target is the container itself (not nested buttons)
-      if (e.target === e.currentTarget && (e.key === "Enter" || e.key === " ")) {
-        e.preventDefault();
-        handleDismiss();
-      }
-    };
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    // Only handle keyboard dismiss if the target is the container itself (not nested buttons)
+    if (e.target === e.currentTarget && (e.key === "Enter" || e.key === " ")) {
+      e.preventDefault();
+      handleDismiss();
+    }
+  };
 
-    const handleContainerClick = (e: React.MouseEvent) => {
-      // Only dismiss if clicking the container, not nested buttons
-      if (e.target === e.currentTarget || !(e.target as HTMLElement).closest("button")) {
-        handleDismiss();
-      }
-    };
+  const handleContainerClick = (e: React.MouseEvent) => {
+    // Only dismiss if clicking the container, not nested buttons
+    if (e.target === e.currentTarget || !(e.target as HTMLElement).closest("button")) {
+      handleDismiss();
+    }
+  };
 
-    return (
-      <div // eslint-disable-line jsx-a11y/no-noninteractive-element-interactions -- live-region container is the dismiss target; nested <button>s forbid role="button"
-        role="status"
-        tabIndex={0} // eslint-disable-line jsx-a11y/no-noninteractive-tabindex -- must be focusable to dismiss by keyboard and to pause auto-dismiss on focus
-        className={containerClassName}
-        aria-label={ariaLabel}
-        data-testid="toast-content"
-        onClick={handleContainerClick}
-        onKeyDown={handleKeyDown}
-        {...pauseHandlers}
-      >
-        {closeButton}
-        {title ? <p className="text-sm font-semibold leading-tight">{title}</p> : null}
-        <p className="text-sm leading-snug">{message}</p>
-        {description ? (
-          <p className="text-xs leading-snug text-[color:var(--color-text-sub-600)]">
-            {description}
-          </p>
-        ) : null}
-        {/* Debug mode: show verbose error info */}
-        {debugDescription ? (
-          <div className="mt-1 rounded bg-[var(--color-bg-weak-50)] p-2">
-            <p className="break-all font-mono text-[10px] leading-tight text-[color:var(--color-text-sub-600)]">
-              {debugDescription}
-            </p>
-          </div>
-        ) : null}
-        {/* Action buttons row */}
-        <div className="flex items-center gap-3" style={{ flexWrap: "wrap" }}>
-          {action ? (
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              onClick={handleAction}
-              style={ACTION_BUTTON_STYLE}
-              data-testid={action.testId}
-            >
-              {buttonLabel}
-            </Button>
-          ) : null}
-          {/* Debug mode: copy error button */}
-          {onCopyError ? (
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              onClick={(e) => {
-                e.stopPropagation(); // Prevent triggering dismiss
-                onCopyError();
-              }}
-              style={ACTION_BUTTON_STYLE}
-              data-testid="toast-copy-error"
-            >
-              {copySuccess ? "✓ Copied" : "📋 Copy Error"}
-            </Button>
-          ) : null}
-        </div>
-      </div>
-    );
-  }
+  // Dismissible toasts use a clickable container. We avoid role="button" since
+  // there are nested <button> elements inside (invalid HTML): the live-region
+  // container is focusable and handles keyboard events directly, and the inner
+  // action buttons remain real <button> elements for proper semantics.
+  const dismissProps = dismissible
+    ? { role: "status", tabIndex: 0, onClick: handleContainerClick, onKeyDown: handleKeyDown }
+    : undefined;
 
   return (
     <div
       className={containerClassName}
       aria-label={ariaLabel}
       data-testid="toast-content"
+      {...dismissProps}
       {...pauseHandlers}
     >
       {closeButton}
@@ -634,7 +578,7 @@ function ToastMessage({
         {action ? (
           <Button
             type="button"
-            variant="ghost"
+            emphasis="tertiary"
             size="sm"
             onClick={handleAction}
             style={ACTION_BUTTON_STYLE}
@@ -647,7 +591,7 @@ function ToastMessage({
         {onCopyError ? (
           <Button
             type="button"
-            variant="ghost"
+            emphasis="tertiary"
             size="sm"
             onClick={(e) => {
               e.stopPropagation(); // Prevent triggering dismiss

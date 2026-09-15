@@ -162,17 +162,3 @@ export const WebsiteSurface: Story = {
     }
   },
 };
-
-/** The legacy `variant` path, kept for EmptyState and toasts that admin still renders. */
-export const LegacyVariant: Story = {
-  render: () => (
-    <div className="flex flex-wrap items-center gap-3">
-      <Button variant="primary" size="sm">
-        Legacy Primary
-      </Button>
-      <Button variant="ghost" size="sm">
-        Legacy Ghost
-      </Button>
-    </div>
-  ),
-};

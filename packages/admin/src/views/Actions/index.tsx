@@ -13,6 +13,7 @@ import {
 import { useActionsController } from "@green-goods/shared/hooks/admin-ui/actions/useActionsController";
 import { useMediaQuery } from "@green-goods/shared/hooks/ui/useMediaQuery";
 import { localizeAction } from "@green-goods/shared/utils/action/translations";
+import { AdminButton } from "@/components/AdminButton";
 import { AdminCard } from "@/components/AdminCard";
 import { AdminSearchToolbar } from "@/components/AdminSearchToolbar";
 import { AdminSortSelect } from "@/components/AdminSortSelect";
@@ -158,15 +159,14 @@ export default function Actions() {
                 defaultMessage: "Get started by creating your first action.",
               })}
               action={
-                actions.canManageActions
-                  ? {
-                      label: intl.formatMessage({
-                        id: "app.actions.createFirst",
-                        defaultMessage: "Create Your First Action",
-                      }),
-                      onClick: actions.openCreateAction,
-                    }
-                  : undefined
+                actions.canManageActions ? (
+                  <AdminButton onClick={actions.openCreateAction}>
+                    {intl.formatMessage({
+                      id: "app.actions.createFirst",
+                      defaultMessage: "Create Your First Action",
+                    })}
+                  </AdminButton>
+                ) : undefined
               }
             />
           </AdminCard>
@@ -182,13 +182,14 @@ export default function Actions() {
                 id: "admin.actions.noResults",
                 defaultMessage: "No actions match your filters",
               })}
-              action={{
-                label: intl.formatMessage({
-                  id: "admin.actions.resetFilters",
-                  defaultMessage: "Reset Filters",
-                }),
-                onClick: actions.resetFilters,
-              }}
+              action={
+                <AdminButton variant="outlined" onClick={actions.resetFilters}>
+                  {intl.formatMessage({
+                    id: "admin.actions.resetFilters",
+                    defaultMessage: "Reset Filters",
+                  })}
+                </AdminButton>
+              }
             />
           </AdminCard>
         ) : null}

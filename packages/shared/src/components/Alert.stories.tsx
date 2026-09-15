@@ -65,7 +65,7 @@ export const WithAction: Story = {
     title: "Treasury data refreshed",
     children: "Re-run the reconciliation flow if the balances still look stale.",
     action: (
-      <Button size="sm" variant="secondary">
+      <Button size="sm" emphasis="secondary">
         Refresh
       </Button>
     ),
