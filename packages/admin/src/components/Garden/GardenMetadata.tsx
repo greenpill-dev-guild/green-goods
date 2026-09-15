@@ -77,7 +77,7 @@ export const GardenMetadata: React.FC<GardenMetadataProps> = ({
   return (
     <div
       className={cn(
-        "grid gap-3 rounded-xl border border-stroke-soft bg-bg-white p-3 shadow-[var(--m3-elevation-1)] transition-shadow duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)] hover:shadow-[var(--m3-elevation-2)] sm:p-4 md:grid-cols-2 lg:grid-cols-3",
+        "grid gap-3 rounded-xl border border-stroke-soft bg-bg-white p-3 shadow-[var(--m3-elevation-1)] transition-shadow duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)] hover:shadow-[var(--m3-elevation-2)] sm:p-4",
         className
       )}
     >
@@ -181,7 +181,7 @@ export const GardenMetadata: React.FC<GardenMetadataProps> = ({
       </div>
 
       {/* Quick Actions */}
-      <div className="flex flex-col gap-2 md:col-span-2 lg:col-span-1">
+      <div className="flex flex-col gap-2">
         <div className="label-xs text-text-soft">
           {formatMessage({
             id: "admin.gardenMetadata.externalLinks",
