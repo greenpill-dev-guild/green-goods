@@ -315,7 +315,7 @@ describe("AppSettings", () => {
       render(wrap(createElement(AppSettings)));
 
       expect(screen.getByRole("status", { name: "Update" })).toHaveTextContent(
-        "Close and reopen the app."
+        "The update has not finished. Try again, or keep using the app and update later."
       );
       await user.click(screen.getByRole("button", { name: "Try Again" }));
 

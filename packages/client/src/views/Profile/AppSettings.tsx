@@ -1,10 +1,10 @@
 import { Button } from "@green-goods/shared/components/Button";
 import { toastService } from "@green-goods/shared/components/Toast/toast.service";
-import { capitalize } from "@green-goods/shared/utils/app/text";
-import { hapticLight } from "@green-goods/shared/utils/app/haptics";
-import { type Locale, useApp } from "@green-goods/shared/providers/App";
 import { useServiceWorkerUpdate } from "@green-goods/shared/hooks/app/useServiceWorkerUpdate";
 import { useTheme } from "@green-goods/shared/hooks/app/useTheme";
+import { type Locale, useApp } from "@green-goods/shared/providers/App";
+import { hapticLight } from "@green-goods/shared/utils/app/haptics";
+import { capitalize } from "@green-goods/shared/utils/app/text";
 import { RiEarthFill, RiRefreshLine, RiSettings2Line } from "@remixicon/react";
 import { type ReactNode, useMemo } from "react";
 import { useIntl } from "react-intl";
@@ -256,7 +256,8 @@ export const AppSettings: React.FC = () => {
         return {
           status: intl.formatMessage({
             id: "app.update.stalled.description",
-            defaultMessage: "Close and reopen the app.",
+            defaultMessage:
+              "The update has not finished. Try again, or keep using the app and update later.",
           }),
           label: retryLabel,
           busy: false,
