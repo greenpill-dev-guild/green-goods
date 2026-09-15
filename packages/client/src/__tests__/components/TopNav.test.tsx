@@ -134,8 +134,10 @@ describe("components/Navigation/TopNav", () => {
 
       const sheet = screen.getByTestId("app-sheet");
       expect(sheet).toHaveAttribute("data-sheet-size", "tall");
+      // The shared sheet body is the single scroll owner (attribute CSS, DL-028).
       const region = screen.getByTestId("garden-notifications").parentElement;
-      expect(region).toHaveClass("overflow-y-auto");
+      expect(region).toHaveAttribute("data-slot", "body");
+      expect(region?.querySelector(".overflow-y-auto")).toBeNull();
     });
 
     it("hides notification bell when user is NOT a steward", () => {

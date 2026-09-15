@@ -2,7 +2,8 @@ import { Alert } from "@green-goods/shared/components/Alert";
 import { Button } from "@green-goods/shared/components/Button";
 import { ConfidenceSelector } from "@green-goods/shared/components/Form/ConfidenceSelector";
 import { Textarea } from "@green-goods/shared/components/Form/ControlPrimitives";
-import { IconButton } from "@green-goods/shared/components/IconButton";
+import { SheetHeader } from "@green-goods/shared/components/Dialog/SheetHeader";
+import { SheetHeading } from "@green-goods/shared/components/Dialog/SheetHeading";
 import { useWorkDetailController } from "@green-goods/shared/hooks/client-ui/work/useWorkDetailController";
 import { cn } from "@green-goods/shared/utils/styles/cn";
 import { RiCheckLine, RiCloseLine, RiErrorWarningLine, RiUploadCloudLine } from "@remixicon/react";
@@ -162,66 +163,63 @@ export const GardenWork: React.FC = () => {
             aria-labelledby="feedback-drawer-title"
             aria-describedby="feedback-drawer-description"
           >
-            <div className="p-4 space-y-3 max-w-screen-sm mx-auto overflow-y-auto max-h-[60vh]">
-              <div className="flex items-center justify-between">
-                <h2 id="feedback-drawer-title" className="text-sm font-medium text-text-strong-950">
-                  {feedbackMode === "approve"
+            {/* The drawer caps at the half height; its header stays put while the fields scroll. */}
+            <div className="mx-auto flex max-h-[50dvh] max-w-screen-sm flex-col">
+              <SheetHeader
+                standalone
+                title={intl.formatMessage({
+                  id: "app.home.workApproval.feedbackTitle",
+                  defaultMessage: "Add Feedback",
+                })}
+                titleId="feedback-drawer-title"
+                description={
+                  feedbackMode === "approve"
                     ? intl.formatMessage({
-                        id: "app.home.workApproval.addFeedbackOptional",
-                        defaultMessage: "Add feedback (optional)",
+                        id: "app.home.workApproval.feedbackApproveDescription",
+                        defaultMessage: "Optional when you approve.",
                       })
                     : intl.formatMessage({
-                        id: "app.home.workApproval.addFeedbackRequired",
-                        defaultMessage: "Please add feedback for the gardener.",
+                        id: "app.home.workApproval.feedbackRejectDescription",
+                        defaultMessage: "Required when you reject work.",
+                      })
+                }
+                descriptionId="feedback-drawer-description"
+                closeLabel={intl.formatMessage({ id: "app.common.close", defaultMessage: "Close" })}
+                onClose={handleCancelFeedback}
+                closeTestId="work-feedback-close"
+              />
+              <div className="min-h-0 space-y-3 overflow-y-auto px-4 pb-4">
+                {/* Confidence selector — above feedback, required for approvals */}
+                {feedbackMode === "approve" && (
+                  <div className="space-y-2">
+                    <SheetHeading as="label" className="block">
+                      {intl.formatMessage({
+                        id: "app.home.workApproval.confidence",
+                        defaultMessage: "Confidence",
                       })}
-                </h2>
-                <IconButton
-                  onClick={handleCancelFeedback}
-                  aria-label={intl.formatMessage({
-                    id: "app.home.workApproval.closeFeedback",
-                    defaultMessage: "Close Feedback",
+                    </SheetHeading>
+                    <ConfidenceSelector value={confidence} onChange={setConfidence} required />
+                  </div>
+                )}
+
+                <label htmlFor="approval-feedback-input" className="sr-only">
+                  {intl.formatMessage({
+                    id: "app.home.workApproval.feedbackLabel",
+                    defaultMessage: "Feedback",
                   })}
-                  icon={<RiCloseLine aria-hidden="true" />}
+                </label>
+                <Textarea
+                  id="approval-feedback-input"
+                  value={inlineFeedback}
+                  onChange={(e) => setInlineFeedback(e.target.value)}
+                  placeholder={intl.formatMessage({
+                    id: "app.home.workApproval.feedbackPlaceholder",
+                    defaultMessage:
+                      "Add feedback for the gardener (optional for approval, required for rejection)...",
+                  })}
+                  className="min-h-[120px] resize-none overflow-y-auto [touch-action:pan-y] [overscroll-behavior-y:auto]"
                 />
               </div>
-
-              <p id="feedback-drawer-description" className="sr-only">
-                {intl.formatMessage({
-                  id: "app.home.workApproval.feedbackDescription",
-                  defaultMessage: "Provide feedback on this work submission",
-                })}
-              </p>
-
-              {/* Confidence selector — above feedback, required for approvals */}
-              {feedbackMode === "approve" && (
-                <div className="space-y-1">
-                  <label className="text-xs font-medium text-text-sub-600 uppercase tracking-wide">
-                    {intl.formatMessage({
-                      id: "app.home.workApproval.confidence",
-                      defaultMessage: "Confidence",
-                    })}
-                  </label>
-                  <ConfidenceSelector value={confidence} onChange={setConfidence} required />
-                </div>
-              )}
-
-              <label htmlFor="approval-feedback-input" className="sr-only">
-                {intl.formatMessage({
-                  id: "app.home.workApproval.feedbackLabel",
-                  defaultMessage: "Feedback",
-                })}
-              </label>
-              <Textarea
-                id="approval-feedback-input"
-                value={inlineFeedback}
-                onChange={(e) => setInlineFeedback(e.target.value)}
-                placeholder={intl.formatMessage({
-                  id: "app.home.workApproval.feedbackPlaceholder",
-                  defaultMessage:
-                    "Add feedback for the gardener (optional for approval, required for rejection)...",
-                })}
-                className="min-h-[120px] max-h-[40vh] resize-none overflow-y-auto [touch-action:pan-y] [overscroll-behavior-y:auto]"
-              />
             </div>
 
             {/* Visual separator */}

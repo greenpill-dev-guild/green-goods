@@ -104,9 +104,13 @@ test.describe("Offline Work Submission CI Tests", () => {
     await expect(dashboard).toBeVisible({ timeout: 15000 });
     await expect(dashboard.getByText("1 items in progress")).toBeVisible({ timeout: 15000 });
     await expect(dashboard.getByText("You submitted")).toBeVisible();
-    await expect(page.getByRole("status", OFFLINE_STATUS)).toBeVisible();
+    // The dashboard is a modal sheet: while it is open the page, the offline bar
+    // included, is hidden from assistive tech, so look for the bar itself.
+    await expect(
+      page.getByRole("status", { ...OFFLINE_STATUS, includeHidden: true })
+    ).toBeVisible();
     await attachScreenshot(page, "queued-in-dashboard-offline");
-    await page.getByRole("button", { name: "Close Modal" }).click();
+    await dashboard.getByTestId("app-sheet-close").click();
     await expect(dashboard).toBeHidden();
     await expect(
       page.getByText("Offline: 1 items waiting to send when you're back online")

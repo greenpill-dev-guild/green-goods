@@ -135,7 +135,8 @@ export function MyDepositRow({ deposit, vault, gardenAddress }: MyDepositRowProp
         description={formatMessage(
           { id: "app.treasury.confirmWithdrawDescription" },
           {
-            amount: formatTokenAmount(parsedAmount, assetDecimals),
+            shares: formatTokenAmount(preview?.previewWithdrawShares ?? 0n, 18),
+            estimatedValue: formatTokenAmount(parsedAmount, assetDecimals),
             asset: assetSymbol,
           }
         )}

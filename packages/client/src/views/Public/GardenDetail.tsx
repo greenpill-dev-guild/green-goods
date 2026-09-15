@@ -238,7 +238,7 @@ function GardenUnavailable({ onRetry }: { onRetry: () => void }) {
   return (
     <>
       <div className="mx-auto max-w-6xl px-6 py-32 sm:px-10">
-        <h1 className="font-serif text-3xl text-text-strong-950">
+        <h1 className="font-serif text-3xl font-bold text-text-strong-950">
           {formatMessage({
             id: "public.gardenDetail.unavailable",
             defaultMessage: "This Garden could not be loaded",
@@ -277,7 +277,7 @@ function GardenNotFound() {
   return (
     <>
       <div className="mx-auto max-w-6xl px-6 py-32 sm:px-10">
-        <h1 className="font-serif text-3xl text-text-strong-950">
+        <h1 className="font-serif text-3xl font-bold text-text-strong-950">
           {formatMessage({
             id: "public.gardenDetail.notFound",
             defaultMessage: "Garden not found",

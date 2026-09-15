@@ -1,6 +1,7 @@
 import { configureConnectivityProbe } from "@green-goods/shared/hooks/app/useOnlineStatus";
 import { scrollAppToTop } from "@green-goods/shared/hooks/app/useScrollToTop";
 import { useDocumentScrollLockLifecycle } from "@green-goods/shared/hooks/ui/useDocumentScrollLock";
+import { logger } from "@green-goods/shared/modules/app/logger";
 import { JobQueueProvider } from "@green-goods/shared/providers/JobQueue";
 import { WorkProvider } from "@green-goods/shared/providers/Work";
 import { useUIStore } from "@green-goods/shared/stores/useUIStore";
@@ -11,8 +12,19 @@ import { PwaBadgeCoordinator } from "@/components/Communication/PwaBadgeCoordina
 import { AppBar } from "@/components/Layout/AppBar";
 import { APP_ROUTES } from "@/config/pwaRouting";
 
-const OfflineContentPreparation = lazy(
-  () => import("@/components/Communication/Offline/OfflineContentPreparation")
+const OfflineContentPreparation = lazy(() =>
+  import("@/components/Communication/Offline/OfflineContentPreparation")
+    // Background preparation is optional, like the reminder below. It starts
+    // loading as the shell mounts, so a connection that drops before its chunk
+    // arrives (on demand in dev, or before the precache finishes) skips
+    // preparation for this visit instead of replacing the route with the error
+    // boundary.
+    .catch((error: unknown) => {
+      logger.warn("[AppShell] Offline content preparation did not load", {
+        error: error instanceof Error ? error.message : String(error),
+      });
+      return { default: () => null };
+    })
 );
 
 const ENSClaimReminder = lazy(() =>

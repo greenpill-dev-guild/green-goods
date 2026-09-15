@@ -38,7 +38,8 @@ const meta: Meta<typeof ConfirmDialog> = {
     variant: {
       control: "select",
       options: ["default", "warning", "danger"],
-      description: "Visual variant — warning/danger shows an alert icon and colored confirm button",
+      description:
+        "Visual variant — warning/danger fill the confirm with the warning or error color and announce an alertdialog (no header icon, DL-028)",
     },
     confirmLabel: {
       control: "text",

@@ -245,7 +245,7 @@ export const GardenAssessments = forwardRef<HTMLDivElement, GardenAssessmentsPro
               <div className="flex w-full flex-col gap-2">
                 <div className="flex w-full flex-row border-b border-stroke-soft-200 p-3">
                   <RiInformationLine size={24} className="text-primary" aria-hidden="true" />
-                  <h2 className="px-2 font-medium text-text-strong-950">
+                  <h2 className="px-2 text-[1.5rem] font-medium text-text-strong-950">
                     {intl.formatMessage({ id: "app.garden.description.label" })}
                   </h2>
                 </div>

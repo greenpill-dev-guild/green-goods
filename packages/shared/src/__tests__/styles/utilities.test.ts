@@ -58,9 +58,9 @@ describe("shared utilities.css", () => {
     expect(utilitiesContent).toContain(".tap-target-lg");
   });
 
-  it("exports modal height utilities", () => {
-    expect(utilitiesContent).toContain(".h-modal");
-    expect(utilitiesContent).toContain(".max-h-modal");
+  it("no longer ships the unused modal height utilities", () => {
+    expect(utilitiesContent).not.toContain(".h-modal");
+    expect(utilitiesContent).not.toContain(".max-h-modal");
   });
 
   it("defines the four bottom-sheet height tiers (DL-014)", () => {
@@ -107,9 +107,9 @@ describe("PwaSheet layout contract", () => {
     expect(declarations("overlay")).toMatch(/z-index:\s*var\(--z-modal\)/);
   });
 
-  it("falls back to content height with an 85dvh cap when no tier is set", () => {
+  it("leaves every cap to the height tiers: the surface sets none of its own", () => {
     expect(declarations("surface")).toMatch(/height:\s*auto/);
-    expect(declarations("surface")).toMatch(/max-height:\s*85dvh/);
+    expect(declarations("surface")).not.toMatch(/max-height/);
     expect(declarations("surface")).toMatch(/border-top-left-radius:\s*var\(--radius-lg\)/);
   });
 
@@ -118,12 +118,51 @@ describe("PwaSheet layout contract", () => {
     expect(declarations("drag-handle")).toMatch(/touch-action:\s*none/);
   });
 
-  it("ships the shared header and scrollable body", () => {
-    expect(declarations("header")).toMatch(/display:\s*flex/);
-    // The close control is the shared IconButton; its 44px circle lives in theme.css.
+  it("ships the scrollable body under the shared header", () => {
+    expect(declarations("body")).toMatch(/overflow-y:\s*auto/);
+    // The header itself is the shared SheetHeader; see its contract below.
+    expect(declarations("header")).toBe("");
+  });
+});
+
+describe("SheetHeader anatomy contract (DL-028)", () => {
+  const rule = (slot: string) =>
+    new RegExp(`\\[data-component="SheetHeader"\\]\\[data-slot="${slot}"\\]\\s*\\{([^}]*)\\}`);
+  const declarations = (slot: string) => utilitiesContent.match(rule(slot))?.[1] ?? "";
+
+  it("types the title at 18/600 on a 24px line and the description at 14/400 on 20px", () => {
+    expect(declarations("title")).toMatch(/font-size:\s*1\.125rem/);
+    expect(declarations("title")).toMatch(/line-height:\s*1\.5rem/);
+    expect(declarations("title")).toMatch(/font-weight:\s*600/);
+    expect(declarations("description")).toMatch(/font-size:\s*0\.875rem/);
+    expect(declarations("description")).toMatch(/line-height:\s*1\.25rem/);
+  });
+
+  it("wraps instead of clipping and draws no rule under the header", () => {
+    expect(declarations("title")).toMatch(/overflow-wrap:\s*anywhere/);
+    expect(declarations("description")).toMatch(/overflow-wrap:\s*anywhere/);
+    expect(declarations("title")).not.toMatch(/text-overflow|white-space:\s*nowrap/);
+    expect(declarations("root")).not.toMatch(/border-bottom/);
+    expect(declarations("root")).toMatch(/align-items:\s*flex-start/);
+  });
+
+  it("gives every heading inside a sheet body one style: 14/600 on a 20px line, sentence case", () => {
+    const heading =
+      utilitiesContent.match(/\[data-component="SheetHeading"\]\s*\{([^}]*)\}/)?.[1] ?? "";
+    expect(heading).toMatch(/font-size:\s*0\.875rem/);
+    expect(heading).toMatch(/line-height:\s*1\.25rem/);
+    expect(heading).toMatch(/font-weight:\s*600/);
+    expect(heading).toMatch(/text-transform:\s*none/);
+    expect(heading).toMatch(/color:\s*rgb\(var\(--text-strong-950\)\)/);
+  });
+
+  it("keeps the close control on the shared 44px IconButton and shows a hairline only while the body scrolls", () => {
     expect(declarations("close")).toBe("");
     expect(themeContent).toMatch(/\.gg-icon-button\s*\{[^}]*--gg-icon-button-size:\s*2\.75rem/);
-    expect(declarations("body")).toMatch(/overflow-y:\s*auto/);
+    expect(utilitiesContent).toMatch(
+      /\[data-scroll-edge="top"\]\s*\{[^}]*background-attachment:\s*local,\s*scroll/
+    );
+    expect(utilitiesContent).toMatch(/\[data-scroll-edge="both"\]/);
   });
 });
 

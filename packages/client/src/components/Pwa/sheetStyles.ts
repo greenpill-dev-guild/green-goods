@@ -3,12 +3,8 @@ import { pwaStatusStyles } from "./statusStyles";
 export const PWA_SHEET_CLOSE_DURATION_VAR = "--spring-spatial-duration";
 
 export interface PwaSheetStyle {
-  overlay: string;
   dialogOverlay: string;
   overlayTransition: string;
-  panel: string;
-  dialogSurface: string;
-  header: string;
   tabs: string;
   tabTrigger: string;
   tabActive: string;
@@ -21,16 +17,9 @@ export interface PwaSheetStyle {
 }
 
 export const pwaSheetStyles = {
-  overlay: "fixed inset-0 z-modal flex items-end justify-center bg-[var(--color-scrim)]",
   dialogOverlay: "fixed inset-0 z-overlay bg-[var(--color-scrim)]",
   overlayTransition:
     "transition-opacity duration-[var(--spring-effects-duration)] ease-[var(--spring-effects-easing)]",
-  panel:
-    "bg-[var(--color-material-solid)] rounded-t-[var(--radius-lg)] shadow-[var(--shadow-float)] border border-stroke-soft-200 border-b-0 w-full overflow-hidden flex flex-col",
-  dialogSurface:
-    "bg-[var(--color-material-solid)] rounded-[var(--radius-2xl)] shadow-[var(--shadow-float)] border border-stroke-soft-200",
-  header:
-    "flex items-center justify-between p-4 border-b border-stroke-soft-200 flex-shrink-0 bg-[var(--color-material-solid)]",
   tabs: "flex border-b border-stroke-soft-200 flex-shrink-0 bg-bg-weak-50",
   tabTrigger:
     "flex min-h-11 items-center justify-center gap-1 px-1.5 py-2.5 text-xs font-medium transition-[color,background-color,border-color,box-shadow,transform] duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)] relative flex-1 min-w-0 tap-feedback sm:min-h-12 sm:gap-2 sm:px-3 sm:py-3 sm:text-label-sm focus:outline-none focus-visible:shadow-button-primary-focus active:text-primary",

@@ -1,5 +1,6 @@
 import { Alert } from "@green-goods/shared/components/Alert";
 import { Textarea } from "@green-goods/shared/components/Form/ControlPrimitives";
+import { SheetHeading } from "@green-goods/shared/components/Dialog/SheetHeading";
 import { formatTokenAmount } from "@green-goods/shared/utils/blockchain/vaults";
 import type { SendableTokenBalance } from "@green-goods/shared/hooks/blockchain/useSendableTokens";
 import { RiPencilLine } from "@remixicon/react";
@@ -99,12 +100,9 @@ export function ReviewStep({
       </div>
 
       <div className="space-y-1.5">
-        <label
-          htmlFor="send-note"
-          className="text-xs font-medium uppercase tracking-wide text-text-soft-400"
-        >
+        <SheetHeading as="label" htmlFor="send-note" className="block">
           {formatMessage({ id: "app.send.note.label" })}
-        </label>
+        </SheetHeading>
         <Textarea
           id="send-note"
           value={note}
