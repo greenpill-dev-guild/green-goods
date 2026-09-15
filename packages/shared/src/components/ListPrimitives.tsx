@@ -19,8 +19,10 @@ export interface EmptyStateProps {
 }
 
 function isActionProps(action: EmptyStateAction): action is ButtonProps & { label: string } {
+  // The null check comes first: `typeof null` is "object", and after a typeof
+  // narrowing static analysis reads a later null comparison as dead.
   return (
-    typeof action === "object" && action !== null && !isValidElement(action) && "label" in action
+    action !== null && typeof action === "object" && !isValidElement(action) && "label" in action
   );
 }
 
