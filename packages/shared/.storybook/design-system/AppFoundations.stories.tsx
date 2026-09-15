@@ -68,7 +68,13 @@ export const Tokens: Story = {
             <Button>Create Garden</Button>
             <TextInput aria-label="md field" placeholder="md field" className="max-w-[180px]" />
           </Specimen>
-          <Specimen title="sm · 40" target=".gg-button, .gg-control" all expect={{ height: 40, hit: 40 }}>
+          <Specimen
+            title="sm · 40"
+            targets={[
+              { name: "button", selector: ".gg-button", expect: { height: 40, hit: 48 } },
+              { name: "field", selector: ".gg-control", expect: { height: 40 } },
+            ]}
+          >
             <Button size="sm">Endow</Button>
             <TextInput aria-label="sm field" controlSize="sm" placeholder="sm field" className="max-w-[180px]" />
           </Specimen>

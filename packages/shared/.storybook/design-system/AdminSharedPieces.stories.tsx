@@ -18,7 +18,7 @@ import { EmptyState } from "../../src/components/ListPrimitives";
 import { ToastViewport } from "../../src/components/Toast/ToastViewport";
 import { toastService } from "../../src/components/Toast/toast.service";
 import { AssetSelector } from "../../src/components/Vault/AssetSelector";
-import { Confidence } from "../../src/types/domain";
+import { type Address, Confidence } from "../../src/types/domain";
 import { STORYBOOK_ADMIN_VAULTS } from "../adminFixtures";
 import { FIXTURE_IMAGE_AGROFORESTRY, FIXTURE_IMAGE_SOLAR } from "../fixtures";
 import { Page, Row, Section, Specimen, StoryLink } from "./measure";
@@ -48,7 +48,7 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-const ADDRESS = "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045" as const;
+const ADDRESS = "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045" satisfies Address;
 
 function ToastAction() {
   useEffect(() => {

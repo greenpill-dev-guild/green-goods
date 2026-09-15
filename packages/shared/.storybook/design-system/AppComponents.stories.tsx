@@ -21,7 +21,7 @@ const meta = {
     docs: {
       description: {
         component:
-          "The installed app's control family: the shared Button (every emphasis × tone × size × state), IconButton, Chip, and the field primitives, rendered on the app surface and measured live against the app rules (12px corner, 8px pressed, weight 400, 48 / 44 / 40 / 32 with a 48px hit area on the short sizes, 16px fields).",
+          "The installed app's control family: the shared Button (every emphasis × tone × size × state), IconButton, Chip, and the field primitives, rendered on the app surface and measured live against the app rules (16px corner, 12px pressed, weight 400, 48 / 44 / 40 / 32 with a 48px hit area on the short sizes, 16px fields).",
       },
     },
   },

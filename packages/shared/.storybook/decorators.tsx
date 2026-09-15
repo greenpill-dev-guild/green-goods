@@ -132,12 +132,14 @@ export const withAdminStoryIsolation: Decorator = (Story, context) => {
  * it: the admin M3 type scale, Plus Jakarta Sans, and the Tier 1a colour
  * aliases for `admin`; the client typography rules for `app` and `website`;
  * and `data-site="website"` (the public shell's attribute, DL-026) around
- * website stories so the shared buttons take the 16px corner and semibold label.
+ * website stories so the shared buttons take the square corner and semibold
+ * label (DL-028).
  *
  * `withSurface` runs globally (preview.tsx) and infers the surface from the
  * story title — `Admin/*` → admin, `Client/Public/*` and `Public/*` → website,
- * everything else → app. A story can override it with `parameters.surface`
- * or the explicit `withAppSurface` / `withWebsiteSurface` / `withAdminSurface`.
+ * everything else → app. A story overrides it with `parameters.surface`, which
+ * keeps a single surface root: a root nested by a story decorator would be
+ * overwritten by this outer one, whose layout effect runs after its child's.
  */
 export type StorySurface = "app" | "website" | "admin";
 
@@ -174,24 +176,6 @@ export const withSurface: Decorator = (Story, context) => {
     </SurfaceRoot>
   );
 };
-
-export const withAppSurface: Decorator = (Story) => (
-  <SurfaceRoot surface="app">
-    <Story />
-  </SurfaceRoot>
-);
-
-export const withWebsiteSurface: Decorator = (Story) => (
-  <SurfaceRoot surface="website">
-    <Story />
-  </SurfaceRoot>
-);
-
-export const withAdminSurface: Decorator = (Story) => (
-  <SurfaceRoot surface="admin">
-    <Story />
-  </SurfaceRoot>
-);
 
 export const withTheme: Decorator = (Story) => {
   const [{ theme }] = useGlobals();

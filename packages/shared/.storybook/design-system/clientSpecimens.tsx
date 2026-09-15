@@ -286,9 +286,15 @@ export function HitAreas({ rules }: { rules: ClientRules }) {
   return (
     <Specimen
       title="Hit areas (dashed): sm and compact reach 48px"
-      target=".gg-button, .gg-icon-button, .gg-chip"
-      all
-      expect={{ hit: 44 }}
+      targets={[
+        {
+          name: "buttons and icon buttons",
+          selector: ".gg-button, .gg-icon-button",
+          all: true,
+          expect: { hit: rules.button("compact").hit },
+        },
+        { name: "chips", selector: ".gg-chip", all: true, expect: { hit: rules.chip().hit } },
+      ]}
       note="The dashed box is the ::after pseudo-element each short control lays out for the finger (DL-023). Chips reach 44px, buttons and icon buttons 48px."
       wide
     >
@@ -313,9 +319,9 @@ export function ClientTokens({ rules, scopeSelector }: { rules: ClientRules; sco
         { name: "--gg-button-radius", expected: `${rules.cornerRest}px`, note: "every emphasis" },
         { name: "--gg-button-radius-pressed", expected: `${rules.cornerPressed}px`, note: "while pressed" },
         { name: "--gg-button-weight", expected: String(rules.weight), note: "label weight" },
-        { name: "--radius-squircle", expected: "12px", note: "DesignMD rounded.squircle" },
+        { name: "--radius-squircle", expected: "12px", note: "the app's pressed corner, DesignMD rounded.squircle" },
         { name: "--radius-lg", expected: "16px", note: "fields, DesignMD rounded.lg" },
-        { name: "--radius-md", expected: "8px", note: "the app's pressed corner" },
+        { name: "--radius-md", expected: "8px", note: "tags and text badges, DesignMD rounded.md" },
         { name: "--radius-full", expected: "9999px", note: "chips" },
         { name: "--text-label-md", expected: "16px", note: "lg and md button labels" },
         { name: "--text-label-sm", expected: "14px", note: "sm and compact labels, chips" },

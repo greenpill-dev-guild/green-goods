@@ -359,7 +359,12 @@ function ChipsTabsChoices() {
               onChange={(event) => setChecked(event.target.checked)}
             />
           </Specimen>
-          <Specimen title="setting row + switch" target='[role="switch"]' wide>
+          <Specimen
+            title="setting row + switch"
+            target='[role="switch"]'
+            expect={ADMIN.sharedSwitch()}
+            wide
+          >
             <div style={{ width: "100%", maxWidth: 480 }}>
               <AdminSettingRow
                 labelId="ds-open-joining"
@@ -367,6 +372,7 @@ function ChipsTabsChoices() {
                 description="Anyone can join without approval."
               >
                 <Switch
+                  surface="admin"
                   aria-labelledby="ds-open-joining"
                   checked={openJoining}
                   onCheckedChange={setOpenJoining}
