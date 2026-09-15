@@ -1,6 +1,7 @@
 import { logger } from "./logger";
 import { track } from "./posthog";
 import { serviceWorkerManager } from "./service-worker";
+import { SW_MESSAGE } from "./service-worker-protocol";
 
 type ServiceWorkerEnv = Partial<
   Pick<ImportMetaEnv, "DEV" | "PROD" | "VITE_ENABLE_SW_DEV" | "VITE_APP_VERSION">
@@ -11,6 +12,8 @@ export interface ServiceWorkerRegistrationConfig {
   scriptUrl?: string;
   scope?: string;
   legacyScopes?: string[];
+  /** The dev server serves the worker as an ES module; production ships a classic script. */
+  type?: WorkerType;
 }
 
 export interface ResolvedServiceWorkerRegistrationConfig {
@@ -44,7 +47,7 @@ export function schedulePwaTailPreparation(): void {
     const worker = navigator.serviceWorker.controller;
     if (!worker) return;
     if (connection?.saveData) {
-      worker.postMessage({ type: "PAUSE_PWA_TAIL" });
+      worker.postMessage({ type: SW_MESSAGE.PAUSE_PWA_TAIL });
       tailPreparationState.set(worker, "paused");
       return;
     }
@@ -52,11 +55,11 @@ export function schedulePwaTailPreparation(): void {
     tailPreparationState.set(worker, "scheduled");
     const run = () => {
       if (networkInformation()?.saveData) {
-        worker.postMessage({ type: "PAUSE_PWA_TAIL" });
+        worker.postMessage({ type: SW_MESSAGE.PAUSE_PWA_TAIL });
         tailPreparationState.set(worker, "paused");
         return;
       }
-      worker.postMessage({ type: "PREPARE_PWA_TAIL" });
+      worker.postMessage({ type: SW_MESSAGE.PREPARE_PWA_TAIL });
     };
     if (window.requestIdleCallback) window.requestIdleCallback(run, { timeout: 5_000 });
     else window.setTimeout(run, 0);
@@ -101,6 +104,7 @@ export function createServiceWorkerRegistrationConfig(
     options: {
       scope: config.scope ?? DEFAULT_SERVICE_WORKER_SCOPE,
       updateViaCache: "none",
+      ...(config.type ? { type: config.type } : {}),
     },
     legacyScopes: config.legacyScopes ?? [],
   };

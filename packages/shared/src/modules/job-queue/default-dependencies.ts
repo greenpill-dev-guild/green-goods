@@ -1,12 +1,6 @@
-import { connectivityStore } from "../../stores/connectivity";
-import {
-  AwaitingWorkConfirmation,
-  WorkTransactionReverted,
-  isWorkSubmissionCancelled,
-} from "../work/work-confirmation";
-import { InvalidWorkAttachmentError } from "../work/work-attachments";
 import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
 import { getOntologyChainMaturity } from "../../ontology/query";
+import { connectivityStore } from "../../stores/connectivity";
 import type { ApprovalJobPayload, Job, WorkJobPayload } from "../../types/job-queue";
 import { isZeroAddress } from "../../utils/blockchain/address";
 import { getNetworkContracts } from "../../utils/blockchain/contracts";
@@ -14,9 +8,16 @@ import { scheduleTask, yieldToMain } from "../../utils/scheduler";
 import { getStorageQuota } from "../../utils/storage/quota";
 import { addBreadcrumb } from "../app/error-tracking";
 import { logger } from "../app/logger";
-import { createCommitmentQueueAdmission } from "../commitment-pooling/queue-admission";
+import { SW_MESSAGE } from "../app/service-worker-protocol";
 import { COMMITMENT_JOB_KINDS } from "../commitment-pooling/jobs";
+import { createCommitmentQueueAdmission } from "../commitment-pooling/queue-admission";
 import { selectCommitmentPoolingAvailability } from "../commitment-pooling/selectors";
+import { InvalidWorkAttachmentError } from "../work/work-attachments";
+import {
+  AwaitingWorkConfirmation,
+  isWorkSubmissionCancelled,
+  WorkTransactionReverted,
+} from "../work/work-confirmation";
 import { jobQueueDB } from "./db";
 import { jobQueueEventBus } from "./event-bus";
 import { createJobExecutorRegistry, type JobExecutor } from "./executor-registry";
@@ -105,7 +106,7 @@ export function createDefaultJobQueueDependencies(): JobQueueDependencies {
     backgroundSync: {
       request() {
         if (typeof navigator !== "undefined") {
-          navigator.serviceWorker?.controller?.postMessage({ type: "REGISTER_SYNC" });
+          navigator.serviceWorker?.controller?.postMessage({ type: SW_MESSAGE.REGISTER_SYNC });
         }
       },
     },

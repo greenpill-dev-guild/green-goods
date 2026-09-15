@@ -121,10 +121,14 @@ function collectChunkClosure(graph, rootFiles) {
 const failures = [];
 try {
   const swSource = requireFile(swPath);
+  // The worker bundle inlines the precache manifest as objects carrying both a
+  // revision and a url; other url literals in the worker's own code are not entries.
+  const manifestEntry =
+    /\{\s*(?:"?revision"?:\s*(?:"[^"]*"|null)\s*,\s*"?url"?:\s*"([^"]+)"|"?url"?:\s*"([^"]+)"\s*,\s*"?revision"?:\s*(?:"[^"]*"|null))\s*\}/g;
   const precacheUrls = [
     ...new Set(
-      [...swSource.matchAll(/url:\s*["']([^"']+)["']/g)].map((match) =>
-        match[1].split("?")[0].replace(/^\/+/, "")
+      [...swSource.matchAll(manifestEntry)].map((match) =>
+        (match[1] ?? match[2]).split("?")[0].replace(/^\/+/, "")
       )
     ),
   ].filter((url) => url && !/^https?:\/\//.test(url));

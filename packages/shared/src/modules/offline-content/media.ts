@@ -1,37 +1,25 @@
+import {
+  type MediaStatsReply,
+  OFFLINE_CONTENT_VERSION,
+  type OfflineContentCapabilitiesReply,
+  type ServiceWorkerMessage,
+  SW_CACHES,
+  SW_MESSAGE,
+} from "../app/service-worker-protocol";
 import { OFFLINE_MEDIA_BUDGET_BYTES } from "./policy";
 
+export { isKeptMediaUrl } from "../app/service-worker-protocol";
+
 /** The service worker's sized photo cache, shared by images and offline downloads. */
-const MEDIA_CACHE = "ipfs-cache";
+const MEDIA_CACHE = SW_CACHES.MEDIA;
 /** Photos the previous worker prepared; read through on demand until replaced. */
-const LEGACY_PREPARED_MEDIA_CACHE = "gg-prepared-media-v1";
-/** Workers older than this answer images themselves and cannot keep prepared photos. */
-const MEDIA_WORKER_VERSION = 3;
+const LEGACY_PREPARED_MEDIA_CACHE = SW_CACHES.LEGACY_PREPARED_MEDIA;
+/** Workers older than the one this build ships cannot keep prepared photos. */
+const MEDIA_WORKER_VERSION = OFFLINE_CONTENT_VERSION;
 const WORKER_REPLY_MS = 4_000;
 const IMAGE_ACCEPT = "image/avif,image/webp,image/apng,image/*,*/*;q=0.8";
-const KEPT_GATEWAY_HOSTS = new Set([
-  "greengoods.mypinata.cloud",
-  "gateway.pinata.cloud",
-  "ipfs.io",
-]);
 
-export interface MediaStats {
-  bytes: number;
-  count: number;
-}
-
-/** Only gateway media passes through the worker's photo cache. */
-export function isKeptMediaUrl(url: string): boolean {
-  try {
-    const parsed = new URL(url);
-    return (
-      parsed.protocol === "https:" &&
-      KEPT_GATEWAY_HOSTS.has(parsed.hostname) &&
-      parsed.pathname.startsWith("/ipfs/")
-    );
-  } catch {
-    return false;
-  }
-}
+export type MediaStats = Pick<MediaStatsReply, "bytes" | "count">;
 
 let workerVersion = 0;
 const workerListeners = new Set<() => void>();
@@ -53,7 +41,7 @@ export function subscribeMediaWorker(listener: () => void): () => void {
   };
 }
 
-function askWorker<T>(message: Record<string, unknown>): Promise<T | undefined> {
+function askWorker<T>(message: ServiceWorkerMessage): Promise<T | undefined> {
   const worker = typeof navigator === "undefined" ? undefined : navigator.serviceWorker?.controller;
   if (!worker || typeof MessageChannel === "undefined") return Promise.resolve(undefined);
   return new Promise((resolve) => {
@@ -78,8 +66,8 @@ export function monitorMediaWorker(): () => void {
   let generation = 0;
   const check = () => {
     const current = ++generation;
-    void askWorker<{ offlineContentVersion?: number }>({
-      type: "OFFLINE_CONTENT_CAPABILITIES",
+    void askWorker<Partial<OfflineContentCapabilitiesReply>>({
+      type: SW_MESSAGE.OFFLINE_CONTENT_CAPABILITIES,
     }).then((reply) => {
       if (current === generation) publishWorkerVersion(Number(reply?.offlineContentVersion) || 0);
     });
@@ -129,7 +117,7 @@ export async function downloadMedia(url: string, signal: AbortSignal): Promise<n
   throw error;
 }
 
-function readStats(reply: (MediaStats & { failed?: boolean }) | undefined) {
+function readStats(reply: MediaStatsReply | undefined) {
   return reply && !reply.failed ? { bytes: reply.bytes, count: reply.count } : undefined;
 }
 
@@ -138,7 +126,7 @@ export async function sweepMedia(
   keep: string[],
   budgetBytes = OFFLINE_MEDIA_BUDGET_BYTES
 ): Promise<MediaStats | undefined> {
-  return readStats(await askWorker({ type: "MEDIA_SWEEP", keep, budgetBytes }));
+  return readStats(await askWorker({ type: SW_MESSAGE.MEDIA_SWEEP, keep, budgetBytes }));
 }
 
 /** Updates admission protection before photo downloads begin. */
@@ -147,7 +135,7 @@ export async function protectMedia(
   budgetBytes = OFFLINE_MEDIA_BUDGET_BYTES
 ): Promise<boolean> {
   const reply = await askWorker<{ ready?: boolean; failed?: boolean }>({
-    type: "MEDIA_POLICY",
+    type: SW_MESSAGE.MEDIA_POLICY,
     keep,
     budgetBytes,
   });
@@ -155,7 +143,7 @@ export async function protectMedia(
 }
 
 export async function readMediaStats(): Promise<MediaStats | undefined> {
-  return readStats(await askWorker({ type: "MEDIA_STATS" }));
+  return readStats(await askWorker({ type: SW_MESSAGE.MEDIA_STATS }));
 }
 
 export async function retireLegacyPreparedMedia(): Promise<void> {

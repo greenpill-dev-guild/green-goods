@@ -68,11 +68,9 @@ const config: KnipConfig = {
       ],
     },
     "packages/client": {
-      entry: ["src/main.tsx"],
+      // VitePWA bundles the worker from src/sw/sw.ts; no import graph reaches it.
+      entry: ["src/main.tsx", "src/sw/sw.ts"],
       ignore: [
-        // Registered with VitePWA as an `importScripts` string in vite.config.ts,
-        // so no import graph reaches it. Covered by its own test.
-        "public/sw-custom.js",
         // Staged card on-ramp for vault crowdfunding — deliberately not wired
         // into the live (wallet-only) checkout until card funding ships. Each
         // file documents the park and its unpark condition in its header.

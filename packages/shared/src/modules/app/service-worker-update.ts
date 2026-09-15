@@ -8,6 +8,8 @@
  * @module modules/app/service-worker-update
  */
 
+import { SW_MESSAGE, SW_REPLY } from "./service-worker-protocol";
+
 /**
  * Longest a download may run before the UI stops reporting it. The PWA shell
  * precache is well under a megabyte, so a healthy install settles in seconds;
@@ -307,7 +309,7 @@ export function activateWaitingWorker(
   const resumeActiveWorker = () => {
     if (!active || active === worker) return;
     try {
-      active.postMessage({ type: "RESUME_BACKGROUND_WORK" });
+      active.postMessage({ type: SW_MESSAGE.RESUME_BACKGROUND_WORK });
     } catch {
       // The old worker may already have been terminated by activation.
     }
@@ -355,7 +357,7 @@ export function activateWaitingWorker(
   worker.addEventListener("statechange", handleStateChange);
   if (updateChannel) {
     updateChannel.port1.onmessage = ({ data }) => {
-      if (done || data?.type !== "GG_UPDATE_ACK") return;
+      if (done || data?.type !== SW_REPLY.UPDATE_ACK) return;
       if (["received", "requested", "rejected"].includes(data.status)) {
         handlers.onProgress?.(data.status);
       }
@@ -372,8 +374,8 @@ export function activateWaitingWorker(
     if (done) return;
     try {
       if (updateChannel) {
-        worker.postMessage({ type: "SKIP_WAITING" }, [updateChannel.port2]);
-      } else worker.postMessage({ type: "SKIP_WAITING" });
+        worker.postMessage({ type: SW_MESSAGE.SKIP_WAITING }, [updateChannel.port2]);
+      } else worker.postMessage({ type: SW_MESSAGE.SKIP_WAITING });
     } catch {
       handlers.onProgress?.("send_failed");
       resumeActiveWorker();
@@ -387,7 +389,7 @@ export function activateWaitingWorker(
   } else {
     handlers.onProgress?.("quieting");
     quietChannel.port1.onmessage = ({ data }) => {
-      if (done || data?.type !== "GG_QUIET_ACK") return;
+      if (done || data?.type !== SW_REPLY.QUIET_ACK) return;
       if (data.status !== "quiet") {
         handlers.onProgress?.("quiescence_unavailable");
         resumeActiveWorker();
@@ -400,7 +402,7 @@ export function activateWaitingWorker(
       requestActivation();
     };
     try {
-      active.postMessage({ type: "PREPARE_TO_ACTIVATE_UPDATE" }, [quietChannel.port2]);
+      active.postMessage({ type: SW_MESSAGE.PREPARE_TO_ACTIVATE_UPDATE }, [quietChannel.port2]);
     } catch {
       handlers.onProgress?.("quiescence_unavailable");
       resumeActiveWorker();

@@ -4,9 +4,9 @@ export const PWA_APP_SCOPE = "/home";
 export const PWA_APP_ENTRY_PATH = "/home/";
 const PWA_IPFS_SCOPE = "./";
 /**
- * URL vite-plugin-pwa serves the generated worker from in dev (generateSW dev mode).
- * The production worker lives at /sw.js; in dev that path returns index.html, so
- * registering it throws an "unsupported MIME type" error. Not used in production.
+ * URL vite-plugin-pwa serves the worker from in dev, transformed from src/sw as
+ * an ES module. The production worker lives at /sw.js; in dev that path returns
+ * index.html, so registering it throws an "unsupported MIME type" error.
  */
 export const PWA_DEV_SERVICE_WORKER_SCRIPT = "/dev-sw.js?dev-sw";
 

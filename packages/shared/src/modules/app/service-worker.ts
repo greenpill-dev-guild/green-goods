@@ -1,7 +1,8 @@
-import { clearObsoleteRuntimeCaches } from "./cache-recovery";
 import { jobQueueEventBus } from "../job-queue/event-bus";
+import { clearObsoleteRuntimeCaches } from "./cache-recovery";
 import { logger } from "./logger";
 import { track } from "./posthog";
+import { type BackgroundSyncNotice, SW_MESSAGE, SW_REPLY } from "./service-worker-protocol";
 
 /**
  * Service Worker Manager for Background Sync
@@ -48,9 +49,7 @@ class ServiceWorkerManager {
     }
 
     try {
-      const payload = {
-        type: "REGISTER_SYNC",
-      };
+      const payload = { type: SW_MESSAGE.REGISTER_SYNC };
 
       const controller = navigator.serviceWorker.controller;
       if (controller) {
@@ -77,10 +76,10 @@ class ServiceWorkerManager {
   /**
    * Handle messages from the service worker
    */
-  private async handleMessage(event: MessageEvent) {
-    if (event.data?.type === "BACKGROUND_SYNC") {
+  private async handleMessage(event: MessageEvent<Partial<BackgroundSyncNotice> | undefined>) {
+    if (event.data?.type === SW_REPLY.BACKGROUND_SYNC) {
       const timestamp =
-        typeof event.data?.payload?.timestamp === "number"
+        typeof event.data.payload?.timestamp === "number"
           ? event.data.payload.timestamp
           : Date.now();
 
