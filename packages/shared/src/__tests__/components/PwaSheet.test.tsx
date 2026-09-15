@@ -246,7 +246,7 @@ describe("PwaSheet", () => {
     const surface = screen.getByRole("dialog", { name: "Continue Previous Work?" });
     const body = surface.querySelector('[data-component="PwaSheet"][data-slot="body"]');
     const actions = surface.querySelector('[data-component="SheetActions"]');
-    expect(body).toHaveAttribute("data-scroll-edge", "bottom");
+    expect(body).toHaveAttribute("data-scroll-edge", "both");
     expect(actions?.parentElement).toBe(surface);
     expect(body?.nextElementSibling).toBe(actions);
     fireEvent.click(screen.getByRole("button", { name: "Continue Draft" }));
@@ -264,9 +264,8 @@ describe("PwaSheet", () => {
     );
     const surface = screen.getByRole("dialog", { name: "Join Garden" });
     expect(surface.querySelector('[data-slot="body"]')).toBeNull();
-    expect(surface.querySelector('[data-slot="header"]')?.nextElementSibling).toHaveAttribute(
-      "data-component",
-      "SheetActions"
-    );
+    expect(
+      surface.querySelector('[data-component="SheetHeader"][data-slot="root"]')?.nextElementSibling
+    ).toHaveAttribute("data-component", "SheetActions");
   });
 });

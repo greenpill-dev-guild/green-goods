@@ -4,9 +4,10 @@
  * Every narrow-viewport dialog in the client renders through this sheet:
  * `DraftSheet` directly, and `ConfirmDialog` / `DialogShell` below
  * `PWA_SHEET_MEDIA_QUERY`. Passing `title` turns on the shared header
- * (title, optional description and icon, a 44px close button) above a
- * scrollable body, so those surfaces share one chrome. Without `title` the
- * consumer owns everything inside the panel.
+ * (`SheetHeader`, DL-028: title, optional description, a 44px close button,
+ * and an optional `tabs` rail) above a scrollable body, so those surfaces
+ * share one chrome. Without `title` the consumer owns everything inside the
+ * panel.
  *
  * Focus returns to the element that opened the sheet when it closes, and
  * the other children of <body> are hidden from assistive tech while it is
@@ -61,12 +62,13 @@
  * @module components/Dialog/PwaSheet
  */
 import { SheetActions, type SheetActionsProps } from "./SheetActions";
-import { RiCloseLine } from "@remixicon/react";
+import { SheetHeader } from "./SheetHeader";
 import { useDrag } from "@use-gesture/react";
 import { createPortal } from "react-dom";
 import {
   Children,
   type CSSProperties,
+  type HTMLAttributes,
   type ReactNode,
   useCallback,
   useEffect,
@@ -80,7 +82,6 @@ import { useDocumentScrollLock } from "../../hooks/ui/useDocumentScrollLock";
 import { useSheetPresence } from "../../hooks/ui/useSheetPresence";
 import { useFocusTrap } from "../../hooks/utils/useFocusTrap";
 import { DISMISS_VELOCITY_THRESHOLD } from "../Canvas/springConfig";
-import { IconButton } from "../IconButton";
 
 /**
  * Branches currently hidden from assistive tech by open sheets, with how
@@ -163,8 +164,14 @@ export interface PwaSheetProps {
   title?: ReactNode;
   /** Secondary line under the title; becomes the dialog's accessible description. */
   description?: ReactNode;
-  /** Leading block in the shared header, typically an icon in a tinted square. */
-  icon?: ReactNode;
+  /** A rail directly under the shared header, typically tabs (DL-028). */
+  tabs?: ReactNode;
+  /** Classes on the shared body, e.g. to hand scrolling to a tab's own content. */
+  bodyClassName?: string;
+  /** Attributes on the shared body, e.g. an id for a scroll target or a tabpanel role. */
+  bodyProps?: HTMLAttributes<HTMLDivElement>;
+  /** Test id of the shared header's close button. Defaults to `pwa-sheet-close`. */
+  closeTestId?: string;
   /** Accessible name of the shared header's close button. Required whenever `title` is set. */
   closeLabel?: string;
   /** Omit the shared header's close button. */
@@ -188,7 +195,7 @@ export interface PwaSheetProps {
   panelClassName?: string;
   /** Optional inline style on the panel. Heights come from `size`, not from here. */
   panelStyle?: CSSProperties;
-  /** Auto-focus selector on open. Defaults to the close button. */
+  /** Auto-focus selector on open. Defaults to the shared header's close button. */
   autoFocusSelector?: string;
   /** When true, render the drag handle. Default `true`. */
   showDragHandle?: boolean;
@@ -225,7 +232,10 @@ export function PwaSheet({
   ariaLabel,
   title,
   description,
-  icon,
+  tabs,
+  bodyClassName,
+  bodyProps,
+  closeTestId = "pwa-sheet-close",
   closeLabel,
   hideCloseButton = false,
   preventClose = false,
@@ -233,7 +243,7 @@ export function PwaSheet({
   size = "compact",
   panelClassName,
   panelStyle,
-  autoFocusSelector = '[data-testid="pwa-sheet-close"]',
+  autoFocusSelector,
   showDragHandle = true,
   testId = "pwa-sheet",
   overlayClassName,
@@ -255,7 +265,10 @@ export function PwaSheet({
 
   const sheetState = open ? "open" : "closed";
 
-  useFocusTrap(dialogRef, { enabled: mounted && open, autoFocusSelector });
+  useFocusTrap(dialogRef, {
+    enabled: mounted && open,
+    autoFocusSelector: autoFocusSelector ?? `[data-testid="${closeTestId}"]`,
+  });
   useDocumentScrollLock(open || mounted);
   useSheetPresence(open);
 
@@ -399,9 +412,6 @@ export function PwaSheet({
       className={overlayClassName}
       style={{ pointerEvents: "auto" }}
       onClick={handleOverlayClick}
-      onKeyDown={(event) => {
-        if (event.key === "Escape") requestClose();
-      }}
       tabIndex={-1}
     >
       <div
@@ -445,44 +455,29 @@ export function PwaSheet({
           </div>
         )}
         {hasHeader && (
-          <header data-component="PwaSheet" data-slot="header">
-            <div data-component="PwaSheet" data-slot="heading">
-              {icon ? (
-                <div data-component="PwaSheet" data-slot="icon">
-                  {icon}
-                </div>
-              ) : null}
-              <div data-component="PwaSheet" data-slot="text">
-                <h2 id={titleId} data-component="PwaSheet" data-slot="title">
-                  {title}
-                </h2>
-                {description ? (
-                  <p id={descriptionId} data-component="PwaSheet" data-slot="description">
-                    {description}
-                  </p>
-                ) : null}
-              </div>
-            </div>
-            {!hideCloseButton && (
-              <IconButton
-                data-component="PwaSheet"
-                data-slot="close"
-                data-testid="pwa-sheet-close"
-                // The header renders only with a title, which requires closeLabel (see prop docs).
-                aria-label={closeLabel as string}
-                disabled={preventClose}
-                onClick={requestClose}
-                icon={<RiCloseLine aria-hidden="true" />}
-              />
-            )}
-          </header>
+          <SheetHeader
+            title={title}
+            titleId={titleId}
+            description={description}
+            descriptionId={descriptionId}
+            // The header renders only with a title, which requires closeLabel (see prop docs).
+            closeLabel={closeLabel as string}
+            onClose={requestClose}
+            closeDisabled={preventClose}
+            hideCloseButton={hideCloseButton}
+            closeTestId={closeTestId}
+          >
+            {tabs}
+          </SheetHeader>
         )}
         {hasHeader ? (
           hasBody ? (
             <div
+              {...bodyProps}
               data-component="PwaSheet"
               data-slot="body"
-              data-scroll-edge={actions ? "bottom" : undefined}
+              data-scroll-edge={actions ? "both" : "top"}
+              className={bodyClassName}
             >
               {children}
             </div>

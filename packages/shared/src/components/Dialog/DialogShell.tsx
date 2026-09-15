@@ -1,11 +1,10 @@
 import { SheetActions, type SheetActionsProps } from "./SheetActions";
+import { SheetHeader } from "./SheetHeader";
 import * as Dialog from "@radix-ui/react-dialog";
-import { RiCloseLine } from "@remixicon/react";
 import type { ReactNode } from "react";
 import { useIntl } from "react-intl";
 import { useSheetPresence } from "../../hooks/ui/useSheetPresence";
 import { cn } from "../../utils/styles/cn";
-import { IconButton } from "../IconButton";
 import {
   dialogOverlayClassName,
   dialogOverlayStyle,
@@ -19,8 +18,6 @@ export interface DialogShellProps {
   onOpenChange: (open: boolean) => void;
   title: ReactNode;
   description?: ReactNode;
-  icon?: ReactNode;
-  iconContainerClassName?: string;
   children?: ReactNode;
   /**
    * The dialog's actions, pinned under the body in the shared action bar
@@ -33,9 +30,9 @@ export interface DialogShellProps {
   sheetSize?: SheetSize;
   className?: string;
   bodyClassName?: string;
-  /** Centered surface only; the narrow-viewport sheet owns its own header. */
+  /** Centered surface only: extra classes on the shared header row. */
   headerClassName?: string;
-  /** Centered surface only; the narrow-viewport sheet owns its own header. */
+  /** Centered surface only: extra classes on the shared header's description. */
   descriptionClassName?: string;
   hideCloseButton?: boolean;
   /** When true, prevents close via overlay click or Escape — useful during in-flight mutations. */
@@ -49,16 +46,17 @@ const dialogShellSizeClasses: Record<NonNullable<DialogShellProps["size"]>, stri
   "2xl": "sm:max-w-4xl lg:max-w-5xl",
 };
 
-const dialogShellIconContainerClassName =
-  "flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-bg-soft text-text-sub sm:h-10 sm:w-10";
-
+/**
+ * The shared dialog shell. Below 640px it renders the PwaSheet bottom sheet;
+ * from 640px it is a centered Radix surface. Both render the one sheet
+ * header (`SheetHeader`, DL-028) and pin their actions in the shared bar
+ * (DL-016).
+ */
 export function DialogShell({
   open,
   onOpenChange,
   title,
   description,
-  icon,
-  iconContainerClassName,
   children,
   actions,
   size = "md",
@@ -75,9 +73,7 @@ export function DialogShell({
   // The sheet registers itself; the centered surface registers here so the
   // installed app's AppBar also steps aside on wide screens (DL-015).
   useSheetPresence(open && !rendersAsSheet);
-  const iconContainer = icon ? (
-    <div className={cn(dialogShellIconContainerClassName, iconContainerClassName)}>{icon}</div>
-  ) : null;
+  const closeLabel = formatMessage({ id: "app.common.close" });
 
   if (rendersAsSheet) {
     return (
@@ -87,8 +83,7 @@ export function DialogShell({
         size={sheetSize}
         title={title}
         description={description}
-        icon={iconContainer ?? undefined}
-        closeLabel={formatMessage({ id: "app.common.close" })}
+        closeLabel={closeLabel}
         hideCloseButton={hideCloseButton}
         preventClose={preventClose}
         panelClassName={className}
@@ -113,12 +108,11 @@ export function DialogShell({
           data-component="DialogShell"
           data-slot="surface"
           className={cn(
-            "fixed z-modal w-full max-w-[calc(100vw-2rem)] max-h-[90vh] overflow-hidden bg-[var(--color-material-solid)] border border-stroke-soft-200 shadow-[var(--shadow-float)] focus:outline-none bottom-0 left-1/2 -translate-x-1/2 sm:bottom-auto sm:top-1/2 sm:-translate-y-1/2",
+            "fixed z-modal w-full max-w-[calc(100vw-2rem)] overflow-hidden bg-[var(--color-material-solid)] border border-stroke-soft-200 shadow-[var(--shadow-float)] focus:outline-none bottom-0 left-1/2 -translate-x-1/2 sm:bottom-auto sm:top-1/2 sm:-translate-y-1/2",
             dialogShellSizeClasses[size],
             className
           )}
           style={dialogSurfaceStyle}
-          data-has-actions={actions ? "" : undefined}
           onPointerDownOutside={(event) => {
             if (preventClose) event.preventDefault();
           }}
@@ -126,47 +120,24 @@ export function DialogShell({
             if (preventClose) event.preventDefault();
           }}
         >
-          <div
-            className={cn(
-              "sticky top-0 z-10 flex items-start justify-between gap-3 border-b border-stroke-soft px-4 py-3 sm:px-6 sm:py-4",
-              headerClassName
-            )}
-          >
-            <div className="flex min-w-0 flex-1 items-start gap-3">
-              {iconContainer}
-              <div className="min-w-0 flex-1">
-                <Dialog.Title className="truncate text-title-lg font-semibold text-text-strong">
-                  {title}
-                </Dialog.Title>
-                {description && (
-                  <Dialog.Description
-                    className={cn("text-body-lg text-text-soft", descriptionClassName)}
-                  >
-                    {description}
-                  </Dialog.Description>
-                )}
-              </div>
-            </div>
-            {!hideCloseButton && (
-              <Dialog.Close asChild>
-                <IconButton
-                  data-slot="close"
-                  aria-label={formatMessage({ id: "app.common.close" })}
-                  icon={<RiCloseLine aria-hidden="true" />}
-                />
-              </Dialog.Close>
-            )}
-          </div>
-
+          <SheetHeader
+            title={title}
+            description={description}
+            titleAs={Dialog.Title}
+            descriptionAs={Dialog.Description}
+            closeLabel={closeLabel}
+            onClose={() => onOpenChange(false)}
+            closeDisabled={preventClose}
+            hideCloseButton={hideCloseButton}
+            className={headerClassName}
+            descriptionClassName={descriptionClassName}
+            standalone
+          />
           <div
             data-component="DialogShell"
             data-slot="body"
-            data-scroll-edge={actions ? "bottom" : undefined}
-            className={cn(
-              !actions && "max-h-[calc(90vh-80px)]",
-              "overflow-y-auto p-4 sm:p-6",
-              bodyClassName
-            )}
+            data-scroll-edge={actions ? "both" : "top"}
+            className={cn("overflow-y-auto p-4 sm:p-6", bodyClassName)}
           >
             {children}
           </div>

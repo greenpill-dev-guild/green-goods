@@ -294,7 +294,10 @@ export const ShellCenteredPinnedActions: Story = {
       { name: /link work to this commitment/i },
       { timeout: 5_000 }
     );
-    await expect(surface).toHaveAttribute("data-has-actions");
+    // The centered surface is always a column under one 90vh cap (DL-028), so the body
+    // scrolls between the shared header and the pinned bar.
+    await expect(getComputedStyle(surface).display).toBe("flex");
+    await expect(getComputedStyle(surface).flexDirection).toBe("column");
     await waitForSurfaceSettled(surface);
 
     const body = surface.querySelector<HTMLElement>(
