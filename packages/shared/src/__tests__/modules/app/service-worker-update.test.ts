@@ -61,6 +61,45 @@ afterEach(() => {
 });
 
 describe("buildUpdateTelemetry", () => {
+  it("distinguishes an obsolete target from the registration's live workers", () => {
+    const controller = asWorker(createWorker("activated", "/sw.js"));
+    stubServiceWorkerContainer(controller);
+    const target = asWorker(createWorker("redundant", "/sw.js"));
+    const registration = {
+      active: controller,
+      waiting: asWorker(createWorker("installed", "/sw.js")),
+      installing: null,
+    } as ServiceWorkerRegistration;
+    expect(buildUpdateTelemetry(target, {}, registration)).toMatchObject({
+      controller_state: "activated",
+      target_worker_state: "redundant",
+      registration_present: true,
+      registered_active_worker_state: "activated",
+      registered_waiting_worker_state: "installed",
+      registered_installing_worker_state: "none",
+      target_is_registered_waiting: false,
+      target_is_registered_active: false,
+      target_is_controller: false,
+      active_worker_version: "unknown",
+      waiting_worker_version: "unknown",
+    });
+    expect(buildUpdateTelemetry(controller, {}, registration)).toMatchObject({
+      target_is_registered_active: true,
+      target_is_controller: true,
+    });
+  });
+
+  it("reports a missing registration and controller without inventing worker state", () => {
+    stubServiceWorkerContainer(null);
+    expect(buildUpdateTelemetry(null, {}, null)).toMatchObject({
+      registration_present: false,
+      controller_state: "none",
+      target_worker_state: "none",
+      target_is_controller: false,
+      target_is_registered_waiting: false,
+    });
+  });
+
   it("stamps the active and waiting worker versions from the gg_v query on every event", () => {
     stubServiceWorkerContainer(createWorker("activated", "/sw.js?gg_v=old"));
     const waiting = createWorker("installed", "/sw.js?gg_v=new") as unknown as ServiceWorker;

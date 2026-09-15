@@ -38,7 +38,8 @@ function getServiceWorkerVersion(worker: ServiceWorker | null | undefined) {
 
 export function buildUpdateTelemetry(
   waiting: ServiceWorker | null | undefined,
-  properties: Record<string, string | number | boolean | undefined> = {}
+  properties: Record<string, string | number | boolean | undefined> = {},
+  registration?: ServiceWorkerRegistration | null
 ) {
   const serviceWorker =
     typeof navigator !== "undefined" && "serviceWorker" in navigator
@@ -49,12 +50,57 @@ export function buildUpdateTelemetry(
     app_version: APP_VERSION,
     active_worker_version: getServiceWorkerVersion(serviceWorker?.controller),
     waiting_worker_version: getServiceWorkerVersion(waiting),
+    controller_state: serviceWorker?.controller?.state ?? "none",
+    target_worker_state: waiting?.state ?? "none",
+    registration_present: Boolean(registration),
+    registered_active_worker_state: registration?.active?.state ?? "none",
+    registered_waiting_worker_state: registration?.waiting?.state ?? "none",
+    registered_installing_worker_state: registration?.installing?.state ?? "none",
+    target_is_registered_waiting: Boolean(waiting && waiting === registration?.waiting),
+    target_is_registered_active: Boolean(waiting && waiting === registration?.active),
+    target_is_controller: Boolean(waiting && waiting === serviceWorker?.controller),
+    visibility_state: typeof document === "undefined" ? "unknown" : document.visibilityState,
     ...properties,
   };
 }
 
 function hasController() {
   return Boolean(navigator.serviceWorker?.controller);
+}
+
+/** Observe an attempt's exact target without changing activation or reload behavior. */
+export function observeUpdateAttempt(
+  worker: ServiceWorker,
+  getRegistration: () => ServiceWorkerRegistration | null,
+  onStateChange: (properties: ReturnType<typeof buildUpdateTelemetry>) => void
+) {
+  const startedAt = now();
+  let timedOut = false;
+  const telemetry = (properties: Record<string, string | number | boolean | undefined> = {}) =>
+    buildUpdateTelemetry(
+      worker,
+      {
+        duration_ms: durationSince(startedAt),
+        after_timeout: timedOut,
+        ...properties,
+      },
+      getRegistration()
+    );
+  const dispose = () => worker.removeEventListener("statechange", observe);
+  const observe = () => {
+    onStateChange(telemetry());
+    if (worker.state === "activated" || worker.state === "redundant") dispose();
+  };
+  // This listener survives an activation timeout; a later transition is evidence,
+  // not permission to reload over work the user may have resumed.
+  worker.addEventListener("statechange", observe);
+  return {
+    telemetry,
+    dispose,
+    markTimedOut: () => {
+      timedOut = true;
+    },
+  };
 }
 
 export interface InstallWatcherHandlers {

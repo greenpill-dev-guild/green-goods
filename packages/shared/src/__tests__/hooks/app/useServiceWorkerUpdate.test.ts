@@ -93,7 +93,7 @@ function createMockRegistration(
 }
 
 function installServiceWorkerMock(
-  registration: ServiceWorkerRegistration,
+  registration: ServiceWorkerRegistration | undefined,
   options: { controller?: ServiceWorker | null } = {}
 ) {
   Object.defineProperty(navigator, "serviceWorker", {
@@ -182,6 +182,67 @@ describe("hooks/app/useServiceWorkerUpdate", () => {
   });
 
   describe("waiting service worker detection", () => {
+    it("records live startup and resume state even when automatic checks are throttled", async () => {
+      vi.stubEnv("VITE_ENABLE_SW_DEV", "true");
+      const registration = createMockRegistration();
+      installServiceWorkerMock(registration);
+      const { unmount } = renderUpdateHook();
+      await waitFor(() => expect(registration.update).toHaveBeenCalledTimes(1));
+      expect(track).toHaveBeenCalledWith(
+        "sw_update_state_observed",
+        expect.objectContaining({
+          source: "startup",
+          registration_present: true,
+          registered_waiting_worker_state: "none",
+        })
+      );
+      Object.defineProperty(registration, "waiting", {
+        configurable: true,
+        value: createMockWorker({ state: "installed" }),
+      });
+      act(() => document.dispatchEvent(new Event("visibilitychange")));
+      expect(track).toHaveBeenCalledWith(
+        "sw_update_state_observed",
+        expect.objectContaining({
+          source: "resume",
+          registered_waiting_worker_state: "installed",
+        })
+      );
+      expect(registration.update).toHaveBeenCalledTimes(1);
+      unmount();
+      vi.mocked(track).mockClear();
+      act(() => document.dispatchEvent(new Event("visibilitychange")));
+      expect(track).not.toHaveBeenCalled();
+      const reopened = renderUpdateHook();
+      await waitFor(() =>
+        expect(track).toHaveBeenCalledWith(
+          "sw_update_state_observed",
+          expect.objectContaining({
+            source: "startup",
+            registered_waiting_worker_state: "installed",
+          })
+        )
+      );
+      reopened.unmount();
+    });
+
+    it("records startup when the registration is absent", async () => {
+      vi.stubEnv("VITE_ENABLE_SW_DEV", "true");
+      installServiceWorkerMock(undefined, { controller: null });
+      const { unmount } = renderUpdateHook();
+      await waitFor(() =>
+        expect(track).toHaveBeenCalledWith(
+          "sw_update_state_observed",
+          expect.objectContaining({
+            source: "startup",
+            registration_present: false,
+            controller_state: "none",
+          })
+        )
+      );
+      unmount();
+    });
+
     it("keeps updateAvailable false when no waiting worker exists", async () => {
       vi.stubEnv("VITE_ENABLE_SW_DEV", "true");
       const registration = createMockRegistration();
@@ -605,6 +666,57 @@ describe("hooks/app/useServiceWorkerUpdate", () => {
   describe("applyUpdate timeout fallback", () => {
     afterEach(() => {
       vi.useRealTimers();
+    });
+
+    it("records the exact timed-out target and late activation without reloading", async () => {
+      vi.stubEnv("VITE_ENABLE_SW_DEV", "true");
+      const target = createMockWorker({ state: "installed" });
+      const replacement = createMockWorker({ state: "installed" });
+      const registration = createMockRegistration({ waiting: target });
+      installServiceWorkerMock(registration);
+      const { result, unmount } = renderUpdateHook();
+      await waitFor(() => expect(result.current.updateAvailable).toBe(true));
+      vi.useFakeTimers();
+      act(() => result.current.applyUpdate());
+      expect(track).toHaveBeenCalledWith(
+        "sw_update_apply_started",
+        expect.objectContaining({
+          target_worker_state: "installed",
+          target_is_registered_waiting: true,
+        })
+      );
+      Object.defineProperty(registration, "waiting", { configurable: true, value: replacement });
+      await act(async () => {
+        await result.current.checkForUpdate();
+      });
+      act(() => vi.advanceTimersByTime(APPLY_UPDATE_TIMEOUT_MS));
+      expect(track).toHaveBeenCalledWith(
+        "sw_update_apply_timeout",
+        expect.objectContaining({
+          target_worker_state: "installed",
+          target_is_registered_waiting: false,
+          registered_waiting_worker_state: "installed",
+        })
+      );
+      vi.mocked(track).mockClear();
+      act(() => {
+        Object.defineProperty(target, "state", { configurable: true, value: "activated" });
+        target.dispatchStateChange();
+      });
+      expect(track).toHaveBeenCalledWith(
+        "sw_update_target_state_changed",
+        expect.objectContaining({
+          target_worker_state: "activated",
+          after_timeout: true,
+        })
+      );
+      expect(track).not.toHaveBeenCalledWith("sw_update_apply_completed", expect.anything());
+      expect(result.current.phase).toBe("error");
+      act(() => result.current.applyUpdate());
+      unmount();
+      vi.mocked(track).mockClear();
+      replacement.dispatchStateChange();
+      expect(track).not.toHaveBeenCalled();
     });
 
     it("resets isUpdating and flags updateStalled when activation never happens", async () => {

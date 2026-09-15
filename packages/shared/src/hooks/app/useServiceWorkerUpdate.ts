@@ -23,6 +23,7 @@ import {
   isServiceWorkerUpdateEnabled,
   markUpdateApplied,
   now,
+  observeUpdateAttempt,
   waitForInstallToSettle,
 } from "../../modules/app/service-worker-update";
 import { useTimeout } from "../utils/useTimeout";
@@ -65,21 +66,13 @@ export interface ServiceWorkerUpdateState {
   restartedOnNewVersion: boolean;
 }
 
-/**
- * Bound on the apply path between posting SKIP_WAITING and the reload. A
- * worker activates within a second or two; past this the UI recovers instead
- * of hanging in an indefinite "Updating…" state (PRD-500).
- */
+// Bound the busy UI; reaching this deadline does not prove activation failed.
 export const APPLY_UPDATE_TIMEOUT_MS = 7_000;
 export const LONG_SESSION_UPDATE_PROMPT_MS = 30 * 60 * 1000;
 
 /** Throttle automatic checks; manual checks and initial mount bypass the gap. */
 const MIN_AUTO_CHECK_INTERVAL_MS = 15 * 60 * 1000;
 
-/**
- * Exposes the update phase and actions so the UI can show progress and let
- * the user choose when to restart, instead of reloading under them.
- */
 type ActivationProtection = { activationBlocked?: boolean; isActivationBlocked?: () => boolean };
 const allowActivation = () => false;
 
@@ -102,12 +95,12 @@ function useServiceWorkerUpdateController({
   const waitingWorkerRef = useRef<ServiceWorker | null>(null);
   const checkStartedAtRef = useRef<number | null>(null);
   const downloadStartedAtRef = useRef<number | null>(null);
-  const applyStartedAtRef = useRef<number | null>(null);
   const reloadGuardRef = useRef(false);
   // Last auto-check time; throttles focus/visibility checks, never manual ones.
   const lastAutoCheckRef = useRef(0);
   // Cancels the in-flight activation (listener + timer), if any.
   const cancelActivationRef = useRef<(() => void) | null>(null);
+  const stopActivationDiagnosticsRef = useRef<(() => void) | null>(null);
 
   const isEnabled = useMemo(isServiceWorkerUpdateEnabled, []);
 
@@ -115,7 +108,8 @@ function useServiceWorkerUpdateController({
     (properties: Record<string, string | number | boolean | undefined> = {}) =>
       buildUpdateTelemetry(
         waitingWorkerRef.current ?? registrationRef.current?.waiting,
-        properties
+        properties,
+        registrationRef.current
       ),
     []
   );
@@ -260,9 +254,11 @@ function useServiceWorkerUpdateController({
     const setup = async () => {
       try {
         const registration = await navigator.serviceWorker.getRegistration("/home/");
-        if (!registration || !isMounted) return;
+        if (!isMounted) return;
 
-        registrationRef.current = registration;
+        registrationRef.current = registration ?? null;
+        track("sw_update_state_observed", buildTelemetry({ source: "startup" }));
+        if (!registration) return;
 
         registration.addEventListener("updatefound", handleUpdateFound);
         cleanupFns.push(() => {
@@ -282,8 +278,6 @@ function useServiceWorkerUpdateController({
           try {
             await registration.update();
             const duration = durationSince(checkStartedAtRef.current);
-            // Surface whatever the check left behind; a worker already waiting or
-            // installing before the listener attached would otherwise stick on "checking".
             if (registration.waiting) {
               markUpdateAvailable(registration.waiting, source);
             } else if (registration.installing) {
@@ -326,9 +320,14 @@ function useServiceWorkerUpdateController({
 
         const handleVisibilityChange = () => {
           if (document.visibilityState === "visible") {
+            track("sw_update_state_observed", buildTelemetry({ source: "resume" }));
             void checkForUpdates();
           }
         };
+
+        const handleControllerChange = () =>
+          track("sw_update_state_observed", buildTelemetry({ source: "controller_change" }));
+        navigator.serviceWorker.addEventListener("controllerchange", handleControllerChange);
 
         const handleFocus = () => void checkForUpdates();
 
@@ -338,6 +337,7 @@ function useServiceWorkerUpdateController({
         cleanupFns.push(() => {
           document.removeEventListener("visibilitychange", handleVisibilityChange);
           window.removeEventListener("focus", handleFocus);
+          navigator.serviceWorker.removeEventListener("controllerchange", handleControllerChange);
         });
       } catch (error) {
         logger.error("Service worker update setup failed", {
@@ -357,7 +357,6 @@ function useServiceWorkerUpdateController({
       waitingWorkerRef.current = null;
       checkStartedAtRef.current = null;
       downloadStartedAtRef.current = null;
-      applyStartedAtRef.current = null;
     };
   }, [isEnabled, buildTelemetry, handleUpdateFound, installWatcher, markUpdateAvailable]);
 
@@ -448,7 +447,10 @@ function useServiceWorkerUpdateController({
     // Prefer the registration's live waiting worker over a remembered one.
     const worker =
       registrationRef.current?.waiting ?? waitingWorkerRef.current ?? waitingWorker ?? null;
-    if (!worker) return;
+    if (!worker) {
+      track("sw_update_state_observed", buildTelemetry({ source: "apply_no_target" }));
+      return;
+    }
     if (isActivationBlocked()) {
       setPhase("waiting");
       track("sw_update_deferred", { reason: "active_work" });
@@ -456,12 +458,18 @@ function useServiceWorkerUpdateController({
     }
 
     cancelActivationRef.current?.();
+    stopActivationDiagnosticsRef.current?.();
     waitingWorkerRef.current = worker;
     setUpdateStalled(false);
     setIsUpdating(true);
     setPhase("activating");
-    applyStartedAtRef.current = now();
-    const telemetry = buildTelemetry({ phase: "activating" });
+    const diagnostics = observeUpdateAttempt(
+      worker,
+      () => registrationRef.current,
+      (properties) => track("sw_update_target_state_changed", properties)
+    );
+    stopActivationDiagnosticsRef.current = diagnostics.dispose;
+    const telemetry = diagnostics.telemetry({ phase: "activating" });
     track("sw_update_applied", telemetry);
     track("sw_update_apply_started", telemetry);
 
@@ -472,20 +480,14 @@ function useServiceWorkerUpdateController({
           cancelActivationRef.current = null;
           if (reloadGuardRef.current) return;
           reloadGuardRef.current = true;
-          track(
-            "sw_update_apply_completed",
-            buildTelemetry({
-              phase: "activating",
-              duration_ms: durationSince(applyStartedAtRef.current),
-            })
-          );
-          applyStartedAtRef.current = null;
+          track("sw_update_apply_completed", diagnostics.telemetry({ phase: "activating" }));
           markUpdateApplied();
           window.location.reload();
         },
         // Fail open after a bounded wait (PRD-500's indefinite "Updating…" hang)
         // so the user can retry or keep using the current version.
         onTimeout: () => {
+          diagnostics.markTimedOut();
           cancelActivationRef.current = null;
           setIsUpdating(false);
           setUpdateStalled(true);
@@ -496,11 +498,7 @@ function useServiceWorkerUpdateController({
           });
           track(
             "sw_update_apply_timeout",
-            buildTelemetry({
-              phase: "error",
-              duration_ms: durationSince(applyStartedAtRef.current),
-              timeout_ms: APPLY_UPDATE_TIMEOUT_MS,
-            })
+            diagnostics.telemetry({ phase: "error", timeout_ms: APPLY_UPDATE_TIMEOUT_MS })
           );
         },
       },
@@ -513,6 +511,8 @@ function useServiceWorkerUpdateController({
     return () => {
       cancelActivationRef.current?.();
       cancelActivationRef.current = null;
+      stopActivationDiagnosticsRef.current?.();
+      stopActivationDiagnosticsRef.current = null;
       clearWaitingPrompt();
     };
   }, [clearWaitingPrompt]);
