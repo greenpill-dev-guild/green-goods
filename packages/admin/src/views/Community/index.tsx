@@ -108,7 +108,6 @@ export default function CommunityView() {
                 id: "cockpit.community.coordination",
                 defaultMessage: "Coordination",
               }),
-              count: community.pools.length || undefined,
             },
             {
               id: "endowment",

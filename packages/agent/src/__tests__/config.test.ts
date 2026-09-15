@@ -6,8 +6,28 @@
  * warn) so a misconfigured env var disables that one topic without crashing.
  */
 
+import { readFileSync } from "node:fs";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { resolveAllowedOrigins } from "../api/public-protection";
 import { loadCaptureTopicsFromEnv, loadConfig, parseTopicEnvVar, validateConfig } from "../config";
+
+describe("Fly public browser origins", () => {
+  it("allows every deployed Green Goods browser surface", () => {
+    const flyConfig = readFileSync(new URL("../../../../fly.toml", import.meta.url), "utf8");
+    const configuredValue = flyConfig.match(/^\s*AGENT_ALLOWED_ORIGINS\s*=\s*'([^']+)'/m)?.[1];
+    const allowedOrigins = resolveAllowedOrigins(configuredValue);
+
+    for (const origin of [
+      "https://greengoods.app",
+      "https://www.greengoods.app",
+      "https://beta.greengoods.app",
+      "https://admin.greengoods.app",
+      "https://beta.admin.greengoods.app",
+    ]) {
+      expect(allowedOrigins.has(origin)).toBe(true);
+    }
+  });
+});
 
 describe("parseTopicEnvVar", () => {
   it("returns undefined for unset / blank values", () => {

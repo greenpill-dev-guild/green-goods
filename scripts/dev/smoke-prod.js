@@ -26,6 +26,7 @@ reexecUnderSystemNodeIfNeeded({
 const ARBITRUM_CHAIN_ID = 42161;
 const DEFAULT_PRODUCTION_INDEXER_URL = "https://indexer.hyperindex.xyz/0bf0e0f/v1/graphql";
 const DEFAULT_PRODUCTION_AGENT_URL = "https://agent.greengoods.app";
+const BETA_ADMIN_ORIGIN = "https://beta.admin.greengoods.app";
 const LOCAL_INDEXER_URL = "http://localhost:3006/v1/graphql";
 const DEFAULT_ARBITRUM_RPC_URL = "https://arb1.arbitrum.io/rpc";
 const DEFAULT_MAX_INDEXER_LAG_BLOCKS = 2_000;
@@ -554,6 +555,60 @@ async function checkProductionAgentHealth() {
   }
 }
 
+async function checkProductionAgentBetaAdminCors() {
+  const agentBaseUrl = getAgentBaseUrl();
+  const uploadSignUrl = new URL("/api/uploads/sign", `${agentBaseUrl}/`).toString();
+
+  try {
+    const response = await fetch(uploadSignUrl, {
+      method: "OPTIONS",
+      headers: {
+        Origin: BETA_ADMIN_ORIGIN,
+        "Access-Control-Request-Method": "POST",
+        "Access-Control-Request-Headers": "Content-Type",
+      },
+      signal: AbortSignal.timeout(12_000),
+    });
+    const text = await response.text();
+    const allowedOrigin = response.headers.get("access-control-allow-origin");
+    const allowedMethods = response.headers.get("access-control-allow-methods") || "";
+    const allowedHeaders = response.headers.get("access-control-allow-headers") || "";
+
+    if (response.status !== 204) {
+      throw new Error(`HTTP ${response.status}: ${text.slice(0, 120)}`);
+    }
+    if (allowedOrigin !== BETA_ADMIN_ORIGIN) {
+      throw new Error(`Access-Control-Allow-Origin=${allowedOrigin || "missing"}`);
+    }
+
+    const methodsList = allowedMethods.split(",").map((m) => m.trim().toUpperCase());
+    if (!methodsList.includes("POST")) {
+      throw new Error(`Access-Control-Allow-Methods=${allowedMethods || "missing"} (POST not permitted)`);
+    }
+
+    const headersList = allowedHeaders.split(",").map((h) => h.trim().toLowerCase());
+    if (!headersList.includes("content-type")) {
+      throw new Error(`Access-Control-Allow-Headers=${allowedHeaders || "missing"} (Content-Type not permitted)`);
+    }
+
+    return {
+      name: "production-agent-beta-admin-cors",
+      level: "pass",
+      ready: true,
+      detail: `origin=${BETA_ADMIN_ORIGIN}; methods=${allowedMethods}; headers=${allowedHeaders}; HTTP ${response.status}`,
+      url: redactUrl(uploadSignUrl),
+    };
+  } catch (error) {
+    return {
+      name: "production-agent-beta-admin-cors",
+      level: "fail",
+      ready: false,
+      detail: error instanceof Error ? error.message : String(error),
+      url: redactUrl(uploadSignUrl),
+    };
+  }
+}
+
 async function checkLocalIndexerService() {
   if (options.mode !== "mirror") {
     return {
@@ -609,6 +664,7 @@ const serviceResults = await Promise.all(
 const rpcChainResult = await checkRpcChain();
 const contractBytecodeResult = await checkContractBytecode();
 const productionAgentHealthResult = await checkProductionAgentHealth();
+const productionAgentBetaAdminCorsResult = await checkProductionAgentBetaAdminCors();
 const indexerGraphqlResult = await checkIndexerGraphql();
 const indexerLagResult = await checkIndexerLag(indexerGraphqlResult);
 const localIndexerServiceResult = await checkLocalIndexerService();
@@ -617,6 +673,7 @@ const results = [
   rpcChainResult,
   contractBytecodeResult,
   productionAgentHealthResult,
+  productionAgentBetaAdminCorsResult,
   indexerGraphqlResult,
   indexerLagResult,
   localIndexerServiceResult,

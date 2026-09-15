@@ -82,6 +82,10 @@ describe("AdminSelect", () => {
     expect(screen.getByText("Cycle")).toHaveClass("top-0.5", "leading-4");
     expect(screen.getByText("Cycle")).not.toHaveClass("top-1/2");
     expect(control).toHaveClass("pt-5", "pb-1", "leading-5");
+    expect(control).toHaveClass(
+      "[&>option]:bg-[rgb(var(--neutral-0))]",
+      "[&>option]:text-[rgb(var(--neutral-950))]"
+    );
 
     fireEvent.change(control, { target: { value: "c1" } });
     expect(onChange).toHaveBeenCalledTimes(1);
