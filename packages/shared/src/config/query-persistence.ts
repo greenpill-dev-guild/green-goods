@@ -3,17 +3,17 @@ import {
   experimental_createQueryPersister,
   type PersistedQuery,
 } from "@tanstack/query-persist-client-core";
-import type {
-  DehydratedState,
-  Query,
-  QueryClient,
-  QueryKey,
-  QueryPersister,
-} from "@tanstack/react-query";
-import { hashKey } from "@tanstack/react-query";
 import {
-  clear as idbClear,
+  type DehydratedState,
+  hashKey,
+  type Query,
+  type QueryClient,
+  type QueryKey,
+  type QueryPersister,
+} from "@tanstack/react-query";
+import {
   createStore,
+  clear as idbClear,
   del as idbDel,
   entries as idbEntries,
   get as idbGet,
