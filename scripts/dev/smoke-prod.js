@@ -571,6 +571,8 @@ async function checkProductionAgentBetaAdminCors() {
     });
     const text = await response.text();
     const allowedOrigin = response.headers.get("access-control-allow-origin");
+    const allowedMethods = response.headers.get("access-control-allow-methods") || "";
+    const allowedHeaders = response.headers.get("access-control-allow-headers") || "";
 
     if (response.status !== 204) {
       throw new Error(`HTTP ${response.status}: ${text.slice(0, 120)}`);
@@ -579,11 +581,21 @@ async function checkProductionAgentBetaAdminCors() {
       throw new Error(`Access-Control-Allow-Origin=${allowedOrigin || "missing"}`);
     }
 
+    const methodsList = allowedMethods.split(",").map((m) => m.trim().toUpperCase());
+    if (!methodsList.includes("POST")) {
+      throw new Error(`Access-Control-Allow-Methods=${allowedMethods || "missing"} (POST not permitted)`);
+    }
+
+    const headersList = allowedHeaders.split(",").map((h) => h.trim().toLowerCase());
+    if (!headersList.includes("content-type")) {
+      throw new Error(`Access-Control-Allow-Headers=${allowedHeaders || "missing"} (Content-Type not permitted)`);
+    }
+
     return {
       name: "production-agent-beta-admin-cors",
       level: "pass",
       ready: true,
-      detail: `origin=${BETA_ADMIN_ORIGIN}; HTTP ${response.status}`,
+      detail: `origin=${BETA_ADMIN_ORIGIN}; methods=${allowedMethods}; headers=${allowedHeaders}; HTTP ${response.status}`,
       url: redactUrl(uploadSignUrl),
     };
   } catch (error) {
