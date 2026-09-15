@@ -205,7 +205,7 @@ export function CampaignCard({
       >
         <h4
           id={`vault-campaign-${campaign.slug}-actions-title`}
-          className="font-mono text-[11px] uppercase tracking-[0.16em] text-text-soft-400"
+          className="font-mono text-[11px] font-bold uppercase tracking-[0.16em] text-text-soft-400"
         >
           {formatMessage({
             id: "public.vaults.card.readiness",

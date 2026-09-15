@@ -154,7 +154,7 @@ export function FieldNoteDialog({
     >
       <h2
         id={titleId}
-        className="font-serif text-2xl leading-[1.12] text-text-strong-950 md:text-3xl"
+        className="font-serif text-2xl leading-[1.12] font-bold text-text-strong-950 md:text-3xl"
       >
         {title}
       </h2>

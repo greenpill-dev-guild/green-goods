@@ -53,7 +53,7 @@ export const Profile: React.FC<ProfileProps> = ({
           <div className="absolute inset-0 rounded-full bg-bg-soft-200/80 animate-pulse backdrop-blur-sm" />
         )}
       </div>
-      <h5 className="max-w-full truncate" title={displayName}>
+      <h5 className="max-w-full truncate text-[1.125rem] font-bold" title={displayName}>
         {displayName}
       </h5>
       <div className="flex flex-row flex-wrap justify-center items-center gap-2">

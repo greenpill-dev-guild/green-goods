@@ -276,7 +276,9 @@ const Home: React.FC = () => {
       {location.pathname.replace(/\/$/, "") === APP_ROUTES.home && (
         <>
           <div className="flex items-center justify-between w-full py-6 px-4 sm:px-6 md:px-12">
-            <h4 className="font-semibold flex-1">{intl.formatMessage({ id: "app.home" })}</h4>
+            <h4 className="flex-1 text-[1.125rem] font-semibold">
+              {intl.formatMessage({ id: "app.home" })}
+            </h4>
             <div className="ml-4 flex items-center gap-2">
               <IconButton
                 emphasis="secondary"

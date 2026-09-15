@@ -39,7 +39,7 @@ export const FormInfo = ({
         </div>
       )}
       <div className="flex flex-col gap-0.5 grow">
-        <h6 className="text-text-strong-950">{title}</h6>
+        <h6 className="text-base font-semibold text-text-strong-950">{title}</h6>
         <div className="text-xs leading-tight text-text-sub-600">{info}</div>
       </div>
     </Card>

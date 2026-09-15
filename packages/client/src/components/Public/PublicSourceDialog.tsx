@@ -68,7 +68,7 @@ export function PublicSourceDialog({
           <div>
             <h2
               id="public-source-dialog-title"
-              className="font-serif text-xl text-text-strong-950 md:text-2xl"
+              className="font-serif text-xl font-bold text-text-strong-950 md:text-2xl"
             >
               {title}
             </h2>
