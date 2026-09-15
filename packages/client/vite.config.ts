@@ -173,7 +173,6 @@ export default defineConfig(async ({ command, mode }): Promise<UserConfig> => {
     if (process.env[key] === undefined) process.env[key] = value;
   }
 
-  const enableRpcBgSync = process.env.VITE_ENABLE_RPC_BG_SYNC === "true";
   const watch = resolveViteWatchOptions(process.env);
   if (command === "serve") {
     const polling = watch.usePolling === true;
@@ -226,7 +225,6 @@ export default defineConfig(async ({ command, mode }): Promise<UserConfig> => {
   const indexerProxyTarget =
     process.env.VITE_ENVIO_INDEXER_URL?.trim() ||
     (nodeEnv === "development" ? "http://localhost:3006/v1/graphql" : DEFAULT_INDEXER_URL);
-  const isBunRuntime = "bun" in process.versions;
   if (command === "build") {
     process.env.NODE_ENV = "production";
   }
