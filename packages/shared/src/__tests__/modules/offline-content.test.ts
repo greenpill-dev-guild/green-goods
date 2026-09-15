@@ -113,7 +113,7 @@ function harness(options: { gardens?: Garden[]; account?: string } = {}) {
       protect: vi.fn(async () => true),
       retireLegacy: vi.fn(async () => {}),
     },
-    persist: vi.fn(async () => {}),
+    persistQuery: vi.fn(async () => {}),
     sleep: vi.fn(async () => {}),
     idle: vi.fn(async () => {}),
     now: () => 1_000,
@@ -297,12 +297,18 @@ describe("offline scheduler", () => {
     expect(ports.media.retireLegacy).not.toHaveBeenCalled();
   });
 
-  it("writes the reading cache once per interval, not once per record", async () => {
+  it("writes each read to the reading cache once it has landed", async () => {
     const { ports } = harness();
 
     await new OfflineScheduler(ports).run();
 
-    expect(ports.persist).toHaveBeenCalledTimes(1);
+    const persisted = vi.mocked(ports.persistQuery).mock.calls.map(([key]) => key[2]);
+    expect(persisted).toContain("approvals");
+    expect(persisted).toContain("online");
+    expect(vi.mocked(ports.fetchWorks).mock.calls.length).toBeGreaterThan(0);
+    expect(persisted.filter((source) => source === "online")).toHaveLength(
+      vi.mocked(ports.fetchWorks).mock.calls.length
+    );
   });
 
   it("lets another account on the same phone reuse downloaded lists and photos", async () => {

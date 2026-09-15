@@ -3,7 +3,7 @@ import { logger } from "@green-goods/shared/modules/app/logger";
 import { initTheme } from "@green-goods/shared/utils/styles/theme";
 import { type ComponentType, StrictMode } from "react";
 import { createRoot, type Root } from "react-dom/client";
-import { ADMIN_QUERY_PERSISTENCE_DB } from "./bootConstants";
+import { ADMIN_LEGACY_QUERY_PERSISTENCE, ADMIN_QUERY_PERSISTENCE_DB } from "./bootConstants";
 import { BootErrorBoundary, BootRecovery, BootShell } from "./BootSurface";
 
 /**
@@ -173,7 +173,10 @@ function reload(): void {
 }
 
 async function resetAndReload(): Promise<void> {
-  await clearPersistedQueryClient({ dbName: ADMIN_QUERY_PERSISTENCE_DB });
+  await clearPersistedQueryClient({
+    dbName: ADMIN_QUERY_PERSISTENCE_DB,
+    legacy: ADMIN_LEGACY_QUERY_PERSISTENCE,
+  });
   reload();
 }
 

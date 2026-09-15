@@ -127,7 +127,7 @@ Providers must nest in dependency order (outermost first). Wrong order causes ru
 
 **Admin** (`packages/admin/src/main.tsx`):
 ```tsx
-<PersistQueryClientProvider>  {/* Persisted query cache (admin-specific) */}
+<QueryPersistenceProvider>  {/* Reading cache, one record per query (admin database) */}
   <ErrorBoundary>
     <AppKitProvider>          {/* Wallet connection */}
       <AuthProvider>          {/* Auth state — depends on wallet context */}
@@ -137,7 +137,7 @@ Providers must nest in dependency order (outermost first). Wrong order causes ru
       </AuthProvider>
     </AppKitProvider>
   </ErrorBoundary>
-</PersistQueryClientProvider>
+</QueryPersistenceProvider>
 ```
 
 **Dependency chain**: AppKitProvider (wallet) -> AuthProvider (auth) -> AppProvider (app)

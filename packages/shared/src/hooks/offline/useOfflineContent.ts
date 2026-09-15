@@ -15,7 +15,7 @@ import {
   sweepMedia,
 } from "../../modules/offline-content/media";
 import { OFFLINE_REFRESH_MS } from "../../modules/offline-content/policy";
-import { persistPreparedQueries } from "../../modules/offline-content/query-writer";
+import { persistPreparedQuery } from "../../modules/offline-content/query-writer";
 import { OfflineScheduler } from "../../modules/offline-content/scheduler";
 import {
   getOfflineProgress,
@@ -124,9 +124,9 @@ export function useOfflineContentPreparation(chainId = DEFAULT_CHAIN_ID): void {
         protect: protectMedia,
         retireLegacy: retireLegacyPreparedMedia,
       },
-      persist: async () => {
+      persistQuery: async (queryKey) => {
         try {
-          await persistPreparedQueries(client);
+          await persistPreparedQuery(client, queryKey);
         } catch (error) {
           reportOfflineStorageFailure();
           throw error;

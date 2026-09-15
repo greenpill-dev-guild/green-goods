@@ -1,4 +1,4 @@
-import type { QueryClient } from "@tanstack/react-query";
+import type { QueryClient, QueryKey } from "@tanstack/react-query";
 import { worksKeys } from "../../config/query-keys/work";
 import type { Garden, WorkMetadata } from "../../types/domain";
 import type { EASWork, EASWorkApproval } from "../../types/eas-responses";
@@ -31,7 +31,8 @@ export interface OfflineSchedulerPorts {
   fetchApprovals(): Promise<EASWorkApproval[]>;
   readMetadata(metadata: string, signal?: AbortSignal): Promise<WorkMetadata>;
   media: OfflineMediaPort;
-  persist(): Promise<void>;
+  /** Writes one filled read to the reading cache; rejects when storage refuses. */
+  persistQuery(queryKey: QueryKey): Promise<void>;
   sleep(ms: number): Promise<void>;
   idle(): Promise<void>;
   now(): number;
@@ -41,16 +42,14 @@ export interface OfflineSchedulerPorts {
 const FOREGROUND_RECHECK_MS = 500;
 /** A waiting run rechecks its conditions even if no event wakes it. */
 const WAKE_RECHECK_MS = 30_000;
-/** Lists already fetched are written to storage at most this often during a run. */
-const PERSIST_INTERVAL_MS = 5_000;
 
 class RunStopped extends Error {}
 
 /**
  * Downloads offline content without competing with the screen. Every task waits
  * until nothing in the app is fetching and the browser is idle, the garden in
- * view moves to the front of the queue, photos pause under Data Saver, and the
- * reading cache is written once per interval instead of once per record.
+ * view moves to the front of the queue, photos pause under Data Saver, and each
+ * read is written to the reading cache once it has landed.
  */
 export class OfflineScheduler {
   private activeGarden?: string;
@@ -150,7 +149,6 @@ export class OfflineScheduler {
       ports.avatarUrl()
     );
     const staleTime = refresh ? 0 : OFFLINE_REFRESH_MS;
-    let lastPersist = ports.now();
     updateOfflineProgress({
       state: "downloading",
       pauseReason: undefined,
@@ -184,13 +182,6 @@ export class OfflineScheduler {
           queue.retry(result.task);
         } else queue.failed(result.task, result.error);
       }
-      if (
-        batch.some((task) => task.kind === "list") &&
-        ports.now() - lastPersist >= PERSIST_INTERVAL_MS
-      ) {
-        await this.persist();
-        lastPersist = ports.now();
-      }
       updateOfflineProgress({
         state: "downloading",
         pauseReason: undefined,
@@ -203,7 +194,6 @@ export class OfflineScheduler {
 
   private async finish(queue: OfflineRunQueue): Promise<void> {
     const { ports } = this;
-    await this.persist();
     this.lastRunAt = ports.now();
     let savedBytes = getOfflineProgress().savedBytes;
     if (ports.mediaReady()) {
@@ -236,31 +226,49 @@ export class OfflineScheduler {
     });
   }
 
+  /** A read counts as prepared only once its record is in the reading cache. */
+  private async fetchAndPersist<T>(queryKey: QueryKey, fetch: () => Promise<T>): Promise<T> {
+    const value = await fetch();
+    await this.ports.persistQuery(queryKey);
+    return value;
+  }
+
   private execute(task: OfflineTask, staleTime: number): Promise<unknown> {
     const { client, chainId } = this.ports;
     switch (task.kind) {
-      case "approvals":
-        return client.fetchQuery({
-          queryKey: worksKeys.approvals(undefined, chainId),
-          queryFn: () => this.ports.fetchApprovals(),
-          networkMode: "online",
-          staleTime,
-        });
-      case "list":
-        return client.fetchQuery({
-          queryKey: worksKeys.online(task.garden, chainId),
-          queryFn: () => this.ports.fetchWorks(task.garden),
-          networkMode: "online",
-          staleTime,
-        });
+      case "approvals": {
+        const queryKey = worksKeys.approvals(undefined, chainId);
+        return this.fetchAndPersist(queryKey, () =>
+          client.fetchQuery({
+            queryKey,
+            queryFn: () => this.ports.fetchApprovals(),
+            networkMode: "online",
+            staleTime,
+          })
+        );
+      }
+      case "list": {
+        const queryKey = worksKeys.online(task.garden, chainId);
+        return this.fetchAndPersist(queryKey, () =>
+          client.fetchQuery({
+            queryKey,
+            queryFn: () => this.ports.fetchWorks(task.garden),
+            networkMode: "online",
+            staleTime,
+          })
+        );
+      }
       case "details": {
         const metadata = task.work.metadata.trim();
-        return client.fetchQuery({
-          queryKey: worksKeys.metadata(metadata),
-          queryFn: ({ signal }) => this.ports.readMetadata(metadata, signal),
-          networkMode: "online",
-          staleTime: Number.POSITIVE_INFINITY,
-        });
+        const queryKey = worksKeys.metadata(metadata);
+        return this.fetchAndPersist(queryKey, () =>
+          client.fetchQuery({
+            queryKey,
+            queryFn: ({ signal }) => this.ports.readMetadata(metadata, signal),
+            networkMode: "online",
+            staleTime: Number.POSITIVE_INFINITY,
+          })
+        );
       }
       case "photo":
         return this.ports.media
@@ -322,13 +330,5 @@ export class OfflineScheduler {
   private abortDownloads(): void {
     this.downloads.abort();
     this.downloads = new AbortController();
-  }
-
-  private async persist(): Promise<void> {
-    try {
-      await this.ports.persist();
-    } catch {
-      /* The persistence port reports storage failures to the progress store. */
-    }
   }
 }

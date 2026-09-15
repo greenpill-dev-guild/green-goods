@@ -557,7 +557,7 @@ export interface ActionInstructionConfigV2 extends ActionInstructionConfig {
 
 /**
  * ENS registration status data tracked through CCIP delivery.
- * Fully serializable for IndexedDB persistence via PersistQueryClientProvider.
+ * Fully serializable for the IndexedDB reading cache (QueryPersistenceProvider).
  */
 export interface ENSRegistrationData {
   status: "available" | "pending" | "active" | "timed_out";

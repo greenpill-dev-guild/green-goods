@@ -1,24 +1,28 @@
 import { ErrorBoundary } from "@green-goods/shared/components/ErrorBoundary/ErrorBoundary";
 import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
 import {
-  createQueryPersister,
+  createQueryPersistence,
   createShouldDehydrateQuery,
-  PERSIST_MAX_AGE,
 } from "@green-goods/shared/config/query-persistence";
 import { queryClient } from "@green-goods/shared/config/react-query";
 import { AppProvider } from "@green-goods/shared/providers/App";
 import { AppKitProvider } from "@green-goods/shared/providers/AppKitProvider";
 import { AuthGate } from "@green-goods/shared/providers/AuthGate";
-import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
+import {
+  attachQueryPersistence,
+  QueryPersistenceProvider,
+} from "@green-goods/shared/providers/QueryPersistence";
 import App from "@/App.tsx";
-import { ADMIN_QUERY_PERSISTENCE_DB } from "./bootConstants";
+import { ADMIN_LEGACY_QUERY_PERSISTENCE, ADMIN_QUERY_PERSISTENCE_DB } from "./bootConstants";
 
-// Never throws: the persister degrades to an in-memory session when the
+// Never throws: the reading cache degrades to an in-memory session when the
 // browser blocks IndexedDB or web storage.
-const persister = createQueryPersister({ dbName: ADMIN_QUERY_PERSISTENCE_DB });
-const shouldDehydrateQuery = createShouldDehydrateQuery({
-  excludedGroups: ["queue", "role"],
+const persistence = createQueryPersistence({
+  dbName: ADMIN_QUERY_PERSISTENCE_DB,
+  legacy: ADMIN_LEGACY_QUERY_PERSISTENCE,
+  shouldPersistQuery: createShouldDehydrateQuery({ excludedGroups: ["queue", "role"] }),
 });
+attachQueryPersistence(queryClient, persistence);
 
 const adminAppUrl =
   import.meta.env.VITE_ADMIN_APP_URL ||
@@ -32,14 +36,7 @@ const adminAppUrl =
  */
 export default function AdminRoot() {
   return (
-    <PersistQueryClientProvider
-      client={queryClient}
-      persistOptions={{
-        persister,
-        maxAge: PERSIST_MAX_AGE,
-        dehydrateOptions: { shouldDehydrateQuery },
-      }}
-    >
+    <QueryPersistenceProvider client={queryClient} persistence={persistence}>
       <ErrorBoundary context="AdminApp">
         <AppKitProvider
           projectId={import.meta.env.VITE_WALLETCONNECT_PROJECT_ID}
@@ -62,6 +59,6 @@ export default function AdminRoot() {
           </AuthGate>
         </AppKitProvider>
       </ErrorBoundary>
-    </PersistQueryClientProvider>
+    </QueryPersistenceProvider>
   );
 }

@@ -6,7 +6,7 @@
  * application tree produces an actionable recovery card, never an empty root.
  */
 
-import { createQueryPersister } from "@green-goods/shared/config/query-persistence";
+import { createQueryPersistence } from "@green-goods/shared/config/query-persistence";
 import { act, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { AdminBootServices, BootOutcome } from "@/components/Boot/bootAdmin";
@@ -104,7 +104,7 @@ describe("bootAdmin", () => {
     // where the old entry point used to throw.
     const result = await boot({
       loadRoot: async () => {
-        createQueryPersister({ dbName: "gg-admin-boot-test" });
+        createQueryPersistence({ dbName: "gg-admin-boot-test" });
         return { default: Ready };
       },
       initTheme: () => {
