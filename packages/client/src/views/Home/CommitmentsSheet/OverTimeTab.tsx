@@ -1,5 +1,6 @@
 import type { Garden } from "@green-goods/shared/types/domain";
 import { StatusBadge } from "@green-goods/shared/components/StatusBadge";
+import { SheetHeading } from "@green-goods/shared/components/Dialog/SheetHeading";
 import { useOffline } from "@green-goods/shared/hooks/app/useOffline";
 import {
   type CommitmentPoolRecord,
@@ -83,9 +84,9 @@ export function OverTimeTab({ inbox, pools, gardens, series, onOpenCommitment }:
     >
       {record.length > 0 ? (
         <section className="rounded-[var(--radius-lg)] border border-stroke-soft-200 bg-bg-white-0 p-4">
-          <h4 className="text-sm font-medium text-text-strong-950">
+          <SheetHeading as="h4">
             {formatMessage({ id: "app.commitments.record.title" })}
-          </h4>
+          </SheetHeading>
           <dl className="mt-3 space-y-2">
             {record.map((entry) => (
               <div key={entry.key} className="flex items-baseline justify-between gap-3">
@@ -109,9 +110,9 @@ export function OverTimeTab({ inbox, pools, gardens, series, onOpenCommitment }:
 
       {series.length > 0 ? (
         <section>
-          <h4 className="mb-2 text-xs font-medium uppercase tracking-wide text-text-soft-400">
+          <SheetHeading as="h4" className="mb-2">
             {formatMessage({ id: "app.commitments.series.title" })}
-          </h4>
+          </SheetHeading>
           <div className="space-y-2">
             {series.map((entry) => (
               <div
@@ -148,15 +149,15 @@ export function OverTimeTab({ inbox, pools, gardens, series, onOpenCommitment }:
 
       {groups.length > 0 ? (
         <section>
-          <h4 className="mb-2 text-xs font-medium uppercase tracking-wide text-text-soft-400">
+          <SheetHeading as="h4" className="mb-2">
             {formatMessage({ id: "app.commitments.kept.title" })}
-          </h4>
+          </SheetHeading>
           <div className="space-y-4">
             {groups.map((group) => (
               <div key={group.key}>
-                <p className="mb-2 truncate text-xs text-text-soft-400" title={group.gardenName}>
+                <SheetHeading as="h5" className="mb-2 truncate" title={group.gardenName}>
                   {group.gardenName}
-                </p>
+                </SheetHeading>
                 <div className="space-y-2">
                   {group.rows.map((row) => {
                     const gardenAddress = gardenAddressFor(row, pools);

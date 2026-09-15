@@ -146,6 +146,16 @@ describe("SheetHeader anatomy contract (DL-028)", () => {
     expect(declarations("root")).toMatch(/align-items:\s*flex-start/);
   });
 
+  it("gives every heading inside a sheet body one style: 14/600 on a 20px line, sentence case", () => {
+    const heading =
+      utilitiesContent.match(/\[data-component="SheetHeading"\]\s*\{([^}]*)\}/)?.[1] ?? "";
+    expect(heading).toMatch(/font-size:\s*0\.875rem/);
+    expect(heading).toMatch(/line-height:\s*1\.25rem/);
+    expect(heading).toMatch(/font-weight:\s*600/);
+    expect(heading).toMatch(/text-transform:\s*none/);
+    expect(heading).toMatch(/color:\s*rgb\(var\(--text-strong-950\)\)/);
+  });
+
   it("keeps the close control on the shared 44px IconButton and shows a hairline only while the body scrolls", () => {
     expect(declarations("close")).toBe("");
     expect(themeContent).toMatch(/\.gg-icon-button\s*\{[^}]*--gg-icon-button-size:\s*2\.75rem/);

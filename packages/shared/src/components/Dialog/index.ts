@@ -4,3 +4,4 @@ export { ImagePreviewDialog, type ImagePreviewDialogProps } from "./ImagePreview
 export { PwaSheet, type PwaSheetProps } from "./PwaSheet";
 export { type SheetAction, SheetActions, type SheetActionsProps } from "./SheetActions";
 export { SheetHeader, type SheetHeaderProps } from "./SheetHeader";
+export { SheetHeading, type SheetHeadingProps } from "./SheetHeading";

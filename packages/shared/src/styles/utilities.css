@@ -686,6 +686,18 @@
     flex-shrink: 0;
   }
 
+  /* Headings inside a sheet body (DL-028): section headings, group labels, and
+   * empty, error, and success state titles share one style under the header. */
+  [data-component="SheetHeading"] {
+    margin: 0;
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+    font-weight: 600;
+    letter-spacing: normal;
+    text-transform: none;
+    color: rgb(var(--text-strong-950));
+  }
+
   [data-component="PwaSheet"][data-slot="body"] {
     display: flex;
     flex: 1 1 auto;

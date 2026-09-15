@@ -1,4 +1,5 @@
 import { Chip } from "@green-goods/shared/components/Chip";
+import { SheetHeading } from "@green-goods/shared/components/Dialog/SheetHeading";
 import { TextInput } from "@green-goods/shared/components/Form/ControlPrimitives";
 import { DOMAIN_CONFIG } from "@green-goods/shared/config/domain";
 import type {
@@ -56,7 +57,7 @@ const FilterOptionButton = ({
 );
 
 const SectionTitle = ({ children }: { children: string }) => (
-  <h6 className="mb-3 text-sm font-semibold text-text-sub-600">{children}</h6>
+  <SheetHeading className="mb-3">{children}</SheetHeading>
 );
 
 type GardensFilterSheetProps = {

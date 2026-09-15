@@ -1,4 +1,5 @@
 import { StatusBadge } from "@green-goods/shared/components/StatusBadge";
+import { SheetHeading } from "@green-goods/shared/components/Dialog/SheetHeading";
 import { useOffline } from "@green-goods/shared/hooks/app/useOffline";
 import {
   type CommitmentsToConfirm,
@@ -77,12 +78,9 @@ export function ToConfirmTab({ toConfirm, onOpenCommitment }: ToConfirmTabProps)
 
       {groups.map((group) => (
         <div key={group.garden} data-component="ToConfirmGroup">
-          <h4
-            className="mb-2 truncate text-xs font-medium uppercase tracking-wide text-text-soft-400"
-            title={group.gardenName}
-          >
+          <SheetHeading as="h4" className="mb-2 truncate" title={group.gardenName}>
             {group.gardenName}
-          </h4>
+          </SheetHeading>
           <div className="space-y-2">
             {group.rows.map((row) => {
               const captured = isCapturedCommitment(row.commitment);
