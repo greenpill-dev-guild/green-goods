@@ -37,7 +37,12 @@ import { ENV } from "../lib/env";
 
 import { DEFAULT_CHAIN_ID } from "../config/default-chain";
 import { logger } from "../modules/app/logger";
-import { getAuthMode, getEmbeddedAddress, getStoredWalletAddress } from "../modules/auth/session";
+import {
+  asHexAddress,
+  getAuthMode,
+  getEmbeddedAddress,
+  getStoredWalletAddress,
+} from "../modules/auth/session";
 import { authMachine } from "./authMachine";
 import { authServices } from "./authServices";
 
@@ -69,7 +74,7 @@ export function createAuthActor(services: typeof authServices = authServices) {
     restoreAuthMode === "wallet"
       ? getStoredWalletAddress()
       : restoreAuthMode === "embedded"
-        ? getEmbeddedAddress()
+        ? asHexAddress(getEmbeddedAddress())
         : null;
 
   // Create actor with services and initial context

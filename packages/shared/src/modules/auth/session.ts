@@ -14,7 +14,7 @@
  * Reference: https://docs.pimlico.io/docs/how-tos/signers/passkey
  */
 
-import type { Address } from "viem";
+import type { Address, Hex } from "viem";
 import type { P256Credential } from "viem/account-abstraction";
 
 import type { AuthMode } from "../../types/auth";
@@ -182,11 +182,12 @@ export const WALLET_ADDRESS_STORAGE_KEY = "greengoods_wallet_address";
 
 const WAGMI_STORE_KEY = "wagmi.store";
 
-function asAddress(value: unknown): Address | null {
-  return typeof value === "string" && /^0x[0-9a-fA-F]{40}$/.test(value) ? (value as Address) : null;
+/** Narrow a stored value to a hex address; anything else reads as absent. */
+export function asHexAddress(value: unknown): Hex | null {
+  return typeof value === "string" && /^0x[0-9a-fA-F]{40}$/.test(value) ? (value as Hex) : null;
 }
 
-function readWagmiWalletAddress(storage: SessionStorage): Address | null {
+function readWagmiWalletAddress(storage: SessionStorage): Hex | null {
   try {
     const persisted = JSON.parse(storage.getItem(WAGMI_STORE_KEY) ?? "null") as {
       state?: {
@@ -201,7 +202,7 @@ function readWagmiWalletAddress(storage: SessionStorage): Address | null {
       entries.find((entry) => Array.isArray(entry) && entry[0] === current) ?? entries[0];
     if (!Array.isArray(connection)) return null;
     const accounts = (connection[1] as { accounts?: unknown } | undefined)?.accounts;
-    return Array.isArray(accounts) ? asAddress(accounts[0]) : null;
+    return Array.isArray(accounts) ? asHexAddress(accounts[0]) : null;
   } catch {
     return null;
   }
@@ -219,8 +220,8 @@ export function setStoredWalletAddress(
  * Read the primary wallet identity without contacting its connector. Older
  * installs migrate the same address from Wagmi's persisted connection record.
  */
-export function getStoredWalletAddress(storage: SessionStorage = localStorage): Address | null {
-  const stored = asAddress(storage.getItem(WALLET_ADDRESS_STORAGE_KEY));
+export function getStoredWalletAddress(storage: SessionStorage = localStorage): Hex | null {
+  const stored = asHexAddress(storage.getItem(WALLET_ADDRESS_STORAGE_KEY));
   if (stored) return stored;
   const migrated = readWagmiWalletAddress(storage);
   if (migrated) storage.setItem(WALLET_ADDRESS_STORAGE_KEY, migrated);
