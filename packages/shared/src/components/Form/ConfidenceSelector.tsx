@@ -1,7 +1,7 @@
 import { type KeyboardEvent, useCallback, useId, useMemo } from "react";
 import { useIntl } from "react-intl";
 import { Confidence } from "../../types/domain";
-import { cn } from "../../utils/styles/cn";
+import { Chip } from "../Chip";
 
 export interface ConfidenceSelectorProps {
   value: Confidence;
@@ -12,7 +12,9 @@ export interface ConfidenceSelectorProps {
 }
 
 /**
- * A 4-segment radio group for selecting verification confidence level.
+ * A four-choice radio group for the verification confidence level, rendered as
+ * shared `Chip`s with `role="radio"` (the same anatomy as AssetSelector), so it
+ * takes the surface's capsule, label, and 44px hit area (DL-030).
  *
  * When `disabled` (e.g., for rejections), defaults to None and disables interaction.
  * When `required` (e.g., for approvals), the user must select Low or higher.
@@ -104,16 +106,16 @@ export function ConfidenceSelector({
         })}
         aria-required={required || undefined}
         onKeyDown={handleKeyDown}
-        className="flex gap-1"
+        className="flex flex-wrap gap-2"
       >
         {CONFIDENCE_OPTIONS.map((option) => {
           const isSelected = option.value === value;
           return (
-            <button
+            <Chip
               key={option.value}
               id={`${groupId}-${option.value}`}
-              type="button"
               role="radio"
+              selected={isSelected}
               aria-checked={isSelected}
               aria-label={formatMessage(
                 { id: "app.form.confidence.ariaLabel", defaultMessage: "{level} confidence" },
@@ -122,17 +124,9 @@ export function ConfidenceSelector({
               tabIndex={isSelected ? 0 : -1}
               disabled={disabled}
               onClick={() => onChange(option.value)}
-              className={cn(
-                "flex-1 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
-                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-base focus-visible:ring-offset-1",
-                "disabled:opacity-50 disabled:cursor-not-allowed",
-                isSelected
-                  ? "bg-primary-base text-white"
-                  : "bg-bg-weak-50 text-text-sub-600 hover:bg-bg-soft-200"
-              )}
             >
               {option.label}
-            </button>
+            </Chip>
           );
         })}
       </div>

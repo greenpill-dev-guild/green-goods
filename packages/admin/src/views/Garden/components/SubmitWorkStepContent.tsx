@@ -105,6 +105,7 @@ export function SubmitWorkStepContent({
           description={photoRequirementText}
         />
         <FileUploadField
+          surface="admin"
           label={formatMessage({ id: "app.admin.work.submit.media" })}
           helpText={formatMessage({ id: "app.admin.work.submit.mediaHint" })}
           accept="image/jpeg,image/png,image/webp,image/heic,image/heif,.heic,.heif"

@@ -81,37 +81,37 @@ Token names come from root `DESIGN.md` (`rounded.*`), not stock Tailwind. In cli
 Tailwind classes resolve to that runtime scale: `rounded-md` 8px, `rounded-lg` 16px, `rounded-xl` 20px,
 `rounded-2xl` 24px (admin remaps `rounded-xl` and `rounded-2xl` to 16px). The 12px step has no Tailwind
 class; use `var(--radius-squircle)`. Buttons and fields never take a radius class: their shared primitives
-own the shape (DL-022, DL-026). Naming stock Tailwind classes here once let the secondary corner drift
-from 12px to 20px.
+own the shape (DL-022, DL-026, DL-028). Naming stock Tailwind classes here once let the secondary corner
+drift from 12px to 20px.
 
 | Element | Radius | Runtime token | Shape Type | Concentric Parent |
 |---------|--------|---------------|------------|-------------------|
 | Status dots, tiny badges | 4px | `rounded` | Fixed | — |
 | Tags and text badges | 8px | `--radius-md` · `rounded-md` | Fixed | — |
-| Content inside cards, actions inside a field | 12px | `--radius-squircle` | Concentric | Card or field (16px) - 4px |
+| Content inside cards, actions inside a field, a pressed app button | 12px | `--radius-squircle` | Concentric | Card or field (16px) - 4px |
 | Cards, fields (DL-022) | 16px | `--radius-lg` · `rounded-lg` · `.gg-control` | Concentric | Panel (20px) - 4px |
 | Panels, sheets | 20px | `--radius-xl` · `rounded-xl` | Concentric | Page (24px) - 4px |
 | Modals, dialogs, bottom sheets | 24px | `--radius-2xl` · `rounded-2xl` | Concentric | Viewport edge |
 | Icon buttons | circle | `.gg-icon-button` | Capsule | — |
 | Chips (filters, choices) | capsule | `.gg-chip` · `--radius-full` | Capsule | — |
-| Buttons in the installed app, every emphasis (DL-026) | 12px | `--gg-button-radius` → `--radius-squircle` | Fixed | — |
-| Buttons on the public website, every emphasis (DL-026) | 16px | `--gg-button-radius` → `--radius-lg` | Fixed | — |
+| Buttons in the installed app, every emphasis (DL-028) | 16px | `--gg-button-radius` → `--radius-lg` | Fixed | matches the field beside it |
+| Buttons on the public website, every emphasis (DL-028) | 0px | `--gg-button-radius` → `--radius-none` | Fixed | square, like editorial cards and panels |
 
 ### Button Corners and Emphasis
 
-Emphasis is carried by fill, outline, and colour. The corner belongs to the surface, so a primary and the secondary beside it always share one shape (DL-026):
+Emphasis is carried by fill, outline, and colour. The corner belongs to the surface, so a primary and the secondary beside it always share one shape (DL-026), and in the app that shape is the field's (DL-028):
 
 | Element | Installed app | Public website | Morph on Press | Use |
 |---------|---------------|----------------|----------------|-----|
-| **Primary** (filled; the error fill when destructive) | 12px | 16px | One step tighter: 8px in the app, 12px on the website | CTAs, hero actions, "Create Garden" |
-| **Secondary** (outlined, "Cancel" included) | 12px | 16px | One step tighter: 8px in the app, 12px on the website | Second actions, "Cancel" (DL-016), "Add Link" |
-| **Tertiary** (text) | No container at rest; 12px fill on hover and focus | 16px fill on hover and focus | — | Inline actions, a rare third action; 44px hit area |
+| **Primary** (filled; the error fill when destructive) | 16px | 0px | One step tighter in the app: 12px; none on the website | CTAs, hero actions, "Create Garden" |
+| **Secondary** (outlined, "Cancel" included) | 16px | 0px | One step tighter in the app: 12px; none on the website | Second actions, "Cancel" (DL-016), "Add Link" |
+| **Tertiary** (text) | No container at rest; 16px fill on hover and focus | Square fill on hover and focus | — | Inline actions, a rare third action; 44px hit area |
 | **Icon buttons** | Circle | Circle | Tightens to the 12px squircle | Close, back, share, menu, remove |
 | **Chips** | Capsule | Capsule | — | Filters and choices; selected uses the action fill (DL-017) |
 
-**Rule (DL-026)**: one button corner per surface. The public website's shell carries `data-site="website"`, and the corner tokens (`--gg-button-radius`, `--gg-button-radius-pressed`) sit on `:root`, so dialogs and sheets that portal out of the shell match the page. Labels are regular weight in the app and semibold on the website (`--gg-button-weight`). The shared `Button` (`emphasis`), `IconButton`, and `Chip` encode this and have no shape prop; client code never hand-rolls a button (DL-025). The capsule-primary rule (DL-003) is superseded: applied everywhere, it mismatched every button pair.
+**Rule (DL-026, values DL-028)**: one button corner per surface. In the installed app it is the 16px field corner (`rounded.lg`), so a button and the field beside it share one shape; at the 32px compact size that corner is a capsule, which is accepted because compact actions sit beside text, not fields. On the public website buttons are square (`rounded.none`), like its editorial cards, dialogs, and panels. The website's shell carries `data-site="website"`, and the corner tokens (`--gg-button-radius`, `--gg-button-radius-pressed`) sit on `:root`, so dialogs and sheets that portal out of the shell match the page. Labels are regular weight in the app and semibold on the website (`--gg-button-weight`). The shared `Button` (`emphasis`), `IconButton`, and `Chip` encode this and have no shape prop and no legacy `variant`; client code never hand-rolls a button (DL-025). The capsule-primary rule (DL-003) is superseded: applied everywhere, it mismatched every button pair.
 
-**Admin note**: cockpit buttons are pills (`AdminButton`, Title Case action labels per DL-012), sized on the DL-011 compact metric (28/32/40 with preserved 44px hit targets), and the admin FAB follows the capsule rule at both sizes (`rounded-full` — 48px dock circle, 56px extended floating capsule; DL-010). Admin radii are the fixed 4/8/12/16/9999 set with no 20/24/28px steps — the capsule is that set's 9999 step.
+**Admin note**: cockpit buttons are pills (`AdminButton`, Title Case action labels per DL-012), sized on the DL-011 compact metric (28/32/40 with a 44px finger box on every tier and one 14px label, DL-029), and the admin FAB follows the capsule rule at both sizes (`rounded-full` — 48px dock circle, 56px extended floating capsule; DL-010). Admin radii are the fixed 4/8/12/16/9999 set with no 20/24/28px steps — the capsule is that set's 9999 step.
 
 ### Shape Morphing
 
@@ -398,11 +398,19 @@ display-size digits and editorial type sit centered inside it instead of growing
 **Primitives**: `Button` (`emphasis` primary / secondary / tertiary, `tone` default / danger / warning,
 `size`, `loading` stays focusable), `IconButton` (a circle at the same four sizes, `aria-label`
 required; a header launcher's count or status dot rides its `badge` slot), `Chip` (a 32px capsule
-toggle with a 44px hit area). All live in `@green-goods/shared`.
+toggle with a 44px hit area), `Switch` (a 44 × 24 track with a 44px hit box). All live in
+`@green-goods/shared`. Composite pieces ride the same anatomy: `DatePicker` and `FileUploadField`
+are field-shaped triggers (`gg-control`), `ConfidenceSelector` and `AssetSelector` are radio
+chips, `AudioRecorder` and toasts use `Button`, `ImagePreviewDialog` uses `IconButton` (DL-030).
+
+**Surface tokens**: every size reads one block token (`--gg-button-block-*`, `--gg-icon-size-*`)
+plus `--gg-button-inline-*`, `--gg-hit-block`, and the label sizes `--gg-label-md/sm`, with the app
+scale as the fallback, beside the corner and weight tokens. A surface moves the whole family by
+setting the tokens, never by restyling a component (DL-030).
 
 **Color variants** (from M3): Filled (primary), Outlined (secondary), Text (tertiary). A tonal fill is not a separate emphasis. Combined with shape, these give sufficient hierarchy without introducing more sizes.
 
-**Admin carve-out**: the size/morph table above is client canon. Cockpit buttons are `AdminButton` — pill at every size on the 28/32/40 compact metric (DL-011), Title Case labels (DL-012), no press-morph; the filled variant is `--tone-action` stepping elevation 1→2.
+**Admin carve-out**: the size/morph table above is client canon. Cockpit buttons are `AdminButton` — pill at every size on the 28/32/40 compact metric (DL-011), Title Case labels (DL-012), no press-morph; the filled variant is `--tone-action` stepping elevation 1→2. Shared pieces the cockpit renders keep the shared family, and admin `index.css` sets the family's tokens so a shared `Button` lands on the cockpit tiers (lg and md → 40, sm → 32, compact → 28) as a pill with a 14px / 500 label and a 44px finger box; `surface="admin"` puts a shared field on the responsive field tier and the switch on the M3 52 × 32 track (DL-030).
 
 ### Floating Toolbar
 
