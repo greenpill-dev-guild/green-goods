@@ -63,6 +63,7 @@
  */
 import { SheetActions, type SheetActionsProps } from "./SheetActions";
 import { SheetHeader } from "./SheetHeader";
+import { hideOthers, openSheetLayer } from "./sheetLayers";
 import { useDrag } from "@use-gesture/react";
 import { createPortal } from "react-dom";
 import {
@@ -82,50 +83,6 @@ import { useDocumentScrollLock } from "../../hooks/ui/useDocumentScrollLock";
 import { useSheetPresence } from "../../hooks/ui/useSheetPresence";
 import { useFocusTrap } from "../../hooks/utils/useFocusTrap";
 import { DISMISS_VELOCITY_THRESHOLD } from "../Canvas/springConfig";
-
-/**
- * Branches currently hidden from assistive tech by open sheets, with how
- * many sheets hold each one and the attribute value to restore. Module
- * scope so overlapping sheets share one ledger.
- */
-const hiddenBranches = new Map<Element, { count: number; previous: string | null }>();
-
-/**
- * Hide every sibling along `target`'s ancestor path up to <body>, the way
- * Radix hides the rest of the page behind a dialog. Works for portaled and
- * inline sheets alike: only the sheet's own ancestors stay exposed. Returns
- * the release function; a branch is restored once its last holder releases.
- */
-function hideOthers(target: Element): () => void {
-  const held: Element[] = [];
-  let node: Element | null = target;
-  while (node && node !== document.body && node.parentElement) {
-    const parent: Element = node.parentElement;
-    for (const sibling of Array.from(parent.children)) {
-      if (sibling === node || sibling.tagName === "SCRIPT" || sibling.tagName === "STYLE") continue;
-      const entry = hiddenBranches.get(sibling);
-      if (entry) {
-        entry.count += 1;
-      } else {
-        hiddenBranches.set(sibling, { count: 1, previous: sibling.getAttribute("aria-hidden") });
-        sibling.setAttribute("aria-hidden", "true");
-      }
-      held.push(sibling);
-    }
-    node = parent;
-  }
-  return () => {
-    for (const sibling of held) {
-      const entry = hiddenBranches.get(sibling);
-      if (!entry) continue;
-      entry.count -= 1;
-      if (entry.count > 0) continue;
-      hiddenBranches.delete(sibling);
-      if (entry.previous === null) sibling.removeAttribute("aria-hidden");
-      else sibling.setAttribute("aria-hidden", entry.previous);
-    }
-  };
-}
 
 const DRAG_DISMISS_DISTANCE_PX = 120;
 const DRAG_PULL_RESISTANCE_FACTOR = 0.86;
@@ -210,12 +167,6 @@ type PwaSheetHeaderProps =
   | { title: ReactNode; closeLabel?: string; hideCloseButton: true };
 
 export type PwaSheetProps = PwaSheetBaseProps & PwaSheetHeaderProps;
-
-/**
- * Sheets open right now, in the order they opened. Only the topmost sheet
- * answers Escape, so a confirmation stacked on a sheet closes alone.
- */
-const openSheetStack: symbol[] = [];
 
 function readCssDurationMs(varName: string): number {
   if (typeof window === "undefined" || typeof document === "undefined") {
@@ -358,25 +309,22 @@ export function PwaSheet({
 
   useEffect(() => {
     if (!mounted || !open) return;
-    const token = Symbol("PwaSheet");
-    openSheetStack.push(token);
+    const layer = openSheetLayer();
     const handleKey = (event: KeyboardEvent) => {
-      if (event.key !== "Escape") return;
-      if (openSheetStack[openSheetStack.length - 1] !== token) return;
+      if (event.key !== "Escape" || !layer.isTopmost()) return;
       // A centered dialog opened over the sheet handles its own Escape.
-      const layer =
+      const dialog =
         event.target instanceof Element
           ? event.target.closest('[role="dialog"],[role="alertdialog"]')
           : null;
-      if (layer && dialogRef.current && !dialogRef.current.contains(layer)) return;
+      if (dialog && dialogRef.current && !dialogRef.current.contains(dialog)) return;
       event.preventDefault();
       requestCloseRef.current();
     };
     document.addEventListener("keydown", handleKey, true);
     return () => {
       document.removeEventListener("keydown", handleKey, true);
-      const index = openSheetStack.lastIndexOf(token);
-      if (index !== -1) openSheetStack.splice(index, 1);
+      layer.close();
     };
   }, [mounted, open]);
 
