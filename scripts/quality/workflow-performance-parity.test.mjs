@@ -282,11 +282,18 @@ test("client and admin production builds follow their full consumer project grap
     const solution = JSON.parse(read(`packages/${packageName}/tsconfig.json`));
     const references = solution.references.map(({ path }) => path);
 
-    assert.deepEqual(references, [
-      "./tsconfig.app.json",
-      "./tsconfig.node.json",
-      "./tsconfig.test.json",
-    ]);
+    // The client also builds its service worker, which needs the worker library.
+    assert.deepEqual(
+      references,
+      packageName === "client"
+        ? [
+            "./tsconfig.app.json",
+            "./tsconfig.node.json",
+            "./tsconfig.sw.json",
+            "./tsconfig.test.json",
+          ]
+        : ["./tsconfig.app.json", "./tsconfig.node.json", "./tsconfig.test.json"],
+    );
     const full = resolvePackageCommand(packageName, "typecheck", ["--scope", "full"]);
     assert.equal(full.steps.length, 1);
     assert.deepEqual(full.steps[0].args.slice(1), ["tsc", "-b", packageName === "admin" ? "packages/admin/tsconfig.json" : "tsconfig.json"]);
