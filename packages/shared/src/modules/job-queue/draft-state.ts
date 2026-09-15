@@ -1,5 +1,4 @@
-import type { WorkDraftRecord, DraftImage, DraftStep } from "../../types/job-queue";
-import type { DBSchema } from "idb";
+import type { DraftStep, WorkDraftRecord } from "../../types/job-queue";
 import type { ProfileAvatarDraft } from "../profile-avatar/types";
 
 export type AvatarDraftRecord = ProfileAvatarDraft & {
@@ -9,28 +8,10 @@ export type AvatarDraftRecord = ProfileAvatarDraft & {
   /** Tombstones stop an unresolved legacy copy from resurrecting a discarded avatar. */
   deleted?: boolean;
 };
-type CanonicalDraftRecord = WorkDraftRecord | AvatarDraftRecord;
+/** Every row the drafts table holds: work drafts and profile avatar drafts. */
+export type CanonicalDraftRecord = WorkDraftRecord | AvatarDraftRecord;
 export function isWorkDraft(record: CanonicalDraftRecord): record is WorkDraftRecord {
   return record.kind === undefined || record.kind === "work";
-}
-export interface DraftDB extends DBSchema {
-  drafts: {
-    key: string;
-    value: CanonicalDraftRecord;
-    indexes: {
-      userAddress: string;
-      chainId: number;
-      gardenAddress: string;
-      updatedAt: number;
-      userAddress_chainId: [string, number];
-    };
-  };
-  draft_images: { key: string; value: DraftImage; indexes: { draftId: string; createdAt: number } };
-  active_drafts: { key: string; value: { scope: string; draftId: string | null } };
-  draft_migrations: {
-    key: string;
-    value: { source: string; fingerprint: string; copiedAt: number };
-  };
 }
 
 function isMeaningfulDraftValue(value: unknown): boolean {

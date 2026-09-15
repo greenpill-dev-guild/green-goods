@@ -1,12 +1,18 @@
-import type { IDBPDatabase } from "idb";
 import type { Address } from "../../types/domain";
-import type { DraftImage, WorkDraftRecord, MissingDraftAttachment } from "../../types/job-queue";
-import { identifyWorkFile, roundWorkLocation } from "../work/work-attachments";
+import type { DraftImage, MissingDraftAttachment, WorkDraftRecord } from "../../types/job-queue";
 import { retryOnceAfterQuotaCleanup } from "../../utils/storage/quota";
-import { computeFirstIncompleteStep, isWorkDraft, type DraftDB } from "./draft-state";
+import { identifyWorkFile, roundWorkLocation } from "../work/work-attachments";
+import type { DraftDatabase } from "./draft-connection";
+import { computeFirstIncompleteStep, isWorkDraft } from "./draft-state";
+
 const MAX_DRAFTS_PER_USER = 20;
+
+/**
+ * Save one revision of a work draft with its attachments in a single
+ * transaction. `isCurrent` lets a superseded save abort before it commits.
+ */
 export async function saveDraftSnapshot(
-  db: IDBPDatabase<DraftDB>,
+  db: DraftDatabase,
   userAddress: Address,
   chainId: number,
   draftId: string,
@@ -38,11 +44,9 @@ export async function saveDraftSnapshot(
     });
   }
   if (!isCurrent()) throw new DOMException("Draft changed", "AbortError");
-  return retryOnceAfterQuotaCleanup(async () => {
-    const tx = db.transaction(["drafts", "draft_images", "active_drafts"], "readwrite");
-    try {
-      const drafts = tx.objectStore("drafts");
-      const previous = await drafts.get(draftId);
+  return retryOnceAfterQuotaCleanup(() =>
+    db.transaction("rw", db.drafts, db.draft_images, db.active_drafts, async () => {
+      const previous = await db.drafts.get(draftId);
       if (previous && !isWorkDraft(previous)) throw new Error("draft-kind-conflict");
       if (
         previous &&
@@ -50,7 +54,7 @@ export async function saveDraftSnapshot(
           previous.chainId !== chainId)
       )
         throw new Error("draft-owner");
-      const owned = (await drafts.getAll())
+      const owned = (await db.drafts.toArray())
         .filter(isWorkDraft)
         .filter((item) => item.userAddress.toLowerCase() === userAddress.toLowerCase());
       if (
@@ -92,26 +96,16 @@ export async function saveDraftSnapshot(
         Object.entries(next.details ?? {}).filter(([key]) => key !== "_location")
       );
       next.firstIncompleteStep = computeFirstIncompleteStep(next, media.length > 0);
-      const images = tx.objectStore("draft_images");
-      const old = await images.index("draftId").getAll(draftId);
+      const old = await db.draft_images.where("draftId").equals(draftId).toArray();
       const retained = new Set([...entries.map((entry) => entry.id), ...retainedUnreadableIds]);
-      for (const entry of old) if (!retained.has(entry.id)) await images.delete(entry.id);
-      for (const entry of entries) await images.put(entry);
-      await drafts.put(next);
-      await tx
-        .objectStore("active_drafts")
-        .put({ scope: `${userAddress.toLowerCase()}:${chainId}`, draftId });
+      await db.draft_images.bulkDelete(
+        old.filter((entry) => !retained.has(entry.id)).map((entry) => entry.id)
+      );
+      await db.draft_images.bulkPut(entries);
+      await db.drafts.put(next);
+      await db.active_drafts.put({ scope: `${userAddress.toLowerCase()}:${chainId}`, draftId });
       if (!isCurrent()) throw new DOMException("Draft changed", "AbortError");
-      await tx.done;
       return next;
-    } catch (error) {
-      try {
-        tx.abort();
-      } catch {
-        /* Already aborted. */
-      }
-      await tx.done.catch(() => undefined);
-      throw error;
-    }
-  });
+    })
+  );
 }

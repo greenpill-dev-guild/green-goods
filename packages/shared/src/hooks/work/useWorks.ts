@@ -1,9 +1,9 @@
 import { useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
-import { queueKeys } from "../../config/query-keys/misc";
 import { worksKeys } from "../../config/query-keys/work";
 import { GC_TIMES, STALE_TIMES } from "../../config/react-query";
+import { jobQueueDB } from "../../modules/job-queue/db";
 import { jobQueue } from "../../modules/job-queue/default-instance";
 import { useJobQueueEvents } from "../../modules/job-queue/event-bus";
 import {
@@ -20,6 +20,7 @@ import { ZERO_ADDRESS } from "../../utils/blockchain/address-constants";
 import { extractClientWorkId } from "../../utils/work/deduplication";
 import { reportConnectivityFailure, useOnlineStatus } from "../app/useOnlineStatus";
 import { usePrimaryAddress } from "../auth/usePrimaryAddress";
+import { useLiveQuery } from "../utils/useLiveQuery";
 import { useQueuedWorkPreviews } from "./useQueuedWorkPreviews";
 import { useSendingWorkIds } from "./useSendingWorkIds";
 
@@ -373,34 +374,12 @@ export function useWorks(gardenId: string, options: UseWorksOptions = {}) {
 }
 
 /**
- * Hook for getting queue statistics with event-driven updates
- * Scoped to the current authenticated primary address
+ * Queue statistics for the current primary address as a live view of the
+ * queue table: every write, in this tab or another, re-emits them.
  */
 export function useQueueStatistics() {
-  const queryClient = useQueryClient();
   const primaryAddress = usePrimaryAddress();
-
-  const query = useQuery({
-    queryKey: queueKeys.stats(),
-    queryFn: async () => {
-      // Only get stats for the current user
-      if (!primaryAddress) {
-        return { total: 0, pending: 0, failed: 0, synced: 0 };
-      }
-      return jobQueue.getStats(primaryAddress);
-    },
-    enabled: !!primaryAddress,
-    staleTime: STALE_TIMES.queue,
-    gcTime: GC_TIMES.queue,
-  });
-
-  // Listen to events to update stats
-  useJobQueueEvents(
-    ["job:added", "job:processing", "job:completed", "job:failed", "queue:sync-completed"],
-    () => {
-      queryClient.invalidateQueries({ queryKey: queueKeys.stats() });
-    }
+  return useLiveQuery(primaryAddress?.toLowerCase() ?? null, () =>
+    jobQueueDB.observeStats(primaryAddress ?? "")
   );
-
-  return query;
 }

@@ -1,8 +1,9 @@
-import { openDB, type IDBPDatabase } from "idb";
+import { type IDBPDatabase, openDB } from "idb";
 import type { Address } from "../../types/domain";
 import type { ProfileAvatarDraft } from "../profile-avatar/types";
 import { hashWorkBytes } from "../work/work-attachments";
-import type { AvatarDraftRecord, DraftDB } from "./draft-state";
+import type { DraftDatabase } from "./draft-connection";
+import type { AvatarDraftRecord } from "./draft-state";
 import { trackPrivateQueueEvent } from "./job-analytics";
 
 const LEGACY_NAME = "green-goods-profile-avatar-drafts";
@@ -90,7 +91,7 @@ function openLegacy(): Promise<IDBPDatabase> {
 }
 
 /** Copy one row transactionally with its receipt. Legacy deletion is independently retryable. */
-export async function migrateAvatarDrafts(db: IDBPDatabase<DraftDB>): Promise<boolean> {
+export async function migrateAvatarDrafts(db: DraftDatabase): Promise<boolean> {
   let legacy: IDBPDatabase | undefined;
   let failures = 0;
   let readable = false;
@@ -108,16 +109,14 @@ export async function migrateAvatarDrafts(db: IDBPDatabase<DraftDB>): Promise<bo
         const source = `profile-avatar:${row.key}`;
         const digest = await fingerprint(row);
         const id = avatarDraftId(row.chainId, row.address);
-        const tx = db.transaction(["drafts", "draft_migrations"], "readwrite");
-        try {
-          const drafts = tx.objectStore("drafts");
-          const existing = await drafts.get(id);
+        await db.transaction("rw", db.drafts, db.draft_migrations, async () => {
+          const existing = await db.drafts.get(id);
           // A conflicting work ID is never overwritten. Preserve the source for recovery.
           if (existing && existing.kind !== "profile-avatar")
             throw new Error("draft-kind-conflict");
           if (!existing || existing.updatedAt < row.updatedAt) {
             const { key: _key, ...value } = row;
-            await drafts.put({
+            await db.drafts.put({
               ...value,
               kind: "profile-avatar",
               id,
@@ -125,22 +124,11 @@ export async function migrateAvatarDrafts(db: IDBPDatabase<DraftDB>): Promise<bo
               userAddress: row.address.toLowerCase() as Address,
             });
           }
-          await tx
-            .objectStore("draft_migrations")
-            .put({ source, fingerprint: digest, copiedAt: Date.now() });
-          await tx.done;
-        } catch (error) {
-          try {
-            tx.abort();
-          } catch {
-            /* Already aborted. */
-          }
-          await tx.done.catch(() => undefined);
-          throw error;
-        }
+          await db.draft_migrations.put({ source, fingerprint: digest, copiedAt: Date.now() });
+        });
         // Verify durable destination + receipt before touching the original database.
-        const saved = await db.get("drafts", id);
-        const receipt = await db.get("draft_migrations", source);
+        const saved = await db.drafts.get(id);
+        const receipt = await db.draft_migrations.get(source);
         if (
           saved?.kind !== "profile-avatar" ||
           saved.updatedAt < row.updatedAt ||
@@ -170,12 +158,12 @@ export async function migrateAvatarDrafts(db: IDBPDatabase<DraftDB>): Promise<bo
 }
 
 export async function readAvatarDraft(
-  db: IDBPDatabase<DraftDB>,
+  db: DraftDatabase,
   chainId: number,
   address: Address
 ): Promise<ProfileAvatarDraft | null> {
   const legacyReadable = await migrateAvatarDrafts(db);
-  const record = await db.get("drafts", avatarDraftId(chainId, address));
+  const record = await db.drafts.get(avatarDraftId(chainId, address));
   const current = record?.kind === "profile-avatar" ? record : undefined;
   if (!legacyReadable) {
     if (current) return current.deleted ? null : current;
@@ -200,7 +188,7 @@ export async function readAvatarDraft(
 }
 
 export async function writeAvatarDraft(
-  db: IDBPDatabase<DraftDB>,
+  db: DraftDatabase,
   draft: ProfileAvatarDraft,
   deleted = false
 ): Promise<void> {
@@ -212,21 +200,11 @@ export async function writeAvatarDraft(
     userAddress: draft.address.toLowerCase() as Address,
     ...(deleted ? { deleted: true } : {}),
   };
-  const tx = db.transaction("drafts", "readwrite");
-  try {
-    const existing = await tx.store.get(row.id);
+  await db.transaction("rw", db.drafts, async () => {
+    const existing = await db.drafts.get(row.id);
     if (existing && existing.kind !== "profile-avatar") throw new Error("draft-kind-conflict");
     // Monotonic revisions also protect against a device clock moving backwards.
     row.updatedAt = Math.max(row.updatedAt, (existing?.updatedAt ?? 0) + 1);
-    await tx.store.put(row);
-    await tx.done;
-  } catch (error) {
-    try {
-      tx.abort();
-    } catch {
-      /* Already aborted. */
-    }
-    await tx.done.catch(() => undefined);
-    throw error;
-  }
+    await db.drafts.put(row);
+  });
 }
