@@ -92,8 +92,11 @@ export default function AppShell() {
             included; an inner scroller stretches only its own content. A pull
             from the top still chains to the unscrollable document, so native
             refresh keeps working. overflow-clip stops Chrome from promoting
-            #app-scroll to the document scroller. */}
-        <main className="vt-main flex h-dvh flex-col overflow-clip">
+            #app-scroll to the document scroller. relative makes main the
+            containing block for absolutely positioned content, so the clip also
+            holds a stray one (a screen-reader status region) that would
+            otherwise make the document scrollable. */}
+        <main className="vt-main relative flex h-dvh flex-col overflow-clip">
           <div
             id="app-scroll"
             className="native-scroll min-h-0 flex-1 overflow-y-auto overflow-x-hidden pb-[calc(69px+env(safe-area-inset-bottom))]"

@@ -94,6 +94,10 @@ describe("AppShell", () => {
     // then has no document overscroll to stretch, and pulls from the top still
     // chain to it for native refresh.
     expect(main).toHaveClass("h-dvh", "overflow-clip");
+    // Positioned, so main's clip also contains absolutely positioned content
+    // such as screen-reader status regions; unpositioned, they escape and make
+    // the document scrollable again.
+    expect(main).toHaveClass("relative");
     expect(appScroll).toHaveClass("overflow-y-auto");
     // Contained overscroll would stop the pull from reaching the document.
     expect(appScroll.className).not.toMatch(/overscroll-(?:y-)?(?:contain|none)/);

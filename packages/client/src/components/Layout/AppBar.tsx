@@ -69,7 +69,7 @@ export const AppBar = () => {
     <>
       <SyncStatusBar
         className={cn(
-          "bottom-[calc(69px+env(safe-area-inset-bottom))] rounded-t-[var(--radius-lg)] overflow-hidden transition-transform duration-[var(--spring-spatial-duration)] ease-[var(--spring-spatial-easing)]",
+          "vt-sync-status bottom-[calc(69px+env(safe-area-inset-bottom))] rounded-t-[var(--radius-lg)] overflow-hidden transition-transform duration-[var(--spring-spatial-duration)] ease-[var(--spring-spatial-easing)]",
           shouldHideBar ? "translate-y-full" : "translate-y-0"
         )}
       />
@@ -78,7 +78,8 @@ export const AppBar = () => {
         className={cn(
           // Keep AppBar above page content (z-nav), but below modal/drawer overlays (z-overlay/z-modal).
           // Hide AppBar when on garden submission routes, work detail pages, or when any drawer is open.
-          "fixed bottom-0 bg-bg-white-0 border-t border-t-stroke-soft-200 rounded-t-[var(--radius-lg)] overflow-hidden flex flex-row justify-evenly items-center w-full py-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] z-nav transition-transform duration-[var(--spring-spatial-duration)] ease-[var(--spring-spatial-easing)]",
+          // vt-app-bar keeps it above the page cross-fade when switching tabs.
+          "vt-app-bar fixed bottom-0 bg-bg-white-0 border-t border-t-stroke-soft-200 rounded-t-[var(--radius-lg)] overflow-hidden flex flex-row justify-evenly items-center w-full py-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] z-nav transition-transform duration-[var(--spring-spatial-duration)] ease-[var(--spring-spatial-easing)]",
           shouldHideBar ? "translate-y-full" : "translate-y-0"
         )}
       >

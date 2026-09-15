@@ -22,6 +22,21 @@
   view-transition-name: main;
 }
 
+/* Persistent app chrome - assigned via className in AppBar and OfflineIndicator.
+ * Unnamed elements paint in the root snapshot, below every named group, so
+ * without these names `main` fading in or out covers the fixed bars. */
+.vt-app-bar {
+  view-transition-name: app-bar;
+}
+
+.vt-sync-status {
+  view-transition-name: sync-status;
+}
+
+.vt-offline-banner {
+  view-transition-name: offline-banner;
+}
+
 /* Page-level transitions for specific views */
 .vt-page {
   view-transition-name: page;
@@ -73,6 +88,27 @@
 
 ::view-transition-new(main) {
   animation: var(--spring-effects-slow-duration) var(--spring-effects-easing) both vt-fade-in;
+}
+
+/*
+ * Persistent chrome holds still: no morph and no fade. Only the live element
+ * shows, so its own motion (the bar sliding away on immersive routes) still
+ * plays and the outgoing snapshot never doubles it.
+ */
+::view-transition-group(app-bar),
+::view-transition-group(sync-status),
+::view-transition-group(offline-banner),
+::view-transition-new(app-bar),
+::view-transition-new(sync-status),
+::view-transition-new(offline-banner) {
+  animation: none;
+}
+
+::view-transition-old(app-bar),
+::view-transition-old(sync-status),
+::view-transition-old(offline-banner) {
+  animation: none;
+  opacity: 0;
 }
 
 /* ============================================================================
