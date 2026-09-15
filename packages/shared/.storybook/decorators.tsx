@@ -4,7 +4,7 @@ import {
   QueryClientProvider,
   type QueryKey,
 } from "@tanstack/react-query";
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useLayoutEffect, useMemo, useState } from "react";
 import { IntlProvider } from "react-intl";
 import { MemoryRouter, type MemoryRouterProps } from "react-router-dom";
 import { useGlobals } from "storybook/preview-api";
@@ -123,6 +123,75 @@ export const withAdminStoryIsolation: Decorator = (Story, context) => {
 
   return <Story />;
 };
+
+/**
+ * Surface parity. One Storybook build serves shared, admin, and client stories,
+ * so each surface's tokens must load only for that surface's stories. The
+ * surface is stamped on <html> as `data-surface` (so dialogs and sheets that
+ * portal out of the story still match) and the CSS in `surfaces.css` keys off
+ * it: the admin M3 type scale, Plus Jakarta Sans, and the Tier 1a colour
+ * aliases for `admin`; the client typography rules for `app` and `website`;
+ * and `data-site="website"` (the public shell's attribute, DL-026) around
+ * website stories so the shared buttons take the 16px corner and semibold label.
+ *
+ * `withSurface` runs globally (preview.tsx) and infers the surface from the
+ * story title — `Admin/*` → admin, `Client/Public/*` and `Public/*` → website,
+ * everything else → app. A story can override it with `parameters.surface`
+ * or the explicit `withAppSurface` / `withWebsiteSurface` / `withAdminSurface`.
+ */
+export type StorySurface = "app" | "website" | "admin";
+
+export function surfaceForTitle(title: string): StorySurface {
+  if (/^(Admin\/|Design System\/Admin)/.test(title)) return "admin";
+  if (/^(Client\/Public\/|Public\/|Design System\/Website)/.test(title)) return "website";
+  return "app";
+}
+
+function SurfaceRoot({ surface, children }: { surface: StorySurface; children: React.ReactNode }) {
+  useLayoutEffect(() => {
+    document.documentElement.dataset.surface = surface;
+    return () => {
+      delete document.documentElement.dataset.surface;
+    };
+  }, [surface]);
+
+  if (surface === "website") {
+    return (
+      <div data-site="website" className="contents">
+        {children}
+      </div>
+    );
+  }
+  return <>{children}</>;
+}
+
+export const withSurface: Decorator = (Story, context) => {
+  const surface =
+    (context.parameters.surface as StorySurface | undefined) ?? surfaceForTitle(context.title);
+  return (
+    <SurfaceRoot surface={surface}>
+      <Story />
+    </SurfaceRoot>
+  );
+};
+
+export const withAppSurface: Decorator = (Story) => (
+  <SurfaceRoot surface="app">
+    <Story />
+  </SurfaceRoot>
+);
+
+export const withWebsiteSurface: Decorator = (Story) => (
+  <SurfaceRoot surface="website">
+    <Story />
+  </SurfaceRoot>
+);
+
+export const withAdminSurface: Decorator = (Story) => (
+  <SurfaceRoot surface="admin">
+    <Story />
+  </SurfaceRoot>
+);
 
 export const withTheme: Decorator = (Story) => {
   const [{ theme }] = useGlobals();

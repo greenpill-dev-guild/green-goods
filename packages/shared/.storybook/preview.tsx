@@ -1,7 +1,13 @@
 import "./storybook.css";
 import type { Preview } from "@storybook/react";
 import { sb } from "storybook/test";
-import { withAdminStoryIsolation, withI18n, withQueryClient, withTheme } from "./decorators";
+import {
+  withAdminStoryIsolation,
+  withI18n,
+  withQueryClient,
+  withSurface,
+  withTheme,
+} from "./decorators";
 
 // Client sheet stories render the real sheet and replace only its data hooks, per story, with
 // `mocked(hook).mockReturnValue(...)` in `beforeEach`. `spy: true` keeps each real implementation
@@ -76,6 +82,13 @@ const preview: Preview = {
   parameters: {
     controls: { expanded: true },
     backgrounds: { disable: true }, // Handled by theme decorator
+    // The Design System review pages lead the sidebar; every other family keeps
+    // its alphabetical order.
+    options: {
+      storySort: {
+        order: ["Design System", ["Overview", "App", "Website", "Admin"], "*"],
+      },
+    },
     // Viewport toolbar (built into Storybook 10 core — no addon dependency). Lets
     // any story be rendered at mobile/tablet widths so media queries respond,
     // which is how we verify the admin flows' bottom-sheet + two-column breakpoints.
@@ -87,7 +100,9 @@ const preview: Preview = {
       },
     },
   },
-  decorators: [withAdminStoryIsolation, withQueryClient, withI18n, withTheme],
+  // `withSurface` is outermost so the surface attribute is set before any
+  // frame or component reads a token.
+  decorators: [withAdminStoryIsolation, withQueryClient, withI18n, withTheme, withSurface],
 };
 
 export default preview;
