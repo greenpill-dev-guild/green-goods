@@ -195,7 +195,7 @@ export const OfflineIndicator: React.FC<OfflineIndicatorProps> = ({
   }, [displayPriority, navigate, formatMessage]);
 
   const containerClasses = cn(
-    "fixed top-0 left-0 right-0 z-nav transition-all duration-[var(--spring-effects-slow-duration)] ease-[var(--spring-effects-slow-easing)] pointer-events-none",
+    "vt-offline-banner fixed top-0 left-0 right-0 z-nav transition-all duration-[var(--spring-effects-slow-duration)] ease-[var(--spring-effects-slow-easing)] pointer-events-none",
     displayPriority ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-full",
     className
   );

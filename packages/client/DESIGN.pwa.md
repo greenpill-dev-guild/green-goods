@@ -35,7 +35,8 @@ dialect: installed-pwa
 - Sheet actions (DL-016): every sheet and dialog pins its actions in the shared action bar (`SheetActions`, through the `actions` prop of `PwaSheet`, `DialogShell`, `ConfirmDialog`, and `AppSheet`), under a body that scrolls above it; no sheet renders its own action buttons. Below 640px the actions stack full width with the primary on top: a filled primary (the error fill when destructive), then an outlined second action, Cancel included, and a text action only for a rare third choice. Step navigation (Back / Continue, as in wallet send) keeps one row. From 640px the same bar is one right-aligned row with the primary rightmost. Labels wrap rather than cut off, and a loading action stays focusable. Page-level bars (Submit Work, work approval, commitment detail) are not sheets and keep their own layout
 - Garden header (DL-020): page actions (notifications, endowment, share) are 32px icon buttons stacked in the banner's top right, with Share last so the others keep their places. The title row carries at most one text action, Join Garden or Request to Join, at the `compact` button size (32px tall, 14px label, no icon, 48px tap area), and its location and founded lines truncate instead of running under the button
 - SyncStatusBar sits above AppBar
-- Content height: `calc(100lvh - 69px)` minus AppBar
+- Scrolling: content scrolls inside `#app-scroll`, within a full-height `main` that clips and is positioned, so the document itself never scrolls. Android stretches every fixed element when the document overscrolls; with no document scroll, the AppBar and page headers hold still while native pull-to-refresh still reaches the document
+- Persistent chrome (AppBar, SyncStatusBar, offline banner) has its own view-transition name and never animates, so tab cross-fades pass beneath it
 - Safe areas: `env(safe-area-inset-bottom)` for notched devices
 
 **Typography:**
