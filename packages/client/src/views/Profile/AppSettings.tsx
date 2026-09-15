@@ -156,11 +156,7 @@ export const AppSettings: React.FC = () => {
     // arrive as toasts, and "pending" or "failed" show through the phase.
     void checkForUpdate().then(
       (result) => {
-        if (result === "ready") {
-          // Tapping Check carries the intent to update, so apply the waiting
-          // worker straight away instead of asking for a second tap.
-          activateNow();
-        } else if (result === "up-to-date") {
+        if (result === "up-to-date") {
           toastService.info({
             title: intl.formatMessage({
               id: "app.update.toast.upToDate.title",
@@ -256,7 +252,7 @@ export const AppSettings: React.FC = () => {
         return {
           status: intl.formatMessage({
             id: "app.update.stalled.description",
-            defaultMessage: "Close and reopen the app.",
+            defaultMessage: "Close every app window, then open it again.",
           }),
           label: retryLabel,
           busy: false,

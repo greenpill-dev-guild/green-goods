@@ -58,7 +58,7 @@ it("says nothing about offline content while online", () => {
   expect(offline.useActiveOfflineGarden).toHaveBeenCalledWith("0xgarden");
 });
 
-it("keeps saved work visible when a refresh fails and says when it was saved", () => {
+it("keeps saved work visible without an online refresh-failure accent", () => {
   renderList({
     works: [savedWork(1)],
     workFetchStatus: "error",
@@ -68,7 +68,7 @@ it("keeps saved work visible when a refresh fails and says when it was saved", (
   });
 
   expect(screen.getByTestId("cached-work")).toBeInTheDocument();
-  expect(screen.getByRole("status")).toHaveTextContent(/^Couldn’t refresh · Saved \d/);
+  expect(screen.queryByRole("status")).toBeNull();
 });
 
 it("labels a saved copy while offline on one line", () => {

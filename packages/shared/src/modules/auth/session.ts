@@ -177,6 +177,61 @@ export function clearStoredSmartAccountAddress(storage: SessionStorage = localSt
 /** Storage key for embedded wallet address (for offline identity display) */
 export const EMBEDDED_ADDRESS_KEY = "greengoods_embedded_address";
 
+/** Last wallet address used as the primary app identity. */
+export const WALLET_ADDRESS_STORAGE_KEY = "greengoods_wallet_address";
+
+const WAGMI_STORE_KEY = "wagmi.store";
+
+function asAddress(value: unknown): Address | null {
+  return typeof value === "string" && /^0x[0-9a-fA-F]{40}$/.test(value) ? (value as Address) : null;
+}
+
+function readWagmiWalletAddress(storage: SessionStorage): Address | null {
+  try {
+    const persisted = JSON.parse(storage.getItem(WAGMI_STORE_KEY) ?? "null") as {
+      state?: {
+        current?: unknown;
+        connections?: { value?: unknown };
+      };
+    } | null;
+    const entries = persisted?.state?.connections?.value;
+    if (!Array.isArray(entries)) return null;
+    const current = persisted?.state?.current;
+    const connection =
+      entries.find((entry) => Array.isArray(entry) && entry[0] === current) ?? entries[0];
+    if (!Array.isArray(connection)) return null;
+    const accounts = (connection[1] as { accounts?: unknown } | undefined)?.accounts;
+    return Array.isArray(accounts) ? asAddress(accounts[0]) : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Store the primary wallet identity for offline read access. */
+export function setStoredWalletAddress(
+  address: Address,
+  storage: SessionStorage = localStorage
+): void {
+  storage.setItem(WALLET_ADDRESS_STORAGE_KEY, address);
+}
+
+/**
+ * Read the primary wallet identity without contacting its connector. Older
+ * installs migrate the same address from Wagmi's persisted connection record.
+ */
+export function getStoredWalletAddress(storage: SessionStorage = localStorage): Address | null {
+  const stored = asAddress(storage.getItem(WALLET_ADDRESS_STORAGE_KEY));
+  if (stored) return stored;
+  const migrated = readWagmiWalletAddress(storage);
+  if (migrated) storage.setItem(WALLET_ADDRESS_STORAGE_KEY, migrated);
+  return migrated;
+}
+
+/** Clear the cached primary wallet identity on an explicit session boundary. */
+export function clearStoredWalletAddress(storage: SessionStorage = localStorage): void {
+  storage.removeItem(WALLET_ADDRESS_STORAGE_KEY);
+}
+
 /** Store embedded wallet address in localStorage */
 export function setEmbeddedAddress(address: Address, storage: SessionStorage = localStorage): void {
   storage.setItem(EMBEDDED_ADDRESS_KEY, address);
@@ -202,6 +257,7 @@ export function clearEmbeddedAddress(storage: SessionStorage = localStorage): vo
 export function clearActiveSessionAuth(storage: SessionStorage = localStorage): void {
   clearAuthMode(storage);
   clearEmbeddedAddress(storage);
+  clearStoredWalletAddress(storage);
   setSignedOutSentinel(storage);
 }
 
@@ -223,6 +279,7 @@ export function clearAllAuth(storage: SessionStorage = localStorage): void {
   storage.removeItem(RP_ID_STORAGE_KEY);
   storage.removeItem(SMART_ACCOUNT_ADDRESS_STORAGE_KEY);
   storage.removeItem(EMBEDDED_ADDRESS_KEY);
+  storage.removeItem(WALLET_ADDRESS_STORAGE_KEY);
   storage.removeItem(SIGNED_OUT_STORAGE_KEY);
 }
 

@@ -1,7 +1,9 @@
 const GREEN_GOODS_SYNC_TAG = "green-goods-sync";
 const STALE_RUNTIME_CACHES = ["js-cache", "indexer-cache", "graphql-cache", "gg-image-cache-meta"];
-const OFFLINE_CONTENT_VERSION = 2;
+const OFFLINE_CONTENT_VERSION = 3;
 const IPFS_MEDIA_CACHE = "ipfs-cache";
+const MEDIA_POLICY_CACHE = "gg-media-policy-v1";
+const MEDIA_POLICY_URL = "/__gg_media_policy_v1__";
 const LEGACY_PREPARED_MEDIA_CACHE = "gg-prepared-media-v1";
 const IPFS_GATEWAY_HOSTS = new Set([
   "greengoods.mypinata.cloud",
@@ -10,12 +12,17 @@ const IPFS_GATEWAY_HOSTS = new Set([
 ]);
 const MEDIA_STORED_AT_HEADER = "x-gg-stored-at";
 const MEDIA_KEPT_HEADERS = ["content-type", "cache-control", "etag", "last-modified"];
-const MEDIA_BUDGET_BYTES = 150 * 1024 * 1024;
 const MEDIA_STORES_PER_SWEEP = 25;
 const PWA_SHELL_CACHE_PREFIX = "gg-pwa-shell-";
-const PWA_SHELL_META_CACHE = "gg-pwa-shell-meta";
-const PWA_SHELL_META_URL = "/__gg_pwa_shell_current__";
+const LEGACY_PWA_SHELL_META_CACHE = "gg-pwa-shell-meta";
+const LEGACY_PWA_SHELL_META_URL = "/__gg_pwa_shell_current__";
+const PWA_SHELL_META_CACHE = "gg-pwa-metadata-v2";
+const PWA_SHELL_ACTIVE_META_URL = "/__gg_pwa_shell_active__";
+const PWA_SHELL_CANDIDATE_META_URL = "/__gg_pwa_shell_candidate__";
 const PWA_SHELL_MANIFEST_URL = "/pwa-shell-assets.json";
+const PWA_SHELL_FETCH_ATTEMPTS = 3;
+const PWA_SHELL_FETCH_CONCURRENCY = 4;
+const PWA_SHELL_RUNTIME_CACHE = "gg-js-runtime";
 const IS_DEV_SERVICE_WORKER = new URL(self.location.href).searchParams.has("dev-sw");
 const SHARE_TARGET_PATH = "/home/share";
 const SHARE_INBOX_CACHE = "gg-share-inbox-v1";
@@ -32,6 +39,8 @@ const SHARE_ALLOWED_TYPES = new Set([
 const SHARE_MAX_FILES = 5;
 const SHARE_MAX_FILE_BYTES = 20 * 1024 * 1024;
 const SHARE_MAX_TOTAL_BYTES = 50 * 1024 * 1024;
+let acceptingBackgroundWork = true;
+const backgroundWork = new Set();
 const SHARE_EXTENSION_TYPES = new Map([
   [".jpg", "image/jpeg"],
   [".jpeg", "image/jpeg"],
@@ -113,13 +122,23 @@ async function readShellManifest() {
   if (!response.ok) throw new Error("PWA shell manifest unavailable");
   const manifest = await response.json();
   if (
-    manifest?.version !== 1 ||
+    manifest?.version !== 2 ||
     typeof manifest.digest !== "string" ||
     !/^[a-f0-9]{16}$/.test(manifest.digest) ||
     !Array.isArray(manifest.assets) ||
-    manifest.assets.some(
+    typeof manifest.criticalDigest !== "string" ||
+    !/^[a-f0-9]{16}$/.test(manifest.criticalDigest) ||
+    !Array.isArray(manifest.criticalAssets) ||
+    typeof manifest.tailDigest !== "string" ||
+    !/^[a-f0-9]{16}$/.test(manifest.tailDigest) ||
+    !Array.isArray(manifest.tailAssets) ||
+    [...manifest.assets, ...manifest.criticalAssets, ...manifest.tailAssets].some(
       (asset) =>
         typeof asset !== "string" || !asset.startsWith("/") || asset.startsWith("//")
+    ) ||
+    manifest.assets.length !== manifest.criticalAssets.length + manifest.tailAssets.length ||
+    manifest.assets.some(
+      (asset) => !manifest.criticalAssets.includes(asset) && !manifest.tailAssets.includes(asset)
     )
   ) {
     throw new Error("PWA shell manifest is invalid");
@@ -154,18 +173,108 @@ function hasExpectedShellContentType(asset, response) {
   return true;
 }
 
-async function cacheShellAsset(shellCache, asset) {
+function isContentAddressedShellAsset(asset) {
+  return /^\/assets\/.+-[A-Za-z0-9_-]{6,}\.[A-Za-z0-9]+$/.test(asset);
+}
+
+async function fetchShellAsset(asset, signal) {
+  let lastError;
+  for (let attempt = 1; attempt <= PWA_SHELL_FETCH_ATTEMPTS; attempt += 1) {
+    try {
+      const response = await fetch(asset, { cache: "reload", signal });
+      if (!hasExpectedShellContentType(asset, response)) {
+        throw new Error(`PWA shell asset has invalid content type: ${asset}`);
+      }
+      return response;
+    } catch (error) {
+      lastError = error;
+      if (signal?.aborted) throw error;
+    }
+  }
+  throw lastError;
+}
+
+async function cacheShellAsset(shellCache, asset, reusableCacheNames = [], signal) {
   const assetUrl = new URL(asset, self.location.origin);
   if (assetUrl.origin !== self.location.origin) {
     throw new Error(`PWA shell asset is cross-origin: ${asset}`);
   }
-  const response = await fetch(asset, { cache: "reload" });
-  if (!hasExpectedShellContentType(asset, response)) {
-    throw new Error(`PWA shell asset has invalid content type: ${asset}`);
+
+  let response;
+  if (isContentAddressedShellAsset(asset)) {
+    for (const cacheName of reusableCacheNames) {
+      const reusable = await (await caches.open(cacheName)).match(asset);
+      if (hasExpectedShellContentType(asset, reusable)) {
+        response = reusable;
+        break;
+      }
+    }
   }
+  response ??= await fetchShellAsset(asset, signal);
   const contentDigest = await sha256Hex(await response.clone().arrayBuffer());
   await shellCache.put(asset, response);
   return contentDigest;
+}
+
+async function populateShellAssets(shellCache, assets, reusableCacheNames, signal) {
+  const contentDigests = new Array(assets.length);
+  let next = 0;
+  const worker = async () => {
+    for (;;) {
+      const index = next;
+      next += 1;
+      if (index >= assets.length) return;
+      contentDigests[index] = await cacheShellAsset(
+        shellCache,
+        assets[index],
+        reusableCacheNames,
+        signal
+      );
+    }
+  };
+  await Promise.all(
+    Array.from(
+      { length: Math.min(PWA_SHELL_FETCH_CONCURRENCY, Math.max(assets.length, 1)) },
+      worker
+    )
+  );
+  return contentDigests;
+}
+
+async function readShellMetadata(url) {
+  try {
+    const response = await (await caches.open(PWA_SHELL_META_CACHE)).match(url);
+    const metadata = await response?.json();
+    return typeof metadata?.cacheName === "string" ? metadata : null;
+  } catch {
+    return null;
+  }
+}
+
+async function writeShellMetadata(url, metadata) {
+  const metaCache = await caches.open(PWA_SHELL_META_CACHE);
+  await metaCache.put(
+    url,
+    new Response(JSON.stringify(metadata), {
+      headers: { "content-type": "application/json" },
+    })
+  );
+}
+
+async function readLegacyShellMetadata() {
+  try {
+    const response = await (await caches.open(LEGACY_PWA_SHELL_META_CACHE)).match(
+      LEGACY_PWA_SHELL_META_URL
+    );
+    const metadata = await response?.json();
+    return typeof metadata?.cacheName === "string" ? metadata : null;
+  } catch {
+    return null;
+  }
+}
+
+async function getActiveShellMetadata() {
+  return (await readShellMetadata(PWA_SHELL_ACTIVE_META_URL)) ?? readLegacyShellMetadata();
 }
 
 async function populatePwaShell() {
@@ -173,57 +282,97 @@ async function populatePwaShell() {
 
   const manifest = await readShellManifest();
   const cacheName = `${PWA_SHELL_CACHE_PREFIX}${manifest.digest}`;
-  const currentCacheName = await getCurrentShellCacheName();
-  if (cacheName === currentCacheName) return;
+  const active = await getActiveShellMetadata();
+  if (cacheName === active?.cacheName && active?.criticalReady) return;
 
   try {
     // The digest is content-addressed, so this can only be an abandoned partial
     // staging cache from an earlier failed attempt.
     await caches.delete(cacheName);
     const shellCache = await caches.open(cacheName);
-    const contentDigests = [];
-    for (const asset of manifest.assets) {
-      contentDigests.push(await cacheShellAsset(shellCache, asset));
-    }
-    const installedDigest = await createShellDigest(manifest.assets, contentDigests);
-    if (installedDigest !== manifest.digest) {
+    const reusableCacheNames = (await caches.keys()).filter(
+      (name) => name.startsWith(PWA_SHELL_CACHE_PREFIX) && name !== cacheName
+    );
+    const contentDigests = await populateShellAssets(
+      shellCache,
+      manifest.criticalAssets,
+      reusableCacheNames
+    );
+    const installedDigest = await createShellDigest(manifest.criticalAssets, contentDigests);
+    if (installedDigest !== manifest.criticalDigest) {
       throw new Error(
-        `PWA shell digest mismatch: expected ${manifest.digest}, received ${installedDigest}`
+        `PWA critical shell digest mismatch: expected ${manifest.criticalDigest}, received ${installedDigest}`
       );
     }
-    const metaCache = await caches.open(PWA_SHELL_META_CACHE);
-    await metaCache.put(
-      PWA_SHELL_META_URL,
-      new Response(JSON.stringify({ cacheName, digest: manifest.digest }), {
-        headers: { "content-type": "application/json" },
-      })
-    );
+    await writeShellMetadata(PWA_SHELL_CANDIDATE_META_URL, {
+      cacheName,
+      digest: manifest.digest,
+      criticalDigest: manifest.criticalDigest,
+      criticalAssets: manifest.criticalAssets,
+      criticalReady: true,
+      tailDigest: manifest.tailDigest,
+      tailAssets: manifest.tailAssets,
+      tailReady: manifest.tailAssets.length === 0,
+      previousCacheName: active?.cacheName ?? null,
+    });
   } catch (error) {
-    if (cacheName !== currentCacheName) await caches.delete(cacheName);
+    if (cacheName !== active?.cacheName) await caches.delete(cacheName);
     throw error;
   }
 }
 
 async function getCurrentShellCacheName() {
-  try {
-    const response = await caches.match(PWA_SHELL_META_URL);
-    const metadata = await response?.json();
-    return typeof metadata?.cacheName === "string" ? metadata.cacheName : null;
-  } catch {
-    return null;
-  }
+  return (await getActiveShellMetadata())?.cacheName ?? null;
 }
 
-async function clearOldPwaShellCaches() {
-  const currentCacheName = await getCurrentShellCacheName();
+async function clearOldPwaShellCaches(active) {
+  const retained = new Set([active?.cacheName, active?.previousCacheName].filter(Boolean));
   const keys = await caches.keys();
   await Promise.all(
     keys
-      .filter(
-        (key) => key.startsWith(PWA_SHELL_CACHE_PREFIX) && key !== currentCacheName
-      )
+      .filter((key) => key.startsWith(PWA_SHELL_CACHE_PREFIX) && !retained.has(key))
       .map((key) => caches.delete(key))
   );
+}
+
+let tailDownload;
+let tailDownloadAbort;
+
+async function preparePwaShellTail() {
+  const active = await readShellMetadata(PWA_SHELL_ACTIVE_META_URL);
+  if (!active || active.tailReady || active.tailAssets.length === 0) return active;
+  if (tailDownload) return tailDownload;
+
+  tailDownloadAbort = new AbortController();
+  tailDownload = (async () => {
+    const shellCache = await caches.open(active.cacheName);
+    const reusableCacheNames = (await caches.keys()).filter((name) =>
+      name.startsWith(PWA_SHELL_CACHE_PREFIX)
+    );
+    const contentDigests = await populateShellAssets(
+      shellCache,
+      active.tailAssets,
+      reusableCacheNames,
+      tailDownloadAbort.signal
+    );
+    const installedDigest = await createShellDigest(active.tailAssets, contentDigests);
+    if (installedDigest !== active.tailDigest) {
+      throw new Error(
+        `PWA tail digest mismatch: expected ${active.tailDigest}, received ${installedDigest}`
+      );
+    }
+    const complete = { ...active, tailReady: true };
+    await writeShellMetadata(PWA_SHELL_ACTIVE_META_URL, complete);
+    return complete;
+  })().finally(() => {
+    tailDownload = undefined;
+    tailDownloadAbort = undefined;
+  });
+  return tailDownload;
+}
+
+function pausePwaShellTail() {
+  tailDownloadAbort?.abort();
 }
 
 async function notifyClients(payload) {
@@ -241,6 +390,18 @@ async function notifyClients(payload) {
       },
     });
   });
+}
+
+function trackBackgroundWork(promise) {
+  const tracked = Promise.resolve(promise).finally(() => backgroundWork.delete(tracked));
+  backgroundWork.add(tracked);
+  return tracked;
+}
+
+async function quietBackgroundWork() {
+  acceptingBackgroundWork = false;
+  pausePwaShellTail();
+  await Promise.allSettled([...backgroundWork]);
 }
 
 async function clearStaleRuntimeCaches() {
@@ -273,11 +434,11 @@ async function fetchJavaScriptAsset(request) {
       return response;
     }
   } catch {
-    // Fall through to the reload shim below.
+    // Fall through to an explicit module error below.
   }
 
   return new Response(
-    'try{var k="gg-script-reload-attempt";if(!sessionStorage.getItem(k)){sessionStorage.setItem(k,"1");location.reload();}else{document.dispatchEvent(new CustomEvent("gg-module-load-failed"));}}catch(_){location.reload();}',
+    'throw new Error("Failed to fetch dynamically imported module");',
     {
       headers: {
         "cache-control": "no-store",
@@ -289,7 +450,17 @@ async function fetchJavaScriptAsset(request) {
 
 async function activateServiceWorker() {
   await clearStaleRuntimeCaches();
-  await clearOldPwaShellCaches();
+  await caches.delete(PWA_SHELL_RUNTIME_CACHE);
+  const candidate = await readShellMetadata(PWA_SHELL_CANDIDATE_META_URL);
+  const active = candidate ?? (await getActiveShellMetadata());
+  if (candidate) {
+    await writeShellMetadata(PWA_SHELL_ACTIVE_META_URL, candidate);
+    await (await caches.open(PWA_SHELL_META_CACHE)).delete(PWA_SHELL_CANDIDATE_META_URL);
+  } else if (active) {
+    await writeShellMetadata(PWA_SHELL_ACTIVE_META_URL, active);
+  }
+  await clearOldPwaShellCaches(active);
+  await caches.delete(LEGACY_PWA_SHELL_META_CACHE);
 }
 
 function shareErrorRedirect(reason) {
@@ -481,11 +652,42 @@ async function storedMediaCopy(response) {
   }
   headers.set("content-length", String(body.size));
   headers.set(MEDIA_STORED_AT_HEADER, String(Date.now()));
-  return () => new Response(body, { status: 200, headers });
+  return { bytes: body.size, response: () => new Response(body, { status: 200, headers }) };
 }
 
 let mediaStoresSinceSweep = 0;
-let keptMedia = [];
+let mediaPolicy;
+let mediaStoreTail = Promise.resolve();
+
+async function readMediaPolicy() {
+  if (mediaPolicy) return mediaPolicy;
+  try {
+    const response = await (await caches.open(MEDIA_POLICY_CACHE)).match(MEDIA_POLICY_URL);
+    const stored = response ? await response.json() : undefined;
+    if (
+      stored &&
+      Number.isFinite(stored.budgetBytes) &&
+      stored.budgetBytes > 0 &&
+      Array.isArray(stored.keep)
+    ) {
+      mediaPolicy = {
+        budgetBytes: stored.budgetBytes,
+        keep: stored.keep.map(String),
+      };
+    }
+  } catch {
+    // The app will send the policy again on its next preparation run.
+  }
+  return mediaPolicy ?? { budgetBytes: Number.POSITIVE_INFINITY, keep: [] };
+}
+
+async function writeMediaPolicy(policy) {
+  mediaPolicy = policy;
+  await (await caches.open(MEDIA_POLICY_CACHE)).put(
+    MEDIA_POLICY_URL,
+    new Response(JSON.stringify(policy), { headers: { "content-type": "application/json" } })
+  );
+}
 
 async function scanMediaCache(cache) {
   const entries = [];
@@ -502,8 +704,11 @@ async function scanMediaCache(cache) {
 
 // Oldest unprotected copies go first. Copies without a recorded size came from
 // an older worker, so they are removed before any photo the app sized itself.
-async function sweepMediaCache({ budgetBytes = MEDIA_BUDGET_BYTES, keep = keptMedia } = {}) {
-  keptMedia = keep;
+async function sweepMediaCache(options = {}) {
+  const currentPolicy = await readMediaPolicy();
+  const budgetBytes = options.budgetBytes ?? currentPolicy.budgetBytes;
+  const keep = options.keep ?? currentPolicy.keep;
+  if (options.persistPolicy) await writeMediaPolicy({ budgetBytes, keep });
   const cache = await caches.open(IPFS_MEDIA_CACHE);
   const { entries, bytes } = await scanMediaCache(cache);
   const protectedUrls = new Set(keep);
@@ -525,18 +730,47 @@ async function sweepMediaCache({ budgetBytes = MEDIA_BUDGET_BYTES, keep = keptMe
 async function storeMedia(url, response) {
   const cache = await caches.open(IPFS_MEDIA_CACHE);
   const copy = await storedMediaCopy(response);
+  const policy = await readMediaPolicy();
+  const existing = await cache.match(url, { ignoreVary: true });
+  const existingBytes = Number(existing?.headers.get("content-length")) || 0;
+  const before = await scanMediaCache(cache);
+  const projectedBytes = before.bytes - existingBytes + copy.bytes;
+  if (projectedBytes > policy.budgetBytes) {
+    const availableForExisting = Math.max(0, policy.budgetBytes - copy.bytes);
+    // Keep the current copy until the replacement is proven admissible. Two
+    // overlapping fetches for the same URL can otherwise evict a good copy and
+    // then reject the larger replacement.
+    const keepDuringAdmission = policy.keep.includes(url) ? policy.keep : [...policy.keep, url];
+    const swept = await sweepMediaCache({
+      budgetBytes: availableForExisting,
+      keep: keepDuringAdmission,
+    });
+    const retainedExisting = await cache.match(url, { ignoreVary: true });
+    const retainedExistingBytes = Number(retainedExisting?.headers.get("content-length")) || 0;
+    if (swept.bytes - retainedExistingBytes + copy.bytes > policy.budgetBytes) {
+      const error = new Error("Offline photo budget is full");
+      error.name = "QuotaExceededError";
+      throw error;
+    }
+  }
   try {
-    await cache.put(url, copy());
+    await cache.put(url, copy.response());
   } catch (error) {
     if (error?.name !== "QuotaExceededError") throw error;
-    await sweepMediaCache({ budgetBytes: Math.floor(MEDIA_BUDGET_BYTES / 2) });
-    await cache.put(url, copy());
+    await sweepMediaCache({ budgetBytes: 0, keep: policy.keep });
+    await cache.put(url, copy.response());
   }
   mediaStoresSinceSweep += 1;
   if (mediaStoresSinceSweep >= MEDIA_STORES_PER_SWEEP) {
     mediaStoresSinceSweep = 0;
-    await sweepMediaCache();
+    await sweepMediaCache({ budgetBytes: policy.budgetBytes, keep: policy.keep });
   }
+}
+
+function scheduleMediaStore(url, response) {
+  const scheduled = mediaStoreTail.then(() => storeMedia(url, response));
+  mediaStoreTail = scheduled.catch(() => {});
+  return scheduled;
 }
 
 // Answer first, store afterwards: the page never waits on a cache write.
@@ -551,7 +785,9 @@ async function respondWithMedia(event) {
       ignoreVary: true,
     });
     if (legacy) {
-      event.waitUntil(storeMedia(url, legacy.clone()).catch(() => {}));
+      if (acceptingBackgroundWork) {
+        event.waitUntil(trackBackgroundWork(scheduleMediaStore(url, legacy.clone()).catch(() => {})));
+      }
       return legacy;
     }
   }
@@ -569,7 +805,9 @@ async function respondWithMedia(event) {
     return fetch(request);
   }
   if (response.status === 200) {
-    event.waitUntil(storeMedia(url, response.clone()).catch(() => {}));
+    if (acceptingBackgroundWork) {
+      event.waitUntil(trackBackgroundWork(scheduleMediaStore(url, response.clone()).catch(() => {})));
+    }
   }
   return response;
 }
@@ -588,22 +826,84 @@ self.addEventListener("activate", (event) => {
 
 self.addEventListener("message", (event) => {
   const type = event.data?.type;
+  if (type === "PREPARE_PWA_TAIL" || type === "PAUSE_PWA_TAIL") {
+    const port = event.ports?.[0];
+    if (type === "PAUSE_PWA_TAIL") {
+      pausePwaShellTail();
+      port?.postMessage({ status: "paused" });
+      return;
+    }
+    if (!acceptingBackgroundWork) {
+      port?.postMessage({ status: "blocked" });
+      return;
+    }
+    const preparation = trackBackgroundWork(preparePwaShellTail());
+    event.waitUntil(
+      preparation.then(
+        (metadata) => port?.postMessage({ status: metadata?.tailReady ? "ready" : "unavailable" }),
+        (error) => port?.postMessage({ status: error?.name === "AbortError" ? "paused" : "failed" })
+      )
+    );
+    return;
+  }
+
+  if (type === "PREPARE_TO_ACTIVATE_UPDATE") {
+    const port = event.ports?.[0];
+    event.waitUntil(
+      quietBackgroundWork().then(
+        () => port?.postMessage({ type: "GG_QUIET_ACK", status: "quiet" }),
+        () => port?.postMessage({ type: "GG_QUIET_ACK", status: "failed" })
+      )
+    );
+    return;
+  }
+
+  if (type === "RESUME_BACKGROUND_WORK") {
+    acceptingBackgroundWork = true;
+    event.ports?.[0]?.postMessage({ status: "resumed" });
+    return;
+  }
+
   if (type === "OFFLINE_CONTENT_CAPABILITIES") {
     event.ports?.[0]?.postMessage({ offlineContentVersion: OFFLINE_CONTENT_VERSION });
     return;
   }
 
+  if (type === "MEDIA_POLICY") {
+    const port = event.ports?.[0];
+    const budgetBytes = Number(event.data?.budgetBytes);
+    const keep = Array.isArray(event.data?.keep) ? event.data.keep.map(String) : [];
+    if (!Number.isFinite(budgetBytes) || budgetBytes <= 0) {
+      port?.postMessage({ failed: true });
+      return;
+    }
+    event.waitUntil(
+      trackBackgroundWork(writeMediaPolicy({ budgetBytes, keep })).then(
+        () => port?.postMessage({ ready: true }),
+        () => port?.postMessage({ failed: true })
+      )
+    );
+    return;
+  }
+
   if (type === "MEDIA_STATS" || type === "MEDIA_SWEEP") {
     const port = event.ports?.[0];
+    const budgetBytes = Number(event.data?.budgetBytes);
     const sweep =
       type === "MEDIA_SWEEP"
-        ? sweepMediaCache({
-            budgetBytes: Number(event.data?.budgetBytes) || MEDIA_BUDGET_BYTES,
-            keep: Array.isArray(event.data?.keep) ? event.data.keep.map(String) : keptMedia,
-          })
-        : sweepMediaCache({ budgetBytes: Number.POSITIVE_INFINITY });
+        ? Number.isFinite(budgetBytes) && budgetBytes > 0
+          ? sweepMediaCache({
+              budgetBytes,
+              keep: Array.isArray(event.data?.keep) ? event.data.keep.map(String) : [],
+              persistPolicy: true,
+            })
+          : Promise.reject(new Error("Invalid offline media budget"))
+        : caches.open(IPFS_MEDIA_CACHE).then(scanMediaCache).then(({ bytes, entries }) => ({
+            bytes,
+            count: entries.length,
+          }));
     event.waitUntil(
-      sweep.then(
+      trackBackgroundWork(sweep).then(
         (stats) => port?.postMessage(stats),
         () => port?.postMessage({ bytes: 0, count: 0, failed: true })
       )

@@ -282,12 +282,18 @@ export function createQueryPersister(options: CreateQueryPersisterOptions): Quer
             },
           };
         }
-        if (client && options.preserveQuery && Date.now() - client.timestamp > PERSIST_MAX_AGE) {
+        if (client && options.preserveQuery) {
+          const now = Date.now();
+          const snapshotTimestamp = client.timestamp;
           client = {
             ...client,
             clientState: {
               ...client.clientState,
-              queries: client.clientState.queries.filter(options.preserveQuery),
+              queries: client.clientState.queries.filter((query) => {
+                if (options.preserveQuery?.(query)) return true;
+                const updatedAt = Number(query.state.dataUpdatedAt) || snapshotTimestamp;
+                return now - updatedAt <= PERSIST_MAX_AGE;
+              }),
               mutations: [],
             },
           };
@@ -304,7 +310,9 @@ export function createQueryPersister(options: CreateQueryPersisterOptions): Quer
         ) {
           const migrated = { ...client, buster: QUERY_CACHE_SCHEMA_VERSION };
           // Keep the original timestamp so migration never revives expired data.
-          await persister.persistClient(migrated);
+          void Promise.resolve(persister.persistClient(migrated)).catch((error) => {
+            debugWarn("[Persister] Failed to persist the migrated cache buster:", { error });
+          });
           return migrated;
         }
         return client;
@@ -326,6 +334,16 @@ export function createShouldDehydrateQuery({
 
     const key = query.queryKey;
     if (!Array.isArray(key) || key[0] !== namespace) return false;
+
+    if (
+      key[1] === "actions" &&
+      Boolean(
+        (query.state.data as Record<PropertyKey, unknown> | undefined)?.[
+          Symbol.for("green-goods.transient-action-instructions")
+        ]
+      )
+    )
+      return false;
 
     return !excludedGroups.includes(String(key[1] ?? ""));
   };

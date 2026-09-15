@@ -272,7 +272,16 @@ export interface ActivationHandlers {
   onActivated: () => void;
   /** Nothing took control within the timeout. */
   onTimeout: () => void;
-  onProgress?: (status: "received" | "requested" | "rejected" | "send_failed") => void;
+  onProgress?: (
+    status:
+      | "quieting"
+      | "quiet"
+      | "quiescence_unavailable"
+      | "received"
+      | "requested"
+      | "rejected"
+      | "send_failed"
+  ) => void;
 }
 
 export function resolveUpdateTarget(
@@ -291,7 +300,18 @@ export function activateWaitingWorker(
 ): () => void {
   let done = false;
   let timeoutId: ReturnType<typeof setTimeout> | null = null;
-  const channel = handlers.onProgress ? new MessageChannel() : null;
+  const updateChannel = handlers.onProgress ? new MessageChannel() : null;
+  const quietChannel = navigator.serviceWorker.controller ? new MessageChannel() : null;
+  const active = navigator.serviceWorker.controller;
+
+  const resumeActiveWorker = () => {
+    if (!active || active === worker) return;
+    try {
+      active.postMessage({ type: "RESUME_BACKGROUND_WORK" });
+    } catch {
+      // The old worker may already have been terminated by activation.
+    }
+  };
 
   const finish = () => {
     done = true;
@@ -301,8 +321,10 @@ export function activateWaitingWorker(
     }
     navigator.serviceWorker.removeEventListener("controllerchange", handleControllerChange);
     worker.removeEventListener("statechange", handleStateChange);
-    channel?.port1.close();
-    channel?.port2.close();
+    updateChannel?.port1.close();
+    updateChannel?.port2.close();
+    quietChannel?.port1.close();
+    quietChannel?.port2.close();
   };
 
   const settle = () => {
@@ -314,20 +336,22 @@ export function activateWaitingWorker(
     if (navigator.serviceWorker.controller === worker) settle();
   };
   const handleStateChange = () => {
-    if (worker.state === "activated") settle();
+    if (worker.state === "activated" && navigator.serviceWorker.controller === worker) settle();
   };
 
-  if (worker.state === "activated") {
-    channel?.port1.close();
-    channel?.port2.close();
+  if (worker.state === "activated" && navigator.serviceWorker.controller === worker) {
+    updateChannel?.port1.close();
+    updateChannel?.port2.close();
+    quietChannel?.port1.close();
+    quietChannel?.port2.close();
     handlers.onActivated();
     return () => {};
   }
 
   navigator.serviceWorker.addEventListener("controllerchange", handleControllerChange);
   worker.addEventListener("statechange", handleStateChange);
-  if (channel) {
-    channel.port1.onmessage = ({ data }) => {
+  if (updateChannel) {
+    updateChannel.port1.onmessage = ({ data }) => {
       if (done || data?.type !== "GG_UPDATE_ACK") return;
       if (["received", "requested", "rejected"].includes(data.status)) {
         handlers.onProgress?.(data.status);
@@ -336,16 +360,50 @@ export function activateWaitingWorker(
   }
   timeoutId = setTimeout(() => {
     if (done) return;
+    resumeActiveWorker();
     finish();
     handlers.onTimeout();
   }, timeoutMs);
-  try {
-    if (channel) worker.postMessage({ type: "SKIP_WAITING" }, [channel.port2]);
-    else worker.postMessage({ type: "SKIP_WAITING" });
-  } catch {
-    handlers.onProgress?.("send_failed");
-    finish();
-    handlers.onTimeout();
+
+  const requestActivation = () => {
+    if (done) return;
+    try {
+      if (updateChannel) {
+        worker.postMessage({ type: "SKIP_WAITING" }, [updateChannel.port2]);
+      } else worker.postMessage({ type: "SKIP_WAITING" });
+    } catch {
+      handlers.onProgress?.("send_failed");
+      resumeActiveWorker();
+      finish();
+      handlers.onTimeout();
+    }
+  };
+
+  if (!active || active === worker || !quietChannel) {
+    requestActivation();
+  } else {
+    handlers.onProgress?.("quieting");
+    quietChannel.port1.onmessage = ({ data }) => {
+      if (done || data?.type !== "GG_QUIET_ACK") return;
+      if (data.status !== "quiet") {
+        handlers.onProgress?.("quiescence_unavailable");
+        resumeActiveWorker();
+        finish();
+        handlers.onTimeout();
+        return;
+      }
+      handlers.onProgress?.("quiet");
+      quietChannel.port1.close();
+      requestActivation();
+    };
+    try {
+      active.postMessage({ type: "PREPARE_TO_ACTIVATE_UPDATE" }, [quietChannel.port2]);
+    } catch {
+      handlers.onProgress?.("quiescence_unavailable");
+      resumeActiveWorker();
+      finish();
+      handlers.onTimeout();
+    }
   }
 
   return finish;

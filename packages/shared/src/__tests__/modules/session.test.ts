@@ -43,6 +43,7 @@ import {
   clearActiveSessionAuth,
   clearAllAuth,
   clearEmbeddedAddress,
+  clearStoredWalletAddress,
   clearSignedOutSentinel,
   clearStoredSmartAccountAddress,
   EMBEDDED_ADDRESS_KEY,
@@ -51,6 +52,7 @@ import {
   getStoredCredential,
   getStoredRpId,
   getStoredSmartAccountAddress,
+  getStoredWalletAddress,
   hasSignedOutSentinel,
   RP_ID_STORAGE_KEY,
   SIGNED_OUT_STORAGE_KEY,
@@ -61,7 +63,9 @@ import {
   setStoredCredential,
   setStoredRpId,
   setStoredSmartAccountAddress,
+  setStoredWalletAddress,
   USERNAME_STORAGE_KEY,
+  WALLET_ADDRESS_STORAGE_KEY,
 } from "../../modules/auth/session";
 
 // ============================================================================
@@ -167,6 +171,42 @@ describe("modules/auth/session", () => {
       mockLocalStorage.setItem(EMBEDDED_ADDRESS_KEY, TEST_ADDRESS);
       clearEmbeddedAddress();
       expect(mockLocalStorage.removeItem).toHaveBeenCalledWith(EMBEDDED_ADDRESS_KEY);
+    });
+  });
+
+  describe("wallet address storage", () => {
+    const TEST_ADDRESS = "0x1234567890123456789012345678901234567890";
+
+    it("stores and clears the primary wallet identity", () => {
+      setStoredWalletAddress(TEST_ADDRESS);
+      expect(getStoredWalletAddress()).toBe(TEST_ADDRESS);
+      clearStoredWalletAddress();
+      expect(getStoredWalletAddress()).toBeNull();
+    });
+
+    it("migrates a valid address from Wagmi's persisted connection", () => {
+      mockLocalStorage.setItem(
+        "wagmi.store",
+        JSON.stringify({
+          state: {
+            current: "wallet",
+            connections: {
+              value: [["wallet", { accounts: [TEST_ADDRESS], chainId: 11155111 }]],
+            },
+          },
+        })
+      );
+
+      expect(getStoredWalletAddress()).toBe(TEST_ADDRESS);
+      expect(mockLocalStorage.setItem).toHaveBeenCalledWith(
+        WALLET_ADDRESS_STORAGE_KEY,
+        TEST_ADDRESS
+      );
+    });
+
+    it("ignores malformed persisted connector state", () => {
+      mockLocalStorage.setItem("wagmi.store", "not-json");
+      expect(getStoredWalletAddress()).toBeNull();
     });
   });
 

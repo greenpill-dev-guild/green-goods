@@ -340,12 +340,13 @@ export function createAuthServices(adapters: PasskeyAdapters = defaultPasskeyAda
       if (!credential) return null;
       try {
         const rpId = session.getStoredRpId() || adapters.getRpId();
+        const expected = session.getStoredSmartAccountAddress();
         const { client, address } = await adapters.buildSmartAccount(
           credential,
           input.chainId,
-          rpId
+          rpId,
+          expected ?? undefined
         );
-        const expected = session.getStoredSmartAccountAddress();
         if (expected && expected.toLowerCase() !== address.toLowerCase()) {
           telemetry.restore({
             source: "restore",

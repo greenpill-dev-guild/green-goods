@@ -104,9 +104,11 @@ function createFixture(options: FixtureOptions = {}) {
   writeFileSync(
     resolve(directory, "pwa-shell-assets.json"),
     JSON.stringify({
-      version: 1,
+      version: 2,
       digest: "fixture",
       assets: options.shellAssets ?? ["/index.html"],
+      criticalAssets: options.shellAssets ?? ["/index.html"],
+      tailAssets: [],
     })
   );
   return directory;

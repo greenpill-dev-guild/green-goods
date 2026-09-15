@@ -8,6 +8,7 @@ import {
   isMediaCached,
   isMediaWorkerReady,
   monitorMediaWorker,
+  protectMedia,
   readMediaStats,
   retireLegacyPreparedMedia,
   subscribeMediaWorker,
@@ -25,7 +26,7 @@ import {
 import { readWorkMetadata } from "../../modules/work/read-work-metadata";
 import { connectivityStore } from "../../stores/connectivity";
 import type { Garden } from "../../types/domain";
-import { useOnlineStatus } from "../app/useOnlineStatus";
+import { useConnectivityStatus, useOnlineStatus } from "../app/useOnlineStatus";
 import { usePrimaryAddress } from "../auth/usePrimaryAddress";
 import { useGardens } from "../blockchain/useBaseLists";
 import { useResolvedProfileAvatar } from "../profile/useProfileAvatar";
@@ -120,6 +121,7 @@ export function useOfflineContentPreparation(chainId = DEFAULT_CHAIN_ID): void {
         isCached: isMediaCached,
         download: downloadMedia,
         sweep: sweepMedia,
+        protect: protectMedia,
         retireLegacy: retireLegacyPreparedMedia,
       },
       persist: async () => {
@@ -167,7 +169,7 @@ export function useOfflineContentPreparation(chainId = DEFAULT_CHAIN_ID): void {
     };
     const onNetwork = () => scheduler.environmentChanged();
 
-    const unsubscribeConnectivity = connectivityStore.subscribe(onConnectivity);
+    const unsubscribeConnectivity = connectivityStore.subscribeStatus(onConnectivity);
     const unsubscribeWorker = subscribeMediaWorker(onWorker);
     document.addEventListener("visibilitychange", onVisibility);
     connection?.addEventListener?.("change", onNetwork);
@@ -217,9 +219,11 @@ export function useOfflineStatus() {
     getOfflineProgress
   );
   const online = useOnlineStatus();
+  const connectivity = useConnectivityStatus();
   return {
     progress,
     online,
+    connectivity,
     pause: () => activeScheduler?.pause(),
     resume: () => activeScheduler?.resume(),
     refresh: () => activeScheduler?.schedule(0, { refresh: true }),

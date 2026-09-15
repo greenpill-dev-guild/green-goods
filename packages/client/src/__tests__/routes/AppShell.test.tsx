@@ -25,6 +25,10 @@ vi.mock("@/components/Communication/Offline/OfflineIndicator", () => ({
   OfflineIndicator: () => null,
 }));
 
+vi.mock("@/components/Communication/Offline/InstallNudge", () => ({
+  InstallNudge: () => null,
+}));
+
 vi.mock("@/components/Communication/PwaBadgeCoordinator", () => ({
   PwaBadgeCoordinator: () => null,
 }));

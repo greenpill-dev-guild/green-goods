@@ -1,6 +1,6 @@
 import { onlineManager } from "@tanstack/react-query";
 
-export type ConnectivityState = "online" | "offline" | "unavailable" | "checking";
+export type ConnectivityState = "online" | "degraded" | "offline";
 export interface ConnectivitySnapshot {
   state: ConnectivityState;
   checkedAt?: number;
@@ -19,13 +19,16 @@ const isVisible = () => typeof document === "undefined" || document.visibilitySt
 
 function publish(state: ConnectivityState, checkedAt?: number) {
   snapshot = { state, checkedAt };
-  onlineManager.setOnline(state === "online");
+  // A slow or unreachable probe means the connection is unstable, not that
+  // the browser has confirmed the device offline. Keep queries runnable while
+  // degraded; the browser's offline signal is the only pause boundary.
+  onlineManager.setOnline(state !== "offline");
   listeners.forEach((listener) => listener());
 }
 
 function scheduleRecheck() {
   clearTimeout(recheckTimer);
-  if (probeUrl && isVisible() && snapshot.state === "unavailable") {
+  if (probeUrl && isVisible() && snapshot.state === "degraded") {
     recheckTimer = setTimeout(() => void check(), 30_000);
   }
 }
@@ -49,9 +52,8 @@ async function check(): Promise<void> {
   }
   const currentGeneration = ++generation;
   const endpoint = probeUrl;
-  // A healthy connection remains usable during a background check. Recovery
-  // stays paused until a response actually arrives from the origin.
-  if (snapshot.state !== "online") publish("checking");
+  // Recovery stays paused until a response actually arrives from the origin.
+  // An already usable connection remains usable while the probe is pending.
   pending = (async () => {
     for (let attempt = 0; attempt < 2; attempt++) {
       const controller = new AbortController();
@@ -87,7 +89,7 @@ async function check(): Promise<void> {
         clearTimeout(timeout);
       }
     }
-    if (generation === currentGeneration) publish("unavailable");
+    if (generation === currentGeneration) publish("degraded");
   })().finally(() => {
     pending = undefined;
     activeController = undefined;
@@ -96,7 +98,7 @@ async function check(): Promise<void> {
   return pending;
 }
 
-onlineManager.setOnline(snapshot.state === "online");
+onlineManager.setOnline(snapshot.state !== "offline");
 // Lifecycle observation belongs to the store, not to the lifetime of its
 // consumers. Android may resume before a query or banner subscribes.
 onlineManager.setEventListener(() => undefined);

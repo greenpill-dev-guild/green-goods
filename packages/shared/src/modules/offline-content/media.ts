@@ -5,7 +5,7 @@ const MEDIA_CACHE = "ipfs-cache";
 /** Photos the previous worker prepared; read through on demand until replaced. */
 const LEGACY_PREPARED_MEDIA_CACHE = "gg-prepared-media-v1";
 /** Workers older than this answer images themselves and cannot keep prepared photos. */
-const MEDIA_WORKER_VERSION = 2;
+const MEDIA_WORKER_VERSION = 3;
 const WORKER_REPLY_MS = 4_000;
 const IMAGE_ACCEPT = "image/avif,image/webp,image/apng,image/*,*/*;q=0.8";
 const KEPT_GATEWAY_HOSTS = new Set([
@@ -115,7 +115,18 @@ export async function downloadMedia(url: string, signal: AbortSignal): Promise<n
     priority: "low",
   } as RequestInit);
   if (!response.ok) throw new Error(`Photo download failed (${response.status})`);
-  return (await response.blob()).size;
+  const bytes = (await response.blob()).size;
+  // The worker answers the request before Cache Storage finishes writing. A
+  // completed preparation task must mean the copy is durable, so wait for the
+  // exact cache entry rather than counting bytes from the network response.
+  for (let attempt = 0; attempt < 40; attempt++) {
+    if (signal.aborted) throw new DOMException("Aborted", "AbortError");
+    if (await isMediaCached(url)) return bytes;
+    await new Promise<void>((resolve) => setTimeout(resolve, 50));
+  }
+  const error = new Error("Photo was received but could not be saved for offline use");
+  error.name = "OfflineMediaStoreError";
+  throw error;
 }
 
 function readStats(reply: (MediaStats & { failed?: boolean }) | undefined) {
@@ -128,6 +139,19 @@ export async function sweepMedia(
   budgetBytes = OFFLINE_MEDIA_BUDGET_BYTES
 ): Promise<MediaStats | undefined> {
   return readStats(await askWorker({ type: "MEDIA_SWEEP", keep, budgetBytes }));
+}
+
+/** Updates admission protection before photo downloads begin. */
+export async function protectMedia(
+  keep: string[],
+  budgetBytes = OFFLINE_MEDIA_BUDGET_BYTES
+): Promise<boolean> {
+  const reply = await askWorker<{ ready?: boolean; failed?: boolean }>({
+    type: "MEDIA_POLICY",
+    keep,
+    budgetBytes,
+  });
+  return Boolean(reply?.ready && !reply.failed);
 }
 
 export async function readMediaStats(): Promise<MediaStats | undefined> {

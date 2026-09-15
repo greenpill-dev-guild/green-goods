@@ -55,7 +55,14 @@ function createMockWorker(overrides: Partial<ServiceWorker> = {}): MockServiceWo
   const worker = {
     state: "installing",
     scriptURL: "https://www.greengoods.app/sw.js?gg_v=release-new",
-    postMessage: vi.fn(),
+    postMessage: vi.fn((message: unknown, transfer?: Transferable[]) => {
+      if ((message as { type?: string })?.type === "PREPARE_TO_ACTIVATE_UPDATE") {
+        (transfer?.[0] as MessagePort | undefined)?.postMessage({
+          type: "GG_QUIET_ACK",
+          status: "quiet",
+        });
+      }
+    }),
     addEventListener: vi.fn((type: string, listener: Listener) => {
       listeners[type] = [...(listeners[type] ?? []), listener];
     }),
@@ -92,10 +99,36 @@ function createMockRegistration(
   } as unknown as MockServiceWorkerRegistration;
 }
 
+function installSynchronousMessageChannel() {
+  vi.stubGlobal(
+    "MessageChannel",
+    class {
+      port1: MessagePort;
+      port2: MessagePort;
+
+      constructor() {
+        const left = {
+          onmessage: null as ((event: MessageEvent) => void) | null,
+          close: vi.fn(),
+          postMessage: vi.fn((data: unknown) => right.onmessage?.({ data } as MessageEvent)),
+        };
+        const right = {
+          onmessage: null as ((event: MessageEvent) => void) | null,
+          close: vi.fn(),
+          postMessage: vi.fn((data: unknown) => left.onmessage?.({ data } as MessageEvent)),
+        };
+        this.port1 = left as unknown as MessagePort;
+        this.port2 = right as unknown as MessagePort;
+      }
+    }
+  );
+}
+
 function installServiceWorkerMock(
   registration: ServiceWorkerRegistration | undefined,
   options: { controller?: ServiceWorker | null } = {}
 ) {
+  installSynchronousMessageChannel();
   Object.defineProperty(navigator, "serviceWorker", {
     configurable: true,
     enumerable: true,
@@ -133,10 +166,12 @@ describe("hooks/app/useServiceWorkerUpdate", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     Reflect.deleteProperty(navigator, "serviceWorker");
+    installSynchronousMessageChannel();
   });
 
   afterEach(() => {
     vi.unstubAllEnvs();
+    vi.unstubAllGlobals();
   });
 
   describe("when service worker is not available", () => {
@@ -788,7 +823,7 @@ describe("hooks/app/useServiceWorkerUpdate", () => {
           phase: "error",
           duration_ms: expect.any(Number),
           timeout_ms: APPLY_UPDATE_TIMEOUT_MS,
-          acknowledgment: "not_received",
+          acknowledgment: "quiet",
         })
       );
       expect(logger.warn).toHaveBeenCalledWith(
@@ -861,7 +896,7 @@ describe("applyUpdate activation", () => {
     Object.defineProperty(window, "location", { configurable: true, value: originalLocation });
   });
 
-  it("reloads onto the worker once it reports activated, even without a controller change", async () => {
+  it("reloads once the activated worker controls the page, even if controllerchange is missed", async () => {
     vi.stubEnv("VITE_ENABLE_SW_DEV", "true");
     const reload = vi.fn();
     Object.defineProperty(window, "location", {
@@ -887,6 +922,10 @@ describe("applyUpdate activation", () => {
     );
 
     act(() => {
+      Object.defineProperty(navigator.serviceWorker, "controller", {
+        configurable: true,
+        value: waitingWorker,
+      });
       Object.defineProperty(waitingWorker, "state", { configurable: true, value: "activated" });
       waitingWorker.dispatchStateChange();
     });

@@ -45,6 +45,7 @@ interface RunQueueContext {
 export class OfflineRunQueue {
   private tasks: OfflineTask[];
   private readonly photos = new Set<string>();
+  private readonly completedPhotoUrls = new Set<string>();
   private readonly listed = new Map<string, EASWork[]>();
   private photoGarden: string | undefined;
   private total: number;
@@ -52,6 +53,8 @@ export class OfflineRunQueue {
   private shownRatio = 0;
   bytes = 0;
   missing = 0;
+  failedReads = 0;
+  storageRejected = false;
   held = 0;
 
   constructor(
@@ -73,6 +76,11 @@ export class OfflineRunQueue {
 
   /** Photos this run wants kept when the worker trims its cache. */
   get keptPhotos(): string[] {
+    return [...this.completedPhotoUrls];
+  }
+
+  /** All photos selected by policy, used to protect existing copies during admission. */
+  get plannedPhotos(): string[] {
     return [...this.photos];
   }
 
@@ -107,9 +115,15 @@ export class OfflineRunQueue {
     this.tasks.unshift(task);
   }
 
-  failed(task: OfflineTask): void {
+  failed(task: OfflineTask, error?: unknown): void {
     this.done += 1;
-    if (task.kind === "photo") this.missing += 1;
+    if (task.kind === "photo") {
+      this.missing += 1;
+      const name = error instanceof Error ? error.name : "";
+      if (name === "QuotaExceededError" || name === "OfflineMediaStoreError") {
+        this.storageRejected = true;
+      }
+    } else this.failedReads += 1;
   }
 
   completed(task: OfflineTask, value: unknown): void {
@@ -123,6 +137,7 @@ export class OfflineRunQueue {
         this.addPhoto(task.garden, url);
     } else if (task.kind === "photo") {
       this.bytes += Number(value) || 0;
+      this.completedPhotoUrls.add(task.url);
     }
   }
 

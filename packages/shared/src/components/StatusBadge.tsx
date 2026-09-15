@@ -12,6 +12,7 @@ import {
   RiWifiOffLine,
 } from "@remixicon/react";
 import React from "react";
+import { useIntl } from "react-intl";
 import type { WorkDisplayStatus } from "../types/domain";
 import { cn } from "../utils/styles/cn";
 
@@ -356,6 +357,7 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({
   variant,
   ...props
 }) => {
+  const intl = useIntl();
   const textSize = size === "sm" ? "text-label-sm" : "text-label-md";
   const resolvedProps = { className, showIcon, size, variant, ...props } as StatusBadgeProps;
 
@@ -377,14 +379,22 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({
         )}
       >
         {showIcon && config.icon}
-        {config.label}
+        {intl.formatMessage({
+          id: `app.status.${resolvedProps.status === "sync_failed" ? "syncFailed" : resolvedProps.status}`,
+          defaultMessage: config.label,
+        })}
       </span>
     );
   }
 
   if (isConvictionStatusProps(resolvedProps)) {
     const config = getConvictionStatusConfig(resolvedProps.convictionStatus);
-    const label = resolvedProps.label ?? config.label;
+    const label =
+      resolvedProps.label ??
+      intl.formatMessage({
+        id: `app.status.conviction.${resolvedProps.convictionStatus}`,
+        defaultMessage: config.label,
+      });
 
     return (
       <span

@@ -218,9 +218,10 @@ export function useWorks(gardenId: string, options: UseWorksOptions = {}) {
       )
         cachedMap.set(work.id, work);
     }
-    const indexed = offline
-      ? (remoteData ?? cachedWorks)
-      : reconcileIndexedWorkCollection(online.data ?? [], cachedWorks);
+    const indexed =
+      remoteData === undefined
+        ? cachedWorks
+        : reconcileIndexedWorkCollection(remoteData, cachedWorks);
     const approvalsKnown = approvals.data !== undefined && !approvals.isError;
     const knownApprovals = new Map(
       [...(approvals.data ?? [])]
@@ -268,7 +269,6 @@ export function useWorks(gardenId: string, options: UseWorksOptions = {}) {
     }
     return rows.sort((a, b) => b.createdAt - a.createdAt);
   }, [
-    online.data,
     remoteData,
     approvals.data,
     approvals.isError,
@@ -276,7 +276,6 @@ export function useWorks(gardenId: string, options: UseWorksOptions = {}) {
     overlay.data,
     queuedJobs,
     queuedPreviews,
-    offline,
     queryClient,
     metadataByWork,
     sendingJobs,

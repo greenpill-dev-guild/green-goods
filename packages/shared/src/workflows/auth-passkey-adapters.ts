@@ -88,7 +88,8 @@ export interface PasskeyAdapters {
   buildSmartAccount(
     credential: PasskeyCredential,
     chainId: number,
-    rpId: string
+    rpId: string,
+    knownAddress?: Hex
   ): Promise<{ client: SmartAccountClient; address: Hex }>;
 }
 
@@ -121,7 +122,8 @@ export function createPasskeyOwner(
 async function buildSmartAccount(
   credential: PasskeyCredential,
   chainId: number,
-  rpId: string
+  rpId: string,
+  knownAddress?: Hex
 ): Promise<{ client: SmartAccountClient; address: Hex }> {
   assertPrimaryPasskeyProfile(chainId);
   const chain = getChain(chainId);
@@ -132,6 +134,7 @@ async function buildSmartAccount(
     version: "0.3.1",
     owners: [createPasskeyOwner(credential, rpId)],
     entryPoint: { address: entryPoint07Address, version: "0.7" },
+    address: knownAddress,
   });
   const sponsorshipPolicyId =
     import.meta.env.VITE_PIMLICO_SPONSORSHIP_POLICY_ID || DEFAULT_SPONSORSHIP_POLICY_ID;

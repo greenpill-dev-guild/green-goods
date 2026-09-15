@@ -7,10 +7,12 @@ import {
   createServiceWorkerRegistrationConfig,
   isLegacyServiceWorkerRegistration,
   registerServiceWorkerFromEnv,
+  schedulePwaTailPreparation,
 } from "../../../modules/app/service-worker-registration";
 import { serviceWorkerManager } from "../../../modules/app/service-worker";
 
 const originalServiceWorker = Object.getOwnPropertyDescriptor(navigator, "serviceWorker");
+const originalConnection = Object.getOwnPropertyDescriptor(navigator, "connection");
 
 afterEach(() => {
   vi.restoreAllMocks();
@@ -20,6 +22,12 @@ afterEach(() => {
   } else {
     Reflect.deleteProperty(navigator, "serviceWorker");
   }
+  if (originalConnection) {
+    Object.defineProperty(navigator, "connection", originalConnection);
+  } else {
+    Reflect.deleteProperty(navigator, "connection");
+  }
+  vi.useRealTimers();
 });
 
 describe("service worker registration config", () => {
@@ -43,6 +51,30 @@ describe("service worker registration config", () => {
 
     expect(config.scriptUrl).toBe("./sw.js");
     expect(config.options).toEqual({ scope: "./", updateViaCache: "none" });
+  });
+
+  it("pauses the deferred tail under Data Saver and resumes it while idle", async () => {
+    vi.useFakeTimers();
+    const worker = { postMessage: vi.fn() } as unknown as ServiceWorker;
+    const serviceWorker = Object.assign(new EventTarget(), { controller: worker });
+    const connection = Object.assign(new EventTarget(), { saveData: true });
+    Object.defineProperty(navigator, "serviceWorker", {
+      configurable: true,
+      value: serviceWorker,
+    });
+    Object.defineProperty(navigator, "connection", {
+      configurable: true,
+      value: connection,
+    });
+
+    schedulePwaTailPreparation();
+    expect(worker.postMessage).toHaveBeenCalledWith({ type: "PAUSE_PWA_TAIL" });
+
+    connection.saveData = false;
+    connection.dispatchEvent(new Event("change"));
+    await vi.advanceTimersByTimeAsync(0);
+
+    expect(worker.postMessage).toHaveBeenLastCalledWith({ type: "PREPARE_PWA_TAIL" });
   });
 
   it("keeps Vite PWA's exact development worker URL", async () => {

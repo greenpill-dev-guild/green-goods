@@ -3,7 +3,6 @@ import { IntlProvider } from "react-intl";
 
 import { toastService } from "../components/toast";
 import { useAppLifecycle } from "../hooks/app/useAppLifecycle";
-import { logger } from "../modules/app/logger";
 import { track } from "../modules/app/posthog";
 import { useInstalledAppEvidence } from "../hooks/app/useInstalledAppEvidence";
 import type { InstalledAppEvidence } from "../hooks/app/useInstallGuidance";
@@ -63,21 +62,6 @@ const installSuccessMessages: Record<Locale, { title: string; message: string }>
     message: "O Green Goods está pronto na tela inicial.",
   },
 };
-
-async function clearInstalledAppSessionState() {
-  const [{ clearActiveSessionAuth }, { queryClient }, { serviceWorkerManager }] = await Promise.all(
-    [
-      import("../modules/auth/session"),
-      import("../config/react-query"),
-      import("../modules/app/service-worker"),
-    ]
-  );
-  clearActiveSessionAuth();
-  queryClient.clear();
-  await serviceWorkerManager.clearAllCaches().catch((error) => {
-    logger.warn("[AppProvider] clearAllCaches failed after app install", { error });
-  });
-}
 
 export interface AppDataProps {
   isMobile: boolean;
@@ -165,7 +149,6 @@ export const AppProvider = ({
   const installReadinessSettledRef = useRef(false);
   const installReadyConfirmationScheduledRef = useRef(false);
   const appInstalledEventCountRef = useRef(0);
-  const reinstallCleanupRanRef = useRef(false);
   // Wall-clock of the first `appinstalled` for this attempt. Powers the
   // finalize-duration telemetry that tells us, on real devices, whether Chrome
   // fires one `appinstalled` (we settle via the blind fallback) or two (we
@@ -244,7 +227,6 @@ export const AppProvider = ({
     installReadinessSettledRef.current = false;
     installReadyConfirmationScheduledRef.current = false;
     appInstalledEventCountRef.current = 0;
-    reinstallCleanupRanRef.current = false;
     installFinalizeStartedAtRef.current = null;
   }, [clearInstallSettleTimer]);
 
@@ -255,7 +237,6 @@ export const AppProvider = ({
     installReadinessSettledRef.current = false;
     installReadyConfirmationScheduledRef.current = false;
     appInstalledEventCountRef.current = 0;
-    reinstallCleanupRanRef.current = false;
     installFinalizeStartedAtRef.current = null;
     setInstalledState("installing");
   }, [clearInstallSettleTimer]);
@@ -312,10 +293,6 @@ export const AppProvider = ({
     }
     setInstalledState("finalizing");
     setWasInstalled(true);
-    if (wasPreviouslyInstalled && !reinstallCleanupRanRef.current) {
-      reinstallCleanupRanRef.current = true;
-      void clearInstalledAppSessionState();
-    }
     localStorage.setItem("gg-pwa-installed", "true");
 
     const settleInstall = () => {

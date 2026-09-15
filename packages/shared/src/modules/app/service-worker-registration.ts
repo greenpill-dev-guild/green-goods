@@ -21,6 +21,54 @@ export interface ResolvedServiceWorkerRegistrationConfig {
 
 const DEFAULT_SERVICE_WORKER_SCOPE = "/home/";
 const LEGACY_SCOPE_CLEANUP_KEY = "gg-sw-legacy-scope-cleanup-v1";
+const tailPreparationState = new WeakMap<ServiceWorker, "scheduled" | "paused">();
+let tailListenersStarted = false;
+
+interface NetworkInformationLike extends EventTarget {
+  saveData?: boolean;
+}
+
+function networkInformation(): NetworkInformationLike | undefined {
+  if (typeof navigator === "undefined") return undefined;
+  return (navigator as Navigator & { connection?: NetworkInformationLike }).connection;
+}
+
+/**
+ * Lets the active worker finish the non-critical offline tail after the page
+ * has yielded. Data Saver pauses that work until the browser reports a change.
+ */
+export function schedulePwaTailPreparation(): void {
+  if (typeof window === "undefined") return;
+  const connection = networkInformation();
+  const schedule = () => {
+    const worker = navigator.serviceWorker.controller;
+    if (!worker) return;
+    if (connection?.saveData) {
+      worker.postMessage({ type: "PAUSE_PWA_TAIL" });
+      tailPreparationState.set(worker, "paused");
+      return;
+    }
+    if (tailPreparationState.get(worker) === "scheduled") return;
+    tailPreparationState.set(worker, "scheduled");
+    const run = () => {
+      if (networkInformation()?.saveData) {
+        worker.postMessage({ type: "PAUSE_PWA_TAIL" });
+        tailPreparationState.set(worker, "paused");
+        return;
+      }
+      worker.postMessage({ type: "PREPARE_PWA_TAIL" });
+    };
+    if (window.requestIdleCallback) window.requestIdleCallback(run, { timeout: 5_000 });
+    else window.setTimeout(run, 0);
+  };
+  if (!tailListenersStarted) {
+    tailListenersStarted = true;
+    connection?.addEventListener("change", schedule);
+    window.addEventListener("online", schedule);
+    navigator.serviceWorker.addEventListener("controllerchange", schedule);
+  }
+  schedule();
+}
 
 function trimTrailingSlashes(value: string): string {
   let end = value.length;
@@ -150,6 +198,7 @@ async function registerServiceWorker(
 
     serviceWorkerManager.attachRegistration(registration);
     await navigator.serviceWorker.ready;
+    schedulePwaTailPreparation();
 
     track("service_worker_registered", {
       scope: registration.scope,

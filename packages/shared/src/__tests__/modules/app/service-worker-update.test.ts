@@ -339,9 +339,10 @@ describe("waitForInstallToSettle", () => {
 });
 
 describe("activateWaitingWorker", () => {
-  it("listens for the controller change before asking the worker to skip waiting", () => {
+  it("quiets the active worker before asking the waiting worker to activate", async () => {
     vi.useFakeTimers();
-    const container = stubServiceWorkerContainer(createWorker("activated"));
+    const active = createWorker("activated");
+    const container = stubServiceWorkerContainer(active);
     const worker = createWorker("installed");
     const handlers = { onActivated: vi.fn(), onTimeout: vi.fn() };
 
@@ -351,9 +352,14 @@ describe("activateWaitingWorker", () => {
       "controllerchange",
       expect.any(Function)
     );
-    expect(container.addEventListener.mock.invocationCallOrder[0]).toBeLessThan(
-      worker.postMessage.mock.invocationCallOrder[0]
+    expect(active.postMessage).toHaveBeenCalledWith(
+      { type: "PREPARE_TO_ACTIVATE_UPDATE" },
+      expect.any(Array)
     );
+    expect(worker.postMessage).not.toHaveBeenCalled();
+    const quietPort = active.postMessage.mock.calls[0][1][0] as MessagePort;
+    quietPort.postMessage({ type: "GG_QUIET_ACK", status: "quiet" });
+    await vi.waitFor(() => expect(worker.postMessage).toHaveBeenCalled());
     expect(worker.postMessage).toHaveBeenCalledWith({ type: "SKIP_WAITING" });
 
     container.controller = asWorker(worker);
@@ -364,9 +370,29 @@ describe("activateWaitingWorker", () => {
     expect(handlers.onTimeout).not.toHaveBeenCalled();
   });
 
+  it("keeps the update waiting when the active worker cannot acknowledge quiescence", () => {
+    vi.useFakeTimers();
+    const active = createWorker("activated");
+    stubServiceWorkerContainer(active);
+    const worker = createWorker("installed");
+    const handlers = { onActivated: vi.fn(), onTimeout: vi.fn(), onProgress: vi.fn() };
+
+    activateWaitingWorker(asWorker(worker), handlers, 1_000);
+    vi.advanceTimersByTime(1_000);
+
+    expect(active.postMessage).toHaveBeenCalledWith(
+      { type: "PREPARE_TO_ACTIVATE_UPDATE" },
+      expect.any(Array)
+    );
+    expect(worker.postMessage).not.toHaveBeenCalled();
+    expect(handlers.onProgress).toHaveBeenCalledWith("quieting");
+    expect(handlers.onTimeout).toHaveBeenCalledOnce();
+    expect(active.postMessage).toHaveBeenLastCalledWith({ type: "RESUME_BACKGROUND_WORK" });
+  });
+
   it("times out when nothing takes control and cancels cleanly afterwards", () => {
     vi.useFakeTimers();
-    const container = stubServiceWorkerContainer(createWorker("activated"));
+    const container = stubServiceWorkerContainer(null);
     const worker = createWorker("installed");
     const handlers = { onActivated: vi.fn(), onTimeout: vi.fn() };
 
@@ -403,9 +429,10 @@ describe("activateWaitingWorker", () => {
 });
 
 describe("activateWaitingWorker without a controller change", () => {
-  it("reloads once the worker itself reports activated", () => {
+  it("keeps waiting when worker state changes without an observable takeover", () => {
     vi.useFakeTimers();
-    const container = stubServiceWorkerContainer(createWorker("activated"));
+    const active = createWorker("activated");
+    const container = stubServiceWorkerContainer(active);
     const worker = createWorker("installed");
     const handlers = { onActivated: vi.fn(), onTimeout: vi.fn() };
 
@@ -420,15 +447,16 @@ describe("activateWaitingWorker without a controller change", () => {
     worker.dispatch("statechange");
     vi.advanceTimersByTime(1_000);
 
-    expect(handlers.onActivated).toHaveBeenCalledTimes(1);
-    expect(handlers.onTimeout).not.toHaveBeenCalled();
+    expect(handlers.onActivated).not.toHaveBeenCalled();
+    expect(handlers.onTimeout).toHaveBeenCalledOnce();
+    expect(active.postMessage).toHaveBeenLastCalledWith({ type: "RESUME_BACKGROUND_WORK" });
     expect(worker.listenerCount("statechange")).toBe(0);
     expect(container.listenerCount("controllerchange")).toBe(0);
   });
 
   it("settles at once for a worker that has already activated", () => {
-    stubServiceWorkerContainer(createWorker("activated"));
     const worker = createWorker("activated");
+    stubServiceWorkerContainer(worker);
     const handlers = { onActivated: vi.fn(), onTimeout: vi.fn() };
 
     activateWaitingWorker(asWorker(worker), handlers, 1_000);
@@ -470,7 +498,7 @@ describe("update retry target", () => {
 describe("activation acknowledgment", () => {
   it("does not mistake acknowledgment or an unrelated controller change for activation", () => {
     vi.useFakeTimers();
-    const container = stubServiceWorkerContainer(createWorker("activated"));
+    const container = stubServiceWorkerContainer(null);
     const worker = createWorker("installed");
     const port1 = {
       onmessage: null as ((event: { data: unknown }) => void) | null,

@@ -20,9 +20,46 @@ function shellDigest(entries: Array<[asset: string, contents: string]>): string 
   return createHash("sha256").update(digestInput).digest("hex").slice(0, 16);
 }
 
-async function loadServiceWorker(locationHref = "https://www.greengoods.app/sw.js") {
+function shellManifest(entries: Array<[asset: string, contents: string]>) {
+  const assets = entries.map(([asset]) => asset);
+  const digest = shellDigest(entries);
+  return {
+    version: 2,
+    digest,
+    assets,
+    criticalDigest: digest,
+    criticalAssets: assets,
+    tailDigest: shellDigest([]),
+    tailAssets: [],
+  };
+}
+
+function splitShellManifest(
+  criticalEntries: Array<[asset: string, contents: string]>,
+  tailEntries: Array<[asset: string, contents: string]>
+) {
+  const criticalAssets = criticalEntries.map(([asset]) => asset);
+  const tailAssets = tailEntries.map(([asset]) => asset);
+  const entries = [...criticalEntries, ...tailEntries].sort(([left], [right]) =>
+    left.localeCompare(right)
+  );
+  return {
+    version: 2,
+    digest: shellDigest(entries),
+    assets: entries.map(([asset]) => asset),
+    criticalDigest: shellDigest(criticalEntries),
+    criticalAssets,
+    tailDigest: shellDigest(tailEntries),
+    tailAssets,
+  };
+}
+
+async function loadServiceWorker(
+  locationHref = "https://www.greengoods.app/sw.js",
+  sharedCacheStores?: Map<string, Map<string, Response>>
+) {
   const listeners: Record<string, Listener[]> = {};
-  const cacheStores = new Map<string, Map<string, Response>>();
+  const cacheStores = sharedCacheStores ?? new Map<string, Map<string, Response>>();
   const cacheObjects = new Map<
     string,
     {
@@ -43,7 +80,7 @@ async function loadServiceWorker(locationHref = "https://www.greengoods.app/sw.j
   const cacheFor = (name: string) => {
     let cache = cacheObjects.get(name);
     if (cache) return cache;
-    const store = new Map<string, Response>();
+    const store = cacheStores.get(name) ?? new Map<string, Response>();
     cacheStores.set(name, store);
     cache = {
       addAll: vi.fn().mockResolvedValue(undefined),
@@ -62,7 +99,7 @@ async function loadServiceWorker(locationHref = "https://www.greengoods.app/sw.j
     matchAll: vi.fn().mockResolvedValue([]),
   };
   const caches = {
-    keys: vi.fn().mockResolvedValue([]),
+    keys: vi.fn(async () => [...cacheStores.keys()]),
     delete: vi.fn().mockResolvedValue(true),
     has: vi.fn(async (name: string) => cacheStores.has(name)),
     match: vi.fn(async (request: RequestInfo | URL) => {
@@ -86,6 +123,7 @@ async function loadServiceWorker(locationHref = "https://www.greengoods.app/sw.j
   };
 
   vm.runInNewContext(await readFile(swCustomPath, "utf8"), {
+    AbortController,
     caches,
     console,
     fetch: fetchMock,
@@ -151,7 +189,7 @@ describe("client public service worker migration", () => {
     const digest = shellDigest([["/index.html", indexHtml]]);
     let installation: Promise<unknown> | undefined;
     fetchMock.mockResolvedValueOnce(
-      new Response(JSON.stringify({ version: 1, digest, assets: ["/index.html"] }), {
+      new Response(JSON.stringify(shellManifest([["/index.html", indexHtml]])), {
         headers: { "content-type": "application/json" },
       })
     );
@@ -218,22 +256,14 @@ describe("client public service worker migration", () => {
       `/assets/${route}.js`,
       `export const route = "${route}"`,
     ]);
-    fetchMock.mockResolvedValueOnce(
-      new Response(
-        JSON.stringify({
-          version: 1,
-          digest: shellDigest(entries),
-          assets: entries.map(([asset]) => asset),
-        })
-      )
-    );
-    for (const [, code] of entries) {
-      fetchMock.mockResolvedValueOnce(
-        new Response(code, {
-          headers: { "content-type": "application/javascript" },
-        })
-      );
-    }
+    fetchMock.mockImplementation(async (input: RequestInfo | URL) => {
+      const url = typeof input === "string" ? input : input.toString();
+      if (url === "/pwa-shell-assets.json") {
+        return new Response(JSON.stringify(shellManifest(entries)));
+      }
+      const code = entries.find(([asset]) => asset === url)?.[1];
+      return new Response(code, { headers: { "content-type": "application/javascript" } });
+    });
     let installation: Promise<unknown> | undefined;
     listeners.install[0]({
       waitUntil: (promise: Promise<unknown>) => {
@@ -263,9 +293,9 @@ describe("client public service worker migration", () => {
     fetchMock.mockResolvedValueOnce(
       new Response(
         JSON.stringify({
-          version: 1,
+          ...shellManifest([["/assets/missing.js", "expected"]]),
           digest: "0000000000000000",
-          assets: ["/assets/missing.js"],
+          criticalDigest: "0000000000000000",
         })
       )
     );
@@ -284,7 +314,7 @@ describe("client public service worker migration", () => {
 
     await expect(installation).rejects.toThrow("invalid content type");
     expect(caches.delete).toHaveBeenCalledWith("gg-pwa-shell-0000000000000000");
-    expect(cacheFor("gg-pwa-shell-meta").put).not.toHaveBeenCalled();
+    expect(cacheFor("gg-pwa-metadata-v2").put).not.toHaveBeenCalled();
   });
 
   it("rejects a shell whose fetched bytes do not match the manifest digest", async () => {
@@ -292,7 +322,7 @@ describe("client public service worker migration", () => {
     const expectedCode = "export const release = 'expected'";
     const digest = shellDigest([["/assets/app.js", expectedCode]]);
     fetchMock.mockResolvedValueOnce(
-      new Response(JSON.stringify({ version: 1, digest, assets: ["/assets/app.js"] }), {
+      new Response(JSON.stringify(shellManifest([["/assets/app.js", expectedCode]])), {
         headers: { "content-type": "application/json" },
       })
     );
@@ -311,25 +341,25 @@ describe("client public service worker migration", () => {
 
     await expect(installation).rejects.toThrow("digest mismatch");
     expect(caches.delete).toHaveBeenCalledWith(`gg-pwa-shell-${digest}`);
-    expect(cacheFor("gg-pwa-shell-meta").put).not.toHaveBeenCalled();
+    expect(cacheFor("gg-pwa-metadata-v2").put).not.toHaveBeenCalled();
   });
 
   it("never deletes the active shell cache when the manifest digest is unchanged", async () => {
     const { cacheFor, caches, fetchMock, listeners } = await loadServiceWorker();
     const digest = shellDigest([["/assets/app.js", "export const app = true"]]);
     const cacheName = `gg-pwa-shell-${digest}`;
-    const putShellMetadata = cacheFor("gg-pwa-shell-meta").put as unknown as (
+    const putShellMetadata = cacheFor("gg-pwa-metadata-v2").put as unknown as (
       request: RequestInfo | URL,
       response: Response
     ) => Promise<void>;
     await putShellMetadata(
-      "/__gg_pwa_shell_current__",
-      new Response(JSON.stringify({ cacheName, digest }), {
+      "/__gg_pwa_shell_active__",
+      new Response(JSON.stringify({ cacheName, digest, criticalReady: true }), {
         headers: { "content-type": "application/json" },
       })
     );
     fetchMock.mockResolvedValueOnce(
-      new Response(JSON.stringify({ version: 1, digest, assets: ["/assets/app.js"] }), {
+      new Response(JSON.stringify(shellManifest([["/assets/app.js", "export const app = true"]])), {
         headers: { "content-type": "application/json" },
       })
     );
@@ -344,6 +374,127 @@ describe("client public service worker migration", () => {
     await expect(installation).resolves.toBeUndefined();
     expect(fetchMock).toHaveBeenCalledTimes(1);
     expect(caches.delete).not.toHaveBeenCalledWith(cacheName);
+  });
+
+  it("retries a critical asset and reuses unchanged content-addressed files", async () => {
+    const { cacheFor, caches, fetchMock, listeners } = await loadServiceWorker();
+    const reusedAsset = "/assets/vendor-abcdef12.js";
+    const retriedAsset = "/index.html";
+    const reusedCode = "export const vendor = true";
+    const html = '<main id="root"></main>';
+    const manifest = splitShellManifest(
+      [
+        [retriedAsset, html],
+        [reusedAsset, reusedCode],
+      ],
+      []
+    );
+    await cacheFor("gg-pwa-shell-previous").put(
+      reusedAsset,
+      new Response(reusedCode, { headers: { "content-type": "application/javascript" } })
+    );
+    caches.keys.mockResolvedValue(["gg-pwa-shell-previous"]);
+    fetchMock
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify(manifest), { headers: { "content-type": "application/json" } })
+      )
+      .mockRejectedValueOnce(new TypeError("temporary"))
+      .mockRejectedValueOnce(new TypeError("temporary"))
+      .mockResolvedValueOnce(new Response(html, { headers: { "content-type": "text/html" } }));
+    let installation: Promise<unknown> | undefined;
+
+    listeners.install[0]({
+      waitUntil: (promise: Promise<unknown>) => {
+        installation = promise;
+      },
+    });
+    await installation;
+
+    expect(fetchMock).toHaveBeenCalledTimes(4);
+    expect(fetchMock).not.toHaveBeenCalledWith(reusedAsset, expect.anything());
+    expect(cacheFor(`gg-pwa-shell-${manifest.digest}`).put).toHaveBeenCalledWith(
+      reusedAsset,
+      expect.any(Response)
+    );
+  });
+
+  it("promotes candidate metadata on activation and retains the previous shell", async () => {
+    const { cacheFor, caches, fetchMock, listeners } = await loadServiceWorker();
+    const activeMetadata = { cacheName: "gg-pwa-shell-old", digest: "old", criticalReady: true };
+    await cacheFor("gg-pwa-metadata-v2").put(
+      "/__gg_pwa_shell_active__",
+      new Response(JSON.stringify(activeMetadata))
+    );
+    const entries: Array<[string, string]> = [["/index.html", "<main>new</main>"]];
+    const manifest = shellManifest(entries);
+    fetchMock
+      .mockResolvedValueOnce(new Response(JSON.stringify(manifest)))
+      .mockResolvedValueOnce(
+        new Response(entries[0][1], { headers: { "content-type": "text/html" } })
+      );
+    let installation: Promise<unknown> | undefined;
+    listeners.install[0]({ waitUntil: (promise: Promise<unknown>) => (installation = promise) });
+    await installation;
+    const matchMetadata = cacheFor("gg-pwa-metadata-v2").match as unknown as (
+      request: RequestInfo | URL
+    ) => Promise<Response | undefined>;
+
+    await expect(
+      matchMetadata("/__gg_pwa_shell_active__").then((response) => response?.json())
+    ).resolves.toEqual(activeMetadata);
+    caches.keys.mockResolvedValue([
+      "gg-pwa-shell-old",
+      `gg-pwa-shell-${manifest.digest}`,
+      "gg-pwa-shell-older",
+    ]);
+    let activation: Promise<unknown> | undefined;
+    listeners.activate[0]({ waitUntil: (promise: Promise<unknown>) => (activation = promise) });
+    await activation;
+
+    await expect(
+      matchMetadata("/__gg_pwa_shell_active__").then((response) => response?.json())
+    ).resolves.toMatchObject({
+      cacheName: `gg-pwa-shell-${manifest.digest}`,
+      previousCacheName: "gg-pwa-shell-old",
+    });
+    expect(caches.delete).not.toHaveBeenCalledWith("gg-pwa-shell-old");
+    expect(caches.delete).toHaveBeenCalledWith("gg-pwa-shell-older");
+  });
+
+  it("downloads the optional tail only after activation asks for it", async () => {
+    const { cacheFor, caches, fetchMock, listeners } = await loadServiceWorker();
+    const critical: Array<[string, string]> = [["/index.html", "<main>ready</main>"]];
+    const tail: Array<[string, string]> = [
+      ["/assets/es-abcdef12.js", "export const locale = 'es'"],
+    ];
+    const manifest = splitShellManifest(critical, tail);
+    fetchMock
+      .mockResolvedValueOnce(new Response(JSON.stringify(manifest)))
+      .mockResolvedValueOnce(
+        new Response(critical[0][1], { headers: { "content-type": "text/html" } })
+      );
+    let installation: Promise<unknown> | undefined;
+    listeners.install[0]({ waitUntil: (promise: Promise<unknown>) => (installation = promise) });
+    await installation;
+    const matchShell = cacheFor(`gg-pwa-shell-${manifest.digest}`).match as unknown as (
+      request: RequestInfo | URL
+    ) => Promise<Response | undefined>;
+    await expect(matchShell(tail[0][0])).resolves.toBeUndefined();
+
+    caches.keys.mockResolvedValue([`gg-pwa-shell-${manifest.digest}`]);
+    let activation: Promise<unknown> | undefined;
+    listeners.activate[0]({ waitUntil: (promise: Promise<unknown>) => (activation = promise) });
+    await activation;
+    fetchMock.mockResolvedValueOnce(
+      new Response(tail[0][1], { headers: { "content-type": "application/javascript" } })
+    );
+
+    await expect(ask(listeners, { type: "PREPARE_PWA_TAIL" })).resolves.toEqual({
+      status: "ready",
+    });
+    await expect(matchShell(tail[0][0]).then((response) => response?.text())).resolves.toBe(
+      tail[0][1]
+    );
   });
 
   it("clears stale runtime caches without claiming or navigating clients on activation", async () => {
@@ -362,13 +513,20 @@ describe("client public service worker migration", () => {
     };
     let activation: Promise<unknown> | undefined;
 
-    const putShellMetadata = cacheFor("gg-pwa-shell-meta").put as unknown as (
+    const putShellMetadata = cacheFor("gg-pwa-metadata-v2").put as unknown as (
       request: RequestInfo | URL,
       response: Response
     ) => Promise<void>;
     await putShellMetadata(
-      "/__gg_pwa_shell_current__",
-      new Response(JSON.stringify({ cacheName: "gg-pwa-shell-current" }))
+      "/__gg_pwa_shell_candidate__",
+      new Response(
+        JSON.stringify({
+          cacheName: "gg-pwa-shell-current",
+          previousCacheName: "gg-pwa-shell-old",
+          tailAssets: [],
+          tailReady: true,
+        })
+      )
     );
     caches.keys.mockResolvedValue([
       "js-cache",
@@ -378,6 +536,7 @@ describe("client public service worker migration", () => {
       "ipfs-cache",
       "workbox-precache",
       "gg-pwa-shell-old",
+      "gg-pwa-shell-older",
       "gg-pwa-shell-current",
     ]);
     clients.matchAll.mockResolvedValue([publicClient, publicDetailClient, pwaClient]);
@@ -398,14 +557,15 @@ describe("client public service worker migration", () => {
     expect(caches.delete).not.toHaveBeenCalledWith("image-cache");
     expect(caches.delete).not.toHaveBeenCalledWith("ipfs-cache");
     expect(caches.delete).not.toHaveBeenCalledWith("workbox-precache");
-    expect(caches.delete).toHaveBeenCalledWith("gg-pwa-shell-old");
+    expect(caches.delete).not.toHaveBeenCalledWith("gg-pwa-shell-old");
+    expect(caches.delete).toHaveBeenCalledWith("gg-pwa-shell-older");
     expect(caches.delete).not.toHaveBeenCalledWith("gg-pwa-shell-current");
     expect(publicClient.navigate).not.toHaveBeenCalled();
     expect(publicDetailClient.navigate).not.toHaveBeenCalled();
     expect(pwaClient.navigate).not.toHaveBeenCalled();
   });
 
-  it("serves a reload shim when a JS asset resolves to HTML", async () => {
+  it("serves an explicit chunk error when a JS asset resolves to HTML", async () => {
     const { fetchMock, listeners } = await loadServiceWorker();
     const request = {
       headers: new Headers(),
@@ -429,18 +589,18 @@ describe("client public service worker migration", () => {
     expect(respondWith).toHaveBeenCalledTimes(1);
     expect(stopImmediatePropagation).toHaveBeenCalledTimes(1);
     await expect(responsePromise?.then((response) => response.text())).resolves.toContain(
-      "gg-script-reload-attempt"
+      "Failed to fetch dynamically imported module"
     );
   });
 
   it("caches successful hashed JavaScript responses in the current shell cache", async () => {
     const { cacheFor, fetchMock, listeners } = await loadServiceWorker();
-    const putShellMetadata = cacheFor("gg-pwa-shell-meta").put as unknown as (
+    const putShellMetadata = cacheFor("gg-pwa-metadata-v2").put as unknown as (
       request: RequestInfo | URL,
       response: Response
     ) => Promise<void>;
     await putShellMetadata(
-      "/__gg_pwa_shell_current__",
+      "/__gg_pwa_shell_active__",
       new Response(JSON.stringify({ cacheName: "gg-pwa-shell-current" }))
     );
     const request = new Request("https://www.greengoods.app/assets/app-hash.js");
@@ -609,6 +769,36 @@ describe("IPFS media cache", () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
+  it("resumes media writes when a timed-out update hands control back", async () => {
+    const { cacheFor, fetchMock, listeners } = await loadServiceWorker();
+    const media = cacheFor("ipfs-cache");
+    let quieted: Promise<unknown> | undefined;
+    listeners.message[0]({
+      data: { type: "PREPARE_TO_ACTIVATE_UPDATE" },
+      ports: [{ postMessage: vi.fn() }],
+      waitUntil: (promise: Promise<unknown>) => {
+        quieted = promise;
+      },
+    });
+    await quieted;
+
+    fetchMock.mockResolvedValueOnce(new Response("during-handover"));
+    const blocked = mediaEvent(imageRequest("https://ipfs.io/ipfs/during-handover"));
+    listeners.fetch.forEach((listener) => listener(blocked.event));
+    await blocked.response();
+    await blocked.settled();
+    expect(media.put).not.toHaveBeenCalled();
+
+    listeners.message[0]({ data: { type: "RESUME_BACKGROUND_WORK" }, ports: [] });
+    fetchMock.mockResolvedValueOnce(new Response("after-timeout"));
+    const resumed = mediaEvent(imageRequest("https://ipfs.io/ipfs/after-timeout"));
+    listeners.fetch.forEach((listener) => listener(resumed.event));
+    await resumed.response();
+    await resumed.settled();
+
+    expect(media.put).toHaveBeenCalledTimes(1);
+  });
+
   it("hands the photo to the page before the stored copy is written", async () => {
     const { cacheFor, fetchMock, listeners } = await loadServiceWorker();
     fetchMock.mockResolvedValueOnce(
@@ -750,8 +940,36 @@ describe("IPFS media cache", () => {
     const { listeners } = await loadServiceWorker();
 
     await expect(ask(listeners, { type: "OFFLINE_CONTENT_CAPABILITIES" })).resolves.toEqual({
-      offlineContentVersion: 2,
+      offlineContentVersion: 3,
     });
+  });
+
+  it("persists protected photos and rejects new copies above the shared budget", async () => {
+    const first = await loadServiceWorker();
+    const keptUrl = "https://ipfs.io/ipfs/kept-between-workers";
+    await first.cacheFor("ipfs-cache").put(
+      keptUrl,
+      new Response("x".repeat(60), {
+        headers: { "content-length": "60", "x-gg-stored-at": "1" },
+      })
+    );
+    await ask(first.listeners, { type: "MEDIA_POLICY", budgetBytes: 80, keep: [keptUrl] });
+
+    const restarted = await loadServiceWorker(
+      "https://www.greengoods.app/sw.js",
+      first.cacheStores
+    );
+    const newUrl = "https://ipfs.io/ipfs/new-after-restart";
+    restarted.fetchMock.mockResolvedValueOnce(
+      new Response("y".repeat(40), { headers: { "content-type": "image/jpeg" } })
+    );
+    const { event, response, settled } = mediaEvent(imageRequest(newUrl));
+    restarted.listeners.fetch.forEach((listener) => listener(event));
+
+    expect(await (await response())?.text()).toHaveLength(40);
+    await settled();
+    expect(restarted.cacheStores.get("ipfs-cache")?.has(keptUrl)).toBe(true);
+    expect(restarted.cacheStores.get("ipfs-cache")?.has(newUrl)).toBe(false);
   });
 
   it("bypasses even an existing cached reachability probe", async () => {

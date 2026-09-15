@@ -14,11 +14,9 @@ const LIMITS = {
   modulePreloads: Number(process.env.PWA_MODULE_PRELOAD_MAX ?? 16),
   majorRouteGzip: Number(process.env.PWA_MAJOR_ROUTE_GZIP_MAX ?? 500 * KiB),
   mediaRouteGzip: Number(process.env.PWA_MEDIA_ROUTE_GZIP_MAX ?? 850 * KiB),
-  // The offline shell carries the whole signed-in app: every route, the HEIC
-  // decoder and image compressor for the media step, the submission adapters
-  // and attestation encoder, and every locale. Installed use is meant to feel
-  // like a native app, so the ceilings sit just above that full set to catch
-  // accidental growth, not to keep functionality out.
+  // The offline shell has a critical install set and a deferred tail. Keep the
+  // combined ceiling close to the full signed-in app so moving an asset between
+  // tiers cannot hide growth.
   shellRaw: Number(process.env.PWA_SHELL_RAW_MAX ?? 11 * MiB),
   shellGzip: Number(process.env.PWA_SHELL_GZIP_MAX ?? 3.25 * MiB),
 };
@@ -203,8 +201,37 @@ try {
   if (routeFailures.length) failures.push(`route budgets exceeded\n  ${routeFailures.join("\n  ")}`);
 
   const shell = readJson(shellManifestPath);
+  if (
+    shell.version !== 2 ||
+    !Array.isArray(shell.assets) ||
+    !Array.isArray(shell.criticalAssets) ||
+    !Array.isArray(shell.tailAssets)
+  ) {
+    throw new Error("Offline shell manifest must use the version 2 critical/tail shape.");
+  }
+  const shellAssets = new Set(shell.assets);
+  const criticalAssets = new Set(shell.criticalAssets);
+  const tailAssets = new Set(shell.tailAssets);
+  if (
+    shellAssets.size !== shell.assets.length ||
+    criticalAssets.size !== shell.criticalAssets.length ||
+    tailAssets.size !== shell.tailAssets.length
+  ) {
+    throw new Error("Offline shell manifest contains duplicate assets.");
+  }
+  if (
+    [...criticalAssets].some((asset) => tailAssets.has(asset)) ||
+    shellAssets.size !== criticalAssets.size + tailAssets.size ||
+    [...shellAssets].some((asset) => !criticalAssets.has(asset) && !tailAssets.has(asset))
+  ) {
+    throw new Error("Offline shell critical and tail assets must be a disjoint complete partition.");
+  }
   const shellRaw = shell.assets.reduce((sum, file) => sum + fileSize(file), 0);
   const shellGzip = shell.assets.reduce((sum, file) => sum + fileSize(file, true), 0);
+  const criticalRaw = shell.criticalAssets.reduce((sum, file) => sum + fileSize(file), 0);
+  const criticalGzip = shell.criticalAssets.reduce((sum, file) => sum + fileSize(file, true), 0);
+  const tailRaw = shell.tailAssets.reduce((sum, file) => sum + fileSize(file), 0);
+  const tailGzip = shell.tailAssets.reduce((sum, file) => sum + fileSize(file, true), 0);
   if (shellRaw > LIMITS.shellRaw) {
     failures.push(`offline shell raw ${formatBytes(shellRaw)} exceeds ${formatBytes(LIMITS.shellRaw)}`);
   }
@@ -237,6 +264,8 @@ try {
       `installed startup ${formatBytes(pwaStartupGzip)} gzip`,
       `${modulePreloads} module preloads`,
       `offline shell ${formatBytes(shellRaw)} raw / ${formatBytes(shellGzip)} gzip`,
+      `critical ${shell.criticalAssets.length} assets (${formatBytes(criticalRaw)} raw / ${formatBytes(criticalGzip)} gzip)`,
+      `tail ${shell.tailAssets.length} assets (${formatBytes(tailRaw)} raw / ${formatBytes(tailGzip)} gzip)`,
     ].join("; ")
   );
 } catch (error) {

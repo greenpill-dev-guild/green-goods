@@ -271,7 +271,7 @@ describe("boot error fallback handoff", () => {
     vi.unstubAllGlobals();
   });
 
-  it("clears the one-shot only after a normal route root commits", () => {
+  it("keeps the one-shot guard while only the route root has committed", () => {
     markChunkReloadAttempt();
 
     render(
@@ -280,7 +280,7 @@ describe("boot error fallback handoff", () => {
       </MemoryRouter>
     );
 
-    expect(hasChunkReloadAttempt()).toBe(false);
+    expect(hasChunkReloadAttempt()).toBe(true);
   });
 });
 

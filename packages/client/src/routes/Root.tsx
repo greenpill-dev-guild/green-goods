@@ -1,6 +1,5 @@
 import { ToastViewport } from "@green-goods/shared/components/Toast/ToastViewport";
 import { usePageView } from "@green-goods/shared/hooks/analytics/usePageView";
-import { clearChunkReloadAttempt } from "@/components/Errors/errorClassification";
 import { useLayoutEffect } from "react";
 import { Outlet, useLocation } from "react-router-dom";
 import { scrubReceiptTokenFragmentFromLocation } from "./receiptToken";
@@ -20,7 +19,6 @@ function useReceiptTokenFragmentScrub() {
 export default function Root() {
   useReceiptTokenFragmentScrub();
   useLayoutEffect(() => {
-    clearChunkReloadAttempt();
     // Each shell owns its document scroll policy. Browser/Router restoration
     // must not race editorial history restoration or PWA route resets.
     const previous = window.history.scrollRestoration;

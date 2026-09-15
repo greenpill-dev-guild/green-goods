@@ -59,6 +59,20 @@ describe("durable offline reads", () => {
     source.clear();
   });
 
+  it("omits action fallbacks produced by a transient instruction fetch failure", () => {
+    const source = new QueryClient();
+    const fallbackActions: Array<{ id: string }> = [{ id: "fallback" }];
+    Object.defineProperty(
+      fallbackActions,
+      Symbol.for("green-goods.transient-action-instructions"),
+      { value: true }
+    );
+    source.setQueryData(actionsKeys.byChain(11155111), fallbackActions);
+
+    expect(dehydrate(source, { shouldDehydrateQuery }).queries).toEqual([]);
+    source.clear();
+  });
+
   it("keeps base and work reads for the whole persistence window, independent of deploy version", () => {
     expect(QUERY_CACHE_SCHEMA_VERSION).toBe("1");
     expect(GC_TIMES.baseLists).toBeGreaterThanOrEqual(PERSIST_MAX_AGE);
@@ -94,10 +108,20 @@ describe("offline read model retention", () => {
     );
     vi.stubGlobal("indexedDB", undefined);
     const source = new QueryClient();
+    const expiredAt = Date.now() - PERSIST_MAX_AGE - 1;
     const workRead = worksKeys.online("garden", 11155111);
-    source.setQueryData(workRead, [{ id: "kept" }]);
-    source.setQueryData(worksKeys.metadata("bafy-details"), { details: "kept" });
-    source.setQueryData(["greengoods", "platform", "stats"], { ordinary: true });
+    source.setQueryData(workRead, [{ id: "kept" }], { updatedAt: expiredAt });
+    source.setQueryData(
+      worksKeys.metadata("bafy-details"),
+      { details: "kept" },
+      { updatedAt: expiredAt }
+    );
+    source.setQueryData(
+      ["greengoods", "platform", "expired"],
+      { ordinary: true },
+      { updatedAt: expiredAt }
+    );
+    source.setQueryData(["greengoods", "platform", "fresh"], { ordinary: true });
     const storage = window.localStorage;
     storage.clear();
     const persister = createQueryPersister({
@@ -114,6 +138,7 @@ describe("offline read model retention", () => {
     expect(restored?.clientState.queries.map((entry) => entry.queryKey)).toEqual([
       workRead,
       worksKeys.metadata("bafy-details"),
+      ["greengoods", "platform", "fresh"],
     ]);
     source.clear();
     storage.clear();

@@ -11,6 +11,7 @@ export interface OfflineMediaPort {
   isCached(url: string): Promise<boolean>;
   download(url: string, signal: AbortSignal): Promise<number>;
   sweep(keep: string[]): Promise<{ bytes: number } | undefined>;
+  protect(keep: string[]): Promise<boolean>;
   retireLegacy(): Promise<void>;
 }
 
@@ -107,6 +108,7 @@ export class OfflineScheduler {
       if (this.running) this.showPaused("offline");
     }
     this.wake();
+    if (!this.running) this.schedule(0);
   }
 
   stop(): void {
@@ -155,6 +157,8 @@ export class OfflineScheduler {
       runBytes: 0,
       runRatio: 0,
       missingPhotos: 0,
+      failedReads: 0,
+      storageFull: false,
     });
 
     while (!queue.isEmpty) {
@@ -163,6 +167,9 @@ export class OfflineScheduler {
         photoLimit: ports.cellular() ? 1 : 2,
         photosAllowed: ports.mediaReady() && (!ports.dataSaver() || this.dataSaverOverride),
       });
+      if (batch.some((task) => task.kind === "photo") && ports.mediaReady()) {
+        await ports.media.protect(queue.plannedPhotos);
+      }
       const results = await Promise.all(
         batch.map((task) =>
           this.execute(task, staleTime).then(
@@ -175,7 +182,7 @@ export class OfflineScheduler {
         if (!("error" in result)) queue.completed(result.task, result.value);
         else if (this.stopped || (result.error as Error | undefined)?.name === "AbortError") {
           queue.retry(result.task);
-        } else queue.failed(result.task);
+        } else queue.failed(result.task, result.error);
       }
       if (
         batch.some((task) => task.kind === "list") &&
@@ -209,13 +216,22 @@ export class OfflineScheduler {
     }
     const waitingForDataSaver =
       queue.held > 0 && ports.mediaReady() && ports.dataSaver() && !this.dataSaverOverride;
+    const waitingForWorker = queue.held > 0 && !ports.mediaReady();
+    const storageFull = queue.storageRejected || getOfflineProgress().storageFull;
+    const incomplete = queue.missing > 0 || queue.failedReads > 0 || storageFull;
     updateOfflineProgress({
-      state: queue.missing ? "incomplete" : waitingForDataSaver ? "paused" : "ready",
-      pauseReason: waitingForDataSaver ? "dataSaver" : undefined,
+      state: incomplete
+        ? "incomplete"
+        : waitingForDataSaver || waitingForWorker
+          ? "paused"
+          : "ready",
+      pauseReason: waitingForDataSaver ? "dataSaver" : waitingForWorker ? "worker" : undefined,
       runBytes: queue.bytes,
       runRatio: 1,
       savedBytes,
       missingPhotos: queue.missing,
+      failedReads: queue.failedReads,
+      storageFull,
       completedAt: ports.now(),
     });
   }
@@ -227,12 +243,14 @@ export class OfflineScheduler {
         return client.fetchQuery({
           queryKey: worksKeys.approvals(undefined, chainId),
           queryFn: () => this.ports.fetchApprovals(),
+          networkMode: "online",
           staleTime,
         });
       case "list":
         return client.fetchQuery({
           queryKey: worksKeys.online(task.garden, chainId),
           queryFn: () => this.ports.fetchWorks(task.garden),
+          networkMode: "online",
           staleTime,
         });
       case "details": {
@@ -240,6 +258,7 @@ export class OfflineScheduler {
         return client.fetchQuery({
           queryKey: worksKeys.metadata(metadata),
           queryFn: ({ signal }) => this.ports.readMetadata(metadata, signal),
+          networkMode: "online",
           staleTime: Number.POSITIVE_INFINITY,
         });
       }

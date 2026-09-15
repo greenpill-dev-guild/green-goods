@@ -144,8 +144,10 @@ function createHarness() {
     getWebAuthnCredential: (options) => calls.getWebAuthnCredential(options),
     getRpId: () => "localhost",
     randomChallenge: () => new Uint8Array([1, 2, 3]),
-    buildSmartAccount: (credential, chainId, rpId) =>
-      calls.buildSmartAccount(credential, chainId, rpId),
+    buildSmartAccount: (credential, chainId, rpId, knownAddress) =>
+      knownAddress
+        ? calls.buildSmartAccount(credential, chainId, rpId, knownAddress)
+        : calls.buildSmartAccount(credential, chainId, rpId),
   };
   return {
     state,
@@ -222,6 +224,22 @@ describe("createAuthServices", () => {
       expect(harness.sessionSpies.setAddress).not.toHaveBeenCalled();
       expect(harness.telemetry.restore).toHaveBeenCalledWith(
         expect.objectContaining({ outcome: "failed", reason: "address_mismatch" })
+      );
+    });
+
+    it("reuses the stored address without deriving it over the network", async () => {
+      harness.state.credential = CREDENTIAL;
+      harness.state.expectedAddress = ADDRESS;
+
+      await expect(
+        invoke(harness.services.restoreSession, { chainId: CHAIN_ID })
+      ).resolves.toMatchObject({ smartAccountAddress: ADDRESS });
+
+      expect(harness.calls.buildSmartAccount).toHaveBeenCalledWith(
+        CREDENTIAL,
+        CHAIN_ID,
+        "localhost",
+        ADDRESS
       );
     });
   });

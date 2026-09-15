@@ -19,6 +19,8 @@ interface RowCopy {
   disabled?: boolean;
 }
 
+type ConnectivityState = ReturnType<typeof useOfflineStatus>["connectivity"]["state"];
+
 function megabytes(intl: IntlShape, bytes: number): string {
   const value = bytes / 1_000_000;
   return intl.formatNumber(value, {
@@ -31,7 +33,7 @@ function megabytes(intl: IntlShape, bytes: number): string {
 function describeRow(
   intl: IntlShape,
   progress: OfflineProgress,
-  online: boolean,
+  connectivity: ConnectivityState,
   controls: { pause: () => void; resume: () => void; refresh: () => void }
 ): RowCopy {
   const text = (id: string, defaultMessage: string, values?: Record<string, string | number>) =>
@@ -45,8 +47,9 @@ function describeRow(
   const retry = text("app.common.retry", "Retry");
   const paused = text("app.offline.status.paused", "Paused");
   const running = progress.state === "downloading" || progress.state === "paused";
+  const online = connectivity !== "offline";
 
-  if (!online && running) {
+  if (connectivity === "offline" && running) {
     return {
       status: paused,
       detail: text("app.offline.detail.noConnection", "No connection"),
@@ -54,16 +57,30 @@ function describeRow(
       disabled: true,
     };
   }
+  if (connectivity === "degraded") {
+    return {
+      status: text("app.offline.status.degraded", "Connection unstable"),
+      detail: text("app.offline.detail.degraded", "Preparation will keep trying"),
+      action: running ? text("app.offline.action.pause", "Pause") : retry,
+      onClick: running ? controls.pause : controls.refresh,
+    };
+  }
   if (progress.state === "incomplete" || progress.storageFull) {
     return {
       status: text("app.offline.status.incomplete", "Incomplete"),
       detail: progress.storageFull
         ? text("app.offline.detail.storageFull", "Storage full")
-        : text(
-            "app.offline.detail.photosMissing",
-            "{count, plural, one {# photo missing} other {# photos missing}}",
-            { count: progress.missingPhotos }
-          ),
+        : progress.failedReads > 0
+          ? text(
+              "app.offline.detail.readsMissing",
+              "{count, plural, one {# list missing} other {# lists missing}}",
+              { count: progress.failedReads }
+            )
+          : text(
+              "app.offline.detail.photosMissing",
+              "{count, plural, one {# photo missing} other {# photos missing}}",
+              { count: progress.missingPhotos }
+            ),
       action: retry,
       onClick: controls.refresh,
       disabled: !online,
@@ -85,8 +102,25 @@ function describeRow(
       onClick: controls.resume,
     };
   }
+  if (progress.state === "paused" && progress.pauseReason === "worker") {
+    return {
+      status: text("app.offline.status.workerWaiting", "App update waiting"),
+      detail: text("app.offline.detail.workerWaiting", "Restart to prepare photos"),
+      action: retry,
+      onClick: controls.refresh,
+    };
+  }
   if (progress.state === "paused") {
     return { status: paused, detail: progressLine, action: resume, onClick: controls.resume };
+  }
+  if (progress.state === "idle") {
+    return {
+      status: text("app.offline.status.notPrepared", "Not prepared"),
+      detail: text("app.offline.detail.notPrepared", "Preparation hasn’t started"),
+      action: text("app.offline.action.start", "Start"),
+      onClick: controls.refresh,
+      disabled: !online,
+    };
   }
   return {
     status: text("app.offline.status.ready", "Ready"),
@@ -106,12 +140,12 @@ function describeRow(
  */
 export function OfflineContentRow({ controlClassName }: OfflineContentRowProps) {
   const intl = useIntl();
-  const { progress, online, pause, resume, refresh } = useOfflineStatus();
+  const { progress, connectivity, pause, resume, refresh } = useOfflineStatus();
   const title = intl.formatMessage({
     id: "app.offline.preparation.title",
     defaultMessage: "Offline",
   });
-  const row = describeRow(intl, progress, online, { pause, resume, refresh });
+  const row = describeRow(intl, progress, connectivity.state, { pause, resume, refresh });
 
   return (
     <Card>

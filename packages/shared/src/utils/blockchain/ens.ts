@@ -1,7 +1,6 @@
 import { type Address, isAddress, type PublicClient } from "viem";
 import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
 import { createPublicClientForChain } from "../../config/pimlico";
-import { logger } from "../../modules/app/logger";
 
 // ============================================
 // Slug Validation (mirrors contract _validateSlug)
@@ -90,24 +89,14 @@ function getClient(chainId: number): PublicClient {
 }
 
 async function fetchEnsNameForChain(address: Address, chainId: number): Promise<string | null> {
-  try {
-    const client = getClient(chainId);
-    return await client.getEnsName({ address });
-  } catch (error) {
-    logger.debug("ENS name resolution failed", { error, address, chainId });
-    return null;
-  }
+  const client = getClient(chainId);
+  return client.getEnsName({ address });
 }
 
 async function fetchEnsAddressForChain(name: string, chainId: number): Promise<Address | null> {
-  try {
-    const client = getClient(chainId);
-    const resolved = await client.getEnsAddress({ name });
-    return resolved ?? null;
-  } catch (error) {
-    logger.debug("ENS address resolution failed", { error, name, chainId });
-    return null;
-  }
+  const client = getClient(chainId);
+  const resolved = await client.getEnsAddress({ name });
+  return resolved ?? null;
 }
 
 /**
@@ -166,15 +155,10 @@ export async function resolveEnsAddress(
 }
 
 async function fetchEnsAvatarForChain(address: Address, chainId: number): Promise<string | null> {
-  try {
-    const client = getClient(chainId);
-    const ensName = await client.getEnsName({ address });
-    if (!ensName) return null;
-    return await client.getEnsAvatar({ name: ensName });
-  } catch (error) {
-    logger.debug("ENS avatar resolution failed", { error, address, chainId });
-    return null;
-  }
+  const client = getClient(chainId);
+  const ensName = await client.getEnsName({ address });
+  if (!ensName) return null;
+  return client.getEnsAvatar({ name: ensName });
 }
 
 /**

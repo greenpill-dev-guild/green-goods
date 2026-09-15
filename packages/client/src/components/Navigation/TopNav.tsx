@@ -1,5 +1,4 @@
 import { IconButton } from "@green-goods/shared/components/IconButton";
-import { useOffline } from "@green-goods/shared/hooks/app/useOffline";
 import type { Garden, Work } from "@green-goods/shared/types/domain";
 import { cn } from "@green-goods/shared/utils/styles/cn";
 import {
@@ -32,12 +31,10 @@ type TopNavProps = {
   onShareClick?: () => void;
 } & React.HTMLAttributes<HTMLDivElement>;
 
-type ButtonVariant = "work" | "sync" | "offline";
+type ButtonVariant = "work";
 
 const BUTTON_VARIANT_TONES = {
   work: "primary",
-  sync: "information",
-  offline: "warning",
 } as const satisfies Record<ButtonVariant, PwaStatusTone>;
 
 // Header actions are compact outlined IconButtons (32px, 48px hit area); the
@@ -162,13 +159,6 @@ const ShareButton: React.FC<{
   />
 );
 
-// Determine button variant based on app state
-const getButtonVariant = (syncStatus: string, isOnline: boolean): "work" | "sync" | "offline" => {
-  if (syncStatus === "syncing") return "sync";
-  if (!isOnline) return "offline";
-  return "work";
-};
-
 export const TopNav: React.FC<TopNavProps> = ({
   children,
   onBackClick,
@@ -185,17 +175,9 @@ export const TopNav: React.FC<TopNavProps> = ({
   ...htmlProps
 }: TopNavProps) => {
   const { formatMessage } = useIntl();
-  const { syncStatus, isOnline } = useOffline();
-  const hasOfflineIssues = !navigator.onLine;
-
-  // The back button's icon follows the sync and connection state
-  const buttonVariant = getButtonVariant(syncStatus, isOnline);
-
   const containerClasses = cn(
     "relative flex z-nav flex-row w-full justify-evenly items-start gap-4 p-6 h-20 top-2",
-    overlay && "fixed bg-bg-white-0",
-    overlay && hasOfflineIssues && "top-2", // Space for offline indicator
-    overlay && !hasOfflineIssues && "top-0"
+    overlay && "fixed bg-bg-white-0"
   );
 
   return (
@@ -216,7 +198,7 @@ export const TopNav: React.FC<TopNavProps> = ({
           }}
           className="z-1"
           aria-label="Go back"
-          icon={<RiArrowLeftFill className={iconTone(buttonVariant)} aria-hidden="true" />}
+          icon={<RiArrowLeftFill className={iconTone()} aria-hidden="true" />}
         />
       )}
 

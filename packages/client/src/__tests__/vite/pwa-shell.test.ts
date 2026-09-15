@@ -131,7 +131,7 @@ describe("PWA shell asset manifest", () => {
           ([asset]) => asset.fileName === "pwa-shell-assets.json"
         )?.[0] as EmittedAsset
       ).source
-    ) as { assets: string[] };
+    ) as { assets: string[]; criticalAssets: string[]; tailAssets: string[] };
 
     expect(signedInViews.length).toBeGreaterThan(0);
     for (const moduleId of lazyModules) {
@@ -195,7 +195,7 @@ describe("PWA shell asset manifest", () => {
           ([asset]) => asset.fileName === "pwa-shell-assets.json"
         )?.[0] as EmittedAsset
       ).source
-    ) as { assets: string[] };
+    ) as { assets: string[]; criticalAssets: string[]; tailAssets: string[] };
 
     expect(shell.assets).toContain("/assets/Garden.js");
     expect(shell.assets).toContain("/assets/image-compression.js");
@@ -232,6 +232,7 @@ describe("PWA shell asset manifest", () => {
       "assets/Impact.js",
       "assets/wallet-ui.js",
       "assets/wallet-submission.js",
+      "assets/simulate.js",
       "assets/heic-to.js"
     );
     // The queue barrel is an empty facade over code that a second facade,
@@ -265,6 +266,9 @@ describe("PWA shell asset manifest", () => {
       facadeModuleId: "/repo/packages/shared/src/modules/work/wallet-submission/index.ts",
       imports: ["assets/encoders.js"],
     });
+    chunk("assets/simulate.js", ["/repo/packages/shared/src/modules/work/simulate.ts"], {
+      imports: ["assets/encoders.js"],
+    });
     chunk("assets/encoders.js", [
       "/repo/node_modules/@ethereum-attestation-service/eas-sdk/dist/index.js",
       "/repo/packages/shared/src/utils/eas/encoders.ts",
@@ -276,18 +280,37 @@ describe("PWA shell asset manifest", () => {
           ([asset]) => asset.fileName === "pwa-shell-assets.json"
         )?.[0] as EmittedAsset
       ).source
-    ) as { assets: string[] };
+    ) as { assets: string[]; criticalAssets: string[]; tailAssets: string[] };
 
     for (const needed of [
       "/assets/job-queue.js",
       "/assets/work-submission.js",
       "/assets/work-submission-impl.js",
       "/assets/wallet-submission.js",
+      "/assets/simulate.js",
       "/assets/encoders.js",
       "/assets/es.js",
       "/assets/heic-to.js",
     ]) {
       expect(shell.assets).toContain(needed);
+    }
+    for (const critical of [
+      "/assets/job-queue.js",
+      "/assets/work-submission.js",
+      "/assets/work-submission-impl.js",
+    ]) {
+      expect(shell.criticalAssets).toContain(critical);
+      expect(shell.tailAssets).not.toContain(critical);
+    }
+    for (const deferred of [
+      "/assets/wallet-submission.js",
+      "/assets/simulate.js",
+      "/assets/encoders.js",
+      "/assets/es.js",
+      "/assets/heic-to.js",
+    ]) {
+      expect(shell.tailAssets).toContain(deferred);
+      expect(shell.criticalAssets).not.toContain(deferred);
     }
     for (const optional of [
       "/assets/sentry.js",
@@ -303,10 +326,22 @@ describe("PWA shell asset manifest", () => {
     const emitted = generateShellManifest();
     const shell = JSON.parse(
       emitted.find((asset) => asset.fileName === "pwa-shell-assets.json")?.source ?? "{}"
-    ) as { version: number; digest: string; assets: string[] };
+    ) as {
+      version: number;
+      digest: string;
+      assets: string[];
+      criticalDigest: string;
+      criticalAssets: string[];
+      tailDigest: string;
+      tailAssets: string[];
+    };
 
-    expect(shell.version).toBe(1);
+    expect(shell.version).toBe(2);
     expect(shell.digest).toMatch(/^[a-f0-9]{16}$/);
+    expect(shell.criticalDigest).toMatch(/^[a-f0-9]{16}$/);
+    expect(shell.tailDigest).toMatch(/^[a-f0-9]{16}$/);
+    expect(shell.tailAssets).toEqual([]);
+    expect(shell.criticalAssets).toEqual(shell.assets);
     expect(shell.assets).toEqual([
       "/assets/app.css",
       "/assets/lazy-proof.js",
@@ -315,6 +350,67 @@ describe("PWA shell asset manifest", () => {
       "/assets/standalone.css",
       "/index.html",
     ]);
+  });
+
+  it("includes pure vendor facades and their static closure when an offline chunk loads them", () => {
+    const emitFile = vi.fn();
+    const plugin = createPwaShellAssetsPlugin();
+    const generateBundle = plugin.generateBundle;
+    if (typeof generateBundle !== "function") throw new Error("generateBundle hook missing");
+    const bundle = createShellBundle();
+    (bundle["assets/pwa.js"] as { dynamicImports: string[] }).dynamicImports.push(
+      "assets/work-confirmation.js"
+    );
+    bundle["assets/work-confirmation.js"] = {
+      type: "chunk",
+      fileName: "assets/work-confirmation.js",
+      code: "export const confirm = true",
+      imports: [],
+      dynamicImports: ["assets/viem-facade.js"],
+      modules: { "/repo/packages/shared/src/modules/work/work-confirmation.ts": {} },
+    };
+    bundle["assets/viem-facade.js"] = {
+      type: "chunk",
+      fileName: "assets/viem-facade.js",
+      code: "export * from './ccip.js'",
+      imports: ["assets/ccip.js", "assets/secp256k1.js"],
+      dynamicImports: [],
+      modules: {},
+    };
+    bundle["assets/ccip.js"] = {
+      type: "chunk",
+      fileName: "assets/ccip.js",
+      code: "export const ccip = true",
+      imports: [],
+      dynamicImports: [],
+      modules: { "/repo/node_modules/viem/utils/ccip.js": {} },
+    };
+    bundle["assets/secp256k1.js"] = {
+      type: "chunk",
+      fileName: "assets/secp256k1.js",
+      code: "export const secp = true",
+      imports: [],
+      dynamicImports: [],
+      modules: { "/repo/node_modules/@noble/curves/secp256k1.js": {} },
+    };
+
+    generateBundle.call({ emitFile } as never, {} as never, bundle as never, false);
+    const shell = JSON.parse(
+      (
+        emitFile.mock.calls.find(
+          ([asset]) => asset.fileName === "pwa-shell-assets.json"
+        )?.[0] as EmittedAsset
+      ).source
+    ) as { criticalAssets: string[] };
+
+    expect(shell.criticalAssets).toEqual(
+      expect.arrayContaining([
+        "/assets/work-confirmation.js",
+        "/assets/viem-facade.js",
+        "/assets/ccip.js",
+        "/assets/secp256k1.js",
+      ])
+    );
   });
 
   it("emits the same digest for the same shell graph", () => {

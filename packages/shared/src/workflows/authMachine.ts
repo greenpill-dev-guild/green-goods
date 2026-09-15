@@ -147,6 +147,7 @@ export interface PasskeyOperationInput {
 export interface AuthInput {
   chainId: number;
   restoreAuthMode?: RestorableAuthMode | null;
+  restoreAddress?: Hex | null;
 }
 
 // ============================================================================
@@ -359,8 +360,8 @@ export const authMachine = authSetup.createMachine({
     userName: null,
     smartAccountClient: null,
     smartAccountAddress: null,
-    walletAddress: null,
-    embeddedAddress: null,
+    walletAddress: input?.restoreAuthMode === "wallet" ? (input.restoreAddress ?? null) : null,
+    embeddedAddress: input?.restoreAuthMode === "embedded" ? (input.restoreAddress ?? null) : null,
     externalWalletConnected: false,
     externalWalletAddress: null,
     externalWalletConnectionType: null,

@@ -298,6 +298,7 @@ export async function getActions(reader: GraphQLReader = greenGoodsIndexer): Pro
       )
     );
 
+    const resolvedActions = actions.filter((action) => action !== null);
     if (instructionFailures.length > 0) {
       logger.warn(
         `[getActions] Failed to fetch instructions for ${instructionFailures.length}/${data.Action.length} actions`,
@@ -306,9 +307,18 @@ export async function getActions(reader: GraphQLReader = greenGoodsIndexer): Pro
           failures: instructionFailures,
         }
       );
+      // Keep fallback instructions usable for this online render, while
+      // preventing a gateway failure from becoming the durable offline copy.
+      Object.defineProperty(
+        resolvedActions,
+        Symbol.for("green-goods.transient-action-instructions"),
+        {
+          value: true,
+        }
+      );
     }
 
-    return actions.filter((action) => action !== null);
+    return resolvedActions;
   } catch (error) {
     logger.error("[getActions] Failed to fetch actions", { error });
     throw error;

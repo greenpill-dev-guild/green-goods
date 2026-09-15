@@ -48,6 +48,7 @@ import {
   type AuthMode,
   clearAuthMode,
   clearEmbeddedAddress,
+  clearStoredWalletAddress,
   clearStoredCredential,
   clearStoredSmartAccountAddress,
   clearStoredUsername,
@@ -56,6 +57,7 @@ import {
   hasStoredCredential,
   setAuthMode as saveAuthModeToStorage,
   setEmbeddedAddress,
+  setStoredWalletAddress,
   setSignedOutSentinel,
 } from "../modules/auth/session";
 import type { PasskeyAdapters } from "../workflows/auth-passkey-adapters";
@@ -227,6 +229,7 @@ export function AuthProvider({ children, adapters }: AuthProviderProps) {
           address: currentAddress,
         });
         actor.send({ type: "EXTERNAL_WALLET_CONNECTED", address: currentAddress, connectionType });
+        if (connectionType === "wallet") setStoredWalletAddress(currentAddress);
 
         const currentState = actor.getSnapshot();
         const isEmbeddedConnector = isAppKitEmbeddedConnector(connector);
@@ -516,6 +519,7 @@ export function AuthProvider({ children, adapters }: AuthProviderProps) {
       const finalUserName = userName ?? getStoredUsername() ?? "";
       actor.send({ type: "SWITCH_TO_PASSKEY", userName: finalUserName });
       saveAuthModeToStorage("passkey");
+      clearStoredWalletAddress();
     },
     [actor]
   );
@@ -533,6 +537,7 @@ export function AuthProvider({ children, adapters }: AuthProviderProps) {
     // Username + credential + expected address are the local cache for same-device fallback.
     clearAuthMode();
     clearEmbeddedAddress();
+    clearStoredWalletAddress();
     clearRestoreAttempt();
     // Make sign-out durable: suppress automatic passkey session restore on
     // refresh until the next successful passkey sign-in (sign-in intent alone

@@ -1,8 +1,9 @@
 import { IconButton } from "@green-goods/shared/components/IconButton";
-import { useOffline } from "@green-goods/shared/hooks/app/useOffline";
+import { useOnlineStatus } from "@green-goods/shared/hooks/app/useOnlineStatus";
+import { usePendingWorksCount } from "@green-goods/shared/hooks/work/usePendingWorksCount";
 import { useUIStore } from "@green-goods/shared/stores/useUIStore";
 import { cn } from "@green-goods/shared/utils/styles/cn";
-import { RiCloudOffLine, RiLoader4Line, RiTaskLine } from "@remixicon/react";
+import { RiTaskLine } from "@remixicon/react";
 import React, { lazy, Suspense } from "react";
 import { useIntl } from "react-intl";
 import { type PwaStatusTone, pwaStatusStyles } from "@/components/Pwa/statusStyles";
@@ -32,7 +33,8 @@ interface WorkDashboardIconProps {
 
 export const WorkDashboardIcon: React.FC<WorkDashboardIconProps> = ({ className }) => {
   const intl = useIntl();
-  const { isOnline, pendingCount, syncStatus } = useOffline();
+  const isOnline = useOnlineStatus();
+  const { data: pendingCount = 0 } = usePendingWorksCount();
   const [isDashboardReady, setIsDashboardReady] = React.useState(false);
   const isWorkDashboardOpen = useUIStore((s) => s.isWorkDashboardOpen);
   const openWorkDashboard = useUIStore((s) => s.openWorkDashboard);
@@ -54,33 +56,12 @@ export const WorkDashboardIcon: React.FC<WorkDashboardIconProps> = ({ className 
   }, [isOnline]);
 
   // Only show notifications for actual pending work items
-  const isSyncing = syncStatus === "syncing";
   const hasPendingItems = pendingCount > 0;
-  const hasOfflineStatus = !isOnline;
-
-  // Determine primary icon and styling based on status priority
-  let PrimaryIcon = RiTaskLine;
-  let statusTone: PwaStatusTone = hasPendingItems ? "primary" : "neutral";
-
-  if (isSyncing) {
-    PrimaryIcon = RiLoader4Line;
-    statusTone = "primary";
-  } else if (!isOnline) {
-    PrimaryIcon = RiCloudOffLine;
-    statusTone = "warning";
-  }
+  const statusTone: PwaStatusTone = hasPendingItems ? "primary" : "neutral";
   const statusStyles = pwaStatusStyles[statusTone];
-  // The status tone tints the outline while work is pending, syncing, or offline.
-  const borderColor =
-    isSyncing || hasOfflineStatus || hasPendingItems ? statusStyles.border : undefined;
-  const primaryIcon = (
-    <PrimaryIcon
-      className={cn(statusStyles.icon, isSyncing && "animate-spin")}
-      aria-hidden="true"
-    />
-  );
+  const borderColor = hasPendingItems ? statusStyles.border : undefined;
+  const primaryIcon = <RiTaskLine className={statusStyles.icon} aria-hidden="true" />;
 
-  // A count for actual pending items; otherwise a dot while offline or syncing.
   let badge: React.ReactNode;
   if (hasPendingItems) {
     badge = (
@@ -94,17 +75,6 @@ export const WorkDashboardIcon: React.FC<WorkDashboardIconProps> = ({ className 
       >
         {pendingCount > 99 ? "99+" : pendingCount}
       </span>
-    );
-  } else if (hasOfflineStatus || isSyncing) {
-    badge = (
-      <span
-        className={cn(
-          "w-3 h-3 rounded-full border-2 border-bg-white-0",
-          statusStyles.dot,
-          isSyncing && "animate-pulse"
-        )}
-        data-testid="status-dot"
-      />
     );
   }
 

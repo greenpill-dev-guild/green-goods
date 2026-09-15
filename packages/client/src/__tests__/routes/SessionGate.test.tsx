@@ -18,6 +18,10 @@ vi.mock("@green-goods/shared/hooks/auth/useAuth", () => ({
 
 // Import the route gate after its auth dependency is mocked.
 import SessionGate from "../../routes/SessionGate";
+import {
+  hasChunkReloadAttempt,
+  markChunkReloadAttempt,
+} from "../../components/Errors/errorClassification";
 
 const ProtectedContent = () => createElement("div", null, "Protected Content");
 const LoginPage = () => {
@@ -51,6 +55,7 @@ const renderWithRouter = (initialRoute = "/protected") => {
 describe("SessionGate", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    sessionStorage.clear();
   });
 
   afterEach(() => {
@@ -104,6 +109,19 @@ describe("SessionGate", () => {
 
     expect(screen.getByText("Protected Content")).toBeInTheDocument();
     expect(screen.queryByText("Login Page")).not.toBeInTheDocument();
+  });
+
+  it("clears the one-shot chunk reload guard after an authenticated route commits", () => {
+    markChunkReloadAttempt();
+    mockUseAuthState.mockReturnValue({
+      isReady: true,
+      isAuthenticated: true,
+    });
+
+    renderWithRouter();
+
+    expect(screen.getByText("Protected Content")).toBeInTheDocument();
+    expect(hasChunkReloadAttempt()).toBe(false);
   });
 
   it("preserves redirect path in login URL", () => {

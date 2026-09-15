@@ -22,8 +22,12 @@ interface RestoreAttempt {
   failed: boolean;
 }
 
-function canRestoreProgress(): boolean {
-  return navigator.onLine !== false && document.visibilityState === "visible";
+function canAdvanceRestoreClock(): boolean {
+  return document.visibilityState === "visible";
+}
+
+function canRetryConnector(): boolean {
+  return navigator.onLine !== false && canAdvanceRestoreClock();
 }
 
 /** Keeps persisted wallet intent protected while its connector hydrates. */
@@ -86,7 +90,7 @@ export function useWalletRestoreLifecycle(
         attempt.mode !== restoringMode ||
         attempt.failed ||
         attempt.activeStartedAt !== null ||
-        !canRestoreProgress()
+        !canAdvanceRestoreClock()
       ) {
         return;
       }
@@ -122,10 +126,10 @@ export function useWalletRestoreLifecycle(
         Math.max(0, RESTORE_TIMEOUT_MS - attempt.activeElapsedMs)
       );
     };
-    const syncClock = () => (canRestoreProgress() ? startClock() : stopClock());
+    const syncClock = () => (canAdvanceRestoreClock() ? startClock() : stopClock());
     const retryRestore = () => {
       syncClock();
-      if (!canRestoreProgress() || !actor.getSnapshot().matches("restoring")) return;
+      if (!canRetryConnector() || !actor.getSnapshot().matches("restoring")) return;
       void reconnect(wagmiConfig).catch((error) => {
         logger.debug("[AuthProvider] Wallet reconnect retry did not complete", { error });
       });
@@ -135,12 +139,12 @@ export function useWalletRestoreLifecycle(
 
     startClock();
     window.addEventListener("online", retryRestore);
-    window.addEventListener("offline", stopClock);
+    window.addEventListener("offline", syncClock);
     document.addEventListener("visibilitychange", handleVisibility);
     return () => {
       stopClock();
       window.removeEventListener("online", retryRestore);
-      window.removeEventListener("offline", stopClock);
+      window.removeEventListener("offline", syncClock);
       document.removeEventListener("visibilitychange", handleVisibility);
     };
   }, [actor, beginAttempt, restoringMode, wagmiConfig]);

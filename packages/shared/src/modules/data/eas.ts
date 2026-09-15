@@ -15,6 +15,33 @@ import { createEasClient, type GraphQLReader } from "./graphql-client";
 import { EASFetchError, validatedAttestations } from "./eas-read-validation";
 export { EASFetchError } from "./eas-read-validation";
 
+const EAS_PAGE_SIZE = 100;
+
+type AttestationPageResult =
+  | { data: { attestations?: unknown }; error?: undefined }
+  | { data?: undefined; error: Error };
+
+async function readAllAttestations(
+  readPage: (take: number, skip: number) => Promise<AttestationPageResult>,
+  operation: string,
+  label: string
+): Promise<EASAttestationRaw[]> {
+  const attestations: EASAttestationRaw[] = [];
+  for (let skip = 0; ; skip += EAS_PAGE_SIZE) {
+    const { data, error } = await readPage(EAS_PAGE_SIZE, skip);
+    const page = data?.attestations;
+    if (error || !Array.isArray(page)) {
+      throw new EASFetchError(
+        `Failed to fetch ${label}: ${error?.message ?? "Invalid attestations response"}`,
+        operation,
+        error
+      );
+    }
+    attestations.push(...validatedAttestations(page, operation));
+    if (page.length < EAS_PAGE_SIZE) return attestations;
+  }
+}
+
 /**
  * Read every registered assessment version unless a caller explicitly narrows the schema.
  */
@@ -92,8 +119,8 @@ export const getWorks = async (
   reader: GraphQLReader = createEasClient(chainId)
 ): Promise<EASWork[]> => {
   const QUERY = easGraphQL(/* GraphQL */ `
-    query Attestations($where: AttestationWhereInput) {
-      attestations(where: $where) {
+    query Attestations($where: AttestationWhereInput, $take: Int!, $skip: Int!) {
+      attestations(where: $where, take: $take, skip: $skip, orderBy: [{ id: asc }]) {
         id
         attester
         recipient
@@ -123,20 +150,13 @@ export const getWorks = async (
     ...(recipientCondition ? { recipient: recipientCondition } : {}),
   };
 
-  const { data, error } = await reader.query(QUERY, { where }, "getWorks");
-
-  if (error) {
-    throw new EASFetchError(`Failed to fetch works: ${error.message}`, "getWorks", error);
-  }
-
-  if (!data?.attestations) {
-    // No attestations is valid (empty garden) - return empty array
-    return [];
-  }
-
-  return validatedAttestations(data.attestations, "getWorks").map(
-    ({ id, attester, recipient, timeCreated, decodedDataJson }) =>
-      parseDataToWork(id, { attester, recipient, time: Number(timeCreated) }, decodedDataJson)
+  const attestations = await readAllAttestations(
+    (take, skip) => reader.query(QUERY, { where, take, skip }, "getWorks"),
+    "getWorks",
+    "works"
+  );
+  return attestations.map(({ id, attester, recipient, timeCreated, decodedDataJson }) =>
+    parseDataToWork(id, { attester, recipient, time: Number(timeCreated) }, decodedDataJson)
   );
 };
 
@@ -149,8 +169,8 @@ export const getWorksByGardener = async (
   if (!gardenerAddress) return [];
 
   const QUERY = easGraphQL(/* GraphQL */ `
-    query Attestations($where: AttestationWhereInput) {
-      attestations(where: $where) {
+    query Attestations($where: AttestationWhereInput, $take: Int!, $skip: Int!) {
+      attestations(where: $where, take: $take, skip: $skip, orderBy: [{ id: asc }]) {
         id
         attester
         recipient
@@ -163,47 +183,34 @@ export const getWorksByGardener = async (
   const easConfig = getEASConfig(chainId);
   if (isZeroBytes32(easConfig.WORK.uid)) return [];
 
-  const { data, error } = await reader.query(
-    QUERY,
-    {
-      where: {
-        schemaId: { equals: easConfig.WORK.uid },
-        attester: { equals: gardenerAddress },
-        revoked: { equals: false },
-      },
-    },
-    "getWorksByGardener"
+  const attestations = await readAllAttestations(
+    (take, skip) =>
+      reader.query(
+        QUERY,
+        {
+          where: {
+            schemaId: { equals: easConfig.WORK.uid },
+            attester: { equals: gardenerAddress },
+            revoked: { equals: false },
+          },
+          take,
+          skip,
+        },
+        "getWorksByGardener"
+      ),
+    "getWorksByGardener",
+    "works by gardener"
   );
-
-  if (error) {
-    throw new EASFetchError(
-      `Failed to fetch works by gardener: ${error.message}`,
-      "getWorksByGardener",
-      error
-    );
-  }
-
-  if (!data?.attestations) {
-    return [];
-  }
-
-  return validatedAttestations(data.attestations, "getWorksByGardener").map(
-    ({ id, attester, recipient, timeCreated, decodedDataJson }) =>
-      parseDataToWork(id, { attester, recipient, time: Number(timeCreated) }, decodedDataJson)
+  return attestations.map(({ id, attester, recipient, timeCreated, decodedDataJson }) =>
+    parseDataToWork(id, { attester, recipient, time: Number(timeCreated) }, decodedDataJson)
   );
 };
 
 /**
  * Loads work approval attestations.
  *
- * SCALABILITY NOTE: Currently fetches all approvals matching the schema.
- * Client-side filtering by workUID does not scale as attestation volume grows.
- *
- * TODO: When implementing pagination:
- * - Add optional `page`/`limit` or `cursor` parameters
- * - Update queryKey in consumers to include pagination params
- * - Consider a backend aggregation endpoint that accepts specific workUIDs
- *   and returns only matching approvals for better performance.
+ * Reads every approval page. Callers that need approvals for one known work
+ * should use getWorkApprovalsForWork so they do not load the full history.
  *
  * @param gardenerAddress - Optional filter by recipient address (gardener)
  * @param chainId - Optional chain ID override
@@ -215,8 +222,8 @@ export const getWorkApprovals = async (
   reader: GraphQLReader = createEasClient(chainId)
 ): Promise<EASWorkApproval[]> => {
   const QUERY = easGraphQL(/* GraphQL */ `
-    query Attestations($where: AttestationWhereInput) {
-      attestations(where: $where) {
+    query Attestations($where: AttestationWhereInput, $take: Int!, $skip: Int!) {
+      attestations(where: $where, take: $take, skip: $skip, orderBy: [{ id: asc }]) {
         id
         attester
         recipient
@@ -230,42 +237,23 @@ export const getWorkApprovals = async (
   if (isZeroBytes32(easConfig.WORK_APPROVAL.uid)) return [];
 
   const schemaId = { equals: easConfig.WORK_APPROVAL.uid };
-  const { data, error } = await reader.query(
-    QUERY,
-    {
-      where: gardenerAddress
-        ? {
-            schemaId,
-            recipient: { equals: gardenerAddress },
-            revoked: { equals: false },
-          }
-        : {
-            schemaId,
-            revoked: { equals: false },
-          },
-    },
-    "getWorkApprovals"
+  const where = gardenerAddress
+    ? {
+        schemaId,
+        recipient: { equals: gardenerAddress },
+        revoked: { equals: false },
+      }
+    : {
+        schemaId,
+        revoked: { equals: false },
+      };
+  const attestations = await readAllAttestations(
+    (take, skip) => reader.query(QUERY, { where, take, skip }, "getWorkApprovals"),
+    "getWorkApprovals",
+    "work approvals"
   );
-
-  if (error) {
-    throw new EASFetchError(
-      `Failed to fetch work approvals: ${error.message}`,
-      "getWorkApprovals",
-      error
-    );
-  }
-
-  if (!data?.attestations) {
-    return [];
-  }
-
-  return validatedAttestations(data.attestations, "getWorkApprovals").map(
-    ({ id, attester, recipient, timeCreated, decodedDataJson }) =>
-      parseDataToWorkApproval(
-        id,
-        { attester, recipient, time: Number(timeCreated) },
-        decodedDataJson
-      )
+  return attestations.map(({ id, attester, recipient, timeCreated, decodedDataJson }) =>
+    parseDataToWorkApproval(id, { attester, recipient, time: Number(timeCreated) }, decodedDataJson)
   );
 };
 
@@ -310,7 +298,13 @@ export const getWorkApprovalsForWork = async (
       error
     );
   }
-  return validatedAttestations(data?.attestations, "getWorkApprovalsForWork")
+  if (!Array.isArray(data?.attestations)) {
+    throw new EASFetchError(
+      "Failed to fetch Work approval candidates: Invalid attestations response",
+      "getWorkApprovalsForWork"
+    );
+  }
+  return validatedAttestations(data.attestations, "getWorkApprovalsForWork")
     .map(({ id, attester, recipient, timeCreated, decodedDataJson }) =>
       parseDataToWorkApproval(
         id,
@@ -371,9 +365,11 @@ export const getWorkApprovalsByUIDs = async (
     );
   }
 
-  if (!data?.attestations) {
-    return [];
-  }
+  if (!Array.isArray(data?.attestations))
+    throw new EASFetchError(
+      "Failed to fetch work approvals by UIDs: Invalid attestations response",
+      "getWorkApprovalsByUIDs"
+    );
 
   return validatedAttestations(data.attestations, "getWorkApprovalsByUIDs").map(
     ({ id, attester, recipient, timeCreated, decodedDataJson }) =>
@@ -435,9 +431,11 @@ export const getWorksByUIDs = async (
     );
   }
 
-  if (!data?.attestations) {
-    return [];
-  }
+  if (!Array.isArray(data?.attestations))
+    throw new EASFetchError(
+      "Failed to fetch works by UIDs: Invalid attestations response",
+      "getWorksByUIDs"
+    );
 
   return validatedAttestations(data.attestations, "getWorksByUIDs").map(
     ({ id, attester, recipient, timeCreated, decodedDataJson }) =>

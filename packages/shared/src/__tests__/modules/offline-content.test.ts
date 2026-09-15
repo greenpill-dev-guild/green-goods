@@ -110,6 +110,7 @@ function harness(options: { gardens?: Garden[]; account?: string } = {}) {
         return 1_000;
       }),
       sweep: vi.fn(async () => ({ bytes: 42_000_000 })),
+      protect: vi.fn(async () => true),
       retireLegacy: vi.fn(async () => {}),
     },
     persist: vi.fn(async () => {}),
@@ -334,7 +335,7 @@ describe("offline scheduler", () => {
     expect(ports.media.retireLegacy).toHaveBeenCalledTimes(1);
   });
 
-  it("does not download photos through a worker that cannot keep them", async () => {
+  it("reports photos waiting for a worker that can keep them", async () => {
     const { conditions, ports } = harness();
     conditions.mediaReady = false;
 
@@ -342,7 +343,31 @@ describe("offline scheduler", () => {
 
     expect(ports.media.download).not.toHaveBeenCalled();
     expect(ports.media.sweep).not.toHaveBeenCalled();
-    expect(getOfflineProgress().state).toBe("ready");
+    expect(getOfflineProgress()).toMatchObject({ state: "paused", pauseReason: "worker" });
+  });
+
+  it("reports failed reading tasks instead of claiming the run is ready", async () => {
+    const { ports } = harness();
+    vi.mocked(ports.fetchWorks).mockRejectedValueOnce(new Error("Indexer unavailable"));
+
+    await new OfflineScheduler(ports).run();
+
+    expect(getOfflineProgress()).toMatchObject({ state: "incomplete", failedReads: 1 });
+  });
+
+  it("reports a rejected photo admission as incomplete storage", async () => {
+    const { ports } = harness({ gardens: [garden(gardenA, [account])] });
+    const error = new Error("Offline photo budget is full");
+    error.name = "QuotaExceededError";
+    vi.mocked(ports.media.download).mockRejectedValueOnce(error);
+
+    await new OfflineScheduler(ports).run();
+
+    expect(getOfflineProgress()).toMatchObject({
+      state: "incomplete",
+      storageFull: true,
+      missingPhotos: 1,
+    });
   });
 });
 

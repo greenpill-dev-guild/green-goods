@@ -35,9 +35,11 @@ const mockOffline = vi.hoisted(() => ({
       runRatio: 0,
       savedBytes: 42_000_000,
       missingPhotos: 0,
+      failedReads: 0,
       storageFull: false,
     } as Record<string, unknown>,
     online: true,
+    connectivity: { state: "online" },
     pause: vi.fn(),
     resume: vi.fn(),
     refresh: vi.fn(),
@@ -136,6 +138,7 @@ describe("AppSettings", () => {
     mockServiceWorkerUpdateState.phase = "idle";
     mockServiceWorkerUpdateState.updateAvailable = false;
     mockServiceWorkerUpdateState.checkForUpdate.mockReset().mockResolvedValue("up-to-date");
+    mockOffline.status.connectivity = { state: "online" };
   });
 
   afterEach(() => {
@@ -226,16 +229,15 @@ describe("AppSettings", () => {
       }
     });
 
-    it("applies an update found by the manual check without a second tap", async () => {
+    it("leaves an update found by the manual check waiting for Restart", async () => {
       const user = userEvent.setup();
       mockServiceWorkerUpdateState.checkForUpdate.mockResolvedValue("ready");
       render(wrap(createElement(AppSettings)));
 
       await user.click(screen.getByRole("button", { name: "Check" }));
 
-      await waitFor(() => {
-        expect(mockServiceWorkerUpdateState.activateNow).toHaveBeenCalledTimes(1);
-      });
+      await waitFor(() => expect(mockServiceWorkerUpdateState.checkForUpdate).toHaveBeenCalled());
+      expect(mockServiceWorkerUpdateState.activateNow).not.toHaveBeenCalled();
       expect(mockToast.info).not.toHaveBeenCalled();
     });
 
@@ -315,7 +317,7 @@ describe("AppSettings", () => {
       render(wrap(createElement(AppSettings)));
 
       expect(screen.getByRole("status", { name: "Update" })).toHaveTextContent(
-        "Close and reopen the app."
+        "Close every app window, then open it again."
       );
       await user.click(screen.getByRole("button", { name: "Try Again" }));
 
@@ -347,10 +349,12 @@ describe("offline content row", () => {
       runRatio: 0,
       savedBytes: 0,
       missingPhotos: 0,
+      failedReads: 0,
       storageFull: false,
       ...progress,
     };
     mockOffline.status.online = online;
+    mockOffline.status.connectivity = { state: online ? "online" : "offline" };
     render(wrap(createElement(AppSettings)));
     const status = screen.getByRole("status", { name: "Offline" });
     return { status, lines: [...status.querySelectorAll("span")].map((line) => line.textContent) };
@@ -413,6 +417,32 @@ describe("offline content row", () => {
     expect(lines).toEqual(["Ready", "42 MB saved"]);
     await userEvent.click(screen.getByRole("button", { name: "Refresh" }));
     expect(mockOffline.status.refresh).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not claim readiness before preparation starts", () => {
+    const { lines } = renderRow({ state: "idle" });
+    expect(lines).toEqual(["Not prepared", "Preparation hasn’t started"]);
+    expect(screen.getByRole("button", { name: "Start" })).toBeEnabled();
+  });
+
+  it("shows degraded connectivity without pausing preparation", () => {
+    mockOffline.status.progress = {
+      state: "downloading",
+      runBytes: 0,
+      runRatio: 0.2,
+      savedBytes: 0,
+      missingPhotos: 0,
+      failedReads: 0,
+      storageFull: false,
+    };
+    mockOffline.status.connectivity = { state: "degraded" };
+    render(wrap(createElement(AppSettings)));
+    const status = screen.getByRole("status", { name: "Offline" });
+    expect([...status.querySelectorAll("span")].map((line) => line.textContent)).toEqual([
+      "Connection unstable",
+      "Preparation will keep trying",
+    ]);
+    expect(screen.getByRole("button", { name: "Pause" })).toBeEnabled();
   });
 
   it("says Retry only after photos failed or storage filled up", async () => {

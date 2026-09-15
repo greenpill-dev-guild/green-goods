@@ -445,7 +445,7 @@ describe("AuthProvider wallet login bridge", () => {
     }
   });
 
-  it("does not spend the restore deadline while the app is offline", async () => {
+  it("bounds a visible offline restore without retrying the connector", async () => {
     vi.useFakeTimers();
     try {
       Object.defineProperty(navigator, "onLine", { configurable: true, value: false });
@@ -457,19 +457,15 @@ describe("AuthProvider wallet login bridge", () => {
 
       const view = renderAuth();
       await act(async () => {
-        await vi.advanceTimersByTimeAsync(20_000);
+        await vi.advanceTimersByTimeAsync(15_000);
       });
 
-      expect(actor.getSnapshot().matches({ restoring: "wallet" })).toBe(true);
-      expect(view.result.current.isReady).toBe(false);
-      expect(mocks.mockTrackWalletRestore).not.toHaveBeenCalledWith(
-        expect.objectContaining({ outcome: "failed", reason: "timeout" })
+      expect(actor.getSnapshot().matches("unauthenticated")).toBe(true);
+      expect(view.result.current.isReady).toBe(true);
+      expect(mocks.mockTrackWalletRestore).toHaveBeenCalledWith(
+        expect.objectContaining({ authMode: "wallet", outcome: "failed", reason: "timeout" })
       );
-
-      Object.defineProperty(navigator, "onLine", { configurable: true, value: true });
-      act(() => window.dispatchEvent(new Event("online")));
-
-      expect(mocks.mockReconnect).toHaveBeenCalledTimes(1);
+      expect(mocks.mockReconnect).not.toHaveBeenCalled();
     } finally {
       vi.useRealTimers();
     }

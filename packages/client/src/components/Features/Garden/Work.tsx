@@ -168,12 +168,7 @@ export const GardenWork = forwardRef<HTMLUListElement, GardenWorkProps>(
               id: "app.offline.workUnavailable",
               defaultMessage: "Not saved yet · Connect to load it",
             })
-      : workFetchStatus === "error" && hasRows && savedAt
-        ? intl.formatMessage(
-            { id: "app.offline.refreshWarning", defaultMessage: "Couldn’t refresh · Saved {when}" },
-            { when: savedAt }
-          )
-        : null;
+      : null;
 
     return (
       <ul
