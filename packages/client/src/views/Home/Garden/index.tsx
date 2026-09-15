@@ -361,7 +361,7 @@ export const Garden: React.FC = () => {
 
               {/* Title and meta below banner */}
               <div className="px-4 sm:px-5 md:px-6 mt-3 flex flex-col gap-1.5 pb-3 bg-bg-white-0">
-                <h1 className="title-section line-clamp-2" title={name}>
+                <h1 className="line-clamp-2" title={name}>
                   {name}
                 </h1>
                 <div className="flex items-center gap-2">

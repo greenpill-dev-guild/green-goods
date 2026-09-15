@@ -1,5 +1,11 @@
+import { ConfirmDialog } from "@green-goods/shared/components/Dialog/ConfirmDialog";
 import { PwaSheet } from "@green-goods/shared/components/Dialog/PwaSheet";
+import type {
+  SheetAction,
+  SheetActionsProps,
+} from "@green-goods/shared/components/Dialog/SheetActions";
 import { IconButton } from "@green-goods/shared/components/IconButton";
+import { Spinner } from "@green-goods/shared/components/Spinner";
 import { useOnlineStatus } from "@green-goods/shared/hooks/app/useOnlineStatus";
 import {
   useProfileAvatarEditor,
@@ -11,17 +17,7 @@ import {
   getProfileAvatarStageMessage,
 } from "@green-goods/shared/modules/profile-avatar/editor-messages";
 import { cn } from "@green-goods/shared/utils/styles/cn";
-import type {
-  SheetAction,
-  SheetActionsProps,
-} from "@green-goods/shared/components/Dialog/SheetActions";
-import {
-  RiCameraLine,
-  RiCloseLine,
-  RiDeleteBinLine,
-  RiImageAddLine,
-  RiRefreshLine,
-} from "@remixicon/react";
+import { RiCameraLine, RiDeleteBinLine, RiImageAddLine, RiRefreshLine } from "@remixicon/react";
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { useIntl } from "react-intl";
 
@@ -30,39 +26,30 @@ interface ProfileAvatarEditorProps {
   className?: string;
 }
 
-interface DraftPhotoPreviewProps {
-  file: File;
-  alt: string;
-  caption: string;
-}
-
 type ActiveAction = "choose" | "retry" | "remove" | "discard" | null;
 
-function DraftPhotoPreview({ file, alt, caption }: DraftPhotoPreviewProps) {
-  const previewUrl = useMemo(
-    () => mediaResourceManager.getOrCreateUrl(file, "profile-avatar-draft"),
+/** Object URL for the unpublished draft, released together with the file. */
+function useDraftPreviewUrl(file: File | null): string | null {
+  const url = useMemo(
+    () => (file ? mediaResourceManager.getOrCreateUrl(file, "profile-avatar-draft") : null),
     [file]
   );
-
-  useEffect(() => () => mediaResourceManager.cleanupFile(file), [file]);
-
-  return (
-    <figure className="flex items-center gap-4 rounded-[var(--radius-lg)] bg-bg-soft p-3">
-      <img
-        src={previewUrl}
-        alt={alt}
-        width={80}
-        height={80}
-        className="h-20 w-20 shrink-0 rounded-full object-cover"
-      />
-      <figcaption className="text-sm font-medium text-text-strong">{caption}</figcaption>
-    </figure>
-  );
+  useEffect(() => {
+    if (!file) return;
+    return () => mediaResourceManager.cleanupFile(file);
+  }, [file]);
+  return url;
 }
 
 /**
- * Compact PWA command sheet for changing the authenticated profile avatar.
- * Shared owns normalization, durable drafts, signing, and query refresh.
+ * The profile photo sheet (half tier). Four regions hold still across every
+ * state: the shared header (title only), a fixed preview region showing the
+ * current photo, the fallback, or the unpublished draft, a two-line status
+ * slot (the privacy notice by default, then stage messages and errors), and
+ * the shared action bar with at most two actions. A draft carries its own
+ * discard control beside its pill, and removing the photo asks through the
+ * shared confirmation stacked over the sheet. Shared owns normalization,
+ * durable drafts, signing, and query refresh.
  */
 export function ProfileAvatarEditor({ fallbackAvatar, className }: ProfileAvatarEditorProps) {
   const { formatMessage } = useIntl();
@@ -70,11 +57,14 @@ export function ProfileAvatarEditor({ fallbackAvatar, className }: ProfileAvatar
   const resolved = useResolvedProfileAvatar(undefined, fallbackAvatar);
   const isOnline = useOnlineStatus();
   const inputId = useId();
+  const statusId = `${inputId}-status`;
   const inputRef = useRef<HTMLInputElement>(null);
   const [open, setOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [removeConfirmOpen, setRemoveConfirmOpen] = useState(false);
   const [activeAction, setActiveAction] = useState<ActiveAction>(null);
+  const draftFile = editor.draft?.file ?? null;
+  const draftPreviewUrl = useDraftPreviewUrl(draftFile);
   const displayedError =
     error ??
     (editor.error
@@ -105,6 +95,10 @@ export function ProfileAvatarEditor({ fallbackAvatar, className }: ProfileAvatar
   const removalDescription = formatMessage({
     id: "profile.avatar.confirmRemoveDescription",
     defaultMessage: "This removes the photo from your Green Goods profile.",
+  });
+  const removeLabel = formatMessage({
+    id: "profile.avatar.remove",
+    defaultMessage: "Remove Photo",
   });
 
   useEffect(() => {
@@ -193,83 +187,72 @@ export function ProfileAvatarEditor({ fallbackAvatar, className }: ProfileAvatar
     disabled: busy && !pickerInProgress,
     "aria-live": pickerInProgress ? "polite" : undefined,
     "aria-invalid": Boolean(displayedError) || undefined,
-    "aria-describedby": displayedError ? `${inputId}-error` : undefined,
+    "aria-describedby": displayedError ? statusId : undefined,
     onClick: () => inputRef.current?.click(),
   });
 
-  // The sheet's actions follow its state and sit in the pinned bar (DL-016).
-  const removeAction: SheetAction = {
-    label:
-      activeAction === "remove"
-        ? progressLabel
-        : formatMessage({ id: "profile.avatar.remove", defaultMessage: "Remove Photo" }),
-    icon: <RiDeleteBinLine className="h-5 w-5" aria-hidden="true" />,
-    tone: "danger",
-  };
-  const actions: SheetActionsProps = removeConfirmOpen
+  // At most two actions in the pinned bar (DL-016, DL-028); the draft's
+  // discard control sits beside its pill in the preview region.
+  const actions: SheetActionsProps = recoverableDraft
     ? {
         primary: {
-          ...removeAction,
-          loading: activeAction === "remove",
-          disabled: busy && activeAction !== "remove",
-          "aria-live": activeAction === "remove" ? "polite" : undefined,
-          onClick: () => void remove(),
+          label: retryInProgress
+            ? progressLabel
+            : isOnline
+              ? formatMessage({ id: "profile.avatar.tryAgain", defaultMessage: "Try Again" })
+              : formatMessage({
+                  id: "profile.avatar.reconnect",
+                  defaultMessage: "Reconnect to publish",
+                }),
+          icon: <RiRefreshLine className="h-5 w-5" aria-hidden="true" />,
+          loading: retryInProgress,
+          disabled: !isOnline || (busy && !retryInProgress),
+          "aria-live": retryInProgress ? "polite" : undefined,
+          onClick: () => void recoverDraft(),
         },
-        secondary: {
-          label: formatMessage({ id: "profile.avatar.keep", defaultMessage: "Keep Photo" }),
-          disabled: busy,
-          onClick: () => setRemoveConfirmOpen(false),
-        },
+        secondary: picker(
+          formatMessage({
+            id: "profile.avatar.chooseDifferent",
+            defaultMessage: "Choose a Different Photo",
+          })
+        ),
       }
-    : recoverableDraft
-      ? {
-          primary: {
-            label: retryInProgress
-              ? progressLabel
-              : isOnline
-                ? formatMessage({ id: "profile.avatar.tryAgain", defaultMessage: "Try Again" })
-                : formatMessage({
-                    id: "profile.avatar.reconnect",
-                    defaultMessage: "Reconnect to publish",
-                  }),
-            icon: <RiRefreshLine className="h-5 w-5" aria-hidden="true" />,
-            loading: retryInProgress,
-            disabled: !isOnline || (busy && !retryInProgress),
-            "aria-live": retryInProgress ? "polite" : undefined,
-            onClick: () => void recoverDraft(),
-          },
-          secondary: picker(
-            formatMessage({
-              id: "profile.avatar.chooseDifferent",
-              defaultMessage: "Choose a Different Photo",
-            })
-          ),
-          tertiary: {
-            label: formatMessage({
-              id: "profile.avatar.discardDraft",
-              defaultMessage: "Discard Draft",
-            }),
-            tone: "danger",
-            loading: activeAction === "discard",
-            disabled: busy && activeAction !== "discard",
-            "aria-live": activeAction === "discard" ? "polite" : undefined,
-            onClick: () => void discardDraft(),
-          },
-        }
-      : {
-          primary: picker(pickerLabel),
-          secondary:
-            resolved.source === "app"
-              ? {
-                  ...removeAction,
-                  disabled: busy,
-                  onClick: () => {
-                    setError(null);
-                    setRemoveConfirmOpen(true);
-                  },
-                }
-              : undefined,
-        };
+    : {
+        primary: picker(pickerLabel),
+        secondary:
+          resolved.source === "app"
+            ? {
+                label: removeLabel,
+                icon: <RiDeleteBinLine className="h-5 w-5" aria-hidden="true" />,
+                tone: "danger",
+                disabled: busy,
+                onClick: () => {
+                  setError(null);
+                  setRemoveConfirmOpen(true);
+                },
+              }
+            : undefined,
+      };
+
+  const previewSrc = draftPreviewUrl ?? resolved.avatarUri ?? fallbackAvatar;
+  const previewAlt = draftPreviewUrl
+    ? formatMessage({
+        id: "profile.avatar.draftPreviewAlt",
+        defaultMessage: "Unpublished profile photo draft",
+      })
+    : formatMessage({
+        id: "profile.avatar.currentPreviewAlt",
+        defaultMessage: "Your current profile photo",
+      });
+  const statusText =
+    displayedError ??
+    status ??
+    (recoverableDraft
+      ? formatMessage({
+          id: "profile.avatar.unpublishedDraft",
+          defaultMessage: "This draft photo has not been published.",
+        })
+      : privacyNotice);
 
   return (
     <>
@@ -309,79 +292,103 @@ export function ProfileAvatarEditor({ fallbackAvatar, className }: ProfileAvatar
       <PwaSheet
         open={open}
         onClose={closeSheet}
-        ariaLabel={removeConfirmOpen ? removeTitle : sheetTitle}
-        dragToDismiss={!busy}
+        size="half"
+        title={sheetTitle}
+        closeLabel={formatMessage({ id: "app.common.close", defaultMessage: "Close" })}
+        preventClose={busy}
         testId="profile-photo-sheet"
         actions={actions}
       >
-        <header className="flex shrink-0 items-start justify-between gap-4 px-4 pb-3 pt-2">
-          <div className="min-w-0 space-y-1">
-            <h2 className="text-lg font-semibold text-text-strong">
-              {removeConfirmOpen ? removeTitle : sheetTitle}
-            </h2>
-            <p className="text-sm leading-snug text-text-sub">
-              {removeConfirmOpen ? removalDescription : privacyNotice}
-            </p>
-          </div>
-          <IconButton
-            onClick={closeSheet}
-            disabled={busy}
-            data-testid="pwa-sheet-close"
-            aria-label={formatMessage({ id: "app.common.close", defaultMessage: "Close" })}
-            icon={<RiCloseLine aria-hidden="true" />}
-          />
-        </header>
+        <input
+          ref={inputRef}
+          id={inputId}
+          type="file"
+          accept="image/jpeg,image/png,image/webp"
+          aria-invalid={Boolean(displayedError) || undefined}
+          aria-describedby={displayedError ? statusId : undefined}
+          className="hidden"
+          onChange={(event) => {
+            const file = event.currentTarget.files?.[0] ?? null;
+            event.currentTarget.value = "";
+            void saveFile(file);
+          }}
+          disabled={busy}
+          data-testid="profile-photo-input"
+        />
 
         <div
-          className="min-h-0 overflow-y-auto overscroll-contain px-4 pb-4"
-          data-scroll-edge="bottom"
+          data-region="preview"
+          className="flex shrink-0 flex-col items-center gap-2"
+          style={{ minBlockSize: 120 }}
         >
-          <input
-            ref={inputRef}
-            id={inputId}
-            type="file"
-            accept="image/jpeg,image/png,image/webp"
-            aria-invalid={Boolean(displayedError) || undefined}
-            aria-describedby={displayedError ? `${inputId}-error` : undefined}
-            className="hidden"
-            onChange={(event) => {
-              const file = event.currentTarget.files?.[0] ?? null;
-              event.currentTarget.value = "";
-              void saveFile(file);
-            }}
-            disabled={busy}
-            data-testid="profile-photo-input"
-          />
-
-          <p
-            id={`${inputId}-error`}
-            role={displayedError ? "alert" : undefined}
-            tabIndex={displayedError ? 0 : undefined}
-            className="text-sm text-error-base"
-            style={{
-              minBlockSize: "2lh",
-              flexShrink: 0,
-              overflowWrap: "anywhere",
-            }}
-          >
-            {displayedError}
-          </p>
-
-          {!removeConfirmOpen && recoverableDraft && editor.draft?.file ? (
-            <DraftPhotoPreview
-              file={editor.draft.file}
-              alt={formatMessage({
-                id: "profile.avatar.draftPreviewAlt",
-                defaultMessage: "Unpublished profile photo draft",
-              })}
-              caption={formatMessage({
-                id: "profile.avatar.unpublishedDraft",
-                defaultMessage: "This draft photo has not been published.",
-              })}
+          <span className="relative block h-20 w-20">
+            <img
+              src={previewSrc}
+              onError={(event) => {
+                const image = event.currentTarget;
+                if (image.src !== new URL(fallbackAvatar, window.location.origin).href)
+                  image.src = fallbackAvatar;
+              }}
+              alt={previewAlt}
+              width={80}
+              height={80}
+              className={cn("h-20 w-20 rounded-full object-cover", busy && "opacity-60")}
             />
+            {busy ? (
+              <span className="absolute inset-0 flex items-center justify-center">
+                <Spinner size="sm" />
+              </span>
+            ) : null}
+          </span>
+          {recoverableDraft ? (
+            <span className="flex items-center gap-1">
+              <span className="rounded-full bg-bg-weak-50 px-2 py-1 text-xs font-medium text-text-sub-600">
+                {formatMessage({
+                  id: "profile.avatar.draftPill",
+                  defaultMessage: "Unpublished draft",
+                })}
+              </span>
+              <IconButton
+                size="compact"
+                tone="danger"
+                aria-label={formatMessage({
+                  id: "profile.avatar.discardDraft",
+                  defaultMessage: "Discard Draft",
+                })}
+                loading={activeAction === "discard"}
+                disabled={busy && activeAction !== "discard"}
+                onClick={() => void discardDraft()}
+                icon={<RiDeleteBinLine aria-hidden="true" />}
+              />
+            </span>
           ) : null}
         </div>
+
+        <p
+          id={statusId}
+          role={displayedError ? "alert" : "status"}
+          tabIndex={displayedError ? 0 : undefined}
+          className={cn(
+            "shrink-0 text-center text-sm",
+            displayedError ? "text-error-base" : "text-text-sub-600"
+          )}
+          style={{ minBlockSize: "2lh", overflowWrap: "anywhere" }}
+        >
+          {statusText}
+        </p>
       </PwaSheet>
+
+      <ConfirmDialog
+        isOpen={open && removeConfirmOpen}
+        onClose={() => setRemoveConfirmOpen(false)}
+        onConfirm={remove}
+        title={removeTitle}
+        description={removalDescription}
+        confirmLabel={removeLabel}
+        cancelLabel={formatMessage({ id: "profile.avatar.keep", defaultMessage: "Keep Photo" })}
+        variant="danger"
+        isLoading={activeAction === "remove"}
+      />
     </>
   );
 }

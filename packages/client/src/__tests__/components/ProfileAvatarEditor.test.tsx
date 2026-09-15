@@ -40,7 +40,7 @@ const avatarEditorMocks = vi.hoisted(() => ({
   },
   online: { isOnline: true },
   sheet: {
-    dragToDismiss: true,
+    preventClose: false,
     onClose: null as (() => void) | null,
   },
 }));
@@ -51,39 +51,45 @@ avatarEditorMocks.editor.discardDraft = avatarEditorMocks.discardDraft;
 avatarEditorMocks.editor.save = avatarEditorMocks.save;
 
 vi.mock("@green-goods/shared/components/Dialog/PwaSheet", () => ({
+  PWA_SHEET_MEDIA_QUERY: "(max-width: 639px)",
   PwaSheet: ({
     actions,
     ariaLabel,
     children,
     closeLabel,
     description,
-    dragToDismiss,
+    preventClose,
     onClose,
     open,
     role = "dialog",
+    size,
     testId,
     title,
   }: {
     actions?: SheetActionsProps;
     ariaLabel?: string;
-    children: ReactNode;
+    children?: ReactNode;
     closeLabel?: string;
     description?: ReactNode;
-    dragToDismiss?: boolean;
+    preventClose?: boolean;
     onClose: () => void;
     open: boolean;
     role?: "dialog" | "alertdialog";
+    size?: string;
     testId?: string;
     title?: ReactNode;
   }) => {
-    avatarEditorMocks.sheet.dragToDismiss = dragToDismiss ?? true;
-    avatarEditorMocks.sheet.onClose = onClose;
+    // Record the photo sheet only; the stacked confirmation renders its own PwaSheet.
+    if (testId === "profile-photo-sheet") {
+      avatarEditorMocks.sheet.preventClose = preventClose ?? false;
+      avatarEditorMocks.sheet.onClose = onClose;
+    }
     return open ? (
       <section
         role={role}
         aria-label={typeof title === "string" ? title : ariaLabel}
         data-testid={testId}
-        data-drag-to-dismiss={String(dragToDismiss)}
+        data-sheet-size={size}
       >
         <span data-testid={`${testId}-drag-handle`} />
         {title ? <h2>{title}</h2> : null}
@@ -93,6 +99,7 @@ vi.mock("@green-goods/shared/components/Dialog/PwaSheet", () => ({
             type="button"
             data-testid="pwa-sheet-close"
             aria-label={closeLabel}
+            disabled={preventClose}
             onClick={onClose}
           />
         ) : null}
@@ -124,9 +131,15 @@ vi.mock("@green-goods/shared/hooks/profile/useProfileAvatar", async (importOrigi
   useResolvedProfileAvatar: () => avatarEditorMocks.resolved,
 }));
 
+const messages = {
+  "app.common.cancel": "Cancel",
+  "app.common.close": "Close",
+  "app.common.confirm": "Confirm",
+};
+
 function renderEditor() {
   return render(
-    <IntlProvider locale="en" messages={{}}>
+    <IntlProvider locale="en" messages={messages}>
       <ProfileAvatarEditor fallbackAvatar="/images/avatar.png" />
     </IntlProvider>
   );
@@ -146,8 +159,27 @@ function deferred<T>() {
   return { promise, resolve };
 }
 
+/** Mirror the phone viewport the shared confirmation switches on (`PWA_SHEET_MEDIA_QUERY`). */
+function stubNarrowViewport() {
+  Object.defineProperty(window, "matchMedia", {
+    writable: true,
+    configurable: true,
+    value: vi.fn((query: string) => ({
+      matches: query.includes("max-width: 639px"),
+      media: query,
+      onchange: null,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+      addListener: vi.fn(),
+      removeListener: vi.fn(),
+      dispatchEvent: vi.fn(),
+    })),
+  });
+}
+
 describe("ProfileAvatarEditor", () => {
   beforeEach(() => {
+    stubNarrowViewport();
     avatarEditorMocks.clear.mockReset();
     avatarEditorMocks.continueAfterReconnect.mockReset();
     avatarEditorMocks.discardDraft.mockReset();
@@ -160,22 +192,29 @@ describe("ProfileAvatarEditor", () => {
     avatarEditorMocks.online.isOnline = true;
     avatarEditorMocks.resolved.avatarUri = "https://cdn.example/avatar.webp";
     avatarEditorMocks.resolved.source = "app";
-    avatarEditorMocks.sheet.dragToDismiss = true;
+    avatarEditorMocks.sheet.preventClose = false;
     avatarEditorMocks.sheet.onClose = null;
   });
 
-  it("renders a compact bottom sheet with no repeated avatar and one picker", async () => {
+  it("renders the half sheet with the current photo, the privacy notice, and one picker", async () => {
     avatarEditorMocks.resolved.source = "fallback";
+    avatarEditorMocks.resolved.avatarUri = "/images/avatar.png";
     renderEditor();
     await openEditor();
 
     const sheet = screen.getByRole("dialog", { name: "Profile Photo" });
+    expect(sheet).toHaveAttribute("data-sheet-size", "half");
     expect(within(sheet).getByTestId("profile-photo-sheet-drag-handle")).toBeVisible();
     expect(within(sheet).getByRole("heading", { name: "Profile Photo" })).toBeVisible();
-    expect(within(sheet).queryByRole("img")).not.toBeInTheDocument();
+    expect(within(sheet).getByRole("img", { name: "Your current profile photo" })).toHaveAttribute(
+      "src",
+      "/images/avatar.png"
+    );
+    expect(within(sheet).getByRole("status")).toHaveTextContent(/photos stay public on ipfs/i);
     expect(within(sheet).getAllByRole("button", { name: "Choose Photo" })).toHaveLength(1);
     expect(within(sheet).getAllByTestId("profile-photo-input")).toHaveLength(1);
     expect(within(sheet).queryByRole("button", { name: /save photo/i })).not.toBeInTheDocument();
+    expect(within(sheet).queryByRole("button", { name: "Remove Photo" })).not.toBeInTheDocument();
   });
 
   it("shows only Replace Photo and Remove Photo for a saved app avatar", async () => {
@@ -219,7 +258,7 @@ describe("ProfileAvatarEditor", () => {
       "true"
     );
     expect(screen.getByRole("button", { name: "Close" })).toBeDisabled();
-    expect(avatarEditorMocks.sheet.dragToDismiss).toBe(false);
+    expect(avatarEditorMocks.sheet.preventClose).toBe(true);
     act(() => avatarEditorMocks.sheet.onClose?.());
     expect(screen.getByRole("dialog", { name: "Profile Photo" })).toBeVisible();
 
@@ -331,7 +370,7 @@ describe("ProfileAvatarEditor", () => {
 
     await user.click(screen.getByRole("button", { name: "Discard Draft" }));
     rendered.rerender(
-      <IntlProvider locale="en" messages={{}}>
+      <IntlProvider locale="en" messages={messages}>
         <ProfileAvatarEditor fallbackAvatar="/images/avatar.png" />
       </IntlProvider>
     );
@@ -351,16 +390,18 @@ describe("ProfileAvatarEditor", () => {
     expect(screen.getByRole("button", { name: "Discard Draft" })).toBeEnabled();
   });
 
-  it("handles removal confirmation and cancellation inside the same sheet", async () => {
+  it("asks through the shared confirmation stacked over the sheet, which keeps its title", async () => {
     renderEditor();
     const user = await openEditor();
     await user.click(screen.getByRole("button", { name: "Remove Photo" }));
 
-    expect(screen.getAllByRole("dialog")).toHaveLength(1);
-    expect(screen.getByRole("dialog", { name: "Remove profile photo?" })).toBeVisible();
-    expect(screen.getByRole("heading", { name: "Remove profile photo?" })).toBeVisible();
-    await user.click(screen.getByRole("button", { name: "Keep Photo" }));
+    const confirm = screen.getByRole("alertdialog", { name: "Remove profile photo?" });
+    expect(confirm).toBeVisible();
+    expect(within(confirm).getByRole("heading", { name: "Remove profile photo?" })).toBeVisible();
+    expect(screen.getByRole("dialog", { name: "Profile Photo" })).toBeVisible();
+    await user.click(within(confirm).getByRole("button", { name: "Keep Photo" }));
 
+    expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument();
     expect(screen.getByRole("dialog", { name: "Profile Photo" })).toBeVisible();
     expect(screen.getByRole("button", { name: "Remove Photo" })).toBeVisible();
   });
@@ -370,7 +411,8 @@ describe("ProfileAvatarEditor", () => {
     renderEditor();
     const user = await openEditor();
     await user.click(screen.getByRole("button", { name: "Remove Photo" }));
-    await user.click(screen.getByRole("button", { name: "Remove Photo" }));
+    const confirm = screen.getByRole("alertdialog", { name: "Remove profile photo?" });
+    await user.click(within(confirm).getByRole("button", { name: "Remove Photo" }));
 
     expect(avatarEditorMocks.clear).toHaveBeenCalledTimes(1);
     await waitFor(() =>
@@ -386,7 +428,8 @@ describe("ProfileAvatarEditor", () => {
     renderEditor();
     const user = await openEditor();
     await user.click(screen.getByRole("button", { name: "Remove Photo" }));
-    await user.click(screen.getByRole("button", { name: "Remove Photo" }));
+    const confirm = screen.getByRole("alertdialog", { name: "Remove profile photo?" });
+    await user.click(within(confirm).getByRole("button", { name: "Remove Photo" }));
 
     expect(await screen.findByRole("alert")).toHaveTextContent(/could not remove/i);
     expect(screen.getByRole("button", { name: "Try Again" })).toBeEnabled();
@@ -417,7 +460,7 @@ describe("ProfileAvatarEditor", () => {
     avatarEditorMocks.editor.address = ADDRESS_B;
 
     rendered.rerender(
-      <IntlProvider locale="en" messages={{}}>
+      <IntlProvider locale="en" messages={messages}>
         <ProfileAvatarEditor fallbackAvatar="/images/avatar.png" />
       </IntlProvider>
     );

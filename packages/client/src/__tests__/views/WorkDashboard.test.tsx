@@ -338,7 +338,9 @@ describe("WorkDashboard", () => {
     expect(screen.getByTestId("tab-pending")).toBeInTheDocument();
     expect(screen.getByTestId("tab-completed")).toBeInTheDocument();
     expect(screen.queryByTestId("tab-recent")).not.toBeInTheDocument();
-    expect(screen.getByTestId("app-sheet").className).toContain("rounded-t-[var(--radius-lg)]");
+    // The dashboard rides the shared bottom sheet and its header names the dialog (DL-028).
+    expect(screen.getByTestId("app-sheet")).toHaveAttribute("data-component", "PwaSheet");
+    expect(screen.getByRole("dialog", { name: "Your Work" })).toBeInTheDocument();
     expect(screen.getByText("Queued tree planting")).toBeInTheDocument();
     expect(mockUseMyWorks).toHaveBeenCalledWith({ includeOffline: true });
     expect(mockUseMyOnlineWorks).not.toHaveBeenCalled();

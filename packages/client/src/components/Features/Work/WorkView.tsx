@@ -99,7 +99,7 @@ export const WorkView: React.FC<WorkViewProps> = ({
     <div className="flex flex-col gap-4">
       <FormInfo title={title} info={info} Icon={HeaderIcon ?? undefined} />
 
-      <h6>
+      <h6 className="font-semibold">
         {intl.formatMessage({ id: "app.home.workApproval.garden", defaultMessage: "Garden" })}
       </h6>
       {garden ? (
@@ -127,7 +127,7 @@ export const WorkView: React.FC<WorkViewProps> = ({
       )}
       {hasMedia && (
         <>
-          <h6>
+          <h6 className="font-semibold">
             {intl.formatMessage({ id: "app.home.workApproval.media", defaultMessage: "Media" })}
           </h6>
           <Carousel
@@ -180,7 +180,7 @@ export const WorkView: React.FC<WorkViewProps> = ({
 
       {hasAudioNotes && (
         <>
-          <h6>
+          <h6 className="font-semibold">
             {intl.formatMessage({
               id: "app.home.work.audioNotes",
               defaultMessage: "Audio notes",
@@ -203,7 +203,7 @@ export const WorkView: React.FC<WorkViewProps> = ({
         </>
       )}
 
-      <h6>
+      <h6 className="font-semibold">
         {intl.formatMessage({ id: "app.home.workApproval.details", defaultMessage: "Details" })}
       </h6>
       <FormCard

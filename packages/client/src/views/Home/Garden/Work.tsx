@@ -162,7 +162,7 @@ export const GardenWork: React.FC = () => {
             aria-labelledby="feedback-drawer-title"
             aria-describedby="feedback-drawer-description"
           >
-            <div className="p-4 space-y-3 max-w-screen-sm mx-auto overflow-y-auto max-h-[60vh]">
+            <div className="p-4 space-y-3 max-w-screen-sm mx-auto overflow-y-auto max-h-[50dvh]">
               <div className="flex items-center justify-between">
                 <h2 id="feedback-drawer-title" className="text-sm font-medium text-text-strong-950">
                   {feedbackMode === "approve"
@@ -220,7 +220,7 @@ export const GardenWork: React.FC = () => {
                   defaultMessage:
                     "Add feedback for the gardener (optional for approval, required for rejection)...",
                 })}
-                className="min-h-[120px] max-h-[40vh] resize-none overflow-y-auto [touch-action:pan-y] [overscroll-behavior-y:auto]"
+                className="min-h-[120px] resize-none overflow-y-auto [touch-action:pan-y] [overscroll-behavior-y:auto]"
               />
             </div>
 

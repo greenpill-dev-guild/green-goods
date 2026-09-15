@@ -1,19 +1,9 @@
-import type { SheetSize } from "@green-goods/shared/components/Dialog/PwaSheet";
-import { IconButton } from "@green-goods/shared/components/IconButton";
+import { PwaSheet, type SheetSize } from "@green-goods/shared/components/Dialog/PwaSheet";
+import type { SheetActionsProps } from "@green-goods/shared/components/Dialog/SheetActions";
 import { cn } from "@green-goods/shared/utils/styles/cn";
-import { useDocumentScrollLock } from "@green-goods/shared/hooks/ui/useDocumentScrollLock";
-import { useSheetPresence } from "@green-goods/shared/hooks/ui/useSheetPresence";
-import { useFocusTrap } from "@green-goods/shared/hooks/utils/useFocusTrap";
-import { useTimeout } from "@green-goods/shared/hooks/utils/useTimeout";
-import {
-  SheetActions,
-  type SheetActionsProps,
-} from "@green-goods/shared/components/Dialog/SheetActions";
-import { RiCloseLine } from "@remixicon/react";
-import React, { useCallback, useEffect, useRef, useState } from "react";
-import { createPortal } from "react-dom";
+import type React from "react";
 import { useIntl } from "react-intl";
-import { getPwaSheetCloseDelayMs, pwaSheetStyles } from "@/components/Pwa/sheetStyles";
+import { pwaSheetStyles } from "@/components/Pwa/sheetStyles";
 
 export interface AppSheetTab {
   id: string;
@@ -26,7 +16,6 @@ export interface AppSheetTab {
 export interface AppSheetHeaderProps {
   title: string;
   description?: string;
-  actions?: React.ReactNode;
 }
 
 export interface AppSheetProps {
@@ -39,7 +28,7 @@ export interface AppSheetProps {
   children: React.ReactNode;
   /**
    * The sheet's actions, pinned under the content in the shared action bar
-   * (DL-016). The bar pads the device's bottom safe area.
+   * (DL-016). The sheet pads the device's bottom safe area itself.
    */
   actions?: SheetActionsProps;
   className?: string;
@@ -53,14 +42,15 @@ export interface AppSheetProps {
 }
 
 /**
- * A modal sheet matching the WorkDashboard bottom-sheet pattern: custom CSS
- * keyframe animations and a manual focus trap. Its height comes from one of
- * the shared tiers (`size`, DL-014). The content region is the single scroll
- * owner unless a consumer passes its own `contentClassName`.
+ * The installed app's workspace sheet: the shared bottom sheet (`PwaSheet`)
+ * with the one sheet header (DL-028), an optional tab rail directly under it,
+ * and the shared action bar. The content region is the sheet's single scroll
+ * owner unless a consumer passes its own `contentClassName` (tabbed sheets
+ * scroll per tab).
  *
- * The sheet renders into <body> through a portal, so a page layer such as the
- * garden header can never stack it beneath the AppBar, and it registers
- * itself as open so the AppBar steps aside while it shows (DL-015).
+ * The sheet renders into <body> through a portal and registers itself as
+ * open, so the AppBar steps aside while it shows (DL-015); it drags to
+ * dismiss like every other sheet.
  */
 export const AppSheet: React.FC<AppSheetProps> = ({
   isOpen,
@@ -76,183 +66,74 @@ export const AppSheet: React.FC<AppSheetProps> = ({
   size,
 }) => {
   const { formatMessage } = useIntl();
-  const [isClosing, setIsClosing] = useState(false);
-  const dialogRef = useRef<HTMLDivElement>(null);
-  const closeCompletedRef = useRef(false);
-  const { set: scheduleTimeout, clear: clearCloseTimeout } = useTimeout();
+  const hasTabs = tabs.length > 0;
 
-  useDocumentScrollLock(isOpen);
-  useSheetPresence(isOpen);
-
-  // Focus trap: keep Tab/Shift+Tab cycling within the dialog
-  useFocusTrap(dialogRef, {
-    enabled: isOpen && !isClosing,
-    autoFocusSelector: '[data-testid="app-sheet-close"]',
-  });
-
-  useEffect(() => {
-    if (isOpen && !isClosing) closeCompletedRef.current = false;
-  }, [isClosing, isOpen]);
-
-  const finishClose = useCallback(() => {
-    if (closeCompletedRef.current) return;
-    closeCompletedRef.current = true;
-    clearCloseTimeout();
-    setIsClosing(false);
-    onClose();
-  }, [clearCloseTimeout, onClose]);
-
-  const handleClose = () => {
-    if (isClosing) return;
-    closeCompletedRef.current = false;
-    setIsClosing(true);
-    scheduleTimeout(finishClose, getPwaSheetCloseDelayMs());
-  };
-
-  useEffect(() => {
-    if (!isClosing) return;
-
-    const handlePageHide = () => finishClose();
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === "hidden") finishClose();
-    };
-
-    window.addEventListener("pagehide", handlePageHide);
-    document.addEventListener("visibilitychange", handleVisibilityChange);
-
-    return () => {
-      window.removeEventListener("pagehide", handlePageHide);
-      document.removeEventListener("visibilitychange", handleVisibilityChange);
-    };
-  }, [finishClose, isClosing]);
-
-  if (!isOpen && !isClosing) return null;
-
-  return createPortal(
-    <div
-      role="presentation"
-      className={cn(
-        pwaSheetStyles.overlay,
-        isClosing ? "modal-backdrop-exit" : "modal-backdrop-enter"
-      )}
-      data-testid="app-sheet-overlay"
-      onClick={(e) => {
-        if (e.target === e.currentTarget) handleClose();
-      }}
-      onKeyDown={(e) => {
-        if (e.key === "Escape") handleClose();
-      }}
-      tabIndex={-1}
-    >
-      {/* eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions -- dialog surface; handlers only stop propagation to the overlay */}
-      <div
-        ref={dialogRef}
-        className={cn(
-          pwaSheetStyles.panel,
-          isClosing ? "modal-slide-exit" : "modal-slide-enter",
-          className
-        )}
-        data-sheet-size={size}
-        onClick={(e) => e.stopPropagation()}
-        onTouchStart={(e) => e.stopPropagation()}
-        onTouchMove={(e) => e.stopPropagation()}
-        onTouchEnd={(e) => e.stopPropagation()}
-        onKeyDown={(e) => {
-          if (e.key === "Escape") {
-            e.preventDefault();
-            e.stopPropagation();
-            handleClose();
-            return;
-          }
-          e.stopPropagation();
-        }}
-        role="dialog"
-        aria-modal="true"
-        data-testid="app-sheet"
-      >
-        {/* Header */}
-        <div className={pwaSheetStyles.header}>
-          <div className="flex-1 min-w-0">
-            <h2 className="title-section truncate">{header.title}</h2>
-            {header.description && (
-              <p className="body-sm-regular truncate text-text-sub-600">{header.description}</p>
-            )}
-          </div>
-          <div className="flex items-center gap-2 ml-4">
-            {header.actions}
-            <IconButton
-              emphasis="secondary"
-              onClick={handleClose}
-              data-testid="app-sheet-close"
-              aria-label={formatMessage({ id: "app.common.close" })}
-              icon={<RiCloseLine aria-hidden="true" />}
-            />
-          </div>
-        </div>
-
-        {/* Tabs */}
-        {tabs.length > 0 && (
-          <div className={pwaSheetStyles.tabs} role="tablist">
-            {tabs.map((tab) => (
-              <button
-                key={tab.id}
-                id={`tab-btn-${tab.id}`}
-                onClick={() => onTabChange?.(tab.id)}
-                role="tab"
-                aria-selected={activeTab === tab.id}
-                className={cn(
-                  pwaSheetStyles.tabTrigger,
-                  activeTab === tab.id ? pwaSheetStyles.tabActive : pwaSheetStyles.tabInactive
-                )}
-                data-testid={`tab-${tab.id}`}
-              >
-                {tab.icon && (
-                  <span className="flex h-4 w-4 flex-shrink-0 items-center justify-center text-sm [&>i]:text-base [&>svg]:h-4 [&>svg]:w-4">
-                    {tab.icon}
-                  </span>
-                )}
-                <span className="min-w-0 truncate whitespace-nowrap">{tab.label}</span>
-                {tab.count !== undefined && tab.count > 0 && (
-                  <span
-                    className={cn(
-                      "inline-flex items-center justify-center text-xs font-medium rounded-full min-w-[16px] h-4 px-1 flex-shrink-0",
-                      pwaSheetStyles.tabBadge
-                    )}
-                  >
-                    {tab.count > 99 ? "99+" : tab.count}
-                  </span>
-                )}
-                {tab.badge}
-                {activeTab === tab.id && (
-                  <div
-                    className={cn(
-                      "absolute bottom-0 left-0 right-0 h-0.5",
-                      pwaSheetStyles.tabIndicator
-                    )}
-                  />
-                )}
-              </button>
-            ))}
-          </div>
-        )}
-
-        {/* Content — the sheet's single scroll owner unless the consumer
-            takes over with contentClassName (tabbed sheets scroll per tab). */}
-        <div
+  const rail = hasTabs ? (
+    <div className={pwaSheetStyles.tabs} role="tablist">
+      {tabs.map((tab) => (
+        <button
+          key={tab.id}
+          id={`tab-btn-${tab.id}`}
+          onClick={() => onTabChange?.(tab.id)}
+          role="tab"
+          aria-selected={activeTab === tab.id}
           className={cn(
-            "flex-1 min-h-0",
-            contentClassName || "overflow-y-auto overscroll-contain p-4"
+            pwaSheetStyles.tabTrigger,
+            activeTab === tab.id ? pwaSheetStyles.tabActive : pwaSheetStyles.tabInactive
           )}
-          data-scroll-edge={actions ? "bottom" : undefined}
-          role={tabs.length > 0 ? "tabpanel" : undefined}
-          aria-labelledby={tabs.length > 0 && activeTab ? `tab-btn-${activeTab}` : undefined}
+          data-testid={`tab-${tab.id}`}
         >
-          {children}
-        </div>
+          {tab.icon && (
+            <span className="flex h-4 w-4 flex-shrink-0 items-center justify-center text-sm [&>i]:text-base [&>svg]:h-4 [&>svg]:w-4">
+              {tab.icon}
+            </span>
+          )}
+          <span className="min-w-0 truncate whitespace-nowrap">{tab.label}</span>
+          {tab.count !== undefined && tab.count > 0 && (
+            <span
+              className={cn(
+                "inline-flex items-center justify-center text-xs font-medium rounded-full min-w-[16px] h-4 px-1 flex-shrink-0",
+                pwaSheetStyles.tabBadge
+              )}
+            >
+              {tab.count > 99 ? "99+" : tab.count}
+            </span>
+          )}
+          {tab.badge}
+          {activeTab === tab.id && (
+            <div
+              className={cn("absolute bottom-0 left-0 right-0 h-0.5", pwaSheetStyles.tabIndicator)}
+            />
+          )}
+        </button>
+      ))}
+    </div>
+  ) : undefined;
 
-        {actions ? <SheetActions {...actions} safeArea /> : null}
-      </div>
-    </div>,
-    document.body
+  return (
+    <PwaSheet
+      open={isOpen}
+      onClose={onClose}
+      size={size}
+      title={header.title}
+      description={header.description}
+      closeLabel={formatMessage({ id: "app.common.close", defaultMessage: "Close" })}
+      closeTestId="app-sheet-close"
+      testId="app-sheet"
+      panelClassName={className}
+      tabs={rail}
+      bodyClassName={contentClassName}
+      bodyProps={
+        hasTabs
+          ? {
+              role: "tabpanel",
+              "aria-labelledby": activeTab ? `tab-btn-${activeTab}` : undefined,
+            }
+          : undefined
+      }
+      actions={actions}
+    >
+      {children}
+    </PwaSheet>
   );
 };
