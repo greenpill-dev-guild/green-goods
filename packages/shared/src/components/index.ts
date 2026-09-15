@@ -225,8 +225,6 @@ export type { HydrationFallbackProps } from "./HydrationFallback";
 export { HydrationFallback } from "./HydrationFallback";
 export { ENSProgressTimeline } from "./Progress/ENSProgressTimeline";
 export { SubmissionProgress } from "./Progress/SubmissionProgress";
-export type { SyncStatus } from "./Progress/SyncIndicator";
-export { SyncIndicator } from "./Progress/SyncIndicator";
 // Spinner
 export type { CenteredSpinnerProps, SpinnerProps } from "./Spinner";
 export { CenteredSpinner, Spinner } from "./Spinner";

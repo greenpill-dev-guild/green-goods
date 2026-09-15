@@ -254,6 +254,7 @@ export async function getActions(reader: GraphQLReader = greenGoodsIndexer): Pro
           let actionConfig = fallbackConfig;
           let defaultLocale: ActionContentLocale | undefined;
           let translations: ActionTranslationMap | undefined;
+          let instructionsFallback = false;
           try {
             if (instructions) {
               const configData = await getFileByHash(instructions, {
@@ -269,6 +270,7 @@ export async function getActions(reader: GraphQLReader = greenGoodsIndexer): Pro
               );
             }
           } catch (error) {
+            instructionsFallback = true;
             instructionFailures.push({
               actionId: id,
               message: error instanceof Error ? error.message : String(error),
@@ -293,6 +295,9 @@ export async function getActions(reader: GraphQLReader = greenGoodsIndexer): Pro
             defaultLocale,
             translations,
             createdAt: createdAt ? Number(createdAt) * 1000 : Date.now(),
+            // Kept on the row so the flag survives structural sharing: the
+            // reading cache skips a list whose instructions are fallbacks.
+            ...(instructionsFallback ? { instructionsFallback: true } : {}),
           };
         }
       )
@@ -305,15 +310,6 @@ export async function getActions(reader: GraphQLReader = greenGoodsIndexer): Pro
         {
           actionIds: instructionFailures.map((failure) => failure.actionId),
           failures: instructionFailures,
-        }
-      );
-      // Keep fallback instructions usable for this online render, while
-      // preventing a gateway failure from becoming the durable offline copy.
-      Object.defineProperty(
-        resolvedActions,
-        Symbol.for("green-goods.transient-action-instructions"),
-        {
-          value: true,
         }
       );
     }

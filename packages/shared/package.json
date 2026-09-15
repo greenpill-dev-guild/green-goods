@@ -359,7 +359,6 @@
     "./components/IconButton": "./src/components/IconButton.tsx",
     "./components/Progress/ENSProgressTimeline": "./src/components/Progress/ENSProgressTimeline.tsx",
     "./components/Progress/SubmissionProgress": "./src/components/Progress/SubmissionProgress.tsx",
-    "./components/Progress/SyncIndicator": "./src/components/Progress/SyncIndicator.tsx",
     "./components/Spinner": "./src/components/Spinner.tsx",
     "./components/SyncStatusBar": "./src/components/SyncStatusBar.tsx",
     "./components/Toast/presets/update": "./src/components/Toast/presets/update.ts",

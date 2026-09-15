@@ -1223,10 +1223,6 @@
           true
         );
 
-        document.addEventListener("gg-module-load-failed", function () {
-          showFallback("recovery");
-        });
-
         if (root && "MutationObserver" in window) {
           observer = new MutationObserver(function () {
             if (hasAppContent()) markReactMounted();

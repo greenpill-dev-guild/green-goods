@@ -324,6 +324,15 @@ export function createQueryPersister(options: CreateQueryPersisterOptions): Quer
   }
 }
 
+function hasFallbackInstructions(data: unknown): boolean {
+  return (
+    Array.isArray(data) &&
+    data.some((action) =>
+      Boolean((action as { instructionsFallback?: boolean })?.instructionsFallback)
+    )
+  );
+}
+
 export function createShouldDehydrateQuery({
   namespace = "greengoods",
   excludedGroups = [],
@@ -335,15 +344,9 @@ export function createShouldDehydrateQuery({
     const key = query.queryKey;
     if (!Array.isArray(key) || key[0] !== namespace) return false;
 
-    if (
-      key[1] === "actions" &&
-      Boolean(
-        (query.state.data as Record<PropertyKey, unknown> | undefined)?.[
-          Symbol.for("green-goods.transient-action-instructions")
-        ]
-      )
-    )
-      return false;
+    // A list whose instructions fell back to the built-in copy stays usable for
+    // this session but must not become the durable offline copy.
+    if (key[1] === "actions" && hasFallbackInstructions(query.state.data)) return false;
 
     return !excludedGroups.includes(String(key[1] ?? ""));
   };

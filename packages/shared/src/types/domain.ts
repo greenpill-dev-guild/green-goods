@@ -314,6 +314,8 @@ export interface Action extends ActionCard {
   };
   defaultLocale?: ActionContentLocale;
   translations?: ActionTranslationMap;
+  /** Instructions came from the built-in fallback because the published copy could not be read. */
+  instructionsFallback?: boolean;
 }
 
 export type ActionContentLocale = "en" | "es" | "pt";
@@ -344,8 +346,8 @@ export interface WorkInput {
  * On-chain statuses: "pending" | "approved" | "rejected"
  * Offline/sync statuses: "syncing" | "uploading" | "sync_failed" | "offline"
  *
- * This is the single source of truth — all components (StatusBadge, WorkCard,
- * SyncIndicator) should reference this type rather than defining their own.
+ * This is the single source of truth — all components (StatusBadge, WorkCard)
+ * should reference this type rather than defining their own.
  */
 export type WorkDisplayStatus =
   | "approved"

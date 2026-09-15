@@ -429,7 +429,7 @@ describe("activateWaitingWorker", () => {
 });
 
 describe("activateWaitingWorker without a controller change", () => {
-  it("keeps waiting when worker state changes without an observable takeover", () => {
+  it("settles once the worker reaches activated, even without a controller change", () => {
     vi.useFakeTimers();
     const active = createWorker("activated");
     const container = stubServiceWorkerContainer(active);
@@ -443,13 +443,15 @@ describe("activateWaitingWorker without a controller change", () => {
     worker.dispatch("statechange");
     expect(handlers.onActivated).not.toHaveBeenCalled();
 
+    // The page stays controlled by the old worker: nothing claims it. The
+    // reload after activation is a navigation the new worker serves anyway.
     worker.state = "activated";
     worker.dispatch("statechange");
     vi.advanceTimersByTime(1_000);
 
-    expect(handlers.onActivated).not.toHaveBeenCalled();
-    expect(handlers.onTimeout).toHaveBeenCalledOnce();
-    expect(active.postMessage).toHaveBeenLastCalledWith({ type: "RESUME_BACKGROUND_WORK" });
+    expect(handlers.onActivated).toHaveBeenCalledOnce();
+    expect(handlers.onTimeout).not.toHaveBeenCalled();
+    expect(active.postMessage).not.toHaveBeenCalledWith({ type: "RESUME_BACKGROUND_WORK" });
     expect(worker.listenerCount("statechange")).toBe(0);
     expect(container.listenerCount("controllerchange")).toBe(0);
   });

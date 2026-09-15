@@ -292,7 +292,7 @@ export function resolveUpdateTarget(
   return remembered && remembered === registration?.active ? remembered : null;
 }
 
-/** Wait for the target to activate; an acknowledgment alone never permits a reload. */
+/** Wait for the target to reach `activated`; an acknowledgment alone never permits a reload. */
 export function activateWaitingWorker(
   worker: ServiceWorker,
   handlers: ActivationHandlers,
@@ -335,11 +335,14 @@ export function activateWaitingWorker(
   const handleControllerChange = () => {
     if (navigator.serviceWorker.controller === worker) settle();
   };
+  // The worker never claims open pages, so a controller change is not
+  // guaranteed. Reaching `activated` is enough: the reload that follows is a
+  // navigation, and navigations are served by the active worker.
   const handleStateChange = () => {
-    if (worker.state === "activated" && navigator.serviceWorker.controller === worker) settle();
+    if (worker.state === "activated") settle();
   };
 
-  if (worker.state === "activated" && navigator.serviceWorker.controller === worker) {
+  if (worker.state === "activated") {
     updateChannel?.port1.close();
     updateChannel?.port2.close();
     quietChannel?.port1.close();

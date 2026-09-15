@@ -14,9 +14,6 @@ import { SyncStatusBar } from "./SyncStatusBar";
  * For now, stories render the component which returns null
  * when isOfflineBannerVisible is false or pendingCount is 0
  * (the default Storybook state).
- *
- * Prefer using SyncIndicator stories for visual testing of
- * sync status UI since it accepts props directly.
  */
 
 const meta: Meta<typeof SyncStatusBar> = {
@@ -45,7 +42,6 @@ type Story = StoryObj<typeof SyncStatusBar>;
 /**
  * Default state: renders null because the underlying hooks return
  * default values (not offline, no pending works, banner not visible).
- * See SyncIndicator stories for interactive sync status UI.
  */
 export const Default: Story = {
   args: {},

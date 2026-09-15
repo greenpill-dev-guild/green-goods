@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef } from "react";
 import { getAuthMode } from "../../modules/auth/session";
 import { trackAuthWalletRestore } from "../../modules/app/authWalletRestoreAnalytics";
 import { logger } from "../../modules/app/logger";
+import { connectivityStore } from "../../stores/connectivity";
 import type { AuthActor } from "../../workflows/authActor";
 import type { WalletConnectionType } from "../../workflows/authMachine";
 
@@ -22,12 +23,20 @@ interface RestoreAttempt {
   failed: boolean;
 }
 
+/**
+ * The restore deadline only counts while the connector could actually answer:
+ * a visible page with a usable connection. Offline, the remembered wallet
+ * identity keeps the session readable and the clock waits for reconnection.
+ */
 function canAdvanceRestoreClock(): boolean {
-  return document.visibilityState === "visible";
+  return (
+    document.visibilityState === "visible" &&
+    connectivityStore.getStatusSnapshot().state !== "offline"
+  );
 }
 
 function canRetryConnector(): boolean {
-  return navigator.onLine !== false && canAdvanceRestoreClock();
+  return canAdvanceRestoreClock();
 }
 
 /** Keeps persisted wallet intent protected while its connector hydrates. */
@@ -137,14 +146,18 @@ export function useWalletRestoreLifecycle(
     const handleVisibility = () =>
       document.visibilityState === "visible" ? retryRestore() : stopClock();
 
+    // The store gates the deadline; the browser's own online event is the
+    // signal to ask the connector again, so a probe completing while already
+    // usable never queues a second reconnect.
+    const unsubscribeConnectivity = connectivityStore.subscribeStatus(syncClock);
+
     startClock();
     window.addEventListener("online", retryRestore);
-    window.addEventListener("offline", syncClock);
     document.addEventListener("visibilitychange", handleVisibility);
     return () => {
       stopClock();
+      unsubscribeConnectivity();
       window.removeEventListener("online", retryRestore);
-      window.removeEventListener("offline", syncClock);
       document.removeEventListener("visibilitychange", handleVisibility);
     };
   }, [actor, beginAttempt, restoringMode, wagmiConfig]);

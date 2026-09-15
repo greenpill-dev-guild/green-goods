@@ -57,7 +57,7 @@ export const InstallPrompt: Story = {
   render: () => <InstallNudge />,
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    await expect(canvas.getByTestId("offline-indicator")).toBeVisible();
+    await expect(canvas.getByTestId("install-nudge")).toBeVisible();
     await expect(canvas.getByText("Install for full experience.")).toBeVisible();
     await expect(canvas.getByRole("button", { name: "Profile" })).toBeVisible();
     await expect(canvas.getByRole("button", { name: "Dismiss" })).toBeVisible();

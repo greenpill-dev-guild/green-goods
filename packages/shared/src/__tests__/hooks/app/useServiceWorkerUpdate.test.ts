@@ -896,7 +896,7 @@ describe("applyUpdate activation", () => {
     Object.defineProperty(window, "location", { configurable: true, value: originalLocation });
   });
 
-  it("reloads once the activated worker controls the page, even if controllerchange is missed", async () => {
+  it("reloads onto the worker once it reports activated, even without a controller change", async () => {
     vi.stubEnv("VITE_ENABLE_SW_DEV", "true");
     const reload = vi.fn();
     Object.defineProperty(window, "location", {
@@ -922,10 +922,6 @@ describe("applyUpdate activation", () => {
     );
 
     act(() => {
-      Object.defineProperty(navigator.serviceWorker, "controller", {
-        configurable: true,
-        value: waitingWorker,
-      });
       Object.defineProperty(waitingWorker, "state", { configurable: true, value: "activated" });
       waitingWorker.dispatchStateChange();
     });

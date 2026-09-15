@@ -477,17 +477,6 @@ describe("presentation-specific boot fallback", () => {
     expect(websiteRecovery.querySelector("button")).toHaveTextContent("Reload");
   });
 
-  it("shows website recovery immediately when the module load fails", () => {
-    const { fallback, websiteRecovery } = runController("website");
-
-    document.dispatchEvent(new Event("gg-module-load-failed"));
-    vi.advanceTimersByTime(200);
-
-    expect(fallback).not.toHaveAttribute("hidden");
-    expect(fallback).toHaveAttribute("data-state", "recovery");
-    expect(websiteRecovery).not.toHaveAttribute("hidden");
-  });
-
   it("does not claim stale app files while a mounted app waits on auth", () => {
     // Login renders null until auth restoration resolves, so #root stays empty
     // ON PURPOSE. React calling in still proves the bundle arrived, so the

@@ -61,12 +61,7 @@ describe("durable offline reads", () => {
 
   it("omits action fallbacks produced by a transient instruction fetch failure", () => {
     const source = new QueryClient();
-    const fallbackActions: Array<{ id: string }> = [{ id: "fallback" }];
-    Object.defineProperty(
-      fallbackActions,
-      Symbol.for("green-goods.transient-action-instructions"),
-      { value: true }
-    );
+    const fallbackActions = [{ id: "fallback", instructionsFallback: true }];
     source.setQueryData(actionsKeys.byChain(11155111), fallbackActions);
 
     expect(dehydrate(source, { shouldDehydrateQuery }).queries).toEqual([]);
