@@ -256,7 +256,8 @@ export const AppSettings: React.FC = () => {
         return {
           status: intl.formatMessage({
             id: "app.update.stalled.description",
-            defaultMessage: "Close and reopen the app.",
+            defaultMessage:
+              "The update has not finished. Try again, or keep using the app and update later.",
           }),
           label: retryLabel,
           busy: false,
