@@ -1,9 +1,9 @@
 import { Button } from "@green-goods/shared/components/Button";
-import { useActiveOfflineGarden } from "@green-goods/shared/hooks/offline/useOfflineContent";
 import { useNavigateToTop } from "@green-goods/shared/hooks/app/useNavigateToTop";
+import { useActiveOfflineGarden } from "@green-goods/shared/hooks/offline/useOfflineContent";
 import type { Action, Work } from "@green-goods/shared/types/domain";
 import { RiErrorWarningLine, RiInboxLine, RiRefreshLine } from "@remixicon/react";
-import React, { forwardRef, memo, type UIEvent, useCallback, useMemo, useState } from "react";
+import React, { forwardRef, memo, type UIEvent, useCallback, useMemo } from "react";
 import { type IntlShape, useIntl } from "react-intl";
 import { MinimalWorkCard } from "@/components/Cards";
 import { EmptyState, Loader } from "@/components/Communication";
@@ -19,6 +19,9 @@ interface GardenWorkProps {
     isPaused: boolean;
     availability: "available" | "partial" | "unavailable" | "empty";
     lastSuccessfulRefresh?: number;
+    hasOlderWork?: boolean;
+    loadOlderWork?: () => void;
+    isLoadingOlder?: boolean;
   };
   workFetchStatus?: "pending" | "success" | "error";
   isFetching?: boolean;
@@ -29,9 +32,6 @@ interface GardenWorkProps {
   onRefresh?: () => void;
   handleScroll?: (event: UIEvent<HTMLUListElement>) => void;
 }
-
-/** Cards rendered at once; older work appears when asked for. */
-const WORK_PAGE_SIZE = 50;
 
 /** A time for today's saves, a short date for older ones. */
 function formatSavedAt(intl: IntlShape, timestamp: number): string {
@@ -44,7 +44,6 @@ function formatSavedAt(intl: IntlShape, timestamp: number): string {
 interface WorkListProps {
   works: Work[];
   actions: Action[];
-  visibleCount: number;
 }
 
 interface WorkListItemProps {
@@ -87,7 +86,7 @@ const WorkListItem = memo(function WorkListItem({
   );
 });
 
-const WorkList = ({ works, actions, visibleCount }: WorkListProps) => {
+const WorkList = ({ works, actions }: WorkListProps) => {
   const navigate = useNavigateToTop();
 
   const actionById = useMemo(() => {
@@ -99,14 +98,12 @@ const WorkList = ({ works, actions, visibleCount }: WorkListProps) => {
     return map;
   }, [actions]);
   const sorted = useMemo(() => {
-    return [...works]
-      .sort((a, b) => {
-        if (a.status === "pending" && b.status !== "pending") return -1;
-        if (a.status !== "pending" && b.status === "pending") return 1;
-        return b.createdAt - a.createdAt;
-      })
-      .slice(0, visibleCount);
-  }, [works, visibleCount]);
+    return [...works].sort((a, b) => {
+      if (a.status === "pending" && b.status !== "pending") return -1;
+      if (a.status !== "pending" && b.status === "pending") return 1;
+      return b.createdAt - a.createdAt;
+    });
+  }, [works]);
 
   return sorted.map((_, index) => (
     <WorkListItem
@@ -138,8 +135,6 @@ export const GardenWork = forwardRef<HTMLUListElement, GardenWorkProps>(
   ) => {
     const intl = useIntl();
     useActiveOfflineGarden(gardenId);
-    const [page, setPage] = useState({ gardenId, count: WORK_PAGE_SIZE });
-    const visibleCount = page.gardenId === gardenId ? page.count : WORK_PAGE_SIZE;
     const workFetchStatus =
       statusProp ?? (readState?.isError ? "error" : readState?.isLoading ? "pending" : "success");
     const isOffline = readState?.isPaused ?? offlineProp;
@@ -259,13 +254,14 @@ export const GardenWork = forwardRef<HTMLUListElement, GardenWorkProps>(
           </li>
         )}
 
-        {hasRows && <WorkList works={works} actions={actions} visibleCount={visibleCount} />}
-        {works.length > visibleCount && (
+        {hasRows && <WorkList works={works} actions={actions} />}
+        {hasRows && readState?.hasOlderWork && !isOffline && readState.loadOlderWork && (
           <li className="col-span-full flex justify-center">
             <Button
               type="button"
               emphasis="secondary"
-              onClick={() => setPage({ gardenId, count: visibleCount + WORK_PAGE_SIZE })}
+              loading={readState.isLoadingOlder}
+              onClick={readState.loadOlderWork}
             >
               {intl.formatMessage({
                 id: "app.garden.work.showOlder",

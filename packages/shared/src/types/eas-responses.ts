@@ -71,6 +71,15 @@ export interface EASWork {
   createdAt: number;
 }
 
+/**
+ * A work as the garden screen reads it: the attestation plus the latest
+ * approval known for it. `null` means the approvals were read and none
+ * exists; a missing field means they could not be read this time.
+ */
+export interface EASWorkListRow extends EASWork {
+  approval?: EASWorkApproval | null;
+}
+
 export interface EASWorkApproval {
   id: string;
   stewardAddress: Address;

@@ -6,21 +6,21 @@
  * @module hooks/work/useMyWorks
  */
 
-import { useMemo, useSyncExternalStore } from "react";
 import { useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMemo, useSyncExternalStore } from "react";
 import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
+import { worksKeys } from "../../config/query-keys/work";
 import { getWorksByGardener } from "../../modules/data/eas";
+import { useJobQueueEvents } from "../../modules/job-queue/event-bus";
+import type { Work } from "../../types/domain";
+import type { EASWorkListRow } from "../../types/eas-responses";
 import { filterByTimeRange, sortByCreatedAt, type TimeFilter } from "../../utils/time";
 import { deduplicateById, mergeAndDeduplicateByClientId } from "../../utils/work/deduplication";
 import { fetchOfflineWorks } from "../../utils/work/offline";
+import { useOnlineStatus } from "../app/useOnlineStatus";
 import { useUser } from "../auth/useUser";
-import { worksKeys } from "../../config/query-keys/work";
-import { useJobQueueEvents } from "../../modules/job-queue/event-bus";
 import { useQueuedWorkPreviews } from "./useQueuedWorkPreviews";
 import { useSendingWorkIds } from "./useSendingWorkIds";
-import { useOnlineStatus } from "../app/useOnlineStatus";
-import type { Work } from "../../types/domain";
-import type { EASWorkApproval } from "../../types/eas-responses";
 
 export interface UseMyWorksOptions {
   /**
@@ -119,14 +119,12 @@ export function useMyWorks(options: UseMyWorksOptions = {}) {
   const gardenReads = useSyncExternalStore(
     (notify) =>
       cache.subscribe((event) => {
-        const source = String(event.query.queryKey[2]);
-        if (event.query.queryKey[1] === "works" && (source === "online" || source === "approvals"))
-          notify();
+        if (event.query.queryKey[1] === "works" && event.query.queryKey[2] === "online") notify();
       }),
     () =>
       cache
         .findAll({ queryKey: worksKeys.all })
-        .filter((query) => ["online", "approvals"].includes(String(query.queryKey[2])))
+        .filter((query) => query.queryKey[2] === "online")
         .map((query) => `${query.queryHash}:${query.state.dataUpdateCount}`)
         .join("|"),
     () => ""
@@ -135,31 +133,25 @@ export function useMyWorks(options: UseMyWorksOptions = {}) {
     if (!gardenReads || !includeOffline || !activeAddress || online.data !== undefined) {
       return { rows: [] as Work[], updatedAt: undefined };
     }
-    const approvals = queryClient.getQueryData<EASWorkApproval[]>(
-      worksKeys.approvals(undefined, chainId)
-    );
-    const known = new Map(approvals?.map((approval) => [approval.workUID, approval]));
+    // Each downloaded row carries the latest approval read with it.
     const queries = cache
       .findAll({ queryKey: ["greengoods", "works", "online"] })
       .filter((query) => query.queryKey[4] === chainId && query.state.data !== undefined);
     const rows = queries.flatMap((query) =>
-      ((query.state.data as Work[] | undefined) ?? [])
+      ((query.state.data as EASWorkListRow[] | undefined) ?? [])
         .filter((work) => work.gardenerAddress.toLowerCase() === activeAddress.toLowerCase())
-        .map((work) => {
-          const approval = known.get(work.id);
-          return {
-            ...work,
-            status: approval
-              ? approval.approved
-                ? ("approved" as const)
-                : ("rejected" as const)
-              : ("pending" as const),
-          };
-        })
+        .map(({ approval, ...work }) => ({
+          ...work,
+          status: approval
+            ? approval.approved
+              ? ("approved" as const)
+              : ("rejected" as const)
+            : ("pending" as const),
+        }))
     );
     const updated = queries.map((query) => query.state.dataUpdatedAt).filter(Boolean);
     return { rows, updatedAt: updated.length ? Math.min(...updated) : undefined };
-  }, [cache, gardenReads, includeOffline, activeAddress, chainId, queryClient, online.data]);
+  }, [cache, gardenReads, includeOffline, activeAddress, chainId, online.data]);
   const remoteRows = online.data ?? downloaded.rows;
   const metadataByWork = useQueries({
     queries: remoteRows.map((work) => ({

@@ -1,6 +1,7 @@
 import { type DehydratedState, hashKey } from "@tanstack/react-query";
 
-type StoredQuery = DehydratedState["queries"][number];
+/** The part of a stored query these transforms read, whichever store wrote it. */
+type StoredQuery = Pick<DehydratedState["queries"][number], "queryKey" | "queryHash" | "state">;
 
 /** Local queue projections rebuild from durable jobs and never retain object URLs. */
 export function isDurableWorkRead(key: readonly unknown[]): boolean {
@@ -15,7 +16,7 @@ const READ_MODEL_GROUPS = new Set([
   "profile-avatars",
   "ens",
 ]);
-const READ_MODEL_WORK_SOURCES = new Set(["online", "approvals", "metadata", "merged", "mine"]);
+const READ_MODEL_WORK_SOURCES = new Set(["online", "metadata", "merged", "mine"]);
 
 /**
  * The offline read model: the reads screens need to open without a connection.
@@ -36,7 +37,7 @@ const GARDEN_KEYED_WORK_SOURCES = new Set(["online", "merged", "offline", "local
  * before that keep their checksummed spelling until restored here, so offline
  * copies still open after the update.
  */
-function withLowercaseGarden(query: StoredQuery): StoredQuery {
+function withLowercaseGarden<T extends StoredQuery>(query: T): T {
   const key = query.queryKey;
   if (
     key[1] !== "works" ||
@@ -50,7 +51,7 @@ function withLowercaseGarden(query: StoredQuery): StoredQuery {
 }
 
 /** Old mixed queries also contain confirmed approval overlays; keep those remote rows. */
-export function restoreDurableWorkQuery(stored: StoredQuery): StoredQuery {
+export function restoreDurableWorkQuery<T extends StoredQuery>(stored: T): T {
   const query = withLowercaseGarden(stored);
   if (
     query.queryKey[1] !== "works" ||

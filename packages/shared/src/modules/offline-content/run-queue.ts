@@ -8,7 +8,6 @@ import { isKeptMediaUrl } from "./media";
 import { displayImageUrl, type OfflinePlan } from "./policy";
 
 export type OfflineTask =
-  | { kind: "approvals" }
   | { kind: "list"; garden: string }
   | { kind: "details"; garden: string; work: EASWork }
   | { kind: "photo"; garden: string; url: string };
@@ -38,9 +37,9 @@ interface RunQueueContext {
 }
 
 /**
- * One run's remaining work, its order and its progress. Work lists and details
- * are queued for every planned garden; photos only for the garden in view, the
- * account's own work and its avatar.
+ * One run's remaining work, its order and its progress. Work lists (approvals
+ * included) and details are queued for every planned garden; photos only for
+ * the garden in view, the account's own work and its avatar.
  */
 export class OfflineRunQueue {
   private tasks: OfflineTask[];
@@ -62,10 +61,7 @@ export class OfflineRunQueue {
     plan: OfflinePlan,
     avatarUrl?: string
   ) {
-    this.tasks = [
-      { kind: "approvals" },
-      ...plan.lists.map((garden) => ({ kind: "list" as const, garden })),
-    ];
+    this.tasks = plan.lists.map((garden) => ({ kind: "list" as const, garden }));
     this.total = this.tasks.length;
     if (avatarUrl && isKeptMediaUrl(avatarUrl)) this.addPhoto("", avatarUrl);
   }
@@ -200,7 +196,6 @@ export class OfflineRunQueue {
   private sort(): void {
     const inView = this.context.gardenInView();
     const rank = (task: OfflineTask) => {
-      if (task.kind === "approvals") return 0;
       const viewed = sameAddress(task.garden, inView);
       if (task.kind === "list") return viewed ? 1 : 3;
       if (task.kind === "photo") return viewed || task.garden === "" ? 2 : 4;

@@ -2,7 +2,6 @@ import { useIsRestoring, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useSyncExternalStore } from "react";
 import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
 import { gardensKeys } from "../../config/query-keys/garden";
-import { getWorkApprovals, getWorks } from "../../modules/data/eas";
 import {
   downloadMedia,
   isMediaCached,
@@ -24,6 +23,7 @@ import {
   updateOfflineProgress,
 } from "../../modules/offline-content/store";
 import { readWorkMetadata } from "../../modules/work/read-work-metadata";
+import { readWorkList } from "../../modules/work/work-list";
 import { connectivityStore } from "../../stores/connectivity";
 import type { Garden } from "../../types/domain";
 import { useConnectivityStatus, useOnlineStatus } from "../app/useOnlineStatus";
@@ -114,8 +114,7 @@ export function useOfflineContentPreparation(chainId = DEFAULT_CHAIN_ID): void {
       dataSaver: () => Boolean(networkInformation()?.saveData),
       cellular: () => isCellular(networkInformation()),
       mediaReady: isMediaWorkerReady,
-      fetchWorks: (garden) => getWorks(garden, chainId),
-      fetchApprovals: () => getWorkApprovals(undefined, chainId),
+      fetchWorks: (garden, take) => readWorkList({ garden, chainId, take }),
       readMetadata: readWorkMetadata,
       media: {
         isCached: isMediaCached,

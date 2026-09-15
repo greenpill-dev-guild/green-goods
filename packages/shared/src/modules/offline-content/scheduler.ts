@@ -1,7 +1,8 @@
 import type { QueryClient, QueryKey } from "@tanstack/react-query";
 import { worksKeys } from "../../config/query-keys/work";
 import type { Garden, WorkMetadata } from "../../types/domain";
-import type { EASWork, EASWorkApproval } from "../../types/eas-responses";
+import type { EASWorkListRow } from "../../types/eas-responses";
+import { WORK_LIST_PAGE_SIZE } from "../data/eas";
 import { OFFLINE_REFRESH_MS, planOfflineContent } from "./policy";
 import { OfflineRunQueue, type OfflineTask, sameAddress } from "./run-queue";
 import { getOfflineProgress, updateOfflineProgress } from "./store";
@@ -26,9 +27,12 @@ export interface OfflineSchedulerPorts {
   dataSaver(): boolean;
   cellular(): boolean;
   mediaReady(): boolean;
-  /** The same reads the screens use, so every download fills the screens' own queries. */
-  fetchWorks(garden: string): Promise<EASWork[]>;
-  fetchApprovals(): Promise<EASWorkApproval[]>;
+  /**
+   * The same read the garden screen uses, approvals included, so every
+   * download fills the screen's own query. `take` never shrinks a window the
+   * screen already widened.
+   */
+  fetchWorks(garden: string, take: number): Promise<EASWorkListRow[]>;
   readMetadata(metadata: string, signal?: AbortSignal): Promise<WorkMetadata>;
   media: OfflineMediaPort;
   /** Writes one filled read to the reading cache; rejects when storage refuses. */
@@ -236,23 +240,14 @@ export class OfflineScheduler {
   private execute(task: OfflineTask, staleTime: number): Promise<unknown> {
     const { client, chainId } = this.ports;
     switch (task.kind) {
-      case "approvals": {
-        const queryKey = worksKeys.approvals(undefined, chainId);
-        return this.fetchAndPersist(queryKey, () =>
-          client.fetchQuery({
-            queryKey,
-            queryFn: () => this.ports.fetchApprovals(),
-            networkMode: "online",
-            staleTime,
-          })
-        );
-      }
       case "list": {
         const queryKey = worksKeys.online(task.garden, chainId);
+        const loaded = client.getQueryData<EASWorkListRow[]>(queryKey)?.length ?? 0;
         return this.fetchAndPersist(queryKey, () =>
           client.fetchQuery({
             queryKey,
-            queryFn: () => this.ports.fetchWorks(task.garden),
+            queryFn: () =>
+              this.ports.fetchWorks(task.garden, Math.max(WORK_LIST_PAGE_SIZE, loaded)),
             networkMode: "online",
             staleTime,
           })
