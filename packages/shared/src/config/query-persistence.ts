@@ -376,6 +376,7 @@ export function createQueryPersistence(options: CreateQueryPersistenceOptions): 
     const legacyRecord = await readLegacySnapshot(legacy, webStorage);
     if (!legacyRecord) return;
     const { snapshot, forget } = legacyRecord;
+    let rewritten = true;
     if (isLegacySnapshot(snapshot) && isCurrentBuster({ buster: snapshot.buster } as StoredQuery)) {
       for (const query of snapshot.clientState.queries) {
         if (!Array.isArray(query.queryKey) || query.state?.data === undefined) continue;
@@ -386,10 +387,17 @@ export function createQueryPersistence(options: CreateQueryPersistenceOptions): 
         const queryHash = query.queryHash || hashKey(query.queryKey);
         await store
           .set(storageKey(queryHash), { queryKey: query.queryKey, queryHash, state, buster })
-          .catch(reportError);
+          .catch((error: unknown) => {
+            rewritten = false;
+            reportError(error);
+          });
       }
     }
-    await forget();
+    // The snapshot is the only copy until every record it held has been
+    // rewritten. Storage filling up partway through used to delete it anyway,
+    // which for an offline reader is the read model gone with no way to
+    // refetch. Keeping it means the next boot retries the whole migration.
+    if (rewritten) await forget();
   }
 
   async function restoreAll(client: QueryClient): Promise<void> {

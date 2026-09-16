@@ -338,6 +338,20 @@ describe("client public service worker migration", () => {
         headers: { "content-type": "application/json" },
       })
     );
+    // The shell the record describes has to exist for the record to be worth
+    // trusting; seeding only the metadata describes a broken install, not this
+    // one.
+    await (
+      cacheFor(cacheName).put as unknown as (
+        request: RequestInfo | URL,
+        response: Response
+      ) => Promise<void>
+    )(
+      "/assets/app.js",
+      new Response("export const app = true", {
+        headers: { "content-type": "application/javascript" },
+      })
+    );
     fetchMock.mockResolvedValueOnce(
       new Response(JSON.stringify(shellManifest([["/assets/app.js", "export const app = true"]])), {
         headers: { "content-type": "application/json" },
@@ -354,6 +368,64 @@ describe("client public service worker migration", () => {
     await expect(installation).resolves.toBeUndefined();
     expect(fetchMock).toHaveBeenCalledTimes(1);
     expect(caches.delete).not.toHaveBeenCalledWith(cacheName);
+  });
+
+  it("reinstalls when the metadata names a shell cache that is gone", async () => {
+    // Reachable by deploy, rollback, then roll forward: the reverted worker
+    // sweeps shell caches and leaves this record behind. Trusting it would
+    // install nothing and then let activation delete the live shell.
+    const { cacheFor, fetchMock, listeners } = await loadServiceWorker();
+    const asset = "/assets/app.js";
+    const code = "export const app = true";
+    const manifest = shellManifest([[asset, code]]);
+    const cacheName = `gg-pwa-shell-${manifest.digest}`;
+    await (
+      cacheFor("gg-pwa-metadata-v2").put as unknown as (
+        request: RequestInfo | URL,
+        response: Response
+      ) => Promise<void>
+    )(
+      "/__gg_pwa_shell_active__",
+      new Response(JSON.stringify({ cacheName, digest: manifest.digest, criticalReady: true }), {
+        headers: { "content-type": "application/json" },
+      })
+    );
+    fetchMock
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify(manifest), {
+          headers: { "content-type": "application/json" },
+        })
+      )
+      .mockResolvedValueOnce(
+        new Response(code, { headers: { "content-type": "application/javascript" } })
+      );
+    let installation: Promise<unknown> | undefined;
+
+    listeners.install[0]({
+      waitUntil: (promise: Promise<unknown>) => {
+        installation = promise;
+      },
+    });
+    await installation;
+
+    const matchShell = cacheFor(cacheName).match as unknown as (
+      request: RequestInfo | URL
+    ) => Promise<Response | undefined>;
+    await expect(matchShell(asset).then((response) => response?.text())).resolves.toBe(code);
+  });
+
+  it("keeps every shell when activation has no metadata to retain against", async () => {
+    const { caches, listeners } = await loadServiceWorker();
+    caches.keys.mockResolvedValue(["gg-pwa-shell-live", "gg-pwa-shell-other"]);
+    let activation: Promise<unknown> | undefined;
+
+    listeners.activate[0]({ waitUntil: (promise: Promise<unknown>) => (activation = promise) });
+    await activation;
+
+    // Sweeping against an empty retention set would delete the shell this page
+    // is running from and leave the app with nothing to boot offline.
+    expect(caches.delete).not.toHaveBeenCalledWith("gg-pwa-shell-live");
+    expect(caches.delete).not.toHaveBeenCalledWith("gg-pwa-shell-other");
   });
 
   it("retries a critical asset and reuses unchanged content-addressed files", async () => {

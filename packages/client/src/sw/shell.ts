@@ -250,7 +250,14 @@ export class PwaShell {
     const manifest = await readShellManifest();
     const cacheName = `${SW_CACHES.SHELL_PREFIX}${manifest.digest}`;
     const active = await this.activeMetadata();
-    if (cacheName === active?.cacheName && active?.criticalReady) return;
+    // The record is not proof the cache is still there. A rolled-back worker
+    // sweeps shell caches without touching this metadata, and the browser can
+    // reclaim storage under either. Skipping the install on a record whose
+    // cache is gone leaves nothing installed, and activation then sweeps the
+    // shell the open page is actually running from.
+    if (cacheName === active?.cacheName && active?.criticalReady && (await caches.has(cacheName))) {
+      return;
+    }
     try {
       // The digest is content-addressed, so an existing cache of this name can
       // only be an abandoned partial staging attempt.
@@ -285,6 +292,25 @@ export class PwaShell {
         tailReady: manifest.tailAssets.length === 0,
         previousCacheName: active?.cacheName ?? null,
       });
+      // Reclaim candidates from updates the user never accepted. Without this
+      // a deferred update leaves a whole shell behind per deploy, reclaimed
+      // only when one is finally accepted. Done after staging, so this build
+      // still reused their bytes. The active shell and the one an open page
+      // may still be reading are kept, as is the legacy metadata record, which
+      // shares the shell prefix and is retired during activation.
+      const keep = new Set(
+        [cacheName, active?.cacheName, active?.previousCacheName].filter(Boolean)
+      );
+      await Promise.all(
+        (await caches.keys())
+          .filter(
+            (key) =>
+              key.startsWith(SW_CACHES.SHELL_PREFIX) &&
+              key !== SW_CACHES.LEGACY_SHELL_METADATA &&
+              !keep.has(key)
+          )
+          .map((key) => caches.delete(key))
+      );
     } catch (error) {
       if (cacheName !== active?.cacheName) await caches.delete(cacheName);
       throw error;
@@ -307,11 +333,16 @@ export class PwaShell {
       await writeMetadata(ACTIVE_METADATA_URL, active);
     }
     const retained = new Set([active?.cacheName, active?.previousCacheName].filter(Boolean));
-    await Promise.all(
-      (await caches.keys())
-        .filter((key) => key.startsWith(SW_CACHES.SHELL_PREFIX) && !retained.has(key))
-        .map((key) => caches.delete(key))
-    );
+    // With no metadata there is nothing to retain against, and sweeping would
+    // delete every shell including the one serving this page. Leave them: the
+    // next successful install writes a record and reclaims the rest.
+    if (retained.size > 0) {
+      await Promise.all(
+        (await caches.keys())
+          .filter((key) => key.startsWith(SW_CACHES.SHELL_PREFIX) && !retained.has(key))
+          .map((key) => caches.delete(key))
+      );
+    }
     await caches.delete(SW_CACHES.LEGACY_SHELL_METADATA);
   }
 

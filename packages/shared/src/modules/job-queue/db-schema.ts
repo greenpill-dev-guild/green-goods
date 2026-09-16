@@ -1,7 +1,8 @@
 import Dexie, { type EntityTable } from "dexie";
 import type { CachedWork, Job, JobQueueDBImage } from "../../types/job-queue";
 
-export const JOB_QUEUE_DB_NAME = "green-goods-job-queue";
+/** The database name every build has used; read through `JobQueueDatabase`. */
+const JOB_QUEUE_DB_NAME = "green-goods-job-queue";
 
 export interface WorkCompletion {
   scope: string;
@@ -81,6 +82,14 @@ export class JobQueueDatabase extends Dexie {
           .table<Job>("jobs")
           .toCollection()
           .modify((job) => {
+            // `userAddress` only exists from version 5 on, and that upgrade
+            // added the index without backfilling, so an unsent job from an
+            // older build still has none. Dexie runs this callback inside the
+            // version-change transaction: throwing aborts the upgrade, and
+            // every later open retries it and fails identically, leaving the
+            // queue permanently unopenable with the user's work inside it.
+            // Skipping leaves such a row exactly as the previous build left it.
+            if (typeof job.userAddress !== "string") return;
             job.userAddress = job.userAddress.toLowerCase() as Job["userAddress"];
           })
       );

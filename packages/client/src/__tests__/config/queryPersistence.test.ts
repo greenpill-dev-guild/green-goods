@@ -76,3 +76,57 @@ describe.each(["indexedDB", "storage"])("legacy migration via %s", (backend) => 
     await persistence.clear();
   });
 });
+
+describe("legacy migration under storage pressure", () => {
+  it("keeps the snapshot when a record could not be rewritten", async () => {
+    // Web-storage backend so the failing write can be injected directly.
+    vi.stubGlobal("indexedDB", undefined);
+    const suffix = crypto.randomUUID();
+    const legacy = { dbName: `migration-legacy-${suffix}`, storeName: "rq" };
+    const source = new QueryClient();
+    const key = gardensKeys.byChain(11155111);
+    source.setQueryData(key, [{ id: "cached" }]);
+    const snapshot = JSON.stringify({
+      timestamp: Date.now() - 60_000,
+      buster: "9465f61b9795",
+      clientState: dehydrate(source),
+    });
+
+    const shelf = new Map<string, string>([["__rq_pc__", snapshot]]);
+    let refuseWrites = true;
+    const storage = {
+      get length() {
+        return shelf.size;
+      },
+      clear: () => shelf.clear(),
+      getItem: (k: string) => shelf.get(k) ?? null,
+      key: (index: number) => [...shelf.keys()][index] ?? null,
+      removeItem: (k: string) => void shelf.delete(k),
+      setItem: (k: string, value: string) => {
+        // Full only for the per-query rewrite; the snapshot itself is already there.
+        if (refuseWrites && k !== "__rq_pc__") {
+          throw new DOMException("quota", "QuotaExceededError");
+        }
+        shelf.set(k, value);
+      },
+    } as unknown as Storage;
+
+    await createQueryPersistence({ dbName: `migration-${suffix}`, legacy, storage }).restore(
+      new QueryClient()
+    );
+
+    // The only copy has to survive a rewrite that did not finish: an offline
+    // reader whose snapshot was deleted has no read model and cannot fetch one.
+    expect(shelf.has("__rq_pc__")).toBe(true);
+
+    refuseWrites = false;
+    const recovered = new QueryClient();
+    await createQueryPersistence({ dbName: `migration-${suffix}`, legacy, storage }).restore(
+      recovered
+    );
+    expect(recovered.getQueryData(key)).toEqual([{ id: "cached" }]);
+
+    source.clear();
+    recovered.clear();
+  });
+});
