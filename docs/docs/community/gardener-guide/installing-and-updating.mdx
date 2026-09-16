@@ -85,7 +85,7 @@ Everything already on the phone is kept. Drafts, queued work, and saved photos c
 What to expect:
 
 - **The restart takes longer than usual this once.** This release changes how the app stores its files, so the first update re-downloads them.
-- **Do it on Wi-Fi if you can**, and let it finish before going back into the field.
+- **Update while you have a connection, not in the field.** Restarting with no signal works, but the app cannot fetch the new photo-handling file until it is back online, so until then it may not accept an iPhone photo. Everything else still works.
 - **Send anything queued first.** Not because the update would lose it, but because sending needs a connection and the field often does not have one.
 
 :::warning Never clear site data or app storage
@@ -99,7 +99,7 @@ Clearing the browser's site data, storage, or "app files" for Green Goods **dele
 | "It says a new version is ready but Restart does nothing" | Something is saving or sending. Wait for it, check **Profile** for queued work, then Restart |
 | "It restarted but looks the same" | Close the app fully and reopen. The confirmation toast is easy to miss |
 | "It keeps asking me to restart" | Close every window of the app, including browser tabs on the same site, then reopen |
-| "Photos from my iPhone will not attach" | The photo handling file has not arrived. Check Data Saver is off, open the app on Wi-Fi, and give it a minute. The work itself still saves |
+| "Photos from my iPhone will not attach" | The photo handling file has not arrived, usually because they installed or restarted with no signal, or Data Saver is on. Turn Data Saver off, open the app on Wi-Fi, give it a minute. The work itself still saves |
 | "It will not load at all offline" | Confirm they opened it from the home screen and not a browser tab. Only the installed app works offline |
 | "I cannot sign in" | Signing in needs a connection. Recording work does not |
 | "Which version am I on?" | The app does not show a version number today. Use **Profile → Settings → Update** and tap **Check** instead |
