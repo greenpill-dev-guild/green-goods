@@ -200,13 +200,50 @@ class JobQueueStore {
     );
   }
 
+  /**
+   * A live view over this database.
+   *
+   * Dexie refuses a readwrite transaction inside a live query, and opening
+   * this database can run exactly one: the version upgrade. A querier that
+   * had to open it therefore threw `ReadOnlyError` on its first run, the
+   * subscription stopped, and the view stayed frozen at whatever it emitted
+   * first — the offline sync bar reading zero with work queued in front of
+   * it. Whether that happened came down to whether some other caller had
+   * already opened the database, so it only bit the view that subscribed
+   * earliest during boot.
+   *
+   * Opening here, before the observable exists, keeps the querier a pure read.
+   */
+  private observe<T>(read: () => Promise<T>): Observable<T> {
+    const opening = this.init();
+    return {
+      subscribe: (...args: Parameters<Observable<T>["subscribe"]>) => {
+        let inner: { unsubscribe: () => void } | undefined;
+        let stopped = false;
+        void opening.then(
+          () => {
+            if (!stopped) inner = liveQuery(() => read()).subscribe(...args);
+          },
+          () => undefined
+        );
+        return {
+          closed: false,
+          unsubscribe: () => {
+            stopped = true;
+            inner?.unsubscribe();
+          },
+        };
+      },
+    } as Observable<T>;
+  }
+
   /** The user's jobs as a live view; it re-emits when the table changes in this tab or another. */
   observeJobs(filter: JobFilter): Observable<Job[]> {
-    return liveQuery(() => this.getJobs(filter));
+    return this.observe(() => this.getJobs(filter));
   }
 
   observeStats(userAddress: string): Observable<QueueStats> {
-    return liveQuery(() => this.getStats(userAddress));
+    return this.observe(() => this.getStats(userAddress));
   }
 
   /**
