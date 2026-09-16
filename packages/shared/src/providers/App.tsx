@@ -3,6 +3,16 @@ import { IntlProvider } from "react-intl";
 
 import { toastService } from "../components/toast";
 import { useAppLifecycle } from "../hooks/app/useAppLifecycle";
+import { logger } from "../modules/app/logger";
+import {
+  type InstallToastStage,
+  installToastFallbacks,
+  installToastIds,
+  type Locale,
+  loadLocaleMessages,
+  type LocaleMessages,
+  supportedLanguages,
+} from "../modules/app/locale-messages";
 import { track } from "../modules/app/posthog";
 import { useInstalledAppEvidence } from "../hooks/app/useInstalledAppEvidence";
 import type { InstalledAppEvidence } from "../hooks/app/useInstallGuidance";
@@ -17,19 +27,6 @@ import {
   type Platform,
 } from "../utils/app/pwa";
 
-type LocaleMessages = Record<string, string>;
-
-async function loadLocaleMessages(locale: Locale): Promise<LocaleMessages> {
-  switch (locale) {
-    case "es":
-      return (await import("../i18n/es.json")).default;
-    case "pt":
-      return (await import("../i18n/pt.json")).default;
-    default:
-      return (await import("../i18n/en.json")).default;
-  }
-}
-
 export type InstallState =
   | "idle"
   | "not-installed"
@@ -39,29 +36,8 @@ export type InstallState =
   | "unsupported";
 const INSTALL_READY_SETTLE_MS = 1000;
 const INSTALL_FINALIZING_FALLBACK_MS = 30_000;
-export const supportedLanguages = ["en", "pt", "es"] as const;
-export type Locale = (typeof supportedLanguages)[number];
-export type { Platform };
-
-const installSuccessToastIds = {
-  title: "app.toast.install.success.title",
-  message: "app.toast.install.success.message",
-} as const;
-
-const installSuccessMessages: Record<Locale, { title: string; message: string }> = {
-  en: {
-    title: "App installed",
-    message: "Green Goods is ready from your home screen.",
-  },
-  es: {
-    title: "App instalada",
-    message: "Green Goods está lista desde tu pantalla de inicio.",
-  },
-  pt: {
-    title: "App instalada",
-    message: "O Green Goods está pronto na tela inicial.",
-  },
-};
+export { supportedLanguages };
+export type { Locale, Platform };
 
 export interface AppDataProps {
   isMobile: boolean;
@@ -205,9 +181,14 @@ export const AppProvider = ({
 
   useEffect(() => {
     let cancelled = false;
-    void loadLocaleMessages(locale).then((nextMessages) => {
-      if (!cancelled) setLocaleMessages(nextMessages);
-    });
+    void loadLocaleMessages(locale).then(
+      (nextMessages) => {
+        if (!cancelled) setLocaleMessages(nextMessages);
+      },
+      (error: unknown) => {
+        logger.error("[App] Locale messages could not be loaded", { locale, error });
+      }
+    );
     return () => {
       cancelled = true;
     };
@@ -295,15 +276,39 @@ export const AppProvider = ({
     setWasInstalled(true);
     localStorage.setItem("gg-pwa-installed", "true");
 
-    const settleInstall = () => {
-      const successMessage = installSuccessMessages[locale];
+    const showInstallToast = (stage: InstallToastStage) => {
+      const ids = installToastIds[stage];
+      const fallback = installToastFallbacks[locale][stage];
       toastService.success({
         id: "app-install-success",
-        title: localeMessages[installSuccessToastIds.title] || successMessage.title,
-        message: localeMessages[installSuccessToastIds.message] || successMessage.message,
+        title: localeMessages[ids.title] || fallback.title,
+        message: localeMessages[ids.message] || fallback.message,
         context: "pwa install",
         suppressLogging: true,
       });
+    };
+
+    const settleInstall = () => {
+      showInstallToast("preparing");
+      // Ask for the offline-ready tier now rather than at the next launch, and
+      // let this toast settle on the outcome. A tier that is still retrying
+      // says nothing: the app already works, and re-announcing a background
+      // download on every reconnect would be noise.
+      let announced = false;
+      // Imported here, not at the top: this module reaches the job queue, and
+      // the public site must never carry it. Installing is always online.
+      void import("../modules/app/service-worker-registration")
+        .then(({ schedulePwaShellPreparation }) => {
+          schedulePwaShellPreparation("priority", (status) => {
+            if (announced || status === "paused" || status === "unavailable") return;
+            announced = true;
+            showInstallToast(status === "ready" ? "offlineReady" : "installed");
+          });
+        })
+        .catch((error: unknown) => {
+          logger.warn("[App] Offline-ready shell tier could not be requested", { error });
+          showInstallToast("installed");
+        });
       track("App Installed", {
         platform,
         locale,

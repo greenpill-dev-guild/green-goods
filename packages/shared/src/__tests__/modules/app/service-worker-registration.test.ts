@@ -77,6 +77,37 @@ describe("service worker registration config", () => {
     expect(worker.postMessage).toHaveBeenLastCalledWith({ type: "PREPARE_PWA_TAIL" });
   });
 
+  it("asks for the offline-ready tier at once and reports what the worker answers", async () => {
+    // A fresh module: tier requests are remembered for the life of the page.
+    vi.resetModules();
+    const { schedulePwaShellPreparation } = await import(
+      "../../../modules/app/service-worker-registration"
+    );
+    const worker = { postMessage: vi.fn() } as unknown as ServiceWorker;
+    const serviceWorker = Object.assign(new EventTarget(), { controller: worker });
+    Object.defineProperty(navigator, "serviceWorker", {
+      configurable: true,
+      value: serviceWorker,
+    });
+
+    const statuses: string[] = [];
+    schedulePwaShellPreparation("priority", (status) => statuses.push(status));
+
+    // No idle callback: this is the tier that decides whether an installed app
+    // can take a photo with no signal.
+    expect(worker.postMessage).toHaveBeenCalledWith({ type: "PREPARE_PWA_PRIORITY" }, [
+      expect.any(MessagePort),
+    ]);
+
+    const [, transfer] = (worker.postMessage as ReturnType<typeof vi.fn>).mock.calls[0] as [
+      unknown,
+      MessagePort[],
+    ];
+    transfer[0].postMessage({ status: "ready" });
+
+    await vi.waitFor(() => expect(statuses).toEqual(["ready"]));
+  });
+
   it("keeps Vite PWA's exact development worker URL", async () => {
     const registration = {
       scope: "https://localhost:3001/home",

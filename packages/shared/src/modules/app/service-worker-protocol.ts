@@ -9,8 +9,14 @@
 
 /** Messages the page posts to the worker. */
 export const SW_MESSAGE = {
-  /** Download the non-critical shell tail; the reply port hears the outcome. */
+  /**
+   * Download the offline-ready tier: what an installed app needs to accept
+   * work with no signal. The reply port hears the outcome.
+   */
+  PREPARE_PWA_PRIORITY: "PREPARE_PWA_PRIORITY",
+  /** Download the send-time tail; the reply port hears the outcome. */
   PREPARE_PWA_TAIL: "PREPARE_PWA_TAIL",
+  /** Stop every deferred download, for Data Saver or a waiting worker. */
   PAUSE_PWA_TAIL: "PAUSE_PWA_TAIL",
   /** Sent to the active worker so it settles background work before a waiting one takes over. */
   PREPARE_TO_ACTIVATE_UPDATE: "PREPARE_TO_ACTIVATE_UPDATE",
@@ -55,6 +61,11 @@ export type ServiceWorkerMessage =
   | EnsRegistrationCompleteMessage;
 
 export type TailStatus = "ready" | "unavailable" | "paused" | "blocked" | "failed";
+
+/** What the page hears back about one deferred shell tier. */
+export interface ShellTierReply {
+  status: TailStatus;
+}
 
 export interface MediaStatsReply {
   bytes: number;
@@ -102,14 +113,14 @@ export const SW_CACHES = {
 export const OBSOLETE_RUNTIME_CACHES = ["js-cache", "indexer-cache", "graphql-cache"] as const;
 
 /** Raised when the worker learns to keep something new; the page compares before relying on it. */
-export const OFFLINE_CONTENT_VERSION = 3;
+export const OFFLINE_CONTENT_VERSION = 4;
 export const GREEN_GOODS_SYNC_TAG = "green-goods-sync";
 export const CONNECTIVITY_CHECK_PATH = "/connectivity-check.txt";
 export const SHARE_TARGET_PATH = "/home/share";
 export const SHARE_ENVELOPE_PREFIX = "/__gg_share_envelope__/";
 export const SHARE_FILE_PREFIX = "/__gg_share_file__/";
-/** Gateways whose photos the worker keeps offline. */
-export const IPFS_GATEWAY_HOSTS = [
+/** Gateways whose photos the worker keeps offline; read through `isKeptMediaUrl`. */
+const IPFS_GATEWAY_HOSTS = [
   "greengoods.mypinata.cloud",
   "gateway.pinata.cloud",
   "ipfs.io",

@@ -131,7 +131,12 @@ describe("PWA shell asset manifest", () => {
           ([asset]) => asset.fileName === "pwa-shell-assets.json"
         )?.[0] as EmittedAsset
       ).source
-    ) as { assets: string[]; criticalAssets: string[]; tailAssets: string[] };
+    ) as {
+      assets: string[];
+      criticalAssets: string[];
+      priorityAssets: string[];
+      tailAssets: string[];
+    };
 
     expect(signedInViews.length).toBeGreaterThan(0);
     for (const moduleId of lazyModules) {
@@ -195,7 +200,12 @@ describe("PWA shell asset manifest", () => {
           ([asset]) => asset.fileName === "pwa-shell-assets.json"
         )?.[0] as EmittedAsset
       ).source
-    ) as { assets: string[]; criticalAssets: string[]; tailAssets: string[] };
+    ) as {
+      assets: string[];
+      criticalAssets: string[];
+      priorityAssets: string[];
+      tailAssets: string[];
+    };
 
     expect(shell.assets).toContain("/assets/Garden.js");
     expect(shell.assets).toContain("/assets/image-compression.js");
@@ -280,7 +290,12 @@ describe("PWA shell asset manifest", () => {
           ([asset]) => asset.fileName === "pwa-shell-assets.json"
         )?.[0] as EmittedAsset
       ).source
-    ) as { assets: string[]; criticalAssets: string[]; tailAssets: string[] };
+    ) as {
+      assets: string[];
+      criticalAssets: string[];
+      priorityAssets: string[];
+      tailAssets: string[];
+    };
 
     for (const needed of [
       "/assets/job-queue.js",
@@ -302,15 +317,21 @@ describe("PWA shell asset manifest", () => {
       expect(shell.criticalAssets).toContain(critical);
       expect(shell.tailAssets).not.toContain(critical);
     }
-    for (const deferred of [
+    // Needed to compose work with no signal, so they ride the tier an
+    // installed app fetches straight away rather than the send-time tail.
+    for (const offlineReady of ["/assets/es.js", "/assets/heic-to.js"]) {
+      expect(shell.priorityAssets).toContain(offlineReady);
+      expect(shell.criticalAssets).not.toContain(offlineReady);
+      expect(shell.tailAssets).not.toContain(offlineReady);
+    }
+    for (const sendTime of [
       "/assets/wallet-submission.js",
       "/assets/simulate.js",
       "/assets/encoders.js",
-      "/assets/es.js",
-      "/assets/heic-to.js",
     ]) {
-      expect(shell.tailAssets).toContain(deferred);
-      expect(shell.criticalAssets).not.toContain(deferred);
+      expect(shell.tailAssets).toContain(sendTime);
+      expect(shell.criticalAssets).not.toContain(sendTime);
+      expect(shell.priorityAssets).not.toContain(sendTime);
     }
     for (const optional of [
       "/assets/sentry.js",
@@ -332,14 +353,18 @@ describe("PWA shell asset manifest", () => {
       assets: string[];
       criticalDigest: string;
       criticalAssets: string[];
+      priorityDigest: string;
+      priorityAssets: string[];
       tailDigest: string;
       tailAssets: string[];
     };
 
-    expect(shell.version).toBe(2);
+    expect(shell.version).toBe(3);
     expect(shell.digest).toMatch(/^[a-f0-9]{16}$/);
     expect(shell.criticalDigest).toMatch(/^[a-f0-9]{16}$/);
+    expect(shell.priorityDigest).toMatch(/^[a-f0-9]{16}$/);
     expect(shell.tailDigest).toMatch(/^[a-f0-9]{16}$/);
+    expect(shell.priorityAssets).toEqual([]);
     expect(shell.tailAssets).toEqual([]);
     expect(shell.criticalAssets).toEqual(shell.assets);
     expect(shell.assets).toEqual([

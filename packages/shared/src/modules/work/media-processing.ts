@@ -1,3 +1,4 @@
+import { logger } from "../app/logger";
 import { captureWorkFile } from "./work-attachments";
 export type WorkMediaSource = "camera" | "gallery";
 export type WorkMediaKind = "image" | "video" | "unknown";
@@ -14,6 +15,11 @@ export interface AcceptedWorkMediaFile {
   file: File;
   originalFile: File;
   converted: boolean;
+  /**
+   * A HEIC photo accepted as its original bytes because the decoder had not
+   * landed yet. `finalizeWorkMediaForUpload` converts it at send time.
+   */
+  pendingConversion?: boolean;
   metadata: SafeMediaMetadata;
 }
 
@@ -40,6 +46,8 @@ export interface NormalizeWorkMediaOptions {
   onHeicConversionStarted?: (file: File) => void;
   onHeicConversionSucceeded?: (originalFile: File, convertedFile: File) => void;
   onHeicConversionFailed?: (file: File, error: unknown) => void;
+  /** The decoder was unreachable, so the photo was kept for conversion at send time. */
+  onHeicConversionDeferred?: (file: File) => void;
 }
 
 export const HEIC_JPEG_QUALITY = 0.85;
@@ -132,19 +140,24 @@ function toJpegFileName(file: File): string {
   return file.name.replace(/\.[^.]*$/, ".jpg");
 }
 
-async function canConvertHeic(file: File): Promise<boolean> {
-  if (!isLikelyHeic(file)) return false;
+type HeicDecoder = typeof import("heic-to/csp");
+
+/**
+ * The decoder is a lazy chunk from the offline-ready shell tier, so a photo can
+ * be picked before it exists locally. A missing decoder is reported as `null`
+ * rather than thrown: it means "not yet", which is nothing like a file this
+ * decoder has looked at and cannot read.
+ */
+async function loadHeicDecoder(): Promise<HeicDecoder | null> {
   try {
-    const { isHeic } = await import("heic-to/csp");
-    return await isHeic(file);
+    return await import("heic-to/csp");
   } catch {
-    return isLikelyHeic(file);
+    return null;
   }
 }
 
-async function convertHeicToJpeg(file: File, quality: number): Promise<File> {
-  const { heicTo } = await import("heic-to/csp");
-  const convertedBlob = await heicTo({
+async function convertHeicToJpeg(decoder: HeicDecoder, file: File, quality: number): Promise<File> {
+  const convertedBlob = await decoder.heicTo({
     blob: file,
     type: "image/jpeg",
     quality,
@@ -177,7 +190,32 @@ export async function normalizeWorkMediaFiles(
       continue;
     }
 
-    if (!(await canConvertHeic(file))) {
+    if (!isLikelyHeic(file)) {
+      rejected.push({
+        file,
+        reason: "unsupported",
+        metadata: getSafeMediaMetadata(file),
+      });
+      continue;
+    }
+
+    const decoder = await loadHeicDecoder();
+    if (!decoder) {
+      // Keep the steward's photo rather than refusing it: the draft survives,
+      // and the send path converts once the decoder is reachable.
+      accepted.push({
+        file,
+        originalFile: file,
+        converted: false,
+        pendingConversion: true,
+        metadata: getSafeMediaMetadata(file),
+      });
+      options.onHeicConversionDeferred?.(file);
+      continue;
+    }
+
+    const isHeicFile = await decoder.isHeic(file).catch(() => true);
+    if (!isHeicFile) {
       rejected.push({
         file,
         reason: "unsupported",
@@ -188,7 +226,7 @@ export async function normalizeWorkMediaFiles(
 
     options.onHeicConversionStarted?.(file);
     try {
-      const convertedFile = await convertHeicToJpeg(file, jpegQuality);
+      const convertedFile = await convertHeicToJpeg(decoder, file, jpegQuality);
       const convertedMetadata = getSafeMediaMetadata(convertedFile);
       accepted.push({
         file: convertedFile,
@@ -209,6 +247,42 @@ export async function normalizeWorkMediaFiles(
   }
 
   return { accepted, rejected, converted };
+}
+
+/**
+ * Convert photos that were queued before the decoder could reach them.
+ *
+ * Composing happens offline, sending does not, so this runs where the decoder
+ * is reliably available. A photo that still cannot be converted is passed
+ * through as it was picked: a steward's evidence is worth more as an
+ * awkward file than as a hole in the record.
+ */
+export async function finalizeWorkMediaForUpload(files: File[]): Promise<File[]> {
+  if (!files.some(isLikelyHeic)) return files;
+  const decoder = await loadHeicDecoder();
+  if (!decoder) {
+    logger.warn("[WorkMedia] HEIC decoder unavailable at send; uploading originals", {
+      pending: files.filter(isLikelyHeic).length,
+    });
+    return files;
+  }
+
+  const finalized: File[] = [];
+  for (const file of files) {
+    if (!isLikelyHeic(file)) {
+      finalized.push(file);
+      continue;
+    }
+    try {
+      finalized.push(await convertHeicToJpeg(decoder, file, HEIC_JPEG_QUALITY));
+    } catch (error) {
+      logger.warn("[WorkMedia] Deferred HEIC conversion failed; uploading the original", {
+        error: error instanceof Error ? error.message : String(error),
+      });
+      finalized.push(file);
+    }
+  }
+  return finalized;
 }
 
 /** What `prepareMediaForUpload` hands back: files ready to queue, and how many were refused. */
@@ -242,7 +316,10 @@ export async function prepareMediaForUpload(
   const normalized = await normalizeWorkMediaFiles(files);
   const accepted = normalized.accepted.map((item) => item.file);
   const videos = accepted.filter(isVideoFile);
-  const images = accepted.filter((file) => !isVideoFile(file));
+  // An unconverted HEIC skips compression: the compressor decodes through the
+  // browser, which is the very step that is not available for this format.
+  const deferred = accepted.filter((file) => !isVideoFile(file) && isLikelyHeic(file));
+  const images = accepted.filter((file) => !isVideoFile(file) && !isLikelyHeic(file));
   const toCompress = images.filter((file) => compressor.shouldCompress(file, 1024));
   const asIs = images.filter((file) => !compressor.shouldCompress(file, 1024));
   const compressed =
@@ -256,7 +333,10 @@ export async function prepareMediaForUpload(
           })
         ).map((result) => result.file)
       : [];
-  return { files: [...asIs, ...compressed, ...videos], rejectedCount: normalized.rejected.length };
+  return {
+    files: [...asIs, ...compressed, ...deferred, ...videos],
+    rejectedCount: normalized.rejected.length,
+  };
 }
 
 export { roundWorkLocation, validateWorkAttachments, validateWorkVideo } from "./work-attachments";

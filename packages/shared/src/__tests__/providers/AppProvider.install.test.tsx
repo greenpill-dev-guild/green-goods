@@ -132,10 +132,13 @@ describe("AppProvider install confirmation", () => {
 
     expectInstallState("installed");
     expect(toastMocks.success).toHaveBeenCalledTimes(1);
+    // The install toast opens on the offline-ready download rather than
+    // declaring the app finished; it settles once the worker answers.
     expect(toastMocks.success).toHaveBeenCalledWith(
       expect.objectContaining({
+        id: "app-install-success",
         title: "App instalada",
-        message: "Green Goods está lista desde tu pantalla de inicio.",
+        message: "Preparándola para funcionar sin conexión.",
         context: "pwa install",
       })
     );

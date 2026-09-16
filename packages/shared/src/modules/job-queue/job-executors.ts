@@ -15,6 +15,7 @@ import {
   buildWorkAttestContractCall,
 } from "../../utils/eas/transaction-builder";
 import { resolveWorkSubmissionTitle } from "../../utils/work/workTitles";
+import { finalizeWorkMediaForUpload } from "../work/media-processing";
 import {
   TransactionRevertedError,
   type BroadcastReference,
@@ -151,7 +152,10 @@ export async function executeWorkJob(
   await sender.assertOwnership?.(job.userAddress, chainId);
   const getImages = deps.images ?? ((id: string) => jobQueueDB.getImagesForJob(id));
   const images = await getImages(jobId);
-  const allFiles = images.map((img) => img.file);
+  // A photo picked offline can still be HEIC: the decoder may not have landed
+  // when it was queued. Sending is online, so convert it here, before the
+  // simulate and the encode both read the same list of files.
+  const allFiles = await finalizeWorkMediaForUpload(images.map((img) => img.file));
   const actionTitle = resolveWorkSubmissionTitle({
     draftTitle: payload.title,
     actionUID: payload.actionUID,

@@ -15,11 +15,13 @@ function shellManifest(entries: Array<[asset: string, contents: string]>) {
   const assets = entries.map(([asset]) => asset);
   const digest = shellDigest(entries);
   return {
-    version: 2,
+    version: 3,
     digest,
     assets,
     criticalDigest: digest,
     criticalAssets: assets,
+    priorityDigest: shellDigest([]),
+    priorityAssets: [],
     tailDigest: shellDigest([]),
     tailAssets: [],
   };
@@ -27,19 +29,23 @@ function shellManifest(entries: Array<[asset: string, contents: string]>) {
 
 function splitShellManifest(
   criticalEntries: Array<[asset: string, contents: string]>,
-  tailEntries: Array<[asset: string, contents: string]>
+  tailEntries: Array<[asset: string, contents: string]>,
+  priorityEntries: Array<[asset: string, contents: string]> = []
 ) {
   const criticalAssets = criticalEntries.map(([asset]) => asset);
+  const priorityAssets = priorityEntries.map(([asset]) => asset);
   const tailAssets = tailEntries.map(([asset]) => asset);
-  const entries = [...criticalEntries, ...tailEntries].sort(([left], [right]) =>
+  const entries = [...criticalEntries, ...priorityEntries, ...tailEntries].sort(([left], [right]) =>
     left.localeCompare(right)
   );
   return {
-    version: 2,
+    version: 3,
     digest: shellDigest(entries),
     assets: entries.map(([asset]) => asset),
     criticalDigest: shellDigest(criticalEntries),
     criticalAssets,
+    priorityDigest: shellDigest(priorityEntries),
+    priorityAssets,
     tailDigest: shellDigest(tailEntries),
     tailAssets,
   };
@@ -469,6 +475,61 @@ describe("client public service worker migration", () => {
     await expect(matchShell(tail[0][0]).then((response) => response?.text())).resolves.toBe(
       tail[0][1]
     );
+  });
+
+  it("downloads the offline-ready tier on its own, leaving the send-time tail alone", async () => {
+    const { cacheFor, caches, fetchMock, listeners } = await loadServiceWorker();
+    const critical: Array<[string, string]> = [["/index.html", "<main>ready</main>"]];
+    // What a steward needs to accept work with no signal.
+    const priority: Array<[string, string]> = [
+      ["/assets/heic-to-abcdef12.js", "export const decode = true"],
+    ];
+    // Only ever read while online, so it must not ride along.
+    const tail: Array<[string, string]> = [
+      ["/assets/encoders-99887766.js", "export const encode = true"],
+    ];
+    const manifest = splitShellManifest(critical, tail, priority);
+    fetchMock
+      .mockResolvedValueOnce(new Response(JSON.stringify(manifest)))
+      .mockResolvedValueOnce(
+        new Response(critical[0][1], { headers: { "content-type": "text/html" } })
+      );
+    let installation: Promise<unknown> | undefined;
+    listeners.install[0]({ waitUntil: (promise: Promise<unknown>) => (installation = promise) });
+    await installation;
+
+    caches.keys.mockResolvedValue([`gg-pwa-shell-${manifest.digest}`]);
+    let activation: Promise<unknown> | undefined;
+    listeners.activate[0]({ waitUntil: (promise: Promise<unknown>) => (activation = promise) });
+    await activation;
+
+    const matchShell = cacheFor(`gg-pwa-shell-${manifest.digest}`).match as unknown as (
+      request: RequestInfo | URL
+    ) => Promise<Response | undefined>;
+    fetchMock.mockResolvedValueOnce(
+      new Response(priority[0][1], { headers: { "content-type": "application/javascript" } })
+    );
+
+    await expect(ask(listeners, { type: "PREPARE_PWA_PRIORITY" })).resolves.toEqual({
+      status: "ready",
+    });
+    await expect(matchShell(priority[0][0]).then((response) => response?.text())).resolves.toBe(
+      priority[0][1]
+    );
+    await expect(matchShell(tail[0][0])).resolves.toBeUndefined();
+
+    // The tail still has to be asked for separately, and lands in the same shell.
+    fetchMock.mockResolvedValueOnce(
+      new Response(tail[0][1], { headers: { "content-type": "application/javascript" } })
+    );
+    await expect(ask(listeners, { type: "PREPARE_PWA_TAIL" })).resolves.toEqual({
+      status: "ready",
+    });
+    await expect(matchShell(tail[0][0]).then((response) => response?.text())).resolves.toBe(
+      tail[0][1]
+    );
+    // The earlier tier survives the later one's metadata write.
+    await expect(matchShell(priority[0][0])).resolves.toBeDefined();
   });
 
   it("clears stale runtime caches without claiming or navigating clients on activation", async () => {
@@ -914,7 +975,7 @@ describe("IPFS media cache", () => {
     const { listeners } = await loadServiceWorker();
 
     await expect(ask(listeners, { type: "OFFLINE_CONTENT_CAPABILITIES" })).resolves.toEqual({
-      offlineContentVersion: 3,
+      offlineContentVersion: 4,
     });
   });
 

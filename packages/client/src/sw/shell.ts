@@ -14,13 +14,19 @@ const LEGACY_METADATA_URL = "/__gg_pwa_shell_current__";
 const STALE_RUNTIME_CACHES = new Set<string>([...OBSOLETE_RUNTIME_CACHES, "gg-image-cache-meta"]);
 const DIGEST_PATTERN = /^[a-f0-9]{16}$/;
 
-/** What the build wrote next to the app: the shell split into a critical set and a tail. */
+/**
+ * What the build wrote next to the app: the shell in three tiers. The critical
+ * set boots the app, the priority set is what an installed app needs to accept
+ * work with no signal, and the tail is only ever read online.
+ */
 export interface ShellManifest {
-  version: 2;
+  version: 3;
   digest: string;
   assets: string[];
   criticalDigest: string;
   criticalAssets: string[];
+  priorityDigest: string;
+  priorityAssets: string[];
   tailDigest: string;
   tailAssets: string[];
 }
@@ -32,29 +38,51 @@ export interface ShellMetadata {
   criticalDigest?: string;
   criticalAssets?: string[];
   criticalReady?: boolean;
+  priorityDigest?: string;
+  priorityAssets?: string[];
+  priorityReady?: boolean;
   tailDigest?: string;
   tailAssets?: string[];
   tailReady?: boolean;
   previousCacheName?: string | null;
 }
 
+/** The two tiers that arrive after the critical set, each downloadable on its own. */
+export type ShellTier = "priority" | "tail";
+
+const TIER_FIELDS = {
+  priority: { assets: "priorityAssets", digest: "priorityDigest", ready: "priorityReady" },
+  tail: { assets: "tailAssets", digest: "tailDigest", ready: "tailReady" },
+} as const satisfies Record<ShellTier, { assets: string; digest: string; ready: string }>;
+
 function isShellManifest(value: unknown): value is ShellManifest {
   const manifest = value as Partial<ShellManifest> | null;
-  if (!manifest || manifest.version !== 2) return false;
-  const { assets, criticalAssets, tailAssets } = manifest;
-  if (!Array.isArray(assets) || !Array.isArray(criticalAssets) || !Array.isArray(tailAssets)) {
+  if (!manifest || manifest.version !== 3) return false;
+  const { assets, criticalAssets, priorityAssets, tailAssets } = manifest;
+  if (
+    !Array.isArray(assets) ||
+    !Array.isArray(criticalAssets) ||
+    !Array.isArray(priorityAssets) ||
+    !Array.isArray(tailAssets)
+  ) {
     return false;
   }
-  const digests = [manifest.digest, manifest.criticalDigest, manifest.tailDigest];
+  const digests = [
+    manifest.digest,
+    manifest.criticalDigest,
+    manifest.priorityDigest,
+    manifest.tailDigest,
+  ];
   if (!digests.every((digest) => typeof digest === "string" && DIGEST_PATTERN.test(digest))) {
     return false;
   }
   const isAssetPath = (asset: unknown) =>
     typeof asset === "string" && asset.startsWith("/") && !asset.startsWith("//");
+  const tiered = [criticalAssets, priorityAssets, tailAssets];
   return (
-    [...assets, ...criticalAssets, ...tailAssets].every(isAssetPath) &&
-    assets.length === criticalAssets.length + tailAssets.length &&
-    assets.every((asset) => criticalAssets.includes(asset) || tailAssets.includes(asset))
+    [...assets, ...tiered.flat()].every(isAssetPath) &&
+    assets.length === tiered.reduce((total, tier) => total + tier.length, 0) &&
+    assets.every((asset) => tiered.some((tier) => tier.includes(asset)))
   );
 }
 
@@ -202,8 +230,14 @@ async function writeMetadata(url: string, metadata: ShellMetadata): Promise<void
  * to proceed on any mismatch; the tail follows once the page is idle.
  */
 export class PwaShell {
-  private tailDownload?: Promise<ShellMetadata | null>;
-  private tailAbort?: AbortController;
+  private downloads = new Map<ShellTier, Promise<ShellMetadata | null>>();
+  private aborts = new Map<ShellTier, AbortController>();
+  /**
+   * Both tiers write the same metadata record, so they take turns. Running
+   * them together would let whichever finished last erase the other's
+   * readiness flag and re-download a tier that was already on disk.
+   */
+  private queue: Promise<unknown> = Promise.resolve();
 
   constructor(
     private readonly scope: ServiceWorkerGlobalScope,
@@ -243,6 +277,9 @@ export class PwaShell {
         criticalDigest: manifest.criticalDigest,
         criticalAssets: manifest.criticalAssets,
         criticalReady: true,
+        priorityDigest: manifest.priorityDigest,
+        priorityAssets: manifest.priorityAssets,
+        priorityReady: manifest.priorityAssets.length === 0,
         tailDigest: manifest.tailDigest,
         tailAssets: manifest.tailAssets,
         tailReady: manifest.tailAssets.length === 0,
@@ -282,38 +319,48 @@ export class PwaShell {
     return (await this.activeMetadata())?.cacheName ?? null;
   }
 
-  /** Download the tail into the active shell; one download at a time, resumable after a pause. */
-  prepareTail(): Promise<ShellMetadata | null> {
-    if (this.tailDownload) return this.tailDownload;
+  /** Download one deferred tier into the active shell; one run per tier, resumable after a pause. */
+  prepare(tier: ShellTier): Promise<ShellMetadata | null> {
+    const running = this.downloads.get(tier);
+    if (running) return running;
     const abort = new AbortController();
-    this.tailAbort = abort;
-    this.tailDownload = this.downloadTail(abort.signal).finally(() => {
-      this.tailDownload = undefined;
-      this.tailAbort = undefined;
+    this.aborts.set(tier, abort);
+    const run = this.queue.catch(() => undefined).then(() => this.downloadTier(tier, abort.signal));
+    this.queue = run.catch(() => undefined);
+    const tracked = run.finally(() => {
+      this.downloads.delete(tier);
+      this.aborts.delete(tier);
     });
-    return this.tailDownload;
+    this.downloads.set(tier, tracked);
+    return tracked;
   }
 
-  pauseTail(): void {
-    this.tailAbort?.abort();
+  /** Stop one tier, or every tier when a waiting worker needs the scope quiet. */
+  pause(tier?: ShellTier): void {
+    if (tier) this.aborts.get(tier)?.abort();
+    else for (const abort of this.aborts.values()) abort.abort();
   }
 
-  private async downloadTail(signal: AbortSignal): Promise<ShellMetadata | null> {
+  private async downloadTier(tier: ShellTier, signal: AbortSignal): Promise<ShellMetadata | null> {
+    const fields = TIER_FIELDS[tier];
     const active = await readMetadata(SW_CACHES.SHELL_METADATA, ACTIVE_METADATA_URL);
-    const tailAssets = active?.tailAssets ?? [];
-    if (!active || active.tailReady || tailAssets.length === 0) return active;
+    const assets = active?.[fields.assets] ?? [];
+    if (!active || active[fields.ready] || assets.length === 0) return active;
     const shellCache = await caches.open(active.cacheName);
     const reusable = (await caches.keys()).filter((name) =>
       name.startsWith(SW_CACHES.SHELL_PREFIX)
     );
-    const digests = await populateShellAssets(this.scope, shellCache, tailAssets, reusable, signal);
-    const installed = await createShellDigest(this.scope, tailAssets, digests);
-    if (installed !== active.tailDigest) {
+    const digests = await populateShellAssets(this.scope, shellCache, assets, reusable, signal);
+    const installed = await createShellDigest(this.scope, assets, digests);
+    const expected = active[fields.digest];
+    if (installed !== expected) {
       throw new Error(
-        `PWA tail digest mismatch: expected ${active.tailDigest}, received ${installed}`
+        `PWA ${tier} shell digest mismatch: expected ${expected}, received ${installed}`
       );
     }
-    const complete = { ...active, tailReady: true };
+    // Re-read: the other tier may have settled while this one downloaded.
+    const latest = (await readMetadata(SW_CACHES.SHELL_METADATA, ACTIVE_METADATA_URL)) ?? active;
+    const complete = { ...latest, [fields.ready]: true };
     await writeMetadata(ACTIVE_METADATA_URL, complete);
     return complete;
   }

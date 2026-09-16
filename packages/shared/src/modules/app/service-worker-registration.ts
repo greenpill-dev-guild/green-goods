@@ -1,7 +1,12 @@
 import { logger } from "./logger";
 import { track } from "./posthog";
 import { serviceWorkerManager } from "./service-worker";
-import { SW_MESSAGE } from "./service-worker-protocol";
+import {
+  type ServiceWorkerMessageType,
+  SW_MESSAGE,
+  type TailStatus,
+} from "./service-worker-protocol";
+import { isStandaloneMode } from "../../utils/app/pwa";
 
 type ServiceWorkerEnv = Partial<
   Pick<ImportMetaEnv, "DEV" | "PROD" | "VITE_ENABLE_SW_DEV" | "VITE_APP_VERSION">
@@ -24,8 +29,24 @@ export interface ResolvedServiceWorkerRegistrationConfig {
 
 const DEFAULT_SERVICE_WORKER_SCOPE = "/home/";
 const LEGACY_SCOPE_CLEANUP_KEY = "gg-sw-legacy-scope-cleanup-v1";
-const tailPreparationState = new WeakMap<ServiceWorker, "scheduled" | "paused">();
-let tailListenersStarted = false;
+
+/** The deferred shell tiers, in the order an installed app wants them. */
+export type PwaShellTier = "priority" | "tail";
+
+/** What the page learns about a tier it asked for; `undefined` until the worker answers. */
+export type PwaShellTierStatus = TailStatus;
+
+const TIER_MESSAGE: Record<PwaShellTier, ServiceWorkerMessageType> = {
+  priority: SW_MESSAGE.PREPARE_PWA_PRIORITY,
+  tail: SW_MESSAGE.PREPARE_PWA_TAIL,
+};
+
+const shellPreparationState = new WeakMap<
+  ServiceWorker,
+  Map<PwaShellTier, "scheduled" | "paused">
+>();
+const requestedTiers = new Map<PwaShellTier, ((status: PwaShellTierStatus) => void) | undefined>();
+let shellListenersStarted = false;
 
 interface NetworkInformationLike extends EventTarget {
   saveData?: boolean;
@@ -36,41 +57,100 @@ function networkInformation(): NetworkInformationLike | undefined {
   return (navigator as Navigator & { connection?: NetworkInformationLike }).connection;
 }
 
-/**
- * Lets the active worker finish the non-critical offline tail after the page
- * has yielded. Data Saver pauses that work until the browser reports a change.
- */
-export function schedulePwaTailPreparation(): void {
-  if (typeof window === "undefined") return;
-  const connection = networkInformation();
-  const schedule = () => {
-    const worker = navigator.serviceWorker.controller;
-    if (!worker) return;
-    if (connection?.saveData) {
-      worker.postMessage({ type: SW_MESSAGE.PAUSE_PWA_TAIL });
-      tailPreparationState.set(worker, "paused");
+function tierState(worker: ServiceWorker): Map<PwaShellTier, "scheduled" | "paused"> {
+  const existing = shellPreparationState.get(worker);
+  if (existing) return existing;
+  const created = new Map<PwaShellTier, "scheduled" | "paused">();
+  shellPreparationState.set(worker, created);
+  return created;
+}
+
+function readTierStatus(value: unknown): PwaShellTierStatus {
+  const status = (value as { status?: unknown } | null)?.status;
+  return typeof status === "string" ? (status as PwaShellTierStatus) : "failed";
+}
+
+/** Ask the worker for one tier, hearing the outcome on a port when someone is listening. */
+function postTierRequest(
+  worker: ServiceWorker,
+  tier: PwaShellTier,
+  onStatus?: (status: PwaShellTierStatus) => void
+): void {
+  const payload = { type: TIER_MESSAGE[tier] };
+  if (!onStatus) {
+    worker.postMessage(payload);
+    return;
+  }
+  try {
+    const channel = new MessageChannel();
+    channel.port1.onmessage = (event: MessageEvent) => {
+      channel.port1.close();
+      onStatus(readTierStatus(event.data));
+    };
+    worker.postMessage(payload, [channel.port2]);
+  } catch (error) {
+    logger.warn("[ServiceWorker] Shell tier reply port unavailable", { tier, error });
+    worker.postMessage(payload);
+  }
+}
+
+function requestTier(tier: PwaShellTier): void {
+  const worker = navigator.serviceWorker.controller;
+  if (!worker) return;
+  const state = tierState(worker);
+  const pause = () => {
+    worker.postMessage({ type: SW_MESSAGE.PAUSE_PWA_TAIL });
+    state.set(tier, "paused");
+    requestedTiers.get(tier)?.("paused");
+  };
+  if (networkInformation()?.saveData) {
+    pause();
+    return;
+  }
+  if (state.get(tier) === "scheduled") return;
+  state.set(tier, "scheduled");
+  const run = () => {
+    if (networkInformation()?.saveData) {
+      pause();
       return;
     }
-    if (tailPreparationState.get(worker) === "scheduled") return;
-    tailPreparationState.set(worker, "scheduled");
-    const run = () => {
-      if (networkInformation()?.saveData) {
-        worker.postMessage({ type: SW_MESSAGE.PAUSE_PWA_TAIL });
-        tailPreparationState.set(worker, "paused");
-        return;
-      }
-      worker.postMessage({ type: SW_MESSAGE.PREPARE_PWA_TAIL });
-    };
-    if (window.requestIdleCallback) window.requestIdleCallback(run, { timeout: 5_000 });
-    else window.setTimeout(run, 0);
+    postTierRequest(worker, tier, requestedTiers.get(tier));
   };
-  if (!tailListenersStarted) {
-    tailListenersStarted = true;
-    connection?.addEventListener("change", schedule);
-    window.addEventListener("online", schedule);
-    navigator.serviceWorker.addEventListener("controllerchange", schedule);
+  // The offline-ready tier is the difference between an installed app that can
+  // take a photo with no signal and one that cannot, so it does not wait for an
+  // idle moment. The send-time tail still yields to the page first.
+  if (tier === "priority") run();
+  else if (window.requestIdleCallback) window.requestIdleCallback(run, { timeout: 5_000 });
+  else window.setTimeout(run, 0);
+}
+
+function scheduleRequestedTiers(): void {
+  for (const tier of requestedTiers.keys()) requestTier(tier);
+}
+
+/**
+ * Ask the active worker to finish a deferred shell tier. Data Saver pauses the
+ * work until the browser reports a change, and a new controller re-asks, so a
+ * tier requested once keeps trying across reconnects and worker updates.
+ */
+export function schedulePwaShellPreparation(
+  tier: PwaShellTier,
+  onStatus?: (status: PwaShellTierStatus) => void
+): void {
+  if (typeof window === "undefined") return;
+  requestedTiers.set(tier, onStatus ?? requestedTiers.get(tier));
+  if (!shellListenersStarted) {
+    shellListenersStarted = true;
+    networkInformation()?.addEventListener("change", scheduleRequestedTiers);
+    window.addEventListener("online", scheduleRequestedTiers);
+    navigator.serviceWorker.addEventListener("controllerchange", scheduleRequestedTiers);
   }
-  schedule();
+  requestTier(tier);
+}
+
+/** Lets the active worker finish the send-time tail after the page has yielded. */
+export function schedulePwaTailPreparation(): void {
+  schedulePwaShellPreparation("tail");
 }
 
 function trimTrailingSlashes(value: string): string {
@@ -202,6 +282,10 @@ async function registerServiceWorker(
 
     serviceWorkerManager.attachRegistration(registration);
     await navigator.serviceWorker.ready;
+    // An app already on the home screen asks for the offline-ready tier every
+    // launch: `appinstalled` fires once, and only for the install that happens
+    // in this tab, so it cannot reach anyone who installed on an older build.
+    if (isStandaloneMode()) schedulePwaShellPreparation("priority");
     schedulePwaTailPreparation();
 
     track("service_worker_registered", {

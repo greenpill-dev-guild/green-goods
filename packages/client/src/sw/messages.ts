@@ -14,7 +14,7 @@ import {
 import type { BackgroundWork } from "./backgroundWork";
 import type { MediaCache } from "./media";
 import { registerBackgroundSync } from "./runtime";
-import type { PwaShell } from "./shell";
+import type { PwaShell, ShellTier } from "./shell";
 
 export interface MessageDependencies {
   scope: ServiceWorkerGlobalScope;
@@ -38,20 +38,23 @@ export function createMessageHandler({ scope, shell, media, work }: MessageDepen
     const reply = (value: unknown) => port?.postMessage(value);
     switch (message?.type) {
       case SW_MESSAGE.PAUSE_PWA_TAIL:
-        shell.pauseTail();
+        shell.pause();
         reply({ status: "paused" satisfies TailStatus });
         return;
+      case SW_MESSAGE.PREPARE_PWA_PRIORITY:
       case SW_MESSAGE.PREPARE_PWA_TAIL: {
         if (!work.isAccepting) {
           reply({ status: "blocked" satisfies TailStatus });
           return;
         }
+        const tier: ShellTier =
+          message.type === SW_MESSAGE.PREPARE_PWA_PRIORITY ? "priority" : "tail";
         event.waitUntil(
-          work.track(shell.prepareTail()).then(
-            (metadata) =>
-              reply({
-                status: (metadata?.tailReady ? "ready" : "unavailable") satisfies TailStatus,
-              }),
+          work.track(shell.prepare(tier)).then(
+            (metadata) => {
+              const ready = tier === "priority" ? metadata?.priorityReady : metadata?.tailReady;
+              reply({ status: (ready ? "ready" : "unavailable") satisfies TailStatus });
+            },
             (error: unknown) =>
               reply({
                 status: ((error as { name?: string })?.name === "AbortError"
@@ -65,7 +68,7 @@ export function createMessageHandler({ scope, shell, media, work }: MessageDepen
       case SW_MESSAGE.PREPARE_TO_ACTIVATE_UPDATE:
         event.waitUntil(
           work
-            .quiet(() => shell.pauseTail())
+            .quiet(() => shell.pause())
             .then(
               () => reply({ type: SW_REPLY.QUIET_ACK, status: "quiet" } satisfies QuietAckReply),
               () => reply({ type: SW_REPLY.QUIET_ACK, status: "failed" } satisfies QuietAckReply)
