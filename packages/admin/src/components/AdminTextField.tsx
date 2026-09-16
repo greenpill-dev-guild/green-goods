@@ -192,8 +192,12 @@ const AdminTextFieldBase = React.forwardRef<AdminTextFieldControl, AdminTextFiel
       multiline && "resize-y",
       // Selects drop the native chrome; the chevron renders in the trailing
       // icon slot and clicks fall through it to the control.
+      // The option pair rides the themed surface, not raw neutrals: --neutral-0
+      // and --neutral-950 hold the same value in both themes, so pinning to them
+      // left a permanently light popup under the dark cockpit. Shared selects get
+      // the same treatment from `[data-theme="dark"] select option` in theme.css.
       select &&
-        "appearance-none cursor-pointer disabled:cursor-not-allowed [&>option]:bg-[rgb(var(--neutral-0))] [&>option]:text-[rgb(var(--neutral-950))]",
+        "appearance-none cursor-pointer disabled:cursor-not-allowed [&>option]:bg-[rgb(var(--m3-surface-container))] [&>option]:text-[rgb(var(--m3-on-surface))]",
       LeadingIcon && "pl-9",
       TrailingIcon && "pr-9"
     );

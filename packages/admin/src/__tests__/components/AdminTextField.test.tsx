@@ -82,9 +82,11 @@ describe("AdminSelect", () => {
     expect(screen.getByText("Cycle")).toHaveClass("top-0.5", "leading-4");
     expect(screen.getByText("Cycle")).not.toHaveClass("top-1/2");
     expect(control).toHaveClass("pt-5", "pb-1", "leading-5");
+    // Themed surface tokens, not raw neutrals: --neutral-0/--neutral-950 do not
+    // flip with the theme, so they leave a light popup under the dark cockpit.
     expect(control).toHaveClass(
-      "[&>option]:bg-[rgb(var(--neutral-0))]",
-      "[&>option]:text-[rgb(var(--neutral-950))]"
+      "[&>option]:bg-[rgb(var(--m3-surface-container))]",
+      "[&>option]:text-[rgb(var(--m3-on-surface))]"
     );
 
     fireEvent.change(control, { target: { value: "c1" } });

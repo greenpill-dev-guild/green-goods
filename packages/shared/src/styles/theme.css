@@ -110,6 +110,11 @@
 @layer theme {
   /* Base color primitives (RGB values for Tailwind opacity modifiers) */
   :root {
+  /* Browser-painted UI — native select popups, date pickers, scrollbars — reads
+     this, not our tokens. Without it the UA follows the OS preference and paints
+     a light popup under a dark app (PRD-922). The app theme owns the scheme. */
+  color-scheme: light;
+
   /* Gray scale (matches client exactly) */
   --gray-950: 23 23 23;
   --gray-900: 28 28 28;
@@ -620,6 +625,8 @@
 /* Dark theme overrides using data-theme attribute */
 :root[data-theme="dark"],
 [data-theme="dark"] {
+  color-scheme: dark;
+
   /* Backgrounds — M3-aligned dark surface ladder (tones 6→22, ceiling at 24) */
   --bg-white-0: var(--neutral-950);      /* 12 10 9  — surface / surfaceDim (tone 6) */
   --bg-weak-50: var(--neutral-925);      /* 22 20 18 — surfaceContainerLow (tone 10) */
@@ -944,6 +951,18 @@
   :root[data-theme="dark"] .gg-control-select,
   [data-theme="dark"] .gg-control-select {
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23a3a3a3' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  }
+
+  /* Option rows are painted by the browser, not by the control: they ignore the
+     select's own surface and inherit only its text colour, so a dark-theme
+     select drew light text on the UA's light list (PRD-922). Pin the pair to
+     the themed surface for every native select — shared controls, the admin
+     cockpit fields, and the sort rails alike — so the popup survives a UA that
+     ignores color-scheme. */
+  [data-theme="dark"] select option,
+  [data-theme="dark"] select optgroup {
+    background-color: rgb(var(--bg-soft-200));
+    color: rgb(var(--text-strong-950));
   }
 
   .gg-control-trigger {
