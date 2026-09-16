@@ -26,7 +26,20 @@ reexecUnderSystemNodeIfNeeded({
 const ARBITRUM_CHAIN_ID = 42161;
 const DEFAULT_PRODUCTION_INDEXER_URL = "https://indexer.hyperindex.xyz/0bf0e0f/v1/graphql";
 const DEFAULT_PRODUCTION_AGENT_URL = "https://agent.greengoods.app";
-const BETA_ADMIN_ORIGIN = "https://beta.admin.greengoods.app";
+// Browser surfaces that must reach the production agent. AGENT_ALLOWED_ORIGINS
+// lives only in Fly secrets, so this live preflight is what guards the list.
+// The staging names are DNS aliases of the beta deployments.
+const PRODUCTION_AGENT_BROWSER_ORIGINS = [
+  "https://greengoods.app",
+  "https://www.greengoods.app",
+  "https://admin.greengoods.app",
+  "https://beta.greengoods.app",
+  "https://beta.admin.greengoods.app",
+  "https://staging.greengoods.app",
+  "https://staging-admin.greengoods.app",
+];
+// An origin the agent must refuse, so an allowlist that admits anything fails too.
+const PRODUCTION_AGENT_REFUSED_ORIGIN = "https://not-allowed.example.com";
 const LOCAL_INDEXER_URL = "http://localhost:3006/v1/graphql";
 const DEFAULT_ARBITRUM_RPC_URL = "https://arb1.arbitrum.io/rpc";
 const DEFAULT_MAX_INDEXER_LAG_BLOCKS = 2_000;
@@ -555,52 +568,76 @@ async function checkProductionAgentHealth() {
   }
 }
 
-async function checkProductionAgentBetaAdminCors() {
+async function preflightUploadSign(uploadSignUrl, origin) {
+  const response = await fetch(uploadSignUrl, {
+    method: "OPTIONS",
+    headers: {
+      Origin: origin,
+      "Access-Control-Request-Method": "POST",
+      "Access-Control-Request-Headers": "Content-Type",
+    },
+    signal: AbortSignal.timeout(12_000),
+  });
+  return {
+    origin,
+    status: response.status,
+    text: await response.text(),
+    allowedOrigin: response.headers.get("access-control-allow-origin"),
+    allowedMethods: response.headers.get("access-control-allow-methods") || "",
+    allowedHeaders: response.headers.get("access-control-allow-headers") || "",
+  };
+}
+
+function describeAllowedOriginProblem(preflight) {
+  const { origin, status, text, allowedOrigin, allowedMethods, allowedHeaders } = preflight;
+  if (status !== 204) {
+    return `${origin}: HTTP ${status} ${text.slice(0, 80)}`;
+  }
+  if (allowedOrigin !== origin) {
+    return `${origin}: Access-Control-Allow-Origin=${allowedOrigin || "missing"}`;
+  }
+
+  const methodsList = allowedMethods.split(",").map((m) => m.trim().toUpperCase());
+  if (!methodsList.includes("POST")) {
+    return `${origin}: Access-Control-Allow-Methods=${allowedMethods || "missing"} (POST not permitted)`;
+  }
+
+  const headersList = allowedHeaders.split(",").map((h) => h.trim().toLowerCase());
+  if (!headersList.includes("content-type")) {
+    return `${origin}: Access-Control-Allow-Headers=${allowedHeaders || "missing"} (Content-Type not permitted)`;
+  }
+  return null;
+}
+
+async function checkProductionAgentBrowserOrigins() {
   const agentBaseUrl = getAgentBaseUrl();
   const uploadSignUrl = new URL("/api/uploads/sign", `${agentBaseUrl}/`).toString();
 
   try {
-    const response = await fetch(uploadSignUrl, {
-      method: "OPTIONS",
-      headers: {
-        Origin: BETA_ADMIN_ORIGIN,
-        "Access-Control-Request-Method": "POST",
-        "Access-Control-Request-Headers": "Content-Type",
-      },
-      signal: AbortSignal.timeout(12_000),
-    });
-    const text = await response.text();
-    const allowedOrigin = response.headers.get("access-control-allow-origin");
-    const allowedMethods = response.headers.get("access-control-allow-methods") || "";
-    const allowedHeaders = response.headers.get("access-control-allow-headers") || "";
+    const [refused, ...allowed] = await Promise.all(
+      [PRODUCTION_AGENT_REFUSED_ORIGIN, ...PRODUCTION_AGENT_BROWSER_ORIGINS].map((origin) =>
+        preflightUploadSign(uploadSignUrl, origin)
+      )
+    );
 
-    if (response.status !== 204) {
-      throw new Error(`HTTP ${response.status}: ${text.slice(0, 120)}`);
+    const problems = allowed.map(describeAllowedOriginProblem).filter(Boolean);
+    if (refused.status < 400 || refused.allowedOrigin) {
+      problems.push(`${refused.origin}: expected a refusal, got HTTP ${refused.status}`);
     }
-    if (allowedOrigin !== BETA_ADMIN_ORIGIN) {
-      throw new Error(`Access-Control-Allow-Origin=${allowedOrigin || "missing"}`);
-    }
-
-    const methodsList = allowedMethods.split(",").map((m) => m.trim().toUpperCase());
-    if (!methodsList.includes("POST")) {
-      throw new Error(`Access-Control-Allow-Methods=${allowedMethods || "missing"} (POST not permitted)`);
-    }
-
-    const headersList = allowedHeaders.split(",").map((h) => h.trim().toLowerCase());
-    if (!headersList.includes("content-type")) {
-      throw new Error(`Access-Control-Allow-Headers=${allowedHeaders || "missing"} (Content-Type not permitted)`);
+    if (problems.length > 0) {
+      throw new Error(problems.join("; "));
     }
 
     return {
-      name: "production-agent-beta-admin-cors",
+      name: "production-agent-browser-origins",
       level: "pass",
       ready: true,
-      detail: `origin=${BETA_ADMIN_ORIGIN}; methods=${allowedMethods}; headers=${allowedHeaders}; HTTP ${response.status}`,
+      detail: `${allowed.length} browser origins allowed; unlisted origin refused with HTTP ${refused.status}`,
       url: redactUrl(uploadSignUrl),
     };
   } catch (error) {
     return {
-      name: "production-agent-beta-admin-cors",
+      name: "production-agent-browser-origins",
       level: "fail",
       ready: false,
       detail: error instanceof Error ? error.message : String(error),
@@ -664,7 +701,7 @@ const serviceResults = await Promise.all(
 const rpcChainResult = await checkRpcChain();
 const contractBytecodeResult = await checkContractBytecode();
 const productionAgentHealthResult = await checkProductionAgentHealth();
-const productionAgentBetaAdminCorsResult = await checkProductionAgentBetaAdminCors();
+const productionAgentBrowserOriginsResult = await checkProductionAgentBrowserOrigins();
 const indexerGraphqlResult = await checkIndexerGraphql();
 const indexerLagResult = await checkIndexerLag(indexerGraphqlResult);
 const localIndexerServiceResult = await checkLocalIndexerService();
@@ -673,7 +710,7 @@ const results = [
   rpcChainResult,
   contractBytecodeResult,
   productionAgentHealthResult,
-  productionAgentBetaAdminCorsResult,
+  productionAgentBrowserOriginsResult,
   indexerGraphqlResult,
   indexerLagResult,
   localIndexerServiceResult,
