@@ -123,7 +123,7 @@ describe("query persistence resilience", () => {
           queueMicrotask(() => request.onerror?.(new Event("error")));
           return request;
         },
-      } as IDBFactory,
+      } as unknown as IDBFactory,
     });
     const storage = memoryStorage();
     const persistence = createQueryPersistence({
