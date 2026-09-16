@@ -37,14 +37,21 @@ function ServiceWorkerUpdateNotifier() {
     // The restart landed on a new shell, so the tier that lets this app accept
     // work with no signal is fetched again. Imported here, not at the top: this
     // module reaches the job queue, which the public bundle must never carry.
+    let unsubscribe: (() => void) | undefined;
+    let disposed = false;
     void import("@green-goods/shared/service-worker")
       .then(({ schedulePwaShellPreparation }) => {
-        schedulePwaShellPreparation("priority", (status) => {
-          if (settled || status === "paused" || status === "unavailable") return;
+        if (disposed) return;
+        unsubscribe = schedulePwaShellPreparation("priority", (status) => {
+          if (settled) return;
           settled = true;
           window.clearTimeout(grace);
           // Only close a loop the reader saw open; a silent success stays silent.
-          if (waitAnnounced && status === "ready") updateToasts.offlineReady();
+          // Every outcome closes it, including one that is not ready: a spinner
+          // with no resolution is worse than plainly saying the app updated.
+          if (!waitAnnounced) return;
+          if (status === "ready") updateToasts.offlineReady();
+          else updateToasts.applied();
         });
       })
       .catch(() => {
@@ -52,7 +59,11 @@ function ServiceWorkerUpdateNotifier() {
         window.clearTimeout(grace);
       });
 
-    return () => window.clearTimeout(grace);
+    return () => {
+      disposed = true;
+      window.clearTimeout(grace);
+      unsubscribe?.();
+    };
   }, [restartedOnNewVersion, updateToasts]);
 
   useEffect(() => {

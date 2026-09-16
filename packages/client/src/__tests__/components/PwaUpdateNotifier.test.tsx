@@ -292,12 +292,35 @@ describe("PwaUpdateNotifier after an update reload", () => {
     });
     expect(sharedMocks.preparingOffline).toHaveBeenCalledTimes(1);
 
-    // A tier that is still retrying is not an outcome; only a settled one is.
-    act(() => notify?.("paused"));
-    expect(sharedMocks.offlineReady).not.toHaveBeenCalled();
-
     act(() => notify?.("ready"));
     expect(sharedMocks.offlineReady).toHaveBeenCalledTimes(1);
+    vi.useRealTimers();
+  });
+
+  it("closes an announced wait even when the tier is not coming", async () => {
+    vi.useFakeTimers();
+    let notify: ((status: string) => void) | undefined;
+    sharedMocks.schedulePwaShellPreparation.mockImplementation(
+      (_tier: string, onStatus?: (status: string) => void) => {
+        notify = onStatus;
+        return () => {};
+      }
+    );
+    mockHookState(true);
+
+    renderNotifier();
+    await act(async () => {});
+    act(() => {
+      vi.advanceTimersByTime(1_500);
+    });
+    expect(sharedMocks.preparingOffline).toHaveBeenCalledTimes(1);
+
+    // Data Saver, a failed fetch, a worker that cannot answer: whatever the
+    // reason, a spinner that never resolves is worse than saying the app
+    // updated. The toast settles rather than hanging.
+    act(() => notify?.("paused"));
+    expect(sharedMocks.offlineReady).not.toHaveBeenCalled();
+    expect(sharedMocks.applied).toHaveBeenCalledTimes(2);
     vi.useRealTimers();
   });
 

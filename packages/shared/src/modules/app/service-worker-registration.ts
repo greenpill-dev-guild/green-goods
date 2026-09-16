@@ -45,7 +45,17 @@ const shellPreparationState = new WeakMap<
   ServiceWorker,
   Map<PwaShellTier, "scheduled" | "paused">
 >();
-const requestedTiers = new Map<PwaShellTier, ((status: PwaShellTierStatus) => void) | undefined>();
+type TierListener = (status: PwaShellTierStatus) => void;
+/**
+ * Every request carries a reply port and the outcome is fanned out here, so a
+ * listener that registers while a request is already in flight still hears it.
+ * The alternative — remembering one callback per tier — silently dropped the
+ * second caller, because the in-flight message had already been posted.
+ */
+const tierListeners = new Map<PwaShellTier, Set<TierListener>>();
+/** The last answer for a tier, so a listener arriving after it settled is not left waiting. */
+const tierOutcome = new Map<PwaShellTier, PwaShellTierStatus>();
+const requestedTiers = new Set<PwaShellTier>();
 let shellListenersStarted = false;
 
 interface NetworkInformationLike extends EventTarget {
@@ -70,27 +80,26 @@ function readTierStatus(value: unknown): PwaShellTierStatus {
   return typeof status === "string" ? (status as PwaShellTierStatus) : "failed";
 }
 
-/** Ask the worker for one tier, hearing the outcome on a port when someone is listening. */
-function postTierRequest(
-  worker: ServiceWorker,
-  tier: PwaShellTier,
-  onStatus?: (status: PwaShellTierStatus) => void
-): void {
+function notifyTier(tier: PwaShellTier, status: PwaShellTierStatus): void {
+  tierOutcome.set(tier, status);
+  // Copied: a listener may unsubscribe itself while being told.
+  for (const listener of [...(tierListeners.get(tier) ?? [])]) listener(status);
+}
+
+/** Ask the worker for one tier. The reply port is always attached, never conditional. */
+function postTierRequest(worker: ServiceWorker, tier: PwaShellTier): void {
   const payload = { type: TIER_MESSAGE[tier] };
-  if (!onStatus) {
-    worker.postMessage(payload);
-    return;
-  }
   try {
     const channel = new MessageChannel();
     channel.port1.onmessage = (event: MessageEvent) => {
       channel.port1.close();
-      onStatus(readTierStatus(event.data));
+      notifyTier(tier, readTierStatus(event.data));
     };
     worker.postMessage(payload, [channel.port2]);
   } catch (error) {
     logger.warn("[ServiceWorker] Shell tier reply port unavailable", { tier, error });
     worker.postMessage(payload);
+    notifyTier(tier, "failed");
   }
 }
 
@@ -101,7 +110,7 @@ function requestTier(tier: PwaShellTier): void {
   const pause = () => {
     worker.postMessage({ type: SW_MESSAGE.PAUSE_PWA_TAIL });
     state.set(tier, "paused");
-    requestedTiers.get(tier)?.("paused");
+    notifyTier(tier, "paused");
   };
   if (networkInformation()?.saveData) {
     pause();
@@ -114,7 +123,7 @@ function requestTier(tier: PwaShellTier): void {
       pause();
       return;
     }
-    postTierRequest(worker, tier, requestedTiers.get(tier));
+    postTierRequest(worker, tier);
   };
   // The offline-ready tier is the difference between an installed app that can
   // take a photo with no signal and one that cannot, so it does not wait for an
@@ -125,20 +134,33 @@ function requestTier(tier: PwaShellTier): void {
 }
 
 function scheduleRequestedTiers(): void {
-  for (const tier of requestedTiers.keys()) requestTier(tier);
+  // A new controller re-runs the work, so its predecessor's verdict is stale.
+  tierOutcome.clear();
+  for (const tier of requestedTiers) requestTier(tier);
 }
 
 /**
  * Ask the active worker to finish a deferred shell tier. Data Saver pauses the
  * work until the browser reports a change, and a new controller re-asks, so a
  * tier requested once keeps trying across reconnects and worker updates.
+ *
+ * Returns an unsubscribe for `onStatus`; callers with a lifecycle should use it.
  */
 export function schedulePwaShellPreparation(
   tier: PwaShellTier,
-  onStatus?: (status: PwaShellTierStatus) => void
-): void {
-  if (typeof window === "undefined") return;
-  requestedTiers.set(tier, onStatus ?? requestedTiers.get(tier));
+  onStatus?: TierListener
+): () => void {
+  if (typeof window === "undefined") return () => {};
+  if (onStatus) {
+    const listeners = tierListeners.get(tier) ?? new Set<TierListener>();
+    tierListeners.set(tier, listeners);
+    listeners.add(onStatus);
+    // The worker runs one download per tier, so a tier that already answered
+    // will not answer again; replay it rather than leave this listener waiting.
+    const settled = tierOutcome.get(tier);
+    if (settled) onStatus(settled);
+  }
+  requestedTiers.add(tier);
   if (!shellListenersStarted) {
     shellListenersStarted = true;
     networkInformation()?.addEventListener("change", scheduleRequestedTiers);
@@ -146,6 +168,9 @@ export function schedulePwaShellPreparation(
     navigator.serviceWorker.addEventListener("controllerchange", scheduleRequestedTiers);
   }
   requestTier(tier);
+  return () => {
+    if (onStatus) tierListeners.get(tier)?.delete(onStatus);
+  };
 }
 
 /** Lets the active worker finish the send-time tail after the page has yielded. */

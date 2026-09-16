@@ -299,9 +299,15 @@ export const AppProvider = ({
       // the public site must never carry it. Installing is always online.
       void import("../modules/app/service-worker-registration")
         .then(({ schedulePwaShellPreparation }) => {
+          // Not unsubscribed: an install happens once per page load, and a
+          // settled tier replays synchronously, so the handle would not exist
+          // yet at the moment it would be used. `announced` is the guard.
           schedulePwaShellPreparation("priority", (status) => {
-            if (announced || status === "paused" || status === "unavailable") return;
+            if (announced) return;
             announced = true;
+            // Every outcome settles the toast. Anything other than ready means
+            // the app is installed and usable but not yet offline-capable,
+            // which is what the plain install message already says.
             showInstallToast(status === "ready" ? "offlineReady" : "installed");
           });
         })

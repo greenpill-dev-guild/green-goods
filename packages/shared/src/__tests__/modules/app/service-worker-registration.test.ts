@@ -74,7 +74,10 @@ describe("service worker registration config", () => {
     connection.dispatchEvent(new Event("change"));
     await vi.advanceTimersByTimeAsync(0);
 
-    expect(worker.postMessage).toHaveBeenLastCalledWith({ type: "PREPARE_PWA_TAIL" });
+    // Every request carries a reply port, so any listener can hear the outcome.
+    expect(worker.postMessage).toHaveBeenLastCalledWith({ type: "PREPARE_PWA_TAIL" }, [
+      expect.any(MessagePort),
+    ]);
   });
 
   it("asks for the offline-ready tier at once and reports what the worker answers", async () => {
@@ -106,6 +109,86 @@ describe("service worker registration config", () => {
     transfer[0].postMessage({ status: "ready" });
 
     await vi.waitFor(() => expect(statuses).toEqual(["ready"]));
+  });
+
+  it("answers a listener that registers after a callback-less request", async () => {
+    // The real ordering after an update restart: `registerServiceWorker` asks
+    // for the tier with no callback, then `PwaUpdateNotifier` asks again with
+    // one. Remembering a single callback per tier dropped the second caller,
+    // because the in-flight message had already gone out without a port.
+    vi.resetModules();
+    const { schedulePwaShellPreparation } = await import(
+      "../../../modules/app/service-worker-registration"
+    );
+    const worker = { postMessage: vi.fn() } as unknown as ServiceWorker;
+    Object.defineProperty(navigator, "serviceWorker", {
+      configurable: true,
+      value: Object.assign(new EventTarget(), { controller: worker }),
+    });
+
+    schedulePwaShellPreparation("priority");
+    const statuses: string[] = [];
+    schedulePwaShellPreparation("priority", (status) => statuses.push(status));
+
+    const withPort = (worker.postMessage as ReturnType<typeof vi.fn>).mock.calls.find(
+      (call) => Array.isArray(call[1]) && call[1].length > 0
+    ) as [unknown, MessagePort[]] | undefined;
+    expect(withPort, "no request carried a reply port").toBeDefined();
+    withPort?.[1][0].postMessage({ status: "ready" });
+
+    await vi.waitFor(() => expect(statuses).toEqual(["ready"]));
+  });
+
+  it("replays a settled outcome to a listener that arrives late", async () => {
+    vi.resetModules();
+    const { schedulePwaShellPreparation } = await import(
+      "../../../modules/app/service-worker-registration"
+    );
+    const worker = { postMessage: vi.fn() } as unknown as ServiceWorker;
+    Object.defineProperty(navigator, "serviceWorker", {
+      configurable: true,
+      value: Object.assign(new EventTarget(), { controller: worker }),
+    });
+
+    const first: string[] = [];
+    schedulePwaShellPreparation("priority", (status) => first.push(status));
+    const [, transfer] = (worker.postMessage as ReturnType<typeof vi.fn>).mock.calls[0] as [
+      unknown,
+      MessagePort[],
+    ];
+    transfer[0].postMessage({ status: "ready" });
+    await vi.waitFor(() => expect(first).toEqual(["ready"]));
+
+    // The worker runs one download per tier and will not answer again, so a
+    // listener registering now must be told what already happened.
+    const late: string[] = [];
+    schedulePwaShellPreparation("priority", (status) => late.push(status));
+    expect(late).toEqual(["ready"]);
+  });
+
+  it("stops telling a listener that unsubscribed", async () => {
+    vi.resetModules();
+    const { schedulePwaShellPreparation } = await import(
+      "../../../modules/app/service-worker-registration"
+    );
+    const worker = { postMessage: vi.fn() } as unknown as ServiceWorker;
+    Object.defineProperty(navigator, "serviceWorker", {
+      configurable: true,
+      value: Object.assign(new EventTarget(), { controller: worker }),
+    });
+
+    const statuses: string[] = [];
+    const stop = schedulePwaShellPreparation("priority", (status) => statuses.push(status));
+    stop();
+
+    const [, transfer] = (worker.postMessage as ReturnType<typeof vi.fn>).mock.calls[0] as [
+      unknown,
+      MessagePort[],
+    ];
+    transfer[0].postMessage({ status: "ready" });
+    await new Promise((resolve) => setTimeout(resolve, 10));
+
+    expect(statuses).toEqual([]);
   });
 
   it("keeps Vite PWA's exact development worker URL", async () => {
