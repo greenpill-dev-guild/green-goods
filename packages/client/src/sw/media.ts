@@ -4,7 +4,7 @@ import {
   type MediaStatsReply,
   SW_CACHES,
 } from "@green-goods/shared/modules/app/service-worker-protocol";
-import type { BackgroundWork } from "./background-work";
+import type { BackgroundWork } from "./backgroundWork";
 
 const POLICY_URL = "/__gg_media_policy_v1__";
 const STORED_AT_HEADER = "x-gg-stored-at";

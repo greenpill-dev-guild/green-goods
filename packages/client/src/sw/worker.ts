@@ -3,7 +3,7 @@ import {
   CONNECTIVITY_CHECK_PATH,
   GREEN_GOODS_SYNC_TAG,
 } from "@green-goods/shared/modules/app/service-worker-protocol";
-import { BackgroundWork } from "./background-work";
+import { BackgroundWork } from "./backgroundWork";
 import { isMediaRequest, MediaCache } from "./media";
 import { createMessageHandler } from "./messages";
 import {
@@ -12,7 +12,7 @@ import {
   isJavaScriptAssetRequest,
   notifyClients,
 } from "./runtime";
-import { isShareTargetRequest, receiveShareTarget } from "./share-target";
+import { isShareTargetRequest, receiveShareTarget } from "./shareTarget";
 import { PwaShell } from "./shell";
 
 /** Background Sync is not in the worker type library yet. */

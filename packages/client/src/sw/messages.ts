@@ -11,7 +11,7 @@ import {
   type UpdateAckReply,
   type UpdateAckStatus,
 } from "@green-goods/shared/modules/app/service-worker-protocol";
-import type { BackgroundWork } from "./background-work";
+import type { BackgroundWork } from "./backgroundWork";
 import type { MediaCache } from "./media";
 import { registerBackgroundSync } from "./runtime";
 import type { PwaShell } from "./shell";

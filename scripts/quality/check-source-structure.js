@@ -25,7 +25,8 @@ const STRUCTURE_BASELINE_PATH = "scripts/data/source-structure-baseline.json";
 const ALLOWED_TOP_LEVEL_DIRECTORIES = {
   admin: new Set(["components", "routes", "styles", "views"]),
   agent: new Set(["api", "handlers", "platforms", "runtime", "services"]),
-  client: new Set(["components", "config", "content", "routes", "styles", "views"]),
+  // `sw` is the service worker's own source, bundled separately from the app.
+  client: new Set(["components", "config", "content", "routes", "styles", "sw", "views"]),
   contracts: new Set([
     "accounts",
     "interfaces",
