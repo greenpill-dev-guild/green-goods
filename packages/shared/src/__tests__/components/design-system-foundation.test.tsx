@@ -60,7 +60,7 @@ describe("design system foundation", () => {
 
   it("uses the shared button class contract", () => {
     render(
-      <Button variant="secondary" size="sm">
+      <Button emphasis="secondary" size="sm">
         Refresh
       </Button>
     );
@@ -68,8 +68,8 @@ describe("design system foundation", () => {
     const button = screen.getByRole("button", { name: "Refresh" });
 
     expect(button).toHaveClass("gg-button");
-    expect(button).toHaveClass("gg-button-secondary");
-    expect(button).toHaveClass("gg-button-size-sm");
+    expect(button).toHaveAttribute("data-emphasis", "secondary");
+    expect(button).toHaveAttribute("data-size", "sm");
   });
 
   it("exposes one shared control sizing contract for native inputs and selects", () => {

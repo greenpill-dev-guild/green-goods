@@ -22,7 +22,7 @@ const meta = {
     docs: {
       description: {
         component:
-          'The one action button. Emphasis sets fill, outline, and colour; the corner comes from the surface and is the same for every emphasis (DL-026): the 12px squircle in the installed app, 16px on the public website (inside `data-site="website"`). Heights match the field scale (DL-023): lg 48, md 44, sm 40, compact 32 with a 48px hit area. A loading button stays focusable. `variant` is the legacy class contract kept for shared internals admin still renders.',
+          'The one action button. Emphasis sets fill, outline, and colour; the corner comes from the surface and is the same for every emphasis (DL-026, DL-029): the 16px field corner in the installed app and no corner on the public website (inside `data-site="website"`). Heights match the field scale (DL-023): lg 48, md 44, sm 40, compact 32 with a 48px hit area. A loading button stays focusable.',
       },
     },
   },
@@ -46,8 +46,8 @@ export const Primary: Story = {
     const button = within(canvasElement).getByRole("button", { name: "Create Garden" });
     const style = getComputedStyle(button);
     await expect(button.getBoundingClientRect().height).toBe(44);
-    // The app corner is the 12px squircle for every emphasis.
-    await expect(px(style.borderTopLeftRadius)).toBe(12);
+    // The app corner is the 16px field corner for every emphasis (DL-029).
+    await expect(px(style.borderTopLeftRadius)).toBe(16);
   },
 };
 
@@ -55,7 +55,7 @@ export const Secondary: Story = {
   args: { emphasis: "secondary", children: "Cancel" },
   play: async ({ canvasElement }) => {
     const button = within(canvasElement).getByRole("button", { name: "Cancel" });
-    await expect(px(getComputedStyle(button).borderTopLeftRadius)).toBe(12);
+    await expect(px(getComputedStyle(button).borderTopLeftRadius)).toBe(16);
   },
 };
 
@@ -89,7 +89,7 @@ export const AsLink: Story = {
   ),
 };
 
-/** Every emphasis at every size, with the heights the scale promises and one app corner. */
+/** Every emphasis at every size, with the heights the scale promises and one app corner (16px; a capsule at compact). */
 export const EmphasisCatalog: Story = {
   render: () => (
     <div className="flex flex-col gap-4">
@@ -110,7 +110,7 @@ export const EmphasisCatalog: Story = {
       const row = canvasElement.querySelector(`[data-size-row="${size}"]`);
       for (const button of Array.from(row?.querySelectorAll("button") ?? [])) {
         await expect(button.getBoundingClientRect().height).toBe(height);
-        await expect(px(getComputedStyle(button).borderTopLeftRadius)).toBe(12);
+        await expect(px(getComputedStyle(button).borderTopLeftRadius)).toBe(16);
         // The two short sizes still reach a 48px hit area (DL-023).
         if (height < 44) {
           await expect(px(getComputedStyle(button, "::after").height)).toBe(48);
@@ -120,7 +120,7 @@ export const EmphasisCatalog: Story = {
   },
 };
 
-/** A field and its action share one height; the field is 16px, the action the 12px squircle. */
+/** A field and its action share one height and one 16px corner (DL-022, DL-029). */
 export const FieldPairing: Story = {
   render: () => (
     <div className="flex max-w-md items-start gap-2">
@@ -137,11 +137,11 @@ export const FieldPairing: Story = {
     await expect(field.getBoundingClientRect().height).toBe(44);
     await expect(button.getBoundingClientRect().height).toBe(44);
     await expect(px(getComputedStyle(field).borderTopLeftRadius)).toBe(16);
-    await expect(px(getComputedStyle(button).borderTopLeftRadius)).toBe(12);
+    await expect(px(getComputedStyle(button).borderTopLeftRadius)).toBe(16);
   },
 };
 
-/** On the public website every emphasis takes the 16px corner and a semibold label (DL-026). */
+/** On the public website every emphasis is square with a semibold label (DL-026, DL-029). */
 export const WebsiteSurface: Story = {
   render: () => (
     <div data-site="website" className="flex flex-wrap items-center gap-3">
@@ -157,22 +157,8 @@ export const WebsiteSurface: Story = {
       const button = within(canvasElement).getByRole("button", { name: `Website ${emphasis}` });
       const style = getComputedStyle(button);
       await expect(button.getBoundingClientRect().height).toBe(44);
-      await expect(px(style.borderTopLeftRadius)).toBe(16);
+      await expect(px(style.borderTopLeftRadius)).toBe(0);
       await expect(style.fontWeight).toBe("600");
     }
   },
-};
-
-/** The legacy `variant` path, kept for EmptyState and toasts that admin still renders. */
-export const LegacyVariant: Story = {
-  render: () => (
-    <div className="flex flex-wrap items-center gap-3">
-      <Button variant="primary" size="sm">
-        Legacy Primary
-      </Button>
-      <Button variant="ghost" size="sm">
-        Legacy Ghost
-      </Button>
-    </div>
-  ),
 };

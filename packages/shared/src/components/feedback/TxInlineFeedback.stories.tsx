@@ -45,7 +45,7 @@ export const Error: Story = {
     title: "Transaction failed",
     message: "The latest simulation reverted. Review the inputs and try again.",
     action: (
-      <Button size="sm" variant="secondary">
+      <Button size="sm" emphasis="secondary">
         Retry simulation
       </Button>
     ),

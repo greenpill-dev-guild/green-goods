@@ -22,6 +22,7 @@
     "full": "9999px",
     "lg": "16px",
     "md": "8px",
+    "none": "0px",
     "squircle": "12px",
     "xl": "20px"
   },

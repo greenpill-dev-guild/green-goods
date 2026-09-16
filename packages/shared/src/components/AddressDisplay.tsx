@@ -8,6 +8,7 @@ import type { Address } from "../types/domain";
 import { copyToClipboard } from "../utils/app/clipboard";
 import { formatAddress } from "../utils/app/text";
 import { cn } from "../utils/styles/cn";
+import { IconButton } from "./IconButton";
 
 export interface AddressDisplayProps {
   address: Address;
@@ -92,21 +93,20 @@ export function AddressDisplay({
       </div>
 
       {showCopyButton && (
-        <button
-          type="button"
+        <IconButton
+          size="compact"
+          className="-my-1.5 text-text-soft"
           onClick={handleCopy}
-          className="p-1 text-text-soft hover:text-text-sub transition-colors focus:outline-none focus:ring-2 focus:ring-primary-base/40 rounded"
+          aria-label={intl.formatMessage({
+            id: "app.common.copyAddress",
+            defaultMessage: "Copy Address",
+          })}
           title={intl.formatMessage({
             id: "app.common.copyAddress",
             defaultMessage: "Copy Address",
           })}
-        >
-          {copied ? (
-            <RiCheckLine className="h-3 w-3 text-success-dark" />
-          ) : (
-            <RiFileCopyLine className="h-3 w-3" />
-          )}
-        </button>
+          icon={copied ? <RiCheckLine className="text-success-dark" /> : <RiFileCopyLine />}
+        />
       )}
     </div>
   );

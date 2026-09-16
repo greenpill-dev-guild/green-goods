@@ -346,6 +346,7 @@ export function DetailsStep({ showValidation }: DetailsStepProps) {
       />
       <div className="space-y-1.5 text-sm">
         <FileUploadField
+          surface="admin"
           label={formatMessage({
             id: "app.garden.create.bannerImageLabel",
             defaultMessage: "Banner image",

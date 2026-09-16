@@ -108,7 +108,7 @@ function CookieJarDepositModalHarness({
         </div>
 
         <Button
-          variant="secondary"
+          emphasis="secondary"
           className="w-full"
           loading={isPending}
           disabled={!selected || amount.trim() === ""}

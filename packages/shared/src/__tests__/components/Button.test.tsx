@@ -121,17 +121,19 @@ describe("Button", () => {
     expect(onButtonClick).toHaveBeenCalledTimes(1);
   });
 
-  it("keeps the legacy class contract when a variant is passed", () => {
-    const onClick = vi.fn();
+  it("has one contract: emphasis, tone, and size attributes on the gg-button class", () => {
     render(
-      <Button variant="ghost" size="sm" loading onClick={onClick}>
+      <Button emphasis="tertiary" size="sm" loading>
         Retry
       </Button>
     );
     const button = screen.getByRole("button", { name: "Retry" });
-    expect(button).toHaveClass("gg-button", "gg-button-ghost", "gg-button-size-sm");
-    expect(button).not.toHaveAttribute("data-emphasis");
-    // Legacy loading still disables natively, as admin-reachable internals expect.
-    expect(button).toBeDisabled();
+    expect(button).toHaveClass("gg-button");
+    expect(button).toHaveAttribute("data-emphasis", "tertiary");
+    expect(button).toHaveAttribute("data-size", "sm");
+    expect(button.className).not.toMatch(/gg-button-/);
+    // Loading keeps focus (aria-disabled), never native disabled.
+    expect(button).not.toBeDisabled();
+    expect(button).toHaveAttribute("aria-disabled", "true");
   });
 });
