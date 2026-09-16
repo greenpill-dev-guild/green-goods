@@ -43,9 +43,10 @@ const TIER_MESSAGE: Record<PwaShellTier, ServiceWorkerMessageType> = {
 
 const shellPreparationState = new WeakMap<
   ServiceWorker,
-  Map<PwaShellTier, "scheduled" | "paused">
+  Map<PwaShellTier, PwaShellTierStatus | "scheduled">
 >();
 type TierListener = (status: PwaShellTierStatus) => void;
+const TIER_REPLY_TIMEOUT_MS = 15_000;
 /**
  * Every request carries a reply port and the outcome is fanned out here, so a
  * listener that registers while a request is already in flight still hears it.
@@ -67,10 +68,10 @@ function networkInformation(): NetworkInformationLike | undefined {
   return (navigator as Navigator & { connection?: NetworkInformationLike }).connection;
 }
 
-function tierState(worker: ServiceWorker): Map<PwaShellTier, "scheduled" | "paused"> {
+function tierState(worker: ServiceWorker): Map<PwaShellTier, PwaShellTierStatus | "scheduled"> {
   const existing = shellPreparationState.get(worker);
   if (existing) return existing;
-  const created = new Map<PwaShellTier, "scheduled" | "paused">();
+  const created = new Map<PwaShellTier, PwaShellTierStatus | "scheduled">();
   shellPreparationState.set(worker, created);
   return created;
 }
@@ -89,17 +90,36 @@ function notifyTier(tier: PwaShellTier, status: PwaShellTierStatus): void {
 /** Ask the worker for one tier. The reply port is always attached, never conditional. */
 function postTierRequest(worker: ServiceWorker, tier: PwaShellTier): void {
   const payload = { type: TIER_MESSAGE[tier] };
+  const state = tierState(worker);
+  let channel: MessageChannel | undefined;
+  let replyTimeout: number | undefined;
   try {
-    const channel = new MessageChannel();
-    channel.port1.onmessage = (event: MessageEvent) => {
-      channel.port1.close();
-      notifyTier(tier, readTierStatus(event.data));
+    channel = new MessageChannel();
+    const replyChannel = channel;
+    replyTimeout = window.setTimeout(() => {
+      replyChannel.port1.close();
+      state.set(tier, "failed");
+      notifyTier(tier, "failed");
+    }, TIER_REPLY_TIMEOUT_MS);
+    replyChannel.port1.onmessage = (event: MessageEvent) => {
+      window.clearTimeout(replyTimeout);
+      replyChannel.port1.close();
+      const status = readTierStatus(event.data);
+      state.set(tier, status);
+      notifyTier(tier, status);
     };
-    worker.postMessage(payload, [channel.port2]);
+    worker.postMessage(payload, [replyChannel.port2]);
   } catch (error) {
+    if (replyTimeout !== undefined) window.clearTimeout(replyTimeout);
+    channel?.port1.close();
     logger.warn("[ServiceWorker] Shell tier reply port unavailable", { tier, error });
-    worker.postMessage(payload);
+    state.set(tier, "failed");
     notifyTier(tier, "failed");
+    try {
+      worker.postMessage(payload);
+    } catch (fallbackError) {
+      logger.warn("[ServiceWorker] Shell tier request failed", { tier, error: fallbackError });
+    }
   }
 }
 
@@ -116,7 +136,7 @@ function requestTier(tier: PwaShellTier): void {
     pause();
     return;
   }
-  if (state.get(tier) === "scheduled") return;
+  if (["scheduled", "ready"].includes(state.get(tier) ?? "")) return;
   state.set(tier, "scheduled");
   const run = () => {
     if (networkInformation()?.saveData) {

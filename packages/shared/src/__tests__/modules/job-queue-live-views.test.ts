@@ -10,7 +10,7 @@
  * subscribed first.
  */
 import "fake-indexeddb/auto";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { jobQueueDB } from "../../modules/job-queue/db";
 import type { Job } from "../../types/job-queue";
 
@@ -24,6 +24,7 @@ const subscriptions: Array<{ unsubscribe: () => void }> = [];
 
 afterEach(() => {
   for (const subscription of subscriptions.splice(0)) subscription.unsubscribe();
+  vi.restoreAllMocks();
 });
 
 function queueWork(userAddress: string) {
@@ -87,5 +88,17 @@ describe("job queue live views", () => {
     await new Promise((resolve) => setTimeout(resolve, 200));
 
     expect(seen.length).toBe(countAtUnsubscribe);
+  });
+
+  it("reports a database-open failure after one retry", async () => {
+    const failure = new Error("database blocked");
+    const init = vi.spyOn(jobQueueDB, "init").mockRejectedValue(failure);
+    const errors: unknown[] = [];
+    subscriptions.push(
+      jobQueueDB.observeStats(nextAccount()).subscribe({ error: (error) => errors.push(error) })
+    );
+
+    await vi.waitFor(() => expect(errors).toEqual([failure]));
+    expect(init).toHaveBeenCalledTimes(2);
   });
 });

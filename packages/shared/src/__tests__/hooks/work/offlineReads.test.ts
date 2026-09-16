@@ -18,6 +18,13 @@ vi.mock("../../../modules/data/eas", () => ({
   getWorkListPage: seams.list,
   getWorksByGardener: seams.mine,
   getWorkApprovalsForWorks: seams.approvals,
+  readWorkApprovalsForWorks: async (...args: unknown[]) => {
+    try {
+      return { approvals: await seams.approvals(...args), failedWorkUIDs: [] };
+    } catch {
+      return { approvals: [], failedWorkUIDs: args[0] as string[] };
+    }
+  },
 }));
 vi.mock("../../../modules/job-queue/default-instance", () => ({
   jobQueue: { getJobs: seams.jobs },
@@ -220,6 +227,20 @@ it("opens personal work offline from downloaded garden lists scoped to the accou
   expect(result.current.data).toMatchObject([{ id: own.id, status: "approved" }]);
   expect(result.current.lastSuccessfulRefresh).toBe(1000);
   expect(result.current.isLoading).toBe(false);
+  expect(seams.mine).not.toHaveBeenCalled();
+});
+it("keeps a legacy reviewed status when the downloaded row predates embedded approvals", async () => {
+  const own = { ...cachedWork, gardenerAddress: queuedJob.userAddress, status: "pending" as const };
+  client.setQueryData(worksKeys.online(garden, 11155111), [own], { updatedAt: 1000 });
+  client.setQueryData(worksKeys.merged(garden, 11155111), [
+    { ...own, status: "rejected" as const, _txHash: "0xdecision" },
+  ]);
+
+  const { result } = renderHook(() => useMyWorks({ includeOffline: true }), {
+    wrapper: ({ children }) => createElement(QueryClientProvider, { client }, children),
+  });
+
+  expect(result.current.data).toMatchObject([{ id: own.id, status: "rejected" }]);
   expect(seams.mine).not.toHaveBeenCalled();
 });
 it("renders queued personal work before media finishes and recreates previews from retained bytes", async () => {

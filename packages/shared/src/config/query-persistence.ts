@@ -77,7 +77,7 @@ export interface QueryPersistence {
   persister: QueryPersister;
   /** Restore every stored read into the client, dropping what expired or no longer applies. */
   restore(client: QueryClient): Promise<void>;
-  /** Write one query now; rejects when storage refuses so callers can report it. */
+  /** Write one query now, falling through the available storage tiers as needed. */
   persistQuery(client: QueryClient, queryKey: QueryKey): Promise<void>;
   /** Remove expired and incompatible entries. Resolves with how many were removed. */
   gc(): Promise<number>;
@@ -90,6 +90,8 @@ export interface CreateShouldDehydrateQueryOptions {
 }
 
 interface QueryStore {
+  /** Whether this tier survives a page restart. */
+  isDurable(): boolean;
   get(key: string): Promise<StoredQuery | undefined>;
   set(key: string, value: StoredQuery): Promise<void>;
   remove(key: string): Promise<void>;
@@ -119,6 +121,7 @@ function createIdbQueryStore(dbName: string, storeName: string): QueryStore | un
   try {
     const store = createStore(dbName, storeName);
     return {
+      isDurable: () => true,
       get: (key) => idbGet<StoredQuery>(key, store),
       set: (key, value) => idbSet(key, value, store),
       remove: (key) => idbDel(key, store),
@@ -145,6 +148,7 @@ function createWebQueryStore(storage: Storage, prefix: string): QueryStore {
     }
   };
   return {
+    isDurable: () => true,
     get: async (key) => parse(storage.getItem(key)),
     set: async (key, value) => {
       storage.setItem(key, JSON.stringify(value));
@@ -174,6 +178,7 @@ function createWebQueryStore(storage: Storage, prefix: string): QueryStore {
 function createMemoryQueryStore(): QueryStore {
   const memory = new Map<string, StoredQuery>();
   return {
+    isDurable: () => false,
     get: async (key) => memory.get(key),
     set: async (key, value) => {
       memory.set(key, value);
@@ -186,22 +191,36 @@ function createMemoryQueryStore(): QueryStore {
   };
 }
 
-/** A store that swallows its own failures so a blocked browser never breaks reads. */
-function guardQueryStore(store: QueryStore, onError: (error: unknown) => void): QueryStore {
+/**
+ * Use the next storage tier when the current one refuses an operation.
+ *
+ * IndexedDB opens lazily, so merely constructing its store does not prove it
+ * is usable. Safari private mode and storage policy failures can arrive from
+ * the first asynchronous operation instead. Demoting for the rest of this
+ * session makes the documented IDB -> web storage -> memory chain real.
+ */
+function createFailoverQueryStore(
+  stores: QueryStore[],
+  onError: (error: unknown) => void
+): QueryStore {
+  let active = 0;
+  const run = async <T>(operation: (store: QueryStore) => Promise<T>): Promise<T> => {
+    try {
+      return await operation(stores[active]);
+    } catch (error) {
+      onError(error);
+      if (active >= stores.length - 1) throw error;
+      active += 1;
+      return run(operation);
+    }
+  };
   return {
-    get: (key) =>
-      store.get(key).catch((error) => {
-        onError(error);
-        return undefined;
-      }),
-    set: (key, value) => store.set(key, value),
-    remove: (key) => store.remove(key).catch(onError),
-    entries: () =>
-      store.entries().catch((error) => {
-        onError(error);
-        return [];
-      }),
-    clear: () => store.clear().catch(onError),
+    isDurable: () => stores[active].isDurable(),
+    get: (key) => run((store) => store.get(key)),
+    set: (key, value) => run((store) => store.set(key, value)),
+    remove: (key) => run((store) => store.remove(key)),
+    entries: () => run((store) => store.entries()),
+    clear: () => run((store) => store.clear()),
   };
 }
 
@@ -241,17 +260,19 @@ export function createQueryPersistence(options: CreateQueryPersistenceOptions): 
   const storageKey = (queryHash: string) => `${prefix}-${queryHash}`;
   const reportError = (error: unknown) => {
     debugWarn("[Persister] Reading cache operation failed", { error });
+    onPersistenceError?.();
   };
 
   let store: QueryStore;
   let webStorage: Storage | undefined;
   try {
     webStorage = usableWebStorage("storage" in options ? options.storage : resolveDefaultStorage());
-    store = guardQueryStore(
-      createIdbQueryStore(dbName, storeName) ??
-        (webStorage ? createWebQueryStore(webStorage, prefix) : createMemoryQueryStore()),
-      reportError
-    );
+    const stores = [
+      createIdbQueryStore(dbName, storeName),
+      webStorage ? createWebQueryStore(webStorage, prefix) : undefined,
+      createMemoryQueryStore(),
+    ].filter((candidate): candidate is QueryStore => candidate !== undefined);
+    store = createFailoverQueryStore(stores, reportError);
   } catch (error) {
     debugWarn("[Persister] Query persistence is disabled for this session:", { error });
     store = createMemoryQueryStore();
@@ -280,9 +301,11 @@ export function createQueryPersistence(options: CreateQueryPersistenceOptions): 
       // unhandled rejection.
       setItem: (key, value) => {
         if (!shouldPersistQuery(value)) return Promise.resolve();
-        return store.set(key, value).catch((error) => {
+        const prepared = transformRestoredQuery ? transformRestoredQuery(value) : value;
+        const preparedKey =
+          prepared.queryHash === value.queryHash ? key : storageKey(prepared.queryHash);
+        return store.set(preparedKey, prepared).catch((error) => {
           reportError(error);
-          onPersistenceError?.();
         });
       },
       removeItem: (key) => store.remove(key),
@@ -299,12 +322,14 @@ export function createQueryPersistence(options: CreateQueryPersistenceOptions): 
   async function persistQuery(client: QueryClient, queryKey: QueryKey): Promise<void> {
     const query = client.getQueryCache().find({ queryKey, exact: true });
     if (!query || query.state.data === undefined || !shouldPersistQuery(query)) return;
-    await store.set(storageKey(query.queryHash), {
+    const stored: StoredQuery = {
       queryKey: query.queryKey,
       queryHash: query.queryHash,
       state: query.state,
       buster,
-    });
+    };
+    const prepared = transformRestoredQuery ? transformRestoredQuery(stored) : stored;
+    await store.set(storageKey(prepared.queryHash), prepared);
   }
 
   async function migrateLegacySnapshot(): Promise<void> {
@@ -330,6 +355,9 @@ export function createQueryPersistence(options: CreateQueryPersistenceOptions): 
         }
         await store
           .set(key, { queryKey: query.queryKey, queryHash, state, buster })
+          .then(() => {
+            if (!store.isDurable()) rewritten = false;
+          })
           .catch((error: unknown) => {
             rewritten = false;
             reportError(error);
@@ -407,6 +435,9 @@ export function createShouldDehydrateQuery({
 
     const key = query.queryKey;
     if (!Array.isArray(key) || key[0] !== namespace) return false;
+
+    // Pagination ownership is ephemeral UI state, not part of the reading cache.
+    if (key[1] === "works" && key[2] === "window") return false;
 
     // A list whose instructions fell back to the built-in copy stays usable for
     // this session but must not become the durable offline copy.

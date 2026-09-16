@@ -5,7 +5,10 @@ type StoredQuery = Pick<DehydratedState["queries"][number], "queryKey" | "queryH
 
 /** Local queue projections rebuild from durable jobs and never retain object URLs. */
 export function isDurableWorkRead(key: readonly unknown[]): boolean {
-  return !(key[1] === "works" && (key[2] === "offline" || (key[2] === "mine" && key[5] === true)));
+  return !(
+    key[1] === "works" &&
+    (key[2] === "offline" || key[2] === "window" || (key[2] === "mine" && key[5] === true))
+  );
 }
 
 const READ_MODEL_GROUPS = new Set([

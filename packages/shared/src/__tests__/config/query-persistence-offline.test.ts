@@ -16,6 +16,7 @@ import {
   QUERY_CACHE_SCHEMA_VERSION,
   restoreDurableWorkQuery,
 } from "../../config/query-persistence";
+import { attachQueryPersistence } from "../../providers/QueryPersistence";
 import { GC_TIMES, queryClient } from "../../config/react-query";
 import { actionsKeys, gardensKeys } from "../../config/query-keys/garden";
 import { worksKeys } from "../../config/query-keys/work";
@@ -192,7 +193,7 @@ describe("reading cache entries", () => {
     restored.clear();
   });
 
-  it("reports a refused write-through and rejects an explicit write", async () => {
+  it("reports a refused web-storage write and keeps the session copy in memory", async () => {
     vi.stubGlobal("indexedDB", undefined);
     const storage = memoryStorage();
     const onPersistenceError = vi.fn();
@@ -211,8 +212,30 @@ describe("reading cache entries", () => {
 
     await client.fetchQuery({ queryKey: key, queryFn: async () => ["garden"] });
     await vi.waitFor(() => expect(onPersistenceError).toHaveBeenCalledOnce());
-    await expect(persistence.persistQuery(client, key)).rejects.toThrow("full");
+    await expect(persistence.persistQuery(client, key)).resolves.toBeUndefined();
+    const restored = new QueryClient();
+    await persistence.restore(restored);
+    expect(restored.getQueryData(key)).toEqual(["garden"]);
     client.clear();
+    restored.clear();
+  });
+
+  it("writes manual query projections through the attached persistence boundary", async () => {
+    vi.stubGlobal("indexedDB", undefined);
+    const storage = memoryStorage();
+    const persistence = createQueryPersistence({ dbName: "manual-write", storage });
+    const client = new QueryClient();
+    attachQueryPersistence(client, persistence);
+    const key = worksKeys.merged("garden", 11155111);
+
+    client.setQueryData(key, [{ id: `0x${"a".repeat(64)}`, status: "approved" }]);
+    await vi.waitFor(() => expect(storage.length).toBe(1));
+
+    const restored = new QueryClient();
+    await persistence.restore(restored);
+    expect(restored.getQueryData(key)).toEqual([{ id: `0x${"a".repeat(64)}`, status: "approved" }]);
+    client.clear();
+    restored.clear();
   });
 
   it("copies a snapshot from an earlier build into the reading cache and forgets it", async () => {

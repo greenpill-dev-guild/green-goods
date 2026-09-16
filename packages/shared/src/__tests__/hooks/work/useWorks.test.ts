@@ -38,6 +38,13 @@ vi.mock("../../../modules/data/eas", () => ({
   WORK_LIST_PAGE_SIZE: 50,
   getWorkListPage: (...args: unknown[]) => mockGetWorkListPage(...args),
   getWorkApprovalsForWorks: (...args: unknown[]) => mockGetWorkApprovalsForWorks(...args),
+  readWorkApprovalsForWorks: async (...args: unknown[]) => {
+    try {
+      return { approvals: await mockGetWorkApprovalsForWorks(...args), failedWorkUIDs: [] };
+    } catch {
+      return { approvals: [], failedWorkUIDs: args[0] as string[] };
+    }
+  },
 }));
 
 vi.mock("../../../modules/job-queue/default-instance", () => ({
@@ -77,6 +84,7 @@ vi.mock("../../../modules/app/logger", () => ({
 vi.mock("../../../config/query-keys/work", () => ({
   worksKeys: {
     online: (gardenId: string, chainId: number) => ["works", "online", gardenId, chainId],
+    window: (gardenId: string, chainId: number) => ["works", "window", gardenId, chainId],
     offline: (gardenId: string, chainId?: number, account?: string) => [
       "works",
       "offline",
@@ -173,11 +181,11 @@ describe("hooks/work/useWorks", () => {
     });
     expect(mockGetWorkListPage).toHaveBeenCalledWith(TEST_GARDEN, {
       chainId: TEST_CHAIN_ID,
-      take: 50,
+      take: 51,
     });
   });
 
-  it("reads one page, offers older work only when the page is full, and widens the window", async () => {
+  it("reads one lookahead row, offers older work, and widens the shared window", async () => {
     const page = (count: number, offset = 0) =>
       Array.from({ length: count }, (_, index) => ({
         id: `work-${offset + index}`,
@@ -191,7 +199,7 @@ describe("hooks/work/useWorks", () => {
         createdAt: 2000 - (offset + index),
         status: "pending" as const,
       }));
-    mockGetWorkListPage.mockResolvedValue(page(50));
+    mockGetWorkListPage.mockResolvedValue(page(51));
     mockGetWorkApprovalsForWorks.mockResolvedValue([]);
 
     const { result } = renderHook(() => useWorks(TEST_GARDEN), {
@@ -209,10 +217,75 @@ describe("hooks/work/useWorks", () => {
     await waitFor(() => expect(result.current.works).toHaveLength(70));
     expect(mockGetWorkListPage).toHaveBeenLastCalledWith(TEST_GARDEN, {
       chainId: TEST_CHAIN_ID,
-      take: 100,
+      take: 101,
     });
     // A page short of the window means the garden has nothing older left.
     expect(result.current.hasOlderWork).toBe(false);
+  });
+
+  it("does not offer an empty older page when the garden has exactly fifty works", async () => {
+    mockGetWorkListPage.mockResolvedValue(
+      Array.from({ length: 50 }, (_, index) => ({
+        id: `work-${index}`,
+        title: `Work ${index}`,
+        actionUID: 1,
+        gardenerAddress: "0x1",
+        gardenAddress: TEST_GARDEN,
+        feedback: "",
+        metadata: "{}",
+        media: [],
+        createdAt: 2_000 - index,
+        status: "pending" as const,
+      }))
+    );
+
+    const { result } = renderHook(() => useWorks(TEST_GARDEN), {
+      wrapper: createWrapper(queryClient),
+    });
+
+    await waitFor(() => expect(result.current.works).toHaveLength(50));
+    expect(result.current.hasOlderWork).toBe(false);
+    expect(mockGetWorkListPage).toHaveBeenCalledWith(TEST_GARDEN, {
+      chainId: TEST_CHAIN_ID,
+      take: 51,
+    });
+  });
+
+  it("does not let a second consumer shrink a widened garden window", async () => {
+    const page = (count: number) =>
+      Array.from({ length: count }, (_, index) => ({
+        id: `work-${index}`,
+        title: `Work ${index}`,
+        actionUID: 1,
+        gardenerAddress: "0x1",
+        gardenAddress: TEST_GARDEN,
+        feedback: "",
+        metadata: "{}",
+        media: [],
+        createdAt: 2_000 - index,
+        status: "pending" as const,
+      }));
+    mockGetWorkListPage.mockResolvedValue(page(51));
+    const { result } = renderHook(
+      () => ({ first: useWorks(TEST_GARDEN), second: useWorks(TEST_GARDEN) }),
+      { wrapper: createWrapper(queryClient) }
+    );
+    await waitFor(() => expect(result.current.first.works).toHaveLength(50));
+
+    mockGetWorkListPage.mockResolvedValue(page(70));
+    act(() => result.current.first.loadOlderWork());
+    await waitFor(() => expect(result.current.first.works).toHaveLength(70));
+
+    await act(async () => {
+      result.current.second.refetch();
+    });
+    await waitFor(() =>
+      expect(mockGetWorkListPage).toHaveBeenLastCalledWith(TEST_GARDEN, {
+        chainId: TEST_CHAIN_ID,
+        take: 101,
+      })
+    );
+    expect(result.current.first.works).toHaveLength(70);
   });
 
   it("computes work status from approvals (approved/rejected/pending)", async () => {

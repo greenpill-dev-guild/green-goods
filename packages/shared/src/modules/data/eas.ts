@@ -19,6 +19,7 @@ export { EASFetchError } from "./eas-read-validation";
 export {
   getWorkApprovalsForWorks,
   getWorkListPage,
+  readWorkApprovalsForWorks,
   WORK_LIST_PAGE_SIZE,
 } from "./eas-work-list";
 

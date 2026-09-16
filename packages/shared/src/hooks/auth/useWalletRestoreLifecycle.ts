@@ -136,20 +136,32 @@ export function useWalletRestoreLifecycle(
       );
     };
     const syncClock = () => (canAdvanceRestoreClock() ? startClock() : stopClock());
+    let retryArmed = true;
     const retryRestore = () => {
       syncClock();
-      if (!canRetryConnector() || !actor.getSnapshot().matches("restoring")) return;
+      if (!retryArmed || !canRetryConnector() || !actor.getSnapshot().matches("restoring")) return;
+      retryArmed = false;
       void reconnect(wagmiConfig).catch((error) => {
         logger.debug("[AuthProvider] Wallet reconnect retry did not complete", { error });
       });
     };
-    const handleVisibility = () =>
-      document.visibilityState === "visible" ? retryRestore() : stopClock();
+    const handleVisibility = () => {
+      if (document.visibilityState === "visible") retryRestore();
+      else {
+        retryArmed = true;
+        stopClock();
+      }
+    };
 
-    // The store gates the deadline; the browser's own online event is the
-    // signal to ask the connector again, so a probe completing while already
-    // usable never queues a second reconnect.
-    const unsubscribeConnectivity = connectivityStore.subscribeStatus(syncClock);
+    // Browsers announce `online` before the reachability probe has necessarily
+    // settled. The native event starts that transition; the store transition
+    // is the authoritative retry point once the connector can answer.
+    const handleConnectivity = () => {
+      syncClock();
+      if (canRetryConnector()) retryRestore();
+      else retryArmed = true;
+    };
+    const unsubscribeConnectivity = connectivityStore.subscribeStatus(handleConnectivity);
 
     startClock();
     window.addEventListener("online", retryRestore);

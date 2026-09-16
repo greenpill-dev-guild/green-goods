@@ -67,7 +67,7 @@ async function storedCopy(response: Response) {
 export class MediaCache {
   private policy?: MediaPolicy;
   private storesSinceSweep = 0;
-  private storeTail: Promise<void> = Promise.resolve();
+  private operationTail: Promise<void> = Promise.resolve();
   /** Bytes in the cache after the last scan or accounted write; unknown after a failed write. */
   private knownBytes?: number;
 
@@ -119,13 +119,19 @@ export class MediaCache {
   }
 
   async stats(): Promise<MediaStats> {
-    const { entries, bytes } = await this.scan(await caches.open(SW_CACHES.MEDIA));
-    return { bytes, count: entries.length };
+    return this.runExclusive(async () => {
+      const { entries, bytes } = await this.scan(await caches.open(SW_CACHES.MEDIA));
+      return { bytes, count: entries.length };
+    });
   }
 
   // Oldest unprotected copies go first. Copies without a recorded size came
   // from an older worker, so they leave before any photo the app sized itself.
   async sweep(options: SweepOptions = {}): Promise<MediaStats> {
+    return this.runExclusive(() => this.sweepUnlocked(options));
+  }
+
+  private async sweepUnlocked(options: SweepOptions = {}): Promise<MediaStats> {
     const current = await this.readPolicy();
     const budgetBytes = options.budgetBytes ?? current.budgetBytes;
     const keep = options.keep ?? current.keep;
@@ -166,8 +172,15 @@ export class MediaCache {
   }
 
   private schedule(url: string, response: Response): Promise<void> {
-    const scheduled = this.storeTail.then(() => this.store(url, response));
-    this.storeTail = scheduled.catch(() => undefined);
+    return this.runExclusive(() => this.store(url, response));
+  }
+
+  private runExclusive<T>(operation: () => Promise<T>): Promise<T> {
+    const scheduled = this.operationTail.then(operation);
+    this.operationTail = scheduled.then(
+      () => undefined,
+      () => undefined
+    );
     return scheduled;
   }
 
@@ -218,7 +231,7 @@ export class MediaCache {
       // overlapping fetches for the same URL can otherwise evict a good copy
       // and then reject the larger replacement.
       const keepDuringAdmission = policy.keep.includes(url) ? policy.keep : [...policy.keep, url];
-      const swept = await this.sweep({
+      const swept = await this.sweepUnlocked({
         budgetBytes: Math.max(0, policy.budgetBytes - copy.bytes),
         keep: keepDuringAdmission,
       });
@@ -232,14 +245,14 @@ export class MediaCache {
     } catch (error) {
       this.knownBytes = undefined;
       if ((error as { name?: string })?.name !== "QuotaExceededError") throw error;
-      await this.sweep({ budgetBytes: 0, keep: policy.keep });
+      await this.sweepUnlocked({ budgetBytes: 0, keep: policy.keep });
       await cache.put(url, copy.response());
       this.knownBytes = undefined;
     }
     this.storesSinceSweep += 1;
     if (this.storesSinceSweep >= STORES_PER_SWEEP) {
       this.storesSinceSweep = 0;
-      await this.sweep({ budgetBytes: policy.budgetBytes, keep: policy.keep });
+      await this.sweepUnlocked({ budgetBytes: policy.budgetBytes, keep: policy.keep });
     }
   }
 }

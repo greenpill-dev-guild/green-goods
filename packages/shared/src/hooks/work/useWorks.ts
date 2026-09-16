@@ -1,5 +1,5 @@
 import { useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo } from "react";
 import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
 import { worksKeys } from "../../config/query-keys/work";
 import { GC_TIMES, STALE_TIMES } from "../../config/react-query";
@@ -141,13 +141,18 @@ export function useWorks(gardenId: string, options: UseWorksOptions = {}) {
   const projectionKey = offline
     ? worksKeys.local(gardenId, chainId, primaryAddress ?? undefined)
     : worksKeys.merged(gardenId, chainId);
-  // The screen reads the newest page and widens its window when asked for older
-  // work. The window lives beside the query so a background refresh of the same
-  // key never shrinks what the person already scrolled to.
-  const [listWindow, setListWindow] = useState({ gardenId, take: WORK_LIST_PAGE_SIZE });
-  const take = listWindow.gardenId === gardenId ? listWindow.take : WORK_LIST_PAGE_SIZE;
-  const takeRef = useRef(take);
-  takeRef.current = take;
+  // Every observer of this garden shares one window. Keeping it in query state
+  // prevents a second mounted screen from refetching the same key with a
+  // smaller component-local ref.
+  const windowKey = useMemo(() => worksKeys.window(gardenId, chainId), [gardenId, chainId]);
+  const listWindow = useQuery<number>({
+    queryKey: windowKey,
+    queryFn: () => queryClient.getQueryData<number>(windowKey) ?? WORK_LIST_PAGE_SIZE,
+    initialData: WORK_LIST_PAGE_SIZE,
+    enabled: false,
+    staleTime: Number.POSITIVE_INFINITY,
+  });
+  const take = listWindow.data;
   const online = useQuery({
     queryKey: worksKeys.online(gardenId, chainId),
     queryFn: async () => {
@@ -155,10 +160,13 @@ export function useWorks(gardenId: string, options: UseWorksOptions = {}) {
         const cached = queryClient.getQueryData<EASWorkListRow[]>(
           worksKeys.online(gardenId, chainId)
         );
+        const requested = queryClient.getQueryData<number>(windowKey) ?? WORK_LIST_PAGE_SIZE;
         return await readWorkList({
           garden: gardenId,
           chainId,
-          take: Math.max(takeRef.current, cached?.length ?? 0),
+          // The extra row is the continuation signal. Preserve a wider cached
+          // read when a background refresh arrives after its window query GC'd.
+          take: Math.max(requested + 1, cached?.length ?? 0),
         });
       } catch (error) {
         void reportConnectivityFailure();
@@ -172,15 +180,16 @@ export function useWorks(gardenId: string, options: UseWorksOptions = {}) {
   });
   // Offline, the restored screen read is the downloaded copy: background
   // preparation fills this same query, so there is no second source to consult.
-  const remoteData = online.data;
-  const hasOlderWork = (remoteData?.length ?? 0) >= take;
+  const remoteData = online.data?.slice(0, take);
+  const hasOlderWork = (online.data?.length ?? 0) > take;
   const loadOlderWork = useCallback(() => {
     if (!isOnline) return;
-    const next = take + WORK_LIST_PAGE_SIZE;
-    takeRef.current = next;
-    setListWindow({ gardenId, take: next });
+    queryClient.setQueryData<number>(
+      windowKey,
+      (current) => Math.max(current ?? WORK_LIST_PAGE_SIZE, take) + WORK_LIST_PAGE_SIZE
+    );
     void queryClient.refetchQueries({ queryKey: worksKeys.online(gardenId, chainId), exact: true });
-  }, [chainId, gardenId, isOnline, queryClient, take]);
+  }, [chainId, gardenId, isOnline, queryClient, take, windowKey]);
   const queued = useQuery({
     queryKey: worksKeys.offline(gardenId, chainId, primaryAddress ?? undefined),
     queryFn: async () => {
@@ -202,9 +211,15 @@ export function useWorks(gardenId: string, options: UseWorksOptions = {}) {
   // are kept under an account/chain key and never restored from legacy merges.
   const overlay = useQuery<OverlayWork[]>({
     queryKey: worksKeys.merged(gardenId, chainId),
+    queryFn: () =>
+      queryClient.getQueryData<OverlayWork[]>(worksKeys.merged(gardenId, chainId)) ?? [],
     enabled: false,
   });
-  const projection = useQuery<OverlayWork[]>({ queryKey: projectionKey, enabled: false });
+  const projection = useQuery<OverlayWork[]>({
+    queryKey: projectionKey,
+    queryFn: () => queryClient.getQueryData<OverlayWork[]>(projectionKey) ?? [],
+    enabled: false,
+  });
   const queuedJobs = offline ? (queued.data ?? NO_QUEUED_JOBS) : NO_QUEUED_JOBS;
   const queuedPreviews = useQueuedWorkPreviews(queuedJobs);
   // `combine` keeps one array identity until a metadata read actually changes;

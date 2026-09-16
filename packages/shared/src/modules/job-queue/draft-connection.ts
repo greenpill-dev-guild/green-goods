@@ -1,11 +1,11 @@
 import Dexie, { type EntityTable, type Table } from "dexie";
 import type { DraftImage } from "../../types/job-queue";
+import { openDexieDatabase } from "./database-open";
 import { migrateAvatarDrafts } from "./draft-avatars";
 import { type CanonicalDraftRecord, isWorkDraft } from "./draft-state";
 
 /** The database name every build has used; read through `DraftDatabase`. */
 const DRAFT_DB_NAME = "green-goods-drafts";
-const OPEN_TIMEOUT_MS = 3000;
 
 export interface ActiveDraftRow {
   scope: string;
@@ -78,19 +78,7 @@ class DraftConnection {
       forget();
     });
     db.on("close", forget);
-    let timer: ReturnType<typeof setTimeout> | undefined;
-    const abandoned = new Promise<never>((_, reject) => {
-      timer = setTimeout(() => reject(new Error("draft-database-open-timeout")), OPEN_TIMEOUT_MS);
-      db.on("blocked", () => reject(new Error("draft-database-upgrade-blocked")));
-    });
-    try {
-      await Promise.race([db.open(), abandoned]);
-    } catch (error) {
-      db.close();
-      throw error;
-    } finally {
-      clearTimeout(timer);
-    }
+    await openDexieDatabase(db, "draft-database");
     this.db = db;
     // The structural upgrade has committed before bytes are copied from the separate legacy database.
     await migrateAvatarDrafts(db);

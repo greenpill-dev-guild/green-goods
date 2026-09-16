@@ -119,12 +119,16 @@ export function useMyWorks(options: UseMyWorksOptions = {}) {
   const gardenReads = useSyncExternalStore(
     (notify) =>
       cache.subscribe((event) => {
-        if (event.query.queryKey[1] === "works" && event.query.queryKey[2] === "online") notify();
+        if (
+          event.query.queryKey[1] === "works" &&
+          ["online", "merged"].includes(String(event.query.queryKey[2]))
+        )
+          notify();
       }),
     () =>
       cache
         .findAll({ queryKey: worksKeys.all })
-        .filter((query) => query.queryKey[2] === "online")
+        .filter((query) => ["online", "merged"].includes(String(query.queryKey[2])))
         .map((query) => `${query.queryHash}:${query.state.dataUpdateCount}`)
         .join("|"),
     () => ""
@@ -137,8 +141,14 @@ export function useMyWorks(options: UseMyWorksOptions = {}) {
     const queries = cache
       .findAll({ queryKey: ["greengoods", "works", "online"] })
       .filter((query) => query.queryKey[4] === chainId && query.state.data !== undefined);
-    const rows = queries.flatMap((query) =>
-      ((query.state.data as EASWorkListRow[] | undefined) ?? [])
+    const rows = queries.flatMap((query) => {
+      const gardenId = String(query.queryKey[3] ?? "");
+      const legacyStatuses = new Map(
+        (queryClient.getQueryData<Work[]>(worksKeys.merged(gardenId, chainId)) ?? []).map(
+          (work) => [work.id, work.status]
+        )
+      );
+      return ((query.state.data as EASWorkListRow[] | undefined) ?? [])
         .filter((work) => work.gardenerAddress.toLowerCase() === activeAddress.toLowerCase())
         .map(({ approval, ...work }) => ({
           ...work,
@@ -146,13 +156,29 @@ export function useMyWorks(options: UseMyWorksOptions = {}) {
             ? approval.approved
               ? ("approved" as const)
               : ("rejected" as const)
-            : ("pending" as const),
-        }))
-    );
+            : legacyStatuses.get(work.id) === "approved" ||
+                legacyStatuses.get(work.id) === "rejected"
+              ? legacyStatuses.get(work.id)!
+              : ("pending" as const),
+        }));
+    });
     const updated = queries.map((query) => query.state.dataUpdatedAt).filter(Boolean);
     return { rows, updatedAt: updated.length ? Math.min(...updated) : undefined };
-  }, [cache, gardenReads, includeOffline, activeAddress, chainId, online.data]);
-  const remoteRows = online.data ?? downloaded.rows;
+  }, [cache, gardenReads, includeOffline, activeAddress, chainId, online.data, queryClient]);
+  const remoteRows = useMemo(() => {
+    // `gardenReads` is the cache revision that makes legacy merged-status
+    // lookups reactive even though they are synchronous QueryClient reads.
+    void gardenReads;
+    return (online.data ?? downloaded.rows).map((work) => {
+      if (work.status === "approved" || work.status === "rejected") return work;
+      const legacy = (
+        queryClient.getQueryData<Work[]>(worksKeys.merged(work.gardenAddress, chainId)) ?? []
+      ).find((candidate) => candidate.id === work.id);
+      return legacy?.status === "approved" || legacy?.status === "rejected"
+        ? { ...work, status: legacy.status }
+        : work;
+    });
+  }, [chainId, downloaded.rows, gardenReads, online.data, queryClient]);
   const metadataByWork = useQueries({
     queries: remoteRows.map((work) => ({
       queryKey: worksKeys.metadata(work.metadata.trim()),

@@ -1066,6 +1066,49 @@ describe("IPFS media cache", () => {
     expect(media.delete).not.toHaveBeenCalled();
   });
 
+  it("serializes a byte scan with an overlapping media write", async () => {
+    const { cacheFor, fetchMock, listeners } = await loadServiceWorker();
+    const media = cacheFor("ipfs-cache");
+    const oldUrl = "https://ipfs.io/ipfs/old-before-scan";
+    await media.put(
+      oldUrl,
+      new Response("x".repeat(40), {
+        headers: { "content-length": "40", "x-gg-stored-at": "1" },
+      })
+    );
+    await ask(listeners, { type: "MEDIA_POLICY", budgetBytes: 100, keep: [] });
+    let releaseScan!: () => void;
+    const scanStarted = new Promise<void>((resolve) => {
+      media.keys.mockImplementationOnce(
+        () =>
+          new Promise<Request[]>((finish) => {
+            resolve();
+            releaseScan = () => finish([new Request(oldUrl)]);
+          })
+      );
+    });
+
+    const stats = ask(listeners, { type: "MEDIA_STATS" });
+    await scanStarted;
+    const newUrl = "https://ipfs.io/ipfs/new-during-scan";
+    fetchMock.mockResolvedValueOnce(new Response("y".repeat(70)));
+    const pendingWrite = mediaEvent(imageRequest(newUrl));
+    listeners.fetch.forEach((listener) => listener(pendingWrite.event));
+    await pendingWrite.response();
+    await Promise.resolve();
+
+    // The initial fixture write is the only put until the scan releases the
+    // shared byte-accounting lock.
+    expect(media.put).toHaveBeenCalledTimes(1);
+    releaseScan();
+    await stats;
+    await pendingWrite.settled();
+    await expect(ask(listeners, { type: "MEDIA_STATS" })).resolves.toEqual({
+      bytes: 70,
+      count: 1,
+    });
+  });
+
   it("advertises the media cache contract to the installed app", async () => {
     const { listeners } = await loadServiceWorker();
 

@@ -480,8 +480,9 @@ describe("AuthProvider wallet login bridge", () => {
 
       Object.defineProperty(navigator, "onLine", { configurable: true, value: true });
       await act(async () => {
-        await connectivityStore.check();
         window.dispatchEvent(new Event("online"));
+        expect(mocks.mockReconnect).not.toHaveBeenCalled();
+        await connectivityStore.check();
       });
       expect(mocks.mockReconnect).toHaveBeenCalledTimes(1);
 

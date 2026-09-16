@@ -4,12 +4,23 @@ import type { QueryPersistence } from "../config/query-persistence";
 import { useAsyncEffect } from "../hooks/utils/useAsyncEffect";
 
 /** Route every query's fetch through the reading cache. Call once, before rendering. */
+const manualPersistenceSubscriptions = new WeakMap<QueryClient, () => void>();
+
 export function attachQueryPersistence(client: QueryClient, persistence: QueryPersistence): void {
   const defaults = client.getDefaultOptions();
   client.setDefaultOptions({
     ...defaults,
     queries: { ...defaults.queries, persister: persistence.persister },
   });
+  manualPersistenceSubscriptions.get(client)?.();
+  manualPersistenceSubscriptions.set(
+    client,
+    client.getQueryCache().subscribe((event) => {
+      if (event.type !== "updated" || event.action.type !== "success" || !event.action.manual)
+        return;
+      void persistence.persistQuery(client, event.query.queryKey).catch(() => undefined);
+    })
+  );
 }
 
 interface QueryPersistenceProviderProps {

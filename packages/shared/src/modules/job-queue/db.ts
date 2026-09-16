@@ -6,6 +6,7 @@ import { createLogger } from "../app/logger";
 import { restoreWorkFile } from "../work/work-attachments";
 import { createJobMediaRows, findExistingWorkJob, serializeJobPayload } from "./db-media";
 import { JobQueueDatabase, type WorkCompletion } from "./db-schema";
+import { isTerminalDatabaseOpenError, openDexieDatabase } from "./database-open";
 import { loadFailedDeleteIds, saveFailedDeleteIds } from "./failed-delete-storage";
 import { trackPrivateQueueEvent } from "./job-analytics";
 import { mediaResourceManager } from "./media-resource-manager";
@@ -56,7 +57,7 @@ class JobQueueStore {
       forget();
     });
     db.on("close", forget);
-    await db.open();
+    await openDexieDatabase(db, "job-queue-database");
     this.db = db;
     await this.cleanupStaleUrls();
     return db;
@@ -201,31 +202,39 @@ class JobQueueStore {
   }
 
   /**
-   * A live view over this database.
-   *
-   * Dexie refuses a readwrite transaction inside a live query, and opening
-   * this database can run exactly one: the version upgrade. A querier that
-   * had to open it therefore threw `ReadOnlyError` on its first run, the
-   * subscription stopped, and the view stayed frozen at whatever it emitted
-   * first — the offline sync bar reading zero with work queued in front of
-   * it. Whether that happened came down to whether some other caller had
-   * already opened the database, so it only bit the view that subscribed
-   * earliest during boot.
-   *
-   * Opening here, before the observable exists, keeps the querier a pure read.
+   * Open before constructing the live query: a first open may run an upgrade,
+   * which Dexie rejects inside a live query. Retry once, then surface failure.
    */
   private observe<T>(read: () => Promise<T>): Observable<T> {
-    const opening = this.init();
     return {
       subscribe: (...args: Parameters<Observable<T>["subscribe"]>) => {
         let inner: { unsubscribe: () => void } | undefined;
         let stopped = false;
-        void opening.then(
-          () => {
-            if (!stopped) inner = liveQuery(() => read()).subscribe(...args);
-          },
-          () => undefined
-        );
+        const reportError = (error: unknown) => {
+          const [observerOrNext, onError] = args as unknown as [
+            { error?: (reason: unknown) => void } | ((value: T) => void) | undefined,
+            ((reason: unknown) => void) | undefined,
+          ];
+          if (typeof observerOrNext === "object") observerOrNext?.error?.(error);
+          else onError?.(error);
+        };
+        void (async () => {
+          let lastError: unknown;
+          for (let attempt = 0; attempt < 2; attempt += 1) {
+            try {
+              await this.init();
+              if (!stopped) inner = liveQuery(() => read()).subscribe(...args);
+              return;
+            } catch (error) {
+              lastError = error;
+              // A second request queues behind the same stale connection and
+              // cannot recover until another tab closes. Surface that state
+              // now; a later subscription gets a fresh open attempt.
+              if (isTerminalDatabaseOpenError(error, "job-queue-database")) break;
+            }
+          }
+          if (!stopped) reportError(lastError);
+        })();
         return {
           closed: false,
           unsubscribe: () => {

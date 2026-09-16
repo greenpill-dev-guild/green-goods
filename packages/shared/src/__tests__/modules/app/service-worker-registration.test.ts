@@ -111,6 +111,41 @@ describe("service worker registration config", () => {
     await vi.waitFor(() => expect(statuses).toEqual(["ready"]));
   });
 
+  it("retries a failed offline-ready tier on reconnect", async () => {
+    vi.resetModules();
+    const connection = Object.assign(new EventTarget(), { saveData: false });
+    Object.defineProperty(navigator, "connection", {
+      configurable: true,
+      value: connection,
+    });
+    const { schedulePwaShellPreparation } = await import(
+      "../../../modules/app/service-worker-registration"
+    );
+    const worker = { postMessage: vi.fn() } as unknown as ServiceWorker;
+    Object.defineProperty(navigator, "serviceWorker", {
+      configurable: true,
+      value: Object.assign(new EventTarget(), { controller: worker }),
+    });
+
+    const statuses: string[] = [];
+    schedulePwaShellPreparation("priority", (status) => statuses.push(status));
+    const [, firstTransfer] = (worker.postMessage as ReturnType<typeof vi.fn>).mock.calls[0] as [
+      unknown,
+      MessagePort[],
+    ];
+    firstTransfer[0].postMessage({ status: "failed" });
+    await vi.waitFor(() => expect(statuses).toEqual(["failed"]));
+
+    connection.dispatchEvent(new Event("change"));
+    expect(worker.postMessage).toHaveBeenCalledTimes(2);
+    const [, retryTransfer] = (worker.postMessage as ReturnType<typeof vi.fn>).mock.calls[1] as [
+      unknown,
+      MessagePort[],
+    ];
+    retryTransfer[0].postMessage({ status: "ready" });
+    await vi.waitFor(() => expect(statuses).toEqual(["failed", "ready"]));
+  });
+
   it("answers a listener that registers after a callback-less request", async () => {
     // The real ordering after an update restart: `registerServiceWorker` asks
     // for the tier with no callback, then `PwaUpdateNotifier` asks again with

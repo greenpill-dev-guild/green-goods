@@ -19,7 +19,7 @@ import { ClientTestHelper, hasGardens, TEST_URLS } from "../helpers/test-utils";
 const CLIENT_URL = TEST_URLS.client;
 
 // Skip entire file - these tests require steward auth and pending work data
-// SKIP: #338 owner:afo expiry:2026-09-17 — needs steward auth + pending work data
+// SKIP: #338 owner:afo expiry:2026-10-16 — needs steward auth + pending work data
 test.describe("Work Approval Flows (Steward)", () => {
   test.skip(
     () => true,
@@ -187,7 +187,7 @@ test.describe("Work Approval Flows (Steward)", () => {
           ).toBeTruthy();
         }
       } else {
-        // SKIP: #338 owner:afo expiry:2026-09-30 — requires pending steward work fixture
+        // SKIP: #338 owner:afo expiry:2026-10-16 — requires pending steward work fixture
         test.skip(true, "No pending work is available to approve");
       }
     });
@@ -217,7 +217,7 @@ test.describe("Work Approval Flows (Steward)", () => {
           ).toBeTruthy();
         }
       } else {
-        // SKIP: #338 owner:afo expiry:2026-09-30 — requires pending steward work fixture
+        // SKIP: #338 owner:afo expiry:2026-10-16 — requires pending steward work fixture
         test.skip(true, "No pending work is available to update");
       }
     });
@@ -309,7 +309,7 @@ test.describe("Work Approval Flows (Steward)", () => {
           }
         }
       } else {
-        // SKIP: #338 owner:afo expiry:2026-09-30 — requires pending steward work fixture
+        // SKIP: #338 owner:afo expiry:2026-10-16 — requires pending steward work fixture
         test.skip(true, "No pending work is available to reject");
       }
     });
@@ -342,7 +342,7 @@ test.describe("Work Approval Flows (Steward)", () => {
           expect(isErrorVisible).toBe(true);
         }
       } else {
-        // SKIP: #338 owner:afo expiry:2026-09-30 — requires pending steward work fixture
+        // SKIP: #338 owner:afo expiry:2026-10-16 — requires pending steward work fixture
         test.skip(true, "No pending work is available for offline failure handling");
       }
     });
@@ -353,7 +353,7 @@ test.describe("Work Approval Flows (Steward)", () => {
 
       // This test requires simulating a blockchain transaction failure
       // which is difficult in E2E without mocking - mark as skipped
-      // SKIP: #338 owner:afo expiry:2026-09-17 — needs blockchain mock for tx failure
+      // SKIP: #338 owner:afo expiry:2026-10-16 — needs blockchain mock for tx failure
       test.skip(true, "Transaction failure requires blockchain mock - manual testing recommended");
     });
 
@@ -362,7 +362,7 @@ test.describe("Work Approval Flows (Steward)", () => {
       await page.waitForLoadState("domcontentloaded");
 
       // This test requires a prior failure state
-      // SKIP: #338 owner:afo expiry:2026-09-17 — needs prior failure state
+      // SKIP: #338 owner:afo expiry:2026-10-16 — needs prior failure state
       test.skip(true, "Retry flow requires prior failure state - manual testing recommended");
     });
   });
