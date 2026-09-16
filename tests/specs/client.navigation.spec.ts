@@ -81,7 +81,7 @@ test.describe("Client Navigation", () => {
   test.describe("Deep Linking", () => {
     test("preserves intended destination after login", async () => {
       // This test requires completing a real login flow which we can't do with wallet injection
-      // SKIP: #338 owner:afo expiry:2026-09-17 — needs real login flow
+      // SKIP: #338 owner:afo expiry:2026-10-16 — needs real login flow
       test.skip(
         true,
         "Deep linking test skipped: requires completing real login flow. " +
@@ -101,7 +101,7 @@ test.describe("Client Navigation", () => {
       await helper.waitForPageLoad();
 
       const url = page.url();
-      // SKIP: #338 owner:afo expiry:2026-09-15 — wallet injection may not persist in this manual lane
+      // SKIP: #338 owner:afo expiry:2026-10-16 — wallet injection may not persist in this manual lane
       test.skip(url.includes("/home/login"), "Wallet authentication did not persist");
 
       // Look for hamburger menu on mobile
@@ -123,7 +123,7 @@ test.describe("Client Navigation", () => {
       await helper.waitForPageLoad();
 
       const url = page.url();
-      // SKIP: #338 owner:afo expiry:2026-09-15 — wallet injection may not persist in this manual lane
+      // SKIP: #338 owner:afo expiry:2026-10-16 — wallet injection may not persist in this manual lane
       test.skip(url.includes("/home/login"), "Wallet authentication did not persist");
 
       // Navigate to a detail page if available
@@ -140,7 +140,7 @@ test.describe("Client Navigation", () => {
         await expect(breadcrumbs).toBeVisible({ timeout: TIMEOUTS.elementVisible });
         expect(await breadcrumbs.locator("a").count()).toBeGreaterThan(0);
       } else {
-        // SKIP: #338 owner:afo expiry:2026-09-15 — requires a rendered garden detail link
+        // SKIP: #338 owner:afo expiry:2026-10-16 — requires a rendered garden detail link
         test.skip(true, "No garden detail link is available for breadcrumb coverage");
       }
     });

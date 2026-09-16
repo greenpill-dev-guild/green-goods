@@ -191,7 +191,8 @@ const AdminTextFieldBase = React.forwardRef<AdminTextFieldControl, AdminTextFiel
       "pb-1 pt-5 sm:pt-4",
       multiline && "resize-y",
       // Selects drop the native chrome; the chevron renders in the trailing
-      // icon slot and clicks fall through it to the control.
+      // icon slot and clicks fall through it to the control. Option-row colours
+      // belong to `[data-theme="dark"] select option` in theme.css, not here.
       select && "appearance-none cursor-pointer disabled:cursor-not-allowed",
       LeadingIcon && "pl-9",
       TrailingIcon && "pr-9"

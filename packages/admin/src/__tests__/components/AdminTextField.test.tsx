@@ -82,6 +82,11 @@ describe("AdminSelect", () => {
     expect(screen.getByText("Cycle")).toHaveClass("top-0.5", "leading-4");
     expect(screen.getByText("Cycle")).not.toHaveClass("top-1/2");
     expect(control).toHaveClass("pt-5", "pb-1", "leading-5");
+    // Option-row colours are not a utility on this control: a Tailwind class
+    // would land in @layer utilities and beat the shared rule, putting the
+    // cockpit field on a different surface from every other select. The contract
+    // lives in theme.css, guarded by shared nativeSelectTheming.guard.test.ts.
+    expect(control.className).not.toMatch(/\[&>option\]/);
 
     fireEvent.change(control, { target: { value: "c1" } });
     expect(onChange).toHaveBeenCalledTimes(1);

@@ -103,12 +103,20 @@ export default function CommunityView() {
               count: community.derived.directoryEntries.length || undefined,
             },
             {
+              // No count, deliberately. The badge used to read
+              // `community.pools.length` — conviction pools, which only render
+              // through CommunityCoordinationTab and that tab sits behind
+              // GOVERNANCE_ENABLED. With governance off the body shows the yield
+              // status and the commitment-pool console instead, so the badge
+              // counted an entity the tab never displayed and reported "2"
+              // beside "no proposals registered" (PRD-774). The console carries
+              // its own per-tab counts and has no single total worth hoisting,
+              // so restore a count here only alongside the proposal list itself.
               id: "coordination",
               label: formatMessage({
                 id: "cockpit.community.coordination",
                 defaultMessage: "Coordination",
               }),
-              count: community.pools.length || undefined,
             },
             {
               id: "endowment",
