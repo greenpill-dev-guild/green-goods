@@ -77,6 +77,54 @@ describe.each(["indexedDB", "storage"])("legacy migration via %s", (backend) => 
   });
 });
 
+describe("legacy migration against records that already moved", () => {
+  it("does not put a stale snapshot back over a fresher record", async () => {
+    // A tab closed mid-migration leaves the snapshot in place, so the next boot
+    // runs it again — by then the query may have been refetched.
+    vi.stubGlobal("indexedDB", undefined);
+    const suffix = crypto.randomUUID();
+    const legacy = { dbName: `migration-legacy-${suffix}`, storeName: "rq" };
+    const key = gardensKeys.byChain(11155111);
+
+    const stale = new QueryClient();
+    stale.setQueryData(key, [{ id: "stale" }], { updatedAt: Date.now() - 120_000 });
+    const shelf = new Map<string, string>([
+      [
+        "__rq_pc__",
+        JSON.stringify({
+          timestamp: Date.now() - 120_000,
+          buster: "9465f61b9795",
+          clientState: dehydrate(stale),
+        }),
+      ],
+    ]);
+    const storage = {
+      get length() {
+        return shelf.size;
+      },
+      clear: () => shelf.clear(),
+      getItem: (k: string) => shelf.get(k) ?? null,
+      key: (index: number) => [...shelf.keys()][index] ?? null,
+      removeItem: (k: string) => void shelf.delete(k),
+      setItem: (k: string, value: string) => void shelf.set(k, value),
+    } as unknown as Storage;
+
+    // The fresher answer a later session already wrote for the same query.
+    const fresh = new QueryClient();
+    fresh.setQueryData(key, [{ id: "fresh" }]);
+    const persistence = createQueryPersistence({ dbName: `migration-${suffix}`, legacy, storage });
+    await persistence.persistQuery(fresh, key);
+
+    const restored = new QueryClient();
+    await persistence.restore(restored);
+    expect(restored.getQueryData(key)).toEqual([{ id: "fresh" }]);
+
+    stale.clear();
+    fresh.clear();
+    restored.clear();
+  });
+});
+
 describe("legacy migration under storage pressure", () => {
   it("keeps the snapshot when a record could not be rewritten", async () => {
     // Web-storage backend so the failing write can be injected directly.

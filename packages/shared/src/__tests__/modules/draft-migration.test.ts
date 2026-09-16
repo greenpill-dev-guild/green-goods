@@ -225,6 +225,67 @@ describe("canonical work and avatar drafts", () => {
     expect(await draftDB.getDraftCount(account, chain)).toBe(1);
   });
 
+  it("upgrades a production-era database in place, avatar bytes and all", async () => {
+    // Production is at draft database version 1 — two stores, no compound
+    // index, no `kind`. The existing upgrade test starts at 2, so the shape
+    // most installs will actually arrive with had no coverage.
+    const old = await openDB(canonicalName, 1, {
+      upgrade(database) {
+        const drafts = database.createObjectStore("drafts", { keyPath: "id" });
+        drafts.createIndex("userAddress", "userAddress");
+        drafts.createIndex("updatedAt", "updatedAt");
+        const images = database.createObjectStore("draft_images", { keyPath: "id" });
+        images.createIndex("draftId", "draftId");
+      },
+    });
+    const bytes = await serializeFile(new File(["evidence"], "work.jpg", { type: "image/jpeg" }));
+    const avatarBytes = await serializeFile(new File(["face"], "me.png", { type: "image/png" }));
+    await old.put("drafts", {
+      id: "work-id",
+      clientWorkId: "submission-id",
+      userAddress: account,
+      chainId: chain,
+      feedback: "keep",
+      gardenAddress: null,
+      actionUID: null,
+      currentStep: "media",
+      firstIncompleteStep: "media",
+      updatedAt: 1,
+      createdAt: 1,
+    });
+    // An avatar row carries raw bytes through the same rewriting upgrade.
+    await old.put("drafts", {
+      id: `avatar:${account}`,
+      kind: "profile-avatar",
+      userAddress: account,
+      chainId: chain,
+      fileData: avatarBytes,
+      updatedAt: 2,
+      createdAt: 2,
+    });
+    await old.put("draft_images", {
+      id: "attachment-id",
+      draftId: "work-id",
+      fileData: bytes,
+      contentHash: "retained-hash",
+      createdAt: 1,
+    });
+    old.close();
+
+    const { db, draftDB } = await api();
+
+    expect(db.verno).toBe(4);
+    // The work draft is backfilled; the avatar row is left exactly as it was.
+    expect(await draftDB.getDraft("work-id")).toMatchObject({ kind: "work", feedback: "keep" });
+    expect(await db.drafts.get(`avatar:${account}`)).toMatchObject({
+      kind: "profile-avatar",
+      fileData: avatarBytes,
+    });
+    expect(await db.draft_images.get("attachment-id")).toMatchObject({ fileData: bytes });
+    // The compound index the upgrade adds is queryable against migrated rows.
+    expect(await draftDB.getDraftCount(account, chain)).toBe(1);
+  });
+
   it("reports a blocked upgrade and closes its connection on version changes", async () => {
     const old = await openDB(canonicalName, 2);
     const { draftDB } = await import("../../modules/job-queue/draft-db");

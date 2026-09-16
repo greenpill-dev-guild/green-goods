@@ -83,7 +83,13 @@ export class MediaCache {
       const legacyCache = await caches.open(SW_CACHES.LEGACY_PREPARED_MEDIA);
       const legacy = await legacyCache.match(url, { ignoreVary: true });
       if (legacy) {
-        this.keepInBackground(event, url, legacy.clone());
+        // Drop the original once the copy is durable. Reading alone used to
+        // leave both, so every photo a steward reopened was stored twice, and
+        // the bulk drain only runs after a preparation run completes — which a
+        // device with a missing photo or permanent Data Saver never reaches.
+        // `store` throws unless the bytes were admitted, so this only deletes
+        // what has actually been kept.
+        this.keepInBackground(event, url, legacy.clone(), () => legacyCache.delete(url));
         return legacy;
       }
     }
@@ -143,9 +149,20 @@ export class MediaCache {
     return { bytes: total, count };
   }
 
-  private keepInBackground(event: FetchEvent, url: string, response: Response): void {
+  private keepInBackground(
+    event: FetchEvent,
+    url: string,
+    response: Response,
+    onStored?: () => Promise<unknown>
+  ): void {
     if (!this.work.isAccepting) return;
-    event.waitUntil(this.work.track(this.schedule(url, response).catch(() => undefined)));
+    event.waitUntil(
+      this.work.track(
+        this.schedule(url, response)
+          .then(() => onStored?.())
+          .catch(() => undefined)
+      )
+    );
   }
 
   private schedule(url: string, response: Response): Promise<void> {

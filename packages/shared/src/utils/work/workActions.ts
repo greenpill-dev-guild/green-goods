@@ -1,5 +1,6 @@
 import { mediaResourceManager } from "../../modules/job-queue/media-resource-manager";
 import { resolveIPFSUrl } from "../../modules/data/ipfs/resolve";
+import { SW_CACHES } from "../../modules/app/service-worker-protocol";
 import { connectivityStore } from "../../stores/connectivity";
 import { shareLink } from "../app/clipboard";
 
@@ -64,7 +65,10 @@ export async function downloadWorkMedia(work: WorkData): Promise<void> {
         work.media.map(async (source) => {
           if (/^(blob:|data:)/.test(source)) return source;
           const url = resolveIPFSUrl(source);
-          for (const name of ["image-cache", "ipfs-cache"]) {
+          // The worker reads the legacy prepared-media cache too, so a photo
+          // still sitting only there is genuinely offline-available. Leaving it
+          // out reported "not available" for a file already on the device.
+          for (const name of [SW_CACHES.IMAGES, SW_CACHES.MEDIA, SW_CACHES.LEGACY_PREPARED_MEDIA]) {
             const response = await (await caches.open(name)).match(url);
             if (!response?.ok || response.type === "opaque") continue;
             const blob = await response.blob();

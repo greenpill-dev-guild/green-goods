@@ -976,6 +976,29 @@ describe("IPFS media cache", () => {
     await settled();
     expect(await cacheStores.get("ipfs-cache")?.get(photoUrl)?.clone().text()).toBe("legacy-photo");
     expect(fetchMock).not.toHaveBeenCalled();
+    // Moved, not copied. Keeping both stored every reopened photo twice, and
+    // the bulk drain only runs after a preparation run the device may never
+    // complete — so the duplicate set had no bound.
+    expect(cacheStores.get("gg-prepared-media-v1")?.has(photoUrl)).toBe(false);
+  });
+
+  it("keeps the prepared photo when it could not be admitted to the media cache", async () => {
+    const { cacheFor, cacheStores, fetchMock, listeners } = await loadServiceWorker();
+    await cacheFor("gg-prepared-media-v1").put(
+      photoUrl,
+      new Response("legacy-photo", { headers: { "content-type": "image/jpeg" } })
+    );
+    // A budget of zero admits nothing, so the copy never lands.
+    await ask(listeners, { type: "MEDIA_POLICY", budgetBytes: 1, keep: [] });
+    fetchMock.mockRejectedValue(new TypeError("offline"));
+    const { event, response, settled } = mediaEvent(imageRequest(photoUrl));
+
+    listeners.fetch.forEach((listener) => listener(event));
+    expect(await (await response())?.text()).toBe("legacy-photo");
+    await settled();
+
+    // Deleting on a failed store would lose the only copy of the photo.
+    expect(cacheStores.get("gg-prepared-media-v1")?.has(photoUrl)).toBe(true);
   });
 
   it("leaves ranged audio and video requests and other hosts to the network", async () => {

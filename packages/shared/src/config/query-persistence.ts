@@ -4,7 +4,6 @@ import {
   type PersistedQuery,
 } from "@tanstack/query-persist-client-core";
 import {
-  type DehydratedState,
   hashKey,
   type Query,
   type QueryClient,
@@ -20,6 +19,14 @@ import {
   set as idbSet,
 } from "idb-keyval";
 import { debugWarn } from "../utils/debug";
+import {
+  LEGACY_SNAPSHOT_KEY,
+  type LegacySnapshotSource,
+  deleteDatabase,
+  isLegacySnapshot,
+  readLegacySnapshot,
+} from "./query-persistence-legacy";
+export type { LegacySnapshotSource };
 import { PERSIST_MAX_AGE, QUERY_CACHE_SCHEMA_VERSION } from "./query-cache-policy";
 
 export { PERSIST_MAX_AGE, QUERY_CACHE_SCHEMA_VERSION } from "./query-cache-policy";
@@ -39,16 +46,10 @@ export const CLIENT_QUERY_CACHE_DB = "gg-query-cache";
 export const CLIENT_QUERY_CACHE_STORE = "queries";
 export const LEGACY_CLIENT_QUERY_CACHE = { dbName: "gg-react-query", storeName: "rq" } as const;
 
-const LEGACY_SNAPSHOT_KEY = "__rq_pc__";
 const DEFAULT_STORE_NAME = "queries";
 const DEFAULT_PREFIX = "gg";
 const DEFAULT_RESTORE_TIMEOUT_MS = 1_500;
 const LEGACY_BUSTER = /^(?:dev|[a-f0-9]{7,40})$/i;
-
-export interface LegacySnapshotSource {
-  dbName: string;
-  storeName: string;
-}
 
 export interface CreateQueryPersistenceOptions {
   /** Database holding one record per query. Must differ from any older snapshot database. */
@@ -216,72 +217,6 @@ function usableWebStorage(storage: Storage | undefined): Storage | undefined {
   }
 }
 
-function isLegacySnapshot(value: unknown): value is {
-  timestamp: number;
-  buster: string;
-  clientState: DehydratedState;
-} {
-  const candidate = value as { timestamp?: unknown; buster?: unknown; clientState?: unknown };
-  return (
-    typeof candidate?.timestamp === "number" &&
-    typeof candidate.buster === "string" &&
-    Array.isArray((candidate.clientState as DehydratedState | undefined)?.queries)
-  );
-}
-
-async function readLegacySnapshot(
-  legacy: LegacySnapshotSource | undefined,
-  storage: Storage | undefined
-): Promise<{ snapshot: unknown; forget: () => Promise<void> } | undefined> {
-  if (legacy && typeof indexedDB !== "undefined" && indexedDB) {
-    try {
-      const store = createStore(legacy.dbName, legacy.storeName);
-      const snapshot = await idbGet(LEGACY_SNAPSHOT_KEY, store);
-      if (snapshot !== undefined) {
-        return {
-          snapshot,
-          forget: async () => {
-            await idbDel(LEGACY_SNAPSHOT_KEY, store).catch(() => undefined);
-            await deleteDatabase(legacy.dbName);
-          },
-        };
-      }
-    } catch (error) {
-      debugWarn("[Persister] Could not read the previous reading cache:", { error });
-    }
-  }
-  if (storage) {
-    try {
-      const raw = storage.getItem(LEGACY_SNAPSHOT_KEY);
-      if (raw) {
-        return {
-          snapshot: JSON.parse(raw),
-          forget: async () => {
-            storage.removeItem(LEGACY_SNAPSHOT_KEY);
-          },
-        };
-      }
-    } catch (error) {
-      debugWarn("[Persister] Could not read the previous storage cache:", { error });
-    }
-  }
-  return undefined;
-}
-
-function deleteDatabase(name: string): Promise<void> {
-  if (typeof indexedDB === "undefined" || !indexedDB) return Promise.resolve();
-  return new Promise<void>((resolve) => {
-    try {
-      const request = indexedDB.deleteDatabase(name);
-      request.onsuccess = () => resolve();
-      request.onerror = () => resolve();
-      request.onblocked = () => resolve();
-    } catch {
-      resolve();
-    }
-  });
-}
-
 /**
  * Build an app's reading cache: one IndexedDB record per query, written when a
  * query settles and restored at boot. IndexedDB is preferred, web storage is the
@@ -326,7 +261,7 @@ export function createQueryPersistence(options: CreateQueryPersistenceOptions): 
     stored.buster === buster ||
     (QUERY_CACHE_SCHEMA_VERSION === "1" && LEGACY_BUSTER.test(String(stored.buster ?? "")));
 
-  /** Whether a stored entry still belongs in the cache, after the restore transform. */
+  /** Whether a stored entry still belongs in the cache, judged on the raw record. */
   const classify = (stored: StoredQuery, now: number): "keep" | "drop" => {
     if (!isCurrentBuster(stored) || !Array.isArray(stored.queryKey)) return "drop";
     if (stored.state?.data === undefined) return "drop";
@@ -385,8 +320,16 @@ export function createQueryPersistence(options: CreateQueryPersistenceOptions): 
           dataUpdatedAt: Number(query.state.dataUpdatedAt) || snapshot.timestamp,
         };
         const queryHash = query.queryHash || hashKey(query.queryKey);
+        const key = storageKey(queryHash);
+        // A migration interrupted by a closing tab leaves the snapshot in place
+        // and runs again next boot. By then this query may have been refetched,
+        // so the snapshot is only the newer answer where nothing newer exists.
+        const existing = (await store.get(key).catch(() => undefined)) as StoredQuery | undefined;
+        if (existing && Number(existing.state?.dataUpdatedAt) >= Number(state.dataUpdatedAt)) {
+          continue;
+        }
         await store
-          .set(storageKey(queryHash), { queryKey: query.queryKey, queryHash, state, buster })
+          .set(key, { queryKey: query.queryKey, queryHash, state, buster })
           .catch((error: unknown) => {
             rewritten = false;
             reportError(error);

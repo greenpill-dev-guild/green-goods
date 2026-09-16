@@ -11,7 +11,7 @@ const ACTIVE_METADATA_URL = "/__gg_pwa_shell_active__";
 const CANDIDATE_METADATA_URL = "/__gg_pwa_shell_candidate__";
 const LEGACY_METADATA_URL = "/__gg_pwa_shell_current__";
 /** Runtime caches retired workers left behind, removed on activation. */
-const STALE_RUNTIME_CACHES = new Set<string>([...OBSOLETE_RUNTIME_CACHES, "gg-image-cache-meta"]);
+const STALE_RUNTIME_CACHES = new Set<string>(OBSOLETE_RUNTIME_CACHES);
 const DIGEST_PATTERN = /^[a-f0-9]{16}$/;
 
 /**
@@ -263,8 +263,13 @@ export class PwaShell {
       // only be an abandoned partial staging attempt.
       await caches.delete(cacheName);
       const shellCache = await caches.open(cacheName);
+      // The legacy metadata cache shares the shell prefix but holds no assets;
+      // leaving it in would open it once per content-addressed file for nothing.
       const reusable = (await caches.keys()).filter(
-        (name) => name.startsWith(SW_CACHES.SHELL_PREFIX) && name !== cacheName
+        (name) =>
+          name.startsWith(SW_CACHES.SHELL_PREFIX) &&
+          name !== cacheName &&
+          name !== SW_CACHES.LEGACY_SHELL_METADATA
       );
       const digests = await populateShellAssets(
         this.scope,

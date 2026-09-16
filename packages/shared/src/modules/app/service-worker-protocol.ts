@@ -110,7 +110,15 @@ export const SW_CACHES = {
 } as const;
 
 /** Runtime caches retired workers left behind; safe to delete from either side. */
-export const OBSOLETE_RUNTIME_CACHES = ["js-cache", "indexer-cache", "graphql-cache"] as const;
+export const OBSOLETE_RUNTIME_CACHES = [
+  "js-cache",
+  "indexer-cache",
+  "graphql-cache",
+  // Kept here rather than only in the worker: the page clears this list too,
+  // and a name the worker knew about privately was never reclaimed for anyone
+  // whose worker had not activated yet.
+  "gg-image-cache-meta",
+] as const;
 
 /** Raised when the worker learns to keep something new; the page compares before relying on it. */
 export const OFFLINE_CONTENT_VERSION = 4;
