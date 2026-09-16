@@ -117,6 +117,15 @@ const config: StorybookConfig = {
         sharedSrc,
         "hooks/public/publicSurfaceState.ts",
       ),
+      // Declared exports whose path does not mirror their source location.
+      // These need restating in every build tool: the app build, the test
+      // config and here. A story that reaches one of them fails only in the
+      // tool that is missing it, which is why they sit together.
+      "@green-goods/shared/service-worker": resolve(
+        sharedSrc,
+        "modules/app/service-worker-registration.ts",
+      ),
+      "@green-goods/shared/sentry": resolve(sharedSrc, "modules/app/sentry.ts"),
       "@green-goods/shared": sharedSrc,
       "@green-goods/shared/components": resolve(sharedSrc, "components"),
       "@green-goods/shared/hooks": resolve(sharedSrc, "hooks"),

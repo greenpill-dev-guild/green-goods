@@ -458,3 +458,19 @@ export function hasStoredCredential(storage: SessionStorage = localStorage): boo
 export function clearStoredCredential(storage: SessionStorage = localStorage): void {
   storage.removeItem(CREDENTIAL_STORAGE_KEY);
 }
+
+/**
+ * The storage a local sign-out clears.
+ *
+ * Auth mode and the addresses a restore would read back go. Passkey recovery
+ * metadata stays: the username, credential and expected address are the
+ * same-device fallback that powers one-tap re-login. The signed-out sentinel
+ * makes it durable, suppressing automatic passkey restore until the next
+ * successful passkey sign-in, so a dismissed ceremony stays signed out.
+ */
+export function clearSessionForSignOut(storage: SessionStorage = localStorage): void {
+  clearAuthMode(storage);
+  clearEmbeddedAddress(storage);
+  clearStoredWalletAddress(storage);
+  setSignedOutSentinel(storage);
+}

@@ -3,7 +3,8 @@ import type { DraftImage } from "../../types/job-queue";
 import { migrateAvatarDrafts } from "./draft-avatars";
 import { type CanonicalDraftRecord, isWorkDraft } from "./draft-state";
 
-export const DRAFT_DB_NAME = "green-goods-drafts";
+/** The database name every build has used; read through `DraftDatabase`. */
+const DRAFT_DB_NAME = "green-goods-drafts";
 const OPEN_TIMEOUT_MS = 3000;
 
 export interface ActiveDraftRow {

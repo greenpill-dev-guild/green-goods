@@ -1,4 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react";
+import { AppContext } from "@green-goods/shared/providers/App";
+import { useContext } from "react";
 import { MemoryRouter } from "react-router-dom";
 import { expect, within } from "storybook/test";
 import { withClientAppRuntime } from "../../../../../shared/.storybook/decorators";
@@ -53,8 +55,27 @@ export const BackOnline: Story = {
   },
 };
 
+/**
+ * The nudge is mobile-browser guidance: it renders nothing unless the app
+ * context says the visitor is on mobile and has not installed. The runtime
+ * decorator mounts wagmi, auth and the queue but not `AppProvider`, so the
+ * story supplies that one fact and inherits the rest of the defaults.
+ */
+function MobileBrowserApp({ children }: { children: React.ReactNode }) {
+  const app = useContext(AppContext);
+  return (
+    <AppContext.Provider value={{ ...app, isMobile: true, isInstalled: false }}>
+      {children}
+    </AppContext.Provider>
+  );
+}
+
 export const InstallPrompt: Story = {
-  render: () => <InstallNudge />,
+  render: () => (
+    <MobileBrowserApp>
+      <InstallNudge />
+    </MobileBrowserApp>
+  ),
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     await expect(canvas.getByTestId("install-nudge")).toBeVisible();
