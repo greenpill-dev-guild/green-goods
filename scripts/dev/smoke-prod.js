@@ -38,7 +38,7 @@ const PRODUCTION_AGENT_BROWSER_ORIGINS = [
   "https://staging.greengoods.app",
   "https://staging-admin.greengoods.app",
 ];
-// An origin the agent must refuse, so an allowlist that admits anything fails too.
+// An origin the agent must refuse with HTTP 403, so an allowlist that admits anything fails too.
 const PRODUCTION_AGENT_REFUSED_ORIGIN = "https://not-allowed.example.com";
 const LOCAL_INDEXER_URL = "http://localhost:3006/v1/graphql";
 const DEFAULT_ARBITRUM_RPC_URL = "https://arb1.arbitrum.io/rpc";
@@ -621,8 +621,13 @@ async function checkProductionAgentBrowserOrigins() {
     );
 
     const problems = allowed.map(describeAllowedOriginProblem).filter(Boolean);
-    if (refused.status < 400 || refused.allowedOrigin) {
-      problems.push(`${refused.origin}: expected a refusal, got HTTP ${refused.status}`);
+    if (refused.status !== 403 || refused.allowedOrigin) {
+      const allowOriginNote = refused.allowedOrigin
+        ? ` with Access-Control-Allow-Origin=${refused.allowedOrigin}`
+        : "";
+      problems.push(
+        `${refused.origin}: expected HTTP 403 without Access-Control-Allow-Origin, got HTTP ${refused.status}${allowOriginNote}`
+      );
     }
     if (problems.length > 0) {
       throw new Error(problems.join("; "));
