@@ -82,12 +82,11 @@ describe("AdminSelect", () => {
     expect(screen.getByText("Cycle")).toHaveClass("top-0.5", "leading-4");
     expect(screen.getByText("Cycle")).not.toHaveClass("top-1/2");
     expect(control).toHaveClass("pt-5", "pb-1", "leading-5");
-    // Themed surface tokens, not raw neutrals: --neutral-0/--neutral-950 do not
-    // flip with the theme, so they leave a light popup under the dark cockpit.
-    expect(control).toHaveClass(
-      "[&>option]:bg-[rgb(var(--m3-surface-container))]",
-      "[&>option]:text-[rgb(var(--m3-on-surface))]"
-    );
+    // Option-row colours are not a utility on this control: a Tailwind class
+    // would land in @layer utilities and beat the shared rule, putting the
+    // cockpit field on a different surface from every other select. The contract
+    // lives in theme.css, guarded by shared nativeSelectTheming.guard.test.ts.
+    expect(control.className).not.toMatch(/\[&>option\]/);
 
     fireEvent.change(control, { target: { value: "c1" } });
     expect(onChange).toHaveBeenCalledTimes(1);
