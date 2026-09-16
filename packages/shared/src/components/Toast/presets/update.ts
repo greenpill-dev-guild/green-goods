@@ -28,6 +28,14 @@ const updateDefaults = {
     title: "Updated",
     message: "Green Goods restarted on the latest version.",
   },
+  preparingOffline: {
+    title: "Updated",
+    message: "Getting it ready to work offline.",
+  },
+  offlineReady: {
+    title: "Ready to work offline",
+    message: "You can add work without a signal.",
+  },
 };
 
 export const updateToasts = {
@@ -37,6 +45,26 @@ export const updateToasts = {
       id: "app-update",
       title: updateDefaults.applied.title,
       message: updateDefaults.applied.message,
+      context: "app update",
+      suppressLogging: true,
+    }),
+
+  /** Report that the restarted app is still fetching what it needs offline */
+  preparingOffline: () =>
+    toastService.loading({
+      id: "app-update",
+      title: updateDefaults.preparingOffline.title,
+      message: updateDefaults.preparingOffline.message,
+      context: "app update",
+      suppressLogging: true,
+    }),
+
+  /** Close the loop opened by `preparingOffline` */
+  offlineReady: () =>
+    toastService.success({
+      id: "app-update",
+      title: updateDefaults.offlineReady.title,
+      message: updateDefaults.offlineReady.message,
       context: "app update",
       suppressLogging: true,
     }),
@@ -152,6 +180,36 @@ export function createUpdateToasts(formatMessage: FormatMessageFn) {
         message: formatMessage({
           id: toastMessageIdsUpdate.applied.message,
           defaultMessage: updateDefaults.applied.message,
+        }),
+        context: "app update",
+        suppressLogging: true,
+      }),
+
+    preparingOffline: () =>
+      toastService.loading({
+        id: "app-update",
+        title: formatMessage({
+          id: toastMessageIdsUpdate.preparingOffline.title,
+          defaultMessage: updateDefaults.preparingOffline.title,
+        }),
+        message: formatMessage({
+          id: toastMessageIdsUpdate.preparingOffline.message,
+          defaultMessage: updateDefaults.preparingOffline.message,
+        }),
+        context: "app update",
+        suppressLogging: true,
+      }),
+
+    offlineReady: () =>
+      toastService.success({
+        id: "app-update",
+        title: formatMessage({
+          id: toastMessageIdsUpdate.offlineReady.title,
+          defaultMessage: updateDefaults.offlineReady.title,
+        }),
+        message: formatMessage({
+          id: toastMessageIdsUpdate.offlineReady.message,
+          defaultMessage: updateDefaults.offlineReady.message,
         }),
         context: "app update",
         suppressLogging: true,

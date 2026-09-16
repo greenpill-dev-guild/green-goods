@@ -2,7 +2,7 @@
  * @vitest-environment jsdom
  */
 
-import { render } from "@testing-library/react";
+import { act, render } from "@testing-library/react";
 import { createElement } from "react";
 import { IntlProvider } from "react-intl";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -17,6 +17,9 @@ const sharedMocks = vi.hoisted(() => ({
   applying: vi.fn(),
   stalled: vi.fn(),
   applied: vi.fn(),
+  preparingOffline: vi.fn(),
+  offlineReady: vi.fn(),
+  schedulePwaShellPreparation: vi.fn(),
   useApp: vi.fn(),
   useServiceWorkerUpdate: vi.fn(),
 }));
@@ -29,7 +32,13 @@ vi.mock("@green-goods/shared/components/Toast/presets/update", () => ({
     applying: sharedMocks.applying,
     stalled: sharedMocks.stalled,
     applied: sharedMocks.applied,
+    preparingOffline: sharedMocks.preparingOffline,
+    offlineReady: sharedMocks.offlineReady,
   }),
+}));
+
+vi.mock("@green-goods/shared/service-worker", () => ({
+  schedulePwaShellPreparation: sharedMocks.schedulePwaShellPreparation,
 }));
 
 vi.mock("@green-goods/shared/providers/App", () => ({
@@ -239,5 +248,69 @@ describe("PwaUpdateNotifier after an update reload", () => {
     mockHookState(false);
     renderNotifier();
     expect(sharedMocks.applied).not.toHaveBeenCalled();
+  });
+
+  it("says nothing more when the offline-ready tier lands before the grace period", async () => {
+    vi.useFakeTimers();
+    // The common case: the new shell reuses the previous one's copy, so the
+    // tier is ready almost immediately and the wait is not worth a word.
+    sharedMocks.schedulePwaShellPreparation.mockImplementation(
+      (_tier: string, onStatus?: (status: string) => void) => onStatus?.("ready")
+    );
+    mockHookState(true);
+
+    renderNotifier();
+    await act(async () => {});
+    act(() => {
+      vi.advanceTimersByTime(10_000);
+    });
+
+    expect(sharedMocks.applied).toHaveBeenCalledTimes(1);
+    expect(sharedMocks.preparingOffline).not.toHaveBeenCalled();
+    expect(sharedMocks.offlineReady).not.toHaveBeenCalled();
+    vi.useRealTimers();
+  });
+
+  it("reports a real wait and closes the loop when the tier finally lands", async () => {
+    vi.useFakeTimers();
+    let notify: ((status: string) => void) | undefined;
+    sharedMocks.schedulePwaShellPreparation.mockImplementation(
+      (_tier: string, onStatus?: (status: string) => void) => {
+        notify = onStatus;
+      }
+    );
+    mockHookState(true);
+
+    renderNotifier();
+    await act(async () => {});
+
+    expect(sharedMocks.applied).toHaveBeenCalledTimes(1);
+    expect(sharedMocks.preparingOffline).not.toHaveBeenCalled();
+
+    act(() => {
+      vi.advanceTimersByTime(1_500);
+    });
+    expect(sharedMocks.preparingOffline).toHaveBeenCalledTimes(1);
+
+    // A tier that is still retrying is not an outcome; only a settled one is.
+    act(() => notify?.("paused"));
+    expect(sharedMocks.offlineReady).not.toHaveBeenCalled();
+
+    act(() => notify?.("ready"));
+    expect(sharedMocks.offlineReady).toHaveBeenCalledTimes(1);
+    vi.useRealTimers();
+  });
+
+  it("asks for the offline-ready tier, not the send-time tail", async () => {
+    sharedMocks.schedulePwaShellPreparation.mockImplementation(() => {});
+    mockHookState(true);
+
+    renderNotifier();
+    await act(async () => {});
+
+    expect(sharedMocks.schedulePwaShellPreparation).toHaveBeenCalledWith(
+      "priority",
+      expect.any(Function)
+    );
   });
 });
