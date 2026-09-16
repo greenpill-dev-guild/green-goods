@@ -330,7 +330,7 @@ test.describe("Work Submission Flows", () => {
             })
             .toBe(true);
         } else {
-          // SKIP: #338 owner:afo expiry:2026-09-15 — requires a failed queued submission fixture
+          // SKIP: #338 owner:afo expiry:2026-09-30 — requires a failed queued submission fixture
           test.skip(true, "No failed work is available to exercise retry");
         }
       }
@@ -364,7 +364,7 @@ test.describe("Work Submission Flows", () => {
             .first()
             .isVisible({ timeout: 2000 })
             .catch(() => false);
-          // SKIP: #338 owner:afo expiry:2026-09-15 — selected action must declare image evidence
+          // SKIP: #338 owner:afo expiry:2026-09-30 — selected action must declare image evidence
           test.skip(!requiresImage, "Selected action does not require image evidence");
 
           // Submit without title

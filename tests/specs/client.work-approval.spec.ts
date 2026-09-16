@@ -187,7 +187,7 @@ test.describe("Work Approval Flows (Steward)", () => {
           ).toBeTruthy();
         }
       } else {
-        // SKIP: #338 owner:afo expiry:2026-09-15 — requires pending steward work fixture
+        // SKIP: #338 owner:afo expiry:2026-09-30 — requires pending steward work fixture
         test.skip(true, "No pending work is available to approve");
       }
     });
@@ -217,7 +217,7 @@ test.describe("Work Approval Flows (Steward)", () => {
           ).toBeTruthy();
         }
       } else {
-        // SKIP: #338 owner:afo expiry:2026-09-15 — requires pending steward work fixture
+        // SKIP: #338 owner:afo expiry:2026-09-30 — requires pending steward work fixture
         test.skip(true, "No pending work is available to update");
       }
     });
@@ -309,7 +309,7 @@ test.describe("Work Approval Flows (Steward)", () => {
           }
         }
       } else {
-        // SKIP: #338 owner:afo expiry:2026-09-15 — requires pending steward work fixture
+        // SKIP: #338 owner:afo expiry:2026-09-30 — requires pending steward work fixture
         test.skip(true, "No pending work is available to reject");
       }
     });
@@ -342,7 +342,7 @@ test.describe("Work Approval Flows (Steward)", () => {
           expect(isErrorVisible).toBe(true);
         }
       } else {
-        // SKIP: #338 owner:afo expiry:2026-09-15 — requires pending steward work fixture
+        // SKIP: #338 owner:afo expiry:2026-09-30 — requires pending steward work fixture
         test.skip(true, "No pending work is available for offline failure handling");
       }
     });
