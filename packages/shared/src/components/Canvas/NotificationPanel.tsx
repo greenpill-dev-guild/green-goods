@@ -5,7 +5,6 @@ import {
   RiInformationLine,
 } from "@remixicon/react";
 import { useIntl } from "react-intl";
-import { buttonVariants } from "../Button";
 import { SheetBody } from "./SheetBody";
 
 export type NotificationPanelTone = "info" | "warn" | "critical";
@@ -120,7 +119,9 @@ function NotificationRow({ item }: { item: NotificationPanelItem }) {
 
   const trailing = showActionButton ? (
     <span
-      className={`${buttonVariants({ variant: "ghost", size: "sm" })} ml-auto shrink-0 self-start`}
+      className="gg-button ml-auto shrink-0 self-start"
+      data-emphasis="tertiary"
+      data-size="sm"
       style={{
         color: "rgb(var(--tone-action, var(--primary-action)))",
         maxWidth: "45%",

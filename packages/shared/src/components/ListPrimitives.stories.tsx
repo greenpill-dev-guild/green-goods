@@ -18,7 +18,7 @@ function ToolbarPreview() {
           { value: "name", label: "Name" },
         ]}
       />
-      <Button size="sm" variant="secondary">
+      <Button size="sm" emphasis="secondary">
         Export
       </Button>
     </ListToolbar>

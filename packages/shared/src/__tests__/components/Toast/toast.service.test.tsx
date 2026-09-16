@@ -118,10 +118,11 @@ describe("toastService auto-dismiss (service-owned timers)", () => {
     const action = screen.getByRole("button", {
       name: "Review Pending Work from This Garden",
     });
-    expect(action).toHaveClass("gg-button", "gg-button-ghost", "gg-button-size-sm");
+    expect(action).toHaveClass("gg-button");
+    expect(action).toHaveAttribute("data-emphasis", "tertiary");
+    expect(action).toHaveAttribute("data-size", "sm");
     expect(action).toHaveStyle({
       color: "rgb(var(--tone-action, var(--primary-action)))",
-      minHeight: "44px",
       overflowWrap: "anywhere",
       whiteSpace: "normal",
     });

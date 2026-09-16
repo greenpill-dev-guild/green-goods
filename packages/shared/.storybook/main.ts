@@ -58,6 +58,10 @@ function packageScopedAliasPlugin(
 
 const config: StorybookConfig = {
   stories: [
+    // Storybook-owned Design System review pages. They live beside the config
+    // (not in a package `src`) because they compose admin, client, and shared
+    // primitives side by side, which no single package may import.
+    "./design-system/**/*.stories.@(ts|tsx)",
     "../src/**/*.stories.@(ts|tsx)",
     "../../../packages/admin/src/**/*.stories.@(ts|tsx)",
     "../../../packages/client/src/**/*.stories.@(ts|tsx)",

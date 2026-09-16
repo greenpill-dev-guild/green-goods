@@ -101,7 +101,6 @@ export {
   Badge,
   Button,
   badgeVariants,
-  buttonVariants,
   Card,
   CHOREOGRAPHY_STAGGER_MS,
   ConfidenceSelector,

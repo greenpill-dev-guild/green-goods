@@ -131,7 +131,7 @@ function CookieJarWithdrawModalHarness({
         </div>
 
         <Button
-          variant="primary"
+          emphasis="primary"
           className="w-full"
           loading={isPending}
           disabled={!selected || amount.trim() === ""}

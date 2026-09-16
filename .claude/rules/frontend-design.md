@@ -138,10 +138,10 @@ the wrapper-adoption sweep in `check:design-tokens`. For an inline **setting row
 left, `Switch` or compact control right), use `AdminSettingRow`.
 
 **Client**: use the `FormField` component from `@green-goods/shared` for label+input+error
-patterns, with the shared `TextInput`, `Textarea`, `NativeSelect`, `Switch`, and
-`FormattedAmountInput` as the controls — never a raw `<input>`, `<textarea>`, or `<select>` with its
-own classes (Rule 19). Fields are 16px on the default surface and an underline on the public
-editorial surface (DL-022, DL-024). Mark required fields in both surfaces (the admin family renders
+patterns, with the shared `TextInput`, `Textarea`, `NativeSelect`, `Switch`,
+`FormattedAmountInput`, `DatePicker`, and `FileUploadField` as the controls — never a raw
+`<input>`, `<textarea>`, or `<select>` with its own classes (Rule 19). Fields are 16px on the
+default surface and an underline on the public editorial surface (DL-022, DL-024). Mark required fields in both surfaces (the admin family renders
 its own aria-hidden asterisk from `required` — never hardcode `" *"` into label strings).
 
 **A field-input label is never a hand-rolled eyebrow.** Labelling an input, toggle, or
@@ -226,21 +226,24 @@ Otherwise: trust the chrome. Anti-pattern guard for review: search the rendered 
 
 ## Rule 18: Cockpit M3 1a Invariants (admin)
 
-The five enforceable invariants of the admin cockpit finish — treat violations as design regressions:
+The six enforceable invariants of the admin cockpit finish — treat violations as design regressions:
 
 - **Single elevation ladder** — `--m3-elevation-0/1/2` plus `--admin-chrome-shadow` (floating nav/FAB chrome) are the only shadows.
 - **Admin radius set** — 4/8/12/16/9999px only; no 20/24/28px radii (`rounded-xl`/`rounded-2xl` remap to 16px in admin).
 - **Four-use tone budget** — workspace tone appears only in the active tab underline/label, the active nav pill, one filled `--tone-action` header action, and the nav-shell FAB fill (plus the faint canvas wash).
 - **Hover rule** — hovers are an elevation step-up or the neutral ink layer `rgb(var(--m3-on-surface) / 0.08)`; never translate/scale lifts or hue shifts.
-- **AdminButton only** — pill shape, Title Case action labels (en; DL-012); the shared `Button` (`gg-button`) must not appear in admin. Control heights ride the DL-011 compact metric (buttons 28/32/40, fields 44, pills 36).
+- **AdminButton only** — pill shape, one 14px label at every size, Title Case action labels (en; DL-012); admin views never render the shared `Button` (`gg-button`; `EmptyState` takes an `AdminButton` element as its action). Control heights ride the DL-011 compact metric (buttons 28/32/40 with a 44px finger box on every tier, fields 44 on touch widths and 40 from 640px, pills and tabs 36; DL-030).
+- **Shared pieces ride the shared family** — the shared components the cockpit renders (FileUploadField, DatePicker, ConfidenceSelector, AudioRecorder, ImagePreviewDialog, toast actions, AssetSelector, AddressDisplay, Alert) keep their shared `Button` / `IconButton` / `Chip` / control anatomy, and `index.css` sets the family's `--gg-*` tokens so they land on the cockpit metric: pills, one 14px label, lg and md on 40, sm on 32, compact on 28, a 44px finger box, and the responsive field tier through `surface="admin"` (DL-031). Never restyle a shared piece from admin; move the token.
 
 ## Rule 19: Client Buttons and Controls Come From the Shared Family
 
 In `packages/client`, every action is the shared `Button` (`emphasis` primary / secondary /
-tertiary), `IconButton`, or `Chip`, and every field a shared field primitive (DL-025). The
-primitive owns the corner, one per surface for every emphasis: 12px in the app and 16px on the
-public website (DL-026). The height comes from `size` on the shared scale 48 / 44 / 40 / 32
-(DL-023). Never pass a radius, height, or vertical padding class to them.
+tertiary), `IconButton`, or `Chip`, and every field a shared field primitive (`TextInput`,
+`Textarea`, `NativeSelect`, `Switch`, `FormattedAmountInput`, `DatePicker`, `FileUploadField`;
+DL-025, DL-031). The primitive owns the corner, one per surface for every emphasis: the 16px field
+corner in the app and no corner on the public website (DL-026, DL-029). The height comes from
+`size` on the shared scale 48 / 44 / 40 / 32 (DL-023). Never pass a radius, height, or vertical
+padding class to them, and never a `variant`: the legacy class contract is gone.
 
 A raw element is allowed only when it declares why: a `<button>` with a `role` of `tab`, `switch`,
 or `radio`, or a `data-pressable` of `card`, `row`, `scrim`, `media`, `trigger`, `fab`, or `tab` (a

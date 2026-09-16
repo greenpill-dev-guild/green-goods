@@ -38,6 +38,7 @@ typography:
     fontWeight: 700
     lineHeight: 1.1
 rounded:
+  none: 0px
   md: 8px
   squircle: 12px
   lg: 16px
@@ -94,23 +95,23 @@ components:
     textColor: "{colors.on-tertiary-action}"
     typography: "{typography.label-md}"
     padding: "{spacing.md}"
-    rounded: "{rounded.squircle}"
+    rounded: "{rounded.lg}"
   button-primary-hover:
     backgroundColor: "{colors.tertiary-action-hover}"
     textColor: "{colors.on-tertiary-action}"
     typography: "{typography.label-md}"
-    rounded: "{rounded.squircle}"
+    rounded: "{rounded.lg}"
   button-primary-website:
     backgroundColor: "{colors.tertiary-action}"
     textColor: "{colors.on-tertiary-action}"
     typography: "{typography.label-md}"
     padding: "{spacing.md}"
-    rounded: "{rounded.lg}"
+    rounded: "{rounded.none}"
   button-secondary:
     textColor: "{colors.primary}"
     typography: "{typography.label-md}"
     padding: "{spacing.md}"
-    rounded: "{rounded.squircle}"
+    rounded: "{rounded.lg}"
   field:
     textColor: "{colors.primary}"
     typography: "{typography.body-md}"
