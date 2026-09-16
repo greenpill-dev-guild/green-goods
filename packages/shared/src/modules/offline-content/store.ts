@@ -38,7 +38,8 @@ export function updateOfflineProgress(
     next.state !== snapshot.state ||
     next.pauseReason !== snapshot.pauseReason ||
     next.storageFull !== snapshot.storageFull ||
-    next.missingPhotos !== snapshot.missingPhotos;
+    next.missingPhotos !== snapshot.missingPhotos ||
+    next.failedReads !== snapshot.failedReads;
   snapshot = next;
   if (changedState) notify();
   else notifyTimer ??= setTimeout(notify, PROGRESS_NOTIFY_MS);

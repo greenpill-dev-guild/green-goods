@@ -10,6 +10,7 @@ const sidebars: SidebarsConfig = {
       label: 'Gardener',
       link: {type: 'doc', id: 'community/gardener-guide/index'},
       items: [
+        {type: 'doc', id: 'community/gardener-guide/installing-and-updating', label: 'Install and Update'},
         {type: 'doc', id: 'community/gardener-guide/joining-a-garden', label: 'Join a Garden'},
         {type: 'doc', id: 'community/gardener-guide/uploading-your-work', label: 'Submit Work'},
         {type: 'doc', id: 'community/gardener-guide/recovery-and-sync', label: 'Recovery and Sync'},

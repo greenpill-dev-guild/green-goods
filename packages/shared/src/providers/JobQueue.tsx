@@ -12,6 +12,7 @@ import { useWalletQueueSync } from "../hooks/work/useWalletQueueSync";
 import { jobQueue } from "../modules/job-queue/default-instance";
 import type { JobQueueHandle } from "../modules/job-queue/ports";
 import { logger } from "../modules/app/logger";
+import { connectivityStore } from "../stores/connectivity";
 import { useUIStore } from "../stores/useUIStore";
 import type {
   ApprovalJobPayload,
@@ -324,19 +325,24 @@ const JobQueueProviderInner: React.FC<JobQueueProviderProps> = ({ children, queu
       }
     };
 
-    // Auto-flush on mount if online and have a transaction sender (passkey or embedded)
-    if (navigator.onLine && (authMode === "passkey" || authMode === "embedded")) {
+    // Auto-flush only after the canonical connectivity store confirms online.
+    if (
+      connectivityStore.getStatusSnapshot().state === "online" &&
+      (authMode === "passkey" || authMode === "embedded")
+    ) {
       void attemptFlush();
     }
 
-    const handleOnline = () => {
-      // Auto-flush for passkey and embedded users (sponsored tx senders)
-      if (authMode === "passkey" || authMode === "embedded") {
+    const handleConnectivity = () => {
+      if (
+        connectivityStore.getStatusSnapshot().state === "online" &&
+        (authMode === "passkey" || authMode === "embedded")
+      ) {
         void attemptFlush();
       }
     };
 
-    window.addEventListener("online", handleOnline);
+    const unsubscribeConnectivity = connectivityStore.subscribeStatus(handleConnectivity);
     const unsubscribeBackgroundSync = queue.onBackgroundSyncRequested(() => {
       if (authMode === "passkey" || authMode === "embedded") {
         void attemptFlush();
@@ -345,7 +351,7 @@ const JobQueueProviderInner: React.FC<JobQueueProviderProps> = ({ children, queu
 
     return () => {
       abortController.abort();
-      window.removeEventListener("online", handleOnline);
+      unsubscribeConnectivity();
       unsubscribeBackgroundSync();
     };
   }, [sender, authMode, currentUserAddress, queue, refreshStats]);
@@ -388,7 +394,7 @@ const JobQueueProviderInner: React.FC<JobQueueProviderProps> = ({ children, queu
           } else if (result.failed > 0) {
             queueToasts.syncError();
           } else if (result.skipped > 0) {
-            const isOnline = typeof navigator === "undefined" ? true : navigator.onLine;
+            const isOnline = connectivityStore.getSnapshot();
             const reason = !isOnline
               ? "Reconnect to the internet to finish syncing."
               : !sender

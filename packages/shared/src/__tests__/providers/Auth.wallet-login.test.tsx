@@ -9,6 +9,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createActor, fromPromise } from "xstate";
 
 import { AUTH_MODE_STORAGE_KEY } from "../../modules/auth/session";
+import { connectivityStore } from "../../stores/connectivity";
 import { queryClient } from "../../config/react-query";
 import { AuthProvider, useAuthContext } from "../../providers/Auth";
 import { defaultPasskeyAdapters } from "../../workflows/auth-passkey-adapters";
@@ -106,7 +107,10 @@ const embeddedConnector = { id: "ID_AUTH", name: "Google" };
 let accountState: AccountState;
 let actor: ReturnType<typeof createAuthTestActor>;
 
-function createAuthTestActor(restoreAuthMode: "wallet" | "embedded" | null = null) {
+function createAuthTestActor(
+  restoreAuthMode: "wallet" | "embedded" | null = null,
+  restoreAddress: Hex | null = null
+) {
   return createActor(
     authMachine.provide({
       actors: {
@@ -125,6 +129,7 @@ function createAuthTestActor(restoreAuthMode: "wallet" | "embedded" | null = nul
       input: {
         chainId: 11155111,
         restoreAuthMode,
+        restoreAddress,
       },
     }
   );
@@ -445,13 +450,16 @@ describe("AuthProvider wallet login bridge", () => {
     }
   });
 
-  it("does not spend the restore deadline while the app is offline", async () => {
+  it("keeps an offline restore readable and only spends the deadline once reconnected", async () => {
     vi.useFakeTimers();
     try {
+      // The setup shim rebuilds the window listener map per test, so the
+      // store's own listeners never see a dispatched event; drive it directly.
       Object.defineProperty(navigator, "onLine", { configurable: true, value: false });
+      await connectivityStore.check();
       localStorage.setItem(AUTH_MODE_STORAGE_KEY, "wallet");
       actor.stop();
-      actor = createAuthTestActor("wallet");
+      actor = createAuthTestActor("wallet", TEST_WALLET);
       actor.start();
       mocks.mockGetAuthActor.mockReturnValue(actor);
 
@@ -460,17 +468,34 @@ describe("AuthProvider wallet login bridge", () => {
         await vi.advanceTimersByTimeAsync(20_000);
       });
 
+      // Offline, the remembered wallet keeps the session mounted read-only and
+      // the connector is never asked to reconnect.
       expect(actor.getSnapshot().matches({ restoring: "wallet" })).toBe(true);
+      expect(view.result.current.isAuthenticated).toBe(true);
       expect(view.result.current.isReady).toBe(false);
       expect(mocks.mockTrackWalletRestore).not.toHaveBeenCalledWith(
         expect.objectContaining({ outcome: "failed", reason: "timeout" })
       );
+      expect(mocks.mockReconnect).not.toHaveBeenCalled();
 
       Object.defineProperty(navigator, "onLine", { configurable: true, value: true });
-      act(() => window.dispatchEvent(new Event("online")));
-
+      await act(async () => {
+        window.dispatchEvent(new Event("online"));
+        expect(mocks.mockReconnect).not.toHaveBeenCalled();
+        await connectivityStore.check();
+      });
       expect(mocks.mockReconnect).toHaveBeenCalledTimes(1);
+
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(15_000);
+      });
+      expect(actor.getSnapshot().matches("unauthenticated")).toBe(true);
+      expect(mocks.mockTrackWalletRestore).toHaveBeenCalledWith(
+        expect.objectContaining({ authMode: "wallet", outcome: "failed", reason: "timeout" })
+      );
     } finally {
+      Object.defineProperty(navigator, "onLine", { configurable: true, value: true });
+      await connectivityStore.check();
       vi.useRealTimers();
     }
   });

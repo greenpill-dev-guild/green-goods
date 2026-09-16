@@ -16,6 +16,7 @@ vi.mock("@/components/Communication", async () => ({
   ...(await import("../../components/Communication/EmptyState")),
   Loader: () => <div>Loading</div>,
 }));
+
 import type { Work } from "@green-goods/shared/types/domain";
 import { GardenWork } from "../../components/Features/Garden/Work";
 
@@ -58,7 +59,7 @@ it("says nothing about offline content while online", () => {
   expect(offline.useActiveOfflineGarden).toHaveBeenCalledWith("0xgarden");
 });
 
-it("keeps saved work visible when a refresh fails and says when it was saved", () => {
+it("keeps saved work visible without an online refresh-failure accent", () => {
   renderList({
     works: [savedWork(1)],
     workFetchStatus: "error",
@@ -68,7 +69,7 @@ it("keeps saved work visible when a refresh fails and says when it was saved", (
   });
 
   expect(screen.getByTestId("cached-work")).toBeInTheDocument();
-  expect(screen.getByRole("status")).toHaveTextContent(/^Couldn’t refresh · Saved \d/);
+  expect(screen.queryByRole("status")).toBeNull();
 });
 
 it("labels a saved copy while offline on one line", () => {
@@ -113,15 +114,51 @@ it("does not call a partial offline copy with no rows an empty garden", () => {
   expect(screen.queryByText(/No work yet/)).toBeNull();
 });
 
-it("renders the newest fifty cards and shows older work when asked", () => {
-  const works = Array.from({ length: 60 }, (_, index) => savedWork(index + 1));
+const loadedRead = (extra: Record<string, unknown> = {}) => ({
+  isError: false,
+  isLoading: false,
+  isPaused: false,
+  availability: "available" as const,
+  ...extra,
+});
+
+it("renders every row the read returned, newest first", () => {
+  const works = Array.from({ length: 50 }, (_, index) => savedWork(index + 1));
   renderList({ works, workFetchStatus: "success", gardenId: "0xgarden" });
 
   expect(screen.getAllByTestId("cached-work")).toHaveLength(50);
-  expect(screen.getAllByTestId("cached-work")[0]).toHaveTextContent("work 60");
+  expect(screen.getAllByTestId("cached-work")[0]).toHaveTextContent("work 50");
+});
+
+it("asks the read for older work when the garden has more of it", () => {
+  const loadOlderWork = vi.fn();
+  renderList({
+    works: [savedWork(1)],
+    gardenId: "0xgarden",
+    readState: loadedRead({ hasOlderWork: true, loadOlderWork }),
+  });
 
   fireEvent.click(screen.getByRole("button", { name: "Show older work" }));
 
-  expect(screen.getAllByTestId("cached-work")).toHaveLength(60);
+  expect(loadOlderWork).toHaveBeenCalledTimes(1);
+});
+
+it("offers no older work once the read has reached the end of the garden", () => {
+  renderList({
+    works: [savedWork(1)],
+    gardenId: "0xgarden",
+    readState: loadedRead({ hasOlderWork: false, loadOlderWork: vi.fn() }),
+  });
+
+  expect(screen.queryByRole("button", { name: "Show older work" })).toBeNull();
+});
+
+it("hides older work offline, where a wider window cannot be read", () => {
+  renderList({
+    works: [savedWork(1)],
+    gardenId: "0xgarden",
+    readState: loadedRead({ isPaused: true, hasOlderWork: true, loadOlderWork: vi.fn() }),
+  });
+
   expect(screen.queryByRole("button", { name: "Show older work" })).toBeNull();
 });

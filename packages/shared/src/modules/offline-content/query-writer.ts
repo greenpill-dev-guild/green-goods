@@ -1,12 +1,16 @@
-import type { QueryClient } from "@tanstack/react-query";
+import type { QueryClient, QueryKey } from "@tanstack/react-query";
 
-let writer: ((client: QueryClient) => Promise<void>) | undefined;
+let writer: ((client: QueryClient, queryKey: QueryKey) => Promise<void>) | undefined;
+
+/** The app installs its reading-cache writer once; preparation persists through it. */
 export function configureOfflineQueryPersistence(
-  value: (client: QueryClient) => Promise<void>
+  value: (client: QueryClient, queryKey: QueryKey) => Promise<void>
 ): void {
   writer = value;
 }
-export async function persistPreparedQueries(client: QueryClient): Promise<void> {
+
+/** Write one filled read now; rejects when the reading cache refuses. */
+export async function persistPreparedQuery(client: QueryClient, queryKey: QueryKey): Promise<void> {
   if (!writer) throw new Error("Reading cache not ready");
-  await writer(client);
+  await writer(client, queryKey);
 }

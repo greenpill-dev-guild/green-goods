@@ -52,7 +52,7 @@ test("shared JS setup pins the toolchain and installs from the frozen lockfile",
   const action = read(".github/actions/setup-js/action.yml");
 
   assert.match(action, /node-version:\s*["']22\.22\.1["']/);
-  assert.match(action, /bun-version:\s*["']1\.3\.14["']/);
+  assert.match(action, /bun-version:\s*["']1\.4\.2["']/);
   assert.match(action, /uses:\s*actions\/setup-node@[0-9a-f]{40}/);
   assert.match(action, /uses:\s*oven-sh\/setup-bun@[0-9a-f]{40}/);
   assert.match(action, /bun install --frozen-lockfile/);
@@ -214,7 +214,7 @@ test("every direct Node and Bun setup uses the exact repository versions", () =>
       assert.equal(match[1], "22.22.1", `${file} has a drifting Node pin`);
     }
     for (const match of source.matchAll(/bun-version:\s*["']?([^\s"']+)/g)) {
-      assert.equal(match[1], "1.3.14", `${file} has a drifting Bun pin`);
+      assert.equal(match[1], "1.4.2", `${file} has a drifting Bun pin`);
     }
   }
 });
@@ -282,11 +282,18 @@ test("client and admin production builds follow their full consumer project grap
     const solution = JSON.parse(read(`packages/${packageName}/tsconfig.json`));
     const references = solution.references.map(({ path }) => path);
 
-    assert.deepEqual(references, [
-      "./tsconfig.app.json",
-      "./tsconfig.node.json",
-      "./tsconfig.test.json",
-    ]);
+    // The client also builds its service worker, which needs the worker library.
+    assert.deepEqual(
+      references,
+      packageName === "client"
+        ? [
+            "./tsconfig.app.json",
+            "./tsconfig.node.json",
+            "./tsconfig.sw.json",
+            "./tsconfig.test.json",
+          ]
+        : ["./tsconfig.app.json", "./tsconfig.node.json", "./tsconfig.test.json"],
+    );
     const full = resolvePackageCommand(packageName, "typecheck", ["--scope", "full"]);
     assert.equal(full.steps.length, 1);
     assert.deepEqual(full.steps[0].args.slice(1), ["tsc", "-b", packageName === "admin" ? "packages/admin/tsconfig.json" : "tsconfig.json"]);

@@ -11,6 +11,7 @@ import { useGreenGoodsEnsName } from "@green-goods/shared/hooks/ens/useGreenGood
 import { useProtocolMemberStatus } from "@green-goods/shared/hooks/ens/useProtocolMemberStatus";
 import { useSlugAvailability } from "@green-goods/shared/hooks/ens/useSlugAvailability";
 import { useSlugForm } from "@green-goods/shared/hooks/ens/useSlugForm";
+import { SW_MESSAGE } from "@green-goods/shared/modules/app/service-worker-protocol";
 import type { Address } from "@green-goods/shared/types/domain";
 import {
   RiAlertLine,
@@ -72,7 +73,7 @@ export const ENSSection: React.FC<ENSSectionProps> = ({ primaryAddress }) => {
       const sw = navigator.serviceWorker?.controller;
       if (sw) {
         sw.postMessage({
-          type: "ENS_REGISTRATION_COMPLETE",
+          type: SW_MESSAGE.ENS_REGISTRATION_COMPLETE,
           slug: claimedSlug,
         });
       }

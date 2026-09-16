@@ -116,7 +116,7 @@ test("local Vitest workers respect CPU, memory, and concurrent package share", (
 
 test("compatible Node selection honors candidate order and skips Bun shims", () => {
   const versions = new Map([
-    ["/mise-shim/node", "bun:1.3.14"],
+    ["/mise-shim/node", "bun:1.4.2"],
     ["/env/node", "20.18.0"],
     ["/path/node", "22.22.1"],
     ["/mise-install/node", "22.21.0"],
@@ -209,7 +209,7 @@ test("successful re-entry carries the pinned Node, Bun, and Foundry toolchain", 
   t.after(() => rmSync(directory, { recursive: true, force: true }));
   const miseData = path.join(directory, "mise");
   const node = path.join(miseData, "installs/node/22.22.1/bin/node");
-  const bun = path.join(miseData, "installs/bun/1.3.14/bin/bun");
+  const bun = path.join(miseData, "installs/bun/1.4.2/bin/bun");
   const forge = path.join(miseData, "installs/foundry/1.7.1/forge");
   for (const executable of [node, bun, forge]) {
     mkdirSync(path.dirname(executable), { recursive: true });
@@ -218,7 +218,7 @@ test("successful re-entry carries the pinned Node, Bun, and Foundry toolchain", 
   }
   writeFileSync(
     path.join(directory, ".mise.toml"),
-    '[tools]\nnode = "22.22.1"\nbun = "1.3.14"\nfoundry = "1.7.1"\n',
+    '[tools]\nnode = "22.22.1"\nbun = "1.4.2"\nfoundry = "1.7.1"\n',
   );
 
   const originalMiseData = process.env.MISE_DATA_DIR;

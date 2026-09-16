@@ -129,7 +129,7 @@ The entry files are the source of truth; current shape:
 
 **Admin** (`packages/admin/src/main.tsx`):
 ```
-PersistQueryClientProvider > ErrorBoundary > AppKitProvider
+QueryPersistenceProvider > ErrorBoundary > AppKitProvider
   > AuthGate (DevAuthProvider when dev `?mockAuth=`, else AuthProvider)
   > AppProvider > RouterProvider
 ```
@@ -137,7 +137,7 @@ PersistQueryClientProvider > ErrorBoundary > AppKitProvider
 **Client** (`packages/client/src/main.tsx` + `App.tsx`):
 ```
 HelmetProvider > AppErrorBoundary > AppProvider > App
-  > PersistQueryClientProvider > AppErrorBoundary > RouterProvider
+  > QueryPersistenceProvider > AppErrorBoundary > RouterProvider
 ```
 Client wallet/auth providers do NOT live at the app root — they mount at route level via
 `routes/WalletRuntimeProviders.tsx` (`AppKitProvider > AuthGate`) so public/editorial routes

@@ -2,13 +2,12 @@ import { initGlobalErrorHandlers } from "@green-goods/shared/modules/app/error-e
 import { initTheme } from "@green-goods/shared/utils/styles/theme";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
-
+import { getBootPresentation, loadClientBootstrap } from "@/config/bootstrap";
 import {
   createPwaRoutingConfig,
   PWA_APP_SCOPE,
   PWA_DEV_SERVICE_WORKER_SCRIPT,
 } from "@/config/pwaRouting";
-import { getBootPresentation, loadClientBootstrap } from "@/config/bootstrap";
 
 import "@/index.css";
 import "@/config";
@@ -59,6 +58,7 @@ function initializeDeferredRuntime() {
           scriptUrl: devServiceWorkerEnabled
             ? PWA_DEV_SERVICE_WORKER_SCRIPT
             : pwaRouting.serviceWorkerScriptUrl,
+          ...(devServiceWorkerEnabled ? { type: "module" as const } : {}),
           scope: pwaRouting.manifestScope,
           legacyScopes: pwaRouting.manifestScope === PWA_APP_SCOPE ? ["/"] : [],
         }

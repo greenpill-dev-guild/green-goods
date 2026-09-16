@@ -46,8 +46,8 @@ import { useWalletModalOpen } from "../hooks/auth/useWalletModalOpen";
 import { logger } from "../modules/app/logger";
 import {
   type AuthMode,
-  clearAuthMode,
-  clearEmbeddedAddress,
+  clearSessionForSignOut,
+  clearStoredWalletAddress,
   clearStoredCredential,
   clearStoredSmartAccountAddress,
   clearStoredUsername,
@@ -56,7 +56,7 @@ import {
   hasStoredCredential,
   setAuthMode as saveAuthModeToStorage,
   setEmbeddedAddress,
-  setSignedOutSentinel,
+  setStoredWalletAddress,
 } from "../modules/auth/session";
 import type { PasskeyAdapters } from "../workflows/auth-passkey-adapters";
 import type { AuthActor } from "../workflows/authActor";
@@ -227,6 +227,7 @@ export function AuthProvider({ children, adapters }: AuthProviderProps) {
           address: currentAddress,
         });
         actor.send({ type: "EXTERNAL_WALLET_CONNECTED", address: currentAddress, connectionType });
+        if (connectionType === "wallet") setStoredWalletAddress(currentAddress);
 
         const currentState = actor.getSnapshot();
         const isEmbeddedConnector = isAppKitEmbeddedConnector(connector);
@@ -516,6 +517,7 @@ export function AuthProvider({ children, adapters }: AuthProviderProps) {
       const finalUserName = userName ?? getStoredUsername() ?? "";
       actor.send({ type: "SWITCH_TO_PASSKEY", userName: finalUserName });
       saveAuthModeToStorage("passkey");
+      clearStoredWalletAddress();
     },
     [actor]
   );
@@ -529,16 +531,8 @@ export function AuthProvider({ children, adapters }: AuthProviderProps) {
     // and its late completion can tear down a subsequent login. The connected
     // wallet grants no app session without explicit login intent (cleared below).
 
-    // Clear auth mode and embedded address, but keep passkey recovery metadata.
-    // Username + credential + expected address are the local cache for same-device fallback.
-    clearAuthMode();
-    clearEmbeddedAddress();
+    clearSessionForSignOut();
     clearRestoreAttempt();
-    // Make sign-out durable: suppress automatic passkey session restore on
-    // refresh until the next successful passkey sign-in (sign-in intent alone
-    // does not clear the sentinel — a dismissed ceremony stays signed out).
-    // The cached metadata still powers one-tap re-login.
-    setSignedOutSentinel();
 
     // Reset wallet restore guard to allow future auto-restore
     walletRestoreAttemptedRef.current = false;

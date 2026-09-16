@@ -1,6 +1,32 @@
-import type { DehydratedState, Query } from "@tanstack/react-query";
-import { createStore, del as idbDel, get as idbGet, set as idbSet } from "idb-keyval";
+import {
+  type AsyncStorage,
+  experimental_createQueryPersister,
+  type PersistedQuery,
+} from "@tanstack/query-persist-client-core";
+import {
+  hashKey,
+  type Query,
+  type QueryClient,
+  type QueryKey,
+  type QueryPersister,
+} from "@tanstack/react-query";
+import {
+  createStore,
+  clear as idbClear,
+  del as idbDel,
+  entries as idbEntries,
+  get as idbGet,
+  set as idbSet,
+} from "idb-keyval";
 import { debugWarn } from "../utils/debug";
+import {
+  LEGACY_SNAPSHOT_KEY,
+  type LegacySnapshotSource,
+  deleteDatabase,
+  isLegacySnapshot,
+  readLegacySnapshot,
+} from "./query-persistence-legacy";
+export type { LegacySnapshotSource };
 import { PERSIST_MAX_AGE, QUERY_CACHE_SCHEMA_VERSION } from "./query-cache-policy";
 
 export { PERSIST_MAX_AGE, QUERY_CACHE_SCHEMA_VERSION } from "./query-cache-policy";
@@ -10,23 +36,52 @@ export {
   restoreDurableWorkQuery,
 } from "./query-persistence-work";
 
-const QUERY_PERSISTENCE_KEY = "__rq_pc__";
+/** One persisted query: its key, hash, full state and the schema it was written under. */
+export type StoredQuery = PersistedQuery;
+/** What a persistence policy may inspect: the key and the settled state. */
+export type PersistableQuery = Pick<Query, "queryKey" | "state">;
 
-export interface CreateQueryPersisterOptions {
+/** The installed app's reading cache and the whole-snapshot store it replaced. */
+export const CLIENT_QUERY_CACHE_DB = "gg-query-cache";
+export const CLIENT_QUERY_CACHE_STORE = "queries";
+export const LEGACY_CLIENT_QUERY_CACHE = { dbName: "gg-react-query", storeName: "rq" } as const;
+
+const DEFAULT_STORE_NAME = "queries";
+const DEFAULT_PREFIX = "gg";
+const DEFAULT_RESTORE_TIMEOUT_MS = 1_500;
+const LEGACY_BUSTER = /^(?:dev|[a-f0-9]{7,40})$/i;
+
+export interface CreateQueryPersistenceOptions {
+  /** Database holding one record per query. Must differ from any older snapshot database. */
   dbName: string;
   storeName?: string;
+  /** Web storage used when IndexedDB is unavailable; tests pass their own. */
   storage?: Storage;
-  /** Client-only transition from deploy-keyed snapshots to schema version 1. */
-  migrateLegacyBuster?: boolean;
-  /** Installed client only: reads a restored snapshot keeps whatever its age. */
-  preserveQuery?: (query: DehydratedState["queries"][number]) => boolean;
-  /** Ordinary writes wait at least this long after the previous one. Defaults to 1 second. */
-  writeIntervalMs?: number;
+  buster?: string;
+  maxAge?: number;
+  /** Which settled queries are written at all. Defaults to the namespace filter below. */
+  shouldPersistQuery?: (query: PersistableQuery) => boolean;
+  /** Reads kept whatever their age: the offline read model. */
+  preserveQuery?: (queryKey: readonly unknown[]) => boolean;
+  shouldRestoreQuery?: (stored: StoredQuery) => boolean;
+  transformRestoredQuery?: (stored: StoredQuery) => StoredQuery;
   onPersistenceError?: () => void;
-  shouldRestoreQuery?: (query: DehydratedState["queries"][number]) => boolean;
-  transformRestoredQuery?: (
-    query: DehydratedState["queries"][number]
-  ) => DehydratedState["queries"][number];
+  /** How long boot waits for the restore before rendering; the restore continues after. */
+  restoreTimeoutMs?: number;
+  /** A whole-snapshot store from an earlier build, copied once and then deleted. */
+  legacy?: LegacySnapshotSource;
+}
+
+export interface QueryPersistence {
+  /** Per-query persister for the QueryClient's default query options. */
+  persister: QueryPersister;
+  /** Restore every stored read into the client, dropping what expired or no longer applies. */
+  restore(client: QueryClient): Promise<void>;
+  /** Write one query now, falling through the available storage tiers as needed. */
+  persistQuery(client: QueryClient, queryKey: QueryKey): Promise<void>;
+  /** Remove expired and incompatible entries. Resolves with how many were removed. */
+  gc(): Promise<number>;
+  clear(): Promise<void>;
 }
 
 export interface CreateShouldDehydrateQueryOptions {
@@ -34,121 +89,20 @@ export interface CreateShouldDehydrateQueryOptions {
   excludedGroups?: readonly string[];
 }
 
-type MaybePromise<T> = T | Promise<T>;
-
-export interface PersistedClient {
-  timestamp: number;
-  buster: string;
-  clientState: DehydratedState;
-}
-
-export interface QueryPersister {
-  persistClient: (client: PersistedClient) => MaybePromise<void>;
-  /** Writes now, without waiting for the interval, and rejects when the write fails. */
-  persistClientVerified?: (client: PersistedClient) => Promise<void>;
-  restoreClient: () => MaybePromise<PersistedClient | undefined>;
-  removeClient: () => MaybePromise<void>;
-}
-
-function createIDBPersister({
-  dbName,
-  storeName,
-}: Required<Pick<CreateQueryPersisterOptions, "dbName" | "storeName">>):
-  | QueryPersister
-  | undefined {
-  // idb-keyval opens the database lazily on first use, so a missing
-  // IndexedDB would otherwise be discovered only when persisting; probe it
-  // here so the storage fallback actually takes over.
-  if (typeof indexedDB === "undefined" || !indexedDB) return undefined;
-  try {
-    const store = createStore(dbName, storeName);
-    return {
-      persistClientVerified: async (client: PersistedClient) => {
-        await idbSet(QUERY_PERSISTENCE_KEY, client, store);
-      },
-      persistClient: async (client: PersistedClient) => {
-        try {
-          await idbSet(QUERY_PERSISTENCE_KEY, client, store);
-        } catch (error) {
-          debugWarn("[Persister] Failed to persist client to IndexedDB:", { error });
-        }
-      },
-      restoreClient: async (): Promise<PersistedClient | undefined> => {
-        // Fail fast if the IDB read hangs (e.g. blocked transaction from a
-        // concurrent connection). Without a timeout, PersistQueryClientProvider
-        // stays in `isRestoring=true` forever and pauses every query observer,
-        // leaving every useQuery stuck in `pending` with the page rendering
-        // empty-state placeholders.
-        try {
-          return (await Promise.race([
-            idbGet(QUERY_PERSISTENCE_KEY, store),
-            new Promise<undefined>((_, reject) =>
-              setTimeout(() => reject(new Error("idb-restore-timeout")), 1500)
-            ),
-          ])) as PersistedClient | undefined;
-        } catch (error) {
-          debugWarn("[Persister] Failed to restore client from IndexedDB:", { error });
-          return undefined;
-        }
-      },
-      removeClient: async (): Promise<void> => {
-        try {
-          await idbDel(QUERY_PERSISTENCE_KEY, store);
-        } catch (error) {
-          debugWarn("[Persister] Failed to remove client from IndexedDB:", { error });
-        }
-      },
-    } satisfies QueryPersister;
-  } catch (error) {
-    debugWarn("[Persister] Failed to initialize IndexedDB persister, falling back to storage:", {
-      error,
-    });
-    return undefined;
-  }
-}
-
-function createStoragePersister(storage?: Storage): QueryPersister {
-  return {
-    persistClientVerified: async (client: PersistedClient) => {
-      if (!storage) throw new Error("Reading cache is unavailable");
-      storage.setItem(QUERY_PERSISTENCE_KEY, JSON.stringify(client));
-    },
-    persistClient: async (client: PersistedClient) => {
-      if (!storage) return;
-      try {
-        storage.setItem(QUERY_PERSISTENCE_KEY, JSON.stringify(client));
-      } catch (error) {
-        debugWarn("[Persister] Failed to persist client to storage:", { error });
-      }
-    },
-    restoreClient: async (): Promise<PersistedClient | undefined> => {
-      if (!storage) return undefined;
-      try {
-        const raw = storage.getItem(QUERY_PERSISTENCE_KEY);
-        return raw ? (JSON.parse(raw) as PersistedClient) : undefined;
-      } catch (error) {
-        debugWarn("[Persister] Failed to restore client from storage:", { error });
-        return undefined;
-      }
-    },
-    removeClient: async (): Promise<void> => {
-      if (!storage) return;
-      try {
-        storage.removeItem(QUERY_PERSISTENCE_KEY);
-      } catch (error) {
-        debugWarn("[Persister] Failed to remove client from storage:", { error });
-      }
-    },
-  } satisfies QueryPersister;
+interface QueryStore {
+  /** Whether this tier survives a page restart. */
+  isDurable(): boolean;
+  get(key: string): Promise<StoredQuery | undefined>;
+  set(key: string, value: StoredQuery): Promise<void>;
+  remove(key: string): Promise<void>;
+  entries(): Promise<Array<[string, StoredQuery]>>;
+  clear(): Promise<void>;
 }
 
 /**
- * Resolve the browser's local storage without letting the lookup itself
- * throw. Browsers that block site storage (strict cookie shields, storage
- * partitioning, some private modes) raise a `SecurityError` on the mere
- * property read of `window.localStorage`; that read used to sit in a
- * destructuring default, so the throw escaped every guard below and took the
- * whole entry module down before React mounted.
+ * Resolve the browser's local storage without letting the lookup itself throw.
+ * Browsers that block site storage raise a `SecurityError` on the mere property
+ * read of `window.localStorage`.
  */
 function resolveDefaultStorage(): Storage | undefined {
   if (typeof window === "undefined") return undefined;
@@ -162,197 +116,354 @@ function resolveDefaultStorage(): Storage | undefined {
   }
 }
 
-interface PendingWrite {
-  resolve: () => void;
-  reject: (error: unknown) => void;
-}
-
-/**
- * Every query cache event hands the persister a full snapshot. Writing each one
- * copied the whole cache into storage on the main thread many times a second, so
- * only the newest snapshot is written: at most one write at a time, ordinary
- * writes spaced by `intervalMs`, and a pending write flushed when the page hides.
- */
-function createCoalescingWriter(
-  write: (client: PersistedClient) => Promise<void>,
-  intervalMs: number
-) {
-  let latest: PersistedClient | undefined;
-  let waiting: PendingWrite[] = [];
-  let urgent = false;
-  let running = false;
-  let lastWriteAt = Number.NEGATIVE_INFINITY;
-  let timer: ReturnType<typeof setTimeout> | undefined;
-
-  const onHide = () => {
-    if (typeof document !== "undefined" && document.visibilityState === "hidden") flush();
-  };
-  const watchHide = (active: boolean) => {
-    if (typeof document === "undefined") return;
-    if (active) document.addEventListener("visibilitychange", onHide);
-    else document.removeEventListener("visibilitychange", onHide);
-  };
-
-  async function drain() {
-    if (running || !latest) return;
-    const wait = urgent ? 0 : lastWriteAt + intervalMs - Date.now();
-    if (wait > 0) {
-      clearTimeout(timer);
-      timer = setTimeout(() => void drain(), wait);
-      return;
-    }
-    clearTimeout(timer);
-    running = true;
-    const client = latest;
-    const settled = waiting;
-    latest = undefined;
-    waiting = [];
-    urgent = false;
-    try {
-      await write(client);
-      settled.forEach((pending) => pending.resolve());
-    } catch (error) {
-      settled.forEach((pending) => pending.reject(error));
-    } finally {
-      lastWriteAt = Date.now();
-      running = false;
-      if (latest) void drain();
-      else watchHide(false);
-    }
-  }
-
-  function flush() {
-    if (!latest) return;
-    urgent = true;
-    void drain();
-  }
-
-  return (client: PersistedClient, immediate: boolean) =>
-    new Promise<void>((resolve, reject) => {
-      latest = client;
-      waiting.push({ resolve, reject });
-      if (immediate) urgent = true;
-      watchHide(true);
-      void drain();
-    });
-}
-
-/**
- * Build the query persister for an app. Never throws: IndexedDB is preferred,
- * web storage is the fallback, and when neither can be reached the persister
- * quietly does nothing so the app still renders with an in-memory cache.
- */
-export function createQueryPersister(options: CreateQueryPersisterOptions): QueryPersister {
-  const { dbName, storeName = "rq" } = options;
+function createIdbQueryStore(dbName: string, storeName: string): QueryStore | undefined {
+  if (typeof indexedDB === "undefined" || !indexedDB) return undefined;
   try {
-    const storage = "storage" in options ? options.storage : resolveDefaultStorage();
-    const persister = createIDBPersister({ dbName, storeName }) ?? createStoragePersister(storage);
-    const writeLatest = createCoalescingWriter(
-      (client) => persister.persistClientVerified!(client),
-      options.writeIntervalMs ?? 1_000
-    );
+    const store = createStore(dbName, storeName);
     return {
-      ...persister,
-      persistClientVerified: (client) => writeLatest(client, true),
-      persistClient: async (client) => {
-        try {
-          await writeLatest(client, false);
-        } catch (error) {
-          options.onPersistenceError?.();
-          debugWarn("[Persister] Reading cache write failed", { error });
-        }
-      },
-      restoreClient: async () => {
-        let client = await persister.restoreClient();
-        if (client && options.shouldRestoreQuery) {
-          client = {
-            ...client,
-            clientState: {
-              ...client.clientState,
-              queries: client.clientState.queries.filter(options.shouldRestoreQuery),
-            },
-          };
-        }
-        if (client && options.transformRestoredQuery) {
-          client = {
-            ...client,
-            clientState: {
-              ...client.clientState,
-              queries: client.clientState.queries.map(options.transformRestoredQuery),
-            },
-          };
-        }
-        if (client && options.preserveQuery && Date.now() - client.timestamp > PERSIST_MAX_AGE) {
-          client = {
-            ...client,
-            clientState: {
-              ...client.clientState,
-              queries: client.clientState.queries.filter(options.preserveQuery),
-              mutations: [],
-            },
-          };
-        }
-        // No read shapes changed in schema 1. Recognize the old commit/dev
-        // busters only; future schema versions must still invalidate normally.
-        if (
-          options.migrateLegacyBuster &&
-          QUERY_CACHE_SCHEMA_VERSION === "1" &&
-          client &&
-          /^(?:dev|[a-f0-9]{7,40})$/i.test(client.buster) &&
-          Array.isArray(client.clientState?.queries) &&
-          Array.isArray(client.clientState?.mutations)
-        ) {
-          const migrated = { ...client, buster: QUERY_CACHE_SCHEMA_VERSION };
-          // Keep the original timestamp so migration never revives expired data.
-          await persister.persistClient(migrated);
-          return migrated;
-        }
-        return client;
-      },
+      isDurable: () => true,
+      get: (key) => idbGet<StoredQuery>(key, store),
+      set: (key, value) => idbSet(key, value, store),
+      remove: (key) => idbDel(key, store),
+      entries: async () =>
+        (await idbEntries<string, StoredQuery>(store)).filter(
+          ([key, value]) => typeof key === "string" && value !== undefined
+        ),
+      clear: () => idbClear(store),
     };
   } catch (error) {
-    debugWarn("[Persister] Query persistence is disabled for this session:", { error });
-    return createStoragePersister(undefined);
+    debugWarn("[Persister] IndexedDB is unavailable, falling back to web storage:", { error });
+    return undefined;
   }
 }
 
+function createWebQueryStore(storage: Storage, prefix: string): QueryStore {
+  const keyPrefix = `${prefix}-`;
+  const parse = (raw: string | null): StoredQuery | undefined => {
+    if (!raw) return undefined;
+    try {
+      return JSON.parse(raw) as StoredQuery;
+    } catch {
+      return undefined;
+    }
+  };
+  return {
+    isDurable: () => true,
+    get: async (key) => parse(storage.getItem(key)),
+    set: async (key, value) => {
+      storage.setItem(key, JSON.stringify(value));
+    },
+    remove: async (key) => {
+      storage.removeItem(key);
+    },
+    entries: async () => {
+      const found: Array<[string, StoredQuery]> = [];
+      for (let index = 0; index < storage.length; index += 1) {
+        const key = storage.key(index);
+        if (!key?.startsWith(keyPrefix)) continue;
+        const value = parse(storage.getItem(key));
+        if (value) found.push([key, value]);
+      }
+      return found;
+    },
+    clear: async () => {
+      for (let index = storage.length - 1; index >= 0; index -= 1) {
+        const key = storage.key(index);
+        if (key?.startsWith(keyPrefix)) storage.removeItem(key);
+      }
+    },
+  };
+}
+
+function createMemoryQueryStore(): QueryStore {
+  const memory = new Map<string, StoredQuery>();
+  return {
+    isDurable: () => false,
+    get: async (key) => memory.get(key),
+    set: async (key, value) => {
+      memory.set(key, value);
+    },
+    remove: async (key) => {
+      memory.delete(key);
+    },
+    entries: async () => [...memory.entries()],
+    clear: async () => memory.clear(),
+  };
+}
+
+/**
+ * Use the next storage tier when the current one refuses an operation.
+ *
+ * IndexedDB opens lazily, so merely constructing its store does not prove it
+ * is usable. Safari private mode and storage policy failures can arrive from
+ * the first asynchronous operation instead. Demoting for the rest of this
+ * session makes the documented IDB -> web storage -> memory chain real.
+ */
+function createFailoverQueryStore(
+  stores: QueryStore[],
+  onError: (error: unknown) => void
+): QueryStore {
+  let active = 0;
+  const run = async <T>(operation: (store: QueryStore) => Promise<T>): Promise<T> => {
+    try {
+      return await operation(stores[active]);
+    } catch (error) {
+      onError(error);
+      if (active >= stores.length - 1) throw error;
+      active += 1;
+      return run(operation);
+    }
+  };
+  return {
+    isDurable: () => stores[active].isDurable(),
+    get: (key) => run((store) => store.get(key)),
+    set: (key, value) => run((store) => store.set(key, value)),
+    remove: (key) => run((store) => store.remove(key)),
+    entries: () => run((store) => store.entries()),
+    clear: () => run((store) => store.clear()),
+  };
+}
+
+/** Web storage that throws on first touch is treated as absent, like a blocked IndexedDB. */
+function usableWebStorage(storage: Storage | undefined): Storage | undefined {
+  if (!storage) return undefined;
+  try {
+    storage.getItem(`${DEFAULT_PREFIX}-probe`);
+    return storage;
+  } catch (error) {
+    debugWarn("[Persister] Web storage refused access; caching in memory only:", { error });
+    return undefined;
+  }
+}
+
+/**
+ * Build an app's reading cache: one IndexedDB record per query, written when a
+ * query settles and restored at boot. IndexedDB is preferred, web storage is the
+ * fallback, and when neither can be reached reads stay in memory for the
+ * session. Never throws.
+ */
+export function createQueryPersistence(options: CreateQueryPersistenceOptions): QueryPersistence {
+  const {
+    dbName,
+    storeName = DEFAULT_STORE_NAME,
+    buster = QUERY_CACHE_SCHEMA_VERSION,
+    maxAge = PERSIST_MAX_AGE,
+    shouldPersistQuery = createShouldDehydrateQuery(),
+    preserveQuery,
+    shouldRestoreQuery,
+    transformRestoredQuery,
+    onPersistenceError,
+    restoreTimeoutMs = DEFAULT_RESTORE_TIMEOUT_MS,
+    legacy,
+  } = options;
+  const prefix = DEFAULT_PREFIX;
+  const storageKey = (queryHash: string) => `${prefix}-${queryHash}`;
+  const reportError = (error: unknown) => {
+    debugWarn("[Persister] Reading cache operation failed", { error });
+    onPersistenceError?.();
+  };
+
+  let store: QueryStore;
+  let webStorage: Storage | undefined;
+  try {
+    webStorage = usableWebStorage("storage" in options ? options.storage : resolveDefaultStorage());
+    const stores = [
+      createIdbQueryStore(dbName, storeName),
+      webStorage ? createWebQueryStore(webStorage, prefix) : undefined,
+      createMemoryQueryStore(),
+    ].filter((candidate): candidate is QueryStore => candidate !== undefined);
+    store = createFailoverQueryStore(stores, reportError);
+  } catch (error) {
+    debugWarn("[Persister] Query persistence is disabled for this session:", { error });
+    store = createMemoryQueryStore();
+  }
+
+  const isCurrentBuster = (stored: StoredQuery) =>
+    stored.buster === buster ||
+    (QUERY_CACHE_SCHEMA_VERSION === "1" && LEGACY_BUSTER.test(String(stored.buster ?? "")));
+
+  /** Whether a stored entry still belongs in the cache, judged on the raw record. */
+  const classify = (stored: StoredQuery, now: number): "keep" | "drop" => {
+    if (!isCurrentBuster(stored) || !Array.isArray(stored.queryKey)) return "drop";
+    if (stored.state?.data === undefined) return "drop";
+    if (shouldRestoreQuery && !shouldRestoreQuery(stored)) return "drop";
+    if (preserveQuery?.(stored.queryKey)) return "keep";
+    const updatedAt = Number(stored.state.dataUpdatedAt) || 0;
+    return now - updatedAt <= maxAge ? "keep" : "drop";
+  };
+
+  const persisterCore = experimental_createQueryPersister<StoredQuery>({
+    storage: {
+      getItem: (key) => store.get(key),
+      // The persister writes after every settled fetch without awaiting, and it
+      // decides what to write before the fetch has data, so the policy runs
+      // here on the settled record. A refused write must never surface as an
+      // unhandled rejection.
+      setItem: (key, value) => {
+        if (!shouldPersistQuery(value)) return Promise.resolve();
+        const prepared = transformRestoredQuery ? transformRestoredQuery(value) : value;
+        const preparedKey =
+          prepared.queryHash === value.queryHash ? key : storageKey(prepared.queryHash);
+        return store.set(preparedKey, prepared).catch((error) => {
+          reportError(error);
+        });
+      },
+      removeItem: (key) => store.remove(key),
+      entries: () => store.entries(),
+    } satisfies AsyncStorage<StoredQuery>,
+    buster,
+    // Age is judged here per query, with the offline read model exempt.
+    maxAge: Number.POSITIVE_INFINITY,
+    prefix,
+    serialize: (persistedQuery) => persistedQuery,
+    deserialize: (stored) => stored,
+  });
+
+  async function persistQuery(client: QueryClient, queryKey: QueryKey): Promise<void> {
+    const query = client.getQueryCache().find({ queryKey, exact: true });
+    if (!query || query.state.data === undefined || !shouldPersistQuery(query)) return;
+    const stored: StoredQuery = {
+      queryKey: query.queryKey,
+      queryHash: query.queryHash,
+      state: query.state,
+      buster,
+    };
+    const prepared = transformRestoredQuery ? transformRestoredQuery(stored) : stored;
+    await store.set(storageKey(prepared.queryHash), prepared);
+  }
+
+  async function migrateLegacySnapshot(): Promise<void> {
+    const legacyRecord = await readLegacySnapshot(legacy, webStorage);
+    if (!legacyRecord) return;
+    const { snapshot, forget } = legacyRecord;
+    let rewritten = true;
+    if (isLegacySnapshot(snapshot) && isCurrentBuster({ buster: snapshot.buster } as StoredQuery)) {
+      for (const query of snapshot.clientState.queries) {
+        if (!Array.isArray(query.queryKey) || query.state?.data === undefined) continue;
+        const state = {
+          ...query.state,
+          dataUpdatedAt: Number(query.state.dataUpdatedAt) || snapshot.timestamp,
+        };
+        const queryHash = query.queryHash || hashKey(query.queryKey);
+        const key = storageKey(queryHash);
+        // A migration interrupted by a closing tab leaves the snapshot in place
+        // and runs again next boot. By then this query may have been refetched,
+        // so the snapshot is only the newer answer where nothing newer exists.
+        const existing = (await store.get(key).catch(() => undefined)) as StoredQuery | undefined;
+        if (existing && Number(existing.state?.dataUpdatedAt) >= Number(state.dataUpdatedAt)) {
+          continue;
+        }
+        await store
+          .set(key, { queryKey: query.queryKey, queryHash, state, buster })
+          .then(() => {
+            if (!store.isDurable()) rewritten = false;
+          })
+          .catch((error: unknown) => {
+            rewritten = false;
+            reportError(error);
+          });
+      }
+    }
+    // The snapshot is the only copy until every record it held has been
+    // rewritten. Storage filling up partway through used to delete it anyway,
+    // which for an offline reader is the read model gone with no way to
+    // refetch. Keeping it means the next boot retries the whole migration.
+    if (rewritten) await forget();
+  }
+
+  async function restoreAll(client: QueryClient): Promise<void> {
+    await migrateLegacySnapshot();
+    const now = Date.now();
+    for (const [key, stored] of await store.entries()) {
+      if (!key.startsWith(`${prefix}-`)) continue;
+      if (classify(stored, now) === "drop") {
+        await store.remove(key);
+        continue;
+      }
+      const restored = transformRestoredQuery ? transformRestoredQuery(stored) : stored;
+      if (restored.queryHash !== stored.queryHash) {
+        await store.remove(key);
+        await store.set(storageKey(restored.queryHash), restored).catch(reportError);
+      }
+      // A screen that already fetched this read while boot waited keeps its data.
+      if (client.getQueryState(restored.queryKey)?.data !== undefined) continue;
+      client.setQueryData(restored.queryKey, restored.state.data, {
+        updatedAt: Number(restored.state.dataUpdatedAt) || now,
+      });
+    }
+  }
+
+  return {
+    persister: persisterCore.persisterFn as QueryPersister,
+    restore: (client) =>
+      Promise.race([
+        restoreAll(client).catch(reportError),
+        new Promise<void>((resolve) => setTimeout(resolve, restoreTimeoutMs)),
+      ]),
+    persistQuery,
+    gc: async () => {
+      const now = Date.now();
+      let removed = 0;
+      for (const [key, stored] of await store.entries()) {
+        if (!key.startsWith(`${prefix}-`) || classify(stored, now) === "keep") continue;
+        await store.remove(key);
+        removed += 1;
+      }
+      return removed;
+    },
+    clear: () => store.clear(),
+  };
+}
+
+function hasFallbackInstructions(data: unknown): boolean {
+  return (
+    Array.isArray(data) &&
+    data.some((action) =>
+      Boolean((action as { instructionsFallback?: boolean })?.instructionsFallback)
+    )
+  );
+}
+
+/** Which queries an app writes to its reading cache. */
 export function createShouldDehydrateQuery({
   namespace = "greengoods",
   excludedGroups = [],
 }: CreateShouldDehydrateQueryOptions = {}) {
-  return (query: Query): boolean => {
+  return (query: PersistableQuery): boolean => {
     // A failed or paused refetch still carries the last successful read.
     if (query.state.data === undefined) return false;
 
     const key = query.queryKey;
     if (!Array.isArray(key) || key[0] !== namespace) return false;
 
+    // Pagination ownership is ephemeral UI state, not part of the reading cache.
+    if (key[1] === "works" && key[2] === "window") return false;
+
+    // A list whose instructions fell back to the built-in copy stays usable for
+    // this session but must not become the durable offline copy.
+    if (key[1] === "actions" && hasFallbackInstructions(query.state.data)) return false;
+
     return !excludedGroups.includes(String(key[1] ?? ""));
   };
 }
 
 /**
- * Forget an app's persisted query cache. A boot-recovery surface calls this
- * before reloading, so a corrupt or stale snapshot can never wedge the next
- * start. Best effort and never throws: an unavailable store is simply skipped.
+ * Forget an app's persisted reads, including any snapshot an older build left
+ * behind. Best effort and never throws.
  */
 export async function clearPersistedQueryClient(
-  options: Pick<CreateQueryPersisterOptions, "dbName">
+  options: Pick<CreateQueryPersistenceOptions, "dbName" | "legacy">
 ): Promise<void> {
+  await deleteDatabase(options.dbName);
+  if (options.legacy) await deleteDatabase(options.legacy.dbName);
   try {
-    if (typeof indexedDB !== "undefined" && indexedDB) {
-      await new Promise<void>((resolve) => {
-        const request = indexedDB.deleteDatabase(options.dbName);
-        request.onsuccess = () => resolve();
-        request.onerror = () => resolve();
-        request.onblocked = () => resolve();
-      });
+    const storage = resolveDefaultStorage();
+    if (!storage) return;
+    storage.removeItem(LEGACY_SNAPSHOT_KEY);
+    for (let index = storage.length - 1; index >= 0; index -= 1) {
+      const key = storage.key(index);
+      if (key?.startsWith(`${DEFAULT_PREFIX}-`)) storage.removeItem(key);
     }
-  } catch (error) {
-    debugWarn("[Persister] Failed to delete the IndexedDB cache:", { error });
-  }
-  try {
-    resolveDefaultStorage()?.removeItem(QUERY_PERSISTENCE_KEY);
   } catch (error) {
     debugWarn("[Persister] Failed to clear the storage cache:", { error });
   }

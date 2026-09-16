@@ -1,6 +1,8 @@
 {
   "extends": "./tsconfig.app.json",
   "compilerOptions": {
+    // The worker test drives src/sw, whose modules speak the worker globals.
+    "lib": ["ES2022", "DOM", "DOM.Iterable", "WebWorker"],
     "isolatedModules": true,
     "tsBuildInfoFile": "./.tsbuildinfo/test.tsbuildinfo",
     "types": ["node", "vitest/globals", "@testing-library/jest-dom"]

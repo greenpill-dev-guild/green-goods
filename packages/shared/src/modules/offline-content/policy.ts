@@ -2,7 +2,7 @@ import type { Garden } from "../../types/domain";
 
 /** The photo cache removes its oldest unprotected copies above this size. */
 export const OFFLINE_MEDIA_BUDGET_BYTES = 150 * 1024 * 1024;
-/** Background refreshes skip lists and approvals fetched more recently than this. */
+/** Background refreshes skip lists fetched more recently than this. */
 export const OFFLINE_REFRESH_MS = 15 * 60_000;
 
 export interface OfflinePlan {

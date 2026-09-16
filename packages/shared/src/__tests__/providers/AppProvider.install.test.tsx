@@ -3,7 +3,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   AUTH_MODE_STORAGE_KEY,
   EMBEDDED_ADDRESS_KEY,
-  SIGNED_OUT_STORAGE_KEY,
   SMART_ACCOUNT_ADDRESS_STORAGE_KEY,
   USERNAME_STORAGE_KEY,
 } from "../../modules/auth/session";
@@ -133,10 +132,13 @@ describe("AppProvider install confirmation", () => {
 
     expectInstallState("installed");
     expect(toastMocks.success).toHaveBeenCalledTimes(1);
+    // The install toast opens on the offline-ready download rather than
+    // declaring the app finished; it settles once the worker answers.
     expect(toastMocks.success).toHaveBeenCalledWith(
       expect.objectContaining({
+        id: "app-install-success",
         title: "App instalada",
-        message: "Green Goods está lista desde tu pantalla de inicio.",
+        message: "Preparándola para funcionar sin conexión.",
         context: "pwa install",
       })
     );
@@ -222,7 +224,7 @@ describe("AppProvider install confirmation", () => {
     expect(cacheMocks.clearAllCaches).not.toHaveBeenCalled();
   });
 
-  it("clears active session and volatile caches once when a prior install is replaced", async () => {
+  it("preserves active session and reading caches when a prior install is replaced", async () => {
     vi.useFakeTimers();
 
     const address = "0x1234567890123456789012345678901234567890";
@@ -247,30 +249,29 @@ describe("AppProvider install confirmation", () => {
     });
 
     expect(screen.getByText("content")).toBeInTheDocument();
-    expect(localStorage.getItem(AUTH_MODE_STORAGE_KEY)).toBeNull();
-    expect(localStorage.getItem(EMBEDDED_ADDRESS_KEY)).toBeNull();
-    expect(localStorage.getItem(SIGNED_OUT_STORAGE_KEY)).toBe("true");
+    expect(localStorage.getItem(AUTH_MODE_STORAGE_KEY)).toBe("passkey");
+    expect(localStorage.getItem(EMBEDDED_ADDRESS_KEY)).toBe(address);
     expect(localStorage.getItem(USERNAME_STORAGE_KEY)).toBe("afo");
     expect(localStorage.getItem("greengoods_credential")).toBe(credential);
     expect(localStorage.getItem(SMART_ACCOUNT_ADDRESS_STORAGE_KEY)).toBe(address);
-    expect(cacheMocks.queryClear).toHaveBeenCalledTimes(1);
-    expect(cacheMocks.clearAllCaches).toHaveBeenCalledTimes(1);
+    expect(cacheMocks.queryClear).not.toHaveBeenCalled();
+    expect(cacheMocks.clearAllCaches).not.toHaveBeenCalled();
 
     act(() => {
       window.dispatchEvent(new Event("appinstalled"));
       vi.advanceTimersByTime(1_000);
     });
 
-    expect(cacheMocks.queryClear).toHaveBeenCalledTimes(1);
-    expect(cacheMocks.clearAllCaches).toHaveBeenCalledTimes(1);
+    expect(cacheMocks.queryClear).not.toHaveBeenCalled();
+    expect(cacheMocks.clearAllCaches).not.toHaveBeenCalled();
 
     act(() => {
       window.dispatchEvent(new Event("appinstalled"));
       vi.advanceTimersByTime(30_000);
     });
 
-    expect(cacheMocks.queryClear).toHaveBeenCalledTimes(1);
-    expect(cacheMocks.clearAllCaches).toHaveBeenCalledTimes(1);
+    expect(cacheMocks.queryClear).not.toHaveBeenCalled();
+    expect(cacheMocks.clearAllCaches).not.toHaveBeenCalled();
     expect(toastMocks.success).toHaveBeenCalledTimes(1);
   });
 

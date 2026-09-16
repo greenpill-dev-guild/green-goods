@@ -175,4 +175,17 @@ export const toastMessageIdsUpdate = {
     title: "app.toast.update.applied.title",
     message: "app.toast.update.applied.message",
   },
+  /**
+   * A restart lands on a new shell, so the offline-ready tier is fetched again.
+   * Unchanged files are copied from the previous shell, so this is usually
+   * instant and never shown; it surfaces only when the download really runs.
+   */
+  preparingOffline: {
+    title: "app.toast.update.preparingOffline.title",
+    message: "app.toast.update.preparingOffline.message",
+  },
+  offlineReady: {
+    title: "app.toast.update.offlineReady.title",
+    message: "app.toast.update.offlineReady.message",
+  },
 } as const;

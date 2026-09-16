@@ -29,6 +29,8 @@ export const worksKeys = {
   // indexed work rows; one spelling keeps a garden on one cached read.
   online: (gardenId: string, chainId: number) =>
     ["greengoods", "works", "online", gardenSegment(gardenId), chainId] as const,
+  window: (gardenId: string, chainId: number) =>
+    ["greengoods", "works", "window", gardenSegment(gardenId), chainId] as const,
   offline: (gardenId: string, chainId?: number, account?: string) =>
     chainId === undefined && account === undefined
       ? (["greengoods", "works", "offline", gardenSegment(gardenId)] as const)

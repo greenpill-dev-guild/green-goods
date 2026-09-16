@@ -82,9 +82,11 @@ if ! command -v bun &>/dev/null; then
   fail "bun not found — install Bun: https://bun.sh"
 fi
 
-cd "$CONTRACTS_DIR"
+# The validation runner is a root script; the phases below are package scripts.
+(cd "$ROOT_DIR" && bun run check --only foundry-version) ||
+  fail "Foundry version does not match the repository pin"
 
-bun run check --only foundry-version || fail "Foundry version does not match the repository pin"
+cd "$CONTRACTS_DIR"
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # Phase 1: Full Compilation
@@ -110,7 +112,7 @@ phase_end
 phase "Phase 2/4: Lint"
 phase_start "lint"
 
-bun run check --only static-lint || fail "Contract lint failed"
+(cd "$ROOT_DIR" && bun run check --only static-lint) || fail "Contract lint failed"
 success "Contract lint passed"
 phase_end
 

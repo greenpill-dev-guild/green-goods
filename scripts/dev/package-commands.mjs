@@ -132,6 +132,8 @@ export function resolvePackageCommand(pkg, action, args = []) {
       const stepCwd = pkg === "admin" ? ROOT : cwd;
       node(scope === "full" ? ["tsc", "-b", `${projectPrefix}tsconfig.json`] :
         ["tsc", "--noEmit", "-p", `${projectPrefix}tsconfig.${scope === "source" ? "app" : "test"}.json`], {}, stepCwd);
+      // The client's service worker is its own TypeScript project (WebWorker library).
+      if (pkg === "client" && scope === "source") node(["tsc", "--noEmit", "-p", "tsconfig.sw.json"], {}, stepCwd);
     } else {
       if (scope !== "tests") node(["tsc", "--noEmit", "-p", "tsconfig.json", ...(pkg === "shared" ? ["--composite", "false", "--incremental", "false"] : [])]);
       if (scope !== "source") node(["tsc", "--noEmit", "-p", "tsconfig.test.json"]);

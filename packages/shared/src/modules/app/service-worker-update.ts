@@ -8,6 +8,8 @@
  * @module modules/app/service-worker-update
  */
 
+import { SW_MESSAGE, SW_REPLY } from "./service-worker-protocol";
+
 /**
  * Longest a download may run before the UI stops reporting it. The PWA shell
  * precache is well under a megabyte, so a healthy install settles in seconds;
@@ -272,7 +274,16 @@ export interface ActivationHandlers {
   onActivated: () => void;
   /** Nothing took control within the timeout. */
   onTimeout: () => void;
-  onProgress?: (status: "received" | "requested" | "rejected" | "send_failed") => void;
+  onProgress?: (
+    status:
+      | "quieting"
+      | "quiet"
+      | "quiescence_unavailable"
+      | "received"
+      | "requested"
+      | "rejected"
+      | "send_failed"
+  ) => void;
 }
 
 export function resolveUpdateTarget(
@@ -283,7 +294,7 @@ export function resolveUpdateTarget(
   return remembered && remembered === registration?.active ? remembered : null;
 }
 
-/** Wait for the target to activate; an acknowledgment alone never permits a reload. */
+/** Wait for the target to reach `activated`; an acknowledgment alone never permits a reload. */
 export function activateWaitingWorker(
   worker: ServiceWorker,
   handlers: ActivationHandlers,
@@ -291,7 +302,18 @@ export function activateWaitingWorker(
 ): () => void {
   let done = false;
   let timeoutId: ReturnType<typeof setTimeout> | null = null;
-  const channel = handlers.onProgress ? new MessageChannel() : null;
+  const updateChannel = handlers.onProgress ? new MessageChannel() : null;
+  const quietChannel = navigator.serviceWorker.controller ? new MessageChannel() : null;
+  const active = navigator.serviceWorker.controller;
+
+  const resumeActiveWorker = () => {
+    if (!active || active === worker) return;
+    try {
+      active.postMessage({ type: SW_MESSAGE.RESUME_BACKGROUND_WORK });
+    } catch {
+      // The old worker may already have been terminated by activation.
+    }
+  };
 
   const finish = () => {
     done = true;
@@ -301,8 +323,10 @@ export function activateWaitingWorker(
     }
     navigator.serviceWorker.removeEventListener("controllerchange", handleControllerChange);
     worker.removeEventListener("statechange", handleStateChange);
-    channel?.port1.close();
-    channel?.port2.close();
+    updateChannel?.port1.close();
+    updateChannel?.port2.close();
+    quietChannel?.port1.close();
+    quietChannel?.port2.close();
   };
 
   const settle = () => {
@@ -313,22 +337,27 @@ export function activateWaitingWorker(
   const handleControllerChange = () => {
     if (navigator.serviceWorker.controller === worker) settle();
   };
+  // The worker never claims open pages, so a controller change is not
+  // guaranteed. Reaching `activated` is enough: the reload that follows is a
+  // navigation, and navigations are served by the active worker.
   const handleStateChange = () => {
     if (worker.state === "activated") settle();
   };
 
   if (worker.state === "activated") {
-    channel?.port1.close();
-    channel?.port2.close();
+    updateChannel?.port1.close();
+    updateChannel?.port2.close();
+    quietChannel?.port1.close();
+    quietChannel?.port2.close();
     handlers.onActivated();
     return () => {};
   }
 
   navigator.serviceWorker.addEventListener("controllerchange", handleControllerChange);
   worker.addEventListener("statechange", handleStateChange);
-  if (channel) {
-    channel.port1.onmessage = ({ data }) => {
-      if (done || data?.type !== "GG_UPDATE_ACK") return;
+  if (updateChannel) {
+    updateChannel.port1.onmessage = ({ data }) => {
+      if (done || data?.type !== SW_REPLY.UPDATE_ACK) return;
       if (["received", "requested", "rejected"].includes(data.status)) {
         handlers.onProgress?.(data.status);
       }
@@ -336,16 +365,50 @@ export function activateWaitingWorker(
   }
   timeoutId = setTimeout(() => {
     if (done) return;
+    resumeActiveWorker();
     finish();
     handlers.onTimeout();
   }, timeoutMs);
-  try {
-    if (channel) worker.postMessage({ type: "SKIP_WAITING" }, [channel.port2]);
-    else worker.postMessage({ type: "SKIP_WAITING" });
-  } catch {
-    handlers.onProgress?.("send_failed");
-    finish();
-    handlers.onTimeout();
+
+  const requestActivation = () => {
+    if (done) return;
+    try {
+      if (updateChannel) {
+        worker.postMessage({ type: SW_MESSAGE.SKIP_WAITING }, [updateChannel.port2]);
+      } else worker.postMessage({ type: SW_MESSAGE.SKIP_WAITING });
+    } catch {
+      handlers.onProgress?.("send_failed");
+      resumeActiveWorker();
+      finish();
+      handlers.onTimeout();
+    }
+  };
+
+  if (!active || active === worker || !quietChannel) {
+    requestActivation();
+  } else {
+    handlers.onProgress?.("quieting");
+    quietChannel.port1.onmessage = ({ data }) => {
+      if (done || data?.type !== SW_REPLY.QUIET_ACK) return;
+      if (data.status !== "quiet") {
+        handlers.onProgress?.("quiescence_unavailable");
+        resumeActiveWorker();
+        finish();
+        handlers.onTimeout();
+        return;
+      }
+      handlers.onProgress?.("quiet");
+      quietChannel.port1.close();
+      requestActivation();
+    };
+    try {
+      active.postMessage({ type: SW_MESSAGE.PREPARE_TO_ACTIVATE_UPDATE }, [quietChannel.port2]);
+    } catch {
+      handlers.onProgress?.("quiescence_unavailable");
+      resumeActiveWorker();
+      finish();
+      handlers.onTimeout();
+    }
   }
 
   return finish;

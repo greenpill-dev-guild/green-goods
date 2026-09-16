@@ -15,10 +15,12 @@ import { trackStorageError } from "../../modules/app/error-tracking";
 import { logger } from "../../modules/app/logger";
 import { track } from "../../modules/app/posthog";
 import {
-  createQueryPersister,
+  CLIENT_QUERY_CACHE_DB,
+  CLIENT_QUERY_CACHE_STORE,
+  createQueryPersistence,
   isOfflineReadModelQuery,
+  LEGACY_CLIENT_QUERY_CACHE,
   PERSIST_MAX_AGE,
-  type PersistedClient,
 } from "../../config/query-persistence";
 
 // ============================================================================
@@ -119,7 +121,7 @@ export async function requestPersistentStorageOnce(
 }
 
 export function isPersistedQueryClientExpired(
-  client: Pick<PersistedClient, "timestamp">,
+  client: { timestamp: number },
   currentTime = Date.now()
 ): boolean {
   return currentTime - client.timestamp > PERSIST_MAX_AGE;
@@ -127,19 +129,14 @@ export function isPersistedQueryClientExpired(
 
 async function clearExpiredPersistedQueryStorage(): Promise<boolean> {
   try {
-    const persister = createQueryPersister({ dbName: "gg-react-query", storeName: "rq" });
-    const persisted = await persister.restoreClient();
-    if (!persisted || !isPersistedQueryClientExpired(persisted)) return false;
-    const readModel = persisted.clientState.queries.filter((query) =>
-      isOfflineReadModelQuery(query.queryKey)
-    );
-    if (readModel.length) {
-      await persister.persistClientVerified?.({
-        ...persisted,
-        clientState: { ...persisted.clientState, queries: readModel, mutations: [] },
-      });
-    } else await persister.removeClient();
-    return true;
+    // Expired ordinary reads go; the offline read model stays whatever its age.
+    const removed = await createQueryPersistence({
+      dbName: CLIENT_QUERY_CACHE_DB,
+      storeName: CLIENT_QUERY_CACHE_STORE,
+      legacy: LEGACY_CLIENT_QUERY_CACHE,
+      preserveQuery: isOfflineReadModelQuery,
+    }).gc();
+    return removed > 0;
   } catch {
     return false;
   }

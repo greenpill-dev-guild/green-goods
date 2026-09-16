@@ -254,6 +254,7 @@ export async function getActions(reader: GraphQLReader = greenGoodsIndexer): Pro
           let actionConfig = fallbackConfig;
           let defaultLocale: ActionContentLocale | undefined;
           let translations: ActionTranslationMap | undefined;
+          let instructionsFallback = false;
           try {
             if (instructions) {
               const configData = await getFileByHash(instructions, {
@@ -269,6 +270,7 @@ export async function getActions(reader: GraphQLReader = greenGoodsIndexer): Pro
               );
             }
           } catch (error) {
+            instructionsFallback = true;
             instructionFailures.push({
               actionId: id,
               message: error instanceof Error ? error.message : String(error),
@@ -293,11 +295,15 @@ export async function getActions(reader: GraphQLReader = greenGoodsIndexer): Pro
             defaultLocale,
             translations,
             createdAt: createdAt ? Number(createdAt) * 1000 : Date.now(),
+            // Kept on the row so the flag survives structural sharing: the
+            // reading cache skips a list whose instructions are fallbacks.
+            ...(instructionsFallback ? { instructionsFallback: true } : {}),
           };
         }
       )
     );
 
+    const resolvedActions = actions.filter((action) => action !== null);
     if (instructionFailures.length > 0) {
       logger.warn(
         `[getActions] Failed to fetch instructions for ${instructionFailures.length}/${data.Action.length} actions`,
@@ -308,7 +314,7 @@ export async function getActions(reader: GraphQLReader = greenGoodsIndexer): Pro
       );
     }
 
-    return actions.filter((action) => action !== null);
+    return resolvedActions;
   } catch (error) {
     logger.error("[getActions] Failed to fetch actions", { error });
     throw error;

@@ -85,6 +85,7 @@ import { useAuth } from "../../hooks/auth/useAuth";
 import { usePrimaryAddress } from "../../hooks/auth/usePrimaryAddress";
 import { useUser } from "../../hooks/auth/useUser";
 import { useTransactionSender } from "../../hooks/blockchain/useTransactionSender";
+import { connectivityStore } from "../../stores/connectivity";
 import { createFakeJobQueueHandle } from "../test-utils/job-queue-fakes";
 import type { JobQueueHandle } from "../../modules/job-queue";
 import type { QueueEvent } from "@green-goods/shared/types";
@@ -114,7 +115,7 @@ describe("providers/JobQueueProvider", () => {
       );
   };
 
-  beforeEach(() => {
+  beforeEach(async () => {
     queryClient = new QueryClient({
       defaultOptions: { queries: { retry: false } },
     });
@@ -129,6 +130,8 @@ describe("providers/JobQueueProvider", () => {
     mockUseTransactionSender.mockReturnValue(mockTransactionSender);
     mockUsePrimaryAddress.mockReturnValue("0xSmartAccount");
     mockJobQueue.getStats.mockResolvedValue({ total: 0, pending: 0, failed: 0, synced: 0 });
+    Object.defineProperty(navigator, "onLine", { configurable: true, value: true });
+    await connectivityStore.check();
   });
 
   afterEach(() => {
@@ -387,6 +390,23 @@ describe("providers/JobQueueProvider", () => {
 
       // Flush should not be called for wallet mode
       expect(mockJobQueue.flush).not.toHaveBeenCalled();
+    });
+
+    it("waits for canonical online recovery before auto-flushing", async () => {
+      const queue = createFakeJobQueueHandle();
+      queue.getStats = vi.fn().mockResolvedValue({ total: 0, pending: 0, failed: 0, synced: 0 });
+      Object.defineProperty(navigator, "onLine", { configurable: true, value: false });
+      await connectivityStore.check();
+      expect(connectivityStore.getStatusSnapshot().state).toBe("offline");
+
+      renderHook(() => useJobQueue(), { wrapper: createWrapper(queue) });
+      await waitFor(() => expect(queue.getStats).toHaveBeenCalled());
+      expect(queue.flush).not.toHaveBeenCalled();
+
+      Object.defineProperty(navigator, "onLine", { configurable: true, value: true });
+      await act(() => connectivityStore.check());
+
+      await waitFor(() => expect(queue.flush).toHaveBeenCalledTimes(1));
     });
 
     it("surfaces auto-flush failures through lastEvent and queue sync error toast", async () => {

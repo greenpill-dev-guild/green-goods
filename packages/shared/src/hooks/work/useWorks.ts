@@ -1,11 +1,9 @@
-import { useEffect, useMemo } from "react";
 import { useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useCallback, useEffect, useMemo } from "react";
 import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
-import { ZERO_ADDRESS } from "../../utils/blockchain/address-constants";
+import { worksKeys } from "../../config/query-keys/work";
 import { GC_TIMES, STALE_TIMES } from "../../config/react-query";
-import { getWorkApprovals, getWorks } from "../../modules/data/eas";
-import { useSendingWorkIds } from "./useSendingWorkIds";
-import { useQueuedWorkPreviews } from "./useQueuedWorkPreviews";
+import { jobQueueDB } from "../../modules/job-queue/db";
 import { jobQueue } from "../../modules/job-queue/default-instance";
 import { useJobQueueEvents } from "../../modules/job-queue/event-bus";
 import {
@@ -14,14 +12,18 @@ import {
   type OverlayWork,
   resolveWorkStatus,
 } from "../../modules/work/local-status-overlay";
+import { readWorkList, WORK_LIST_PAGE_SIZE } from "../../modules/work/work-list";
 import type { Work, WorkCard, WorkDisplayStatus } from "../../types/domain";
-import type { EASWorkApproval } from "../../types/eas-responses";
+import type { EASWorkApproval, EASWorkListRow } from "../../types/eas-responses";
 import type { Job, WorkJobPayload } from "../../types/job-queue";
-import { useOnlineStatus, reportConnectivityFailure } from "../app/useOnlineStatus";
+import { ZERO_ADDRESS } from "../../utils/blockchain/address-constants";
 import { extractClientWorkId } from "../../utils/work/deduplication";
+import { reportConnectivityFailure, useOnlineStatus } from "../app/useOnlineStatus";
 import { usePrimaryAddress } from "../auth/usePrimaryAddress";
-import { queueKeys } from "../../config/query-keys/misc";
-import { worksKeys } from "../../config/query-keys/work";
+import { useLiveQuery } from "../utils/useLiveQuery";
+import { useQueuedWorkPreviews } from "./useQueuedWorkPreviews";
+import { useSendingWorkIds } from "./useSendingWorkIds";
+
 export { usePendingWorksCount } from "./usePendingWorksCount";
 
 type ApprovalsByWork = Map<string, EASWorkApproval>;
@@ -139,11 +141,33 @@ export function useWorks(gardenId: string, options: UseWorksOptions = {}) {
   const projectionKey = offline
     ? worksKeys.local(gardenId, chainId, primaryAddress ?? undefined)
     : worksKeys.merged(gardenId, chainId);
+  // Every observer of this garden shares one window. Keeping it in query state
+  // prevents a second mounted screen from refetching the same key with a
+  // smaller component-local ref.
+  const windowKey = useMemo(() => worksKeys.window(gardenId, chainId), [gardenId, chainId]);
+  const listWindow = useQuery<number>({
+    queryKey: windowKey,
+    queryFn: () => queryClient.getQueryData<number>(windowKey) ?? WORK_LIST_PAGE_SIZE,
+    initialData: WORK_LIST_PAGE_SIZE,
+    enabled: false,
+    staleTime: Number.POSITIVE_INFINITY,
+  });
+  const take = listWindow.data;
   const online = useQuery({
     queryKey: worksKeys.online(gardenId, chainId),
     queryFn: async () => {
       try {
-        return await getWorks(gardenId, chainId);
+        const cached = queryClient.getQueryData<EASWorkListRow[]>(
+          worksKeys.online(gardenId, chainId)
+        );
+        const requested = queryClient.getQueryData<number>(windowKey) ?? WORK_LIST_PAGE_SIZE;
+        return await readWorkList({
+          garden: gardenId,
+          chainId,
+          // The extra row is the continuation signal. Preserve a wider cached
+          // read when a background refresh arrives after its window query GC'd.
+          take: Math.max(requested + 1, cached?.length ?? 0),
+        });
       } catch (error) {
         void reportConnectivityFailure();
         throw error;
@@ -154,17 +178,18 @@ export function useWorks(gardenId: string, options: UseWorksOptions = {}) {
     staleTime: STALE_TIMES.works,
     gcTime: GC_TIMES.works,
   });
-  const approvals = useQuery({
-    queryKey: worksKeys.approvals(undefined, chainId),
-    queryFn: () => getWorkApprovals(undefined, chainId),
-    enabled: !!gardenId,
-    networkMode: "online",
-    staleTime: STALE_TIMES.works,
-    gcTime: GC_TIMES.works,
-  });
   // Offline, the restored screen read is the downloaded copy: background
   // preparation fills this same query, so there is no second source to consult.
-  const remoteData = online.data;
+  const remoteData = online.data?.slice(0, take);
+  const hasOlderWork = (online.data?.length ?? 0) > take;
+  const loadOlderWork = useCallback(() => {
+    if (!isOnline) return;
+    queryClient.setQueryData<number>(
+      windowKey,
+      (current) => Math.max(current ?? WORK_LIST_PAGE_SIZE, take) + WORK_LIST_PAGE_SIZE
+    );
+    void queryClient.refetchQueries({ queryKey: worksKeys.online(gardenId, chainId), exact: true });
+  }, [chainId, gardenId, isOnline, queryClient, take, windowKey]);
   const queued = useQuery({
     queryKey: worksKeys.offline(gardenId, chainId, primaryAddress ?? undefined),
     queryFn: async () => {
@@ -186,9 +211,15 @@ export function useWorks(gardenId: string, options: UseWorksOptions = {}) {
   // are kept under an account/chain key and never restored from legacy merges.
   const overlay = useQuery<OverlayWork[]>({
     queryKey: worksKeys.merged(gardenId, chainId),
+    queryFn: () =>
+      queryClient.getQueryData<OverlayWork[]>(worksKeys.merged(gardenId, chainId)) ?? [],
     enabled: false,
   });
-  const projection = useQuery<OverlayWork[]>({ queryKey: projectionKey, enabled: false });
+  const projection = useQuery<OverlayWork[]>({
+    queryKey: projectionKey,
+    queryFn: () => queryClient.getQueryData<OverlayWork[]>(projectionKey) ?? [],
+    enabled: false,
+  });
   const queuedJobs = offline ? (queued.data ?? NO_QUEUED_JOBS) : NO_QUEUED_JOBS;
   const queuedPreviews = useQueuedWorkPreviews(queuedJobs);
   // `combine` keeps one array identity until a metadata read actually changes;
@@ -218,15 +249,22 @@ export function useWorks(gardenId: string, options: UseWorksOptions = {}) {
       )
         cachedMap.set(work.id, work);
     }
-    const indexed = offline
-      ? (remoteData ?? cachedWorks)
-      : reconcileIndexedWorkCollection(online.data ?? [], cachedWorks);
-    const approvalsKnown = approvals.data !== undefined && !approvals.isError;
-    const knownApprovals = new Map(
-      [...(approvals.data ?? [])]
-        .sort((a, b) => (a.createdAt ?? 0) - (b.createdAt ?? 0))
-        .map((approval) => [approval.workUID, approval])
-    );
+    // Each row carries the latest approval read with it; a row without the
+    // field came from a read whose approvals could not be fetched. The
+    // approval stays in the stored read and leaves the projected row, whose
+    // status already carries it.
+    const approvalsKnown =
+      remoteData !== undefined && remoteData.every((row) => row.approval !== undefined);
+    const knownApprovals = new Map<string, EASWorkApproval>();
+    const remoteRows: WorkCard[] = [];
+    for (const { approval, ...row } of remoteData ?? []) {
+      if (approval) knownApprovals.set(row.id, approval);
+      remoteRows.push(row);
+    }
+    const indexed =
+      remoteData === undefined
+        ? cachedWorks
+        : reconcileIndexedWorkCollection(remoteRows, cachedWorks);
     const now = Date.now();
     const rows: Work[] = indexed.map((work) =>
       withResolvedStatus(
@@ -268,15 +306,11 @@ export function useWorks(gardenId: string, options: UseWorksOptions = {}) {
     }
     return rows.sort((a, b) => b.createdAt - a.createdAt);
   }, [
-    online.data,
     remoteData,
-    approvals.data,
-    approvals.isError,
     projection.data,
     overlay.data,
     queuedJobs,
     queuedPreviews,
-    offline,
     queryClient,
     metadataByWork,
     sendingJobs,
@@ -307,7 +341,6 @@ export function useWorks(gardenId: string, options: UseWorksOptions = {}) {
         )
           return;
         void queryClient.invalidateQueries({ queryKey: worksKeys.online(gardenId, chainId) });
-        void queryClient.invalidateQueries({ queryKey: worksKeys.approvals(undefined, chainId) });
       }),
     [queryClient, gardenId, chainId]
   );
@@ -341,49 +374,31 @@ export function useWorks(gardenId: string, options: UseWorksOptions = {}) {
     isLoading: isOnline && online.isPending && works.length === 0,
     isFetching: isOnline && online.isFetching,
     isError: online.isError || (offline && queued.isError),
-    refreshWarning: hasRemote && (online.isError || approvals.isError),
+    refreshWarning:
+      hasRemote &&
+      (online.isError || (remoteData?.some((row) => row.approval === undefined) ?? false)),
     error: online.error || (offline ? queued.error : null),
     offlineCount: queuedJobs.length,
     onlineCount: remoteData?.length ?? 0,
+    /** Whether the garden may have work older than the loaded window. */
+    hasOlderWork,
+    /** Widen the window by one page and read it; a no-op offline. */
+    loadOlderWork,
+    isLoadingOlder: online.isFetching && take > WORK_LIST_PAGE_SIZE,
     refetch: () => {
-      if (isOnline) {
-        void online.refetch();
-        void approvals.refetch();
-      }
+      if (isOnline) void online.refetch();
       if (offline) void queued.refetch();
     },
   };
 }
 
 /**
- * Hook for getting queue statistics with event-driven updates
- * Scoped to the current authenticated primary address
+ * Queue statistics for the current primary address as a live view of the
+ * queue table: every write, in this tab or another, re-emits them.
  */
 export function useQueueStatistics() {
-  const queryClient = useQueryClient();
   const primaryAddress = usePrimaryAddress();
-
-  const query = useQuery({
-    queryKey: queueKeys.stats(),
-    queryFn: async () => {
-      // Only get stats for the current user
-      if (!primaryAddress) {
-        return { total: 0, pending: 0, failed: 0, synced: 0 };
-      }
-      return jobQueue.getStats(primaryAddress);
-    },
-    enabled: !!primaryAddress,
-    staleTime: STALE_TIMES.queue,
-    gcTime: GC_TIMES.queue,
-  });
-
-  // Listen to events to update stats
-  useJobQueueEvents(
-    ["job:added", "job:processing", "job:completed", "job:failed", "queue:sync-completed"],
-    () => {
-      queryClient.invalidateQueries({ queryKey: queueKeys.stats() });
-    }
+  return useLiveQuery(primaryAddress?.toLowerCase() ?? null, () =>
+    jobQueueDB.observeStats(primaryAddress ?? "")
   );
-
-  return query;
 }

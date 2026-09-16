@@ -143,7 +143,7 @@ describe("durable work admission", () => {
   it("keeps legacy hash mappings unresolved with durable evidence instead of inferring a completed account", async () => {
     const clientWorkId = crypto.randomUUID();
     const db = await jobQueueDB.init();
-    await db.put("client_work_id_mappings", {
+    await db.client_work_id_mappings.put({
       clientWorkId,
       attestationId: "0xlegacy",
       jobId: "removed-legacy-job",

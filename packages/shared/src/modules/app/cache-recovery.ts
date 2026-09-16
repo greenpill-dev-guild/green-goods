@@ -1,6 +1,7 @@
 import { logger } from "./logger";
+import { OBSOLETE_RUNTIME_CACHES as RETIRED_CACHE_NAMES } from "./service-worker-protocol";
 
-const OBSOLETE_RUNTIME_CACHES = new Set(["js-cache", "indexer-cache", "graphql-cache"]);
+const OBSOLETE_RUNTIME_CACHES = new Set<string>(RETIRED_CACHE_NAMES);
 
 /** Preserve the offline shell, query reads, share inbox, drafts and queued jobs. */
 export async function clearObsoleteRuntimeCaches(): Promise<void> {

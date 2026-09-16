@@ -1,38 +1,19 @@
-import { useEffect, useRef, useState } from "react";
-import { jobQueueEventBus } from "../../modules/job-queue/event-bus";
-import { useQueueFlush } from "../../providers/JobQueue";
+import { useJobQueue } from "../../providers/JobQueue";
 import { useOnlineStatus } from "./useOnlineStatus";
 import { usePendingWorksCount } from "../work/usePendingWorksCount";
 
 /** Reports offline status and queue metrics derived from TanStack Query subscriptions. */
 export function useOffline() {
   const isOnline = useOnlineStatus();
-  const [syncStatus, setSyncStatus] = useState<"idle" | "syncing" | "error">("idle");
-  const flush = useQueueFlush();
-  const wasOnline = useRef(isOnline);
+  const { flush, isProcessing } = useJobQueue();
 
   // Use event-driven hook for pending count
   const { data: pendingCount = 0 } = usePendingWorksCount();
 
-  // Connectivity does not imply a queue flush; the provider owns that work.
-  useEffect(() => {
-    if (isOnline && !wasOnline.current) setSyncStatus("syncing");
-    wasOnline.current = isOnline;
-  }, [isOnline]);
-
-  // Listen to queue events to update sync status
-  useEffect(() => {
-    const unsub = jobQueueEventBus.on("queue:sync-completed", () => {
-      setSyncStatus("idle");
-    });
-    return () => unsub();
-  }, []);
-
   return {
     isOnline,
     pendingCount,
-    pendingWork: [], // Simplified - components can use useWorksMerged directly if they need the full list
-    syncStatus,
+    syncStatus: isProcessing ? ("syncing" as const) : ("idle" as const),
     refetch: flush,
   };
 }

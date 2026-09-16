@@ -8,6 +8,7 @@ import { useUIStore } from "@green-goods/shared/stores/useUIStore";
 import { lazy, Suspense, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Outlet, useLocation } from "react-router-dom";
 import { OfflineIndicator } from "@/components/Communication/Offline/OfflineIndicator";
+import { InstallNudge } from "@/components/Communication/Offline/InstallNudge";
 import { PwaBadgeCoordinator } from "@/components/Communication/PwaBadgeCoordinator";
 import { AppBar } from "@/components/Layout/AppBar";
 import { APP_ROUTES } from "@/config/pwaRouting";
@@ -106,6 +107,7 @@ export default function AppShell() {
         </main>
         <AppBar />
         <OfflineIndicator />
+        <InstallNudge />
       </WorkProvider>
     </JobQueueProvider>
   );

@@ -8,7 +8,7 @@ import { existsSync, readdirSync, readFileSync, rmSync } from "fs";
 import { resolve } from "path";
 import { defineConfig, loadEnv, type Plugin, type UserConfig } from "vite";
 import mkcert from "vite-plugin-mkcert";
-import { VitePWA, type VitePWAOptions } from "vite-plugin-pwa";
+import { VitePWA } from "vite-plugin-pwa";
 import { assertEnvParity, assertSentryDsnResolvable } from "../../scripts/lib/env-parity.mjs";
 import { resolveTunnelHmrConfig } from "../../scripts/lib/vite-tunnel-hmr.js";
 import {
@@ -17,8 +17,8 @@ import {
   resolvePwaManifestFlavor,
 } from "./src/config/pwaManifest";
 import { APP_ROUTES, createPwaRoutingConfig } from "./src/config/pwaRouting";
-import { createPwaShellAssetsPlugin } from "./vite/pwa-shell";
 import { createChainImportsPlugin } from "./vite/chain-imports";
+import { createPwaShellAssetsPlugin } from "./vite/pwa-shell";
 import { createPublicSocialPreviewPlugin } from "./vite/social-preview";
 import { resolveViteWatchOptions } from "./vite/watch";
 
@@ -173,7 +173,6 @@ export default defineConfig(async ({ command, mode }): Promise<UserConfig> => {
     if (process.env[key] === undefined) process.env[key] = value;
   }
 
-  const enableRpcBgSync = process.env.VITE_ENABLE_RPC_BG_SYNC === "true";
   const watch = resolveViteWatchOptions(process.env);
   if (command === "serve") {
     const polling = watch.usePolling === true;
@@ -183,34 +182,6 @@ export default defineConfig(async ({ command, mode }): Promise<UserConfig> => {
         `interval=${polling ? `${watch.interval}ms` : "n/a"}`
     );
   }
-
-  const rpcBgSyncCaching: NonNullable<NonNullable<VitePWAOptions["workbox"]>["runtimeCaching"]> =
-    enableRpcBgSync
-      ? ([
-          {
-            urlPattern: /https:\/\/api\.pimlico\.xyz\/.*\/rpc$/,
-            handler: "NetworkOnly",
-            method: "POST",
-            options: {
-              backgroundSync: {
-                name: "rpc-queue",
-                options: { maxRetentionTime: 24 * 60 },
-              },
-            },
-          },
-          {
-            urlPattern: /https:\/\/(\w+\.)?alchemyapi\.io\/v2\/.*/,
-            handler: "NetworkOnly",
-            method: "POST",
-            options: {
-              backgroundSync: {
-                name: "rpc-queue",
-                options: { maxRetentionTime: 24 * 60 },
-              },
-            },
-          },
-        ] as NonNullable<NonNullable<VitePWAOptions["workbox"]>["runtimeCaching"]>)
-      : ([] as NonNullable<NonNullable<VitePWAOptions["workbox"]>["runtimeCaching"]>);
 
   // Use relative paths for IPFS builds
   const isIPFSBuild = process.env.VITE_USE_HASH_ROUTER === "true";
@@ -254,7 +225,6 @@ export default defineConfig(async ({ command, mode }): Promise<UserConfig> => {
   const indexerProxyTarget =
     process.env.VITE_ENVIO_INDEXER_URL?.trim() ||
     (nodeEnv === "development" ? "http://localhost:3006/v1/graphql" : DEFAULT_INDEXER_URL);
-  const isBunRuntime = "bun" in process.versions;
   if (command === "build") {
     process.env.NODE_ENV = "production";
   }
@@ -307,12 +277,17 @@ export default defineConfig(async ({ command, mode }): Promise<UserConfig> => {
       includeAssets: [...pwaBranding.includeAssets, "images/avatar.png"],
       injectRegister: false,
       registerType: "prompt",
-      workbox: {
-        // Workbox's Rollup/Terser pass can exit early under Bun while writing the
-        // generated service worker. Keep the app build in production mode, but
-        // avoid SW minification on Bun so `bun run build` remains deterministic.
-        mode: isBunRuntime ? "development" : nodeEnv,
-        disableDevLogs: true,
+      // The worker is TypeScript in src/sw, bundled by Vite with the precache
+      // manifest injected; Workbox behaviour lives in that source, not here.
+      strategies: "injectManifest",
+      srcDir: "src/sw",
+      filename: "sw.ts",
+      injectManifest: {
+        rollupFormat: "iife",
+        minify: nodeEnv === "production",
+        sourcemap: false,
+        // Build-time flags such as VITE_ENABLE_RPC_BG_SYNC come from the same env files.
+        envOptions: { envDir: rootDir, envPrefix: ["VITE_"] },
         maximumFileSizeToCacheInBytes: 2 * 1024 * 1024,
         globPatterns: ["index.html", "assets/*.css", "pwa-shell-assets.json"],
         globIgnores: [
@@ -337,60 +312,6 @@ export default defineConfig(async ({ command, mode }): Promise<UserConfig> => {
           "glossary/index.html",
           "impact/index.html",
           "landing/index.html",
-        ],
-        cleanupOutdatedCaches: true,
-        clientsClaim: false,
-        skipWaiting: false,
-        // The browser-origin worker is scoped to /home, so the app shell fallback
-        // only owns installed-app routes while public/editorial routes stay in the browser.
-        navigateFallback: "index.html",
-        navigateFallbackDenylist: [
-          /^\/$/,
-          /^\/actions(?:[?#].*)?$/,
-          /^\/cookies(?:[?#].*)?$/,
-          /^\/fund(?:[?#].*)?$/,
-          /^\/gardens(?:\/.*)?(?:[?#].*)?$/,
-          /^\/glossary(?:[?#].*)?$/,
-          /^\/impact(?:[?#].*)?$/,
-        ],
-        sourcemap: false,
-        importScripts: ["sw-custom.js"],
-        runtimeCaching: [
-          {
-            urlPattern: ({ url }) => url.pathname === "/connectivity-check.txt",
-            handler: "NetworkOnly",
-          },
-          {
-            // Avatars and app images. IPFS gateway media never reaches Workbox:
-            // sw-custom.js answers those first and owns the sized "ipfs-cache".
-            urlPattern: ({ request, url, sameOrigin }) =>
-              request.destination === "image" && (url.protocol === "https:" || sameOrigin),
-            handler: "CacheFirst",
-            options: {
-              cacheName: "image-cache",
-              expiration: {
-                maxEntries: 100,
-                maxAgeSeconds: 30 * 24 * 60 * 60,
-                purgeOnQuotaError: true,
-              },
-              cacheableResponse: { statuses: [0, 200] },
-            },
-          },
-          // GraphQL reads use POST. Cache Storage cannot safely cache those by URL;
-          // TanStack Query's persisted, query-keyed snapshot owns offline reads.
-          // Background sync for critical POSTs (users/me updates as example)
-          {
-            urlPattern: /\/users\/me$/,
-            handler: "NetworkOnly",
-            method: "POST",
-            options: {
-              backgroundSync: {
-                name: "gg-api-queue",
-                options: { maxRetentionTime: 24 * 60 },
-              },
-            },
-          },
-          ...rpcBgSyncCaching,
         ],
       },
       manifest: {
@@ -463,7 +384,13 @@ export default defineConfig(async ({ command, mode }): Promise<UserConfig> => {
         ],
         categories: [],
       },
-      devOptions: { enabled: process.env.VITE_ENABLE_SW_DEV === "true" },
+      // The dev worker is served as a module from /dev-sw.js?dev-sw with only
+      // the entry document precached; main.tsx registers that URL in dev.
+      devOptions: {
+        enabled: process.env.VITE_ENABLE_SW_DEV === "true",
+        type: "module",
+        navigateFallback: "index.html",
+      },
     }),
     ...(shouldUploadSentrySourceMaps
       ? [

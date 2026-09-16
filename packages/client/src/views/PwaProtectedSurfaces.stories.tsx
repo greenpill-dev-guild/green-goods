@@ -1,5 +1,4 @@
 import { SubmissionProgress } from "@green-goods/shared/components/Progress/SubmissionProgress";
-import { SyncIndicator } from "@green-goods/shared/components/Progress/SyncIndicator";
 import { RiFilterLine, RiLeafLine, RiSeedlingLine, RiUserLine } from "@remixicon/react";
 import type { Meta, StoryObj } from "@storybook/react";
 import { useState } from "react";
@@ -168,19 +167,11 @@ export const Profile: Story = {
   ),
 };
 
-export const OfflineAndSyncStatus: Story = {
+export const BackOnlineBanner: Story = {
   render: () => (
     <MemoryRouter initialEntries={["/home"]}>
       <div className="min-h-[720px] bg-bg-white-0 px-4 py-6">
         <OfflineIndicator testState="back-online" forceShow />
-        <div className="mt-12">
-          <SyncIndicator
-            stats={{ total: 8, pending: 3, failed: 0, synced: 5 }}
-            isProcessing={false}
-            isOnline
-            onSync={() => {}}
-          />
-        </div>
       </div>
     </MemoryRouter>
   ),

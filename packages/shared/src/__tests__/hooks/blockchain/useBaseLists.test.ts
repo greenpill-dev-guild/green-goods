@@ -155,7 +155,7 @@ describe("useBaseLists", () => {
       expect((query?.options as { staleTime?: number }).staleTime).toBe(60_000);
     });
 
-    it("provides empty array as placeholder data", async () => {
+    it("does not manufacture an empty list while the first fetch is pending", async () => {
       // Set up a fetch that doesn't resolve immediately
       let resolvePromise: (value: unknown[]) => void;
       mockGetActions.mockReturnValue(
@@ -168,8 +168,8 @@ describe("useBaseLists", () => {
         wrapper: createWrapper(queryClient),
       });
 
-      // While loading, placeholderData should provide an empty array
-      expect(result.current.data).toEqual([]);
+      expect(result.current.data).toBeUndefined();
+      expect(result.current.isPending).toBe(true);
 
       // Resolve the fetch
       resolvePromise!([createMockAction()]);

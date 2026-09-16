@@ -366,6 +366,7 @@ describe("modules/data/greengoods", () => {
       expect(result[0].mediaInfo?.title).toBe(
         instructionTemplates["solar.site_setup"].uiConfig.media.title
       );
+      expect(result[0].instructionsFallback).toBe(true);
     });
   });
 });

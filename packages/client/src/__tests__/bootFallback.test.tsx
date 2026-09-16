@@ -477,17 +477,6 @@ describe("presentation-specific boot fallback", () => {
     expect(websiteRecovery.querySelector("button")).toHaveTextContent("Reload");
   });
 
-  it("shows website recovery immediately when the module load fails", () => {
-    const { fallback, websiteRecovery } = runController("website");
-
-    document.dispatchEvent(new Event("gg-module-load-failed"));
-    vi.advanceTimersByTime(200);
-
-    expect(fallback).not.toHaveAttribute("hidden");
-    expect(fallback).toHaveAttribute("data-state", "recovery");
-    expect(websiteRecovery).not.toHaveAttribute("hidden");
-  });
-
   it("does not claim stale app files while a mounted app waits on auth", () => {
     // Login renders null until auth restoration resolves, so #root stays empty
     // ON PURPOSE. React calling in still proves the bundle arrived, so the
@@ -528,10 +517,10 @@ describe("presentation-specific boot fallback", () => {
     expect(pwaMessage).toHaveTextContent("Green Goods needs the latest app files.");
   });
 
-  it("activates a waiting worker before reloading the failed PWA boot", async () => {
+  it("leaves a waiting worker for the browser to activate on the next cold start", async () => {
     const { worker } = createWorker();
     const { registration } = createRegistration({ waiting: worker });
-    const { dispatchControllerChange, serviceWorker } = createServiceWorkerContainer(registration);
+    const { serviceWorker } = createServiceWorkerContainer(registration);
     const { location, windowLike } = createBootWindow();
     const { fallback, pwaMessage, pwaReload } = runController("pwa", {
       navigator: { language: "en", onLine: true, serviceWorker },
@@ -541,30 +530,19 @@ describe("presentation-specific boot fallback", () => {
 
     pwaReload.click();
     pwaReload.click();
-    await vi.waitFor(() => expect(worker.postMessage).toHaveBeenCalled());
+    await vi.waitFor(() => expect(fallback).toHaveAttribute("data-state", "stalled"));
 
-    expect(fallback).toHaveAttribute("data-state", "applying");
-    expect(pwaMessage).toHaveTextContent("Updating Green Goods…");
-    expect(pwaReload).toHaveAttribute("aria-disabled", "true");
-    expect(serviceWorker.addEventListener).toHaveBeenCalledWith(
-      "controllerchange",
-      expect.any(Function),
-      { once: true }
+    expect(pwaMessage).toHaveTextContent(
+      "Update waiting. Close every Green Goods window, then open the app again."
     );
-    expect(serviceWorker.addEventListener.mock.invocationCallOrder.at(-1)).toBeLessThan(
-      worker.postMessage.mock.invocationCallOrder[0]
-    );
+    expect(pwaReload).toHaveTextContent("Try Again");
     expect(location.reload).not.toHaveBeenCalled();
     expect(serviceWorker.getRegistration).toHaveBeenCalledTimes(1);
-    expect(worker.postMessage).toHaveBeenCalledTimes(1);
-
-    dispatchControllerChange();
-
-    expect(location.reload).toHaveBeenCalledTimes(1);
+    expect(worker.postMessage).not.toHaveBeenCalled();
     expect(registration.unregister).not.toHaveBeenCalled();
   });
 
-  it("checks for an update and activates the worker that finishes installing", async () => {
+  it("checks for an update and leaves a newly installed worker waiting for cold start", async () => {
     const installing = createWorker("installing");
     const { registration, dispatchUpdateFound } = createRegistration();
     registration.update.mockImplementation(async () => {
@@ -586,8 +564,7 @@ describe("presentation-specific boot fallback", () => {
     installing.worker.state = "installed";
     installing.dispatchStateChange();
 
-    expect(installing.worker.postMessage).toHaveBeenCalledWith({ type: "SKIP_WAITING" });
-    expect(installing.worker.postMessage).toHaveBeenCalledTimes(1);
+    expect(installing.worker.postMessage).not.toHaveBeenCalled();
   });
 
   it("keeps an offline user and their app data safe when no update is waiting", async () => {
@@ -604,7 +581,7 @@ describe("presentation-specific boot fallback", () => {
     pwaReload.click();
     await vi.waitFor(() => expect(fallback).toHaveAttribute("data-state", "stalled"));
 
-    expect(pwaMessage).toHaveTextContent("You’re offline. Reconnect, then try again.");
+    expect(pwaMessage).toHaveTextContent("You’re offline. Saved screens may still be available.");
     expect(pwaReload).toHaveTextContent("Try Again");
     expect(pwaReload).toHaveAttribute("aria-disabled", "false");
     expect(registration.update).not.toHaveBeenCalled();
@@ -663,7 +640,7 @@ describe("presentation-specific boot fallback", () => {
 
     expect(fallback).toHaveAttribute("data-state", "stalled");
     expect(pwaMessage).toHaveTextContent(
-      "Update failed. Close and reopen Green Goods, or try again."
+      "Close every Green Goods window, then open the app again."
     );
     expect(pwaReload).toHaveTextContent("Try Again");
     expect(registration.unregister).not.toHaveBeenCalled();
@@ -689,7 +666,7 @@ describe("presentation-specific boot fallback", () => {
   it("removes update listeners while preserving the PWA surface when React mounts", async () => {
     const { worker } = createWorker();
     const { registration } = createRegistration({ waiting: worker });
-    const { dispatchControllerChange, serviceWorker } = createServiceWorkerContainer(registration);
+    const { serviceWorker } = createServiceWorkerContainer(registration);
     const { location, windowLike } = createBootWindow();
     const { clearFallback, fallback, markReactMounted, pwaReload } = runController("pwa", {
       navigator: { language: "en", onLine: true, serviceWorker },
@@ -697,18 +674,14 @@ describe("presentation-specific boot fallback", () => {
     });
     vi.advanceTimersByTime(4500);
     pwaReload.click();
-    await vi.waitFor(() => expect(worker.postMessage).toHaveBeenCalledTimes(1));
+    await vi.waitFor(() => expect(fallback).toHaveAttribute("data-state", "stalled"));
+    expect(worker.postMessage).not.toHaveBeenCalled();
 
     document.getElementById("root")?.append(document.createElement("main"));
     markReactMounted?.();
-    dispatchControllerChange();
 
     expect(fallback).not.toHaveAttribute("hidden");
     expect(fallback).toHaveAttribute("data-state", "loading");
-    expect(serviceWorker.removeEventListener).toHaveBeenCalledWith(
-      "controllerchange",
-      expect.any(Function)
-    );
     expect(location.reload).not.toHaveBeenCalled();
 
     clearFallback?.();

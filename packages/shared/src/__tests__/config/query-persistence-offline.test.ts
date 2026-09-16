@@ -8,10 +8,15 @@ import {
 } from "@tanstack/react-query";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
+  createQueryPersistence,
   createShouldDehydrateQuery,
+  isDurableWorkRead,
+  isOfflineReadModelQuery,
   PERSIST_MAX_AGE,
   QUERY_CACHE_SCHEMA_VERSION,
+  restoreDurableWorkQuery,
 } from "../../config/query-persistence";
+import { attachQueryPersistence } from "../../providers/QueryPersistence";
 import { GC_TIMES, queryClient } from "../../config/react-query";
 import { actionsKeys, gardensKeys } from "../../config/query-keys/garden";
 import { worksKeys } from "../../config/query-keys/work";
@@ -59,6 +64,15 @@ describe("durable offline reads", () => {
     source.clear();
   });
 
+  it("omits action fallbacks produced by a transient instruction fetch failure", () => {
+    const source = new QueryClient();
+    const fallbackActions = [{ id: "fallback", instructionsFallback: true }];
+    source.setQueryData(actionsKeys.byChain(11155111), fallbackActions);
+
+    expect(dehydrate(source, { shouldDehydrateQuery }).queries).toEqual([]);
+    source.clear();
+  });
+
   it("keeps base and work reads for the whole persistence window, independent of deploy version", () => {
     expect(QUERY_CACHE_SCHEMA_VERSION).toBe("1");
     expect(GC_TIMES.baseLists).toBeGreaterThanOrEqual(PERSIST_MAX_AGE);
@@ -87,40 +101,182 @@ describe("durable offline reads", () => {
   });
 });
 
-describe("offline read model retention", () => {
-  it("keeps the offline read model after seven days while unrelated reads expire", async () => {
-    const { createQueryPersister, isOfflineReadModelQuery } = await import(
-      "../../config/query-persistence"
-    );
+describe("reading cache entries", () => {
+  /** A Storage the tests own, so nothing leaks between cases. */
+  function memoryStorage(): Storage {
+    const memory = new Map<string, string>();
+    return {
+      get length() {
+        return memory.size;
+      },
+      clear: () => memory.clear(),
+      getItem: (key: string) => memory.get(key) ?? null,
+      key: (index: number) => [...memory.keys()][index] ?? null,
+      removeItem: (key: string) => void memory.delete(key),
+      setItem: (key: string, value: string) => void memory.set(key, value),
+    } as Storage;
+  }
+
+  it("keeps the offline read model after seven days while ordinary reads expire", async () => {
     vi.stubGlobal("indexedDB", undefined);
-    const source = new QueryClient();
-    const workRead = worksKeys.online("garden", 11155111);
-    source.setQueryData(workRead, [{ id: "kept" }]);
-    source.setQueryData(worksKeys.metadata("bafy-details"), { details: "kept" });
-    source.setQueryData(["greengoods", "platform", "stats"], { ordinary: true });
-    const storage = window.localStorage;
-    storage.clear();
-    const persister = createQueryPersister({
+    const storage = memoryStorage();
+    const persistence = createQueryPersistence({
       dbName: "retention-test",
       storage,
-      preserveQuery: (query) => isOfflineReadModelQuery(query.queryKey),
+      preserveQuery: isOfflineReadModelQuery,
     });
-    await persister.persistClientVerified!({
-      timestamp: Date.now() - PERSIST_MAX_AGE - 1,
-      buster: "1",
-      clientState: dehydrate(source),
-    });
-    const restored = await persister.restoreClient();
-    expect(restored?.clientState.queries.map((entry) => entry.queryKey)).toEqual([
-      workRead,
+    const source = new QueryClient();
+    const expiredAt = Date.now() - PERSIST_MAX_AGE - 1;
+    const workRead = worksKeys.online("garden", 11155111);
+    source.setQueryData(workRead, [{ id: "kept" }], { updatedAt: expiredAt });
+    source.setQueryData(
       worksKeys.metadata("bafy-details"),
-    ]);
+      { details: "kept" },
+      {
+        updatedAt: expiredAt,
+      }
+    );
+    source.setQueryData(
+      ["greengoods", "platform", "expired"],
+      { ordinary: true },
+      {
+        updatedAt: expiredAt,
+      }
+    );
+    source.setQueryData(["greengoods", "platform", "fresh"], { ordinary: true });
+    for (const query of source.getQueryCache().getAll()) {
+      await persistence.persistQuery(source, query.queryKey);
+    }
+    expect(storage.length).toBe(4);
+
+    const restored = new QueryClient();
+    await persistence.restore(restored);
+
+    expect(restored.getQueryData(workRead)).toEqual([{ id: "kept" }]);
+    expect(restored.getQueryData(worksKeys.metadata("bafy-details"))).toEqual({ details: "kept" });
+    expect(restored.getQueryData(["greengoods", "platform", "expired"])).toBeUndefined();
+    expect(restored.getQueryData(["greengoods", "platform", "fresh"])).toEqual({ ordinary: true });
+    // The expired entry left storage during the restore, so nothing is left to collect.
+    expect(storage.length).toBe(3);
+    await expect(persistence.gc()).resolves.toBe(0);
     source.clear();
-    storage.clear();
+    restored.clear();
+  });
+
+  it("writes a settled fetch through the persister and restores it with its age", async () => {
+    vi.stubGlobal("indexedDB", undefined);
+    const storage = memoryStorage();
+    const persistence = createQueryPersistence({
+      dbName: "write-through",
+      storage,
+      shouldPersistQuery: createShouldDehydrateQuery({ excludedGroups: ["queue"] }),
+    });
+    const client = new QueryClient({
+      defaultOptions: { queries: { persister: persistence.persister, retry: false } },
+    });
+    const key = gardensKeys.byChain(11155111);
+
+    await client.fetchQuery({ queryKey: key, queryFn: async () => [{ id: "garden" }] });
+    await vi.waitFor(() => expect(storage.length).toBe(1));
+    await client.fetchQuery({ queryKey: ["wallet", "secret"], queryFn: async () => "session" });
+    await client.fetchQuery({ queryKey: ["greengoods", "queue"], queryFn: async () => [] });
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(storage.length).toBe(1);
+
+    const restored = new QueryClient();
+    await persistence.restore(restored);
+    expect(restored.getQueryData(key)).toEqual([{ id: "garden" }]);
+    expect(restored.getQueryState(key)?.dataUpdatedAt).toBe(
+      client.getQueryState(key)?.dataUpdatedAt
+    );
+    client.clear();
+    restored.clear();
+  });
+
+  it("reports a refused web-storage write and keeps the session copy in memory", async () => {
+    vi.stubGlobal("indexedDB", undefined);
+    const storage = memoryStorage();
+    const onPersistenceError = vi.fn();
+    const persistence = createQueryPersistence({
+      dbName: "refused",
+      storage,
+      onPersistenceError,
+    });
+    const client = new QueryClient({
+      defaultOptions: { queries: { persister: persistence.persister, retry: false } },
+    });
+    const key = gardensKeys.byChain(11155111);
+    vi.spyOn(storage, "setItem").mockImplementation(() => {
+      throw new DOMException("full", "QuotaExceededError");
+    });
+
+    await client.fetchQuery({ queryKey: key, queryFn: async () => ["garden"] });
+    await vi.waitFor(() => expect(onPersistenceError).toHaveBeenCalledOnce());
+    await expect(persistence.persistQuery(client, key)).resolves.toBeUndefined();
+    const restored = new QueryClient();
+    await persistence.restore(restored);
+    expect(restored.getQueryData(key)).toEqual(["garden"]);
+    client.clear();
+    restored.clear();
+  });
+
+  it("writes manual query projections through the attached persistence boundary", async () => {
+    vi.stubGlobal("indexedDB", undefined);
+    const storage = memoryStorage();
+    const persistence = createQueryPersistence({ dbName: "manual-write", storage });
+    const client = new QueryClient();
+    attachQueryPersistence(client, persistence);
+    const key = worksKeys.merged("garden", 11155111);
+
+    client.setQueryData(key, [{ id: `0x${"a".repeat(64)}`, status: "approved" }]);
+    await vi.waitFor(() => expect(storage.length).toBe(1));
+
+    const restored = new QueryClient();
+    await persistence.restore(restored);
+    expect(restored.getQueryData(key)).toEqual([{ id: `0x${"a".repeat(64)}`, status: "approved" }]);
+    client.clear();
+    restored.clear();
+  });
+
+  it("copies a snapshot from an earlier build into the reading cache and forgets it", async () => {
+    vi.stubGlobal("indexedDB", undefined);
+    const storage = memoryStorage();
+    const source = new QueryClient();
+    const remote = { id: `0x${"a".repeat(64)}`, status: "approved", _txHash: "known-approval" };
+    const mergedKey = worksKeys.merged("garden", 1);
+    source.setQueryData(mergedKey, [
+      remote,
+      { id: "0xoffline_job", status: "offline", media: ["blob:old"] },
+      { id: "residual-uuid", status: "pending" },
+    ]);
+    source.setQueryData(["greengoods", "works", "offline", "garden", 1], ["old-job"]);
+    source.setQueryData(["greengoods", "works", "mine", "account", 1, true], ["old-job"]);
+    source.setQueryData(gardensKeys.byChain(1), [{ id: "garden" }]);
+    storage.setItem(
+      "__rq_pc__",
+      JSON.stringify({ timestamp: Date.now(), buster: "dev", clientState: dehydrate(source) })
+    );
+    const persistence = createQueryPersistence({
+      dbName: "legacy",
+      storage,
+      shouldRestoreQuery: (query) => isDurableWorkRead(query.queryKey),
+      transformRestoredQuery: restoreDurableWorkQuery,
+    });
+
+    const restored = new QueryClient();
+    await persistence.restore(restored);
+
+    expect(restored.getQueryData(mergedKey)).toEqual([remote]);
+    expect(restored.getQueryData(gardensKeys.byChain(1))).toEqual([{ id: "garden" }]);
+    expect(restored.getQueryData(["greengoods", "works", "offline", "garden", 1])).toBeUndefined();
+    expect(storage.getItem("__rq_pc__")).toBeNull();
+    // Only the two durable reads survive in the new store.
+    expect(storage.length).toBe(2);
+    source.clear();
+    restored.clear();
   });
 
   it("restores a garden read saved under a checksummed address to the lowercase key", async () => {
-    const { restoreDurableWorkQuery } = await import("../../config/query-persistence");
     const source = new QueryClient();
     const checksummed = "0xAbCd000000000000000000000000000000000001";
     source.getQueryCache().build(source, {
@@ -137,97 +293,4 @@ describe("offline read model retention", () => {
     source.clear();
     client.clear();
   });
-});
-
-describe("persisted snapshot writes", () => {
-  function fakeStorage() {
-    const writes: string[] = [];
-    const storage = {
-      getItem: vi.fn(() => writes.at(-1) ?? null),
-      setItem: vi.fn((_key: string, value: string) => {
-        writes.push(value);
-      }),
-      removeItem: vi.fn(),
-    } as unknown as Storage;
-    return { storage, writes };
-  }
-  const snapshot = (label: string) => ({
-    timestamp: Date.now(),
-    buster: "1",
-    clientState: { queries: [], mutations: [], label } as never,
-  });
-
-  it("writes only the newest snapshot of a burst, then waits for the interval", async () => {
-    vi.useFakeTimers();
-    vi.stubGlobal("indexedDB", undefined);
-    const { createQueryPersister } = await import("../../config/query-persistence");
-    const { storage, writes } = fakeStorage();
-    const persister = createQueryPersister({ dbName: "burst", storage, writeIntervalMs: 1_000 });
-
-    const first = persister.persistClient(snapshot("first"));
-    await vi.advanceTimersByTimeAsync(0);
-    const burst = ["second", "third", "fourth"].map((label) =>
-      persister.persistClient(snapshot(label))
-    );
-    await vi.advanceTimersByTimeAsync(999);
-    expect(writes).toHaveLength(1);
-    await vi.advanceTimersByTimeAsync(1);
-    await Promise.all([first, ...burst]);
-
-    expect(writes.map((value) => JSON.parse(value).clientState.label)).toEqual(["first", "fourth"]);
-    vi.useRealTimers();
-  });
-
-  it("writes an explicit flush without waiting and reports its failure", async () => {
-    vi.useFakeTimers();
-    vi.stubGlobal("indexedDB", undefined);
-    const { createQueryPersister } = await import("../../config/query-persistence");
-    const { storage, writes } = fakeStorage();
-    const persister = createQueryPersister({ dbName: "flush", storage, writeIntervalMs: 60_000 });
-
-    await persister.persistClient(snapshot("ordinary"));
-    await persister.persistClientVerified!(snapshot("flushed"));
-    expect(writes.map((value) => JSON.parse(value).clientState.label)).toEqual([
-      "ordinary",
-      "flushed",
-    ]);
-
-    vi.mocked(storage.setItem).mockImplementation(() => {
-      throw new DOMException("full", "QuotaExceededError");
-    });
-    await expect(persister.persistClientVerified!(snapshot("full"))).rejects.toThrow("full");
-    vi.useRealTimers();
-  });
-});
-
-it("rebuilds old local projections while preserving remote approval overlays", async () => {
-  const { createQueryPersister, isDurableWorkRead, restoreDurableWorkQuery } = await import(
-    "../../config/query-persistence"
-  );
-  vi.stubGlobal("indexedDB", undefined);
-  const source = new QueryClient();
-  const remote = { id: `0x${"a".repeat(64)}`, status: "approved", _txHash: "known-approval" };
-  const mergedKey = worksKeys.merged("garden", 1);
-  source.setQueryData(mergedKey, [
-    remote,
-    { id: "0xoffline_job", status: "offline", media: ["blob:old"] },
-    { id: "residual-uuid", status: "pending" },
-  ]);
-  source.setQueryData(["greengoods", "works", "offline", "garden", 1], ["old-job"]);
-  source.setQueryData(["greengoods", "works", "mine", "account", 1, true], ["old-job"]);
-  const persister = createQueryPersister({
-    dbName: "test-projections",
-    storage: window.localStorage,
-    shouldRestoreQuery: (query) => isDurableWorkRead(query.queryKey),
-    transformRestoredQuery: restoreDurableWorkQuery,
-  });
-  await persister.persistClient({
-    timestamp: Date.now(),
-    buster: "1",
-    clientState: dehydrate(source),
-  });
-  const restored = await persister.restoreClient();
-  expect(restored?.clientState.queries).toHaveLength(1);
-  expect(restored?.clientState.queries[0].state.data).toEqual([remote]);
-  source.clear();
 });

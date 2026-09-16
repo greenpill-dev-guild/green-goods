@@ -14,7 +14,7 @@
  * Reference: https://docs.pimlico.io/docs/how-tos/signers/passkey
  */
 
-import type { Address } from "viem";
+import type { Address, Hex } from "viem";
 import type { P256Credential } from "viem/account-abstraction";
 
 import type { AuthMode } from "../../types/auth";
@@ -177,6 +177,62 @@ export function clearStoredSmartAccountAddress(storage: SessionStorage = localSt
 /** Storage key for embedded wallet address (for offline identity display) */
 export const EMBEDDED_ADDRESS_KEY = "greengoods_embedded_address";
 
+/** Last wallet address used as the primary app identity. */
+export const WALLET_ADDRESS_STORAGE_KEY = "greengoods_wallet_address";
+
+const WAGMI_STORE_KEY = "wagmi.store";
+
+/** Narrow a stored value to a hex address; anything else reads as absent. */
+export function asHexAddress(value: unknown): Hex | null {
+  return typeof value === "string" && /^0x[0-9a-fA-F]{40}$/.test(value) ? (value as Hex) : null;
+}
+
+function readWagmiWalletAddress(storage: SessionStorage): Hex | null {
+  try {
+    const persisted = JSON.parse(storage.getItem(WAGMI_STORE_KEY) ?? "null") as {
+      state?: {
+        current?: unknown;
+        connections?: { value?: unknown };
+      };
+    } | null;
+    const entries = persisted?.state?.connections?.value;
+    if (!Array.isArray(entries)) return null;
+    const current = persisted?.state?.current;
+    const connection =
+      entries.find((entry) => Array.isArray(entry) && entry[0] === current) ?? entries[0];
+    if (!Array.isArray(connection)) return null;
+    const accounts = (connection[1] as { accounts?: unknown } | undefined)?.accounts;
+    return Array.isArray(accounts) ? asHexAddress(accounts[0]) : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Store the primary wallet identity for offline read access. */
+export function setStoredWalletAddress(
+  address: Address,
+  storage: SessionStorage = localStorage
+): void {
+  storage.setItem(WALLET_ADDRESS_STORAGE_KEY, address);
+}
+
+/**
+ * Read the primary wallet identity without contacting its connector. Older
+ * installs migrate the same address from Wagmi's persisted connection record.
+ */
+export function getStoredWalletAddress(storage: SessionStorage = localStorage): Hex | null {
+  const stored = asHexAddress(storage.getItem(WALLET_ADDRESS_STORAGE_KEY));
+  if (stored) return stored;
+  const migrated = readWagmiWalletAddress(storage);
+  if (migrated) storage.setItem(WALLET_ADDRESS_STORAGE_KEY, migrated);
+  return migrated;
+}
+
+/** Clear the cached primary wallet identity on an explicit session boundary. */
+export function clearStoredWalletAddress(storage: SessionStorage = localStorage): void {
+  storage.removeItem(WALLET_ADDRESS_STORAGE_KEY);
+}
+
 /** Store embedded wallet address in localStorage */
 export function setEmbeddedAddress(address: Address, storage: SessionStorage = localStorage): void {
   storage.setItem(EMBEDDED_ADDRESS_KEY, address);
@@ -202,6 +258,7 @@ export function clearEmbeddedAddress(storage: SessionStorage = localStorage): vo
 export function clearActiveSessionAuth(storage: SessionStorage = localStorage): void {
   clearAuthMode(storage);
   clearEmbeddedAddress(storage);
+  clearStoredWalletAddress(storage);
   setSignedOutSentinel(storage);
 }
 
@@ -223,6 +280,7 @@ export function clearAllAuth(storage: SessionStorage = localStorage): void {
   storage.removeItem(RP_ID_STORAGE_KEY);
   storage.removeItem(SMART_ACCOUNT_ADDRESS_STORAGE_KEY);
   storage.removeItem(EMBEDDED_ADDRESS_KEY);
+  storage.removeItem(WALLET_ADDRESS_STORAGE_KEY);
   storage.removeItem(SIGNED_OUT_STORAGE_KEY);
 }
 
@@ -399,4 +457,20 @@ export function hasStoredCredential(storage: SessionStorage = localStorage): boo
  */
 export function clearStoredCredential(storage: SessionStorage = localStorage): void {
   storage.removeItem(CREDENTIAL_STORAGE_KEY);
+}
+
+/**
+ * The storage a local sign-out clears.
+ *
+ * Auth mode and the addresses a restore would read back go. Passkey recovery
+ * metadata stays: the username, credential and expected address are the
+ * same-device fallback that powers one-tap re-login. The signed-out sentinel
+ * makes it durable, suppressing automatic passkey restore until the next
+ * successful passkey sign-in, so a dismissed ceremony stays signed out.
+ */
+export function clearSessionForSignOut(storage: SessionStorage = localStorage): void {
+  clearAuthMode(storage);
+  clearEmbeddedAddress(storage);
+  clearStoredWalletAddress(storage);
+  setSignedOutSentinel(storage);
 }

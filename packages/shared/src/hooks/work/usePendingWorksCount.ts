@@ -1,30 +1,15 @@
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { GC_TIMES, STALE_TIMES } from "../../config/react-query";
-import { queueKeys } from "../../config/query-keys/misc";
-import { jobQueue } from "../../modules/job-queue/default-instance";
-import { useJobQueueEvents } from "../../modules/job-queue/event-bus";
+import { jobQueueDB } from "../../modules/job-queue/db";
 import { usePrimaryAddress } from "../auth/usePrimaryAddress";
+import { useLiveQuery } from "../utils/useLiveQuery";
 
-/** Event-driven count of unsynced work jobs for the current account. */
+/**
+ * Live count of the account's unsynced work jobs. It follows the queue table
+ * itself, so a job added or completed in any tab updates it without an event.
+ */
 export function usePendingWorksCount() {
-  const queryClient = useQueryClient();
   const primaryAddress = usePrimaryAddress();
-
-  const query = useQuery({
-    queryKey: queueKeys.pendingCount(),
-    queryFn: async () => {
-      if (!primaryAddress) return 0;
-      const jobs = await jobQueue.getJobs(primaryAddress, { kind: "work", synced: false });
-      return jobs.length;
-    },
-    enabled: Boolean(primaryAddress),
-    staleTime: STALE_TIMES.queue,
-    gcTime: GC_TIMES.queue,
-  });
-
-  useJobQueueEvents(["job:added", "job:completed", "job:failed"], () => {
-    queryClient.invalidateQueries({ queryKey: queueKeys.pendingCount() });
-  });
-
-  return query;
+  const live = useLiveQuery(primaryAddress?.toLowerCase() ?? null, () =>
+    jobQueueDB.observeJobs({ userAddress: primaryAddress ?? "", kind: "work", synced: false })
+  );
+  return { ...live, data: live.data?.length };
 }

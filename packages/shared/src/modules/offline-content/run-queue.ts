@@ -8,7 +8,6 @@ import { isKeptMediaUrl } from "./media";
 import { displayImageUrl, type OfflinePlan } from "./policy";
 
 export type OfflineTask =
-  | { kind: "approvals" }
   | { kind: "list"; garden: string }
   | { kind: "details"; garden: string; work: EASWork }
   | { kind: "photo"; garden: string; url: string };
@@ -38,13 +37,14 @@ interface RunQueueContext {
 }
 
 /**
- * One run's remaining work, its order and its progress. Work lists and details
- * are queued for every planned garden; photos only for the garden in view, the
- * account's own work and its avatar.
+ * One run's remaining work, its order and its progress. Work lists (approvals
+ * included) and details are queued for every planned garden; photos only for
+ * the garden in view, the account's own work and its avatar.
  */
 export class OfflineRunQueue {
   private tasks: OfflineTask[];
   private readonly photos = new Set<string>();
+  private readonly completedPhotoUrls = new Set<string>();
   private readonly listed = new Map<string, EASWork[]>();
   private photoGarden: string | undefined;
   private total: number;
@@ -52,6 +52,8 @@ export class OfflineRunQueue {
   private shownRatio = 0;
   bytes = 0;
   missing = 0;
+  failedReads = 0;
+  storageRejected = false;
   held = 0;
 
   constructor(
@@ -59,10 +61,7 @@ export class OfflineRunQueue {
     plan: OfflinePlan,
     avatarUrl?: string
   ) {
-    this.tasks = [
-      { kind: "approvals" },
-      ...plan.lists.map((garden) => ({ kind: "list" as const, garden })),
-    ];
+    this.tasks = plan.lists.map((garden) => ({ kind: "list" as const, garden }));
     this.total = this.tasks.length;
     if (avatarUrl && isKeptMediaUrl(avatarUrl)) this.addPhoto("", avatarUrl);
   }
@@ -73,6 +72,11 @@ export class OfflineRunQueue {
 
   /** Photos this run wants kept when the worker trims its cache. */
   get keptPhotos(): string[] {
+    return [...this.completedPhotoUrls];
+  }
+
+  /** All photos selected by policy, used to protect existing copies during admission. */
+  get plannedPhotos(): string[] {
     return [...this.photos];
   }
 
@@ -107,9 +111,15 @@ export class OfflineRunQueue {
     this.tasks.unshift(task);
   }
 
-  failed(task: OfflineTask): void {
+  failed(task: OfflineTask, error?: unknown): void {
     this.done += 1;
-    if (task.kind === "photo") this.missing += 1;
+    if (task.kind === "photo") {
+      this.missing += 1;
+      const name = error instanceof Error ? error.name : "";
+      if (name === "QuotaExceededError" || name === "OfflineMediaStoreError") {
+        this.storageRejected = true;
+      }
+    } else this.failedReads += 1;
   }
 
   completed(task: OfflineTask, value: unknown): void {
@@ -123,6 +133,7 @@ export class OfflineRunQueue {
         this.addPhoto(task.garden, url);
     } else if (task.kind === "photo") {
       this.bytes += Number(value) || 0;
+      this.completedPhotoUrls.add(task.url);
     }
   }
 
@@ -185,7 +196,6 @@ export class OfflineRunQueue {
   private sort(): void {
     const inView = this.context.gardenInView();
     const rank = (task: OfflineTask) => {
-      if (task.kind === "approvals") return 0;
       const viewed = sameAddress(task.garden, inView);
       if (task.kind === "list") return viewed ? 1 : 3;
       if (task.kind === "photo") return viewed || task.garden === "" ? 2 : 4;

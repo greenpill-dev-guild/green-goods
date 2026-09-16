@@ -275,6 +275,33 @@ describe("modules/data/eas", () => {
       );
     });
 
+    it("rejects a response that omits the attestations field", async () => {
+      mockQuery.mockResolvedValue({ data: {} });
+
+      await expect(getWorks(undefined, 11155111, reader)).rejects.toThrow(
+        "Failed to fetch works: Invalid attestations response"
+      );
+    });
+
+    it("reads every work across stable 100-row pages", async () => {
+      const rows = Array.from({ length: 101 }, (_, index) => ({
+        ...workAttestation,
+        id: `0x${index.toString(16).padStart(64, "0")}`,
+      }));
+      mockQuery.mockImplementation(async (_query, { take, skip }) => ({
+        data: { attestations: rows.slice(skip, skip + take) },
+      }));
+
+      const result = await getWorks(undefined, 11155111, reader);
+
+      expect(result.map((work) => work.id)).toEqual(rows.map((row) => row.id));
+      expect(mockQuery).toHaveBeenCalledTimes(2);
+      expect(mockQuery.mock.calls.map((call) => call[1])).toEqual([
+        expect.objectContaining({ take: 100, skip: 0 }),
+        expect.objectContaining({ take: 100, skip: 100 }),
+      ]);
+    });
+
     it.each([
       ["malformed JSON", "{"],
       ["invalid decoded payload", JSON.stringify({ name: "title" })],

@@ -2,19 +2,19 @@ import { useIsRestoring, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useSyncExternalStore } from "react";
 import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
 import { gardensKeys } from "../../config/query-keys/garden";
-import { getWorkApprovals, getWorks } from "../../modules/data/eas";
 import {
   downloadMedia,
   isMediaCached,
   isMediaWorkerReady,
   monitorMediaWorker,
+  protectMedia,
   readMediaStats,
   retireLegacyPreparedMedia,
   subscribeMediaWorker,
   sweepMedia,
 } from "../../modules/offline-content/media";
 import { OFFLINE_REFRESH_MS } from "../../modules/offline-content/policy";
-import { persistPreparedQueries } from "../../modules/offline-content/query-writer";
+import { persistPreparedQuery } from "../../modules/offline-content/query-writer";
 import { OfflineScheduler } from "../../modules/offline-content/scheduler";
 import {
   getOfflineProgress,
@@ -23,9 +23,10 @@ import {
   updateOfflineProgress,
 } from "../../modules/offline-content/store";
 import { readWorkMetadata } from "../../modules/work/read-work-metadata";
+import { readWorkList } from "../../modules/work/work-list";
 import { connectivityStore } from "../../stores/connectivity";
 import type { Garden } from "../../types/domain";
-import { useOnlineStatus } from "../app/useOnlineStatus";
+import { useConnectivityStatus, useOnlineStatus } from "../app/useOnlineStatus";
 import { usePrimaryAddress } from "../auth/usePrimaryAddress";
 import { useGardens } from "../blockchain/useBaseLists";
 import { useResolvedProfileAvatar } from "../profile/useProfileAvatar";
@@ -113,18 +114,18 @@ export function useOfflineContentPreparation(chainId = DEFAULT_CHAIN_ID): void {
       dataSaver: () => Boolean(networkInformation()?.saveData),
       cellular: () => isCellular(networkInformation()),
       mediaReady: isMediaWorkerReady,
-      fetchWorks: (garden) => getWorks(garden, chainId),
-      fetchApprovals: () => getWorkApprovals(undefined, chainId),
+      fetchWorks: (garden, take) => readWorkList({ garden, chainId, take }),
       readMetadata: readWorkMetadata,
       media: {
         isCached: isMediaCached,
         download: downloadMedia,
         sweep: sweepMedia,
+        protect: protectMedia,
         retireLegacy: retireLegacyPreparedMedia,
       },
-      persist: async () => {
+      persistQuery: async (queryKey) => {
         try {
-          await persistPreparedQueries(client);
+          await persistPreparedQuery(client, queryKey);
         } catch (error) {
           reportOfflineStorageFailure();
           throw error;
@@ -167,7 +168,7 @@ export function useOfflineContentPreparation(chainId = DEFAULT_CHAIN_ID): void {
     };
     const onNetwork = () => scheduler.environmentChanged();
 
-    const unsubscribeConnectivity = connectivityStore.subscribe(onConnectivity);
+    const unsubscribeConnectivity = connectivityStore.subscribeStatus(onConnectivity);
     const unsubscribeWorker = subscribeMediaWorker(onWorker);
     document.addEventListener("visibilitychange", onVisibility);
     connection?.addEventListener?.("change", onNetwork);
@@ -217,9 +218,11 @@ export function useOfflineStatus() {
     getOfflineProgress
   );
   const online = useOnlineStatus();
+  const connectivity = useConnectivityStatus();
   return {
     progress,
     online,
+    connectivity,
     pause: () => activeScheduler?.pause(),
     resume: () => activeScheduler?.resume(),
     refresh: () => activeScheduler?.schedule(0, { refresh: true }),

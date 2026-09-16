@@ -421,7 +421,7 @@ export const RouteErrorBoundary: React.FC = () => {
                     emphasis="secondary"
                     size="lg"
                     onClick={() => {
-                      window.location.href = "/";
+                      window.location.href = "/home";
                     }}
                     leadingIcon={<RiHomeLine className="h-5 w-5" aria-hidden="true" />}
                     className="w-full"
@@ -445,7 +445,7 @@ export const RouteErrorBoundary: React.FC = () => {
                     emphasis="secondary"
                     size="lg"
                     onClick={() => {
-                      window.location.href = "/";
+                      window.location.href = "/home";
                     }}
                     leadingIcon={<RiHomeLine className="h-5 w-5" aria-hidden="true" />}
                     className="w-full"

@@ -17,8 +17,8 @@
         "conformance": ["packages/shared/src/__tests__/modules/job-queue.db.test.ts"],
         "integration": ["packages/shared/src/__tests__/modules/job-queue.imports.test.ts"]
       },
-      "reviewedAt": "2026-09-15",
-      "evidenceFingerprint": "sha256:c3040b9c94ba9a13b4deb0e08305f32912d723264d4262d5eeba930e653095bd"
+      "reviewedAt": "2026-09-16",
+      "evidenceFingerprint": "sha256:e7760a3a99df3a4ccd9da6ddd319685b4de5014044525a1b2da17d16f95587f6"
     },
     {
       "id": "shared-auth-session",
@@ -36,8 +36,8 @@
         "conformance": ["packages/shared/src/__tests__/workflows/authServices.test.ts"],
         "integration": ["packages/shared/src/__tests__/providers/Auth.wallet-login.test.tsx"]
       },
-      "reviewedAt": "2026-09-15",
-      "evidenceFingerprint": "sha256:01b440d781c8fe98238699af206516d72004c2241c6d00329e42d08fc5c474a6"
+      "reviewedAt": "2026-09-16",
+      "evidenceFingerprint": "sha256:2a0038f5715f2f142ab52fd792778084078b807a96aa047bfaf184baa55b2007"
     },
     {
       "id": "shared-work-provider-command",
@@ -57,8 +57,8 @@
         ],
         "integration": ["packages/shared/src/__tests__/providers/WorkProvider.test.tsx"]
       },
-      "reviewedAt": "2026-09-15",
-      "evidenceFingerprint": "sha256:2aa70e2f78c1aec48ac355c12c12e241b454c41e44e818a5dc89e8f14b175d11"
+      "reviewedAt": "2026-09-16",
+      "evidenceFingerprint": "sha256:0e6d2051cdb17a40df291d31e181fccbd598e1a2edf517ab88b524caeec0a87f"
     },
     {
       "id": "shared-commitment-pooling-public",
@@ -76,8 +76,8 @@
         "conformance": ["packages/shared/src/__tests__/commitment-pooling-read-repository.test.ts"],
         "integration": ["packages/shared/src/__tests__/commitment-pooling-hooks.test.tsx"]
       },
-      "reviewedAt": "2026-09-15",
-      "evidenceFingerprint": "sha256:cfaf4d6cb654ada0cbf8d60101783fa3d68c65e6907844a3a240a4f1ba8c51e3"
+      "reviewedAt": "2026-09-16",
+      "evidenceFingerprint": "sha256:dcdbe1b14e113118ab703c050b714154bfdbbf7df3b16c6cc4048dd1753f35b4"
     }
   ]
 }

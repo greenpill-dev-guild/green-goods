@@ -8,7 +8,7 @@
  * Uses adaptive polling: 60s for first 10 min, 30s after, stops at 25 min.
  *
  * Return data is fully serializable (no BigInt, no functions) for
- * IndexedDB persistence via PersistQueryClientProvider.
+ * IndexedDB persistence via the reading cache (QueryPersistenceProvider).
  *
  * @module hooks/ens/useENSRegistrationStatus
  */

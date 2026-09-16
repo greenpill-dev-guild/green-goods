@@ -14,13 +14,13 @@ const LIMITS = {
   modulePreloads: Number(process.env.PWA_MODULE_PRELOAD_MAX ?? 16),
   majorRouteGzip: Number(process.env.PWA_MAJOR_ROUTE_GZIP_MAX ?? 500 * KiB),
   mediaRouteGzip: Number(process.env.PWA_MEDIA_ROUTE_GZIP_MAX ?? 850 * KiB),
-  // The offline shell carries the whole signed-in app: every route, the HEIC
-  // decoder and image compressor for the media step, the submission adapters
-  // and attestation encoder, and every locale. Installed use is meant to feel
-  // like a native app, so the ceilings sit just above that full set to catch
-  // accidental growth, not to keep functionality out.
+  // The offline shell installs in three tiers: critical, the offline-ready set
+  // an installed app fetches straight away, and a send-time tail. Keep the
+  // combined ceiling close to the full signed-in app so moving an asset between
+  // tiers cannot hide growth.
   shellRaw: Number(process.env.PWA_SHELL_RAW_MAX ?? 11 * MiB),
   shellGzip: Number(process.env.PWA_SHELL_GZIP_MAX ?? 3.25 * MiB),
+  shellPriorityGzip: Number(process.env.PWA_SHELL_PRIORITY_GZIP_MAX ?? 1.1 * MiB),
 };
 
 const FORBIDDEN_PUBLIC_MODULES = [
@@ -123,10 +123,14 @@ function collectChunkClosure(graph, rootFiles) {
 const failures = [];
 try {
   const swSource = requireFile(swPath);
+  // The worker bundle inlines the precache manifest as objects carrying both a
+  // revision and a url; other url literals in the worker's own code are not entries.
+  const manifestEntry =
+    /\{\s*(?:"?revision"?:\s*(?:"[^"]*"|null)\s*,\s*"?url"?:\s*"([^"]+)"|"?url"?:\s*"([^"]+)"\s*,\s*"?revision"?:\s*(?:"[^"]*"|null))\s*\}/g;
   const precacheUrls = [
     ...new Set(
-      [...swSource.matchAll(/url:\s*["']([^"']+)["']/g)].map((match) =>
-        match[1].split("?")[0].replace(/^\/+/, "")
+      [...swSource.matchAll(manifestEntry)].map((match) =>
+        (match[1] ?? match[2]).split("?")[0].replace(/^\/+/, "")
       )
     ),
   ].filter((url) => url && !/^https?:\/\//.test(url));
@@ -203,8 +207,44 @@ try {
   if (routeFailures.length) failures.push(`route budgets exceeded\n  ${routeFailures.join("\n  ")}`);
 
   const shell = readJson(shellManifestPath);
+  const TIERS = ["criticalAssets", "priorityAssets", "tailAssets"];
+  if (shell.version !== 3 || !Array.isArray(shell.assets) || TIERS.some((t) => !Array.isArray(shell[t]))) {
+    throw new Error("Offline shell manifest must use the version 3 critical/priority/tail shape.");
+  }
+  const shellAssets = new Set(shell.assets);
+  const tierSets = TIERS.map((tier) => new Set(shell[tier]));
+  if (
+    shellAssets.size !== shell.assets.length ||
+    TIERS.some((tier, index) => tierSets[index].size !== shell[tier].length)
+  ) {
+    throw new Error("Offline shell manifest contains duplicate assets.");
+  }
+  const tieredTotal = tierSets.reduce((sum, tier) => sum + tier.size, 0);
+  if (
+    shellAssets.size !== tieredTotal ||
+    [...shellAssets].some((asset) => !tierSets.some((tier) => tier.has(asset)))
+  ) {
+    throw new Error(
+      "Offline shell critical, priority and tail assets must be a disjoint complete partition."
+    );
+  }
+  const tierBytes = (tier, gzip = false) =>
+    shell[tier].reduce((sum, file) => sum + fileSize(file, gzip), 0);
   const shellRaw = shell.assets.reduce((sum, file) => sum + fileSize(file), 0);
   const shellGzip = shell.assets.reduce((sum, file) => sum + fileSize(file, true), 0);
+  const criticalRaw = tierBytes("criticalAssets");
+  const criticalGzip = tierBytes("criticalAssets", true);
+  const priorityRaw = tierBytes("priorityAssets");
+  const priorityGzip = tierBytes("priorityAssets", true);
+  const tailRaw = tierBytes("tailAssets");
+  const tailGzip = tierBytes("tailAssets", true);
+  // The offline-ready tier is what an installed app fetches straight away, so
+  // it is budgeted on its own: growth here is felt right after install.
+  if (priorityGzip > LIMITS.shellPriorityGzip) {
+    failures.push(
+      `offline-ready tier gzip ${formatBytes(priorityGzip)} exceeds ${formatBytes(LIMITS.shellPriorityGzip)}`
+    );
+  }
   if (shellRaw > LIMITS.shellRaw) {
     failures.push(`offline shell raw ${formatBytes(shellRaw)} exceeds ${formatBytes(LIMITS.shellRaw)}`);
   }
@@ -237,6 +277,9 @@ try {
       `installed startup ${formatBytes(pwaStartupGzip)} gzip`,
       `${modulePreloads} module preloads`,
       `offline shell ${formatBytes(shellRaw)} raw / ${formatBytes(shellGzip)} gzip`,
+      `critical ${shell.criticalAssets.length} assets (${formatBytes(criticalRaw)} raw / ${formatBytes(criticalGzip)} gzip)`,
+      `offline-ready ${shell.priorityAssets.length} assets (${formatBytes(priorityRaw)} raw / ${formatBytes(priorityGzip)} gzip)`,
+      `tail ${shell.tailAssets.length} assets (${formatBytes(tailRaw)} raw / ${formatBytes(tailGzip)} gzip)`,
     ].join("; ")
   );
 } catch (error) {

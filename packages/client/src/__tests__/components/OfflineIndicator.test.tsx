@@ -42,6 +42,7 @@ vi.mock("react-router-dom", async (importOriginal) => {
 });
 
 import { OfflineIndicator } from "../../components/Communication/Offline/OfflineIndicator";
+import { InstallNudge } from "../../components/Communication/Offline/InstallNudge";
 
 describe("OfflineIndicator", () => {
   beforeEach(() => {
@@ -90,11 +91,21 @@ describe("OfflineIndicator", () => {
     });
   });
 
+  it("renders the degraded connection state", () => {
+    renderWithIntl(
+      createElement(MemoryRouter, null, createElement(OfflineIndicator, { testState: "degraded" }))
+    );
+    expect(screen.getByText("Connection unstable")).toBeInTheDocument();
+  });
+
   describe("install nudge state", () => {
+    beforeEach(() => {
+      mockAppState.isMobile = true;
+      mockAppState.isInstalled = false;
+    });
+
     it("renders install nudge via testState", () => {
-      renderWithIntl(
-        createElement(MemoryRouter, null, createElement(OfflineIndicator, { testState: "install" }))
-      );
+      renderWithIntl(createElement(MemoryRouter, null, createElement(InstallNudge)));
 
       expect(screen.getByText("Install for full experience.")).toBeInTheDocument();
       expect(screen.getByText("Profile")).toBeInTheDocument();
@@ -103,18 +114,14 @@ describe("OfflineIndicator", () => {
     it("navigates to profile when Profile button clicked", async () => {
       const user = userEvent.setup();
 
-      renderWithIntl(
-        createElement(MemoryRouter, null, createElement(OfflineIndicator, { testState: "install" }))
-      );
+      renderWithIntl(createElement(MemoryRouter, null, createElement(InstallNudge)));
 
       await user.click(screen.getByText("Profile"));
       expect(mockNavigate).toHaveBeenCalledWith("/home/profile", { viewTransition: true });
     });
 
     it("clips its actions to the strip so they cannot cover the header controls beneath", () => {
-      renderWithIntl(
-        createElement(MemoryRouter, null, createElement(OfflineIndicator, { testState: "install" }))
-      );
+      renderWithIntl(createElement(MemoryRouter, null, createElement(InstallNudge)));
 
       // The strip is thinner than its 32px actions and their 48px hit areas. Without the
       // vertical clip, a tap on the top of a Home launcher lands on Profile or Dismiss.
@@ -128,18 +135,13 @@ describe("OfflineIndicator", () => {
     it("dismiss button hides the install nudge", async () => {
       const user = userEvent.setup();
 
-      renderWithIntl(
-        createElement(MemoryRouter, null, createElement(OfflineIndicator, { testState: "install" }))
-      );
+      renderWithIntl(createElement(MemoryRouter, null, createElement(InstallNudge)));
 
       expect(screen.getByText("Install for full experience.")).toBeInTheDocument();
 
       await user.click(screen.getByLabelText("Dismiss"));
 
-      // After dismiss, the install nudge should no longer render
-      // (testState is overridden by install dismissed state since testState
-      //  takes priority, so we verify the dismiss callback was triggered)
-      expect(screen.getByLabelText("Dismiss")).toBeInTheDocument();
+      expect(screen.queryByLabelText("Dismiss")).not.toBeInTheDocument();
     });
   });
 
@@ -248,10 +250,9 @@ describe("OfflineIndicator", () => {
       mockAppState.isMobile = true;
       mockAppState.isInstalled = false;
 
-      renderWithIntl(createElement(MemoryRouter, null, createElement(OfflineIndicator)));
+      renderWithIntl(createElement(MemoryRouter, null, createElement(InstallNudge)));
 
       expect(screen.getByText("Install for full experience.")).toBeInTheDocument();
-      expect(screen.queryByText("Offline Mode")).not.toBeInTheDocument();
     });
 
     it("renders nothing when online, desktop, and not installed", () => {
@@ -259,9 +260,9 @@ describe("OfflineIndicator", () => {
       mockAppState.isMobile = false;
       mockAppState.isInstalled = false;
 
-      renderWithIntl(createElement(MemoryRouter, null, createElement(OfflineIndicator)));
+      renderWithIntl(createElement(MemoryRouter, null, createElement(InstallNudge)));
 
-      expect(screen.getByTestId("offline-indicator")).toBeInTheDocument();
+      expect(screen.queryByTestId("install-nudge")).not.toBeInTheDocument();
       expect(screen.queryByRole("status")).not.toBeInTheDocument();
     });
   });

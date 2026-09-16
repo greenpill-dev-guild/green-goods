@@ -47,7 +47,7 @@ it("waits for an uncached origin response before confirming recovery", async () 
   vi.stubGlobal("fetch", request);
   window.dispatchEvent(new Event("offline"));
   stop = connectivityStore.configureProbe("/connectivity-check.txt");
-  expect(connectivityStore.getStatusSnapshot().state).toBe("checking");
+  expect(connectivityStore.getStatusSnapshot().state).toBe("offline");
   expect(connectivityStore.getSnapshot()).toBe(false);
   expect(request).toHaveBeenCalledWith(
     expect.stringContaining("/connectivity-check.txt?check="),
@@ -66,14 +66,15 @@ it("does not declare the device offline for an individual HTTP service failure",
   expect(connectivityStore.getStatusSnapshot().state).toBe("online");
 });
 
-it("bounds hanging probes to two three-second attempts and rechecks unavailable connections", async () => {
+it("keeps queries online while two failed probes mark the connection degraded", async () => {
   vi.useFakeTimers();
   const request = vi.fn(() => new Promise<Response>(() => {}));
   vi.stubGlobal("fetch", request);
   stop = connectivityStore.configureProbe("/connectivity-check.txt");
   await vi.advanceTimersByTimeAsync(6_000);
   expect(request).toHaveBeenCalledTimes(2);
-  expect(connectivityStore.getStatusSnapshot().state).toBe("unavailable");
+  expect(connectivityStore.getStatusSnapshot().state).toBe("degraded");
+  expect(connectivityStore.getSnapshot()).toBe(true);
   request.mockImplementation(() => Promise.resolve(new Response("ok")));
   await vi.advanceTimersByTimeAsync(30_000);
   expect(connectivityStore.getStatusSnapshot().state).toBe("online");

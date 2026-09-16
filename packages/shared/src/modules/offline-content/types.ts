@@ -2,7 +2,7 @@
 export type OfflineRunState = "idle" | "downloading" | "paused" | "ready" | "incomplete";
 
 /** Why downloads are waiting. Data Saver pauses photos only; lists keep updating. */
-export type OfflinePauseReason = "user" | "offline" | "dataSaver";
+export type OfflinePauseReason = "user" | "offline" | "dataSaver" | "worker";
 
 export interface OfflineProgress {
   state: OfflineRunState;
@@ -15,6 +15,8 @@ export interface OfflineProgress {
   savedBytes: number;
   /** Photos that could not be downloaded in the most recent run. */
   missingPhotos: number;
+  /** Reading tasks that failed in the most recent run. */
+  failedReads: number;
   /** The saved reading data could not be written, most likely because storage is full. */
   storageFull: boolean;
   completedAt?: number;
@@ -26,5 +28,6 @@ export const INITIAL_OFFLINE_PROGRESS: OfflineProgress = {
   runRatio: 0,
   savedBytes: 0,
   missingPhotos: 0,
+  failedReads: 0,
   storageFull: false,
 };

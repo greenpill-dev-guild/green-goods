@@ -90,13 +90,9 @@ function harness(options: { gardens?: Garden[]; account?: string } = {}) {
     dataSaver: () => conditions.dataSaver,
     cellular: () => false,
     mediaReady: () => conditions.mediaReady,
-    fetchWorks: vi.fn(async (gardenId: string) => {
-      events.push(`list:${gardenId.toLowerCase()}`);
+    fetchWorks: vi.fn(async (gardenId: string, take: number) => {
+      events.push(`list:${gardenId.toLowerCase()}:${take}`);
       return works[gardenId.toLowerCase()] ?? [];
-    }),
-    fetchApprovals: vi.fn(async () => {
-      events.push("approvals");
-      return [];
     }),
     readMetadata: vi.fn(async (raw: string) => {
       events.push(`details:${raw}`);
@@ -110,9 +106,10 @@ function harness(options: { gardens?: Garden[]; account?: string } = {}) {
         return 1_000;
       }),
       sweep: vi.fn(async () => ({ bytes: 42_000_000 })),
+      protect: vi.fn(async () => true),
       retireLegacy: vi.fn(async () => {}),
     },
-    persist: vi.fn(async () => {}),
+    persistQuery: vi.fn(async () => {}),
     sleep: vi.fn(async () => {}),
     idle: vi.fn(async () => {}),
     now: () => 1_000,
@@ -182,13 +179,11 @@ describe("offline scheduler", () => {
   it("reuses lists a screen fetched moments ago instead of downloading them again", async () => {
     const { client, ports, works } = harness();
     client.setQueryData(worksKeys.online(gardenA, chainId), works[gardenA.toLowerCase()]);
-    client.setQueryData(worksKeys.approvals(undefined, chainId), []);
 
     await new OfflineScheduler(ports).run();
 
-    expect(ports.fetchApprovals).not.toHaveBeenCalled();
     expect(ports.fetchWorks).toHaveBeenCalledTimes(1);
-    expect(ports.fetchWorks).toHaveBeenCalledWith(gardenB);
+    expect(ports.fetchWorks).toHaveBeenCalledWith(gardenB, 50);
   });
 
   it("waits while the screen is fetching before starting each download", async () => {
@@ -200,7 +195,7 @@ describe("offline scheduler", () => {
 
     await new OfflineScheduler(ports).run();
 
-    expect(events.slice(0, 3)).toEqual(["waited", "waited", "approvals"]);
+    expect(events.slice(0, 3)).toEqual(["waited", "waited", `list:${gardenA.toLowerCase()}:50`]);
     expect(ports.idle).toHaveBeenCalled();
   });
 
@@ -209,15 +204,15 @@ describe("offline scheduler", () => {
       gardens: [garden(gardenB, [account]), garden(gardenA, [account])],
     });
     const scheduler = new OfflineScheduler(ports);
-    vi.mocked(ports.fetchWorks).mockImplementation(async (gardenId: string) => {
-      events.push(`list:${gardenId.toLowerCase()}`);
+    vi.mocked(ports.fetchWorks).mockImplementation(async (gardenId: string, take: number) => {
+      events.push(`list:${gardenId.toLowerCase()}:${take}`);
       if (gardenId === gardenB) scheduler.setActiveGarden(gardenA);
       return harness().works[gardenId.toLowerCase()];
     });
 
     await scheduler.run();
 
-    const listA = events.indexOf(`list:${gardenA.toLowerCase()}`);
+    const listA = events.indexOf(`list:${gardenA.toLowerCase()}:50`);
     expect(listA).toBeGreaterThan(-1);
     expect(listA).toBeLessThan(events.indexOf("details:bafy-b-neighbour"));
     expect(events).toContain(`photo:${photo("a-neighbour")}`);
@@ -249,7 +244,7 @@ describe("offline scheduler", () => {
     await vi.waitFor(() =>
       expect(getOfflineProgress()).toMatchObject({ state: "paused", pauseReason: "offline" })
     );
-    expect(ports.fetchApprovals).not.toHaveBeenCalled();
+    expect(ports.fetchWorks).not.toHaveBeenCalled();
 
     conditions.online = true;
     scheduler.environmentChanged();
@@ -296,12 +291,17 @@ describe("offline scheduler", () => {
     expect(ports.media.retireLegacy).not.toHaveBeenCalled();
   });
 
-  it("writes the reading cache once per interval, not once per record", async () => {
+  it("writes each read to the reading cache once it has landed", async () => {
     const { ports } = harness();
 
     await new OfflineScheduler(ports).run();
 
-    expect(ports.persist).toHaveBeenCalledTimes(1);
+    const persisted = vi.mocked(ports.persistQuery).mock.calls.map(([key]) => key[2]);
+    expect(persisted).toContain("online");
+    expect(vi.mocked(ports.fetchWorks).mock.calls.length).toBeGreaterThan(0);
+    expect(persisted.filter((source) => source === "online")).toHaveLength(
+      vi.mocked(ports.fetchWorks).mock.calls.length
+    );
   });
 
   it("lets another account on the same phone reuse downloaded lists and photos", async () => {
@@ -334,7 +334,7 @@ describe("offline scheduler", () => {
     expect(ports.media.retireLegacy).toHaveBeenCalledTimes(1);
   });
 
-  it("does not download photos through a worker that cannot keep them", async () => {
+  it("reports photos waiting for a worker that can keep them", async () => {
     const { conditions, ports } = harness();
     conditions.mediaReady = false;
 
@@ -342,7 +342,31 @@ describe("offline scheduler", () => {
 
     expect(ports.media.download).not.toHaveBeenCalled();
     expect(ports.media.sweep).not.toHaveBeenCalled();
-    expect(getOfflineProgress().state).toBe("ready");
+    expect(getOfflineProgress()).toMatchObject({ state: "paused", pauseReason: "worker" });
+  });
+
+  it("reports failed reading tasks instead of claiming the run is ready", async () => {
+    const { ports } = harness();
+    vi.mocked(ports.fetchWorks).mockRejectedValueOnce(new Error("Indexer unavailable"));
+
+    await new OfflineScheduler(ports).run();
+
+    expect(getOfflineProgress()).toMatchObject({ state: "incomplete", failedReads: 1 });
+  });
+
+  it("reports a rejected photo admission as incomplete storage", async () => {
+    const { ports } = harness({ gardens: [garden(gardenA, [account])] });
+    const error = new Error("Offline photo budget is full");
+    error.name = "QuotaExceededError";
+    vi.mocked(ports.media.download).mockRejectedValueOnce(error);
+
+    await new OfflineScheduler(ports).run();
+
+    expect(getOfflineProgress()).toMatchObject({
+      state: "incomplete",
+      storageFull: true,
+      missingPhotos: 1,
+    });
   });
 });
 

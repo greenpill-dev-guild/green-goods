@@ -1,7 +1,10 @@
 import type { Meta, StoryObj } from "@storybook/react";
+import { AppContext } from "@green-goods/shared/providers/App";
+import { useContext } from "react";
 import { MemoryRouter } from "react-router-dom";
 import { expect, within } from "storybook/test";
 import { withClientAppRuntime } from "../../../../../shared/.storybook/decorators";
+import { InstallNudge } from "./InstallNudge";
 import { OfflineIndicator } from "./OfflineIndicator";
 
 const withRouter = (Story: React.ComponentType) => (
@@ -52,30 +55,39 @@ export const BackOnline: Story = {
   },
 };
 
+/**
+ * The nudge is mobile-browser guidance: it renders nothing unless the app
+ * context says the visitor is on mobile and has not installed. The runtime
+ * decorator mounts wagmi, auth and the queue but not `AppProvider`, so the
+ * story supplies that one fact and inherits the rest of the defaults.
+ */
+function MobileBrowserApp({ children }: { children: React.ReactNode }) {
+  const app = useContext(AppContext);
+  return (
+    <AppContext.Provider value={{ ...app, isMobile: true, isInstalled: false }}>
+      {children}
+    </AppContext.Provider>
+  );
+}
+
 export const InstallPrompt: Story = {
-  args: {
-    testState: "install",
-  },
+  render: () => (
+    <MobileBrowserApp>
+      <InstallNudge />
+    </MobileBrowserApp>
+  ),
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    await expect(canvas.getByTestId("offline-indicator")).toBeVisible();
+    await expect(canvas.getByTestId("install-nudge")).toBeVisible();
     await expect(canvas.getByText("Install for full experience.")).toBeVisible();
     await expect(canvas.getByRole("button", { name: "Profile" })).toBeVisible();
     await expect(canvas.getByRole("button", { name: "Dismiss" })).toBeVisible();
   },
 };
 
-export const Checking: Story = {
-  args: { testState: "checking" },
+export const Degraded: Story = {
+  args: { testState: "degraded" },
   play: async ({ canvasElement }) => {
-    await expect(within(canvasElement).getByText("Checking connection…")).toBeVisible();
-  },
-};
-export const Unavailable: Story = {
-  args: { testState: "unavailable" },
-  play: async ({ canvasElement }) => {
-    await expect(
-      within(canvasElement).getByText("Connection unavailable. Your work stays saved.")
-    ).toBeVisible();
+    await expect(within(canvasElement).getByText("Connection unstable")).toBeVisible();
   },
 };

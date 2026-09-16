@@ -1,21 +1,30 @@
 /** @vitest-environment jsdom */
-import { QueryClient, QueryClientProvider, onlineManager } from "@tanstack/react-query";
-import { renderHook, waitFor, cleanup } from "@testing-library/react";
+import { onlineManager, QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { cleanup, renderHook, waitFor } from "@testing-library/react";
 import { createElement } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const seams = vi.hoisted(() => ({
-  works: vi.fn(),
+  list: vi.fn(),
   approvals: vi.fn(),
   jobs: vi.fn(),
   mine: vi.fn(),
   images: vi.fn(),
   preview: vi.fn((_file: File, _owner: string, _identity: string) => "blob:restored-evidence"),
 }));
+// The garden read is one bounded page plus the approvals for the works on it.
 vi.mock("../../../modules/data/eas", () => ({
-  getWorks: seams.works,
+  WORK_LIST_PAGE_SIZE: 50,
+  getWorkListPage: seams.list,
   getWorksByGardener: seams.mine,
-  getWorkApprovals: seams.approvals,
+  getWorkApprovalsForWorks: seams.approvals,
+  readWorkApprovalsForWorks: async (...args: unknown[]) => {
+    try {
+      return { approvals: await seams.approvals(...args), failedWorkUIDs: [] };
+    } catch {
+      return { approvals: [], failedWorkUIDs: args[0] as string[] };
+    }
+  },
 }));
 vi.mock("../../../modules/job-queue/default-instance", () => ({
   jobQueue: { getJobs: seams.jobs },
@@ -37,10 +46,11 @@ vi.mock("../../../hooks/auth/usePrimaryAddress", () => ({
   usePrimaryAddress: () => "0x1111111111111111111111111111111111111111",
 }));
 vi.mock("../../../config/default-chain", () => ({ DEFAULT_CHAIN_ID: 11155111 }));
-import { useWorks } from "../../../hooks/work/useWorks";
-import { useMyWorks } from "../../../hooks/work/useMyWorks";
-import { restoreWorkFile } from "../../../modules/work/work-attachments";
+
 import { worksKeys } from "../../../config/query-keys/work";
+import { useMyWorks } from "../../../hooks/work/useMyWorks";
+import { useWorks } from "../../../hooks/work/useWorks";
+import { restoreWorkFile } from "../../../modules/work/work-attachments";
 
 const garden = "0x2222222222222222222222222222222222222222";
 const now = 1_800_000_000;
@@ -89,7 +99,7 @@ beforeEach(() => {
       queries: { networkMode: "offlineFirst", retry: 2, retryDelay: 0, gcTime: Infinity },
     },
   });
-  seams.works.mockResolvedValue([]);
+  seams.list.mockResolvedValue([]);
   seams.approvals.mockResolvedValue([]);
   seams.jobs.mockResolvedValue([]);
   seams.mine.mockResolvedValue([]);
@@ -102,9 +112,13 @@ afterEach(() => {
   onlineManager.setOnline(true);
 });
 describe("offline work reading", () => {
-  it("renders cached work without waiting for a network-only approvals read", async () => {
+  it("renders cached work while a refreshing read waits on its approvals", async () => {
     onlineManager.setOnline(true);
-    client.setQueryData(worksKeys.online(garden, 11155111), [cachedWork]);
+    // Stale enough to refresh on mount, so the hanging read is genuinely in flight.
+    client.setQueryData(worksKeys.online(garden, 11155111), [cachedWork], {
+      updatedAt: Date.now() - 300_000,
+    });
+    seams.list.mockResolvedValue([cachedWork]);
     seams.approvals.mockImplementation(() => new Promise(() => {}));
     const { result } = mount();
     await waitFor(() => expect(seams.approvals).toHaveBeenCalled());
@@ -122,7 +136,7 @@ describe("offline work reading", () => {
     );
   });
   it("records the cold-cache paused state that the garden route currently labels success", async () => {
-    seams.works.mockRejectedValue(new TypeError("Failed to fetch"));
+    seams.list.mockRejectedValue(new TypeError("Failed to fetch"));
     const { result } = mount();
     await waitFor(() =>
       expect(client.getQueryState(worksKeys.online(garden, 11155111))?.fetchStatus).toBe("paused")
@@ -132,7 +146,7 @@ describe("offline work reading", () => {
     expect(result.current.works).toEqual([]);
     expect(result.current.isError).toBe(false);
     expect(result.current.isLoading).toBe(false);
-    expect(seams.works).not.toHaveBeenCalled();
+    expect(seams.list).not.toHaveBeenCalled();
   });
 });
 it("retains distinct submissions by the same gardener and action", async () => {
@@ -174,39 +188,36 @@ it("does not expose jobs owned by another account or chain in the local garden p
   await waitFor(() => expect(seams.jobs).toHaveBeenCalled());
   expect(result.current.works).toEqual([]);
 });
-it("refreshes remote approvals when existing mutation consumers invalidate the merged key", async () => {
+it("refreshes approvals when existing mutation consumers invalidate the garden read", async () => {
   onlineManager.setOnline(true);
-  seams.works.mockResolvedValue([cachedWork]);
+  seams.list.mockResolvedValue([cachedWork]);
   const { result } = mount();
   await waitFor(() => expect(result.current.works).toHaveLength(1));
   seams.approvals.mockResolvedValue([{ workUID: cachedWork.id, approved: true, createdAt: now }]);
-  await client.invalidateQueries({ queryKey: worksKeys.merged(garden, 11155111) });
+  await client.invalidateQueries({ queryKey: worksKeys.online(garden, 11155111) });
   await waitFor(() => expect(result.current.works[0].status).toBe("approved"));
 });
 it("opens a garden offline from the same restored read background preparation fills", async () => {
   client.setQueryData(worksKeys.online(garden.toUpperCase().replace("0X", "0x"), 11155111), [
-    cachedWork,
-  ]);
-  client.setQueryData(worksKeys.approvals(undefined, 11155111), [
-    { workUID: cachedWork.id, approved: true },
+    { ...cachedWork, approval: { workUID: cachedWork.id, approved: true } },
   ]);
   const { result } = mount();
   expect(result.current.works[0]).toMatchObject({ id: cachedWork.id, status: "approved" });
   expect(result.current.availability).toBe("available");
-  expect(seams.works).not.toHaveBeenCalled();
+  expect(seams.list).not.toHaveBeenCalled();
 });
 
 it("opens personal work offline from downloaded garden lists scoped to the account and chain", async () => {
   const own = { ...cachedWork, gardenerAddress: queuedJob.userAddress, status: undefined };
   client.setQueryData(
     worksKeys.online(garden, 11155111),
-    [own, { ...cachedWork, id: "other-owner" }],
+    [
+      { ...own, approval: { workUID: own.id, approved: true } },
+      { ...cachedWork, id: "other-owner" },
+    ],
     { updatedAt: 1000 }
   );
   client.setQueryData(worksKeys.online(garden, 42161), [{ ...own, id: "other-chain" }]);
-  client.setQueryData(worksKeys.approvals(undefined, 11155111), [
-    { workUID: own.id, approved: true },
-  ]);
   client.setQueryData(worksKeys.mine(queuedJob.userAddress, 11155111, true, undefined, 50), [
     { ...own, id: "legacy-local", media: ["blob:expired"] },
   ]);
@@ -216,6 +227,20 @@ it("opens personal work offline from downloaded garden lists scoped to the accou
   expect(result.current.data).toMatchObject([{ id: own.id, status: "approved" }]);
   expect(result.current.lastSuccessfulRefresh).toBe(1000);
   expect(result.current.isLoading).toBe(false);
+  expect(seams.mine).not.toHaveBeenCalled();
+});
+it("keeps a legacy reviewed status when the downloaded row predates embedded approvals", async () => {
+  const own = { ...cachedWork, gardenerAddress: queuedJob.userAddress, status: "pending" as const };
+  client.setQueryData(worksKeys.online(garden, 11155111), [own], { updatedAt: 1000 });
+  client.setQueryData(worksKeys.merged(garden, 11155111), [
+    { ...own, status: "rejected" as const, _txHash: "0xdecision" },
+  ]);
+
+  const { result } = renderHook(() => useMyWorks({ includeOffline: true }), {
+    wrapper: ({ children }) => createElement(QueryClientProvider, { client }, children),
+  });
+
+  expect(result.current.data).toMatchObject([{ id: own.id, status: "rejected" }]);
   expect(seams.mine).not.toHaveBeenCalled();
 });
 it("renders queued personal work before media finishes and recreates previews from retained bytes", async () => {

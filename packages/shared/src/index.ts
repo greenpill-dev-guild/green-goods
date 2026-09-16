@@ -217,7 +217,7 @@ export {
   buildSendableTokens,
   classifyPasskeyCeremonyContext,
   createPublicClientForChain,
-  createQueryPersister,
+  createQueryPersistence,
   createShouldDehydrateQuery,
   DEFAULT_CHAIN_ID,
   DOMAIN_CONFIG,
