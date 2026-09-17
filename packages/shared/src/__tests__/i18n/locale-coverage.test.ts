@@ -103,6 +103,9 @@ const allowedIdenticalLocalizedKeys = new Set([
   // still translates it (es: "Dotación"), so this stays key-scoped rather than global.
   "public.vaults.cardEndow.positionHolder",
   "public.vaults.cardEndow.status.deposit",
+  // Portuguese keeps "Offline" as the product uses it elsewhere ("Offline · Salvo {when}"),
+  // and the dashboard's compact line drops "Saved" in every language, English included.
+  "app.workDashboard.offlineSaved",
 ]);
 const allowedIdenticalProductValues = new Set([
   "%",
@@ -202,8 +205,7 @@ const localeAllowedIdenticalValues: Record<string, Set<string>> = {
     "Video",
     "error",
   ]),
-  // Portuguese keeps "Offline" untranslated, as in "Offline · Salvo {when}".
-  pt: new Set(["Cultural", "Material", "Offline · {when}", "Social", "Status", "hubs"]),
+  pt: new Set(["Cultural", "Material", "Social", "Status", "hubs"]),
 };
 
 function isAllowedIdenticalLocalizedValue(locale: string, key: string, value: string): boolean {

@@ -292,18 +292,33 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
   const pendingSavedAt = oldestTime(needsReview.savedAt, myWorksUpdatedAt, myApprovalsUpdatedAt);
   const completedSavedAt = oldestTime(reviewHistoryUpdatedAt, myApprovalsUpdatedAt);
 
-  // An error takes over a tab only when there is nothing to show.
-  const pendingQueryErrored =
-    needsReview.isError || isErrorMyWorks || (isErrorMyApprovals && allApprovals === undefined);
-  const hasPendingError = pendingQueryErrored && filteredPending.length === 0;
-  const hasCompletedError = (hasError || isErrorMyApprovals) && filteredCompleted.length === 0;
-
+  // Loading and errors follow the source the active filter shows, and an error
+  // takes over a tab only when there is nothing to show.
+  const needsReviewState = {
+    isLoading: isLoadingReviewerGardens || needsReview.isLoading,
+    isError: needsReview.isError,
+  };
+  const mySubmissionsState = {
+    isLoading: isLoadingMyWorks || isLoadingMyApprovals,
+    isError: isErrorMyWorks || (isErrorMyApprovals && allApprovals === undefined),
+  };
+  const pendingSources =
+    pendingFilter === "needsReview"
+      ? [needsReviewState]
+      : pendingFilter === "mySubmissions"
+        ? [mySubmissionsState]
+        : [needsReviewState, mySubmissionsState];
   const isLoadingPending =
-    (isLoadingReviewerGardens ||
-      needsReview.isLoading ||
-      isLoadingMyWorks ||
-      isLoadingMyApprovals) &&
-    filteredPending.length === 0;
+    pendingSources.some((source) => source.isLoading) && filteredPending.length === 0;
+  const hasPendingError =
+    pendingSources.some((source) => source.isError) && filteredPending.length === 0;
+
+  const isLoadingCompleted = completedFilter === "reviewedByYou" ? isLoading : isLoadingMyApprovals;
+  const hasCompletedError =
+    (completedFilter === "reviewedByYou" ? hasError : isErrorMyApprovals) &&
+    filteredCompleted.length === 0;
+  // Only the review history carries its own error text; the other reads use the tab's default.
+  const completedErrorMessage = completedFilter === "reviewedByYou" ? errorMessage : undefined;
 
   const fmt = (id: string, defaultMessage: string) => intl.formatMessage({ id, defaultMessage });
   const tabs: StandardTab[] = [
@@ -368,7 +383,6 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
             isLoading={isLoadingPending}
             isFetching={isRefreshing}
             hasError={hasPendingError}
-            errorMessage={errorMessage}
             onWorkClick={handleWorkClick}
             onRefresh={handleRefresh}
             isOffline={isOffline}
@@ -385,10 +399,10 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
         return (
           <CompletedTab
             items={filteredCompleted}
-            isLoading={isLoading || (completedFilter === "myWorkReviewed" && isLoadingMyApprovals)}
+            isLoading={isLoadingCompleted}
             isFetching={isRefreshing}
             hasError={hasCompletedError}
-            errorMessage={errorMessage}
+            errorMessage={completedErrorMessage}
             onWorkClick={handleWorkClick}
             onRefresh={handleRefresh}
             isOffline={isOffline}

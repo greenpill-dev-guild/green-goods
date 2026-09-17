@@ -156,17 +156,18 @@ export function useWorks(gardenId: string, options: UseWorksOptions = {}) {
     combine: (results) =>
       results.map((result) => result.data as { clientWorkId?: string } | undefined),
   });
-  const works = useMemo(() => {
+  const { works, unknownIds } = useMemo(() => {
     const metadataByKey = new Map(
       (remoteData ?? []).map((work, index) => [work.metadata.trim(), metadataByWork[index]])
     );
     // The approval stays in the stored read and leaves the projected row, whose
     // status already carries it.
-    const rows: Work[] = resolveGardenWorkRows({
+    const resolved = resolveGardenWorkRows({
       remote: remoteData,
       saved: projection.data ?? overlay.data,
       overlay: overlay.data,
-    }).rows;
+    });
+    const rows: Work[] = resolved.rows;
     // Identity must agree on submitter and clientWorkId. A CID whose metadata
     // has not been downloaded cannot prove a match, so retain the local work.
     const identities = new Set(
@@ -197,7 +198,10 @@ export function useWorks(gardenId: string, options: UseWorksOptions = {}) {
         queuedPreviews.has(job.id) ? { ...work, media: queuedPreviews.get(job.id)! } : work
       );
     }
-    return rows.sort((a, b) => b.createdAt - a.createdAt);
+    return {
+      works: rows.sort((a, b) => b.createdAt - a.createdAt),
+      unknownIds: resolved.unknownIds,
+    };
   }, [
     remoteData,
     projection.data,
@@ -215,12 +219,16 @@ export function useWorks(gardenId: string, options: UseWorksOptions = {}) {
       // Persist remote status overlays only; local object URLs and queued work
       // are reconstructed from the durable queue after each restore.
       const remoteIds = new Set(remoteData.map((work) => work.id));
-      const records = works.filter((work) => !offline || remoteIds.has(work.id));
+      // A row whose approvals could not be read is shown but never saved: a saved
+      // row reads as a settled status to every screen that restores it.
+      const records = works.filter(
+        (work) => !unknownIds.has(work.id) && (!offline || remoteIds.has(work.id))
+      );
       if (JSON.stringify(queryClient.getQueryData(projectionKey)) !== JSON.stringify(records)) {
         queryClient.setQueryData(projectionKey, records);
       }
     }
-  }, [remoteData, works, queryClient, projectionKey, offline]);
+  }, [remoteData, works, unknownIds, queryClient, projectionKey, offline]);
 
   // Existing approval consumers invalidate the public merged key. Preserve
   // that contract while keeping remote reads separate from local projection.

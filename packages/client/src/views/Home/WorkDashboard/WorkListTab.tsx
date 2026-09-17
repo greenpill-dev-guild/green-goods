@@ -68,8 +68,9 @@ export const WorkListTab: React.FC<WorkListTabProps> = ({
         : items.length > 0
           ? intl.formatMessage(messages.itemCount, { count: items.length })
           : null;
-  // Offline there is nothing to refresh, and the line already says so.
-  const showRefresh = Boolean(onRefresh) && !isLoading && !hasError && !isOffline;
+  // Offline there is nothing to refresh, so neither the header nor the error state offers it.
+  const canRefresh = Boolean(onRefresh) && !isOffline;
+  const showRefresh = canRefresh && !isLoading && !hasError;
 
   return (
     <div className="min-h-full flex flex-col">
@@ -128,7 +129,7 @@ export const WorkListTab: React.FC<WorkListTabProps> = ({
               })
             }
             action={
-              onRefresh ? (
+              canRefresh ? (
                 <Button
                   type="button"
                   emphasis="secondary"

@@ -28,13 +28,18 @@ import { usePrimaryAddress } from "../auth/usePrimaryAddress";
 import { gardenWorkListQuery } from "./gardenWorkListQuery";
 
 export interface NeedsReviewState {
-  /** Pending works someone else submitted in these gardens, newest first. */
+  /**
+   * Pending works someone else submitted in these gardens, newest first. Each
+   * garden contributes its loaded page, the same window its Work tab shows.
+   */
   works: Work[];
   /** Works decided on this device that the indexer has not reported yet, newest first. */
   decidedHere: Work[];
   /**
-   * Every garden read succeeded and every work's status is known, so a count,
-   * including zero, is a claim the data backs.
+   * Every garden read succeeded, covers the garden's whole history, and every
+   * work's status is known, so a count, including zero, is a claim the data
+   * backs. A garden with more work than its loaded page is never ready: older
+   * pending work may sit beyond the page.
    */
   ready: boolean;
   isLoading: boolean;
@@ -120,9 +125,12 @@ export function useNeedsReview(
     const works: Work[] = [];
     const decidedHere: Work[] = [];
     let unknown = 0;
+    let incomplete = false;
     gardens.forEach((garden, index) => {
       const window =
         queryClient.getQueryData<number>(worksKeys.window(garden, chainId)) ?? WORK_LIST_PAGE_SIZE;
+      // The read carries one row past the window when older work exists.
+      if ((reads.data[index]?.length ?? 0) > window) incomplete = true;
       const { rows, unknownIds } = resolveGardenWorkRows({
         remote: reads.data[index]?.slice(0, window),
         saved: saved[index] ?? decisions[index],
@@ -143,7 +151,12 @@ export function useNeedsReview(
         }
       }
     });
-    return { works: works.sort(newestFirst), decidedHere: decidedHere.sort(newestFirst), unknown };
+    return {
+      works: works.sort(newestFirst),
+      decidedHere: decidedHere.sort(newestFirst),
+      unknown,
+      incomplete,
+    };
   }, [gardens, reads.data, saved, decisions, address, chainId, queryClient]);
 
   const { refetchers } = reads;
@@ -157,7 +170,9 @@ export function useNeedsReview(
   return {
     works: resolved.works,
     decidedHere: resolved.decidedHere,
-    ready: gardens.length === 0 || (reads.allSucceeded && resolved.unknown === 0),
+    ready:
+      gardens.length === 0 ||
+      (reads.allSucceeded && resolved.unknown === 0 && !resolved.incomplete),
     isLoading: reads.isLoading,
     isFetching: reads.isFetching,
     isError: reads.isError,

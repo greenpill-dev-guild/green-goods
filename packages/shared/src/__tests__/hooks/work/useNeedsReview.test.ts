@@ -100,6 +100,19 @@ describe("hooks/work/useNeedsReview", () => {
     expect(result.current.ready).toBe(false);
   });
 
+  it("does not claim a count while a garden has more work than its loaded page", async () => {
+    // The read returns one row past the 50-row window when older work exists.
+    mockReadWorkList.mockResolvedValue(
+      Array.from({ length: 51 }, (_, index) => row(`reviewed-${index}`, OTHER, { approved: true }))
+    );
+
+    const { result } = renderHook(() => useNeedsReview([GARDEN], VIEWER), { wrapper });
+
+    await waitFor(() => expect(result.current.isFetching).toBe(false));
+    expect(result.current.works).toEqual([]);
+    expect(result.current.ready).toBe(false);
+  });
+
   it("counts a decision confirmed on this device as reviewed before the indexer reports it", async () => {
     mockReadWorkList.mockResolvedValue([row("decided", OTHER, null)]);
     queryClient.setQueryData(worksKeys.merged(GARDEN, CHAIN_ID), [

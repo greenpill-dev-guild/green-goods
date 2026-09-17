@@ -411,6 +411,7 @@ export {
   gardenStepFields,
   INDEXER_LAG_SCHEDULE_MS,
   isGardenMember,
+  type NeedsReviewState,
   type OctantVaultHarvestableYield,
   type OctantVaultHarvestableYieldStatus,
   type OctantVaultHarvestableYieldUnavailableReason,

@@ -435,6 +435,39 @@ describe("WorkDashboard", () => {
     expect(screen.queryByRole("button", { name: "Refresh" })).not.toBeInTheDocument();
   });
 
+  it("shows the My submissions view without waiting for Needs review to load", () => {
+    mockNeedsReviewState = { ...mockNeedsReviewState, isLoading: true, isFetching: true };
+    mockUseMyWorks.mockReturnValue({
+      data: [],
+      isLoading: false,
+      isError: false,
+      refetch: vi.fn(ok),
+    });
+
+    renderDashboard();
+    fireEvent.change(screen.getByDisplayValue("All"), { target: { value: "mySubmissions" } });
+
+    expect(screen.queryByText("Loading your work...")).not.toBeInTheDocument();
+    expect(screen.getByText("No pending work")).toBeInTheDocument();
+  });
+
+  it("offers no Retry on a failed load while offline", () => {
+    mockIsOnline = false;
+    mockNeedsReviewState = { ...mockNeedsReviewState, isError: true, ready: false };
+    mockUseMyWorks.mockReturnValue({
+      data: [],
+      isLoading: false,
+      isError: false,
+      refetch: vi.fn(ok),
+    });
+
+    renderDashboard();
+
+    expect(screen.getByText("Unable to load work")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Retry" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Refresh" })).not.toBeInTheDocument();
+  });
+
   it("opens the original work route from the My work reviewed completed filter", () => {
     const onClose = vi.fn();
     mockUseMyWorks.mockReturnValue({
