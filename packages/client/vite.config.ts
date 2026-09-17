@@ -286,7 +286,7 @@ export default defineConfig(async ({ command, mode }): Promise<UserConfig> => {
         rollupFormat: "iife",
         minify: nodeEnv === "production",
         sourcemap: false,
-        // Build-time flags such as VITE_ENABLE_RPC_BG_SYNC come from the same env files.
+        // Build-time VITE_ flags come from the same env files.
         envOptions: { envDir: rootDir, envPrefix: ["VITE_"] },
         maximumFileSizeToCacheInBytes: 2 * 1024 * 1024,
         globPatterns: ["index.html", "assets/*.css", "pwa-shell-assets.json"],
