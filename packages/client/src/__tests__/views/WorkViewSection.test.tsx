@@ -176,7 +176,7 @@ it("does not describe an offline queued record as actively sending", () => {
   render(
     createElement(WorkViewSection, {
       ...baseProps,
-      work: { ...mockWork, metadata: JSON.stringify({ submissionState: "queued" }) } as any,
+      work: { ...mockWork, metadata: JSON.stringify({ submissionState: "ready" }) } as any,
       effectiveStatus: "offline",
     })
   );
