@@ -10,8 +10,9 @@
 
 import type { Job, WorkJobPayload } from "../../types/job-queue";
 import type { WorkLinkJobPayload } from "../commitment-pooling/jobs";
-import { forgetWorkBroadcast } from "../work/work-confirmation";
+import { forgetWorkBroadcast, retainedWorkBroadcast } from "../work/work-confirmation";
 import type { JobQueueEvents, JobQueueStore } from "./ports";
+import { hasRecordedSend } from "./queue-policy";
 
 /**
  * Whether a job may be thrown away.
@@ -21,19 +22,16 @@ import type { JobQueueEvents, JobQueueStore } from "./ports";
  * local trace of it. Deleting that record loses the creation request key with
  * it, so composing again would file a second commitment once the first
  * materializes. Such a job stays retryable and is never discardable.
+ *
+ * A send whose checkpoint write failed is held only in memory, so that is
+ * checked too: it is the same send, and it is the only trace left of it.
  */
 export function isDiscardableJob(
   job: Pick<Job, "synced" | "meta"> & Partial<Pick<Job, "kind" | "payload" | "id">>
 ): boolean {
   if (job.synced) return false;
-  if (
-    (job.kind === "work" &&
-      (job.payload as WorkJobPayload | undefined)?.uploadCheckpoint?.transactionHash) ||
-    (job.kind === "work" &&
-      ((job.payload as WorkJobPayload | undefined)?.uploadCheckpoint?.broadcast ||
-        (job.payload as WorkJobPayload | undefined)?.uploadCheckpoint?.broadcastPending))
-  )
-    return false;
+  if (job.id && retainedWorkBroadcast(job.id)) return false;
+  if (job.kind && job.payload && hasRecordedSend(job as Job)) return false;
   return typeof job.meta?.submittedTxHash !== "string";
 }
 

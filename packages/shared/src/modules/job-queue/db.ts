@@ -279,7 +279,8 @@ class JobQueueStore {
     await db.jobs.put({ ...job, payload: serializeJobPayload(job) });
   }
 
-  private async amendJob(id: string, amend: (job: Job) => void): Promise<void> {
+  /** In place, and never re-creating a job that is no longer there. */
+  async amendJob(id: string, amend: (job: Job) => void): Promise<void> {
     const db = await this.init();
     await db.transaction("rw", db.jobs, async () => {
       const job = await db.jobs.get(id);
@@ -316,8 +317,7 @@ class JobQueueStore {
   async getImagesForJob(jobId: string): Promise<Array<{ id: string; file: File; url: string }>> {
     const db = await this.init();
     const images = await db.job_images.where("jobId").equals(jobId).toArray();
-    // Deserialize files from IndexedDB format back to File objects.
-    // Handles both new serialized format and legacy File format.
+    // Back to File objects, from the serialized rows or the legacy File rows.
     return images
       .sort((a, b) => (a.order ?? a.createdAt) - (b.order ?? b.createdAt))
       .map((img) => ({

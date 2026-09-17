@@ -36,10 +36,15 @@ export type QueuedMediaConversion =
   | { status: "needs-attention" };
 
 async function recordConversion(job: Job, conversion: MediaConversionMeta | undefined) {
-  // Mutated on the caller's job: the queue rewrites this object on its waiting path.
-  const { mediaConversion: _previous, ...meta } = job.meta ?? {};
-  job.meta = conversion ? { ...meta, mediaConversion: conversion } : meta;
-  await jobQueueDB.updateJob(job);
+  const apply = (target: Job) => {
+    const { mediaConversion: _previous, ...meta } = target.meta ?? {};
+    target.meta = conversion ? { ...meta, mediaConversion: conversion } : meta;
+  };
+  // Mutated on the caller's job: the queue rewrites this object on its waiting
+  // path. The stored row is amended rather than written, so a job the steward
+  // discarded while its photo was decoding is not put back without its photos.
+  apply(job);
+  await jobQueueDB.amendJob(job.id, apply);
 }
 
 async function replaceStoredPhoto(jobId: string, rowId: string, file: File): Promise<void> {
