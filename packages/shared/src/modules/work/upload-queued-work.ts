@@ -26,12 +26,14 @@ import {
   buildQueuedAttestationsCall,
   type QueuedAttestation,
 } from "../../utils/eas/transaction-builder";
+import { resolveWorkSubmissionTitle } from "../../utils/work/workTitles";
+import { logger } from "../app/logger";
 import type { ProcessJobContext, ProcessJobResult } from "../job-queue/ports";
 import { sendCheckpointOf } from "../job-queue/queue-policy";
 import type { saveUnderClaim, WorkClaim } from "../job-queue/work-claims";
 import {
-  TransactionRevertedError,
   type ContractCall,
+  TransactionRevertedError,
   type TransactionSender,
 } from "../transactions/types";
 import { mergeUploadProgress } from "./prepare-queued-work";
@@ -40,10 +42,8 @@ import { classifySendFailure } from "./send-outcome";
 import { SimulationRejected } from "./simulation-rejected";
 import { isUploadJob, queuedUploadStatus } from "./upload-state";
 import { forgetWorkBroadcast, rememberWorkBroadcast } from "./work-confirmation";
-import { resolveWorkSubmissionTitle } from "../../utils/work/workTitles";
-import { logger } from "../app/logger";
 
-/** Items per call, until the Pimlico simulation cases settle the limits. */
+/** Items per call, until `bun run simulate:upload-all` (scripts/simulate-upload-all.ts) settles the limits. */
 const MAX_ITEMS_PER_USER_OPERATION = 5;
 const MAX_ITEMS_PER_WALLET_CALL = 10;
 
