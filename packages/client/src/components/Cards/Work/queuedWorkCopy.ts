@@ -29,9 +29,15 @@ export const WAITING_TO_UPLOAD_MESSAGE = {
   defaultMessage: "Waiting to upload",
 } satisfies MessageDescriptor;
 
-const NEEDS_ATTENTION = {
-  id: "app.uploads.state.needsAttention",
-  defaultMessage: "Needs attention",
+/** Chips stay short so a work's title keeps its width at 360px in every language. */
+const TO_UPLOAD_CHIP = {
+  id: "app.uploads.chip.toUpload",
+  defaultMessage: "To upload",
+} satisfies MessageDescriptor;
+
+const BLOCKED_CHIP = {
+  id: "app.uploads.chip.blocked",
+  defaultMessage: "Blocked",
 } satisfies MessageDescriptor;
 
 const AWAITING_CONFIRMATION = {
@@ -114,10 +120,10 @@ export function queuedWorkStatusMessage(
     case "ready":
     case "preparing":
     case "photo-pending":
-      return WAITING_TO_UPLOAD_MESSAGE;
+      return TO_UPLOAD_CHIP;
     case "blocked":
     case "photo-needs-attention":
-      return NEEDS_ATTENTION;
+      return BLOCKED_CHIP;
     case "awaiting-confirmation":
       return AWAITING_CONFIRMATION;
     case "checking-submission":

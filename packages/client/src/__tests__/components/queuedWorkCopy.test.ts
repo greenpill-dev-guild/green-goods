@@ -40,11 +40,11 @@ describe("readQueuedWorkState", () => {
 
 describe("queuedWorkStatusMessage", () => {
   it.each([
-    ["ready", "Waiting to upload"],
-    ["preparing", "Waiting to upload"],
-    ["photo-pending", "Waiting to upload"],
-    ["blocked", "Needs attention"],
-    ["photo-needs-attention", "Needs attention"],
+    ["ready", "To upload"],
+    ["preparing", "To upload"],
+    ["photo-pending", "To upload"],
+    ["blocked", "Blocked"],
+    ["photo-needs-attention", "Blocked"],
     ["awaiting-confirmation", "Awaiting confirmation"],
     ["checking-submission", "Checking whether this work was sent"],
   ])("names %s work on its chip", (state, text) => {

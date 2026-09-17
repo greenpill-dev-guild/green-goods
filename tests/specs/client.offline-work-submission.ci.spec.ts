@@ -108,7 +108,7 @@ test.describe("Offline Work Submission CI Tests", () => {
     // once any read has been saved, so count the work itself rather than the header.
     await expect(dashboard.getByText("You submitted")).toHaveCount(1, { timeout: 15000 });
     await expect(dashboard.getByText("You submitted")).toBeVisible();
-    await expect(dashboard.getByText("Waiting to upload")).toBeVisible();
+    await expect(dashboard.getByText("To upload", { exact: true })).toBeVisible();
     // The dashboard is a modal sheet: while it is open the page, the offline bar
     // included, is hidden from assistive tech, so look for the bar itself.
     await expect(
@@ -144,7 +144,7 @@ test.describe("Offline Work Submission CI Tests", () => {
     await page.getByRole("button", { name: "Review uploads" }).click();
     await expect(dashboard).toBeVisible({ timeout: 15000 });
     await expect(dashboard.getByText("You submitted")).toHaveCount(1, { timeout: 15000 });
-    await expect(dashboard.getByText("Waiting to upload")).toBeVisible();
+    await expect(dashboard.getByText("To upload", { exact: true })).toBeVisible();
     // Background preparation starts once the connection is confirmed; CI has no upload
     // signer, so the work keeps preparing unless the probe finds the connection unsteady.
     await expect(page.getByTestId("upload-all")).toHaveText(
