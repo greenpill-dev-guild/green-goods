@@ -84,6 +84,8 @@ export type SubmitWorkOutcome =
       sponsored: boolean;
       jobId: string;
       clientWorkId: string;
+      /** The browser reported online, but the origin did not confirm it, so nothing was sent. */
+      reason?: "connection-unconfirmed";
     }
   | {
       kind: "processed";

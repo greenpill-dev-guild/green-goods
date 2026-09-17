@@ -154,6 +154,7 @@ import { buildQueuedWorkDraft } from "../../../modules/work/queued-work-draft";
 import { useBatchWorkSync } from "../../../hooks/work/useBatchWorkSync";
 import { jobQueueDB } from "../../../modules/job-queue/db";
 import { jobQueueEventBus } from "../../../modules/job-queue/event-bus";
+import { connectivityStore } from "../../../stores/connectivity";
 
 // ============================================
 // Test helpers
@@ -273,6 +274,41 @@ describe("useBatchWorkSync", () => {
       await waitFor(() => {
         expect(result.current.isError).toBe(true);
       });
+    });
+  });
+
+  // ------------------------------------------
+  // Connection check
+  // ------------------------------------------
+
+  describe("connection check", () => {
+    it("claims and signs nothing on an unconfirmed connection, and says why", async () => {
+      const confirm = vi.spyOn(connectivityStore, "confirmOnline").mockResolvedValue(false);
+      mockGetJobsWithImages.mockResolvedValue([createMockPendingJob("job-1")]);
+      try {
+        const { result } = renderHook(() => useBatchWorkSync(), {
+          wrapper: createWrapper(queryClient),
+        });
+
+        let outcome: Awaited<ReturnType<typeof result.current.mutateAsync>> | undefined;
+        await act(async () => {
+          outcome = await result.current.mutateAsync();
+        });
+
+        expect(outcome).toEqual({ count: 0, gardens: [], connectionUnconfirmed: true });
+        expect(mockGetJobsWithImages).not.toHaveBeenCalled();
+        expect(jobQueueDB.acquireExecutionClaim).not.toHaveBeenCalled();
+        expect(mockGetWalletClient).not.toHaveBeenCalled();
+        expect(toastService.info).toHaveBeenCalledWith(
+          expect.objectContaining({
+            title: "app.offline.degraded",
+            message: "app.work.connectionUnconfirmed",
+          })
+        );
+        expect(queueToasts.queueClear).not.toHaveBeenCalled();
+      } finally {
+        confirm.mockRestore();
+      }
     });
   });
 

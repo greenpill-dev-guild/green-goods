@@ -60,6 +60,7 @@ vi.mock("../../components/toast", () => ({
     loading: vi.fn(),
     success: vi.fn(),
     error: vi.fn(),
+    info: vi.fn(),
     dismiss: vi.fn(),
   },
   workToasts: {
@@ -186,7 +187,7 @@ vi.mock("../../utils/errors/contract-errors", () => ({
   formatErrorForToast: vi.fn(() => ({ title: "Error", message: "Something went wrong" })),
 }));
 
-import { walletProgressToasts, workToasts } from "../../components/toast";
+import { toastService, walletProgressToasts, workToasts } from "../../components/toast";
 import { worksKeys } from "../../config/query-keys/work";
 import { useWorkMutation } from "../../hooks/work/useWorkMutation";
 import {
@@ -196,6 +197,7 @@ import {
 import { submitWorkDirectly } from "../../modules/work/wallet-submission";
 import { WorkSubmissionError } from "../../modules/work/wallet-submission/types";
 import { submitWorkToQueue } from "../../modules/work/work-submission";
+import { connectivityStore } from "../../stores/connectivity";
 import {
   createMockAction,
   createMockFiles,
@@ -418,11 +420,42 @@ describe("hooks/work/useWorkMutation", () => {
       expect(jobQueueDB.addJob).toHaveBeenCalled();
       expect(submitWorkDirectly).not.toHaveBeenCalled();
       expect(workToasts.savedOffline).toHaveBeenCalled();
+      // "Saved offline" already explains it; the unstable-connection note is not repeated.
+      expect(toastService.info).not.toHaveBeenCalled();
       expect(
         queryClient.getQueryData<{ gardenerAddress: string }[]>(
           worksKeys.merged(MOCK_ADDRESSES.garden, 11155111)
         )?.[0]?.gardenerAddress
       ).toBe(MOCK_ADDRESSES.user);
+    });
+
+    it("keeps work queued on an unconfirmed connection and says nothing was sent", async () => {
+      // The browser reports online, but the origin has not confirmed the connection.
+      const confirm = vi.spyOn(connectivityStore, "confirmOnline").mockResolvedValue(false);
+      try {
+        const { result } = renderHook(() => useWorkMutation(defaultOptions), {
+          wrapper: createWrapper(),
+        });
+
+        await act(async () => {
+          await result.current.mutateAsync({
+            draft: createMockWorkDraft(),
+            images: createMockFiles(1),
+          });
+        });
+
+        expect(jobQueueDB.addJob).toHaveBeenCalled();
+        expect(submitWorkDirectly).not.toHaveBeenCalled();
+        expect(workToasts.savedOffline).not.toHaveBeenCalled();
+        expect(toastService.info).toHaveBeenCalledWith(
+          expect.objectContaining({
+            title: "app.offline.degraded",
+            message: "app.work.queuedConnectionUnconfirmed",
+          })
+        );
+      } finally {
+        confirm.mockRestore();
+      }
     });
 
     it("lets admin-style consumers disable offline queue fallback", async () => {
@@ -485,9 +518,11 @@ describe("hooks/work/useWorkMutation", () => {
       });
 
       expect(jobQueueDB.addJob).toHaveBeenCalled();
+      // Submit is the person's tap, so the send is explicit.
       expect(queueProcessJob).toHaveBeenCalledWith(expect.any(String), {
         transactionSender: mockSender,
         assertOwnership: expect.any(Function),
+        explicit: true,
       });
       expect(txHash).toBe(MOCK_TX_HASH);
     });

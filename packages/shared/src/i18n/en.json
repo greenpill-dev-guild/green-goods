@@ -5690,5 +5690,7 @@
   "app.garden.upload.pendingPhoto.waitingTitle": "Photo kept",
   "app.work.photosStillConverting": "Photos are still converting. Your work stays queued until they're ready.",
   "app.garden.upload.playVideo": "Play video",
-  "app.approval.connectionUnconfirmed": "Your decision wasn't sent. Try again when the connection is steady."
+  "app.approval.connectionUnconfirmed": "Your decision wasn't sent. Try again when the connection is steady.",
+  "app.work.connectionUnconfirmed": "Your work wasn't sent. Try again when the connection is steady.",
+  "app.work.queuedConnectionUnconfirmed": "Your work is saved in the upload queue. Nothing is sent while the connection is unstable."
 }

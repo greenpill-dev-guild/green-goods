@@ -6,6 +6,7 @@ import { toastService } from "../../../components/Toast/toast.service";
 import { DEFAULT_CHAIN_ID } from "../../../config/default-chain";
 import { worksKeys } from "../../../config/query-keys/work";
 import { jobQueue } from "../../../modules/job-queue/default-instance";
+import { connectivityStore } from "../../../stores/connectivity";
 import { isUserAddress } from "../../../utils/blockchain/address";
 import { isValidAttestationId, openEASExplorer } from "../../../utils/eas/explorers";
 import {
@@ -85,13 +86,29 @@ export function useWorkDetailController() {
         }
       : null;
 
+  const reportNotSent = () =>
+    toastService.info({
+      title: intl.formatMessage({ id: "app.offline.degraded" }),
+      message: intl.formatMessage({ id: "app.work.connectionUnconfirmed" }),
+      context: "work upload",
+    });
+
   const retry = async () => {
     if (!transactionSender || !work) return;
     setIsRetrying(true);
     try {
+      // The tap checks the connection now, so nothing is signed on one that may drop the send.
+      if (!(await connectivityStore.confirmOnline())) {
+        reportNotSent();
+        return;
+      }
       const result = await jobQueue.processJob(work.id, { transactionSender, explicit: true });
       // Declining the prompt is not a failure; the work stays ready to send.
       if (result.error === "send-cancelled") return;
+      if (result.error === "offline" || result.error === "connection-unconfirmed") {
+        reportNotSent();
+        return;
+      }
       if (!result.success) {
         toastService.error({
           title: intl.formatMessage({

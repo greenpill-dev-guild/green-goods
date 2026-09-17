@@ -25,7 +25,8 @@ import { classifySendFailure, WorkSendCancelledError } from "./send-outcome";
 
 export function queuedOutcome(
   queued: QueuedWorkSubmission,
-  sender: TransactionSender | null
+  sender: TransactionSender | null,
+  reason?: "connection-unconfirmed"
 ): SubmitWorkOutcome {
   return {
     kind: "queued",
@@ -33,6 +34,7 @@ export function queuedOutcome(
     sponsored: sender?.supportsSponsorship ?? false,
     jobId: queued.jobId,
     clientWorkId: queued.clientWorkId,
+    ...(reason ? { reason } : {}),
   };
 }
 
@@ -84,7 +86,12 @@ export async function submitAdmittedWork(
       } as SubmitWorkOutcome;
   }
   // Admission is durable; on an unconfirmed connection the work waits in the queue.
-  if (!(await canSendNow(ports))) return queuedOutcome(queued, ports.sender);
+  if (!(await canSendNow(ports)))
+    return queuedOutcome(
+      queued,
+      ports.sender,
+      ports.connectivity.isOnline() ? "connection-unconfirmed" : undefined
+    );
   if (input.authMode !== "wallet") {
     await input.assertOwnership?.();
     if (!ports.sender) return queuedOutcome(queued, ports.sender);

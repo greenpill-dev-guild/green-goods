@@ -338,6 +338,14 @@ export function useWorkMutation(options: UseWorkMutationOptions) {
         });
       }
       if (!awaiting) hapticSuccess();
+      // Offline already said "Saved offline"; an unstable connection says why nothing was sent.
+      if (origin.outcome?.kind === "queued" && origin.outcome.reason === "connection-unconfirmed")
+        toastService.info({
+          id: "work-queued-connection",
+          title: intl.formatMessage({ id: "app.offline.degraded" }),
+          message: intl.formatMessage({ id: "app.work.queuedConnectionUnconfirmed" }),
+          context: "work",
+        });
 
       // Confirmation checks have not established a successful submission yet.
       if (!awaiting)

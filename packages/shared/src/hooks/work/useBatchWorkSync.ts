@@ -42,6 +42,7 @@ import { usePrimaryAddress } from "../auth/usePrimaryAddress";
 import { useUser } from "../auth/useUser";
 import { queueKeys } from "../../config/query-keys/misc";
 import { worksKeys } from "../../config/query-keys/work";
+import { connectivityStore } from "../../stores/connectivity";
 
 interface BatchWorkSyncResult {
   hash?: `0x${string}`;
@@ -50,6 +51,8 @@ interface BatchWorkSyncResult {
   confirmationFailed?: boolean;
   /** Some work still holds a HEIC photo that could not convert yet, so it stayed queued. */
   waitingForPhotos?: boolean;
+  /** The origin did not confirm the connection, so nothing was claimed or signed. */
+  connectionUnconfirmed?: boolean;
   gardens: string[];
 }
 
@@ -73,6 +76,9 @@ export async function syncQueuedWorkBatch(
   /** `explicit`: the person tapped Send all, so work they declined earlier is included. */
   options: { explicit?: boolean } = {}
 ): Promise<BatchWorkSyncResult> {
+  // A wallet signature on a connection that may drop the send would strand the work.
+  if (!(await connectivityStore.confirmOnline()))
+    return { count: 0, gardens: [], connectionUnconfirmed: true };
   const jobs = await jobQueue.getJobs(primaryAddress, { kind: "work", synced: false });
   const candidates: Array<{ job: Job<WorkJobPayload> }> = jobs
     .filter(
@@ -401,7 +407,22 @@ export function useBatchWorkSync() {
         { explicit: true }
       );
     },
-    onSuccess: ({ count, gardens, awaitingConfirmation, confirmationFailed, waitingForPhotos }) => {
+    onSuccess: ({
+      count,
+      gardens,
+      awaitingConfirmation,
+      confirmationFailed,
+      waitingForPhotos,
+      connectionUnconfirmed,
+    }) => {
+      if (connectionUnconfirmed) {
+        toastService.info({
+          title: intl.formatMessage({ id: "app.offline.degraded" }),
+          message: intl.formatMessage({ id: "app.work.connectionUnconfirmed" }),
+          context: "work",
+        });
+        return;
+      }
       if (awaitingConfirmation || confirmationFailed) {
         toastService.info({
           title: intl.formatMessage({

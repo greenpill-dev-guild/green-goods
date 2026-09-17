@@ -5690,5 +5690,7 @@
   "app.garden.upload.pendingPhoto.waitingTitle": "Foto guardada",
   "app.work.photosStillConverting": "Las fotos aún se están convirtiendo. Tu trabajo queda en la cola hasta que estén listas.",
   "app.garden.upload.playVideo": "Reproducir video",
-  "app.approval.connectionUnconfirmed": "Tu decisión no se envió. Inténtalo de nuevo cuando la conexión sea estable."
+  "app.approval.connectionUnconfirmed": "Tu decisión no se envió. Inténtalo de nuevo cuando la conexión sea estable.",
+  "app.work.connectionUnconfirmed": "Tu trabajo no se envió. Inténtalo de nuevo cuando la conexión sea estable.",
+  "app.work.queuedConnectionUnconfirmed": "Tu trabajo está guardado en la cola de subida. No se envía nada mientras la conexión sea inestable."
 }

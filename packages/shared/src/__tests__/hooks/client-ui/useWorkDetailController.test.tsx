@@ -54,7 +54,7 @@ vi.mock("../../../config/query-keys/work", () => ({
 }));
 
 vi.mock("../../../components/Toast/toast.service", () => ({
-  toastService: { error: vi.fn(), success: vi.fn() },
+  toastService: { error: vi.fn(), info: vi.fn(), success: vi.fn() },
 }));
 
 vi.mock("../../../hooks/blockchain/useBaseLists", () => ({
@@ -167,6 +167,43 @@ describe("useWorkDetailController", () => {
       explicit: true,
     });
     expect(toastService.error).not.toHaveBeenCalled();
+  });
+
+  it("checks the connection on Send Now and says nothing was sent when it is not confirmed", async () => {
+    mocks.sender = { authMode: "passkey" };
+    const { jobQueue } = await import("../../../modules/job-queue/default-instance");
+    const { toastService } = await import("../../../components/Toast/toast.service");
+    const { connectivityStore } = await import("../../../stores/connectivity");
+    const confirm = vi.spyOn(connectivityStore, "confirmOnline").mockResolvedValue(false);
+    const notSent = expect.objectContaining({
+      title: "app.offline.degraded",
+      message: "app.work.connectionUnconfirmed",
+    });
+    try {
+      const { result } = renderHook(() => useWorkDetailController(), { wrapper: RouterWrapper });
+
+      await act(async () => {
+        await result.current.retry();
+      });
+      expect(jobQueue.processJob).not.toHaveBeenCalled();
+      expect(toastService.info).toHaveBeenCalledWith(notSent);
+
+      // The queue can still refuse if the connection drops between the check and the send.
+      confirm.mockResolvedValue(true);
+      vi.mocked(jobQueue.processJob).mockResolvedValue({
+        success: false,
+        error: "connection-unconfirmed",
+        skipped: true,
+      });
+      await act(async () => {
+        await result.current.retry();
+      });
+      expect(toastService.info).toHaveBeenCalledTimes(2);
+      expect(toastService.info).toHaveBeenLastCalledWith(notSent);
+      expect(toastService.error).not.toHaveBeenCalled();
+    } finally {
+      confirm.mockRestore();
+    }
   });
 
   it("projects steward, gardener, and viewer modes with steward precedence", () => {
