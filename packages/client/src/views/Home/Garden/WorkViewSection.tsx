@@ -287,7 +287,8 @@ export const WorkViewSection: React.FC<WorkViewSectionProps> = ({
       ) {
         return intl.formatMessage({
           id: "app.work.retryRequiredInfo",
-          defaultMessage: "Your media stays saved. Choose Retry when you’re ready to send again.",
+          defaultMessage:
+            "Your media stays saved. Choose Send Now when you’re ready to send again.",
         });
       }
       if (isOnline && submissionState === "sending") {

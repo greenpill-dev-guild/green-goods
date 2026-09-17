@@ -5676,7 +5676,7 @@
   "app.work.checkingSubmission": "Verificando se este trabalho foi enviado",
   "app.work.queued": "Salvo · Aguardando envio",
   "app.work.checkingSubmissionInfo": "Estamos verificando se este trabalho foi enviado. Seus arquivos continuam salvos.",
-  "app.work.retryRequiredInfo": "Seus arquivos continuam salvos. Escolha Tentar novamente quando quiser reenviar.",
+  "app.work.retryRequiredInfo": "Seus arquivos continuam salvos. Escolha Enviar Agora quando quiser reenviar.",
   "app.offline.originalsUnavailable": "Os arquivos originais não estão salvos neste dispositivo. As prévias das fotos ainda podem estar disponíveis.",
   "app.offline.attachmentUnavailable": "Não foi baixado para uso offline",
   "app.update.finishWork": "Termine de salvar ou enviar seu trabalho antes de reiniciar.",

@@ -144,7 +144,7 @@ describe("WorkViewSection — all WorkDisplayStatus values (#405)", () => {
       })
     );
     expect(screen.getByTestId("work-info")).toHaveTextContent(
-      "Your media stays saved. Choose Retry when you’re ready to send again."
+      "Your media stays saved. Choose Send Now when you’re ready to send again."
     );
   });
 

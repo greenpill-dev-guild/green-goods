@@ -5676,7 +5676,7 @@
   "app.work.checkingSubmission": "Checking whether this work was sent",
   "app.work.queued": "Saved · Waiting to send",
   "app.work.checkingSubmissionInfo": "We’re checking whether this work was sent. Your media stays saved.",
-  "app.work.retryRequiredInfo": "Your media stays saved. Choose Retry when you’re ready to send again.",
+  "app.work.retryRequiredInfo": "Your media stays saved. Choose Send Now when you’re ready to send again.",
   "app.offline.originalsUnavailable": "Original media isn’t saved on this device. Photo previews may still be available.",
   "app.offline.attachmentUnavailable": "Not downloaded for offline use",
   "app.update.finishWork": "Finish saving or sending your work before restarting.",
