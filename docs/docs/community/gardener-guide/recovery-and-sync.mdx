@@ -4,7 +4,7 @@ sidebar_label: Recovery and Sync
 slug: /community/gardener-guide/recovery-and-sync
 audience: gardener
 owner: docs
-last_verified: 2026-08-30
+last_verified: 2026-09-17
 feature_status: Live
 goal: "Recover a draft or queued submission without duplicating or losing work."
 difficulty: "standard"
@@ -17,19 +17,20 @@ source_of_truth:
   - packages/shared/src/hooks/work/useDrafts.ts
   - packages/shared/src/hooks/work/useWorkForm.ts
   - packages/shared/src/hooks/work/useWorkMutation.ts
+  - packages/shared/src/hooks/work/useWorkUploads.ts
   - packages/shared/src/hooks/app/useOffline.ts
 ---
 
 # Recovery and Sync
 
-Green Goods saves work locally before it reaches the network. A draft is work you have not submitted. A queued item is waiting to send. A pending item has reached Green Goods and is waiting for steward review.
+Green Goods saves work locally before it reaches the network. A draft is work you have not submitted. A queued item is saved on your device and waiting to upload. A pending item has reached Green Goods and is waiting for steward review.
 
 ## Work without a connection
 
 1. Start the submission and attach your evidence.
 2. Confirm the media preview before leaving the flow.
 3. Save the draft or submit it. If you are offline, the submission waits on your device.
-4. Reopen the app after connectivity returns. Passkey submissions normally retry automatically; an external wallet may ask you to confirm again.
+4. Reopen the app after connectivity returns. The app gets queued work ready in the background, and nothing sends on its own. Open **Your Work** and tap **Upload all**: one fingerprint or face check, or one wallet confirmation, sends everything that is ready.
 5. Check the item before creating another submission. Only start over when the original draft or queued item is no longer present.
 
 The app keeps a bounded number of local drafts. Submit or remove old drafts you no longer need, and recheck photos when reopening a draft after a long gap.
@@ -39,7 +40,8 @@ The app keeps a bounded number of local drafts. Submit or remove old drafts you 
 | What you see | What to do |
 |---|---|
 | Missing media or required field | Reopen the draft, restore the missing evidence, and review every required field. |
-| Queued or uploading for a long time | Confirm connectivity, keep the app open briefly, then use the retry action if it appears. |
+| Waiting to upload for a long time | Confirm connectivity, open **Your Work**, and tap **Upload all**. While photos are still being prepared, the button says so. |
+| Needs attention | The line under the work says why, such as an action that has ended. Open the work to try again, or discard it if it can no longer be accepted. |
 | Unauthorized or forbidden | Confirm that you joined the intended Garden and that the Action is still available to you. |
 | Session or signature request | Sign in again with the same account, then retry the existing item. |
 | Transaction rejected | Reopen the item and approve the signature when you are ready. |

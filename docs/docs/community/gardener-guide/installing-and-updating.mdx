@@ -5,7 +5,7 @@ slug: /community/gardener-guide/installing-and-updating
 description: "Install Green Goods to a phone, understand what it downloads, and move an existing install onto a new version without losing queued work."
 audience: gardener
 owner: docs
-last_verified: 2026-09-15
+last_verified: 2026-09-17
 feature_status: Live
 goal: "Get a gardener onto the current version with their drafts and queued work intact, and able to record work without a signal."
 difficulty: "standard"
@@ -80,13 +80,13 @@ Tap **Restart**. The app reloads and confirms with **Updated**. If it needs a mo
 
 ## Moving an existing install to this release
 
-Everything already on the phone is kept. Drafts, queued work, and saved photos carry across, and the app upgrades its own storage the first time it opens on the new version.
+Everything already on the phone is kept. Drafts, queued work, and saved photos carry across, and the app upgrades its own storage the first time it opens on the new version. Queued work now waits in **Your Work** for **Upload all**: nothing sends on its own, and work an older version gave up on is ready to upload again.
 
 What to expect:
 
 - **The restart takes longer than usual this once.** This release changes how the app stores its files, so the first update re-downloads them.
 - **Update while you have a connection, not in the field.** Restarting with no signal works, but the app cannot fetch the new photo-handling file until it is back online, so until then it may not accept an iPhone photo. Everything else still works.
-- **Send anything queued first.** Not because the update would lose it, but because sending needs a connection and the field often does not have one.
+- **Upload anything queued first.** Open **Your Work** and tap **Upload all**. Not because the update would lose it, but because uploading needs a connection and the field often does not have one.
 
 :::warning Never clear site data or app storage
 Clearing the browser's site data, storage, or "app files" for Green Goods **deletes unsent work**: drafts and anything queued and waiting to send. It has stranded installed users before, and there is no in-app button to do it precisely because it is not a safe fix. If someone is stuck, use the steps below instead.
@@ -96,7 +96,7 @@ Clearing the browser's site data, storage, or "app files" for Green Goods **dele
 
 | What they report | What to try |
 |---|---|
-| "It says a new version is ready but Restart does nothing" | Something is saving or sending. Wait for it, check **Profile** for queued work, then Restart |
+| "It says a new version is ready but Restart does nothing" | Something is saving or sending. Wait for it, check **Your Work** for queued work, then Restart |
 | "It restarted but looks the same" | Close the app fully and reopen. The confirmation toast is easy to miss |
 | "It keeps asking me to restart" | Close every window of the app, including browser tabs on the same site, then reopen |
 | "Photos from my iPhone will not attach" | The photo handling file has not arrived, usually because they installed or restarted with no signal, or Data Saver is on. Turn Data Saver off, open the app on Wi-Fi, give it a minute. The work itself still saves |
