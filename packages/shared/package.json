@@ -446,8 +446,8 @@
     "./hooks/work/useWorkImages": "./src/hooks/work/useWorkImages.ts",
     "./hooks/work/useDrafts": "./src/hooks/work/useDrafts.ts",
     "./hooks/work/useMyWorks": "./src/hooks/work/useMyWorks.ts",
+    "./hooks/work/useNeedsReview": "./src/hooks/work/useNeedsReview.ts",
     "./hooks/work/useReviewerGardenIds": "./src/hooks/work/useReviewerGardenIds.ts",
-    "./hooks/work/useReviewerWorks": "./src/hooks/work/useReviewerWorks.ts",
     "./hooks/work/useWorkApprovals": "./src/hooks/work/useWorkApprovals.ts",
     "./hooks/yield/useYieldAllocations": "./src/hooks/yield/useYieldAllocations.ts",
     "./modules/app/error-categories": "./src/modules/app/error-categories.ts",
@@ -481,8 +481,7 @@
     "./utils/blockchain/price-feeds": "./src/utils/blockchain/price-feeds.ts",
     "./utils/debug": "./src/utils/debug.ts",
     "./utils/form/normalizers": "./src/utils/form/normalizers.ts",
-    "./utils/styles/polymorphic": "./src/utils/styles/polymorphic.ts",
-    "./utils/work/pending-review": "./src/utils/work/pending-review.ts"
+    "./utils/styles/polymorphic": "./src/utils/styles/polymorphic.ts"
   },
   "scripts": {
     "lint": "bun --bun run oxlint src --deny-warnings",

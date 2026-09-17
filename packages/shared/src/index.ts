@@ -583,6 +583,7 @@ export {
   useMyVaultDeposits,
   useMyWorks,
   useNavigateToTop,
+  useNeedsReview,
   useNetworkConfig,
   useOctantVaultHarvestableYield,
   useOctantVaultPositions,
@@ -617,7 +618,6 @@ export {
   useRegisteredHypercerts,
   useRegisterHypercert,
   useReviewerGardenIds,
-  useReviewerWorks,
   useRole,
   useSafeMutation,
   useScrollToTop,
@@ -1253,9 +1253,6 @@ export {
   classifyTxError,
   clearFormDraft,
   cn,
-  // Pending-review derivation (shared by Work Dashboard + arrival orientation)
-  collectApprovalRecipientsForWorks,
-  collectApprovedWorkUIDs,
   compareAddresses,
   convertJobsToWorks,
   copyToClipboard,
@@ -1283,7 +1280,6 @@ export {
   extractErrorMessage,
   fetchOfflineWorks,
   filterByTimeRange,
-  filterPendingNeedsReview,
   // Action utilities
   findActionByUID,
   formatAddress,

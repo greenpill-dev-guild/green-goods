@@ -19,12 +19,14 @@ interface CompletedTabProps {
   onCompletedFilterChange: (value: "reviewedByYou" | "myWorkReviewed") => void;
   timeFilter: TimeFilter;
   onTimeFilterChange: (value: TimeFilter) => void;
+  isOffline?: boolean;
+  savedAt?: number;
 }
 
 const COMPLETED_MESSAGES = {
   itemCount: {
     id: "app.workDashboard.completed.itemsCompleted",
-    defaultMessage: "{count} items completed",
+    defaultMessage: "{count, plural, one {# item} other {# items}}",
   },
   loading: { id: "app.workDashboard.loading", defaultMessage: "Loading your work..." },
   emptyTitle: {
@@ -49,6 +51,8 @@ export const CompletedTab: React.FC<CompletedTabProps> = ({
   onCompletedFilterChange,
   timeFilter,
   onTimeFilterChange,
+  isOffline,
+  savedAt,
 }) => {
   const intl = useIntl();
 
@@ -83,18 +87,21 @@ export const CompletedTab: React.FC<CompletedTabProps> = ({
       errorMessage={errorMessage}
       onWorkClick={onWorkClick}
       onRefresh={onRefresh}
+      isOffline={isOffline}
+      savedAt={savedAt}
       renderBadges={renderBadges}
       messages={COMPLETED_MESSAGES}
       emptyIcon={<RiCheckLine />}
       headerContent={
-        <div className="flex items-center gap-2">
+        <div className="flex min-w-0 items-center justify-end gap-2">
           <NativeSelect
             aria-label={intl.formatMessage({
               id: "app.workDashboard.completedFilter.label",
               defaultMessage: "Completed work filter",
             })}
             controlSize="sm"
-            className="w-auto"
+            density="condensed"
+            className="w-auto min-w-16 max-w-48 field-sizing-content"
             value={completedFilter}
             onChange={(e) =>
               onCompletedFilterChange(e.target.value as "reviewedByYou" | "myWorkReviewed")
@@ -103,13 +110,13 @@ export const CompletedTab: React.FC<CompletedTabProps> = ({
             <option value="reviewedByYou">
               {intl.formatMessage({
                 id: "app.workDashboard.filter.reviewedByYou",
-                defaultMessage: "Reviewed by you",
+                defaultMessage: "By you",
               })}
             </option>
             <option value="myWorkReviewed">
               {intl.formatMessage({
                 id: "app.workDashboard.filter.myWorkReviewed",
-                defaultMessage: "My work reviewed",
+                defaultMessage: "Yours",
               })}
             </option>
           </NativeSelect>

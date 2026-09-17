@@ -14,7 +14,8 @@
  * @module modules/work/local-status-overlay
  */
 
-import type { Work, WorkDisplayStatus } from "../../types/domain";
+import type { Work, WorkCard, WorkDisplayStatus } from "../../types/domain";
+import type { EASWorkListRow } from "../../types/eas-responses";
 
 /** Work carrying the approval hooks' local overlay markers. */
 export type OverlayWork = Work & {
@@ -82,14 +83,19 @@ export function isLocalOverlayLive(
  *
  * When the approvals read failed (`indexedStatus` is `null`) nothing new is
  * known, so the last displayed status stands: a reviewed work must never fall
- * back to pending because one request failed.
+ * back to pending because one request failed. The exception is an unconfirmed
+ * decision whose deadline has lapsed: it never landed, so it cannot stand in
+ * for what the indexer would say.
  */
 export function resolveWorkStatus(
   indexedStatus: IndexedWorkStatus,
   cached: OverlayWork | undefined,
   now: number = Date.now()
 ): WorkDisplayStatus {
-  if (indexedStatus === null) return cached?.status ?? "pending";
+  if (indexedStatus === null) {
+    const lapsed = cached?._pendingUntilMs !== undefined && cached._pendingUntilMs <= now;
+    return lapsed ? "pending" : (cached?.status ?? "pending");
+  }
   if (indexedStatus !== "pending") return indexedStatus;
   if (!isLocalOverlayLive(cached, now)) return indexedStatus;
   return cached?.status ?? indexedStatus;
@@ -116,6 +122,93 @@ export function carryOverlayMarkers(
   if (cached._pendingUntilMs !== undefined) markers._pendingUntilMs = cached._pendingUntilMs;
   if (cached._txHash !== undefined) markers._txHash = cached._txHash;
   return markers;
+}
+
+/** Statuses that only exist on this device, never in a garden's indexed read. */
+const LOCAL_ONLY_STATUSES: readonly WorkDisplayStatus[] = [
+  "syncing",
+  "sync_failed",
+  "offline",
+  "uploading",
+];
+
+function isIndexedWork(work: OverlayWork): boolean {
+  return !LOCAL_ONLY_STATUSES.includes(work.status) && !work.id.startsWith("0xoffline_");
+}
+
+/** The status one indexed row reports: `null` when its approvals could not be read. */
+function indexedStatusOf(row: EASWorkListRow | undefined): IndexedWorkStatus {
+  if (!row || row.approval === undefined) return null;
+  if (row.approval === null) return "pending";
+  return row.approval.approved ? "approved" : "rejected";
+}
+
+/**
+ * Keep saved rows the indexer failed to return this cycle, so an empty or
+ * partial read cannot wipe a collection someone is looking at.
+ */
+function reconcileIndexedWorkCollection(indexed: WorkCard[], saved: OverlayWork[]): WorkCard[] {
+  if (saved.length === 0) return indexed;
+  const indexedIds = new Set(indexed.map((work) => work.id));
+  if (!saved.some((work) => !indexedIds.has(work.id))) return indexed;
+  const reconciled = new Map(saved.map((work) => [work.id, work as WorkCard]));
+  indexed.forEach((work) => reconciled.set(work.id, work));
+  return Array.from(reconciled.values());
+}
+
+export interface GardenWorkRowsInput {
+  /** The latest garden read, each row carrying its latest approval; undefined before the first read. */
+  remote: EASWorkListRow[] | undefined;
+  /** The rows last resolved for this garden, restored or kept from an earlier read. */
+  saved: OverlayWork[] | undefined;
+  /** Decisions the approval hooks wrote on this device. They outrank `saved`. */
+  overlay: OverlayWork[] | undefined;
+  now?: number;
+}
+
+export interface GardenWorkRows {
+  rows: OverlayWork[];
+  /** Rows whose review status is unknown: approvals unread, and nothing saved or decided here. */
+  unknownIds: Set<string>;
+}
+
+/**
+ * Resolve a garden's indexed read against what this device already knows.
+ *
+ * Every screen that lists a garden's work resolves it here, so a decision shows
+ * the same status everywhere. Each row stands on its own approval read: a row
+ * whose approvals failed keeps its last known status, and one with nothing
+ * known is reported in `unknownIds` rather than guessed as pending.
+ */
+export function resolveGardenWorkRows({
+  remote,
+  saved,
+  overlay,
+  now = Date.now(),
+}: GardenWorkRowsInput): GardenWorkRows {
+  const savedRows = (saved ?? []).filter(isIndexedWork);
+  const known = new Map(savedRows.map((work) => [work.id, work]));
+  for (const work of overlay ?? []) {
+    if (isIndexedWork(work)) known.set(work.id, work);
+  }
+  const remoteById = new Map((remote ?? []).map((row) => [row.id, row]));
+  const indexedRows: WorkCard[] = (remote ?? []).map(({ approval: _approval, ...row }) => row);
+  const collection =
+    remote === undefined ? savedRows : reconcileIndexedWorkCollection(indexedRows, savedRows);
+
+  const unknownIds = new Set<string>();
+  const rows = collection.map((work): OverlayWork => {
+    const indexedStatus = indexedStatusOf(remoteById.get(work.id));
+    const cached = known.get(work.id);
+    if (indexedStatus === null && !cached) unknownIds.add(work.id);
+    const reference = cached ?? (work as OverlayWork);
+    return {
+      ...work,
+      status: resolveWorkStatus(indexedStatus, reference, now),
+      ...carryOverlayMarkers(reference, indexedStatus, now),
+    };
+  });
+  return { rows, unknownIds };
 }
 
 /**

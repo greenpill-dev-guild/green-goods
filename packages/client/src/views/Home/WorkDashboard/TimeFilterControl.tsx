@@ -18,7 +18,8 @@ export function TimeFilterControl<T extends string>({
         defaultMessage: "Time period",
       })}
       controlSize="sm"
-      className="w-auto"
+      density="condensed"
+      className="w-auto min-w-16 max-w-48 field-sizing-content"
       value={value}
       onChange={(e) => onChange(e.target.value as T)}
     >

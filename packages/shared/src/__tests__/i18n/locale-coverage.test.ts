@@ -202,7 +202,8 @@ const localeAllowedIdenticalValues: Record<string, Set<string>> = {
     "Video",
     "error",
   ]),
-  pt: new Set(["Cultural", "Material", "Social", "Status", "hubs"]),
+  // Portuguese keeps "Offline" untranslated, as in "Offline · Salvo {when}".
+  pt: new Set(["Cultural", "Material", "Offline · {when}", "Social", "Status", "hubs"]),
 };
 
 function isAllowedIdenticalLocalizedValue(locale: string, key: string, value: string): boolean {

@@ -18,7 +18,7 @@ import { QUERY_KEY_ROOT } from "./root";
 import { savedOffersKeys } from "./saved-offers";
 import { tokensKeys } from "./tokens";
 import { cookieJarKeys, vaultsKeys, yieldKeys } from "./vault";
-import { approvalsKeys, stewardWorksKeys, workApprovalsKeys, worksKeys } from "./work";
+import { approvalsKeys, workApprovalsKeys, worksKeys } from "./work";
 
 export const queryKeys = {
   all: QUERY_KEY_ROOT,
@@ -26,7 +26,6 @@ export const queryKeys = {
   works: worksKeys,
   workApprovals: workApprovalsKeys,
   approvals: approvalsKeys,
-  stewardWorks: stewardWorksKeys,
   offline: offlineKeys,
   media: mediaKeys,
   gardens: gardensKeys,

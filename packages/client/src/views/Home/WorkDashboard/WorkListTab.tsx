@@ -1,10 +1,19 @@
 import { Button } from "@green-goods/shared/components/Button";
+import { IconButton } from "@green-goods/shared/components/IconButton";
 import type { Work } from "@green-goods/shared/types/domain";
 import { RiErrorWarningLine, RiRefreshLine } from "@remixicon/react";
 import React from "react";
-import { useIntl } from "react-intl";
+import { type IntlShape, useIntl } from "react-intl";
 import { MinimalWorkCard } from "@/components/Cards";
 import { EmptyState, Loader } from "@/components/Communication";
+
+/** A time for today's saves, a short date for older ones (matches the garden Work tab). */
+function formatSavedAt(intl: IntlShape, timestamp: number): string {
+  const saved = new Date(timestamp);
+  return saved.toDateString() === new Date().toDateString()
+    ? intl.formatTime(saved, { hour: "numeric", minute: "2-digit" })
+    : intl.formatDate(saved, { month: "short", day: "numeric" });
+}
 
 interface WorkListMessages {
   itemCount: { id: string; defaultMessage: string };
@@ -25,6 +34,10 @@ interface WorkListTabProps {
   headerContent?: React.ReactNode;
   messages: WorkListMessages;
   emptyIcon: React.ReactNode;
+  /** Offline, the status line says when the rows on screen were saved and Refresh is hidden. */
+  isOffline?: boolean;
+  /** When the rows on screen were last read, in milliseconds. */
+  savedAt?: number;
 }
 
 export const WorkListTab: React.FC<WorkListTabProps> = ({
@@ -39,27 +52,55 @@ export const WorkListTab: React.FC<WorkListTabProps> = ({
   headerContent,
   messages,
   emptyIcon,
+  isOffline = false,
+  savedAt,
 }) => {
   const intl = useIntl();
+  // The body already explains a failed load, so the status line stays quiet then.
+  const statusText =
+    isLoading || hasError
+      ? null
+      : isOffline && savedAt
+        ? intl.formatMessage(
+            { id: "app.workDashboard.offlineSaved", defaultMessage: "Offline · {when}" },
+            { when: formatSavedAt(intl, savedAt) }
+          )
+        : items.length > 0
+          ? intl.formatMessage(messages.itemCount, { count: items.length })
+          : null;
+  // Offline there is nothing to refresh, and the line already says so.
+  const showRefresh = Boolean(onRefresh) && !isLoading && !hasError && !isOffline;
 
   return (
     <div className="min-h-full flex flex-col">
-      <div className="mb-4 px-4 pt-4 flex items-center justify-between gap-3">
-        <div>
-          {isLoading ? null : hasError ? (
-            <p className="text-sm text-error-base">
-              {intl.formatMessage({
-                id: "app.workDashboard.error.fetchingData",
-                defaultMessage: "Error loading data. Please try again.",
-              })}
-            </p>
-          ) : items.length > 0 ? (
-            <p className="text-sm text-text-sub-600">
-              {intl.formatMessage(messages.itemCount, { count: items.length })}
+      {/* One row. The status line and Refresh keep their width; the filters condense first. */}
+      <div className="mb-4 px-4 pt-4 flex items-center gap-2" data-testid="work-list-header">
+        <div className="flex shrink-0 items-center gap-0.5">
+          {statusText ? (
+            <p
+              role="status"
+              className="whitespace-nowrap text-sm text-text-sub-600"
+              title={statusText}
+            >
+              {statusText}
             </p>
           ) : null}
+          {showRefresh ? (
+            <IconButton
+              className="shrink-0"
+              size="compact"
+              aria-label={intl.formatMessage(
+                isFetching
+                  ? { id: "app.common.refreshing", defaultMessage: "Refreshing..." }
+                  : { id: "app.common.refresh", defaultMessage: "Refresh" }
+              )}
+              icon={<RiRefreshLine className="h-4 w-4" aria-hidden="true" />}
+              loading={isFetching}
+              onClick={onRefresh}
+            />
+          ) : null}
         </div>
-        {headerContent}
+        <div className="flex min-w-0 flex-1 justify-end">{headerContent}</div>
       </div>
 
       <div className="flex-1 px-4 pb-4">
@@ -113,27 +154,6 @@ export const WorkListTab: React.FC<WorkListTabProps> = ({
             icon={emptyIcon}
             title={intl.formatMessage(messages.emptyTitle)}
             description={intl.formatMessage(messages.emptyDescription)}
-            action={
-              onRefresh ? (
-                <Button
-                  type="button"
-                  emphasis="secondary"
-                  onClick={onRefresh}
-                  loading={isFetching}
-                  leadingIcon={<RiRefreshLine className="h-4 w-4" aria-hidden="true" />}
-                >
-                  {isFetching
-                    ? intl.formatMessage({
-                        id: "app.common.refreshing",
-                        defaultMessage: "Refreshing...",
-                      })
-                    : intl.formatMessage({
-                        id: "app.common.refresh",
-                        defaultMessage: "Refresh",
-                      })}
-                </Button>
-              ) : null
-            }
           />
         ) : (
           <div className="animate-stagger-in space-y-3">

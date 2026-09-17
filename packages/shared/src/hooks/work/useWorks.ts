@@ -6,72 +6,20 @@ import { GC_TIMES, STALE_TIMES } from "../../config/react-query";
 import { jobQueueDB } from "../../modules/job-queue/db";
 import { jobQueue } from "../../modules/job-queue/default-instance";
 import { useJobQueueEvents } from "../../modules/job-queue/event-bus";
-import {
-  carryOverlayMarkers,
-  type IndexedWorkStatus,
-  type OverlayWork,
-  resolveWorkStatus,
-} from "../../modules/work/local-status-overlay";
-import { readWorkList, WORK_LIST_PAGE_SIZE } from "../../modules/work/work-list";
-import type { Work, WorkCard, WorkDisplayStatus } from "../../types/domain";
-import type { EASWorkApproval, EASWorkListRow } from "../../types/eas-responses";
+import { type OverlayWork, resolveGardenWorkRows } from "../../modules/work/local-status-overlay";
+import { WORK_LIST_PAGE_SIZE } from "../../modules/work/work-list";
+import type { Work, WorkDisplayStatus } from "../../types/domain";
 import type { Job, WorkJobPayload } from "../../types/job-queue";
 import { ZERO_ADDRESS } from "../../utils/blockchain/address-constants";
 import { extractClientWorkId } from "../../utils/work/deduplication";
-import { reportConnectivityFailure, useOnlineStatus } from "../app/useOnlineStatus";
+import { useOnlineStatus } from "../app/useOnlineStatus";
 import { usePrimaryAddress } from "../auth/usePrimaryAddress";
 import { useLiveQuery } from "../utils/useLiveQuery";
+import { gardenWorkListQuery } from "./gardenWorkListQuery";
 import { useQueuedWorkPreviews } from "./useQueuedWorkPreviews";
 import { useSendingWorkIds } from "./useSendingWorkIds";
 
 export { usePendingWorksCount } from "./usePendingWorksCount";
-
-type ApprovalsByWork = Map<string, EASWorkApproval>;
-
-function indexedStatusFor(work: WorkCard, approvals: ApprovalsByWork | null): IndexedWorkStatus {
-  if (approvals === null) return null;
-  const approval = approvals.get(work.id);
-  if (!approval) return "pending";
-  return approval.approved ? "approved" : "rejected";
-}
-
-/**
- * Resolve one indexed row against the local overlay. The overlay's markers
- * travel with the row while it still covers indexer lag, so the next refetch
- * recognises the decision instead of falling back to pending.
- */
-function withResolvedStatus(
-  work: WorkCard,
-  approvals: ApprovalsByWork | null,
-  cached: OverlayWork | undefined,
-  now: number
-): OverlayWork {
-  const indexedStatus = indexedStatusFor(work, approvals);
-  return {
-    ...work,
-    status: resolveWorkStatus(indexedStatus, cached, now),
-    ...carryOverlayMarkers(cached, indexedStatus, now),
-  };
-}
-
-/**
- * Keep cached rows the indexer failed to return this cycle, so an empty or
- * partial read cannot wipe a collection the steward is looking at.
- */
-function reconcileIndexedWorkCollection(
-  indexedWorks: WorkCard[],
-  cachedWorks: OverlayWork[]
-): WorkCard[] {
-  if (cachedWorks.length === 0) return indexedWorks;
-
-  const indexedIds = new Set(indexedWorks.map((work) => work.id));
-  const isIncomplete = cachedWorks.some((work) => !indexedIds.has(work.id));
-  if (!isIncomplete) return indexedWorks;
-
-  const reconciled = new Map(cachedWorks.map((work) => [work.id, work as WorkCard]));
-  indexedWorks.forEach((work) => reconciled.set(work.id, work));
-  return Array.from(reconciled.values());
-}
 
 /** Options for the useWorks hook */
 export interface UseWorksOptions {
@@ -153,31 +101,7 @@ export function useWorks(gardenId: string, options: UseWorksOptions = {}) {
     staleTime: Number.POSITIVE_INFINITY,
   });
   const take = listWindow.data;
-  const online = useQuery({
-    queryKey: worksKeys.online(gardenId, chainId),
-    queryFn: async () => {
-      try {
-        const cached = queryClient.getQueryData<EASWorkListRow[]>(
-          worksKeys.online(gardenId, chainId)
-        );
-        const requested = queryClient.getQueryData<number>(windowKey) ?? WORK_LIST_PAGE_SIZE;
-        return await readWorkList({
-          garden: gardenId,
-          chainId,
-          // The extra row is the continuation signal. Preserve a wider cached
-          // read when a background refresh arrives after its window query GC'd.
-          take: Math.max(requested + 1, cached?.length ?? 0),
-        });
-      } catch (error) {
-        void reportConnectivityFailure();
-        throw error;
-      }
-    },
-    enabled: !!gardenId,
-    networkMode: "online",
-    staleTime: STALE_TIMES.works,
-    gcTime: GC_TIMES.works,
-  });
+  const online = useQuery(gardenWorkListQuery(queryClient, gardenId, chainId));
   // Offline, the restored screen read is the downloaded copy: background
   // preparation fills this same query, so there is no second source to consult.
   const remoteData = online.data?.slice(0, take);
@@ -236,44 +160,13 @@ export function useWorks(gardenId: string, options: UseWorksOptions = {}) {
     const metadataByKey = new Map(
       (remoteData ?? []).map((work, index) => [work.metadata.trim(), metadataByWork[index]])
     );
-    const cachedWorks = (projection.data ?? overlay.data ?? []).filter(
-      (work) =>
-        !["syncing", "sync_failed", "offline", "uploading"].includes(work.status) &&
-        !work.id.startsWith("0xoffline_")
-    );
-    const cachedMap = new Map(cachedWorks.map((work) => [work.id, work]));
-    for (const work of overlay.data ?? []) {
-      if (
-        !["syncing", "sync_failed", "offline", "uploading"].includes(work.status) &&
-        !work.id.startsWith("0xoffline_")
-      )
-        cachedMap.set(work.id, work);
-    }
-    // Each row carries the latest approval read with it; a row without the
-    // field came from a read whose approvals could not be fetched. The
-    // approval stays in the stored read and leaves the projected row, whose
+    // The approval stays in the stored read and leaves the projected row, whose
     // status already carries it.
-    const approvalsKnown =
-      remoteData !== undefined && remoteData.every((row) => row.approval !== undefined);
-    const knownApprovals = new Map<string, EASWorkApproval>();
-    const remoteRows: WorkCard[] = [];
-    for (const { approval, ...row } of remoteData ?? []) {
-      if (approval) knownApprovals.set(row.id, approval);
-      remoteRows.push(row);
-    }
-    const indexed =
-      remoteData === undefined
-        ? cachedWorks
-        : reconcileIndexedWorkCollection(remoteRows, cachedWorks);
-    const now = Date.now();
-    const rows: Work[] = indexed.map((work) =>
-      withResolvedStatus(
-        work,
-        approvalsKnown ? knownApprovals : null,
-        cachedMap.get(work.id) ?? (work as OverlayWork),
-        now
-      )
-    );
+    const rows: Work[] = resolveGardenWorkRows({
+      remote: remoteData,
+      saved: projection.data ?? overlay.data,
+      overlay: overlay.data,
+    }).rows;
     // Identity must agree on submitter and clientWorkId. A CID whose metadata
     // has not been downloaded cannot prove a match, so retain the local work.
     const identities = new Set(
