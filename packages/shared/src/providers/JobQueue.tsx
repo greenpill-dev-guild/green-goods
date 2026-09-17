@@ -29,7 +29,6 @@ interface JobQueueContextValue {
   stats: QueueStats;
   isProcessing: boolean;
   lastEvent: QueueEvent | null;
-  flush: () => Promise<void>;
   /** Give one job another run and send only that job, as the person's own tap. */
   retryAndSend: (jobId: string) => Promise<void>;
   hasPendingJobs: () => Promise<boolean>;
@@ -64,11 +63,6 @@ export const useJobQueue = () => {
 export const useQueueStats = () => {
   const { stats } = useJobQueue();
   return stats;
-};
-
-export const useQueueFlush = () => {
-  const { flush } = useJobQueue();
-  return flush;
 };
 
 interface JobQueueProviderProps {
@@ -395,38 +389,6 @@ const JobQueueProviderInner: React.FC<JobQueueProviderProps> = ({ children, queu
       stats,
       isProcessing,
       lastEvent,
-      flush: async () => {
-        if (!currentUserAddress) {
-          signInToSync();
-          return;
-        }
-
-        try {
-          const result = await queue.flush({
-            transactionSender: sender ?? null,
-            userAddress: currentUserAddress,
-          });
-          await refreshStats();
-
-          if (result.processed > 0) {
-            queueToasts.syncSuccess(result.processed);
-          } else if (result.failed > 0) {
-            queueToasts.syncError();
-          } else if (result.skipped > 0) {
-            queueToasts.stillQueued(stillQueuedReason(Boolean(sender)));
-          } else {
-            queueToasts.queueClear();
-          }
-        } catch (error) {
-          toastService.error({
-            id: "job-queue-flush",
-            title: "Queue sync failed",
-            message: "Please try again.",
-            context: "job queue",
-            error,
-          });
-        }
-      },
       retryAndSend: async (jobId: string) => {
         if (!currentUserAddress) {
           signInToSync();

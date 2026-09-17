@@ -48,7 +48,7 @@ export function useGardenPoolController(pool: CommitmentPoolRecord) {
   );
   const queue = useCommitmentQueueState(viewer as Address | null);
   const { pendingCreates, refresh: refreshQueue } = queue;
-  const { flush, retryAndSend } = useJobQueue();
+  const { retryAndSend } = useJobQueue();
   const commitments = useCommitments({
     chainId,
     poolId: pool.poolId,
@@ -132,6 +132,6 @@ export function useGardenPoolController(pool: CommitmentPoolRecord) {
     poolState,
     isParticipating: !NON_PARTICIPATING_STATES.has(poolState),
     canCreate: poolState === "OPEN" && (pool.poolType !== "PROTOCOL" || stewardsPool || ownsPool),
-    acts: { flush, retry, discard },
+    acts: { retry, discard },
   };
 }

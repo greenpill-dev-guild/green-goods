@@ -93,12 +93,7 @@ import { connectivityStore } from "../../stores/connectivity";
 import { createFakeJobQueueHandle } from "../test-utils/job-queue-fakes";
 import type { JobQueueHandle } from "../../modules/job-queue";
 import type { Job, QueueEvent } from "@green-goods/shared/types";
-import {
-  JobQueueProvider,
-  useJobQueue,
-  useQueueFlush,
-  useQueueStats,
-} from "../../providers/JobQueue";
+import { JobQueueProvider, useJobQueue, useQueueStats } from "../../providers/JobQueue";
 
 // Type helpers for mocked functions
 const mockJobQueue = vi.mocked(createFakeJobQueueHandle());
@@ -211,89 +206,6 @@ describe("providers/JobQueueProvider", () => {
       await waitFor(() => {
         expect(result.current).toEqual({ total: 10, pending: 3, failed: 1, synced: 6 });
       });
-    });
-  });
-
-  describe("useQueueFlush", () => {
-    it("returns flush function", () => {
-      const { result } = renderHook(() => useQueueFlush(), {
-        wrapper: createWrapper(),
-      });
-
-      expect(typeof result.current).toBe("function");
-    });
-
-    it("flush calls jobQueue.flush with smart account client and userAddress", async () => {
-      mockJobQueue.flush.mockResolvedValue({ processed: 2, failed: 0, skipped: 0 });
-
-      const { result } = renderHook(() => useQueueFlush(), {
-        wrapper: createWrapper(),
-      });
-
-      await act(async () => {
-        await result.current();
-      });
-
-      expect(mockJobQueue.flush).toHaveBeenCalledWith({
-        transactionSender: mockTransactionSender,
-        userAddress: "0xSmartAccount",
-      });
-    });
-
-    it("shows success toast when jobs are processed", async () => {
-      mockJobQueue.flush.mockResolvedValue({ processed: 3, failed: 0, skipped: 0 });
-
-      const { result } = renderHook(() => useQueueFlush(), {
-        wrapper: createWrapper(),
-      });
-
-      await act(async () => {
-        await result.current();
-      });
-
-      expect(queueToasts.syncSuccess).toHaveBeenCalledWith(3);
-    });
-
-    it("shows error toast when jobs fail", async () => {
-      mockJobQueue.flush.mockResolvedValue({ processed: 0, failed: 2, skipped: 0 });
-
-      const { result } = renderHook(() => useQueueFlush(), {
-        wrapper: createWrapper(),
-      });
-
-      await act(async () => {
-        await result.current();
-      });
-
-      expect(queueToasts.syncError).toHaveBeenCalled();
-    });
-
-    it("shows queued toast when jobs are skipped", async () => {
-      mockJobQueue.flush.mockResolvedValue({ processed: 0, failed: 0, skipped: 2 });
-
-      const { result } = renderHook(() => useQueueFlush(), {
-        wrapper: createWrapper(),
-      });
-
-      await act(async () => {
-        await result.current();
-      });
-
-      expect(queueToasts.stillQueued).toHaveBeenCalled();
-    });
-
-    it("shows clear toast when no jobs to process", async () => {
-      mockJobQueue.flush.mockResolvedValue({ processed: 0, failed: 0, skipped: 0 });
-
-      const { result } = renderHook(() => useQueueFlush(), {
-        wrapper: createWrapper(),
-      });
-
-      await act(async () => {
-        await result.current();
-      });
-
-      expect(queueToasts.queueClear).toHaveBeenCalled();
     });
   });
 
