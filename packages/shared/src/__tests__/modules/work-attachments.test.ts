@@ -27,6 +27,12 @@ describe("work attachment boundaries", () => {
     expect(isHeicFile(new File(["h"], "burst", { type: "image/heif-sequence" }))).toBe(true);
     expect(isHeicFile(new File(["j"], "garden.jpg", { type: "image/jpeg" }))).toBe(false);
   });
+  it("trusts a known type over the name, so a JPEG named .heic stays a JPEG", () => {
+    expect(isHeicFile(new File(["j"], "renamed.heic", { type: "image/jpeg" }))).toBe(false);
+    expect(isHeicFile(new File(["h"], "download.heic", { type: "application/octet-stream" }))).toBe(
+      true
+    );
+  });
   it("refuses a HEIC photo by default, so nothing uploads an unconverted original", () => {
     const heic = new File(["h"], "garden.heic", { type: "image/heic" });
     expect(validateWorkAttachments([heic], [], 1)).toEqual(["photos-required", "media-type"]);

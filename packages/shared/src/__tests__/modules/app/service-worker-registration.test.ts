@@ -232,6 +232,29 @@ describe("service worker registration config", () => {
     stop();
   });
 
+  it("forgets a tier's answer when a new worker takes control", async () => {
+    vi.resetModules();
+    const { currentPwaShellTierStatus, schedulePwaShellPreparation } = await import(
+      "../../../modules/app/service-worker-registration"
+    );
+    const worker = { postMessage: vi.fn() } as unknown as ServiceWorker;
+    const container = Object.assign(new EventTarget(), { controller: worker });
+    Object.defineProperty(navigator, "serviceWorker", { configurable: true, value: container });
+
+    schedulePwaShellPreparation("priority");
+    const [, transfer] = (worker.postMessage as ReturnType<typeof vi.fn>).mock.calls[0] as [
+      unknown,
+      MessagePort[],
+    ];
+    transfer[0].postMessage({ status: "ready" });
+    await vi.waitFor(() => expect(currentPwaShellTierStatus("priority")).toBe("ready"));
+
+    // The next worker's files are not known to be on the device until it answers.
+    container.controller = { postMessage: vi.fn() } as unknown as ServiceWorker;
+    container.dispatchEvent(new Event("controllerchange"));
+    expect(currentPwaShellTierStatus("priority")).toBeUndefined();
+  });
+
   it("stops telling a listener that unsubscribed", async () => {
     vi.resetModules();
     const { schedulePwaShellPreparation } = await import(

@@ -194,6 +194,15 @@ export function schedulePwaShellPreparation(
 }
 
 /**
+ * The current worker's last answer for a tier, without asking for it. A new
+ * controller clears every answer, so a reader never trusts a previous worker's
+ * files. `undefined` means this worker has not answered yet.
+ */
+export function currentPwaShellTierStatus(tier: PwaShellTier): PwaShellTierStatus | undefined {
+  return tierOutcome.get(tier);
+}
+
+/**
  * Hear a tier's outcome without asking for it. For readers that only need to
  * know whether the offline-ready files are on the device, such as the HEIC
  * decoder: only an installed app or an install should start that download.

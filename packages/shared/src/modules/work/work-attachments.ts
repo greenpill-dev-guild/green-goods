@@ -103,9 +103,13 @@ export function restoreWorkFile(
   return file;
 }
 
-/** A HEIC or HEIF photo, by type or by name: Android pickers often report no type. */
+/**
+ * A HEIC or HEIF photo, by type, or by name when the picker gave no usable type
+ * (Android often reports none). A known type wins: a JPEG named `.heic` is a JPEG.
+ */
 export function isHeicFile(file: Pick<File, "name" | "type">): boolean {
   if (HEIC_TYPES.has(file.type)) return true;
+  if (file.type && file.type !== "application/octet-stream") return false;
   const dot = file.name.lastIndexOf(".");
   return (
     dot >= 0 &&

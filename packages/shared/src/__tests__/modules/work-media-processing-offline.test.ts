@@ -62,7 +62,7 @@ describe("work media without the HEIC decoder", () => {
     expect(result.rejected[0].reason).toBe("unsupported");
   });
 
-  it("tries the decoder at most once per page, since a failed import stays failed", async () => {
+  it("tries the decoder once for a pick of several photos, not once per photo", async () => {
     // A fresh page: nothing in this module has tried the decoder yet.
     vi.resetModules();
     const fresh = await import("../../modules/work/media-processing");

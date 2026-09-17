@@ -12,7 +12,7 @@
 
 import { CONFIRMED_ONLINE_MAX_AGE_MS, connectivityStore } from "../../stores/connectivity";
 import { logger } from "../app/logger";
-import { observePwaShellTier } from "../app/service-worker-registration";
+import { currentPwaShellTierStatus } from "../app/service-worker-registration";
 
 export const HEIC_JPEG_QUALITY = 0.85;
 
@@ -33,40 +33,39 @@ export type HeicConversion =
   /** The decoder loaded and could not read this photo. */
   | { status: "failed"; error: unknown };
 
-let offlineReadyTier = false;
-let watchingTier = false;
+/**
+ * A failed import is not retried within this window, so a pick of several
+ * photos tries once. After it, the next wake-up (the offline-ready tier
+ * answering, or the connection returning) tries again: whether a browser keeps
+ * a rejected dynamic import is not guaranteed, and retrying costs nothing when
+ * it does.
+ */
+const DECODER_RETRY_AFTER_MS = 30_000;
 let decoderLoad: Promise<HeicDecoder | null> | undefined;
-
-function watchOfflineReadyTier(): void {
-  if (watchingTier || typeof window === "undefined") return;
-  watchingTier = true;
-  observePwaShellTier("priority", (status) => {
-    offlineReadyTier = status === "ready";
-  });
-}
+let decoderFailedAt = Number.NEGATIVE_INFINITY;
 
 /**
  * Whether importing the decoder can succeed now. An unstable connection is not
  * probed here: its own recheck publishes the recovery that callers listen for.
  */
 async function canAttemptHeicDecoder(): Promise<boolean> {
-  watchOfflineReadyTier();
-  if (decoderLoad || offlineReadyTier || connectivityStore.isConfirmedOnline()) return true;
+  if (currentPwaShellTierStatus("priority") === "ready" || connectivityStore.isConfirmedOnline())
+    return true;
   if (connectivityStore.getStatusSnapshot().state !== "online") return false;
   return connectivityStore.confirmOnline({ maxAgeMs: CONFIRMED_ONLINE_MAX_AGE_MS });
 }
 
-/**
- * Import the decoder at most once per page. A failed import is remembered
- * rather than retried: the browser would only hand back the same rejection.
- */
-export async function loadHeicDecoderOnce(): Promise<HeicDecoder | null> {
+/** Import the decoder when it can load, sharing one import between callers. */
+export async function loadHeicDecoder(): Promise<HeicDecoder | null> {
   if (decoderLoad) return decoderLoad;
+  if (Date.now() - decoderFailedAt < DECODER_RETRY_AFTER_MS) return null;
   if (!(await canAttemptHeicDecoder())) return null;
   decoderLoad ??= import("heic-to/csp").catch((error: unknown) => {
-    logger.warn("[WorkMedia] HEIC decoder could not load; photos wait for the next launch", {
+    logger.warn("[WorkMedia] HEIC decoder could not load; waiting photos try again later", {
       error: error instanceof Error ? error.message : String(error),
     });
+    decoderFailedAt = Date.now();
+    decoderLoad = undefined;
     return null;
   });
   return decoderLoad;
@@ -108,7 +107,7 @@ async function compressLikePicker(file: File): Promise<File> {
 
 /** Convert one waiting HEIC photo, or say why it cannot be converted yet. */
 export async function convertHeicPhoto(file: File): Promise<HeicConversion> {
-  const decoder = await loadHeicDecoderOnce();
+  const decoder = await loadHeicDecoder();
   if (!decoder) return { status: "unavailable" };
   try {
     const jpeg = await convertHeicToJpeg(decoder, file);

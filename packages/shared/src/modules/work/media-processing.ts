@@ -2,7 +2,7 @@ import {
   HEIC_JPEG_QUALITY,
   WORK_PHOTO_COMPRESSION,
   convertHeicToJpeg,
-  loadHeicDecoderOnce,
+  loadHeicDecoder,
 } from "./heic-conversion";
 import { captureWorkFile, isHeicFile } from "./work-attachments";
 export type WorkMediaSource = "camera" | "gallery";
@@ -156,7 +156,7 @@ export async function normalizeWorkMediaFiles(
       continue;
     }
 
-    const decoder = await loadHeicDecoderOnce();
+    const decoder = await loadHeicDecoder();
     if (!decoder) {
       // Keep the steward's photo rather than refusing it: the draft survives,
       // and the photo converts once the decoder can load.

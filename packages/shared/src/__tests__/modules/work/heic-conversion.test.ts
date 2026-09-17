@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const state = vi.hoisted(() => ({
   imports: 0,
-  tierListener: undefined as ((status: string) => void) | undefined,
+  tierStatus: undefined as string | undefined,
   heicTo: vi.fn(),
   connectivity: {
     isConfirmedOnline: vi.fn(() => false),
@@ -25,10 +25,7 @@ vi.mock("../../../stores/connectivity", () => ({
   connectivityStore: state.connectivity,
 }));
 vi.mock("../../../modules/app/service-worker-registration", () => ({
-  observePwaShellTier: (_tier: string, listener: (status: string) => void) => {
-    state.tierListener = listener;
-    return () => undefined;
-  },
+  currentPwaShellTierStatus: () => state.tierStatus,
 }));
 vi.mock("../../../utils/work/image-compression", () => ({ imageCompressor: state.compressor }));
 
@@ -40,8 +37,9 @@ async function loadModule() {
 const heic = () => new File(["heic-bytes"], "garden.HEIC", { type: "image/heic", lastModified: 7 });
 
 beforeEach(() => {
+  vi.restoreAllMocks();
   state.imports = 0;
-  state.tierListener = undefined;
+  state.tierStatus = undefined;
   state.heicTo.mockReset().mockResolvedValue(new Blob(["jpeg-bytes"], { type: "image/jpeg" }));
   state.connectivity.isConfirmedOnline.mockReset().mockReturnValue(false);
   state.connectivity.getStatusSnapshot.mockReset().mockReturnValue({ state: "offline" });
@@ -64,7 +62,7 @@ describe("deferred HEIC conversion", () => {
   it("converts once the offline-ready tier reports the decoder is on the device", async () => {
     const { convertHeicPhoto } = await loadModule();
     await convertHeicPhoto(heic());
-    state.tierListener?.("ready");
+    state.tierStatus = "ready";
 
     const result = await convertHeicPhoto(heic());
 
@@ -74,6 +72,15 @@ describe("deferred HEIC conversion", () => {
     expect(file.type).toBe("image/jpeg");
     expect(file.lastModified).toBe(7);
     expect(await file.text()).toBe("jpeg-bytes");
+  });
+
+  it("stops trusting the offline-ready tier once a new worker takes over", async () => {
+    // A new controller clears every tier answer until that worker reports again.
+    state.tierStatus = undefined;
+    const { convertHeicPhoto } = await loadModule();
+
+    await expect(convertHeicPhoto(heic())).resolves.toEqual({ status: "unavailable" });
+    expect(state.imports).toBe(0);
   });
 
   it("converts when the connection is confirmed, without probing again", async () => {
@@ -136,5 +143,24 @@ describe("deferred HEIC conversion", () => {
     const result = await convertHeicPhoto(heic());
     expect(result.status).toBe("converted");
     expect(await (result as { file: File }).file.text()).toBe("jpeg-bytes");
+  });
+
+  // Last: it swaps the decoder module for the rest of this file.
+  it("tries the decoder again after a failed import, once a pick's worth of time has passed", async () => {
+    state.tierStatus = "ready";
+    let failedImports = 0;
+    vi.doMock("heic-to/csp", () => {
+      failedImports += 1;
+      throw new Error("Failed to fetch dynamically imported module");
+    });
+    const { convertHeicPhoto } = await loadModule();
+
+    await expect(convertHeicPhoto(heic())).resolves.toEqual({ status: "unavailable" });
+    await expect(convertHeicPhoto(heic())).resolves.toEqual({ status: "unavailable" });
+    expect(failedImports).toBe(1);
+
+    vi.doMock("heic-to/csp", () => ({ heicTo: state.heicTo, isHeic: vi.fn(async () => true) }));
+    vi.spyOn(Date, "now").mockReturnValue(Date.now() + 30_001);
+    await expect(convertHeicPhoto(heic())).resolves.toMatchObject({ status: "converted" });
   });
 });

@@ -45,10 +45,14 @@ export function WorkMediaVideoCard({
         <button
           type="button"
           data-pressable="media"
+          aria-label={intl.formatMessage({
+            id: "app.garden.upload.playVideo",
+            defaultMessage: "Play video",
+          })}
           className="absolute inset-0 flex items-center justify-center rounded-[var(--radius-lg)] bg-[var(--color-overlay)]"
           onClick={onPlay}
         >
-          <RiPlayFill className="w-12 h-12 text-static-white" />
+          <RiPlayFill className="w-12 h-12 text-static-white" aria-hidden="true" />
         </button>
       )}
       {isBroken && (
