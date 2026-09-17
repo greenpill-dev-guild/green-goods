@@ -616,6 +616,100 @@ describe("useBatchWorkSync", () => {
       expect(queueToasts.syncError).toHaveBeenCalled();
     });
 
+    it("leaves every job sendable, and never terminal, when the wallet prompt is declined", async () => {
+      mockGetJobsWithImages.mockResolvedValue([
+        createMockPendingJob("job-1"),
+        createMockPendingJob("job-2"),
+      ]);
+      mockGetWalletClient.mockResolvedValue({
+        account: { address: MOCK_ADDRESSES.user },
+        chain: { id: 11155111 },
+        sendTransaction: vi
+          .fn()
+          .mockRejectedValue(Object.assign(new Error("User rejected the request"), { code: 4001 })),
+      });
+
+      const { result } = renderHook(() => useBatchWorkSync(), {
+        wrapper: createWrapper(queryClient),
+      });
+      await act(async () => {
+        await result.current.mutateAsync().catch(() => undefined);
+      });
+
+      expect(jobQueueDB.markJobTerminalFailed).not.toHaveBeenCalled();
+      const lastWrite = new Map<string, Job<WorkJobPayload>>();
+      for (const [saved] of vi.mocked(jobQueueDB.updateJob).mock.calls)
+        lastWrite.set(saved.id, saved as Job<WorkJobPayload>);
+      for (const [savedJobs] of vi.mocked(jobQueueDB.updateJobs).mock.calls)
+        for (const saved of savedJobs) lastWrite.set(saved.id, saved as Job<WorkJobPayload>);
+      for (const id of ["job-1", "job-2"]) {
+        expect(lastWrite.get(id)?.payload.uploadCheckpoint?.broadcastPending).toBeFalsy();
+        expect(lastWrite.get(id)?.meta?.requiresExplicitSend).toBe(true);
+      }
+    });
+
+    it("saves a sibling's upload progress even after another job's upload fails", async () => {
+      mockGetJobsWithImages.mockResolvedValue([
+        createMockPendingJob("job-1"),
+        createMockPendingJob("job-2"),
+      ]);
+      const siblingCheckpoint = {
+        submittedAt: "2026-09-16T00:00:00Z",
+        files: { photo: { attachmentId: "a", contentHash: "photo", cid: "bafy-sibling" } },
+      };
+      mockEncodeWorkData.mockImplementation(
+        async (
+          draft: { title: string },
+          _chain: number,
+          options: { clientWorkId?: string; onCheckpoint?: (c: unknown) => Promise<void> }
+        ) => {
+          void draft;
+          if (mockEncodeWorkData.mock.calls.length === 1) throw new Error("gateway timeout");
+          await new Promise((resolve) => setTimeout(resolve, 20));
+          await options.onCheckpoint?.(siblingCheckpoint);
+          return "0xEncodedData";
+        }
+      );
+
+      const { result } = renderHook(() => useBatchWorkSync(), {
+        wrapper: createWrapper(queryClient),
+      });
+      await act(async () => {
+        await result.current.mutateAsync().catch(() => undefined);
+      });
+
+      expect(
+        vi
+          .mocked(jobQueueDB.updateJob)
+          .mock.calls.map(([saved]) => (saved.payload as WorkJobPayload).uploadCheckpoint)
+      ).toContainEqual(siblingCheckpoint);
+      const wallet = await mockGetWalletClient.mock.results[0]?.value;
+      expect(wallet.sendTransaction).not.toHaveBeenCalled();
+    });
+
+    it("leaves work waiting for an explicit send out of an automatic batch", async () => {
+      // Fresh fixtures per run: a batch marks the jobs it sent.
+      const queue = () => {
+        const waiting = createMockPendingJob("job-1");
+        (waiting.job as { meta?: Record<string, unknown> }).meta = { requiresExplicitSend: true };
+        return [waiting, createMockPendingJob("job-2")];
+      };
+      mockGetJobsWithImages.mockResolvedValue(queue());
+
+      const { syncQueuedWorkBatch } = await import("../../../hooks/work/useBatchWorkSync");
+      const automatic = await syncQueuedWorkBatch(MOCK_ADDRESSES.user as `0x${string}`, 11155111);
+      expect(automatic.count).toBe(1);
+
+      mockGetJobsWithImages.mockResolvedValue(queue());
+      const explicit = await syncQueuedWorkBatch(
+        MOCK_ADDRESSES.user as `0x${string}`,
+        11155111,
+        undefined,
+        { explicit: true }
+      );
+      expect(explicit.count).toBe(2);
+    });
+
     it("preserves confirmed jobs when local completion fails, then reconciles without sending again", async () => {
       const jobs = [createMockPendingJob("job-1"), createMockPendingJob("job-2")];
       mockGetJobsWithImages.mockResolvedValue(jobs);

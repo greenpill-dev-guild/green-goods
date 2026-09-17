@@ -89,7 +89,9 @@ export function useWorkDetailController() {
     if (!transactionSender || !work) return;
     setIsRetrying(true);
     try {
-      const result = await jobQueue.processJob(work.id, { transactionSender });
+      const result = await jobQueue.processJob(work.id, { transactionSender, explicit: true });
+      // Declining the prompt is not a failure; the work stays ready to send.
+      if (result.error === "send-cancelled") return;
       if (!result.success) {
         toastService.error({
           title: intl.formatMessage({

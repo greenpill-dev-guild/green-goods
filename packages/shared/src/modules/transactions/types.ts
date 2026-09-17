@@ -38,6 +38,13 @@ export interface TxResult {
 
 export interface TransactionSendOptions {
   assertOwnership?: () => void | Promise<void>;
+  /**
+   * Called once, immediately before the call can reach the network. A passkey
+   * sender calls it after the prompt is approved and signed, with the
+   * UserOperation's hash. A wallet approves and broadcasts in one step, so its
+   * sender calls it just before asking. A failure before this runs never sent.
+   */
+  onBeforeBroadcast?: (reference?: BroadcastReference) => Promise<void>;
   onBroadcastReference?: (reference: BroadcastReference) => Promise<void>;
   onBroadcast?: (hash: Hex) => Promise<void>;
 }

@@ -99,6 +99,9 @@ export class WalletSender implements TransactionSender {
     await this.deps.assertWriteSafety?.();
 
     await options.assertOwnership?.();
+    // The wallet approves and broadcasts in one step, so the intent is recorded
+    // before asking. A rejected prompt is recognised and clears it.
+    await options.onBeforeBroadcast?.();
 
     const hash: string = await this.writeContractAsync({
       address: call.address as `0x${string}`,

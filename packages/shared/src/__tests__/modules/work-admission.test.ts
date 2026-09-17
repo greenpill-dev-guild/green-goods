@@ -54,6 +54,55 @@ function fixture() {
   return { command, ports, send };
 }
 describe("PWA durable submission boundary", () => {
+  it("keeps declined passkey work, and asks again when Submit is tapped again", async () => {
+    const { command, ports } = fixture();
+    command.authMode = "passkey";
+    ports.sender = createMockTransactionSender();
+    const process = vi
+      .fn()
+      .mockImplementationOnce(async (jobId: string) => {
+        const job = (await jobQueueDB.getJob(jobId))!;
+        await jobQueueDB.updateJob({ ...job, meta: { ...job.meta, requiresExplicitSend: true } });
+        return { success: false, error: "send-cancelled", skipped: true };
+      })
+      .mockResolvedValueOnce({ success: true, txHash: hash });
+    ports.queue.process = process;
+
+    await expect(submitWork(command, ports)).rejects.toMatchObject({ code: 4001 });
+    const pending = await jobQueueDB.getJobs({ userAddress: command.userAddress!, synced: false });
+    const kept = pending.find(
+      (job) => (job.payload as WorkJobPayload).clientWorkId === command.clientWorkId
+    );
+    expect(kept?.attempts).toBe(0);
+
+    await expect(submitWork(command, ports)).resolves.toMatchObject({ kind: "processed" });
+    expect(process).toHaveBeenCalledTimes(2);
+  });
+
+  it("keeps declined wallet work sendable instead of failing it", async () => {
+    const { command, ports } = fixture();
+    ports.direct.submitWork = vi.fn(async (input: SubmitWorkCommand) => {
+      await input.onCheckpoint?.({
+        submittedAt: new Date().toISOString(),
+        files: {},
+        broadcastPending: true,
+      });
+      throw new Error("Transaction failed", {
+        cause: Object.assign(new Error("User rejected the request."), { code: 4001 }),
+      });
+    });
+
+    await expect(submitWork(command, ports)).rejects.toThrow();
+
+    const pending = await jobQueueDB.getJobs({ userAddress: command.userAddress!, synced: false });
+    const kept = pending.find(
+      (job) => (job.payload as WorkJobPayload).clientWorkId === command.clientWorkId
+    );
+    expect(kept?.attempts).toBe(0);
+    expect(kept?.meta?.requiresExplicitSend).toBe(true);
+    expect((kept?.payload as WorkJobPayload).uploadCheckpoint?.broadcastPending).toBeFalsy();
+  });
+
   it("sends a wallet work's photo as the JPEG it converts to, not the HEIC it was picked as", async () => {
     const { command, ports, send } = fixture();
     const picked = new File(["heic-bytes"], "garden.heic", { type: "image/heic" });

@@ -93,8 +93,12 @@ export function createJobProcessor(deps: ProcessJobDependencies) {
       return { success: false, error: "offline", skipped: true };
     }
 
+    if (job.meta?.requiresExplicitSend && !context.explicit) {
+      return { success: false, error: "send-requires-explicit", skipped: true };
+    }
+
     const now = deps.clock.now();
-    if (isWithinBackoffWindow(job, now)) {
+    if (!context.explicit && isWithinBackoffWindow(job, now)) {
       const remainingBackoff =
         calculateBackoffDelay(job.attempts) - (now - (job.lastAttemptAt || 0));
       return {
@@ -132,6 +136,11 @@ export function createJobProcessor(deps: ProcessJobDependencies) {
       return { success: false, error: "transaction_sender_unavailable", skipped: true };
     }
 
+    if (context.explicit && job.meta?.requiresExplicitSend) {
+      // The person chose to send it; later automatic retries may follow up.
+      const { requiresExplicitSend: _requiresExplicitSend, ...meta } = job.meta;
+      job.meta = meta;
+    }
     deps.events.emit("job:processing", { jobId, job });
     deps.analytics.processingStarted(job.kind, job.attempts + 1);
     const chainId = job.chainId || deps.config.defaultChainId;

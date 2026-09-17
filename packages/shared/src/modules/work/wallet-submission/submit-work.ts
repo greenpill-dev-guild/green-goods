@@ -158,6 +158,7 @@ export async function submitWorkDirectly(
       files: {},
       ...draft.uploadCheckpoint,
       broadcastPending: true,
+      broadcastPendingAt: new Date().toISOString(),
     };
     await options.onCheckpoint?.(draft.uploadCheckpoint);
     await options.assertOwnership?.();

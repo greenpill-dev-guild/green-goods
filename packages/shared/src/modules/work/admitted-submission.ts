@@ -17,10 +17,10 @@ import {
   acquireWorkJobs,
   rememberWorkBroadcast,
   forgetWorkBroadcast,
-  isWorkSubmissionCancelled,
   AwaitingWorkConfirmation,
   WorkTransactionReverted,
 } from "./work-confirmation";
+import { classifySendFailure, WorkSendCancelledError } from "./send-outcome";
 
 export function queuedOutcome(
   queued: QueuedWorkSubmission,
@@ -72,19 +72,23 @@ export async function submitAdmittedWork(
     const existing = await jobQueueDB.getJob(queued.jobId);
     rejectTerminalWork(existing);
     const checkpoint = (existing?.payload as WorkJobPayload | undefined)?.uploadCheckpoint;
-    return {
-      ...queuedOutcome(queued, ports.sender),
-      kind:
-        checkpoint?.broadcast || checkpoint?.transactionHash || checkpoint?.broadcastPending
-          ? "awaiting-confirmation"
-          : "queued",
-    } as SubmitWorkOutcome;
+    const awaiting = Boolean(
+      checkpoint?.broadcast || checkpoint?.transactionHash || checkpoint?.broadcastPending
+    );
+    // Submitting again after declining the prompt is the person asking to send it.
+    if (awaiting || !existing?.meta?.requiresExplicitSend)
+      return {
+        ...queuedOutcome(queued, ports.sender),
+        kind: awaiting ? "awaiting-confirmation" : "queued",
+      } as SubmitWorkOutcome;
   }
   if (!ports.connectivity.isOnline()) return queuedOutcome(queued, ports.sender);
   if (input.authMode !== "wallet") {
     await input.assertOwnership?.();
     if (!ports.sender) return queuedOutcome(queued, ports.sender);
     const result = await ports.queue.process(queued.jobId, ports.sender, input.assertOwnership);
+    // The work stays queued; the person is told they cancelled, not that it failed.
+    if (result.error === "send-cancelled") throw new WorkSendCancelledError();
     if (!result.success) {
       rejectTerminalWork(await jobQueueDB.getJob(queued.jobId));
       if (result.error?.includes("work-transaction-reverted"))
@@ -199,11 +203,21 @@ export async function submitAdmittedWork(
       }
       const cause = error instanceof Error && error.cause ? error.cause : error;
       if (cause instanceof Error && cause.message === "submission-ownership-changed") throw error;
-      const cancelled = isWorkSubmissionCancelled(error);
-      if (cancelled) {
-        if (payload.uploadCheckpoint) payload.uploadCheckpoint.broadcastPending = false;
+      // The wallet approves and broadcasts in one step; the intent was recorded
+      // before it asked. A refusal proves nothing was sent.
+      const checkpoint = payload.uploadCheckpoint;
+      const failure = classifySendFailure(error, {
+        intentRecorded: Boolean(checkpoint?.broadcastPending),
+        broadcastKnown: Boolean(checkpoint?.transactionHash || checkpoint?.broadcast),
+      });
+      if (failure.kind === "not-sent" && checkpoint?.broadcastPending) {
+        delete checkpoint.broadcastPending;
+        delete checkpoint.broadcastPendingAt;
         await jobQueueDB.updateJob(job);
-        await jobQueueDB.markJobTerminalFailed(job.id, "cancelled");
+      }
+      if (failure.kind === "not-sent" && failure.cancelled) {
+        job.meta = { ...job.meta, requiresExplicitSend: true };
+        await jobQueueDB.updateJob(job);
         throw error;
       }
       if (

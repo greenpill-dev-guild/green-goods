@@ -10,6 +10,12 @@ import type { TransactionSender } from "../transactions/types";
 export interface ProcessJobContext {
   transactionSender: TransactionSender | null;
   assertOwnership?: () => void | Promise<void>;
+  /**
+   * The person asked for this send (Submit, Send Now, Retry). Only an explicit
+   * send processes a job whose earlier prompt was declined, and it skips the
+   * retry backoff: nothing is hammering the network when someone taps.
+   */
+  explicit?: boolean;
 }
 
 export interface ProcessJobResult {

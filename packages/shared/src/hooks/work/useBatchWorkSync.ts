@@ -7,8 +7,8 @@ import {
   rememberWorkBroadcast,
   retainedWorkBroadcast,
   forgetWorkBroadcast,
-  isWorkSubmissionCancelled,
 } from "../../modules/work/work-confirmation";
+import { classifySendFailure } from "../../modules/work/send-outcome";
 /**
  * Batch Work Sync Hook
  *
@@ -69,7 +69,9 @@ interface EncodedWorkJob {
 export async function syncQueuedWorkBatch(
   primaryAddress: Address,
   chainId: number = DEFAULT_CHAIN_ID,
-  assertSession?: () => void | Promise<void>
+  assertSession?: () => void | Promise<void>,
+  /** `explicit`: the person tapped Send all, so work they declined earlier is included. */
+  options: { explicit?: boolean } = {}
 ): Promise<BatchWorkSyncResult> {
   const jobs = await jobQueue.getJobs(primaryAddress, { kind: "work", synced: false });
   const candidates: Array<{ job: Job<WorkJobPayload> }> = jobs
@@ -78,6 +80,7 @@ export async function syncQueuedWorkBatch(
         (job.chainId ?? DEFAULT_CHAIN_ID) === chainId &&
         job.userAddress.toLowerCase() === primaryAddress.toLowerCase() &&
         !job.meta?.workTransactionReverted &&
+        (options.explicit || !job.meta?.requiresExplicitSend) &&
         (!isTerminallyFailedJob(job) ||
           Boolean((job.payload as WorkJobPayload).uploadCheckpoint?.transactionHash))
     )
@@ -179,7 +182,9 @@ export async function syncQueuedWorkBatch(
     // the offline shell reaches this module through the provider and the
     // sync bar, and must stay within its precache budget.
     const { encodeWorkData } = await import("../../utils/eas/encoders");
-    const encodedJobs = (await Promise.all(
+    // Every upload settles before the batch decides anything: an early failure
+    // must not release the claim while a sibling is still saving its CIDs.
+    const encoded = await Promise.allSettled(
       pendingJobs.map(async ({ job }): Promise<EncodedWorkJob> => {
         await assertOwnership();
         const images = await jobQueueDB.getImagesForJob(job.id);
@@ -195,9 +200,12 @@ export async function syncQueuedWorkBatch(
           clientWorkId: payload.clientWorkId,
           checkpoint: payload.uploadCheckpoint,
           onCheckpoint: async (checkpoint) => {
-            await assertOwnership();
+            // Progress is saved while the claim holds, even if the wallet has
+            // since changed: the CIDs are valid whoever sends the work.
+            await claim.assertOwned();
             payload.uploadCheckpoint = checkpoint;
             await jobQueueDB.updateJob(job);
+            await assertOwnership();
           },
           gardenAddress: payload.gardenAddress,
           authMode: "wallet",
@@ -209,7 +217,12 @@ export async function syncQueuedWorkBatch(
           attestationData,
         };
       })
-    )) as EncodedWorkJob[];
+    );
+    const failedUpload = encoded.find((result) => result.status === "rejected");
+    if (failedUpload) throw (failedUpload as PromiseRejectedResult).reason;
+    const encodedJobs = encoded.map(
+      (result) => (result as PromiseFulfilledResult<EncodedWorkJob>).value
+    );
 
     const easConfig = getEASConfig(chainId);
     const txParams = buildBatchWorkAttestTx(
@@ -230,7 +243,11 @@ export async function syncQueuedWorkBatch(
         files: {},
         ...payload.uploadCheckpoint,
         broadcastPending: true,
+        broadcastPendingAt: new Date().toISOString(),
       };
+      // Sending now, by the person's tap or by an automatic send they allowed.
+      const { requiresExplicitSend: _explicit, ...meta } = job.meta ?? {};
+      job.meta = meta;
     }
     await jobQueueDB.updateJobs(encodedJobs.map(({ job }) => job));
     await assertOwnership();
@@ -242,13 +259,19 @@ export async function syncQueuedWorkBatch(
         account: currentWallet.account,
       });
     } catch (error) {
-      const cancelled = isWorkSubmissionCancelled(error);
-      if (cancelled) {
+      // The wallet approves and broadcasts in one step, so the intent was
+      // recorded before asking. Only a refusal proves nothing was sent.
+      const failure = classifySendFailure(error, { intentRecorded: true, broadcastKnown: false });
+      if (failure.kind === "not-sent") {
         for (const { job } of encodedJobs) {
-          (job.payload as WorkJobPayload).uploadCheckpoint!.broadcastPending = false;
-          await jobQueueDB.updateJob(job);
-          await jobQueueDB.markJobTerminalFailed(job.id, "cancelled");
+          const checkpoint = (job.payload as WorkJobPayload).uploadCheckpoint;
+          if (checkpoint) {
+            delete checkpoint.broadcastPending;
+            delete checkpoint.broadcastPendingAt;
+          }
+          if (failure.cancelled) job.meta = { ...job.meta, requiresExplicitSend: true };
         }
+        await jobQueueDB.updateJobs(encodedJobs.map(({ job }) => job));
       }
       throw error;
     }
@@ -368,10 +391,15 @@ export function useBatchWorkSync() {
       }
 
       const generation = session.current.generation;
-      return syncQueuedWorkBatch(primaryAddress, chainId, () => {
-        if (generation !== session.current.generation || identity !== session.current.identity)
-          throw new Error("submission-ownership-changed");
-      });
+      return syncQueuedWorkBatch(
+        primaryAddress,
+        chainId,
+        () => {
+          if (generation !== session.current.generation || identity !== session.current.identity)
+            throw new Error("submission-ownership-changed");
+        },
+        { explicit: true }
+      );
     },
     onSuccess: ({ count, gardens, awaitingConfirmation, confirmationFailed, waitingForPhotos }) => {
       if (awaitingConfirmation || confirmationFailed) {

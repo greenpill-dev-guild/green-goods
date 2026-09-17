@@ -1,6 +1,6 @@
 /** @vitest-environment jsdom */
 
-import { renderHook } from "@testing-library/react";
+import { act, renderHook } from "@testing-library/react";
 import { createElement, type ReactNode } from "react";
 import { IntlProvider } from "react-intl";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
@@ -15,6 +15,7 @@ const mocks = vi.hoisted(() => ({
     viewingMode: string;
   },
   userId: "0x1111111111111111111111111111111111111111" as string | undefined,
+  sender: null as null | { authMode: string },
 }));
 
 vi.mock("@tanstack/react-query", async (importOriginal) => ({
@@ -77,7 +78,7 @@ vi.mock("../../../hooks/app/useOffline", () => ({
 }));
 
 vi.mock("../../../hooks/blockchain/useTransactionSender", () => ({
-  useTransactionSender: () => null,
+  useTransactionSender: () => mocks.sender,
 }));
 
 vi.mock("../../../hooks/auth/useUser", () => ({
@@ -143,6 +144,29 @@ describe("useWorkDetailController", () => {
     mocks.approvalParams = null;
     mocks.canManageGarden.mockReturnValue(false);
     mocks.isUserAddress.mockReturnValue(false);
+    mocks.sender = null;
+  });
+
+  it("sends explicitly from Send Now and stays quiet when the prompt is declined", async () => {
+    mocks.sender = { authMode: "passkey" };
+    const { jobQueue } = await import("../../../modules/job-queue/default-instance");
+    const { toastService } = await import("../../../components/Toast/toast.service");
+    vi.mocked(jobQueue.processJob).mockResolvedValue({
+      success: false,
+      error: "send-cancelled",
+      skipped: true,
+    });
+    const { result } = renderHook(() => useWorkDetailController(), { wrapper: RouterWrapper });
+
+    await act(async () => {
+      await result.current.retry();
+    });
+
+    expect(jobQueue.processJob).toHaveBeenCalledWith("work-1", {
+      transactionSender: mocks.sender,
+      explicit: true,
+    });
+    expect(toastService.error).not.toHaveBeenCalled();
   });
 
   it("projects steward, gardener, and viewer modes with steward precedence", () => {

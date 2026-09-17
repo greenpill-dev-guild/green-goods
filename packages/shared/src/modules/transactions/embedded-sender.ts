@@ -77,6 +77,7 @@ export class EmbeddedSender implements TransactionSender {
     await this.deps.assertWriteSafety?.();
 
     await options.assertOwnership?.();
+    await options.onBeforeBroadcast?.();
 
     const hash = await this.deps.writeContract(this.config, {
       address: call.address,

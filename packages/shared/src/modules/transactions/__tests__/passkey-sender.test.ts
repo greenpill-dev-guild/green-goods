@@ -7,11 +7,14 @@
  */
 
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { entryPoint07Address, getUserOperationHash } from "viem/account-abstraction";
+import { sepolia } from "viem/chains";
 import {
   createFakeSmartAccountClient,
   createMockContractCall,
   MOCK_TX_HASH,
 } from "@green-goods/shared/testing";
+import { fakePreparedUserOperation } from "../../../__tests__/test-utils/transaction-fakes";
 import type { ContractCall } from "../types";
 
 // ============================================
@@ -96,6 +99,57 @@ describe("PasskeySender", () => {
         }
       ).calls[0] as { value: bigint };
       expect(sendTxArgs.value).toBe(1000000n);
+    });
+
+    it("reports the signed operation's hash just before broadcasting it", async () => {
+      const client = createFakeSmartAccountClient();
+      const trace: string[] = [];
+      vi.mocked(client.account!.signUserOperation).mockImplementation(async () => {
+        trace.push("sign");
+        return "0x5555" as `0x${string}`;
+      });
+      const onBeforeBroadcast = vi.fn(async () => {
+        trace.push("intent");
+      });
+      const onBroadcastReference = vi.fn(async () => {
+        trace.push("broadcast");
+      });
+
+      await new PasskeySender(client).sendContractCall(TEST_CALL, {
+        onBeforeBroadcast,
+        onBroadcastReference,
+      });
+
+      expect(trace).toEqual(["sign", "intent", "broadcast"]);
+      expect(onBeforeBroadcast).toHaveBeenCalledWith({
+        kind: "user-operation",
+        hash: getUserOperationHash({
+          chainId: sepolia.id,
+          entryPointAddress: entryPoint07Address,
+          entryPointVersion: "0.7",
+          userOperation: fakePreparedUserOperation(client.account!.address),
+        }),
+      });
+    });
+
+    it("never reports a send when the passkey prompt is declined", async () => {
+      const client = createFakeSmartAccountClient();
+      const declined = new DOMException(
+        "The operation either timed out or was not allowed.",
+        "NotAllowedError"
+      );
+      vi.mocked(client.account!.signUserOperation).mockRejectedValue(declined);
+      const onBeforeBroadcast = vi.fn();
+      const onBroadcastReference = vi.fn();
+
+      await expect(
+        new PasskeySender(client).sendContractCall(TEST_CALL, {
+          onBeforeBroadcast,
+          onBroadcastReference,
+        })
+      ).rejects.toBe(declined);
+      expect(onBeforeBroadcast).not.toHaveBeenCalled();
+      expect(onBroadcastReference).not.toHaveBeenCalled();
     });
 
     it("propagates errors from sendUserOperation", async () => {

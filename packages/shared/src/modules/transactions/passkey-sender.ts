@@ -9,6 +9,7 @@
 
 import type { SmartAccountClient } from "permissionless";
 import { encodeFunctionData } from "viem";
+import { getUserOperationHash } from "viem/account-abstraction";
 import { logger } from "../app/logger";
 import { assertLocalArbitrumForkSmartAccountsDisabled } from "./local-fork-safety";
 import {
@@ -56,7 +57,7 @@ export class PasskeySender implements TransactionSender {
 
     await options.assertOwnership?.();
     const operationHash = await this.client.sendUserOperation({
-      account: this.client.account!,
+      account: this.reportingAccount(options),
       calls: [{ to: call.address, value: call.value ?? 0n, data }],
     });
     await options.onBroadcastReference?.({ kind: "user-operation", hash: operationHash });
@@ -77,6 +78,47 @@ export class PasskeySender implements TransactionSender {
     });
 
     return { hash, sponsored: true };
+  }
+
+  /**
+   * viem prepares the operation (estimation and sponsorship), asks the account
+   * to sign it, and then broadcasts. Wrapping the signature is the one seam
+   * between an approved prompt and the network: a declined prompt or a refused
+   * sponsorship throws before `onBeforeBroadcast` runs.
+   */
+  private reportingAccount(options: TransactionSendOptions) {
+    const account = this.client.account!;
+    const onBeforeBroadcast = options.onBeforeBroadcast;
+    if (!onBeforeBroadcast) return account;
+    const clientChainId = this.client.chain?.id;
+    const signUserOperation: typeof account.signUserOperation = async (userOperation) => {
+      const signature = await account.signUserOperation(userOperation);
+      const chainId = userOperation.chainId ?? clientChainId;
+      await onBeforeBroadcast(
+        chainId === undefined
+          ? undefined
+          : {
+              kind: "user-operation",
+              // Hashed the way the account signs it, so it matches the bundler's return.
+              hash: getUserOperationHash({
+                chainId,
+                entryPointAddress: account.entryPoint.address,
+                entryPointVersion: account.entryPoint.version,
+                userOperation: {
+                  ...userOperation,
+                  sender: userOperation.sender ?? account.address,
+                  signature,
+                } as Parameters<typeof getUserOperationHash>[0]["userOperation"],
+              }),
+            }
+      );
+      return signature;
+    };
+    // The account's own methods read shared state through `this`, so every
+    // other lookup falls through to the real account.
+    return Object.create(account, {
+      signUserOperation: { value: signUserOperation, enumerable: true },
+    }) as typeof account;
   }
 
   async reconcileBroadcast(reference: BroadcastReference): Promise<BroadcastConfirmation> {

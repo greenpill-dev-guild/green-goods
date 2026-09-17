@@ -332,8 +332,10 @@ export function createDefaultSubmitWorkPorts(
       },
       process: async (jobId, sender, assertOwnership) => {
         const queue = options.jobQueue ?? (await import("../job-queue")).jobQueue;
+        // Only a Submit tap reaches this port, so the send is explicit.
         return queue.processJob(jobId, {
           transactionSender: sender,
+          explicit: true,
           ...(assertOwnership ? { assertOwnership } : {}),
         });
       },

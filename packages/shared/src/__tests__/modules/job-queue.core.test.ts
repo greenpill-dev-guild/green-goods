@@ -222,6 +222,42 @@ describe("modules/job-queue", () => {
     expect(encoded.media.map((file: File) => file.type)).toEqual(["image/jpeg"]);
   });
 
+  it("keeps declined work queued for an explicit send instead of failing it", async () => {
+    const jobId = await jobQueue.addJob(
+      "work",
+      { title: "Test", actionUID: 42, gardenAddress: "0x123", feedback: "ok" },
+      TEST_USER_ADDRESS,
+      { chainId: 11155111 }
+    );
+    const declined = new DOMException("Not allowed by the user.", "NotAllowedError");
+    const sender = createMockTransactionSender({ fail: declined });
+
+    const result = await jobQueue.processJob(jobId, { transactionSender: sender });
+
+    expect(result).toEqual({ success: false, error: "send-cancelled", skipped: true });
+    const stored = await jobQueueDB.getJob(jobId);
+    expect(stored?.attempts).toBe(0);
+    expect(stored?.lastError).toBeUndefined();
+    expect(stored?.meta?.requiresExplicitSend).toBe(true);
+
+    // Reconnecting never asks again on its own.
+    vi.mocked(sender.sendContractCall).mockClear();
+    const later = Date.now() + 60_000;
+    vi.spyOn(Date, "now").mockReturnValue(later);
+    await jobQueue.flush({ transactionSender: sender, userAddress: TEST_USER_ADDRESS });
+    expect(sender.sendContractCall).not.toHaveBeenCalled();
+
+    // Tapping send does.
+    vi.mocked(sender.sendContractCall).mockResolvedValue({
+      hash: `0x${"ab".repeat(32)}`,
+      sponsored: true,
+    });
+    const sent = await jobQueue.processJob(jobId, { transactionSender: sender, explicit: true });
+    vi.mocked(Date.now).mockRestore();
+    expect(sent).toMatchObject({ success: true });
+    expect(sender.sendContractCall).toHaveBeenCalledOnce();
+  });
+
   it("skips processing when transaction sender is missing", async () => {
     await jobQueue.addJob(
       "approval",

@@ -52,12 +52,12 @@ function createDefaultExecutorRegistry() {
           return { status: "waiting", reason: error.reason };
         if (error instanceof WorkTransactionReverted)
           return { status: "unavailable", reason: "work-transaction-reverted" };
-        if (error instanceof InvalidWorkAttachmentError || isWorkSubmissionCancelled(error)) {
-          return {
-            status: "unavailable",
-            reason: error instanceof Error ? error.message : "cancelled",
-          };
-        }
+        // A declined prompt is a choice, not a failure: the work waits for the
+        // person to send it (the executor marks it for an explicit send).
+        if (isWorkSubmissionCancelled(error))
+          return { status: "waiting", reason: "send-cancelled" };
+        if (error instanceof InvalidWorkAttachmentError)
+          return { status: "unavailable", reason: error.message };
         throw error;
       }
     },
