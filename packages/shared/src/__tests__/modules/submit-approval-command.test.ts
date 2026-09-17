@@ -74,6 +74,27 @@ describe("submitApproval", () => {
     expect(dependencies.queue.process).not.toHaveBeenCalled();
   });
 
+  it("keeps a sponsored approval queued while the connection is unconfirmed", async () => {
+    const dependencies = ports({
+      connectivity: { isOnline: () => true, confirm: async () => false },
+    });
+
+    await expect(submitApproval(command({ authMode: "passkey" }), dependencies)).resolves.toEqual({
+      hash: OFFLINE_HASH,
+      kind: "queued",
+    });
+    expect(dependencies.queue.process).not.toHaveBeenCalled();
+  });
+
+  it("refuses a wallet approval on an unconfirmed connection, before the wallet is asked", async () => {
+    const dependencies = ports({
+      connectivity: { isOnline: () => true, confirm: async () => false },
+    });
+
+    await expect(submitApproval(command(), dependencies)).rejects.toThrow(/connection/i);
+    expect(dependencies.direct).not.toHaveBeenCalled();
+  });
+
   it("rejects terminal work before calling a port", async () => {
     const dependencies = ports();
 

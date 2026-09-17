@@ -222,6 +222,60 @@ describe("modules/job-queue", () => {
     expect(encoded.media.map((file: File) => file.type)).toEqual(["image/jpeg"]);
   });
 
+  it("sends nothing while the connection is unconfirmed, even when asked", async () => {
+    const { connectivityStore } = await import("../../stores/connectivity");
+    const confirm = vi.spyOn(connectivityStore, "confirmOnline").mockResolvedValue(false);
+    const status = vi
+      .spyOn(connectivityStore, "getStatusSnapshot")
+      .mockReturnValue({ state: "degraded" });
+    const jobId = await jobQueue.addJob(
+      "work",
+      { title: "Test", actionUID: 42, gardenAddress: "0x123", feedback: "ok" },
+      TEST_USER_ADDRESS,
+      { chainId: 11155111 }
+    );
+    const sender = createMockTransactionSender();
+
+    try {
+      await expect(
+        jobQueue.processJob(jobId, { transactionSender: sender, explicit: true })
+      ).resolves.toEqual({ success: false, error: "connection-unconfirmed", skipped: true });
+      // The store rechecks an unstable connection itself; a flush must not probe per job.
+      expect(confirm).not.toHaveBeenCalled();
+    } finally {
+      confirm.mockRestore();
+      status.mockRestore();
+    }
+    expect(sender.sendContractCall).not.toHaveBeenCalled();
+  });
+
+  it("probes a connection whose last answer is stale before sending", async () => {
+    const { connectivityStore } = await import("../../stores/connectivity");
+    const confirm = vi.spyOn(connectivityStore, "confirmOnline").mockResolvedValue(false);
+    const status = vi
+      .spyOn(connectivityStore, "getStatusSnapshot")
+      .mockReturnValue({ state: "online", checkedAt: Date.now() - 120_000 });
+    const jobId = await jobQueue.addJob(
+      "work",
+      { title: "Test", actionUID: 42, gardenAddress: "0x123", feedback: "ok" },
+      TEST_USER_ADDRESS,
+      { chainId: 11155111 }
+    );
+    const sender = createMockTransactionSender();
+
+    try {
+      await expect(
+        jobQueue.processJob(jobId, { transactionSender: sender, explicit: true })
+      ).resolves.toEqual({ success: false, error: "connection-unconfirmed", skipped: true });
+      expect(confirm).toHaveBeenCalledOnce();
+      expect(confirm).toHaveBeenCalledWith({ maxAgeMs: 60_000 });
+    } finally {
+      confirm.mockRestore();
+      status.mockRestore();
+    }
+    expect(sender.sendContractCall).not.toHaveBeenCalled();
+  });
+
   it("keeps declined work queued for an explicit send instead of failing it", async () => {
     const jobId = await jobQueue.addJob(
       "work",

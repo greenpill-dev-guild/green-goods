@@ -6,11 +6,12 @@ import { MAX_RETRIES } from "../job-queue/queue-policy";
 import { jobQueueEventBus } from "../job-queue/event-bus";
 import { convertQueuedHeicMedia } from "../job-queue/job-media-conversion";
 import { isHeicFile, PendingHeicConversionError } from "./work-attachments";
-import type {
-  QueuedWorkSubmission,
-  ResolvedSubmitWorkCommand,
-  SubmitWorkOutcome,
-  SubmitWorkPorts,
+import {
+  canSendNow,
+  type QueuedWorkSubmission,
+  type ResolvedSubmitWorkCommand,
+  type SubmitWorkOutcome,
+  type SubmitWorkPorts,
 } from "./submit-work-command";
 import {
   isNetworkError,
@@ -82,7 +83,8 @@ export async function submitAdmittedWork(
         kind: awaiting ? "awaiting-confirmation" : "queued",
       } as SubmitWorkOutcome;
   }
-  if (!ports.connectivity.isOnline()) return queuedOutcome(queued, ports.sender);
+  // Admission is durable; on an unconfirmed connection the work waits in the queue.
+  if (!(await canSendNow(ports))) return queuedOutcome(queued, ports.sender);
   if (input.authMode !== "wallet") {
     await input.assertOwnership?.();
     if (!ports.sender) return queuedOutcome(queued, ports.sender);

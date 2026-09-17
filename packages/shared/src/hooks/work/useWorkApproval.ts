@@ -26,6 +26,7 @@ import {
   overlayDeadline,
 } from "../../modules/work/local-status-overlay";
 import {
+  ApprovalConnectionUnconfirmedError,
   createDefaultSubmitApprovalPorts,
   submitApproval,
   type SubmitApprovalOutcome,
@@ -149,6 +150,17 @@ export function useWorkApproval(dependencies: UseWorkApprovalDependencies = {}) 
 
   const reportApprovalError = useCallback(
     (error: unknown, completion: WorkApprovalCompletion) => {
+      // Refused before the wallet was asked: nothing was signed or sent.
+      if (error instanceof ApprovalConnectionUnconfirmedError) {
+        toastService.info({
+          id: "approval-submit",
+          title: formatMessage({ id: "app.offline.degraded" }),
+          message: formatMessage({ id: "app.approval.connectionUnconfirmed" }),
+          context: "approval submission",
+          suppressLogging: true,
+        });
+        return;
+      }
       if (isCancelledTxError(error)) {
         toastService.error({
           id: "approval-submit",

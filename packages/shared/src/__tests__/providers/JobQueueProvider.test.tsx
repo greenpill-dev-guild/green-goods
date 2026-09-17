@@ -409,6 +409,46 @@ describe("providers/JobQueueProvider", () => {
       await waitFor(() => expect(queue.flush).toHaveBeenCalledTimes(1));
     });
 
+    it("never auto-flushes on a connection that is online but unconfirmed", async () => {
+      const queue = createFakeJobQueueHandle();
+      queue.getStats = vi.fn().mockResolvedValue({ total: 0, pending: 0, failed: 0, synced: 0 });
+      const confirmed = vi.spyOn(connectivityStore, "isConfirmedOnline").mockReturnValue(false);
+      try {
+        renderHook(() => useJobQueue(), { wrapper: createWrapper(queue) });
+        await waitFor(() => expect(queue.getStats).toHaveBeenCalled());
+        await act(() => connectivityStore.check());
+        expect(queue.flush).not.toHaveBeenCalled();
+
+        confirmed.mockReturnValue(true);
+        await act(() => connectivityStore.check());
+        await waitFor(() => expect(queue.flush).toHaveBeenCalledTimes(1));
+      } finally {
+        confirmed.mockRestore();
+      }
+    });
+
+    it("confirms the connection before a background sync request flushes", async () => {
+      const queue = createFakeJobQueueHandle();
+      queue.getStats = vi.fn().mockResolvedValue({ total: 0, pending: 0, failed: 0, synced: 0 });
+      let requestSync: (() => void) | undefined;
+      vi.mocked(queue.onBackgroundSyncRequested).mockImplementation((listener) => {
+        requestSync = listener;
+        return () => undefined;
+      });
+      const confirmed = vi.spyOn(connectivityStore, "isConfirmedOnline").mockReturnValue(false);
+      const confirm = vi.spyOn(connectivityStore, "confirmOnline").mockResolvedValue(false);
+      try {
+        renderHook(() => useJobQueue(), { wrapper: createWrapper(queue) });
+        await waitFor(() => expect(requestSync).toBeDefined());
+        await act(async () => requestSync?.());
+        expect(confirm).toHaveBeenCalled();
+        expect(queue.flush).not.toHaveBeenCalled();
+      } finally {
+        confirmed.mockRestore();
+        confirm.mockRestore();
+      }
+    });
+
     it("surfaces auto-flush failures through lastEvent and queue sync error toast", async () => {
       Object.defineProperty(navigator, "onLine", { value: true, configurable: true });
       mockUseAuth.mockReturnValue({ authMode: "passkey" });

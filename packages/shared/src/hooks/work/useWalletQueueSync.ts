@@ -1,4 +1,4 @@
-import { connectivityStore } from "../../stores/connectivity";
+import { CONFIRMED_ONLINE_MAX_AGE_MS, connectivityStore } from "../../stores/connectivity";
 import { useEffect, useRef } from "react";
 import { useIntl } from "react-intl";
 import { createQueueToasts } from "../../components/toast";
@@ -43,8 +43,9 @@ function hasKnownBroadcast(job: Job): boolean {
  * it runs on mount, every 30 seconds, on queue events and on reconnect. The
  * send pass batches every unsent job into one wallet signature, which is the
  * user's one tap, and runs only when connectivity returns, on mount while
- * online, and on a background sync request. A reconnect that arrives while a
- * pass is running is remembered and served once that pass ends.
+ * online, and on a background sync request, and only once the origin confirms
+ * the connection. A reconnect that arrives while a pass is running is
+ * remembered and served once that pass ends.
  */
 export function useWalletQueueSync({
   queue,
@@ -83,12 +84,13 @@ export function useWalletQueueSync({
     };
 
     const sendUnsentWork = async (jobs: Job[]) => {
-      if (authMode !== "wallet" || !walletConnected) return;
       const unsent = jobs.filter(
         (job) =>
           (job.chainId ?? DEFAULT_CHAIN_ID) === DEFAULT_CHAIN_ID &&
           !hasKnownBroadcast(job) &&
           !job.meta?.workTransactionReverted &&
+          // Work the person declined waits for their Send all tap.
+          !job.meta?.requiresExplicitSend &&
           !isTerminallyFailedJob(job)
       );
       let sent = 0;
@@ -128,10 +130,18 @@ export function useWalletQueueSync({
       if (stopped) return;
       await confirmKnownBroadcasts(jobs);
       if (stopped) return;
-      if (send) {
+      if (send && authMode === "wallet" && walletConnected) {
+        // The batch asks the wallet to sign, so it waits for a confirmed
+        // connection; otherwise the pass ends as one with nothing to send.
+        const confirmed = await connectivityStore.confirmOnline({
+          maxAgeMs: CONFIRMED_ONLINE_MAX_AGE_MS,
+        });
+        if (stopped) return;
         // The confirmation pass may have completed or retired jobs; read again
         // so a job it just finished cannot enter the batch.
-        const fresh = await queue.getJobs(userAddress, { kind: "work", synced: false });
+        const fresh = confirmed
+          ? await queue.getJobs(userAddress, { kind: "work", synced: false })
+          : [];
         if (stopped) return;
         await sendUnsentWork(fresh);
       }
@@ -172,12 +182,24 @@ export function useWalletQueueSync({
     const unsubscribeConnectivity = connectivityStore.subscribe(() => {
       if (connectivityStore.getSnapshot()) reconnect();
     });
+    // Unstable to online does not change onlineManager's value, so it notifies
+    // nothing there; the status channel carries that recovery. Every probe
+    // answer arrives on this channel too, so it wakes only the confirmation
+    // pass, and only on a recovery: a probe never opens the wallet.
+    let lastState = connectivityStore.getStatusSnapshot().state;
+    const unsubscribeStatus = connectivityStore.subscribeStatus(() => {
+      const { state } = connectivityStore.getStatusSnapshot();
+      const recovered = lastState === "degraded" && state === "online";
+      lastState = state;
+      if (recovered) check();
+    });
     const unsubscribeEvents = queue.subscribe(check);
     const unsubscribeBackgroundSync = queue.onBackgroundSyncRequested(reconnect);
     return () => {
       stopped = true;
       clearInterval(timer);
       unsubscribeConnectivity();
+      unsubscribeStatus();
       unsubscribeEvents();
       unsubscribeBackgroundSync();
     };

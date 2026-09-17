@@ -39,6 +39,7 @@ vi.mock("../../components/toast", () => ({
     loading: vi.fn(),
     success: vi.fn(),
     error: vi.fn(),
+    info: vi.fn(),
   },
 }));
 
@@ -94,6 +95,7 @@ import {
   trackWorkApprovalLifecycle,
 } from "../../modules/app/analytics-events";
 import { submitApprovalDirectly } from "../../modules/work/wallet-submission";
+import { connectivityStore } from "../../stores/connectivity";
 import { submitApprovalToQueue } from "../../modules/work/work-submission";
 import type { OverlayWork } from "../../modules/work/local-status-overlay";
 import { Confidence, VerificationMethod } from "../../types/domain";
@@ -578,8 +580,10 @@ describe("hooks/work/useWorkApproval", () => {
         11155111,
         MOCK_ADDRESSES.smartAccount
       );
+      // A decision tap is the explicit send, so it is not held back as auto-send.
       expect(queueProcessJob).toHaveBeenCalledWith("job-approval-1", {
         transactionSender: mockSender,
+        explicit: true,
       });
       expect(result_data?.hash).toBe(MOCK_TX_HASH);
     });
@@ -764,6 +768,35 @@ describe("hooks/work/useWorkApproval", () => {
           })
         );
       });
+    });
+
+    it("says the decision wasn't sent when the connection is not confirmed, without asking the wallet", async () => {
+      // "Connection unstable": the browser reports online but the origin did not answer.
+      vi.spyOn(connectivityStore, "confirmOnline").mockResolvedValue(false);
+
+      const { result } = renderHook(() => useWorkApproval(), {
+        wrapper: createWrapper(),
+      });
+
+      await act(async () => {
+        await expect(
+          result.current.mutateAsync({
+            draft: createMockWorkApprovalDraft({ approved: true }),
+            work: createMockWork(),
+          })
+        ).rejects.toThrow();
+      });
+
+      expect(submitApprovalDirectly).not.toHaveBeenCalled();
+      expect(toastService.info).toHaveBeenCalledWith(
+        expect.objectContaining({
+          id: "approval-submit",
+          title: en["app.offline.degraded"],
+          message: en["app.approval.connectionUnconfirmed"],
+        })
+      );
+      expect(mockErrorHandler).not.toHaveBeenCalled();
+      expect(trackWorkApprovalFailed).not.toHaveBeenCalled();
     });
 
     it("shows error toast on failure", async () => {

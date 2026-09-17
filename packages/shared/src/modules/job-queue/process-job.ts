@@ -89,9 +89,12 @@ export function createJobProcessor(deps: ProcessJobDependencies) {
       const txHash = typeof job.meta?.txHash === "string" ? job.meta.txHash : undefined;
       return { success: true, txHash, skipped: true };
     }
-    if (!deps.connectivity.isOnline()) {
-      return { success: false, error: "offline", skipped: true };
-    }
+    const sendBlocked = deps.connectivity.canSend
+      ? await deps.connectivity.canSend()
+      : deps.connectivity.isOnline()
+        ? null
+        : "offline";
+    if (sendBlocked) return { success: false, error: sendBlocked, skipped: true };
 
     if (job.meta?.requiresExplicitSend && !context.explicit) {
       return { success: false, error: "send-requires-explicit", skipped: true };

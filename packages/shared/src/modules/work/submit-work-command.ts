@@ -51,7 +51,8 @@ export interface QueuedWorkSubmission {
 export interface SubmitWorkPorts {
   reconcile?: typeof reconcileWorkTransaction;
   newClientWorkId?: () => string;
-  connectivity: { isOnline: () => boolean };
+  /** `confirm`: whether a send may start now; unstable connections queue instead. */
+  connectivity: { isOnline: () => boolean; confirm?: () => Promise<boolean> };
   clock: { now: () => number };
   simulate: (input: SimulateWorkSubmissionParams) => Promise<void>;
   queue: {
@@ -105,6 +106,13 @@ function actionTitleOf(command: ResolvedSubmitWorkCommand): string {
   return findActionByUID(command.actions, command.actionUID)?.title ?? "";
 }
 
+/** A send starts only on a confirmed connection; ports without a check use the online signal. */
+export function canSendNow(ports: Pick<SubmitWorkPorts, "connectivity">): Promise<boolean> {
+  return ports.connectivity.confirm
+    ? ports.connectivity.confirm()
+    : Promise.resolve(ports.connectivity.isOnline());
+}
+
 function resolveCommand(command: SubmitWorkCommand): ResolvedSubmitWorkCommand {
   if (!command.gardenAddress) {
     throw new Error("Garden must be selected before submitting work");
@@ -151,7 +159,7 @@ export async function submitWork(
     clientWorkId: command.clientWorkId ?? ports.newClientWorkId?.() ?? crypto.randomUUID(),
   });
   if (resolved.allowOfflineQueue && ports.queue.admit) return submitAdmittedWork(resolved, ports);
-  const online = ports.connectivity.isOnline();
+  const online = await canSendNow(ports);
 
   const awaitConfirmation = async (): Promise<SubmitWorkOutcome> => {
     if (!resolved.allowOfflineQueue)
@@ -273,7 +281,10 @@ export function createDefaultSubmitWorkPorts(
 ): SubmitWorkPorts {
   return {
     newClientWorkId: () => crypto.randomUUID(),
-    connectivity: { isOnline: () => connectivityStore.getSnapshot() },
+    connectivity: {
+      isOnline: () => connectivityStore.getSnapshot(),
+      confirm: () => connectivityStore.confirmOnline(),
+    },
     clock: { now: () => Date.now() },
     simulate: async (input) => {
       const { simulateWorkSubmission } = await import("./simulate");

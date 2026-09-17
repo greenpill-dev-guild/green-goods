@@ -325,28 +325,26 @@ const JobQueueProviderInner: React.FC<JobQueueProviderProps> = ({ children, queu
       }
     };
 
-    // Auto-flush only after the canonical connectivity store confirms online.
-    if (
-      connectivityStore.getStatusSnapshot().state === "online" &&
-      (authMode === "passkey" || authMode === "embedded")
-    ) {
+    // Auto-flush only once the origin has confirmed the connection: "online"
+    // is also the boot state and the state while a probe is still pending, and
+    // an unstable connection never sends.
+    const autoSends = authMode === "passkey" || authMode === "embedded";
+    if (autoSends && connectivityStore.isConfirmedOnline()) {
       void attemptFlush();
     }
 
     const handleConnectivity = () => {
-      if (
-        connectivityStore.getStatusSnapshot().state === "online" &&
-        (authMode === "passkey" || authMode === "embedded")
-      ) {
+      if (autoSends && connectivityStore.isConfirmedOnline()) {
         void attemptFlush();
       }
     };
 
     const unsubscribeConnectivity = connectivityStore.subscribeStatus(handleConnectivity);
     const unsubscribeBackgroundSync = queue.onBackgroundSyncRequested(() => {
-      if (authMode === "passkey" || authMode === "embedded") {
-        void attemptFlush();
-      }
+      if (!autoSends) return;
+      void connectivityStore.confirmOnline().then((confirmed) => {
+        if (confirmed) void attemptFlush();
+      });
     });
 
     return () => {

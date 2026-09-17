@@ -112,6 +112,12 @@ export interface JobQueueClock {
 
 export interface JobQueueConnectivity {
   isOnline(): boolean;
+  /**
+   * Why a send must wait, or `null` when the origin has recently confirmed the
+   * connection. An unstable connection never sends. Ports without it fall
+   * back to the browser's online signal.
+   */
+  canSend?(): Promise<"offline" | "connection-unconfirmed" | null>;
 }
 
 export interface JobQueueBackgroundSync {

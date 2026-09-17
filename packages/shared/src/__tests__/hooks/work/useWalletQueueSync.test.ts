@@ -40,6 +40,7 @@ vi.mock("../../../config/default-chain", () => ({
 }));
 
 import { useWalletQueueSync } from "../../../hooks/work/useWalletQueueSync";
+import { connectivityStore } from "../../../stores/connectivity";
 import { trackContractError } from "../../../modules/app/error-tracking";
 import { jobQueueEventBus } from "../../../modules/job-queue/event-bus";
 
@@ -164,6 +165,66 @@ describe("useWalletQueueSync", () => {
     expect(mockSyncQueuedWorkBatch).toHaveBeenCalledTimes(1);
     expect(mockToasts.syncSuccess).toHaveBeenCalledWith(1);
     expect(refreshStats).toHaveBeenCalled();
+  });
+
+  it("waits for the origin to confirm the connection before the batch, and a probe answer opens nothing", async () => {
+    vi.mocked(queue.getJobs).mockResolvedValue([unsentJob]);
+    const confirm = vi.spyOn(connectivityStore, "confirmOnline").mockResolvedValue(false);
+    try {
+      render();
+      await waitFor(() => expect(refreshStats).toHaveBeenCalled());
+      expect(confirm).toHaveBeenCalledWith({ maxAgeMs: 60_000 });
+      expect(mockSyncQueuedWorkBatch).not.toHaveBeenCalled();
+      // The pass ends like one with nothing to send, so the sync indicator stops.
+      expect(jobQueueEventBus.emit).toHaveBeenCalledWith("queue:sync-completed", {
+        result: { processed: 0, failed: 0, skipped: 0 },
+      });
+
+      // Every probe answer reaches the status channel; on a steady connection
+      // it must not start a pass, let alone open the wallet.
+      confirm.mockResolvedValue(true);
+      const reads = vi.mocked(queue.getJobs).mock.calls.length;
+      await act(() => connectivityStore.check());
+      expect(queue.getJobs).toHaveBeenCalledTimes(reads);
+      expect(mockSyncQueuedWorkBatch).not.toHaveBeenCalled();
+    } finally {
+      confirm.mockRestore();
+    }
+  });
+
+  it("wakes only the confirmation pass when an unstable connection recovers", async () => {
+    // Unstable to online does not change onlineManager, so only the status
+    // channel can report the recovery.
+    vi.mocked(queue.getJobs).mockResolvedValue([broadcastJob, unsentJob]);
+    const status = vi
+      .spyOn(connectivityStore, "getStatusSnapshot")
+      .mockReturnValue({ state: "degraded" });
+    const confirm = vi.spyOn(connectivityStore, "confirmOnline").mockResolvedValue(false);
+    try {
+      render();
+      await waitFor(() => expect(queue.processJob).toHaveBeenCalledTimes(1));
+      await waitFor(() => expect(refreshStats).toHaveBeenCalled());
+
+      status.mockReturnValue({ state: "online", checkedAt: Date.now() });
+      confirm.mockResolvedValue(true);
+      await act(() => connectivityStore.check());
+
+      await waitFor(() => expect(queue.processJob).toHaveBeenCalledTimes(2));
+      expect(queue.processJob).toHaveBeenLastCalledWith("broadcast-1", expect.any(Object));
+      expect(mockSyncQueuedWorkBatch).not.toHaveBeenCalled();
+    } finally {
+      status.mockRestore();
+      confirm.mockRestore();
+    }
+  });
+
+  it("leaves work the person declined out of the automatic batch", async () => {
+    vi.mocked(queue.getJobs).mockResolvedValue([
+      workJob("declined-1", { meta: { requiresExplicitSend: true } }),
+    ]);
+    render();
+    await waitFor(() => expect(refreshStats).toHaveBeenCalled());
+    expect(mockSyncQueuedWorkBatch).not.toHaveBeenCalled();
   });
 
   it("reconciles a known broadcast before the batch, inside the same pass", async () => {

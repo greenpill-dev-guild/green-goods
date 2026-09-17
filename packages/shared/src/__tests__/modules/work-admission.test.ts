@@ -54,6 +54,14 @@ function fixture() {
   return { command, ports, send };
 }
 describe("PWA durable submission boundary", () => {
+  it("queues a submission instead of sending while the connection is unconfirmed", async () => {
+    const { command, ports, send } = fixture();
+    ports.connectivity = { isOnline: () => true, confirm: async () => false };
+
+    await expect(submitWork(command, ports)).resolves.toMatchObject({ kind: "queued" });
+    expect(send).not.toHaveBeenCalled();
+  });
+
   it("keeps declined passkey work, and asks again when Submit is tapped again", async () => {
     const { command, ports } = fixture();
     command.authMode = "passkey";

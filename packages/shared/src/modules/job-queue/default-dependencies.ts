@@ -1,6 +1,6 @@
 import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
 import { getOntologyChainMaturity } from "../../ontology/query";
-import { connectivityStore } from "../../stores/connectivity";
+import { CONFIRMED_ONLINE_MAX_AGE_MS, connectivityStore } from "../../stores/connectivity";
 import type { ApprovalJobPayload, Job, WorkJobPayload } from "../../types/job-queue";
 import { isZeroAddress } from "../../utils/blockchain/address";
 import { getNetworkContracts } from "../../utils/blockchain/contracts";
@@ -104,6 +104,21 @@ export function createDefaultJobQueueDependencies(): JobQueueDependencies {
     },
     connectivity: {
       isOnline: () => connectivityStore.getSnapshot(),
+      canSend: async () => {
+        const { state } = connectivityStore.getStatusSnapshot();
+        if (state === "offline") return "offline";
+        // The store already rechecks an unstable connection on its own, so only
+        // a stale "online" is probed here, at most once a minute: a flush over
+        // many jobs neither stops on its own age nor probes once per job.
+        if (
+          state === "online" &&
+          (await connectivityStore.confirmOnline({ maxAgeMs: CONFIRMED_ONLINE_MAX_AGE_MS }))
+        )
+          return null;
+        return connectivityStore.getStatusSnapshot().state === "offline"
+          ? "offline"
+          : "connection-unconfirmed";
+      },
     },
     backgroundSync: {
       request() {

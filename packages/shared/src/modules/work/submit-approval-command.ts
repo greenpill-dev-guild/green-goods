@@ -1,4 +1,5 @@
 import type { SmartAccountClient } from "permissionless";
+import { connectivityStore } from "../../stores/connectivity";
 import type { Address, Work, WorkApprovalDraft } from "../../types/domain";
 import type { JobQueueHandle, ProcessJobResult } from "../job-queue/ports";
 import type { TransactionSender } from "../transactions/types";
@@ -13,7 +14,8 @@ export interface SubmitApprovalCommand {
 }
 
 export interface SubmitApprovalPorts {
-  connectivity: { isOnline(): boolean };
+  /** `confirm`: whether a send may start now; unstable connections never send. */
+  connectivity: { isOnline(): boolean; confirm?(): Promise<boolean> };
   direct(input: SubmitApprovalCommand): Promise<{ hash: `0x${string}`; confirmed: boolean }>;
   queue: {
     enqueue(input: SubmitApprovalCommand & { userAddress: Address }): Promise<{
@@ -60,6 +62,20 @@ function validateApproval(command: SubmitApprovalCommand): void {
   }
 }
 
+/** Thrown before a wallet is asked, so nothing is signed on a connection that may drop it. */
+export class ApprovalConnectionUnconfirmedError extends Error {
+  constructor() {
+    super("Your connection isn't steady enough to send this decision. Try again in a moment.");
+    this.name = "ApprovalConnectionUnconfirmedError";
+  }
+}
+
+function canSendApprovalNow(ports: SubmitApprovalPorts): Promise<boolean> {
+  return ports.connectivity.confirm
+    ? ports.connectivity.confirm()
+    : Promise.resolve(ports.connectivity.isOnline());
+}
+
 export async function submitApproval(
   command: SubmitApprovalCommand,
   ports: SubmitApprovalPorts
@@ -67,6 +83,8 @@ export async function submitApproval(
   validateApproval(command);
 
   if (command.authMode === "wallet") {
+    // A wallet decision has no queue to fall back on, so it is refused up front.
+    if (!(await canSendApprovalNow(ports))) throw new ApprovalConnectionUnconfirmedError();
     const result = await ports.direct(command);
     return { ...result, kind: "direct" };
   }
@@ -76,7 +94,7 @@ export async function submitApproval(
   }
 
   const queued = await ports.queue.enqueue({ ...command, userAddress: command.userAddress });
-  if (ports.connectivity.isOnline() && ports.sender) {
+  if (ports.sender && (await canSendApprovalNow(ports))) {
     const processed = await ports.queue.process(queued.jobId, ports.sender);
     if (processed.success && processed.txHash) {
       return { hash: processed.txHash as `0x${string}`, kind: "processed" };
@@ -110,7 +128,10 @@ export function createDefaultSubmitApprovalPorts(
   } = {}
 ): SubmitApprovalPorts {
   return {
-    connectivity: { isOnline: () => navigator.onLine },
+    connectivity: {
+      isOnline: () => connectivityStore.getSnapshot(),
+      confirm: () => connectivityStore.confirmOnline(),
+    },
     direct: async ({ draft, work, chainId }) => {
       const { submitApprovalDirectly } = await import("./wallet-submission");
       return submitApprovalDirectly(draft, work.gardenAddress, work.gardenerAddress, chainId, {
@@ -124,7 +145,8 @@ export function createDefaultSubmitApprovalPorts(
       },
       process: async (jobId, transactionSender) => {
         const queue = dependencies.jobQueue ?? (await import("../job-queue")).jobQueue;
-        return queue.processJob(jobId, { transactionSender });
+        // Only a decision tap reaches this port, so the send is explicit.
+        return queue.processJob(jobId, { transactionSender, explicit: true });
       },
     },
     sender,

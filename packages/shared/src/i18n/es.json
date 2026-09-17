@@ -5689,5 +5689,6 @@
   "app.garden.upload.pendingPhoto.waitingMessage": "Se convertirá cuando la aplicación esté lista.",
   "app.garden.upload.pendingPhoto.waitingTitle": "Foto guardada",
   "app.work.photosStillConverting": "Las fotos aún se están convirtiendo. Tu trabajo queda en la cola hasta que estén listas.",
-  "app.garden.upload.playVideo": "Reproducir video"
+  "app.garden.upload.playVideo": "Reproducir video",
+  "app.approval.connectionUnconfirmed": "Tu decisión no se envió. Inténtalo de nuevo cuando la conexión sea estable."
 }
