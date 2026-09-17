@@ -293,7 +293,6 @@ export {
 } from "./eas/explorers";
 export {
   buildApprovalAttestTx,
-  buildBatchWorkAttestTx,
   buildWorkAttestTx,
 } from "./eas/transaction-builder";
 export type { BlockchainErrorInfo, BlockchainErrorType } from "./errors/blockchain-errors";

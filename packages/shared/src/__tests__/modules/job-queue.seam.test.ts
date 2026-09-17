@@ -3,9 +3,8 @@
  */
 
 import { beforeEach, describe, expect, it, vi } from "vitest";
-
-import { createJobQueue } from "../../modules/job-queue/queue";
 import type { FlushResult, JobQueueDependencies } from "../../modules/job-queue/ports";
+import { createJobQueue } from "../../modules/job-queue/queue";
 import type { Job, JobKindMap, QueueEvent } from "../../types/job-queue";
 import {
   createFakeJobExecutorRegistry,
@@ -449,5 +448,26 @@ describe("work confirmation recovery", () => {
     expect(retry?.payload).not.toHaveProperty("uploadCheckpoint.transactionHash");
     expect(retry?.meta).not.toHaveProperty("workTransactionReverted");
     expect(retry?.attempts).toBe(0);
+  });
+  it("explicit retry prepares work that needed attention again from the start", async () => {
+    const store = createInMemoryJobQueueStore([
+      queuedJob({
+        payload: { uploadCheckpoint: { submittedAt: "2026-09-09", files: checkpoint.files } },
+        meta: {
+          preparation: { status: "photo-needs-attention", checkedAt: "2026-09-17T00:00:00Z" },
+          mediaConversion: { failures: 3, inFlight: false },
+          waitingReason: "photo-needs-attention",
+          clientNote: "kept",
+        },
+      }),
+    ]);
+    const { queue } = setup({ store });
+    await queue.retryJob("job-1");
+    const retry = await store.getJob("job-1");
+    expect(retry?.meta).not.toHaveProperty("preparation");
+    expect(retry?.meta).not.toHaveProperty("mediaConversion");
+    expect(retry?.meta).not.toHaveProperty("waitingReason");
+    expect(retry?.meta).toMatchObject({ clientNote: "kept" });
+    expect(retry?.payload).toMatchObject({ uploadCheckpoint: { files: checkpoint.files } });
   });
 });

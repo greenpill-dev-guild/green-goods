@@ -3,11 +3,8 @@ import { SyncStatusBar } from "./SyncStatusBar";
 
 /**
  * TODO: SyncStatusBar relies heavily on internal hooks:
- * - useAuth (wallet/passkey auth mode)
  * - useOffline (online/offline detection)
  * - usePendingWorksCount (IndexedDB query)
- * - useBatchWorkSync (mutation)
- * - useQueueFlush (job queue provider)
  * - useUIStore (offline banner visibility)
  *
  * Full interaction stories require mocking these hooks.
@@ -24,7 +21,7 @@ const meta: Meta<typeof SyncStatusBar> = {
     docs: {
       description: {
         component:
-          "Persistent queue sync status bar shown above the app navigation. Displays pending work count, offline status, and sync-all action for wallet users. Requires auth, offline, and queue context to render.",
+          "Persistent bar above the app navigation while queued work waits on this device. Shows how much waits to upload, or that it is saved while offline, and offers Review uploads, which opens Your Work where Upload all sends it. Requires offline and queue context to render.",
       },
     },
   },

@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { createElement } from "react";
 import { IntlProvider } from "react-intl";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
@@ -16,6 +16,7 @@ const mockUseAttributions = vi.fn();
 const mockUseCommitment = vi.fn();
 const mockUseWorkDecisions = vi.fn();
 const mockWorkViewSectionProps: { current: Record<string, unknown> | null } = { current: null };
+const mockUseQueuedWorkActions = vi.fn();
 
 vi.mock("@green-goods/shared/utils/styles/cn", () => ({
   cn: (...classes: unknown[]) => classes.filter(Boolean).join(" "),
@@ -41,6 +42,26 @@ vi.mock("@green-goods/shared/hooks/auth/useUser", () => ({
 
 vi.mock("@green-goods/shared/hooks/client-ui/work/useWorkDetailController", () => ({
   useWorkDetailController: () => mockUseWorkDetailController(),
+}));
+
+vi.mock("@green-goods/shared/hooks/work/useQueuedWorkActions", () => ({
+  useQueuedWorkActions: (...args: unknown[]) => mockUseQueuedWorkActions(...args),
+}));
+
+vi.mock("../../views/Home/Garden/WorkUploadFooter", () => ({
+  WorkUploadFooter: ({
+    onOpenUploads,
+    onDiscard,
+  }: {
+    onOpenUploads: () => void;
+    onDiscard: () => Promise<void>;
+  }) =>
+    createElement(
+      "div",
+      { "data-testid": "work-upload-footer" },
+      createElement("button", { type: "button", onClick: onOpenUploads }, "Open uploads"),
+      createElement("button", { type: "button", onClick: () => void onDiscard() }, "Discard")
+    ),
 }));
 
 vi.mock("@green-goods/shared/commitment-pooling", async (importOriginal) => ({
@@ -93,6 +114,13 @@ describe("Home garden work detail", () => {
     mockWorkViewSectionProps.current = null;
     mockUseGardens.mockReturnValue({ data: [], isLoading: false });
     mockUseWorks.mockReturnValue({ works: [] });
+    mockUseQueuedWorkActions.mockReturnValue({
+      openUploads: vi.fn(),
+      tryAgain: vi.fn(),
+      isTryingAgain: false,
+      discard: vi.fn(async () => true),
+      isDiscarding: false,
+    });
     mockUseAttributions.mockReturnValue({ attributions: [] });
     mockUseCommitment.mockReturnValue({ detail: null });
     mockUseWorkDecisions.mockReturnValue({ byWorkUID: new Map(), readAvailable: true });
@@ -139,6 +167,134 @@ describe("Home garden work detail", () => {
       work: undefined,
       workMetadata: null,
     });
+  });
+
+  it("gives the gardener's own queued work its upload footer, and leaves after a discard", async () => {
+    const queuedWork = {
+      id: "job-1",
+      actionUID: "1",
+      gardenerAddress: "0x2222222222222222222222222222222222222222",
+      status: "offline",
+      metadata: JSON.stringify({ submissionState: "blocked", blockedReason: "NotActiveAction" }),
+      createdAt: Date.now(),
+      media: [],
+    };
+    mockUseWorkDetailController.mockReturnValue({
+      ...mockUseWorkDetailController(),
+      isOfflineWork: true,
+      viewingMode: "gardener",
+      work: queuedWork,
+    });
+
+    render(
+      createElement(
+        MemoryRouter,
+        { initialEntries: ["/home/garden-1/work/job-1"] },
+        createElement(
+          IntlProvider,
+          { locale: "en", messages: {} },
+          createElement(
+            Routes,
+            null,
+            createElement(Route, {
+              path: "/home/:id/work/:workId",
+              element: createElement(GardenWork),
+            })
+          )
+        )
+      )
+    );
+
+    expect(mockUseQueuedWorkActions).toHaveBeenCalledWith("job-1");
+    fireEvent.click(screen.getByRole("button", { name: "Open uploads" }));
+    expect(mockUseQueuedWorkActions.mock.results[0].value.openUploads).toHaveBeenCalledOnce();
+
+    fireEvent.click(screen.getByRole("button", { name: "Discard" }));
+    await waitFor(() => expect(mockNavigate).toHaveBeenCalledWith("/home/garden-1"));
+  });
+
+  it("stays on a queued work whose discard the queue refused", async () => {
+    mockUseQueuedWorkActions.mockReturnValue({
+      ...mockUseQueuedWorkActions(),
+      discard: vi.fn(async () => false),
+    });
+    mockUseWorkDetailController.mockReturnValue({
+      ...mockUseWorkDetailController(),
+      isOfflineWork: true,
+      viewingMode: "gardener",
+      work: {
+        id: "job-1",
+        actionUID: "1",
+        gardenerAddress: "0x2222222222222222222222222222222222222222",
+        status: "offline",
+        metadata: JSON.stringify({ submissionState: "retry-required" }),
+        createdAt: Date.now(),
+        media: [],
+      },
+    });
+
+    render(
+      createElement(
+        MemoryRouter,
+        { initialEntries: ["/home/garden-1/work/job-1"] },
+        createElement(
+          IntlProvider,
+          { locale: "en", messages: {} },
+          createElement(
+            Routes,
+            null,
+            createElement(Route, {
+              path: "/home/:id/work/:workId",
+              element: createElement(GardenWork),
+            })
+          )
+        )
+      )
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Discard" }));
+    await waitFor(() =>
+      expect(mockUseQueuedWorkActions.mock.results.at(-1)?.value.discard).toHaveBeenCalled()
+    );
+    expect(mockNavigate).not.toHaveBeenCalled();
+  });
+
+  it("asks for no queued work actions on a work that already reached the chain", () => {
+    mockUseWorkDetailController.mockReturnValue({
+      ...mockUseWorkDetailController(),
+      isOfflineWork: false,
+      viewingMode: "gardener",
+      work: {
+        id: `0x${"ab".repeat(32)}`,
+        actionUID: "1",
+        gardenerAddress: "0x2222222222222222222222222222222222222222",
+        status: "pending",
+        createdAt: Date.now(),
+        media: [],
+      },
+    });
+
+    render(
+      createElement(
+        MemoryRouter,
+        { initialEntries: ["/home/garden-1/work/work-1"] },
+        createElement(
+          IntlProvider,
+          { locale: "en", messages: {} },
+          createElement(
+            Routes,
+            null,
+            createElement(Route, {
+              path: "/home/:id/work/:workId",
+              element: createElement(GardenWork),
+            })
+          )
+        )
+      )
+    );
+
+    expect(mockUseQueuedWorkActions).toHaveBeenCalledWith(undefined);
+    expect(screen.queryByTestId("work-upload-footer")).not.toBeInTheDocument();
   });
 
   it("falls back to the route garden id when back navigation state is missing", () => {

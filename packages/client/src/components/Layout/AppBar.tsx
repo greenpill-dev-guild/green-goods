@@ -1,8 +1,8 @@
-import { cn } from "@green-goods/shared/utils/styles/cn";
 import { SyncStatusBar } from "@green-goods/shared/components/SyncStatusBar";
-import { useApp } from "@green-goods/shared/providers/App";
 import { usePendingWorksCount } from "@green-goods/shared/hooks/work/usePendingWorksCount";
+import { useApp } from "@green-goods/shared/providers/App";
 import { useUIStore } from "@green-goods/shared/stores/useUIStore";
+import { cn } from "@green-goods/shared/utils/styles/cn";
 import {
   type RemixiconComponentType,
   RiHomeFill,
@@ -13,7 +13,7 @@ import {
   RiUserLine,
 } from "@remixicon/react";
 import { useIntl } from "react-intl";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { pwaStatusStyles } from "@/components/Pwa/statusStyles";
 import { APP_ROUTES, LEGACY_APP_ROUTES } from "@/config/pwaRouting";
 
@@ -35,6 +35,13 @@ export const AppBar = () => {
   // Every sheet and dialog registers itself while open, so the bar steps aside
   // for all of them without a hand-maintained list (DL-015).
   const isAnySheetOpen = useUIStore((s) => s.openSheetCount > 0);
+  const openWorkDashboard = useUIStore((s) => s.openWorkDashboard);
+  const navigate = useNavigate();
+  // Your Work opens from Home, so Review uploads goes there first from any other tab.
+  const reviewUploads = () => {
+    openWorkDashboard("pending", "mySubmissions");
+    if (pathname.replace(/\/$/, "") !== APP_ROUTES.home) navigate(APP_ROUTES.home);
+  };
   // Browser mode shows SiteHeader only (D6); bottom nav is PWA-only
   const shouldHideBar =
     !isPwaPresentation || isGarden || isWorkDetail || isCommitmentRoute || isAnySheetOpen;
@@ -72,6 +79,7 @@ export const AppBar = () => {
           "vt-sync-status bottom-[calc(69px+env(safe-area-inset-bottom))] rounded-t-[var(--radius-lg)] overflow-hidden transition-transform duration-[var(--spring-spatial-duration)] ease-[var(--spring-spatial-easing)]",
           shouldHideBar ? "translate-y-full" : "translate-y-0"
         )}
+        onReviewUploads={reviewUploads}
       />
       <nav
         data-testid="authenticated-nav"

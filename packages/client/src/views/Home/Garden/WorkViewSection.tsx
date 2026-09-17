@@ -299,8 +299,7 @@ export const WorkViewSection: React.FC<WorkViewSectionProps> = ({
       }
       return intl.formatMessage({
         id: "app.home.work.offlineInfo",
-        defaultMessage:
-          "Saved on your device. We'll send it to the garden record when you're online.",
+        defaultMessage: "Saved on your device. Upload it from Your Work.",
       });
     }
 

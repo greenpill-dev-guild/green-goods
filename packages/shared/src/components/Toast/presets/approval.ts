@@ -10,7 +10,7 @@ const approvalDefaults = {
   decisionSuccess: { title: "Decision submitted", message: "Feedback recorded." },
   savedOfflineApproval: { title: "Approval saved offline" },
   savedOfflineDecision: { title: "Decision saved offline" },
-  savedOfflineMessage: "We'll sync this automatically when you're back online.",
+  savedOfflineMessage: "Upload it from Your Work when you're connected.",
   errorApproval: { title: "Approval failed" },
   errorDecision: { title: "Decision failed" },
   errorWallet: {

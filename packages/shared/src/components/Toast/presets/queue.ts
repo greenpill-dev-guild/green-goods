@@ -12,14 +12,10 @@ const queueDefaults = {
   },
   jobFailed: {
     title: "Sync failed",
-    workMessage: "Work upload failed. We'll retry automatically.",
-    approvalMessage: "Approval sync failed. We'll retry automatically.",
+    workMessage: "Your work is still saved on this device. Open Your Work to try again.",
+    approvalMessage: "Your decision is still saved on this device. Open Your Work to try again.",
   },
   stillQueued: { title: "Still queued" },
-  walletSendFailed: {
-    title: "Work is still waiting to send",
-    message: "Confirm it in your wallet from Send all when you're ready.",
-  },
   queueClear: { title: "Queue is clear", message: "No pending jobs to sync." },
 };
 
@@ -128,20 +124,6 @@ export function createQueueToasts(formatMessage: FormatMessageFn) {
         suppressLogging: true,
       }),
 
-    walletSendFailed: () =>
-      toastService.error({
-        id: "job-queue-flush",
-        title: formatMessage({
-          id: toastMessageIds.queue.walletSendFailed.title,
-          defaultMessage: queueDefaults.walletSendFailed.title,
-        }),
-        message: formatMessage({
-          id: toastMessageIds.queue.walletSendFailed.message,
-          defaultMessage: queueDefaults.walletSendFailed.message,
-        }),
-        context: "job queue",
-      }),
-
     queueClear: () =>
       toastService.info({
         id: "job-queue-flush",
@@ -209,14 +191,6 @@ export const queueToasts = {
       message: reason,
       context: "job queue",
       suppressLogging: true,
-    }),
-
-  walletSendFailed: () =>
-    toastService.error({
-      id: "job-queue-flush",
-      title: queueDefaults.walletSendFailed.title,
-      message: queueDefaults.walletSendFailed.message,
-      context: "job queue",
     }),
 
   queueClear: () =>

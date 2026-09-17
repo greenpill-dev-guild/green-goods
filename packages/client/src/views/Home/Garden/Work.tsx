@@ -1,12 +1,12 @@
-import { Alert } from "@green-goods/shared/components/Alert";
 import { Button } from "@green-goods/shared/components/Button";
-import { ConfidenceSelector } from "@green-goods/shared/components/Form/ConfidenceSelector";
-import { Textarea } from "@green-goods/shared/components/Form/ControlPrimitives";
 import { SheetHeader } from "@green-goods/shared/components/Dialog/SheetHeader";
 import { SheetHeading } from "@green-goods/shared/components/Dialog/SheetHeading";
+import { ConfidenceSelector } from "@green-goods/shared/components/Form/ConfidenceSelector";
+import { Textarea } from "@green-goods/shared/components/Form/ControlPrimitives";
 import { useWorkDetailController } from "@green-goods/shared/hooks/client-ui/work/useWorkDetailController";
+import { useQueuedWorkActions } from "@green-goods/shared/hooks/work/useQueuedWorkActions";
 import { cn } from "@green-goods/shared/utils/styles/cn";
-import { RiCheckLine, RiCloseLine, RiErrorWarningLine, RiUploadCloudLine } from "@remixicon/react";
+import { RiCheckLine, RiCloseLine, RiErrorWarningLine } from "@remixicon/react";
 import React from "react";
 import { useIntl } from "react-intl";
 
@@ -14,6 +14,7 @@ import { WorkViewSkeleton } from "@/components/Features/Work";
 import { TopNav } from "@/components/Navigation";
 import { pwaSheetStyles } from "@/components/Pwa/sheetStyles";
 import { WorkFulfills } from "./WorkFulfills";
+import { WorkUploadFooter } from "./WorkUploadFooter";
 import { WorkViewSection } from "./WorkViewSection";
 
 export const GardenWork: React.FC = () => {
@@ -54,6 +55,7 @@ export const GardenWork: React.FC = () => {
     workMetadata,
     workApprovalMutation,
   } = useWorkDetailController();
+  const queuedWork = useQueuedWorkActions(isOfflineWork ? work?.id : undefined);
 
   if (!work)
     return (
@@ -84,50 +86,22 @@ export const GardenWork: React.FC = () => {
       defaultMessage: "Unknown action",
     });
 
-  // Retry footer for offline work
+  // The gardener's own queued work: where it stands and what they can do about it.
   const retryFooter =
     isOfflineWork && viewingMode === "gardener" ? (
-      <Alert
-        variant="warning"
-        className="fixed left-0 right-0 bottom-0 z-sticky overflow-hidden rounded-t-[var(--radius-lg)] border-t p-4 pb-6"
-      >
-        <div className="max-w-screen-sm mx-auto">
-          <p className="text-sm text-warning-dark mb-3 flex items-center gap-2">
-            <RiErrorWarningLine className="w-4 h-4 flex-shrink-0" />
-            {intl.formatMessage({
-              id: "app.home.work.pendingUpload",
-              defaultMessage:
-                "Saved on your device. We'll send it to the garden record when you're online.",
-            })}
-          </p>
-          <Button
-            onClick={handleRetry}
-            size="lg"
-            loading={isRetrying}
-            disabled={!isOnline && !isRetrying}
-            className="w-full"
-            leadingIcon={<RiUploadCloudLine className="h-5 w-5" aria-hidden="true" />}
-          >
-            {isRetrying
-              ? intl.formatMessage({
-                  id: "app.home.work.uploading",
-                  defaultMessage: "Sending...",
-                })
-              : intl.formatMessage({
-                  id: "app.home.work.uploadNow",
-                  defaultMessage: "Send Now",
-                })}
-          </Button>
-          {!isOnline && (
-            <p className="text-xs text-warning-base mt-2 text-center">
-              {intl.formatMessage({
-                id: "app.home.work.offlineNotice",
-                defaultMessage: "You're offline. We'll send this when you reconnect.",
-              })}
-            </p>
-          )}
-        </div>
-      </Alert>
+      <WorkUploadFooter
+        work={work}
+        isOnline={isOnline}
+        onRetry={handleRetry}
+        isRetrying={isRetrying}
+        onOpenUploads={queuedWork.openUploads}
+        onTryAgain={queuedWork.tryAgain}
+        isTryingAgain={queuedWork.isTryingAgain}
+        onDiscard={async () => {
+          if (await queuedWork.discard()) handleBack();
+        }}
+        isDiscarding={queuedWork.isDiscarding}
+      />
     ) : null;
 
   const approvalFooter =
@@ -251,7 +225,7 @@ export const GardenWork: React.FC = () => {
                   {intl.formatMessage({
                     id: "app.home.workApproval.offline",
                     defaultMessage:
-                      "You're offline. Your decision will be sent when you reconnect.",
+                      "You're offline. Your decision stays on this device until you upload it from Your Work.",
                   })}
                 </p>
               )}

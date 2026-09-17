@@ -466,7 +466,6 @@ export {
   useAutoJoinRootGarden,
   useBatchConvertToAssets,
   useBatchListForYield,
-  useBatchWorkSync,
   useBeforeUnloadWhilePending,
   useBrowserNavigation,
   useCampaignCookieJar,

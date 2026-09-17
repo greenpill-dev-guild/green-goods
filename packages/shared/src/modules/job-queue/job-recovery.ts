@@ -8,9 +8,9 @@
  * @module modules/job-queue/job-recovery
  */
 
-import { forgetWorkBroadcast } from "../work/work-confirmation";
-import type { WorkJobPayload, Job } from "../../types/job-queue";
+import type { Job, WorkJobPayload } from "../../types/job-queue";
 import type { WorkLinkJobPayload } from "../commitment-pooling/jobs";
+import { forgetWorkBroadcast } from "../work/work-confirmation";
 import type { JobQueueEvents, JobQueueStore } from "./ports";
 
 /**
@@ -45,7 +45,9 @@ export function isDiscardableJob(
  * is not the only ceiling: the metadata and evidence publishers count their own
  * gateway failures, and leaving those at the limit means the next upload
  * failure terminates the job immediately, so Retry would grant no real window
- * after the outage it exists to recover from.
+ * after the outage it exists to recover from. Queued photo conversion and the
+ * last preparation answer are cleared too, so a work or decision that needed
+ * attention is prepared again from the start.
  */
 export function createJobRecovery(
   store: Pick<JobQueueStore, "getJob" | "updateJob" | "deleteJob"> &
@@ -61,6 +63,8 @@ export function createJobRecovery(
         metadataAttempts: _metadataAttempts,
         evidenceAttempts: _evidenceAttempts,
         waitingReason: _waitingReason,
+        mediaConversion: _mediaConversion,
+        preparation: _preparation,
         ...meta
       } = job.meta ?? {};
       if (job.kind === "work" && meta.workTransactionReverted) {

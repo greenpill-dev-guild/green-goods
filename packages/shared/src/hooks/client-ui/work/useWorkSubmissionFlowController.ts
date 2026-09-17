@@ -381,13 +381,17 @@ export function useWorkSubmissionFlowController({
     if (!isOnline) {
       return intl.formatMessage({
         id: "app.offline.status.went.offline",
-        defaultMessage: "You're offline. Your work will sync when you're back online.",
+        defaultMessage:
+          "You're offline. Your work stays on this device until you upload it from Your Work.",
       });
     }
     if (syncStatus === "syncing" || workMutation.isPending) return null;
     return pendingCount > 0
       ? intl.formatMessage(
-          { id: "app.syncBar.pendingOnline", defaultMessage: "{count} items waiting to send" },
+          {
+            id: "app.syncBar.pendingOnline",
+            defaultMessage: "{count, plural, one {# item} other {# items}} waiting to upload",
+          },
           { count: pendingCount }
         )
       : null;

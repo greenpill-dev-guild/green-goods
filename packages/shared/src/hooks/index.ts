@@ -539,7 +539,6 @@ export {
 } from "./vault/vault-helpers";
 export { fetchApprovalsByRecipients } from "./work/useAggregatedApprovals";
 export { useBatchWorkApproval } from "./work/useBatchWorkApproval";
-export { useBatchWorkSync } from "./work/useBatchWorkSync";
 export type { UseCrossGardenQueueResult } from "./work/useCrossGardenQueue";
 export { useCrossGardenQueue } from "./work/useCrossGardenQueue";
 export { useDraftAutoSave } from "./work/useDraftAutoSave";
