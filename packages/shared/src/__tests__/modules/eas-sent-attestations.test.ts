@@ -2,13 +2,20 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const WORK_SCHEMA = `0x${"66".repeat(32)}`;
+const APPROVAL_SCHEMA = `0x${"77".repeat(32)}`;
 vi.mock("../../config/blockchain", async (importOriginal) => ({
   ...(await importOriginal<typeof import("../../config/blockchain")>()),
-  getEASConfig: vi.fn(() => ({ WORK: { uid: WORK_SCHEMA } })),
+  getEASConfig: vi.fn(() => ({
+    WORK: { uid: WORK_SCHEMA },
+    WORK_APPROVAL: { uid: APPROVAL_SCHEMA },
+  })),
 }));
 vi.mock("../../modules/data/graphql", () => ({ easGraphQL: vi.fn((query) => query) }));
 
-import { getWorkSubmissionsSince } from "../../modules/data/eas-work-submissions";
+import {
+  getWorkDecisionsSince,
+  getWorkSubmissionsSince,
+} from "../../modules/data/eas-sent-attestations";
 import { EASFetchError } from "../../modules/data/eas-read-validation";
 import type { GraphQLReader } from "../../modules/data/graphql-client";
 
@@ -105,5 +112,54 @@ describe("reading a gardener's recent work in one garden", () => {
     query.mockResolvedValue({ error: new Error("indexer unavailable") });
 
     await expect(getWorkSubmissionsSince(input, reader)).rejects.toBeInstanceOf(EASFetchError);
+  });
+
+  it("asks for one steward's decisions on one piece of work, and keeps only that work's", async () => {
+    const workUID = `0x${"44".repeat(32)}`;
+    const decisionOn = (id: string, decided: string) => ({
+      id,
+      attester: GARDENER,
+      recipient: GARDENER,
+      timeCreated: 1_700_000_100,
+      txid: TX,
+      decodedDataJson: JSON.stringify([
+        { name: "workUID", value: { value: decided } },
+        { name: "approved", value: { value: true } },
+        // Feedback that mentions the work matches the text search, not the decision.
+        { name: "feedback", value: { value: `see ${workUID}` } },
+      ]),
+    });
+    query.mockResolvedValue({
+      data: {
+        attestations: [
+          decisionOn(`0x${"77".repeat(32)}`, workUID),
+          decisionOn(`0x${"88".repeat(32)}`, `0x${"99".repeat(32)}`),
+        ],
+      },
+    });
+
+    const decisions = await getWorkDecisionsSince(
+      { attester: GARDENER, workUID, chainId: 42161, sinceSeconds: 1_700_000_000 },
+      reader
+    );
+
+    expect(query).toHaveBeenCalledWith(
+      expect.anything(),
+      {
+        where: {
+          schemaId: { equals: APPROVAL_SCHEMA },
+          attester: { equals: GARDENER, mode: "insensitive" },
+          decodedDataJson: { contains: workUID, mode: "insensitive" },
+          revoked: { equals: false },
+          timeCreated: { gte: 1_700_000_000 },
+        },
+        take: 100,
+        skip: 0,
+      },
+      "getWorkDecisionsSince"
+    );
+    expect(decisions).toHaveLength(1);
+    expect(decisions[0].decision.workUID).toBe(workUID);
+    expect(decisions[0].transactionHash).toBe(TX);
   });
 });

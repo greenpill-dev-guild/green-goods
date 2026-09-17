@@ -22,7 +22,7 @@ import type { Address } from "../../types/domain";
 import type { ApprovalJobPayload, Job, WorkJobPayload } from "../../types/job-queue";
 import { createMockTransactionSender } from "../test-utils/transaction-fakes";
 import { PendingHeicConversionError } from "../../modules/work/work-attachments";
-import { StrandedWorkIntentReopened } from "../../modules/work/stranded-intent";
+import { StrandedSendReopened } from "../../modules/work/stranded-intent";
 
 // An untitled job looks its action up; keep that lookup off the network.
 vi.mock("../../modules/data/greengoods", async (importOriginal) => ({
@@ -1242,11 +1242,137 @@ describe("settling a send whose answer was lost", () => {
       broadcastPendingAt: "2026-09-16T11:00:00.000Z",
     });
     const sender = createMockTransactionSender({ authMode: "wallet" });
-    const settleStrandedIntent = vi.fn().mockRejectedValue(new StrandedWorkIntentReopened());
+    const settleStrandedIntent = vi.fn().mockRejectedValue(new StrandedSendReopened());
 
     await expect(
       executeWorkJob(work.id, work, 11155111, sender, { settleStrandedIntent })
-    ).rejects.toBeInstanceOf(StrandedWorkIntentReopened);
+    ).rejects.toBeInstanceOf(StrandedSendReopened);
     expect(sender.sendContractCall).not.toHaveBeenCalled();
+  });
+});
+
+describe("sending a decision once", () => {
+  const LANDED = `0x${"ab".repeat(32)}` as const;
+  const decision = (sendCheckpoint?: ApprovalJobPayload["sendCheckpoint"]) =>
+    job<ApprovalJobPayload>(
+      "approval",
+      {
+        actionUID: 7,
+        workUID: HASH,
+        gardenAddress: GARDEN,
+        gardenerAddress: USER,
+        approved: true,
+        confidence: 2,
+        verificationMethod: 1,
+        ...(sendCheckpoint ? { sendCheckpoint } : {}),
+      },
+      { id: crypto.randomUUID() }
+    );
+  const sendDeps = (overrides = {}) => ({
+    encodeApproval: vi.fn().mockReturnValue(HASH),
+    easConfig: EAS_CONFIG,
+    persist: vi.fn().mockResolvedValue(undefined),
+    ...overrides,
+  });
+  const lostResponse = () =>
+    Object.assign(new Error("The request took too long"), { name: "TimeoutError" });
+
+  it("never sends a decision again when its answer is lost after the send", async () => {
+    const approval = decision();
+    const sender = createMockTransactionSender();
+    vi.mocked(sender.sendContractCall).mockImplementation(async (_call, options) => {
+      await options?.onBeforeBroadcast?.({ kind: "user-operation", hash: HASH });
+      await options?.onBroadcastReference?.({ kind: "user-operation", hash: HASH });
+      throw lostResponse();
+    });
+    sender.reconcileBroadcast = vi
+      .fn()
+      .mockResolvedValueOnce({ status: "unresolved" })
+      .mockResolvedValueOnce({ status: "confirmed", transactionHash: LANDED });
+    const deps = sendDeps({
+      settleStrandedIntent: vi.fn().mockRejectedValue(new Error("waiting")),
+    });
+
+    await expect(executeApprovalJob(approval, 11155111, sender, deps)).rejects.toThrow(
+      "awaiting-confirmation"
+    );
+    expect(approval.payload.sendCheckpoint).toMatchObject({
+      broadcast: { kind: "user-operation", hash: HASH },
+      broadcastPending: false,
+    });
+    expect(deps.persist).toHaveBeenCalled();
+
+    // The next run asks about the operation instead of sending the decision again.
+    await expect(executeApprovalJob(approval, 11155111, sender, deps)).rejects.toThrow("waiting");
+    await expect(executeApprovalJob(approval, 11155111, sender, deps)).resolves.toBe(LANDED);
+    expect(sender.sendContractCall).toHaveBeenCalledOnce();
+  });
+
+  it("confirms a recorded transaction by its receipt, and never gives up on an unresolved one", async () => {
+    const sender = createMockTransactionSender();
+    const settleStrandedIntent = vi.fn();
+    const confirmed = sendDeps({
+      reconcile: vi.fn().mockResolvedValue("confirmed"),
+      settleStrandedIntent,
+    });
+    const unresolved = sendDeps({
+      reconcile: vi.fn().mockResolvedValue("unresolved"),
+      settleStrandedIntent,
+    });
+
+    await expect(
+      executeApprovalJob(decision({ transactionHash: LANDED }), 11155111, sender, confirmed)
+    ).resolves.toBe(LANDED);
+    // A transaction hash may be a Safe transaction still collecting signatures.
+    await expect(
+      executeApprovalJob(decision({ transactionHash: LANDED }), 11155111, sender, unresolved)
+    ).rejects.toThrow("awaiting-confirmation");
+    expect(settleStrandedIntent).not.toHaveBeenCalled();
+    expect(sender.sendContractCall).not.toHaveBeenCalled();
+  });
+
+  it("clears a send that reverted, so the decision may be sent again", async () => {
+    const approval = decision({ transactionHash: LANDED });
+    const sender = createMockTransactionSender();
+    const deps = sendDeps({ reconcile: vi.fn().mockResolvedValue("reverted") });
+
+    await expect(executeApprovalJob(approval, 11155111, sender, deps)).rejects.toThrow(
+      "Transaction reverted"
+    );
+    expect(approval.payload.sendCheckpoint).toBeUndefined();
+    expect(deps.persist).toHaveBeenCalledWith(approval);
+    expect(sender.sendContractCall).not.toHaveBeenCalled();
+  });
+
+  it("asks the steward's own decisions about a send whose answer was lost", async () => {
+    const approval = decision({
+      broadcastPending: true,
+      broadcastPendingAt: "2026-09-16T11:00:00.000Z",
+    });
+    const sender = createMockTransactionSender();
+    const settleStrandedIntent = vi.fn().mockResolvedValue(LANDED);
+
+    await expect(
+      executeApprovalJob(approval, 11155111, sender, sendDeps({ settleStrandedIntent }))
+    ).resolves.toBe(LANDED);
+    expect(settleStrandedIntent).toHaveBeenCalledWith(approval, 11155111, "0x");
+    expect(sender.sendContractCall).not.toHaveBeenCalled();
+  });
+
+  it("clears the intent when the wallet rejects, so the decision may be sent again", async () => {
+    const approval = decision();
+    const sender = createMockTransactionSender({ authMode: "wallet" });
+    vi.mocked(sender.sendContractCall).mockImplementation(async (_call, options) => {
+      await options?.onBeforeBroadcast?.();
+      throw Object.assign(new Error("User rejected the request."), { code: 4001 });
+    });
+    const deps = sendDeps();
+
+    await expect(executeApprovalJob(approval, 11155111, sender, deps)).rejects.toThrow(
+      "User rejected"
+    );
+    expect(approval.payload.sendCheckpoint).toBeUndefined();
+    expect(approval.meta?.requiresExplicitSend).toBeUndefined();
+    expect(deps.persist).toHaveBeenCalledTimes(2);
   });
 });

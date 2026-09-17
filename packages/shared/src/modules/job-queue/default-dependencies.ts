@@ -12,7 +12,7 @@ import { SW_MESSAGE } from "../app/service-worker-protocol";
 import { COMMITMENT_JOB_KINDS } from "../commitment-pooling/jobs";
 import { createCommitmentQueueAdmission } from "../commitment-pooling/queue-admission";
 import { selectCommitmentPoolingAvailability } from "../commitment-pooling/selectors";
-import { StrandedWorkIntentReopened } from "../work/stranded-intent";
+import { StrandedSendReopened } from "../work/stranded-intent";
 import { InvalidWorkAttachmentError, PendingHeicConversionError } from "../work/work-attachments";
 import {
   AwaitingWorkConfirmation,
@@ -53,7 +53,7 @@ function createDefaultExecutorRegistry() {
         if (error instanceof PendingHeicConversionError)
           return { status: "waiting", reason: error.reason };
         // Never found on-chain: the work waits for the person to send it again.
-        if (error instanceof StrandedWorkIntentReopened)
+        if (error instanceof StrandedSendReopened)
           return { status: "waiting", reason: "send-intent-expired" };
         if (error instanceof WorkTransactionReverted)
           return { status: "unavailable", reason: "work-transaction-reverted" };
@@ -66,10 +66,21 @@ function createDefaultExecutorRegistry() {
         throw error;
       }
     },
-    approval: async (_jobId, job, chainId, sender) => ({
-      status: "complete",
-      txHash: await executeApprovalJob(job as Job<ApprovalJobPayload>, chainId, sender),
-    }),
+    approval: async (_jobId, job, chainId, sender) => {
+      try {
+        return {
+          status: "complete",
+          txHash: await executeApprovalJob(job as Job<ApprovalJobPayload>, chainId, sender),
+        };
+      } catch (error) {
+        // A decision that may already be on-chain is confirmed, never sent again.
+        if (error instanceof AwaitingWorkConfirmation)
+          return { status: "waiting", reason: "awaiting-confirmation" };
+        if (error instanceof StrandedSendReopened)
+          return { status: "waiting", reason: "send-intent-expired" };
+        throw error;
+      }
+    },
   };
   for (const kind of COMMITMENT_JOB_KINDS) {
     executors[kind] = (jobId, job, chainId, sender) =>

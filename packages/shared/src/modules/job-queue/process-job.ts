@@ -4,7 +4,12 @@ import {
   retainedWorkBroadcast,
   WorkTransactionReverted,
 } from "../work/work-confirmation";
-import type { Job, WorkJobPayload } from "../../types/job-queue";
+import type {
+  ApprovalJobPayload,
+  Job,
+  SendCheckpoint,
+  WorkJobPayload,
+} from "../../types/job-queue";
 import { JobMaintenance } from "./job-maintenance";
 import type {
   JobQueueAnalytics,
@@ -34,6 +39,13 @@ interface ProcessJobDependencies {
 
 function calculateBackoffDelay(attempts: number): number {
   return Math.min(1000 * 2 ** attempts, 60_000);
+}
+
+/** What a work or decision job recorded about reaching the network while it was sent. */
+function sendCheckpointOf(job: Job): SendCheckpoint | undefined {
+  if (job.kind === "work") return (job.payload as WorkJobPayload).uploadCheckpoint;
+  if (job.kind === "approval") return (job.payload as ApprovalJobPayload).sendCheckpoint;
+  return undefined;
 }
 
 function isWithinBackoffWindow(job: Job, now: number): boolean {
@@ -122,12 +134,12 @@ export function createJobProcessor(deps: ProcessJobDependencies) {
       (checkpoint?.transactionReverted || job.meta?.workTransactionReverted)
     )
       return { success: false, error: "work-transaction-reverted", skipped: true };
+    const sent = sendCheckpointOf(job);
     if (
       job.attempts >= deps.config.maxRetries &&
       !retainedWorkBroadcast(jobId) &&
       !(
-        job.kind === "work" &&
-        (checkpoint?.transactionHash || checkpoint?.broadcast || checkpoint?.broadcastPending) &&
+        (sent?.transactionHash || sent?.broadcast || sent?.broadcastPending) &&
         !job.meta?.workTransactionReverted
       )
     ) {
@@ -227,12 +239,13 @@ export function createJobProcessor(deps: ProcessJobDependencies) {
         deps.events.emit("job:failed", { jobId, job, error: errorMessage });
         return { success: false, error: errorMessage };
       }
+      // Read again: the executor updates the checkpoint while it sends.
+      const recorded = sendCheckpointOf(job);
       if (
-        job.kind === "work" &&
-        (retainedWorkBroadcast(jobId) ||
-          (job.payload as WorkJobPayload).uploadCheckpoint?.transactionHash ||
-          (job.payload as WorkJobPayload).uploadCheckpoint?.broadcast ||
-          (job.payload as WorkJobPayload).uploadCheckpoint?.broadcastPending)
+        retainedWorkBroadcast(jobId) ||
+        recorded?.transactionHash ||
+        recorded?.broadcast ||
+        recorded?.broadcastPending
       ) {
         // Failed checkpoint writes cannot turn a confirmation check into a new submission.
         deps.logger.warn("[JobQueue] Work confirmation checkpoint needs persistence", {

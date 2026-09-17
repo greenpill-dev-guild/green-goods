@@ -4,7 +4,8 @@
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createMockTransactionSender } from "@green-goods/shared/testing";
-import type { WorkJobPayload } from "../../types/job-queue";
+import type { ApprovalJobPayload, WorkJobPayload } from "../../types/job-queue";
+import { forgetWorkBroadcast } from "../../modules/work/work-confirmation";
 
 // Ensure fake-indexeddb is loaded before job-queue module
 import "fake-indexeddb/auto";
@@ -27,7 +28,7 @@ vi.mock("../../modules/app/posthog", () => ({
 
 // Mock the simulate module (dynamically imported by job queue)
 // No stranded send in these tests ever landed on-chain.
-vi.mock("../../modules/data/eas-work-submissions", () => ({
+vi.mock("../../modules/data/eas-sent-attestations", () => ({
   getWorkSubmissionsSince: vi.fn(async () => []),
 }));
 vi.mock("../../modules/work/simulate", () => ({
@@ -278,6 +279,84 @@ describe("modules/job-queue", () => {
       confirm.mockRestore();
       status.mockRestore();
     }
+    expect(sender.sendContractCall).not.toHaveBeenCalled();
+  });
+
+  it("confirms a decision whose answer was lost instead of failing it or sending it twice", async () => {
+    const sent = `0x${"ab".repeat(32)}` as const;
+    const jobId = await jobQueue.addJob(
+      "approval",
+      {
+        actionUID: 1,
+        workUID: `0x${"44".repeat(32)}`,
+        gardenAddress: "0x123",
+        gardenerAddress: "0x456",
+        approved: true,
+        confidence: 2,
+        verificationMethod: 1,
+      },
+      TEST_USER_ADDRESS,
+      { chainId: 11155111 }
+    );
+    const sender = createMockTransactionSender();
+    vi.mocked(sender.sendContractCall).mockImplementation(async (_call, options) => {
+      await options?.onBeforeBroadcast?.();
+      await options?.onBroadcast?.(sent);
+      throw Object.assign(new Error("The request took too long"), { name: "TimeoutError" });
+    });
+
+    await expect(jobQueue.processJob(jobId, { transactionSender: sender })).resolves.toEqual({
+      success: false,
+      error: "awaiting-confirmation",
+      skipped: true,
+    });
+    const waiting = await jobQueueDB.getJob(jobId);
+    expect(waiting?.attempts).toBe(0);
+    expect(waiting?.meta?.waitingReason).toBe("awaiting-confirmation");
+    expect((waiting?.payload as ApprovalJobPayload).sendCheckpoint?.transactionHash).toBe(sent);
+
+    // After a reload, and past the retry limit, a recorded decision is confirmed, never sent again.
+    forgetWorkBroadcast(jobId);
+    await jobQueueDB.updateJob({ ...waiting!, attempts: 5 });
+    await expect(
+      jobQueue.processJob(jobId, { transactionSender: sender, explicit: true })
+    ).resolves.toMatchObject({ error: "awaiting-confirmation" });
+    expect(sender.sendContractCall).toHaveBeenCalledOnce();
+  });
+
+  it("never fails a sent decision when its checkpoint cannot be saved", async () => {
+    const jobId = await jobQueue.addJob(
+      "approval",
+      {
+        actionUID: 1,
+        workUID: `0x${"44".repeat(32)}`,
+        gardenAddress: "0x123",
+        gardenerAddress: "0x456",
+        approved: true,
+        confidence: 2,
+        verificationMethod: 1,
+      },
+      TEST_USER_ADDRESS,
+      { chainId: 11155111 }
+    );
+    const stored = await jobQueueDB.getJob(jobId);
+    // An earlier build recorded the intent without a time; stamping it cannot be saved.
+    (stored!.payload as ApprovalJobPayload).sendCheckpoint = { broadcastPending: true };
+    await jobQueueDB.updateJob(stored!);
+    const sender = createMockTransactionSender();
+    const update = vi
+      .spyOn(jobQueueDB, "updateJob")
+      .mockRejectedValueOnce(new Error("QuotaExceededError"));
+    try {
+      await expect(jobQueue.processJob(jobId, { transactionSender: sender })).resolves.toEqual({
+        success: false,
+        error: "awaiting-confirmation",
+        skipped: true,
+      });
+    } finally {
+      update.mockRestore();
+    }
+    expect((await jobQueueDB.getJob(jobId))?.attempts).toBe(0);
     expect(sender.sendContractCall).not.toHaveBeenCalled();
   });
 

@@ -1,16 +1,20 @@
 /** @vitest-environment node */
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { Job, WorkJobPayload } from "../../../types/job-queue";
+import type { ApprovalJobPayload, Job, WorkJobPayload } from "../../../types/job-queue";
 import type { WorkUploadCheckpoint } from "../../../types/work-media";
 
-const indexer = vi.hoisted(() => ({ getWorkSubmissionsSince: vi.fn() }));
-vi.mock("../../../modules/data/eas-work-submissions", () => indexer);
+const indexer = vi.hoisted(() => ({
+  getWorkSubmissionsSince: vi.fn(),
+  getWorkDecisionsSince: vi.fn(),
+}));
+vi.mock("../../../modules/data/eas-sent-attestations", () => indexer);
 vi.mock("../../../modules/job-queue/db", () => ({ jobQueueDB: { updateJob: vi.fn() } }));
 
 import {
   STRANDED_INTENT_GRACE_MS,
-  StrandedWorkIntentReopened,
+  StrandedSendReopened,
   isStrandedIntentCandidate,
+  resolveStrandedDecisionIntent,
   resolveStrandedWorkIntent,
   settleStrandedWorkIntent,
 } from "../../../modules/work/stranded-intent";
@@ -71,32 +75,68 @@ const deps = (lookUp = vi.fn()) => ({ now: () => NOW, lookUp, persist: vi.fn() }
 
 beforeEach(() => {
   indexer.getWorkSubmissionsSince.mockReset();
+  indexer.getWorkDecisionsSince.mockReset();
 });
+
+const WORK_UID = `0x${"44".repeat(32)}`;
+function strandedDecision(approved: boolean, broadcastPendingAt: string): Job<ApprovalJobPayload> {
+  sequence += 1;
+  return {
+    id: `decision-${sequence}`,
+    kind: "approval",
+    chainId: 42161,
+    userAddress: GARDENER,
+    createdAt: NOW - 45 * 60_000,
+    attempts: 0,
+    synced: false,
+    payload: {
+      actionUID: 1,
+      workUID: WORK_UID,
+      gardenAddress: GARDEN,
+      gardenerAddress: GARDENER,
+      approved,
+      confidence: 2,
+      verificationMethod: 1,
+      sendCheckpoint: { broadcastPending: true, broadcastPendingAt },
+    },
+  } as Job<ApprovalJobPayload>;
+}
+
+function indexedDecision(approved: boolean) {
+  return {
+    decision: {
+      id: `0x${"77".repeat(32)}`,
+      stewardAddress: GARDENER,
+      gardenerAddress: GARDENER,
+      actionUID: 1,
+      workUID: WORK_UID,
+      approved,
+      feedback: "",
+      confidence: 2,
+      verificationMethod: 1,
+      reviewNotesCID: "",
+      createdAt: 1,
+    },
+    transactionHash: TX,
+  };
+}
 
 describe("settling a send no receipt can", () => {
   it("never treats a transaction hash as stranded, since it may be a Safe transaction still collecting signatures", async () => {
-    expect(isStrandedIntentCandidate({ submittedAt: "", files: {}, broadcastPending: true })).toBe(
-      true
-    );
+    expect(isStrandedIntentCandidate({ broadcastPending: true })).toBe(true);
     expect(
       isStrandedIntentCandidate({
-        submittedAt: "",
-        files: {},
         broadcast: { kind: "user-operation", hash: OPERATION },
       })
     ).toBe(true);
     expect(
       isStrandedIntentCandidate({
-        submittedAt: "",
-        files: {},
         broadcast: { kind: "transaction", hash: TX },
         broadcastPending: true,
       })
     ).toBe(false);
     expect(
       isStrandedIntentCandidate({
-        submittedAt: "",
-        files: {},
         broadcastPending: true,
         transactionHash: TX,
       })
@@ -274,7 +314,7 @@ describe("settling a send no receipt can", () => {
         "0x",
         deps(vi.fn().mockResolvedValue({ status: "absent" }))
       )
-    ).rejects.toBeInstanceOf(StrandedWorkIntentReopened);
+    ).rejects.toBeInstanceOf(StrandedSendReopened);
 
     const young = strandedWork({
       broadcast: { kind: "user-operation", hash: OPERATION },
@@ -283,5 +323,38 @@ describe("settling a send no receipt can", () => {
     const waiting = settleStrandedWorkIntent(young, 42161, OPERATION, deps());
     await expect(waiting).rejects.toBeInstanceOf(AwaitingWorkConfirmation);
     await expect(waiting).rejects.toMatchObject({ hash: OPERATION });
+  });
+
+  it("finds the steward's own decision on that work", async () => {
+    indexer.getWorkDecisionsSince.mockResolvedValue([
+      indexedDecision(false),
+      indexedDecision(true),
+    ]);
+    const approval = strandedDecision(true, minutesAgo(10));
+
+    await expect(
+      resolveStrandedDecisionIntent(approval, 42161, { now: () => NOW, persist: vi.fn() })
+    ).resolves.toEqual({ status: "landed", transactionHash: TX });
+    expect(indexer.getWorkDecisionsSince).toHaveBeenCalledWith({
+      attester: GARDENER,
+      workUID: WORK_UID,
+      chainId: 42161,
+      sinceSeconds: (NOW - 45 * 60_000 - 24 * 60 * 60_000) / 1000,
+    });
+  });
+
+  it("reopens a decision still absent after the grace window, for the next pass to send", async () => {
+    // Only the opposite decision landed, so this one did not.
+    indexer.getWorkDecisionsSince.mockResolvedValue([indexedDecision(false)]);
+    const approval = strandedDecision(true, minutesAgo(45));
+    const persist = vi.fn();
+
+    await expect(
+      resolveStrandedDecisionIntent(approval, 42161, { now: () => NOW, persist })
+    ).resolves.toEqual({ status: "reopened" });
+    expect(approval.payload.sendCheckpoint).toBeUndefined();
+    // Decisions have no send control of their own yet, so nothing holds it for a tap.
+    expect(approval.meta?.requiresExplicitSend).toBeUndefined();
+    expect(persist).toHaveBeenCalledWith(approval);
   });
 });

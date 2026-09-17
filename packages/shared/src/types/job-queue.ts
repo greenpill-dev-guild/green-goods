@@ -99,6 +99,12 @@ export interface WorkJobPayload {
   media?: File[];
 }
 
+/** What a queued send recorded about reaching the network, so it is confirmed, never sent twice. */
+export type SendCheckpoint = Pick<
+  WorkUploadCheckpoint,
+  "broadcast" | "broadcastPending" | "broadcastPendingAt" | "transactionHash"
+>;
+
 export interface ApprovalJobPayload {
   actionUID: number;
   workUID: string;
@@ -112,6 +118,8 @@ export interface ApprovalJobPayload {
   verificationMethod: number;
   /** Optional IPFS CID for review audio + notes */
   reviewNotesCID?: string;
+  /** Recorded as the decision is sent; the resolver accepts a second decision for the same work. */
+  sendCheckpoint?: SendCheckpoint;
 }
 
 // ============================================
