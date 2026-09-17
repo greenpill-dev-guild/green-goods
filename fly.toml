@@ -13,7 +13,11 @@
 #       ENCRYPTION_SECRET=<32+-char-secret> \
 #       TELEGRAM_WEBHOOK_SECRET=<secret> \
 #       BOT_API_TOKEN=<routine-auth-bearer-token> \
-#       POSTHOG_AGENT_KEY=<agent-project-token>
+#       POSTHOG_AGENT_KEY=<agent-project-token> \
+#       AGENT_ALLOWED_ORIGINS=<comma-separated-browser-origins> \
+#       AGENT_TRUSTED_PROXY_CIDRS=<fly-proxy-cidr> \
+#       AGENT_TRUSTED_PROXY_HOPS=<proxy-hop-count> \
+#       SAVED_OFFERS_AUDIENCE=<agent-host>
 #   flyctl deploy --build-secret SENTRY_AUTH_TOKEN=<sentry-auth-token>
 #
 # Health model:
@@ -31,9 +35,10 @@ kill_timeout = '30s'
   dockerfile = 'packages/agent/Dockerfile'
 
 [env]
-  AGENT_ALLOWED_ORIGINS = 'https://greengoods.app,https://www.greengoods.app,https://beta.greengoods.app,https://admin.greengoods.app,https://beta.admin.greengoods.app'
-  AGENT_TRUSTED_PROXY_CIDRS = '172.16.0.0/16'
-  AGENT_TRUSTED_PROXY_HOPS = '1'
+  # The browser-origin allowlist, the trusted-proxy policy, and the saved-offer
+  # audience are Fly secrets, not [env] values. A secret silently overrides an
+  # [env] value of the same name, so keep each setting in one place.
+  # `bun run dev:smoke -- prod` checks the live allowlist.
   ANALYTICS_ENABLED = 'true'
   BOT_MODE = 'webhook'
   DB_PATH = '/data/agent.db'
@@ -45,7 +50,6 @@ kill_timeout = '30s'
   JOIN_REQUESTS_ENABLED = 'true'
   NODE_ENV = 'production'
   PORT = '8080'
-  SAVED_OFFERS_AUDIENCE = 'agent.greengoods.app'
   VITE_CHAIN_ID = '42161'
   WEBHOOK_URL = 'https://agent.greengoods.app'
 

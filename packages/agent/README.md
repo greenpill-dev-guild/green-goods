@@ -43,8 +43,9 @@ flyctl launch --no-deploy --config fly.toml --dockerfile packages/agent/Dockerfi
 # Persistent volume for the SQLite database
 flyctl volumes create agent_data --config fly.toml --region jnb --size 1
 
-# Stable production settings, including the chain, browser origins,
-# feature flags, saved-offer audience, and trusted-proxy policy, live in fly.toml.
+# Plain settings such as the chain and feature flags live in fly.toml. Browser
+# origins, trusted-proxy policy, and the saved-offer audience are secrets. A secret
+# silently overrides an [env] value of the same name, so never set one in both places.
 flyctl secrets set --config fly.toml \
   TELEGRAM_BOT_TOKEN=<botfather-token> \
   ENCRYPTION_SECRET=<32+-char-secret> \
@@ -52,7 +53,11 @@ flyctl secrets set --config fly.toml \
   BOT_API_TOKEN=<routine-auth-bearer-token> \
   PINATA_JWT=<pinata-jwt-for-upload-signing> \
   POSTHOG_AGENT_KEY=<optional> \
-  TELEGRAM_WEBHOOK_SECRET=<random-string>
+  TELEGRAM_WEBHOOK_SECRET=<random-string> \
+  AGENT_ALLOWED_ORIGINS=<comma-separated-browser-origins> \
+  AGENT_TRUSTED_PROXY_CIDRS=<fly-proxy-cidr> \
+  AGENT_TRUSTED_PROXY_HOPS=<proxy-hop-count> \
+  SAVED_OFFERS_AUDIENCE=<agent-host>
 
 # First deploy
 flyctl deploy --config fly.toml
@@ -303,8 +308,10 @@ See [agent.md](/.claude/context/agent.md) for detailed architecture documentatio
 
 - [ ] Set `ENCRYPTION_SECRET` (32+ characters)
 - [ ] Set `SAVED_OFFERS_ENCRYPTION_KEY`
-- [ ] Confirm `AGENT_ALLOWED_ORIGINS`, `SAVED_OFFERS_AUDIENCE`, `AGENT_TRUSTED_PROXY_HOPS`,
-      `AGENT_TRUSTED_PROXY_CIDRS`, and `VITE_CHAIN_ID` in `fly.toml`
+- [ ] Set `AGENT_ALLOWED_ORIGINS`, `SAVED_OFFERS_AUDIENCE`, `AGENT_TRUSTED_PROXY_HOPS`, and
+      `AGENT_TRUSTED_PROXY_CIDRS` as Fly secrets, and confirm `VITE_CHAIN_ID` in `fly.toml`
+- [ ] After each deploy or allowlist change, run `bun run dev:smoke -- prod` and confirm
+      `production-agent-browser-origins` passes (the expected origins live in `scripts/dev/smoke-prod.js`)
 - [ ] Before setting `JOIN_REQUESTS_ENABLED=true`, set `JOIN_REQUESTS_ENCRYPTION_KEY`, name a backup operator, rehearse recovery, record authenticated Brave proof, update [the authoritative community interface status](/.plans/backlog/community-interface/status.json), then set `JOIN_REQUESTS_PRODUCTION_READY=true`.
 - [ ] Configure webhook URL with TLS
 - [ ] Consider HSM/KMS for key storage
