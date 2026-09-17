@@ -27,11 +27,28 @@ interface JobQueueContextValue {
   isProcessing: boolean;
   lastEvent: QueueEvent | null;
   flush: () => Promise<void>;
+  /** Give one job another run and send only that job, as the person's own tap. */
+  retryAndSend: (jobId: string) => Promise<void>;
   hasPendingJobs: () => Promise<boolean>;
   getPendingCount: () => Promise<number>;
 }
 
 const JobQueueContext = createContext<JobQueueContextValue | undefined>(undefined);
+
+function signInToSync() {
+  toastService.error({
+    id: "job-queue-flush",
+    title: "Cannot sync",
+    message: "Please sign in to sync your queue.",
+    context: "job queue",
+  });
+}
+
+function stillQueuedReason(hasSender: boolean) {
+  if (!connectivityStore.getSnapshot()) return "Reconnect to the internet to finish syncing.";
+  if (!hasSender) return "Sign in to continue syncing.";
+  return "We'll retry shortly.";
+}
 
 export const useJobQueue = () => {
   const context = useContext(JobQueueContext);
@@ -372,12 +389,7 @@ const JobQueueProviderInner: React.FC<JobQueueProviderProps> = ({ children, queu
       lastEvent,
       flush: async () => {
         if (!currentUserAddress) {
-          toastService.error({
-            id: "job-queue-flush",
-            title: "Cannot sync",
-            message: "Please sign in to sync your queue.",
-            context: "job queue",
-          });
+          signInToSync();
           return;
         }
 
@@ -393,15 +405,40 @@ const JobQueueProviderInner: React.FC<JobQueueProviderProps> = ({ children, queu
           } else if (result.failed > 0) {
             queueToasts.syncError();
           } else if (result.skipped > 0) {
-            const isOnline = connectivityStore.getSnapshot();
-            const reason = !isOnline
-              ? "Reconnect to the internet to finish syncing."
-              : !sender
-                ? "Sign in to continue syncing."
-                : "We'll retry shortly.";
-            queueToasts.stillQueued(reason);
+            queueToasts.stillQueued(stillQueuedReason(Boolean(sender)));
           } else {
             queueToasts.queueClear();
+          }
+        } catch (error) {
+          toastService.error({
+            id: "job-queue-flush",
+            title: "Queue sync failed",
+            message: "Please try again.",
+            context: "job queue",
+            error,
+          });
+        }
+      },
+      retryAndSend: async (jobId: string) => {
+        if (!currentUserAddress) {
+          signInToSync();
+          return;
+        }
+        try {
+          await queue.retryJob(jobId);
+          // The person asked for this one job, so nothing else in the queue is sent.
+          const result = await queue.processJob(jobId, {
+            transactionSender: sender ?? null,
+            explicit: true,
+          });
+          await refreshStats();
+          if (result.success) {
+            if (result.skipped) queueToasts.queueClear();
+            else queueToasts.syncSuccess(1);
+          } else if (!result.skipped) {
+            queueToasts.syncError();
+          } else {
+            queueToasts.stillQueued(stillQueuedReason(Boolean(sender)));
           }
         } catch (error) {
           toastService.error({

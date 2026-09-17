@@ -509,6 +509,53 @@ describe("providers/JobQueueProvider", () => {
     });
   });
 
+  describe("retrying one job", () => {
+    const renderWithQueue = (processed: Awaited<ReturnType<JobQueueHandle["processJob"]>>) => {
+      const queue = createFakeJobQueueHandle();
+      queue.getStats = vi.fn().mockResolvedValue({ total: 1, pending: 1, failed: 1, synced: 0 });
+      vi.mocked(queue.processJob).mockResolvedValue(processed);
+      return { queue, ...renderHook(() => useJobQueue(), { wrapper: createWrapper(queue) }) };
+    };
+
+    it("sends only the job the person chose, as their own tap", async () => {
+      // No automatic flush may run beside it in this test.
+      const confirmed = vi.spyOn(connectivityStore, "isConfirmedOnline").mockReturnValue(false);
+      try {
+        const { queue, result } = renderWithQueue({ success: true, txHash: "0xabc" });
+
+        await act(async () => result.current.retryAndSend("commitment-job-1"));
+
+        expect(queue.retryJob).toHaveBeenCalledWith("commitment-job-1");
+        expect(queue.processJob).toHaveBeenCalledWith("commitment-job-1", {
+          transactionSender: mockTransactionSender,
+          explicit: true,
+        });
+        expect(queue.flush).not.toHaveBeenCalled();
+        expect(queueToasts.syncSuccess).toHaveBeenCalledWith(1);
+      } finally {
+        confirmed.mockRestore();
+      }
+    });
+
+    it("says the job is still queued when it cannot be sent now", async () => {
+      const confirmed = vi.spyOn(connectivityStore, "isConfirmedOnline").mockReturnValue(false);
+      try {
+        const { result } = renderWithQueue({
+          success: false,
+          error: "connection-unconfirmed",
+          skipped: true,
+        });
+
+        await act(async () => result.current.retryAndSend("commitment-job-1"));
+
+        expect(queueToasts.stillQueued).toHaveBeenCalledOnce();
+        expect(queueToasts.syncError).not.toHaveBeenCalled();
+      } finally {
+        confirmed.mockRestore();
+      }
+    });
+  });
+
   describe("wallet queue sync wiring", () => {
     it("hands the wallet queue sync its queue, sender, connection state, and address", async () => {
       mockUseAuth.mockReturnValue({
