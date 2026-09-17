@@ -13,6 +13,7 @@ import { useMyWorks } from "@green-goods/shared/hooks/work/useMyWorks";
 import { useNeedsReview } from "@green-goods/shared/hooks/work/useNeedsReview";
 import { useReviewerGardenIds } from "@green-goods/shared/hooks/work/useReviewerGardenIds";
 import { useWorkApprovals } from "@green-goods/shared/hooks/work/useWorkApprovals";
+import { useWorkUploads } from "@green-goods/shared/hooks/work/useWorkUploads";
 import { logger } from "@green-goods/shared/modules/app/logger";
 import {
   useUIStore,
@@ -33,6 +34,7 @@ import { getPwaSheetCloseDelayMs } from "@/components/Pwa/sheetStyles";
 import { CompletedTab } from "./CompletedTab";
 import { DraftsTab } from "./Drafts";
 import { PendingTab } from "./PendingTab";
+import { buildUploadActions } from "./uploadActions";
 import { WorkDashboardShell } from "./WorkDashboardShell";
 import {
   approvalsToCompletedWorks,
@@ -86,6 +88,21 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
 
   // Get draft count for badge
   const { draftCount } = useDrafts();
+
+  // Queued work and decisions go out together from the bar under every tab.
+  const uploads = useWorkUploads();
+  const uploadActions = buildUploadActions(
+    uploads,
+    {
+      onUpload: () => {
+        hapticLight();
+        // useWorkUploads reports every outcome, a failure included.
+        uploads.upload().catch(() => undefined);
+      },
+      onPrepareNow: uploads.prepareNow,
+    },
+    intl.formatMessage
+  );
 
   // Timer for close animation (auto-cleared on unmount)
   const { set: scheduleTimeout, clear: clearCloseTimeout } = useTimeout();
@@ -411,6 +428,7 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
             onCompletedFilterChange={setCompletedFilter}
             timeFilter={timeFilter}
             onTimeFilterChange={setTimeFilter}
+            waitingUploadIds={uploads.waitingDecisionWorkIds}
           />
         );
     }
@@ -424,6 +442,7 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
       tabs={tabs}
       activeTab={activeTab}
       onTabChange={(tabId: string) => setActiveTab(tabId as WorkDashboardTab)}
+      actions={uploadActions}
     >
       {renderTabContent()}
     </WorkDashboardShell>

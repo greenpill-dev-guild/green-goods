@@ -7,6 +7,7 @@ import { jobQueueDB } from "../../modules/job-queue/db";
 import { jobQueue } from "../../modules/job-queue/default-instance";
 import { useJobQueueEvents } from "../../modules/job-queue/event-bus";
 import { type OverlayWork, resolveGardenWorkRows } from "../../modules/work/local-status-overlay";
+import { queuedUploadStatus } from "../../modules/work/upload-state";
 import { WORK_LIST_PAGE_SIZE } from "../../modules/work/work-list";
 import type { Work, WorkDisplayStatus } from "../../types/domain";
 import type { Job, WorkJobPayload } from "../../types/job-queue";
@@ -31,6 +32,35 @@ export interface UseWorksOptions {
   offline?: boolean;
 }
 
+/**
+ * Where a queued work stands, as the work card and dashboard read it: sent
+ * and confirming, or waiting for Upload all, with the reason when the chain
+ * would refuse it.
+ */
+function queuedSubmissionState(job: Job<WorkJobPayload>): {
+  submissionState: string;
+  blockedReason?: string;
+} {
+  const upload = queuedUploadStatus(job);
+  switch (upload.state) {
+    case "sent": {
+      const checkpoint = job.payload.uploadCheckpoint;
+      return {
+        submissionState:
+          checkpoint?.broadcast || checkpoint?.transactionHash
+            ? "awaiting-confirmation"
+            : "checking-submission",
+      };
+    }
+    case "failed":
+      return { submissionState: "retry-required" };
+    case "blocked":
+      return { submissionState: "blocked", blockedReason: upload.reason };
+    default:
+      return { submissionState: upload.state };
+  }
+}
+
 // Helper function to convert job payload to Work model
 export function jobToWork(job: Job<WorkJobPayload>): Work {
   const checkpoint = job.payload.uploadCheckpoint;
@@ -51,16 +81,7 @@ export function jobToWork(job: Job<WorkJobPayload>): Work {
     feedback: job.payload.feedback,
     metadata: JSON.stringify({
       clientWorkId: job.payload.clientWorkId,
-      submissionState:
-        job.meta?.workTransactionReverted || job.payload.uploadCheckpoint?.transactionReverted
-          ? "reverted"
-          : job.payload.uploadCheckpoint?.broadcast || job.payload.uploadCheckpoint?.transactionHash
-            ? "awaiting-confirmation"
-            : job.payload.uploadCheckpoint?.broadcastPending
-              ? "checking-submission"
-              : job.lastError
-                ? "retry-required"
-                : "queued",
+      ...queuedSubmissionState(job),
       details: job.payload.details,
       timeSpentMinutes: job.payload.timeSpentMinutes,
       tags: job.payload.tags,

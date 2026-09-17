@@ -14,6 +14,11 @@ const mocks = vi.hoisted(() => ({
   schedule: vi.fn(),
   prepareNow: vi.fn(),
   toast: { info: vi.fn(), success: vi.fn(), error: vi.fn() },
+  preparation: {
+    activeJobId: null as string | null,
+    paused: null as string | null,
+    dataSaverOverride: false,
+  },
 }));
 
 vi.mock("../../../hooks/auth/usePrimaryAddress", () => ({
@@ -38,6 +43,10 @@ vi.mock("../../../modules/work/upload-preparation", async (importOriginal) => ({
   ...(await importOriginal<typeof import("../../../modules/work/upload-preparation")>()),
   scheduleUploadPreparation: mocks.schedule,
   prepareUploadsNow: mocks.prepareNow,
+  uploadPreparationStore: {
+    getSnapshot: () => mocks.preparation,
+    subscribe: () => () => undefined,
+  },
 }));
 vi.mock("../../../modules/work/upload-queued-work", () => ({
   uploadQueuedWork: mocks.uploadQueuedWork,
@@ -79,6 +88,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   mocks.sender = { authMode: "passkey" };
   mocks.jobs = [];
+  mocks.preparation = { activeJobId: null, paused: null, dataSaverOverride: false };
 });
 
 describe("useWorkUploads", () => {
@@ -112,6 +122,35 @@ describe("useWorkUploads", () => {
     expect(result.current.preparingCount).toBe(2);
     expect(result.current.attentionCount).toBe(1);
     expect(result.current.waitingDecisionWorkIds.has(WORK_UID.toLowerCase())).toBe(true);
+  });
+
+  it("says preparation runs only when it is not waiting for the connection or Data Saver", async () => {
+    mocks.jobs = [queued("work", {})];
+    const render = (paused: string | null) => {
+      mocks.preparation = { activeJobId: null, paused, dataSaverOverride: false };
+      return renderHook(() => useWorkUploads(), { wrapper }).result;
+    };
+
+    const running = render(null);
+    await waitFor(() => expect(running.current.preparingCount).toBe(1));
+    expect(running.current.isPreparing).toBe(true);
+    expect(running.current.pausedForDataSaver).toBe(false);
+
+    const unconfirmed = render("unconfirmed");
+    await waitFor(() => expect(unconfirmed.current.preparingCount).toBe(1));
+    expect(unconfirmed.current.isPreparing).toBe(false);
+
+    const dataSaver = render("data-saver");
+    await waitFor(() => expect(dataSaver.current.preparingCount).toBe(1));
+    expect(dataSaver.current.isPreparing).toBe(false);
+    expect(dataSaver.current.pausedForDataSaver).toBe(true);
+  });
+
+  it("says nothing is preparing when every item is ready", async () => {
+    mocks.jobs = [queued("work", { preparation: { status: "ready", checkedAt: CHECKED } })];
+    const { result } = renderHook(() => useWorkUploads(), { wrapper });
+    await waitFor(() => expect(result.current.readyCount).toBe(1));
+    expect(result.current.isPreparing).toBe(false);
   });
 
   it("wakes background preparation when the dashboard opens", () => {

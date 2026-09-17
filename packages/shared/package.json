@@ -449,6 +449,7 @@
     "./hooks/work/useNeedsReview": "./src/hooks/work/useNeedsReview.ts",
     "./hooks/work/useReviewerGardenIds": "./src/hooks/work/useReviewerGardenIds.ts",
     "./hooks/work/useWorkApprovals": "./src/hooks/work/useWorkApprovals.ts",
+    "./hooks/work/useWorkUploads": "./src/hooks/work/useWorkUploads.ts",
     "./hooks/yield/useYieldAllocations": "./src/hooks/yield/useYieldAllocations.ts",
     "./modules/app/error-categories": "./src/modules/app/error-categories.ts",
     "./modules/app/posthog": "./src/modules/app/posthog.ts",

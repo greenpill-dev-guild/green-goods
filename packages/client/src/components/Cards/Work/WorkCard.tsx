@@ -5,6 +5,7 @@ import type { Work } from "@green-goods/shared/types/domain";
 import { formatAddress, formatEnsNameForDisplay } from "@green-goods/shared/utils/app/text";
 import React from "react";
 import { useIntl } from "react-intl";
+import { queuedWorkStatusMessage, readQueuedWorkState } from "./queuedWorkCopy";
 
 export interface MinimalWorkCardProps {
   work: Work;
@@ -62,27 +63,9 @@ export const MinimalWorkCard: React.FC<MinimalWorkCardProps> = ({
     enabled: Boolean(showGardenInfo && work.gardenAddress),
   });
   const effectiveStatus = work.status;
-  let submissionState: string | undefined;
-  try {
-    submissionState = JSON.parse(work.metadata).submissionState;
-  } catch {
-    /* Remote metadata can be a CID. */
-  }
-  if (submissionState === "queued")
-    labels.status.offline = formatMessage({
-      id: "app.work.queued",
-      defaultMessage: "Saved · Waiting to send",
-    });
-  if (submissionState === "awaiting-confirmation")
-    labels.status.offline = formatMessage({
-      id: "app.work.awaitingConfirmation",
-      defaultMessage: "Awaiting confirmation",
-    });
-  if (submissionState === "checking-submission")
-    labels.status.offline = formatMessage({
-      id: "app.work.checkingSubmission",
-      defaultMessage: "Checking whether this work was sent",
-    });
+  // Work still on this device names where it stands instead of reading "Offline".
+  const queuedStatus = queuedWorkStatusMessage(readQueuedWorkState(work.metadata).submissionState);
+  if (queuedStatus) labels.status.offline = formatMessage(queuedStatus);
   const mediaPreview = work.media.length > 0 ? work.media : undefined;
   const hasFeedback = Boolean(work.feedback && work.feedback.trim().length > 0);
   const mediaCount = Array.isArray(work.media) ? work.media.length : 0;

@@ -13,8 +13,8 @@ import {
 import type { UploadOutcome } from "../../modules/work/upload-queued-work";
 import {
   isUploadJob,
-  queuedUploadStatus,
   type QueuedUploadStatus,
+  queuedUploadStatus,
 } from "../../modules/work/upload-state";
 import type { ApprovalJobPayload, Job } from "../../types/job-queue";
 import { usePrimaryAddress } from "../auth/usePrimaryAddress";
@@ -32,6 +32,7 @@ export interface WorkUploads {
   queuedCount: number;
   /** Background preparation waits for Data Saver, until the person asks to prepare. */
   pausedForDataSaver: boolean;
+  /** Items are being prepared now, or will be shortly; not waiting for the connection. */
   isPreparing: boolean;
   isUploading: boolean;
   /** Works whose decision from this device is still waiting to upload. */
@@ -186,7 +187,8 @@ export function useWorkUploads(): WorkUploads {
     attentionCount: summary.attentionCount,
     queuedCount: summary.queuedCount,
     pausedForDataSaver: preparation.paused === "data-saver",
-    isPreparing: preparation.activeJobId !== null,
+    // The pause holds between items, so the bar does not flicker as each one starts.
+    isPreparing: summary.preparingCount > 0 && preparation.paused === null,
     isUploading: mutation.isPending,
     waitingDecisionWorkIds: summary.waitingDecisionWorkIds,
     statusOf: (jobId) => summary.statuses.get(jobId),

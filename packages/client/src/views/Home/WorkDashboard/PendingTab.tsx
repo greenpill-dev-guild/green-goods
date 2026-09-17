@@ -4,6 +4,10 @@ import { cn } from "@green-goods/shared/utils/styles/cn";
 import { RiCheckLine, RiTimeLine } from "@remixicon/react";
 import React from "react";
 import { useIntl } from "react-intl";
+import {
+  queuedWorkDetailMessage,
+  readQueuedWorkState,
+} from "@/components/Cards/Work/queuedWorkCopy";
 import { pwaStatusStyles } from "@/components/Pwa/statusStyles";
 import { WorkListTab } from "./WorkListTab";
 import { isStewardForGarden } from "./workDashboardUtils";
@@ -60,29 +64,11 @@ export const PendingTab: React.FC<PendingTabProps> = ({
 
   const renderBadges = (item: Work): React.ReactNode[] => {
     const badges: React.ReactNode[] = [];
-    let submissionState: string | undefined;
-    try {
-      submissionState = JSON.parse(item.metadata || "{}").submissionState;
-    } catch {
-      /* Legacy metadata may be absent. */
-    }
-    if (submissionState)
+    const detail = queuedWorkDetailMessage(readQueuedWorkState(item.metadata));
+    if (detail)
       badges.push(
         <span key="confirmation" role="status">
-          {intl.formatMessage({
-            id:
-              submissionState === "reverted"
-                ? "app.work.confirmationFailed"
-                : submissionState === "queued"
-                  ? "app.work.queued"
-                  : submissionState === "sending"
-                    ? "app.home.work.syncingInfo"
-                    : submissionState === "retry-required"
-                      ? "app.work.retryRequiredInfo"
-                      : submissionState === "checking-submission"
-                        ? "app.work.checkingSubmission"
-                        : "app.work.awaitingConfirmation",
-          })}
+          {intl.formatMessage(detail)}
         </span>
       );
     const isGardener = isUserAddress(item.gardenerAddress);
