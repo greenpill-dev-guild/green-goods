@@ -31,6 +31,10 @@ import { useConnectivityStatus, useOnlineStatus } from "../app/useOnlineStatus";
 import { usePrimaryAddress } from "../auth/usePrimaryAddress";
 import { useGardens } from "../blockchain/useBaseLists";
 import { useResolvedProfileAvatar } from "../profile/useProfileAvatar";
+import {
+  networkInformation,
+  type NetworkInformationLike,
+} from "../../utils/app/network-information";
 
 /** The first run waits for the app to settle after launch. */
 const STARTUP_DELAY_MS = 4_000;
@@ -39,19 +43,8 @@ const MEMBERSHIP_DELAY_MS = 5_000;
 /** Opening a garden never starts downloads right away; its photos follow once the screen settles. */
 const GARDEN_IN_VIEW_DELAY_MS = 8_000;
 
-interface NetworkInformationLike extends EventTarget {
-  saveData?: boolean;
-  type?: string;
-  effectiveType?: string;
-}
-
 let activeScheduler: OfflineScheduler | undefined;
 let gardenInView: string | undefined;
-
-function networkInformation(): NetworkInformationLike | undefined {
-  if (typeof navigator === "undefined") return undefined;
-  return (navigator as Navigator & { connection?: NetworkInformationLike }).connection;
-}
 
 function isCellular(connection?: NetworkInformationLike): boolean {
   return (

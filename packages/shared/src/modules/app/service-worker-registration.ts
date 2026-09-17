@@ -7,6 +7,7 @@ import {
   type TailStatus,
 } from "./service-worker-protocol";
 import { isStandaloneMode } from "../../utils/app/pwa";
+import { networkInformation } from "../../utils/app/network-information";
 
 type ServiceWorkerEnv = Partial<
   Pick<ImportMetaEnv, "DEV" | "PROD" | "VITE_ENABLE_SW_DEV" | "VITE_APP_VERSION">
@@ -58,15 +59,6 @@ const tierListeners = new Map<PwaShellTier, Set<TierListener>>();
 const tierOutcome = new Map<PwaShellTier, PwaShellTierStatus>();
 const requestedTiers = new Set<PwaShellTier>();
 let shellListenersStarted = false;
-
-interface NetworkInformationLike extends EventTarget {
-  saveData?: boolean;
-}
-
-function networkInformation(): NetworkInformationLike | undefined {
-  if (typeof navigator === "undefined") return undefined;
-  return (navigator as Navigator & { connection?: NetworkInformationLike }).connection;
-}
 
 function tierState(worker: ServiceWorker): Map<PwaShellTier, PwaShellTierStatus | "scheduled"> {
   const existing = shellPreparationState.get(worker);
