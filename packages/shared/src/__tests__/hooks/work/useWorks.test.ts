@@ -577,6 +577,23 @@ describe("hooks/work/useWorks", () => {
       expect(result.current.works[0]?.status).toBe("approved");
     });
 
+    it("shows a work whose approvals could not be read but never saves it as a known status", async () => {
+      mockGetWorkListPage.mockResolvedValue([indexedRow]);
+      mockGetWorkApprovalsForWorks.mockRejectedValue(new Error("Network error"));
+
+      const { result } = renderHook(() => useWorks(TEST_GARDEN), {
+        wrapper: createWrapper(queryClient),
+      });
+
+      await waitFor(() =>
+        expect(result.current.works.map((work) => work.id)).toEqual(["reviewed-work"])
+      );
+      await waitFor(() => expect(result.current.isFetching).toBe(false));
+      // Saved rows read as settled statuses to every screen that restores them.
+      const saved = queryClient.getQueryData<Array<{ id: string }>>(MERGED_KEY) ?? [];
+      expect(saved.map((work) => work.id)).not.toContain("reviewed-work");
+    });
+
     it("keeps a confirmed decision across offline refreshes while the indexer still reports pending", async () => {
       queryClient.setQueryData(MERGED_KEY, [confirmedDecision]);
       mockGetWorkListPage.mockResolvedValue([indexedRow]);

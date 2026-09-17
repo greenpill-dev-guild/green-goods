@@ -65,7 +65,6 @@ describe("queryKeys", () => {
       queryKeys.works.all,
       queryKeys.workApprovals.all,
       queryKeys.approvals.all,
-      queryKeys.stewardWorks.all,
       queryKeys.offline.all,
       queryKeys.media.all,
       queryKeys.gardens.all,
@@ -98,20 +97,11 @@ describe("queryKeys", () => {
 
   it("builds representative keys without mutating caller input", () => {
     const gardenIds = ["garden-c", "garden-a", "garden-b"];
-    const recipients = ["0xB", "0xa", "0xC"];
-    const approvalsKey = queryKeys.approvals.forWorkReview(recipients);
     const myWorkApprovalsKey = queryKeys.approvals.byMyWorkGardens(TEST_USER, gardenIds);
-    const stewardKey = queryKeys.stewardWorks.byAddress(TEST_OPERATOR, gardenIds);
 
-    // forWorkReview lowercases recipients for stability across checksum casings.
-    expect(approvalsKey[3]).toBe(JSON.stringify(["0xa", "0xb", "0xc"]));
     expect(myWorkApprovalsKey[3]).toBe(TEST_USER);
     expect(myWorkApprovalsKey[4]).toBe(JSON.stringify(["garden-a", "garden-b", "garden-c"]));
-    // stewardWorks carries a "v2" shape discriminator (queryFn returns { works, failedGardenIds }).
-    expect(stewardKey[2]).toBe("v2");
-    expect(stewardKey[4]).toBe(JSON.stringify(["garden-a", "garden-b", "garden-c"]));
     expect(gardenIds).toEqual(["garden-c", "garden-a", "garden-b"]);
-    expect(recipients).toEqual(["0xB", "0xa", "0xC"]);
   });
 
   it("serializes bigint inputs for preview keys", () => {

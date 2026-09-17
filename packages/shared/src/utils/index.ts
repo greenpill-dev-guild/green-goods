@@ -487,11 +487,6 @@ export {
 } from "./work/image-compression";
 export { convertJobsToWorks, fetchOfflineWorks } from "./work/offline";
 export {
-  collectApprovalRecipientsForWorks,
-  collectApprovedWorkUIDs,
-  filterPendingNeedsReview,
-} from "./work/pending-review";
-export {
   resolveWorkSubmissionTitle,
   stripGeneratedWorkTitleTimestamp,
 } from "./work/workTitles";

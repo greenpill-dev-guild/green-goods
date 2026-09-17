@@ -69,10 +69,21 @@ Textarea.displayName = "Textarea";
 
 export interface NativeSelectProps
   extends Omit<React.SelectHTMLAttributes<HTMLSelectElement>, "size">,
-    BaseControlProps {}
+    BaseControlProps {
+  /**
+   * `condensed` is for filters in a header row: a tighter label inset and
+   * chevron lane, and a label that ends in an ellipsis when the row is short.
+   * The height and hit area stay on the size scale; the open picker still
+   * shows every option in full.
+   */
+  density?: "default" | "condensed";
+}
 
 export const NativeSelect = React.forwardRef<HTMLSelectElement, NativeSelectProps>(
-  ({ className, controlSize = "md", invalid, surface = "default", ...props }, ref) => {
+  (
+    { className, controlSize = "md", density = "default", invalid, surface = "default", ...props },
+    ref
+  ) => {
     const isInvalid = invalid ?? ariaInvalid(props["aria-invalid"]);
 
     return (
@@ -81,6 +92,7 @@ export const NativeSelect = React.forwardRef<HTMLSelectElement, NativeSelectProp
         data-component="NativeSelect"
         data-surface={surface}
         data-size={controlSize}
+        data-density={density === "condensed" ? density : undefined}
         data-invalid={isInvalid || undefined}
         className={cn("gg-control gg-control-select", className)}
         {...props}

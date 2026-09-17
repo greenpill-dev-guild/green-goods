@@ -6,8 +6,10 @@ import {
   LOCAL_OVERLAY_GRACE_MS,
   type OverlayWork,
   overlayDeadline,
+  resolveGardenWorkRows,
   resolveWorkStatus,
 } from "../../modules/work/local-status-overlay";
+import type { EASWorkApproval, EASWorkListRow } from "../../types/eas-responses";
 
 const NOW = 1_700_000_000_000;
 
@@ -163,6 +165,101 @@ describe("local-status-overlay", () => {
       const confirmed = overlay({ status: "approved", _isPending: false, _txHash: "0xabc" });
       expect(clearLapsedOverlay(offline, NOW)).toBe(offline);
       expect(clearLapsedOverlay(confirmed, NOW)).toBe(confirmed);
+    });
+  });
+
+  describe("resolveGardenWorkRows", () => {
+    function row(id: string, approval?: { approved: boolean } | null): EASWorkListRow {
+      const base = {
+        id,
+        title: id,
+        actionUID: 1,
+        gardenerAddress: "0x1",
+        gardenAddress: "0xgarden",
+        feedback: "",
+        metadata: "{}",
+        media: [],
+        createdAt: 1,
+      } as unknown as EASWorkListRow;
+      if (approval === undefined) return base;
+      return {
+        ...base,
+        approval: approval === null ? null : ({ approved: approval.approved } as EASWorkApproval),
+      };
+    }
+
+    it("resolves each row from its own approval when another row's approvals failed", () => {
+      const { rows, unknownIds } = resolveGardenWorkRows({
+        remote: [row("approved", { approved: true }), row("unread")],
+        saved: undefined,
+        overlay: undefined,
+        now: NOW,
+      });
+      expect(rows.map((work) => [work.id, work.status])).toEqual([
+        ["approved", "approved"],
+        ["unread", "pending"],
+      ]);
+      expect([...unknownIds]).toEqual(["unread"]);
+    });
+
+    it("keeps a saved status for a row whose approvals failed, and does not call it unknown", () => {
+      const { rows, unknownIds } = resolveGardenWorkRows({
+        remote: [row("reviewed")],
+        saved: [overlay({ id: "reviewed", status: "rejected" })],
+        overlay: undefined,
+        now: NOW,
+      });
+      expect(rows[0]?.status).toBe("rejected");
+      expect(unknownIds.size).toBe(0);
+    });
+
+    it("lets a decision confirmed on this device outrank an indexer that still reports pending", () => {
+      const { rows } = resolveGardenWorkRows({
+        remote: [row("decided", null)],
+        saved: undefined,
+        overlay: [overlay({ id: "decided", status: "approved", _txHash: "0xabc" })],
+        now: NOW,
+      });
+      expect(rows[0]).toMatchObject({ status: "approved", _txHash: "0xabc" });
+    });
+
+    it("falls back to pending for an unconfirmed decision whose deadline lapsed while approvals are unread", () => {
+      const { rows } = resolveGardenWorkRows({
+        remote: [row("lapsed")],
+        saved: undefined,
+        overlay: [
+          overlay({ id: "lapsed", status: "approved", _isPending: true, _pendingUntilMs: NOW - 1 }),
+        ],
+        now: NOW,
+      });
+      expect(rows[0]?.status).toBe("pending");
+    });
+
+    it("keeps saved rows a partial read left out", () => {
+      const { rows } = resolveGardenWorkRows({
+        remote: [row("returned", null)],
+        saved: [overlay({ id: "missing", status: "approved" })],
+        overlay: undefined,
+        now: NOW,
+      });
+      expect(rows.map((work) => [work.id, work.status]).sort()).toEqual([
+        ["missing", "approved"],
+        ["returned", "pending"],
+      ]);
+    });
+
+    it("shows only saved rows before the first read, and skips work that exists only on this device", () => {
+      const { rows, unknownIds } = resolveGardenWorkRows({
+        remote: undefined,
+        saved: [
+          overlay({ id: "saved", status: "approved" }),
+          overlay({ id: "0xoffline_1", status: "offline" }),
+        ],
+        overlay: undefined,
+        now: NOW,
+      });
+      expect(rows.map((work) => work.id)).toEqual(["saved"]);
+      expect(unknownIds.size).toBe(0);
     });
   });
 

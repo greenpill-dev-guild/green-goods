@@ -1,5 +1,5 @@
 import type { Work } from "@green-goods/shared/types/domain";
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { createElement } from "react";
 import { IntlProvider } from "react-intl";
 import { MemoryRouter } from "react-router-dom";
@@ -9,41 +9,36 @@ const mockNavigate = vi.hoisted(() => vi.fn());
 const mockUseMyWorks = vi.fn();
 const mockUseMyOnlineWorks = vi.fn();
 let mockReviewerGardenIds: string[] = [];
-let mockReviewerWorksState: {
-  data: Work[];
+let mockIsOnline = true;
+const ok = async () => ({ status: "success" });
+let mockNeedsReviewState: {
+  works: Work[];
+  decidedHere: Work[];
+  ready: boolean;
   isLoading: boolean;
   isFetching: boolean;
   isError: boolean;
+  savedAt: number | undefined;
   refetch: ReturnType<typeof vi.fn>;
 } = {
-  data: [],
+  works: [],
+  decidedHere: [],
+  ready: true,
   isLoading: false,
   isFetching: false,
   isError: false,
-  refetch: vi.fn(),
+  savedAt: undefined,
+  refetch: vi.fn(async () => true),
 };
 let mockWorkApprovalsState = {
-  completedApprovals: [],
+  completedApprovals: [] as Array<Record<string, unknown>>,
   isLoading: false,
   hasError: false,
   errorMessage: undefined as string | undefined,
-  refetch: vi.fn(),
+  dataUpdatedAt: 0,
+  refetch: vi.fn(ok),
 };
-let mockReviewExclusionRefetch = vi.fn();
-let mockMyApprovalsRefetch = vi.fn();
-let mockReviewExclusionQueryState: {
-  data: Array<{ workUID: string }> | undefined;
-  isLoading: boolean;
-  isFetching: boolean;
-  isError: boolean;
-  isSuccess: boolean;
-} = {
-  data: [],
-  isLoading: false,
-  isFetching: false,
-  isError: false,
-  isSuccess: true,
-};
+let mockMyApprovalsRefetch = vi.fn(ok);
 let mockMyApprovalsQueryState: {
   data:
     | Array<{
@@ -59,6 +54,7 @@ let mockMyApprovalsQueryState: {
   isFetching: boolean;
   isError: boolean;
   isSuccess: boolean;
+  dataUpdatedAt?: number;
 } = {
   data: [],
   isLoading: false,
@@ -66,6 +62,21 @@ let mockMyApprovalsQueryState: {
   isError: false,
   isSuccess: true,
 };
+
+function work(overrides: Partial<Work> & { id: string }): Work {
+  return {
+    title: overrides.id,
+    actionUID: 1,
+    gardenerAddress: "0xdef",
+    gardenAddress: "0x00000000000000000000000000000000000000a1",
+    feedback: "",
+    metadata: "",
+    media: [],
+    createdAt: 1_700_000_100,
+    status: "pending",
+    ...overrides,
+  } as Work;
+}
 
 vi.mock("react-router-dom", async (importOriginal) => {
   const actual = await importOriginal<typeof import("react-router-dom")>();
@@ -85,26 +96,6 @@ vi.mock("@green-goods/shared/utils/blockchain/address", async (importOriginal) =
 
 vi.mock("@green-goods/shared/utils/styles/cn", () => ({
   cn: (...args: unknown[]) => args.filter(Boolean).join(" "),
-}));
-
-vi.mock("@green-goods/shared/utils/work/pending-review", () => ({
-  collectApprovalRecipientsForWorks: (gardenIds: string[]) => gardenIds,
-  collectApprovedWorkUIDs: (approvals: Array<{ workUID: string }>) =>
-    new Set(approvals.map((approval) => approval.workUID)),
-  filterPendingNeedsReview: (
-    works: Array<{ id: string; gardenerAddress?: string }>,
-    approvedWorkUIDs: Set<string>,
-    viewerAddress?: string
-  ) =>
-    works.filter(
-      (work) =>
-        !approvedWorkUIDs.has(work.id) &&
-        !(
-          work.gardenerAddress &&
-          viewerAddress &&
-          work.gardenerAddress.toLowerCase() === viewerAddress.toLowerCase()
-        )
-    ),
 }));
 
 vi.mock("@green-goods/shared/config/query-keys/constants", async (importOriginal) => ({
@@ -142,7 +133,6 @@ vi.mock("@green-goods/shared/config/query-keys/registry", async (importOriginal)
       approvals: {
         ...actual.queryKeys.approvals,
         byMyWorkGardens: (...args: unknown[]) => ["approvals", "mine", ...args],
-        forWorkReview: (...args: unknown[]) => ["approvals", "forWorkReview", ...args],
       },
     },
   };
@@ -171,11 +161,15 @@ vi.mock("@green-goods/shared/hooks/work/useMyWorks", () => ({
 }));
 
 vi.mock("@green-goods/shared/hooks/work/useReviewerGardenIds", () => ({
-  useReviewerGardenIds: () => ({ reviewerGardenIds: mockReviewerGardenIds }),
+  useReviewerGardenIds: () => ({ reviewerGardenIds: mockReviewerGardenIds, isLoading: false }),
 }));
 
-vi.mock("@green-goods/shared/hooks/work/useReviewerWorks", () => ({
-  useReviewerWorks: () => mockReviewerWorksState,
+vi.mock("@green-goods/shared/hooks/work/useNeedsReview", () => ({
+  useNeedsReview: () => mockNeedsReviewState,
+}));
+
+vi.mock("@green-goods/shared/hooks/app/useOnlineStatus", () => ({
+  useOnlineStatus: () => mockIsOnline,
 }));
 
 vi.mock("@green-goods/shared/hooks/utils/useTimeout", () => ({
@@ -211,17 +205,7 @@ vi.mock("@tanstack/react-query", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@tanstack/react-query")>();
   return {
     ...actual,
-    useQuery: (options: { queryKey?: unknown[] }) => {
-      const queryKey = options.queryKey ?? [];
-      const isReviewExclusionQuery = queryKey[1] === "forWorkReview";
-      const state = isReviewExclusionQuery
-        ? mockReviewExclusionQueryState
-        : mockMyApprovalsQueryState;
-      return {
-        ...state,
-        refetch: isReviewExclusionQuery ? mockReviewExclusionRefetch : mockMyApprovalsRefetch,
-      };
-    },
+    useQuery: () => ({ ...mockMyApprovalsQueryState, refetch: mockMyApprovalsRefetch }),
     useQueryClient: () => ({ invalidateQueries: vi.fn() }),
   };
 });
@@ -246,6 +230,7 @@ vi.mock("../../views/Home/WorkDashboard/Drafts", () => ({
   DraftsTab: () => createElement("div", null, "Drafts panel"),
 }));
 
+import { toastService } from "@green-goods/shared/components/Toast/toast.service";
 import { WorkDashboard } from "../../views/Home/WorkDashboard";
 
 function renderDashboard(onClose = vi.fn()) {
@@ -267,29 +252,26 @@ describe("WorkDashboard", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockReviewerGardenIds = [];
-    mockReviewerWorksState = {
-      data: [],
+    mockIsOnline = true;
+    mockNeedsReviewState = {
+      works: [],
+      decidedHere: [],
+      ready: true,
       isLoading: false,
       isFetching: false,
       isError: false,
-      refetch: vi.fn(),
+      savedAt: undefined,
+      refetch: vi.fn(async () => true),
     };
     mockWorkApprovalsState = {
       completedApprovals: [],
       isLoading: false,
       hasError: false,
       errorMessage: undefined,
-      refetch: vi.fn(),
+      dataUpdatedAt: 0,
+      refetch: vi.fn(ok),
     };
-    mockReviewExclusionRefetch = vi.fn();
-    mockMyApprovalsRefetch = vi.fn();
-    mockReviewExclusionQueryState = {
-      data: [],
-      isLoading: false,
-      isFetching: false,
-      isError: false,
-      isSuccess: true,
-    };
+    mockMyApprovalsRefetch = vi.fn(ok);
     mockMyApprovalsQueryState = {
       data: [],
       isLoading: false,
@@ -299,23 +281,18 @@ describe("WorkDashboard", () => {
     };
     mockUseMyWorks.mockReturnValue({
       data: [
-        {
+        work({
           id: "job-1",
           title: "Queued tree planting",
-          actionUID: 1,
           gardenerAddress: "0xabc",
-          gardenAddress: "0x00000000000000000000000000000000000000a1",
-          feedback: "",
-          metadata: "",
-          media: [],
           createdAt: 1_700_000_000,
           status: "syncing",
-        },
+        }),
       ],
       isLoading: false,
       isFetching: false,
       isError: false,
-      refetch: vi.fn(),
+      refetch: vi.fn(ok),
     });
     mockUseMyOnlineWorks.mockReturnValue({
       data: [],
@@ -347,19 +324,11 @@ describe("WorkDashboard", () => {
   });
 
   it("keeps queued submissions visible when review-side queries fail", () => {
-    mockReviewerWorksState = {
-      data: [],
-      isLoading: false,
-      isFetching: false,
-      isError: true,
-      refetch: vi.fn(),
-    };
+    mockNeedsReviewState = { ...mockNeedsReviewState, isError: true, ready: false };
     mockWorkApprovalsState = {
-      completedApprovals: [],
-      isLoading: false,
+      ...mockWorkApprovalsState,
       hasError: true,
       errorMessage: "Approvals unavailable",
-      refetch: vi.fn(),
     };
 
     renderDashboard();
@@ -369,20 +338,8 @@ describe("WorkDashboard", () => {
   });
 
   it("keeps queued submissions visible while review-side queries are loading", () => {
-    mockReviewerWorksState = {
-      data: [],
-      isLoading: true,
-      isFetching: true,
-      isError: false,
-      refetch: vi.fn(),
-    };
-    mockWorkApprovalsState = {
-      completedApprovals: [],
-      isLoading: true,
-      hasError: false,
-      errorMessage: undefined,
-      refetch: vi.fn(),
-    };
+    mockNeedsReviewState = { ...mockNeedsReviewState, isLoading: true, isFetching: true };
+    mockWorkApprovalsState = { ...mockWorkApprovalsState, isLoading: true };
 
     renderDashboard();
 
@@ -390,63 +347,125 @@ describe("WorkDashboard", () => {
     expect(screen.queryByText("Loading your work...")).not.toBeInTheDocument();
   });
 
-  it("waits for review-exclusion approvals before showing steward work as needing review", () => {
+  it("lists Needs review from the garden reads and files a review made here under Completed", () => {
     mockReviewerGardenIds = ["0x00000000000000000000000000000000000000a1"];
-    mockReviewerWorksState = {
-      data: [
-        {
-          id: "reviewed-work",
-          title: "Already reviewed planting",
-          actionUID: 1,
-          gardenerAddress: "0xdef",
-          gardenAddress: "0x00000000000000000000000000000000000000a1",
-          feedback: "",
-          metadata: "",
-          media: [],
-          createdAt: 1_700_000_100,
-          status: "pending",
-        },
-      ],
-      isLoading: false,
-      isFetching: false,
-      isError: false,
-      refetch: vi.fn(),
+    mockNeedsReviewState = {
+      ...mockNeedsReviewState,
+      works: [work({ id: "0xwaiting", title: "Waiting planting" })],
+      decidedHere: [work({ id: "0xdecided", title: "Just approved planting", status: "approved" })],
     };
     mockUseMyWorks.mockReturnValue({
       data: [],
       isLoading: false,
-      isFetching: false,
       isError: false,
-      refetch: vi.fn(),
+      refetch: vi.fn(ok),
     });
-    mockReviewExclusionQueryState = {
-      data: undefined,
-      isLoading: true,
-      isFetching: true,
-      isError: false,
-      isSuccess: false,
-    };
 
     renderDashboard();
 
-    expect(screen.getByText("Loading your work...")).toBeInTheDocument();
-    expect(screen.queryByText("Already reviewed planting")).not.toBeInTheDocument();
+    expect(screen.getByText("Waiting planting")).toBeInTheDocument();
+    expect(screen.queryByText("Just approved planting")).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByTestId("tab-completed"));
+    expect(screen.getByText("Just approved planting")).toBeInTheDocument();
   });
 
-  it("refreshes the review-exclusion approvals query from the Pending tab", () => {
+  it("keeps an on-chain submission out of Pending until its review read lands", () => {
+    mockUseMyWorks.mockReturnValue({
+      data: [
+        work({
+          id: "job-1",
+          title: "Queued tree planting",
+          gardenerAddress: "0xabc",
+          status: "offline",
+        }),
+        work({ id: "0xonchain", title: "Submitted planting", gardenerAddress: "0xabc" }),
+      ],
+      isLoading: false,
+      isError: false,
+      refetch: vi.fn(ok),
+    });
+    mockMyApprovalsQueryState = { ...mockMyApprovalsQueryState, data: undefined, isError: true };
+
+    renderDashboard();
+
+    expect(screen.getByText("Queued tree planting")).toBeInTheDocument();
+    expect(screen.queryByText("Submitted planting")).not.toBeInTheDocument();
+  });
+
+  it("re-reads everything the dashboard shows from one Refresh", async () => {
+    const refetchMyWorks = vi.fn(ok);
+    mockUseMyWorks.mockReturnValue({
+      data: [work({ id: "0xmine", title: "My planting", gardenerAddress: "0xabc" })],
+      isLoading: false,
+      isError: false,
+      refetch: refetchMyWorks,
+    });
+
+    renderDashboard();
+    fireEvent.click(screen.getByRole("button", { name: "Refresh" }));
+
+    await waitFor(() => expect(mockNeedsReviewState.refetch).toHaveBeenCalledOnce());
+    expect(refetchMyWorks).toHaveBeenCalledOnce();
+    expect(mockWorkApprovalsState.refetch).toHaveBeenCalledOnce();
+    expect(mockMyApprovalsRefetch).toHaveBeenCalledOnce();
+    expect(toastService.error).not.toHaveBeenCalled();
+  });
+
+  it("shows a toast when a refresh someone asked for fails", async () => {
+    mockNeedsReviewState = { ...mockNeedsReviewState, refetch: vi.fn(async () => false) };
+
+    renderDashboard();
+    fireEvent.click(screen.getByRole("button", { name: "Refresh" }));
+
+    await waitFor(() =>
+      expect(toastService.error).toHaveBeenCalledWith(
+        expect.objectContaining({ message: "Couldn't refresh. Try again." })
+      )
+    );
+  });
+
+  it("says when the list was saved while offline and hides Refresh", () => {
+    mockIsOnline = false;
+    mockNeedsReviewState = { ...mockNeedsReviewState, savedAt: Date.now() - 60_000 };
+
+    renderDashboard();
+
+    expect(screen.getByText(/^Offline · /)).toHaveAttribute("role", "status");
+    expect(screen.queryByRole("button", { name: "Refresh" })).not.toBeInTheDocument();
+  });
+
+  it("shows the My submissions view without waiting for Needs review to load", () => {
+    mockNeedsReviewState = { ...mockNeedsReviewState, isLoading: true, isFetching: true };
     mockUseMyWorks.mockReturnValue({
       data: [],
       isLoading: false,
-      isFetching: false,
       isError: false,
-      refetch: vi.fn(),
+      refetch: vi.fn(ok),
+    });
+
+    renderDashboard();
+    fireEvent.change(screen.getByDisplayValue("All"), { target: { value: "mySubmissions" } });
+
+    expect(screen.queryByText("Loading your work...")).not.toBeInTheDocument();
+    expect(screen.getByText("No pending work")).toBeInTheDocument();
+  });
+
+  it("offers no Retry on a failed load while offline", () => {
+    mockIsOnline = false;
+    mockNeedsReviewState = { ...mockNeedsReviewState, isError: true, ready: false };
+    mockUseMyWorks.mockReturnValue({
+      data: [],
+      isLoading: false,
+      isError: false,
+      refetch: vi.fn(ok),
     });
 
     renderDashboard();
 
-    fireEvent.click(screen.getByText("Refresh"));
-
-    expect(mockReviewExclusionRefetch).toHaveBeenCalled();
+    expect(screen.getByText("Unable to load work")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Retry" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Refresh" })).not.toBeInTheDocument();
   });
 
   it("opens the original work route from the My work reviewed completed filter", () => {
@@ -491,7 +510,7 @@ describe("WorkDashboard", () => {
     renderDashboard(onClose);
 
     fireEvent.click(screen.getByTestId("tab-completed"));
-    fireEvent.change(screen.getByDisplayValue("Reviewed by you"), {
+    fireEvent.change(screen.getByDisplayValue("By you"), {
       target: { value: "myWorkReviewed" },
     });
     fireEvent.click(screen.getByText("Reviewed planting"));
@@ -580,7 +599,7 @@ describe("WorkDashboard", () => {
     renderDashboard();
 
     fireEvent.click(screen.getByTestId("tab-completed"));
-    fireEvent.change(screen.getByDisplayValue("Reviewed by you"), {
+    fireEvent.change(screen.getByDisplayValue("By you"), {
       target: { value: "myWorkReviewed" },
     });
 

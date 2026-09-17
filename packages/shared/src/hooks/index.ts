@@ -547,12 +547,12 @@ export { useDraftResume } from "./work/useDraftResume";
 export type { DraftWithImages, UseDraftsReturn } from "./work/useDrafts";
 export { useDrafts } from "./work/useDrafts";
 export { useMyOnlineWorks, useMyWorks } from "./work/useMyWorks";
+export { type NeedsReviewState, useNeedsReview } from "./work/useNeedsReview";
 export type { PendingReviewCountState } from "./work/usePendingReviewCount";
 export { usePendingReviewCount } from "./work/usePendingReviewCount";
 export type { PlatformStats } from "./work/usePlatformStats";
 export { usePlatformStats } from "./work/usePlatformStats";
 export { useReviewerGardenIds } from "./work/useReviewerGardenIds";
-export { useReviewerWorks } from "./work/useReviewerWorks";
 export type {
   SubmissionProgressState,
   SubmissionStage,

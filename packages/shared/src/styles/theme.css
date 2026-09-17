@@ -948,6 +948,18 @@
     padding-right: 2.25rem;
   }
 
+  /* Header-row filters: a tighter inset and chevron lane, and an ellipsis when
+     the row is short. Height and hit area stay on the size scale. */
+  .gg-control-select[data-density="condensed"] {
+    padding-left: 0.625rem;
+    padding-right: 1.75rem;
+    background-position: right 0.5rem center;
+    background-size: 0.875rem 0.875rem;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+
   :root[data-theme="dark"] .gg-control-select,
   [data-theme="dark"] .gg-control-select {
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23a3a3a3' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
