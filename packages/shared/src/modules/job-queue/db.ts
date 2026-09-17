@@ -12,7 +12,7 @@ import { trackPrivateQueueEvent } from "./job-analytics";
 import { mediaResourceManager } from "./media-resource-manager";
 
 const log = createLogger({ source: "job-queue/db" });
-const CLAIM_TTL_MS = 60_000;
+export const CLAIM_TTL_MS = 60_000;
 const STALE_URL_AGE_MS = 60 * 60 * 1000;
 
 export interface JobFilter {

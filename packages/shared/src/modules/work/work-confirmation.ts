@@ -62,6 +62,7 @@ export { claimWorkJobs } from "./execution-state";
 
 /** Cross-tab claims share the queue database; a persisted signing intent handles crash ambiguity. */
 export async function acquireWorkJobs(ids: string[]): Promise<{
+  token: string;
   assertOwned: () => Promise<void>;
   release: () => Promise<void>;
 } | null> {
@@ -79,6 +80,7 @@ export async function acquireWorkJobs(ids: string[]): Promise<{
     throw error;
   }
   return {
+    token,
     assertOwned: async () => {
       if (!(await jobQueueDB.renewExecutionClaim(ids, token)))
         throw new Error("submission-ownership-changed");
