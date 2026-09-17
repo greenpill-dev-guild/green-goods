@@ -1,5 +1,4 @@
 import { Button } from "@green-goods/shared/components/Button";
-import { IconButton } from "@green-goods/shared/components/IconButton";
 import { AudioPlayer } from "@green-goods/shared/components/Audio/AudioPlayer";
 import { toastService } from "@green-goods/shared/components/Toast/toast.service";
 import { track } from "@green-goods/shared/modules/app/posthog";
@@ -8,6 +7,7 @@ import {
   getSafeMediaBatchMetadata,
   getSafeMediaMetadata,
   getWorkMediaId,
+  isHeicFile,
   isVideoFile,
   validateWorkAttachments,
   validateWorkVideo,
@@ -15,13 +15,7 @@ import {
 import { prepareWorkSubmission } from "@green-goods/shared/modules/work/submission-flow";
 import type { Action } from "@green-goods/shared/types/domain";
 import { cn } from "@green-goods/shared/utils/styles/cn";
-import {
-  RiCloseLine,
-  RiImageFill,
-  RiLoader4Line,
-  RiPlayFill,
-  RiZoomInLine,
-} from "@remixicon/react";
+import { RiImageFill, RiLoader4Line } from "@remixicon/react";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useIntl } from "react-intl";
 import { FormInfo } from "@/components/Cards";
@@ -30,6 +24,9 @@ import { ImagePreviewDialog } from "@/components/Display";
 import { Books } from "@/components/Features";
 import { pwaStatusStyles } from "@/components/Pwa/statusStyles";
 import { trackWorkMediaJourneyEvent } from "@/config/mediaAnalytics";
+import type { PendingPhotoState } from "@/components/Features/Work";
+import { WorkMediaPhotoCard } from "./WorkMediaPhotoCard";
+import { WorkMediaVideoCard } from "./WorkMediaVideoCard";
 
 /** Max video duration in seconds (Decision #28) */
 
@@ -52,6 +49,9 @@ interface WorkMediaProps {
   ensureWorkSubmissionJourneyId?: () => string;
   authMode?: "wallet" | "passkey" | "embedded" | null;
   actionUID?: number | null;
+  /** A HEIC photo's conversion while it waits for the decoder; `undefined` otherwise. */
+  heicStateOf?: (file: File) => PendingPhotoState | undefined;
+  onRetryHeicConversion?: (file: File) => void;
 }
 
 /** Get platform context for analytics */
@@ -96,6 +96,8 @@ export const WorkMedia: React.FC<WorkMediaProps> = ({
   ensureWorkSubmissionJourneyId,
   authMode,
   actionUID,
+  heicStateOf,
+  onRetryHeicConversion,
 }) => {
   const intl = useIntl();
   const [previewIndex, setPreviewIndex] = useState<number | null>(null);
@@ -121,7 +123,7 @@ export const WorkMedia: React.FC<WorkMediaProps> = ({
   const photoOnlyData = useMemo(() => {
     const entries: Array<{ url: string; originalIndex: number }> = [];
     images.forEach((file, index) => {
-      if (!isVideoFile(file)) {
+      if (!isVideoFile(file) && !isHeicFile(file)) {
         entries.push({ url: mediaUrls[index], originalIndex: index });
       }
     });
@@ -183,9 +185,21 @@ export const WorkMedia: React.FC<WorkMediaProps> = ({
 
     setProcessingPhase("converting");
     setCompressionProgress(0);
+    let deferredCount = 0;
 
     try {
       const normalized = await prepareWorkSubmission(fileArray, {
+        onHeicConversionDeferred: (file) => {
+          deferredCount += 1;
+          trackWorkMediaJourneyEvent("work_media_heic_conversion_deferred", {
+            work_submission_journey_id: journeyId,
+            source,
+            auth_mode: authMode,
+            action_uid: actionUID,
+            submission_phase: "media",
+            ...getSafeMediaMetadata(file),
+          });
+        },
         onHeicConversionStarted: (file) => {
           trackWorkMediaJourneyEvent("work_media_heic_conversion_started", {
             work_submission_journey_id: journeyId,
@@ -221,6 +235,24 @@ export const WorkMedia: React.FC<WorkMediaProps> = ({
           });
         },
       });
+
+      if (deferredCount > 0) {
+        toastService.info({
+          title: intl.formatMessage({
+            id: "app.garden.upload.heicDeferredTitle",
+            defaultMessage: "Photo kept",
+          }),
+          message: intl.formatMessage(
+            {
+              id: "app.garden.upload.heicDeferredMessage",
+              defaultMessage:
+                "{count, plural, one {It converts when the app is ready. You can keep going.} other {They convert when the app is ready. You can keep going.}}",
+            },
+            { count: deferredCount }
+          ),
+          context: "mediaUpload",
+        });
+      }
 
       const unsupportedCount = normalized.rejected.filter(
         (item) => item.reason === "unsupported"
@@ -280,6 +312,12 @@ export const WorkMedia: React.FC<WorkMediaProps> = ({
           newFiles.push(file);
           continue;
         }
+        // A photo waiting for the decoder is kept as picked; compressing it needs that decoder.
+        if (isHeicFile(file)) {
+          processedImages.push(file);
+          newFiles.push(file);
+          continue;
+        }
         setProcessingPhase("compressing");
         let processed = file;
         if (imageCompressor.shouldCompress(file, 1024)) {
@@ -300,7 +338,10 @@ export const WorkMedia: React.FC<WorkMediaProps> = ({
         newFiles.push(processed);
       }
 
-      if (validateWorkAttachments([...images, ...newFiles], audioNotes).length) {
+      if (
+        validateWorkAttachments([...images, ...newFiles], audioNotes, 0, { pendingHeic: "accept" })
+          .length
+      ) {
         toastService.error({
           title: intl.formatMessage({
             id: "app.garden.attachments.invalid",
@@ -624,112 +665,37 @@ export const WorkMedia: React.FC<WorkMediaProps> = ({
             const isBroken = brokenMediaIds?.has(mediaId) ?? false;
 
             if (isVideo) {
-              const isPlaying = playingVideoId === mediaId;
               return (
-                <div key={mediaId} className="relative">
-                  {/* eslint-disable-next-line jsx-a11y/media-has-caption -- user-generated content */}
-                  <video
-                    src={url || undefined}
-                    controls={isPlaying}
-                    className="w-full aspect-4/3 md:aspect-square object-cover rounded-lg"
-                    onError={() => {
-                      if (url) onPreviewFailed?.(file, "media");
-                    }}
-                    aria-label={intl.formatMessage({
-                      id: "app.garden.upload.videoPreview",
-                      defaultMessage: "Video preview",
-                    })}
-                  >
-                    <track kind="captions" />
-                  </video>
-                  {/* Play overlay (shown when not in playback mode) */}
-                  {!isPlaying && (
-                    <button
-                      type="button"
-                      data-pressable="media"
-                      className="absolute inset-0 flex items-center justify-center rounded-[var(--radius-lg)] bg-[var(--color-overlay)]"
-                      onClick={() => setPlayingVideoId(mediaId)}
-                    >
-                      <RiPlayFill className="w-12 h-12 text-static-white" />
-                    </button>
-                  )}
-                  {isBroken && (
-                    <div className="absolute inset-x-2 bottom-2 rounded-[var(--radius-md)] border border-stroke-sub-300 bg-bg-white-0 px-2 py-1 text-xs font-medium text-text-strong-950">
-                      {intl.formatMessage({
-                        id: "app.garden.upload.brokenPreviewLabel",
-                        defaultMessage: "Preview failed",
-                      })}
-                    </div>
-                  )}
-                  {/* Remove button */}
-                  <IconButton
-                    emphasis="secondary"
-                    size="compact"
-                    aria-label={intl.formatMessage(
-                      {
-                        id: "app.garden.upload.removeMedia",
-                        defaultMessage: "Remove media {index}",
-                      },
-                      { index: index + 1 }
-                    )}
-                    className="absolute top-2 right-2 z-10"
-                    onClick={() => {
-                      removeMedia(file);
-                    }}
-                    icon={<RiCloseLine aria-hidden="true" />}
-                  />
-                </div>
+                <WorkMediaVideoCard
+                  key={mediaId}
+                  index={index}
+                  url={url}
+                  isBroken={isBroken}
+                  isPlaying={playingVideoId === mediaId}
+                  onPlay={() => setPlayingVideoId(mediaId)}
+                  onPreviewFailed={() => onPreviewFailed?.(file, "media")}
+                  onRemove={() => removeMedia(file)}
+                />
               );
             }
 
             // Photo card
             const photoIndex = photoOnlyData.findIndex((p) => p.originalIndex === index);
             return (
-              <div key={mediaId} className="relative">
-                <button
-                  type="button"
-                  data-pressable="media"
-                  className="relative group cursor-pointer w-full"
-                  disabled={isBroken}
-                  onClick={() => {
-                    if (photoIndex >= 0) setPreviewIndex(photoIndex);
-                  }}
-                >
-                  <img
-                    src={url || undefined}
-                    alt={`${intl.formatMessage({ id: "app.garden.upload.uploaded", defaultMessage: "Uploaded" })} ${index + 1}`}
-                    className="w-full aspect-4/3 md:aspect-square object-cover rounded-lg"
-                    onError={() => {
-                      if (url) onPreviewFailed?.(file, "media");
-                    }}
-                  />
-                  <div className="absolute inset-0 flex items-center justify-center rounded-[var(--radius-lg)] bg-[var(--color-overlay)] opacity-0 transition-opacity duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)] group-hover:opacity-100">
-                    <RiZoomInLine className="w-12 h-12 text-static-white" />
-                  </div>
-                </button>
-                {isBroken && (
-                  <div className="absolute inset-x-2 bottom-2 rounded-[var(--radius-md)] border border-stroke-sub-300 bg-bg-white-0 px-2 py-1 text-xs font-medium text-text-strong-950">
-                    {intl.formatMessage({
-                      id: "app.garden.upload.brokenPreviewLabel",
-                      defaultMessage: "Preview failed",
-                    })}
-                  </div>
-                )}
-                <IconButton
-                  emphasis="secondary"
-                  size="compact"
-                  aria-label={intl.formatMessage(
-                    { id: "app.garden.upload.removeMedia", defaultMessage: "Remove media {index}" },
-                    { index: index + 1 }
-                  )}
-                  className="absolute top-2 right-2 z-10"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    removeMedia(file);
-                  }}
-                  icon={<RiCloseLine aria-hidden="true" />}
-                />
-              </div>
+              <WorkMediaPhotoCard
+                key={mediaId}
+                file={file}
+                index={index}
+                url={url}
+                isBroken={isBroken}
+                heicState={heicStateOf?.(file)}
+                onPreview={() => {
+                  if (photoIndex >= 0) setPreviewIndex(photoIndex);
+                }}
+                onPreviewFailed={() => onPreviewFailed?.(file, "media")}
+                onRemove={() => removeMedia(file)}
+                onRetryConversion={() => onRetryHeicConversion?.(file)}
+              />
             );
           })}
 

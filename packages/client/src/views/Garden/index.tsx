@@ -107,6 +107,7 @@ const Work: React.FC = () => {
     gardenAddress,
     gardens,
     hasJoinedGardens,
+    heicStateOf,
     images,
     isJoiningCommunityGarden,
     isLoading,
@@ -136,6 +137,7 @@ const Work: React.FC = () => {
     register,
     removeBrokenMedia,
     removeMedia,
+    retryHeicConversion,
     reviewConfig,
     reviewData,
     selectedDomain,
@@ -328,6 +330,8 @@ const Work: React.FC = () => {
             ensureWorkSubmissionJourneyId={ensureWorkSubmissionJourneyId}
             authMode={authMode}
             actionUID={actionUID}
+            heicStateOf={heicStateOf}
+            onRetryHeicConversion={retryHeicConversion}
           />
         );
       case WorkTab.Details:
@@ -358,6 +362,8 @@ const Work: React.FC = () => {
             brokenMediaIds={brokenMediaIds}
             onPreviewFailed={markMediaPreviewFailed}
             onRemoveBrokenMedia={removeBrokenMedia}
+            heicStateOf={heicStateOf}
+            onRetryHeicConversion={retryHeicConversion}
             commitmentSelection={commitmentSelection}
             onClearCommitment={clearLinkIntent}
           />

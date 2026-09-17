@@ -1,7 +1,11 @@
 import { Button } from "@green-goods/shared/components/Button";
 import { AudioPlayer } from "@green-goods/shared/components/Audio/AudioPlayer";
 import { useWorkPreviewUrls } from "@green-goods/shared/hooks/work/useWorkImages";
-import { getWorkMediaId, isVideoFile } from "@green-goods/shared/modules/work/media-processing";
+import {
+  getWorkMediaId,
+  isHeicFile,
+  isVideoFile,
+} from "@green-goods/shared/modules/work/media-processing";
 import type { Action, Garden, WorkInput } from "@green-goods/shared/types/domain";
 import { formatTimeSpent } from "@green-goods/shared/utils/form/normalizers";
 import { cn } from "@green-goods/shared/utils/styles/cn";
@@ -14,7 +18,7 @@ import {
 } from "@remixicon/react";
 import { useMemo } from "react";
 import { useIntl } from "react-intl";
-import { WorkView } from "@/components/Features/Work";
+import { PendingPhotoTile, type PendingPhotoState, WorkView } from "@/components/Features/Work";
 import { pwaStatusStyles } from "@/components/Pwa/statusStyles";
 import type { WorkCommitmentChoice } from "./WorkCommitmentSelection";
 
@@ -49,6 +53,8 @@ interface WorkReviewProps {
   brokenMediaIds?: ReadonlySet<string>;
   onPreviewFailed?: (file: File, surface: "review") => void;
   onRemoveBrokenMedia?: (surface: "review") => void;
+  heicStateOf?: (file: File) => PendingPhotoState | undefined;
+  onRetryHeicConversion?: (file: File) => void;
   commitmentSelection?: WorkCommitmentChoice | null;
   onClearCommitment?: () => void;
 }
@@ -65,6 +71,8 @@ export const WorkReview: React.FC<WorkReviewProps> = ({
   brokenMediaIds,
   onPreviewFailed,
   onRemoveBrokenMedia,
+  heicStateOf,
+  onRetryHeicConversion,
   commitmentSelection = null,
   onClearCommitment,
 }) => {
@@ -129,11 +137,15 @@ export const WorkReview: React.FC<WorkReviewProps> = ({
   ];
 
   // Separate photos from videos (both can coexist)
-  const { photoFiles, videoFiles } = useMemo(() => {
-    const videos = images.filter(isVideoFile);
-    const photos = images.filter((f) => !isVideoFile(f));
-    return { photoFiles: photos, videoFiles: videos };
-  }, [images]);
+  // A HEIC photo still waiting to convert has no preview, so it shows as a placeholder.
+  const { photoFiles, pendingPhotos, videoFiles } = useMemo(
+    () => ({
+      photoFiles: images.filter((f) => !isVideoFile(f) && !isHeicFile(f)),
+      pendingPhotos: images.filter((f) => !isVideoFile(f) && isHeicFile(f)),
+      videoFiles: images.filter(isVideoFile),
+    }),
+    [images]
+  );
 
   const brokenCount = useMemo(
     () => images.filter((file) => brokenMediaIds?.has(getWorkMediaId(file))).length,
@@ -250,6 +262,19 @@ export const WorkReview: React.FC<WorkReviewProps> = ({
           if (file && mediaUrl) onPreviewFailed?.(file, "review");
         }}
       />
+
+      {pendingPhotos.length > 0 && (
+        <div className="padded grid grid-cols-1 gap-2 sm:grid-cols-2">
+          {pendingPhotos.map((file) => (
+            <PendingPhotoTile
+              key={getWorkMediaId(file)}
+              state={heicStateOf?.(file) ?? "waiting"}
+              name={file.name}
+              onRetry={onRetryHeicConversion ? () => onRetryHeicConversion(file) : undefined}
+            />
+          ))}
+        </div>
+      )}
 
       {/* Video previews (shown alongside photos, not mutually exclusive) */}
       {videoUrls.length > 0 && (

@@ -195,9 +195,11 @@ export function useWorkSubmissionFlow(): {
       };
       const errors = [
         ...(userAddress ? [] : ["User address is required for work submission"]),
+        // A HEIC photo still waiting to convert is kept: it becomes a JPEG before it uploads.
         ...validateWorkSubmissionContext(gardenAddress, actionUID, images, {
           minRequired: minRequiredImages,
           audioNotes,
+          pendingHeic: "accept",
         }),
       ];
       for (const file of images.filter((file) => file.type.startsWith("video/"))) {
@@ -207,7 +209,7 @@ export function useWorkSubmissionFlow(): {
       if (errors.length > 0) {
         setValidationErrors(errors);
         validationToasts.formError(
-          validateWorkAttachments(images, audioNotes).length
+          validateWorkAttachments(images, audioNotes, 0, { pendingHeic: "accept" }).length
             ? intl.formatMessage({ id: "app.garden.attachments.invalid" })
             : errors[0]
         );

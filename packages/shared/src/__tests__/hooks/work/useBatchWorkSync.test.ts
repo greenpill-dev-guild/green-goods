@@ -70,6 +70,11 @@ vi.mock("../../../modules/job-queue/event-bus", () => ({
   },
 }));
 
+const mockConvertQueuedHeicMedia = vi.fn();
+vi.mock("../../../modules/job-queue/job-media-conversion", () => ({
+  convertQueuedHeicMedia: (...args: unknown[]) => mockConvertQueuedHeicMedia(...args),
+}));
+
 const mockEncodeWorkData = vi.fn();
 vi.mock("../../../utils/eas/encoders", () => ({
   encodeWorkData: (...args: unknown[]) => mockEncodeWorkData(...args),
@@ -144,7 +149,8 @@ vi.mock("../../../modules/app/error-tracking", () => ({
   trackContractError: vi.fn(),
 }));
 
-import { queueToasts } from "../../../components/toast";
+import { queueToasts, toastService } from "../../../components/toast";
+import { buildQueuedWorkDraft } from "../../../modules/work/queued-work-draft";
 import { useBatchWorkSync } from "../../../hooks/work/useBatchWorkSync";
 import { jobQueueDB } from "../../../modules/job-queue/db";
 import { jobQueueEventBus } from "../../../modules/job-queue/event-bus";
@@ -207,6 +213,7 @@ describe("useBatchWorkSync", () => {
 
     // Default mocks for successful flow
     mockGetJobsWithImages.mockResolvedValue([]);
+    mockConvertQueuedHeicMedia.mockResolvedValue({ status: "ready" });
     mockEncodeWorkData.mockResolvedValue("0xEncodedData");
     mockBuildBatchWorkAttestTx.mockReturnValue({
       to: "0xEAS",
@@ -351,6 +358,62 @@ describe("useBatchWorkSync", () => {
           chain: expect.objectContaining({ id: 11155111 }),
         })
       );
+    });
+
+    it("encodes the same draft the queue executor builds for the job", async () => {
+      const [entry] = [createMockPendingJob("job-1")];
+      mockGetJobsWithImages.mockResolvedValue([entry]);
+
+      const { result } = renderHook(() => useBatchWorkSync(), {
+        wrapper: createWrapper(queryClient),
+      });
+      await act(async () => {
+        await result.current.mutateAsync();
+      });
+
+      expect(mockEncodeWorkData.mock.calls[0][0]).toEqual(
+        buildQueuedWorkDraft(entry.job.payload as WorkJobPayload, [], "Test Work")
+      );
+    });
+
+    it("converts waiting HEIC photos first and leaves work that cannot convert yet queued", async () => {
+      mockGetJobsWithImages.mockResolvedValue([
+        createMockPendingJob("job-1"),
+        createMockPendingJob("job-2"),
+      ]);
+      mockConvertQueuedHeicMedia.mockImplementation(async (job: { id: string }) =>
+        job.id === "job-2" ? { status: "pending" } : { status: "ready" }
+      );
+
+      const { result } = renderHook(() => useBatchWorkSync(), {
+        wrapper: createWrapper(queryClient),
+      });
+      let synced: Awaited<ReturnType<typeof result.current.mutateAsync>> | undefined;
+      await act(async () => {
+        synced = await result.current.mutateAsync();
+      });
+
+      expect(mockConvertQueuedHeicMedia).toHaveBeenCalledTimes(2);
+      expect(mockEncodeWorkData).toHaveBeenCalledOnce();
+      expect(synced).toMatchObject({ count: 1, waitingForPhotos: true });
+      expect(jobQueueDB.markJobSynced).toHaveBeenCalledWith("job-1", MOCK_TX_HASH);
+      expect(jobQueueDB.markJobSynced).not.toHaveBeenCalledWith("job-2", expect.anything());
+    });
+
+    it("says photos are still converting instead of reporting an empty queue", async () => {
+      mockGetJobsWithImages.mockResolvedValue([createMockPendingJob("job-1")]);
+      mockConvertQueuedHeicMedia.mockResolvedValue({ status: "pending" });
+
+      const { result } = renderHook(() => useBatchWorkSync(), {
+        wrapper: createWrapper(queryClient),
+      });
+      await act(async () => {
+        await result.current.mutateAsync();
+      });
+
+      expect(mockEncodeWorkData).not.toHaveBeenCalled();
+      expect(queueToasts.queueClear).not.toHaveBeenCalled();
+      expect(toastService.info).toHaveBeenCalledWith(expect.objectContaining({ context: "work" }));
     });
 
     it("deduplicates garden addresses in result", async () => {

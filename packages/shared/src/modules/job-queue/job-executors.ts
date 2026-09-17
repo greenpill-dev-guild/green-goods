@@ -14,8 +14,9 @@ import {
   buildApprovalAttestContractCall,
   buildWorkAttestContractCall,
 } from "../../utils/eas/transaction-builder";
-import { resolveWorkSubmissionTitle } from "../../utils/work/workTitles";
-import { finalizeWorkMediaForUpload } from "../work/media-processing";
+import { buildQueuedWorkDraft, resolveQueuedWorkTitle } from "../work/queued-work-draft";
+import { PendingHeicConversionError } from "../work/work-attachments";
+import { convertQueuedHeicMedia } from "./job-media-conversion";
 import {
   TransactionRevertedError,
   type BroadcastReference,
@@ -49,6 +50,8 @@ type UploadJson = typeof import("../data/ipfs/upload").uploadJSONToIPFS;
 export interface WorkJobExecutorDeps {
   reconcile?: typeof reconcileWorkTransaction;
   images?: (jobId: string) => ReturnType<typeof jobQueueDB.getImagesForJob>;
+  convertMedia?: typeof convertQueuedHeicMedia;
+  resolveTitle?: (job: Job<WorkJobPayload>, chainId: number) => Promise<string>;
   simulate?: SimulateWork;
   encodeWork?: EncodeWork;
   easConfig?: EASConfig;
@@ -150,72 +153,47 @@ export async function executeWorkJob(
   }
   if (checkpoint?.broadcastPending) throw new AwaitingWorkConfirmation("0x");
   await sender.assertOwnership?.(job.userAddress, chainId);
+  // A photo picked before the decoder could load is still HEIC. It becomes a
+  // JPEG in storage before the simulate and the encode read the files.
+  const conversion = await (deps.convertMedia ?? convertQueuedHeicMedia)(job);
+  if (conversion.status !== "ready")
+    throw new PendingHeicConversionError(
+      conversion.status === "pending" ? "photo-conversion-pending" : "photo-needs-attention"
+    );
   const getImages = deps.images ?? ((id: string) => jobQueueDB.getImagesForJob(id));
   const images = await getImages(jobId);
-  // A photo picked offline can still be HEIC: the decoder may not have landed
-  // when it was queued. Sending is online, so convert it here, before the
-  // simulate and the encode both read the same list of files.
-  const allFiles = await finalizeWorkMediaForUpload(images.map((img) => img.file));
-  const actionTitle = resolveWorkSubmissionTitle({
-    draftTitle: payload.title,
-    actionUID: payload.actionUID,
-  });
-
-  // Separate audio from visual media by MIME type
-  const audioFiles = allFiles.filter((f) => f.type.startsWith("audio/"));
-  const mediaFiles = allFiles.filter((f) => !f.type.startsWith("audio/"));
-
-  const accountAddress = job.userAddress as `0x${string}`;
+  const actionTitle = await (deps.resolveTitle ?? resolveQueuedWorkTitle)(job, chainId);
+  const draft = buildQueuedWorkDraft(
+    payload,
+    images.map((image) => image.file),
+    actionTitle
+  );
 
   // Simulate before uploading to IPFS
   const simulate = deps.simulate ?? (await import("../work/simulate")).simulateWorkSubmission;
   await simulate({
-    draft: {
-      actionUID: payload.actionUID,
-      title: actionTitle,
-      feedback: payload.feedback,
-      media: mediaFiles,
-      details: payload.details ?? {},
-      location: payload.location,
-      timeSpentMinutes: payload.timeSpentMinutes ?? 0,
-      ...(payload.tags ? { tags: payload.tags } : {}),
-      ...(audioFiles.length > 0 ? { audioNotes: audioFiles } : {}),
-    },
+    draft,
     gardenAddress: payload.gardenAddress,
     actionUID: payload.actionUID,
     actionTitle,
     chainId,
-    images: mediaFiles,
-    accountAddress,
+    images: draft.media,
+    accountAddress: job.userAddress as `0x${string}`,
   });
 
   // Encode attestation data (includes IPFS upload)
   const encodeWork = deps.encodeWork ?? (await import("../../utils/eas/encoders")).encodeWorkData;
-  const attestationData = await encodeWork(
-    {
-      actionUID: payload.actionUID,
-      title: actionTitle,
-      feedback: payload.feedback,
-      media: mediaFiles,
-      details: payload.details ?? {},
-      location: payload.location,
-      timeSpentMinutes: payload.timeSpentMinutes ?? 0,
-      ...(payload.tags ? { tags: payload.tags } : {}),
-      ...(audioFiles.length > 0 ? { audioNotes: audioFiles } : {}),
+  const attestationData = await encodeWork(draft, chainId, {
+    clientWorkId: payload.clientWorkId,
+    checkpoint: payload.uploadCheckpoint,
+    onCheckpoint: async (checkpoint) => {
+      await sender.assertOwnership?.(job.userAddress, chainId);
+      payload.uploadCheckpoint = checkpoint;
+      await jobQueueDB.updateJob(job);
     },
-    chainId,
-    {
-      clientWorkId: payload.clientWorkId,
-      checkpoint: payload.uploadCheckpoint,
-      onCheckpoint: async (checkpoint) => {
-        await sender.assertOwnership?.(job.userAddress, chainId);
-        payload.uploadCheckpoint = checkpoint;
-        await jobQueueDB.updateJob(job);
-      },
-      gardenAddress: payload.gardenAddress,
-      authMode: sender.authMode === "embedded" ? "passkey" : sender.authMode,
-    }
-  );
+    gardenAddress: payload.gardenAddress,
+    authMode: sender.authMode === "embedded" ? "passkey" : sender.authMode,
+  });
 
   // Build and send attestation via TransactionSender
   const easConfig = deps.easConfig ?? getEASConfig(chainId);

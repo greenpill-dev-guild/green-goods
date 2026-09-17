@@ -8,6 +8,7 @@ import { useEffect, useMemo, useRef } from "react";
 import { useIntl } from "react-intl";
 
 import { pwaStatusStyles } from "@/components/Pwa/statusStyles";
+import { PendingPhotoTile, type PendingPhotoState } from "@/components/Features/Work";
 
 export interface ProofMediaProps {
   media: File[];
@@ -19,6 +20,9 @@ export interface ProofMediaProps {
   onRemoveMedia: (index: number) => void;
   onRemoveAudio: (index: number) => void;
   onPreview: (index: number) => void;
+  /** A HEIC photo's conversion while it waits for the decoder; `undefined` otherwise. */
+  heicStateOf?: (file: File) => PendingPhotoState | undefined;
+  onRetryHeicConversion?: (file: File) => void;
 }
 
 function formatTime(seconds: number): string {
@@ -43,6 +47,8 @@ export function ProofMedia({
   onRemoveMedia,
   onRemoveAudio,
   onPreview,
+  heicStateOf,
+  onRetryHeicConversion,
 }: ProofMediaProps) {
   const { formatMessage } = useIntl();
   const inputRef = useRef<HTMLInputElement>(null);
@@ -135,37 +141,56 @@ export function ProofMedia({
 
       {media.length > 0 || audioNotes.length > 0 ? (
         <ul className="space-y-3" aria-label={formatMessage({ id: "app.proof.media.list" })}>
-          {media.map((file, index) => (
-            <li
-              key={`${file.name}-${index}`}
-              className="relative overflow-hidden rounded-[var(--radius-lg)] border border-stroke-soft-200 bg-bg-white-0"
-            >
-              {isVideoFile(file) ? (
-                <div className="flex aspect-[4/3] items-center justify-center bg-bg-weak-50">
-                  <RiPlayFill className="h-8 w-8 text-text-sub-600" aria-hidden="true" />
-                  <span className="sr-only">{file.name}</span>
-                </div>
-              ) : (
-                <button
-                  type="button"
-                  data-pressable="media"
-                  onClick={() => onPreview(index)}
-                  className="block w-full"
-                  aria-label={formatMessage({ id: "app.proof.media.preview" }, { name: file.name })}
-                >
-                  <img src={urls[index]} alt="" className="aspect-[4/3] w-full object-cover" />
-                </button>
-              )}
-              <IconButton
-                emphasis="secondary"
-                size="compact"
-                onClick={() => onRemoveMedia(index)}
-                aria-label={formatMessage({ id: "app.proof.media.remove" }, { name: file.name })}
-                className="absolute right-2 top-2 shadow-sm"
-                icon={<RiCloseLine aria-hidden="true" />}
-              />
-            </li>
-          ))}
+          {media.map((file, index) => {
+            const heicState = heicStateOf?.(file);
+            return (
+              <li
+                key={`${file.name}-${index}`}
+                className="relative overflow-hidden rounded-[var(--radius-lg)] border border-stroke-soft-200 bg-bg-white-0"
+              >
+                {heicState ? (
+                  <PendingPhotoTile
+                    state={heicState}
+                    name={file.name}
+                    onRetry={onRetryHeicConversion ? () => onRetryHeicConversion(file) : undefined}
+                    onRemove={() => onRemoveMedia(index)}
+                    className="rounded-none border-0"
+                  />
+                ) : isVideoFile(file) ? (
+                  <div className="flex aspect-[4/3] items-center justify-center bg-bg-weak-50">
+                    <RiPlayFill className="h-8 w-8 text-text-sub-600" aria-hidden="true" />
+                    <span className="sr-only">{file.name}</span>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    data-pressable="media"
+                    onClick={() => onPreview(index)}
+                    className="block w-full"
+                    aria-label={formatMessage(
+                      { id: "app.proof.media.preview" },
+                      { name: file.name }
+                    )}
+                  >
+                    <img src={urls[index]} alt="" className="aspect-[4/3] w-full object-cover" />
+                  </button>
+                )}
+                {heicState === "failed" ? null : (
+                  <IconButton
+                    emphasis="secondary"
+                    size="compact"
+                    onClick={() => onRemoveMedia(index)}
+                    aria-label={formatMessage(
+                      { id: "app.proof.media.remove" },
+                      { name: file.name }
+                    )}
+                    className="absolute right-2 top-2 shadow-sm"
+                    icon={<RiCloseLine aria-hidden="true" />}
+                  />
+                )}
+              </li>
+            );
+          })}
           {audioNotes.map((file, index) => (
             <li key={`audio-${file.name}-${index}`}>
               <AudioPlayer file={file} onDelete={() => onRemoveAudio(index)} />

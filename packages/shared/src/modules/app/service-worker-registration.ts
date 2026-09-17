@@ -193,6 +193,20 @@ export function schedulePwaShellPreparation(
   };
 }
 
+/**
+ * Hear a tier's outcome without asking for it. For readers that only need to
+ * know whether the offline-ready files are on the device, such as the HEIC
+ * decoder: only an installed app or an install should start that download.
+ */
+export function observePwaShellTier(tier: PwaShellTier, onStatus: TierListener): () => void {
+  const listeners = tierListeners.get(tier) ?? new Set<TierListener>();
+  tierListeners.set(tier, listeners);
+  listeners.add(onStatus);
+  const settled = tierOutcome.get(tier);
+  if (settled) onStatus(settled);
+  return () => listeners.delete(onStatus);
+}
+
 /** Lets the active worker finish the send-time tail after the page has yielded. */
 export function schedulePwaTailPreparation(): void {
   schedulePwaShellPreparation("tail");

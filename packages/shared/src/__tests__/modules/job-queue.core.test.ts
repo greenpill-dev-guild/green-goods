@@ -35,6 +35,12 @@ vi.mock("../../utils/eas/encoders", () => ({
   encodeWorkApprovalData: vi.fn(() => "0xencodedapprovaldata"),
 }));
 
+// The HEIC decoder is a lazy chunk; tests decide whether it can convert.
+const heicConversion = vi.hoisted(() => ({
+  convertHeicPhoto: vi.fn(async (): Promise<unknown> => ({ status: "unavailable" })),
+}));
+vi.mock("../../modules/work/heic-conversion", () => heicConversion);
+
 // Mock the EAS config
 vi.mock("../../config/blockchain", async (importOriginal) => {
   const actual = (await importOriginal()) as Record<string, unknown>;
@@ -176,6 +182,44 @@ describe("modules/job-queue", () => {
     expect(mockSender.sendContractCall).toHaveBeenCalledTimes(1);
     const stats = await jobQueue.getStats(TEST_USER_ADDRESS);
     expect(stats.pending).toBe(0);
+  });
+
+  it("keeps work with a HEIC photo queued until the photo can convert, then sends a JPEG", async () => {
+    const heic = createMockFile("heic-bytes", "garden.heic", "image/heic");
+    const jobId = await jobQueue.addJob(
+      "work",
+      { title: "Test", actionUID: 42, gardenAddress: "0x123", feedback: "ok", media: [heic] },
+      TEST_USER_ADDRESS,
+      { chainId: 11155111 }
+    );
+    const mockSender = createMockTransactionSender();
+
+    const waiting = await jobQueue.processJob(jobId, { transactionSender: mockSender });
+
+    expect(waiting).toMatchObject({
+      success: false,
+      skipped: true,
+      error: "photo-conversion-pending",
+    });
+    const queued = await jobQueueDB.getJob(jobId);
+    expect(queued?.attempts).toBe(0);
+    expect(queued?.lastError).toBeUndefined();
+    expect(encodeWorkData).not.toHaveBeenCalled();
+    expect(mockSender.sendContractCall).not.toHaveBeenCalled();
+
+    heicConversion.convertHeicPhoto.mockResolvedValueOnce({
+      status: "converted",
+      file: createMockFile("jpeg-bytes", "garden.jpg", "image/jpeg"),
+    });
+    // A waiting job is re-probed no sooner than the queue's throttle allows.
+    const later = Date.now() + 60_000;
+    vi.spyOn(Date, "now").mockReturnValue(later);
+    const sent = await jobQueue.processJob(jobId, { transactionSender: mockSender });
+    vi.mocked(Date.now).mockRestore();
+
+    expect(sent).toMatchObject({ success: true });
+    const [encoded] = vi.mocked(encodeWorkData).mock.calls[0];
+    expect(encoded.media.map((file: File) => file.type)).toEqual(["image/jpeg"]);
   });
 
   it("skips processing when transaction sender is missing", async () => {

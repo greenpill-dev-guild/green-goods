@@ -45,7 +45,11 @@ export interface ProofComposerController {
   recordingElapsed: number;
   isPending: boolean;
   linkInvalid: boolean;
+  /** Photos only, without any HEIC photo still waiting to convert. */
   imageUrls: string[];
+  /** A waiting HEIC photo's conversion; `undefined` for every other file. */
+  heicStateOf: (file: File) => "waiting" | "converting" | "failed" | undefined;
+  retryHeicConversion: (file: File) => void;
   readiness: (beat: ProofBeat) => ProofReadiness;
   toggleCredit: (address: Address) => void;
   toggleRecording: () => void;

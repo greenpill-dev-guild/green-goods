@@ -177,6 +177,8 @@ export function proofComposerControllerFixture(
     isPending: false,
     linkInvalid: false,
     imageUrls: [],
+    heicStateOf: () => undefined,
+    retryHeicConversion: () => undefined,
     readiness: (beat) =>
       selectProofReadiness({
         beat,

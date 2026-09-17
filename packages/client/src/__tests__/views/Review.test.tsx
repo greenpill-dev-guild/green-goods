@@ -44,6 +44,7 @@ vi.mock("@green-goods/shared/utils/form/normalizers", () => ({
 
 vi.mock("@green-goods/shared/modules/work/media-processing", () => ({
   getWorkMediaId: (file: File) => `media-${file.name}-${file.size}-${file.lastModified}`,
+  isHeicFile: (file: File) => /\.hei[cf]$/i.test(file.name),
   isVideoFile: (file: File) => file.type.startsWith("video/"),
 }));
 

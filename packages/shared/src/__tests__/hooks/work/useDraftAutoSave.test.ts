@@ -162,6 +162,25 @@ describe("missing attachment choices", () => {
       "last.jpg",
     ]);
   });
+  it("reselects a missing photo while another photo is still waiting to convert", async () => {
+    vi.useRealTimers();
+    const waiting = new File(["heic"], "waiting.heic", { type: "image/heic" });
+    useWorkFlowStore.setState({
+      images: [waiting],
+      draftMissingAttachments: [{ id: "missing", name: "lost.jpg", order: 1, kind: "media" }],
+    });
+    const { result } = renderHook(() => useDraftSaveStatus());
+    await act(async () => {
+      await result.current.reselectMissingAttachment(
+        "missing",
+        new File(["jpeg"], "found.jpg", { type: "image/jpeg" })
+      );
+    });
+    expect(useWorkFlowStore.getState().images.map((file) => file.name)).toEqual([
+      "waiting.heic",
+      "found.jpg",
+    ]);
+  });
   it("unreadable reselection leaves existing evidence and the recovery entry intact", async () => {
     vi.useRealTimers();
     const file = new File(["old"], "old.jpg", { type: "image/jpeg" });

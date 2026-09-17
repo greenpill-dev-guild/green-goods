@@ -4,10 +4,19 @@ import { describe, it, expect, vi } from "vitest";
 import {
   createDefaultSubmitWorkPorts,
   submitWork,
+  type ResolvedSubmitWorkCommand,
   type SubmitWorkCommand,
 } from "../../modules/work/submit-work-command";
+import type { Action } from "../../types/domain";
+import type { WorkJobPayload } from "../../types/job-queue";
 import { createMockTransactionSender } from "../test-utils/transaction-fakes";
 import { jobQueueDB } from "../../modules/job-queue/db";
+
+// Whether a waiting HEIC photo can convert is each test's call.
+const heic = vi.hoisted(() => ({
+  convertHeicPhoto: vi.fn(async (): Promise<unknown> => ({ status: "unavailable" })),
+}));
+vi.mock("../../modules/work/heic-conversion", () => heic);
 const hash = `0x${"12".repeat(32)}` as const;
 function fixture() {
   const command: SubmitWorkCommand = {
@@ -45,6 +54,58 @@ function fixture() {
   return { command, ports, send };
 }
 describe("PWA durable submission boundary", () => {
+  it("sends a wallet work's photo as the JPEG it converts to, not the HEIC it was picked as", async () => {
+    const { command, ports, send } = fixture();
+    const picked = new File(["heic-bytes"], "garden.heic", { type: "image/heic" });
+    command.images = [picked];
+    heic.convertHeicPhoto.mockResolvedValueOnce({
+      status: "converted",
+      file: new File(["jpeg-bytes"], "garden.jpg", { type: "image/jpeg" }),
+    });
+
+    await expect(submitWork(command, ports)).resolves.toMatchObject({ kind: "direct" });
+
+    const sent = send.mock.calls[0]?.[0] as SubmitWorkCommand;
+    expect(sent.images.map((file) => file.type)).toEqual(["image/jpeg"]);
+  });
+
+  it("keeps wallet work queued, never failed, while its photo cannot convert yet", async () => {
+    const { command, ports, send } = fixture();
+    command.images = [new File(["heic-bytes"], "garden.heic", { type: "image/heic" })];
+    heic.convertHeicPhoto.mockResolvedValueOnce({ status: "unavailable" });
+
+    const outcome = await submitWork(command, ports);
+
+    expect(outcome.kind).toBe("queued");
+    expect(send).not.toHaveBeenCalled();
+    const job = await jobQueueDB.getJob((outcome as { jobId: string }).jobId);
+    expect(job?.attempts).toBe(0);
+    expect(job?.lastError).toBeUndefined();
+  });
+
+  it("stores the action's own title with admitted work, and no placeholder when it is unknown", async () => {
+    const { command } = fixture();
+    const admit = createDefaultSubmitWorkPorts({ sender: null }).queue.admit!;
+    const untitled = { ...command.draft, title: "" };
+
+    const known = await admit({
+      ...command,
+      draft: untitled,
+      actions: [{ id: "11155111-1", title: "Watering seedlings" } as Action],
+    } as ResolvedSubmitWorkCommand);
+    const unknown = await admit({
+      ...command,
+      clientWorkId: crypto.randomUUID(),
+      draft: { ...command.draft, title: "Unknown Action" },
+      actions: [],
+    } as ResolvedSubmitWorkCommand);
+
+    const knownPayload = (await jobQueueDB.getJob(known.jobId))?.payload as WorkJobPayload;
+    const unknownPayload = (await jobQueueDB.getJob(unknown.jobId))?.payload as WorkJobPayload;
+    expect(knownPayload.title).toBe("Watering seedlings");
+    expect(unknownPayload.title).toBeUndefined();
+  });
+
   it("preserves an inline passkey failure as an error instead of a queued success", async () => {
     const { command, ports } = fixture();
     command.authMode = "passkey";

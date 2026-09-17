@@ -6,6 +6,11 @@ export interface ConnectivitySnapshot {
   checkedAt?: number;
 }
 
+/** How long a probe answer confirms the connection when nothing more recent has. */
+export const CONFIRMED_ONLINE_MAX_AGE_MS = 60_000;
+/** A send someone just asked for re-probes anything older than this. */
+const CONFIRM_ONLINE_MAX_AGE_MS = 15_000;
+
 const readOnline = () => typeof navigator === "undefined" || navigator.onLine;
 const serverSnapshot: ConnectivitySnapshot = { state: "online" };
 let snapshot: ConnectivitySnapshot = { state: readOnline() ? "online" : "offline" };
@@ -98,6 +103,25 @@ async function check(): Promise<void> {
   return pending;
 }
 
+/**
+ * "online" alone is not proof: it is also the boot state and the state while a
+ * probe is still pending. Confirmed means the origin itself answered recently.
+ * Where no probe is configured (admin), the browser's signal is all there is.
+ */
+function isConfirmedOnline(now = Date.now(), maxAgeMs = CONFIRMED_ONLINE_MAX_AGE_MS): boolean {
+  if (!readOnline() || snapshot.state !== "online") return false;
+  if (!probeUrl) return true;
+  return snapshot.checkedAt !== undefined && now - snapshot.checkedAt <= maxAgeMs;
+}
+
+/** Confirm before an action someone asked for, probing again when the last answer is stale. */
+async function confirmOnline({ maxAgeMs = CONFIRM_ONLINE_MAX_AGE_MS } = {}): Promise<boolean> {
+  if (isConfirmedOnline(Date.now(), maxAgeMs)) return true;
+  if (!readOnline()) return false;
+  await check();
+  return isConfirmedOnline(Date.now(), maxAgeMs);
+}
+
 onlineManager.setOnline(snapshot.state !== "offline");
 // Lifecycle observation belongs to the store, not to the lifetime of its
 // consumers. Android may resume before a query or banner subscribes.
@@ -161,6 +185,8 @@ export const connectivityStore = {
     };
   },
   check,
+  isConfirmedOnline,
+  confirmOnline,
   // An individual API failure merely requests an independent origin check.
   reportNetworkFailure: () => (probeUrl ? check() : Promise.resolve()),
 };

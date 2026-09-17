@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
+  isPlaceholderWorkTitle,
+  resolveKnownWorkTitle,
   resolveWorkSubmissionTitle,
   stripGeneratedWorkTitleTimestamp,
 } from "../../utils/work/workTitles";
@@ -47,5 +49,32 @@ describe("work title utilities", () => {
         actionUID: 12,
       })
     ).toBe("Tree planting");
+  });
+
+  it("recognises the titles the app made up when it could not find the action", () => {
+    expect(isPlaceholderWorkTitle("Unknown Action", 12)).toBe(true);
+    expect(isPlaceholderWorkTitle(" Action 12 ", 12)).toBe(true);
+    expect(isPlaceholderWorkTitle("Action 12", 13)).toBe(false);
+    expect(isPlaceholderWorkTitle("Tree planting", 12)).toBe(false);
+  });
+
+  it("keeps only a real title, so a placeholder is never stored or sent as one", () => {
+    expect(resolveKnownWorkTitle({ draftTitle: "Unknown Action", actionUID: 12 })).toBeUndefined();
+    expect(resolveKnownWorkTitle({ draftTitle: "Action 12", actionUID: 12 })).toBeUndefined();
+    expect(
+      resolveKnownWorkTitle({
+        draftTitle: "Action 12",
+        actionTitle: "Tree planting",
+        actionUID: 12,
+      })
+    ).toBe("Tree planting");
+    expect(resolveKnownWorkTitle({ actionTitle: "Unknown Action", actionUID: 12 })).toBeUndefined();
+    expect(
+      resolveWorkSubmissionTitle({
+        draftTitle: "Unknown Action",
+        actionTitle: "Unknown Action",
+        actionUID: 12,
+      })
+    ).toBe("Action 12");
   });
 });

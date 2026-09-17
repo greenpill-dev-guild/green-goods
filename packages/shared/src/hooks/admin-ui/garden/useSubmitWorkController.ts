@@ -7,7 +7,7 @@ import { logger } from "../../../modules/app/logger";
 import { validateWorkSubmissionContext } from "../../../modules/work/work-submission";
 import type { AuthStateValue } from "../../../providers/Auth";
 import type { Action, Address, Domain } from "../../../types/domain";
-import { findActionByUID, getActionTitle, parseActionUID } from "../../../utils/action/parsers";
+import { findActionByUID, parseActionUID } from "../../../utils/action/parsers";
 import { compareAddresses } from "../../../utils/blockchain/address";
 import { expandDomainMask } from "../../../utils/domain";
 import { useActions, useGardens } from "../../blockchain/useBaseLists";
@@ -205,7 +205,8 @@ export function useSubmitWorkController({
     const { feedback, timeSpentMinutes, ...details } = data as Record<string, unknown>;
     const draft = {
       actionUID: selectedActionUID,
-      title: getActionTitle(actions, selectedActionUID),
+      // No placeholder: the submission falls back to its own title when this is empty.
+      title: findActionByUID(actions, selectedActionUID)?.title ?? "",
       timeSpentMinutes: typeof timeSpentMinutes === "number" ? timeSpentMinutes : 0,
       feedback: typeof feedback === "string" ? feedback : "",
       media: images,

@@ -12,7 +12,7 @@ import { SW_MESSAGE } from "../app/service-worker-protocol";
 import { COMMITMENT_JOB_KINDS } from "../commitment-pooling/jobs";
 import { createCommitmentQueueAdmission } from "../commitment-pooling/queue-admission";
 import { selectCommitmentPoolingAvailability } from "../commitment-pooling/selectors";
-import { InvalidWorkAttachmentError } from "../work/work-attachments";
+import { InvalidWorkAttachmentError, PendingHeicConversionError } from "../work/work-attachments";
 import {
   AwaitingWorkConfirmation,
   isWorkSubmissionCancelled,
@@ -48,6 +48,8 @@ function createDefaultExecutorRegistry() {
       } catch (error) {
         if (error instanceof AwaitingWorkConfirmation)
           return { status: "waiting", reason: "awaiting-confirmation" };
+        if (error instanceof PendingHeicConversionError)
+          return { status: "waiting", reason: error.reason };
         if (error instanceof WorkTransactionReverted)
           return { status: "unavailable", reason: "work-transaction-reverted" };
         if (error instanceof InvalidWorkAttachmentError || isWorkSubmissionCancelled(error)) {

@@ -24,6 +24,13 @@ import { createJobExecutorRegistry } from "../../modules/job-queue/executor-regi
 import type { Address } from "../../types/domain";
 import type { ApprovalJobPayload, Job, WorkJobPayload } from "../../types/job-queue";
 import { createMockTransactionSender } from "../test-utils/transaction-fakes";
+import { PendingHeicConversionError } from "../../modules/work/work-attachments";
+
+// An untitled job looks its action up; keep that lookup off the network.
+vi.mock("../../modules/data/greengoods", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../../modules/data/greengoods")>()),
+  getActions: vi.fn(async () => []),
+}));
 import { MOCK_TX_HASH } from "../test-utils/mock-factories";
 
 const USER = "0x1111111111111111111111111111111111111111" as Address;
@@ -160,6 +167,63 @@ describe("work and approval job executors", () => {
       })
     );
     expect(sender.sendContractCall).toHaveBeenCalledOnce();
+  });
+
+  it("sends an untitled job under its action's title, never a placeholder", async () => {
+    const encodeWork = vi.fn().mockResolvedValue(HASH);
+    const simulate = vi.fn().mockResolvedValue(undefined);
+    const resolveTitle = vi.fn().mockResolvedValue("Weeding");
+    const work = job<WorkJobPayload>("work", {
+      actionUID: 7,
+      gardenAddress: GARDEN,
+      feedback: "Done",
+    });
+
+    await executeWorkJob("job-work", work, 11155111, createMockTransactionSender(), {
+      images: vi.fn().mockResolvedValue([]),
+      convertMedia: vi.fn().mockResolvedValue({ status: "ready" }),
+      resolveTitle,
+      simulate,
+      encodeWork,
+      easConfig: EAS_CONFIG,
+    });
+
+    expect(resolveTitle).toHaveBeenCalledWith(work, 11155111);
+    expect(simulate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        actionTitle: "Weeding",
+        draft: expect.objectContaining({ title: "Weeding" }),
+      })
+    );
+    expect(encodeWork.mock.calls[0][0]).toMatchObject({ title: "Weeding" });
+  });
+
+  it.each([
+    ["pending", "photo-conversion-pending"],
+    ["needs-attention", "photo-needs-attention"],
+  ] as const)("waits instead of uploading while a queued photo is %s", async (status, reason) => {
+    const images = vi.fn();
+    const encodeWork = vi.fn();
+    const sender = createMockTransactionSender();
+    const work = job<WorkJobPayload>("work", {
+      actionUID: 7,
+      gardenAddress: GARDEN,
+      feedback: "Done",
+    });
+
+    const attempt = executeWorkJob("job-work", work, 11155111, sender, {
+      images,
+      convertMedia: vi.fn().mockResolvedValue({ status }),
+      simulate: vi.fn(),
+      encodeWork,
+      easConfig: EAS_CONFIG,
+    });
+
+    await expect(attempt).rejects.toBeInstanceOf(PendingHeicConversionError);
+    await expect(attempt).rejects.toMatchObject({ reason });
+    expect(images).not.toHaveBeenCalled();
+    expect(encodeWork).not.toHaveBeenCalled();
+    expect(sender.sendContractCall).not.toHaveBeenCalled();
   });
 
   it("encodes and sends an approval through the injected dependencies", async () => {

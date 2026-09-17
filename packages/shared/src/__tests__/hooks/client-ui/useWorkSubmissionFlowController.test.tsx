@@ -88,7 +88,8 @@ vi.mock("../../../modules/app/share-target", () => ({
   loadShareTarget: mocks.loadShareTarget,
 }));
 
-vi.mock("../../../modules/work/media-processing", () => ({
+vi.mock("../../../modules/work/media-processing", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../../../modules/work/media-processing")>()),
   normalizeWorkMediaFiles: mocks.normalizeWorkMediaFiles,
 }));
 

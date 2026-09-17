@@ -5679,5 +5679,14 @@
   "app.work.retryRequiredInfo": "Seus arquivos continuam salvos. Escolha Tentar novamente quando quiser reenviar.",
   "app.offline.originalsUnavailable": "Os arquivos originais não estão salvos neste dispositivo. As prévias das fotos ainda podem estar disponíveis.",
   "app.offline.attachmentUnavailable": "Não foi baixado para uso offline",
-  "app.update.finishWork": "Termine de salvar ou enviar seu trabalho antes de reiniciar."
+  "app.update.finishWork": "Termine de salvar ou enviar seu trabalho antes de reiniciar.",
+  "app.garden.upload.heicDeferredMessage": "{count, plural, one {Ela será convertida quando o app estiver pronto. Você pode continuar.} other {Elas serão convertidas quando o app estiver pronto. Você pode continuar.}}",
+  "app.garden.upload.heicDeferredTitle": "Foto mantida",
+  "app.garden.upload.pendingPhoto.converting": "Convertendo foto...",
+  "app.garden.upload.pendingPhoto.failedTitle": "Não foi possível converter esta foto",
+  "app.garden.upload.pendingPhoto.remove": "Remover",
+  "app.garden.upload.pendingPhoto.retry": "Tentar novamente",
+  "app.garden.upload.pendingPhoto.waitingMessage": "Ela será convertida quando o app estiver pronto.",
+  "app.garden.upload.pendingPhoto.waitingTitle": "Foto mantida",
+  "app.work.photosStillConverting": "As fotos ainda estão sendo convertidas. Seu trabalho fica na fila até que elas estejam prontas."
 }

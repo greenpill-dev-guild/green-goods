@@ -32,11 +32,12 @@ import { jobQueueDB } from "../../modules/job-queue/db";
 import { jobQueue } from "../../modules/job-queue/default-instance";
 import { jobQueueEventBus } from "../../modules/job-queue/event-bus";
 import { assertLocalArbitrumForkWallet } from "../../modules/transactions/local-fork-safety";
-import type { Address, WorkDraft } from "../../types/domain";
+import type { Address } from "../../types/domain";
 import type { Job, WorkJobPayload } from "../../types/job-queue";
 import { TX_RECEIPT_TIMEOUT_MS } from "../../utils/blockchain/polling";
 import { buildBatchWorkAttestTx } from "../../utils/eas/transaction-builder";
-import { resolveWorkSubmissionTitle } from "../../utils/work/workTitles";
+import { convertQueuedHeicMedia } from "../../modules/job-queue/job-media-conversion";
+import { buildQueuedWorkDraft, resolveQueuedWorkTitle } from "../../modules/work/queued-work-draft";
 import { usePrimaryAddress } from "../auth/usePrimaryAddress";
 import { useUser } from "../auth/useUser";
 import { queueKeys } from "../../config/query-keys/misc";
@@ -47,6 +48,8 @@ interface BatchWorkSyncResult {
   count: number;
   awaitingConfirmation?: boolean;
   confirmationFailed?: boolean;
+  /** Some work still holds a HEIC photo that could not convert yet, so it stayed queued. */
+  waitingForPhotos?: boolean;
   gardens: string[];
 }
 
@@ -54,29 +57,6 @@ interface EncodedWorkJob {
   job: Job<WorkJobPayload>;
   gardenAddress: `0x${string}`;
   attestationData: `0x${string}`;
-}
-
-function toWorkDraft(payload: WorkJobPayload, mediaFiles: File[]): WorkDraft {
-  // Separate audio from visual media
-  const audioFiles = mediaFiles.filter((f) => f.type.startsWith("audio/"));
-  const visualFiles = mediaFiles.filter((f) => !f.type.startsWith("audio/"));
-
-  return {
-    actionUID: payload.actionUID,
-    title: resolveWorkSubmissionTitle({
-      draftTitle: payload.title,
-      actionUID: payload.actionUID,
-    }),
-    feedback: payload.feedback,
-    media: visualFiles,
-    details: payload.details ?? {},
-    location: payload.location,
-    ...(typeof payload.timeSpentMinutes === "number"
-      ? { timeSpentMinutes: payload.timeSpentMinutes }
-      : { timeSpentMinutes: 0 }),
-    ...(payload.tags ? { tags: payload.tags } : {}),
-    ...(audioFiles.length > 0 ? { audioNotes: audioFiles } : {}),
-  };
 }
 
 /**
@@ -108,6 +88,7 @@ export async function syncQueuedWorkBatch(
     const pendingJobs: typeof candidates = [];
     let awaitingConfirmation = false;
     let confirmationFailed = false;
+    let waitingForPhotos = false;
     for (const entry of candidates) {
       const fresh = await jobQueueDB.getJob(entry.job.id);
       if (!fresh || fresh.synced) continue;
@@ -163,10 +144,14 @@ export async function syncQueuedWorkBatch(
           await jobQueueDB.updateJob(fresh);
           await jobQueueDB.markJobTerminalFailed(fresh.id, "work-transaction-reverted");
         } else awaitingConfirmation = true;
-      } else if (!isTerminallyFailedJob(fresh)) pendingJobs.push(entry);
+      } else if (!isTerminallyFailedJob(fresh)) {
+        // A photo still in HEIC has to become a JPEG before anything uploads.
+        if ((await convertQueuedHeicMedia(fresh)).status === "ready") pendingJobs.push(entry);
+        else waitingForPhotos = true;
+      }
     }
     if (pendingJobs.length === 0) {
-      return { count: 0, gardens: [], awaitingConfirmation, confirmationFailed };
+      return { count: 0, gardens: [], awaitingConfirmation, confirmationFailed, waitingForPhotos };
     }
 
     const wagmiConfig = getWagmiConfig();
@@ -199,8 +184,12 @@ export async function syncQueuedWorkBatch(
         await assertOwnership();
         const images = await jobQueueDB.getImagesForJob(job.id);
         const payload = job.payload as WorkJobPayload;
-        const mediaFiles = images.map((image) => image.file);
-        const draft = toWorkDraft(payload, mediaFiles);
+        const title = await resolveQueuedWorkTitle(job, chainId);
+        const draft = buildQueuedWorkDraft(
+          payload,
+          images.map((image) => image.file),
+          title
+        );
 
         const attestationData = await encodeWorkData(draft, chainId, {
           clientWorkId: payload.clientWorkId,
@@ -348,6 +337,7 @@ export async function syncQueuedWorkBatch(
       hash,
       count: encodedJobs.length,
       gardens: [...new Set(encodedJobs.map(({ gardenAddress }) => gardenAddress))],
+      waitingForPhotos,
     };
   } finally {
     await claim.release();
@@ -383,7 +373,7 @@ export function useBatchWorkSync() {
           throw new Error("submission-ownership-changed");
       });
     },
-    onSuccess: ({ count, gardens, awaitingConfirmation, confirmationFailed }) => {
+    onSuccess: ({ count, gardens, awaitingConfirmation, confirmationFailed, waitingForPhotos }) => {
       if (awaitingConfirmation || confirmationFailed) {
         toastService.info({
           title: intl.formatMessage({
@@ -391,6 +381,11 @@ export function useBatchWorkSync() {
               ? "app.work.confirmationFailed"
               : "app.work.awaitingConfirmation",
           }),
+          context: "work",
+        });
+      } else if (count === 0 && waitingForPhotos) {
+        toastService.info({
+          title: intl.formatMessage({ id: "app.work.photosStillConverting" }),
           context: "work",
         });
       } else if (count === 0) {

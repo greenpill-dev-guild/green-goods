@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState, useRef } from "react";
 import type { Job } from "../../types/job-queue";
 import { jobQueueDB } from "../../modules/job-queue/db";
 import { useWorkPreviewUrls } from "./useWorkImages";
+import { isHeicFile } from "../../modules/work/work-attachments";
 
 export function useQueuedWorkPreviews(jobs: Array<Pick<Job, "id">>) {
   const [loaded, setLoaded] = useState<Array<{ jobId: string; file: File }>>([]);
@@ -13,7 +14,10 @@ export function useQueuedWorkPreviews(jobs: Array<Pick<Job, "id">>) {
     void Promise.all(
       latestJobs.current.map(async (job) => {
         const images = await jobQueueDB.getImagesForJob(job.id);
-        return images.map(({ file }) => ({ jobId: job.id, file }));
+        // A photo still waiting to convert has no preview a browser can draw.
+        return images
+          .filter(({ file }) => !isHeicFile(file))
+          .map(({ file }) => ({ jobId: job.id, file }));
       })
     )
       .then((items) => {

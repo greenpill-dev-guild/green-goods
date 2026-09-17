@@ -29,7 +29,8 @@ import {
 import { useUIStore } from "../../stores/useUIStore";
 import { useWorkFlowStore } from "../../stores/useWorkFlowStore";
 import type { Work, WorkDraft } from "../../types/domain";
-import { getActionTitle } from "../../utils/action/parsers";
+import { findActionByUID } from "../../utils/action/parsers";
+import { resolveWorkSubmissionTitle } from "../../utils/work/workTitles";
 import { hapticError, hapticSuccess } from "../../utils/app/haptics";
 import { DEBUG_ENABLED, debugLog } from "../../utils/debug";
 import { INDEXER_LAG_SCHEDULE_MS } from "../../config/query-keys/constants";
@@ -242,7 +243,10 @@ export function useWorkMutation(options: UseWorkMutationOptions) {
         });
       }
 
-      const actionTitle = getActionTitle(actions, actionUID);
+      const actionTitle = resolveWorkSubmissionTitle({
+        actionTitle: findActionByUID(actions, actionUID)?.title,
+        actionUID,
+      });
       addBreadcrumb("work_submission_started", {
         gardenAddress,
         actionUID,

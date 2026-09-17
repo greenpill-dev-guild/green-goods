@@ -9,7 +9,8 @@ import {
   isNetworkError,
 } from "./work-confirmation";
 export { isNetworkError } from "./work-confirmation";
-import { getActionTitle } from "../../utils/action/parsers";
+import { findActionByUID } from "../../utils/action/parsers";
+import { resolveKnownWorkTitle, resolveWorkSubmissionTitle } from "../../utils/work/workTitles";
 import type { Action, Address, Work, WorkDraft, WorkUploadCheckpoint } from "../../types/domain";
 import type { JobQueueHandle, ProcessJobResult } from "../job-queue/ports";
 import type { TransactionSender } from "../transactions/types";
@@ -99,6 +100,11 @@ export interface DefaultSubmitWorkPortOptions {
   onQueueFallback?: SubmitWorkPorts["onQueueFallback"];
 }
 
+/** The selected action's own title; empty when it is not in the list, never a placeholder. */
+function actionTitleOf(command: ResolvedSubmitWorkCommand): string {
+  return findActionByUID(command.actions, command.actionUID)?.title ?? "";
+}
+
 function resolveCommand(command: SubmitWorkCommand): ResolvedSubmitWorkCommand {
   if (!command.gardenAddress) {
     throw new Error("Garden must be selected before submitting work");
@@ -118,10 +124,9 @@ export function buildOptimisticWork(
 ): Work {
   const resolved = resolveCommand(command);
   const now = clock.now();
-  const actionTitle = getActionTitle(resolved.actions, resolved.actionUID);
   return {
     id: `0xoffline_optimistic_${now}`,
-    title: actionTitle || "",
+    title: actionTitleOf(resolved),
     actionUID: resolved.actionUID,
     gardenAddress: resolved.gardenAddress,
     gardenerAddress: resolved.userAddress,
@@ -221,13 +226,15 @@ export async function submitWork(
     throw new Error("Offline queue is disabled for this submission surface");
   }
 
-  const actionTitle = getActionTitle(resolved.actions, resolved.actionUID);
   if (online) {
     await ports.simulate({
       draft: resolved.draft,
       gardenAddress: resolved.gardenAddress,
       actionUID: resolved.actionUID,
-      actionTitle: actionTitle || `Action ${resolved.actionUID}`,
+      actionTitle: resolveWorkSubmissionTitle({
+        actionTitle: actionTitleOf(resolved),
+        actionUID: resolved.actionUID,
+      }),
       chainId: resolved.chainId,
       images: resolved.images,
       accountAddress: resolved.userAddress,
@@ -276,10 +283,19 @@ export function createDefaultSubmitWorkPorts(
       admit: async (input) => {
         const admissionToken = crypto.randomUUID();
         const { jobQueue } = await import("../job-queue/default-instance");
+        const { title: draftTitle, ...draft } = input.draft;
+        // Stored now, while the actions list is at hand. Work queued without a
+        // title was sent as "Action N", and that placeholder went on-chain.
+        const title = resolveKnownWorkTitle({
+          draftTitle,
+          actionTitle: findActionByUID(input.actions, input.actionUID)?.title,
+          actionUID: input.actionUID,
+        });
         const jobId = await jobQueue.addJob(
           "work",
           {
-            ...input.draft,
+            ...draft,
+            ...(title ? { title } : {}),
             clientWorkId: input.clientWorkId,
             gardenAddress: input.gardenAddress,
             actionUID: input.actionUID,
@@ -329,7 +345,7 @@ export function createDefaultSubmitWorkPorts(
           input.draft,
           input.gardenAddress,
           input.actionUID,
-          getActionTitle(input.actions, input.actionUID),
+          actionTitleOf(input),
           input.chainId,
           input.images,
           {

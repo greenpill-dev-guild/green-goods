@@ -201,6 +201,37 @@ describe("service worker registration config", () => {
     expect(late).toEqual(["ready"]);
   });
 
+  it("lets a reader watch a tier without asking the worker to download it", async () => {
+    // A browser tab that never installed the app must not start the
+    // offline-ready download just because a photo is waiting for its decoder.
+    vi.resetModules();
+    const { observePwaShellTier, schedulePwaShellPreparation } = await import(
+      "../../../modules/app/service-worker-registration"
+    );
+    const worker = { postMessage: vi.fn() } as unknown as ServiceWorker;
+    Object.defineProperty(navigator, "serviceWorker", {
+      configurable: true,
+      value: Object.assign(new EventTarget(), { controller: worker }),
+    });
+
+    const watched: string[] = [];
+    const stop = observePwaShellTier("priority", (status) => watched.push(status));
+    expect(worker.postMessage).not.toHaveBeenCalled();
+
+    schedulePwaShellPreparation("priority");
+    const [, transfer] = (worker.postMessage as ReturnType<typeof vi.fn>).mock.calls[0] as [
+      unknown,
+      MessagePort[],
+    ];
+    transfer[0].postMessage({ status: "ready" });
+    await vi.waitFor(() => expect(watched).toEqual(["ready"]));
+
+    const late: string[] = [];
+    observePwaShellTier("priority", (status) => late.push(status));
+    expect(late).toEqual(["ready"]);
+    stop();
+  });
+
   it("stops telling a listener that unsubscribed", async () => {
     vi.resetModules();
     const { schedulePwaShellPreparation } = await import(

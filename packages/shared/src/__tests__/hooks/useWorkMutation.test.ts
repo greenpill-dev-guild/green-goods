@@ -98,6 +98,7 @@ vi.mock("../../config/default-chain", () => ({
 }));
 
 vi.mock("../../utils/action/parsers", () => ({
+  findActionByUID: vi.fn(() => ({ title: "Test Action" })),
   getActionTitle: vi.fn(() => "Test Action"),
 }));
 

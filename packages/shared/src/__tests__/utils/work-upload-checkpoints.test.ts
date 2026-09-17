@@ -13,6 +13,10 @@ vi.mock("../../config/blockchain", () => ({
   }),
 }));
 import { encodeWorkData } from "../../utils/eas/encoders";
+import {
+  InvalidWorkAttachmentError,
+  PendingHeicConversionError,
+} from "../../modules/work/work-attachments";
 
 beforeEach(() => {
   mocks.file.mockReset();
@@ -62,6 +66,19 @@ describe("durable upload checkpoints", () => {
     await encodeWorkData(draft(reloaded), 11155111, { checkpoint: saved });
     expect(mocks.file).not.toHaveBeenCalled();
     expect(mocks.json).not.toHaveBeenCalled();
+  });
+  it("never uploads a HEIC photo that has not converted, and waits instead of failing", async () => {
+    const heic = new File(["heic"], "garden.heic", { type: "image/heic" });
+    const attempt = encodeWorkData(draft([image("photo"), heic]), 11155111, {});
+
+    await expect(attempt).rejects.toBeInstanceOf(PendingHeicConversionError);
+    expect(mocks.file).not.toHaveBeenCalled();
+    expect(mocks.json).not.toHaveBeenCalled();
+
+    const text = new File(["notes"], "notes.txt", { type: "text/plain" });
+    await expect(encodeWorkData(draft([heic, text]), 11155111, {})).rejects.toBeInstanceOf(
+      InvalidWorkAttachmentError
+    );
   });
   it("retains photos and successful audio when another recording fails", async () => {
     const media = [image("photo")];

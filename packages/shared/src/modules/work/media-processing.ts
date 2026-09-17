@@ -1,5 +1,10 @@
-import { logger } from "../app/logger";
-import { captureWorkFile } from "./work-attachments";
+import {
+  HEIC_JPEG_QUALITY,
+  WORK_PHOTO_COMPRESSION,
+  convertHeicToJpeg,
+  loadHeicDecoderOnce,
+} from "./heic-conversion";
+import { captureWorkFile, isHeicFile } from "./work-attachments";
 export type WorkMediaSource = "camera" | "gallery";
 export type WorkMediaKind = "image" | "video" | "unknown";
 export type MediaRejectedReason = "unsupported" | "heic_conversion_failed";
@@ -16,8 +21,8 @@ export interface AcceptedWorkMediaFile {
   originalFile: File;
   converted: boolean;
   /**
-   * A HEIC photo accepted as its original bytes because the decoder had not
-   * landed yet. `finalizeWorkMediaForUpload` converts it at send time.
+   * A HEIC photo accepted as its original bytes because the decoder could not
+   * load yet. It converts once it can; nothing uploads it unconverted.
    */
   pendingConversion?: boolean;
   metadata: SafeMediaMetadata;
@@ -46,15 +51,14 @@ export interface NormalizeWorkMediaOptions {
   onHeicConversionStarted?: (file: File) => void;
   onHeicConversionSucceeded?: (originalFile: File, convertedFile: File) => void;
   onHeicConversionFailed?: (file: File, error: unknown) => void;
-  /** The decoder was unreachable, so the photo was kept for conversion at send time. */
+  /** The decoder could not load yet, so the photo was kept to convert once it can. */
   onHeicConversionDeferred?: (file: File) => void;
 }
 
-export const HEIC_JPEG_QUALITY = 0.85;
+export { HEIC_JPEG_QUALITY, WORK_PHOTO_COMPRESSION };
 
 const supportedImageTypes = new Set(["image/jpeg", "image/png", "image/webp"]);
 const supportedImageExtensions = new Set(["jpg", "jpeg", "png", "webp"]);
-const heicExtensions = new Set(["heic", "heif"]);
 const generatedMediaIds = new WeakMap<File, string>();
 
 function generateMediaId(): string {
@@ -93,8 +97,7 @@ export function getMediaKind(file: File): WorkMediaKind {
   if (file.type.startsWith("image/")) return "image";
   if (file.type.startsWith("video/")) return "video";
 
-  const extension = getFileExtension(file);
-  if (supportedImageExtensions.has(extension) || heicExtensions.has(extension)) return "image";
+  if (supportedImageExtensions.has(getFileExtension(file)) || isHeicFile(file)) return "image";
   return "unknown";
 }
 
@@ -123,52 +126,6 @@ function isSupportedImage(file: File): boolean {
   return supportedImageTypes.has(file.type) || supportedImageExtensions.has(getFileExtension(file));
 }
 
-function isLikelyHeic(file: File): boolean {
-  const extension = getFileExtension(file);
-  return (
-    heicExtensions.has(extension) ||
-    file.type === "image/heic" ||
-    file.type === "image/heif" ||
-    file.type === "image/heic-sequence" ||
-    file.type === "image/heif-sequence"
-  );
-}
-
-function toJpegFileName(file: File): string {
-  const extension = getFileExtension(file);
-  if (extension === "unknown") return "converted-work-media.jpg";
-  return file.name.replace(/\.[^.]*$/, ".jpg");
-}
-
-type HeicDecoder = typeof import("heic-to/csp");
-
-/**
- * The decoder is a lazy chunk from the offline-ready shell tier, so a photo can
- * be picked before it exists locally. A missing decoder is reported as `null`
- * rather than thrown: it means "not yet", which is nothing like a file this
- * decoder has looked at and cannot read.
- */
-async function loadHeicDecoder(): Promise<HeicDecoder | null> {
-  try {
-    return await import("heic-to/csp");
-  } catch {
-    return null;
-  }
-}
-
-async function convertHeicToJpeg(decoder: HeicDecoder, file: File, quality: number): Promise<File> {
-  const convertedBlob = await decoder.heicTo({
-    blob: file,
-    type: "image/jpeg",
-    quality,
-  });
-
-  return new File([convertedBlob], toJpegFileName(file), {
-    type: "image/jpeg",
-    lastModified: file.lastModified,
-  });
-}
-
 export async function normalizeWorkMediaFiles(
   files: File[],
   options: NormalizeWorkMediaOptions = {}
@@ -190,7 +147,7 @@ export async function normalizeWorkMediaFiles(
       continue;
     }
 
-    if (!isLikelyHeic(file)) {
+    if (!isHeicFile(file)) {
       rejected.push({
         file,
         reason: "unsupported",
@@ -199,10 +156,10 @@ export async function normalizeWorkMediaFiles(
       continue;
     }
 
-    const decoder = await loadHeicDecoder();
+    const decoder = await loadHeicDecoderOnce();
     if (!decoder) {
       // Keep the steward's photo rather than refusing it: the draft survives,
-      // and the send path converts once the decoder is reachable.
+      // and the photo converts once the decoder can load.
       accepted.push({
         file,
         originalFile: file,
@@ -214,8 +171,8 @@ export async function normalizeWorkMediaFiles(
       continue;
     }
 
-    const isHeicFile = await decoder.isHeic(file).catch(() => true);
-    if (!isHeicFile) {
+    const decodesAsHeic = await decoder.isHeic(file).catch(() => true);
+    if (!decodesAsHeic) {
       rejected.push({
         file,
         reason: "unsupported",
@@ -247,42 +204,6 @@ export async function normalizeWorkMediaFiles(
   }
 
   return { accepted, rejected, converted };
-}
-
-/**
- * Convert photos that were queued before the decoder could reach them.
- *
- * Composing happens offline, sending does not, so this runs where the decoder
- * is reliably available. A photo that still cannot be converted is passed
- * through as it was picked: a steward's evidence is worth more as an
- * awkward file than as a hole in the record.
- */
-export async function finalizeWorkMediaForUpload(files: File[]): Promise<File[]> {
-  if (!files.some(isLikelyHeic)) return files;
-  const decoder = await loadHeicDecoder();
-  if (!decoder) {
-    logger.warn("[WorkMedia] HEIC decoder unavailable at send; uploading originals", {
-      pending: files.filter(isLikelyHeic).length,
-    });
-    return files;
-  }
-
-  const finalized: File[] = [];
-  for (const file of files) {
-    if (!isLikelyHeic(file)) {
-      finalized.push(file);
-      continue;
-    }
-    try {
-      finalized.push(await convertHeicToJpeg(decoder, file, HEIC_JPEG_QUALITY));
-    } catch (error) {
-      logger.warn("[WorkMedia] Deferred HEIC conversion failed; uploading the original", {
-        error: error instanceof Error ? error.message : String(error),
-      });
-      finalized.push(file);
-    }
-  }
-  return finalized;
 }
 
 /** What `prepareMediaForUpload` hands back: files ready to queue, and how many were refused. */
@@ -318,20 +239,15 @@ export async function prepareMediaForUpload(
   const videos = accepted.filter(isVideoFile);
   // An unconverted HEIC skips compression: the compressor decodes through the
   // browser, which is the very step that is not available for this format.
-  const deferred = accepted.filter((file) => !isVideoFile(file) && isLikelyHeic(file));
-  const images = accepted.filter((file) => !isVideoFile(file) && !isLikelyHeic(file));
+  const deferred = accepted.filter((file) => !isVideoFile(file) && isHeicFile(file));
+  const images = accepted.filter((file) => !isVideoFile(file) && !isHeicFile(file));
   const toCompress = images.filter((file) => compressor.shouldCompress(file, 1024));
   const asIs = images.filter((file) => !compressor.shouldCompress(file, 1024));
   const compressed =
     toCompress.length > 0
-      ? (
-          await compressor.compressImages(toCompress, {
-            maxSizeMB: 0.8,
-            maxWidthOrHeight: 2048,
-            initialQuality: 0.8,
-            useWebWorker: true,
-          })
-        ).map((result) => result.file)
+      ? (await compressor.compressImages(toCompress, WORK_PHOTO_COMPRESSION)).map(
+          (result) => result.file
+        )
       : [];
   return {
     files: [...asIs, ...compressed, ...deferred, ...videos],
@@ -339,4 +255,9 @@ export async function prepareMediaForUpload(
   };
 }
 
-export { roundWorkLocation, validateWorkAttachments, validateWorkVideo } from "./work-attachments";
+export {
+  isHeicFile,
+  roundWorkLocation,
+  validateWorkAttachments,
+  validateWorkVideo,
+} from "./work-attachments";
