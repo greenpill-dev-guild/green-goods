@@ -4,12 +4,7 @@ import {
   retainedWorkBroadcast,
   WorkTransactionReverted,
 } from "../work/work-confirmation";
-import type {
-  ApprovalJobPayload,
-  Job,
-  SendCheckpoint,
-  WorkJobPayload,
-} from "../../types/job-queue";
+import type { Job, WorkJobPayload } from "../../types/job-queue";
 import { JobMaintenance } from "./job-maintenance";
 import type {
   JobQueueAnalytics,
@@ -23,7 +18,7 @@ import type {
   ProcessJobContext,
   ProcessJobResult,
 } from "./ports";
-import { createOfflineTxHash, isWaitingReprobeThrottled } from "./queue-policy";
+import { createOfflineTxHash, isWaitingReprobeThrottled, sendCheckpointOf } from "./queue-policy";
 
 interface ProcessJobDependencies {
   store: JobQueueStore;
@@ -39,13 +34,6 @@ interface ProcessJobDependencies {
 
 function calculateBackoffDelay(attempts: number): number {
   return Math.min(1000 * 2 ** attempts, 60_000);
-}
-
-/** What a work or decision job recorded about reaching the network while it was sent. */
-function sendCheckpointOf(job: Job): SendCheckpoint | undefined {
-  if (job.kind === "work") return (job.payload as WorkJobPayload).uploadCheckpoint;
-  if (job.kind === "approval") return (job.payload as ApprovalJobPayload).sendCheckpoint;
-  return undefined;
 }
 
 function isWithinBackoffWindow(job: Job, now: number): boolean {

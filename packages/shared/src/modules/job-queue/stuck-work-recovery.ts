@@ -11,27 +11,16 @@
  * @module modules/job-queue/stuck-work-recovery
  */
 
-import type {
-  ApprovalJobPayload,
-  Job,
-  SendCheckpoint,
-  WorkJobPayload,
-} from "../../types/job-queue";
+import type { Job } from "../../types/job-queue";
 import { isCancelledTxError } from "../../utils/errors/tx-error-classifier";
 import { jobQueueDB } from "./db";
-import { MAX_RETRIES } from "./queue-policy";
+import { hasRecordedSend, MAX_RETRIES } from "./queue-policy";
 
 const STUCK_WORK_RECOVERY_VERSION = 1;
 
 export type StuckWorkReason = "declined" | "photo-type" | "retries" | "source-work";
 
 const SOURCE_WORK_TERMINAL = "identity_conflict:source-work-terminal";
-
-function recordedSend(job: Job): SendCheckpoint | undefined {
-  if (job.kind === "work") return (job.payload as WorkJobPayload).uploadCheckpoint;
-  if (job.kind === "approval") return (job.payload as ApprovalJobPayload).sendCheckpoint;
-  return undefined;
-}
 
 /** Why an earlier build ended this job, when that reason no longer holds. */
 export function stuckWorkReason(job: Job): StuckWorkReason | null {
@@ -42,8 +31,7 @@ export function stuckWorkReason(job: Job): StuckWorkReason | null {
   if (job.kind === "workLink") return error === SOURCE_WORK_TERMINAL ? "source-work" : null;
   if (job.kind !== "work" && job.kind !== "approval") return null;
   // A send that may be on-chain is confirmed, and a reverted one is retried by hand.
-  const sent = recordedSend(job);
-  if (sent?.broadcast || sent?.transactionHash || sent?.broadcastPending) return null;
+  if (hasRecordedSend(job)) return null;
   if (job.meta?.workTransactionReverted) return null;
 
   if (error === "cancelled") return "declined";

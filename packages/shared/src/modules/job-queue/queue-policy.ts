@@ -1,4 +1,9 @@
-import type { Job } from "../../types/job-queue";
+import type {
+  ApprovalJobPayload,
+  Job,
+  SendCheckpoint,
+  WorkJobPayload,
+} from "../../types/job-queue";
 
 export const MAX_RETRIES = 5;
 export const COMMITMENT_WAITING_REPROBE_MS = 30_000;
@@ -22,4 +27,17 @@ export function isWaitingReprobeThrottled(job: Job, now: number = Date.now()): b
       job.lastAttemptAt &&
       now - job.lastAttemptAt < COMMITMENT_WAITING_REPROBE_MS
   );
+}
+
+/** What a work or decision job recorded about reaching the network while it was sent. */
+export function sendCheckpointOf(job: Job): SendCheckpoint | undefined {
+  if (job.kind === "work") return (job.payload as WorkJobPayload).uploadCheckpoint;
+  if (job.kind === "approval") return (job.payload as ApprovalJobPayload).sendCheckpoint;
+  return undefined;
+}
+
+/** Whether a job's send may already be on-chain, so it is confirmed and never sent again. */
+export function hasRecordedSend(job: Job): boolean {
+  const sent = sendCheckpointOf(job);
+  return Boolean(sent?.broadcast || sent?.transactionHash || sent?.broadcastPending);
 }
