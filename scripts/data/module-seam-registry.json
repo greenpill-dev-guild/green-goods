@@ -18,7 +18,7 @@
         "integration": ["packages/shared/src/__tests__/modules/job-queue.imports.test.ts"]
       },
       "reviewedAt": "2026-09-16",
-      "evidenceFingerprint": "sha256:b2b01f2fefd4952beba622605bb4b75e20c235f064dc05e6aeae8d68cefba2fe"
+      "evidenceFingerprint": "sha256:8838afeeb7e2e7edba3c05fe2d18cc35a85119c3e8d51d86a5d69c47e699a855"
     },
     {
       "id": "shared-auth-session",
@@ -37,7 +37,7 @@
         "integration": ["packages/shared/src/__tests__/providers/Auth.wallet-login.test.tsx"]
       },
       "reviewedAt": "2026-09-16",
-      "evidenceFingerprint": "sha256:6431fbf45e18c991e3e8e1d8ab6e3d2bb220b3b66d0e5f4c3dda46995aea0885"
+      "evidenceFingerprint": "sha256:9bbb616f7952564df2dfdb3b3566b5c96c695a72f29765e4a972fa67c727123a"
     },
     {
       "id": "shared-work-provider-command",
@@ -58,7 +58,7 @@
         "integration": ["packages/shared/src/__tests__/providers/WorkProvider.test.tsx"]
       },
       "reviewedAt": "2026-09-16",
-      "evidenceFingerprint": "sha256:d080e434f1e08ec104903d27e128f5d00f5d1f8e51ff58c6adc7e922350a3f96"
+      "evidenceFingerprint": "sha256:b98db0b535345df7b77322afca5df6127e4bbdac669bb2b3b4ba3c850039cc80"
     },
     {
       "id": "shared-commitment-pooling-public",
@@ -77,7 +77,7 @@
         "integration": ["packages/shared/src/__tests__/commitment-pooling-hooks.test.tsx"]
       },
       "reviewedAt": "2026-09-16",
-      "evidenceFingerprint": "sha256:3b5cc2138538769fdffd9c9e4bd5781efc4e9262f8e4fdd6ee3ca7e3ab22eaaa"
+      "evidenceFingerprint": "sha256:855ad2f5bad22fd87ccb0331d68985e08129ec87cd03c7c7ab12b76a3c8341eb"
     }
   ]
 }

@@ -19,7 +19,7 @@
  *
  * Run from packages/shared, with the root .env loaded for VITE_PIMLICO_API_KEY:
  *
- *   bun run simulate:upload-all -- \
+ *   bun --env-file=../../.env scripts/simulate-upload-all.ts \
  *     --account 0x<deployed Kernel account of a garden member> \
  *     --garden 0x<that garden> --action <an active action UID> \
  *     [--ended-action <an ended action UID>] \
@@ -79,7 +79,8 @@ interface CaseResult {
 function usage(message?: string): never {
   if (message) console.error(`\n${message}`);
   console.error(
-    "\nUsage: bun run simulate:upload-all -- --account 0x… --garden 0x… --action <uid> " +
+    "\nUsage (from packages/shared): bun --env-file=../../.env scripts/simulate-upload-all.ts " +
+      "--account 0x… --garden 0x… --action <uid> " +
       "[--ended-action <uid>] [--work-uid 0x… --work-action <uid>] [--wallet 0x…] " +
       "[--chain 42161] [--sizes 1,2,5,10] [--photos 10] [--feedback-chars 1000] [--rpc <url>]\n"
   );

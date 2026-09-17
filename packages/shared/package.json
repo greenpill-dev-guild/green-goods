@@ -496,7 +496,6 @@
     "build-storybook": "node .storybook/prepare-design-assets.mjs && NODE_OPTIONS=--max-old-space-size=6144 STORYBOOK_STATIC_BUILD=true node ../../scripts/dev/node-cli.js storybook build -o storybook-static && node .storybook/copy-static-assets.mjs && node ../../scripts/design/build-story-gallery.mjs",
     "check:stories": "bun run ../../scripts/quality/check-story-coverage.ts",
     "check:story-quality": "bun run ../../scripts/quality/check-story-quality.ts",
-    "simulate:upload-all": "bun --env-file=../../.env scripts/simulate-upload-all.ts",
     "test:stories:ci": "node ../../scripts/dev/run-storybook-vitest-ci.mjs",
     "chromatic": "chromatic --storybook-build-dir storybook-static"
   },

@@ -43,7 +43,7 @@ import { SimulationRejected } from "./simulation-rejected";
 import { isUploadJob, queuedUploadStatus } from "./upload-state";
 import { forgetWorkBroadcast, rememberWorkBroadcast } from "./work-confirmation";
 
-/** Items per call, until `bun run simulate:upload-all` (scripts/simulate-upload-all.ts) settles the limits. */
+/** Items per call, until scripts/simulate-upload-all.ts settles the limits. */
 const MAX_ITEMS_PER_USER_OPERATION = 5;
 const MAX_ITEMS_PER_WALLET_CALL = 10;
 
