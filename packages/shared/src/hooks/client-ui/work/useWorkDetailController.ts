@@ -102,6 +102,10 @@ export function useWorkDetailController() {
         reportNotSent();
         return;
       }
+      // The queue refuses a work that reverted or used up its retries, so the
+      // tap gives it its retries back first. Without this, Send Now on either
+      // one answers with the refusal instead of sending.
+      await jobQueue.retryJob(work.id);
       const result = await jobQueue.processJob(work.id, { transactionSender, explicit: true });
       // Declining the prompt is not a failure; the work stays ready to send.
       if (result.error === "send-cancelled") return;

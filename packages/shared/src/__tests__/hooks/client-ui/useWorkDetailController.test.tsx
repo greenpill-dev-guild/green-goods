@@ -43,7 +43,7 @@ vi.mock("../../../utils/eas/explorers", () => ({
 }));
 
 vi.mock("../../../modules/job-queue/default-instance", () => ({
-  jobQueue: { processJob: vi.fn() },
+  jobQueue: { processJob: vi.fn(), retryJob: vi.fn() },
 }));
 
 vi.mock("../../../config/query-keys/work", () => ({
@@ -162,6 +162,8 @@ describe("useWorkDetailController", () => {
       await result.current.retry();
     });
 
+    // Cleared first, so the queue does not refuse a reverted or retired work.
+    expect(jobQueue.retryJob).toHaveBeenCalledWith("work-1");
     expect(jobQueue.processJob).toHaveBeenCalledWith("work-1", {
       transactionSender: mocks.sender,
       explicit: true,
