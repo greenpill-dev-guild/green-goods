@@ -128,6 +128,21 @@ describe("WorkView", () => {
       expect(screen.getAllByTestId("media-image")).toHaveLength(2);
     });
 
+    it("keeps one slot per photo while preview URLs are still being created", () => {
+      // Local previews start as empty URLs and resolve a moment later. Keying
+      // slots by URL alone gave the placeholders one shared key, and React left
+      // an orphaned slot behind once the real URLs arrived.
+      const errors = vi.spyOn(console, "error").mockImplementation(() => undefined);
+      const { rerender } = render(<WorkView {...defaultProps} media={["", ""]} />);
+      rerender(<WorkView {...defaultProps} media={["blob:one", "blob:two"]} />);
+
+      expect(screen.getAllByTestId("carousel-item")).toHaveLength(2);
+      expect(errors.mock.calls.some(([message]) => String(message).includes("same key"))).toBe(
+        false
+      );
+      errors.mockRestore();
+    });
+
     it("hides media when showMedia is false", () => {
       render(
         createElement(WorkView, {

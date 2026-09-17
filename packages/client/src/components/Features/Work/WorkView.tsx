@@ -139,7 +139,9 @@ export const WorkView: React.FC<WorkViewProps> = ({
             <CarouselContent>
               {media.map((item, index) => (
                 <CarouselItem
-                  key={item}
+                  // A local preview URL is empty until it is created, and one work
+                  // can repeat a CID, so the URL alone is not a unique key.
+                  key={`${index}:${item}`}
                   index={index}
                   className="max-w-40 aspect-3/4 rounded-2xl relative overflow-hidden"
                 >
