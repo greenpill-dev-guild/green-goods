@@ -27,6 +27,8 @@ export interface ProcessJobResult {
 
 export interface FlushContext extends ProcessJobContext {
   userAddress: string;
+  /** Send only these job kinds; every kind when omitted. */
+  kinds?: readonly string[];
 }
 
 export interface FlushResult {

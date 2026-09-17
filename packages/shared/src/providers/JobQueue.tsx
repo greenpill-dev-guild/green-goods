@@ -8,11 +8,13 @@ import { useTransactionSender } from "../hooks/blockchain/useTransactionSender";
 import { queryInvalidation } from "../config/query-keys/invalidation";
 import { queueKeys } from "../config/query-keys/misc";
 import { approvalsKeys, workApprovalsKeys, worksKeys } from "../config/query-keys/work";
-import { useWalletQueueSync } from "../hooks/work/useWalletQueueSync";
+import { useQueueConfirmationSync } from "../hooks/work/useQueueConfirmationSync";
 import { useWorkUploadPreparation } from "../hooks/work/useWorkUploadPreparation";
+import { COMMITMENT_JOB_KINDS } from "../modules/commitment-pooling/job-types";
 import { jobQueue } from "../modules/job-queue/default-instance";
 import type { JobQueueHandle } from "../modules/job-queue/ports";
 import { logger } from "../modules/app/logger";
+import { scheduleUploadPreparation } from "../modules/work/upload-preparation";
 import { connectivityStore } from "../stores/connectivity";
 import { useUIStore } from "../stores/useUIStore";
 import type {
@@ -90,7 +92,7 @@ interface Work {
 }
 
 const JobQueueProviderInner: React.FC<JobQueueProviderProps> = ({ children, queue = jobQueue }) => {
-  const { authMode, externalWalletConnected } = useAuth();
+  const { authMode } = useAuth();
   const sender = useTransactionSender();
 
   // Use single source of truth for primary address
@@ -321,7 +323,14 @@ const JobQueueProviderInner: React.FC<JobQueueProviderProps> = ({ children, queu
 
       isFlushInProgressRef.current = true;
       try {
-        await queue.flush({ transactionSender: sender, userAddress: currentUserAddress });
+        await queue.flush({
+          transactionSender: sender,
+          userAddress: currentUserAddress,
+          // A passkey's work and decisions wait for Upload all; its commitment acts
+          // still send on their own. An embedded wallet, which has no Upload all
+          // batch, keeps sending everything.
+          ...(authMode === "passkey" ? { kinds: COMMITMENT_JOB_KINDS } : {}),
+        });
         if (!abortController.signal.aborted) {
           await refreshStats(abortController.signal);
         }
@@ -360,6 +369,7 @@ const JobQueueProviderInner: React.FC<JobQueueProviderProps> = ({ children, queu
 
     const unsubscribeConnectivity = connectivityStore.subscribeStatus(handleConnectivity);
     const unsubscribeBackgroundSync = queue.onBackgroundSyncRequested(() => {
+      scheduleUploadPreparation();
       if (!autoSends) return;
       void connectivityStore.confirmOnline().then((confirmed) => {
         if (confirmed) void attemptFlush();
@@ -373,14 +383,8 @@ const JobQueueProviderInner: React.FC<JobQueueProviderProps> = ({ children, queu
     };
   }, [sender, authMode, currentUserAddress, queue, refreshStats]);
 
-  useWalletQueueSync({
-    queue,
-    sender,
-    authMode,
-    walletConnected: externalWalletConnected,
-    userAddress: currentUserAddress,
-    refreshStats,
-  });
+  // Sent work and decisions are confirmed here; nothing is sent from this pass.
+  useQueueConfirmationSync({ queue, sender, userAddress: currentUserAddress, refreshStats });
 
   // Queued work and decisions are prepared in the background, so Upload all only signs.
   useWorkUploadPreparation(currentUserAddress, DEFAULT_CHAIN_ID);

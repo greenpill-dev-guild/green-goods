@@ -452,6 +452,26 @@ describe("modules/job-queue", () => {
     expect(stored?.synced).toBe(false);
   });
 
+  it("sends only the job kinds a flush asks for", async () => {
+    const workId = await jobQueue.addJob(
+      "work",
+      { title: "Test", actionUID: 42, gardenAddress: "0x123", feedback: "ok" },
+      TEST_USER_ADDRESS,
+      { chainId: 11155111 }
+    );
+    const sender = createMockTransactionSender();
+
+    await expect(
+      jobQueue.flush({
+        transactionSender: sender,
+        userAddress: TEST_USER_ADDRESS,
+        kinds: ["approval"],
+      })
+    ).resolves.toEqual({ processed: 0, failed: 0, skipped: 0 });
+    expect(sender.sendContractCall).not.toHaveBeenCalled();
+    expect((await jobQueueDB.getJob(workId))?.synced).toBe(false);
+  });
+
   it("keeps declined work queued for an explicit send instead of failing it", async () => {
     const jobId = await jobQueue.addJob(
       "work",

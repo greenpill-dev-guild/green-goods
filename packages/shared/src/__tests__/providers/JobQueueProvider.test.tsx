@@ -65,8 +65,8 @@ vi.mock("../../config/react-query", () => ({
   queryClient: mockSharedQueryClient,
 }));
 
-vi.mock("../../hooks/work/useWalletQueueSync", () => ({
-  useWalletQueueSync: vi.fn(),
+vi.mock("../../hooks/work/useQueueConfirmationSync", () => ({
+  useQueueConfirmationSync: vi.fn(),
 }));
 vi.mock("../../hooks/work/useWorkUploadPreparation", () => ({
   useWorkUploadPreparation: vi.fn(),
@@ -82,7 +82,8 @@ vi.mock("../../config/default-chain", () => ({
 }));
 
 import { queueToasts } from "../../components/toast";
-import { useWalletQueueSync } from "../../hooks/work/useWalletQueueSync";
+import { useQueueConfirmationSync } from "../../hooks/work/useQueueConfirmationSync";
+import { COMMITMENT_JOB_KINDS } from "../../modules/commitment-pooling/job-types";
 import { queryKeys } from "../../config/query-keys";
 import { useAuth } from "../../hooks/auth/useAuth";
 import { usePrimaryAddress } from "../../hooks/auth/usePrimaryAddress";
@@ -405,15 +406,30 @@ describe("providers/JobQueueProvider", () => {
   });
 
   describe("auto-flush behavior", () => {
-    it("auto-flushes for passkey users when online", async () => {
+    it("auto-sends only a passkey's commitment acts; work and decisions wait for Upload all", async () => {
       Object.defineProperty(navigator, "onLine", { value: true, configurable: true });
       mockUseAuth.mockReturnValue({ authMode: "passkey" });
 
       renderHook(() => useJobQueue(), { wrapper: createWrapper() });
 
       await waitFor(() => {
-        expect(mockJobQueue.flush).toHaveBeenCalled();
+        expect(mockJobQueue.flush).toHaveBeenCalledWith(
+          expect.objectContaining({ kinds: COMMITMENT_JOB_KINDS })
+        );
       });
+      const [context] = mockJobQueue.flush.mock.calls[0];
+      expect(context.kinds).not.toContain("work");
+      expect(context.kinds).not.toContain("approval");
+    });
+
+    it("keeps sending everything for an embedded wallet, which has no Upload all batch", async () => {
+      Object.defineProperty(navigator, "onLine", { value: true, configurable: true });
+      mockUseAuth.mockReturnValue({ authMode: "embedded" });
+
+      renderHook(() => useJobQueue(), { wrapper: createWrapper() });
+
+      await waitFor(() => expect(mockJobQueue.flush).toHaveBeenCalled());
+      expect(mockJobQueue.flush.mock.calls[0][0]).not.toHaveProperty("kinds");
     });
 
     it("does not auto-flush for wallet users", async () => {
@@ -559,8 +575,8 @@ describe("providers/JobQueueProvider", () => {
     });
   });
 
-  describe("wallet queue sync wiring", () => {
-    it("hands the wallet queue sync its queue, sender, connection state, and address", async () => {
+  describe("queue confirmation wiring", () => {
+    it("hands the confirmation pass its queue, sender, and address, and never flushes for a wallet", async () => {
       mockUseAuth.mockReturnValue({
         authMode: "wallet",
         walletAddress: "0xWallet123",
@@ -573,16 +589,12 @@ describe("providers/JobQueueProvider", () => {
         expect(mockJobQueue.getStats).toHaveBeenCalled();
       });
 
-      expect(useWalletQueueSync).toHaveBeenCalledWith(
-        expect.objectContaining({
-          queue: mockJobQueue,
-          sender: mockTransactionSender,
-          authMode: "wallet",
-          walletConnected: true,
-          userAddress: "0xWallet123",
-          refreshStats: expect.any(Function),
-        })
-      );
+      expect(useQueueConfirmationSync).toHaveBeenCalledWith({
+        queue: mockJobQueue,
+        sender: mockTransactionSender,
+        userAddress: "0xWallet123",
+        refreshStats: expect.any(Function),
+      });
       expect(mockJobQueue.flush).not.toHaveBeenCalled();
     });
   });

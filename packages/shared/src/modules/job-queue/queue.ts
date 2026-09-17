@@ -33,7 +33,9 @@ export function createJobQueue(deps: JobQueueDependencies): JobQueueHandle {
 
   const flushInternal = async (context: FlushContext): Promise<FlushResult> => {
     if (!context.userAddress) throw new Error("userAddress is required for flush operation");
-    const jobs = await deps.store.getJobs({ userAddress: context.userAddress, synced: false });
+    const jobs = (
+      await deps.store.getJobs({ userAddress: context.userAddress, synced: false })
+    ).filter((job) => !context.kinds || context.kinds.includes(job.kind));
     if (jobs.length === 0) {
       const result = { processed: 0, failed: 0, skipped: 0 };
       deps.events.emit("queue:sync-completed", { result });
