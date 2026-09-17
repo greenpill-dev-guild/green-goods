@@ -9,6 +9,7 @@ import { queryInvalidation } from "../config/query-keys/invalidation";
 import { queueKeys } from "../config/query-keys/misc";
 import { approvalsKeys, workApprovalsKeys, worksKeys } from "../config/query-keys/work";
 import { useWalletQueueSync } from "../hooks/work/useWalletQueueSync";
+import { useWorkUploadPreparation } from "../hooks/work/useWorkUploadPreparation";
 import { jobQueue } from "../modules/job-queue/default-instance";
 import type { JobQueueHandle } from "../modules/job-queue/ports";
 import { logger } from "../modules/app/logger";
@@ -380,6 +381,9 @@ const JobQueueProviderInner: React.FC<JobQueueProviderProps> = ({ children, queu
     userAddress: currentUserAddress,
     refreshStats,
   });
+
+  // Queued work and decisions are prepared in the background, so Upload all only signs.
+  useWorkUploadPreparation(currentUserAddress, DEFAULT_CHAIN_ID);
 
   // Context value - useMemo kept here as it's passed to Provider (cross-boundary)
   const contextValue: JobQueueContextValue = React.useMemo(

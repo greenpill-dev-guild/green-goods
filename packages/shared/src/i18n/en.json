@@ -5692,5 +5692,18 @@
   "app.garden.upload.playVideo": "Play video",
   "app.approval.connectionUnconfirmed": "Your decision wasn't sent. Try again when the connection is steady.",
   "app.work.connectionUnconfirmed": "Your work wasn't sent. Try again when the connection is steady.",
-  "app.work.queuedConnectionUnconfirmed": "Your work is saved in the upload queue. Nothing is sent while the connection is unstable."
+  "app.work.queuedConnectionUnconfirmed": "Your work is saved in the upload queue. Nothing is sent while the connection is unstable.",
+  "app.uploads.notUploadedTitle": "Not uploaded yet",
+  "app.uploads.signInToUpload": "Sign in or connect your wallet to upload.",
+  "app.uploads.connectionUnconfirmed": "Nothing was uploaded. Try again when the connection is steady.",
+  "app.uploads.nothingReady": "Your items are still being prepared. Upload them once they're ready.",
+  "app.uploads.uploadedTitle": "{count, plural, one {Uploaded # item} other {Uploaded # items}}",
+  "app.uploads.uploadedMessage": "Saved to the garden record.",
+  "app.uploads.flaggedMessage": "{count, plural, one {# item needs your attention.} other {# items need your attention.}}",
+  "app.uploads.revertedTitle": "Upload didn't go through",
+  "app.uploads.revertedMessage": "Nothing was recorded. Items the chain refused are marked, and the rest are ready to upload again.",
+  "app.uploads.sendUnconfirmedTitle": "Checking your upload",
+  "app.uploads.sendUnconfirmedMessage": "It was sent. We'll confirm it shortly.",
+  "app.uploads.failedTitle": "Couldn't upload",
+  "app.uploads.failedMessage": "Nothing was sent. Try again in a moment."
 }

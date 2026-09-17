@@ -3,6 +3,7 @@ import { getEASConfig, type EASConfig } from "../../config/blockchain";
 import type { ApprovalJobPayload, Job, SendCheckpoint } from "../../types/job-queue";
 import { buildApprovalAttestContractCall } from "../../utils/eas/transaction-builder";
 import { TransactionRevertedError, type TransactionSender } from "../transactions/types";
+import { buildQueuedApprovalDraft } from "../work/queued-work-draft";
 import { classifySendFailure } from "../work/send-outcome";
 import { settleStrandedDecisionIntent } from "../work/stranded-intent";
 import {
@@ -96,18 +97,7 @@ export async function executeApprovalJob(
   // Encode approval attestation data (no IPFS upload needed)
   const encodeApproval =
     deps.encodeApproval ?? (await import("../../utils/eas/encoders")).encodeWorkApprovalData;
-  const attestationData = encodeApproval(
-    {
-      actionUID: payload.actionUID,
-      workUID: payload.workUID,
-      approved: payload.approved,
-      feedback: payload.feedback,
-      confidence: payload.confidence,
-      verificationMethod: payload.verificationMethod,
-      reviewNotesCID: payload.reviewNotesCID,
-    },
-    chainId
-  );
+  const attestationData = encodeApproval(buildQueuedApprovalDraft(payload), chainId);
 
   // Build and send attestation via TransactionSender
   const easConfig = deps.easConfig ?? getEASConfig(chainId);

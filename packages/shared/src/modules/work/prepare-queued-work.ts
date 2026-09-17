@@ -10,7 +10,7 @@
  * @module modules/work/prepare-queued-work
  */
 
-import type { Address, Confidence } from "../../types/domain";
+import type { Address } from "../../types/domain";
 import type { ApprovalJobPayload, Job, WorkJobPayload } from "../../types/job-queue";
 import type { WorkUploadCheckpoint } from "../../types/work-media";
 import { logger } from "../app/logger";
@@ -18,7 +18,11 @@ import { jobQueueDB } from "../job-queue/db";
 import { convertQueuedHeicMedia } from "../job-queue/job-media-conversion";
 import { hasRecordedSend, isTerminallyFailedJob } from "../job-queue/queue-policy";
 import { saveUnderClaim, type WorkClaim } from "../job-queue/work-claims";
-import { buildQueuedWorkDraft, resolveQueuedWorkTitle } from "./queued-work-draft";
+import {
+  buildQueuedApprovalDraft,
+  buildQueuedWorkDraft,
+  resolveQueuedWorkTitle,
+} from "./queued-work-draft";
 import { SimulationRejected } from "./simulation-rejected";
 import { isUploadJob, type UploadPreparation } from "./upload-state";
 
@@ -82,15 +86,7 @@ export async function prepareQueuedJob(
       const simulateApproval =
         dependencies.simulateApproval ?? (await import("./simulate")).simulateApprovalSubmission;
       await simulateApproval({
-        draft: {
-          actionUID: payload.actionUID,
-          workUID: payload.workUID,
-          approved: payload.approved,
-          feedback: payload.feedback,
-          confidence: payload.confidence as Confidence,
-          verificationMethod: payload.verificationMethod,
-          reviewNotesCID: payload.reviewNotesCID,
-        },
+        draft: buildQueuedApprovalDraft(payload),
         gardenAddress: payload.gardenAddress,
         chainId,
         accountAddress: job.userAddress as Address,

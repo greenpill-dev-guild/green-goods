@@ -68,6 +68,9 @@ vi.mock("../../config/react-query", () => ({
 vi.mock("../../hooks/work/useWalletQueueSync", () => ({
   useWalletQueueSync: vi.fn(),
 }));
+vi.mock("../../hooks/work/useWorkUploadPreparation", () => ({
+  useWorkUploadPreparation: vi.fn(),
+}));
 
 vi.mock("../../config/blockchain", async (importOriginal) => ({
   ...(await importOriginal<typeof import("../../config/blockchain")>()),

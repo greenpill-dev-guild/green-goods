@@ -5692,5 +5692,18 @@
   "app.garden.upload.playVideo": "Reproducir video",
   "app.approval.connectionUnconfirmed": "Tu decisión no se envió. Inténtalo de nuevo cuando la conexión sea estable.",
   "app.work.connectionUnconfirmed": "Tu trabajo no se envió. Inténtalo de nuevo cuando la conexión sea estable.",
-  "app.work.queuedConnectionUnconfirmed": "Tu trabajo está guardado en la cola de subida. No se envía nada mientras la conexión sea inestable."
+  "app.work.queuedConnectionUnconfirmed": "Tu trabajo está guardado en la cola de subida. No se envía nada mientras la conexión sea inestable.",
+  "app.uploads.notUploadedTitle": "Aún no se ha subido",
+  "app.uploads.signInToUpload": "Inicia sesión o conecta tu billetera para subir.",
+  "app.uploads.connectionUnconfirmed": "No se subió nada. Inténtalo de nuevo cuando la conexión sea estable.",
+  "app.uploads.nothingReady": "Tus elementos aún se están preparando. Súbelos cuando estén listos.",
+  "app.uploads.uploadedTitle": "{count, plural, one {Se subió # elemento} other {Se subieron # elementos}}",
+  "app.uploads.uploadedMessage": "Guardado en el registro del jardín.",
+  "app.uploads.flaggedMessage": "{count, plural, one {# elemento necesita tu atención.} other {# elementos necesitan tu atención.}}",
+  "app.uploads.revertedTitle": "La subida no se completó",
+  "app.uploads.revertedMessage": "No se registró nada. Los elementos que la cadena rechazó están marcados y el resto está listo para subir de nuevo.",
+  "app.uploads.sendUnconfirmedTitle": "Comprobando tu subida",
+  "app.uploads.sendUnconfirmedMessage": "Se envió. Lo confirmaremos en breve.",
+  "app.uploads.failedTitle": "No se pudo subir",
+  "app.uploads.failedMessage": "No se envió nada. Inténtalo de nuevo en un momento."
 }

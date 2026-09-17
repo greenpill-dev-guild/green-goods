@@ -208,3 +208,22 @@ export function createUploadPreparation(ports: UploadPreparationPorts): UploadPr
     },
   };
 }
+
+let active: UploadPreparation | undefined;
+
+/** The preparation the signed-in session runs, so the dashboard and uploads can reach it. */
+export function setActiveUploadPreparation(preparation: UploadPreparation | undefined) {
+  active = preparation;
+}
+
+export function scheduleUploadPreparation(): void {
+  active?.schedule();
+}
+
+export function prepareUploadsNow(): void {
+  active?.prepareNow();
+}
+
+export function suspendUploadPreparation(): () => void {
+  return active?.suspend() ?? (() => undefined);
+}

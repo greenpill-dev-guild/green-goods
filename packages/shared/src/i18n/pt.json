@@ -5692,5 +5692,18 @@
   "app.garden.upload.playVideo": "Reproduzir vídeo",
   "app.approval.connectionUnconfirmed": "Sua decisão não foi enviada. Tente novamente quando a conexão estiver estável.",
   "app.work.connectionUnconfirmed": "Seu trabalho não foi enviado. Tente novamente quando a conexão estiver estável.",
-  "app.work.queuedConnectionUnconfirmed": "Seu trabalho está salvo na fila de envio. Nada é enviado enquanto a conexão estiver instável."
+  "app.work.queuedConnectionUnconfirmed": "Seu trabalho está salvo na fila de envio. Nada é enviado enquanto a conexão estiver instável.",
+  "app.uploads.notUploadedTitle": "Ainda não enviado",
+  "app.uploads.signInToUpload": "Entre ou conecte sua carteira para enviar.",
+  "app.uploads.connectionUnconfirmed": "Nada foi enviado. Tente novamente quando a conexão estiver estável.",
+  "app.uploads.nothingReady": "Seus itens ainda estão sendo preparados. Envie-os quando estiverem prontos.",
+  "app.uploads.uploadedTitle": "{count, plural, one {# item enviado} other {# itens enviados}}",
+  "app.uploads.uploadedMessage": "Salvo no registro do jardim.",
+  "app.uploads.flaggedMessage": "{count, plural, one {# item precisa da sua atenção.} other {# itens precisam da sua atenção.}}",
+  "app.uploads.revertedTitle": "O envio não foi concluído",
+  "app.uploads.revertedMessage": "Nada foi registrado. Os itens que a rede recusou estão marcados, e o restante está pronto para enviar de novo.",
+  "app.uploads.sendUnconfirmedTitle": "Verificando seu envio",
+  "app.uploads.sendUnconfirmedMessage": "Foi enviado. Vamos confirmar em breve.",
+  "app.uploads.failedTitle": "Não foi possível enviar",
+  "app.uploads.failedMessage": "Nada foi enviado. Tente novamente em instantes."
 }

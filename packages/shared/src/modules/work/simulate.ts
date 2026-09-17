@@ -3,6 +3,7 @@ import {
   BaseError,
   ContractFunctionRevertedError,
   ExecutionRevertedError,
+  type Abi,
   type Address,
 } from "viem";
 import { getWagmiConfig } from "../../config/appkit";
@@ -343,5 +344,38 @@ export async function simulateApprovalSubmission(
       `Approval check failed: ${parsed.message || errorLike.message || "Unknown simulation error"}`,
       "unknown"
     );
+  }
+}
+
+/**
+ * Simulate the one call Upload all sends, from the account that will send it.
+ * It is never cached: the items a call carries change between uploads.
+ */
+export async function simulateQueuedAttestations(
+  call: { address: Address; abi: Abi; functionName: string; args: readonly unknown[] },
+  chainId: number,
+  accountAddress: Address,
+  deps: SimulationDeps = {}
+): Promise<void> {
+  const { publicClient } = resolveSimulationDeps(deps, chainId);
+  if (!publicClient) return;
+  try {
+    await (publicClient.simulateContract as (parameters: unknown) => Promise<unknown>)({
+      address: call.address,
+      abi: call.abi,
+      functionName: call.functionName,
+      args: call.args,
+      account: accountAddress,
+    });
+  } catch (err: unknown) {
+    debugError("[simulateQueuedAttestations] Simulation failed", err);
+    const parsed = parseContractError(err);
+    throw parsed.isKnown
+      ? rejection(err, `[${parsed.name}] ${parsed.message}`, parsed.name)
+      : rejection(
+          err,
+          `Upload check failed: ${parsed.message || (err as Error)?.message || "Unknown simulation error"}`,
+          "reverted"
+        );
   }
 }

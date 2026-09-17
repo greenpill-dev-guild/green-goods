@@ -8,8 +8,8 @@
  * @module modules/work/queued-work-draft
  */
 
-import type { Action, WorkDraft } from "../../types/domain";
-import type { Job, WorkJobPayload } from "../../types/job-queue";
+import type { Action, Confidence, WorkApprovalDraft, WorkDraft } from "../../types/domain";
+import type { ApprovalJobPayload, Job, WorkJobPayload } from "../../types/job-queue";
 import { findActionByUID } from "../../utils/action/parsers";
 import { resolveKnownWorkTitle, resolveWorkSubmissionTitle } from "../../utils/work/workTitles";
 import { logger } from "../app/logger";
@@ -31,6 +31,19 @@ export function buildQueuedWorkDraft(
     timeSpentMinutes: payload.timeSpentMinutes ?? 0,
     ...(payload.tags ? { tags: payload.tags } : {}),
     ...(audioFiles.length > 0 ? { audioNotes: audioFiles } : {}),
+  };
+}
+
+/** The decision a queued approval job carries, as the encoder and simulation read it. */
+export function buildQueuedApprovalDraft(payload: ApprovalJobPayload): WorkApprovalDraft {
+  return {
+    actionUID: payload.actionUID,
+    workUID: payload.workUID,
+    approved: payload.approved,
+    feedback: payload.feedback,
+    confidence: payload.confidence as Confidence,
+    verificationMethod: payload.verificationMethod,
+    reviewNotesCID: payload.reviewNotesCID,
   };
 }
 
