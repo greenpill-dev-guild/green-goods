@@ -27,12 +27,13 @@ export class WorkSendCancelledError extends Error {
 
 /**
  * JSON-RPC errors that mean the node or bundler refused the call outright:
- * invalid input (-32000), invalid params (-32602), and the ERC-4337 bundler
- * rejections (-32500 to -32599). An internal error (-32603) is not included: a
- * wallet can report one after its own broadcast.
+ * invalid params (-32602) and the ERC-4337 bundler rejections (-32500 to
+ * -32599). Two codes are deliberately left out because a node can return them
+ * after its own broadcast: the generic server error (-32000), which also
+ * carries "already known" and "nonce too low", and the internal error (-32603).
  */
 function isRefusedByNetwork(code: number): boolean {
-  return code === -32000 || code === -32602 || (code <= -32500 && code >= -32599);
+  return code === -32602 || (code <= -32500 && code >= -32599);
 }
 
 function hasNetworkRefusal(error: unknown): boolean {

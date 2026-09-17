@@ -145,7 +145,8 @@ export async function executeApprovalJob(
         ? ({ kind: "not-sent", cancelled: false } as const)
         : classifySendFailure(error, { intentRecorded, broadcastKnown });
     if (failure.kind === "not-sent") {
-      // Nothing was recorded on-chain, so the decision may be sent again.
+      // Nothing was recorded on-chain, so the decision may be sent again. It
+      // needs no flag of its own: Upload all is the only thing that sends it.
       delete payload.sendCheckpoint;
       forgetWorkBroadcast(job.id);
       if (intentRecorded) await persist(job);

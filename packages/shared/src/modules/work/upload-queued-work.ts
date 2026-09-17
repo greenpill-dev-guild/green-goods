@@ -201,12 +201,19 @@ export async function uploadQueuedWork(
         if (!job || queuedUploadStatus(job).state !== "ready") continue;
         try {
           items.push({ job, claim, attestation: await encode(job, claim) });
-        } catch {
-          // Its uploads could not be read back: preparation uploads them again.
-          await ports.save(claim, id, (stored) => {
-            const { preparation: _preparation, ...meta } = stored.meta ?? {};
-            stored.meta = meta;
+        } catch (error) {
+          logger.warn("[UploadAll] Queued item is not ready after all", {
+            jobId: id,
+            error: error instanceof Error ? error.message : String(error),
           });
+          // Its uploads could not be read back: preparation uploads them again.
+          // Losing the claim here is the same answer, so it never ends the run.
+          await ports
+            .save(claim, id, (stored) => {
+              const { preparation: _preparation, ...meta } = stored.meta ?? {};
+              stored.meta = meta;
+            })
+            .catch(() => undefined);
         }
       }
       if (items.length === 0) return {};
@@ -284,7 +291,11 @@ export async function uploadQueuedWork(
         await recordAll(items, () => undefined);
         for (const { job } of items) forgetWorkBroadcast(job.id);
         if (reverted) {
-          await flagRefused(items).catch(() => []);
+          const accepted = await flagRefused(items).catch(() => items);
+          // No single item explains the revert, so every one is flagged: the
+          // same call must not stay ready and go out again unchanged.
+          if (accepted.length === items.length)
+            for (const item of accepted) await flag(item, "reverted").catch(() => undefined);
           return { stop: "reverted", error };
         }
         return failure.cancelled ? { stop: "declined" } : { stop: "failed", error };

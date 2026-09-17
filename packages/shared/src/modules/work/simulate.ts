@@ -358,7 +358,10 @@ export async function simulateQueuedAttestations(
   deps: SimulationDeps = {}
 ): Promise<void> {
   const { publicClient } = resolveSimulationDeps(deps, chainId);
-  if (!publicClient) return;
+  // Without a client the call was never checked, which must never read as the
+  // chain accepting it: Upload all refuses rather than sending a batch blind.
+  if (!publicClient)
+    throw new SimulationRejected("No chain client to check this upload", "unchecked", false);
   try {
     await (publicClient.simulateContract as (parameters: unknown) => Promise<unknown>)({
       address: call.address,

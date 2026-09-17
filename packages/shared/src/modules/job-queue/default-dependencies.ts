@@ -34,10 +34,27 @@ import { executeApprovalJob } from "./approval-executor";
 import { executeCommitmentQueueJob, executeWorkJob } from "./job-executors";
 import { createBrowserJobQueueLifecycle } from "./lifecycle";
 import { mediaResourceManager } from "./media-resource-manager";
-import type { JobQueueDependencies } from "./ports";
+import type { JobExecution, JobQueueDependencies } from "./ports";
 import { MAX_RETRIES } from "./queue-policy";
 
 const browserLifecycle = createBrowserJobQueueLifecycle();
+
+/**
+ * What a failed send means, for the reasons work and decisions answer alike: a
+ * send that may already be on-chain is confirmed rather than sent again, one
+ * never found on-chain waits for the person, and a declined prompt is a choice
+ * rather than a failure, so neither spends an attempt.
+ */
+function waitingAfterFailedSend(error: unknown): JobExecution | undefined {
+  if (error instanceof AwaitingWorkConfirmation)
+    return { status: "waiting", reason: "awaiting-confirmation" };
+  if (error instanceof StrandedSendReopened)
+    return { status: "waiting", reason: "send-intent-expired" };
+  // A declined work is then held for an explicit send; a decision needs no
+  // flag of its own, since Upload all is the only thing that sends it.
+  if (isWorkSubmissionCancelled(error)) return { status: "waiting", reason: "send-cancelled" };
+  return undefined;
+}
 
 function createDefaultExecutorRegistry() {
   const executors: Record<string, JobExecutor> = {
@@ -48,19 +65,12 @@ function createDefaultExecutorRegistry() {
           txHash: await executeWorkJob(jobId, job as Job<WorkJobPayload>, chainId, sender),
         };
       } catch (error) {
-        if (error instanceof AwaitingWorkConfirmation)
-          return { status: "waiting", reason: "awaiting-confirmation" };
+        const waiting = waitingAfterFailedSend(error);
+        if (waiting) return waiting;
         if (error instanceof PendingHeicConversionError)
           return { status: "waiting", reason: error.reason };
-        // Never found on-chain: the work waits for the person to send it again.
-        if (error instanceof StrandedSendReopened)
-          return { status: "waiting", reason: "send-intent-expired" };
         if (error instanceof WorkTransactionReverted)
           return { status: "unavailable", reason: "work-transaction-reverted" };
-        // A declined prompt is a choice, not a failure: the work waits for the
-        // person to send it (the executor marks it for an explicit send).
-        if (isWorkSubmissionCancelled(error))
-          return { status: "waiting", reason: "send-cancelled" };
         if (error instanceof InvalidWorkAttachmentError)
           return { status: "unavailable", reason: error.message };
         throw error;
@@ -73,16 +83,8 @@ function createDefaultExecutorRegistry() {
           txHash: await executeApprovalJob(job as Job<ApprovalJobPayload>, chainId, sender),
         };
       } catch (error) {
-        // A decision that may already be on-chain is confirmed, never sent again.
-        if (error instanceof AwaitingWorkConfirmation)
-          return { status: "waiting", reason: "awaiting-confirmation" };
-        if (error instanceof StrandedSendReopened)
-          return { status: "waiting", reason: "send-intent-expired" };
-        // A declined prompt is a choice, not a failure, the same as it is for a
-        // work. Rethrowing spends an attempt, and five declines would retire a
-        // decision the steward only meant to postpone.
-        if (isWorkSubmissionCancelled(error))
-          return { status: "waiting", reason: "send-cancelled" };
+        const waiting = waitingAfterFailedSend(error);
+        if (waiting) return waiting;
         throw error;
       }
     },

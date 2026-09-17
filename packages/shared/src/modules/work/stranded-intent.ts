@@ -232,8 +232,8 @@ export async function resolveStrandedDecisionIntent(
         steward: job.userAddress as Address,
         sinceMs,
       }),
-    // Decisions have no send control of their own yet, so a reopened one is
-    // sent again by the next pass rather than held for a tap.
+    // A reopened decision goes back to waiting for Upload all, which is the
+    // only thing that sends it, so it needs no flag of its own.
     reopen: () => {
       delete job.payload.sendCheckpoint;
     },
