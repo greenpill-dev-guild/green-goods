@@ -57,6 +57,7 @@ vi.mock("../../../modules/work/upload-queued-work-defaults", () => ({
 
 import { useWorkUploads } from "../../../hooks/work/useWorkUploads";
 import en from "../../../i18n/en.json";
+import { connectivityStore } from "../../../stores/connectivity";
 
 const CHECKED = "2026-09-17T10:00:00.000Z";
 const WORK_UID = `0x${"AB".repeat(32)}`;
@@ -146,6 +147,22 @@ describe("useWorkUploads", () => {
     expect(dataSaver.current.pausedForDataSaver).toBe(true);
   });
 
+  it("says nothing is preparing while the connection is down, even before preparation has loaded", async () => {
+    mocks.jobs = [queued("work", {})];
+    for (const state of ["offline", "degraded"] as const) {
+      const snapshot = { state };
+      const status = vi.spyOn(connectivityStore, "getStatusSnapshot").mockReturnValue(snapshot);
+      try {
+        const { result, unmount } = renderHook(() => useWorkUploads(), { wrapper });
+        await waitFor(() => expect(result.current.preparingCount).toBe(1));
+        expect(result.current.isPreparing).toBe(false);
+        unmount();
+      } finally {
+        status.mockRestore();
+      }
+    }
+  });
+
   it("says nothing is preparing when every item is ready", async () => {
     mocks.jobs = [queued("work", { preparation: { status: "ready", checkedAt: CHECKED } })];
     const { result } = renderHook(() => useWorkUploads(), { wrapper });
@@ -193,6 +210,27 @@ describe("useWorkUploads", () => {
         message: en["app.uploads.connectionUnconfirmed"],
       })
     );
+  });
+
+  it("checks the connection before loading the upload modules, which may not be on the device", async () => {
+    const confirm = vi.spyOn(connectivityStore, "confirmOnline").mockResolvedValue(false);
+    try {
+      const { result } = renderHook(() => useWorkUploads(), { wrapper });
+
+      let outcome: unknown;
+      await act(async () => {
+        outcome = await result.current.upload();
+      });
+
+      expect(outcome).toEqual({ status: "connection-unconfirmed" });
+      expect(mocks.createPorts).not.toHaveBeenCalled();
+      expect(mocks.uploadQueuedWork).not.toHaveBeenCalled();
+      expect(mocks.toast.info).toHaveBeenCalledWith(
+        expect.objectContaining({ message: en["app.uploads.connectionUnconfirmed"] })
+      );
+    } finally {
+      confirm.mockRestore();
+    }
   });
 
   it("asks the person to sign in when nothing can sign, and sends nothing", async () => {

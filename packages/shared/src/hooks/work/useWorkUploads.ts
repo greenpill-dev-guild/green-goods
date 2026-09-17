@@ -16,7 +16,9 @@ import {
   type QueuedUploadStatus,
   queuedUploadStatus,
 } from "../../modules/work/upload-state";
+import { connectivityStore } from "../../stores/connectivity";
 import type { ApprovalJobPayload, Job } from "../../types/job-queue";
+import { useConnectivityStatus } from "../app/useOnlineStatus";
 import { usePrimaryAddress } from "../auth/usePrimaryAddress";
 import { useTransactionSender } from "../blockchain/useTransactionSender";
 import { useLiveQuery } from "../utils/useLiveQuery";
@@ -89,6 +91,7 @@ export function useWorkUploads(): WorkUploads {
     uploadPreparationStore.getSnapshot
   );
   const summary = useMemo(() => summarize(live.data ?? [], chainId), [live.data, chainId]);
+  const connectivity = useConnectivityStatus();
 
   useEffect(() => {
     scheduleUploadPreparation();
@@ -105,6 +108,9 @@ export function useWorkUploads(): WorkUploads {
         });
         return undefined;
       }
+      // Check before loading: the upload modules may not be on this device yet,
+      // and an import that fails offline stays failed for the life of the page.
+      if (!(await connectivityStore.confirmOnline())) return { status: "connection-unconfirmed" };
       const [{ uploadQueuedWork }, { createDefaultUploadQueuedWorkPorts }] = await Promise.all([
         import("../../modules/work/upload-queued-work"),
         import("../../modules/work/upload-queued-work-defaults"),
@@ -187,8 +193,10 @@ export function useWorkUploads(): WorkUploads {
     attentionCount: summary.attentionCount,
     queuedCount: summary.queuedCount,
     pausedForDataSaver: preparation.paused === "data-saver",
-    // The pause holds between items, so the bar does not flicker as each one starts.
-    isPreparing: summary.preparingCount > 0 && preparation.paused === null,
+    // Preparation only runs on a working connection, and until it has loaded it reports no
+    // pause. Its pause holds between items, so the bar does not flicker as each one starts.
+    isPreparing:
+      summary.preparingCount > 0 && preparation.paused === null && connectivity.state === "online",
     isUploading: mutation.isPending,
     waitingDecisionWorkIds: summary.waitingDecisionWorkIds,
     statusOf: (jobId) => summary.statuses.get(jobId),

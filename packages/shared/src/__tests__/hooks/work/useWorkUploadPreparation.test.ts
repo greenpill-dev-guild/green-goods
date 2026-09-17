@@ -70,6 +70,25 @@ describe("useWorkUploadPreparation", () => {
     expect(mocks.preparation.schedule).toHaveBeenCalledTimes(4);
   });
 
+  it("loads preparation only once the connection is confirmed", async () => {
+    const confirmed = vi.spyOn(connectivityStore, "isConfirmedOnline").mockReturnValue(false);
+    try {
+      renderHook(() => useWorkUploadPreparation(USER, 42161));
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      await act(() => connectivityStore.check());
+      expect(mocks.createUploadPreparation).not.toHaveBeenCalled();
+
+      confirmed.mockReturnValue(true);
+      await act(() => connectivityStore.check());
+      await waitFor(() =>
+        expect(mocks.setActiveUploadPreparation).toHaveBeenCalledWith(mocks.preparation)
+      );
+      expect(mocks.createUploadPreparation).toHaveBeenCalledOnce();
+    } finally {
+      confirmed.mockRestore();
+    }
+  });
+
   it("prepares nothing without a signed-in person", async () => {
     renderHook(() => useWorkUploadPreparation(null, 42161));
     await new Promise((resolve) => setTimeout(resolve, 0));

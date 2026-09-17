@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { jobQueueDB } from "../../modules/job-queue/db";
 import { jobQueueEventBus } from "../../modules/job-queue/event-bus";
 import { connectivityStore } from "../../stores/connectivity";
@@ -8,12 +9,24 @@ import { useAsyncSetup } from "../utils/useAsyncEffect";
  * Prepares the signed-in person's queued work and decisions in the background,
  * so Upload all only has to sign. It wakes on the connectivity status channel,
  * which also reports each return to the page, when an item is queued, and when
- * Data Saver changes. Preparation and its modules load after the app starts.
+ * Data Saver changes. Preparation and its modules load once the connection is
+ * first confirmed: they may not be on this device yet, and an import that
+ * fails offline stays failed for the life of the page.
  */
 export function useWorkUploadPreparation(userAddress: string | null | undefined, chainId: number) {
+  const [connected, setConnected] = useState(() => connectivityStore.isConfirmedOnline());
+  useEffect(() => {
+    if (connected) return;
+    const check = () => {
+      if (connectivityStore.isConfirmedOnline()) setConnected(true);
+    };
+    check();
+    return connectivityStore.subscribeStatus(check);
+  }, [connected]);
+
   useAsyncSetup(
     async (signal) => {
-      if (!userAddress || typeof window === "undefined") return;
+      if (!userAddress || !connected || typeof window === "undefined") return;
       const [preparationModule, { prepareQueuedJob }, { recoverStuckWork }, claims] =
         await Promise.all([
           import("../../modules/work/upload-preparation"),
@@ -54,6 +67,6 @@ export function useWorkUploadPreparation(userAddress: string | null | undefined,
         preparationModule.setActiveUploadPreparation(undefined);
       };
     },
-    [userAddress, chainId]
+    [userAddress, chainId, connected]
   );
 }
