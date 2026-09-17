@@ -14,17 +14,15 @@ import {
   hashWorkLinkPayload,
 } from "../../modules/commitment-pooling/jobs";
 import { createCommitmentChainReads } from "../../modules/job-queue/commitment-chain-reads";
-import {
-  executeApprovalJob,
-  executeCommitmentQueueJob,
-  executeWorkJob,
-} from "../../modules/job-queue/job-executors";
+import { executeApprovalJob } from "../../modules/job-queue/approval-executor";
+import { executeCommitmentQueueJob, executeWorkJob } from "../../modules/job-queue/job-executors";
 import { jobQueueDB } from "../../modules/job-queue/db";
 import { createJobExecutorRegistry } from "../../modules/job-queue/executor-registry";
 import type { Address } from "../../types/domain";
 import type { ApprovalJobPayload, Job, WorkJobPayload } from "../../types/job-queue";
 import { createMockTransactionSender } from "../test-utils/transaction-fakes";
 import { PendingHeicConversionError } from "../../modules/work/work-attachments";
+import { StrandedWorkIntentReopened } from "../../modules/work/stranded-intent";
 
 // An untitled job looks its action up; keep that lookup off the network.
 vi.mock("../../modules/data/greengoods", async (importOriginal) => ({
@@ -1174,5 +1172,81 @@ describe("recording a send intent", () => {
     expect(sender.sendContractCall).toHaveBeenCalledOnce();
     expect(sender.reconcileBroadcast).toHaveBeenCalledWith({ kind: "user-operation", hash: HASH });
     expect(work.meta?.requiresExplicitSend).toBeUndefined();
+  });
+});
+
+describe("settling a send whose answer was lost", () => {
+  const LANDED = `0x${"ab".repeat(32)}` as const;
+  const stranded = (checkpoint: Partial<NonNullable<WorkJobPayload["uploadCheckpoint"]>>) =>
+    job<WorkJobPayload>(
+      "work",
+      {
+        actionUID: 3,
+        gardenAddress: GARDEN,
+        feedback: "Done",
+        clientWorkId: crypto.randomUUID(),
+        uploadCheckpoint: { submittedAt: "2026-09-16T11:00:00.000Z", files: {}, ...checkpoint },
+      },
+      { id: crypto.randomUUID() }
+    );
+
+  it("completes a wallet send whose work is found on-chain instead of waiting on 0x forever", async () => {
+    const work = stranded({
+      broadcastPending: true,
+      broadcastPendingAt: "2026-09-16T11:00:00.000Z",
+    });
+    const sender = createMockTransactionSender({ authMode: "wallet" });
+    const settleStrandedIntent = vi.fn().mockResolvedValue(LANDED);
+
+    await expect(
+      executeWorkJob(work.id, work, 11155111, sender, { settleStrandedIntent })
+    ).resolves.toBe(LANDED);
+    expect(settleStrandedIntent).toHaveBeenCalledWith(work, 11155111);
+    expect(sender.sendContractCall).not.toHaveBeenCalled();
+  });
+
+  it("checks a UserOperation no bundler reports the same way", async () => {
+    const work = stranded({ broadcast: { kind: "user-operation", hash: HASH } });
+    const sender = createMockTransactionSender();
+    sender.reconcileBroadcast = vi.fn().mockResolvedValue({ status: "unresolved" });
+    const settleStrandedIntent = vi.fn().mockResolvedValue(LANDED);
+
+    await expect(
+      executeWorkJob(work.id, work, 11155111, sender, { settleStrandedIntent })
+    ).resolves.toBe(LANDED);
+    expect(settleStrandedIntent).toHaveBeenCalledWith(work, 11155111, HASH);
+    expect(sender.sendContractCall).not.toHaveBeenCalled();
+  });
+
+  it("never settles an unresolved transaction hash, which may be a Safe transaction", async () => {
+    const work = stranded({
+      broadcast: { kind: "transaction", hash: HASH },
+      transactionHash: HASH,
+    });
+    const sender = createMockTransactionSender({ authMode: "wallet" });
+    const settleStrandedIntent = vi.fn();
+
+    await expect(
+      executeWorkJob(work.id, work, 11155111, sender, {
+        settleStrandedIntent,
+        reconcile: vi.fn().mockResolvedValue("unresolved"),
+      })
+    ).rejects.toThrow("awaiting-confirmation");
+    expect(settleStrandedIntent).not.toHaveBeenCalled();
+    expect(sender.sendContractCall).not.toHaveBeenCalled();
+  });
+
+  it("sends nothing when a send that never landed is reopened", async () => {
+    const work = stranded({
+      broadcastPending: true,
+      broadcastPendingAt: "2026-09-16T11:00:00.000Z",
+    });
+    const sender = createMockTransactionSender({ authMode: "wallet" });
+    const settleStrandedIntent = vi.fn().mockRejectedValue(new StrandedWorkIntentReopened());
+
+    await expect(
+      executeWorkJob(work.id, work, 11155111, sender, { settleStrandedIntent })
+    ).rejects.toBeInstanceOf(StrandedWorkIntentReopened);
+    expect(sender.sendContractCall).not.toHaveBeenCalled();
   });
 });

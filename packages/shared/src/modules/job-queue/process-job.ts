@@ -82,7 +82,11 @@ async function completeJob(
 }
 
 export function createJobProcessor(deps: ProcessJobDependencies) {
-  async function processJob(jobId: string, context: ProcessJobContext): Promise<ProcessJobResult> {
+  async function processJob(
+    jobId: string,
+    context: ProcessJobContext,
+    reopened = false
+  ): Promise<ProcessJobResult> {
     const job = await deps.store.getJob(jobId);
     if (!job) return { success: true, skipped: true };
     if (job.synced) {
@@ -178,6 +182,9 @@ export function createJobProcessor(deps: ProcessJobDependencies) {
           jobId,
           job: { ...job, meta: { ...meta, waitingReason: execution.reason } },
         });
+        // An earlier send never landed and was just cleared; the person's tap sends it now.
+        if (execution.reason === "send-intent-expired" && context.explicit && !reopened)
+          return processJob(jobId, context, true);
         return { success: false, error: execution.reason, skipped: true };
       }
       if (execution.status === "identity-conflict" || execution.status === "unavailable") {

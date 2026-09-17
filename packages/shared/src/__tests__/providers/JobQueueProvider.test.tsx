@@ -88,7 +88,7 @@ import { useTransactionSender } from "../../hooks/blockchain/useTransactionSende
 import { connectivityStore } from "../../stores/connectivity";
 import { createFakeJobQueueHandle } from "../test-utils/job-queue-fakes";
 import type { JobQueueHandle } from "../../modules/job-queue";
-import type { QueueEvent } from "@green-goods/shared/types";
+import type { Job, QueueEvent } from "@green-goods/shared/types";
 import {
   JobQueueProvider,
   useJobQueue,
@@ -311,6 +311,46 @@ describe("providers/JobQueueProvider", () => {
       unmount();
 
       expect(mockUnsubscribe).toHaveBeenCalled();
+    });
+
+    it("stops showing work as sending once it goes back to waiting, whatever it waits for", async () => {
+      const subscribedHandlers = new Set<(event: QueueEvent) => void>();
+      mockJobQueue.subscribe.mockImplementation((handler: (event: QueueEvent) => void) => {
+        subscribedHandlers.add(handler);
+        return () => {
+          subscribedHandlers.delete(handler);
+        };
+      });
+      const work = {
+        id: "work-job-1",
+        kind: "work",
+        chainId: 11155111,
+        payload: { actionUID: 1, gardenAddress: "0xgarden", feedback: "", title: "Weeding" },
+        createdAt: Date.now(),
+        attempts: 0,
+        synced: false,
+        userAddress: "0xuser",
+      } as Job;
+      const { result } = renderHook(() => useJobQueue(), { wrapper: createWrapper() });
+
+      for (const waitingReason of ["send-intent-expired", "photo-conversion-pending"]) {
+        await act(async () => {
+          subscribedHandlers.forEach((handler) =>
+            handler({ type: "job_processing", jobId: work.id, job: work })
+          );
+        });
+        await waitFor(() => expect(result.current.isProcessing).toBe(true));
+        await act(async () => {
+          subscribedHandlers.forEach((handler) =>
+            handler({
+              type: "job_added",
+              jobId: work.id,
+              job: { ...work, meta: { waitingForDependency: true, waitingReason } },
+            })
+          );
+        });
+        await waitFor(() => expect(result.current.isProcessing).toBe(false));
+      }
     });
 
     it("invalidates recipient-scoped approval reads when an approval job completes", async () => {

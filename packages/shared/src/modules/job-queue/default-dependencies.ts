@@ -12,6 +12,7 @@ import { SW_MESSAGE } from "../app/service-worker-protocol";
 import { COMMITMENT_JOB_KINDS } from "../commitment-pooling/jobs";
 import { createCommitmentQueueAdmission } from "../commitment-pooling/queue-admission";
 import { selectCommitmentPoolingAvailability } from "../commitment-pooling/selectors";
+import { StrandedWorkIntentReopened } from "../work/stranded-intent";
 import { InvalidWorkAttachmentError, PendingHeicConversionError } from "../work/work-attachments";
 import {
   AwaitingWorkConfirmation,
@@ -29,7 +30,8 @@ import {
   trackPrivateQueueEvent,
   trackStorageWarning,
 } from "./job-analytics";
-import { executeApprovalJob, executeCommitmentQueueJob, executeWorkJob } from "./job-executors";
+import { executeApprovalJob } from "./approval-executor";
+import { executeCommitmentQueueJob, executeWorkJob } from "./job-executors";
 import { createBrowserJobQueueLifecycle } from "./lifecycle";
 import { mediaResourceManager } from "./media-resource-manager";
 import type { JobQueueDependencies } from "./ports";
@@ -50,6 +52,9 @@ function createDefaultExecutorRegistry() {
           return { status: "waiting", reason: "awaiting-confirmation" };
         if (error instanceof PendingHeicConversionError)
           return { status: "waiting", reason: error.reason };
+        // Never found on-chain: the work waits for the person to send it again.
+        if (error instanceof StrandedWorkIntentReopened)
+          return { status: "waiting", reason: "send-intent-expired" };
         if (error instanceof WorkTransactionReverted)
           return { status: "unavailable", reason: "work-transaction-reverted" };
         // A declined prompt is a choice, not a failure: the work waits for the

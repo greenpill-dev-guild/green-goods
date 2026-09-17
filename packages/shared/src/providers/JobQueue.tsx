@@ -232,7 +232,8 @@ const JobQueueProviderInner: React.FC<JobQueueProviderProps> = ({ children, queu
     };
 
     const handleJobAdded = (event: QueueEvent) => {
-      if (event.job?.meta?.waitingReason === "awaiting-confirmation") setIsProcessing(false);
+      // A job that went back to waiting, for any reason, is no longer being processed.
+      if (event.job?.meta?.waitingReason) setIsProcessing(false);
       void refreshStats(abortController.signal);
       void requestPersistentStorageOnce("offline-job");
 

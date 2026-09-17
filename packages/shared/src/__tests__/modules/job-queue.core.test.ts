@@ -4,6 +4,7 @@
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createMockTransactionSender } from "@green-goods/shared/testing";
+import type { WorkJobPayload } from "../../types/job-queue";
 
 // Ensure fake-indexeddb is loaded before job-queue module
 import "fake-indexeddb/auto";
@@ -25,6 +26,10 @@ vi.mock("../../modules/app/posthog", () => ({
 }));
 
 // Mock the simulate module (dynamically imported by job queue)
+// No stranded send in these tests ever landed on-chain.
+vi.mock("../../modules/data/eas-work-submissions", () => ({
+  getWorkSubmissionsSince: vi.fn(async () => []),
+}));
 vi.mock("../../modules/work/simulate", () => ({
   simulateWorkSubmission: vi.fn(async () => undefined),
 }));
@@ -274,6 +279,69 @@ describe("modules/job-queue", () => {
       status.mockRestore();
     }
     expect(sender.sendContractCall).not.toHaveBeenCalled();
+  });
+
+  describe("a send whose answer was lost", () => {
+    const strandedWork = async () => {
+      const jobId = await jobQueue.addJob(
+        "work",
+        {
+          title: "Test",
+          actionUID: 42,
+          gardenAddress: "0x123",
+          feedback: "ok",
+          clientWorkId: crypto.randomUUID(),
+        },
+        TEST_USER_ADDRESS,
+        { chainId: 11155111 }
+      );
+      const job = await jobQueueDB.getJob(jobId);
+      (job!.payload as WorkJobPayload).uploadCheckpoint = {
+        submittedAt: new Date().toISOString(),
+        files: {},
+        broadcastPending: true,
+        broadcastPendingAt: new Date(Date.now() - 31 * 60_000).toISOString(),
+      };
+      await jobQueueDB.updateJob(job!);
+      return jobId;
+    };
+
+    it("reopens work that never landed without sending it, until the person taps", async () => {
+      const jobId = await strandedWork();
+      const sender = createMockTransactionSender();
+
+      await expect(jobQueue.processJob(jobId, { transactionSender: sender })).resolves.toEqual({
+        success: false,
+        error: "send-intent-expired",
+        skipped: true,
+      });
+      const reopened = await jobQueueDB.getJob(jobId);
+      expect(
+        (reopened!.payload as WorkJobPayload).uploadCheckpoint?.broadcastPending
+      ).toBeUndefined();
+      expect(reopened!.meta?.requiresExplicitSend).toBe(true);
+      await expect(
+        jobQueue.processJob(jobId, { transactionSender: sender })
+      ).resolves.toMatchObject({
+        error: "send-requires-explicit",
+      });
+      expect(sender.sendContractCall).not.toHaveBeenCalled();
+
+      await expect(
+        jobQueue.processJob(jobId, { transactionSender: sender, explicit: true })
+      ).resolves.toMatchObject({ success: true });
+      expect(sender.sendContractCall).toHaveBeenCalledOnce();
+    });
+
+    it("sends in the same tap when the tap is what finds the send never landed", async () => {
+      const jobId = await strandedWork();
+      const sender = createMockTransactionSender();
+
+      await expect(
+        jobQueue.processJob(jobId, { transactionSender: sender, explicit: true })
+      ).resolves.toMatchObject({ success: true });
+      expect(sender.sendContractCall).toHaveBeenCalledOnce();
+    });
   });
 
   it("keeps declined work queued for an explicit send instead of failing it", async () => {
