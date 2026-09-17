@@ -57,15 +57,17 @@ You are the **release-prep** routine for Green Goods. You produce a single **rel
 
 ## Phase 0 — Release-window gate (run this first)
 
-Decide whether this run produces the full brief, a QA gate check, or exits quietly:
+Decide whether this run produces the full brief, a QA gate check, or exits quietly.
 
-1. **Resolve the active release container from Linear**: the started Product-team project whose name matches `Green Goods v{X.Y.Z} QA & Release`. Read its name, `targetDate`, description, and milestones. Fallback when no such project exists: the latest release tag date + the size of `origin/main..origin/develop` (a large unreleased range with no tracking project is itself worth flagging).
+**Cross-run state lives in the channel.** Every post ends with a marker line (Phase 7), and each run reads the markers back before deciding: `GET https://discord.com/api/v10/channels/${DISCORD_ENGINEERING_CHANNEL_ID}/messages?limit=100` with the header `Authorization: Bot ${DISCORD_BOT_TOKEN}`, keeping only messages with a line that starts `-# release-prep ·`. Other routines post with the same bot, so match the marker, never the author. The newest `brief` marker for the current version is "the last posted brief" below: its fields give the target date, gate verdict, and `develop` SHA it saw, and the message timestamp gives when it posted. A `gate-check` marker for the current version and target date means the gate check already posted. If the channel cannot be read, post nothing unless this is a manual run, and log the failure.
+
+1. **Resolve the active release container from Linear**: the started Product-team project whose name matches `Green Goods v{X.Y.Z} QA & Release`. Read its name, `targetDate`, description, and milestones. When no such project exists, there is no target date or QA gate: only a manual run or the Monday cadence-slip check below produces a brief, every other run exits quietly, and the brief measures from the latest release tag (its date, plus the size of `origin/main..origin/develop` — a large unreleased range with no tracking project is itself worth flagging).
 2. **Produce the full brief when ANY of:**
-   - today ≥ `targetDate − 3 days` (the release window is open — the brief lands 3 days out);
+   - a release project exists and today ≥ `targetDate − 3 days` (the release window is open — the brief lands 3 days out);
    - this is a **manual run** (a human hit Run — always brief);
    - the `targetDate` moved since the last posted brief (post a short delta note: old date → new date, what changed in the range);
    - it is **Monday** AND no release project exists AND `origin/main..origin/develop` exceeds ~60 commits (cadence quietly slipping — checked weekly, not daily, so it never nags).
-3. **Otherwise, post the QA gate check** (Phase 5a only, one message) when the release is major (see Setup), today ≥ `targetDate − 7 days`, and no gate check has posted for this target date yet.
+3. **Otherwise, post the QA gate check** (Phase 5a only, one message) when a release project exists, the release is major (see Setup), today ≥ `targetDate − 7 days`, and no gate check has posted for this version and target date yet.
 4. **Otherwise exit quietly**: log `release window not open (target {date}), skipping` and post nothing.
 5. **Idempotency inside an open window (this runs daily — do not re-brief daily):** the brief posts ONCE when the window opens. After that, repost only when the `targetDate` moved, when the Phase 5a verdict changed since the last brief, or when `develop` HEAD moved AND it has been ≥48h since the last brief (mark it *updated*). A same-state daily run inside the window logs `brief current, skipping` and exits.
 
@@ -73,7 +75,7 @@ Decide whether this run produces the full brief, a QA gate check, or exits quiet
 
 - Env vars are injected; do not read `.env`.
 - Read the canonical runbook from `develop`, the branch being released: `git show origin/develop:CONTRIBUTING.md`, § Releases and hotfixes. Follow its cadence, naming, and versioning rules rather than hardcoding them.
-- **Version**: take `X.Y.Z` from the release project's name. The runbook sets the bump type — minor for the monthly release, patch for a hotfix, major for a breaking change. Check the name against the latest release tag (`git tag --list 'v*' --sort=-v:refname | head -1`): the version must be the next patch, minor, or major above it, and if it is not, flag it as a decision. Without a release project, fall back to the next minor above the latest tag. Never read the version from `package.json`: `develop` lags the tags whenever a hotfix has not been merged back.
+- **Version**: take `X.Y.Z` from the release project's name. The runbook sets the bump type — minor for the monthly release, patch for a hotfix, major for a breaking change. Check the name against the latest release tag, counting only exact `vX.Y.Z` tags (`git tag --list 'v*' --sort=-v:refname | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | head -1`): the version must be the next patch, minor, or major above it, and if it is not, flag it as a decision. Without a release project, fall back to the next minor above the latest tag. Never read the version from `package.json`: `develop` lags the tags whenever a hotfix has not been merged back.
 - **Why major**: for a major release, state the reason in one sentence, taken from the release project's description. If the description gives none, flag it as a decision.
 - **Ship month** = the current calendar month (we release at the start of it), per the runbook's ship-month naming.
 
@@ -108,7 +110,7 @@ The release project's `QA complete` milestone is the gate. Other open issues in 
 - List the milestone's open issues: every issue not Done, Canceled, or Duplicate. Include open sub-issues of those issues even when a sub-issue carries no milestone.
 - For each, record the identifier, title, state, and assignee, ordered by priority, then state.
 - **Verdict**: *not ready to cut* while any remain; *QA gate clear* when none do. Report the count of other open issues in the project on one line, as context only.
-- If the project has no `QA complete` milestone, the gate is undefined: say so and flag it as a decision. Never call an undefined gate clear.
+- If there is no release project, or it has no `QA complete` milestone, the gate is undefined: say so and flag it as a decision. Never call an undefined gate clear.
 
 ### 5b — Cut-day steps
 
@@ -131,9 +133,11 @@ Write 3-5 plain-language lines announcing the release. **Self-check the prose ag
 
 Post the brief to `DISCORD_ENGINEERING_CHANNEL_ID` with a **message budget of at most TWO Discord messages** (the stated house-style-v2 exception — every other routine gets one; see [`routines/claude/README.md` in `.github`](https://github.com/greenpill-dev-guild/.github/blob/main/routines/claude/README.md#house-style-v2-applies-to-every-posting-routine)). Structure:
 
-- **Message 1 — the decision surface**: a 1–2 sentence lede (what's shipping, when, and why it is major if it is), the Phase 5a verdict with its open list, the Phase 5b cut-day steps, the version + bump/check commands, per-type commit counts on ONE line (`{N} commits · {a} feat / {b} fix / {c} chore …`), the Phase 5c risk flags, and the Phase 4 doc-freshness flags. If message 1 would pass Discord's 2,000-character limit, shorten the open list first (the first ten, then `+N more` with the release project link); never drop the verdict.
+- **Message 1 — the decision surface**: a 1–2 sentence lede (what's shipping, when, and why it is major if it is), the Phase 5a verdict with its open list, the Phase 5b cut-day steps, the version + bump/check commands, per-type commit counts on ONE line (`{N} commits · {a} feat / {b} fix / {c} chore …`), the Phase 5c risk flags, and the Phase 4 doc-freshness flags.
 - **Message 2 — the copy**: the draft release notes (highlights, not the full commit enumeration) and the 3–5 line gardener announcement.
 - **The QA gate check** (Phase 0 step 3) is a single message: the version, the target date, the Phase 5a verdict with its open list, and the release project link.
+- **Size budget**: message 1 and the QA gate check must each fit Discord's 2,000-character limit, marker line included. When one would not, shorten its open list first (fewer rows, then `+N more` with the release project link), and keep message 1's other sections in the order above. Never drop the verdict, the target date, or the release project link.
+- **Marker line**: end every post (the brief's message 1, the gate check, a delta note) with one line of Discord subtext that Phase 0 reads back, and never reformat it: `-# release-prep · v{X.Y.Z} · {brief|gate-check|delta} · target {YYYY-MM-DD or none} · gate {clear|not-ready|undefined} · develop {short SHA}`.
 - **The full commit enumeration never goes to Discord**: Message 1 links the live GitHub compare view for **the exact range Phase 1 counted** — `https://github.com/greenpill-dev-guild/green-goods/compare/main...develop`, wrapped in `<>` — so the linked list and the per-type counts can never disagree. (Resolve the range once in Phase 1 and reuse it here; do not substitute a `{last-tag}...develop` range, which covers different commits whenever main and the tag differ.) The routine stays read-only everywhere (no Linear writes, no GitHub writes) — the budget is met by linking, not by relocating content.
 
 Prefix the message with `<@${DISCORD_USER_ID_AFO}>` only when the QA gate is not clear inside the release window, a Phase 5 item needs a decision, or a setup step failed. Keep the privacy boundary (no session IDs, replay URLs, wallet addresses, or reporter identifiers). Never commit, merge, open PRs, or create tags.
@@ -156,6 +160,6 @@ Prefix the message with `<@${DISCORD_USER_ID_AFO}>` only when the QA gate is not
 1. Log in to [claude.ai/code/routines](https://claude.ai/code/routines).
 2. Click **New routine** (or use `/schedule` in Claude Code).
 3. Paste the prompt above (everything after the `# Prompt` heading).
-4. Configure repo (`green-goods`), environment (`green-goods`), connectors (`github`, `linear`), env vars, model, and the cron `0 16 * * 1-5`.
+4. Configure repo (`green-goods`), environment (`green-goods`), connectors (`github`, `linear`), env vars, model, and the cron `0 16 * * 1-5`. The Discord bot needs Read Message History in `#engineering`, because Phase 0 reads its own markers back.
 5. Save, then trigger once manually to confirm env/connectors resolve.
 6. **Verify-at-registration:** confirm whether the cloud routine reads its prompt live from `origin/main` or needs a manual re-paste on each change, and record the routine id in `docs/routines/README.md`. Until that is confirmed, treat the stored prompt as a copy: after every change to this file, paste the new prompt into the routine.
