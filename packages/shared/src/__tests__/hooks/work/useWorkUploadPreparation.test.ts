@@ -17,10 +17,11 @@ vi.mock("../../../modules/work/upload-preparation", () => ({
 }));
 vi.mock("../../../modules/work/prepare-queued-work", () => ({ prepareQueuedJob: vi.fn() }));
 vi.mock("../../../modules/job-queue/stuck-work-recovery", () => ({ recoverStuckWork: vi.fn() }));
-vi.mock("../../../modules/job-queue/work-claims", () => ({
-  acquireAvailableWorkJobs: vi.fn(),
+const claims = vi.hoisted(() => ({
+  acquireAvailableWorkJobs: vi.fn(async () => new Map()),
   holdWorkClaims: vi.fn(),
 }));
+vi.mock("../../../modules/job-queue/work-claims", () => claims);
 vi.mock("../../../modules/job-queue/db", () => ({ jobQueueDB: {} }));
 
 import { useWorkUploadPreparation } from "../../../hooks/work/useWorkUploadPreparation";
@@ -93,5 +94,51 @@ describe("useWorkUploadPreparation", () => {
     renderHook(() => useWorkUploadPreparation(null, 42161));
     await new Promise((resolve) => setTimeout(resolve, 0));
     expect(mocks.createUploadPreparation).not.toHaveBeenCalled();
+  });
+
+  it("wires preparation to a connection check that probes, and to claims an update may interrupt", async () => {
+    const confirm = vi.spyOn(connectivityStore, "confirmForBackgroundWork").mockResolvedValue(true);
+    try {
+      renderHook(() => useWorkUploadPreparation(USER, 42161));
+      await waitFor(() => expect(mocks.createUploadPreparation).toHaveBeenCalledOnce());
+      const ports = (mocks.createUploadPreparation.mock.calls as unknown[][])[0][0] as {
+        confirmOnline(): Promise<boolean>;
+        acquire(ids: string[]): Promise<unknown>;
+      };
+
+      // A read that only looked at the last probe went stale after a minute and
+      // never resumed: preparation has to ask, so a stale answer is probed again.
+      await expect(ports.confirmOnline()).resolves.toBe(true);
+      expect(confirm).toHaveBeenCalledOnce();
+
+      await ports.acquire(["work-1"]);
+      expect(claims.acquireAvailableWorkJobs).toHaveBeenCalledWith(["work-1"], {
+        background: true,
+      });
+    } finally {
+      confirm.mockRestore();
+    }
+  });
+
+  it("wakes preparation when Data Saver changes", async () => {
+    const connection = new EventTarget();
+    Object.defineProperty(navigator, "connection", { configurable: true, value: connection });
+    try {
+      const { unmount } = renderHook(() => useWorkUploadPreparation(USER, 42161));
+      await waitFor(() => expect(mocks.preparation.schedule).toHaveBeenCalledTimes(1));
+
+      act(() => {
+        connection.dispatchEvent(new Event("change"));
+      });
+      expect(mocks.preparation.schedule).toHaveBeenCalledTimes(2);
+
+      unmount();
+      act(() => {
+        connection.dispatchEvent(new Event("change"));
+      });
+      expect(mocks.preparation.schedule).toHaveBeenCalledTimes(2);
+    } finally {
+      Reflect.deleteProperty(navigator, "connection");
+    }
   });
 });

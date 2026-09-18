@@ -40,12 +40,13 @@ export function useWorkUploadPreparation(userAddress: Address | null | undefined
       const preparation = preparationModule.createUploadPreparation({
         userAddress,
         chainId,
-        isConfirmedOnline: () => connectivityStore.isConfirmedOnline(),
+        confirmOnline: () => connectivityStore.confirmForBackgroundWork(),
         isVisible: () => document.visibilityState !== "hidden",
         isDataSaverOn,
         listJobs: () => jobQueueDB.getJobs({ userAddress, synced: false }),
         getJob: (id) => jobQueueDB.getJob(id),
-        acquire: claims.acquireAvailableWorkJobs,
+        // Preparation can be picked up again, so its claims never hold back an app update.
+        acquire: (ids) => claims.acquireAvailableWorkJobs(ids, { background: true }),
         hold: claims.holdWorkClaims,
         prepare: (job, jobChainId, claim) => prepareQueuedJob(job, jobChainId, claim),
         recover: recoverStuckWork,

@@ -62,7 +62,12 @@ export const uploadPreparationStore = {
 export interface UploadPreparationPorts {
   userAddress: Address;
   chainId: number;
-  isConfirmedOnline(): boolean;
+  /**
+   * Whether the origin has answered recently. It asks again when its last answer
+   * has aged out: nothing re-probes a steady connection on a timer, so a read
+   * that only looked would pause a long queue after a minute and never resume.
+   */
+  confirmOnline(): Promise<boolean>;
   isVisible(): boolean;
   isDataSaverOn(): boolean;
   listJobs(): Promise<Job[]>;
@@ -103,11 +108,12 @@ export function createUploadPreparation(ports: UploadPreparationPorts): UploadPr
   // A blocked item is checked again once a session: a membership may have changed.
   const recheckedBlocked = new Set<string>();
 
-  const pauseReason = (): UploadPreparationPause | null => {
+  const pauseReason = async (): Promise<UploadPreparationPause | null> => {
     if (suspended > 0) return "uploading";
-    if (!ports.isConfirmedOnline()) return "unconfirmed";
     if (!ports.isVisible()) return "hidden";
     if (ports.isDataSaverOn() && !snapshot.dataSaverOverride) return "data-saver";
+    // Asked last: it may probe, and a hidden or Data Saver page spends nothing on it.
+    if (!(await ports.confirmOnline())) return "unconfirmed";
     return null;
   };
 
@@ -157,7 +163,7 @@ export function createUploadPreparation(ports: UploadPreparationPorts): UploadPr
     try {
       do {
         requested = false;
-        const paused = pauseReason();
+        const paused = await pauseReason();
         publish({ paused });
         if (paused) return;
         if (!recovered) {
@@ -167,7 +173,7 @@ export function createUploadPreparation(ports: UploadPreparationPorts): UploadPr
         const candidates = (await ports.listJobs()).filter(wantsPreparation);
         for (const { id } of candidates) {
           if (stopped) return;
-          const pausedMidway = pauseReason();
+          const pausedMidway = await pauseReason();
           if (pausedMidway) {
             publish({ paused: pausedMidway });
             return;

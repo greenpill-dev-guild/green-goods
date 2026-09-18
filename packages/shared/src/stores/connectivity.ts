@@ -187,6 +187,15 @@ export const connectivityStore = {
   check,
   isConfirmedOnline,
   confirmOnline,
+  /**
+   * For work nobody is waiting on: the queue's sends and background preparation.
+   * Nothing re-probes a steady connection on a timer, so a stale "online" is
+   * probed here, at most once a minute. An unstable connection is left to the
+   * store's own recheck, which publishes the recovery its listeners wake on.
+   */
+  confirmForBackgroundWork: async (): Promise<boolean> =>
+    connectivityStore.getStatusSnapshot().state === "online" &&
+    connectivityStore.confirmOnline({ maxAgeMs: CONFIRMED_ONLINE_MAX_AGE_MS }),
   // An individual API failure merely requests an independent origin check.
   reportNetworkFailure: () => (probeUrl ? check() : Promise.resolve()),
 };

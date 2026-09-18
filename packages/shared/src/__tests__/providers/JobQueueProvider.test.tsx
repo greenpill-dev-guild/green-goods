@@ -71,6 +71,11 @@ vi.mock("../../hooks/work/useQueueConfirmationSync", () => ({
 vi.mock("../../hooks/work/useWorkUploadPreparation", () => ({
   useWorkUploadPreparation: vi.fn(),
 }));
+const scheduleUploadPreparation = vi.hoisted(() => vi.fn());
+vi.mock("../../modules/work/upload-preparation", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../../modules/work/upload-preparation")>()),
+  scheduleUploadPreparation,
+}));
 
 vi.mock("../../config/blockchain", async (importOriginal) => ({
   ...(await importOriginal<typeof import("../../config/blockchain")>()),
@@ -418,6 +423,25 @@ describe("providers/JobQueueProvider", () => {
         confirmed.mockRestore();
         confirm.mockRestore();
       }
+    });
+
+    it("wakes preparation on a background sync request, for a wallet too, and sends nothing", async () => {
+      mockUseAuth.mockReturnValue({ authMode: "wallet" });
+      const queue = createFakeJobQueueHandle();
+      queue.getStats = vi.fn().mockResolvedValue({ total: 0, pending: 0, failed: 0, synced: 0 });
+      let requestSync: (() => void) | undefined;
+      vi.mocked(queue.onBackgroundSyncRequested).mockImplementation((listener) => {
+        requestSync = listener;
+        return () => undefined;
+      });
+
+      renderHook(() => useJobQueue(), { wrapper: createWrapper(queue) });
+      await waitFor(() => expect(requestSync).toBeDefined());
+      scheduleUploadPreparation.mockClear();
+      await act(async () => requestSync?.());
+
+      expect(scheduleUploadPreparation).toHaveBeenCalledOnce();
+      expect(queue.flush).not.toHaveBeenCalled();
     });
 
     it("surfaces auto-flush failures through lastEvent and queue sync error toast", async () => {

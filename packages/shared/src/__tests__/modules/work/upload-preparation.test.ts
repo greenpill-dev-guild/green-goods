@@ -31,7 +31,7 @@ function harness(jobs: Job[], overrides: Partial<UploadPreparationPorts> = {}) {
   const ports: UploadPreparationPorts = {
     userAddress: "0xuser",
     chainId: 42161,
-    isConfirmedOnline: () => true,
+    confirmOnline: vi.fn(async () => true),
     isVisible: () => true,
     isDataSaverOn: () => false,
     listJobs: async () => [...store.values()],
@@ -101,7 +101,7 @@ describe("preparing queued items in the background", () => {
 
   it("waits, and says why, while it cannot run", async () => {
     for (const [override, reason] of [
-      [{ isConfirmedOnline: () => false }, "unconfirmed"],
+      [{ confirmOnline: async () => false }, "unconfirmed"],
       [{ isVisible: () => false }, "hidden"],
       [{ isDataSaverOn: () => true }, "data-saver"],
     ] as const) {
@@ -112,6 +112,8 @@ describe("preparing queued items in the background", () => {
 
       expect(order).toEqual([]);
       expect(uploadPreparationStore.getSnapshot().paused).toBe(reason);
+      // The connection is asked last: a hidden or Data Saver page spends no probe on it.
+      if (reason !== "unconfirmed") expect(ports.confirmOnline).not.toHaveBeenCalled();
       preparation.stop();
     }
   });
@@ -182,5 +184,56 @@ describe("preparing queued items in the background", () => {
     await settled(preparation);
 
     expect(order).toEqual(["blocked"]);
+  });
+
+  it("asks the connection again before each item, and stops mid-list once it is no longer confirmed", async () => {
+    // Nothing re-probes a steady connection on a timer, so preparation asks.
+    // A read that only looked would go stale a minute in and never resume.
+    let confirmed = true;
+    const { ports, order } = harness([queued("a"), queued("b"), queued("c")], {
+      confirmOnline: vi.fn(async () => confirmed),
+      prepare: vi.fn(async (job: Job): Promise<PreparationResult> => {
+        order.push(job.id);
+        job.meta = { ...job.meta, preparation: { status: "ready", checkedAt: "now" } };
+        if (job.id === "a") confirmed = false;
+        return "ready";
+      }),
+    });
+    preparation = createUploadPreparation(ports);
+
+    await settled(preparation);
+
+    expect(order).toEqual(["a"]);
+    expect(uploadPreparationStore.getSnapshot().paused).toBe("unconfirmed");
+    // Once for the pass, once before each of the two items it reached.
+    expect(ports.confirmOnline).toHaveBeenCalledTimes(3);
+
+    confirmed = true;
+    await settled(preparation);
+    expect(order).toEqual(["a", "b", "c"]);
+    expect(uploadPreparationStore.getSnapshot().paused).toBeNull();
+  });
+
+  it("keeps its claim alive while an item is prepared, and lets go of it after", async () => {
+    const stopHolding = vi.fn();
+    const hold = vi.fn((_claims: unknown[]) => stopHolding);
+    const { ports, held } = harness([queued("a")], {
+      hold,
+      prepare: vi.fn(async (): Promise<PreparationResult> => {
+        // Renewal is running, and the claim is still held, while the item prepares.
+        expect(hold).toHaveBeenCalledOnce();
+        expect(stopHolding).not.toHaveBeenCalled();
+        expect(held.has("a")).toBe(true);
+        return "ready";
+      }),
+    });
+    preparation = createUploadPreparation(ports);
+
+    await settled(preparation);
+
+    expect(ports.prepare).toHaveBeenCalledOnce();
+    expect(hold.mock.calls[0][0]).toEqual([expect.objectContaining({ token: "a" })]);
+    expect(stopHolding).toHaveBeenCalledOnce();
+    expect(held.size).toBe(0);
   });
 });
