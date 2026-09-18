@@ -248,9 +248,9 @@ All stores live in `packages/shared/src/stores/` (exported via `stores/index.ts`
 
 `jobQueue` singleton (`modules/job-queue/index.ts`, barrel-exported) — the write path for all offline ops; every method is scoped by `userAddress` (`addJob` throws without it):
 
-- `addJob(kind, payload, userAddress, meta?) → jobId` · `processJob(jobId, ctx)` · `flush(ctx)` (ctx carries `userAddress` + `smartAccountClient`)
+- `addJob(kind, payload, userAddress, meta?) → jobId` · `processJob(jobId, ctx)` · `flush(ctx)` (ctx carries `transactionSender`; `explicit: true` marks a person's own tap; `flush` also takes `userAddress` and optional `kinds`)
 - `getStats` · `getJobs(userAddress, filter?)` · `getPendingCount` · `hasPendingJobs` · `subscribe(listener) → unsub` · `cleanup()`
-- `JobKind` = `"work" | "approval"` (`JobKindMap`, `types/job-queue.ts`)
+- `JobKind` = `keyof JobKindMap` (`types/job-queue.ts`): `work`, `approval`, and the commitment kinds. Work and decisions are the upload kinds (`modules/work/upload-kinds.ts`); they wait for Upload all, and every send goes through `modules/work/send-with-checkpoint.ts`
 - Job states `pending → processing → synced` / `failed`; retry `MAX_RETRIES = 5`, backoff `min(1000 · 2^attempts, 60_000)` ms
 - React access: `useJobQueue()` (`providers/JobQueue.tsx`)
 
