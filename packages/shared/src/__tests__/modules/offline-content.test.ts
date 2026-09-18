@@ -362,6 +362,21 @@ describe("offline scheduler", () => {
     });
   });
 
+  it("starts no download when the run is stopped while the worker is asked to protect", async () => {
+    const { ports } = harness({ gardens: [garden(gardenA, [account])] });
+    const scheduler = new OfflineScheduler(ports);
+    // Leaving the screen stops the run without waiting for the worker's reply,
+    // and that also leaves a fresh abort signal behind.
+    vi.mocked(ports.media.protect).mockImplementationOnce(async () => {
+      scheduler.stop();
+      return true;
+    });
+
+    await scheduler.run();
+
+    expect(ports.media.download).not.toHaveBeenCalled();
+  });
+
   it("runs a read again when the hand-over cancelled it in the worker, not counting it failed", async () => {
     const { ports } = harness({ gardens: [garden(gardenA, [account])] });
     const scheduler = new OfflineScheduler(ports);
