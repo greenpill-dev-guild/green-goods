@@ -37,12 +37,22 @@ describe("utils/eas/transaction-builder", () => {
     });
     const encode = (call: ReturnType<typeof buildQueuedAttestationsCall>) =>
       encodeFunctionData({ abi: call.abi, functionName: call.functionName, args: call.args });
+    const EAS = mockEasConfig.EAS.address as `0x${string}`;
+    const WORK = mockEasConfig.WORK.uid as `0x${string}`;
+    const DECISION = mockEasConfig.WORK_APPROVAL.uid as `0x${string}`;
+    const work = (gardenAddress: `0x${string}`, attestationData: `0x${string}`) => ({
+      schema: WORK,
+      gardenAddress,
+      attestationData,
+    });
+    const decision = (gardenAddress: `0x${string}`, attestationData: `0x${string}`) => ({
+      schema: DECISION,
+      gardenAddress,
+      attestationData,
+    });
 
     it("sends a single queued item as a plain attest", () => {
-      const call = buildQueuedAttestationsCall(mockEasConfig, {
-        works: [{ gardenAddress: GARDEN_A, attestationData: data("ab") }],
-        approvals: [],
-      });
+      const call = buildQueuedAttestationsCall(EAS, [work(GARDEN_A, data("ab"))]);
 
       expect(call.address).toBe(mockEasConfig.EAS.address);
       expect(encode(call)).toBe(
@@ -55,13 +65,10 @@ describe("utils/eas/transaction-builder", () => {
     });
 
     it("sends many works as one multiAttest request group", () => {
-      const call = buildQueuedAttestationsCall(mockEasConfig, {
-        works: [
-          { gardenAddress: GARDEN_A, attestationData: data("ab") },
-          { gardenAddress: GARDEN_B, attestationData: data("cd") },
-        ],
-        approvals: [],
-      });
+      const call = buildQueuedAttestationsCall(EAS, [
+        work(GARDEN_A, data("ab")),
+        work(GARDEN_B, data("cd")),
+      ]);
 
       expect(encode(call)).toBe(
         encodeFunctionData({
@@ -80,10 +87,10 @@ describe("utils/eas/transaction-builder", () => {
     });
 
     it("sends work and decisions together, work first, one group per schema", () => {
-      const call = buildQueuedAttestationsCall(mockEasConfig, {
-        works: [{ gardenAddress: GARDEN_A, attestationData: data("ab") }],
-        approvals: [{ gardenAddress: GARDEN_B, attestationData: data("ef") }],
-      });
+      const call = buildQueuedAttestationsCall(EAS, [
+        work(GARDEN_A, data("ab")),
+        decision(GARDEN_B, data("ef")),
+      ]);
 
       expect(encode(call)).toBe(
         encodeFunctionData({
@@ -99,10 +106,34 @@ describe("utils/eas/transaction-builder", () => {
       );
     });
 
+    it("keeps one group per schema however the items arrive, in the order each schema first appears", () => {
+      // Any kind that becomes an attestation rides along by naming its schema.
+      const OTHER = `0x${"9".repeat(64)}` as `0x${string}`;
+      const call = buildQueuedAttestationsCall(EAS, [
+        work(GARDEN_A, data("ab")),
+        { schema: OTHER, gardenAddress: GARDEN_A, attestationData: data("01") },
+        work(GARDEN_B, data("cd")),
+      ]);
+
+      expect(encode(call)).toBe(
+        encodeFunctionData({
+          abi: EASABI,
+          functionName: "multiAttest",
+          args: [
+            [
+              {
+                schema: WORK,
+                data: [request(GARDEN_A, data("ab")), request(GARDEN_B, data("cd"))],
+              },
+              { schema: OTHER, data: [request(GARDEN_A, data("01"))] },
+            ],
+          ],
+        })
+      );
+    });
+
     it("refuses an empty send", () => {
-      expect(() =>
-        buildQueuedAttestationsCall(mockEasConfig, { works: [], approvals: [] })
-      ).toThrow("Nothing is queued to send");
+      expect(() => buildQueuedAttestationsCall(EAS, [])).toThrow("Nothing is queued to send");
     });
   });
 });

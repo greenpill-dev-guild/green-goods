@@ -1,57 +1,51 @@
 /**
- * Upload all: send every prepared work and decision in one call
+ * Upload all: send every prepared job in one call
  *
  * The person's tap confirms the connection and holds background preparation
- * back. Ready items are claimed, encoded from what preparation saved, and
- * sent as one EAS call per chunk, so a passkey signs one UserOperation and a
- * wallet approves one transaction. The send is recorded on every item before
- * it can reach the network: a lost answer is confirmed later, never sent twice.
- * A call the chain would refuse is split to find the items it refuses; those
- * are flagged and the rest stay ready.
+ * back. Ready items are claimed, turned into attestations from what preparation
+ * saved, and sent as one EAS call per chunk, so a passkey signs one
+ * UserOperation and a wallet approves one transaction. The send is recorded on
+ * every item before it can reach the network: a lost answer is confirmed later,
+ * never sent twice. A call the chain would refuse is split to find the items it
+ * refuses; those are flagged and the rest stay ready.
+ *
+ * Nothing here knows what a work or a decision is. Each kind says what
+ * attestation it becomes (upload-kinds.ts) and where it keeps its send record
+ * (job-queue/queue-policy.ts).
  *
  * @module modules/work/upload-queued-work
  */
 
-import type { Hex } from "viem";
 import type { EASConfig } from "../../config/blockchain";
 import type { Address } from "../../types/domain";
-import type {
-  ApprovalJobPayload,
-  Job,
-  SendCheckpoint,
-  WorkJobPayload,
-} from "../../types/job-queue";
-import type { WorkUploadCheckpoint } from "../../types/work-media";
+import type { Job, SendCheckpoint } from "../../types/job-queue";
 import {
   buildQueuedAttestationsCall,
   type QueuedAttestation,
 } from "../../utils/eas/transaction-builder";
-import { resolveWorkSubmissionTitle } from "../../utils/work/workTitles";
 import { logger } from "../app/logger";
 import type { ProcessJobContext, ProcessJobResult } from "../job-queue/ports";
-import { sendCheckpointOf } from "../job-queue/queue-policy";
+import { sendCheckpointOf, writeSendCheckpoint } from "../job-queue/queue-policy";
 import type { saveUnderClaim, WorkClaim } from "../job-queue/work-claims";
-import {
-  type ContractCall,
-  TransactionRevertedError,
-  type TransactionSender,
-} from "../transactions/types";
-import { mergeUploadProgress } from "./prepare-queued-work";
-import { buildQueuedApprovalDraft, buildQueuedWorkDraft } from "./queued-work-draft";
-import { classifySendFailure } from "./send-outcome";
+import type { ContractCall, TransactionSender } from "../transactions/types";
+import { sendWithCheckpoint } from "./send-with-checkpoint";
 import { SimulationRejected } from "./simulation-rejected";
 import { isUploadJob, queuedUploadStatus } from "./upload-state";
-import { forgetWorkBroadcast, rememberWorkBroadcast } from "./work-confirmation";
+import { forgetWorkBroadcast } from "./work-confirmation";
 
-/** Items per call, until scripts/simulate-upload-all.ts settles the limits. */
+/**
+ * Items per call. Placeholders until scripts/simulate-upload-all.ts is run against
+ * the bundler. It cannot measure an account that is not deployed yet, whose first
+ * UserOperation also pays for the deployment, so that case needs a device check.
+ */
 const MAX_ITEMS_PER_USER_OPERATION = 5;
 const MAX_ITEMS_PER_WALLET_CALL = 10;
-
-type Encoders = typeof import("../../utils/eas/encoders");
 
 export type UploadOutcome =
   | { status: "connection-unconfirmed" }
   | { status: "nothing-ready" }
+  /** The tap ended without a send: every ready item was refused, or is held elsewhere. */
+  | { status: "nothing-sent"; flagged: number }
   /** Sent; items whose receipt has not arrived are confirmed by the queue. */
   | { status: "uploaded"; sent: number; flagged: number }
   | { status: "declined" | "reverted" | "send-unconfirmed"; sent: number; flagged: number }
@@ -65,9 +59,11 @@ export interface UploadQueuedWorkPorts {
   acquire(ids: string[]): Promise<Map<string, WorkClaim>>;
   hold(claims: WorkClaim[]): () => void;
   save: typeof saveUnderClaim;
-  images(jobId: string): Promise<Array<{ file: File }>>;
-  encodeWork: Encoders["encodeWorkData"];
-  encodeApproval: Encoders["encodeWorkApprovalData"];
+  /** The attestation a claimed job becomes, from what preparation saved for it. */
+  attestation(
+    job: Job,
+    context: { chainId: number; claim: WorkClaim; authMode: TransactionSender["authMode"] }
+  ): Promise<QueuedAttestation>;
   easConfig(chainId: number): EASConfig;
   simulate(call: ContractCall, chainId: number, account: Address): Promise<void>;
   processJob(jobId: string, context: ProcessJobContext): Promise<ProcessJobResult>;
@@ -80,25 +76,18 @@ interface ChunkItem {
   attestation: QueuedAttestation;
 }
 
-type ChunkStop = Exclude<UploadOutcome["status"], "connection-unconfirmed" | "nothing-ready">;
+type ChunkStop = Exclude<
+  UploadOutcome["status"],
+  "connection-unconfirmed" | "nothing-ready" | "nothing-sent"
+>;
 
-/** Replace a job's recorded send, keeping a work's saved uploads. */
-function writeSend(target: Job, send: SendCheckpoint | undefined): void {
-  if (target.kind === "approval") {
-    const payload = target.payload as ApprovalJobPayload;
-    if (send) payload.sendCheckpoint = send;
-    else delete payload.sendCheckpoint;
-    return;
-  }
-  const payload = target.payload as WorkJobPayload;
-  const {
-    broadcast: _broadcast,
-    broadcastPending: _pending,
-    broadcastPendingAt: _pendingAt,
-    transactionHash: _hash,
-    ...uploads
-  } = payload.uploadCheckpoint ?? ({ submittedAt: new Date().toISOString(), files: {} } as const);
-  payload.uploadCheckpoint = { ...uploads, ...send } as WorkUploadCheckpoint;
+/**
+ * A refusal that belongs to one item rather than to the run. The queue has
+ * already retired it, so the rest of the batch still goes out; anything else
+ * means the sender could not send, and asking again would only fail again.
+ */
+function refusesOneItem(error: string | undefined): boolean {
+  return Boolean(error?.startsWith("unavailable:") || error?.startsWith("identity_conflict:"));
 }
 
 export async function uploadQueuedWork(
@@ -111,6 +100,11 @@ export async function uploadQueuedWork(
   let flagged = 0;
   const { chainId, sender } = input;
   const explicitSend: ProcessJobContext = { transactionSender: sender, explicit: true };
+  const callOf = (chunk: ChunkItem[]) =>
+    buildQueuedAttestationsCall(
+      ports.easConfig(chainId).EAS.address as `0x${string}`,
+      chunk.map(({ attestation }) => attestation)
+    );
 
   const recordAll = async (
     items: ChunkItem[],
@@ -118,9 +112,9 @@ export async function uploadQueuedWork(
   ) => {
     for (const item of items) {
       await ports.save(item.claim, item.job.id, (stored) =>
-        writeSend(stored, next(sendCheckpointOf(stored) ?? {}))
+        writeSendCheckpoint(stored, next(sendCheckpointOf(stored) ?? {}))
       );
-      writeSend(item.job, next(sendCheckpointOf(item.job) ?? {}));
+      writeSendCheckpoint(item.job, next(sendCheckpointOf(item.job) ?? {}));
     }
   };
 
@@ -140,12 +134,8 @@ export async function uploadQueuedWork(
   const flagRefused = async (items: ChunkItem[]): Promise<ChunkItem[]> => {
     const accepted: ChunkItem[] = [];
     for (const item of items) {
-      const single = buildQueuedAttestationsCall(ports.easConfig(chainId), {
-        works: item.job.kind === "work" ? [item.attestation] : [],
-        approvals: item.job.kind === "approval" ? [item.attestation] : [],
-      });
       try {
-        await ports.simulate(single, chainId, input.userAddress);
+        await ports.simulate(callOf([item]), chainId, input.userAddress);
         accepted.push(item);
       } catch (error) {
         if (!(error instanceof SimulationRejected && error.definitive)) throw error;
@@ -153,41 +143,6 @@ export async function uploadQueuedWork(
       }
     }
     return accepted;
-  };
-
-  const encode = async (job: Job, claim: WorkClaim): Promise<QueuedAttestation> => {
-    if (job.kind === "approval") {
-      const payload = job.payload as ApprovalJobPayload;
-      return {
-        gardenAddress: payload.gardenAddress as Hex,
-        attestationData: ports.encodeApproval(buildQueuedApprovalDraft(payload), chainId),
-      };
-    }
-    const payload = (job as Job<WorkJobPayload>).payload;
-    const images = await ports.images(job.id);
-    // The title preparation resolved: its saved metadata is read back, not uploaded again.
-    const draft = buildQueuedWorkDraft(
-      payload,
-      images.map((image) => image.file),
-      resolveWorkSubmissionTitle({ draftTitle: payload.title, actionUID: payload.actionUID })
-    );
-    // Preparation saved every upload, so this reads them back rather than uploading.
-    const attestationData = await ports.encodeWork(draft, chainId, {
-      clientWorkId: payload.clientWorkId,
-      checkpoint: payload.uploadCheckpoint,
-      onCheckpoint: async (progress) => {
-        await ports.save(claim, job.id, (stored) => {
-          const storedPayload = stored.payload as WorkJobPayload;
-          storedPayload.uploadCheckpoint = mergeUploadProgress(
-            storedPayload.uploadCheckpoint,
-            progress
-          );
-        });
-      },
-      gardenAddress: payload.gardenAddress,
-      authMode: sender.authMode,
-    });
-    return { gardenAddress: payload.gardenAddress as Hex, attestationData };
   };
 
   const sendChunk = async (ids: string[]): Promise<{ stop?: ChunkStop; error?: unknown }> => {
@@ -200,7 +155,12 @@ export async function uploadQueuedWork(
         const job = await ports.getJob(id);
         if (!job || queuedUploadStatus(job).state !== "ready") continue;
         try {
-          items.push({ job, claim, attestation: await encode(job, claim) });
+          const attestation = await ports.attestation(job, {
+            chainId,
+            claim,
+            authMode: sender.authMode,
+          });
+          items.push({ job, claim, attestation });
         } catch (error) {
           logger.warn("[UploadAll] Queued item is not ready after all", {
             jobId: id,
@@ -218,15 +178,6 @@ export async function uploadQueuedWork(
       }
       if (items.length === 0) return {};
 
-      const callOf = (chunk: ChunkItem[]) =>
-        buildQueuedAttestationsCall(ports.easConfig(chainId), {
-          works: chunk
-            .filter(({ job }) => job.kind === "work")
-            .map(({ attestation }) => attestation),
-          approvals: chunk
-            .filter(({ job }) => job.kind === "approval")
-            .map(({ attestation }) => attestation),
-        });
       try {
         await ports.simulate(callOf(items), chainId, input.userAddress);
       } catch (error) {
@@ -244,61 +195,33 @@ export async function uploadQueuedWork(
         if (items.length === 0) return {};
       }
 
-      let intentRecorded = false;
-      let broadcastKnown = false;
-      try {
-        await sender.sendContractCall(
-          { ...callOf(items), chainId },
-          {
-            onBeforeBroadcast: async (reference) => {
-              const at = new Date(ports.now()).toISOString();
-              await recordAll(items, () => ({
-                broadcastPending: true,
-                broadcastPendingAt: at,
-                ...(reference ? { broadcast: reference } : {}),
-              }));
-              intentRecorded = true;
-            },
-            onBroadcastReference: async (reference) => {
-              broadcastKnown = true;
-              for (const { job } of items) rememberWorkBroadcast(job.id, reference);
-              await recordAll(items, (current) => ({
-                ...current,
-                broadcast: reference,
-                broadcastPending: false,
-              }));
-            },
-            onBroadcast: async (hash) => {
-              broadcastKnown = true;
-              await recordAll(items, (current) => ({
-                ...current,
-                transactionHash: hash,
-                broadcastPending: false,
-              }));
-            },
-          }
-        );
-        sent += items.length;
-        confirmedItems = items;
-        return {};
-      } catch (error) {
-        const reverted = error instanceof TransactionRevertedError;
-        const failure = reverted
-          ? ({ kind: "not-sent", cancelled: false } as const)
-          : classifySendFailure(error, { intentRecorded, broadcastKnown });
-        if (failure.kind === "may-have-sent") return { stop: "send-unconfirmed" };
-        // Nothing landed: one call carries every item, so the chain took all or none.
-        await recordAll(items, () => undefined);
-        for (const { job } of items) forgetWorkBroadcast(job.id);
-        if (reverted) {
+      const result = await sendWithCheckpoint({
+        sender,
+        call: { ...callOf(items), chainId },
+        jobIds: items.map(({ job }) => job.id),
+        record: (next) => recordAll(items, next),
+        now: ports.now,
+      });
+      switch (result.status) {
+        case "sent":
+          sent += items.length;
+          confirmedItems = items;
+          return {};
+        case "may-have-sent":
+          return { stop: "send-unconfirmed" };
+        case "not-sent":
+          return result.cancelled ? { stop: "declined" } : { stop: "failed", error: result.error };
+        case "reverted": {
+          // Nothing landed: one call carries every item, so the chain took all or none.
+          await recordAll(items, () => undefined);
+          for (const { job } of items) forgetWorkBroadcast(job.id);
           const accepted = await flagRefused(items).catch(() => items);
           // No single item explains the revert, so every one is flagged: the
           // same call must not stay ready and go out again unchanged.
           if (accepted.length === items.length)
             for (const item of accepted) await flag(item, "reverted").catch(() => undefined);
-          return { stop: "reverted", error };
+          return { stop: "reverted", error: result.error };
         }
-        return failure.cancelled ? { stop: "declined" } : { stop: "failed", error };
       }
     } finally {
       stopHolding();
@@ -316,6 +239,10 @@ export async function uploadQueuedWork(
     }
   };
 
+  /** A tap that ended without a send says so, instead of reporting an upload of nothing. */
+  const finished = (): UploadOutcome =>
+    sent === 0 ? { status: "nothing-sent", flagged } : { status: "uploaded", sent, flagged };
+
   try {
     const ready = (await ports.listJobs(input.userAddress)).filter(
       (job) =>
@@ -331,27 +258,30 @@ export async function uploadQueuedWork(
         const result = await ports.processJob(job.id, explicitSend);
         if (result.success && !result.skipped) sent += 1;
         if (result.error === "send-cancelled") return { status: "declined", sent, flagged };
-        // A send that failed outright ends the run, keeping what already went.
-        // Carrying on would report every remaining item as uploaded too.
-        if (!result.success && !result.skipped)
+        if (result.success || result.skipped) continue;
+        // One item the queue retired is that item's answer: it is counted for
+        // the person and the rest still go. A send that failed outright ends
+        // the run, since carrying on would report the remainder as uploaded.
+        if (!refusesOneItem(result.error))
           return { status: "failed", sent, flagged, error: result.error };
+        flagged += 1;
       }
-      return { status: "uploaded", sent, flagged };
+      return finished();
     }
 
     const limit =
       sender.authMode === "wallet" ? MAX_ITEMS_PER_WALLET_CALL : MAX_ITEMS_PER_USER_OPERATION;
-    // Work goes first, as it does inside the call.
+    // Work goes first, as it does inside the call: a decision never precedes work in a chunk.
     const ordered = [
       ...ready.filter((job) => job.kind === "work"),
-      ...ready.filter((job) => job.kind === "approval"),
+      ...ready.filter((job) => job.kind !== "work"),
     ].map((job) => job.id);
     for (let start = 0; start < ordered.length; start += limit) {
       const { stop, error } = await sendChunk(ordered.slice(start, start + limit));
       if (stop === "failed") return { status: "failed", sent, flagged, error };
       if (stop) return { status: stop, sent, flagged };
     }
-    return { status: "uploaded", sent, flagged };
+    return finished();
   } finally {
     resumePreparation();
   }

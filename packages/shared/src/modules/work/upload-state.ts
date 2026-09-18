@@ -38,12 +38,12 @@ export type QueuedUploadState =
 
 export interface QueuedUploadStatus {
   state: QueuedUploadState;
-  /** The person declined its last prompt; it still waits for their upload. */
-  declined: boolean;
   /** Why a blocked item cannot be sent. */
   reason?: string;
 }
 
+// Each kind here needs an entry in upload-kinds.ts, which says how it is prepared
+// and what it becomes. That module loads with the upload; this one ships in the shell.
 const UPLOAD_JOB_KINDS: ReadonlySet<string> = new Set(["work", "approval"]);
 
 /** Work and decisions go out through Upload all; commitment acts send on their own. */
@@ -74,22 +74,20 @@ export function uploadPreparationOf(job: Pick<Job, "meta">): UploadPreparation |
 }
 
 export function queuedUploadStatus(job: Job): QueuedUploadStatus {
-  const declined = job.meta?.requiresExplicitSend === true;
   if (
     job.meta?.workTransactionReverted ||
     (job.kind === "work" && (job.payload as WorkJobPayload).uploadCheckpoint?.transactionReverted)
   )
-    return { state: "reverted", declined };
-  if (hasRecordedSend(job)) return { state: "sent", declined };
-  if (isTerminallyFailedJob(job)) return { state: "failed", declined };
+    return { state: "reverted" };
+  if (hasRecordedSend(job)) return { state: "sent" };
+  if (isTerminallyFailedJob(job)) return { state: "failed" };
 
   const preparation = uploadPreparationOf(job);
   // A send attempt's own wait outranks an older preparation answer.
   const waiting = job.meta?.waitingReason;
-  if (waiting === "photo-conversion-pending") return { state: "photo-pending", declined };
-  if (waiting === "photo-needs-attention") return { state: "photo-needs-attention", declined };
-  if (!preparation) return { state: "preparing", declined };
-  if (preparation.status === "blocked")
-    return { state: "blocked", declined, reason: preparation.reason };
-  return { state: preparation.status, declined };
+  if (waiting === "photo-conversion-pending") return { state: "photo-pending" };
+  if (waiting === "photo-needs-attention") return { state: "photo-needs-attention" };
+  if (!preparation) return { state: "preparing" };
+  if (preparation.status === "blocked") return { state: "blocked", reason: preparation.reason };
+  return { state: preparation.status };
 }

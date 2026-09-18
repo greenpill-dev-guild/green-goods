@@ -224,8 +224,9 @@ export function buildApprovalAttestContractCall(
   };
 }
 
-/** One queued attestation: the garden it is about and its encoded data. */
+/** One queued attestation: its schema, the garden it is about, and its encoded data. */
 export interface QueuedAttestation {
+  schema: Hex;
   gardenAddress: `0x${string}`;
   attestationData: Hex;
 }
@@ -234,38 +235,37 @@ export interface QueuedAttestation {
  * Build one ContractCall that sends every queued attestation at once.
  *
  * A single item is a plain `attest`. Several are one `multiAttest` with one
- * request group per schema, work first and decisions second, so a passkey
- * signs one UserOperation and a wallet approves one transaction. EAS returns
- * the new UIDs in the order of the requests it was given.
+ * request group per schema, in the order each schema first appears, so a passkey
+ * signs one UserOperation and a wallet approves one transaction. EAS returns the
+ * new UIDs in the order of the requests it was given. Any job kind that becomes
+ * an EAS attestation rides along by naming its schema.
  *
  * @throws Error when nothing is queued
  */
 export function buildQueuedAttestationsCall(
-  easConfig: EASConfig,
-  queued: { works: QueuedAttestation[]; approvals: QueuedAttestation[] }
+  easAddress: `0x${string}`,
+  queued: readonly QueuedAttestation[]
 ): ContractCall {
-  const groups = [
-    { schema: easConfig.WORK.uid as Hex, items: queued.works },
-    { schema: easConfig.WORK_APPROVAL.uid as Hex, items: queued.approvals },
-  ].filter(({ items }) => items.length > 0);
-  if (groups.length === 0) throw new Error("Nothing is queued to send");
-
-  const address = easConfig.EAS.address as `0x${string}`;
-  if (groups.length === 1 && groups[0].items.length === 1) {
-    const [{ gardenAddress, attestationData }] = groups[0].items;
+  if (queued.length === 0) throw new Error("Nothing is queued to send");
+  if (queued.length === 1) {
+    const [{ schema, gardenAddress, attestationData }] = queued;
     return {
-      address,
+      address: easAddress,
       abi: EASABI,
       functionName: "attest",
-      args: [buildAttestationRequest(gardenAddress, groups[0].schema, attestationData)],
+      args: [buildAttestationRequest(gardenAddress, schema, attestationData)],
     };
   }
-  const requests: MultiAttestationRequest[] = groups.map(({ schema, items }) => ({
-    schema,
-    data: items.map(
-      ({ gardenAddress, attestationData }) =>
-        buildAttestationRequest(gardenAddress, schema, attestationData).data
-    ),
-  }));
-  return { address, abi: EASABI, functionName: "multiAttest", args: [requests] };
+  const groups = new Map<Hex, MultiAttestationRequest>();
+  for (const { schema, gardenAddress, attestationData } of queued) {
+    const group = groups.get(schema) ?? { schema, data: [] };
+    group.data.push(buildAttestationRequest(gardenAddress, schema, attestationData).data);
+    groups.set(schema, group);
+  }
+  return {
+    address: easAddress,
+    abi: EASABI,
+    functionName: "multiAttest",
+    args: [[...groups.values()]],
+  };
 }

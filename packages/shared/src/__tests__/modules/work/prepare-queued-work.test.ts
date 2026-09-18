@@ -1,10 +1,10 @@
 /** @vitest-environment node */
 import { describe, expect, it, vi } from "vitest";
 import {
-  mergeUploadProgress,
   prepareQueuedJob,
   type PrepareQueuedJobDependencies,
 } from "../../../modules/work/prepare-queued-work";
+import { mergeUploadProgress } from "../../../modules/work/upload-kinds";
 import { SimulationRejected } from "../../../modules/work/simulation-rejected";
 import type { Job } from "../../../types/job-queue";
 

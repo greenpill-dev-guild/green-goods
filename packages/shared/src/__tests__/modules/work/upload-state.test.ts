@@ -30,14 +30,14 @@ describe("where a queued item stands for Upload all", () => {
   });
 
   it("is preparing until preparation records an answer", () => {
-    expect(queuedUploadStatus(queued("work"))).toEqual({ state: "preparing", declined: false });
+    expect(queuedUploadStatus(queued("work"))).toEqual({ state: "preparing" });
   });
 
-  it("is ready once prepared, and remembers a declined prompt", () => {
+  it("is ready once prepared, even after a declined prompt: Upload all is how it goes", () => {
     const ready = queued("approval", {
       meta: { preparation: { status: "ready", checkedAt: CHECKED_AT }, requiresExplicitSend: true },
     });
-    expect(queuedUploadStatus(ready)).toEqual({ state: "ready", declined: true });
+    expect(queuedUploadStatus(ready)).toEqual({ state: "ready" });
   });
 
   it("says why a blocked item cannot be sent", () => {
@@ -46,7 +46,6 @@ describe("where a queued item stands for Upload all", () => {
     });
     expect(queuedUploadStatus(blocked)).toEqual({
       state: "blocked",
-      declined: false,
       reason: "action-ended",
     });
   });
