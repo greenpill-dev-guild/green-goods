@@ -46,7 +46,6 @@ import { createSmartAccountClient } from "permissionless";
 import { toKernelSmartAccount } from "permissionless/accounts";
 import { createPimlicoClient } from "permissionless/clients/pimlico";
 import {
-  type Address,
   BaseError,
   type Chain,
   createPublicClient,
@@ -72,11 +71,15 @@ const DEFAULT_SPONSORSHIP_POLICY_ID = "sp_next_monster_badoon";
 const STUB_PASSKEY_PUBLIC_KEY =
   "0x046b17d1f2e12c4247f8bce6e563a440f277037d812deb33a0f4a13945d898c2964fe342e2fe1a7f9b8ee7eb4a7c0f9e162bce33576b315ececbb6406837bf51f5" as Hex;
 
-/** A CIDv1 of the length Pinata returns for photos and metadata, different on every call. */
+/**
+ * A CIDv1 of the length Pinata returns for photos and metadata, different on every
+ * call. These stand in for real CIDs so the batch compresses the way a real one
+ * does; nothing here is a secret, so an ordinary random source is the right one.
+ */
 const BASE32 = "abcdefghijklmnopqrstuvwxyz234567";
+const pick = <T>(items: ArrayLike<T>): T => items[Math.floor(Math.random() * items.length)];
 function randomCid(): string {
-  const bytes = crypto.getRandomValues(new Uint8Array(52));
-  return `bafkrei${Array.from(bytes, (byte) => BASE32[byte % 32]).join("")}`;
+  return `bafkrei${Array.from({ length: 52 }, () => pick(BASE32)).join("")}`;
 }
 const TITLE = "Soil Health Assessment and Community Composting Workshop";
 
@@ -114,9 +117,11 @@ function describeError(error: unknown): string {
   return redact(message).slice(0, 160);
 }
 
-function requireAddress(value: string | undefined, flag: string): Address {
+// `0x${string}`, not Address: viem's Address is a plain string under this repo's
+// register, and the attestation builders want the literal form.
+function requireAddress(value: string | undefined, flag: string): `0x${string}` {
   if (!value || !isAddress(value)) usage(`${flag} must be an address`);
-  return value;
+  return value as `0x${string}`;
 }
 
 function requireUid(value: string | undefined, flag: string): bigint {
@@ -204,8 +209,7 @@ async function main() {
     );
   const fieldNote = (chars = feedbackChars) => {
     let note = "";
-    while (note.length < chars)
-      note += `${NOTE_WORDS[crypto.getRandomValues(new Uint8Array(1))[0] % NOTE_WORDS.length]} `;
+    while (note.length < chars) note += `${pick(NOTE_WORDS)} `;
     return note.slice(0, chars);
   };
   const workEncoder = new SchemaEncoder(eas.WORK.schema);
@@ -236,7 +240,7 @@ async function main() {
   });
 
   const runCase = async (label: string, queued: QueuedAttestation[]): Promise<CaseResult> => {
-    const call = buildQueuedAttestationsCall(eas.EAS.address as Address, queued);
+    const call = buildQueuedAttestationsCall(eas.EAS.address as `0x${string}`, queued);
     const data = encodeFunctionData({
       abi: call.abi,
       functionName: call.functionName,
