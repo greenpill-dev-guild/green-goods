@@ -9,13 +9,22 @@
  *
  * Each case builds the call Upload all sends (buildQueuedAttestationsCall) at
  * realistic calldata, by default a 1,000-character field note and 10 photos per
- * work, then:
+ * work. Every work carries its own note and its own photo CIDs: Arbitrum prices a
+ * transaction's L1 share on its compressed size, and identical works would
+ * compress to almost nothing and understate the cost sponsorship has to cover.
+ * Then:
  *   1. eth_call from the account: would the resolvers accept it?
  *   2. prepareUserOperation on the Kernel 0.3.1 passkey account with the app's
  *      paymaster context: bundler estimation and sponsorship. Nothing is signed
  *      or sent. Estimation uses a stub signature, so no passkey is needed.
  *   3. eth_estimateGas from --wallet, when given: the wallet call's gas.
  * With --ended-action, a work on an ended action must be refused.
+ *
+ * What it cannot measure: an account that is not deployed yet. Its first
+ * UserOperation also pays for the deployment, and this run refuses such an
+ * account, since the stub owner below has a different address. A gardener a
+ * steward added, whose first UserOperation is an Upload all, needs a device check
+ * before the limits are trusted for them.
  *
  * Run from packages/shared, with the root .env loaded for VITE_PIMLICO_API_KEY:
  *
@@ -63,8 +72,12 @@ const DEFAULT_SPONSORSHIP_POLICY_ID = "sp_next_monster_badoon";
 const STUB_PASSKEY_PUBLIC_KEY =
   "0x046b17d1f2e12c4247f8bce6e563a440f277037d812deb33a0f4a13945d898c2964fe342e2fe1a7f9b8ee7eb4a7c0f9e162bce33576b315ececbb6406837bf51f5" as Hex;
 
-/** A CIDv1, the length Pinata returns for photos and metadata. */
-const CID = "bafkreigh2akiscaildcqabsyg3dfr6chu3fgpregiymsck7e7aqa4s52zy";
+/** A CIDv1 of the length Pinata returns for photos and metadata, different on every call. */
+const BASE32 = "abcdefghijklmnopqrstuvwxyz234567";
+function randomCid(): string {
+  const bytes = crypto.getRandomValues(new Uint8Array(52));
+  return `bafkrei${Array.from(bytes, (byte) => BASE32[byte % 32]).join("")}`;
+}
 const TITLE = "Soil Health Assessment and Community Composting Workshop";
 
 interface CaseResult {
@@ -184,40 +197,46 @@ async function main() {
     },
   });
 
-  const fieldNote =
-    "Turned the compost windrows, measured soil moisture across twelve beds, and logged seedling survival. ".repeat(
-      Math.ceil(feedbackChars / 100)
-    ).slice(0, feedbackChars);
+  // Field notes repeat words, as real ones do, but no two works share a note.
+  const NOTE_WORDS =
+    "compost windrows soil moisture beds seedlings survival mulch swale rainwater canopy pruning nursery transplant weeding harvest pollinators fencing irrigation terrace".split(
+      " "
+    );
+  const fieldNote = (chars = feedbackChars) => {
+    let note = "";
+    while (note.length < chars)
+      note += `${NOTE_WORDS[crypto.getRandomValues(new Uint8Array(1))[0] % NOTE_WORDS.length]} `;
+    return note.slice(0, chars);
+  };
   const workEncoder = new SchemaEncoder(eas.WORK.schema);
   const approvalEncoder = new SchemaEncoder(eas.WORK_APPROVAL.schema);
   const work = (actionUID: bigint): QueuedAttestation => ({
+    schema: eas.WORK.uid as Hex,
     gardenAddress: garden,
     attestationData: workEncoder.encodeData([
       { name: "actionUID", value: actionUID, type: "uint256" },
       { name: "title", value: TITLE, type: "string" },
-      { name: "feedback", value: fieldNote, type: "string" },
-      { name: "metadata", value: CID, type: "string" },
-      { name: "media", value: Array.from({ length: photos }, () => CID), type: "string[]" },
+      { name: "feedback", value: fieldNote(), type: "string" },
+      { name: "metadata", value: randomCid(), type: "string" },
+      { name: "media", value: Array.from({ length: photos }, randomCid), type: "string[]" },
     ]) as Hex,
   });
   const decision = (): QueuedAttestation => ({
+    schema: eas.WORK_APPROVAL.uid as Hex,
     gardenAddress: garden,
     attestationData: approvalEncoder.encodeData([
       { name: "actionUID", value: workAction, type: "uint256" },
       { name: "workUID", value: workUid as Hex, type: "bytes32" },
       { name: "approved", value: true, type: "bool" },
-      { name: "feedback", value: fieldNote.slice(0, 280), type: "string" },
+      { name: "feedback", value: fieldNote(280), type: "string" },
       { name: "confidence", value: 2, type: "uint8" },
       { name: "verificationMethod", value: 1, type: "uint8" },
-      { name: "reviewNotesCID", value: CID, type: "string" },
+      { name: "reviewNotesCID", value: randomCid(), type: "string" },
     ]) as Hex,
   });
 
-  const runCase = async (
-    label: string,
-    queued: { works: QueuedAttestation[]; approvals: QueuedAttestation[] }
-  ): Promise<CaseResult> => {
-    const call = buildQueuedAttestationsCall(eas, queued);
+  const runCase = async (label: string, queued: QueuedAttestation[]): Promise<CaseResult> => {
+    const call = buildQueuedAttestationsCall(eas.EAS.address as Address, queued);
     const data = encodeFunctionData({
       abi: call.abi,
       functionName: call.functionName,
@@ -265,28 +284,29 @@ async function main() {
   for (const size of sizes) {
     console.log(`Simulating ${size} ${size === 1 ? "work" : "works"}…`);
     results.push(
-      await runCase(`${size} works`, {
-        works: Array.from({ length: size }, () => work(action)),
-        approvals: [],
-      })
+      await runCase(
+        `${size} works`,
+        Array.from({ length: size }, () => work(action))
+      )
     );
   }
   const largest = Math.max(...sizes);
   if (workUid) {
     console.log("Simulating works with decisions…");
     results.push(
-      await runCase(`${largest} works + 2 decisions`, {
-        works: Array.from({ length: largest }, () => work(action)),
-        approvals: [decision(), decision()],
-      })
+      await runCase(`${largest} works + 2 decisions`, [
+        ...Array.from({ length: largest }, () => work(action)),
+        decision(),
+        decision(),
+      ])
     );
   }
   if (endedAction !== undefined) {
     console.log("Simulating a work on an ended action…");
-    const culprit = await runCase("culprit: 1 ended + 1 active", {
-      works: [work(endedAction), work(action)],
-      approvals: [],
-    });
+    const culprit = await runCase("culprit: 1 ended + 1 active", [
+      work(endedAction),
+      work(action),
+    ]);
     // The resolvers decide this, not the paymaster: sponsorship says a bundler
     // would carry the call, not that the chain would accept it.
     culprit.case +=
