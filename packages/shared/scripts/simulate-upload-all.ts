@@ -25,7 +25,7 @@
  *     [--ended-action <an ended action UID>] \
  *     [--work-uid 0x<a work by someone else> --work-action <its action UID>] \
  *     [--wallet 0x<a member's wallet address>] \
- *     [--chain 42161] [--sizes 1,2,5,10] [--photos 10] [--feedback-chars 1000] [--rpc <url>]
+ *     [--chain <id>] [--sizes 1,2,5,10] [--photos 10] [--feedback-chars 1000] [--rpc <url>]
  *
  * Decisions need --account to be an operator of the garden.
  * VITE_PIMLICO_SPONSORSHIP_POLICY_ID overrides the app's default sponsorship policy.
@@ -48,7 +48,7 @@ import {
 } from "viem";
 import { entryPoint07Address, toWebAuthnAccount } from "viem/account-abstraction";
 import { arbitrum, celo, sepolia } from "viem/chains";
-import { getEASConfig } from "../src/config/blockchain";
+import { DEFAULT_CHAIN_ID, getEASConfig } from "../src/config/blockchain";
 import {
   buildQueuedAttestationsCall,
   type QueuedAttestation,
@@ -82,7 +82,7 @@ function usage(message?: string): never {
     "\nUsage (from packages/shared): bun --env-file=../../.env scripts/simulate-upload-all.ts " +
       "--account 0x… --garden 0x… --action <uid> " +
       "[--ended-action <uid>] [--work-uid 0x… --work-action <uid>] [--wallet 0x…] " +
-      "[--chain 42161] [--sizes 1,2,5,10] [--photos 10] [--feedback-chars 1000] [--rpc <url>]\n"
+      "[--chain <id>] [--sizes 1,2,5,10] [--photos 10] [--feedback-chars 1000] [--rpc <url>]\n"
   );
   process.exit(1);
 }
@@ -122,7 +122,8 @@ async function main() {
       "work-uid": { type: "string" },
       "work-action": { type: "string" },
       wallet: { type: "string" },
-      chain: { type: "string", default: "42161" },
+      // The limits this measures are read on the app's own chain.
+      chain: { type: "string", default: String(DEFAULT_CHAIN_ID) },
       sizes: { type: "string", default: "1,2,5,10" },
       photos: { type: "string", default: "10" },
       "feedback-chars": { type: "string", default: "1000" },
@@ -286,8 +287,10 @@ async function main() {
       works: [work(endedAction), work(action)],
       approvals: [],
     });
+    // The resolvers decide this, not the paymaster: sponsorship says a bundler
+    // would carry the call, not that the chain would accept it.
     culprit.case +=
-      culprit.userOperation === "sponsored" ? " (UNEXPECTEDLY ACCEPTED)" : " (refused, as expected)";
+      culprit.resolvers === "accepted" ? " (UNEXPECTEDLY ACCEPTED)" : " (refused, as expected)";
     results.push(culprit);
   }
 

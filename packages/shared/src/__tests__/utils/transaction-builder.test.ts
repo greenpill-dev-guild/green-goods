@@ -1,4 +1,4 @@
-import { decodeFunctionData, encodeFunctionData } from "viem";
+import { encodeFunctionData } from "viem";
 import { describe, expect, it } from "vitest";
 import type { EASConfig } from "../../config/blockchain";
 import { EASABI } from "../../utils/blockchain/contracts";

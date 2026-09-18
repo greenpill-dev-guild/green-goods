@@ -444,8 +444,11 @@ describe("work confirmation recovery", () => {
     const { queue } = setup({ store });
     await queue.retryJob("job-1");
     const retry = await store.getJob("job-1");
-    expect(retry?.payload).toMatchObject({ uploadCheckpoint: { files: checkpoint.files } });
-    expect(retry?.payload).not.toHaveProperty("uploadCheckpoint.transactionHash");
+    // Exactly this: a stale broadcast field left behind would pass toMatchObject.
+    expect((retry?.payload as { uploadCheckpoint?: unknown }).uploadCheckpoint).toEqual({
+      submittedAt: "2026-09-09",
+      files: checkpoint.files,
+    });
     expect(retry?.meta).not.toHaveProperty("workTransactionReverted");
     expect(retry?.attempts).toBe(0);
   });
@@ -468,6 +471,10 @@ describe("work confirmation recovery", () => {
     expect(retry?.meta).not.toHaveProperty("mediaConversion");
     expect(retry?.meta).not.toHaveProperty("waitingReason");
     expect(retry?.meta).toMatchObject({ clientNote: "kept" });
-    expect(retry?.payload).toMatchObject({ uploadCheckpoint: { files: checkpoint.files } });
+    // Exactly this: a stale broadcast field left behind would pass toMatchObject.
+    expect((retry?.payload as { uploadCheckpoint?: unknown }).uploadCheckpoint).toEqual({
+      submittedAt: "2026-09-09",
+      files: checkpoint.files,
+    });
   });
 });
