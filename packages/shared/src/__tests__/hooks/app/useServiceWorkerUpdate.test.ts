@@ -1226,6 +1226,16 @@ it("allows an uninitialized surface and safely saved drafts but blocks active ex
     expect(isWorkUpdateBlocked()).toBe(true);
     release?.();
     expect(isWorkUpdateBlocked()).toBe(false);
+    // Background preparation can be picked up again, so it keeps other holders
+    // out of the job without holding back the update. A send beside it still does.
+    const preparing = claimWorkJobs(["being-prepared"], { background: true });
+    expect(isWorkUpdateBlocked()).toBe(false);
+    expect(claimWorkJobs(["being-prepared"])).toBeNull();
+    const sending = claimWorkJobs(["being-sent"]);
+    expect(isWorkUpdateBlocked()).toBe(true);
+    sending?.();
+    preparing?.();
+    expect(isWorkUpdateBlocked()).toBe(false);
     useWorkFlowStore.setState({ draftSaveState: "failed" });
     expect(isWorkUpdateBlocked()).toBe(true);
   } finally {

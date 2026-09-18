@@ -11,6 +11,7 @@
  */
 
 import type { Job } from "../../types/job-queue";
+import type { WorkClaimOptions } from "../work/execution-state";
 import { acquireWorkJobs } from "../work/work-confirmation";
 import { CLAIM_TTL_MS, jobQueueDB } from "./db";
 
@@ -20,11 +21,14 @@ export type WorkClaim = NonNullable<Awaited<ReturnType<typeof acquireWorkJobs>>>
 const HOLD_INTERVAL_MS = 20_000;
 
 /** Claim whichever of these jobs are free, one by one, so one busy job never blocks the rest. */
-export async function acquireAvailableWorkJobs(ids: string[]): Promise<Map<string, WorkClaim>> {
+export async function acquireAvailableWorkJobs(
+  ids: string[],
+  options: WorkClaimOptions = {}
+): Promise<Map<string, WorkClaim>> {
   const claims = new Map<string, WorkClaim>();
   try {
     for (const id of ids) {
-      const claim = await acquireWorkJobs([id]);
+      const claim = await acquireWorkJobs([id], options);
       if (claim) claims.set(id, claim);
     }
   } catch (error) {

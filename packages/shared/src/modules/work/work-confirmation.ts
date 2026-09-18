@@ -5,7 +5,7 @@ import type { Hex } from "viem";
 import type { BroadcastReference } from "../transactions/types";
 import { getTransactionReceipt } from "@wagmi/core";
 import { getWagmiConfig } from "../../config/appkit";
-import { claimWorkJobs } from "./execution-state";
+import { claimWorkJobs, type WorkClaimOptions } from "./execution-state";
 
 type WorkConfirmation = "confirmed" | "reverted" | "unresolved";
 export class AwaitingWorkConfirmation extends Error {
@@ -61,12 +61,15 @@ export function forgetWorkBroadcast(id: string) {
 export { claimWorkJobs } from "./execution-state";
 
 /** Cross-tab claims share the queue database; a persisted signing intent handles crash ambiguity. */
-export async function acquireWorkJobs(ids: string[]): Promise<{
+export async function acquireWorkJobs(
+  ids: string[],
+  options: WorkClaimOptions = {}
+): Promise<{
   token: string;
   assertOwned: () => Promise<void>;
   release: () => Promise<void>;
 } | null> {
-  const localRelease = claimWorkJobs(ids);
+  const localRelease = claimWorkJobs(ids, options);
   if (!localRelease) return null;
   const { jobQueueDB } = await import("../job-queue/db");
   const token = crypto.randomUUID();
