@@ -8,10 +8,11 @@
  * directly under the header row and keeps its own bottom rule; the header
  * itself draws none.
  *
- * `PwaSheet` renders it under the drag handle; the centered `DialogShell` and
- * `ConfirmDialog` render it at the top of their Radix surface, passing the
- * Radix title and description primitives through `titleAs` / `descriptionAs`
- * so Radix keeps naming the dialog.
+ * `PwaSheet` renders it under the drag handle and, through `dragHandlers`,
+ * makes the title block part of the grip's grab area (DL-033); the centered
+ * `DialogShell` and `ConfirmDialog` render it at the top of their Radix
+ * surface, passing the Radix title and description primitives through
+ * `titleAs` / `descriptionAs` so Radix keeps naming the dialog.
  *
  * Layout lives in shared `utilities.css` as `[data-component="SheetHeader"]`
  * attribute rules (Tailwind does not scan `packages/shared/src/` from the app
@@ -21,7 +22,7 @@
  * @module components/Dialog/SheetHeader
  */
 import { RiCloseLine } from "@remixicon/react";
-import type { ElementType, ReactNode } from "react";
+import type { DOMAttributes, ElementType, ReactNode } from "react";
 import { IconButton } from "../IconButton";
 
 export interface SheetHeaderProps {
@@ -44,6 +45,12 @@ export interface SheetHeaderProps {
   closeTestId?: string;
   /** True when the header opens the surface itself (no drag handle above it). */
   standalone?: boolean;
+  /**
+   * A bottom sheet's drag handlers. With them the title block joins the
+   * grip's grab area. The close button sits outside it: a gesture library's
+   * tap filter must never stand between a press and the way out.
+   */
+  dragHandlers?: DOMAttributes<HTMLElement>;
   /** Extra classes on the header row (consumer-scanned utilities). */
   className?: string;
   /** Extra classes on the description. */
@@ -65,6 +72,7 @@ export function SheetHeader({
   hideCloseButton = false,
   closeTestId = "pwa-sheet-close",
   standalone = false,
+  dragHandlers,
   className,
   descriptionClassName,
   children,
@@ -81,7 +89,12 @@ export function SheetHeader({
         data-standalone={standalone ? "" : undefined}
         className={className}
       >
-        <div data-component="SheetHeader" data-slot="text">
+        <div
+          data-component="SheetHeader"
+          data-slot="text"
+          data-drag-region={dragHandlers ? "" : undefined}
+          {...dragHandlers}
+        >
           <Title
             {...(titleAs ? {} : { id: titleId })}
             data-component="SheetHeader"

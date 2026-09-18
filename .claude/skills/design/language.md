@@ -200,6 +200,7 @@ All animation uses named spring tokens. No hardcoded `cubic-bezier` or `duration
 | `--spring-spatial` | `cubic-bezier(0.16, 1, 0.3, 1)` | 300ms | Layout shifts, navigation, expand/collapse, sheets |
 | `--spring-spatial-fast` | `cubic-bezier(0.34, 1.56, 0.64, 1)` | 200ms | Button press, toggles, micro-interactions |
 | `--spring-spatial-slow` | `cubic-bezier(0.16, 1, 0.3, 1)` | 400ms | Hero transitions, page morphs, view transitions |
+| `--spring-spatial-exit` | `cubic-bezier(0.3, 0, 1, 1)` | 200ms | A surface leaving the screen from rest: a closing sheet or drawer (DL-033) |
 | `--spring-effects` | `cubic-bezier(0.2, 0, 0, 1)` | 250ms | Opacity, color, blur, material transitions |
 | `--spring-effects-fast` | `cubic-bezier(0.2, 0, 0, 1)` | 150ms | Hover states, focus rings, tooltip appearance |
 | `--spring-effects-slow` | `cubic-bezier(0.2, 0, 0, 1)` | 500ms | Loading indicators, progress bars, ambient pulse |
@@ -210,6 +211,7 @@ All animation uses named spring tokens. No hardcoded `cubic-bezier` or `duration
   --spring-spatial: cubic-bezier(0.16, 1, 0.3, 1) 300ms;
   --spring-spatial-fast: cubic-bezier(0.34, 1.56, 0.64, 1) 200ms;
   --spring-spatial-slow: cubic-bezier(0.16, 1, 0.3, 1) 400ms;
+  --spring-spatial-exit: cubic-bezier(0.3, 0, 1, 1) 200ms;
   --spring-effects: cubic-bezier(0.2, 0, 0, 1) 250ms;
   --spring-effects-fast: cubic-bezier(0.2, 0, 0, 1) 150ms;
   --spring-effects-slow: cubic-bezier(0.2, 0, 0, 1) 500ms;
@@ -217,6 +219,8 @@ All animation uses named spring tokens. No hardcoded `cubic-bezier` or `duration
 ```
 
 Each token is a `cubic-bezier(...) duration` pair — usable directly as a transition shorthand: `transition: transform var(--spring-spatial-fast);`. Reduced motion is handled globally — do not gate per-component.
+
+**Entering and leaving (DL-033).** The three spatial tokens decelerate: the motion starts at speed and settles into place, which suits a surface arriving or moving on screen. `--spring-spatial-exit` is the one token that accelerates. A surface that leaves the screen from rest starts slowly and is at full speed as it crosses the edge, so its deceleration is never seen. A surface that already has speed, such as a sheet thrown by a flick, leaves on `--spring-spatial` instead, because a curve that starts from rest would stall it under the finger. The exit duration stays within `--spring-spatial-duration`, which sheet consumers time their unmount on.
 
 ### Motion Schemes
 
@@ -239,7 +243,7 @@ Motion is built into components, not applied externally:
 |-----------|--------|-------------|
 | **Buttons** | App: shape morph on press (the corner tightens one step). Website: square, no morph | `--spring-spatial-fast` |
 | **Cards** | Client: hover lift (scale 1.008) + press (scale 0.985 + radius tighten). Admin: no lift/scale/glow — elevation 1→2 or the neutral 8% ink layer | `--spring-spatial-fast` |
-| **Client/PWA sheets** | Slide from source element; client shell depth may respond | `--spring-spatial` |
+| **Client/PWA sheets** | Slide up from the bottom edge in one move, never past rest; follow the finger on a drag; accelerate out from rest, or leave at speed on a flick (DL-033) | `--spring-spatial-slow` in · `--spring-spatial-exit` out · `--spring-spatial` for a settle or a flick |
 | **Navigation** | Active indicator slides with spring transition | `--spring-spatial` |
 | **Progress (wavy)** | Organic wave motion on track | `--spring-effects-slow` |
 | **Loading indicator** | Organic shape rotation/pulse | `--spring-effects-slow` |

@@ -109,6 +109,7 @@ describe("ConfirmDialog", () => {
     expect(screen.getByRole("button", { name: "Send" })).toHaveAttribute("aria-busy", "true");
     expect(screen.getByTestId("pwa-sheet-close")).toBeDisabled();
     fireEvent.keyDown(document, { key: "Escape" });
+    fireEvent.pointerDown(screen.getByTestId("confirm-dialog-overlay"));
     fireEvent.click(screen.getByTestId("confirm-dialog-overlay"));
     expect(onClose).not.toHaveBeenCalled();
   });
