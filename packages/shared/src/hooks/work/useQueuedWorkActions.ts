@@ -79,7 +79,7 @@ export function useQueuedWorkActions(workId: string | undefined): QueuedWorkActi
       toastService.error({
         ...TOAST,
         title: formatMessage({ id: "app.uploads.discardFailedTitle" }),
-        message: formatMessage({ id: "app.uploads.tryAgainFailedMessage" }),
+        message: formatMessage({ id: "app.uploads.discardFailedMessage" }),
         error,
       });
       return false;

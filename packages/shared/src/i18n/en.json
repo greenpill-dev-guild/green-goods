@@ -5727,6 +5727,7 @@
   "app.uploads.discardedTitle": "Work discarded",
   "app.uploads.discardedMessage": "It was removed from this device.",
   "app.uploads.discardFailedTitle": "Couldn't discard this work",
+  "app.uploads.discardFailedMessage": "The work is still on this device. Try again in a moment.",
   "app.uploads.discardRefusedMessage": "It may already be on its way to the garden record. Check Your Work.",
   "app.uploads.tryAgainFailedTitle": "Couldn't try again",
   "app.uploads.tryAgainFailedMessage": "Your work is still saved on this device. Try again in a moment.",
