@@ -1,11 +1,11 @@
 /// <reference types="vitest" />
 
-import tailwindcss from "@tailwindcss/vite";
-import babel from "@rolldown/plugin-babel";
-import react, { reactCompilerPreset } from "@vitejs/plugin-react";
-import { sentryVitePlugin } from "@sentry/vite-plugin";
 import { existsSync, readdirSync, readFileSync, rmSync } from "node:fs";
 import { resolve } from "node:path";
+import babel from "@rolldown/plugin-babel";
+import { sentryVitePlugin } from "@sentry/vite-plugin";
+import tailwindcss from "@tailwindcss/vite";
+import react, { reactCompilerPreset } from "@vitejs/plugin-react";
 import { assertEnvParity, assertSentryDsnResolvable } from "../../scripts/lib/env-parity.mjs";
 import { defineConfig, loadEnv, type Plugin, type ProxyOptions, type UserConfig } from "vite";
 import mkcert from "vite-plugin-mkcert";
@@ -115,8 +115,7 @@ function deleteSentrySourceMapsPlugin(outDir: string): Plugin {
 const ADMIN_WEB3_MODULES =
   /[\\/]node_modules[\\/](?:wagmi|viem|permissionless|ox|abitype|@wagmi|@walletconnect|@reown|@web3modal|@coinbase)[\\/]/;
 const ADMIN_OBSERVABILITY_MODULES = /[\\/]node_modules[\\/](?:@sentry|posthog-js)[\\/]/;
-const ADMIN_REACT_MODULES =
-  /[\\/]node_modules[\\/](?:react|react-dom|react-is|scheduler)[\\/]/;
+const ADMIN_REACT_MODULES = /[\\/]node_modules[\\/](?:react|react-dom|react-is|scheduler)[\\/]/;
 
 export default defineConfig(async ({ command, mode }): Promise<UserConfig> => {
   const rootDir = resolve(__dirname, "../../");
@@ -286,10 +285,7 @@ export default defineConfig(async ({ command, mode }): Promise<UserConfig> => {
       conditions: ["import", "module", "browser", "default"],
       alias: {
         "@": resolve(__dirname, "./src"),
-        "@green-goods/shared/sentry": resolve(
-          __dirname,
-          "../shared/src/modules/app/sentry.ts"
-        ),
+        "@green-goods/shared/sentry": resolve(__dirname, "../shared/src/modules/app/sentry.ts"),
         "@green-goods/shared/commitment-pooling": resolve(
           __dirname,
           "../shared/src/commitment-pooling"
