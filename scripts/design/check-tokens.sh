@@ -44,6 +44,7 @@ EXPECTED_TOKENS=(
   "motion|--spring-spatial"
   "motion|--spring-spatial-fast"
   "motion|--spring-spatial-slow"
+  "motion|--spring-spatial-exit"
   "motion|--spring-effects"
   "motion|--spring-effects-fast"
   "motion|--spring-effects-slow"

@@ -527,6 +527,10 @@
    * Reduced motion is handled globally (see @media prefers-reduced-motion at end of utilities).
    * Canonical spec: .claude/skills/design/language.md § Motion System.
    * Two families: spatial (layout/physics) and effects (opacity/color/blur).
+   * The spatial tokens decelerate into place; `--spring-spatial-exit` is the one
+   * that accelerates, for a surface leaving the screen from rest (DL-033). Its
+   * duration stays within `--spring-spatial-duration`, which sheets time their
+   * unmount on.
    */
 	  --spring-spatial-easing: cubic-bezier(0.16, 1, 0.3, 1);
 	  --spring-spatial-duration: 300ms;
@@ -534,6 +538,8 @@
 	  --spring-spatial-fast-duration: 200ms;
 	  --spring-spatial-slow-easing: cubic-bezier(0.16, 1, 0.3, 1);
 	  --spring-spatial-slow-duration: 400ms;
+	  --spring-spatial-exit-easing: cubic-bezier(0.3, 0, 1, 1);
+	  --spring-spatial-exit-duration: 200ms;
 	  --spring-effects-easing: cubic-bezier(0.2, 0, 0, 1);
 	  --spring-effects-duration: 250ms;
 	  --spring-effects-fast-easing: cubic-bezier(0.2, 0, 0, 1);
@@ -544,6 +550,7 @@
 	  --spring-spatial: var(--spring-spatial-easing) var(--spring-spatial-duration);
 	  --spring-spatial-fast: var(--spring-spatial-fast-easing) var(--spring-spatial-fast-duration);
 	  --spring-spatial-slow: var(--spring-spatial-slow-easing) var(--spring-spatial-slow-duration);
+	  --spring-spatial-exit: var(--spring-spatial-exit-easing) var(--spring-spatial-exit-duration);
 	  --spring-effects: var(--spring-effects-easing) var(--spring-effects-duration);
 	  --spring-effects-fast: var(--spring-effects-fast-easing) var(--spring-effects-fast-duration);
 	  --spring-effects-slow: var(--spring-effects-slow-easing) var(--spring-effects-slow-duration);

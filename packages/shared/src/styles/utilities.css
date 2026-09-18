@@ -481,22 +481,24 @@
 
 /* Dialog motion — shared across every PWA dialog primitive (PwaSheet,
  * DialogShell, ConfirmDialog, ImagePreviewDialog). PwaSheet — the bottom
- * sheet every dialog renders through below 640px — uses dialogSlideIn/Out
- * with a 60% overshoot waypoint that supplies the spring feel. DialogShell
- * and ConfirmDialog only mount their centered Radix surface at >= 640px and
- * use dialogZoomIn/Out — a subtle scale, no overshoot, because centered
- * modals shouldn't bounce. ImagePreviewDialog uses scrimFadeIn/Out for a
- * clean image-viewer entrance. All driven from --spring-spatial-* tokens
- * (no new dialog-specific token family). */
+ * sheet every dialog renders through below 640px — slides on
+ * dialogSlideIn/Out: one continuous move with no waypoint and no fade. The
+ * sheet is anchored to the viewport's bottom edge, so any overshoot lifts it
+ * off that edge and shows the page underneath, and a solid surface that fades
+ * shows the page through itself. DialogShell and ConfirmDialog only mount
+ * their centered Radix surface at >= 640px and use dialogZoomIn/Out — a
+ * subtle scale, no overshoot, because centered modals shouldn't bounce.
+ * ImagePreviewDialog uses scrimFadeIn/Out for a clean image-viewer entrance.
+ * All driven from --spring-spatial-* tokens (no new dialog-specific token
+ * family). */
 @keyframes dialogSlideInFromBottom {
-  from { transform: translate3d(0, 100%, 0); opacity: 0.8; }
-  60%  { transform: translate3d(0, -2%, 0); opacity: 1; }
-  to   { transform: translate3d(0, 0, 0); opacity: 1; }
+  from { transform: translate3d(0, 100%, 0); }
+  to   { transform: translate3d(0, 0, 0); }
 }
 
 @keyframes dialogSlideOutToBottom {
-  from { transform: translate3d(0, 0, 0); opacity: 1; }
-  to   { transform: translate3d(0, 100%, 0); opacity: 0.85; }
+  from { transform: translate3d(0, 0, 0); }
+  to   { transform: translate3d(0, 100%, 0); }
 }
 
 @keyframes dialogZoomIn {
@@ -512,15 +514,30 @@
 @keyframes scrimFadeIn  { from { opacity: 0; } to { opacity: 1; } }
 @keyframes scrimFadeOut { from { opacity: 1; } to { opacity: 0; } }
 
-/* Bottom sheet enter/exit — PwaSheet */
+/* Bottom sheet enter/exit — PwaSheet (DL-033) */
 [data-component="PwaSheet"][data-slot="surface"][data-state="open"] {
   animation: dialogSlideInFromBottom var(--spring-spatial-slow-duration)
     var(--spring-spatial-slow-easing) both;
 }
 
+/* A sheet closed from rest (the close button, Escape, the backdrop, a slow
+ * release) accelerates out on the exit token. The drag offset a release leaves
+ * behind settles on that same token, so the settle and the keyframe sum to one
+ * slide from under the finger to off-screen. */
 [data-component="PwaSheet"][data-slot="surface"][data-state="closed"] {
-  animation: dialogSlideOutToBottom var(--spring-spatial-duration)
-    var(--spring-spatial-easing) both;
+  animation: dialogSlideOutToBottom var(--spring-spatial-exit-duration)
+    var(--spring-spatial-exit-easing) both;
+  transition: translate var(--spring-spatial-exit);
+}
+
+/* A flicked sheet already has speed. A curve that starts from rest would stall
+ * it under the finger, so it leaves on the decelerating token, which starts
+ * fast. Both exits end within --spring-spatial-duration, the bound the sheet
+ * and its consumers time their unmount on. */
+[data-component="PwaSheet"][data-flicked] > [data-slot="surface"][data-state="closed"] {
+  animation-duration: var(--spring-spatial-duration);
+  animation-timing-function: var(--spring-spatial-easing);
+  transition: translate var(--spring-spatial);
 }
 
 /* Centered modal enter/exit — DialogShell + ConfirmDialog. Both render the
@@ -564,6 +581,7 @@
   [data-component="ConfirmDialog"][data-slot],
   [data-component="ImagePreviewDialog"][data-slot] {
     animation-duration: 0ms !important;
+    transition-duration: 0ms !important;
   }
 }
 
@@ -597,6 +615,7 @@
     justify-content: center;
   }
 
+  [data-component="PwaSheet"][data-slot="drag-dim"],
   [data-component="PwaSheet"][data-slot="scrim"] {
     position: absolute;
     inset: 0;
@@ -616,6 +635,37 @@
     background-color: var(--color-material-solid);
     box-shadow: var(--shadow-float);
     will-change: transform;
+  }
+
+  /* ── Drag to dismiss (DL-033) ──
+   * The gesture has its own channels: it moves the sheet on `translate` and
+   * dims the scrim on the `drag-dim` wrapper's `opacity`, while the open/close
+   * keyframes own `transform` and the scrim's `opacity`. A finished keyframe
+   * animation outranks inline styles in the cascade, so a drag written to
+   * `transform` is ignored. Letting go settles both channels back to rest: a
+   * sheet that stays open lands on the decelerating token, and a sheet that
+   * closes takes the timing of its exit keyframe (the closed-state rules with
+   * the keyframes above). */
+  [data-component="PwaSheet"][data-slot="surface"] {
+    transition: translate var(--spring-spatial);
+  }
+
+  [data-component="PwaSheet"][data-slot="drag-dim"] {
+    transition: opacity var(--spring-spatial);
+  }
+
+  [data-component="PwaSheet"][data-dragging] > [data-slot="surface"],
+  [data-component="PwaSheet"][data-dragging] > [data-slot="drag-dim"] {
+    transition: none;
+  }
+
+  /* The grip is the drag affordance, and the title block under it is part of
+   * the same grab area: a finger lands on the title far more often than on a
+   * 6px grip. The close button stays outside the gesture. */
+  [data-component="SheetHeader"][data-slot="text"][data-drag-region] {
+    touch-action: none;
+    -webkit-user-select: none;
+    user-select: none;
   }
 
   [data-component="PwaSheet"][data-slot="drag-handle"] {

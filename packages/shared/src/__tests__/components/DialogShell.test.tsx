@@ -85,6 +85,7 @@ describe("DialogShell", () => {
     );
     expect(screen.queryByTestId("pwa-sheet-close")).not.toBeInTheDocument();
     fireEvent.keyDown(document, { key: "Escape" });
+    fireEvent.pointerDown(screen.getByTestId("dialog-shell-overlay"));
     fireEvent.click(screen.getByTestId("dialog-shell-overlay"));
     expect(onOpenChange).not.toHaveBeenCalled();
   });
