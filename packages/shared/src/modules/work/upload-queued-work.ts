@@ -331,6 +331,10 @@ export async function uploadQueuedWork(
         const result = await ports.processJob(job.id, explicitSend);
         if (result.success && !result.skipped) sent += 1;
         if (result.error === "send-cancelled") return { status: "declined", sent, flagged };
+        // A send that failed outright ends the run, keeping what already went.
+        // Carrying on would report every remaining item as uploaded too.
+        if (!result.success && !result.skipped)
+          return { status: "failed", sent, flagged, error: result.error };
       }
       return { status: "uploaded", sent, flagged };
     }
