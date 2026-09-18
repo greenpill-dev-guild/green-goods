@@ -2,12 +2,11 @@ import {
   AwaitingWorkConfirmation,
   WorkTransactionReverted,
   reconcileWorkTransaction,
-  rememberWorkBroadcast,
   retainedWorkBroadcast,
   retainedWorkBroadcastReference,
   forgetWorkBroadcast,
 } from "../work/work-confirmation";
-import { classifySendFailure } from "../work/send-outcome";
+import { sendWithCheckpoint } from "../work/send-with-checkpoint";
 import { settleStrandedWorkIntent } from "../work/stranded-intent";
 import { getEASConfig, type EASConfig } from "../../config/blockchain";
 import type { Job, WorkJobPayload } from "../../types/job-queue";
@@ -15,12 +14,9 @@ import { buildWorkAttestContractCall } from "../../utils/eas/transaction-builder
 import { buildQueuedWorkDraft, resolveQueuedWorkTitle } from "../work/queued-work-draft";
 import { PendingHeicConversionError } from "../work/work-attachments";
 import { convertQueuedHeicMedia } from "./job-media-conversion";
-import {
-  TransactionRevertedError,
-  type BroadcastReference,
-  type TransactionSender,
-} from "../transactions/types";
+import type { TransactionSender } from "../transactions/types";
 import { jobQueueDB } from "./db";
+import { sendCheckpointOf, writeSendCheckpoint } from "./queue-policy";
 import { type Hex } from "viem";
 import {
   executeCommitmentJob,
@@ -95,31 +91,6 @@ export async function executeWorkJob(
     if (knownHash) return knownHash;
   }
   const payload = job.payload;
-  let intentRecorded = false;
-  let broadcastKnown = false;
-  const onBroadcastReference = async (broadcast: BroadcastReference) => {
-    broadcastKnown = true;
-    rememberWorkBroadcast(jobId, broadcast);
-    payload.uploadCheckpoint = {
-      submittedAt: new Date().toISOString(),
-      files: {},
-      ...payload.uploadCheckpoint,
-      broadcast,
-      broadcastPending: false,
-      ...(broadcast.kind === "transaction" ? { transactionHash: broadcast.hash } : {}),
-    };
-    job.meta = { ...job.meta, waitingForDependency: true, waitingReason: "awaiting-confirmation" };
-    await jobQueueDB.updateJob(job);
-  };
-  const onBroadcast = async (hash: Hex) => {
-    broadcastKnown = true;
-    if (payload.uploadCheckpoint?.broadcast?.kind !== "user-operation") {
-      await onBroadcastReference({ kind: "transaction", hash });
-    } else {
-      payload.uploadCheckpoint.transactionHash = hash;
-      await jobQueueDB.updateJob(job);
-    }
-  };
   const settleStranded = deps.settleStrandedIntent ?? settleStrandedWorkIntent;
   const checkpoint = payload.uploadCheckpoint;
   const broadcast = checkpoint?.broadcast ?? retainedWorkBroadcastReference(jobId);
@@ -209,62 +180,52 @@ export async function executeWorkJob(
     payload.gardenAddress as `0x${string}`,
     attestationData
   );
-  try {
-    const result = await sender.sendContractCall(
-      { ...contractCall, chainId },
-      {
-        onBroadcast,
-        onBroadcastReference,
-        assertOwnership: async () => {
-          await sender.assertOwnership?.(job.userAddress, chainId);
-        },
-        // Recorded only when the call can reach the network: after a passkey is
-        // approved and signed, or just before a wallet is asked. Nothing may be
-        // sent without it, so a failed write stops the send.
-        onBeforeBroadcast: async (reference) => {
-          await sender.assertOwnership?.(job.userAddress, chainId);
-          payload.uploadCheckpoint = {
-            submittedAt: new Date().toISOString(),
-            files: {},
-            ...payload.uploadCheckpoint,
-            broadcastPending: true,
-            broadcastPendingAt: new Date().toISOString(),
-            ...(reference ? { broadcast: reference } : {}),
-          };
-          await jobQueueDB.updateJob(job);
-          intentRecorded = true;
-        },
-      }
-    );
-    // Older/custom senders may only expose the hash on return.
-    if (!payload.uploadCheckpoint?.transactionHash) await onBroadcast(result.hash);
-    if (result.confirmation === "pending") throw new AwaitingWorkConfirmation(result.hash);
-    forgetWorkBroadcast(jobId);
-    return result.hash;
-  } catch (error) {
-    if (error instanceof TransactionRevertedError) {
-      job.meta = { ...job.meta, workTransactionReverted: true };
-      if (payload.uploadCheckpoint) payload.uploadCheckpoint.transactionReverted = true;
+  const markReverted = async () => {
+    job.meta = { ...job.meta, workTransactionReverted: true };
+    if (payload.uploadCheckpoint) payload.uploadCheckpoint.transactionReverted = true;
+    await jobQueueDB.updateJob(job);
+  };
+  const result = await sendWithCheckpoint({
+    sender,
+    call: { ...contractCall, chainId },
+    jobIds: [jobId],
+    assertOwnership: async () => {
+      await sender.assertOwnership?.(job.userAddress, chainId);
+    },
+    record: async (next) => {
+      const send = next(sendCheckpointOf(job) ?? {});
+      writeSendCheckpoint(job, send);
+      // Once the network has the send, the stored job already reads as awaiting
+      // its confirmation, even if this tab dies before the receipt arrives.
+      if (send?.broadcast && send.broadcastPending === false)
+        job.meta = {
+          ...job.meta,
+          waitingForDependency: true,
+          waitingReason: "awaiting-confirmation",
+        };
       await jobQueueDB.updateJob(job);
-      throw new WorkTransactionReverted(error.hash);
-    }
-    const failure = classifySendFailure(error, { intentRecorded, broadcastKnown });
-    if (failure.kind === "not-sent") {
+    },
+  });
+  switch (result.status) {
+    case "sent":
+      if (result.confirmation === "pending") throw new AwaitingWorkConfirmation(result.hash);
+      forgetWorkBroadcast(jobId);
+      return result.hash;
+    case "reverted":
+      await markReverted();
+      throw new WorkTransactionReverted(result.error.hash);
+    case "not-sent":
       // Nothing reached the chain: the work stays sendable. A person who
       // declined is not asked again until they choose to send it.
-      if (payload.uploadCheckpoint) {
-        delete payload.uploadCheckpoint.broadcastPending;
-        delete payload.uploadCheckpoint.broadcastPendingAt;
-        delete payload.uploadCheckpoint.broadcast;
+      if (result.cancelled) {
+        job.meta = { ...job.meta, requiresExplicitSend: true };
+        await jobQueueDB.updateJob(job);
       }
-      if (failure.cancelled) job.meta = { ...job.meta, requiresExplicitSend: true };
-      await jobQueueDB.updateJob(job);
-      throw error;
-    }
-    const hash = retainedWorkBroadcast(jobId);
-    if (hash || payload.uploadCheckpoint?.broadcastPending)
-      throw new AwaitingWorkConfirmation(hash ?? payload.uploadCheckpoint?.broadcast?.hash ?? "0x");
-    throw error;
+      throw result.error;
+    case "may-have-sent":
+      throw new AwaitingWorkConfirmation(
+        retainedWorkBroadcast(jobId) ?? payload.uploadCheckpoint?.broadcast?.hash ?? "0x"
+      );
   }
 }
 

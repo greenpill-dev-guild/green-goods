@@ -1,19 +1,19 @@
 import type { Hex } from "viem";
 import { getEASConfig, type EASConfig } from "../../config/blockchain";
-import type { ApprovalJobPayload, Job, SendCheckpoint } from "../../types/job-queue";
+import type { ApprovalJobPayload, Job } from "../../types/job-queue";
 import { buildApprovalAttestContractCall } from "../../utils/eas/transaction-builder";
 import { TransactionRevertedError, type TransactionSender } from "../transactions/types";
 import { buildQueuedApprovalDraft } from "../work/queued-work-draft";
-import { classifySendFailure } from "../work/send-outcome";
+import { sendWithCheckpoint } from "../work/send-with-checkpoint";
 import { settleStrandedDecisionIntent } from "../work/stranded-intent";
 import {
   AwaitingWorkConfirmation,
   forgetWorkBroadcast,
   reconcileWorkTransaction,
-  rememberWorkBroadcast,
   retainedWorkBroadcastReference,
 } from "../work/work-confirmation";
 import { jobQueueDB } from "./db";
+import { hasRecordedSend, writeSendCheckpoint } from "./queue-policy";
 
 type EncodeApproval = typeof import("../../utils/eas/encoders").encodeWorkApprovalData;
 
@@ -53,7 +53,7 @@ async function settleRecordedSend(
   if (state === "reverted") {
     // Nothing was recorded, so the decision may be sent again.
     const revertedHash = transactionHash ?? broadcast?.hash ?? "0x";
-    delete job.payload.sendCheckpoint;
+    writeSendCheckpoint(job, undefined);
     forgetWorkBroadcast(job.id);
     await persist(job);
     throw new TransactionRevertedError(revertedHash);
@@ -82,13 +82,7 @@ export async function executeApprovalJob(
 ): Promise<string> {
   const payload = job.payload as ApprovalJobPayload;
   const persist = deps.persist ?? ((updated) => jobQueueDB.updateJob(updated));
-  const recorded = payload.sendCheckpoint;
-  if (
-    recorded?.broadcast ||
-    recorded?.transactionHash ||
-    recorded?.broadcastPending ||
-    retainedWorkBroadcastReference(job.id)
-  ) {
+  if (hasRecordedSend(job) || retainedWorkBroadcastReference(job.id)) {
     const hash = await settleRecordedSend(job, chainId, sender, deps, persist);
     forgetWorkBroadcast(job.id);
     return hash;
@@ -106,54 +100,32 @@ export async function executeApprovalJob(
     payload.gardenAddress as `0x${string}`,
     attestationData
   );
-  let intentRecorded = false;
-  let broadcastKnown = false;
-  const record = async (checkpoint: SendCheckpoint) => {
-    payload.sendCheckpoint = checkpoint;
-    await persist(job);
-  };
-  try {
-    const result = await sender.sendContractCall(contractCall, {
-      onBeforeBroadcast: async (reference) => {
-        await record({
-          broadcastPending: true,
-          broadcastPendingAt: new Date().toISOString(),
-          ...(reference ? { broadcast: reference } : {}),
-        });
-        intentRecorded = true;
-      },
-      onBroadcastReference: async (reference) => {
-        broadcastKnown = true;
-        // Kept in memory too, so a failed write never turns a retry into a second send.
-        rememberWorkBroadcast(job.id, reference);
-        await record({ ...payload.sendCheckpoint, broadcast: reference, broadcastPending: false });
-      },
-      onBroadcast: async (hash) => {
-        broadcastKnown = true;
-        if (payload.sendCheckpoint?.broadcast?.kind !== "user-operation")
-          rememberWorkBroadcast(job.id, hash);
-        await record({ ...payload.sendCheckpoint, transactionHash: hash, broadcastPending: false });
-      },
-    });
-    if (result.confirmation === "pending") throw new AwaitingWorkConfirmation(result.hash);
-    forgetWorkBroadcast(job.id);
-    return result.hash;
-  } catch (error) {
-    if (error instanceof AwaitingWorkConfirmation) throw error;
-    const failure =
-      error instanceof TransactionRevertedError
-        ? ({ kind: "not-sent", cancelled: false } as const)
-        : classifySendFailure(error, { intentRecorded, broadcastKnown });
-    if (failure.kind === "not-sent") {
-      // Nothing was recorded on-chain, so the decision may be sent again. It
-      // needs no flag of its own: Upload all is the only thing that sends it.
-      delete payload.sendCheckpoint;
+  const result = await sendWithCheckpoint({
+    sender,
+    call: contractCall,
+    jobIds: [job.id],
+    record: async (next) => {
+      writeSendCheckpoint(job, next(payload.sendCheckpoint ?? {}));
+      await persist(job);
+    },
+  });
+  switch (result.status) {
+    case "sent":
+      if (result.confirmation === "pending") throw new AwaitingWorkConfirmation(result.hash);
       forgetWorkBroadcast(job.id);
-      if (intentRecorded) await persist(job);
-      throw error;
-    }
-    throw new AwaitingWorkConfirmation(
-      payload.sendCheckpoint?.transactionHash ?? payload.sendCheckpoint?.broadcast?.hash ?? "0x"
-    );
+      return result.hash;
+    case "reverted":
+      // Nothing was recorded on-chain, so the decision may be sent again.
+      writeSendCheckpoint(job, undefined);
+      forgetWorkBroadcast(job.id);
+      await persist(job);
+      throw result.error;
+    case "not-sent":
+      // It needs no flag of its own: Upload all is the only thing that sends it.
+      throw result.error;
+    case "may-have-sent":
+      throw new AwaitingWorkConfirmation(
+        payload.sendCheckpoint?.transactionHash ?? payload.sendCheckpoint?.broadcast?.hash ?? "0x"
+      );
   }
 }
