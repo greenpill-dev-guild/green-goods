@@ -147,7 +147,7 @@ describe("useWorkDetailController", () => {
     mocks.sender = null;
   });
 
-  it("sends explicitly from Send Now and stays quiet when the prompt is declined", async () => {
+  it("sends explicitly from Upload now and stays quiet when the prompt is declined", async () => {
     mocks.sender = { authMode: "passkey" };
     const { jobQueue } = await import("../../../modules/job-queue/default-instance");
     const { toastService } = await import("../../../components/Toast/toast.service");
@@ -171,7 +171,7 @@ describe("useWorkDetailController", () => {
     expect(toastService.error).not.toHaveBeenCalled();
   });
 
-  it("checks the connection on Send Now and says nothing was sent when it is not confirmed", async () => {
+  it("checks the connection on Upload now and says nothing was sent when it is not confirmed", async () => {
     mocks.sender = { authMode: "passkey" };
     const { jobQueue } = await import("../../../modules/job-queue/default-instance");
     const { toastService } = await import("../../../components/Toast/toast.service");

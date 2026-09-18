@@ -55,6 +55,12 @@ const ACTION_ENDED = {
   defaultMessage: "Can't upload: this action has ended",
 } satisfies MessageDescriptor;
 
+const CONFIRMATION_FAILED = {
+  id: "app.work.confirmationFailed",
+  defaultMessage:
+    "This upload didn't go through. Your media is saved; try again when you're ready.",
+} satisfies MessageDescriptor;
+
 /** Why the chain would refuse an item, by the resolver error it would revert with. */
 const BLOCKED_REASONS = new Map<string, MessageDescriptor>([
   [
@@ -101,7 +107,21 @@ const BLOCKED_REASONS = new Map<string, MessageDescriptor>([
       defaultMessage: "Can't upload: you can't review your own work",
     },
   ],
+  // Not a resolver error: Upload all marks a batch the chain reverted when no
+  // single item explains it. Saying the record won't accept it would contradict
+  // the per-item check that just passed.
+  ["reverted", CONFIRMATION_FAILED],
 ]);
+
+const UPLOADING_NOW = {
+  id: "app.home.work.syncingInfo",
+  defaultMessage: "Uploading to the garden record...",
+} satisfies MessageDescriptor;
+
+const UPLOAD_FAILED = {
+  id: "app.work.retryRequiredInfo",
+  defaultMessage: "Your media stays saved. Choose Upload now when you’re ready to try again.",
+} satisfies MessageDescriptor;
 
 const REFUSED = {
   id: "app.uploads.blocked.refused",
@@ -143,11 +163,11 @@ export function queuedWorkDetailMessage({
 }: QueuedWorkState): MessageDescriptor | undefined {
   switch (submissionState) {
     case "reverted":
-      return { id: "app.work.confirmationFailed" };
+      return CONFIRMATION_FAILED;
     case "sending":
-      return { id: "app.home.work.syncingInfo" };
+      return UPLOADING_NOW;
     case "retry-required":
-      return { id: "app.work.retryRequiredInfo" };
+      return UPLOAD_FAILED;
     case "preparing":
       return { id: "app.uploads.state.preparing", defaultMessage: "Preparing to upload" };
     case "photo-pending":
@@ -164,5 +184,42 @@ export function queuedWorkDetailMessage({
       return blockedReasonMessage(blockedReason);
     default:
       return undefined;
+  }
+}
+
+/**
+ * The one sentence that says where queued work stands and what happens next.
+ * The work detail header shows it; its footer carries only the actions, so the
+ * two can never repeat or contradict each other.
+ */
+export function queuedWorkExplanation(
+  state: QueuedWorkState,
+  { isOnline, sendFailed = false }: { isOnline: boolean; sendFailed?: boolean }
+): MessageDescriptor {
+  const waiting = {
+    id: "app.home.work.offlineInfo",
+    defaultMessage: "Saved on your device. Upload it from Your Work.",
+  };
+  switch (state.submissionState) {
+    case "awaiting-confirmation":
+      return {
+        id: "app.work.confirmationExplanation",
+        defaultMessage: "Your work was sent. We will check its status automatically when online.",
+      };
+    case "checking-submission":
+      return {
+        id: "app.work.checkingSubmissionInfo",
+        defaultMessage: "We’re checking whether this work was sent. Your media stays saved.",
+      };
+    case "reverted":
+      return CONFIRMATION_FAILED;
+    case "retry-required":
+      return UPLOAD_FAILED;
+    // Only an observed send says so: offline, nothing is being sent.
+    case "sending":
+      return isOnline ? UPLOADING_NOW : waiting;
+    default:
+      if (sendFailed) return UPLOAD_FAILED;
+      return queuedWorkDetailMessage(state) ?? waiting;
   }
 }

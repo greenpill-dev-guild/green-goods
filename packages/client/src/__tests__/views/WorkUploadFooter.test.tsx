@@ -1,6 +1,6 @@
 import messages from "@green-goods/shared/i18n/en.json";
 import type { Work } from "@green-goods/shared/types/domain";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { IntlProvider } from "react-intl";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { WorkUploadFooter, type WorkUploadFooterProps } from "@/views/Home/Garden/WorkUploadFooter";
@@ -73,23 +73,25 @@ describe("WorkUploadFooter", () => {
   it("points waiting work to Your Work, where Upload all sends it", () => {
     const props = renderFooter(queuedWork("ready"));
 
-    expect(screen.getByTestId("work-upload-footer")).toHaveTextContent(
-      "Saved on your device. Upload it from Your Work."
-    );
     fireEvent.click(screen.getByRole("button", { name: "Open uploads" }));
     expect(props.onOpenUploads).toHaveBeenCalledOnce();
-    expect(screen.queryByRole("button", { name: "Send Now" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Upload now" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Discard" })).not.toBeInTheDocument();
     expect(screen.queryByText(/You're offline/)).not.toBeInTheDocument();
   });
 
-  it("says what preparing work waits for", () => {
-    renderFooter(queuedWork("photo-pending"));
-
-    expect(screen.getByTestId("work-upload-footer")).toHaveTextContent(
-      "A photo is still converting"
-    );
-    expect(screen.getByRole("button", { name: "Open uploads" })).toBeEnabled();
+  it("carries only the actions: the header above says where the work stands", () => {
+    // One sentence, once. A footer that restated it could also contradict it, as
+    // it did when the header still said to upload work the chain would refuse.
+    for (const work of [
+      queuedWork("photo-pending"),
+      queuedWork("blocked", "NotActiveAction"),
+      queuedWork("awaiting-confirmation"),
+    ]) {
+      renderFooter(work);
+      expect(screen.getByTestId("work-upload-footer").querySelector("p")).toBeNull();
+      cleanup();
+    }
   });
 
   it("keeps Open uploads while offline and says the work waits on this device", () => {
@@ -101,12 +103,9 @@ describe("WorkUploadFooter", () => {
     ).toBeInTheDocument();
   });
 
-  it("explains a refusal and offers to try again or discard", async () => {
+  it("offers to try refused work again or discard it", async () => {
     const props = renderFooter(queuedWork("blocked", "NotActiveAction"));
 
-    expect(screen.getByTestId("work-upload-footer")).toHaveTextContent(
-      "Can't upload: this action has ended"
-    );
     fireEvent.click(screen.getByRole("button", { name: "Try Again" }));
     expect(props.onTryAgain).toHaveBeenCalledOnce();
 
@@ -121,10 +120,10 @@ describe("WorkUploadFooter", () => {
     await waitFor(() => expect(props.onDiscard).toHaveBeenCalledOnce());
   });
 
-  it("keeps Send Now for work whose send failed, and lets unsent work be discarded", () => {
+  it("keeps Upload now for work whose upload failed, and lets unsent work be discarded", () => {
     const props = renderFooter(queuedWork("retry-required"));
 
-    fireEvent.click(screen.getByRole("button", { name: "Send Now" }));
+    fireEvent.click(screen.getByRole("button", { name: "Upload now" }));
     expect(props.onRetry).toHaveBeenCalledOnce();
     expect(screen.getByRole("button", { name: "Discard" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Open uploads" })).not.toBeInTheDocument();
@@ -133,7 +132,7 @@ describe("WorkUploadFooter", () => {
   it("never offers to discard a reverted send, which left a transaction behind", () => {
     renderFooter(queuedWork("reverted"));
 
-    expect(screen.getByRole("button", { name: "Send Now" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Upload now" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Discard" })).not.toBeInTheDocument();
   });
 
@@ -150,8 +149,5 @@ describe("WorkUploadFooter", () => {
     renderFooter(queuedWork("checking-submission"), { isOnline: false });
 
     expect(screen.getByRole("button", { name: "Check again" })).toBeDisabled();
-    expect(screen.getByTestId("work-upload-footer")).toHaveTextContent(
-      "We’re checking whether this work was sent."
-    );
   });
 });

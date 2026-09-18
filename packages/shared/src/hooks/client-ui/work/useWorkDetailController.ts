@@ -103,7 +103,7 @@ export function useWorkDetailController() {
         return;
       }
       // The queue refuses a work that reverted or used up its retries, so the
-      // tap gives it its retries back first. Without this, Send Now on either
+      // tap gives it its retries back first. Without this, Upload now on either
       // one answers with the refusal instead of sending.
       await jobQueue.retryJob(work.id);
       const result = await jobQueue.processJob(work.id, { transactionSender, explicit: true });
@@ -117,7 +117,7 @@ export function useWorkDetailController() {
         toastService.error({
           title: intl.formatMessage({
             id: "app.home.work.retryFailed",
-            defaultMessage: "Sending failed",
+            defaultMessage: "Upload failed",
           }),
           message:
             result.error ||

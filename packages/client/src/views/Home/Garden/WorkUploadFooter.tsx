@@ -4,16 +4,13 @@ import { ConfirmDialog } from "@green-goods/shared/components/Dialog/ConfirmDial
 import type { Work } from "@green-goods/shared/types/domain";
 import { RiRefreshLine, RiUploadCloudLine } from "@remixicon/react";
 import { type FC, useState } from "react";
-import { type MessageDescriptor, useIntl } from "react-intl";
-import {
-  queuedWorkDetailMessage,
-  readQueuedWorkState,
-} from "@/components/Cards/Work/queuedWorkCopy";
+import { useIntl } from "react-intl";
+import { readQueuedWorkState } from "@/components/Cards/Work/queuedWorkCopy";
 
 export interface WorkUploadFooterProps {
   work: Work;
   isOnline: boolean;
-  /** Send Now, or a check on a work that was already sent. */
+  /** Upload now, or a check on a work that was already sent. */
   onRetry: () => void;
   isRetrying: boolean;
   onOpenUploads: () => void;
@@ -42,17 +39,12 @@ function footerGroup(submissionState: string | undefined): FooterGroup {
   }
 }
 
-const SENT_LINES: Record<string, MessageDescriptor> = {
-  "awaiting-confirmation": { id: "app.work.confirmationExplanation" },
-  "checking-submission": { id: "app.work.checkingSubmissionInfo" },
-  sending: { id: "app.home.work.syncingInfo" },
-};
-
 /**
- * The work detail footer for the gardener's own queued work. Waiting work
- * points to Your Work, where Upload all sends it. Work that needs attention
- * can be prepared again or discarded. Work whose send failed keeps Send Now,
- * and work already sent can be checked again.
+ * The actions for the gardener's own queued work, under the work detail page.
+ * Waiting work points to Your Work, where Upload all sends it. Work that needs
+ * attention can be prepared again or discarded. Work whose upload failed can be
+ * uploaded now, and work already sent can be checked again. The header above
+ * says where the work stands (queuedWorkExplanation), so nothing here repeats it.
  */
 export const WorkUploadFooter: FC<WorkUploadFooterProps> = ({
   work,
@@ -72,26 +64,6 @@ export const WorkUploadFooter: FC<WorkUploadFooterProps> = ({
   // A reverted send left a transaction behind, so only an unsent failure can be discarded.
   const canDiscard =
     group === "attention" || (group === "failed" && state.submissionState !== "reverted");
-
-  const line = (() => {
-    switch (group) {
-      case "attention":
-        return queuedWorkDetailMessage(state);
-      case "failed":
-        return state.submissionState === "reverted"
-          ? { id: "app.work.confirmationFailed" }
-          : { id: "app.work.retryRequiredInfo" };
-      case "sent":
-        return SENT_LINES[state.submissionState ?? ""];
-      default:
-        return (
-          queuedWorkDetailMessage(state) ?? {
-            id: "app.home.work.offlineInfo",
-            defaultMessage: "Saved on your device. Upload it from Your Work.",
-          }
-        );
-    }
-  })();
 
   const primary = (() => {
     switch (group) {
@@ -131,9 +103,12 @@ export const WorkUploadFooter: FC<WorkUploadFooterProps> = ({
               : isRetrying
                 ? intl.formatMessage({
                     id: "app.home.work.uploading",
-                    defaultMessage: "Sending...",
+                    defaultMessage: "Uploading...",
                   })
-                : intl.formatMessage({ id: "app.home.work.uploadNow", defaultMessage: "Send Now" })}
+                : intl.formatMessage({
+                    id: "app.home.work.uploadNow",
+                    defaultMessage: "Upload now",
+                  })}
           </Button>
         );
       default:
@@ -161,7 +136,6 @@ export const WorkUploadFooter: FC<WorkUploadFooterProps> = ({
           className="mx-auto flex max-w-screen-sm flex-col gap-3"
           data-testid="work-upload-footer"
         >
-          {line && <p>{intl.formatMessage(line)}</p>}
           <div className="flex flex-col gap-2">
             {primary}
             {canDiscard && (

@@ -90,7 +90,7 @@ describe("WorkViewSection — all WorkDisplayStatus values (#405)", () => {
         effectiveStatus: "sync_failed" as WorkDisplayStatus,
       })
     );
-    expect(screen.getByTestId("work-title")).toHaveTextContent("Sending didn't work");
+    expect(screen.getByTestId("work-title")).toHaveTextContent("Upload didn't work");
   });
 
   it("shows 'Saved on your device' title for syncing status", () => {
@@ -121,7 +121,7 @@ describe("WorkViewSection — all WorkDisplayStatus values (#405)", () => {
         work: { ...mockWork, metadata: JSON.stringify({ submissionState: "sending" }) } as any,
       })
     );
-    expect(screen.getByTestId("work-info")).toHaveTextContent("Sending to the garden record...");
+    expect(screen.getByTestId("work-info")).toHaveTextContent("Uploading to the garden record...");
   });
 
   it("shows the offline-saved info for offline status", () => {
@@ -136,6 +136,25 @@ describe("WorkViewSection — all WorkDisplayStatus values (#405)", () => {
     );
   });
 
+  it("says why refused work cannot go, where it once told the person to upload it", () => {
+    render(
+      createElement(WorkViewSection, {
+        ...baseProps,
+        effectiveStatus: "offline" as WorkDisplayStatus,
+        work: {
+          ...mockWork,
+          metadata: JSON.stringify({
+            submissionState: "blocked",
+            blockedReason: "NotActiveAction",
+          }),
+        } as any,
+      })
+    );
+    expect(screen.getByTestId("work-info")).toHaveTextContent(
+      "Can't upload: this action has ended"
+    );
+  });
+
   it("shows the retry info for sync_failed status", () => {
     render(
       createElement(WorkViewSection, {
@@ -144,7 +163,7 @@ describe("WorkViewSection — all WorkDisplayStatus values (#405)", () => {
       })
     );
     expect(screen.getByTestId("work-info")).toHaveTextContent(
-      "Your media stays saved. Choose Send Now when you’re ready to send again."
+      "Your media stays saved. Choose Upload now when you’re ready to try again."
     );
   });
 

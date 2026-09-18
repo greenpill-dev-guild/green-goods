@@ -47,7 +47,7 @@ const withLocale: Decorator = (Story, context) => {
 
 /**
  * The work detail footer for queued work at phone width: waiting work points to Your Work,
- * work that needs attention can be tried again or discarded, a failed send keeps Send Now,
+ * work that needs attention can be tried again or discarded, a failed upload keeps Upload now,
  * and a sent work can be checked again.
  */
 const meta: Meta<typeof WorkUploadFooter> = {

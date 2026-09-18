@@ -20,6 +20,7 @@ import {
 } from "@remixicon/react";
 import React, { useMemo } from "react";
 import { useIntl } from "react-intl";
+import { queuedWorkExplanation, readQueuedWorkState } from "@/components/Cards/Work/queuedWorkCopy";
 import { WorkView, type WorkViewAction } from "@/components/Features/Work";
 
 type ViewingMode = "steward" | "gardener" | "viewer";
@@ -189,12 +190,8 @@ export const WorkViewSection: React.FC<WorkViewSectionProps> = ({
 }) => {
   const intl = useIntl();
   const isOnline = useOnlineStatus();
-  let submissionState: string | undefined;
-  try {
-    submissionState = JSON.parse(work.metadata).submissionState;
-  } catch {
-    /* Remote metadata may be a CID. */
-  }
+  const queuedState = readQueuedWorkState(work.metadata);
+  const { submissionState } = queuedState;
 
   const { feedback: workFeedback, media } = work;
 
@@ -220,7 +217,7 @@ export const WorkViewSection: React.FC<WorkViewSectionProps> = ({
       if (effectiveStatus === "sync_failed") {
         return intl.formatMessage({
           id: "app.home.work.syncFailed",
-          defaultMessage: "Sending didn't work",
+          defaultMessage: "Upload didn't work",
         });
       }
       return intl.formatMessage({
@@ -269,39 +266,13 @@ export const WorkViewSection: React.FC<WorkViewSectionProps> = ({
 
   // Dynamic info text based on status and viewing mode
   const getInfo = () => {
-    if (isOfflineStatus) {
-      if (submissionState === "awaiting-confirmation")
-        return intl.formatMessage({
-          id: "app.work.confirmationExplanation",
-          defaultMessage: "Your work was sent. We will check its status automatically when online.",
-        });
-      if (submissionState === "checking-submission")
-        return intl.formatMessage({
-          id: "app.work.checkingSubmissionInfo",
-          defaultMessage: "We’re checking whether this work was sent. Your media stays saved.",
-        });
-      if (
-        submissionState === "reverted" ||
-        submissionState === "retry-required" ||
-        effectiveStatus === "sync_failed"
-      ) {
-        return intl.formatMessage({
-          id: "app.work.retryRequiredInfo",
-          defaultMessage:
-            "Your media stays saved. Choose Send Now when you’re ready to send again.",
-        });
-      }
-      if (isOnline && submissionState === "sending") {
-        return intl.formatMessage({
-          id: "app.home.work.syncingInfo",
-          defaultMessage: "Sending to the garden record...",
-        });
-      }
-      return intl.formatMessage({
-        id: "app.home.work.offlineInfo",
-        defaultMessage: "Saved on your device. Upload it from Your Work.",
-      });
-    }
+    if (isOfflineStatus)
+      return intl.formatMessage(
+        queuedWorkExplanation(queuedState, {
+          isOnline,
+          sendFailed: effectiveStatus === "sync_failed",
+        })
+      );
 
     if (viewingMode === "steward") {
       if (effectiveStatus === "approved") {

@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   blockedReasonMessage,
   queuedWorkDetailMessage,
+  queuedWorkExplanation,
   queuedWorkStatusMessage,
   readQueuedWorkState,
 } from "../../components/Cards/Work/queuedWorkCopy";
@@ -103,12 +104,18 @@ describe("blockedReasonMessage", () => {
     ["ActionDomainMismatch", "Can't upload: this garden doesn't offer this action"],
     ["NotInWorkRegistry", "Can't upload: this work isn't on the garden record"],
     ["SelfAttestation", "Can't upload: you can't review your own work"],
+    // Upload all's own mark for a batch the chain reverted with no single item
+    // to blame. Saying the record won't accept it would contradict the per-item
+    // check that just passed.
+    [
+      "reverted",
+      "This upload didn't go through. Your media is saved; try again when you're ready.",
+    ],
   ])("explains %s", (reason, text) => {
     expect(textOf(blockedReasonMessage(reason))).toBe(text);
   });
 
   it.each([
-    "reverted",
     "unknown",
     "MetadataRequired",
     "constructor",
@@ -118,5 +125,68 @@ describe("blockedReasonMessage", () => {
     expect(textOf(blockedReasonMessage(reason))).toBe(
       "Can't upload: the garden record won't accept it"
     );
+  });
+});
+
+describe("queuedWorkExplanation", () => {
+  const online = { isOnline: true };
+
+  it.each([
+    ["ready", "Saved on your device. Upload it from Your Work."],
+    ["preparing", "Preparing to upload"],
+    ["photo-pending", "A photo is still converting"],
+    ["photo-needs-attention", "A photo couldn't be converted"],
+    ["retry-required", "Your media stays saved. Choose Upload now when you’re ready to try again."],
+    [
+      "reverted",
+      "This upload didn't go through. Your media is saved; try again when you're ready.",
+    ],
+    ["awaiting-confirmation", messages["app.work.confirmationExplanation"]],
+    ["checking-submission", messages["app.work.checkingSubmissionInfo"]],
+    ["sending", "Uploading to the garden record..."],
+    [undefined, "Saved on your device. Upload it from Your Work."],
+  ])("has one sentence for %s work", (submissionState, text) => {
+    expect(textOf(queuedWorkExplanation({ submissionState }, online))).toBe(text);
+  });
+
+  it("says why refused work cannot go, instead of telling the person to upload it", () => {
+    expect(
+      textOf(
+        queuedWorkExplanation(
+          { submissionState: "blocked", blockedReason: "NotActiveAction" },
+          online
+        )
+      )
+    ).toBe("Can't upload: this action has ended");
+  });
+
+  it("never says work is uploading while the device is offline", () => {
+    expect(textOf(queuedWorkExplanation({ submissionState: "sending" }, { isOnline: false }))).toBe(
+      "Saved on your device. Upload it from Your Work."
+    );
+  });
+
+  it("says a failed upload can be tried again, whatever the queue last recorded", () => {
+    expect(
+      textOf(
+        queuedWorkExplanation({ submissionState: "ready" }, { isOnline: true, sendFailed: true })
+      )
+    ).toBe("Your media stays saved. Choose Upload now when you’re ready to try again.");
+  });
+
+  it("carries an English default for every sentence, so none can render empty", () => {
+    for (const submissionState of [
+      "ready",
+      "preparing",
+      "photo-pending",
+      "photo-needs-attention",
+      "blocked",
+      "retry-required",
+      "reverted",
+      "awaiting-confirmation",
+      "checking-submission",
+      "sending",
+    ])
+      expect(queuedWorkExplanation({ submissionState }, online).defaultMessage).toBeTruthy();
   });
 });
