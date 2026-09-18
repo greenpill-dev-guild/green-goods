@@ -662,6 +662,7 @@
   "app.admin.roles.removed": "{role} eliminado correctamente",
   "app.admin.roles.removing": "Eliminando {role}...",
   "app.admin.roles.roleLabel": "Rol",
+  "app.admin.roles.searchPlaceholder": "Buscar miembros por dirección o rol",
   "app.admin.sidebar.admin": "Admin",
   "app.admin.sidebar.signOut": "Cerrar sesión",
   "app.admin.sortSelect.sortBy": "Ordenar por",

@@ -14,6 +14,7 @@ import { useIntl } from "react-intl";
 import { AdminButton, AdminIconButton } from "../AdminButton";
 import { AdminConfirmDialog, AdminDialog, type AdminDialogProps } from "../AdminDialog";
 import { AdminFilterChip } from "../AdminFilterChip";
+import { AdminSearchToolbar } from "../AdminSearchToolbar";
 import { getRoleLabel } from "./gardenUtils";
 
 export interface ManageMembersDialogProps {
@@ -52,6 +53,7 @@ export function ManageMembersDialog({
 }: ManageMembersDialogProps) {
   const { formatMessage } = useIntl();
   const [roleFilter, setRoleFilter] = useState<GardenRole | "all">("all");
+  const [memberSearch, setMemberSearch] = useState("");
   const [pendingRemoval, setPendingRemoval] = useState<MemberRow | null>(null);
   const [removing, setRemoving] = useState(false);
   const [removeErrorRole, setRemoveErrorRole] = useState<GardenRole | null>(null);
@@ -63,7 +65,20 @@ export function ManageMembersDialog({
       ),
     [roleMembers]
   );
-  const visibleRows = roleFilter === "all" ? rows : rows.filter((row) => row.role === roleFilter);
+  const normalizedSearch = memberSearch.trim().toLowerCase();
+  const visibleRows = useMemo(() => {
+    const roleScopedRows =
+      roleFilter === "all" ? rows : rows.filter((row) => row.role === roleFilter);
+
+    if (!normalizedSearch) return roleScopedRows;
+
+    return roleScopedRows.filter((row) => {
+      const roleLabel = getRoleLabel(row.role, formatMessage);
+      return [row.address, formatAddress(row.address), roleLabel.singular, roleLabel.plural].some(
+        (value) => value.toLowerCase().includes(normalizedSearch)
+      );
+    });
+  }, [formatMessage, normalizedSearch, roleFilter, rows]);
   const busy = isLoading || removing;
   const pendingRemovalLabel = pendingRemoval
     ? getRoleLabel(pendingRemoval.role, formatMessage)
@@ -138,6 +153,15 @@ export function ManageMembersDialog({
             </Alert>
           ) : null}
 
+          <AdminSearchToolbar
+            search={memberSearch}
+            onSearchChange={setMemberSearch}
+            placeholder={formatMessage({
+              id: "app.admin.roles.searchPlaceholder",
+              defaultMessage: "Search members by address or role",
+            })}
+          />
+
           <div
             className="flex flex-wrap gap-2"
             role="group"
@@ -172,7 +196,11 @@ export function ManageMembersDialog({
               <div className="flex min-h-[16rem] items-center justify-center">
                 <EmptyState
                   icon={<RiUserLine className="h-6 w-6" />}
-                  title={formatMessage({ id: "app.admin.garden.members.empty" })}
+                  title={formatMessage({
+                    id: normalizedSearch
+                      ? "app.garden.detail.community.membersEmpty"
+                      : "app.admin.garden.members.empty",
+                  })}
                 />
               </div>
             ) : (
