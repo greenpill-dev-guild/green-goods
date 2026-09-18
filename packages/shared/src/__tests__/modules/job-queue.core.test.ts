@@ -412,6 +412,47 @@ describe("modules/job-queue", () => {
       expect(sender.sendContractCall).toHaveBeenCalledOnce();
     });
 
+    it("confirms a sent work in the background even while it is held for an explicit send", async () => {
+      // Recovered, declined and reopened work all carry the hold. Upload all
+      // records the send without touching it, and the confirmation pass never
+      // says `explicit`: a hold that also stopped confirmation left such work
+      // awaiting confirmation until the person tapped Check again.
+      const jobId = await jobQueue.addJob(
+        "work",
+        {
+          title: "Test",
+          actionUID: 42,
+          gardenAddress: "0x123",
+          feedback: "ok",
+          clientWorkId: crypto.randomUUID(),
+        },
+        TEST_USER_ADDRESS,
+        { chainId: 11155111 }
+      );
+      const operation = `0x${"cd".repeat(32)}` as const;
+      const transaction = `0x${"ab".repeat(32)}` as const;
+      const job = await jobQueueDB.getJob(jobId);
+      (job!.payload as WorkJobPayload).uploadCheckpoint = {
+        submittedAt: new Date().toISOString(),
+        files: {},
+        broadcast: { kind: "user-operation", hash: operation },
+        broadcastPending: false,
+      };
+      job!.meta = { ...job!.meta, requiresExplicitSend: true };
+      await jobQueueDB.updateJob(job!);
+      const sender = createMockTransactionSender();
+      sender.reconcileBroadcast = vi.fn(async () => ({
+        status: "confirmed" as const,
+        transactionHash: transaction,
+      }));
+
+      await expect(
+        jobQueue.processJob(jobId, { transactionSender: sender })
+      ).resolves.toMatchObject({ success: true, txHash: transaction });
+      expect(sender.sendContractCall).not.toHaveBeenCalled();
+      expect(await jobQueueDB.getJob(jobId)).toBeUndefined();
+    });
+
     it("sends in the same tap when the tap is what finds the send never landed", async () => {
       const jobId = await strandedWork();
       const sender = createMockTransactionSender();

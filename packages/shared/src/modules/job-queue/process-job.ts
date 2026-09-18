@@ -18,7 +18,7 @@ import type {
   ProcessJobContext,
   ProcessJobResult,
 } from "./ports";
-import { createOfflineTxHash, isWaitingReprobeThrottled, sendCheckpointOf } from "./queue-policy";
+import { createOfflineTxHash, hasRecordedSend, isWaitingReprobeThrottled } from "./queue-policy";
 
 interface ProcessJobDependencies {
   store: JobQueueStore;
@@ -100,7 +100,10 @@ export function createJobProcessor(deps: ProcessJobDependencies) {
         : "offline";
     if (sendBlocked) return { success: false, error: sendBlocked, skipped: true };
 
-    if (job.meta?.requiresExplicitSend && !context.explicit) {
+    // The hold is on sending. A job whose send is already recorded is only
+    // confirmed from here, so a background pass must still be able to settle it.
+    const alreadySent = hasRecordedSend(job) || Boolean(retainedWorkBroadcast(jobId));
+    if (job.meta?.requiresExplicitSend && !context.explicit && !alreadySent) {
       return { success: false, error: "send-requires-explicit", skipped: true };
     }
 
@@ -122,14 +125,10 @@ export function createJobProcessor(deps: ProcessJobDependencies) {
       (checkpoint?.transactionReverted || job.meta?.workTransactionReverted)
     )
       return { success: false, error: "work-transaction-reverted", skipped: true };
-    const sent = sendCheckpointOf(job);
     if (
       job.attempts >= deps.config.maxRetries &&
       !retainedWorkBroadcast(jobId) &&
-      !(
-        (sent?.transactionHash || sent?.broadcast || sent?.broadcastPending) &&
-        !job.meta?.workTransactionReverted
-      )
+      !(hasRecordedSend(job) && !job.meta?.workTransactionReverted)
     ) {
       const errorMessage = `Max retries (${deps.config.maxRetries}) exceeded`;
       await deps.store.markJobFailed(jobId, errorMessage);
@@ -228,13 +227,7 @@ export function createJobProcessor(deps: ProcessJobDependencies) {
         return { success: false, error: errorMessage };
       }
       // Read again: the executor updates the checkpoint while it sends.
-      const recorded = sendCheckpointOf(job);
-      if (
-        retainedWorkBroadcast(jobId) ||
-        recorded?.transactionHash ||
-        recorded?.broadcast ||
-        recorded?.broadcastPending
-      ) {
+      if (retainedWorkBroadcast(jobId) || hasRecordedSend(job)) {
         // Failed checkpoint writes cannot turn a confirmation check into a new submission.
         deps.logger.warn("[JobQueue] Work confirmation checkpoint needs persistence", {
           jobId,
