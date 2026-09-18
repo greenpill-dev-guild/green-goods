@@ -131,6 +131,10 @@ const wrap = (el: React.ReactElement) =>
 
 const TITLE = "Update";
 
+/** The width classes of a settings control, breakpoint variants included. */
+const widthClasses = (element: HTMLElement) =>
+  element.className.split(" ").filter((name) => /^(?:[a-z]+:)?w-/.test(name));
+
 describe("AppSettings", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -177,6 +181,30 @@ describe("AppSettings", () => {
     expect(screen.getByText(/set your preferred language/i)).toBeInTheDocument();
   });
 
+  it("holds the current language as the select's value, as the theme select does", async () => {
+    // With no value the trigger rendered the language as its placeholder, in the
+    // muted placeholder colour instead of the value colour the theme select uses.
+    const user = userEvent.setup();
+    render(wrap(createElement(AppSettings)));
+
+    const [themeSelect, languageSelect] = screen.getAllByTestId("select");
+    expect(themeSelect).toHaveAttribute("data-value", "system");
+    expect(languageSelect).toHaveAttribute("data-value", "en");
+
+    await user.click(screen.getByRole("option", { name: "Spanish" }));
+
+    expect(mockAppState.switchLanguage).toHaveBeenCalledWith("es");
+  });
+
+  it("keeps every select value on one line", () => {
+    // "Português" is a few pixels wider than the trigger's text box and wrapped.
+    render(wrap(createElement(AppSettings)));
+
+    const triggers = screen.getAllByTestId("select-trigger");
+    expect(triggers).toHaveLength(2);
+    for (const trigger of triggers) expect(trigger).toHaveClass("[&>span]:whitespace-nowrap");
+  });
+
   describe("update row", () => {
     it("always offers a manual check with the same control width as the selects", () => {
       render(wrap(createElement(AppSettings)));
@@ -188,7 +216,8 @@ describe("AppSettings", () => {
       );
       const check = screen.getByRole("button", { name: "Check" });
       const [themeTrigger] = screen.getAllByTestId("select-trigger");
-      expect(check).toHaveClass(...themeTrigger.className.split(" "));
+      expect(widthClasses(themeTrigger)).not.toHaveLength(0);
+      expect(check).toHaveClass(...widthClasses(themeTrigger));
       expect(screen.queryByText("Refresh app")).not.toBeInTheDocument();
     });
 
@@ -289,9 +318,7 @@ describe("AppSettings", () => {
       expect(screen.getByRole("status", { name: "Update" })).toHaveTextContent(status);
       const control = screen.getByRole("button", { name: label });
       expect(control).toHaveAttribute("aria-busy", "true");
-      expect(control).toHaveClass(
-        ...screen.getAllByTestId("select-trigger")[0].className.split(" ")
-      );
+      expect(control).toHaveClass(...widthClasses(screen.getAllByTestId("select-trigger")[0]));
       expect(screen.getAllByTestId("card")).toHaveLength(4);
     });
 
