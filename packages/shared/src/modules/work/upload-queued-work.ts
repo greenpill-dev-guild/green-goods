@@ -54,7 +54,7 @@ export type UploadOutcome =
 export interface UploadQueuedWorkPorts {
   confirmOnline(): Promise<boolean>;
   suspendPreparation(): () => void;
-  listJobs(userAddress: string): Promise<Job[]>;
+  listJobs(userAddress: Address): Promise<Job[]>;
   getJob(id: string): Promise<Job | undefined>;
   acquire(ids: string[]): Promise<Map<string, WorkClaim>>;
   hold(claims: WorkClaim[]): () => void;

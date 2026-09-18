@@ -14,6 +14,7 @@ export function createJobQueue(deps: JobQueueDependencies): JobQueueHandle {
   const maintenance = new JobMaintenance(deps.store, deps.analytics, deps.logger);
   const processJob = createJobProcessor({ ...deps, maintenance });
   let flushPromise: Promise<FlushResult> | null = null;
+  let flushScope: string | null = null;
   let cachedStorageQuota: Awaited<ReturnType<typeof deps.quota.get>> | null = null;
   let cachedStorageQuotaFetchedAt = 0;
   const detachLifecycle = deps.lifecycle.attach(() => undefined);
@@ -137,11 +138,25 @@ export function createJobQueue(deps: JobQueueDependencies): JobQueueHandle {
     processJob,
 
     flush(context) {
-      if (flushPromise) return flushPromise;
-      flushPromise = flushInternal(context).finally(() => {
+      // Only a flush of the same scope can stand in for this one. A passkey's
+      // commitment-only flush answering a caller that asked for everything would
+      // report its work and decisions as processed without ever looking at them.
+      const scope = `${context.userAddress}|${context.kinds ? [...context.kinds].sort().join(",") : "*"}`;
+      if (flushPromise && flushScope === scope) return flushPromise;
+      const earlier = flushPromise;
+      const run: Promise<FlushResult> = (async () => {
+        // A different scope waits its turn instead of running beside it, so the
+        // kinds the two share are never processed twice.
+        if (earlier) await earlier.catch(() => undefined);
+        return flushInternal(context);
+      })().finally(() => {
+        if (flushPromise !== run) return;
         flushPromise = null;
+        flushScope = null;
       });
-      return flushPromise;
+      flushPromise = run;
+      flushScope = scope;
+      return run;
     },
 
     retryJob: recovery.retryJob,

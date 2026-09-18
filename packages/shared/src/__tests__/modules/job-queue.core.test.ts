@@ -513,6 +513,35 @@ describe("modules/job-queue", () => {
     expect((await jobQueueDB.getJob(workId))?.synced).toBe(false);
   });
 
+  it("never lets a filtered flush answer for one that asked for every kind", async () => {
+    const workId = await jobQueue.addJob(
+      "work",
+      { title: "Test", actionUID: 42, gardenAddress: "0x123", feedback: "ok" },
+      TEST_USER_ADDRESS,
+      { chainId: 11155111 }
+    );
+    const sender = createMockTransactionSender();
+
+    // A passkey's commitment-only flush is still in flight when something asks
+    // for everything. Handing back the filtered result would report this work as
+    // looked at while nothing ever read it.
+    const filtered = jobQueue.flush({
+      transactionSender: sender,
+      userAddress: TEST_USER_ADDRESS,
+      kinds: ["approval"],
+    });
+    const everything = jobQueue.flush({
+      transactionSender: sender,
+      userAddress: TEST_USER_ADDRESS,
+    });
+
+    await expect(filtered).resolves.toEqual({ processed: 0, failed: 0, skipped: 0 });
+    await expect(everything).resolves.toMatchObject({ processed: 1 });
+    expect(sender.sendContractCall).toHaveBeenCalledOnce();
+    // A work that went out leaves the queue.
+    expect(await jobQueueDB.getJob(workId)).toBeUndefined();
+  });
+
   it("keeps declined work queued for an explicit send instead of failing it", async () => {
     const jobId = await jobQueue.addJob(
       "work",

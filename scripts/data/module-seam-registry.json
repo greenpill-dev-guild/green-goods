@@ -18,7 +18,7 @@
         "integration": ["packages/shared/src/__tests__/modules/job-queue.imports.test.ts"]
       },
       "reviewedAt": "2026-09-18",
-      "evidenceFingerprint": "sha256:25c5cdca8908f12261b794f5acfe028d41a1daecb793c0bb3d4164e2407ac5cd"
+      "evidenceFingerprint": "sha256:c9744f8fb93e9e0a06b430a540bed96692fb2a84004b6fda8edb3b74bb652bb9"
     },
     {
       "id": "shared-auth-session",
