@@ -503,6 +503,7 @@
   "app.admin.assessment.strategyKernel.metric.wasteCollected": "Resíduos coletados",
   "app.admin.assessment.strategyKernel.metric.waterUsage": "Uso de água",
   "app.admin.assessment.strategyKernel.outcomeDescriptionRequired": "A descrição é obrigatória",
+  "app.admin.assessment.strategyKernel.outcomeMetricDuplicate": "Cada métrica só pode ser usada uma vez por avaliação",
   "app.admin.assessment.strategyKernel.outcomeMetricRequired": "Selecione uma métrica",
   "app.admin.assessment.strategyKernel.outcomeFieldLabel": "Resultado",
   "app.admin.assessment.strategyKernel.outcomePlaceholder": "O que este resultado alcança...",
