@@ -216,9 +216,7 @@ export default defineConfig(async ({ command, mode }): Promise<UserConfig> => {
             },
             org: process.env.SENTRY_ORG || "greenpill",
             project:
-              process.env.SENTRY_ADMIN_PROJECT ||
-              process.env.SENTRY_PROJECT ||
-              "green-goods-admin",
+              process.env.SENTRY_ADMIN_PROJECT || process.env.SENTRY_PROJECT || "green-goods-admin",
             release: {
               name: sentryRelease,
             },
@@ -240,6 +238,9 @@ export default defineConfig(async ({ command, mode }): Promise<UserConfig> => {
       proxy.on("error", () => {});
     },
   };
+
+  const watchOptions =
+    process.env.VITE_USE_POLLING === "true" ? { usePolling: true, interval: 100 } : {};
 
   return {
     root: __dirname,
@@ -385,10 +386,17 @@ export default defineConfig(async ({ command, mode }): Promise<UserConfig> => {
       // Polling is only required on Docker bind mounts and some network filesystems.
       // On macOS native FSEvents the default watcher is much cheaper than polling
       // every 100ms across hundreds of files. Opt in with VITE_USE_POLLING=true.
-      watch:
-        process.env.VITE_USE_POLLING === "true"
-          ? { usePolling: true, interval: 100 }
-          : undefined,
+      watch: {
+        ...watchOptions,
+        ignored: [
+          "**/.git/**",
+          "**/node_modules/**",
+          "**/dist/**",
+          "**/.turbo/**",
+          "**/.plans/**",
+          "**/coverage/**",
+        ],
+      },
       proxy: {
         // Proxy indexer requests to avoid CORS issues in development
         "/api/graphql": graphqlProxy,
