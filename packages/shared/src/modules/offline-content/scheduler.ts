@@ -192,10 +192,19 @@ export class OfflineScheduler {
         photoLimit: ports.cellular() ? 1 : 2,
         photosAllowed: ports.mediaReady() && (!ports.dataSaver() || this.dataSaverOverride),
       });
+      // Read before asking the worker anything: protecting the photos waits for
+      // its reply, and a hand-over that begins during that wait installs a fresh
+      // abort signal. A download started afterwards would not be interrupted at
+      // all — it would run against a quiet worker that leaves photos to the
+      // browser, fail on its own, and be counted as a photo this device lost.
+      const holdsBefore = this.holds;
       if (batch.some((task) => task.kind === "photo") && ports.mediaReady()) {
         await ports.media.protect(queue.plannedPhotos);
       }
-      const holdsBefore = this.holds;
+      if (this.heldForUpdate || holdsBefore !== this.holds) {
+        for (const task of batch) queue.retry(task);
+        continue;
+      }
       const results = await Promise.all(
         batch.map((task) =>
           this.execute(task, staleTime).then(

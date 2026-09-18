@@ -325,6 +325,43 @@ describe("offline scheduler", () => {
     expect(getOfflineProgress()).toMatchObject({ state: "ready", missingPhotos: 0 });
   });
 
+  it("retries a photo batch when the hand-over begins while the worker is asked to protect", async () => {
+    const { ports, saved } = harness({ gardens: [garden(gardenA, [account])] });
+    const scheduler = new OfflineScheduler(ports);
+    let handingOver = false;
+    // Protecting the photos waits for the worker's reply, and the hand-over
+    // lands during that wait — after the batch was chosen, before it runs.
+    vi.mocked(ports.media.protect).mockImplementationOnce(async () => {
+      handingOver = true;
+      scheduler.hold();
+      return true;
+    });
+    // A quiet worker leaves photos to the browser, so a download started during
+    // the hand-over is never kept, and says so rather than aborting.
+    vi.mocked(ports.media.download).mockImplementation(async (url) => {
+      if (handingOver) {
+        const error = new Error("Photo was received but could not be saved for offline use");
+        error.name = "OfflineMediaStoreError";
+        throw error;
+      }
+      saved.add(url);
+      return 500;
+    });
+
+    const run = scheduler.run();
+    await vi.waitFor(() => expect(ports.media.protect).toHaveBeenCalled());
+    handingOver = false;
+    scheduler.release();
+    await run;
+
+    // Not a photo this device lost, and not the storage warning that follows one.
+    expect(getOfflineProgress()).toMatchObject({
+      state: "ready",
+      missingPhotos: 0,
+      storageFull: false,
+    });
+  });
+
   it("runs a read again when the hand-over cancelled it in the worker, not counting it failed", async () => {
     const { ports } = harness({ gardens: [garden(gardenA, [account])] });
     const scheduler = new OfflineScheduler(ports);
