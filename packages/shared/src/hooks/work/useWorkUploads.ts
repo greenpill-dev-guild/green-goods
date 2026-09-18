@@ -123,6 +123,12 @@ export function useWorkUploads(): WorkUploads {
     onSuccess: (outcome) => {
       if (!outcome) return;
       const toast = { id: "work-uploads", context: "work uploads" } as const;
+      // An upload that stops partway still sent what went before it. Saying
+      // nothing was sent would deny a signature the person already gave.
+      const stoppedMessage = (id: string) =>
+        "sent" in outcome && outcome.sent > 0
+          ? formatMessage({ id: "app.uploads.partlySentMessage" }, { count: outcome.sent })
+          : formatMessage({ id });
       switch (outcome.status) {
         case "uploaded":
           toastService.success({
@@ -147,11 +153,22 @@ export function useWorkUploads(): WorkUploads {
             message: formatMessage({ id: "app.uploads.nothingReady" }),
           });
           return;
+        // The tap sent nothing: every ready item was refused, or is being handled
+        // elsewhere. Reporting an upload of nothing as a success would mislead.
+        case "nothing-sent":
+          toastService.info({
+            ...toast,
+            title: formatMessage({ id: "app.uploads.notUploadedTitle" }),
+            message: outcome.flagged
+              ? formatMessage({ id: "app.uploads.flaggedMessage" }, { count: outcome.flagged })
+              : formatMessage({ id: "app.uploads.nothingSentMessage" }),
+          });
+          return;
         case "reverted":
           toastService.error({
             ...toast,
             title: formatMessage({ id: "app.uploads.revertedTitle" }),
-            message: formatMessage({ id: "app.uploads.revertedMessage" }),
+            message: stoppedMessage("app.uploads.revertedMessage"),
           });
           return;
         case "send-unconfirmed":
@@ -166,12 +183,20 @@ export function useWorkUploads(): WorkUploads {
           toastService.error({
             ...toast,
             title: formatMessage({ id: "app.uploads.failedTitle" }),
-            message: formatMessage({ id: "app.uploads.failedMessage" }),
+            message: stoppedMessage("app.uploads.failedMessage"),
             error: outcome.error,
           });
           return;
-        // Declining the prompt is the person's choice; everything stays ready.
+        // Declining the prompt is the person's choice; everything stays ready. A
+        // long queue goes out in several calls, though, so an earlier one may
+        // already have been signed: that one is confirmed, never passed over.
         case "declined":
+          if (outcome.sent > 0)
+            toastService.success({
+              ...toast,
+              title: formatMessage({ id: "app.uploads.uploadedTitle" }, { count: outcome.sent }),
+              message: formatMessage({ id: "app.uploads.restWaitingMessage" }),
+            });
           return;
       }
     },

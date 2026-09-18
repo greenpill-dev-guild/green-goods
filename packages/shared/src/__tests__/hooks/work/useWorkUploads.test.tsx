@@ -196,6 +196,153 @@ describe("useWorkUploads", () => {
     );
   });
 
+  it("never denies a send that went before the upload stopped", async () => {
+    mocks.uploadQueuedWork.mockResolvedValue({
+      status: "failed",
+      sent: 2,
+      flagged: 0,
+      error: "Max retries (5) exceeded",
+    });
+    const { result } = renderHook(() => useWorkUploads(), { wrapper });
+
+    await act(async () => {
+      await result.current.upload();
+    });
+
+    expect(mocks.toast.error).toHaveBeenCalledWith(
+      expect.objectContaining({
+        title: en["app.uploads.failedTitle"],
+        message:
+          "2 items went to the garden record before this stopped. The rest is still on this device.",
+      })
+    );
+  });
+
+  it("says nothing was sent when an upload stops before anything goes", async () => {
+    mocks.uploadQueuedWork.mockResolvedValue({
+      status: "failed",
+      sent: 0,
+      flagged: 0,
+      error: "boom",
+    });
+    const { result } = renderHook(() => useWorkUploads(), { wrapper });
+
+    await act(async () => {
+      await result.current.upload();
+    });
+
+    expect(mocks.toast.error).toHaveBeenCalledWith(
+      expect.objectContaining({ message: en["app.uploads.failedMessage"] })
+    );
+  });
+
+  it("never calls an upload of nothing a success", async () => {
+    const { result } = renderHook(() => useWorkUploads(), { wrapper });
+
+    // Every ready item was refused at the tap: say what needs attention.
+    mocks.uploadQueuedWork.mockResolvedValue({ status: "nothing-sent", flagged: 1 });
+    await act(async () => {
+      await result.current.upload();
+    });
+    expect(mocks.toast.info).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        title: en["app.uploads.notUploadedTitle"],
+        message: "1 item needs your attention.",
+      })
+    );
+
+    // Every ready item is held elsewhere: nothing went, and nothing is wrong.
+    mocks.uploadQueuedWork.mockResolvedValue({ status: "nothing-sent", flagged: 0 });
+    await act(async () => {
+      await result.current.upload();
+    });
+    expect(mocks.toast.info).toHaveBeenLastCalledWith(
+      expect.objectContaining({ message: en["app.uploads.nothingSentMessage"] })
+    );
+    expect(mocks.toast.success).not.toHaveBeenCalled();
+  });
+
+  it("confirms what already went when a later prompt in a long queue is declined", async () => {
+    mocks.uploadQueuedWork.mockResolvedValue({ status: "declined", sent: 5, flagged: 0 });
+    const { result } = renderHook(() => useWorkUploads(), { wrapper });
+
+    await act(async () => {
+      await result.current.upload();
+    });
+
+    expect(mocks.toast.success).toHaveBeenCalledWith(
+      expect.objectContaining({
+        title: "Uploaded 5 items",
+        message: en["app.uploads.restWaitingMessage"],
+      })
+    );
+  });
+
+  it("says items are still being prepared when the tap finds nothing ready", async () => {
+    mocks.uploadQueuedWork.mockResolvedValue({ status: "nothing-ready" });
+    const { result } = renderHook(() => useWorkUploads(), { wrapper });
+
+    await act(async () => {
+      await result.current.upload();
+    });
+
+    expect(mocks.toast.info).toHaveBeenCalledWith(
+      expect.objectContaining({
+        title: en["app.uploads.notUploadedTitle"],
+        message: en["app.uploads.nothingReady"],
+      })
+    );
+  });
+
+  it("says a reverted upload recorded nothing", async () => {
+    mocks.uploadQueuedWork.mockResolvedValue({ status: "reverted", sent: 0, flagged: 1 });
+    const { result } = renderHook(() => useWorkUploads(), { wrapper });
+
+    await act(async () => {
+      await result.current.upload();
+    });
+
+    expect(mocks.toast.error).toHaveBeenCalledWith(
+      expect.objectContaining({
+        title: en["app.uploads.revertedTitle"],
+        message: en["app.uploads.revertedMessage"],
+      })
+    );
+  });
+
+  it("says a send whose answer was lost is being checked, not that it failed", async () => {
+    mocks.uploadQueuedWork.mockResolvedValue({ status: "send-unconfirmed", sent: 0, flagged: 0 });
+    const { result } = renderHook(() => useWorkUploads(), { wrapper });
+
+    await act(async () => {
+      await result.current.upload();
+    });
+
+    expect(mocks.toast.info).toHaveBeenCalledWith(
+      expect.objectContaining({
+        title: en["app.uploads.sendUnconfirmedTitle"],
+        message: en["app.uploads.sendUnconfirmedMessage"],
+      })
+    );
+    expect(mocks.toast.error).not.toHaveBeenCalled();
+  });
+
+  it("reports an upload that stopped unexpectedly instead of swallowing it", async () => {
+    const stopped = new Error("submission-ownership-changed");
+    mocks.uploadQueuedWork.mockRejectedValue(stopped);
+    const { result } = renderHook(() => useWorkUploads(), { wrapper });
+
+    await act(async () => {
+      await result.current.upload().catch(() => undefined);
+    });
+
+    await waitFor(() =>
+      expect(mocks.toast.error).toHaveBeenCalledWith(
+        expect.objectContaining({ title: en["app.uploads.failedTitle"], error: stopped })
+      )
+    );
+  });
+
   it("says nothing was uploaded on an unstable connection", async () => {
     mocks.uploadQueuedWork.mockResolvedValue({ status: "connection-unconfirmed" });
     const { result } = renderHook(() => useWorkUploads(), { wrapper });
