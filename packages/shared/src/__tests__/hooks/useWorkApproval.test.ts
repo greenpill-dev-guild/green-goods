@@ -857,6 +857,32 @@ describe("hooks/work/useWorkApproval", () => {
       expect(cached?._isPending).toBe(true);
     });
 
+    it("refuses a wallet decision with nowhere to queue it without opening the wallet", async () => {
+      // Admin submits through this hook but has no Upload all to fall back on.
+      const confirm = vi.spyOn(connectivityStore, "confirmOnline").mockResolvedValue(false);
+      mockUseUser.mockReturnValue({ authMode: "wallet", primaryAddress: MOCK_ADDRESSES.user });
+
+      const { result } = renderHook(() => useWorkApproval(), { wrapper: createWrapper() });
+      await act(async () => {
+        await expect(
+          result.current.mutateAsync({
+            draft: createMockWorkApprovalDraft({ approved: true }),
+            work: createMockWork(),
+          })
+        ).rejects.toThrow();
+      });
+
+      // Refused before the wallet, so no prompt is promised and none is handed off.
+      expect(confirm).toHaveBeenCalled();
+      expect(submitApprovalDirectly).not.toHaveBeenCalled();
+      expect(trackWorkApprovalLifecycle).not.toHaveBeenCalledWith(
+        expect.objectContaining({ stage: "handoff" })
+      );
+      expect(toastService.loading).not.toHaveBeenCalledWith(
+        expect.objectContaining({ title: en["app.toast.approval.walletConfirm.title"] })
+      );
+    });
+
     it("shows error toast on failure", async () => {
       const error = new Error("Approval failed");
       (submitApprovalDirectly as any).mockRejectedValue(error);

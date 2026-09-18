@@ -310,11 +310,11 @@ export function useWorkApproval(dependencies: UseWorkApprovalDependencies = {}) 
         approved: draft.approved,
         authMode,
       });
-      // Where decisions can wait for Upload all, the wallet is only involved on a
-      // connection that can send. Elsewhere a wallet decision always goes to it.
-      const walletSendsNow =
-        authMode === "wallet" &&
-        (!dependencies.queueWalletDecisions || (await connectivityStore.confirmOnline()));
+      // A wallet is only involved on a connection that can send, wherever this
+      // runs. Where decisions can wait, an unsteady connection queues the
+      // decision; where they cannot, the command refuses it. Either way the
+      // wallet prompt and its toast belong to a send that is really starting.
+      const walletSendsNow = authMode === "wallet" && (await connectivityStore.confirmOnline());
       walletSendsNowRef.current = walletSendsNow;
       if (walletSendsNow) {
         lifecycle.begin({

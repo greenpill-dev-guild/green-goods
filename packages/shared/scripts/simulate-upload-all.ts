@@ -48,6 +48,7 @@ import { createPimlicoClient } from "permissionless/clients/pimlico";
 import {
   BaseError,
   type Chain,
+  ExecutionRevertedError,
   createPublicClient,
   encodeFunctionData,
   type Hex,
@@ -87,6 +88,8 @@ interface CaseResult {
   case: string;
   calldataBytes: number;
   resolvers: string;
+  /** The resolvers answered and refused it, as opposed to the call never landing. */
+  resolversReverted?: boolean;
   userOperation: string;
   totalUserOperationGas?: string;
   walletGas?: string;
@@ -105,6 +108,16 @@ function usage(message?: string): never {
 
 function redact(text: string): string {
   return text.replace(/apikey=[^&\s"']+/gi, "apikey=***");
+}
+
+/**
+ * Whether the chain answered and refused, rather than the call never landing.
+ * An RPC that times out is not evidence that a resolver would refuse anything.
+ */
+function isRevert(error: unknown): boolean {
+  if (!(error instanceof BaseError)) return false;
+  if (error.walk((cause) => cause instanceof ExecutionRevertedError)) return true;
+  return /revert/i.test(error.shortMessage ?? "");
 }
 
 function describeError(error: unknown): string {
@@ -256,6 +269,7 @@ async function main() {
       await publicClient.call({ account, to: call.address, data });
     } catch (error) {
       result.resolvers = describeError(error);
+      result.resolversReverted = isRevert(error);
     }
     try {
       const prepared = await smartAccountClient.prepareUserOperation({
@@ -314,7 +328,11 @@ async function main() {
     // The resolvers decide this, not the paymaster: sponsorship says a bundler
     // would carry the call, not that the chain would accept it.
     culprit.case +=
-      culprit.resolvers === "accepted" ? " (UNEXPECTEDLY ACCEPTED)" : " (refused, as expected)";
+      culprit.resolvers === "accepted"
+        ? " (UNEXPECTEDLY ACCEPTED)"
+        : culprit.resolversReverted
+          ? " (refused, as expected)"
+          : " (NOT CHECKED: the call never landed)";
     results.push(culprit);
   }
 
