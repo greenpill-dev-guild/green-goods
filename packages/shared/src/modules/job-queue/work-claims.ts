@@ -22,9 +22,16 @@ const HOLD_INTERVAL_MS = 20_000;
 /** Claim whichever of these jobs are free, one by one, so one busy job never blocks the rest. */
 export async function acquireAvailableWorkJobs(ids: string[]): Promise<Map<string, WorkClaim>> {
   const claims = new Map<string, WorkClaim>();
-  for (const id of ids) {
-    const claim = await acquireWorkJobs([id]);
-    if (claim) claims.set(id, claim);
+  try {
+    for (const id of ids) {
+      const claim = await acquireWorkJobs([id]);
+      if (claim) claims.set(id, claim);
+    }
+  } catch (error) {
+    // The caller never receives this map, so nothing else can release what it
+    // already holds: those jobs would stay claimed until the claim expires.
+    await releaseWorkClaims(claims.values());
+    throw error;
   }
   return claims;
 }
