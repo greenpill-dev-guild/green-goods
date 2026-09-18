@@ -58,7 +58,10 @@ describe("AppSheet", () => {
     const overlay = screen.getByTestId("app-sheet-overlay");
 
     if (path === "close button") fireEvent.click(screen.getByTestId("app-sheet-close"));
-    if (path === "overlay") fireEvent.click(overlay);
+    if (path === "overlay") {
+      fireEvent.pointerDown(overlay);
+      fireEvent.click(overlay);
+    }
     if (path === "Escape") fireEvent.keyDown(overlay, { key: "Escape" });
     act(() => vi.runAllTimers());
 

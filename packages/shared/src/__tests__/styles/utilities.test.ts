@@ -126,6 +126,98 @@ describe("PwaSheet layout contract", () => {
   });
 });
 
+describe("PwaSheet motion contract", () => {
+  const keyframes = (name: string) =>
+    utilitiesContent.match(new RegExp(`@keyframes ${name}\\s*\\{((?:[^{}]*\\{[^}]*\\})*)`))?.[1] ??
+    "";
+  const stateRule = (slot: string, state: string) =>
+    utilitiesContent.match(
+      new RegExp(
+        `\\[data-component="PwaSheet"\\]\\[data-slot="${slot}"\\]\\[data-state="${state}"\\]\\s*\\{([^}]*)\\}`
+      )
+    )?.[1] ?? "";
+
+  it("slides in one move: no waypoint, no rise above rest, and no fade", () => {
+    // The sheet is anchored to the viewport's bottom edge, so an overshoot
+    // shows the page under it, and a fading surface shows the page through it.
+    for (const name of ["dialogSlideInFromBottom", "dialogSlideOutToBottom"]) {
+      expect(keyframes(name), name).toMatch(/from\s*\{/);
+      expect(keyframes(name), name).not.toMatch(/\d%\s*\{/);
+      expect(keyframes(name), name).not.toMatch(/translate3d\(0,\s*-/);
+      expect(keyframes(name), name).not.toMatch(/opacity/);
+    }
+  });
+
+  it("drags on translate, so the keyframes' transform never overrides the gesture", () => {
+    expect(keyframes("dialogSlideInFromBottom")).not.toMatch(/(^|[^-])translate\s*:/);
+    expect(utilitiesContent).toMatch(
+      /\[data-component="PwaSheet"\]\[data-slot="surface"\]\s*\{\s*transition:\s*translate var\(--spring-spatial\);/
+    );
+    expect(utilitiesContent).toMatch(
+      /\[data-component="PwaSheet"\]\[data-slot="drag-dim"\]\s*\{\s*transition:\s*opacity var\(--spring-spatial\);/
+    );
+  });
+
+  it("accelerates a close from rest, and settles a release on that same token (DL-033)", () => {
+    // The drag offset a release leaves behind and the exit keyframe share one
+    // token, so the two sum to a single slide from under the finger.
+    const closed = stateRule("surface", "closed");
+    expect(closed).toMatch(/dialogSlideOutToBottom var\(--spring-spatial-exit-duration\)/);
+    expect(closed).toMatch(/var\(--spring-spatial-exit-easing\)/);
+    expect(closed).toMatch(/transition:\s*translate var\(--spring-spatial-exit\);/);
+  });
+
+  it("lets a flicked sheet leave on the decelerating token, keyframe and settle alike", () => {
+    const flicked =
+      utilitiesContent.match(
+        /\[data-component="PwaSheet"\]\[data-flicked\] > \[data-slot="surface"\]\[data-state="closed"\]\s*\{([^}]*)\}/
+      )?.[1] ?? "";
+    expect(flicked).toMatch(/animation-duration:\s*var\(--spring-spatial-duration\);/);
+    expect(flicked).toMatch(/animation-timing-function:\s*var\(--spring-spatial-easing\);/);
+    expect(flicked).toMatch(/transition:\s*translate var\(--spring-spatial\);/);
+  });
+
+  it("keeps the exit within the close duration sheets time their unmount on", () => {
+    // PwaSheet and its consumers unmount after --spring-spatial-duration, so
+    // no exit may run longer than that.
+    const durationMs = (token: string) =>
+      Number(themeContent.match(new RegExp(`${token}:\\s*(\\d+)ms;`))?.[1] ?? Number.NaN);
+    expect(durationMs("--spring-spatial-exit-duration")).toBeGreaterThan(0);
+    expect(durationMs("--spring-spatial-exit-duration")).toBeLessThanOrEqual(
+      durationMs("--spring-spatial-duration")
+    );
+    expect(themeContent).toMatch(
+      /--spring-spatial-exit:\s*var\(--spring-spatial-exit-easing\) var\(--spring-spatial-exit-duration\);/
+    );
+  });
+
+  it("makes the title block under the grip part of the grab area", () => {
+    const dragRegion =
+      utilitiesContent.match(
+        /\[data-component="SheetHeader"\]\[data-slot="text"\]\[data-drag-region\]\s*\{([^}]*)\}/
+      )?.[1] ?? "";
+    // Without it the browser claims a vertical touch for a pan and cancels the drag.
+    expect(dragRegion).toMatch(/touch-action:\s*none/);
+    expect(dragRegion).toMatch(/user-select:\s*none/);
+  });
+
+  it("holds the sheet under the finger without a transition while dragging", () => {
+    const dragging = utilitiesContent.match(
+      /\[data-component="PwaSheet"\]\[data-dragging\] > \[data-slot="surface"\],\s*\[data-component="PwaSheet"\]\[data-dragging\] > \[data-slot="drag-dim"\]\s*\{([^}]*)\}/
+    )?.[1];
+    expect(dragging).toMatch(/transition:\s*none/);
+  });
+
+  it("drops the settle along with the keyframes under reduced motion", () => {
+    const reducedMotion =
+      utilitiesContent.match(
+        /@media \(prefers-reduced-motion: reduce\)\s*\{\s*\[data-component="PwaSheet"\]\[data-slot\][^}]*\{([^}]*)\}/
+      )?.[1] ?? "";
+    expect(reducedMotion).toMatch(/animation-duration:\s*0ms !important/);
+    expect(reducedMotion).toMatch(/transition-duration:\s*0ms !important/);
+  });
+});
+
 describe("SheetHeader anatomy contract (DL-028)", () => {
   const rule = (slot: string) =>
     new RegExp(`\\[data-component="SheetHeader"\\]\\[data-slot="${slot}"\\]\\s*\\{([^}]*)\\}`);
