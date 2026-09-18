@@ -93,7 +93,7 @@ export function AdminSearchToolbar({
           className={cn(
             "h-full min-w-0 flex-1 bg-transparent px-3",
             "text-body-md text-[rgb(var(--m3-on-surface))]",
-            "outline-none border-none focus:outline-none"
+            "outline-none border-none focus:outline-none focus:shadow-none"
           )}
         />
 
