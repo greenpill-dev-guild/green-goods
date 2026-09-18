@@ -48,38 +48,44 @@ export function isDiscardableJob(
  * attention is prepared again from the start.
  */
 export function createJobRecovery(
-  store: Pick<JobQueueStore, "getJob" | "updateJob" | "deleteJob"> &
+  store: Pick<JobQueueStore, "getJob" | "amendJob" | "deleteJob"> &
     Partial<Pick<JobQueueStore, "getJobs" | "markJobTerminalFailed">>,
   events: Pick<JobQueueEvents, "emit">
 ) {
   return {
     async retryJob(jobId: string): Promise<void> {
-      const job = await store.getJob(jobId);
-      if (!job || job.synced) return;
-      const { lastError: _lastError, ...rest } = job;
-      const {
-        metadataAttempts: _metadataAttempts,
-        evidenceAttempts: _evidenceAttempts,
-        waitingReason: _waitingReason,
-        mediaConversion: _mediaConversion,
-        preparation: _preparation,
-        ...meta
-      } = job.meta ?? {};
-      if (job.kind === "work" && meta.workTransactionReverted) {
-        const payload = job.payload as WorkJobPayload;
-        if (payload.uploadCheckpoint) {
-          delete payload.uploadCheckpoint.transactionHash;
-          delete payload.uploadCheckpoint.broadcast;
-          delete payload.uploadCheckpoint.broadcastPending;
-          delete payload.uploadCheckpoint.transactionReverted;
+      let retried: Job | undefined;
+      // Read and written as one step. A retry takes no claim, so a plain read
+      // followed by a write could land over a send another holder had just
+      // recorded, and the job would read as unsent while it was in flight.
+      await store.amendJob(jobId, (job) => {
+        if (job.synced) return;
+        const {
+          metadataAttempts: _metadataAttempts,
+          evidenceAttempts: _evidenceAttempts,
+          waitingReason: _waitingReason,
+          mediaConversion: _mediaConversion,
+          preparation: _preparation,
+          ...meta
+        } = job.meta ?? {};
+        if (job.kind === "work" && meta.workTransactionReverted) {
+          const payload = job.payload as WorkJobPayload;
+          if (payload.uploadCheckpoint) {
+            delete payload.uploadCheckpoint.transactionHash;
+            delete payload.uploadCheckpoint.broadcast;
+            delete payload.uploadCheckpoint.broadcastPending;
+            delete payload.uploadCheckpoint.transactionReverted;
+          }
+          delete meta.submittedTxHash;
+          delete meta.workTransactionReverted;
+          forgetWorkBroadcast(jobId);
         }
-        delete meta.submittedTxHash;
-        delete meta.workTransactionReverted;
-        forgetWorkBroadcast(jobId);
-      }
-      const retried = { ...rest, attempts: 0, meta: { ...meta, waitingForDependency: false } };
-      await store.updateJob(retried);
-      events.emit("job:added", { jobId, job: retried });
+        delete job.lastError;
+        job.attempts = 0;
+        job.meta = { ...meta, waitingForDependency: false };
+        retried = job;
+      });
+      if (retried) events.emit("job:added", { jobId, job: retried });
     },
 
     async discardJob(jobId: string): Promise<boolean> {

@@ -11,7 +11,7 @@ export interface ProcessJobContext {
   transactionSender: TransactionSender | null;
   assertOwnership?: () => void | Promise<void>;
   /**
-   * The person asked for this send (Submit, Send Now, Retry). Only an explicit
+   * The person asked for this send (Submit, Upload now, Retry). Only an explicit
    * send processes a job whose earlier prompt was declined, and it skips the
    * retry backoff: nothing is hammering the network when someone taps.
    */
@@ -63,7 +63,13 @@ export interface JobQueueStore {
   ): Promise<string>;
   getJob(id: string): Promise<Job | undefined>;
   getJobs(filter: { userAddress: string; kind?: string; synced?: boolean }): Promise<Job[]>;
+  /** Writes a whole job back. A job that is no longer stored is left deleted. */
   updateJob(job: Job): Promise<void>;
+  /**
+   * Changes a stored job in place, reading and writing it as one step, so a
+   * change another holder made in between is never written over.
+   */
+  amendJob(id: string, amend: (job: Job) => void): Promise<void>;
   markJobSynced(id: string, txHash?: string): Promise<void>;
   markJobFailed(id: string, error: string): Promise<void>;
   markJobTerminalFailed(id: string, error: string): Promise<void>;

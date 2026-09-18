@@ -1,9 +1,9 @@
 /**
  * The draft a queued work job becomes when it is sent.
  *
- * The job executor and the wallet batch both encode queued work, and the
+ * Preparation, Upload all and the job executor all encode queued work, and the
  * metadata hash covers every field built here. Building it in one place keeps
- * the two senders from uploading different metadata for the same work.
+ * them from uploading different metadata for the same work.
  *
  * @module modules/work/queued-work-draft
  */
