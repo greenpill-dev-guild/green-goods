@@ -10,6 +10,7 @@
  * @module modules/work/upload-preparation
  */
 
+import type { Address } from "../../types/domain";
 import type { Job } from "../../types/job-queue";
 import { logger } from "../app/logger";
 import type { WorkClaim } from "../job-queue/work-claims";
@@ -59,7 +60,7 @@ export const uploadPreparationStore = {
 };
 
 export interface UploadPreparationPorts {
-  userAddress: string;
+  userAddress: Address;
   chainId: number;
   isConfirmedOnline(): boolean;
   isVisible(): boolean;
@@ -69,7 +70,7 @@ export interface UploadPreparationPorts {
   acquire(ids: string[]): Promise<Map<string, WorkClaim>>;
   hold(claims: WorkClaim[]): () => void;
   prepare(job: Job, chainId: number, claim: WorkClaim): Promise<PreparationResult>;
-  recover(userAddress: string): Promise<unknown>;
+  recover(userAddress: Address): Promise<unknown>;
   now(): number;
 }
 
@@ -97,6 +98,7 @@ export function createUploadPreparation(ports: UploadPreparationPorts): UploadPr
   let stopped = false;
   let suspended = 0;
   let recovered = false;
+  let retryTimer: ReturnType<typeof setTimeout> | undefined;
   const retries = new Map<string, { attempts: number; at: number }>();
   // A blocked item is checked again once a session: a membership may have changed.
   const recheckedBlocked = new Set<string>();
@@ -126,16 +128,18 @@ export function createUploadPreparation(ports: UploadPreparationPorts): UploadPr
       // Read again under the claim: another holder may have changed it.
       const job = await ports.getJob(id);
       if (!job || !wantsPreparation(job)) return;
-      if (queuedUploadStatus(job).state === "blocked") recheckedBlocked.add(id);
       publish({ activeJobId: id });
       const result = await ports.prepare(job, ports.chainId, claim);
       if (result === "retry-later") {
         const attempts = (retries.get(id)?.attempts ?? 0) + 1;
         const delay = Math.min(RETRY_BASE_MS * 2 ** (attempts - 1), RETRY_MAX_MS);
         retries.set(id, { attempts, at: ports.now() + delay });
-      } else {
-        retries.delete(id);
+        return;
       }
+      retries.delete(id);
+      // A blocked item is checked once a session, and only the chain refusing it
+      // again spends that check: a transient failure must not retire it.
+      if (result === "blocked") recheckedBlocked.add(id);
     } finally {
       release();
       publish({ activeJobId: null });
@@ -173,7 +177,20 @@ export function createUploadPreparation(ports: UploadPreparationPorts): UploadPr
       } while (requested && !stopped);
     } finally {
       running = false;
+      scheduleRetry();
     }
+  };
+
+  /**
+   * One timer for the earliest backoff still ahead. Without it a recorded retry
+   * only throttles, and an item that failed once would wait for an unrelated
+   * wake-up. A backoff already due needs no timer: the next pass takes it.
+   */
+  const scheduleRetry = () => {
+    clearTimeout(retryTimer);
+    if (stopped) return;
+    const ahead = [...retries.values()].map(({ at }) => at).filter((at) => at > ports.now());
+    if (ahead.length > 0) retryTimer = setTimeout(start, Math.min(...ahead) - ports.now());
   };
 
   // A failed pass leaves everything queued; the next trigger tries again.
@@ -204,6 +221,7 @@ export function createUploadPreparation(ports: UploadPreparationPorts): UploadPr
     },
     stop: () => {
       stopped = true;
+      clearTimeout(retryTimer);
       publish({ activeJobId: null, paused: null });
     },
   };

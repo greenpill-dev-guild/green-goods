@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { jobQueueDB } from "../../modules/job-queue/db";
 import { jobQueueEventBus } from "../../modules/job-queue/event-bus";
 import { connectivityStore } from "../../stores/connectivity";
+import type { Address } from "../../types/domain";
 import { isDataSaverOn, networkInformation } from "../../utils/app/network-information";
 import { useAsyncSetup } from "../utils/useAsyncEffect";
 
@@ -13,7 +14,7 @@ import { useAsyncSetup } from "../utils/useAsyncEffect";
  * first confirmed: they may not be on this device yet, and an import that
  * fails offline stays failed for the life of the page.
  */
-export function useWorkUploadPreparation(userAddress: string | null | undefined, chainId: number) {
+export function useWorkUploadPreparation(userAddress: Address | null | undefined, chainId: number) {
   const [connected, setConnected] = useState(() => connectivityStore.isConfirmedOnline());
   useEffect(() => {
     if (connected) return;
