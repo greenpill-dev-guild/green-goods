@@ -967,6 +967,41 @@ describe("IPFS media cache", () => {
     expect((await quieting).report).toMatchObject({ trackedWork: 1, cancelledFetches: 1 });
   });
 
+  it("turns away media work that arrives while a hand-over is draining", async () => {
+    const { cacheFor, fetchMock, listeners } = await loadServiceWorker();
+    const media = cacheFor("ipfs-cache");
+    fetchMock.mockImplementationOnce(async () => new Response("photo"));
+    let releaseWrite!: () => void;
+    media.put.mockImplementationOnce(
+      () =>
+        new Promise<void>((finish) => {
+          releaseWrite = finish;
+        })
+    );
+    const copying = mediaEvent(imageRequest(photoUrl));
+    listeners.fetch.forEach((listener) => listener(copying.event));
+    await (await copying.response())?.text();
+    await vi.waitFor(() => expect(releaseWrite).toBeDefined());
+
+    // The hand-over is now waiting on that write, so its census is already
+    // taken: anything accepted here would never be waited for, but would keep
+    // its own message event — and the update — open behind it.
+    const quieting = ask(listeners, { type: "PREPARE_TO_ACTIVATE_UPDATE" });
+    const sweep = await ask(listeners, { type: "MEDIA_SWEEP", budgetBytes: 1_000, keep: [] });
+    const stats = await ask(listeners, { type: "MEDIA_STATS" });
+    const policy = await ask(listeners, { type: "MEDIA_POLICY", budgetBytes: 1_000, keep: [] });
+
+    expect(sweep).toEqual({ bytes: 0, count: 0, failed: true });
+    expect(stats).toEqual({ bytes: 0, count: 0, failed: true });
+    expect(policy).toEqual({ failed: true });
+
+    releaseWrite();
+    const ack = await quieting;
+    expect(ack.status).toBe("quiet");
+    // The turned-away messages left nothing behind for the next worker to wait on.
+    expect(ack.report).toMatchObject({ trackedWork: 1 });
+  });
+
   it("still forwards a page's own abort where the browser reports one", async () => {
     const { fetchMock, listeners } = await loadServiceWorker();
     let upstream: AbortSignal | undefined;
