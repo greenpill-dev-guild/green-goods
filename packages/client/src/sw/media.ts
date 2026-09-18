@@ -93,20 +93,30 @@ export class MediaCache {
         return legacy;
       }
     }
+    // A gateway can take minutes to answer, and only this worker can give up
+    // on it: an update hand-over cancels the read through this signal.
+    const upstream = this.work.canceller(request);
     let response: Response;
     try {
       response = await fetch(url, {
         mode: "cors",
         credentials: "omit",
         headers: { accept: request.headers.get("accept") || "*/*" },
-        signal: request.signal,
+        signal: upstream.signal,
       });
     } catch (error) {
-      if (request.signal.aborted) throw error;
+      if (upstream.signal.aborted) {
+        upstream.done();
+        throw error;
+      }
       // A gateway without CORS still displays; it just is not kept for offline.
-      return fetch(request);
+      return fetch(request, { signal: upstream.signal }).finally(upstream.done);
     }
-    if (response.status === 200) this.keepInBackground(event, url, response.clone());
+    // The stored copy reads the same download, so it stays cancellable until it lands.
+    const kept =
+      response.status === 200 ? this.keepInBackground(event, url, response.clone()) : undefined;
+    if (kept) void kept.finally(upstream.done);
+    else upstream.done();
     return response;
   }
 
@@ -155,20 +165,21 @@ export class MediaCache {
     return { bytes: total, count };
   }
 
+  /** Resolves once the copy has landed or been given up on; `undefined` when none was started. */
   private keepInBackground(
     event: FetchEvent,
     url: string,
     response: Response,
     onStored?: () => Promise<unknown>
-  ): void {
-    if (!this.work.isAccepting) return;
-    event.waitUntil(
-      this.work.track(
-        this.schedule(url, response)
-          .then(() => onStored?.())
-          .catch(() => undefined)
-      )
+  ): Promise<unknown> | undefined {
+    if (!this.work.isAccepting) return undefined;
+    const kept = this.work.track(
+      this.schedule(url, response)
+        .then(() => onStored?.())
+        .catch(() => undefined)
     );
+    event.waitUntil(kept);
+    return kept;
   }
 
   private schedule(url: string, response: Response): Promise<void> {

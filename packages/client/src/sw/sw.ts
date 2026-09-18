@@ -23,7 +23,7 @@ self.__WB_DISABLE_DEV_LOGS = true;
 
 // Green Goods answers first: the share target, JS modules, the connectivity
 // probe and gateway photos never reach Workbox's router.
-installGreenGoodsWorker(self);
+const greenGoods = installGreenGoodsWorker(self);
 
 // The precached entry document and stylesheet, plus the navigation fallback.
 // The worker is scoped to /home, so public pages never see this fallback.
@@ -33,30 +33,34 @@ precacheAndRoute(self.__WB_MANIFEST);
 registerRoute(new NavigationRoute(createHandlerBoundToURL("index.html")));
 
 // Avatars and app images. Gateway media is answered above from its own cache.
+// Both routes below wait on the network, so a stalled update hand-over counts
+// their open responses along with the worker's own.
+const images = new CacheFirst({
+  cacheName: SW_CACHES.IMAGES,
+  plugins: [
+    new ExpirationPlugin({
+      maxEntries: 100,
+      maxAgeSeconds: 30 * 24 * 60 * 60,
+      purgeOnQuotaError: true,
+    }),
+    new CacheableResponsePlugin({ statuses: [0, 200] }),
+  ],
+});
 registerRoute(
   ({ request, url, sameOrigin }) =>
     request.destination === "image" && (url.protocol === "https:" || sameOrigin),
-  new CacheFirst({
-    cacheName: SW_CACHES.IMAGES,
-    plugins: [
-      new ExpirationPlugin({
-        maxEntries: 100,
-        maxAgeSeconds: 30 * 24 * 60 * 60,
-        purgeOnQuotaError: true,
-      }),
-      new CacheableResponsePlugin({ statuses: [0, 200] }),
-    ],
-  })
+  (options) => greenGoods.answering("image", images.handle(options))
 );
 
 // GraphQL reads use POST. Cache Storage cannot safely cache those by URL;
 // TanStack Query's persisted reads own offline data. Critical POSTs retry
 // through Background Sync instead.
+const profileWrites = new NetworkOnly({
+  plugins: [new BackgroundSyncPlugin("gg-api-queue", { maxRetentionTime: 24 * 60 })],
+});
 registerRoute(
   /\/users\/me$/,
-  new NetworkOnly({
-    plugins: [new BackgroundSyncPlugin("gg-api-queue", { maxRetentionTime: 24 * 60 })],
-  }),
+  (options) => greenGoods.answering("api", profileWrites.handle(options)),
   "POST"
 );
 

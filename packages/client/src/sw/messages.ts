@@ -70,7 +70,12 @@ export function createMessageHandler({ scope, shell, media, work }: MessageDepen
           work
             .quiet(() => shell.pause())
             .then(
-              () => reply({ type: SW_REPLY.QUIET_ACK, status: "quiet" } satisfies QuietAckReply),
+              (report) =>
+                reply({
+                  type: SW_REPLY.QUIET_ACK,
+                  status: "quiet",
+                  report,
+                } satisfies QuietAckReply),
               () => reply({ type: SW_REPLY.QUIET_ACK, status: "failed" } satisfies QuietAckReply)
             )
         );

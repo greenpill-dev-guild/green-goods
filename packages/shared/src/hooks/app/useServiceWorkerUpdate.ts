@@ -14,7 +14,6 @@ import {
 import { logger } from "../../modules/app/logger";
 import { track } from "../../modules/app/posthog";
 import {
-  activateWaitingWorker,
   buildUpdateTelemetry,
   consumeUpdateApplied,
   createInstallWatcher,
@@ -23,10 +22,10 @@ import {
   isServiceWorkerUpdateEnabled,
   markUpdateApplied,
   now,
-  observeUpdateAttempt,
   resolveUpdateTarget,
   waitForInstallToSettle,
 } from "../../modules/app/service-worker-update";
+import { beginUpdateActivation, holdUpdateHandover } from "../../modules/app/update-handover";
 import { useTimeout } from "../utils/useTimeout";
 
 export type ServiceWorkerUpdatePhase =
@@ -98,8 +97,11 @@ function useServiceWorkerUpdateController({
   const downloadStartedAtRef = useRef<number | null>(null);
   const reloadGuardRef = useRef(false);
   const lastAutoCheckRef = useRef(0);
-  const cancelActivationRef = useRef<(() => void) | null>(null);
-  const stopActivationDiagnosticsRef = useRef<(() => void) | null>(null);
+  /** Ends the running activation attempt: stops waiting and stops observing. */
+  const disposeActivationRef = useRef<(() => void) | null>(null);
+  const releaseHandoverRef = useRef<(() => void) | null>(null);
+  /** Cleared by Dismiss: "update later" must not be answered with a restart. */
+  const lateRestartWantedRef = useRef(false);
 
   const isEnabled = useMemo(isServiceWorkerUpdateEnabled, []);
 
@@ -451,73 +453,68 @@ function useServiceWorkerUpdateController({
       return;
     }
 
-    cancelActivationRef.current?.();
-    stopActivationDiagnosticsRef.current?.();
+    disposeActivationRef.current?.();
+    releaseHandoverRef.current?.();
     waitingWorkerRef.current = worker;
+    lateRestartWantedRef.current = true;
     setUpdateStalled(false);
     setIsUpdating(true);
     setPhase("activating");
-    const diagnostics = observeUpdateAttempt(
+
+    // Stop sending the old worker downloads before it is asked to go quiet, so
+    // the page's own reads end as aborts it retries, not as failed photos.
+    releaseHandoverRef.current = holdUpdateHandover();
+
+    const attempt = beginUpdateActivation(
       worker,
       () => registrationRef.current,
-      (properties) => track("sw_update_target_state_changed", properties)
-    );
-    stopActivationDiagnosticsRef.current = diagnostics.dispose;
-    let acknowledgment = "not_received";
-    const telemetry = diagnostics.telemetry({ phase: "activating" });
-    track("sw_update_applied", telemetry);
-    track("sw_update_apply_started", telemetry);
-
-    cancelActivationRef.current = activateWaitingWorker(
-      worker,
       {
-        onProgress: (status) => {
-          acknowledgment = status;
-          track("sw_update_activation_ack", diagnostics.telemetry({ acknowledgment: status }));
+        isBlocked: isActivationBlocked,
+        isWanted: () => lateRestartWantedRef.current,
+        onStarted: (properties) => {
+          track("sw_update_applied", properties);
+          track("sw_update_apply_started", properties);
         },
-        onActivated: () => {
-          cancelActivationRef.current = null;
+        onProgress: (properties) => track("sw_update_activation_ack", properties),
+        onTargetState: (properties) => track("sw_update_target_state_changed", properties),
+        onRestart: (properties) => {
           if (reloadGuardRef.current) return;
           reloadGuardRef.current = true;
-          track("sw_update_apply_completed", diagnostics.telemetry({ phase: "activating" }));
+          track("sw_update_apply_completed", properties);
           markUpdateApplied();
           window.location.reload();
         },
-        onTimeout: () => {
-          diagnostics.markTimedOut();
-          cancelActivationRef.current = null;
+        onDeferred: (reason) => {
+          setUpdateStalled(false);
+          setPhase((current) => (current === "error" ? "waiting" : current));
+          track("sw_update_deferred", { reason });
+        },
+        onTimeout: (properties) => {
+          releaseHandoverRef.current?.();
+          releaseHandoverRef.current = null;
           setIsUpdating(false);
           setUpdateStalled(true);
           setPhase("error");
-          logger.warn("Service worker update did not activate before timeout", {
-            source: "useServiceWorkerUpdate.applyUpdate",
-            timeoutMs: APPLY_UPDATE_TIMEOUT_MS,
-          });
-          track(
-            "sw_update_apply_timeout",
-            diagnostics.telemetry({
-              phase: "error",
-              timeout_ms: APPLY_UPDATE_TIMEOUT_MS,
-              acknowledgment,
-            })
-          );
+          track("sw_update_apply_timeout", properties);
         },
       },
       APPLY_UPDATE_TIMEOUT_MS
     );
+    disposeActivationRef.current = attempt.dispose;
   }, [buildTelemetry, checkForUpdate, isActivationBlocked]);
 
   useEffect(() => {
     return () => {
-      cancelActivationRef.current?.();
-      cancelActivationRef.current = null;
-      stopActivationDiagnosticsRef.current?.();
-      stopActivationDiagnosticsRef.current = null;
+      disposeActivationRef.current?.();
+      disposeActivationRef.current = null;
+      releaseHandoverRef.current?.();
+      releaseHandoverRef.current = null;
       clearWaitingPrompt();
     };
   }, [clearWaitingPrompt]);
 
   const dismissUpdate = useCallback(() => {
+    lateRestartWantedRef.current = false;
     setDismissed(true);
     setUpdateAvailable(false);
     setUpdateStalled(false);

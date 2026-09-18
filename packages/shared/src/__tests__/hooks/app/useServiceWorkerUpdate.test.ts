@@ -39,6 +39,7 @@ import {
 import { logger } from "../../../modules/app/logger";
 import { track } from "../../../modules/app/posthog";
 import { DOWNLOAD_TIMEOUT_MS } from "../../../modules/app/service-worker-update";
+import { joinUpdateHandover, LATE_RESTART_WINDOW_MS } from "../../../modules/app/update-handover";
 
 type Listener = () => void;
 
@@ -720,7 +721,7 @@ describe("hooks/app/useServiceWorkerUpdate", () => {
       vi.useRealTimers();
     });
 
-    it("records the exact timed-out target and late activation without reloading", async () => {
+    it("records the exact timed-out target and stops observing once unmounted", async () => {
       vi.stubEnv("VITE_ENABLE_SW_DEV", "true");
       const target = createMockWorker({ state: "installed" });
       const replacement = createMockWorker({ state: "installed" });
@@ -751,14 +752,15 @@ describe("hooks/app/useServiceWorkerUpdate", () => {
         })
       );
       vi.mocked(track).mockClear();
+      // A waiting worker that was replaced is discarded, never activated.
       act(() => {
-        Object.defineProperty(target, "state", { configurable: true, value: "activated" });
+        Object.defineProperty(target, "state", { configurable: true, value: "redundant" });
         target.dispatchStateChange();
       });
       expect(track).toHaveBeenCalledWith(
         "sw_update_target_state_changed",
         expect.objectContaining({
-          target_worker_state: "activated",
+          target_worker_state: "redundant",
           after_timeout: true,
         })
       );
@@ -884,6 +886,248 @@ describe("hooks/app/useServiceWorkerUpdate", () => {
 
       expect(result.current.shouldPrompt).toBe(true);
     });
+  });
+});
+
+describe("an activation that lands after the deadline", () => {
+  const originalLocation = window.location;
+  const originalDraft = useWorkFlowStore.getState();
+  let reload: ReturnType<typeof vi.fn>;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.stubEnv("VITE_ENABLE_SW_DEV", "true");
+    reload = vi.fn();
+    Object.defineProperty(window, "location", {
+      configurable: true,
+      value: { href: "https://www.greengoods.app/home/profile", reload },
+    });
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.unstubAllEnvs();
+    vi.unstubAllGlobals();
+    sessionStorage.clear();
+    useWorkFlowStore.setState(originalDraft);
+    Object.defineProperty(window, "location", { configurable: true, value: originalLocation });
+  });
+
+  /** Tap Restart, let the wait give up, and return the stalled hook. */
+  async function stallUpdate() {
+    const target = createMockWorker({ state: "installed" });
+    const registration = createMockRegistration({ waiting: target });
+    installServiceWorkerMock(registration);
+    const rendered = renderUpdateHook();
+    await waitFor(() => expect(rendered.result.current.updateAvailable).toBe(true));
+    vi.useFakeTimers();
+    act(() => rendered.result.current.applyUpdate());
+    act(() => vi.advanceTimersByTime(APPLY_UPDATE_TIMEOUT_MS));
+    expect(rendered.result.current.phase).toBe("error");
+    expect(reload).not.toHaveBeenCalled();
+    return { ...rendered, registration, target };
+  }
+
+  function activate(target: MockServiceWorker) {
+    act(() => {
+      Object.defineProperty(target, "state", { configurable: true, value: "activated" });
+      target.dispatchStateChange();
+    });
+  }
+
+  it("finishes the restart when no work is open", async () => {
+    const { target } = await stallUpdate();
+
+    // The browser kept the request and activates once the old worker drains.
+    act(() => {
+      Object.defineProperty(target, "state", { configurable: true, value: "activating" });
+      target.dispatchStateChange();
+    });
+    expect(reload).not.toHaveBeenCalled();
+    activate(target);
+
+    expect(reload).toHaveBeenCalledTimes(1);
+    expect(sessionStorage.getItem("gg-update-applied")).toBe("1");
+    expect(track).toHaveBeenCalledWith(
+      "sw_update_apply_completed",
+      expect.objectContaining({
+        phase: "error",
+        after_timeout: true,
+        target_worker_state: "activated",
+      })
+    );
+  });
+
+  it("offers Restart instead of reloading over open work, and one tap then finishes", async () => {
+    const { registration, result, target } = await stallUpdate();
+    act(() =>
+      useWorkFlowStore.setState({
+        activeDraftId: "unfinished",
+        draftSaveState: "saving",
+        submissionCompleted: false,
+      })
+    );
+
+    activate(target);
+
+    expect(reload).not.toHaveBeenCalled();
+    expect(track).toHaveBeenCalledWith("sw_update_deferred", { reason: "active_work" });
+    expect(track).not.toHaveBeenCalledWith("sw_update_apply_completed", expect.anything());
+    expect(result.current.phase).toBe("waiting");
+    expect(result.current.updateStalled).toBe(false);
+    expect(result.current.activationBlocked).toBe(true);
+
+    // The target is the active worker now, so Restart has nothing left to wait for.
+    Object.defineProperty(registration, "waiting", { configurable: true, value: null });
+    Object.defineProperty(registration, "active", { configurable: true, value: target });
+    act(() =>
+      useWorkFlowStore.setState({
+        activeDraftId: null,
+        draftSaveState: "idle",
+        submissionCompleted: false,
+      })
+    );
+    act(() => result.current.activateNow());
+
+    expect(reload).toHaveBeenCalledTimes(1);
+  });
+
+  it("leaves the restart to the person once the tap is older than the window", async () => {
+    const { result, target } = await stallUpdate();
+    act(() => vi.advanceTimersByTime(LATE_RESTART_WINDOW_MS));
+
+    activate(target);
+
+    expect(reload).not.toHaveBeenCalled();
+    expect(track).toHaveBeenCalledWith("sw_update_deferred", { reason: "late_activation" });
+    expect(result.current.phase).toBe("waiting");
+  });
+
+  it("does not restart once the person has dismissed the stalled update", async () => {
+    const { result, target } = await stallUpdate();
+    // The stalled notice offers "update later"; closing it calls this.
+    act(() => result.current.dismissUpdate());
+
+    activate(target);
+
+    expect(reload).not.toHaveBeenCalled();
+    expect(track).toHaveBeenCalledWith("sw_update_deferred", { reason: "dismissed" });
+    expect(result.current.phase).toBe("idle");
+  });
+
+  it("does not restart after the app has let go of the attempt", async () => {
+    const { target, unmount } = await stallUpdate();
+    unmount();
+
+    activate(target);
+
+    expect(reload).not.toHaveBeenCalled();
+  });
+});
+
+describe("update hand-over", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.stubEnv("VITE_ENABLE_SW_DEV", "true");
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.unstubAllEnvs();
+    vi.unstubAllGlobals();
+  });
+
+  it("holds the page's downloads before quieting the old worker, until the wait gives up", async () => {
+    const downloads = { hold: vi.fn(), release: vi.fn() };
+    const leave = joinUpdateHandover(downloads);
+    const controller = createMockWorker({ state: "activated" });
+    installServiceWorkerMock(
+      createMockRegistration({ waiting: createMockWorker({ state: "installed" }) }),
+      { controller }
+    );
+    const { result, unmount } = renderUpdateHook();
+    try {
+      await waitFor(() => expect(result.current.updateAvailable).toBe(true));
+      expect(downloads.hold).not.toHaveBeenCalled();
+      vi.useFakeTimers();
+
+      act(() => result.current.applyUpdate());
+      expect(downloads.hold).toHaveBeenCalledTimes(1);
+      expect(downloads.hold.mock.invocationCallOrder[0]).toBeLessThan(
+        vi.mocked(controller.postMessage).mock.invocationCallOrder[0]
+      );
+      expect(downloads.release).not.toHaveBeenCalled();
+
+      act(() => vi.advanceTimersByTime(APPLY_UPDATE_TIMEOUT_MS));
+      expect(downloads.release).toHaveBeenCalledTimes(1);
+
+      // Try Again holds them again, and leaving the app lets go.
+      act(() => result.current.applyUpdate());
+      expect(downloads.hold).toHaveBeenCalledTimes(2);
+      unmount();
+      expect(downloads.release).toHaveBeenCalledTimes(2);
+    } finally {
+      leave();
+    }
+  });
+
+  it("holds nothing when open work defers the restart", async () => {
+    const downloads = { hold: vi.fn(), release: vi.fn() };
+    const leave = joinUpdateHandover(downloads);
+    const originalDraft = useWorkFlowStore.getState();
+    installServiceWorkerMock(
+      createMockRegistration({ waiting: createMockWorker({ state: "installed" }) })
+    );
+    const { result, unmount } = renderUpdateHook();
+    try {
+      await waitFor(() => expect(result.current.updateAvailable).toBe(true));
+      act(() => useWorkFlowStore.setState({ activeDraftId: "open", draftSaveState: "saving" }));
+      act(() => result.current.applyUpdate());
+      expect(downloads.hold).not.toHaveBeenCalled();
+    } finally {
+      unmount();
+      useWorkFlowStore.setState(originalDraft);
+      leave();
+    }
+  });
+
+  it("names what the old worker had open on the ack and on the timeout", async () => {
+    const report = { trackedWork: 1, cancelledFetches: 2, pendingResponses: { image: 1 } };
+    const controller = createMockWorker({
+      state: "activated",
+      postMessage: vi.fn((message: unknown, transfer?: Transferable[]) => {
+        if ((message as { type?: string })?.type !== "PREPARE_TO_ACTIVATE_UPDATE") return;
+        (transfer?.[0] as MessagePort).postMessage({
+          type: "GG_QUIET_ACK",
+          status: "quiet",
+          report,
+        });
+      }) as unknown as ServiceWorker["postMessage"],
+    });
+    installServiceWorkerMock(
+      createMockRegistration({ waiting: createMockWorker({ state: "installed" }) }),
+      { controller }
+    );
+    const { result } = renderUpdateHook();
+    await waitFor(() => expect(result.current.updateAvailable).toBe(true));
+    vi.useFakeTimers();
+
+    act(() => result.current.applyUpdate());
+    act(() => vi.advanceTimersByTime(APPLY_UPDATE_TIMEOUT_MS));
+
+    const named = {
+      old_worker_tracked_work: 1,
+      old_worker_cancelled_fetches: 2,
+      old_worker_pending_responses: "image:1",
+    };
+    expect(track).toHaveBeenCalledWith(
+      "sw_update_activation_ack",
+      expect.objectContaining({ acknowledgment: "quiet", ...named })
+    );
+    expect(track).toHaveBeenCalledWith(
+      "sw_update_apply_timeout",
+      expect.objectContaining({ acknowledgment: "quiet", ...named })
+    );
   });
 });
 

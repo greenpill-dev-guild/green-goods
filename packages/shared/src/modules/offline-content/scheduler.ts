@@ -68,6 +68,9 @@ export class OfflineScheduler {
   private timer: ReturnType<typeof setTimeout> | undefined;
   private lastRunAt = 0;
   private legacyRetired = false;
+  private heldForUpdate = false;
+  /** Counts hand-over holds, so a task one of them cut short runs again. */
+  private holds = 0;
 
   constructor(private readonly ports: OfflineSchedulerPorts) {}
 
@@ -102,6 +105,26 @@ export class OfflineScheduler {
     if (this.ports.dataSaver()) this.dataSaverOverride = true;
     this.wake();
     if (!this.running) this.schedule(0);
+  }
+
+  /**
+   * An app update is handing the old worker over. Every download sent to that
+   * worker is an event it must finish before the new one can activate, so
+   * nothing more is sent until `release`. This is not a pause the user asked
+   * for: the Settings row keeps showing the run as it was.
+   */
+  hold(): void {
+    if (this.heldForUpdate) return;
+    this.heldForUpdate = true;
+    this.holds += 1;
+    this.abortDownloads();
+    this.wake();
+  }
+
+  release(): void {
+    if (!this.heldForUpdate) return;
+    this.heldForUpdate = false;
+    this.wake();
   }
 
   /** Connectivity, visibility, Data Saver or the worker changed. */
@@ -172,6 +195,7 @@ export class OfflineScheduler {
       if (batch.some((task) => task.kind === "photo") && ports.mediaReady()) {
         await ports.media.protect(queue.plannedPhotos);
       }
+      const holdsBefore = this.holds;
       const results = await Promise.all(
         batch.map((task) =>
           this.execute(task, staleTime).then(
@@ -180,9 +204,12 @@ export class OfflineScheduler {
           )
         )
       );
+      // A hand-over cancels what the old worker was reading, photo or details,
+      // and that fails here as an ordinary network error rather than an abort.
+      const cutShort = this.stopped || holdsBefore !== this.holds;
       for (const result of results) {
         if (!("error" in result)) queue.completed(result.task, result.value);
-        else if (this.stopped || (result.error as Error | undefined)?.name === "AbortError") {
+        else if (cutShort || (result.error as Error | undefined)?.name === "AbortError") {
           queue.retry(result.task);
         } else queue.failed(result.task, result.error);
       }
@@ -284,14 +311,20 @@ export class OfflineScheduler {
       } else if (this.userPaused) {
         this.showPaused("user");
         await this.untilWoken();
-      } else if (!ports.visible()) {
+      } else if (!ports.visible() || this.heldForUpdate) {
         await this.untilWoken();
       } else if (ports.client.isFetching() > 0 || ports.client.isMutating() > 0) {
         await ports.sleep(FOREGROUND_RECHECK_MS);
       } else {
         await ports.idle();
         if (this.stopped) throw new RunStopped();
-        if (ports.online() && !this.userPaused && ports.visible() && !ports.client.isFetching()) {
+        if (
+          ports.online() &&
+          !this.userPaused &&
+          !this.heldForUpdate &&
+          ports.visible() &&
+          !ports.client.isFetching()
+        ) {
           return;
         }
       }

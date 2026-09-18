@@ -281,6 +281,68 @@ describe("offline scheduler", () => {
     expect(getOfflineProgress()).toMatchObject({ state: "ready", missingPhotos: 0 });
   });
 
+  it("sends nothing while an update hands the worker over, and shows no pause for it", async () => {
+    const { ports } = harness({ gardens: [garden(gardenA, [account])] });
+    const scheduler = new OfflineScheduler(ports);
+    scheduler.hold();
+
+    const run = scheduler.run();
+    await vi.waitFor(() => expect(getOfflineProgress().state).toBe("downloading"));
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    expect(ports.fetchWorks).not.toHaveBeenCalled();
+    expect(ports.media.download).not.toHaveBeenCalled();
+    // Not the person's pause: the Settings row keeps showing the run.
+    expect(getOfflineProgress()).toMatchObject({ state: "downloading", pauseReason: undefined });
+
+    scheduler.release();
+    await run;
+
+    expect(getOfflineProgress()).toMatchObject({ state: "ready", missingPhotos: 0 });
+  });
+
+  it("aborts a photo an update hand-over interrupts and downloads it again afterwards", async () => {
+    const { ports, saved } = harness({ gardens: [garden(gardenA, [account])] });
+    const scheduler = new OfflineScheduler(ports);
+    let interrupted = false;
+    vi.mocked(ports.media.download).mockImplementation(async (url, signal) => {
+      if (!interrupted) {
+        interrupted = true;
+        const aborted = new Promise<never>((_, reject) =>
+          signal.addEventListener("abort", () => reject(new DOMException("Held", "AbortError")))
+        );
+        scheduler.hold();
+        return aborted;
+      }
+      saved.add(url);
+      return 500;
+    });
+
+    const run = scheduler.run();
+    await vi.waitFor(() => expect(interrupted).toBe(true));
+    scheduler.release();
+    await run;
+
+    expect(getOfflineProgress()).toMatchObject({ state: "ready", missingPhotos: 0 });
+  });
+
+  it("runs a read again when the hand-over cancelled it in the worker, not counting it failed", async () => {
+    const { ports } = harness({ gardens: [garden(gardenA, [account])] });
+    const scheduler = new OfflineScheduler(ports);
+    // The old worker cancels what it was reading; the page sees a plain network error.
+    vi.mocked(ports.readMetadata).mockImplementationOnce(async () => {
+      scheduler.hold();
+      throw new TypeError("Failed to fetch");
+    });
+
+    const run = scheduler.run();
+    await vi.waitFor(() => expect(ports.readMetadata).toHaveBeenCalledTimes(1));
+    scheduler.release();
+    await run;
+
+    expect(ports.readMetadata).toHaveBeenCalledTimes(2);
+    expect(getOfflineProgress()).toMatchObject({ state: "ready", failedReads: 0 });
+  });
+
   it("reports photos that could not be downloaded and keeps the old worker's copies", async () => {
     const { ports } = harness({ gardens: [garden(gardenB, [account])] });
     vi.mocked(ports.media.download).mockRejectedValueOnce(new Error("Photo download failed (500)"));
