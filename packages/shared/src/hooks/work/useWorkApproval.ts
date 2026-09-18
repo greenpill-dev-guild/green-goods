@@ -5,9 +5,9 @@
  */
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useCallback, useRef } from "react";
+import { useCallback, useMemo, useRef } from "react";
 import { useIntl } from "react-intl";
-import { toastService } from "../../components/toast";
+import { createApprovalToasts, toastService } from "../../components/toast";
 import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
 import { INDEXER_LAG_SCHEDULE_MS } from "../../config/query-keys/constants";
 import { approvalsKeys, workApprovalsKeys, worksKeys } from "../../config/query-keys/work";
@@ -32,6 +32,7 @@ import {
   submitApproval,
   type SubmitApprovalOutcome,
 } from "../../modules/work/submit-approval-command";
+import { connectivityStore } from "../../stores/connectivity";
 import type { Work, WorkApprovalDraft } from "../../types/domain";
 import { hapticError, hapticSuccess } from "../../utils/app/haptics";
 import { DEBUG_ENABLED, debugLog } from "../../utils/debug";
@@ -53,6 +54,11 @@ interface UseWorkApprovalParams {
 }
 
 interface UseWorkApprovalDependencies {
+  /**
+   * Set where Upload all is on hand: a wallet decision made on a connection that
+   * cannot send then waits on the device, instead of being refused.
+   */
+  queueWalletDecisions?: boolean;
   jobQueue?: Pick<JobQueueHandle, "processJob">;
   onApprovalComplete?: (completion: WorkApprovalCompletion) => void | Promise<void>;
 }
@@ -67,6 +73,7 @@ interface WorkDecisionCacheSnapshot {
 
 export function useWorkApproval(dependencies: UseWorkApprovalDependencies = {}) {
   const { formatMessage } = useIntl();
+  const approvalToasts = useMemo(() => createApprovalToasts(formatMessage), [formatMessage]);
   const { authMode, primaryAddress } = useUser();
   const sender = useTransactionSender();
   const chainId = DEFAULT_CHAIN_ID;
@@ -74,7 +81,7 @@ export function useWorkApproval(dependencies: UseWorkApprovalDependencies = {}) 
   const { set: scheduleAutoClear } = useTimeout();
   const lastGardenRef = useRef<string>("");
   // Decided once, before the wallet is involved, and handed to the command so the
-  // two never disagree about whether this decision reaches the wallet.
+  // two never disagree about whether this decision goes to the wallet or the queue.
   const walletSendsNowRef = useRef(true);
   const decisionCacheRef = useRef<WorkDecisionCacheSnapshot | null>(null);
   const { start: scheduleFollowUp } = useProgressiveInvalidation(
@@ -273,11 +280,17 @@ export function useWorkApproval(dependencies: UseWorkApprovalDependencies = {}) 
         jobQueue: dependencies.jobQueue,
         onWalletLifecycle: lifecycle.recordWalletStage,
       });
-      const outcome = await submitApproval(
-        { authMode, draft, work, chainId, userAddress: primaryAddress },
-        // Only the wallet path reuses the decided answer: a passkey decision
-        // still asks for itself, since that check decides whether it sends now.
-        authMode === "wallet"
+      const queuesWalletDecisions = authMode === "wallet" && dependencies.queueWalletDecisions;
+      return submitApproval(
+        {
+          authMode,
+          draft,
+          work,
+          chainId,
+          userAddress: primaryAddress,
+          queueWalletDecisions: dependencies.queueWalletDecisions,
+        },
+        queuesWalletDecisions
           ? {
               ...ports,
               connectivity: {
@@ -287,7 +300,6 @@ export function useWorkApproval(dependencies: UseWorkApprovalDependencies = {}) 
             }
           : ports
       );
-      return outcome;
     },
     onMutate: async (variables) => {
       if (!variables) return;
@@ -298,10 +310,11 @@ export function useWorkApproval(dependencies: UseWorkApprovalDependencies = {}) 
         approved: draft.approved,
         authMode,
       });
-      // The wallet is only asked on a connection that can carry the send. Starting
-      // the lifecycle first put up a persistent "confirm in your wallet" toast for
-      // a send the command was about to refuse, with no wallet ever opening.
-      const walletSendsNow = authMode === "wallet" && (await connectivityStore.confirmOnline());
+      // Where decisions can wait for Upload all, the wallet is only involved on a
+      // connection that can send. Elsewhere a wallet decision always goes to it.
+      const walletSendsNow =
+        authMode === "wallet" &&
+        (!dependencies.queueWalletDecisions || (await connectivityStore.confirmOnline()));
       walletSendsNowRef.current = walletSendsNow;
       if (walletSendsNow) {
         lifecycle.begin({
@@ -332,7 +345,7 @@ export function useWorkApproval(dependencies: UseWorkApprovalDependencies = {}) 
         { revert: false }
       );
 
-      if (authMode !== "wallet") {
+      if (!walletSendsNow) {
         const status = draft.approved ? ("approved" as const) : ("rejected" as const);
         const pendingUntilMs = Date.now() + PENDING_AUTO_CLEAR_MS;
         const setPending = (old: Work[] = []) =>
@@ -353,27 +366,8 @@ export function useWorkApproval(dependencies: UseWorkApprovalDependencies = {}) 
         }, PENDING_AUTO_CLEAR_MS + 1000);
       }
 
-      const actionLabel = draft.approved ? "approval" : "decision";
-      // Keyed to whether the wallet is really being asked, not to the auth mode:
-      // a wallet decision on an unconfirmed connection is refused before any
-      // prompt, so "confirm in your wallet" would describe something that is not
-      // about to happen.
-      toastService.loading({
-        id: "approval-submit",
-        title: walletSendsNow
-          ? formatMessage({ id: "app.toast.approval.walletConfirm.title" })
-          : !navigator.onLine
-            ? "Working offline"
-            : "Submitting approval",
-        message: walletSendsNow
-          ? formatMessage({ id: "app.toast.approval.walletConfirm.message" })
-          : !navigator.onLine
-            ? `Saving ${actionLabel} offline...`
-            : `Submitting ${actionLabel}...`,
-        context: walletSendsNow ? "wallet confirmation" : "approval submission",
-        persistent: walletSendsNow,
-        suppressLogging: true,
-      });
+      if (walletSendsNow) approvalToasts.walletConfirm();
+      else approvalToasts.submitting(draft.approved);
       return { previousMerged, previousOnline };
     },
     onSuccess: async (result, variables) => {
@@ -426,23 +420,9 @@ export function useWorkApproval(dependencies: UseWorkApprovalDependencies = {}) 
         });
       }
       recordDecision(completion, result.hash, isOfflineHash, isOfflineHash);
-      toastService.success({
-        id: "approval-submit",
-        title: isOfflineHash
-          ? completion.approved
-            ? "Approval saved offline"
-            : "Decision saved offline"
-          : completion.approved
-            ? "Approval submitted"
-            : "Decision submitted",
-        message: isOfflineHash
-          ? "We'll sync this automatically when you're back online."
-          : completion.approved
-            ? "Decision recorded."
-            : "Feedback recorded.",
-        context: "approval submission",
-        suppressLogging: true,
-      });
+      // The decision waits on this device for Upload all: nothing sends it on its own.
+      if (isOfflineHash) approvalToasts.savedOffline(completion.approved);
+      else approvalToasts.success(completion.approved);
       await invalidateApprovalQueries(completion);
       decisionCacheRef.current = null;
     },

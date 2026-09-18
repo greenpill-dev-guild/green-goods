@@ -6,6 +6,13 @@ import type { TransactionSender } from "../transactions/types";
 import type { ApprovalWalletLifecycleEvent } from "./wallet-submission/types";
 
 export interface SubmitApprovalCommand {
+  /**
+   * A wallet decision normally goes straight to the wallet, and is refused when
+   * it cannot. Where Upload all is on hand (the client), one made offline waits
+   * on the device instead, like a passkey's. A surface with no queue to upload
+   * from (admin) leaves this off, so a decision never waits where nothing sends it.
+   */
+  queueWalletDecisions?: boolean;
   authMode: "wallet" | "passkey" | "embedded" | null;
   draft: WorkApprovalDraft;
   work: Work;
@@ -82,11 +89,14 @@ export async function submitApproval(
 ): Promise<SubmitApprovalOutcome> {
   validateApproval(command);
 
-  if (command.authMode === "wallet") {
-    // A wallet decision has no queue to fall back on, so it is refused up front.
-    if (!(await canSendApprovalNow(ports))) throw new ApprovalConnectionUnconfirmedError();
-    const result = await ports.direct(command);
-    return { ...result, kind: "direct" };
+  const wallet = command.authMode === "wallet";
+  if (wallet) {
+    if (await canSendApprovalNow(ports)) {
+      const result = await ports.direct(command);
+      return { ...result, kind: "direct" };
+    }
+    // Without a queue to fall back on, it is refused before the wallet is asked.
+    if (!command.queueWalletDecisions) throw new ApprovalConnectionUnconfirmedError();
   }
 
   if (!command.userAddress) {
@@ -94,7 +104,9 @@ export async function submitApproval(
   }
 
   const queued = await ports.queue.enqueue({ ...command, userAddress: command.userAddress });
-  if (ports.sender && (await canSendApprovalNow(ports))) {
+  // A queued wallet decision waits for Upload all: sending it from here would
+  // open the wallet on a connection that was just found unsteady.
+  if (!wallet && ports.sender && (await canSendApprovalNow(ports))) {
     const processed = await ports.queue.process(queued.jobId, ports.sender);
     if (processed.success && processed.txHash) {
       return { hash: processed.txHash as `0x${string}`, kind: "processed" };

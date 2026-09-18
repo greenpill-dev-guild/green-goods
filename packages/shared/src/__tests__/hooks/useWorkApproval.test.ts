@@ -34,7 +34,9 @@ vi.mock("../../modules/work/work-submission", () => ({
   submitApprovalToQueue: vi.fn(),
 }));
 
-vi.mock("../../components/toast", () => ({
+// Mocked at the service, so the hook's localized presets report through it too.
+vi.mock("../../components/Toast/toast.service", () => ({
+  setToastTranslator: vi.fn(),
   toastService: {
     loading: vi.fn(),
     success: vi.fn(),
@@ -656,6 +658,13 @@ describe("hooks/work/useWorkApproval", () => {
       expect(cached?._isPending).toBe(true);
       expect(cached?._txHash).toBeUndefined();
       expect(cached?._pendingUntilMs).toBeUndefined();
+      // Nothing sends a decision on its own any more, so the toast must not promise it.
+      expect(toastService.success).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          title: en["app.toast.approval.savedOfflineApproval.title"],
+          message: en["app.toast.approval.savedOffline.message"],
+        })
+      );
     });
 
     it("returns offline hash when offline", async () => {
@@ -804,6 +813,48 @@ describe("hooks/work/useWorkApproval", () => {
       expect(toastService.loading).not.toHaveBeenCalledWith(
         expect.objectContaining({ title: en["app.toast.approval.walletConfirm.title"] })
       );
+    });
+
+    it("keeps a wallet decision on the device where Upload all is on hand, without involving the wallet", async () => {
+      const confirm = vi.spyOn(connectivityStore, "confirmOnline").mockResolvedValue(false);
+      mockUseUser.mockReturnValue({ authMode: "wallet", primaryAddress: MOCK_ADDRESSES.user });
+      (submitApprovalToQueue as any).mockResolvedValue({
+        txHash: "0xoffline_wallet",
+        jobId: "job-wallet",
+      });
+      const work = createMockWork({ status: "pending" });
+      const draft = createMockWorkApprovalDraft({
+        actionUID: work.actionUID,
+        workUID: work.id,
+        approved: true,
+      });
+      const mergedKey = queryKeys.works.merged(work.gardenAddress, 11155111);
+      queryClient.setQueryData(mergedKey, [work]);
+
+      const { result } = renderHook(() => useWorkApproval({ queueWalletDecisions: true }), {
+        wrapper: createWrapper(),
+      });
+      await act(async () => {
+        await result.current.mutateAsync({ draft, work });
+      });
+
+      // One check decides it, and the wallet's own flow never starts.
+      expect(confirm).toHaveBeenCalledOnce();
+      expect(submitApprovalDirectly).not.toHaveBeenCalled();
+      expect(submitApprovalToQueue).toHaveBeenCalledOnce();
+      expect(trackWorkApprovalLifecycle).not.toHaveBeenCalledWith(
+        expect.objectContaining({ stage: "handoff" })
+      );
+      expect(toastService.loading).not.toHaveBeenCalledWith(
+        expect.objectContaining({ title: en["app.toast.approval.walletConfirm.title"] })
+      );
+      expect(toastService.success).toHaveBeenLastCalledWith(
+        expect.objectContaining({ message: en["app.toast.approval.savedOffline.message"] })
+      );
+      // It reads as decided at once, like a passkey decision made offline.
+      const cached = queryClient.getQueryData<OverlayWork[]>(mergedKey)?.[0];
+      expect(cached?.status).toBe("approved");
+      expect(cached?._isPending).toBe(true);
     });
 
     it("shows error toast on failure", async () => {
