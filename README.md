@@ -73,6 +73,10 @@ recovery are explained in [Environment Management](https://docs.greengoods.app/b
 Existing `.env` files are kept. Review readiness before explicitly replacing local credentials.
 **Confirmed transactions affect live Arbitrum.**
 
+Set `VITE_DISABLE_LOCAL_CHAIN`, `VITE_DISABLE_LOCAL_INDEXER`, or
+`VITE_DISABLE_LOCAL_AGENT` to `true` when the PM2 dev stack should use the root or hosted
+service instead of its local counterpart.
+
 ```bash
 npm run setup -- --profile host
 test -f .env || bun run env:sync
