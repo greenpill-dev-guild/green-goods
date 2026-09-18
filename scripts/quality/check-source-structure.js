@@ -148,7 +148,7 @@ const FROZEN_ALLOWLIST = {
   "packages/shared/src/modules/app/analytics-events.ts": 520,
   "packages/shared/src/modules/app/posthog.ts": 577,
   "packages/shared/src/modules/data/marketplace.ts": 550,
-  "packages/shared/src/modules/job-queue/db.ts": 540,
+  "packages/shared/src/modules/job-queue/db.ts": 536,
   "packages/shared/src/providers/Auth.tsx": 739,
   "packages/shared/src/public-contracts/index.ts": 582,
   "packages/shared/src/types/domain.ts": 614,

@@ -82,6 +82,23 @@ describe("converting a queued job's HEIC photos", () => {
     expect(image.file.type).toBe("image/heic");
   });
 
+  it("keeps a work discarded while its photo was decoding discarded", async () => {
+    const job = await queueWork([heic()]);
+    // The steward discards it from the work detail page while the decoder runs.
+    conversion.convertHeicPhoto.mockImplementation(async () => {
+      await jobQueueDB.deleteJob(job.id);
+      return { status: "unavailable" };
+    });
+
+    await expect(convertQueuedHeicMedia(job)).resolves.toEqual({ status: "pending" });
+    // The queue writes its own copy of the job on the waiting path that follows.
+    await jobQueueDB.updateJob(job);
+
+    expect(await jobQueueDB.getJob(job.id)).toBeUndefined();
+    // Discarding takes the photos with it, so a record put back has none.
+    expect(await jobQueueDB.getImagesForJob(job.id)).toEqual([]);
+  });
+
   it("marks the attempt in flight before decoding", async () => {
     const job = await queueWork([heic()]);
     let duringDecode: unknown;
