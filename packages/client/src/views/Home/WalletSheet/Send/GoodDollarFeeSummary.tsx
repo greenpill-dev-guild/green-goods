@@ -38,7 +38,7 @@ export function GoodDollarFeeSummary({
     : [];
   return (
     <section className="mx-4 mb-4 space-y-3 rounded-lg border border-stroke-soft-200 p-3 text-xs">
-      <h4 className="font-medium text-text-strong-950">
+      <h4 className="text-sm font-medium text-text-strong-950">
         {formatMessage({ id: "app.celoWallet.fee.title" })}
       </h4>
       <div role="status" aria-live="polite" className="space-y-2 text-text-sub-600">
