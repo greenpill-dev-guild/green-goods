@@ -19,7 +19,12 @@ const queueDefaults = {
     title: "Couldn't send it",
     message: "It's still saved on this device. You can try again.",
   },
-  stillQueued: { title: "Still queued" },
+  stillQueued: {
+    title: "Still queued",
+    offline: "Reconnect to the internet to finish syncing.",
+    signedOut: "Sign in to continue syncing.",
+    retrying: "We'll retry shortly.",
+  },
   queueClear: { title: "Queue is clear", message: "No pending jobs to sync." },
 };
 
@@ -117,7 +122,7 @@ export function createQueueToasts(formatMessage: FormatMessageFn) {
       }),
 
     /** One act the person retried, unlike syncError, which speaks for a batch. */
-    retryFailed: () =>
+    retryFailed: (error?: unknown) =>
       toastService.error({
         id: "job-queue-flush",
         title: formatMessage({
@@ -129,16 +134,20 @@ export function createQueueToasts(formatMessage: FormatMessageFn) {
           defaultMessage: queueDefaults.retryFailed.message,
         }),
         context: "job queue",
+        error,
       }),
 
-    stillQueued: (reason: string) =>
+    stillQueued: (reason: "offline" | "signedOut" | "retrying") =>
       toastService.info({
         id: "job-queue-flush",
         title: formatMessage({
           id: toastMessageIds.queue.stillQueued.title,
           defaultMessage: queueDefaults.stillQueued.title,
         }),
-        message: reason,
+        message: formatMessage({
+          id: toastMessageIds.queue.stillQueued[reason],
+          defaultMessage: queueDefaults.stillQueued[reason],
+        }),
         context: "job queue",
         suppressLogging: true,
       }),

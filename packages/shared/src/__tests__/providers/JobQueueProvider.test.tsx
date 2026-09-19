@@ -9,6 +9,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { createElement, type ReactNode } from "react";
+import { IntlProvider } from "react-intl";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const { mockSharedQueryClient } = vi.hoisted(() => ({
@@ -46,14 +47,6 @@ vi.mock("../../hooks/blockchain/useTransactionSender", () => ({
 vi.mock("../../hooks/auth/usePrimaryAddress", () => ({
   usePrimaryAddress: vi.fn(() => "0xSmartAccount"),
 }));
-
-// Stable across renders, as react-intl's own shape is, so the provider's toasts
-// stay referentially stable and its effects do not resubscribe on every render.
-const intl = vi.hoisted(() => ({
-  formatMessage: ({ defaultMessage, id }: { id: string; defaultMessage?: string }) =>
-    defaultMessage ?? id,
-}));
-vi.mock("react-intl", () => ({ useIntl: () => intl }));
 
 // The provider builds its toasts through createQueueToasts, so the spies live
 // behind that call rather than on the module's unlocalized export.
@@ -125,9 +118,13 @@ describe("providers/JobQueueProvider", () => {
   const createWrapper = (queue: JobQueueHandle = mockJobQueue) => {
     return ({ children }: { children: ReactNode }) =>
       createElement(
-        QueryClientProvider,
-        { client: queryClient },
-        createElement(JobQueueProvider, { queue, children })
+        IntlProvider,
+        { locale: "en" },
+        createElement(
+          QueryClientProvider,
+          { client: queryClient },
+          createElement(JobQueueProvider, { queue, children })
+        )
       );
   };
 
@@ -535,7 +532,7 @@ describe("providers/JobQueueProvider", () => {
 
         await act(async () => result.current.retryAndSend("commitment-job-1"));
 
-        expect(queueToasts.stillQueued).toHaveBeenCalledOnce();
+        expect(queueToasts.stillQueued).toHaveBeenCalledExactlyOnceWith("retrying");
         expect(queueToasts.syncError).not.toHaveBeenCalled();
       } finally {
         confirmed.mockRestore();

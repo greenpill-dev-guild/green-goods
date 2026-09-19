@@ -135,6 +135,9 @@ export const toastMessageIds = {
     },
     stillQueued: {
       title: "app.toast.queue.stillQueued.title",
+      offline: "app.toast.queue.stillQueued.offline",
+      signedOut: "app.toast.queue.stillQueued.signedOut",
+      retrying: "app.toast.queue.stillQueued.retrying",
     },
     queueClear: {
       title: "app.toast.queue.queueClear.title",

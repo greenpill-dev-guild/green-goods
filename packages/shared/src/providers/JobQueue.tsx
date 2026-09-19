@@ -1,6 +1,6 @@
 import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 import { useIntl } from "react-intl";
-import { createQueueToasts, toastService } from "../components/toast";
+import { createQueueToasts } from "../components/toast";
 import { DEFAULT_CHAIN_ID } from "../config/default-chain";
 import { queryClient } from "../config/react-query";
 import { useAuth } from "../hooks/auth/useAuth";
@@ -38,19 +38,10 @@ interface JobQueueContextValue {
 
 const JobQueueContext = createContext<JobQueueContextValue | undefined>(undefined);
 
-function signInToSync() {
-  toastService.error({
-    id: "job-queue-flush",
-    title: "Cannot sync",
-    message: "Please sign in to sync your queue.",
-    context: "job queue",
-  });
-}
-
 function stillQueuedReason(hasSender: boolean) {
-  if (!connectivityStore.getSnapshot()) return "Reconnect to the internet to finish syncing.";
-  if (!hasSender) return "Sign in to continue syncing.";
-  return "We'll retry shortly.";
+  if (!connectivityStore.getSnapshot()) return "offline";
+  if (!hasSender) return "signedOut";
+  return "retrying";
 }
 
 export const useJobQueue = () => {
@@ -396,7 +387,7 @@ const JobQueueProviderInner: React.FC<JobQueueProviderProps> = ({ children, queu
       lastEvent,
       retryAndSend: async (jobId: string) => {
         if (!currentUserAddress) {
-          signInToSync();
+          queueToasts.stillQueued("signedOut");
           return;
         }
         try {
@@ -418,13 +409,7 @@ const JobQueueProviderInner: React.FC<JobQueueProviderProps> = ({ children, queu
             queueToasts.stillQueued(stillQueuedReason(Boolean(sender)));
           }
         } catch (error) {
-          toastService.error({
-            id: "job-queue-flush",
-            title: "Queue sync failed",
-            message: "Please try again.",
-            context: "job queue",
-            error,
-          });
+          queueToasts.retryFailed(error);
         }
       },
       hasPendingJobs: () => {
