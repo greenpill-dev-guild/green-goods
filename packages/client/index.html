@@ -90,7 +90,12 @@
     <script id="boot-theme">
       // Set theme before render to prevent flash
       (function() {
-        var stored = localStorage.getItem('theme') || 'system';
+        var stored = 'system';
+        try {
+          stored = localStorage.getItem('theme') || 'system';
+        } catch (_) {
+          // Denied storage falls back to the OS scheme, as getTheme() does.
+        }
         var systemDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
         var isDark = stored === 'dark' || (stored === 'system' && systemDark);
         var resolved = isDark ? 'dark' : 'light';
