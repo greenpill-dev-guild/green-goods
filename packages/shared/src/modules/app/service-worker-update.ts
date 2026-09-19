@@ -437,7 +437,17 @@ export function activateWaitingWorker(
     }
   }
 
-  return finish;
+  /**
+   * Abandoning an attempt leaves the old worker quiet, and it has no other way
+   * to hear that the hand-over is off: every path that gives up tells it, and
+   * this is the one the page calls. Once the update has activated there is
+   * nothing to resume, so a settled attempt cancels to nothing.
+   */
+  return () => {
+    if (done) return;
+    resumeActiveWorker();
+    finish();
+  };
 }
 
 const UPDATE_APPLIED_KEY = "gg-update-applied";

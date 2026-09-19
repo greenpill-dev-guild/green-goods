@@ -447,6 +447,44 @@ describe("activateWaitingWorker", () => {
     expect(handlers.onActivated).not.toHaveBeenCalled();
   });
 
+  it("resumes the old worker when the page abandons the attempt", async () => {
+    vi.useFakeTimers();
+    const active = createWorker("activated");
+    stubServiceWorkerContainer(active);
+    const worker = createWorker("installed");
+    const handlers = { onActivated: vi.fn(), onTimeout: vi.fn(), onProgress: vi.fn() };
+
+    const cancel = activateWaitingWorker(asWorker(worker), handlers, 1_000);
+    const quietPort = active.postMessage.mock.calls[0][1][0] as MessagePort;
+    quietPort.postMessage({ type: "GG_QUIET_ACK", status: "quiet" });
+    await vi.waitFor(() => expect(worker.postMessage).toHaveBeenCalled());
+
+    cancel();
+
+    // Nothing else would tell it: it was asked to go quiet for a hand-over that
+    // is no longer happening, and it has no view of the page that asked.
+    expect(active.postMessage).toHaveBeenLastCalledWith({ type: "RESUME_BACKGROUND_WORK" });
+  });
+
+  it("leaves the old worker alone once the update has activated", () => {
+    vi.useFakeTimers();
+    const active = createWorker("activated");
+    stubServiceWorkerContainer(active);
+    const worker = createWorker("installed");
+    const handlers = { onActivated: vi.fn(), onTimeout: vi.fn() };
+
+    const cancel = activateWaitingWorker(asWorker(worker), handlers, 1_000);
+    worker.state = "activated";
+    worker.dispatch("statechange");
+    expect(handlers.onActivated).toHaveBeenCalledOnce();
+
+    cancel();
+
+    // The worker that was quieted is on its way out; resuming it would restart
+    // background work in a worker the browser is replacing.
+    expect(active.postMessage).not.toHaveBeenCalledWith({ type: "RESUME_BACKGROUND_WORK" });
+  });
+
   it("cancel drops both the listener and the timer", () => {
     vi.useFakeTimers();
     const container = stubServiceWorkerContainer(createWorker("activated"));
