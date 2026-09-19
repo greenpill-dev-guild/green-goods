@@ -33,7 +33,7 @@ const TEST_POOL = "0x4444444444444444444444444444444444444444";
 const TEST_JAR = "0x5555555555555555555555555555555555555555";
 const TEST_VAULT = "0x6666666666666666666666666666666666666666";
 const TEST_ASSET = "0x7777777777777777777777777777777777777777";
-const TEST_FACTORY = "0x8888888888888888888888888888888888888888";
+const TEST_FACTORY = "0x8888888888888888888888888888888888888888" as Address;
 const TEST_HYPERCERT_ID = "hypercert-123";
 const TEST_DRAFT_ID = "draft-456";
 
@@ -371,7 +371,7 @@ describe("queryInvalidation", () => {
   it("refreshes a campaign jar's metadata after it is updated", () => {
     const client = new QueryClient();
     const metadataKey = readContractQueryKey({
-      address: TEST_FACTORY as Address,
+      address: TEST_FACTORY,
       abi: COOKIE_JAR_FACTORY_ABI,
       functionName: "getMetadata",
       args: [TEST_JAR as Address],
