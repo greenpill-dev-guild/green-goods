@@ -26,7 +26,7 @@ interface MockPayoutPanelProps {
 }
 
 function CookieJarPayoutPanelHarness({ jars }: MockPayoutPanelProps) {
-  const [editing, setEditing] = useState<{ jarAddress: string; field: JarSettingField } | null>(
+  const [editing, setEditing] = useState<{ jarAddress: Address; field: JarSettingField } | null>(
     null
   );
   if (jars.length === 0) return null;

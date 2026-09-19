@@ -3,6 +3,7 @@
  * @vitest-environment jsdom
  */
 
+import type { Address } from "@green-goods/shared/types/domain";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { renderWithProviders as render, screen } from "../test-utils";
@@ -41,7 +42,7 @@ vi.mock("@green-goods/shared/components/Dialog/ConfirmDialog", async (importOrig
 vi.mock("@green-goods/shared/utils/blockchain/vaults", async (importOriginal) => {
   return {
     ...(await importOriginal()),
-    getVaultAssetSymbol: (asset: string) => (asset === TEST_DAI ? "DAI" : "USDC"),
+    getVaultAssetSymbol: (asset: Address) => (asset === TEST_DAI ? "DAI" : "USDC"),
   };
 });
 

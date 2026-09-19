@@ -69,7 +69,12 @@ export const CookieJarPayoutPanel: React.FC<CookieJarPayoutPanelProps> = ({
   }, [jars, routeAction]);
 
   useEffect(() => {
-    if (!routeEditLimitJar || handledRouteEditRef.current === routeEditLimitJar) return;
+    // Forget the handled jar once the route moves on, so the alert can open it again later.
+    if (!routeEditLimitJar) {
+      handledRouteEditRef.current = null;
+      return;
+    }
+    if (handledRouteEditRef.current === routeEditLimitJar) return;
     const jar = jars.find((candidate) => compareAddresses(candidate.jarAddress, routeEditLimitJar));
     if (!jar) return;
 

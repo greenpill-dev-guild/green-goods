@@ -8,8 +8,8 @@ import { act, renderWithProviders, screen, within } from "../test-utils";
 
 // The default chain's DAI, so the claim-limit rule recognises the asset.
 const DAI = getCampaignCookieJarPayoutAsset(DEFAULT_CHAIN_ID, "dai")?.address as Address;
-const GARDEN = "0x1111111111111111111111111111111111111111";
-const OWNER = "0x9E1b00000000000000000000000000000000C7f0";
+const GARDEN = "0x1111111111111111111111111111111111111111" as Address;
+const OWNER = "0x9E1b00000000000000000000000000000000C7f0" as Address;
 
 const plainJar: CookieJar = {
   jarAddress: "0xjar",
@@ -40,9 +40,9 @@ const oneCentDaiJar: CookieJar = {
 const mocks = vi.hoisted(() => ({
   jars: [] as unknown[],
   useGardenCookieJars: vi.fn(),
-  signer: { canSign: true, isResolved: true, owner: undefined as string | undefined },
+  signer: { canSign: true, isResolved: true, owner: undefined as Address | undefined },
   updateLimit: vi.fn(),
-  depositModalProps: null as null | { onFixLimit?: (jar: string) => void },
+  depositModalProps: null as null | { onFixLimit?: (jar: Address) => void },
 }));
 
 vi.mock(
@@ -70,7 +70,7 @@ vi.mock("@/views/Hub/components/CookieJarWithdrawModal", () => ({
   CookieJarWithdrawModal: () => null,
 }));
 vi.mock("@/views/Hub/components/CookieJarDepositModal", () => ({
-  CookieJarDepositModal: (props: { onFixLimit?: (jar: string) => void }) => {
+  CookieJarDepositModal: (props: { onFixLimit?: (jar: Address) => void }) => {
     mocks.depositModalProps = props;
     return null;
   },
@@ -78,14 +78,12 @@ vi.mock("@/views/Hub/components/CookieJarDepositModal", () => ({
 
 import { CookieJarPayoutPanel } from "@/views/Hub/components/CookieJarPayoutPanel";
 
-function renderPanel(props: { routeEditLimitJar?: string } = {}) {
-  return renderWithProviders(
-    <CookieJarPayoutPanel
-      gardenAddress={GARDEN as `0x${string}`}
-      gardenName="Riverbend Garden"
-      {...props}
-    />
-  );
+function panel(props: { routeEditLimitJar?: Address } = {}) {
+  return <CookieJarPayoutPanel gardenAddress={GARDEN} gardenName="Riverbend Garden" {...props} />;
+}
+
+function renderPanel(props: { routeEditLimitJar?: Address } = {}) {
+  return renderWithProviders(panel(props));
 }
 
 describe("CookieJarPayoutPanel", () => {
@@ -175,7 +173,7 @@ describe("CookieJarPayoutPanel", () => {
 
   it("opens the limit editor when the low-limit alert or the deposit warning sends the steward here", async () => {
     mocks.jars = [plainJar, oneCentDaiJar];
-    renderPanel({ routeEditLimitJar: oneCentDaiJar.jarAddress.toLowerCase() });
+    renderPanel({ routeEditLimitJar: oneCentDaiJar.jarAddress.toLowerCase() as Address });
 
     expect(screen.getByRole("textbox", { name: "Per-claim limit" })).toHaveValue("10");
 
@@ -185,5 +183,18 @@ describe("CookieJarPayoutPanel", () => {
     // "Fix Limit First" in the deposit dialog lands on the same editor.
     act(() => mocks.depositModalProps?.onFixLimit?.(oneCentDaiJar.jarAddress));
     expect(screen.getByRole("textbox", { name: "Per-claim limit" })).toBeInTheDocument();
+  });
+
+  it("reopens the limit editor when the alert sends the steward back to the same jar", async () => {
+    mocks.jars = [plainJar, oneCentDaiJar];
+    const jar = oneCentDaiJar.jarAddress.toLowerCase() as Address;
+    const { rerender } = renderPanel({ routeEditLimitJar: jar });
+
+    await userEvent.setup().click(screen.getByRole("button", { name: "Cancel" }));
+    // The route moves on while the panel stays mounted, then the alert links back here.
+    rerender(panel());
+    rerender(panel({ routeEditLimitJar: jar }));
+
+    expect(screen.getByRole("textbox", { name: "Per-claim limit" })).toHaveValue("10");
   });
 });
