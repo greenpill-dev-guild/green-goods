@@ -689,6 +689,18 @@ export function validateReleaseManifest(manifest: ReleaseManifest): void {
   }
 }
 
+// The release gas gate rebuilds out/production from scratch. An incremental build can keep an artifact that
+// another command compiled alongside a different set of files, and via-IR bytecode can depend on that set.
+const REBUILD_PRODUCTION_ARTIFACTS =
+  "rebuild the production artifacts from scratch with `bun run --cwd packages/contracts test --suite release-gas`";
+
+function artifactDriftError(label: string, frozen: string, computed: string): Error {
+  return new Error(
+    `${label} drift: manifest=${frozen} computed=${computed}; ${REBUILD_PRODUCTION_ARTIFACTS} and retry. ` +
+      "Drift that survives a fresh build is a real bytecode change.",
+  );
+}
+
 function artifactPath(relativePath: string): string {
   return path.join(PRODUCTION_ARTIFACT_ROOT, relativePath);
 }
@@ -697,7 +709,7 @@ function loadArtifact(relativePath: string): FoundryArtifact {
   const filePath = artifactPath(relativePath);
   // `build:full` alone compiles the test profile; only FOUNDRY_PROFILE=production writes out/production.
   if (!fs.existsSync(filePath)) {
-    throw new Error(`Production artifact missing: ${filePath}; run FOUNDRY_PROFILE=production bun run build`);
+    throw new Error(`Production artifact missing: ${filePath}; ${REBUILD_PRODUCTION_ARTIFACTS}`);
   }
   return readJson<FoundryArtifact>(filePath);
 }
@@ -746,7 +758,7 @@ function assertSchemaPreparationIdentity(manifest: ReleaseManifest): void {
   for (const [key, actual] of Object.entries(computed)) {
     const frozen = expected[key as keyof typeof expected];
     if (typeof frozen !== "string" || actual.toLowerCase() !== frozen.toLowerCase()) {
-      throw new Error(`TestimonyResolver ${key} drift: manifest=${String(frozen)} computed=${actual}`);
+      throw artifactDriftError(`TestimonyResolver ${key}`, String(frozen), actual);
     }
   }
 }
@@ -851,9 +863,7 @@ function assertExistingUpgradeArtifacts(manifest: ReleaseManifest): void {
     ]);
     const actual = keccak256(creation);
     if (actual.toLowerCase() !== upgrade.expectedImplementationCreationCodeHash.toLowerCase()) {
-      throw new Error(
-        `${upgrade.name} creation-code drift: manifest=${upgrade.expectedImplementationCreationCodeHash} computed=${actual}`,
-      );
+      throw artifactDriftError(`${upgrade.name} creation-code`, upgrade.expectedImplementationCreationCodeHash, actual);
     }
   }
 }
