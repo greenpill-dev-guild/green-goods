@@ -8,7 +8,7 @@
 
 import { QueryClient } from "@tanstack/react-query";
 import { describe, expect, it } from "vitest";
-import { readContractsQueryKey } from "wagmi/query";
+import { readContractQueryKey, readContractsQueryKey } from "wagmi/query";
 import {
   DEFAULT_RETRY_COUNT,
   DEFAULT_RETRY_DELAY,
@@ -23,7 +23,7 @@ import {
 } from "../../config/query-keys";
 import type { Address } from "../../types/domain";
 import type { AttestationFilters } from "../../types/hypercerts";
-import { COOKIE_JAR_ABI } from "../../utils/blockchain/abis/cookie-jar";
+import { COOKIE_JAR_ABI, COOKIE_JAR_FACTORY_ABI } from "../../utils/blockchain/abis/cookie-jar";
 
 const TEST_CHAIN_ID = 11155111;
 const TEST_GARDEN = "0x3333333333333333333333333333333333333333";
@@ -33,6 +33,7 @@ const TEST_POOL = "0x4444444444444444444444444444444444444444";
 const TEST_JAR = "0x5555555555555555555555555555555555555555";
 const TEST_VAULT = "0x6666666666666666666666666666666666666666";
 const TEST_ASSET = "0x7777777777777777777777777777777777777777";
+const TEST_FACTORY = "0x8888888888888888888888888888888888888888";
 const TEST_HYPERCERT_ID = "hypercert-123";
 const TEST_DRAFT_ID = "draft-456";
 
@@ -341,6 +342,10 @@ describe("queryInvalidation", () => {
       "limit change",
       () => queryInvalidation.onCookieJarAdminAction(TEST_GARDEN, TEST_JAR, TEST_CHAIN_ID),
     ],
+    [
+      "campaign jar change",
+      () => queryInvalidation.onCampaignCookieJarChanged(TEST_JAR, TEST_USER, TEST_CHAIN_ID),
+    ],
   ])("refreshes the jar's onchain state after a %s", (_action, buildKeys) => {
     const client = new QueryClient();
     const jarStateKey = readContractsQueryKey({
@@ -359,6 +364,29 @@ describe("queryInvalidation", () => {
     }
 
     expect(client.getQueryState(jarStateKey)?.isInvalidated).toBe(true);
+  });
+
+  // A campaign jar's title and description are a single read of the factory, which wagmi keys
+  // under a different root than the jar's own multicall.
+  it("refreshes a campaign jar's metadata after it is updated", () => {
+    const client = new QueryClient();
+    const metadataKey = readContractQueryKey({
+      address: TEST_FACTORY as Address,
+      abi: COOKIE_JAR_FACTORY_ABI,
+      functionName: "getMetadata",
+      args: [TEST_JAR as Address],
+    });
+    client.setQueryData(metadataKey, "{}");
+
+    for (const queryKey of queryInvalidation.onCampaignCookieJarChanged(
+      TEST_JAR,
+      TEST_USER,
+      TEST_CHAIN_ID
+    )) {
+      void client.invalidateQueries({ queryKey });
+    }
+
+    expect(client.getQueryState(metadataKey)?.isInvalidated).toBe(true);
   });
 
   it("keeps queue, works, and offline sync grouped for full sync completion", () => {
