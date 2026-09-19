@@ -8,7 +8,7 @@ import { existsSync, readdirSync, readFileSync, rmSync } from "fs";
 import { resolve } from "path";
 import { defineConfig, loadEnv, type Plugin, type UserConfig } from "vite";
 import mkcert from "vite-plugin-mkcert";
-import { VitePWA, type VitePWAOptions } from "vite-plugin-pwa";
+import { VitePWA } from "vite-plugin-pwa";
 import { assertEnvParity, assertSentryDsnResolvable } from "../../scripts/lib/env-parity.mjs";
 import { resolveTunnelHmrConfig } from "../../scripts/lib/vite-tunnel-hmr.js";
 import {
@@ -17,10 +17,12 @@ import {
   resolvePwaManifestFlavor,
 } from "./src/config/pwaManifest";
 import { APP_ROUTES, createPwaRoutingConfig } from "./src/config/pwaRouting";
-import { createPublicSocialPreviewPlugin } from "./vite/social-preview";
+import { createChainImportsPlugin } from "./vite/chain-imports";
 import { createPwaShellAssetsPlugin } from "./vite/pwa-shell";
+import { createPublicSocialPreviewPlugin } from "./vite/social-preview";
+import { resolveViteWatchOptions } from "./vite/watch";
 
-const DEFAULT_INDEXER_URL = "https://indexer.hyperindex.xyz/0bf0e0f/v1/graphql";
+const DEFAULT_INDEXER_URL = "https://indexer.hyperindex.xyz/e6edffd/v1/graphql";
 const CLIENT_VERCEL_PROJECT_ID = "prj_AFl9rmdB5VJFKcpK4Art9had9DmG";
 const CLIENT_REACT_MODULES = /[\\/]node_modules[\\/](?:react|react-dom|react-is|scheduler)[\\/]/;
 const CLIENT_QUERY_MODULES =
@@ -171,35 +173,15 @@ export default defineConfig(async ({ command, mode }): Promise<UserConfig> => {
     if (process.env[key] === undefined) process.env[key] = value;
   }
 
-  const enableRpcBgSync = process.env.VITE_ENABLE_RPC_BG_SYNC === "true";
-
-  const rpcBgSyncCaching: NonNullable<NonNullable<VitePWAOptions["workbox"]>["runtimeCaching"]> =
-    enableRpcBgSync
-      ? ([
-          {
-            urlPattern: /https:\/\/api\.pimlico\.xyz\/.*\/rpc$/,
-            handler: "NetworkOnly",
-            method: "POST",
-            options: {
-              backgroundSync: {
-                name: "rpc-queue",
-                options: { maxRetentionTime: 24 * 60 },
-              },
-            },
-          },
-          {
-            urlPattern: /https:\/\/(\w+\.)?alchemyapi\.io\/v2\/.*/,
-            handler: "NetworkOnly",
-            method: "POST",
-            options: {
-              backgroundSync: {
-                name: "rpc-queue",
-                options: { maxRetentionTime: 24 * 60 },
-              },
-            },
-          },
-        ] as NonNullable<NonNullable<VitePWAOptions["workbox"]>["runtimeCaching"]>)
-      : ([] as NonNullable<NonNullable<VitePWAOptions["workbox"]>["runtimeCaching"]>);
+  const watch = resolveViteWatchOptions(process.env);
+  if (command === "serve") {
+    const polling = watch.usePolling === true;
+    console.info(
+      `[vite-watch] checkout=${rootDir} clientRoot=${__dirname} ` +
+        `watcher=${polling ? "polling" : "native"} polling=${polling} ` +
+        `interval=${polling ? `${watch.interval}ms` : "n/a"}`
+    );
+  }
 
   // Use relative paths for IPFS builds
   const isIPFSBuild = process.env.VITE_USE_HASH_ROUTER === "true";
@@ -243,7 +225,6 @@ export default defineConfig(async ({ command, mode }): Promise<UserConfig> => {
   const indexerProxyTarget =
     process.env.VITE_ENVIO_INDEXER_URL?.trim() ||
     (nodeEnv === "development" ? "http://localhost:3006/v1/graphql" : DEFAULT_INDEXER_URL);
-  const isBunRuntime = "bun" in process.versions;
   if (command === "build") {
     process.env.NODE_ENV = "production";
   }
@@ -291,16 +272,22 @@ export default defineConfig(async ({ command, mode }): Promise<UserConfig> => {
     babel({ presets: [reactCompilerPreset()] }),
     createPublicSocialPreviewPlugin(isIPFSBuild),
     createPwaShellAssetsPlugin(),
+    createChainImportsPlugin(),
     VitePWA({
-      includeAssets: pwaBranding.includeAssets,
+      includeAssets: [...pwaBranding.includeAssets, "images/avatar.png"],
       injectRegister: false,
       registerType: "prompt",
-      workbox: {
-        // Workbox's Rollup/Terser pass can exit early under Bun while writing the
-        // generated service worker. Keep the app build in production mode, but
-        // avoid SW minification on Bun so `bun run build` remains deterministic.
-        mode: isBunRuntime ? "development" : nodeEnv,
-        disableDevLogs: true,
+      // The worker is TypeScript in src/sw, bundled by Vite with the precache
+      // manifest injected; Workbox behaviour lives in that source, not here.
+      strategies: "injectManifest",
+      srcDir: "src/sw",
+      filename: "sw.ts",
+      injectManifest: {
+        rollupFormat: "iife",
+        minify: nodeEnv === "production",
+        sourcemap: false,
+        // Build-time VITE_ flags come from the same env files.
+        envOptions: { envDir: rootDir, envPrefix: ["VITE_"] },
         maximumFileSizeToCacheInBytes: 2 * 1024 * 1024,
         globPatterns: ["index.html", "assets/*.css", "pwa-shell-assets.json"],
         globIgnores: [
@@ -326,95 +313,6 @@ export default defineConfig(async ({ command, mode }): Promise<UserConfig> => {
           "impact/index.html",
           "landing/index.html",
         ],
-        cleanupOutdatedCaches: true,
-        clientsClaim: false,
-        skipWaiting: false,
-        // The browser-origin worker is scoped to /home, so the app shell fallback
-        // only owns installed-app routes while public/editorial routes stay in the browser.
-        navigateFallback: "index.html",
-        navigateFallbackDenylist: [
-          /^\/$/,
-          /^\/actions(?:[?#].*)?$/,
-          /^\/cookies(?:[?#].*)?$/,
-          /^\/fund(?:[?#].*)?$/,
-          /^\/gardens(?:\/.*)?(?:[?#].*)?$/,
-          /^\/glossary(?:[?#].*)?$/,
-          /^\/impact(?:[?#].*)?$/,
-        ],
-        sourcemap: false,
-        importScripts: ["sw-custom.js"],
-        runtimeCaching: [
-          {
-            urlPattern: /.*\.(png|jpg|jpeg|svg|gif|webp)$/,
-            handler: "CacheFirst",
-            options: {
-              cacheName: "image-cache",
-              expiration: {
-                maxEntries: 100,
-                maxAgeSeconds: 30 * 24 * 60 * 60,
-                purgeOnQuotaError: true,
-              },
-              cacheableResponse: { statuses: [0, 200] },
-            },
-          },
-          {
-            // IPFS content is immutable (same CID = same bytes forever), so cache aggressively.
-            // Matches dedicated Pinata gateway + public IPFS gateways.
-            urlPattern:
-              /https:\/\/(greengoods\.mypinata\.cloud|gateway\.pinata\.cloud|ipfs\.io)\/ipfs\/.+/,
-            handler: "CacheFirst",
-            options: {
-              cacheName: "ipfs-cache",
-              expiration: {
-                maxEntries: 500,
-                maxAgeSeconds: 365 * 24 * 60 * 60, // 1 year — CIDs are immutable
-                purgeOnQuotaError: true,
-              },
-              cacheableResponse: { statuses: [0, 200] },
-            },
-          },
-          {
-            // Indexer API - show cached immediately, revalidate in background
-            urlPattern: /indexer\.hyperindex\.xyz|localhost:3006/,
-            handler: "StaleWhileRevalidate",
-            options: {
-              cacheName: "indexer-cache",
-              expiration: {
-                maxAgeSeconds: 24 * 60 * 60, // 24 hours for offline
-                maxEntries: 100,
-                purgeOnQuotaError: true,
-              },
-              cacheableResponse: { statuses: [0, 200] },
-            },
-          },
-          {
-            // GraphQL fallback (EAS, etc.) - show cached immediately, revalidate in background
-            urlPattern: /graphql/,
-            handler: "StaleWhileRevalidate",
-            options: {
-              cacheName: "graphql-cache",
-              expiration: {
-                maxAgeSeconds: 24 * 60 * 60, // 24 hours for offline
-                maxEntries: 100,
-                purgeOnQuotaError: true,
-              },
-              cacheableResponse: { statuses: [0, 200] },
-            },
-          },
-          // Background sync for critical POSTs (users/me updates as example)
-          {
-            urlPattern: /\/users\/me$/,
-            handler: "NetworkOnly",
-            method: "POST",
-            options: {
-              backgroundSync: {
-                name: "gg-api-queue",
-                options: { maxRetentionTime: 24 * 60 },
-              },
-            },
-          },
-          ...rpcBgSyncCaching,
-        ],
       },
       manifest: {
         id: pwaBranding.manifestId,
@@ -433,7 +331,7 @@ export default defineConfig(async ({ command, mode }): Promise<UserConfig> => {
         related_applications: [
           {
             platform: "webapp",
-            url: "https://www.greengoods.app/manifest.webmanifest",
+            url: pwaRouting.relatedApplicationManifestUrl,
           },
         ],
         share_target: {
@@ -486,7 +384,13 @@ export default defineConfig(async ({ command, mode }): Promise<UserConfig> => {
         ],
         categories: [],
       },
-      devOptions: { enabled: process.env.VITE_ENABLE_SW_DEV === "true" },
+      // The dev worker is served as a module from /dev-sw.js?dev-sw with only
+      // the entry document precached; main.tsx registers that URL in dev.
+      devOptions: {
+        enabled: process.env.VITE_ENABLE_SW_DEV === "true",
+        type: "module",
+        navigateFallback: "index.html",
+      },
     }),
     ...(shouldUploadSentrySourceMaps
       ? [
@@ -526,6 +430,18 @@ export default defineConfig(async ({ command, mode }): Promise<UserConfig> => {
       chunkSizeWarningLimit: 2000,
       manifest: true,
       rolldownOptions: {
+        treeshake: {
+          // AppKit's React barrel re-exports unused Lit button wrappers. Their
+          // module only creates those wrappers, but its imports register the
+          // entire modal UI eagerly. Keep that UI on AppKit's dynamic path when
+          // none of the wrapper exports are used by the client.
+          moduleSideEffects: [
+            {
+              test: /[\\/]@reown[\\/]appkit[\\/]dist[\\/]esm[\\/]src[\\/]library[\\/]react[\\/]components\.js$/,
+              sideEffects: false,
+            },
+          ],
+        },
         output: {
           codeSplitting: {
             groups: [
@@ -535,8 +451,21 @@ export default defineConfig(async ({ command, mode }): Promise<UserConfig> => {
               { name: "vendor-react", test: CLIENT_REACT_MODULES, priority: 40 },
               { name: "vendor-query", test: CLIENT_QUERY_MODULES, priority: 30 },
               // Public read paths use viem without needing Reown/Wagmi UI.
-              { name: "vendor-viem", test: CLIENT_VIEM_MODULES, priority: 25 },
-              { name: "vendor-wallet", test: CLIENT_WALLET_MODULES, priority: 20 },
+              {
+                name: "vendor-viem",
+                test: CLIENT_VIEM_MODULES,
+                priority: 25,
+                entriesAware: true,
+                includeDependenciesRecursively: false,
+              },
+              // Group by actual consumers so offline routes do not inherit the
+              // SDK's online-only modal and connector dependencies.
+              {
+                name: "vendor-wallet",
+                test: CLIENT_WALLET_MODULES,
+                priority: 20,
+                entriesAware: true,
+              },
               { name: "vendor-posthog", test: CLIENT_POSTHOG_MODULES, priority: 10 },
               { name: "vendor-sentry", test: CLIENT_SENTRY_MODULES, priority: 10 },
             ],
@@ -669,13 +598,7 @@ export default defineConfig(async ({ command, mode }): Promise<UserConfig> => {
       // cloudflared quick tunnels change hostname each run; allow remote Host headers in dev.
       allowedHosts: tunnelHmr ? true : undefined,
       hmr: tunnelHmr ? { overlay: true, ...tunnelHmr } : { overlay: true },
-      // Polling is only required on Docker bind mounts and some network filesystems.
-      // On macOS native FSEvents the default watcher is much cheaper than polling
-      // every 100ms across hundreds of files. Opt in with VITE_USE_POLLING=true.
-      watch: {
-        ignored: ["**/dev-dist/**"],
-        ...(process.env.VITE_USE_POLLING === "true" ? { usePolling: true, interval: 100 } : {}),
-      },
+      watch,
       proxy: {
         "/api/graphql": {
           target: indexerProxyTarget,

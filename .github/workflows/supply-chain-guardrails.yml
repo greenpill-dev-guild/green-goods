@@ -148,7 +148,7 @@ jobs:
         uses: ./.github/actions/setup-js
 
       - name: Check repository formatting
-        run: bun run format:check
+        run: bun run format --check
 
   audit:
     name: Supply-chain guardrails
@@ -207,26 +207,26 @@ jobs:
       - name: Check guidance links and retired references
         env:
           GUIDANCE_BASE_REF: ${{ github.event_name == 'pull_request' && format('origin/{0}', github.base_ref) || (github.event.before != '0000000000000000000000000000000000000000' && github.event.before || '') }}
-        run: bun run check:guidance-links
+        run: bun run check --only guidance-links
 
       - name: Check critical skill behavior contracts
-        run: bun run check:skill-behavior
+        run: bun run check --only skill-behavior
 
       - name: Check immutable dated plan reports
         env:
           PLAN_REPORTS_BASE_REF: ${{ github.event_name == 'pull_request' && format('origin/{0}', github.base_ref) || (github.event.before != '0000000000000000000000000000000000000000' && github.event.before || '') }}
-        run: bun run check:immutable-plan-reports
+        run: bun run check --only immutable-plan-reports
 
       - name: Check the QA Test ID lifecycle is append-only
         env:
           QA_LEDGER_BASE_REF: ${{ github.event_name == 'pull_request' && format('origin/{0}', github.base_ref) || (github.event.before != '0000000000000000000000000000000000000000' && github.event.before || '') }}
-        run: bun run check:qa-id-ledger
+        run: bun run check --only qa-id-ledger
 
       - name: Run guidance guardrail tests
         run: node --test scripts/quality/branch-name-policy.test.mjs scripts/quality/check-guidance-links.test.mjs scripts/quality/check-skill-behavior-contracts.test.mjs scripts/quality/check-immutable-plan-reports.test.mjs scripts/quality/check-qa-id-ledger.test.mjs
 
       - name: Check test quality
-        run: bun run check:test-quality
+        run: bun run check --only test-quality
 
       - name: Validate plan hubs
         run: node scripts/harness/plan-hub.mjs validate
@@ -249,6 +249,14 @@ jobs:
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
         with:
           node-version: "22.22.1"
+
+      # The aggregate-script cases drive the real root test and build scripts,
+      # which are bun scripts, so this job needs the bun binary. Dependencies
+      # are not needed: those cases run against a temporary fixture workspace.
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6
+        with:
+          bun-version: "1.4.2"
 
       - name: Run workflow performance parity tests
         run: node --test scripts/quality/workflow-performance-parity.test.mjs

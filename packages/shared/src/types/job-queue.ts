@@ -12,7 +12,12 @@
 
 import type { SmartAccountClient } from "permissionless";
 
-import type { Address, WorkDisplayStatus } from "./domain";
+import type {
+  Address,
+  ApproximateWorkLocation,
+  WorkUploadCheckpoint,
+  WorkDisplayStatus,
+} from "./domain";
 import type {
   ClaimJobPayload,
   CommitmentCreationPayload,
@@ -78,6 +83,8 @@ export interface JobProcessor<TPayload = unknown, TEncoded = unknown> {
 // ============================================
 
 export interface WorkJobPayload {
+  location?: ApproximateWorkLocation;
+  uploadCheckpoint?: WorkUploadCheckpoint;
   /** Stable identity encoded into metadata; optional only for persisted legacy jobs. */
   clientWorkId?: string;
   title?: string;
@@ -92,6 +99,12 @@ export interface WorkJobPayload {
   media?: File[];
 }
 
+/** What a queued send recorded about reaching the network, so it is confirmed, never sent twice. */
+export type SendCheckpoint = Pick<
+  WorkUploadCheckpoint,
+  "broadcast" | "broadcastPending" | "broadcastPendingAt" | "transactionHash"
+>;
+
 export interface ApprovalJobPayload {
   actionUID: number;
   workUID: string;
@@ -105,6 +118,8 @@ export interface ApprovalJobPayload {
   verificationMethod: number;
   /** Optional IPFS CID for review audio + notes */
   reviewNotesCID?: string;
+  /** Recorded as the decision is sent; the resolver accepts a second decision for the same work. */
+  sendCheckpoint?: SendCheckpoint;
 }
 
 // ============================================
@@ -160,6 +175,9 @@ export interface SerializedFileData {
 }
 
 export interface JobQueueDBImage {
+  attachmentId?: string;
+  contentHash?: string;
+  order?: number;
   id: string;
   jobId: string;
   /**
@@ -168,7 +186,7 @@ export interface JobQueueDBImage {
    * @see https://bugs.webkit.org/show_bug.cgi?id=228005
    */
   fileData: SerializedFileData;
-  url: string;
+  url?: string;
   createdAt: number;
   /**
    * @deprecated Use fileData instead. Kept for migration compatibility.
@@ -222,13 +240,34 @@ export type DraftStep = "intro" | "media" | "details" | "review";
  * @see WorkSubmission for the form input shape (what gets submitted)
  * @see DraftStep for valid step values
  */
+export interface MissingDraftAttachment {
+  id: string;
+  name: string;
+  order: number;
+  kind: "media" | "audio";
+}
+
 export interface WorkDraftRecord {
+  kind?: "work";
+  missingAttachments?: MissingDraftAttachment[];
+  legacySourceId?: string;
+  legacyEntries?: Array<{ id: string; index: number; name: string }>;
+  thumbnail?: { attachmentId: string; contentHash?: string } | null;
+  attachmentCount?: number;
+  legacyRecovery?: boolean;
+  tags?: string[];
+  location?: ApproximateWorkLocation;
+  revision?: number;
+  clientWorkId?: string;
+  uploadCheckpoint?: WorkUploadCheckpoint;
   id: string;
   userAddress: Address;
   chainId: number;
   gardenAddress: Address | null;
   actionUID: number | null;
   feedback: string;
+  /** Action-specific form values. Optional for drafts created before this field existed. */
+  details?: Record<string, unknown>;
   /** Time spent on the work in minutes */
   timeSpentMinutes?: number;
   /** Current step in the flow (for resume) */
@@ -240,6 +279,9 @@ export interface WorkDraftRecord {
 }
 
 export interface DraftImage {
+  kind?: "media" | "audio";
+  order?: number;
+  contentHash?: string;
   id: string;
   draftId: string;
   /**
@@ -247,7 +289,7 @@ export interface DraftImage {
    * because iOS Safari fails to clone File objects to IndexedDB.
    */
   fileData: SerializedFileData;
-  url: string;
+  url?: string;
   createdAt: number;
   /**
    * @deprecated Use fileData instead. Kept for migration compatibility.

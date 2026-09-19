@@ -69,13 +69,10 @@
     border-radius: 1.25rem;
   }
 
-  /* Modal Scroll Lock Utilities
-     Note: body already has position:fixed + overflow:hidden in index.css,
-     so only the html element needs the lock. */
+  /* Only active overlay owners suppress document scrolling and native refresh. */
   .modal-open {
     overflow: hidden;
-    height: 100vh;
-    height: 100dvh;
+    overscroll-behavior-y: none;
   }
 }
 
@@ -93,11 +90,6 @@
   --tw-translate-x: 0;
   --tw-translate-y: 0;
   transform: translateX(-50%);
-}
-
-[data-component="DialogShell"][data-slot="surface"].vault-checkout-surface
-  [data-slot="close"] {
-  border-radius: 0;
 }
 
 @media (min-width: 640px) {

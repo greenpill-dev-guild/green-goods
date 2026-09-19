@@ -5,7 +5,7 @@
  * resume navigation, and delete confirmation.
  */
 
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { createElement } from "react";
 import { IntlProvider } from "react-intl";
@@ -65,36 +65,6 @@ vi.mock("@green-goods/shared/hooks/work/useDrafts", () => ({
   useDrafts: () => mockDraftsState,
 }));
 
-vi.mock("@green-goods/shared/components/Dialog/ConfirmDialog", () => ({
-  ConfirmDialog: ({
-    isOpen,
-    onClose,
-    onConfirm,
-    title,
-    description,
-  }: {
-    isOpen: boolean;
-    onClose: () => void;
-    onConfirm: () => void;
-    title: string;
-    description: string;
-  }) =>
-    isOpen
-      ? createElement(
-          "div",
-          { "data-testid": "confirm-dialog" },
-          createElement("span", null, title),
-          createElement("span", null, description),
-          createElement(
-            "button",
-            { "data-testid": "confirm-delete", onClick: onConfirm },
-            "Delete"
-          ),
-          createElement("button", { "data-testid": "cancel-delete", onClick: onClose }, "Cancel")
-        )
-      : null,
-}));
-
 // Mock react-router-dom navigate
 vi.mock("react-router-dom", async (importOriginal) => {
   const actual = await importOriginal<typeof import("react-router-dom")>();
@@ -107,6 +77,7 @@ vi.mock("react-router-dom", async (importOriginal) => {
 // Mock @remixicon/react
 vi.mock("@remixicon/react", () => ({
   RiAlertLine: (props: any) => createElement("span", props),
+  RiCloseLine: (props: any) => createElement("span", props),
   RiDraftLine: (props: any) => createElement("span", props),
   RiLoader4Line: (props: any) => createElement("span", { ...props, "data-testid": "spinner" }),
   RiRefreshLine: (props: any) => createElement("span", props),
@@ -233,12 +204,12 @@ describe("DraftsTab", () => {
     // Click delete on the draft card
     await user.click(screen.getByTestId("delete-d1"));
 
-    // Confirm dialog should appear
-    expect(screen.getByTestId("confirm-dialog")).toBeInTheDocument();
-    expect(screen.getByText("Delete Draft?")).toBeInTheDocument();
+    // Destructive confirm renders as an alertdialog
+    expect(screen.getByRole("alertdialog")).toBeInTheDocument();
+    expect(screen.getByText("app.drafts.delete.title")).toBeInTheDocument();
 
     // Confirm the delete
-    await user.click(screen.getByTestId("confirm-delete"));
+    await user.click(screen.getByRole("button", { name: "app.drafts.delete.confirm" }));
     expect(mockDraftsState.deleteDraft).toHaveBeenCalledWith("d1");
   });
 
@@ -251,10 +222,10 @@ describe("DraftsTab", () => {
     render(wrap(createElement(DraftsTab)));
 
     await user.click(screen.getByTestId("delete-d1"));
-    expect(screen.getByTestId("confirm-dialog")).toBeInTheDocument();
+    expect(screen.getByRole("alertdialog")).toBeInTheDocument();
 
-    await user.click(screen.getByTestId("cancel-delete"));
-    expect(screen.queryByTestId("confirm-dialog")).not.toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "app.drafts.delete.cancel" }));
+    await waitFor(() => expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument());
     expect(mockDraftsState.deleteDraft).not.toHaveBeenCalled();
   });
 

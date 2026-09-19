@@ -10,7 +10,7 @@ import {
   type GardenFiltersState,
   useFilteredGardens,
 } from "../../../hooks/garden/useFilteredGardens";
-import type { Garden } from "../../../types";
+import { Domain, type Garden } from "../../../types";
 
 // ============================================
 // Test Helpers
@@ -259,6 +259,27 @@ describe("useFilteredGardens", () => {
       expect(result.filteredGardens).toHaveLength(2);
     });
 
+    it("ignores leading and trailing spaces in the search term", () => {
+      const gardens = [
+        createGarden({ id: "g1", name: "Solar Farm" }),
+        createGarden({ id: "g2", name: "Urban Garden" }),
+      ];
+
+      const result = useFilteredGardens(gardens, defaultFilters({ search: "  solar " }), null);
+
+      expect(result.filteredGardens.map((g) => g.id)).toEqual(["g1"]);
+      expect(result.isFilterActive).toBe(true);
+    });
+
+    it("does not filter or count a search of only spaces", () => {
+      const gardens = [createGarden({ id: "g1" }), createGarden({ id: "g2" })];
+
+      const result = useFilteredGardens(gardens, defaultFilters({ search: "   " }), null);
+
+      expect(result.filteredGardens).toHaveLength(2);
+      expect(result.isFilterActive).toBe(false);
+    });
+
     it("does not filter when search is undefined", () => {
       const gardens = [createGarden({ id: "g1" }), createGarden({ id: "g2" })];
 
@@ -427,6 +448,48 @@ describe("useFilteredGardens", () => {
       expect(result.filteredGardens).toHaveLength(2);
       expect(result.filteredGardens[0].name).toBe("Apple Garden");
       expect(result.filteredGardens[1].name).toBe("Zebra Garden");
+    });
+  });
+
+  // ------------------------------------------
+  // Domains (DL-028 round: Filter Gardens at full)
+  // ------------------------------------------
+
+  describe("domains", () => {
+    const solar = createGarden({ id: "solar", name: "Sun", domainMask: 1 << Domain.SOLAR });
+    const agroEdu = createGarden({
+      id: "agro-edu",
+      name: "Grove",
+      domainMask: (1 << Domain.AGRO) | (1 << Domain.EDU),
+    });
+    const untagged = createGarden({ id: "untagged", name: "Plot", domainMask: 0 });
+    const gardens = [solar, agroEdu, untagged];
+
+    it("keeps every garden when no domain is chosen", () => {
+      const result = useFilteredGardens(gardens, defaultFilters({ domains: [] }), null);
+      expect(result.filteredGardens).toHaveLength(3);
+      expect(result.isFilterActive).toBe(false);
+    });
+
+    it("keeps gardens carrying any of the chosen domains", () => {
+      const result = useFilteredGardens(
+        gardens,
+        defaultFilters({ domains: [Domain.EDU, Domain.SOLAR] }),
+        null
+      );
+      expect(result.filteredGardens.map((garden) => garden.id)).toEqual(["solar", "agro-edu"]);
+      expect(result.isFilterActive).toBe(true);
+      expect(result.activeFilterCount).toBe(1);
+    });
+
+    it("drops untagged gardens once a domain is chosen and counts it with the other filters", () => {
+      const result = useFilteredGardens(
+        gardens,
+        defaultFilters({ domains: [Domain.WASTE], sort: "name", search: "plot" }),
+        null
+      );
+      expect(result.filteredGardens).toHaveLength(0);
+      expect(result.activeFilterCount).toBe(3);
     });
   });
 });

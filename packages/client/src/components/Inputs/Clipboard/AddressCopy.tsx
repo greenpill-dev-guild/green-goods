@@ -62,6 +62,7 @@ export function AddressCopy({
     <div className={cn("w-full", className)}>
       <button
         type="button"
+        data-pressable="row"
         onClick={handleCopy}
         aria-describedby={statusId}
         className={cn(

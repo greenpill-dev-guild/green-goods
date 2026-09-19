@@ -4,7 +4,7 @@
  * Materialize .env from .env.template via `op inject`.
  *
  * Replaces varlock as the env-loading mechanism. Run this when:
- *   - First clone (after creating .env.template via `bun run env:template:init`)
+ *   - First clone (after creating .env.template via `node scripts/dev/env-template-init.js`)
  *   - Secrets rotated in 1Password
  *   - .env.template changed (added/removed keys)
  *
@@ -60,7 +60,7 @@ function backupEnv() {
 if (!fs.existsSync(templatePath)) {
   fail(
     ".env.template not found",
-    "Run `bun run env:template:init` to generate one from .env.schema, then edit it."
+    "Run `node scripts/dev/env-template-init.js` to generate one from .env.schema, then edit it."
   );
 }
 
@@ -97,4 +97,4 @@ if (inject.status !== 0) {
 
 console.log("");
 console.log("Wrote .env from .env.template.");
-console.log("Restart any running dev servers so they pick up the new env: `bun run dev:stop && bun run dev`.");
+console.log("Restart your owning dev launcher with Ctrl-C and the same mode so it picks up the new environment. Do not stop another session or silently change modes.");

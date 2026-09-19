@@ -26,7 +26,7 @@ const DEFAULT_SAFE_PLAN = path.join(RUNTIME_ROOT, "42220-garden-safe-final.json"
 const DEFAULT_PLAN = path.join(RUNTIME_ROOT, "garden-account-relay.json");
 const FROZEN_BINDINGS = path.join(
   REPOSITORY_ROOT,
-  ".plans/active/celo-garden-account-safe-ownership/evidence/garden-safe-final-bindings-2026-08-15.json",
+  "packages/contracts/config/celo-garden-accounts/garden-safe-final-bindings-2026-08-15.json",
 );
 const ROUTER_ARTIFACT = path.join(
   CONTRACTS_ROOT,

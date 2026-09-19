@@ -270,7 +270,7 @@ const data = await queryIndexer<T>(page, query, variables);
 │              Test Fails in CI                          │
 └────────────────────────────────────────────────────────┘
                          ↓
-1. Run locally: bun test:e2e:ui
+1. Run locally: bun run browser e2e --preset ui
    → Playwright UI opens
    → See DOM snapshot at failure point
    → Check network requests
@@ -284,7 +284,7 @@ const data = await queryIndexer<T>(page, query, variables);
                          ↓
 3. Fix identified in code
    → Edit component/hook in Cursor
-   → Re-run: bun test:e2e:smoke
+   → Re-run: bun run browser e2e --preset smoke
    → Verify fix
                          ↓
 4. Commit fix
@@ -362,10 +362,10 @@ e2e-smoke:
   runs-on: ubuntu-latest
   steps:
     - name: Start services
-      run: bun run dev:web &
+      run: bun run dev -- web &
     
     - name: Run smoke tests
-      run: bun test:e2e:smoke  # Chromium only
+      run: bun run browser e2e --preset smoke
       env:
         CI: true
 ```
@@ -469,9 +469,9 @@ T+0s    global-setup.ts runs
         └─ Health check (optional)
 
 T+5s    webServer starts (parallel)
-        ├─ bun run dev:indexer -> port 3006 ready
-        ├─ bun run dev:client  -> port 3001 ready (60-120s)
-        └─ bun run dev:admin   -> port 3002 ready (60-120s)
+        ├─ bun run dev -- indexer -> port 3006 ready
+        ├─ bun run --cwd packages/client dev -> port 3001 ready (60-120s)
+        └─ bun run --cwd packages/admin dev  -> port 3002 ready (60-120s)
 
 T+60s   Tests begin (after webServer ready)
         ├─ Chromium tests (parallel workers)
@@ -522,7 +522,7 @@ Total:  ~90-120s for full suite
 
 ```typescript
 webServer: [{
-  command: "bun run dev:client",
+  command: "bun run --cwd packages/client dev",
   port: 3001,
   timeout: 120000,  // 2 minutes for Vite cold start
   reuseExistingServer: !process.env.CI,  // Reuse local dev server
@@ -544,7 +544,7 @@ webServer: [{
 └────────────────────────────────────────────────────────┘
                          ↓
 ┌────────────────────────────────────────────────────────┐
-│  2. Run smoke tests: bun test:e2e:smoke               │
+│  2. Run smoke tests: bun run browser e2e --preset smoke │
 │     → Validates auth + data loading                    │
 └────────────────────────────────────────────────────────┘
                          ↓
@@ -555,7 +555,7 @@ webServer: [{
                         No
                          ↓
 ┌────────────────────────────────────────────────────────┐
-│  3. Debug with Playwright UI: bun test:e2e:ui         │
+│  3. Debug: bun run browser e2e --preset ui            │
 │     → Time-travel through test                         │
 │     → Inspect DOM at failure point                     │
 │     → Check network requests                           │
@@ -596,7 +596,7 @@ Agent: *Reads test output, checks component code*
         but GardenCard.tsx uses className="garden-card".
         Updating test selector..."
         *Updates test file*
-        "Run: bun test:e2e:client to verify"
+        "Run: bun run browser e2e --preset all to verify"
 ```
 
 ## Writing Robust Tests
@@ -677,12 +677,12 @@ jobs:
   e2e-chromium:
     runs-on: ubuntu-latest
     steps:
-      - run: bun test:e2e:smoke --project=chromium
+      - run: bun run browser e2e --preset smoke
 
   e2e-mobile:
     runs-on: ubuntu-latest
     steps:
-      - run: bun test:e2e:mobile
+      - run: bun run browser e2e --preset all
 ```
 
 ### Caching
@@ -710,20 +710,19 @@ jobs:
 
 | Command | What It Tests | Duration |
 |---------|---------------|----------|
-| `bun test:e2e:smoke` | Login + basic views | ~30s |
-| `bun test:e2e:mobile` | Client on Android + iOS | ~60s |
-| `bun test:e2e` | Full suite | ~90s |
-| `bun test:e2e:ui` | Visual debugger | Interactive |
+| `bun run browser e2e --preset smoke` | Login + basic views | ~30s |
+| `bun run browser e2e --preset all` | Full configured suite | ~90s |
+| `bun run browser e2e --preset ui` | Visual debugger | Interactive |
 
 **Development workflow:**
 ```bash
-bun run dev:web         # Terminal 1 - services
-bun test:e2e:ui        # Terminal 2 - tests
+bun run dev -- web         # Terminal 1 - services
+bun run browser e2e --preset ui # Terminal 2 - tests
 ```
 
 **CI workflow:**
 ```bash
-SKIP_WEBSERVER=false bun test:e2e:smoke  # Auto-start services
+bun run browser e2e --preset smoke # Owns startup and cleanup
 ```
 
 ## Reference

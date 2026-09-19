@@ -19,9 +19,9 @@ Operator canvas for Green Goods stewards and deployers.
 ## Commands
 
 ```bash
-bun --filter admin dev
-bun --filter admin test
-bun --filter admin build
+bun run --cwd packages/admin dev
+bun run --cwd packages/admin test
+bun run --cwd packages/admin build
 ```
 
 ## Deployment
@@ -30,7 +30,7 @@ Admin is a static Vite SPA. Use the root environment only, select the target cha
 and build from the repository root so contract and shared dependencies resolve first:
 
 ```bash
-VITE_CHAIN_ID=42161 bun run build:admin
+VITE_CHAIN_ID=42161 bun run --cwd packages/admin build
 ```
 
 Deploy `packages/admin/dist/` and preserve the SPA rewrite in `packages/admin/vercel.json` so

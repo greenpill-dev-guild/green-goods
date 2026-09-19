@@ -1,3 +1,4 @@
+import { Button } from "@green-goods/shared/components/Button";
 import { RiRefreshLine, RiSearchLine, RiWifiOffLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
 
@@ -88,14 +89,14 @@ export function CommitmentDetailState({
           title={formatMessage({ id: "app.commitment.error.title" })}
           description={formatMessage({ id: "app.commitment.error.body" })}
           action={
-            <button
+            <Button
               type="button"
+              emphasis="secondary"
               onClick={onRetry}
-              className="inline-flex items-center gap-2 rounded-[var(--radius-lg)] border border-stroke-soft-200 px-4 py-2 text-sm font-medium text-text-strong-950 tap-target-lg"
+              leadingIcon={<RiRefreshLine className="h-4 w-4" aria-hidden="true" />}
             >
-              <RiRefreshLine className="h-4 w-4" aria-hidden="true" />
               {formatMessage({ id: "app.commitments.retry" })}
-            </button>
+            </Button>
           }
         />
       )}

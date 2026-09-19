@@ -4,8 +4,8 @@
  * This exists to avoid raw `forge build <path>` usage in day-to-day work.
  *
  * Usage:
- *   bun run build:target -- src/registries/ENS.sol
- *   bun run build:target -- src/registries/ENS.sol src/tokens/Garden.sol
+ *   bun run --cwd packages/contracts build --mode target -- src/registries/ENS.sol
+ *   bun run --cwd packages/contracts build --mode target -- src/registries/ENS.sol src/tokens/Garden.sol
  *
  * Notes:
  * - Passing explicit PATHS makes Foundry compile only those sources + dependencies.
@@ -22,7 +22,7 @@ function log(msg: string) {
 }
 
 function usage(): never {
-  console.error("Usage: bun run build:target -- <solidity-path> [more-paths...]");
+  console.error("Usage: bun run --cwd packages/contracts build --mode target -- <solidity-path> [more-paths...]");
   process.exit(1);
 }
 

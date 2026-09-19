@@ -1,6 +1,7 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { describe, expect, it } from "vitest";
+import { resolvePackageCommand } from "./package-commands.mjs";
 import { CONTRACTS_ROOT, loadReleaseManifest } from "./release-manifest";
 
 /**
@@ -9,14 +10,10 @@ import { CONTRACTS_ROOT, loadReleaseManifest } from "./release-manifest";
  * The three source-acknowledgment boundary fixtures prove the frozen batch-size limit
  * against the production artifact and are meaningless under any other codegen. They are
  * excluded by exact name from every non-production suite lane and executed only through
- * `bun run test:gas:release`. This test pins that wiring so a renamed fixture, an edited
+ * `bun run --cwd packages/contracts test --suite release-gas`. This test pins that wiring so a renamed fixture, an edited
  * exclusion, or a dropped gate chain cannot silently remove the production proof from the
  * required `bun run test` entrypoint.
  */
-
-const packageJson = JSON.parse(fs.readFileSync(path.join(CONTRACTS_ROOT, "package.json"), "utf8")) as {
-  scripts: Record<string, string>;
-};
 
 const measurement = loadReleaseManifest().batching.sourceAcknowledgmentMeasurement;
 const fixtures = [measurement.acceptedFixture, measurement.firstRejectedFixture, measurement.hardMaxFixture].map(
@@ -28,7 +25,7 @@ const fixtures = [measurement.acceptedFixture, measurement.firstRejectedFixture,
 // forge matches test filters against the full signature ("testFoo()"), so the exclusion
 // must anchor over the parameterless parentheses — a bare-name `$` anchor matches nothing
 // and would silently keep the boundary tests in the excluded lanes.
-const exclusion = `--no-match-test '^(${fixtures.map((fixture) => fixture.test).join("|")})\\(\\)$'`;
+const exclusion = `^(${fixtures.map((fixture) => fixture.test).join("|")})\\(\\)$`;
 
 function solidityFiles(directory: string): string[] {
   return fs.readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
@@ -40,21 +37,27 @@ function solidityFiles(directory: string): string[] {
 
 describe("release gas gate routing", () => {
   it("excludes the boundary fixtures by exact name from every non-production suite lane", () => {
-    for (const script of ["test", "test:solidity", "test:deep", "test:fast", "test:lite"] as const) {
-      expect(packageJson.scripts[script], `scripts.${script}`).toContain(exclusion);
+    for (const profile of ["standard", "deep", "fast", "lite"] as const) {
+      const plan = resolvePackageCommand("test", ["--suite", "solidity", "--profile", profile]);
+      const forge = plan.steps.find((step) => step.command === "forge");
+      const exclusionIndex = forge?.args?.indexOf("--no-match-test") ?? -1;
+      expect(exclusionIndex, profile).toBeGreaterThan(-1);
+      expect(forge?.args?.[exclusionIndex + 1], profile).toBe(exclusion);
     }
   });
 
   it("keeps `bun run test` a single honest entrypoint: fast suite, production gate, script tests", () => {
-    const test = packageJson.scripts.test;
-    const gateIndex = test.indexOf("bun run test:gas:release");
-    const scriptIndex = test.indexOf("bun run test:script");
+    const steps = resolvePackageCommand("test", []).steps;
+    const gateIndex = steps.findIndex((step) => step.args?.includes("script/utils/run-release-gas-gate.ts"));
+    const scriptIndex = steps.findIndex((step, index) => index > gateIndex && step.args?.includes("vitest"));
     expect(gateIndex).toBeGreaterThan(-1);
     expect(scriptIndex).toBeGreaterThan(gateIndex);
   });
 
   it("routes the gate through the fail-closed production runner with per-call isolation", () => {
-    expect(packageJson.scripts["test:gas:release"]).toBe("bun script/utils/run-release-gas-gate.ts");
+    expect(resolvePackageCommand("test", ["--suite", "release-gas"]).steps[0].args).toEqual([
+      "script/utils/run-release-gas-gate.ts",
+    ]);
     const runner = fs.readFileSync(path.join(CONTRACTS_ROOT, "script/utils/run-release-gas-gate.ts"), "utf8");
     expect(runner).toContain('FOUNDRY_PROFILE: "production"');
     expect(runner).toContain("--isolate");
@@ -62,17 +65,16 @@ describe("release gas gate routing", () => {
   });
 
   it("routes the live Safe/Zodiac destination proof with per-call isolation", () => {
-    expect(packageJson.scripts["test:fork:garden-roles"]).toBe("bun script/utils/run-garden-roles-proof.ts");
+    expect(resolvePackageCommand("fork", ["--suite", "garden-roles"]).steps[0].args).toEqual([
+      "script/utils/run-garden-roles-proof.ts",
+    ]);
     const runner = fs.readFileSync(path.join(CONTRACTS_ROOT, "script/utils/run-garden-roles-proof.ts"), "utf8");
     expect(runner).toContain("--isolate");
     expect(runner).toContain("--safe-plan");
     expect(runner).toContain("garden-safe-final-bindings-2026-08-15.json");
     expect(
       fs.existsSync(
-        path.resolve(
-          CONTRACTS_ROOT,
-          "../../.plans/active/celo-garden-account-safe-ownership/evidence/garden-safe-final-bindings-2026-08-15.json",
-        ),
+        path.resolve(CONTRACTS_ROOT, "config/celo-garden-accounts/garden-safe-final-bindings-2026-08-15.json"),
       ),
     ).toBe(true);
   });

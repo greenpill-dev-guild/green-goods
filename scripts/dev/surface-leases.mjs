@@ -7,7 +7,6 @@ const __dirname = path.dirname(__filename);
 const projectRoot = path.resolve(__dirname, "../..");
 
 const STORE_VERSION = 1;
-const LOCK_STALE_AFTER_MS = 10_000;
 const SAFE_IDENTIFIER = /^[A-Za-z0-9._:@/-]+$/;
 
 export const DEFAULT_LEASE_PATH = path.join(projectRoot, ".cache", "dev-surface-leases.json");
@@ -91,10 +90,8 @@ function writeLeaseStore(leasePath, store) {
 
 function removeStaleLock(lockPath) {
   try {
-    const stat = fs.statSync(lockPath);
-    if (Date.now() - stat.mtimeMs < LOCK_STALE_AFTER_MS) return false;
-
     const lock = JSON.parse(fs.readFileSync(lockPath, "utf8"));
+    if (!Number.isInteger(lock.pid) || lock.pid <= 0) return false;
     if (isProcessAlive(lock.pid)) return false;
     fs.unlinkSync(lockPath);
     return true;
@@ -120,16 +117,30 @@ function withLeaseLock(leasePath, callback) {
     }
   }
 
-  try {
-    return callback();
-  } finally {
+  const unlock = () => {
     if (descriptor !== undefined) fs.closeSync(descriptor);
     try {
       fs.unlinkSync(lockPath);
     } catch {
       // A missing lock after our callback is harmless; ownership remains in the lease file.
     }
+  };
+  let result;
+  try {
+    result = callback();
+  } catch (error) {
+    unlock();
+    throw error;
   }
+  if (result && typeof result.then === "function") return result.finally(unlock);
+  unlock();
+  return result;
+}
+
+// Serialize recovery, claims, and PM2 startup across competing launchers. Lease
+// mutations retain their separate short lock, so they can run inside this one.
+export function withStartupLock(callback, leasePath = DEFAULT_LEASE_PATH) {
+  return withLeaseLock(`${leasePath}.startup`, callback);
 }
 
 export function inspectSurface({

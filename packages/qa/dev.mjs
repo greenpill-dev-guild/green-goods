@@ -2,9 +2,12 @@
 /**
  * Local QA app — the deployed app's behaviour, without Vercel or Blob.
  *
- * Serves dist/ and implements the same /api/state contract against per-tester
- * JSON files under tmp/qa/, so the sharded-by-writer model can be exercised
- * (two browsers, same case, no clobbering) before anything is deployed.
+ * Serves dist/ and implements the same /api/state and /api/runs contracts
+ * against per-tester JSON files under tmp/qa/, so the sharded-by-writer model
+ * and the run lifecycle (migration, rollover, closed-run refusal) can be
+ * exercised — two browsers, same case, no clobbering — before anything is
+ * deployed. What a run IS comes from ./runs.ts, the same module the deployed
+ * functions use; only the file store and the identity bypass live here.
  *
  * It is NOT a mid-session fallback. Its state is a separate store: it neither
  * reads the deployed shards nor pushes back to them, so a session split across
@@ -13,6 +16,7 @@
  * record on paper — not to quietly start a second source of truth.
  *
  *   node packages/qa/dev.mjs [--port 4610]
+ *   QA_DEV_STATE_DIR=/some/dir node packages/qa/dev.mjs   # state somewhere else
  *
  * Port 4610 sits in the free band above the dev stack's 3001-3009 block, so it
  * never contends with a running client/admin/docs surface.
@@ -23,9 +27,29 @@ import { existsSync, mkdirSync, readFileSync, readdirSync, renameSync, writeFile
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
+import {
+  FIRST_RUN_ID,
+  cleanBuilds,
+  cleanCatalog,
+  cleanLabel,
+  describeRun,
+  findRun,
+  initialIndex,
+  legacyRunRecord,
+  openRun,
+  rolloverIndex,
+  runIndexShapeError,
+  validateEnvironment,
+  validateRunId,
+} from "./runs.ts";
+
 const packageDir = path.dirname(fileURLToPath(import.meta.url));
 const distDir = path.join(packageDir, "dist");
-const stateDir = path.join(packageDir, "..", "..", "tmp", "qa");
+// Tests and rehearsals point this somewhere disposable; the default is the
+// repo's gitignored tmp/qa/.
+const stateDir = process.env.QA_DEV_STATE_DIR
+  ? path.resolve(process.env.QA_DEV_STATE_DIR)
+  : path.join(packageDir, "..", "..", "tmp", "qa");
 
 export const TEAM = ["Afo", "Nansel", "Gui"];
 const STATUSES = new Set(["pass", "fail", "blocked", "na", ""]);
@@ -37,8 +61,26 @@ const CONTENT_TYPES = {
   ".js": "text/javascript; charset=utf-8",
 };
 
-function shardPath(person) {
-  return path.join(stateDir, `${person}.json`);
+function indexPath() {
+  return path.join(stateDir, "runs.json");
+}
+
+/** Legacy shards sit directly under the state dir; run shards under runs/<id>/. */
+function shardPath(person, runId) {
+  return runId === null ? path.join(stateDir, `${person}.json`) : path.join(stateDir, "runs", runId, `${person}.json`);
+}
+
+/**
+ * The run index records who opened and closed a run as an ADDRESS, because
+ * the deployment has nothing else. Locally there are no wallets, so each
+ * tester name maps to a stable pseudo-address and back.
+ */
+export function devAddress(person) {
+  return `0x${Buffer.from(person, "utf8").toString("hex").padEnd(40, "0").slice(0, 40)}`;
+}
+
+function devLabel(address) {
+  return address ? (TEAM.find((person) => devAddress(person) === address) ?? address) : null;
 }
 
 /**
@@ -107,8 +149,8 @@ export function mergeShards(shards) {
  * function: absent means "nothing recorded yet" and merges onto an empty base,
  * while unreadable must refuse the write rather than erase the shard.
  */
-function readShard(person) {
-  const file = shardPath(person);
+function readShard(person, runId) {
+  const file = shardPath(person, runId);
   if (!existsSync(file)) return null;
   const text = readFileSync(file, "utf8");
   try {
@@ -135,13 +177,52 @@ function sendFailure(response, error, fallback) {
   return sendJson(response, 503, { error: safe });
 }
 
-function writeShard(shard) {
-  mkdirSync(stateDir, { recursive: true });
-  // Temp + rename so a reader never observes a half-written shard.
-  const target = shardPath(shard.person);
+/** Temp + rename so a reader never observes a half-written file. */
+function writeJsonFile(target, value) {
+  mkdirSync(path.dirname(target), { recursive: true });
   const temporary = `${target}.${process.pid}.${Date.now()}.tmp`;
-  writeFileSync(temporary, `${JSON.stringify(shard, null, 2)}\n`);
+  writeFileSync(temporary, `${JSON.stringify(value, null, 2)}\n`);
   renameSync(temporary, target);
+}
+
+function writeShard(shard, runId) {
+  writeJsonFile(shardPath(shard.person, runId), shard);
+}
+
+function readRunIndex() {
+  const file = indexPath();
+  if (!existsSync(file)) return null;
+  let parsed;
+  try {
+    parsed = JSON.parse(readFileSync(file, "utf8"));
+  } catch (error) {
+    throw new StoreError("the run index is unreadable and was not overwritten", error);
+  }
+  const invalid = runIndexShapeError(parsed);
+  if (invalid) throw new StoreError("the run index is unreadable and was not overwritten", invalid);
+  return parsed;
+}
+
+/**
+ * The run index, migrating a pre-runs tmp/qa/ into Run 1 on first contact —
+ * the same shape the deployed store gives the legacy Blob shards. Legacy
+ * files stay where they are, untouched, so the migration is reversible.
+ */
+export function ensureRunIndex() {
+  const existing = readRunIndex();
+  if (existing) return existing;
+  const shards = TEAM.map((person) => {
+    const legacy = readShard(person, null);
+    if (legacy && !existsSync(shardPath(person, FIRST_RUN_ID))) {
+      mkdirSync(path.dirname(shardPath(person, FIRST_RUN_ID)), { recursive: true });
+      writeFileSync(shardPath(person, FIRST_RUN_ID), readFileSync(shardPath(person, null)));
+    }
+    return legacy;
+  });
+  const now = new Date().toISOString();
+  const index = initialIndex(legacyRunRecord(shards, now), now);
+  writeJsonFile(indexPath(), index);
+  return index;
 }
 
 function sendJson(response, status, body) {
@@ -179,6 +260,23 @@ async function readBody(request) {
   return Buffer.concat(chunks).toString("utf8");
 }
 
+/** Parse a JSON object body, or answer the request with the deployed function's 400s. */
+function parseJsonObject(text, response) {
+  let body;
+  try {
+    body = JSON.parse(text);
+  } catch {
+    sendJson(response, 400, { error: "invalid JSON" });
+    return null;
+  }
+  // `JSON.parse("null")` and `JSON.parse("[]")` both succeed.
+  if (!body || typeof body !== "object" || Array.isArray(body)) {
+    sendJson(response, 400, { error: "body must be a JSON object" });
+    return null;
+  }
+  return body;
+}
+
 /**
  * Local identity, without a wallet.
  *
@@ -202,10 +300,28 @@ export function devIdentity(request) {
   return TEAM[0];
 }
 
+function labelledRuns(index) {
+  return index.runs.map((run) => ({
+    ...run,
+    openedByLabel: devLabel(run.openedBy),
+    closedByLabel: devLabel(run.closedBy),
+  }));
+}
+
 export function handleState(request, response) {
   if (request.method === "GET") {
     try {
-      const entries = mergeShards(TEAM.map(readShard));
+      const index = ensureRunIndex();
+      const open = openRun(index);
+      const requested = new URL(request.url, "http://127.0.0.1").searchParams.get("run");
+      let served = open;
+      if (requested) {
+        const runId = validateRunId(requested);
+        const run = runId ? findRun(index, runId) : undefined;
+        if (!run) return sendJson(response, 404, { error: `run ${requested.slice(0, 32)} does not exist here`, openRun: open.id });
+        served = run;
+      }
+      const entries = mergeShards(TEAM.map((person) => readShard(person, served.id)));
       const you = devIdentity(request);
       // Same response shape as the deployed function, so the page cannot take a
       // different path locally than it will in front of a real tester.
@@ -216,35 +332,57 @@ export function handleState(request, response) {
         named: true,
         entries,
         readAt: new Date().toISOString(),
+        runs: labelledRuns(index),
+        run: served.id,
+        openRun: open.id,
       });
     } catch (error) {
       return sendFailure(response, error, "session state could not be read");
     }
   }
   if (request.method === "POST") {
+    // Body first, index second: a request that never parses must not migrate
+    // or touch the store at all.
     return readBody(request).then((text) => {
-      let body;
-      try {
-        body = JSON.parse(text);
-      } catch {
-        return sendJson(response, 400, { error: "invalid JSON" });
-      }
-      // `JSON.parse("null")` and `JSON.parse("[]")` both succeed.
-      if (!body || typeof body !== "object" || Array.isArray(body)) {
-        return sendJson(response, 400, { error: "body must be a JSON object" });
-      }
+      const body = parseJsonObject(text, response);
+      if (!body) return undefined;
       // Identity is the local session, never the body — the deployed server
       // derives it from the signed cookie and this must not diverge.
       body.person = devIdentity(request);
       if (!TEAM.includes(body.person)) {
         return sendJson(response, 400, { error: `unknown tester — expected one of ${TEAM.join(", ")}` });
       }
+      let index;
+      try {
+        index = ensureRunIndex();
+      } catch (error) {
+        return sendFailure(response, error, "the runs could not be read");
+      }
+      const open = openRun(index);
+      // A page that names no run records into the open run; a closed or
+      // unknown run is refused without a write, exactly like the deployment.
+      let target = open;
+      if (body.run !== undefined && body.run !== null && body.run !== "") {
+        const runId = validateRunId(body.run);
+        if (!runId) return sendJson(response, 400, { error: "run id is malformed" });
+        const run = findRun(index, runId);
+        if (!run) return sendJson(response, 409, { error: `run ${runId} does not exist here`, reason: "unknown", openRun: open.id });
+        if (run.closedAt) {
+          return sendJson(response, 409, {
+            error: `${describeRun(run)} is closed`,
+            reason: "closed",
+            openRun: open.id,
+            closedAt: run.closedAt,
+          });
+        }
+        target = run;
+      }
       // No conditional write is needed here the way the deployed function needs
       // one: node runs this handler to completion on a single thread, with no
       // await between the read and the write, so a second POST cannot interleave.
       let previous;
       try {
-        previous = readShard(body.person);
+        previous = readShard(body.person, target.id);
       } catch (error) {
         return sendFailure(response, error, `${body.person}'s entries were not saved`);
       }
@@ -254,15 +392,96 @@ export function handleState(request, response) {
         entries: mergeDelta(previous?.entries ?? {}, sanitizeDelta(body.entries)),
       };
       try {
-        writeShard(shard);
+        writeShard(shard, target.id);
       } catch (error) {
         return sendFailure(response, error, `${body.person}'s entries were not saved`);
       }
-      return sendJson(response, 200, { ok: true, person: shard.person, count: Object.keys(shard.entries).length });
+      return sendJson(response, 200, {
+        ok: true,
+        person: shard.person,
+        count: Object.keys(shard.entries).length,
+        run: target.id,
+      });
       // A rejection here — an aborted request stream, or an unwritable tmp/qa —
       // has no other handler: `createServer` ignores the promise this returns,
       // and an unhandled rejection takes the whole rehearsal server down
       // mid-session. Answer like the deployed function does instead.
+    }).catch((error) => sendFailure(response, error, "the request could not be read"));
+  }
+  return sendJson(response, 405, { error: "method not allowed" });
+}
+
+/**
+ * Same contract as api/runs.ts: GET lists the runs, POST rolls the open run
+ * over. The index write needs no ETag locally (single thread, no await between
+ * read and write), but the record it produces is byte-for-byte the deployed
+ * one because rolloverIndex is shared.
+ */
+export function handleRuns(request, response) {
+  if (request.method === "GET") {
+    try {
+      const index = ensureRunIndex();
+      return sendJson(response, 200, { runs: index.runs, openRun: openRun(index).id });
+    } catch (error) {
+      return sendFailure(response, error, "the runs could not be read");
+    }
+  }
+  if (request.method === "POST") {
+    return readBody(request).then((text) => {
+      const body = parseJsonObject(text, response);
+      if (!body) return undefined;
+      if (body.action !== "rollover") return sendJson(response, 400, { error: "action must be rollover" });
+      const label = cleanLabel(body.label);
+      if (!label) return sendJson(response, 400, { error: "a label for the new run is required" });
+      const environment = validateEnvironment(body.environment);
+      if (!environment) return sendJson(response, 400, { error: "environment must be production, beta, or local" });
+      const builds = cleanBuilds(body.builds);
+      if (builds === null) {
+        return sendJson(response, 400, { error: "build SHAs must be 7 to 40 hex characters, for client, admin, or website" });
+      }
+      const catalog = body.catalog === undefined || body.catalog === null ? null : cleanCatalog(body.catalog);
+      if (body.catalog !== undefined && body.catalog !== null && catalog === null) {
+        return sendJson(response, 400, { error: "catalog must carry a revision and an activeCases count" });
+      }
+      const expectedGiven = body.expectedOpenRun !== undefined && body.expectedOpenRun !== null;
+      const expectedOpenRun = expectedGiven ? validateRunId(body.expectedOpenRun) : null;
+      if (expectedGiven && !expectedOpenRun) return sendJson(response, 400, { error: "expectedOpenRun is malformed" });
+      let index;
+      try {
+        index = ensureRunIndex();
+      } catch (error) {
+        return sendFailure(response, error, "the runs could not be read");
+      }
+      const currentOpen = openRun(index);
+      if (expectedOpenRun && currentOpen.id !== expectedOpenRun) {
+        return sendJson(response, 409, {
+          error: `${describeRun(currentOpen)} is the open run now — reload and look again`,
+          reason: "stale",
+          runs: index.runs,
+          openRun: currentOpen.id,
+        });
+      }
+      const now = new Date().toISOString();
+      const by = devAddress(devIdentity(request));
+      const next = rolloverIndex(index, { label, environment, builds, catalog, by, now });
+      try {
+        writeJsonFile(indexPath(), next.index);
+        // Carry every named tester into the new run so the roster stays stable.
+        for (const person of TEAM) {
+          if (readShard(person, next.closed.id) && !existsSync(shardPath(person, next.opened.id))) {
+            writeShard({ person, updatedAt: now, entries: {} }, next.opened.id);
+          }
+        }
+      } catch (error) {
+        return sendFailure(response, error, "the run could not be rolled over");
+      }
+      return sendJson(response, 200, {
+        ok: true,
+        closed: next.closed,
+        opened: next.opened,
+        runs: next.index.runs,
+        openRun: next.opened.id,
+      });
     }).catch((error) => sendFailure(response, error, "the request could not be read"));
   }
   return sendJson(response, 405, { error: "method not allowed" });
@@ -297,6 +516,7 @@ function main() {
       });
     }
     if (request.url.split("?")[0] === "/api/state") return handleState(request, response);
+    if (request.url.split("?")[0] === "/api/runs") return handleRuns(request, response);
     const file = resolveStatic(request.url);
     if (!file) {
       response.writeHead(404, { "content-type": "text/plain; charset=utf-8" });
@@ -310,8 +530,20 @@ function main() {
   });
 
   server.listen(port, "127.0.0.1", () => {
-    const shards = existsSync(stateDir) ? readdirSync(stateDir).filter((f) => f.endsWith(".json")).length : 0;
-    console.log(`qa dev: http://127.0.0.1:${port} — state in tmp/qa/ (${shards} shard(s))`);
+    let summary = "no runs yet";
+    try {
+      const index = readRunIndex();
+      if (index) {
+        const open = openRun(index);
+        const shards = existsSync(path.join(stateDir, "runs", open.id))
+          ? readdirSync(path.join(stateDir, "runs", open.id)).filter((f) => f.endsWith(".json")).length
+          : 0;
+        summary = `${describeRun(open)} open, ${shards} shard(s)`;
+      }
+    } catch {
+      summary = "run index unreadable";
+    }
+    console.log(`qa dev: http://127.0.0.1:${port} — state in ${path.relative(process.cwd(), stateDir) || "."} (${summary})`);
   });
 }
 

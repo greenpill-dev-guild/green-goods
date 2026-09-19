@@ -119,11 +119,21 @@ function NotificationRow({ item }: { item: NotificationPanelItem }) {
 
   const trailing = showActionButton ? (
     <span
-      className="ml-auto inline-flex shrink-0 items-center gap-0.5 self-start rounded-full px-2 py-1 text-[11px] font-semibold"
-      style={{ color: "rgb(var(--tone-action, var(--green-800)))" }}
+      className="gg-button ml-auto shrink-0 self-start"
+      data-emphasis="tertiary"
+      data-size="sm"
+      style={{
+        color: "rgb(var(--tone-action, var(--primary-action)))",
+        maxWidth: "45%",
+        minHeight: "auto",
+        minWidth: 0,
+        overflowWrap: "anywhere",
+        padding: 0,
+        whiteSpace: "normal",
+      }}
     >
       {item.actionLabel}
-      <RiArrowRightSLine className="h-3 w-3" />
+      <RiArrowRightSLine className="h-3 w-3" style={{ flexShrink: 0 }} />
     </span>
   ) : item.onSelect ? (
     <RiArrowRightSLine className="ml-auto mt-1 h-4 w-4 shrink-0 text-text-soft" />
@@ -176,7 +186,7 @@ function SkeletonRow() {
  * - Unread dot at top-right corner when `unread` is true
  * - Title 13/600, body 12/400, meta 11/500
  * - When `onSelect` + `actionLabel` are both set the row renders a labeled
- *   ghost-style action button on the right (handoff "Review" / "View"); if
+ *   green text-button treatment on the right (handoff "Review" / "View"); if
  *   only `onSelect` is set we keep a quiet chevron affordance.
  * - Optional grouped sections with quiet sentence-case label headings, and an
  *   optional scope line naming the garden the feed follows.

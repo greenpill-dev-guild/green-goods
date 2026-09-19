@@ -249,7 +249,20 @@ function parseArgs(argv) {
   return { positional, flags };
 }
 
+class PlanHubFailure extends Error {
+  constructor(message, exitCode) {
+    super(message);
+    this.exitCode = exitCode;
+  }
+}
+
+let heldLockDepth = 0;
+
 function fail(message, exitCode = 1) {
+  // Exiting while a lock is held would skip the lock's release, so throw to its wrapper instead.
+  if (heldLockDepth > 0) {
+    throw new PlanHubFailure(message, exitCode);
+  }
   console.error(message);
   process.exit(exitCode);
 }
@@ -505,22 +518,34 @@ function withDirectoryLock(lockDir, work, timeoutMs = 5000) {
     }
   }
 
+  heldLockDepth += 1;
   try {
     return work();
   } finally {
+    heldLockDepth -= 1;
     rmSync(lockDir, { recursive: true, force: true });
   }
 }
 
 function withFeatureLock(featureDirPath, work, timeoutMs = 5000) {
-  return withDirectoryLock(join(featureDirPath, ".status.lock"), work, timeoutMs);
+  try {
+    return withDirectoryLock(join(featureDirPath, ".status.lock"), work, timeoutMs);
+  } catch (error) {
+    if (error instanceof PlanHubFailure) {
+      fail(error.message, error.exitCode);
+    }
+    throw error;
+  }
 }
 
 function withArchiveLock(work, timeoutMs = 5000) {
   try {
     return withDirectoryLock(join(PLANS_ROOT, "_templates", ".archive.lock"), work, timeoutMs);
   } catch (error) {
-    fail(error instanceof Error ? error.message : String(error));
+    fail(
+      error instanceof Error ? error.message : String(error),
+      error instanceof PlanHubFailure ? error.exitCode : 1,
+    );
   }
 }
 

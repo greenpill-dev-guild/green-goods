@@ -3,9 +3,8 @@
  */
 
 import { beforeEach, describe, expect, it, vi } from "vitest";
-
-import { createJobQueue } from "../../modules/job-queue/queue";
 import type { FlushResult, JobQueueDependencies } from "../../modules/job-queue/ports";
+import { createJobQueue } from "../../modules/job-queue/queue";
 import type { Job, JobKindMap, QueueEvent } from "../../types/job-queue";
 import {
   createFakeJobExecutorRegistry,
@@ -270,6 +269,52 @@ describe("processJob", () => {
     });
   });
 
+  it("still reconciles a persisted UserOperation at the retry ceiling", async () => {
+    const store = createInMemoryJobQueueStore([
+      queuedJob({
+        attempts: 5,
+        payload: {
+          uploadCheckpoint: {
+            files: {},
+            submittedAt: "2026-09-12",
+            broadcast: { kind: "user-operation", hash: "0xop" },
+          },
+        },
+      }),
+    ]);
+    const executors = {
+      execute: vi.fn().mockResolvedValue({ status: "waiting", reason: "awaiting-confirmation" }),
+    };
+    const { queue } = setup({ store, executors });
+    expect(await queue.processJob("job-1", { transactionSender: {} as never })).toMatchObject({
+      error: "awaiting-confirmation",
+    });
+    expect(executors.execute).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not automatically execute a proved failed operation again", async () => {
+    const store = createInMemoryJobQueueStore([
+      queuedJob({
+        attempts: 5,
+        meta: { workTransactionReverted: true },
+        payload: {
+          uploadCheckpoint: {
+            files: {},
+            submittedAt: "2026-09-12",
+            broadcast: { kind: "user-operation", hash: "0xop" },
+            transactionReverted: true,
+          },
+        },
+      }),
+    ]);
+    const executors = { execute: vi.fn() };
+    const { queue } = setup({ store, executors });
+    expect(await queue.processJob("job-1", { transactionSender: {} as never })).toMatchObject({
+      error: "work-transaction-reverted",
+    });
+    expect(executors.execute).not.toHaveBeenCalled();
+  });
+
   it("permanently fails a job at the retry ceiling", async () => {
     const store = createInMemoryJobQueueStore([queuedJob({ attempts: 5 })]);
     const { deps, queue } = setup({ store });
@@ -358,5 +403,78 @@ describe("processJob", () => {
     });
     expect((await store.getJob("job-1"))?.lastError).toBe("send failed");
     expect(deps.analytics.jobProcessingError).toHaveBeenCalledOnce();
+  });
+});
+
+describe("work confirmation recovery", () => {
+  const checkpoint = {
+    submittedAt: "2026-09-09",
+    files: { photo: { attachmentId: "photo", contentHash: "bytes", cid: "bafy-photo" } },
+    transactionHash: `0x${"12".repeat(32)}`,
+  };
+  it("confirmation checks and checkpoint failures do not consume submission attempts", async () => {
+    const store = createInMemoryJobQueueStore([
+      queuedJob({ payload: { uploadCheckpoint: checkpoint } }),
+    ]);
+    const executors = {
+      execute: vi.fn().mockResolvedValue({ status: "waiting", reason: "awaiting-confirmation" }),
+    };
+    const { queue } = setup({ store, executors });
+    await queue.processJob("job-1", { transactionSender: {} as never });
+    expect((await store.getJob("job-1"))?.attempts).toBe(0);
+    expect((await store.getJob("job-1"))?.meta?.waitingReason).toBe("awaiting-confirmation");
+    expect(await queue.discardJob("job-1")).toBe(false);
+    const second = setup({
+      store: createInMemoryJobQueueStore([
+        queuedJob({ payload: { uploadCheckpoint: checkpoint } }),
+      ]),
+      executors: { execute: vi.fn().mockRejectedValue(new Error("checkpoint write failed")) },
+    });
+    await second.queue.processJob("job-1", { transactionSender: {} as never });
+    expect((await second.deps.store.getJob("job-1"))?.attempts).toBe(0);
+  });
+  it("explicit retry clears the reverted broadcast while retaining uploaded media", async () => {
+    const store = createInMemoryJobQueueStore([
+      queuedJob({
+        payload: { uploadCheckpoint: { ...checkpoint } },
+        attempts: 5,
+        meta: { workTransactionReverted: true, submittedTxHash: checkpoint.transactionHash },
+      }),
+    ]);
+    const { queue } = setup({ store });
+    await queue.retryJob("job-1");
+    const retry = await store.getJob("job-1");
+    // Exactly this: a stale broadcast field left behind would pass toMatchObject.
+    expect((retry?.payload as { uploadCheckpoint?: unknown }).uploadCheckpoint).toEqual({
+      submittedAt: "2026-09-09",
+      files: checkpoint.files,
+    });
+    expect(retry?.meta).not.toHaveProperty("workTransactionReverted");
+    expect(retry?.attempts).toBe(0);
+  });
+  it("explicit retry prepares work that needed attention again from the start", async () => {
+    const store = createInMemoryJobQueueStore([
+      queuedJob({
+        payload: { uploadCheckpoint: { submittedAt: "2026-09-09", files: checkpoint.files } },
+        meta: {
+          preparation: { status: "photo-needs-attention", checkedAt: "2026-09-17T00:00:00Z" },
+          mediaConversion: { failures: 3, inFlight: false },
+          waitingReason: "photo-needs-attention",
+          clientNote: "kept",
+        },
+      }),
+    ]);
+    const { queue } = setup({ store });
+    await queue.retryJob("job-1");
+    const retry = await store.getJob("job-1");
+    expect(retry?.meta).not.toHaveProperty("preparation");
+    expect(retry?.meta).not.toHaveProperty("mediaConversion");
+    expect(retry?.meta).not.toHaveProperty("waitingReason");
+    expect(retry?.meta).toMatchObject({ clientNote: "kept" });
+    // Exactly this: a stale broadcast field left behind would pass toMatchObject.
+    expect((retry?.payload as { uploadCheckpoint?: unknown }).uploadCheckpoint).toEqual({
+      submittedAt: "2026-09-09",
+      files: checkpoint.files,
+    });
   });
 });

@@ -132,7 +132,7 @@ vi.mock("@green-goods/shared/hooks/client-ui/work/useWorkSubmissionFlowControlle
     detailsConfig: {},
     detailInputs: [],
     draft: {
-      showDraftDialog: false,
+      showDraftSheet: false,
       handleContinueDraft: vi.fn(),
       startFresh: vi.fn(),
     },
@@ -203,18 +203,6 @@ vi.mock("../../views/Garden/Review", () => ({
 }));
 
 // Mock UI components
-vi.mock("@/components/Actions", () => ({
-  Button: ({
-    label,
-    onClick,
-    disabled,
-  }: {
-    label: string;
-    onClick?: () => void;
-    disabled?: boolean;
-  }) => createElement("button", { onClick, disabled, type: "button" }, label),
-}));
-
 vi.mock("@/components/Cards", () => ({
   ActionCardSkeleton: () => createElement("div", { "data-testid": "action-skeleton" }),
   FormInfo: ({ title }: { title: string }) => createElement("div", null, title),
@@ -225,8 +213,8 @@ vi.mock("@/components/Communication", () => ({
   FormProgress: () => createElement("div", { "data-testid": "form-progress" }),
 }));
 
-vi.mock("@/components/Dialogs", () => ({
-  DraftDialog: () => null,
+vi.mock("@/components/Sheets", () => ({
+  DraftSheet: () => null,
 }));
 
 vi.mock("@/components/Features/Work", () => ({

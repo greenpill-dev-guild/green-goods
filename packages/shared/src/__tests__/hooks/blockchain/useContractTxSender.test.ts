@@ -20,6 +20,7 @@ import { MOCK_CONTRACT_ABI } from "../../test-utils/transaction-fakes";
 
 const mockWriteContractAsync = vi.fn();
 const mockSendUserOperation = vi.fn();
+const mockWaitForUserOperationReceipt = vi.fn();
 const mockWaitForTransactionReceipt = vi.fn().mockResolvedValue({ status: "success" });
 
 const mockSmartAccountClient = {
@@ -110,6 +111,11 @@ describe("useContractTxSender", () => {
     mockSmartAccountRef = mockSmartAccountClient;
     mockResolverAvailable = true;
     mockSendUserOperation.mockResolvedValue(MOCK_TX_HASH);
+    mockSendUserOperation.mockResolvedValue(MOCK_TX_HASH);
+    mockWaitForUserOperationReceipt.mockResolvedValue({
+      success: true,
+      receipt: { transactionHash: MOCK_TX_HASH },
+    });
     mockWriteContractAsync.mockResolvedValue(MOCK_TX_HASH);
     mockWaitForTransactionReceipt.mockResolvedValue({ status: "success" });
   });
@@ -297,7 +303,11 @@ describe("useContractTxSender", () => {
   // ------------------------------------------
 
   describe("passkey mode without smart account", () => {
-    it("blocks submission while the passkey client is unavailable", async () => {
+    // The factory fails closed rather than reaching for wagmi: signing a passkey
+    // user's transaction with a connected wallet would send it from a different
+    // address. useTransactionSender turns that throw into a null sender, so this
+    // deprecated wrapper reports uninitialized auth instead of sending.
+    it("fails closed when smartAccountClient is null", async () => {
       mockAuthMode = "passkey";
       mockSmartAccountRef = null;
 
@@ -305,13 +315,17 @@ describe("useContractTxSender", () => {
         wrapper: createWrapper(),
       });
 
-      await expect(result.current(TEST_REQUEST)).rejects.toThrow("TransactionSender not available");
+      await expect(
+        act(async () => {
+          await result.current(TEST_REQUEST);
+        })
+      ).rejects.toThrow("TransactionSender not available — auth not initialized");
 
       expect(mockWriteContractAsync).not.toHaveBeenCalled();
       expect(mockSendUserOperation).not.toHaveBeenCalled();
     });
 
-    it("blocks submission when the passkey client has no account", async () => {
+    it("fails closed when smartAccountClient has no account", async () => {
       mockAuthMode = "passkey";
       mockSmartAccountRef = { ...mockSmartAccountClient, account: undefined } as any;
 
@@ -319,7 +333,11 @@ describe("useContractTxSender", () => {
         wrapper: createWrapper(),
       });
 
-      await expect(result.current(TEST_REQUEST)).rejects.toThrow("TransactionSender not available");
+      await expect(
+        act(async () => {
+          await result.current(TEST_REQUEST);
+        })
+      ).rejects.toThrow("TransactionSender not available — auth not initialized");
 
       expect(mockWriteContractAsync).not.toHaveBeenCalled();
       expect(mockSendUserOperation).not.toHaveBeenCalled();

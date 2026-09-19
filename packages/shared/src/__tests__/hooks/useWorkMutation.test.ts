@@ -1,3 +1,8 @@
+import { jobQueueDB } from "../../modules/job-queue/db";
+import { IntlProvider } from "react-intl";
+vi.mock("../../modules/job-queue/draft-db", () => ({
+  draftDB: { getDraft: vi.fn(), updateDraft: vi.fn() },
+}));
 /**
  * @vitest-environment jsdom
  *
@@ -7,7 +12,7 @@
  * online/offline detection, and job queue integration.
  */
 
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { onlineManager, QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { createElement, type ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -20,6 +25,24 @@ const workMutationStoreMocks = vi.hoisted(() => ({
 const queueProcessJob = vi.fn();
 
 // Mock modules
+vi.mock("../../modules/job-queue/default-instance", () => ({
+  jobQueue: {
+    addJob: async (
+      kind: string,
+      payload: unknown,
+      userAddress: string,
+      meta: Record<string, unknown>
+    ) =>
+      jobQueueDB.addJob({
+        kind,
+        payload,
+        userAddress,
+        meta,
+        chainId: meta.chainId as number,
+      } as Parameters<typeof jobQueueDB.addJob>[0]),
+  },
+}));
+
 vi.mock("../../modules/work/wallet-submission", () => ({
   submitWorkDirectly: vi.fn(),
 }));
@@ -37,6 +60,7 @@ vi.mock("../../components/toast", () => ({
     loading: vi.fn(),
     success: vi.fn(),
     error: vi.fn(),
+    info: vi.fn(),
     dismiss: vi.fn(),
   },
   workToasts: {
@@ -75,6 +99,7 @@ vi.mock("../../config/default-chain", () => ({
 }));
 
 vi.mock("../../utils/action/parsers", () => ({
+  findActionByUID: vi.fn(() => ({ title: "Test Action" })),
   getActionTitle: vi.fn(() => "Test Action"),
 }));
 
@@ -91,7 +116,8 @@ vi.mock("../../modules/app/error-tracking", () => ({
   addBreadcrumb: vi.fn(),
 }));
 
-vi.mock("../../modules/app/analytics-events", () => ({
+vi.mock("../../modules/app/analytics-events", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../../modules/app/analytics-events")>()),
   trackWorkSubmissionStarted: vi.fn(),
   trackWorkSubmissionSuccess: vi.fn(),
   trackWorkSubmissionFailed: vi.fn(),
@@ -161,16 +187,17 @@ vi.mock("../../utils/errors/contract-errors", () => ({
   formatErrorForToast: vi.fn(() => ({ title: "Error", message: "Something went wrong" })),
 }));
 
-import { walletProgressToasts, workToasts } from "../../components/toast";
+import { toastService, walletProgressToasts, workToasts } from "../../components/toast";
 import { worksKeys } from "../../config/query-keys/work";
 import { useWorkMutation } from "../../hooks/work/useWorkMutation";
-import { submitWorkDirectly } from "../../modules/work/wallet-submission";
-import { WorkSubmissionError } from "../../modules/work/wallet-submission/types";
-import { submitWorkToQueue } from "../../modules/work/work-submission";
 import {
   trackWorkWalletRequestExpired,
   trackWorkWalletRequestStarted,
 } from "../../modules/app/analytics-events";
+import { submitWorkDirectly } from "../../modules/work/wallet-submission";
+import { WorkSubmissionError } from "../../modules/work/wallet-submission/types";
+import { submitWorkToQueue } from "../../modules/work/work-submission";
+import { connectivityStore } from "../../stores/connectivity";
 import {
   createMockAction,
   createMockFiles,
@@ -186,17 +213,22 @@ describe("hooks/work/useWorkMutation", () => {
 
   const createWrapper = () => {
     return ({ children }: { children: ReactNode }) =>
-      createElement(QueryClientProvider, { client: queryClient }, children);
+      createElement(IntlProvider, {
+        locale: "en",
+        messages: {},
+        children: createElement(QueryClientProvider, { client: queryClient }, children),
+      });
   };
 
   beforeEach(() => {
     queryClient = new QueryClient({
       defaultOptions: {
         queries: { retry: false },
-        mutations: { retry: false },
+        mutations: { retry: false, networkMode: "always" },
       },
     });
     vi.clearAllMocks();
+    vi.spyOn(jobQueueDB, "addJob");
     workMutationStoreMocks.ensureWorkSubmissionJourneyId.mockReturnValue("journey-123");
 
     // Default: online
@@ -205,6 +237,7 @@ describe("hooks/work/useWorkMutation", () => {
       value: true,
       writable: true,
     });
+    onlineManager.setOnline(true);
   });
 
   afterEach(() => {
@@ -218,6 +251,38 @@ describe("hooks/work/useWorkMutation", () => {
     actions: [createMockAction({ id: "1" })],
     userAddress: MOCK_ADDRESSES.user,
   };
+
+  it("does not retire the new account's draft when an earlier wallet request completes", async () => {
+    let finish!: (hash: `0x${string}`) => void;
+    vi.mocked(submitWorkDirectly).mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          finish = resolve;
+        })
+    );
+    const onSuccess = vi.fn();
+    const { result, rerender } = renderHook(
+      ({ address }) => useWorkMutation({ ...defaultOptions, userAddress: address, onSuccess }),
+      {
+        initialProps: { address: MOCK_ADDRESSES.user as string },
+        wrapper: createWrapper(),
+      }
+    );
+    let pending!: Promise<unknown>;
+    act(() => {
+      pending = result.current.mutateAsync({ draft: createMockWorkDraft(), images: [] });
+    });
+    await waitFor(() => expect(submitWorkDirectly).toHaveBeenCalled());
+    rerender({ address: MOCK_ADDRESSES.garden });
+    await act(async () => {
+      finish(MOCK_TX_HASH);
+      await pending;
+    });
+    expect(workMutationStoreMocks.setSubmissionCompleted).not.toHaveBeenCalled();
+    expect(workMutationStoreMocks.openWorkDashboard).not.toHaveBeenCalled();
+    expect(onSuccess).not.toHaveBeenCalled();
+    expect(result.current.getLastSubmissionOutcome()).toBeNull();
+  });
 
   describe("Wallet mode - online", () => {
     it("calls submitWorkDirectly when online", async () => {
@@ -333,6 +398,7 @@ describe("hooks/work/useWorkMutation", () => {
   describe("Wallet mode - offline", () => {
     it("queues via submitWorkToQueue when offline", async () => {
       Object.defineProperty(navigator, "onLine", { value: false });
+      onlineManager.setOnline(false);
 
       mock(submitWorkToQueue).mockResolvedValue({
         txHash: "0xoffline_123",
@@ -351,9 +417,11 @@ describe("hooks/work/useWorkMutation", () => {
         await result.current.mutateAsync({ draft, images });
       });
 
-      expect(submitWorkToQueue).toHaveBeenCalled();
+      expect(jobQueueDB.addJob).toHaveBeenCalled();
       expect(submitWorkDirectly).not.toHaveBeenCalled();
       expect(workToasts.savedOffline).toHaveBeenCalled();
+      // "Saved offline" already explains it; the unstable-connection note is not repeated.
+      expect(toastService.info).not.toHaveBeenCalled();
       expect(
         queryClient.getQueryData<{ gardenerAddress: string }[]>(
           worksKeys.merged(MOCK_ADDRESSES.garden, 11155111)
@@ -361,8 +429,38 @@ describe("hooks/work/useWorkMutation", () => {
       ).toBe(MOCK_ADDRESSES.user);
     });
 
+    it("keeps work queued on an unconfirmed connection and says nothing was sent", async () => {
+      // The browser reports online, but the origin has not confirmed the connection.
+      const confirm = vi.spyOn(connectivityStore, "confirmOnline").mockResolvedValue(false);
+      try {
+        const { result } = renderHook(() => useWorkMutation(defaultOptions), {
+          wrapper: createWrapper(),
+        });
+
+        await act(async () => {
+          await result.current.mutateAsync({
+            draft: createMockWorkDraft(),
+            images: createMockFiles(1),
+          });
+        });
+
+        expect(jobQueueDB.addJob).toHaveBeenCalled();
+        expect(submitWorkDirectly).not.toHaveBeenCalled();
+        expect(workToasts.savedOffline).not.toHaveBeenCalled();
+        expect(toastService.info).toHaveBeenCalledWith(
+          expect.objectContaining({
+            title: "app.offline.degraded",
+            message: "app.work.queuedConnectionUnconfirmed",
+          })
+        );
+      } finally {
+        confirm.mockRestore();
+      }
+    });
+
     it("lets admin-style consumers disable offline queue fallback", async () => {
       Object.defineProperty(navigator, "onLine", { value: false });
+      onlineManager.setOnline(false);
 
       const { result } = renderHook(
         () => useWorkMutation({ ...defaultOptions, allowOfflineQueue: false }),
@@ -419,9 +517,12 @@ describe("hooks/work/useWorkMutation", () => {
         txHash = await result.current.mutateAsync({ draft, images });
       });
 
-      expect(submitWorkToQueue).toHaveBeenCalled();
-      expect(queueProcessJob).toHaveBeenCalledWith("job-abc", {
+      expect(jobQueueDB.addJob).toHaveBeenCalled();
+      // Submit is the person's tap, so the send is explicit.
+      expect(queueProcessJob).toHaveBeenCalledWith(expect.any(String), {
         transactionSender: mockSender,
+        assertOwnership: expect.any(Function),
+        explicit: true,
       });
       expect(txHash).toBe(MOCK_TX_HASH);
     });
@@ -430,6 +531,7 @@ describe("hooks/work/useWorkMutation", () => {
   describe("Passkey mode - offline", () => {
     it("queues without processing when offline", async () => {
       Object.defineProperty(navigator, "onLine", { value: false });
+      onlineManager.setOnline(false);
 
       mock(submitWorkToQueue).mockResolvedValue({
         txHash: "0xoffline_xyz",
@@ -455,9 +557,9 @@ describe("hooks/work/useWorkMutation", () => {
         txHash = await result.current.mutateAsync({ draft, images });
       });
 
-      expect(submitWorkToQueue).toHaveBeenCalled();
+      expect(jobQueueDB.addJob).toHaveBeenCalled();
       expect(queueProcessJob).not.toHaveBeenCalled();
-      expect(txHash).toBe("0xoffline_xyz");
+      expect(txHash).toMatch(/^0xoffline_/);
     });
   });
 
@@ -493,6 +595,7 @@ describe("hooks/work/useWorkMutation", () => {
 
     it("returns offline hash for queued work", async () => {
       Object.defineProperty(navigator, "onLine", { value: false });
+      onlineManager.setOnline(false);
 
       mock(submitWorkToQueue).mockResolvedValue({
         txHash: "0xoffline_queued",
@@ -512,7 +615,7 @@ describe("hooks/work/useWorkMutation", () => {
         });
       });
 
-      expect(txHash).toBe("0xoffline_queued");
+      expect(txHash).toMatch(/^0xoffline_/);
       expect(txHash?.startsWith("0xoffline_")).toBe(true);
     });
   });
@@ -520,6 +623,7 @@ describe("hooks/work/useWorkMutation", () => {
   describe("Error handling", () => {
     it("does not insert optimistic work without a user address", async () => {
       Object.defineProperty(navigator, "onLine", { value: false });
+      onlineManager.setOnline(false);
       const { result } = renderHook(
         () => useWorkMutation({ ...defaultOptions, userAddress: null }),
         { wrapper: createWrapper() }
@@ -561,7 +665,7 @@ describe("hooks/work/useWorkMutation", () => {
       });
     });
 
-    it("does NOT fall back to queue for upload-phase errors (IPFS failures)", async () => {
+    it("falls back to queue for transient IPFS failures", async () => {
       // Simulate an IPFS upload failure — the error message contains "gateway"/"timeout"
       // which would previously match isNetworkError and silently queue the work.
       const uploadError = new WorkSubmissionError(
@@ -587,11 +691,8 @@ describe("hooks/work/useWorkMutation", () => {
         }
       });
 
-      // The error should propagate to onError, NOT fall back to queue
-      expect(submitWorkToQueue).not.toHaveBeenCalled();
-      await waitFor(() => {
-        expect(result.current.isError).toBe(true);
-      });
+      expect(jobQueueDB.addJob).toHaveBeenCalledOnce();
+      await waitFor(() => expect(result.current.isSuccess).toBe(true));
     });
 
     it("falls back to queue for transaction-phase network errors", async () => {
@@ -622,8 +723,8 @@ describe("hooks/work/useWorkMutation", () => {
       });
 
       // Transaction-phase network errors SHOULD fall back to queue
-      expect(submitWorkToQueue).toHaveBeenCalled();
-      expect(txHash).toBe("0xoffline_fallback");
+      expect(jobQueueDB.addJob).toHaveBeenCalled();
+      expect(txHash).toMatch(/^0xoffline_/);
     });
 
     it("does not fall back to queue for transaction errors when disabled", async () => {
@@ -702,7 +803,7 @@ describe("hooks/work/useWorkMutation", () => {
       });
     });
 
-    it("inserts optimistic entry when wallet submission falls back to queue", async () => {
+    it("keeps admitted work visible to local reads after a transient send failure", async () => {
       // Simulate a transaction-phase network error that triggers queue fallback
       const txError = new WorkSubmissionError(
         "Network error - please check your connection",
@@ -728,19 +829,13 @@ describe("hooks/work/useWorkMutation", () => {
         });
       });
 
-      // Check that an optimistic entry was inserted into the merged works cache
-      const mergedWorks = queryClient.getQueryData<Array<{ id: string; status?: string }>>([
-        "greengoods",
-        "works",
-        "merged",
-        MOCK_ADDRESSES.garden,
-        11155111,
-      ]);
-
-      expect(mergedWorks).toBeDefined();
-      expect(mergedWorks!.length).toBeGreaterThan(0);
-      expect(mergedWorks![0].id).toMatch(/^0xoffline_optimistic_/);
-      expect(mergedWorks![0].status).toBe("pending");
+      const admitted = await jobQueueDB.getJobs({
+        userAddress: defaultOptions.userAddress!,
+        kind: "work",
+        synced: false,
+      });
+      expect(admitted.length).toBeGreaterThan(0);
+      expect(result.current.getLastSubmissionOutcome()?.kind).toBe("queued");
     });
   });
 });

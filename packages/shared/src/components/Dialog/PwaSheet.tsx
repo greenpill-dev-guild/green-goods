@@ -1,26 +1,58 @@
 /**
  * PwaSheet — gesture-capable bottom sheet for the installed Green Goods PWA.
  *
+ * Every narrow-viewport dialog in the client renders through this sheet:
+ * `DraftSheet` directly, and `ConfirmDialog` / `DialogShell` below
+ * `PWA_SHEET_MEDIA_QUERY`. Passing `title` turns on the shared header
+ * (`SheetHeader`, DL-028: title, optional description, a 44px close button,
+ * and an optional `tabs` rail) above a scrollable body, so those surfaces
+ * share one chrome. Without `title` the consumer owns everything inside the
+ * panel.
+ *
+ * Focus returns to the element that opened the sheet when it closes, and
+ * the other children of <body> are hidden from assistive tech while it is
+ * open, matching the centered Radix surfaces it replaces below 640px.
+ *
+ * The sheet renders into <body> through a portal, so no page layer can stack
+ * it beneath app chrome, and it registers itself as open (`useSheetPresence`)
+ * so the installed app's AppBar steps aside for it (DL-015). `size` names one
+ * of the shared height tiers (DL-014): `compact` sizes to its content and
+ * stops at the half height; `half`, `tall`, and `full` hold a fixed share of
+ * the viewport and their content scrolls inside.
+ *
+ * `actions` pins the shared action bar (`SheetActions`, DL-016) under the
+ * body, so the sheet's buttons stay at its bottom edge whatever its height.
+ *
+ * Layout lives in shared `utilities.css` as `[data-component="PwaSheet"]`
+ * attribute rules, not as utility classes on this JSX: Tailwind v4 does not
+ * scan `packages/shared/src/` from the admin/client builds, so utilities
+ * authored here silently fail to generate in the installed app (the drag
+ * handle tint and `touch-none` were measured missing from the client
+ * bundle). The rules sit in `@layer components`, so a consumer's
+ * `panelClassName` utilities and unlayered package CSS still override them;
+ * inline `panelStyle` wins over everything.
+ *
  * Open/close uses named CSS keyframes (`dialogSlideInFromBottom` /
  * `dialogSlideOutToBottom` for the panel, `scrimFadeIn` / `scrimFadeOut` for
  * the scrim) applied via attribute selectors on `data-state="open"|"closed"`.
  * Both keyframes and the driving `--spring-spatial-*` / `--spring-effects-*`
- * tokens live in shared (utilities.css + theme.css). The enter keyframe
- * carries a 2% overshoot waypoint at 60% — that's where the spring feel
- * comes from. A linear 2-point translate with any easing curve cannot
- * reproduce the same character, which is why we own the keyframe instead
- * of relying on Tailwind's `slide-in-from-bottom`.
+ * tokens live in shared (utilities.css + theme.css). The slide is one
+ * continuous move with no overshoot: the sheet is anchored to the viewport's
+ * bottom edge, so rising past its resting position would show the page
+ * underneath. A close from rest accelerates out on `--spring-spatial-exit`; a
+ * flicked sheet already has speed and leaves on `--spring-spatial` (DL-033).
  *
- * Keyframes are shared with DialogShell + ConfirmDialog (mobile variant) and
- * ImagePreviewDialog (overlay fade), so all PWA dialog surfaces move with
- * the same rhythm.
+ * The scrim keyframes are shared with DialogShell, ConfirmDialog, and
+ * ImagePreviewDialog, so all PWA dialog surfaces move with the same rhythm.
  *
  * CSS keyframes run on the browser's compositor and don't depend on
  * requestAnimationFrame, so the animation works even in backgrounded/hidden
  * tabs where RAF is throttled.
  *
- * Drag-to-dismiss uses use-gesture + React state to write an inline transform
- * that overrides the keyframe-set transform while the finger is down.
+ * Drag-to-dismiss starts from the grip or the shared header's title block
+ * under it; the gesture itself lives in `sheetDrag`. A tap on the dimmed
+ * backdrop closes the sheet, like Escape and the close button, and
+ * `preventClose` holds all of them.
  *
  * History: an earlier implementation used react-spring with an imperative
  * api.start in a useEffect. In the `ModalDrawer` consumer pattern (component
@@ -31,49 +63,109 @@
  *
  * @module components/Dialog/PwaSheet
  */
-import { useDrag } from "@use-gesture/react";
+import { SheetActions, type SheetActionsProps } from "./SheetActions";
+import { SheetHeader } from "./SheetHeader";
+import { hideOthers, openSheetLayer } from "./sheetLayers";
+import { useSheetDrag } from "./sheetDrag";
+import { createPortal } from "react-dom";
 import {
+  Children,
   type CSSProperties,
+  type HTMLAttributes,
   type ReactNode,
   useCallback,
   useEffect,
+  useId,
+  useLayoutEffect,
   useRef,
   useState,
 } from "react";
 import { useMediaQuery } from "../../hooks/ui/useMediaQuery";
 import { useDocumentScrollLock } from "../../hooks/ui/useDocumentScrollLock";
+import { useSheetPresence } from "../../hooks/ui/useSheetPresence";
 import { useFocusTrap } from "../../hooks/utils/useFocusTrap";
-import { cn } from "../../utils/styles/cn";
-import { DISMISS_VELOCITY_THRESHOLD } from "../Canvas/springConfig";
 
-const DRAG_DISMISS_DISTANCE_PX = 120;
-const DRAG_PULL_RESISTANCE_FACTOR = 0.86;
 const DEFAULT_CLOSE_DURATION_MS = 300;
 
-export interface PwaSheetProps {
+/**
+ * Viewport width below which the shared dialogs (`ConfirmDialog`,
+ * `DialogShell`) render as this sheet. Matches Tailwind's `sm` breakpoint so
+ * the centered surfaces and the sheet never overlap.
+ */
+export const PWA_SHEET_MEDIA_QUERY = "(max-width: 639px)";
+
+/**
+ * Shared bottom-sheet height tiers (DL-014). `compact` sizes to its content up
+ * to the half height; `half`, `tall`, and `full` hold 50%, 70%, and 85% of the
+ * viewport. The rules live in shared `utilities.css` under `[data-sheet-size]`.
+ */
+export type SheetSize = "compact" | "half" | "tall" | "full";
+
+interface PwaSheetBaseProps {
   /** Whether the sheet is open. */
   open: boolean;
   /** Called when the sheet should close (drag dismiss, Escape, backdrop, X). */
   onClose: () => void;
-  /** Sheet contents. Header/footer chrome is owned by the consumer. */
-  children: ReactNode;
-  /** Accessible label for the dialog when no header `<h2>` is rendered. */
+  /**
+   * Sheet contents. Rendered inside the shared scrollable body when `title`
+   * is set; otherwise the consumer owns the header and body chrome.
+   */
+  children?: ReactNode;
+  /** Accessible label for the dialog when no `title` is rendered. */
   ariaLabel?: string;
+  /** Secondary line under the title; becomes the dialog's accessible description. */
+  description?: ReactNode;
+  /** A rail directly under the shared header, typically tabs (DL-028). */
+  tabs?: ReactNode;
+  /** Classes on the shared body, e.g. to hand scrolling to a tab's own content. */
+  bodyClassName?: string;
+  /** Attributes on the shared body, e.g. an id for a scroll target or a tabpanel role. */
+  bodyProps?: HTMLAttributes<HTMLDivElement>;
+  /** Test id of the shared header's close button. Defaults to `pwa-sheet-close`. */
+  closeTestId?: string;
+  /**
+   * When true, Escape, the scrim, drag, and the close button stop dismissing
+   * the sheet — use during in-flight work.
+   */
+  preventClose?: boolean;
+  /**
+   * The sheet's actions, rendered as the shared action bar pinned under the
+   * body (DL-016). A consumer that owns its body marks its scroller with
+   * `data-scroll-edge="bottom"` to get the bar's divider.
+   */
+  actions?: SheetActionsProps;
+  /** Dialog role. Use `alertdialog` for destructive confirmations. */
+  role?: "dialog" | "alertdialog";
+  /** Height tier (DL-014). Defaults to `compact`. */
+  size?: SheetSize;
   /** Additional class name on the panel surface. */
   panelClassName?: string;
-  /** Optional inline style on the panel (e.g. maxHeight overrides). */
+  /** Optional inline style on the panel. Heights come from `size`, not from here. */
   panelStyle?: CSSProperties;
-  /** Auto-focus selector on open. Defaults to the close button. */
+  /** Auto-focus selector on open. Defaults to the shared header's close button. */
   autoFocusSelector?: string;
   /** When true, render the drag handle. Default `true`. */
   showDragHandle?: boolean;
-  /** Override the data-testid (panel + overlay both inherit). */
+  /** Override the data-testid (panel, overlay, and drag handle inherit). */
   testId?: string;
   /** Optional class for the overlay (typically not needed). */
   overlayClassName?: string;
   /** When false, dragging the sheet down does not dismiss it. */
   dragToDismiss?: boolean;
 }
+
+/**
+ * `title` renders the shared header (title, optional description, close
+ * button) above a scrollable body, and the title labels the dialog. The
+ * header's close button needs an accessible name, so a titled sheet passes
+ * `closeLabel` unless it sets `hideCloseButton`.
+ */
+type PwaSheetHeaderProps =
+  | { title?: undefined; closeLabel?: string; hideCloseButton?: boolean }
+  | { title: ReactNode; closeLabel: string; hideCloseButton?: boolean }
+  | { title: ReactNode; closeLabel?: string; hideCloseButton: true };
+
+export type PwaSheetProps = PwaSheetBaseProps & PwaSheetHeaderProps;
 
 function readCssDurationMs(varName: string): number {
   if (typeof window === "undefined" || typeof document === "undefined") {
@@ -88,18 +180,30 @@ function readCssDurationMs(varName: string): number {
 }
 
 /**
- * Render-prop sheet primitive. Consumers compose their own header / tabs /
- * footer inside `children` and call `onClose` from any surface that triggers
- * dismissal.
+ * Sheet primitive. With `title`, the sheet renders the shared header and body;
+ * without it, consumers compose their own header / tabs / footer inside
+ * `children` and call `onClose` from any surface that triggers dismissal.
  */
 export function PwaSheet({
   open,
   onClose,
   children,
+  actions,
   ariaLabel,
+  title,
+  description,
+  tabs,
+  bodyClassName,
+  bodyProps,
+  closeTestId = "pwa-sheet-close",
+  closeLabel,
+  hideCloseButton = false,
+  preventClose = false,
+  role = "dialog",
+  size = "compact",
   panelClassName,
   panelStyle,
-  autoFocusSelector = '[data-testid="pwa-sheet-close"]',
+  autoFocusSelector,
   showDragHandle = true,
   testId = "pwa-sheet",
   overlayClassName,
@@ -107,15 +211,67 @@ export function PwaSheet({
 }: PwaSheetProps) {
   const prefersReducedMotion = useMediaQuery("(prefers-reduced-motion: reduce)");
   const [mounted, setMounted] = useState(open);
-  // Active drag offset in percent (0 = at rest, 100 = fully off-screen below).
-  // null means "not actively dragging" — CSS keyframe drives the transform.
-  const [dragOffset, setDragOffset] = useState<number | null>(null);
   const dialogRef = useRef<HTMLDivElement>(null);
+  const overlayRef = useRef<HTMLDivElement>(null);
+  const dragDimRef = useRef<HTMLDivElement>(null);
+  const openerRef = useRef<HTMLElement | null>(null);
+  const titleId = useId();
+  const descriptionId = useId();
+  const hasHeader = title !== undefined && title !== null;
+  const hasBody = Children.toArray(children).length > 0;
+  const canDrag = dragToDismiss && !preventClose;
 
   const sheetState = open ? "open" : "closed";
 
-  useFocusTrap(dialogRef, { enabled: mounted && open, autoFocusSelector });
-  useDocumentScrollLock(open);
+  useFocusTrap(dialogRef, {
+    enabled: mounted && open,
+    autoFocusSelector: autoFocusSelector ?? `[data-testid="${closeTestId}"]`,
+  });
+  useDocumentScrollLock(open || mounted);
+  useSheetPresence(open);
+
+  // Remember who opened the sheet and hand focus back when it closes, the way
+  // the centered Radix surfaces do. The capture is a layout effect so it runs
+  // before the focus trap moves focus into the sheet; the restore is a
+  // passive cleanup because React DOM re-focuses the pre-commit element after
+  // its mutation phase, which would undo a restore made during layout.
+  useLayoutEffect(() => {
+    if (!open) return;
+    openerRef.current =
+      document.activeElement instanceof HTMLElement ? document.activeElement : null;
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) return;
+    return () => {
+      const opener = openerRef.current;
+      openerRef.current = null;
+      if (opener?.isConnected) opener.focus({ preventScroll: true });
+    };
+  }, [open]);
+
+  // Hide the rest of the page from assistive tech while the sheet is open;
+  // overlapping sheets compose because the manager reference-counts what it
+  // hides and restores each branch only when the last sheet releases it.
+  useEffect(() => {
+    if (!open || !mounted) return;
+    const overlay = overlayRef.current;
+    if (!overlay) return;
+    return hideOthers(overlay);
+  }, [open, mounted]);
+
+  // Every dismissal comes through here, so this is where the exit takes its
+  // character: a flicked sheet already has speed and leaves on the decelerating
+  // token, and every other close accelerates out from rest (the closed-state
+  // rules in utilities.css).
+  const requestClose = useCallback(
+    (release?: "flick") => {
+      if (preventClose) return;
+      overlayRef.current?.toggleAttribute("data-flicked", release === "flick");
+      onClose();
+    },
+    [onClose, preventClose]
+  );
 
   // Mount on open, keep mounted during the close keyframe so the slide-out
   // animation can play, then unmount after the animation completes.
@@ -148,114 +304,98 @@ export function PwaSheet({
     };
   }, [open, prefersReducedMotion]);
 
-  // Escape closes.
+  // Escape closes the topmost sheet only. The sheet joins the stack when it
+  // opens and leaves when it closes; a parent re-render must not move it up,
+  // so the handler reads the latest close request through a ref.
+  const requestCloseRef = useRef(requestClose);
+  useEffect(() => {
+    requestCloseRef.current = requestClose;
+  }, [requestClose]);
+
   useEffect(() => {
     if (!mounted || !open) return;
+    const layer = openSheetLayer();
     const handleKey = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        event.preventDefault();
-        onClose();
-      }
+      if (event.key !== "Escape" || !layer.isTopmost()) return;
+      // A centered dialog opened over the sheet handles its own Escape.
+      const dialog =
+        event.target instanceof Element
+          ? event.target.closest('[role="dialog"],[role="alertdialog"]')
+          : null;
+      if (dialog && dialogRef.current && !dialogRef.current.contains(dialog)) return;
+      event.preventDefault();
+      requestCloseRef.current();
     };
-    document.addEventListener("keydown", handleKey);
-    return () => document.removeEventListener("keydown", handleKey);
-  }, [mounted, onClose, open]);
+    document.addEventListener("keydown", handleKey, true);
+    return () => {
+      document.removeEventListener("keydown", handleKey, true);
+      layer.close();
+    };
+  }, [mounted, open]);
 
-  const handleOverlayClick = useCallback(
-    (event: React.MouseEvent) => {
-      if (event.target === event.currentTarget) onClose();
-    },
-    [onClose]
-  );
+  // A tap on the dimmed area closes the sheet, and a tap is a press that began
+  // there. A click alone is not enough: the browser dispatches the click that
+  // ends a press begun inside the sheet (a text selection, a drag that
+  // overshot) on their common ancestor, this overlay, and a sheet that opens
+  // under a finger already down would catch that finger's click.
+  const backdropPressRef = useRef(false);
+  const handleOverlayPointerDown = useCallback((event: React.PointerEvent) => {
+    backdropPressRef.current =
+      event.target instanceof Node && !dialogRef.current?.contains(event.target);
+  }, []);
+  const handleOverlayClick = useCallback(() => {
+    if (backdropPressRef.current) requestClose();
+    backdropPressRef.current = false;
+  }, [requestClose]);
 
-  const bind = useDrag(
-    ({ movement: [, my], velocity: [, vy], direction: [, dy], cancel, last }) => {
-      if (!dragToDismiss) return;
-      if (my < -20) {
-        cancel();
-        return;
-      }
-      if (last) {
-        if (dy > 0 && vy > DISMISS_VELOCITY_THRESHOLD) {
-          setDragOffset(null);
-          onClose();
-          return;
-        }
-        if (my > DRAG_DISMISS_DISTANCE_PX) {
-          setDragOffset(null);
-          onClose();
-          return;
-        }
-        // Snap back — clearing `dragOffset` removes the inline transform so
-        // the keyframe's final state (translateY(0)) re-applies.
-        setDragOffset(null);
-        return;
-      }
-      if (prefersReducedMotion) return;
-      const sheetHeight = dialogRef.current?.offsetHeight ?? 400;
-      const pct = Math.max(0, (my / sheetHeight) * 100 * DRAG_PULL_RESISTANCE_FACTOR);
-      setDragOffset(pct);
-    },
-    {
-      from: () => [0, 0],
-      axis: "y",
-      filterTaps: true,
-      enabled: dragToDismiss,
-    }
-  );
+  const bind = useSheetDrag({
+    overlayRef,
+    surfaceRef: dialogRef,
+    dragDimRef,
+    enabled: canDrag && open,
+    onDismiss: requestClose,
+  });
 
   if (!mounted) return null;
 
-  // Inline transform during drag overrides the keyframe transform. When
-  // not dragging, leave it unset so the keyframe's final state applies.
-  const dragStyle: CSSProperties =
-    dragOffset !== null ? { transform: `translateY(${dragOffset}%)` } : {};
-
-  return (
+  return createPortal(
     <div
+      ref={overlayRef}
       role="presentation"
       data-component="PwaSheet"
       data-slot="overlay"
       data-state={sheetState}
       data-testid={`${testId}-overlay`}
-      className={cn("fixed inset-0 z-modal flex items-end justify-center", overlayClassName)}
+      className={overlayClassName}
       style={{ pointerEvents: "auto" }}
+      onPointerDown={handleOverlayPointerDown}
       onClick={handleOverlayClick}
-      onKeyDown={(event) => {
-        if (event.key === "Escape") onClose();
-      }}
       tabIndex={-1}
     >
-      <div
-        aria-hidden="true"
-        data-component="PwaSheet"
-        data-slot="scrim"
-        data-state={sheetState}
-        className="absolute inset-0"
-        style={{ backgroundColor: "var(--color-scrim)" }}
-      />
-      {/* eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions -- dialog surface; handlers only stop propagation, Escape is handled on document */}
+      <div ref={dragDimRef} aria-hidden="true" data-component="PwaSheet" data-slot="drag-dim">
+        <div
+          data-component="PwaSheet"
+          data-slot="scrim"
+          data-state={sheetState}
+          style={{ backgroundColor: "var(--color-scrim)" }}
+        />
+      </div>
+      {/* eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions, jsx-a11y/no-static-element-interactions -- dialog surface (role is a prop, so the linter cannot see it); handlers only stop propagation, Escape is handled on document */}
       <div
         ref={dialogRef}
-        role="dialog"
+        role={role}
         aria-modal="true"
-        aria-label={ariaLabel}
+        aria-label={hasHeader ? undefined : ariaLabel}
+        aria-labelledby={hasHeader ? titleId : undefined}
+        aria-describedby={hasHeader && description ? descriptionId : undefined}
         data-component="PwaSheet"
         data-slot="surface"
+        data-sheet-size={size}
         data-state={sheetState}
         data-testid={testId}
-        className={cn(
-          "relative w-full overflow-hidden",
-          "bg-[var(--color-material-solid)]",
-          "rounded-t-[var(--radius-lg)] shadow-[var(--shadow-float)]",
-          "border border-stroke-soft-200 border-b-0",
-          "flex flex-col h-modal",
-          "will-change-transform",
-          panelClassName
-        )}
+        className={panelClassName}
         style={{
           paddingBottom: "env(safe-area-inset-bottom)",
-          ...dragStyle,
           ...panelStyle,
         }}
         onClick={(event) => event.stopPropagation()}
@@ -263,17 +403,51 @@ export function PwaSheet({
       >
         {showDragHandle && (
           <div
-            className="flex cursor-grab touch-none justify-center pb-1 pt-3 active:cursor-grabbing"
+            data-component="PwaSheet"
             data-slot="drag-handle"
             data-testid={`${testId}-drag-handle`}
             style={{ touchAction: "none" }}
             {...bind()}
           >
-            <div className="h-1.5 w-10 rounded-full bg-[rgb(var(--tone-primary,var(--primary-base))/0.32)]" />
+            <div data-component="PwaSheet" data-slot="grip" />
           </div>
         )}
-        {children}
+        {hasHeader && (
+          <SheetHeader
+            title={title}
+            titleId={titleId}
+            description={description}
+            descriptionId={descriptionId}
+            // PwaSheetHeaderProps requires closeLabel whenever the close button shows.
+            closeLabel={closeLabel ?? ""}
+            onClose={() => requestClose()}
+            closeDisabled={preventClose}
+            hideCloseButton={hideCloseButton}
+            closeTestId={closeTestId}
+            // The grip stays the affordance; the title block widens its grab area.
+            dragHandlers={showDragHandle && canDrag ? bind() : undefined}
+          >
+            {tabs}
+          </SheetHeader>
+        )}
+        {hasHeader ? (
+          hasBody ? (
+            <div
+              {...bodyProps}
+              data-component="PwaSheet"
+              data-slot="body"
+              data-scroll-edge={actions ? "both" : "top"}
+              className={bodyClassName}
+            >
+              {children}
+            </div>
+          ) : null
+        ) : (
+          children
+        )}
+        {actions ? <SheetActions {...actions} /> : null}
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

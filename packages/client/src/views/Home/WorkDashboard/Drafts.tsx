@@ -1,4 +1,5 @@
 import { ConfirmDialog } from "@green-goods/shared/components/Dialog/ConfirmDialog";
+import { IconButton } from "@green-goods/shared/components/IconButton";
 import { toastService } from "@green-goods/shared/components/Toast/toast.service";
 import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
 import { useActions, useGardens } from "@green-goods/shared/hooks/blockchain/useBaseLists";
@@ -6,14 +7,12 @@ import { type DraftWithImages, useDrafts } from "@green-goods/shared/hooks/work/
 import { logger } from "@green-goods/shared/modules/app/logger";
 import type { Address } from "@green-goods/shared/types/domain";
 import { findActionByUID } from "@green-goods/shared/utils/action/parsers";
-import { cn } from "@green-goods/shared/utils/styles/cn";
-import { RiAlertLine, RiDraftLine, RiLoader4Line, RiRefreshLine } from "@remixicon/react";
+import { RiDraftLine, RiLoader4Line, RiRefreshLine } from "@remixicon/react";
 import React, { useState } from "react";
 import { useIntl } from "react-intl";
 import { useNavigate } from "react-router-dom";
 import { DraftCard } from "@/components/Cards";
 import { EmptyState } from "@/components/Communication";
-import { pwaStatusStyles } from "@/components/Pwa/statusStyles";
 import { APP_ROUTES } from "@/config/pwaRouting";
 
 export interface DraftsTabProps {
@@ -62,6 +61,7 @@ export const DraftsTab: React.FC<DraftsTabProps> = ({ headerContent, onBeforeNav
     if (draftToDelete) {
       try {
         await deleteDraft(draftToDelete.id);
+        setDraftToDelete(null);
       } catch (error) {
         logger.error("[DraftsTab] Failed to delete draft:", { error });
         toastService.error({
@@ -76,12 +76,11 @@ export const DraftsTab: React.FC<DraftsTabProps> = ({ headerContent, onBeforeNav
           context: "drafts",
         });
       }
-      setDraftToDelete(null);
     }
   };
 
   const handleCancelDelete = () => {
-    setDraftToDelete(null);
+    if (!isDeleting) setDraftToDelete(null);
   };
 
   if (isLoading) {
@@ -113,16 +112,15 @@ export const DraftsTab: React.FC<DraftsTabProps> = ({ headerContent, onBeforeNav
         {headerContent && (
           <div className="flex items-center justify-between px-4 py-2 border-b border-stroke-soft-200">
             {headerContent}
-            <button
+            <IconButton
+              size="compact"
               onClick={() => refetchDrafts()}
-              className="p-2 hover:bg-bg-weak-50 rounded-lg tap-target-lg transition-colors duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)]"
               aria-label={intl.formatMessage({
                 id: "app.drafts.refresh",
                 defaultMessage: "Refresh Drafts",
               })}
-            >
-              <RiRefreshLine className="w-4 h-4 text-text-sub-600" />
-            </button>
+              icon={<RiRefreshLine aria-hidden="true" />}
+            />
           </div>
         )}
         <EmptyState
@@ -154,16 +152,15 @@ export const DraftsTab: React.FC<DraftsTabProps> = ({ headerContent, onBeforeNav
             )}
           </span>
         </div>
-        <button
+        <IconButton
+          size="compact"
           onClick={() => refetchDrafts()}
-          className="p-2 hover:bg-bg-weak-50 rounded-lg tap-target-lg transition-colors duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)]"
           aria-label={intl.formatMessage({
             id: "app.drafts.refresh",
             defaultMessage: "Refresh Drafts",
           })}
-        >
-          <RiRefreshLine className="w-4 h-4 text-text-sub-600" />
-        </button>
+          icon={<RiRefreshLine aria-hidden="true" />}
+        />
       </div>
 
       {/* List */}
@@ -183,31 +180,18 @@ export const DraftsTab: React.FC<DraftsTabProps> = ({ headerContent, onBeforeNav
         </ul>
       </div>
 
-      {/* Delete Confirmation Dialog */}
+      {/* Delete confirmation — the shared confirm surface (bottom sheet on
+          narrow viewports, centered dialog otherwise). */}
       <ConfirmDialog
-        isOpen={!!draftToDelete}
+        isOpen={draftToDelete !== null}
         onClose={handleCancelDelete}
         onConfirm={handleConfirmDelete}
-        title={intl.formatMessage({
-          id: "app.drafts.delete.title",
-          defaultMessage: "Delete Draft?",
-        })}
-        description={intl.formatMessage({
-          id: "app.drafts.delete.description",
-          defaultMessage:
-            "This will permanently delete your draft and all associated images. This action cannot be undone.",
-        })}
-        confirmLabel={intl.formatMessage({
-          id: "app.drafts.delete.confirm",
-          defaultMessage: "Delete",
-        })}
-        cancelLabel={intl.formatMessage({
-          id: "app.drafts.delete.cancel",
-          defaultMessage: "Cancel",
-        })}
+        title={intl.formatMessage({ id: "app.drafts.delete.title" })}
+        description={intl.formatMessage({ id: "app.drafts.delete.description" })}
+        confirmLabel={intl.formatMessage({ id: "app.drafts.delete.confirm" })}
+        cancelLabel={intl.formatMessage({ id: "app.drafts.delete.cancel" })}
         variant="danger"
         isLoading={isDeleting}
-        icon={<RiAlertLine className={cn("w-6 h-6", pwaStatusStyles.error.icon)} />}
       />
     </div>
   );

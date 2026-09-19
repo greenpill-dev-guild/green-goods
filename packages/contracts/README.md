@@ -1,216 +1,166 @@
 # Green Goods Contracts
 
-Smart contracts for the Green Goods Protocol - a decentralized platform for environmental and community impact work.
+This package owns Green Goods smart contracts, deployment artifacts, and contract operations.
+Gardeners record work, stewards manage garden roles and approvals, and protocol contracts connect
+that work to funding, attestations, and shared infrastructure.
 
-## Quick Start
+## Development setup
 
-Get up and running with Green Goods contract deployment in minutes.
+Follow [repository onboarding](../../ONBOARDING.md) and use the tool versions in
+[.mise.toml](../../.mise.toml). Contract work also needs the pinned Foundry toolchain and initialized
+contract submodules. Keep configuration in the root environment; setup preserves existing files.
 
-### Prerequisites (One-Time Setup)
+Run these commands from the repository root:
 
-#### 1. Install Dependencies
-
-```bash
-cd packages/contracts
-bun install
+```sh
+bun run check --plan -- --intent qa
+bun run --cwd packages/contracts build
+bun run --cwd packages/contracts test --suite solidity --profile match -- test/YourContract.t.sol
 ```
 
-> **⚠️ Important: FFI Requirement**
-> 
-> Green Goods deployment uses Foundry's FFI (Foreign Function Interface) to generate EAS schema strings from the `config/schemas.json` file. This is **required** for deployment to work.
-> 
-> - **Already Configured**: `ffi = true` is set in `foundry.toml`
-> - **What it does**: Calls `script/utils/generate-schemas.ts` to convert schema field definitions into EAS-compatible format strings
-> - **Security**: FFI allows execution of external scripts. Our usage is safe (controlled, audited script), but be aware when running untrusted deployment scripts
-> - **CI/CD**: Ensure your deployment environment has Node.js available and FFI enabled
+The selector determines additional storage, fork, script, and release checks. Retain every selected
+critical check. Package-native build, test, lint, formatting, and Anvil commands remain available.
+See the [generated command inventory](../../docs/docs/builders/packages/commands.mdx).
 
-#### 2. Setup Foundry Keystore
+## Contract operations
 
-Import your deployment key (one-time setup):
+Use the package-owned CLI from the root or the contracts directory:
 
-```bash
-cast wallet import green-goods-deployer --interactive
-# Enter your private key and set a password
+```sh
+bun run contracts -- help
+bun run --cwd packages/contracts contracts -- help
 ```
 
-Verify it was created:
+Deployment, upgrade, migration, and repair require an explicit network and execution mode.
+Use command-specific help to discover supported targets, flags, and modes. The
+[generated operational reference](../../docs/docs/builders/packages/contract-operations.mdx)
+comes from the same definitions as the CLI. It also maps retired aliases to their replacements.
 
-```bash
-cast wallet list
-# Should show: green-goods-deployer (address: 0x...)
+| Mode | Effects |
+|---|---|
+| `preflight` | Compile and inspect artifacts without RPC |
+| `simulate` | Simulate against RPC without broadcasting transactions |
+| `plan` | Produce the operation's existing transaction-plan artifacts |
+| `broadcast` | Execute transactions on the selected network |
+| `upload` | Upload artifacts, only for operations that support this mode |
+
+Not every operation supports every mode. Compilation, planning, simulation, and upload can write
+artifacts. They are distinct from transaction broadcasting.
+
+Inspect a resolved operation without credentials or network access:
+
+```sh
+bun run contracts -- deploy core --network arbitrum --mode preflight --explain --json
+bun run contracts -- upgrade hats-module --network arbitrum --mode simulate --explain
 ```
 
-#### 3. Configure Environment
+The CLI owns operation-specific signer defaults, credential handling, and mandatory checks.
+Changing a network does not authorize a broadcast. Transactions on Arbitrum, Celo, and Ethereum
+mainnet affect live funds and state; review the operation and obtain release authorization first.
 
-**All environment variables are configured in the root `.env` file** (at the monorepo root, not in this package).
+## Deployment and upgrades
 
-The root `.env` file is automatically loaded by:
-- Deployment scripts (`script/deploy.ts`)
-- Foundry commands (via `foundry.toml` referencing root `.env`)
-- All package scripts
+Release operators need the configured Foundry keystore, target-chain RPC, and capabilities named by
+the operation. Keep keys out of commands and documentation. Shared environment onboarding is
+covered in [environment guidance](../../docs/docs/builders/env-management.mdx).
 
-Create or edit `.env` at the project root:
+Start with compile-only preflight, then simulate the chosen operation:
 
-```bash
-# Required - Foundry keystore account name
-FOUNDRY_KEYSTORE_ACCOUNT=green-goods-deployer
-
-# Network RPC URLs
-SEPOLIA_RPC_URL=https://ethereum-sepolia.publicnode.com
-CELO_RPC_URL=https://forno.celo.org
-ARBITRUM_RPC_URL=https://arb1.arbitrum.io/rpc
-
-# Optional - for contract verification
-ETHERSCAN_API_KEY=your-api-key-here
+```sh
+bun run contracts -- deploy core --network sepolia --mode preflight
+bun run contracts -- deploy core --network sepolia --mode simulate
+bun run contracts -- verify --network sepolia
 ```
 
-#### 4. Fund Your Deployer
+A successful broadcast is not a complete release until deployment artifacts are persisted,
+dependent configuration and indexing inputs are updated, and the appropriate verifier passes.
+The [deployment runbook](deployments/README.md) explains artifact interpretation.
 
-Ensure your deployer address has sufficient native tokens:
+Use named upgrade targets for UUPS upgrades. Do not use forced deployment as an upgrade or rollback.
+GreenWill is excluded from the aggregate upgrade target and needs its own reviewed plan. Storage
+layout and fork checks remain mandatory where required by the operation.
 
-- **Sepolia**: Get free ETH from [Sepolia PoW faucet](https://sepolia-faucet.pk910.de/)
-- **Celo Mainnet**: Purchase CELO and send to your deployer address
-- **Arbitrum Mainnet**: Purchase ETH and send to your deployer address
+Release sessions use the existing release operator through the CLI. Exact-commit checks,
+allowlisted stages, transaction boundaries, receipts, and resume behavior remain required. See
+[contributing](../../CONTRIBUTING.md) and [contract agent guidance](AGENTS.md) for validation policy.
 
----
+### GreenWill upgrade runbook
 
-### Deployment by Environment
+GreenWill is funds-adjacent and deliberately excluded from `upgrade all`. Before upgrading,
+exercise its Arbitrum fork coverage:
 
-#### Local Development
-
-Perfect for rapid iteration and testing:
-
-```bash
-# Terminal 1: Start local blockchain
-bun run dev
-
-# Terminal 2: Deploy contracts (uses default deploy script)
-bun deploy
+```sh
+bun run --cwd packages/contracts test:fork -- --match-contract ArbitrumGreenWillSupportForkTest
+bun run contracts -- upgrade greenwill --network arbitrum --mode preflight
+bun run contracts -- upgrade greenwill --network arbitrum --mode plan --sender 0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6
 ```
 
-**What gets deployed:**
-- All core contracts with deterministic addresses
-- All EAS schemas
-- Root "Green Goods Community Garden"
-- 3 core actions (Planting, Identify Plant, Litter Cleanup)
+Keep generated artifacts tied to the exact implementation address and run date, such as
+`42161-greenwill-0x<implementation>-YYYY-MM-DD-plan.json`. The transaction plan records the
+simulated CREATE address. Only broadcast after the Sepolia gate and reviewed plan are approved;
+then confirm the proxy points to that implementation. Finish with a controlled eligible
+non-financial badge smoke, not a vault deposit, redemption, or other funds flow.
 
-**Use when:** Building features, running tests, experimenting locally
+### Resolver and garden-account upgrades
 
----
+When changing WorkApprovalResolver or AssessmentResolver addresses, review whether the
+GardenAccount implementation embeds those addresses and deploy the required updated implementation.
+Garden proxy opt-in must use a supported CLI operation before broadcasting. Consult the owning
+implementation and deployment runbook rather than replacing an upgrade with forced deployment.
 
-#### Fork Testing
+## Migrations and recovery
 
-Test against real network state without spending gas:
+A migration is retained until completion evidence covers its intended networks and it has no
+remaining recovery or maintenance role. Vault migration can require Octant repair when template
+validation fails; keep that recovery path available. Existing action-instruction and open-minting
+operations also remain available pending retirement evidence.
 
-```bash
-# Run E2E tests against forked networks
-bun run test:e2e:celo       # Fork and test Celo mainnet
-bun run test:e2e:arbitrum   # Fork and test Arbitrum mainnet
+Use CLI help to select the operation, network, and supported mode. Historical reports describe
+past executions and may contain retired aliases; use the generated migration table for current commands.
 
-# For an interactive local Arbitrum fork surface, use the package wrapper
-bun run dev:arbitrum-fork
+## Configuration
+
+- `deployments/*-latest.json` records deployed addresses and configuration; see the deployment runbook
+  for zero-address and pre-/post-broadcast interpretation.
+- `deployments/networks.json` defines network configuration. Adding a network requires implementing
+  and validating its operation support, not adding another manifest alias.
+- `config/schemas.json` defines immutable production EAS schema identities. Use reviewed standalone
+  registration paths for additions; do not restore bulk schema-update behavior.
+- Foundry FFI is used to generate schema strings. Inspect FFI scripts before running untrusted changes.
+
+### Yield split defaults
+
+YieldResolver's default split is 48.65% Cookie Jar (garden operations), 48.65% Hypercert fractions
+(impact allocation; escrowed if routing is unavailable), and 2.7% Juicebox (GOODS treasury backing).
+Per-garden `setSplitRatio` settings must sum to 10,000 basis points.
+
+### Troubleshooting
+
+Use `bun run env:check` to check configured keys without printing values, and command-specific
+`--explain` to inspect the selected operation. For compilation failures, use package
+`clean:artifacts` followed by `build`; use `test:match` for a specific test and `test:gas` for gas
+profiling. These package commands remain in the generated inventory. Inspect the selected
+network, persisted artifacts, and signer policy before retrying a failed operation.
+
+## Cookie Jar claim limits
+
+`CookieJarModule` creates one jar per supported asset when a garden is minted. Each asset carries
+its own per-claim limit (`assetMaxWithdrawal`), because one shared value cannot serve assets whose
+units differ by orders of magnitude: 0.01 WETH is a fair claim and 0.01 DAI is one cent. An asset
+with no limit of its own falls back to `defaultMaxWithdrawal`. The ruled values, 10 DAI and
+0.01 WETH, live in `script/CookieJarAssetLimits.sol`; fresh deployments and the upgrade below both
+apply them.
+
+```sh
+bun run contracts -- upgrade cookie-jar-module --network arbitrum --mode simulate
+bun run contracts -- upgrade cookie-jar-module --network arbitrum --mode broadcast
 ```
 
-**Use when:** Testing upgrades, validating against real state, debugging production issues
-
----
-
-#### Testnet (Sepolia)
-
-Public testnet deployment for integration testing:
-
-```bash
-# Dry run first (no transactions, validates everything)
-bun deploy:dry:testnet
-
-# Deploy for real
-bun deploy:testnet
-```
-
-**Use when:** Testing integrations, sharing with team, preparing for mainnet
-
-**Note:** Requires testnet ETH (see Prerequisites above)
-
----
-
-#### Mainnet (Celo, Arbitrum)
-
-Production deployments:
-
-```bash
-# Deploy to Celo mainnet
-bun deploy:celo
-
-# Deploy to Arbitrum mainnet
-bun deploy:arbitrum
-```
-
-**Use when:** Launching to production
-
-**⚠️ Warning:** Requires real funds. Double-check everything first!
-
----
-
-### Common Commands Reference
-
-```bash
-# 🏗️ DEPLOY (creates new addresses)
-bun deploy              # Deploy (default settings)
-bun deploy:dry:testnet  # Dry run (Sepolia)
-bun deploy:testnet      # Sepolia testnet
-bun deploy:celo         # Celo mainnet
-bun deploy:arbitrum     # Arbitrum mainnet
-
-# 🔄 UPGRADE (keeps same addresses)
-bun upgrade:testnet     # Upgrade Sepolia
-bun upgrade:celo        # Upgrade Celo mainnet
-bun upgrade:arbitrum    # Upgrade Arbitrum mainnet
-
-# 🧪 TESTING
-bun run test                # Run all tests
-bun run test:e2e:celo       # Fork and test Celo mainnet
-bun run test:e2e:arbitrum   # Fork and test Arbitrum mainnet
-
-# 🔧 DEVELOPMENT
-bun run build           # Adaptive compile (changed Solidity targets)
-bun build:changed       # Compile changed Solidity in src/test/script
-bun build:target -- src/registries/ENS.sol  # Compile a specific Solidity target
-bun build:fast          # Compile src only (skip Foundry test/script)
-bun build:full          # Full compile incl. tests/scripts (CI/deploy)
-bun lint                # Format and lint
-bun run dev             # Start local blockchain
-```
-
----
-
-### Advanced Options
-
-#### Update Schemas Only
-
-If you only need to update EAS schemas:
-
-```bash
-bun script/deploy.ts core --network sepolia --broadcast --update-schemas
-```
-
-#### Force Fresh Deployment
-
-Force redeploy everything, even if contracts already exist:
-
-```bash
-bun script/deploy.ts core --network sepolia --broadcast --force
-```
-
-**⚠️ Warning:** This creates new contract addresses. Existing integrations will break.
-
----
-
-**📖 For detailed documentation, see:**
-- Full deployment guide: [Deployment runbook](deployments/README.md)
-- Upgrade guidance: [Deployment runbook](deployments/README.md)
-- Environment Setup: [Environment Management](https://docs.greengoods.app/builders/env-management)
-- Troubleshooting: [Getting Started](https://docs.greengoods.app/builders/getting-started)
-
+The upgrade is an explicit target, excluded from `upgrade all`. A broadcast first checks the
+module's storage layout against its committed baseline and rehearses the upgrade on a fork of live
+Arbitrum state. The limits only reach jars created afterwards. A jar already deployed keeps its
+own limit, and only the garden's owner can change it, through the garden account (Community →
+Payouts in the admin).
 
 ## HatsModule Operational Notes
 
@@ -240,618 +190,6 @@ If a strategy requires more gas, role revocation still succeeds and the module e
 
 `setConvictionStrategies` currently validates duplicates with an O(n²) nested loop. This is acceptable because `MAX_CONVICTION_STRATEGIES` is hard-capped at 10, keeping worst-case comparisons bounded (45 checks).
 
-## Deployment System
-
-The contracts use a unified deployment CLI that handles:
-
-- **Core Contract Deployment**: All protocol contracts with deterministic addresses
-- **Garden Deployment**: Individual gardens from JSON configuration
-- **Garden Onboarding**: Bulk garden onboarding from CSV with automatic wallet creation
-- **Action Deployment**: Batch action deployment from JSON configuration
-- **Network Forking**: Local testing against real network state
-- **Gas Optimization**: Built-in gas price monitoring and optimization
-
-### Commands
-
-```bash
-# Fresh deployment (all environments)
-bun deploy            # Default (localhost or configured network)
-bun deploy:testnet    # Sepolia
-bun deploy:celo       # Celo mainnet
-bun deploy:arbitrum   # Arbitrum mainnet
-
-# Dry run (simulation only)
-bun deploy:dry:testnet
-
-# Advanced deployment options
-bun script/deploy.ts core --network sepolia --broadcast --update-schemas
-bun script/deploy.ts core --network sepolia --broadcast --force
-
-# UUPS contract upgrades (different from deployment)
-bun upgrade:testnet
-bun upgrade:celo
-bun upgrade:arbitrum
-```
-
-### What Gets Deployed?
-
-Every deployment includes:
-- ✅ Core contracts (DeploymentRegistry, GardenToken, ActionRegistry, Resolvers)
-- ✅ EAS schemas (Assessment, Work, WorkApproval)
-- ✅ Root community garden ("Green Goods Community Garden")
-- ✅ 3 core actions (Planting, Identify Plant, Litter Cleanup)
-
-This infrastructure is always deployed - no flags needed.
-
-### Supported Networks
-
-- **localhost** (31337) - Local development
-- **sepolia** (11155111) - Ethereum testnet
-- **arbitrum** (42161) - Arbitrum One
-- **celo** (42220) - Celo
-
-## Schema Management
-
-The Green Goods protocol uses EAS (Ethereum Attestation Service) schemas for on-chain attestations:
-
-### Current Schemas
-
-- **Work Schema**: Gardeners submit completed regenerative agriculture tasks
-- **WorkApproval Schema**: Operators approve or reject submitted work  
-- **GardenAssessment Schema**: Biodiversity and ecological assessments of garden spaces
-
-### Karma GAP Integration
-
-Green Goods integrates with the **Karma Grantee Accountability Protocol (GAP)** for standardized impact reporting across **8 networks**:
-
-**Supported Networks:**
-- Mainnet: Arbitrum, Celo
-- Testnet: Sepolia
-
-**Automatic Integration:**
-- **Garden Creation** → GAP Project attestation created automatically
-- **Operator Addition** → Operator added as GAP project admin automatically  
-- **Work Approval** → Impact attestation created automatically with work details
-
-**Key Architecture:**
-- `GardenAccount` is the owner and sole authority for GAP interactions
-- All schema UIDs and contract addresses centralized in `src/lib/Karma.sol`
-- Multi-chain support with automatic chain detection
-- Graceful degradation - GAP failures don't revert core operations
-- Identity-first security - all resolvers verify roles before any logic
-
-**Documentation:**
-- User Guide: [Karma GAP Integration](https://docs.greengoods.app/builders/integrations/karma)
-- Implementation: [Karma GAP Integration](https://docs.greengoods.app/builders/integrations/karma)
-- Upgrade guide: [Deployment runbook](deployments/README.md)
-- KarmaLib Source: `src/lib/Karma.sol`
-- Interfaces: `src/interfaces/IKarmaGap.sol`
-
-**Testing:**
-```bash
-# Run E2E tests (includes GAP integration)
-bun run test:e2e
-
-# Test specific networks
-bun run test:e2e:arbitrum   # Fork Arbitrum
-bun run test:e2e:celo       # Fork Celo
-bun run test:e2e:testnet    # Fork Sepolia
-```
-
-### Schema Evolution
-
-The current schema implementations are production-ready and can be extended in future versions if needed. Version fields can be added in future schema upgrades without breaking existing attestations.
-
-### Schema Configuration
-
-Schemas are defined in `config/schemas.json` and deployed automatically with core contracts.
-
-### Update Schemas
-
-```bash
-# Update schemas only (skip contracts)
-bun script/deploy.ts core --network sepolia --broadcast --update-schemas
-
-# Force fresh deployment (redeploy everything)
-bun script/deploy.ts core --network sepolia --broadcast --force
-```
-
-See the [deployment runbook](deployments/README.md) for schema and artifact rules.
-
-## Configuration
-
-### Environment Variables
-
-Import your deployment key to Foundry keystore:
-
-```bash
-# One-time setup
-cast wallet import green-goods-deployer --interactive
-# Follow prompts to enter private key and set password
-
-# Verify
-cast wallet list
-```
-
-Create a `.env` file:
-
-```bash
-# Required - Foundry keystore account name
-FOUNDRY_KEYSTORE_ACCOUNT=green-goods-deployer
-
-# Network RPC URLs
-SEPOLIA_RPC_URL=https://...
-ARBITRUM_RPC_URL=https://...
-CELO_RPC_URL=https://...
-
-# Optional - for contract verification
-ETHERSCAN_API_KEY=your-etherscan-v2-api-key
-```
-
-### Garden Configuration
-
-Create a JSON file for garden deployment:
-
-```json
-{
-  "name": "Community Learning Garden",
-  "description": "A vibrant space for community collaboration",
-  "location": "San Francisco, CA",
-  "bannerImage": "QmVvKqpnfJm8UwRq9SF15V2jgJ86yCBsmMBmpEaoQU92bD",
-  "gardeners": [
-    "0x1234567890123456789012345678901234567890"
-  ],
-  "operators": [
-    "0x4567890123456789012345678901234567890123"
-  ]
-}
-```
-
-### Actions Configuration
-
-Create a JSON file for action deployment:
-
-```json
-{
-  "actions": [
-    {
-      "title": "Community Garden Cleanup",
-      "instructions": "bafkreiafya2q3nz5dbl4fvxphtrnmahl6hcjyvhzwcimgwnbh4wsy5kr7i",
-      "startTime": "2024-02-01T00:00:00Z",
-      "endTime": "2024-08-01T00:00:00Z",
-      "capitals": ["LIVING", "SOCIAL", "MATERIAL"],
-      "media": [
-        "bafkreiemwmci42u7cb23xacktk5nfspo5kfsbmflvh6sixjahjbdk2bsie"
-      ]
-    }
-  ]
-}
-```
-
-## Upgrading Contracts (UUPS)
-
-**Important:** Upgrading is different from deploying:
-- **Deploy**: Creates new contracts with new addresses (use `bun deploy:*`)
-- **Upgrade**: Updates existing proxy implementations, same addresses (use `bun upgrade:*`)
-
-All contracts use the UUPS (Universal Upgradeable Proxy Standard) pattern and include storage gaps for safe upgrades.
-
-### Quick Upgrade
-
-```bash
-# Dry run (recommended first)
-bun upgrade:testnet
-
-# Execute upgrade
-bun upgrade:testnet --broadcast
-
-# Upgrade all contracts on mainnet
-bun upgrade:celo
-bun upgrade:arbitrum
-```
-
-### Individual Contract Upgrades
-
-```bash
-bun script/upgrade.ts action-registry --network sepolia --broadcast
-bun script/upgrade.ts garden-token --network sepolia --broadcast
-bun script/upgrade.ts work-resolver --network sepolia --broadcast
-bun script/upgrade.ts assessment-resolver --network sepolia --broadcast
-```
-
-### GreenWill Upgrade Runbook
-
-GreenWill is funds-adjacent, so it is deliberately excluded from `upgrade all`. Upgrade it only as an explicit target and keep every generated artifact tied to the exact implementation address and run date — for example, `42161-greenwill-0x<implementation>-YYYY-MM-DD-plan.json`. Do not invent a semantic-version filename such as `v1.1.1`. Run this sequence from the repository root.
-
-```bash
-# 1. Exercise the GreenWill Arbitrum fork coverage first.
-bun --cwd packages/contracts run test:fork -- --match-contract ArbitrumGreenWillSupportForkTest
-
-# 2. Run the no-RPC compile and deployment-artifact preflight.
-bun run contracts:upgrade:greenwill:dry:arbitrum
-
-# 3. Generate the non-broadcast transaction plan artifact for review.
-bun --cwd packages/contracts script/upgrade.ts greenwill --network arbitrum --tx-plan --sender 0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6
-
-# 4. After the Sepolia gate passes and the reviewed plan is approved, use the broadcast wrapper.
-bun run contracts:upgrade:greenwill:arbitrum
-```
-
-The transaction-plan artifact records the simulated `CREATE` address for the new `GreenWill` implementation. Record that address with the run date, then confirm the GreenWill proxy points to that implementation before any follow-up activity. Finish with one controlled, low-stakes badge smoke (for example, an eligible non-financial badge claim); do not use a vault deposit, redemption, or other funds flow as the smoke test.
-
-### Upgrading with Resolver Address Changes
-
-When WorkApprovalResolver or AssessmentResolver contracts are upgraded, a new GardenAccount implementation must be deployed:
-
-```bash
-# 1. Deploy new resolvers (if needed)
-bun script/upgrade.ts work-approval-resolver --network arbitrum
-
-# 2. If a GardenAccount implementation or garden proxy opt-in is required,
-# add or use a package bun wrapper for that operation before broadcasting.
-# Do not run raw forge commands from this README.
-```
-
-See the [deployment runbook](deployments/README.md) for the maintained deployment and verification entrypoints.
-
-### When to Deploy vs Upgrade
-
-**Use Deploy when:**
-- Setting up a new network
-- Testing locally or on fork
-- Want new contract addresses
-
-**Use Upgrade when:**
-- Fixing bugs in production contracts
-- Adding features to existing contracts
-- Maintaining same addresses for integrations
-
-### Documentation
-
-See the [deployment runbook](deployments/README.md) for the maintained upgrade entrypoints and gates, including:
-- Deploy vs Upgrade decision matrix
-- Storage gap usage
-- Multisig upgrade process
-- Safety checklist
-- Troubleshooting
-- Rollback procedures
-
-## Development
-
-### Development Setup
-
-**Prerequisites:**
-- [Foundry](https://book.getfoundry.sh/getting-started/installation) installed
-- Node.js (v18 or higher) and bun
-- Git
-
-**Development Tools:**
-- **Foundry**: Smart contract development framework
-- **Solidity**: Smart contract language
-- **Forge**: Testing and building
-- **Anvil**: Local blockchain for testing
-
-**Code Quality Tools:**
-- **Forge**: Built-in Solidity formatter
-- **Solhint**: Solidity linting with security rules
-- **Biome**: JavaScript/TypeScript formatting for scripts
-- **Husky**: Automated git hooks for quality checks
-
-### Development Workflow
-
-**Basic Commands:**
-```bash
-# Install dependencies
-bun install
-
-# Build contracts with IR optimization
-bun run build
-
-# Run comprehensive test suite
-bun run test
-
-# Format Solidity code
-bun format
-
-# Lint contracts for security and style
-bun lint
-
-# Start local blockchain
-bun run dev
-```
-
-**Contract Development:**
-```bash
-# Compile contracts
-bun compile
-
-# Run tests with gas reporting
-bun run test
-
-# Run specific test contract
-bun run test:match test/unit/YourTestContract.t.sol
-
-# Run specific test function
-bun run test:match test/unit/YourTestContract.t.sol
-
-# Watch mode for continuous testing
-bun run test --watch
-```
-
-**Local Development:**
-```bash
-# Start Anvil local blockchain
-bun run dev
-
-# Deploy contracts to local network
-bun deploy
-
-# Check deployment status
-bun status
-```
-
-**Network Deployment:**
-```bash
-# Deploy to testnet
-bun deploy:testnet
-
-# Deploy to mainnet
-bun deploy:celo
-bun deploy:arbitrum
-
-# Deploy with update schemas only
-bun script/deploy.ts core --network celo --broadcast --update-schemas
-
-# Force fresh deployment
-bun script/deploy.ts core --network celo --broadcast --force
-```
-
-### Configuration Management
-
-**Environment Variables:**
-
-**All environment variables are configured in the root `.env` file** (at the monorepo root).
-
-First, import your key to Foundry keystore (one-time):
-```bash
-cast wallet import green-goods-deployer --interactive
-```
-
-Then create or edit `.env` at the project root (not in `packages/contracts/`):
-```bash
-# Required for deployment
-FOUNDRY_KEYSTORE_ACCOUNT=green-goods-deployer
-
-# Network RPC URLs (choose reliable providers)
-SEPOLIA_RPC_URL=https://ethereum-sepolia.publicnode.com
-ARBITRUM_RPC_URL=https://arbitrum-one.publicnode.com
-CELO_RPC_URL=https://forno.celo.org
-
-# Optional - for contract verification
-ETHERSCAN_API_KEY=your-etherscan-v2-api-key
-
-```
-
-The root `.env` file is automatically loaded by deployment scripts and Foundry commands.
-
-**Network Configuration:**
-Networks are configured in `deployments/networks.json`. The system automatically validates:
-- RPC connectivity
-- Chain ID matching
-- Contract address requirements
-- Environment variable references
-
-### Testing Strategy
-
-**Test Categories:**
-1. **Unit Tests**: Individual contract functionality
-2. **Integration Tests**: Cross-contract interactions
-3. **Deployment Tests**: Deployment flow validation
-4. **Gas Tests**: Gas usage optimization
-
-**Advanced Testing:**
-```bash
-# Fork testing against live networks
-bun run test:e2e:celo       # Automated fork test
-# Or use the package local Arbitrum fork wrapper
-bun run dev:arbitrum-fork
-
-# Gas profiling
-bun run test:gas
-
-# Coverage analysis
-bun run test:audit:coverage
-
-# Invariant testing
-bun run test:match test/invariant/InvariantTest.t.sol
-```
-
-**Test Best Practices:**
-- Use descriptive test names
-- Test both success and failure cases
-- Include edge cases and boundary conditions
-- Verify events are emitted correctly
-- Test access control and permissions
-
-### Code Quality & Security
-
-**Formatting & Linting:**
-```bash
-# Format Solidity files
-bun format
-
-# Lint with security rules
-bun lint
-
-# Combined format and lint
-bun lint
-```
-
-**Security Considerations:**
-- Follow [Solidity best practices](https://consensys.github.io/smart-contract-best-practices/)
-- Use OpenZeppelin contracts for standard functionality
-- Implement proper access controls
-- Consider reentrancy protection
-- Validate all external inputs
-
-**Configuration Files:**
-- **`foundry.toml`**: Foundry configuration
-- **`.solhint.json`**: Solidity linting rules
-- **`biome.json`**: JavaScript/TypeScript formatting (for scripts)
-
-## Deployment System
-
-**Deployment CLI:**
-```bash
-# Fresh deployment
-bun deploy              # Default (localhost)
-bun deploy:testnet      # Sepolia
-bun deploy:celo         # Celo mainnet
-bun deploy:arbitrum     # Arbitrum mainnet
-
-# Dry run (simulation only)
-bun deploy:dry:testnet
-
-# Advanced options via deploy.ts
-bun script/deploy.ts core --network sepolia --broadcast --update-schemas
-bun script/deploy.ts core --network sepolia --broadcast --force
-
-# Deploy Juicebox GOODS project (deployer-managed pipeline)
-bun script/deploy.ts goods --network arbitrum --broadcast
-# Alias: bun script/deploy.ts juicebox --network arbitrum --broadcast
-```
-
-### Yield Split Defaults (YieldResolver)
-
-The default split ratio is **48.65% / 48.65% / 2.7%**:
-
-- `4865` bps → Cookie Jar (garden operations)
-- `4865` bps → Hypercert fractions (impact allocation; escrowed if routing is unavailable)
-- `270` bps → Juicebox (GOODS treasury backing)
-
-Rationale: keep operational + impact allocations balanced, while retaining a smaller treasury-growth leg. This is configurable per garden via `setSplitRatio(garden, cookieJarBps, fractionsBps, juiceboxBps)` as long as the basis points sum to `10_000`.
-
-**Adding New Networks:**
-1. Update `deployments/networks.json` with network configuration
-2. Add RPC URL environment variable to root `.env`
-3. Add deployment script to `package.json`
-
-### Indexer Integration
-
-**Automatic Integration:**
-The contracts package automatically integrates with the indexer:
-```bash
-# Enable local development integration
-bun envio:local
-
-# Update indexer after deployment
-bun script/utils/envio-integration.ts update
-
-# Cleanup after development
-bun envio:cleanup
-```
-
-**Manual Integration:**
-- Contract addresses are automatically updated in indexer config
-- ABIs are synced between packages
-- Network configurations are kept consistent
-
-### Gas Optimization
-
-**Optimization Techniques:**
-- `--via-ir` is enabled by default in `foundry.toml` for Intermediate Representation optimization
-- Pack struct variables efficiently
-- Use events instead of storage for non-critical data
-- Consider CREATE2 for deterministic addresses
-- Batch operations when possible
-- Use `bun run test:gas` to profile gas usage
-
-### Troubleshooting
-
-**Common Issues:**
-
-**Compilation Errors:**
-```bash
-# Clean and rebuild
-bun run clean:artifacts
-bun run build
-
-# From the repo root, check local tool and env readiness without printing secret values
-bun run dev:doctor
-```
-
-**Deployment Failures:**
-```bash
-# From the repo root, validate required env keys without printing secret values
-bun run env:check
-
-# Run a non-broadcast preflight through the package wrapper
-bun run deploy:preflight:celo
-```
-
-**Test Failures:**
-```bash
-# Run with maximum verbosity
-bun run test
-
-# Debug specific test
-bun run test:match test/unit/YourTestContract.t.sol
-
-# Check coverage
-bun run test:audit:coverage
-```
-
-**Gas Issues:**
-```bash
-# Profile gas usage
-bun run test:gas
-
-# Re-run the relevant network preflight through a package wrapper
-bun run deploy:preflight:celo
-```
-
-**Environment Issues:**
-```bash
-# From the repo root, validate configured env keys without printing values
-bun run env:check
-
-# Inspect package deployment status through the wrapper
-bun run status
-```
-
-### Performance Optimization
-
-**Build Performance:**
-- Use `--via-ir` for optimized bytecode
-- Enable optimizer in `foundry.toml`
-- Consider compilation caching
-
-**Test Performance:**
-- Use `--match-path` to run specific test files
-- Parallelize tests when possible
-- Use fork testing judiciously (can be slow)
-
-**Deployment Performance:**
-- Monitor gas prices for optimal timing
-- Use appropriate gas limits
-- Consider batch deployments for multiple contracts
-
----
-
-## Documentation
-
-📖 **[Contracts Documentation](https://docs.greengoods.app/builders/packages/contracts)** — Complete contracts architecture guide
-
-**Essential Guides:**
-- 📘 [Deployment runbook](deployments/README.md) — deployment, upgrades, schema management
-- 🏗️ [Architecture Overview](https://docs.greengoods.app/builders/architecture) — System design and package relationships
-- ✅ [Testing Guide](https://docs.greengoods.app/builders/testing/forge) — Testing strategy and best practices
-
-**Configuration Files:**
-- 📝 [Schema Definitions](./config/schemas.json) — EAS schema configuration
-- 🌐 [Network Configuration](./deployments/networks.json) — Multi-chain settings
-- 🏗️ [Action Definitions](./config/actions.json) — Core garden actions
-
 
 ## ENS Cross-Chain (CCIP) Flow
 
@@ -867,20 +205,6 @@ bun run status
 6. `GreenGoodsENSReceiver` validates source chain + sender, decodes operation (`register` / `release`), and writes ENS via registry + resolver for `greengoods.eth` subdomains.
 7. L2 keeps a protective cache (`slugOwner`, `ownerToSlug`) to prevent duplicate claims before L1 finalization.
 
-### Deployment Targets
-
-Use the deployment wrapper (`script/deploy.ts`) rather than raw forge commands.
-
-```bash
-# 1) Deploy L2 sender on Sepolia (CCIP test path)
-bun script/deploy.ts core --network sepolia --broadcast
-
-# 2) Deploy L2 sender on Arbitrum One (production L2 sender)
-bun script/deploy.ts core --network arbitrum --broadcast
-
-# 3) Deploy L1 receiver on Ethereum mainnet
-bun script/deploy.ts core --network mainnet --broadcast
-```
 
 After both sides are deployed:
 

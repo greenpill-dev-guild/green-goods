@@ -1,7 +1,42 @@
 @import "tailwindcss";
 
-/* Animation @theme tokens (accordion, spring-bump) are inherited from the
-   shared theme.css import in index.css -- no need to re-declare them here. */
+/* The accordion and spring-bump animation tokens come from the shared theme.css
+   import in index.css. That file carries only the token, not the keyframes it
+   names, so they live here. Radix keeps a closing accordion panel mounted until
+   its exit animation ends: without the accordion-up keyframes that never
+   happens, and an opened FAQ item can never close. */
+@keyframes accordion-down {
+  from {
+    height: 0;
+  }
+  to {
+    height: var(--radix-accordion-content-height);
+  }
+}
+
+@keyframes accordion-up {
+  from {
+    height: var(--radix-accordion-content-height);
+  }
+  to {
+    height: 0;
+  }
+}
+
+@keyframes spring-bump {
+  from {
+    transform: scale(0.8);
+  }
+  60% {
+    transform: scale(1.1);
+  }
+  70% {
+    transform: scale(0.95);
+  }
+  to {
+    transform: scale(1);
+  }
+}
 
 /* ===== ENHANCED ANIMATIONS ===== */
 

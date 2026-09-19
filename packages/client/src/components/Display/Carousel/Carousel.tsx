@@ -8,7 +8,7 @@ import {
 import { cn } from "@green-goods/shared/utils/styles/cn";
 import useEmblaCarousel, { type UseEmblaCarouselType } from "embla-carousel-react";
 import * as React from "react";
-import { ImagePreviewDialog } from "@/components/Dialogs";
+import { ImagePreviewDialog } from "../ImagePreviewDialog";
 
 type CarouselApi = UseEmblaCarouselType[1];
 

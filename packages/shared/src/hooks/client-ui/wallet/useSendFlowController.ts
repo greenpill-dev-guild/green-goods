@@ -1,10 +1,10 @@
+import { isCeloGoodDollar, isSendableTokenAvailable } from "../../../config/tokens";
 import type { SendableTokenBalance } from "../../../hooks/blockchain/useSendableTokens";
 import { useEffect, useMemo, useReducer, useRef, useState } from "react";
 import { useIntl } from "react-intl";
 import { formatUnits } from "viem";
 import { useQuery } from "@tanstack/react-query";
 import { tokensKeys } from "../../../config/query-keys/tokens";
-import { isCeloGoodDollar } from "../../../config/tokens";
 import {
   quoteGoodDollarTransfer,
   type GoodDollarFeeQuote,
@@ -56,7 +56,7 @@ export function useSendFlowController({
   const [state, dispatch] = useReducer(sendFlowReducer, initialSendFlowState);
   const { amountInput, note, recipient, step } = state;
   const { primaryAddress } = useUser();
-  const selectedToken =
+  const currentToken =
     tokens && state.selectedToken
       ? (tokens.find(
           (token) =>
@@ -64,6 +64,8 @@ export function useSendFlowController({
             token.address.toLowerCase() === state.selectedToken.address.toLowerCase()
         ) ?? null)
       : state.selectedToken;
+  const selectedToken =
+    currentToken && isSendableTokenAvailable(currentToken) ? currentToken : null;
   const generation = useRef(0);
   const actionPending = useRef(false);
   const confirmFee = useRef<GoodDollarFeeQuote | undefined>(undefined);
@@ -211,6 +213,7 @@ export function useSendFlowController({
     feeChanged,
     canMax,
     retryFee: () => feeQuery.refetch(),
+    showConfirm: state.showConfirm && Boolean(selectedToken),
     canAdvance,
     isOnline,
     isSending: sendMutation.isPending,

@@ -1,4 +1,4 @@
-import { ConfirmDialog } from "@green-goods/shared/components/Dialog/ConfirmDialog";
+import { Button } from "@green-goods/shared/components/Button";
 import { toastService } from "@green-goods/shared/components/Toast/toast.service";
 import { useGardens } from "@green-goods/shared/hooks/blockchain/useBaseLists";
 import {
@@ -18,9 +18,9 @@ import { RiCheckLine, RiMapPinLine, RiPlantLine } from "@remixicon/react";
 import { useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { useNavigate } from "react-router-dom";
-import { Button } from "@/components/Actions";
 import { Card } from "@/components/Cards";
 import { Avatar } from "@/components/Display";
+import { JoinGardenConfirmDialog } from "@/components/Features/Garden/JoinGardenConfirmDialog";
 
 interface GardensListProps {
   primaryAddress: Address | undefined;
@@ -29,7 +29,12 @@ interface GardensListProps {
 export const GardensList: React.FC<GardensListProps> = ({ primaryAddress }) => {
   const intl = useIntl();
   const navigate = useNavigate();
-  const { data: gardens = [], isLoading: gardensLoading } = useGardens();
+  const {
+    data: gardens = [],
+    isError: gardensError,
+    isLoading: gardensLoading,
+    refetch: refetchGardens,
+  } = useGardens();
   const { joinGarden, isJoining, joiningGardenId } = useJoinGarden();
   const [pendingGarden, setPendingGarden] = useState<Garden | null>(null);
   const ensDiscoveryTimeout = useTimeout();
@@ -158,6 +163,24 @@ export const GardensList: React.FC<GardensListProps> = ({ primaryAddress }) => {
             </span>
           </div>
         </Card>
+      ) : gardensError && gardens.length === 0 ? (
+        <Card>
+          <div className="flex flex-col items-center gap-3 w-full py-4">
+            <RiPlantLine className="w-8 h-8 text-text-soft-400" />
+            <p className="text-center text-sm text-text-sub-600">
+              {intl.formatMessage({
+                id: "app.profile.gardensUnavailable",
+                defaultMessage: "Gardens are unavailable right now.",
+              })}
+            </p>
+            <Button type="button" emphasis="secondary" onClick={() => void refetchGardens()}>
+              {intl.formatMessage({
+                id: "app.home.retry",
+                defaultMessage: "Retry",
+              })}
+            </Button>
+          </div>
+        </Card>
       ) : allGardens.length > 0 ? (
         <div className="flex flex-col gap-2">
           {allGardens.map((garden) => {
@@ -199,17 +222,17 @@ export const GardensList: React.FC<GardensListProps> = ({ primaryAddress }) => {
                     </div>
                   ) : (
                     <Button
-                      variant="primary"
-                      mode="filled"
-                      size="small"
+                      type="button"
+                      size="sm"
                       onClick={() => handleJoinGarden(garden)}
-                      label={intl.formatMessage({
+                      loading={isJoiningThis}
+                      className="shrink-0"
+                    >
+                      {intl.formatMessage({
                         id: "app.profile.join",
                         defaultMessage: "Join",
                       })}
-                      disabled={isJoiningThis}
-                      className="shrink-0"
-                    />
+                    </Button>
                   )}
                 </div>
               </Card>
@@ -235,53 +258,25 @@ export const GardensList: React.FC<GardensListProps> = ({ primaryAddress }) => {
               </p>
             </div>
             <Button
-              variant="primary"
-              mode="filled"
-              size="xsmall"
+              type="button"
               onClick={() => navigate("/home")}
-              leadingIcon={<RiPlantLine className="w-4" />}
-              label={intl.formatMessage({
+              leadingIcon={<RiPlantLine className="h-4 w-4" aria-hidden="true" />}
+            >
+              {intl.formatMessage({
                 id: "app.profile.discoverGardens",
                 defaultMessage: "Open Gardens",
               })}
-            />
+            </Button>
           </div>
         </Card>
       )}
 
-      <ConfirmDialog
+      <JoinGardenConfirmDialog
         isOpen={pendingGarden !== null}
+        gardenName={pendingGarden?.name ?? ""}
+        isJoining={isJoining}
         onClose={() => setPendingGarden(null)}
         onConfirm={handleConfirmJoinGarden}
-        title={intl.formatMessage({
-          id: "app.profile.joinGardenConfirmTitle",
-          defaultMessage: "Join Garden",
-        })}
-        description={
-          pendingGarden
-            ? intl.formatMessage(
-                {
-                  id: "app.profile.joinGardenConfirmDescription",
-                  defaultMessage:
-                    "Garden: {gardenName}. {gardenDescription} You'll join as a Gardener and be able to submit work.",
-                },
-                {
-                  gardenName: pendingGarden.name,
-                  gardenDescription: pendingGarden.description
-                    ? `${pendingGarden.description}.`
-                    : intl.formatMessage({
-                        id: "app.profile.joinGardenNoDescription",
-                        defaultMessage: "No garden description provided.",
-                      }),
-                }
-              )
-            : undefined
-        }
-        confirmLabel={intl.formatMessage({
-          id: "app.profile.joinGardenConfirmAction",
-          defaultMessage: "Join",
-        })}
-        isLoading={isJoining}
       />
     </>
   );

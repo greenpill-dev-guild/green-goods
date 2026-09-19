@@ -1,3 +1,4 @@
+import { GOVERNANCE_ENABLED } from "@green-goods/shared/config/app";
 import type { Address } from "@green-goods/shared/types/domain";
 import { adminRoutes } from "@green-goods/shared/utils/navigation/admin-routes";
 import { useMemo } from "react";
@@ -25,7 +26,7 @@ export function CommunitySheetDescriptor({
   const { formatMessage } = useIntl();
 
   const communitySheet = useMemo(() => {
-    if (isStrategiesRoute) {
+    if (GOVERNANCE_ENABLED && isStrategiesRoute) {
       return {
         title: formatMessage({ id: "app.conviction.title" }),
         content: <GardenStrategiesView layout="sheet" />,
@@ -35,7 +36,7 @@ export function CommunitySheetDescriptor({
       };
     }
 
-    if (isSignalPoolRoute) {
+    if (GOVERNANCE_ENABLED && isSignalPoolRoute) {
       return {
         title: formatMessage({
           id:

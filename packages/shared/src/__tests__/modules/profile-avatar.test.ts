@@ -1,6 +1,8 @@
 /** @vitest-environment jsdom */
 
 import { openDB } from "idb";
+import { createIntl } from "react-intl";
+import { getProfileAvatarFailureMessage } from "../../modules/profile-avatar/editor-messages";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   classifyProfileAvatarFailure,
@@ -168,9 +170,10 @@ describe("profile avatar drafts", () => {
     expect(restored?.file?.type).toBe("image/webp");
     expect(restored?.cid).toBe(cid);
     expect(restored).not.toHaveProperty("signature");
-    const db = await openDB("green-goods-profile-avatar-drafts", 1);
-    const stored = await db.get("drafts", `42161:${address}`);
+    const db = await openDB("green-goods-drafts");
+    const stored = await db.get("drafts", `avatar:42161:${address}`);
     expect(stored).not.toHaveProperty("signature");
+    db.close();
     await clearProfileAvatarDraft(42161, address);
     await expect(loadProfileAvatarDraft(42161, address)).resolves.toBeNull();
   });
@@ -263,17 +266,30 @@ describe("explicit profile avatar publish workflow", () => {
     expect(dependencies.clearDraft).toHaveBeenCalledOnce();
   });
 
-  it("re-signs and retries once when an ambiguous POST refresh does not match", async () => {
+  it("keeps the draft without a second signature when an ambiguous save is unconfirmed", async () => {
     const { dependencies } = workflow();
+    const failure = new ProfileAvatarTransportError("Unknown", undefined, undefined, true);
     (dependencies.get as ReturnType<typeof vi.fn>)
       .mockResolvedValueOnce(record(0))
       .mockResolvedValueOnce(record(2, null));
-    (dependencies.save as ReturnType<typeof vi.fn>)
-      .mockRejectedValueOnce(new ProfileAvatarTransportError("Unknown", undefined, undefined, true))
-      .mockResolvedValueOnce(record(3, avatarUri));
-    await publishProfileAvatar(42161, address, { file: file(), action: "set" }, dependencies);
-    expect(dependencies.sign).toHaveBeenCalledTimes(2);
-    expect(dependencies.save).toHaveBeenCalledTimes(2);
+    (dependencies.save as ReturnType<typeof vi.fn>).mockRejectedValueOnce(failure);
+    await expect(
+      publishProfileAvatar(42161, address, { file: file(), action: "set" }, dependencies)
+    ).rejects.toBe(failure);
+    expect(dependencies.sign).toHaveBeenCalledOnce();
+    expect(dependencies.save).toHaveBeenCalledOnce();
+    expect(dependencies.clearDraft).not.toHaveBeenCalled();
+  });
+
+  it("recognizes a late successful save on explicit retry without signing or uploading again", async () => {
+    const { dependencies } = workflow({ get: vi.fn().mockResolvedValue(record(2, avatarUri)) });
+    await expect(
+      publishProfileAvatar(42161, address, { action: "set", cid }, dependencies)
+    ).resolves.toEqual(record(2, avatarUri));
+    expect(dependencies.sign).not.toHaveBeenCalled();
+    expect(dependencies.save).not.toHaveBeenCalled();
+    expect(dependencies.upload).not.toHaveBeenCalled();
+    expect(dependencies.clearDraft).toHaveBeenCalledOnce();
   });
 
   it("keeps an uploaded CID when a later signing or POST step fails", async () => {
@@ -292,6 +308,7 @@ describe("explicit profile avatar publish workflow", () => {
 
   it("includes paired passkey factory arguments in the signed mutation", async () => {
     const { dependencies } = workflow({
+      get: vi.fn().mockResolvedValue(record(1, avatarUri)),
       getFactoryArgs: vi.fn().mockResolvedValue({ factory: address, factoryData: "0x1234" }),
     });
     await publishProfileAvatar(42161, address, { action: "clear" }, dependencies);
@@ -309,6 +326,7 @@ describe("explicit profile avatar publish workflow", () => {
 
   it("persists a passkey draft before factory argument resolution can fail", async () => {
     const { dependencies } = workflow({
+      get: vi.fn().mockResolvedValue(record(1, avatarUri)),
       getFactoryArgs: vi.fn().mockRejectedValue(new Error("factory unavailable")),
     });
 
@@ -317,5 +335,32 @@ describe("explicit profile avatar publish workflow", () => {
     ).rejects.toThrow("factory unavailable");
 
     expect(dependencies.saveDraft).toHaveBeenCalledWith({ action: "clear" });
+  });
+});
+
+describe("profile photo recovery messages", () => {
+  const intl = createIntl({ locale: "en", messages: {} });
+  it.each([
+    [
+      new ProfileAvatarTransportError("private server detail", 401, "signature_invalid"),
+      "Sign in again",
+    ],
+    [
+      new ProfileAvatarTransportError("private server detail", 409, "version_conflict"),
+      "changed elsewhere",
+    ],
+    [new ProfileAvatarTransportError("private server detail", 429), "Wait a moment"],
+    [
+      new ProfileAvatarTransportError("private server detail", 503, "provider_unavailable", true),
+      "try again later",
+    ],
+    [
+      new ProfileAvatarTransportError("private server detail", undefined, undefined, true),
+      "Check your connection",
+    ],
+  ])("gives actionable recovery without exposing raw errors: %s", (error, expected) => {
+    const message = getProfileAvatarFailureMessage("continue", intl.formatMessage, error);
+    expect(message).toContain(expected);
+    expect(message).not.toContain("private server detail");
   });
 });

@@ -1,0 +1,3454 @@
+{
+  "baselineCommit": "d3df1d3bcd452eed19c18dfc7998418066abe159",
+  "purpose": "Migration evidence and documentation only; never runtime routing.",
+  "baselineCounts": {
+    "package.json": 215,
+    "docs/package.json": 14,
+    "packages/admin/package.json": 15,
+    "packages/agent/package.json": 17,
+    "packages/client/package.json": 14,
+    "packages/contracts/package.json": 230,
+    "packages/indexer/package.json": 22,
+    "packages/qa/package.json": 1,
+    "packages/shared/package.json": 20
+  },
+  "entries": [
+    {
+      "scope": "root",
+      "name": "contracts:upgrade:dry:arbitrum",
+      "replacement": "bun run contracts -- upgrade all --network arbitrum --mode preflight",
+      "cliArgs": ["upgrade", "all", "--network", "arbitrum", "--mode", "preflight"],
+      "original": {
+        "command": "APP_ENV=development FOUNDRY_KEYSTORE_ACCOUNT=green-goods-deployer sh -lc 'cd packages/contracts && bun run upgrade:dry:arbitrum'",
+        "cwd": "."
+      }
+    },
+    {
+      "scope": "root",
+      "name": "contracts:upgrade:arbitrum",
+      "replacement": "bun run contracts -- upgrade all --network arbitrum --mode broadcast",
+      "cliArgs": ["upgrade", "all", "--network", "arbitrum", "--mode", "broadcast"],
+      "original": {
+        "command": "APP_ENV=development FOUNDRY_KEYSTORE_ACCOUNT=green-goods-deployer sh -lc 'cd packages/contracts && bun run upgrade:arbitrum'",
+        "cwd": "."
+      }
+    },
+    {
+      "scope": "root",
+      "name": "contracts:upgrade:action-registry:dry:arbitrum",
+      "replacement": "bun run contracts -- upgrade action-registry --network arbitrum --mode preflight",
+      "cliArgs": ["upgrade", "action-registry", "--network", "arbitrum", "--mode", "preflight"],
+      "original": {
+        "command": "sh -lc 'cd packages/contracts && bun run upgrade:action-registry:dry:arbitrum'",
+        "cwd": "."
+      }
+    },
+    {
+      "scope": "root",
+      "name": "contracts:upgrade:action-registry:arbitrum",
+      "replacement": "bun run contracts -- upgrade action-registry --network arbitrum --mode broadcast",
+      "cliArgs": ["upgrade", "action-registry", "--network", "arbitrum", "--mode", "broadcast"],
+      "original": {
+        "command": "APP_ENV=development FOUNDRY_KEYSTORE_ACCOUNT=green-goods-deployer sh -lc 'cd packages/contracts && bun run upgrade:action-registry:arbitrum'",
+        "cwd": "."
+      }
+    },
+    {
+      "scope": "root",
+      "name": "contracts:upgrade:action-registry:arbitrum:override-sepolia-gate",
+      "replacement": "bun run contracts -- upgrade action-registry --network arbitrum --mode broadcast --override-sepolia-gate",
+      "cliArgs": [
+        "upgrade",
+        "action-registry",
+        "--network",
+        "arbitrum",
+        "--mode",
+        "broadcast",
+        "--override-sepolia-gate"
+      ],
+      "original": {
+        "command": "APP_ENV=development FOUNDRY_KEYSTORE_ACCOUNT=green-goods-deployer sh -lc 'cd packages/contracts && bun run upgrade:action-registry:arbitrum:override-sepolia-gate'",
+        "cwd": "."
+      }
+    },
+    {
+      "scope": "root",
+      "name": "contracts:upgrade:hats-module:dry:sepolia",
+      "replacement": "bun run contracts -- upgrade hats-module --network sepolia --mode preflight",
+      "cliArgs": ["upgrade", "hats-module", "--network", "sepolia", "--mode", "preflight"],
+      "original": {
+        "command": "APP_ENV=development FOUNDRY_KEYSTORE_ACCOUNT=green-goods-deployer bun run --cwd packages/contracts upgrade:hats-module:dry:sepolia",
+        "cwd": "."
+      }
+    },
+    {
+      "scope": "root",
+      "name": "contracts:upgrade:hats-module:plan:sepolia",
+      "replacement": "bun run contracts -- upgrade hats-module --network sepolia --mode plan --sender 0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6",
+      "cliArgs": [
+        "upgrade",
+        "hats-module",
+        "--network",
+        "sepolia",
+        "--mode",
+        "plan",
+        "--sender",
+        "0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6"
+      ],
+      "original": {
+        "command": "APP_ENV=development FOUNDRY_KEYSTORE_ACCOUNT=green-goods-deployer bun run --cwd packages/contracts upgrade:hats-module:plan:sepolia",
+        "cwd": "."
+      }
+    },
+    {
+      "scope": "root",
+      "name": "contracts:upgrade:hats-module:sepolia",
+      "replacement": "bun run contracts -- upgrade hats-module --network sepolia --mode broadcast --sender 0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6",
+      "cliArgs": [
+        "upgrade",
+        "hats-module",
+        "--network",
+        "sepolia",
+        "--mode",
+        "broadcast",
+        "--sender",
+        "0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6"
+      ],
+      "original": {
+        "command": "APP_ENV=development FOUNDRY_KEYSTORE_ACCOUNT=green-goods-deployer bun run --cwd packages/contracts upgrade:hats-module:sepolia",
+        "cwd": "."
+      }
+    },
+    {
+      "scope": "root",
+      "name": "contracts:upgrade:hats-module:dry:arbitrum",
+      "replacement": "bun run contracts -- upgrade hats-module --network arbitrum --mode preflight",
+      "cliArgs": ["upgrade", "hats-module", "--network", "arbitrum", "--mode", "preflight"],
+      "original": {
+        "command": "APP_ENV=development FOUNDRY_KEYSTORE_ACCOUNT=green-goods-deployer bun run --cwd packages/contracts upgrade:hats-module:dry:arbitrum",
+        "cwd": "."
+      }
+    },
+    {
+      "scope": "root",
+      "name": "contracts:upgrade:hats-module:plan:arbitrum",
+      "replacement": "bun run contracts -- upgrade hats-module --network arbitrum --mode plan --sender 0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6",
+      "cliArgs": [
+        "upgrade",
+        "hats-module",
+        "--network",
+        "arbitrum",
+        "--mode",
+        "plan",
+        "--sender",
+        "0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6"
+      ],
+      "original": {
+        "command": "APP_ENV=development FOUNDRY_KEYSTORE_ACCOUNT=green-goods-deployer bun run --cwd packages/contracts upgrade:hats-module:plan:arbitrum",
+        "cwd": "."
+      }
+    },
+    {
+      "scope": "root",
+      "name": "contracts:upgrade:hats-module:arbitrum",
+      "replacement": "bun run contracts -- upgrade hats-module --network arbitrum --mode broadcast --sender 0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6",
+      "cliArgs": [
+        "upgrade",
+        "hats-module",
+        "--network",
+        "arbitrum",
+        "--mode",
+        "broadcast",
+        "--sender",
+        "0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6"
+      ],
+      "original": {
+        "command": "APP_ENV=development FOUNDRY_KEYSTORE_ACCOUNT=green-goods-deployer bun run --cwd packages/contracts upgrade:hats-module:arbitrum",
+        "cwd": "."
+      }
+    },
+    {
+      "scope": "root",
+      "name": "contracts:upgrade:greenwill:dry:arbitrum",
+      "replacement": "bun run contracts -- upgrade greenwill --network arbitrum --mode preflight",
+      "cliArgs": ["upgrade", "greenwill", "--network", "arbitrum", "--mode", "preflight"],
+      "original": {
+        "command": "APP_ENV=development FOUNDRY_KEYSTORE_ACCOUNT=green-goods-deployer sh -lc 'cd packages/contracts && bun script/upgrade.ts greenwill --network arbitrum --dry-run --pure-simulation'",
+        "cwd": "."
+      }
+    },
+    {
+      "scope": "root",
+      "name": "contracts:upgrade:greenwill:arbitrum",
+      "replacement": "bun run contracts -- upgrade greenwill --network arbitrum --mode broadcast",
+      "cliArgs": ["upgrade", "greenwill", "--network", "arbitrum", "--mode", "broadcast"],
+      "original": {
+        "command": "APP_ENV=development FOUNDRY_KEYSTORE_ACCOUNT=green-goods-deployer sh -lc 'cd packages/contracts && bun script/upgrade.ts greenwill --network arbitrum --broadcast'",
+        "cwd": "."
+      }
+    },
+    {
+      "scope": "root",
+      "name": "contracts:pooling:finalize:dry:arbitrum",
+      "replacement": "bun run contracts -- deploy commitment-schemas --network arbitrum --mode simulate --finalize-community-testimony",
+      "cliArgs": [
+        "deploy",
+        "commitment-schemas",
+        "--network",
+        "arbitrum",
+        "--mode",
+        "simulate",
+        "--finalize-community-testimony"
+      ],
+      "original": {
+        "command": "APP_ENV=development bun run --cwd packages/contracts pooling:finalize:dry:arbitrum",
+        "cwd": "."
+      }
+    },
+    {
+      "scope": "root",
+      "name": "contracts:pooling:finalize:plan:arbitrum",
+      "replacement": "bun run contracts -- deploy commitment-schemas --network arbitrum --mode plan --finalize-community-testimony --sender 0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6",
+      "cliArgs": [
+        "deploy",
+        "commitment-schemas",
+        "--network",
+        "arbitrum",
+        "--mode",
+        "plan",
+        "--finalize-community-testimony",
+        "--sender",
+        "0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6"
+      ],
+      "original": {
+        "command": "APP_ENV=development bun run --cwd packages/contracts pooling:finalize:plan:arbitrum",
+        "cwd": "."
+      }
+    },
+    {
+      "scope": "root",
+      "name": "contracts:pooling:finalize:arbitrum",
+      "replacement": "bun run contracts -- deploy commitment-schemas --network arbitrum --mode broadcast --finalize-community-testimony --sender 0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6",
+      "cliArgs": [
+        "deploy",
+        "commitment-schemas",
+        "--network",
+        "arbitrum",
+        "--mode",
+        "broadcast",
+        "--finalize-community-testimony",
+        "--sender",
+        "0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6"
+      ],
+      "original": {
+        "command": "APP_ENV=development FOUNDRY_KEYSTORE_ACCOUNT=green-goods-deployer PINATA_JWT= PINATA_GATEWAY= bun run --cwd packages/contracts pooling:finalize:arbitrum",
+        "cwd": "."
+      }
+    },
+    {
+      "scope": "root",
+      "name": "contracts:pooling:schemas:dry:arbitrum",
+      "replacement": "bun run contracts -- deploy commitment-schemas --network arbitrum --mode simulate",
+      "cliArgs": ["deploy", "commitment-schemas", "--network", "arbitrum", "--mode", "simulate"],
+      "original": {
+        "command": "APP_ENV=development bun run --cwd packages/contracts pooling:schemas:dry:arbitrum",
+        "cwd": "."
+      }
+    },
+    {
+      "scope": "root",
+      "name": "contracts:pooling:schemas:preview:arbitrum",
+      "replacement": "bun run contracts -- deploy commitment-schemas --network arbitrum --mode preflight",
+      "cliArgs": ["deploy", "commitment-schemas", "--network", "arbitrum", "--mode", "preflight"],
+      "original": {
+        "command": "APP_ENV=development bun run --cwd packages/contracts pooling:schemas:preview:arbitrum",
+        "cwd": "."
+      }
+    },
+    {
+      "scope": "root",
+      "name": "contracts:pooling:schemas:plan:arbitrum",
+      "replacement": "bun run contracts -- deploy commitment-schemas --network arbitrum --mode plan --sender 0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6",
+      "cliArgs": [
+        "deploy",
+        "commitment-schemas",
+        "--network",
+        "arbitrum",
+        "--mode",
+        "plan",
+        "--sender",
+        "0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6"
+      ],
+      "original": {
+        "command": "APP_ENV=development bun run --cwd packages/contracts pooling:schemas:plan:arbitrum",
+        "cwd": "."
+      }
+    },
+    {
+      "scope": "root",
+      "name": "contracts:pooling:schemas:arbitrum",
+      "replacement": "bun run contracts -- deploy commitment-schemas --network arbitrum --mode broadcast --sender 0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6",
+      "cliArgs": [
+        "deploy",
+        "commitment-schemas",
+        "--network",
+        "arbitrum",
+        "--mode",
+        "broadcast",
+        "--sender",
+        "0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6"
+      ],
+      "original": {
+        "command": "APP_ENV=development FOUNDRY_KEYSTORE_ACCOUNT=green-goods-deployer PINATA_JWT= PINATA_GATEWAY= bun run --cwd packages/contracts pooling:schemas:arbitrum",
+        "cwd": "."
+      }
+    },
+    {
+      "scope": "root",
+      "name": "contracts:pooling:deploy:dry:arbitrum",
+      "replacement": "bun run contracts -- deploy pooling --network arbitrum --mode simulate",
+      "cliArgs": ["deploy", "pooling", "--network", "arbitrum", "--mode", "simulate"],
+      "original": {
+        "command": "APP_ENV=development bun run --cwd packages/contracts pooling:deploy:dry:arbitrum",
+        "cwd": "."
+      }
+    },
+    {
+      "scope": "root",
+      "name": "contracts:pooling:deploy:arbitrum",
+      "replacement": "bun run contracts -- deploy pooling --network arbitrum --mode broadcast",
+      "cliArgs": ["deploy", "pooling", "--network", "arbitrum", "--mode", "broadcast"],
+      "original": {
+        "command": "APP_ENV=development FOUNDRY_KEYSTORE_ACCOUNT=green-goods-deployer PINATA_JWT= PINATA_GATEWAY= bun run --cwd packages/contracts pooling:deploy:arbitrum",
+        "cwd": "."
+      }
+    },
+    {
+      "scope": "root",
+      "name": "contracts:pooling:configure:dry:arbitrum",
+      "replacement": "bun run contracts -- deploy pooling-configure --network arbitrum --mode simulate",
+      "cliArgs": ["deploy", "pooling-configure", "--network", "arbitrum", "--mode", "simulate"],
+      "original": {
+        "command": "APP_ENV=development bun run --cwd packages/contracts pooling:configure:dry:arbitrum",
+        "cwd": "."
+      }
+    },
+    {
+      "scope": "root",
+      "name": "contracts:pooling:configure:arbitrum",
+      "replacement": "bun run contracts -- deploy pooling-configure --network arbitrum --mode broadcast",
+      "cliArgs": ["deploy", "pooling-configure", "--network", "arbitrum", "--mode", "broadcast"],
+      "original": {
+        "command": "APP_ENV=development FOUNDRY_KEYSTORE_ACCOUNT=green-goods-deployer PINATA_JWT= PINATA_GATEWAY= SENDER_ADDRESS=0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6 bun run --cwd packages/contracts pooling:configure:arbitrum --sender 0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6",
+        "cwd": "."
+      }
+    },
+    {
+      "scope": "root",
+      "name": "contracts:assessment:upgrade:dry:arbitrum",
+      "replacement": "bun run contracts -- upgrade assessment-resolver --network arbitrum --mode preflight",
+      "cliArgs": ["upgrade", "assessment-resolver", "--network", "arbitrum", "--mode", "preflight"],
+      "original": {
+        "command": "APP_ENV=development bun run --cwd packages/contracts assessment:upgrade:dry:arbitrum",
+        "cwd": "."
+      }
+    },
+    {
+      "scope": "root",
+      "name": "contracts:assessment:upgrade:plan:arbitrum",
+      "replacement": "bun run contracts -- upgrade assessment-resolver --network arbitrum --mode plan --sender 0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6",
+      "cliArgs": [
+        "upgrade",
+        "assessment-resolver",
+        "--network",
+        "arbitrum",
+        "--mode",
+        "plan",
+        "--sender",
+        "0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6"
+      ],
+      "original": {
+        "command": "APP_ENV=development FOUNDRY_KEYSTORE_ACCOUNT=green-goods-deployer PINATA_JWT= PINATA_GATEWAY= bun run --cwd packages/contracts assessment:upgrade:plan:arbitrum",
+        "cwd": "."
+      }
+    },
+    {
+      "scope": "root",
+      "name": "contracts:assessment:upgrade:arbitrum",
+      "replacement": "bun run contracts -- upgrade assessment-resolver --network arbitrum --mode broadcast --sender 0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6",
+      "cliArgs": [
+        "upgrade",
+        "assessment-resolver",
+        "--network",
+        "arbitrum",
+        "--mode",
+        "broadcast",
+        "--sender",
+        "0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6"
+      ],
+      "original": {
+        "command": "APP_ENV=development FOUNDRY_KEYSTORE_ACCOUNT=green-goods-deployer PINATA_JWT= PINATA_GATEWAY= bun run --cwd packages/contracts assessment:upgrade:arbitrum",
+        "cwd": "."
+      }
+    },
+    {
+      "scope": "root",
+      "name": "contracts:pooling:upgrade:dry:arbitrum",
+      "replacement": "bun run contracts -- upgrade commitment-pooling --network arbitrum --mode preflight",
+      "cliArgs": ["upgrade", "commitment-pooling", "--network", "arbitrum", "--mode", "preflight"],
+      "original": {
+        "command": "APP_ENV=development bun run --cwd packages/contracts pooling:upgrade:dry:arbitrum",
+        "cwd": "."
+      }
+    },
+    {
+      "scope": "root",
+      "name": "contracts:pooling:upgrade:plan:arbitrum",
+      "replacement": "bun run contracts -- upgrade commitment-pooling --network arbitrum --mode plan --sender 0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6",
+      "cliArgs": [
+        "upgrade",
+        "commitment-pooling",
+        "--network",
+        "arbitrum",
+        "--mode",
+        "plan",
+        "--sender",
+        "0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6"
+      ],
+      "original": {
+        "command": "APP_ENV=development FOUNDRY_KEYSTORE_ACCOUNT=green-goods-deployer PINATA_JWT= PINATA_GATEWAY= SENDER_ADDRESS=0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6 bun run --cwd packages/contracts pooling:upgrade:plan:arbitrum",
+        "cwd": "."
+      }
+    },
+    {
+      "scope": "root",
+      "name": "contracts:pooling:upgrade:arbitrum",
+      "replacement": "bun run contracts -- upgrade commitment-pooling --network arbitrum --mode broadcast --sender 0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6",
+      "cliArgs": [
+        "upgrade",
+        "commitment-pooling",
+        "--network",
+        "arbitrum",
+        "--mode",
+        "broadcast",
+        "--sender",
+        "0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6"
+      ],
+      "original": {
+        "command": "APP_ENV=development FOUNDRY_KEYSTORE_ACCOUNT=green-goods-deployer PINATA_JWT= PINATA_GATEWAY= SENDER_ADDRESS=0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6 bun run --cwd packages/contracts pooling:upgrade:arbitrum",
+        "cwd": "."
+      }
+    },
+    {
+      "scope": "root",
+      "name": "contracts:pooling:backfill:dry:arbitrum",
+      "replacement": "bun run contracts -- pooling backfill --network arbitrum --mode simulate --authority deployer",
+      "cliArgs": ["pooling", "backfill", "--network", "arbitrum", "--mode", "simulate", "--authority", "deployer"],
+      "original": {
+        "command": "APP_ENV=development bun run --cwd packages/contracts pooling:backfill:dry:arbitrum",
+        "cwd": "."
+      }
+    },
+    {
+      "scope": "root",
+      "name": "contracts:pooling:backfill:arbitrum",
+      "replacement": "bun run contracts -- pooling backfill --network arbitrum --mode broadcast --authority deployer",
+      "cliArgs": ["pooling", "backfill", "--network", "arbitrum", "--mode", "broadcast", "--authority", "deployer"],
+      "original": {
+        "command": "APP_ENV=development bun run --cwd packages/contracts pooling:backfill:arbitrum",
+        "cwd": "."
+      }
+    },
+    {
+      "scope": "root",
+      "name": "contracts:pooling:rehearse:arbitrum-fork",
+      "replacement": "APP_ENV=development bun run --cwd packages/contracts test:shard run pooling-arbitrum",
+      "original": {
+        "command": "APP_ENV=development bun run --cwd packages/contracts test:fork:pooling:arbitrum",
+        "cwd": "."
+      }
+    },
+    {
+      "scope": "root",
+      "name": "contracts:settlement:verify-lane",
+      "replacement": "APP_ENV=development bun run --cwd packages/contracts test:shard run settlement-lane",
+      "original": {
+        "command": "APP_ENV=development bun run --cwd packages/contracts test:fork:settlement-lane",
+        "cwd": "."
+      }
+    },
+    {
+      "scope": "root",
+      "name": "contracts:release:manifest",
+      "replacement": "bun run contracts -- release manifest --network arbitrum",
+      "cliArgs": ["release", "manifest", "--network", "arbitrum"],
+      "original": {
+        "command": "APP_ENV=development bun run --cwd packages/contracts release:manifest",
+        "cwd": "."
+      }
+    },
+    {
+      "scope": "root",
+      "name": "contracts:release:operator",
+      "replacement": "bun run contracts -- release operator",
+      "cliArgs": ["release", "operator"],
+      "original": {
+        "command": "APP_ENV=development bun run --cwd packages/contracts release:operator",
+        "cwd": "."
+      }
+    },
+    {
+      "scope": "root",
+      "name": "contracts:release:core:plan:arbitrum",
+      "replacement": "bun run contracts -- release core --network arbitrum --mode preflight",
+      "cliArgs": ["release", "core", "--network", "arbitrum", "--mode", "preflight"],
+      "original": {
+        "command": "APP_ENV=development bun run --cwd packages/contracts release:core:plan:arbitrum",
+        "cwd": "."
+      }
+    },
+    {
+      "scope": "root",
+      "name": "contracts:release:ownership:plan:arbitrum",
+      "replacement": "bun run contracts -- deploy ownership-transfer --network arbitrum --mode preflight",
+      "cliArgs": ["deploy", "ownership-transfer", "--network", "arbitrum", "--mode", "preflight"],
+      "original": {
+        "command": "APP_ENV=development bun run --cwd packages/contracts release:ownership:plan:arbitrum",
+        "cwd": "."
+      }
+    },
+    {
+      "scope": "root",
+      "name": "contracts:release:ownership:dry:arbitrum",
+      "replacement": "bun run contracts -- deploy ownership-transfer --network arbitrum --mode simulate",
+      "cliArgs": ["deploy", "ownership-transfer", "--network", "arbitrum", "--mode", "simulate"],
+      "original": {
+        "command": "APP_ENV=development bun run --cwd packages/contracts release:ownership:dry:arbitrum",
+        "cwd": "."
+      }
+    },
+    {
+      "scope": "root",
+      "name": "contracts:release:ownership:arbitrum",
+      "replacement": "bun run contracts -- release operator --stage ownership-arbitrum --commit <exact-commit>",
+      "cliArgs": ["release", "operator", "--stage", "ownership-arbitrum", "--commit", "<exact-commit>"],
+      "original": {
+        "command": "APP_ENV=development FOUNDRY_KEYSTORE_ACCOUNT=green-goods-deployer bun run --cwd packages/contracts release:ownership:release:arbitrum",
+        "cwd": "."
+      }
+    },
+    {
+      "scope": "root",
+      "name": "contracts:release:ownership:plan:celo",
+      "replacement": "bun run contracts -- deploy ownership-transfer --network celo --mode preflight",
+      "cliArgs": ["deploy", "ownership-transfer", "--network", "celo", "--mode", "preflight"],
+      "original": {
+        "command": "APP_ENV=development bun run --cwd packages/contracts release:ownership:plan:celo",
+        "cwd": "."
+      }
+    },
+    {
+      "scope": "root",
+      "name": "contracts:release:ownership:dry:celo",
+      "replacement": "bun run contracts -- deploy ownership-transfer --network celo --mode simulate",
+      "cliArgs": ["deploy", "ownership-transfer", "--network", "celo", "--mode", "simulate"],
+      "original": {
+        "command": "APP_ENV=development bun run --cwd packages/contracts release:ownership:dry:celo",
+        "cwd": "."
+      }
+    },
+    {
+      "scope": "root",
+      "name": "contracts:release:ownership:celo",
+      "replacement": "bun run contracts -- release operator --stage ownership-celo --commit <exact-commit>",
+      "cliArgs": ["release", "operator", "--stage", "ownership-celo", "--commit", "<exact-commit>"],
+      "original": {
+        "command": "APP_ENV=development FOUNDRY_KEYSTORE_ACCOUNT=green-goods-deployer bun run --cwd packages/contracts release:ownership:release:celo",
+        "cwd": "."
+      }
+    },
+    {
+      "scope": "root",
+      "name": "contracts:settlement:module:plan:arbitrum",
+      "replacement": "bun run contracts -- deploy settlement-module --network arbitrum --mode preflight",
+      "cliArgs": ["deploy", "settlement-module", "--network", "arbitrum", "--mode", "preflight"],
+      "original": {
+        "command": "APP_ENV=development bun run --cwd packages/contracts settlement:module:plan:arbitrum",
+        "cwd": "."
+      }
+    },
+    {
+      "scope": "root",
+      "name": "contracts:settlement:module:dry:arbitrum",
+      "replacement": "bun run contracts -- deploy settlement-module --network arbitrum --mode simulate",
+      "cliArgs": ["deploy", "settlement-module", "--network", "arbitrum", "--mode", "simulate"],
+      "original": {
+        "command": "APP_ENV=development bun run --cwd packages/contracts settlement:module:dry:arbitrum",
+        "cwd": "."
+      }
+    },
+    {
+      "scope": "root",
+      "name": "contracts:settlement:module:deploy:arbitrum",
+      "replacement": "bun run contracts -- deploy settlement-module --network arbitrum --mode broadcast",
+      "cliArgs": ["deploy", "settlement-module", "--network", "arbitrum", "--mode", "broadcast"],
+      "original": {
+        "command": "APP_ENV=development bun run --cwd packages/contracts settlement:module:deploy:arbitrum",
+        "cwd": "."
+      }
+    },
+    {
+      "scope": "root",
+      "name": "contracts:credit:registry:plan:arbitrum",
+      "replacement": "bun run contracts -- deploy credit-registry --network arbitrum --mode preflight",
+      "cliArgs": ["deploy", "credit-registry", "--network", "arbitrum", "--mode", "preflight"],
+      "original": {
+        "command": "APP_ENV=development bun run --cwd packages/contracts credit:registry:plan:arbitrum",
+        "cwd": "."
+      }
+    },
+    {
+      "scope": "root",
+      "name": "contracts:credit:registry:dry:arbitrum",
+      "replacement": "bun run contracts -- deploy credit-registry --network arbitrum --mode simulate",
+      "cliArgs": ["deploy", "credit-registry", "--network", "arbitrum", "--mode", "simulate"],
+      "original": {
+        "command": "APP_ENV=development bun run --cwd packages/contracts credit:registry:dry:arbitrum",
+        "cwd": "."
+      }
+    },
+    {
+      "scope": "root",
+      "name": "contracts:credit:registry:deploy:arbitrum",
+      "replacement": "bun run contracts -- deploy credit-registry --network arbitrum --mode broadcast",
+      "cliArgs": ["deploy", "credit-registry", "--network", "arbitrum", "--mode", "broadcast"],
+      "original": {
+        "command": "APP_ENV=development bun run --cwd packages/contracts credit:registry:deploy:arbitrum",
+        "cwd": "."
+      }
+    },
+    {
+      "scope": "root",
+      "name": "contracts:settlement:executor:plan:celo",
+      "replacement": "bun run contracts -- deploy settlement-executor --network celo --mode preflight",
+      "cliArgs": ["deploy", "settlement-executor", "--network", "celo", "--mode", "preflight"],
+      "original": {
+        "command": "APP_ENV=development bun run --cwd packages/contracts settlement:executor:plan:celo",
+        "cwd": "."
+      }
+    },
+    {
+      "scope": "root",
+      "name": "contracts:settlement:executor:dry:celo",
+      "replacement": "bun run contracts -- deploy settlement-executor --network celo --mode simulate",
+      "cliArgs": ["deploy", "settlement-executor", "--network", "celo", "--mode", "simulate"],
+      "original": {
+        "command": "APP_ENV=development bun run --cwd packages/contracts settlement:executor:dry:celo",
+        "cwd": "."
+      }
+    },
+    {
+      "scope": "root",
+      "name": "contracts:settlement:executor:deploy:celo",
+      "replacement": "bun run contracts -- deploy settlement-executor --network celo --mode broadcast",
+      "cliArgs": ["deploy", "settlement-executor", "--network", "celo", "--mode", "broadcast"],
+      "original": {
+        "command": "APP_ENV=development bun run --cwd packages/contracts settlement:executor:deploy:celo",
+        "cwd": "."
+      }
+    },
+    {
+      "scope": "root",
+      "name": "contracts:settlement:safe:plan:celo",
+      "replacement": "bun run contracts -- settlement safe --network celo --mode preflight",
+      "cliArgs": ["settlement", "safe", "--network", "celo", "--mode", "preflight"],
+      "original": {
+        "command": "APP_ENV=development bun run --cwd packages/contracts settlement:safe:plan:celo",
+        "cwd": "."
+      }
+    },
+    {
+      "scope": "root",
+      "name": "contracts:settlement:safe:dry:celo",
+      "replacement": "bun run contracts -- settlement safe --network celo --mode simulate",
+      "cliArgs": ["settlement", "safe", "--network", "celo", "--mode", "simulate"],
+      "original": {
+        "command": "APP_ENV=development bun run --cwd packages/contracts settlement:safe:dry:celo",
+        "cwd": "."
+      }
+    },
+    {
+      "scope": "root",
+      "name": "contracts:settlement:peer:plan:arbitrum",
+      "replacement": "bun run contracts -- settlement peer --network arbitrum --mode preflight",
+      "cliArgs": ["settlement", "peer", "--network", "arbitrum", "--mode", "preflight"],
+      "original": {
+        "command": "APP_ENV=development bun run --cwd packages/contracts settlement:peer:plan:arbitrum",
+        "cwd": "."
+      }
+    },
+    {
+      "scope": "root",
+      "name": "contracts:settlement:peer:verify:arbitrum",
+      "replacement": "bun run contracts -- settlement peer-verify --network arbitrum",
+      "cliArgs": ["settlement", "peer-verify", "--network", "arbitrum"],
+      "original": {
+        "command": "APP_ENV=development bun run --cwd packages/contracts settlement:peer:verify:arbitrum",
+        "cwd": "."
+      }
+    },
+    {
+      "scope": "root",
+      "name": "contracts:settlement:dual-chain:up",
+      "replacement": "bun run contracts -- settlement dual-chain up",
+      "cliArgs": ["settlement", "dual-chain", "up"],
+      "original": {
+        "command": "APP_ENV=development bun run --cwd packages/contracts settlement:dual-chain:up",
+        "cwd": "."
+      }
+    },
+    {
+      "scope": "root",
+      "name": "contracts:settlement:dual-chain:down",
+      "replacement": "bun run contracts -- settlement dual-chain down",
+      "cliArgs": ["settlement", "dual-chain", "down"],
+      "original": {
+        "command": "APP_ENV=development bun run --cwd packages/contracts settlement:dual-chain:down",
+        "cwd": "."
+      }
+    },
+    {
+      "scope": "root",
+      "name": "contracts:settlement:courier",
+      "replacement": "bun run contracts -- settlement dual-chain courier",
+      "cliArgs": ["settlement", "dual-chain", "courier"],
+      "original": {
+        "command": "APP_ENV=development bun run --cwd packages/contracts settlement:courier",
+        "cwd": "."
+      }
+    },
+    {
+      "scope": "root",
+      "name": "contracts:release:verify:arbitrum",
+      "replacement": "bun run contracts -- release verify --network arbitrum",
+      "cliArgs": ["release", "verify", "--network", "arbitrum"],
+      "original": {
+        "command": "APP_ENV=development bun run --cwd packages/contracts release:verify:arbitrum",
+        "cwd": "."
+      }
+    },
+    {
+      "scope": "root",
+      "name": "contracts:release:verify:celo",
+      "replacement": "bun run contracts -- release verify --network celo",
+      "cliArgs": ["release", "verify", "--network", "celo"],
+      "original": {
+        "command": "APP_ENV=development bun run --cwd packages/contracts release:verify:celo",
+        "cwd": "."
+      }
+    },
+    {
+      "scope": "root",
+      "name": "contracts:release:verify:safe:arbitrum",
+      "replacement": "bun run contracts -- release verify --network arbitrum --owner-phase safe",
+      "cliArgs": ["release", "verify", "--network", "arbitrum", "--owner-phase", "safe"],
+      "original": {
+        "command": "APP_ENV=development bun run --cwd packages/contracts release:verify:safe:arbitrum",
+        "cwd": "."
+      }
+    },
+    {
+      "scope": "root",
+      "name": "contracts:release:verify:safe:celo",
+      "replacement": "bun run contracts -- release verify --network celo --owner-phase safe",
+      "cliArgs": ["release", "verify", "--network", "celo", "--owner-phase", "safe"],
+      "original": {
+        "command": "APP_ENV=development bun run --cwd packages/contracts release:verify:safe:celo",
+        "cwd": "."
+      }
+    },
+    {
+      "scope": "root",
+      "name": "contracts:release:verify:plan:arbitrum",
+      "replacement": "bun run contracts -- release verify --network arbitrum --mode preflight",
+      "cliArgs": ["release", "verify", "--network", "arbitrum", "--mode", "preflight"],
+      "original": {
+        "command": "APP_ENV=development bun run --cwd packages/contracts release:verify:plan:arbitrum",
+        "cwd": "."
+      }
+    },
+    {
+      "scope": "root",
+      "name": "contracts:release:verify:plan:celo",
+      "replacement": "bun run contracts -- release verify --network celo --mode preflight",
+      "cliArgs": ["release", "verify", "--network", "celo", "--mode", "preflight"],
+      "original": {
+        "command": "APP_ENV=development bun run --cwd packages/contracts release:verify:plan:celo",
+        "cwd": "."
+      }
+    },
+    {
+      "scope": "root",
+      "name": "contracts:release:recover:arbitrum",
+      "replacement": "bun run contracts -- release recover --network arbitrum",
+      "cliArgs": ["release", "recover", "--network", "arbitrum"],
+      "original": {
+        "command": "APP_ENV=development bun run --cwd packages/contracts release:recover:arbitrum",
+        "cwd": "."
+      }
+    },
+    {
+      "scope": "root",
+      "name": "contracts:release:recover:celo",
+      "replacement": "bun run contracts -- release recover --network celo",
+      "cliArgs": ["release", "recover", "--network", "celo"],
+      "original": {
+        "command": "APP_ENV=development bun run --cwd packages/contracts release:recover:celo",
+        "cwd": "."
+      }
+    },
+    {
+      "scope": "root",
+      "name": "contracts:release:recover:plan:arbitrum",
+      "replacement": "bun run contracts -- release recover --network arbitrum --mode preflight",
+      "cliArgs": ["release", "recover", "--network", "arbitrum", "--mode", "preflight"],
+      "original": {
+        "command": "APP_ENV=development bun run --cwd packages/contracts release:recover:plan:arbitrum",
+        "cwd": "."
+      }
+    },
+    {
+      "scope": "root",
+      "name": "contracts:release:recover:plan:celo",
+      "replacement": "bun run contracts -- release recover --network celo --mode preflight",
+      "cliArgs": ["release", "recover", "--network", "celo", "--mode", "preflight"],
+      "original": {
+        "command": "APP_ENV=development bun run --cwd packages/contracts release:recover:plan:celo",
+        "cwd": "."
+      }
+    },
+    {
+      "scope": "root",
+      "name": "contracts:release:indexer:handoff",
+      "replacement": "bun run contracts -- release indexer-handoff --network arbitrum --mode preflight",
+      "cliArgs": ["release", "indexer-handoff", "--network", "arbitrum", "--mode", "preflight"],
+      "original": {
+        "command": "APP_ENV=development bun run --cwd packages/contracts release:indexer:handoff",
+        "cwd": "."
+      }
+    },
+    {
+      "scope": "root",
+      "name": "contracts:upgrade:signal-pool-yield-wiring:dry:arbitrum",
+      "replacement": "bun run contracts -- upgrade signal-pool-yield-wiring --network arbitrum --mode preflight",
+      "cliArgs": ["upgrade", "signal-pool-yield-wiring", "--network", "arbitrum", "--mode", "preflight"],
+      "original": {
+        "command": "APP_ENV=development FOUNDRY_KEYSTORE_ACCOUNT=green-goods-deployer sh -lc 'cd packages/contracts && bun run upgrade:signal-pool-yield-wiring:dry:arbitrum'",
+        "cwd": "."
+      }
+    },
+    {
+      "scope": "root",
+      "name": "contracts:upgrade:signal-pool-yield-wiring:simulate:arbitrum",
+      "replacement": "bun run contracts -- upgrade signal-pool-yield-wiring --network arbitrum --mode simulate --sender 0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6",
+      "cliArgs": [
+        "upgrade",
+        "signal-pool-yield-wiring",
+        "--network",
+        "arbitrum",
+        "--mode",
+        "simulate",
+        "--sender",
+        "0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6"
+      ],
+      "original": {
+        "command": "APP_ENV=development FOUNDRY_KEYSTORE_ACCOUNT=green-goods-deployer sh -lc 'cd packages/contracts && bun run upgrade:signal-pool-yield-wiring:simulate:arbitrum'",
+        "cwd": "."
+      }
+    },
+    {
+      "scope": "root",
+      "name": "contracts:upgrade:signal-pool-yield-wiring:arbitrum",
+      "replacement": "bun run contracts -- upgrade signal-pool-yield-wiring --network arbitrum --mode broadcast --sender 0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6",
+      "cliArgs": [
+        "upgrade",
+        "signal-pool-yield-wiring",
+        "--network",
+        "arbitrum",
+        "--mode",
+        "broadcast",
+        "--sender",
+        "0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6"
+      ],
+      "original": {
+        "command": "APP_ENV=development FOUNDRY_KEYSTORE_ACCOUNT=green-goods-deployer sh -lc 'cd packages/contracts && bun run upgrade:signal-pool-yield-wiring:arbitrum'",
+        "cwd": "."
+      }
+    },
+    {
+      "scope": "root",
+      "name": "contracts:repair:octant-assets:dry:arbitrum",
+      "replacement": "bun run contracts -- repair octant-assets --network arbitrum --mode preflight",
+      "cliArgs": ["repair", "octant-assets", "--network", "arbitrum", "--mode", "preflight"],
+      "original": {
+        "command": "APP_ENV=development sh -lc 'cd packages/contracts && bun run repair:octant-assets:dry:arbitrum'",
+        "cwd": "."
+      }
+    },
+    {
+      "scope": "root",
+      "name": "contracts:repair:octant-assets:arbitrum",
+      "replacement": "bun run contracts -- repair octant-assets --network arbitrum --mode broadcast",
+      "cliArgs": ["repair", "octant-assets", "--network", "arbitrum", "--mode", "broadcast"],
+      "original": {
+        "command": "APP_ENV=development sh -lc 'cd packages/contracts && bun run repair:octant-assets:arbitrum'",
+        "cwd": "."
+      }
+    },
+    {
+      "scope": "root",
+      "name": "contracts:migrate:vaults:dry:arbitrum",
+      "replacement": "bun run contracts -- migrate vaults --network arbitrum --mode simulate",
+      "cliArgs": ["migrate", "vaults", "--network", "arbitrum", "--mode", "simulate"],
+      "original": {
+        "command": "APP_ENV=development FOUNDRY_KEYSTORE_ACCOUNT=green-goods-deployer sh -lc 'cd packages/contracts && bun run migrate:vaults:dry:arbitrum'",
+        "cwd": "."
+      }
+    },
+    {
+      "scope": "root",
+      "name": "contracts:migrate:vaults:arbitrum",
+      "replacement": "bun run contracts -- migrate vaults --network arbitrum --mode broadcast --sender 0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6",
+      "cliArgs": [
+        "migrate",
+        "vaults",
+        "--network",
+        "arbitrum",
+        "--mode",
+        "broadcast",
+        "--sender",
+        "0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6"
+      ],
+      "original": {
+        "command": "APP_ENV=development FOUNDRY_KEYSTORE_ACCOUNT=green-goods-deployer sh -lc 'cd packages/contracts && bun run migrate:vaults:arbitrum'",
+        "cwd": "."
+      }
+    },
+    {
+      "scope": "root",
+      "name": "contracts:marketplace:status:arbitrum",
+      "replacement": "bun run contracts -- marketplace status --network arbitrum",
+      "cliArgs": ["marketplace", "status", "--network", "arbitrum"],
+      "original": {
+        "command": "APP_ENV=development FOUNDRY_KEYSTORE_ACCOUNT=green-goods-deployer MARKETPLACE_EXPECTED_OWNER=0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6 sh -lc 'cd packages/contracts && bun run marketplace:status:arbitrum'",
+        "cwd": "."
+      }
+    },
+    {
+      "scope": "root",
+      "name": "contracts:marketplace:configure:dry:arbitrum",
+      "replacement": "bun run contracts -- marketplace configure --network arbitrum --mode simulate",
+      "cliArgs": ["marketplace", "configure", "--network", "arbitrum", "--mode", "simulate"],
+      "original": {
+        "command": "APP_ENV=development FOUNDRY_KEYSTORE_ACCOUNT=green-goods-deployer MARKETPLACE_EXPECTED_OWNER=0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6 sh -lc 'cd packages/contracts && bun run marketplace:configure:dry:arbitrum'",
+        "cwd": "."
+      }
+    },
+    {
+      "scope": "root",
+      "name": "contracts:marketplace:configure:arbitrum",
+      "replacement": "bun run contracts -- marketplace configure --network arbitrum --mode broadcast",
+      "cliArgs": ["marketplace", "configure", "--network", "arbitrum", "--mode", "broadcast"],
+      "original": {
+        "command": "APP_ENV=development FOUNDRY_KEYSTORE_ACCOUNT=green-goods-deployer MARKETPLACE_EXPECTED_OWNER=0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6 sh -lc 'cd packages/contracts && bun run marketplace:configure:arbitrum'",
+        "cwd": "."
+      }
+    },
+    {
+      "scope": "root",
+      "name": "contracts:verify:post-deploy:arbitrum",
+      "replacement": "bun run contracts -- verify --network arbitrum",
+      "cliArgs": ["verify", "--network", "arbitrum"],
+      "original": {
+        "command": "APP_ENV=development FOUNDRY_KEYSTORE_ACCOUNT=green-goods-deployer MARKETPLACE_EXPECTED_OWNER=0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6 sh -lc 'cd packages/contracts && bun run verify:post-deploy:arbitrum'",
+        "cwd": "."
+      }
+    },
+    {
+      "scope": "root",
+      "name": "contracts:verify:steward-upgrade:sepolia",
+      "replacement": "bun run contracts -- verify --network sepolia --check-steward-upgrade --skip-indexer --no-octant --no-cookiejar",
+      "cliArgs": [
+        "verify",
+        "--network",
+        "sepolia",
+        "--check-steward-upgrade",
+        "--skip-indexer",
+        "--no-octant",
+        "--no-cookiejar"
+      ],
+      "original": {
+        "command": "APP_ENV=development bun run --cwd packages/contracts verify:steward-upgrade:sepolia",
+        "cwd": "."
+      }
+    },
+    {
+      "scope": "root",
+      "name": "contracts:verify:steward-upgrade:arbitrum",
+      "replacement": "bun run contracts -- verify --network arbitrum --check-steward-upgrade --skip-indexer --no-octant --no-cookiejar",
+      "cliArgs": [
+        "verify",
+        "--network",
+        "arbitrum",
+        "--check-steward-upgrade",
+        "--skip-indexer",
+        "--no-octant",
+        "--no-cookiejar"
+      ],
+      "original": {
+        "command": "APP_ENV=development bun run --cwd packages/contracts verify:steward-upgrade:arbitrum",
+        "cwd": "."
+      }
+    },
+    {
+      "scope": "root",
+      "name": "contracts:ens:deploy:mainnet",
+      "replacement": "bun run contracts -- ens deploy-mainnet --network mainnet --mode simulate",
+      "cliArgs": ["ens", "deploy-mainnet", "--network", "mainnet", "--mode", "simulate"],
+      "original": {
+        "command": "APP_ENV=development bun --cwd packages/contracts script/upgrade-ens-receiver.ts deploy-mainnet --network mainnet",
+        "cwd": "."
+      }
+    },
+    {
+      "scope": "root",
+      "name": "contracts:ens:deploy:mainnet:broadcast",
+      "replacement": "bun run contracts -- ens deploy-mainnet --network mainnet --mode broadcast",
+      "cliArgs": ["ens", "deploy-mainnet", "--network", "mainnet", "--mode", "broadcast"],
+      "original": {
+        "command": "APP_ENV=development bun --cwd packages/contracts script/upgrade-ens-receiver.ts deploy-mainnet --network mainnet --broadcast",
+        "cwd": "."
+      }
+    },
+    {
+      "scope": "root",
+      "name": "contracts:ens:update:l1-receiver",
+      "replacement": "bun run contracts -- ens update-l1-receiver --network arbitrum --mode simulate",
+      "cliArgs": ["ens", "update-l1-receiver", "--network", "arbitrum", "--mode", "simulate"],
+      "original": {
+        "command": "APP_ENV=development bun --cwd packages/contracts script/upgrade-ens-receiver.ts update-l1-receiver --network arbitrum",
+        "cwd": "."
+      }
+    },
+    {
+      "scope": "root",
+      "name": "contracts:ens:migrate",
+      "replacement": "bun run contracts -- ens migrate --network mainnet --mode simulate",
+      "cliArgs": ["ens", "migrate", "--network", "mainnet", "--mode", "simulate"],
+      "original": {
+        "command": "bun --cwd packages/contracts script/deploy.ts ens-migrate --network mainnet",
+        "cwd": "."
+      }
+    },
+    {
+      "scope": "root",
+      "name": "contracts:ens:sponsor:status:arbitrum",
+      "replacement": "bun run contracts -- ens sponsor status --network arbitrum",
+      "cliArgs": ["ens", "sponsor", "status", "--network", "arbitrum"],
+      "original": {
+        "command": "APP_ENV=development bun --cwd packages/contracts script/ens-sponsor.ts status --network arbitrum",
+        "cwd": "."
+      }
+    },
+    {
+      "scope": "root",
+      "name": "contracts:ens:sponsor:monitor:arbitrum",
+      "replacement": "bun run contracts -- ens sponsor monitor --network arbitrum",
+      "cliArgs": ["ens", "sponsor", "monitor", "--network", "arbitrum"],
+      "original": {
+        "command": "APP_ENV=development bun --cwd packages/contracts script/ens-sponsor.ts monitor --network arbitrum",
+        "cwd": "."
+      }
+    },
+    {
+      "scope": "root",
+      "name": "contracts:ens:sponsor:top-up:arbitrum",
+      "replacement": "bun run contracts -- ens sponsor top-up --network arbitrum --mode broadcast",
+      "cliArgs": ["ens", "sponsor", "top-up", "--network", "arbitrum", "--mode", "broadcast"],
+      "original": {
+        "command": "APP_ENV=development bun --cwd packages/contracts script/ens-sponsor.ts top-up --network arbitrum --broadcast",
+        "cwd": "."
+      }
+    },
+    {
+      "scope": "root",
+      "name": "contracts:migrate:action-instructions:v2:dry:arbitrum",
+      "replacement": "bun run contracts -- migrate action-instructions-v2 --network arbitrum --mode preflight",
+      "cliArgs": ["migrate", "action-instructions-v2", "--network", "arbitrum", "--mode", "preflight"],
+      "original": {
+        "command": "sh -lc 'cd packages/contracts && bun run migrate:action-instructions:v2:dry:arbitrum'",
+        "cwd": "."
+      }
+    },
+    {
+      "scope": "root",
+      "name": "contracts:migrate:action-instructions:v2:preflight:arbitrum",
+      "replacement": "bun run contracts -- migrate action-instructions-v2 check --network arbitrum --mode simulate",
+      "cliArgs": ["migrate", "action-instructions-v2", "check", "--network", "arbitrum", "--mode", "simulate"],
+      "original": {
+        "command": "APP_ENV=development FOUNDRY_KEYSTORE_ACCOUNT=green-goods-deployer sh -lc 'cd packages/contracts && bun run migrate:action-instructions:v2:preflight:arbitrum'",
+        "cwd": "."
+      }
+    },
+    {
+      "scope": "root",
+      "name": "contracts:migrate:action-instructions:v2:upload:arbitrum",
+      "replacement": "bun run contracts -- migrate action-instructions-v2 --network arbitrum --mode upload",
+      "cliArgs": ["migrate", "action-instructions-v2", "--network", "arbitrum", "--mode", "upload"],
+      "original": {
+        "command": "APP_ENV=development FOUNDRY_KEYSTORE_ACCOUNT=green-goods-deployer sh -lc 'cd packages/contracts && bun run migrate:action-instructions:v2:upload:arbitrum'",
+        "cwd": "."
+      }
+    },
+    {
+      "scope": "root",
+      "name": "contracts:migrate:action-instructions:v2:arbitrum",
+      "replacement": "bun run contracts -- migrate action-instructions-v2 --network arbitrum --mode broadcast",
+      "cliArgs": ["migrate", "action-instructions-v2", "--network", "arbitrum", "--mode", "broadcast"],
+      "original": {
+        "command": "APP_ENV=development FOUNDRY_KEYSTORE_ACCOUNT=green-goods-deployer sh -lc 'cd packages/contracts && bun run migrate:action-instructions:v2:arbitrum'",
+        "cwd": "."
+      }
+    },
+    {
+      "scope": "contracts",
+      "name": "deploy",
+      "replacement": "bun run contracts -- deploy core --network <network> --mode <mode>",
+      "cliArgs": ["deploy", "core", "--network", "<network>", "--mode", "<mode>"],
+      "original": {
+        "command": "bun script/deploy.ts core",
+        "cwd": "packages/contracts"
+      }
+    },
+    {
+      "scope": "contracts",
+      "name": "deploy:dry:sepolia",
+      "replacement": "bun run contracts -- deploy core --network sepolia --mode simulate",
+      "cliArgs": ["deploy", "core", "--network", "sepolia", "--mode", "simulate"],
+      "original": {
+        "command": "bun script/deploy.ts core --network sepolia --dry-run",
+        "cwd": "packages/contracts"
+      }
+    },
+    {
+      "scope": "contracts",
+      "name": "deploy:dry:arbitrum",
+      "replacement": "bun run contracts -- deploy core --network arbitrum --mode simulate",
+      "cliArgs": ["deploy", "core", "--network", "arbitrum", "--mode", "simulate"],
+      "original": {
+        "command": "bun script/deploy.ts core --network arbitrum --dry-run",
+        "cwd": "packages/contracts"
+      }
+    },
+    {
+      "scope": "contracts",
+      "name": "deploy:dry:celo",
+      "replacement": "bun run contracts -- deploy core --network celo --mode simulate",
+      "cliArgs": ["deploy", "core", "--network", "celo", "--mode", "simulate"],
+      "original": {
+        "command": "bun script/deploy.ts core --network celo --dry-run",
+        "cwd": "packages/contracts"
+      }
+    },
+    {
+      "scope": "contracts",
+      "name": "deploy:dry:mainnet",
+      "replacement": "bun run contracts -- deploy core --network mainnet --mode simulate",
+      "cliArgs": ["deploy", "core", "--network", "mainnet", "--mode", "simulate"],
+      "original": {
+        "command": "bun script/deploy.ts core --network mainnet --dry-run",
+        "cwd": "packages/contracts"
+      }
+    },
+    {
+      "scope": "contracts",
+      "name": "deploy:preflight:sepolia",
+      "replacement": "bun run contracts -- deploy core --network sepolia --mode preflight",
+      "cliArgs": ["deploy", "core", "--network", "sepolia", "--mode", "preflight"],
+      "original": {
+        "command": "bun script/deploy.ts core --network sepolia --dry-run --pure-simulation",
+        "cwd": "packages/contracts"
+      }
+    },
+    {
+      "scope": "contracts",
+      "name": "deploy:preflight:arbitrum",
+      "replacement": "bun run contracts -- deploy core --network arbitrum --mode preflight",
+      "cliArgs": ["deploy", "core", "--network", "arbitrum", "--mode", "preflight"],
+      "original": {
+        "command": "bun script/deploy.ts core --network arbitrum --dry-run --pure-simulation",
+        "cwd": "packages/contracts"
+      }
+    },
+    {
+      "scope": "contracts",
+      "name": "deploy:preflight:celo",
+      "replacement": "bun run contracts -- deploy core --network celo --mode preflight",
+      "cliArgs": ["deploy", "core", "--network", "celo", "--mode", "preflight"],
+      "original": {
+        "command": "bun script/deploy.ts core --network celo --dry-run --pure-simulation",
+        "cwd": "packages/contracts"
+      }
+    },
+    {
+      "scope": "contracts",
+      "name": "deploy:preflight:mainnet",
+      "replacement": "bun run contracts -- deploy core --network mainnet --mode preflight",
+      "cliArgs": ["deploy", "core", "--network", "mainnet", "--mode", "preflight"],
+      "original": {
+        "command": "bun script/deploy.ts core --network mainnet --dry-run --pure-simulation",
+        "cwd": "packages/contracts"
+      }
+    },
+    {
+      "scope": "contracts",
+      "name": "deploy:testnet",
+      "replacement": "bun run contracts -- deploy core --network sepolia --mode broadcast",
+      "cliArgs": ["deploy", "core", "--network", "sepolia", "--mode", "broadcast"],
+      "original": {
+        "command": "bun deploy:sepolia",
+        "cwd": "packages/contracts"
+      }
+    },
+    {
+      "scope": "contracts",
+      "name": "deploy:sepolia",
+      "replacement": "bun run contracts -- deploy core --network sepolia --mode broadcast",
+      "cliArgs": ["deploy", "core", "--network", "sepolia", "--mode", "broadcast"],
+      "original": {
+        "command": "bun script/deploy.ts core --network sepolia --broadcast",
+        "cwd": "packages/contracts"
+      }
+    },
+    {
+      "scope": "contracts",
+      "name": "deploy:arbitrum",
+      "replacement": "bun run contracts -- deploy core --network arbitrum --mode broadcast",
+      "cliArgs": ["deploy", "core", "--network", "arbitrum", "--mode", "broadcast"],
+      "original": {
+        "command": "bun script/deploy.ts core --network arbitrum --broadcast",
+        "cwd": "packages/contracts"
+      }
+    },
+    {
+      "scope": "contracts",
+      "name": "deploy:celo",
+      "replacement": "bun run contracts -- deploy core --network celo --mode broadcast --update-schemas",
+      "cliArgs": ["deploy", "core", "--network", "celo", "--mode", "broadcast", "--update-schemas"],
+      "original": {
+        "command": "bun script/deploy.ts core --network celo --broadcast --update-schemas",
+        "cwd": "packages/contracts"
+      }
+    },
+    {
+      "scope": "contracts",
+      "name": "deploy:mainnet",
+      "replacement": "bun run contracts -- deploy core --network mainnet --mode broadcast",
+      "cliArgs": ["deploy", "core", "--network", "mainnet", "--mode", "broadcast"],
+      "original": {
+        "command": "bun script/deploy.ts core --network mainnet --broadcast",
+        "cwd": "packages/contracts"
+      }
+    },
+    {
+      "scope": "contracts",
+      "name": "ens:migrate:dry:mainnet",
+      "replacement": "bun run contracts -- ens migrate --network mainnet --mode simulate",
+      "cliArgs": ["ens", "migrate", "--network", "mainnet", "--mode", "simulate"],
+      "original": {
+        "command": "bun script/deploy.ts ens-migrate --network mainnet",
+        "cwd": "packages/contracts"
+      }
+    },
+    {
+      "scope": "contracts",
+      "name": "ens:migrate:mainnet",
+      "replacement": "bun run contracts -- ens migrate --network mainnet --mode broadcast",
+      "cliArgs": ["ens", "migrate", "--network", "mainnet", "--mode", "broadcast"],
+      "original": {
+        "command": "bun script/deploy.ts ens-migrate --network mainnet --broadcast",
+        "cwd": "packages/contracts"
+      }
+    },
+    {
+      "scope": "contracts",
+      "name": "ens:sponsor:status:arbitrum",
+      "replacement": "bun run contracts -- ens sponsor status --network arbitrum",
+      "cliArgs": ["ens", "sponsor", "status", "--network", "arbitrum"],
+      "original": {
+        "command": "bun script/ens-sponsor.ts status --network arbitrum",
+        "cwd": "packages/contracts"
+      }
+    },
+    {
+      "scope": "contracts",
+      "name": "ens:sponsor:monitor:arbitrum",
+      "replacement": "bun run contracts -- ens sponsor monitor --network arbitrum",
+      "cliArgs": ["ens", "sponsor", "monitor", "--network", "arbitrum"],
+      "original": {
+        "command": "bun script/ens-sponsor.ts monitor --network arbitrum",
+        "cwd": "packages/contracts"
+      }
+    },
+    {
+      "scope": "contracts",
+      "name": "ens:sponsor:top-up:arbitrum",
+      "replacement": "bun run contracts -- ens sponsor top-up --network arbitrum --mode broadcast",
+      "cliArgs": ["ens", "sponsor", "top-up", "--network", "arbitrum", "--mode", "broadcast"],
+      "original": {
+        "command": "bun script/ens-sponsor.ts top-up --network arbitrum --broadcast",
+        "cwd": "packages/contracts"
+      }
+    },
+    {
+      "scope": "contracts",
+      "name": "deploy:octant-factory",
+      "replacement": "bun run contracts -- deploy octant-factory --network <network> --mode <mode>",
+      "cliArgs": ["deploy", "octant-factory", "--network", "<network>", "--mode", "<mode>"],
+      "original": {
+        "command": "bun script/deploy.ts octant-factory",
+        "cwd": "packages/contracts"
+      }
+    },
+    {
+      "scope": "contracts",
+      "name": "deploy:octant-factory:dry:sepolia",
+      "replacement": "bun run contracts -- deploy octant-factory --network sepolia --mode preflight",
+      "cliArgs": ["deploy", "octant-factory", "--network", "sepolia", "--mode", "preflight"],
+      "original": {
+        "command": "bun script/deploy.ts octant-factory --network sepolia --dry-run --pure-simulation",
+        "cwd": "packages/contracts"
+      }
+    },
+    {
+      "scope": "contracts",
+      "name": "deploy:octant-factory:dry:arbitrum",
+      "replacement": "bun run contracts -- deploy octant-factory --network arbitrum --mode preflight",
+      "cliArgs": ["deploy", "octant-factory", "--network", "arbitrum", "--mode", "preflight"],
+      "original": {
+        "command": "bun script/deploy.ts octant-factory --network arbitrum --dry-run --pure-simulation",
+        "cwd": "packages/contracts"
+      }
+    },
+    {
+      "scope": "contracts",
+      "name": "deploy:octant-factory:dry:celo",
+      "replacement": "bun run contracts -- deploy octant-factory --network celo --mode preflight",
+      "cliArgs": ["deploy", "octant-factory", "--network", "celo", "--mode", "preflight"],
+      "original": {
+        "command": "bun script/deploy.ts octant-factory --network celo --dry-run --pure-simulation",
+        "cwd": "packages/contracts"
+      }
+    },
+    {
+      "scope": "contracts",
+      "name": "deploy:octant-factory:sepolia",
+      "replacement": "bun run contracts -- deploy octant-factory --network sepolia --mode broadcast",
+      "cliArgs": ["deploy", "octant-factory", "--network", "sepolia", "--mode", "broadcast"],
+      "original": {
+        "command": "bun script/deploy.ts octant-factory --network sepolia --broadcast",
+        "cwd": "packages/contracts"
+      }
+    },
+    {
+      "scope": "contracts",
+      "name": "deploy:octant-factory:arbitrum",
+      "replacement": "bun run contracts -- deploy octant-factory --network arbitrum --mode broadcast",
+      "cliArgs": ["deploy", "octant-factory", "--network", "arbitrum", "--mode", "broadcast"],
+      "original": {
+        "command": "bun script/deploy.ts octant-factory --network arbitrum --broadcast",
+        "cwd": "packages/contracts"
+      }
+    },
+    {
+      "scope": "contracts",
+      "name": "deploy:octant-factory:celo",
+      "replacement": "bun run contracts -- deploy octant-factory --network celo --mode broadcast",
+      "cliArgs": ["deploy", "octant-factory", "--network", "celo", "--mode", "broadcast"],
+      "original": {
+        "command": "bun script/deploy.ts octant-factory --network celo --broadcast",
+        "cwd": "packages/contracts"
+      }
+    },
+    {
+      "scope": "contracts",
+      "name": "greenwill:registry-upgrade:dry:arbitrum",
+      "replacement": "bun run contracts -- upgrade deployment-registry --network arbitrum --mode preflight",
+      "cliArgs": ["upgrade", "deployment-registry", "--network", "arbitrum", "--mode", "preflight"],
+      "original": {
+        "command": "bun script/upgrade.ts deployment-registry --network arbitrum --dry-run --pure-simulation",
+        "cwd": "packages/contracts"
+      }
+    },
+    {
+      "scope": "contracts",
+      "name": "greenwill:registry-upgrade:arbitrum",
+      "replacement": "bun run contracts -- upgrade deployment-registry --network arbitrum --mode broadcast --sender 0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6",
+      "cliArgs": [
+        "upgrade",
+        "deployment-registry",
+        "--network",
+        "arbitrum",
+        "--mode",
+        "broadcast",
+        "--sender",
+        "0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6"
+      ],
+      "original": {
+        "command": "bun script/upgrade.ts deployment-registry --network arbitrum --broadcast --sender 0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6",
+        "cwd": "packages/contracts"
+      }
+    },
+    {
+      "scope": "contracts",
+      "name": "greenwill:locks:dry:arbitrum",
+      "replacement": "bun run contracts -- deploy badge-locks --network arbitrum --mode preflight",
+      "cliArgs": ["deploy", "badge-locks", "--network", "arbitrum", "--mode", "preflight"],
+      "original": {
+        "command": "bun script/deploy.ts badge-locks --network arbitrum --dry-run",
+        "cwd": "packages/contracts"
+      }
+    },
+    {
+      "scope": "contracts",
+      "name": "greenwill:locks:arbitrum",
+      "replacement": "bun run contracts -- deploy badge-locks --network arbitrum --mode broadcast",
+      "cliArgs": ["deploy", "badge-locks", "--network", "arbitrum", "--mode", "broadcast"],
+      "original": {
+        "command": "bun script/deploy.ts badge-locks --network arbitrum --broadcast",
+        "cwd": "packages/contracts"
+      }
+    },
+    {
+      "scope": "contracts",
+      "name": "greenwill:dry:arbitrum",
+      "replacement": "bun run contracts -- deploy greenwill --network arbitrum --mode simulate",
+      "cliArgs": ["deploy", "greenwill", "--network", "arbitrum", "--mode", "simulate"],
+      "original": {
+        "command": "bun script/deploy.ts greenwill --network arbitrum --dry-run",
+        "cwd": "packages/contracts"
+      }
+    },
+    {
+      "scope": "contracts",
+      "name": "greenwill:arbitrum",
+      "replacement": "bun run contracts -- deploy greenwill --network arbitrum --mode broadcast",
+      "cliArgs": ["deploy", "greenwill", "--network", "arbitrum", "--mode", "broadcast"],
+      "original": {
+        "command": "bun script/deploy.ts greenwill --network arbitrum --broadcast",
+        "cwd": "packages/contracts"
+      }
+    },
+    {
+      "scope": "contracts",
+      "name": "pooling:finalize:dry:arbitrum",
+      "replacement": "bun run contracts -- deploy commitment-schemas --network arbitrum --mode simulate --finalize-community-testimony",
+      "cliArgs": [
+        "deploy",
+        "commitment-schemas",
+        "--network",
+        "arbitrum",
+        "--mode",
+        "simulate",
+        "--finalize-community-testimony"
+      ],
+      "original": {
+        "command": "bun script/deploy.ts commitment-schemas --network arbitrum --dry-run --finalize-community-testimony",
+        "cwd": "packages/contracts"
+      }
+    },
+    {
+      "scope": "contracts",
+      "name": "pooling:finalize:plan:arbitrum",
+      "replacement": "bun run contracts -- deploy commitment-schemas --network arbitrum --mode plan --finalize-community-testimony --sender 0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6",
+      "cliArgs": [
+        "deploy",
+        "commitment-schemas",
+        "--network",
+        "arbitrum",
+        "--mode",
+        "plan",
+        "--finalize-community-testimony",
+        "--sender",
+        "0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6"
+      ],
+      "original": {
+        "command": "bun script/deploy.ts commitment-schemas --network arbitrum --tx-plan --finalize-community-testimony --sender 0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6",
+        "cwd": "packages/contracts"
+      }
+    },
+    {
+      "scope": "contracts",
+      "name": "pooling:finalize:arbitrum",
+      "replacement": "bun run contracts -- deploy commitment-schemas --network arbitrum --mode broadcast --finalize-community-testimony --sender 0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6",
+      "cliArgs": [
+        "deploy",
+        "commitment-schemas",
+        "--network",
+        "arbitrum",
+        "--mode",
+        "broadcast",
+        "--finalize-community-testimony",
+        "--sender",
+        "0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6"
+      ],
+      "original": {
+        "command": "bun script/deploy.ts commitment-schemas --network arbitrum --broadcast --finalize-community-testimony --sender 0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6",
+        "cwd": "packages/contracts"
+      }
+    },
+    {
+      "scope": "contracts",
+      "name": "pooling:schemas:dry:arbitrum",
+      "replacement": "bun run contracts -- deploy commitment-schemas --network arbitrum --mode simulate",
+      "cliArgs": ["deploy", "commitment-schemas", "--network", "arbitrum", "--mode", "simulate"],
+      "original": {
+        "command": "bun script/deploy.ts commitment-schemas --network arbitrum --dry-run",
+        "cwd": "packages/contracts"
+      }
+    },
+    {
+      "scope": "contracts",
+      "name": "pooling:schemas:preview:arbitrum",
+      "replacement": "bun run contracts -- deploy commitment-schemas --network arbitrum --mode preflight",
+      "cliArgs": ["deploy", "commitment-schemas", "--network", "arbitrum", "--mode", "preflight"],
+      "original": {
+        "command": "bun script/deploy.ts commitment-schemas --network arbitrum --dry-run --pure-simulation",
+        "cwd": "packages/contracts"
+      }
+    },
+    {
+      "scope": "contracts",
+      "name": "pooling:schemas:plan:arbitrum",
+      "replacement": "bun run contracts -- deploy commitment-schemas --network arbitrum --mode plan --sender 0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6",
+      "cliArgs": [
+        "deploy",
+        "commitment-schemas",
+        "--network",
+        "arbitrum",
+        "--mode",
+        "plan",
+        "--sender",
+        "0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6"
+      ],
+      "original": {
+        "command": "bun script/deploy.ts commitment-schemas --network arbitrum --tx-plan --sender 0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6",
+        "cwd": "packages/contracts"
+      }
+    },
+    {
+      "scope": "contracts",
+      "name": "pooling:schemas:arbitrum",
+      "replacement": "bun run contracts -- deploy commitment-schemas --network arbitrum --mode broadcast --sender 0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6",
+      "cliArgs": [
+        "deploy",
+        "commitment-schemas",
+        "--network",
+        "arbitrum",
+        "--mode",
+        "broadcast",
+        "--sender",
+        "0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6"
+      ],
+      "original": {
+        "command": "bun script/deploy.ts commitment-schemas --network arbitrum --broadcast --sender 0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6",
+        "cwd": "packages/contracts"
+      }
+    },
+    {
+      "scope": "contracts",
+      "name": "pooling:deploy:dry:arbitrum",
+      "replacement": "bun run contracts -- deploy pooling --network arbitrum --mode simulate",
+      "cliArgs": ["deploy", "pooling", "--network", "arbitrum", "--mode", "simulate"],
+      "original": {
+        "command": "bun script/deploy.ts pooling --network arbitrum --dry-run",
+        "cwd": "packages/contracts"
+      }
+    },
+    {
+      "scope": "contracts",
+      "name": "pooling:deploy:plan:arbitrum",
+      "replacement": "bun run contracts -- deploy pooling --network arbitrum --mode preflight",
+      "cliArgs": ["deploy", "pooling", "--network", "arbitrum", "--mode", "preflight"],
+      "original": {
+        "command": "bun script/deploy.ts pooling --network arbitrum --pure-simulation",
+        "cwd": "packages/contracts"
+      }
+    },
+    {
+      "scope": "contracts",
+      "name": "pooling:deploy:arbitrum",
+      "replacement": "bun run contracts -- deploy pooling --network arbitrum --mode broadcast",
+      "cliArgs": ["deploy", "pooling", "--network", "arbitrum", "--mode", "broadcast"],
+      "original": {
+        "command": "bun script/deploy.ts pooling --network arbitrum --broadcast",
+        "cwd": "packages/contracts"
+      }
+    },
+    {
+      "scope": "contracts",
+      "name": "release:manifest",
+      "replacement": "bun run contracts -- release manifest --network arbitrum",
+      "cliArgs": ["release", "manifest", "--network", "arbitrum"],
+      "original": {
+        "command": "bun script/deploy.ts release-manifest --network arbitrum",
+        "cwd": "packages/contracts"
+      }
+    },
+    {
+      "scope": "contracts",
+      "name": "release:manifest:write",
+      "replacement": "bun run contracts -- release manifest --network arbitrum --save-artifacts",
+      "cliArgs": ["release", "manifest", "--network", "arbitrum", "--save-artifacts"],
+      "original": {
+        "command": "bun script/deploy.ts release-manifest --network arbitrum --save-artifacts",
+        "cwd": "packages/contracts"
+      }
+    },
+    {
+      "scope": "contracts",
+      "name": "release:operator",
+      "replacement": "bun run contracts -- release operator",
+      "cliArgs": ["release", "operator"],
+      "original": {
+        "command": "bun script/release-operator.ts",
+        "cwd": "packages/contracts"
+      }
+    },
+    {
+      "scope": "contracts",
+      "name": "release:core:plan:arbitrum",
+      "replacement": "bun run contracts -- release core --network arbitrum --mode preflight",
+      "cliArgs": ["release", "core", "--network", "arbitrum", "--mode", "preflight"],
+      "original": {
+        "command": "bun script/deploy.ts protocol-core --network arbitrum --pure-simulation",
+        "cwd": "packages/contracts"
+      }
+    },
+    {
+      "scope": "contracts",
+      "name": "release:ownership:plan:arbitrum",
+      "replacement": "bun run contracts -- deploy ownership-transfer --network arbitrum --mode preflight",
+      "cliArgs": ["deploy", "ownership-transfer", "--network", "arbitrum", "--mode", "preflight"],
+      "original": {
+        "command": "bun script/deploy.ts ownership-transfer --network arbitrum --pure-simulation",
+        "cwd": "packages/contracts"
+      }
+    },
+    {
+      "scope": "contracts",
+      "name": "release:ownership:dry:arbitrum",
+      "replacement": "bun run contracts -- deploy ownership-transfer --network arbitrum --mode simulate",
+      "cliArgs": ["deploy", "ownership-transfer", "--network", "arbitrum", "--mode", "simulate"],
+      "original": {
+        "command": "bun script/deploy.ts ownership-transfer --network arbitrum --dry-run",
+        "cwd": "packages/contracts"
+      }
+    },
+    {
+      "scope": "contracts",
+      "name": "release:ownership:arbitrum",
+      "replacement": "bun run contracts -- deploy ownership-transfer --network arbitrum --mode broadcast",
+      "cliArgs": ["deploy", "ownership-transfer", "--network", "arbitrum", "--mode", "broadcast"],
+      "original": {
+        "command": "bun script/deploy.ts ownership-transfer --network arbitrum --broadcast",
+        "cwd": "packages/contracts"
+      }
+    },
+    {
+      "scope": "contracts",
+      "name": "release:ownership:release:arbitrum",
+      "replacement": "bun run contracts -- release operator --stage ownership-arbitrum --commit <exact-commit>",
+      "cliArgs": ["release", "operator", "--stage", "ownership-arbitrum", "--commit", "<exact-commit>"],
+      "original": {
+        "command": "bun script/release-operator.ts --stage ownership-arbitrum --commit \"$(git rev-parse HEAD)\"",
+        "cwd": "packages/contracts"
+      }
+    },
+    {
+      "scope": "contracts",
+      "name": "release:ownership:plan:celo",
+      "replacement": "bun run contracts -- deploy ownership-transfer --network celo --mode preflight",
+      "cliArgs": ["deploy", "ownership-transfer", "--network", "celo", "--mode", "preflight"],
+      "original": {
+        "command": "bun script/deploy.ts ownership-transfer --network celo --pure-simulation",
+        "cwd": "packages/contracts"
+      }
+    },
+    {
+      "scope": "contracts",
+      "name": "release:ownership:dry:celo",
+      "replacement": "bun run contracts -- deploy ownership-transfer --network celo --mode simulate",
+      "cliArgs": ["deploy", "ownership-transfer", "--network", "celo", "--mode", "simulate"],
+      "original": {
+        "command": "bun script/deploy.ts ownership-transfer --network celo --dry-run",
+        "cwd": "packages/contracts"
+      }
+    },
+    {
+      "scope": "contracts",
+      "name": "release:ownership:celo",
+      "replacement": "bun run contracts -- deploy ownership-transfer --network celo --mode broadcast",
+      "cliArgs": ["deploy", "ownership-transfer", "--network", "celo", "--mode", "broadcast"],
+      "original": {
+        "command": "bun script/deploy.ts ownership-transfer --network celo --broadcast",
+        "cwd": "packages/contracts"
+      }
+    },
+    {
+      "scope": "contracts",
+      "name": "release:ownership:release:celo",
+      "replacement": "bun run contracts -- release operator --stage ownership-celo --commit <exact-commit>",
+      "cliArgs": ["release", "operator", "--stage", "ownership-celo", "--commit", "<exact-commit>"],
+      "original": {
+        "command": "bun script/release-operator.ts --stage ownership-celo --commit \"$(git rev-parse HEAD)\"",
+        "cwd": "packages/contracts"
+      }
+    },
+    {
+      "scope": "contracts",
+      "name": "settlement:module:dry:arbitrum",
+      "replacement": "bun run contracts -- deploy settlement-module --network arbitrum --mode simulate",
+      "cliArgs": ["deploy", "settlement-module", "--network", "arbitrum", "--mode", "simulate"],
+      "original": {
+        "command": "bun script/deploy.ts settlement-module --network arbitrum --dry-run",
+        "cwd": "packages/contracts"
+      }
+    },
+    {
+      "scope": "contracts",
+      "name": "settlement:module:plan:arbitrum",
+      "replacement": "bun run contracts -- deploy settlement-module --network arbitrum --mode preflight",
+      "cliArgs": ["deploy", "settlement-module", "--network", "arbitrum", "--mode", "preflight"],
+      "original": {
+        "command": "bun script/deploy.ts settlement-module --network arbitrum --pure-simulation",
+        "cwd": "packages/contracts"
+      }
+    },
+    {
+      "scope": "contracts",
+      "name": "settlement:module:deploy:arbitrum",
+      "replacement": "bun run contracts -- deploy settlement-module --network arbitrum --mode broadcast",
+      "cliArgs": ["deploy", "settlement-module", "--network", "arbitrum", "--mode", "broadcast"],
+      "original": {
+        "command": "bun script/deploy.ts settlement-module --network arbitrum --broadcast",
+        "cwd": "packages/contracts"
+      }
+    },
+    {
+      "scope": "contracts",
+      "name": "credit:registry:dry:arbitrum",
+      "replacement": "bun run contracts -- deploy credit-registry --network arbitrum --mode simulate",
+      "cliArgs": ["deploy", "credit-registry", "--network", "arbitrum", "--mode", "simulate"],
+      "original": {
+        "command": "bun script/deploy.ts credit-registry --network arbitrum --dry-run",
+        "cwd": "packages/contracts"
+      }
+    },
+    {
+      "scope": "contracts",
+      "name": "credit:registry:plan:arbitrum",
+      "replacement": "bun run contracts -- deploy credit-registry --network arbitrum --mode preflight",
+      "cliArgs": ["deploy", "credit-registry", "--network", "arbitrum", "--mode", "preflight"],
+      "original": {
+        "command": "bun script/deploy.ts credit-registry --network arbitrum --pure-simulation",
+        "cwd": "packages/contracts"
+      }
+    },
+    {
+      "scope": "contracts",
+      "name": "credit:registry:deploy:arbitrum",
+      "replacement": "bun run contracts -- deploy credit-registry --network arbitrum --mode broadcast",
+      "cliArgs": ["deploy", "credit-registry", "--network", "arbitrum", "--mode", "broadcast"],
+      "original": {
+        "command": "bun script/deploy.ts credit-registry --network arbitrum --broadcast",
+        "cwd": "packages/contracts"
+      }
+    },
+    {
+      "scope": "contracts",
+      "name": "settlement:executor:dry:celo",
+      "replacement": "bun run contracts -- deploy settlement-executor --network celo --mode simulate",
+      "cliArgs": ["deploy", "settlement-executor", "--network", "celo", "--mode", "simulate"],
+      "original": {
+        "command": "bun script/deploy.ts settlement-executor --network celo --dry-run",
+        "cwd": "packages/contracts"
+      }
+    },
+    {
+      "scope": "contracts",
+      "name": "settlement:executor:plan:celo",
+      "replacement": "bun run contracts -- deploy settlement-executor --network celo --mode preflight",
+      "cliArgs": ["deploy", "settlement-executor", "--network", "celo", "--mode", "preflight"],
+      "original": {
+        "command": "bun script/deploy.ts settlement-executor --network celo --pure-simulation",
+        "cwd": "packages/contracts"
+      }
+    },
+    {
+      "scope": "contracts",
+      "name": "settlement:executor:deploy:celo",
+      "replacement": "bun run contracts -- deploy settlement-executor --network celo --mode broadcast",
+      "cliArgs": ["deploy", "settlement-executor", "--network", "celo", "--mode", "broadcast"],
+      "original": {
+        "command": "bun script/deploy.ts settlement-executor --network celo --broadcast",
+        "cwd": "packages/contracts"
+      }
+    },
+    {
+      "scope": "contracts",
+      "name": "settlement:dual-chain:up",
+      "replacement": "bun run contracts -- settlement dual-chain up",
+      "cliArgs": ["settlement", "dual-chain", "up"],
+      "original": {
+        "command": "bun script/settlement/dual-chain-courier.ts up",
+        "cwd": "packages/contracts"
+      }
+    },
+    {
+      "scope": "contracts",
+      "name": "settlement:dual-chain:down",
+      "replacement": "bun run contracts -- settlement dual-chain down",
+      "cliArgs": ["settlement", "dual-chain", "down"],
+      "original": {
+        "command": "bun script/settlement/dual-chain-courier.ts down",
+        "cwd": "packages/contracts"
+      }
+    },
+    {
+      "scope": "contracts",
+      "name": "settlement:courier",
+      "replacement": "bun run contracts -- settlement dual-chain courier",
+      "cliArgs": ["settlement", "dual-chain", "courier"],
+      "original": {
+        "command": "bun script/settlement/dual-chain-courier.ts courier",
+        "cwd": "packages/contracts"
+      }
+    },
+    {
+      "scope": "contracts",
+      "name": "settlement:safe:plan:celo",
+      "replacement": "bun run contracts -- settlement safe --network celo --mode preflight",
+      "cliArgs": ["settlement", "safe", "--network", "celo", "--mode", "preflight"],
+      "original": {
+        "command": "bun script/deploy.ts safe-plan --network celo --pure-simulation",
+        "cwd": "packages/contracts"
+      }
+    },
+    {
+      "scope": "contracts",
+      "name": "settlement:safe:dry:celo",
+      "replacement": "bun run contracts -- settlement safe --network celo --mode simulate",
+      "cliArgs": ["settlement", "safe", "--network", "celo", "--mode", "simulate"],
+      "original": {
+        "command": "bun script/deploy.ts safe-plan --network celo --dry-run",
+        "cwd": "packages/contracts"
+      }
+    },
+    {
+      "scope": "contracts",
+      "name": "settlement:garden-accounts:plan:celo",
+      "replacement": "bun run contracts -- settlement garden-accounts plan --network celo",
+      "cliArgs": ["settlement", "garden-accounts", "plan", "--network", "celo"],
+      "original": {
+        "command": "bun script/deploy/celo-garden-accounts.ts plan",
+        "cwd": "packages/contracts"
+      }
+    },
+    {
+      "scope": "contracts",
+      "name": "settlement:garden-accounts:verify:celo",
+      "replacement": "bun run contracts -- settlement garden-accounts verify --network celo",
+      "cliArgs": ["settlement", "garden-accounts", "verify", "--network", "celo"],
+      "original": {
+        "command": "bun script/deploy/celo-garden-accounts.ts verify",
+        "cwd": "packages/contracts"
+      }
+    },
+    {
+      "scope": "contracts",
+      "name": "settlement:garden-accounts:deploy:celo",
+      "replacement": "bun run contracts -- settlement garden-accounts deploy --network celo --mode broadcast",
+      "cliArgs": ["settlement", "garden-accounts", "deploy", "--network", "celo", "--mode", "broadcast"],
+      "original": {
+        "command": "bun script/deploy/celo-garden-accounts.ts deploy --broadcast",
+        "cwd": "packages/contracts"
+      }
+    },
+    {
+      "scope": "contracts",
+      "name": "settlement:garden-accounts:release:celo",
+      "replacement": "bun run contracts -- release operator --stage garden-accounts",
+      "cliArgs": ["release", "operator", "--stage", "garden-accounts"],
+      "original": {
+        "command": "bun script/release-operator.ts --stage garden-accounts",
+        "cwd": "packages/contracts"
+      }
+    },
+    {
+      "scope": "contracts",
+      "name": "settlement:garden-safes:plan:celo",
+      "replacement": "bun run contracts -- settlement garden-safes plan --network celo",
+      "cliArgs": ["settlement", "garden-safes", "plan", "--network", "celo"],
+      "original": {
+        "command": "bun script/deploy/garden-safe-owners.ts plan",
+        "cwd": "packages/contracts"
+      }
+    },
+    {
+      "scope": "contracts",
+      "name": "settlement:garden-safes:verify:celo",
+      "replacement": "bun run contracts -- settlement garden-safes verify --network celo",
+      "cliArgs": ["settlement", "garden-safes", "verify", "--network", "celo"],
+      "original": {
+        "command": "bun script/deploy/garden-safe-owners.ts verify",
+        "cwd": "packages/contracts"
+      }
+    },
+    {
+      "scope": "contracts",
+      "name": "settlement:garden-safes:deploy:celo",
+      "replacement": "bun run contracts -- settlement garden-safes deploy --network celo --mode broadcast",
+      "cliArgs": ["settlement", "garden-safes", "deploy", "--network", "celo", "--mode", "broadcast"],
+      "original": {
+        "command": "bun script/deploy/garden-safe-owners.ts deploy --broadcast",
+        "cwd": "packages/contracts"
+      }
+    },
+    {
+      "scope": "contracts",
+      "name": "settlement:garden-safes:release:celo",
+      "replacement": "bun run contracts -- release operator --stage garden-safes",
+      "cliArgs": ["release", "operator", "--stage", "garden-safes"],
+      "original": {
+        "command": "bun script/release-operator.ts --stage garden-safes",
+        "cwd": "packages/contracts"
+      }
+    },
+    {
+      "scope": "contracts",
+      "name": "settlement:garden-roles:plan",
+      "replacement": "bun run contracts -- settlement garden-roles plan --network celo",
+      "cliArgs": ["settlement", "garden-roles", "plan", "--network", "celo"],
+      "original": {
+        "command": "bun script/deploy/garden-roles.ts plan",
+        "cwd": "packages/contracts"
+      }
+    },
+    {
+      "scope": "contracts",
+      "name": "settlement:garden-roles:verify",
+      "replacement": "bun run contracts -- settlement garden-roles verify --network celo",
+      "cliArgs": ["settlement", "garden-roles", "verify", "--network", "celo"],
+      "original": {
+        "command": "bun script/deploy/garden-roles.ts verify",
+        "cwd": "packages/contracts"
+      }
+    },
+    {
+      "scope": "contracts",
+      "name": "settlement:garden-roles:deploy",
+      "replacement": "bun run contracts -- settlement garden-roles deploy --network celo --mode broadcast",
+      "cliArgs": ["settlement", "garden-roles", "deploy", "--network", "celo", "--mode", "broadcast"],
+      "original": {
+        "command": "bun script/deploy/garden-roles.ts deploy",
+        "cwd": "packages/contracts"
+      }
+    },
+    {
+      "scope": "contracts",
+      "name": "settlement:garden-roles:release",
+      "replacement": "bun run contracts -- release operator --stage garden-roles",
+      "cliArgs": ["release", "operator", "--stage", "garden-roles"],
+      "original": {
+        "command": "bun script/release-operator.ts --stage garden-roles",
+        "cwd": "packages/contracts"
+      }
+    },
+    {
+      "scope": "contracts",
+      "name": "settlement:garden-roles:enable",
+      "replacement": "bun run contracts -- settlement garden-roles enable --network celo --mode broadcast",
+      "cliArgs": ["settlement", "garden-roles", "enable", "--network", "celo", "--mode", "broadcast"],
+      "original": {
+        "command": "bun script/deploy/garden-roles.ts enable",
+        "cwd": "packages/contracts"
+      }
+    },
+    {
+      "scope": "contracts",
+      "name": "settlement:garden-roles:enable:release",
+      "replacement": "bun run contracts -- release operator --stage garden-roles-enable",
+      "cliArgs": ["release", "operator", "--stage", "garden-roles-enable"],
+      "original": {
+        "command": "bun script/release-operator.ts --stage garden-roles-enable",
+        "cwd": "packages/contracts"
+      }
+    },
+    {
+      "scope": "contracts",
+      "name": "settlement:garden-routes:plan",
+      "replacement": "bun run contracts -- settlement garden-routes plan --network celo",
+      "cliArgs": ["settlement", "garden-routes", "plan", "--network", "celo"],
+      "original": {
+        "command": "bun script/deploy/garden-routes.ts plan",
+        "cwd": "packages/contracts"
+      }
+    },
+    {
+      "scope": "contracts",
+      "name": "settlement:garden-routes:verify",
+      "replacement": "bun run contracts -- settlement garden-routes verify --network celo",
+      "cliArgs": ["settlement", "garden-routes", "verify", "--network", "celo"],
+      "original": {
+        "command": "bun script/deploy/garden-routes.ts verify",
+        "cwd": "packages/contracts"
+      }
+    },
+    {
+      "scope": "contracts",
+      "name": "settlement:garden-routes:configure",
+      "replacement": "bun run contracts -- settlement garden-routes configure --network celo --mode broadcast",
+      "cliArgs": ["settlement", "garden-routes", "configure", "--network", "celo", "--mode", "broadcast"],
+      "original": {
+        "command": "bun script/deploy/garden-routes.ts configure",
+        "cwd": "packages/contracts"
+      }
+    },
+    {
+      "scope": "contracts",
+      "name": "settlement:garden-routes:release",
+      "replacement": "bun run contracts -- release operator --stage garden-routes",
+      "cliArgs": ["release", "operator", "--stage", "garden-routes"],
+      "original": {
+        "command": "bun script/release-operator.ts --stage garden-routes",
+        "cwd": "packages/contracts"
+      }
+    },
+    {
+      "scope": "contracts",
+      "name": "settlement:garden-relay:plan",
+      "replacement": "bun run contracts -- settlement garden-relay plan --network celo",
+      "cliArgs": ["settlement", "garden-relay", "plan", "--network", "celo"],
+      "original": {
+        "command": "bun script/deploy/garden-account-relay.ts plan",
+        "cwd": "packages/contracts"
+      }
+    },
+    {
+      "scope": "contracts",
+      "name": "settlement:garden-relay:verify",
+      "replacement": "bun run contracts -- settlement garden-relay verify --network celo",
+      "cliArgs": ["settlement", "garden-relay", "verify", "--network", "celo"],
+      "original": {
+        "command": "bun script/deploy/garden-account-relay.ts verify",
+        "cwd": "packages/contracts"
+      }
+    },
+    {
+      "scope": "contracts",
+      "name": "settlement:garden-relay:deploy",
+      "replacement": "bun run contracts -- settlement garden-relay deploy --network celo --mode broadcast",
+      "cliArgs": ["settlement", "garden-relay", "deploy", "--network", "celo", "--mode", "broadcast"],
+      "original": {
+        "command": "bun script/deploy/garden-account-relay.ts deploy --broadcast",
+        "cwd": "packages/contracts"
+      }
+    },
+    {
+      "scope": "contracts",
+      "name": "settlement:garden-relay:adopt",
+      "replacement": "bun run contracts -- settlement garden-relay adopt --network celo",
+      "cliArgs": ["settlement", "garden-relay", "adopt", "--network", "celo"],
+      "original": {
+        "command": "bun script/deploy/garden-account-relay.ts adopt",
+        "cwd": "packages/contracts"
+      }
+    },
+    {
+      "scope": "contracts",
+      "name": "settlement:garden-relay:release",
+      "replacement": "bun run contracts -- release operator --stage relay",
+      "cliArgs": ["release", "operator", "--stage", "relay"],
+      "original": {
+        "command": "bun script/release-operator.ts --stage relay",
+        "cwd": "packages/contracts"
+      }
+    },
+    {
+      "scope": "contracts",
+      "name": "settlement:peer:plan:arbitrum",
+      "replacement": "bun run contracts -- settlement peer --network arbitrum --mode preflight",
+      "cliArgs": ["settlement", "peer", "--network", "arbitrum", "--mode", "preflight"],
+      "original": {
+        "command": "bun script/deploy.ts settlement-peer --network arbitrum --pure-simulation",
+        "cwd": "packages/contracts"
+      }
+    },
+    {
+      "scope": "contracts",
+      "name": "settlement:peer:verify:arbitrum",
+      "replacement": "bun run contracts -- settlement peer-verify --network arbitrum",
+      "cliArgs": ["settlement", "peer-verify", "--network", "arbitrum"],
+      "original": {
+        "command": "bun script/deploy.ts settlement-peer-verify --network arbitrum",
+        "cwd": "packages/contracts"
+      }
+    },
+    {
+      "scope": "contracts",
+      "name": "release:recover:arbitrum",
+      "replacement": "bun run contracts -- release recover --network arbitrum",
+      "cliArgs": ["release", "recover", "--network", "arbitrum"],
+      "original": {
+        "command": "bun script/deploy.ts release-recover --network arbitrum",
+        "cwd": "packages/contracts"
+      }
+    },
+    {
+      "scope": "contracts",
+      "name": "release:recover:celo",
+      "replacement": "bun run contracts -- release recover --network celo",
+      "cliArgs": ["release", "recover", "--network", "celo"],
+      "original": {
+        "command": "bun script/deploy.ts release-recover --network celo",
+        "cwd": "packages/contracts"
+      }
+    },
+    {
+      "scope": "contracts",
+      "name": "release:recover:plan:arbitrum",
+      "replacement": "bun run contracts -- release recover --network arbitrum --mode preflight",
+      "cliArgs": ["release", "recover", "--network", "arbitrum", "--mode", "preflight"],
+      "original": {
+        "command": "bun script/deploy.ts release-recover --network arbitrum --pure-simulation",
+        "cwd": "packages/contracts"
+      }
+    },
+    {
+      "scope": "contracts",
+      "name": "release:recover:plan:celo",
+      "replacement": "bun run contracts -- release recover --network celo --mode preflight",
+      "cliArgs": ["release", "recover", "--network", "celo", "--mode", "preflight"],
+      "original": {
+        "command": "bun script/deploy.ts release-recover --network celo --pure-simulation",
+        "cwd": "packages/contracts"
+      }
+    },
+    {
+      "scope": "contracts",
+      "name": "release:verify:arbitrum",
+      "replacement": "bun run contracts -- release verify --network arbitrum",
+      "cliArgs": ["release", "verify", "--network", "arbitrum"],
+      "original": {
+        "command": "bun script/deploy.ts release-verify --network arbitrum",
+        "cwd": "packages/contracts"
+      }
+    },
+    {
+      "scope": "contracts",
+      "name": "release:verify:celo",
+      "replacement": "bun run contracts -- release verify --network celo",
+      "cliArgs": ["release", "verify", "--network", "celo"],
+      "original": {
+        "command": "bun script/deploy.ts release-verify --network celo",
+        "cwd": "packages/contracts"
+      }
+    },
+    {
+      "scope": "contracts",
+      "name": "release:verify:safe:arbitrum",
+      "replacement": "bun run contracts -- release verify --network arbitrum --owner-phase safe",
+      "cliArgs": ["release", "verify", "--network", "arbitrum", "--owner-phase", "safe"],
+      "original": {
+        "command": "bun script/deploy.ts release-verify --network arbitrum --owner-phase safe",
+        "cwd": "packages/contracts"
+      }
+    },
+    {
+      "scope": "contracts",
+      "name": "release:verify:safe:celo",
+      "replacement": "bun run contracts -- release verify --network celo --owner-phase safe",
+      "cliArgs": ["release", "verify", "--network", "celo", "--owner-phase", "safe"],
+      "original": {
+        "command": "bun script/deploy.ts release-verify --network celo --owner-phase safe",
+        "cwd": "packages/contracts"
+      }
+    },
+    {
+      "scope": "contracts",
+      "name": "release:verify:plan:arbitrum",
+      "replacement": "bun run contracts -- release verify --network arbitrum --mode preflight",
+      "cliArgs": ["release", "verify", "--network", "arbitrum", "--mode", "preflight"],
+      "original": {
+        "command": "bun script/deploy.ts release-verify --network arbitrum --pure-simulation",
+        "cwd": "packages/contracts"
+      }
+    },
+    {
+      "scope": "contracts",
+      "name": "release:verify:plan:celo",
+      "replacement": "bun run contracts -- release verify --network celo --mode preflight",
+      "cliArgs": ["release", "verify", "--network", "celo", "--mode", "preflight"],
+      "original": {
+        "command": "bun script/deploy.ts release-verify --network celo --pure-simulation",
+        "cwd": "packages/contracts"
+      }
+    },
+    {
+      "scope": "contracts",
+      "name": "release:indexer:handoff",
+      "replacement": "bun run contracts -- release indexer-handoff --network arbitrum --mode preflight",
+      "cliArgs": ["release", "indexer-handoff", "--network", "arbitrum", "--mode", "preflight"],
+      "original": {
+        "command": "bun script/deploy.ts indexer-handoff --network arbitrum --pure-simulation",
+        "cwd": "packages/contracts"
+      }
+    },
+    {
+      "scope": "contracts",
+      "name": "pooling:configure:dry:arbitrum",
+      "replacement": "bun run contracts -- deploy pooling-configure --network arbitrum --mode simulate",
+      "cliArgs": ["deploy", "pooling-configure", "--network", "arbitrum", "--mode", "simulate"],
+      "original": {
+        "command": "bun script/deploy.ts pooling-configure --network arbitrum --dry-run",
+        "cwd": "packages/contracts"
+      }
+    },
+    {
+      "scope": "contracts",
+      "name": "pooling:configure:arbitrum",
+      "replacement": "bun run contracts -- deploy pooling-configure --network arbitrum --mode broadcast",
+      "cliArgs": ["deploy", "pooling-configure", "--network", "arbitrum", "--mode", "broadcast"],
+      "original": {
+        "command": "bun script/deploy.ts pooling-configure --network arbitrum --broadcast",
+        "cwd": "packages/contracts"
+      }
+    },
+    {
+      "scope": "contracts",
+      "name": "assessment:upgrade:dry:arbitrum",
+      "replacement": "bun run contracts -- upgrade assessment-resolver --network arbitrum --mode preflight",
+      "cliArgs": ["upgrade", "assessment-resolver", "--network", "arbitrum", "--mode", "preflight"],
+      "original": {
+        "command": "bun script/upgrade.ts assessment-resolver --network arbitrum --dry-run --pure-simulation",
+        "cwd": "packages/contracts"
+      }
+    },
+    {
+      "scope": "contracts",
+      "name": "assessment:upgrade:plan:arbitrum",
+      "replacement": "bun run contracts -- upgrade assessment-resolver --network arbitrum --mode plan --sender 0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6",
+      "cliArgs": [
+        "upgrade",
+        "assessment-resolver",
+        "--network",
+        "arbitrum",
+        "--mode",
+        "plan",
+        "--sender",
+        "0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6"
+      ],
+      "original": {
+        "command": "UPGRADE_PLAN_OUTPUT_DIR=.generated/release-upgrades bun script/upgrade.ts assessment-resolver --network arbitrum --tx-plan --sender 0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6",
+        "cwd": "packages/contracts"
+      }
+    },
+    {
+      "scope": "contracts",
+      "name": "assessment:upgrade:arbitrum",
+      "replacement": "bun run contracts -- upgrade assessment-resolver --network arbitrum --mode broadcast --sender 0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6",
+      "cliArgs": [
+        "upgrade",
+        "assessment-resolver",
+        "--network",
+        "arbitrum",
+        "--mode",
+        "broadcast",
+        "--sender",
+        "0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6"
+      ],
+      "original": {
+        "command": "bun run check:storage-layout && bun script/upgrade.ts assessment-resolver --network arbitrum --broadcast --sender 0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6",
+        "cwd": "packages/contracts"
+      }
+    },
+    {
+      "scope": "contracts",
+      "name": "pooling:upgrade:dry:arbitrum",
+      "replacement": "bun run contracts -- upgrade commitment-pooling --network arbitrum --mode preflight",
+      "cliArgs": ["upgrade", "commitment-pooling", "--network", "arbitrum", "--mode", "preflight"],
+      "original": {
+        "command": "bun script/upgrade.ts commitment-pooling --network arbitrum --dry-run --pure-simulation",
+        "cwd": "packages/contracts"
+      }
+    },
+    {
+      "scope": "contracts",
+      "name": "pooling:upgrade:plan:arbitrum",
+      "replacement": "bun run contracts -- upgrade commitment-pooling --network arbitrum --mode plan --sender 0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6",
+      "cliArgs": [
+        "upgrade",
+        "commitment-pooling",
+        "--network",
+        "arbitrum",
+        "--mode",
+        "plan",
+        "--sender",
+        "0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6"
+      ],
+      "original": {
+        "command": "UPGRADE_PLAN_OUTPUT_DIR=.generated/release-upgrades bun script/upgrade.ts commitment-pooling --network arbitrum --tx-plan --sender 0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6",
+        "cwd": "packages/contracts"
+      }
+    },
+    {
+      "scope": "contracts",
+      "name": "pooling:upgrade:arbitrum",
+      "replacement": "bun run contracts -- upgrade commitment-pooling --network arbitrum --mode broadcast --sender 0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6",
+      "cliArgs": [
+        "upgrade",
+        "commitment-pooling",
+        "--network",
+        "arbitrum",
+        "--mode",
+        "broadcast",
+        "--sender",
+        "0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6"
+      ],
+      "original": {
+        "command": "bun script/upgrade.ts commitment-pooling --network arbitrum --broadcast --sender 0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6",
+        "cwd": "packages/contracts"
+      }
+    },
+    {
+      "scope": "contracts",
+      "name": "pooling:backfill:dry:arbitrum",
+      "replacement": "bun run contracts -- pooling backfill --network arbitrum --mode simulate --authority deployer",
+      "cliArgs": ["pooling", "backfill", "--network", "arbitrum", "--mode", "simulate", "--authority", "deployer"],
+      "original": {
+        "command": "bun script/deploy/backfill-pools.ts --network arbitrum --dry-run --authority deployer",
+        "cwd": "packages/contracts"
+      }
+    },
+    {
+      "scope": "contracts",
+      "name": "pooling:backfill:arbitrum",
+      "replacement": "bun run contracts -- pooling backfill --network arbitrum --mode broadcast --authority deployer",
+      "cliArgs": ["pooling", "backfill", "--network", "arbitrum", "--mode", "broadcast", "--authority", "deployer"],
+      "original": {
+        "command": "bun script/deploy/backfill-pools.ts --network arbitrum --broadcast --authority deployer",
+        "cwd": "packages/contracts"
+      }
+    },
+    {
+      "scope": "contracts",
+      "name": "verify:post-deploy",
+      "replacement": "bun run contracts -- verify --network <network>",
+      "cliArgs": ["verify", "--network", "<network>"],
+      "original": {
+        "command": "bun script/utils/post-deploy-verify.ts",
+        "cwd": "packages/contracts"
+      }
+    },
+    {
+      "scope": "contracts",
+      "name": "verify:arbitrum-fork",
+      "replacement": "bun run contracts -- verify arbitrum-fork --network arbitrum",
+      "cliArgs": ["verify", "arbitrum-fork", "--network", "arbitrum"],
+      "original": {
+        "command": "bun script/verify-arbitrum-fork.ts",
+        "cwd": "packages/contracts"
+      }
+    },
+    {
+      "scope": "contracts",
+      "name": "verify:post-deploy:sepolia",
+      "replacement": "bun run contracts -- verify --network sepolia",
+      "cliArgs": ["verify", "--network", "sepolia"],
+      "original": {
+        "command": "bun script/utils/post-deploy-verify.ts --network sepolia",
+        "cwd": "packages/contracts"
+      }
+    },
+    {
+      "scope": "contracts",
+      "name": "verify:post-deploy:arbitrum",
+      "replacement": "bun run contracts -- verify --network arbitrum",
+      "cliArgs": ["verify", "--network", "arbitrum"],
+      "original": {
+        "command": "bun script/utils/post-deploy-verify.ts --network arbitrum",
+        "cwd": "packages/contracts"
+      }
+    },
+    {
+      "scope": "contracts",
+      "name": "verify:post-deploy:celo",
+      "replacement": "bun run contracts -- verify --network celo",
+      "cliArgs": ["verify", "--network", "celo"],
+      "original": {
+        "command": "bun script/utils/post-deploy-verify.ts --network celo",
+        "cwd": "packages/contracts"
+      }
+    },
+    {
+      "scope": "contracts",
+      "name": "verify:post-deploy:mainnet",
+      "replacement": "bun run contracts -- verify --network mainnet",
+      "cliArgs": ["verify", "--network", "mainnet"],
+      "original": {
+        "command": "bun script/utils/post-deploy-verify.ts --network mainnet",
+        "cwd": "packages/contracts"
+      }
+    },
+    {
+      "scope": "contracts",
+      "name": "verify:steward-upgrade:sepolia",
+      "replacement": "bun run contracts -- verify --network sepolia --check-steward-upgrade --skip-indexer --no-octant --no-cookiejar",
+      "cliArgs": [
+        "verify",
+        "--network",
+        "sepolia",
+        "--check-steward-upgrade",
+        "--skip-indexer",
+        "--no-octant",
+        "--no-cookiejar"
+      ],
+      "original": {
+        "command": "bun script/utils/post-deploy-verify.ts --network sepolia --check-steward-upgrade --skip-indexer --no-octant --no-cookiejar",
+        "cwd": "packages/contracts"
+      }
+    },
+    {
+      "scope": "contracts",
+      "name": "verify:steward-upgrade:arbitrum",
+      "replacement": "bun run contracts -- verify --network arbitrum --check-steward-upgrade --skip-indexer --no-octant --no-cookiejar",
+      "cliArgs": [
+        "verify",
+        "--network",
+        "arbitrum",
+        "--check-steward-upgrade",
+        "--skip-indexer",
+        "--no-octant",
+        "--no-cookiejar"
+      ],
+      "original": {
+        "command": "bun script/utils/post-deploy-verify.ts --network arbitrum --check-steward-upgrade --skip-indexer --no-octant --no-cookiejar",
+        "cwd": "packages/contracts"
+      }
+    },
+    {
+      "scope": "contracts",
+      "name": "verify:post-deploy:indexer:sepolia",
+      "replacement": "bun run contracts -- verify --network sepolia --check-indexer-runtime",
+      "cliArgs": ["verify", "--network", "sepolia", "--check-indexer-runtime"],
+      "original": {
+        "command": "bun script/utils/post-deploy-verify.ts --network sepolia --check-indexer-runtime",
+        "cwd": "packages/contracts"
+      }
+    },
+    {
+      "scope": "contracts",
+      "name": "verify:post-deploy:indexer:arbitrum",
+      "replacement": "bun run contracts -- verify --network arbitrum --check-indexer-runtime",
+      "cliArgs": ["verify", "--network", "arbitrum", "--check-indexer-runtime"],
+      "original": {
+        "command": "bun script/utils/post-deploy-verify.ts --network arbitrum --check-indexer-runtime",
+        "cwd": "packages/contracts"
+      }
+    },
+    {
+      "scope": "contracts",
+      "name": "verify:post-deploy:indexer:mainnet",
+      "replacement": "bun run contracts -- verify --network mainnet --check-indexer-runtime",
+      "cliArgs": ["verify", "--network", "mainnet", "--check-indexer-runtime"],
+      "original": {
+        "command": "bun script/utils/post-deploy-verify.ts --network mainnet --check-indexer-runtime",
+        "cwd": "packages/contracts"
+      }
+    },
+    {
+      "scope": "contracts",
+      "name": "verify:post-deploy:indexer:local:sepolia",
+      "replacement": "bun run contracts -- verify --network sepolia --check-indexer-runtime --skip-local-indexer-start",
+      "cliArgs": ["verify", "--network", "sepolia", "--check-indexer-runtime", "--skip-local-indexer-start"],
+      "original": {
+        "command": "bun script/utils/post-deploy-verify.ts --network sepolia --check-indexer-runtime --skip-local-indexer-start",
+        "cwd": "packages/contracts"
+      }
+    },
+    {
+      "scope": "contracts",
+      "name": "verify:post-deploy:indexer:local:arbitrum",
+      "replacement": "bun run contracts -- verify --network arbitrum --check-indexer-runtime --skip-local-indexer-start",
+      "cliArgs": ["verify", "--network", "arbitrum", "--check-indexer-runtime", "--skip-local-indexer-start"],
+      "original": {
+        "command": "bun script/utils/post-deploy-verify.ts --network arbitrum --check-indexer-runtime --skip-local-indexer-start",
+        "cwd": "packages/contracts"
+      }
+    },
+    {
+      "scope": "contracts",
+      "name": "verify:post-deploy:indexer:local:mainnet",
+      "replacement": "bun run contracts -- verify --network mainnet --check-indexer-runtime --skip-local-indexer-start",
+      "cliArgs": ["verify", "--network", "mainnet", "--check-indexer-runtime", "--skip-local-indexer-start"],
+      "original": {
+        "command": "bun script/utils/post-deploy-verify.ts --network mainnet --check-indexer-runtime --skip-local-indexer-start",
+        "cwd": "packages/contracts"
+      }
+    },
+    {
+      "scope": "contracts",
+      "name": "verify:etherscan:sepolia",
+      "replacement": "bun run contracts -- verify --network sepolia --check-etherscan --skip-indexer",
+      "cliArgs": ["verify", "--network", "sepolia", "--check-etherscan", "--skip-indexer"],
+      "original": {
+        "command": "bun script/utils/post-deploy-verify.ts --network sepolia --check-etherscan --skip-indexer",
+        "cwd": "packages/contracts"
+      }
+    },
+    {
+      "scope": "contracts",
+      "name": "verify:etherscan:arbitrum",
+      "replacement": "bun run contracts -- verify --network arbitrum --check-etherscan --skip-indexer",
+      "cliArgs": ["verify", "--network", "arbitrum", "--check-etherscan", "--skip-indexer"],
+      "original": {
+        "command": "bun script/utils/post-deploy-verify.ts --network arbitrum --check-etherscan --skip-indexer",
+        "cwd": "packages/contracts"
+      }
+    },
+    {
+      "scope": "contracts",
+      "name": "verify:etherscan:celo",
+      "replacement": "bun run contracts -- verify --network celo --check-etherscan --skip-indexer",
+      "cliArgs": ["verify", "--network", "celo", "--check-etherscan", "--skip-indexer"],
+      "original": {
+        "command": "bun script/utils/post-deploy-verify.ts --network celo --check-etherscan --skip-indexer",
+        "cwd": "packages/contracts"
+      }
+    },
+    {
+      "scope": "contracts",
+      "name": "marketplace:status",
+      "replacement": "bun run contracts -- marketplace status --network <network>",
+      "cliArgs": ["marketplace", "status", "--network", "<network>"],
+      "original": {
+        "command": "bun script/marketplace-readiness.ts status",
+        "cwd": "packages/contracts"
+      }
+    },
+    {
+      "scope": "contracts",
+      "name": "marketplace:status:arbitrum",
+      "replacement": "bun run contracts -- marketplace status --network arbitrum",
+      "cliArgs": ["marketplace", "status", "--network", "arbitrum"],
+      "original": {
+        "command": "bun script/marketplace-readiness.ts status --network arbitrum",
+        "cwd": "packages/contracts"
+      }
+    },
+    {
+      "scope": "contracts",
+      "name": "marketplace:configure:dry:arbitrum",
+      "replacement": "bun run contracts -- marketplace configure --network arbitrum --mode simulate",
+      "cliArgs": ["marketplace", "configure", "--network", "arbitrum", "--mode", "simulate"],
+      "original": {
+        "command": "bun script/marketplace-readiness.ts configure --network arbitrum --dry-run",
+        "cwd": "packages/contracts"
+      }
+    },
+    {
+      "scope": "contracts",
+      "name": "marketplace:configure:arbitrum",
+      "replacement": "bun run contracts -- marketplace configure --network arbitrum --mode broadcast",
+      "cliArgs": ["marketplace", "configure", "--network", "arbitrum", "--mode", "broadcast"],
+      "original": {
+        "command": "bun script/marketplace-readiness.ts configure --network arbitrum --broadcast",
+        "cwd": "packages/contracts"
+      }
+    },
+    {
+      "scope": "contracts",
+      "name": "migrate:action-instructions:v2",
+      "replacement": "bun run contracts -- migrate action-instructions-v2 --network <network> --mode <mode>",
+      "cliArgs": ["migrate", "action-instructions-v2", "--network", "<network>", "--mode", "<mode>"],
+      "original": {
+        "command": "bun script/migrate-action-instructions-v2.ts",
+        "cwd": "packages/contracts"
+      }
+    },
+    {
+      "scope": "contracts",
+      "name": "migrate:action-instructions:v2:dry:arbitrum",
+      "replacement": "bun run contracts -- migrate action-instructions-v2 --network arbitrum --mode preflight",
+      "cliArgs": ["migrate", "action-instructions-v2", "--network", "arbitrum", "--mode", "preflight"],
+      "original": {
+        "command": "bun script/migrate-action-instructions-v2.ts --network arbitrum --dry-run",
+        "cwd": "packages/contracts"
+      }
+    },
+    {
+      "scope": "contracts",
+      "name": "migrate:action-instructions:v2:preflight:arbitrum",
+      "replacement": "bun run contracts -- migrate action-instructions-v2 check --network arbitrum --mode simulate",
+      "cliArgs": ["migrate", "action-instructions-v2", "check", "--network", "arbitrum", "--mode", "simulate"],
+      "original": {
+        "command": "bun script/migrate-action-instructions-v2.ts --network arbitrum --preflight-only",
+        "cwd": "packages/contracts"
+      }
+    },
+    {
+      "scope": "contracts",
+      "name": "migrate:action-instructions:v2:upload:arbitrum",
+      "replacement": "bun run contracts -- migrate action-instructions-v2 --network arbitrum --mode upload",
+      "cliArgs": ["migrate", "action-instructions-v2", "--network", "arbitrum", "--mode", "upload"],
+      "original": {
+        "command": "bun script/migrate-action-instructions-v2.ts --network arbitrum --upload-only",
+        "cwd": "packages/contracts"
+      }
+    },
+    {
+      "scope": "contracts",
+      "name": "migrate:action-instructions:v2:arbitrum",
+      "replacement": "bun run contracts -- migrate action-instructions-v2 --network arbitrum --mode broadcast",
+      "cliArgs": ["migrate", "action-instructions-v2", "--network", "arbitrum", "--mode", "broadcast"],
+      "original": {
+        "command": "bun script/migrate-action-instructions-v2.ts --network arbitrum --broadcast",
+        "cwd": "packages/contracts"
+      }
+    },
+    {
+      "scope": "contracts",
+      "name": "migrate:vaults",
+      "replacement": "bun run contracts -- migrate vaults --network <network> --mode <mode>",
+      "cliArgs": ["migrate", "vaults", "--network", "<network>", "--mode", "<mode>"],
+      "original": {
+        "command": "bun script/migrate-vaults.ts",
+        "cwd": "packages/contracts"
+      }
+    },
+    {
+      "scope": "contracts",
+      "name": "migrate:vaults:dry:arbitrum",
+      "replacement": "bun run contracts -- migrate vaults --network arbitrum --mode simulate",
+      "cliArgs": ["migrate", "vaults", "--network", "arbitrum", "--mode", "simulate"],
+      "original": {
+        "command": "bun script/migrate-vaults.ts --network arbitrum --dry-run",
+        "cwd": "packages/contracts"
+      }
+    },
+    {
+      "scope": "contracts",
+      "name": "migrate:vaults:arbitrum",
+      "replacement": "bun run contracts -- migrate vaults --network arbitrum --mode broadcast --sender 0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6",
+      "cliArgs": [
+        "migrate",
+        "vaults",
+        "--network",
+        "arbitrum",
+        "--mode",
+        "broadcast",
+        "--sender",
+        "0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6"
+      ],
+      "original": {
+        "command": "bun script/migrate-vaults.ts --network arbitrum --broadcast --sender 0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6",
+        "cwd": "packages/contracts"
+      }
+    },
+    {
+      "scope": "contracts",
+      "name": "open-minting:sepolia",
+      "replacement": "bun run contracts -- minting open --network sepolia --mode broadcast",
+      "cliArgs": ["minting", "open", "--network", "sepolia", "--mode", "broadcast"],
+      "original": {
+        "command": "set -a && . ../../.env 2>/dev/null || true && set +a && cast send $(jq -r .gardenToken deployments/11155111-latest.json) 'setOpenMinting(bool)' true --rpc-url $SEPOLIA_RPC_URL --account green-goods-deployer",
+        "cwd": "packages/contracts"
+      }
+    },
+    {
+      "scope": "contracts",
+      "name": "open-minting:arbitrum",
+      "replacement": "bun run contracts -- minting open --network arbitrum --mode broadcast",
+      "cliArgs": ["minting", "open", "--network", "arbitrum", "--mode", "broadcast"],
+      "original": {
+        "command": "set -a && . ../../.env 2>/dev/null || true && set +a && cast send $(jq -r .gardenToken deployments/42161-latest.json) 'setOpenMinting(bool)' true --rpc-url $ARBITRUM_RPC_URL --account green-goods-deployer",
+        "cwd": "packages/contracts"
+      }
+    },
+    {
+      "scope": "contracts",
+      "name": "repair:octant-assets",
+      "replacement": "bun run contracts -- repair octant-assets --network <network> --mode <mode>",
+      "cliArgs": ["repair", "octant-assets", "--network", "<network>", "--mode", "<mode>"],
+      "original": {
+        "command": "bun script/repair-octant-assets.ts",
+        "cwd": "packages/contracts"
+      }
+    },
+    {
+      "scope": "contracts",
+      "name": "repair:octant-assets:dry:arbitrum",
+      "replacement": "bun run contracts -- repair octant-assets --network arbitrum --mode preflight",
+      "cliArgs": ["repair", "octant-assets", "--network", "arbitrum", "--mode", "preflight"],
+      "original": {
+        "command": "bun script/repair-octant-assets.ts --network arbitrum --dry-run",
+        "cwd": "packages/contracts"
+      }
+    },
+    {
+      "scope": "contracts",
+      "name": "repair:octant-assets:arbitrum",
+      "replacement": "bun run contracts -- repair octant-assets --network arbitrum --mode broadcast",
+      "cliArgs": ["repair", "octant-assets", "--network", "arbitrum", "--mode", "broadcast"],
+      "original": {
+        "command": "bun script/repair-octant-assets.ts --network arbitrum --broadcast",
+        "cwd": "packages/contracts"
+      }
+    },
+    {
+      "scope": "contracts",
+      "name": "upgrade",
+      "replacement": "bun run contracts -- upgrade <target> --network <network> --mode <mode>",
+      "cliArgs": ["upgrade", "<target>", "--network", "<network>", "--mode", "<mode>"],
+      "original": {
+        "command": "bun script/upgrade.ts",
+        "cwd": "packages/contracts"
+      }
+    },
+    {
+      "scope": "contracts",
+      "name": "upgrade:dry:sepolia",
+      "replacement": "bun run contracts -- upgrade all --network sepolia --mode preflight",
+      "cliArgs": ["upgrade", "all", "--network", "sepolia", "--mode", "preflight"],
+      "original": {
+        "command": "bun script/upgrade.ts all --network sepolia --dry-run --pure-simulation",
+        "cwd": "packages/contracts"
+      }
+    },
+    {
+      "scope": "contracts",
+      "name": "upgrade:dry:arbitrum",
+      "replacement": "bun run contracts -- upgrade all --network arbitrum --mode preflight",
+      "cliArgs": ["upgrade", "all", "--network", "arbitrum", "--mode", "preflight"],
+      "original": {
+        "command": "bun script/upgrade.ts all --network arbitrum --dry-run --pure-simulation",
+        "cwd": "packages/contracts"
+      }
+    },
+    {
+      "scope": "contracts",
+      "name": "upgrade:action-registry:dry:arbitrum",
+      "replacement": "bun run contracts -- upgrade action-registry --network arbitrum --mode preflight",
+      "cliArgs": ["upgrade", "action-registry", "--network", "arbitrum", "--mode", "preflight"],
+      "original": {
+        "command": "bun script/upgrade.ts action-registry --network arbitrum --dry-run --pure-simulation",
+        "cwd": "packages/contracts"
+      }
+    },
+    {
+      "scope": "contracts",
+      "name": "upgrade:action-registry:arbitrum",
+      "replacement": "bun run contracts -- upgrade action-registry --network arbitrum --mode broadcast",
+      "cliArgs": ["upgrade", "action-registry", "--network", "arbitrum", "--mode", "broadcast"],
+      "original": {
+        "command": "bun script/upgrade.ts action-registry --network arbitrum --broadcast",
+        "cwd": "packages/contracts"
+      }
+    },
+    {
+      "scope": "contracts",
+      "name": "upgrade:action-registry:arbitrum:override-sepolia-gate",
+      "replacement": "bun run contracts -- upgrade action-registry --network arbitrum --mode broadcast --override-sepolia-gate",
+      "cliArgs": [
+        "upgrade",
+        "action-registry",
+        "--network",
+        "arbitrum",
+        "--mode",
+        "broadcast",
+        "--override-sepolia-gate"
+      ],
+      "original": {
+        "command": "bun script/upgrade.ts action-registry --network arbitrum --broadcast --override-sepolia-gate",
+        "cwd": "packages/contracts"
+      }
+    },
+    {
+      "scope": "contracts",
+      "name": "upgrade:hats-module:dry:sepolia",
+      "replacement": "bun run contracts -- upgrade hats-module --network sepolia --mode preflight",
+      "cliArgs": ["upgrade", "hats-module", "--network", "sepolia", "--mode", "preflight"],
+      "original": {
+        "command": "bun script/upgrade.ts hats-module --network sepolia --dry-run --pure-simulation",
+        "cwd": "packages/contracts"
+      }
+    },
+    {
+      "scope": "contracts",
+      "name": "upgrade:hats-module:plan:sepolia",
+      "replacement": "bun run contracts -- upgrade hats-module --network sepolia --mode plan --sender 0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6",
+      "cliArgs": [
+        "upgrade",
+        "hats-module",
+        "--network",
+        "sepolia",
+        "--mode",
+        "plan",
+        "--sender",
+        "0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6"
+      ],
+      "original": {
+        "command": "bun script/upgrade.ts hats-module --network sepolia --tx-plan --sender 0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6",
+        "cwd": "packages/contracts"
+      }
+    },
+    {
+      "scope": "contracts",
+      "name": "upgrade:hats-module:sepolia",
+      "replacement": "bun run contracts -- upgrade hats-module --network sepolia --mode broadcast --sender 0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6",
+      "cliArgs": [
+        "upgrade",
+        "hats-module",
+        "--network",
+        "sepolia",
+        "--mode",
+        "broadcast",
+        "--sender",
+        "0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6"
+      ],
+      "original": {
+        "command": "bun run check:storage-layout:hats-module && bun run test:fork:hats-module-upgrade:sepolia && bun script/upgrade.ts hats-module --network sepolia --broadcast --sender 0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6",
+        "cwd": "packages/contracts"
+      }
+    },
+    {
+      "scope": "contracts",
+      "name": "upgrade:hats-module:dry:arbitrum",
+      "replacement": "bun run contracts -- upgrade hats-module --network arbitrum --mode preflight",
+      "cliArgs": ["upgrade", "hats-module", "--network", "arbitrum", "--mode", "preflight"],
+      "original": {
+        "command": "bun script/upgrade.ts hats-module --network arbitrum --dry-run --pure-simulation",
+        "cwd": "packages/contracts"
+      }
+    },
+    {
+      "scope": "contracts",
+      "name": "upgrade:hats-module:plan:arbitrum",
+      "replacement": "bun run contracts -- upgrade hats-module --network arbitrum --mode plan --sender 0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6",
+      "cliArgs": [
+        "upgrade",
+        "hats-module",
+        "--network",
+        "arbitrum",
+        "--mode",
+        "plan",
+        "--sender",
+        "0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6"
+      ],
+      "original": {
+        "command": "bun script/upgrade.ts hats-module --network arbitrum --tx-plan --sender 0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6",
+        "cwd": "packages/contracts"
+      }
+    },
+    {
+      "scope": "contracts",
+      "name": "upgrade:hats-module:arbitrum",
+      "replacement": "bun run contracts -- upgrade hats-module --network arbitrum --mode broadcast --sender 0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6",
+      "cliArgs": [
+        "upgrade",
+        "hats-module",
+        "--network",
+        "arbitrum",
+        "--mode",
+        "broadcast",
+        "--sender",
+        "0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6"
+      ],
+      "original": {
+        "command": "bun run check:storage-layout:hats-module && bun run test:fork:hats-module-upgrade:arbitrum && bun script/upgrade.ts hats-module --network arbitrum --broadcast --sender 0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6",
+        "cwd": "packages/contracts"
+      }
+    },
+    {
+      "scope": "contracts",
+      "name": "upgrade:signal-pool-yield-wiring:dry:arbitrum",
+      "replacement": "bun run contracts -- upgrade signal-pool-yield-wiring --network arbitrum --mode preflight",
+      "cliArgs": ["upgrade", "signal-pool-yield-wiring", "--network", "arbitrum", "--mode", "preflight"],
+      "original": {
+        "command": "bun script/upgrade.ts signal-pool-yield-wiring --network arbitrum --dry-run --pure-simulation",
+        "cwd": "packages/contracts"
+      }
+    },
+    {
+      "scope": "contracts",
+      "name": "upgrade:signal-pool-yield-wiring:simulate:arbitrum",
+      "replacement": "bun run contracts -- upgrade signal-pool-yield-wiring --network arbitrum --mode simulate --sender 0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6",
+      "cliArgs": [
+        "upgrade",
+        "signal-pool-yield-wiring",
+        "--network",
+        "arbitrum",
+        "--mode",
+        "simulate",
+        "--sender",
+        "0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6"
+      ],
+      "original": {
+        "command": "bun script/upgrade.ts signal-pool-yield-wiring --network arbitrum --sender 0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6",
+        "cwd": "packages/contracts"
+      }
+    },
+    {
+      "scope": "contracts",
+      "name": "upgrade:signal-pool-yield-wiring:arbitrum",
+      "replacement": "bun run contracts -- upgrade signal-pool-yield-wiring --network arbitrum --mode broadcast --sender 0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6",
+      "cliArgs": [
+        "upgrade",
+        "signal-pool-yield-wiring",
+        "--network",
+        "arbitrum",
+        "--mode",
+        "broadcast",
+        "--sender",
+        "0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6"
+      ],
+      "original": {
+        "command": "bun script/upgrade.ts signal-pool-yield-wiring --network arbitrum --broadcast --sender 0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6",
+        "cwd": "packages/contracts"
+      }
+    },
+    {
+      "scope": "contracts",
+      "name": "upgrade:dry:celo",
+      "replacement": "bun run contracts -- upgrade all --network celo --mode preflight",
+      "cliArgs": ["upgrade", "all", "--network", "celo", "--mode", "preflight"],
+      "original": {
+        "command": "bun script/upgrade.ts all --network celo --dry-run --pure-simulation",
+        "cwd": "packages/contracts"
+      }
+    },
+    {
+      "scope": "contracts",
+      "name": "upgrade:sepolia",
+      "replacement": "bun run contracts -- upgrade all --network sepolia --mode broadcast",
+      "cliArgs": ["upgrade", "all", "--network", "sepolia", "--mode", "broadcast"],
+      "original": {
+        "command": "bun script/upgrade.ts all --network sepolia --broadcast",
+        "cwd": "packages/contracts"
+      }
+    },
+    {
+      "scope": "contracts",
+      "name": "upgrade:arbitrum",
+      "replacement": "bun run contracts -- upgrade all --network arbitrum --mode broadcast",
+      "cliArgs": ["upgrade", "all", "--network", "arbitrum", "--mode", "broadcast"],
+      "original": {
+        "command": "bun script/upgrade.ts all --network arbitrum --broadcast",
+        "cwd": "packages/contracts"
+      }
+    },
+    {
+      "scope": "contracts",
+      "name": "upgrade:celo",
+      "replacement": "bun run contracts -- upgrade all --network celo --mode broadcast",
+      "cliArgs": ["upgrade", "all", "--network", "celo", "--mode", "broadcast"],
+      "original": {
+        "command": "bun script/upgrade.ts all --network celo --broadcast",
+        "cwd": "packages/contracts"
+      }
+    },
+    {
+      "scope": "contracts",
+      "name": "status",
+      "replacement": "bun run contracts -- status --network <network>",
+      "cliArgs": ["status", "--network", "<network>"],
+      "original": {
+        "command": "bun script/deploy.ts status",
+        "cwd": "packages/contracts"
+      }
+    },
+    {
+      "scope": "contracts",
+      "name": "envio:local",
+      "replacement": "bun run contracts -- indexer update 31337",
+      "cliArgs": ["indexer", "update", "31337"],
+      "original": {
+        "command": "bun script/utils/envio-integration.ts update 31337",
+        "cwd": "packages/contracts"
+      }
+    },
+    {
+      "scope": "contracts",
+      "name": "envio:cleanup",
+      "replacement": "bun run contracts -- indexer restore",
+      "cliArgs": ["indexer", "restore"],
+      "original": {
+        "command": "bun script/utils/envio-integration.ts restore",
+        "cwd": "packages/contracts"
+      }
+    },
+    {
+      "scope": "contracts",
+      "name": "ipfs:upload",
+      "replacement": "bun run contracts -- ipfs upload",
+      "cliArgs": ["ipfs", "upload"],
+      "original": {
+        "command": "bun script/utils/ipfs-uploader.ts",
+        "cwd": "packages/contracts"
+      }
+    },
+    {
+      "scope": "contracts",
+      "name": "ipfs:cache",
+      "replacement": "bun run contracts -- ipfs cache",
+      "cliArgs": ["ipfs", "cache"],
+      "original": {
+        "command": "cat .generated/runtime/ipfs-cache.json",
+        "cwd": "packages/contracts"
+      }
+    },
+    {
+      "scope": "root",
+      "name": "format:contracts",
+      "replacement": "bun run --cwd packages/contracts format",
+      "original": {
+        "command": "cd packages/contracts && bun run format",
+        "cwd": "."
+      }
+    },
+    {
+      "scope": "root",
+      "name": "format:contracts:check",
+      "replacement": "bun run --cwd packages/contracts format --check",
+      "original": {
+        "command": "cd packages/contracts && bun run format:check",
+        "cwd": "."
+      }
+    },
+    {
+      "scope": "root",
+      "name": "indexer:doctor",
+      "replacement": "bun run dev:health -- --profile full",
+      "original": {
+        "command": "cd packages/indexer && bun run doctor",
+        "cwd": "."
+      }
+    },
+    {
+      "scope": "root",
+      "name": "indexer:check-boundary",
+      "replacement": "bun run --cwd packages/indexer check:indexing-boundary",
+      "original": {
+        "command": "cd packages/indexer && bun run check:indexing-boundary",
+        "cwd": "."
+      }
+    },
+    {
+      "scope": "root",
+      "name": "indexer:db:up",
+      "replacement": "bun run --cwd packages/indexer db:up",
+      "original": {
+        "command": "cd packages/indexer && bun run db:up",
+        "cwd": "."
+      }
+    },
+    {
+      "scope": "root",
+      "name": "indexer:db:down",
+      "replacement": "bun run --cwd packages/indexer db:down",
+      "original": {
+        "command": "cd packages/indexer && bun run db:down",
+        "cwd": "."
+      }
+    },
+    {
+      "scope": "root",
+      "name": "indexer:reset",
+      "replacement": "bun run --cwd packages/indexer reset",
+      "original": {
+        "command": "cd packages/indexer && bun run reset",
+        "cwd": "."
+      }
+    },
+    {
+      "scope": "root",
+      "name": "dev:contracts",
+      "replacement": "bun run --cwd packages/contracts dev",
+      "original": {
+        "command": "cd packages/contracts && bun run dev",
+        "cwd": "."
+      }
+    },
+    {
+      "scope": "root",
+      "name": "dev:contracts:arbitrum-fork",
+      "replacement": "bun run --cwd packages/contracts dev:arbitrum-fork",
+      "original": {
+        "command": "cd packages/contracts && bun run dev:arbitrum-fork",
+        "cwd": "."
+      }
+    },
+    {
+      "scope": "root",
+      "name": "verify:contracts:arbitrum-fork",
+      "replacement": "bun run contracts -- verify arbitrum-fork --network arbitrum",
+      "original": {
+        "command": "bun run --cwd packages/contracts verify:arbitrum-fork",
+        "cwd": "."
+      }
+    },
+    {
+      "scope": "root",
+      "name": "test:client",
+      "replacement": "bun run --cwd packages/client test",
+      "original": {
+        "command": "cd packages/client && bun run test",
+        "cwd": "."
+      }
+    },
+    {
+      "scope": "root",
+      "name": "test:admin",
+      "replacement": "bun run --cwd packages/admin test",
+      "original": {
+        "command": "cd packages/admin && bun run test",
+        "cwd": "."
+      }
+    },
+    {
+      "scope": "root",
+      "name": "test:agent",
+      "replacement": "bun run --cwd packages/agent test",
+      "original": {
+        "command": "cd packages/agent && bun run test",
+        "cwd": "."
+      }
+    },
+    {
+      "scope": "root",
+      "name": "test:docs",
+      "replacement": "bun run --cwd docs test",
+      "original": {
+        "command": "cd docs && bun run test",
+        "cwd": "."
+      }
+    },
+    {
+      "scope": "root",
+      "name": "test:shared",
+      "replacement": "bun run --cwd packages/shared test",
+      "original": {
+        "command": "cd packages/shared && bun run test",
+        "cwd": "."
+      }
+    },
+    {
+      "scope": "root",
+      "name": "test:shared:live",
+      "replacement": "bun run --cwd packages/shared test --scope live",
+      "original": {
+        "command": "cd packages/shared && bun run test:live",
+        "cwd": "."
+      }
+    },
+    {
+      "scope": "root",
+      "name": "test:indexer",
+      "replacement": "bun run --cwd packages/indexer test",
+      "original": {
+        "command": "cd packages/indexer && bun run test",
+        "cwd": "."
+      }
+    },
+    {
+      "scope": "root",
+      "name": "test:indexer:contract-events",
+      "replacement": "bun run --cwd packages/indexer test --scope contract-events",
+      "original": {
+        "command": "bun run --cwd packages/indexer test:contract-events",
+        "cwd": "."
+      }
+    },
+    {
+      "scope": "root",
+      "name": "test:contracts",
+      "replacement": "bun run --cwd packages/contracts test",
+      "original": {
+        "command": "cd packages/contracts && bun run test",
+        "cwd": "."
+      }
+    },
+    {
+      "scope": "root",
+      "name": "build:docs",
+      "replacement": "bun run --cwd docs build",
+      "original": {
+        "command": "cd docs && bun run build",
+        "cwd": "."
+      }
+    },
+    {
+      "scope": "root",
+      "name": "build:client",
+      "replacement": "bun run --cwd packages/client build",
+      "original": {
+        "command": "cd packages/client && bun run build",
+        "cwd": "."
+      }
+    },
+    {
+      "scope": "root",
+      "name": "build:admin",
+      "replacement": "bun run --cwd packages/admin build",
+      "original": {
+        "command": "cd packages/admin && bun run build",
+        "cwd": "."
+      }
+    },
+    {
+      "scope": "root",
+      "name": "build:agent",
+      "replacement": "bun run --cwd packages/agent build",
+      "original": {
+        "command": "cd packages/agent && bun run build",
+        "cwd": "."
+      }
+    },
+    {
+      "scope": "root",
+      "name": "build:shared",
+      "replacement": "bun run --cwd packages/shared build",
+      "original": {
+        "command": "cd packages/shared && bun run build",
+        "cwd": "."
+      }
+    },
+    {
+      "scope": "root",
+      "name": "build:indexer",
+      "replacement": "bun run --cwd packages/indexer build",
+      "original": {
+        "command": "cd packages/indexer && bun run build",
+        "cwd": "."
+      }
+    },
+    {
+      "scope": "root",
+      "name": "build:contracts",
+      "replacement": "bun run --cwd packages/contracts build",
+      "original": {
+        "command": "cd packages/contracts && bun run build",
+        "cwd": "."
+      }
+    },
+    {
+      "scope": "root",
+      "name": "check:contract-sizes",
+      "replacement": "bun run --cwd packages/contracts check:sizes",
+      "original": {
+        "command": "bun run --cwd packages/contracts check:sizes",
+        "cwd": "."
+      }
+    },
+    {
+      "scope": "root",
+      "name": "check:contracts-storage-layout:hats-module",
+      "replacement": "bun run --cwd packages/contracts check:storage-layout -- --contract HatsModule",
+      "original": {
+        "command": "bun run --cwd packages/contracts check:storage-layout:hats-module",
+        "cwd": "."
+      }
+    },
+    {
+      "scope": "root",
+      "name": "docs:audit:ci",
+      "replacement": "node docs/scripts/docs-audit.mjs --ci",
+      "original": {
+        "command": "node docs/scripts/docs-audit.mjs --ci",
+        "cwd": "."
+      }
+    },
+    {
+      "scope": "root",
+      "name": "docs:audit:readme",
+      "replacement": "node docs/scripts/docs-audit.mjs --strict-readme",
+      "original": {
+        "command": "node docs/scripts/docs-audit.mjs --strict-readme",
+        "cwd": "."
+      }
+    },
+    {
+      "scope": "root",
+      "name": "upload:action-images:dry-run",
+      "replacement": "APP_ENV=development bun scripts/ops/upload-action-images.ts --dry-run",
+      "original": {
+        "command": "APP_ENV=development bun scripts/ops/upload-action-images.ts --dry-run",
+        "cwd": "."
+      }
+    },
+    {
+      "scope": "contracts",
+      "name": "test:e2e:workflow",
+      "replacement": "bun run --cwd packages/contracts test:e2e workflow",
+      "original": {
+        "command": "bash script/utils/run-e2e.sh workflow",
+        "cwd": "packages/contracts"
+      }
+    },
+    {
+      "scope": "contracts",
+      "name": "test:e2e:karma",
+      "replacement": "bun run --cwd packages/contracts test:e2e karma",
+      "original": {
+        "command": "bash script/utils/run-e2e.sh karma",
+        "cwd": "packages/contracts"
+      }
+    },
+    {
+      "scope": "contracts",
+      "name": "test:e2e:sepolia",
+      "replacement": "bun run --cwd packages/contracts test:e2e sepolia",
+      "original": {
+        "command": "bash script/utils/run-e2e.sh sepolia",
+        "cwd": "packages/contracts"
+      }
+    },
+    {
+      "scope": "contracts",
+      "name": "test:e2e:arbitrum",
+      "replacement": "bun run --cwd packages/contracts test:e2e arbitrum",
+      "original": {
+        "command": "bash script/utils/run-e2e.sh arbitrum",
+        "cwd": "packages/contracts"
+      }
+    },
+    {
+      "scope": "contracts",
+      "name": "test:e2e:celo",
+      "replacement": "bun run --cwd packages/contracts test:e2e celo",
+      "original": {
+        "command": "bash script/utils/run-e2e.sh celo",
+        "cwd": "packages/contracts"
+      }
+    },
+    {
+      "scope": "contracts",
+      "name": "test:fork:arbitrum:ci",
+      "replacement": "bun run --cwd packages/contracts test:shard run arbitrum",
+      "original": {
+        "command": "bun script/utils/fork-shards.mjs run arbitrum",
+        "cwd": "packages/contracts"
+      }
+    },
+    {
+      "scope": "contracts",
+      "name": "test:fork:hats-module-upgrade:arbitrum",
+      "replacement": "bun run --cwd packages/contracts test:shard run hats-module-upgrade-arbitrum",
+      "original": {
+        "command": "bun script/utils/fork-shards.mjs run hats-module-upgrade-arbitrum",
+        "cwd": "packages/contracts"
+      }
+    },
+    {
+      "scope": "contracts",
+      "name": "test:fork:hats-module-upgrade:sepolia",
+      "replacement": "bun run --cwd packages/contracts test:shard run hats-module-upgrade-sepolia",
+      "original": {
+        "command": "bun script/utils/fork-shards.mjs run hats-module-upgrade-sepolia",
+        "cwd": "packages/contracts"
+      }
+    },
+    {
+      "scope": "contracts",
+      "name": "test:fork:pooling:arbitrum",
+      "replacement": "bun run --cwd packages/contracts test:shard run pooling-arbitrum",
+      "original": {
+        "command": "bun script/utils/fork-shards.mjs run pooling-arbitrum",
+        "cwd": "packages/contracts"
+      }
+    },
+    {
+      "scope": "contracts",
+      "name": "test:fork:settlement-lane",
+      "replacement": "bun run --cwd packages/contracts test:shard run settlement-lane",
+      "original": {
+        "command": "bun script/utils/fork-shards.mjs run settlement-lane",
+        "cwd": "packages/contracts"
+      }
+    },
+    {
+      "scope": "contracts",
+      "name": "test:fork:sepolia:ci",
+      "replacement": "bun run --cwd packages/contracts test:shard run sepolia",
+      "original": {
+        "command": "bun script/utils/fork-shards.mjs run sepolia",
+        "cwd": "packages/contracts"
+      }
+    },
+    {
+      "scope": "contracts",
+      "name": "test:fork:ethereum:ci",
+      "replacement": "bun run --cwd packages/contracts test:shard run ethereum",
+      "original": {
+        "command": "bun script/utils/fork-shards.mjs run ethereum",
+        "cwd": "packages/contracts"
+      }
+    },
+    {
+      "scope": "contracts",
+      "name": "test:fork:gardens:ci",
+      "replacement": "bun run --cwd packages/contracts test:shard run gardens",
+      "original": {
+        "command": "bun script/utils/fork-shards.mjs run gardens",
+        "cwd": "packages/contracts"
+      }
+    },
+    {
+      "scope": "contracts",
+      "name": "test:fork:octant:ci",
+      "replacement": "bun run --cwd packages/contracts test:shard run octant",
+      "original": {
+        "command": "bun script/utils/fork-shards.mjs run octant",
+        "cwd": "packages/contracts"
+      }
+    },
+    {
+      "scope": "contracts",
+      "name": "test:fork:shards:ci",
+      "replacement": "bun run --cwd packages/contracts test:shard run all",
+      "original": {
+        "command": "bun script/utils/fork-shards.mjs run all",
+        "cwd": "packages/contracts"
+      }
+    },
+    {
+      "scope": "contracts",
+      "name": "test:fork:shards:check",
+      "replacement": "bun run --cwd packages/contracts test:shard check",
+      "original": {
+        "command": "bun script/utils/fork-shards.mjs check",
+        "cwd": "packages/contracts"
+      }
+    },
+    {
+      "scope": "docs",
+      "name": "audit:ci",
+      "replacement": "bun run --cwd docs audit -- --ci",
+      "original": {
+        "command": "node scripts/docs-audit.mjs --ci",
+        "cwd": "docs"
+      }
+    }
+  ]
+}

@@ -18,6 +18,15 @@ function useReceiptTokenFragmentScrub() {
  */
 export default function Root() {
   useReceiptTokenFragmentScrub();
+  useLayoutEffect(() => {
+    // Each shell owns its document scroll policy. Browser/Router restoration
+    // must not race editorial history restoration or PWA route resets.
+    const previous = window.history.scrollRestoration;
+    window.history.scrollRestoration = "manual";
+    return () => {
+      window.history.scrollRestoration = previous;
+    };
+  }, []);
   const location = useLocation();
   const toastVariant = getClientToastViewportVariant(location.pathname);
 
@@ -28,7 +37,7 @@ export default function Root() {
   });
 
   return (
-    <div id="client-scroll-root" className="overflow-x-hidden w-full h-full">
+    <div id="client-scroll-root" className="overflow-x-clip w-full min-h-dvh">
       <Outlet />
       <ToastViewport
         variant={toastVariant}

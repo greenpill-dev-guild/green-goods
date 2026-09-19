@@ -29,7 +29,7 @@ function command(overrides: Partial<SubmitApprovalCommand> = {}): SubmitApproval
 
 function ports(overrides: Partial<SubmitApprovalPorts> = {}): SubmitApprovalPorts {
   return {
-    connectivity: { isOnline: () => true },
+    connectivity: { confirm: async () => true },
     direct: vi.fn().mockResolvedValue({ hash: MOCK_TX_HASH, confirmed: true }),
     queue: {
       enqueue: vi.fn().mockResolvedValue({ txHash: OFFLINE_HASH, jobId: "job-1" }),
@@ -65,13 +65,66 @@ describe("submitApproval", () => {
   });
 
   it("returns the durable queue result while offline", async () => {
-    const dependencies = ports({ connectivity: { isOnline: () => false } });
+    const dependencies = ports({ connectivity: { confirm: async () => false } });
 
     await expect(submitApproval(command({ authMode: "passkey" }), dependencies)).resolves.toEqual({
       hash: OFFLINE_HASH,
       kind: "queued",
     });
     expect(dependencies.queue.process).not.toHaveBeenCalled();
+  });
+
+  it("keeps a sponsored approval queued while the connection is unconfirmed", async () => {
+    const dependencies = ports({
+      connectivity: { confirm: async () => false },
+    });
+
+    await expect(submitApproval(command({ authMode: "passkey" }), dependencies)).resolves.toEqual({
+      hash: OFFLINE_HASH,
+      kind: "queued",
+    });
+    expect(dependencies.queue.process).not.toHaveBeenCalled();
+  });
+
+  it("keeps a wallet decision on the device where Upload all is on hand, and never opens the wallet", async () => {
+    // In the client a wallet steward can decide offline like a passkey steward:
+    // the decision waits in the queue and Upload all sends it with the rest.
+    let confirmed = false;
+    const dependencies = ports({
+      connectivity: { confirm: async () => confirmed },
+    });
+    // The connection recovering a moment later must not send it from here either:
+    // that would open the wallet outside the decision's own flow.
+    vi.mocked(dependencies.queue.enqueue).mockImplementation(async () => {
+      confirmed = true;
+      return { txHash: OFFLINE_HASH, jobId: "job-1" };
+    });
+
+    await expect(
+      submitApproval(command({ queueWalletDecisions: true }), dependencies)
+    ).resolves.toEqual({ hash: OFFLINE_HASH, kind: "queued" });
+    expect(dependencies.direct).not.toHaveBeenCalled();
+    expect(dependencies.queue.process).not.toHaveBeenCalled();
+  });
+
+  it("still sends a wallet decision straight to the wallet on a confirmed connection", async () => {
+    const dependencies = ports({
+      connectivity: { confirm: async () => true },
+    });
+
+    await expect(
+      submitApproval(command({ queueWalletDecisions: true }), dependencies)
+    ).resolves.toMatchObject({ kind: "direct" });
+    expect(dependencies.queue.enqueue).not.toHaveBeenCalled();
+  });
+
+  it("refuses a wallet approval on an unconfirmed connection, before the wallet is asked", async () => {
+    const dependencies = ports({
+      connectivity: { confirm: async () => false },
+    });
+
+    await expect(submitApproval(command(), dependencies)).rejects.toThrow(/connection/i);
+    expect(dependencies.direct).not.toHaveBeenCalled();
   });
 
   it("rejects terminal work before calling a port", async () => {

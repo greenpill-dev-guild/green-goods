@@ -1,9 +1,13 @@
+import { getDocumentScrollPosition } from "@green-goods/shared/hooks/ui/useDocumentScrollLock";
+import { toastService } from "@green-goods/shared/components/Toast/toast.service";
+import { consumeAppLaunchFallback } from "@green-goods/shared/utils/app/browser";
+import { useIntl } from "react-intl";
 import { useEffect, useLayoutEffect, useRef } from "react";
-import { Outlet, ScrollRestoration, useLocation, useNavigationType } from "react-router-dom";
+import { Outlet, useLocation, useNavigationType } from "react-router-dom";
+import { clearChunkReloadAttempt } from "@/components/Errors/errorClassification";
 import { SiteHeader } from "@/components/Navigation/SiteHeader";
 import { publicCuration } from "@/content/publicCuration";
 
-const PUBLIC_SCROLL_ROOT_ID = "client-scroll-root";
 const PUBLIC_SCROLL_PRESERVED_SEARCH_PARAMS = new Set(["manage"]);
 const PUBLIC_SCROLL_DISMISSED_ON_MANAGEMENT_OPEN_SEARCH_PARAMS = new Set(["intent"]);
 
@@ -18,38 +22,15 @@ type PublicRouteSnapshot = {
   search: string;
 };
 
-function getPublicScrollRoot(): HTMLElement | null {
-  return document.getElementById(PUBLIC_SCROLL_ROOT_ID);
-}
-
 function scrollPublicRootToTop() {
-  const scrollRoot = getPublicScrollRoot();
-  if (scrollRoot) {
-    scrollRoot.scrollTop = 0;
-    scrollRoot.scrollLeft = 0;
-    scrollRoot.scrollTo?.({ top: 0, left: 0, behavior: "auto" });
-  }
   window.scrollTo({ top: 0, left: 0, behavior: "auto" });
 }
 
 function readPublicScrollPosition(): PublicScrollPosition {
-  const scrollRoot = getPublicScrollRoot();
-  if (scrollRoot) {
-    return { left: scrollRoot.scrollLeft, top: scrollRoot.scrollTop };
-  }
-  return { left: window.scrollX, top: window.scrollY };
+  return getDocumentScrollPosition();
 }
 
 function restorePublicScrollPosition(position: PublicScrollPosition) {
-  const scrollRoot = getPublicScrollRoot();
-  if (scrollRoot) {
-    scrollRoot.scrollTop = position.top;
-    scrollRoot.scrollLeft = position.left;
-    scrollRoot.scrollTo?.({ top: position.top, left: position.left, behavior: "auto" });
-    window.scrollTo({ top: 0, left: 0, behavior: "auto" });
-    return;
-  }
-
   window.scrollTo({ top: position.top, left: position.left, behavior: "auto" });
 }
 
@@ -116,7 +97,7 @@ function useLatestPublicScrollPositionRef() {
   const interactionScrollPositionRef = useRef<PublicScrollPosition | null>(null);
 
   useEffect(() => {
-    const scrollTarget = getPublicScrollRoot() ?? window;
+    const scrollTarget = window;
     const updateScrollPosition = () => {
       scrollPositionRef.current = readPublicScrollPosition();
     };
@@ -153,10 +134,7 @@ function usePublicRouteScrollReset() {
   const { hash, key, pathname, search } = useLocation();
   const navigationType = useNavigationType();
   const previousRouteRef = useRef<PublicRouteSnapshot | null>(null);
-  // Per-history-entry scroll positions. React Router's <ScrollRestoration>
-  // restores `window`, and this shell scrolls `#client-scroll-root` instead, so
-  // it never sees the position that actually matters. Without this, going back
-  // to /gardens from a Garden page lands at the top of the archive.
+  // Preserve editorial management transitions alongside history-entry positions.
   const positionsRef = useRef<Map<string, PublicScrollPosition>>(new Map());
   const previousKeyRef = useRef<string | null>(null);
   const { interactionScrollPositionRef, scrollPositionRef } = useLatestPublicScrollPositionRef();
@@ -279,16 +257,42 @@ function useWarmPublicHeroImages() {
  * Used for the public-facing website experience (browser mode).
  */
 export default function PublicShell() {
+  // The router resolves every matched lazy route before this shell mounts, so
+  // reaching here proves the one-shot chunk reload worked and the guard can
+  // re-arm for the next stale deploy.
+  useEffect(() => {
+    clearChunkReloadAttempt();
+  }, []);
   usePublicRouteScrollReset();
   useWarmPublicHeroImages();
+  const { formatMessage } = useIntl();
+  const fallbackPositionRef = useRef<PublicScrollPosition | null>(null);
+  useEffect(() => {
+    const position = fallbackPositionRef.current ?? consumeAppLaunchFallback();
+    if (!position) return;
+    fallbackPositionRef.current = position;
+    const frame = requestAnimationFrame(() => {
+      window.scrollTo({ ...position, behavior: "instant" });
+      fallbackPositionRef.current = null;
+      toastService.info({
+        id: "app-launch-unavailable",
+        message: formatMessage({
+          id: "public.install.openFailed",
+          defaultMessage: "Couldn’t open Green Goods. Open it from your apps.",
+        }),
+      });
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [formatMessage]);
 
   return (
-    <div className="flex min-h-screen flex-col bg-bg-white-0">
+    // data-site gives shared buttons the website corner and weight (DL-026), including in
+    // dialogs that portal out of this shell.
+    <div className="flex min-h-screen flex-col bg-bg-white-0" data-site="website">
       <SiteHeader />
       <main className="vt-main flex-1">
         <Outlet />
       </main>
-      <ScrollRestoration />
     </div>
   );
 }

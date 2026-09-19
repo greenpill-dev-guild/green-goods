@@ -98,7 +98,12 @@ export function useWorkApprovalActions({
     [gardenId, onApprovalComplete, scheduleTimeout]
   );
 
-  const workApprovalMutation = useWorkApproval({ onApprovalComplete: completeApproval });
+  // This is the client's work detail, where Your Work and Upload all are on hand:
+  // a wallet decision made offline waits on the device like a passkey's.
+  const workApprovalMutation = useWorkApproval({
+    onApprovalComplete: completeApproval,
+    queueWalletDecisions: true,
+  });
 
   const effectiveStatus = optimisticStatus ?? work?.status ?? "pending";
 

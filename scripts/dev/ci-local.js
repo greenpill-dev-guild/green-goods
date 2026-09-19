@@ -9,7 +9,11 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 
 import {
   SUBMODULE_RECOVERY_COMMAND,
+  clearRepositoryLocalGitVariables,
+  findInheritedFixtureIdentity,
+  findSharedGitSettingChanges,
   inspectPinnedSubmodules,
+  readSharedGitSettings,
   reexecUnderCompatibleNodeIfNeeded,
   reexecUnderSystemNodeIfNeeded,
   resolveVitestMaxWorkers,
@@ -18,6 +22,7 @@ import {
   buildReceiptInputs,
   fingerprintReceiptInputs,
   resolveGitInputs,
+  loadPolicy,
   selectValidation,
   summarizeBudget,
 } from "../quality/select-validation.mjs";
@@ -62,6 +67,7 @@ export function parseArguments(argv) {
     changedPaths: [],
     testPaths: {},
     checkIds: [],
+    onlyChecks: [],
     capabilities: {},
     skipContracts: false,
     skipIndexer: false,
@@ -81,7 +87,7 @@ export function parseArguments(argv) {
     const arg = argv[index];
     const next = () => {
       const value = argv[++index];
-      if (!value) throw new Error(`${arg} requires a value`);
+      if (!value || value.startsWith("--")) throw new Error(`${arg} requires a value`);
       return value;
     };
 
@@ -118,6 +124,23 @@ export function parseArguments(argv) {
         break;
       case "--no-fail-fast":
         options.failFast = false;
+        break;
+      case "--plan":
+        options.planOnly = true;
+        break;
+      case "--list":
+        options.list = true;
+        break;
+      case "--json":
+        options.json = true;
+        break;
+      case "--only": {
+        const id = next();
+        options.onlyChecks.push(id);
+        options.checkIds.push(id);
+        break;
+      }
+      case "--":
         break;
       case "--plan-json":
         options.planJson = true;
@@ -173,6 +196,13 @@ export function parseArguments(argv) {
         throw new Error(`Unknown argument: ${arg}`);
     }
   }
+  if (options.onlyChecks.length && !argv.includes("--intent")) options.intent = "diagnose";
+  if (options.json && !options.planOnly && !options.planJson && !options.list) {
+    throw new Error("--json requires --plan or --list");
+  }
+  if (options.list && (options.checkIds.length || options.planOnly || options.planJson)) {
+    throw new Error("--list cannot be combined with check selection or --plan");
+  }
   if (
     options.intent === "checkpoint" &&
     options.checkpointScope === "lane" &&
@@ -185,7 +215,7 @@ export function parseArguments(argv) {
 }
 
 function showHelp() {
-  console.log(`Usage: node scripts/dev/ci-local.js [options]
+  console.log(`Usage: bun run check -- [options]
 
 Selector options:
   --intent <intent>       diagnose|qa|review|checkpoint|readiness|push|ship|merge|release
@@ -196,6 +226,10 @@ Selector options:
   --risk <risk>           routine|sensitive|critical
   --test-path <pkg:path>  Direct behavior proof for push, e.g. shared:src/utils/date.test.ts
   --check <check-id>      Add an explicit acceptance check; repeatable
+  --only <check-id>       Select checks plus mandatory checks; repeatable
+  --plan                 Show the plan without executing checks
+  --list                 List stable checks without probing services
+  --json                 JSON output for --plan or --list
   --capability k=true     Declare an environment capability; repeatable
   --plan-json             Print the exact plan as JSON without running it
   --cancelled             Emit a terminal cancelled plan
@@ -265,7 +299,7 @@ export async function arbitrumForkAvailable({
 
 export function capabilityRecoveryHint(capability, contractSubmoduleState) {
   if (capability === "arbitrumFork") {
-    return "Start the local fork with `bun run dev:contracts:arbitrum-fork`.";
+    return "Start the local fork with `bun run --cwd packages/contracts dev:arbitrum-fork`.";
   }
   if (capability === "contractSubmodules") {
     if (contractSubmoduleState === "modified") {
@@ -322,6 +356,7 @@ export function applyCompatibilityFilters(plan, options) {
   const skipped = [];
   const keep = (check) => {
     let requestedSkip = false;
+    if (options.onlyChecks?.length && !options.onlyChecks.includes(check.id)) requestedSkip = true;
     if (options.onlyLint && !["format", "lint"].includes(check.id)) requestedSkip = true;
     if (
       options.skipContracts &&
@@ -343,14 +378,47 @@ export function applyCompatibilityFilters(plan, options) {
     return false;
   };
   const checks = plan.checks.filter(keep);
+  // The toolchain comparison upstream runs over the unfiltered plan, so a tool
+  // that only a dropped check needed — Foundry for contracts-test, say — would
+  // otherwise keep every surviving check blocked. `bun run check --only
+  // design-tokens` on a runner without Foundry is the case that bit CI. Work
+  // out which tools the remaining checks actually require, by the same rule the
+  // comparison uses, and drop the blockers that no longer apply.
+  const requiredTools = new Set(["node"]);
+  if (checks.some((check) => check.command?.includes("bun"))) requiredTools.add("bun");
+  if (checks.some((check) => check.capabilities?.includes("foundry"))) requiredTools.add("foundry");
+  const priorBlockers = plan.environmentBlockers ?? [];
+  // A blocker is a { capability } record from the toolchain comparison, or a
+  // bare capability string from a caller that built the plan by hand.
+  const capabilityOf = (blocker) =>
+    typeof blocker === "string" ? blocker : String(blocker?.capability ?? "");
+  const environmentBlockers = priorBlockers.filter((blocker) =>
+    requiredTools.has(capabilityOf(blocker).replace(/^toolchain\./, "")),
+  );
+  const lifted = new Set(
+    priorBlockers
+      .filter((blocker) => !environmentBlockers.includes(blocker))
+      .map(capabilityOf),
+  );
+  // A lifted toolchain blocker was stamped onto every check, including the ones
+  // that survived; clear it there too, leaving capability blocks untouched.
+  const rescoped =
+    lifted.size === 0
+      ? checks
+      : checks.map((check) => {
+          const blockedBy = (check.blockedBy ?? []).filter(
+            (capability) => !lifted.has(capability),
+          );
+          return { ...check, blockedBy, state: blockedBy.length > 0 ? "blocked" : "pending" };
+        });
   // Recompute rather than inheriting plan.status: when the only blocked checks
   // are the ones a compatibility filter just dropped, the remaining plan is
   // runnable and must not keep reporting blocked.
   const stillBlocked =
-    checks.some((check) => check.state === "blocked") || plan.environmentBlockers?.length > 0;
+    rescoped.some((check) => check.state === "blocked") || environmentBlockers.length > 0;
   const status = stillBlocked ? "blocked" : plan.status === "blocked" ? "ready" : plan.status;
-  const budget = summarizeBudget(plan.effectiveIntent, checks, plan.risk);
-  return { ...plan, checks, status, budget, skipped };
+  const budget = summarizeBudget(plan.effectiveIntent, rescoped, plan.risk);
+  return { ...plan, checks: rescoped, status, budget, skipped, environmentBlockers };
 }
 
 export function isSupportedCiNodeVersion(version) {
@@ -366,6 +434,10 @@ export function buildLocalValidationPlan(options, gitInputs, environment) {
     head: gitInputs.head,
     workingCopyFingerprint: gitInputs.workingCopyFingerprint,
     changedPaths: gitInputs.changedPaths,
+    // A path deleted or moved since the base is still a changed path; without
+    // this the scoped format and lint commands hand Biome a file that no
+    // longer exists and the whole plan fails at its first check.
+    deletedPaths: gitInputs.deletedPaths ?? [],
     risk: options.risk,
     cancelled: options.cancelled,
     testPaths: options.testPaths,
@@ -770,10 +842,34 @@ function printPlan(plan) {
   }
 }
 
+function reportGitFixtureLeak({ problems, repairs }, consequence) {
+  if (problems.length === 0) return false;
+  console.error(
+    `\n${colors.red}The git config shared by every worktree shows a test-fixture leak:${colors.reset}`,
+  );
+  for (const problem of problems) console.error(`  - ${problem}`);
+  console.error(`${consequence} Restore the config with:`);
+  for (const repair of repairs) console.error(`  ${repair}`);
+  return true;
+}
+
 async function main() {
+  // The push hook exports GIT_DIR inside a linked worktree, and every check inherits this
+  // environment. Clear it so `cwd` chooses the repository for each of them.
+  clearRepositoryLocalGitVariables();
   const options = parseArguments(process.argv.slice(2));
   if (options.help) {
     showHelp();
+    return;
+  }
+  const policy = loadPolicy();
+  if (!policy.intentOrder.includes(options.intent)) throw new Error(`Unknown validation intent: ${options.intent}`);
+  for (const id of options.checkIds) {
+    if (!policy.checks.some((check) => check.id === id)) throw new Error(`Unknown validation check: ${id}`);
+  }
+  if (options.list) {
+    const checks = policy.checks.map(({ id, command, capabilities, risk, expectedSignal }) => ({ id, command, capabilities: capabilities ?? [], risk, expectedSignal }));
+    console.log(options.json ? JSON.stringify(checks, null, 2) : checks.map((check) => `${check.id}: ${check.expectedSignal}`).join("\n"));
     return;
   }
 
@@ -782,6 +878,7 @@ async function main() {
         base: options.base ?? null,
         head: options.head ?? null,
         changedPaths: options.changedPaths,
+        deletedPaths: [],
         workingCopyFingerprint: null,
       }
     : resolveGitInputs(options);
@@ -790,16 +887,33 @@ async function main() {
     : await detectEnvironment(options);
   const plan = buildLocalValidationPlan(options, gitInputs, environment);
 
-  if (options.planJson) {
+  if (options.planJson || options.planOnly && options.json) {
     console.log(JSON.stringify(plan, null, 2));
     return;
   }
 
   printPlan(plan);
+  if (options.planOnly) return;
   if (options.generateIndexer) {
     console.log(
       `${colors.yellow}Note:${colors.reset} --generate-indexer is retained for compatibility; selected Indexer package commands own code generation.`,
     );
+  }
+
+  // A fixture identity left in the shared config authors every commit made since. Refuse to
+  // publish them, because repairing a pushed author needs a force-push; lighter intents only warn.
+  const sharedGitSettings = readSharedGitSettings({ cwd: projectRoot });
+  const publishing =
+    policy.intentOrder.indexOf(options.intent) >= policy.intentOrder.indexOf("push");
+  const inheritedIdentity = reportGitFixtureLeak(
+    findInheritedFixtureIdentity(sharedGitSettings),
+    publishing
+      ? "Commits made since carry that author, so nothing is published from here."
+      : "Commits made since carry that author, and a push will be refused.",
+  );
+  if (inheritedIdentity && publishing) {
+    process.exitCode = 1;
+    return;
   }
 
   const abortController = new AbortController();
@@ -863,7 +977,12 @@ async function main() {
   } else {
     console.log(`\n${colors.red}Validation failed; dependent checks stopped.${colors.reset}`);
   }
-  process.exitCode = execution.exitCode;
+  // A leaking fixture passes its own test, so only the config it wrote to can report it.
+  const leaked = reportGitFixtureLeak(
+    findSharedGitSettingChanges(sharedGitSettings, readSharedGitSettings({ cwd: projectRoot })),
+    "One of these checks wrote to it, or a worktree without this guard did meanwhile.",
+  );
+  process.exitCode = leaked && execution.exitCode === 0 ? 1 : execution.exitCode;
 }
 
 const isDirectRun =

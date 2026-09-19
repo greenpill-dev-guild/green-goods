@@ -10,6 +10,7 @@ const sidebars: SidebarsConfig = {
       label: 'Gardener',
       link: {type: 'doc', id: 'community/gardener-guide/index'},
       items: [
+        {type: 'doc', id: 'community/gardener-guide/installing-and-updating', label: 'Install and Update'},
         {type: 'doc', id: 'community/gardener-guide/joining-a-garden', label: 'Join a Garden'},
         {type: 'doc', id: 'community/gardener-guide/uploading-your-work', label: 'Submit Work'},
         {type: 'doc', id: 'community/gardener-guide/recovery-and-sync', label: 'Recovery and Sync'},
@@ -95,6 +96,8 @@ const sidebars: SidebarsConfig = {
         {type: 'doc', id: 'builders/packages/admin', label: 'Admin'},
         {type: 'doc', id: 'builders/packages/agent', label: 'Agent'},
         {type: 'doc', id: 'builders/packages/api-index', label: 'API Index'},
+        {type: 'doc', id: 'builders/packages/commands', label: 'Command inventory'},
+        {type: 'doc', id: 'builders/packages/contract-operations', label: 'Contract operations'},
       ],
     },
     {

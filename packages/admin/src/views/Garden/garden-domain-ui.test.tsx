@@ -280,13 +280,6 @@ vi.mock("@/components/Garden/GardenSettingsEditor", () => ({
   },
 }));
 
-// The settings dialog also hosts the cookie-jar manage modal, whose
-// useGardenCookieJars hook reads wagmi context this harness doesn't provide —
-// out of scope for the domain-editor flow under test.
-vi.mock("@/views/Hub/components/CookieJarManageModal", () => ({
-  CookieJarManageModal: () => null,
-}));
-
 function TestProviders({ children }: { children: ReactNode }) {
   const queryClient = new QueryClient({
     defaultOptions: {

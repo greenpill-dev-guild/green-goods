@@ -382,6 +382,35 @@ export const ConfirmVariant: Story = {
   ),
 };
 
+/** A confirmation that rests on facts shows them under the description. */
+export const ConfirmWithDetails: Story = {
+  render: () => (
+    <div className="flex min-h-56 items-center justify-center rounded-[var(--m3-shape-lg)] border border-[rgb(var(--m3-outline-variant))] bg-[rgb(var(--m3-surface-container-lowest))] p-6">
+      <AdminConfirmDialog
+        isOpen
+        onClose={() => undefined}
+        onConfirm={() => undefined}
+        title="Update Per-Claim Limit"
+        description="Gardeners in Riverbend Garden will be able to claim up to 10 DAI at a time, once a day."
+        confirmLabel="Update Limit"
+      >
+        <dl className="divide-y divide-stroke-soft rounded-lg bg-bg-weak px-3">
+          {[
+            ["Per-claim limit", "0.01 → 10 DAI"],
+            ["Jar holds", "9.98 DAI · one claim could empty it"],
+            ["Signs as", "Garden account"],
+          ].map(([term, value]) => (
+            <div key={term} className="flex items-baseline justify-between gap-3 py-2">
+              <dt className="shrink-0 text-label-sm text-text-soft">{term}</dt>
+              <dd className="text-right text-body-sm font-medium text-text-strong">{value}</dd>
+            </div>
+          ))}
+        </dl>
+      </AdminConfirmDialog>
+    </div>
+  ),
+};
+
 /**
  * Close-button geometry guard. Runs in addon-vitest browser mode, where the real
  * `@layer` cascade applies (jsdom has none), so `getComputedStyle().position` is

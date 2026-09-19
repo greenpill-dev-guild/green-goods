@@ -1,5 +1,7 @@
+import { AdminButton } from "@/components/AdminButton";
 import { AdminChoiceGroup } from "@/components/AdminChoiceGroup";
 import { AdminDialog } from "@/components/AdminDialog";
+import { Alert } from "@green-goods/shared/components/Alert";
 import { Button } from "@green-goods/shared/components/Button";
 import { TxInlineFeedback } from "@green-goods/shared/components/feedback/TxInlineFeedback";
 import { TextInput } from "@green-goods/shared/components/Form/ControlPrimitives";
@@ -30,6 +32,8 @@ interface CookieJarDepositModalHarnessProps {
   walletBalance?: { value: bigint; decimals: number; symbol: string };
   isPending?: boolean;
   error?: string | null;
+  /** The selected jar's per-claim limit is under the floor: warn, and offer the fix first. */
+  lowLimit?: { limit: string; symbol: string };
 }
 
 function CookieJarDepositModalHarness({
@@ -39,6 +43,7 @@ function CookieJarDepositModalHarness({
   walletBalance,
   isPending = false,
   error = null,
+  lowLimit,
 }: CookieJarDepositModalHarnessProps) {
   const [jarAddress, setJarAddress] = useState(jars[0]?.jarAddress ?? "");
   const [amount, setAmount] = useState("");
@@ -50,6 +55,18 @@ function CookieJarDepositModalHarness({
       open={isOpen}
       onOpenChange={(open) => !open && !isPending && onClose()}
       title="Fund Cookie Jar"
+      actions={
+        lowLimit ? (
+          <>
+            <AdminButton type="button" variant="outlined" onClick={fn()}>
+              Deposit Anyway
+            </AdminButton>
+            <AdminButton type="button" onClick={fn()}>
+              Fix Limit First
+            </AdminButton>
+          </>
+        ) : undefined
+      }
     >
       <div className="space-y-4">
         {jars.length > 1 && (
@@ -107,8 +124,18 @@ function CookieJarDepositModalHarness({
           </p>
         </div>
 
+        {lowLimit ? (
+          <Alert
+            variant="warning"
+            title={`This jar pays out ${lowLimit.limit} ${lowLimit.symbol} per claim`}
+          >
+            Each gardener can claim once a day. At that limit, 25 {lowLimit.symbol} takes 2,500
+            claims to reach them.
+          </Alert>
+        ) : null}
+
         <Button
-          variant="secondary"
+          emphasis="secondary"
           className="w-full"
           loading={isPending}
           disabled={!selected || amount.trim() === ""}
@@ -180,6 +207,11 @@ export const Submitting: Story = {
 
 export const WithError: Story = {
   args: { error: "User rejected the request." },
+};
+
+/** Funding a jar capped at one cent warns; the deposit still goes through. */
+export const LowLimitWarning: Story = {
+  args: { jars: [JARS[1]], lowLimit: { limit: "0.01", symbol: "DAI" } },
 };
 
 export const Closed: Story = {

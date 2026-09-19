@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 
-import initializationEvidence from "../../../../.plans/active/celo-garden-account-safe-ownership/evidence/garden-account-initializers-42161-494723355.json";
-import dependencyEvidence from "../../../../.plans/active/celo-garden-account-safe-ownership/evidence/deterministic-deployments-42161-2026-02-19.json";
-import rawDependencyEvidence from "../../../../.plans/active/celo-garden-account-safe-ownership/evidence/celo-dependency-init-code-2026-08-15.json";
+import initializationEvidence from "../../config/celo-garden-accounts/garden-account-initializers-42161-494723355.json";
+import dependencyEvidence from "../../config/celo-garden-accounts/deterministic-deployments-42161-2026-02-19.json";
+import rawDependencyEvidence from "../../config/celo-garden-accounts/celo-dependency-init-code-2026-08-15.json";
 import {
   buildAccountInitializations,
   validateRawDependencies,

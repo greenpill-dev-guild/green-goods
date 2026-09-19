@@ -28,8 +28,10 @@ import { assertWalletAccount, ensureWagmiWalletChain } from "./chain-guard";
 import { assertLocalArbitrumForkWallet } from "./local-fork-safety";
 import {
   TransactionReplacementError,
+  TransactionRevertedError,
   type ContractCall,
   type TransactionSender,
+  type TransactionSendOptions,
   type TxResult,
 } from "./types";
 
@@ -74,12 +76,18 @@ export class EmbeddedSender implements TransactionSender {
       ensureWagmiWalletChain(this.config, chainId);
   }
 
-  async sendContractCall(call: ContractCall): Promise<TxResult> {
+  async sendContractCall(
+    call: ContractCall,
+    options: TransactionSendOptions = {}
+  ): Promise<TxResult> {
     // TODO: Replace with EIP-5792 sendCalls + paymasterService once @wagmi/core/experimental is stable.
     const chainId = call.chainId ?? DEFAULT_CHAIN_ID;
     await this.deps.ensureWalletChain?.(chainId);
     await this.deps.assertWriteSafety?.();
     if (call.account) assertWalletAccount(call.account, this.deps.getAccount?.().address);
+
+    await options.assertOwnership?.();
+    await options.onBeforeBroadcast?.();
 
     const hash = await this.deps.writeContract(this.config, {
       ...(call.account ? { account: call.account } : {}),
@@ -91,6 +99,9 @@ export class EmbeddedSender implements TransactionSender {
       ...(call.value !== null && call.value !== undefined ? { value: call.value } : {}),
     });
 
+    await options.onBroadcastReference?.({ kind: "transaction", hash: hash as `0x${string}` });
+    await options.onBroadcast?.(hash as `0x${string}`);
+
     let invalidReplacement: "cancelled" | "replaced" | undefined;
     const receipt = await this.deps.waitForTransactionReceipt(this.config, {
       hash,
@@ -101,7 +112,7 @@ export class EmbeddedSender implements TransactionSender {
     });
     if (invalidReplacement) throw new TransactionReplacementError(invalidReplacement);
     if (receipt.status === "reverted") {
-      throw new Error("Transaction reverted on-chain");
+      throw new TransactionRevertedError(hash, "Transaction reverted on-chain");
     }
 
     const confirmedHash = receipt.transactionHash ?? hash;

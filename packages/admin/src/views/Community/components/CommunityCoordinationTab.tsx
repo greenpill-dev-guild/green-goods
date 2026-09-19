@@ -1,8 +1,5 @@
 import { AddressDisplay } from "@green-goods/shared/components/AddressDisplay";
-import { Alert } from "@green-goods/shared/components/Alert";
 import type { CommunityWorkspace } from "@green-goods/shared/hooks/admin-ui/community/useCommunityWorkspaceController";
-import { useGardenYieldWiringState } from "@green-goods/shared/hooks/yield/useGardenYieldWiringState";
-import type { Address } from "@green-goods/shared/types/domain";
 import {
   PoolType,
   WEIGHT_SCHEME_VALUES,
@@ -33,7 +30,6 @@ export function CommunityCoordinationTab({
   isCreatingPools,
 }: CommunityCoordinationTabProps) {
   const { formatMessage } = useIntl();
-  const { wiringState, wiringStatus, repairHref } = useGardenYieldWiringState(gardenId as Address);
   const gardenRouteContext = { gardenId: garden.id };
   const hypercertPool = pools.find((pool) => pool.poolType === PoolType.Hypercert);
   const actionPool = pools.find((pool) => pool.poolType === PoolType.Action);
@@ -48,11 +44,6 @@ export function CommunityCoordinationTab({
       : undefined;
   const weightSchemeValues =
     weightScheme !== undefined ? WEIGHT_SCHEME_VALUES[weightScheme] : undefined;
-  const showWiringSection = Boolean(communityConfig) && pools.length > 0;
-  const canShowReconnectLink =
-    (wiringStatus === "missing-resolver-wiring" || wiringStatus === "mismatch") &&
-    Boolean(wiringState?.expectedHypercertPoolAddress) &&
-    Boolean(repairHref);
 
   return (
     <div className="garden-tab-shell">
@@ -154,27 +145,6 @@ export function CommunityCoordinationTab({
                 })}
               </div>
 
-              {showWiringSection &&
-              (wiringStatus === "missing-resolver-wiring" || wiringStatus === "mismatch") ? (
-                <Alert
-                  variant="warning"
-                  className="p-3"
-                  action={
-                    canShowReconnectLink && repairHref ? (
-                      <Link
-                        to={repairHref}
-                        className="font-medium underline-offset-2 hover:underline"
-                      >
-                        {formatMessage({ id: "app.community.yield.connectAction" })}
-                      </Link>
-                    ) : undefined
-                  }
-                >
-                  {wiringStatus === "mismatch"
-                    ? formatMessage({ id: "app.community.yield.mismatch" })
-                    : formatMessage({ id: "app.community.yield.notConnected" })}
-                </Alert>
-              ) : null}
               {canManage && communityConfig && pools.length === 0 ? (
                 <AdminButton
                   type="button"
@@ -189,12 +159,6 @@ export function CommunityCoordinationTab({
                 </AdminButton>
               ) : null}
               <div className="flex flex-wrap items-center gap-2">
-                {showWiringSection && wiringStatus === "connected" ? (
-                  <p className="inline-flex h-7 items-center gap-1.5 rounded-[var(--radius-md)] bg-success-lighter px-3 text-xs text-success-dark">
-                    <RiCheckLine className="h-4 w-4 shrink-0" aria-hidden="true" />
-                    {formatMessage({ id: "app.community.yield.connected" })}
-                  </p>
-                ) : null}
                 <AdminButton asChild variant="text" size="sm" className="px-0">
                   <Link to={adminRoutes.communityCoordinationStrategies(gardenRouteContext)}>
                     {formatMessage({ id: "app.conviction.manageStrategies" })}

@@ -197,7 +197,7 @@ test.describe("Offline Sync CI Tests", () => {
     });
 
     test("reloads the authenticated app shell while offline", async ({ page, context }) => {
-      // SKIP: #338 owner:afo expiry:2026-09-15 — Vite dev SW has no precached navigation shell.
+      // SKIP: #338 owner:afo expiry:2026-10-16 — Vite dev SW has no precached navigation shell.
       test.skip(
         process.env.PLAYWRIGHT_PWA_PREVIEW !== "true",
         "Offline reload requires a production PWA preview with a precached /home app shell; " +

@@ -1,8 +1,8 @@
 import { jobQueueEventBus } from "../job-queue/event-bus";
+import { clearObsoleteRuntimeCaches } from "./cache-recovery";
 import { logger } from "./logger";
 import { track } from "./posthog";
-
-const REACT_QUERY_PERSISTENCE_KEY = "__rq_pc__";
+import { type BackgroundSyncNotice, SW_MESSAGE, SW_REPLY } from "./service-worker-protocol";
 
 /**
  * Service Worker Manager for Background Sync
@@ -49,9 +49,7 @@ class ServiceWorkerManager {
     }
 
     try {
-      const payload = {
-        type: "REGISTER_SYNC",
-      };
+      const payload = { type: SW_MESSAGE.REGISTER_SYNC };
 
       const controller = navigator.serviceWorker.controller;
       if (controller) {
@@ -78,10 +76,10 @@ class ServiceWorkerManager {
   /**
    * Handle messages from the service worker
    */
-  private async handleMessage(event: MessageEvent) {
-    if (event.data?.type === "BACKGROUND_SYNC") {
+  private async handleMessage(event: MessageEvent<Partial<BackgroundSyncNotice> | undefined>) {
+    if (event.data?.type === SW_REPLY.BACKGROUND_SYNC) {
       const timestamp =
-        typeof event.data?.payload?.timestamp === "number"
+        typeof event.data.payload?.timestamp === "number"
           ? event.data.payload.timestamp
           : Date.now();
 
@@ -97,49 +95,9 @@ class ServiceWorkerManager {
     }
   }
 
-  /**
-   * Clear all SW caches and React Query persistence stores.
-   * Used during sign-out to prevent stale data leaking across sessions.
-   */
+  /** Remove retired runtime caches while preserving shell assets and local evidence. */
   async clearAllCaches(): Promise<void> {
-    // Clear localStorage fallback used when IndexedDB persistence is unavailable.
-    if (typeof window !== "undefined" && "localStorage" in window) {
-      try {
-        window.localStorage.removeItem(REACT_QUERY_PERSISTENCE_KEY);
-      } catch (error) {
-        logger.warn("[ServiceWorker] Failed to clear local query persistence", { error });
-      }
-    }
-
-    // Clear Cache Storage (SW runtime caches)
-    if ("caches" in window) {
-      try {
-        const keys = await caches.keys();
-        await Promise.all(keys.map((key) => caches.delete(key)));
-      } catch (error) {
-        logger.warn("[ServiceWorker] Failed to clear caches", { error });
-      }
-    }
-
-    // Clear React Query IndexedDB persistence store
-    if ("indexedDB" in window) {
-      try {
-        const databases = await indexedDB.databases();
-        await Promise.all(
-          databases
-            .filter((db) => db.name?.includes("gg-react-query"))
-            .map((db) => {
-              return new Promise<void>((resolve, reject) => {
-                const req = indexedDB.deleteDatabase(db.name!);
-                req.onsuccess = () => resolve();
-                req.onerror = () => reject(req.error);
-              });
-            })
-        );
-      } catch (error) {
-        logger.warn("[ServiceWorker] Failed to clear IndexedDB", { error });
-      }
-    }
+    await clearObsoleteRuntimeCaches();
   }
 
   /**

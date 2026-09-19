@@ -43,7 +43,7 @@ export function EmptyState({
         <span className="flex items-center justify-center [&>svg]:h-6 [&>svg]:w-6">{icon}</span>
       </div>
       <div className="mt-3 max-w-sm">
-        <h3 className="text-sm font-medium text-text-strong-950">{title}</h3>
+        <h3 className="text-sm font-semibold text-text-strong-950">{title}</h3>
         {description ? (
           <p className="mt-1 text-sm leading-relaxed text-text-sub-600">{description}</p>
         ) : null}

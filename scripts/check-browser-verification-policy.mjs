@@ -95,8 +95,8 @@ const stalePatterns = [
   /prefer Brave with an isolated/i,
   /use Brave with an\s+isolated/i,
   /shared posture Brave-first/i,
-  /Use `bun run agentic:browser-proof/i,
-  /Build-backed browser proof:\s*`bun run agentic:browser-proof`/i,
+  /Use `bun run browser routes/i,
+  /Build-backed browser proof:\s*`bun run browser routes`/i,
   /Brave MCP live DOM/i,
   /Brave-backed browser MCP/i,
   /Brave-backed DevTools MCP/i,
@@ -141,7 +141,7 @@ if (existsSync(packageJsonPath)) {
 
   const browserProofGuard = 'bun scripts/require-authenticated-browser-qa.mjs && ';
 
-  if (scripts['agentic:browser-proof'] !== 'bun run browser-proof:routes') {
+  if (scripts['agentic:browser-proof'] !== 'bun run browser routes') {
     fail('package.json: agentic:browser-proof must delegate to browser-proof:routes');
   }
 

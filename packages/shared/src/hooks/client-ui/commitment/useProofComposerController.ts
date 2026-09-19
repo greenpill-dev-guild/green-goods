@@ -15,7 +15,12 @@ import {
   proofDraftRepository,
 } from "../../../modules/commitment-pooling/proof-draft-repository";
 import { selectCommitmentSeat } from "../../../modules/commitment-pooling/selectors";
-import { isVideoFile, prepareMediaForUpload } from "../../../modules/work/media-processing";
+import {
+  getWorkMediaId,
+  isHeicFile,
+  isVideoFile,
+  prepareMediaForUpload,
+} from "../../../modules/work/media-processing";
 import type { Address } from "../../../types/domain";
 import { imageCompressor } from "../../../utils/work/image-compression";
 import { useOnlineStatus } from "../../app/useOnlineStatus";
@@ -28,6 +33,7 @@ import {
 } from "../../commitment-pooling/useCommitmentProofDraft";
 import { useCommitment } from "../../commitment-pooling/useCommitmentPooling";
 import { useAudioRecording } from "../../utils/useAudioRecording";
+import { useDeferredHeicConversion } from "../../work/useDeferredHeicConversion";
 import type {
   ProofComposerController,
   ProofComposerStatus,
@@ -88,6 +94,14 @@ export function useProofComposerController(
     words: { note, links, credited: selectedCredit, clientEvidenceId },
     files: { media, audioNotes },
     onRestore: restoreFiles,
+  });
+
+  const heic = useDeferredHeicConversion({
+    files: media,
+    replace: (mediaId, converted) =>
+      setMedia((current) =>
+        current.map((file) => (getWorkMediaId(file) === mediaId ? converted : file))
+      ),
   });
 
   const recording = useAudioRecording({
@@ -228,9 +242,10 @@ export function useProofComposerController(
     status = "closed";
   else if (queued) status = "queued";
 
+  // A HEIC photo waiting to convert shows a placeholder, not a preview.
   const imageUrls = draftRepository.previewUrls(
     "proof",
-    media.filter((file) => !isVideoFile(file))
+    media.filter((file) => !isVideoFile(file) && !isHeicFile(file))
   );
 
   return {
@@ -256,6 +271,8 @@ export function useProofComposerController(
     isPending: jobs.isPending,
     linkInvalid,
     imageUrls,
+    heicStateOf: heic.stateOf,
+    retryHeicConversion: heic.retry,
     readiness,
     toggleCredit,
     toggleRecording: recording.toggle,

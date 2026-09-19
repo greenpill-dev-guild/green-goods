@@ -27,13 +27,13 @@ jobs:
         include:
           - name: Shared
             package: shared
-            script: coverage
+            args: --scope all-configured --coverage
           - name: Client
             package: client
-            script: coverage
+            args: --coverage
           - name: Admin
             package: admin
-            script: test:coverage
+            args: --coverage
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
@@ -43,6 +43,6 @@ jobs:
 
       - name: Run ${{ matrix.name }} coverage
         working-directory: packages/${{ matrix.package }}
-        run: bun run ${{ matrix.script }}
+        run: bun run test ${{ matrix.args }}
         env:
           CI: true

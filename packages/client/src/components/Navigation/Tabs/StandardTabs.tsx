@@ -1,3 +1,4 @@
+import { scrollAppToTop } from "@green-goods/shared/hooks/app/useScrollToTop";
 import { cn } from "@green-goods/shared/utils/styles/cn";
 import React from "react";
 import { pwaStatusStyles } from "@/components/Pwa/statusStyles";
@@ -62,15 +63,8 @@ export const StandardTabs: React.FC<StandardTabsProps> = ({
       nearest.scrollTop = 0;
       return;
     }
-    // 3) Fallback to main app scroll container or window
-    const appScroll = document.getElementById("app-scroll");
-    if (appScroll) {
-      appScroll.scrollTop = 0;
-      return;
-    }
-    if (typeof window !== "undefined") {
-      window.scrollTo({ top: 0, behavior: "auto" });
-    }
+    // 3) Fall back to the page scroller.
+    scrollAppToTop();
   }
 
   return (
@@ -85,6 +79,7 @@ export const StandardTabs: React.FC<StandardTabsProps> = ({
       {tabs.map((tab) => (
         <button
           type="button"
+          data-pressable="tab"
           key={tab.id}
           aria-current={activeTab === tab.id || undefined}
           onClick={(event) => {

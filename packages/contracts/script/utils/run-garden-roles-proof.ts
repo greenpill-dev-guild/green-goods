@@ -8,7 +8,7 @@ import { NetworkManager } from "./network";
 const contractsRoot = path.resolve(import.meta.dir, "../..");
 const reviewedSafeBindings = path.resolve(
   contractsRoot,
-  "../../.plans/active/celo-garden-account-safe-ownership/evidence/garden-safe-final-bindings-2026-08-15.json",
+  "config/celo-garden-accounts/garden-safe-final-bindings-2026-08-15.json",
 );
 
 loadDotenv({ path: path.resolve(contractsRoot, "../../.env"), override: false, quiet: true });

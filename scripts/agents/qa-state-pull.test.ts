@@ -15,12 +15,14 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const blob = { get: vi.fn(), list: vi.fn() };
 
+import { RUN_INDEX_PATH, legacyRunRecord } from "../../packages/qa/runs";
 import {
   assertPrivateOutputPath,
   existingArtifacts,
   parseArgs,
   parseShard,
   PULL_IN_PROGRESS_ARTIFACT,
+  readRun,
   readShard,
   readShards,
   runPull,
@@ -151,7 +153,7 @@ describe("qa:pull overwrite guard", () => {
           repoRoot,
           token: "unused",
           loadCatalog: vi.fn(),
-          readShards: vi.fn(),
+          readRun: vi.fn(),
         },
       )).rejects.toThrow(/confirm no qa:pull or qa:report process.*remove the marker/i);
     } finally {
@@ -222,7 +224,7 @@ describe("qa:pull artifact-set commit", () => {
           repoRoot,
           token: "test-token",
           loadCatalog: async () => catalog,
-          async readShards() {
+          async readRun() {
             try {
               await runReport(
                 parseReportArgs(["--slug", "2026-09-02", "--out", path.relative(repoRoot, outDir)]),
@@ -231,7 +233,7 @@ describe("qa:pull artifact-set commit", () => {
             } catch (error) {
               reportError = error;
             }
-            return [{
+            const shards = [{
               address: "0x2aa64e6d80390f5c017f0313cb908051be2fd35e",
               person: "Tester",
               updatedAt: "2026-09-02T20:00:00.000Z",
@@ -239,6 +241,7 @@ describe("qa:pull artifact-set commit", () => {
                 "PUB-001": { s: "pass", n: "new", at: "2026-09-02T20:00:00.000Z" },
               },
             }];
+            return { run: legacyRunRecord(shards, "2026-09-02T20:00:00.000Z"), shards, legacy: true };
           },
           now: () => new Date("2026-09-02T20:00:00.000Z"),
         },
@@ -498,5 +501,106 @@ describe("qa:pull store enumeration", () => {
   it("does not treat a failed Blob read as an absent shard", async () => {
     blob.get.mockResolvedValue({ statusCode: 503, stream: null });
     await expect(readShard(PATH, "token", blob)).rejects.toThrow(/unexpected status 503/);
+  });
+});
+
+describe("qa:pull run selection", () => {
+  const NOW = "2026-09-08T15:00:00.000Z";
+  const index = {
+    version: 1,
+    updatedAt: NOW,
+    runs: [
+      {
+        id: "run-1",
+        n: 1,
+        label: "Baseline",
+        legacy: true,
+        openedAt: "2026-08-29T09:00:00.000Z",
+        openedBy: null,
+        closedAt: NOW,
+        closedBy: "0x2aa64e6d80390f5c017f0313cb908051be2fd35e",
+        environment: "beta",
+        catalog: null,
+        builds: {},
+        window: { from: "2026-08-29T09:00:00.000Z", to: NOW },
+      },
+      {
+        id: "run-2",
+        n: 2,
+        label: "Re-QA 2026-09-08",
+        openedAt: NOW,
+        openedBy: "0x2aa64e6d80390f5c017f0313cb908051be2fd35e",
+        environment: "beta",
+        catalog: null,
+        builds: {},
+        window: null,
+      },
+    ],
+  };
+  const shardAt = (pathname: string) =>
+    JSON.stringify({
+      address: pathname.split("/").pop()?.replace(/\.json$/, ""),
+      person: "Afo",
+      updatedAt: NOW,
+      entries: { "PUB-001": { s: "pass", n: "", at: NOW } },
+    });
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    blob.list.mockImplementation(async ({ prefix }: { prefix: string }) => ({
+      blobs: [{ pathname: `${prefix}0x2aa64e6d80390f5c017f0313cb908051be2fd35e.json` }],
+      hasMore: false,
+    }));
+  });
+
+  it("lists the open run's prefix from the index by default", async () => {
+    blob.get.mockImplementation(async (pathname: string) => ({
+      statusCode: 200,
+      stream: new Response(pathname === RUN_INDEX_PATH ? JSON.stringify(index) : shardAt(pathname)).body,
+    }));
+    const pulled = await readRun("token", "open", blob);
+    expect(pulled.run.id).toBe("run-2");
+    expect(pulled.legacy).toBe(false);
+    expect(pulled.shards).toHaveLength(1);
+    expect(blob.list).toHaveBeenCalledWith({ prefix: "qa/runs/run-2/entries/", token: "token" });
+  });
+
+  it("pulls a named run and the latest closed run", async () => {
+    blob.get.mockImplementation(async (pathname: string) => ({
+      statusCode: 200,
+      stream: new Response(pathname === RUN_INDEX_PATH ? JSON.stringify(index) : shardAt(pathname)).body,
+    }));
+    expect((await readRun("token", "run-1", blob)).run.id).toBe("run-1");
+    expect((await readRun("token", "latest-closed", blob)).run).toMatchObject({ id: "run-1", legacy: true });
+    expect(blob.list).toHaveBeenLastCalledWith({ prefix: "qa/runs/run-1/entries/", token: "token" });
+    await expect(readRun("token", "run-9", blob)).rejects.toThrow(/run run-9 does not exist — the store holds run-1, run-2/);
+  });
+
+  it("falls back to the legacy shards with a warning when the store has no run index", async () => {
+    blob.get.mockImplementation(async (pathname: string) =>
+      pathname === RUN_INDEX_PATH ? null : { statusCode: 200, stream: new Response(shardAt(pathname)).body },
+    );
+    const warnings: string[] = [];
+    const pulled = await readRun("token", "open", blob, (message) => warnings.push(message));
+    expect(pulled.legacy).toBe(true);
+    expect(pulled.run).toMatchObject({ id: "run-1", label: "Baseline", legacy: true });
+    expect(blob.list).toHaveBeenCalledWith({ prefix: "qa/entries/", token: "token" });
+    expect(warnings).toEqual([expect.stringMatching(/no run index yet/)]);
+    await expect(readRun("token", "run-1", blob)).rejects.toThrow(/no run index yet/);
+  });
+
+  it("refuses a malformed run index instead of reading past it", async () => {
+    blob.get.mockImplementation(async (pathname: string) => ({
+      statusCode: 200,
+      stream: new Response(pathname === RUN_INDEX_PATH ? JSON.stringify({ version: 1, updatedAt: NOW, runs: [] }) : "{}").body,
+    }));
+    await expect(readRun("token", "open", blob)).rejects.toThrow(/qa\/runs.json is malformed: run index has no runs/);
+  });
+
+  it("parses --run and refuses anything but open, latest-closed, or a run id", () => {
+    expect(parseArgs(["--slug", "2026-09-08"]).run).toBe("open");
+    expect(parseArgs(["--slug", "2026-09-08", "--run", "run-1"]).run).toBe("run-1");
+    expect(parseArgs(["--run", "latest-closed"]).run).toBe("latest-closed");
+    expect(() => parseArgs(["--run", "latest"])).toThrow(/--run must be open, latest-closed, or a run id/);
   });
 });

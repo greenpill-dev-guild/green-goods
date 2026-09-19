@@ -130,11 +130,12 @@ export function useWorkApprovals(attesterAddress?: Address) {
     pendingCount: sortedApprovals.filter((a) => ["pending", "syncing", "failed"].includes(a.status))
       .length,
     isLoading: onlineApprovalsQuery.isLoading,
+    isFetching: onlineApprovalsQuery.isFetching,
+    /** When the review history last read successfully; 0 before the first read. */
+    dataUpdatedAt: onlineApprovalsQuery.dataUpdatedAt,
     error: onlineApprovalsQuery.error,
     hasError,
     errorMessage,
-    refetch: () => {
-      onlineApprovalsQuery.refetch();
-    },
+    refetch: () => onlineApprovalsQuery.refetch(),
   };
 }

@@ -1,11 +1,12 @@
 /**
- * QA session state — sharded by writer.
+ * QA session state — sharded by writer, versioned by run.
  *
- * Each tester owns exactly one blob (`qa/entries/<address>.json`) and only ever
- * writes that one. Two people recording the same case at the same moment touch
- * DIFFERENT objects, so there is no cross-tester conflict to resolve and no way
- * for one tester's verdict or notes to overwrite another's. GET fans out over
- * the roster and merges.
+ * Each tester owns exactly one blob per run
+ * (`qa/runs/<runId>/entries/<address>.json`) and only ever writes that one.
+ * Two people recording the same case at the same moment touch DIFFERENT
+ * objects, so there is no cross-tester conflict to resolve and no way for one
+ * tester's verdict or notes to overwrite another's. GET fans out over the
+ * roster for the requested run and merges.
  *
  * Sharding removes conflicts BETWEEN testers. It does not remove them within
  * one tester: a save is read-modify-write, and the documented workflow has one
@@ -15,51 +16,43 @@
  * that was read, and a losing write re-reads and re-merges instead of retrying
  * blind.
  *
- * The roster comes from the address-only allowlist. Display names live inside
- * address-owned shards and never select which object a request may write.
- *
- * Reads pass `useCache: false` deliberately. Private blob reads are served
- * through the CDN cache by default, and an overwrite can take up to 60 seconds
- * to propagate — which in a live two-person session reads as "the app lost my
- * partner's entry". Correctness beats the cache here; the payload is small.
+ * Runs make past passes immutable: writes land only in the open run, a write
+ * that names a closed run is refused with the open run's id so the page can
+ * re-target it, and the first request after the deploy migrates the legacy
+ * `qa/entries/` shards into Run 1 (see ../store.ts and ../runs.ts). A save
+ * validates its run and writes its shard under the store lock that rollover
+ * also takes, so a run cannot close between the check and the write.
  */
 
-import { BlobPreconditionFailedError, get, put } from "@vercel/blob";
+import { BlobPreconditionFailedError, put } from "@vercel/blob";
 
 // `.js`, not `.ts`, and not extensionless: Vercel compiles this to ESM and
 // Node's resolver demands an explicit extension on a relative import. Without
 // it the function crashes at load with ERR_MODULE_NOT_FOUND — which it did.
+import { isSameOriginMutation, resolveCaller } from "../auth.js";
+import { type RunIndex, type RunRecord, describeRun, findRun, openRun, runShardPath, validateRunId } from "../runs.js";
 import {
-  SESSION_COOKIE,
-  isAllowed,
-  isSameOriginMutation,
-  parseAllowlist,
-  readCookie,
-  readSession,
-} from "../auth.js";
+  type Address,
+  type Entry,
+  MAX_NOTE_LENGTH,
+  STATUSES,
+  type Shard,
+  StoreError,
+  cleanName,
+  ensureRunIndex,
+  fail,
+  fallbackName,
+  json,
+  listShardAddresses,
+  readRunIndex,
+  readShard,
+  restoreShard,
+  shardShapeError,
+  withStoreLock,
+} from "../store.js";
 
-/**
- * A shard is keyed by the ADDRESS that owns it, never by a display name.
- *
- * The allowlist grants an address the right to record; what that person is
- * called is theirs to declare and lives inside their own shard. Keeping the two
- * apart means adding a teammate is one address in one variable, and a tester
- * renaming themselves never orphans the work they already recorded.
- */
-export type Address = string;
-
-/** How long a name may be. Long enough for a name, short enough for a column. */
-const MAX_NAME_LENGTH = 32;
-
-/** One tester's verdict and notes on one case. */
-interface Entry {
-  /** "pass" | "fail" | "blocked" | "na", or "" while only a note exists. */
-  s: string;
-  /** Free-text note. */
-  n: string;
-  /** ISO timestamp stamped by this server when the write landed. */
-  at: string;
-}
+export { fallbackName, shardShapeError };
+export type { Address, Entry, Shard };
 
 /** One case's changed fields, or an explicit request to remove the case. */
 interface EntryPatch {
@@ -68,35 +61,10 @@ interface EntryPatch {
   delete?: true;
 }
 
-interface Shard {
-  /** Lowercase owner address. The identity; never taken from a request body. */
-  address: Address;
-  /** Self-declared display name. Empty until the tester sets one. */
-  person: string;
-  updatedAt: string;
-  entries: Record<string, Entry>;
-}
-
-const STATUSES = new Set(["pass", "fail", "blocked", "na", ""]);
 /** One save is a delta, not a whole shard — this bound is generous on purpose. */
 const MAX_BODY_BYTES = 512 * 1024;
-const MAX_NOTE_LENGTH = 4000;
 /** Attempts per save. Contention is two clients of one person, not a thundering herd. */
 const MAX_WRITE_ATTEMPTS = 4;
-
-function shardPath(address: Address): string {
-  return `qa/entries/${address.toLowerCase()}.json`;
-}
-
-/** A name is a label, so the only rules are "present" and "fits a column". */
-function cleanName(value: unknown): string {
-  return typeof value === "string" ? value.trim().slice(0, MAX_NAME_LENGTH) : "";
-}
-
-/** What to call a tester who has not named themselves yet. */
-export function fallbackName(address: Address): string {
-  return `${address.slice(0, 6)}…${address.slice(-4)}`;
-}
 
 /**
  * Human labels for address-owned shards, made unique without changing identity.
@@ -122,120 +90,6 @@ export function displayLabels(shards: Array<Pick<Shard, "address" | "person">>):
       ? `${bases[index]} (${shards[index].address})`
       : label,
   );
-}
-
-function json(body: unknown, status = 200): Response {
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: {
-      "Content-Type": "application/json",
-      // Never let a proxy or browser serve a stale session between polls.
-      "Cache-Control": "private, no-store",
-    },
-  });
-}
-
-/**
- * An error whose message is safe to return to the caller.
- *
- * A store error's own message can carry a token, a store id, or a stack, and
- * this endpoint is reachable by every allowlisted tester. The
- * detail goes to the server log; the caller gets the sentence that tells a
- * tester what happened to their work.
- */
-class StoreError extends Error {
-  constructor(
-    message: string,
-    readonly detail: unknown,
-  ) {
-    super(message);
-    this.name = "StoreError";
-  }
-}
-
-function fail(error: unknown, fallback: string): Response {
-  const safe = error instanceof StoreError ? error.message : fallback;
-  console.error(`qa/state: ${safe}`, error instanceof StoreError ? error.detail : error);
-  return json({ error: safe }, 503);
-}
-
-/**
- * Read one tester's shard, with the ETag needed to write it back safely.
- *
- * The distinction between ABSENT and UNREADABLE is load-bearing, not
- * defensive style. Absent is normal — that tester has recorded nothing yet —
- * and merging a delta onto an empty base is exactly right. Unreadable is a
- * transient store error, and treating it as "no entries" would merge onto an
- * empty base and silently erase everything that tester had recorded. So an
- * unreadable shard throws, and the caller refuses the write instead.
- */
-async function readShard(address: Address): Promise<{ shard: Shard; etag: string } | null> {
-  const unreadable = `${fallbackName(address)}'s entries could not be read`;
-  let result: Awaited<ReturnType<typeof get>>;
-  try {
-    result = await get(shardPath(address), { access: "private", useCache: false });
-  } catch (error) {
-    throw new StoreError(unreadable, error);
-  }
-  // `get` resolves null when the blob does not exist yet.
-  if (!result) return null;
-  if (result.statusCode !== 200 || !result.stream) {
-    throw new StoreError(unreadable, `unexpected status ${result.statusCode}`);
-  }
-  const text = await new Response(result.stream).text();
-  let parsed: Shard;
-  try {
-    parsed = JSON.parse(text) as Shard;
-  } catch (error) {
-    throw new StoreError(`${fallbackName(address)}'s entries are unreadable and were not overwritten`, error);
-  }
-  const invalid = shardShapeError(address, parsed);
-  if (invalid) {
-    throw new StoreError(`${fallbackName(address)}'s entries are unreadable and were not overwritten`, invalid);
-  }
-  return { shard: parsed, etag: result.etag };
-}
-
-/**
- * Why a parsed shard is not one, or null when it is fine.
- *
- * Checking only for a truthy `entries` let a malformed entry through, and GET
- * hands whatever it read straight to the page — which reads `e.s` off it and
- * takes the checklist down mid-session for everyone. A shard this endpoint
- * cannot vouch for is a 503, the same answer an unreadable one gets: refusing
- * the read is recoverable, serving corrupt state to a live session is not.
- */
-export function shardShapeError(address: string, parsed: unknown): string | null {
-  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
-    return "shard is not an object";
-  }
-  const shard = parsed as Partial<Shard>;
-  // Ownership is the address. A mismatch means this object is not what its
-  // path claims, which is the one case where refusing beats merging.
-  if (typeof shard.address !== "string" || shard.address.toLowerCase() !== address.toLowerCase()) {
-    return `shard reports its owner as ${JSON.stringify(shard.address ?? null)}`;
-  }
-  if (!/^0x[0-9a-f]{40}$/.test(shard.address)) return "shard owner is not a lowercase address";
-  if (typeof shard.person !== "string" || cleanName(shard.person) !== shard.person) {
-    return "shard has no valid display name";
-  }
-  if (typeof shard.updatedAt !== "string" || !Number.isFinite(Date.parse(shard.updatedAt))) {
-    return "shard has no valid update timestamp";
-  }
-  if (!shard.entries || typeof shard.entries !== "object" || Array.isArray(shard.entries)) {
-    return "shard has no entries object";
-  }
-  for (const [caseId, entry] of Object.entries(shard.entries)) {
-    if (!caseId || caseId.length > 64) return "shard has an invalid case id";
-    if (!entry || typeof entry !== "object" || Array.isArray(entry)) return `entry ${caseId} is not an object`;
-    const candidate = entry as Partial<Entry>;
-    if (typeof candidate.s !== "string" || !STATUSES.has(candidate.s)) return `entry ${caseId} has no valid status`;
-    if (typeof candidate.n !== "string" || candidate.n.length > MAX_NOTE_LENGTH) return `entry ${caseId} has no valid note`;
-    if (typeof candidate.at !== "string" || !Number.isFinite(Date.parse(candidate.at))) {
-      return `entry ${caseId} has no valid timestamp`;
-    }
-  }
-  return null;
 }
 
 /**
@@ -307,7 +161,8 @@ export function mergeDelta(
 }
 
 /**
- * Apply one tester's delta as an atomic read-modify-write.
+ * Apply one tester's delta to their shard in one run as an atomic
+ * read-modify-write.
  *
  * `ifMatch` makes the write conditional on the shard still being what we
  * merged onto; a concurrent save from that tester's other client invalidates
@@ -321,13 +176,24 @@ export function mergeDelta(
 export async function applyDelta(
   address: Address,
   delta: Record<string, EntryPatch>,
-  declaredName?: string,
+  declaredName: string | undefined,
+  runId: string,
 ): Promise<Shard> {
+  return (await writeDelta(address, delta, declaredName, runId)).shard;
+}
+
+/** `applyDelta`, also handing back the shard text the write replaced so a misdirected write can be undone. */
+async function writeDelta(
+  address: Address,
+  delta: Record<string, EntryPatch>,
+  declaredName: string | undefined,
+  runId: string,
+): Promise<{ shard: Shard; previous: { text: string } | null }> {
   for (let attempt = 1; attempt <= MAX_WRITE_ATTEMPTS; attempt++) {
     // Never merge onto an assumed-empty base: that would overwrite this
     // tester's whole record with just the delta in hand. readShard throws
     // rather than reporting an unreadable shard as an empty one.
-    const previous = await readShard(address);
+    const previous = await readShard(address, runId);
     const shard: Shard = {
       address: address.toLowerCase(),
       // A tester may rename themselves; an omitted name never erases the
@@ -337,11 +203,12 @@ export async function applyDelta(
       entries: mergeDelta(previous?.shard.entries ?? {}, delta),
     };
     try {
-      await put(shardPath(address), JSON.stringify(shard), {
+      await put(runShardPath(runId, address), JSON.stringify(shard), {
         access: "private",
         contentType: "application/json",
-        // A stable pathname per tester is the whole point of the sharding — a
-        // random suffix would mint a new object per save and orphan the last one.
+        // A stable pathname per tester and run is the whole point of the
+        // sharding — a random suffix would mint a new object per save and
+        // orphan the last one.
         addRandomSuffix: false,
         // Existing writes are conditional overwrites. A missing shard is a
         // create-only write, so a client that read the same absence cannot land
@@ -362,9 +229,20 @@ export async function applyDelta(
       if ((error instanceof BlobPreconditionFailedError || !previous) && attempt < MAX_WRITE_ATTEMPTS) continue;
       throw new StoreError(`${fallbackName(address)}'s entries could not be saved`, error);
     }
-    return shard;
+    return { shard, previous: previous ? { text: previous.text } : null };
   }
   throw new StoreError(`${fallbackName(address)}'s entries are being saved from elsewhere — try again`, "write contention");
+}
+
+/** Run records with the opener's and closer's display names beside their addresses. */
+function labelledRuns(index: RunIndex, nameFor: Map<string, string>): Array<RunRecord & { openedByLabel: string | null; closedByLabel: string | null }> {
+  const labelFor = (address: string | null | undefined) =>
+    address ? (nameFor.get(address) ?? fallbackName(address)) : null;
+  return index.runs.map((run) => ({
+    ...run,
+    openedByLabel: labelFor(run.openedBy),
+    closedByLabel: labelFor(run.closedBy),
+  }));
 }
 
 /**
@@ -386,43 +264,6 @@ export async function POST(request: Request): Promise<Response> {
   return handler(request);
 }
 
-/**
- * Resolve who is calling from their signed session, never from the request.
- *
- * This is the whole point of wallet auth here. The previous model took the
- * tester's NAME out of the request body, so anyone reaching the endpoint could
- * record as anyone — and with no deployment password in front of it, "anyone"
- * meant the internet. The signing address is the identity; the body no longer
- * gets a vote.
- */
-async function whoIsCalling(
-  request: Request,
-): Promise<{ address: Address; allowlist: string[] } | { error: string; status: number }> {
-  const secret = process.env.QA_SESSION_SECRET;
-  if (!secret || secret.length < 32) {
-    return { error: "QA_SESSION_SECRET is missing or too short (needs 32+ characters)", status: 503 };
-  }
-  let allowlist: ReturnType<typeof parseAllowlist>;
-  try {
-    allowlist = parseAllowlist(process.env.QA_ALLOWLIST);
-  } catch (error) {
-    return { error: error instanceof Error ? error.message : "QA_ALLOWLIST is invalid", status: 503 };
-  }
-  if (!allowlist.length) return { error: "QA_ALLOWLIST is empty — nobody can sign in", status: 503 };
-
-  const session = await readSession(
-    secret,
-    readCookie(request.headers.get("cookie"), SESSION_COOKIE),
-    Date.now(),
-  );
-  if (!session) return { error: "sign in with your wallet to record QA results", status: 401 };
-
-  if (!isAllowed(allowlist, session.address)) {
-    return { error: "this address is no longer on the QA allowlist", status: 403 };
-  }
-  return { address: session.address, allowlist };
-}
-
 export async function handler(request: Request): Promise<Response> {
   // Method first: an unsupported verb is a 405 whether or not you are signed
   // in, and answering that before the identity gate keeps the reply honest.
@@ -432,30 +273,55 @@ export async function handler(request: Request): Promise<Response> {
   if (request.method === "POST" && !isSameOriginMutation(request)) {
     return json({ error: "cross-origin request refused" }, 403);
   }
-  const caller = await whoIsCalling(request);
+  const caller = await resolveCaller(request);
   if ("error" in caller) return json({ error: caller.error }, caller.status);
 
   if (request.method === "GET") {
+    // The index is load-bearing: GET must resolve the default run, so it is
+    // read at origin each time.
+    let index: RunIndex;
+    try {
+      index = (await ensureRunIndex(caller.allowlist)).index;
+    } catch (error) {
+      return fail(error, "the runs could not be read");
+    }
+    const open = openRun(index);
+    const requested = new URL(request.url).searchParams.get("run");
+    let served: RunRecord = open;
+    if (requested) {
+      const runId = validateRunId(requested);
+      const run = runId ? findRun(index, runId) : undefined;
+      if (!run) return json({ error: `run ${requested.slice(0, 32)} does not exist here`, openRun: open.id }, 404);
+      served = run;
+    }
+
+    // The roster is everyone who recorded into this run plus everyone allowed
+    // to record now. Removing an address from the allowlist stops it making
+    // requests; it never rewrites a run's history or hides a former tester's
+    // verdicts from a comparison.
+    let roster: string[];
     let reads: Array<{ shard: Shard; etag: string } | null>;
     try {
-      reads = await Promise.all(caller.allowlist.map((address) => readShard(address)));
+      const recorded = await listShardAddresses(served.id);
+      roster = [...new Set([...caller.allowlist, ...recorded])];
+      reads = await Promise.all(roster.map((address) => readShard(address, served.id)));
     } catch (error) {
       // Returning a partial view would render as "that tester cleared their
       // entries". Fail the poll instead; the page keeps what it has and retries.
       return fail(error, "session state could not be read");
     }
-    // The roster is whoever the allowlist admits, labelled by the name they
-    // declared. Somebody who has never signed in has no shard and so no name
-    // yet — they still belong on the roster, under their short address.
-    const owners = caller.allowlist.map((address, index) => ({
+    // Labelled by the name each tester declared. Somebody who has never
+    // signed in has no shard and so no name yet — they still belong on the
+    // roster, under their short address.
+    const owners = roster.map((address, position) => ({
       address,
-      person: reads[index]?.shard.person ?? "",
+      person: reads[position]?.shard.person ?? "",
     }));
     const team = displayLabels(owners);
     let you = fallbackName(caller.address);
     const nameFor = new Map<string, string>();
-    caller.allowlist.forEach((address, index) => {
-      const label = team[index];
+    roster.forEach((address, position) => {
+      const label = team[position];
       nameFor.set(address, label);
       if (address === caller.address) you = label;
     });
@@ -475,14 +341,17 @@ export async function handler(request: Request): Promise<Response> {
       // The page shows this once so a tester can confirm which wallet is
       // recording before they trust the name beside it.
       address: caller.address,
-      named: Boolean(reads[caller.allowlist.indexOf(caller.address)]?.shard.person?.trim()),
+      named: Boolean(reads[roster.indexOf(caller.address)]?.shard.person?.trim()),
       entries,
       readAt: new Date().toISOString(),
+      runs: labelledRuns(index, nameFor),
+      run: served.id,
+      openRun: open.id,
     });
   }
 
   if (request.method === "POST") {
-    let body: { entries?: unknown; person?: unknown };
+    let body: { entries?: unknown; person?: unknown; run?: unknown };
     try {
       const text = await request.text();
       if (text.length > MAX_BODY_BYTES) return json({ error: "payload too large" }, 413);
@@ -492,26 +361,73 @@ export async function handler(request: Request): Promise<Response> {
       if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
         return json({ error: "body must be a JSON object" }, 400);
       }
-      body = parsed as { entries?: unknown; person?: unknown };
+      body = parsed as { entries?: unknown; person?: unknown; run?: unknown };
     } catch {
       return json({ error: "invalid JSON" }, 400);
     }
 
     // `body.person` sets THIS caller's own display name — a label on their own
     // shard. It cannot change which shard is written; that is the address.
-    let shard: Shard;
+    const delta = sanitizeDelta(body.entries);
+    const declaredName = body.person as string | undefined;
+
     try {
-      shard = await applyDelta(caller.address, sanitizeDelta(body.entries), body.person as string | undefined);
+      // Everything from the index read to the shard write runs under the store
+      // lock that rollover also takes: the run this save is checked against is
+      // the run it writes into, and one tester's two clients never interleave.
+      // Lock contention is a 503 the page answers by keeping its outbox.
+      return await withStoreLock(async () => {
+        const index = (await ensureRunIndex(caller.allowlist)).index;
+        const open = openRun(index);
+
+        // A page that names no run — the version deployed before runs existed —
+        // records into the open run. A page that names a run must name the open
+        // one: a closed or unknown run is refused WITHOUT a write, and the refusal
+        // carries the open run's id so the page can re-target its outbox there.
+        // Never a 404: the page treats any other failure as "retry every 5s".
+        let target: RunRecord = open;
+        if (body.run !== undefined && body.run !== null && body.run !== "") {
+          const runId = validateRunId(body.run);
+          if (!runId) return json({ error: "run id is malformed" }, 400);
+          const run = findRun(index, runId);
+          if (!run) return json({ error: `run ${runId} does not exist here`, reason: "unknown", openRun: open.id }, 409);
+          if (run.closedAt) {
+            return json(
+              { error: `${describeRun(run)} is closed`, reason: "closed", openRun: open.id, closedAt: run.closedAt },
+              409,
+            );
+          }
+          target = run;
+        }
+
+        const written = await writeDelta(caller.address, delta, declaredName, target.id);
+        let shard = written.shard;
+        let landed = target.id;
+        // Defence in depth for a lease that ran out under a slow save, when a
+        // rollover may have taken the lock over and closed the target: put its
+        // shard back exactly as it was and re-apply the delta to the run that
+        // is open now, so a closed run stays what it was at close and the
+        // tester's verdicts still land somewhere that records.
+        const after = await readRunIndex();
+        if (after && findRun(after.index, target.id)?.closedAt) {
+          const openAfter = openRun(after.index);
+          await restoreShard(caller.address, target.id, written.previous);
+          shard = (await writeDelta(caller.address, delta, declaredName, openAfter.id)).shard;
+          landed = openAfter.id;
+        }
+
+        return json({
+          ok: true,
+          person: shard.person || fallbackName(shard.address),
+          count: Object.keys(shard.entries).length,
+          run: landed,
+          ...(landed !== target.id ? { retargeted: true } : {}),
+        });
+      });
     } catch (error) {
       // The page keeps the unsent delta in localStorage and retries.
       return fail(error, `${fallbackName(caller.address)}'s entries were not saved`);
     }
-
-    return json({
-      ok: true,
-      person: shard.person || fallbackName(shard.address),
-      count: Object.keys(shard.entries).length,
-    });
   }
 
   return json({ error: "method not allowed" }, 405);

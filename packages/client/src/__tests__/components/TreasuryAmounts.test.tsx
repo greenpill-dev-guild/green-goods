@@ -83,8 +83,8 @@ vi.mock("@green-goods/shared/utils/blockchain/vaults", async (importOriginal) =>
   getVaultAssetSymbol: () => "USDC",
 }));
 
-import { MyDepositRow } from "../../components/Dialogs/TreasuryDrawer/MyDepositRow";
-import { CookieJarCard } from "../../components/Dialogs/TreasuryDrawer/CookieJarCard";
+import { MyDepositRow } from "../../components/Sheets/EndowmentSheet/MyDepositRow";
+import { CookieJarCard } from "../../components/Sheets/EndowmentSheet/CookieJarCard";
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -180,7 +180,15 @@ describe("Treasury amount controls", () => {
     const user = userEvent.setup();
     render(<MyDepositRow deposit={deposit} vault={vault} gardenAddress={garden} />);
     await user.click(screen.getByRole("button", { name: /^max$/i }));
-    expect(screen.getByRole("button", { name: /^Withdraw$/i })).toBeDisabled();
+    const withdraw = screen.getByRole("button", { name: /^Withdraw$/i });
+    if (state === "pending") {
+      expect(withdraw).toHaveAttribute("aria-disabled", "true");
+      expect(withdraw).toHaveAttribute("aria-busy", "true");
+      await user.click(withdraw);
+      expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument();
+    } else {
+      expect(withdraw).toBeDisabled();
+    }
   });
 
   it("keeps paused jars closed to withdrawals", async () => {

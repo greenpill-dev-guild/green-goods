@@ -149,8 +149,7 @@ export function AccountProfileAvatarEditor({ fallbackInitials }: AccountProfileA
         title={formatMessage({ id: "profile.avatar.edit", defaultMessage: "Edit Profile Photo" })}
         description={formatMessage({
           id: "profile.avatar.privacyNotice",
-          defaultMessage:
-            "Your profile photo is public on IPFS. Replacing or removing it does not delete an earlier upload.",
+          defaultMessage: "Photos stay public on IPFS, even after replacement or removal.",
         })}
         icon={RiCameraLine}
         size="md"
@@ -258,7 +257,7 @@ export function AccountProfileAvatarEditor({ fallbackInitials }: AccountProfileA
                 <AdminButton variant="text" size="md" onClick={discardDraft} disabled={busy}>
                   {formatMessage({
                     id: "profile.avatar.discardDraft",
-                    defaultMessage: "Discard draft",
+                    defaultMessage: "Discard Draft",
                   })}
                 </AdminButton>
               </div>
@@ -285,8 +284,7 @@ export function AccountProfileAvatarEditor({ fallbackInitials }: AccountProfileA
         })}
         description={formatMessage({
           id: "profile.avatar.confirmRemoveDescription",
-          defaultMessage:
-            "This clears only your app profile pointer. Older IPFS uploads remain public.",
+          defaultMessage: "This removes the photo from your Green Goods profile.",
         })}
         confirmLabel={formatMessage({
           id: "profile.avatar.remove",

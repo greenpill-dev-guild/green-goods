@@ -110,6 +110,11 @@
 @layer theme {
   /* Base color primitives (RGB values for Tailwind opacity modifiers) */
   :root {
+  /* Browser-painted UI — native select popups, date pickers, scrollbars — reads
+     this, not our tokens. Without it the UA follows the OS preference and paints
+     a light popup under a dark app (PRD-922). The app theme owns the scheme. */
+  color-scheme: light;
+
   /* Gray scale (matches client exactly) */
   --gray-950: 23 23 23;
   --gray-900: 28 28 28;
@@ -469,7 +474,16 @@
 	  --z-toast: 60;
 
   /* ── Radius Aliases ── Public runtime aliases for DesignMD-generated radii. */
+  --radius-none: var(--gg-radius-none);
   --radius-md: var(--gg-radius-md);
+  /* The shared control family's own label sizes (16 / 14px). They stay the same
+     on every surface: the admin cockpit remaps --text-label-* for its M3
+     utilities, and reading those keys shrank shared buttons and chips rendered
+     there (toast actions, empty-state actions) to 11 and 12px (DL-029). */
+  --gg-label-md: 1rem;
+  --gg-label-sm: 0.875rem;
+  /* 12px: app buttons of every emphasis, and actions inside a field (DL-026). */
+  --radius-squircle: var(--gg-radius-squircle);
   --radius-lg: var(--gg-radius-lg);
   --radius-xl: var(--gg-radius-xl);
   --radius-2xl: var(--gg-radius-2xl);
@@ -495,6 +509,10 @@
   --color-material-regular: oklch(0.97 0 0 / 0.65);
   --color-material-thick: oklch(0.96 0 0 / 0.85);
   --color-material-solid: rgb(var(--bg-white-0));
+  /* Scroll edge above pinned sheet actions (DL-016): a hairline image and the
+   * surface-colored cover that rides the end of the content to hide it. */
+  --sheet-scroll-edge-line: linear-gradient(rgb(var(--stroke-soft-200)), rgb(var(--stroke-soft-200)));
+  --sheet-scroll-edge-cover: linear-gradient(var(--color-material-solid), var(--color-material-solid));
 
   --blur-material-ultrathin: 30px;
   --blur-material-thin: 20px;
@@ -509,6 +527,10 @@
    * Reduced motion is handled globally (see @media prefers-reduced-motion at end of utilities).
    * Canonical spec: .claude/skills/design/language.md § Motion System.
    * Two families: spatial (layout/physics) and effects (opacity/color/blur).
+   * The spatial tokens decelerate into place; `--spring-spatial-exit` is the one
+   * that accelerates, for a surface leaving the screen from rest (DL-033). Its
+   * duration stays within `--spring-spatial-duration`, which sheets time their
+   * unmount on.
    */
 	  --spring-spatial-easing: cubic-bezier(0.16, 1, 0.3, 1);
 	  --spring-spatial-duration: 300ms;
@@ -516,6 +538,8 @@
 	  --spring-spatial-fast-duration: 200ms;
 	  --spring-spatial-slow-easing: cubic-bezier(0.16, 1, 0.3, 1);
 	  --spring-spatial-slow-duration: 400ms;
+	  --spring-spatial-exit-easing: cubic-bezier(0.3, 0, 1, 1);
+	  --spring-spatial-exit-duration: 200ms;
 	  --spring-effects-easing: cubic-bezier(0.2, 0, 0, 1);
 	  --spring-effects-duration: 250ms;
 	  --spring-effects-fast-easing: cubic-bezier(0.2, 0, 0, 1);
@@ -526,6 +550,7 @@
 	  --spring-spatial: var(--spring-spatial-easing) var(--spring-spatial-duration);
 	  --spring-spatial-fast: var(--spring-spatial-fast-easing) var(--spring-spatial-fast-duration);
 	  --spring-spatial-slow: var(--spring-spatial-slow-easing) var(--spring-spatial-slow-duration);
+	  --spring-spatial-exit: var(--spring-spatial-exit-easing) var(--spring-spatial-exit-duration);
 	  --spring-effects: var(--spring-effects-easing) var(--spring-effects-duration);
 	  --spring-effects-fast: var(--spring-effects-fast-easing) var(--spring-effects-fast-duration);
 	  --spring-effects-slow: var(--spring-effects-slow-easing) var(--spring-effects-slow-duration);
@@ -607,6 +632,8 @@
 /* Dark theme overrides using data-theme attribute */
 :root[data-theme="dark"],
 [data-theme="dark"] {
+  color-scheme: dark;
+
   /* Backgrounds — M3-aligned dark surface ladder (tones 6→22, ceiling at 24) */
   --bg-white-0: var(--neutral-950);      /* 12 10 9  — surface / surfaceDim (tone 6) */
   --bg-weak-50: var(--neutral-925);      /* 22 20 18 — surfaceContainerLow (tone 10) */
@@ -734,6 +761,10 @@
   --color-material-regular: oklch(0.18 0 0 / 0.65);
   --color-material-thick: oklch(0.12 0 0 / 0.85);
   --color-material-solid: rgb(var(--bg-white-0));
+  /* Scroll edge above pinned sheet actions (DL-016): a hairline image and the
+   * surface-colored cover that rides the end of the content to hide it. */
+  --sheet-scroll-edge-line: linear-gradient(rgb(var(--stroke-soft-200)), rgb(var(--stroke-soft-200)));
+  --sheet-scroll-edge-cover: linear-gradient(var(--color-material-solid), var(--color-material-solid));
   --border-material: 1px solid oklch(1 0 0 / 0.06);
 
   /* Social colors - invert for dark mode */
@@ -776,14 +807,15 @@
     width: 100%;
     min-height: 2.75rem;
     border: 1px solid rgb(var(--stroke-sub-300));
-    border-radius: var(--radius-xl);
+    /* Fields are a 16px rounded rectangle, never a pill (DL-022). */
+    border-radius: var(--radius-lg);
     /* background-color (not the shorthand) so .gg-control-select's chevron
        background-image survives — the shorthand resets background-image. */
     background-color: rgb(var(--bg-white-0));
     color: rgb(var(--text-strong-950));
     font-size: var(--text-paragraph-md);
     line-height: var(--text-paragraph-md--line-height);
-    padding: 0.625rem 0.75rem;
+    padding: 0.5625rem 0.75rem;
     transition:
       border-color var(--spring-effects-fast-duration, 150ms) var(--spring-effects-fast-easing, ease-out),
       box-shadow var(--spring-effects-fast-duration, 150ms) var(--spring-effects-fast-easing, ease-out),
@@ -821,13 +853,35 @@
   .gg-control[data-size="sm"] {
     min-height: 2.5rem;
     padding: 0.5rem 0.75rem;
-    font-size: var(--text-label-sm);
+    font-size: var(--gg-label-sm);
     line-height: var(--text-label-sm--line-height);
   }
 
   .gg-control[data-size="lg"] {
     min-height: 3rem;
-    padding: 0.75rem 1rem;
+    padding: 0.6875rem 1rem;
+  }
+
+  /* A single-line field is exactly its scale height, whatever its text (DL-023).
+     Browsers grow a text input to its font's natural line box, so display-size
+     digits and editorial type pushed min-height fields to 45-56px. A fixed block
+     size with no vertical padding holds the step, and the browser centers the
+     text. The matching minimum keeps a flex-1 field in a stacked row from
+     collapsing to its text. The admin surface keeps its own metrics. */
+  input.gg-control:not([data-surface="admin"]) {
+    min-block-size: 2.75rem;
+    block-size: 2.75rem;
+    padding-block: 0;
+  }
+
+  input.gg-control[data-size="sm"]:not([data-surface="admin"]) {
+    min-block-size: 2.5rem;
+    block-size: 2.5rem;
+  }
+
+  input.gg-control[data-size="lg"]:not([data-surface="admin"]) {
+    min-block-size: 3rem;
+    block-size: 3rem;
   }
 
   .gg-control[data-surface="admin"] {
@@ -839,6 +893,37 @@
        background-image survives — the shorthand resets background-image. */
     background-color: rgb(var(--m3-surface, var(--bg-white-0)));
     color: rgb(var(--m3-on-surface, var(--text-strong-950)));
+    /* The cockpit field tier (DL-030): 16px text on touch widths, where the
+       field matches the installed app, and 14px from 640px. */
+    font-size: var(--type-body-lg, 1rem);
+    line-height: var(--type-body-lg-lh, 1.5rem);
+    padding-block: 0.5625rem;
+  }
+
+  /* A single-line admin control is exactly its tier, like AdminTextField:
+     44px on touch widths and 40px from 640px (DL-030, DL-031). */
+  input.gg-control[data-surface="admin"],
+  select.gg-control[data-surface="admin"],
+  .gg-control-trigger[data-surface="admin"],
+  .gg-control-dropzone[data-surface="admin"] {
+    min-block-size: 2.75rem;
+    block-size: 2.75rem;
+    padding-block: 0;
+  }
+
+  @media (min-width: 40rem) {
+    .gg-control[data-surface="admin"] {
+      font-size: var(--type-body-md, 0.875rem);
+      line-height: var(--type-body-md-lh, 1.25rem);
+    }
+
+    input.gg-control[data-surface="admin"],
+    select.gg-control[data-surface="admin"],
+    .gg-control-trigger[data-surface="admin"],
+    .gg-control-dropzone[data-surface="admin"] {
+      min-block-size: 2.5rem;
+      block-size: 2.5rem;
+    }
   }
 
   .gg-control[data-surface="admin"]:focus-visible {
@@ -864,9 +949,39 @@
     background-size: 1rem 1rem;
   }
 
+  /* The size rules reset the padding shorthand at a higher specificity, which
+     closed the lane: a small Month filter ran its label under the chevron. */
+  .gg-control-select[data-size] {
+    padding-right: 2.25rem;
+  }
+
+  /* Header-row filters: a tighter inset and chevron lane, and an ellipsis when
+     the row is short. Height and hit area stay on the size scale. */
+  .gg-control-select[data-density="condensed"] {
+    padding-left: 0.625rem;
+    padding-right: 1.75rem;
+    background-position: right 0.5rem center;
+    background-size: 0.875rem 0.875rem;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+
   :root[data-theme="dark"] .gg-control-select,
   [data-theme="dark"] .gg-control-select {
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23a3a3a3' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  }
+
+  /* Option rows are painted by the browser, not by the control: they ignore the
+     select's own surface and inherit only its text colour, so a dark-theme
+     select drew light text on the UA's light list (PRD-922). Pin the pair to
+     the themed surface for every native select — shared controls, the admin
+     cockpit fields, and the sort rails alike — so the popup survives a UA that
+     ignores color-scheme. */
+  [data-theme="dark"] select option,
+  [data-theme="dark"] select optgroup {
+    background-color: rgb(var(--bg-soft-200));
+    color: rgb(var(--text-strong-950));
   }
 
   .gg-control-trigger {
@@ -875,18 +990,72 @@
     justify-content: space-between;
     gap: 0.75rem;
     text-align: left;
-    white-space: nowrap;
+    white-space: normal;
   }
 
   .gg-control-trigger > span {
     min-width: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    overflow-wrap: anywhere;
+    white-space: normal;
   }
 
   .gg-control-trigger[data-placeholder] {
     color: rgb(var(--text-soft-400));
+  }
+
+  /* ── Upload well (DL-031) ── A field-shaped trigger for a hidden file input:
+   * the control's own corner and height with a dashed edge, so it lines up with
+   * the fields beside it on every surface (FileUploadField). */
+  .gg-control-dropzone {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    border-style: dashed;
+    color: rgb(var(--text-sub-600));
+    font-weight: var(--text-label-md--font-weight, 500);
+    text-align: center;
+    cursor: pointer;
+  }
+
+  .gg-control-dropzone:hover:not(:disabled) {
+    border-color: rgb(var(--primary-base));
+    background-color: rgb(var(--bg-weak-50));
+  }
+
+  .gg-control-dropzone svg {
+    inline-size: 1.25rem;
+    block-size: 1.25rem;
+    flex-shrink: 0;
+  }
+
+  /* ── Field label and help (DL-031) ── The label above a shared field and the
+   * supporting line under it. The label reads the surface's small label size
+   * (14px in the app; the cockpit sets --gg-label-sm) at weight 500, the same
+   * as the cockpit's setting-row titles, so a shared field never reads smaller
+   * or greyer than the fields beside it. */
+  .gg-field-label {
+    display: block;
+    font-size: var(--gg-label-sm);
+    font-weight: var(--text-label-md--font-weight, 500);
+    line-height: var(--text-label-sm--line-height);
+    color: rgb(var(--text-strong-950));
+  }
+
+  .gg-field-help {
+    font-size: var(--text-label-xs, 0.75rem);
+    line-height: var(--text-label-xs--line-height, 1rem);
+    color: rgb(var(--text-sub-600));
+  }
+
+  .gg-field-help[data-invalid="true"] {
+    color: rgb(var(--error-base));
+  }
+
+  /* Select options sit concentric inside the 8px menu and its 4px padding. The
+   * utility class never generated in the apps (Tailwind skips shared JSX). */
+  [data-component="SelectItem"] {
+    border-radius: calc(var(--radius-md) - 0.25rem);
   }
 
   .gg-button {
@@ -899,9 +1068,10 @@
     border-radius: var(--radius-full);
     padding: 0.5rem 1rem;
     color: rgb(var(--text-strong-950));
-    font-size: var(--text-label-sm);
+    font-size: var(--gg-label-sm);
     font-weight: var(--text-label-sm--font-weight);
-    line-height: var(--text-label-sm--line-height);
+    --gg-button-line: var(--text-label-sm--line-height);
+    line-height: var(--gg-button-line);
     text-align: center;
     white-space: nowrap;
     transition:
@@ -933,161 +1103,396 @@
     opacity: 0.6;
   }
 
-  .gg-button-primary,
-  .gg-button-primary.gg-button-filled {
+  /* ── Button emphasis API (DL-023, DL-026, DL-029) ──
+   * The shared Button emits data-emphasis / data-tone / data-size. Emphasis sets
+   * the fill, outline, and colour; the corner comes from the surface, the same
+   * for every emphasis. Heights match the field scale (48 / 44 / 40 / 32), and
+   * the two short sizes carry a 48px hit area. This is the only button contract:
+   * the legacy gg-button-<variant> classes were retired with DL-029. */
+  /* Sizes read one block token each, with the app scale as the fallback, so a
+   * surface can move the whole family onto its own metric: the admin cockpit
+   * sets --gg-button-block-* / --gg-button-inline-* in its index.css (DL-031)
+   * and every shared piece rendered there lands on the 28 / 32 / 40 tiers. The
+   * vertical padding derives from the block and the line, so a one-line button
+   * is exactly its step on any surface. */
+  .gg-button[data-size] {
+    position: relative;
+    cursor: pointer;
+    min-block-size: var(--gg-button-block);
+    padding-block: calc((var(--gg-button-block) - var(--gg-button-line) - 2px) / 2);
+  }
+
+  /* Button corner and label weight per surface (DL-026, values DL-029): the
+   * installed app takes the 16px field corner so a button and the field beside
+   * it share one shape, one step tighter (12px) while pressed; the public
+   * website's buttons are square like its editorial cards, dialogs, and panels,
+   * with no press morph. The website shell carries data-site="website"; the
+   * tokens sit on :root so dialogs and sheets that portal out of the shell
+   * match the page. Icon buttons stay circles and chips capsules on both. The
+   * admin cockpit sets the same tokens, plus the block, inline, icon, and hit
+   * tokens read below, in packages/admin/src/index.css (DL-031). */
+  :root {
+    --gg-button-radius: var(--radius-lg);
+    --gg-button-radius-pressed: var(--radius-squircle);
+    --gg-button-weight: var(--text-label-sm--font-weight);
+  }
+
+  :root:has([data-site="website"]) {
+    --gg-button-radius: var(--radius-none);
+    --gg-button-radius-pressed: var(--radius-none);
+    --gg-button-weight: var(--font-weight-semibold, 600);
+  }
+
+  .gg-button[data-emphasis] {
+    border-radius: var(--gg-button-radius);
+    font-weight: var(--gg-button-weight);
+  }
+
+  .gg-button[data-size="lg"] {
+    --gg-button-block: var(--gg-button-block-lg, 3rem);
+    --gg-button-line: var(--text-label-md--line-height);
+    padding-inline: var(--gg-button-inline-lg, 1.25rem);
+    font-size: var(--gg-label-md);
+    line-height: var(--gg-button-line);
+  }
+
+  .gg-button[data-size="md"] {
+    --gg-button-block: var(--gg-button-block-md, 2.75rem);
+    --gg-button-line: var(--text-label-md--line-height);
+    padding-inline: var(--gg-button-inline-md, 1rem);
+    font-size: var(--gg-label-md);
+    line-height: var(--gg-button-line);
+  }
+
+  .gg-button[data-size="sm"] {
+    --gg-button-block: var(--gg-button-block-sm, 2.5rem);
+    padding-inline: var(--gg-button-inline-sm, 0.875rem);
+  }
+
+  .gg-button[data-size="compact"] {
+    --gg-button-block: var(--gg-button-block-compact, 2rem);
+    gap: 0.375rem;
+    padding-inline: var(--gg-button-inline-compact, 0.75rem);
+  }
+
+  /* Hit areas: every size carries an absolute box that reaches the surface's
+   * finger size (48px in the app; the cockpit sets --gg-hit-block to 44px). The
+   * box is laid out against the padding box, inside the 1px border, so the
+   * inset gives the border back to reach the full size. Sideways it is exactly
+   * the button: an overhang counts as scrollable overflow, and a full-width
+   * sheet action would scroll the page by that much. */
+  .gg-button[data-size]::after {
+    content: "";
+    position: absolute;
+    inset: calc((var(--gg-button-block) - var(--gg-hit-block, 3rem)) / 2 - 1px) -1px;
+    border-radius: inherit;
+  }
+
+  .gg-button[data-emphasis="primary"] {
     background: rgb(var(--tone-action, var(--primary-action)));
     color: rgb(var(--tone-on-action, var(--primary-action-foreground)));
   }
 
-  .gg-button-primary:hover,
-  .gg-button-primary.gg-button-filled:hover {
+  .gg-button[data-emphasis="primary"]:hover {
     background: rgb(var(--tone-action-hover, var(--primary-action-hover)));
   }
 
-  .gg-button-primary.gg-button-stroke {
-    border-color: rgb(var(--primary-base));
-    background: rgb(var(--bg-white-0));
-    color: rgb(var(--primary-base));
-  }
-
-  .gg-button-primary.gg-button-lighter {
-    background: rgb(var(--primary-base) / 0.1);
-    color: rgb(var(--primary-base));
-  }
-
-  .gg-button-primary.gg-button-ghost {
-    background: transparent;
-    color: rgb(var(--primary-base));
-  }
-
-  .gg-button-secondary,
-  .gg-button-neutral.gg-button-stroke {
-    border-color: rgb(var(--stroke-sub-300));
-    border-radius: var(--radius-xl);
-    background: rgb(var(--bg-white-0));
-    color: rgb(var(--text-strong-950));
-  }
-
-  .gg-button-secondary:hover,
-  .gg-button-neutral.gg-button-stroke:hover {
-    border-color: rgb(var(--stroke-sub-300));
-    background: rgb(var(--bg-weak-50));
-    color: rgb(var(--text-strong-950));
-  }
-
-  .gg-button-neutral.gg-button-filled {
-    background: rgb(var(--bg-strong-950));
-    color: rgb(var(--text-white-0));
-  }
-
-  .gg-button-neutral.gg-button-lighter {
-    border-radius: var(--radius-xl);
-    background: rgb(var(--bg-weak-50));
-    color: rgb(var(--text-sub-600));
-  }
-
-  .gg-button-ghost,
-  .gg-button-neutral.gg-button-ghost {
-    border-color: transparent;
-    border-radius: var(--radius-xl);
-    background: transparent;
-    color: rgb(var(--text-sub-600));
-  }
-
-  .gg-button-ghost:hover,
-  .gg-button-neutral.gg-button-ghost:hover {
-    background: rgb(var(--bg-weak-50));
-    color: rgb(var(--text-strong-950));
-  }
-
-  .gg-button-danger,
-  .gg-button-error.gg-button-filled {
+  .gg-button[data-emphasis="primary"][data-tone="danger"] {
     background: rgb(var(--error-base));
     color: rgb(var(--static-white, var(--neutral-0)));
   }
 
-  .gg-button-danger:hover,
-  .gg-button-error.gg-button-filled:hover {
+  .gg-button[data-emphasis="primary"][data-tone="danger"]:hover {
     background: rgb(var(--error-dark, var(--red-700)));
   }
 
-  .gg-button-error.gg-button-stroke {
-    border-color: rgb(var(--error-base));
-    border-radius: var(--radius-xl);
+  .gg-button[data-emphasis="primary"][data-tone="warning"] {
+    background: rgb(var(--warning-base));
+    color: rgb(var(--static-white, var(--neutral-0)));
+  }
+
+  .gg-button[data-emphasis="primary"][data-tone="warning"]:hover {
+    background: rgb(var(--warning-dark));
+  }
+
+  .gg-button[data-emphasis="secondary"] {
+    border-color: rgb(var(--stroke-sub-300));
     background: rgb(var(--bg-white-0));
+    color: rgb(var(--text-strong-950));
+  }
+
+  .gg-button[data-emphasis="secondary"]:hover {
+    background: rgb(var(--bg-weak-50));
+  }
+
+  .gg-button[data-emphasis="secondary"][data-tone="danger"] {
+    border-color: rgb(var(--error-base));
     color: rgb(var(--error-base));
   }
 
-  .gg-button-error.gg-button-lighter {
-    border-radius: var(--radius-xl);
-    background: rgb(var(--error-base) / 0.1);
-    color: rgb(var(--error-base));
+  .gg-button[data-emphasis="secondary"][data-tone="danger"]:hover {
+    background: rgb(var(--error-base) / 0.08);
   }
 
-  .gg-button-error.gg-button-ghost {
+  .gg-button[data-emphasis="tertiary"] {
     border-color: transparent;
-    border-radius: var(--radius-xl);
     background: transparent;
+    color: rgb(var(--text-sub-600));
+  }
+
+  .gg-button[data-emphasis="tertiary"]:hover {
+    background: rgb(var(--bg-weak-50));
+    color: rgb(var(--text-strong-950));
+  }
+
+  .gg-button[data-emphasis="tertiary"][data-tone="danger"] {
     color: rgb(var(--error-base));
   }
 
-  .gg-button-size-2xs {
-    min-height: 1.75rem;
-    gap: 0.375rem;
-    padding: 0.25rem 0.5rem;
-    font-size: var(--text-label-xs);
-    line-height: var(--text-label-xs--line-height);
+  .gg-button[data-emphasis="tertiary"][data-tone="danger"]:hover {
+    background: rgb(var(--error-base) / 0.08);
+    color: rgb(var(--error-base));
   }
 
-  .gg-button-size-xs {
-    min-height: 2rem;
-    gap: 0.375rem;
-    padding: 0.375rem 0.625rem;
-    font-size: var(--text-label-xs);
-    line-height: var(--text-label-xs--line-height);
+  /* Press morph (DL-001): a filled or outlined button tightens one step while
+   * pressed. Reduced motion keeps the resting corner (see the end of this layer). */
+  .gg-button[data-emphasis="primary"]:active,
+  .gg-button[data-emphasis="secondary"]:active {
+    border-radius: var(--gg-button-radius-pressed);
   }
 
-  .gg-button-size-sm {
-    min-height: 2.5rem;
-    padding: 0.5rem 0.75rem;
-  }
-
-  .gg-button-size-md {
-    min-height: 2.75rem;
-    padding: 0.625rem 1rem;
-    font-size: var(--text-label-md);
-    line-height: var(--text-label-md--line-height);
-  }
-
-  .gg-button-size-lg {
-    min-height: 3rem;
-    padding: 0.75rem 1.5rem;
-    font-size: var(--text-label-md);
-    line-height: var(--text-label-md--line-height);
-  }
-
-  .gg-button-shape-regular {
-    border-radius: var(--radius-xl);
-  }
-
-  .gg-button-shape-pilled {
-    border-radius: var(--radius-full);
-  }
-
-  .gg-button-icon {
+  /* ── Icon button (DL-026) ── A circle at 48 / 44 / 40 / 32 whose hit area never
+   * drops below 48px. Tertiary (transparent) by default; secondary is outlined;
+   * primary is filled. */
+  .gg-icon-button {
+    --gg-icon-button-size: var(--gg-icon-size-md, 2.75rem);
+    position: relative;
     display: inline-flex;
-    width: 1.25rem;
-    height: 1.25rem;
     flex-shrink: 0;
     align-items: center;
     justify-content: center;
+    inline-size: var(--gg-icon-button-size);
+    block-size: var(--gg-icon-button-size);
+    padding: 0;
+    border: 1px solid transparent;
+    border-radius: calc(var(--gg-icon-button-size) / 2);
+    background-color: transparent;
+    color: rgb(var(--text-sub-600));
+    cursor: pointer;
+    transition:
+      background-color var(--spring-effects-fast-duration, 150ms) var(--spring-effects-fast-easing, ease-out),
+      border-color var(--spring-effects-fast-duration, 150ms) var(--spring-effects-fast-easing, ease-out),
+      color var(--spring-effects-fast-duration, 150ms) var(--spring-effects-fast-easing, ease-out),
+      border-radius var(--spring-spatial-fast-duration, 180ms) var(--spring-spatial-fast-easing, ease-out);
   }
 
-  .gg-switch {
+  .gg-icon-button svg {
+    inline-size: 1.25rem;
+    block-size: 1.25rem;
+  }
+
+  .gg-icon-button[data-size="lg"] {
+    --gg-icon-button-size: var(--gg-icon-size-lg, 3rem);
+  }
+
+  .gg-icon-button[data-size="sm"] {
+    --gg-icon-button-size: var(--gg-icon-size-sm, 2.5rem);
+  }
+
+  .gg-icon-button[data-size="compact"] {
+    --gg-icon-button-size: var(--gg-icon-size-compact, 2rem);
+  }
+
+  .gg-icon-button[data-size="compact"] svg {
+    inline-size: 1rem;
+    block-size: 1rem;
+  }
+
+  .gg-icon-button::after {
+    content: "";
+    position: absolute;
+    inset: calc((var(--gg-icon-button-size) - var(--gg-hit-block, 3rem)) / 2 - 1px);
+    border-radius: 50%;
+  }
+
+  .gg-icon-button:hover {
+    background-color: rgb(var(--bg-weak-50));
+    color: rgb(var(--text-strong-950));
+  }
+
+  .gg-icon-button:focus-visible {
+    outline: 2px solid rgb(var(--tone-focus-ring, var(--primary-base)));
+    outline-offset: 2px;
+  }
+
+  .gg-icon-button:active {
+    border-radius: var(--radius-squircle);
+  }
+
+  .gg-icon-button:disabled,
+  .gg-icon-button[aria-disabled="true"] {
+    pointer-events: none;
+    cursor: not-allowed;
+    opacity: 0.5;
+  }
+
+  .gg-icon-button[data-emphasis="secondary"] {
+    border-color: rgb(var(--stroke-soft-200));
+    background-color: rgb(var(--bg-white-0));
+  }
+
+  .gg-icon-button[data-emphasis="secondary"]:hover {
+    background-color: rgb(var(--bg-weak-50));
+  }
+
+  .gg-icon-button[data-emphasis="primary"] {
+    background-color: rgb(var(--tone-action, var(--primary-action)));
+    color: rgb(var(--tone-on-action, var(--primary-action-foreground)));
+  }
+
+  .gg-icon-button[data-emphasis="primary"]:hover {
+    background-color: rgb(var(--tone-action-hover, var(--primary-action-hover)));
+    color: rgb(var(--tone-on-action, var(--primary-action-foreground)));
+  }
+
+  .gg-icon-button[data-tone="danger"] {
+    color: rgb(var(--error-base));
+  }
+
+  .gg-icon-button[data-emphasis="primary"][data-tone="danger"] {
+    background-color: rgb(var(--error-base));
+    color: rgb(var(--static-white, var(--neutral-0)));
+  }
+
+  .gg-icon-button[data-emphasis="primary"][data-tone="danger"]:hover {
+    background-color: rgb(var(--error-dark, var(--red-700)));
+    color: rgb(var(--static-white, var(--neutral-0)));
+  }
+
+  /* A launcher's count or status dot, pinned to the top-right corner. */
+  .gg-icon-button-badge {
+    position: absolute;
+    /* Level with the button's top edge (the border is 1px), so a strip or bar
+     * above the launcher never covers the count; it overhangs to the side only. */
+    inset-block-start: -1px;
+    inset-inline-end: -0.375rem;
+    display: inline-flex;
+  }
+
+  /* ── Chip (DL-026) ── A capsule toggle for filters and choices: 32px with a
+   * 44px hit area. Selected chips carry text on a green fill, so they use the
+   * action fill with white text (DL-017). */
+  .gg-chip {
     position: relative;
     display: inline-flex;
-    width: 2.75rem;
-    height: 1.5rem;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    gap: 0.375rem;
+    min-block-size: 2rem;
+    padding: 0.3125rem 0.875rem;
+    border: 1px solid rgb(var(--stroke-sub-300));
+    border-radius: var(--radius-full);
+    background-color: rgb(var(--bg-white-0));
+    color: rgb(var(--text-sub-600));
+    font-size: var(--gg-label-sm);
+    font-weight: var(--text-label-sm--font-weight);
+    line-height: var(--text-label-sm--line-height);
+    white-space: nowrap;
+    cursor: pointer;
+    transition:
+      background-color var(--spring-effects-fast-duration, 150ms) var(--spring-effects-fast-easing, ease-out),
+      border-color var(--spring-effects-fast-duration, 150ms) var(--spring-effects-fast-easing, ease-out),
+      color var(--spring-effects-fast-duration, 150ms) var(--spring-effects-fast-easing, ease-out);
+  }
+
+  .gg-chip::after {
+    content: "";
+    position: absolute;
+    inset: calc((2rem - 2.75rem) / 2 - 1px) calc(-0.125rem - 1px);
+    border-radius: inherit;
+  }
+
+  .gg-chip:hover {
+    background-color: rgb(var(--bg-weak-50));
+    color: rgb(var(--text-strong-950));
+  }
+
+  .gg-chip:focus-visible {
+    box-shadow: 0 0 0 3px rgb(var(--focus-ring, var(--primary-base)) / 0.16);
+    outline: none;
+  }
+
+  .gg-chip[aria-pressed="true"],
+  .gg-chip[aria-checked="true"],
+  .gg-chip[aria-selected="true"] {
+    border-color: transparent;
+    background-color: rgb(var(--primary-action));
+    color: rgb(var(--primary-action-foreground));
+  }
+
+  .gg-chip:disabled,
+  .gg-chip[aria-disabled="true"] {
+    pointer-events: none;
+    cursor: not-allowed;
+    opacity: 0.6;
+  }
+
+  .gg-chip[data-size="sm"] {
+    min-block-size: 2.5rem;
+    padding: 0.5625rem 1rem;
+  }
+
+  .gg-chip[data-size="sm"]::after {
+    inset: calc((2.5rem - 2.75rem) / 2 - 1px) calc(-0.125rem - 1px);
+  }
+
+  /* ── Editorial field surface (DL-024) ── The public site's underline field:
+   * no box, a hairline in the text color, serif input text. */
+  .gg-control[data-surface="editorial"] {
+    min-block-size: 2.75rem;
+    border-width: 0 0 1px;
+    border-color: color-mix(in oklab, currentColor 30%, transparent);
+    border-radius: 0;
+    background-color: transparent;
+    padding: 0.5rem 0.125rem;
+    color: inherit;
+    font-family: var(--font-serif);
+    font-size: 1.125rem;
+    line-height: 1.5rem;
+  }
+
+  .gg-control[data-surface="editorial"]::placeholder {
+    color: color-mix(in oklab, currentColor 45%, transparent);
+  }
+
+  /* The underline select keeps a lane for its chevron at the right edge. */
+  .gg-control-select[data-surface="editorial"] {
+    padding-right: 1.75rem;
+    background-position: right 0.125rem center;
+  }
+
+  .gg-control[data-surface="editorial"]:focus-visible {
+    border-color: rgb(var(--primary-action));
+    box-shadow: 0 1px 0 0 rgb(var(--primary-action));
+  }
+
+  .gg-control[data-surface="editorial"][data-invalid="true"] {
+    border-color: rgb(var(--error-base));
+    box-shadow: 0 1px 0 0 rgb(var(--error-base));
+  }
+
+  /* ── Switch ── A 44 × 24 track in the app; the admin surface takes the M3
+   * 52 × 32 track (the cockpit's md-button height). Both carry a 44px hit box
+   * (DL-031). */
+  .gg-switch {
+    --gg-switch-inline: 2.75rem;
+    --gg-switch-block: 1.5rem;
+    --gg-switch-thumb: 1.25rem;
+    position: relative;
+    display: inline-flex;
+    width: var(--gg-switch-inline);
+    height: var(--gg-switch-block);
     flex-shrink: 0;
     align-items: center;
     border: 2px solid transparent;
@@ -1096,6 +1501,14 @@
     transition:
       background-color var(--spring-effects-fast-duration, 150ms) var(--spring-effects-fast-easing, ease-out),
       box-shadow var(--spring-effects-fast-duration, 150ms) var(--spring-effects-fast-easing, ease-out);
+  }
+
+  /* The hit box is laid out against the padding box, inside the 2px border. */
+  .gg-switch::after {
+    content: "";
+    position: absolute;
+    inset: calc((var(--gg-switch-block) - 2.75rem) / 2 - 2px) -2px;
+    border-radius: inherit;
   }
 
   .gg-switch:focus-visible {
@@ -1114,8 +1527,8 @@
 
   .gg-switch-thumb {
     display: block;
-    width: 1.25rem;
-    height: 1.25rem;
+    width: var(--gg-switch-thumb);
+    height: var(--gg-switch-thumb);
     border-radius: 999px;
     background: rgb(var(--m3-surface, var(--bg-white-0)));
     box-shadow: var(--shadow-switch-thumb, 0 2px 4px rgb(0 0 0 / 0.16));
@@ -1126,7 +1539,7 @@
   }
 
   .gg-switch[data-state="checked"] .gg-switch-thumb {
-    transform: translateX(1.25rem);
+    transform: translateX(calc(var(--gg-switch-inline) - var(--gg-switch-thumb) - 4px));
   }
 
   /* Admin cockpit surface variant — the component's own opt-in API
@@ -1135,6 +1548,9 @@
    * Moved here from admin-m3-overrides.css when that remote-override file was
    * retired (Cockpit M3 1a, Step 5). */
   .gg-switch[data-surface="admin"] {
+    --gg-switch-inline: 3.25rem;
+    --gg-switch-block: 2rem;
+    --gg-switch-thumb: 1.5rem;
     border-color: rgb(var(--m3-outline, var(--neutral-500)));
     background: rgb(var(--m3-surface-container-highest, var(--neutral-200)));
     box-shadow: inset 0 0 0 1px rgb(var(--m3-outline, var(--neutral-500)) / 0.18);
@@ -1162,9 +1578,21 @@
   @media (prefers-reduced-motion: reduce) {
     .gg-control,
     .gg-button,
+    .gg-icon-button,
+    .gg-chip,
     .gg-switch,
     .gg-switch-thumb {
       transition: none;
+    }
+
+    /* No press morph: buttons keep their resting corner. */
+    .gg-button[data-emphasis="primary"]:active,
+    .gg-button[data-emphasis="secondary"]:active {
+      border-radius: var(--gg-button-radius);
+    }
+
+    .gg-icon-button:active {
+      border-radius: calc(var(--gg-icon-button-size) / 2);
     }
   }
 }

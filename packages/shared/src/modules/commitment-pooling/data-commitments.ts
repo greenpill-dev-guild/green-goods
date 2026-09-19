@@ -63,7 +63,7 @@ export async function getCommitments(
     }
   }
   if (input.state) {
-    declarations.push("$state: CommitmentOnchainState!");
+    declarations.push("$state: commitmentonchainstate!");
     clauses.push("state: { _eq: $state }");
     variables.state = input.state;
   }
@@ -293,7 +293,7 @@ export async function getCommitmentClaimRequests(
   ];
   const variables: Record<string, unknown> = { chainId, commitmentId: commitmentId.toString() };
   if (state) {
-    declarations.push("$state: CommitmentClaimRequestState!");
+    declarations.push("$state: commitmentclaimrequeststate!");
     clauses.push("state: { _eq: $state }");
     variables.state = state;
   }
@@ -341,7 +341,7 @@ export async function getPoolClaimRequests(
   const clauses = ["commitmentEntityId: { _in: $ids }", "requestSeen: { _eq: true }"];
   const variables: Record<string, unknown> = { ids: [...byId.keys()] };
   if (input.state) {
-    declarations.push("$state: CommitmentClaimRequestState!");
+    declarations.push("$state: commitmentclaimrequeststate!");
     clauses.push("state: { _eq: $state }");
     variables.state = input.state;
   }
@@ -380,7 +380,7 @@ export async function getFallbackConfirmationCandidates(
   },
   reader: GraphQLReader = greenGoodsIndexer
 ): Promise<FallbackConfirmationCandidate[]> {
-  const declarations = ["$chainId: Int!", "$state: CommitmentOnchainState!"];
+  const declarations = ["$chainId: Int!", "$state: commitmentonchainstate!"];
   const clauses = [
     "chainId: { _eq: $chainId }",
     "creationSeen: { _eq: true }",

@@ -21,7 +21,7 @@
     "uiux_spec": "uiux-spec.md",
     "settlement_spec": "settlement-spec.md",
     "exchange_architecture_brief": "exchange-architecture-brief.md",
-    "credit_spec": "../commitment-credit-follow-on/spec.md",
+    "credit_spec": "../../backlog/commitment-credit-follow-on/spec.md",
     "diagrams": "diagrams.md",
     "wireframes": "wireframes.md",
     "acceptance_matrix": "acceptance-matrix.md",
@@ -43,7 +43,7 @@
     "eval": "acceptance-matrix.md",
     "contracts_hardening_handoff": "handoffs/claude-contracts-hardening.md",
     "garden_safe_erc6551_owner_spike": "erc6551-garden-safe-owner-spike.md",
-    "celo_garden_account_safe_ownership": "../celo-garden-account-safe-ownership/plan.todo.md",
+    "celo_garden_account_safe_ownership": "../../ARCHIVE.md",
     "celo_zodiac_roles_pin": "evidence/celo-zodiac-roles-mastercopies-2026-08-18.json",
     "work_linking_closure_handoff": "handoffs/codex-work-linking.md",
     "gardener_celo_wallets": "gardener-celo-wallets.md",
@@ -85,7 +85,7 @@
       "note": "Historical aggregate trackers remain for context; thin execution sub-lane issues are the current dispatch mirrors. Lane content and proof remain in this hub. linear.lastSyncedAt intentionally records the last completed external write/re-read and is not advanced by local review corrections; live convergence must update it only after verified Linear/source-document writes.",
       "august_proof": "PRD-650",
       "august_settlement": "PRD-686",
-      "september_interface": "PRD-682",
+      "september_interface": "PRD-691",
       "july_dry_run": "COM-7",
       "needs_substrate": "PRD-687",
       "needs_app": "PRD-691",
@@ -106,14 +106,14 @@
       "packages/admin",
       "packages/community",
       "docs/docs",
-      ".plans/active/community-interface"
+      ".plans/backlog/community-interface"
     ],
     "depends_on_features": []
   },
   "notes": [
     "Production-readiness checkpoint 2026-08-22: contracts, indexer source/config, shared, and the critical repository gate pass. The core tier remains REQUEST_CHANGES because the hosted indexer serves the old schema, Arbitrum ownership is still with the deployment sender, and the corrected working candidate needs a clean committed SHA. Settlement remains COMMENT_ONLY and does not block the core tier while paused and unavailable; the live Celo protocol Safe is 1-of-4 and its ownership dry run fails closed. Full evidence and the authorized-operations order are in reports/production-readiness-review-2026-08-22.md. No broadcast, hosted deployment, cutover, Safe mutation, availability flip, ping, canary, value movement, or Linear write was authorized.",
     "Phase A release engineering was authorized on 2026-08-11 using the August 10 execution prompt and its recorded owner decisions. The pinned base and starting HEAD are 7a9c7eeef96b17c96d5a5f7e15d3e181223bbe6b; PR #694 merge c60b38dea and PR #695 merge bff3b274d are ancestors. This grants local implementation, simulation, read-only chain inspection, and PR preparation only. It grants no broadcast, deployment, Safe/Zodiac mutation, ownership transfer, value movement, indexer activation, message-only ping, canary, or Linear write.",
-    "Commitments are module-native records; the commitment-pooling release adds exactly two EAS schemas (assessment v3, community testimony). No commitment EAS schema. The separate Needs layer adds four additional EAS schemas in .plans/active/community-interface/ per plan.todo.md register #28.",
+    "Commitments are module-native records; the commitment-pooling release adds exactly two EAS schemas (assessment v3, community testimony). No commitment EAS schema. The separate Needs layer adds four additional EAS schemas in .plans/backlog/community-interface/ per plan.todo.md register #28.",
     "CommitmentPoolingModule + non-transferable ERC-1155-style CommitmentRegistry; initial classId equals commitmentId and remains the authoritative promise-instance accounting identity. A future transferable voucher owns a separate adapter-level voucherClassId and never moves promise authority.",
     "Clean room: Grassroots Economics paper and public docs only; never the AGPL Sarafu source.",
     "G$ split-state settlement is Build-phase scope via PRD-686: Arbitrum SettlementModule sends message-only CCIP commands, bounded CeloSettlementExecutor executes canonical G$ transfers through Zodiac Roles, and only authenticated acknowledgments bound to the subject's current execution key and attempt finalize state. Immutable batch membership uses a hard ceiling of 24 plus a measurement-gated configured limit; same-key idempotency, independent acknowledgment retry, one immutable router per implementation, bounded previous-peer grace, a paused/drained router-upgrade cutover, native-fee monitoring, recipient event/query surfaces, and AA-gated member delivery are mandatory. Release remains separately human-authorized.",
@@ -254,7 +254,7 @@
       "depends_on": ["state_api"],
       "handoff": "handoffs/claude-ui.md",
       "handoff_note": "The machine UI lane aggregates runtime client, admin, and editorial implementation only. Documentation polish starts after QA Pass 1, walkthrough videos finish after QA Pass 2, and September Community remains a separate follow-on.",
-      "linear_issues": ["PRD-650", "PRD-682"],
+      "linear_issues": ["PRD-650"],
       "tdd": {
         "mode": "required",
         "status": "green_recorded",
@@ -446,7 +446,7 @@
         "parentIssue": "PRD-650",
         "milestone": "build"
       },
-      "linear_issues": ["PRD-725", "PRD-650", "PRD-682"],
+      "linear_issues": ["PRD-725", "PRD-650"],
       "acceptance_amendment_2026_08_02": "Group linked instances by internal series and present them as one ongoing Offer. Show holder-authorized Story/context without giving stewards authority to edit another holder's metadata or rest/resume/retire their series. Keep saved Offer metadata and person-level Story out of cross-garden/public views.",
       "acceptance": "Garden Pool operations, /community/pools Protocol plus current-garden mode, capability-gated Operations cross-garden mode with showOperations = isDeployer || canQueueFunding || canOperateSettlement and independent per-action authorization, repeatable DomainImpact requirement creation/progress, accountable lead plus contributor roster/credit visibility, Work-UID credit deduplication, explicit evidence attribution, provider open-commitment cap readiness, state-count and exact-label unit summaries with no mixed-label arithmetic, six-role allocation plus RecognitionPolicy encoded atomically at open, cycle-less certificate-selection exclusion, direct Fulfilled dispute resolution freeze/policy/credit gates, provider-garden payout-plan creation/edit/finalization/retention/child preparation, stored claim acceptance/decline/supersession and exchange-pair oversight, dispute restoration, immutable-batch per-member reconciliation, native fee reserves, command/ack message state, same-key retry, acknowledgment retry, and failure/new-attempt controls. The queueFunding form requires protocol-steward or SettlementModule-owner authority, deployer alone cannot submit, cancel creates no row, and success renders an emitted Funding/ProtocolToGarden Queued row with no commitment ID."
     },
@@ -577,19 +577,19 @@
       "status": "blocked",
       "ready_when_dependencies_met": true,
       "manual_blocked": true,
-      "blocked_reason": "Wait for shared foundation/state_api and the Community core gates. RESR-64 blocks only the membership-persistence slice, not the non-membership Community PWA core.",
+      "blocked_reason": "Deferred 2026-09-07: the Community PWA is a hackathon build and the team chose QA instead. The gates this lane used to cite are closed (PRD-758 Done 2026-08-29, PRD-723 Done 2026-09-06); what remains is shared_foundation plus an explicit dispatch. Execution truth and the Linear record live in the community-interface hub under PRD-691. PRD-682 was canceled as superseded on 2026-09-11, so this lane no longer mirrors to Linear.",
       "branch": "feature/commitment-pooling-community",
       "depends_on": ["state_api"],
       "handoff": "handoffs/claude-community.md",
       "linear": {
-        "sync": true,
-        "issue": "PRD-682",
+        "sync": false,
+        "issue": null,
         "parentIssue": null,
         "milestone": null,
-        "dueDate": "2026-09-30"
+        "dueDate": null
       },
-      "linear_issues": ["PRD-682"],
-      "acceptance": "September Community core after the August substrate lands; membership persistence remains excluded until RESR-64, without blocking view/signal/testimony/confirmation core."
+      "linear_issues": [],
+      "acceptance": "Community core ships from the community-interface hub when the hackathon is scheduled. This lane stays open only as the settlement_evidence dependency; it carries no dated commitment here."
     },
     "settlement_evidence": {
       "machine_lane": null,
@@ -650,7 +650,7 @@
     "credit_register": {
       "owner": "codex",
       "status": "unblocked_into_august_wave",
-      "hub": "../commitment-credit-follow-on/",
+      "hub": "../../backlog/commitment-credit-follow-on/",
       "note": "Explicitly unblocked 2026-08-01 (plan register #73); hub promoted backlog -> active. Dispatch gates: in-code pooling/settlement interface freeze, spec revalidation, and human-owned legal/operations review. G$ leg locks settlement seam (a), DisbursementKind.LoanPrincipal."
     }
   },
@@ -1309,6 +1309,14 @@
       "status": "automated_release_checks_passed",
       "branch": "develop",
       "note": "Gardener Celo wallets implemented at ea193295f9ce1f6ebac415481c320c5d7a61baae; 35 fresh automated release checks pass. Authenticated Brave is unavailable and production policy/canary/activation remain human-authorized release work. Evidence: evidence/gardener-celo-wallet-validation-2026-09-05.json."
+    },
+    {
+      "timestamp": "2026-09-11T00:00:00Z",
+      "actor": "claude",
+      "lane": "community",
+      "status": "deferred",
+      "branch": null,
+      "note": "Resolved the duplicate Community tracker. The Community PWA is a hackathon build that was deferred on 2026-09-07 in favor of QA, so PRD-682 was canceled as superseded and the work is tracked solely by PRD-691 in the community-interface hub. Cleared this lane's stale PRD-758 gate, its 2026-09-30 due date, and its Linear sync. COM-11 now waits on PRD-691 instead of PRD-682."
     }
   ]
 }

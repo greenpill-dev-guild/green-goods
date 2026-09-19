@@ -22,7 +22,7 @@ export interface FormTextareaProps extends TextareaHTMLAttributes<HTMLTextAreaEl
  * />
  */
 export const FormTextarea = forwardRef<HTMLTextAreaElement, FormTextareaProps>(
-  ({ label, helperText, error, className, rows = 4, ...props }, ref) => {
+  ({ label, helperText, error, className, rows = 4, required, ...props }, ref) => {
     const helperId = props.id ? `${props.id}-helper-text` : undefined;
     const ariaDescribedBy = (helperText || error) && helperId ? helperId : undefined;
 
@@ -30,6 +30,7 @@ export const FormTextarea = forwardRef<HTMLTextAreaElement, FormTextareaProps>(
       <FormFieldWrapper
         id={props.id}
         label={label}
+        required={required}
         helperText={helperText}
         error={error}
         className={className}
@@ -40,6 +41,7 @@ export const FormTextarea = forwardRef<HTMLTextAreaElement, FormTextareaProps>(
           rows={rows}
           aria-describedby={ariaDescribedBy}
           aria-invalid={!!error || undefined}
+          required={required}
           {...props}
           ref={ref}
         />

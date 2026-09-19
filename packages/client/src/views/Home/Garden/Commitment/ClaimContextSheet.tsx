@@ -1,5 +1,5 @@
 import type { Address } from "@green-goods/shared/types/domain";
-import { DialogShell } from "@green-goods/shared/components/Dialog/ConfirmDialog";
+import { DialogShell } from "@green-goods/shared/components/Dialog/DialogShell";
 import { RiGroupLine } from "@remixicon/react";
 import { useEffect, useState } from "react";
 import { useIntl } from "react-intl";
@@ -78,6 +78,22 @@ export function ClaimContextSheet({
       title={formatMessage({ id: "app.claim.context.title" })}
       description={formatMessage({ id: "app.claim.context.body" })}
       size="md"
+      sheetSize="half"
+      actions={{
+        primary: {
+          label: formatMessage({
+            id: approvalGated ? "app.commitment.act.askToTakeUp" : "app.commitment.act.takeUp",
+          }),
+          disabled: !context,
+          loading: isPending,
+          onClick: () => context && onContinue(context),
+        },
+        secondary: {
+          label: formatMessage({ id: "app.claim.context.cancel" }),
+          disabled: isPending,
+          onClick: () => onOpenChange(false),
+        },
+      }}
     >
       <div className="space-y-4">
         <fieldset>
@@ -123,26 +139,6 @@ export function ClaimContextSheet({
             {formatMessage({ id: "app.claim.context.gardenNote" })}
           </p>
         ) : null}
-
-        <button
-          type="button"
-          disabled={isPending || !context}
-          aria-busy={isPending}
-          onClick={() => context && onContinue(context)}
-          className="w-full rounded-[var(--radius-lg)] bg-primary-action px-4 py-3 text-sm font-medium text-primary-action-foreground tap-target-lg disabled:opacity-60"
-        >
-          {formatMessage({
-            id: approvalGated ? "app.commitment.act.askToTakeUp" : "app.commitment.act.takeUp",
-          })}
-        </button>
-        <button
-          type="button"
-          disabled={isPending}
-          onClick={() => onOpenChange(false)}
-          className="w-full rounded-[var(--radius-lg)] px-4 py-3 text-sm font-medium text-text-sub-600 tap-target-lg"
-        >
-          {formatMessage({ id: "app.claim.context.cancel" })}
-        </button>
       </div>
     </DialogShell>
   );

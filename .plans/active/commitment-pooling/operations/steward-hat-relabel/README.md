@@ -1,5 +1,8 @@
 # Steward hat relabel operation
 
+> Completed operation: the four root/package relabel commands have been retired.
+> This document preserves historical execution context and is not a current runbook.
+
 This is the one-shot operations surface for PRD-747 and PRD-748. Preparation reads live
 GardenToken and Hats Protocol state at one fixed block, captures the UUPS/configuration baseline,
 emits a direct common-admin plan when proven, and retains controller partitions as fallback
@@ -78,7 +81,7 @@ bun .plans/active/commitment-pooling/operations/steward-hat-relabel/refresh-dire
 Simulate the exact executable plan before asking for a signature:
 
 ```bash
-bun run contracts:relabel:steward-hats:dry:arbitrum -- \
+# Retired command: contracts:relabel:steward-hats:dry:arbitrum \
   --plan packages/contracts/deployments/tx-plans/<REVIEWED_RELABEL_PLAN>.json
 ```
 
@@ -86,7 +89,7 @@ After the HatsModule upgrade verifier passes, Afo can run the same fail-closed s
 password-gated broadcast wrapper:
 
 ```bash
-bun run contracts:relabel:steward-hats:arbitrum -- \
+# Retired command: contracts:relabel:steward-hats:arbitrum \
   --plan packages/contracts/deployments/tx-plans/<REVIEWED_RELABEL_PLAN>.json
 ```
 

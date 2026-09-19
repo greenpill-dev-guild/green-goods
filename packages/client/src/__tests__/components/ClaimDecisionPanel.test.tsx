@@ -3,7 +3,7 @@ import { claimFixture } from "@green-goods/shared/__tests__/test-utils/commitmen
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { ClaimDecisionPanel } from "../../views/Home/Garden/Commitment/ClaimDecisionPanel";
-import { renderWithProviders, screen } from "../test-utils";
+import { fireEvent, renderWithProviders, screen } from "../test-utils";
 
 const CLAIMANT = "0x1111111111111111111111111111111111111111" as Address;
 const REQUESTER = "0x2222222222222222222222222222222222222222" as Address;
@@ -58,17 +58,22 @@ describe("ClaimDecisionPanel", () => {
   });
 
   it("disables every decision while one is pending", () => {
+    const onAccept = vi.fn();
     renderWithProviders(
       <ClaimDecisionPanel
         requests={[claimFixture({ claimant: CLAIMANT })]}
         isPending
-        onAccept={vi.fn()}
+        onAccept={onAccept}
         onDecline={vi.fn()}
       />
     );
 
-    expect(screen.getByRole("button", { name: "Accept" })).toBeDisabled();
-    expect(screen.getByRole("button", { name: "Accept" })).toHaveAttribute("aria-busy", "true");
+    // The in-flight decision stays focusable while busy, and ignores a second press.
+    const accept = screen.getByRole("button", { name: "Accept" });
+    expect(accept).toHaveAttribute("aria-busy", "true");
+    expect(accept).toHaveAttribute("aria-disabled", "true");
+    fireEvent.click(accept);
+    expect(onAccept).not.toHaveBeenCalled();
     expect(screen.getByRole("button", { name: "Decline" })).toBeDisabled();
   });
 });

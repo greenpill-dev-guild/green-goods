@@ -125,6 +125,7 @@ export function CapitalsStep({ form }: CapitalsStepProps) {
         error={form.formState.errors.media?.message}
       >
         <FileUploadField
+          surface="admin"
           id="create-action-media"
           currentFiles={form.watch("media")}
           onFilesChange={(files: File[]) => form.setValue("media", files)}

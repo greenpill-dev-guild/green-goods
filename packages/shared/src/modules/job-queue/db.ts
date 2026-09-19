@@ -1,165 +1,84 @@
-import { type IDBPDatabase, openDB } from "idb";
-import type { CachedWork, Job, JobQueueDBImage } from "../../types/job-queue";
+import { liveQuery, type Observable } from "dexie";
+import type { Job, QueueStats, WorkJobPayload } from "../../types/job-queue";
 import { deserializeFile } from "../../utils/storage/file-serialization";
 import { retryOnceAfterQuotaCleanup } from "../../utils/storage/quota";
 import { createLogger } from "../app/logger";
-import { serializeJobMedia } from "./db-media";
+import { restoreWorkFile } from "../work/work-attachments";
+import { createJobMediaRows, findExistingWorkJob, serializeJobPayload } from "./db-media";
+import { JobQueueDatabase, type WorkCompletion } from "./db-schema";
+import { isTerminalDatabaseOpenError, openDexieDatabase } from "./database-open";
 import { loadFailedDeleteIds, saveFailedDeleteIds } from "./failed-delete-storage";
 import { trackPrivateQueueEvent } from "./job-analytics";
 import { mediaResourceManager } from "./media-resource-manager";
 
 const log = createLogger({ source: "job-queue/db" });
+export const CLAIM_TTL_MS = 60_000;
+const STALE_URL_AGE_MS = 60 * 60 * 1000;
 
-const DB_NAME = "green-goods-job-queue";
-const DB_VERSION = 6; // Commitment Pooling client-id materialization mappings
-
-interface ClientWorkIdMapping {
-  clientWorkId: string;
-  attestationId: string; // EAS attestation ID
-  jobId: string; // Original job ID
-  createdAt: number;
+export interface JobFilter {
+  userAddress: string;
+  kind?: string;
+  synced?: boolean;
 }
 
-interface ClientCommitmentIdMapping {
-  clientCommitmentId: string;
-  commitmentId: string;
-  jobId: string;
-  chainId: number;
-  createdAt: number;
+function workScope(address: string, chainId: number, clientWorkId: string): string {
+  return `${chainId}:${address.toLowerCase()}:${clientWorkId}`;
 }
 
-interface ClientSeriesIdMapping {
-  clientSeriesId: string;
-  seriesId: string;
-  jobId: string;
-  chainId: number;
-  createdAt: number;
-}
+/**
+ * The queue's durable storage: one connection per tab, reopened after another
+ * tab upgrades the schema, with live views over the tables for the screens
+ * that watch pending work.
+ */
+class JobQueueStore {
+  private db: JobQueueDatabase | null = null;
+  private opening: Promise<JobQueueDatabase> | null = null;
 
-interface JobQueueDB {
-  jobs: Job;
-  job_images: JobQueueDBImage;
-  cached_work: CachedWork;
-  client_work_id_mappings: ClientWorkIdMapping;
-  client_commitment_id_mappings: ClientCommitmentIdMapping;
-  client_series_id_mappings: ClientSeriesIdMapping;
-}
-
-class JobQueueDatabase {
-  private db: IDBPDatabase<JobQueueDB> | null = null;
-
-  async init(): Promise<IDBPDatabase<JobQueueDB>> {
+  async init(): Promise<JobQueueDatabase> {
     if (this.db) return this.db;
+    if (this.opening) return this.opening;
+    this.opening = this.open();
+    try {
+      return await this.opening;
+    } finally {
+      this.opening = null;
+    }
+  }
 
-    this.db = await openDB<JobQueueDB>(DB_NAME, DB_VERSION, {
-      upgrade(db, oldVersion, _newVersion, transaction) {
-        // Create jobs store
-        if (!db.objectStoreNames.contains("jobs")) {
-          const jobsStore = db.createObjectStore("jobs", { keyPath: "id" });
-          jobsStore.createIndex("kind", "kind");
-          jobsStore.createIndex("synced", "synced");
-          jobsStore.createIndex("createdAt", "createdAt");
-          jobsStore.createIndex("attempts", "attempts");
-          // Add compound index for better query performance
-          jobsStore.createIndex("kind_synced", ["kind", "synced"]);
-          // Add userAddress index for user-scoped queries
-          jobsStore.createIndex("userAddress", "userAddress");
-        }
-
-        // Create job images store
-        if (!db.objectStoreNames.contains("job_images")) {
-          const imagesStore = db.createObjectStore("job_images", { keyPath: "id" });
-          imagesStore.createIndex("jobId", "jobId");
-          imagesStore.createIndex("createdAt", "createdAt");
-        }
-
-        // Keep cached work for backward compatibility
-        if (!db.objectStoreNames.contains("cached_work")) {
-          const cachedWorkStore = db.createObjectStore("cached_work", { keyPath: "id" });
-          cachedWorkStore.createIndex("gardenAddress", "gardenAddress");
-          cachedWorkStore.createIndex("gardenerAddress", "gardenerAddress");
-        }
-
-        // Create client work ID mappings store for fast deduplication
-        if (!db.objectStoreNames.contains("client_work_id_mappings")) {
-          const mappingsStore = db.createObjectStore("client_work_id_mappings", {
-            keyPath: "clientWorkId",
-          });
-          mappingsStore.createIndex("attestationId", "attestationId");
-          mappingsStore.createIndex("jobId", "jobId");
-          mappingsStore.createIndex("createdAt", "createdAt");
-        }
-
-        if (!db.objectStoreNames.contains("client_commitment_id_mappings")) {
-          const mappingsStore = db.createObjectStore("client_commitment_id_mappings", {
-            keyPath: "clientCommitmentId",
-          });
-          mappingsStore.createIndex("commitmentId", "commitmentId");
-          mappingsStore.createIndex("jobId", "jobId");
-          mappingsStore.createIndex("chainId", "chainId");
-        }
-
-        if (!db.objectStoreNames.contains("client_series_id_mappings")) {
-          const mappingsStore = db.createObjectStore("client_series_id_mappings", {
-            keyPath: "clientSeriesId",
-          });
-          mappingsStore.createIndex("seriesId", "seriesId");
-          mappingsStore.createIndex("jobId", "jobId");
-          mappingsStore.createIndex("chainId", "chainId");
-        }
-
-        // Migration: Add userAddress index to existing jobs store (v4 -> v5)
-        if (oldVersion >= 1 && oldVersion < 5) {
-          const jobsStore = transaction.objectStore("jobs");
-          // Add userAddress index if it doesn't exist
-          if (!jobsStore.indexNames.contains("userAddress")) {
-            jobsStore.createIndex("userAddress", "userAddress");
-          }
-        }
-      },
+  private async open(): Promise<JobQueueDatabase> {
+    const db = new JobQueueDatabase();
+    const forget = () => {
+      if (this.db === db) this.db = null;
+    };
+    // Another tab wants to upgrade, or the browser dropped the connection:
+    // let go now and open a fresh connection on the next call.
+    db.on("versionchange", () => {
+      db.close();
+      forget();
     });
-
-    // Clean up stale URLs after init completes (awaited to prevent
-    // concurrent transactions on iOS Safari which can deadlock).
+    db.on("close", forget);
+    await openDexieDatabase(db, "job-queue-database");
+    this.db = db;
     await this.cleanupStaleUrls();
-
-    return this.db;
+    return db;
   }
 
   /**
-   * Clean up stale object URLs that are older than 1 hour.
-   * IMPORTANT: Only delete image rows for jobs that are already synced or deleted.
-   * For pending jobs, only revoke the blob URL (to free memory) but keep the
-   * image row so files can be re-loaded when needed.
+   * Revoke object URLs older than an hour and drop image rows whose job is
+   * gone or synced. Pending jobs keep their rows so files can be reloaded.
    */
   private async cleanupStaleUrls(): Promise<void> {
     try {
       const db = await this.init();
-      const tx = db.transaction(["job_images", "jobs"], "readwrite");
-      const imagesStore = tx.objectStore("job_images");
-      const jobsStore = tx.objectStore("jobs");
-      const index = imagesStore.index("createdAt");
-
-      const oneHourAgo = Date.now() - 60 * 60 * 1000;
-      const staleImages = await index.getAll(IDBKeyRange.upperBound(oneHourAgo));
-
-      for (const image of staleImages) {
-        // Check if the parent job still exists and is pending
-        const job = await jobsStore.get(image.jobId);
-
-        // Always revoke the blob URL to free memory
-        mediaResourceManager.cleanupUrl(image.url);
-
-        // Only delete the image row if:
-        // - The parent job doesn't exist (orphaned image)
-        // - The parent job is already synced (completed)
-        // For pending jobs, keep the image row so we can regenerate URLs later
-        if (!job || job.synced) {
-          await imagesStore.delete(image.id);
+      const cutoff = Date.now() - STALE_URL_AGE_MS;
+      await db.transaction("rw", db.job_images, db.jobs, async () => {
+        const stale = await db.job_images.where("createdAt").belowOrEqual(cutoff).toArray();
+        for (const image of stale) {
+          const job = await db.jobs.get(image.jobId);
+          if (image.url) mediaResourceManager.cleanupUrl(image.url);
+          if (!job || job.synced) await db.job_images.delete(image.id);
         }
-      }
-
-      await tx.done;
+      });
     } catch (error) {
       log.error("Failed to cleanup stale URLs", { error });
     }
@@ -174,91 +93,166 @@ class JobQueueDatabase {
     }
 
     const db = await this.init();
+    if (job.kind === "work") {
+      const clientId = (job.payload as WorkJobPayload).clientWorkId;
+      if (clientId && job.chainId) {
+        const completed = await this.getWorkCompletion(job.userAddress, job.chainId, clientId);
+        if (completed) return completed.jobId;
+      }
+    }
     const id = crypto.randomUUID();
     const timestamp = Date.now();
 
     const jobData: Job<T> = {
       ...job,
+      userAddress: job.userAddress.toLowerCase() as Job["userAddress"],
       id,
       createdAt: timestamp,
       attempts: 0,
       synced: false,
     } as Job<T>;
 
-    const serializedFiles = await serializeJobMedia(id, job as Pick<Job, "kind" | "payload">);
-    const imageRows = serializedFiles.map(({ file, fileData }) => ({
-      id: crypto.randomUUID(),
-      jobId: id,
-      fileData,
-      url: mediaResourceManager.createUrl(file, id),
-      createdAt: timestamp,
-    })) as JobQueueDBImage[];
+    if (jobData.kind === "work") {
+      const checkpoint = (jobData.payload as WorkJobPayload).uploadCheckpoint;
+      if (checkpoint?.transactionHash)
+        jobData.meta = {
+          ...jobData.meta,
+          submittedTxHash: checkpoint.transactionHash,
+          waitingForDependency: true,
+          waitingReason: "awaiting-confirmation",
+        };
+    }
+    const imageRows = await createJobMediaRows(id, job as Pick<Job, "kind" | "payload">, timestamp);
+    jobData.payload = serializeJobPayload(jobData) as T;
 
-    // Atomically persist job + images.
-    // If anything fails, we cleanup any created object URLs and nothing is committed.
     try {
-      await retryOnceAfterQuotaCleanup(async () => {
-        const tx = db.transaction(["jobs", "job_images"], "readwrite");
-        try {
-          await tx.objectStore("jobs").add(jobData as Job);
-          for (const imageRow of imageRows) {
-            await tx.objectStore("job_images").add(imageRow);
+      return await retryOnceAfterQuotaCleanup(() =>
+        db.transaction(
+          "rw",
+          db.jobs,
+          db.job_images,
+          db.work_completions,
+          db.client_work_id_mappings,
+          async () => {
+            if (jobData.kind === "work") {
+              const clientId = (jobData.payload as WorkJobPayload).clientWorkId;
+              if (clientId) {
+                const completed = await db.work_completions.get(
+                  workScope(jobData.userAddress, jobData.chainId!, clientId)
+                );
+                if (completed) return completed.jobId;
+                const legacy = await db.client_work_id_mappings.get(clientId);
+                const legacyIsUnscoped =
+                  legacy &&
+                  (await db.work_completions
+                    .filter((row) => row.clientWorkId === clientId)
+                    .count()) === 0;
+                if (legacyIsUnscoped) {
+                  const payload = jobData.payload as WorkJobPayload;
+                  payload.uploadCheckpoint = {
+                    submittedAt: new Date(legacy.createdAt).toISOString(),
+                    files: {},
+                    ...payload.uploadCheckpoint,
+                    transactionHash: legacy.attestationId as `0x${string}`,
+                  };
+                  jobData.meta = {
+                    ...jobData.meta,
+                    legacyConfirmation: true,
+                    waitingForDependency: true,
+                    waitingReason: "awaiting-confirmation",
+                  };
+                }
+              }
+            }
+            const existing = findExistingWorkJob(
+              await db.jobs.where("userAddress").equals(jobData.userAddress).toArray(),
+              jobData as Job
+            );
+            if (existing) return existing.id;
+            await db.jobs.add(jobData as Job);
+            if (imageRows.length > 0) await db.job_images.bulkAdd(imageRows);
+            return id;
           }
-          await tx.done;
-        } catch (error) {
-          try {
-            tx.abort();
-          } catch {
-            // Transaction may already be aborted; ignore error.
-          }
-          throw error;
-        }
-      });
+        )
+      );
     } catch (error) {
       trackPrivateQueueEvent("job_queue_storage_failed", {
         job_kind: job.kind,
-        file_count: serializedFiles.length,
-        total_size: serializedFiles.reduce((sum, f) => sum + f.file.size, 0),
+        file_count: imageRows.length,
+        total_size: imageRows.reduce((sum, image) => sum + image.fileData.data.byteLength, 0),
       });
-
-      // Ensure we don't leak object URLs for a job that never persisted.
-      mediaResourceManager.cleanupUrls(id);
       throw error;
     }
-
-    return id;
   }
 
-  /**
-   * Get jobs filtered by user address (required) and optional additional filters.
-   * @param filter.userAddress - Required user address to scope jobs
-   * @param filter.kind - Optional job kind filter
-   * @param filter.synced - Optional synced status filter
-   */
-  async getJobs(filter: { userAddress: string; kind?: string; synced?: boolean }): Promise<Job[]> {
+  async getJobs(filter: JobFilter): Promise<Job[]> {
     if (!filter.userAddress) {
       throw new Error("userAddress is required when getting jobs");
     }
+    const db = this.db ?? (await this.init());
+    const rows = await db.jobs
+      .where("userAddress")
+      .equals(filter.userAddress.toLowerCase())
+      .toArray();
+    return rows.filter(
+      (job) =>
+        (filter.synced === undefined || job.synced === filter.synced) &&
+        (!filter.kind || job.kind === filter.kind)
+    );
+  }
 
-    const db = await this.init();
+  /**
+   * Open before constructing the live query: a first open may run an upgrade,
+   * which Dexie rejects inside a live query. Retry once, then surface failure.
+   */
+  private observe<T>(read: () => Promise<T>): Observable<T> {
+    return {
+      subscribe: (...args: Parameters<Observable<T>["subscribe"]>) => {
+        let inner: { unsubscribe: () => void } | undefined;
+        let stopped = false;
+        const reportError = (error: unknown) => {
+          const [observerOrNext, onError] = args as unknown as [
+            { error?: (reason: unknown) => void } | ((value: T) => void) | undefined,
+            ((reason: unknown) => void) | undefined,
+          ];
+          if (typeof observerOrNext === "object") observerOrNext?.error?.(error);
+          else onError?.(error);
+        };
+        void (async () => {
+          let lastError: unknown;
+          for (let attempt = 0; attempt < 2; attempt += 1) {
+            try {
+              await this.init();
+              if (!stopped) inner = liveQuery(() => read()).subscribe(...args);
+              return;
+            } catch (error) {
+              lastError = error;
+              // A second request queues behind the same stale connection and
+              // cannot recover until another tab closes. Surface that state
+              // now; a later subscription gets a fresh open attempt.
+              if (isTerminalDatabaseOpenError(error, "job-queue-database")) break;
+            }
+          }
+          if (!stopped) reportError(lastError);
+        })();
+        return {
+          closed: false,
+          unsubscribe: () => {
+            stopped = true;
+            inner?.unsubscribe();
+          },
+        };
+      },
+    } as Observable<T>;
+  }
 
-    // Use userAddress index and filter additional criteria in memory
-    // This is more compatible with fake-indexeddb used in tests
-    const tx = db.transaction("jobs", "readonly");
-    const index = tx.objectStore("jobs").index("userAddress");
-    let result: Job[] = await index.getAll(filter.userAddress);
+  /** The user's jobs as a live view; it re-emits when the table changes in this tab or another. */
+  observeJobs(filter: JobFilter): Observable<Job[]> {
+    return this.observe(() => this.getJobs(filter));
+  }
 
-    // Apply synced filter in memory
-    if (filter.synced !== undefined) {
-      result = result.filter((job) => job.synced === filter.synced);
-    }
-
-    // Apply kind filter in memory
-    if (filter.kind) {
-      result = result.filter((job) => job.kind === filter.kind);
-    }
-
-    return result;
+  observeStats(userAddress: string): Observable<QueueStats> {
+    return this.observe(() => this.getStats(userAddress));
   }
 
   /**
@@ -267,128 +261,96 @@ class JobQueueDatabase {
    */
   async getAllJobsUnfiltered(): Promise<Job[]> {
     const db = await this.init();
-    return await db.getAll("jobs");
+    return db.jobs.toArray();
   }
 
   async getJob(id: string): Promise<Job | undefined> {
     const db = await this.init();
-    return await db.get("jobs", id);
+    return db.jobs.get(id);
   }
 
+  /**
+   * Every job write goes through here, and a record that is gone stays gone.
+   * Discarding takes no claim, so it can delete a job the queue still holds
+   * and is about to write to. Putting that job back would return it without
+   * its photos, which discarding deleted along with it.
+   */
+  private async putStoredJob(id: string, next: (stored: Job) => Job): Promise<void> {
+    const db = await this.init();
+    await db.transaction("rw", db.jobs, async () => {
+      const stored = await db.jobs.get(id);
+      if (stored) await db.jobs.put(next(stored));
+    });
+  }
+
+  /** Replace a stored job with this one. */
   async updateJob(job: Job): Promise<void> {
-    const db = await this.init();
-    await db.put("jobs", job);
+    await this.putStoredJob(job.id, () => ({ ...job, payload: serializeJobPayload(job) }));
   }
 
-  async markJobSynced(id: string, txHash?: string): Promise<void> {
-    const db = await this.init();
-    const job = await db.get("jobs", id);
+  /** Change part of a stored job in place, keeping the form storage gave it. */
+  async amendJob(id: string, amend: (job: Job) => void): Promise<void> {
+    await this.putStoredJob(id, (stored) => {
+      amend(stored);
+      return stored;
+    });
+  }
 
-    if (job) {
+  markJobSynced(id: string, txHash?: string): Promise<void> {
+    return this.amendJob(id, (job) => {
       job.synced = true;
       delete job.lastError;
-      if (txHash && job.meta) {
-        job.meta.txHash = txHash;
-      }
-      await db.put("jobs", job);
-    }
+      if (txHash && job.meta) job.meta.txHash = txHash;
+    });
   }
 
-  async markJobFailed(id: string, error: string): Promise<void> {
-    const db = await this.init();
-    const job = await db.get("jobs", id);
-
-    if (job) {
+  markJobFailed(id: string, error: string): Promise<void> {
+    return this.amendJob(id, (job) => {
       job.lastError = error;
       job.attempts += 1;
       job.lastAttemptAt = Date.now();
-      await db.put("jobs", job);
-    }
+    });
   }
 
-  async markJobTerminalFailed(id: string, error: string): Promise<void> {
-    const db = await this.init();
-    const job = await db.get("jobs", id);
-    if (!job) return;
-    job.lastError = error;
-    job.attempts = Math.max(job.attempts, 5);
-    job.lastAttemptAt = Date.now();
-    await db.put("jobs", job);
+  markJobTerminalFailed(id: string, error: string): Promise<void> {
+    return this.amendJob(id, (job) => {
+      job.lastError = error;
+      job.attempts = Math.max(job.attempts, 5);
+      job.lastAttemptAt = Date.now();
+    });
   }
 
   async getImagesForJob(jobId: string): Promise<Array<{ id: string; file: File; url: string }>> {
     const db = await this.init();
-    const tx = db.transaction("job_images", "readonly");
-    const index = tx.objectStore("job_images").index("jobId");
-    const images = await index.getAll(jobId);
-
-    // Deserialize files from IndexedDB format back to File objects.
-    // Handles both new serialized format and legacy File format.
-    const result = images.map((img) => {
-      const file = deserializeFile(img, `work-${jobId}`, img.id);
-
-      return {
+    const images = await db.job_images.where("jobId").equals(jobId).toArray();
+    // Back to File objects, from the serialized rows or the legacy File rows.
+    return images
+      .sort((a, b) => (a.order ?? a.createdAt) - (b.order ?? b.createdAt))
+      .map((img) => ({
         id: img.id,
-        file,
-        url: mediaResourceManager.getOrCreateUrl(file, jobId),
-      };
-    });
-
-    return result;
-  }
-
-  /**
-   * Create a fresh object URL for a file (use for immediate consumption)
-   */
-  createFreshImageUrl(file: File): string {
-    return mediaResourceManager.createUrl(file);
+        file:
+          img.contentHash && img.fileData?.data
+            ? restoreWorkFile(img.fileData, img.attachmentId ?? img.id, img.contentHash)
+            : deserializeFile(img, `work-${jobId}`, img.id),
+        url: "",
+      }));
   }
 
   async deleteJob(id: string): Promise<void> {
     const db = await this.init();
-
-    // Clean up associated images using MediaResourceManager
-    const images = await this.getImagesForJob(id);
-    for (const image of images) {
-      await db.delete("job_images", image.id);
-    }
-
+    await db.transaction("rw", db.job_images, db.jobs, async () => {
+      await db.job_images.where("jobId").equals(id).delete();
+      await db.jobs.delete(id);
+    });
     // Clean up all URLs associated with this job
     mediaResourceManager.cleanupUrls(id);
-
-    await db.delete("jobs", id);
   }
 
-  /**
-   * Clear synced jobs for a specific user.
-   * @param userAddress - Required user address to scope deletion
-   */
-  async clearSyncedJobs(userAddress: string): Promise<void> {
-    if (!userAddress) {
-      throw new Error("userAddress is required when clearing synced jobs");
-    }
-
-    await this.init();
-    const syncedJobs = await this.getJobs({ userAddress, synced: true });
-
-    for (const job of syncedJobs) {
-      await this.deleteJob(job.id);
-    }
-  }
-
-  /**
-   * Get job statistics for a specific user.
-   * @param userAddress - Required user address to scope statistics
-   */
-  async getStats(
-    userAddress: string
-  ): Promise<{ total: number; pending: number; failed: number; synced: number }> {
+  async getStats(userAddress: string): Promise<QueueStats> {
     if (!userAddress) {
       throw new Error("userAddress is required when getting stats");
     }
-
     const userJobs = await this.getJobs({ userAddress });
-
     return {
       total: userJobs.length,
       pending: userJobs.filter((job) => !job.synced && !job.lastError).length,
@@ -397,47 +359,99 @@ class JobQueueDatabase {
     };
   }
 
-  /**
-   * Store clientWorkId -> attestationId mapping for fast deduplication
-   */
   async storeClientWorkIdMapping(
     clientWorkId: string,
     attestationId: string,
     jobId: string
   ): Promise<void> {
     const db = await this.init();
-    await db.put("client_work_id_mappings", {
-      clientWorkId,
-      attestationId,
-      jobId,
-      createdAt: Date.now(),
+    await db.transaction(
+      "rw",
+      db.jobs,
+      db.work_completions,
+      db.client_work_id_mappings,
+      async () => {
+        const job = await db.jobs.get(jobId);
+        if (job?.chainId) {
+          await db.work_completions.put({
+            scope: workScope(job.userAddress, job.chainId, clientWorkId),
+            clientWorkId,
+            userAddress: job.userAddress.toLowerCase(),
+            chainId: job.chainId,
+            transactionHash: attestationId,
+            jobId,
+            createdAt: Date.now(),
+          });
+        }
+        await db.client_work_id_mappings.put({
+          clientWorkId,
+          attestationId,
+          jobId,
+          createdAt: Date.now(),
+        });
+      }
+    );
+  }
+
+  async getWorkCompletion(
+    address: string,
+    chainId: number,
+    clientWorkId: string
+  ): Promise<WorkCompletion | undefined> {
+    const db = await this.init();
+    return db.work_completions.get(workScope(address, chainId, clientWorkId));
+  }
+
+  async acquireExecutionClaim(ids: string[], token: string): Promise<boolean> {
+    const db = await this.init();
+    return db.transaction("rw", db.execution_claims, async () => {
+      const now = Date.now();
+      const claims = await db.execution_claims.bulkGet(ids);
+      if (claims.some((claim) => claim && claim.token !== token && claim.expiresAt > now)) {
+        return false;
+      }
+      await db.execution_claims.bulkPut(
+        ids.map((id) => ({ id, token, expiresAt: now + CLAIM_TTL_MS }))
+      );
+      return true;
     });
   }
 
-  /**
-   * Get attestation ID for a clientWorkId (instant lookup, no IPFS fetch)
-   */
+  async renewExecutionClaim(ids: string[], token: string): Promise<boolean> {
+    const db = await this.init();
+    return db.transaction("rw", db.execution_claims, async () => {
+      const claims = await db.execution_claims.bulkGet(ids);
+      if (claims.some((claim) => claim?.token !== token)) return false;
+      const expiresAt = Date.now() + CLAIM_TTL_MS;
+      await db.execution_claims.bulkPut(ids.map((id) => ({ id, token, expiresAt })));
+      return true;
+    });
+  }
+
+  async releaseExecutionClaim(ids: string[], token: string): Promise<void> {
+    const db = await this.init();
+    await db.transaction("rw", db.execution_claims, async () => {
+      const claims = await db.execution_claims.bulkGet(ids);
+      await db.execution_claims.bulkDelete(
+        ids.filter((_, index) => claims[index]?.token === token)
+      );
+    });
+  }
+
   async getAttestationIdByClientWorkId(clientWorkId: string): Promise<string | null> {
     const db = await this.init();
-    const mapping = await db.get("client_work_id_mappings", clientWorkId);
+    const mapping = await db.client_work_id_mappings.get(clientWorkId);
     return mapping?.attestationId || null;
   }
 
-  /**
-   * Check if a clientWorkId has been uploaded (fast local check)
-   */
   async isClientWorkIdUploaded(clientWorkId: string): Promise<boolean> {
     const attestationId = await this.getAttestationIdByClientWorkId(clientWorkId);
     return attestationId !== null;
   }
 
-  /**
-   * Get all uploaded clientWorkIds for batch deduplication
-   */
   async getAllUploadedClientWorkIds(): Promise<Set<string>> {
     const db = await this.init();
-    const allMappings = await db.getAll("client_work_id_mappings");
-    return new Set(allMappings.map((m) => m.clientWorkId));
+    return new Set(await db.client_work_id_mappings.toCollection().primaryKeys());
   }
 
   async storeClientCommitmentIdMapping(
@@ -447,7 +461,7 @@ class JobQueueDatabase {
     chainId: number
   ): Promise<void> {
     const db = await this.init();
-    await db.put("client_commitment_id_mappings", {
+    await db.client_commitment_id_mappings.put({
       clientCommitmentId,
       commitmentId: commitmentId.toString(),
       jobId,
@@ -458,7 +472,7 @@ class JobQueueDatabase {
 
   async getCommitmentIdByClientId(clientCommitmentId: string): Promise<bigint | null> {
     const db = await this.init();
-    const mapping = await db.get("client_commitment_id_mappings", clientCommitmentId);
+    const mapping = await db.client_commitment_id_mappings.get(clientCommitmentId);
     return mapping ? BigInt(mapping.commitmentId) : null;
   }
 
@@ -469,7 +483,7 @@ class JobQueueDatabase {
     chainId: number
   ): Promise<void> {
     const db = await this.init();
-    await db.put("client_series_id_mappings", {
+    await db.client_series_id_mappings.put({
       clientSeriesId,
       seriesId: seriesId.toString(),
       jobId,
@@ -480,7 +494,7 @@ class JobQueueDatabase {
 
   async getSeriesIdByClientId(clientSeriesId: string): Promise<bigint | null> {
     const db = await this.init();
-    const mapping = await db.get("client_series_id_mappings", clientSeriesId);
+    const mapping = await db.client_series_id_mappings.get(clientSeriesId);
     return mapping ? BigInt(mapping.seriesId) : null;
   }
 
@@ -488,17 +502,7 @@ class JobQueueDatabase {
    * Cleanup old mappings (older than 30 days)
    */
   async cleanupOldMappings(): Promise<void> {
-    const db = await this.init();
-    const thirtyDaysAgo = Date.now() - 30 * 24 * 60 * 60 * 1000;
-    const tx = db.transaction("client_work_id_mappings", "readwrite");
-    const index = tx.objectStore("client_work_id_mappings").index("createdAt");
-    const oldMappings = await index.getAll(IDBKeyRange.upperBound(thirtyDaysAgo));
-
-    for (const mapping of oldMappings) {
-      await tx.objectStore("client_work_id_mappings").delete(mapping.clientWorkId);
-    }
-
-    await tx.done;
+    // Completion identities protect residual drafts indefinitely. Their compact rows are never browsing cache.
   }
 
   /**
@@ -507,10 +511,8 @@ class JobQueueDatabase {
   async cleanup(): Promise<void> {
     // Cleanup all URLs managed by MediaResourceManager
     mediaResourceManager.cleanupAll();
-
     // Cleanup stale URLs in database
     await this.cleanupStaleUrls();
-
     // Cleanup old clientWorkId mappings
     await this.cleanupOldMappings();
   }
@@ -531,4 +533,4 @@ class JobQueueDatabase {
   }
 }
 
-export const jobQueueDB = new JobQueueDatabase();
+export const jobQueueDB = new JobQueueStore();

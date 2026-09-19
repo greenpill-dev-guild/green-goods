@@ -31,8 +31,12 @@ this file is the operational contract for skills that create records.
    any project whose status is Completed. Otherwise leave the issue
    unprojected and correctly labeled.
 5. **Label namespaces.** Use only `protocol:*`, `package:*`, `activity:*`,
-   `funding:*`, `source:*`, `ai:*`. Retired families (`area:*`, `work:*`,
-   `task:*`, `automation:*`, `health:*`, `grant:*`) must not be reintroduced.
+   `funding:*`, `source:*`, `ai:*`, `session:*`. Retired families (`area:*`,
+   `work:*`, `task:*`, `automation:*`, `health:*`, `grant:*`) and the retired
+   label `ai:claude` must not be reintroduced. `activity:qa` marks the
+   validation pass itself, never a defect it found; in `package:*` the client
+   splits into `package:pwa`, `package:editorial`, and `package:client` for
+   what both surfaces share.
 6. **Privacy boundary.** Keep private, security-sensitive, exploit-enabling,
    replay, session, wallet, email, and user-identifying details out of public
    Linear bodies (error message + hash + counts are OK; replay URLs, session
@@ -127,7 +131,7 @@ Investigate the dialog dismiss path.
 PostHog (Admin 262122): no matching exception signature. A cancel button that
 fails to dismiss does not necessarily throw.
 ## Source
-qa-triage-pulse · auto-extracted · qa-sync:2026-07-29
+qa-triage-pulse · auto-extracted · session:2026-07-29
 ## Authoritative QA finding
 Cancel is broken in the garden edit dialog. [...repeats the whole defect...]
 ```

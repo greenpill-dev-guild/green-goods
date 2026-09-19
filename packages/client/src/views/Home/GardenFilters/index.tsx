@@ -1,16 +1,24 @@
+import { Chip } from "@green-goods/shared/components/Chip";
+import { SheetHeading } from "@green-goods/shared/components/Dialog/SheetHeading";
+import { TextInput } from "@green-goods/shared/components/Form/ControlPrimitives";
+import { DOMAIN_CONFIG } from "@green-goods/shared/config/domain";
 import type {
   GardenFilterScope,
   GardenFiltersState,
   GardenSortOrder,
 } from "@green-goods/shared/hooks/garden/useFilteredGardens";
+import { Domain } from "@green-goods/shared/types/domain";
 import { cn } from "@green-goods/shared/utils/styles/cn";
+import { useId } from "react";
 import { useIntl } from "react-intl";
-import { Button } from "@/components/Actions";
-import { ModalDrawer } from "@/components/Dialogs/ModalDrawer";
+import { AppSheet } from "@/components/Sheets/AppSheet";
 import { pwaStatusStyles } from "@/components/Pwa/statusStyles";
 
 // Re-export types from shared for convenience
 export type { GardenFilterScope, GardenFiltersState, GardenSortOrder };
+
+/** The four action domains, in the order the app lists them. */
+const DOMAIN_ORDER: Domain[] = [Domain.SOLAR, Domain.AGRO, Domain.EDU, Domain.WASTE];
 
 export type FilterOptionButtonProps = {
   label: string;
@@ -29,6 +37,7 @@ const FilterOptionButton = ({
 }: FilterOptionButtonProps) => (
   <button
     type="button"
+    data-pressable="card"
     onClick={onClick}
     disabled={disabled}
     className={cn(
@@ -47,30 +56,45 @@ const FilterOptionButton = ({
   </button>
 );
 
-type GardensFilterDrawerProps = {
+const SectionTitle = ({ children }: { children: string }) => (
+  <SheetHeading className="mb-3">{children}</SheetHeading>
+);
+
+type GardensFilterSheetProps = {
   isOpen: boolean;
   onClose: () => void;
   filters: GardenFiltersState;
   onScopeChange: (scope: GardenFilterScope) => void;
   onSortChange: (sort: GardenSortOrder) => void;
+  onSearchChange: (search: string) => void;
+  onDomainsChange: (domains: Domain[]) => void;
   onReset: () => void;
   canFilterMine: boolean;
   myGardensCount: number;
   isFilterActive: boolean;
 };
 
-export const GardensFilterDrawer = ({
+/**
+ * The Home garden filters at the full tier: search by name or place, the
+ * membership scope, the four action domains as chips, and the sort order,
+ * with Reset Filters pinned in the shared bar.
+ */
+export const GardensFilterSheet = ({
   isOpen,
   onClose,
   filters,
   onScopeChange,
   onSortChange,
+  onSearchChange,
+  onDomainsChange,
   onReset,
   canFilterMine,
   myGardensCount,
   isFilterActive,
-}: GardensFilterDrawerProps) => {
+}: GardensFilterSheetProps) => {
   const intl = useIntl();
+  const searchId = useId();
+  const selectedDomains = filters.domains ?? [];
 
   const scopeOptions: Array<{
     id: GardenFilterScope;
@@ -133,8 +157,16 @@ export const GardensFilterDrawer = ({
     },
   ];
 
+  const toggleDomain = (domain: Domain) => {
+    onDomainsChange(
+      selectedDomains.includes(domain)
+        ? selectedDomains.filter((value) => value !== domain)
+        : [...selectedDomains, domain]
+    );
+  };
+
   return (
-    <ModalDrawer
+    <AppSheet
       isOpen={isOpen}
       onClose={onClose}
       header={{
@@ -144,18 +176,50 @@ export const GardensFilterDrawer = ({
         }),
         description: intl.formatMessage({
           id: "app.home.filters.description",
-          defaultMessage: "Refine the garden list by membership or sort order.",
+          defaultMessage: "Search, narrow, and sort the garden list.",
         }),
+      }}
+      size="full"
+      actions={{
+        secondary: {
+          label: intl.formatMessage({
+            id: "app.home.filters.reset",
+            defaultMessage: "Reset Filters",
+          }),
+          onClick: onReset,
+          disabled: !isFilterActive,
+        },
       }}
     >
       <div className="flex flex-col gap-6">
         <section>
-          <h6 className="mb-3 text-sm font-semibold text-text-sub-600">
+          <label htmlFor={searchId} className="sr-only">
+            {intl.formatMessage({
+              id: "app.home.filters.searchLabel",
+              defaultMessage: "Search gardens",
+            })}
+          </label>
+          <TextInput
+            id={searchId}
+            type="search"
+            value={filters.search ?? ""}
+            onChange={(event) => onSearchChange(event.target.value)}
+            placeholder={intl.formatMessage({
+              id: "app.home.filters.searchPlaceholder",
+              defaultMessage: "Search by name or place",
+            })}
+            autoComplete="off"
+            enterKeyHint="search"
+          />
+        </section>
+
+        <section>
+          <SectionTitle>
             {intl.formatMessage({
               id: "app.home.filters.scopeTitle",
               defaultMessage: "Show",
             })}
-          </h6>
+          </SectionTitle>
           <div className="grid grid-cols-1 gap-2">
             {scopeOptions.map(({ id, ...option }) => (
               <FilterOptionButton
@@ -169,12 +233,38 @@ export const GardensFilterDrawer = ({
         </section>
 
         <section>
-          <h6 className="mb-3 text-sm font-semibold text-text-sub-600">
+          <SectionTitle>
+            {intl.formatMessage({
+              id: "app.home.filters.domainsTitle",
+              defaultMessage: "Domains",
+            })}
+          </SectionTitle>
+          <div className="flex flex-wrap gap-2">
+            {DOMAIN_ORDER.map((domain) => {
+              const config = DOMAIN_CONFIG[domain];
+              const Icon = config.icon;
+              return (
+                <Chip
+                  key={domain}
+                  selected={selectedDomains.includes(domain)}
+                  onClick={() => toggleDomain(domain)}
+                  leadingIcon={<Icon className="h-4 w-4" aria-hidden="true" />}
+                  data-testid={`filter-domain-${domain}`}
+                >
+                  {intl.formatMessage({ id: config.labelId })}
+                </Chip>
+              );
+            })}
+          </div>
+        </section>
+
+        <section>
+          <SectionTitle>
             {intl.formatMessage({
               id: "app.home.filters.sortTitle",
               defaultMessage: "Sort by",
             })}
-          </h6>
+          </SectionTitle>
           <div className="grid grid-cols-1 gap-2">
             {sortOptions.map(({ id, ...option }) => (
               <FilterOptionButton
@@ -186,20 +276,7 @@ export const GardensFilterDrawer = ({
             ))}
           </div>
         </section>
-
-        <Button
-          label={intl.formatMessage({
-            id: "app.home.filters.reset",
-            defaultMessage: "Reset Filters",
-          })}
-          variant="neutral"
-          mode="stroke"
-          size="xsmall"
-          onClick={onReset}
-          disabled={!isFilterActive}
-          type="button"
-        />
       </div>
-    </ModalDrawer>
+    </AppSheet>
   );
 };

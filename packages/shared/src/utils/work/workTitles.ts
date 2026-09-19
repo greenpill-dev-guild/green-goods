@@ -30,23 +30,47 @@ export function stripGeneratedWorkTitleTimestamp(
   return titleWithoutTimestamp;
 }
 
-export function resolveWorkSubmissionTitle({
+/** What `getActionTitle` returned when the action was missing, before callers passed their own fallback. */
+const UNKNOWN_ACTION_TITLE = "Unknown Action";
+
+/** A title the app generated because it could not find the action's own. */
+export function isPlaceholderWorkTitle(title: string, actionUID?: number | null): boolean {
+  const trimmed = title.trim();
+  return (
+    trimmed === UNKNOWN_ACTION_TITLE ||
+    (typeof actionUID === "number" && trimmed === `Action ${actionUID}`)
+  );
+}
+
+/**
+ * The title worth keeping: the draft's own, else the action's. A placeholder
+ * is never one; `undefined` means the real title is not known yet.
+ */
+export function resolveKnownWorkTitle({
   draftTitle,
   actionTitle,
   actionUID,
-  fallback,
-}: ResolveWorkSubmissionTitleInput): string {
+}: ResolveWorkSubmissionTitleInput): string | undefined {
   const cleanedDraftTitle = draftTitle
     ? stripGeneratedWorkTitleTimestamp(draftTitle, actionTitle)
     : "";
-  if (cleanedDraftTitle) return cleanedDraftTitle;
+  if (cleanedDraftTitle && !isPlaceholderWorkTitle(cleanedDraftTitle, actionUID))
+    return cleanedDraftTitle;
 
   const cleanedActionTitle = actionTitle ? stripGeneratedWorkTitleTimestamp(actionTitle) : "";
-  if (cleanedActionTitle) return cleanedActionTitle;
+  if (cleanedActionTitle && !isPlaceholderWorkTitle(cleanedActionTitle, actionUID))
+    return cleanedActionTitle;
 
-  if (typeof actionUID === "number" && Number.isFinite(actionUID)) {
-    return `Action ${actionUID}`;
+  return undefined;
+}
+
+export function resolveWorkSubmissionTitle(input: ResolveWorkSubmissionTitleInput): string {
+  const known = resolveKnownWorkTitle(input);
+  if (known) return known;
+
+  if (typeof input.actionUID === "number" && Number.isFinite(input.actionUID)) {
+    return `Action ${input.actionUID}`;
   }
 
-  return fallback ?? "Untitled Work";
+  return input.fallback ?? "Untitled Work";
 }

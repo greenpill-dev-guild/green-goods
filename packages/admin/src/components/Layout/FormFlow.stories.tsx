@@ -33,7 +33,7 @@ const sections: FormFlowSection[] = [
 function actions(disabled = false) {
   return (
     <>
-      <Button type="button" variant="secondary" onClick={fn()} disabled={disabled}>
+      <Button type="button" emphasis="secondary" onClick={fn()} disabled={disabled}>
         Cancel
       </Button>
       <Button type="button" onClick={fn()} disabled={disabled} loading={disabled}>

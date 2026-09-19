@@ -1,3 +1,5 @@
+import { Button } from "@green-goods/shared/components/Button";
+import { Textarea } from "@green-goods/shared/components/Form/ControlPrimitives";
 import {
   useGardenJoinRequestAvailability,
   useGardenJoinRequests,
@@ -13,7 +15,6 @@ import { formatAddress } from "@green-goods/shared/utils/app/text";
 import { RiCheckLine, RiCloseLine, RiGroupLine } from "@remixicon/react";
 import { useState } from "react";
 import { useIntl } from "react-intl";
-import { Button } from "@/components/Actions";
 
 export function GardenJoinRequestsQueue({ gardenAddress }: { gardenAddress: Address }) {
   const { formatDate, formatMessage } = useIntl();
@@ -118,7 +119,10 @@ export function GardenJoinRequestsQueue({ gardenAddress }: { gardenAddress: Addr
     >
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h2 id="garden-join-requests-title" className="font-semibold text-text-strong-950">
+          <h2
+            id="garden-join-requests-title"
+            className="text-[1.5rem] font-semibold text-text-strong-950"
+          >
             {formatMessage({
               id: "app.garden.joinQueue.title",
               defaultMessage: "Join Requests",
@@ -132,16 +136,17 @@ export function GardenJoinRequestsQueue({ gardenAddress }: { gardenAddress: Addr
           </p>
         </div>
         <Button
-          label={formatMessage({
-            id: loaded ? "app.common.refresh" : "app.garden.joinQueue.load",
-            defaultMessage: loaded ? "Refresh" : "Check requests",
-          })}
-          variant="neutral"
-          mode="stroke"
-          size="small"
-          isLoading={join.queueState.isLoading}
+          type="button"
+          emphasis="secondary"
+          size="sm"
+          loading={join.queueState.isLoading}
           onClick={() => void load()}
-        />
+        >
+          {formatMessage({
+            id: loaded ? "app.common.refresh" : "app.garden.joinQueue.load",
+            defaultMessage: loaded ? "Refresh" : "Check Requests",
+          })}
+        </Button>
       </div>
 
       <div aria-live="polite">
@@ -186,7 +191,7 @@ export function GardenJoinRequestsQueue({ gardenAddress }: { gardenAddress: Addr
             className="space-y-3 rounded-[var(--radius-lg)] bg-bg-white-0 p-4 shadow-sm"
           >
             <div>
-              <h3 className="font-semibold">{request.displayName}</h3>
+              <h3 className="text-[1.25rem] font-semibold">{request.displayName}</h3>
               <p className="font-mono text-xs text-text-sub-600">
                 {formatAddress(request.accountAddress)}
               </p>
@@ -217,66 +222,66 @@ export function GardenJoinRequestsQueue({ gardenAddress }: { gardenAddress: Addr
                       defaultMessage: "Reason for declining",
                     })}
                   </span>
-                  <textarea
+                  <Textarea
                     required
                     maxLength={GARDEN_JOIN_REQUEST_REASON_MAX_LENGTH}
                     rows={3}
                     value={reason}
                     onChange={(event) => setReason(event.target.value)}
-                    className="w-full rounded-[var(--radius-md)] border border-stroke-soft-200 bg-bg-white-0 px-3 py-2 text-base focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-base"
                   />
                 </label>
                 <div className="flex flex-wrap gap-2">
                   <Button
+                    tone="danger"
+                    size="sm"
                     type="submit"
-                    label={formatMessage({
+                    disabled={!reason.trim()}
+                    loading={activeId === request.id}
+                  >
+                    {formatMessage({
                       id: "app.garden.joinQueue.confirmDecline",
                       defaultMessage: "Decline Request",
                     })}
-                    variant="error"
-                    mode="filled"
-                    size="small"
-                    disabled={!reason.trim()}
-                    isLoading={activeId === request.id}
-                  />
+                  </Button>
                   <Button
+                    emphasis="secondary"
+                    size="sm"
                     type="button"
-                    label={formatMessage({ id: "app.common.cancel", defaultMessage: "Cancel" })}
-                    variant="neutral"
-                    mode="stroke"
-                    size="small"
                     onClick={() => {
                       setDeclining(undefined);
                       setReason("");
                     }}
-                  />
+                  >
+                    {formatMessage({ id: "app.common.cancel", defaultMessage: "Cancel" })}
+                  </Button>
                 </div>
               </form>
             ) : (
               <div className="flex flex-wrap gap-2">
                 <Button
-                  label={formatMessage({
+                  type="button"
+                  size="sm"
+                  leadingIcon={<RiCheckLine className="h-4 w-4" />}
+                  loading={activeId === request.id || operations.isLoading}
+                  onClick={() => void welcome(request)}
+                >
+                  {formatMessage({
                     id: "app.garden.joinQueue.welcome",
                     defaultMessage: "Welcome",
                   })}
-                  leadingIcon={<RiCheckLine className="h-4 w-4" />}
-                  variant="primary"
-                  mode="filled"
-                  size="small"
-                  isLoading={activeId === request.id || operations.isLoading}
-                  onClick={() => void welcome(request)}
-                />
+                </Button>
                 <Button
-                  label={formatMessage({
+                  type="button"
+                  emphasis="secondary"
+                  size="sm"
+                  leadingIcon={<RiCloseLine className="h-4 w-4" />}
+                  onClick={() => setDeclining(request)}
+                >
+                  {formatMessage({
                     id: "app.garden.joinQueue.decline",
                     defaultMessage: "Decline",
                   })}
-                  leadingIcon={<RiCloseLine className="h-4 w-4" />}
-                  variant="neutral"
-                  mode="stroke"
-                  size="small"
-                  onClick={() => setDeclining(request)}
-                />
+                </Button>
               </div>
             )}
           </article>
@@ -285,13 +290,14 @@ export function GardenJoinRequestsQueue({ gardenAddress }: { gardenAddress: Addr
 
       {join.nextCursor ? (
         <Button
-          label={formatMessage({ id: "app.common.loadMore", defaultMessage: "Load More" })}
-          variant="neutral"
-          mode="stroke"
-          size="small"
-          isLoading={join.queueState.isLoading}
+          type="button"
+          emphasis="secondary"
+          size="sm"
+          loading={join.queueState.isLoading}
           onClick={() => void load(join.nextCursor)}
-        />
+        >
+          {formatMessage({ id: "app.common.loadMore", defaultMessage: "Load More" })}
+        </Button>
       ) : null}
     </section>
   );

@@ -1,22 +1,24 @@
-import { useEffect, useState } from "react";
+import { useSyncExternalStore } from "react";
+import { connectivityStore } from "../../stores/connectivity";
 
-/** Reports the browser's current connectivity without requiring queue providers. */
+/** Shares query connectivity without requiring auth or queue providers. */
 export function useOnlineStatus(): boolean {
-  const [isOnline, setIsOnline] = useState(() =>
-    typeof navigator === "undefined" ? true : navigator.onLine
+  return useSyncExternalStore(
+    connectivityStore.subscribe,
+    connectivityStore.getSnapshot,
+    connectivityStore.getServerSnapshot
   );
-
-  useEffect(() => {
-    const handleOnline = () => setIsOnline(true);
-    const handleOffline = () => setIsOnline(false);
-
-    window.addEventListener("online", handleOnline);
-    window.addEventListener("offline", handleOffline);
-    return () => {
-      window.removeEventListener("online", handleOnline);
-      window.removeEventListener("offline", handleOffline);
-    };
-  }, []);
-
-  return isOnline;
 }
+
+/** Rich status for connectivity banners; existing boolean consumers stay compatible. */
+export function useConnectivityStatus() {
+  return useSyncExternalStore(
+    connectivityStore.subscribeStatus,
+    connectivityStore.getStatusSnapshot,
+    connectivityStore.getServerStatusSnapshot
+  );
+}
+
+/** Installed app composition opts into the uncached same-origin probe. */
+export const configureConnectivityProbe = connectivityStore.configureProbe;
+export const reportConnectivityFailure = connectivityStore.reportNetworkFailure;

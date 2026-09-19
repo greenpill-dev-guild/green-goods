@@ -1,6 +1,7 @@
 import type { Config } from "@wagmi/core";
 import type { SmartAccountClient } from "permissionless";
 import type { Abi, Chain, Hex } from "viem";
+import { entryPoint07Address } from "viem/account-abstraction";
 import { sepolia } from "viem/chains";
 import { vi } from "vitest";
 import type { EmbeddedSenderDeps } from "../../modules/transactions/embedded-sender";
@@ -88,6 +89,25 @@ export interface FakeSmartAccountClientOptions {
   fail?: unknown;
 }
 
+/** A fully prepared v0.7 UserOperation, the shape viem hands an account to sign. */
+export function fakePreparedUserOperation(sender: Address) {
+  return {
+    sender,
+    nonce: 7n,
+    callData: "0xdeadbeef" as Hex,
+    callGasLimit: 100_000n,
+    verificationGasLimit: 200_000n,
+    preVerificationGas: 50_000n,
+    maxFeePerGas: 2_000_000n,
+    maxPriorityFeePerGas: 1_000_000n,
+    paymaster: "0x4444444444444444444444444444444444444444" as Address,
+    paymasterVerificationGasLimit: 60_000n,
+    paymasterPostOpGasLimit: 10_000n,
+    paymasterData: "0x" as Hex,
+    signature: "0x" as Hex,
+  };
+}
+
 export function createFakeSmartAccountClient(
   options: FakeSmartAccountClientOptions = {}
 ): FakeSmartAccountClient {
@@ -101,26 +121,38 @@ export function createFakeSmartAccountClient(
     if (fail !== undefined) throw fail;
     return result;
   });
+  const account = {
+    address: accountAddress,
+    entryPoint: { address: entryPoint07Address, version: "0.7" },
+    signUserOperation: vi.fn(async () => `0x${"5".repeat(130)}` as Hex),
+  } as unknown as NonNullable<SmartAccountClient["account"]>;
   const client = {
-    account: { address: accountAddress } as NonNullable<SmartAccountClient["account"]>,
+    account,
     chain,
     sendTransaction,
-    sendUserOperation: vi.fn<SmartAccountClient["sendUserOperation"]>(async () => {
+    // Mirrors viem's sendUserOperation: prepare, ask the account to sign, then broadcast.
+    sendUserOperation: vi.fn(async (parameters: { account?: typeof account }) => {
+      await (parameters?.account ?? account).signUserOperation(
+        fakePreparedUserOperation(accountAddress)
+      );
       if (fail !== undefined) throw fail;
-      return `0x${"d".repeat(64)}`;
+      return result;
     }),
-    waitForUserOperationReceipt: vi.fn<SmartAccountClient["waitForUserOperationReceipt"]>(
-      async ({ hash }) =>
-        ({
-          userOpHash: hash,
-          sender: accountAddress,
-          success: true,
-          receipt: { status: "success", transactionHash: result },
-        }) as Awaited<ReturnType<SmartAccountClient["waitForUserOperationReceipt"]>>
-    ),
+    waitForUserOperationReceipt: vi.fn(async ({ hash }: { hash: Hex }) => ({
+      userOpHash: hash,
+      sender: accountAddress,
+      success: true,
+      receipt: { status: "success", transactionHash: hash },
+    })),
+    getUserOperationReceipt: vi.fn(async ({ hash }: { hash: Hex }) => ({
+      userOpHash: hash,
+      sender: accountAddress,
+      success: true,
+      receipt: { status: "success", transactionHash: hash },
+    })),
   };
 
-  return client as FakeSmartAccountClient;
+  return client as unknown as FakeSmartAccountClient;
 }
 
 type WalletWriteContract = ConstructorParameters<typeof WalletSender>[1];

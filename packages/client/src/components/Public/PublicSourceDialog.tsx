@@ -1,3 +1,5 @@
+import { IconButton } from "@green-goods/shared/components/IconButton";
+import { useDocumentScrollLock } from "@green-goods/shared/hooks/ui/useDocumentScrollLock";
 import { RiCloseLine } from "@remixicon/react";
 import { type ReactNode, useEffect } from "react";
 import { createPortal } from "react-dom";
@@ -32,17 +34,15 @@ export function PublicSourceDialog({
   sourceLabel,
 }: PublicSourceDialogProps) {
   const { formatMessage } = useIntl();
+  useDocumentScrollLock(open);
 
   useEffect(() => {
     if (!open) return;
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
     const handler = (event: KeyboardEvent) => {
       if (event.key === "Escape") onClose();
     };
     document.addEventListener("keydown", handler);
     return () => {
-      document.body.style.overflow = previousOverflow;
       document.removeEventListener("keydown", handler);
     };
   }, [open, onClose]);
@@ -58,6 +58,7 @@ export function PublicSourceDialog({
     >
       <button
         type="button"
+        data-pressable="scrim"
         aria-label={formatMessage({ id: "public.source.close", defaultMessage: "Close" })}
         className="absolute inset-0"
         onClick={onClose}
@@ -67,7 +68,7 @@ export function PublicSourceDialog({
           <div>
             <h2
               id="public-source-dialog-title"
-              className="font-serif text-xl text-text-strong-950 md:text-2xl"
+              className="font-serif text-xl font-bold text-text-strong-950 md:text-2xl"
             >
               {title}
             </h2>
@@ -75,15 +76,12 @@ export function PublicSourceDialog({
               <p className="mt-1 text-xs uppercase tracking-wide text-text-soft-400">{subtitle}</p>
             ) : null}
           </div>
-          <button
+          <IconButton
             ref={(node) => node?.focus()}
-            type="button"
             aria-label={formatMessage({ id: "public.source.close", defaultMessage: "Close" })}
             onClick={onClose}
-            className="rounded-full p-1 text-text-sub-600 transition-colors hover:bg-bg-weak-50"
-          >
-            <RiCloseLine className="h-5 w-5" />
-          </button>
+            icon={<RiCloseLine aria-hidden="true" />}
+          />
         </header>
         <div className="flex flex-col gap-4 text-sm text-text-strong-950">{children}</div>
         {sourceHref ? (

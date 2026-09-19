@@ -13,6 +13,8 @@
  * becomes viable when garden endowments move to it.
  */
 
+import { Button } from "@green-goods/shared/components/Button";
+import { TextInput } from "@green-goods/shared/components/Form/ControlPrimitives";
 import { useTimeout } from "@green-goods/shared/hooks/utils/useTimeout";
 import { rememberOctantVaultCardWalletPosition } from "@green-goods/shared/modules/octant-vault-card-wallet-cache";
 import { getOctantVaultAssetDisplayPolicy } from "@green-goods/shared/modules/vault-crowdfunding/copy";
@@ -47,9 +49,6 @@ import VaultCardPaymentPanel from "./VaultCardPaymentPanel";
 import type { VaultCheckoutGuardState } from "./VaultCheckoutDialog";
 import {
   CHECKOUT_FIELD_LABEL,
-  CHECKOUT_GHOST_BUTTON,
-  CHECKOUT_INPUT,
-  CHECKOUT_PRIMARY_BUTTON,
   CheckoutScreen,
   CheckoutStageHeader,
   CheckoutSummary,
@@ -157,9 +156,9 @@ export default function VaultCardEndowFlow({
     return (
       <CheckoutScreen
         footer={
-          <button type="button" onClick={onBack} className={CHECKOUT_GHOST_BUTTON}>
+          <Button type="button" emphasis="secondary" onClick={onBack} className="w-full">
             {formatMessage({ id: "public.vaults.checkout.back", defaultMessage: "Back" })}
-          </button>
+          </Button>
         }
       >
         <p
@@ -910,9 +909,9 @@ function CardEndowProviderContent({
   ];
 
   const backButton = canEditCheckout ? (
-    <button type="button" onClick={onBack} className={CHECKOUT_GHOST_BUTTON}>
+    <Button type="button" emphasis="secondary" onClick={onBack} className="w-full">
       {formatMessage({ id: "public.vaults.checkout.back", defaultMessage: "Back" })}
-    </button>
+    </Button>
   ) : null;
 
   // Route facts shown beside the payment CTA — the donor reviews the destination
@@ -1055,14 +1054,14 @@ function CardEndowProviderContent({
         : fallbackApprovalLabel;
   const fallbackButton =
     stage === "settle" && fallbackAvailable ? (
-      <button
+      <Button
         type="button"
         disabled={!canCompleteEndowment}
-        className={CHECKOUT_PRIMARY_BUTTON}
+        className="w-full"
         onClick={handleCompleteEndowment}
       >
         {fallbackButtonLabel}
-      </button>
+      </Button>
     ) : null;
 
   const statusBlock = (
@@ -1178,11 +1177,11 @@ function CardEndowProviderContent({
       <CheckoutScreen
         footer={
           <div className="flex flex-col gap-2">
-            <button
+            <Button
               type="submit"
               form={otpSent ? otpFormId : emailFormId}
               disabled={otpSent ? !canVerifyEmailWallet || isConnecting : !canSendEmailCode}
-              className={CHECKOUT_PRIMARY_BUTTON}
+              className="w-full"
             >
               {otpSent
                 ? formatMessage({
@@ -1193,7 +1192,7 @@ function CardEndowProviderContent({
                     id: "public.vaults.cardEndow.sendCode",
                     defaultMessage: "Send Email Code",
                   })}
-            </button>
+            </Button>
             {backButton}
           </div>
         }
@@ -1227,13 +1226,12 @@ function CardEndowProviderContent({
                   "Enter the email you want linked to this endowment. You'll use it later to manage or redeem it.",
               })}
             </p>
-            <input
+            <TextInput
               id={emailInputId}
               value={emailInput}
               type="email"
               autoComplete="email"
               aria-describedby={otpSent ? `${emailHelpId} ${emailStatusId}` : emailHelpId}
-              className={CHECKOUT_INPUT}
               placeholder="you@example.com"
               onChange={(event) => handleEmailInputChange(event.target.value)}
             />
@@ -1270,14 +1268,13 @@ function CardEndowProviderContent({
                   defaultMessage: "Enter the 6 digit code from your email.",
                 })}
               </p>
-              <input
+              <TextInput
                 ref={otpRef}
                 id={otpInputId}
                 value={otpInput}
                 inputMode="numeric"
                 autoComplete="one-time-code"
                 aria-describedby={otpHelpId}
-                className={CHECKOUT_INPUT}
                 placeholder="123456"
                 onChange={(event) => setOtpInput(event.target.value)}
               />
@@ -1378,36 +1375,34 @@ function CardEndowProviderContent({
       footer={
         <div className="flex flex-col gap-2">
           {hasPositiveShares ? null : (
-            <button
+            <Button
               type="button"
-              className={CHECKOUT_GHOST_BUTTON}
+              emphasis="secondary"
+              className="w-full"
               onClick={() => void readShareBalance()}
             >
               {formatMessage({
                 id: "public.vaults.cardEndow.readShares",
                 defaultMessage: "Check Confirmation",
               })}
-            </button>
+            </Button>
           )}
           {onManagePositions && hasPositiveShares ? (
-            <button type="button" className={CHECKOUT_PRIMARY_BUTTON} onClick={onManagePositions}>
+            <Button type="button" className="w-full" onClick={onManagePositions}>
               {formatMessage({
                 id: "public.vaults.checkout.manageEndowments",
                 defaultMessage: "Manage Endowments",
               })}
-            </button>
+            </Button>
           ) : null}
-          <button
+          <Button
             type="button"
-            className={
-              onManagePositions && hasPositiveShares
-                ? CHECKOUT_GHOST_BUTTON
-                : CHECKOUT_PRIMARY_BUTTON
-            }
+            emphasis={onManagePositions && hasPositiveShares ? "secondary" : "primary"}
+            className="w-full"
             onClick={onComplete}
           >
             {formatMessage({ id: "public.vaults.checkout.done", defaultMessage: "Done" })}
-          </button>
+          </Button>
         </div>
       }
     >

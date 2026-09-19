@@ -1,6 +1,6 @@
 import { getEASConfig } from "../../config/blockchain";
 import type { PublicGardenImpactSource } from "../../public-contracts/garden-impact";
-import { isZeroBytes32 } from "../../utils/blockchain/bytes";
+import { getAssessmentSchemas } from "../assessment/schemas";
 import type { GraphQLReader } from "./graphql-client";
 import { resolveIPFSUrl } from "./ipfs/resolve";
 import {
@@ -172,11 +172,7 @@ export function createPublicGardenImpactEasReaders(
     async readAssessments(chainId, gardenAddress): Promise<PublicGardenImpactAssessmentRecord[]> {
       assertPublicGardenImpactChain(chainId, "assessments");
       const config = getEASConfig(chainId);
-      const schemas = [
-        ...new Set(
-          [config.ASSESSMENT.uid, config.ASSESSMENT_V3.uid].filter((uid) => !isZeroBytes32(uid))
-        ),
-      ];
+      const schemas = getAssessmentSchemas(config).map((schema) => schema.uid);
       if (schemas.length === 0) {
         throw new PublicGardenImpactSourceError("assessments", "missing_schema");
       }

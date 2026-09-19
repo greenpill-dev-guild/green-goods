@@ -168,48 +168,6 @@ export function buildBatchApprovalAttestTx(
   };
 }
 
-/**
- * Build batch work attestation transaction params using EAS multiAttest
- *
- * This batches multiple work attestations into a single transaction,
- * allowing wallet users to sync all queued work with one signature.
- *
- * @param easConfig - EAS configuration for the chain
- * @param works - Array of { gardenAddress, attestationData } pairs
- * @returns Transaction parameters (to, data, value)
- * @throws Error if works array is empty
- */
-export function buildBatchWorkAttestTx(
-  easConfig: EASConfig,
-  works: Array<{ gardenAddress: `0x${string}`; attestationData: Hex }>
-): { to: `0x${string}`; data: Hex; value: bigint } {
-  if (works.length === 0) {
-    throw new Error("Works array must not be empty");
-  }
-
-  const multiRequest: MultiAttestationRequest = {
-    schema: easConfig.WORK.uid as Hex,
-    data: works.map(({ gardenAddress, attestationData }) => ({
-      recipient: gardenAddress,
-      expirationTime: NO_EXPIRATION,
-      revocable: false,
-      refUID: ZERO_BYTES32 as Hex,
-      data: attestationData,
-      value: 0n,
-    })),
-  };
-
-  return {
-    to: easConfig.EAS.address as `0x${string}`,
-    data: encodeFunctionData({
-      abi: EASABI,
-      functionName: "multiAttest",
-      args: [[multiRequest]],
-    }),
-    value: 0n,
-  };
-}
-
 // ============================================================================
 // ContractCall Builders (for use with TransactionSender)
 // ============================================================================
@@ -263,5 +221,51 @@ export function buildApprovalAttestContractCall(
     abi: EASABI,
     functionName: "attest",
     args: [request],
+  };
+}
+
+/** One queued attestation: its schema, the garden it is about, and its encoded data. */
+export interface QueuedAttestation {
+  schema: Hex;
+  gardenAddress: `0x${string}`;
+  attestationData: Hex;
+}
+
+/**
+ * Build one ContractCall that sends every queued attestation at once.
+ *
+ * A single item is a plain `attest`. Several are one `multiAttest` with one
+ * request group per schema, in the order each schema first appears, so a passkey
+ * signs one UserOperation and a wallet approves one transaction. EAS returns the
+ * new UIDs in the order of the requests it was given. Any job kind that becomes
+ * an EAS attestation rides along by naming its schema.
+ *
+ * @throws Error when nothing is queued
+ */
+export function buildQueuedAttestationsCall(
+  easAddress: `0x${string}`,
+  queued: readonly QueuedAttestation[]
+): ContractCall {
+  if (queued.length === 0) throw new Error("Nothing is queued to send");
+  if (queued.length === 1) {
+    const [{ schema, gardenAddress, attestationData }] = queued;
+    return {
+      address: easAddress,
+      abi: EASABI,
+      functionName: "attest",
+      args: [buildAttestationRequest(gardenAddress, schema, attestationData)],
+    };
+  }
+  const groups = new Map<Hex, MultiAttestationRequest>();
+  for (const { schema, gardenAddress, attestationData } of queued) {
+    const group = groups.get(schema) ?? { schema, data: [] };
+    group.data.push(buildAttestationRequest(gardenAddress, schema, attestationData).data);
+    groups.set(schema, group);
+  }
+  return {
+    address: easAddress,
+    abi: EASABI,
+    functionName: "multiAttest",
+    args: [[...groups.values()]],
   };
 }

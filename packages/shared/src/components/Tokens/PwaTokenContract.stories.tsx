@@ -18,7 +18,12 @@ function TokenRow({ theme }: { theme: "light" | "dark" }) {
       <div className="flex items-center gap-3">
         <span
           data-testid={`${theme}-accent`}
-          className="inline-flex h-7 min-w-7 items-center justify-center rounded-full bg-primary px-2 text-xs font-semibold text-primary-accent-foreground"
+          aria-hidden="true"
+          className="h-2.5 w-2.5 rounded-full bg-primary"
+        />
+        <span
+          data-testid={`${theme}-count`}
+          className="inline-flex h-7 min-w-7 items-center justify-center rounded-full bg-primary-action px-2 text-xs font-semibold text-primary-action-foreground"
         >
           6
         </span>
@@ -59,12 +64,16 @@ type Story = StoryObj;
 
 function expectPwaAliasRow(canvas: ReturnType<typeof within>, theme: "light" | "dark") {
   const accent = canvas.getByTestId(`${theme}-accent`);
+  const count = canvas.getByTestId(`${theme}-count`);
   const action = canvas.getByTestId(`${theme}-action`);
   const active = canvas.getByTestId(`${theme}-active`);
   const progress = canvas.getByTestId(`${theme}-progress`);
 
+  // Bright tertiary green stays on text-free marks; a green fill that carries a number or a
+  // label uses the action pair (DL-017).
   expect(getComputedStyle(accent).backgroundColor).toBe(hexToRgb(tokens.colors.tertiary));
-  expect(getComputedStyle(accent).color).toBe(hexToRgb(tokens.colors["on-tertiary"]));
+  expect(getComputedStyle(count).backgroundColor).toBe(hexToRgb(tokens.colors["tertiary-action"]));
+  expect(getComputedStyle(count).color).toBe(hexToRgb(tokens.colors["on-tertiary-action"]));
   expect(getComputedStyle(active).color).toBe(hexToRgb(tokens.colors.tertiary));
   expect(getComputedStyle(progress).backgroundColor).toBe(hexToRgb(tokens.colors.tertiary));
   expect(getComputedStyle(action).backgroundColor).toBe(hexToRgb(tokens.colors["tertiary-action"]));

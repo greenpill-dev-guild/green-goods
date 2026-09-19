@@ -11,11 +11,11 @@ import { gardenersKeys } from "../../config/query-keys/identity";
  * Reduces code duplication across action, garden, and gardener list hooks.
  *
  * NOTE: We intentionally do NOT use `initialData` with `queryClient.getQueryData()`.
- * The admin app uses PersistQueryClientProvider which hydrates the cache asynchronously.
+ * The admin app uses QueryPersistenceProvider which restores the cache asynchronously.
  * Reading from cache during the isRestoring phase returns undefined (cache is empty),
  * which creates a false "pending" → "success with []" transition that propagates
  * downstream and disables dependent queries (e.g. usePlatformStats).
- * PersistQueryClientProvider handles cache restoration — no manual seeding needed.
+ * QueryPersistenceProvider handles cache restoration — no manual seeding needed.
  *
  * @param getQueryKey - Function to get the query key
  * @param fetchFn - Function to fetch the data
@@ -38,7 +38,7 @@ function createBaseListHook<T>(
       queryFn: () => fetchFn(),
       staleTime: options?.staleTime ?? STALE_TIMES.baseLists,
       gcTime: options?.gcTime ?? GC_TIMES.baseLists,
-      placeholderData: (previousData) => previousData ?? [],
+      placeholderData: (previousData) => previousData,
       ...(options?.networkMode && { networkMode: options.networkMode }),
     });
   };

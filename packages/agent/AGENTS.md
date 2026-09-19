@@ -11,7 +11,7 @@ routes them through handlers, and coordinates service dependencies.
 
 - `bun run test`
 - `bun run typecheck`
-- `bun run test:coverage`
+- `bun run test --scope unit --coverage`
 - `bun run lint`
 
 ## Non-Negotiables
@@ -43,5 +43,5 @@ hashes, but never raw `privateKey` values or decrypted key material.
 
 - QA Speed Mode: targeted `bun run test -- src/...`; add `bun run typecheck` when handler, adapter, response, or service contracts move.
 - Package loop: `bun run test && bun run typecheck`.
-- Conditional proof: run `bun run test:coverage` for security-sensitive or handler-heavy changes.
+- Conditional proof: run `bun run test --scope unit --coverage` for security-sensitive or handler-heavy changes.
 - Broader impact: run the root Repo Quick Gate when shared types or public APIs affect other packages.

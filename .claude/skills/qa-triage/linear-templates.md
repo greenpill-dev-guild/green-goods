@@ -18,7 +18,7 @@ headings: the problem in prose, a short **Done when**, one source line.
 
 Three hard constraints Linear enforces on every payload:
 
-1. **`ai:*` is single-value-per-Issue.** Only ONE of `ai:claude`, `ai:codex`, `ai:routine` may be applied. When both an "origin" agent and a "delegate-to" agent apply to the same Issue (e.g., Claude created it, Codex is fixing it), the **delegate-to** wins as the label; the originating agent goes in a comment, not the body (the `## Provenance` section was retired 2026-08-27). If only one role applies (no delegation), use the originating agent. **When to route to Codex:** apply `ai:codex` when the Issue clears the **Codex-ready bar** (clear behavior + named surface + suggestable fix + validation — see [`docs/routines/README.md` § Codex hand-off](../../../docs/routines/README.md)); also set the Linear **delegate** to the Codex agent (the human stays assignee/reviewer) when it clears the **autonomous-confident bar** (concrete fix + bounded non-`critical` surface + mechanical + validation). Otherwise keep `ai:routine` / the originating agent.
+1. **`ai:*` is single-value-per-Issue.** Only ONE of `ai:codex`, `ai:routine` may be applied (`ai:claude` was retired 2026-09-11 — interactive Claude writes carry no ai:* label). When both an "origin" agent and a "delegate-to" agent apply to the same Issue (e.g., Claude created it, Codex is fixing it), the **delegate-to** wins as the label; the originating agent goes in a comment, not the body (the `## Provenance` section was retired 2026-08-27). If only one role applies (no delegation), use the originating agent. **When to route to Codex:** apply `ai:codex` when the Issue clears the **Codex-ready bar** (clear behavior + named surface + suggestable fix + validation — see [`docs/routines/README.md` § Codex hand-off](../../../docs/routines/README.md)); also set the Linear **delegate** to the Codex agent (the human stays assignee/reviewer) when it clears the **autonomous-confident bar** (concrete fix + bounded non-`critical` surface + mechanical + validation). Otherwise keep `ai:routine` / the originating agent.
 2. **`package:*` is single-value-per-Issue.** When a bug spans two packages (e.g., admin display + indexer enrichment, or shared hook + client view), the **primary surface** wins as the label; the secondary package(s) are named in the problem sentence (the `## Surface` block is retired) with a one-line note explaining the constraint.
 3. **Customer Needs cannot be standalone.** Linear's API requires `Exactly one of projectId or issueId must be defined` — every Customer Need must link to an Issue via the `issue` parameter. There is no standalone Need disposition; use `track-only` (Customer Need + lightweight Backlog tracking Issue).
 
@@ -54,7 +54,7 @@ QA Sync — <meeting-title> on <YYYY-MM-DD>. Speaker: <name | "anonymous">. [Not
 
 That's it. Two paragraphs, max. No `## Need statement` (the verbatim quote IS the need statement). No `## Reporter context` beyond the Speaker line (other attendees are on the Drive notes one click away). No PostHog evidence or Deploy correlation block (those live on the Issue). The Customer Need is the raw signal anchor; the Issue is where work happens.
 
-**Labels (Customer Need)**: the Linear API surface for `save_customer_need` accepts `body`, `customer`, `issue`, `project`, `priority` — **no `labels` field**. Labels live exclusively on the linked Issue. The fields `protocol:green-goods`, `source:drive`, `ai:claude` (formerly listed here) belong on the linked Issue's label set.
+**Labels (Customer Need)**: the Linear API surface for `save_customer_need` accepts `body`, `customer`, `issue`, `project`, `priority` — **no `labels` field**. Labels live exclusively on the linked Issue. The fields `protocol:green-goods`, `source:drive` (formerly listed here) belong on the linked Issue's label set.
 
 **Required link**: every Customer Need must carry an `issue` (or `project`) parameter. Linear's API rejects with `Exactly one of projectId or issueId must be defined` otherwise. There is no standalone Need path — use the track-only pattern below for items that should be recorded without claiming committed fix work.
 
@@ -139,12 +139,14 @@ the 2026-08-27 board audit made the issue worse:
 **Labels (Issue)** — Linear enforces single-value-per-group on `ai:*` and `package:*`; the rules below assume one value per family:
 
 - `protocol:green-goods` — always.
-- `package:*` (one only) — one of `package:client`, `package:admin`, `package:shared`, `package:contracts`, `package:indexer`, `package:agent`, `package:docs`. The **primary surface** wins as the label; secondary packages are named in the problem sentence (the `## Surface` block is retired). Omit only when the surface is genuinely unknown.
-- `activity:qa` — confirmed bug or behavioral defect.
-- `activity:maintenance` — cleanup or polish that isn't a user-visible defect.
+- `package:*` (one only) — one of `package:pwa`, `package:editorial`, `package:client`, `package:admin`, `package:shared`, `package:contracts`, `package:indexer`, `package:agent`, `package:docs`. The **primary surface** wins as the label; secondary packages are named in the problem sentence (the `## Surface` block is retired). Omit only when the surface is genuinely unknown. For the client package pick the surface, not the package: `package:pwa` for the installed app and its authenticated routes, `package:editorial` for the public website, and `package:client` only for plumbing both surfaces share (router, bootstrap, providers, service worker).
+- `activity:build` — confirmed bug or behavioral defect. A defect a QA pass *found* is build work; `activity:qa` is the validation pass itself.
+- `activity:design` — visual or interaction polish where nothing is functionally broken.
+- `activity:qa` — the validation work itself: QA sweeps, session parents, acceptance passes. Never a defect.
+- `activity:maintenance` — cleanup or hygiene that isn't a user-visible defect.
 - `activity:architecture` — strategic / architectural work (e.g., cross-device account recovery, auth-flow rework).
 - `source:drive` — provenance still matters for triage.
-- `ai:*` (one only) — `ai:claude` (interactive Claude Code), `ai:codex` (delegated to Codex), `ai:routine` (cron'd routine writes). When both an origin and a delegate-to apply, the **delegate-to** wins as the label; the originating agent goes in a comment, not the body (the `## Provenance` section was retired 2026-08-27). The interactive `qa-triage` skill defaults to `ai:claude` unless the user picks Codex delegation in the assignee dialog.
+- `ai:*` (one only, and optional) — `ai:codex` (delegated to Codex) or `ai:routine` (cron'd routine writes). `ai:claude` was retired 2026-09-11: nearly every Issue is agent-authored, so "Claude typed it" no longer changes what anyone does next. An interactive write carries **no** `ai:*` label unless it is delegated to Codex. `ai:routine` still earns its place — it marks an unattended cron write — and `ai:codex` is a live queue (`label:ai:codex` + `Todo` + undelegated).
 
 **Workflow state**:
 - `Todo` when surface + behavior are clear and a fix path is suggestable.
@@ -173,7 +175,7 @@ This parent is filed as `Todo`, so **`Done when` is required** — without check
 
 **The contributing Customer Needs are not listed in the body.** Link each one through Linear's relation surface, which renders them in the right rail and stays correct as the list grows. A markdown copy is a second home for the same fact, and an unbounded one — the body has a 600-word backstop, so a long-lived pattern would eventually make its own refresh unwritable.
 
-**Labels**: `protocol:green-goods`, `activity:qa`, `package:<inferred>`, `ai:claude`, plus `pattern:posthog-<hash-prefix>` if the pattern label family already exists on the team — a pre-existing exception to the label-namespace list in [`linear-routing-rules.md`](../../context/linear-routing-rules.md) § Invariant rules: use it only where it already exists, never create the family. If `pattern:*` is missing, fail loud and skip the recurring-pattern parent rather than inventing a label.
+**Labels**: `protocol:green-goods`, `activity:build`, `package:<inferred>`, plus `pattern:posthog-<hash-prefix>` if the pattern label family already exists on the team — a pre-existing exception to the label-namespace list in [`linear-routing-rules.md`](../../context/linear-routing-rules.md) § Invariant rules: use it only where it already exists, never create the family. If `pattern:*` is missing, fail loud and skip the recurring-pattern parent rather than inventing a label.
 
 **Title format**: a plain verb-led sentence naming the failure — "Fix the credential request that never resolves on garden join". The `Recurring:` prefix was retired 2026-08-27 (a `PreToolUse` hook rejects it); the `pattern:posthog-*` label is what marks this as the recurring parent.
 
@@ -194,6 +196,7 @@ testers, on which surfaces, and the headline — "P0 coverage is green except
 review actions; two cross-surface failures trace to shared date handling.">
 
 Build under test: client `<sha>` · admin `<sha>`
+Run: Run <N> · <label> · <environment>
 Environment: <production | beta (staging) | local — the session default; a verdict taken elsewhere carries a `[beta]`, `[prod]`, or `[local]` note prefix>
 Full report: [QA session YYYY-MM-DD · full report](<linear-document-url>)
 
@@ -214,16 +217,16 @@ Full report: [QA session YYYY-MM-DD · full report](<linear-document-url>)
 - <a product or design ruling the testing surfaced but nobody has made — one line each, with the Test IDs it blocks; mirrored in the session's decisions child (§ Product decisions child) — drop the section when none>
 
 ## Slices
-Slice cap <N> this session.
+Todo queue budget <N> this session: <T> Todo, <B> Backlog. Every accepted cluster is tracked.
 - <one line per slice: what it covers and its Test IDs — Linear renders the
-  sub-issue links; this list gives the reading order and the overflow context>
+  sub-issue links; include its priority and Todo/Backlog state, in queue order>
 - already tracked: <PRD-NNN> — <one line> (an existing open Issue, related to
   this parent so the fix queue still sees it)
 - standing since <date>: <a never-filed fail from an earlier walk that the gate
   accepted as a slice — one line>
 
 ## Not sliced
-- <note-only follow-ups, anything past the slice cap, and `[derived:telemetry]`
+- <note-only follow-ups without an exact Test ID, and `[derived:telemetry]`
   uncorrelated window errors (testers or ordinary production traffic — the
   telemetry has no tester predicate) — one line each>
 - investigate: <a symptom whose cause or intent is unknown — one line; a slice
@@ -249,14 +252,14 @@ payload alone, so an `{id, description}` update without the title is rejected as
 (append patches under the backstop pass either way).
 
 Both results blocks are pasted verbatim from `tmp/qa-session/<slug>/report.md`, written by
-`bun run qa:report --slug <slug> --window <start>..<end>` — the pull joined to the catalog's
+`bun run qa report --slug <slug> --window <start>..<end>` — the pull joined to the catalog's
 per-case priority and kind, never hand-counted — and cover **this session's entries only** (the
 call-window rule; the store is long-lived). The generator already includes the `n/a` and
 noted-without-a-verdict counts (recorded states without which the walked numerator does not
 reconcile) and drops zero segments rather than rendering them. No tester attribution, wallet addresses, session IDs, or replay URLs in the body or its
 comments; per-tester detail lives in the full report attached to this parent as a Linear document
 (§ Full report document) and in the private Sheet. Parent labels:
-`protocol:green-goods` + `activity:qa` + `source:qa-session` + `qa-sync:<date>` + one `ai:*` —
+`protocol:green-goods` + `activity:qa` + `source:qa-session` + `session:<date>` + one `ai:*` —
 no `package:*` (a session spans surfaces). The parent closes when its `Done when` holds — the
 fix flow closes it, never the writer that filed it — and an open decisions child or investigate
 line holds it open after the last slice lands.
@@ -341,7 +344,7 @@ link carries no session or replay identifier. Replay URLs, session IDs, and dist
 reach Linear; the parent's recipe line points a human at the recordings view instead. A slice the
 gate accepted from standing state opens its body with `Standing since <date>.`
 
-**State + priority**: verdict-backed (a tester recorded fail/blocked in the QA app during the
+**State + priority (before the Todo queue budget)**: verdict-backed (a tester recorded fail/blocked in the QA app during the
 session window, exact Test IDs) → `Todo`; priority High for a P0-case fail, Medium for P1, Low
 otherwise — Urgent only when the call flagged it release-blocking, or when a tester's note proposed
 it and the gate confirmed. A `polish` slice lands Low whatever its cases' priority: `Todo` when at
@@ -352,6 +355,12 @@ re-judges it at take-up, and Sheet severity stays independently assigned
 (`.claude/context/qa.md` § Verdict and severity rules). Reconstructed from meeting notes alone
 (no app verdict) → `Backlog`, priority unset. **Labels**: the parent set plus ONE `package:*` for the slice's
 primary surface (secondary packages named in the prose, as always).
+
+**Queue budget**: file every accepted defect and polish cluster, or link its existing tracked
+Issue. The first N Todo-eligible slices by priority land in `Todo`; every remaining slice lands in
+`Backlog` with its derived priority unchanged. N defaults to 8 and may be raised at the interactive
+gate. A slice already assigned `Backlog` by the rules above stays there even when Todo slots remain.
+List all slices under `Slices`; `Not sliced` never holds overflow.
 
 ---
 
@@ -404,15 +413,15 @@ Linear's API constraint that Customer Needs must link to an Issue eliminates the
 
 | Item shape | Issue type | Issue status | Customer Need |
 |---|---|---|---|
-| Clear bug + named surface + suggestable fix | Main (`activity:qa`) | `Todo` | Yes, linked |
-| Bug with no repro or no clear surface | Main (`activity:qa`) | `Backlog` | Yes, linked |
+| Clear bug + named surface + suggestable fix | Main (`activity:build`) | `Todo` | Yes, linked |
+| Bug with no repro or no clear surface | Main (`activity:build`) | `Backlog` | Yes, linked |
 | Idea / feature request / UX polish | Attach (`activity:maintenance`) | `Backlog` | Yes, linked |
 | Steward pain — "this is awkward" | Attach (`activity:maintenance`) | `Backlog` | Yes, linked |
 | Strategic gap tied to architecture rework | Attach (`activity:architecture`) | `Backlog` | Yes, linked |
 | Question / "me too" / no actionable content | Skip both | — | No |
 | Duplicate of existing record | No new Issue | — | Comment on existing if user wants the verbatim preserved |
-| `[derived:posthog]` accepted in Phase 4 | Main (`activity:qa`) | `Todo` | Yes, linked (telemetry-only body) |
-| `[derived:test-fail]` accepted in Phase 4 | Main (`activity:qa`) | `Todo` | Yes, linked (Test ID reference) |
+| `[derived:posthog]` accepted in Phase 4 | Main (`activity:build`) | `Todo` | Yes, linked (telemetry-only body) |
+| `[derived:test-fail]` accepted in Phase 4 | Main (`activity:build`) | `Todo` | Yes, linked (Test ID reference) |
 | `[derived:recurring]` accepted in Phase 4 | linked to parent Issue | yes (recurring-pattern parent) |
 | Verdict-backed cluster (call report) | QA slice sub-issue of the session report | `Todo` + derived priority | No — the report is the record |
 | Notes-only cluster (call report) | QA slice sub-issue of the session report | `Backlog` | No |
@@ -421,5 +430,8 @@ Linear's API constraint that Customer Needs must link to an Issue eliminates the
 | Catalog feedback (call report) | Never a slice — `tmp/qa-triage/<slug>/catalog-feedback.md` (skill), copied de-attributed into the catalog-owning plan hub at close, or one `Catalog feedback` comment on the parent (routine) | — | No |
 | Environment finding (call report) | One `environment:` line under the parent's `Not sliced`; never a slice | — | No |
 | Never-filed standing fail accepted at the gate (call report) | QA slice sub-issue opening with `Standing since <date>.` | `Todo` + derived priority | No |
+
+The call-report states above are subject to the QA slice's Todo queue budget; overflow lands in
+`Backlog`, with priority unchanged.
 
 The default for ambiguous items is **track-only** — create a Customer Need linked to a lightweight Backlog tracking Issue. The Issue exists only because Linear requires a link target; it is not committed work until a human promotes it.

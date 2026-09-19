@@ -11,6 +11,9 @@ describe("PWA manifest branding", () => {
     expect(branding.shortName).toBe("Green Goods");
     expect(branding.themeColor).toBe("#fff");
     expect(branding.backgroundColor).toBe("#fff");
+    // The per-scheme status bar tints mirror the app canvas (bg-white-0).
+    expect(branding.htmlThemeColorLight).toBe("#ffffff");
+    expect(branding.htmlThemeColorDark).toBe("#0c0a09");
     expect(branding.browserIcon).toBe("icon-192.png");
     expect(branding.manifestIcons.map((icon) => icon.src)).toEqual([
       "images/android-icon-72x72.png",
@@ -35,6 +38,9 @@ describe("PWA manifest branding", () => {
     expect(branding.themeColor).not.toBe(createPwaManifestBranding("production").themeColor);
     expect(branding.themeColor).toBe("#111b13");
     expect(branding.backgroundColor).toBe("#111b13");
+    // One color for both schemes, so beta stays pinned under either selection.
+    expect(branding.htmlThemeColorLight).toBe("#111b13");
+    expect(branding.htmlThemeColorDark).toBe("#111b13");
     expect(branding.browserIcon).toBe("staging-icon-192.png");
     expect(branding.shortcutIcon).toBe("staging-icon-192.png");
     expect(branding.manifestIcons.map((icon) => icon.src)).toEqual([

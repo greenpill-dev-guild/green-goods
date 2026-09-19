@@ -6,7 +6,7 @@ import pt from "@green-goods/shared/i18n/pt.json";
 import { render, screen } from "@testing-library/react";
 import { IntlProvider } from "react-intl";
 import { describe, expect, it, vi } from "vitest";
-import { WalletSupportHistory } from "../../views/Home/WalletDrawer/Send/WalletSupportHistory";
+import { WalletSupportHistory } from "../../views/Home/WalletSheet/Send/WalletSupportHistory";
 
 type History = ComponentProps<typeof WalletSupportHistory>;
 type Receipt = History["receipts"][number];

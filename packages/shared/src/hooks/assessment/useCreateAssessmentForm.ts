@@ -77,6 +77,30 @@ export const createAssessmentFormSchema = z
         path: ["reportingPeriodEnd"],
       });
     }
+
+    const seenMetricIndexes = new Map<string, number>();
+    const duplicateMetricIndexes = new Set<number>();
+    data.smartOutcomes.forEach((outcome, index) => {
+      const metric = outcome.metric.trim();
+      if (!metric) return;
+
+      const firstIndex = seenMetricIndexes.get(metric);
+      if (firstIndex === undefined) {
+        seenMetricIndexes.set(metric, index);
+        return;
+      }
+
+      duplicateMetricIndexes.add(firstIndex);
+      duplicateMetricIndexes.add(index);
+    });
+
+    duplicateMetricIndexes.forEach((index) => {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Each metric can only be used once per assessment",
+        path: ["smartOutcomes", index, "metric"],
+      });
+    });
   });
 
 // ---------------------------------------------------------------------------

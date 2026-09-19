@@ -1,3 +1,4 @@
+import { clearObsoleteRuntimeCaches } from "@green-goods/shared/modules/app/cache-recovery";
 /**
  * RouteErrorBoundary
  *
@@ -39,15 +40,21 @@ import {
 } from "@remixicon/react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { isRouteErrorResponse, useRouteError } from "react-router-dom";
-import { Button } from "../Actions";
+import { Button } from "@green-goods/shared/components/Button";
 import {
   defaultErrorBoundaryMessages,
   type ErrorBoundaryLocale as Locale,
   type ErrorBoundaryMessages as Messages,
   loadErrorBoundaryMessages,
 } from "./messages";
-import { classifyErrorMessage, type ErrorCategory } from "./errorClassification";
-const CHUNK_RELOAD_SESSION_KEY = "gg-route-eb-chunk-reload";
+import {
+  classifyErrorMessage,
+  clearChunkReloadAttempt,
+  hasChunkReloadAttempt,
+  isChunkLoadErrorMessage,
+  markChunkReloadAttempt,
+  type ErrorCategory,
+} from "./errorClassification";
 
 interface NormalizedError {
   message: string;
@@ -103,30 +110,6 @@ function normalizeRouteError(raw: unknown): NormalizedError {
     message: "Unknown route error",
     toString: () => "Unknown route error",
   };
-}
-
-function readSessionFlag(key: string): boolean {
-  try {
-    return window.sessionStorage.getItem(key) === "1";
-  } catch {
-    return false;
-  }
-}
-
-function writeSessionFlag(key: string): void {
-  try {
-    window.sessionStorage.setItem(key, "1");
-  } catch {
-    // best-effort
-  }
-}
-
-function clearSessionFlag(key: string): void {
-  try {
-    window.sessionStorage.removeItem(key);
-  } catch {
-    // best-effort
-  }
 }
 
 function buildBugReport(error: NormalizedError, category: ErrorCategory, locale: Locale): string {
@@ -191,35 +174,60 @@ export const RouteErrorBoundary: React.FC = () => {
     };
   }, [locale]);
 
-  // Auto-recover chunk-load errors with a one-shot reload. This is the critical
-  // path for the post-SW-update refresh failure mode.
+  const isOfflineChunkFailure = category === "offline" && isChunkLoadErrorMessage(error.message);
+
+  // A rejected dynamic import is cached for the lifetime of the document. A
+  // full reload is therefore the only reliable retry after reconnecting. The
+  // shared session flag bounds both offline and stale-build recovery to one
+  // automatic attempt, and Root clears it only after a successful route boot.
   useEffect(() => {
     (window as Window & { __GG_MARK_BOOT_FAILED?: () => void }).__GG_MARK_BOOT_FAILED?.();
-    if (category !== "chunk") return;
-    if (readSessionFlag(CHUNK_RELOAD_SESSION_KEY)) return;
+    if (hasChunkReloadAttempt()) return;
 
-    writeSessionFlag(CHUNK_RELOAD_SESSION_KEY);
-    logger.warn("[RouteErrorBoundary] Chunk load error — auto-reloading once", {
-      message: error.message,
-    });
-    setIsAutoRecovering(true);
-    const t = window.setTimeout(() => window.location.reload(), 50);
-    return () => window.clearTimeout(t);
-  }, [category, error.message]);
-
-  // Clear the one-shot flag once we've rendered without the chunk category, so the
-  // next deploy can also auto-recover. Effectively a "good boot" signal.
-  useEffect(() => {
-    if (category !== "chunk" && readSessionFlag(CHUNK_RELOAD_SESSION_KEY)) {
-      clearSessionFlag(CHUNK_RELOAD_SESSION_KEY);
+    if (category === "chunk") {
+      if (!markChunkReloadAttempt()) {
+        logger.warn(
+          "[RouteErrorBoundary] Reload guard unavailable — keeping error fallback visible",
+          { message: error.message }
+        );
+        return;
+      }
+      logger.warn("[RouteErrorBoundary] Chunk load error — auto-reloading once", {
+        message: error.message,
+      });
+      setIsAutoRecovering(true);
+      const timer = window.setTimeout(() => window.location.reload(), 50);
+      return () => window.clearTimeout(timer);
     }
-  }, [category]);
+
+    if (!isOfflineChunkFailure) return;
+
+    const handleOnline = () => {
+      if (navigator.onLine === false || hasChunkReloadAttempt()) return;
+      window.removeEventListener("online", handleOnline);
+      if (!markChunkReloadAttempt()) {
+        logger.warn(
+          "[RouteErrorBoundary] Reload guard unavailable — keeping error fallback visible",
+          { message: error.message }
+        );
+        return;
+      }
+      logger.info("[RouteErrorBoundary] Connectivity restored — retrying failed app load", {
+        message: error.message,
+      });
+      window.location.reload();
+    };
+
+    window.addEventListener("online", handleOnline);
+    if (navigator.onLine !== false) handleOnline();
+    return () => window.removeEventListener("online", handleOnline);
+  }, [category, error.message, isOfflineChunkFailure]);
 
   // Track to PostHog (once per render). Important: this fires AFTER Router catches,
   // so by the time we run, AppProvider has mounted PostHog and the capture works.
   useEffect(() => {
     if (trackedRef.current) return;
-    if (category === "chunk" && !readSessionFlag(CHUNK_RELOAD_SESSION_KEY)) return; // mid-recovery
+    if (category === "chunk" && !hasChunkReloadAttempt()) return; // mid-recovery
     trackedRef.current = true;
 
     logger.error("Route Error Boundary caught an error", {
@@ -300,40 +308,23 @@ export const RouteErrorBoundary: React.FC = () => {
 
   const handleRetry = useCallback(() => {
     // Reload to retry from a clean route boot.
+    if (isChunkLoadErrorMessage(error.message)) {
+      if (navigator.onLine === false) return;
+      if (!markChunkReloadAttempt()) {
+        logger.warn(
+          "[RouteErrorBoundary] Reload guard unavailable — keeping error fallback visible",
+          { message: error.message }
+        );
+        return;
+      }
+    }
     window.location.reload();
-  }, []);
+  }, [error.message]);
 
   const handleHardReset = useCallback(async () => {
-    try {
-      if ("caches" in window) {
-        const keys = await caches.keys();
-        await Promise.all(keys.map((key) => caches.delete(key)));
-      }
-    } catch (err) {
-      logger.warn("[RouteErrorBoundary] Failed to clear caches", { err });
-    }
-    try {
-      if ("indexedDB" in window && typeof indexedDB.databases === "function") {
-        const dbs = await indexedDB.databases();
-        await Promise.all(
-          dbs
-            .filter((db) => Boolean(db.name))
-            .map(
-              (db) =>
-                new Promise<void>((resolve) => {
-                  const req = indexedDB.deleteDatabase(db.name as string);
-                  req.onsuccess = () => resolve();
-                  req.onerror = () => resolve();
-                  req.onblocked = () => resolve();
-                })
-            )
-        );
-      }
-    } catch (err) {
-      logger.warn("[RouteErrorBoundary] Failed to clear IndexedDB", { err });
-    }
-    clearSessionFlag(CHUNK_RELOAD_SESSION_KEY);
-    window.location.replace("/");
+    await clearObsoleteRuntimeCaches();
+    clearChunkReloadAttempt();
+    window.location.reload();
   }, []);
 
   if (isAutoRecovering) {
@@ -349,11 +340,12 @@ export const RouteErrorBoundary: React.FC = () => {
 
   const isLoopBug = category === "loop";
   const isOfflineOrNetwork = category === "offline" || category === "network";
+  const isConnectivityFailure = category === "network" || isOfflineChunkFailure;
 
   return (
     <div className="min-h-screen bg-bg-white-0 flex items-center justify-center p-4">
       <div className="max-w-lg w-full">
-        <div className="bg-bg-weak-50 backdrop-blur-sm rounded-3xl shadow-2xl border border-stroke-soft-200 p-8 transform animate-fade-in">
+        <div className="bg-bg-weak-50 backdrop-blur-sm rounded-2xl shadow-2xl border border-stroke-soft-200 p-8 transform animate-fade-in">
           <div className="flex flex-col items-center text-center">
             <div className="relative mb-8">
               <div className="absolute inset-0 rounded-full animate-pulse">
@@ -366,7 +358,7 @@ export const RouteErrorBoundary: React.FC = () => {
                 />
               </div>
               <div className="relative flex items-center justify-center w-24 h-24 rounded-full bg-bg-soft-200 shadow-lg">
-                {category === "network" ? (
+                {isConnectivityFailure ? (
                   <RiWifiOffLine className="h-12 w-12 text-warning-base" />
                 ) : category === "offline" ? (
                   <RiErrorWarningLine className="h-12 w-12 text-warning-base" />
@@ -377,7 +369,7 @@ export const RouteErrorBoundary: React.FC = () => {
             </div>
 
             <h1 className="text-3xl font-bold text-text-strong-950 mb-3">
-              {category === "network"
+              {isConnectivityFailure
                 ? t("app.error.boundary.title.garden")
                 : category === "offline"
                   ? t("app.error.boundary.title.maintenance")
@@ -385,7 +377,7 @@ export const RouteErrorBoundary: React.FC = () => {
             </h1>
 
             <h2 className="text-lg font-semibold text-text-strong-950 mb-4">
-              {category === "network"
+              {isConnectivityFailure
                 ? t("app.error.boundary.subtitle.connection")
                 : category === "offline"
                   ? t("app.error.boundary.subtitle.technical")
@@ -394,7 +386,7 @@ export const RouteErrorBoundary: React.FC = () => {
 
             <div className="space-y-3 mb-8">
               <p className="text-text-sub-600 leading-relaxed">
-                {category === "network"
+                {isConnectivityFailure
                   ? t("app.error.boundary.description.network")
                   : category === "offline"
                     ? t("app.error.boundary.description.offline")
@@ -416,51 +408,59 @@ export const RouteErrorBoundary: React.FC = () => {
               {isLoopBug ? (
                 <>
                   <Button
-                    variant="primary"
-                    size="medium"
+                    type="button"
+                    size="lg"
                     onClick={handleHardReset}
-                    label={t("app.error.boundary.action.clearData")}
-                    leadingIcon={<RiRefreshLine className="h-5 w-5" />}
-                    className="w-full shadow-lg"
-                  />
+                    leadingIcon={<RiRefreshLine className="h-5 w-5" aria-hidden="true" />}
+                    className="w-full"
+                  >
+                    {t("app.error.boundary.action.clearData")}
+                  </Button>
                   <Button
-                    variant="neutral"
-                    size="medium"
+                    type="button"
+                    emphasis="secondary"
+                    size="lg"
                     onClick={() => {
-                      window.location.href = "/";
+                      window.location.href = "/home";
                     }}
-                    label={t("app.error.boundary.action.returnHome")}
-                    leadingIcon={<RiHomeLine className="h-5 w-5" />}
-                    className="w-full border-2 hover:bg-bg-weak-50"
-                  />
+                    leadingIcon={<RiHomeLine className="h-5 w-5" aria-hidden="true" />}
+                    className="w-full"
+                  >
+                    {t("app.error.boundary.action.returnHome")}
+                  </Button>
                 </>
               ) : (
                 <>
                   <Button
-                    variant="primary"
-                    size="medium"
-                    onClick={handleRetry}
-                    label={t("app.error.boundary.action.tryAgain")}
-                    leadingIcon={<RiRefreshLine className="h-5 w-5" />}
-                    className="w-full shadow-lg"
-                  />
-                  <Button
-                    variant="neutral"
-                    size="medium"
-                    onClick={() => {
-                      window.location.href = "/";
-                    }}
-                    label={t("app.error.boundary.action.returnHome")}
-                    leadingIcon={<RiHomeLine className="h-5 w-5" />}
-                    className="w-full border-2 hover:bg-bg-weak-50"
-                  />
-                  <button
                     type="button"
+                    size="lg"
+                    onClick={handleRetry}
+                    leadingIcon={<RiRefreshLine className="h-5 w-5" aria-hidden="true" />}
+                    className="w-full"
+                  >
+                    {t("app.error.boundary.action.tryAgain")}
+                  </Button>
+                  <Button
+                    type="button"
+                    emphasis="secondary"
+                    size="lg"
+                    onClick={() => {
+                      window.location.href = "/home";
+                    }}
+                    leadingIcon={<RiHomeLine className="h-5 w-5" aria-hidden="true" />}
+                    className="w-full"
+                  >
+                    {t("app.error.boundary.action.returnHome")}
+                  </Button>
+                  <Button
+                    type="button"
+                    emphasis="tertiary"
+                    size="compact"
                     onClick={handleHardReset}
-                    className="text-xs text-text-sub-600 underline hover:text-text-strong-950 transition-colors"
+                    className="self-center"
                   >
                     {t("app.error.boundary.action.clearData")}
-                  </button>
+                  </Button>
                 </>
               )}
             </div>
@@ -468,35 +468,36 @@ export const RouteErrorBoundary: React.FC = () => {
             <div className="mt-8 w-full">
               <div className="flex flex-col gap-2">
                 <Button
-                  variant="neutral"
-                  mode="stroke"
-                  size="small"
+                  type="button"
+                  emphasis="secondary"
+                  size="sm"
                   onClick={handleCopy}
-                  label={
-                    copyState === "copied"
-                      ? t("app.error.boundary.action.copied")
-                      : copyState === "fallback"
-                        ? t("app.error.boundary.action.copyManual")
-                        : t("app.error.boundary.action.copyDetails")
-                  }
                   leadingIcon={
                     copyState === "copied" ? (
-                      <RiCheckLine className="h-4 w-4" />
+                      <RiCheckLine className="h-4 w-4" aria-hidden="true" />
                     ) : (
-                      <RiClipboardLine className="h-4 w-4" />
+                      <RiClipboardLine className="h-4 w-4" aria-hidden="true" />
                     )
                   }
                   className="w-full"
-                />
-                <button
+                >
+                  {copyState === "copied"
+                    ? t("app.error.boundary.action.copied")
+                    : copyState === "fallback"
+                      ? t("app.error.boundary.action.copyManual")
+                      : t("app.error.boundary.action.copyDetails")}
+                </Button>
+                <Button
                   type="button"
+                  emphasis="tertiary"
+                  size="compact"
                   onClick={() => setShowDetails((v) => !v)}
-                  className="text-xs text-text-sub-600 underline hover:text-text-strong-950 transition-colors"
+                  className="self-center"
                 >
                   {showDetails
                     ? t("app.error.boundary.devMode.hide")
                     : t("app.error.boundary.devMode.show")}
-                </button>
+                </Button>
               </div>
               {showDetails && (
                 <div className="mt-3 text-left bg-bg-soft-200 border border-stroke-soft-200 rounded-lg p-4">

@@ -1,4 +1,4 @@
-import { useOffline } from "@green-goods/shared/hooks/app/useOffline";
+import { IconButton } from "@green-goods/shared/components/IconButton";
 import type { Garden, Work } from "@green-goods/shared/types/domain";
 import { cn } from "@green-goods/shared/utils/styles/cn";
 import {
@@ -7,10 +7,11 @@ import {
   RiGovernmentLine,
   RiNotificationFill,
   RiNotificationLine,
+  RiShareLine,
 } from "@remixicon/react";
 import { useState } from "react";
 import { useIntl } from "react-intl";
-import { ModalDrawer } from "@/components/Dialogs";
+import { AppSheet } from "@/components/Sheets";
 import { type PwaStatusTone, pwaStatusStyles } from "@/components/Pwa/statusStyles";
 import { GardenNotifications } from "@/views/Home/Garden/Notifications";
 
@@ -26,51 +27,33 @@ type TopNavProps = {
   onEndowmentClick?: () => void;
   showGovernanceButton?: boolean;
   onGovernanceClick?: () => void;
+  /** Shares the garden; renders last in the action stack so the other buttons keep their places. */
+  onShareClick?: () => void;
 } & React.HTMLAttributes<HTMLDivElement>;
 
-type ButtonVariant = "work" | "sync" | "offline";
+type ButtonVariant = "work";
 
 const BUTTON_VARIANT_TONES = {
   work: "primary",
-  sync: "information",
-  offline: "warning",
 } as const satisfies Record<ButtonVariant, PwaStatusTone>;
 
-// Base styling for navigation buttons — visually compact (w-8 h-8 = 32px)
-// with tap-target-lg for a larger invisible touch area (matches Home view buttons)
-const NAV_BUTTON_BASE = [
-  "relative flex items-center justify-center w-8 h-8 p-1 rounded-lg border",
-  "bg-bg-white-0 border-stroke-soft-200 text-text-sub-600",
-  "transition-[color,border-color,box-shadow,transform] duration-[var(--spring-spatial-fast-duration)] ease-[var(--spring-spatial-fast-easing)] tap-feedback tap-target-lg",
-  "active:scale-95",
-  "focus-visible:outline-none focus-visible:ring-2",
-] as const;
+// Header actions are compact outlined IconButtons (32px, 48px hit area); the
+// icon carries the status tone (DL-023, DL-026).
+const iconTone = (variant: ButtonVariant = "work") =>
+  pwaStatusStyles[BUTTON_VARIANT_TONES[variant]].icon;
 
-// Create complete button styles for a given variant
-const createButtonStyles = (variant: ButtonVariant = "work") => {
-  const status = pwaStatusStyles[BUTTON_VARIANT_TONES[variant]];
-
-  return {
-    button: cn(NAV_BUTTON_BASE, status.focus),
-    icon: cn("w-4 h-4", status.icon),
-    focusStyles: status.focus,
-  };
-};
-
-// Reusable notification badge component
+// Reusable notification badge, pinned by the IconButton badge slot
 const NotificationBadge: React.FC<{ count: number }> = ({ count }) => (
-  <div className="absolute -top-1.5 -right-1.5">
-    <div
-      className={cn(
-        "inline-flex items-center justify-center text-xs font-semibold rounded-full",
-        "min-w-[18px] h-[18px] px-1",
-        pwaStatusStyles.primary.badge,
-        "shadow-sm border-2 border-bg-white-0"
-      )}
-    >
-      {count > 99 ? "99+" : count}
-    </div>
-  </div>
+  <span
+    className={cn(
+      "inline-flex items-center justify-center text-xs font-semibold rounded-full",
+      "min-w-[18px] h-[18px] px-1",
+      pwaStatusStyles.primary.badge,
+      "shadow-sm border-2 border-bg-white-0"
+    )}
+  >
+    {count > 99 ? "99+" : count}
+  </span>
 );
 
 const NotificationCenter: React.FC<TopNavProps & { garden: Garden }> = ({ works, garden }) => {
@@ -83,20 +66,17 @@ const NotificationCenter: React.FC<TopNavProps & { garden: Garden }> = ({ works,
 
   if (works === undefined) return null;
 
-  const styles = createButtonStyles("work");
-
   return (
     <>
-      <button
-        type="button"
+      <IconButton
+        emphasis="secondary"
+        size="compact"
         onClick={() => setIsOpen(true)}
-        className={styles.button}
         aria-label="View notifications"
-      >
-        {hasNotifications && <NotificationBadge count={workNotifications.length} />}
-        <NotificationIcon className={styles.icon} />
-      </button>
-      <ModalDrawer
+        icon={<NotificationIcon className={iconTone()} aria-hidden="true" />}
+        badge={hasNotifications ? <NotificationBadge count={workNotifications.length} /> : null}
+      />
+      <AppSheet
         isOpen={isOpen}
         onClose={() => setIsOpen(false)}
         header={{
@@ -114,14 +94,14 @@ const NotificationCenter: React.FC<TopNavProps & { garden: Garden }> = ({ works,
               )
             : undefined,
         }}
-        maxHeight="60vh"
+        size="tall"
       >
         <GardenNotifications
           garden={garden}
           notifications={works}
           onClose={() => setIsOpen(false)}
         />
-      </ModalDrawer>
+      </AppSheet>
     </>
   );
 };
@@ -130,55 +110,54 @@ const EndowmentButton: React.FC<{
   hasDeposits: boolean;
   onClick: () => void;
   ariaLabel: string;
-}> = ({ hasDeposits, onClick, ariaLabel }) => {
-  const styles = createButtonStyles("work");
-
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={styles.button}
-      aria-label={ariaLabel}
-      title={ariaLabel}
-    >
-      {hasDeposits && (
+}> = ({ hasDeposits, onClick, ariaLabel }) => (
+  <IconButton
+    emphasis="secondary"
+    size="compact"
+    onClick={onClick}
+    aria-label={ariaLabel}
+    title={ariaLabel}
+    icon={<RiBankLine className={iconTone()} aria-hidden="true" />}
+    badge={
+      hasDeposits ? (
         <span
           className={cn(
-            "absolute -top-1 -right-1 inline-flex h-2.5 w-2.5 rounded-full border border-bg-white-0",
+            "inline-flex h-2.5 w-2.5 rounded-full border border-bg-white-0",
             pwaStatusStyles.success.dot
           )}
         />
-      )}
-      <RiBankLine className={styles.icon} />
-    </button>
-  );
-};
+      ) : null
+    }
+  />
+);
 
 const GovernanceButton: React.FC<{
   onClick: () => void;
   ariaLabel: string;
-}> = ({ onClick, ariaLabel }) => {
-  const styles = createButtonStyles("work");
+}> = ({ onClick, ariaLabel }) => (
+  <IconButton
+    emphasis="secondary"
+    size="compact"
+    onClick={onClick}
+    aria-label={ariaLabel}
+    title={ariaLabel}
+    icon={<RiGovernmentLine className={iconTone()} aria-hidden="true" />}
+  />
+);
 
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={styles.button}
-      aria-label={ariaLabel}
-      title={ariaLabel}
-    >
-      <RiGovernmentLine className={styles.icon} />
-    </button>
-  );
-};
-
-// Determine button variant based on app state
-const getButtonVariant = (syncStatus: string, isOnline: boolean): "work" | "sync" | "offline" => {
-  if (syncStatus === "syncing") return "sync";
-  if (!isOnline) return "offline";
-  return "work";
-};
+const ShareButton: React.FC<{
+  onClick: () => void;
+  ariaLabel: string;
+}> = ({ onClick, ariaLabel }) => (
+  <IconButton
+    emphasis="secondary"
+    size="compact"
+    onClick={onClick}
+    aria-label={ariaLabel}
+    title={ariaLabel}
+    icon={<RiShareLine className={iconTone()} aria-hidden="true" />}
+  />
+);
 
 export const TopNav: React.FC<TopNavProps> = ({
   children,
@@ -192,21 +171,13 @@ export const TopNav: React.FC<TopNavProps> = ({
   onEndowmentClick,
   showGovernanceButton = false,
   onGovernanceClick,
+  onShareClick,
   ...htmlProps
 }: TopNavProps) => {
   const { formatMessage } = useIntl();
-  const { syncStatus, isOnline } = useOffline();
-  const hasOfflineIssues = !navigator.onLine;
-
-  // Get appropriate button styling variant
-  const buttonVariant = getButtonVariant(syncStatus, isOnline);
-  const backButtonStyles = createButtonStyles(buttonVariant);
-
   const containerClasses = cn(
     "relative flex z-nav flex-row w-full justify-evenly items-start gap-4 p-6 h-20 top-2",
-    overlay && "fixed bg-bg-white-0",
-    overlay && hasOfflineIssues && "top-2", // Space for offline indicator
-    overlay && !hasOfflineIssues && "top-0"
+    overlay && "fixed bg-bg-white-0"
   );
 
   return (
@@ -218,17 +189,17 @@ export const TopNav: React.FC<TopNavProps> = ({
         Skip to content
       </a>
       {onBackClick && (
-        <button
-          type="button"
+        <IconButton
+          emphasis="secondary"
+          size="compact"
           onClick={(e) => {
             onBackClick?.(e);
             e.currentTarget.blur();
           }}
-          className={cn(backButtonStyles.button, "z-1")}
+          className="z-1"
           aria-label="Go back"
-        >
-          <RiArrowLeftFill className={backButtonStyles.icon} />
-        </button>
+          icon={<RiArrowLeftFill className={iconTone()} aria-hidden="true" />}
+        />
       )}
 
       <div className="absolute left-0 top-0 w-full h-full flex flex-row justify-between items-center py-6">
@@ -250,6 +221,12 @@ export const TopNav: React.FC<TopNavProps> = ({
             hasDeposits={hasEndowmentDeposits}
             onClick={onEndowmentClick}
             ariaLabel={formatMessage({ id: "app.treasury.open" })}
+          />
+        )}
+        {garden && onShareClick && (
+          <ShareButton
+            onClick={onShareClick}
+            ariaLabel={formatMessage({ id: "app.garden.share", defaultMessage: "Share Garden" })}
           />
         )}
       </div>

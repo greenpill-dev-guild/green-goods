@@ -7,30 +7,25 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { createElement, type ReactNode } from "react";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 // Mock dependencies - use vi.hoisted to ensure mocks are available at hoist time
-const { mockFlush, mockJobQueueEventBus } = vi.hoisted(() => ({
-  mockFlush: vi.fn(),
-  mockJobQueueEventBus: {
-    on: vi.fn(() => vi.fn()),
-  },
-}));
-
-vi.mock("../../modules/job-queue/event-bus", () => ({
-  jobQueueEventBus: mockJobQueueEventBus,
-  useJobQueueEvents: vi.fn(),
+const { queueState } = vi.hoisted(() => ({
+  queueState: { isProcessing: false },
 }));
 
 vi.mock("../../providers/JobQueue", () => ({
-  useQueueFlush: () => mockFlush,
+  useJobQueue: () => ({ isProcessing: queueState.isProcessing }),
 }));
 
 vi.mock("../../hooks/work/usePendingWorksCount", () => ({
   usePendingWorksCount: () => ({ data: 0 }),
 }));
 
-import { useOffline } from "../../hooks/app/useOffline";
+let useOffline: typeof import("../../hooks/app/useOffline")["useOffline"];
+beforeAll(async () => {
+  ({ useOffline } = await import("../../hooks/app/useOffline"));
+});
 
 describe("hooks/app/useOffline", () => {
   let queryClient: QueryClient;
@@ -47,6 +42,7 @@ describe("hooks/app/useOffline", () => {
       },
     });
     vi.clearAllMocks();
+    queueState.isProcessing = false;
 
     // Set initial online state
     Object.defineProperty(navigator, "onLine", {
@@ -54,6 +50,7 @@ describe("hooks/app/useOffline", () => {
       value: true,
       writable: true,
     });
+    window.dispatchEvent(new Event("online"));
   });
 
   afterEach(() => {
@@ -72,6 +69,7 @@ describe("hooks/app/useOffline", () => {
 
     it("returns offline when navigator.onLine is false", () => {
       Object.defineProperty(navigator, "onLine", { value: false });
+      window.dispatchEvent(new Event("offline"));
 
       const { result } = renderHook(() => useOffline(), {
         wrapper: createWrapper(),
@@ -92,6 +90,7 @@ describe("hooks/app/useOffline", () => {
       act(() => {
         Object.defineProperty(navigator, "onLine", { value: false });
         window.dispatchEvent(new Event("offline"));
+        window.dispatchEvent(new Event("offline"));
       });
 
       await waitFor(() => {
@@ -101,6 +100,7 @@ describe("hooks/app/useOffline", () => {
 
     it("updates to online when online event fires", async () => {
       Object.defineProperty(navigator, "onLine", { value: false });
+      window.dispatchEvent(new Event("offline"));
 
       const { result } = renderHook(() => useOffline(), {
         wrapper: createWrapper(),
@@ -115,61 +115,16 @@ describe("hooks/app/useOffline", () => {
 
       await waitFor(() => {
         expect(result.current.isOnline).toBe(true);
-        expect(result.current.syncStatus).toBe("syncing");
+        expect(result.current.syncStatus).toBe("idle");
       });
     });
   });
 
   describe("sync status", () => {
-    it("sets sync status to syncing when coming online", async () => {
-      Object.defineProperty(navigator, "onLine", { value: false });
-
-      const { result } = renderHook(() => useOffline(), {
-        wrapper: createWrapper(),
-      });
-
-      act(() => {
-        Object.defineProperty(navigator, "onLine", { value: true });
-        window.dispatchEvent(new Event("online"));
-      });
-
-      await waitFor(() => {
-        expect(result.current.syncStatus).toBe("syncing");
-      });
-    });
-  });
-
-  describe("queue event subscription", () => {
-    it("subscribes to queue:sync-completed event", () => {
-      renderHook(() => useOffline(), { wrapper: createWrapper() });
-
-      expect(mockJobQueueEventBus.on).toHaveBeenCalledWith(
-        "queue:sync-completed",
-        expect.any(Function)
-      );
-    });
-
-    it("unsubscribes on unmount", () => {
-      const mockUnsubscribe = vi.fn();
-      mockJobQueueEventBus.on.mockReturnValue(mockUnsubscribe);
-
-      const { unmount } = renderHook(() => useOffline(), {
-        wrapper: createWrapper(),
-      });
-
-      unmount();
-
-      expect(mockUnsubscribe).toHaveBeenCalled();
-    });
-  });
-
-  describe("refetch function", () => {
-    it("exposes flush function for manual sync", () => {
-      const { result } = renderHook(() => useOffline(), {
-        wrapper: createWrapper(),
-      });
-
-      expect(result.current.refetch).toBe(mockFlush);
+    it("derives syncing from the queue provider", () => {
+      queueState.isProcessing = true;
+      const { result } = renderHook(() => useOffline(), { wrapper: createWrapper() });
+      expect(result.current.syncStatus).toBe("syncing");
     });
   });
 
@@ -180,14 +135,6 @@ describe("hooks/app/useOffline", () => {
       });
 
       expect(result.current.pendingCount).toBe(0);
-    });
-
-    it("returns empty pending work array (simplified API)", () => {
-      const { result } = renderHook(() => useOffline(), {
-        wrapper: createWrapper(),
-      });
-
-      expect(result.current.pendingWork).toEqual([]);
     });
   });
 });

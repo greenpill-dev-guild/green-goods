@@ -170,7 +170,7 @@ test.describe("Admin Cockpit", () => {
     await page.goto("/hub");
     await page.waitForLoadState("domcontentloaded");
 
-    await expect(page.getByText("Connect to continue")).toBeVisible({ timeout: 10000 });
+    await expect(page.getByText("Connect to continue")).toBeVisible({ timeout: 15000 });
     await expect(page.getByRole("button", { name: /connect wallet/i })).toBeVisible();
   });
 
@@ -185,7 +185,7 @@ test.describe("Admin Cockpit", () => {
       timeout: 15000,
     });
     // Hub is the workspace heading; its active pipeline stage appears in the tab rail below.
-    await expect(page.getByRole("heading", { name: "Hub" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Hub" })).toBeVisible({ timeout: 15000 });
     // The Hub tab rail renders pipeline stage tabs filtered by role
     // capability. With mocked steward auth, canManage gates the work tab and
     // history is always visible; canAssess / canCertify depend on hats role

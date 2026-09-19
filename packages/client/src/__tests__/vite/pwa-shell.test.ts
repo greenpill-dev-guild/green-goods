@@ -80,22 +80,362 @@ function generateShellManifest({
 }
 
 describe("PWA shell asset manifest", () => {
-  it("includes the marked shell and static closure but excludes lazy routes", () => {
+  it("caches route facades, drawers, and wizard dependencies without public or wallet-only chunks", async () => {
+    const emitFile = vi.fn();
+    const plugin = createPwaShellAssetsPlugin();
+    const generateBundle = plugin.generateBundle;
+    if (typeof generateBundle !== "function") throw new Error("generateBundle hook missing");
+
+    const bundle = createShellBundle();
+    // Use the actual lazy entry inventory so adding a signed-in route cannot
+    // silently leave it outside the first-install shell.
+    const routes = await readFile(new URL("../../config/routes.tsx", import.meta.url), "utf8");
+    const viewPaths = [...routes.matchAll(/import\("@\/(views\/[^"\n]+)"\)/g)].map(
+      (match) => match[1]
+    );
+    const signedInViews = viewPaths.filter((path) => !path.startsWith("views/Public/"));
+    const lazyModules = [
+      ...viewPaths,
+      "views/Home/GardenFilters/index",
+      "views/Home/WalletSheet/index",
+      "views/Home/CommitmentsSheet/index",
+      "views/Garden/Media",
+      "routes/Root",
+      "routes/SessionGate",
+      "routes/WalletRuntimeProviders",
+    ];
+    for (const moduleId of lazyModules) {
+      const fileName = `assets/${moduleId.replaceAll("/", "-")}.js`;
+      bundle[fileName] = {
+        type: "chunk",
+        fileName,
+        code: "export default true",
+        imports: ["assets/react.js"],
+        dynamicImports: ["assets/wallet-connect.js"],
+        modules: {},
+        facadeModuleId: `/repo/packages/client/src/${moduleId}${moduleId.startsWith("views/") && moduleId.split("/").length === 2 ? "/index" : ""}.tsx`,
+      };
+    }
+    bundle["assets/wallet-connect.js"] = {
+      type: "chunk",
+      fileName: "assets/wallet-connect.js",
+      code: "export default true",
+      imports: [],
+      dynamicImports: [],
+      modules: { "/repo/node_modules/wallet/connect.js": {} },
+    };
+    generateBundle.call({ emitFile } as never, {} as never, bundle as never, false);
+    const shell = JSON.parse(
+      (
+        emitFile.mock.calls.find(
+          ([asset]) => asset.fileName === "pwa-shell-assets.json"
+        )?.[0] as EmittedAsset
+      ).source
+    ) as {
+      assets: string[];
+      criticalAssets: string[];
+      priorityAssets: string[];
+      tailAssets: string[];
+    };
+
+    expect(signedInViews.length).toBeGreaterThan(0);
+    for (const moduleId of lazyModules) {
+      const asset = `/assets/${moduleId.replaceAll("/", "-")}.js`;
+      if (moduleId.startsWith("views/Public/")) expect(shell.assets).not.toContain(asset);
+      else expect(shell.assets).toContain(asset);
+    }
+    expect(shell.assets).toContain("/assets/react.js");
+    expect(shell.assets).not.toContain("/assets/wallet-connect.js");
+  });
+
+  it("precaches the media step's on-demand image compressor with its facade", () => {
+    const emitFile = vi.fn();
+    const plugin = createPwaShellAssetsPlugin();
+    const generateBundle = plugin.generateBundle;
+    if (typeof generateBundle !== "function") throw new Error("generateBundle hook missing");
+
+    const bundle = createShellBundle();
+    bundle["assets/Garden.js"] = {
+      type: "chunk",
+      fileName: "assets/Garden.js",
+      code: "export default true",
+      imports: ["assets/react.js"],
+      // Rolldown emits the dynamic entry as an empty facade over the code chunk.
+      dynamicImports: ["assets/image-compression.js", "assets/wallet-connect.js"],
+      modules: { "/repo/packages/client/src/views/Garden/Media.tsx": {} },
+      facadeModuleId: "/repo/packages/client/src/views/Garden/index.tsx",
+    };
+    bundle["assets/image-compression.js"] = {
+      type: "chunk",
+      fileName: "assets/image-compression.js",
+      code: "export * from './image-compression-impl.js'",
+      imports: ["assets/image-compression-impl.js"],
+      dynamicImports: [],
+      modules: {},
+      facadeModuleId: "/repo/packages/shared/src/utils/work/image-compression.ts",
+    };
+    bundle["assets/image-compression-impl.js"] = {
+      type: "chunk",
+      fileName: "assets/image-compression-impl.js",
+      code: "export const imageCompressor = true",
+      imports: [],
+      dynamicImports: [],
+      modules: {
+        "/repo/node_modules/browser-image-compression/dist/browser-image-compression.mjs": {},
+        "/repo/packages/shared/src/utils/work/image-compression.ts": {},
+      },
+    };
+    bundle["assets/wallet-connect.js"] = {
+      type: "chunk",
+      fileName: "assets/wallet-connect.js",
+      code: "export default true",
+      imports: [],
+      dynamicImports: [],
+      modules: { "/repo/node_modules/wallet/connect.js": {} },
+    };
+    generateBundle.call({ emitFile } as never, {} as never, bundle as never, false);
+    const shell = JSON.parse(
+      (
+        emitFile.mock.calls.find(
+          ([asset]) => asset.fileName === "pwa-shell-assets.json"
+        )?.[0] as EmittedAsset
+      ).source
+    ) as {
+      assets: string[];
+      criticalAssets: string[];
+      priorityAssets: string[];
+      tailAssets: string[];
+    };
+
+    expect(shell.assets).toContain("/assets/Garden.js");
+    expect(shell.assets).toContain("/assets/image-compression.js");
+    expect(shell.assets).toContain("/assets/image-compression-impl.js");
+    expect(shell.assets).not.toContain("/assets/wallet-connect.js");
+  });
+
+  it("follows first-party and offline vendor dynamic imports but leaves public and telemetry entries lazy", () => {
+    const emitFile = vi.fn();
+    const plugin = createPwaShellAssetsPlugin();
+    const generateBundle = plugin.generateBundle;
+    if (typeof generateBundle !== "function") throw new Error("generateBundle hook missing");
+
+    const bundle = createShellBundle();
+    const chunk = (
+      fileName: string,
+      modules: string[],
+      extra: Partial<{ imports: string[]; dynamicImports: string[]; facadeModuleId: string }> = {}
+    ) => {
+      bundle[fileName] = {
+        type: "chunk",
+        fileName,
+        code: `export default "${fileName}"`,
+        imports: extra.imports ?? [],
+        dynamicImports: extra.dynamicImports ?? [],
+        modules: Object.fromEntries(modules.map((moduleId) => [moduleId, {}])),
+        ...(extra.facadeModuleId ? { facadeModuleId: extra.facadeModuleId } : {}),
+      };
+    };
+    (bundle["assets/pwa.js"] as { dynamicImports: string[] }).dynamicImports.push(
+      "assets/job-queue.js",
+      "assets/es.js",
+      "assets/sentry.js",
+      "assets/Impact.js",
+      "assets/wallet-ui.js",
+      "assets/wallet-submission.js",
+      "assets/simulate.js",
+      "assets/heic-to.js"
+    );
+    // The queue barrel is an empty facade over code that a second facade,
+    // reached only through it, still has to bring along.
+    chunk("assets/job-queue.js", [], {
+      facadeModuleId: "/repo/packages/shared/src/modules/job-queue/index.ts",
+      dynamicImports: ["assets/work-submission.js"],
+    });
+    chunk("assets/work-submission.js", [], {
+      facadeModuleId: "/repo/packages/shared/src/modules/work/work-submission.ts",
+      imports: ["assets/work-submission-impl.js"],
+    });
+    chunk("assets/work-submission-impl.js", [
+      "/repo/packages/shared/src/modules/work/work-submission.ts",
+    ]);
+    chunk("assets/es.js", ["/repo/packages/shared/src/i18n/es.json"]);
+    chunk("assets/sentry.js", ["/repo/packages/shared/src/modules/app/sentry.ts"], {
+      imports: ["assets/sentry-vendor.js"],
+    });
+    chunk("assets/sentry-vendor.js", ["/repo/node_modules/@sentry/browser/index.js"]);
+    chunk("assets/Impact.js", [
+      "/repo/packages/client/src/components/Public/PublicCommitmentsBand.tsx",
+      "/repo/packages/client/src/views/Public/Impact.tsx",
+    ]);
+    chunk("assets/wallet-ui.js", ["/repo/node_modules/@reown/appkit/dist/modal.js"]);
+    // HEIC decoding is vendor-only code the media step needs offline.
+    chunk("assets/heic-to.js", ["/repo/node_modules/heic-to/dist/csp/heic-to.js"]);
+    // Send-time code is first-party too, so the shell carries it and the EAS
+    // SDK behind it: a reconnect send must not depend on fetching a chunk.
+    chunk("assets/wallet-submission.js", [], {
+      facadeModuleId: "/repo/packages/shared/src/modules/work/wallet-submission/index.ts",
+      imports: ["assets/encoders.js"],
+    });
+    chunk("assets/simulate.js", ["/repo/packages/shared/src/modules/work/simulate.ts"], {
+      imports: ["assets/encoders.js"],
+    });
+    chunk("assets/encoders.js", [
+      "/repo/node_modules/@ethereum-attestation-service/eas-sdk/dist/index.js",
+      "/repo/packages/shared/src/utils/eas/encoders.ts",
+    ]);
+    generateBundle.call({ emitFile } as never, {} as never, bundle as never, false);
+    const shell = JSON.parse(
+      (
+        emitFile.mock.calls.find(
+          ([asset]) => asset.fileName === "pwa-shell-assets.json"
+        )?.[0] as EmittedAsset
+      ).source
+    ) as {
+      assets: string[];
+      criticalAssets: string[];
+      priorityAssets: string[];
+      tailAssets: string[];
+    };
+
+    for (const needed of [
+      "/assets/job-queue.js",
+      "/assets/work-submission.js",
+      "/assets/work-submission-impl.js",
+      "/assets/wallet-submission.js",
+      "/assets/simulate.js",
+      "/assets/encoders.js",
+      "/assets/es.js",
+      "/assets/heic-to.js",
+    ]) {
+      expect(shell.assets).toContain(needed);
+    }
+    for (const critical of [
+      "/assets/job-queue.js",
+      "/assets/work-submission.js",
+      "/assets/work-submission-impl.js",
+    ]) {
+      expect(shell.criticalAssets).toContain(critical);
+      expect(shell.tailAssets).not.toContain(critical);
+    }
+    // Needed to compose work with no signal, so they ride the tier an
+    // installed app fetches straight away rather than the send-time tail.
+    for (const offlineReady of ["/assets/es.js", "/assets/heic-to.js"]) {
+      expect(shell.priorityAssets).toContain(offlineReady);
+      expect(shell.criticalAssets).not.toContain(offlineReady);
+      expect(shell.tailAssets).not.toContain(offlineReady);
+    }
+    for (const sendTime of [
+      "/assets/wallet-submission.js",
+      "/assets/simulate.js",
+      "/assets/encoders.js",
+    ]) {
+      expect(shell.tailAssets).toContain(sendTime);
+      expect(shell.criticalAssets).not.toContain(sendTime);
+      expect(shell.priorityAssets).not.toContain(sendTime);
+    }
+    for (const optional of [
+      "/assets/sentry.js",
+      "/assets/sentry-vendor.js",
+      "/assets/Impact.js",
+      "/assets/wallet-ui.js",
+    ]) {
+      expect(shell.assets).not.toContain(optional);
+    }
+  });
+
+  it("includes signed-in lazy views before their first visit", () => {
     const emitted = generateShellManifest();
     const shell = JSON.parse(
       emitted.find((asset) => asset.fileName === "pwa-shell-assets.json")?.source ?? "{}"
-    ) as { version: number; digest: string; assets: string[] };
+    ) as {
+      version: number;
+      digest: string;
+      assets: string[];
+      criticalDigest: string;
+      criticalAssets: string[];
+      priorityDigest: string;
+      priorityAssets: string[];
+      tailDigest: string;
+      tailAssets: string[];
+    };
 
-    expect(shell.version).toBe(1);
+    expect(shell.version).toBe(3);
     expect(shell.digest).toMatch(/^[a-f0-9]{16}$/);
+    expect(shell.criticalDigest).toMatch(/^[a-f0-9]{16}$/);
+    expect(shell.priorityDigest).toMatch(/^[a-f0-9]{16}$/);
+    expect(shell.tailDigest).toMatch(/^[a-f0-9]{16}$/);
+    expect(shell.priorityAssets).toEqual([]);
+    expect(shell.tailAssets).toEqual([]);
+    expect(shell.criticalAssets).toEqual(shell.assets);
     expect(shell.assets).toEqual([
       "/assets/app.css",
+      "/assets/lazy-proof.js",
       "/assets/pwa.js",
       "/assets/react.js",
       "/assets/standalone.css",
       "/index.html",
     ]);
-    expect(shell.assets).not.toContain("/assets/lazy-proof.js");
+  });
+
+  it("includes pure vendor facades and their static closure when an offline chunk loads them", () => {
+    const emitFile = vi.fn();
+    const plugin = createPwaShellAssetsPlugin();
+    const generateBundle = plugin.generateBundle;
+    if (typeof generateBundle !== "function") throw new Error("generateBundle hook missing");
+    const bundle = createShellBundle();
+    (bundle["assets/pwa.js"] as { dynamicImports: string[] }).dynamicImports.push(
+      "assets/work-confirmation.js"
+    );
+    bundle["assets/work-confirmation.js"] = {
+      type: "chunk",
+      fileName: "assets/work-confirmation.js",
+      code: "export const confirm = true",
+      imports: [],
+      dynamicImports: ["assets/viem-facade.js"],
+      modules: { "/repo/packages/shared/src/modules/work/work-confirmation.ts": {} },
+    };
+    bundle["assets/viem-facade.js"] = {
+      type: "chunk",
+      fileName: "assets/viem-facade.js",
+      code: "export * from './ccip.js'",
+      imports: ["assets/ccip.js", "assets/secp256k1.js"],
+      dynamicImports: [],
+      modules: {},
+    };
+    bundle["assets/ccip.js"] = {
+      type: "chunk",
+      fileName: "assets/ccip.js",
+      code: "export const ccip = true",
+      imports: [],
+      dynamicImports: [],
+      modules: { "/repo/node_modules/viem/utils/ccip.js": {} },
+    };
+    bundle["assets/secp256k1.js"] = {
+      type: "chunk",
+      fileName: "assets/secp256k1.js",
+      code: "export const secp = true",
+      imports: [],
+      dynamicImports: [],
+      modules: { "/repo/node_modules/@noble/curves/secp256k1.js": {} },
+    };
+
+    generateBundle.call({ emitFile } as never, {} as never, bundle as never, false);
+    const shell = JSON.parse(
+      (
+        emitFile.mock.calls.find(
+          ([asset]) => asset.fileName === "pwa-shell-assets.json"
+        )?.[0] as EmittedAsset
+      ).source
+    ) as { criticalAssets: string[] };
+
+    expect(shell.criticalAssets).toEqual(
+      expect.arrayContaining([
+        "/assets/work-confirmation.js",
+        "/assets/viem-facade.js",
+        "/assets/ccip.js",
+        "/assets/secp256k1.js",
+      ])
+    );
   });
 
   it("emits the same digest for the same shell graph", () => {
@@ -150,6 +490,7 @@ describe("PWA shell asset manifest", () => {
 
       const finalFiles = new Map<string, string>([
         ["/assets/app.css", ":root{color:green}"],
+        ["/assets/lazy-proof.js", "export const proof = true"],
         ["/assets/pwa.js", "export const bootstrap = true"],
         ["/assets/react.js", "export const react = true"],
         ["/assets/standalone.css", "body{}"],

@@ -18,7 +18,7 @@ generated_from:
   - packages/indexer/package.json
   - packages/shared/package.json
   - packages/shared/src/public-contracts/routes.ts
-source_digest: "sha256:8df6ce2419c7b2aac7772377180800c2579c4f79a4a839682cf8266957592594"
+source_digest: "sha256:cd6ccedd1fad1d4a1fcd84ef2d07b2171d4c4e53ba13f938bb92b8555e9fc884"
 source_of_truth:
   - packages/admin/package.json
   - packages/agent/package.json
@@ -33,10 +33,12 @@ source_of_truth:
   - packages/shared/src/public-contracts/routes.ts
 ---
 
-<!-- GENERATED FILE: do not edit. Run `bun run docs:generate` or `bun run docs:generate -- --scope <scope>`. -->
+<!-- GENERATED FILE: do not edit. Run `node scripts/docs/generate.mjs` or `node scripts/docs/generate.mjs -- --scope <scope>`. -->
 # API Index
 
 Use package export specifiers and public route constants as the stable entrypoints. Source-file imports bypass package boundaries and are not public APIs.
+
+[Runnable command inventory](./commands) is generated from the workspace manifests.
 
 ## Public Agent routes
 
@@ -95,12 +97,17 @@ Use package export specifiers and public route constants as the stable entrypoin
 | @green-goods/shared | `./components/Cards/CardBase` | `./src/components/Cards/CardBase.tsx` |
 | @green-goods/shared | `./components/Cards/GardenCard/GardenCard` | `./src/components/Cards/GardenCard/GardenCard.tsx` |
 | @green-goods/shared | `./components/Cards/WorkCard/WorkCard` | `./src/components/Cards/WorkCard/WorkCard.tsx` |
+| @green-goods/shared | `./components/Chip` | `./src/components/Chip.tsx` |
 | @green-goods/shared | `./components/Conviction/ConvictionMeter` | `./src/components/Conviction/ConvictionMeter.tsx` |
 | @green-goods/shared | `./components/Conviction/WeightAllocator` | `./src/components/Conviction/WeightAllocator.tsx` |
 | @green-goods/shared | `./components/DatePicker/DatePicker` | `./src/components/DatePicker/DatePicker.tsx` |
 | @green-goods/shared | `./components/Dialog/ConfirmDialog` | `./src/components/Dialog/ConfirmDialog.tsx` |
+| @green-goods/shared | `./components/Dialog/DialogShell` | `./src/components/Dialog/DialogShell.tsx` |
 | @green-goods/shared | `./components/Dialog/ImagePreviewDialog` | `./src/components/Dialog/ImagePreviewDialog.tsx` |
 | @green-goods/shared | `./components/Dialog/PwaSheet` | `./src/components/Dialog/PwaSheet.tsx` |
+| @green-goods/shared | `./components/Dialog/SheetActions` | `./src/components/Dialog/SheetActions.tsx` |
+| @green-goods/shared | `./components/Dialog/SheetHeader` | `./src/components/Dialog/SheetHeader.tsx` |
+| @green-goods/shared | `./components/Dialog/SheetHeading` | `./src/components/Dialog/SheetHeading.tsx` |
 | @green-goods/shared | `./components/Display/ActionBannerFallback` | `./src/components/Display/ActionBannerFallback.tsx` |
 | @green-goods/shared | `./components/Display/GardenBannerFallback` | `./src/components/Display/GardenBannerFallback.tsx` |
 | @green-goods/shared | `./components/Display/ImageWithFallback` | `./src/components/Display/ImageWithFallback.tsx` |
@@ -119,10 +126,10 @@ Use package export specifiers and public route constants as the stable entrypoin
 | @green-goods/shared | `./components/Form/Select/Select` | `./src/components/Form/Select/Select.tsx` |
 | @green-goods/shared | `./components/Form/StepIndicator` | `./src/components/Form/StepIndicator.tsx` |
 | @green-goods/shared | `./components/HydrationFallback` | `./src/components/HydrationFallback.tsx` |
+| @green-goods/shared | `./components/IconButton` | `./src/components/IconButton.tsx` |
 | @green-goods/shared | `./components/ListPrimitives` | `./src/components/ListPrimitives.tsx` |
 | @green-goods/shared | `./components/Progress/ENSProgressTimeline` | `./src/components/Progress/ENSProgressTimeline.tsx` |
 | @green-goods/shared | `./components/Progress/SubmissionProgress` | `./src/components/Progress/SubmissionProgress.tsx` |
-| @green-goods/shared | `./components/Progress/SyncIndicator` | `./src/components/Progress/SyncIndicator.tsx` |
 | @green-goods/shared | `./components/Skeleton` | `./src/components/Skeleton.tsx` |
 | @green-goods/shared | `./components/Spinner` | `./src/components/Spinner.tsx` |
 | @green-goods/shared | `./components/StatusBadge` | `./src/components/StatusBadge.tsx` |
@@ -208,6 +215,7 @@ Use package export specifiers and public route constants as the stable entrypoin
 | @green-goods/shared | `./hooks/app/useServiceWorkerUpdate` | `./src/hooks/app/useServiceWorkerUpdate.ts` |
 | @green-goods/shared | `./hooks/app/useTheme` | `./src/hooks/app/useTheme.ts` |
 | @green-goods/shared | `./hooks/app/useTunnelUrl` | `./src/hooks/app/useTunnelUrl.ts` |
+| @green-goods/shared | `./hooks/app/useWorkUpdateGuard` | `./src/hooks/app/useWorkUpdateGuard.ts` |
 | @green-goods/shared | `./hooks/assessment/useAllAssessments` | `./src/hooks/assessment/useAllAssessments.ts` |
 | @green-goods/shared | `./hooks/auth/useAuth` | `./src/hooks/auth/useAuth.ts` |
 | @green-goods/shared | `./hooks/auth/usePrimaryAddress` | `./src/hooks/auth/usePrimaryAddress.ts` |
@@ -278,6 +286,7 @@ Use package export specifiers and public route constants as the stable entrypoin
 | @green-goods/shared | `./hooks/garden/useCreateGardenForm` | `./src/hooks/garden/useCreateGardenForm.ts` |
 | @green-goods/shared | `./hooks/garden/useEligibleAdminGardens` | `./src/hooks/garden/useEligibleAdminGardens.ts` |
 | @green-goods/shared | `./hooks/garden/useFilteredGardens` | `./src/hooks/garden/useFilteredGardens.ts` |
+| @green-goods/shared | `./hooks/garden/useGardenAccountSigner` | `./src/hooks/garden/useGardenAccountSigner.ts` |
 | @green-goods/shared | `./hooks/garden/useGardenDerivedState` | `./src/hooks/garden/useGardenDerivedState.ts` |
 | @green-goods/shared | `./hooks/garden/useGardenDetailData` | `./src/hooks/garden/useGardenDetailData.ts` |
 | @green-goods/shared | `./hooks/garden/useGardenDomains` | `./src/hooks/garden/useGardenDomains.ts` |
@@ -304,7 +313,10 @@ Use package export specifiers and public route constants as the stable entrypoin
 | @green-goods/shared | `./hooks/navigation/useCanvasSearchParams` | `./src/hooks/navigation/useCanvasSearchParams.ts` |
 | @green-goods/shared | `./hooks/navigation/useGardenUrlSync` | `./src/hooks/navigation/useGardenUrlSync.ts` |
 | @green-goods/shared | `./hooks/navigation/useSheetOrchestrator` | `./src/hooks/navigation/useSheetOrchestrator.ts` |
+| @green-goods/shared | `./hooks/offline/useOfflineAssetAvailability` | `./src/hooks/offline/useOfflineAssetAvailability.ts` |
+| @green-goods/shared | `./hooks/offline/useOfflineContent` | `./src/hooks/offline/useOfflineContent.ts` |
 | @green-goods/shared | `./hooks/profile/useProfileAvatar` | `./src/hooks/profile/useProfileAvatar.ts` |
+| @green-goods/shared | `./hooks/profile/useProfileAvatarDraftPreview` | `./src/hooks/profile/useProfileAvatarDraftPreview.ts` |
 | @green-goods/shared | `./hooks/public/usePublicCommitmentImpact` | `./src/hooks/public/usePublicCommitmentImpact.ts` |
 | @green-goods/shared | `./hooks/public/usePublicEndowmentPositions` | `./src/hooks/public/usePublicEndowmentPositions.ts` |
 | @green-goods/shared | `./hooks/public/usePublicGardenDetail` | `./src/hooks/public/usePublicGardenDetail.ts` |
@@ -320,6 +332,7 @@ Use package export specifiers and public route constants as the stable entrypoin
 | @green-goods/shared | `./hooks/ui/useInViewReveal` | `./src/hooks/ui/useInViewReveal.ts` |
 | @green-goods/shared | `./hooks/ui/useIsDarkMode` | `./src/hooks/ui/useIsDarkMode.ts` |
 | @green-goods/shared | `./hooks/ui/useMediaQuery` | `./src/hooks/ui/useMediaQuery.ts` |
+| @green-goods/shared | `./hooks/ui/useSheetPresence` | `./src/hooks/ui/useSheetPresence.ts` |
 | @green-goods/shared | `./hooks/useSheetWidth` | `./src/hooks/useSheetWidth.ts` |
 | @green-goods/shared | `./hooks/utils/useAddressInput` | `./src/hooks/utils/useAddressInput.ts` |
 | @green-goods/shared | `./hooks/utils/useAsyncEffect` | `./src/hooks/utils/useAsyncEffect.ts` |
@@ -355,14 +368,17 @@ Use package export specifiers and public route constants as the stable entrypoin
 | @green-goods/shared | `./hooks/work/useAggregatedApprovals` | `./src/hooks/work/useAggregatedApprovals.ts` |
 | @green-goods/shared | `./hooks/work/useDrafts` | `./src/hooks/work/useDrafts.ts` |
 | @green-goods/shared | `./hooks/work/useMyWorks` | `./src/hooks/work/useMyWorks.ts` |
+| @green-goods/shared | `./hooks/work/useNeedsReview` | `./src/hooks/work/useNeedsReview.ts` |
 | @green-goods/shared | `./hooks/work/usePendingWorksCount` | `./src/hooks/work/usePendingWorksCount.ts` |
+| @green-goods/shared | `./hooks/work/useQueuedWorkActions` | `./src/hooks/work/useQueuedWorkActions.ts` |
 | @green-goods/shared | `./hooks/work/useReviewerGardenIds` | `./src/hooks/work/useReviewerGardenIds.ts` |
-| @green-goods/shared | `./hooks/work/useReviewerWorks` | `./src/hooks/work/useReviewerWorks.ts` |
 | @green-goods/shared | `./hooks/work/useWorkApproval` | `./src/hooks/work/useWorkApproval.ts` |
 | @green-goods/shared | `./hooks/work/useWorkApprovals` | `./src/hooks/work/useWorkApprovals.ts` |
 | @green-goods/shared | `./hooks/work/useWorkForm` | `./src/hooks/work/useWorkForm.ts` |
+| @green-goods/shared | `./hooks/work/useWorkImages` | `./src/hooks/work/useWorkImages.ts` |
 | @green-goods/shared | `./hooks/work/useWorkMutation` | `./src/hooks/work/useWorkMutation.ts` |
 | @green-goods/shared | `./hooks/work/useWorks` | `./src/hooks/work/useWorks.ts` |
+| @green-goods/shared | `./hooks/work/useWorkUploads` | `./src/hooks/work/useWorkUploads.ts` |
 | @green-goods/shared | `./hooks/yield/useGardenYieldWiringState` | `./src/hooks/yield/useGardenYieldWiringState.ts` |
 | @green-goods/shared | `./hooks/yield/useHarvestDistribution` | `./src/hooks/yield/useHarvestDistribution.ts` |
 | @green-goods/shared | `./hooks/yield/useYieldAllocations` | `./src/hooks/yield/useYieldAllocations.ts` |
@@ -383,10 +399,12 @@ Use package export specifiers and public route constants as the stable entrypoin
 | @green-goods/shared | `./mocks/server` | `./src/__mocks__/server/index.ts` |
 | @green-goods/shared | `./modules` | `./src/modules/index.ts` |
 | @green-goods/shared | `./modules/app/analytics-events` | `./src/modules/app/analytics-events.ts` |
+| @green-goods/shared | `./modules/app/cache-recovery` | `./src/modules/app/cache-recovery.ts` |
 | @green-goods/shared | `./modules/app/error-categories` | `./src/modules/app/error-categories.ts` |
 | @green-goods/shared | `./modules/app/error-events` | `./src/modules/app/error-events.ts` |
 | @green-goods/shared | `./modules/app/logger` | `./src/modules/app/logger.ts` |
 | @green-goods/shared | `./modules/app/posthog` | `./src/modules/app/posthog.ts` |
+| @green-goods/shared | `./modules/app/service-worker-protocol` | `./src/modules/app/service-worker-protocol.ts` |
 | @green-goods/shared | `./modules/auth/session` | `./src/modules/auth/session.ts` |
 | @green-goods/shared | `./modules/commitment-pooling/cycle-metadata` | `./src/modules/commitment-pooling/cycle-metadata.ts` |
 | @green-goods/shared | `./modules/commitment-pooling/data-settlement-chain` | `./src/modules/commitment-pooling/data-settlement-chain.ts` |
@@ -408,6 +426,8 @@ Use package export specifiers and public route constants as the stable entrypoin
 | @green-goods/shared | `./modules/job-queue/queue` | `./src/modules/job-queue/queue.ts` |
 | @green-goods/shared | `./modules/job-queue/queue-policy` | `./src/modules/job-queue/queue-policy.ts` |
 | @green-goods/shared | `./modules/octant-vault-card-wallet-cache` | `./src/modules/octant-vault-card-wallet-cache.ts` |
+| @green-goods/shared | `./modules/offline-content/query-writer` | `./src/modules/offline-content/query-writer.ts` |
+| @green-goods/shared | `./modules/offline-content/store` | `./src/modules/offline-content/store.ts` |
 | @green-goods/shared | `./modules/profile-avatar/editor-messages` | `./src/modules/profile-avatar/editor-messages.ts` |
 | @green-goods/shared | `./modules/translation/browser-translator` | `./src/modules/translation/browser-translator.ts` |
 | @green-goods/shared | `./modules/vault-crowdfunding/card-endow` | `./src/modules/vault-crowdfunding/card-endow.ts` |
@@ -432,6 +452,7 @@ Use package export specifiers and public route constants as the stable entrypoin
 | @green-goods/shared | `./providers/Auth` | `./src/providers/Auth.tsx` |
 | @green-goods/shared | `./providers/AuthGate` | `./src/providers/AuthGate.tsx` |
 | @green-goods/shared | `./providers/JobQueue` | `./src/providers/JobQueue.tsx` |
+| @green-goods/shared | `./providers/QueryPersistence` | `./src/providers/QueryPersistence.tsx` |
 | @green-goods/shared | `./providers/Work` | `./src/providers/Work.tsx` |
 | @green-goods/shared | `./public` | `./src/hooks/public/publicSurfaceState.ts` |
 | @green-goods/shared | `./public-contracts` | `./src/public-contracts/index.ts` |
@@ -494,6 +515,7 @@ Use package export specifiers and public route constants as the stable entrypoin
 | @green-goods/shared | `./utils/blockchain/price-feeds` | `./src/utils/blockchain/price-feeds.ts` |
 | @green-goods/shared | `./utils/blockchain/vaults` | `./src/utils/blockchain/vaults.ts` |
 | @green-goods/shared | `./utils/cookie-jar-campaign` | `./src/utils/cookie-jar-campaign.ts` |
+| @green-goods/shared | `./utils/cookie-jar-claim-limit` | `./src/utils/cookie-jar-claim-limit.ts` |
 | @green-goods/shared | `./utils/debug` | `./src/utils/debug.ts` |
 | @green-goods/shared | `./utils/domain` | `./src/utils/domain.ts` |
 | @green-goods/shared | `./utils/eas/explorers` | `./src/utils/eas/explorers.ts` |
@@ -511,7 +533,6 @@ Use package export specifiers and public route constants as the stable entrypoin
 | @green-goods/shared | `./utils/styles/theme` | `./src/utils/styles/theme.ts` |
 | @green-goods/shared | `./utils/time` | `./src/utils/time.ts` |
 | @green-goods/shared | `./utils/work/image-compression` | `./src/utils/work/image-compression.ts` |
-| @green-goods/shared | `./utils/work/pending-review` | `./src/utils/work/pending-review.ts` |
 | @green-goods/shared | `./utils/work/workTitles` | `./src/utils/work/workTitles.ts` |
 | @green-goods/shared | `./workflows` | `./src/workflows/index.ts` |
 | @green-goods/shared | `./workflows/createGarden` | `./src/workflows/createGarden.ts` |

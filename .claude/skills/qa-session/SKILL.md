@@ -73,15 +73,15 @@ duplicate them:
 Run before the user starts walking. Print the checklist results compactly; stop on a hard fail.
 
 1. **Same-checkout guard.** Live fixes only render if they land in the checkout serving the
-   ports. Primary check: `bun run dev:stack status` — it reports each surface's lease owner and
+   ports. Primary check: `bun run dev status` — it reports each surface's lease owner and
    compatibility key without external tools (the Codex container has no `lsof`). If another
    owner holds 3001/3002, stop and say so — do not restart another session's stack. Where
    available, `lsof -nP -iTCP:3001 -sTCP:LISTEN` (then the pid's cwd) is a secondary
    cross-check that the listener really serves THIS repo root.
    **Never `EnterWorktree` during a session**; fixes land in this checkout.
-2. **Stack.** `bun run dev:prod` (docs, admin, client, storybook against real Arbitrum, hosted
-   indexer, production agent) if not already up. `dev:prod:mirror` when the session needs a local
-   indexer. Health: `bun run dev:doctor -- --profile prod`.
+2. **Stack.** `bun run dev -- prod` (docs, admin, client, storybook against real Arbitrum, hosted
+   indexer, production agent) if not already up. `bun run dev -- prod-mirror` when the session needs a local
+   indexer. Health: `bun run dev:health -- --profile prod`.
 3. **Warm-up and profile state.** Load every in-scope surface once BEFORE dictation begins. Also
    record the QA profile's stored preferences that change rendering — most importantly
    `localStorage["gg-language"]`, which overrides browser locale: a Portuguese UI on an English
@@ -124,8 +124,10 @@ Run before the user starts walking. Print the checklist results compactly; stop 
    and reuse that exact slug for every artifact this session (directory, log, results, receipt,
    handoff). Create `tmp/qa-session/<slug>/` and open
    `qa-session-<slug>.md` with the header: commit SHA, branch, surfaces in scope, gardens,
-   identity modes, pairing style, Journey and Part assignments when used, write boundary, and the
-   in-scope catalog case IDs. The session **stays on the
+   identity modes, pairing style, Journey and Part assignments when used, write boundary, the
+   QA run the walk records into (the `run-N` id and label shown in the app header — start a new
+   run first when this walk is a re-QA, so the pass it checks stays intact and comparable), and
+   the in-scope catalog case IDs. The session **stays on the
    current branch** — per `AGENTS.md § Multi-Agent Repo Safety`, never create or switch branches
    without the user explicitly asking for that branch action; branching is decided at the first
    accepted fix (Phase 3), not at session start.
@@ -199,7 +201,7 @@ Per accepted fix (or batched in a fix window):
    remind them the boot watchdog may flash on slow transforms.
 2. Mechanical proof at QA-Speed depth (validation-pipeline § Partial rungs): path-scoped
    format/lint for style-only edits, `bun run --filter <pkg> test <file>` for behavior, or
-   `bun run validation:plan -- --intent qa` when the touched set is broader. Full rungs wait for
+   `bun run check --plan -- --intent qa` when the touched set is broader. Full rungs wait for
    close.
 3. Record on the OBS: `fix: <files> · proof: <command → result> · revalidated: yes|no`.
 4. Commit per fix: `fix(<pkg>): <what> (qa-session <slug> OBS-NN)`. Commits stay local until
@@ -219,8 +221,12 @@ Per accepted fix (or batched in a fix window):
    meeting notes; this input is agent-authored and structured. qa-triage's PostHog cross-ref,
    scope lock, Linear templates, and Sheet Defects flow run unchanged. If the user is out of
    time, the handoff command is the named next step in the receipt.
-3. **Pull results, then report.** Run `bun run qa:pull --slug <slug>`, then
-   `bun run qa:report --slug <slug> --window <walk start>..<walk end>` — the UTC times the walk
+3. **Pull results, then report.** Run `bun run qa pull --slug <slug> --run <run id from the
+   header>` (`latest-closed` if the run was rolled over after the walk), and when the walk was a
+   re-QA also `bun run qa pull --slug <slug> --run <previous run id> --out
+   tmp/qa-session/<slug>/previous`, then `bun run qa report --slug <slug> --window <walk
+   start>..<walk end>` (add `--previous tmp/qa-session/<slug>/previous/qa-state.json` for the
+   run-versus-run delta) — the UTC times the walk
    actually began and ended, noted at pre-flight and at close (an OBS span would drop pass-only
    stretches, and an all-pass session has no OBS at all; the slug day is the fallback) — to write
    `tmp/qa-session/<slug>/report.md` — the deterministic core
@@ -244,14 +250,14 @@ Per accepted fix (or batched in a fix window):
    [linear-templates.md § Full report document](../qa-triage/linear-templates.md); attach only on
    an explicit yes — this is the one Linear write this skill makes itself, and the review of that
    exact payload is its confirmation gate — then upload the receipt. A solo session has no parent
-   today (decision 1 in `.plans/active/qa-report/spec.md` tracks that follow-up), so its
+   today (filing one needs a parent concept in `qa-triage`'s default mode, an open follow-up), so its
    privacy-grepped `report.md` uploads beside the receipt instead; the receipt, that report, and
    any media go to the restricted Drive QA folder. Apply the text,
    media, destination, and public-repository boundary in
    [`.claude/context/qa.md`](../../context/qa.md). An unresolved
    privacy finding fails closed; do not upload or delete the local evidence.
 6. **Ship — only when the session changed the repo.** If the session produced commits, run the
-   full `bun run validation:plan -- --intent review` on the accumulated branch, then the
+   full `bun run check --plan -- --intent review` on the accumulated branch, then the
    [`ship`](../ship/SKILL.md) skill for the push/PR decision. A session with no repository
    changes (all-pass, or every observation deferred) has nothing to ship: skip the push/PR path
    entirely — the receipt, results, and handoff complete the session, and `ship` would rightly
@@ -324,7 +330,7 @@ in the handoff, and let one agent take it after the session with the other's sli
 same-checkout guard (Phase 0.1) applies per walker — a fix must land in the checkout serving
 that walker's ports.
 
-**Close is shared, once.** A single `bun run qa:pull` collects both testers' work; it does not
+**Close is shared, once.** A single `bun run qa pull` collects both testers' work; it does not
 need running per person. For a team call where walkers recorded app-only, the per-walker
 artifacts in this section do **not** apply — with no per-walker agent there is no OBS log,
 deferred handoff, or per-walker receipt to produce, and none should be fabricated. That call's

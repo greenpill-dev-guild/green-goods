@@ -97,20 +97,20 @@ An ordinary editorial page, not a modal. It was briefly wired to a Radix dialog 
 
 ## `/fund`
 
-- Editorial header is scoped to the June 1 NYC vault/endow sprint: Wallet Endow plus public Manage Endowments. Public Donate is hidden from `/fund` for this sprint and deferred to separate non-Cookie-Jar planning; the low-level Cookie Jar code remains outside this surface.
+- **Donate is always present on `/fund`, beside Endow (DL-027).** The hero lede names both paths, § 02 Ways to Support explains them once (Donate is direct support to a Garden's shared fund through its Cookie Jar; Endow is a withdrawable deposit in the Garden Vault whose yield supports the Garden), and every Garden row in § 03 carries both actions. Do not hide Donate. A Garden without a donation jar keeps the button, and its funding card says donations are not enabled yet.
 - `?intent=<id>` mounts `PublicFundingReceipt` above the Garden grid. Receipt UI reads the in-memory token (already scrubbed by Root) and only renders redacted public fields: Garden, intent, amount, status, `fundingTxHash`, receiver wallet (Card Endow), and the management CTA when the receipt is an Endow receipt.
 - `?manage=endowments` opens `PublicEndowmentPanel`; the URL never carries wallet addresses, account ids, or receipt tokens.
 - `?garden=<id-or-slug>` resolves exact id/address first, then unique-slug match via `publicGardenHelpers.deriveSlug`. Stale / missing / zero-match / ambiguous queries render the regular Fund page with a localized non-blocking message and the matched Garden (if any) scrolls into view with a soft ring highlight.
-- Garden grid uses public Garden rows with Endow CTAs only. Section 3 also carries an always-visible `Manage Endowments` secondary warm capsule aligned to the section header on desktop and stacked under the title on mobile.
+- Garden grid uses public Garden rows with a `Donate` primary and an `Endow` warm secondary on every row, both 40 px (DL-023). Section 3 also carries an always-visible `Manage Endowments` secondary action (the website's square corner, warm tone) aligned to the section header on desktop and stacked under the title on mobile.
 
 ### Funding UX
 
-Wallet Endow uses `PublicFundingCard` directly from each Garden row:
+Wallet Donate and Wallet Endow share `PublicFundingCard`, which each Garden row opens with the matching intent:
 
-1. **Amount** — USD-first input with token selection resolved from the selected Garden vault.
-2. **Wallet** — Reown/wagmi wallet connect folds into the submit button and deposits directly to the selected Garden vault with the connected wallet as receiver.
+1. **Amount** — USD-first input with token selection resolved from the Garden's Cookie Jars (Donate) or Garden Vaults (Endow).
+2. **Wallet** — Reown/wagmi wallet connect folds into the submit button and deposits directly to the selected jar or vault; an Endow names the connected wallet as receiver.
 
-Card Endow remains part of the project scope but hidden until recovered-wallet ownership, exact vault-share verification, public visibility, and successful withdrawal proof pass. Card Donate proof never reveals Card Endow, and public Donate/Card Donate do not appear on `/fund` during this sprint.
+Card Endow remains part of the project scope but hidden until recovered-wallet ownership, exact vault-share verification, public visibility, and successful withdrawal proof pass. Card Donate proof never reveals Card Endow, and Card Donate does not appear on `/fund`; wallet Donate does (DL-027).
 
 Manage Endowments is the only public withdrawal surface in v1. It is wallet-owned only, opens a right-side panel on desktop and a bottom sheet on mobile, leads with what the funder has supported, groups positions by Garden, and expands each asset row inline for Withdraw / Max / confirm / pending / error / success. It does not include public address lookup, admin Vault management, auto-buy claims, custody claims, public Donate, Card Donate, or visible Card Endow.
 
@@ -139,7 +139,7 @@ Swap two places to test an alternative serif on the public browser:
 1. `packages/client/index.html` — replace the Fraunces `<link>` family parameter with the new family's Google Fonts URL.
 2. `packages/shared/src/styles/theme.css` (`@theme` block) — change the first family in `--font-serif` from `"Fraunces"` to the new family name.
 
-That's it. No JSX touches; every `font-serif` headline picks up the new family. Validate with `bun run check:design-tokens` and a Storybook spot-check.
+That's it. No JSX touches; every `font-serif` headline picks up the new family. Validate with `bun run check --only design-tokens` and a Storybook spot-check.
 
 #### Serif options (similar tone to Fraunces)
 
@@ -170,13 +170,24 @@ Pairing rule: keep Inter as the sans companion; **never** pair two serifs on the
 - **Record drawers** (`PublicRecordDrawer` — used directly by the Garden page's field notes and, wrapped as `PublicEvidenceDialog`, by `/impact`'s evidence records): bottom sheet at `92vh` on mobile with a rounded top, right-side drawer at `sm:h-screen sm:max-w-[42rem]` on desktop. **Fixed height, never content-sized**: a persistent header bar (mono uppercase eyebrow + pill close) over a `flex-1 overflow-y-auto` body, so a long record scrolls inside the drawer instead of growing past the viewport. Use this for reading one published record.
   - **Images inside a record are bounded and uncropped** — `max-h-[40vh]` with `object-contain` on `bg-editorial-warm`, one per row. These are evidence photos, usually shot portrait; cropping hides what was documented, and unbounded ones ran past 2,000px and pushed the record's own title and source link off screen.
 - **Source dialogs** (`PublicSourceDialog` on `/actions`, `PublicInstallDialog` from every Install CTA, `VaultCheckoutDialog` on `/vaults`, `PublicEndowmentPanel` on `/fund`, `VaultManagePositionsPanel` on `/vaults`):
-  - Desktop: centered, rounded sheet on `bg-static-black/40` overlay; `PublicEndowmentPanel` and `VaultManagePositionsPanel` are the exceptions and open as right-side public panels.
-  - Mobile: bottom sheet with rounded top corners.
+  - Desktop: centered, square editorial sheet on `bg-static-black/40` overlay; `PublicEndowmentPanel` and `VaultManagePositionsPanel` are the exceptions and open as right-side public panels.
+  - Mobile: bottom sheet with square corners, like every other editorial surface (DL-024). The record drawer above keeps its rounded top.
+  - The actions inside these surfaces are the shared buttons (see Buttons and Fields), not square blocks.
   - Labelled title (`aria-labelledby` → `<h2>` id), Escape close, overlay click close, focus moved to the close button on mount.
   - Mobile-safe width: `max-w-[calc(100vw-2rem)]` clamps the dialog under 375px viewports.
 - **Modals portal to `document.body`.** `.editorial-section-reveal` applies a transform, and a transformed ancestor becomes the containing block for `position: fixed` — a dialog rendered inside a revealed section sizes and scrolls against that section instead of the viewport. `PublicRecordDrawer` and `PublicSourceDialog` portal internally, so a consumer is safe wherever it is rendered. Do not rely on a call site happening to sit outside a transform.
 - Source-morph transitions require unique transition names per item; until that lands, public surfaces fall back to simple fades.
 - All motion respects reduced-motion preferences.
+
+## Buttons and Fields
+
+The public site uses the same button and field system as the installed app (DL-024):
+
+- **Actions** come from the shared `Button`, `IconButton`, and `Chip`. Every button is square with a semibold label, whatever its emphasis, and does not morph on press (DL-026, DL-029); a text action (arrow links such as `Show more entries`) has no container, a close is a circle, and a filter chip is a capsule. The vault and cookie flows follow the same rule: square surfaces, square buttons.
+- **Editorial atoms** (`EditorialPrimaryButton`, `EditorialGhostButton`, their link variants, and `EditorialDomainChip`) are thin wrappers over the shared primitives that pass `size` through and add only the dialect's colors: the warm linen secondary, the walnut-surface secondary, and each domain's ink on an active filter chip.
+- **Sizes** follow the shared scale (DL-023): 48 px for hero actions, 44 px for section actions and dialog actions, 40 px for row actions (Donate, Endow), 32 px chips with a 44 px tap area. One size per context: the `Install App` CTA is 48 px in the hero and 44 px everywhere else, including the header drawer.
+- **Fields** are the editorial underline field (`surface="editorial"`: no box, a hairline in the text color, serif input text) on editorial sections, and the 16px shared field inside funding and account panels (DL-022). Display-size text never changes a field's height: the Get in Touch email and both funding amounts are 44 px, level with the actions beside and below them.
+- **Square stays** for editorial cards, dialogs, panels, and image tiles.
 
 ## Imagery
 
@@ -198,7 +209,7 @@ Pairing rule: keep Inter as the sans companion; **never** pair two serifs on the
 **Do:**
 - Test browser layouts at 1440px, 1024px, 768px, and 375px.
 - Let real Garden imagery carry the first impression.
-- Use the same `Install App` CTA across header, drawer, sections, and receipt completion.
+- Use the same `Install App` CTA across header, drawer, sections, and receipt completion: the shared primary Button at 48 px in the hero and 44 px elsewhere.
 - Keep funding copy honest — Donate is direct support; Endow uses "designed to preserve" language with explicit risk.
 - Hide unproven card methods by default. `comingSoon` is curated only.
 

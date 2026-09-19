@@ -4,16 +4,46 @@ import { join } from "node:path";
 import type { Plugin } from "vite";
 
 const SHELL_MODULE_MARKERS = [
+  "/src/main.tsx",
   "/src/bootstrapPwa.tsx",
   "/src/PwaApp.tsx",
   "/src/routes/PwaRuntime.tsx",
   "/src/routes/WalletRuntimeProviders.tsx",
-  "/src/routes/RequireAuth.tsx",
+  "/src/routes/Root.tsx",
+  "/src/routes/SessionGate.tsx",
   "/src/routes/AppShell.tsx",
-  "/src/views/Login/index.tsx",
-  "/src/views/Home/index.tsx",
+  "/src/routes/ENSClaimReminder.tsx",
+  "/src/hooks/blockchain/prefetch.ts",
   "/src/i18n/en.json",
 ] as const;
+
+// Signed-in code also loads modules on demand: the wizard's image compressor
+// and HEIC decoder, the submission adapters and attestation encoder behind the
+// work command, the queue barrel behind the dashboard's offline reader, and
+// the other locales. Rolldown emits each as its own facade or vendor chunk that
+// no static closure reaches, so without following them the first offline use
+// fails at the import. The installed app is meant to work like a native one,
+// so the shell follows every first-party dynamic entry and the vendor chunks
+// it needs offline, and leaves lazy only what has no offline value: public
+// pages, telemetry, and the wallet connection UI.
+const FIRST_PARTY_MODULE = /\/packages\/(client|shared)\/src\//;
+const SHELL_OPTIONAL_MODULE =
+  /\/src\/(views\/Public|components\/Public|routes\/PublicShell|modules\/app\/sentry|modules\/app\/posthog-browser)\b|\/src\/(PublicApp|bootstrapPublic)\.tsx$/;
+// The deferred half of the shell splits by what it is for, not by when it was
+// first reached. A steward composes work with no signal, so the HEIC decoder
+// and the other locales are needed to *act* offline and ride the priority
+// tier an installed app fetches straight away. Encoding, simulating and
+// submitting only ever run with a network, so they stay in the tail.
+const SHELL_PRIORITY_MODULE =
+  /\/packages\/shared\/src\/i18n\/(?:es|pt)\.json|\/node_modules\/heic-to\//;
+const SHELL_TAIL_MODULE =
+  /\/packages\/shared\/src\/(?:utils\/eas\/encoders\.ts|modules\/work\/(?:simulate\.ts|wallet-submission\/))|\/node_modules\/@ethereum-attestation-service\/eas-sdk\//;
+const SHELL_OFFLINE_VENDOR_MODULE =
+  /\/node_modules\/(?:heic-to|viem|@noble\/curves|@scure\/base)\//;
+
+// Include nested views too: drawers and wizard steps can be separate lazy
+// entries even though the router does not name them. Public pages stay lazy.
+const SHELL_VIEW_MODULE = /\/packages\/client\/src\/views\/(Login|Home|Garden|Profile)\//;
 
 interface ChunkWithViteMetadata {
   type: "chunk";
@@ -21,6 +51,7 @@ interface ChunkWithViteMetadata {
   code: string;
   imports: string[];
   dynamicImports: string[];
+  facadeModuleId?: string | null;
   modules: Record<string, unknown>;
   viteMetadata?: {
     importedCss?: Set<string>;
@@ -55,13 +86,22 @@ export function createPwaShellDigest(
 }
 
 export interface PwaShellAssetsManifest {
-  version: 1;
+  version: 3;
   digest: string;
   assets: string[];
+  criticalDigest: string;
+  criticalAssets: string[];
+  priorityDigest: string;
+  priorityAssets: string[];
+  tailDigest: string;
+  tailAssets: string[];
 }
 
 export function createPwaShellAssetsPlugin(): Plugin {
   let shellAssets: string[] = [];
+  let criticalAssets: string[] = [];
+  let priorityAssets: string[] = [];
+  let tailAssets: string[] = [];
 
   return {
     name: "green-goods-pwa-shell-assets",
@@ -73,8 +113,9 @@ export function createPwaShellAssetsPlugin(): Plugin {
         (entry) => entry.type === "chunk"
       ) as ChunkWithViteMetadata[];
       const chunksByFile = new Map(chunks.map((chunk) => [chunk.fileName, chunk]));
-      const shellFiles = new Set<string>(["index.html"]);
-      const visited = new Set<string>();
+      const criticalFiles = new Set<string>(["index.html"]);
+      const priorityFiles = new Set<string>();
+      const tailFiles = new Set<string>();
 
       // Vite 8's Rolldown output does not currently expose imported CSS on
       // every chunk through `viteMetadata`. CSS is part of the executable
@@ -82,33 +123,91 @@ export function createPwaShellAssetsPlugin(): Plugin {
       // fallback (the client currently emits one application stylesheet).
       for (const entry of entries) {
         if (entry.type === "asset" && entry.fileName.endsWith(".css")) {
-          shellFiles.add(entry.fileName);
+          criticalFiles.add(entry.fileName);
         }
       }
 
-      const includeChunk = (fileName: string) => {
-        if (visited.has(fileName)) return;
-        visited.add(fileName);
+      const includeChunk = (fileName: string, destination: Set<string>) => {
+        if (destination.has(fileName)) return;
         const chunk = chunksByFile.get(fileName);
         if (!chunk) return;
 
-        shellFiles.add(chunk.fileName);
-        chunk.viteMetadata?.importedCss?.forEach((css) => shellFiles.add(css));
-        chunk.imports.forEach(includeChunk);
+        destination.add(chunk.fileName);
+        chunk.viteMetadata?.importedCss?.forEach((css) => destination.add(css));
+        chunk.imports.forEach((dependency) => includeChunk(dependency, destination));
       };
 
       for (const chunk of chunks) {
-        const moduleIds = Object.keys(chunk.modules);
+        // Rolldown can emit an empty facade for a dynamic entry whose code lives
+        // in another chunk. Cache that entry URL as well as its static closure.
+        const moduleIds = [...Object.keys(chunk.modules), chunk.facadeModuleId ?? ""];
         if (
-          moduleIds.some((moduleId) =>
-            SHELL_MODULE_MARKERS.some((marker) => moduleId.endsWith(marker))
-          )
+          moduleIds.some((moduleId) => {
+            const cleanId = moduleId.split("?")[0].replaceAll("\\", "/");
+            return (
+              SHELL_VIEW_MODULE.test(cleanId) ||
+              SHELL_MODULE_MARKERS.some((marker) => cleanId.endsWith(marker))
+            );
+          })
         ) {
-          includeChunk(chunk.fileName);
+          includeChunk(chunk.fileName, criticalFiles);
         }
       }
 
-      const assets = [...shellFiles].sort().map((file) => `/${file.replace(/^\/+/, "")}`);
+      const cleanModuleIds = (chunk: ChunkWithViteMetadata) =>
+        [...Object.keys(chunk.modules), chunk.facadeModuleId ?? ""].map((moduleId) =>
+          moduleId.split("?")[0].replaceAll("\\", "/")
+        );
+      const isOfflineShellDependency = (chunk: ChunkWithViteMetadata) => {
+        const ids = cleanModuleIds(chunk);
+        // Rolldown may emit a pure forwarding facade with no module inventory.
+        // If an included offline chunk imports it, cache the facade URL; its
+        // static closure is classified independently below.
+        if (ids.every((id) => !id)) return true;
+        if (ids.some((id) => SHELL_OFFLINE_VENDOR_MODULE.test(id))) return true;
+        const firstParty = ids.filter((id) => FIRST_PARTY_MODULE.test(id));
+        return firstParty.length > 0 && !firstParty.some((id) => SHELL_OPTIONAL_MODULE.test(id));
+      };
+      // A chunk that carries both an offline-ready module and a send-time one
+      // is treated as offline-ready: arriving early costs bytes, arriving late
+      // costs the steward the photo they just took.
+      const destinationFor = (chunk: ChunkWithViteMetadata) => {
+        const ids = cleanModuleIds(chunk);
+        if (ids.some((id) => SHELL_PRIORITY_MODULE.test(id))) return priorityFiles;
+        if (ids.some((id) => SHELL_TAIL_MODULE.test(id))) return tailFiles;
+        return criticalFiles;
+      };
+      let followed = true;
+      while (followed) {
+        followed = false;
+        for (const fileName of [...criticalFiles, ...priorityFiles, ...tailFiles]) {
+          for (const target of chunksByFile.get(fileName)?.dynamicImports ?? []) {
+            if (criticalFiles.has(target) || priorityFiles.has(target) || tailFiles.has(target)) {
+              continue;
+            }
+            const targetChunk = chunksByFile.get(target);
+            if (!targetChunk || !isOfflineShellDependency(targetChunk)) continue;
+            includeChunk(target, destinationFor(targetChunk));
+            followed = true;
+          }
+        }
+      }
+
+      // Anything required by the boot and signed-in route closure remains
+      // critical even when a deferred feature happens to share the chunk, and
+      // an asset the offline-ready tier needs is never left to the tail.
+      for (const fileName of criticalFiles) {
+        priorityFiles.delete(fileName);
+        tailFiles.delete(fileName);
+      }
+      for (const fileName of priorityFiles) tailFiles.delete(fileName);
+
+      const toAssetPaths = (files: Set<string>) =>
+        [...files].sort().map((file) => `/${file.replace(/^\/+/, "")}`);
+      criticalAssets = toAssetPaths(criticalFiles);
+      priorityAssets = toAssetPaths(priorityFiles);
+      tailAssets = toAssetPaths(tailFiles);
+      const assets = [...criticalAssets, ...priorityAssets, ...tailAssets].sort();
       const contents = new Map<string, string | Uint8Array>();
       for (const asset of assets) {
         const fileName = asset.replace(/^\/+/, "");
@@ -119,7 +218,17 @@ export function createPwaShellAssetsPlugin(): Plugin {
       }
       const digest = createPwaShellDigest(assets, contents);
       shellAssets = assets;
-      const manifest: PwaShellAssetsManifest = { version: 1, digest, assets };
+      const manifest: PwaShellAssetsManifest = {
+        version: 3,
+        digest,
+        assets,
+        criticalDigest: createPwaShellDigest(criticalAssets, contents),
+        criticalAssets,
+        priorityDigest: createPwaShellDigest(priorityAssets, contents),
+        priorityAssets,
+        tailDigest: createPwaShellDigest(tailAssets, contents),
+        tailAssets,
+      };
 
       this.emitFile({
         type: "asset",
@@ -165,9 +274,15 @@ export function createPwaShellAssetsPlugin(): Plugin {
         })
       );
       const manifest: PwaShellAssetsManifest = {
-        version: 1,
+        version: 3,
         digest: createPwaShellDigest(shellAssets, contents),
         assets: shellAssets,
+        criticalDigest: createPwaShellDigest(criticalAssets, contents),
+        criticalAssets,
+        priorityDigest: createPwaShellDigest(priorityAssets, contents),
+        priorityAssets,
+        tailDigest: createPwaShellDigest(tailAssets, contents),
+        tailAssets,
       };
       await writeFile(
         join(options.dir, "pwa-shell-assets.json"),

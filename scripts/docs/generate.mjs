@@ -6,6 +6,8 @@ import { readFileSync } from "node:fs";
 import { parseGeneratorArgs, syncProjections } from "./generator-core.mjs";
 import {
   renderApiIndex,
+  renderCommands,
+  renderContractOperations,
   renderDeploymentStatus,
   renderErd,
   renderGitHubActions,
@@ -79,6 +81,22 @@ export function createProjections(root = REPO_ROOT) {
 
   return [
     { scope: "package", output: "docs/docs/builders/agentic/mcp-guide.mdx", sources: [".mcp.json", "AGENTS.md", ...mcpWrapperSources(root)], render: renderMcpGuide },
+    { scope: "package", output: "docs/docs/builders/packages/commands.mdx", sources: [
+      "package.json",
+      "docs/package.json",
+      "packages/qa/package.json",
+      ...PACKAGE_MANIFESTS,
+      "scripts/data/command-migration.json",
+      "scripts/data/command-policy.json",
+      "scripts/data/validation-policy.json",
+      "scripts/dev/test.js",
+      "scripts/dev/browser.js",
+      "scripts/dev/package-commands.mjs",
+      "scripts/agents/qa.mjs",
+      "packages/contracts/script/cli/operations.mjs",
+      "packages/contracts/script/utils/package-commands.mjs",
+    ], render: renderCommands },
+    { scope: "package", output: "docs/docs/builders/packages/contract-operations.mdx", sources: ["packages/contracts/script/cli/operations.mjs", "packages/contracts/config/command-migration.json"], render: renderContractOperations },
     { scope: "package", output: "docs/docs/builders/packages/api-index.mdx", sources: [...PACKAGE_MANIFESTS, "packages/shared/src/public-contracts/routes.ts", ...publicAgentRoutes], render: renderApiIndex },
     { scope: "package", output: "docs/docs/builders/journeys/persona-surfaces.mdx", sources: [ONTOLOGY, "packages/client/src/config/routes.tsx", "packages/client/src/config/pwaRouting.ts", "packages/admin/src/router.tsx", "packages/admin/src/routes/views.tsx"], render: renderPersonaSurfaces },
     { scope: "integration", output: "docs/docs/builders/deployments/status.mdx", sources: integrationCommon, render: renderDeploymentStatus },

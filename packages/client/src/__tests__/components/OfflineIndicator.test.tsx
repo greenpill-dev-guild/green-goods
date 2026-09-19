@@ -5,7 +5,7 @@
  * and install nudge states.
  */
 
-import { cleanup, render, screen } from "@testing-library/react";
+import { act, cleanup, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { createElement, type ReactElement } from "react";
 import { IntlProvider } from "react-intl";
@@ -26,6 +26,7 @@ vi.mock("@green-goods/shared/utils/styles/cn", () => ({
 
 vi.mock("@green-goods/shared/hooks/app/useOnlineStatus", () => ({
   useOnlineStatus: () => mockOfflineState.isOnline,
+  useConnectivityStatus: () => ({ state: mockOfflineState.isOnline ? "online" : "offline" }),
 }));
 
 vi.mock("@green-goods/shared/providers/App", () => ({
@@ -41,6 +42,7 @@ vi.mock("react-router-dom", async (importOriginal) => {
 });
 
 import { OfflineIndicator } from "../../components/Communication/Offline/OfflineIndicator";
+import { InstallNudge } from "../../components/Communication/Offline/InstallNudge";
 
 describe("OfflineIndicator", () => {
   beforeEach(() => {
@@ -51,6 +53,7 @@ describe("OfflineIndicator", () => {
   });
 
   afterEach(() => {
+    vi.useRealTimers();
     cleanup();
   });
 
@@ -88,11 +91,21 @@ describe("OfflineIndicator", () => {
     });
   });
 
+  it("renders the degraded connection state", () => {
+    renderWithIntl(
+      createElement(MemoryRouter, null, createElement(OfflineIndicator, { testState: "degraded" }))
+    );
+    expect(screen.getByText("Connection unstable")).toBeInTheDocument();
+  });
+
   describe("install nudge state", () => {
+    beforeEach(() => {
+      mockAppState.isMobile = true;
+      mockAppState.isInstalled = false;
+    });
+
     it("renders install nudge via testState", () => {
-      renderWithIntl(
-        createElement(MemoryRouter, null, createElement(OfflineIndicator, { testState: "install" }))
-      );
+      renderWithIntl(createElement(MemoryRouter, null, createElement(InstallNudge)));
 
       expect(screen.getByText("Install for full experience.")).toBeInTheDocument();
       expect(screen.getByText("Profile")).toBeInTheDocument();
@@ -101,29 +114,34 @@ describe("OfflineIndicator", () => {
     it("navigates to profile when Profile button clicked", async () => {
       const user = userEvent.setup();
 
-      renderWithIntl(
-        createElement(MemoryRouter, null, createElement(OfflineIndicator, { testState: "install" }))
-      );
+      renderWithIntl(createElement(MemoryRouter, null, createElement(InstallNudge)));
 
       await user.click(screen.getByText("Profile"));
       expect(mockNavigate).toHaveBeenCalledWith("/home/profile", { viewTransition: true });
     });
 
+    it("clips its actions to the strip so they cannot cover the header controls beneath", () => {
+      renderWithIntl(createElement(MemoryRouter, null, createElement(InstallNudge)));
+
+      // The strip is thinner than its 32px actions and their 48px hit areas. Without the
+      // vertical clip, a tap on the top of a Home launcher lands on Profile or Dismiss.
+      expect(screen.getByRole("status")).toHaveClass("overflow-y-clip");
+      expect(screen.getByRole("button", { name: "Profile" })).toHaveAttribute(
+        "data-size",
+        "compact"
+      );
+    });
+
     it("dismiss button hides the install nudge", async () => {
       const user = userEvent.setup();
 
-      renderWithIntl(
-        createElement(MemoryRouter, null, createElement(OfflineIndicator, { testState: "install" }))
-      );
+      renderWithIntl(createElement(MemoryRouter, null, createElement(InstallNudge)));
 
       expect(screen.getByText("Install for full experience.")).toBeInTheDocument();
 
       await user.click(screen.getByLabelText("Dismiss"));
 
-      // After dismiss, the install nudge should no longer render
-      // (testState is overridden by install dismissed state since testState
-      //  takes priority, so we verify the dismiss callback was triggered)
-      expect(screen.getByLabelText("Dismiss")).toBeInTheDocument();
+      expect(screen.queryByLabelText("Dismiss")).not.toBeInTheDocument();
     });
   });
 
@@ -162,15 +180,79 @@ describe("OfflineIndicator", () => {
       expect(screen.queryByText("Install for full experience.")).not.toBeInTheDocument();
     });
 
+    it("returns to offline mode when a new disconnect interrupts the back-online notice", () => {
+      const { rerender } = renderWithIntl(
+        createElement(MemoryRouter, null, createElement(OfflineIndicator))
+      );
+
+      mockOfflineState.isOnline = false;
+      rerender(
+        createElement(
+          IntlProvider,
+          { locale: "en", messages: {} },
+          createElement(MemoryRouter, null, createElement(OfflineIndicator))
+        )
+      );
+      expect(screen.getByText("Offline Mode")).toBeInTheDocument();
+
+      mockOfflineState.isOnline = true;
+      rerender(
+        createElement(
+          IntlProvider,
+          { locale: "en", messages: {} },
+          createElement(MemoryRouter, null, createElement(OfflineIndicator))
+        )
+      );
+      expect(screen.getByText("Back Online")).toBeInTheDocument();
+
+      mockOfflineState.isOnline = false;
+      rerender(
+        createElement(
+          IntlProvider,
+          { locale: "en", messages: {} },
+          createElement(MemoryRouter, null, createElement(OfflineIndicator))
+        )
+      );
+      expect(screen.getByText("Offline Mode")).toBeInTheDocument();
+      expect(screen.queryByText("Back Online")).not.toBeInTheDocument();
+    });
+
+    it("clears the back-online notice after the transition window", () => {
+      vi.useFakeTimers();
+      const { rerender } = renderWithIntl(
+        createElement(MemoryRouter, null, createElement(OfflineIndicator))
+      );
+
+      mockOfflineState.isOnline = false;
+      rerender(
+        createElement(
+          IntlProvider,
+          { locale: "en", messages: {} },
+          createElement(MemoryRouter, null, createElement(OfflineIndicator))
+        )
+      );
+      mockOfflineState.isOnline = true;
+      rerender(
+        createElement(
+          IntlProvider,
+          { locale: "en", messages: {} },
+          createElement(MemoryRouter, null, createElement(OfflineIndicator))
+        )
+      );
+
+      expect(screen.getByText("Back Online")).toBeInTheDocument();
+      act(() => vi.advanceTimersByTime(3000));
+      expect(screen.queryByText("Back Online")).not.toBeInTheDocument();
+    });
+
     it("renders install nudge when online with no recent offline transition", () => {
       mockOfflineState.isOnline = true;
       mockAppState.isMobile = true;
       mockAppState.isInstalled = false;
 
-      renderWithIntl(createElement(MemoryRouter, null, createElement(OfflineIndicator)));
+      renderWithIntl(createElement(MemoryRouter, null, createElement(InstallNudge)));
 
       expect(screen.getByText("Install for full experience.")).toBeInTheDocument();
-      expect(screen.queryByText("Offline Mode")).not.toBeInTheDocument();
     });
 
     it("renders nothing when online, desktop, and not installed", () => {
@@ -178,9 +260,9 @@ describe("OfflineIndicator", () => {
       mockAppState.isMobile = false;
       mockAppState.isInstalled = false;
 
-      renderWithIntl(createElement(MemoryRouter, null, createElement(OfflineIndicator)));
+      renderWithIntl(createElement(MemoryRouter, null, createElement(InstallNudge)));
 
-      expect(screen.getByTestId("offline-indicator")).toBeInTheDocument();
+      expect(screen.queryByTestId("install-nudge")).not.toBeInTheDocument();
       expect(screen.queryByRole("status")).not.toBeInTheDocument();
     });
   });

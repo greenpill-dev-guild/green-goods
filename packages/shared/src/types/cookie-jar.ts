@@ -142,10 +142,6 @@ export interface CookieJarDepositParams {
   assetAddress: Address;
 }
 
-export interface CookieJarAdminParams {
-  jarAddress: Address;
-}
-
 export interface CookieJarUpdateMaxWithdrawalParams {
   jarAddress: Address;
   maxWithdrawal: bigint;
@@ -154,10 +150,4 @@ export interface CookieJarUpdateMaxWithdrawalParams {
 export interface CookieJarUpdateIntervalParams {
   jarAddress: Address;
   withdrawalInterval: bigint;
-}
-
-export interface CookieJarEmergencyWithdrawParams {
-  jarAddress: Address;
-  tokenAddress: Address;
-  amount: bigint;
 }

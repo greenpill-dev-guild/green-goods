@@ -117,7 +117,9 @@ async function waitForChain(role: "source" | "executor", attempts = 80): Promise
 
 async function assertPortFree(role: "source" | "executor") {
   if (fs.existsSync(runtimePath(role, "pid"))) {
-    throw new Error(`${role} PID file already exists; run settlement:dual-chain:down before starting another pair`);
+    throw new Error(
+      `${role} PID file already exists; run contracts -- settlement dual-chain down before starting another pair`,
+    );
   }
   await new Promise<void>((resolve, reject) => {
     const socket = net.createConnection({ host: "127.0.0.1", port: DUAL_CHAIN[role].port });
@@ -659,9 +661,9 @@ async function main() {
 Two-process settlement courier
 
 Usage:
-  bun run settlement:dual-chain:up
-  bun run settlement:dual-chain:down
-  bun run settlement:courier
+  bun run contracts -- settlement dual-chain up
+  bun run contracts -- settlement dual-chain down
+  bun run contracts -- settlement dual-chain courier
 
 Commands:
   up       Start isolated Anvil chain 421614 on :3012 and chain 11142220 on :3013

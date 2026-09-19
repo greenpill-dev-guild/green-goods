@@ -9,9 +9,9 @@
 [RESR-74](https://linear.app/greenpill-dev-guild/issue/RESR-74) Slice 0 due diligence ·
 [GROW-43](https://linear.app/greenpill-dev-guild/issue/GROW-43) hackathon entry
 **Related hubs**: [`commitment-pooling`](../../active/commitment-pooling/),
-[`commitment-credit-follow-on`](../../active/commitment-credit-follow-on/),
-[`community-interface`](../../active/community-interface/),
-[`celo-garden-account-safe-ownership`](../../active/celo-garden-account-safe-ownership/)
+[`commitment-credit-follow-on`](../../backlog/commitment-credit-follow-on/),
+[`community-interface`](../../backlog/community-interface/),
+[`celo-garden-account-safe-ownership`](../../ARCHIVE.md) (closed 2026-09-10)
 
 ## Problem
 

@@ -138,17 +138,10 @@ export function PublicGardenRow({ garden, vaultSummary, onSupport }: PublicGarde
       </Link>
 
       <div className="flex shrink-0 flex-col items-stretch justify-center gap-3">
-        <EditorialPrimaryButton
-          onClick={() => onSupport(garden, "donate")}
-          className="px-4 py-2 text-xs sm:text-sm"
-        >
+        <EditorialPrimaryButton size="sm" onClick={() => onSupport(garden, "donate")}>
           {formatMessage({ id: "public.fund.dialog.donate.title", defaultMessage: "Donate" })}
         </EditorialPrimaryButton>
-        <EditorialGhostButton
-          variant="warm"
-          onClick={() => onSupport(garden, "endow")}
-          className="px-4 py-2 text-xs sm:text-sm"
-        >
+        <EditorialGhostButton variant="warm" size="sm" onClick={() => onSupport(garden, "endow")}>
           {formatMessage({ id: "public.fund.dialog.endow.title", defaultMessage: "Endow" })}
         </EditorialGhostButton>
       </div>

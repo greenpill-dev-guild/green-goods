@@ -120,6 +120,7 @@ function PersonaRow({ persona, expanded, onToggle, isLast }: PersonaRowProps) {
     <div className={cn("border-t border-stroke-soft-200", isLast ? "border-b" : null)}>
       <button
         type="button"
+        data-pressable="row"
         aria-expanded={expanded}
         aria-controls={`persona-body-${persona.id}`}
         onClick={onToggle}

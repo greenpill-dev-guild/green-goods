@@ -12,7 +12,7 @@
  * Output is a working artifact, never committed: filled sheets carry run
  * results and belong in the private Drive QA folder.
  *
- *   bun run qa:workbook [--surface <tab|alias>[,...]] [--cases <ID>[,...]]
+ *   bun run qa workbook [--surface <tab|alias>[,...]] [--cases <ID>[,...]]
  *                       [--tag <tag>[,...]] [--local] [--out <path>]
  *
  * --local marks requiresProduction cases Blocked up front (localhost sessions
@@ -97,6 +97,10 @@ export interface CatalogCase {
   requiresProductionReason?: string;
   requiresDevice?: boolean;
   status: "active" | "retired";
+  /** Set on retired rows: when, why, and which active cases now prove what this one proved. */
+  retiredOn?: string;
+  retiredReason?: string;
+  replacedBy?: string[];
   source: string;
 }
 

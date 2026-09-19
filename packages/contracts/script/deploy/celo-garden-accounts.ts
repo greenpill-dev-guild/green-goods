@@ -20,8 +20,7 @@ import { assertReleaseOperatorSession, resolveCheckoutCommit } from "../utils/re
 
 const CONTRACTS_ROOT = path.join(__dirname, "../..");
 const REPOSITORY_ROOT = path.join(CONTRACTS_ROOT, "../..");
-const PLAN_ROOT = path.join(REPOSITORY_ROOT, ".plans/active/celo-garden-account-safe-ownership");
-const EVIDENCE_ROOT = path.join(PLAN_ROOT, "evidence");
+const EVIDENCE_ROOT = path.join(REPOSITORY_ROOT, "packages/contracts/config/celo-garden-accounts");
 const RUNTIME_ROOT = path.join(CONTRACTS_ROOT, ".generated/runtime");
 const DEFAULT_PLAN = path.join(RUNTIME_ROOT, "42220-celo-garden-accounts.json");
 const DEFAULT_RAW_BUNDLE = path.join(EVIDENCE_ROOT, "celo-dependency-init-code-2026-08-15.json");

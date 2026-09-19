@@ -185,8 +185,10 @@ export function createPwaManifestBranding(flavor: PwaManifestFlavor): PwaManifes
     shortName: "Green Goods",
     themeColor: "#fff",
     backgroundColor: "#fff",
+    // The status bar tint per scheme, mirroring the app canvas (bg-white-0 in
+    // shared theme.css) so the bar reads as part of the page in either theme.
     htmlThemeColorLight: "#ffffff",
-    htmlThemeColorDark: "#171717",
+    htmlThemeColorDark: "#0c0a09",
     msTileColor: "#ffffff",
     msTileImage: "images/ms-icon-144x144.png",
     browserIcon: "icon-192.png",

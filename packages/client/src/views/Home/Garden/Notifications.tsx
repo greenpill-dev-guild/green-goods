@@ -1,3 +1,4 @@
+import { Button } from "@green-goods/shared/components/Button";
 import { useNavigateToTop } from "@green-goods/shared/hooks/app/useNavigateToTop";
 import { useEnsName } from "@green-goods/shared/hooks/blockchain/useEnsName";
 import type { Garden, Work } from "@green-goods/shared/types/domain";
@@ -73,8 +74,10 @@ export const GardenNotifications: React.FC<GardenNotificationsProps> = ({
   const navigate = useNavigateToTop();
   const pendingNotifications = notifications.filter((work) => work.status === "pending");
 
+  // The notifications sheet's content region owns scrolling; a nested
+  // scroller here has no height of its own and only clips the list.
   return (
-    <div className="flex flex-col gap-3 overflow-y-auto">
+    <div className="flex flex-col gap-3">
       {pendingNotifications.length === 0 ? (
         <EmptyState
           icon={<RiSeedlingFill />}
@@ -87,19 +90,20 @@ export const GardenNotifications: React.FC<GardenNotificationsProps> = ({
             defaultMessage: "Start documenting your regenerative work!",
           })}
           action={
-            <button
+            <Button
+              type="button"
+              emphasis="tertiary"
               onClick={() => {
                 onClose?.();
                 navigate(APP_ROUTES.garden, { state: { gardenId: garden.id } });
               }}
-              className="inline-flex items-center gap-2 rounded-[var(--radius-md)] bg-primary-action px-4 py-2 text-sm font-medium text-primary-action-foreground transition-[background-color,box-shadow,transform] duration-[var(--spring-spatial-fast-duration)] ease-[var(--spring-spatial-fast-easing)] active:scale-95 focus:outline-none focus-visible:shadow-button-primary-focus"
+              leadingIcon={<RiSeedlingFill className="h-4 w-4 shrink-0" aria-hidden="true" />}
             >
-              <RiSeedlingFill className="w-4 h-4" />
               {intl.formatMessage({
                 id: "app.home.notifications.visitGarden",
                 defaultMessage: "Visit Your Garden",
               })}
-            </button>
+            </Button>
           }
         />
       ) : (

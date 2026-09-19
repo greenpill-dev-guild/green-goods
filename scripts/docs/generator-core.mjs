@@ -40,7 +40,7 @@ export function generatedFrontmatter({ title, slug, audience = "developer", feat
     ...extra,
     "---",
     "",
-    `<!-- GENERATED FILE: do not edit. Run \`bun run docs:generate\` or \`bun run docs:generate -- --scope <scope>\`. -->`,
+    `<!-- GENERATED FILE: do not edit. Run \`node scripts/docs/generate.mjs\` or \`node scripts/docs/generate.mjs -- --scope <scope>\`. -->`,
     "",
   ].join("\n");
 }

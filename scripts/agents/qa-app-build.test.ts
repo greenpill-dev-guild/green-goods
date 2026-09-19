@@ -133,7 +133,9 @@ describe("QA app page", () => {
     expect(overview).toContain("data-notes-toggle");
     expect(overview).not.toContain("data-note=");
     expect(overview).not.toContain('class="st ');
-    expect(personal).toContain("const editable = selected === who");
+    expect(personal).toContain("const editable = selected === who && runOpen()");
+    // N/A means out of scope for this run; a skipped case has no entry.
+    expect(personal).toContain("N/A — out of scope for this run");
     expect(personal).toContain('class="readonly-status');
     expect(personal).toContain("data-note=");
   });
@@ -173,7 +175,7 @@ describe("QA app page", () => {
   it("caps notes at the length the API stores", () => {
     // The API slices at 4000. Without a matching cap the tester types past it,
     // the save returns ok, and the tail is gone with nothing to show for it.
-    const apiLimit = readFileSync(path.join(appDir, "api", "state.ts"), "utf8").match(
+    const apiLimit = readFileSync(path.join(appDir, "store.ts"), "utf8").match(
       /MAX_NOTE_LENGTH = (\d+)/,
     );
     expect(apiLimit).not.toBeNull();
@@ -214,7 +216,7 @@ describe("QA app page", () => {
     // there is no roster to agree on any more — but a tester who has not named
     // themselves must read identically in the page and in the pulled run sheet,
     // or the same person appears as two people.
-    const api = readFileSync(path.join(appDir, "api", "state.ts"), "utf8");
+    const api = readFileSync(path.join(appDir, "store.ts"), "utf8");
     const cli = readFileSync(path.join(repoRoot, "scripts", "agents", "qa-state.ts"), "utf8");
     const shape = /address\.slice\(0, 6\)\}…\$\{address\.slice\(-4\)/;
     expect(api).toMatch(shape);
@@ -314,6 +316,15 @@ describe("QA app build", () => {
     expect(Object.keys(built.cases[0]).sort()).toEqual(
       ["area", "expected", "id", "preconditions", "pri", "rd", "role", "rp", "scenario", "steps", "tab", "tx"],
     );
+    // A successor carries the retired ids it replaces — following chains, so a
+    // verdict recorded under a twice-retired id still lands on the current row —
+    // and a row that replaced nothing carries no key at all.
+    const byId = new Map(built.cases.map((testCase: { id: string }) => [testCase.id, testCase]));
+    expect((byId.get("PWA-051") as { replaces?: string[] }).replaces).toEqual(["PWA-021"]);
+    expect((byId.get("PWA-060") as { replaces?: string[] }).replaces).toEqual(["PWA-038", "PWA-IOS-011"]);
+    expect((byId.get("PUB-001") as { replaces?: string[] }).replaces).toBeUndefined();
+    // The catalog revision lets a run record which build it opened with.
+    expect(built.revision).toMatch(/^[0-9a-f]{12}$/);
     expect(built.journeys.map((journey: { id: string }) => journey.id)).toEqual([
       "service-relay",
       "protocol-treasury-top-up",
@@ -420,6 +431,16 @@ describe("QA catalog contract", () => {
         .filter((testCase: { status: string }) => testCase.status === "active")
         .map((testCase: { id: string }) => testCase.id),
     );
+    const byId = new Map<string, { status: string; replacedBy?: string[] }>(
+      catalog.cases.map((testCase: { id: string; status: string; replacedBy?: string[] }) => [testCase.id, testCase]),
+    );
+    const resolvesToActive = (id: string, trail: Set<string>): boolean => {
+      const candidate = byId.get(id);
+      if (!candidate || trail.has(id)) return false;
+      if (candidate.status === "active") return true;
+      trail.add(id);
+      return (candidate.replacedBy ?? []).some((next) => resolvesToActive(next, trail));
+    };
     const seen = new Set<string>();
     for (const testCase of catalog.cases) {
       // IDs are permanent addresses: an OBS record or a Linear slice keyed on one
@@ -434,7 +455,12 @@ describe("QA catalog contract", () => {
         // Shape and calendar validity together: "2026-02-31" round-trips to another day.
         expect(new Date(`${retiredOn}T00:00:00.000Z`).toISOString().slice(0, 10)).toBe(retiredOn);
         expect(String(testCase.retiredReason ?? "").trim()).not.toBe("");
-        for (const successor of testCase.replacedBy ?? []) expect(activeIds.has(successor)).toBe(true);
+        // A successor may itself have retired since (PWA-IOS-011 → PWA-038 → its
+        // per-act rows): every chain must end in at least one active id, so a
+        // verdict on a retired case always has somewhere current to land.
+        for (const successor of testCase.replacedBy ?? []) {
+          expect(resolvesToActive(successor, new Set()), `${testCase.id} → ${successor}`).toBe(true);
+        }
       } else {
         expect(testCase.retiredOn).toBeUndefined();
         expect(testCase.retiredReason).toBeUndefined();

@@ -80,9 +80,9 @@ HARD CONSTRAINTS — read before producing any finding.
 
 3. **Run the live validators before claiming drift:**
    ```bash
-   bun run check:design-generated   # root DesignMD front matter ↔ generated artifacts
-   bun run check:design-tokens      # Warm Earth spec ↔ theme.css ↔ version coupling
-   bun run lint:vocab               # lint-enforced banned terms in i18n strings only
+   bun run check --only design-generated   # root DesignMD front matter ↔ generated artifacts
+   bun run check --only design-tokens      # Warm Earth spec ↔ theme.css ↔ version coupling
+   bun run check --only vocabulary               # lint-enforced banned terms in i18n strings only
    cd packages/shared && bun run check:stories         # story coverage for shared + curated admin
    cd packages/shared && bun run check:story-quality   # admin/shared Canvas story determinism
    ```

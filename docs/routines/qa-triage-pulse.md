@@ -28,11 +28,11 @@ last_verified: "2026-05-13"
 
 You are the **qa-triage-pulse** routine for Green Goods. The Build Sync (renamed from Product Sync, June 2026) runs Wednesdays at 10am PST, lasts at most 2 hours, and produces a Gemini-generated `.md` in the team Drive. Your job is to fetch those notes after each sync, extract the bugs/ideas/feedback discussed, cross-reference each against PostHog telemetry, and **pre-stage** them as Linear Customer Need + Backlog tracking-Issue pairs so the interactive [`/qa-triage`](../../.claude/skills/qa-triage/SKILL.md) skill can resume from there without re-extracting.
 
-**Engineering Sync extension (2026-07-18):** the biweekly **Engineering Sync** (Tuesdays ~09:30 PT, alternating weeks) also surfaces bugs, defects, and ideas worth triage. After processing the Build Sync notes, ALSO query Drive for `title contains 'Engineering Sync'` notes modified in the last 7 days. When one exists (on-weeks), run the same extract → PostHog cross-reference → pre-stage pipeline on it, labeling its records `qa-sync:<that meeting's date>`; when none exists (off-weeks), skip silently — never treat the absence as a failure. Dedupe across both sources within the run: an item raised in both syncs pre-stages once, citing both notes.
+**Engineering Sync extension (2026-07-18):** the biweekly **Engineering Sync** (Tuesdays ~09:30 PT, alternating weeks) also surfaces bugs, defects, and ideas worth triage. After processing the Build Sync notes, ALSO query Drive for `title contains 'Engineering Sync'` notes modified in the last 7 days. When one exists (on-weeks), run the same extract → PostHog cross-reference → pre-stage pipeline on it, labeling its records `session:<that meeting's date>`; when none exists (off-weeks), skip silently — never treat the absence as a failure. Dedupe across both sources within the run: an item raised in both syncs pre-stages once, citing both notes.
 
 You do NOT create Todo Issues, append rows to the QA Sheet, push code, open PRs, or create GitHub Issues. The only Issues this routine may create are Backlog tracking Issues required by Linear's Customer Need API. Promotion to Todo, assignee selection, severity, and Sheet writes require human judgment in `/qa-triage`. Your sole role is pre-stage Customer Need + Backlog tracking-Issue pairs → post Discord summary → exit.
 
-This routine is the **async sibling** of `/qa-triage`. The skill's Phase 1 step 0 detects pre-staged tracking Issues (labels `source:qa-triage-pulse` + `qa-sync:<YYYY-MM-DD>`) and their linked Customer Needs, then offers to resume from them instead of re-running the discover/extract phases. That cuts the user's interactive triage to ~5 minutes after the sync.
+This routine is the **async sibling** of `/qa-triage`. The skill's Phase 1 step 0 detects pre-staged tracking Issues (labels `source:qa-triage-pulse` + `session:<YYYY-MM-DD>`) and their linked Customer Needs, then offers to resume from them instead of re-running the discover/extract phases. That cuts the user's interactive triage to ~5 minutes after the sync.
 
 ## Setup
 
@@ -58,11 +58,11 @@ Write Customer Needs on the **Linear Product team**. Mirror [`bug-intake`](./bug
 
 - `protocol:green-goods` — always
 - `package:*` (one only) — inferred primary surface; omit if surface is unknown
-- `activity:qa` for confirmed bugs with a clear surface; `activity:maintenance` for ideas / UX polish / unactionable feedback that still warrant tracking
+- `activity:build` for confirmed bugs with a clear surface; `activity:maintenance` for ideas / UX polish / unactionable feedback that still warrant tracking
 - `source:drive` — provenance
 - `source:qa-triage-pulse` — distinguishes routine-pre-staged Issues from `bug-intake`'s Drive-source Issues
 - `ai:routine` — cron'd provenance (single `ai:*` value)
-- `qa-sync:<YYYY-MM-DD>` — meeting-date slug so `/qa-triage` can resume the right batch (resolve or create on first use)
+- `session:<YYYY-MM-DD>` — meeting-date slug so `/qa-triage` can resume the right batch (resolve or create on first use)
 
 ### Customer Needs
 
@@ -150,7 +150,7 @@ For each extracted item:
 Linear requires every Customer Need to link to an Issue. Grep every drafted body with the Phase 5 string list **before** each write — Phase 5 is the backstop, not the gate. For each non-duplicate item:
 
 1. **First, create the Backlog tracking Issue** on the Product team. Title: a plain action-verb-led sentence with **no prefix** — "Investigate the PWA install hang on Android", not "[tracking] Install hangs". The `[tracking]` prefix is retired (2026-08-27): the `maintenance` label plus `Backlog` state already say the work is uncommitted, and a `PreToolUse` hook now rejects the prefix. Body: the problem in one or two plain paragraphs, then one source line — **no headings unless the item genuinely needs them; clear, simple, concise (backstops: 6 headings / 600 words)**, and no Reproduction/Expected/Actual at this routine stage. Drop any section you cannot fill rather than writing "—" or a paragraph reporting that PostHog matched nothing; note tooling gaps in the Discord summary instead. Full contract: [`.claude/context/linear-routing-rules.md`](../../.claude/context/linear-routing-rules.md) § Issue structure.
-   - Labels: `protocol:green-goods` + ONE `package:*` (primary surface; omit if unknown) + `activity:qa` (clear bug) or `activity:maintenance` (idea / polish / unclear actionability) + `source:drive` + `source:qa-triage-pulse` + `ai:routine` + `qa-sync:<YYYY-MM-DD>`. Pass labels to `save_issue` as **bare child names** (`["green-goods", "qa", "routine"]`), not the `group:child` display form: the API does not accept the prefixed form, and one unresolvable entry rejects the whole array and files nothing.
+   - Labels: `protocol:green-goods` + ONE `package:*` (primary surface; omit if unknown) + `activity:build` (clear bug) or `activity:maintenance` (idea / polish / unclear actionability) + `source:drive` + `source:qa-triage-pulse` + `ai:routine` + `session:<YYYY-MM-DD>`. Pass labels to `save_issue` as **bare child names** (`["green-goods", "qa", "routine"]`), not the `group:child` display form: the API does not accept the prefixed form, and one unresolvable entry rejects the whole array and files nothing.
    - Status: `Backlog` for all. The routine never claims work as `Todo`; the interactive `/qa-triage` skill promotes selected tracking Issues to `Todo` during the human triage gate.
    - Priority: P3 (Low) by default. P2 (Medium) when PostHog confirms ≥50 sessions in 30d. The routine never sets P0/P1 — humans decide release-blocker status.
 
@@ -164,7 +164,7 @@ Routine pre-stage by qa-triage-pulse · auto-extracted.
 > <verbatim excerpt — scrubbed of any name not on the attendee list>
 
 ## Linked Issue
-[PRD-XXX](<linear-url>) (Backlog, <priority>) — tracking Issue carries summary, surface, safe evidence, and suggested fix. Run `/qa-triage qa-sync:<YYYY-MM-DD>` to promote it, assign it, set human-reviewed severity, and append a Defects-tab row to the QA Sheet.
+[PRD-XXX](<linear-url>) (Backlog, <priority>) — tracking Issue carries summary, surface, safe evidence, and suggested fix. Run `/qa-triage session:<YYYY-MM-DD>` to promote it, assign it, set human-reviewed severity, and append a Defects-tab row to the QA Sheet.
 ```
 
 The Customer Need API surface accepts `body`, `customer`, `issue`, `project`, `priority` — **no `labels` field**. Labels live exclusively on the tracking Issue created in step 1.
@@ -187,15 +187,15 @@ The backstop for the pre-write greps in Phases 3–4: re-grep everything this ru
 {Top items — up to 3, the most notable by telemetry match or severity, each one line:}
 - **{one-line item}** · {surface}{ · matches telemetry: {n} sessions/7d} → <{linear-url}>
 
-{if N > 3: "…plus {N−3} more, all pre-staged under `qa-sync:<YYYY-MM-DD>`."}
+{if N > 3: "…plus {N−3} more, all pre-staged under `session:<YYYY-MM-DD>`."}
 {if dedup_n >= 1: "{dedup_n} item(s) merged into existing Customer Needs."}
 
-{if N >= 1: "Ready for triage → run `/qa-triage qa-sync:<YYYY-MM-DD>` · notes: <drive-url>"}
+{if N >= 1: "Ready for triage → run `/qa-triage session:<YYYY-MM-DD>` · notes: <drive-url>"}
 {if N == 0: "Nothing pre-staged this run · notes: <drive-url>"}
-{if any_failure: "⚠ {short failure list}{if N == 0: ' — fix the failed step and re-run before triaging; the `qa-sync:<YYYY-MM-DD>` label is empty.'}"}
+{if any_failure: "⚠ {short failure list}{if N == 0: ' — fix the failed step and re-run before triaging; the `session:<YYYY-MM-DD>` label is empty.'}"}
 ```
 
-Counts by surface, PostHog match tallies, and other run telemetry stay OUT of the post — they're visible in Linear via the `qa-sync:*` label. @mention only when there's something to act on (≥1 Customer Need created) OR a setup failure needs attention.
+Counts by surface, PostHog match tallies, and other run telemetry stay OUT of the post — they're visible in Linear via the `session:*` label. @mention only when there's something to act on (≥1 Customer Need created) OR a setup failure needs attention.
 
 **No-sync day (0 notes found) or 0 new items: post exactly one line, no mention** — never the full skeleton:
 
@@ -203,7 +203,7 @@ Counts by surface, PostHog match tallies, and other run telemetry stay OUT of th
 📋 QA sync · {YYYY-MM-DD}: {no sync notes found today · nothing to pre-stage | notes read, nothing new to pre-stage ({dedup_n} already tracked)}.
 ```
 
-**Failures take precedence over the one-line form.** If anything failed this run — Drive unreadable, Linear write rejected, PostHog degraded, privacy grep hit — post the full template with the @mention even when zero items were pre-staged, so a broken run is never indistinguishable from a quiet Wednesday. In that case the item list is empty, the lede states what failed, and the post must **not** claim anything is ready for triage: the `/qa-triage` call-to-action is gated on `N >= 1`, and a failed empty run instead tells the operator to fix the failed step and re-run the sync. Pointing someone at an empty `qa-sync:*` label wastes the trip.
+**Failures take precedence over the one-line form.** If anything failed this run — Drive unreadable, Linear write rejected, PostHog degraded, privacy grep hit — post the full template with the @mention even when zero items were pre-staged, so a broken run is never indistinguishable from a quiet Wednesday. In that case the item list is empty, the lede states what failed, and the post must **not** claim anything is ready for triage: the `/qa-triage` call-to-action is gated on `N >= 1`, and a failed empty run instead tells the operator to fix the failed step and re-run the sync. Pointing someone at an empty `session:*` label wastes the trip.
 
 The summary is **public**. Replay URLs, session IDs, distinct IDs, wallet/user identifiers, and reporter identifiers must not appear here — same privacy boundary as `bug-intake`'s Discord summary.
 
@@ -221,11 +221,11 @@ The cron is pinned to PST (the user's stated reference). In PDT (summer), the ro
 
 The interactive skill's Phase 1 step 0 *Resume from pre-staged Customer Needs* picks up the work from this routine:
 
-1. Phase 1 step 0 lists open Issues on the Product team carrying the `qa-sync:<latest-YYYY-MM-DD>` label (the tracking Issues this routine created) and their linked Customer Needs.
+1. Phase 1 step 0 lists open Issues on the Product team carrying the `session:<latest-YYYY-MM-DD>` label (the tracking Issues this routine created) and their linked Customer Needs.
 2. If ≥1 exists, offers: "Resume from {N} pre-staged item(s) from {date}'s sync, or run a fresh extract?"
 3. On resume, Phases 1-3 of the skill are skipped (already done by this routine). The triage gate fires immediately with the pre-staged set as the numbered list.
 4. The user's scope-lock decisions:
-   - **Promote** a pre-staged tracking Issue to a main Issue: relabel from `activity:maintenance` → `activity:qa` when needed, move from `Backlog` → `Todo`, set priority, assign, swap `ai:routine` → `ai:claude` or `ai:codex` per the delegation choice, append a Defects-tab row to the QA Sheet via the Apps Script webhook.
+   - **Promote** a pre-staged tracking Issue to a main Issue: relabel from `activity:maintenance` → `activity:build` when needed, move from `Backlog` → `Todo`, set priority, assign, swap `ai:routine` → `ai:claude` or `ai:codex` per the delegation choice, append a Defects-tab row to the QA Sheet via the Apps Script webhook.
    - **Keep as-is**: leave the tracking Issue in `Backlog` as low-urgency tracked work. The Customer Need stays attached.
    - **Defer**: leave both as-is for the next sync's interactive run to revisit.
 

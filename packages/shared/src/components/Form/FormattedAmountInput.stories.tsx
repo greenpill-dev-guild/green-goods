@@ -1,6 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/react";
 import { useState } from "react";
 import { expect, userEvent, within } from "storybook/test";
+import { Button } from "../Button";
 import { FormattedAmountInput, useFormattedAmountInput } from "./FormattedAmountInput";
 
 const meta: Meta<typeof FormattedAmountInput> = {
@@ -81,6 +82,39 @@ export const Validating: Story = {
     await expect(await canvas.findByRole("alert")).toHaveTextContent(
       "Amount exceeds your balance."
     );
+  },
+};
+
+/**
+ * Without `inputClassName` the input is the shared 16px field (DL-022). A start
+ * slot carries the currency; the Max action beside it is a secondary Button at
+ * the same 44px height.
+ */
+export const SharedField: Story = {
+  tags: ["storybook-ci"],
+  render: () => (
+    <div className="flex max-w-sm flex-col gap-2 bg-bg-white-0 p-3 text-text-strong-950">
+      <FormattedAmountInput
+        value="12.5"
+        onValueChange={() => {}}
+        aria-label="Amount to deposit"
+        startSlot={<span aria-hidden="true">$</span>}
+        endSlot={
+          <Button emphasis="secondary" type="button">
+            Max
+          </Button>
+        }
+      />
+    </div>
+  ),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const input = canvas.getByRole("textbox", { name: "Amount to deposit" });
+    const max = canvas.getByRole("button", { name: "Max" });
+    await expect(input).toHaveClass("gg-control");
+    await expect(input.getBoundingClientRect().height).toBe(44);
+    await expect(max.getBoundingClientRect().height).toBe(44);
+    await expect(Number.parseFloat(getComputedStyle(input).borderTopLeftRadius)).toBe(16);
   },
 };
 

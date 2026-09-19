@@ -1,10 +1,12 @@
+import { useOfflineAssetAvailability } from "@green-goods/shared/hooks/offline/useOfflineAssetAvailability";
+import { useOnlineStatus } from "@green-goods/shared/hooks/app/useOnlineStatus";
 import { AudioPlayer } from "@green-goods/shared/components/Audio/AudioPlayer";
 import { resolveIPFSUrl } from "@green-goods/shared/modules/data/ipfs/resolve";
 import type { Garden } from "@green-goods/shared/types/domain";
 import { RiDownloadLine, RiExternalLinkLine } from "@remixicon/react";
 import React from "react";
 import { useIntl } from "react-intl";
-import { Button } from "@/components/Actions";
+import { Button } from "@green-goods/shared/components/Button";
 import { FormCard, FormInfo, GardenCard, GardenCardSkeleton } from "@/components/Cards";
 import { Carousel, CarouselContent, CarouselItem, ImageWithFallback } from "@/components/Display";
 
@@ -15,7 +17,6 @@ export type WorkViewAction = {
   icon?: React.ReactNode;
   disabled?: boolean;
   visible?: boolean;
-  className?: string;
 };
 
 // Icon component type for details and header
@@ -27,6 +28,7 @@ type WorkViewProps = {
   garden?: Garden;
   actionTitle: string;
   media?: string[];
+  mediaTypes?: string[];
   /** IPFS CIDs for gardener audio notes (from work metadata) */
   audioNoteCids?: string[];
   details: Array<{ label: string; value: string; icon?: IconComponent | null }>;
@@ -59,6 +61,7 @@ export const WorkView: React.FC<WorkViewProps> = ({
   garden,
   actionTitle,
   media = [],
+  mediaTypes = [],
   audioNoteCids,
   details,
   fulfills = null,
@@ -73,16 +76,30 @@ export const WorkView: React.FC<WorkViewProps> = ({
   onMediaError,
 }) => {
   const intl = useIntl();
+  const isOnline = useOnlineStatus();
+  const mediaUrls = media.map((url) =>
+    /^(blob:|data:|https?:)/.test(url) ? url : resolveIPFSUrl(url)
+  );
+  const audioUrls = (audioNoteCids ?? []).map((cid) => resolveIPFSUrl(cid));
+  const offlineAssets = useOfflineAssetAvailability([...mediaUrls, ...audioUrls]);
+  const missingOriginals =
+    !isOnline && [...mediaUrls, ...audioUrls].some((url) => !offlineAssets[url]);
 
   const hasMedia = showMedia && Array.isArray(media) && media.length > 0;
   const hasAudioNotes = audioNoteCids && audioNoteCids.length > 0;
-  const visibleActions = primaryActions.filter((a) => a.visible !== false);
+  const visibleActions = primaryActions
+    .filter((a) => a.visible !== false)
+    .map((action) =>
+      action.id === "download-media" && !isOnline && mediaUrls.some((url) => !offlineAssets[url])
+        ? { ...action, disabled: true }
+        : action
+    );
 
   return (
     <div className="flex flex-col gap-4">
       <FormInfo title={title} info={info} Icon={HeaderIcon ?? undefined} />
 
-      <h6>
+      <h6 className="text-base font-semibold">
         {intl.formatMessage({ id: "app.home.workApproval.garden", defaultMessage: "Garden" })}
       </h6>
       {garden ? (
@@ -99,26 +116,63 @@ export const WorkView: React.FC<WorkViewProps> = ({
         <GardenCardSkeleton media="small" height="default" showBanner={false} />
       )}
 
+      {missingOriginals && (
+        <p role="status" className="text-sm text-text-sub-600">
+          {intl.formatMessage({
+            id: "app.offline.originalsUnavailable",
+            defaultMessage:
+              "Original media isn’t saved on this device. Photo previews may still be available.",
+          })}
+        </p>
+      )}
       {hasMedia && (
         <>
-          <h6>
+          <h6 className="text-base font-semibold">
             {intl.formatMessage({ id: "app.home.workApproval.media", defaultMessage: "Media" })}
           </h6>
-          <Carousel enablePreview previewImages={media}>
+          <Carousel
+            enablePreview={
+              !missingOriginals && !mediaTypes.some((type) => type.startsWith("video/"))
+            }
+            previewImages={media}
+          >
             <CarouselContent>
               {media.map((item, index) => (
                 <CarouselItem
-                  key={item}
+                  // A local preview URL is empty until it is created, and one work
+                  // can repeat a CID, so the URL alone is not a unique key.
+                  key={`${index}:${item}`}
                   index={index}
                   className="max-w-40 aspect-3/4 rounded-2xl relative overflow-hidden"
                 >
-                  <ImageWithFallback
-                    src={item}
-                    alt={`Work media ${index + 1}`}
-                    className="w-full h-full aspect-3/4 object-cover rounded-2xl"
-                    fallbackClassName="w-full h-full aspect-3/4 rounded-2xl"
-                    onErrorCallback={() => onMediaError?.(item, index)}
-                  />
+                  {mediaTypes[index]?.startsWith("video/") &&
+                  !isOnline &&
+                  !offlineAssets[mediaUrls[index]] ? (
+                    <p className="p-3 text-sm text-text-sub-600">
+                      {intl.formatMessage({
+                        id: "app.offline.attachmentUnavailable",
+                        defaultMessage: "Not downloaded for offline use",
+                      })}
+                    </p>
+                  ) : mediaTypes[index]?.startsWith("video/") ? (
+                    // eslint-disable-next-line jsx-a11y/media-has-caption -- user-generated evidence has no caption track
+                    <video
+                      src={mediaUrls[index]}
+                      controls
+                      playsInline
+                      preload="metadata"
+                      className="w-full h-full object-contain"
+                      onError={() => onMediaError?.(item, index)}
+                    />
+                  ) : (
+                    <ImageWithFallback
+                      src={item}
+                      alt={`Work media ${index + 1}`}
+                      className="w-full h-full aspect-3/4 object-cover rounded-2xl"
+                      fallbackClassName="w-full h-full aspect-3/4 rounded-2xl"
+                      onErrorCallback={() => onMediaError?.(item, index)}
+                    />
+                  )}
                 </CarouselItem>
               ))}
             </CarouselContent>
@@ -128,28 +182,37 @@ export const WorkView: React.FC<WorkViewProps> = ({
 
       {hasAudioNotes && (
         <>
-          <h6>
+          <h6 className="text-base font-semibold">
             {intl.formatMessage({
               id: "app.home.work.audioNotes",
               defaultMessage: "Audio notes",
             })}
           </h6>
           <div className="flex flex-col gap-2">
-            {audioNoteCids.map((cid) => (
-              <AudioPlayer key={cid} src={resolveIPFSUrl(cid)} compact={false} />
-            ))}
+            {audioNoteCids.map((cid, index) =>
+              isOnline || offlineAssets[audioUrls[index]] ? (
+                <AudioPlayer key={cid} src={audioUrls[index]} compact={false} />
+              ) : (
+                <p key={cid} className="text-sm text-text-sub-600">
+                  {intl.formatMessage({
+                    id: "app.offline.attachmentUnavailable",
+                    defaultMessage: "Not downloaded for offline use",
+                  })}
+                </p>
+              )
+            )}
           </div>
         </>
       )}
 
-      <h6>
+      <h6 className="text-base font-semibold">
         {intl.formatMessage({ id: "app.home.workApproval.details", defaultMessage: "Details" })}
       </h6>
       <FormCard
         label={intl.formatMessage({ id: "app.home.workApproval.action", defaultMessage: "Action" })}
         value={
           actionTitle ||
-          intl.formatMessage({ id: "app.action.selected", defaultMessage: "Selected Action" })
+          intl.formatMessage({ id: "app.action.selected", defaultMessage: "Selected" })
         }
         Icon={RiExternalLinkLine}
       />
@@ -182,36 +245,27 @@ export const WorkView: React.FC<WorkViewProps> = ({
 
       {visibleActions.length > 0 && (
         <>
-          <h6 className="text-text-strong-950 mt-2">
+          <h6 className="mt-2 text-base font-semibold text-text-strong-950">
             {intl.formatMessage({ id: "app.home.work.actions", defaultMessage: "Actions" })}
           </h6>
           <div className="flex flex-col gap-3">
             {visibleActions.map((a) => {
-              // Approval actions get special styling
-              const isApprovalAction = a.id === "approve" || a.id === "reject";
+              // Approve is the one filled action; reject and the utility actions are
+              // outlined (DL-026), reject in the error tone.
               const isReject = a.id === "reject";
-
-              // Use custom styling for utility actions (no variant colors)
-              const hasCustomStyling = !!a.className;
-
               return (
                 <Button
                   key={a.id}
                   onClick={a.onClick}
-                  label={a.label}
-                  className={
-                    a.className
-                      ? `w-full touch-manipulation ${a.className}`
-                      : "w-full touch-manipulation"
-                  }
-                  variant={hasCustomStyling ? undefined : isReject ? "error" : "primary"}
+                  className="w-full touch-manipulation"
+                  emphasis={a.id === "approve" ? "primary" : "secondary"}
+                  tone={isReject ? "danger" : "default"}
                   type="button"
-                  shape="regular"
-                  mode={hasCustomStyling ? undefined : isApprovalAction ? "filled" : "stroke"}
-                  size="medium"
-                  leadingIcon={a.icon ?? <RiDownloadLine className="w-6 h-6" />}
+                  leadingIcon={a.icon ?? <RiDownloadLine className="h-5 w-5" aria-hidden="true" />}
                   disabled={a.disabled}
-                />
+                >
+                  {a.label}
+                </Button>
               );
             })}
           </div>

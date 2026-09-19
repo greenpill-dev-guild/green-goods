@@ -110,3 +110,19 @@
 | 1 | Direct vault interaction | Standard ERC-4626; no proxy gas overhead |
 | 2 | Manual harvest only (Phase 1) | Simpler to build and debug |
 ```
+
+## Closeout Section Template
+
+Append to `plan.todo.md` when the hub closes, per [SKILL.md § Closing a Plan Hub](./SKILL.md#closing-a-plan-hub).
+
+```markdown
+**Status**: `CLOSED — shipped in PR #123; <the one thing a reader must know>`
+
+## Closeout (YYYY-MM-DD)
+
+Closed as `<resolution>`. Shipped in PR #123 (merged YYYY-MM-DD). <Why this resolution: which
+lanes or proofs were never certified, if any.>
+
+Still open:
+- <item> → <Linear issue | other hub | dropped because …>
+```

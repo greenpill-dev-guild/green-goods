@@ -1,5 +1,8 @@
 import type { Address } from "@green-goods/shared/types/domain";
 import { Alert } from "@green-goods/shared/components/Alert";
+import { Button } from "@green-goods/shared/components/Button";
+import { TextInput } from "@green-goods/shared/components/Form/ControlPrimitives";
+import { IconButton } from "@green-goods/shared/components/IconButton";
 import { cn } from "@green-goods/shared/utils/styles/cn";
 import { formatAddress } from "@green-goods/shared/utils/app/text";
 import {
@@ -208,16 +211,14 @@ function VaultManagePositionsContent({
               </Dialog.Description>
             </div>
             <Dialog.Close asChild>
-              <button
-                type="button"
-                className="inline-flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-full border border-stroke-soft-200 bg-bg-white-0 text-text-sub-600 transition-colors hover:bg-bg-weak-50 hover:text-text-strong-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-action focus-visible:ring-offset-2"
+              <IconButton
+                emphasis="secondary"
                 aria-label={formatMessage({
                   id: "public.vaults.manage.close",
                   defaultMessage: "Close Manage Endowments",
                 })}
-              >
-                <RiCloseLine className="h-5 w-5" />
-              </button>
+                icon={<RiCloseLine aria-hidden="true" />}
+              />
             </Dialog.Close>
           </header>
 
@@ -265,7 +266,7 @@ function ConnectedWalletSection({
         </p>
         <EditorialGhostButton
           variant="warm"
-          className="mt-5 w-full px-5 py-2.5 text-sm"
+          className="mt-5 w-full"
           onClick={() => {
             onBeforeConnect?.();
             loginWithWallet();
@@ -376,10 +377,7 @@ export function PositionsList({
             defaultMessage: "Refresh and try again.",
           })}
         </p>
-        <EditorialGhostButton
-          className="mt-5 px-5 py-2.5 text-sm"
-          onClick={() => void positions.refetch()}
-        >
+        <EditorialGhostButton className="mt-5" onClick={() => void positions.refetch()}>
           {formatMessage({ id: "public.vaults.manage.error.retry", defaultMessage: "Refresh" })}
         </EditorialGhostButton>
       </Alert>
@@ -398,11 +396,7 @@ export function PositionsList({
           })}
         </p>
         {onEndow ? (
-          <EditorialGhostButton
-            variant="warm"
-            className="mt-5 w-full px-5 py-2.5 text-sm"
-            onClick={onEndow}
-          >
+          <EditorialGhostButton variant="warm" className="mt-5 w-full" onClick={onEndow}>
             {formatMessage({
               id: "public.vaults.manage.empty.cta",
               defaultMessage: "Endow a Campaign",
@@ -661,7 +655,8 @@ export function VaultPositionRowView({
         </div>
         {disabledReason || redeemControlUnavailable ? null : (
           <EditorialGhostButton
-            className="shrink-0 px-4 py-2 text-xs"
+            size="sm"
+            className="shrink-0"
             aria-expanded={expanded}
             aria-controls={expanded ? regionId : undefined}
             onClick={() => {
@@ -821,7 +816,7 @@ export function VaultPositionRowView({
             })}
           </label>
           <div className="mt-2 flex items-center gap-2">
-            <input
+            <TextInput
               type="text"
               id={amountInputId}
               inputMode="decimal"
@@ -836,23 +831,20 @@ export function VaultPositionRowView({
               placeholder="0.0 shares"
               aria-invalid={Boolean(inputError || exceedsAvailable)}
               aria-describedby={feedbackId}
-              className={cn(
-                "min-h-11 w-full rounded-full border bg-bg-white-0 px-4 py-2.5 text-sm text-text-strong-950 outline-none transition-colors placeholder:text-text-soft-400 focus:border-primary-action",
-                inputError || exceedsAvailable ? "border-error-base" : "border-stroke-soft-200"
-              )}
             />
-            <button
+            <Button
               type="button"
+              emphasis="secondary"
               onClick={() => {
                 setAmountInput(formatUnits(redeemableShares, shareDecimals));
                 setSuccessMessage("");
                 onResetError?.();
               }}
               disabled={redeemableShares <= 0n}
-              className="inline-flex min-h-11 shrink-0 items-center justify-center rounded-full border border-stroke-soft-200 bg-bg-white-0 px-4 py-2.5 text-xs font-medium text-text-sub-600 transition-colors hover:bg-bg-weak-50 disabled:cursor-not-allowed disabled:opacity-60"
+              className="shrink-0"
             >
               {formatMessage({ id: "public.vaults.manage.withdraw.max", defaultMessage: "Max" })}
-            </button>
+            </Button>
           </div>
 
           {inputError ? (
@@ -880,8 +872,9 @@ export function VaultPositionRowView({
 
           <EditorialGhostButton
             variant="warm"
-            className="mt-4 w-full px-5 py-2.5 text-sm"
+            className="mt-4 w-full"
             disabled={disableRedeem}
+            loading={isRedeeming}
             onClick={() => void executeRedeem()}
           >
             {isRedeeming
@@ -911,16 +904,18 @@ export function VaultPositionRowView({
             </Alert>
           ) : null}
 
-          <button
+          <Button
             type="button"
+            emphasis="tertiary"
+            size="compact"
             onClick={resetInput}
-            className="mt-3 text-xs font-medium text-primary-base underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-action"
+            className="-ml-3 mt-3"
           >
             {formatMessage({
               id: "public.vaults.manage.withdraw.refresh",
               defaultMessage: "Reset",
             })}
-          </button>
+          </Button>
         </div>
       ) : null}
     </article>

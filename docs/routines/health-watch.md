@@ -38,7 +38,7 @@ The retired GitHub Project #4 / Bug Board / Sprints flow is no longer the routin
 
 - All env vars are loaded; do not read `.env`.
 - `DISCORD_USER_ID_AFO` is Afo's Discord snowflake ID (numeric). Use `<@${DISCORD_USER_ID_AFO}>` in messages to @mention him only on real anomalies.
-- **Linear is the canonical surface for accepted operational health work.** Issues live unprojected on the Product team and carry the canonical scheme (`protocol:green-goods` + `activity:qa` + `package:*` + `ai:routine`). The deprecated `Green Goods` umbrella project is no longer a routing destination. Resolve team/label/status IDs by name at the start of every run; on lookup failure, fail loud in the Discord summary. Pass labels to `save_issue` as **bare child names** (`["green-goods", "qa", "routine"]`), not the `group:child` display form: the API does not accept the prefixed form, and one unresolvable entry rejects the whole array and files nothing.
+- **Linear is the canonical surface for accepted operational health work.** Issues live unprojected on the Product team and carry the canonical scheme (`protocol:green-goods` + `activity:maintenance` for operational anomalies or `activity:build` for code fixes + `package:*` + `ai:routine`). The deprecated `Green Goods` umbrella project is no longer a routing destination. Resolve team/label/status IDs by name at the start of every run; on lookup failure, fail loud in the Discord summary. Pass labels to `save_issue` as **bare child names** (`["green-goods", "maintenance", "routine"]`), not the `group:child` display form: the API does not accept the prefixed form, and one unresolvable entry rejects the whole array and files nothing.
 
 ## Threshold philosophy
 
@@ -54,7 +54,7 @@ The previous spec used a 50-block indexer threshold (~12.5s at Arbitrum's 250ms 
 
 Each category maps to a Linear label combination — old `health:*` GitHub labels are retired. Issues are unprojected on the Product team and use the canonical scheme:
 
-| Check | Linear labels (in addition to `protocol:green-goods` + `activity:qa` + `ai:routine`) |
+| Check | Linear labels (in addition to `protocol:green-goods` + `activity:maintenance` or `activity:build` + `ai:routine`) |
 |---|---|
 | Indexer lag/unreachable | `package:indexer` |
 | Vercel deploy/runtime/web-vitals | `package:client` or `package:admin` (whichever Vercel project tripped) |

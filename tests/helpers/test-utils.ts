@@ -723,6 +723,14 @@ export class AdminTestHelper {
     // for real route content also prevents absence assertions passing on a spinner.
     await this.page.getByRole("main").waitFor({ state: "visible", timeout: 30000 });
     await this.page
+      .locator('[data-component="AdminBootShell"]')
+      .waitFor({ state: "hidden", timeout: 30000 });
+    // A failed lazy boot replaces the shell with AdminBootRecovery, which also
+    // satisfies "hidden" above. Fail here rather than assert against that screen.
+    if ((await this.page.locator('[data-component="AdminBootRecovery"]').count()) > 0) {
+      throw new Error("Admin failed to boot: the boot recovery screen replaced the app shell.");
+    }
+    await this.page
       .locator('[data-testid="loading"], .loading, .spinner, .animate-spin')
       .waitFor({ state: "hidden", timeout: 10000 })
       .catch(() => {

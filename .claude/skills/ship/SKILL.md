@@ -83,6 +83,10 @@ resulting commit tree and working tree before continuing.
 Commit subjects use `type(scope): description` with the repository's allowed types and scopes.
 Never commit secrets, environment files, or unrelated work.
 
+When the change finishes a Plan Hub, the PR also carries the hub's closeout record (plan skill
+[Closing a Plan Hub](../plan/SKILL.md#closing-a-plan-hub), steps 1–5); the archive commit lands
+after the human merge.
+
 ## 4. Run the post-commit Push Gate
 
 Run the exact ready-for-CI contract against the committed tree:

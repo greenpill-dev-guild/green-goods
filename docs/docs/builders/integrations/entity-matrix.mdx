@@ -10,7 +10,7 @@ generated_from:
   - packages/shared/src/ontology/green-goods-ontology.json
   - scripts/quality/check-ontology.mjs
   - scripts/quality/ontology-render.mjs
-source_digest: "sha256:65ed5cca9558f577d4b6aa5726e7906d7d13df8871fdc9dafdf7f3e0dce18266"
+source_digest: "sha256:7c7337e215c8447b1d5f23ec2f1f97c848cdae61ee97732f65a0e099a836a886"
 source_of_truth:
   - packages/shared/src/ontology/green-goods-ontology.json
   - scripts/quality/check-ontology.mjs
@@ -18,7 +18,7 @@ source_of_truth:
 sidebar_position: 2
 ---
 
-<!-- GENERATED FILE: do not edit. Run `bun run docs:generate` or `bun run docs:generate -- --scope <scope>`. -->
+<!-- GENERATED FILE: do not edit. Run `node scripts/docs/generate.mjs` or `node scripts/docs/generate.mjs -- --scope <scope>`. -->
 
 import {NextBestAction, StatusBadge} from "@site/src/components/docs";
 
@@ -104,7 +104,7 @@ When a task involves a partner protocol, use this matrix to translate between vo
 
 ### Maintenance
 
-The mapping data lives in the ontology sidecar's `integration_matrix` section. When a new protocol partnership is established, add a column only after its source-backed implementation or specification exists — edit the sidecar and run `bun run ontology:generate`. `bun run check:ontology` fails CI whenever this page drifts from the sidecar.
+The mapping data lives in the ontology sidecar's `integration_matrix` section. When a new protocol partnership is established, add a column only after its source-backed implementation or specification exists — edit the sidecar and run `node scripts/quality/check-ontology.mjs --generate`. `bun run check --only ontology` fails CI whenever this page drifts from the sidecar.
 
 <NextBestAction
   title="Next best action"

@@ -5,7 +5,10 @@ import { type FormatMessageFn, toastMessageIds } from "./types";
 const workDefaults = {
   submitting: { title: "Submitting work", message: "Processing your submission..." },
   success: { title: "Work submitted", message: "Your work is now on-chain" },
-  savedOffline: { title: "Saved offline", message: "Work added to upload queue" },
+  savedOffline: {
+    title: "Saved offline",
+    message: "Upload it from Your Work when you're connected.",
+  },
   error: { title: "Work submission failed" },
 };
 

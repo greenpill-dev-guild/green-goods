@@ -7,6 +7,7 @@ WORKDIR /app
 
 # Workspace manifests and runtime package sources.
 COPY package.json bun.lock ./
+COPY patches ./patches
 COPY packages/admin/package.json ./packages/admin/package.json
 COPY packages/agent ./packages/agent
 COPY packages/client/package.json ./packages/client/package.json
@@ -15,14 +16,17 @@ COPY packages/contracts/package.json ./packages/contracts/package.json
 COPY packages/contracts/deployments ./packages/contracts/deployments
 COPY packages/contracts/abis ./packages/contracts/abis
 COPY packages/indexer/package.json ./packages/indexer/package.json
+COPY packages/qa/package.json ./packages/qa/package.json
 COPY docs/package.json ./docs/package.json
 COPY scripts ./scripts
 
 # The build image needs the root dev type graph.
 RUN bun install --frozen-lockfile
 
-# Build the agent (outputs to packages/agent/dist)
-RUN bun run build:agent
+# Build the agent (outputs to packages/agent/dist). The Bun image does not ship
+# a compatible Node runtime, so invoke TypeScript directly instead of the
+# Node-only dev CLI wrapper used by the host development script.
+RUN bun --bun tsc -p packages/agent/tsconfig.json
 
 # Upload Sentry source maps when the deploy provides a BuildKit secret, then
 # remove maps so they are not copied into the runtime image.
@@ -39,6 +43,7 @@ FROM oven/bun:${BUN_VERSION} AS prod-deps
 WORKDIR /app
 
 COPY package.json bun.lock ./
+COPY patches ./patches
 COPY packages/admin/package.json ./packages/admin/package.json
 COPY packages/agent/package.json ./packages/agent/package.json
 COPY packages/client/package.json ./packages/client/package.json
@@ -47,6 +52,7 @@ COPY packages/contracts/package.json ./packages/contracts/package.json
 COPY packages/contracts/deployments ./packages/contracts/deployments
 COPY packages/contracts/abis ./packages/contracts/abis
 COPY packages/indexer/package.json ./packages/indexer/package.json
+COPY packages/qa/package.json ./packages/qa/package.json
 COPY docs/package.json ./docs/package.json
 COPY scripts ./scripts
 
