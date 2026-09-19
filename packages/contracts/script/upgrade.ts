@@ -34,6 +34,7 @@ export type ContractName =
   | "yield-gardens-wiring"
   | "octant-module"
   | "hats-module"
+  | "cookie-jar-module"
   | "karma-gap-module"
   | "work-resolver"
   | "work-approval-resolver"
@@ -53,6 +54,7 @@ const CONTRACT_FUNCTIONS: Record<ContractName, string> = {
   "yield-gardens-wiring": "wireYieldResolverGardensModule()",
   "octant-module": "upgradeOctantModule()",
   "hats-module": "upgradeHatsModule()",
+  "cookie-jar-module": "upgradeCookieJarModule()",
   "karma-gap-module": "upgradeKarmaGAPModule()",
   "work-resolver": "upgradeWorkResolver()",
   "work-approval-resolver": "upgradeWorkApprovalResolver()",
@@ -76,7 +78,8 @@ const ALL_CONTRACTS_FOR_UPGRADE_ALL: readonly ContractName[] = [
   "yield-gardens-wiring",
   "octant-module",
   "karma-gap-module",
-  // Intentionally exclude HatsModule and GreenWill: both must be upgraded as explicit targets.
+  // Intentionally exclude HatsModule, CookieJarModule and GreenWill: each must be upgraded as an
+  // explicit target.
 ];
 
 /**
@@ -97,6 +100,7 @@ const DEPLOYMENT_KEYS: Partial<Record<Exclude<ContractName, "all">, string>> = {
   "gardens-module": "gardensModule",
   "octant-module": "octantModule",
   "hats-module": "hatsModule",
+  "cookie-jar-module": "cookieJarModule",
   "karma-gap-module": "karmaGAPModule",
   "work-resolver": "workResolver",
   "work-approval-resolver": "workApprovalResolver",
@@ -436,6 +440,8 @@ Contracts:
   yield-gardens-wiring    Cross-wire YieldResolver ↔ GardensModule after upgrades
   octant-module           Upgrade OctantModule (vault treasury module)
   hats-module             Upgrade HatsModule (explicit target; excluded from all)
+  cookie-jar-module       Upgrade CookieJarModule and set each asset's per-claim limit
+                          (explicit target; excluded from all)
   karma-gap-module        Upgrade KarmaGAPModule (Karma GAP integration)
   work-resolver           Upgrade WorkResolver
   work-approval-resolver  Upgrade WorkApprovalResolver
@@ -444,8 +450,8 @@ Contracts:
   deployment-registry     Upgrade Deployment
   greenwill               Upgrade GreenWill (funds-adjacent; explicit target only)
   commitment-pooling      Plan KarmaGAPModule and WorkApprovalResolver as one owner-bound group
-  all                     Upgrade standard contracts (excludes HatsModule, TestimonyResolver,
-                          GreenWill, and commitment-pooling)
+  all                     Upgrade standard contracts (excludes HatsModule, CookieJarModule,
+                          TestimonyResolver, GreenWill, and commitment-pooling)
 
 Options:
   --network <name>        Network to upgrade on (default: localhost)
