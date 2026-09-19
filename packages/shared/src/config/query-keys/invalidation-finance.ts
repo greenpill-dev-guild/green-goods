@@ -130,6 +130,8 @@ export const financeInvalidation = {
   onCookieJarAdminAction: (gardenAddress: string, jarAddress: string, chainId: number) =>
     financeInvalidation.onCookieJarDeposit(gardenAddress, jarAddress, chainId),
 
+  // A campaign jar is read the same way, plus its title and description from the factory, so a
+  // deposit, claim, allowlist sync or metadata update refreshes the same read roots.
   onCampaignCookieJarChanged: (
     jarAddress: string,
     userAddress: string | undefined,
@@ -139,5 +141,6 @@ export const financeInvalidation = {
     queryKeys.cookieJar.campaign(jarAddress, userAddress, chainId),
     queryKeys.cookieJar.campaign(jarAddress, undefined, chainId),
     queryKeys.cookieJar.campaigns(chainId),
+    ...financeInvalidation.onchainReads(),
   ],
 };
