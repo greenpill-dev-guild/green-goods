@@ -225,16 +225,28 @@ function resolveBase(env) {
     : { sha: tip, note: `${first}, and ${FALLBACK_BRANCH} could not be fetched` };
 }
 
+const NUL = String.fromCharCode(0);
+
+/**
+ * The paths that differ between two commits, or null if git could not say.
+ *
+ * `-z` prints each name verbatim and separates them with NUL. Without it git
+ * wraps anything outside plain ASCII in quotes with escapes, so
+ * `packages/qa/café.ts` arrives as `"packages/qa/caf\303\251.ts"` — which no
+ * longer starts with its site's input prefix, and would skip a needed build.
+ *
+ * `--no-renames` reports a file moved out of an input directory as a deletion
+ * there, instead of only naming where it landed.
+ */
+export function changedBetween(base, head, cwd = ROOT) {
+  const diff = git(["diff", "--name-only", "--no-renames", "-z", base, head], { cwd });
+  return diff === null ? null : diff.split(NUL).filter(Boolean);
+}
+
 function compare(env) {
   const head = git(["rev-parse", "--verify", "--quiet", "HEAD^{commit}"]);
   const { sha: base, note } = resolveBase(env);
-  let changed = null;
-  if (base && head && base !== head) {
-    // --no-renames reports a file moved out of an input directory as a deletion
-    // there, instead of only naming where it landed.
-    const diff = git(["diff", "--name-only", "--no-renames", base, head]);
-    changed = diff === null ? null : diff.split("\n").filter(Boolean);
-  }
+  const changed = base && head && base !== head ? changedBetween(base, head) : null;
   return { base, head, changed, note };
 }
 

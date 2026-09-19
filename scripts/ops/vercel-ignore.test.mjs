@@ -1,10 +1,12 @@
 import assert from "node:assert/strict";
-import { existsSync, readFileSync } from "node:fs";
-import { dirname, resolve } from "node:path";
+import { execFileSync } from "node:child_process";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { dirname, join, resolve } from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
 
-import { decide, isInput, SITES } from "./vercel-ignore.mjs";
+import { changedBetween, decide, isInput, SITES } from "./vercel-ignore.mjs";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 const read = (path) => readFileSync(resolve(ROOT, path), "utf8");
@@ -89,6 +91,43 @@ test("covers the files each build reads from outside its own directory", () => {
   ].map((match) => [...match[1].matchAll(/"([^"]+)"/g)].map((part) => part[1]).join("/"));
   assert.ok(qaReads.length >= 2, "qa reads not found; update this reader");
   for (const path of qaReads) assert.ok(isInput("qa", path), `qa reads ${path}`);
+});
+
+test("a changed file whose name is not plain ASCII still matches its site", () => {
+  // git quotes and escapes such names unless it is asked for -z output, and a
+  // quoted path matches no input prefix, which would skip a needed build.
+  const repo = mkdtempSync(join(tmpdir(), "vercel-ignore-"));
+  const git = (...args) =>
+    execFileSync("git", ["-C", repo, ...args], {
+      stdio: ["ignore", "pipe", "ignore"],
+      env: {
+        ...process.env,
+        GIT_AUTHOR_NAME: "t",
+        GIT_AUTHOR_EMAIL: "t@example.invalid",
+        GIT_COMMITTER_NAME: "t",
+        GIT_COMMITTER_EMAIL: "t@example.invalid",
+      },
+    });
+  try {
+    git("init", "--quiet", "-b", "main");
+    mkdirSync(join(repo, "packages/qa"), { recursive: true });
+    writeFileSync(join(repo, "packages/qa/index.html"), "base");
+    git("add", "-A");
+    git("commit", "--quiet", "-m", "base");
+
+    const accented = "packages/qa/café.ts";
+    writeFileSync(join(repo, accented), "x");
+    writeFileSync(join(repo, "packages/qa/naïve name.ts"), "y");
+    git("add", "-A");
+    git("commit", "--quiet", "-m", "unusual");
+
+    const changed = changedBetween("HEAD~1", "HEAD", repo);
+    assert.deepEqual(changed, [accented, "packages/qa/naïve name.ts"]);
+    for (const path of changed) assert.ok(isInput("qa", path), `qa is built from ${path}`);
+    assert.equal(decide({ site: "qa", ref: "feature/x", base: "a", head: "b", changed }).build, true);
+  } finally {
+    rmSync(repo, { recursive: true, force: true });
+  }
 });
 
 test("every site's vercel.json calls this step with a site it knows", () => {
