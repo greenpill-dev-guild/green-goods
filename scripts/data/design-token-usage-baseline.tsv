@@ -4,7 +4,7 @@
 # Expired entries, entries more than 250 days out, and duplicate hits fail check:design-tokens.
 packages/client/src/config/pwaManifest.ts backgroundColor: "#fff",	legacy-runtime	client	2026-12-31	web manifest requires serialized literal colors pending token export
 packages/client/src/config/pwaManifest.ts const STAGING_DARK_SURFACE = "#111b13";	legacy-runtime	client	2026-12-31	web manifest requires serialized literal colors pending token export
-packages/client/src/config/pwaManifest.ts htmlThemeColorDark: "#171717",	legacy-runtime	client	2026-12-31	web manifest requires serialized literal colors pending token export
+packages/client/src/config/pwaManifest.ts htmlThemeColorDark: "#0c0a09",	legacy-runtime	client	2026-12-31	web manifest requires serialized literal colors pending token export
 packages/client/src/config/pwaManifest.ts htmlThemeColorLight: "#ffffff",	legacy-runtime	client	2026-12-31	web manifest requires serialized literal colors pending token export
 packages/client/src/config/pwaManifest.ts msTileColor: "#ffffff",	legacy-runtime	client	2026-12-31	web manifest requires serialized literal colors pending token export
 packages/client/src/config/pwaManifest.ts themeColor: "#fff",	legacy-runtime	client	2026-12-31	web manifest requires serialized literal colors pending token export

@@ -242,6 +242,8 @@ describe("presentation-specific boot fallback", () => {
   afterEach(() => {
     vi.useRealTimers();
     document.body.innerHTML = "";
+    document.head.innerHTML = "";
+    delete document.documentElement.dataset.theme;
     delete document.documentElement.dataset.bootPresentation;
     delete (window as Window & { __GG_CLEAR_BOOT_FALLBACK?: () => void }).__GG_CLEAR_BOOT_FALLBACK;
     delete (window as Window & { __GG_MARK_BOOT_FAILED?: () => void }).__GG_MARK_BOOT_FAILED;
@@ -347,22 +349,51 @@ describe("presentation-specific boot fallback", () => {
     expect(slots).toEqual(["logo", "message", "action"]);
   });
 
-  it("keeps white scoped to the loader and restores the themed document canvas after boot", () => {
+  it("themes the PWA loader from the app canvas and keeps its color off the document", () => {
     const styles = inlineStyle("boot-fallback-styles");
     const documentRule = styles.match(
       /html\[data-boot-presentation="pwa"\],\s*html\[data-boot-presentation="pwa"\] body\s*{([^}]*)}/s
     )?.[1];
 
+    // The loader stays up until auth is ready, then hands off to html, body,
+    // and SplashScaffold, which all paint bg-white-0. It takes the same token
+    // so the selected theme holds through boot and the handoff has no seam.
     expect(styles).toMatch(
-      /html\[data-boot-presentation="pwa"\] #boot-fallback\s*{[^}]*--boot-canvas:\s*var\(--color-static-white, #ffffff\)/s
+      /html\[data-boot-presentation="pwa"\] #boot-fallback\s*{[^}]*--boot-canvas:\s*var\(--color-bg-white-0, #ffffff\)/s
     );
     expect(styles).toMatch(
-      /\.boot-pwa-shell\s*{[^}]*background:\s*var\(--color-static-white, #ffffff\)[^}]*color:\s*var\(--color-static-black, #1f2a24\)/s
+      /html\[data-boot-presentation="pwa"\]\[data-theme="dark"\] #boot-fallback\s*{[^}]*--boot-canvas:\s*var\(--color-bg-white-0, #0c0a09\)[^}]*--boot-action:\s*var\(--color-primary-action, #1a7544\)/s
+    );
+    expect(styles).toMatch(
+      /\.boot-pwa-shell\s*{[^}]*background:\s*var\(--boot-canvas\)[^}]*color:\s*var\(--boot-ink\)/s
     );
     expect(styles).not.toMatch(
-      /(?:html\[data-boot-presentation="pwa"\] #boot-fallback|\.boot-pwa-shell)\s*{[^}]*--color-bg-white-0/s
+      /(?:html\[data-boot-presentation="pwa"\][^{]*#boot-fallback|\.boot-pwa-shell)\s*{[^}]*--color-static-/s
     );
     expect(documentRule).toBeUndefined();
+  });
+
+  // The module-level behavior is covered in shared theme.test.ts; this is the
+  // smoke case that the pre-paint copy in index.html does the same thing.
+  it("points theme-color at the selected theme before first paint", () => {
+    const metas = INDEX_HTML.match(/<meta name="theme-color"[^>]*>/g);
+    if (metas?.length !== 1) throw new Error(`Expected one theme-color meta, got ${metas?.length}`);
+    document.head.innerHTML = metas[0]
+      .replaceAll("%PWA_THEME_COLOR_LIGHT%", "#ffffff")
+      .replaceAll("%PWA_THEME_COLOR_DARK%", "#0c0a09");
+    const storage = createStorage();
+    storage.setItem("theme", "dark");
+
+    new Function("window", "document", "localStorage", inlineScript("boot-theme"))(
+      { matchMedia: () => ({ matches: false }) },
+      document,
+      storage
+    );
+
+    expect(document.documentElement.dataset.theme).toBe("dark");
+    expect(document.head.querySelector<HTMLMetaElement>('meta[name="theme-color"]')?.content).toBe(
+      "#0c0a09"
+    );
   });
 
   it("uses one compact anchored layout without an empty action gap", () => {

@@ -64,8 +64,10 @@
       name="msapplication-TileImage"
       content="%BASE_URL%%PWA_MS_TILE_IMAGE%"
     />
-    <meta name="theme-color" content="%PWA_THEME_COLOR_LIGHT%" media="(prefers-color-scheme: light)" />
-    <meta name="theme-color" content="%PWA_THEME_COLOR_DARK%" media="(prefers-color-scheme: dark)" />
+    <!-- Carries both scheme colors. The boot-theme script below and shared theme.ts
+         set the content from the matching data-* value, so the browser chrome follows
+         the selected theme rather than the OS scheme. -->
+    <meta name="theme-color" content="%PWA_THEME_COLOR_LIGHT%" data-light="%PWA_THEME_COLOR_LIGHT%" data-dark="%PWA_THEME_COLOR_DARK%" />
 
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -85,13 +87,26 @@
     />
 
     <title>%PWA_APP_NAME%</title>
-    <script>
+    <script id="boot-theme">
       // Set theme before render to prevent flash
       (function() {
-        var stored = localStorage.getItem('theme') || 'system';
+        var stored = 'system';
+        try {
+          stored = localStorage.getItem('theme') || 'system';
+        } catch (_) {
+          // Denied storage falls back to the OS scheme, as getTheme() does.
+        }
         var systemDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
         var isDark = stored === 'dark' || (stored === 'system' && systemDark);
-        document.documentElement.dataset.theme = isDark ? 'dark' : 'light';
+        var resolved = isDark ? 'dark' : 'light';
+        document.documentElement.dataset.theme = resolved;
+
+        // Point the theme-color meta at the selected theme, so the browser
+        // chrome matches the app instead of the OS scheme. Shared theme.ts
+        // keeps it current after boot.
+        var meta = document.querySelector('meta[name="theme-color"]');
+        var color = meta && meta.dataset[resolved];
+        if (color) meta.content = color;
       })();
     </script>
     <script id="boot-presentation-detector">
@@ -260,8 +275,18 @@
         --boot-deep: var(--color-editorial-deep, #120d09);
       }
 
+      /* The loader stays up until auth is ready, then hands off to html, body,
+         and SplashScaffold, which all paint bg-white-0; taking the same token
+         leaves the handoff seamless. The dark action fallback exists because a
+         dark canvas drops the old one to 1.7:1 when the stylesheet never
+         arrived. */
       html[data-boot-presentation="pwa"] #boot-fallback {
-        --boot-canvas: var(--color-static-white, #ffffff);
+        --boot-canvas: var(--color-bg-white-0, #ffffff);
+      }
+
+      html[data-boot-presentation="pwa"][data-theme="dark"] #boot-fallback {
+        --boot-canvas: var(--color-bg-white-0, #0c0a09);
+        --boot-action: var(--color-primary-action, #1a7544);
       }
 
       .boot-editorial-shell {
@@ -568,8 +593,8 @@
         box-sizing: border-box;
         overflow-x: hidden;
         overflow-y: auto;
-        background: var(--color-static-white, #ffffff);
-        color: var(--color-static-black, #1f2a24);
+        background: var(--boot-canvas);
+        color: var(--boot-ink);
         text-align: center;
       }
 
