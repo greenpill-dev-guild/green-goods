@@ -3,6 +3,7 @@
  * @vitest-environment jsdom
  */
 
+import type { Address } from "@green-goods/shared/types/domain";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { renderWithProviders as render, screen } from "../test-utils";
@@ -11,6 +12,7 @@ const TEST_GARDEN = "0x1111111111111111111111111111111111111111" as const;
 const TEST_GARDEN_TOKEN = "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" as const;
 const TEST_JAR = "0x2222222222222222222222222222222222222222" as const;
 const TEST_TOKEN = "0x3333333333333333333333333333333333333333" as const;
+const TEST_DAI = "0x5555555555555555555555555555555555555555" as const;
 
 const mockWithdrawMutate = vi.fn();
 const mockUseAccessibleCookieJars = vi.fn();
@@ -40,7 +42,7 @@ vi.mock("@green-goods/shared/components/Dialog/ConfirmDialog", async (importOrig
 vi.mock("@green-goods/shared/utils/blockchain/vaults", async (importOriginal) => {
   return {
     ...(await importOriginal()),
-    getVaultAssetSymbol: () => "USDC",
+    getVaultAssetSymbol: (asset: Address) => (asset === TEST_DAI ? "DAI" : "USDC"),
   };
 });
 
@@ -98,7 +100,8 @@ describe("CookieJarTab", () => {
     // The card leads with what can be claimed right now: min(maxWithdrawal,
     // balance) = min(100000, 123456) = 100000 / 10^6 → "0.1".
     expect(screen.getByText("0.1 USDC")).toBeInTheDocument();
-    expect(screen.getByText("Available now")).toBeInTheDocument();
+    // The label names the limit and the cooldown, so the number stops reading like a balance.
+    expect(screen.getByText("Up to 0.1 USDC per claim, once an hour")).toBeInTheDocument();
     // The group header names the garden once; the card no longer restates it.
     expect(screen.getAllByText("Garden Alpha")).toHaveLength(1);
   });
@@ -143,6 +146,37 @@ describe("CookieJarTab", () => {
     expect(
       Boolean(claimableJar.compareDocumentPosition(drainedJar) & Node.DOCUMENT_POSITION_FOLLOWING)
     ).toBe(true);
+  });
+
+  it("tells a gardener to ask their steward when the jar's claim limit is low", async () => {
+    const user = userEvent.setup();
+    // The live shape: 9.98 DAI in a jar that pays one cent per claim, once a day.
+    const oneCentJar = {
+      ...testJar,
+      assetAddress: TEST_DAI,
+      currency: TEST_DAI,
+      decimals: 18,
+      balance: 998n * 10n ** 16n,
+      maxWithdrawal: 10n ** 16n,
+      withdrawalInterval: 86_400n,
+    };
+    mockUseAccessibleCookieJars.mockReturnValue({
+      jars: [oneCentJar, { ...testJar, jarAddress: "0x4444444444444444444444444444444444444444" }],
+      isLoading: false,
+      moduleConfigured: true,
+    });
+
+    render(<CookieJarTab />);
+
+    expect(screen.getByText("Up to 0.01 DAI per claim, once a day")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: /0\.01 DAI/ }));
+    await user.click(screen.getByRole("button", { name: /0\.1 USDC/ }));
+
+    // One message, on the low jar only; claiming the allowed amount still works.
+    expect(
+      screen.getAllByText("This jar's claim limit is low. Ask your garden steward to raise it.")
+    ).toHaveLength(1);
+    expect(screen.getAllByRole("button", { name: "Claim" })).toHaveLength(2);
   });
 
   it("shows the jar's total holdings as detail once expanded", async () => {

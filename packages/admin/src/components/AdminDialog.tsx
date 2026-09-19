@@ -68,6 +68,8 @@ export interface AdminConfirmDialogProps {
   icon?: ReactNode;
   /** Workspace tone, forwarded to the portaled surface (see AdminDialogProps.tone). */
   tone?: AdminDialogProps["tone"];
+  /** The facts the confirmation rests on (what changes, from what to what), under the description. */
+  children?: ReactNode;
 }
 
 // Three tiers by action weight (not five — a modal's size should read as a
@@ -383,6 +385,7 @@ export function AdminConfirmDialog({
   confirmDisabled = false,
   icon,
   tone,
+  children,
 }: AdminConfirmDialogProps) {
   const { formatMessage } = useIntl();
   const resolvedConfirmLabel = confirmLabel ?? formatMessage({ id: "app.common.confirm" });
@@ -458,6 +461,7 @@ export function AdminConfirmDialog({
       {description ? null : (
         <p className="text-body-md text-[rgb(var(--m3-on-surface-variant))]">{title}</p>
       )}
+      {children}
     </AdminDialog>
   );
 }

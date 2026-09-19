@@ -1,3 +1,4 @@
+import { Alert } from "@green-goods/shared/components/Alert";
 import { TxInlineFeedback } from "@green-goods/shared/components/feedback/TxInlineFeedback";
 import { useUser } from "@green-goods/shared/hooks/auth/useUser";
 import { useCookieJarDeposit } from "@green-goods/shared/hooks/cookie-jar/useCookieJarDeposit";
@@ -9,6 +10,11 @@ import {
   getVaultAssetSymbol,
   validateDecimalInput,
 } from "@green-goods/shared/utils/blockchain/vaults";
+import {
+  claimsToEmptyJar,
+  formatClaimCadence,
+  isJarClaimLimitLow,
+} from "@green-goods/shared/utils/cookie-jar-claim-limit";
 import { useEffect, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { parseUnits } from "viem";
@@ -24,6 +30,8 @@ interface CookieJarDepositModalProps {
   onClose: () => void;
   gardenAddress: Address;
   defaultJarAddress?: Address | null;
+  /** Leave the deposit and open this jar's per-claim limit editor instead. */
+  onFixLimit?: (jarAddress: Address) => void;
 }
 
 export function CookieJarDepositModal({
@@ -31,6 +39,7 @@ export function CookieJarDepositModal({
   onClose,
   gardenAddress,
   defaultJarAddress = null,
+  onFixLimit,
 }: CookieJarDepositModalProps) {
   const { formatMessage } = useIntl();
   const { primaryAddress } = useUser();
@@ -98,6 +107,12 @@ export function CookieJarDepositModal({
   const depositTxError = useTxErrorMessages(depositMutation.error);
 
   const isPending = depositMutation.isPending;
+  // Funding is the last moment before gardeners meet a limit set too low. It warns, never
+  // blocks: the deposit still goes through, the fix is just the first thing offered.
+  const lowLimitJar =
+    onFixLimit && selectedDepositJar && isJarClaimLimitLow(selectedDepositJar)
+      ? selectedDepositJar
+      : null;
   const handleDeposit = () => {
     if (!selectedDepositJar || parsedDepositAmount <= 0n) return;
     depositMutation.mutate(
@@ -131,19 +146,40 @@ export function CookieJarDepositModal({
       })}
       preventClose={isPending}
       actions={
-        <>
-          <AdminButton type="button" variant="text" onClick={onClose} disabled={isPending}>
-            {formatMessage({ id: "app.common.cancel", defaultMessage: "Cancel" })}
-          </AdminButton>
-          <AdminButton
-            type="button"
-            loading={isPending}
-            disabled={!selectedDepositJar || parsedDepositAmount <= 0n}
-            onClick={handleDeposit}
-          >
-            {formatMessage({ id: "app.cookieJar.deposit", defaultMessage: "Deposit" })}
-          </AdminButton>
-        </>
+        lowLimitJar ? (
+          <>
+            <AdminButton
+              type="button"
+              variant="outlined"
+              loading={isPending}
+              disabled={parsedDepositAmount <= 0n}
+              onClick={handleDeposit}
+            >
+              {formatMessage({ id: "app.cookieJar.depositAnyway" })}
+            </AdminButton>
+            <AdminButton
+              type="button"
+              disabled={isPending}
+              onClick={() => onFixLimit?.(lowLimitJar.jarAddress)}
+            >
+              {formatMessage({ id: "app.cookieJar.fixLimitFirst" })}
+            </AdminButton>
+          </>
+        ) : (
+          <>
+            <AdminButton type="button" variant="text" onClick={onClose} disabled={isPending}>
+              {formatMessage({ id: "app.common.cancel", defaultMessage: "Cancel" })}
+            </AdminButton>
+            <AdminButton
+              type="button"
+              loading={isPending}
+              disabled={!selectedDepositJar || parsedDepositAmount <= 0n}
+              onClick={handleDeposit}
+            >
+              {formatMessage({ id: "app.cookieJar.deposit", defaultMessage: "Deposit" })}
+            </AdminButton>
+          </>
+        )
       }
     >
       <div className="space-y-4">
@@ -213,6 +249,34 @@ export function CookieJarDepositModal({
               : "--"}
           </p>
         </div>
+
+        {lowLimitJar ? (
+          <Alert
+            variant="warning"
+            title={formatMessage(
+              { id: "app.cookieJar.depositLowLimit.title" },
+              {
+                limit: formatTokenAmount(lowLimitJar.maxWithdrawal, lowLimitJar.decimals),
+                asset: getVaultAssetSymbol(lowLimitJar.assetAddress, undefined),
+              }
+            )}
+          >
+            {formatMessage(
+              { id: "app.cookieJar.depositLowLimit.cadence" },
+              { cadence: formatClaimCadence(formatMessage, lowLimitJar.withdrawalInterval) }
+            )}
+            {parsedDepositAmount > 0n
+              ? ` ${formatMessage(
+                  { id: "app.cookieJar.depositLowLimit.claims" },
+                  {
+                    amount: formatTokenAmount(parsedDepositAmount, lowLimitJar.decimals),
+                    asset: getVaultAssetSymbol(lowLimitJar.assetAddress, undefined),
+                    count: Number(claimsToEmptyJar(parsedDepositAmount, lowLimitJar.maxWithdrawal)),
+                  }
+                )}`
+              : null}
+          </Alert>
+        ) : null}
 
         {/* Error feedback */}
         <TxInlineFeedback

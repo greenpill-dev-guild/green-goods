@@ -29,7 +29,7 @@ for (const target of words('core goods juicebox octant-factory garden actions ha
   if (releaseTarget || target === 'ownership-transfer') modes.plan = ['--pure-simulation'];
   add(`deploy ${target}`, 'script/deploy.ts', { prefix: [target], modes, flags: words(deployFlags), values: words(deployValues), ...(target === 'garden' || target === 'actions' ? { positional: 1 } : {}), ...(releaseTarget ? { networks: target === 'settlement-executor' ? ['celo'] : ['arbitrum'], required: ['expected-nonce'] } : {}) });
 }
-for (const target of words('action-registry garden-token yield-resolver gardens-module signal-pool-yield-wiring yield-gardens-wiring octant-module hats-module karma-gap-module work-resolver work-approval-resolver assessment-resolver testimony-resolver deployment-registry greenwill commitment-pooling all')) {
+for (const target of words('action-registry garden-token yield-resolver gardens-module signal-pool-yield-wiring yield-gardens-wiring octant-module hats-module cookie-jar-module karma-gap-module work-resolver work-approval-resolver assessment-resolver testimony-resolver deployment-registry greenwill commitment-pooling all')) {
   add(`upgrade ${target}`, 'script/upgrade.ts', { prefix: [target], modes: { ...standardModes, simulate: [] }, flags: ['override-sepolia-gate'], values: words('sender expected-nonce plan step receipt') });
 }
 add('verify', 'script/utils/post-deploy-verify.ts', { flags: words('check-etherscan check-indexer-runtime check-steward-upgrade skip-indexer skip-indexer-runtime skip-local-indexer-start start-local-indexer stop-local-indexer-after-check no-octant no-cookiejar ack-product-copy require-product-copy'), values: words('rpc-url chain-id community-slug expected-hats-implementation indexer-poll-seconds indexer-timeout-seconds indexer-url steward-baseline steward-probe-account'), repeatable: ['steward-probe-account'] });
@@ -147,10 +147,14 @@ export function resolveCommand(input) {
   }
   if (isUpgrade) env.PINATA_JWT_OP_REF = '';
   if (isUpgrade && mode === 'plan' && ['assessment-resolver', 'commitment-pooling'].includes(target)) env.UPGRADE_PLAN_OUTPUT_DIR = '.generated/release-upgrades';
-  const senderDefault = (isUpgrade && ['plan', 'broadcast'].includes(mode) && ['deployment-registry', 'assessment-resolver', 'commitment-pooling', 'hats-module', 'signal-pool-yield-wiring'].includes(target)) || (isUpgrade && target === 'signal-pool-yield-wiring' && mode === 'simulate') || (operation.command === 'migrate vaults' && mode === 'broadcast') || (operation.handler === 'script/deploy.ts' && ['commitment-schemas', 'pooling-configure'].includes(target) && ['plan', 'broadcast'].includes(mode));
+  const senderDefault = (isUpgrade && ['plan', 'broadcast'].includes(mode) && ['deployment-registry', 'assessment-resolver', 'commitment-pooling', 'hats-module', 'cookie-jar-module', 'signal-pool-yield-wiring'].includes(target)) || (isUpgrade && target === 'signal-pool-yield-wiring' && mode === 'simulate') || (operation.command === 'migrate vaults' && mode === 'broadcast') || (operation.handler === 'script/deploy.ts' && ['commitment-schemas', 'pooling-configure'].includes(target) && ['plan', 'broadcast'].includes(mode));
   if (senderDefault && !values.sender) values.sender = OPERATOR;
   if ((target === 'commitment-pooling' && ['plan', 'broadcast'].includes(mode)) || target === 'pooling-configure' && mode === 'broadcast') env.SENDER_ADDRESS = values.sender;
   if (isUpgrade && mode === 'broadcast' && target === 'assessment-resolver') checks.push({ command: 'bun', args: ['run', 'check:storage-layout'] });
+  if (isUpgrade && mode === 'broadcast' && target === 'cookie-jar-module') {
+    checks.push({ command: 'bash', args: ['script/check-storage-layout.sh', '--contract', 'CookieJarModule'] });
+    if (network === 'arbitrum') checks.push({ command: 'bun', args: ['script/utils/fork-shards.mjs', 'run', 'cookie-jar-module-upgrade-arbitrum'] });
+  }
   if (isUpgrade && mode === 'broadcast' && target === 'hats-module') {
     checks.push({ command: 'bash', args: ['script/check-storage-layout.sh', '--contract', 'HatsModule'] });
     checks.push({ command: 'bun', args: ['script/utils/fork-shards.mjs', 'run', `hats-module-upgrade-${network}`] });

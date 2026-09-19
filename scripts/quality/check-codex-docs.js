@@ -456,7 +456,8 @@ function validateRepoDerivedGuidanceFacts() {
   const adminGuide = read("packages/admin/AGENTS.md");
   const adminVitest = read("packages/admin/vitest.config.ts");
   if (
-    !adminVitest.includes('exclude: [\n      "**/node_modules/**"') ||
+    // Match the exclude list however the formatter lays it out: one line or one item per line.
+    !/exclude:\s*\[\s*"\*\*\/node_modules\/\*\*"/.test(adminVitest) ||
     /default admin Vitest run excludes `src\/__tests__\/views/.test(adminGuide)
   ) {
     fail("packages/admin/AGENTS.md: default Vitest discovery guidance drifted from vitest.config.ts");

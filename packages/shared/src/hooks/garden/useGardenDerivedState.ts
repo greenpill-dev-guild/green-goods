@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import type { CookieJar } from "../../types/cookie-jar";
 import type { Address } from "../../types/domain";
 import { adminRoutes } from "../../utils/navigation/admin-routes";
 import {
@@ -8,7 +9,11 @@ import {
 } from "../../utils/blockchain/garden-roles";
 import { expandDomainMask } from "../../utils/domain";
 import { formatDate } from "../../utils/time";
-import { formatTokenAmount } from "../../utils/blockchain/vaults";
+import { formatTokenAmount, getVaultAssetSymbol } from "../../utils/blockchain/vaults";
+import {
+  isJarClaimLimitLow,
+  JAR_LIMIT_ROUTE_ITEM_PREFIX,
+} from "../../utils/cookie-jar-claim-limit";
 import { stripGeneratedWorkTitleTimestamp } from "../../utils/work/workTitles";
 import type {
   ActivityFilter,
@@ -27,6 +32,14 @@ import {
   RANGE_TO_MS,
   toMs,
 } from "../../utils/garden-detail";
+
+interface OverviewAlert {
+  key: string;
+  severity: "warn" | "critical";
+  label: string;
+  description?: string;
+  onAction: () => void;
+}
 
 interface DerivedStateInput {
   garden: { id: string; domainMask?: number; name: string; chainId: number };
@@ -56,6 +69,8 @@ interface DerivedStateInput {
   }>;
   gardenVaults: Array<unknown>;
   vaultNetDeposited: bigint;
+  /** The garden's cookie jars. Omit where the surface shows no alerts. */
+  cookieJars?: CookieJar[];
   roleMembers: Record<GardenRole, Address[]>;
   selectedRange: GardenRange;
   activityFilter: ActivityFilter;
@@ -73,6 +88,7 @@ export function useGardenDerivedState({
   allocations,
   gardenVaults,
   vaultNetDeposited,
+  cookieJars = [],
   roleMembers,
   selectedRange,
   activityFilter,
@@ -175,7 +191,7 @@ export function useGardenDerivedState({
         ? formatMessage({ id: "app.garden.detail.health.status.attention" })
         : formatMessage({ id: "app.garden.detail.health.status.healthy" });
 
-  const overviewAlerts = [
+  const alertCandidates: Array<OverviewAlert | null> = [
     pendingCriticalCount > 0
       ? {
           key: "work-critical",
@@ -228,16 +244,32 @@ export function useGardenDerivedState({
           onAction: () => openSection("overview", "health"),
         }
       : null,
-  ].filter(
-    (
-      entry
-    ): entry is {
-      key: string;
-      severity: "warn" | "critical";
-      label: string;
-      onAction: () => void;
-    } => entry !== null
-  );
+    // Computed from the jar itself, so it clears once the limit is raised: nothing to dismiss
+    // or store. Critical while the jar holds funds a gardener could be claiming a cent at a time.
+    ...cookieJars
+      .filter((jar) => isJarClaimLimitLow(jar, garden.chainId || undefined))
+      .map((jar) => {
+        const asset = getVaultAssetSymbol(jar.assetAddress, garden.chainId || undefined);
+        const funded = jar.balance > 0n;
+        return {
+          key: `jar-limit-low-${jar.jarAddress.toLowerCase()}`,
+          severity: funded ? ("critical" as const) : ("warn" as const),
+          label: formatMessage(
+            { id: "app.garden.detail.alert.jarLimitLow" },
+            { asset, limit: formatTokenAmount(jar.maxWithdrawal, jar.decimals) }
+          ),
+          description: funded
+            ? formatMessage(
+                { id: "app.garden.detail.alert.jarLimitLowFunded" },
+                { asset, balance: formatTokenAmount(jar.balance, jar.decimals) }
+              )
+            : formatMessage({ id: "app.garden.detail.alert.jarLimitLowEmpty" }),
+          onAction: () =>
+            openSection("community", "payouts", `${JAR_LIMIT_ROUTE_ITEM_PREFIX}${jar.jarAddress}`),
+        };
+      }),
+  ];
+  const overviewAlerts = alertCandidates.filter((entry): entry is OverviewAlert => entry !== null);
 
   const gardenAddress = garden.id;
   const activityEvents: GardenActivityEvent[] = [
