@@ -491,6 +491,9 @@ describe("modules/job-queue", () => {
     expect(stored?.attempts).toBe(0);
     expect(stored?.lastError).toBeUndefined();
     expect(stored?.synced).toBe(false);
+    // An embedded wallet's background flush sends decisions too: without the
+    // hold, the next one would open the prompt the person just declined.
+    expect(stored?.meta?.requiresExplicitSend).toBe(true);
   });
 
   it("sends only the job kinds a flush asks for", async () => {

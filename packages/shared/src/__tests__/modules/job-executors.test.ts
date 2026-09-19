@@ -1359,7 +1359,7 @@ describe("sending a decision once", () => {
     expect(sender.sendContractCall).not.toHaveBeenCalled();
   });
 
-  it("clears the intent when the wallet rejects, so the decision may be sent again", async () => {
+  it("clears the intent when the wallet rejects, and holds the decision for the person to send", async () => {
     const approval = decision();
     const sender = createMockTransactionSender({ authMode: "wallet" });
     vi.mocked(sender.sendContractCall).mockImplementation(async (_call, options) => {
@@ -1372,7 +1372,7 @@ describe("sending a decision once", () => {
       "User rejected"
     );
     expect(approval.payload.sendCheckpoint).toBeUndefined();
-    expect(approval.meta?.requiresExplicitSend).toBeUndefined();
-    expect(deps.persist).toHaveBeenCalledTimes(2);
+    expect(approval.meta?.requiresExplicitSend).toBe(true);
+    expect(deps.persist).toHaveBeenCalledTimes(3);
   });
 });

@@ -50,8 +50,7 @@ function waitingAfterFailedSend(error: unknown): JobExecution | undefined {
     return { status: "waiting", reason: "awaiting-confirmation" };
   if (error instanceof StrandedSendReopened)
     return { status: "waiting", reason: "send-intent-expired" };
-  // A declined work is then held for an explicit send; a decision needs no
-  // flag of its own, since Upload all is the only thing that sends it.
+  // Each executor has already held the declined job for an explicit send.
   if (isWorkSubmissionCancelled(error)) return { status: "waiting", reason: "send-cancelled" };
   return undefined;
 }

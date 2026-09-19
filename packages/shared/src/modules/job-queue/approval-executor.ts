@@ -121,7 +121,12 @@ export async function executeApprovalJob(
       await persist(job);
       throw result.error;
     case "not-sent":
-      // It needs no flag of its own: Upload all is the only thing that sends it.
+      // An embedded wallet's background flush sends decisions too, so a person
+      // who declined is not asked again until they choose to send it.
+      if (result.cancelled) {
+        job.meta = { ...job.meta, requiresExplicitSend: true };
+        await persist(job);
+      }
       throw result.error;
     case "may-have-sent":
       throw new AwaitingWorkConfirmation(
