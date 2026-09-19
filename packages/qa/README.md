@@ -127,6 +127,7 @@ read the shared run and change only their own address-owned shard.
 | `locales/{en,es,pt}.json` | Journey controls, roles, case instructions, handoffs, and gates in each supported language |
 | `build.mjs` | Copies the page and Warm Earth radius tokens, then projects the active catalog (with the retired ids each case replaces and the catalog revision) and journey locales into `dist/catalog.json` |
 | `dev.mjs` | Loopback-only rehearsal server with a local identity bypass and state in `tmp/qa/` (`runs.json` plus `runs/<runId>/<name>.json`; `QA_DEV_STATE_DIR` points it elsewhere) |
+| `vercel.json` | Deployment settings. Its install is filtered to this package (`--filter @green-goods/qa`) because nothing here needs the other workspaces: `build.mjs` runs on node builtins alone, and the functions import only `@vercel/blob` and `viem`. Adding a dependency to `package.json` is enough for it to install; importing a sibling workspace is not, and would need the filter widened |
 
 Case **definitions** come from `scripts/data/qa-test-catalog.json` at build time, so a deployment is
 pinned to the catalog revision it shipped with and a case cannot change shape mid-session. Only

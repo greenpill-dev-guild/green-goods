@@ -2,6 +2,7 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": "docusaurus-2",
   "cleanUrls": true,
+  "ignoreCommand": "node ../scripts/ops/vercel-ignore.mjs docs",
   "installCommand": "cd .. && bun install --frozen-lockfile",
   "buildCommand": "cd .. && node docs/scripts/vercel-build.mjs",
   "outputDirectory": "build"

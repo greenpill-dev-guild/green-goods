@@ -188,6 +188,7 @@ Client startup prints one `[vite-watch]` line with the checkout, client root, wa
 | `upload-sourcemaps.js` | `APP_ENV=production node scripts/ops/upload-sourcemaps.js --env production`, `client.yml`, `admin.yml` | Build sourcemap-enabled bundles in GitHub Actions, upload maps to PostHog, then remove local map files |
 | `bump-version.mjs` | `node scripts/ops/bump-version.mjs <x.y.z> [--dry-run]`, `node scripts/ops/bump-version.mjs --check <x.y.z>` | Keep root + 6 package versions and the supported release in `SECURITY.md` aligned; release CI uses check mode to block stale release metadata |
 | `month-metrics.mjs` | `node scripts/ops/month-metrics.mjs -- --month YYYY-MM [--json]` | Manual, read-only month-in-review aggregates for reviewed PRs, E2E static skips, active plans, and alias-folded contributor counts; no schedule or CI caller |
+| `vercel-ignore.mjs` | `ignoreCommand` in `docs/vercel.json` and `packages/{admin,client,qa,shared}/vercel.json` | Vercel Ignored Build Step: skip a site's deployment when nothing it is built from changed since its last deployment on the branch. Holds each site's input list; add a path there when a build starts reading a new file outside its own directory. Builds on any doubt, and always on `main` |
 
 ### `agents/` — agent query surfaces
 | Script | Caller | Purpose |
