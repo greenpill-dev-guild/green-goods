@@ -219,3 +219,25 @@ it("restores bytes without allocating preview URLs and persists recovery gaps", 
   await draftDB.deleteDraft(id);
   allocate.mockRestore();
 });
+
+it("never picks a photo still waiting to convert as the draft's thumbnail", async () => {
+  const owner = "0x7777777777777777777777777777777777777777";
+  const id = "thumbnail-skips-heic";
+  const heic = new File(["heic"], "waiting.heic", { type: "image/heic" });
+  await draftDB.saveSnapshot(owner, 11155111, id, {}, [heic], [], () => true, []);
+  expect((await draftDB.getDraft(id))?.thumbnail).toBeNull();
+
+  await draftDB.saveSnapshot(
+    owner,
+    11155111,
+    id,
+    {},
+    [heic, image("later.jpg", "later")],
+    [],
+    () => true,
+    []
+  );
+  const record = await draftDB.getDraft(id);
+  expect((await draftDB.getThumbnailFile(record!))?.name).toBe("later.jpg");
+  await draftDB.deleteDraft(id);
+});

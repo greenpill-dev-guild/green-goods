@@ -1,4 +1,5 @@
 import { PwaSheet } from "@green-goods/shared/components/Dialog/PwaSheet";
+import type { SheetActionsProps } from "@green-goods/shared/components/Dialog/SheetActions";
 import type React from "react";
 import { useIntl } from "react-intl";
 import { type StandardTab, StandardTabs } from "@/components/Navigation";
@@ -11,13 +12,16 @@ interface WorkDashboardShellProps {
   tabs: StandardTab[];
   activeTab: string;
   onTabChange: (tabId: string) => void;
+  /** The bottom action bar, the same on every tab: Upload all while work waits to upload. */
+  actions?: SheetActionsProps;
   children: React.ReactNode;
 }
 
 /**
  * The dashboard's sheet chrome: the shared bottom sheet at the full tier with
  * the one sheet header (DL-028), the tab rail directly under it, and the
- * sheet body as the single scroll owner for tab content. Open/close state
+ * sheet body as the single scroll owner for tab content, and the action bar
+ * pinned under it when something waits to upload. Open/close state
  * stays with WorkDashboard so the data hooks and the close timer share one
  * owner; the sheet itself registers as open so the AppBar steps aside
  * (DL-015).
@@ -29,6 +33,7 @@ export const WorkDashboardShell: React.FC<WorkDashboardShellProps> = ({
   tabs,
   activeTab,
   onTabChange,
+  actions,
   children,
 }) => {
   const intl = useIntl();
@@ -65,6 +70,7 @@ export const WorkDashboardShell: React.FC<WorkDashboardShellProps> = ({
       }
       bodyProps={{ id: "work-dashboard-scroll" }}
       bodyClassName="overflow-x-hidden p-0"
+      actions={actions}
     >
       {children}
     </PwaSheet>

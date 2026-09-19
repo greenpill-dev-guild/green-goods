@@ -17,8 +17,6 @@ declare const self: ServiceWorkerGlobalScope & {
   __WB_DISABLE_DEV_LOGS?: boolean;
 };
 
-const RPC_QUEUE = { name: "rpc-queue", options: { maxRetentionTime: 24 * 60 } };
-
 self.__WB_DISABLE_DEV_LOGS = true;
 
 // Green Goods answers first: the share target, JS modules, the connectivity
@@ -64,9 +62,6 @@ registerRoute(
   "POST"
 );
 
-if (import.meta.env.VITE_ENABLE_RPC_BG_SYNC === "true") {
-  const rpcSync = () =>
-    new NetworkOnly({ plugins: [new BackgroundSyncPlugin(RPC_QUEUE.name, RPC_QUEUE.options)] });
-  registerRoute(/https:\/\/api\.pimlico\.xyz\/.*\/rpc$/, rpcSync(), "POST");
-  registerRoute(/https:\/\/(\w+\.)?alchemyapi\.io\/v2\/.*/, rpcSync(), "POST");
-}
+// Transactions and UserOperations are never replayed here. A replayed send
+// would bypass the queue's connection check, claims, and send checkpoints, so
+// every send goes through the job queue instead.

@@ -730,6 +730,88 @@ describe("hooks/work/useWorks", () => {
       expect(work.status).toBe("sync_failed");
     });
 
+    describe("says where queued work stands for Upload all", () => {
+      const CHECKED_AT = "2026-09-17T08:00:00.000Z";
+      const queuedJob = (
+        overrides: Partial<Job<WorkJobPayload>> = {},
+        checkpoint?: WorkJobPayload["uploadCheckpoint"]
+      ): Job<WorkJobPayload> => ({
+        id: "job-upload",
+        kind: "work",
+        payload: {
+          gardenAddress: TEST_GARDEN,
+          actionUID: 1,
+          title: "Queued Work",
+          feedback: "",
+          details: {},
+          timeSpentMinutes: 30,
+          tags: [],
+          media: [],
+          ...(checkpoint ? { uploadCheckpoint: checkpoint } : {}),
+        },
+        userAddress: TEST_PRIMARY_ADDRESS,
+        createdAt: Date.now(),
+        attempts: 0,
+        synced: false,
+        ...overrides,
+      });
+      const stateOf = (job: Job<WorkJobPayload>) => JSON.parse(jobToWork(job).metadata);
+      const uploads = { submittedAt: CHECKED_AT, files: {} };
+
+      it.each([
+        ["preparing", queuedJob()],
+        ["ready", queuedJob({ meta: { preparation: { status: "ready", checkedAt: CHECKED_AT } } })],
+        [
+          "photo-pending",
+          queuedJob({
+            meta: {
+              preparation: { status: "ready", checkedAt: CHECKED_AT },
+              waitingReason: "photo-conversion-pending",
+            },
+          }),
+        ],
+        [
+          "photo-needs-attention",
+          queuedJob({
+            meta: { preparation: { status: "photo-needs-attention", checkedAt: CHECKED_AT } },
+          }),
+        ],
+        ["retry-required", queuedJob({ attempts: 5, lastError: "Network error" })],
+        [
+          "awaiting-confirmation",
+          queuedJob({}, { ...uploads, transactionHash: `0x${"ab".repeat(32)}` }),
+        ],
+        [
+          "checking-submission",
+          queuedJob({}, { ...uploads, broadcastPending: true, broadcastPendingAt: CHECKED_AT }),
+        ],
+        ["reverted", queuedJob({ meta: { workTransactionReverted: true } })],
+      ])("reads %s", (submissionState, job) => {
+        expect(stateOf(job).submissionState).toBe(submissionState);
+      });
+
+      it("names why the chain would refuse blocked work", () => {
+        const job = queuedJob({
+          meta: {
+            preparation: { status: "blocked", reason: "NotActiveAction", checkedAt: CHECKED_AT },
+          },
+        });
+        expect(stateOf(job)).toMatchObject({
+          submissionState: "blocked",
+          blockedReason: "NotActiveAction",
+        });
+      });
+
+      it("keeps a sent work confirming even when preparation once found it ready", () => {
+        const job = queuedJob(
+          { meta: { preparation: { status: "ready", checkedAt: CHECKED_AT } } },
+          { ...uploads, broadcast: { kind: "user-operation", hash: `0x${"cd".repeat(32)}` } }
+        );
+        expect(stateOf(job).submissionState).toBe("awaiting-confirmation");
+        expect(stateOf(job).blockedReason).toBeUndefined();
+      });
+    });
+
     it("serializes details and tags into metadata JSON", () => {
       const job: Job<WorkJobPayload> = {
         id: "job-meta",

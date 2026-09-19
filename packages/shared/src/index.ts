@@ -466,7 +466,6 @@ export {
   useAutoJoinRootGarden,
   useBatchConvertToAssets,
   useBatchListForYield,
-  useBatchWorkSync,
   useBeforeUnloadWhilePending,
   useBrowserNavigation,
   useCampaignCookieJar,
@@ -916,7 +915,6 @@ export {
   useApp,
   useAppKit,
   useJobQueue,
-  useQueueFlush,
   // Compatibility hook - prefer useWorkSelection/useWorkFormContext in new code.
   useWork,
   useWorkFormContext,

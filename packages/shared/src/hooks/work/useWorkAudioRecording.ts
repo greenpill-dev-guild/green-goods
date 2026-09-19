@@ -10,7 +10,10 @@ export function useWorkAudioRecording() {
   const recording = useAudioRecording({
     onRecordingComplete: (file) => {
       const current = useWorkFlowStore.getState().audioNotes;
-      if (validateWorkAttachments(useWorkFlowStore.getState().images, [...current, file]).length) {
+      const images = useWorkFlowStore.getState().images;
+      if (
+        validateWorkAttachments(images, [...current, file], 0, { pendingHeic: "accept" }).length
+      ) {
         toastService.error({
           title: intl.formatMessage({
             id: "app.garden.attachments.invalid",

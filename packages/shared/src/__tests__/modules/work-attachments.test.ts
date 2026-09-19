@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import {
   captureWorkFile,
+  isHeicFile,
   validateWorkAttachments,
   roundWorkLocation,
   validateWorkVideo,
@@ -19,6 +20,32 @@ describe("work attachment boundaries", () => {
     const video = new File(["clip"], "clip.mp4", { type: "video/mp4" });
     expect(validateWorkAttachments([video], [], 0)).toEqual([]);
     expect(validateWorkAttachments([video], [], 1)).toContain("photos-required");
+  });
+  it("recognises a HEIC photo by type or by name, since Android often reports no type", () => {
+    expect(isHeicFile(new File(["h"], "garden.heic", { type: "image/heic" }))).toBe(true);
+    expect(isHeicFile(new File(["h"], "garden.HEIF", { type: "" }))).toBe(true);
+    expect(isHeicFile(new File(["h"], "burst", { type: "image/heif-sequence" }))).toBe(true);
+    expect(isHeicFile(new File(["j"], "garden.jpg", { type: "image/jpeg" }))).toBe(false);
+  });
+  it("trusts a known type over the name, so a JPEG named .heic stays a JPEG", () => {
+    expect(isHeicFile(new File(["j"], "renamed.heic", { type: "image/jpeg" }))).toBe(false);
+    expect(isHeicFile(new File(["h"], "download.heic", { type: "application/octet-stream" }))).toBe(
+      true
+    );
+  });
+  it("refuses a HEIC photo by default, so nothing uploads an unconverted original", () => {
+    const heic = new File(["h"], "garden.heic", { type: "image/heic" });
+    expect(validateWorkAttachments([heic], [], 1)).toEqual(["photos-required", "media-type"]);
+  });
+  it("lets a composer keep a HEIC photo that is waiting for the decoder", () => {
+    const heic = new File(["h"], "garden.heic", { type: "" });
+    const jpeg = new File(["j"], "garden.jpg", { type: "image/jpeg" });
+    const policy = { pendingHeic: "accept" } as const;
+    // A pending photo still counts toward the action's minimum: it will be a JPEG before it sends.
+    expect(validateWorkAttachments([heic, jpeg], [], 2, policy)).toEqual([]);
+    const oversized = new File(["h"], "big.heic", { type: "image/heic" });
+    Object.defineProperty(oversized, "size", { value: 10 * 1024 * 1024 + 1 });
+    expect(validateWorkAttachments([oversized], [], 0, policy)).toEqual(["media-size"]);
   });
   it("rounds location and drops precise accuracy", () => {
     expect(roundWorkLocation({ lat: 10.123456, lng: -20.987654, accuracy: 2 })).toEqual({

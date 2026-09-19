@@ -29,7 +29,8 @@ import {
 import { useUIStore } from "../../stores/useUIStore";
 import { useWorkFlowStore } from "../../stores/useWorkFlowStore";
 import type { Work, WorkDraft } from "../../types/domain";
-import { getActionTitle } from "../../utils/action/parsers";
+import { findActionByUID } from "../../utils/action/parsers";
+import { resolveWorkSubmissionTitle } from "../../utils/work/workTitles";
 import { hapticError, hapticSuccess } from "../../utils/app/haptics";
 import { DEBUG_ENABLED, debugLog } from "../../utils/debug";
 import { INDEXER_LAG_SCHEDULE_MS } from "../../config/query-keys/constants";
@@ -242,7 +243,10 @@ export function useWorkMutation(options: UseWorkMutationOptions) {
         });
       }
 
-      const actionTitle = getActionTitle(actions, actionUID);
+      const actionTitle = resolveWorkSubmissionTitle({
+        actionTitle: findActionByUID(actions, actionUID)?.title,
+        actionUID,
+      });
       addBreadcrumb("work_submission_started", {
         gardenAddress,
         actionUID,
@@ -334,6 +338,14 @@ export function useWorkMutation(options: UseWorkMutationOptions) {
         });
       }
       if (!awaiting) hapticSuccess();
+      // Offline already said "Saved offline"; an unstable connection says why nothing was sent.
+      if (origin.outcome?.kind === "queued" && origin.outcome.reason === "connection-unconfirmed")
+        toastService.info({
+          id: "work-queued-connection",
+          title: intl.formatMessage({ id: "app.offline.degraded" }),
+          message: intl.formatMessage({ id: "app.work.queuedConnectionUnconfirmed" }),
+          context: "work",
+        });
 
       // Confirmation checks have not established a successful submission yet.
       if (!awaiting)

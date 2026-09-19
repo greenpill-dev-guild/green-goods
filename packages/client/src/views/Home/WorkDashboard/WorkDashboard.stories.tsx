@@ -16,6 +16,7 @@ import {
 } from "../../../../../shared/.storybook/fixtures";
 import { CompletedTab } from "./CompletedTab";
 import { PendingTab } from "./PendingTab";
+import { buildUploadActions, type UploadBarState } from "./uploadActions";
 import { WorkDashboardShell } from "./WorkDashboardShell";
 
 const GARDEN = "0xf401f34378384713222d1d21f63359cc4e8a858a" as Address;
@@ -55,6 +56,55 @@ const PENDING_WORKS: Work[] = [
   work("0x03", { title: "Compost Turn", gardenerAddress: STEWARD, createdAt: hoursAgo(30) }),
 ];
 
+/** Work saved on this device, in the state background preparation left it. */
+function queued(
+  id: string,
+  title: string,
+  submissionState: string,
+  overrides: Partial<Work> = {},
+  blockedReason?: string
+): Work {
+  return work(id, {
+    title,
+    gardenerAddress: STEWARD,
+    status: "offline",
+    metadata: JSON.stringify({ submissionState, blockedReason }),
+    ...overrides,
+  });
+}
+
+const READY_WORKS: Work[] = [
+  queued("job-planting", "Planting Event", "ready", { media: [FIXTURE_IMAGE_AGROFORESTRY] }),
+  queued("job-survival", "Survival Check", "ready", {
+    media: [FIXTURE_IMAGE_SOLAR],
+    createdAt: hoursAgo(4),
+  }),
+];
+
+/** One work in every state Upload all reads, the longest blocked reason included. */
+const UPLOAD_STATE_WORKS: Work[] = [
+  queued("job-ready", "Planting Event", "ready", { media: [FIXTURE_IMAGE_AGROFORESTRY] }),
+  queued("job-preparing", "Survival Check", "preparing", { createdAt: hoursAgo(4) }),
+  queued("job-photo", "Compost Turn", "photo-pending", { createdAt: hoursAgo(5) }),
+  queued("job-photo-failed", "Seed Library Count", "photo-needs-attention", {
+    createdAt: hoursAgo(6),
+  }),
+  queued("job-blocked", "Swale Repair", "blocked", { createdAt: hoursAgo(7) }, "NotActiveAction"),
+  queued(
+    "job-domain",
+    "Mulch Delivery",
+    "blocked",
+    { createdAt: hoursAgo(8) },
+    "ActionDomainMismatch"
+  ),
+  queued("job-sent", "Water Point Check", "awaiting-confirmation", { createdAt: hoursAgo(9) }),
+];
+
+const PREPARING_WORKS: Work[] = [
+  queued("job-preparing", "Survival Check", "preparing"),
+  queued("job-photo", "Compost Turn", "photo-pending", { createdAt: hoursAgo(4) }),
+];
+
 const COMPLETED_WORKS: Work[] = [
   work("0x04", { title: "Seed Library Count", status: "approved", createdAt: hoursAgo(26) }),
   work("0x05", { title: "Swale Repair", status: "rejected", createdAt: hoursAgo(50) }),
@@ -69,7 +119,19 @@ interface DashboardFrameProps {
   isFetching?: boolean;
   isOffline?: boolean;
   savedAt?: number;
+  /** Queued work and decisions: renders the Upload all bar when set. */
+  uploads?: Partial<UploadBarState>;
+  /** Works whose decision from this device still waits to upload. */
+  waitingUploadIds?: string[];
 }
+
+const NO_UPLOADS: UploadBarState = {
+  readyCount: 0,
+  preparingCount: 0,
+  pausedForDataSaver: false,
+  isPreparing: false,
+  isUploading: false,
+};
 
 /** The real sheet chrome and tab content, fed fixture rows instead of the data hooks. */
 function DashboardFrame({
@@ -81,8 +143,17 @@ function DashboardFrame({
   isFetching = false,
   isOffline = false,
   savedAt,
+  uploads,
+  waitingUploadIds = [],
 }: DashboardFrameProps) {
   const intl = useIntl();
+  const actions = uploads
+    ? buildUploadActions(
+        { ...NO_UPLOADS, ...uploads },
+        { onUpload: fn(), onPrepareNow: fn() },
+        intl.formatMessage
+      )
+    : undefined;
   const tabs = [
     {
       id: "drafts",
@@ -114,6 +185,7 @@ function DashboardFrame({
       tabs={tabs}
       activeTab={tab}
       onTabChange={fn()}
+      actions={actions}
     >
       {tab === "pending" ? (
         <PendingTab
@@ -146,6 +218,7 @@ function DashboardFrame({
           onCompletedFilterChange={fn()}
           timeFilter={timeFilter}
           onTimeFilterChange={fn()}
+          waitingUploadIds={new Set(waitingUploadIds)}
         />
       )}
     </WorkDashboardShell>
@@ -269,4 +342,82 @@ export const CompletedSpanishWeekOffline: Story = {
     savedAt: SAVED_AT,
   },
   parameters: { locale: "es" },
+};
+
+/** Everything queued is prepared: one tap sends it all with one signature. */
+export const PendingUploadAll: Story = {
+  args: { tab: "pending", items: [...READY_WORKS, PENDING_WORKS[0]], uploads: { readyCount: 2 } },
+};
+
+/**
+ * Every state Upload all reads. The chip says whether a work waits to upload or needs
+ * attention; the line under it says what it waits for, and why the chain would refuse it.
+ */
+export const PendingUploadStates: Story = {
+  args: {
+    tab: "pending",
+    items: UPLOAD_STATE_WORKS,
+    pendingFilter: "mySubmissions",
+    uploads: { readyCount: 1, preparingCount: 2, isPreparing: true },
+  },
+};
+
+export const PendingUploadStatesSpanish: Story = {
+  args: PendingUploadStates.args,
+  parameters: { locale: "es" },
+};
+
+export const PendingUploadStatesPortuguese: Story = {
+  args: PendingUploadStates.args,
+  parameters: { locale: "pt" },
+};
+
+/** Nothing is prepared yet and preparation is running. */
+export const PendingPreparingUploads: Story = {
+  args: {
+    tab: "pending",
+    items: PREPARING_WORKS,
+    pendingFilter: "mySubmissions",
+    uploads: { preparingCount: 2, isPreparing: true },
+  },
+};
+
+/** Data Saver holds preparation back: the bar offers to prepare the rest beside what is ready. */
+export const PendingDataSaver: Story = {
+  args: {
+    tab: "pending",
+    items: UPLOAD_STATE_WORKS.slice(0, 3),
+    pendingFilter: "mySubmissions",
+    uploads: { readyCount: 1, preparingCount: 2, pausedForDataSaver: true },
+  },
+};
+
+export const PendingDataSaverSpanish: Story = {
+  args: PendingDataSaver.args,
+  parameters: { locale: "es" },
+};
+
+export const PendingUploadingPortuguese: Story = {
+  args: { tab: "pending", items: READY_WORKS, uploads: { readyCount: 2, isUploading: true } },
+  parameters: { locale: "pt" },
+};
+
+/** A decision made offline files under By you at once and says it still waits to upload. */
+export const CompletedWaitingToUpload: Story = {
+  args: {
+    tab: "completed",
+    items: COMPLETED_WORKS,
+    waitingUploadIds: ["0x04"],
+    uploads: { readyCount: 1 },
+  },
+};
+
+export const CompletedWaitingToUploadSpanish: Story = {
+  args: CompletedWaitingToUpload.args,
+  parameters: { locale: "es" },
+};
+
+export const CompletedWaitingToUploadPortuguese: Story = {
+  args: CompletedWaitingToUpload.args,
+  parameters: { locale: "pt" },
 };

@@ -4,7 +4,12 @@ import { computeFirstIncompleteStep, hasMeaningfulDraftDetails, isWorkDraft } fr
 
 export { computeFirstIncompleteStep, hasMeaningfulDraftDetails } from "./draft-state";
 
-import { hashWorkBytes, restoreWorkFile, roundWorkLocation } from "../work/work-attachments";
+import {
+  hashWorkBytes,
+  isHeicFile,
+  restoreWorkFile,
+  roundWorkLocation,
+} from "../work/work-attachments";
 /**
  * Draft Database Module
  *
@@ -241,7 +246,10 @@ class DraftStore {
       : await db.draft_images
           .where("draftId")
           .equals(draft.id)
-          .filter((row) => (row.fileData?.type ?? row.file?.type)?.startsWith("image/") === true)
+          .filter((row) => {
+            const stored = row.fileData ?? row.file;
+            return Boolean(stored?.type.startsWith("image/") && !isHeicFile(stored));
+          })
           .first();
     if (!image || image.draftId !== draft.id) return null;
     const data = image.fileData?.data

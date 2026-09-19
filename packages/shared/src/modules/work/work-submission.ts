@@ -1,7 +1,7 @@
-import { validateWorkAttachments } from "./work-attachments";
+import { type WorkAttachmentPolicy, validateWorkAttachments } from "./work-attachments";
 import type { Action, Address, Work, WorkApprovalDraft, WorkDraft } from "../../types/domain";
-import { getActionTitle } from "../../utils/action/parsers";
-import { resolveWorkSubmissionTitle } from "../../utils/work/workTitles";
+import { findActionByUID } from "../../utils/action/parsers";
+import { resolveKnownWorkTitle } from "../../utils/work/workTitles";
 import { serviceWorkerManager } from "../app/service-worker";
 import { jobQueue } from "../job-queue/default-instance";
 import type { JobQueueHandle } from "../job-queue/ports";
@@ -60,17 +60,23 @@ export async function submitWorkToQueue(
     throw new Error("User address is required");
   }
 
-  const actionTitle = getActionTitle(actions, actionUID);
+  // Only a real title is stored; an untitled job looks its action up when it sends.
+  const title = resolveKnownWorkTitle({
+    draftTitle: draft.title,
+    actionTitle: findActionByUID(actions, actionUID)?.title,
+    actionUID,
+  });
 
   const clientWorkId = deps.newClientWorkId();
 
   // Add job to queue - this handles both offline and online scenarios
+  const { title: _draftTitle, ...untitledDraft } = draft;
   const jobId = await deps.queue.addJob(
     "work",
     {
-      ...draft,
+      ...untitledDraft,
       clientWorkId,
-      title: resolveWorkSubmissionTitle({ draftTitle: draft.title, actionTitle, actionUID }),
+      ...(title ? { title } : {}),
       actionUID,
       gardenAddress,
       media: images,
@@ -135,7 +141,7 @@ export async function submitApprovalToQueue(
 /**
  * Options for validating work submission context
  */
-export interface ValidateWorkContextOptions {
+export interface ValidateWorkContextOptions extends WorkAttachmentPolicy {
   audioNotes?: File[];
   /** Minimum required images (from action config). Defaults to 0 if not provided. */
   minRequired?: number;
@@ -184,9 +190,9 @@ export function validateWorkSubmissionContext(
     "total-size": "All attachments together must be 50MB or smaller",
   };
   errors.push(
-    ...validateWorkAttachments(images, options.audioNotes, minRequired).map(
-      (code) => messages[code]
-    )
+    ...validateWorkAttachments(images, options.audioNotes, minRequired, {
+      pendingHeic: options.pendingHeic,
+    }).map((code) => messages[code])
   );
 
   return errors;

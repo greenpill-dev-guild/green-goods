@@ -100,6 +100,19 @@ describe("modules/work-submission", () => {
       expect(errors).toEqual([]);
     });
 
+    it("lets the composer keep a HEIC photo waiting to convert, counting it toward the minimum", () => {
+      const heic = new File(["heic"], "garden.heic", { type: "" });
+      expect(validateWorkSubmissionContext("0xGarden", 1, [heic], { minRequired: 1 })).toContain(
+        "Only JPEG, PNG, WebP, MP4, and WebM are supported"
+      );
+      expect(
+        validateWorkSubmissionContext("0xGarden", 1, [heic], {
+          minRequired: 1,
+          pendingHeic: "accept",
+        })
+      ).toEqual([]);
+    });
+
     it("fails for minRequired of 5 with only 3 images", () => {
       const errors = validateWorkSubmissionContext(
         "0xGarden",

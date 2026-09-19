@@ -7,6 +7,7 @@ import {
   describeConformance,
   type ConformanceLaw,
 } from "@green-goods/shared/testing";
+import { fakePreparedUserOperation } from "../../../__tests__/test-utils/transaction-fakes";
 import { expect, vi } from "vitest";
 import type { Hex } from "viem";
 import { DEFAULT_CHAIN_ID } from "../../../config/default-chain";
@@ -130,6 +131,9 @@ const cases: SenderCase[] = [
       const hashes = sequence(scenario.hashes ?? [], SECOND_TX_HASH);
       const client = createFakeSmartAccountClient();
       client.sendUserOperation.mockImplementation(async (call) => {
+        // viem asks the account to sign before it broadcasts.
+        const signer = (call as { account: NonNullable<typeof client.account> }).account;
+        await signer.signUserOperation(fakePreparedUserOperation(signer.address));
         trace.push("send");
         const transaction = (call as { calls: Array<{ value?: bigint }> }).calls[0];
         forwarded.push({
@@ -260,6 +264,19 @@ const laws: ConformanceLaw<SenderCase>[] = [
       const harness = make();
       await harness.sender.sendContractCall(createMockContractCall());
       expect(harness.trace).toEqual(expectations.guardOrder);
+    },
+  },
+  {
+    name: "reports the send intent once, after its guards and before the transport sends",
+    verify: async ({ make }) => {
+      const harness = make();
+      const onBeforeBroadcast = vi.fn(async () => {
+        harness.trace.push("intent");
+      });
+      await harness.sender.sendContractCall(createMockContractCall(), { onBeforeBroadcast });
+      expect(onBeforeBroadcast).toHaveBeenCalledOnce();
+      const intent = harness.trace.indexOf("intent");
+      expect(intent).toBe(harness.trace.indexOf("send") - 1);
     },
   },
   {

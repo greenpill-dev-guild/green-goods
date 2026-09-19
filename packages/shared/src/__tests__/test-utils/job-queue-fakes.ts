@@ -40,7 +40,13 @@ export function createInMemoryJobQueueStore(initial: Job[] = []): JobQueueStore 
       );
     },
     async updateJob(job) {
+      // As the store behaves: a job discarded meanwhile is left deleted.
+      if (!jobs.has(job.id)) return;
       jobs.set(job.id, job);
+    },
+    async amendJob(id, amend) {
+      const job = jobs.get(id);
+      if (job) amend(job);
     },
     async markJobSynced(id, txHash) {
       const job = jobs.get(id);

@@ -1,6 +1,7 @@
 import { getUploadConcurrency, pooledSettled } from "./upload-pool";
 import {
   InvalidWorkAttachmentError,
+  PendingHeicConversionError,
   validateWorkAttachments,
   hashWorkBytes,
   identifyWorkFile,
@@ -158,7 +159,11 @@ export async function encodeWorkData(
   let failedFiles = 0;
 
   const attachmentErrors = validateWorkAttachments(data.media, data.audioNotes);
-  if (attachmentErrors.length) throw new InvalidWorkAttachmentError(attachmentErrors.join(", "));
+  if (attachmentErrors.length) {
+    if (!validateWorkAttachments(data.media, data.audioNotes, 0, { pendingHeic: "accept" }).length)
+      throw new PendingHeicConversionError();
+    throw new InvalidWorkAttachmentError(attachmentErrors.join(", "));
+  }
 
   // Upload media files in PARALLEL for better performance
   // Normalize files first (synchronous operation) with proper type validation

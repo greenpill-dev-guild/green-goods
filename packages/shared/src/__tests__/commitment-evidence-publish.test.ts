@@ -20,6 +20,11 @@ const mocks = vi.hoisted(() => ({
   uploadFileToIPFS: vi.fn(),
   executeCommitmentJob: vi.fn(),
   readContract: vi.fn(),
+  convertQueuedHeicMedia: vi.fn(),
+}));
+
+vi.mock("../modules/job-queue/job-media-conversion", () => ({
+  convertQueuedHeicMedia: mocks.convertQueuedHeicMedia,
 }));
 
 vi.mock("../modules/data/ipfs/upload", () => ({
@@ -96,6 +101,7 @@ describe("publishing proof at sync", () => {
     store.clear();
     images.clear();
     mocks.executeCommitmentJob.mockResolvedValue({ status: "sent", txHash: "0xabc" });
+    mocks.convertQueuedHeicMedia.mockResolvedValue({ status: "ready" });
   });
 
   it("uploads the media, pins the document, writes the CID back, then attaches", async () => {
@@ -185,5 +191,49 @@ describe("publishing proof at sync", () => {
     expect(mocks.uploadJSONToIPFS).toHaveBeenCalledTimes(1);
     const sent = mocks.executeCommitmentJob.mock.calls[1]?.[0] as { payload: { cid: string } };
     expect(sent.payload.cid).toBe("bafy-proof");
+  });
+
+  it("keeps each photo's CID, so a retry uploads only what did not make it", async () => {
+    const path = new File(["path-bytes"], "path.jpg", { type: "image/jpeg" });
+    images.set("job-evidence", [
+      { id: "img-1", file: photo, url: "blob:photo" },
+      { id: "img-2", file: path, url: "blob:path" },
+    ]);
+    mocks.uploadFileToIPFS
+      .mockResolvedValueOnce({ cid: "bafy-photo" })
+      .mockRejectedValueOnce(new Error("gateway down"));
+
+    await expect(
+      executeCommitmentQueueJob("job-evidence", job(), 42161, {} as never)
+    ).resolves.toEqual({ status: "waiting", reason: "evidence-unpublished" });
+
+    mocks.uploadFileToIPFS.mockReset().mockResolvedValue({ cid: "bafy-path" });
+    mocks.uploadJSONToIPFS.mockResolvedValue({ cid: "bafy-proof" });
+    const reread = store.get("job-evidence") as never;
+    await executeCommitmentQueueJob("job-evidence", reread, 42161, {} as never);
+
+    expect(mocks.uploadFileToIPFS).toHaveBeenCalledTimes(1);
+    expect(mocks.uploadFileToIPFS.mock.calls[0]?.[0]).toBe(path);
+    expect(mocks.uploadJSONToIPFS).toHaveBeenCalledWith(
+      expect.objectContaining({
+        media: [
+          { cid: "bafy-photo", mime: "image/jpeg", kind: "photo" },
+          { cid: "bafy-path", mime: "image/jpeg", kind: "photo" },
+        ],
+      }),
+      expect.anything()
+    );
+  });
+
+  it("waits for a HEIC photo to convert before uploading anything, without spending an attempt", async () => {
+    images.set("job-evidence", [{ id: "img-1", file: photo, url: "blob:photo" }]);
+    mocks.convertQueuedHeicMedia.mockResolvedValue({ status: "pending" });
+
+    const result = await executeCommitmentQueueJob("job-evidence", job(), 42161, {} as never);
+
+    expect(result).toEqual({ status: "waiting", reason: "photo-conversion-pending" });
+    expect(mocks.uploadFileToIPFS).not.toHaveBeenCalled();
+    expect(mocks.uploadJSONToIPFS).not.toHaveBeenCalled();
+    expect(store.get("job-evidence")).toBeUndefined();
   });
 });

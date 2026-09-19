@@ -7,6 +7,7 @@ import {
   type TailStatus,
 } from "./service-worker-protocol";
 import { isStandaloneMode } from "../../utils/app/pwa";
+import { networkInformation } from "../../utils/app/network-information";
 
 type ServiceWorkerEnv = Partial<
   Pick<ImportMetaEnv, "DEV" | "PROD" | "VITE_ENABLE_SW_DEV" | "VITE_APP_VERSION">
@@ -58,15 +59,6 @@ const tierListeners = new Map<PwaShellTier, Set<TierListener>>();
 const tierOutcome = new Map<PwaShellTier, PwaShellTierStatus>();
 const requestedTiers = new Set<PwaShellTier>();
 let shellListenersStarted = false;
-
-interface NetworkInformationLike extends EventTarget {
-  saveData?: boolean;
-}
-
-function networkInformation(): NetworkInformationLike | undefined {
-  if (typeof navigator === "undefined") return undefined;
-  return (navigator as Navigator & { connection?: NetworkInformationLike }).connection;
-}
 
 function tierState(worker: ServiceWorker): Map<PwaShellTier, PwaShellTierStatus | "scheduled"> {
   const existing = shellPreparationState.get(worker);
@@ -191,6 +183,29 @@ export function schedulePwaShellPreparation(
   return () => {
     if (onStatus) tierListeners.get(tier)?.delete(onStatus);
   };
+}
+
+/**
+ * The current worker's last answer for a tier, without asking for it. A new
+ * controller clears every answer, so a reader never trusts a previous worker's
+ * files. `undefined` means this worker has not answered yet.
+ */
+export function currentPwaShellTierStatus(tier: PwaShellTier): PwaShellTierStatus | undefined {
+  return tierOutcome.get(tier);
+}
+
+/**
+ * Hear a tier's outcome without asking for it. For readers that only need to
+ * know whether the offline-ready files are on the device, such as the HEIC
+ * decoder: only an installed app or an install should start that download.
+ */
+export function observePwaShellTier(tier: PwaShellTier, onStatus: TierListener): () => void {
+  const listeners = tierListeners.get(tier) ?? new Set<TierListener>();
+  tierListeners.set(tier, listeners);
+  listeners.add(onStatus);
+  const settled = tierOutcome.get(tier);
+  if (settled) onStatus(settled);
+  return () => listeners.delete(onStatus);
 }
 
 /** Lets the active worker finish the send-time tail after the page has yielded. */

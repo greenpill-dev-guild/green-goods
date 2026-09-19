@@ -18,7 +18,7 @@ import type {
   ProcessJobContext,
   ProcessJobResult,
 } from "./ports";
-import { createOfflineTxHash, isWaitingReprobeThrottled } from "./queue-policy";
+import { createOfflineTxHash, hasRecordedSend, isWaitingReprobeThrottled } from "./queue-policy";
 
 interface ProcessJobDependencies {
   store: JobQueueStore;
@@ -82,19 +82,33 @@ async function completeJob(
 }
 
 export function createJobProcessor(deps: ProcessJobDependencies) {
-  async function processJob(jobId: string, context: ProcessJobContext): Promise<ProcessJobResult> {
+  async function processJob(
+    jobId: string,
+    context: ProcessJobContext,
+    reopened = false
+  ): Promise<ProcessJobResult> {
     const job = await deps.store.getJob(jobId);
     if (!job) return { success: true, skipped: true };
     if (job.synced) {
       const txHash = typeof job.meta?.txHash === "string" ? job.meta.txHash : undefined;
       return { success: true, txHash, skipped: true };
     }
-    if (!deps.connectivity.isOnline()) {
-      return { success: false, error: "offline", skipped: true };
+    const sendBlocked = deps.connectivity.canSend
+      ? await deps.connectivity.canSend()
+      : deps.connectivity.isOnline()
+        ? null
+        : "offline";
+    if (sendBlocked) return { success: false, error: sendBlocked, skipped: true };
+
+    // The hold is on sending. A job whose send is already recorded is only
+    // confirmed from here, so a background pass must still be able to settle it.
+    const alreadySent = hasRecordedSend(job) || Boolean(retainedWorkBroadcast(jobId));
+    if (job.meta?.requiresExplicitSend && !context.explicit && !alreadySent) {
+      return { success: false, error: "send-requires-explicit", skipped: true };
     }
 
     const now = deps.clock.now();
-    if (isWithinBackoffWindow(job, now)) {
+    if (!context.explicit && isWithinBackoffWindow(job, now)) {
       const remainingBackoff =
         calculateBackoffDelay(job.attempts) - (now - (job.lastAttemptAt || 0));
       return {
@@ -114,11 +128,7 @@ export function createJobProcessor(deps: ProcessJobDependencies) {
     if (
       job.attempts >= deps.config.maxRetries &&
       !retainedWorkBroadcast(jobId) &&
-      !(
-        job.kind === "work" &&
-        (checkpoint?.transactionHash || checkpoint?.broadcast || checkpoint?.broadcastPending) &&
-        !job.meta?.workTransactionReverted
-      )
+      !(hasRecordedSend(job) && !job.meta?.workTransactionReverted)
     ) {
       const errorMessage = `Max retries (${deps.config.maxRetries}) exceeded`;
       await deps.store.markJobFailed(jobId, errorMessage);
@@ -132,6 +142,11 @@ export function createJobProcessor(deps: ProcessJobDependencies) {
       return { success: false, error: "transaction_sender_unavailable", skipped: true };
     }
 
+    if (context.explicit && job.meta?.requiresExplicitSend) {
+      // The person chose to send it; later automatic retries may follow up.
+      const { requiresExplicitSend: _requiresExplicitSend, ...meta } = job.meta;
+      job.meta = meta;
+    }
     deps.events.emit("job:processing", { jobId, job });
     deps.analytics.processingStarted(job.kind, job.attempts + 1);
     const chainId = job.chainId || deps.config.defaultChainId;
@@ -166,6 +181,9 @@ export function createJobProcessor(deps: ProcessJobDependencies) {
           jobId,
           job: { ...job, meta: { ...meta, waitingReason: execution.reason } },
         });
+        // An earlier send never landed and was just cleared; the person's tap sends it now.
+        if (execution.reason === "send-intent-expired" && context.explicit && !reopened)
+          return processJob(jobId, context, true);
         return { success: false, error: execution.reason, skipped: true };
       }
       if (execution.status === "identity-conflict" || execution.status === "unavailable") {
@@ -208,13 +226,8 @@ export function createJobProcessor(deps: ProcessJobDependencies) {
         deps.events.emit("job:failed", { jobId, job, error: errorMessage });
         return { success: false, error: errorMessage };
       }
-      if (
-        job.kind === "work" &&
-        (retainedWorkBroadcast(jobId) ||
-          (job.payload as WorkJobPayload).uploadCheckpoint?.transactionHash ||
-          (job.payload as WorkJobPayload).uploadCheckpoint?.broadcast ||
-          (job.payload as WorkJobPayload).uploadCheckpoint?.broadcastPending)
-      ) {
+      // Read again: the executor updates the checkpoint while it sends.
+      if (retainedWorkBroadcast(jobId) || hasRecordedSend(job)) {
         // Failed checkpoint writes cannot turn a confirmation check into a new submission.
         deps.logger.warn("[JobQueue] Work confirmation checkpoint needs persistence", {
           jobId,

@@ -3,14 +3,26 @@ import { describe, expect, it, vi } from "vitest";
 // The HEIC decoder is a lazy chunk from the offline-ready shell tier, so a
 // steward can reach the picker before it exists on the device. Failing the
 // import is how that looks from inside `media-processing`.
+// The connection is confirmed, so importing the decoder is worth attempting.
+vi.mock("../../stores/connectivity", () => ({
+  CONFIRMED_ONLINE_MAX_AGE_MS: 60_000,
+  connectivityStore: {
+    isConfirmedOnline: () => true,
+    getStatusSnapshot: () => ({ state: "online" }),
+    confirmOnline: async () => true,
+  },
+}));
+
 vi.mock("heic-to/csp", () => {
   throw new Error("Failed to fetch dynamically imported module");
 });
 
-import {
-  finalizeWorkMediaForUpload,
-  normalizeWorkMediaFiles,
-} from "../../modules/work/media-processing";
+const warn = vi.hoisted(() => vi.fn());
+vi.mock("../../modules/app/logger", () => ({
+  logger: { warn, info: vi.fn(), error: vi.fn(), debug: vi.fn() },
+}));
+
+import { normalizeWorkMediaFiles } from "../../modules/work/media-processing";
 
 describe("work media without the HEIC decoder", () => {
   it("keeps a HEIC photo instead of refusing it", async () => {
@@ -50,10 +62,24 @@ describe("work media without the HEIC decoder", () => {
     expect(result.rejected[0].reason).toBe("unsupported");
   });
 
-  it("uploads the original rather than dropping it when the decoder is still missing at send", async () => {
-    const heic = new File(["heic"], "garden.heic", { type: "image/heic" });
-    const jpeg = new File(["jpeg"], "photo.jpg", { type: "image/jpeg" });
+  it("tries the decoder once for a pick of several photos, not once per photo", async () => {
+    // A fresh page: nothing in this module has tried the decoder yet.
+    vi.resetModules();
+    const fresh = await import("../../modules/work/media-processing");
+    warn.mockClear();
+    const onHeicConversionDeferred = vi.fn();
+    const first = new File(["heic-1"], "one.heic", { type: "image/heic" });
+    const second = new File(["heic-2"], "two.heic", { type: "image/heic" });
 
-    await expect(finalizeWorkMediaForUpload([heic, jpeg])).resolves.toEqual([heic, jpeg]);
+    const result = await fresh.normalizeWorkMediaFiles([first, second], {
+      onHeicConversionDeferred,
+    });
+    await fresh.normalizeWorkMediaFiles([
+      new File(["heic-3"], "three.heic", { type: "image/heic" }),
+    ]);
+
+    expect(result.accepted.map((item) => item.pendingConversion)).toEqual([true, true]);
+    expect(onHeicConversionDeferred).toHaveBeenCalledTimes(2);
+    expect(warn).toHaveBeenCalledTimes(1);
   });
 });

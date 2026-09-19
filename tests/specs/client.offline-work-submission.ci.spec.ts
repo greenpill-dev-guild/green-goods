@@ -2,11 +2,11 @@
  * Client Offline Work Submission CI Tests
  *
  * Walks the whole work wizard with the network switched off and checks that
- * the submission lands in the durable queue instead of failing, then that a
- * reconnect hands a wallet user the one-tap send. Uses the same clean-room seam
- * as the other client CI specs: dev mock auth (wallet mode) plus mocked
- * indexer, EAS, and RPC boundaries. No wallet exists here, so the automatic
- * reconnect send is expected to fail and leave the manual control in place.
+ * the submission lands in the durable queue instead of failing, that Upload all
+ * in Your Work checks the connection before it sends anything, and that a
+ * reconnect sends nothing on its own: the queued work waits for Upload all.
+ * Uses the same clean-room seam as the other client CI specs: dev mock auth
+ * (wallet mode) plus mocked indexer, EAS, and RPC boundaries.
  */
 
 import { expect, test } from "@playwright/test";
@@ -26,7 +26,7 @@ async function attachScreenshot(page: import("@playwright/test").Page, name: str
 test.describe("Offline Work Submission CI Tests", () => {
   test.use({ baseURL: CLIENT_URL });
 
-  test("completes every wizard step offline, queues the work, and offers one tap to send on reconnect", async ({
+  test("completes every wizard step offline, queues the work, and leaves sending to Upload all", async ({
     page,
     context,
   }) => {
@@ -91,7 +91,9 @@ test.describe("Offline Work Submission CI Tests", () => {
 
     // Step 4: review still opens offline and says what will happen.
     await expect(
-      page.getByText("You're offline. Your work will sync when you're back online.")
+      page.getByText(
+        "You're offline. Your work stays on this device until you upload it from Your Work."
+      )
     ).toBeVisible();
     const uploadButton = page.getByRole("button", { name: "Upload Work" });
     await expect(uploadButton).toBeEnabled();
@@ -106,30 +108,48 @@ test.describe("Offline Work Submission CI Tests", () => {
     // once any read has been saved, so count the work itself rather than the header.
     await expect(dashboard.getByText("You submitted")).toHaveCount(1, { timeout: 15000 });
     await expect(dashboard.getByText("You submitted")).toBeVisible();
+    await expect(dashboard.getByText("To upload", { exact: true })).toBeVisible();
     // The dashboard is a modal sheet: while it is open the page, the offline bar
     // included, is hidden from assistive tech, so look for the bar itself.
     await expect(
       page.getByRole("status", { ...OFFLINE_STATUS, includeHidden: true })
     ).toBeVisible();
+
+    // Upload all sits in the sheet's bottom bar on every tab. Offline, a tap checks
+    // the connection, sends nothing, and says so.
+    const uploadAll = page.getByTestId("upload-all");
+    await expect(uploadAll).toHaveText("Upload all (1)");
     await attachScreenshot(page, "queued-in-dashboard-offline");
+    await uploadAll.click();
+    await expect(
+      page.getByText("Nothing was uploaded. Try again when the connection is steady.")
+    ).toBeVisible({ timeout: 15000 });
+    await expect(dashboard.getByText("You submitted")).toHaveCount(1);
+    await dashboard.getByTestId("tab-completed").click();
+    await expect(page.getByTestId("upload-all")).toHaveText("Upload all (1)");
+    await dashboard.getByTestId("tab-pending").click();
+
     await dashboard.getByTestId("app-sheet-close").click();
     await expect(dashboard).toBeHidden();
-    await expect(
-      page.getByText("Offline: 1 items waiting to send when you're back online")
-    ).toBeVisible();
-    await expect(page.getByRole("button", { name: "Reconnect to send" })).toBeDisabled();
+    await expect(page.getByText("Offline: 1 item saved on this device")).toBeVisible();
+    await expect(page.getByRole("button", { name: "Review uploads" })).toBeEnabled();
 
-    // Reconnect: the app tries the batched wallet send by itself. Without a
-    // wallet in CI that attempt reports that the work is still waiting, and it
-    // stays queued behind the one-tap control instead of being dropped or
-    // duplicated.
+    // Reconnect: nothing sends on its own. The work stays queued behind Upload all,
+    // neither dropped nor duplicated, and Review uploads opens it.
     await context.setOffline(false);
     await expect(page.getByRole("status", { name: "App is back online" })).toBeVisible({
       timeout: 10000,
     });
-    await expect(page.getByText("Work is still waiting to send")).toBeVisible({ timeout: 15000 });
-    await expect(page.getByText("1 items waiting to send")).toBeVisible();
-    await expect(page.getByRole("button", { name: "Send all (1)" })).toBeEnabled();
-    await attachScreenshot(page, "reconnect-one-tap-send");
+    await expect(page.getByText("1 item waiting to upload")).toBeVisible({ timeout: 15000 });
+    await page.getByRole("button", { name: "Review uploads" }).click();
+    await expect(dashboard).toBeVisible({ timeout: 15000 });
+    await expect(dashboard.getByText("You submitted")).toHaveCount(1, { timeout: 15000 });
+    await expect(dashboard.getByText("To upload", { exact: true })).toBeVisible();
+    // Background preparation starts once the connection is confirmed; CI has no upload
+    // signer, so the work keeps preparing unless the probe finds the connection unsteady.
+    await expect(page.getByTestId("upload-all")).toHaveText(
+      /^(Preparing uploads…|Upload all \(1\))$/
+    );
+    await attachScreenshot(page, "reconnect-review-uploads");
   });
 });

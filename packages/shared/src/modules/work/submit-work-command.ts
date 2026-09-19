@@ -9,7 +9,8 @@ import {
   isNetworkError,
 } from "./work-confirmation";
 export { isNetworkError } from "./work-confirmation";
-import { getActionTitle } from "../../utils/action/parsers";
+import { findActionByUID } from "../../utils/action/parsers";
+import { resolveKnownWorkTitle, resolveWorkSubmissionTitle } from "../../utils/work/workTitles";
 import type { Action, Address, Work, WorkDraft, WorkUploadCheckpoint } from "../../types/domain";
 import type { JobQueueHandle, ProcessJobResult } from "../job-queue/ports";
 import type { TransactionSender } from "../transactions/types";
@@ -50,7 +51,8 @@ export interface QueuedWorkSubmission {
 export interface SubmitWorkPorts {
   reconcile?: typeof reconcileWorkTransaction;
   newClientWorkId?: () => string;
-  connectivity: { isOnline: () => boolean };
+  /** `confirm`: whether a send may start now; unstable connections queue instead. */
+  connectivity: { isOnline: () => boolean; confirm?: () => Promise<boolean> };
   clock: { now: () => number };
   simulate: (input: SimulateWorkSubmissionParams) => Promise<void>;
   queue: {
@@ -82,6 +84,8 @@ export type SubmitWorkOutcome =
       sponsored: boolean;
       jobId: string;
       clientWorkId: string;
+      /** The browser reported online, but the origin did not confirm it, so nothing was sent. */
+      reason?: "connection-unconfirmed";
     }
   | {
       kind: "processed";
@@ -97,6 +101,18 @@ export interface DefaultSubmitWorkPortOptions {
   simulationDeps?: SimulationDeps;
   onWalletStage?: SubmitWorkPorts["onWalletStage"];
   onQueueFallback?: SubmitWorkPorts["onQueueFallback"];
+}
+
+/** The selected action's own title; empty when it is not in the list, never a placeholder. */
+function actionTitleOf(command: ResolvedSubmitWorkCommand): string {
+  return findActionByUID(command.actions, command.actionUID)?.title ?? "";
+}
+
+/** A send starts only on a confirmed connection; ports without a check use the online signal. */
+export function canSendNow(ports: Pick<SubmitWorkPorts, "connectivity">): Promise<boolean> {
+  return ports.connectivity.confirm
+    ? ports.connectivity.confirm()
+    : Promise.resolve(ports.connectivity.isOnline());
 }
 
 function resolveCommand(command: SubmitWorkCommand): ResolvedSubmitWorkCommand {
@@ -118,10 +134,9 @@ export function buildOptimisticWork(
 ): Work {
   const resolved = resolveCommand(command);
   const now = clock.now();
-  const actionTitle = getActionTitle(resolved.actions, resolved.actionUID);
   return {
     id: `0xoffline_optimistic_${now}`,
-    title: actionTitle || "",
+    title: actionTitleOf(resolved),
     actionUID: resolved.actionUID,
     gardenAddress: resolved.gardenAddress,
     gardenerAddress: resolved.userAddress,
@@ -146,7 +161,7 @@ export async function submitWork(
     clientWorkId: command.clientWorkId ?? ports.newClientWorkId?.() ?? crypto.randomUUID(),
   });
   if (resolved.allowOfflineQueue && ports.queue.admit) return submitAdmittedWork(resolved, ports);
-  const online = ports.connectivity.isOnline();
+  const online = await canSendNow(ports);
 
   const awaitConfirmation = async (): Promise<SubmitWorkOutcome> => {
     if (!resolved.allowOfflineQueue)
@@ -221,13 +236,15 @@ export async function submitWork(
     throw new Error("Offline queue is disabled for this submission surface");
   }
 
-  const actionTitle = getActionTitle(resolved.actions, resolved.actionUID);
   if (online) {
     await ports.simulate({
       draft: resolved.draft,
       gardenAddress: resolved.gardenAddress,
       actionUID: resolved.actionUID,
-      actionTitle: actionTitle || `Action ${resolved.actionUID}`,
+      actionTitle: resolveWorkSubmissionTitle({
+        actionTitle: actionTitleOf(resolved),
+        actionUID: resolved.actionUID,
+      }),
       chainId: resolved.chainId,
       images: resolved.images,
       accountAddress: resolved.userAddress,
@@ -266,7 +283,10 @@ export function createDefaultSubmitWorkPorts(
 ): SubmitWorkPorts {
   return {
     newClientWorkId: () => crypto.randomUUID(),
-    connectivity: { isOnline: () => connectivityStore.getSnapshot() },
+    connectivity: {
+      isOnline: () => connectivityStore.getSnapshot(),
+      confirm: () => connectivityStore.confirmOnline(),
+    },
     clock: { now: () => Date.now() },
     simulate: async (input) => {
       const { simulateWorkSubmission } = await import("./simulate");
@@ -276,10 +296,19 @@ export function createDefaultSubmitWorkPorts(
       admit: async (input) => {
         const admissionToken = crypto.randomUUID();
         const { jobQueue } = await import("../job-queue/default-instance");
+        const { title: draftTitle, ...draft } = input.draft;
+        // Stored now, while the actions list is at hand. Work queued without a
+        // title was sent as "Action N", and that placeholder went on-chain.
+        const title = resolveKnownWorkTitle({
+          draftTitle,
+          actionTitle: findActionByUID(input.actions, input.actionUID)?.title,
+          actionUID: input.actionUID,
+        });
         const jobId = await jobQueue.addJob(
           "work",
           {
-            ...input.draft,
+            ...draft,
+            ...(title ? { title } : {}),
             clientWorkId: input.clientWorkId,
             gardenAddress: input.gardenAddress,
             actionUID: input.actionUID,
@@ -316,8 +345,10 @@ export function createDefaultSubmitWorkPorts(
       },
       process: async (jobId, sender, assertOwnership) => {
         const queue = options.jobQueue ?? (await import("../job-queue")).jobQueue;
+        // Only a Submit tap reaches this port, so the send is explicit.
         return queue.processJob(jobId, {
           transactionSender: sender,
+          explicit: true,
           ...(assertOwnership ? { assertOwnership } : {}),
         });
       },
@@ -329,7 +360,7 @@ export function createDefaultSubmitWorkPorts(
           input.draft,
           input.gardenAddress,
           input.actionUID,
-          getActionTitle(input.actions, input.actionUID),
+          actionTitleOf(input),
           input.chainId,
           input.images,
           {

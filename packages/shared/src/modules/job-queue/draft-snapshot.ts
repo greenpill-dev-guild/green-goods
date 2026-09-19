@@ -1,7 +1,7 @@
 import type { Address } from "../../types/domain";
 import type { DraftImage, MissingDraftAttachment, WorkDraftRecord } from "../../types/job-queue";
 import { retryOnceAfterQuotaCleanup } from "../../utils/storage/quota";
-import { identifyWorkFile, roundWorkLocation } from "../work/work-attachments";
+import { identifyWorkFile, isHeicFile, roundWorkLocation } from "../work/work-attachments";
 import type { DraftDatabase } from "./draft-connection";
 import { computeFirstIncompleteStep, isWorkDraft } from "./draft-state";
 
@@ -85,8 +85,12 @@ export async function saveDraftSnapshot(
         createdAt: previous?.createdAt ?? Date.now(),
         updatedAt: Date.now(),
       };
+      // A HEIC photo waiting to convert has no preview a browser can draw.
       const thumbnail = entries.find(
-        (entry) => entry.kind === "media" && entry.fileData.type.startsWith("image/")
+        (entry) =>
+          entry.kind === "media" &&
+          entry.fileData.type.startsWith("image/") &&
+          !isHeicFile(entry.fileData)
       );
       next.thumbnail = thumbnail
         ? { attachmentId: thumbnail.id, contentHash: thumbnail.contentHash }

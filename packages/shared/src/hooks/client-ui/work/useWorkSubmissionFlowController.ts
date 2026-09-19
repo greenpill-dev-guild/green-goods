@@ -1,6 +1,7 @@
 import { useWorkDraftRetirement } from "../../work/useWorkDraftRetirement";
 import { useUIStore } from "../../../stores/useUIStore";
-import { roundWorkLocation } from "../../../modules/work/work-attachments";
+import { isHeicFile, roundWorkLocation } from "../../../modules/work/work-attachments";
+import { getWorkMediaId } from "../../../modules/work/media-processing";
 import type { Address } from "../../../types/domain";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
@@ -29,6 +30,7 @@ import { useCommitmentJobs } from "../../commitment-pooling/useCommitmentJobs";
 import { useWorkLinkChoices } from "../../commitment-pooling/useWorkLinkChoices";
 import { useJoinGarden } from "../../garden/useJoinGarden";
 import { useWorkAudioRecording } from "../../work/useWorkAudioRecording";
+import { useDeferredHeicConversion } from "../../work/useDeferredHeicConversion";
 import { useTimeout } from "../../utils/useTimeout";
 import { useDraftAutoSave, useDraftSaveStatus } from "../../work/useDraftAutoSave";
 import { useDraftResume } from "../../work/useDraftResume";
@@ -250,6 +252,13 @@ export function useWorkSubmissionFlowController({
     setImages,
     trackEvent: trackMediaJourneyEvent,
   });
+  const heic = useDeferredHeicConversion({
+    files: images,
+    replace: (mediaId, converted) =>
+      setImages((files) =>
+        files.map((file) => (getWorkMediaId(file) === mediaId ? converted : file))
+      ),
+  });
   const joinCommunityGarden = useCallback(async () => {
     if (!joinableCommunityGarden?.id) return;
     try {
@@ -372,13 +381,17 @@ export function useWorkSubmissionFlowController({
     if (!isOnline) {
       return intl.formatMessage({
         id: "app.offline.status.went.offline",
-        defaultMessage: "You're offline. Your work will sync when you're back online.",
+        defaultMessage:
+          "You're offline. Your work stays on this device until you upload it from Your Work.",
       });
     }
     if (syncStatus === "syncing" || workMutation.isPending) return null;
     return pendingCount > 0
       ? intl.formatMessage(
-          { id: "app.syncBar.pendingOnline", defaultMessage: "{count} items waiting to send" },
+          {
+            id: "app.syncBar.pendingOnline",
+            defaultMessage: "{count, plural, one {# item} other {# items}} waiting to upload",
+          },
           { count: pendingCount }
         )
       : null;
@@ -392,7 +405,8 @@ export function useWorkSubmissionFlowController({
       tab: activeTab,
       gardenAddress,
       actionUID,
-      imageCount: images.filter((file) => file.type.startsWith("image/")).length,
+      imageCount: images.filter((file) => file.type.startsWith("image/") || isHeicFile(file))
+        .length,
       minRequired,
       isValid: form.state.isValid,
       isSubmitting: form.state.isSubmitting,
@@ -461,6 +475,8 @@ export function useWorkSubmissionFlowController({
     hasPendingLinkRecovery: pendingLinkRecovery !== null,
     retryLinkOnly,
     submissionOutcome: workMutation.lastSubmissionOutcome,
+    heicStateOf: heic.stateOf,
+    retryHeicConversion: heic.retry,
     markMediaPreviewFailed: media.markMediaPreviewFailed,
     mediaClickRef: media.mediaClickRef,
     mediaConfig,

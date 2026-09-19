@@ -244,7 +244,9 @@ export function useDraftSaveStatus() {
         if (
           validateWorkAttachments(
             field === "images" ? files : current.images,
-            field === "audioNotes" ? files : current.audioNotes
+            field === "audioNotes" ? files : current.audioNotes,
+            0,
+            { pendingHeic: "accept" }
           ).length
         )
           throw new Error("invalid-attachment");

@@ -16,7 +16,6 @@ interface ImportMetaEnv {
   readonly VITE_PINATA_GATEWAY_URL?: string;
   readonly VITE_ENABLE_SW_DEV?: string;
   readonly VITE_APP_VERSION?: string;
-  readonly VITE_ENABLE_RPC_BG_SYNC?: string;
   readonly VITE_PIMLICO_SPONSORSHIP_POLICY_ID?: string;
   readonly VITE_USE_HASH_ROUTER?: string;
   readonly VITE_ERC7677_PROXY_URL?: string;

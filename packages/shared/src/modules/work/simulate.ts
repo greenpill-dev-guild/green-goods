@@ -1,5 +1,11 @@
 import { getPublicClient } from "@wagmi/core";
-import type { Address } from "viem";
+import {
+  BaseError,
+  ContractFunctionRevertedError,
+  ExecutionRevertedError,
+  type Abi,
+  type Address,
+} from "viem";
 import { getWagmiConfig } from "../../config/appkit";
 import { getEASConfig, type EASConfig } from "../../config/blockchain";
 import type { WorkApprovalDraft, WorkDraft } from "../../types/domain";
@@ -9,6 +15,9 @@ import { NO_EXPIRATION, ZERO_BYTES32 } from "../../utils/eas/constants";
 import { encodeWorkApprovalData, simulateWorkData } from "../../utils/eas/encoders";
 import { parseContractError } from "../../utils/errors/contract-errors";
 import { resolveWorkSubmissionTitle } from "../../utils/work/workTitles";
+import { SimulationRejected } from "./simulation-rejected";
+
+export { SimulationRejected } from "./simulation-rejected";
 
 export interface SimulateWorkSubmissionParams {
   draft: WorkDraft;
@@ -28,6 +37,22 @@ export interface SimulateApprovalSubmissionParams {
 }
 
 const SIMULATION_CACHE_TTL_MS = 60_000;
+
+function refusedByChain(error: unknown): boolean {
+  return (
+    error instanceof BaseError &&
+    Boolean(
+      error.walk(
+        (cause) =>
+          cause instanceof ContractFunctionRevertedError || cause instanceof ExecutionRevertedError
+      )
+    )
+  );
+}
+
+function rejection(error: unknown, message: string, reason: string): SimulationRejected {
+  return new SimulationRejected(message, reason, refusedByChain(error), { cause: error });
+}
 const MAX_SIMULATION_CACHE_SIZE = 50;
 
 type SimulationPublicClient = Pick<
@@ -182,8 +207,10 @@ export async function simulateWorkSubmission(
 
     const parsed = parseContractError(err);
     if (parsed.isKnown) {
-      throw new Error(
-        `[${parsed.name}] ${parsed.message}${parsed.action ? ` ${parsed.action}` : ""}`
+      throw rejection(
+        err,
+        `[${parsed.name}] ${parsed.message}${parsed.action ? ` ${parsed.action}` : ""}`,
+        parsed.name
       );
     }
 
@@ -196,19 +223,29 @@ export async function simulateWorkSubmission(
       messageLower.includes("notgardenmember") ||
       messageLower.includes("not a member")
     ) {
-      throw new Error("You're not a member of this garden. Please join the garden first.");
+      throw rejection(
+        err,
+        "You're not a member of this garden. Please join the garden first.",
+        "NotGardenMember"
+      );
     }
 
     if (messageLower.includes("reverted") && !errorLike.cause?.reason) {
-      throw new Error("Transaction would fail. Make sure you're a member of the selected garden.");
+      throw rejection(
+        err,
+        "Transaction would fail. Make sure you're a member of the selected garden.",
+        "reverted"
+      );
     }
 
     if (errorLike.cause?.reason) {
-      throw new Error(`Transaction check failed: ${errorLike.cause.reason}`);
+      throw rejection(err, `Transaction check failed: ${errorLike.cause.reason}`, "reverted");
     }
 
-    throw new Error(
-      `Transaction check failed: ${parsed.message || errorLike.message || "Unknown simulation error"}`
+    throw rejection(
+      err,
+      `Transaction check failed: ${parsed.message || errorLike.message || "Unknown simulation error"}`,
+      "unknown"
     );
   }
 }
@@ -266,8 +303,10 @@ export async function simulateApprovalSubmission(
 
     const parsed = parseContractError(err);
     if (parsed.isKnown) {
-      throw new Error(
-        `[${parsed.name}] ${parsed.message}${parsed.action ? ` ${parsed.action}` : ""}`
+      throw rejection(
+        err,
+        `[${parsed.name}] ${parsed.message}${parsed.action ? ` ${parsed.action}` : ""}`,
+        parsed.name
       );
     }
 
@@ -281,19 +320,65 @@ export async function simulateApprovalSubmission(
       messageLower.includes("notauthorized") ||
       messageLower.includes("not authorized")
     ) {
-      throw new Error("You're not authorized to approve work for this garden.");
+      throw rejection(
+        err,
+        "You're not authorized to approve work for this garden.",
+        "NotGardenOperator"
+      );
     }
 
     if (messageLower.includes("reverted") && !errorLike.cause?.reason) {
-      throw new Error("Transaction would fail. Make sure you're a steward of the selected garden.");
+      throw rejection(
+        err,
+        "Transaction would fail. Make sure you're a steward of the selected garden.",
+        "reverted"
+      );
     }
 
     if (errorLike.cause?.reason) {
-      throw new Error(`Approval check failed: ${errorLike.cause.reason}`);
+      throw rejection(err, `Approval check failed: ${errorLike.cause.reason}`, "reverted");
     }
 
-    throw new Error(
-      `Approval check failed: ${parsed.message || errorLike.message || "Unknown simulation error"}`
+    throw rejection(
+      err,
+      `Approval check failed: ${parsed.message || errorLike.message || "Unknown simulation error"}`,
+      "unknown"
     );
+  }
+}
+
+/**
+ * Simulate the one call Upload all sends, from the account that will send it.
+ * It is never cached: the items a call carries change between uploads.
+ */
+export async function simulateQueuedAttestations(
+  call: { address: Address; abi: Abi; functionName: string; args: readonly unknown[] },
+  chainId: number,
+  accountAddress: Address,
+  deps: SimulationDeps = {}
+): Promise<void> {
+  const { publicClient } = resolveSimulationDeps(deps, chainId);
+  // Without a client the call was never checked, which must never read as the
+  // chain accepting it: Upload all refuses rather than sending a batch blind.
+  if (!publicClient)
+    throw new SimulationRejected("No chain client to check this upload", "unchecked", false);
+  try {
+    await (publicClient.simulateContract as (parameters: unknown) => Promise<unknown>)({
+      address: call.address,
+      abi: call.abi,
+      functionName: call.functionName,
+      args: call.args,
+      account: accountAddress,
+    });
+  } catch (err: unknown) {
+    debugError("[simulateQueuedAttestations] Simulation failed", err);
+    const parsed = parseContractError(err);
+    throw parsed.isKnown
+      ? rejection(err, `[${parsed.name}] ${parsed.message}`, parsed.name)
+      : rejection(
+          err,
+          `Upload check failed: ${parsed.message || (err as Error)?.message || "Unknown simulation error"}`,
+          "reverted"
+        );
   }
 }

@@ -1,5 +1,6 @@
 import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
-import { queueToasts, toastService } from "../components/toast";
+import { useIntl } from "react-intl";
+import { createQueueToasts } from "../components/toast";
 import { DEFAULT_CHAIN_ID } from "../config/default-chain";
 import { queryClient } from "../config/react-query";
 import { useAuth } from "../hooks/auth/useAuth";
@@ -8,10 +9,13 @@ import { useTransactionSender } from "../hooks/blockchain/useTransactionSender";
 import { queryInvalidation } from "../config/query-keys/invalidation";
 import { queueKeys } from "../config/query-keys/misc";
 import { approvalsKeys, workApprovalsKeys, worksKeys } from "../config/query-keys/work";
-import { useWalletQueueSync } from "../hooks/work/useWalletQueueSync";
+import { useQueueConfirmationSync } from "../hooks/work/useQueueConfirmationSync";
+import { useWorkUploadPreparation } from "../hooks/work/useWorkUploadPreparation";
+import { COMMITMENT_JOB_KINDS } from "../modules/commitment-pooling/job-types";
 import { jobQueue } from "../modules/job-queue/default-instance";
 import type { JobQueueHandle } from "../modules/job-queue/ports";
 import { logger } from "../modules/app/logger";
+import { scheduleUploadPreparation } from "../modules/work/upload-preparation";
 import { connectivityStore } from "../stores/connectivity";
 import { useUIStore } from "../stores/useUIStore";
 import type {
@@ -26,12 +30,19 @@ interface JobQueueContextValue {
   stats: QueueStats;
   isProcessing: boolean;
   lastEvent: QueueEvent | null;
-  flush: () => Promise<void>;
+  /** Give one job another run and send only that job, as the person's own tap. */
+  retryAndSend: (jobId: string) => Promise<void>;
   hasPendingJobs: () => Promise<boolean>;
   getPendingCount: () => Promise<number>;
 }
 
 const JobQueueContext = createContext<JobQueueContextValue | undefined>(undefined);
+
+function stillQueuedReason(hasSender: boolean) {
+  if (!connectivityStore.getSnapshot()) return "offline";
+  if (!hasSender) return "signedOut";
+  return "retrying";
+}
 
 export const useJobQueue = () => {
   const context = useContext(JobQueueContext);
@@ -44,11 +55,6 @@ export const useJobQueue = () => {
 export const useQueueStats = () => {
   const { stats } = useJobQueue();
   return stats;
-};
-
-export const useQueueFlush = () => {
-  const { flush } = useJobQueue();
-  return flush;
 };
 
 interface JobQueueProviderProps {
@@ -72,7 +78,11 @@ interface Work {
 }
 
 const JobQueueProviderInner: React.FC<JobQueueProviderProps> = ({ children, queue = jobQueue }) => {
-  const { authMode, externalWalletConnected } = useAuth();
+  const { formatMessage } = useIntl();
+  // One object per intl instance: the effects below list it as a dependency, so
+  // a fresh one on every render would resubscribe the queue on every render.
+  const queueToasts = React.useMemo(() => createQueueToasts(formatMessage), [formatMessage]);
+  const { authMode } = useAuth();
   const sender = useTransactionSender();
 
   // Use single source of truth for primary address
@@ -232,7 +242,8 @@ const JobQueueProviderInner: React.FC<JobQueueProviderProps> = ({ children, queu
     };
 
     const handleJobAdded = (event: QueueEvent) => {
-      if (event.job?.meta?.waitingReason === "awaiting-confirmation") setIsProcessing(false);
+      // A job that went back to waiting, for any reason, is no longer being processed.
+      if (event.job?.meta?.waitingReason) setIsProcessing(false);
       void refreshStats(abortController.signal);
       void requestPersistentStorageOnce("offline-job");
 
@@ -281,7 +292,7 @@ const JobQueueProviderInner: React.FC<JobQueueProviderProps> = ({ children, queu
       unsubscribe();
       unsubscribeSyncCompleted();
     };
-  }, [currentUserAddress, queue, refreshStats, setOfflineBannerVisibleIfChanged]);
+  }, [currentUserAddress, queue, queueToasts, refreshStats, setOfflineBannerVisibleIfChanged]);
 
   useEffect(() => {
     if (!sender || !currentUserAddress) {
@@ -302,7 +313,14 @@ const JobQueueProviderInner: React.FC<JobQueueProviderProps> = ({ children, queu
 
       isFlushInProgressRef.current = true;
       try {
-        await queue.flush({ transactionSender: sender, userAddress: currentUserAddress });
+        await queue.flush({
+          transactionSender: sender,
+          userAddress: currentUserAddress,
+          // A passkey's work and decisions wait for Upload all; its commitment acts
+          // still send on their own. An embedded wallet, which has no Upload all
+          // batch, keeps sending everything.
+          ...(authMode === "passkey" ? { kinds: COMMITMENT_JOB_KINDS } : {}),
+        });
         if (!abortController.signal.aborted) {
           await refreshStats(abortController.signal);
         }
@@ -325,28 +343,27 @@ const JobQueueProviderInner: React.FC<JobQueueProviderProps> = ({ children, queu
       }
     };
 
-    // Auto-flush only after the canonical connectivity store confirms online.
-    if (
-      connectivityStore.getStatusSnapshot().state === "online" &&
-      (authMode === "passkey" || authMode === "embedded")
-    ) {
+    // Auto-flush only once the origin has confirmed the connection: "online"
+    // is also the boot state and the state while a probe is still pending, and
+    // an unstable connection never sends.
+    const autoSends = authMode === "passkey" || authMode === "embedded";
+    if (autoSends && connectivityStore.isConfirmedOnline()) {
       void attemptFlush();
     }
 
     const handleConnectivity = () => {
-      if (
-        connectivityStore.getStatusSnapshot().state === "online" &&
-        (authMode === "passkey" || authMode === "embedded")
-      ) {
+      if (autoSends && connectivityStore.isConfirmedOnline()) {
         void attemptFlush();
       }
     };
 
     const unsubscribeConnectivity = connectivityStore.subscribeStatus(handleConnectivity);
     const unsubscribeBackgroundSync = queue.onBackgroundSyncRequested(() => {
-      if (authMode === "passkey" || authMode === "embedded") {
-        void attemptFlush();
-      }
+      scheduleUploadPreparation();
+      if (!autoSends) return;
+      void connectivityStore.confirmOnline().then((confirmed) => {
+        if (confirmed) void attemptFlush();
+      });
     });
 
     return () => {
@@ -354,16 +371,13 @@ const JobQueueProviderInner: React.FC<JobQueueProviderProps> = ({ children, queu
       unsubscribeConnectivity();
       unsubscribeBackgroundSync();
     };
-  }, [sender, authMode, currentUserAddress, queue, refreshStats]);
+  }, [sender, authMode, currentUserAddress, queue, queueToasts, refreshStats]);
 
-  useWalletQueueSync({
-    queue,
-    sender,
-    authMode,
-    walletConnected: externalWalletConnected,
-    userAddress: currentUserAddress,
-    refreshStats,
-  });
+  // Sent work and decisions are confirmed here; nothing is sent from this pass.
+  useQueueConfirmationSync({ queue, sender, userAddress: currentUserAddress, refreshStats });
+
+  // Queued work and decisions are prepared in the background, so Upload all only signs.
+  useWorkUploadPreparation(currentUserAddress, DEFAULT_CHAIN_ID);
 
   // Context value - useMemo kept here as it's passed to Provider (cross-boundary)
   const contextValue: JobQueueContextValue = React.useMemo(
@@ -371,47 +385,31 @@ const JobQueueProviderInner: React.FC<JobQueueProviderProps> = ({ children, queu
       stats,
       isProcessing,
       lastEvent,
-      flush: async () => {
+      retryAndSend: async (jobId: string) => {
         if (!currentUserAddress) {
-          toastService.error({
-            id: "job-queue-flush",
-            title: "Cannot sync",
-            message: "Please sign in to sync your queue.",
-            context: "job queue",
-          });
+          queueToasts.stillQueued("signedOut");
           return;
         }
-
         try {
-          const result = await queue.flush({
+          await queue.retryJob(jobId);
+          // The person asked for this one job, so nothing else in the queue is sent.
+          const result = await queue.processJob(jobId, {
             transactionSender: sender ?? null,
-            userAddress: currentUserAddress,
+            explicit: true,
           });
           await refreshStats();
-
-          if (result.processed > 0) {
-            queueToasts.syncSuccess(result.processed);
-          } else if (result.failed > 0) {
-            queueToasts.syncError();
-          } else if (result.skipped > 0) {
-            const isOnline = connectivityStore.getSnapshot();
-            const reason = !isOnline
-              ? "Reconnect to the internet to finish syncing."
-              : !sender
-                ? "Sign in to continue syncing."
-                : "We'll retry shortly.";
-            queueToasts.stillQueued(reason);
+          if (result.success) {
+            if (result.skipped) queueToasts.queueClear();
+            else queueToasts.syncSuccess(1);
+          } else if (!result.skipped) {
+            // Not syncError: one act, and a non-skipped failure is one the
+            // queue gave up on rather than rescheduled.
+            queueToasts.retryFailed();
           } else {
-            queueToasts.queueClear();
+            queueToasts.stillQueued(stillQueuedReason(Boolean(sender)));
           }
         } catch (error) {
-          toastService.error({
-            id: "job-queue-flush",
-            title: "Queue sync failed",
-            message: "Please try again.",
-            context: "job queue",
-            error,
-          });
+          queueToasts.retryFailed(error);
         }
       },
       hasPendingJobs: () => {
@@ -423,7 +421,7 @@ const JobQueueProviderInner: React.FC<JobQueueProviderProps> = ({ children, queu
         return queue.getPendingCount(currentUserAddress);
       },
     }),
-    [stats, isProcessing, lastEvent, currentUserAddress, sender, queue, refreshStats]
+    [stats, isProcessing, lastEvent, currentUserAddress, sender, queue, queueToasts, refreshStats]
   );
 
   return <JobQueueContext.Provider value={contextValue}>{children}</JobQueueContext.Provider>;

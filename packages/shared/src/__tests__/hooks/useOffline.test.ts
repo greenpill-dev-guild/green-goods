@@ -10,13 +10,12 @@ import { createElement, type ReactNode } from "react";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 // Mock dependencies - use vi.hoisted to ensure mocks are available at hoist time
-const { mockFlush, queueState } = vi.hoisted(() => ({
-  mockFlush: vi.fn(),
+const { queueState } = vi.hoisted(() => ({
   queueState: { isProcessing: false },
 }));
 
 vi.mock("../../providers/JobQueue", () => ({
-  useJobQueue: () => ({ flush: mockFlush, isProcessing: queueState.isProcessing }),
+  useJobQueue: () => ({ isProcessing: queueState.isProcessing }),
 }));
 
 vi.mock("../../hooks/work/usePendingWorksCount", () => ({
@@ -126,16 +125,6 @@ describe("hooks/app/useOffline", () => {
       queueState.isProcessing = true;
       const { result } = renderHook(() => useOffline(), { wrapper: createWrapper() });
       expect(result.current.syncStatus).toBe("syncing");
-    });
-  });
-
-  describe("refetch function", () => {
-    it("exposes flush function for manual sync", () => {
-      const { result } = renderHook(() => useOffline(), {
-        wrapper: createWrapper(),
-      });
-
-      expect(result.current.refetch).toBe(mockFlush);
     });
   });
 

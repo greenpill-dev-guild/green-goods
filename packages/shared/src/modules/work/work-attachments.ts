@@ -9,8 +9,41 @@ export class InvalidWorkAttachmentError extends Error {
   }
 }
 
+export type HeicConversionWait = "photo-conversion-pending" | "photo-needs-attention";
+
+/**
+ * The work is valid except for HEIC photos that are not JPEGs yet. Not an
+ * invalid attachment: a queue waits on this instead of failing the work, and
+ * `photo-needs-attention` waits for the steward rather than retrying.
+ */
+export class PendingHeicConversionError extends Error {
+  readonly reason: HeicConversionWait;
+
+  constructor(reason: HeicConversionWait = "photo-conversion-pending") {
+    super(reason);
+    this.name = "PendingHeicConversionError";
+    this.reason = reason;
+  }
+}
+
+export interface WorkAttachmentPolicy {
+  /**
+   * A composer keeps a HEIC photo while it waits for the decoder, and counts it
+   * toward the action's minimum. Anything that uploads keeps the default and
+   * refuses it, so an unconverted original never leaves the device.
+   */
+  pendingHeic?: "accept" | "reject";
+}
+
 const PHOTO_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
 const VIDEO_TYPES = new Set(["video/mp4", "video/webm"]);
+const HEIC_TYPES = new Set([
+  "image/heic",
+  "image/heif",
+  "image/heic-sequence",
+  "image/heif-sequence",
+]);
+const HEIC_EXTENSIONS = new Set(["heic", "heif"]);
 const MIB = 1024 * 1024;
 const identities = new WeakMap<
   File,
@@ -70,16 +103,37 @@ export function restoreWorkFile(
   return file;
 }
 
+/**
+ * A HEIC or HEIF photo, by type, or by name when the picker gave no usable type
+ * (Android often reports none). A known type wins: a JPEG named `.heic` is a JPEG.
+ */
+export function isHeicFile(file: Pick<File, "name" | "type">): boolean {
+  if (HEIC_TYPES.has(file.type)) return true;
+  if (file.type && file.type !== "application/octet-stream") return false;
+  const dot = file.name.lastIndexOf(".");
+  return (
+    dot >= 0 &&
+    HEIC_EXTENSIONS.has(
+      file.name
+        .slice(dot + 1)
+        .trim()
+        .toLowerCase()
+    )
+  );
+}
+
 export function validateWorkAttachments(
   media: File[],
   audio: File[] = [],
-  minPhotos = 0
+  minPhotos = 0,
+  policy: WorkAttachmentPolicy = {}
 ): string[] {
+  const isPhoto = (file: File) =>
+    PHOTO_TYPES.has(file.type) || (policy.pendingHeic === "accept" && isHeicFile(file));
   const errors: string[] = [];
-  if (media.filter((file) => PHOTO_TYPES.has(file.type)).length < minPhotos)
-    errors.push("photos-required");
+  if (media.filter(isPhoto).length < minPhotos) errors.push("photos-required");
   if (media.length > 10) errors.push("media-count");
-  if (media.some((file) => !PHOTO_TYPES.has(file.type) && !VIDEO_TYPES.has(file.type)))
+  if (media.some((file) => !isPhoto(file) && !VIDEO_TYPES.has(file.type)))
     errors.push("media-type");
   if (media.some((file) => file.size > (VIDEO_TYPES.has(file.type) ? 20 : 10) * MIB))
     errors.push("media-size");

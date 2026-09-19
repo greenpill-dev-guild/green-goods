@@ -5,7 +5,7 @@ import type { Hex } from "viem";
 import type { BroadcastReference } from "../transactions/types";
 import { getTransactionReceipt } from "@wagmi/core";
 import { getWagmiConfig } from "../../config/appkit";
-import { claimWorkJobs } from "./execution-state";
+import { claimWorkJobs, type WorkClaimOptions } from "./execution-state";
 
 type WorkConfirmation = "confirmed" | "reverted" | "unresolved";
 export class AwaitingWorkConfirmation extends Error {
@@ -61,11 +61,15 @@ export function forgetWorkBroadcast(id: string) {
 export { claimWorkJobs } from "./execution-state";
 
 /** Cross-tab claims share the queue database; a persisted signing intent handles crash ambiguity. */
-export async function acquireWorkJobs(ids: string[]): Promise<{
+export async function acquireWorkJobs(
+  ids: string[],
+  options: WorkClaimOptions = {}
+): Promise<{
+  token: string;
   assertOwned: () => Promise<void>;
   release: () => Promise<void>;
 } | null> {
-  const localRelease = claimWorkJobs(ids);
+  const localRelease = claimWorkJobs(ids, options);
   if (!localRelease) return null;
   const { jobQueueDB } = await import("../job-queue/db");
   const token = crypto.randomUUID();
@@ -79,6 +83,7 @@ export async function acquireWorkJobs(ids: string[]): Promise<{
     throw error;
   }
   return {
+    token,
     assertOwned: async () => {
       if (!(await jobQueueDB.renewExecutionClaim(ids, token)))
         throw new Error("submission-ownership-changed");
@@ -140,7 +145,11 @@ export async function reconcileLegacyPasskeyWork(
   }
 }
 
-/** Wallet adapters often wrap a rejection several causes deep. */
+/**
+ * Wallet adapters often wrap a rejection several causes deep. A dismissed
+ * passkey prompt surfaces as WebAuthn's `NotAllowedError`, which the spec also
+ * uses for a timed-out prompt: either way nothing was signed.
+ */
 export function isWorkSubmissionCancelled(error: unknown): boolean {
   const seen = new Set<object>();
   let cause = error;
@@ -149,7 +158,9 @@ export function isWorkSubmissionCancelled(error: unknown): boolean {
     if (
       ("code" in cause && Number(cause.code) === 4001) ||
       ("name" in cause &&
-        (cause.name === "AbortError" || cause.name === "UserRejectedRequestError"))
+        (cause.name === "AbortError" ||
+          cause.name === "NotAllowedError" ||
+          cause.name === "UserRejectedRequestError"))
     )
       return true;
     cause = "cause" in cause ? cause.cause : undefined;

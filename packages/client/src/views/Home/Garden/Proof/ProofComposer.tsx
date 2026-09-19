@@ -1,5 +1,5 @@
 import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
-import { isVideoFile } from "@green-goods/shared/modules/work/media-processing";
+import { isHeicFile, isVideoFile } from "@green-goods/shared/modules/work/media-processing";
 import type { ProofBeat } from "@green-goods/shared/hooks/client-ui/commitment/proofReadiness";
 import { toastService } from "@green-goods/shared/components/Toast/toast.service";
 import { useProofComposerController } from "@green-goods/shared/hooks/client-ui/commitment/useProofComposerController";
@@ -123,9 +123,13 @@ export function ProofComposer() {
             onRemoveAudio={controller.removeAudio}
             onPreview={(index) =>
               setPreviewIndex(
-                controller.media.slice(0, index).filter((file) => !isVideoFile(file)).length
+                controller.media
+                  .slice(0, index)
+                  .filter((file) => !isVideoFile(file) && !isHeicFile(file)).length
               )
             }
+            heicStateOf={controller.heicStateOf}
+            onRetryHeicConversion={controller.retryHeicConversion}
           />
         ) : null}
         {beat === "details" ? (

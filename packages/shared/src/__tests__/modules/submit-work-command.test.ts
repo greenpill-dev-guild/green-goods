@@ -387,8 +387,10 @@ describe("submitWork", () => {
       resolved.userAddress,
       expect.objectContaining({ newClientWorkId: expect.any(Function) })
     );
+    // Only a Submit tap reaches the process port, so its send is explicit.
     expect(defaultAdapters.process).toHaveBeenCalledWith("job-default", {
       transactionSender: sender,
+      explicit: true,
     });
     expect(defaultAdapters.direct).toHaveBeenCalledWith(
       resolved.draft,

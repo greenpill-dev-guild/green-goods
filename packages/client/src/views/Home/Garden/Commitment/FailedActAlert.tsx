@@ -25,7 +25,7 @@ export interface FailedActAlertProps {
  */
 export function FailedActAlert({ failed, onChanged }: FailedActAlertProps) {
   const { formatMessage } = useIntl();
-  const { flush } = useJobQueue();
+  const { retryAndSend } = useJobQueue();
   const [busy, setBusy] = useState(false);
   const run = async (act: (jobId: string) => Promise<unknown>) => {
     if (!failed) return;
@@ -37,10 +37,8 @@ export function FailedActAlert({ failed, onChanged }: FailedActAlertProps) {
       onChanged();
     }
   };
-  const onRetry = async (jobId: string) => {
-    await jobQueue.retryJob(jobId);
-    await flush();
-  };
+  // Retrying this act sends only this act, never the rest of the queue.
+  const onRetry = (jobId: string) => retryAndSend(jobId);
   const onDiscard = (jobId: string) => jobQueue.discardJob(jobId);
   const reasonMessage = failed?.reason
     ? formatMessage({ id: `app.commitment.queue.failure.${failed.reason}` })

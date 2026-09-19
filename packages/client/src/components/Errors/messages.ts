@@ -12,7 +12,7 @@ export const defaultErrorBoundaryMessages = {
   "app.error.boundary.description.loop":
     "The app got stuck in a loop. Restart it to try again. Cached reads, drafts and queued work will stay on this device.",
   "app.error.boundary.description.network":
-    "Your garden is temporarily offline. Don't worry - your work is safely stored locally and will sync when you're back online!",
+    "Your garden is temporarily offline. Your work is safely stored on this device.",
   "app.error.boundary.description.offline":
     "There's a technical issue with the offline features, but your data is safe and secure.",
   "app.error.boundary.devMode.hide": "Hide Technical Details",
@@ -47,7 +47,7 @@ const localizedErrorBoundaryMessages: Record<ErrorBoundaryLocale, ErrorBoundaryM
     "app.error.boundary.description.loop":
       "La aplicación quedó en un bucle. Reiníciala para volver a intentarlo. Las lecturas guardadas, los borradores y el trabajo en cola permanecerán en este dispositivo.",
     "app.error.boundary.description.network":
-      "Tu jardín está temporalmente sin conexión. No te preocupes: tu trabajo está guardado localmente y se sincronizará cuando vuelvas a estar en línea.",
+      "Tu jardín está temporalmente sin conexión. Tu trabajo está guardado de forma segura en este dispositivo.",
     "app.error.boundary.description.offline":
       "Hay un problema técnico con las funciones sin conexión, pero tus datos están seguros y protegidos.",
     "app.error.boundary.devMode.hide": "Ocultar detalles técnicos",
@@ -77,7 +77,7 @@ const localizedErrorBoundaryMessages: Record<ErrorBoundaryLocale, ErrorBoundaryM
     "app.error.boundary.description.loop":
       "O aplicativo ficou preso em um ciclo. Reinicie para tentar novamente. As leituras salvas, os rascunhos e o trabalho na fila permanecerão neste dispositivo.",
     "app.error.boundary.description.network":
-      "Seu jardim está temporariamente offline. Não se preocupe - seu trabalho está guardado localmente e será sincronizado quando você voltar a ficar online!",
+      "Seu jardim está temporariamente offline. Seu trabalho está guardado com segurança neste dispositivo.",
     "app.error.boundary.description.offline":
       "Há um problema técnico com as funcionalidades offline, mas seus dados estão seguros e protegidos.",
     "app.error.boundary.devMode.hide": "Ocultar detalhes técnicos",

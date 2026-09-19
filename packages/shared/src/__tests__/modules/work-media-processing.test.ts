@@ -5,11 +5,20 @@ const heicToMocks = vi.hoisted(() => ({
   isHeic: vi.fn(),
 }));
 
+// The connection is confirmed, so importing the decoder is worth attempting.
+vi.mock("../../stores/connectivity", () => ({
+  CONFIRMED_ONLINE_MAX_AGE_MS: 60_000,
+  connectivityStore: {
+    isConfirmedOnline: () => true,
+    getStatusSnapshot: () => ({ state: "online" }),
+    confirmOnline: async () => true,
+  },
+}));
+
 vi.mock("heic-to/csp", () => heicToMocks);
 
 import {
   HEIC_JPEG_QUALITY,
-  finalizeWorkMediaForUpload,
   getSafeMediaBatchMetadata,
   getWorkMediaId,
   normalizeWorkMediaFiles,
@@ -67,37 +76,6 @@ describe("normalizeWorkMediaFiles", () => {
     expect(result.rejected[0].file).not.toBe(heic);
     expect(await result.rejected[0].file.arrayBuffer()).toEqual(await heic.arrayBuffer());
     expect(result.rejected[0].reason).toBe("heic_conversion_failed");
-  });
-
-  it("converts a photo queued before the decoder arrived, at send time", async () => {
-    const heic = new File(["heic"], "garden.heic", { type: "image/heic" });
-    const jpeg = new File(["jpeg"], "photo.jpg", { type: "image/jpeg" });
-
-    const finalized = await finalizeWorkMediaForUpload([heic, jpeg]);
-
-    expect(heicToMocks.heicTo).toHaveBeenCalledWith({
-      blob: heic,
-      type: "image/jpeg",
-      quality: HEIC_JPEG_QUALITY,
-    });
-    expect(finalized[0].name).toBe("garden.jpg");
-    expect(finalized[0].type).toBe("image/jpeg");
-    // A photo that never needed converting is handed back untouched.
-    expect(finalized[1]).toBe(jpeg);
-  });
-
-  it("uploads the original when a deferred conversion fails at send time", async () => {
-    heicToMocks.heicTo.mockRejectedValue(new Error("decoder failed"));
-    const heic = new File(["heic"], "garden.heic", { type: "image/heic" });
-
-    await expect(finalizeWorkMediaForUpload([heic])).resolves.toEqual([heic]);
-  });
-
-  it("does not load the decoder when nothing needs converting", async () => {
-    const jpeg = new File(["jpeg"], "photo.jpg", { type: "image/jpeg" });
-
-    await expect(finalizeWorkMediaForUpload([jpeg])).resolves.toEqual([jpeg]);
-    expect(heicToMocks.heicTo).not.toHaveBeenCalled();
   });
 
   it("rejects unsupported files before they enter the draft", async () => {

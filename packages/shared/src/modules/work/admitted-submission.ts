@@ -4,25 +4,29 @@ import type { TransactionSender } from "../transactions/types";
 import { jobQueueDB } from "../job-queue/db";
 import { MAX_RETRIES } from "../job-queue/queue-policy";
 import { jobQueueEventBus } from "../job-queue/event-bus";
-import type {
-  QueuedWorkSubmission,
-  ResolvedSubmitWorkCommand,
-  SubmitWorkOutcome,
-  SubmitWorkPorts,
+import { convertQueuedHeicMedia } from "../job-queue/job-media-conversion";
+import { isHeicFile, PendingHeicConversionError } from "./work-attachments";
+import {
+  canSendNow,
+  type QueuedWorkSubmission,
+  type ResolvedSubmitWorkCommand,
+  type SubmitWorkOutcome,
+  type SubmitWorkPorts,
 } from "./submit-work-command";
 import {
   isNetworkError,
   acquireWorkJobs,
   rememberWorkBroadcast,
   forgetWorkBroadcast,
-  isWorkSubmissionCancelled,
   AwaitingWorkConfirmation,
   WorkTransactionReverted,
 } from "./work-confirmation";
+import { classifySendFailure, WorkSendCancelledError } from "./send-outcome";
 
 export function queuedOutcome(
   queued: QueuedWorkSubmission,
-  sender: TransactionSender | null
+  sender: TransactionSender | null,
+  reason?: "connection-unconfirmed"
 ): SubmitWorkOutcome {
   return {
     kind: "queued",
@@ -30,6 +34,7 @@ export function queuedOutcome(
     sponsored: sender?.supportsSponsorship ?? false,
     jobId: queued.jobId,
     clientWorkId: queued.clientWorkId,
+    ...(reason ? { reason } : {}),
   };
 }
 
@@ -70,19 +75,29 @@ export async function submitAdmittedWork(
     const existing = await jobQueueDB.getJob(queued.jobId);
     rejectTerminalWork(existing);
     const checkpoint = (existing?.payload as WorkJobPayload | undefined)?.uploadCheckpoint;
-    return {
-      ...queuedOutcome(queued, ports.sender),
-      kind:
-        checkpoint?.broadcast || checkpoint?.transactionHash || checkpoint?.broadcastPending
-          ? "awaiting-confirmation"
-          : "queued",
-    } as SubmitWorkOutcome;
+    const awaiting = Boolean(
+      checkpoint?.broadcast || checkpoint?.transactionHash || checkpoint?.broadcastPending
+    );
+    // Submitting again after declining the prompt is the person asking to send it.
+    if (awaiting || !existing?.meta?.requiresExplicitSend)
+      return {
+        ...queuedOutcome(queued, ports.sender),
+        kind: awaiting ? "awaiting-confirmation" : "queued",
+      } as SubmitWorkOutcome;
   }
-  if (!ports.connectivity.isOnline()) return queuedOutcome(queued, ports.sender);
+  // Admission is durable; on an unconfirmed connection the work waits in the queue.
+  if (!(await canSendNow(ports)))
+    return queuedOutcome(
+      queued,
+      ports.sender,
+      ports.connectivity.isOnline() ? "connection-unconfirmed" : undefined
+    );
   if (input.authMode !== "wallet") {
     await input.assertOwnership?.();
     if (!ports.sender) return queuedOutcome(queued, ports.sender);
     const result = await ports.queue.process(queued.jobId, ports.sender, input.assertOwnership);
+    // The work stays queued; the person is told they cancelled, not that it failed.
+    if (result.error === "send-cancelled") throw new WorkSendCancelledError();
     if (!result.success) {
       rejectTerminalWork(await jobQueueDB.getJob(queued.jobId));
       if (result.error?.includes("work-transaction-reverted"))
@@ -141,6 +156,16 @@ export async function submitAdmittedWork(
         ...queuedOutcome(queued, ports.sender),
         kind: "awaiting-confirmation",
       } as SubmitWorkOutcome;
+    // A photo picked before the decoder could load converts in storage first, and
+    // the send reads the stored JPEG. Until it can convert, the work waits queued.
+    let images = input.images;
+    if (images.some(isHeicFile)) {
+      if ((await convertQueuedHeicMedia(job)).status !== "ready")
+        return queuedOutcome(queued, ports.sender);
+      images = (await jobQueueDB.getImagesForJob(job.id))
+        .map((image) => image.file)
+        .filter((file) => !file.type.startsWith("audio/"));
+    }
     const persist = async (value: WorkUploadCheckpoint) => {
       await claim.assertOwned();
       payload.uploadCheckpoint = value;
@@ -153,6 +178,7 @@ export async function submitAdmittedWork(
       const txHash = await ports.direct.submitWork(
         {
           ...input,
+          images,
           assertOwnership,
           onCheckpoint: persist,
           onBroadcast: async (hash) => {
@@ -186,11 +212,21 @@ export async function submitAdmittedWork(
       }
       const cause = error instanceof Error && error.cause ? error.cause : error;
       if (cause instanceof Error && cause.message === "submission-ownership-changed") throw error;
-      const cancelled = isWorkSubmissionCancelled(error);
-      if (cancelled) {
-        if (payload.uploadCheckpoint) payload.uploadCheckpoint.broadcastPending = false;
+      // The wallet approves and broadcasts in one step; the intent was recorded
+      // before it asked. A refusal proves nothing was sent.
+      const checkpoint = payload.uploadCheckpoint;
+      const failure = classifySendFailure(error, {
+        intentRecorded: Boolean(checkpoint?.broadcastPending),
+        broadcastKnown: Boolean(checkpoint?.transactionHash || checkpoint?.broadcast),
+      });
+      if (failure.kind === "not-sent" && checkpoint?.broadcastPending) {
+        delete checkpoint.broadcastPending;
+        delete checkpoint.broadcastPendingAt;
         await jobQueueDB.updateJob(job);
-        await jobQueueDB.markJobTerminalFailed(job.id, "cancelled");
+      }
+      if (failure.kind === "not-sent" && failure.cancelled) {
+        job.meta = { ...job.meta, requiresExplicitSend: true };
+        await jobQueueDB.updateJob(job);
         throw error;
       }
       if (
@@ -202,7 +238,8 @@ export async function submitAdmittedWork(
           ...queuedOutcome(queued, ports.sender),
           kind: "awaiting-confirmation",
         } as SubmitWorkOutcome;
-      if (isNetworkError(error)) return queuedOutcome(queued, ports.sender);
+      if (isNetworkError(error) || error instanceof PendingHeicConversionError)
+        return queuedOutcome(queued, ports.sender);
       await jobQueueDB.markJobTerminalFailed(
         job.id,
         error instanceof Error ? error.message : "submission-failed"

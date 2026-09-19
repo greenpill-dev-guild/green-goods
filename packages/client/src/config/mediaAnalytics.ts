@@ -6,6 +6,7 @@ type AuthMode = "wallet" | "passkey" | "embedded" | null;
 type WorkMediaEventName =
   | "work_media_selected"
   | "work_media_heic_conversion_started"
+  | "work_media_heic_conversion_deferred"
   | "work_media_heic_conversion_succeeded"
   | "work_media_heic_conversion_failed"
   | "work_media_preview_failed"

@@ -12,13 +12,18 @@ const queueDefaults = {
   },
   jobFailed: {
     title: "Sync failed",
-    workMessage: "Work upload failed. We'll retry automatically.",
-    approvalMessage: "Approval sync failed. We'll retry automatically.",
+    workMessage: "Your work is still saved on this device. Open Your Work to try again.",
+    approvalMessage: "Your decision is still saved on this device. Open Your Work to try again.",
   },
-  stillQueued: { title: "Still queued" },
-  walletSendFailed: {
-    title: "Work is still waiting to send",
-    message: "Confirm it in your wallet from Send all when you're ready.",
+  retryFailed: {
+    title: "Couldn't send it",
+    message: "It's still saved on this device. You can try again.",
+  },
+  stillQueued: {
+    title: "Still queued",
+    offline: "Reconnect to the internet to finish syncing.",
+    signedOut: "Sign in to continue syncing.",
+    retrying: "We'll retry shortly.",
   },
   queueClear: { title: "Queue is clear", message: "No pending jobs to sync." },
 };
@@ -116,30 +121,35 @@ export function createQueueToasts(formatMessage: FormatMessageFn) {
         context: "job queue",
       }),
 
-    stillQueued: (reason: string) =>
+    /** One act the person retried, unlike syncError, which speaks for a batch. */
+    retryFailed: (error?: unknown) =>
+      toastService.error({
+        id: "job-queue-flush",
+        title: formatMessage({
+          id: toastMessageIds.queue.retryFailed.title,
+          defaultMessage: queueDefaults.retryFailed.title,
+        }),
+        message: formatMessage({
+          id: toastMessageIds.queue.retryFailed.message,
+          defaultMessage: queueDefaults.retryFailed.message,
+        }),
+        context: "job queue",
+        error,
+      }),
+
+    stillQueued: (reason: "offline" | "signedOut" | "retrying") =>
       toastService.info({
         id: "job-queue-flush",
         title: formatMessage({
           id: toastMessageIds.queue.stillQueued.title,
           defaultMessage: queueDefaults.stillQueued.title,
         }),
-        message: reason,
+        message: formatMessage({
+          id: toastMessageIds.queue.stillQueued[reason],
+          defaultMessage: queueDefaults.stillQueued[reason],
+        }),
         context: "job queue",
         suppressLogging: true,
-      }),
-
-    walletSendFailed: () =>
-      toastService.error({
-        id: "job-queue-flush",
-        title: formatMessage({
-          id: toastMessageIds.queue.walletSendFailed.title,
-          defaultMessage: queueDefaults.walletSendFailed.title,
-        }),
-        message: formatMessage({
-          id: toastMessageIds.queue.walletSendFailed.message,
-          defaultMessage: queueDefaults.walletSendFailed.message,
-        }),
-        context: "job queue",
       }),
 
     queueClear: () =>
@@ -158,73 +168,3 @@ export function createQueueToasts(formatMessage: FormatMessageFn) {
       }),
   };
 }
-
-export const queueToasts = {
-  jobCompleted: (kind: "work" | "approval") =>
-    toastService.success({
-      id: `job-processing`,
-      title:
-        kind === "work" ? queueDefaults.workCompleted.title : queueDefaults.approvalCompleted.title,
-      message:
-        kind === "work"
-          ? queueDefaults.workCompleted.message
-          : queueDefaults.approvalCompleted.message,
-      context: kind === "work" ? "work upload" : "approval submission",
-      suppressLogging: true,
-    }),
-
-  syncSuccess: (processed: number) =>
-    toastService.success({
-      id: "job-queue-flush",
-      title: queueDefaults.syncSuccess.title,
-      message: `Processed ${processed} item${processed === 1 ? "" : "s"}.`,
-      context: "job queue",
-      suppressLogging: true,
-    }),
-
-  syncError: () =>
-    toastService.error({
-      id: "job-queue-flush",
-      title: queueDefaults.syncError.title,
-      message: queueDefaults.syncError.message,
-      context: "job queue",
-    }),
-
-  jobFailed: (kind: "work" | "approval", detail?: string) =>
-    toastService.error({
-      id: kind === "work" ? "work-upload" : "approval-submit",
-      title: queueDefaults.jobFailed.title,
-      message:
-        detail ??
-        (kind === "work"
-          ? queueDefaults.jobFailed.workMessage
-          : queueDefaults.jobFailed.approvalMessage),
-      context: "job queue",
-    }),
-
-  stillQueued: (reason: string) =>
-    toastService.info({
-      id: "job-queue-flush",
-      title: queueDefaults.stillQueued.title,
-      message: reason,
-      context: "job queue",
-      suppressLogging: true,
-    }),
-
-  walletSendFailed: () =>
-    toastService.error({
-      id: "job-queue-flush",
-      title: queueDefaults.walletSendFailed.title,
-      message: queueDefaults.walletSendFailed.message,
-      context: "job queue",
-    }),
-
-  queueClear: () =>
-    toastService.info({
-      id: "job-queue-flush",
-      title: queueDefaults.queueClear.title,
-      message: queueDefaults.queueClear.message,
-      context: "job queue",
-      suppressLogging: true,
-    }),
-};

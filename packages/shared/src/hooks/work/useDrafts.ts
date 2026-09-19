@@ -11,6 +11,7 @@ import { deleteWorkDraft } from "../../modules/work/draft-lifecycle";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useWorkPreviewUrls } from "./useWorkImages";
+import { isHeicFile } from "../../modules/work/work-attachments";
 import { computeFirstIncompleteStep, draftDB } from "../../modules/job-queue/draft-db";
 import { useWorkFlowStore } from "../../stores/useWorkFlowStore";
 import { WorkTab } from "../../stores/workFlowTypes";
@@ -271,7 +272,9 @@ export function useDrafts() {
     return {
       ...draft,
       images,
-      thumbnailUrl: images.find((image) => image.file.type.startsWith("image/"))?.url || null,
+      thumbnailUrl:
+        images.find((image) => image.file.type.startsWith("image/") && !isHeicFile(image.file))
+          ?.url || null,
     };
   }, [activeDraftId]);
 

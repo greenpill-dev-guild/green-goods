@@ -129,12 +129,15 @@ export const toastMessageIds = {
       workMessage: "app.toast.queue.jobFailed.workMessage",
       approvalMessage: "app.toast.queue.jobFailed.approvalMessage",
     },
+    retryFailed: {
+      title: "app.toast.queue.retryFailed.title",
+      message: "app.toast.queue.retryFailed.message",
+    },
     stillQueued: {
       title: "app.toast.queue.stillQueued.title",
-    },
-    walletSendFailed: {
-      title: "app.toast.queue.walletSendFailed.title",
-      message: "app.toast.queue.walletSendFailed.message",
+      offline: "app.toast.queue.stillQueued.offline",
+      signedOut: "app.toast.queue.stillQueued.signedOut",
+      retrying: "app.toast.queue.stillQueued.retrying",
     },
     queueClear: {
       title: "app.toast.queue.queueClear.title",

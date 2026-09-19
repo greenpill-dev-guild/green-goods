@@ -12,7 +12,7 @@ import { trackPrivateQueueEvent } from "./job-analytics";
 import { mediaResourceManager } from "./media-resource-manager";
 
 const log = createLogger({ source: "job-queue/db" });
-const CLAIM_TTL_MS = 60_000;
+export const CLAIM_TTL_MS = 60_000;
 const STALE_URL_AGE_MS = 60 * 60 * 1000;
 
 export interface JobFilter {
@@ -269,23 +269,30 @@ class JobQueueStore {
     return db.jobs.get(id);
   }
 
-  async updateJobs(jobs: Job[]): Promise<void> {
-    const db = await this.init();
-    await db.jobs.bulkPut(jobs.map((job) => ({ ...job, payload: serializeJobPayload(job) })));
-  }
-
-  async updateJob(job: Job): Promise<void> {
-    const db = await this.init();
-    await db.jobs.put({ ...job, payload: serializeJobPayload(job) });
-  }
-
-  private async amendJob(id: string, amend: (job: Job) => void): Promise<void> {
+  /**
+   * Every job write goes through here, and a record that is gone stays gone.
+   * Discarding takes no claim, so it can delete a job the queue still holds
+   * and is about to write to. Putting that job back would return it without
+   * its photos, which discarding deleted along with it.
+   */
+  private async putStoredJob(id: string, next: (stored: Job) => Job): Promise<void> {
     const db = await this.init();
     await db.transaction("rw", db.jobs, async () => {
-      const job = await db.jobs.get(id);
-      if (!job) return;
-      amend(job);
-      await db.jobs.put(job);
+      const stored = await db.jobs.get(id);
+      if (stored) await db.jobs.put(next(stored));
+    });
+  }
+
+  /** Replace a stored job with this one. */
+  async updateJob(job: Job): Promise<void> {
+    await this.putStoredJob(job.id, () => ({ ...job, payload: serializeJobPayload(job) }));
+  }
+
+  /** Change part of a stored job in place, keeping the form storage gave it. */
+  async amendJob(id: string, amend: (job: Job) => void): Promise<void> {
+    await this.putStoredJob(id, (stored) => {
+      amend(stored);
+      return stored;
     });
   }
 
@@ -316,8 +323,7 @@ class JobQueueStore {
   async getImagesForJob(jobId: string): Promise<Array<{ id: string; file: File; url: string }>> {
     const db = await this.init();
     const images = await db.job_images.where("jobId").equals(jobId).toArray();
-    // Deserialize files from IndexedDB format back to File objects.
-    // Handles both new serialized format and legacy File format.
+    // Back to File objects, from the serialized rows or the legacy File rows.
     return images
       .sort((a, b) => (a.order ?? a.createdAt) - (b.order ?? b.createdAt))
       .map((img) => ({
@@ -338,16 +344,6 @@ class JobQueueStore {
     });
     // Clean up all URLs associated with this job
     mediaResourceManager.cleanupUrls(id);
-  }
-
-  async clearSyncedJobs(userAddress: string): Promise<void> {
-    if (!userAddress) {
-      throw new Error("userAddress is required when clearing synced jobs");
-    }
-    const syncedJobs = await this.getJobs({ userAddress, synced: true });
-    for (const job of syncedJobs) {
-      await this.deleteJob(job.id);
-    }
   }
 
   async getStats(userAddress: string): Promise<QueueStats> {

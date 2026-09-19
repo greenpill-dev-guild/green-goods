@@ -4,6 +4,13 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import * as contractErrors from "../../utils/errors/contract-errors";
 import type { EASConfig } from "../../config/blockchain";
 import {
+  ContractFunctionExecutionError,
+  ContractFunctionRevertedError,
+  HttpRequestError,
+} from "viem";
+import { EASABI } from "../../utils/blockchain/contracts";
+import {
+  SimulationRejected,
   clearSimulationCache,
   createSimulationCache,
   simulateApprovalSubmission,
@@ -230,5 +237,58 @@ describe("work simulation", () => {
     await expect(simulateWorkSubmission(workParams(), harness.deps)).rejects.toThrow(
       "[KnownFailure] Known failure"
     );
+  });
+
+  describe("telling a refusal from a connection that failed", () => {
+    const revert = () =>
+      new ContractFunctionExecutionError(
+        new ContractFunctionRevertedError({
+          abi: EASABI,
+          functionName: "attest",
+          message: "ActionExpired",
+        }),
+        {
+          abi: EASABI,
+          functionName: "attest",
+          args: [],
+          contractAddress: EAS_CONFIG.EAS.address as Address,
+        }
+      );
+    const lostConnection = () =>
+      new HttpRequestError({
+        url: "https://rpc.example",
+        status: 503,
+        details: "Service Unavailable",
+      });
+
+    it("marks a revert as a definitive refusal, keeping the message people see", async () => {
+      const harness = simulationHarness();
+      harness.simulateContract.mockRejectedValue(revert());
+
+      const error = await simulateWorkSubmission(workParams(), harness.deps).catch(
+        (caught) => caught
+      );
+
+      expect(error).toBeInstanceOf(SimulationRejected);
+      expect(error.definitive).toBe(true);
+      expect(error.cause).toBeInstanceOf(ContractFunctionExecutionError);
+    });
+
+    it("never treats a failed connection as a refusal", async () => {
+      const work = simulationHarness();
+      work.simulateContract.mockRejectedValue(lostConnection());
+      const approval = simulationHarness();
+      approval.simulateContract.mockRejectedValue(lostConnection());
+
+      const workError = await simulateWorkSubmission(workParams(), work.deps).catch(
+        (caught) => caught
+      );
+      const approvalError = await simulateApprovalSubmission(approvalParams(), approval.deps).catch(
+        (caught) => caught
+      );
+
+      expect(workError).toMatchObject({ name: "SimulationRejected", definitive: false });
+      expect(approvalError).toMatchObject({ name: "SimulationRejected", definitive: false });
+    });
   });
 });

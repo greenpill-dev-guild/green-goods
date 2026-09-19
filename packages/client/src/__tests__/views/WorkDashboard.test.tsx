@@ -1,6 +1,6 @@
 import type { Work } from "@green-goods/shared/types/domain";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { createElement } from "react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { createElement, type ReactNode } from "react";
 import { IntlProvider } from "react-intl";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -62,6 +62,23 @@ let mockMyApprovalsQueryState: {
   isError: false,
   isSuccess: true,
 };
+
+function idleUploads() {
+  return {
+    readyCount: 0,
+    preparingCount: 0,
+    attentionCount: 0,
+    queuedCount: 0,
+    pausedForDataSaver: false,
+    isPreparing: false,
+    isUploading: false,
+    waitingDecisionWorkIds: new Set<string>() as ReadonlySet<string>,
+    statusOf: () => undefined,
+    upload: vi.fn(async () => undefined),
+    prepareNow: vi.fn(),
+  };
+}
+let mockUploads = idleUploads();
 
 function work(overrides: Partial<Work> & { id: string }): Work {
   return {
@@ -201,6 +218,10 @@ vi.mock("@green-goods/shared/hooks/work/useWorkApprovals", () => ({
   useWorkApprovals: () => mockWorkApprovalsState,
 }));
 
+vi.mock("@green-goods/shared/hooks/work/useWorkUploads", () => ({
+  useWorkUploads: () => mockUploads,
+}));
+
 vi.mock("@tanstack/react-query", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@tanstack/react-query")>();
   return {
@@ -214,15 +235,18 @@ vi.mock("../../components/Cards", () => ({
   MinimalWorkCard: ({
     work,
     onClick,
+    badges,
   }: {
     work: { title: string; feedback?: string };
     onClick: () => void;
+    badges?: ReactNode[];
   }) =>
     createElement(
       "button",
       { type: "button", onClick },
       work.title,
-      work.feedback ? createElement("span", null, work.feedback) : null
+      work.feedback ? createElement("span", null, work.feedback) : null,
+      ...(badges ?? [])
     ),
 }));
 
@@ -253,6 +277,7 @@ describe("WorkDashboard", () => {
     vi.clearAllMocks();
     mockReviewerGardenIds = [];
     mockIsOnline = true;
+    mockUploads = idleUploads();
     mockNeedsReviewState = {
       works: [],
       decidedHere: [],
@@ -368,6 +393,55 @@ describe("WorkDashboard", () => {
 
     fireEvent.click(screen.getByTestId("tab-completed"));
     expect(screen.getByText("Just approved planting")).toBeInTheDocument();
+  });
+
+  it("offers Upload all from the bar under every tab while work waits to upload", () => {
+    mockUploads = { ...idleUploads(), readyCount: 2, queuedCount: 2 };
+
+    renderDashboard();
+
+    const uploadAll = screen.getByTestId("upload-all");
+    expect(uploadAll).toHaveTextContent("Upload all (2)");
+    fireEvent.click(uploadAll);
+    expect(mockUploads.upload).toHaveBeenCalledOnce();
+
+    fireEvent.click(screen.getByTestId("tab-completed"));
+    expect(screen.getByTestId("upload-all")).toHaveTextContent("Upload all (2)");
+    fireEvent.click(screen.getByTestId("tab-drafts"));
+    expect(screen.getByTestId("upload-all")).toHaveTextContent("Upload all (2)");
+  });
+
+  it("shows no upload bar when nothing waits to upload", () => {
+    mockUploads = { ...idleUploads(), attentionCount: 1, queuedCount: 1 };
+
+    renderDashboard();
+
+    expect(screen.queryByTestId("upload-all")).not.toBeInTheDocument();
+  });
+
+  it("marks a decision made here as waiting to upload until Upload all sends it", () => {
+    mockNeedsReviewState = {
+      ...mockNeedsReviewState,
+      decidedHere: [
+        work({ id: "0xDECIDED", title: "Queued approval", status: "approved" }),
+        work({ id: "0xsent", title: "Sent approval", status: "approved" }),
+      ],
+    };
+    mockUploads = {
+      ...idleUploads(),
+      readyCount: 1,
+      queuedCount: 1,
+      waitingDecisionWorkIds: new Set(["0xdecided"]),
+    };
+
+    renderDashboard();
+    fireEvent.click(screen.getByTestId("tab-completed"));
+
+    const queued = screen.getByRole("button", { name: /Queued approval/ });
+    expect(within(queued).getByText("Reviewed by you")).toBeInTheDocument();
+    expect(within(queued).getByText("Waiting to upload")).toBeInTheDocument();
+    const sent = screen.getByRole("button", { name: /Sent approval/ });
+    expect(within(sent).queryByText("Waiting to upload")).not.toBeInTheDocument();
   });
 
   it("keeps an on-chain submission out of Pending until its review read lands", () => {

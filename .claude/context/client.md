@@ -292,13 +292,18 @@ const url = mediaResourceManager.getOrCreateUrl(file, "tracking-id");
 | Creating orphan blob URLs | Memory leaks | Use `mediaResourceManager` |
 | Not cleaning up on unmount | Memory leaks | Return cleanup in `useEffect` |
 
-## Sync Triggers
+## Upload and Sync Triggers
 
-Jobs sync automatically on:
-1. **Online event** — Browser reconnects
-2. **Inline processing** — Smart account client available
-3. **Service worker** — Background sync message
-4. **Manual flush** — User action from WorkDashboard
+Queued work and decisions never send on their own. The person sends them with **Upload all** in
+Your Work (`useWorkUploads` → `modules/work/upload-queued-work.ts`), one signature per batch.
+
+- **Submit online** — a confirmed connection sends the one submission straight away.
+- **Background preparation** — once the connection is confirmed, each queued item is converted,
+  simulated and uploaded under a claim, so Upload all only has to sign (`useWorkUploadPreparation`).
+- **Confirmation pass** — `useQueueConfirmationSync` settles sends already made (receipt, lost
+  answer). It never sends.
+- **Commitment acts** — still flush on their own for passkey accounts (`JobQueue.tsx`, `kinds`).
+- An embedded wallet has no batch, so its queue still sends item by item.
 
 ## Form Accessibility (MANDATORY)
 

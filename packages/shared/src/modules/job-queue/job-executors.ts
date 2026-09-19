@@ -2,26 +2,21 @@ import {
   AwaitingWorkConfirmation,
   WorkTransactionReverted,
   reconcileWorkTransaction,
-  rememberWorkBroadcast,
   retainedWorkBroadcast,
   retainedWorkBroadcastReference,
   forgetWorkBroadcast,
-  isWorkSubmissionCancelled,
 } from "../work/work-confirmation";
+import { sendWithCheckpoint } from "../work/send-with-checkpoint";
+import { settleStrandedWorkIntent } from "../work/stranded-intent";
 import { getEASConfig, type EASConfig } from "../../config/blockchain";
-import type { ApprovalJobPayload, Job, WorkJobPayload } from "../../types/job-queue";
-import {
-  buildApprovalAttestContractCall,
-  buildWorkAttestContractCall,
-} from "../../utils/eas/transaction-builder";
-import { resolveWorkSubmissionTitle } from "../../utils/work/workTitles";
-import { finalizeWorkMediaForUpload } from "../work/media-processing";
-import {
-  TransactionRevertedError,
-  type BroadcastReference,
-  type TransactionSender,
-} from "../transactions/types";
+import type { Job, WorkJobPayload } from "../../types/job-queue";
+import { buildWorkAttestContractCall } from "../../utils/eas/transaction-builder";
+import { buildQueuedWorkDraft, resolveQueuedWorkTitle } from "../work/queued-work-draft";
+import { PendingHeicConversionError } from "../work/work-attachments";
+import { convertQueuedHeicMedia } from "./job-media-conversion";
+import type { TransactionSender } from "../transactions/types";
 import { jobQueueDB } from "./db";
+import { sendCheckpointOf, writeSendCheckpoint } from "./queue-policy";
 import { type Hex } from "viem";
 import {
   executeCommitmentJob,
@@ -42,20 +37,17 @@ import { createCommitmentChainReads, type CommitmentChainReads } from "./commitm
 import { buildCommitmentContractCall } from "./commitment-call-builder";
 
 type EncodeWork = typeof import("../../utils/eas/encoders").encodeWorkData;
-type EncodeApproval = typeof import("../../utils/eas/encoders").encodeWorkApprovalData;
 type SimulateWork = typeof import("../work/simulate").simulateWorkSubmission;
 type UploadJson = typeof import("../data/ipfs/upload").uploadJSONToIPFS;
 
 export interface WorkJobExecutorDeps {
   reconcile?: typeof reconcileWorkTransaction;
   images?: (jobId: string) => ReturnType<typeof jobQueueDB.getImagesForJob>;
+  convertMedia?: typeof convertQueuedHeicMedia;
+  resolveTitle?: (job: Job<WorkJobPayload>, chainId: number) => Promise<string>;
+  settleStrandedIntent?: typeof settleStrandedWorkIntent;
   simulate?: SimulateWork;
   encodeWork?: EncodeWork;
-  easConfig?: EASConfig;
-}
-
-export interface ApprovalJobExecutorDeps {
-  encodeApproval?: EncodeApproval;
   easConfig?: EASConfig;
 }
 
@@ -99,27 +91,7 @@ export async function executeWorkJob(
     if (knownHash) return knownHash;
   }
   const payload = job.payload;
-  const onBroadcastReference = async (broadcast: BroadcastReference) => {
-    rememberWorkBroadcast(jobId, broadcast);
-    payload.uploadCheckpoint = {
-      submittedAt: new Date().toISOString(),
-      files: {},
-      ...payload.uploadCheckpoint,
-      broadcast,
-      broadcastPending: false,
-      ...(broadcast.kind === "transaction" ? { transactionHash: broadcast.hash } : {}),
-    };
-    job.meta = { ...job.meta, waitingForDependency: true, waitingReason: "awaiting-confirmation" };
-    await jobQueueDB.updateJob(job);
-  };
-  const onBroadcast = async (hash: Hex) => {
-    if (payload.uploadCheckpoint?.broadcast?.kind !== "user-operation") {
-      await onBroadcastReference({ kind: "transaction", hash });
-    } else {
-      payload.uploadCheckpoint.transactionHash = hash;
-      await jobQueueDB.updateJob(job);
-    }
-  };
+  const settleStranded = deps.settleStrandedIntent ?? settleStrandedWorkIntent;
   const checkpoint = payload.uploadCheckpoint;
   const broadcast = checkpoint?.broadcast ?? retainedWorkBroadcastReference(jobId);
   const previousHash = broadcast?.hash ?? checkpoint?.transactionHash;
@@ -138,7 +110,11 @@ export async function executeWorkJob(
       state = await (deps.reconcile ?? reconcileWorkTransaction)(previousHash, chainId);
       transactionHash = previousHash;
     }
-    if (state === "unresolved") throw new AwaitingWorkConfirmation(previousHash);
+    if (state === "unresolved") {
+      // A UserOperation no bundler reports may never have been sent.
+      if (broadcast?.kind !== "user-operation") throw new AwaitingWorkConfirmation(previousHash);
+      transactionHash = await settleStranded(job, chainId, previousHash);
+    }
     if (state === "reverted") {
       job.meta = { ...job.meta, workTransactionReverted: true };
       if (payload.uploadCheckpoint) payload.uploadCheckpoint.transactionReverted = true;
@@ -148,74 +124,54 @@ export async function executeWorkJob(
     forgetWorkBroadcast(jobId);
     return transactionHash!;
   }
-  if (checkpoint?.broadcastPending) throw new AwaitingWorkConfirmation("0x");
+  if (checkpoint?.broadcastPending) {
+    // The answer to the send was lost; the gardener's attestations settle it.
+    const landed = await settleStranded(job, chainId);
+    forgetWorkBroadcast(jobId);
+    return landed;
+  }
   await sender.assertOwnership?.(job.userAddress, chainId);
+  // A photo picked before the decoder could load is still HEIC. It becomes a
+  // JPEG in storage before the simulate and the encode read the files.
+  const conversion = await (deps.convertMedia ?? convertQueuedHeicMedia)(job);
+  if (conversion.status !== "ready")
+    throw new PendingHeicConversionError(
+      conversion.status === "pending" ? "photo-conversion-pending" : "photo-needs-attention"
+    );
   const getImages = deps.images ?? ((id: string) => jobQueueDB.getImagesForJob(id));
   const images = await getImages(jobId);
-  // A photo picked offline can still be HEIC: the decoder may not have landed
-  // when it was queued. Sending is online, so convert it here, before the
-  // simulate and the encode both read the same list of files.
-  const allFiles = await finalizeWorkMediaForUpload(images.map((img) => img.file));
-  const actionTitle = resolveWorkSubmissionTitle({
-    draftTitle: payload.title,
-    actionUID: payload.actionUID,
-  });
-
-  // Separate audio from visual media by MIME type
-  const audioFiles = allFiles.filter((f) => f.type.startsWith("audio/"));
-  const mediaFiles = allFiles.filter((f) => !f.type.startsWith("audio/"));
-
-  const accountAddress = job.userAddress as `0x${string}`;
+  const actionTitle = await (deps.resolveTitle ?? resolveQueuedWorkTitle)(job, chainId);
+  const draft = buildQueuedWorkDraft(
+    payload,
+    images.map((image) => image.file),
+    actionTitle
+  );
 
   // Simulate before uploading to IPFS
   const simulate = deps.simulate ?? (await import("../work/simulate")).simulateWorkSubmission;
   await simulate({
-    draft: {
-      actionUID: payload.actionUID,
-      title: actionTitle,
-      feedback: payload.feedback,
-      media: mediaFiles,
-      details: payload.details ?? {},
-      location: payload.location,
-      timeSpentMinutes: payload.timeSpentMinutes ?? 0,
-      ...(payload.tags ? { tags: payload.tags } : {}),
-      ...(audioFiles.length > 0 ? { audioNotes: audioFiles } : {}),
-    },
+    draft,
     gardenAddress: payload.gardenAddress,
     actionUID: payload.actionUID,
     actionTitle,
     chainId,
-    images: mediaFiles,
-    accountAddress,
+    images: draft.media,
+    accountAddress: job.userAddress as `0x${string}`,
   });
 
   // Encode attestation data (includes IPFS upload)
   const encodeWork = deps.encodeWork ?? (await import("../../utils/eas/encoders")).encodeWorkData;
-  const attestationData = await encodeWork(
-    {
-      actionUID: payload.actionUID,
-      title: actionTitle,
-      feedback: payload.feedback,
-      media: mediaFiles,
-      details: payload.details ?? {},
-      location: payload.location,
-      timeSpentMinutes: payload.timeSpentMinutes ?? 0,
-      ...(payload.tags ? { tags: payload.tags } : {}),
-      ...(audioFiles.length > 0 ? { audioNotes: audioFiles } : {}),
+  const attestationData = await encodeWork(draft, chainId, {
+    clientWorkId: payload.clientWorkId,
+    checkpoint: payload.uploadCheckpoint,
+    onCheckpoint: async (checkpoint) => {
+      await sender.assertOwnership?.(job.userAddress, chainId);
+      payload.uploadCheckpoint = checkpoint;
+      await jobQueueDB.updateJob(job);
     },
-    chainId,
-    {
-      clientWorkId: payload.clientWorkId,
-      checkpoint: payload.uploadCheckpoint,
-      onCheckpoint: async (checkpoint) => {
-        await sender.assertOwnership?.(job.userAddress, chainId);
-        payload.uploadCheckpoint = checkpoint;
-        await jobQueueDB.updateJob(job);
-      },
-      gardenAddress: payload.gardenAddress,
-      authMode: sender.authMode === "embedded" ? "passkey" : sender.authMode,
-    }
-  );
+    gardenAddress: payload.gardenAddress,
+    authMode: sender.authMode === "embedded" ? "passkey" : sender.authMode,
+  });
 
   // Build and send attestation via TransactionSender
   const easConfig = deps.easConfig ?? getEASConfig(chainId);
@@ -224,85 +180,53 @@ export async function executeWorkJob(
     payload.gardenAddress as `0x${string}`,
     attestationData
   );
-  try {
-    const result = await sender.sendContractCall(
-      { ...contractCall, chainId },
-      {
-        onBroadcast,
-        onBroadcastReference,
-        assertOwnership: async () => {
-          await sender.assertOwnership?.(job.userAddress, chainId);
-          payload.uploadCheckpoint = {
-            submittedAt: new Date().toISOString(),
-            files: {},
-            ...payload.uploadCheckpoint,
-            broadcastPending: true,
-          };
-          await jobQueueDB.updateJob(job);
-        },
-      }
-    );
-    // Older/custom senders may only expose the hash on return.
-    if (!payload.uploadCheckpoint?.transactionHash) await onBroadcast(result.hash);
-    if (result.confirmation === "pending") throw new AwaitingWorkConfirmation(result.hash);
-    forgetWorkBroadcast(jobId);
-    return result.hash;
-  } catch (error) {
-    if (error instanceof TransactionRevertedError) {
-      job.meta = { ...job.meta, workTransactionReverted: true };
-      if (payload.uploadCheckpoint) payload.uploadCheckpoint.transactionReverted = true;
-      await jobQueueDB.updateJob(job);
-      throw new WorkTransactionReverted(error.hash);
-    }
-    const cancelled = isWorkSubmissionCancelled(error);
-    if (cancelled && payload.uploadCheckpoint) {
-      payload.uploadCheckpoint.broadcastPending = false;
-      await jobQueueDB.updateJob(job);
-      throw error;
-    }
-    const hash = retainedWorkBroadcast(jobId);
-    if (hash || payload.uploadCheckpoint?.broadcastPending)
-      throw new AwaitingWorkConfirmation(hash ?? "0x");
-    throw error;
-  }
-}
-
-/**
- * Execute an approval attestation job: encode and send (no IPFS needed).
- */
-export async function executeApprovalJob(
-  job: Job<ApprovalJobPayload>,
-  chainId: number,
-  sender: TransactionSender,
-  deps: ApprovalJobExecutorDeps = {}
-): Promise<string> {
-  const payload = job.payload as ApprovalJobPayload;
-
-  // Encode approval attestation data (no IPFS upload needed)
-  const encodeApproval =
-    deps.encodeApproval ?? (await import("../../utils/eas/encoders")).encodeWorkApprovalData;
-  const attestationData = encodeApproval(
-    {
-      actionUID: payload.actionUID,
-      workUID: payload.workUID,
-      approved: payload.approved,
-      feedback: payload.feedback,
-      confidence: payload.confidence,
-      verificationMethod: payload.verificationMethod,
-      reviewNotesCID: payload.reviewNotesCID,
+  const markReverted = async () => {
+    job.meta = { ...job.meta, workTransactionReverted: true };
+    if (payload.uploadCheckpoint) payload.uploadCheckpoint.transactionReverted = true;
+    await jobQueueDB.updateJob(job);
+  };
+  const result = await sendWithCheckpoint({
+    sender,
+    call: { ...contractCall, chainId },
+    jobIds: [jobId],
+    assertOwnership: async () => {
+      await sender.assertOwnership?.(job.userAddress, chainId);
     },
-    chainId
-  );
-
-  // Build and send attestation via TransactionSender
-  const easConfig = deps.easConfig ?? getEASConfig(chainId);
-  const contractCall = buildApprovalAttestContractCall(
-    easConfig,
-    payload.gardenAddress as `0x${string}`,
-    attestationData
-  );
-  const result = await sender.sendContractCall(contractCall);
-  return result.hash;
+    record: async (next) => {
+      const send = next(sendCheckpointOf(job) ?? {});
+      writeSendCheckpoint(job, send);
+      // Once the network has the send, the stored job already reads as awaiting
+      // its confirmation, even if this tab dies before the receipt arrives.
+      if (send?.broadcast && send.broadcastPending === false)
+        job.meta = {
+          ...job.meta,
+          waitingForDependency: true,
+          waitingReason: "awaiting-confirmation",
+        };
+      await jobQueueDB.updateJob(job);
+    },
+  });
+  switch (result.status) {
+    case "sent":
+      if (result.confirmation === "pending") throw new AwaitingWorkConfirmation(result.hash);
+      forgetWorkBroadcast(jobId);
+      return result.hash;
+    case "reverted":
+      await markReverted();
+      throw new WorkTransactionReverted(result.error.hash);
+    case "not-sent":
+      // Nothing reached the chain: the work stays sendable. A person who
+      // declined is not asked again until they choose to send it.
+      if (result.cancelled) {
+        job.meta = { ...job.meta, requiresExplicitSend: true };
+        await jobQueueDB.updateJob(job);
+      }
+      throw result.error;
+    case "may-have-sent":
+      throw new AwaitingWorkConfirmation(
+        retainedWorkBroadcast(jobId) ?? payload.uploadCheckpoint?.broadcast?.hash ?? "0x"
+      );
+  }
 }
 
 export type CommitmentQueueExecution =
