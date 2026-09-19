@@ -1,0 +1,149 @@
+{
+  "version": 2,
+  "feature": {
+    "slug": "test-budget-and-ci-speed",
+    "title": "Reduce test maintenance and improve validation feedback",
+    "kind": "feature",
+    "stage": "backlog"
+  },
+  "workflow": {
+    "overall_status": "backlog",
+    "priority": "p2",
+    "created_at": "2026-09-19T22:46:56.155Z",
+    "updated_at": "2026-09-19T22:55:35.579169Z"
+  },
+  "links": {
+    "brief": "brief.md",
+    "spec": "spec.md",
+    "plan": "plan.todo.md",
+    "eval": "eval.md"
+  },
+  "linear": {
+    "parentIssue": null,
+    "project": null,
+    "initiative": null,
+    "syncDirection": "plans_to_linear_visibility",
+    "lastSyncedAt": null,
+    "lanes": {},
+    "laneSyncMode": "parent_only"
+  },
+  "taxonomy": {
+    "initiative": "engineering-quality",
+    "tracks": ["shared", "docs", "ops"],
+    "work_types": ["maintenance", "qa"],
+    "surfaces": ["shared", "client", "admin", "agent", "tooling", "docs"],
+    "depends_on_features": []
+  },
+  "notes": [
+    "User authorized preparation and saving the plan on 2026-09-19; no implementation or publication has begun.",
+    "Preparation complete at 459ca0b904a46511e31293ef921dfc8c3af70496. See reports/2026-09-19-preparation.md for evidence and limitations.",
+    "Keep backlog and all execution lanes non-ready until execution is selected. Browser-proof policy choice remains open.",
+    "Proposed order: original items 1, 4, 3, 11, 2+7, 5+8+9+10+6b, 12. Item 6a deferred.",
+    "Coordinate coverage checkpoint with codebase-architecture-skills and PR overlaps #795/#802; do not edit their state from this preparation.",
+    "No Linear mirror created. parent_only records the proposed minimal footprint if mirroring is later authorized."
+  ],
+  "lanes": {
+    "ui": {
+      "owner": "claude",
+      "status": "n/a",
+      "branch": null,
+      "depends_on": [],
+      "handoff": "handoffs/claude-ui.md",
+      "tdd": {
+        "mode": "not_applicable",
+        "status": "pending",
+        "red": {
+          "command": "",
+          "evidence": ""
+        },
+        "green": {
+          "command": "",
+          "evidence": ""
+        },
+        "note": "No runtime UI or contract implementation selected in this test/tooling plan."
+      },
+      "skill_tags": ["ui", "frontend-design", "react"]
+    },
+    "state_api": {
+      "owner": "codex",
+      "status": "blocked",
+      "branch": null,
+      "depends_on": [],
+      "handoff": "handoffs/codex-state-api.md",
+      "tdd": {
+        "mode": "not_applicable",
+        "status": "pending",
+        "red": {
+          "command": "",
+          "evidence": ""
+        },
+        "green": {
+          "command": "",
+          "evidence": ""
+        },
+        "note": "Current authorized work is preparation and plan documents only. Reclassify per execution slice: required for changed tooling behavior; not_applicable for pure test refactors."
+      },
+      "skill_tags": ["planning", "testing", "tooling"],
+      "manual_blocked": true
+    },
+    "contracts": {
+      "owner": "codex",
+      "status": "n/a",
+      "branch": null,
+      "depends_on": [],
+      "handoff": "handoffs/codex-contracts.md",
+      "tdd": {
+        "mode": "not_applicable",
+        "status": "pending",
+        "red": {
+          "command": "",
+          "evidence": ""
+        },
+        "green": {
+          "command": "",
+          "evidence": ""
+        },
+        "note": "No runtime UI or contract implementation selected in this test/tooling plan."
+      },
+      "skill_tags": ["contracts"]
+    },
+    "qa_pass_1": {
+      "owner": "claude",
+      "status": "blocked",
+      "ready_when_dependencies_met": true,
+      "manual_blocked": true,
+      "branch": null,
+      "depends_on": ["ui", "state_api", "contracts"],
+      "handoff": "handoffs/claude-qa-pass-1.md",
+      "skill_tags": ["testing", "review"]
+    },
+    "qa_pass_2": {
+      "owner": "codex",
+      "status": "blocked",
+      "ready_when_dependencies_met": true,
+      "manual_blocked": true,
+      "branch": null,
+      "depends_on": ["qa_pass_1"],
+      "handoff": "handoffs/codex-qa-pass-2.md",
+      "skill_tags": ["testing", "review"]
+    }
+  },
+  "history": [
+    {
+      "timestamp": "2026-09-19T22:46:56.164Z",
+      "actor": "human",
+      "lane": "system",
+      "status": "scaffolded",
+      "branch": null,
+      "note": "Scaffolded feature hub in backlog"
+    },
+    {
+      "timestamp": "2026-09-19T22:55:35.579169Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "preparation_complete",
+      "branch": null,
+      "note": "Refreshed source targets, accessible CI/coverage baselines and PR overlaps; saved proposed order without selecting implementation."
+    }
+  ]
+}
