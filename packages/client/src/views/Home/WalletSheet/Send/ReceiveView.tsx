@@ -5,6 +5,7 @@ import { RiWallet3Line } from "@remixicon/react";
 import { QRCodeSVG } from "qrcode.react";
 import { useIntl } from "react-intl";
 import { EmptyState } from "@/components/Communication";
+import { PWA_SHEET_FOCAL_STATE_CLASSNAME } from "@/components/Pwa/sheetScrollStyles";
 
 /**
  * "Receive" side of the Tokens tab: shows the signed-in user's wallet QR and a
@@ -16,8 +17,9 @@ export function ReceiveView() {
 
   if (!primaryAddress) {
     return (
-      <div className="p-4">
+      <div className={PWA_SHEET_FOCAL_STATE_CLASSNAME}>
         <EmptyState
+          placement="sheet"
           icon={<RiWallet3Line />}
           title={formatMessage({ id: "app.receive.unavailable" })}
         />

@@ -1,6 +1,5 @@
 import { Chip } from "@green-goods/shared/components/Chip";
 import { SheetHeading } from "@green-goods/shared/components/Dialog/SheetHeading";
-import { TextInput } from "@green-goods/shared/components/Form/ControlPrimitives";
 import { DOMAIN_CONFIG } from "@green-goods/shared/config/domain";
 import type {
   GardenFilterScope,
@@ -9,7 +8,6 @@ import type {
 } from "@green-goods/shared/hooks/garden/useFilteredGardens";
 import { Domain } from "@green-goods/shared/types/domain";
 import { cn } from "@green-goods/shared/utils/styles/cn";
-import { useId } from "react";
 import { useIntl } from "react-intl";
 import { AppSheet } from "@/components/Sheets/AppSheet";
 import { pwaStatusStyles } from "@/components/Pwa/statusStyles";
@@ -41,7 +39,7 @@ const FilterOptionButton = ({
     onClick={onClick}
     disabled={disabled}
     className={cn(
-      "flex min-h-[56px] w-full flex-col justify-center rounded-[var(--radius-2xl)] border border-stroke-soft-200 bg-bg-white-0 p-3 text-left text-sm tap-feedback transition-[background-color,border-color,box-shadow,transform] duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)]",
+      "flex min-h-[56px] min-w-0 w-full flex-col justify-center rounded-[var(--radius-2xl)] border border-stroke-soft-200 bg-bg-white-0 p-3 text-left text-sm tap-feedback transition-[background-color,border-color,box-shadow,transform] duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)]",
       selected
         ? `${pwaStatusStyles.primary.border} ${pwaStatusStyles.primary.surface} ${pwaStatusStyles.primary.text} shadow-sm`
         : "",
@@ -66,7 +64,6 @@ type GardensFilterSheetProps = {
   filters: GardenFiltersState;
   onScopeChange: (scope: GardenFilterScope) => void;
   onSortChange: (sort: GardenSortOrder) => void;
-  onSearchChange: (search: string) => void;
   onDomainsChange: (domains: Domain[]) => void;
   onReset: () => void;
   canFilterMine: boolean;
@@ -75,8 +72,8 @@ type GardensFilterSheetProps = {
 };
 
 /**
- * The Home garden filters at the full tier: search by name or place, the
- * membership scope, the four action domains as chips, and the sort order,
+ * The Home garden filters at the full tier: membership scope, the four action
+ * domains as chips, and the sort order,
  * with Reset Filters pinned in the shared bar.
  */
 export const GardensFilterSheet = ({
@@ -85,7 +82,6 @@ export const GardensFilterSheet = ({
   filters,
   onScopeChange,
   onSortChange,
-  onSearchChange,
   onDomainsChange,
   onReset,
   canFilterMine,
@@ -93,7 +89,6 @@ export const GardensFilterSheet = ({
   isFilterActive,
 }: GardensFilterSheetProps) => {
   const intl = useIntl();
-  const searchId = useId();
   const selectedDomains = filters.domains ?? [];
 
   const scopeOptions: Array<{
@@ -135,10 +130,10 @@ export const GardensFilterSheet = ({
 
   const sortOptions: Array<{ id: GardenSortOrder; label: string }> = [
     {
-      id: "default",
+      id: "name",
       label: intl.formatMessage({
-        id: "app.home.filters.sort.default",
-        defaultMessage: "Default order",
+        id: "app.home.filters.sort.name",
+        defaultMessage: "Name (A-Z)",
       }),
     },
     {
@@ -146,13 +141,6 @@ export const GardensFilterSheet = ({
       label: intl.formatMessage({
         id: "app.home.filters.sort.recent",
         defaultMessage: "Newest first",
-      }),
-    },
-    {
-      id: "name",
-      label: intl.formatMessage({
-        id: "app.home.filters.sort.name",
-        defaultMessage: "Name (A-Z)",
       }),
     },
   ];
@@ -176,7 +164,7 @@ export const GardensFilterSheet = ({
         }),
         description: intl.formatMessage({
           id: "app.home.filters.description",
-          defaultMessage: "Search, narrow, and sort the garden list.",
+          defaultMessage: "Choose which gardens to show and how to order them.",
         }),
       }}
       size="full"
@@ -191,28 +179,7 @@ export const GardensFilterSheet = ({
         },
       }}
     >
-      <div className="flex flex-col gap-6">
-        <section>
-          <label htmlFor={searchId} className="sr-only">
-            {intl.formatMessage({
-              id: "app.home.filters.searchLabel",
-              defaultMessage: "Search gardens",
-            })}
-          </label>
-          <TextInput
-            id={searchId}
-            type="search"
-            value={filters.search ?? ""}
-            onChange={(event) => onSearchChange(event.target.value)}
-            placeholder={intl.formatMessage({
-              id: "app.home.filters.searchPlaceholder",
-              defaultMessage: "Search by name or place",
-            })}
-            autoComplete="off"
-            enterKeyHint="search"
-          />
-        </section>
-
+      <div className="mx-auto flex min-h-full w-full max-w-lg flex-col justify-start gap-6 py-4">
         <section>
           <SectionTitle>
             {intl.formatMessage({
@@ -239,13 +206,15 @@ export const GardensFilterSheet = ({
               defaultMessage: "Domains",
             })}
           </SectionTitle>
-          <div className="flex flex-wrap gap-2">
+          <div className="grid grid-cols-2 gap-2">
             {DOMAIN_ORDER.map((domain) => {
               const config = DOMAIN_CONFIG[domain];
               const Icon = config.icon;
               return (
                 <Chip
                   key={domain}
+                  className="min-w-0 w-full whitespace-normal text-center last:odd:col-span-2"
+                  size="sm"
                   selected={selectedDomains.includes(domain)}
                   onClick={() => toggleDomain(domain)}
                   leadingIcon={<Icon className="h-4 w-4" aria-hidden="true" />}

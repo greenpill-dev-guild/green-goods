@@ -106,7 +106,10 @@ describe("DraftCard", () => {
       )
     );
 
-    expect(screen.getByTestId("thumb")).toBeInTheDocument();
+    const thumbnail = screen.getByTestId("thumb");
+    expect(thumbnail).toBeInTheDocument();
+    expect(thumbnail.parentElement).toHaveClass("h-full", "aspect-square");
+    expect(thumbnail.closest(".h-22")).toBeInTheDocument();
   });
 
   it("falls back to draft icon when no thumbnail", () => {

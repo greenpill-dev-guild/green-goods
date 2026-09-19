@@ -42,5 +42,6 @@ describe("WorkListTab", () => {
 
     expect(screen.getByTestId("work-card").closest(".overflow-y-auto")).toBeNull();
     expect(screen.getByTestId("work-card").closest(".overflow-x-hidden")).toBeNull();
+    expect(screen.getByRole("list")).toContainElement(screen.getByRole("listitem"));
   });
 });

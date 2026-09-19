@@ -11,7 +11,7 @@ const workCardVariants = tv({
   base: "@container flex w-full flex-col overflow-hidden rounded-lg border border-stroke-soft-200 bg-bg-white text-left transition-all duration-[var(--spring-spatial-duration)] ease-[var(--spring-spatial-easing)] @[480px]:flex-row",
   variants: {
     variant: {
-      compact: "min-h-[88px] flex-row",
+      compact: "flex-row",
       detailed: "",
       auto: "",
     },
@@ -101,11 +101,12 @@ export interface WorkCardProps extends WorkCardVariantProps {
 }
 
 /**
- * Compact list thumbnail: a fixed 88px square with the photo positioned inside it, so a
- * portrait photo can never set the card's height (DL-019). Inline because shared utility
- * classes are not in the client's Tailwind scan.
+ * Compact list thumbnail: its height follows the compact row and aspect-ratio keeps it square,
+ * so the row owns the size and a future row-height change cannot leave a gap (DL-034). Inline
+ * because shared utility classes are not in the client's Tailwind scan.
  */
-const COMPACT_THUMBNAIL_STYLE: React.CSSProperties = { width: 88, height: 88 };
+const COMPACT_CARD_STYLE: React.CSSProperties = { height: 88 };
+const COMPACT_THUMBNAIL_STYLE: React.CSSProperties = { height: "100%", aspectRatio: "1 / 1" };
 
 /** Maps work status to a left-border accent color class. */
 export function getStatusBorderClass(status: WorkDisplayStatus | string): string {
@@ -185,6 +186,7 @@ export const WorkCard: React.FC<WorkCardProps> = ({
           getStatusBorderClass(work.status),
           className
         )}
+        style={isCompact ? COMPACT_CARD_STYLE : undefined}
         {...wrapperProps}
       >
         <div

@@ -305,6 +305,10 @@ export const PendingEmpty: Story = {
   args: { tab: "pending", items: [] },
 };
 
+export const CompletedEmpty: Story = {
+  args: { tab: "completed", items: [] },
+};
+
 export const CompletedMyWorkReviewedPortuguese: Story = {
   args: { tab: "completed", items: COMPLETED_WORKS, completedFilter: "myWorkReviewed" },
   parameters: { locale: "pt" },

@@ -25,7 +25,10 @@ import React, { useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { formatUnits } from "viem";
 import { EmptyState } from "@/components/Communication";
-import { PWA_SHEET_SCROLL_CLASSNAME } from "@/components/Pwa/sheetScrollStyles";
+import {
+  PWA_SHEET_SCROLL_CLASSNAME,
+  PWA_SHEET_FOCAL_STATE_CLASSNAME,
+} from "@/components/Pwa/sheetScrollStyles";
 
 interface JarCardProps {
   jar: CookieJar;
@@ -322,11 +325,14 @@ export const CookieJarTab: React.FC = () => {
   if (!moduleConfigured) {
     return (
       <div className={PWA_SHEET_SCROLL_CLASSNAME}>
-        <EmptyState
-          tone="warning"
-          icon={<RiErrorWarningLine />}
-          title={formatMessage({ id: "app.cookieJar.moduleNotConfigured" })}
-        />
+        <div className={PWA_SHEET_FOCAL_STATE_CLASSNAME}>
+          <EmptyState
+            placement="sheet"
+            tone="warning"
+            icon={<RiErrorWarningLine />}
+            title={formatMessage({ id: "app.cookieJar.moduleNotConfigured" })}
+          />
+        </div>
       </div>
     );
   }
@@ -366,17 +372,19 @@ export const CookieJarTab: React.FC = () => {
   if (jars.length === 0) {
     return (
       <div className={PWA_SHEET_SCROLL_CLASSNAME}>
-        <div className="space-y-4 p-4">
+        <div className={PWA_SHEET_FOCAL_STATE_CLASSNAME}>
           {diagnosticBlock}
           {/* Offline reads fail closed, so an empty list proves nothing — say
             offline instead of claiming there are no jars. */}
           {!isOnline ? (
             <EmptyState
+              placement="sheet"
               icon={<RiWifiOffLine />}
               title={formatMessage({ id: "app.cookieJar.walletOffline" })}
             />
           ) : (
             <EmptyState
+              placement="sheet"
               icon={<RiInboxLine />}
               title={formatMessage({ id: "app.cookieJar.walletEmpty" })}
               description={formatMessage({ id: "app.cookieJar.walletEmptyDescription" })}
