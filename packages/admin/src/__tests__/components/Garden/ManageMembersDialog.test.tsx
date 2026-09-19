@@ -67,6 +67,22 @@ describe("components/Garden/ManageMembersDialog", () => {
     expect(screen.getAllByTestId("address-display")).toHaveLength(3);
   });
 
+  it("filters the roster by member search text", async () => {
+    const user = userEvent.setup();
+    render(createElement(ManageMembersDialog, defaultProps));
+
+    const search = screen.getByRole("textbox", { name: "Search members by address or role" });
+
+    await user.type(search, "5555");
+    expect(screen.getAllByTestId("address-display")).toHaveLength(1);
+    expect(screen.getByText(GARDENER_B.slice(0, 10))).toBeInTheDocument();
+
+    await user.clear(search);
+    await user.type(search, "owner");
+    expect(screen.getAllByTestId("address-display")).toHaveLength(1);
+    expect(screen.getByText(OWNER.slice(0, 10))).toBeInTheDocument();
+  });
+
   it("shows the empty state when a role filter has no members", async () => {
     const user = userEvent.setup();
     render(createElement(ManageMembersDialog, defaultProps));

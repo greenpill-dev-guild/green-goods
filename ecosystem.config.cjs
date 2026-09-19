@@ -34,10 +34,19 @@ function envValue(key, fallback = "") {
   return process.env[key] || rootEnv[key] || fallback;
 }
 
+function envFlag(key) {
+  return envValue(key, "false").trim().toLowerCase() === "true";
+}
+
 const viteEnableSwDev = envValue("VITE_ENABLE_SW_DEV", "false");
-const viteDisableLocalChain = envValue("VITE_DISABLE_LOCAL_CHAIN", "false") === "true";
-const viteDisableLocalAgent = envValue("VITE_DISABLE_LOCAL_AGENT", "false") === "true";
 const localAgentApiBaseUrl = "http://127.0.0.1:3005";
+const localIndexerUrl = "http://localhost:3006/v1/graphql";
+const hostedAgentApiBaseUrl = "https://agent.greengoods.app";
+const hostedIndexerUrl = "https://indexer.hyperindex.xyz/0bf0e0f/v1/graphql";
+
+const viteDisableLocalChain = envFlag("VITE_DISABLE_LOCAL_CHAIN");
+const viteDisableLocalIndexer = envFlag("VITE_DISABLE_LOCAL_INDEXER");
+const viteDisableLocalAgent = envFlag("VITE_DISABLE_LOCAL_AGENT");
 
 // Setup writes the local agent URL into the baseline root .env, so a configured value
 // replaces the local agent only when it is an absolute, non-loopback http(s) URL.
@@ -63,7 +72,10 @@ function isExternalHttpUrl(value) {
 
 const externalAgentApiBaseUrl = isExternalHttpUrl(rootEnv.VITE_API_BASE_URL)
   ? rootEnv.VITE_API_BASE_URL
-  : "https://agent.greengoods.app";
+  : hostedAgentApiBaseUrl;
+const externalIndexerUrl = isExternalHttpUrl(rootEnv.VITE_ENVIO_INDEXER_URL)
+  ? rootEnv.VITE_ENVIO_INDEXER_URL
+  : hostedIndexerUrl;
 const localViteChainEnv = viteDisableLocalChain
   ? {
       VITE_DEV_CHAIN_MODE: "",
@@ -77,11 +89,15 @@ const localViteChainEnv = viteDisableLocalChain
       VITE_LOCAL_FORK_RPC_URL: "",
       VITE_ENABLE_ANVIL_WALLETS: "false",
     };
+const localViteIndexerEnv = {
+  VITE_ENVIO_INDEXER_URL: viteDisableLocalIndexer ? externalIndexerUrl : localIndexerUrl,
+};
 const localViteAgentEnv = {
   VITE_API_BASE_URL: viteDisableLocalAgent ? externalAgentApiBaseUrl : localAgentApiBaseUrl,
 };
 const localViteControlEnv = {
   VITE_DISABLE_LOCAL_CHAIN: String(viteDisableLocalChain),
+  VITE_DISABLE_LOCAL_INDEXER: String(viteDisableLocalIndexer),
   VITE_DISABLE_LOCAL_AGENT: String(viteDisableLocalAgent),
 };
 
@@ -110,12 +126,9 @@ module.exports = {
       cwd: ".",
       env: {
         NODE_ENV: "development",
-        VITE_ENVIO_INDEXER_URL: envValue(
-          "VITE_ENVIO_INDEXER_URL",
-          "http://localhost:3006/v1/graphql"
-        ),
         ...localViteControlEnv,
         ...localViteChainEnv,
+        ...localViteIndexerEnv,
         ...localViteAgentEnv,
       },
       merge_logs: true,
@@ -133,12 +146,9 @@ module.exports = {
       cwd: ".",
       env: {
         NODE_ENV: "development",
-        VITE_ENVIO_INDEXER_URL: envValue(
-          "VITE_ENVIO_INDEXER_URL",
-          "http://localhost:3006/v1/graphql"
-        ),
         ...localViteControlEnv,
         ...localViteChainEnv,
+        ...localViteIndexerEnv,
         ...localViteAgentEnv,
       },
       merge_logs: true,
@@ -158,12 +168,9 @@ module.exports = {
         NODE_ENV: "development",
         VITE_ENABLE_SW_DEV: viteEnableSwDev,
         VITE_USE_POLLING: envValue("VITE_USE_POLLING", "true"),
-        VITE_ENVIO_INDEXER_URL: envValue(
-          "VITE_ENVIO_INDEXER_URL",
-          "http://localhost:3006/v1/graphql"
-        ),
         ...localViteControlEnv,
         ...localViteChainEnv,
+        ...localViteIndexerEnv,
         ...localViteAgentEnv,
       },
       merge_logs: true,
