@@ -135,6 +135,7 @@ export function BalanceView({
           >
             <button
               type="button"
+              data-pressable="row"
               onClick={() => onSend(token)}
               disabled={token.sendDisabled}
               aria-label={formatMessage(
