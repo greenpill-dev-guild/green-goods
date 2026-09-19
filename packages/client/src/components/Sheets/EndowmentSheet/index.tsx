@@ -164,7 +164,7 @@ export function EndowmentSheet({
       tabs={tabs}
       activeTab={activeTab}
       onTabChange={setActiveTab}
-      contentClassName="overflow-y-auto p-0"
+      contentClassName="flex min-h-0 flex-col overflow-y-auto p-0"
       size="full"
       actions={depositActions}
     >

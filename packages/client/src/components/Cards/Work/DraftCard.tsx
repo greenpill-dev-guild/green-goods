@@ -48,7 +48,7 @@ export const DraftCard: React.FC<DraftCardProps> = ({
     <div
       ref={thumbnail.ref}
       className={cn(
-        "relative flex items-stretch gap-0 overflow-hidden rounded-[var(--radius-lg)] border w-full cursor-pointer text-left tap-feedback transition-[background-color,border-color,box-shadow,transform] duration-[var(--spring-spatial-fast-duration)] ease-[var(--spring-spatial-fast-easing)] hover:border-warning-base hover:shadow-sm",
+        "relative flex h-22 items-stretch gap-0 overflow-hidden rounded-[var(--radius-lg)] border w-full cursor-pointer text-left tap-feedback transition-[background-color,border-color,box-shadow,transform] duration-[var(--spring-spatial-fast-duration)] ease-[var(--spring-spatial-fast-easing)] hover:border-warning-base hover:shadow-sm",
         pwaStatusStyles.warning.surface,
         pwaStatusStyles.warning.border,
         className
@@ -61,7 +61,7 @@ export const DraftCard: React.FC<DraftCardProps> = ({
         className="flex min-w-0 flex-1 items-stretch gap-0 text-left focus:outline-none focus-visible:shadow-button-primary-focus"
       >
         {/* Media thumbnail: a fixed square the photo can't resize, same as work cards (DL-019) */}
-        <div className="relative h-22 w-22 flex-shrink-0 self-start overflow-hidden bg-warning-light">
+        <div className="relative h-full aspect-square flex-shrink-0 overflow-hidden bg-warning-light">
           {thumbUrl ? (
             <ImageWithFallback
               src={thumbUrl}
@@ -77,7 +77,7 @@ export const DraftCard: React.FC<DraftCardProps> = ({
         </div>
 
         {/* Content */}
-        <div className="flex-1 min-w-0 pl-2 pr-14 py-3">
+        <div className="flex-1 min-w-0 overflow-hidden pl-2 pr-14 py-2">
           {/* Title row */}
           <div className="flex items-start justify-between">
             <h4

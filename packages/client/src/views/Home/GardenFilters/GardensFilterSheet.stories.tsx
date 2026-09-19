@@ -4,8 +4,8 @@ import { expect, fn, screen, userEvent, waitFor, within } from "storybook/test";
 import { GardensFilterSheet } from "./index";
 
 /**
- * Filtering the Home garden list at the full tier: search by name or place, membership, the four
- * action domains as chips, and sort order, under the shared header (DL-028). Reset Filters is the
+ * Filtering the Home garden list at the full tier: membership, the four action domains as chips,
+ * and sort order, under the shared header (DL-028). Reset Filters is the
  * sheet's only action, pinned to the bottom edge in the shared bar (DL-016), and stays disabled
  * until a filter differs from the defaults.
  */
@@ -18,10 +18,9 @@ const meta: Meta<typeof GardensFilterSheet> = {
   args: {
     isOpen: true,
     onClose: fn(),
-    filters: { scope: "all", sort: "default" },
+    filters: { scope: "all", sort: "name" },
     onScopeChange: fn(),
     onSortChange: fn(),
-    onSearchChange: fn(),
     onDomainsChange: fn(),
     onReset: fn(),
     canFilterMine: true,
@@ -37,7 +36,25 @@ export const Defaults: Story = {
   play: async ({ args }) => {
     await expect(await screen.findByRole("button", { name: "Reset Filters" })).toBeDisabled();
     const sheet = within(await screen.findByRole("dialog", { name: "Filter Gardens" }));
-    await expect(sheet.getByRole("searchbox", { name: "Search gardens" })).toHaveValue("");
+    await expect(sheet.queryByRole("searchbox")).not.toBeInTheDocument();
+    await expect(
+      sheet.getByText("Choose which gardens to show and how to order them.")
+    ).toBeVisible();
+    const all = sheet.getByRole("button", { name: "All gardens" }).getBoundingClientRect();
+    const mine = sheet.getByRole("button", { name: /My gardens \(2\)/ }).getBoundingClientRect();
+    const solar = sheet.getByRole("button", { name: "Solar" }).getBoundingClientRect();
+    const agro = sheet.getByRole("button", { name: "Agroforestry" }).getBoundingClientRect();
+    const education = sheet.getByRole("button", { name: "Education" }).getBoundingClientRect();
+    const waste = sheet.getByRole("button", { name: "Waste" }).getBoundingClientRect();
+    const name = sheet.getByRole("button", { name: "Name (A-Z)" }).getBoundingClientRect();
+    const recent = sheet.getByRole("button", { name: "Newest first" }).getBoundingClientRect();
+    await expect(all.x).toBe(mine.x);
+    await expect(all.y).toBeLessThan(mine.y);
+    await expect(solar.y).toBe(agro.y);
+    await expect(education.y).toBe(waste.y);
+    await expect(solar.width).toBe(agro.width);
+    await expect(name.x).toBe(recent.x);
+    await expect(name.y).toBeLessThan(recent.y);
     await userEvent.click(sheet.getByRole("button", { name: /My gardens \(2\)/ }));
     await expect(args.onScopeChange).toHaveBeenCalledWith("mine");
     await userEvent.click(sheet.getByRole("button", { name: "Agroforestry" }));
@@ -45,19 +62,17 @@ export const Defaults: Story = {
   },
 };
 
-export const SearchAndDomains: Story = {
+export const SelectedDomains: Story = {
   args: {
     filters: {
       scope: "all",
-      sort: "default",
-      search: "São Paulo",
+      sort: "name",
       domains: [Domain.AGRO, Domain.EDU],
     },
     isFilterActive: true,
   },
   play: async ({ args }) => {
     const sheet = within(await screen.findByRole("dialog", { name: "Filter Gardens" }));
-    await expect(sheet.getByRole("searchbox", { name: "Search gardens" })).toHaveValue("São Paulo");
     await expect(sheet.getByRole("button", { name: "Agroforestry" })).toHaveAttribute(
       "aria-pressed",
       "true"
@@ -68,8 +83,6 @@ export const SearchAndDomains: Story = {
     );
     await userEvent.click(sheet.getByRole("button", { name: "Education" }));
     await expect(args.onDomainsChange).toHaveBeenCalledWith([Domain.AGRO]);
-    await userEvent.type(sheet.getByRole("searchbox", { name: "Search gardens" }), "!");
-    await expect(args.onSearchChange).toHaveBeenCalledWith("São Paulo!");
     await expect(sheet.getByRole("button", { name: "Reset Filters" })).toBeEnabled();
   },
 };

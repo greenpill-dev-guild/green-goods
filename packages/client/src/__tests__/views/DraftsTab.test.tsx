@@ -162,7 +162,7 @@ describe("DraftsTab", () => {
     expect(screen.getByText("Community Garden")).toBeInTheDocument();
     expect(screen.getByText("Water Garden")).toBeInTheDocument();
     expect(screen.getByText("Rooftop Garden")).toBeInTheDocument();
-    expect(screen.getByText(/2 draft\(s\)/i)).toBeInTheDocument();
+    expect(screen.getByText("2 drafts")).toBeInTheDocument();
   });
 
   it("navigates to garden route on resume", async () => {

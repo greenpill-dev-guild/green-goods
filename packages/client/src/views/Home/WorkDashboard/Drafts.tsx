@@ -16,8 +16,6 @@ import { EmptyState } from "@/components/Communication";
 import { APP_ROUTES } from "@/config/pwaRouting";
 
 export interface DraftsTabProps {
-  className?: string;
-  headerContent?: React.ReactNode;
   onBeforeNavigate?: () => void;
 }
 
@@ -25,7 +23,7 @@ export interface DraftsTabProps {
  * Drafts tab for WorkDashboard.
  * Shows all saved work drafts with options to resume or delete.
  */
-export const DraftsTab: React.FC<DraftsTabProps> = ({ headerContent, onBeforeNavigate }) => {
+export const DraftsTab: React.FC<DraftsTabProps> = ({ onBeforeNavigate }) => {
   const intl = useIntl();
   const navigate = useNavigate();
   const { drafts, isLoading, deleteDraft, isDeleting, refetchDrafts } = useDrafts();
@@ -86,12 +84,8 @@ export const DraftsTab: React.FC<DraftsTabProps> = ({ headerContent, onBeforeNav
   if (isLoading) {
     return (
       <div className="flex min-h-full flex-col">
-        {headerContent && (
-          <div className="flex items-center justify-between px-4 py-2 border-b border-stroke-soft-200">
-            {headerContent}
-          </div>
-        )}
-        <div className="flex-1 flex items-center justify-center">
+        <div className="mb-4 h-14 px-4 pt-4" aria-hidden="true" />
+        <div className="flex-1 flex items-center justify-center pb-32">
           <div className="flex items-center gap-2 text-text-sub-600">
             <RiLoader4Line className="w-5 h-5 animate-spin" />
             <span className="text-sm">
@@ -109,22 +103,20 @@ export const DraftsTab: React.FC<DraftsTabProps> = ({ headerContent, onBeforeNav
   if (drafts.length === 0) {
     return (
       <div className="flex min-h-full flex-col">
-        {headerContent && (
-          <div className="flex items-center justify-between px-4 py-2 border-b border-stroke-soft-200">
-            {headerContent}
-            <IconButton
-              size="compact"
-              onClick={() => refetchDrafts()}
-              aria-label={intl.formatMessage({
-                id: "app.drafts.refresh",
-                defaultMessage: "Refresh Drafts",
-              })}
-              icon={<RiRefreshLine aria-hidden="true" />}
-            />
-          </div>
-        )}
+        <div className="mb-4 flex min-h-14 items-center justify-end px-4 pt-4">
+          <IconButton
+            size="compact"
+            onClick={() => refetchDrafts()}
+            aria-label={intl.formatMessage({
+              id: "app.drafts.refresh",
+              defaultMessage: "Refresh Drafts",
+            })}
+            icon={<RiRefreshLine aria-hidden="true" />}
+          />
+        </div>
         <EmptyState
           className="flex-1"
+          placement="sheet"
           icon={<RiDraftLine />}
           title={intl.formatMessage({
             id: "app.drafts.empty.title",
@@ -142,25 +134,28 @@ export const DraftsTab: React.FC<DraftsTabProps> = ({ headerContent, onBeforeNav
   return (
     <div className="flex min-h-full flex-col">
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-2 border-b border-stroke-soft-200">
-        <div className="flex items-center gap-2">
-          {headerContent}
-          <span className="text-xs text-text-sub-600">
+      <div className="mb-4 flex min-h-14 items-center gap-2 px-4 pt-4">
+        <div className="flex shrink-0 items-center gap-0.5">
+          <p className="whitespace-nowrap text-sm text-text-sub-600" role="status">
             {intl.formatMessage(
-              { id: "app.drafts.count", defaultMessage: "{count} draft(s)" },
+              {
+                id: "app.drafts.count",
+                defaultMessage: "{count, plural, one {# draft} other {# drafts}}",
+              },
               { count: drafts.length }
             )}
-          </span>
+          </p>
+          <IconButton
+            className="shrink-0"
+            size="compact"
+            onClick={() => refetchDrafts()}
+            aria-label={intl.formatMessage({
+              id: "app.drafts.refresh",
+              defaultMessage: "Refresh Drafts",
+            })}
+            icon={<RiRefreshLine aria-hidden="true" />}
+          />
         </div>
-        <IconButton
-          size="compact"
-          onClick={() => refetchDrafts()}
-          aria-label={intl.formatMessage({
-            id: "app.drafts.refresh",
-            defaultMessage: "Refresh Drafts",
-          })}
-          icon={<RiRefreshLine aria-hidden="true" />}
-        />
       </div>
 
       {/* List */}

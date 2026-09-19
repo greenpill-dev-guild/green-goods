@@ -10,6 +10,7 @@ import {
 import { useIntl } from "react-intl";
 import type { ReactNode } from "react";
 import { EmptyState } from "@/components/Communication";
+import { PWA_SHEET_FOCAL_STATE_CLASSNAME } from "@/components/Pwa/sheetScrollStyles";
 
 interface BalanceViewProps {
   tokens: (SendableTokenBalance & {
@@ -59,8 +60,9 @@ export function BalanceView({
   if (tokens.length === 0) {
     if (!isOnline) {
       return (
-        <div className="p-4">
+        <div className={PWA_SHEET_FOCAL_STATE_CLASSNAME}>
           <EmptyState
+            placement="sheet"
             icon={<RiWifiOffLine />}
             title={formatMessage({ id: "app.balance.loadError" })}
             description={formatMessage({ id: "app.balance.offlineNote" })}
@@ -70,8 +72,9 @@ export function BalanceView({
     }
     if (isError) {
       return (
-        <div className="p-4">
+        <div className={PWA_SHEET_FOCAL_STATE_CLASSNAME}>
           <EmptyState
+            placement="sheet"
             tone="error"
             icon={<RiErrorWarningLine />}
             title={formatMessage({ id: "app.balance.loadError" })}
@@ -86,8 +89,9 @@ export function BalanceView({
       );
     }
     return (
-      <div className="p-4">
+      <div className={PWA_SHEET_FOCAL_STATE_CLASSNAME}>
         <EmptyState
+          placement="sheet"
           icon={<RiWallet3Line />}
           title={formatMessage({ id: "app.balance.empty" })}
           description={formatMessage({ id: "app.balance.emptyDescription" })}

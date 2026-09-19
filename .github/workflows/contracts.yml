@@ -62,9 +62,9 @@ jobs:
       # Restore the newest Foundry build for this compiler config, then save a
       # fresh entry per commit; forge recompiles only what changed since the
       # restored snapshot. Per-job key prefixes keep each job's profile
-      # artifacts in their own cache lineage. This lineage holds two profile
-      # subdirectories (out/test and out/production) because the required gate
-      # below compiles both.
+      # artifacts in their own cache lineage. Only out/test benefits here: the
+      # release gas gate below rebuilds out/production from scratch, so the
+      # release checks never read bytecode restored from an earlier run.
       - name: Cache Foundry build
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
         with:

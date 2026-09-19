@@ -60,6 +60,8 @@ describe("release gas gate routing", () => {
     ]);
     const runner = fs.readFileSync(path.join(CONTRACTS_ROOT, "script/utils/run-release-gas-gate.ts"), "utf8");
     expect(runner).toContain('FOUNDRY_PROFILE: "production"');
+    // From scratch: a reused artifact can carry bytecode compiled alongside a different set of files.
+    expect(runner).toContain('"--force"');
     expect(runner).toContain("--isolate");
     expect(runner).toContain("--list");
   });
