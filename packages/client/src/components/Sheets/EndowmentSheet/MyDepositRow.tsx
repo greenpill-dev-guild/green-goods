@@ -96,13 +96,14 @@ export function MyDepositRow({ deposit, vault, gardenAddress }: MyDepositRowProp
         }`}
         errorClassName="mt-1 text-xs text-error-dark"
         endSlot={
-          <button
+          <Button
             type="button"
+            emphasis="secondary"
+            size="sm"
             onClick={() => setAmountInput(formatUnits(maxWithdrawable, assetDecimals))}
-            className="min-h-11 min-w-11 rounded-md border border-stroke-sub-300 bg-bg-white-0 px-3 py-2.5 text-xs font-medium text-text-sub-600 hover:bg-bg-weak-50"
           >
             {formatMessage({ id: "app.treasury.max" })}
-          </button>
+          </Button>
         }
       />
 
