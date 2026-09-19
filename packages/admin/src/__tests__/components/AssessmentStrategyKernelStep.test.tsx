@@ -5,7 +5,8 @@
 import { render, screen, within } from "@testing-library/react";
 import { IntlProvider } from "react-intl";
 import { beforeEach, describe, expect, it } from "vitest";
-import { Domain, useCreateAssessmentStore } from "@green-goods/shared";
+import { useCreateAssessmentStore } from "@green-goods/shared/stores/useCreateAssessmentStore";
+import { Domain } from "@green-goods/shared/types/domain";
 import { StrategyKernelStep } from "@/components/Assessment/CreateAssessmentSteps/StrategyKernelStep";
 
 function renderStrategyStep() {
