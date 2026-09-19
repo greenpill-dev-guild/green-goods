@@ -95,19 +95,18 @@ interface ThemeScriptOptions {
   colors?: { light: string; dark: string };
 }
 
-// Runs the pre-paint theme script against the document's own theme-color
-// metas, with the build-time color placeholders filled in.
+// Runs the pre-paint theme script against the document's own theme-color meta,
+// with the build-time color placeholders filled in.
 function runThemeScript({
   stored,
   systemDark,
   colors = { light: "#ffffff", dark: "#0c0a09" },
 }: ThemeScriptOptions) {
-  const staticMetas = INDEX_HTML.match(/<meta name="theme-color"[^>]*>/g);
-  if (!staticMetas?.length) throw new Error("Missing theme-color metas");
-  document.head.innerHTML = staticMetas
-    .join("")
-    .replace("%PWA_THEME_COLOR_LIGHT%", colors.light)
-    .replace("%PWA_THEME_COLOR_DARK%", colors.dark);
+  const meta = INDEX_HTML.match(/<meta name="theme-color"[^>]*>/g);
+  if (meta?.length !== 1) throw new Error(`Expected one theme-color meta, found ${meta?.length}`);
+  document.head.innerHTML = meta[0]
+    .replaceAll("%PWA_THEME_COLOR_LIGHT%", colors.light)
+    .replaceAll("%PWA_THEME_COLOR_DARK%", colors.dark);
   delete document.documentElement.dataset.theme;
 
   const storage = createStorage();
@@ -127,7 +126,7 @@ function runThemeScript({
   );
 
   return {
-    metas: Array.from(document.head.querySelectorAll('meta[name="theme-color"]')),
+    themeColor: document.head.querySelector<HTMLMetaElement>('meta[name="theme-color"]')?.content,
     resolved: document.documentElement.dataset.theme,
   };
 }
@@ -437,28 +436,21 @@ describe("presentation-specific boot fallback", () => {
     systemDark,
     theme,
   }) => {
-    const { metas, resolved } = runThemeScript({ stored, systemDark });
+    const { themeColor, resolved } = runThemeScript({ stored, systemDark });
 
     expect(resolved).toBe(theme);
-    // Browsers take the first theme-color meta that matches, so the selection
-    // sits ahead of the OS-keyed pair and carries no media query.
-    expect(metas).toHaveLength(3);
-    expect(metas[0]).toHaveAttribute("data-theme-color-active");
-    expect(metas[0]).not.toHaveAttribute("media");
-    expect(metas[0]).toHaveAttribute("content", theme === "dark" ? "#0c0a09" : "#ffffff");
-    expect(metas[1]).toHaveAttribute("media", "(prefers-color-scheme: light)");
-    expect(metas[2]).toHaveAttribute("media", "(prefers-color-scheme: dark)");
+    expect(themeColor).toBe(theme === "dark" ? "#0c0a09" : "#ffffff");
   });
 
   it("keeps the beta build's single theme-color pinned under either selection", () => {
     const beta = { light: "#111b13", dark: "#111b13" };
 
-    expect(
-      runThemeScript({ stored: "dark", systemDark: false, colors: beta }).metas[0]
-    ).toHaveAttribute("content", "#111b13");
-    expect(
-      runThemeScript({ stored: "light", systemDark: true, colors: beta }).metas[0]
-    ).toHaveAttribute("content", "#111b13");
+    expect(runThemeScript({ stored: "dark", systemDark: false, colors: beta }).themeColor).toBe(
+      "#111b13"
+    );
+    expect(runThemeScript({ stored: "light", systemDark: true, colors: beta }).themeColor).toBe(
+      "#111b13"
+    );
   });
 
   it("uses one compact anchored layout without an empty action gap", () => {

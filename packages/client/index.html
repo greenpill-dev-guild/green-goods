@@ -64,10 +64,10 @@
       name="msapplication-TileImage"
       content="%BASE_URL%%PWA_MS_TILE_IMAGE%"
     />
-    <!-- OS-keyed defaults. The boot-theme script below and shared theme.ts read each
-         scheme's color from these and place the selected theme's copy ahead of them. -->
-    <meta name="theme-color" content="%PWA_THEME_COLOR_LIGHT%" media="(prefers-color-scheme: light)" data-theme-color-scheme="light" />
-    <meta name="theme-color" content="%PWA_THEME_COLOR_DARK%" media="(prefers-color-scheme: dark)" data-theme-color-scheme="dark" />
+    <!-- Carries both scheme colors. The boot-theme script below and shared theme.ts
+         set the content from the matching data-* value, so the browser chrome follows
+         the selected theme rather than the OS scheme. -->
+    <meta name="theme-color" content="%PWA_THEME_COLOR_LIGHT%" data-light="%PWA_THEME_COLOR_LIGHT%" data-dark="%PWA_THEME_COLOR_DARK%" />
 
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -101,20 +101,12 @@
         var resolved = isDark ? 'dark' : 'light';
         document.documentElement.dataset.theme = resolved;
 
-        // The theme-color metas above follow the OS scheme, which the selected
-        // theme can contradict. Browsers take the first match, so a media-free
-        // copy of the selected scheme's color goes ahead of them; shared
-        // theme.ts keeps it current after boot.
-        var source = document.querySelector(
-          'meta[name="theme-color"][data-theme-color-scheme="' + resolved + '"]'
-        );
-        if (source) {
-          var active = document.createElement('meta');
-          active.name = 'theme-color';
-          active.setAttribute('data-theme-color-active', '');
-          active.content = source.content;
-          document.querySelector('meta[name="theme-color"]').before(active);
-        }
+        // Point the theme-color meta at the selected theme, so the browser
+        // chrome matches the app instead of the OS scheme. Shared theme.ts
+        // keeps it current after boot.
+        var meta = document.querySelector('meta[name="theme-color"]');
+        var color = meta && meta.dataset[resolved];
+        if (color) meta.content = color;
       })();
     </script>
     <script id="boot-presentation-detector">

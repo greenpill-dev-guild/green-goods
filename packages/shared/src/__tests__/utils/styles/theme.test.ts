@@ -5,10 +5,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { initTheme, setTheme } from "../../../utils/styles/theme";
 
-const STATIC_METAS = (light: string, dark: string) => `
-  <meta name="theme-color" content="${light}" media="(prefers-color-scheme: light)" data-theme-color-scheme="light" />
-  <meta name="theme-color" content="${dark}" media="(prefers-color-scheme: dark)" data-theme-color-scheme="dark" />
-`;
+const THEME_COLOR_META = (light: string, dark: string) =>
+  `<meta name="theme-color" content="${light}" data-light="${light}" data-dark="${dark}" />`;
 
 function mockSystemScheme(dark: boolean) {
   Object.defineProperty(window, "matchMedia", {
@@ -22,8 +20,8 @@ function mockSystemScheme(dark: boolean) {
   });
 }
 
-function themeColorMetas(): HTMLMetaElement[] {
-  return Array.from(document.head.querySelectorAll<HTMLMetaElement>('meta[name="theme-color"]'));
+function themeColor(): string | undefined {
+  return document.head.querySelector<HTMLMetaElement>('meta[name="theme-color"]')?.content;
 }
 
 describe("utils/styles/theme", () => {
@@ -31,7 +29,7 @@ describe("utils/styles/theme", () => {
 
   beforeEach(() => {
     localStorage.clear();
-    document.head.innerHTML = "";
+    document.head.innerHTML = THEME_COLOR_META("#ffffff", "#0c0a09");
     delete document.documentElement.dataset.theme;
     mockSystemScheme(false);
   });
@@ -52,80 +50,61 @@ describe("utils/styles/theme", () => {
   });
 
   it("points theme-color at the selected theme when the OS scheme disagrees", () => {
-    document.head.innerHTML = STATIC_METAS("#ffffff", "#0c0a09");
-
     setTheme("dark");
 
-    // Browsers take the first theme-color meta that matches, so the selection
-    // has to sit ahead of the OS-keyed pair and carry no media query.
-    const [active, ...rest] = themeColorMetas();
-    expect(active.hasAttribute("data-theme-color-active")).toBe(true);
-    expect(active.hasAttribute("media")).toBe(false);
-    expect(active.content).toBe("#0c0a09");
-    expect(rest).toHaveLength(2);
+    expect(themeColor()).toBe("#0c0a09");
   });
 
-  it("updates the one active meta as the selection changes", () => {
-    document.head.innerHTML = STATIC_METAS("#ffffff", "#0c0a09");
-
+  it("moves theme-color back as the selection changes", () => {
     setTheme("dark");
     setTheme("light");
 
-    const metas = themeColorMetas();
-    expect(metas).toHaveLength(3);
-    expect(metas[0].content).toBe("#ffffff");
+    expect(themeColor()).toBe("#ffffff");
   });
 
-  it("reuses the meta the pre-paint script already placed", () => {
-    document.head.innerHTML = `<meta name="theme-color" data-theme-color-active content="#ffffff" />${STATIC_METAS("#ffffff", "#0c0a09")}`;
+  it("applies the stored theme on init", () => {
     localStorage.setItem("theme", "dark");
 
     initTheme();
 
-    const metas = themeColorMetas();
-    expect(metas).toHaveLength(3);
-    expect(metas[0].content).toBe("#0c0a09");
+    expect(document.documentElement.dataset.theme).toBe("dark");
+    expect(themeColor()).toBe("#0c0a09");
   });
 
   it("follows the OS scheme while the theme is system", () => {
-    document.head.innerHTML = STATIC_METAS("#ffffff", "#0c0a09");
     mockSystemScheme(true);
 
     setTheme("system");
 
     expect(document.documentElement.dataset.theme).toBe("dark");
-    expect(themeColorMetas()[0].content).toBe("#0c0a09");
+    expect(themeColor()).toBe("#0c0a09");
   });
 
-  it("keeps a build that pins one color for both schemes pinned", () => {
-    document.head.innerHTML = STATIC_METAS("#111b13", "#111b13");
+  it("keeps a build that ships one color for both schemes pinned", () => {
+    document.head.innerHTML = THEME_COLOR_META("#111b13", "#111b13");
 
     setTheme("light");
-    expect(themeColorMetas()[0].hasAttribute("data-theme-color-active")).toBe(true);
-    expect(themeColorMetas()[0].content).toBe("#111b13");
+    expect(themeColor()).toBe("#111b13");
 
     setTheme("dark");
-    expect(themeColorMetas()[0].content).toBe("#111b13");
+    expect(themeColor()).toBe("#111b13");
   });
 
-  it("boots through a corrupted stored theme without touching theme-color", () => {
-    document.head.innerHTML = STATIC_METAS("#ffffff", "#0c0a09");
-    localStorage.setItem("theme", 'dark"]');
+  it("boots through a corrupted stored theme without writing a bogus color", () => {
+    localStorage.setItem("theme", "not-a-theme");
 
-    // initTheme runs at module top level in the app entry, so a throw here
-    // would take the whole boot down.
+    // initTheme runs at module top level in the app entry, so a throw here would
+    // take the whole boot down, and an unmatched value must leave the tag alone
+    // rather than stamp "undefined" into it.
     expect(() => initTheme()).not.toThrow();
-    expect(themeColorMetas()).toHaveLength(2);
+    expect(themeColor()).toBe("#ffffff");
   });
 
-  it("leaves a document without scheme-tagged metas alone", () => {
+  it("leaves a document without the color attributes alone", () => {
     document.head.innerHTML = `<meta name="theme-color" content="#ffffff" />`;
 
     setTheme("dark");
 
-    const metas = themeColorMetas();
-    expect(metas).toHaveLength(1);
-    expect(metas[0].hasAttribute("data-theme-color-active")).toBe(false);
-    expect(metas[0].content).toBe("#ffffff");
+    expect(themeColor()).toBe("#ffffff");
   });
 });
