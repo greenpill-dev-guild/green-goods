@@ -694,10 +694,13 @@ export function validateReleaseManifest(manifest: ReleaseManifest): void {
 const REBUILD_PRODUCTION_ARTIFACTS =
   "rebuild the production artifacts from scratch with `bun run --cwd packages/contracts test --suite release-gas`";
 
+// Every value here mixes compiled bytecode with manifest inputs: the CREATE2 factory, constructor
+// arguments, and the initializer owner all feed the creation code and the addresses derived from it.
+// A fresh build settles the bytecode half, so name both causes rather than only the bytecode.
 function artifactDriftError(label: string, frozen: string, computed: string): Error {
   return new Error(
     `${label} drift: manifest=${frozen} computed=${computed}; ${REBUILD_PRODUCTION_ARTIFACTS} and retry. ` +
-      "Drift that survives a fresh build is a real bytecode change.",
+      "Drift that survives a fresh build means the compiled bytecode or a manifest input changed.",
   );
 }
 
@@ -763,8 +766,8 @@ function assertSchemaPreparationIdentity(manifest: ReleaseManifest): void {
     ...preparation.expected,
   };
 
-  // The salts are checked first, so every later mismatch here is downstream of the compiled bytecode:
-  // both addresses are CREATE2 of a matching salt and a creation-code hash.
+  // The salts are the only values here that no build can affect; the rest combine the compiled
+  // artifacts with manifest inputs, so they keep the rebuild guidance.
   const manifestOnly = new Set(["implementationSalt", "proxySalt"]);
   for (const [key, actual] of Object.entries(computed)) {
     const frozen = expected[key as keyof typeof expected];
