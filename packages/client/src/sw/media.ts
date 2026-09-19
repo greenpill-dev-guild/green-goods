@@ -73,6 +73,11 @@ export class MediaCache {
 
   constructor(private readonly work: BackgroundWork) {}
 
+  /**
+   * Answer one gateway photo: the stored copy if there is one, then a copy the
+   * previous worker prepared, then the gateway itself. What comes off the
+   * network is handed to the page first and kept afterwards.
+   */
   async respond(event: FetchEvent): Promise<Response> {
     const { request } = event;
     const url = request.url;

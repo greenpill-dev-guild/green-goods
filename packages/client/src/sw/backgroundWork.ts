@@ -25,6 +25,11 @@ export class BackgroundWork {
   private readonly cancellers = new Set<AbortController>();
   private readonly owed = new Map<ResponseKind, number>();
 
+  /**
+   * Whether this worker will take on anything new. False from the moment a
+   * hand-over asks it to go quiet until that hand-over ends or its lease runs
+   * out, so nothing started now can hold the waiting worker back.
+   */
   get isAccepting(): boolean {
     return this.accepting || Date.now() >= this.quietUntil;
   }

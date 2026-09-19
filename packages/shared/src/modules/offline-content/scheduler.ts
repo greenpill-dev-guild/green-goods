@@ -121,6 +121,7 @@ export class OfflineScheduler {
     this.wake();
   }
 
+  /** The hand-over is over: downloads may be sent to the worker again. */
   release(): void {
     if (!this.heldForUpdate) return;
     this.heldForUpdate = false;
@@ -165,6 +166,11 @@ export class OfflineScheduler {
     }
   }
 
+  /**
+   * One pass over everything this account should have offline, in batches that
+   * wait their turn. `refresh` re-reads lists the screen already has rather
+   * than trusting what was fetched recently.
+   */
   private async runOnce(refresh: boolean): Promise<void> {
     const { ports } = this;
     const account = ports.account();
@@ -312,6 +318,11 @@ export class OfflineScheduler {
     }
   }
 
+  /**
+   * Hold the next batch until this run may compete for the network again:
+   * online, not paused, not handing the worker over, the app on screen, and
+   * nothing the screen itself asked for still in flight.
+   */
   private async waitForTurn(): Promise<void> {
     const { ports } = this;
     for (;;) {

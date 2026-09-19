@@ -76,6 +76,7 @@ const MIN_AUTO_CHECK_INTERVAL_MS = 15 * 60 * 1000;
 type ActivationProtection = { activationBlocked?: boolean; isActivationBlocked?: () => boolean };
 const allowActivation = () => false;
 
+/** The update state one page shares: its phase, the waiting worker, and its actions. */
 function useServiceWorkerUpdateController({
   activationBlocked = false,
   isActivationBlocked = allowActivation,
