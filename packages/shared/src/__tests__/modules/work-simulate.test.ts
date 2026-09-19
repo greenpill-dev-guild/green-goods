@@ -14,6 +14,7 @@ import {
   clearSimulationCache,
   createSimulationCache,
   simulateApprovalSubmission,
+  simulateQueuedAttestations,
   simulateWorkSubmission,
 } from "../../modules/work/simulate";
 import type { Address } from "../../types/domain";
@@ -289,6 +290,52 @@ describe("work simulation", () => {
 
       expect(workError).toMatchObject({ name: "SimulationRejected", definitive: false });
       expect(approvalError).toMatchObject({ name: "SimulationRejected", definitive: false });
+    });
+
+    describe("the one call Upload all sends", () => {
+      const call = {
+        address: EAS_CONFIG.EAS.address as Address,
+        abi: EASABI,
+        functionName: "multiAttest",
+        args: [[]],
+      };
+
+      it("checks the call as the account that will sign it", async () => {
+        const harness = simulationHarness();
+
+        await simulateQueuedAttestations(call, 11155111, ACCOUNT, harness.deps);
+
+        expect(harness.simulateContract).toHaveBeenCalledExactlyOnceWith({
+          ...call,
+          account: ACCOUNT,
+        });
+      });
+
+      it("refuses without a chain client: a batch nothing checked must never be sent", async () => {
+        const deps = { ...simulationHarness().deps, getPublicClient: () => undefined };
+
+        await expect(
+          simulateQueuedAttestations(call, 11155111, ACCOUNT, deps)
+        ).rejects.toMatchObject({
+          name: "SimulationRejected",
+          reason: "unchecked",
+          definitive: false,
+        });
+      });
+
+      it("tells the chain refusing the call from the answer never arriving", async () => {
+        const refused = simulationHarness();
+        refused.simulateContract.mockRejectedValue(revert());
+        const lost = simulationHarness();
+        lost.simulateContract.mockRejectedValue(lostConnection());
+
+        await expect(
+          simulateQueuedAttestations(call, 11155111, ACCOUNT, refused.deps)
+        ).rejects.toMatchObject({ name: "SimulationRejected", definitive: true });
+        await expect(
+          simulateQueuedAttestations(call, 11155111, ACCOUNT, lost.deps)
+        ).rejects.toMatchObject({ name: "SimulationRejected", definitive: false });
+      });
     });
   });
 });

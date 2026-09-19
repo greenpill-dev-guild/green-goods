@@ -261,9 +261,7 @@ export { SyncStatusBar } from "./SyncStatusBar";
 export type { FormatMessageFn } from "./Toast/presets";
 // Toast Presets (default English)
 export {
-  approvalToasts,
   createApprovalToasts,
-  createLocalizedToasts,
   createQueueToasts,
   createUpdateToasts,
   createValidationToasts,
@@ -272,7 +270,6 @@ export {
   showWalletProgress,
   toastMessageIds,
   toastMessageIdsUpdate,
-  updateToasts,
   validationToasts,
   walletProgressToasts,
   workToasts,

@@ -5,6 +5,7 @@ import { toastService } from "../../components/toast";
 import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
 import { logger } from "../../modules/app/logger";
 import { jobQueueDB } from "../../modules/job-queue/db";
+import { uploadOutcomeToast } from "../../modules/work/upload-outcome-toast";
 import {
   prepareUploadsNow,
   scheduleUploadPreparation,
@@ -121,84 +122,17 @@ export function useWorkUploads(): WorkUploads {
       );
     },
     onSuccess: (outcome) => {
-      if (!outcome) return;
-      const toast = { id: "work-uploads", context: "work uploads" } as const;
-      // An upload that stops partway still sent what went before it. Saying
-      // nothing was sent would deny a signature the person already gave.
-      const stoppedMessage = (id: string) =>
-        "sent" in outcome && outcome.sent > 0
-          ? formatMessage({ id: "app.uploads.partlySentMessage" }, { count: outcome.sent })
-          : formatMessage({ id });
-      switch (outcome.status) {
-        case "uploaded":
-          toastService.success({
-            ...toast,
-            title: formatMessage({ id: "app.uploads.uploadedTitle" }, { count: outcome.sent }),
-            message: outcome.flagged
-              ? formatMessage({ id: "app.uploads.flaggedMessage" }, { count: outcome.flagged })
-              : formatMessage({ id: "app.uploads.uploadedMessage" }),
-          });
-          return;
-        case "connection-unconfirmed":
-          toastService.info({
-            ...toast,
-            title: formatMessage({ id: "app.offline.degraded" }),
-            message: formatMessage({ id: "app.uploads.connectionUnconfirmed" }),
-          });
-          return;
-        case "nothing-ready":
-          toastService.info({
-            ...toast,
-            title: formatMessage({ id: "app.uploads.notUploadedTitle" }),
-            message: formatMessage({ id: "app.uploads.nothingReady" }),
-          });
-          return;
-        // The tap sent nothing: every ready item was refused, or is being handled
-        // elsewhere. Reporting an upload of nothing as a success would mislead.
-        case "nothing-sent":
-          toastService.info({
-            ...toast,
-            title: formatMessage({ id: "app.uploads.notUploadedTitle" }),
-            message: outcome.flagged
-              ? formatMessage({ id: "app.uploads.flaggedMessage" }, { count: outcome.flagged })
-              : formatMessage({ id: "app.uploads.nothingSentMessage" }),
-          });
-          return;
-        case "reverted":
-          toastService.error({
-            ...toast,
-            title: formatMessage({ id: "app.uploads.revertedTitle" }),
-            message: stoppedMessage("app.uploads.revertedMessage"),
-          });
-          return;
-        case "send-unconfirmed":
-          toastService.info({
-            ...toast,
-            title: formatMessage({ id: "app.uploads.sendUnconfirmedTitle" }),
-            message: formatMessage({ id: "app.uploads.sendUnconfirmedMessage" }),
-          });
-          return;
-        case "failed":
-          logger.warn("[useWorkUploads] Upload all did not send", { error: outcome.error });
-          toastService.error({
-            ...toast,
-            title: formatMessage({ id: "app.uploads.failedTitle" }),
-            message: stoppedMessage("app.uploads.failedMessage"),
-            error: outcome.error,
-          });
-          return;
-        // Declining the prompt is the person's choice; everything stays ready. A
-        // long queue goes out in several calls, though, so an earlier one may
-        // already have been signed: that one is confirmed, never passed over.
-        case "declined":
-          if (outcome.sent > 0)
-            toastService.success({
-              ...toast,
-              title: formatMessage({ id: "app.uploads.uploadedTitle" }, { count: outcome.sent }),
-              message: formatMessage({ id: "app.uploads.restWaitingMessage" }),
-            });
-          return;
-      }
+      const toast = outcome && uploadOutcomeToast(outcome);
+      if (!toast) return;
+      if (outcome.status === "failed")
+        logger.warn("[useWorkUploads] Upload all did not send", { error: outcome.error });
+      toastService[toast.tone]({
+        id: "work-uploads",
+        context: "work uploads",
+        title: formatMessage({ id: toast.title.id }, toast.title.values),
+        message: formatMessage({ id: toast.message.id }, toast.message.values),
+        ...("error" in toast ? { error: toast.error } : {}),
+      });
     },
     onError: (error) => {
       logger.error("[useWorkUploads] Upload all stopped", { error });

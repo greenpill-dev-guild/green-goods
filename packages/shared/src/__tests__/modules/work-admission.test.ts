@@ -39,7 +39,7 @@ function fixture() {
     allowOfflineQueue: true,
   };
   const ports = createDefaultSubmitWorkPorts({ sender: null });
-  ports.connectivity = { isOnline: () => true };
+  ports.connectivity = { isOnline: () => true, confirm: async () => true };
   const send = vi.fn(async (input: SubmitWorkCommand) => {
     const jobs = await jobQueueDB.getJobs({ userAddress: command.userAddress! });
     expect(

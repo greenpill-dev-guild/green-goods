@@ -29,7 +29,7 @@ function command(overrides: Partial<SubmitApprovalCommand> = {}): SubmitApproval
 
 function ports(overrides: Partial<SubmitApprovalPorts> = {}): SubmitApprovalPorts {
   return {
-    connectivity: { isOnline: () => true },
+    connectivity: { confirm: async () => true },
     direct: vi.fn().mockResolvedValue({ hash: MOCK_TX_HASH, confirmed: true }),
     queue: {
       enqueue: vi.fn().mockResolvedValue({ txHash: OFFLINE_HASH, jobId: "job-1" }),
@@ -65,7 +65,7 @@ describe("submitApproval", () => {
   });
 
   it("returns the durable queue result while offline", async () => {
-    const dependencies = ports({ connectivity: { isOnline: () => false } });
+    const dependencies = ports({ connectivity: { confirm: async () => false } });
 
     await expect(submitApproval(command({ authMode: "passkey" }), dependencies)).resolves.toEqual({
       hash: OFFLINE_HASH,
@@ -76,7 +76,7 @@ describe("submitApproval", () => {
 
   it("keeps a sponsored approval queued while the connection is unconfirmed", async () => {
     const dependencies = ports({
-      connectivity: { isOnline: () => true, confirm: async () => false },
+      connectivity: { confirm: async () => false },
     });
 
     await expect(submitApproval(command({ authMode: "passkey" }), dependencies)).resolves.toEqual({
@@ -91,7 +91,7 @@ describe("submitApproval", () => {
     // the decision waits in the queue and Upload all sends it with the rest.
     let confirmed = false;
     const dependencies = ports({
-      connectivity: { isOnline: () => true, confirm: async () => confirmed },
+      connectivity: { confirm: async () => confirmed },
     });
     // The connection recovering a moment later must not send it from here either:
     // that would open the wallet outside the decision's own flow.
@@ -109,7 +109,7 @@ describe("submitApproval", () => {
 
   it("still sends a wallet decision straight to the wallet on a confirmed connection", async () => {
     const dependencies = ports({
-      connectivity: { isOnline: () => true, confirm: async () => true },
+      connectivity: { confirm: async () => true },
     });
 
     await expect(
@@ -120,7 +120,7 @@ describe("submitApproval", () => {
 
   it("refuses a wallet approval on an unconfirmed connection, before the wallet is asked", async () => {
     const dependencies = ports({
-      connectivity: { isOnline: () => true, confirm: async () => false },
+      connectivity: { confirm: async () => false },
     });
 
     await expect(submitApproval(command(), dependencies)).rejects.toThrow(/connection/i);

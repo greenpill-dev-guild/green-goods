@@ -2,7 +2,11 @@
 import type { Hex } from "viem";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { EASConfig } from "../../../config/blockchain";
-import { TransactionRevertedError, type ContractCall } from "../../../modules/transactions/types";
+import {
+  type ContractCall,
+  TransactionRevertedError,
+  type TransactionSender,
+} from "../../../modules/transactions/types";
 import { SimulationRejected } from "../../../modules/work/simulation-rejected";
 import {
   uploadQueuedWork,
@@ -10,10 +14,16 @@ import {
 } from "../../../modules/work/upload-queued-work";
 import { retainedWorkBroadcast } from "../../../modules/work/work-confirmation";
 import type { Job, SendCheckpoint, WorkJobPayload } from "../../../types/job-queue";
+import {
+  QUEUED_JOB_GARDEN,
+  QUEUED_JOB_USER,
+  queuedDecisionJob,
+  queuedWorkJob,
+} from "../../test-utils/queued-jobs";
 import { createMockTransactionSender } from "../../test-utils/transaction-fakes";
 
-const USER = "0x1111111111111111111111111111111111111111";
-const GARDEN = "0x2222222222222222222222222222222222222222";
+const USER = QUEUED_JOB_USER;
+const GARDEN = QUEUED_JOB_GARDEN;
 const OPERATION = `0x${"cd".repeat(32)}` as const;
 const TX = `0x${"ab".repeat(32)}` as const;
 const EAS_CONFIG = {
@@ -26,50 +36,24 @@ const EAS_CONFIG = {
 } satisfies EASConfig;
 const READY = { preparation: { status: "ready", checkedAt: "2026-09-17T09:00:00.000Z" } };
 
+// Each item's feedback is its own, so it can be recognised in the call that goes out.
 let sequence = 0;
 function work(meta: Job["meta"] = READY): Job {
   sequence += 1;
-  return {
+  return queuedWorkJob({
     id: `work-${sequence}`,
-    kind: "work",
-    chainId: 42161,
-    userAddress: USER,
-    createdAt: 1,
-    attempts: 0,
-    synced: false,
     meta,
     payload: {
-      actionUID: 1,
-      gardenAddress: GARDEN,
       feedback: `work ${sequence}`,
-      title: "Weeding",
       clientWorkId: `client-${sequence}`,
       uploadCheckpoint: { submittedAt: "2026-09-17T09:00:00.000Z", files: {} },
     },
-  } as Job;
+  });
 }
 
 function decision(): Job {
   sequence += 1;
-  return {
-    id: `decision-${sequence}`,
-    kind: "approval",
-    chainId: 42161,
-    userAddress: USER,
-    createdAt: 1,
-    attempts: 0,
-    synced: false,
-    meta: READY,
-    payload: {
-      actionUID: 1,
-      workUID: `0x${"44".repeat(32)}`,
-      gardenAddress: GARDEN,
-      gardenerAddress: USER,
-      approved: true,
-      confidence: 2,
-      verificationMethod: 1,
-    },
-  } as Job;
+  return queuedDecisionJob({ id: `decision-${sequence}`, meta: READY });
 }
 
 function harness(jobs: Job[], overrides: Partial<UploadQueuedWorkPorts> = {}) {
@@ -108,6 +92,9 @@ function harness(jobs: Job[], overrides: Partial<UploadQueuedWorkPorts> = {}) {
   return { ports, store, released, resumed };
 }
 
+const upload = (ports: UploadQueuedWorkPorts, sender: TransactionSender) =>
+  uploadQueuedWork({ userAddress: USER, chainId: 42161, sender }, ports);
+
 const sendOf = (store: Map<string, Job>, id: string): SendCheckpoint | undefined => {
   const job = store.get(id)!;
   return job.kind === "work"
@@ -124,11 +111,7 @@ describe("Upload all", () => {
     const { ports } = harness([work()], { confirmOnline: vi.fn(async () => false) });
     const sender = createMockTransactionSender();
 
-    await expect(
-      uploadQueuedWork({ userAddress: USER, chainId: 42161, sender }, ports)
-    ).resolves.toEqual({
-      status: "connection-unconfirmed",
-    });
+    await expect(upload(ports, sender)).resolves.toEqual({ status: "connection-unconfirmed" });
     expect(ports.suspendPreparation).not.toHaveBeenCalled();
     expect(sender.sendContractCall).not.toHaveBeenCalled();
   });
@@ -147,9 +130,7 @@ describe("Upload all", () => {
       return { hash: TX, sponsored: true };
     });
 
-    await expect(
-      uploadQueuedWork({ userAddress: USER, chainId: 42161, sender }, ports)
-    ).resolves.toEqual({
+    await expect(upload(ports, sender)).resolves.toEqual({
       status: "uploaded",
       sent: 3,
       flagged: 0,
@@ -190,18 +171,12 @@ describe("Upload all", () => {
     const wallet = harness(Array.from({ length: 12 }, () => work()));
     const walletSender = createMockTransactionSender({ authMode: "wallet" });
 
-    await uploadQueuedWork(
-      { userAddress: USER, chainId: 42161, sender: walletSender },
-      wallet.ports
-    );
+    await upload(wallet.ports, walletSender);
     expect(walletSender.sendContractCall).toHaveBeenCalledTimes(2);
 
     const passkey = harness(Array.from({ length: 7 }, () => work()));
     const passkeySender = createMockTransactionSender();
-    await uploadQueuedWork(
-      { userAddress: USER, chainId: 42161, sender: passkeySender },
-      passkey.ports
-    );
+    await upload(passkey.ports, passkeySender);
     const sizes = vi
       .mocked(passkeySender.sendContractCall)
       .mock.calls.map(
@@ -219,12 +194,7 @@ describe("Upload all", () => {
     const { ports } = harness([ready, blocked, preparing]);
     const sender = createMockTransactionSender();
 
-    await expect(
-      uploadQueuedWork({ userAddress: USER, chainId: 42161, sender }, ports)
-    ).resolves.toMatchObject({
-      status: "uploaded",
-      sent: 1,
-    });
+    await expect(upload(ports, sender)).resolves.toMatchObject({ status: "uploaded", sent: 1 });
     expect(sender.sendContractCall.mock.calls[0][0].functionName).toBe("attest");
   });
 
@@ -242,9 +212,7 @@ describe("Upload all", () => {
     });
     const sender = createMockTransactionSender();
 
-    await expect(
-      uploadQueuedWork({ userAddress: USER, chainId: 42161, sender }, ports)
-    ).resolves.toEqual({
+    await expect(upload(ports, sender)).resolves.toEqual({
       status: "uploaded",
       sent: 1,
       flagged: 1,
@@ -264,11 +232,7 @@ describe("Upload all", () => {
     });
     const sender = createMockTransactionSender();
 
-    await expect(
-      uploadQueuedWork({ userAddress: USER, chainId: 42161, sender }, ports)
-    ).resolves.toMatchObject({
-      status: "failed",
-    });
+    await expect(upload(ports, sender)).resolves.toMatchObject({ status: "failed" });
     expect(sender.sendContractCall).not.toHaveBeenCalled();
   });
 
@@ -293,9 +257,7 @@ describe("Upload all", () => {
       throw new TransactionRevertedError(OPERATION, "UserOperation execution reverted");
     });
 
-    await expect(
-      uploadQueuedWork({ userAddress: USER, chainId: 42161, sender }, ports)
-    ).resolves.toEqual({
+    await expect(upload(ports, sender)).resolves.toEqual({
       status: "reverted",
       sent: 0,
       flagged: 1,
@@ -318,9 +280,7 @@ describe("Upload all", () => {
       throw Object.assign(new Error("User rejected the request."), { code: 4001 });
     });
 
-    await expect(
-      uploadQueuedWork({ userAddress: USER, chainId: 42161, sender }, ports)
-    ).resolves.toEqual({
+    await expect(upload(ports, sender)).resolves.toEqual({
       status: "declined",
       sent: 0,
       flagged: 0,
@@ -338,11 +298,7 @@ describe("Upload all", () => {
       throw Object.assign(new Error("The request took too long"), { name: "TimeoutError" });
     });
 
-    await expect(
-      uploadQueuedWork({ userAddress: USER, chainId: 42161, sender }, ports)
-    ).resolves.toMatchObject({
-      status: "send-unconfirmed",
-    });
+    await expect(upload(ports, sender)).resolves.toMatchObject({ status: "send-unconfirmed" });
     expect(sendOf(store, item.id)).toMatchObject({
       broadcastPending: true,
       broadcast: { kind: "user-operation", hash: OPERATION },
@@ -354,9 +310,7 @@ describe("Upload all", () => {
     const { ports } = harness(jobs);
     const sender = createMockTransactionSender({ authMode: "embedded" });
 
-    await expect(
-      uploadQueuedWork({ userAddress: USER, chainId: 42161, sender }, ports)
-    ).resolves.toEqual({
+    await expect(upload(ports, sender)).resolves.toEqual({
       status: "uploaded",
       sent: 2,
       flagged: 0,
@@ -375,9 +329,11 @@ describe("Upload all", () => {
         : { success: true, txHash: TX }
     );
 
-    await expect(
-      uploadQueuedWork({ userAddress: USER, chainId: 42161, sender }, ports)
-    ).resolves.toEqual({ status: "uploaded", sent: 2, flagged: 1 });
+    await expect(upload(ports, sender)).resolves.toEqual({
+      status: "uploaded",
+      sent: 2,
+      flagged: 1,
+    });
     expect(ports.processJob).toHaveBeenCalledTimes(3);
   });
 
@@ -391,9 +347,7 @@ describe("Upload all", () => {
         : { success: true, txHash: TX }
     );
 
-    await expect(
-      uploadQueuedWork({ userAddress: USER, chainId: 42161, sender }, ports)
-    ).resolves.toEqual({
+    await expect(upload(ports, sender)).resolves.toEqual({
       status: "failed",
       sent: 1,
       flagged: 0,
@@ -406,11 +360,7 @@ describe("Upload all", () => {
     const { ports } = harness([work({})]);
     const sender = createMockTransactionSender();
 
-    await expect(
-      uploadQueuedWork({ userAddress: USER, chainId: 42161, sender }, ports)
-    ).resolves.toEqual({
-      status: "nothing-ready",
-    });
+    await expect(upload(ports, sender)).resolves.toEqual({ status: "nothing-ready" });
   });
 
   it("says nothing was sent when every ready item is held elsewhere", async () => {
@@ -419,9 +369,7 @@ describe("Upload all", () => {
     const { ports } = harness([work(), work()], { acquire: async () => new Map() });
     const sender = createMockTransactionSender();
 
-    await expect(
-      uploadQueuedWork({ userAddress: USER, chainId: 42161, sender }, ports)
-    ).resolves.toEqual({ status: "nothing-sent", flagged: 0 });
+    await expect(upload(ports, sender)).resolves.toEqual({ status: "nothing-sent", flagged: 0 });
     expect(sender.sendContractCall).not.toHaveBeenCalled();
   });
 
@@ -434,9 +382,7 @@ describe("Upload all", () => {
     });
     const sender = createMockTransactionSender();
 
-    await expect(
-      uploadQueuedWork({ userAddress: USER, chainId: 42161, sender }, ports)
-    ).resolves.toEqual({ status: "nothing-sent", flagged: 1 });
+    await expect(upload(ports, sender)).resolves.toEqual({ status: "nothing-sent", flagged: 1 });
     expect(store.get(ended.id)?.meta?.preparation).toMatchObject({
       status: "blocked",
       reason: "ActionExpired",
@@ -454,9 +400,11 @@ describe("Upload all", () => {
     });
     const sender = createMockTransactionSender();
 
-    await expect(
-      uploadQueuedWork({ userAddress: USER, chainId: 42161, sender }, ports)
-    ).resolves.toMatchObject({ status: "failed", sent: 0, flagged: 0 });
+    await expect(upload(ports, sender)).resolves.toMatchObject({
+      status: "failed",
+      sent: 0,
+      flagged: 0,
+    });
     expect(sender.sendContractCall).not.toHaveBeenCalled();
     for (const { id } of jobs) expect(sendOf(store, id)).not.toHaveProperty("broadcastPending");
   });
@@ -471,9 +419,11 @@ describe("Upload all", () => {
       throw new TransactionRevertedError(OPERATION, "UserOperation execution reverted");
     });
 
-    await expect(
-      uploadQueuedWork({ userAddress: USER, chainId: 42161, sender }, ports)
-    ).resolves.toEqual({ status: "reverted", sent: 0, flagged: 2 });
+    await expect(upload(ports, sender)).resolves.toEqual({
+      status: "reverted",
+      sent: 0,
+      flagged: 2,
+    });
     for (const { id } of jobs) {
       expect(store.get(id)?.meta?.preparation).toMatchObject({
         status: "blocked",
@@ -498,7 +448,7 @@ describe("Upload all", () => {
       return { hash: TX, sponsored: true };
     });
 
-    await uploadQueuedWork({ userAddress: USER, chainId: 42161, sender }, ports);
+    await upload(ports, sender);
 
     expect(hold.mock.calls[0][0]).toHaveLength(2);
     expect(stopHolding).toHaveBeenCalledOnce();
@@ -520,9 +470,7 @@ describe("Upload all", () => {
       return { hash: TX, sponsored: true };
     });
 
-    await expect(
-      uploadQueuedWork({ userAddress: USER, chainId: 42161, sender }, ports)
-    ).rejects.toThrow("submission-ownership-changed");
+    await expect(upload(ports, sender)).rejects.toThrow("submission-ownership-changed");
     // The failed write stopped the send before the network, and the item that
     // did take the intent is sendable again.
     expect(broadcast).toBe(false);
@@ -539,9 +487,11 @@ describe("Upload all", () => {
     });
     const sender = createMockTransactionSender();
 
-    await expect(
-      uploadQueuedWork({ userAddress: USER, chainId: 42161, sender }, ports)
-    ).resolves.toEqual({ status: "uploaded", sent: 1, flagged: 0 });
+    await expect(upload(ports, sender)).resolves.toEqual({
+      status: "uploaded",
+      sent: 1,
+      flagged: 0,
+    });
     expect(store.get(unreadable.id)?.meta).not.toHaveProperty("preparation");
     expect(store.get(good.id)?.meta?.preparation).toMatchObject({ status: "ready" });
   });
@@ -565,9 +515,11 @@ describe("Upload all", () => {
       return { hash: TX, sponsored: true };
     });
 
-    await expect(
-      uploadQueuedWork({ userAddress: USER, chainId: 42161, sender }, ports)
-    ).resolves.toEqual({ status: "declined", sent: 5, flagged: 0 });
+    await expect(upload(ports, sender)).resolves.toEqual({
+      status: "declined",
+      sent: 5,
+      flagged: 0,
+    });
     expect(calls).toEqual([
       [
         [EAS_CONFIG.WORK.uid, 4],

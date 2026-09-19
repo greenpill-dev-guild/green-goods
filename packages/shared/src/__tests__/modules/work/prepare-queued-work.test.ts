@@ -7,6 +7,12 @@ import {
 import { mergeUploadProgress } from "../../../modules/work/upload-kinds";
 import { SimulationRejected } from "../../../modules/work/simulation-rejected";
 import type { Job } from "../../../types/job-queue";
+import {
+  QUEUED_JOB_GARDEN,
+  QUEUED_JOB_USER,
+  queuedDecisionJob as queuedDecision,
+  queuedWorkJob as queuedWork,
+} from "../../test-utils/queued-jobs";
 
 vi.mock("../../../modules/job-queue/db", () => ({ jobQueueDB: {} }));
 vi.mock("../../../modules/job-queue/job-media-conversion", () => ({
@@ -16,43 +22,8 @@ vi.mock("../../../modules/job-queue/job-media-conversion", () => ({
 const NOW = Date.parse("2026-09-17T10:00:00.000Z");
 const CHECKED_AT = new Date(NOW).toISOString();
 const CLAIM = { token: "claim-token" };
-const GARDEN = "0x2222222222222222222222222222222222222222";
-const USER = "0x1111111111111111111111111111111111111111";
-
-function queuedWork(overrides: Partial<Job> = {}): Job {
-  return {
-    id: "work-1",
-    kind: "work",
-    chainId: 42161,
-    userAddress: USER,
-    createdAt: 1,
-    attempts: 0,
-    synced: false,
-    payload: { actionUID: 3, gardenAddress: GARDEN, feedback: "Weeded", clientWorkId: "client-1" },
-    ...overrides,
-  } as Job;
-}
-
-function queuedDecision(): Job {
-  return {
-    id: "decision-1",
-    kind: "approval",
-    chainId: 42161,
-    userAddress: USER,
-    createdAt: 1,
-    attempts: 0,
-    synced: false,
-    payload: {
-      actionUID: 3,
-      workUID: `0x${"44".repeat(32)}`,
-      gardenAddress: GARDEN,
-      gardenerAddress: USER,
-      approved: true,
-      confidence: 2,
-      verificationMethod: 1,
-    },
-  } as Job;
-}
+const GARDEN = QUEUED_JOB_GARDEN;
+const USER = QUEUED_JOB_USER;
 
 function dependencies(overrides: Partial<PrepareQueuedJobDependencies> = {}) {
   const saved: Job[] = [];
@@ -162,12 +133,7 @@ describe("preparing a queued item for Upload all", () => {
   it("never prepares a job that was sent or used up its retries", async () => {
     const { deps, raw } = dependencies();
     const sent = queuedWork({
-      payload: {
-        actionUID: 3,
-        gardenAddress: GARDEN,
-        feedback: "",
-        uploadCheckpoint: { submittedAt: "", files: {}, broadcastPending: true },
-      },
+      payload: { uploadCheckpoint: { submittedAt: "", files: {}, broadcastPending: true } },
     });
     const retired = queuedWork({ attempts: 5, lastError: "Max retries (5) exceeded" });
 

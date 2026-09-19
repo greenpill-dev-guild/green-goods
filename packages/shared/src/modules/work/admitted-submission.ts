@@ -7,7 +7,6 @@ import { jobQueueEventBus } from "../job-queue/event-bus";
 import { convertQueuedHeicMedia } from "../job-queue/job-media-conversion";
 import { isHeicFile, PendingHeicConversionError } from "./work-attachments";
 import {
-  canSendNow,
   type QueuedWorkSubmission,
   type ResolvedSubmitWorkCommand,
   type SubmitWorkOutcome,
@@ -86,7 +85,7 @@ export async function submitAdmittedWork(
       } as SubmitWorkOutcome;
   }
   // Admission is durable; on an unconfirmed connection the work waits in the queue.
-  if (!(await canSendNow(ports)))
+  if (!(await ports.connectivity.confirm()))
     return queuedOutcome(
       queued,
       ports.sender,

@@ -93,11 +93,7 @@ export function createJobProcessor(deps: ProcessJobDependencies) {
       const txHash = typeof job.meta?.txHash === "string" ? job.meta.txHash : undefined;
       return { success: true, txHash, skipped: true };
     }
-    const sendBlocked = deps.connectivity.canSend
-      ? await deps.connectivity.canSend()
-      : deps.connectivity.isOnline()
-        ? null
-        : "offline";
+    const sendBlocked = await deps.connectivity.canSend();
     if (sendBlocked) return { success: false, error: sendBlocked, skipped: true };
 
     // The hold is on sending. A job whose send is already recorded is only

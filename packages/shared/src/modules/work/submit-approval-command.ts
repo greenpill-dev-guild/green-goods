@@ -21,8 +21,8 @@ export interface SubmitApprovalCommand {
 }
 
 export interface SubmitApprovalPorts {
-  /** `confirm`: whether a send may start now; unstable connections never send. */
-  connectivity: { isOnline(): boolean; confirm?(): Promise<boolean> };
+  /** Whether a send may start now; unstable connections never send. */
+  connectivity: { confirm(): Promise<boolean> };
   direct(input: SubmitApprovalCommand): Promise<{ hash: `0x${string}`; confirmed: boolean }>;
   queue: {
     enqueue(input: SubmitApprovalCommand & { userAddress: Address }): Promise<{
@@ -77,12 +77,6 @@ export class ApprovalConnectionUnconfirmedError extends Error {
   }
 }
 
-function canSendApprovalNow(ports: SubmitApprovalPorts): Promise<boolean> {
-  return ports.connectivity.confirm
-    ? ports.connectivity.confirm()
-    : Promise.resolve(ports.connectivity.isOnline());
-}
-
 export async function submitApproval(
   command: SubmitApprovalCommand,
   ports: SubmitApprovalPorts
@@ -91,7 +85,7 @@ export async function submitApproval(
 
   const wallet = command.authMode === "wallet";
   if (wallet) {
-    if (await canSendApprovalNow(ports)) {
+    if (await ports.connectivity.confirm()) {
       const result = await ports.direct(command);
       return { ...result, kind: "direct" };
     }
@@ -106,7 +100,7 @@ export async function submitApproval(
   const queued = await ports.queue.enqueue({ ...command, userAddress: command.userAddress });
   // A queued wallet decision waits for Upload all: sending it from here would
   // open the wallet on a connection that was just found unsteady.
-  if (!wallet && ports.sender && (await canSendApprovalNow(ports))) {
+  if (!wallet && ports.sender && (await ports.connectivity.confirm())) {
     const processed = await ports.queue.process(queued.jobId, ports.sender);
     if (processed.success && processed.txHash) {
       return { hash: processed.txHash as `0x${string}`, kind: "processed" };
@@ -140,10 +134,7 @@ export function createDefaultSubmitApprovalPorts(
   } = {}
 ): SubmitApprovalPorts {
   return {
-    connectivity: {
-      isOnline: () => connectivityStore.getSnapshot(),
-      confirm: () => connectivityStore.confirmOnline(),
-    },
+    connectivity: { confirm: () => connectivityStore.confirmOnline() },
     direct: async ({ draft, work, chainId }) => {
       const { submitApprovalDirectly } = await import("./wallet-submission");
       return submitApprovalDirectly(draft, work.gardenAddress, work.gardenerAddress, chainId, {

@@ -52,7 +52,7 @@ export interface SubmitWorkPorts {
   reconcile?: typeof reconcileWorkTransaction;
   newClientWorkId?: () => string;
   /** `confirm`: whether a send may start now; unstable connections queue instead. */
-  connectivity: { isOnline: () => boolean; confirm?: () => Promise<boolean> };
+  connectivity: { isOnline: () => boolean; confirm: () => Promise<boolean> };
   clock: { now: () => number };
   simulate: (input: SimulateWorkSubmissionParams) => Promise<void>;
   queue: {
@@ -109,12 +109,6 @@ function actionTitleOf(command: ResolvedSubmitWorkCommand): string {
 }
 
 /** A send starts only on a confirmed connection; ports without a check use the online signal. */
-export function canSendNow(ports: Pick<SubmitWorkPorts, "connectivity">): Promise<boolean> {
-  return ports.connectivity.confirm
-    ? ports.connectivity.confirm()
-    : Promise.resolve(ports.connectivity.isOnline());
-}
-
 function resolveCommand(command: SubmitWorkCommand): ResolvedSubmitWorkCommand {
   if (!command.gardenAddress) {
     throw new Error("Garden must be selected before submitting work");
@@ -161,7 +155,7 @@ export async function submitWork(
     clientWorkId: command.clientWorkId ?? ports.newClientWorkId?.() ?? crypto.randomUUID(),
   });
   if (resolved.allowOfflineQueue && ports.queue.admit) return submitAdmittedWork(resolved, ports);
-  const online = await canSendNow(ports);
+  const online = await ports.connectivity.confirm();
 
   const awaitConfirmation = async (): Promise<SubmitWorkOutcome> => {
     if (!resolved.allowOfflineQueue)

@@ -86,7 +86,10 @@ function createPorts(overrides: PortOverrides = {}) {
   const onWalletStage = vi.fn<NonNullable<SubmitWorkPorts["onWalletStage"]>>();
   const onQueueFallback = vi.fn<NonNullable<SubmitWorkPorts["onQueueFallback"]>>();
   const ports: SubmitWorkPorts = {
-    connectivity: { isOnline: () => overrides.online ?? true },
+    connectivity: {
+      isOnline: () => overrides.online ?? true,
+      confirm: async () => overrides.online ?? true,
+    },
     clock: { now: () => 1_756_000_123_456 },
     simulate,
     queue: { enqueue, process },

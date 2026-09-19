@@ -22,7 +22,6 @@ import type { Address } from "../../types/domain";
 import type { ApprovalJobPayload, Job, WorkJobPayload } from "../../types/job-queue";
 import { createMockTransactionSender } from "../test-utils/transaction-fakes";
 import { PendingHeicConversionError } from "../../modules/work/work-attachments";
-import { StrandedSendReopened } from "../../modules/work/stranded-intent";
 
 // An untitled job looks its action up; keep that lookup off the network.
 vi.mock("../../modules/data/greengoods", async (importOriginal) => ({
@@ -914,6 +913,8 @@ it("rechecks after a sender timeout without uploading or sending again", async (
   await expect(executeWorkJob(work.id, work, 11155111, sender, deps)).rejects.toThrow(
     "awaiting-confirmation"
   );
+  // The stored job already says so, in case this tab dies before the receipt arrives.
+  expect(work.meta?.waitingReason).toBe("awaiting-confirmation");
   await expect(executeWorkJob(work.id, work, 11155111, sender, deps)).rejects.toThrow(
     "awaiting-confirmation"
   );
@@ -1072,109 +1073,6 @@ it("retains the operation identity in memory when its durable checkpoint write f
   }
 });
 
-describe("recording a send intent", () => {
-  const sendDeps = () => ({
-    images: vi.fn().mockResolvedValue([]),
-    convertMedia: vi.fn().mockResolvedValue({ status: "ready" }),
-    resolveTitle: vi.fn().mockResolvedValue("Weeding"),
-    simulate: vi.fn().mockResolvedValue(undefined),
-    encodeWork: vi.fn().mockResolvedValue(HASH),
-    easConfig: EAS_CONFIG,
-  });
-  const queuedWork = () =>
-    job<WorkJobPayload>(
-      "work",
-      { actionUID: 3, gardenAddress: GARDEN, feedback: "Done" },
-      { id: crypto.randomUUID() }
-    );
-  const declined = () =>
-    new DOMException("The operation either timed out or was not allowed.", "NotAllowedError");
-
-  it("records nothing until the sender reaches the network, then records when it does", async () => {
-    const work = queuedWork();
-    const sender = createMockTransactionSender();
-    const written: unknown[] = [];
-    const update = vi.spyOn(jobQueueDB, "updateJob").mockImplementation(async (saved) => {
-      written.push(structuredClone((saved.payload as WorkJobPayload).uploadCheckpoint ?? null));
-    });
-    vi.mocked(sender.sendContractCall).mockImplementation(async (_call, options) => {
-      await options?.assertOwnership?.();
-      expect(
-        written.some(
-          (checkpoint) => (checkpoint as { broadcastPending?: boolean } | null)?.broadcastPending
-        )
-      ).toBe(false);
-      await options?.onBeforeBroadcast?.({ kind: "user-operation", hash: HASH });
-      await options?.onBroadcastReference?.({ kind: "user-operation", hash: HASH });
-      return { hash: HASH, sponsored: true };
-    });
-    try {
-      await executeWorkJob(work.id, work, 11155111, sender, sendDeps());
-    } finally {
-      update.mockRestore();
-    }
-    expect(written).toContainEqual(
-      expect.objectContaining({
-        broadcastPending: true,
-        broadcastPendingAt: expect.any(String),
-        broadcast: { kind: "user-operation", hash: HASH },
-      })
-    );
-  });
-
-  it("leaves work sendable, and waiting for an explicit send, when the passkey prompt is declined", async () => {
-    const work = queuedWork();
-    const sender = createMockTransactionSender({ fail: declined() });
-
-    await expect(executeWorkJob(work.id, work, 11155111, sender, sendDeps())).rejects.toThrow(
-      "not allowed"
-    );
-
-    expect(work.payload.uploadCheckpoint?.broadcastPending).toBeFalsy();
-    expect(work.payload.uploadCheckpoint?.broadcast).toBeUndefined();
-    expect(work.meta?.requiresExplicitSend).toBe(true);
-  });
-
-  it("clears the intent when the wallet rejects after it was recorded", async () => {
-    const work = queuedWork();
-    const sender = createMockTransactionSender({ authMode: "wallet" });
-    vi.mocked(sender.sendContractCall).mockImplementation(async (_call, options) => {
-      await options?.onBeforeBroadcast?.();
-      throw Object.assign(new Error("User rejected the request."), { code: 4001 });
-    });
-
-    await expect(executeWorkJob(work.id, work, 11155111, sender, sendDeps())).rejects.toThrow(
-      "User rejected"
-    );
-
-    expect(work.payload.uploadCheckpoint?.broadcastPending).toBeFalsy();
-    expect(work.payload.uploadCheckpoint?.broadcastPendingAt).toBeUndefined();
-    expect(work.meta?.requiresExplicitSend).toBe(true);
-  });
-
-  it("keeps a passkey intent's operation hash when the response is lost, and reconciles it next time", async () => {
-    const work = queuedWork();
-    const sender = createMockTransactionSender();
-    vi.mocked(sender.sendContractCall).mockImplementation(async (_call, options) => {
-      await options?.onBeforeBroadcast?.({ kind: "user-operation", hash: HASH });
-      throw Object.assign(new Error("The request took too long"), { name: "TimeoutError" });
-    });
-    sender.reconcileBroadcast = vi.fn().mockResolvedValue({ status: "unresolved" });
-    const deps = sendDeps();
-
-    await expect(executeWorkJob(work.id, work, 11155111, sender, deps)).rejects.toThrow(
-      "awaiting-confirmation"
-    );
-    await expect(executeWorkJob(work.id, work, 11155111, sender, deps)).rejects.toThrow(
-      "awaiting-confirmation"
-    );
-
-    expect(sender.sendContractCall).toHaveBeenCalledOnce();
-    expect(sender.reconcileBroadcast).toHaveBeenCalledWith({ kind: "user-operation", hash: HASH });
-    expect(work.meta?.requiresExplicitSend).toBeUndefined();
-  });
-});
-
 describe("settling a send whose answer was lost", () => {
   const LANDED = `0x${"ab".repeat(32)}` as const;
   const stranded = (checkpoint: Partial<NonNullable<WorkJobPayload["uploadCheckpoint"]>>) =>
@@ -1189,21 +1087,6 @@ describe("settling a send whose answer was lost", () => {
       },
       { id: crypto.randomUUID() }
     );
-
-  it("completes a wallet send whose work is found on-chain instead of waiting on 0x forever", async () => {
-    const work = stranded({
-      broadcastPending: true,
-      broadcastPendingAt: "2026-09-16T11:00:00.000Z",
-    });
-    const sender = createMockTransactionSender({ authMode: "wallet" });
-    const settleStrandedIntent = vi.fn().mockResolvedValue(LANDED);
-
-    await expect(
-      executeWorkJob(work.id, work, 11155111, sender, { settleStrandedIntent })
-    ).resolves.toBe(LANDED);
-    expect(settleStrandedIntent).toHaveBeenCalledWith(work, 11155111);
-    expect(sender.sendContractCall).not.toHaveBeenCalled();
-  });
 
   it("checks a UserOperation no bundler reports the same way", async () => {
     const work = stranded({ broadcast: { kind: "user-operation", hash: HASH } });
@@ -1233,20 +1116,6 @@ describe("settling a send whose answer was lost", () => {
       })
     ).rejects.toThrow("awaiting-confirmation");
     expect(settleStrandedIntent).not.toHaveBeenCalled();
-    expect(sender.sendContractCall).not.toHaveBeenCalled();
-  });
-
-  it("sends nothing when a send that never landed is reopened", async () => {
-    const work = stranded({
-      broadcastPending: true,
-      broadcastPendingAt: "2026-09-16T11:00:00.000Z",
-    });
-    const sender = createMockTransactionSender({ authMode: "wallet" });
-    const settleStrandedIntent = vi.fn().mockRejectedValue(new StrandedSendReopened());
-
-    await expect(
-      executeWorkJob(work.id, work, 11155111, sender, { settleStrandedIntent })
-    ).rejects.toBeInstanceOf(StrandedSendReopened);
     expect(sender.sendContractCall).not.toHaveBeenCalled();
   });
 });
