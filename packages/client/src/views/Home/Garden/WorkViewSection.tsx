@@ -1,3 +1,4 @@
+import { useOnlineStatus } from "@green-goods/shared/hooks/app/useOnlineStatus";
 import type {
   Garden,
   Work,
@@ -19,11 +20,12 @@ import {
 } from "@remixicon/react";
 import React, { useMemo } from "react";
 import { useIntl } from "react-intl";
+import { queuedWorkExplanation, readQueuedWorkState } from "@/components/Cards/Work/queuedWorkCopy";
 import { WorkView, type WorkViewAction } from "@/components/Features/Work";
 
 type ViewingMode = "steward" | "gardener" | "viewer";
 
-type MetadataStatus = "idle" | "loading" | "success" | "error";
+type MetadataStatus = "idle" | "loading" | "success" | "error" | "unavailable";
 
 type WorkViewSectionProps = {
   garden?: Garden;
@@ -187,6 +189,9 @@ export const WorkViewSection: React.FC<WorkViewSectionProps> = ({
   footerSpacerClassName,
 }) => {
   const intl = useIntl();
+  const isOnline = useOnlineStatus();
+  const queuedState = readQueuedWorkState(work.metadata);
+  const { submissionState } = queuedState;
 
   const { feedback: workFeedback, media } = work;
 
@@ -199,10 +204,20 @@ export const WorkViewSection: React.FC<WorkViewSectionProps> = ({
   // Dynamic title based on status and viewing mode
   const getTitle = () => {
     if (isOfflineStatus) {
+      if (submissionState === "awaiting-confirmation")
+        return intl.formatMessage({
+          id: "app.work.awaitingConfirmation",
+          defaultMessage: "Awaiting confirmation",
+        });
+      if (submissionState === "checking-submission")
+        return intl.formatMessage({
+          id: "app.work.checkingSubmission",
+          defaultMessage: "Checking whether this work was sent",
+        });
       if (effectiveStatus === "sync_failed") {
         return intl.formatMessage({
           id: "app.home.work.syncFailed",
-          defaultMessage: "Sending didn't work",
+          defaultMessage: "Upload didn't work",
         });
       }
       return intl.formatMessage({
@@ -251,25 +266,13 @@ export const WorkViewSection: React.FC<WorkViewSectionProps> = ({
 
   // Dynamic info text based on status and viewing mode
   const getInfo = () => {
-    if (isOfflineStatus) {
-      if (effectiveStatus === "sync_failed") {
-        return intl.formatMessage({
-          id: "app.home.work.syncFailedInfo",
-          defaultMessage: "We couldn't send this just now. We'll keep trying when you're online.",
-        });
-      }
-      if (effectiveStatus === "syncing" || effectiveStatus === "uploading") {
-        return intl.formatMessage({
-          id: "app.home.work.syncingInfo",
-          defaultMessage: "Sending to the garden record...",
-        });
-      }
-      return intl.formatMessage({
-        id: "app.home.work.offlineInfo",
-        defaultMessage:
-          "Saved on your device. We'll send it to the garden record when you're online.",
-      });
-    }
+    if (isOfflineStatus)
+      return intl.formatMessage(
+        queuedWorkExplanation(queuedState, {
+          isOnline,
+          sendFailed: effectiveStatus === "sync_failed",
+        })
+      );
 
     if (viewingMode === "steward") {
       if (effectiveStatus === "approved") {
@@ -324,9 +327,7 @@ export const WorkViewSection: React.FC<WorkViewSectionProps> = ({
         defaultMessage: "Download Data",
       }),
       onClick: onDownloadData,
-      icon: <RiDownloadLine className="w-6 h-6" />,
-      className:
-        "!bg-bg-white-0 !border-2 !border-primary-base !text-primary-base hover:!bg-primary-alpha-10 !outline-none",
+      icon: <RiDownloadLine className="h-5 w-5" aria-hidden="true" />,
     },
     ...(media && media.length > 0 && onDownloadMedia
       ? [
@@ -337,9 +338,7 @@ export const WorkViewSection: React.FC<WorkViewSectionProps> = ({
               defaultMessage: "Download Media",
             }),
             onClick: onDownloadMedia,
-            icon: <RiDownloadLine className="w-6 h-6" />,
-            className:
-              "!bg-bg-white-0 !border-2 !border-warning-base !text-warning-dark hover:!bg-warning-lighter !outline-none",
+            icon: <RiDownloadLine className="h-5 w-5" aria-hidden="true" />,
           },
         ]
       : []),
@@ -347,9 +346,7 @@ export const WorkViewSection: React.FC<WorkViewSectionProps> = ({
       id: "share",
       label: intl.formatMessage({ id: "app.home.work.share", defaultMessage: "Share Work" }),
       onClick: onShare,
-      icon: <RiShareLine className="w-6 h-6" />,
-      className:
-        "!bg-bg-white-0 !border-2 !border-warning-dark !text-warning-dark hover:!bg-warning-lighter !outline-none",
+      icon: <RiShareLine className="h-5 w-5" aria-hidden="true" />,
     },
     ...(onViewAttestation
       ? [
@@ -360,9 +357,7 @@ export const WorkViewSection: React.FC<WorkViewSectionProps> = ({
               defaultMessage: "View Certificate",
             }),
             onClick: onViewAttestation,
-            icon: <RiExternalLinkLine className="w-6 h-6" />,
-            className:
-              "!bg-bg-white-0 !border-2 !border-verified-base !text-verified-dark hover:!bg-verified-lighter !outline-none",
+            icon: <RiExternalLinkLine className="h-5 w-5" aria-hidden="true" />,
           },
         ]
       : []),
@@ -420,6 +415,7 @@ export const WorkViewSection: React.FC<WorkViewSectionProps> = ({
       actionTitle={actionTitle}
       media={media}
       audioNoteCids={audioNoteCids}
+      mediaTypes={resolveMetadata(workMetadata)?.attachments?.map((attachment) => attachment.type)}
       details={allDetails}
       fulfills={fulfills}
       isDetailsLoading={isDetailsLoading}

@@ -21,6 +21,7 @@ source_of_truth:
   - packages/client/src/views/Garden/Review.tsx
   - packages/shared/src/hooks/work/useWorkForm.ts
   - packages/shared/src/hooks/work/useWorkMutation.ts
+  - packages/shared/src/hooks/work/useWorkUploads.ts
   - packages/shared/src/modules/job-queue
 keywords:
   - submit work
@@ -50,7 +51,7 @@ Submit a clear record of work you completed in a garden so a steward can review 
 - Confirm you are in the right garden. Many gardeners belong to more than one.
 - Check that the garden has an active action matching the work you completed. If you are not sure which action to use, ask the steward before submitting.
 - Keep your photos, short video, audio note, measurements, or field notes ready.
-- Weak signal is okay. Drafts and queued submissions stay on your device and sync when the network comes back.
+- Weak signal is okay. Drafts and queued submissions stay on your device until you upload them.
 
 :::tip
 If you do not see any actions, check that you joined the right garden and ask the steward whether the action is active.
@@ -124,34 +125,34 @@ One last look prevents most rework.
 
 Green Goods is built for field conditions.
 
-- If the app says you are offline, your work is queued on your device.
-- When the app is open and the network returns, sync can resume.
-- Give the queue a moment to clear before you submit the same kind of work again.
-- Do not create a duplicate submission just because the first one has not synced yet.
+- If the app says you are offline, your work is saved on your device.
+- When the network returns, the app gets your photos ready in the background. Nothing sends on its own.
+- Open **Your Work** and tap **Upload all** to send everything that is ready. Most accounts confirm once per batch, and a long queue goes out in a few batches.
+- Do not create a duplicate submission just because the first one has not uploaded yet.
 
 <div style={{maxWidth: '320px', margin: '1rem auto'}}>
-  <img src="/img/screenshots/client-work-offline.png" alt="Review step showing the offline banner that work will sync later" style={{width: '100%', borderRadius: '12px', border: '1px solid var(--ifm-color-emphasis-300)'}} />
+  <img src="/img/screenshots/client-work-offline.png" alt="Review step showing the offline banner that work is saved on this device" style={{width: '100%', borderRadius: '12px', border: '1px solid var(--ifm-color-emphasis-300)'}} />
 </div>
 
-> Offline does not mean lost. Leave the draft or queued item in place and let it sync.
+> Offline does not mean lost. Leave the draft or queued item in place and upload it from **Your Work**.
 
 ## How to know it worked
 
-After you tap **Upload Work**, open the **Work Dashboard** from your home screen.
+After you tap **Upload Work**, open **Your Work** from your home screen.
 
-1. A new submission may first show as syncing or queued.
-2. Once synced, it stays in **Pending** while a steward reviews it.
+1. A new submission saved while you were offline first shows as **To upload**.
+2. Once uploaded, it stays in **Pending** while a steward reviews it.
 3. After review, it moves to **Approved** or **Rejected** with any steward feedback.
 4. If it is rejected, read the feedback, fix the issue, and submit a corrected record for the right garden and action.
 
 <div style={{maxWidth: '320px', margin: '1rem auto'}}>
-  <img src="/img/screenshots/client-work-dashboard.png" alt="Work Dashboard showing a recent submission on the Pending tab" style={{width: '100%', borderRadius: '12px', border: '1px solid var(--ifm-color-emphasis-300)'}} />
+  <img src="/img/screenshots/client-work-dashboard.png" alt="Your Work showing a recent submission on the Pending tab" style={{width: '100%', borderRadius: '12px', border: '1px solid var(--ifm-color-emphasis-300)'}} />
 </div>
 
 ## If something goes wrong
 
 - **The next button is disabled.** A required field or media item is missing. Scroll back and look for an empty field or unmet media count.
-- **Media disappeared from a draft.** Reopen the draft from the Work Dashboard and reattach the files before submitting.
+- **Media disappeared from a draft.** Reopen the draft from **Your Work** and reattach the files before submitting.
 - **Upload keeps failing.** Wait for connectivity to return, then retry from the dashboard. Do not create a duplicate draft for the same work.
 - **Your submission was rejected.** Use the steward's feedback as the checklist for your corrected submission.
 - **You need help.** Open Profile help in the app or use the Green Goods Telegram support link in the docs footer.

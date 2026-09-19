@@ -2,7 +2,7 @@ import { execFileSync } from "node:child_process";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   assertAllowedOperatorCommand,
   assertArtifactCheckout,
@@ -21,6 +21,17 @@ import {
   transactionHashFromBoundaryOutput,
 } from "./release-operator";
 
+// Contract-session unit tests never load developer credentials.
+vi.mock("dotenv", () => ({ config: vi.fn(), default: { config: vi.fn() } }));
+
+// git exports GIT_DIR to the hooks it runs in a linked worktree, and a git that inherits it
+// ignores `cwd`. Under the push gate the fixture below, and the checkout assertions under test,
+// would then work on the repository being pushed. `git rev-parse --local-env-vars` names every
+// such variable; scripts/lib/dev-shared.js records the damage this prevents.
+for (const variable of execFileSync("git", ["rev-parse", "--local-env-vars"], { encoding: "utf8" }).split("\n")) {
+  if (variable) delete process.env[variable];
+}
+
 const temporaryDirectories: string[] = [];
 
 afterEach(() => {
@@ -32,12 +43,20 @@ afterEach(() => {
 function createCandidateRepository(): { repository: string; candidate: string } {
   const repository = fs.mkdtempSync(path.join(os.tmpdir(), "release-operator-repository-"));
   temporaryDirectories.push(repository);
+  // The identity travels in the environment and no developer config is read, so the fixture
+  // writes to no config file.
+  const env = {
+    ...process.env,
+    GIT_CONFIG_GLOBAL: "/dev/null",
+    GIT_CONFIG_SYSTEM: "/dev/null",
+    GIT_AUTHOR_NAME: "Fixture",
+    GIT_AUTHOR_EMAIL: "fixture@example.invalid",
+    GIT_COMMITTER_NAME: "Fixture",
+    GIT_COMMITTER_EMAIL: "fixture@example.invalid",
+  };
   const git = (args: string[]) =>
-    execFileSync("git", args, { cwd: repository, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] }).trim();
+    execFileSync("git", args, { cwd: repository, env, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] }).trim();
   git(["init"]);
-  git(["config", "user.name", "Release Operator Test"]);
-  git(["config", "user.email", "release-operator@example.invalid"]);
-  git(["config", "commit.gpgsign", "false"]);
   fs.writeFileSync(path.join(repository, "reviewed.txt"), "reviewed\n");
   git(["add", "reviewed.txt"]);
   git(["commit", "-m", "test: freeze candidate"]);
@@ -81,14 +100,14 @@ describe("release operator session", () => {
       "ownership-arbitrum",
     );
     expect(CEREMONY_STAGES.get("ownership-arbitrum")).toEqual({
-      script: "release:ownership:arbitrum",
+      script: "ownership-arbitrum",
       boundaries: 9,
       label: "Arbitrum protocol ownership handover",
     });
     expect(plannedStageBoundaries("ownership-arbitrum", 5)).toEqual([6, 7, 8, 9]);
     expect(parseSessionOptions(["--commit", candidate, "--stage", "ownership-celo"]).stage).toBe("ownership-celo");
     expect(CEREMONY_STAGES.get("ownership-celo")).toEqual({
-      script: "release:ownership:celo",
+      script: "ownership-celo",
       boundaries: 1,
       label: "Celo protocol ownership handover",
     });
@@ -165,7 +184,11 @@ describe("release operator session", () => {
       [1, 2, 3],
       async () => pendingNonces.shift() ?? -1,
       (boundary, args) => void executions.push({ boundary, args }),
-      { wait: async () => void (waits += 1) },
+      {
+        wait: async () => {
+          waits += 1;
+        },
+      },
     );
 
     expect(waits).toBe(1);
@@ -254,39 +277,37 @@ describe("release operator session", () => {
   it("allowlists only one explicit GardenAccount or Garden Safe boundary per command", () => {
     const receipt = `0x${"cd".repeat(32)}`;
     expect([...RELEASE_OPERATOR_COMMANDS.keys()]).toEqual([
-      "release:ownership:arbitrum",
-      "release:ownership:celo",
-      "settlement:garden-accounts:deploy:celo",
-      "settlement:garden-safes:deploy:celo",
-      "settlement:garden-relay:deploy",
-      "settlement:garden-roles:deploy",
-      "settlement:garden-roles:enable",
-      "settlement:garden-routes:configure",
+      "ownership-arbitrum",
+      "ownership-celo",
+      "garden-accounts",
+      "garden-safes",
+      "garden-relay",
+      "garden-roles",
+      "garden-roles-enable",
+      "garden-routes",
     ]);
     expect(
-      assertAllowedOperatorCommand(tokenizeOperatorCommand("run release:ownership:celo --step 1 --expected-nonce 42")),
+      assertAllowedOperatorCommand(tokenizeOperatorCommand("run ownership-celo --step 1 --expected-nonce 42")),
     ).toEqual({
-      script: "release:ownership:celo",
+      script: "ownership-celo",
       args: ["--step", "1", "--expected-nonce", "42"],
     });
     expect(
       assertAllowedOperatorCommand(
         tokenizeOperatorCommand(
-          `run settlement:garden-accounts:deploy:celo --plan .generated/runtime/accounts.json --step 2 --receipt ${receipt}`,
+          `run garden-accounts --plan .generated/runtime/accounts.json --step 2 --receipt ${receipt}`,
         ),
       ),
     ).toEqual({
-      script: "settlement:garden-accounts:deploy:celo",
+      script: "garden-accounts",
       args: ["--plan", ".generated/runtime/accounts.json", "--step", "2", "--receipt", receipt],
     });
     expect(
       assertAllowedOperatorCommand(
-        tokenizeOperatorCommand(
-          `run settlement:garden-safes:deploy:celo --plan .generated/runtime/final.json --step 1 --receipt ${receipt}`,
-        ),
+        tokenizeOperatorCommand(`run garden-safes --plan .generated/runtime/final.json --step 1 --receipt ${receipt}`),
       ),
     ).toEqual({
-      script: "settlement:garden-safes:deploy:celo",
+      script: "garden-safes",
       args: ["--plan", ".generated/runtime/final.json", "--step", "1", "--receipt", receipt],
     });
     expect(() =>
@@ -294,16 +315,12 @@ describe("release operator session", () => {
         tokenizeOperatorCommand("run settlement:garden-safes:swap:celo --plan .generated/runtime/swap.json --step 1"),
       ),
     ).toThrow(/not allowlisted/);
+    expect(() => assertAllowedOperatorCommand(tokenizeOperatorCommand("run garden-safes --step 1 --step 2"))).toThrow(
+      /duplicated/,
+    );
     expect(() =>
       assertAllowedOperatorCommand(
-        tokenizeOperatorCommand("run settlement:garden-safes:deploy:celo --step 1 --step 2"),
-      ),
-    ).toThrow(/duplicated/);
-    expect(() =>
-      assertAllowedOperatorCommand(
-        tokenizeOperatorCommand(
-          "run settlement:garden-safes:deploy:celo --step 1 --rpc-url https://unreviewed.invalid",
-        ),
+        tokenizeOperatorCommand("run garden-safes --step 1 --rpc-url https://unreviewed.invalid"),
       ),
     ).toThrow(/controlled by the frozen release session/);
     expect(() => assertAllowedOperatorCommand(tokenizeOperatorCommand("run pooling:deploy:arbitrum --step 1"))).toThrow(

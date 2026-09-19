@@ -20,7 +20,7 @@ clean them, never run `git` against them. Do not remove this worktree at the end
 
 Prepared on 2026-08-21, so none of this is yours to redo:
 
-- Dependencies were installed with `bun run setup:isolated` (frozen lockfile, 6,768 packages). Do
+- Dependencies were installed with `bun run setup -- --profile isolated` (frozen lockfile, 6,768 packages). Do
   not run any other install.
 - `.env` is an absolute symlink to the primary repo's `.env`; treat it as read-only. If a
   secret-backed step fails, report it env-gated rather than editing env. The command guard denies
@@ -53,10 +53,10 @@ edit, with HMR. Facts that matter:
   ownership: `lsof -a -p "$(lsof -nP -iTCP:3001 -sTCP:LISTEN -t | head -1)" -d cwd -Fn | grep '^n'`
   must print this worktree's path. If it prints the primary checkout, stop and tell Afo which
   session owns it; do not start a takeover loop.
-- `bun run dev:doctor` cannot see the live stack: its port probe binds `127.0.0.1`, which succeeds
+- `bun run dev:health` cannot see the live stack: its port probe binds `127.0.0.1`, which succeeds
   against Vite's wildcard bind on macOS, so it reports 3001/3002/3004 "available" while they are
   being served. Use `npx pm2 list` and `lsof -nP -iTCP:<port> -sTCP:LISTEN` instead; `bun run
-  dev:health` and `bun run dev:smoke:full` stay valid once the stack is up.
+  dev:health` and `bun run dev:smoke -- full` stay valid once the stack is up.
 - `stack.js` never returns: it tails PM2 logs and **deletes every app on SIGINT/SIGTERM**. Never run
   `bun run dev` as a foreground tool call (the timeout kills the stack) or as a harness-tracked
   background task (session teardown does the same). If Afo asks you to restart it, launch it
@@ -64,7 +64,7 @@ edit, with HMR. Facts that matter:
   `( nohup mise exec -- bun run dev > "$TMPDIR/gg-stack.log" 2>&1 < /dev/null & )`, then
   `npx wait-port -t 240000 localhost:3001`. The indexer leg is a Docker image rebuild and can need
   more than the probe's 180 s; `npx wait-port -t 300000 localhost:3006` covers it.
-  `bun run dev:stop` stops the stack wherever it was started.
+  `bun run dev -- stop` stops the stack wherever it was started.
 - The local Envio builds from this worktree and mirrors live Arbitrum (18 pools registered); writes
   go to the Anvil fork, which is in-memory and resets on every stack restart. `dev:web` serves the UI
   against the hosted indexer named in `.env`, which has no pooling schema yet, so pooling queries
@@ -72,7 +72,7 @@ edit, with HMR. Facts that matter:
 - Do not expect live local pooling data yet. On 2026-08-21 the local index for chain 42161 sat at
   block 435,619,882 while the Arbitrum head and the pool registrations were near 497,000,000, and
   Envio HyperSync rate-limited the catch-up to zero progress (68 `rate-limited` warnings in two
-  minutes of `docker logs indexer-indexer-1`). `bun run dev:smoke:full` then fails exactly one
+  minutes of `docker logs indexer-indexer-1`). `bun run dev:smoke -- full` then fails exactly one
   check, `local-indexer-lag`, by design. Until that check passes, authenticated pooling reads
   against the local stack return nothing even after the local ledger flip: build and test against
   fixtures, and run the smoke before claiming any live local proof. Raising the Envio plan limit is
@@ -96,7 +96,7 @@ runs Node):
 git -C /Users/afo/Code/greenpill/green-goods fetch origin develop
 git -C /Users/afo/Code/greenpill/green-goods worktree add /Users/afo/Code/greenpill/green-goods/.claude/worktrees/client-loop -b feature/commitment-pooling-client-loop origin/develop
 ln -s /Users/afo/Code/greenpill/green-goods/.env /Users/afo/Code/greenpill/green-goods/.claude/worktrees/client-loop/.env
-mise trust && GG_SETUP_ENV_MODE=skip mise exec -- bun run setup:isolated && git branch --unset-upstream
+mise trust && GG_SETUP_ENV_MODE=skip mise exec -- bun run setup -- --profile isolated && git branch --unset-upstream
 ```
 
 ## Dispatch gate (check before anything else)

@@ -2,11 +2,9 @@
 # Format: <raw usage hit><TAB><category><TAB><owner><TAB><expires><TAB><note>
 # The raw usage hit must exactly match scripts/design/check-tokens.sh collect_usage_hits output.
 # Expired entries, entries more than 250 days out, and duplicate hits fail check:design-tokens.
-packages/client/src/components/Layout/Hero.tsx bgColor={isDark ? "#1a1a1a" : "#ffffff"}	legacy-runtime	client	2026-12-31	legacy literal tracked for migration to Warm Earth tokens
-packages/client/src/components/Layout/Hero.tsx fgColor={isDark ? "#ffffff" : "#000000"}	legacy-runtime	client	2026-12-31	legacy literal tracked for migration to Warm Earth tokens
 packages/client/src/config/pwaManifest.ts backgroundColor: "#fff",	legacy-runtime	client	2026-12-31	web manifest requires serialized literal colors pending token export
 packages/client/src/config/pwaManifest.ts const STAGING_DARK_SURFACE = "#111b13";	legacy-runtime	client	2026-12-31	web manifest requires serialized literal colors pending token export
-packages/client/src/config/pwaManifest.ts htmlThemeColorDark: "#171717",	legacy-runtime	client	2026-12-31	web manifest requires serialized literal colors pending token export
+packages/client/src/config/pwaManifest.ts htmlThemeColorDark: "#0c0a09",	legacy-runtime	client	2026-12-31	web manifest requires serialized literal colors pending token export
 packages/client/src/config/pwaManifest.ts htmlThemeColorLight: "#ffffff",	legacy-runtime	client	2026-12-31	web manifest requires serialized literal colors pending token export
 packages/client/src/config/pwaManifest.ts msTileColor: "#ffffff",	legacy-runtime	client	2026-12-31	web manifest requires serialized literal colors pending token export
 packages/client/src/config/pwaManifest.ts themeColor: "#fff",	legacy-runtime	client	2026-12-31	web manifest requires serialized literal colors pending token export
@@ -29,8 +27,6 @@ packages/shared/src/components/Display/GardenBannerFallback.tsx "linear-gradient
 packages/shared/src/components/Display/GardenBannerFallback.tsx "linear-gradient(135deg, #4c1d95 0%, #a78bfa 100%)", // Lavender	generated-media	shared	2026-12-31	serialized media fallback uses literals pending token renderer
 packages/shared/src/components/Display/GardenBannerFallback.tsx "linear-gradient(135deg, #78350f 0%, #d97706 100%)", // Autumn	generated-media	shared	2026-12-31	serialized media fallback uses literals pending token renderer
 packages/shared/src/components/Display/GardenBannerFallback.tsx const DOT_PATTERN = "radial-gradient(circle, rgba(255,255,255,0.12) 1px, transparent 1px)";	generated-media	shared	2026-12-31	serialized media fallback uses literals pending token renderer
-packages/shared/src/components/Form/Select/FormSelect.tsx boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)",	legacy-runtime	shared	2026-12-31	legacy literal tracked for migration to Warm Earth tokens
-packages/shared/src/components/Form/Select/FormSelect.tsx boxShadow: state.isFocused ? "0 0 0 3px rgba(var(--primary-base), 0.1)" : "none",	legacy-runtime	shared	2026-12-31	legacy literal tracked for migration to Warm Earth tokens
 packages/shared/src/components/Progress/SubmissionProgress.tsx transition-all duration-500	legacy-runtime	shared	2026-12-31	legacy literal tracked for migration to Warm Earth tokens
 packages/shared/src/components/Tokens/foundation.ts "transition-[background-color,border-color,box-shadow,color,transform] duration-150 ease-out",	legacy-runtime	shared	2026-12-31	legacy literal tracked for migration to Warm Earth tokens
 packages/shared/src/config/appkit.ts "--w3m-accent": "#367D42", // Green Goods primary green	third-party-theme	shared	2026-12-31	third-party theme API requires literal bridge pending token adapter
@@ -69,10 +65,7 @@ packages/admin/src/components/Hypercerts/CreateListingDialog.tsx <RiCheckLine cl
 packages/admin/src/components/Hypercerts/Steps/MintProgress.tsx : "border-error-base bg-error-base text-white"),	legacy-runtime	admin	2026-12-31	legacy literal tracked for migration to Warm Earth tokens
 packages/admin/src/components/Hypercerts/Steps/MintProgress.tsx ? "border-warning-base bg-warning-base text-white"	legacy-runtime	admin	2026-12-31	legacy literal tracked for migration to Warm Earth tokens
 packages/admin/src/components/Hypercerts/Steps/MintProgress.tsx isStepComplete && "border-success-base bg-success-base text-white",	legacy-runtime	admin	2026-12-31	legacy literal tracked for migration to Warm Earth tokens
-packages/client/src/components/Layout/Hero.tsx <Dialog.Overlay className="fixed inset-0 bg-black/30 backdrop-blur-sm animate-fade-in z-overlay" />	legacy-runtime	client	2026-12-31	legacy literal tracked for migration to Warm Earth tokens
-packages/client/src/components/Layout/Hero.tsx <div className="rounded-xl shadow-sm bg-white dark:bg-gray-800 transition-colors border border-transparent dark:border-gray-600">	legacy-runtime	client	2026-12-31	legacy literal tracked for migration to Warm Earth tokens
 packages/shared/src/components/Audio/AudioPlayer.tsx "bg-primary-base text-white hover:bg-primary-dark"	legacy-runtime	shared	2026-12-31	legacy literal tracked for migration to Warm Earth tokens
-packages/shared/src/components/Audio/AudioRecorder.tsx "bg-error-base text-white hover:bg-error-dark transition-colors",	legacy-runtime	shared	2026-12-31	legacy literal tracked for migration to Warm Earth tokens
 packages/shared/src/components/Badge/Badge.tsx black: "bg-black text-white",	legacy-runtime	shared	2026-12-31	legacy literal tracked for migration to Warm Earth tokens
 packages/shared/src/components/Canvas/AppBar.tsx "rounded-md bg-neutral-900/90 px-2.5 py-1 text-xs font-medium text-white",	legacy-runtime	shared	2026-12-31	legacy literal tracked for migration to Warm Earth tokens
 packages/shared/src/components/Canvas/NavigationBar.tsx : "text-text-sub hover:bg-white/60 hover:text-text-strong"	legacy-runtime	shared	2026-12-31	legacy literal tracked for migration to Warm Earth tokens
@@ -82,7 +75,6 @@ packages/shared/src/components/Cards/CardBase.stories.tsx <button className="px-
 packages/shared/src/components/Display/ActionBannerFallback.tsx <Icon className="w-10 h-10 text-white/30" />	generated-media	shared	2026-12-31	serialized media fallback uses literals pending token renderer
 packages/shared/src/components/ErrorBoundary/ErrorBoundary.stories.tsx className="mt-3 rounded-full bg-error-base px-4 py-1.5 text-sm font-medium text-white hover:bg-error-dark transition"	storybook-fixture	storybook	2026-12-31	storybook fixture literal pending tokenized story cleanup
 packages/shared/src/components/ErrorBoundary/ErrorBoundary.tsx "bg-error-base text-sm font-medium text-white",	legacy-runtime	shared	2026-12-31	legacy literal tracked for migration to Warm Earth tokens
-packages/shared/src/components/Form/ConfidenceSelector.tsx ? "bg-primary-base text-white"	legacy-runtime	shared	2026-12-31	legacy literal tracked for migration to Warm Earth tokens
 packages/shared/src/components/Form/FormLayout.stories.tsx <button className="px-4 py-2 bg-primary text-white rounded-lg w-fit">Submit</button>	storybook-fixture	storybook	2026-12-31	storybook fixture literal pending tokenized story cleanup
 packages/shared/src/components/Form/FormLayout.stories.tsx <button className="px-4 py-2 bg-primary text-white rounded-lg w-full">Sign In</button>	storybook-fixture	storybook	2026-12-31	storybook fixture literal pending tokenized story cleanup
 packages/shared/src/components/Form/MethodSelector.tsx ? "bg-primary-base text-white"	legacy-runtime	shared	2026-12-31	legacy literal tracked for migration to Warm Earth tokens
@@ -95,7 +87,6 @@ packages/shared/src/components/Progress/ENSProgressTimeline.tsx <RiLoader4Line c
 packages/shared/src/components/Progress/ENSProgressTimeline.tsx <RiTimeLine className="h-4 w-4 text-amber-500" />	legacy-runtime	shared	2026-12-31	legacy literal tracked for migration to Warm Earth tokens
 packages/shared/src/components/Progress/ENSProgressTimeline.tsx <span className="shrink-0 rounded-full bg-amber-50 px-2.5 py-0.5 text-xs font-medium text-amber-700">	legacy-runtime	shared	2026-12-31	legacy literal tracked for migration to Warm Earth tokens
 packages/shared/src/components/Progress/SubmissionProgress.tsx textColor = "text-white";	legacy-runtime	shared	2026-12-31	legacy literal tracked for migration to Warm Earth tokens
-packages/shared/src/components/Progress/SyncIndicator.tsx text-[10px] font-bold text-white	legacy-runtime	shared	2026-12-31	legacy literal tracked for migration to Warm Earth tokens
 packages/shared/src/components/Toast/Toast.stories.tsx className="px-4 py-2 bg-error-base text-white rounded-lg hover:bg-error-dark transition-colors w-fit"	storybook-fixture	storybook	2026-12-31	storybook fixture literal pending tokenized story cleanup
 packages/shared/src/components/Toast/Toast.stories.tsx className="px-4 py-2 bg-error-base text-white rounded-lg hover:bg-error-dark transition-colors"	storybook-fixture	storybook	2026-12-31	storybook fixture literal pending tokenized story cleanup
 packages/shared/src/components/Toast/Toast.stories.tsx className="px-4 py-2 bg-information-base text-white rounded-lg hover:bg-information-dark transition-colors w-fit"	storybook-fixture	storybook	2026-12-31	storybook fixture literal pending tokenized story cleanup
@@ -119,7 +110,6 @@ packages/client/vite/social-preview.ts const HERO_CARD_FILL = "#f7f0e4";	generat
 packages/client/vite/social-preview.ts const HERO_CARD_LEDE_COLOR = "#514a3d";	generated-media	client	2026-12-31	social preview SVG renderer uses literal media colors pending tokenized renderer
 packages/client/vite/social-preview.ts const HERO_CARD_TITLE_COLOR = "#221f18";	generated-media	client	2026-12-31	social preview SVG renderer uses literal media colors pending tokenized renderer
 packages/shared/src/components/Conviction/ConvictionMeter.tsx "width var(--spring-spatial-slow-duration, 600ms) var(--spring-spatial-slow-easing, cubic-bezier(0.16, 1, 0.3, 1))",	legacy-runtime	shared	2026-12-31	transition fallback embeds canonical spring curve for non-admin scopes
-packages/admin/src/components/AdminRevampTokens.stories.tsx "linear-gradient(180deg, var(--tone-surface-tint-color, transparent), transparent 320px), rgb(var(--m3-surface-container-low))",	storybook-fixture	admin	2026-12-31	token-gallery specimen documents the 1a canvas wash gradient
 # 2026-08-29 admin cockpit invariant debt (PRD-644 round 2; .plans/backlog/design-system-alignment-review/reports/2026-08-29-admin-cockpit-audit.md).
 # Removed automatically as migrations land: fixing a line makes its entry stale and check:design-tokens demands the deletion.
 packages/admin/src/components/AdminSelectableCard.tsx "active:scale-[0.99]",	legacy-runtime	admin	2026-12-31	2026-08-29 admin audit: hover/press transform; replace with elevation step or 8% ink layer (PRD-644 round 2)

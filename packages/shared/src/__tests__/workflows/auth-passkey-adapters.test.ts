@@ -51,8 +51,9 @@ describe("passkey cross-chain account construction", () => {
     vi.stubEnv("VITE_PIMLICO_API_KEY", "test-api-key");
     vi.stubEnv("VITE_PIMLICO_SPONSORSHIP_POLICY_ID", "arbitrum-policy");
     vi.stubEnv("VITE_PIMLICO_CELO_SPONSORSHIP_POLICY_ID", "celo-policy");
-    const primary = await defaultPasskeyAdapters.buildSmartAccount(credential, 42161);
-    const settlement = await defaultPasskeyAdapters.buildSmartAccount(credential, 42220);
+    const rpId = defaultPasskeyAdapters.getRpId();
+    const primary = await defaultPasskeyAdapters.buildSmartAccount(credential, 42161, rpId);
+    const settlement = await defaultPasskeyAdapters.buildSmartAccount(credential, 42220, rpId);
     expect(factoryCalls).toHaveLength(2);
     expect(factoryCalls[0].chainId).toBe(42161);
     expect(factoryCalls[1].chainId).toBe(42220);
@@ -78,9 +79,9 @@ describe("passkey cross-chain account construction", () => {
   it("refuses Celo construction before factory RPC when only a primary policy exists", async () => {
     vi.stubEnv("VITE_PIMLICO_SPONSORSHIP_POLICY_ID", "arbitrum-policy");
     vi.stubEnv("VITE_PIMLICO_CELO_SPONSORSHIP_POLICY_ID", undefined);
-    await expect(defaultPasskeyAdapters.buildSmartAccount(credential, 42220)).rejects.toMatchObject(
-      { code: "policy_unavailable" }
-    );
+    await expect(
+      defaultPasskeyAdapters.buildSmartAccount(credential, 42220, defaultPasskeyAdapters.getRpId())
+    ).rejects.toMatchObject({ code: "policy_unavailable" });
     expect(factoryCalls).toEqual([]);
   });
 });

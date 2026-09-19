@@ -1,0 +1,140 @@
+/**
+ * SessionGate Route Guard Tests
+ *
+ * Tests the authentication route guard behavior.
+ */
+
+import { cleanup, render, screen } from "@testing-library/react";
+import { createElement } from "react";
+import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+
+// Mock the current shared auth state hook
+const mockUseAuthState = vi.fn();
+
+vi.mock("@green-goods/shared/hooks/auth/useAuth", () => ({
+  useAuthState: () => mockUseAuthState(),
+}));
+
+// Import the route gate after its auth dependency is mocked.
+import SessionGate from "../../routes/SessionGate";
+import {
+  hasChunkReloadAttempt,
+  markChunkReloadAttempt,
+} from "../../components/Errors/errorClassification";
+
+const ProtectedContent = () => createElement("div", null, "Protected Content");
+const LoginPage = () => {
+  const location = useLocation();
+  return createElement(
+    "div",
+    { "data-location": `${location.pathname}${location.search}` },
+    "Login Page"
+  );
+};
+
+const renderWithRouter = (initialRoute = "/protected") => {
+  return render(
+    createElement(
+      MemoryRouter,
+      { initialEntries: [initialRoute] },
+      createElement(
+        Routes,
+        null,
+        createElement(Route, { path: "/home/login", element: createElement(LoginPage) }),
+        createElement(
+          Route,
+          { element: createElement(SessionGate) },
+          createElement(Route, { path: "/protected", element: createElement(ProtectedContent) })
+        )
+      )
+    )
+  );
+};
+
+describe("SessionGate", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    sessionStorage.clear();
+  });
+
+  afterEach(() => {
+    cleanup();
+  });
+
+  it("does not mount a second loading scene during cold session restoration", () => {
+    mockUseAuthState.mockReturnValue({
+      isReady: false,
+      isAuthenticated: false,
+    });
+
+    const { container } = renderWithRouter();
+
+    expect(container.querySelector(".animate-spin")).not.toBeInTheDocument();
+    expect(screen.queryByText("Protected Content")).not.toBeInTheDocument();
+    expect(screen.queryByText("Login Page")).not.toBeInTheDocument();
+  });
+
+  it("keeps protected content mounted during a transient authenticated restore", () => {
+    mockUseAuthState.mockReturnValue({
+      isReady: false,
+      isAuthenticated: true,
+    });
+
+    renderWithRouter();
+
+    expect(screen.getByText("Protected Content")).toBeInTheDocument();
+    expect(screen.queryByText("Login Page")).not.toBeInTheDocument();
+  });
+
+  it("redirects to login when not authenticated", () => {
+    mockUseAuthState.mockReturnValue({
+      isReady: true,
+      isAuthenticated: false,
+    });
+
+    renderWithRouter();
+
+    expect(screen.getByText("Login Page")).toBeInTheDocument();
+    expect(screen.queryByText("Protected Content")).not.toBeInTheDocument();
+  });
+
+  it("renders protected content when authenticated", () => {
+    mockUseAuthState.mockReturnValue({
+      isReady: true,
+      isAuthenticated: true,
+    });
+
+    renderWithRouter();
+
+    expect(screen.getByText("Protected Content")).toBeInTheDocument();
+    expect(screen.queryByText("Login Page")).not.toBeInTheDocument();
+  });
+
+  it("clears the one-shot chunk reload guard after an authenticated route commits", () => {
+    markChunkReloadAttempt();
+    mockUseAuthState.mockReturnValue({
+      isReady: true,
+      isAuthenticated: true,
+    });
+
+    renderWithRouter();
+
+    expect(screen.getByText("Protected Content")).toBeInTheDocument();
+    expect(hasChunkReloadAttempt()).toBe(false);
+  });
+
+  it("preserves redirect path in login URL", () => {
+    mockUseAuthState.mockReturnValue({
+      isReady: true,
+      isAuthenticated: false,
+    });
+
+    renderWithRouter("/protected?foo=bar");
+
+    expect(screen.getByText("Login Page")).toHaveAttribute(
+      "data-location",
+      "/home/login?redirectTo=%2Fprotected%3Ffoo%3Dbar"
+    );
+  });
+});

@@ -1,3 +1,4 @@
+import { Button } from "@green-goods/shared/components/Button";
 import type { Action, Address } from "@green-goods/shared/types/domain";
 import { AddressDisplay } from "@green-goods/shared/components/AddressDisplay";
 import {
@@ -152,16 +153,17 @@ export function CommitmentTeam({
               {formatMessage({ id: "app.commitment.team.joinOffline" })}
             </p>
           ) : null}
-          <button
+          <Button
             type="button"
+            emphasis="secondary"
             onClick={onJoin}
-            disabled={!isOnline || isJoining}
-            aria-busy={isJoining}
-            className="flex w-full items-center justify-center gap-2 rounded-[var(--radius-lg)] border border-stroke-soft-200 px-4 py-3 text-sm font-medium text-text-strong-950 tap-target-lg disabled:opacity-60"
+            loading={isJoining}
+            disabled={!isOnline && !isJoining}
+            className="w-full"
+            leadingIcon={<RiUserAddLine className="h-4 w-4" aria-hidden="true" />}
           >
-            <RiUserAddLine className="h-4 w-4" aria-hidden="true" />
             {formatMessage({ id: "app.commitment.team.join" })}
-          </button>
+          </Button>
           <p className="mt-2 text-xs text-text-soft-400">
             {formatMessage({ id: "app.commitment.team.joinNote" })}
           </p>

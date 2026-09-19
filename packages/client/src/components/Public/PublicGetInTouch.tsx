@@ -1,3 +1,5 @@
+import { Button } from "@green-goods/shared/components/Button";
+import { TextInput } from "@green-goods/shared/components/Form/ControlPrimitives";
 import { toastService } from "@green-goods/shared/components/Toast/toast.service";
 import { useInViewReveal } from "@green-goods/shared/hooks/ui/useInViewReveal";
 import { logger } from "@green-goods/shared/modules/app/logger";
@@ -147,8 +149,8 @@ export function PublicGetInTouch() {
                   defaultMessage: "Your email",
                 })}
               </label>
-              <div className="mt-3 flex flex-col gap-3 border-b border-editorial-deep-fg/30 pb-3 focus-within:border-editorial-deep-fg/60 sm:flex-row sm:items-center sm:gap-3 sm:pb-2">
-                <input
+              <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-end sm:gap-4">
+                <TextInput
                   id="public-subscribe-email"
                   type="email"
                   name="email"
@@ -158,12 +160,13 @@ export function PublicGetInTouch() {
                     id: "public.home.getInTouch.emailPlaceholder",
                     defaultMessage: "you@example.com",
                   })}
-                  className="w-full flex-1 bg-transparent font-serif text-xl font-normal text-editorial-deep-fg placeholder-editorial-deep-fg/40 focus:outline-none sm:w-auto md:text-2xl"
+                  surface="editorial"
+                  className="flex-1 text-xl text-editorial-deep-fg md:text-2xl"
                 />
                 <EditorialPrimaryButton
                   type="submit"
-                  disabled={submitState === "loading"}
-                  className="w-full shrink-0 px-5 py-2.5 sm:w-auto"
+                  loading={submitState === "loading"}
+                  className="w-full shrink-0 sm:w-auto"
                 >
                   {submitState === "loading"
                     ? formatMessage({
@@ -229,18 +232,20 @@ export function PublicGetInTouch() {
                     "Want to talk through a Garden, funding path, or partnership? Book a quiet half-hour with the team.",
                 })}
               </p>
-              <a
-                href={publicCuration.appointmentUrl}
-                target="_blank"
-                rel="noreferrer noopener"
-                className="inline-flex w-full shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-full border border-editorial-deep-fg/40 bg-transparent px-6 py-3 text-sm font-medium text-editorial-deep-fg transition-colors hover:bg-editorial-deep-fg/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-editorial-deep-fg focus-visible:ring-offset-2 sm:w-auto"
+              {/* A secondary on the walnut section: linen ink and outline. */}
+              <Button
+                asChild
+                emphasis="secondary"
+                trailingIcon={<span aria-hidden="true">→</span>}
+                className="w-full shrink-0 border-editorial-deep-fg/40 bg-transparent text-editorial-deep-fg hover:bg-editorial-deep-fg/10 sm:w-auto"
               >
-                {formatMessage({
-                  id: "public.home.getInTouch.scheduleCall",
-                  defaultMessage: "Schedule a Call",
-                })}
-                <span aria-hidden="true">→</span>
-              </a>
+                <a href={publicCuration.appointmentUrl} target="_blank" rel="noreferrer noopener">
+                  {formatMessage({
+                    id: "public.home.getInTouch.scheduleCall",
+                    defaultMessage: "Schedule a Call",
+                  })}
+                </a>
+              </Button>
             </div>
           </div>
         </div>

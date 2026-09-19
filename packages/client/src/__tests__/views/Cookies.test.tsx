@@ -97,7 +97,8 @@ vi.mock("@green-goods/shared/utils/styles/cn", () => ({
   cn: (...classes: Array<string | false | null | undefined>) => classes.filter(Boolean).join(" "),
 }));
 
-vi.mock("@green-goods/shared/utils/blockchain/vaults", () => ({
+vi.mock("@green-goods/shared/utils/blockchain/vaults", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@green-goods/shared/utils/blockchain/vaults")>()),
   formatTokenAmount: (value: bigint, decimals = 18) => String(Number(value) / 10 ** decimals),
 }));
 
@@ -169,55 +170,6 @@ vi.mock("@green-goods/shared/hooks/public/usePublicGardens", () => ({
 vi.mock("@green-goods/shared/hooks/auth/useUser", () => ({
   useUser: () => mockUseUser(),
 }));
-
-vi.mock("@green-goods/shared/components/Form/FormattedAmountInput", async () => {
-  return {
-    useFormattedAmountInput: (value: string) => {
-      const trimmed = value.trim();
-      let parsedAmount: bigint | null = null;
-      if (trimmed && /^\d+(\.\d+)?$/.test(trimmed)) {
-        // 18-decimal parse mirroring the real hook closely enough for gating.
-        const [whole, frac = ""] = trimmed.split(".");
-        parsedAmount = BigInt(whole + frac.padEnd(18, "0").slice(0, 18));
-      }
-      return {
-        parsedAmount,
-        formatErrorId: null,
-        exceeds: false,
-        isEmpty: trimmed.length === 0,
-      };
-    },
-    FormattedAmountInput: ({
-      value,
-      onValueChange,
-      error,
-      endSlot,
-      inputClassName: _inputClassName,
-      errorClassName: _errorClassName,
-      containerClassName: _containerClassName,
-      ...props
-    }: {
-      value: string;
-      onValueChange: (next: string) => void;
-      error?: React.ReactNode;
-      endSlot?: React.ReactNode;
-      inputClassName?: string;
-      errorClassName?: string;
-      containerClassName?: string;
-    } & Omit<React.InputHTMLAttributes<HTMLInputElement>, "value" | "onChange" | "type">) => (
-      <div>
-        <input
-          type="text"
-          value={value}
-          onChange={(event) => onValueChange(event.target.value)}
-          {...props}
-        />
-        {endSlot}
-        {error ? <p role="alert">{error}</p> : null}
-      </div>
-    ),
-  };
-});
 
 vi.mock("@green-goods/shared/components/feedback/TransactionSuccessAffordance", () => ({
   TransactionSuccessAffordance: () => null,
@@ -421,6 +373,32 @@ describe("CookiesPage", () => {
 
     expect(await screen.findByText(/wallet is not on the list yet/i));
     expect(screen.getByRole("button", { name: "Claim Cookie" })).toBeDisabled();
+  });
+
+  it("announces and clears precision errors through the real amount input without submitting", async () => {
+    const user = userEvent.setup();
+    mockUseCampaignCookieJar.mockReturnValue({
+      jar: { ...eligibleJar, decimals: 6 },
+      isLoading: false,
+      error: null,
+      hasDetailReadFailure: false,
+    });
+    const { container } = renderPage();
+    const input = await screen.findByRole("textbox", { name: "Deposit amount" });
+    const feedback = container.querySelector(`[id="${input.id}-error"]`);
+    expect(feedback).toBeEmptyDOMElement();
+    await user.type(input, "0.0000001");
+    expect(screen.getByRole("textbox", { name: "Deposit amount" })).toBe(input);
+    expect(input).toHaveAccessibleDescription("Too many decimal places");
+    expect(screen.getByRole("alert")).toBe(feedback);
+    expect(screen.getByRole("button", { name: "Deposit" })).toBeDisabled();
+    await user.clear(input);
+    await user.type(input, "1");
+    expect(feedback).toBeEmptyDOMElement();
+    expect(input).not.toHaveAttribute("aria-invalid");
+    expect(input).not.toHaveAttribute("aria-describedby");
+    expect(screen.getByRole("button", { name: "Deposit" })).toBeEnabled();
+    expect(mockDepositMutate).not.toHaveBeenCalled();
   });
 
   it("submits a deposit from the same public page", async () => {

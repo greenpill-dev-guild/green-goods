@@ -93,7 +93,7 @@ export function AdminSearchToolbar({
           className={cn(
             "h-full min-w-0 flex-1 bg-transparent px-3",
             "text-body-md text-[rgb(var(--m3-on-surface))]",
-            "outline-none border-none focus:outline-none"
+            "outline-none border-none focus:outline-none focus:shadow-none"
           )}
         />
 
@@ -104,10 +104,10 @@ export function AdminSearchToolbar({
             onClick={() => onSearchChange("")}
             aria-label={clearLabel}
             className={cn(
-              // 28dp circular control inside the 36dp pill
+              // 28dp circular control inside the 36dp pill, with the 44px finger box (DL-030).
               "mr-1 h-7 w-7 shrink-0 rounded-full",
               // State layer
-              "m3-state-layer",
+              "m3-state-layer admin-hit-target",
               "[--state-layer-color:var(--m3-on-surface-variant)]",
               // Icon color
               "flex items-center justify-center text-[rgb(var(--m3-on-surface-variant))]",

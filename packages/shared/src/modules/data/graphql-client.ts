@@ -3,6 +3,7 @@ import { GraphQLClient, type RequestDocument } from "graphql-request";
 
 import { getEasGraphqlUrl, getIndexerUrl } from "../../config/blockchain";
 import { trackGraphQLError } from "../app/error-tracking";
+import { connectivityStore } from "../../stores/connectivity";
 
 /** Vite environment interface for indexer URL access */
 interface ViteEnv {
@@ -98,17 +99,21 @@ export class GQLClient implements GraphQLReader {
     } catch (error) {
       const normalizedError = error instanceof Error ? error : new Error(String(error));
 
-      trackGraphQLError(normalizedError, {
-        source: "GQLClient.query",
-        userAction: operationName ? `executing ${operationName} query` : "executing GraphQL query",
-        recoverable: true,
-        metadata: {
-          operation_name: operationName,
-          is_timeout: error instanceof TimeoutError,
-          timeout_ms: error instanceof TimeoutError ? error.timeoutMs : undefined,
-          is_offline: typeof navigator !== "undefined" ? !navigator.onLine : false,
-        },
-      });
+      if (connectivityStore.getStatusSnapshot().state !== "offline") {
+        trackGraphQLError(normalizedError, {
+          source: "GQLClient.query",
+          userAction: operationName
+            ? `executing ${operationName} query`
+            : "executing GraphQL query",
+          recoverable: true,
+          metadata: {
+            operation_name: operationName,
+            is_timeout: error instanceof TimeoutError,
+            timeout_ms: error instanceof TimeoutError ? error.timeoutMs : undefined,
+            is_offline: false,
+          },
+        });
+      }
 
       return { error: normalizedError };
     }

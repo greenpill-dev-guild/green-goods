@@ -6,6 +6,7 @@ import { join } from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
 
+import { clearRepositoryLocalGitVariables, fixtureGitEnvironment } from "../lib/dev-shared.js";
 import {
   detectCliCapabilities,
   buildReceiptInputs,
@@ -26,14 +27,23 @@ function turboTestCommand(surface) {
   return `node ${binary} run test --filter=@green-goods/${surface} --output-logs=new-only`;
 }
 
+// A hook's GIT_DIR outranks `cwd`, so without this the selector under test reads the repository
+// being pushed instead of the fixture a test just built.
+clearRepositoryLocalGitVariables();
+
+function fixtureGit(directory) {
+  const env = fixtureGitEnvironment();
+  return (...args) => execFileSync("git", args, { cwd: directory, env, stdio: "ignore" });
+}
+
 test("the durable Bun caller re-enters the selector under real Node", () => {
   const packageJson = JSON.parse(
     readFileSync(new URL("../../package.json", import.meta.url), "utf8"),
   );
 
   assert.equal(
-    packageJson.scripts["validation:plan"],
-    "node scripts/dev/node-cli.js scripts/quality/select-validation.mjs",
+    packageJson.scripts.check,
+    "node scripts/dev/ci-local.js",
   );
 });
 
@@ -78,7 +88,7 @@ test("skill and documented skill-inventory changes select direct guidance contra
     assert.ok(guidance, changedPath);
     assert.equal(
       guidance.command,
-      "bun run check:codex-guidance && bun run check:skill-behavior && bun run check:guidance-links",
+      "node scripts/quality/check-codex-docs.js && node scripts/quality/check-skill-behavior-contracts.mjs && node scripts/quality/check-guidance-links.mjs",
     );
     assert.ok(guidance.selectedBy.includes("conditional:agent-guidance"), changedPath);
   }
@@ -93,7 +103,7 @@ test("agent-tool changes select their direct tests for QA and review", () => {
 
     const agentTools = plan.checks.find((check) => check.id === "agent-tools-test");
     assert.ok(agentTools, intent);
-    assert.equal(agentTools.command, "bun run test:agent-tools");
+    assert.equal(agentTools.command, "bun --bun x vitest run --dir scripts/agents");
     assert.ok(agentTools.selectedBy.includes("conditional:agent-tools-test"), intent);
   }
 });
@@ -314,16 +324,16 @@ test("client changes select the staged Card Endow boundary", () => {
 
 test("recognized root tests select their durable acceptance commands", () => {
   for (const [changedPath, checkId, command] of [
-    ["scripts/lib/env-schema.test.mjs", "env-schema-test", "bun run test:env-schema"],
+    ["scripts/lib/env-schema.test.mjs", "env-schema-test", "node scripts/dev/node-cli.js node --test scripts/lib/env-schema.test.mjs"],
     [
       "scripts/lib/dev-shared.test.mjs",
       "validation-system-test",
-      "bun run test:validation-system",
+      loadPolicy().checks.find((check) => check.id === "validation-system-test").command,
     ],
     [
       "scripts/quality/select-validation.test.mjs",
       "validation-system-test",
-      "bun run test:validation-system",
+      loadPolicy().checks.find((check) => check.id === "validation-system-test").command,
     ],
   ]) {
     for (const input of [
@@ -364,7 +374,7 @@ test("workspace checkpoint keeps repository-wide format and lint commands", () =
   });
 
   assert.equal(plan.checkpointScope, "workspace");
-  assert.equal(plan.checks.find((check) => check.id === "format").command, "bun run format:check");
+  assert.equal(plan.checks.find((check) => check.id === "format").command, "bunx @biomejs/biome format .");
   assert.equal(plan.checks.find((check) => check.id === "lint").command, "bun run lint");
 });
 
@@ -632,7 +642,7 @@ test("focused Solidity tests use the contracts match-path wrapper", () => {
   });
 
   const contractsTest = plan.checks.find((check) => check.id === "contracts-test");
-  assert.equal(contractsTest.command, "bun run test:match test/unit/Garden.t.sol");
+  assert.equal(contractsTest.command, "bun run test --suite solidity --profile match test/unit/Garden.t.sol");
   assert.deepEqual(contractsTest.focusedPaths, ["test/unit/Garden.t.sol"]);
 });
 
@@ -648,7 +658,7 @@ test("multiple focused Solidity tests invoke the contracts wrapper once per path
   const contractsTest = plan.checks.find((check) => check.id === "contracts-test");
   assert.equal(
     contractsTest.command,
-    "bun run test:match test/unit/Action.t.sol && bun run test:match test/unit/Garden.t.sol",
+    "bun run test --suite solidity --profile match test/unit/Action.t.sol && bun run test --suite solidity --profile match test/unit/Garden.t.sol",
   );
   assert.deepEqual(contractsTest.focusedPaths, [
     "test/unit/Action.t.sol",
@@ -894,7 +904,7 @@ test("strict indexer contract changes select the real event integration", () => 
       const plan = selectValidation({ intent, changedPaths: [changedPath] });
       const integration = plan.checks.find((check) => check.id === "indexer-contract-events");
       assert.ok(integration, `${intent}: ${changedPath}`);
-      assert.equal(integration.command, "bun run test:contract-events");
+      assert.equal(integration.command, "bun run test --scope contract-events");
       assert.equal(integration.cwd, "packages/indexer");
       assert.equal(integration.budgetSeconds, 480);
       assert.deepEqual(integration.capabilities, [
@@ -920,7 +930,7 @@ test("exact toolchain parity is enforced only for tools selected checks need", (
     changedPaths: ["docs/docs/builders/getting-started.mdx"],
     environment: {
       profile: "local",
-      toolchain: { node: "22.22.1", bun: "1.3.14" },
+      toolchain: { node: "22.22.1", bun: "1.4.2" },
       capabilities: { dependencies: true },
     },
   });
@@ -960,7 +970,7 @@ test("direct CLI toolchain detection blocks a stale Bun plan", () => {
 
   assert.equal(plan.status, "blocked");
   assert.deepEqual(plan.environmentBlockers, [
-    { capability: "toolchain.bun", expected: "1.3.14", actual: "1.3.10" },
+    { capability: "toolchain.bun", expected: "1.4.2", actual: "1.3.10" },
   ]);
 });
 
@@ -988,7 +998,10 @@ test("ship scopes docs-only work to the exact impacted strict surface", () => {
   assert.equal(plan.checkpointScope, "workspace");
   assert.deepEqual(plan.surfaces, ["docs"]);
   assert.deepEqual(ids(plan), ["format", "lint", "docs-authority", "docs-test", "docs-build"]);
-  assert.equal(plan.checks.find((check) => check.id === "format").command, "bun format");
+  assert.equal(
+    plan.checks.find((check) => check.id === "format").command,
+    "bunx @biomejs/biome format .",
+  );
   assert.ok(plan.checks.every((check) => check.mandatory));
 });
 
@@ -1040,7 +1053,10 @@ test("push requires focused client proof while ship retains the full local surfa
     "browser-proof",
   ];
   assert.deepEqual(ids(ship), shipExpected);
-  assert.equal(ship.checks.find((check) => check.id === "format").command, "bun format");
+  assert.equal(
+    ship.checks.find((check) => check.id === "format").command,
+    "bunx @biomejs/biome format .",
+  );
   assert.ok(ship.checks.every((check) => check.mandatory));
 });
 
@@ -1219,8 +1235,8 @@ test("local merge and merge --ci select identical checks while preserving CI pac
   assert.deepEqual(ids(local), expected);
   assert.deepEqual(ids(ci), expected);
   assert.deepEqual(ids(local), ids(ci));
-  assert.equal(local.checks.find((check) => check.id === "format").command, "bun format");
-  assert.equal(ci.checks.find((check) => check.id === "format").command, "bun run format:check");
+  assert.equal(local.checks.find((check) => check.id === "format").command, "bunx @biomejs/biome format .");
+  assert.equal(ci.checks.find((check) => check.id === "format").command, "bunx @biomejs/biome format .");
   assert.equal(
     local.checks.find((check) => check.id === "admin-test").command,
     turboTestCommand("admin"),
@@ -1318,7 +1334,7 @@ test("readiness and release remain full scope while empty ship falls back to ful
     assert.deepEqual(ids(plan), fullStrictChecks, intent);
     assert.equal(
       plan.checks.find((check) => check.id === "format").command,
-      "bun format",
+      "bunx @biomejs/biome format .",
       intent,
     );
     for (const surface of ["shared", "client", "admin", "agent", "indexer", "docs"]) {
@@ -1353,7 +1369,7 @@ test("receipt inputs authorize only opt-in passing reuse", () => {
     changedPaths: ["packages/agent/src/index.ts"],
     environment: {
       profile: "local",
-      toolchain: { node: "22.22.1", bun: "1.3.14" },
+      toolchain: { node: "22.22.1", bun: "1.4.2" },
       capabilities: { dependencies: true },
     },
   });
@@ -1416,11 +1432,8 @@ test("publication base resolution uses the live PR base and otherwise origin/dev
 test("git inputs include dirty and untracked paths and fingerprint their content", (t) => {
   const directory = mkdtempSync(join(tmpdir(), "validation-selector-"));
   t.after(() => rmSync(directory, { recursive: true, force: true }));
-  const git = (...args) => execFileSync("git", args, { cwd: directory, stdio: "ignore" });
+  const git = fixtureGit(directory);
   git("init");
-  git("config", "user.email", "validation@example.com");
-  git("config", "user.name", "Validation Test");
-  git("config", "commit.gpgsign", "false");
   mkdirSync(join(directory, "packages/client/src"), { recursive: true });
   writeFileSync(join(directory, "packages/client/src/app.ts"), "export const value = 1;\n");
   git("add", ".");
@@ -1462,11 +1475,8 @@ test("git inputs include dirty and untracked paths and fingerprint their content
 test("git inputs fingerprint committed patches larger than Node's default buffer", (t) => {
   const directory = mkdtempSync(join(tmpdir(), "validation-large-diff-selector-"));
   t.after(() => rmSync(directory, { recursive: true, force: true }));
-  const git = (...args) => execFileSync("git", args, { cwd: directory, stdio: "ignore" });
+  const git = fixtureGit(directory);
   git("init");
-  git("config", "user.email", "validation@example.com");
-  git("config", "user.name", "Validation Test");
-  git("config", "commit.gpgsign", "false");
   mkdirSync(join(directory, "packages/client/src"), { recursive: true });
   const sourcePath = join(directory, "packages/client/src/large-fixture.ts");
   writeFileSync(sourcePath, "export const baseline = true;\n");
@@ -1488,11 +1498,8 @@ test("git inputs fingerprint committed patches larger than Node's default buffer
 test("deleted tests are not inferred as focused Vitest paths", (t) => {
   const directory = mkdtempSync(join(tmpdir(), "validation-deleted-test-selector-"));
   t.after(() => rmSync(directory, { recursive: true, force: true }));
-  const git = (...args) => execFileSync("git", args, { cwd: directory, stdio: "ignore" });
+  const git = fixtureGit(directory);
   git("init");
-  git("config", "user.email", "validation@example.com");
-  git("config", "user.name", "Validation Test");
-  git("config", "commit.gpgsign", "false");
   const testDirectory = join(directory, "packages/shared/src/__tests__");
   const testPath = join(testDirectory, "removed.test.ts");
   mkdirSync(testDirectory, { recursive: true });
@@ -1527,11 +1534,8 @@ test("deleted tests are not inferred as focused Vitest paths", (t) => {
 test("lane fingerprint ignores an unrelated dirty plan while workspace fingerprint remains broad", (t) => {
   const directory = mkdtempSync(join(tmpdir(), "validation-lane-selector-"));
   t.after(() => rmSync(directory, { recursive: true, force: true }));
-  const git = (...args) => execFileSync("git", args, { cwd: directory, stdio: "ignore" });
+  const git = fixtureGit(directory);
   git("init");
-  git("config", "user.email", "validation@example.com");
-  git("config", "user.name", "Validation Test");
-  git("config", "commit.gpgsign", "false");
   mkdirSync(join(directory, "packages/client/src"), { recursive: true });
   mkdirSync(join(directory, ".plans/active/unrelated"), { recursive: true });
   const sourcePath = join(directory, "packages/client/src/app.ts");
@@ -1722,4 +1726,16 @@ test("workflow mapping preserves exact live and intended trigger parity", () => 
       changedPath,
     );
   }
+});
+
+
+test("contract script changes retain the full critical test gate despite inferred TypeScript paths", () => {
+  const plan = selectValidation({
+    intent: "qa",
+    changedPaths: ["packages/contracts/script/release-operator.ts", "packages/contracts/script/release-operator.test.ts"],
+  });
+  const check = plan.checks.find((candidate) => candidate.id === "contracts-test");
+  assert.equal(check.mandatory, true);
+  assert.equal(check.command, "bun run test");
+  assert.deepEqual(check.focusedPaths, []);
 });

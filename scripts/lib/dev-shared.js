@@ -10,8 +10,47 @@ import http from "node:http";
 import https from "node:https";
 import path from "node:path";
 import { homedir } from "node:os";
-import { accessSync, constants, readFileSync, readdirSync, realpathSync } from "node:fs";
+import { accessSync, constants, existsSync, readFileSync, readdirSync, realpathSync } from "node:fs";
 import { spawnSync } from "node:child_process";
+
+// Use the same Docker environment in the launcher and doctor. Only replace a
+// missing local socket; custom contexts and remote/live endpoints are intentional.
+export function dockerEnvironment({ env = process.env, home = homedir(), exists = existsSync } = {}) {
+  const result = { ...env };
+  const dockerDirs = [
+    path.join(home, ".orbstack/bin"),
+    "/Applications/OrbStack.app/Contents/MacOS/xbin",
+    "/Applications/Docker.app/Contents/Resources/bin",
+    "/usr/local/bin",
+  ].filter((dir) => exists(path.join(dir, "docker")));
+  result.PATH = [...new Set([...(env.PATH || "").split(path.delimiter), ...dockerDirs])].filter(Boolean).join(path.delimiter);
+  const socket = path.join(home, ".orbstack/run/docker.sock");
+  const staleDesktopContext = env.DOCKER_CONTEXT === "desktop-linux" &&
+    env.DOCKER_HOST === `unix://${path.join(home, ".docker/run/docker.sock")}`;
+  if (
+    (!env.DOCKER_CONTEXT || staleDesktopContext) && env.DOCKER_HOST?.startsWith("unix://") &&
+    !exists(env.DOCKER_HOST.slice(7)) && exists(socket)
+  ) {
+    result.DOCKER_HOST = `unix://${socket}`;
+    if (staleDesktopContext) result.DOCKER_CONTEXT = "orbstack";
+  }
+  return result;
+}
+
+export function assertDockerReady(env = dockerEnvironment()) {
+  const result = spawnSync("docker", ["info", "--format", "{{.ServerVersion}}"], {
+    env, encoding: "utf8", timeout: 10_000,
+  });
+  if (result.status !== 0) {
+    throw new Error(
+      "Docker is unavailable. Open OrbStack or Docker Desktop, check your Docker context/DOCKER_HOST, then rerun bun run dev. No services were started."
+    );
+  }
+  const compose = spawnSync("docker", ["compose", "version", "--short"], {
+    env, encoding: "utf8", timeout: 10_000,
+  });
+  if (compose.status !== 0) throw new Error("Docker Compose is unavailable. Enable Compose before running bun run dev.");
+}
 
 /**
  * Find a system Node executable by skipping bun's node shim. Bun installs
@@ -349,6 +388,136 @@ export function profileRequiresContractSubmodules(profile) {
   return profile === "contracts" || profile === "full";
 }
 
+/**
+ * The variables that bind git to one repository, as listed by `git rev-parse --local-env-vars`.
+ *
+ * git exports GIT_DIR to every hook it runs in a linked worktree, and a git that inherits it
+ * ignores `cwd` and `-C`. A test fixture under the push gate therefore works on the repository
+ * being pushed: its `git init` marks that repository bare, its `git config user.name` lands in
+ * the config every worktree shares, and its commits land on the pushed branch, all while the
+ * test passes.
+ */
+export const REPOSITORY_LOCAL_GIT_VARIABLES = Object.freeze([
+  "GIT_ALTERNATE_OBJECT_DIRECTORIES",
+  "GIT_CONFIG",
+  "GIT_CONFIG_PARAMETERS",
+  "GIT_CONFIG_COUNT",
+  "GIT_OBJECT_DIRECTORY",
+  "GIT_DIR",
+  "GIT_WORK_TREE",
+  "GIT_IMPLICIT_WORK_TREE",
+  "GIT_GRAFT_FILE",
+  "GIT_INDEX_FILE",
+  "GIT_NO_REPLACE_OBJECTS",
+  "GIT_REPLACE_REF_BASE",
+  "GIT_PREFIX",
+  "GIT_SHALLOW_FILE",
+  "GIT_COMMON_DIR",
+]);
+
+/** Remove them from `environment` in place, so `cwd` decides which repository git works on. */
+export function clearRepositoryLocalGitVariables(environment = process.env) {
+  for (const variable of REPOSITORY_LOCAL_GIT_VARIABLES) delete environment[variable];
+  return environment;
+}
+
+/**
+ * Environment for git in a throwaway fixture repository. It inherits no GIT_* variable, reads no
+ * developer or machine config (signing, hooks, templates), and carries its own identity, so a
+ * fixture never has a reason to write one into a config file.
+ */
+export function fixtureGitEnvironment(environment = process.env) {
+  const inherited = Object.entries(environment).filter(([variable]) => !variable.startsWith("GIT_"));
+  return {
+    ...Object.fromEntries(inherited),
+    GIT_CONFIG_GLOBAL: "/dev/null",
+    GIT_CONFIG_SYSTEM: "/dev/null",
+    GIT_AUTHOR_NAME: "Fixture",
+    GIT_AUTHOR_EMAIL: "fixture@example.invalid",
+    GIT_COMMITTER_NAME: "Fixture",
+    GIT_COMMITTER_EMAIL: "fixture@example.invalid",
+  };
+}
+
+const SHARED_GIT_SETTINGS = "^(user\\.(name|email)|core\\.(bare|worktree)|commit\\.gpgsign)$";
+
+/**
+ * Read, from the config every worktree shares, the settings a leaking fixture overwrites.
+ * Returns null where there is no repository to read.
+ */
+export function readSharedGitSettings({ cwd = process.cwd(), run = spawnSync } = {}) {
+  const result = run("git", ["config", "--local", "--get-regexp", SHARED_GIT_SETTINGS], {
+    cwd,
+    encoding: "utf8",
+    env: clearRepositoryLocalGitVariables({ ...process.env }),
+  });
+  // git exits 1 when nothing matches, which is the healthy state for the identity settings.
+  if (result.error || ![0, 1].includes(result.status)) return null;
+
+  const settings = {};
+  for (const line of (result.stdout ?? "").split(/\r?\n/).filter(Boolean)) {
+    const separator = line.indexOf(" ");
+    if (separator === -1) settings[line] = "";
+    else settings[line.slice(0, separator)] = line.slice(separator + 1);
+  }
+  return settings;
+}
+
+// RFC 2606 and RFC 6761 reserve these domains for documentation and tests. No contributor
+// commits from one, so an identity there was written by a fixture.
+const RESERVED_MAIL_DOMAIN = /(?:@|\.)(?:example\.(?:com|net|org)|test|example|invalid|localhost)$/i;
+
+function shellQuote(value) {
+  return `'${value.replaceAll("'", "'\\''")}'`;
+}
+
+/**
+ * A fixture identity already sitting in `readSharedGitSettings` output, left by an earlier leak
+ * from any worktree. `problems` and `repairs` are empty for a healthy config, and a
+ * contributor's own per-repository identity is healthy.
+ */
+export function findInheritedFixtureIdentity(settings) {
+  const email = settings?.["user.email"] ?? "";
+  if (!RESERVED_MAIL_DOMAIN.test(email)) return { problems: [], repairs: [] };
+  const problems = [`user.email is ${email}, an address reserved for tests`];
+  const repairs = ["git config --local --unset-all user.name", "git config --local --unset-all user.email"];
+  // The fixtures that write an identity also turn signing off and can mark the repository bare.
+  // Beside their identity those are their writes too, so restore them in the same repair.
+  if (settings["commit.gpgsign"]?.toLowerCase() === "false") {
+    problems.push("commit.gpgsign is false, which the same fixtures write");
+    repairs.push("git config --local --unset-all commit.gpgsign");
+  }
+  if (settings["core.bare"]?.toLowerCase() === "true") {
+    problems.push("core.bare is true, which the same fixtures write");
+    repairs.push("git config --local core.bare false");
+  }
+  return { problems, repairs };
+}
+
+/**
+ * The shared settings that differ between two `readSharedGitSettings` results taken around a
+ * validation run, each with the command that restores it. A leaking fixture passes its own
+ * test, so this difference is the only place it shows.
+ */
+export function findSharedGitSettingChanges(before, after) {
+  const problems = [];
+  const repairs = [];
+  if (!before || !after) return { problems, repairs };
+
+  for (const setting of new Set([...Object.keys(before), ...Object.keys(after)])) {
+    if (before[setting] === after[setting]) continue;
+    const was = before[setting] === undefined ? "unset" : before[setting];
+    const is = after[setting] === undefined ? "unset" : after[setting];
+    problems.push(`${setting} changed from ${was} to ${is} while validation ran`);
+    repairs.push(
+      before[setting] === undefined
+        ? `git config --local --unset-all ${setting}`
+        : `git config --local ${setting} ${shellQuote(before[setting])}`,
+    );
+  }
+  return { problems, repairs };
+}
+
 const VITEST_WORKER_MEMORY_BYTES = 2 * 1024 ** 3;
 
 export function resolveVitestMaxWorkers({ cpus, totalMemoryBytes, ci, share = 1 }) {
@@ -440,4 +609,16 @@ export async function waitForService({ urls, deadlineMs, perAttemptMs = 2500, ga
     await new Promise((r) => setTimeout(r, gapMs));
   }
   return { ok: false, attempts: attempts.slice(-urls.length) };
+}
+
+/** Markers required by the existing setup workflow; never installs or repairs dependencies. */
+export function dependencyReadiness(root = process.cwd()) {
+  const requiredPaths = [
+    "node_modules/.bun",
+    "node_modules/.bin/turbo",
+    "node_modules/.bin/oxlint",
+    "node_modules/multiformats/basics.js",
+  ];
+  const missing = requiredPaths.filter((entry) => !existsSync(path.join(root, entry)));
+  return { ready: missing.length === 0, missing };
 }

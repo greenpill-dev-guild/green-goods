@@ -1,10 +1,10 @@
-import React from "react";
 import { render, screen } from "@testing-library/react";
+import React from "react";
 import { describe, expect, it } from "vitest";
 import { Button } from "../../components/Button";
 import { FormInput } from "../../components/Form/FormInput";
-import { Select, SelectTrigger, SelectValue } from "../../components/Form/Select";
 import { FormTextarea } from "../../components/Form/FormTextarea";
+import { Select, SelectTrigger, SelectValue } from "../../components/Form/Select";
 import {
   cardShellVariants,
   controlInputVariants,
@@ -21,6 +21,12 @@ describe("design system foundation", () => {
     expect(input).toHaveClass("gg-control");
   });
 
+  it("shows and preserves the required state for shared inputs", () => {
+    render(<FormInput id="required-field" label="Milestone Value" required />);
+
+    expect(screen.getByLabelText("Milestone Value*")).toBeRequired();
+  });
+
   it("supports the shared textarea styling", () => {
     render(<FormTextarea id="foundation-notes" label="Notes" placeholder="Add notes" />);
 
@@ -28,6 +34,12 @@ describe("design system foundation", () => {
 
     expect(textarea).toHaveClass("gg-control");
     expect(textarea).toHaveClass("gg-control-textarea");
+  });
+
+  it("shows and preserves the required state for shared textareas", () => {
+    render(<FormTextarea id="required-notes" label="Notes" required />);
+
+    expect(screen.getByLabelText("Notes*")).toBeRequired();
   });
 
   it("uses the shared control class for custom selects", () => {
@@ -48,7 +60,7 @@ describe("design system foundation", () => {
 
   it("uses the shared button class contract", () => {
     render(
-      <Button variant="secondary" size="sm">
+      <Button emphasis="secondary" size="sm">
         Refresh
       </Button>
     );
@@ -56,8 +68,8 @@ describe("design system foundation", () => {
     const button = screen.getByRole("button", { name: "Refresh" });
 
     expect(button).toHaveClass("gg-button");
-    expect(button).toHaveClass("gg-button-secondary");
-    expect(button).toHaveClass("gg-button-size-sm");
+    expect(button).toHaveAttribute("data-emphasis", "secondary");
+    expect(button).toHaveAttribute("data-size", "sm");
   });
 
   it("exposes one shared control sizing contract for native inputs and selects", () => {

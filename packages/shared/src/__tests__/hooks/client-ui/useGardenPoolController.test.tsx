@@ -14,6 +14,7 @@ const mocks = vi.hoisted(() => ({
   isOnline: true,
   refresh: vi.fn(),
   flush: vi.fn(),
+  retryAndSend: vi.fn(),
   retryJob: vi.fn(),
   discardJob: vi.fn(),
   refetch: vi.fn(),
@@ -29,7 +30,7 @@ vi.mock("../../../hooks/roles/useHasRole", () => ({
   useHasRole: () => ({ hasRole: mocks.hasRole, isLoading: false }),
 }));
 vi.mock("../../../providers/JobQueue", () => ({
-  useJobQueue: () => ({ flush: mocks.flush }),
+  useJobQueue: () => ({ flush: mocks.flush, retryAndSend: mocks.retryAndSend }),
 }));
 vi.mock("../../../modules/job-queue/default-instance", () => ({
   jobQueue: { retryJob: mocks.retryJob, discardJob: mocks.discardJob },
@@ -67,6 +68,7 @@ describe("useGardenPoolController", () => {
     mocks.hasRole = false;
     mocks.isOnline = true;
     mocks.flush.mockResolvedValue(undefined);
+    mocks.retryAndSend.mockResolvedValue(undefined);
     mocks.retryJob.mockResolvedValue(undefined);
     mocks.discardJob.mockResolvedValue(undefined);
   });
@@ -91,8 +93,9 @@ describe("useGardenPoolController", () => {
     );
 
     await act(async () => result.current.acts.retry("job-7"));
-    expect(mocks.retryJob).toHaveBeenCalledWith("job-7");
-    expect(mocks.flush).toHaveBeenCalledOnce();
+    // Retrying one act sends only that act, never the queued work beside it.
+    expect(mocks.retryAndSend).toHaveBeenCalledWith("job-7");
+    expect(mocks.flush).not.toHaveBeenCalled();
     expect(mocks.refresh).toHaveBeenCalledOnce();
 
     await act(async () => result.current.acts.discard("job-7"));

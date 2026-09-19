@@ -16,6 +16,7 @@
  *  - Rule 11  undeclared `@green-goods/shared/...` imports
  *  - Rule 13  raw Tailwind palette colors (frontend-design Rule 13)
  *  - Rule 16  inline alert-style divs that should use shared <Alert /> (frontend Rule 16)
+ *  - Rule 19  client buttons and controls outside the shared family (frontend Rule 19)
  *  - Architecture: declared internal-package direction and package-level cycles
  *  - Architecture: shared export targets and consumer imports
  *  - Architecture: exported client/admin hooks stay in shared unless explicitly local
@@ -63,6 +64,7 @@ const LOCAL_EXPORTED_HOOK_EXCEPTIONS = new Set([
 const BLOCKING_RULES = new Set([
   "rule-6-zustand-whole-state",
   "rule-11-undeclared-shared-import",
+  "rule-19-client-shared-controls",
 ]);
 
 // Globs of files in scope. Mirror the scopes from `.claude/rules/*.md` frontmatter.
@@ -93,6 +95,8 @@ const SCOPES = {
   ],
   "rule-13-raw-tailwind-color": ["packages/admin/src", "packages/client/src"],
   "rule-16-inline-alert-div": ["packages/admin/src", "packages/client/src"],
+  // Admin keeps AdminButton and the admin field family (frontend-design Rules 15 and 18).
+  "rule-19-client-shared-controls": ["packages/client/src"],
 };
 
 
@@ -685,6 +689,199 @@ function scanRule16(files) {
   return hits;
 }
 
+// Rule 19: client buttons and controls come from the shared family (DL-025).
+// A raw element declares why it is raw; the shared family never carries a shape or
+// height class; a link never dresses up as a button; radii stay on the scale.
+const RULE_19_RAW_BUTTON_ROLES = new Set(["tab", "switch", "radio"]);
+const RULE_19_PRESSABLE_KINDS = new Set(["card", "row", "scrim", "media", "trigger", "fab", "tab"]);
+const RULE_19_RAW_INPUT_TYPES = new Set(["file", "radio", "checkbox", "hidden", "range"]);
+const RULE_19_FAMILY = new Set(["Button", "IconButton", "Chip"]);
+const RULE_19_TAG = /<(button|input|textarea|select|a|Link|Button|IconButton|Chip)(?=[\s/>])/g;
+// A class token, variant prefixes included, that sets a radius, a height, or vertical padding.
+const RULE_19_FAMILY_SHAPE_CLASS =
+  /(?:^|\s)(?:[a-z0-9-]+:)*(?:rounded|h|min-h|size|py)(?:-[\w[\]().%/-]+)?(?=\s|$)/;
+const RULE_19_BUTTON_LOOK = /(?:^|\s)rounded-full(?=\s|$)/;
+const RULE_19_FILL_OR_BORDER = /(?:^|\s)(?:bg-(?!transparent(?=\s|$))\S+|border(?:-\S+)?)(?=\s|$)/;
+const RULE_19_OFF_SCALE_RADIUS =
+  /(?:^|[\s"'`])(?:[a-z0-9-]+:)*rounded(?:-[trblse]{1,2})?-(?:sm|3xl|4xl)(?=[\s"'`]|$)/;
+const RULE_19_RETIRED_BUTTON_IMPORT =
+  /from\s+["'](?:@\/components\/Actions|(?:\.\.?\/)+(?:[\w-]+\/)*Actions)(?:\/Button(?:\/[\w-]+)?)?["']/g;
+
+/** Blank out comments, keeping offsets and newlines, so JSX shown in comments never matches. */
+export function stripJsComments(source) {
+  let out = "";
+  let quote = null;
+  for (let i = 0; i < source.length; i++) {
+    const ch = source[i];
+    const next = source[i + 1];
+    if (quote) {
+      out += ch;
+      if (ch === "\\" && i + 1 < source.length) {
+        out += next;
+        i++;
+      } else if (ch === quote) {
+        quote = null;
+      }
+      continue;
+    }
+    if (ch === '"' || ch === "'" || ch === "`") {
+      quote = ch;
+      out += ch;
+      continue;
+    }
+    if (ch === "/" && next === "/") {
+      while (i < source.length && source[i] !== "\n") {
+        out += " ";
+        i++;
+      }
+      i--;
+      continue;
+    }
+    if (ch === "/" && next === "*") {
+      while (i < source.length && !(source[i] === "*" && source[i + 1] === "/")) {
+        out += source[i] === "\n" ? "\n" : " ";
+        i++;
+      }
+      out += "  ";
+      i++;
+      continue;
+    }
+    out += ch;
+  }
+  return out;
+}
+
+function matchJsxBrace(source, start) {
+  let depth = 0;
+  let quote = null;
+  for (let i = start; i < source.length; i++) {
+    const ch = source[i];
+    if (quote) {
+      if (ch === "\\") i++;
+      else if (ch === quote) quote = null;
+      continue;
+    }
+    if (ch === '"' || ch === "'" || ch === "`") quote = ch;
+    else if (ch === "{") depth++;
+    else if (ch === "}" && --depth === 0) return i;
+  }
+  return source.length - 1;
+}
+
+/**
+ * Attributes of the JSX opening tag that starts right after its name at `index`.
+ * Understands quoted values, `{...}` expressions (arrow functions included), and spreads.
+ * Returns null when the text is not a JSX tag (for example a TypeScript generic).
+ */
+export function parseJsxAttributes(source, index) {
+  const attrs = new Map();
+  let i = index;
+  while (i < source.length) {
+    while (i < source.length && /\s/.test(source[i])) i++;
+    if (source.startsWith("/>", i) || source[i] === ">") return attrs;
+    if (source[i] === "{") {
+      i = matchJsxBrace(source, i) + 1;
+      continue;
+    }
+    const name = /^[A-Za-z_][\w:.-]*/.exec(source.slice(i, i + 120))?.[0];
+    if (!name) return null;
+    i += name.length;
+    while (i < source.length && /\s/.test(source[i])) i++;
+    if (source[i] !== "=") {
+      attrs.set(name, true);
+      continue;
+    }
+    i++;
+    while (i < source.length && /\s/.test(source[i])) i++;
+    if (source[i] === '"' || source[i] === "'") {
+      const close = source.indexOf(source[i], i + 1);
+      if (close === -1) return null;
+      attrs.set(name, source.slice(i + 1, close));
+      i = close + 1;
+    } else if (source[i] === "{") {
+      const close = matchJsxBrace(source, i);
+      attrs.set(name, source.slice(i, close + 1));
+      i = close + 1;
+    } else {
+      return null;
+    }
+  }
+  return null;
+}
+
+const literalAttr = (value) => (typeof value === "string" && !value.startsWith("{") ? value : null);
+
+/** The quoted fragments of a className value: "a b", {cn("a", on && "b")}, or a template. */
+function classNameText(value) {
+  if (typeof value !== "string") return "";
+  if (!value.startsWith("{")) return value;
+  const fragments = value.matchAll(/"([^"]*)"|'([^']*)'|`([^`]*)`/g);
+  return Array.from(fragments, (m) => m[1] ?? m[2] ?? m[3]).join(" ");
+}
+
+export function scanRule19Source(file, source) {
+  const hits = [];
+  const code = stripJsComments(source);
+  const sourceLines = source.split("\n");
+  const lineAt = (index) => code.slice(0, index).split("\n").length;
+  const hit = (line, reason) =>
+    hits.push({
+      rule: "rule-19-client-shared-controls",
+      file,
+      line,
+      snippet: `${reason}: ${(sourceLines[line - 1] ?? "").trim().slice(0, 160)}`,
+    });
+
+  for (const match of code.matchAll(RULE_19_TAG)) {
+    const tag = match[1];
+    const attrs = parseJsxAttributes(code, match.index + match[0].length);
+    if (!attrs) continue;
+    const line = lineAt(match.index);
+    const classes = classNameText(attrs.get("className"));
+
+    if (tag === "button") {
+      const role = literalAttr(attrs.get("role"));
+      const pressable = literalAttr(attrs.get("data-pressable"));
+      if (!RULE_19_RAW_BUTTON_ROLES.has(role) && !RULE_19_PRESSABLE_KINDS.has(pressable)) {
+        hit(line, "raw <button> without a role or data-pressable; use Button, IconButton, or Chip");
+      }
+    } else if (tag === "input") {
+      const type = literalAttr(attrs.get("type")) ?? "text";
+      if (!RULE_19_RAW_INPUT_TYPES.has(type)) {
+        hit(line, `raw <input type="${type}">; use TextInput or FormattedAmountInput`);
+      }
+    } else if (tag === "textarea") {
+      hit(line, "raw <textarea>; use Textarea");
+    } else if (tag === "select") {
+      hit(line, "raw <select>; use NativeSelect");
+    } else if (tag === "a" || tag === "Link") {
+      if (RULE_19_BUTTON_LOOK.test(classes) && RULE_19_FILL_OR_BORDER.test(classes)) {
+        hit(line, `<${tag}> styled as a button; use <Button asChild>`);
+      }
+    } else if (RULE_19_FAMILY.has(tag)) {
+      const shapeClass = RULE_19_FAMILY_SHAPE_CLASS.exec(classes)?.[0].trim();
+      if (shapeClass) {
+        hit(line, `"${shapeClass}" on <${tag}>; shape and height come from emphasis and size`);
+      }
+    }
+  }
+
+  code.split("\n").forEach((text, index) => {
+    const offScale = RULE_19_OFF_SCALE_RADIUS.exec(text)?.[0].replace(/^[\s"'`]/, "");
+    if (offScale) hit(index + 1, `off-scale radius "${offScale}"; use the radius scale`);
+  });
+
+  for (const match of code.matchAll(RULE_19_RETIRED_BUTTON_IMPORT)) {
+    hit(lineAt(match.index), "imports the retired client Button; use the shared Button");
+  }
+
+  return hits;
+}
+
+function scanRule19(files) {
+  return files.flatMap((file) => scanRule19Source(file, readFile(file)));
+}
+
 const RULE_SCANNERS = {
   "rule-1-raw-timer": scanRule1,
   "rule-2-raw-addeventlistener": scanRule2,
@@ -693,6 +890,7 @@ const RULE_SCANNERS = {
   "rule-11-undeclared-shared-import": scanRule11,
   "rule-13-raw-tailwind-color": scanRule13,
   "rule-16-inline-alert-div": scanRule16,
+  "rule-19-client-shared-controls": scanRule19,
 };
 
 // ---------------- baseline ----------------
@@ -718,7 +916,7 @@ function writeBaseline(allHits) {
   }
   const baseline = {
     note:
-      "Auto-generated advisory inventory from `bun run lint:rules -- --baseline-write`. Default lint ignores this file and blocks every high-confidence hit. Use the inventory only for dedicated heuristic cleanup. See .claude/rules/ for rule sources.",
+      "Auto-generated advisory inventory from `bun run check --only react-patterns -- --baseline-write`. Default lint ignores this file and blocks every high-confidence hit. Use the inventory only for dedicated heuristic cleanup. See .claude/rules/ for rule sources.",
     generatedAt: new Date().toISOString(),
     rules: grouped,
   };
@@ -795,6 +993,14 @@ export function main(argv = process.argv.slice(2)) {
     console.error(
       "\nRemediation: use a declared shared export, keep internal package dependencies within the explicit direction policy, move reusable exported hooks to shared, or document a narrow intentional exception in this checker.",
     );
+    if (allHits.some((hit) => hit.rule === "rule-19-client-shared-controls")) {
+      console.error(
+        "Rule 19: use Button, IconButton, Chip, or a shared field primitive. A raw <button> that " +
+          "is a card, row, scrim, photo, trigger, FAB, or tab declares it with data-pressable " +
+          `(${[...RULE_19_PRESSABLE_KINDS].join(", ")}) or a role ` +
+          `(${[...RULE_19_RAW_BUTTON_ROLES].join(", ")}).`,
+      );
+    }
   } else {
     console.log(
       `✅ check-react-patterns: 0 blocking violations across ${BLOCKING_RULES.size} source-pattern rules plus package/export/hook boundary checks.`,
@@ -808,7 +1014,7 @@ export function main(argv = process.argv.slice(2)) {
   console.log("\nRule sources:");
   console.log("  .claude/rules/react-patterns.md  (Rules 1, 2, 6)");
   console.log("  .claude/rules/typescript.md      (Rules 5, 11)");
-  console.log("  .claude/rules/frontend-design.md (Rules 13, 16)");
+  console.log("  .claude/rules/frontend-design.md (Rules 13, 16, 19)");
   console.log("  scripts/quality/check-react-patterns.js (package/export/hook boundaries)");
 
   return allHits.length > 0 ? 1 : 0;

@@ -1,8 +1,8 @@
-import { cn } from "@green-goods/shared/utils/styles/cn";
 import { SyncStatusBar } from "@green-goods/shared/components/SyncStatusBar";
-import { useApp } from "@green-goods/shared/providers/App";
 import { usePendingWorksCount } from "@green-goods/shared/hooks/work/usePendingWorksCount";
+import { useApp } from "@green-goods/shared/providers/App";
 import { useUIStore } from "@green-goods/shared/stores/useUIStore";
+import { cn } from "@green-goods/shared/utils/styles/cn";
 import {
   type RemixiconComponentType,
   RiHomeFill,
@@ -13,7 +13,8 @@ import {
   RiUserLine,
 } from "@remixicon/react";
 import { useIntl } from "react-intl";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import { pwaStatusStyles } from "@/components/Pwa/statusStyles";
 import { APP_ROUTES, LEGACY_APP_ROUTES } from "@/config/pwaRouting";
 
 export const AppBar = () => {
@@ -31,21 +32,19 @@ export const AppBar = () => {
   const { data: pendingCount = 0 } = usePendingWorksCount();
   const { isPwaPresentation } = useApp();
 
-  // Check if any drawer is open to hide AppBar beneath them
-  const isWorkDashboardOpen = useUIStore((s) => s.isWorkDashboardOpen);
-  const isGardenFilterOpen = useUIStore((s) => s.isGardenFilterOpen);
-  const isEndowmentDrawerOpen = useUIStore((s) => s.isEndowmentDrawerOpen);
-  const isWalletDrawerOpen = useUIStore((s) => s.isWalletDrawerOpen);
-  const isCommitmentsDrawerOpen = useUIStore((s) => s.isCommitmentsDrawerOpen);
-  const isAnyDrawerOpen =
-    isWorkDashboardOpen ||
-    isGardenFilterOpen ||
-    isEndowmentDrawerOpen ||
-    isWalletDrawerOpen ||
-    isCommitmentsDrawerOpen;
+  // Every sheet and dialog registers itself while open, so the bar steps aside
+  // for all of them without a hand-maintained list (DL-015).
+  const isAnySheetOpen = useUIStore((s) => s.openSheetCount > 0);
+  const openWorkDashboard = useUIStore((s) => s.openWorkDashboard);
+  const navigate = useNavigate();
+  // Your Work opens from Home, so Review uploads goes there first from any other tab.
+  const reviewUploads = () => {
+    openWorkDashboard("pending", "mySubmissions");
+    if (pathname.replace(/\/$/, "") !== APP_ROUTES.home) navigate(APP_ROUTES.home);
+  };
   // Browser mode shows SiteHeader only (D6); bottom nav is PWA-only
   const shouldHideBar =
-    !isPwaPresentation || isGarden || isWorkDetail || isCommitmentRoute || isAnyDrawerOpen;
+    !isPwaPresentation || isGarden || isWorkDetail || isCommitmentRoute || isAnySheetOpen;
 
   const tabs: {
     path: string;
@@ -77,16 +76,18 @@ export const AppBar = () => {
     <>
       <SyncStatusBar
         className={cn(
-          "bottom-[calc(69px+env(safe-area-inset-bottom))] rounded-t-[var(--radius-lg)] overflow-hidden transition-transform duration-[var(--spring-spatial-duration)] ease-[var(--spring-spatial-easing)]",
+          "vt-sync-status bottom-[calc(69px+env(safe-area-inset-bottom))] rounded-t-[var(--radius-lg)] overflow-hidden transition-transform duration-[var(--spring-spatial-duration)] ease-[var(--spring-spatial-easing)]",
           shouldHideBar ? "translate-y-full" : "translate-y-0"
         )}
+        onReviewUploads={reviewUploads}
       />
       <nav
         data-testid="authenticated-nav"
         className={cn(
           // Keep AppBar above page content (z-nav), but below modal/drawer overlays (z-overlay/z-modal).
           // Hide AppBar when on garden submission routes, work detail pages, or when any drawer is open.
-          "fixed bottom-0 bg-bg-white-0 border-t border-t-stroke-soft-200 rounded-t-[var(--radius-lg)] overflow-hidden flex flex-row justify-evenly items-center w-full py-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] z-nav transition-transform duration-[var(--spring-spatial-duration)] ease-[var(--spring-spatial-easing)]",
+          // vt-app-bar keeps it above the page cross-fade when switching tabs.
+          "vt-app-bar fixed bottom-0 bg-bg-white-0 border-t border-t-stroke-soft-200 rounded-t-[var(--radius-lg)] overflow-hidden flex flex-row justify-evenly items-center w-full py-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] z-nav transition-transform duration-[var(--spring-spatial-duration)] ease-[var(--spring-spatial-easing)]",
           shouldHideBar ? "translate-y-full" : "translate-y-0"
         )}
       >
@@ -119,7 +120,12 @@ export const AppBar = () => {
                   <InactiveIcon className="w-6 h-6" />
                 )}
                 {showBadge && (
-                  <span className="absolute -top-1 -right-1.5 min-w-4 h-4 flex items-center justify-center rounded-full bg-primary text-primary-accent-foreground text-[10px] font-bold leading-none px-1">
+                  <span
+                    className={cn(
+                      "absolute -top-1 -right-1.5 min-w-4 h-4 flex items-center justify-center rounded-full text-[10px] font-bold leading-none px-1",
+                      pwaStatusStyles.primary.badge
+                    )}
+                  >
                     {pendingCount > 9 ? "9+" : pendingCount}
                   </span>
                 )}

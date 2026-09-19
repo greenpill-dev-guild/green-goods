@@ -12,10 +12,8 @@ import { createElement, Fragment, useEffect } from "react";
 import { IntlProvider } from "react-intl";
 import { MemoryRouter, useLocation } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import VaultsWalletSurface, {
-  CampaignCard,
-  VaultsPageContent,
-} from "../../views/Public/VaultsWalletSurface";
+import { CampaignCard } from "../../views/Public/VaultsCampaignCard";
+import VaultsWalletSurface, { VaultsPageContent } from "../../views/Public/VaultsWalletSurface";
 
 const sharedHookMocks = vi.hoisted(() => ({
   loginWithWallet: vi.fn(),
@@ -315,6 +313,14 @@ function renderCard(campaign: OctantVaultCampaignManifest) {
       )
     )
   );
+}
+
+/** An in-flight checkout action stays focusable: busy and aria-disabled, never natively disabled. */
+function expectBusyAction(name: string) {
+  const action = screen.getByRole("button", { name });
+  expect(action).toHaveAttribute("aria-busy", "true");
+  expect(action).toHaveAttribute("aria-disabled", "true");
+  expect(action).toBeEnabled();
 }
 
 function stubMatchMedia(widthPx = 1024) {
@@ -1144,7 +1150,7 @@ describe("VaultsPage", () => {
 
     await user.click(screen.getByRole("button", { name: "Approve vault access (1/2)" }));
 
-    expect(screen.getByRole("button", { name: "Confirm endowment (2/2)" })).toBeDisabled();
+    expectBusyAction("Confirm endowment (2/2)");
     expect(sharedHookMocks.octantVaultWalletEndowMutate).toHaveBeenCalledTimes(1);
   });
 
@@ -1167,19 +1173,19 @@ describe("VaultsPage", () => {
 
     await user.click(screen.getByRole("button", { name: "Approve vault access (1/2)" }));
 
-    expect(screen.getByRole("button", { name: "Reset vault access (1/3)" })).toBeDisabled();
+    expectBusyAction("Reset vault access (1/3)");
 
     act(() => {
       sharedHookMocks.octantVaultWalletEndowOptions?.onLifecycleStep?.("approval");
     });
 
-    expect(screen.getByRole("button", { name: "Approve vault access (2/3)" })).toBeDisabled();
+    expectBusyAction("Approve vault access (2/3)");
 
     act(() => {
       sharedHookMocks.octantVaultWalletEndowOptions?.onLifecycleStep?.("deposit");
     });
 
-    expect(screen.getByRole("button", { name: "Confirm endowment (3/3)" })).toBeDisabled();
+    expectBusyAction("Confirm endowment (3/3)");
   });
 
   it("resumes at deposit when retrying after approval already completed", async () => {
@@ -1521,7 +1527,7 @@ describe("VaultsPage", () => {
 
       // In flight: the action is still on the wallet-confirmation path, and no
       // recovery note exists yet.
-      expect(screen.getByRole("button", { name: "Approve vault access (1/2)" })).toBeDisabled();
+      expectBusyAction("Approve vault access (1/2)");
       expect(screen.queryByText(/Confirmation is taking a little longer/)).not.toBeInTheDocument();
 
       // After 90s with no resolution the recovery affordance appears, while the
@@ -1549,6 +1555,8 @@ describe("VaultsPage", () => {
       expect(screen.queryByRole("button", { name: "Retry" })).not.toBeInTheDocument();
       expect(screen.queryByRole("button", { name: "Close" })).not.toBeInTheDocument();
       expect(screen.getByLabelText("Amount to endow")).toBeDisabled();
+      // The busy action stays focusable, so a second press must be ignored.
+      fireEvent.click(screen.getByRole("button", { name: "Approve vault access (1/2)" }));
       expect(sharedHookMocks.octantVaultWalletEndowMutate).toHaveBeenCalledTimes(1);
     } finally {
       vi.useRealTimers();

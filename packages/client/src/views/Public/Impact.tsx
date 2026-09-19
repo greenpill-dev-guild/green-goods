@@ -1,3 +1,5 @@
+import { Button } from "@green-goods/shared/components/Button";
+import { NativeSelect } from "@green-goods/shared/components/Form/ControlPrimitives";
 import {
   type PublicGardenSummary,
   usePublicGardens,
@@ -428,17 +430,18 @@ export default function ImpactPage() {
                     defaultMessage: "Garden",
                   })}
                 </span>
-                <select
+                <NativeSelect
+                  surface="editorial"
                   value={gardenFilter}
                   onChange={(event) => handleGardenFilter(event.target.value)}
-                  className="cursor-pointer border-b border-stroke-soft-200 bg-transparent pb-1 font-serif text-sm text-text-strong-950 transition-colors duration-[var(--spring-effects-duration)] ease-[var(--spring-effects-easing)] focus:border-primary-action focus:outline-none"
+                  className="w-auto cursor-pointer text-sm"
                 >
                   {gardenSelectOptions.map((option) => (
                     <option key={option.value} value={option.value}>
                       {option.label}
                     </option>
                   ))}
-                </select>
+                </NativeSelect>
               </label>
               <span className="hidden md:inline-flex">
                 <EditorialSelect
@@ -497,17 +500,18 @@ export default function ImpactPage() {
                 </p>
                 {kindFilter !== "all" || domainFilter !== "all" ? (
                   <div className="mt-5">
-                    <button
+                    <Button
                       type="button"
+                      emphasis="tertiary"
                       onClick={resetFilters}
-                      className="inline-flex cursor-pointer items-center gap-2 border-b border-primary-action/35 pb-0.5 text-sm font-medium text-primary-action transition-colors hover:border-primary-action-hover hover:text-primary-action-hover"
+                      trailingIcon={<span aria-hidden="true">→</span>}
+                      className="-ml-4"
                     >
                       {formatMessage({
                         id: "public.impact.evidence.resetFilters",
                         defaultMessage: "Reset Filters",
                       })}
-                      <span aria-hidden="true">→</span>
-                    </button>
+                    </Button>
                   </div>
                 ) : null}
               </div>
@@ -537,18 +541,16 @@ export default function ImpactPage() {
                     defaultMessage: "Evidence ledger pagination",
                   })}
                 >
-                  <button
+                  <Button
                     type="button"
+                    emphasis="tertiary"
                     onClick={() => setPage((p) => Math.max(1, p - 1))}
                     disabled={!canPrev}
-                    className="inline-flex cursor-pointer items-center gap-2 border-b border-primary-action/35 pb-0.5 text-sm font-medium text-primary-action transition-colors hover:border-primary-action-hover hover:text-primary-action-hover disabled:cursor-not-allowed disabled:border-stroke-soft-200 disabled:text-text-soft-400 disabled:hover:border-stroke-soft-200 disabled:hover:text-text-soft-400"
+                    leadingIcon={<span aria-hidden="true">←</span>}
+                    className="-ml-4"
                   >
-                    <span aria-hidden="true">←</span>
-                    {formatMessage({
-                      id: "public.impact.pagination.prev",
-                      defaultMessage: "Prev",
-                    })}
-                  </button>
+                    {formatMessage({ id: "public.impact.pagination.prev", defaultMessage: "Prev" })}
+                  </Button>
                   <p className="font-mono text-[11px] font-medium uppercase tracking-[0.16em] text-text-soft-400">
                     {formatMessage(
                       {
@@ -558,18 +560,16 @@ export default function ImpactPage() {
                       { page, total: totalPages }
                     )}
                   </p>
-                  <button
+                  <Button
                     type="button"
+                    emphasis="tertiary"
                     onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                     disabled={!canNext}
-                    className="inline-flex cursor-pointer items-center gap-2 border-b border-primary-action/35 pb-0.5 text-sm font-medium text-primary-action transition-colors hover:border-primary-action-hover hover:text-primary-action-hover disabled:cursor-not-allowed disabled:border-stroke-soft-200 disabled:text-text-soft-400 disabled:hover:border-stroke-soft-200 disabled:hover:text-text-soft-400"
+                    trailingIcon={<span aria-hidden="true">→</span>}
+                    className="-mr-4"
                   >
-                    {formatMessage({
-                      id: "public.impact.pagination.next",
-                      defaultMessage: "Next",
-                    })}
-                    <span aria-hidden="true">→</span>
-                  </button>
+                    {formatMessage({ id: "public.impact.pagination.next", defaultMessage: "Next" })}
+                  </Button>
                 </nav>
               ) : null}
             </>

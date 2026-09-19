@@ -1,11 +1,14 @@
+import { NativeSelect } from "@green-goods/shared/components/Form/ControlPrimitives";
 import type { Address, Work } from "@green-goods/shared/types/domain";
 import { cn } from "@green-goods/shared/utils/styles/cn";
-import type { TimeFilter } from "@green-goods/shared/utils/time";
 import { RiCheckLine, RiTimeLine } from "@remixicon/react";
 import React from "react";
 import { useIntl } from "react-intl";
+import {
+  queuedWorkDetailMessage,
+  readQueuedWorkState,
+} from "@/components/Cards/Work/queuedWorkCopy";
 import { pwaStatusStyles } from "@/components/Pwa/statusStyles";
-import { TimeFilterControl } from "./TimeFilterControl";
 import { WorkListTab } from "./WorkListTab";
 import { isStewardForGarden } from "./workDashboardUtils";
 
@@ -19,8 +22,8 @@ interface PendingTabProps {
   onRefresh: () => void;
   pendingFilter: "all" | "needsReview" | "mySubmissions";
   onPendingFilterChange: (value: "all" | "needsReview" | "mySubmissions") => void;
-  timeFilter: TimeFilter;
-  onTimeFilterChange: (value: TimeFilter) => void;
+  isOffline?: boolean;
+  savedAt?: number;
   activeAddress: Address | undefined;
   reviewerGardenIds: string[];
   reviewedByYou: Set<string>;
@@ -30,9 +33,9 @@ interface PendingTabProps {
 const PENDING_MESSAGES = {
   itemCount: {
     id: "app.workDashboard.pending.itemsPending",
-    defaultMessage: "{count} items in progress",
+    defaultMessage: "{count, plural, one {# item} other {# items}}",
   },
-  loading: { id: "app.workDashboard.loading", defaultMessage: "Loading pending work..." },
+  loading: { id: "app.workDashboard.loading", defaultMessage: "Loading your work..." },
   emptyTitle: { id: "app.workDashboard.pending.noPending", defaultMessage: "No pending work" },
   emptyDescription: {
     id: "app.workDashboard.pending.description",
@@ -50,8 +53,8 @@ export const PendingTab: React.FC<PendingTabProps> = ({
   onRefresh,
   pendingFilter,
   onPendingFilterChange,
-  timeFilter,
-  onTimeFilterChange,
+  isOffline,
+  savedAt,
   activeAddress,
   reviewerGardenIds,
   reviewedByYou,
@@ -61,11 +64,19 @@ export const PendingTab: React.FC<PendingTabProps> = ({
 
   const renderBadges = (item: Work): React.ReactNode[] => {
     const badges: React.ReactNode[] = [];
+    const detail = queuedWorkDetailMessage(readQueuedWorkState(item.metadata));
+    if (detail)
+      badges.push(
+        <span key="confirmation" role="status">
+          {intl.formatMessage(detail)}
+        </span>
+      );
     const isGardener = isUserAddress(item.gardenerAddress);
     const isSteward = isStewardForGarden(activeAddress, reviewerGardenIds, item.gardenAddress);
     const reviewed = reviewedByYou.has(item.id);
 
-    if (isSteward && !reviewed) {
+    // Your own submission is never yours to review, even in a garden you steward.
+    if (isSteward && !reviewed && !isGardener) {
       badges.push(
         <span
           key="review"
@@ -133,13 +144,21 @@ export const PendingTab: React.FC<PendingTabProps> = ({
       errorMessage={errorMessage}
       onWorkClick={onWorkClick}
       onRefresh={onRefresh}
+      isOffline={isOffline}
+      savedAt={savedAt}
       renderBadges={renderBadges}
       messages={PENDING_MESSAGES}
       emptyIcon={<RiTimeLine />}
       headerContent={
-        <div className="flex items-center gap-2">
-          <select
-            className="border border-stroke-soft-200 text-xs rounded-md px-2 py-1 bg-bg-white-0"
+        <div className="flex min-w-0 items-center justify-end gap-2">
+          <NativeSelect
+            aria-label={intl.formatMessage({
+              id: "app.workDashboard.pendingFilter.label",
+              defaultMessage: "Pending work filter",
+            })}
+            controlSize="sm"
+            density="condensed"
+            className="w-auto min-w-16 max-w-48 field-sizing-content"
             value={pendingFilter}
             onChange={(e) =>
               onPendingFilterChange(e.target.value as "all" | "needsReview" | "mySubmissions")
@@ -163,8 +182,7 @@ export const PendingTab: React.FC<PendingTabProps> = ({
                 defaultMessage: "My submissions",
               })}
             </option>
-          </select>
-          <TimeFilterControl value={timeFilter} onChange={onTimeFilterChange} />
+          </NativeSelect>
         </div>
       }
     />

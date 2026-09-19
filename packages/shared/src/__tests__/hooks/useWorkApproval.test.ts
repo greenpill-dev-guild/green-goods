@@ -20,6 +20,11 @@ const queueProcessJob = vi.fn();
 vi.mock("../../hooks/auth/useUser", () => ({
   useUser: () => mockUseUser(),
 }));
+// useSafeMutation reads the signer mode straight from the auth context to
+// decide whether a pending mutation is an external wallet handoff.
+vi.mock("../../providers/Auth", () => ({
+  useOptionalAuthContext: () => ({ authMode: mockUseUser().authMode }),
+}));
 
 vi.mock("../../modules/work/wallet-submission", () => ({
   submitApprovalDirectly: vi.fn(),
@@ -29,11 +34,14 @@ vi.mock("../../modules/work/work-submission", () => ({
   submitApprovalToQueue: vi.fn(),
 }));
 
-vi.mock("../../components/toast", () => ({
+// Mocked at the service, so the hook's localized presets report through it too.
+vi.mock("../../components/Toast/toast.service", () => ({
+  setToastTranslator: vi.fn(),
   toastService: {
     loading: vi.fn(),
     success: vi.fn(),
     error: vi.fn(),
+    info: vi.fn(),
   },
 }));
 
@@ -89,7 +97,9 @@ import {
   trackWorkApprovalLifecycle,
 } from "../../modules/app/analytics-events";
 import { submitApprovalDirectly } from "../../modules/work/wallet-submission";
+import { connectivityStore } from "../../stores/connectivity";
 import { submitApprovalToQueue } from "../../modules/work/work-submission";
+import type { OverlayWork } from "../../modules/work/local-status-overlay";
 import { Confidence, VerificationMethod } from "../../types/domain";
 import {
   createMockWork,
@@ -450,7 +460,9 @@ describe("hooks/work/useWorkApproval", () => {
       expect(cached?._pendingUntilMs).toBeGreaterThan(Date.now());
     });
 
-    it("clears the pending flag but still stamps a deadline on a confirmed decision", async () => {
+    it("holds a confirmed decision with no deadline until the indexer reports it", async () => {
+      // The receipt proved the attestation landed, so the indexer reclaims
+      // authority by reporting the decision, not by a clock running out.
       (submitApprovalDirectly as any).mockResolvedValue(MOCK_CONFIRMED_APPROVAL_RESULT);
 
       const work = createMockWork({ status: "pending" });
@@ -460,7 +472,9 @@ describe("hooks/work/useWorkApproval", () => {
         approved: true,
       });
       const mergedKey = queryKeys.works.merged(work.gardenAddress, 11155111);
+      const onlineKey = queryKeys.works.online(work.gardenAddress, 11155111);
       queryClient.setQueryData(mergedKey, [work]);
+      queryClient.setQueryData(onlineKey, [work]);
 
       const { result } = renderHook(() => useWorkApproval(), { wrapper: createWrapper() });
 
@@ -468,14 +482,13 @@ describe("hooks/work/useWorkApproval", () => {
         await result.current.mutateAsync({ draft, work });
       });
 
-      const cached =
-        queryClient.getQueryData<
-          Array<{ status: string; _isPending?: boolean; _pendingUntilMs?: number }>
-        >(mergedKey)?.[0];
-      expect(cached?.status).toBe("approved");
-      expect(cached?._isPending).toBe(false);
-      // The deadline is what lets the indexer reclaim authority afterwards.
-      expect(cached?._pendingUntilMs).toBeGreaterThan(Date.now());
+      for (const queryKey of [mergedKey, onlineKey]) {
+        const cached = queryClient.getQueryData<OverlayWork[]>(queryKey)?.[0];
+        expect(cached?.status).toBe("approved");
+        expect(cached?._isPending).toBe(false);
+        expect(cached?._txHash).toBe(MOCK_TX_HASH);
+        expect(cached?._pendingUntilMs).toBeUndefined();
+      }
     });
 
     it("leaves persisted work state unchanged when the wallet rejects the request", async () => {
@@ -569,10 +582,89 @@ describe("hooks/work/useWorkApproval", () => {
         11155111,
         MOCK_ADDRESSES.smartAccount
       );
+      // A decision tap is the explicit send, so it is not held back as auto-send.
       expect(queueProcessJob).toHaveBeenCalledWith("job-approval-1", {
         transactionSender: mockSender,
+        explicit: true,
       });
       expect(result_data?.hash).toBe(MOCK_TX_HASH);
+    });
+
+    it("holds an inline-processed decision with no deadline until the indexer reports it", async () => {
+      // The bundler waits for inclusion, so a processed hash is a confirmed one.
+      mockUseUser.mockReturnValue({
+        authMode: "passkey",
+        primaryAddress: MOCK_ADDRESSES.smartAccount,
+      });
+      (submitApprovalToQueue as any).mockResolvedValue({
+        txHash: "0xoffline_approval",
+        jobId: "job-approval-2",
+      });
+      queueProcessJob.mockResolvedValue({ success: true, txHash: MOCK_TX_HASH, skipped: false });
+
+      const work = createMockWork({ status: "pending" });
+      const draft = createMockWorkApprovalDraft({
+        actionUID: work.actionUID,
+        workUID: work.id,
+        approved: false,
+      });
+      const mergedKey = queryKeys.works.merged(work.gardenAddress, 11155111);
+      queryClient.setQueryData(mergedKey, [work]);
+
+      const { result } = renderHook(
+        () => useWorkApproval({ jobQueue: { processJob: queueProcessJob } }),
+        { wrapper: createWrapper() }
+      );
+
+      await act(async () => {
+        await result.current.mutateAsync({ draft, work });
+      });
+
+      const cached = queryClient.getQueryData<OverlayWork[]>(mergedKey)?.[0];
+      expect(cached?.status).toBe("rejected");
+      expect(cached?._isPending).toBe(false);
+      expect(cached?._txHash).toBe(MOCK_TX_HASH);
+      expect(cached?._pendingUntilMs).toBeUndefined();
+    });
+
+    it("keeps an offline decision live with no deadline until its job syncs", async () => {
+      Object.defineProperty(navigator, "onLine", { value: false });
+      mockUseUser.mockReturnValue({
+        authMode: "passkey",
+        primaryAddress: MOCK_ADDRESSES.smartAccount,
+      });
+      (submitApprovalToQueue as any).mockResolvedValue({
+        txHash: "0xoffline_xyz",
+        jobId: "job-xyz",
+      });
+
+      const work = createMockWork({ status: "pending" });
+      const draft = createMockWorkApprovalDraft({
+        actionUID: work.actionUID,
+        workUID: work.id,
+        approved: true,
+      });
+      const mergedKey = queryKeys.works.merged(work.gardenAddress, 11155111);
+      queryClient.setQueryData(mergedKey, [work]);
+
+      const { result } = renderHook(() => useWorkApproval(), { wrapper: createWrapper() });
+
+      await act(async () => {
+        await result.current.mutateAsync({ draft, work });
+      });
+
+      const cached = queryClient.getQueryData<OverlayWork[]>(mergedKey)?.[0];
+      expect(cached?.status).toBe("approved");
+      expect(cached?._isPending).toBe(true);
+      expect(cached?._txHash).toBeUndefined();
+      expect(cached?._pendingUntilMs).toBeUndefined();
+      // Nothing sends a decision on its own any more, so the toast must not promise it.
+      expect(toastService.success).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          title: en["app.toast.approval.savedOfflineApproval.title"],
+          message: en["app.toast.approval.savedOffline.message"],
+        })
+      );
     });
 
     it("returns offline hash when offline", async () => {
@@ -685,6 +777,110 @@ describe("hooks/work/useWorkApproval", () => {
           })
         );
       });
+    });
+
+    it("says the decision wasn't sent when the connection is not confirmed, without asking the wallet", async () => {
+      // "Connection unstable": the browser reports online but the origin did not answer.
+      vi.spyOn(connectivityStore, "confirmOnline").mockResolvedValue(false);
+
+      const { result } = renderHook(() => useWorkApproval(), {
+        wrapper: createWrapper(),
+      });
+
+      await act(async () => {
+        await expect(
+          result.current.mutateAsync({
+            draft: createMockWorkApprovalDraft({ approved: true }),
+            work: createMockWork(),
+          })
+        ).rejects.toThrow();
+      });
+
+      expect(submitApprovalDirectly).not.toHaveBeenCalled();
+      expect(toastService.info).toHaveBeenCalledWith(
+        expect.objectContaining({
+          id: "approval-submit",
+          title: en["app.offline.degraded"],
+          message: en["app.approval.connectionUnconfirmed"],
+        })
+      );
+      expect(mockErrorHandler).not.toHaveBeenCalled();
+      expect(trackWorkApprovalFailed).not.toHaveBeenCalled();
+      // Nothing promised a wallet prompt that was never going to be asked for.
+      expect(trackWorkApprovalLifecycle).not.toHaveBeenCalledWith(
+        expect.objectContaining({ stage: "handoff" })
+      );
+      expect(toastService.loading).not.toHaveBeenCalledWith(
+        expect.objectContaining({ title: en["app.toast.approval.walletConfirm.title"] })
+      );
+    });
+
+    it("keeps a wallet decision on the device where Upload all is on hand, without involving the wallet", async () => {
+      const confirm = vi.spyOn(connectivityStore, "confirmOnline").mockResolvedValue(false);
+      mockUseUser.mockReturnValue({ authMode: "wallet", primaryAddress: MOCK_ADDRESSES.user });
+      (submitApprovalToQueue as any).mockResolvedValue({
+        txHash: "0xoffline_wallet",
+        jobId: "job-wallet",
+      });
+      const work = createMockWork({ status: "pending" });
+      const draft = createMockWorkApprovalDraft({
+        actionUID: work.actionUID,
+        workUID: work.id,
+        approved: true,
+      });
+      const mergedKey = queryKeys.works.merged(work.gardenAddress, 11155111);
+      queryClient.setQueryData(mergedKey, [work]);
+
+      const { result } = renderHook(() => useWorkApproval({ queueWalletDecisions: true }), {
+        wrapper: createWrapper(),
+      });
+      await act(async () => {
+        await result.current.mutateAsync({ draft, work });
+      });
+
+      // One check decides it, and the wallet's own flow never starts.
+      expect(confirm).toHaveBeenCalledOnce();
+      expect(submitApprovalDirectly).not.toHaveBeenCalled();
+      expect(submitApprovalToQueue).toHaveBeenCalledOnce();
+      expect(trackWorkApprovalLifecycle).not.toHaveBeenCalledWith(
+        expect.objectContaining({ stage: "handoff" })
+      );
+      expect(toastService.loading).not.toHaveBeenCalledWith(
+        expect.objectContaining({ title: en["app.toast.approval.walletConfirm.title"] })
+      );
+      expect(toastService.success).toHaveBeenLastCalledWith(
+        expect.objectContaining({ message: en["app.toast.approval.savedOffline.message"] })
+      );
+      // It reads as decided at once, like a passkey decision made offline.
+      const cached = queryClient.getQueryData<OverlayWork[]>(mergedKey)?.[0];
+      expect(cached?.status).toBe("approved");
+      expect(cached?._isPending).toBe(true);
+    });
+
+    it("refuses a wallet decision with nowhere to queue it without opening the wallet", async () => {
+      // Admin submits through this hook but has no Upload all to fall back on.
+      const confirm = vi.spyOn(connectivityStore, "confirmOnline").mockResolvedValue(false);
+      mockUseUser.mockReturnValue({ authMode: "wallet", primaryAddress: MOCK_ADDRESSES.user });
+
+      const { result } = renderHook(() => useWorkApproval(), { wrapper: createWrapper() });
+      await act(async () => {
+        await expect(
+          result.current.mutateAsync({
+            draft: createMockWorkApprovalDraft({ approved: true }),
+            work: createMockWork(),
+          })
+        ).rejects.toThrow();
+      });
+
+      // Refused before the wallet, so no prompt is promised and none is handed off.
+      expect(confirm).toHaveBeenCalled();
+      expect(submitApprovalDirectly).not.toHaveBeenCalled();
+      expect(trackWorkApprovalLifecycle).not.toHaveBeenCalledWith(
+        expect.objectContaining({ stage: "handoff" })
+      );
+      expect(toastService.loading).not.toHaveBeenCalledWith(
+        expect.objectContaining({ title: en["app.toast.approval.walletConfirm.title"] })
+      );
     });
 
     it("shows error toast on failure", async () => {

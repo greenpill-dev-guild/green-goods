@@ -5,7 +5,7 @@
  * into a single merged TanStack Query, with automatic invalidation.
  */
 
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { onlineManager, QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { renderHook, waitFor } from "@testing-library/react";
 import { createElement, type ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -255,4 +255,34 @@ describe("hooks/app/useMerged", () => {
     // Offline should still succeed
     expect(result.current.offline.data).toBe("cached");
   });
+});
+
+it("merges cached online work with IndexedDB jobs while the network is offline", async () => {
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  const onlineKey = ["greengoods", "works", "online", "garden"];
+  client.setQueryData(onlineKey, ["submitted"]);
+  onlineManager.setOnline(false);
+  const fetchOnline = vi.fn(async () => ["new"]);
+  const fetchOffline = vi.fn(async () => ["queued"]);
+  const view = renderHook(
+    () =>
+      useMerged({
+        onlineKey,
+        offlineKey: ["greengoods", "works", "offline", "garden"],
+        mergedKey: ["greengoods", "works", "merged", "garden"],
+        fetchOnline,
+        fetchOffline,
+        merge: (online, offline) => [...(online ?? []), ...(offline ?? [])],
+      }),
+    { wrapper: ({ children }) => createElement(QueryClientProvider, { client }, children) }
+  );
+  try {
+    await waitFor(() => expect(view.result.current.merged.data).toEqual(["submitted", "queued"]));
+    expect(fetchOffline).toHaveBeenCalled();
+    expect(fetchOnline).not.toHaveBeenCalled();
+  } finally {
+    view.unmount();
+    client.clear();
+    onlineManager.setOnline(true);
+  }
 });

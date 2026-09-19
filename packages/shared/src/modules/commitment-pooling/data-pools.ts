@@ -97,12 +97,12 @@ export async function getCommitmentCycles(
     poolId: input.poolId.toString(),
   };
   if (input.cycleType) {
-    declarations.push("$cycleType: CommitmentCycleType!");
+    declarations.push("$cycleType: commitmentcycletype!");
     clauses.push("cycleType: { _eq: $cycleType }");
     variables.cycleType = input.cycleType;
   }
   if (input.state) {
-    declarations.push("$state: CommitmentCycleState!");
+    declarations.push("$state: commitmentcyclestate!");
     clauses.push("state: { _eq: $state }");
     variables.state = input.state;
   }

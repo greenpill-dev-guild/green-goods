@@ -76,7 +76,7 @@ test.describe("Work Submission CI Tests", () => {
       await expect(detailsButton).toBeEnabled({ timeout: 15000 });
       await detailsButton.click();
 
-      await expect(page.getByText("Seedlings Planted", { exact: true })).toBeVisible();
+      await expect(page.getByRole("spinbutton", { name: /^Seedlings Planted/ })).toBeVisible();
       const reviewButton = page.getByRole("button", { name: "Review Work" });
       await expect(reviewButton).toBeDisabled();
     });

@@ -15,9 +15,12 @@ import { trackStorageError } from "../../modules/app/error-tracking";
 import { logger } from "../../modules/app/logger";
 import { track } from "../../modules/app/posthog";
 import {
-  createQueryPersister,
+  CLIENT_QUERY_CACHE_DB,
+  CLIENT_QUERY_CACHE_STORE,
+  createQueryPersistence,
+  isOfflineReadModelQuery,
+  LEGACY_CLIENT_QUERY_CACHE,
   PERSIST_MAX_AGE,
-  type PersistedClient,
 } from "../../config/query-persistence";
 
 // ============================================================================
@@ -61,7 +64,8 @@ const QUOTA_CLEANUP_THRESHOLD = 80;
 const QUOTA_CLEANUP_TARGET = 65;
 const REFETCHABLE_CACHE_GROUPS = [
   ["indexer-cache", "graphql-cache"],
-  ["image-cache"],
+  ["image-cache", "gg-image-cache-meta"],
+  ["gg-prepared-media-v1"],
   ["ipfs-cache"],
 ] as const;
 
@@ -117,7 +121,7 @@ export async function requestPersistentStorageOnce(
 }
 
 export function isPersistedQueryClientExpired(
-  client: Pick<PersistedClient, "timestamp">,
+  client: { timestamp: number },
   currentTime = Date.now()
 ): boolean {
   return currentTime - client.timestamp > PERSIST_MAX_AGE;
@@ -125,11 +129,14 @@ export function isPersistedQueryClientExpired(
 
 async function clearExpiredPersistedQueryStorage(): Promise<boolean> {
   try {
-    const persister = createQueryPersister({ dbName: "gg-react-query", storeName: "rq" });
-    const persisted = await persister.restoreClient();
-    if (!persisted || !isPersistedQueryClientExpired(persisted)) return false;
-    await persister.removeClient();
-    return true;
+    // Expired ordinary reads go; the offline read model stays whatever its age.
+    const removed = await createQueryPersistence({
+      dbName: CLIENT_QUERY_CACHE_DB,
+      storeName: CLIENT_QUERY_CACHE_STORE,
+      legacy: LEGACY_CLIENT_QUERY_CACHE,
+      preserveQuery: isOfflineReadModelQuery,
+    }).gc();
+    return removed > 0;
   } catch {
     return false;
   }
@@ -147,6 +154,16 @@ export async function cleanupRefetchableStorage(
   };
   if (!force && before.percentUsed < QUOTA_CLEANUP_THRESHOLD) return result;
 
+  // The photo cache gives back space first, oldest copies first. Work drafts, job
+  // media and completion identities live outside this cleanup.
+  try {
+    const { readMediaStats, sweepMedia } = await import("../../modules/offline-content/media");
+    const reclaim = Math.max(0, before.used - (before.quota * QUOTA_CLEANUP_TARGET) / 100);
+    const stats = reclaim > 0 ? await readMediaStats() : undefined;
+    if (stats) await sweepMedia([], Math.max(0, stats.bytes - reclaim));
+  } catch {
+    /* Unavailable photo storage must not block saving work. */
+  }
   result.clearedPersistedQueries = await clearExpiredPersistedQueryStorage();
   let cleanupTargetReached = false;
   if (result.clearedPersistedQueries) {

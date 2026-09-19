@@ -6,7 +6,9 @@
  * across package boundaries. Avoid mirroring every literal array shape.
  */
 
+import { QueryClient } from "@tanstack/react-query";
 import { describe, expect, it } from "vitest";
+import { readContractQueryKey, readContractsQueryKey } from "wagmi/query";
 import {
   DEFAULT_RETRY_COUNT,
   DEFAULT_RETRY_DELAY,
@@ -21,6 +23,7 @@ import {
 } from "../../config/query-keys";
 import type { Address } from "../../types/domain";
 import type { AttestationFilters } from "../../types/hypercerts";
+import { COOKIE_JAR_ABI, COOKIE_JAR_FACTORY_ABI } from "../../utils/blockchain/abis/cookie-jar";
 
 const TEST_CHAIN_ID = 11155111;
 const TEST_GARDEN = "0x3333333333333333333333333333333333333333";
@@ -30,6 +33,7 @@ const TEST_POOL = "0x4444444444444444444444444444444444444444";
 const TEST_JAR = "0x5555555555555555555555555555555555555555";
 const TEST_VAULT = "0x6666666666666666666666666666666666666666";
 const TEST_ASSET = "0x7777777777777777777777777777777777777777";
+const TEST_FACTORY = "0x8888888888888888888888888888888888888888" as Address;
 const TEST_HYPERCERT_ID = "hypercert-123";
 const TEST_DRAFT_ID = "draft-456";
 
@@ -65,7 +69,6 @@ describe("queryKeys", () => {
       queryKeys.works.all,
       queryKeys.workApprovals.all,
       queryKeys.approvals.all,
-      queryKeys.stewardWorks.all,
       queryKeys.offline.all,
       queryKeys.media.all,
       queryKeys.gardens.all,
@@ -98,20 +101,11 @@ describe("queryKeys", () => {
 
   it("builds representative keys without mutating caller input", () => {
     const gardenIds = ["garden-c", "garden-a", "garden-b"];
-    const recipients = ["0xB", "0xa", "0xC"];
-    const approvalsKey = queryKeys.approvals.forWorkReview(recipients);
     const myWorkApprovalsKey = queryKeys.approvals.byMyWorkGardens(TEST_USER, gardenIds);
-    const stewardKey = queryKeys.stewardWorks.byAddress(TEST_OPERATOR, gardenIds);
 
-    // forWorkReview lowercases recipients for stability across checksum casings.
-    expect(approvalsKey[3]).toBe(JSON.stringify(["0xa", "0xb", "0xc"]));
     expect(myWorkApprovalsKey[3]).toBe(TEST_USER);
     expect(myWorkApprovalsKey[4]).toBe(JSON.stringify(["garden-a", "garden-b", "garden-c"]));
-    // stewardWorks carries a "v2" shape discriminator (queryFn returns { works, failedGardenIds }).
-    expect(stewardKey[2]).toBe("v2");
-    expect(stewardKey[4]).toBe(JSON.stringify(["garden-a", "garden-b", "garden-c"]));
     expect(gardenIds).toEqual(["garden-c", "garden-a", "garden-b"]);
-    expect(recipients).toEqual(["0xB", "0xa", "0xC"]);
   });
 
   it("serializes bigint inputs for preview keys", () => {
@@ -334,6 +328,65 @@ describe("queryInvalidation", () => {
         queryKeys.cookieJar.userHistory(TEST_JAR, TEST_USER, TEST_CHAIN_ID),
       ])
     );
+  });
+
+  // A jar's balance and limits are direct contract reads that wagmi keys itself, so the jar
+  // helpers must reach those keys. Registry keys alone left the balance stale after a deposit.
+  it.each([
+    ["deposit", () => queryInvalidation.onCookieJarDeposit(TEST_GARDEN, TEST_JAR, TEST_CHAIN_ID)],
+    [
+      "claim",
+      () => queryInvalidation.onCookieJarWithdraw(TEST_GARDEN, TEST_JAR, TEST_USER, TEST_CHAIN_ID),
+    ],
+    [
+      "limit change",
+      () => queryInvalidation.onCookieJarAdminAction(TEST_GARDEN, TEST_JAR, TEST_CHAIN_ID),
+    ],
+    [
+      "campaign jar change",
+      () => queryInvalidation.onCampaignCookieJarChanged(TEST_JAR, TEST_USER, TEST_CHAIN_ID),
+    ],
+  ])("refreshes the jar's onchain state after a %s", (_action, buildKeys) => {
+    const client = new QueryClient();
+    const jarStateKey = readContractsQueryKey({
+      contracts: [
+        {
+          address: TEST_JAR as Address,
+          abi: COOKIE_JAR_ABI,
+          functionName: "currencyHeldByJar",
+        },
+      ],
+    });
+    client.setQueryData(jarStateKey, [{ status: "success", result: 1n }]);
+
+    for (const queryKey of buildKeys()) {
+      void client.invalidateQueries({ queryKey });
+    }
+
+    expect(client.getQueryState(jarStateKey)?.isInvalidated).toBe(true);
+  });
+
+  // A campaign jar's title and description are a single read of the factory, which wagmi keys
+  // under a different root than the jar's own multicall.
+  it("refreshes a campaign jar's metadata after it is updated", () => {
+    const client = new QueryClient();
+    const metadataKey = readContractQueryKey({
+      address: TEST_FACTORY,
+      abi: COOKIE_JAR_FACTORY_ABI,
+      functionName: "getMetadata",
+      args: [TEST_JAR as Address],
+    });
+    client.setQueryData(metadataKey, "{}");
+
+    for (const queryKey of queryInvalidation.onCampaignCookieJarChanged(
+      TEST_JAR,
+      TEST_USER,
+      TEST_CHAIN_ID
+    )) {
+      void client.invalidateQueries({ queryKey });
+    }
+
+    expect(client.getQueryState(metadataKey)?.isInvalidated).toBe(true);
   });
 
   it("keeps queue, works, and offline sync grouped for full sync completion", () => {

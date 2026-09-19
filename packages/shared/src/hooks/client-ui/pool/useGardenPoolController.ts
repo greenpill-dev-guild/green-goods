@@ -48,7 +48,7 @@ export function useGardenPoolController(pool: CommitmentPoolRecord) {
   );
   const queue = useCommitmentQueueState(viewer as Address | null);
   const { pendingCreates, refresh: refreshQueue } = queue;
-  const { flush } = useJobQueue();
+  const { retryAndSend } = useJobQueue();
   const commitments = useCommitments({
     chainId,
     poolId: pool.poolId,
@@ -89,14 +89,14 @@ export function useGardenPoolController(pool: CommitmentPoolRecord) {
     async (jobId: string) => {
       setBusyJobId(jobId);
       try {
-        await jobQueue.retryJob(jobId);
-        await flush();
+        // Retrying one act sends only that act, never the rest of the queue.
+        await retryAndSend(jobId);
       } finally {
         setBusyJobId(null);
         refreshQueue();
       }
     },
-    [flush, refreshQueue]
+    [retryAndSend, refreshQueue]
   );
   const discard = useCallback(
     async (jobId: string) => {
@@ -132,6 +132,6 @@ export function useGardenPoolController(pool: CommitmentPoolRecord) {
     poolState,
     isParticipating: !NON_PARTICIPATING_STATES.has(poolState),
     canCreate: poolState === "OPEN" && (pool.poolType !== "PROTOCOL" || stewardsPool || ownsPool),
-    acts: { flush, retry, discard },
+    acts: { retry, discard },
   };
 }

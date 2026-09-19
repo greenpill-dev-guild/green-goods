@@ -1,10 +1,18 @@
 import type { SmartAccountClient } from "permissionless";
+import { connectivityStore } from "../../stores/connectivity";
 import type { Address, Work, WorkApprovalDraft } from "../../types/domain";
 import type { JobQueueHandle, ProcessJobResult } from "../job-queue/ports";
 import type { TransactionSender } from "../transactions/types";
 import type { ApprovalWalletLifecycleEvent } from "./wallet-submission/types";
 
 export interface SubmitApprovalCommand {
+  /**
+   * A wallet decision normally goes straight to the wallet, and is refused when
+   * it cannot. Where Upload all is on hand (the client), one made offline waits
+   * on the device instead, like a passkey's. A surface with no queue to upload
+   * from (admin) leaves this off, so a decision never waits where nothing sends it.
+   */
+  queueWalletDecisions?: boolean;
   authMode: "wallet" | "passkey" | "embedded" | null;
   draft: WorkApprovalDraft;
   work: Work;
@@ -13,7 +21,8 @@ export interface SubmitApprovalCommand {
 }
 
 export interface SubmitApprovalPorts {
-  connectivity: { isOnline(): boolean };
+  /** Whether a send may start now; unstable connections never send. */
+  connectivity: { confirm(): Promise<boolean> };
   direct(input: SubmitApprovalCommand): Promise<{ hash: `0x${string}`; confirmed: boolean }>;
   queue: {
     enqueue(input: SubmitApprovalCommand & { userAddress: Address }): Promise<{
@@ -60,15 +69,28 @@ function validateApproval(command: SubmitApprovalCommand): void {
   }
 }
 
+/** Thrown before a wallet is asked, so nothing is signed on a connection that may drop it. */
+export class ApprovalConnectionUnconfirmedError extends Error {
+  constructor() {
+    super("Your connection isn't steady enough to send this decision. Try again in a moment.");
+    this.name = "ApprovalConnectionUnconfirmedError";
+  }
+}
+
 export async function submitApproval(
   command: SubmitApprovalCommand,
   ports: SubmitApprovalPorts
 ): Promise<SubmitApprovalOutcome> {
   validateApproval(command);
 
-  if (command.authMode === "wallet") {
-    const result = await ports.direct(command);
-    return { ...result, kind: "direct" };
+  const wallet = command.authMode === "wallet";
+  if (wallet) {
+    if (await ports.connectivity.confirm()) {
+      const result = await ports.direct(command);
+      return { ...result, kind: "direct" };
+    }
+    // Without a queue to fall back on, it is refused before the wallet is asked.
+    if (!command.queueWalletDecisions) throw new ApprovalConnectionUnconfirmedError();
   }
 
   if (!command.userAddress) {
@@ -76,7 +98,9 @@ export async function submitApproval(
   }
 
   const queued = await ports.queue.enqueue({ ...command, userAddress: command.userAddress });
-  if (ports.connectivity.isOnline() && ports.sender) {
+  // A queued wallet decision waits for Upload all: sending it from here would
+  // open the wallet on a connection that was just found unsteady.
+  if (!wallet && ports.sender && (await ports.connectivity.confirm())) {
     const processed = await ports.queue.process(queued.jobId, ports.sender);
     if (processed.success && processed.txHash) {
       return { hash: processed.txHash as `0x${string}`, kind: "processed" };
@@ -110,7 +134,7 @@ export function createDefaultSubmitApprovalPorts(
   } = {}
 ): SubmitApprovalPorts {
   return {
-    connectivity: { isOnline: () => navigator.onLine },
+    connectivity: { confirm: () => connectivityStore.confirmOnline() },
     direct: async ({ draft, work, chainId }) => {
       const { submitApprovalDirectly } = await import("./wallet-submission");
       return submitApprovalDirectly(draft, work.gardenAddress, work.gardenerAddress, chainId, {
@@ -124,7 +148,8 @@ export function createDefaultSubmitApprovalPorts(
       },
       process: async (jobId, transactionSender) => {
         const queue = dependencies.jobQueue ?? (await import("../job-queue")).jobQueue;
-        return queue.processJob(jobId, { transactionSender });
+        // Only a decision tap reaches this port, so the send is explicit.
+        return queue.processJob(jobId, { transactionSender, explicit: true });
       },
     },
     sender,

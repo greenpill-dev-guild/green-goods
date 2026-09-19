@@ -1,3 +1,4 @@
+import { GOVERNANCE_ENABLED } from "@green-goods/shared/config/app";
 import { ErrorBoundary } from "@green-goods/shared/components/ErrorBoundary/ErrorBoundary";
 import type { CommunityWorkspace } from "@green-goods/shared/hooks/admin-ui/community/useCommunityWorkspaceController";
 import type { Address } from "@green-goods/shared/types/domain";
@@ -7,6 +8,7 @@ import {
   CanvasWorkspaceLoadingState,
   CanvasWorkspaceSelectionGate,
 } from "@/components/Layout/CanvasRouteState";
+import { CommunityYieldStatus } from "./CommunityYieldStatus";
 import { CommunityPools } from "./CommunityPools";
 import { CommunityCoordinationTab } from "./CommunityCoordinationTab";
 import { CommunityEndowmentTab } from "./CommunityEndowmentTab";
@@ -53,11 +55,11 @@ export function CommunityWorkspaceContent({ workspace }: CommunityWorkspaceConte
   }
 
   const isLoading =
-    workspace.mode === "members" || workspace.mode === "coordination"
+    workspace.mode === "members" || (workspace.mode === "coordination" && GOVERNANCE_ENABLED)
       ? workspace.communityLoading
       : workspace.mode === "endowment"
         ? workspace.vaultsLoading
-        : workspace.allocationsLoading;
+        : workspace.mode === "payouts" && workspace.allocationsLoading;
 
   if (isLoading) {
     return (
@@ -82,20 +84,23 @@ export function CommunityWorkspaceContent({ workspace }: CommunityWorkspaceConte
         visibleDirectory={workspace.visibleDirectory}
       />
     ) : workspace.mode === "coordination" ? (
-      // Coordination carries the pooling elements too (2026-08-25 AD-5): the
-      // governance grid first, then the W12 commitment-pooling surface —
-      // exactly the protocol pool and this garden, never another garden's,
-      // with its privacy banner — as a full-width section beneath.
+      // Commitment pooling remains available while conviction governance is disabled.
       <div className="space-y-6">
-        <CommunityCoordinationTab
-          garden={workspace.garden}
-          gardenId={workspace.gardenId}
-          canManage={workspace.canManage}
-          community={workspace.community}
-          pools={workspace.pools}
-          createPools={workspace.createPools}
-          isCreatingPools={workspace.isCreatingPools}
+        <CommunityYieldStatus
+          gardenId={workspace.gardenId as Address}
+          enabled={Boolean(workspace.community) && workspace.pools.length > 0}
         />
+        {GOVERNANCE_ENABLED && (
+          <CommunityCoordinationTab
+            garden={workspace.garden}
+            gardenId={workspace.gardenId}
+            canManage={workspace.canManage}
+            community={workspace.community}
+            pools={workspace.pools}
+            createPools={workspace.createPools}
+            isCreatingPools={workspace.isCreatingPools}
+          />
+        )}
         <CommunityPools
           chainId={workspace.garden.chainId}
           garden={{ id: workspace.garden.id as Address, name: workspace.garden.name }}

@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { classifyErrorMessage } from "../../components/Errors/errorClassification";
+import {
+  classifyErrorMessage,
+  isChunkLoadErrorMessage,
+} from "../../components/Errors/errorClassification";
 
 describe("error classification", () => {
   it("keeps a dynamic import failure in the offline recovery path when disconnected", () => {
@@ -10,6 +13,12 @@ describe("error classification", () => {
 
   it("treats the same dynamic import failure as a stale chunk while online", () => {
     expect(classifyErrorMessage("Failed to fetch dynamically imported module", true)).toBe("chunk");
+  });
+
+  it("does not infer offline or stale assets from server and application failures", () => {
+    expect(isChunkLoadErrorMessage("503 Service Unavailable")).toBe(false);
+    expect(classifyErrorMessage("503 Service Unavailable", false)).toBe("unknown");
+    expect(isChunkLoadErrorMessage("Unexpected application failure")).toBe(false);
   });
 
   it.each([

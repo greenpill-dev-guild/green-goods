@@ -17,8 +17,8 @@
         "conformance": ["packages/shared/src/__tests__/modules/job-queue.db.test.ts"],
         "integration": ["packages/shared/src/__tests__/modules/job-queue.imports.test.ts"]
       },
-      "reviewedAt": "2026-08-31",
-      "evidenceFingerprint": "sha256:4bdaa801061ffd84dba62044aa0cf968f0b528437413b42b91425c081999b625"
+      "reviewedAt": "2026-09-19",
+      "evidenceFingerprint": "sha256:076a3141bff85391172a560decbc6ce5aed5d1e1c6521ac5d5357eba4c74754c"
     },
     {
       "id": "shared-auth-session",
@@ -36,8 +36,8 @@
         "conformance": ["packages/shared/src/__tests__/workflows/authServices.test.ts"],
         "integration": ["packages/shared/src/__tests__/providers/Auth.wallet-login.test.tsx"]
       },
-      "reviewedAt": "2026-09-05",
-      "evidenceFingerprint": "sha256:f82d987f8e14202fcc2ab69de3e212d42cecd7e19436e14f068ad9b6bbf9ccb8"
+      "reviewedAt": "2026-09-19",
+      "evidenceFingerprint": "sha256:c751611d9a0ce84c28e3261554d7ff520682dc71f9cc695f27c73f1138eb4051"
     },
     {
       "id": "shared-work-provider-command",
@@ -46,7 +46,7 @@
       "criticality": "critical",
       "modulePath": "packages/shared/src/modules/work/submit-work-command.ts",
       "publicSpecifier": "@green-goods/shared/modules/work/submit-work-command",
-      "interfaceSummary": "Accepts a complete work-submission command and explicit ports, then returns a direct, queued, or processed outcome without hiding fallback policy.",
+      "interfaceSummary": "Accepts a complete work-submission command and explicit ports, then returns a direct, queued, awaiting-confirmation, or processed outcome while preserving durable retry identity.",
       "dependencyCategory": "true-external",
       "compositionRoots": ["packages/shared/src/hooks/work/useWorkMutation.ts"],
       "directConsumers": ["packages/shared/src/hooks/work/useWorkMutation.ts"],
@@ -57,8 +57,8 @@
         ],
         "integration": ["packages/shared/src/__tests__/providers/WorkProvider.test.tsx"]
       },
-      "reviewedAt": "2026-09-05",
-      "evidenceFingerprint": "sha256:21595e5f970e781a2b2de19c747b33c5720356c4a33731ec58eb63afe0d6b412"
+      "reviewedAt": "2026-09-19",
+      "evidenceFingerprint": "sha256:79983ba3a212c62ff0b4e9df917ba0229111b01db0b5620f20f71e40828a28f7"
     },
     {
       "id": "shared-commitment-pooling-public",
@@ -76,8 +76,8 @@
         "conformance": ["packages/shared/src/__tests__/commitment-pooling-read-repository.test.ts"],
         "integration": ["packages/shared/src/__tests__/commitment-pooling-hooks.test.tsx"]
       },
-      "reviewedAt": "2026-08-31",
-      "evidenceFingerprint": "sha256:2b65bde710d4df614f2556411d1bbb447b4bbef083fc7826723930eba3bb20a8"
+      "reviewedAt": "2026-09-19",
+      "evidenceFingerprint": "sha256:5f18b63567aced9fc30f9ad48b44c4ad40857f650b3a9f4af16c8a62f40665fb"
     }
   ]
 }

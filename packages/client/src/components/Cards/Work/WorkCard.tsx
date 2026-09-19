@@ -5,6 +5,7 @@ import type { Work } from "@green-goods/shared/types/domain";
 import { formatAddress, formatEnsNameForDisplay } from "@green-goods/shared/utils/app/text";
 import React from "react";
 import { useIntl } from "react-intl";
+import { queuedWorkStatusMessage, readQueuedWorkState } from "./queuedWorkCopy";
 
 export interface MinimalWorkCardProps {
   work: Work;
@@ -21,7 +22,7 @@ export interface MinimalWorkCardProps {
 
 function getWorkCardLabels(formatMessage: ReturnType<typeof useIntl>["formatMessage"]) {
   return {
-    error: formatMessage({ id: "app.workCard.error", defaultMessage: "Error" }),
+    error: formatMessage({ id: "app.workCard.error", defaultMessage: "Error loading work" }),
     feedback: formatMessage({ id: "app.workCard.feedback", defaultMessage: "Feedback" }),
     status: {
       approved: formatMessage({ id: "app.status.approved", defaultMessage: "Approved" }),
@@ -61,8 +62,10 @@ export const MinimalWorkCard: React.FC<MinimalWorkCardProps> = ({
   const { data: gardenEnsName } = useEnsName(showGardenInfo ? work.gardenAddress : null, {
     enabled: Boolean(showGardenInfo && work.gardenAddress),
   });
-  const isOfflineWork = work.id.startsWith("0xoffline_");
-  const effectiveStatus = isOfflineWork ? "uploading" : work.status;
+  const effectiveStatus = work.status;
+  // Work still on this device names where it stands instead of reading "Offline".
+  const queuedStatus = queuedWorkStatusMessage(readQueuedWorkState(work.metadata).submissionState);
+  if (queuedStatus) labels.status.offline = formatMessage(queuedStatus);
   const mediaPreview = work.media.length > 0 ? work.media : undefined;
   const hasFeedback = Boolean(work.feedback && work.feedback.trim().length > 0);
   const mediaCount = Array.isArray(work.media) ? work.media.length : 0;

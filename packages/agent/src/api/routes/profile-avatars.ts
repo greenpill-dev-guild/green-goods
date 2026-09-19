@@ -1,9 +1,13 @@
 import {
   buildProfileAvatarMessage,
   normalizeProfileAvatarAddress,
+  parseProfileAvatarAddressList,
+  PROFILE_AVATAR_BATCH_LIMIT,
+  PROFILE_AVATAR_BATCH_ROUTE,
   PROFILE_AVATAR_ROUTE,
   validateProfileAvatarRequest,
   type ProfileAvatarApiError,
+  type ProfileAvatarRecord,
 } from "@green-goods/shared/profile-avatar/protocol";
 import type { Context, Hono } from "hono";
 import { readLimitedJsonBody } from "../http/body";
@@ -25,6 +29,8 @@ export type ProfileAvatarRouteContext = ApiRouteContext & {
 };
 
 export function registerProfileAvatarRoutes(app: Hono, ctx: ProfileAvatarRouteContext): void {
+  app.options(PROFILE_AVATAR_BATCH_ROUTE, (c) => publicBrowserCorsPreflight(c, ctx.deps));
+  app.get(PROFILE_AVATAR_BATCH_ROUTE, (c) => handleBatchRead(c, ctx));
   app.options(PROFILE_AVATAR_ROUTE, (c) => publicBrowserCorsPreflight(c, ctx.deps));
   app.get(PROFILE_AVATAR_ROUTE, (c) => handleRead(c, ctx));
   app.post(PROFILE_AVATAR_ROUTE, (c) => handleMutation(c, ctx));
@@ -44,25 +50,78 @@ async function handleRead(
   if (rateError) return publicBrowserCorsResponse(c, ctx.deps, rateError, 429);
 
   try {
-    const record = await ctx.profileAvatarStore.get(target.chainId, target.address);
-    return publicBrowserCorsResponse(c, ctx.deps, {
-      ok: true,
-      record: record ?? {
-        chainId: target.chainId,
-        address: target.address,
-        avatarUri: null,
-        version: 0,
-        updatedAt: null,
-      },
-    });
+    const record = await readRecord(ctx, target.chainId, target.address);
+    return publicBrowserCorsResponse(c, ctx.deps, { ok: true, record });
   } catch {
+    return storageUnavailable(c, ctx);
+  }
+}
+
+async function handleBatchRead(
+  c: Context<{}, "/public/profile-avatars/:chainId">,
+  ctx: ProfileAvatarRouteContext
+) {
+  const originError = checkOrigin(c, ctx.deps);
+  if (originError) return publicBrowserCorsResponse(c, ctx.deps, originError, 403);
+
+  const chain = validateChain(c, ctx);
+  if (!chain.ok) return publicBrowserCorsResponse(c, ctx.deps, chain.error, chain.status);
+
+  const addresses = parseProfileAvatarAddressList(c.req.query("addresses"));
+  if (!addresses) {
     return publicBrowserCorsResponse(
       c,
       ctx.deps,
-      safeError("provider_unavailable", "Avatar storage is unavailable right now."),
-      503
+      safeError(
+        "invalid_request",
+        `Provide between 1 and ${PROFILE_AVATAR_BATCH_LIMIT} account addresses.`
+      ),
+      400
     );
   }
+
+  const rateError = checkRateLimit(
+    c,
+    ctx.deps,
+    "profile_avatar_batch_read",
+    "profile_avatar_batch_read"
+  );
+  if (rateError) return publicBrowserCorsResponse(c, ctx.deps, rateError, 429);
+
+  try {
+    const records = await Promise.all(
+      addresses.map((address) => readRecord(ctx, chain.chainId, address))
+    );
+    return publicBrowserCorsResponse(c, ctx.deps, { ok: true, records });
+  } catch {
+    return storageUnavailable(c, ctx);
+  }
+}
+
+/** Accounts without a stored photo read as the unversioned empty record. */
+async function readRecord(
+  ctx: ProfileAvatarRouteContext,
+  chainId: number,
+  address: ProfileAvatarRecord["address"]
+): Promise<ProfileAvatarRecord> {
+  return (
+    (await ctx.profileAvatarStore.get(chainId, address)) ?? {
+      chainId,
+      address,
+      avatarUri: null,
+      version: 0,
+      updatedAt: null,
+    }
+  );
+}
+
+function storageUnavailable(c: Context, ctx: ProfileAvatarRouteContext) {
+  return publicBrowserCorsResponse(
+    c,
+    ctx.deps,
+    safeError("provider_unavailable", "Avatar storage is unavailable right now."),
+    503
+  );
 }
 
 async function handleMutation(
@@ -188,20 +247,27 @@ async function handleMutation(
     }
     return publicBrowserCorsResponse(c, ctx.deps, { ok: true, record: result.record });
   } catch {
-    return publicBrowserCorsResponse(
-      c,
-      ctx.deps,
-      safeError("provider_unavailable", "Avatar storage is unavailable right now."),
-      503
-    );
+    return storageUnavailable(c, ctx);
   }
 }
 
 function validateTarget(c: Context, ctx: ProfileAvatarRouteContext) {
+  const address = normalizeProfileAvatarAddress(c.req.param("address") ?? "");
+  if (!address) {
+    return {
+      ok: false as const,
+      status: 400 as const,
+      error: safeError("invalid_request", "Invalid avatar record."),
+    };
+  }
+  const chain = validateChain(c, ctx);
+  return chain.ok ? { ...chain, address } : chain;
+}
+
+function validateChain(c: Context, ctx: ProfileAvatarRouteContext) {
   const configuredChainId = ctx.deps.profileAvatarChainId;
   const chainId = Number(c.req.param("chainId"));
-  const address = normalizeProfileAvatarAddress(c.req.param("address") ?? "");
-  if (!Number.isSafeInteger(chainId) || chainId <= 0 || !address) {
+  if (!Number.isSafeInteger(chainId) || chainId <= 0) {
     return {
       ok: false as const,
       status: 400 as const,
@@ -222,7 +288,7 @@ function validateTarget(c: Context, ctx: ProfileAvatarRouteContext) {
       error: profileAvatarError("chain_unsupported", "Unsupported chain."),
     };
   }
-  return { ok: true as const, chainId, address };
+  return { ok: true as const, chainId };
 }
 
 function profileAvatarError(
@@ -242,14 +308,6 @@ async function readExistingVersion(
     const existing = await ctx.profileAvatarStore.get(chainId, address);
     return { ok: true, version: existing?.version ?? 0 };
   } catch {
-    return {
-      ok: false,
-      response: publicBrowserCorsResponse(
-        c,
-        ctx.deps,
-        safeError("provider_unavailable", "Avatar storage is unavailable right now."),
-        503
-      ),
-    };
+    return { ok: false, response: storageUnavailable(c, ctx) };
   }
 }

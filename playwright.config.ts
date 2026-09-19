@@ -39,7 +39,7 @@ const webServers = [
     ? []
     : [
         {
-          command: "bun run dev:indexer",
+          command: "bun run dev -- indexer",
           port: 3006,
           reuseExistingServer: !process.env.CI,
           timeout: 60000,
@@ -49,10 +49,13 @@ const webServers = [
   // Client (PWA) — `url` (not `port`) so Playwright waits for an actual HTTP
   // 200 before running tests; Vite binds the TCP socket before the HTTP route
   // handler is ready, which causes flaky page.goto timeouts in CI.
+  // Both app servers run Vite through the package script, not `bun run dev`:
+  // the PM2 launcher applies the local stack profile (Arbitrum, NODE_ENV
+  // development) over any env passed here, and the specs mock Sepolia.
   ...(shouldStartClient
     ? [
         {
-          command: "bun run dev:client",
+          command: "bun run --cwd packages/client dev",
           url: `${protocol}://localhost:3001`,
           reuseExistingServer: !process.env.CI,
           timeout: 120000,
@@ -71,7 +74,7 @@ const webServers = [
   ...(shouldStartAdmin
     ? [
         {
-          command: "bun run dev:admin",
+          command: "bun run --cwd packages/admin dev",
           url: `${protocol}://localhost:3002`,
           reuseExistingServer: !process.env.CI,
           timeout: 120000,
@@ -227,8 +230,7 @@ export default defineConfig({
     // ========================================================================
 
     // Anvil Fork - Tests with local Anvil fork of Sepolia
-    // Run with: bun test:e2e:fork
-    // Requires Anvil running: bun anvil:start
+    // Run with: bun run browser e2e --preset fork
     {
       name: "anvil-fork",
       testMatch: /.*\.fork\.spec\.ts$/,
@@ -239,7 +241,7 @@ export default defineConfig({
 
     // Passkey Mock - Tests with mocked Pimlico bundler/paymaster
     // Enables full passkey E2E tests without real infrastructure
-    // Run with: bun test:e2e:passkey
+    // Run with: bun run browser e2e --preset passkey
     {
       name: "passkey-mock",
       testMatch: /.*\.passkey\.spec\.ts$/,
@@ -247,7 +249,7 @@ export default defineConfig({
     },
 
     // Testnet - Tests against real Sepolia (manual only)
-    // Run with: bun test:e2e:testnet
+    // Run with: bun run browser e2e --preset testnet
     // Requires: TEST_WALLET_PRIVATE_KEY env var
     {
       name: "testnet",

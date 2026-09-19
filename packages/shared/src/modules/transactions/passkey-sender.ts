@@ -1,9 +1,8 @@
 /**
  * Passkey Transaction Sender
  *
- * Sends transactions via a SmartAccountClient (Pimlico bundler).
- * UserOps are gas-sponsored by default. Return the included transaction
- * hash only after the matching UserOperation executes successfully.
+ * Persists the UserOperation identity before waiting for execution. Only an
+ * explicitly successful operation establishes the returned transaction hash.
  *
  * @module modules/transactions/passkey-sender
  */
@@ -16,9 +15,19 @@ import {
   assertSmartAccountClientResolverActive,
   SmartAccountClientError,
 } from "../auth/smartAccountClientResolver";
+import { getUserOperationHash } from "viem/account-abstraction";
 import { logger } from "../app/logger";
 import { assertLocalArbitrumForkSmartAccountsDisabled } from "./local-fork-safety";
-import type { ContractCall, TransactionSender, TxResult } from "./types";
+import {
+  TransactionRevertedError,
+  type BroadcastConfirmation,
+  type BroadcastReference,
+  type ContractCall,
+  type TransactionSender,
+  type TransactionSendOptions,
+  type TxResult,
+} from "./types";
+import { TX_RECEIPT_TIMEOUT_MS } from "../../utils/blockchain/polling";
 
 interface PasskeySenderDeps {
   resolveSmartAccountClient?: SmartAccountClientResolver | null;
@@ -41,7 +50,10 @@ export class PasskeySender implements TransactionSender {
     this.deps.assertWriteSafety ??= async () => assertLocalArbitrumForkSmartAccountsDisabled();
   }
 
-  async sendContractCall(call: ContractCall): Promise<TxResult> {
+  async sendContractCall(
+    call: ContractCall,
+    options: TransactionSendOptions = {}
+  ): Promise<TxResult> {
     await this.deps.assertWriteSafety?.();
 
     const chainId = call.chainId ?? this.client.chain?.id;
@@ -63,23 +75,26 @@ export class PasskeySender implements TransactionSender {
     });
 
     assertSmartAccountClientResolverActive(this.deps.resolveSmartAccountClient);
-    const userOpHash = await client.sendUserOperation({
-      account: client.account!,
+    await options.assertOwnership?.();
+    const operationHash = await client.sendUserOperation({
+      account: this.reportingAccount(client, options),
       calls: [{ to: call.address, value: call.value ?? 0n, data }],
     });
-    // sendTransaction discards UserOperation.success in the installed SDK.
-    // A successful EntryPoint transaction can contain a reverted operation.
-    const operation = await client.waitForUserOperationReceipt({ hash: userOpHash });
-    if (operation.success !== true || operation.receipt.status !== "success") {
-      throw new Error("Transaction reverted on-chain");
-    }
+    await options.onBroadcastReference?.({ kind: "user-operation", hash: operationHash });
+    const receipt = await client.waitForUserOperationReceipt({
+      hash: operationHash,
+      timeout: TX_RECEIPT_TIMEOUT_MS,
+    });
     if (
-      operation.userOpHash.toLowerCase() !== userOpHash.toLowerCase() ||
-      operation.sender.toLowerCase() !== client.account!.address.toLowerCase()
+      receipt.userOpHash.toLowerCase() !== operationHash.toLowerCase() ||
+      receipt.sender.toLowerCase() !== client.account!.address.toLowerCase()
     ) {
       throw new Error("UserOperation receipt does not match the submitted operation");
     }
-    const hash = operation.receipt.transactionHash;
+    if (receipt.success !== true || receipt.receipt.status !== "success")
+      throw new TransactionRevertedError(operationHash, "UserOperation execution reverted");
+    const hash = receipt.receipt.transactionHash;
+    await options.onBroadcast?.(hash);
 
     logger.debug("Passkey transaction sent", {
       source: "PasskeySender",
@@ -91,12 +106,66 @@ export class PasskeySender implements TransactionSender {
     return { hash, sponsored: true };
   }
 
+  /**
+   * viem prepares the operation (estimation and sponsorship), asks the account
+   * to sign it, and then broadcasts. Wrapping the signature is the one seam
+   * between an approved prompt and the network: a declined prompt or a refused
+   * sponsorship throws before `onBeforeBroadcast` runs.
+   */
+  private reportingAccount(client: SmartAccountClient, options: TransactionSendOptions) {
+    const account = client.account!;
+    const onBeforeBroadcast = options.onBeforeBroadcast;
+    if (!onBeforeBroadcast) return account;
+    const clientChainId = client.chain?.id;
+    const signUserOperation: typeof account.signUserOperation = async (userOperation) => {
+      const signature = await account.signUserOperation(userOperation);
+      const chainId = userOperation.chainId ?? clientChainId;
+      await onBeforeBroadcast(
+        chainId === undefined
+          ? undefined
+          : {
+              kind: "user-operation",
+              // Hashed the way the account signs it, so it matches the bundler's return.
+              hash: getUserOperationHash({
+                chainId,
+                entryPointAddress: account.entryPoint.address,
+                entryPointVersion: account.entryPoint.version,
+                userOperation: {
+                  ...userOperation,
+                  sender: userOperation.sender ?? account.address,
+                  signature,
+                } as Parameters<typeof getUserOperationHash>[0]["userOperation"],
+              }),
+            }
+      );
+      return signature;
+    };
+    // The account's own methods read shared state through `this`, so every
+    // other lookup falls through to the real account.
+    return Object.create(account, {
+      signUserOperation: { value: signUserOperation, enumerable: true },
+    }) as typeof account;
+  }
+
+  async reconcileBroadcast(reference: BroadcastReference): Promise<BroadcastConfirmation> {
+    if (reference.kind !== "user-operation") return { status: "unresolved" };
+    try {
+      const receipt = await this.client.getUserOperationReceipt({ hash: reference.hash });
+      if (!receipt) return { status: "unresolved" };
+      return receipt.success
+        ? { status: "confirmed", transactionHash: receipt.receipt.transactionHash }
+        : { status: "reverted" };
+    } catch {
+      return { status: "unresolved" };
+    }
+  }
+
   async sendBatch(calls: ContractCall[]): Promise<TxResult> {
     if (calls.length === 0) {
       throw new Error("Cannot send empty batch");
     }
 
-    // This adapter's existing batch contract is sequential, not atomic.
+    // This sender advertises no atomic batching; preserve sequential call semantics.
     let lastResult: TxResult | null = null;
     for (const call of calls) {
       lastResult = await this.sendContractCall(call);

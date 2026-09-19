@@ -1,4 +1,5 @@
 {
+  "ignoreCommand": "node ../../scripts/ops/vercel-ignore.mjs design",
   "installCommand": "cd ../.. && bun install --frozen-lockfile",
   "buildCommand": "cd ../.. && bun run --filter @green-goods/shared build-storybook",
   "outputDirectory": "storybook-static",

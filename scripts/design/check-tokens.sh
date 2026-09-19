@@ -44,6 +44,7 @@ EXPECTED_TOKENS=(
   "motion|--spring-spatial"
   "motion|--spring-spatial-fast"
   "motion|--spring-spatial-slow"
+  "motion|--spring-spatial-exit"
   "motion|--spring-effects"
   "motion|--spring-effects-fast"
   "motion|--spring-effects-slow"
@@ -60,6 +61,7 @@ EXPECTED_TOKENS=(
   "material|--border-material"
   # Runtime radius aliases
   "radius|--radius-md"
+  "radius|--radius-squircle"
   "radius|--radius-lg"
   "radius|--radius-xl"
   "radius|--radius-2xl"
@@ -68,6 +70,7 @@ EXPECTED_TOKENS=(
 
 GENERATED_RADIUS_TOKENS=(
   "--gg-radius-md"
+  "--gg-radius-squircle"
   "--gg-radius-lg"
   "--gg-radius-xl"
   "--gg-radius-2xl"
@@ -103,7 +106,7 @@ if [[ ${#MISSING_GENERATED[@]} -gt 0 ]]; then
   echo "❌ DesignMD radius tokens missing from $GENERATED_CSS:"
   printf '  %s\n' "${MISSING_GENERATED[@]}"
   echo
-  echo "Update root $CANONICAL_DESIGN and run bun run design:generate."
+  echo "Update root $CANONICAL_DESIGN and run node scripts/design/md-generate.mjs."
   exit 1
 fi
 

@@ -132,7 +132,7 @@ describe("upgrade operator entrypoint", () => {
     const output = `${result.stdout}${result.stderr}`;
 
     expect(result.status).toBe(0);
-    expect(output).toContain("bun run pooling:upgrade:dry:arbitrum");
+    expect(output).toContain("bun run contracts -- upgrade commitment-pooling --network arbitrum --mode preflight");
     expect(output).not.toContain("forge script");
     expect(output).not.toContain("cast call");
   });

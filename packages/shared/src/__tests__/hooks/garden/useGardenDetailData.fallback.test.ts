@@ -60,6 +60,10 @@ vi.mock("../../../hooks/vault/useGardenVaults", () => ({
   useGardenVaults: () => ({ vaults: [], isLoading: false }),
 }));
 
+vi.mock("../../../hooks/cookie-jar/useGardenCookieJars", () => ({
+  useGardenCookieJars: () => ({ jars: [] }),
+}));
+
 vi.mock("../../../hooks/conviction/useConvictionStrategies", () => ({
   useConvictionStrategies: () => ({ strategies: [] }),
 }));

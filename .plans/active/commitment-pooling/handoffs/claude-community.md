@@ -6,12 +6,13 @@
 - Machine lane: ui
 - Owner: Claude
 - Branch signal: feature/commitment-pooling-community
-- Current state: September follow-up; blocked on August substrate and the Community hub gates
-- Linear context: PRD-682 (Community substrate); lane issues now exist per register #37
+- Current state: deferred 2026-09-07 in favor of QA. This surface is a hackathon build, not a September commitment.
+- Linear context: PRD-691 in the Community Needs & Signals project. PRD-682 was canceled as superseded on 2026-09-11; do not reopen it.
+- Canonical spec: `.plans/backlog/community-interface/spec.md`. This handoff is the acceptance contract only.
 
 ## Inputs
 
-- Canonical .plans/active/community-interface hub
+- Canonical `.plans/backlog/community-interface` hub
 - GREEN Commitment Pooling contract/indexer/shared substrate
 - GREEN shared-foundation extraction for generic runtime, auth/passkey, offline status, install/update, error, and shell primitives
 - For the optional membership-queue slice only: a locked RESR-64 join-request persistence decision. The non-membership Community core does not wait for it.

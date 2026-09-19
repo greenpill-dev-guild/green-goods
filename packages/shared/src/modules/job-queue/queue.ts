@@ -14,6 +14,7 @@ export function createJobQueue(deps: JobQueueDependencies): JobQueueHandle {
   const maintenance = new JobMaintenance(deps.store, deps.analytics, deps.logger);
   const processJob = createJobProcessor({ ...deps, maintenance });
   let flushPromise: Promise<FlushResult> | null = null;
+  let flushScope: string | null = null;
   let cachedStorageQuota: Awaited<ReturnType<typeof deps.quota.get>> | null = null;
   let cachedStorageQuotaFetchedAt = 0;
   const detachLifecycle = deps.lifecycle.attach(() => undefined);
@@ -33,7 +34,9 @@ export function createJobQueue(deps: JobQueueDependencies): JobQueueHandle {
 
   const flushInternal = async (context: FlushContext): Promise<FlushResult> => {
     if (!context.userAddress) throw new Error("userAddress is required for flush operation");
-    const jobs = await deps.store.getJobs({ userAddress: context.userAddress, synced: false });
+    const jobs = (
+      await deps.store.getJobs({ userAddress: context.userAddress, synced: false })
+    ).filter((job) => !context.kinds || context.kinds.includes(job.kind));
     if (jobs.length === 0) {
       const result = { processed: 0, failed: 0, skipped: 0 };
       deps.events.emit("queue:sync-completed", { result });
@@ -96,7 +99,7 @@ export function createJobQueue(deps: JobQueueDependencies): JobQueueHandle {
         chainId,
         userAddress,
       });
-      const job: Job = {
+      const pendingJob: Job = {
         id: jobId,
         kind,
         payload: persistedPayload,
@@ -107,6 +110,9 @@ export function createJobQueue(deps: JobQueueDependencies): JobQueueHandle {
         attempts: 0,
         synced: false,
       };
+      // A repeated admission must project the stored job, not a newer editable draft.
+      const job = kind === "work" ? await deps.store.getJob(jobId) : pendingJob;
+      if (!job) return jobId;
       deps.analytics.jobCreated(kind, isOnline, chainId);
       if (import.meta.env?.VITE_QUEUE_DEBUG === "true") {
         const value = persistedPayload as unknown as Record<string, unknown>;
@@ -132,11 +138,25 @@ export function createJobQueue(deps: JobQueueDependencies): JobQueueHandle {
     processJob,
 
     flush(context) {
-      if (flushPromise) return flushPromise;
-      flushPromise = flushInternal(context).finally(() => {
+      // Only a flush of the same scope can stand in for this one. A passkey's
+      // commitment-only flush answering a caller that asked for everything would
+      // report its work and decisions as processed without ever looking at them.
+      const scope = `${context.userAddress}|${context.kinds ? [...context.kinds].sort().join(",") : "*"}`;
+      if (flushPromise && flushScope === scope) return flushPromise;
+      const earlier = flushPromise;
+      const run: Promise<FlushResult> = (async () => {
+        // A different scope waits its turn instead of running beside it, so the
+        // kinds the two share are never processed twice.
+        if (earlier) await earlier.catch(() => undefined);
+        return flushInternal(context);
+      })().finally(() => {
+        if (flushPromise !== run) return;
         flushPromise = null;
+        flushScope = null;
       });
-      return flushPromise;
+      flushPromise = run;
+      flushScope = scope;
+      return run;
     },
 
     retryJob: recovery.retryJob,

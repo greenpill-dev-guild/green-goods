@@ -18,7 +18,7 @@ types, i18n, and Storybook-backed shared UI building blocks.
 
 - `bun run test`
 - `bun run typecheck`
-- `bun run coverage`
+- `bun run test --scope all-configured --coverage`
 - `bun run check:stories`
 
 ## Non-Negotiables

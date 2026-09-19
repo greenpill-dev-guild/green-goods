@@ -22,7 +22,7 @@ test.describe("Client Authentication Flows", () => {
   test.use({ baseURL: CLIENT_URL });
 
   test.describe("Passkey Registration", () => {
-    // SKIP: #338 owner:afo expiry:2026-09-17 — needs real Pimlico API
+    // SKIP: #338 owner:afo expiry:2026-10-16 — needs real Pimlico API
     test.skip(!RUN_REAL_PASSKEY_E2E, "Set RUN_REAL_PASSKEY_E2E=true to run against real Pimlico.");
 
     test.fixme(
@@ -172,7 +172,7 @@ test.describe("Client Authentication Flows", () => {
           'button:has-text("Cancel")',
           'button:has-text("Close")',
           '[data-testid="modal-close"]',
-          '[data-testid="modal-drawer-close"]',
+          '[data-testid="app-sheet-close"]',
         ];
 
         let closed = false;
@@ -201,7 +201,7 @@ test.describe("Client Authentication Flows", () => {
 
   test.describe("Auth State Persistence", () => {
     test.describe("Passkey", () => {
-      // SKIP: #338 owner:afo expiry:2026-09-17 — needs real Pimlico API
+      // SKIP: #338 owner:afo expiry:2026-10-16 — needs real Pimlico API
       test.skip(
         !RUN_REAL_PASSKEY_E2E,
         "Set RUN_REAL_PASSKEY_E2E=true to run against real Pimlico."
@@ -240,7 +240,7 @@ test.describe("Client Authentication Flows", () => {
 
   test.describe("Sign Out", () => {
     test.describe("Passkey", () => {
-      // SKIP: #338 owner:afo expiry:2026-09-17 — needs real Pimlico API
+      // SKIP: #338 owner:afo expiry:2026-10-16 — needs real Pimlico API
       test.skip(
         !RUN_REAL_PASSKEY_E2E,
         "Set RUN_REAL_PASSKEY_E2E=true to run against real Pimlico."
@@ -261,7 +261,7 @@ test.describe("Client Authentication Flows", () => {
       await helper.waitForPageLoad();
 
       const url = page.url();
-      // SKIP: #338 owner:afo expiry:2026-09-15 — wallet injection may not persist in this manual lane
+      // SKIP: #338 owner:afo expiry:2026-10-16 — wallet injection may not persist in this manual lane
       test.skip(url.includes("/home/login"), "Wallet authentication did not persist");
 
       await page.goto("/home/profile");

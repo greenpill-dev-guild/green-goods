@@ -319,7 +319,7 @@ export function getIndexerUrl(env: { VITE_ENVIO_INDEXER_URL?: string }, isDev: b
   }
 
   // Production URL (update when deployed)
-  return "https://indexer.hyperindex.xyz/0bf0e0f/v1/graphql";
+  return "https://indexer.hyperindex.xyz/e6edffd/v1/graphql";
 }
 
 // True iff the GreenWill badge contract is deployed (non-zero) on the given chain.

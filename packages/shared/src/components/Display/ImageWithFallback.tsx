@@ -1,104 +1,40 @@
 import { RiImageLine } from "@remixicon/react";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { getIPFSFallbackGateways } from "../../modules/data/ipfs/resolve";
+import { displayImageUrl } from "../../modules/offline-content/policy";
+import { connectivityStore } from "../../stores/connectivity";
 import { cn } from "../../utils/styles/cn";
 
+/** A visible image that has not loaded in this long moves to the next gateway. */
+const STALLED_GATEWAY_MS = 6_000;
+
 /**
- * Extract the IPFS path (/ipfs/CID...) from a gateway URL.
+ * Extract the IPFS content path (CID plus any sub-path) from a gateway URL,
+ * without the gateway's own query parameters.
  */
 function extractIpfsPath(url: string): string | null {
-  const match = url.match(/\/ipfs\/(.+)/);
+  const match = url.match(/\/ipfs\/([^?#]+)/);
   return match ? match[1] : null;
 }
 
 /**
- * Module-level cache: maps IPFS path (e.g. "bafkrei...") to the
- * gateway base URL that successfully loaded it. Shared across all
- * ImageWithFallback instances so a CID resolved once is instant everywhere.
+ * Module-level memory of the gateway that last served each IPFS path, shared by
+ * every instance so a CID resolved once opens from the same gateway everywhere.
  */
-const resolvedUrlCache = new Map<string, string>();
+const resolvedGateways = new Map<string, string>();
 
 /**
- * Append Pinata image optimization query params for faster, smaller delivery.
- * Only applies to Pinata dedicated gateway URLs (*.mypinata.cloud).
- * Requests width=800 (good for 2x retina at typical banner sizes) and auto format
- * (Pinata serves WebP/AVIF based on browser Accept header).
+ * Gateways in the order to try: the one that already worked this session, the
+ * configured gateways (the first is the one offline preparation downloads from),
+ * then the gateway the URL arrived with.
  */
-function optimizeForDisplay(url: string): string {
-  if (!url.includes("mypinata.cloud/")) return url;
-  const separator = url.includes("?") ? "&" : "?";
-  return `${url}${separator}img-width=800&img-format=auto`;
-}
-
-interface ImageRace {
-  promise: Promise<string>;
-  cancel: () => void;
-}
-
-/**
- * Race multiple image URLs in parallel using hidden Image objects.
- * Returns the first URL that loads successfully. The winning image is
- * already in the browser cache, so the visible <img> loads instantly.
- */
-function raceImageLoad(urls: string[], timeoutMs = 15_000): ImageRace {
-  const images: HTMLImageElement[] = [];
-  let settled = false;
-
-  const cancel = () => {
-    if (settled) return;
-    settled = true;
-    for (const img of images) {
-      img.onload = null;
-      img.onerror = null;
-      img.src = "";
-    }
-  };
-
-  const promise = new Promise<string>((resolve, reject) => {
-    if (urls.length === 0) {
-      reject(new Error("No URLs to race"));
-      return;
-    }
-
-    let errorCount = 0;
-    const timeout = setTimeout(() => {
-      if (settled) return;
-      cancel();
-      reject(new Error("Gateway race timed out"));
-    }, timeoutMs);
-
-    for (const url of urls) {
-      const img = new Image();
-      images.push(img);
-
-      img.onload = () => {
-        if (settled) return;
-        settled = true;
-        clearTimeout(timeout);
-        for (const other of images) {
-          if (other !== img) {
-            other.onload = null;
-            other.onerror = null;
-            other.src = "";
-          }
-        }
-        resolve(url);
-      };
-
-      img.onerror = () => {
-        errorCount++;
-        if (errorCount === urls.length && !settled) {
-          settled = true;
-          clearTimeout(timeout);
-          reject(new Error("All gateways failed"));
-        }
-      };
-
-      img.src = url;
-    }
-  });
-
-  return { promise, cancel };
+function gatewayCandidates(src: string, ipfsPath: string | null): string[] {
+  if (!ipfsPath) return [src];
+  const given = src.slice(0, src.indexOf("/ipfs/"));
+  const bases = [resolvedGateways.get(ipfsPath), ...getIPFSFallbackGateways(), given].filter(
+    (base): base is string => Boolean(base)
+  );
+  return [...new Set(bases)].map((base) => displayImageUrl(`${base}/ipfs/${ipfsPath}`));
 }
 
 export interface ImageWithFallbackProps extends React.ImgHTMLAttributes<HTMLImageElement> {
@@ -119,9 +55,10 @@ export interface ImageWithFallbackProps extends React.ImgHTMLAttributes<HTMLImag
 
 /**
  * Image component with automatic fallback to placeholder on load error.
- * For IPFS images, races all configured gateways in parallel — the first
- * to respond wins and subsequent instances reuse the cached gateway.
- * Applies Pinata image optimization (resize + auto format) when available.
+ * IPFS images request one gateway at a time: the next gateway is tried only when
+ * the current one fails or stalls while visible, so a list of cards never opens
+ * several downloads per photo. An image that failed while the device was offline
+ * tries again when the connection returns.
  */
 export const ImageWithFallback: React.FC<ImageWithFallbackProps> = ({
   src,
@@ -136,101 +73,114 @@ export const ImageWithFallback: React.FC<ImageWithFallbackProps> = ({
 }) => {
   // Sanitize src to prevent javascript: XSS
   const safeSrc = /^(https?:|data:image\/|\/|blob:)/i.test(src) ? src : "";
-
-  // Check in-memory cache for a previously resolved URL
   const ipfsPath = safeSrc ? extractIpfsPath(safeSrc) : null;
-  const cachedUrl = ipfsPath ? resolvedUrlCache.get(ipfsPath) : null;
 
-  // For uncached IPFS URLs, don't set an initial src — race will find the fastest gateway
-  const needsRace = Boolean(ipfsPath && !cachedUrl);
-  const initialSrc = needsRace ? "" : cachedUrl ? optimizeForDisplay(cachedUrl) : safeSrc;
+  // When an IPFS gateway has already served this path in this session, the bytes
+  // are also in the browser cache — paint the <img> at full opacity from the first
+  // frame instead of cycling through opacity-0 → image-reveal. The opacity-0 frame
+  // would otherwise be captured by View Transitions snapshots (e.g. Garden card →
+  // dialog morph), making the wrapper background show through the photograph.
+  const hasResolvedCache = Boolean(ipfsPath && resolvedGateways.has(ipfsPath));
 
-  // When an IPFS gateway has already been resolved in this session, the bytes
-  // are also in the browser HTTP cache — paint the <img> at full opacity from
-  // the first frame instead of cycling through opacity-0 → image-reveal. The
-  // opacity-0 frame would otherwise be captured by View Transitions snapshots
-  // (e.g. Garden card → dialog morph), making the new state's wrapper-bg show
-  // through during the box interpolation instead of the photograph.
-  const hasResolvedCache = Boolean(ipfsPath && cachedUrl);
-
-  const [currentSrc, setCurrentSrc] = useState(initialSrc);
+  const [candidates, setCandidates] = useState(() => gatewayCandidates(safeSrc, ipfsPath));
+  const [attempt, setAttempt] = useState(0);
   const [hasError, setHasError] = useState(!safeSrc);
   const [isLoading, setIsLoading] = useState(!!safeSrc && !hasResolvedCache);
   const [isLoaded, setIsLoaded] = useState(hasResolvedCache);
   const [cacheHitForCurrentSrc, setCacheHitForCurrentSrc] = useState(hasResolvedCache);
   const [shouldAnimateReveal, setShouldAnimateReveal] = useState(false);
+  const imageRef = useRef<HTMLImageElement | null>(null);
+  const online = useSyncExternalStore(
+    connectivityStore.subscribe,
+    connectivityStore.getSnapshot,
+    connectivityStore.getServerSnapshot
+  );
+  const failedOffline = useRef(false);
 
   // Re-sync state when the `src` prop changes. `useState` only consumes its
   // initializer on first mount, so without this effect a single component
   // instance pointed at a sequence of images (e.g. ImagePreviewDialog) keeps
   // rendering the first URL even though the prop changes.
   useEffect(() => {
-    setCurrentSrc(initialSrc);
+    setCandidates(gatewayCandidates(safeSrc, ipfsPath));
+    setAttempt(0);
     setHasError(!safeSrc);
     setIsLoading(!!safeSrc && !hasResolvedCache);
     setIsLoaded(hasResolvedCache);
     setCacheHitForCurrentSrc(hasResolvedCache);
     setShouldAnimateReveal(false);
-    // initialSrc / hasResolvedCache are fully derived from
-    // safeSrc/ipfsPath/cachedUrl/needsRace.
+    // hasResolvedCache is fully derived from safeSrc/ipfsPath at mount of this src.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [safeSrc, ipfsPath]);
 
-  // Stable ref for onErrorCallback to avoid re-triggering the race effect
+  // Stable ref for onErrorCallback so a new callback identity never restarts loading.
   const onErrorRef = useRef(onErrorCallback);
   useEffect(() => {
     onErrorRef.current = onErrorCallback;
   });
 
-  // Race IPFS gateways in parallel for uncached CIDs
+  const currentSrc = candidates[attempt] ?? "";
+  const hasNextGateway = attempt + 1 < candidates.length;
+
+  const advanceOrFail = () => {
+    if (hasNextGateway) {
+      setCacheHitForCurrentSrc(false);
+      setAttempt((value) => value + 1);
+      return;
+    }
+    failedOffline.current = !connectivityStore.getSnapshot();
+    setHasError(true);
+    setIsLoading(false);
+    onErrorRef.current?.();
+  };
+
+  // Move past a gateway that stalls, but only once the image is actually visible;
+  // a lazy image below the fold has not started loading yet.
   useEffect(() => {
-    if (!needsRace || !ipfsPath) return;
-
-    const gateways = getIPFSFallbackGateways();
-    const urls = gateways.map((gw) => optimizeForDisplay(`${gw}/ipfs/${ipfsPath}`));
-    const race = raceImageLoad(urls);
-
-    let cancelled = false;
-
-    race.promise
-      .then((winnerUrl) => {
-        if (cancelled) return;
-        // Cache the base URL (without optimization params) for future instances
-        const baseUrl = winnerUrl.split("?")[0];
-        resolvedUrlCache.set(ipfsPath, baseUrl);
-        setCacheHitForCurrentSrc(false);
-        setCurrentSrc(winnerUrl);
-      })
-      .catch(() => {
-        if (cancelled) return;
-        setHasError(true);
-        setIsLoading(false);
-        onErrorRef.current?.();
-      });
-
-    return () => {
-      cancelled = true;
-      race.cancel();
+    if (!ipfsPath || !isLoading || hasError || !hasNextGateway) return;
+    const element = imageRef.current;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const start = () => {
+      if (timer === undefined)
+        timer = setTimeout(() => setAttempt((value) => value + 1), STALLED_GATEWAY_MS);
     };
-  }, [ipfsPath, needsRace]);
+    if (loading === "eager" || typeof IntersectionObserver === "undefined" || !element) {
+      start();
+      return () => clearTimeout(timer);
+    }
+    const observer = new IntersectionObserver((entries) => {
+      if (entries.some((entry) => entry.isIntersecting)) {
+        observer.disconnect();
+        start();
+      }
+    });
+    observer.observe(element);
+    return () => {
+      observer.disconnect();
+      clearTimeout(timer);
+    };
+  }, [ipfsPath, isLoading, hasError, hasNextGateway, attempt, loading]);
+
+  // An image that failed only because the device was offline tries again on reconnect.
+  useEffect(() => {
+    if (!hasError || !online || !failedOffline.current || !safeSrc) return;
+    failedOffline.current = false;
+    setCandidates(gatewayCandidates(safeSrc, ipfsPath));
+    setAttempt(0);
+    setHasError(false);
+    setIsLoading(true);
+  }, [hasError, online, safeSrc, ipfsPath]);
 
   const handleLoad = () => {
     setIsLoading(false);
     setIsLoaded(true);
     setShouldAnimateReveal(!cacheHitForCurrentSrc);
-    // Update cache with the URL that actually worked
-    if (ipfsPath && currentSrc) {
-      const baseUrl = currentSrc.split("?")[0];
-      resolvedUrlCache.set(ipfsPath, baseUrl);
-    }
+    if (ipfsPath && currentSrc) resolvedGateways.set(ipfsPath, currentSrc.split("/ipfs/")[0]);
   };
 
   const handleError = () => {
-    // For IPFS URLs, the parallel race handles gateway fallback
-    if (ipfsPath) return;
-    setHasError(true);
-    setIsLoading(false);
-    onErrorCallback?.();
+    if (ipfsPath) resolvedGateways.delete(ipfsPath);
+    advanceOrFail();
   };
 
   if (hasError) {
@@ -269,6 +219,7 @@ export const ImageWithFallback: React.FC<ImageWithFallbackProps> = ({
           )}
       {currentSrc && (
         <img
+          ref={imageRef}
           src={currentSrc}
           alt={alt}
           loading={loading}

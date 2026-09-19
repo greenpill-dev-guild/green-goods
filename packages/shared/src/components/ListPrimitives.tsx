@@ -1,14 +1,29 @@
 import { RiArrowUpDownLine, RiCloseLine, RiSearchLine } from "@remixicon/react";
-import type { ReactNode } from "react";
+import { isValidElement, type ReactNode } from "react";
 import { useIntl } from "react-intl";
 import { cn } from "../utils/styles/cn";
 import { Button, type ButtonProps } from "./Button";
+
+/**
+ * The empty state's action: shared `Button` props with a label on the client,
+ * or a ready element on a surface with its own button family (admin passes an
+ * `AdminButton`), so the shared Button never renders in the cockpit (Rule 18).
+ */
+export type EmptyStateAction = ReactNode | (ButtonProps & { label: string });
 
 export interface EmptyStateProps {
   icon: ReactNode;
   title: string;
   description?: string;
-  action?: ButtonProps & { label: string };
+  action?: EmptyStateAction;
+}
+
+function isActionProps(action: EmptyStateAction): action is ButtonProps & { label: string } {
+  // The null check comes first: `typeof null` is "object", and after a typeof
+  // narrowing static analysis reads a later null comparison as dead.
+  return (
+    action !== null && typeof action === "object" && !isValidElement(action) && "label" in action
+  );
 }
 
 export function EmptyState({ icon, title, description, action }: EmptyStateProps) {
@@ -39,11 +54,17 @@ export function EmptyState({ icon, title, description, action }: EmptyStateProps
           {description}
         </p>
       )}
-      {action && (
-        <Button className="mt-4" size="sm" {...action}>
-          {action.label}
-        </Button>
-      )}
+      {action ? (
+        <div className="mt-4">
+          {isActionProps(action) ? (
+            <Button size="sm" {...action}>
+              {action.label}
+            </Button>
+          ) : (
+            action
+          )}
+        </div>
+      ) : null}
     </div>
   );
 }

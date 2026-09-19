@@ -161,8 +161,8 @@ limits, fees, or de-listing behaviour. See `plan.todo.md` Slice 5 for the 5a/5b 
   member, executor, spender or administrator.
 - [`SettlementMessageCodec.sol`](../../../packages/contracts/src/libraries/SettlementMessageCodec.sol)
   — frozen v1 data-only command/ack payload codec.
-- Plan hub: [`celo-garden-account-safe-ownership`](../../active/celo-garden-account-safe-ownership/),
-  Linear PRD-821. Target topology is a 2-of-3 Safe of GardenAccount + protocol recovery Safe + Dev
+- Plan hub: [`celo-garden-account-safe-ownership`](../../ARCHIVE.md) (closed 2026-09-10; evidence in
+  `packages/contracts/config/celo-garden-accounts/`), Linear PRD-821. Target topology is a 2-of-3 Safe of GardenAccount + protocol recovery Safe + Dev
   Guild recovery Safe, verified on pinned forks.
 
 ## Prior Green Goods analysis this hub builds on

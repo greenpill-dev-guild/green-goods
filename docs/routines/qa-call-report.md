@@ -47,17 +47,17 @@ decision log is a human-gated local step, never yours.
 ## Setup
 
 - All env vars are loaded; do not read `.env`. `BLOB_READ_WRITE_TOKEN` must be present — without
-  it `bun run qa:pull` cannot read the QA app's shards; fail loud in the Discord summary rather
+  it `bun run qa pull` cannot read the QA app's shards; fail loud in the Discord summary rather
   than shipping a notes-only report silently.
 - The capability check is the file, not the branch name: `scripts/agents/qa-state-pull.ts`,
-  `scripts/agents/qa-report.ts`, and the root `qa:pull` and `qa:report` scripts must exist in
+  `scripts/agents/qa-report.ts`, and the root `qa pull` and `qa report` actions must exist in
   the checkout. Today that means `develop` (they have not
   shipped to `main` yet); once a release carries them, either branch works. Missing → report the
   checkout problem and stop.
 - Resolve Linear team (`Product`), workflow states (`Todo`, `Backlog`, `In Progress`), and label
   families by name at run start; never hardcode IDs. Required label families:
   `protocol:green-goods`, `package:*`, `activity:qa`, `source:qa-session` (resolve-or-create),
-  `ai:routine`, and the per-session `qa-sync:<YYYY-MM-DD>` (resolve-or-create). A missing family
+  `ai:routine`, and the per-session `session:<YYYY-MM-DD>` (resolve-or-create). A missing family
   fails loud — do not invent records under a different label.
 - Issue bodies follow [`.claude/context/linear-routing-rules.md`](../../.claude/context/linear-routing-rules.md)
   § Issue structure (clear, simple, concise, human-friendly; 6-heading / 600-word backstops — the
@@ -65,7 +65,7 @@ decision log is a human-gated local step, never yours.
   [`.claude/skills/qa-triage/linear-templates.md`](../../.claude/skills/qa-triage/linear-templates.md)
   § QA session report / § QA slice.
 - Pass labels to `save_issue` as **bare child names**: `protocol:green-goods`, `activity:qa`,
-  `source:qa-session`, `ai:routine`, and `qa-sync:<date>` are written as
+  `source:qa-session`, `ai:routine`, and `session:<date>` are written as
   `["green-goods", "qa", "qa-session", "routine", "2026-09-02"]` — the `group:child` display
   form is rejected, and one unresolvable entry files nothing. Every label list in this prompt names
   the canonical `group:child` label; the bare child name is only the wire form.
@@ -95,11 +95,13 @@ and modifiedTime > '<24h-ago RFC3339>' and mimeType = 'application/vnd.google-ap
 
 ## Phase 2: Pull the QA app state
 
-Run `bun run qa:pull --slug <YYYY-MM-DD>` (the call date; a **second call on the same date**
-takes the slug `<YYYY-MM-DD>-2`, mirroring qa-session's slug rule, and everything downstream —
-window, parent title, artifacts — keys off that slug). It writes
-`tmp/qa-session/<date>/results.csv` and `qa-state.json` from the Blob shards. **The store is
-long-lived and the pull merges every shard ever written**, so scope the session first: a *session
+Run `bun run qa pull --slug <YYYY-MM-DD> --run <id>` (the call date; a **second call on the same
+date** takes the slug `<YYYY-MM-DD>-2`, mirroring qa-session's slug rule, and everything
+downstream — window, parent title, artifacts — keys off that slug). The run id is the `run-N` the
+session header names, or the one in the parent's lede on a rerun; when the team rolled the run
+over before this ran, pass `--run latest-closed`. It writes `tmp/qa-session/<date>/results.csv`
+and `qa-state.json` (which names the run) from that run's Blob shards. **A run can hold several
+sessions**, so scope the session first: a *session
 entry* is one whose `at` timestamp falls inside the **call interval** — the meeting's start and
 end from the notes header, padded 15 minutes before and 60 after (late recording is normal). A
 rolling day is not the session: a rehearsal that morning or yesterday's solo pass must not back
@@ -108,18 +110,24 @@ calendar day up to run time — say so in the report and treat that wider window
 proportionate caution. Only session entries are this call's verdicts — they alone back slices
 and the Results rollup; the same interval bounds the Phase 4 telemetry queries. Older entries
 are standing state: at most one context line in the report, and never the backing for a slice. Then run
-`bun run qa:report --slug <slug> --window <start>..<end>` — it joins the session entries to
+`bun run qa report --slug <slug> --window <start>..<end>` — it joins the session entries to
 `scripts/data/qa-test-catalog.json` by Test ID and writes `tmp/qa-session/<slug>/report.md`:
 results by priority and by kind, the fail/blocked list with attributed notes, coverage gaps,
 and standing state. Every rollup in the parent comes from that file, never from hand counting.
+When the call was a re-QA, also pull the run it checks — `bun run qa pull --slug <slug> --run
+<previous id> --out tmp/qa-session/<slug>/previous` — and pass
+`--previous tmp/qa-session/<slug>/previous/qa-state.json` so the report's delta names both runs
+and reads a verdict on a since-retired case onto its successors as inherited.
 Once Phase 4 has the deploys, re-run it with `--build client=<sha>,admin=<sha>` (the report is
 deterministic, so re-running is free) and add `--public` for the Discord lede. The snapshot must
 postdate the window: a pull taken before the padded window closes cannot hold entries recorded
 later, so `qa:report` clamps such a window to the pull time and says so in its header. When that
 happens, pull again once the window has closed — into a fresh directory
-(`bun run qa:pull --slug <slug> --out tmp/qa-session/<slug>-final`; the pull refuses to overwrite a
-pulled session and `--force` would discard any redactions) — and run `qa:report` with the same
-`--out` so the final report and its `--build` re-run read the complete snapshot.
+(`bun run qa pull --slug <slug> --run <the same run id> --out tmp/qa-session/<slug>-final` — the
+run selector travels with every follow-up pull, or a rollover in between would swap in the next
+run's verdicts; the pull refuses to overwrite a pulled session and `--force` would discard any
+redactions) — and run `qa:report` with the same `--out` so the final report and its `--build`
+re-run read the complete snapshot.
 
 - No shards or zero **session-window** entries: **notes-only mode** — extract from the notes
   alone; every slice lands `Backlog` (no verdict backing), and the report says the app carried
@@ -165,10 +173,16 @@ not product work.
    cluster whose root cause sits in shared code is ONE slice on the shared package. Each slice
    states where it can be verified — `local`, `device`, or `production`, from its cases'
    `requiresDevice` and `requiresProduction` flags — so a fix session takes `local` first.
-4. Cap **8 slices**, ordered by highest member priority; overflow findings are listed in the
-   parent's "Not sliced" section, not silently dropped. Standing fail/blocked entries outside the
-   window are never slices unattended; those with no open Issue carrying their Test ID are listed
-   in `Not sliced` as `standing since <date>` lines for a human to promote at the desk.
+4. Use a **Todo queue budget of 8**, not a limit on filing. File every defect and polish cluster
+   admitted by the join and session-window rules, or link its existing tracked Issue. Derive state
+   and priority from the QA slice template, then put the first 8 Todo-eligible slices by priority
+   in `Todo` and every remaining slice in `Backlog`, keeping its derived priority. Record the
+   budget and the Todo/Backlog split in the parent's Slices intro and list all slices there;
+   overflow never goes in `Not sliced`. That section holds note-only follow-ups without an exact
+   Test ID and uncorrelated telemetry, alongside investigate and environment lines; catalog
+   feedback keeps its separate disposition. Standing fail/blocked entries outside the window
+   remain standing-state context (Phase 2), never slices unattended; a human may accept never-filed
+   findings at the desk.
 
 ## Phase 4: Enrich from the product (non-blocking)
 
@@ -212,17 +226,17 @@ the Discord summary, never a stopped run.
 
 ## Phase 5: Dedupe against Linear
 
-First the parent itself: the `qa-sync:<date>` label only **narrows candidates** — the pulse
+First the parent itself: the `session:<date>` label only **narrows candidates** — the pulse
 stamps that label on its own pre-staged tracking Issues, so the label alone can point at an
 ordinary Backlog defect. Reuse requires the parent shape: **this run's exact expected title**
 (`QA session <date>`, or `QA session <date> · 2` for a second same-day call — the counter is
-the call's identity, since the week's `qa-sync` label is shared) and no `package:*` label. When that parent exists (the interactive sibling may have filed it),
+the call's identity, since the week's `session` label is shared) and no `package:*` label. When that parent exists (the interactive sibling may have filed it),
 **reuse it** — add missing children under it and a comment for new context; never a second
 parent, and never attach slices to anything that fails the shape test.
 
-Then the findings: list open Product Issues carrying `activity:qa` or any `qa-sync:*` label, plus
+Then the findings: list open Product Issues carrying `activity:build` or any `session:*` label, plus
 every Issue created on the team since the window opened whatever its labels (a teammate filing
-from the call rarely stamps `activity:qa`).
+from the call rarely stamps an activity label).
 "Already tracked" needs an **exact key**: the same catalog Test ID in the existing Issue's
 source line or in a comment the QA pipeline posted on it (the interactive mode records confirmed
 matches that way), or the same PostHog error hash. Wording or surface similarity alone never earns it
@@ -251,8 +265,8 @@ exposure: redact in place and fail loud in the Discord summary.
    template — lede, then Results by priority and Results by kind pasted verbatim from
    `tmp/qa-session/<slug>/report.md`, Decisions from the call (omit in app-only mode), Decisions needed (when
    any), Slices, Not sliced, `Done when`, source line with the Drive notes link. The lede names
-   the session's default environment. State `Todo`. Labels: `green-goods` + `qa` + `qa-session` + `routine` +
-   `qa-sync:<date>`; **no `package:*`** on the parent. The parent's `Done when` defines its
+   the run the call recorded into (`Run N · <label>`) and its environment. State `Todo`. Labels: `green-goods` + `qa` + `qa-session` + `routine` +
+   `session:<date>`; **no `package:*`** on the parent. The parent's `Done when` defines its
    closure — every slice Done or explicitly deferred, re-QA re-recorded; the fix flow closes it,
    never this routine. **One exception**: an all-pass session — zero fail or blocked verdicts inside the window,
    zero slices, zero related Issues, and no decisions child — creates its parent directly in
@@ -268,9 +282,9 @@ exposure: redact in place and fail loud in the Discord summary.
    Idempotency and failure: look for an existing document of that title under the parent first and
    update it by id; a failed create is retried once. A second failure falls back to `save_comment`
    on the parent with the same content under a first line `Full report (document write failed)`,
-   because nothing else keeps this record: the Blob store holds one entry per case per tester, so
-   the next QA write can overwrite this session's state, and the run's `tmp/` snapshot dies with
-   the run. Record `document: failed, report in comment` in the Discord summary. If the comment
+   because nothing else keeps this record where a human reads it: the closed run stays in the
+   private Blob store, but its attributed report exists only in the routine's `tmp/`, which dies
+   with the routine. Record `document: failed, report in comment` in the Discord summary. If the comment
    fails too, stop before any child is written — the parent exists, so post the failure block with
    the parent id and re-run from a fresh pull. Only after the document (or its comment fallback)
    exists, patch the parent's lede with its link, resending the title so the length exemption
@@ -282,6 +296,8 @@ exposure: redact in place and fail loud in the Discord summary.
 4. **Then each slice** as a sub-issue via `parentId`, body per the § QA slice template (problem
    cluster in prose with Test IDs and verdicts, "Where to start" map, "Done when" = the Test IDs
    re-record as pass, fix-posture pointer, validation command, source line).
+   Derive state and priority below, then apply Phase 3's Todo queue budget before writing: overflow
+   is `Backlog` at the same priority, and every admitted cluster gets a slice or existing Issue.
    - **Verdict-backed** (a tester recorded fail/blocked in the app **during the session
      window**): `Todo`; priority High for a P0-case fail, Medium for P1, Low otherwise — Urgent
      only when the call notes flag it release-blocking. A tester's own note calling it a major
@@ -317,7 +333,7 @@ filed, the admin review pair is the one to take first."}
 
 {Top slices — up to 3, one line each:} - **{slice title}** · {priority} → <{linear-url}>
 
-Report: <{parent-url}> · {N} slices ({T} Todo · {B} Backlog){if overflow: " · {M} findings not sliced"}
+Report: <{parent-url}> · {N} slices ({T} Todo · {B} Backlog){if not_sliced: " · {M} follow-ups not sliced"}
 {if any_failure: "⚠ {short failure list}"}
 ```
 
@@ -336,7 +352,7 @@ the @mention.
 | Create one Issue per failed test case | The slice is the work unit (one slice = one branch = one PR); test-case detail lives inside the slice body and the report |
 | Set `In Progress` or assignees — or `Done` on anything with open work | Fix sessions and humans drive those; you create `Todo`/`Backlog` records, plus the one carve-out: an all-pass session's parent is created `Done`, a record with nothing to fix |
 | Write Customer Needs or Sheet rows | The report + slices are the session record; the Sheet belongs to the interactive skill with its privacy re-acknowledgement |
-| Hand-count coverage or derive severity | Rollups come from `bun run qa:report` (the pull joined to the catalog); case priority + verdict only seed Linear queue priority, while defect severity remains an independent triage decision |
+| Hand-count coverage or derive severity | Rollups come from `bun run qa report` (the pull joined to the catalog); case priority + verdict only seed Linear queue priority, while defect severity remains an independent triage decision |
 | Copy tester names, wallets, or replay URLs into Linear | Aggregate coverage only — the privacy boundary in [`.claude/context/qa.md`](../../.claude/context/qa.md) |
 | File when `/qa-triage --call` already ran this session | One writer per session — dedupe links instead |
 | Run from a checkout missing the qa scripts | Verify `scripts/agents/qa-state-pull.ts` exists rather than trusting a branch name; today the scripts ship on `develop` only |

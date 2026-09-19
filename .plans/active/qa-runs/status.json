@@ -1,0 +1,216 @@
+{
+  "version": 2,
+  "feature": {
+    "slug": "qa-runs",
+    "title": "QA Runs",
+    "kind": "feature",
+    "stage": "active"
+  },
+  "workflow": {
+    "overall_status": "active",
+    "priority": "p2",
+    "created_at": "2026-09-05T04:08:09.130Z",
+    "updated_at": "2026-09-07T22:19:25.272Z"
+  },
+  "links": {
+    "brief": "brief.md",
+    "spec": "spec.md",
+    "plan": "plan.todo.md",
+    "eval": "eval.md"
+  },
+  "linear": {
+    "parentIssue": "PRD-878",
+    "project": null,
+    "initiative": null,
+    "syncDirection": "plans_to_linear_visibility",
+    "lastSyncedAt": null,
+    "lanes": {},
+    "laneSyncMode": "parent_only"
+  },
+  "taxonomy": {
+    "initiative": "engineering-quality",
+    "tracks": ["ops", "docs"],
+    "work_types": ["implementation", "qa", "hardening"],
+    "surfaces": [
+      "packages/qa",
+      "scripts/agents",
+      "scripts/data/qa-test-catalog.json",
+      "scripts/data/qa-test-id-ledger.json",
+      "docs/docs/builders/quality"
+    ],
+    "depends_on_features": []
+  },
+  "notes": [
+    "PR #805 merged into develop on 2026-09-08 (merge 6fbbc8592) after the stacked catalog PRs #806, #807, #808, and the review-fix PR #810 merged down in order; the second review round on #805 (lock release fencing, run rosters independent of the allowlist, comparisons bounded to earlier runs) landed as 4b69e6a97 before the merge. Merging deployed the QA app; qa_pass_1 is the 2026-09-08 rollover and two-tester smoke on the deployed app.",
+    "Decisions of 2026-09-07: migration runs on the first authenticated request after deploy and Run 1 stays open until the Tuesday rollover; all lanes run serially in one Claude session on feature/qa-runs; Vercel deploys packages/qa from develop; the pre-Tuesday catalog split includes PWA-025/042/043/044.",
+    "Second PR #806 (decision 12): feature/qa-runs-pwa-split, stacked on feature/qa-runs (merge #806 into feature/qa-runs first, then #805 into develop), carries the PWA half of the remaining grouped rows (PWA-027/029/030/031/032/033/039 retired into PWA-067…096) and the missing read-only PWA rows (PWA-097…102). Admin C18, the public rows, and the C19 area re-cut stay post-Tuesday.",
+    "Third PR #807 (decision 13): feature/qa-runs-catalog-third-pass, stacked on feature/qa-runs-pwa-split, splits every remaining grouped admin, public website, and docs row into one row per act (ADM-048…108, PUB-035…055, DOCS-014…032; 24 retirements, 4 in-place rewrites). Merge order: third → second → feature/qa-runs → develop. Only the C19 area re-cut remains post-Tuesday.",
+    "Fourth PR #808 (decision 14): feature/qa-runs-area-recut, stacked on the third pass, re-labels every active row's area to where the walker sits (94 → 45 tab-scoped areas) and re-sorts the catalog into walking order; no id or lifecycle change. Review fixes on this PR: ADM-087 filed under Community · Coordination, PWA-104 (Offer It Again) and PWA-105 (work detail read) added so no known catalog gap stays open. Merge order: fourth → third → second → feature/qa-runs → develop. Nothing from the 2026-09-04 catalog feedback remains open.",
+    "Review fixes PR #810 (feature/qa-runs-review-fixes, stacked on the area re-cut): store lock serializing saves with rollover, qa:status label projection, note-only inheritance in the page and qa:report, open-baseline refusal, and the fourteen catalog corrections from the #806/#807 Codex threads (PWA-103 and ADM-109 added). Merge order: #810 → #808 → #807 → #806 → #805 → develop.",
+    "status.json is authoritative; set a concrete <type>/<work-description> branch only when work begins.",
+    "Use targeted bun run test or bun run test as the iterative gate for the touched surface; coverage is scheduled or pre-merge evidence.",
+    ".plans/ is the durable repo truth; any tool-local or .claude/agent-memory surface stays environment-local until freshness and ownership rules exist."
+  ],
+  "lanes": {
+    "ui": {
+      "owner": "claude",
+      "status": "passed",
+      "branch": "feature/qa-runs",
+      "depends_on": ["state_api"],
+      "handoff": "handoffs/claude-ui.md",
+      "tdd": {
+        "mode": "required",
+        "status": "green_recorded",
+        "red": {
+          "command": "bun --bun x vitest run --dir scripts/agents qa-app-client",
+          "evidence": "2026-09-07T06:05Z: runsHarness failed at the return to the open run (pending PWA-052 blocked not re-overlaid: aria-pressed false) and at the re-target notice (savebar read 'live — shared results') before the poll overlay rebuilt pending patches on the server copy and notices held through polls"
+        },
+        "green": {
+          "command": "bun --bun x vitest run --dir scripts/agents qa-app-client qa-app-build",
+          "evidence": "2026-09-07T06:20Z: 30 passed (7 client harnesses incl. runsHarness: keyed queues, adoption, compare, Re-QA, inherited, read-only closed run, 409 re-target, rollover form, tolerant mode; build test: replaces projection, revision, N/A hint)"
+        },
+        "note": ""
+      },
+      "skill_tags": ["ui", "frontend-design", "react"],
+      "manual_blocked": false
+    },
+    "state_api": {
+      "owner": "claude",
+      "status": "passed",
+      "branch": "feature/qa-runs",
+      "depends_on": [],
+      "handoff": "handoffs/claude-state-api.md",
+      "tdd": {
+        "mode": "required",
+        "status": "green_recorded",
+        "red": {
+          "command": "bun --bun x vitest run --dir scripts/agents qa-app-store",
+          "evidence": "2026-09-07T05:40Z: the new 'lets one of two concurrent rollovers win' case failed against the first api/runs.ts (expected [200, 409], got [200, 200]) until the store test gated both index reads on one ETag; the migration, closed-run refusal, and unknown-run cases were written before store.ts and failed on missing imports"
+        },
+        "green": {
+          "command": "bun run test:agent-tools",
+          "evidence": "2026-09-07T06:25Z: Test Files 11 passed, Tests 245 passed (qa-app-store 22, qa-app-parity run lifecycle, qa-state-pull run selection, qa-report run delta and inherited mapping, qa-status run line)"
+        },
+        "note": ""
+      },
+      "skill_tags": ["data-layer", "vercel-blob", "scripts"],
+      "manual_blocked": false
+    },
+    "contracts": {
+      "owner": "codex",
+      "status": "n/a",
+      "branch": null,
+      "depends_on": [],
+      "handoff": "handoffs/codex-contracts.md",
+      "tdd": {
+        "mode": "required",
+        "status": "pending",
+        "red": {
+          "command": "",
+          "evidence": ""
+        },
+        "green": {
+          "command": "",
+          "evidence": ""
+        },
+        "note": ""
+      },
+      "skill_tags": ["contracts"],
+      "manual_blocked": false
+    },
+    "qa_pass_1": {
+      "owner": "claude",
+      "status": "ready",
+      "ready_when_dependencies_met": true,
+      "manual_blocked": false,
+      "branch": null,
+      "depends_on": ["ui", "state_api"],
+      "handoff": "handoffs/claude-qa-pass-1.md",
+      "skill_tags": ["testing", "review"]
+    },
+    "qa_pass_2": {
+      "owner": "codex",
+      "status": "blocked",
+      "ready_when_dependencies_met": true,
+      "manual_blocked": false,
+      "branch": null,
+      "depends_on": ["qa_pass_1"],
+      "handoff": "handoffs/codex-qa-pass-2.md",
+      "skill_tags": ["testing", "review"]
+    }
+  },
+  "history": [
+    {
+      "timestamp": "2026-09-05T04:08:09.132Z",
+      "actor": "human",
+      "lane": "system",
+      "status": "scaffolded",
+      "branch": null,
+      "note": "Scaffolded feature hub in backlog"
+    },
+    {
+      "timestamp": "2026-09-05T04:16:34.577Z",
+      "actor": "claude",
+      "lane": "system",
+      "status": "linear_recorded",
+      "branch": null,
+      "note": "Recorded Linear parent/lane issue identifiers"
+    },
+    {
+      "timestamp": "2026-09-05T19:02:47.913Z",
+      "actor": "claude",
+      "lane": "contracts",
+      "status": "n/a",
+      "branch": null,
+      "note": "No contract changes in scope; see brief.md Boundaries"
+    },
+    {
+      "timestamp": "2026-09-07T05:08:56.577Z",
+      "actor": "human",
+      "lane": "system",
+      "status": "moved_to_active",
+      "branch": null,
+      "note": "Moved feature hub from backlog to active"
+    },
+    {
+      "timestamp": "2026-09-07T05:09:37.206Z",
+      "actor": "claude",
+      "lane": "state_api",
+      "status": "in_progress",
+      "branch": "feature/qa-runs",
+      "note": "Store, API, scripts, and catalog split start; owner moved to claude per the 2026-09-07 serial-execution decision"
+    },
+    {
+      "timestamp": "2026-09-07T22:13:35.011Z",
+      "actor": "claude",
+      "lane": "state_api",
+      "status": "tdd_recorded",
+      "branch": "feature/qa-runs",
+      "note": "Recorded RED/GREEN TDD proof"
+    },
+    {
+      "timestamp": "2026-09-07T22:13:35.505Z",
+      "actor": "claude",
+      "lane": "ui",
+      "status": "tdd_recorded",
+      "branch": null,
+      "note": "Recorded RED/GREEN TDD proof"
+    },
+    {
+      "timestamp": "2026-09-07T22:19:24.004Z",
+      "actor": "claude",
+      "lane": "state_api",
+      "status": "passed",
+      "branch": "feature/qa-runs",
+      "note": "Store, API, scripts, and catalog split implemented and proven locally; deployed migration and Tuesday rollover are qa_pass_1"
+    },
+    {
+      "timestamp": "2026-09-07T22:19:25.273Z",
+      "actor": "claude",
+      "lane": "ui",
+      "status": "passed",
+      "branch": "feature/qa-runs",
+      "note": "Run select, compare, Re-QA, rollover, and queue re-targeting implemented with JSDOM proof and a local rehearsal; deployed rendered proof is qa_pass_1"
+    }
+  ]
+}

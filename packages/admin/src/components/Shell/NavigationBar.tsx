@@ -19,9 +19,10 @@ import { FabButton } from "./FabButton";
 // two cannot drift structurally. The FAB + speed dial live in ./FabButton.
 //
 // Anatomy (1a Hub mockup):
-// - Desktop ≥600px: centered floating pill — grid of 94px wells, 4px 6px
-//   padding, 2px gap. Material (translucent surface + blur + warm shadow)
-//   comes from the `.canvas-navigation-bar` chrome rules in index.css.
+// - Desktop ≥600px: centered floating pill — grid of wells at least 94px wide
+//   that grow to fit localized labels (Comunidade), 4px 6px padding, 2px gap.
+//   Material (translucent surface + blur + warm shadow) comes from the
+//   `.canvas-navigation-bar` chrome rules in index.css.
 // - Item: icon pill 44×28 (desktop) / 56×32 (mobile), label 12/16 +0.5px.
 //   Active: tone-primary-container pill + on-primary-container icon,
 //   label weight 600 ink. Inactive: transparent pill, label 500 sub,
@@ -95,8 +96,9 @@ function NavItem({ slot, isActive, onNavigate, label, mobile = false }: NavItemP
 /**
  * Floating dock navigation bar (admin fork).
  *
- * - Desktop (>=600px): centered floating pill at the bottom — a grid of equal
- *   94px wells so tab targets stay stable as slots appear/disappear
+ * - Desktop (>=600px): centered floating pill at the bottom — a grid of wells
+ *   at least 94px wide so tab targets stay stable as slots appear/disappear,
+ *   growing only when a localized label needs more room
  * - Mobile (<600px): full-width M3 bottom bar at the screen edge (80dp)
  * - Always shows icon + label; single DOM tree per breakpoint
  * - Material lives on `.canvas-navigation-bar` in index.css (chrome contract)
@@ -162,8 +164,9 @@ export function NavigationBar({ slots, activePath, onNavigate, fab }: Navigation
     right: 0,
     marginInline: "auto",
     zIndex: "var(--z-nav)",
-    gridTemplateColumns: `repeat(${desktopSlots.length}, var(--admin-nav-item-width-desktop, 5.875rem))`,
-    width: `min(calc(${desktopSlots.length} * var(--admin-nav-item-width-desktop, 5.875rem) + 0.75rem), calc(100vw - 2rem))`,
+    gridTemplateColumns: `repeat(${desktopSlots.length}, minmax(var(--admin-nav-item-width-desktop, 5.875rem), max-content))`,
+    maxWidth: "calc(100vw - 2rem)",
+    width: "fit-content",
   } as CSSProperties;
 
   return (

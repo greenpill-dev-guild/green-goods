@@ -87,6 +87,16 @@ export default defineConfig({
   resolve: {
     conditions: ["import", "module", "browser", "default"],
     alias: [
+      // Declared package exports whose path does not mirror their source
+      // location; the build aliases these too, so tests must resolve them the
+      // same way or an import that ships fine fails only under test.
+      {
+        find: "@green-goods/shared/service-worker",
+        replacement: path.resolve(
+          __dirname,
+          "../shared/src/modules/app/service-worker-registration.ts"
+        ),
+      },
       {
         find: "@green-goods/shared/hooks",
         replacement: path.resolve(__dirname, "../shared/src/hooks"),

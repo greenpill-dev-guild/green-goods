@@ -1,12 +1,26 @@
-import { parseContractError } from "../../utils/errors/contract-errors";
-import { getActionTitle } from "../../utils/action/parsers";
-import type { Action, Address, Work, WorkDraft } from "../../types/domain";
+import { queuedOutcome, submitAdmittedWork } from "./admitted-submission";
+import { connectivityStore } from "../../stores/connectivity";
+import { jobQueueDB } from "../job-queue/db";
+import { createOfflineTxHash } from "../job-queue/queue-policy";
+import {
+  AwaitingWorkConfirmation,
+  WorkTransactionReverted,
+  reconcileWorkTransaction,
+  isNetworkError,
+} from "./work-confirmation";
+export { isNetworkError } from "./work-confirmation";
+import { findActionByUID } from "../../utils/action/parsers";
+import { resolveKnownWorkTitle, resolveWorkSubmissionTitle } from "../../utils/work/workTitles";
+import type { Action, Address, Work, WorkDraft, WorkUploadCheckpoint } from "../../types/domain";
 import type { JobQueueHandle, ProcessJobResult } from "../job-queue/ports";
 import type { TransactionSender } from "../transactions/types";
 import type { SimulateWorkSubmissionParams, SimulationDeps } from "./simulate";
-import { WorkSubmissionError, type WalletSubmissionStage } from "./wallet-submission/types";
+import { type WalletSubmissionStage } from "./wallet-submission/types";
 
 export interface SubmitWorkCommand {
+  assertOwnership?: () => void | Promise<void>;
+  onBroadcast?: (hash: `0x${string}`) => Promise<void>;
+  onCheckpoint?: (checkpoint: WorkUploadCheckpoint) => Promise<void>;
   /** Supplied by a resumed journey; otherwise generated once before choosing a transport. */
   clientWorkId?: string;
   authMode: "wallet" | "passkey" | "embedded" | null;
@@ -20,27 +34,36 @@ export interface SubmitWorkCommand {
   allowOfflineQueue: boolean;
 }
 
-interface ResolvedSubmitWorkCommand extends SubmitWorkCommand {
+export interface ResolvedSubmitWorkCommand extends SubmitWorkCommand {
   clientWorkId: string;
   gardenAddress: Address;
   actionUID: number;
   userAddress: Address;
 }
 
-interface QueuedWorkSubmission {
+export interface QueuedWorkSubmission {
+  newlyAdmitted?: boolean;
   txHash: `0x${string}`;
   jobId: string;
   clientWorkId: string;
 }
 
 export interface SubmitWorkPorts {
+  reconcile?: typeof reconcileWorkTransaction;
   newClientWorkId?: () => string;
-  connectivity: { isOnline: () => boolean };
+  /** `confirm`: whether a send may start now; unstable connections queue instead. */
+  connectivity: { isOnline: () => boolean; confirm: () => Promise<boolean> };
   clock: { now: () => number };
   simulate: (input: SimulateWorkSubmissionParams) => Promise<void>;
   queue: {
+    /** Durable admission is required by the PWA runtime; injected legacy ports may omit it. */
+    admit?: (input: ResolvedSubmitWorkCommand) => Promise<QueuedWorkSubmission>;
     enqueue: (input: ResolvedSubmitWorkCommand) => Promise<QueuedWorkSubmission>;
-    process: (jobId: string, sender: TransactionSender) => Promise<ProcessJobResult>;
+    process: (
+      jobId: string,
+      sender: TransactionSender,
+      assertOwnership?: SubmitWorkCommand["assertOwnership"]
+    ) => Promise<ProcessJobResult>;
   };
   direct: {
     submitWork: (
@@ -56,11 +79,13 @@ export interface SubmitWorkPorts {
 export type SubmitWorkOutcome =
   | { kind: "direct"; txHash: `0x${string}`; sponsored: false; clientWorkId: string }
   | {
-      kind: "queued";
+      kind: "queued" | "awaiting-confirmation";
       txHash: `0x${string}`;
       sponsored: boolean;
       jobId: string;
       clientWorkId: string;
+      /** The browser reported online, but the origin did not confirm it, so nothing was sent. */
+      reason?: "connection-unconfirmed";
     }
   | {
       kind: "processed";
@@ -78,6 +103,12 @@ export interface DefaultSubmitWorkPortOptions {
   onQueueFallback?: SubmitWorkPorts["onQueueFallback"];
 }
 
+/** The selected action's own title; empty when it is not in the list, never a placeholder. */
+function actionTitleOf(command: ResolvedSubmitWorkCommand): string {
+  return findActionByUID(command.actions, command.actionUID)?.title ?? "";
+}
+
+/** A send starts only on a confirmed connection; ports without a check use the online signal. */
 function resolveCommand(command: SubmitWorkCommand): ResolvedSubmitWorkCommand {
   if (!command.gardenAddress) {
     throw new Error("Garden must be selected before submitting work");
@@ -91,40 +122,15 @@ function resolveCommand(command: SubmitWorkCommand): ResolvedSubmitWorkCommand {
   return command as ResolvedSubmitWorkCommand;
 }
 
-/** Genuine connectivity failures may fall back to the durable queue. */
-export function isNetworkError(error: unknown): boolean {
-  if (error instanceof WorkSubmissionError && error.phase === "upload") {
-    return false;
-  }
-
-  const originalError =
-    error instanceof Error && error.cause instanceof Error ? error.cause : error;
-  if (parseContractError(originalError).name === "WalletRequestExpired") {
-    return false;
-  }
-
-  const message =
-    error instanceof Error ? error.message.toLowerCase() : String(error).toLowerCase();
-  return (
-    message.includes("network") ||
-    message.includes("fetch") ||
-    message.includes("timeout") ||
-    message.includes("socket") ||
-    message.includes("connection") ||
-    message.includes("gateway")
-  );
-}
-
 export function buildOptimisticWork(
   command: SubmitWorkCommand,
   clock: SubmitWorkPorts["clock"]
 ): Work {
   const resolved = resolveCommand(command);
   const now = clock.now();
-  const actionTitle = getActionTitle(resolved.actions, resolved.actionUID);
   return {
     id: `0xoffline_optimistic_${now}`,
-    title: actionTitle || "",
+    title: actionTitleOf(resolved),
     actionUID: resolved.actionUID,
     gardenAddress: resolved.gardenAddress,
     gardenerAddress: resolved.userAddress,
@@ -140,19 +146,6 @@ export function buildOptimisticWork(
   };
 }
 
-function queuedOutcome(
-  queued: QueuedWorkSubmission,
-  sender: TransactionSender | null
-): SubmitWorkOutcome {
-  return {
-    kind: "queued",
-    txHash: queued.txHash,
-    sponsored: sender?.supportsSponsorship ?? false,
-    jobId: queued.jobId,
-    clientWorkId: queued.clientWorkId,
-  };
-}
-
 export async function submitWork(
   command: SubmitWorkCommand,
   ports: SubmitWorkPorts
@@ -161,7 +154,46 @@ export async function submitWork(
     ...command,
     clientWorkId: command.clientWorkId ?? ports.newClientWorkId?.() ?? crypto.randomUUID(),
   });
-  const online = ports.connectivity.isOnline();
+  if (resolved.allowOfflineQueue && ports.queue.admit) return submitAdmittedWork(resolved, ports);
+  const online = await ports.connectivity.confirm();
+
+  const awaitConfirmation = async (): Promise<SubmitWorkOutcome> => {
+    if (!resolved.allowOfflineQueue)
+      throw new AwaitingWorkConfirmation(resolved.draft.uploadCheckpoint!.transactionHash!);
+    const queued = await ports.queue.enqueue(resolved);
+    return {
+      ...queuedOutcome(queued, ports.sender),
+      kind: "awaiting-confirmation",
+    } as SubmitWorkOutcome;
+  };
+  const checkpoint = resolved.draft.uploadCheckpoint;
+  if (checkpoint?.transactionHash) {
+    if (checkpoint.transactionReverted) {
+      delete checkpoint.transactionHash;
+      delete checkpoint.transactionReverted;
+      await resolved.onCheckpoint?.(checkpoint);
+    } else {
+      const state = online
+        ? await (ports.reconcile ?? reconcileWorkTransaction)(
+            checkpoint.transactionHash,
+            resolved.chainId
+          )
+        : "unresolved";
+      if (state === "confirmed")
+        return {
+          kind: "direct",
+          txHash: checkpoint.transactionHash,
+          sponsored: false,
+          clientWorkId: resolved.clientWorkId,
+        };
+      if (state === "reverted") {
+        checkpoint.transactionReverted = true;
+        await resolved.onCheckpoint?.(checkpoint);
+        throw new WorkTransactionReverted(checkpoint.transactionHash);
+      }
+      return awaitConfirmation();
+    }
+  }
 
   if (resolved.authMode === "wallet") {
     if (!online) {
@@ -175,6 +207,18 @@ export async function submitWork(
       const txHash = await ports.direct.submitWork(resolved, ports.onWalletStage);
       return { kind: "direct", txHash, sponsored: false, clientWorkId: resolved.clientWorkId };
     } catch (error) {
+      if (error instanceof WorkTransactionReverted) {
+        if (resolved.draft.uploadCheckpoint) {
+          resolved.draft.uploadCheckpoint.transactionReverted = true;
+          await resolved.onCheckpoint?.(resolved.draft.uploadCheckpoint);
+        }
+        throw error;
+      }
+      if (
+        resolved.draft.uploadCheckpoint?.transactionHash ||
+        error instanceof AwaitingWorkConfirmation
+      )
+        return awaitConfirmation();
       if (!isNetworkError(error)) throw error;
       if (!resolved.allowOfflineQueue) throw error;
       await ports.onQueueFallback?.(buildOptimisticWork(resolved, ports.clock));
@@ -186,13 +230,15 @@ export async function submitWork(
     throw new Error("Offline queue is disabled for this submission surface");
   }
 
-  const actionTitle = getActionTitle(resolved.actions, resolved.actionUID);
   if (online) {
     await ports.simulate({
       draft: resolved.draft,
       gardenAddress: resolved.gardenAddress,
       actionUID: resolved.actionUID,
-      actionTitle: actionTitle || `Action ${resolved.actionUID}`,
+      actionTitle: resolveWorkSubmissionTitle({
+        actionTitle: actionTitleOf(resolved),
+        actionUID: resolved.actionUID,
+      }),
       chainId: resolved.chainId,
       images: resolved.images,
       accountAddress: resolved.userAddress,
@@ -202,9 +248,16 @@ export async function submitWork(
   const queued = await ports.queue.enqueue(resolved);
   if (online && ports.sender) {
     const processed = await ports.queue.process(queued.jobId, ports.sender);
+    // Queue admission is already durable. Failed execution stays in that queue
+    // for retry; returning it retires the editable draft instead of enqueueing again.
     if (!processed.success && processed.error && !processed.skipped) {
-      throw new Error(processed.error);
+      return queuedOutcome(queued, ports.sender);
     }
+    if (processed.error === "awaiting-confirmation")
+      return {
+        ...queuedOutcome(queued, ports.sender),
+        kind: "awaiting-confirmation",
+      } as SubmitWorkOutcome;
     if (processed.success && processed.txHash) {
       return {
         kind: "processed",
@@ -224,13 +277,53 @@ export function createDefaultSubmitWorkPorts(
 ): SubmitWorkPorts {
   return {
     newClientWorkId: () => crypto.randomUUID(),
-    connectivity: { isOnline: () => navigator.onLine },
+    connectivity: {
+      isOnline: () => connectivityStore.getSnapshot(),
+      confirm: () => connectivityStore.confirmOnline(),
+    },
     clock: { now: () => Date.now() },
     simulate: async (input) => {
       const { simulateWorkSubmission } = await import("./simulate");
       return simulateWorkSubmission(input, options.simulationDeps);
     },
     queue: {
+      admit: async (input) => {
+        const admissionToken = crypto.randomUUID();
+        const { jobQueue } = await import("../job-queue/default-instance");
+        const { title: draftTitle, ...draft } = input.draft;
+        // Stored now, while the actions list is at hand. Work queued without a
+        // title was sent as "Action N", and that placeholder went on-chain.
+        const title = resolveKnownWorkTitle({
+          draftTitle,
+          actionTitle: findActionByUID(input.actions, input.actionUID)?.title,
+          actionUID: input.actionUID,
+        });
+        const jobId = await jobQueue.addJob(
+          "work",
+          {
+            ...draft,
+            ...(title ? { title } : {}),
+            clientWorkId: input.clientWorkId,
+            gardenAddress: input.gardenAddress,
+            actionUID: input.actionUID,
+            media: input.images,
+          },
+          input.userAddress,
+          {
+            chainId: input.chainId,
+            clientWorkId: input.clientWorkId,
+            authMode: input.authMode,
+            admissionToken,
+          }
+        );
+        const job = await jobQueueDB.getJob(jobId);
+        return {
+          jobId,
+          clientWorkId: input.clientWorkId,
+          txHash: createOfflineTxHash(jobId),
+          newlyAdmitted: job?.meta?.admissionToken === admissionToken,
+        };
+      },
       enqueue: async (input) => {
         const { submitWorkToQueue } = await import("./work-submission");
         return submitWorkToQueue(
@@ -244,9 +337,14 @@ export function createDefaultSubmitWorkPorts(
           { newClientWorkId: () => input.clientWorkId }
         );
       },
-      process: async (jobId, sender) => {
+      process: async (jobId, sender, assertOwnership) => {
         const queue = options.jobQueue ?? (await import("../job-queue")).jobQueue;
-        return queue.processJob(jobId, { transactionSender: sender });
+        // Only a Submit tap reaches this port, so the send is explicit.
+        return queue.processJob(jobId, {
+          transactionSender: sender,
+          explicit: true,
+          ...(assertOwnership ? { assertOwnership } : {}),
+        });
       },
     },
     direct: {
@@ -256,10 +354,18 @@ export function createDefaultSubmitWorkPorts(
           input.draft,
           input.gardenAddress,
           input.actionUID,
-          getActionTitle(input.actions, input.actionUID),
+          actionTitleOf(input),
           input.chainId,
           input.images,
-          { onProgress, clientWorkId: input.clientWorkId }
+          {
+            onProgress,
+            assertOwnership: input.assertOwnership,
+            userAddress: input.userAddress,
+            clientWorkId: input.clientWorkId,
+            checkpoint: input.draft.uploadCheckpoint,
+            onCheckpoint: input.onCheckpoint,
+            onBroadcast: input.onBroadcast,
+          }
         );
       },
     },

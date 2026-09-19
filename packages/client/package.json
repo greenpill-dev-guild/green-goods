@@ -6,18 +6,13 @@
   "scripts": {
     "predev": "node ../../scripts/dev/check-port.js 3001 client",
     "dev": "APP_ENV=development node ../../scripts/dev/node-cli.js vite",
-    "test": "APP_ENV=test node ../../scripts/dev/node-cli.js vitest run",
-    "test:watch": "APP_ENV=test vitest --standalone",
-    "coverage": "APP_ENV=test node ../../scripts/dev/node-cli.js vitest run --coverage",
-    "format": "biome format --write .",
-    "format:check": "biome format .",
+    "test": "node ../../scripts/dev/package-commands.mjs client test",
+    "format": "node ../../scripts/dev/package-commands.mjs client format",
     "lint": "bun --bun run oxlint src --deny-warnings",
-    "typecheck:source": "node ../../scripts/dev/node-cli.js tsc --noEmit -p tsconfig.app.json",
-    "typecheck:tests": "node ../../scripts/dev/node-cli.js tsc --noEmit -p tsconfig.test.json",
-    "typecheck:full": "node ../../scripts/dev/node-cli.js tsc -b",
     "build": "APP_ENV=production node ../../scripts/dev/node-cli.js tsc -b && node ../../scripts/dev/node-cli.js vite build && bun run check:pwa-precache && node ../../scripts/dev/remove-public-sourcemaps.js dist",
     "check:pwa-precache": "node scripts/check-pwa-precache-budget.mjs",
-    "preview": "APP_ENV=production bun --bun vite preview"
+    "preview": "APP_ENV=production bun --bun vite preview",
+    "typecheck": "node ../../scripts/dev/package-commands.mjs client typecheck"
   },
   "dependencies": {
     "@ethereum-attestation-service/eas-sdk": "2.9.1",
@@ -32,7 +27,6 @@
     "@sentry/react": "10.70.0",
     "@tailwindcss/vite": "4.3.3",
     "@tanstack/react-query": "5.101.4",
-    "@tanstack/react-query-persist-client": "5.101.4",
     "embla-carousel-react": "^8.6.0",
     "idb": "^8.0.3",
     "idb-keyval": "6.3.0",
@@ -73,6 +67,12 @@
     "vite": "8.2.1",
     "vite-plugin-mkcert": "2.1.0",
     "vite-plugin-pwa": "1.3.0",
-    "workbox-build": "7.4.1"
+    "workbox-background-sync": "7.4.1",
+    "workbox-build": "7.4.1",
+    "workbox-cacheable-response": "7.4.1",
+    "workbox-expiration": "7.4.1",
+    "workbox-precaching": "7.4.1",
+    "workbox-routing": "7.4.1",
+    "workbox-strategies": "7.4.1"
   }
 }

@@ -27,7 +27,7 @@ responsible for protocol entities, not for EAS attestations.
 - After schema or config changes, regenerate `.envio/` types before trusting tests.
 - Envio v3 registrations use `indexer.onEvent` and `indexer.contractRegister`; do not restore
   generated-v2 imports, `MockDb`, ReScript setup, or package-local pnpm workflows.
-- `envio dev` preserves the local database. Use `bun run dev:restart` only when a destructive
+- `envio dev` preserves the local database. Use `bun run --cwd packages/indexer dev --restart` only when a destructive
   local replay is explicitly intended and authorized.
 
 ## Package Notes

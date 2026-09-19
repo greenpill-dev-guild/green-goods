@@ -46,10 +46,7 @@ export default defineConfig({
       },
       {
         find: "@walletconnect/utils",
-        replacement: resolve(
-          __dirname,
-          "../shared/src/__mocks__/walletconnect-utils.ts",
-        ),
+        replacement: resolve(__dirname, "../shared/src/__mocks__/walletconnect-utils.ts"),
       },
       // Shared package aliases
       // Mirrors vite.config.ts: the boot sequence loads Sentry through the
@@ -125,9 +122,7 @@ export default defineConfig({
     globals: true,
     environment: "jsdom",
     setupFiles: ["./src/__tests__/setup.ts"],
-    exclude: [
-      "**/node_modules/**",
-    ],
+    exclude: ["**/node_modules/**"],
     coverage: {
       provider: "v8",
       reporter: process.env.CI ? ["text", "json"] : ["text", "json", "html"],

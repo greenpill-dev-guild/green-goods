@@ -5,10 +5,9 @@
  * These tests verify real blockchain interactions with deterministic state.
  *
  * Prerequisites:
- * - Anvil running: bun anvil:start
- * - Client dev server: bun run dev:client
+ * - Client dev server: bun run dev -- client
  *
- * Run with: bun test:e2e:fork
+ * Run with: bun run browser e2e --preset fork
  */
 import { expect, type Page, test } from "@playwright/test";
 import {

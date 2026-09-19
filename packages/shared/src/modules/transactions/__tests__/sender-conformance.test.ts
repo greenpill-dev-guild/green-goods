@@ -7,6 +7,7 @@ import {
   describeConformance,
   type ConformanceLaw,
 } from "@green-goods/shared/testing";
+import { fakePreparedUserOperation } from "../../../__tests__/test-utils/transaction-fakes";
 import { expect, vi } from "vitest";
 import type { Hex } from "viem";
 import { DEFAULT_CHAIN_ID } from "../../../config/default-chain";
@@ -129,25 +130,28 @@ const cases: SenderCase[] = [
       const forwarded: ForwardedCall[] = [];
       const hashes = sequence(scenario.hashes ?? [], SECOND_TX_HASH);
       const client = createFakeSmartAccountClient();
-      const receiptHashes: Hex[] = [];
       client.sendUserOperation.mockImplementation(async (call) => {
+        // viem asks the account to sign before it broadcasts.
+        const signer = (call as { account: NonNullable<typeof client.account> }).account;
+        await signer.signUserOperation(fakePreparedUserOperation(signer.address));
         trace.push("send");
-        const transaction = call as { calls: { value?: bigint }[] };
+        const transaction = (call as { calls: Array<{ value?: bigint }> }).calls[0];
         forwarded.push({
-          clientChainId: client.chain!.id,
-          value: transaction.calls[0]?.value,
+          clientChainId: client.chain?.id,
+          value: transaction.value,
         });
         if (scenario.transportFailure) throw scenario.transportFailure;
         return hashes();
       });
-      client.waitForUserOperationReceipt.mockImplementation(async ({ hash }) => {
+      const receiptHashes: Hex[] = [];
+      vi.mocked(client.waitForUserOperationReceipt).mockImplementation(async ({ hash }) => {
         trace.push("receipt");
         receiptHashes.push(hash);
         return {
           userOpHash: hash,
           sender: client.account!.address,
-          success: true,
-          receipt: { status: scenario.receiptStatus ?? "success", transactionHash: hash },
+          success: scenario.receiptStatus !== "reverted",
+          receipt: { status: "success", transactionHash: hash },
         } as Awaited<ReturnType<typeof client.waitForUserOperationReceipt>>;
       });
       const assertWriteSafety = vi.fn(async () => {
@@ -271,6 +275,19 @@ const laws: ConformanceLaw<SenderCase>[] = [
     },
   },
   {
+    name: "reports the send intent once, after its guards and before the transport sends",
+    verify: async ({ make }) => {
+      const harness = make();
+      const onBeforeBroadcast = vi.fn(async () => {
+        harness.trace.push("intent");
+      });
+      await harness.sender.sendContractCall(createMockContractCall(), { onBeforeBroadcast });
+      expect(onBeforeBroadcast).toHaveBeenCalledOnce();
+      const intent = harness.trace.indexOf("intent");
+      expect(intent).toBe(harness.trace.indexOf("send") - 1);
+    },
+  },
+  {
     name: "preserves omitted and explicit values",
     verify: async ({ make, expectations }) => {
       const omitted = make();
@@ -294,9 +311,7 @@ const laws: ConformanceLaw<SenderCase>[] = [
     applicable: ({ expectations }) => expectations.revertedReceipt,
     verify: async ({ make }) => {
       const { sender } = make({ receiptStatus: "reverted" });
-      await expect(sender.sendContractCall(createMockContractCall())).rejects.toThrow(
-        "Transaction reverted on-chain"
-      );
+      await expect(sender.sendContractCall(createMockContractCall())).rejects.toThrow(/reverted/i);
     },
   },
   {
@@ -307,6 +322,7 @@ const laws: ConformanceLaw<SenderCase>[] = [
       await expect(harness.sender.sendContractCall(createMockContractCall())).resolves.toEqual({
         hash: NON_CANONICAL_HASH,
         sponsored: false,
+        confirmation: "pending",
       });
       expect(harness.receiptHashes).toEqual([]);
     },

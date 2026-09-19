@@ -1,3 +1,5 @@
+import { useWorkUpdateGuard, isWorkUpdateBlocked } from "../../../hooks/app/useWorkUpdateGuard";
+import { useWorkFlowStore } from "../../../stores/useWorkFlowStore";
 /**
  * useServiceWorkerUpdate Hook Tests
  *
@@ -31,10 +33,13 @@ import {
   APPLY_UPDATE_TIMEOUT_MS,
   LONG_SESSION_UPDATE_PROMPT_MS,
   ServiceWorkerUpdateProvider,
+  type UpdateCheckResult,
   useServiceWorkerUpdate,
 } from "../../../hooks/app/useServiceWorkerUpdate";
 import { logger } from "../../../modules/app/logger";
 import { track } from "../../../modules/app/posthog";
+import { DOWNLOAD_TIMEOUT_MS } from "../../../modules/app/service-worker-update";
+import { joinUpdateHandover, LATE_RESTART_WINDOW_MS } from "../../../modules/app/update-handover";
 
 type Listener = () => void;
 
@@ -51,7 +56,14 @@ function createMockWorker(overrides: Partial<ServiceWorker> = {}): MockServiceWo
   const worker = {
     state: "installing",
     scriptURL: "https://www.greengoods.app/sw.js?gg_v=release-new",
-    postMessage: vi.fn(),
+    postMessage: vi.fn((message: unknown, transfer?: Transferable[]) => {
+      if ((message as { type?: string })?.type === "PREPARE_TO_ACTIVATE_UPDATE") {
+        (transfer?.[0] as MessagePort | undefined)?.postMessage({
+          type: "GG_QUIET_ACK",
+          status: "quiet",
+        });
+      }
+    }),
     addEventListener: vi.fn((type: string, listener: Listener) => {
       listeners[type] = [...(listeners[type] ?? []), listener];
     }),
@@ -88,15 +100,47 @@ function createMockRegistration(
   } as unknown as MockServiceWorkerRegistration;
 }
 
-function installServiceWorkerMock(registration: ServiceWorkerRegistration) {
+function installSynchronousMessageChannel() {
+  vi.stubGlobal(
+    "MessageChannel",
+    class {
+      port1: MessagePort;
+      port2: MessagePort;
+
+      constructor() {
+        const left = {
+          onmessage: null as ((event: MessageEvent) => void) | null,
+          close: vi.fn(),
+          postMessage: vi.fn((data: unknown) => right.onmessage?.({ data } as MessageEvent)),
+        };
+        const right = {
+          onmessage: null as ((event: MessageEvent) => void) | null,
+          close: vi.fn(),
+          postMessage: vi.fn((data: unknown) => left.onmessage?.({ data } as MessageEvent)),
+        };
+        this.port1 = left as unknown as MessagePort;
+        this.port2 = right as unknown as MessagePort;
+      }
+    }
+  );
+}
+
+function installServiceWorkerMock(
+  registration: ServiceWorkerRegistration | undefined,
+  options: { controller?: ServiceWorker | null } = {}
+) {
+  installSynchronousMessageChannel();
   Object.defineProperty(navigator, "serviceWorker", {
     configurable: true,
     enumerable: true,
     value: {
-      controller: createMockWorker({
-        state: "activated",
-        scriptURL: "https://www.greengoods.app/sw.js?gg_v=release-old",
-      }),
+      controller:
+        options.controller === undefined
+          ? createMockWorker({
+              state: "activated",
+              scriptURL: "https://www.greengoods.app/sw.js?gg_v=release-old",
+            })
+          : options.controller,
       getRegistration: vi.fn().mockResolvedValue(registration),
       addEventListener: vi.fn(),
       removeEventListener: vi.fn(),
@@ -104,10 +148,18 @@ function installServiceWorkerMock(registration: ServiceWorkerRegistration) {
   });
 }
 
+function ProtectedUpdateProvider({ children }: PropsWithChildren) {
+  const activationBlocked = useWorkUpdateGuard();
+  return createElement(ServiceWorkerUpdateProvider, {
+    activationBlocked,
+    isActivationBlocked: isWorkUpdateBlocked,
+    children,
+  });
+}
+
 function renderUpdateHook() {
   return renderHook(() => useServiceWorkerUpdate(), {
-    wrapper: ({ children }: PropsWithChildren) =>
-      createElement(ServiceWorkerUpdateProvider, null, children),
+    wrapper: ProtectedUpdateProvider,
   });
 }
 
@@ -115,10 +167,12 @@ describe("hooks/app/useServiceWorkerUpdate", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     Reflect.deleteProperty(navigator, "serviceWorker");
+    installSynchronousMessageChannel();
   });
 
   afterEach(() => {
     vi.unstubAllEnvs();
+    vi.unstubAllGlobals();
   });
 
   describe("when service worker is not available", () => {
@@ -149,6 +203,23 @@ describe("hooks/app/useServiceWorkerUpdate", () => {
     });
   });
 
+  it("clears an obsolete update and checks again instead of messaging a redundant worker", async () => {
+    vi.stubEnv("PROD", true);
+    const worker = createMockWorker({ state: "installed" });
+    const registration = createMockRegistration({ waiting: worker });
+    installServiceWorkerMock(registration);
+    const { result } = renderUpdateHook();
+    await waitFor(() => expect(result.current.updateAvailable).toBe(true));
+    Object.assign(worker, { state: "redundant" });
+    Object.assign(registration, { waiting: null });
+    act(() => result.current.applyUpdate());
+    await waitFor(() => expect(result.current.phase).toBe("idle"));
+    expect(worker.postMessage).not.toHaveBeenCalled();
+    expect(registration.update).toHaveBeenCalled();
+    expect(result.current.updateAvailable).toBe(false);
+    expect(result.current.waitingWorker).toBeNull();
+  });
+
   describe("applyUpdate with no waiting worker", () => {
     it("does nothing when no waiting worker", () => {
       const { result } = renderUpdateHook();
@@ -164,6 +235,67 @@ describe("hooks/app/useServiceWorkerUpdate", () => {
   });
 
   describe("waiting service worker detection", () => {
+    it("records live startup and resume state even when automatic checks are throttled", async () => {
+      vi.stubEnv("VITE_ENABLE_SW_DEV", "true");
+      const registration = createMockRegistration();
+      installServiceWorkerMock(registration);
+      const { unmount } = renderUpdateHook();
+      await waitFor(() => expect(registration.update).toHaveBeenCalledTimes(1));
+      expect(track).toHaveBeenCalledWith(
+        "sw_update_state_observed",
+        expect.objectContaining({
+          source: "startup",
+          registration_present: true,
+          registered_waiting_worker_state: "none",
+        })
+      );
+      Object.defineProperty(registration, "waiting", {
+        configurable: true,
+        value: createMockWorker({ state: "installed" }),
+      });
+      act(() => document.dispatchEvent(new Event("visibilitychange")));
+      expect(track).toHaveBeenCalledWith(
+        "sw_update_state_observed",
+        expect.objectContaining({
+          source: "resume",
+          registered_waiting_worker_state: "installed",
+        })
+      );
+      expect(registration.update).toHaveBeenCalledTimes(1);
+      unmount();
+      vi.mocked(track).mockClear();
+      act(() => document.dispatchEvent(new Event("visibilitychange")));
+      expect(track).not.toHaveBeenCalled();
+      const reopened = renderUpdateHook();
+      await waitFor(() =>
+        expect(track).toHaveBeenCalledWith(
+          "sw_update_state_observed",
+          expect.objectContaining({
+            source: "startup",
+            registered_waiting_worker_state: "installed",
+          })
+        )
+      );
+      reopened.unmount();
+    });
+
+    it("records startup when the registration is absent", async () => {
+      vi.stubEnv("VITE_ENABLE_SW_DEV", "true");
+      installServiceWorkerMock(undefined, { controller: null });
+      const { unmount } = renderUpdateHook();
+      await waitFor(() =>
+        expect(track).toHaveBeenCalledWith(
+          "sw_update_state_observed",
+          expect.objectContaining({
+            source: "startup",
+            registration_present: false,
+            controller_state: "none",
+          })
+        )
+      );
+      unmount();
+    });
+
     it("keeps updateAvailable false when no waiting worker exists", async () => {
       vi.stubEnv("VITE_ENABLE_SW_DEV", "true");
       const registration = createMockRegistration();
@@ -247,6 +379,315 @@ describe("hooks/app/useServiceWorkerUpdate", () => {
     });
   });
 
+  describe("checkForUpdate", () => {
+    async function renderCheckedHook(registration: ServiceWorkerRegistration) {
+      vi.stubEnv("VITE_ENABLE_SW_DEV", "true");
+      installServiceWorkerMock(registration);
+      const rendered = renderUpdateHook();
+      // The mount check calls update() once; manual checks count from there.
+      await waitFor(() => {
+        expect(registration.update).toHaveBeenCalledTimes(1);
+      });
+      vi.mocked(track).mockClear();
+      return rendered;
+    }
+
+    it("reports up to date right away when the browser finds no newer worker", async () => {
+      const registration = createMockRegistration();
+      const { result } = await renderCheckedHook(registration);
+      const setTimeoutSpy = vi.spyOn(globalThis, "setTimeout");
+
+      let found: UpdateCheckResult | undefined;
+      await act(async () => {
+        found = await result.current.checkForUpdate();
+      });
+
+      expect(found).toBe("up-to-date");
+      expect(registration.update).toHaveBeenCalledTimes(2);
+      // Nothing is installing, so there is nothing to wait for: neither the
+      // settle wait nor the download watchdog may be scheduled.
+      expect(setTimeoutSpy.mock.calls.some(([, delay]) => delay === DOWNLOAD_TIMEOUT_MS)).toBe(
+        false
+      );
+      expect(result.current.phase).toBe("idle");
+      expect(result.current.updateAvailable).toBe(false);
+      expect(track).toHaveBeenCalledWith(
+        "sw_update_check_completed",
+        expect.objectContaining({ source: "manual_check", phase: "idle", found_update: false })
+      );
+      setTimeoutSpy.mockRestore();
+    });
+
+    it("surfaces a waiting worker, including one that was dismissed earlier", async () => {
+      const registration = createMockRegistration();
+      const { result } = await renderCheckedHook(registration);
+      const waitingWorker = createMockWorker({ state: "installed" });
+      Object.defineProperty(registration, "waiting", { configurable: true, value: waitingWorker });
+
+      let found: UpdateCheckResult | undefined;
+      await act(async () => {
+        found = await result.current.checkForUpdate();
+      });
+
+      expect(found).toBe("ready");
+      expect(result.current.phase).toBe("waiting");
+      expect(result.current.updateAvailable).toBe(true);
+      expect(result.current.waitingWorker).toBe(waitingWorker);
+      expect(track).toHaveBeenCalledWith(
+        "sw_update_available",
+        expect.objectContaining({ source: "manual_check", phase: "waiting" })
+      );
+
+      act(() => {
+        result.current.dismissUpdate();
+      });
+      expect(result.current.updateAvailable).toBe(false);
+      expect(result.current.phase).toBe("idle");
+
+      await act(async () => {
+        found = await result.current.checkForUpdate();
+      });
+
+      expect(found).toBe("ready");
+      expect(result.current.updateAvailable).toBe(true);
+      expect(result.current.phase).toBe("waiting");
+    });
+
+    it("waits for a worker the check found installing and surfaces it once installed", async () => {
+      const registration = createMockRegistration();
+      const { result } = await renderCheckedHook(registration);
+      const installingWorker = createMockWorker({ state: "installing" });
+      vi.mocked(registration.update).mockImplementationOnce(async () => {
+        Object.defineProperty(registration, "installing", {
+          configurable: true,
+          value: installingWorker,
+        });
+        return registration;
+      });
+
+      let check: Promise<UpdateCheckResult> | undefined;
+      act(() => {
+        check = result.current.checkForUpdate();
+      });
+      expect(result.current.phase).toBe("checking");
+      await waitFor(() => {
+        expect(installingWorker.addEventListener).toHaveBeenCalledWith(
+          "statechange",
+          expect.any(Function)
+        );
+      });
+
+      await act(async () => {
+        Object.defineProperty(installingWorker, "state", {
+          configurable: true,
+          value: "installed",
+        });
+        installingWorker.dispatchStateChange();
+        await expect(check).resolves.toBe("ready");
+      });
+
+      expect(result.current.phase).toBe("waiting");
+      expect(result.current.updateAvailable).toBe(true);
+      expect(result.current.waitingWorker).toBe(installingWorker);
+      expect(track).toHaveBeenCalledWith(
+        "sw_update_available",
+        expect.objectContaining({ source: "manual_check", phase: "waiting" })
+      );
+    });
+
+    it("throws on a failed check and settles back to idle", async () => {
+      const registration = createMockRegistration();
+      const { result } = await renderCheckedHook(registration);
+      vi.mocked(registration.update).mockRejectedValueOnce(new Error("offline"));
+
+      await act(async () => {
+        await expect(result.current.checkForUpdate()).rejects.toThrow("offline");
+      });
+
+      expect(result.current.phase).toBe("idle");
+      expect(result.current.updateAvailable).toBe(false);
+      expect(logger.error).toHaveBeenCalledWith(
+        "Service worker update check failed",
+        expect.objectContaining({ source: "useServiceWorkerUpdate.checkForUpdate" })
+      );
+      expect(track).toHaveBeenCalledWith(
+        "sw_update_check_failed",
+        expect.objectContaining({ source: "manual_check" })
+      );
+    });
+  });
+
+  describe("install outcomes", () => {
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    async function renderMountedHook(options: { controller?: ServiceWorker | null } = {}) {
+      vi.stubEnv("VITE_ENABLE_SW_DEV", "true");
+      const registration = createMockRegistration();
+      installServiceWorkerMock(registration, options);
+      const rendered = renderUpdateHook();
+      await waitFor(() => {
+        expect(registration.update).toHaveBeenCalledTimes(1);
+      });
+      vi.mocked(track).mockClear();
+      return { registration, ...rendered };
+    }
+
+    function startInstall(registration: MockServiceWorkerRegistration) {
+      const installingWorker = createMockWorker({ state: "installing" });
+      act(() => {
+        Object.defineProperty(registration, "installing", {
+          configurable: true,
+          value: installingWorker,
+        });
+        registration.dispatchUpdateFound();
+      });
+      return installingWorker;
+    }
+
+    function settleInstall(worker: MockServiceWorker, state: ServiceWorkerState) {
+      act(() => {
+        Object.defineProperty(worker, "state", { configurable: true, value: state });
+        worker.dispatchStateChange();
+      });
+    }
+
+    it("treats a first install as up to date without reporting a download", async () => {
+      const { registration, result } = await renderMountedHook({ controller: null });
+      expect(result.current.phase).toBe("idle");
+
+      const installingWorker = startInstall(registration);
+      expect(result.current.phase).toBe("idle");
+      expect(track).not.toHaveBeenCalledWith("sw_update_download_started", expect.anything());
+
+      settleInstall(installingWorker, "installed");
+
+      expect(result.current.phase).toBe("idle");
+      expect(result.current.updateAvailable).toBe(false);
+      expect(track).toHaveBeenCalledWith(
+        "sw_update_check_completed",
+        expect.objectContaining({
+          source: "update_found",
+          first_install: true,
+          found_update: false,
+        })
+      );
+    });
+
+    it("marks a failed install and lets a fresh check recover", async () => {
+      const { registration, result } = await renderMountedHook();
+
+      const installingWorker = startInstall(registration);
+      expect(result.current.phase).toBe("downloading");
+
+      settleInstall(installingWorker, "redundant");
+
+      expect(result.current.phase).toBe("install-failed");
+      expect(track).toHaveBeenCalledWith(
+        "sw_update_install_failed",
+        expect.objectContaining({ source: "update_found", phase: "install-failed" })
+      );
+      expect(logger.warn).toHaveBeenCalledWith(
+        "Service worker update failed to install",
+        expect.objectContaining({ checkSource: "update_found" })
+      );
+
+      // Try Again runs a fresh check; with nothing newer the row settles on up to date.
+      Object.defineProperty(registration, "installing", { configurable: true, value: null });
+      let outcome: UpdateCheckResult | undefined;
+      await act(async () => {
+        outcome = await result.current.checkForUpdate();
+      });
+      expect(outcome).toBe("up-to-date");
+      expect(result.current.phase).toBe("idle");
+    });
+
+    it("stops reporting a download that never settles and still surfaces a late install", async () => {
+      const { registration, result } = await renderMountedHook();
+      vi.useFakeTimers();
+
+      const installingWorker = startInstall(registration);
+      expect(result.current.phase).toBe("downloading");
+
+      act(() => {
+        vi.advanceTimersByTime(DOWNLOAD_TIMEOUT_MS);
+      });
+
+      expect(result.current.phase).toBe("idle");
+      expect(track).toHaveBeenCalledWith(
+        "sw_update_download_timeout",
+        expect.objectContaining({ source: "update_found", timeout_ms: DOWNLOAD_TIMEOUT_MS })
+      );
+      expect(logger.warn).toHaveBeenCalledWith(
+        "Service worker download did not settle before timeout",
+        expect.objectContaining({ timeoutMs: DOWNLOAD_TIMEOUT_MS })
+      );
+
+      settleInstall(installingWorker, "installed");
+      expect(result.current.phase).toBe("waiting");
+      expect(result.current.updateAvailable).toBe(true);
+    });
+
+    it("surfaces a worker that was already waiting when an automatic check completes", async () => {
+      vi.stubEnv("VITE_ENABLE_SW_DEV", "true");
+      const waitingWorker = createMockWorker({ state: "installed" });
+      const registration = createMockRegistration();
+      vi.mocked(registration.update).mockImplementation(async () => {
+        Object.defineProperty(registration, "waiting", {
+          configurable: true,
+          value: waitingWorker,
+        });
+        return registration;
+      });
+      installServiceWorkerMock(registration);
+      const { result } = renderUpdateHook();
+
+      await waitFor(() => {
+        expect(result.current.phase).toBe("waiting");
+      });
+      expect(result.current.waitingWorker).toBe(waitingWorker);
+      expect(track).toHaveBeenCalledWith(
+        "sw_update_available",
+        expect.objectContaining({ source: "initial_check" })
+      );
+    });
+
+    it("reports a pending install when a manual check outlasts the wait", async () => {
+      const { registration, result } = await renderMountedHook();
+      const installingWorker = createMockWorker({ state: "installing" });
+      vi.mocked(registration.update).mockImplementationOnce(async () => {
+        Object.defineProperty(registration, "installing", {
+          configurable: true,
+          value: installingWorker,
+        });
+        return registration;
+      });
+      vi.useFakeTimers();
+
+      let check: Promise<UpdateCheckResult> | undefined;
+      act(() => {
+        check = result.current.checkForUpdate();
+      });
+      // Let update() resolve and the watch attach before the clock moves.
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(0);
+      });
+      expect(result.current.phase).toBe("downloading");
+
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(DOWNLOAD_TIMEOUT_MS);
+      });
+
+      await expect(check).resolves.toBe("pending");
+      expect(result.current.phase).toBe("idle");
+      expect(track).toHaveBeenCalledWith(
+        "sw_update_download_timeout",
+        expect.objectContaining({ source: "manual_check" })
+      );
+    });
+  });
+
   describe("return type stability", () => {
     it("returns consistent shape across renders", () => {
       const { result, rerender } = renderUpdateHook();
@@ -260,11 +701,13 @@ describe("hooks/app/useServiceWorkerUpdate", () => {
       expect(keys1).toEqual(keys2);
       expect(keys1).toEqual([
         "activateNow",
+        "activationBlocked",
         "applyUpdate",
         "checkForUpdate",
         "dismissUpdate",
         "isUpdating",
         "phase",
+        "restartedOnNewVersion",
         "shouldPrompt",
         "updateAvailable",
         "updateStalled",
@@ -276,6 +719,58 @@ describe("hooks/app/useServiceWorkerUpdate", () => {
   describe("applyUpdate timeout fallback", () => {
     afterEach(() => {
       vi.useRealTimers();
+    });
+
+    it("records the exact timed-out target and stops observing once unmounted", async () => {
+      vi.stubEnv("VITE_ENABLE_SW_DEV", "true");
+      const target = createMockWorker({ state: "installed" });
+      const replacement = createMockWorker({ state: "installed" });
+      const registration = createMockRegistration({ waiting: target });
+      installServiceWorkerMock(registration);
+      const { result, unmount } = renderUpdateHook();
+      await waitFor(() => expect(result.current.updateAvailable).toBe(true));
+      vi.useFakeTimers();
+      act(() => result.current.applyUpdate());
+      expect(track).toHaveBeenCalledWith(
+        "sw_update_apply_started",
+        expect.objectContaining({
+          target_worker_state: "installed",
+          target_is_registered_waiting: true,
+        })
+      );
+      Object.defineProperty(registration, "waiting", { configurable: true, value: replacement });
+      await act(async () => {
+        await result.current.checkForUpdate();
+      });
+      act(() => vi.advanceTimersByTime(APPLY_UPDATE_TIMEOUT_MS));
+      expect(track).toHaveBeenCalledWith(
+        "sw_update_apply_timeout",
+        expect.objectContaining({
+          target_worker_state: "installed",
+          target_is_registered_waiting: false,
+          registered_waiting_worker_state: "installed",
+        })
+      );
+      vi.mocked(track).mockClear();
+      // A waiting worker that was replaced is discarded, never activated.
+      act(() => {
+        Object.defineProperty(target, "state", { configurable: true, value: "redundant" });
+        target.dispatchStateChange();
+      });
+      expect(track).toHaveBeenCalledWith(
+        "sw_update_target_state_changed",
+        expect.objectContaining({
+          target_worker_state: "redundant",
+          after_timeout: true,
+        })
+      );
+      expect(track).not.toHaveBeenCalledWith("sw_update_apply_completed", expect.anything());
+      expect(result.current.phase).toBe("error");
+      act(() => result.current.applyUpdate());
+      unmount();
+      vi.mocked(track).mockClear();
+      replacement.dispatchStateChange();
+      expect(track).not.toHaveBeenCalled();
     });
 
     it("resets isUpdating and flags updateStalled when activation never happens", async () => {
@@ -301,14 +796,16 @@ describe("hooks/app/useServiceWorkerUpdate", () => {
       expect(result.current.isUpdating).toBe(true);
       expect(result.current.updateStalled).toBe(false);
       expect(result.current.phase).toBe("activating");
-      expect(waitingWorker.postMessage).toHaveBeenCalledWith({ type: "SKIP_WAITING" });
+      expect(waitingWorker.postMessage).toHaveBeenCalledWith(
+        { type: "SKIP_WAITING" },
+        expect.any(Array)
+      );
       const addServiceWorkerListener = navigator.serviceWorker
         .addEventListener as unknown as ReturnType<typeof vi.fn>;
       const postWorkerMessage = waitingWorker.postMessage as ReturnType<typeof vi.fn>;
       expect(addServiceWorkerListener).toHaveBeenCalledWith(
         "controllerchange",
-        expect.any(Function),
-        { once: true }
+        expect.any(Function)
       );
       expect(addServiceWorkerListener.mock.invocationCallOrder.at(-1)).toBeLessThan(
         postWorkerMessage.mock.invocationCallOrder[0]
@@ -328,6 +825,7 @@ describe("hooks/app/useServiceWorkerUpdate", () => {
           phase: "error",
           duration_ms: expect.any(Number),
           timeout_ms: APPLY_UPDATE_TIMEOUT_MS,
+          acknowledgment: "quiet",
         })
       );
       expect(logger.warn).toHaveBeenCalledWith(
@@ -389,4 +887,358 @@ describe("hooks/app/useServiceWorkerUpdate", () => {
       expect(result.current.shouldPrompt).toBe(true);
     });
   });
+});
+
+describe("an activation that lands after the deadline", () => {
+  const originalLocation = window.location;
+  const originalDraft = useWorkFlowStore.getState();
+  let reload: ReturnType<typeof vi.fn>;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.stubEnv("VITE_ENABLE_SW_DEV", "true");
+    reload = vi.fn();
+    Object.defineProperty(window, "location", {
+      configurable: true,
+      value: { href: "https://www.greengoods.app/home/profile", reload },
+    });
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.unstubAllEnvs();
+    vi.unstubAllGlobals();
+    sessionStorage.clear();
+    useWorkFlowStore.setState(originalDraft);
+    Object.defineProperty(window, "location", { configurable: true, value: originalLocation });
+  });
+
+  /** Tap Restart, let the wait give up, and return the stalled hook. */
+  async function stallUpdate() {
+    const target = createMockWorker({ state: "installed" });
+    const registration = createMockRegistration({ waiting: target });
+    installServiceWorkerMock(registration);
+    const rendered = renderUpdateHook();
+    await waitFor(() => expect(rendered.result.current.updateAvailable).toBe(true));
+    vi.useFakeTimers();
+    act(() => rendered.result.current.applyUpdate());
+    act(() => vi.advanceTimersByTime(APPLY_UPDATE_TIMEOUT_MS));
+    expect(rendered.result.current.phase).toBe("error");
+    expect(reload).not.toHaveBeenCalled();
+    return { ...rendered, registration, target };
+  }
+
+  function activate(target: MockServiceWorker) {
+    act(() => {
+      Object.defineProperty(target, "state", { configurable: true, value: "activated" });
+      target.dispatchStateChange();
+    });
+  }
+
+  it("finishes the restart when no work is open", async () => {
+    const { target } = await stallUpdate();
+
+    // The browser kept the request and activates once the old worker drains.
+    act(() => {
+      Object.defineProperty(target, "state", { configurable: true, value: "activating" });
+      target.dispatchStateChange();
+    });
+    expect(reload).not.toHaveBeenCalled();
+    activate(target);
+
+    expect(reload).toHaveBeenCalledTimes(1);
+    expect(sessionStorage.getItem("gg-update-applied")).toBe("1");
+    expect(track).toHaveBeenCalledWith(
+      "sw_update_apply_completed",
+      expect.objectContaining({
+        phase: "error",
+        after_timeout: true,
+        target_worker_state: "activated",
+      })
+    );
+  });
+
+  it("offers Restart instead of reloading over open work, and one tap then finishes", async () => {
+    const { registration, result, target } = await stallUpdate();
+    act(() =>
+      useWorkFlowStore.setState({
+        activeDraftId: "unfinished",
+        draftSaveState: "saving",
+        submissionCompleted: false,
+      })
+    );
+
+    activate(target);
+
+    expect(reload).not.toHaveBeenCalled();
+    expect(track).toHaveBeenCalledWith("sw_update_deferred", { reason: "active_work" });
+    expect(track).not.toHaveBeenCalledWith("sw_update_apply_completed", expect.anything());
+    expect(result.current.phase).toBe("waiting");
+    expect(result.current.updateStalled).toBe(false);
+    expect(result.current.activationBlocked).toBe(true);
+
+    // The target is the active worker now, so Restart has nothing left to wait for.
+    Object.defineProperty(registration, "waiting", { configurable: true, value: null });
+    Object.defineProperty(registration, "active", { configurable: true, value: target });
+    act(() =>
+      useWorkFlowStore.setState({
+        activeDraftId: null,
+        draftSaveState: "idle",
+        submissionCompleted: false,
+      })
+    );
+    act(() => result.current.activateNow());
+
+    expect(reload).toHaveBeenCalledTimes(1);
+  });
+
+  it("leaves the restart to the person once the tap is older than the window", async () => {
+    const { result, target } = await stallUpdate();
+    act(() => vi.advanceTimersByTime(LATE_RESTART_WINDOW_MS));
+
+    activate(target);
+
+    expect(reload).not.toHaveBeenCalled();
+    expect(track).toHaveBeenCalledWith("sw_update_deferred", { reason: "late_activation" });
+    expect(result.current.phase).toBe("waiting");
+  });
+
+  it("does not restart once the person has dismissed the stalled update", async () => {
+    const { result, target } = await stallUpdate();
+    // The stalled notice offers "update later"; closing it calls this.
+    act(() => result.current.dismissUpdate());
+
+    activate(target);
+
+    expect(reload).not.toHaveBeenCalled();
+    expect(track).toHaveBeenCalledWith("sw_update_deferred", { reason: "dismissed" });
+    expect(result.current.phase).toBe("idle");
+  });
+
+  it("does not restart after the app has let go of the attempt", async () => {
+    const { target, unmount } = await stallUpdate();
+    unmount();
+
+    activate(target);
+
+    expect(reload).not.toHaveBeenCalled();
+  });
+});
+
+describe("update hand-over", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.stubEnv("VITE_ENABLE_SW_DEV", "true");
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.unstubAllEnvs();
+    vi.unstubAllGlobals();
+  });
+
+  it("holds the page's downloads before quieting the old worker, until the wait gives up", async () => {
+    const downloads = { hold: vi.fn(), release: vi.fn() };
+    const leave = joinUpdateHandover(downloads);
+    const controller = createMockWorker({ state: "activated" });
+    installServiceWorkerMock(
+      createMockRegistration({ waiting: createMockWorker({ state: "installed" }) }),
+      { controller }
+    );
+    const { result, unmount } = renderUpdateHook();
+    try {
+      await waitFor(() => expect(result.current.updateAvailable).toBe(true));
+      expect(downloads.hold).not.toHaveBeenCalled();
+      vi.useFakeTimers();
+
+      act(() => result.current.applyUpdate());
+      expect(downloads.hold).toHaveBeenCalledTimes(1);
+      expect(downloads.hold.mock.invocationCallOrder[0]).toBeLessThan(
+        vi.mocked(controller.postMessage).mock.invocationCallOrder[0]
+      );
+      expect(downloads.release).not.toHaveBeenCalled();
+
+      act(() => vi.advanceTimersByTime(APPLY_UPDATE_TIMEOUT_MS));
+      expect(downloads.release).toHaveBeenCalledTimes(1);
+
+      // Try Again holds them again, and leaving the app lets go.
+      act(() => result.current.applyUpdate());
+      expect(downloads.hold).toHaveBeenCalledTimes(2);
+      unmount();
+      expect(downloads.release).toHaveBeenCalledTimes(2);
+    } finally {
+      leave();
+    }
+  });
+
+  it("holds nothing when open work defers the restart", async () => {
+    const downloads = { hold: vi.fn(), release: vi.fn() };
+    const leave = joinUpdateHandover(downloads);
+    const originalDraft = useWorkFlowStore.getState();
+    installServiceWorkerMock(
+      createMockRegistration({ waiting: createMockWorker({ state: "installed" }) })
+    );
+    const { result, unmount } = renderUpdateHook();
+    try {
+      await waitFor(() => expect(result.current.updateAvailable).toBe(true));
+      act(() => useWorkFlowStore.setState({ activeDraftId: "open", draftSaveState: "saving" }));
+      act(() => result.current.applyUpdate());
+      expect(downloads.hold).not.toHaveBeenCalled();
+    } finally {
+      unmount();
+      useWorkFlowStore.setState(originalDraft);
+      leave();
+    }
+  });
+
+  it("names what the old worker had open on the ack and on the timeout", async () => {
+    const report = { trackedWork: 1, cancelledFetches: 2, pendingResponses: { image: 1 } };
+    const controller = createMockWorker({
+      state: "activated",
+      postMessage: vi.fn((message: unknown, transfer?: Transferable[]) => {
+        if ((message as { type?: string })?.type !== "PREPARE_TO_ACTIVATE_UPDATE") return;
+        (transfer?.[0] as MessagePort).postMessage({
+          type: "GG_QUIET_ACK",
+          status: "quiet",
+          report,
+        });
+      }) as unknown as ServiceWorker["postMessage"],
+    });
+    installServiceWorkerMock(
+      createMockRegistration({ waiting: createMockWorker({ state: "installed" }) }),
+      { controller }
+    );
+    const { result } = renderUpdateHook();
+    await waitFor(() => expect(result.current.updateAvailable).toBe(true));
+    vi.useFakeTimers();
+
+    act(() => result.current.applyUpdate());
+    act(() => vi.advanceTimersByTime(APPLY_UPDATE_TIMEOUT_MS));
+
+    const named = {
+      old_worker_tracked_work: 1,
+      old_worker_cancelled_fetches: 2,
+      old_worker_pending_responses: "image:1",
+    };
+    expect(track).toHaveBeenCalledWith(
+      "sw_update_activation_ack",
+      expect.objectContaining({ acknowledgment: "quiet", ...named })
+    );
+    expect(track).toHaveBeenCalledWith(
+      "sw_update_apply_timeout",
+      expect.objectContaining({ acknowledgment: "quiet", ...named })
+    );
+  });
+});
+
+describe("applyUpdate activation", () => {
+  const originalLocation = window.location;
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    sessionStorage.clear();
+    Object.defineProperty(window, "location", { configurable: true, value: originalLocation });
+  });
+
+  it("reloads onto the worker once it reports activated, even without a controller change", async () => {
+    vi.stubEnv("VITE_ENABLE_SW_DEV", "true");
+    const reload = vi.fn();
+    Object.defineProperty(window, "location", {
+      configurable: true,
+      value: { href: "https://www.greengoods.app/home/", reload },
+    });
+    const waitingWorker = createMockWorker({ state: "installed" });
+    const registration = createMockRegistration({ waiting: waitingWorker });
+    installServiceWorkerMock(registration);
+
+    const { result } = renderUpdateHook();
+    await waitFor(() => {
+      expect(result.current.updateAvailable).toBe(true);
+    });
+
+    act(() => {
+      result.current.applyUpdate();
+    });
+    expect(result.current.phase).toBe("activating");
+    expect(waitingWorker.postMessage).toHaveBeenCalledWith(
+      { type: "SKIP_WAITING" },
+      expect.any(Array)
+    );
+
+    act(() => {
+      Object.defineProperty(waitingWorker, "state", { configurable: true, value: "activated" });
+      waitingWorker.dispatchStateChange();
+    });
+
+    expect(reload).toHaveBeenCalledTimes(1);
+    expect(sessionStorage.getItem("gg-update-applied")).toBe("1");
+    expect(track).toHaveBeenCalledWith(
+      "sw_update_apply_completed",
+      expect.objectContaining({ phase: "activating" })
+    );
+  });
+});
+
+describe("active work update protection", () => {
+  it("defers worker activation while the current draft is saving", async () => {
+    vi.stubEnv("VITE_ENABLE_SW_DEV", "true");
+    const worker = createMockWorker({ state: "installed" });
+    installServiceWorkerMock(createMockRegistration({ waiting: worker }));
+    const { result, unmount } = renderUpdateHook();
+    await waitFor(() => expect(result.current.updateAvailable).toBe(true));
+    act(() =>
+      useWorkFlowStore.setState({
+        activeDraftId: "unfinished",
+        draftSaveState: "saving",
+        submissionCompleted: false,
+      })
+    );
+    act(() => result.current.activateNow());
+    expect(worker.postMessage).not.toHaveBeenCalled();
+    expect(result.current.activationBlocked).toBe(true);
+    expect(result.current.phase).toBe("waiting");
+    act(() =>
+      useWorkFlowStore.setState({
+        activeDraftId: null,
+        draftSaveState: "idle",
+        submissionCompleted: false,
+      })
+    );
+    unmount();
+    vi.unstubAllEnvs();
+  });
+});
+
+it("allows an uninitialized surface and safely saved drafts but blocks active execution", async () => {
+  const { isWorkUpdateBlocked } = await import("../../../hooks/app/useWorkUpdateGuard");
+  const { claimWorkJobs } = await import("../../../modules/work/execution-state");
+  const original = useWorkFlowStore.getState();
+  try {
+    useWorkFlowStore.setState({ draftScope: null, activeDraftId: null, draftSaveState: "loading" });
+    expect(isWorkUpdateBlocked()).toBe(false);
+    useWorkFlowStore.setState({
+      draftScope: "account:chain",
+      activeDraftId: "saved",
+      draftSaveState: "saved",
+    });
+    expect(isWorkUpdateBlocked()).toBe(false);
+    const release = claimWorkJobs(["worker-update-test"]);
+    expect(isWorkUpdateBlocked()).toBe(true);
+    release?.();
+    expect(isWorkUpdateBlocked()).toBe(false);
+    // Background preparation can be picked up again, so it keeps other holders
+    // out of the job without holding back the update. A send beside it still does.
+    const preparing = claimWorkJobs(["being-prepared"], { background: true });
+    expect(isWorkUpdateBlocked()).toBe(false);
+    expect(claimWorkJobs(["being-prepared"])).toBeNull();
+    const sending = claimWorkJobs(["being-sent"]);
+    expect(isWorkUpdateBlocked()).toBe(true);
+    sending?.();
+    preparing?.();
+    expect(isWorkUpdateBlocked()).toBe(false);
+    useWorkFlowStore.setState({ draftSaveState: "failed" });
+    expect(isWorkUpdateBlocked()).toBe(true);
+  } finally {
+    useWorkFlowStore.setState(original);
+  }
 });

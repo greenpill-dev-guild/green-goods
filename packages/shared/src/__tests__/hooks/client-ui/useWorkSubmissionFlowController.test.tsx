@@ -74,6 +74,12 @@ vi.mock("../../../hooks/utils/useAudioRecording", () => ({
 }));
 
 vi.mock("../../../hooks/work/useDraftAutoSave", () => ({
+  useDraftSaveStatus: () => ({
+    saveState: "saved",
+    error: null,
+    missingAttachments: [],
+    removeMissingAttachment: vi.fn(),
+  }),
   useDraftAutoSave: () => ({ saveOnExit: mocks.saveOnExit }),
 }));
 
@@ -82,13 +88,15 @@ vi.mock("../../../modules/app/share-target", () => ({
   loadShareTarget: mocks.loadShareTarget,
 }));
 
-vi.mock("../../../modules/work/media-processing", () => ({
+vi.mock("../../../modules/work/media-processing", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../../../modules/work/media-processing")>()),
   normalizeWorkMediaFiles: mocks.normalizeWorkMediaFiles,
 }));
 
 vi.mock("../../../hooks/work/useDraftResume", () => ({
   useDraftResume: () => ({
-    showDraftDialog: false,
+    showDraftSheet: false,
+    setShowDraftSheet: vi.fn(),
     handleContinueDraft: vi.fn(),
     handleStartFresh: vi.fn(),
     clearActiveDraft: vi.fn(),
@@ -266,7 +274,7 @@ describe("useWorkSubmissionFlowController", () => {
     expect(view.result.current.canProceed).toBe(true);
   });
 
-  it("owns tab transitions", () => {
+  it("owns tab transitions", async () => {
     const { result } = renderHook(
       () =>
         useWorkSubmissionFlowController({
@@ -277,7 +285,7 @@ describe("useWorkSubmissionFlowController", () => {
       { wrapper: Wrapper }
     );
 
-    result.current.changeTab("Media" as never);
+    await result.current.changeTab("Media" as never);
     expect(mocks.setActiveTab).toHaveBeenCalledWith("Media");
   });
 

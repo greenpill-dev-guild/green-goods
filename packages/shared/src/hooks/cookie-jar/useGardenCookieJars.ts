@@ -11,6 +11,12 @@ import { STALE_TIME_MEDIUM } from "../../config/query-keys/constants";
 
 interface UseGardenCookieJarsOptions {
   enabled?: boolean;
+  /**
+   * Re-read each jar's balance, limit, cooldown and pause state on this interval while the
+   * caller is on screen. Deposits and claims come from other apps and devices, which no
+   * mutation here can announce, so a surface that stays open has to ask the chain again.
+   */
+  refetchInterval?: number | false;
 }
 
 export function useGardenCookieJars(
@@ -78,6 +84,7 @@ export function useGardenCookieJars(
     query: {
       enabled: validJarAddresses.length > 0,
       staleTime: STALE_TIME_MEDIUM,
+      refetchInterval: options.refetchInterval ?? false,
     },
   });
 

@@ -1,0 +1,365 @@
+---
+title: Command inventory
+slug: /builders/packages/commands
+audience: developer
+owner: docs
+feature_status: Live
+generated: true
+generator: scripts/docs/generate.mjs
+generated_from:
+  - docs/package.json
+  - package.json
+  - packages/admin/package.json
+  - packages/agent/package.json
+  - packages/client/package.json
+  - packages/contracts/package.json
+  - packages/contracts/script/cli/operations.mjs
+  - packages/contracts/script/utils/package-commands.mjs
+  - packages/indexer/package.json
+  - packages/qa/package.json
+  - packages/shared/package.json
+  - scripts/agents/qa.mjs
+  - scripts/data/command-migration.json
+  - scripts/data/command-policy.json
+  - scripts/data/validation-policy.json
+  - scripts/dev/browser.js
+  - scripts/dev/package-commands.mjs
+  - scripts/dev/test.js
+source_digest: "sha256:f32370d5cd322608cce6a29c1fea0de9c21d07bde5ee7b209778ec83a0829314"
+source_of_truth:
+  - docs/package.json
+  - package.json
+  - packages/admin/package.json
+  - packages/agent/package.json
+  - packages/client/package.json
+  - packages/contracts/package.json
+  - packages/contracts/script/cli/operations.mjs
+  - packages/contracts/script/utils/package-commands.mjs
+  - packages/indexer/package.json
+  - packages/qa/package.json
+  - packages/shared/package.json
+  - scripts/agents/qa.mjs
+  - scripts/data/command-migration.json
+  - scripts/data/command-policy.json
+  - scripts/data/validation-policy.json
+  - scripts/dev/browser.js
+  - scripts/dev/package-commands.mjs
+  - scripts/dev/test.js
+---
+
+<!-- GENERATED FILE: do not edit. Run `node scripts/docs/generate.mjs` or `node scripts/docs/generate.mjs -- --scope <scope>`. -->
+# Command inventory
+
+Generated from package manifests and owning command definitions. Start with the getting-started guide for everyday commands. Operational scripts can write to live networks; read the owning runbook before using them.
+
+## docs (8)
+
+| Script | Invocation from repository root |
+|---|---|
+| audit | `bun run --cwd docs audit` |
+| build | `bun run --cwd docs build` |
+| check:search-index | `bun run --cwd docs check:search-index` |
+| dev | `bun run --cwd docs dev` |
+| docusaurus | `bun run --cwd docs docusaurus` |
+| predev | `bun run --cwd docs predev` |
+| test | `bun run --cwd docs test` |
+| typecheck | `bun run --cwd docs typecheck` |
+
+## Repository root (17)
+
+| Script | Invocation from repository root |
+|---|---|
+| browser | `bun run browser` |
+| build | `bun run build` |
+| check | `bun run check` |
+| contracts | `bun run contracts` |
+| dev | `bun run dev` |
+| dev:clean | `bun run dev:clean` |
+| dev:health | `bun run dev:health` |
+| dev:smoke | `bun run dev:smoke` |
+| env:check | `bun run env:check` |
+| env:sync | `bun run env:sync` |
+| format | `bun run format` |
+| lint | `bun run lint` |
+| postinstall | `bun run postinstall` |
+| prepare | `bun run prepare` |
+| qa | `bun run qa` |
+| setup | `bun run setup` |
+| test | `bun run test` |
+
+## packages/admin (8)
+
+| Script | Invocation from repository root |
+|---|---|
+| build | `bun run --cwd packages/admin build` |
+| dev | `bun run --cwd packages/admin dev` |
+| format | `bun run --cwd packages/admin format` |
+| lint | `bun run --cwd packages/admin lint` |
+| predev | `bun run --cwd packages/admin predev` |
+| preview | `bun run --cwd packages/admin preview` |
+| test | `bun run --cwd packages/admin test` |
+| typecheck | `bun run --cwd packages/admin typecheck` |
+
+## packages/agent (9)
+
+| Script | Invocation from repository root |
+|---|---|
+| build | `bun run --cwd packages/agent build` |
+| dev | `bun run --cwd packages/agent dev` |
+| format | `bun run --cwd packages/agent format` |
+| intake:smoke | `bun run --cwd packages/agent intake:smoke` |
+| lint | `bun run --cwd packages/agent lint` |
+| sentry:sourcemaps | `bun run --cwd packages/agent sentry:sourcemaps` |
+| start | `bun run --cwd packages/agent start` |
+| test | `bun run --cwd packages/agent test` |
+| typecheck | `bun run --cwd packages/agent typecheck` |
+
+## packages/client (9)
+
+| Script | Invocation from repository root |
+|---|---|
+| build | `bun run --cwd packages/client build` |
+| check:pwa-precache | `bun run --cwd packages/client check:pwa-precache` |
+| dev | `bun run --cwd packages/client dev` |
+| format | `bun run --cwd packages/client format` |
+| lint | `bun run --cwd packages/client lint` |
+| predev | `bun run --cwd packages/client predev` |
+| preview | `bun run --cwd packages/client preview` |
+| test | `bun run --cwd packages/client test` |
+| typecheck | `bun run --cwd packages/client typecheck` |
+
+## packages/contracts (18)
+
+| Script | Invocation from repository root |
+|---|---|
+| build | `bun run --cwd packages/contracts build` |
+| build:abis | `bun run --cwd packages/contracts build:abis` |
+| check:foundry-version | `bun run --cwd packages/contracts check:foundry-version` |
+| check:sizes | `bun run --cwd packages/contracts check:sizes` |
+| check:storage-layout | `bun run --cwd packages/contracts check:storage-layout` |
+| clean | `bun run --cwd packages/contracts clean` |
+| contracts | `bun run --cwd packages/contracts contracts` |
+| dev | `bun run --cwd packages/contracts dev` |
+| dev:arbitrum-fork | `bun run --cwd packages/contracts dev:arbitrum-fork` |
+| format | `bun run --cwd packages/contracts format` |
+| lint | `bun run --cwd packages/contracts lint` |
+| predev | `bun run --cwd packages/contracts predev` |
+| test | `bun run --cwd packages/contracts test` |
+| test:audit | `bun run --cwd packages/contracts test:audit` |
+| test:e2e | `bun run --cwd packages/contracts test:e2e` |
+| test:fork | `bun run --cwd packages/contracts test:fork` |
+| test:shard | `bun run --cwd packages/contracts test:shard` |
+| typecheck | `bun run --cwd packages/contracts typecheck` |
+
+## packages/indexer (13)
+
+| Script | Invocation from repository root |
+|---|---|
+| build | `bun run --cwd packages/indexer build` |
+| check:indexing-boundary | `bun run --cwd packages/indexer check:indexing-boundary` |
+| clean | `bun run --cwd packages/indexer clean` |
+| codegen | `bun run --cwd packages/indexer codegen` |
+| db:down | `bun run --cwd packages/indexer db:down` |
+| db:up | `bun run --cwd packages/indexer db:up` |
+| dev | `bun run --cwd packages/indexer dev` |
+| docker | `bun run --cwd packages/indexer docker` |
+| lint | `bun run --cwd packages/indexer lint` |
+| reset | `bun run --cwd packages/indexer reset` |
+| start | `bun run --cwd packages/indexer start` |
+| test | `bun run --cwd packages/indexer test` |
+| watch | `bun run --cwd packages/indexer watch` |
+
+## packages/qa (1)
+
+| Script | Invocation from repository root |
+|---|---|
+| build | `bun run --cwd packages/qa build` |
+
+## packages/shared (12)
+
+| Script | Invocation from repository root |
+|---|---|
+| build | `bun run --cwd packages/shared build` |
+| build-storybook | `bun run --cwd packages/shared build-storybook` |
+| check:stories | `bun run --cwd packages/shared check:stories` |
+| check:story-quality | `bun run --cwd packages/shared check:story-quality` |
+| chromatic | `bun run --cwd packages/shared chromatic` |
+| format | `bun run --cwd packages/shared format` |
+| lint | `bun run --cwd packages/shared lint` |
+| prestorybook | `bun run --cwd packages/shared prestorybook` |
+| storybook | `bun run --cwd packages/shared storybook` |
+| test | `bun run --cwd packages/shared test` |
+| test:stories:ci | `bun run --cwd packages/shared test:stories:ci` |
+| typecheck | `bun run --cwd packages/shared typecheck` |
+
+Total: 95 manifest entries across 9 manifests. The root exposes 17.
+
+## Selectable operations and implementation
+
+Manifest counts stay separate from the 89 contract operations and 67 stable validation checks selected behind the root interfaces. Those definitions preserve capabilities without adding aliases.
+
+This projection tracks 6 owning command implementation files:
+
+- `packages/contracts/script/cli/operations.mjs`
+- `packages/contracts/script/utils/package-commands.mjs`
+- `scripts/agents/qa.mjs`
+- `scripts/dev/browser.js`
+- `scripts/dev/package-commands.mjs`
+- `scripts/dev/test.js`
+
+## Removed command replacements
+
+The former names below are not runnable aliases. Use the replacement exactly as shown, including its working directory and flags.
+
+| Previous manifest | Previous name | Replacement |
+|---|---|---|
+| `package.json` | `format:check` | <code>bun run format --check</code> |
+| `package.json` | `test:validation-system` | <code>bun run check --only validation-system-test</code> |
+| `package.json` | `check:test-quality` | <code>bun run check --only test-quality</code> |
+| `package.json` | `test:env-schema` | <code>bun run check --only env-schema-test</code> |
+| `package.json` | `verify:contracts:fast` | <code>bun run check --only contracts-verify-fast</code> |
+| `package.json` | `check:staged-modules` | <code>bun run check --only staged-modules</code> |
+| `package.json` | `check:source-structure` | <code>bun run check --only source-structure</code> |
+| `package.json` | `check:ontology` | <code>bun run check --only ontology</code> |
+| `package.json` | `check:qa-id-ledger` | <code>bun run check --only qa-id-ledger</code> |
+| `package.json` | `test:agent-tools` | <code>bun run check --only agent-tools-test</code> |
+| `package.json` | `check:codex-guidance` | <code>bun run check --only codex-guidance</code> |
+| `package.json` | `check:guidance-links` | <code>bun run check --only guidance-links</code> |
+| `package.json` | `check:skill-behavior` | <code>bun run check --only skill-behavior</code> |
+| `package.json` | `check:immutable-plan-reports` | <code>bun run check --only immutable-plan-reports</code> |
+| `package.json` | `check:browser-verification-policy` | <code>bun run check --only browser-verification-policy</code> |
+| `package.json` | `check:design-generated` | <code>bun run check --only design-generated</code> |
+| `package.json` | `check:design-tokens` | <code>bun run check --only design-tokens</code> |
+| `package.json` | `check:design-guidance` | <code>bun run check --only design-guidance</code> |
+| `package.json` | `check:design-md` | <code>bun run check --only design-md</code> |
+| `package.json` | `check:docs-design-parity` | <code>bun run check --only docs-design-parity</code> |
+| `package.json` | `check:foundry-version` | <code>bun run check --only foundry-version</code> |
+| `package.json` | `check:solidity-test-names` | <code>bun run check --only solidity-test-names</code> |
+| `package.json` | `check:dead-code` | <code>bun run check --only dead-code</code> |
+| `package.json` | `check:docs-generated` | <code>bun run check --only docs-generated</code> |
+| `package.json` | `test:contracts-verifier` | <code>bun run check --only contracts-verifier-test</code> |
+| `package.json` | `test:review-guardrails` | <code>bun run check --only review-guardrails-test</code> |
+| `package.json` | `test:fork-fixtures` | <code>bun run check --only fork-fixtures-test</code> |
+| `package.json` | `agentic:check` | <code>bun run check --only agentic-readiness</code> |
+| `package.json` | `drift:check` | <code>bun run check --only drift</code> |
+| `package.json` | `eval:skills` | <code>bun run check --only skill-evaluation</code> |
+| `package.json` | `lint:vocab` | <code>bun run check --only vocabulary</code> |
+| `package.json` | `lint:rules` | <code>bun run check --only react-patterns</code> |
+| `package.json` | `lint:check` | <code>bun run check --only static-lint</code> |
+| `package.json` | `verify:contracts` | <code>bun run check --only contracts-verify</code> |
+| `package.json` | `ci:local` | <code>bun run check</code> |
+| `package.json` | `validation:plan` | <code>bun run check --plan</code> |
+| `package.json` | `test:fast` | <code>bun run test --cache</code> |
+| `package.json` | `test:fast:force` | <code>bun run test --cache --force</code> |
+| `package.json` | `agentic:browser-proof` | <code>bun run browser routes</code> |
+| `package.json` | `agentic:verify` | <code>bun run --cwd packages/shared build-storybook</code> |
+| `package.json` | `browser-proof:routes` | <code>bun run browser routes</code> |
+| `package.json` | `lighthouse` | <code>bun run browser lighthouse</code> |
+| `package.json` | `lighthouse:client` | <code>bun run browser lighthouse --app client</code> |
+| `package.json` | `lighthouse:admin` | <code>bun run browser lighthouse --app admin</code> |
+| `package.json` | `lighthouse:collect` | <code>bun run browser lighthouse --app client --action collect</code> |
+| `package.json` | `qa:workbook` | <code>bun run qa workbook</code> |
+| `package.json` | `qa:pull` | <code>bun run qa pull</code> |
+| `package.json` | `qa:status` | <code>bun run qa status</code> |
+| `package.json` | `qa:report` | <code>bun run qa report</code> |
+| `package.json` | `test:e2e` | <code>bun run browser e2e --preset all</code> |
+| `package.json` | `test:e2e:smoke` | <code>bun run browser e2e --preset smoke</code> |
+| `package.json` | `test:e2e:ui` | <code>bun run browser e2e --preset ui</code> |
+| `package.json` | `test:e2e:fork` | <code>bun run browser e2e --preset fork</code> |
+| `package.json` | `test:e2e:passkey` | <code>bun run browser e2e --preset passkey</code> |
+| `package.json` | `test:e2e:testnet` | <code>bun run browser e2e --preset testnet</code> |
+| `package.json` | `env:template:init` | <code>node scripts/dev/env-template-init.js</code> |
+| `package.json` | `version:bump` | <code>node scripts/ops/bump-version.mjs</code> |
+| `package.json` | `version:check` | <code>node scripts/ops/bump-version.mjs --check</code> |
+| `package.json` | `metrics:month` | <code>node scripts/ops/month-metrics.mjs</code> |
+| `package.json` | `agentic:guidance` | <code>DISABLE_TELEMETRY=1 bun --bun modern-web-guidance search "agentic frontend CSS accessibility browser validation DevTools MCP" && DISABLE_TELEMETRY=1 bun --bun modern-web-guidance retrieve accessibility</code> |
+| `package.json` | `design:generate` | <code>node scripts/design/md-generate.mjs</code> |
+| `package.json` | `ontology:generate` | <code>node scripts/quality/check-ontology.mjs --generate</code> |
+| `package.json` | `dev:tunnel` | <code>node scripts/dev/tunnel.js</code> |
+| `package.json` | `anvil:start` | <code>anvil --fork-url $&#123;SEPOLIA_RPC_URL:-https://ethereum-sepolia-rpc.publicnode.com&#125; --port $&#123;ANVIL_PORT:-3009&#125;</code> |
+| `package.json` | `anvil:start:block` | <code>anvil --fork-url $&#123;SEPOLIA_RPC_URL:-https://ethereum-sepolia-rpc.publicnode.com&#125; --fork-block-number $&#123;ANVIL_FORK_BLOCK&#125; --port $&#123;ANVIL_PORT:-3009&#125;</code> |
+| `package.json` | `seed:test` | <code>bun scripts/dev/seed-test-data.ts</code> |
+| `package.json` | `seed:anvil` | <code>ANVIL_RUNNING=true bun scripts/dev/seed-test-data.ts</code> |
+| `package.json` | `docs:generate` | <code>node scripts/docs/generate.mjs</code> |
+| `package.json` | `docs:audit` | <code>node docs/scripts/docs-audit.mjs</code> |
+| `package.json` | `sourcemaps` | <code>APP_ENV=production node scripts/ops/upload-sourcemaps.js --env production</code> |
+| `package.json` | `sourcemaps:dry-run` | <code>APP_ENV=staging node scripts/ops/upload-sourcemaps.js --env staging --dry-run</code> |
+| `package.json` | `upload:action-images` | <code>APP_ENV=development bun scripts/ops/upload-action-images.ts</code> |
+| `package.json` | `garden:rename-batch` | <code>APP_ENV=development bun scripts/ops/garden-rename-batch.ts</code> |
+| `package.json` | `garden:rename-batch:dry:arbitrum` | <code>APP_ENV=development bun scripts/ops/garden-rename-batch.ts -- --chain 42161 --dry-run</code> |
+| `package.json` | `garden:rename-batch:arbitrum` | <code>APP_ENV=development bun scripts/ops/garden-rename-batch.ts -- --chain 42161</code> |
+| `package.json` | `ipfs:repin` | <code>APP_ENV=development bun scripts/ops/ipfs-repin.ts</code> |
+| `package.json` | `ipfs:repin:audit` | <code>APP_ENV=development bun scripts/ops/ipfs-repin.ts --audit-only</code> |
+| `packages/shared/package.json` | `typecheck:source` | <code>bun run --cwd packages/shared typecheck --scope source</code> |
+| `packages/shared/package.json` | `typecheck:tests` | <code>bun run --cwd packages/shared typecheck --scope tests</code> |
+| `packages/shared/package.json` | `typecheck:full` | <code>bun run --cwd packages/shared typecheck --scope full</code> |
+| `packages/shared/package.json` | `format:check` | <code>bun run --cwd packages/shared format --check</code> |
+| `packages/shared/package.json` | `coverage` | <code>bun run --cwd packages/shared test --scope all-configured --coverage</code> |
+| `packages/shared/package.json` | `test:watch` | <code>bun run --cwd packages/shared test --scope all-configured --watch</code> |
+| `packages/shared/package.json` | `test:live` | <code>bun run --cwd packages/shared test --scope live</code> |
+| `packages/shared/package.json` | `storybook:prepare-design-assets` | <code>(cd packages/shared && node .storybook/prepare-design-assets.mjs)</code> |
+| `packages/admin/package.json` | `typecheck:source` | <code>bun run --cwd packages/admin typecheck --scope source</code> |
+| `packages/admin/package.json` | `typecheck:tests` | <code>bun run --cwd packages/admin typecheck --scope tests</code> |
+| `packages/admin/package.json` | `typecheck:full` | <code>bun run --cwd packages/admin typecheck --scope full</code> |
+| `packages/admin/package.json` | `format:check` | <code>bun run --cwd packages/admin format --check</code> |
+| `packages/admin/package.json` | `test:coverage` | <code>bun run --cwd packages/admin test --coverage</code> |
+| `packages/admin/package.json` | `test:watch` | <code>bun run --cwd packages/admin test --watch</code> |
+| `packages/admin/package.json` | `test:ui` | <code>bun run --cwd packages/admin test --ui</code> |
+| `packages/admin/package.json` | `test:hub` | <code>bun run --cwd packages/admin test --suite hub</code> |
+| `packages/client/package.json` | `typecheck:source` | <code>bun run --cwd packages/client typecheck --scope source</code> |
+| `packages/client/package.json` | `typecheck:tests` | <code>bun run --cwd packages/client typecheck --scope tests</code> |
+| `packages/client/package.json` | `typecheck:full` | <code>bun run --cwd packages/client typecheck --scope full</code> |
+| `packages/client/package.json` | `format:check` | <code>bun run --cwd packages/client format --check</code> |
+| `packages/client/package.json` | `coverage` | <code>bun run --cwd packages/client test --coverage</code> |
+| `packages/client/package.json` | `test:watch` | <code>bun run --cwd packages/client test --watch</code> |
+| `packages/agent/package.json` | `typecheck:source` | <code>bun run --cwd packages/agent typecheck --scope source</code> |
+| `packages/agent/package.json` | `typecheck:tests` | <code>bun run --cwd packages/agent typecheck --scope tests</code> |
+| `packages/agent/package.json` | `typecheck:full` | <code>bun run --cwd packages/agent typecheck --scope full</code> |
+| `packages/agent/package.json` | `format:check` | <code>bun run --cwd packages/agent format --check</code> |
+| `packages/agent/package.json` | `test:coverage` | <code>bun run --cwd packages/agent test --scope unit --coverage</code> |
+| `packages/agent/package.json` | `test:watch` | <code>bun run --cwd packages/agent test --scope unit --watch</code> |
+| `packages/agent/package.json` | `test:ui` | <code>bun run --cwd packages/agent test --scope unit --ui</code> |
+| `packages/agent/package.json` | `test:sqlite` | <code>bun run --cwd packages/agent test --scope sqlite</code> |
+| `packages/indexer/package.json` | `dev:restart` | <code>bun run --cwd packages/indexer dev --restart</code> |
+| `packages/indexer/package.json` | `dev:docker` | <code>bun run --cwd packages/indexer docker up --build</code> |
+| `packages/indexer/package.json` | `dev:docker:detach` | <code>bun run --cwd packages/indexer docker up --build -d</code> |
+| `packages/indexer/package.json` | `dev:docker:logs` | <code>bun run --cwd packages/indexer docker logs -f indexer</code> |
+| `packages/indexer/package.json` | `dev:docker:down` | <code>bun run --cwd packages/indexer docker down</code> |
+| `packages/indexer/package.json` | `doctor` | <code>(cd packages/indexer && bun run dev:health -- --profile full)</code> |
+| `packages/indexer/package.json` | `mocha` | <code>bun run --cwd packages/indexer test --scope handlers</code> |
+| `packages/indexer/package.json` | `test:contract-events` | <code>bun run --cwd packages/indexer test --scope contract-events</code> |
+| `packages/indexer/package.json` | `test:coverage` | <code>bun run --cwd packages/indexer test --scope handlers --coverage</code> |
+| `packages/indexer/package.json` | `test:coverage:ci` | <code>bun run --cwd packages/indexer test --scope handlers --coverage --reporter text --reporter json</code> |
+| `packages/contracts/package.json` | `format:check` | <code>bun run --cwd packages/contracts format --check</code> |
+| `packages/contracts/package.json` | `lint:check` | <code>bun run --cwd packages/contracts lint --check</code> |
+| `packages/contracts/package.json` | `lint:fix` | <code>bun run --cwd packages/contracts lint --fix</code> |
+| `packages/contracts/package.json` | `check:storage-layout:hats-module` | <code>bun run --cwd packages/contracts check:storage-layout -- --contract HatsModule</code> |
+| `packages/contracts/package.json` | `clean:artifacts` | <code>bun run --cwd packages/contracts clean artifacts</code> |
+| `packages/contracts/package.json` | `clean:test-cache` | <code>bun run --cwd packages/contracts clean test-cache</code> |
+| `packages/contracts/package.json` | `build:changed` | <code>bun run --cwd packages/contracts build --mode changed</code> |
+| `packages/contracts/package.json` | `build:target` | <code>bun run --cwd packages/contracts build --mode target</code> |
+| `packages/contracts/package.json` | `build:fast` | <code>bun run --cwd packages/contracts build --mode fast</code> |
+| `packages/contracts/package.json` | `build:full` | <code>bun run --cwd packages/contracts build --mode full</code> |
+| `packages/contracts/package.json` | `build:fresh` | <code>bun run --cwd packages/contracts build --mode fresh</code> |
+| `packages/contracts/package.json` | `build:core` | <code>bun run --cwd packages/contracts build --mode core</code> |
+| `packages/contracts/package.json` | `test:solidity` | <code>bun run --cwd packages/contracts test --suite solidity --profile standard</code> |
+| `packages/contracts/package.json` | `test:deep` | <code>bun run --cwd packages/contracts test --suite solidity --profile deep</code> |
+| `packages/contracts/package.json` | `test:fast` | <code>bun run --cwd packages/contracts test --suite solidity --profile fast</code> |
+| `packages/contracts/package.json` | `test:lite` | <code>bun run --cwd packages/contracts test --suite solidity --profile lite</code> |
+| `packages/contracts/package.json` | `test:gas` | <code>bun run --cwd packages/contracts test --suite solidity --profile gas</code> |
+| `packages/contracts/package.json` | `test:match` | <code>bun run --cwd packages/contracts test --suite solidity --profile match</code> |
+| `packages/contracts/package.json` | `test:script` | <code>bun run --cwd packages/contracts test --suite script</code> |
+| `packages/contracts/package.json` | `test:gas:release` | <code>bun run --cwd packages/contracts test --suite release-gas</code> |
+| `packages/contracts/package.json` | `test:fork:protocol` | <code>bun run --cwd packages/contracts test:fork --suite protocol</code> |
+| `packages/contracts/package.json` | `test:fork:protocol:ci` | <code>bun run --cwd packages/contracts test:fork --suite protocol --ci</code> |
+| `packages/contracts/package.json` | `test:fork:garden-account-release` | <code>bun run --cwd packages/contracts test:fork --suite garden-account-release</code> |
+| `packages/contracts/package.json` | `test:fork:garden-roles` | <code>bun run --cwd packages/contracts test:fork --suite garden-roles</code> |
+| `packages/contracts/package.json` | `test:audit:realism` | <code>bun run --cwd packages/contracts test:audit realism</code> |
+| `packages/contracts/package.json` | `test:audit:realism:tooling` | <code>bun run --cwd packages/contracts test:audit tooling</code> |
+| `packages/contracts/package.json` | `test:audit:coverage` | <code>bun run --cwd packages/contracts test:audit coverage</code> |
+| `packages/contracts/package.json` | `test:audit:full` | <code>bun run --cwd packages/contracts test:audit full</code> |
+| `docs/package.json` | `swizzle` | <code>bun run --cwd docs docusaurus swizzle</code> |
+| `docs/package.json` | `clear` | <code>bun run --cwd docs docusaurus clear</code> |
+| `docs/package.json` | `serve` | <code>bun run --cwd docs docusaurus serve</code> |
+| `docs/package.json` | `write-translations` | <code>bun run --cwd docs docusaurus write-translations</code> |
+| `docs/package.json` | `write-heading-ids` | <code>bun run --cwd docs docusaurus write-heading-ids</code> |

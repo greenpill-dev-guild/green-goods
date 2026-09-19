@@ -8,7 +8,7 @@
  *
  * Run:
  * RUN_LIVE_RPC_TESTS=true ARBITRUM_RPC_URL=https://... \
- *   bun run test:live
+ *   bun run --cwd packages/shared test --scope live
  *
  * @vitest-environment node
  */

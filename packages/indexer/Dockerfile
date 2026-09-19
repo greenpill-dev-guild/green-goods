@@ -25,9 +25,20 @@ RUN apt-get update && apt-get install -y \
 
 WORKDIR /app
 
+COPY package.json bun.lock bunfig.toml ./
+COPY patches ./patches
+COPY packages/admin/package.json ./packages/admin/package.json
+COPY packages/agent/package.json ./packages/agent/package.json
+COPY packages/client/package.json ./packages/client/package.json
+COPY packages/contracts/package.json ./packages/contracts/package.json
+COPY packages/indexer/package.json ./packages/indexer/package.json
+COPY packages/qa/package.json ./packages/qa/package.json
+COPY packages/shared/package.json ./packages/shared/package.json
+COPY docs/package.json ./docs/package.json
+COPY scripts/postinstall ./scripts/postinstall
+# Handler and config edits keep this expensive layer cached.
+RUN bun install --frozen-lockfile --filter @green-goods/indexer
 COPY . .
-
-RUN bun install --frozen-lockfile
 RUN bun run --cwd packages/indexer codegen
 
 WORKDIR /app/packages/indexer

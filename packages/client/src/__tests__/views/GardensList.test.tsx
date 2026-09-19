@@ -15,6 +15,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 // Track mock state
 const mockGardensState = {
   data: [] as any[],
+  isError: false,
   isLoading: false,
   isFetching: false,
   refetch: vi.fn(),
@@ -106,30 +107,12 @@ vi.mock("react-router-dom", async (importOriginal) => {
 vi.mock("@remixicon/react", () => ({
   RiCheckLine: (props: any) => createElement("span", props),
   RiMapPinLine: (props: any) => createElement("span", props),
+  RiLoader4Line: (props: any) => createElement("span", props),
   RiPlantLine: (props: any) => createElement("span", props),
   RiRefreshLine: (props: any) => createElement("span", props),
 }));
 
 // Mock client components
-vi.mock("@/components/Actions", () => ({
-  Button: ({
-    label,
-    onClick,
-    disabled,
-    className,
-  }: {
-    label: string;
-    onClick?: () => void;
-    disabled?: boolean;
-    variant?: string;
-    mode?: string;
-    size?: string;
-    className?: string;
-    leadingIcon?: React.ReactNode;
-  }) =>
-    createElement("button", { onClick, disabled, className, "data-testid": `btn-${label}` }, label),
-}));
-
 vi.mock("@/components/Cards", () => ({
   Card: ({ children }: { children: React.ReactNode }) =>
     createElement("div", { "data-testid": "card" }, children),
@@ -154,6 +137,7 @@ describe("GardensList", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockGardensState.data = [];
+    mockGardensState.isError = false;
     mockGardensState.isLoading = false;
     mockGardensState.isFetching = false;
     mockJoinState.isJoining = false;
@@ -187,13 +171,26 @@ describe("GardensList", () => {
     expect(screen.getByText(/join a garden to start documenting/i)).toBeInTheDocument();
   });
 
+  it("shows a retry state when gardens cannot load without a cache", async () => {
+    const user = userEvent.setup();
+    mockGardensState.isError = true;
+
+    render(wrap(createElement(GardensList, { primaryAddress: MOCK_ADDRESS as any })));
+
+    expect(screen.getByText("Gardens are unavailable right now.")).toBeInTheDocument();
+    expect(screen.queryByText(/no gardens yet/i)).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Retry" }));
+    expect(mockGardensState.refetch).toHaveBeenCalledOnce();
+  });
+
   it("navigates to home when Open Gardens is clicked from empty state", async () => {
     mockGardensState.data = [];
     const user = userEvent.setup();
 
     render(wrap(createElement(GardensList, { primaryAddress: MOCK_ADDRESS as any })));
 
-    await user.click(screen.getByTestId("btn-Open Gardens"));
+    await user.click(screen.getByRole("button", { name: "Open Gardens" }));
     expect(mockNavigate).toHaveBeenCalledWith("/home");
   });
 
@@ -246,7 +243,7 @@ describe("GardensList", () => {
     const joinableName = screen.getByText(longJoinableName);
     const locationRows = screen.getAllByText(longLocation);
     const memberBadge = screen.getByText("Member").parentElement;
-    const joinButton = screen.getByTestId("btn-Join");
+    const joinButton = screen.getByRole("button", { name: "Join" });
 
     for (const gardenName of [memberName, joinableName]) {
       expect(gardenName).toHaveClass("line-clamp-2", "min-w-0", "max-w-full");
@@ -279,7 +276,7 @@ describe("GardensList", () => {
     render(wrap(createElement(GardensList, { primaryAddress: MOCK_ADDRESS as any })));
 
     expect(screen.getByText("Open Garden")).toBeInTheDocument();
-    expect(screen.getByTestId("btn-Join")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Join" })).toBeInTheDocument();
     expect(screen.queryByText(/join as a gardener/i)).not.toBeInTheDocument();
   });
 
@@ -298,7 +295,7 @@ describe("GardensList", () => {
 
     render(wrap(createElement(GardensList, { primaryAddress: MOCK_ADDRESS as any })));
 
-    await user.click(screen.getByTestId("btn-Join"));
+    await user.click(screen.getByRole("button", { name: "Join" }));
     expect(screen.getByTestId("join-dialog")).toBeInTheDocument();
     expect(screen.getByText("Join Garden")).toBeInTheDocument();
   });
@@ -341,7 +338,7 @@ describe("GardensList", () => {
     render(wrap(createElement(GardensList, { primaryAddress: MOCK_ADDRESS as any })));
 
     // Open the join confirm dialog and confirm
-    await user.click(screen.getByTestId("btn-Join"));
+    await user.click(screen.getByRole("button", { name: "Join" }));
     await user.click(screen.getByTestId("confirm-join"));
 
     // ensDiscoveryTimeout.set was called with the toast callback at 2000ms
@@ -382,7 +379,7 @@ describe("GardensList", () => {
 
     render(wrap(createElement(GardensList, { primaryAddress: MOCK_ADDRESS as any })));
 
-    await user.click(screen.getByTestId("btn-Join"));
+    await user.click(screen.getByRole("button", { name: "Join" }));
     await user.click(screen.getByTestId("confirm-join"));
 
     expect(mockTimeoutSet).not.toHaveBeenCalled();

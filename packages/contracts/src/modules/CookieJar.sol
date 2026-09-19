@@ -34,7 +34,8 @@ contract CookieJarModule is ICookieJarModule, OwnableUpgradeable, ReentrancyGuar
     /// @notice The Hats Protocol ERC1155 contract address used for access gating
     address public hatsProtocol;
 
-    /// @notice Default max withdrawal amount per transaction (in wei)
+    /// @notice Max withdrawal per transaction for new jars of an asset with no limit of its own
+    ///         (see assetMaxWithdrawal)
     uint256 public defaultMaxWithdrawal;
 
     /// @notice Default withdrawal cooldown interval (in seconds)
@@ -52,11 +53,18 @@ contract CookieJarModule is ICookieJarModule, OwnableUpgradeable, ReentrancyGuar
     /// @notice garden => jar addresses array
     mapping(address => address[]) public gardenJarList;
 
+    /// @notice asset => max withdrawal per transaction for new jars of that asset (in the asset's
+    ///         smallest unit). Zero means the asset has no limit of its own and uses
+    ///         defaultMaxWithdrawal.
+    /// @dev Assets differ by orders of magnitude in unit value: 0.01 WETH is a fair claim and
+    ///      0.01 DAI is a cent, so one default cannot serve both.
+    mapping(address asset => uint256 maxWithdrawal) public assetMaxWithdrawal;
+
     /// @notice Storage gap reserved for future CookieJarModule variables
-    /// @dev This contract declares 11 storage entries above and reserves 39 more here (50 total).
+    /// @dev This contract declares 12 storage entries above and reserves 38 more here (50 total).
     ///      Inherited contracts (OwnableUpgradeable/ReentrancyGuardUpgradeable/UUPSUpgradeable)
     ///      maintain their own storage layouts independently.
-    uint256[39] private __gap;
+    uint256[38] private __gap;
 
     // ═══════════════════════════════════════════════════════════════════════════
     // Modifiers
@@ -220,6 +228,15 @@ contract CookieJarModule is ICookieJarModule, OwnableUpgradeable, ReentrancyGuar
         defaultMaxWithdrawal = _defaultMaxWithdrawal;
     }
 
+    /// @notice Set the max withdrawal that new jars of one asset are created with
+    /// @dev Only jars created afterwards are affected: a deployed jar keeps its own limit, which
+    ///      its owner (the garden account) changes on the jar itself. Pass zero to clear the
+    ///      asset's limit and fall back to defaultMaxWithdrawal.
+    function setAssetMaxWithdrawal(address asset, uint256 maxWithdrawal) external onlyOwner {
+        if (asset == address(0)) revert ZeroAddress();
+        assetMaxWithdrawal[asset] = maxWithdrawal;
+    }
+
     /// @notice Set the default withdrawal cooldown interval (in seconds)
     function setDefaultWithdrawalInterval(uint256 _defaultWithdrawalInterval) external onlyOwner {
         defaultWithdrawalInterval = _defaultWithdrawalInterval;
@@ -246,6 +263,9 @@ contract CookieJarModule is ICookieJarModule, OwnableUpgradeable, ReentrancyGuar
         // Use the configured Hats Protocol contract address (ERC1155)
         address hatsContract = hatsProtocol;
 
+        uint256 maxWithdrawal = assetMaxWithdrawal[asset];
+        if (maxWithdrawal == 0) maxWithdrawal = defaultMaxWithdrawal;
+
         // Build jar config: Variable withdrawal, no fee, garden as owner
         ICookieJarFactory.JarConfig memory jarConfig = ICookieJarFactory.JarConfig({
             jarOwner: garden,
@@ -257,7 +277,7 @@ contract CookieJarModule is ICookieJarModule, OwnableUpgradeable, ReentrancyGuar
             emergencyWithdrawalEnabled: true,
             oneTimeWithdrawal: false,
             fixedAmount: 0,
-            maxWithdrawal: defaultMaxWithdrawal,
+            maxWithdrawal: maxWithdrawal,
             withdrawalInterval: defaultWithdrawalInterval,
             minDeposit: 0,
             feePercentageOnDeposit: 0, // 0% fee for Green Goods jars

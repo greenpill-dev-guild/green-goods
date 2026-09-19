@@ -40,13 +40,9 @@
       "packages/client",
       "packages/admin",
       ".plans/active/commitment-pooling",
-      ".plans/active/celo-garden-account-safe-ownership"
+      "packages/contracts/config/celo-garden-accounts"
     ],
-    "depends_on_features": [
-      "commitment-pooling",
-      "celo-garden-account-safe-ownership",
-      "community-interface"
-    ]
+    "depends_on_features": ["commitment-pooling", "community-interface"]
   },
   "notes": [
     "Scoping and architecture hub. No implementation, deployment, custody change, venue integration, or partner commitment is authorized here.",

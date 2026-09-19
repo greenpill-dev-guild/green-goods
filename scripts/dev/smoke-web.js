@@ -3,7 +3,7 @@
 /**
  * Non-mutating web stack smoke check.
  *
- * Run after `bun run dev:web` is starting or already running. The script first
+ * Run after `bun run dev -- web` is starting or already running. The script first
  * runs the web doctor, then verifies that client/admin/docs/storybook respond locally.
  */
 
@@ -189,7 +189,7 @@ async function waitForService(service, deadlineMs) {
     ready: false,
     detail: `No response on port ${service.port}.`,
     attempts: lastAttempts,
-    fix: "Start or restart the web stack with bun run dev:web, then rerun bun run dev:smoke:web.",
+    fix: "Start or restart the web stack with bun run dev -- web, then rerun bun run dev:smoke -- web.",
   };
 }
 
@@ -218,7 +218,7 @@ async function checkViteHmr(service, serviceResult, browser) {
       ready: false,
       url: serviceResult.url,
       detail: `Browser HMR probe failed: ${error.message}`,
-      fix: "Restart the web stack with bun run dev:web and rerun bun run dev:smoke:web.",
+      fix: "Restart the web stack with bun run dev -- web and rerun bun run dev:smoke -- web.",
     };
   } finally {
     await page.close();
@@ -247,7 +247,7 @@ async function checkViteHmr(service, serviceResult, browser) {
     ready: false,
     url: serviceResult.url,
     detail: failure || "Browser did not report a Vite HMR connection.",
-    fix: "Run the Vite dev server under real Node instead of Bun, then rerun bun run dev:smoke:web.",
+    fix: "Run the Vite dev server under real Node instead of Bun, then rerun bun run dev:smoke -- web.",
   };
 }
 
@@ -273,7 +273,7 @@ async function runHmrChecks(serviceResults) {
         level: "fail",
         ready: false,
         detail: `Unable to load Playwright for HMR smoke: ${error.message}`,
-        fix: "Install repo dependencies with bun install, then rerun bun run dev:smoke:web.",
+        fix: "Install repo dependencies with bun install, then rerun bun run dev:smoke -- web.",
       },
     ];
   }
@@ -294,7 +294,7 @@ async function runHmrChecks(serviceResults) {
         level: "fail",
         ready: false,
         detail: `Browser HMR smoke failed: ${error.message}`,
-        fix: "Ensure Playwright browsers are installed and rerun bun run dev:smoke:web.",
+        fix: "Ensure Playwright browsers are installed and rerun bun run dev:smoke -- web.",
       },
     ];
   } finally {
@@ -370,10 +370,10 @@ const payload = {
     timeoutMs: options.timeoutMs,
   },
   entrypoints: {
-    start: "bun run dev:web",
-    smoke: "bun run dev:smoke:web",
-    doctor: "bun run dev:doctor -- --profile web",
-    stop: "bun run dev:stack:stop",
+    start: "bun run dev -- web",
+    smoke: "bun run dev:smoke -- web",
+    doctor: "bun run dev:health -- --profile web",
+    stop: "bun run dev -- stop",
   },
 };
 

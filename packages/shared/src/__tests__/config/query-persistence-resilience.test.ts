@@ -1,18 +1,17 @@
 /** @vitest-environment jsdom */
 
-import { dehydrate, QueryClient } from "@tanstack/react-query";
+import { QueryClient } from "@tanstack/react-query";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { createQueryPersister, type PersistedClient } from "../../config/query-persistence";
+import { createQueryPersistence } from "../../config/query-persistence";
 
 const originalLocalStorage = Object.getOwnPropertyDescriptor(window, "localStorage");
 const originalIndexedDB = globalThis.indexedDB;
+const gardensKey = ["greengoods", "gardens", 42161] as const;
 
-function persistedClient(): PersistedClient {
-  const source = new QueryClient();
-  source.setQueryData(["greengoods", "gardens", 42161], [{ id: "garden-1" }]);
-  const client = { timestamp: Date.now(), buster: "boot", clientState: dehydrate(source) };
-  source.clear();
+function clientWithGardens(): QueryClient {
+  const client = new QueryClient();
+  client.setQueryData(gardensKey, [{ id: "garden-1" }]);
   return client;
 }
 
@@ -42,6 +41,20 @@ function throwingStorage(): Storage {
   } as unknown as Storage;
 }
 
+function memoryStorage(): Storage {
+  const memory = new Map<string, string>();
+  return {
+    get length() {
+      return memory.size;
+    },
+    clear: () => memory.clear(),
+    getItem: (key) => memory.get(key) ?? null,
+    key: (index) => [...memory.keys()][index] ?? null,
+    removeItem: (key) => void memory.delete(key),
+    setItem: (key, value) => void memory.set(key, value),
+  } as Storage;
+}
+
 describe("query persistence resilience", () => {
   afterEach(() => {
     if (originalLocalStorage) {
@@ -58,16 +71,25 @@ describe("query persistence resilience", () => {
     vi.restoreAllMocks();
   });
 
-  it("builds a working persister when merely reading window.localStorage throws", async () => {
+  it("builds a working reading cache when merely reading window.localStorage throws", async () => {
     blockLocalStorage();
     expect(() => window.localStorage).toThrow(/Access is denied/);
 
-    const persister = createQueryPersister({ dbName: `gg-boot-blocked-${crypto.randomUUID()}` });
-    const client = persistedClient();
-    await persister.persistClient(client);
-    await expect(persister.restoreClient()).resolves.toEqual(client);
-    await persister.removeClient();
-    await expect(persister.restoreClient()).resolves.toBeUndefined();
+    const persistence = createQueryPersistence({
+      dbName: `gg-boot-blocked-${crypto.randomUUID()}`,
+    });
+    const source = clientWithGardens();
+    await persistence.persistQuery(source, gardensKey);
+    const restored = new QueryClient();
+    await persistence.restore(restored);
+    expect(restored.getQueryData(gardensKey)).toEqual([{ id: "garden-1" }]);
+
+    await persistence.clear();
+    const emptied = new QueryClient();
+    await persistence.restore(emptied);
+    expect(emptied.getQueryData(gardensKey)).toBeUndefined();
+    source.clear();
+    restored.clear();
   });
 
   it("degrades to an in-memory session when IndexedDB and web storage both fail", async () => {
@@ -77,13 +99,46 @@ describe("query persistence resilience", () => {
       value: undefined,
     });
 
-    const persister = createQueryPersister({
+    const persistence = createQueryPersistence({
       dbName: "gg-boot-no-storage",
       storage: throwingStorage(),
     });
-    await expect(persister.persistClient(persistedClient())).resolves.toBeUndefined();
-    await expect(persister.restoreClient()).resolves.toBeUndefined();
-    await expect(persister.removeClient()).resolves.toBeUndefined();
+    const source = clientWithGardens();
+    await expect(persistence.persistQuery(source, gardensKey)).resolves.toBeUndefined();
+    await expect(persistence.restore(new QueryClient())).resolves.toBeUndefined();
+    await expect(persistence.gc()).resolves.toBe(0);
+    await expect(persistence.clear()).resolves.toBeUndefined();
+    source.clear();
+  });
+
+  it("falls back when IndexedDB fails asynchronously on its first operation", async () => {
+    const request = {
+      error: new DOMException("IndexedDB is blocked", "SecurityError"),
+    } as unknown as IDBOpenDBRequest;
+    Object.defineProperty(globalThis, "indexedDB", {
+      configurable: true,
+      writable: true,
+      value: {
+        open: () => {
+          queueMicrotask(() => request.onerror?.(new Event("error")));
+          return request;
+        },
+      } as unknown as IDBFactory,
+    });
+    const storage = memoryStorage();
+    const persistence = createQueryPersistence({
+      dbName: `gg-async-idb-failure-${crypto.randomUUID()}`,
+      storage,
+    });
+    const source = clientWithGardens();
+
+    await expect(persistence.persistQuery(source, gardensKey)).resolves.toBeUndefined();
+    expect(storage.length).toBe(1);
+    const restored = new QueryClient();
+    await persistence.restore(restored);
+    expect(restored.getQueryData(gardensKey)).toEqual([{ id: "garden-1" }]);
+    source.clear();
+    restored.clear();
   });
 
   it("keeps an explicitly supplied storage without touching window.localStorage", async () => {
@@ -93,19 +148,16 @@ describe("query persistence resilience", () => {
       writable: true,
       value: undefined,
     });
-    const memory = new Map<string, string>();
-    const storage = {
-      length: 0,
-      clear: () => memory.clear(),
-      getItem: (key: string) => memory.get(key) ?? null,
-      key: () => null,
-      removeItem: (key: string) => void memory.delete(key),
-      setItem: (key: string, value: string) => void memory.set(key, value),
-    } as unknown as Storage;
+    const storage = memoryStorage();
 
-    const persister = createQueryPersister({ dbName: "gg-boot-memory", storage });
-    const client = persistedClient();
-    await persister.persistClient(client);
-    await expect(persister.restoreClient()).resolves.toEqual(client);
+    const persistence = createQueryPersistence({ dbName: "gg-boot-memory", storage });
+    const source = clientWithGardens();
+    await persistence.persistQuery(source, gardensKey);
+    expect(storage.length).toBe(1);
+    const restored = new QueryClient();
+    await persistence.restore(restored);
+    expect(restored.getQueryData(gardensKey)).toEqual([{ id: "garden-1" }]);
+    source.clear();
+    restored.clear();
   });
 });

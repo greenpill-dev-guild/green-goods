@@ -1,3 +1,4 @@
+import { Button } from "@green-goods/shared/components/Button";
 import { cn } from "@green-goods/shared/utils/styles/cn";
 import type { PublicGardenSummary } from "@green-goods/shared/hooks/public/usePublicGardens";
 import type { PublicImpactEvidenceRecord } from "@green-goods/shared/public-contracts/public-impact";
@@ -338,17 +339,18 @@ export function PublicEvidenceDialog({ open, onClose, record, garden }: PublicEv
               })}
         </span>
         {citationHref ? (
-          <button
+          <Button
             type="button"
+            emphasis="tertiary"
             onClick={handleCite}
-            className="inline-flex items-center gap-1 border-b border-domain-agro/40 pb-0.5 text-sm font-medium text-domain-agro transition-colors hover:border-domain-agro"
+            trailingIcon={<span aria-hidden="true">→</span>}
+            className="text-domain-agro hover:text-domain-agro"
           >
             {formatMessage({
               id: "public.impact.dialog.cite",
               defaultMessage: "Cite this record",
             })}
-            <span aria-hidden="true">→</span>
-          </button>
+          </Button>
         ) : null}
       </div>
     </PublicRecordDrawer>

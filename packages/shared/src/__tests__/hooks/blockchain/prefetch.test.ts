@@ -167,3 +167,10 @@ describe("prefetch utilities", () => {
     });
   });
 });
+
+it("handles unattended warmup rejection while awaited loaders still reject", async () => {
+  mockEnsureQueryData.mockImplementation(() => Promise.reject(new Error("offline")));
+  ensureBaseLists();
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  await expect(ensureHomeData()).rejects.toThrow("offline");
+});

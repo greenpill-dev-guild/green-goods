@@ -1,7 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { getSafeMediaMetadata, getWorkMediaId } from "../../../modules/work/media-processing";
+import {
+  getSafeMediaMetadata,
+  getWorkMediaId,
+  isHeicFile,
+} from "../../../modules/work/media-processing";
 import type { AuthMode } from "../../../modules/auth/session";
-import { mediaResourceManager } from "../../../modules/job-queue/media-resource-manager";
 
 type MediaSurface = "media" | "review";
 type MediaJourneyEvent =
@@ -32,16 +35,11 @@ export function useWorkMediaLifecycle({
   useEffect(() => {
     brokenMediaIdsRef.current = brokenMediaIds;
   }, [brokenMediaIds]);
-  useEffect(
-    () => () => {
-      mediaResourceManager.cleanupUrls("work-draft");
-      mediaResourceManager.cleanupUrls("work-draft-video");
-    },
-    []
-  );
 
   const markMediaPreviewFailed = useCallback(
     (file: File, surface: MediaSurface) => {
+      // A HEIC photo waiting to convert has no preview to break; it shows a placeholder.
+      if (isHeicFile(file)) return;
       const mediaId = getWorkMediaId(file);
       if (brokenMediaIdsRef.current.has(mediaId)) return;
       const journeyId = ensureJourneyId();

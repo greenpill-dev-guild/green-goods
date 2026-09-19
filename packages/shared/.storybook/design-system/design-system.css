@@ -1,0 +1,369 @@
+/* ============================================================================
+ * DESIGN SYSTEM REVIEW PAGES (Storybook-only chrome)
+ *
+ * Page scaffolding, specimen frames, measurement readouts, and pass/fail chips
+ * for the `Design System/*` stories. Deliberately neutral and self-contained:
+ * these rules never reach a product component, and they do not read the
+ * surface tokens so the chrome looks identical in the app, website, and admin
+ * columns of the Overview page.
+ * ============================================================================ */
+
+.sb-ds-page {
+  /* Neutral chrome from the shared Warm Earth ramps, identical on every surface. */
+  --sb-ink: rgb(var(--neutral-800));
+  --sb-stone: rgb(var(--neutral-500));
+  --sb-hairline: rgb(var(--neutral-800) / 0.1);
+  --sb-surface: rgb(var(--neutral-0));
+  --sb-pass: rgb(var(--green-800));
+  --sb-pass-bg: rgb(var(--green-800) / 0.1);
+  --sb-fail: rgb(var(--red-700));
+  --sb-fail-bg: rgb(var(--red-700) / 0.1);
+  --sb-info-bg: rgb(var(--neutral-800) / 0.05);
+  max-width: 1320px;
+  margin: 0 auto;
+  color: var(--sb-ink);
+}
+
+[data-theme="dark"] .sb-ds-page {
+  --sb-ink: rgb(var(--neutral-50));
+  --sb-stone: rgb(var(--neutral-400));
+  --sb-hairline: rgb(var(--neutral-50) / 0.14);
+  --sb-surface: rgb(var(--neutral-900));
+  --sb-pass: rgb(var(--green-300));
+  --sb-pass-bg: rgb(var(--green-300) / 0.14);
+  --sb-fail: rgb(var(--red-300));
+  --sb-fail-bg: rgb(var(--red-300) / 0.14);
+  --sb-info-bg: rgb(var(--neutral-50) / 0.06);
+}
+
+.sb-ds-header {
+  padding: 0 0 20px;
+  border-bottom: 1px solid var(--sb-hairline);
+  margin-bottom: 28px;
+}
+
+.sb-ds-header h1 {
+  margin: 0 0 6px;
+  font: 600 26px/1.2 "Plus Jakarta Sans", Inter, system-ui, sans-serif;
+  letter-spacing: -0.01em;
+  color: var(--sb-ink);
+}
+
+.sb-ds-header p,
+.sb-ds-lede {
+  margin: 0;
+  max-width: 86ch;
+  font: 400 14px/1.55 Inter, system-ui, sans-serif;
+  color: var(--sb-stone);
+}
+
+.sb-ds-section {
+  margin: 0 0 36px;
+}
+
+.sb-ds-section > h2 {
+  margin: 0 0 8px;
+  font: 600 17px/1.3 "Plus Jakarta Sans", Inter, system-ui, sans-serif;
+  color: var(--sb-ink);
+}
+
+.sb-ds-section > .sb-ds-lede {
+  margin-bottom: 14px;
+}
+
+.sb-ds-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 14px;
+}
+
+/* Three surfaces side by side (Overview). Each column carries the scope wrapper
+ * that re-declares that surface's tokens. */
+.sb-ds-columns {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
+  align-items: start;
+}
+
+@media (max-width: 1100px) {
+  .sb-ds-columns {
+    grid-template-columns: 1fr;
+  }
+}
+
+.sb-ds-column {
+  border: 1px solid var(--sb-hairline);
+  border-radius: 12px;
+  background: var(--sb-surface);
+  padding: 16px;
+  min-width: 0;
+}
+
+.sb-ds-column > h3 {
+  margin: 0 0 4px;
+  font: 600 15px/1.3 "Plus Jakarta Sans", Inter, system-ui, sans-serif;
+  color: var(--sb-ink);
+}
+
+.sb-ds-column > .sb-ds-rules {
+  margin: 0 0 14px;
+  padding: 0;
+  list-style: none;
+  font: 400 12px/1.5 Inter, system-ui, sans-serif;
+  color: var(--sb-stone);
+}
+
+.sb-ds-column > .sb-ds-rules li::before {
+  content: "· ";
+}
+
+/* One measured component. */
+.sb-specimen {
+  margin: 0;
+  min-width: 200px;
+  max-width: 100%;
+  flex: 1 1 200px;
+  border: 1px solid var(--sb-hairline);
+  border-radius: 10px;
+  background: var(--sb-surface);
+  padding: 10px 12px 12px;
+}
+
+.sb-specimen[data-wide="true"] {
+  flex-basis: 100%;
+}
+
+.sb-specimen[data-failing] {
+  border-color: color-mix(in srgb, var(--sb-fail) 40%, var(--sb-hairline));
+}
+
+.sb-specimen-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 10px;
+  font: 600 12px/1.3 Inter, system-ui, sans-serif;
+  color: var(--sb-ink);
+}
+
+.sb-verdict {
+  font: 600 10px/1 Inter, system-ui, sans-serif;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 4px 7px;
+  border-radius: 999px;
+}
+
+.sb-verdict-pass {
+  color: var(--sb-pass);
+  background: var(--sb-pass-bg);
+}
+
+.sb-verdict-fail {
+  color: var(--sb-fail);
+  background: var(--sb-fail-bg);
+}
+
+.sb-specimen-stage {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  min-height: 48px;
+  padding: 6px 0;
+}
+
+.sb-specimen-readout {
+  margin-top: 8px;
+  font: 500 11px/1.4 ui-monospace, SFMono-Regular, Menlo, monospace;
+  color: var(--sb-stone);
+}
+
+.sb-checks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.sb-check {
+  font: 500 10.5px/1.2 Inter, system-ui, sans-serif;
+  padding: 3px 7px;
+  border-radius: 6px;
+  white-space: nowrap;
+}
+
+.sb-check b {
+  font-weight: 600;
+  margin-right: 2px;
+}
+
+.sb-check i {
+  font-style: normal;
+  opacity: 0.85;
+}
+
+.sb-check-pass {
+  color: var(--sb-pass);
+  background: var(--sb-pass-bg);
+}
+
+.sb-check-fail {
+  color: var(--sb-fail);
+  background: var(--sb-fail-bg);
+}
+
+.sb-specimen-note {
+  margin-top: 8px;
+  font: 400 11px/1.45 Inter, system-ui, sans-serif;
+  color: var(--sb-stone);
+}
+
+.sb-specimen-note code,
+.sb-ds-lede code,
+.sb-ds-note code {
+  font: 500 10.5px/1.2 ui-monospace, SFMono-Regular, Menlo, monospace;
+  padding: 1px 4px;
+  border-radius: 4px;
+  background: var(--sb-info-bg);
+}
+
+/* Callouts: a finding, a decision, a note. */
+.sb-ds-note {
+  border-left: 3px solid var(--sb-hairline);
+  padding: 8px 12px;
+  margin: 0 0 12px;
+  font: 400 13px/1.5 Inter, system-ui, sans-serif;
+  color: var(--sb-ink);
+  background: var(--sb-info-bg);
+  border-radius: 0 8px 8px 0;
+}
+
+.sb-ds-note[data-tone="fail"] {
+  border-left-color: var(--sb-fail);
+}
+
+.sb-ds-note[data-tone="pass"] {
+  border-left-color: var(--sb-pass);
+}
+
+/* Decision cards: options side by side with one specimen each. */
+.sb-ds-decision {
+  border: 1px solid var(--sb-hairline);
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 18px;
+  background: var(--sb-surface);
+}
+
+.sb-ds-decision > h3 {
+  margin: 0 0 4px;
+  font: 600 15px/1.3 "Plus Jakarta Sans", Inter, system-ui, sans-serif;
+  color: var(--sb-ink);
+}
+
+.sb-ds-decision > p {
+  margin: 0 0 12px;
+  font: 400 13px/1.5 Inter, system-ui, sans-serif;
+  color: var(--sb-stone);
+  max-width: 90ch;
+}
+
+.sb-ds-options {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+}
+
+.sb-ds-option {
+  border: 1px dashed var(--sb-hairline);
+  border-radius: 10px;
+  padding: 10px 12px;
+}
+
+.sb-ds-option > h4 {
+  margin: 0 0 8px;
+  font: 600 12px/1.3 Inter, system-ui, sans-serif;
+  color: var(--sb-ink);
+}
+
+.sb-ds-option[data-current="true"] > h4::after {
+  content: " · shipped today";
+  font-weight: 500;
+  color: var(--sb-stone);
+}
+
+/* Token tables (foundations). */
+.sb-token-table {
+  width: 100%;
+  border-collapse: collapse;
+  font: 400 12.5px/1.4 Inter, system-ui, sans-serif;
+  color: var(--sb-ink);
+}
+
+.sb-token-table th,
+.sb-token-table td {
+  text-align: left;
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--sb-hairline);
+  vertical-align: top;
+}
+
+.sb-token-table th {
+  font-weight: 600;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--sb-stone);
+}
+
+.sb-token-table code {
+  font: 500 11.5px/1.3 ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+.sb-token-table tr[data-pass="false"] td:nth-child(2) code {
+  color: var(--sb-fail);
+}
+
+.sb-token-table tr[data-pass="true"] td:nth-child(2) code {
+  color: var(--sb-pass);
+}
+
+/* Visible hit-area outline: the pseudo-element boxes the shared family and the
+   admin hit target lay out for the finger. Review aid only. */
+.sb-show-hit .gg-button[data-size]::after,
+.sb-show-hit .gg-icon-button::after,
+.sb-show-hit .gg-chip::after,
+.sb-show-hit .gg-switch::after,
+.sb-show-hit .admin-hit-target::before,
+.sb-show-hit .admin-hit-target-lg::before {
+  outline: 1px dashed rgb(var(--red-700) / 0.55);
+  outline-offset: 0;
+}
+
+.sb-ds-link {
+  font: 500 12px/1.3 Inter, system-ui, sans-serif;
+  color: var(--sb-pass);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.sb-ds-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+  margin: 0 0 14px;
+}
+
+/* Corner swatches (foundations). */
+.sb-corner-swatch {
+  width: 88px;
+  height: 56px;
+  border: 1px solid var(--sb-hairline);
+  background: var(--sb-info-bg);
+}

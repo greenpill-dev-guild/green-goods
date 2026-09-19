@@ -14,12 +14,23 @@ import type { Job } from "../../types/job-queue";
 import { logger } from "../app/logger";
 import { buildCommitmentEvidenceDocument, evidenceMediaKind } from "../commitment-pooling/evidence";
 import type { EvidenceJobPayload } from "../commitment-pooling/jobs";
+import { identifyWorkFile } from "../work/work-attachments";
 import { jobQueueDB } from "./db";
+import { convertQueuedHeicMedia } from "./job-media-conversion";
 import { MAX_RETRIES } from "./queue-policy";
 
 export type PublishOutcome =
   | { published: true }
   | { published: false; reason: string; terminal?: boolean };
+
+/**
+ * CIDs of the files already pinned, keyed by content hash. Kept in `meta`, not
+ * the payload: a repeated admission compares payloads, and progress is not part
+ * of what the steward composed.
+ */
+interface EvidenceUploads {
+  files: Record<string, { cid: string }>;
+}
 
 /**
  * Media uploads first, each becoming a CID the document names; then the
@@ -36,29 +47,48 @@ export async function publishPendingEvidence(jobId: string, job: Job): Promise<P
   const payload = job.payload as EvidenceJobPayload;
   if (payload.cid) return { published: true };
 
+  // A photo picked before the decoder could load becomes a JPEG before anything
+  // uploads. Waiting on the decoder is not a failed publish, so no attempt is spent.
+  const conversion = await convertQueuedHeicMedia(job);
+  if (conversion.status !== "ready") {
+    return {
+      published: false,
+      reason:
+        conversion.status === "pending" ? "photo-conversion-pending" : "photo-needs-attention",
+    };
+  }
+
   try {
     const { uploadFileToIPFS, uploadJSONToIPFS } = await import("../data/ipfs/upload");
     const files = (await jobQueueDB.getImagesForJob(jobId)).map((image) => image.file);
     const audioFiles = files.filter((file) => file.type.startsWith("audio/"));
     const mediaFiles = files.filter((file) => !file.type.startsWith("audio/"));
     const context = { source: "commitment-evidence", gardenAddress: payload.gardenAddress };
+    const uploads: EvidenceUploads = {
+      files: { ...(job.meta?.evidenceUploads as EvidenceUploads | undefined)?.files },
+    };
+    // Each CID is written back the moment it exists, so a retry uploads only
+    // the files that did not make it.
+    const pin = async (file: File, fileIndex: number, totalFiles: number) => {
+      const { contentHash } = await identifyWorkFile(file);
+      const pinned = uploads.files[contentHash];
+      if (pinned) return pinned.cid;
+      const { cid } = await uploadFileToIPFS(file, { ...context, fileIndex, totalFiles });
+      uploads.files[contentHash] = { cid };
+      // Mutated, not replaced: the caller rewrites this job with the meta it holds.
+      job.meta = { ...(job.meta ?? {}), evidenceUploads: uploads };
+      await jobQueueDB.updateJob({ ...job, payload });
+      return cid;
+    };
 
     const media = [];
     for (const [index, file] of mediaFiles.entries()) {
-      const { cid } = await uploadFileToIPFS(file, {
-        ...context,
-        fileIndex: index,
-        totalFiles: mediaFiles.length,
-      });
+      const cid = await pin(file, index, mediaFiles.length);
       media.push({ cid, mime: file.type, kind: evidenceMediaKind(file.type) });
     }
     const audio = [];
     for (const [index, file] of audioFiles.entries()) {
-      const { cid } = await uploadFileToIPFS(file, {
-        ...context,
-        fileIndex: index,
-        totalFiles: audioFiles.length,
-      });
+      const cid = await pin(file, index, audioFiles.length);
       audio.push({ cid, mime: file.type });
     }
 

@@ -66,6 +66,7 @@ export function PoolCreateEntry({ onChoose }: PoolCreateEntryProps) {
           <>
             <button
               type="button"
+              data-pressable="fab"
               // The choices sit above the toggle in the DOM, so Tab from the
               // toggle would leave the menu entirely. Opening moves focus to
               // the first choice; Escape and the toggle return it.
@@ -77,6 +78,7 @@ export function PoolCreateEntry({ onChoose }: PoolCreateEntryProps) {
             </button>
             <button
               type="button"
+              data-pressable="fab"
               onClick={() => onChoose("request")}
               className="rounded-full bg-bg-white-0 px-5 py-3 text-sm font-medium text-text-strong-950 shadow-md tap-target-lg"
             >
@@ -87,6 +89,7 @@ export function PoolCreateEntry({ onChoose }: PoolCreateEntryProps) {
         <button
           ref={entryRef}
           type="button"
+          data-pressable="fab"
           aria-expanded={open}
           aria-label={formatMessage({
             id: open ? "app.pool.create.close" : "app.pool.create.open",

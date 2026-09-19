@@ -1,10 +1,11 @@
-import type { Job, SerializedFileData } from "../../types/job-queue";
+import { identifyWorkFile } from "../work/work-attachments";
+import type { Job, SerializedFileData, JobQueueDBImage } from "../../types/job-queue";
 import { normalizeToFile } from "../../utils/app/normalizeToFile";
 import { buildFileMetadata, serializeFile } from "../../utils/storage/file-serialization";
 import { addBreadcrumb } from "../app/error-tracking";
 import { trackPrivateQueueEvent } from "./job-analytics";
 
-export async function serializeJobMedia(
+async function serializeJobMedia(
   id: string,
   job: Pick<Job, "kind" | "payload">
 ): Promise<Array<{ file: File; fileData: SerializedFileData }>> {
@@ -53,4 +54,44 @@ export async function serializeJobMedia(
     total_size: serializedFiles.reduce((sum, entry) => sum + entry.file.size, 0),
   });
   return serializedFiles;
+}
+
+export async function createJobMediaRows(
+  id: string,
+  job: Pick<Job, "kind" | "payload">,
+  timestamp: number
+): Promise<JobQueueDBImage[]> {
+  const files = await serializeJobMedia(id, job);
+  const rows: JobQueueDBImage[] = [];
+  for (const [order, { file, fileData }] of files.entries()) {
+    const identity = await identifyWorkFile(file);
+    rows.push({
+      id: crypto.randomUUID(),
+      jobId: id,
+      attachmentId: identity.id,
+      contentHash: identity.contentHash,
+      fileData,
+      order,
+      createdAt: timestamp,
+    });
+  }
+  return rows;
+}
+
+export function serializeJobPayload(job: Pick<Job, "kind" | "payload">): unknown {
+  if (job.kind !== "work" || !job.payload || typeof job.payload !== "object") return job.payload;
+  const { media: _media, audioNotes: _audio, ...payload } = job.payload as Record<string, unknown>;
+  return payload;
+}
+export function findExistingWorkJob(jobs: Job[], incoming: Job): Job | undefined {
+  if (incoming.kind !== "work") return undefined;
+  const id = (incoming.payload as { clientWorkId?: string })?.clientWorkId;
+  return id
+    ? jobs.find(
+        (job) =>
+          job.kind === "work" &&
+          job.chainId === incoming.chainId &&
+          (job.payload as { clientWorkId?: string })?.clientWorkId === id
+      )
+    : undefined;
 }

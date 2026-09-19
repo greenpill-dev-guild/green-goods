@@ -1,3 +1,7 @@
+import { useWorkDraftRetirement } from "../../work/useWorkDraftRetirement";
+import { useUIStore } from "../../../stores/useUIStore";
+import { isHeicFile, roundWorkLocation } from "../../../modules/work/work-attachments";
+import { getWorkMediaId } from "../../../modules/work/media-processing";
 import type { Address } from "../../../types/domain";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
@@ -5,7 +9,6 @@ import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { toastService } from "../../../components/Toast/toast.service";
 import { DEFAULT_CHAIN_ID } from "../../../config/default-chain";
 import { logger } from "../../../modules/app/logger";
-import { track } from "../../../modules/app/posthog";
 import {
   hasWorkLinkIntentParams,
   parseWorkLinkIntent,
@@ -21,13 +24,15 @@ import { WorkTab } from "../../../stores/workFlowTypes";
 import { findActionByUID } from "../../../utils/action/parsers";
 import { parseContractError } from "../../../utils/errors/contract-errors";
 import { useOffline } from "../../app/useOffline";
+import { scrollAppToTop } from "../../app/useScrollToTop";
 import { useUser } from "../../auth/useUser";
 import { useCommitmentJobs } from "../../commitment-pooling/useCommitmentJobs";
 import { useWorkLinkChoices } from "../../commitment-pooling/useWorkLinkChoices";
 import { useJoinGarden } from "../../garden/useJoinGarden";
-import { useAudioRecording } from "../../utils/useAudioRecording";
+import { useWorkAudioRecording } from "../../work/useWorkAudioRecording";
+import { useDeferredHeicConversion } from "../../work/useDeferredHeicConversion";
 import { useTimeout } from "../../utils/useTimeout";
-import { useDraftAutoSave } from "../../work/useDraftAutoSave";
+import { useDraftAutoSave, useDraftSaveStatus } from "../../work/useDraftAutoSave";
 import { useDraftResume } from "../../work/useDraftResume";
 import { useWorkMediaLifecycle } from "./useWorkMediaLifecycle";
 import { useWorkSubmissionPresentationModel } from "./useWorkSubmissionPresentationModel";
@@ -36,7 +41,6 @@ type MediaJourneyEvent =
   | "work_media_preview_failed"
   | "work_media_removed"
   | "work_broken_media_removed";
-
 type LinkIntentStatus = "none" | "validating" | "valid" | "invalid" | "unavailable";
 
 interface PendingLinkRecovery {
@@ -86,7 +90,7 @@ export function useWorkSubmissionFlowController({
     (state) => state.ensureWorkSubmissionJourneyId
   );
   const setGardenAddressStable = useWorkFlowStore((state) => state.setGardenAddress);
-  const audioNotes = useWorkFlowStore((state) => state.audioNotes);
+  const tags = useWorkFlowStore((state) => state.tags);
   const setAudioNotes = useWorkFlowStore((state) => state.setAudioNotes);
   const { isOnline, pendingCount, syncStatus } = useOffline();
   const { set: scheduleNavigation } = useTimeout();
@@ -102,6 +106,12 @@ export function useWorkSubmissionFlowController({
     setGardenAddress,
   } = selection;
   const { workMutation, images, setImages, setValue, feedback, timeSpentMinutes } = form;
+  const {
+    feedback: _feedback,
+    timeSpentMinutes: _timeSpentMinutes,
+    location: formLocation,
+    ...details
+  } = form.values;
   const commitmentJobs = useCommitmentJobs({ chainId: DEFAULT_CHAIN_ID });
   const parsedLinkIntent = useMemo(() => parseWorkLinkIntent(searchParams), [searchParams]);
   const hasLinkIntentParams = useMemo(() => hasWorkLinkIntentParams(searchParams), [searchParams]);
@@ -153,20 +163,45 @@ export function useWorkSubmissionFlowController({
     [linkChoices.choices, searchParams, setGardenAddressStable, setSearchParams]
   );
 
-  const audio = useAudioRecording({
-    onRecordingComplete: (file) => {
-      const current = useWorkFlowStore.getState().audioNotes;
-      setAudioNotes([...current, file]);
-      track(
-        "audio_note_recorded",
-        { duration: "unknown", noteIndex: current.length },
-        { includeSessionId: false }
-      );
+  const audio = useWorkAudioRecording();
+  const { audioNotes } = audio;
+  const {
+    showDraftSheet,
+    setShowDraftSheet,
+    handleContinueDraft,
+    handleStartFresh,
+    isResumingFromUrl,
+    clearActiveDraft,
+    legacyRecovery,
+    retryHydration,
+  } = useDraftResume({
+    formState: {
+      images,
+      gardenAddress,
+      actionUID,
+      feedback,
+      timeSpentMinutes: timeSpentMinutes ?? 0,
     },
+    isOnIntroTab: activeTab === WorkTab.Intro,
+    searchParams,
+    setSearchParams,
+    restoreForm: form.reset,
   });
+  const [retirementAttempt, setRetirementAttempt] = useState(0);
   const { saveOnExit } = useDraftAutoSave(
-    { gardenAddress, actionUID, feedback, timeSpentMinutes },
-    images
+    {
+      gardenAddress,
+      actionUID,
+      feedback,
+      timeSpentMinutes,
+      details,
+      audioNotes,
+      tags,
+      location: roundWorkLocation(formLocation),
+      currentStep: activeTab.toLowerCase() as "intro" | "media" | "details" | "review",
+    },
+    images,
+    { enabled: !legacyRecovery }
   );
 
   useShareTargetIntake({
@@ -178,19 +213,6 @@ export function useWorkSubmissionFlowController({
     gardenAddress,
     actionUID,
   });
-  const { showDraftDialog, handleContinueDraft, handleStartFresh, clearActiveDraft } =
-    useDraftResume({
-      formState: {
-        images,
-        gardenAddress,
-        actionUID,
-        feedback,
-        timeSpentMinutes: timeSpentMinutes ?? 0,
-      },
-      isOnIntroTab: activeTab === WorkTab.Intro,
-      searchParams,
-      setSearchParams,
-    });
 
   useEffect(() => {
     ensureWorkSubmissionJourneyId();
@@ -204,29 +226,15 @@ export function useWorkSubmissionFlowController({
     const state = location.state as { gardenId?: string } | null;
     if (state?.gardenId && gardens.length > 0) setGardenAddressStable(state.gardenId as Address);
   }, [gardens.length, location.state, setGardenAddressStable]);
-  useEffect(() => {
-    if (!submissionCompleted || isSchedulingDependentLink || pendingLinkRecovery) return;
-    clearActiveDraft().catch((error) => {
-      logger.error("Failed to clear draft after submission", { error, source: "Garden" });
-    });
-    return scheduleNavigation(() => {
-      navigate(linkIntent?.returnTo ?? homeRoute, { replace: true, viewTransition: true });
-      requestAnimationFrame(() => {
-        useWorkFlowStore.getState().reset();
-        form.reset();
-      });
-    }, 800);
-  }, [
+  useWorkDraftRetirement({
+    completed: submissionCompleted,
+    paused: isSchedulingDependentLink || !!pendingLinkRecovery,
+    attempt: retirementAttempt,
     clearActiveDraft,
-    form,
-    homeRoute,
-    linkIntent,
-    isSchedulingDependentLink,
-    pendingLinkRecovery,
-    navigate,
-    scheduleNavigation,
-    submissionCompleted,
-  ]);
+    schedule: scheduleNavigation,
+    navigate: () =>
+      navigate(linkIntent?.returnTo ?? homeRoute, { replace: true, viewTransition: true }),
+  });
 
   const { detailInputs, detailsConfig, mediaConfig, minRequired, reviewConfig, reviewData } =
     useWorkSubmissionPresentationModel({
@@ -243,6 +251,13 @@ export function useWorkSubmissionFlowController({
     ensureJourneyId: ensureWorkSubmissionJourneyId,
     setImages,
     trackEvent: trackMediaJourneyEvent,
+  });
+  const heic = useDeferredHeicConversion({
+    files: images,
+    replace: (mediaId, converted) =>
+      setImages((files) =>
+        files.map((file) => (getWorkMediaId(file) === mediaId ? converted : file))
+      ),
   });
   const joinCommunityGarden = useCallback(async () => {
     if (!joinableCommunityGarden?.id) return;
@@ -286,8 +301,13 @@ export function useWorkSubmissionFlowController({
     }
   }, [intl, join, joinableCommunityGarden, navigate, profileRoute, setGardenAddress]);
 
-  const changeTab = (tab: WorkTab) => {
-    document.getElementById("app-scroll")?.scrollTo({ top: 0, behavior: "instant" });
+  const changeTab = async (tab: WorkTab) => {
+    try {
+      await saveOnExit();
+    } catch {
+      return;
+    }
+    scrollAppToTop("instant");
     setActiveTab(tab);
   };
   const submit = async () => {
@@ -296,6 +316,7 @@ export function useWorkSubmissionFlowController({
     setLinkSchedulingSucceeded(false);
     if (linkIntent) setIsSchedulingDependentLink(true);
     try {
+      await saveOnExit();
       workMutation.clearLastSubmissionOutcome();
       await form.uploadWork();
       const outcome = workMutation.getLastSubmissionOutcome();
@@ -360,33 +381,38 @@ export function useWorkSubmissionFlowController({
     if (!isOnline) {
       return intl.formatMessage({
         id: "app.offline.status.went.offline",
-        defaultMessage: "You're offline. Your work will sync when you're back online.",
+        defaultMessage:
+          "You're offline. Your work stays on this device until you upload it from Your Work.",
       });
     }
-    if (syncStatus === "syncing" || workMutation.isPending) {
-      return intl.formatMessage(
-        { id: "app.syncBar.syncing", defaultMessage: "Syncing {count} items..." },
-        { count: Math.max(pendingCount, 1) }
-      );
-    }
+    if (syncStatus === "syncing" || workMutation.isPending) return null;
     return pendingCount > 0
       ? intl.formatMessage(
-          { id: "app.syncBar.pendingOnline", defaultMessage: "{count} items waiting to sync" },
+          {
+            id: "app.syncBar.pendingOnline",
+            defaultMessage: "{count, plural, one {# item} other {# items}} waiting to upload",
+          },
           { count: pendingCount }
         )
       : null;
   }, [activeTab, intl, isOnline, pendingCount, syncStatus, workMutation.isPending]);
-  const canProceed = canProceedWithWorkSubmission({
-    tab: activeTab,
-    gardenAddress,
-    actionUID,
-    imageCount: images.length,
-    minRequired,
-    isValid: form.state.isValid,
-    isSubmitting: form.state.isSubmitting,
-    isMutationPending: workMutation.isPending,
-    bypassMediaRequirement: import.meta.env.VITE_DEBUG_MODE === "true",
-  });
+  const draftStatus = useDraftSaveStatus();
+  const canProceed =
+    !isResumingFromUrl &&
+    !legacyRecovery &&
+    (draftStatus.missingAttachments?.length ?? 0) === 0 &&
+    canProceedWithWorkSubmission({
+      tab: activeTab,
+      gardenAddress,
+      actionUID,
+      imageCount: images.filter((file) => file.type.startsWith("image/") || isHeicFile(file))
+        .length,
+      minRequired,
+      isValid: form.state.isValid,
+      isSubmitting: form.state.isSubmitting,
+      isMutationPending: workMutation.isPending,
+      bypassMediaRequirement: import.meta.env.VITE_DEBUG_MODE === "true",
+    });
 
   return {
     ...selection,
@@ -399,17 +425,33 @@ export function useWorkSubmissionFlowController({
     detailsConfig,
     detailInputs,
     draft: {
-      showDraftDialog,
+      ...draftStatus,
+      legacyRecovery,
+      retry: async () => {
+        if (submissionCompleted) setRetirementAttempt((attempt) => attempt + 1);
+        else if (!useWorkFlowStore.getState().draftHydrated) retryHydration();
+        else await saveOnExit();
+      },
+      showDraftSheet,
+      close: () => setShowDraftSheet(false),
+      recover: () => setShowDraftSheet(true),
+      manage: () => {
+        useUIStore.getState().openWorkDashboard("drafts");
+        navigate(homeRoute);
+      },
       handleContinueDraft,
       startFresh: async () => {
+        const scope = useWorkFlowStore.getState().draftScope;
         await handleStartFresh();
-        media.resetBrokenMedia();
-        useWorkFlowStore.getState().reset();
-        form.reset();
+        if (scope === useWorkFlowStore.getState().draftScope) media.resetBrokenMedia();
       },
     },
     exit: async () => {
-      await saveOnExit();
+      try {
+        await saveOnExit();
+      } catch {
+        return;
+      }
       navigate(homeRoute, { viewTransition: true });
     },
     isJoiningCommunityGarden:
@@ -433,6 +475,8 @@ export function useWorkSubmissionFlowController({
     hasPendingLinkRecovery: pendingLinkRecovery !== null,
     retryLinkOnly,
     submissionOutcome: workMutation.lastSubmissionOutcome,
+    heicStateOf: heic.stateOf,
+    retryHeicConversion: heic.retry,
     markMediaPreviewFailed: media.markMediaPreviewFailed,
     mediaClickRef: media.mediaClickRef,
     mediaConfig,
@@ -444,7 +488,8 @@ export function useWorkSubmissionFlowController({
     reviewConfig,
     reviewData,
     setAudioNotes,
-    showSkeleton: selection.isLoading && actions.length === 0 && gardens.length === 0,
+    showSkeleton:
+      isResumingFromUrl || (selection.isLoading && actions.length === 0 && gardens.length === 0),
     submissionCompleted,
     submit,
     toggleAudioRecording: audio.toggle,

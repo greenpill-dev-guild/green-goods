@@ -131,8 +131,8 @@ describe("PublicGetInTouch", () => {
 
     const scheduleLink = screen.getByRole("link", { name: /schedule a call/i });
     expect(scheduleLink).toHaveAttribute("href", "https://calendar.example/schedule");
-    expect(scheduleLink).toHaveClass("whitespace-nowrap");
-    expect(scheduleLink).toHaveClass("shrink-0");
+    // The shared Button keeps the label on one line; the link must not shrink.
+    expect(scheduleLink).toHaveClass("gg-button", "shrink-0");
   });
 
   it("does not render schedule-a-call as a separate card", () => {

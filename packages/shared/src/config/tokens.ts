@@ -1,16 +1,16 @@
 /**
  * Sendable-token registry for the client PWA "Send" flow.
  *
- * V1 sends ERC-20 tokens only (native ETH is deferred). The hero token is
- * GOODS — the Green Goods community token, staked to join a garden community —
- * whose address is resolved at runtime from `GardensModule.goodsToken()` (it is
- * not a static entry in `deployments/*.json`). The remaining tokens (USDC, DAI,
+ * V1 sends ERC-20 tokens only (native ETH is deferred). GOODS is hidden until
+ * governance is explicitly enabled. When enabled, its address is resolved from
+ * `GardensModule.goodsToken()`. The ordinary tokens (USDC, DAI,
  * WETH, and GoodDollar where available) are sourced from the existing cookie-jar
  * campaign asset registry so their verified addresses live in exactly one place.
  *
  * @module config/tokens
  */
 
+import { GOVERNANCE_ENABLED } from "./app";
 import { getCampaignCookieJarPayoutAssets } from "../utils/cookie-jar-campaign";
 import { isZeroAddress } from "../utils/blockchain/address";
 import type { Address } from "../types/domain";
@@ -71,7 +71,7 @@ export function getStablecoinSendableTokens(chainId: number): SendableToken[] {
 /**
  * Build the full sendable-token list given an already-resolved GOODS address.
  *
- * GOODS leads (hero token) when present and non-zero; the curated stablecoins
+ * GOODS leads only when governance is enabled and its address is non-zero; stablecoins
  * follow. Tokens with no address on this chain (e.g. GoodDollar on Arbitrum) are
  * dropped — the Send flow only offers tokens you can actually transfer. Supported
  * tokens are de-duped by lowercased address so a future address overlap can never
@@ -83,7 +83,7 @@ export function buildSendableTokens(
 ): SendableToken[] {
   const tokens: SendableToken[] = [];
 
-  if (goodsAddress && !isZeroAddress(goodsAddress)) {
+  if (GOVERNANCE_ENABLED && goodsAddress && !isZeroAddress(goodsAddress)) {
     tokens.push({ ...GOODS_TOKEN_META, chainId, address: goodsAddress, supported: true });
   }
 
@@ -108,4 +108,9 @@ export function isCeloGoodDollar(token: SendableToken): boolean {
     token.chainId === 42220 &&
     token.address.toLowerCase() === CELO_G_DOLLAR_TOKEN.address.toLowerCase()
   );
+}
+
+/** Also applied to cached balances and in-progress sends across a rollout. */
+export function isSendableTokenAvailable(token: SendableToken): boolean {
+  return token.supported && (GOVERNANCE_ENABLED || !token.confersGovernance);
 }

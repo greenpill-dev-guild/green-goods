@@ -4,6 +4,8 @@
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createMockTransactionSender } from "@green-goods/shared/testing";
+import type { ApprovalJobPayload, WorkJobPayload } from "../../types/job-queue";
+import { forgetWorkBroadcast } from "../../modules/work/work-confirmation";
 
 // Ensure fake-indexeddb is loaded before job-queue module
 import "fake-indexeddb/auto";
@@ -25,6 +27,10 @@ vi.mock("../../modules/app/posthog", () => ({
 }));
 
 // Mock the simulate module (dynamically imported by job queue)
+// No stranded send in these tests ever landed on-chain.
+vi.mock("../../modules/data/eas-sent-attestations", () => ({
+  getWorkSubmissionsSince: vi.fn(async () => []),
+}));
 vi.mock("../../modules/work/simulate", () => ({
   simulateWorkSubmission: vi.fn(async () => undefined),
 }));
@@ -34,6 +40,12 @@ vi.mock("../../utils/eas/encoders", () => ({
   encodeWorkData: vi.fn(async () => "0xencodedworkdata"),
   encodeWorkApprovalData: vi.fn(() => "0xencodedapprovaldata"),
 }));
+
+// The HEIC decoder is a lazy chunk; tests decide whether it can convert.
+const heicConversion = vi.hoisted(() => ({
+  convertHeicPhoto: vi.fn(async (): Promise<unknown> => ({ status: "unavailable" })),
+}));
+vi.mock("../../modules/work/heic-conversion", () => heicConversion);
 
 // Mock the EAS config
 vi.mock("../../config/blockchain", async (importOriginal) => {
@@ -105,6 +117,8 @@ describe("modules/job-queue", () => {
   });
 
   afterEach(async () => {
+    // A test that throws before its own mockRestore must not leave Date.now mocked.
+    vi.restoreAllMocks();
     const jobs = await jobQueue.getJobs(TEST_USER_ADDRESS);
     for (const job of jobs) {
       await jobQueueDB.deleteJob(job.id);
@@ -176,6 +190,397 @@ describe("modules/job-queue", () => {
     expect(mockSender.sendContractCall).toHaveBeenCalledTimes(1);
     const stats = await jobQueue.getStats(TEST_USER_ADDRESS);
     expect(stats.pending).toBe(0);
+  });
+
+  it("keeps work with a HEIC photo queued until the photo can convert, then sends a JPEG", async () => {
+    const heic = createMockFile("heic-bytes", "garden.heic", "image/heic");
+    const jobId = await jobQueue.addJob(
+      "work",
+      { title: "Test", actionUID: 42, gardenAddress: "0x123", feedback: "ok", media: [heic] },
+      TEST_USER_ADDRESS,
+      { chainId: 11155111 }
+    );
+    const mockSender = createMockTransactionSender();
+
+    const waiting = await jobQueue.processJob(jobId, { transactionSender: mockSender });
+
+    expect(waiting).toMatchObject({
+      success: false,
+      skipped: true,
+      error: "photo-conversion-pending",
+    });
+    const queued = await jobQueueDB.getJob(jobId);
+    expect(queued?.attempts).toBe(0);
+    expect(queued?.lastError).toBeUndefined();
+    expect(encodeWorkData).not.toHaveBeenCalled();
+    expect(mockSender.sendContractCall).not.toHaveBeenCalled();
+
+    heicConversion.convertHeicPhoto.mockResolvedValueOnce({
+      status: "converted",
+      file: createMockFile("jpeg-bytes", "garden.jpg", "image/jpeg"),
+    });
+    // A waiting job is re-probed no sooner than the queue's throttle allows.
+    const later = Date.now() + 60_000;
+    vi.spyOn(Date, "now").mockReturnValue(later);
+    const sent = await jobQueue.processJob(jobId, { transactionSender: mockSender });
+    vi.mocked(Date.now).mockRestore();
+
+    expect(sent).toMatchObject({ success: true });
+    const [encoded] = vi.mocked(encodeWorkData).mock.calls[0];
+    expect(encoded.media.map((file: File) => file.type)).toEqual(["image/jpeg"]);
+  });
+
+  it("sends nothing while the connection is unconfirmed, even when asked", async () => {
+    const { connectivityStore } = await import("../../stores/connectivity");
+    const confirm = vi.spyOn(connectivityStore, "confirmOnline").mockResolvedValue(false);
+    const status = vi
+      .spyOn(connectivityStore, "getStatusSnapshot")
+      .mockReturnValue({ state: "degraded" });
+    const jobId = await jobQueue.addJob(
+      "work",
+      { title: "Test", actionUID: 42, gardenAddress: "0x123", feedback: "ok" },
+      TEST_USER_ADDRESS,
+      { chainId: 11155111 }
+    );
+    const sender = createMockTransactionSender();
+
+    try {
+      await expect(
+        jobQueue.processJob(jobId, { transactionSender: sender, explicit: true })
+      ).resolves.toEqual({ success: false, error: "connection-unconfirmed", skipped: true });
+      // The store rechecks an unstable connection itself; a flush must not probe per job.
+      expect(confirm).not.toHaveBeenCalled();
+    } finally {
+      confirm.mockRestore();
+      status.mockRestore();
+    }
+    expect(sender.sendContractCall).not.toHaveBeenCalled();
+  });
+
+  it("probes a connection whose last answer is stale before sending", async () => {
+    const { connectivityStore } = await import("../../stores/connectivity");
+    const confirm = vi.spyOn(connectivityStore, "confirmOnline").mockResolvedValue(false);
+    const status = vi
+      .spyOn(connectivityStore, "getStatusSnapshot")
+      .mockReturnValue({ state: "online", checkedAt: Date.now() - 120_000 });
+    const jobId = await jobQueue.addJob(
+      "work",
+      { title: "Test", actionUID: 42, gardenAddress: "0x123", feedback: "ok" },
+      TEST_USER_ADDRESS,
+      { chainId: 11155111 }
+    );
+    const sender = createMockTransactionSender();
+
+    try {
+      await expect(
+        jobQueue.processJob(jobId, { transactionSender: sender, explicit: true })
+      ).resolves.toEqual({ success: false, error: "connection-unconfirmed", skipped: true });
+      expect(confirm).toHaveBeenCalledOnce();
+      expect(confirm).toHaveBeenCalledWith({ maxAgeMs: 60_000 });
+    } finally {
+      confirm.mockRestore();
+      status.mockRestore();
+    }
+    expect(sender.sendContractCall).not.toHaveBeenCalled();
+  });
+
+  it("confirms a decision whose answer was lost instead of failing it or sending it twice", async () => {
+    const sent = `0x${"ab".repeat(32)}` as const;
+    const jobId = await jobQueue.addJob(
+      "approval",
+      {
+        actionUID: 1,
+        workUID: `0x${"44".repeat(32)}`,
+        gardenAddress: "0x123",
+        gardenerAddress: "0x456",
+        approved: true,
+        confidence: 2,
+        verificationMethod: 1,
+      },
+      TEST_USER_ADDRESS,
+      { chainId: 11155111 }
+    );
+    const sender = createMockTransactionSender();
+    vi.mocked(sender.sendContractCall).mockImplementation(async (_call, options) => {
+      await options?.onBeforeBroadcast?.();
+      await options?.onBroadcast?.(sent);
+      throw Object.assign(new Error("The request took too long"), { name: "TimeoutError" });
+    });
+
+    await expect(jobQueue.processJob(jobId, { transactionSender: sender })).resolves.toEqual({
+      success: false,
+      error: "awaiting-confirmation",
+      skipped: true,
+    });
+    const waiting = await jobQueueDB.getJob(jobId);
+    expect(waiting?.attempts).toBe(0);
+    expect(waiting?.meta?.waitingReason).toBe("awaiting-confirmation");
+    expect((waiting?.payload as ApprovalJobPayload).sendCheckpoint?.transactionHash).toBe(sent);
+
+    // After a reload, and past the retry limit, a recorded decision is confirmed, never sent again.
+    forgetWorkBroadcast(jobId);
+    await jobQueueDB.updateJob({ ...waiting!, attempts: 5 });
+    await expect(
+      jobQueue.processJob(jobId, { transactionSender: sender, explicit: true })
+    ).resolves.toMatchObject({ error: "awaiting-confirmation" });
+    expect(sender.sendContractCall).toHaveBeenCalledOnce();
+  });
+
+  it("never fails a sent decision when its checkpoint cannot be saved", async () => {
+    const jobId = await jobQueue.addJob(
+      "approval",
+      {
+        actionUID: 1,
+        workUID: `0x${"44".repeat(32)}`,
+        gardenAddress: "0x123",
+        gardenerAddress: "0x456",
+        approved: true,
+        confidence: 2,
+        verificationMethod: 1,
+      },
+      TEST_USER_ADDRESS,
+      { chainId: 11155111 }
+    );
+    const stored = await jobQueueDB.getJob(jobId);
+    // An earlier build recorded the intent without a time; stamping it cannot be saved.
+    (stored!.payload as ApprovalJobPayload).sendCheckpoint = { broadcastPending: true };
+    await jobQueueDB.updateJob(stored!);
+    const sender = createMockTransactionSender();
+    const update = vi
+      .spyOn(jobQueueDB, "updateJob")
+      .mockRejectedValueOnce(new Error("QuotaExceededError"));
+    try {
+      await expect(jobQueue.processJob(jobId, { transactionSender: sender })).resolves.toEqual({
+        success: false,
+        error: "awaiting-confirmation",
+        skipped: true,
+      });
+    } finally {
+      update.mockRestore();
+    }
+    expect((await jobQueueDB.getJob(jobId))?.attempts).toBe(0);
+    expect(sender.sendContractCall).not.toHaveBeenCalled();
+  });
+
+  describe("a send whose answer was lost", () => {
+    const strandedWork = async () => {
+      const jobId = await jobQueue.addJob(
+        "work",
+        {
+          title: "Test",
+          actionUID: 42,
+          gardenAddress: "0x123",
+          feedback: "ok",
+          clientWorkId: crypto.randomUUID(),
+        },
+        TEST_USER_ADDRESS,
+        { chainId: 11155111 }
+      );
+      const job = await jobQueueDB.getJob(jobId);
+      (job!.payload as WorkJobPayload).uploadCheckpoint = {
+        submittedAt: new Date().toISOString(),
+        files: {},
+        broadcastPending: true,
+        broadcastPendingAt: new Date(Date.now() - 31 * 60_000).toISOString(),
+      };
+      await jobQueueDB.updateJob(job!);
+      return jobId;
+    };
+
+    it("reopens work that never landed without sending it, until the person taps", async () => {
+      const jobId = await strandedWork();
+      const sender = createMockTransactionSender();
+
+      await expect(jobQueue.processJob(jobId, { transactionSender: sender })).resolves.toEqual({
+        success: false,
+        error: "send-intent-expired",
+        skipped: true,
+      });
+      const reopened = await jobQueueDB.getJob(jobId);
+      expect(
+        (reopened!.payload as WorkJobPayload).uploadCheckpoint?.broadcastPending
+      ).toBeUndefined();
+      expect(reopened!.meta?.requiresExplicitSend).toBe(true);
+      await expect(
+        jobQueue.processJob(jobId, { transactionSender: sender })
+      ).resolves.toMatchObject({
+        error: "send-requires-explicit",
+      });
+      expect(sender.sendContractCall).not.toHaveBeenCalled();
+
+      await expect(
+        jobQueue.processJob(jobId, { transactionSender: sender, explicit: true })
+      ).resolves.toMatchObject({ success: true });
+      expect(sender.sendContractCall).toHaveBeenCalledOnce();
+    });
+
+    it("confirms a sent work in the background even while it is held for an explicit send", async () => {
+      // Recovered, declined and reopened work all carry the hold. Upload all
+      // records the send without touching it, and the confirmation pass never
+      // says `explicit`: a hold that also stopped confirmation left such work
+      // awaiting confirmation until the person tapped Check again.
+      const jobId = await jobQueue.addJob(
+        "work",
+        {
+          title: "Test",
+          actionUID: 42,
+          gardenAddress: "0x123",
+          feedback: "ok",
+          clientWorkId: crypto.randomUUID(),
+        },
+        TEST_USER_ADDRESS,
+        { chainId: 11155111 }
+      );
+      const operation = `0x${"cd".repeat(32)}` as const;
+      const transaction = `0x${"ab".repeat(32)}` as const;
+      const job = await jobQueueDB.getJob(jobId);
+      (job!.payload as WorkJobPayload).uploadCheckpoint = {
+        submittedAt: new Date().toISOString(),
+        files: {},
+        broadcast: { kind: "user-operation", hash: operation },
+        broadcastPending: false,
+      };
+      job!.meta = { ...job!.meta, requiresExplicitSend: true };
+      await jobQueueDB.updateJob(job!);
+      const sender = createMockTransactionSender();
+      sender.reconcileBroadcast = vi.fn(async () => ({
+        status: "confirmed" as const,
+        transactionHash: transaction,
+      }));
+
+      await expect(
+        jobQueue.processJob(jobId, { transactionSender: sender })
+      ).resolves.toMatchObject({ success: true, txHash: transaction });
+      expect(sender.sendContractCall).not.toHaveBeenCalled();
+      expect(await jobQueueDB.getJob(jobId)).toBeUndefined();
+    });
+
+    it("sends in the same tap when the tap is what finds the send never landed", async () => {
+      const jobId = await strandedWork();
+      const sender = createMockTransactionSender();
+
+      await expect(
+        jobQueue.processJob(jobId, { transactionSender: sender, explicit: true })
+      ).resolves.toMatchObject({ success: true });
+      expect(sender.sendContractCall).toHaveBeenCalledOnce();
+    });
+  });
+
+  it("keeps a declined decision queued instead of spending one of its attempts", async () => {
+    const jobId = await jobQueue.addJob(
+      "approval",
+      {
+        actionUID: 1,
+        workUID: `0x${"44".repeat(32)}`,
+        gardenAddress: "0x123",
+        gardenerAddress: "0x456",
+        approved: true,
+        confidence: 2,
+        verificationMethod: 1,
+      },
+      TEST_USER_ADDRESS,
+      { chainId: 11155111 }
+    );
+    const declined = new DOMException("Not allowed by the user.", "NotAllowedError");
+    const sender = createMockTransactionSender({ fail: declined });
+
+    // Declining is a choice, the same as it is for a work. Counting it as a
+    // failure would retire the decision after five postponements.
+    const result = await jobQueue.processJob(jobId, { transactionSender: sender });
+
+    expect(result).toMatchObject({ success: false, skipped: true });
+    const stored = await jobQueueDB.getJob(jobId);
+    expect(stored?.attempts).toBe(0);
+    expect(stored?.lastError).toBeUndefined();
+    expect(stored?.synced).toBe(false);
+    // An embedded wallet's background flush sends decisions too: without the
+    // hold, the next one would open the prompt the person just declined.
+    expect(stored?.meta?.requiresExplicitSend).toBe(true);
+  });
+
+  it("sends only the job kinds a flush asks for", async () => {
+    const workId = await jobQueue.addJob(
+      "work",
+      { title: "Test", actionUID: 42, gardenAddress: "0x123", feedback: "ok" },
+      TEST_USER_ADDRESS,
+      { chainId: 11155111 }
+    );
+    const sender = createMockTransactionSender();
+
+    await expect(
+      jobQueue.flush({
+        transactionSender: sender,
+        userAddress: TEST_USER_ADDRESS,
+        kinds: ["approval"],
+      })
+    ).resolves.toEqual({ processed: 0, failed: 0, skipped: 0 });
+    expect(sender.sendContractCall).not.toHaveBeenCalled();
+    expect((await jobQueueDB.getJob(workId))?.synced).toBe(false);
+  });
+
+  it("never lets a filtered flush answer for one that asked for every kind", async () => {
+    const workId = await jobQueue.addJob(
+      "work",
+      { title: "Test", actionUID: 42, gardenAddress: "0x123", feedback: "ok" },
+      TEST_USER_ADDRESS,
+      { chainId: 11155111 }
+    );
+    const sender = createMockTransactionSender();
+
+    // A passkey's commitment-only flush is still in flight when something asks
+    // for everything. Handing back the filtered result would report this work as
+    // looked at while nothing ever read it.
+    const filtered = jobQueue.flush({
+      transactionSender: sender,
+      userAddress: TEST_USER_ADDRESS,
+      kinds: ["approval"],
+    });
+    const everything = jobQueue.flush({
+      transactionSender: sender,
+      userAddress: TEST_USER_ADDRESS,
+    });
+
+    await expect(filtered).resolves.toEqual({ processed: 0, failed: 0, skipped: 0 });
+    await expect(everything).resolves.toMatchObject({ processed: 1 });
+    expect(sender.sendContractCall).toHaveBeenCalledOnce();
+    // A work that went out leaves the queue.
+    expect(await jobQueueDB.getJob(workId)).toBeUndefined();
+  });
+
+  it("keeps declined work queued for an explicit send instead of failing it", async () => {
+    const jobId = await jobQueue.addJob(
+      "work",
+      { title: "Test", actionUID: 42, gardenAddress: "0x123", feedback: "ok" },
+      TEST_USER_ADDRESS,
+      { chainId: 11155111 }
+    );
+    const declined = new DOMException("Not allowed by the user.", "NotAllowedError");
+    const sender = createMockTransactionSender({ fail: declined });
+
+    const result = await jobQueue.processJob(jobId, { transactionSender: sender });
+
+    expect(result).toEqual({ success: false, error: "send-cancelled", skipped: true });
+    const stored = await jobQueueDB.getJob(jobId);
+    expect(stored?.attempts).toBe(0);
+    expect(stored?.lastError).toBeUndefined();
+    expect(stored?.meta?.requiresExplicitSend).toBe(true);
+
+    // Reconnecting never asks again on its own.
+    vi.mocked(sender.sendContractCall).mockClear();
+    const later = Date.now() + 60_000;
+    vi.spyOn(Date, "now").mockReturnValue(later);
+    await jobQueue.flush({ transactionSender: sender, userAddress: TEST_USER_ADDRESS });
+    expect(sender.sendContractCall).not.toHaveBeenCalled();
+
+    // Tapping send does.
+    vi.mocked(sender.sendContractCall).mockResolvedValue({
+      hash: `0x${"ab".repeat(32)}`,
+      sponsored: true,
+    });
+    const sent = await jobQueue.processJob(jobId, { transactionSender: sender, explicit: true });
+    vi.mocked(Date.now).mockRestore();
+    expect(sent).toMatchObject({ success: true });
+    expect(sender.sendContractCall).toHaveBeenCalledOnce();
   });
 
   it("skips processing when transaction sender is missing", async () => {

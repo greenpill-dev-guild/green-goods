@@ -41,7 +41,7 @@ const WORK = `0x${"ab".repeat(32)}` as `0x${string}`;
 const mockUseController = vi.fn();
 const mockReason = vi.fn();
 const mockFlush = vi.fn();
-const mockRetryJob = vi.fn();
+const mockRetryAndSend = vi.fn();
 const mockDiscardJob = vi.fn();
 const mockActs = {
   claim: vi.fn(),
@@ -83,14 +83,14 @@ vi.mock("@green-goods/shared/hooks/app/useOffline", async (importOriginal) => {
 vi.mock("@green-goods/shared/providers/JobQueue", async (importOriginal) => {
   return {
     ...(await importOriginal()),
-    useJobQueue: () => ({ flush: mockFlush }),
+    useJobQueue: () => ({ flush: mockFlush, retryAndSend: mockRetryAndSend }),
   };
 });
 
 vi.mock("@green-goods/shared/modules/job-queue/default-instance", async (importOriginal) => {
   return {
     ...(await importOriginal()),
-    jobQueue: { retryJob: mockRetryJob, discardJob: mockDiscardJob },
+    jobQueue: { discardJob: mockDiscardJob },
   };
 });
 
@@ -466,7 +466,7 @@ describe("GardenCommitment", () => {
     );
     expect(screen.getByRole("button", { name: "Add Proof" })).toBeDisabled();
 
-    mockRetryJob.mockResolvedValue(undefined);
+    mockRetryAndSend.mockResolvedValue(undefined);
     mockDiscardJob.mockResolvedValue(true);
     mockFlush.mockResolvedValue(undefined);
     mockUseController.mockReturnValue(
@@ -493,7 +493,9 @@ describe("GardenCommitment", () => {
     const alert = screen.getByRole("alert");
     await userEvent.click(within(alert).getByRole("button", { name: "Try Again" }));
     await userEvent.click(within(alert).getByRole("button", { name: "Discard" }));
-    expect(mockRetryJob).toHaveBeenCalledWith("job-9");
+    // Trying the act again sends only that act, never the rest of the queue.
+    expect(mockRetryAndSend).toHaveBeenCalledWith("job-9");
+    expect(mockFlush).not.toHaveBeenCalled();
     expect(mockDiscardJob).toHaveBeenCalledWith("job-9");
   });
 

@@ -24,8 +24,10 @@ import { assertWalletAccount, ensureWagmiWalletChain } from "./chain-guard";
 import { assertLocalArbitrumForkWallet } from "./local-fork-safety";
 import {
   TransactionReplacementError,
+  TransactionRevertedError,
   type ContractCall,
   type TransactionSender,
+  type TransactionSendOptions,
   type TxResult,
 } from "./types";
 
@@ -97,7 +99,10 @@ export class WalletSender implements TransactionSender {
       ensureWagmiWalletChain(this.config, chainId);
   }
 
-  async sendContractCall(call: ContractCall): Promise<TxResult> {
+  async sendContractCall(
+    call: ContractCall,
+    options: TransactionSendOptions = {}
+  ): Promise<TxResult> {
     // TODO: Try EIP-5792 sendCalls with paymasterService first when available.
     // Fall back to direct writeContractAsync if the wallet doesn't support it.
 
@@ -107,6 +112,11 @@ export class WalletSender implements TransactionSender {
     await this.deps.ensureWalletChain?.(chainId);
     await this.deps.assertWriteSafety?.();
     if (call.account) assertWalletAccount(call.account, this.deps.getAccount?.().address);
+
+    await options.assertOwnership?.();
+    // The wallet approves and broadcasts in one step, so the intent is recorded
+    // before asking. A rejected prompt is recognised and clears it.
+    await options.onBeforeBroadcast?.();
 
     const hash: string = await this.writeContractAsync({
       ...(call.account ? { account: call.account } : {}),
@@ -118,10 +128,12 @@ export class WalletSender implements TransactionSender {
       ...(call.value !== null && call.value !== undefined ? { value: call.value } : {}),
     });
 
+    await options.onBroadcastReference?.({ kind: "transaction", hash: hash as `0x${string}` });
+    await options.onBroadcast?.(hash as `0x${string}`);
+
     // Some Safe-style wallets return a non-canonical hash-like identifier.
     // waitForTransactionReceipt only accepts canonical tx hashes, so skip
-    // waiting and treat this as successfully submitted for off-chain Safe
-    // execution flow.
+    // waiting and preserve a pending result for the off-chain Safe flow.
     if (!isCanonicalTxHash(hash)) {
       // No address or hash material in the log context: aggregated logs must
       // stay free of identifying transaction data (short Safe identifiers
@@ -131,7 +143,7 @@ export class WalletSender implements TransactionSender {
         functionName: call.functionName,
         hashLength: hash.length,
       });
-      return { hash: hash as Hex, sponsored: false };
+      return { hash: hash as Hex, sponsored: false, confirmation: "pending" };
     }
 
     // Wait for on-chain confirmation and verify the tx was not reverted
@@ -145,7 +157,7 @@ export class WalletSender implements TransactionSender {
     });
     if (invalidReplacement) throw new TransactionReplacementError(invalidReplacement);
     if (receipt.status === "reverted") {
-      throw new Error("Transaction reverted on-chain");
+      throw new TransactionRevertedError(hash, "Transaction reverted on-chain");
     }
 
     const confirmedHash = receipt.transactionHash ?? hash;

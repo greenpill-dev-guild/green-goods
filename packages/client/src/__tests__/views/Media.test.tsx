@@ -36,6 +36,16 @@ vi.mock("@green-goods/shared/utils/styles/cn", () => ({
 }));
 
 vi.mock("@green-goods/shared/modules/work/media-processing", () => ({
+  // Mirrors the real rule: a HEIC photo is refused unless the caller keeps it waiting.
+  validateWorkAttachments: (
+    media: File[],
+    _audio?: File[],
+    _minPhotos?: number,
+    policy?: { pendingHeic?: "accept" | "reject" }
+  ) =>
+    media.some(heicToMocks.isHeicName) && policy?.pendingHeic !== "accept" ? ["media-type"] : [],
+  isHeicFile: (file: File) => heicToMocks.isHeicName(file),
+  validateWorkVideo: async () => true,
   getWorkMediaId: (file: File) => `media-${file.name}-${file.size}-${file.lastModified}`,
   isVideoFile: (file: File) => file.type.startsWith("video/"),
   getSafeMediaBatchMetadata: (files: File[]) => ({
@@ -55,55 +65,73 @@ vi.mock("@green-goods/shared/modules/work/media-processing", () => ({
 }));
 
 vi.mock("@green-goods/shared/modules/work/submission-flow", () => ({
-  prepareWorkSubmission: vi.fn(async (files: File[]) => {
-    const accepted = [];
-    const converted = [];
+  prepareWorkSubmission: vi.fn(
+    async (files: File[], options?: { onHeicConversionDeferred?: (file: File) => void }) => {
+      const accepted = [];
+      const converted = [];
 
-    for (const file of files) {
-      if (
-        (file.type === "image/heic" || file.name.endsWith(".heic")) &&
-        (await heicToMocks.isHeic(file))
-      ) {
-        const blob = await heicToMocks.heicTo({
-          blob: file,
-          type: "image/jpeg",
-          quality: 0.85,
-        });
-        const convertedFile = new File([blob], file.name.replace(/\.[^.]+$/, ".jpg"), {
-          type: "image/jpeg",
-          lastModified: file.lastModified,
-        });
-        const entry = {
-          file: convertedFile,
+      for (const file of files) {
+        if (heicToMocks.isHeicName(file) && !heicToMocks.decoderAvailable) {
+          options?.onHeicConversionDeferred?.(file);
+          accepted.push({
+            file,
+            originalFile: file,
+            converted: false,
+            pendingConversion: true,
+            metadata: {
+              extension: "heic",
+              mime_type: file.type || "unknown",
+              size_bucket: "0-1mb",
+              media_kind: "image",
+            },
+          });
+          continue;
+        }
+        if (
+          (file.type === "image/heic" || file.name.endsWith(".heic")) &&
+          (await heicToMocks.isHeic(file))
+        ) {
+          const blob = await heicToMocks.heicTo({
+            blob: file,
+            type: "image/jpeg",
+            quality: 0.85,
+          });
+          const convertedFile = new File([blob], file.name.replace(/\.[^.]+$/, ".jpg"), {
+            type: "image/jpeg",
+            lastModified: file.lastModified,
+          });
+          const entry = {
+            file: convertedFile,
+            originalFile: file,
+            converted: true,
+            metadata: {
+              extension: "jpg",
+              mime_type: "image/jpeg",
+              size_bucket: "0-1mb",
+              media_kind: "image",
+            },
+          };
+          accepted.push(entry);
+          converted.push({ originalFile: file, file: convertedFile, metadata: entry.metadata });
+          continue;
+        }
+
+        accepted.push({
+          file,
           originalFile: file,
-          converted: true,
+          converted: false,
           metadata: {
-            extension: "jpg",
-            mime_type: "image/jpeg",
+            extension: file.name.split(".").pop() ?? "unknown",
+            mime_type: file.type || "unknown",
             size_bucket: "0-1mb",
-            media_kind: "image",
+            media_kind: file.type.startsWith("video/") ? "video" : "image",
           },
-        };
-        accepted.push(entry);
-        converted.push({ originalFile: file, file: convertedFile, metadata: entry.metadata });
-        continue;
+        });
       }
 
-      accepted.push({
-        file,
-        originalFile: file,
-        converted: false,
-        metadata: {
-          extension: file.name.split(".").pop() ?? "unknown",
-          mime_type: file.type || "unknown",
-          size_bucket: "0-1mb",
-          media_kind: file.type.startsWith("video/") ? "video" : "image",
-        },
-      });
+      return { accepted, rejected: [], converted };
     }
-
-    return { accepted, rejected: [], converted };
-  }),
+  ),
 }));
 
 vi.mock("@green-goods/shared/components/Audio/AudioPlayer", () => ({
@@ -130,7 +158,7 @@ vi.mock("@green-goods/shared/modules/job-queue/media-resource-manager", () => ({
 
 vi.mock("@green-goods/shared/utils/work/image-compression", () => ({
   imageCompressor: {
-    shouldCompress: () => false,
+    shouldCompress: vi.fn(() => false),
     compressImages: vi.fn().mockImplementation((files: File[]) => Promise.resolve(files)),
     getCompressionStats: vi.fn().mockReturnValue({}),
   },
@@ -139,6 +167,8 @@ vi.mock("@green-goods/shared/utils/work/image-compression", () => ({
 const heicToMocks = vi.hoisted(() => ({
   heicTo: vi.fn(),
   isHeic: vi.fn(),
+  decoderAvailable: true,
+  isHeicName: (file: File) => /\.hei[cf]$/i.test(file.name) || /^image\/hei[cf]/.test(file.type),
 }));
 
 vi.mock("heic-to/csp", () => heicToMocks);
@@ -157,7 +187,8 @@ vi.mock("@/components/Communication", () => ({
   Badge: ({ children }: any) => <span data-testid="badge">{children}</span>,
 }));
 
-vi.mock("@/components/Dialogs", () => ({
+vi.mock("@/components/Display", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/components/Display")>()),
   ImagePreviewDialog: ({ isOpen }: any) =>
     isOpen ? <div data-testid="image-preview-dialog">Preview</div> : null,
 }));
@@ -167,6 +198,8 @@ vi.mock("@/components/Features", () => ({
 }));
 
 // Import after mocks
+import { imageCompressor } from "@green-goods/shared/utils/work/image-compression";
+import { toastService } from "@green-goods/shared/components/Toast/toast.service";
 import { getWorkMediaId } from "@green-goods/shared/modules/work/media-processing";
 import { WorkMedia } from "../../views/Garden/Media";
 
@@ -200,7 +233,13 @@ function fileListFrom(files: File[]): FileList {
   } as unknown as FileList;
 }
 
-function StatefulWorkMedia({ initialImages = [] }: { initialImages?: File[] }) {
+function StatefulWorkMedia({
+  initialImages = [],
+  heicStateOf,
+}: {
+  initialImages?: File[];
+  heicStateOf?: (file: File) => "waiting" | "converting" | "failed" | undefined;
+}) {
   const [images, setImages] = React.useState<File[]>(initialImages);
   const [brokenMediaIds, setBrokenMediaIds] = React.useState<Set<string>>(() => new Set());
 
@@ -232,6 +271,7 @@ function StatefulWorkMedia({ initialImages = [] }: { initialImages?: File[] }) {
       ensureWorkSubmissionJourneyId={() => "journey-123"}
       authMode="wallet"
       actionUID={1}
+      heicStateOf={heicStateOf}
     />
   );
 }
@@ -241,6 +281,7 @@ describe("WorkMedia", () => {
     vi.clearAllMocks();
     heicToMocks.isHeic.mockResolvedValue(false);
     heicToMocks.heicTo.mockResolvedValue(new Blob(["jpeg"], { type: "image/jpeg" }));
+    heicToMocks.decoderAvailable = true;
   });
 
   it("renders with upload title from config", () => {
@@ -423,10 +464,34 @@ describe("WorkMedia", () => {
     await waitFor(() => {
       expect(screen.getByRole("img", { name: /uploaded 1/i })).toBeInTheDocument();
     });
-    expect(screen.getByRole("img", { name: /uploaded 1/i })).toHaveAttribute(
-      "src",
-      "blob:mock-url-garden.jpg"
+    await waitFor(() =>
+      expect(screen.getByRole("img", { name: /uploaded 1/i })).toHaveAttribute(
+        "src",
+        "blob:mock-url-garden.jpg"
+      )
     );
+  });
+
+  it("keeps a HEIC photo the decoder cannot convert yet, with the rest of the pick", async () => {
+    heicToMocks.decoderAvailable = false;
+    const heic = new File(["heic"], "garden.heic", { type: "image/heic" });
+    const jpeg = new File(["jpeg"], "photo.jpg", { type: "image/jpeg" });
+
+    renderWithIntl(
+      <StatefulWorkMedia
+        heicStateOf={(file) => (heicToMocks.isHeicName(file) ? "waiting" : undefined)}
+      />
+    );
+    const galleryInput = document.getElementById("work-media-upload") as HTMLInputElement;
+    fireEvent.change(galleryInput, { target: { files: fileListFrom([heic, jpeg]) } });
+
+    expect(await screen.findByTestId("pending-photo")).toHaveAttribute("data-state", "waiting");
+    expect(screen.getByRole("img", { name: /uploaded 2/i })).toBeInTheDocument();
+    expect(toastService.info).toHaveBeenCalledTimes(1);
+    expect(toastService.error).not.toHaveBeenCalled();
+    // Identity, not equality: two File objects compare equal field by field.
+    const compressed = vi.mocked(imageCompressor.shouldCompress).mock.calls.map(([file]) => file);
+    expect(compressed.some((file) => file === heic)).toBe(false);
   });
 
   it("removes broken previews without removing good media", async () => {
@@ -436,6 +501,7 @@ describe("WorkMedia", () => {
     renderWithIntl(<StatefulWorkMedia initialImages={[good, broken]} />);
 
     const images = screen.getAllByRole("img");
+    await waitFor(() => expect(images[1]).toHaveAttribute("src", "blob:mock-url-broken.jpg"));
     fireEvent.error(images[1]);
 
     expect(await screen.findByText("Some media previews failed")).toBeInTheDocument();
@@ -466,5 +532,27 @@ describe("WorkMedia", () => {
     fireEvent.click(screen.getByRole("button", { name: "Remove media 2" }));
 
     expect(onRemoveMedia).toHaveBeenCalledWith(second, "media");
+  });
+  it("retains the independent original when compression fails", async () => {
+    vi.mocked(imageCompressor.shouldCompress).mockReturnValueOnce(true);
+    vi.mocked(imageCompressor.compressImages).mockRejectedValueOnce(
+      new Error("compression failed")
+    );
+    const setImages = vi.fn();
+    renderWithIntl(
+      <WorkMedia
+        images={[]}
+        setImages={setImages}
+        audioNotes={[]}
+        setAudioNotes={mockSetAudioNotes}
+        minRequired={1}
+      />
+    );
+    const file = new File(["photo"], "saved.jpg", { type: "image/jpeg" });
+    fireEvent.change(document.getElementById("work-media-upload")!, {
+      target: { files: fileListFrom([file]) },
+    });
+    await waitFor(() => expect(setImages).toHaveBeenCalled());
+    expect(setImages.mock.calls[0][0]([])[0].name).toBe("saved.jpg");
   });
 });

@@ -1,3 +1,5 @@
+import { Button } from "@green-goods/shared/components/Button";
+import { useDocumentScrollLock } from "@green-goods/shared/hooks/ui/useDocumentScrollLock";
 import { RiCloseLine } from "@remixicon/react";
 import { type ReactNode, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
@@ -43,6 +45,7 @@ export function PublicRecordDrawer({
   children,
 }: PublicRecordDrawerProps) {
   const { formatMessage } = useIntl();
+  useDocumentScrollLock(open);
   const closeRef = useRef<HTMLButtonElement | null>(null);
 
   // Focus the close control when the drawer opens, and only then. An inline
@@ -55,14 +58,11 @@ export function PublicRecordDrawer({
 
   useEffect(() => {
     if (!open) return;
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
     const handler = (event: KeyboardEvent) => {
       if (event.key === "Escape" && dismissOnEscape) onClose();
     };
     document.addEventListener("keydown", handler);
     return () => {
-      document.body.style.overflow = previousOverflow;
       document.removeEventListener("keydown", handler);
     };
   }, [open, onClose, dismissOnEscape]);
@@ -80,6 +80,7 @@ export function PublicRecordDrawer({
     >
       <button
         type="button"
+        data-pressable="scrim"
         aria-label={closeLabel}
         onClick={onClose}
         className="absolute inset-0 bg-static-black/40 backdrop-blur-[2px]"
@@ -89,18 +90,17 @@ export function PublicRecordDrawer({
           <p className="font-mono text-[10.5px] font-medium uppercase tracking-[0.18em] text-text-soft-400">
             {eyebrow}
           </p>
-          <button
+          <Button
             ref={closeRef}
             type="button"
-            aria-label={closeLabel}
+            emphasis="secondary"
+            size="compact"
             onClick={onClose}
-            className="inline-flex items-center gap-1 rounded-full border border-stroke-soft-200 px-3 py-1 font-mono text-[10.5px] uppercase tracking-[0.06em] text-text-strong-950 transition-colors hover:bg-bg-weak-50"
+            leadingIcon={<RiCloseLine className="h-3.5 w-3.5" aria-hidden="true" />}
+            className="font-mono text-[10.5px] uppercase tracking-[0.06em]"
           >
-            <span aria-hidden="true">
-              <RiCloseLine className="h-3.5 w-3.5" />
-            </span>
             {closeLabel}
-          </button>
+          </Button>
         </header>
 
         <div className="flex-1 overflow-y-auto px-6 py-8 sm:px-10 sm:py-10">{children}</div>

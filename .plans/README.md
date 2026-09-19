@@ -71,6 +71,10 @@ active feature hub.
 - Keep decisions, acceptance criteria, evidence, ownership, and unresolved judgment in the hub.
   Do not copy route, export, endpoint, deployment, or workflow inventories from code; cite their
   owning source instead.
+- Code, tests, and CI configuration must not read files under `.plans/`; data they need lives in
+  its package. References that name hub paths (ontology `spec_source` and evidence, workflow
+  `paths:` filters, `scripts/data/validation-policy.json`, other hubs' `status.json` links) move
+  with the hub whenever it changes stage or closes.
 
 ### Validation Posture
 
@@ -130,16 +134,19 @@ than creating a second plan-history surface.
    `linear-sync` manifest in Linear, and confirm that mirror with
    `confirm-linear-sync --feature <slug> --actor <actor>`.
 7. Close the hub when the work is completed, superseded, closed, cancelled,
-   or intentionally paused: `move --to archive` rejects stale Linear mirrors,
-   validates the requested `--resolution`, appends one row to `ARCHIVE.md`, and
-   deletes the hub directory. Do not label unfinished stale work as completed.
+   or intentionally paused, following the plan skill's
+   [Closing a Plan Hub](../.claude/skills/plan/SKILL.md#closing-a-plan-hub) procedure:
+   commit the hub's closeout record first, then run `move --to archive`, which rejects
+   stale Linear mirrors, validates the requested `--resolution`, appends one row to
+   `ARCHIVE.md`, and deletes the hub directory. Do not label unfinished stale work as completed.
 8. Keep implementation issues in `In Review` while a PR is open. Move them to
    `Done` only after the human merge completes delivery.
 
 Git history is the only archive. The `ARCHIVE.md` ledger records each closed hub's
 slug, Linear parent key when present, title, resolution, closeout reason, and historical path; recover full contents
 with `git log --oneline -- <historical path>` and `git checkout <sha>^ -- <historical path>`
-against the closeout commit. Dated reports under `reports/` remain byte-for-byte
+against the closeout commit; because the closeout record is committed first, that parent commit
+holds the hub's final state. Dated reports under `reports/` remain byte-for-byte
 immutable while a hub is live and may only leave the tree with their whole hub at
 closeout. Do not create parallel audit, review, cleanup, ADR, or meeting-note
 folders under `.plans/`.

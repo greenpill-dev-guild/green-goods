@@ -259,6 +259,15 @@ export function StrategyKernelStep({ showValidation, isSubmitting }: StrategyKer
   const guidance = DOMAIN_GUIDANCE[domainEnum] ?? DOMAIN_GUIDANCE[Domain.SOLAR];
   const metrics = resolveDomainMetrics(intl, domainEnum);
   const cynefinOptions = resolveCynefinOptions(intl);
+  const selectedMetricCounts = useMemo(() => {
+    const counts = new Map<string, number>();
+    form.smartOutcomes.forEach((outcome) => {
+      const metric = outcome.metric.trim();
+      if (!metric) return;
+      counts.set(metric, (counts.get(metric) ?? 0) + 1);
+    });
+    return counts;
+  }, [form.smartOutcomes]);
 
   // Local validation errors
   const fieldErrors = useMemo(
@@ -292,12 +301,17 @@ export function StrategyKernelStep({ showValidation, isSubmitting }: StrategyKer
             defaultMessage: "Description is required",
           }),
     metric:
-      o.metric.trim().length > 0
-        ? null
-        : formatMessage({
+      o.metric.trim().length === 0
+        ? formatMessage({
             id: "app.admin.assessment.strategyKernel.outcomeMetricRequired",
             defaultMessage: "Select a metric",
-          }),
+          })
+        : (selectedMetricCounts.get(o.metric.trim()) ?? 0) > 1
+          ? formatMessage({
+              id: "app.admin.assessment.strategyKernel.outcomeMetricDuplicate",
+              defaultMessage: "Each metric can only be used once per assessment",
+            })
+          : null,
     target:
       o.target >= 0
         ? null
@@ -400,7 +414,13 @@ export function StrategyKernelStep({ showValidation, isSubmitting }: StrategyKer
                   })}
                 </option>
                 {metrics.map((m) => (
-                  <option key={m.key} value={m.key}>
+                  <option
+                    key={m.key}
+                    value={m.key}
+                    disabled={
+                      outcome.metric !== m.key && (selectedMetricCounts.get(m.key) ?? 0) > 0
+                    }
+                  >
                     {m.label} ({m.unit})
                   </option>
                 ))}

@@ -11,8 +11,10 @@ in this file.
 - `.claude/skills/` is the shared Claude/Codex skill source. `.agents/skills` is its symlinked Codex
   discovery path; never create a second copy.
 - Feature execution truth lives in `.plans/{ideas|backlog|active}/<feature-slug>/`; the passive
-  `plan` skill owns lifecycle and Linear mirroring. Closed hubs are deleted at closeout and
-  indexed in `.plans/ARCHIVE.md` — Git history is the only archive.
+  `plan` skill owns lifecycle and Linear mirroring. Close a hub only through its
+  [Closing a Plan Hub](.claude/skills/plan/SKILL.md#closing-a-plan-hub) procedure: commit the
+  closeout record, then archive. Closed hubs are indexed in `.plans/ARCHIVE.md` — Git history is
+  the only archive.
 - Use [`.claude/context/codebase-architecture.md`](.claude/context/codebase-architecture.md) for
   architecture opportunities, structural review, and deep-module or seam vocabulary.
 - Use [`.claude/context/validation-pipeline.md`](.claude/context/validation-pipeline.md) for the
@@ -23,12 +25,12 @@ in this file.
 ## Claude Commands
 
 ```bash
-bun run dev:doctor -- --profile web  # Non-mutating local readiness check
+bun run dev:health -- --profile web  # Non-mutating local readiness check
 bun run dev                          # Start the repo-native PM2 development stack
-bun run dev:stop                     # Stop repo-owned development services
-bun run test:fast                    # Cache-aware full-scope iteration after targeted proof
-bun run test:fast:force              # Same scope without cache reuse
-bun run eval:skills                  # One semantic routing run after skill trigger wording stabilizes
+bun run dev -- stop                     # Stop repo-owned development services
+bun run test --cache                    # Cache-aware full-scope iteration after targeted proof
+bun run test --cache --force              # Same scope without cache reuse
+bun run check --only skill-evaluation                  # One semantic routing run after skill trigger wording stabilizes
 ```
 
 Use `bun run test`, never `bun test`. Commands shared by all agents are listed in `AGENTS.md`; package

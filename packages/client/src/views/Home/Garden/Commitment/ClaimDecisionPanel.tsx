@@ -1,4 +1,6 @@
 import { AddressDisplay } from "@green-goods/shared/components/AddressDisplay";
+import { Button } from "@green-goods/shared/components/Button";
+import { Textarea } from "@green-goods/shared/components/Form/ControlPrimitives";
 import type { Address } from "@green-goods/shared/types/domain";
 import {
   type CommitmentClaimRequestRecord,
@@ -64,56 +66,58 @@ export function ClaimDecisionPanel({
                 >
                   {formatMessage({ id: "app.claim.decide.reasonLabel" })}
                 </label>
-                <textarea
+                <Textarea
                   id={`decline-${request.id}`}
                   value={reason}
                   onChange={(event) => setReason(event.target.value)}
                   rows={3}
                   maxLength={MAX_REASON}
-                  className="w-full rounded-[var(--radius-lg)] border border-stroke-soft-200 bg-bg-weak-50 p-3 text-sm text-text-strong-950"
                 />
                 <div className="grid grid-cols-2 gap-2">
-                  <button
+                  <Button
                     type="button"
+                    emphasis="secondary"
+                    size="sm"
                     disabled={isPending}
                     onClick={() => setDeclining(null)}
-                    className="rounded-[var(--radius-lg)] border border-stroke-soft-200 px-3 py-2 text-xs font-medium text-text-strong-950 tap-target-lg disabled:opacity-60"
                   >
                     {formatMessage({ id: "app.claim.context.cancel" })}
-                  </button>
-                  <button
+                  </Button>
+                  <Button
                     type="button"
-                    disabled={isPending || reason.trim().length === 0}
-                    aria-busy={isPending}
+                    emphasis="secondary"
+                    tone="danger"
+                    size="sm"
+                    loading={isPending}
+                    disabled={!isPending && reason.trim().length === 0}
                     onClick={() => onDecline(request.claimant, reason.trim())}
-                    className="rounded-[var(--radius-lg)] border border-error-base px-3 py-2 text-xs font-medium text-error-base tap-target-lg disabled:opacity-60"
                   >
                     {formatMessage({ id: "app.claim.decide.decline" })}
-                  </button>
+                  </Button>
                 </div>
               </div>
             ) : (
               <div className="grid grid-cols-2 gap-2">
-                <button
+                <Button
                   type="button"
+                  emphasis="secondary"
+                  size="sm"
                   disabled={isPending}
                   onClick={() => {
                     setReason("");
                     setDeclining(request.claimant);
                   }}
-                  className="rounded-[var(--radius-lg)] border border-stroke-soft-200 px-3 py-2 text-xs font-medium text-text-strong-950 tap-target-lg disabled:opacity-60"
                 >
                   {formatMessage({ id: "app.claim.decide.decline" })}
-                </button>
-                <button
+                </Button>
+                <Button
                   type="button"
-                  disabled={isPending}
-                  aria-busy={isPending}
+                  size="sm"
+                  loading={isPending}
                   onClick={() => onAccept(request.claimant)}
-                  className="rounded-[var(--radius-lg)] bg-primary-action px-3 py-2 text-xs font-medium text-primary-action-foreground tap-target-lg disabled:opacity-60"
                 >
                   {formatMessage({ id: "app.claim.decide.accept" })}
-                </button>
+                </Button>
               </div>
             )}
           </li>

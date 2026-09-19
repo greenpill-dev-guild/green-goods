@@ -9,6 +9,7 @@ import { getNetDeposited } from "../../utils/blockchain/vaults";
 import { useGardenAssessments } from "../assessment/useGardenAssessments";
 import { useGardens } from "../blockchain/useBaseLists";
 import { useConvictionStrategies } from "../conviction/useConvictionStrategies";
+import { useGardenCookieJars } from "../cookie-jar/useGardenCookieJars";
 import { useCreateGardenPools } from "../conviction/useCreateGardenPools";
 import { useGardenCommunity } from "../conviction/useGardenCommunity";
 import { useGardenPools } from "../conviction/useGardenPools";
@@ -76,6 +77,8 @@ export function useGardenDetailData(id: string | undefined) {
   const { vaults: gardenVaults = [], isLoading: vaultsLoading } = useGardenVaults(id, {
     enabled: Boolean(id),
   });
+  // Steward alerts read the jars' claim limits; stewards are the only ones shown alerts.
+  const { jars: cookieJars } = useGardenCookieJars(id, { enabled: Boolean(id) && canManage });
 
   const { strategies: convictionStrategies } = useConvictionStrategies(
     (id as `0x${string}`) ?? undefined,
@@ -174,6 +177,7 @@ export function useGardenDetailData(id: string | undefined) {
     isCreatingPools,
     gardenVaults,
     vaultsLoading,
+    cookieJars,
     vaultNetDeposited,
     vaultHarvestCount,
     vaultDepositorCount,

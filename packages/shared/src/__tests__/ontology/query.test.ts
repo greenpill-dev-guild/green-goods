@@ -37,7 +37,7 @@ describe("ontology query seam", () => {
     );
     expect(listOntologyTerms().length).toBeGreaterThan(20);
     // The exact date is owned by the sidecar and locked byte-for-byte by
-    // `bun run check:ontology`; pinning the literal here only churns the test.
+    // `bun run check --only ontology`; pinning the literal here only churns the test.
     expect(getOntologyManifestVersion()).toEqual({
       version: 1,
       verified_at: expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/),

@@ -10,14 +10,14 @@ Linear path from blank file to merge-ready.
 |---|------|-------------|--------|
 | 1 | Paradigm | Command / Ambient / Data Landscape / Conversational / Ritual. One-line comment at top of file. | [SKILL.md § Paradigm Selection](./SKILL.md) |
 | 2 | Material | Thickness by density: ultrathin/thin = glanceable, regular = default, thick/solid = text-dense. Admin dense = solid. | [surfaces.md](./surfaces.md) |
-| 3 | Shape | Fixed (badges), Capsule (primary CTA / icon button), Concentric (`child_radius = parent_radius − padding`). Shape alone = hierarchy. Admin carve-out: fixed 4/8/12/16/9999 scale — the FAB is a capsule at both sizes (DL-010); `AdminButton` stays pill on the 28/32/40 compact metric (DL-011, fields 44 / pills 36); filled-underline is the default field anatomy. | [language.md § Shape System](./language.md) |
+| 3 | Shape | Fixed (badges), Capsule (icon button / chip), Concentric (`child_radius = parent_radius − padding`). Client buttons ride the shared `Button` (`emphasis`), `IconButton`, and `Chip`: one button corner per surface for every emphasis, 16px in the app and square on the website (DL-026, DL-029); fields 16px; heights 48 / 44 / 40 / 32 (DL-022, DL-023, Rule 19). Admin carve-out: fixed 4/8/12/16/9999 scale — the FAB is a capsule at both sizes (DL-010); `AdminButton` stays pill on the 28/32/40 compact metric (DL-011; DL-030: fields 44 on touch widths and 40 from 640px, pills 36); filled-underline is the default field anatomy. | [language.md § Shape System](./language.md) |
 | 4 | Motion | `var(--spring-*)` only; never hardcode `cubic-bezier`/`duration`. Standard for admin; Expressive only for client hero moments. | [language.md § Motion System](./language.md) |
 | 5 | Primitive | Compose Radix + `tv()`. Dialogs → `DialogShell` (client/shared) or `AdminDialog` (admin). | Dialogs below |
 | 6 | Responsive | Container queries (`@container`, `@[480px]:`) for component-internal layout; `sm:`/`md:` for page-level. | — |
 | 7 | A11y | Label inputs, errors via `aria-describedby`, color never the sole indicator, hit targets ≥ 44px, focus via Radix. | — |
 | 8 | i18n | Every string via `intl.formatMessage` / `FormattedMessage`; update en/es/pt; action labels Title Case in en only (DL-012 — es/pt native casing); keep `lint:vocab` terms out. | i18n below |
 | 9 | Storybook | CSF3, `tags: ["autodocs"]`, default + loading + error + empty variants. | Storybook below |
-| 10 | Review | Four-lens self-review (Regenerative → Spatial → Ecosystem → Compliance); `bun run check:design-tokens` before merge. | [review-checklist.md](./review-checklist.md) |
+| 10 | Review | Four-lens self-review (Regenerative → Spatial → Ecosystem → Compliance); `bun run check --only design-tokens` before merge. | [review-checklist.md](./review-checklist.md) |
 
 **Admin shortcut**: steps 1–4 are pre-answered (Command + solid + the reduced 4/8/12/16/9999 M3 shape scale + Standard motion) — start at step 5.
 **Client shortcut**: hero components (garden creation, hypercert mint) override step 4 → Expressive, step 2 → dramatic material. See [language.md § Hero Moments](./language.md).
@@ -26,7 +26,7 @@ Linear path from blank file to merge-ready.
 
 Both own mobile bottom-sheet + viewport width cap — consumers must **not** restate `max-w-*` (guarded; see frontend-design Rule 14). Raw Radix `Dialog.*` only when neither wrapper fits.
 
-- **`DialogShell`** — client / shared default. `packages/shared/src/components/Dialog/ConfirmDialog.tsx`, exported from `@green-goods/shared`. Props: `open`, `onOpenChange`, `title`, `description?`, `icon?`, `size` (`md|lg|xl|2xl`), `children`, `preventClose?`. `glass-floating`; owns z-layering. **Never in admin.**
+- **`DialogShell`** — client / shared default. `packages/shared/src/components/Dialog/DialogShell.tsx`, exported from `@green-goods/shared` and `@green-goods/shared/components/Dialog/DialogShell`. Props: `open`, `onOpenChange`, `title`, `description?`, `icon?`, `size` (`md|lg|xl|2xl`, centered width), `sheetSize?` (`compact|half|tall|full`, the narrow-viewport height tier, DL-014), `actions?` (`SheetActionsProps`: `primary`, `secondary`, a rare `tertiary`, `layout` `stack|steps`, DL-016), `children`, `preventClose?`, `hideCloseButton?`. Owns z-layering. Below 640px it renders the shared `PwaSheet` bottom sheet (drag handle, shared header, scrollable body) into `<body>`; the centered Radix surface only mounts at `sm`+. Every open sheet or dialog registers itself so the PWA AppBar steps aside (DL-015). `ConfirmDialog` follows the same split, so drafts, deletes, and every other confirm share one sheet in the installed app. Actions are data, not buttons: pass `actions` and the shared `SheetActions` bar (`@green-goods/shared/components/Dialog/SheetActions`) pins them under the body, stacked with the primary on top below 640px and one right-aligned row above. `PwaSheet` and the client `AppSheet` take the same `actions` prop. `PwaSheet` also owns every sheet's motion (DL-033): the slide in, the drag from the grip or the header's title block, backdrop and drag dismissal, and the exit on `--spring-spatial-exit`; a consumer never animates a sheet or binds its own drag, and holds dismissal during in-flight work with `preventClose`. **Never in admin.**
 - **`AdminDialog`** — admin dashboard default, strict M3. `packages/admin/src/components/AdminDialog.tsx` (+ `AdminConfirmDialog`). Props: `open`, `onOpenChange`, `title`, `description?`, `icon?`, `children`, `actions?`, `size` (`sm|md|lg` — three tiers by action weight), `variant` (`standard|confirm|palette|flow`), `tone` (`hub|garden|community|actions|home` — required in-portal; the portal escapes `[data-tone]`, so unset falls back to green), `preventClose?`. `palette` backs the command palette; `flow` + `ADMIN_FLOW_DIALOG_CLASS` (with `size="lg"`) backs full-surface flows (Submit Work, Create Assessment, Create Hypercert). No `size="fullscreen"` — retired and enforced by check-tokens.sh. Size/variant standard: [prompt-contract.md § Dialog size & variant standard](./prompt-contract.md).
 
 ## Admin layout & component palette
@@ -56,7 +56,7 @@ Unified instance hosted from `packages/shared`, indexing shared + admin + client
 
 ## i18n
 
-react-intl, 3 bundled locales. Every user-facing string via `FormattedMessage` / `intl.formatMessage`; format dates/numbers with `Intl`, never by hand. **Coverage gate**: every new key must land in all three of `packages/shared/src/i18n/{en,es,pt}.json` in the same change — parity is mandatory. Keys are semantic (`app.feature.action`). Keep banned copy out (`bun run lint:vocab`).
+react-intl, 3 bundled locales. Every user-facing string via `FormattedMessage` / `intl.formatMessage`; format dates/numbers with `Intl`, never by hand. **Coverage gate**: every new key must land in all three of `packages/shared/src/i18n/{en,es,pt}.json` in the same change — parity is mandatory. Keys are semantic (`app.feature.action`). Keep banned copy out (`bun run check --only vocabulary`).
 
 ## View Transitions
 
@@ -64,4 +64,4 @@ Baseline + directional (forwards / backwards / fade) + reduced-motion gating are
 
 ## Validation roll-up
 
-`bun run check:design-tokens` (spec ↔ theme.css drift + version coupling) · `bun run lint:vocab` · when a component / story / Storybook surface changes: `bun run --filter @green-goods/shared check:stories` + `check:story-quality`.
+`bun run check --only design-tokens` (spec ↔ theme.css drift + version coupling) · `bun run check --only vocabulary` · when a component / story / Storybook surface changes: `bun run --filter @green-goods/shared check:stories` + `check:story-quality`.

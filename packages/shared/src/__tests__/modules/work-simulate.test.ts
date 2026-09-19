@@ -4,9 +4,17 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import * as contractErrors from "../../utils/errors/contract-errors";
 import type { EASConfig } from "../../config/blockchain";
 import {
+  ContractFunctionExecutionError,
+  ContractFunctionRevertedError,
+  HttpRequestError,
+} from "viem";
+import { EASABI } from "../../utils/blockchain/contracts";
+import {
+  SimulationRejected,
   clearSimulationCache,
   createSimulationCache,
   simulateApprovalSubmission,
+  simulateQueuedAttestations,
   simulateWorkSubmission,
 } from "../../modules/work/simulate";
 import type { Address } from "../../types/domain";
@@ -230,5 +238,104 @@ describe("work simulation", () => {
     await expect(simulateWorkSubmission(workParams(), harness.deps)).rejects.toThrow(
       "[KnownFailure] Known failure"
     );
+  });
+
+  describe("telling a refusal from a connection that failed", () => {
+    const revert = () =>
+      new ContractFunctionExecutionError(
+        new ContractFunctionRevertedError({
+          abi: EASABI,
+          functionName: "attest",
+          message: "ActionExpired",
+        }),
+        {
+          abi: EASABI,
+          functionName: "attest",
+          args: [],
+          contractAddress: EAS_CONFIG.EAS.address as Address,
+        }
+      );
+    const lostConnection = () =>
+      new HttpRequestError({
+        url: "https://rpc.example",
+        status: 503,
+        details: "Service Unavailable",
+      });
+
+    it("marks a revert as a definitive refusal, keeping the message people see", async () => {
+      const harness = simulationHarness();
+      harness.simulateContract.mockRejectedValue(revert());
+
+      const error = await simulateWorkSubmission(workParams(), harness.deps).catch(
+        (caught) => caught
+      );
+
+      expect(error).toBeInstanceOf(SimulationRejected);
+      expect(error.definitive).toBe(true);
+      expect(error.cause).toBeInstanceOf(ContractFunctionExecutionError);
+    });
+
+    it("never treats a failed connection as a refusal", async () => {
+      const work = simulationHarness();
+      work.simulateContract.mockRejectedValue(lostConnection());
+      const approval = simulationHarness();
+      approval.simulateContract.mockRejectedValue(lostConnection());
+
+      const workError = await simulateWorkSubmission(workParams(), work.deps).catch(
+        (caught) => caught
+      );
+      const approvalError = await simulateApprovalSubmission(approvalParams(), approval.deps).catch(
+        (caught) => caught
+      );
+
+      expect(workError).toMatchObject({ name: "SimulationRejected", definitive: false });
+      expect(approvalError).toMatchObject({ name: "SimulationRejected", definitive: false });
+    });
+
+    describe("the one call Upload all sends", () => {
+      const call = {
+        address: EAS_CONFIG.EAS.address as Address,
+        abi: EASABI,
+        functionName: "multiAttest",
+        args: [[]],
+      };
+
+      it("checks the call as the account that will sign it", async () => {
+        const harness = simulationHarness();
+
+        await simulateQueuedAttestations(call, 11155111, ACCOUNT, harness.deps);
+
+        expect(harness.simulateContract).toHaveBeenCalledExactlyOnceWith({
+          ...call,
+          account: ACCOUNT,
+        });
+      });
+
+      it("refuses without a chain client: a batch nothing checked must never be sent", async () => {
+        const deps = { ...simulationHarness().deps, getPublicClient: () => undefined };
+
+        await expect(
+          simulateQueuedAttestations(call, 11155111, ACCOUNT, deps)
+        ).rejects.toMatchObject({
+          name: "SimulationRejected",
+          reason: "unchecked",
+          definitive: false,
+        });
+      });
+
+      it("tells the chain refusing the call from the answer never arriving", async () => {
+        const refused = simulationHarness();
+        refused.simulateContract.mockRejectedValue(revert());
+        const lost = simulationHarness();
+        lost.simulateContract.mockRejectedValue(lostConnection());
+
+        await expect(
+          simulateQueuedAttestations(call, 11155111, ACCOUNT, refused.deps)
+        ).rejects.toMatchObject({ name: "SimulationRejected", definitive: true });
+        await expect(
+          simulateQueuedAttestations(call, 11155111, ACCOUNT, lost.deps)
+        ).rejects.toMatchObject({ name: "SimulationRejected", definitive: false });
+      });
+    });
   });
 });
