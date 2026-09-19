@@ -58,6 +58,7 @@ export function AdminNotificationPanel({ onCloseSheet }: { onCloseSheet: () => v
     allocations: workspace.allocations,
     gardenVaults: workspace.gardenVaults,
     vaultNetDeposited: workspace.vaultNetDeposited,
+    cookieJars: workspace.cookieJars,
     roleMembers: workspace.roleMembers,
     selectedRange: "30d",
     activityFilter: "all",
@@ -73,6 +74,7 @@ export function AdminNotificationPanel({ onCloseSheet }: { onCloseSheet: () => v
     const alertItems: NotificationPanelItem[] = derived.overviewAlerts.map((alert) => ({
       id: `alert-${alert.key}`,
       title: alert.label,
+      description: alert.description,
       tone: alert.severity,
       onSelect: alert.onAction,
     }));

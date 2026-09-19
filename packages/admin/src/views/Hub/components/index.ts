@@ -1,5 +1,4 @@
 export { CookieJarDepositModal } from "./CookieJarDepositModal";
-export { CookieJarManageModal } from "./CookieJarManageModal";
 export { CookieJarPayoutPanel } from "./CookieJarPayoutPanel";
 export { CookieJarWithdrawModal } from "./CookieJarWithdrawModal";
 export { HubAssessmentQueue } from "./HubAssessmentQueue";
