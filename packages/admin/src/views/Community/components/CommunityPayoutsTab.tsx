@@ -1,6 +1,7 @@
 import { selectAllocationSplits } from "@green-goods/shared/hooks/admin-ui/community/community.utils";
 import type { CommunityWorkspace } from "@green-goods/shared/hooks/admin-ui/community/useCommunityWorkspaceController";
 import type { Address } from "@green-goods/shared/types/domain";
+import { JAR_LIMIT_ROUTE_ITEM_PREFIX } from "@green-goods/shared/utils/cookie-jar-claim-limit";
 import { useIntl } from "react-intl";
 import { AdminCard } from "@/components/AdminCard";
 import { CookieJarPayoutPanel } from "@/views/Hub/components/CookieJarPayoutPanel";
@@ -23,7 +24,13 @@ export function CommunityPayoutsTab({
         <div className="garden-tab-main">
           <CookieJarPayoutPanel
             gardenAddress={garden.id as Address}
+            gardenName={garden.name}
             routeAction={selectedItem === "fund-jar" ? "deposit" : null}
+            routeEditLimitJar={
+              selectedItem?.startsWith(JAR_LIMIT_ROUTE_ITEM_PREFIX)
+                ? selectedItem.slice(JAR_LIMIT_ROUTE_ITEM_PREFIX.length)
+                : null
+            }
             allocationCount={allocations.length}
           />
         </div>
