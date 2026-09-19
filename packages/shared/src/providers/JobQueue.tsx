@@ -1,5 +1,6 @@
 import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
-import { queueToasts, toastService } from "../components/toast";
+import { useIntl } from "react-intl";
+import { createQueueToasts, toastService } from "../components/toast";
 import { DEFAULT_CHAIN_ID } from "../config/default-chain";
 import { queryClient } from "../config/react-query";
 import { useAuth } from "../hooks/auth/useAuth";
@@ -86,6 +87,10 @@ interface Work {
 }
 
 const JobQueueProviderInner: React.FC<JobQueueProviderProps> = ({ children, queue = jobQueue }) => {
+  const { formatMessage } = useIntl();
+  // One object per intl instance: the effects below list it as a dependency, so
+  // a fresh one on every render would resubscribe the queue on every render.
+  const queueToasts = React.useMemo(() => createQueueToasts(formatMessage), [formatMessage]);
   const { authMode } = useAuth();
   const sender = useTransactionSender();
 
@@ -296,7 +301,7 @@ const JobQueueProviderInner: React.FC<JobQueueProviderProps> = ({ children, queu
       unsubscribe();
       unsubscribeSyncCompleted();
     };
-  }, [currentUserAddress, queue, refreshStats, setOfflineBannerVisibleIfChanged]);
+  }, [currentUserAddress, queue, queueToasts, refreshStats, setOfflineBannerVisibleIfChanged]);
 
   useEffect(() => {
     if (!sender || !currentUserAddress) {
@@ -375,7 +380,7 @@ const JobQueueProviderInner: React.FC<JobQueueProviderProps> = ({ children, queu
       unsubscribeConnectivity();
       unsubscribeBackgroundSync();
     };
-  }, [sender, authMode, currentUserAddress, queue, refreshStats]);
+  }, [sender, authMode, currentUserAddress, queue, queueToasts, refreshStats]);
 
   // Sent work and decisions are confirmed here; nothing is sent from this pass.
   useQueueConfirmationSync({ queue, sender, userAddress: currentUserAddress, refreshStats });
@@ -406,7 +411,9 @@ const JobQueueProviderInner: React.FC<JobQueueProviderProps> = ({ children, queu
             if (result.skipped) queueToasts.queueClear();
             else queueToasts.syncSuccess(1);
           } else if (!result.skipped) {
-            queueToasts.syncError();
+            // Not syncError: one act, and a non-skipped failure is one the
+            // queue gave up on rather than rescheduled.
+            queueToasts.retryFailed();
           } else {
             queueToasts.stillQueued(stillQueuedReason(Boolean(sender)));
           }
@@ -429,7 +436,7 @@ const JobQueueProviderInner: React.FC<JobQueueProviderProps> = ({ children, queu
         return queue.getPendingCount(currentUserAddress);
       },
     }),
-    [stats, isProcessing, lastEvent, currentUserAddress, sender, queue, refreshStats]
+    [stats, isProcessing, lastEvent, currentUserAddress, sender, queue, queueToasts, refreshStats]
   );
 
   return <JobQueueContext.Provider value={contextValue}>{children}</JobQueueContext.Provider>;

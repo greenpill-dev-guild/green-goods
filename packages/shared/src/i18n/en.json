@@ -2972,6 +2972,8 @@
   "app.toast.queue.jobFailed.workMessage": "Your work is still saved on this device. Open Your Work to try again.",
   "app.toast.queue.queueClear.message": "No pending jobs to sync.",
   "app.toast.queue.queueClear.title": "Queue is clear",
+  "app.toast.queue.retryFailed.message": "It's still saved on this device. You can try again.",
+  "app.toast.queue.retryFailed.title": "Couldn't send it",
   "app.toast.queue.stillQueued.title": "Still queued",
   "app.toast.queue.syncError.message": "We'll retry automatically in the background.",
   "app.toast.queue.syncError.title": "Some jobs failed to sync",

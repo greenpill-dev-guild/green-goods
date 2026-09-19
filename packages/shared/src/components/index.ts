@@ -269,7 +269,6 @@ export {
   createValidationToasts,
   createWalletProgressToasts,
   createWorkToasts,
-  queueToasts,
   showWalletProgress,
   toastMessageIds,
   toastMessageIdsUpdate,

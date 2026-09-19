@@ -11,7 +11,7 @@
  */
 
 export { approvalToasts, createApprovalToasts } from "./presets/approval";
-export { createQueueToasts, queueToasts } from "./presets/queue";
+export { createQueueToasts } from "./presets/queue";
 export type { FormatMessageFn } from "./presets/types";
 export { toastMessageIds, toastMessageIdsUpdate } from "./presets/types";
 export { createUpdateToasts, updateToasts } from "./presets/update";

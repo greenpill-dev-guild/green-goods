@@ -129,6 +129,10 @@ export const toastMessageIds = {
       workMessage: "app.toast.queue.jobFailed.workMessage",
       approvalMessage: "app.toast.queue.jobFailed.approvalMessage",
     },
+    retryFailed: {
+      title: "app.toast.queue.retryFailed.title",
+      message: "app.toast.queue.retryFailed.message",
+    },
     stillQueued: {
       title: "app.toast.queue.stillQueued.title",
     },

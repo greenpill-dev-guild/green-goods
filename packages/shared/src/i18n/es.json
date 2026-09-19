@@ -2972,6 +2972,8 @@
   "app.toast.queue.jobFailed.workMessage": "Tu trabajo sigue guardado en este dispositivo. Abre Tu trabajo para intentarlo de nuevo.",
   "app.toast.queue.queueClear.message": "No hay trabajos pendientes para sincronizar.",
   "app.toast.queue.queueClear.title": "Cola vacía",
+  "app.toast.queue.retryFailed.message": "Sigue guardado en este dispositivo. Puedes intentarlo de nuevo.",
+  "app.toast.queue.retryFailed.title": "No se pudo enviar",
   "app.toast.queue.stillQueued.title": "Aún en cola",
   "app.toast.queue.syncError.message": "Reintentaremos automáticamente en segundo plano.",
   "app.toast.queue.syncError.title": "Falló sync de trabajos",

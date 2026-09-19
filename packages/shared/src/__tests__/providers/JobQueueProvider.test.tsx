@@ -47,18 +47,31 @@ vi.mock("../../hooks/auth/usePrimaryAddress", () => ({
   usePrimaryAddress: vi.fn(() => "0xSmartAccount"),
 }));
 
+// Stable across renders, as react-intl's own shape is, so the provider's toasts
+// stay referentially stable and its effects do not resubscribe on every render.
+const intl = vi.hoisted(() => ({
+  formatMessage: ({ defaultMessage, id }: { id: string; defaultMessage?: string }) =>
+    defaultMessage ?? id,
+}));
+vi.mock("react-intl", () => ({ useIntl: () => intl }));
+
+// The provider builds its toasts through createQueueToasts, so the spies live
+// behind that call rather than on the module's unlocalized export.
+const queueToasts = vi.hoisted(() => ({
+  jobCompleted: vi.fn(),
+  jobFailed: vi.fn(),
+  syncSuccess: vi.fn(),
+  syncError: vi.fn(),
+  retryFailed: vi.fn(),
+  stillQueued: vi.fn(),
+  queueClear: vi.fn(),
+}));
 vi.mock("../../components/toast", () => ({
   toastService: {
     success: vi.fn(),
     error: vi.fn(),
   },
-  queueToasts: {
-    jobCompleted: vi.fn(),
-    syncSuccess: vi.fn(),
-    syncError: vi.fn(),
-    stillQueued: vi.fn(),
-    queueClear: vi.fn(),
-  },
+  createQueueToasts: vi.fn(() => queueToasts),
 }));
 
 vi.mock("../../config/react-query", () => ({
@@ -86,7 +99,6 @@ vi.mock("../../config/default-chain", () => ({
   DEFAULT_CHAIN_ID: 11155111,
 }));
 
-import { queueToasts } from "../../components/toast";
 import { useQueueConfirmationSync } from "../../hooks/work/useQueueConfirmationSync";
 import { COMMITMENT_JOB_KINDS } from "../../modules/commitment-pooling/job-types";
 import { queryKeys } from "../../config/query-keys";
@@ -455,6 +467,9 @@ describe("providers/JobQueueProvider", () => {
         expect(queueToasts.syncError).toHaveBeenCalled();
       });
 
+      // A whole batch failed here and the next connectivity event retries it,
+      // so this site keeps the batch wording the explicit retry cannot use.
+      expect(queueToasts.retryFailed).not.toHaveBeenCalled();
       expect(result.current.lastEvent).toEqual({
         type: "job_failed",
         jobId: "queue-flush",
@@ -487,6 +502,23 @@ describe("providers/JobQueueProvider", () => {
         });
         expect(queue.flush).not.toHaveBeenCalled();
         expect(queueToasts.syncSuccess).toHaveBeenCalledWith(1);
+      } finally {
+        confirmed.mockRestore();
+      }
+    });
+
+    it("names the one act when an explicit retry gives up, and never the whole batch", async () => {
+      const confirmed = vi.spyOn(connectivityStore, "isConfirmedOnline").mockReturnValue(false);
+      try {
+        const { result } = renderWithQueue({
+          success: false,
+          error: "Max retries (3) exceeded",
+        });
+
+        await act(async () => result.current.retryAndSend("commitment-job-1"));
+
+        expect(queueToasts.retryFailed).toHaveBeenCalledOnce();
+        expect(queueToasts.syncError).not.toHaveBeenCalled();
       } finally {
         confirmed.mockRestore();
       }
