@@ -19,7 +19,6 @@ import {
   trackWorkRejectionSuccess,
 } from "../../modules/app/analytics-events";
 import type { JobQueueHandle } from "../../modules/job-queue/ports";
-import { connectivityStore } from "../../stores/connectivity";
 import {
   clearLapsedOverlay,
   LOCAL_OVERLAY_GRACE_MS,
