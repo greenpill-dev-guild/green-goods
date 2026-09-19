@@ -1,6 +1,12 @@
 #!/usr/bin/env sh
 set -eu
 
+# git exports GIT_DIR to hooks in a linked worktree, and a git that inherits it ignores `cwd`, so
+# a test fixture run by this gate works on this repository instead of its throwaway one. Clear
+# every variable that binds git to a repository (git lists them itself). Worktrees whose hooks
+# path points at the main checkout run this file, so it protects them even on older code.
+unset $(git rev-parse --local-env-vars)
+
 # Enable pipefail only if supported (dash doesn't support it)
 (set -o pipefail) 2>/dev/null && set -o pipefail
 

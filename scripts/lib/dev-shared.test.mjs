@@ -400,6 +400,25 @@ test("an inherited fixture identity is reported, and a contributor's own identit
   for (const email of ["validation@example.com", "t@docs.example.org", "ci@runner.test"]) {
     assert.equal(findInheritedFixtureIdentity({ "user.email": email }).problems.length, 1, email);
   }
+
+  // What the fixtures actually left behind: the identity, signing off, and a bare repository.
+  // Repairing only the identity would leave every later commit unsigned.
+  assert.deepEqual(
+    findInheritedFixtureIdentity({
+      "core.bare": "true",
+      "commit.gpgsign": "false",
+      "user.name": "Release Operator Test",
+      "user.email": "release-operator@example.invalid",
+    }).repairs,
+    [
+      "git config --local --unset-all user.name",
+      "git config --local --unset-all user.email",
+      "git config --local --unset-all commit.gpgsign",
+      "git config --local core.bare false",
+    ],
+  );
+  // Without a fixture identity, a contributor's own signing choice is theirs to keep.
+  assert.deepEqual(findInheritedFixtureIdentity({ "commit.gpgsign": "false", "core.bare": "false" }), healthy);
 });
 
 test("settings a run changed in the shared git config are reported with the commands that restore them", () => {

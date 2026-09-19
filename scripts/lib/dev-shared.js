@@ -479,10 +479,19 @@ function shellQuote(value) {
 export function findInheritedFixtureIdentity(settings) {
   const email = settings?.["user.email"] ?? "";
   if (!RESERVED_MAIL_DOMAIN.test(email)) return { problems: [], repairs: [] };
-  return {
-    problems: [`user.email is ${email}, an address reserved for tests`],
-    repairs: ["git config --local --unset-all user.name", "git config --local --unset-all user.email"],
-  };
+  const problems = [`user.email is ${email}, an address reserved for tests`];
+  const repairs = ["git config --local --unset-all user.name", "git config --local --unset-all user.email"];
+  // The fixtures that write an identity also turn signing off and can mark the repository bare.
+  // Beside their identity those are their writes too, so restore them in the same repair.
+  if (settings["commit.gpgsign"]?.toLowerCase() === "false") {
+    problems.push("commit.gpgsign is false, which the same fixtures write");
+    repairs.push("git config --local --unset-all commit.gpgsign");
+  }
+  if (settings["core.bare"]?.toLowerCase() === "true") {
+    problems.push("core.bare is true, which the same fixtures write");
+    repairs.push("git config --local core.bare false");
+  }
+  return { problems, repairs };
 }
 
 /**
