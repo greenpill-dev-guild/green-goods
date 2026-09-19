@@ -78,6 +78,11 @@ function createDefaultExecutorRegistry() {
           return { status: "waiting", reason: "awaiting-confirmation" };
         if (error instanceof StrandedSendReopened)
           return { status: "waiting", reason: "send-intent-expired" };
+        // A declined prompt is a choice, not a failure, the same as it is for a
+        // work. Rethrowing spends an attempt, and five declines would retire a
+        // decision the steward only meant to postpone.
+        if (isWorkSubmissionCancelled(error))
+          return { status: "waiting", reason: "send-cancelled" };
         throw error;
       }
     },

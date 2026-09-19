@@ -19,6 +19,7 @@ import {
   trackWorkRejectionSuccess,
 } from "../../modules/app/analytics-events";
 import type { JobQueueHandle } from "../../modules/job-queue/ports";
+import { connectivityStore } from "../../stores/connectivity";
 import {
   clearLapsedOverlay,
   LOCAL_OVERLAY_GRACE_MS,
@@ -72,6 +73,9 @@ export function useWorkApproval(dependencies: UseWorkApprovalDependencies = {}) 
   const queryClient = useQueryClient();
   const { set: scheduleAutoClear } = useTimeout();
   const lastGardenRef = useRef<string>("");
+  // Decided once, before the wallet is involved, and handed to the command so the
+  // two never disagree about whether this decision reaches the wallet.
+  const walletSendsNowRef = useRef(true);
   const decisionCacheRef = useRef<WorkDecisionCacheSnapshot | null>(null);
   const { start: scheduleFollowUp } = useProgressiveInvalidation(
     useCallback(() => {
@@ -265,12 +269,23 @@ export function useWorkApproval(dependencies: UseWorkApprovalDependencies = {}) 
           chainId,
         });
       }
+      const ports = createDefaultSubmitApprovalPorts(sender, {
+        jobQueue: dependencies.jobQueue,
+        onWalletLifecycle: lifecycle.recordWalletStage,
+      });
       const outcome = await submitApproval(
         { authMode, draft, work, chainId, userAddress: primaryAddress },
-        createDefaultSubmitApprovalPorts(sender, {
-          jobQueue: dependencies.jobQueue,
-          onWalletLifecycle: lifecycle.recordWalletStage,
-        })
+        // Only the wallet path reuses the decided answer: a passkey decision
+        // still asks for itself, since that check decides whether it sends now.
+        authMode === "wallet"
+          ? {
+              ...ports,
+              connectivity: {
+                ...ports.connectivity,
+                confirm: async () => walletSendsNowRef.current,
+              },
+            }
+          : ports
       );
       return outcome;
     },
@@ -283,7 +298,12 @@ export function useWorkApproval(dependencies: UseWorkApprovalDependencies = {}) 
         approved: draft.approved,
         authMode,
       });
-      if (authMode === "wallet") {
+      // The wallet is only asked on a connection that can carry the send. Starting
+      // the lifecycle first put up a persistent "confirm in your wallet" toast for
+      // a send the command was about to refuse, with no wallet ever opening.
+      const walletSendsNow = authMode === "wallet" && (await connectivityStore.confirmOnline());
+      walletSendsNowRef.current = walletSendsNow;
+      if (walletSendsNow) {
         lifecycle.begin({
           approved: draft.approved,
           chainId,
@@ -334,22 +354,24 @@ export function useWorkApproval(dependencies: UseWorkApprovalDependencies = {}) 
       }
 
       const actionLabel = draft.approved ? "approval" : "decision";
+      // Keyed to whether the wallet is really being asked, not to the auth mode:
+      // a wallet decision on an unconfirmed connection is refused before any
+      // prompt, so "confirm in your wallet" would describe something that is not
+      // about to happen.
       toastService.loading({
         id: "approval-submit",
-        title:
-          authMode === "wallet"
-            ? formatMessage({ id: "app.toast.approval.walletConfirm.title" })
-            : !navigator.onLine
-              ? "Working offline"
-              : "Submitting approval",
-        message:
-          authMode === "wallet"
-            ? formatMessage({ id: "app.toast.approval.walletConfirm.message" })
-            : !navigator.onLine
-              ? `Saving ${actionLabel} offline...`
-              : `Submitting ${actionLabel}...`,
-        context: authMode === "wallet" ? "wallet confirmation" : "approval submission",
-        persistent: authMode === "wallet",
+        title: walletSendsNow
+          ? formatMessage({ id: "app.toast.approval.walletConfirm.title" })
+          : !navigator.onLine
+            ? "Working offline"
+            : "Submitting approval",
+        message: walletSendsNow
+          ? formatMessage({ id: "app.toast.approval.walletConfirm.message" })
+          : !navigator.onLine
+            ? `Saving ${actionLabel} offline...`
+            : `Submitting ${actionLabel}...`,
+        context: walletSendsNow ? "wallet confirmation" : "approval submission",
+        persistent: walletSendsNow,
         suppressLogging: true,
       });
       return { previousMerged, previousOnline };

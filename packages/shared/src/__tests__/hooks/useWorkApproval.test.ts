@@ -797,6 +797,13 @@ describe("hooks/work/useWorkApproval", () => {
       );
       expect(mockErrorHandler).not.toHaveBeenCalled();
       expect(trackWorkApprovalFailed).not.toHaveBeenCalled();
+      // Nothing promised a wallet prompt that was never going to be asked for.
+      expect(trackWorkApprovalLifecycle).not.toHaveBeenCalledWith(
+        expect.objectContaining({ stage: "handoff" })
+      );
+      expect(toastService.loading).not.toHaveBeenCalledWith(
+        expect.objectContaining({ title: en["app.toast.approval.walletConfirm.title"] })
+      );
     });
 
     it("shows error toast on failure", async () => {

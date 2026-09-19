@@ -423,6 +423,35 @@ describe("modules/job-queue", () => {
     });
   });
 
+  it("keeps a declined decision queued instead of spending one of its attempts", async () => {
+    const jobId = await jobQueue.addJob(
+      "approval",
+      {
+        actionUID: 1,
+        workUID: `0x${"44".repeat(32)}`,
+        gardenAddress: "0x123",
+        gardenerAddress: "0x456",
+        approved: true,
+        confidence: 2,
+        verificationMethod: 1,
+      },
+      TEST_USER_ADDRESS,
+      { chainId: 11155111 }
+    );
+    const declined = new DOMException("Not allowed by the user.", "NotAllowedError");
+    const sender = createMockTransactionSender({ fail: declined });
+
+    // Declining is a choice, the same as it is for a work. Counting it as a
+    // failure would retire the decision after five postponements.
+    const result = await jobQueue.processJob(jobId, { transactionSender: sender });
+
+    expect(result).toMatchObject({ success: false, skipped: true });
+    const stored = await jobQueueDB.getJob(jobId);
+    expect(stored?.attempts).toBe(0);
+    expect(stored?.lastError).toBeUndefined();
+    expect(stored?.synced).toBe(false);
+  });
+
   it("keeps declined work queued for an explicit send instead of failing it", async () => {
     const jobId = await jobQueue.addJob(
       "work",
