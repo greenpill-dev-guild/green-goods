@@ -18,6 +18,8 @@ import { TestimonyResolver } from "../src/resolvers/Testimony.sol";
 import { Deployment } from "../src/registries/Deployment.sol";
 import { OctantModule } from "../src/modules/Octant.sol";
 import { HatsModule } from "../src/modules/Hats.sol";
+import { CookieJarModule } from "../src/modules/CookieJar.sol";
+import { CookieJarAssetLimits } from "./CookieJarAssetLimits.sol";
 import { GardensModule } from "../src/modules/Gardens.sol";
 import { YieldResolver } from "../src/resolvers/Yield.sol";
 import { KarmaGAPModule } from "../src/modules/Karma.sol";
@@ -373,6 +375,37 @@ contract Upgrade is Script {
 
         UUPSUpgradeable(proxy).upgradeTo(address(newImpl));
         console.log("HatsModule upgraded successfully");
+
+        vm.stopBroadcast();
+    }
+
+    /// @notice Upgrade CookieJarModule and give each supported asset its own per-claim limit
+    /// @dev Intentionally excluded from upgradeAll; run as an explicit, storage-gated target.
+    ///      Only jars created afterwards take the limits (10 DAI, 0.01 WETH). A jar already deployed
+    ///      keeps its own, which only that garden's owner can change, through the garden account.
+    function upgradeCookieJarModule() public {
+        address proxy = loadProxyAddress("cookieJarModule");
+        console.log("Upgrading CookieJarModule proxy at:", proxy);
+
+        validateProxy(proxy, "CookieJarModule");
+
+        bytes32 implementationSlot = bytes32(uint256(keccak256("eip1967.proxy.implementation")) - 1);
+        bytes32 currentImpl = vm.load(proxy, implementationSlot);
+        address currentImplAddr = address(uint160(uint256(currentImpl)));
+        console.log("Current CookieJarModule implementation:", currentImplAddr);
+
+        vm.startBroadcast();
+
+        CookieJarModule newImpl = new CookieJarModule();
+        console.log("New CookieJarModule implementation:", address(newImpl));
+
+        if (address(newImpl) == currentImplAddr) revert SameImplementation();
+
+        UUPSUpgradeable(proxy).upgradeTo(address(newImpl));
+        console.log("CookieJarModule upgraded successfully");
+
+        uint256 limitsWritten = CookieJarAssetLimits.applyTo(CookieJarModule(proxy));
+        console.log(string.concat("Per-asset claim limits written: ", vm.toString(limitsWritten)));
 
         vm.stopBroadcast();
     }

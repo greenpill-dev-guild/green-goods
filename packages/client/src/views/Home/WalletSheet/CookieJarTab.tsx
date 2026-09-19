@@ -16,6 +16,10 @@ import {
   formatTokenAmount,
   getVaultAssetSymbol,
 } from "@green-goods/shared/utils/blockchain/vaults";
+import {
+  formatClaimCadence,
+  isJarClaimLimitLow,
+} from "@green-goods/shared/utils/cookie-jar-claim-limit";
 import { RiArrowDownSLine, RiErrorWarningLine, RiInboxLine, RiWifiOffLine } from "@remixicon/react";
 import React, { useMemo, useState } from "react";
 import { useIntl } from "react-intl";
@@ -98,9 +102,17 @@ function JarCard({ jar, gardenName }: JarCardProps) {
             )}
           </div>
           {/* The group header directly above names the garden; the card keeps it
-              only in the hover/AT title so it isn't restated (Rule 17). */}
-          <p className="mt-0.5 truncate text-xs text-text-soft-400">
-            {formatMessage({ id: "app.cookieJar.maxWithdrawal" })}
+              only in the hover/AT title so it isn't restated (Rule 17). Naming the
+              limit and the cooldown stops the number above reading like a balance. */}
+          <p className="mt-0.5 text-xs text-text-soft-400">
+            {formatMessage(
+              { id: "app.cookieJar.claimLimitSummary" },
+              {
+                amount: formatTokenAmount(jar.maxWithdrawal, decimals),
+                asset: assetSymbol,
+                cadence: formatClaimCadence(formatMessage, jar.withdrawalInterval),
+              }
+            )}
           </p>
         </div>
         <RiArrowDownSLine
@@ -125,6 +137,14 @@ function JarCard({ jar, gardenName }: JarCardProps) {
             </p>
           ) : (
             <>
+              {/* A message, not a button: only a steward who can sign for the garden can
+                  raise the limit, and they see the same jar flagged in admin. Claiming the
+                  allowed amount still works. */}
+              {isJarClaimLimitLow(jar) ? (
+                <Alert variant="info" className="p-3">
+                  {formatMessage({ id: "app.cookieJar.claimLimitLowNotice" })}
+                </Alert>
+              ) : null}
               <FormattedAmountInput
                 value={amountInput}
                 onValueChange={setAmountInput}

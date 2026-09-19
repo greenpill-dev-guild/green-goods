@@ -5,6 +5,7 @@ pragma solidity ^0.8.25;
 import { Script } from "forge-std/Script.sol";
 import { console } from "forge-std/console.sol";
 
+import { CookieJarAssetLimits } from "./CookieJarAssetLimits.sol";
 import { DeploymentBase } from "../test/helpers/DeploymentBase.sol";
 import { Deployment } from "../src/registries/Deployment.sol";
 import { GardenToken } from "../src/tokens/Garden.sol";
@@ -406,6 +407,9 @@ contract Deploy is Script, DeploymentBase {
 
             cookieJarModule.addSupportedAsset(asset);
         }
+
+        // One shared default cannot serve every asset, so each gets its own per-claim limit.
+        CookieJarAssetLimits.applyTo(cookieJarModule);
     }
 
     /// @notice Read optional env var as address; returns zero when unset/invalid

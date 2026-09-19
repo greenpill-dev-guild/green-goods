@@ -1,6 +1,8 @@
 import { fireEvent } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
 import type { Address } from "@green-goods/shared/types/domain";
+import { getCampaignCookieJarPayoutAsset } from "@green-goods/shared/utils/cookie-jar-campaign";
 import { renderWithProviders, screen } from "../test-utils";
 
 const cookieJarMutationState = vi.hoisted(() => ({
@@ -10,6 +12,7 @@ const cookieJarMutationState = vi.hoisted(() => ({
   withdrawMutate: vi.fn(),
   depositReset: vi.fn(),
   withdrawReset: vi.fn(),
+  jarOverrides: {} as Record<string, unknown>,
 }));
 
 const GARDEN_ADDRESS = "0x1111111111111111111111111111111111111111" as Address;
@@ -55,6 +58,7 @@ vi.mock("@green-goods/shared/hooks/cookie-jar/useGardenCookieJars", () => ({
         minDeposit: 5_000_000_000n,
         isPaused: false,
         emergencyWithdrawalEnabled: false,
+        ...cookieJarMutationState.jarOverrides,
       },
     ],
     isLoading: false,
@@ -80,6 +84,51 @@ describe("CookieJar payout modals", () => {
     vi.clearAllMocks();
     cookieJarMutationState.depositPending = false;
     cookieJarMutationState.withdrawPending = false;
+    cookieJarMutationState.jarOverrides = {};
+  });
+
+  it("warns before funding a jar whose claim limit is low, and offers the fix first", () => {
+    // The live shape: a DAI jar that pays one cent per claim, once a day.
+    cookieJarMutationState.jarOverrides = {
+      assetAddress: getCampaignCookieJarPayoutAsset(DEFAULT_CHAIN_ID, "dai")?.address,
+      decimals: 18,
+      maxWithdrawal: 10n ** 16n,
+      withdrawalInterval: 86_400n,
+    };
+    const onFixLimit = vi.fn();
+
+    renderWithProviders(
+      <CookieJarDepositModal
+        isOpen
+        onClose={vi.fn()}
+        gardenAddress={GARDEN_ADDRESS}
+        defaultJarAddress={JAR_ADDRESS}
+        onFixLimit={onFixLimit}
+      />
+    );
+
+    expect(screen.getByText("This jar pays out 0.01 DAI per claim")).toBeInTheDocument();
+    expect(screen.getByText(/Each gardener can claim once a day\./)).toBeInTheDocument();
+    // A warning, not a block: the deposit is still on offer.
+    expect(screen.getByRole("button", { name: "Deposit Anyway" })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Fix Limit First" }));
+    expect(onFixLimit).toHaveBeenCalledWith(JAR_ADDRESS);
+  });
+
+  it("funds a jar with a sensible limit without the warning", () => {
+    renderWithProviders(
+      <CookieJarDepositModal
+        isOpen
+        onClose={vi.fn()}
+        gardenAddress={GARDEN_ADDRESS}
+        defaultJarAddress={JAR_ADDRESS}
+        onFixLimit={vi.fn()}
+      />
+    );
+
+    expect(screen.queryByText(/per claim/)).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Deposit" })).toBeInTheDocument();
   });
 
   it("prevents closing the deposit modal while the deposit mutation is pending", () => {

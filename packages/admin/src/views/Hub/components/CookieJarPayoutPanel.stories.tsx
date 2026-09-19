@@ -1,32 +1,34 @@
-import { formatTokenAmount } from "@green-goods/shared/utils/blockchain/vaults";
-import { RiHandCoinLine, RiWalletLine } from "@remixicon/react";
+import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
+import type { CookieJar } from "@green-goods/shared/types/cookie-jar";
+import type { Address } from "@green-goods/shared/types/domain";
+import { getCampaignCookieJarPayoutAsset } from "@green-goods/shared/utils/cookie-jar-campaign";
 import type { Meta, StoryObj } from "@storybook/react";
+import { useState } from "react";
 import { fn } from "storybook/test";
-import { AdminButton } from "@/components/AdminButton";
+import { withAdminIdentity } from "../../../../../shared/.storybook/decorators";
 import { AdminCard, AdminCardBody, AdminCardHeader } from "@/components/AdminCard";
+import { CookieJarPayoutCard, type JarSettingField } from "./CookieJarPayoutCard";
 
 // ⚠ VISUAL HARNESS — not the real CookieJarPayoutPanel.
-// Real component renders nothing until `useGardenCookieJars` (wagmi
-// reads) returns a configured jar list, then opens three modals
-// (deposit / withdraw / manage). This harness mirrors the card +
-// balance chips layout with injected jar data so the visual header is
-// reviewable.
+// The real panel renders nothing until `useGardenCookieJars` (wagmi reads)
+// returns a configured jar list, and it owns the deposit and claim dialogs.
+// This harness keeps the panel chrome and renders the real
+// `CookieJarPayoutCard` for each injected jar, so the cards are the shipping
+// ones and only the data source is faked.
 
-interface MockJarChip {
-  jarAddress: string;
-  symbol: string;
-  balance: bigint;
-  maxWithdrawal: bigint;
-  withdrawalInterval: string;
-  decimals: number;
-  isPaused: boolean;
-}
+const GARDEN = "0x1111111111111111111111111111111111111111";
+// The default chain's DAI and WETH, so the claim-limit rule recognises the assets.
+const DAI = getCampaignCookieJarPayoutAsset(DEFAULT_CHAIN_ID, "dai")?.address as Address;
+const WETH = getCampaignCookieJarPayoutAsset(DEFAULT_CHAIN_ID, "weth")?.address as Address;
 
 interface MockPayoutPanelProps {
-  jars: MockJarChip[];
+  jars: CookieJar[];
 }
 
 function CookieJarPayoutPanelHarness({ jars }: MockPayoutPanelProps) {
+  const [editing, setEditing] = useState<{ jarAddress: Address; field: JarSettingField } | null>(
+    null
+  );
   if (jars.length === 0) return null;
 
   return (
@@ -43,72 +45,18 @@ function CookieJarPayoutPanelHarness({ jars }: MockPayoutPanelProps) {
       <AdminCardBody className="space-y-3">
         <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
           {jars.map((jar) => (
-            <AdminCard
+            <CookieJarPayoutCard
               key={jar.jarAddress}
-              variant="outlined"
-              className="flex min-h-64 flex-col gap-4 px-4 py-4"
-            >
-              <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0">
-                  <h4 className="text-title-md font-semibold text-text-strong" title={jar.symbol}>
-                    {jar.symbol}
-                  </h4>
-                  <p className="mt-1 truncate text-label-sm text-text-soft">{jar.jarAddress}</p>
-                </div>
-                <span
-                  className={`inline-flex shrink-0 rounded-full px-2.5 py-1 text-label-sm font-medium ${
-                    jar.isPaused
-                      ? "bg-warning-lighter text-warning-dark"
-                      : "bg-success-lighter text-success-dark"
-                  }`}
-                >
-                  {jar.isPaused ? "Paused" : "Active"}
-                </span>
-              </div>
-
-              <div className="rounded-lg bg-bg-weak px-4 py-3">
-                <p className="text-label-sm font-medium text-text-soft">Jar Balance</p>
-                <p className="mt-1 text-headline-sm font-semibold tabular-nums text-text-strong">
-                  {formatTokenAmount(jar.balance, jar.decimals)}{" "}
-                  <span className="text-body-lg font-medium text-text-sub">{jar.symbol}</span>
-                </p>
-              </div>
-
-              <div className="grid grid-cols-2 gap-2 text-body-md">
-                <div className="rounded-md bg-bg-weak px-3 py-2">
-                  <p className="body-xs text-text-soft">Available now</p>
-                  <p className="mt-1 font-semibold tabular-nums text-text-strong">
-                    {formatTokenAmount(jar.maxWithdrawal, jar.decimals)} {jar.symbol}
-                  </p>
-                </div>
-                <div className="rounded-md bg-bg-weak px-3 py-2">
-                  <p className="body-xs text-text-soft">Withdrawal interval</p>
-                  <p className="mt-1 font-semibold tabular-nums text-text-strong">
-                    {jar.withdrawalInterval}
-                  </p>
-                </div>
-              </div>
-
-              <div className="mt-auto grid grid-cols-2 gap-2">
-                <AdminButton
-                  variant="tonal"
-                  size="sm"
-                  leadingIcon={<RiWalletLine />}
-                  onClick={fn()}
-                >
-                  Deposit
-                </AdminButton>
-                <AdminButton
-                  variant="filled"
-                  size="sm"
-                  leadingIcon={<RiHandCoinLine />}
-                  onClick={fn()}
-                  disabled={jar.isPaused}
-                >
-                  Withdraw
-                </AdminButton>
-              </div>
-            </AdminCard>
+              jar={jar}
+              gardenAddress={GARDEN}
+              gardenName="Riverbend Garden"
+              allocationCount={4}
+              signer={{ canSign: true, isResolved: true }}
+              editingField={editing?.jarAddress === jar.jarAddress ? editing.field : null}
+              onEdit={(field) => setEditing(field ? { jarAddress: jar.jarAddress, field } : null)}
+              onDeposit={fn()}
+              onClaim={fn()}
+            />
           ))}
         </div>
       </AdminCardBody>
@@ -116,24 +64,28 @@ function CookieJarPayoutPanelHarness({ jars }: MockPayoutPanelProps) {
   );
 }
 
-const JARS: MockJarChip[] = [
+const WETH_JAR: CookieJar = {
+  jarAddress: "0x2C4F000000000000000000000000000000009b10",
+  gardenAddress: GARDEN,
+  assetAddress: WETH,
+  currency: WETH,
+  balance: 420_000_000_000_000_000n,
+  decimals: 18,
+  maxWithdrawal: 10_000_000_000_000_000n,
+  withdrawalInterval: 86_400n,
+  minDeposit: 0n,
+  isPaused: false,
+  emergencyWithdrawalEnabled: true,
+};
+
+const JARS: CookieJar[] = [
+  WETH_JAR,
   {
-    jarAddress: "0xaaa1",
-    symbol: "WETH",
-    balance: 2_500_000_000_000_000_000n,
-    maxWithdrawal: 500_000_000_000_000_000n,
-    withdrawalInterval: "7d",
-    decimals: 18,
-    isPaused: false,
-  },
-  {
-    jarAddress: "0xaaa2",
-    symbol: "DAI",
-    balance: 120_000_000_000_000_000_000n,
-    maxWithdrawal: 25_000_000_000_000_000_000n,
-    withdrawalInterval: "7d",
-    decimals: 18,
-    isPaused: false,
+    ...WETH_JAR,
+    jarAddress: "0x7A3d0000000000000000000000000000000041C2",
+    assetAddress: DAI,
+    currency: DAI,
+    balance: 9_980_000_000_000_000_000n,
   },
 ];
 
@@ -141,11 +93,12 @@ const meta: Meta<typeof CookieJarPayoutPanelHarness> = {
   title: "Admin/Workflows/Hub/CookieJarPayoutPanel",
   component: CookieJarPayoutPanelHarness,
   tags: ["autodocs", "visual-harness"],
+  decorators: [withAdminIdentity],
   parameters: {
     docs: {
       description: {
         component:
-          "⚠ **Visual harness** — not the real `CookieJarPayoutPanel`. Header showing cookie-jar balance chips + deposit / withdraw / manage buttons. Real component is gated by wagmi reads inside `useGardenCookieJars`.",
+          "⚠ **Visual harness** — not the real `CookieJarPayoutPanel`. The panel chrome around the real `CookieJarPayoutCard`s, with injected jars. The real panel is gated by wagmi reads inside `useGardenCookieJars` and owns the deposit and claim dialogs.",
       },
     },
   },
@@ -154,6 +107,7 @@ const meta: Meta<typeof CookieJarPayoutPanelHarness> = {
 export default meta;
 type Story = StoryObj<typeof CookieJarPayoutPanelHarness>;
 
+/** The live Arbitrum shape: a sensible WETH jar beside a DAI jar capped at one cent. */
 export const WithJars: Story = {
   args: {
     jars: JARS,
