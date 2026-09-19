@@ -19,9 +19,12 @@ function fixture(success: boolean) {
     chain: { id: 11155111 },
     sendTransaction: vi.fn().mockResolvedValue(transaction),
     sendUserOperation: vi.fn().mockResolvedValue(operation),
-    waitForUserOperationReceipt: vi
-      .fn()
-      .mockResolvedValue({ success, receipt: { status: "success", transactionHash: transaction } }),
+    waitForUserOperationReceipt: vi.fn().mockResolvedValue({
+      userOpHash: operation,
+      sender: "0x2222222222222222222222222222222222222222",
+      success,
+      receipt: { status: "success", transactionHash: transaction },
+    }),
   };
   return {
     client,
