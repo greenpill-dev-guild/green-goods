@@ -185,7 +185,6 @@ export {
   TranslationBadge,
   TxInlineFeedback,
   toastService,
-  updateToasts,
   useCanvasMobileChromeHidden,
   useCanvasResponsiveFab,
   useFabConfig,

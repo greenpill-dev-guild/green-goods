@@ -89,21 +89,6 @@ export const toastMessageIds = {
     savedOffline: {
       message: "app.toast.approval.savedOffline.message",
     },
-    errorApproval: {
-      title: "app.toast.approval.errorApproval.title",
-    },
-    errorDecision: {
-      title: "app.toast.approval.errorDecision.title",
-    },
-    errorWallet: {
-      message: "app.toast.approval.errorWallet.message",
-      description: "app.toast.approval.errorWallet.description",
-    },
-    errorQueue: {
-      approvalMessage: "app.toast.approval.errorQueue.approval.message",
-      decisionMessage: "app.toast.approval.errorQueue.decision.message",
-      description: "app.toast.approval.errorQueue.description",
-    },
   },
   // Queue
   queue: {
