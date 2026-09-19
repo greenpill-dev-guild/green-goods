@@ -14,8 +14,12 @@
  *   - The fixture list comes from the release config, so a renamed or deleted boundary
  *     test cannot silently drop out of the gate: `forge test --list` must resolve every
  *     configured fixture before anything runs.
- *   - The production `src` tree is built first (unlinked, full), which is also the exact
- *     artifact set the release lock derivation reads.
+ *   - The production tree is rebuilt from scratch first (`--force`; unlinked, full), which
+ *     is also the exact artifact set the release lock derivation reads. An incremental build
+ *     keeps artifacts that an earlier command, such as an upgrade simulation, compiled
+ *     alongside a different set of files. Via-IR output for an unchanged contract can depend
+ *     on that set (KarmaGAPModule did, 2026-09-19), so a reused artifact can fail the frozen
+ *     creation-code hashes with no source change.
  */
 
 import * as fs from "node:fs";
@@ -108,8 +112,8 @@ async function main() {
   const matchTest = `^(${fixtures.map((fixture) => fixture.test).join("|")})\\(\\)$`;
 
   log(`boundary fixtures: ${fixtures.map((fixture) => fixture.test).join(", ")}`);
-  log("building full production src artifacts (unlinked; shared with the release lock derivation)");
-  const build = await runForge(["build", "-q", "--skip", "test", "--skip", "script"], false);
+  log("rebuilding the production artifacts from scratch (unlinked; shared with the release lock derivation)");
+  const build = await runForge(["build", "-q", "--force", "--skip", "test", "--skip", "script"], false);
   if (build.code !== 0) fail(`production build failed with exit code ${build.code}`);
 
   log("verifying every configured fixture still resolves before running");

@@ -6,6 +6,7 @@ import {
   useDrafts,
 } from "@green-goods/shared/hooks/work/useDrafts";
 import type { Address } from "@green-goods/shared/types/domain";
+import { RiCheckLine, RiDraftLine, RiTaskLine } from "@remixicon/react";
 import type { Meta, StoryObj } from "@storybook/react";
 import { MemoryRouter } from "react-router-dom";
 import { expect, fn, mocked, screen, userEvent, within } from "storybook/test";
@@ -14,6 +15,7 @@ import {
   STORYBOOK_NOW_SECONDS,
 } from "../../../../../shared/.storybook/fixtures";
 import { DraftsTab } from "./Drafts";
+import { WorkDashboardShell } from "./WorkDashboardShell";
 import { resetHookMocks } from "../../../../../shared/.storybook/moduleMocks";
 
 const GARDEN = "0xf401f34378384713222d1d21f63359cc4e8a858a" as Address;
@@ -40,10 +42,12 @@ function draft(id: string, overrides: Partial<DraftWithImages> = {}): DraftWithI
 
 type Drafts = ReturnType<typeof useDrafts>;
 
-function withDrafts({ isDeleting = false } = {}) {
+function withDrafts({ isDeleting = false, empty = false } = {}) {
   return () => {
     mocked(useDrafts).mockReturnValue({
-      drafts: [draft("draft-1"), draft("draft-2", { actionUID: 45, currentStep: "media" })],
+      drafts: empty
+        ? []
+        : [draft("draft-1"), draft("draft-2", { actionUID: 45, currentStep: "media" })],
       isLoading: false,
       deleteDraft: fn(async () => undefined),
       isDeleting,
@@ -93,8 +97,30 @@ type Story = StoryObj<typeof DraftsTab>;
 export const DraftList: Story = {
   beforeEach: withDrafts(),
   play: async () => {
-    await expect(await screen.findByText("2 draft(s)")).toBeVisible();
+    await expect(await screen.findByText("2 drafts")).toBeVisible();
     await expect(screen.getAllByRole("button", { name: "Delete Draft" })).toHaveLength(2);
+  },
+};
+
+export const Empty: Story = {
+  beforeEach: withDrafts({ empty: true }),
+  render: () => (
+    <WorkDashboardShell
+      isClosing={false}
+      onRequestClose={fn()}
+      tabs={[
+        { id: "drafts", label: "Draft", icon: <RiDraftLine className="h-4 w-4" /> },
+        { id: "pending", label: "Pending", icon: <RiTaskLine className="h-4 w-4" /> },
+        { id: "completed", label: "Completed", icon: <RiCheckLine className="h-4 w-4" /> },
+      ]}
+      activeTab="drafts"
+      onTabChange={fn()}
+    >
+      <DraftsTab />
+    </WorkDashboardShell>
+  ),
+  play: async () => {
+    await expect(await screen.findByText("No drafts yet")).toBeVisible();
   },
 };
 

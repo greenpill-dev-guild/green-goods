@@ -35,4 +35,15 @@ describe("components/Cards/MinimalWorkCard", () => {
     await user.click(screen.getByRole("button"));
     expect(handleClick).toHaveBeenCalledTimes(1);
   });
+
+  it("keeps the compact row and its media square on the same height contract", () => {
+    render(<MinimalWorkCard work={work as any} onClick={vi.fn()} />);
+
+    const card = screen.getByRole("button");
+    const image = card.querySelector("img");
+    const media = image?.parentElement;
+
+    expect(card).toHaveStyle({ height: "88px" });
+    expect(media).toHaveStyle({ height: "100%", aspectRatio: "1 / 1" });
+  });
 });

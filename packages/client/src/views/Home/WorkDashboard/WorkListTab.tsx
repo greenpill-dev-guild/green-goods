@@ -104,9 +104,9 @@ export const WorkListTab: React.FC<WorkListTabProps> = ({
         <div className="flex min-w-0 flex-1 justify-end">{headerContent}</div>
       </div>
 
-      <div className="flex-1 px-4 pb-4">
+      <div className="flex flex-1 flex-col px-4 pb-4">
         {isLoading ? (
-          <div className="h-full flex flex-col items-center justify-center pb-12">
+          <div className="flex flex-1 flex-col items-center justify-center pb-32">
             <Loader />
             <p className="text-sm text-text-soft-400 mt-4">
               {intl.formatMessage(messages.loading)}
@@ -114,6 +114,8 @@ export const WorkListTab: React.FC<WorkListTabProps> = ({
           </div>
         ) : hasError ? (
           <EmptyState
+            className="flex-1"
+            placement="sheet"
             icon={<RiErrorWarningLine />}
             tone="error"
             title={intl.formatMessage({
@@ -152,22 +154,25 @@ export const WorkListTab: React.FC<WorkListTabProps> = ({
           />
         ) : items.length === 0 ? (
           <EmptyState
+            className="flex-1"
+            placement="sheet"
             icon={emptyIcon}
             title={intl.formatMessage(messages.emptyTitle)}
             description={intl.formatMessage(messages.emptyDescription)}
           />
         ) : (
-          <div className="animate-stagger-in space-y-3">
+          <ul className="animate-stagger-in space-y-3">
             {items.map((work) => (
-              <MinimalWorkCard
-                key={work.id}
-                work={work}
-                onClick={() => onWorkClick(work)}
-                badges={renderBadges?.(work)}
-                className="cv-work-card"
-              />
+              <li key={work.id}>
+                <MinimalWorkCard
+                  work={work}
+                  onClick={() => onWorkClick(work)}
+                  badges={renderBadges?.(work)}
+                  className="cv-work-card"
+                />
+              </li>
             ))}
-          </div>
+          </ul>
         )}
       </div>
     </div>

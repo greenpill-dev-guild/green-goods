@@ -102,7 +102,7 @@ const Home: React.FC = () => {
   const { kind: arrivalKind, myGardenIds, needsReviewCount } = useArrivalState();
 
   // Filter state
-  const [filters, setFilters] = useState<GardenFiltersState>({ scope: "all", sort: "default" });
+  const [filters, setFilters] = useState<GardenFiltersState>({ scope: "all", sort: "name" });
 
   // Use extracted hooks for cleaner logic
   const isLoadingData = isPending || (isFetching && gardens.length === 0);
@@ -259,16 +259,12 @@ const Home: React.FC = () => {
     setFilters((current) => (current.sort === nextSort ? current : { ...current, sort: nextSort }));
   };
 
-  const handleSearchChange = (search: string) => {
-    setFilters((current) => ({ ...current, search: search.trim() ? search : undefined }));
-  };
-
   const handleDomainsChange = (domains: Domain[]) => {
     setFilters((current) => ({ ...current, domains: domains.length > 0 ? domains : undefined }));
   };
 
   const handleResetFilters = () => {
-    setFilters({ scope: "all", sort: "default" });
+    setFilters({ scope: "all", sort: "name" });
   };
 
   return (
@@ -337,7 +333,6 @@ const Home: React.FC = () => {
                 filters={filters}
                 onScopeChange={handleScopeChange}
                 onSortChange={handleSortChange}
-                onSearchChange={handleSearchChange}
                 onDomainsChange={handleDomainsChange}
                 onReset={handleResetFilters}
                 canFilterMine={Boolean(normalizedAddress)}

@@ -16,6 +16,12 @@ if [ -n "${BASH_VERSION-}" ] && [ -f .nvmrc ]; then
   fi
 fi
 
+# Refuse a commit made under an address reserved for tests. A fixture once wrote its identity into
+# this repository's config and authored 42 commits before anyone noticed. The push gate catches a
+# poisoned config, but only at push time, which is too late for the commits already made.
+# GIT_DIR is deliberately left alone here: lint-staged needs the index a partial commit sets.
+node scripts/quality/check-commit-identity.mjs --pending
+
 # Run lint-staged through the repository's required package manager.
 if ! command -v bun >/dev/null 2>&1; then
   echo "Error: Bun is required. Install bun: https://bun.sh"

@@ -3,6 +3,7 @@ import type { CookieJar } from "@green-goods/shared/types/cookie-jar";
 import { RiErrorWarningLine, RiInboxLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
 import { EmptyState } from "@/components/Communication";
+import { PWA_SHEET_FOCAL_STATE_CLASSNAME } from "@/components/Pwa/sheetScrollStyles";
 import { CookieJarCard } from "./CookieJarCard";
 
 export interface CookieJarTabContentProps {
@@ -41,31 +42,40 @@ export function CookieJarTabContent({
 
   if (!moduleConfigured) {
     return (
-      <EmptyState
-        tone="warning"
-        icon={<RiErrorWarningLine />}
-        title={formatMessage({ id: "app.cookieJar.moduleNotConfigured" })}
-      />
+      <div className={PWA_SHEET_FOCAL_STATE_CLASSNAME}>
+        <EmptyState
+          placement="sheet"
+          tone="warning"
+          icon={<RiErrorWarningLine />}
+          title={formatMessage({ id: "app.cookieJar.moduleNotConfigured" })}
+        />
+      </div>
     );
   }
 
   if (isError) {
     return (
-      <EmptyState
-        tone="error"
-        icon={<RiErrorWarningLine />}
-        title={formatMessage({ id: "app.cookieJar.errorLoading" })}
-      />
+      <div className={PWA_SHEET_FOCAL_STATE_CLASSNAME}>
+        <EmptyState
+          placement="sheet"
+          tone="error"
+          icon={<RiErrorWarningLine />}
+          title={formatMessage({ id: "app.cookieJar.errorLoading" })}
+        />
+      </div>
     );
   }
 
   if (jars.length === 0) {
     return (
-      <EmptyState
-        icon={<RiInboxLine />}
-        title={formatMessage({ id: "app.cookieJar.noJars" })}
-        description={formatMessage({ id: "app.cookieJar.noJarsDescription" })}
-      />
+      <div className={PWA_SHEET_FOCAL_STATE_CLASSNAME}>
+        <EmptyState
+          placement="sheet"
+          icon={<RiInboxLine />}
+          title={formatMessage({ id: "app.cookieJar.noJars" })}
+          description={formatMessage({ id: "app.cookieJar.noJarsDescription" })}
+        />
+      </div>
     );
   }
 

@@ -388,7 +388,7 @@
     },
     {
       "id": "validation-system-test",
-      "command": "node scripts/dev/node-cli.js node --test scripts/lib/dev-shared.test.mjs scripts/quality/check-direct-tested-seams.test.mjs scripts/quality/check-source-structure.test.mjs scripts/quality/check-staged-modules.test.mjs scripts/quality/select-validation.test.mjs scripts/dev/ci-local.test.mjs scripts/dev/surface-leases.test.mjs scripts/dev/stack.test.mjs scripts/dev/smoke-full.test.mjs scripts/quality/ci-gate.test.mjs scripts/quality/workflow-performance-parity.test.mjs scripts/dev/dev-modes.test.mjs scripts/dev/setup-env.test.mjs scripts/dev/package-commands.test.mjs scripts/dev/command-runners.test.mjs",
+      "command": "node scripts/dev/node-cli.js node --test scripts/lib/dev-shared.test.mjs scripts/quality/check-direct-tested-seams.test.mjs scripts/quality/check-source-structure.test.mjs scripts/quality/check-staged-modules.test.mjs scripts/quality/select-validation.test.mjs scripts/dev/ci-local.test.mjs scripts/dev/surface-leases.test.mjs scripts/dev/stack.test.mjs scripts/dev/smoke-full.test.mjs scripts/quality/ci-gate.test.mjs scripts/quality/workflow-performance-parity.test.mjs scripts/dev/dev-modes.test.mjs scripts/dev/setup-env.test.mjs scripts/dev/package-commands.test.mjs scripts/dev/command-runners.test.mjs scripts/quality/check-commit-identity.test.mjs",
       "risk": "validation selector or workflow routing changes are not exercised by their durable regression suite",
       "expectedSignal": "the validation-system regression suite passes",
       "freshness": "exact-inputs-and-toolchain",
