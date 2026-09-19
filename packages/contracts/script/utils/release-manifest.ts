@@ -701,6 +701,14 @@ function artifactDriftError(label: string, frozen: string, computed: string): Er
   );
 }
 
+// Salts are derived from the manifest alone, so no rebuild can move them.
+function manifestDriftError(label: string, frozen: string, computed: string): Error {
+  return new Error(
+    `${label} drift: manifest=${frozen} computed=${computed}. This value is derived from the manifest alone, ` +
+      "so rebuilding the artifacts cannot change it.",
+  );
+}
+
 function artifactPath(relativePath: string): string {
   return path.join(PRODUCTION_ARTIFACT_ROOT, relativePath);
 }
@@ -755,10 +763,14 @@ function assertSchemaPreparationIdentity(manifest: ReleaseManifest): void {
     ...preparation.expected,
   };
 
+  // The salts are checked first, so every later mismatch here is downstream of the compiled bytecode:
+  // both addresses are CREATE2 of a matching salt and a creation-code hash.
+  const manifestOnly = new Set(["implementationSalt", "proxySalt"]);
   for (const [key, actual] of Object.entries(computed)) {
     const frozen = expected[key as keyof typeof expected];
     if (typeof frozen !== "string" || actual.toLowerCase() !== frozen.toLowerCase()) {
-      throw artifactDriftError(`TestimonyResolver ${key}`, String(frozen), actual);
+      const driftError = manifestOnly.has(key) ? manifestDriftError : artifactDriftError;
+      throw driftError(`TestimonyResolver ${key}`, String(frozen), actual);
     }
   }
 }
