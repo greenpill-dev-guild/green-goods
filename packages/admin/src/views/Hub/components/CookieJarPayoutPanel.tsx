@@ -15,6 +15,10 @@ import { EnsAddressText } from "@/components/EnsAddressText";
 import { CookieJarDepositModal } from "./CookieJarDepositModal";
 import { CookieJarWithdrawModal } from "./CookieJarWithdrawModal";
 
+// Jars are funded and claimed from the PWA and from other wallets, so this panel re-reads
+// them while it is open instead of waiting for a reload.
+const JAR_STATE_REFRESH_MS = 15_000;
+
 interface CookieJarPayoutPanelProps {
   gardenAddress: Address;
   routeAction?: "deposit" | "withdraw" | null;
@@ -34,6 +38,7 @@ export const CookieJarPayoutPanel: React.FC<CookieJarPayoutPanelProps> = ({
     moduleConfigured: jarsModuleConfigured,
   } = useGardenCookieJars(gardenAddress, {
     enabled: Boolean(gardenAddress),
+    refetchInterval: JAR_STATE_REFRESH_MS,
   });
 
   const [withdrawOpen, setWithdrawOpen] = useState(false);
