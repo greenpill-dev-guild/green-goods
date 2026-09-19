@@ -51,7 +51,17 @@ jobs:
           node-version: "22.22.1"
 
       - name: Test validation selection, architecture rules, polling, and deploy gating
-        run: node --test scripts/quality/select-validation.test.mjs scripts/dev/ci-local.test.mjs scripts/dev/surface-leases.test.mjs scripts/quality/ci-gate.test.mjs scripts/quality/check-react-patterns.test.mjs scripts/ops/vercel-ignore.test.mjs
+        run: node --test scripts/quality/select-validation.test.mjs scripts/dev/ci-local.test.mjs scripts/dev/surface-leases.test.mjs scripts/quality/ci-gate.test.mjs scripts/quality/check-react-patterns.test.mjs scripts/ops/vercel-ignore.test.mjs scripts/quality/check-commit-identity.test.mjs
+
+      # Every pull request passes through this gate, whatever it touches, so this is the one place
+      # that sees a commit made under a leaked test identity from any machine. The commits come
+      # from the API because this job checks out at depth 1.
+      - name: Check commit identities
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: node scripts/quality/check-commit-identity.mjs --pull-request
 
       - name: Check package and source architecture rules
         run: node scripts/quality/check-react-patterns.js

@@ -467,6 +467,11 @@ export function readSharedGitSettings({ cwd = process.cwd(), run = spawnSync } =
 // commits from one, so an identity there was written by a fixture.
 const RESERVED_MAIL_DOMAIN = /(?:@|\.)(?:example\.(?:com|net|org)|test|example|invalid|localhost)$/i;
 
+/** True for an address no contributor can own, which is what a leaked fixture identity looks like. */
+export function isReservedTestEmail(email) {
+  return RESERVED_MAIL_DOMAIN.test(email ?? "");
+}
+
 function shellQuote(value) {
   return `'${value.replaceAll("'", "'\\''")}'`;
 }
@@ -478,7 +483,7 @@ function shellQuote(value) {
  */
 export function findInheritedFixtureIdentity(settings) {
   const email = settings?.["user.email"] ?? "";
-  if (!RESERVED_MAIL_DOMAIN.test(email)) return { problems: [], repairs: [] };
+  if (!isReservedTestEmail(email)) return { problems: [], repairs: [] };
   const problems = [`user.email is ${email}, an address reserved for tests`];
   const repairs = ["git config --local --unset-all user.name", "git config --local --unset-all user.email"];
   // The fixtures that write an identity also turn signing off and can mark the repository bare.

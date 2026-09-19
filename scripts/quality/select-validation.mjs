@@ -119,6 +119,7 @@ const directRootTestChecks = new Map([
   ["scripts/dev/ci-local.test.mjs", "validation-system-test"],
   ["scripts/dev/surface-leases.test.mjs", "validation-system-test"],
   ["scripts/quality/ci-gate.test.mjs", "validation-system-test"],
+  ["scripts/quality/check-commit-identity.test.mjs", "validation-system-test"],
   ["scripts/quality/classify-supply-chain-changes.mjs", "validation-system-test"],
   ["scripts/quality/workflow-performance-parity.test.mjs", "validation-system-test"],
 ]);
