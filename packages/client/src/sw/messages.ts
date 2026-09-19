@@ -70,7 +70,12 @@ export function createMessageHandler({ scope, shell, media, work }: MessageDepen
           work
             .quiet(() => shell.pause())
             .then(
-              () => reply({ type: SW_REPLY.QUIET_ACK, status: "quiet" } satisfies QuietAckReply),
+              (report) =>
+                reply({
+                  type: SW_REPLY.QUIET_ACK,
+                  status: "quiet",
+                  report,
+                } satisfies QuietAckReply),
               () => reply({ type: SW_REPLY.QUIET_ACK, status: "failed" } satisfies QuietAckReply)
             )
         );
@@ -86,7 +91,11 @@ export function createMessageHandler({ scope, shell, media, work }: MessageDepen
         return;
       case SW_MESSAGE.MEDIA_POLICY: {
         const policy = readPolicy(message);
-        if (!policy) {
+        // Work handed to this worker after a hand-over has counted what is open
+        // is never waited for, yet `waitUntil` keeps its message event alive and
+        // holds the update behind it. The page reads a failure here as "not now"
+        // and asks again on its next run.
+        if (!policy || !work.isAccepting) {
           reply({ failed: true });
           return;
         }
@@ -100,6 +109,10 @@ export function createMessageHandler({ scope, shell, media, work }: MessageDepen
       }
       case SW_MESSAGE.MEDIA_STATS:
       case SW_MESSAGE.MEDIA_SWEEP: {
+        if (!work.isAccepting) {
+          reply({ bytes: 0, count: 0, failed: true } satisfies MediaStatsReply);
+          return;
+        }
         const policy = message.type === SW_MESSAGE.MEDIA_SWEEP ? readPolicy(message) : null;
         const result =
           message.type === SW_MESSAGE.MEDIA_SWEEP

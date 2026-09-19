@@ -2,6 +2,7 @@ import { useIsRestoring, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useSyncExternalStore } from "react";
 import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
 import { gardensKeys } from "../../config/query-keys/garden";
+import { joinUpdateHandover } from "../../modules/app/update-handover";
 import {
   downloadMedia,
   isMediaCached,
@@ -170,6 +171,11 @@ export function useOfflineContentPreparation(chainId = DEFAULT_CHAIN_ID): void {
 
     const unsubscribeConnectivity = connectivityStore.subscribeStatus(onConnectivity);
     const unsubscribeWorker = subscribeMediaWorker(onWorker);
+    // An update hand-over stops downloads for as long as it runs.
+    const leaveUpdateHandover = joinUpdateHandover({
+      hold: () => scheduler.hold(),
+      release: () => scheduler.release(),
+    });
     document.addEventListener("visibilitychange", onVisibility);
     connection?.addEventListener?.("change", onNetwork);
     refreshStats();
@@ -180,6 +186,7 @@ export function useOfflineContentPreparation(chainId = DEFAULT_CHAIN_ID): void {
       if (activeScheduler === scheduler) activeScheduler = undefined;
       unsubscribeConnectivity();
       unsubscribeWorker();
+      leaveUpdateHandover();
       document.removeEventListener("visibilitychange", onVisibility);
       connection?.removeEventListener?.("change", onNetwork);
     };

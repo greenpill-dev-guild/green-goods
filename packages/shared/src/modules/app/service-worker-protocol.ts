@@ -73,9 +73,25 @@ export interface MediaStatsReply {
   failed?: boolean;
 }
 
+/**
+ * What the active worker was doing when a hand-over asked it to go quiet. A
+ * waiting worker cannot activate while the active one still owes anyone a
+ * response, so a stalled update reads the culprit off this.
+ */
+export interface QuietReport {
+  /** Background work it waited for: tier downloads, photo copies, policy writes. */
+  trackedWork: number;
+  /** Gateway reads it cancelled; nothing a page aborts reaches the worker. */
+  cancelledFetches: number;
+  /** Responses it still owed once those settled, counted by kind. */
+  pendingResponses: Record<string, number>;
+}
+
 export interface QuietAckReply {
   type: typeof SW_REPLY.QUIET_ACK;
   status: "quiet" | "failed";
+  /** Absent from a worker built before the report existed. */
+  report?: QuietReport;
 }
 
 export type UpdateAckStatus = "received" | "requested" | "rejected";

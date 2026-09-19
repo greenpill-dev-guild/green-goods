@@ -33,10 +33,20 @@ interface UpdateRow {
 }
 
 /**
- * One width for every control in the settings column. 120px fits the widest
- * select value ("Português") and the busiest button label with its spinner.
+ * One width for every control in the settings column. 120px fits the busiest
+ * button label with its spinner; the subtitle beside it gives up every pixel
+ * this grows by.
  */
 const SETTING_CONTROL_WIDTH = "w-[120px] sm:w-[140px]";
+
+/**
+ * A select keeps its value on one line. The trigger leaves 66px for the text,
+ * and "Português" is a few pixels wider than that in Inter. The shared trigger
+ * wraps a value that does not fit, which broke it across two lines; held on
+ * one line it borrows those pixels from the gap before the chevron instead.
+ * Radix drops a className given to SelectValue, so the trigger styles the span.
+ */
+const SETTING_SELECT_TRIGGER = `${SETTING_CONTROL_WIDTH} [&>span]:whitespace-nowrap`;
 
 /**
  * Every subtitle reserves two lines whether or not it wraps, so the three
@@ -87,7 +97,7 @@ export const AppSettings: React.FC = () => {
             value={theme}
             onValueChange={(val) => setTheme(val as "light" | "dark" | "system")}
           >
-            <SelectTrigger size="sm" className={SETTING_CONTROL_WIDTH}>
+            <SelectTrigger size="sm" className={SETTING_SELECT_TRIGGER}>
               <SelectValue placeholder={currentThemeOption.label} />
             </SelectTrigger>
             <SelectContent>
@@ -117,10 +127,11 @@ export const AppSettings: React.FC = () => {
         ),
         Icon: <RiEarthFill className="w-4" />,
         Option: () => (
-          <Select onValueChange={(val) => switchLanguage(val as Locale)}>
-            <SelectTrigger size="sm" className={SETTING_CONTROL_WIDTH}>
+          // Controlled like Theme. With no value the trigger showed the language
+          // as its placeholder, in the muted placeholder colour.
+          <Select value={locale} onValueChange={(val) => switchLanguage(val as Locale)}>
+            <SelectTrigger size="sm" className={SETTING_SELECT_TRIGGER}>
               <SelectValue
-                className="capitalize"
                 placeholder={capitalize(intl.formatDisplayName(locale, { type: "language" }) || "")}
               />
             </SelectTrigger>

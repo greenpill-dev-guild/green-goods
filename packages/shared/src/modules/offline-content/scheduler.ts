@@ -68,6 +68,9 @@ export class OfflineScheduler {
   private timer: ReturnType<typeof setTimeout> | undefined;
   private lastRunAt = 0;
   private legacyRetired = false;
+  private heldForUpdate = false;
+  /** Counts hand-over holds, so a task one of them cut short runs again. */
+  private holds = 0;
 
   constructor(private readonly ports: OfflineSchedulerPorts) {}
 
@@ -102,6 +105,27 @@ export class OfflineScheduler {
     if (this.ports.dataSaver()) this.dataSaverOverride = true;
     this.wake();
     if (!this.running) this.schedule(0);
+  }
+
+  /**
+   * An app update is handing the old worker over. Every download sent to that
+   * worker is an event it must finish before the new one can activate, so
+   * nothing more is sent until `release`. This is not a pause the user asked
+   * for: the Settings row keeps showing the run as it was.
+   */
+  hold(): void {
+    if (this.heldForUpdate) return;
+    this.heldForUpdate = true;
+    this.holds += 1;
+    this.abortDownloads();
+    this.wake();
+  }
+
+  /** The hand-over is over: downloads may be sent to the worker again. */
+  release(): void {
+    if (!this.heldForUpdate) return;
+    this.heldForUpdate = false;
+    this.wake();
   }
 
   /** Connectivity, visibility, Data Saver or the worker changed. */
@@ -142,6 +166,11 @@ export class OfflineScheduler {
     }
   }
 
+  /**
+   * One pass over everything this account should have offline, in batches that
+   * wait their turn. `refresh` re-reads lists the screen already has rather
+   * than trusting what was fetched recently.
+   */
   private async runOnce(refresh: boolean): Promise<void> {
     const { ports } = this;
     const account = ports.account();
@@ -169,8 +198,20 @@ export class OfflineScheduler {
         photoLimit: ports.cellular() ? 1 : 2,
         photosAllowed: ports.mediaReady() && (!ports.dataSaver() || this.dataSaverOverride),
       });
+      // Read before asking the worker anything: protecting the photos waits for
+      // its reply, and a hand-over or a stop that begins during that wait
+      // installs a fresh abort signal. A download started afterwards would not
+      // be interrupted at all — it would run against a quiet worker that leaves
+      // photos to the browser, fail on its own, and be counted as a photo this
+      // device lost, or it would reach the network after this run was stopped.
+      // The check below the batch cannot help: by then the work has been done.
+      const holdsBefore = this.holds;
       if (batch.some((task) => task.kind === "photo") && ports.mediaReady()) {
         await ports.media.protect(queue.plannedPhotos);
+      }
+      if (this.stopped || this.heldForUpdate || holdsBefore !== this.holds) {
+        for (const task of batch) queue.retry(task);
+        continue;
       }
       const results = await Promise.all(
         batch.map((task) =>
@@ -180,9 +221,12 @@ export class OfflineScheduler {
           )
         )
       );
+      // A hand-over cancels what the old worker was reading, photo or details,
+      // and that fails here as an ordinary network error rather than an abort.
+      const cutShort = this.stopped || holdsBefore !== this.holds;
       for (const result of results) {
         if (!("error" in result)) queue.completed(result.task, result.value);
-        else if (this.stopped || (result.error as Error | undefined)?.name === "AbortError") {
+        else if (cutShort || (result.error as Error | undefined)?.name === "AbortError") {
           queue.retry(result.task);
         } else queue.failed(result.task, result.error);
       }
@@ -274,6 +318,11 @@ export class OfflineScheduler {
     }
   }
 
+  /**
+   * Hold the next batch until this run may compete for the network again:
+   * online, not paused, not handing the worker over, the app on screen, and
+   * nothing the screen itself asked for still in flight.
+   */
   private async waitForTurn(): Promise<void> {
     const { ports } = this;
     for (;;) {
@@ -284,14 +333,20 @@ export class OfflineScheduler {
       } else if (this.userPaused) {
         this.showPaused("user");
         await this.untilWoken();
-      } else if (!ports.visible()) {
+      } else if (!ports.visible() || this.heldForUpdate) {
         await this.untilWoken();
       } else if (ports.client.isFetching() > 0 || ports.client.isMutating() > 0) {
         await ports.sleep(FOREGROUND_RECHECK_MS);
       } else {
         await ports.idle();
         if (this.stopped) throw new RunStopped();
-        if (ports.online() && !this.userPaused && ports.visible() && !ports.client.isFetching()) {
+        if (
+          ports.online() &&
+          !this.userPaused &&
+          !this.heldForUpdate &&
+          ports.visible() &&
+          !ports.client.isFetching()
+        ) {
           return;
         }
       }

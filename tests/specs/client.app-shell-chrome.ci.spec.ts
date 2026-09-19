@@ -82,20 +82,25 @@ test.describe("Installed app chrome", () => {
   test("keeps the document unscrollable on Home and on Profile account details", async ({
     page,
   }) => {
-    await page.goto("/home?presentation=pwa");
-    await expect
-      .poll(() => documentOverflowOnceRendered(page, "#app-scroll article"), { timeout: 60_000 })
-      .toBe(0);
+    await retryAfterDevServerReload(async () => {
+      await page.goto("/home?presentation=pwa");
+      await expect
+        .poll(() => documentOverflowOnceRendered(page, "#app-scroll article"), { timeout: 60_000 })
+        .toBe(0);
 
-    await page.goto("/home/profile?presentation=pwa");
-    // The address row renders a screen-reader status region below the fold.
-    await expect
-      .poll(
-        () =>
-          documentOverflowOnceRendered(page, '#profile-scroll [role="status"][aria-live="polite"]'),
-        { timeout: 60_000 }
-      )
-      .toBe(0);
+      await page.goto("/home/profile?presentation=pwa");
+      // The address row renders a screen-reader status region below the fold.
+      await expect
+        .poll(
+          () =>
+            documentOverflowOnceRendered(
+              page,
+              '#profile-scroll [role="status"][aria-live="polite"]'
+            ),
+          { timeout: 60_000 }
+        )
+        .toBe(0);
+    });
   });
 
   test("paints the app bar above the page cross-fade when switching tabs", async ({ page }) => {

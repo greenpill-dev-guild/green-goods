@@ -876,7 +876,7 @@ describe("IPFS media cache", () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  it("resumes media writes when a timed-out update hands control back", async () => {
+  it("leaves photos to the browser during a hand-over and answers them again once it times out", async () => {
     const { cacheFor, fetchMock, listeners } = await loadServiceWorker();
     const media = cacheFor("ipfs-cache");
     let quieted: Promise<unknown> | undefined;
@@ -889,11 +889,13 @@ describe("IPFS media cache", () => {
     });
     await quieted;
 
-    fetchMock.mockResolvedValueOnce(new Response("during-handover"));
+    // Answering would open an event the waiting worker has to wait out. The
+    // browser fetches the photo itself, and no Workbox route sees it either.
     const blocked = mediaEvent(imageRequest("https://ipfs.io/ipfs/during-handover"));
     listeners.fetch.forEach((listener) => listener(blocked.event));
-    await blocked.response();
-    await blocked.settled();
+    expect(blocked.event.respondWith).not.toHaveBeenCalled();
+    expect(blocked.event.stopImmediatePropagation).toHaveBeenCalled();
+    expect(fetchMock).not.toHaveBeenCalled();
     expect(media.put).not.toHaveBeenCalled();
 
     listeners.message[0]({ data: { type: "RESUME_BACKGROUND_WORK" }, ports: [] });
@@ -904,6 +906,175 @@ describe("IPFS media cache", () => {
     await resumed.settled();
 
     expect(media.put).toHaveBeenCalledTimes(1);
+  });
+
+  it("cancels a gateway read that has not answered when a hand-over asks for quiet", async () => {
+    const { fetchMock, listeners } = await loadServiceWorker();
+    let upstream: AbortSignal | undefined;
+    fetchMock.mockImplementationOnce((_url: string, init: RequestInit) => {
+      upstream = init.signal ?? undefined;
+      return new Promise((_, reject) =>
+        init.signal?.addEventListener("abort", () =>
+          reject(new DOMException("Aborted", "AbortError"))
+        )
+      );
+    });
+    const hung = mediaEvent(imageRequest(photoUrl));
+    listeners.fetch.forEach((listener) => listener(hung.event));
+    await vi.waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
+    const outcome = hung.response()?.then(
+      () => "answered",
+      (error: Error) => error.name
+    );
+
+    const ack = await ask(listeners, { type: "PREPARE_TO_ACTIVATE_UPDATE" });
+
+    // Only the worker can give up on it: a page's abort never arrives here.
+    expect(upstream?.aborted).toBe(true);
+    await expect(outcome).resolves.toBe("AbortError");
+    expect(ack).toEqual({
+      type: "GG_QUIET_ACK",
+      status: "quiet",
+      report: { trackedWork: 0, cancelledFetches: 1, pendingResponses: {} },
+    });
+    // Given up on, not retried without CORS: that would open another event.
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("cancels the download behind a photo it is still copying", async () => {
+    const { cacheFor, fetchMock, listeners } = await loadServiceWorker();
+    let upstream: AbortSignal | undefined;
+    fetchMock.mockImplementationOnce(async (_url: string, init: RequestInit) => {
+      upstream = init.signal ?? undefined;
+      return new Response("photo");
+    });
+    let releaseWrite!: () => void;
+    cacheFor("ipfs-cache").put.mockImplementationOnce(
+      () =>
+        new Promise<void>((finish) => {
+          releaseWrite = finish;
+        })
+    );
+    const copying = mediaEvent(imageRequest(photoUrl));
+    listeners.fetch.forEach((listener) => listener(copying.event));
+    expect(await (await copying.response())?.text()).toBe("photo");
+    await vi.waitFor(() => expect(releaseWrite).toBeDefined());
+
+    const quieting = ask(listeners, { type: "PREPARE_TO_ACTIVATE_UPDATE" });
+    await vi.waitFor(() => expect(upstream?.aborted).toBe(true));
+    releaseWrite();
+
+    expect((await quieting).report).toMatchObject({ trackedWork: 1, cancelledFetches: 1 });
+  });
+
+  it("turns away media work that arrives while a hand-over is draining", async () => {
+    const { cacheFor, fetchMock, listeners } = await loadServiceWorker();
+    const media = cacheFor("ipfs-cache");
+    fetchMock.mockImplementationOnce(async () => new Response("photo"));
+    let releaseWrite!: () => void;
+    media.put.mockImplementationOnce(
+      () =>
+        new Promise<void>((finish) => {
+          releaseWrite = finish;
+        })
+    );
+    const copying = mediaEvent(imageRequest(photoUrl));
+    listeners.fetch.forEach((listener) => listener(copying.event));
+    await (await copying.response())?.text();
+    await vi.waitFor(() => expect(releaseWrite).toBeDefined());
+
+    // The hand-over is now waiting on that write, so its census is already
+    // taken: anything accepted here would never be waited for, but would keep
+    // its own message event — and the update — open behind it.
+    const quieting = ask(listeners, { type: "PREPARE_TO_ACTIVATE_UPDATE" });
+    const sweep = await ask(listeners, { type: "MEDIA_SWEEP", budgetBytes: 1_000, keep: [] });
+    const stats = await ask(listeners, { type: "MEDIA_STATS" });
+    const policy = await ask(listeners, { type: "MEDIA_POLICY", budgetBytes: 1_000, keep: [] });
+
+    expect(sweep).toEqual({ bytes: 0, count: 0, failed: true });
+    expect(stats).toEqual({ bytes: 0, count: 0, failed: true });
+    expect(policy).toEqual({ failed: true });
+
+    releaseWrite();
+    const ack = await quieting;
+    expect(ack.status).toBe("quiet");
+    // The turned-away messages left nothing behind for the next worker to wait on.
+    expect(ack.report).toMatchObject({ trackedWork: 1 });
+  });
+
+  it("still forwards a page's own abort where the browser reports one", async () => {
+    const { fetchMock, listeners } = await loadServiceWorker();
+    let upstream: AbortSignal | undefined;
+    fetchMock.mockImplementationOnce((_url: string, init: RequestInit) => {
+      upstream = init.signal ?? undefined;
+      return new Promise(() => {});
+    });
+    const page = new AbortController();
+    const request = new Request(photoUrl, { signal: page.signal });
+    listeners.fetch.forEach((listener) => listener(mediaEvent(request).event));
+    await vi.waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
+
+    expect(upstream?.aborted).toBe(false);
+    page.abort();
+
+    expect(upstream?.aborted).toBe(true);
+  });
+
+  it("names a response it still owes after going quiet", async () => {
+    const { fetchMock, listeners } = await loadServiceWorker();
+    fetchMock.mockImplementationOnce(() => new Promise(() => {}));
+    const chunk = mediaEvent(new Request("https://www.greengoods.app/assets/Profile-abc123.js"));
+    listeners.fetch.forEach((listener) => listener(chunk.event));
+    await vi.waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
+
+    const ack = await ask(listeners, { type: "PREPARE_TO_ACTIVATE_UPDATE" });
+
+    // A module the page is waiting for is never cancelled, only reported.
+    expect(ack.report).toEqual({
+      trackedWork: 0,
+      cancelledFetches: 0,
+      pendingResponses: { asset: 1 },
+    });
+  });
+
+  it("leaves other images to the browser during a hand-over, and only then", async () => {
+    const { listeners } = await loadServiceWorker();
+    const before = mediaEvent(imageRequest("https://avatars.example/photo.png"));
+    listeners.fetch[0](before.event);
+    // Workbox's image route has to see it: nothing is stopped while accepting.
+    expect(before.event.stopImmediatePropagation).not.toHaveBeenCalled();
+
+    await ask(listeners, { type: "PREPARE_TO_ACTIVATE_UPDATE" });
+    const during = mediaEvent(imageRequest("https://avatars.example/photo.png"));
+    listeners.fetch[0](during.event);
+    expect(during.event.respondWith).not.toHaveBeenCalled();
+    expect(during.event.stopImmediatePropagation).toHaveBeenCalled();
+
+    // Modules, the probe and the share target are answered throughout.
+    const chunk = mediaEvent(new Request("https://www.greengoods.app/assets/Home-abc123.js"));
+    listeners.fetch[0](chunk.event);
+    expect(chunk.event.respondWith).toHaveBeenCalled();
+  });
+
+  it("goes back to answering photos by itself if the page never says the hand-over ended", async () => {
+    const { cacheFor, listeners } = await loadServiceWorker();
+    await cacheFor("ipfs-cache").put(photoUrl, new Response("saved-photo"));
+    vi.useFakeTimers({ toFake: ["Date"] });
+    try {
+      await ask(listeners, { type: "PREPARE_TO_ACTIVATE_UPDATE" });
+      const quiet = mediaEvent(imageRequest(photoUrl));
+      listeners.fetch.forEach((listener) => listener(quiet.event));
+      expect(quiet.event.respondWith).not.toHaveBeenCalled();
+
+      // A page that closed mid-hand-over sends no RESUME_BACKGROUND_WORK.
+      vi.setSystemTime(Date.now() + 15_001);
+      const later = mediaEvent(imageRequest(photoUrl));
+      listeners.fetch.forEach((listener) => listener(later.event));
+
+      expect(await (await later.response())?.text()).toBe("saved-photo");
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("hands the photo to the page before the stored copy is written", async () => {
@@ -1025,7 +1196,8 @@ describe("IPFS media cache", () => {
 
     expect(await (await response())?.text()).toBe("opaque-display");
     await settled();
-    expect(fetchMock).toHaveBeenLastCalledWith(request);
+    // The second try is cancellable by a hand-over as well.
+    expect(fetchMock).toHaveBeenLastCalledWith(request, { signal: expect.any(AbortSignal) });
     expect(cacheFor("ipfs-cache").put).not.toHaveBeenCalled();
   });
 

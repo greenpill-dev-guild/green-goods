@@ -8,7 +8,7 @@
  * @module modules/app/service-worker-update
  */
 
-import { SW_MESSAGE, SW_REPLY } from "./service-worker-protocol";
+import { type QuietReport, SW_MESSAGE, SW_REPLY } from "./service-worker-protocol";
 
 /**
  * Longest a download may run before the UI stops reporting it. The PWA shell
@@ -74,7 +74,11 @@ function hasController() {
 export function observeUpdateAttempt(
   worker: ServiceWorker,
   getRegistration: () => ServiceWorkerRegistration | null,
-  onStateChange: (properties: ReturnType<typeof buildUpdateTelemetry>) => void
+  onStateChange: (
+    properties: ReturnType<typeof buildUpdateTelemetry>,
+    /** Set when the target reached `activated` after the attempt had timed out. */
+    lateActivation?: { elapsedMs: number }
+  ) => void
 ) {
   const startedAt = now();
   let timedOut = false;
@@ -90,11 +94,14 @@ export function observeUpdateAttempt(
     );
   const dispose = () => worker.removeEventListener("statechange", observe);
   const observe = () => {
-    onStateChange(telemetry());
+    const late = timedOut && worker.state === "activated";
+    onStateChange(telemetry(), late ? { elapsedMs: now() - startedAt } : undefined);
     if (worker.state === "activated" || worker.state === "redundant") dispose();
   };
-  // This listener survives an activation timeout; a later transition is evidence,
-  // not permission to reload over work the user may have resumed.
+  // This listener survives an activation timeout, because the browser activates
+  // the target whenever the old worker finally drains. It only reports the
+  // transition; whether a late one may still restart the app is the caller's
+  // call, since the user may have picked work back up by then.
   worker.addEventListener("statechange", observe);
   return {
     telemetry,
@@ -274,6 +281,7 @@ export interface ActivationHandlers {
   onActivated: () => void;
   /** Nothing took control within the timeout. */
   onTimeout: () => void;
+  /** `report` comes with "quiet", from an active worker new enough to send one. */
   onProgress?: (
     status:
       | "quieting"
@@ -282,10 +290,26 @@ export interface ActivationHandlers {
       | "received"
       | "requested"
       | "rejected"
-      | "send_failed"
+      | "send_failed",
+    report?: QuietReport
   ) => void;
 }
 
+/** The report as the active worker sent it, or nothing when the shape is not the one expected. */
+function readQuietReport(value: unknown): QuietReport | undefined {
+  const report = value as Partial<QuietReport> | null | undefined;
+  if (
+    typeof report?.trackedWork !== "number" ||
+    typeof report.cancelledFetches !== "number" ||
+    typeof report.pendingResponses !== "object" ||
+    report.pendingResponses === null
+  ) {
+    return undefined;
+  }
+  return report as QuietReport;
+}
+
+/** The worker this attempt should target: the live waiting one, or a remembered active one. */
 export function resolveUpdateTarget(
   registration: ServiceWorkerRegistration | null,
   remembered: ServiceWorker | null
@@ -397,7 +421,9 @@ export function activateWaitingWorker(
         handlers.onTimeout();
         return;
       }
-      handlers.onProgress?.("quiet");
+      const report = readQuietReport(data.report);
+      if (report) handlers.onProgress?.("quiet", report);
+      else handlers.onProgress?.("quiet");
       quietChannel.port1.close();
       requestActivation();
     };
@@ -411,7 +437,17 @@ export function activateWaitingWorker(
     }
   }
 
-  return finish;
+  /**
+   * Abandoning an attempt leaves the old worker quiet, and it has no other way
+   * to hear that the hand-over is off: every path that gives up tells it, and
+   * this is the one the page calls. Once the update has activated there is
+   * nothing to resume, so a settled attempt cancels to nothing.
+   */
+  return () => {
+    if (done) return;
+    resumeActiveWorker();
+    finish();
+  };
 }
 
 const UPDATE_APPLIED_KEY = "gg-update-applied";

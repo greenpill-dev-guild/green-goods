@@ -10,6 +10,7 @@ import {
   createInstallWatcher,
   DOWNLOAD_TIMEOUT_MS,
   markUpdateApplied,
+  observeUpdateAttempt,
   resolveUpdateTarget,
   waitForInstallToSettle,
 } from "../../../modules/app/service-worker-update";
@@ -370,6 +371,41 @@ describe("activateWaitingWorker", () => {
     expect(handlers.onTimeout).not.toHaveBeenCalled();
   });
 
+  it("hands on what the active worker reports it had open when it went quiet", async () => {
+    vi.useFakeTimers();
+    const active = createWorker("activated");
+    stubServiceWorkerContainer(active);
+    const worker = createWorker("installed");
+    const handlers = { onActivated: vi.fn(), onTimeout: vi.fn(), onProgress: vi.fn() };
+    const report = { trackedWork: 1, cancelledFetches: 2, pendingResponses: { image: 1 } };
+
+    activateWaitingWorker(asWorker(worker), handlers, 1_000);
+    const quietPort = active.postMessage.mock.calls[0][1][0] as MessagePort;
+    quietPort.postMessage({ type: "GG_QUIET_ACK", status: "quiet", report });
+
+    await vi.waitFor(() => expect(worker.postMessage).toHaveBeenCalled());
+    expect(handlers.onProgress).toHaveBeenCalledWith("quiet", report);
+  });
+
+  it("goes ahead on a quiet ack whose report is missing or not the shape expected", async () => {
+    vi.useFakeTimers();
+    for (const report of [undefined, { trackedWork: "1" }, null]) {
+      const active = createWorker("activated");
+      stubServiceWorkerContainer(active);
+      const worker = createWorker("installed");
+      const handlers = { onActivated: vi.fn(), onTimeout: vi.fn(), onProgress: vi.fn() };
+
+      const cancel = activateWaitingWorker(asWorker(worker), handlers, 1_000);
+      const quietPort = active.postMessage.mock.calls[0][1][0] as MessagePort;
+      quietPort.postMessage({ type: "GG_QUIET_ACK", status: "quiet", report });
+
+      await vi.waitFor(() => expect(worker.postMessage).toHaveBeenCalled());
+      // An older worker sends no report: the hand-over is unchanged for it.
+      expect(handlers.onProgress).toHaveBeenCalledWith("quiet");
+      cancel();
+    }
+  });
+
   it("keeps the update waiting when the active worker cannot acknowledge quiescence", () => {
     vi.useFakeTimers();
     const active = createWorker("activated");
@@ -409,6 +445,44 @@ describe("activateWaitingWorker", () => {
     container.dispatch("controllerchange");
     cancel();
     expect(handlers.onActivated).not.toHaveBeenCalled();
+  });
+
+  it("resumes the old worker when the page abandons the attempt", async () => {
+    vi.useFakeTimers();
+    const active = createWorker("activated");
+    stubServiceWorkerContainer(active);
+    const worker = createWorker("installed");
+    const handlers = { onActivated: vi.fn(), onTimeout: vi.fn(), onProgress: vi.fn() };
+
+    const cancel = activateWaitingWorker(asWorker(worker), handlers, 1_000);
+    const quietPort = active.postMessage.mock.calls[0][1][0] as MessagePort;
+    quietPort.postMessage({ type: "GG_QUIET_ACK", status: "quiet" });
+    await vi.waitFor(() => expect(worker.postMessage).toHaveBeenCalled());
+
+    cancel();
+
+    // Nothing else would tell it: it was asked to go quiet for a hand-over that
+    // is no longer happening, and it has no view of the page that asked.
+    expect(active.postMessage).toHaveBeenLastCalledWith({ type: "RESUME_BACKGROUND_WORK" });
+  });
+
+  it("leaves the old worker alone once the update has activated", () => {
+    vi.useFakeTimers();
+    const active = createWorker("activated");
+    stubServiceWorkerContainer(active);
+    const worker = createWorker("installed");
+    const handlers = { onActivated: vi.fn(), onTimeout: vi.fn() };
+
+    const cancel = activateWaitingWorker(asWorker(worker), handlers, 1_000);
+    worker.state = "activated";
+    worker.dispatch("statechange");
+    expect(handlers.onActivated).toHaveBeenCalledOnce();
+
+    cancel();
+
+    // The worker that was quieted is on its way out; resuming it would restart
+    // background work in a worker the browser is replacing.
+    expect(active.postMessage).not.toHaveBeenCalledWith({ type: "RESUME_BACKGROUND_WORK" });
   });
 
   it("cancel drops both the listener and the timer", () => {
@@ -465,6 +539,40 @@ describe("activateWaitingWorker without a controller change", () => {
 
     expect(handlers.onActivated).toHaveBeenCalledTimes(1);
     expect(worker.postMessage).not.toHaveBeenCalled();
+  });
+});
+
+describe("observeUpdateAttempt", () => {
+  it("flags an activation only when it lands after the attempt timed out", () => {
+    stubServiceWorkerContainer(createWorker("activated"));
+    const onTime = createWorker("installed");
+    const seenOnTime = vi.fn();
+    observeUpdateAttempt(asWorker(onTime), () => null, seenOnTime);
+    onTime.state = "activated";
+    onTime.dispatch("statechange");
+    expect(seenOnTime).toHaveBeenCalledWith(
+      expect.objectContaining({ after_timeout: false, target_worker_state: "activated" }),
+      undefined
+    );
+
+    const late = createWorker("installed");
+    const seenLate = vi.fn();
+    const attempt = observeUpdateAttempt(asWorker(late), () => null, seenLate);
+    attempt.markTimedOut();
+    late.state = "activating";
+    late.dispatch("statechange");
+    expect(seenLate).toHaveBeenLastCalledWith(
+      expect.objectContaining({ after_timeout: true, target_worker_state: "activating" }),
+      undefined
+    );
+    late.state = "activated";
+    late.dispatch("statechange");
+    expect(seenLate).toHaveBeenLastCalledWith(
+      expect.objectContaining({ after_timeout: true, target_worker_state: "activated" }),
+      { elapsedMs: expect.any(Number) }
+    );
+    // Settled: the observer lets go of the worker by itself.
+    expect(late.listenerCount("statechange")).toBe(0);
   });
 });
 
