@@ -292,10 +292,7 @@ export function useWorkApproval(dependencies: UseWorkApprovalDependencies = {}) 
         queuesWalletDecisions
           ? {
               ...ports,
-              connectivity: {
-                ...ports.connectivity,
-                confirm: async () => walletSendsNowRef.current,
-              },
+              connectivity: { confirm: async () => walletSendsNowRef.current },
             }
           : ports
       );

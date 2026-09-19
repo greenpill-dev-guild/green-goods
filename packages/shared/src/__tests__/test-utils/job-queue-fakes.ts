@@ -126,7 +126,11 @@ export function createFakeJobQueueConnectivity(online = true): JobQueueConnectiv
   setOnline(value: boolean): void;
 } {
   let current = online;
-  return { isOnline: () => current, setOnline: (value) => (current = value) };
+  return {
+    isOnline: () => current,
+    canSend: async () => (current ? null : "offline"),
+    setOnline: (value) => (current = value),
+  };
 }
 
 export function createFakeJobQueueAnalytics(): JobQueueAnalytics {
