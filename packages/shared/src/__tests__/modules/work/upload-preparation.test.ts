@@ -8,20 +8,9 @@ import {
   type UploadPreparationPorts,
 } from "../../../modules/work/upload-preparation";
 import type { Job } from "../../../types/job-queue";
+import { queuedWorkJob } from "../../test-utils/queued-jobs";
 
-function queued(id: string, meta: Job["meta"] = {}): Job {
-  return {
-    id,
-    kind: "work",
-    chainId: 42161,
-    payload: { actionUID: 1, gardenAddress: "0xgarden", feedback: "" },
-    meta,
-    createdAt: 1,
-    attempts: 0,
-    synced: false,
-    userAddress: "0xuser",
-  } as Job;
-}
+const queued = (id: string, meta: Job["meta"] = {}): Job => queuedWorkJob({ id, meta });
 
 function harness(jobs: Job[], overrides: Partial<UploadPreparationPorts> = {}) {
   const store = new Map(jobs.map((job) => [job.id, job]));
