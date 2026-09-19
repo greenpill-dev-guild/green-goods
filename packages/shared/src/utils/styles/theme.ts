@@ -19,10 +19,9 @@ function systemTheme(): Resolved {
 
 /**
  * Point the browser chrome (Android status bar, installed-app title bar) at the
- * resolved theme. The document's `theme-color` meta carries both scheme colors
- * as `data-light` / `data-dark`, so the per-build branding stays in the document:
- * a build that ships one color for both schemes stays pinned either way, and a
- * document without those attributes is left alone.
+ * resolved theme. The colors live on the document's `theme-color` meta as
+ * `data-light` / `data-dark`, which keeps per-build branding (production vs the
+ * beta build's single pinned color) out of this module.
  */
 function syncThemeColor(resolved: Resolved): void {
   const meta = document.querySelector<HTMLMetaElement>('meta[name="theme-color"]');

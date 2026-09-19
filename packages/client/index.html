@@ -90,12 +90,7 @@
     <script id="boot-theme">
       // Set theme before render to prevent flash
       (function() {
-        var stored = 'system';
-        try {
-          stored = localStorage.getItem('theme') || 'system';
-        } catch (_) {
-          // Blocked storage falls back to the OS scheme, as shared theme.ts does.
-        }
+        var stored = localStorage.getItem('theme') || 'system';
         var systemDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
         var isDark = stored === 'dark' || (stored === 'system' && systemDark);
         var resolved = isDark ? 'dark' : 'light';
@@ -275,12 +270,11 @@
         --boot-deep: var(--color-editorial-deep, #120d09);
       }
 
-      /* The installed-app loader stays up until auth is ready, then hands off
-         to html, body, and SplashScaffold, which all paint bg-white-0. It takes
-         the same token so the selected theme holds through boot and the handoff
-         has no seam. Light resolves to white, matching the production OS splash.
-         The dark action fallback keeps the recovery button at 3:1 on the dark
-         canvas when the stylesheet never arrived. */
+      /* The loader stays up until auth is ready, then hands off to html, body,
+         and SplashScaffold, which all paint bg-white-0; taking the same token
+         leaves the handoff seamless. The dark action fallback exists because a
+         dark canvas drops the old one to 1.7:1 when the stylesheet never
+         arrived. */
       html[data-boot-presentation="pwa"] #boot-fallback {
         --boot-canvas: var(--color-bg-white-0, #ffffff);
       }

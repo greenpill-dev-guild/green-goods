@@ -7,9 +7,6 @@ import { initTheme, setTheme } from "../../../utils/styles/theme";
 
 // jsdom reports no dark preference, so the OS scheme reads light throughout:
 // selecting dark here is always the case where the selection and the OS disagree.
-const themeColorMeta = (light: string, dark: string) =>
-  `<meta name="theme-color" content="${light}" data-light="${light}" data-dark="${dark}" />`;
-
 function themeColor(): string | undefined {
   return document.head.querySelector<HTMLMetaElement>('meta[name="theme-color"]')?.content;
 }
@@ -17,7 +14,7 @@ function themeColor(): string | undefined {
 describe("utils/styles/theme", () => {
   beforeEach(() => {
     localStorage.clear();
-    document.head.innerHTML = themeColorMeta("#ffffff", "#0c0a09");
+    document.head.innerHTML = `<meta name="theme-color" content="#ffffff" data-light="#ffffff" data-dark="#0c0a09" />`;
     delete document.documentElement.dataset.theme;
   });
 
