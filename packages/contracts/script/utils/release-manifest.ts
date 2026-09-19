@@ -689,6 +689,29 @@ export function validateReleaseManifest(manifest: ReleaseManifest): void {
   }
 }
 
+// The release gas gate rebuilds out/production from scratch. An incremental build can keep an artifact that
+// another command compiled alongside a different set of files, and via-IR bytecode can depend on that set.
+const REBUILD_PRODUCTION_ARTIFACTS =
+  "rebuild the production artifacts from scratch with `bun run --cwd packages/contracts test --suite release-gas`";
+
+// Every value here mixes compiled bytecode with manifest inputs: the CREATE2 factory, constructor
+// arguments, and the initializer owner all feed the creation code and the addresses derived from it.
+// A fresh build settles the bytecode half, so name both causes rather than only the bytecode.
+function artifactDriftError(label: string, frozen: string, computed: string): Error {
+  return new Error(
+    `${label} drift: manifest=${frozen} computed=${computed}; ${REBUILD_PRODUCTION_ARTIFACTS} and retry. ` +
+      "Drift that survives a fresh build means the compiled bytecode or a manifest input changed.",
+  );
+}
+
+// Salts are derived from the manifest alone, so no rebuild can move them.
+function manifestDriftError(label: string, frozen: string, computed: string): Error {
+  return new Error(
+    `${label} drift: manifest=${frozen} computed=${computed}. This value is derived from the manifest alone, ` +
+      "so rebuilding the artifacts cannot change it.",
+  );
+}
+
 function artifactPath(relativePath: string): string {
   return path.join(PRODUCTION_ARTIFACT_ROOT, relativePath);
 }
@@ -697,7 +720,7 @@ function loadArtifact(relativePath: string): FoundryArtifact {
   const filePath = artifactPath(relativePath);
   // `build:full` alone compiles the test profile; only FOUNDRY_PROFILE=production writes out/production.
   if (!fs.existsSync(filePath)) {
-    throw new Error(`Production artifact missing: ${filePath}; run FOUNDRY_PROFILE=production bun run build`);
+    throw new Error(`Production artifact missing: ${filePath}; ${REBUILD_PRODUCTION_ARTIFACTS}`);
   }
   return readJson<FoundryArtifact>(filePath);
 }
@@ -743,10 +766,14 @@ function assertSchemaPreparationIdentity(manifest: ReleaseManifest): void {
     ...preparation.expected,
   };
 
+  // The salts are the only values here that no build can affect; the rest combine the compiled
+  // artifacts with manifest inputs, so they keep the rebuild guidance.
+  const manifestOnly = new Set(["implementationSalt", "proxySalt"]);
   for (const [key, actual] of Object.entries(computed)) {
     const frozen = expected[key as keyof typeof expected];
     if (typeof frozen !== "string" || actual.toLowerCase() !== frozen.toLowerCase()) {
-      throw new Error(`TestimonyResolver ${key} drift: manifest=${String(frozen)} computed=${actual}`);
+      const driftError = manifestOnly.has(key) ? manifestDriftError : artifactDriftError;
+      throw driftError(`TestimonyResolver ${key}`, String(frozen), actual);
     }
   }
 }
@@ -851,9 +878,7 @@ function assertExistingUpgradeArtifacts(manifest: ReleaseManifest): void {
     ]);
     const actual = keccak256(creation);
     if (actual.toLowerCase() !== upgrade.expectedImplementationCreationCodeHash.toLowerCase()) {
-      throw new Error(
-        `${upgrade.name} creation-code drift: manifest=${upgrade.expectedImplementationCreationCodeHash} computed=${actual}`,
-      );
+      throw artifactDriftError(`${upgrade.name} creation-code`, upgrade.expectedImplementationCreationCodeHash, actual);
     }
   }
 }
