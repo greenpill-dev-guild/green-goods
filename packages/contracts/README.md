@@ -142,6 +142,26 @@ Use `bun run env:check` to check configured keys without printing values, and co
 profiling. These package commands remain in the generated inventory. Inspect the selected
 network, persisted artifacts, and signer policy before retrying a failed operation.
 
+## Cookie Jar claim limits
+
+`CookieJarModule` creates one jar per supported asset when a garden is minted. Each asset carries
+its own per-claim limit (`assetMaxWithdrawal`), because one shared value cannot serve assets whose
+units differ by orders of magnitude: 0.01 WETH is a fair claim and 0.01 DAI is one cent. An asset
+with no limit of its own falls back to `defaultMaxWithdrawal`. The ruled values, 10 DAI and
+0.01 WETH, live in `script/CookieJarAssetLimits.sol`; fresh deployments and the upgrade below both
+apply them.
+
+```sh
+bun run contracts -- upgrade cookie-jar-module --network arbitrum --mode simulate
+bun run contracts -- upgrade cookie-jar-module --network arbitrum --mode broadcast
+```
+
+The upgrade is an explicit target, excluded from `upgrade all`. A broadcast first checks the
+module's storage layout against its committed baseline and rehearses the upgrade on a fork of live
+Arbitrum state. The limits only reach jars created afterwards. A jar already deployed keeps its
+own limit, and only the garden's owner can change it, through the garden account (Community →
+Payouts in the admin).
+
 ## HatsModule Operational Notes
 
 ### Phantom hat wearers after revocation
