@@ -104,16 +104,18 @@ vi.mock("@/components/Navigation", () => ({
     tabs,
     activeTab,
     onTabChange,
+    className,
     triggerClassName,
   }: {
     tabs: Array<{ id: string; label: string }>;
     activeTab: string;
     onTabChange: (id: string) => void;
+    className?: string;
     triggerClassName?: string;
   }) =>
     createElement(
       "div",
-      { "data-testid": "domain-tabs" },
+      { "data-testid": "domain-tabs", className },
       tabs.map((tab) =>
         createElement(
           "button",
@@ -232,6 +234,26 @@ describe("WorkIntro", () => {
 
     expect(screen.getByText("Select Your Action")).toBeInTheDocument();
     expect(screen.getByText("Select Your Garden")).toBeInTheDocument();
+  });
+
+  it("uses the full-width domain rail with readable single-line labels", () => {
+    const gardens = [
+      makeGarden({
+        id: "0xGarden" as Address,
+        domainMask:
+          (1 << Domain.SOLAR) | (1 << Domain.AGRO) | (1 << Domain.EDU) | (1 << Domain.WASTE),
+      }),
+    ];
+
+    renderIntro({ gardens });
+
+    expect(screen.getByTestId("domain-tabs")).toHaveClass("-mx-4", "sm:-mx-6", "md:-mx-12");
+    expect(screen.getByTestId("domain-tab-0")).toHaveClass(
+      "flex-auto",
+      "text-xs",
+      "[&>span]:break-normal",
+      "[&>span]:whitespace-nowrap"
+    );
   });
 
   it("renders action cards for active actions", () => {
@@ -476,7 +498,7 @@ describe("WorkIntro", () => {
     const agroTab = screen.getByTestId(`domain-tab-${Domain.AGRO}`);
     expect(agroTab).toBeInTheDocument();
     expect(agroTab).toHaveTextContent("Agroforestry");
-    expect(agroTab.className).toContain("text-[10px]");
+    expect(agroTab).toHaveClass("text-xs", "[&>span]:whitespace-nowrap");
   });
 
   it("hides domain tabs when only one domain exists", () => {

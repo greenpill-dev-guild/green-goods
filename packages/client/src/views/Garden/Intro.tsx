@@ -184,8 +184,8 @@ export const WorkIntro: React.FC<WorkIntroProps> = ({
             defaultMessage: "Domains",
           })}
           variant="compact"
-          className="mb-2"
-          triggerClassName="px-1 text-[10px] leading-4 sm:px-3 sm:text-label-sm"
+          className="-mx-4 mb-2 sm:-mx-6 md:-mx-12"
+          triggerClassName="flex-auto px-2 text-xs leading-4 [&>span]:break-normal [&>span]:whitespace-nowrap sm:px-3 sm:text-label-sm"
         />
       )}
 
