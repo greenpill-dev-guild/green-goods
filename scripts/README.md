@@ -90,7 +90,7 @@ policy. Release sessions still use the existing release operator.
 | `open-urls.sh` | `ecosystem.config.cjs` (PM2 app) | Wait on dev ports, open Brave to localhost URLs |
 | `test-e2e.js` | `bun run browser e2e --preset all` | Boot the web stack (client + admin + docs + storybook) via `bun run dev -- web`, wait on health, run Playwright, stop the PM2 stack via `bun run dev -- stop` |
 | `seed-test-data.ts` | `bun scripts/dev/seed-test-data.ts` / `seed:anvil` | Seed local/anvil chain with test fixtures |
-| `ci-local.js` | `bun run check` | Selector-driven local executor with change-aware plans, fail-fast stopping, explicit blocked/cancelled results, and opt-in exact passing receipts |
+| `ci-local.js` | `bun run check` | Selector-driven local executor with change-aware plans, fail-fast stopping, explicit blocked/cancelled results, and opt-in exact passing receipts. Clears the repository binding a git hook exports before any check runs, fails when a check changes the git config shared by all worktrees, and refuses publication intents while that config carries a test-fixture identity |
 | `ci-local.test.mjs` | `bun run check --only validation-system-test`, CI Gate | Fixture coverage for local fail-fast, cancellation, blocking, and exact passing-receipt behavior |
 | `stack.test.mjs` | `bun run check --only validation-system-test` | Default service selection and startup failure/readiness behavior |
 | `surface-leases.mjs` | `stack.js`, `doctor.js` | Coordinate port/service ownership, compatible reuse, stale-claim cleanup, and owner-only release for concurrent development sessions |
@@ -228,7 +228,7 @@ Client startup prints one `[vite-watch]` line with the checkout, client root, wa
 
 ### `lib/`
 - `ipfs-hybrid.ts` — Pinata client helpers used by `ops/ipfs-repin.ts` and `ops/upload-action-images.ts`.
-- `dev-shared.js` — shared dev-script helpers, including tool/version probes, Bun-to-Node re-exec with the repo's Node 22 toolchain, and loopback URL probes for local smoke checks.
+- `dev-shared.js` — shared dev-script helpers, including tool/version probes, Bun-to-Node re-exec with the repo's Node 22 toolchain, loopback URL probes for local smoke checks, and the git isolation helpers: `fixtureGitEnvironment()` for any test that builds a throwaway repository (`cwd` alone does not isolate git under a hook), plus the shared-config leak checks `ci-local.js` runs.
 - `env-schema.mjs` — dotenv/schema parser and profile-required-key helpers used by `dev/env-check.js` and env-parity checks.
 - `env-parity.mjs` — Vercel build-time environment-parity and Sentry-DSN assertions used by the client and admin Vite configs.
 - `git-guardrails.mjs` — shared Git/base-ref resolution for diff-aware quality and contracts checks, including invalid CI base fallback.

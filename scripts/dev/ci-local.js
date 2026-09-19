@@ -9,7 +9,11 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 
 import {
   SUBMODULE_RECOVERY_COMMAND,
+  clearRepositoryLocalGitVariables,
+  findInheritedFixtureIdentity,
+  findSharedGitSettingChanges,
   inspectPinnedSubmodules,
+  readSharedGitSettings,
   reexecUnderCompatibleNodeIfNeeded,
   reexecUnderSystemNodeIfNeeded,
   resolveVitestMaxWorkers,
@@ -838,7 +842,21 @@ function printPlan(plan) {
   }
 }
 
+function reportGitFixtureLeak({ problems, repairs }, consequence) {
+  if (problems.length === 0) return false;
+  console.error(
+    `\n${colors.red}The git config shared by every worktree shows a test-fixture leak:${colors.reset}`,
+  );
+  for (const problem of problems) console.error(`  - ${problem}`);
+  console.error(`${consequence} Restore the config with:`);
+  for (const repair of repairs) console.error(`  ${repair}`);
+  return true;
+}
+
 async function main() {
+  // The push hook exports GIT_DIR inside a linked worktree, and every check inherits this
+  // environment. Clear it so `cwd` chooses the repository for each of them.
+  clearRepositoryLocalGitVariables();
   const options = parseArguments(process.argv.slice(2));
   if (options.help) {
     showHelp();
@@ -880,6 +898,22 @@ async function main() {
     console.log(
       `${colors.yellow}Note:${colors.reset} --generate-indexer is retained for compatibility; selected Indexer package commands own code generation.`,
     );
+  }
+
+  // A fixture identity left in the shared config authors every commit made since. Refuse to
+  // publish them, because repairing a pushed author needs a force-push; lighter intents only warn.
+  const sharedGitSettings = readSharedGitSettings({ cwd: projectRoot });
+  const publishing =
+    policy.intentOrder.indexOf(options.intent) >= policy.intentOrder.indexOf("push");
+  const inheritedIdentity = reportGitFixtureLeak(
+    findInheritedFixtureIdentity(sharedGitSettings),
+    publishing
+      ? "Commits made since carry that author, so nothing is published from here."
+      : "Commits made since carry that author, and a push will be refused.",
+  );
+  if (inheritedIdentity && publishing) {
+    process.exitCode = 1;
+    return;
   }
 
   const abortController = new AbortController();
@@ -943,7 +977,12 @@ async function main() {
   } else {
     console.log(`\n${colors.red}Validation failed; dependent checks stopped.${colors.reset}`);
   }
-  process.exitCode = execution.exitCode;
+  // A leaking fixture passes its own test, so only the config it wrote to can report it.
+  const leaked = reportGitFixtureLeak(
+    findSharedGitSettingChanges(sharedGitSettings, readSharedGitSettings({ cwd: projectRoot })),
+    "One of these checks wrote to it, or a worktree without this guard did meanwhile.",
+  );
+  process.exitCode = leaked && execution.exitCode === 0 ? 1 : execution.exitCode;
 }
 
 const isDirectRun =

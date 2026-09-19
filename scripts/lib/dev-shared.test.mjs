@@ -1,15 +1,22 @@
 import assert from "node:assert/strict";
-import { chmodSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { execFileSync } from "node:child_process";
+import { chmodSync, existsSync, mkdirSync, mkdtempSync, realpathSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import test from "node:test";
 
 import {
+  REPOSITORY_LOCAL_GIT_VARIABLES,
+  clearRepositoryLocalGitVariables,
   findCompatibleNode,
+  findInheritedFixtureIdentity,
+  findSharedGitSettingChanges,
+  fixtureGitEnvironment,
   dockerEnvironment,
   assertDockerReady,
   parseSubmoduleStatus,
   profileRequiresContractSubmodules,
+  readSharedGitSettings,
   reexecUnderCompatibleNodeIfNeeded,
   resolveSubmoduleSetupAction,
   resolveVitestMaxWorkers,
@@ -287,4 +294,139 @@ test("the re-entry sentinel prevents an infinite spawn loop", () => {
     if (original === undefined) delete process.env[sentinel];
     else process.env[sentinel] = original;
   }
+});
+
+test("a fixture's git stays in its own directory while a hook binds git to the pushed repository", (t) => {
+  const root = realpathSync(mkdtempSync(path.join(tmpdir(), "git-fixture-isolation-")));
+  t.after(() => rmSync(root, { recursive: true, force: true }));
+  const pushed = path.join(root, "pushed");
+  const fixture = path.join(root, "fixture");
+  mkdirSync(pushed);
+  mkdirSync(fixture);
+  const git = (cwd, env, ...args) => execFileSync("git", args, { cwd, env, encoding: "utf8" }).trim();
+
+  const unbound = fixtureGitEnvironment();
+  git(pushed, unbound, "init", "--quiet");
+  git(pushed, unbound, "commit", "--quiet", "--allow-empty", "-m", "pushed work");
+  const pushedHead = git(pushed, unbound, "rev-parse", "HEAD");
+  const pushedSettings = readSharedGitSettings({ cwd: pushed });
+
+  // What git hands every child of a hook in a linked worktree: `cwd` no longer chooses.
+  const hook = {
+    ...process.env,
+    GIT_DIR: path.join(pushed, ".git"),
+    GIT_INDEX_FILE: path.join(pushed, ".git/index"),
+  };
+  assert.equal(git(fixture, hook, "rev-parse", "--absolute-git-dir"), path.join(pushed, ".git"));
+
+  const isolated = fixtureGitEnvironment(hook);
+  git(fixture, isolated, "init", "--quiet");
+  writeFileSync(path.join(fixture, "seed.txt"), "seed\n");
+  git(fixture, isolated, "add", ".");
+  git(fixture, isolated, "commit", "--quiet", "-m", "fixture work");
+
+  assert.equal(git(fixture, isolated, "rev-parse", "--absolute-git-dir"), path.join(fixture, ".git"));
+  assert.equal(git(fixture, isolated, "log", "-1", "--format=%an <%ae>"), "Fixture <fixture@example.invalid>");
+  assert.equal(existsSync(path.join(fixture, ".git/config")), true);
+  assert.equal(git(pushed, unbound, "rev-parse", "HEAD"), pushedHead);
+  assert.equal(git(pushed, unbound, "status", "--porcelain"), "");
+  assert.deepEqual(readSharedGitSettings({ cwd: pushed }), pushedSettings);
+});
+
+test("clearing git's repository-local variables releases a hook's binding and keeps the rest", () => {
+  const environment = {
+    PATH: "/bin",
+    GIT_DIR: "/pushed/.git/worktrees/lane",
+    GIT_INDEX_FILE: "/pushed/.git/worktrees/lane/index",
+    GIT_WORK_TREE: "/pushed",
+    GIT_EDITOR: "true",
+    GIT_SSH_COMMAND: "ssh -i key",
+  };
+  assert.equal(clearRepositoryLocalGitVariables(environment), environment);
+  assert.deepEqual(environment, { PATH: "/bin", GIT_EDITOR: "true", GIT_SSH_COMMAND: "ssh -i key" });
+
+  // The list of record is git's own: a git that binds through a new variable must extend ours.
+  const listedByGit = execFileSync("git", ["rev-parse", "--local-env-vars"], { encoding: "utf8" })
+    .split("\n")
+    .filter(Boolean);
+  assert.deepEqual(
+    listedByGit.filter((variable) => !REPOSITORY_LOCAL_GIT_VARIABLES.includes(variable)),
+    [],
+  );
+});
+
+test("shared git settings come from the repository's own config, and are absent without one", () => {
+  const calls = [];
+  const answering = (stdout, status) => (command, args, options) => {
+    calls.push({ command, args, cwd: options.cwd, bound: "GIT_DIR" in options.env });
+    return { stdout, status };
+  };
+
+  assert.deepEqual(
+    readSharedGitSettings({
+      cwd: "/repo",
+      run: answering("core.bare false\nuser.name Release Operator Test\n", 0),
+    }),
+    { "core.bare": "false", "user.name": "Release Operator Test" },
+  );
+  // --local keeps a developer's global identity out of the comparison.
+  assert.equal(calls[0].command, "git");
+  assert.deepEqual(calls[0].args.slice(0, 2), ["config", "--local"]);
+  assert.deepEqual([calls[0].cwd, calls[0].bound], ["/repo", false]);
+
+  assert.deepEqual(readSharedGitSettings({ cwd: "/repo", run: answering("", 1) }), {});
+  assert.equal(readSharedGitSettings({ cwd: "/tarball", run: answering("", 128) }), null);
+});
+
+test("an inherited fixture identity is reported, and a contributor's own identity is not", () => {
+  const healthy = { problems: [], repairs: [] };
+  assert.deepEqual(findInheritedFixtureIdentity({ "core.bare": "false" }), healthy);
+  assert.deepEqual(findInheritedFixtureIdentity(null), healthy);
+  // A per-repository identity is legitimate, whatever its domain resembles.
+  for (const email of ["ada@contest.com", "ada@myexample.com", "ada@users.noreply.github.com"]) {
+    assert.deepEqual(findInheritedFixtureIdentity({ "user.name": "Ada", "user.email": email }), healthy, email);
+  }
+
+  assert.deepEqual(
+    findInheritedFixtureIdentity({
+      "user.name": "Release Operator Test",
+      "user.email": "release-operator@example.invalid",
+    }),
+    {
+      problems: ["user.email is release-operator@example.invalid, an address reserved for tests"],
+      repairs: ["git config --local --unset-all user.name", "git config --local --unset-all user.email"],
+    },
+  );
+  for (const email of ["validation@example.com", "t@docs.example.org", "ci@runner.test"]) {
+    assert.equal(findInheritedFixtureIdentity({ "user.email": email }).problems.length, 1, email);
+  }
+});
+
+test("settings a run changed in the shared git config are reported with the commands that restore them", () => {
+  const before = { "core.bare": "false", "user.name": "Ada O'Neil" };
+  assert.deepEqual(findSharedGitSettingChanges(before, { ...before }), { problems: [], repairs: [] });
+  assert.deepEqual(findSharedGitSettingChanges(null, before), { problems: [], repairs: [] });
+
+  assert.deepEqual(
+    findSharedGitSettingChanges(before, {
+      "core.bare": "true",
+      "user.name": "Validation Test",
+      "user.email": "validation@example.com",
+      "commit.gpgsign": "false",
+    }),
+    {
+      problems: [
+        "core.bare changed from false to true while validation ran",
+        "user.name changed from Ada O'Neil to Validation Test while validation ran",
+        "user.email changed from unset to validation@example.com while validation ran",
+        "commit.gpgsign changed from unset to false while validation ran",
+      ],
+      repairs: [
+        "git config --local core.bare 'false'",
+        "git config --local user.name 'Ada O'\\''Neil'",
+        "git config --local --unset-all user.email",
+        "git config --local --unset-all commit.gpgsign",
+      ],
+    },
+  );
 });

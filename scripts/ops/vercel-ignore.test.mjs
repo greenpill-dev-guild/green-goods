@@ -6,7 +6,12 @@ import { dirname, join, resolve } from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
 
+import { clearRepositoryLocalGitVariables, fixtureGitEnvironment } from "../lib/dev-shared.js";
 import { changedBetween, decide, isInput, SITES } from "./vercel-ignore.mjs";
+
+// A hook's GIT_DIR outranks `cwd`, so without this `changedBetween` reads the repository being
+// pushed instead of the fixture the test builds.
+clearRepositoryLocalGitVariables();
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 const read = (path) => readFileSync(resolve(ROOT, path), "utf8");
@@ -97,17 +102,9 @@ test("a changed file whose name is not plain ASCII still matches its site", () =
   // git quotes and escapes such names unless it is asked for -z output, and a
   // quoted path matches no input prefix, which would skip a needed build.
   const repo = mkdtempSync(join(tmpdir(), "vercel-ignore-"));
+  const env = fixtureGitEnvironment();
   const git = (...args) =>
-    execFileSync("git", ["-C", repo, ...args], {
-      stdio: ["ignore", "pipe", "ignore"],
-      env: {
-        ...process.env,
-        GIT_AUTHOR_NAME: "t",
-        GIT_AUTHOR_EMAIL: "t@example.invalid",
-        GIT_COMMITTER_NAME: "t",
-        GIT_COMMITTER_EMAIL: "t@example.invalid",
-      },
-    });
+    execFileSync("git", ["-C", repo, ...args], { stdio: ["ignore", "pipe", "ignore"], env });
   try {
     git("init", "--quiet", "-b", "main");
     mkdirSync(join(repo, "packages/qa"), { recursive: true });

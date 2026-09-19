@@ -6,6 +6,7 @@ import { join } from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
 
+import { clearRepositoryLocalGitVariables, fixtureGitEnvironment } from "../lib/dev-shared.js";
 import {
   detectCliCapabilities,
   buildReceiptInputs,
@@ -24,6 +25,15 @@ function ids(plan) {
 function turboTestCommand(surface) {
   const binary = surface === "docs" ? "../node_modules/.bin/turbo" : "../../node_modules/.bin/turbo";
   return `node ${binary} run test --filter=@green-goods/${surface} --output-logs=new-only`;
+}
+
+// A hook's GIT_DIR outranks `cwd`, so without this the selector under test reads the repository
+// being pushed instead of the fixture a test just built.
+clearRepositoryLocalGitVariables();
+
+function fixtureGit(directory) {
+  const env = fixtureGitEnvironment();
+  return (...args) => execFileSync("git", args, { cwd: directory, env, stdio: "ignore" });
 }
 
 test("the durable Bun caller re-enters the selector under real Node", () => {
@@ -1422,11 +1432,8 @@ test("publication base resolution uses the live PR base and otherwise origin/dev
 test("git inputs include dirty and untracked paths and fingerprint their content", (t) => {
   const directory = mkdtempSync(join(tmpdir(), "validation-selector-"));
   t.after(() => rmSync(directory, { recursive: true, force: true }));
-  const git = (...args) => execFileSync("git", args, { cwd: directory, stdio: "ignore" });
+  const git = fixtureGit(directory);
   git("init");
-  git("config", "user.email", "validation@example.com");
-  git("config", "user.name", "Validation Test");
-  git("config", "commit.gpgsign", "false");
   mkdirSync(join(directory, "packages/client/src"), { recursive: true });
   writeFileSync(join(directory, "packages/client/src/app.ts"), "export const value = 1;\n");
   git("add", ".");
@@ -1468,11 +1475,8 @@ test("git inputs include dirty and untracked paths and fingerprint their content
 test("git inputs fingerprint committed patches larger than Node's default buffer", (t) => {
   const directory = mkdtempSync(join(tmpdir(), "validation-large-diff-selector-"));
   t.after(() => rmSync(directory, { recursive: true, force: true }));
-  const git = (...args) => execFileSync("git", args, { cwd: directory, stdio: "ignore" });
+  const git = fixtureGit(directory);
   git("init");
-  git("config", "user.email", "validation@example.com");
-  git("config", "user.name", "Validation Test");
-  git("config", "commit.gpgsign", "false");
   mkdirSync(join(directory, "packages/client/src"), { recursive: true });
   const sourcePath = join(directory, "packages/client/src/large-fixture.ts");
   writeFileSync(sourcePath, "export const baseline = true;\n");
@@ -1494,11 +1498,8 @@ test("git inputs fingerprint committed patches larger than Node's default buffer
 test("deleted tests are not inferred as focused Vitest paths", (t) => {
   const directory = mkdtempSync(join(tmpdir(), "validation-deleted-test-selector-"));
   t.after(() => rmSync(directory, { recursive: true, force: true }));
-  const git = (...args) => execFileSync("git", args, { cwd: directory, stdio: "ignore" });
+  const git = fixtureGit(directory);
   git("init");
-  git("config", "user.email", "validation@example.com");
-  git("config", "user.name", "Validation Test");
-  git("config", "commit.gpgsign", "false");
   const testDirectory = join(directory, "packages/shared/src/__tests__");
   const testPath = join(testDirectory, "removed.test.ts");
   mkdirSync(testDirectory, { recursive: true });
@@ -1533,11 +1534,8 @@ test("deleted tests are not inferred as focused Vitest paths", (t) => {
 test("lane fingerprint ignores an unrelated dirty plan while workspace fingerprint remains broad", (t) => {
   const directory = mkdtempSync(join(tmpdir(), "validation-lane-selector-"));
   t.after(() => rmSync(directory, { recursive: true, force: true }));
-  const git = (...args) => execFileSync("git", args, { cwd: directory, stdio: "ignore" });
+  const git = fixtureGit(directory);
   git("init");
-  git("config", "user.email", "validation@example.com");
-  git("config", "user.name", "Validation Test");
-  git("config", "commit.gpgsign", "false");
   mkdirSync(join(directory, "packages/client/src"), { recursive: true });
   mkdirSync(join(directory, ".plans/active/unrelated"), { recursive: true });
   const sourcePath = join(directory, "packages/client/src/app.ts");

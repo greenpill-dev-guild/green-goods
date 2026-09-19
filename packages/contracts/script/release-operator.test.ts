@@ -24,6 +24,14 @@ import {
 // Contract-session unit tests never load developer credentials.
 vi.mock("dotenv", () => ({ config: vi.fn(), default: { config: vi.fn() } }));
 
+// git exports GIT_DIR to the hooks it runs in a linked worktree, and a git that inherits it
+// ignores `cwd`. Under the push gate the fixture below, and the checkout assertions under test,
+// would then work on the repository being pushed. `git rev-parse --local-env-vars` names every
+// such variable; scripts/lib/dev-shared.js records the damage this prevents.
+for (const variable of execFileSync("git", ["rev-parse", "--local-env-vars"], { encoding: "utf8" }).split("\n")) {
+  if (variable) delete process.env[variable];
+}
+
 const temporaryDirectories: string[] = [];
 
 afterEach(() => {
@@ -35,12 +43,20 @@ afterEach(() => {
 function createCandidateRepository(): { repository: string; candidate: string } {
   const repository = fs.mkdtempSync(path.join(os.tmpdir(), "release-operator-repository-"));
   temporaryDirectories.push(repository);
+  // The identity travels in the environment and no developer config is read, so the fixture
+  // writes to no config file.
+  const env = {
+    ...process.env,
+    GIT_CONFIG_GLOBAL: "/dev/null",
+    GIT_CONFIG_SYSTEM: "/dev/null",
+    GIT_AUTHOR_NAME: "Fixture",
+    GIT_AUTHOR_EMAIL: "fixture@example.invalid",
+    GIT_COMMITTER_NAME: "Fixture",
+    GIT_COMMITTER_EMAIL: "fixture@example.invalid",
+  };
   const git = (args: string[]) =>
-    execFileSync("git", args, { cwd: repository, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] }).trim();
+    execFileSync("git", args, { cwd: repository, env, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] }).trim();
   git(["init"]);
-  git(["config", "user.name", "Release Operator Test"]);
-  git(["config", "user.email", "release-operator@example.invalid"]);
-  git(["config", "commit.gpgsign", "false"]);
   fs.writeFileSync(path.join(repository, "reviewed.txt"), "reviewed\n");
   git(["add", "reviewed.txt"]);
   git(["commit", "-m", "test: freeze candidate"]);
@@ -168,7 +184,11 @@ describe("release operator session", () => {
       [1, 2, 3],
       async () => pendingNonces.shift() ?? -1,
       (boundary, args) => void executions.push({ boundary, args }),
-      { wait: async () => void (waits += 1) },
+      {
+        wait: async () => {
+          waits += 1;
+        },
+      },
     );
 
     expect(waits).toBe(1);
