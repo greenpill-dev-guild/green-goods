@@ -1,6 +1,13 @@
 import { queryKeys } from "./registry";
 
 export const financeInvalidation = {
+  /**
+   * Wagmi-owned root query keys for direct on-chain reads. Invalidating these
+   * forces every `useReadContract(s)` and balance query to refetch after a
+   * state-changing transaction. Keep the key shapes here, not in hooks.
+   */
+  onchainReads: () => [["readContract"], ["readContracts"], ["balance"]],
+
   invalidateCommunity: (gardenAddress: string, chainId: number) => [
     queryKeys.community.garden(gardenAddress, chainId),
     queryKeys.community.pools(gardenAddress, chainId),
@@ -84,6 +91,8 @@ export const financeInvalidation = {
     queryKeys.cookieJar.campaigns(chainId),
   ],
 
+  // A garden jar's balance, per-claim limit, cooldown and pause state are read straight from
+  // the jar contract, so every garden-jar helper also refreshes the wagmi-owned read roots.
   onCookieJarWithdraw: (
     gardenAddress: string,
     jarAddress: string,
@@ -107,7 +116,7 @@ export const financeInvalidation = {
       keys.push(queryKeys.cookieJar.userHistory(jarAddress, userAddress, chainId));
     }
 
-    return keys;
+    return [...keys, ...financeInvalidation.onchainReads()];
   },
 
   onCookieJarDeposit: (gardenAddress: string, jarAddress: string, chainId: number) => [
@@ -115,14 +124,11 @@ export const financeInvalidation = {
     queryKeys.cookieJar.jarDetail(jarAddress, chainId),
     queryKeys.cookieJar.campaign(jarAddress, undefined, chainId),
     queryKeys.cookieJar.campaigns(chainId),
+    ...financeInvalidation.onchainReads(),
   ],
 
-  onCookieJarAdminAction: (gardenAddress: string, jarAddress: string, chainId: number) => [
-    queryKeys.cookieJar.byGarden(gardenAddress, chainId),
-    queryKeys.cookieJar.jarDetail(jarAddress, chainId),
-    queryKeys.cookieJar.campaign(jarAddress, undefined, chainId),
-    queryKeys.cookieJar.campaigns(chainId),
-  ],
+  onCookieJarAdminAction: (gardenAddress: string, jarAddress: string, chainId: number) =>
+    financeInvalidation.onCookieJarDeposit(gardenAddress, jarAddress, chainId),
 
   onCampaignCookieJarChanged: (
     jarAddress: string,

@@ -6,7 +6,9 @@
  * across package boundaries. Avoid mirroring every literal array shape.
  */
 
+import { QueryClient } from "@tanstack/react-query";
 import { describe, expect, it } from "vitest";
+import { readContractsQueryKey } from "wagmi/query";
 import {
   DEFAULT_RETRY_COUNT,
   DEFAULT_RETRY_DELAY,
@@ -21,6 +23,7 @@ import {
 } from "../../config/query-keys";
 import type { Address } from "../../types/domain";
 import type { AttestationFilters } from "../../types/hypercerts";
+import { COOKIE_JAR_ABI } from "../../utils/blockchain/abis/cookie-jar";
 
 const TEST_CHAIN_ID = 11155111;
 const TEST_GARDEN = "0x3333333333333333333333333333333333333333";
@@ -324,6 +327,38 @@ describe("queryInvalidation", () => {
         queryKeys.cookieJar.userHistory(TEST_JAR, TEST_USER, TEST_CHAIN_ID),
       ])
     );
+  });
+
+  // A jar's balance and limits are direct contract reads that wagmi keys itself, so the jar
+  // helpers must reach those keys. Registry keys alone left the balance stale after a deposit.
+  it.each([
+    ["deposit", () => queryInvalidation.onCookieJarDeposit(TEST_GARDEN, TEST_JAR, TEST_CHAIN_ID)],
+    [
+      "claim",
+      () => queryInvalidation.onCookieJarWithdraw(TEST_GARDEN, TEST_JAR, TEST_USER, TEST_CHAIN_ID),
+    ],
+    [
+      "limit change",
+      () => queryInvalidation.onCookieJarAdminAction(TEST_GARDEN, TEST_JAR, TEST_CHAIN_ID),
+    ],
+  ])("refreshes the jar's onchain state after a %s", (_action, buildKeys) => {
+    const client = new QueryClient();
+    const jarStateKey = readContractsQueryKey({
+      contracts: [
+        {
+          address: TEST_JAR as Address,
+          abi: COOKIE_JAR_ABI,
+          functionName: "currencyHeldByJar",
+        },
+      ],
+    });
+    client.setQueryData(jarStateKey, [{ status: "success", result: 1n }]);
+
+    for (const queryKey of buildKeys()) {
+      void client.invalidateQueries({ queryKey });
+    }
+
+    expect(client.getQueryState(jarStateKey)?.isInvalidated).toBe(true);
   });
 
   it("keeps queue, works, and offline sync grouped for full sync completion", () => {

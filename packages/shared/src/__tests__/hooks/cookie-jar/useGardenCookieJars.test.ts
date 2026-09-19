@@ -41,6 +41,8 @@ const mockDecimalsReturn: {
 
 let readContractCallCount = 0;
 let readContractsCallCount = 0;
+let lastDetailQuery: Record<string, unknown> | undefined;
+let lastDecimalsQuery: Record<string, unknown> | undefined;
 
 vi.mock("wagmi", () => ({
   useReadContract: (args: Record<string, unknown>) => {
@@ -60,12 +62,14 @@ vi.mock("wagmi", () => ({
     const enabled = args?.query && (args.query as Record<string, unknown>).enabled;
     // First useReadContracts = jar details, second = decimals
     if (readContractsCallCount % 2 === 0) {
+      lastDecimalsQuery = args?.query as Record<string, unknown> | undefined;
       return {
         data: enabled === false ? undefined : mockDecimalsReturn.data,
         isLoading: mockDecimalsReturn.isLoading,
         error: mockDecimalsReturn.error,
       };
     }
+    lastDetailQuery = args?.query as Record<string, unknown> | undefined;
     return {
       data: enabled === false ? undefined : mockReadContractsReturn.data,
       isLoading: mockReadContractsReturn.isLoading,
@@ -116,6 +120,25 @@ describe("hooks/cookie-jar/useGardenCookieJars", () => {
     mockDecimalsReturn.data = undefined;
     mockDecimalsReturn.isLoading = false;
     mockDecimalsReturn.error = null;
+  });
+
+  it("re-reads jar state on the caller's interval and leaves token decimals alone", () => {
+    mockReadContractReturn.data = [TEST_JAR_1];
+
+    renderHook(() => useGardenCookieJars(TEST_GARDEN, { refetchInterval: 15_000 }), {
+      wrapper: createTestWrapper(),
+    });
+
+    expect(lastDetailQuery?.refetchInterval).toBe(15_000);
+    expect(lastDecimalsQuery?.refetchInterval).toBeUndefined();
+  });
+
+  it("does not poll unless a caller asks", () => {
+    mockReadContractReturn.data = [TEST_JAR_1];
+
+    renderHook(() => useGardenCookieJars(TEST_GARDEN), { wrapper: createTestWrapper() });
+
+    expect(lastDetailQuery?.refetchInterval).toBe(false);
   });
 
   it("returns empty when module not configured (zero address)", () => {
