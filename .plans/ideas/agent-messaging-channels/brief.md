@@ -1,34 +1,42 @@
-# Agent Messaging Channels
+# Messaging access for gardeners
 
-**Slug**: `agent-messaging-channels`
-**Stage**: `active`
-**Priority**: `p1`
-**Created**: `2026-04-17`
+**Status:** DRAFT; idea stage; implementation not authorized.
 
-## Problem
+**Last updated:** 2026-09-11 UTC.
 
-Rural gardeners and operators in Season One pilot gardens do not reliably have web access or app literacy. The existing Telegram-only agent covers a narrow slice; WhatsApp and SMS are the dominant messaging surfaces in target regions. Without those channels, transactional activity (submit / approve / reject / join) funnels back through the PWA, blocking adoption for exactly the users the platform was built for.
+**Canonical architecture:** [Identity, garden workflows and provider design](spec.md).
 
-## Desired Outcome
+**Delivery and proof:** [proposed sequence](plan.todo.md), [acceptance tests](eval.md).
 
-- Agent reachable on **WhatsApp + SMS** in addition to Telegram.
-- Users text a phone number and can execute transactional actions scoped by ERC-4337 session keys (not an agent-held EOA).
-- Tier-Y capability: read-only unlimited, transactional rate-limited (submit 10/day, approve/reject 20/day, join 3/day).
-- Dual revoke path: web (passkey) OR `REVOKE` keyword via messaging.
-- At least one Season One pilot garden runs a real work cycle via SMS or WhatsApp by **2026-06-30**.
+Let gardeners prepare work in WhatsApp and continue the same activity in Green Goods, using their existing passkey or EOA where they have one. Keep the gardener's identity and history consistent across channels while each account retains its own signing authority.
 
-## Scope Notes
+The first community is TAS in Nigeria, using English. The user has accepted secure PWA confirmation for final steward approvals and binding commitments. The proposed initial reporting path also asks the gardener to review and sign each onchain work publication in the browser. A browser visit does not require PWA installation.
 
-- In scope:
-  - `packages/agent` platform adapters (`whatsapp.ts`, `sms.ts`, `_base.ts`), session-key service, linking service, rate-limit service, handler refactor to `InboundMessage`.
-  - `packages/contracts/src/validators/SessionKeyValidator.sol` (or thin wrapper if Pimlico ships one).
-  - `packages/shared/src/hooks/usePhoneLinking.ts` + `modules/{sessionKeys,agentCommands}.ts` (barrel-exported).
-  - `packages/client/src/views/Profile/PhoneLinking/` UX.
-- Out of scope:
-  - New transactional commands beyond the existing handler set (`submit`, `approve`, `reject`, `join`).
-  - Message templates / opt-in marketing flows (verification submission unblocks future work but is not the Q2 outcome).
-  - Indexer changes — messaging state is off-chain per spec and per `CLAUDE.md` indexer-boundary rule.
+## The proposed experience
 
-## Success Signal
+A new gardener sends a photo and description to the official WhatsApp sender. The bot saves a private draft, confirms the garden and offers a browser continuation. The gardener can use an existing account or explicitly create a passkey account. After secure pairing and garden admission, they review and sign the work. WhatsApp and the PWA then show the same draft and publication status.
 
-Both WA and SMS channels have sent ≥1 successful transactional message in production from a Season One pilot garden, with `SessionKeyValidator.sol` cleared by the shared Q2 audit and outcome milestone #14 closed.
+An existing PWA user connects WhatsApp from account settings. Both the account and channel must prove possession. This creates a channel binding, not another wallet. An existing EOA user keeps the EOA as author; a passkey linked to the same profile does not gain control of that EOA.
+
+Stewards receive minimal notifications and approve the exact published work in the PWA with their authorized account. Commitments can be prepared in chat, but the full binding terms and actual actor's signature stay in the PWA initially.
+
+## Decisions that remain open
+
+1. **First-time account setup:** Is a one-time browser passkey setup acceptable before publication? The user has not answered this question. RESR-75 requires verification without sign-up, so the proposed flow cannot yet claim to satisfy that criterion.
+2. **Provider:** Compare direct Meta, Twilio and Africa's Talking using actual Nigeria provisioning and workflow costs. WhatsApp is the channel; Twilio is one provider. Twilio's published Nigeria guidance does not support two-way SMS, so SMS fallback is unproven.
+3. **Technical proof:** Verify backend account authentication with the deployed/counterfactual Kernel configuration. Treat narrowly scoped report delegation as a later, separately reviewed option.
+4. **Recovery and operations:** Total-passkey-loss recovery remains unresolved. Agree consent, retention, support ownership, budget and pilot thresholds before production collection.
+
+## Architecture boundaries
+
+The private participant record connects separately verified accounts and channels. Garden permissions stay attached to the exact authorized blockchain account. Phone access cannot recover a wallet, grant a garden role, change an owner or renew signing permission.
+
+New users do not receive custodial wallets by default in this proposal. Existing Telegram users require an explicit legacy migration path: today's bot creates EOAs and holds their keys. Work/media persistence and independent work/approval recovery also need changes; this exceeds transport polish.
+
+The first release introduces no bot authority over approvals, commitments, funds or membership. Optional reporting delegation requires demonstrable onchain restrictions and independent owner revocation. Expiry and offchain rate limits alone do not establish an adequate permission boundary.
+
+## Success
+
+Prove one continuous report journey across WhatsApp and PWA for both passkey and EOA users, correct garden/account authorization, recoverable failures and comprehensible consent. Measure accepted reports and total gardener, steward and support effort. Proposed pilot size and thresholds remain for TAS/research to approve.
+
+This hub replaces the April assumptions without promoting the work from ideas. Research is captured; runtime, provider provisioning and user journeys have not been implemented or verified by this documentation pass. See the spec's evidence map and the evaluation gates for the distinction.
