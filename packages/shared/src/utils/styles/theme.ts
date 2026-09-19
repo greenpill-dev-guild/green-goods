@@ -18,6 +18,34 @@ function systemTheme(): Resolved {
 }
 
 /**
+ * Point the browser chrome (Android status bar, installed-app title bar) at the
+ * resolved theme. A document's static `theme-color` metas are keyed on the OS
+ * scheme, so a selected theme that disagrees with the OS would keep the wrong
+ * bar color. Browsers take the first `theme-color` meta that matches, so one
+ * meta without a media query, placed ahead of the static pair, carries the
+ * selection. Its colors come from the scheme-tagged static metas, which keeps
+ * per-build branding out of this module: a build that pins one color for both
+ * schemes stays pinned, and a document without tagged metas is left alone.
+ */
+function syncThemeColor(resolved: Resolved): void {
+  // Matched on the dataset, not built into the selector: the stored theme is
+  // unvalidated, and a stray quote in it must not throw during app boot.
+  const source = Array.from(
+    document.querySelectorAll<HTMLMetaElement>('meta[name="theme-color"][data-theme-color-scheme]')
+  ).find((meta) => meta.dataset.themeColorScheme === resolved);
+  if (!source) return;
+
+  let active = document.querySelector<HTMLMetaElement>("meta[data-theme-color-active]");
+  if (!active) {
+    active = document.createElement("meta");
+    active.name = "theme-color";
+    active.dataset.themeColorActive = "";
+    (document.querySelector('meta[name="theme-color"]') ?? source).before(active);
+  }
+  active.content = source.content;
+}
+
+/**
  * Apply theme to DOM by setting data-theme attribute
  */
 function apply(theme: Theme): void {
@@ -25,6 +53,7 @@ function apply(theme: Theme): void {
 
   const resolved: Resolved = theme === "system" ? systemTheme() : theme;
   document.documentElement.dataset.theme = resolved;
+  syncThemeColor(resolved);
 }
 
 /**

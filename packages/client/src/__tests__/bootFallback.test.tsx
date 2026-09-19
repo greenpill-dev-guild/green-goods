@@ -88,6 +88,50 @@ function detectPresentation(options: DetectOptions): string | undefined {
   return detectBootDataset(options).bootPresentation;
 }
 
+interface ThemeScriptOptions {
+  /** A stored selection, null for none, or "throws" for blocked storage. */
+  stored: string | null;
+  systemDark: boolean;
+  colors?: { light: string; dark: string };
+}
+
+// Runs the pre-paint theme script against the document's own theme-color
+// metas, with the build-time color placeholders filled in.
+function runThemeScript({
+  stored,
+  systemDark,
+  colors = { light: "#ffffff", dark: "#0c0a09" },
+}: ThemeScriptOptions) {
+  const staticMetas = INDEX_HTML.match(/<meta name="theme-color"[^>]*>/g);
+  if (!staticMetas?.length) throw new Error("Missing theme-color metas");
+  document.head.innerHTML = staticMetas
+    .join("")
+    .replace("%PWA_THEME_COLOR_LIGHT%", colors.light)
+    .replace("%PWA_THEME_COLOR_DARK%", colors.dark);
+  delete document.documentElement.dataset.theme;
+
+  const storage = createStorage();
+  if (stored === "throws") {
+    storage.getItem = () => {
+      throw new DOMException("The operation is insecure.", "SecurityError");
+    };
+  } else if (stored) {
+    storage.setItem("theme", stored);
+  }
+  const windowLike = { matchMedia: () => ({ matches: systemDark }) };
+
+  new Function("window", "document", "localStorage", inlineScript("boot-theme"))(
+    windowLike,
+    document,
+    storage
+  );
+
+  return {
+    metas: Array.from(document.head.querySelectorAll('meta[name="theme-color"]')),
+    resolved: document.documentElement.dataset.theme,
+  };
+}
+
 type BootWindow = Pick<Window, "addEventListener" | "clearTimeout" | "setTimeout"> & {
   __GG_CLEAR_BOOT_FALLBACK?: () => void;
   __GG_MARK_BOOT_FAILED?: () => void;
@@ -242,6 +286,8 @@ describe("presentation-specific boot fallback", () => {
   afterEach(() => {
     vi.useRealTimers();
     document.body.innerHTML = "";
+    document.head.innerHTML = "";
+    delete document.documentElement.dataset.theme;
     delete document.documentElement.dataset.bootPresentation;
     delete (window as Window & { __GG_CLEAR_BOOT_FALLBACK?: () => void }).__GG_CLEAR_BOOT_FALLBACK;
     delete (window as Window & { __GG_MARK_BOOT_FAILED?: () => void }).__GG_MARK_BOOT_FAILED;
@@ -347,22 +393,72 @@ describe("presentation-specific boot fallback", () => {
     expect(slots).toEqual(["logo", "message", "action"]);
   });
 
-  it("keeps white scoped to the loader and restores the themed document canvas after boot", () => {
+  it("themes the PWA loader from the app canvas and keeps its color off the document", () => {
     const styles = inlineStyle("boot-fallback-styles");
     const documentRule = styles.match(
       /html\[data-boot-presentation="pwa"\],\s*html\[data-boot-presentation="pwa"\] body\s*{([^}]*)}/s
     )?.[1];
 
+    // The loader stays up until auth is ready, then hands off to html, body,
+    // and SplashScaffold, which all paint bg-white-0. It takes the same token
+    // so the selected theme holds through boot and the handoff has no seam.
     expect(styles).toMatch(
-      /html\[data-boot-presentation="pwa"\] #boot-fallback\s*{[^}]*--boot-canvas:\s*var\(--color-static-white, #ffffff\)/s
+      /html\[data-boot-presentation="pwa"\] #boot-fallback\s*{[^}]*--boot-canvas:\s*var\(--color-bg-white-0, #ffffff\)/s
     );
     expect(styles).toMatch(
-      /\.boot-pwa-shell\s*{[^}]*background:\s*var\(--color-static-white, #ffffff\)[^}]*color:\s*var\(--color-static-black, #1f2a24\)/s
+      /html\[data-boot-presentation="pwa"\]\[data-theme="dark"\] #boot-fallback\s*{[^}]*--boot-canvas:\s*var\(--color-bg-white-0, #0c0a09\)[^}]*--boot-action:\s*var\(--color-primary-action, #1a7544\)/s
+    );
+    expect(styles).toMatch(
+      /\.boot-pwa-shell\s*{[^}]*background:\s*var\(--boot-canvas\)[^}]*color:\s*var\(--boot-ink\)/s
     );
     expect(styles).not.toMatch(
-      /(?:html\[data-boot-presentation="pwa"\] #boot-fallback|\.boot-pwa-shell)\s*{[^}]*--color-bg-white-0/s
+      /(?:html\[data-boot-presentation="pwa"\][^{]*#boot-fallback|\.boot-pwa-shell)\s*{[^}]*--color-static-/s
     );
     expect(documentRule).toBeUndefined();
+  });
+
+  it.each([
+    { name: "a dark selection on a light OS", stored: "dark", systemDark: false, theme: "dark" },
+    { name: "a light selection on a dark OS", stored: "light", systemDark: true, theme: "light" },
+    {
+      name: "the OS scheme when nothing is selected",
+      stored: null,
+      systemDark: true,
+      theme: "dark",
+    },
+    {
+      name: "the OS scheme when storage is blocked",
+      stored: "throws",
+      systemDark: true,
+      theme: "dark",
+    },
+  ])("resolves $name before first paint and points theme-color at it", ({
+    stored,
+    systemDark,
+    theme,
+  }) => {
+    const { metas, resolved } = runThemeScript({ stored, systemDark });
+
+    expect(resolved).toBe(theme);
+    // Browsers take the first theme-color meta that matches, so the selection
+    // sits ahead of the OS-keyed pair and carries no media query.
+    expect(metas).toHaveLength(3);
+    expect(metas[0]).toHaveAttribute("data-theme-color-active");
+    expect(metas[0]).not.toHaveAttribute("media");
+    expect(metas[0]).toHaveAttribute("content", theme === "dark" ? "#0c0a09" : "#ffffff");
+    expect(metas[1]).toHaveAttribute("media", "(prefers-color-scheme: light)");
+    expect(metas[2]).toHaveAttribute("media", "(prefers-color-scheme: dark)");
+  });
+
+  it("keeps the beta build's single theme-color pinned under either selection", () => {
+    const beta = { light: "#111b13", dark: "#111b13" };
+
+    expect(
+      runThemeScript({ stored: "dark", systemDark: false, colors: beta }).metas[0]
+    ).toHaveAttribute("content", "#111b13");
+    expect(
+      runThemeScript({ stored: "light", systemDark: true, colors: beta }).metas[0]
+    ).toHaveAttribute("content", "#111b13");
   });
 
   it("uses one compact anchored layout without an empty action gap", () => {
