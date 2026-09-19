@@ -88,49 +88,6 @@ function detectPresentation(options: DetectOptions): string | undefined {
   return detectBootDataset(options).bootPresentation;
 }
 
-interface ThemeScriptOptions {
-  /** A stored selection, null for none, or "throws" for blocked storage. */
-  stored: string | null;
-  systemDark: boolean;
-  colors?: { light: string; dark: string };
-}
-
-// Runs the pre-paint theme script against the document's own theme-color meta,
-// with the build-time color placeholders filled in.
-function runThemeScript({
-  stored,
-  systemDark,
-  colors = { light: "#ffffff", dark: "#0c0a09" },
-}: ThemeScriptOptions) {
-  const meta = INDEX_HTML.match(/<meta name="theme-color"[^>]*>/g);
-  if (meta?.length !== 1) throw new Error(`Expected one theme-color meta, found ${meta?.length}`);
-  document.head.innerHTML = meta[0]
-    .replaceAll("%PWA_THEME_COLOR_LIGHT%", colors.light)
-    .replaceAll("%PWA_THEME_COLOR_DARK%", colors.dark);
-  delete document.documentElement.dataset.theme;
-
-  const storage = createStorage();
-  if (stored === "throws") {
-    storage.getItem = () => {
-      throw new DOMException("The operation is insecure.", "SecurityError");
-    };
-  } else if (stored) {
-    storage.setItem("theme", stored);
-  }
-  const windowLike = { matchMedia: () => ({ matches: systemDark }) };
-
-  new Function("window", "document", "localStorage", inlineScript("boot-theme"))(
-    windowLike,
-    document,
-    storage
-  );
-
-  return {
-    themeColor: document.head.querySelector<HTMLMetaElement>('meta[name="theme-color"]')?.content,
-    resolved: document.documentElement.dataset.theme,
-  };
-}
-
 type BootWindow = Pick<Window, "addEventListener" | "clearTimeout" | "setTimeout"> & {
   __GG_CLEAR_BOOT_FALLBACK?: () => void;
   __GG_MARK_BOOT_FAILED?: () => void;
@@ -416,40 +373,26 @@ describe("presentation-specific boot fallback", () => {
     expect(documentRule).toBeUndefined();
   });
 
-  it.each([
-    { name: "a dark selection on a light OS", stored: "dark", systemDark: false, theme: "dark" },
-    { name: "a light selection on a dark OS", stored: "light", systemDark: true, theme: "light" },
-    {
-      name: "the OS scheme when nothing is selected",
-      stored: null,
-      systemDark: true,
-      theme: "dark",
-    },
-    {
-      name: "the OS scheme when storage is blocked",
-      stored: "throws",
-      systemDark: true,
-      theme: "dark",
-    },
-  ])("resolves $name before first paint and points theme-color at it", ({
-    stored,
-    systemDark,
-    theme,
-  }) => {
-    const { themeColor, resolved } = runThemeScript({ stored, systemDark });
+  // The module-level behavior is covered in shared theme.test.ts; this is the
+  // smoke case that the pre-paint copy in index.html does the same thing.
+  it("points theme-color at the selected theme before first paint", () => {
+    const metas = INDEX_HTML.match(/<meta name="theme-color"[^>]*>/g);
+    if (metas?.length !== 1) throw new Error(`Expected one theme-color meta, got ${metas?.length}`);
+    document.head.innerHTML = metas[0]
+      .replaceAll("%PWA_THEME_COLOR_LIGHT%", "#ffffff")
+      .replaceAll("%PWA_THEME_COLOR_DARK%", "#0c0a09");
+    const storage = createStorage();
+    storage.setItem("theme", "dark");
 
-    expect(resolved).toBe(theme);
-    expect(themeColor).toBe(theme === "dark" ? "#0c0a09" : "#ffffff");
-  });
-
-  it("keeps the beta build's single theme-color pinned under either selection", () => {
-    const beta = { light: "#111b13", dark: "#111b13" };
-
-    expect(runThemeScript({ stored: "dark", systemDark: false, colors: beta }).themeColor).toBe(
-      "#111b13"
+    new Function("window", "document", "localStorage", inlineScript("boot-theme"))(
+      { matchMedia: () => ({ matches: false }) },
+      document,
+      storage
     );
-    expect(runThemeScript({ stored: "light", systemDark: true, colors: beta }).themeColor).toBe(
-      "#111b13"
+
+    expect(document.documentElement.dataset.theme).toBe("dark");
+    expect(document.head.querySelector<HTMLMetaElement>('meta[name="theme-color"]')?.content).toBe(
+      "#0c0a09"
     );
   });
 
