@@ -45,7 +45,10 @@ export function uploadOutcomeToast(
   // An upload that stops partway still sent what went before it. Saying nothing
   // was sent would deny a signature the person already gave.
   const stoppedPartway = tone === "error" && sent > 0;
-  const needsAttention = tone !== "error" && flagged > 0;
+  // Only where what was flagged is the result. A send whose answer was lost is
+  // still being checked, which the person needs to hear before a flag count.
+  const needsAttention =
+    flagged > 0 && (outcome.status === "uploaded" || outcome.status === "nothing-sent");
   return {
     tone,
     title: title === UPLOADED_TITLE ? uploaded : { id: title },

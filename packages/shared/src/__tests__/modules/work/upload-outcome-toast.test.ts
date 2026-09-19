@@ -74,6 +74,11 @@ const CASES: Array<[string, UploadOutcome, Toast | undefined]> = [
     toast("info", m("sendUnconfirmedTitle"), m("sendUnconfirmedMessage")),
   ],
   [
+    "keeps saying a send is being checked, even when the run flagged an item",
+    { status: "send-unconfirmed", sent: 0, flagged: 1 },
+    toast("info", m("sendUnconfirmedTitle"), m("sendUnconfirmedMessage")),
+  ],
+  [
     "says nothing was uploaded on an unstable connection",
     { status: "connection-unconfirmed" },
     toast("info", { id: "app.offline.degraded" }, m("connectionUnconfirmed")),
