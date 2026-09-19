@@ -2,24 +2,22 @@
  * Cookie Jar Hook Tests
  * @vitest-environment jsdom
  *
- * Tests the cookie jar mutation hooks (pause, unpause, updateMaxWithdrawal,
- * updateInterval, emergencyWithdraw) and the query hooks (useGardenCookieJars,
- * useUserCookieJars).
- *
- * All mutation hooks follow the same pattern: sendContractTx + toast + invalidation,
- * so we test the shared interface and specific function names.
+ * A garden jar only accepts setting changes from the garden account, so the per-claim limit
+ * and cooldown hooks must send `GardenAccount.execute(jar, 0, calldata, 0)`, never a call
+ * straight to the jar (that reverts on chain for every wallet).
  */
 
 import { QueryClient, QueryClientProvider, type UseMutationResult } from "@tanstack/react-query";
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { createElement, type ReactNode } from "react";
 import { IntlProvider } from "react-intl";
+import { encodeFunctionData } from "viem";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { COOKIE_JAR_ABI } from "../../../utils/blockchain/abis/cookie-jar";
 
 const TEST_CHAIN_ID = 11155111;
 const TEST_GARDEN = "0x1111111111111111111111111111111111111111" as `0x${string}`;
 const TEST_JAR = "0x3333333333333333333333333333333333333333" as `0x${string}`;
-const TEST_TOKEN = "0x4444444444444444444444444444444444444444" as `0x${string}`;
 const TEST_TX_HASH = "0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890";
 
 // ============================================
@@ -115,19 +113,16 @@ vi.mock("@wagmi/core", () => ({
 }));
 
 import {
-  useCookieJarEmergencyWithdraw,
-  useCookieJarPause,
-  useCookieJarUnpause,
   useCookieJarUpdateInterval,
   useCookieJarUpdateMaxWithdrawal,
 } from "../../../hooks/cookie-jar/useCookieJarAdmin";
 
 // Minimal i18n messages for tests
 const messages: Record<string, string> = {
-  "app.cookieJar.pause": "Pause Cookie Jar",
-  "app.cookieJar.unpause": "Unpause Cookie Jar",
-  "app.cookieJar.updateLimits": "Update Limits",
-  "app.cookieJar.emergencyWithdraw": "Emergency Withdraw",
+  "app.cookieJar.limitUpdating": "Updating limit…",
+  "app.cookieJar.limitUpdated": "Limit updated",
+  "app.cookieJar.cooldownUpdating": "Updating cooldown…",
+  "app.cookieJar.cooldownUpdated": "Cooldown updated",
 };
 
 function createWrapper(queryClient: QueryClient) {
@@ -166,10 +161,10 @@ async function expectRejectedMutation<TVariables>(
 }
 
 // ============================================
-// Admin Mutation Hooks
+// Jar setting hooks
 // ============================================
 
-describe("cookie jar admin hooks", () => {
+describe("cookie jar setting hooks", () => {
   let queryClient: QueryClient;
 
   beforeEach(() => {
@@ -182,226 +177,92 @@ describe("cookie jar admin hooks", () => {
     });
   });
 
-  describe("useCookieJarPause", () => {
-    it("starts with idle state", () => {
-      const { result } = renderHook(() => useCookieJarPause(TEST_GARDEN), {
-        wrapper: createWrapper(queryClient),
-      });
-
-      expect(result.current.isPending).toBe(false);
-      expect(result.current.error).toBeNull();
+  it("asks the garden account to change the jar's per-claim limit", async () => {
+    const { result } = renderHook(() => useCookieJarUpdateMaxWithdrawal(TEST_GARDEN), {
+      wrapper: createWrapper(queryClient),
     });
 
-    it("sends pause transaction on mutate", async () => {
-      const { result } = renderHook(() => useCookieJarPause(TEST_GARDEN), {
-        wrapper: createWrapper(queryClient),
-      });
+    await act(async () => {
+      result.current.mutate({ jarAddress: TEST_JAR, maxWithdrawal: 10n ** 19n });
+    });
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
-      await act(async () => {
-        result.current.mutate({ jarAddress: TEST_JAR });
-      });
+    expect(mocks.sender.sendContractCall).toHaveBeenCalledWith(
+      expect.objectContaining({
+        address: TEST_GARDEN,
+        functionName: "execute",
+        args: [
+          TEST_JAR,
+          0n,
+          encodeFunctionData({
+            abi: COOKIE_JAR_ABI,
+            functionName: "updateMaxWithdrawalAmount",
+            args: [10n ** 19n],
+          }),
+          0,
+        ],
+        chainId: TEST_CHAIN_ID,
+      })
+    );
+    expect(mockToastLoading).toHaveBeenCalledWith({ title: "Updating limit…" });
+    expect(mockToastSuccess).toHaveBeenCalledWith({ title: "Limit updated" });
+  });
 
-      await waitFor(() => {
-        expect(result.current.isSuccess).toBe(true);
-      });
-
-      expect(mocks.sender.sendContractCall).toHaveBeenCalledWith(
-        expect.objectContaining({
-          address: TEST_JAR,
-          functionName: "pause",
-          args: [],
-          chainId: TEST_CHAIN_ID,
-        })
-      );
+  it("asks the garden account to change the jar's cooldown", async () => {
+    const { result } = renderHook(() => useCookieJarUpdateInterval(TEST_GARDEN), {
+      wrapper: createWrapper(queryClient),
     });
 
-    it("shows loading toast on mutate", async () => {
-      const { result } = renderHook(() => useCookieJarPause(TEST_GARDEN), {
-        wrapper: createWrapper(queryClient),
-      });
+    await act(async () => {
+      result.current.mutate({ jarAddress: TEST_JAR, withdrawalInterval: 604800n });
+    });
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
-      await act(async () => {
-        result.current.mutate({ jarAddress: TEST_JAR });
-      });
+    expect(mocks.sender.sendContractCall).toHaveBeenCalledWith(
+      expect.objectContaining({
+        address: TEST_GARDEN,
+        functionName: "execute",
+        args: [
+          TEST_JAR,
+          0n,
+          encodeFunctionData({
+            abi: COOKIE_JAR_ABI,
+            functionName: "updateWithdrawalInterval",
+            args: [604800n],
+          }),
+          0,
+        ],
+      })
+    );
+    expect(mockToastSuccess).toHaveBeenCalledWith({ title: "Cooldown updated" });
+  });
 
-      await waitFor(() => {
-        expect(mockToastLoading).toHaveBeenCalled();
-      });
+  it("reports a revert, as a wallet that cannot sign for the garden gets", async () => {
+    await expectRejectedMutation(queryClient, () => useCookieJarUpdateMaxWithdrawal(TEST_GARDEN), {
+      jarAddress: TEST_JAR,
+      maxWithdrawal: 5000n,
+    });
+    expect(mockToastDismiss).toHaveBeenCalledWith("toast-1");
+
+    await expectRejectedMutation(queryClient, () => useCookieJarUpdateInterval(TEST_GARDEN), {
+      jarAddress: TEST_JAR,
+      withdrawalInterval: 86400n,
     });
   });
 
-  describe("useCookieJarUnpause", () => {
-    it("sends unpause transaction", async () => {
-      const { result } = renderHook(() => useCookieJarUnpause(TEST_GARDEN), {
-        wrapper: createWrapper(queryClient),
-      });
+  it("reports an unavailable sender while authentication is offline", async () => {
+    mocks.senderAvailable = false;
 
-      await act(async () => {
-        result.current.mutate({ jarAddress: TEST_JAR });
-      });
-
-      await waitFor(() => {
-        expect(result.current.isSuccess).toBe(true);
-      });
-
-      expect(mocks.sender.sendContractCall).toHaveBeenCalledWith(
-        expect.objectContaining({
-          address: TEST_JAR,
-          functionName: "unpause",
-        })
-      );
-    });
-  });
-
-  describe("useCookieJarUpdateMaxWithdrawal", () => {
-    it("sends updateMaxWithdrawalAmount with new amount", async () => {
-      const { result } = renderHook(() => useCookieJarUpdateMaxWithdrawal(TEST_GARDEN), {
-        wrapper: createWrapper(queryClient),
-      });
-
-      await act(async () => {
-        result.current.mutate({
-          jarAddress: TEST_JAR,
-          maxWithdrawal: 5000n,
-        });
-      });
-
-      await waitFor(() => {
-        expect(result.current.isSuccess).toBe(true);
-      });
-
-      expect(mocks.sender.sendContractCall).toHaveBeenCalledWith(
-        expect.objectContaining({
-          address: TEST_JAR,
-          functionName: "updateMaxWithdrawalAmount",
-          args: [5000n],
-        })
-      );
-    });
-  });
-
-  describe("useCookieJarUpdateInterval", () => {
-    it("sends updateWithdrawalInterval with new interval", async () => {
-      const { result } = renderHook(() => useCookieJarUpdateInterval(TEST_GARDEN), {
-        wrapper: createWrapper(queryClient),
-      });
-
-      await act(async () => {
-        result.current.mutate({
-          jarAddress: TEST_JAR,
-          withdrawalInterval: 86400n,
-        });
-      });
-
-      await waitFor(() => {
-        expect(result.current.isSuccess).toBe(true);
-      });
-
-      expect(mocks.sender.sendContractCall).toHaveBeenCalledWith(
-        expect.objectContaining({
-          address: TEST_JAR,
-          functionName: "updateWithdrawalInterval",
-          args: [86400n],
-        })
-      );
-    });
-  });
-
-  describe("useCookieJarEmergencyWithdraw", () => {
-    it("sends emergencyWithdraw with token and amount", async () => {
-      const { result } = renderHook(() => useCookieJarEmergencyWithdraw(TEST_GARDEN), {
-        wrapper: createWrapper(queryClient),
-      });
-
-      await act(async () => {
-        result.current.mutate({
-          jarAddress: TEST_JAR,
-          tokenAddress: TEST_TOKEN,
-          amount: 10000n,
-        });
-      });
-
-      await waitFor(() => {
-        expect(result.current.isSuccess).toBe(true);
-      });
-
-      expect(mocks.sender.sendContractCall).toHaveBeenCalledWith(
-        expect.objectContaining({
-          address: TEST_JAR,
-          functionName: "emergencyWithdraw",
-          args: [TEST_TOKEN, 10000n],
-        })
-      );
-    });
-  });
-
-  describe("error handling", () => {
-    it("handles transaction failure in pause", async () => {
-      mocks.sender.sendContractCall.mockRejectedValue(new Error("Reverted"));
-
-      const { result } = renderHook(() => useCookieJarPause(TEST_GARDEN), {
-        wrapper: createWrapper(queryClient),
-      });
-
-      await act(async () => {
-        result.current.mutate({ jarAddress: TEST_JAR });
-      });
-
-      await waitFor(() => {
-        expect(result.current.isError).toBe(true);
-      });
-
-      expect(result.current.error?.message).toBe("Reverted");
-      expect(mocks.mutationErrorHandler).toHaveBeenCalledWith(
-        expect.objectContaining({ message: "Reverted" }),
-        { metadata: { gardenAddress: TEST_GARDEN, jarAddress: TEST_JAR } }
-      );
-      expect(mockToastDismiss).toHaveBeenCalledWith("toast-1");
+    const { result } = renderHook(() => useCookieJarUpdateMaxWithdrawal(TEST_GARDEN), {
+      wrapper: createWrapper(queryClient),
     });
 
-    it("reports an unavailable sender while authentication is offline", async () => {
-      mocks.senderAvailable = false;
-
-      const { result } = renderHook(() => useCookieJarPause(TEST_GARDEN), {
-        wrapper: createWrapper(queryClient),
-      });
-
-      await act(async () => {
-        result.current.mutate({ jarAddress: TEST_JAR });
-      });
-
-      await waitFor(() => expect(result.current.isError).toBe(true));
-      expect(result.current.error?.message).toBe("Transaction sender is unavailable");
-      expect(mocks.sender.sendContractCall).not.toHaveBeenCalled();
+    await act(async () => {
+      result.current.mutate({ jarAddress: TEST_JAR, maxWithdrawal: 5000n });
     });
 
-    it("handles a reverted unpause", async () => {
-      await expectRejectedMutation(queryClient, () => useCookieJarUnpause(TEST_GARDEN), {
-        jarAddress: TEST_JAR,
-      });
-    });
-
-    it("handles a reverted max withdrawal update", async () => {
-      await expectRejectedMutation(
-        queryClient,
-        () => useCookieJarUpdateMaxWithdrawal(TEST_GARDEN),
-        { jarAddress: TEST_JAR, maxWithdrawal: 5000n }
-      );
-    });
-
-    it("handles a reverted interval update", async () => {
-      await expectRejectedMutation(queryClient, () => useCookieJarUpdateInterval(TEST_GARDEN), {
-        jarAddress: TEST_JAR,
-        withdrawalInterval: 86400n,
-      });
-    });
-
-    it("handles a reverted emergency withdrawal", async () => {
-      await expectRejectedMutation(queryClient, () => useCookieJarEmergencyWithdraw(TEST_GARDEN), {
-        jarAddress: TEST_JAR,
-        tokenAddress: TEST_TOKEN,
-        amount: 10000n,
-      });
-    });
+    await waitFor(() => expect(result.current.isError).toBe(true));
+    expect(result.current.error?.message).toBe("Transaction sender is unavailable");
+    expect(mocks.sender.sendContractCall).not.toHaveBeenCalled();
   });
 });
