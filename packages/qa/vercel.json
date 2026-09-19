@@ -1,4 +1,5 @@
 {
+  "ignoreCommand": "node ../../scripts/ops/vercel-ignore.mjs qa",
   "installCommand": "cd ../.. && bun install --frozen-lockfile",
   "buildCommand": "node build.mjs",
   "outputDirectory": "dist",
