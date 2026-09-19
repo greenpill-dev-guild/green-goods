@@ -51,10 +51,27 @@ describe("what a failed send means for the work it carried", () => {
     expect(
       classifySendFailure(lostResponse(), { intentRecorded: true, broadcastKnown: false })
     ).toEqual({ kind: "may-have-sent" });
-    // An internal wallet error does not say whether the transaction left the wallet.
-    const internal = Object.assign(new Error("Internal JSON-RPC error."), { code: -32603 });
-    expect(classifySendFailure(internal, { intentRecorded: true, broadcastKnown: false })).toEqual({
+  });
+
+  // A node can answer with either after its own broadcast: -32000 also carries
+  // "already known" and "nonce too low". Clearing the intent on one of them
+  // would let the same attestation go out twice.
+  it.each([
+    -32000, -32603,
+  ])("keeps the intent on RPC code %i, which says nothing about the broadcast", (code) => {
+    const error = Object.assign(new Error("RPC error"), { code });
+    expect(classifySendFailure(error, { intentRecorded: true, broadcastKnown: false })).toEqual({
       kind: "may-have-sent",
+    });
+  });
+
+  it.each([
+    -32602, -32500, -32599,
+  ])("clears the intent on RPC code %i, an outright refusal", (code) => {
+    const error = Object.assign(new Error("RPC error"), { code });
+    expect(classifySendFailure(error, { intentRecorded: true, broadcastKnown: false })).toEqual({
+      kind: "not-sent",
+      cancelled: false,
     });
   });
 
