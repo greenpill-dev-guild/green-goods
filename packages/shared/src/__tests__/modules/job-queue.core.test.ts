@@ -117,6 +117,8 @@ describe("modules/job-queue", () => {
   });
 
   afterEach(async () => {
+    // A test that throws before its own mockRestore must not leave Date.now mocked.
+    vi.restoreAllMocks();
     const jobs = await jobQueue.getJobs(TEST_USER_ADDRESS);
     for (const job of jobs) {
       await jobQueueDB.deleteJob(job.id);
