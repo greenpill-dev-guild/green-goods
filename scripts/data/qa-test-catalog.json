@@ -6252,8 +6252,10 @@
       "role": "steward",
       "tags": ["payouts", "tx"],
       "requiresProduction": false,
-      "status": "active",
-      "source": "qa-runs-catalog-third-pass-2026-09-07"
+      "status": "retired",
+      "source": "qa-runs-catalog-third-pass-2026-09-07",
+      "retiredOn": "2026-09-19",
+      "retiredReason": "The manage modal was removed; pause and resume have no control until they return through the garden account"
     },
     {
       "id": "ADM-073",
@@ -6273,8 +6275,10 @@
       "role": "steward",
       "tags": ["payouts", "tx"],
       "requiresProduction": false,
-      "status": "active",
-      "source": "qa-runs-catalog-third-pass-2026-09-07"
+      "status": "retired",
+      "source": "qa-runs-catalog-third-pass-2026-09-07",
+      "retiredOn": "2026-09-19",
+      "retiredReason": "The manage modal was removed; emergency withdraw has no control until it returns through the garden account"
     },
     {
       "id": "ADM-074",
@@ -6612,7 +6616,7 @@
       "source": "qa-session-2026-08-29",
       "retiredOn": "2026-09-07",
       "retiredReason": "Split by act and extended to the manage modal the row never named",
-      "replacedBy": ["ADM-070", "ADM-071", "ADM-072", "ADM-073", "ADM-074"]
+      "replacedBy": ["ADM-070", "ADM-071", "ADM-074"]
     },
     {
       "id": "ADM-025",
