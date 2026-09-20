@@ -4,6 +4,25 @@ Primary runtime contract for coding agents in this repository. Start here, then 
 `AGENTS.md` for the package you are editing. Package-level guides override this file for
 their subtree.
 
+## Shared engineering guidance
+
+Use the personal `pragmatic-programming` skill for coding work and
+`domain-driven-design` when changing domain meaning, behavior, identity, lifecycle,
+consistency, or integration contracts. If not discovered, read the relevant
+`~/.agents/skills/<skill-name>/SKILL.md` when available. On an environment without
+these personal skills, follow this repository's guidance and report the missing
+shared guidance; do not install or duplicate it automatically. Load only relevant
+references. Existing repository rules and explicit user decisions govern the work.
+
+Apply these methods through the existing [Implementation Quality Contract](.claude/context/values.md#implementation-quality-contract),
+[architecture model](.claude/context/codebase-architecture.md), and
+[ontology workflow](.claude/context/ontology.md). Inspect the owning implementation
+and caller before changing a rule; keep canonical knowledge and generated projections
+in their existing sources. Verify changed behavior at its owning layer, then follow
+[the validation selector and completion gates](.claude/context/validation-pipeline.md).
+A guidance or documentation edit needs link, routing, and consistency proof, not an
+invented runtime behavior change. Keep unrelated repairs outside the task.
+
 ## Monorepo Map
 
 - `packages/contracts` — Solidity contracts, deploy/upgrade wrappers, Foundry tests

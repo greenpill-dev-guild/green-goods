@@ -89,3 +89,19 @@ Never merge or cross-map these vocabularies because they share only an identifie
 - `packages/shared/src/ontology/agent-manifest.generated.json`
 
 Every output carries a generated-file notice and must remain deterministic.
+
+<!-- shared-engineering:begin -->
+## Domain modeling
+
+For semantic changes, use the shared `domain-driven-design` skill through root
+`AGENTS.md`. Ground terms, identities, and lifecycle rules in the canonical sidecar,
+projection data, governing specification, and named implementation evidence above.
+Treat a declared state machine as a model to verify, not proof of runtime behavior.
+
+Preserve context-specific meaning and declared representation mappings, including
+the two unrelated `PoolType` vocabularies. Check a changed rule against concrete
+allowed and rejected scenarios; verify relevant transaction, retry, and concurrency
+behavior in its owner. Update the existing sources and regenerate projections
+through the Change protocol. Do not create a competing glossary or infer new
+business rules from names alone.
+<!-- shared-engineering:end -->

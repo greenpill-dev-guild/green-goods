@@ -140,3 +140,21 @@ Do not collapse these signals:
 Architecture certification requires the applicable proof categories and a fresh deterministic
 registry fingerprint. A checker can verify declared evidence and graph facts; it cannot prove that
 an interface is deep or that a design choice is wise.
+
+<!-- shared-engineering:begin -->
+## Domain-driven application
+
+When architecture work changes domain meaning or behavior, use the shared
+`domain-driven-design` skill through root `AGENTS.md`. Read `product.md` for the
+relevant user outcome and `ontology.md` for authoritative entities, vocabularies,
+constraints, and state machines. The existing candidate workflow remains in force.
+
+For a selected change, identify the rule owner, required consistency, callers,
+and a concrete valid and rejected scenario. Distinguish local job state, chain
+state, and indexed observations when the workflow crosses those boundaries.
+Check retry identity and partial completion where relevant. A package is not
+proof of a bounded context; preserve actual trust, protocol, and deployment
+boundaries. Use existing modules and adapters before adding another abstraction.
+Capture consequential decisions and proof in the owning Plan Hub, not a parallel
+DDD architecture record.
+<!-- shared-engineering:end -->
