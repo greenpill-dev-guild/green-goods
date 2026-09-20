@@ -223,5 +223,7 @@ describe("DraftCard", () => {
     // The md IconButton is a 44px circle (DL-023, DL-026); theme.css owns the size.
     expect(deleteBtn).toHaveClass("gg-icon-button");
     expect(deleteBtn).toHaveAttribute("data-size", "md");
+    expect(deleteBtn).toHaveClass("bottom-1", "right-2");
+    expect(screen.getByText("Draft")).toHaveClass("top-2", "right-2");
   });
 });

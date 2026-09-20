@@ -1,4 +1,4 @@
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { useLocation, useNavigate, useOutletContext, useParams } from "react-router-dom";
@@ -6,7 +6,10 @@ import { toastService } from "../../../components/Toast/toast.service";
 import { DEFAULT_CHAIN_ID } from "../../../config/default-chain";
 import { worksKeys } from "../../../config/query-keys/work";
 import { jobQueue } from "../../../modules/job-queue/default-instance";
+import { readWorkByUID } from "../../../modules/work/work-list";
+import { resolveGardenWorkRows } from "../../../modules/work/local-status-overlay";
 import { connectivityStore } from "../../../stores/connectivity";
+import { useUIStore } from "../../../stores/useUIStore";
 import { isUserAddress } from "../../../utils/blockchain/address";
 import { isValidAttestationId, openEASExplorer } from "../../../utils/eas/explorers";
 import {
@@ -24,6 +27,8 @@ import { useGardenPermissions } from "../../garden/useGardenPermissions";
 import { useWorkApprovalActions } from "../../work/useWorkApprovalActions";
 import { useWorkMetadata } from "../../work/useWorkMetadata";
 import { useWorks } from "../../work/useWorks";
+import { queuedUploadStatus } from "../../../modules/work/upload-state";
+import type { WorkDisplayStatus } from "../../../types/domain";
 
 export type WorkViewingMode = "steward" | "gardener" | "viewer";
 
@@ -41,8 +46,28 @@ export function useWorkDetailController() {
   const gardenId = (gardenIdFromContext || gardenIdParam) as string;
   const garden = gardens.find((candidate) => candidate.id === gardenId);
   const { data: actions = [] } = useActions(chainId);
-  const { works } = useWorks(gardenId || "", { offline: true });
-  const work = works.find((candidate) => candidate.id === (workId || ""));
+  const {
+    works,
+    isLoading: worksLoading,
+    queuedLoading,
+  } = useWorks(gardenId || "", {
+    offline: true,
+  });
+  const listedWork = works.find((candidate) => candidate.id === (workId || ""));
+  const routeStatus = (location.state as { workStatus?: WorkDisplayStatus } | null | undefined)
+    ?.workStatus;
+  const workByUID = useQuery({
+    queryKey: worksKeys.byUID(workId ?? "", chainId),
+    queryFn: () => readWorkByUID(workId!, chainId),
+    enabled: !listedWork && !!workId && isValidAttestationId(workId) && isOnline,
+  });
+  const fetchedWork = useMemo(() => {
+    const row = workByUID.data;
+    if (!row || row.gardenAddress.toLowerCase() !== gardenId.toLowerCase()) return undefined;
+    const saved = routeStatus ? [{ ...row, status: routeStatus }] : undefined;
+    return resolveGardenWorkRows({ remote: [row], saved, overlay: undefined }).rows[0];
+  }, [workByUID.data, gardenId, routeStatus]);
+  const work = listedWork ?? fetchedWork;
   const metadata = useWorkMetadata(work?.metadata);
   const matchedAction = useMemo(() => {
     if (!work) return null;
@@ -105,7 +130,10 @@ export function useWorkDetailController() {
       // The queue refuses a work that reverted or used up its retries, so the
       // tap gives it its retries back first. Without this, Upload now on either
       // one answers with the refusal instead of sending.
-      await jobQueue.retryJob(work.id);
+      const queued = await jobQueue.getJobs(user?.id ?? work.gardenerAddress, { synced: false });
+      const job = queued.find((candidate) => candidate.id === work.id);
+      if (job && ["failed", "reverted"].includes(queuedUploadStatus(job).state))
+        await jobQueue.retryJob(work.id);
       const result = await jobQueue.processJob(work.id, { transactionSender, explicit: true });
       // Declining the prompt is not a failure; the work stays ready to send.
       if (result.error === "send-cancelled") return;
@@ -216,7 +244,10 @@ export function useWorkDetailController() {
   };
   const back = () => {
     const state = (location.state as { from?: string; returnTo?: string } | null | undefined) ?? {};
-    if (state.from === "dashboard") return navigateToTop("/home");
+    if (state.from === "dashboard") {
+      useUIStore.getState().restoreWorkDashboard();
+      return navigateToTop("/home");
+    }
     if (state.returnTo) return navigateToTop(state.returnTo);
     if (gardenId) return navigateToTop(`/home/${gardenId}`);
     if (window.history.length > 1) return navigate(-1);
@@ -234,6 +265,9 @@ export function useWorkDetailController() {
     garden,
     gardenId,
     gardensLoading,
+    workLoading: !listedWork && (workByUID.isLoading || worksLoading || queuedLoading),
+    workLoadError: !listedWork && workByUID.isError,
+    retryWorkLoad: workByUID.refetch,
     isActionExpired: matchedAction ? matchedAction.endTime <= Date.now() / 1000 : false,
     isOfflineWork,
     isOnline,

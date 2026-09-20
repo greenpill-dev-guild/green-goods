@@ -244,6 +244,9 @@ const JobQueueProviderInner: React.FC<JobQueueProviderProps> = ({ children, queu
     const handleJobAdded = (event: QueueEvent) => {
       // A job that went back to waiting, for any reason, is no longer being processed.
       if (event.job?.meta?.waitingReason) setIsProcessing(false);
+      // Prepare work and decisions as soon as they enter the queue, regardless of
+      // wallet or passkey mode. The preparation module waits for a confirmed connection.
+      if (event.job?.kind === "work" || event.job?.kind === "approval") scheduleUploadPreparation();
       void refreshStats(abortController.signal);
       void requestPersistentStorageOnce("offline-job");
 
@@ -316,10 +319,9 @@ const JobQueueProviderInner: React.FC<JobQueueProviderProps> = ({ children, queu
         await queue.flush({
           transactionSender: sender,
           userAddress: currentUserAddress,
-          // A passkey's work and decisions wait for Upload all; its commitment acts
-          // still send on their own. An embedded wallet, which has no Upload all
-          // batch, keeps sending everything.
-          ...(authMode === "passkey" ? { kinds: COMMITMENT_JOB_KINDS } : {}),
+          // Work and decisions always wait for an explicit Upload action. Only
+          // commitment acts keep their established background send behavior.
+          kinds: COMMITMENT_JOB_KINDS,
         });
         if (!abortController.signal.aborted) {
           await refreshStats(abortController.signal);

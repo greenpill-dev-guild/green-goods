@@ -34,7 +34,7 @@ export function useWorkDraftRetirement({
             return;
           latestNavigation.current();
           current.setSubmissionCompleted(false);
-        }, 800);
+        }, 0);
       })
       .catch((error) => logger.error("Failed to retire work draft", { error }));
     return () => {

@@ -119,7 +119,7 @@ interface DashboardFrameProps {
   isFetching?: boolean;
   isOffline?: boolean;
   savedAt?: number;
-  /** Queued work and decisions: renders the Upload all bar when set. */
+  /** Queued work and decisions: renders the Pending toolbar action when set. */
   uploads?: Partial<UploadBarState>;
   /** Works whose decision from this device still waits to upload. */
   waitingUploadIds?: string[];
@@ -185,7 +185,6 @@ function DashboardFrame({
       tabs={tabs}
       activeTab={tab}
       onTabChange={fn()}
-      actions={actions}
     >
       {tab === "pending" ? (
         <PendingTab
@@ -198,10 +197,12 @@ function DashboardFrame({
           isOffline={isOffline}
           savedAt={savedAt}
           pendingFilter={pendingFilter}
+          uploadActions={actions}
           onPendingFilterChange={fn()}
           activeAddress={STEWARD}
           reviewerGardenIds={[GARDEN]}
-          reviewedByYou={new Set()}
+          reviewedByYou={new Set(waitingUploadIds)}
+          waitingUploadIds={new Set(waitingUploadIds)}
           isUserAddress={(address) => address?.toLowerCase() === STEWARD.toLowerCase()}
         />
       ) : (
@@ -218,7 +219,6 @@ function DashboardFrame({
           onCompletedFilterChange={fn()}
           timeFilter={timeFilter}
           onTimeFilterChange={fn()}
-          waitingUploadIds={new Set(waitingUploadIds)}
         />
       )}
     </WorkDashboardShell>
@@ -353,15 +353,22 @@ export const PendingUploadAll: Story = {
   args: { tab: "pending", items: [...READY_WORKS, PENDING_WORKS[0]], uploads: { readyCount: 2 } },
 };
 
-/**
- * Every state Upload all reads. The chip says whether a work waits to upload or needs
- * attention; the line under it says what it waits for, and why the chain would refuse it.
- */
+export const PendingUploadAllOffline: Story = {
+  args: {
+    tab: "pending",
+    items: [...READY_WORKS, PENDING_WORKS[0]],
+    uploads: { readyCount: 2 },
+    isOffline: true,
+    savedAt: SAVED_AT,
+  },
+};
+
+/** Every queued state in the one-badge, one-supporting-line card layout. */
 export const PendingUploadStates: Story = {
   args: {
     tab: "pending",
     items: UPLOAD_STATE_WORKS,
-    pendingFilter: "mySubmissions",
+    pendingFilter: "all",
     uploads: { readyCount: 1, preparingCount: 2, isPreparing: true },
   },
 };
@@ -381,18 +388,28 @@ export const PendingPreparingUploads: Story = {
   args: {
     tab: "pending",
     items: PREPARING_WORKS,
-    pendingFilter: "mySubmissions",
+    pendingFilter: "all",
     uploads: { preparingCount: 2, isPreparing: true },
   },
 };
 
-/** Data Saver holds preparation back: the bar offers to prepare the rest beside what is ready. */
+/** Data Saver holds preparation back; both available actions stay in the Pending toolbar. */
 export const PendingDataSaver: Story = {
   args: {
     tab: "pending",
     items: UPLOAD_STATE_WORKS.slice(0, 3),
-    pendingFilter: "mySubmissions",
+    pendingFilter: "all",
     uploads: { readyCount: 1, preparingCount: 2, pausedForDataSaver: true },
+  },
+};
+
+/** Narrow filters hide Upload all because it would send work outside the visible rows. */
+export const PendingUploadAllFiltered: Story = {
+  args: {
+    tab: "pending",
+    items: READY_WORKS,
+    pendingFilter: "mySubmissions",
+    uploads: { readyCount: 2 },
   },
 };
 
@@ -406,22 +423,22 @@ export const PendingUploadingPortuguese: Story = {
   parameters: { locale: "pt" },
 };
 
-/** A decision made offline files under By you at once and says it still waits to upload. */
-export const CompletedWaitingToUpload: Story = {
+/** A decision made offline stays in Pending until queue confirmation. */
+export const PendingWaitingToUpload: Story = {
   args: {
-    tab: "completed",
-    items: COMPLETED_WORKS,
+    tab: "pending",
+    items: COMPLETED_WORKS.slice(0, 1),
     waitingUploadIds: ["0x04"],
     uploads: { readyCount: 1 },
   },
 };
 
-export const CompletedWaitingToUploadSpanish: Story = {
-  args: CompletedWaitingToUpload.args,
+export const PendingWaitingToUploadSpanish: Story = {
+  args: PendingWaitingToUpload.args,
   parameters: { locale: "es" },
 };
 
-export const CompletedWaitingToUploadPortuguese: Story = {
-  args: CompletedWaitingToUpload.args,
+export const PendingWaitingToUploadPortuguese: Story = {
+  args: PendingWaitingToUpload.args,
   parameters: { locale: "pt" },
 };

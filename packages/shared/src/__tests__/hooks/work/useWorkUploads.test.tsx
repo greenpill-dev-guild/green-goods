@@ -175,6 +175,22 @@ describe("useWorkUploads", () => {
     expect(mocks.schedule).toHaveBeenCalledOnce();
   });
 
+  it("only starts manual preparation on a confirmed connection", async () => {
+    const confirm = vi.spyOn(connectivityStore, "confirmOnline").mockResolvedValue(false);
+    try {
+      const { result } = renderHook(() => useWorkUploads(), { wrapper });
+      act(() => result.current.prepareNow());
+      await waitFor(() => expect(mocks.toast.info).toHaveBeenCalledOnce());
+      expect(mocks.prepareNow).not.toHaveBeenCalled();
+
+      confirm.mockResolvedValue(true);
+      act(() => result.current.prepareNow());
+      await waitFor(() => expect(mocks.prepareNow).toHaveBeenCalledOnce());
+    } finally {
+      confirm.mockRestore();
+    }
+  });
+
   it("uploads with the person's sender and says how many items went", async () => {
     mocks.uploadQueuedWork.mockResolvedValue({ status: "uploaded", sent: 2, flagged: 0 });
     const { result } = renderHook(() => useWorkUploads(), { wrapper });
@@ -188,6 +204,7 @@ describe("useWorkUploads", () => {
         userAddress: "0x1111111111111111111111111111111111111111",
         chainId: 42161,
         sender: mocks.sender,
+        jobIds: undefined,
       },
       { ports: true }
     );

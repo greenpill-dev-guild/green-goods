@@ -21,6 +21,11 @@ vi.mock("../../../modules/data/graphql", () => ({
 }));
 
 const mockQueryFn = vi.fn().mockResolvedValue({ data: null, error: null });
+const mockGetWorksByUIDs = vi.fn();
+vi.mock("../../../modules/data/eas", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../../../modules/data/eas")>()),
+  getWorksByUIDs: (...args: unknown[]) => mockGetWorksByUIDs(...args),
+}));
 vi.mock("../../../modules/data/graphql-client", () => ({
   createEasClient: () => ({
     query: (...args: unknown[]) => mockQueryFn(...args),
@@ -85,6 +90,7 @@ describe("useWorkApprovals", () => {
     vi.clearAllMocks();
     queryClient = createQueryClient();
     mockQueryFn.mockResolvedValue({ data: null, error: null });
+    mockGetWorksByUIDs.mockResolvedValue([]);
   });
 
   // ------------------------------------------
@@ -139,6 +145,41 @@ describe("useWorkApprovals", () => {
 
       await waitFor(() => expect(result.current.isLoading).toBe(false));
       expect(result.current.approvals).toEqual([]);
+    });
+
+    it("resolves the linked garden so a reviewed work card can open", async () => {
+      const workUID = `0x${"ab".repeat(32)}`;
+      mockQueryFn.mockResolvedValue({
+        data: {
+          attestations: [
+            {
+              id: `0x${"cd".repeat(32)}`,
+              attester: MOCK_ADDRESSES.steward,
+              recipient: MOCK_ADDRESSES.gardener,
+              timeCreated: 1_700_000_000,
+              decodedDataJson: JSON.stringify([
+                { name: "workUID", value: { value: workUID } },
+                { name: "approved", value: { value: true } },
+              ]),
+            },
+          ],
+        },
+        error: null,
+      });
+      mockGetWorksByUIDs.mockResolvedValue([
+        { id: workUID, gardenAddress: MOCK_ADDRESSES.garden, title: "Restored trail" },
+      ]);
+
+      const { result } = renderHook(() => useWorkApprovals(MOCK_ADDRESSES.steward), {
+        wrapper: createWrapper(queryClient),
+      });
+
+      await waitFor(() => expect(result.current.completedApprovals).toHaveLength(1));
+      expect(mockGetWorksByUIDs).toHaveBeenCalledWith([workUID], TEST_CHAIN_ID);
+      expect(result.current.completedApprovals[0]).toMatchObject({
+        gardenId: MOCK_ADDRESSES.garden,
+        title: "Restored trail",
+      });
     });
   });
 

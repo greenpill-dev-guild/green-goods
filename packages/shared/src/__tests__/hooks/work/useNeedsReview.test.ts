@@ -88,6 +88,7 @@ describe("hooks/work/useNeedsReview", () => {
     await waitFor(() => expect(result.current.ready).toBe(true));
     expect(result.current.works.map((work) => work.id)).toEqual(["others-pending"]);
     expect(result.current.decidedHere).toEqual([]);
+    expect(result.current.allWorks.map((work) => work.id)).toContain("approved");
   });
 
   it("keeps a work whose status is unknown out of the list and does not claim a count", async () => {

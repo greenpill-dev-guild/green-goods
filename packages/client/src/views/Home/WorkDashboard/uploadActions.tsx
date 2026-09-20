@@ -24,11 +24,11 @@ export interface UploadBarHandlers {
 }
 
 /**
- * The work dashboard's bottom bar for queued work and decisions, on every tab.
+ * The Pending tab's compact upload actions for queued work and decisions.
  * Upload all appears once something can go, and names only the prepared
  * items while the rest are still preparing. Under Data Saver it offers to
- * prepare anyway. It never says why the connection holds an upload back
- * (D4-A): a tap that cannot upload answers with a toast instead.
+ * prepare anyway. Upload all is never offered until there is something ready
+ * to sign; the remaining items keep their preparation action.
  */
 export function buildUploadActions(
   state: UploadBarState,
@@ -81,6 +81,5 @@ export function buildUploadActions(
       },
     };
   }
-  // Preparation waits for a steady connection; the tap checks it and says so.
-  return { primary: upload(state.preparingCount, true) };
+  return { primary: prepareNow };
 }

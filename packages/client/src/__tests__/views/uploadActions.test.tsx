@@ -73,13 +73,14 @@ describe("buildUploadActions", () => {
     expect(actions?.primary?.onClick).toBeUndefined();
   });
 
-  it("keeps Upload all tappable while preparation waits for the connection, without saying so", () => {
+  it("keeps Upload all hidden until an item is ready to sign", () => {
     const { actions, handlers } = bar({ preparingCount: 2 });
 
-    expect(actions?.primary).toMatchObject({ label: "Upload all (2)", testId: "upload-all" });
+    expect(actions?.primary).toMatchObject({ label: "Prepare now", testId: "prepare-uploads" });
     expect(actions?.primary?.loading).toBeUndefined();
     actions?.primary?.onClick?.({} as never);
-    expect(handlers.onUpload).toHaveBeenCalledOnce();
+    expect(handlers.onPrepareNow).toHaveBeenCalledOnce();
+    expect(handlers.onUpload).not.toHaveBeenCalled();
   });
 
   it("holds the bar in its uploading state until the upload settles", () => {

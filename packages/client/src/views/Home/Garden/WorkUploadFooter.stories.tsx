@@ -46,7 +46,7 @@ const withLocale: Decorator = (Story, context) => {
 };
 
 /**
- * The work detail footer for queued work at phone width: waiting work points to Your Work,
+ * The work detail footer for queued work at phone width: waiting work can upload directly,
  * work that needs attention can be tried again or discarded, a failed upload keeps Upload now,
  * and a sent work can be checked again.
  */
@@ -58,9 +58,10 @@ const meta: Meta<typeof WorkUploadFooter> = {
   decorators: [withLocale],
   args: {
     isOnline: true,
+    pausedForDataSaver: false,
+    onPrepareNow: fn(),
     onRetry: fn(),
     isRetrying: false,
-    onOpenUploads: fn(),
     onTryAgain: fn(),
     isTryingAgain: false,
     onDiscard: fn(),
@@ -81,6 +82,10 @@ export const WaitingOffline: Story = {
 
 export const PhotoConverting: Story = {
   args: { work: queuedWork("photo-pending") },
+};
+
+export const PhotoPausedForDataSaver: Story = {
+  args: { work: queuedWork("photo-pending"), pausedForDataSaver: true },
 };
 
 /** The longest refusal, in the language where it runs longest. */

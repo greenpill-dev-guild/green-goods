@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
+import type { TimeFilter } from "../utils/time";
 
 // Storage key for debug mode persistence
 const DEBUG_MODE_STORAGE_KEY = "green-goods:debug-mode";
@@ -9,6 +10,14 @@ export type WorkDashboardTab = "drafts" | "pending" | "completed";
 
 /** Filters of the Work Dashboard's Pending tab — lets callers deep-link a preset. */
 export type WorkDashboardPendingFilter = "all" | "needsReview" | "mySubmissions";
+
+export interface WorkDashboardReturnState {
+  tab: WorkDashboardTab;
+  pendingFilter: WorkDashboardPendingFilter;
+  completedFilter: "reviewedByYou" | "myWorkReviewed";
+  timeFilter: TimeFilter;
+  scrollTop: number;
+}
 
 export type UIState = {
   // Global offline/queue indicators
@@ -21,7 +30,10 @@ export type UIState = {
   workDashboardInitialTab?: WorkDashboardTab;
   /** Pending-tab filter to preset (consumed once on mount); undefined = default ("all"). */
   workDashboardInitialPendingFilter?: WorkDashboardPendingFilter;
+  workDashboardReturnState?: WorkDashboardReturnState;
   openWorkDashboard: (tab?: WorkDashboardTab, pendingFilter?: WorkDashboardPendingFilter) => void;
+  rememberWorkDashboard: (state: WorkDashboardReturnState) => void;
+  restoreWorkDashboard: () => void;
   closeWorkDashboard: () => void;
 
   // Garden filter sheet controls (client)
@@ -76,6 +88,7 @@ export const useUIStore = create<UIState>()(
       isWorkDashboardOpen: false,
       workDashboardInitialTab: undefined,
       workDashboardInitialPendingFilter: undefined,
+      workDashboardReturnState: undefined,
       // Both initial fields are overwritten on EVERY open (undefined when omitted) — that is
       // the staleness contract: a bare icon-open must not inherit the previous deep-link.
       openWorkDashboard: (tab, pendingFilter) =>
@@ -83,7 +96,15 @@ export const useUIStore = create<UIState>()(
           isWorkDashboardOpen: true,
           workDashboardInitialTab: tab,
           workDashboardInitialPendingFilter: pendingFilter,
+          workDashboardReturnState: undefined,
         }),
+      rememberWorkDashboard: (state) => set({ workDashboardReturnState: state }),
+      restoreWorkDashboard: () =>
+        set((state) => ({
+          isWorkDashboardOpen: true,
+          workDashboardInitialTab: state.workDashboardReturnState?.tab ?? "pending",
+          workDashboardInitialPendingFilter: state.workDashboardReturnState?.pendingFilter ?? "all",
+        })),
       closeWorkDashboard: () => set({ isWorkDashboardOpen: false }),
 
       isGardenFilterOpen: false,

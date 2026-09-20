@@ -8,8 +8,6 @@ const mocks = vi.hoisted(() => ({
   retryJob: vi.fn(),
   discardJob: vi.fn(),
   schedule: vi.fn(),
-  navigate: vi.fn(),
-  openWorkDashboard: vi.fn(),
   logError: vi.fn(),
   toast: { success: vi.fn(), error: vi.fn() },
 }));
@@ -19,12 +17,6 @@ vi.mock("../../../modules/job-queue/default-instance", () => ({
 }));
 vi.mock("../../../modules/work/upload-preparation", () => ({
   scheduleUploadPreparation: mocks.schedule,
-}));
-vi.mock("../../../hooks/app/useNavigateToTop", () => ({
-  useNavigateToTop: () => mocks.navigate,
-}));
-vi.mock("../../../stores/useUIStore", () => ({
-  useUIStore: { getState: () => ({ openWorkDashboard: mocks.openWorkDashboard }) },
 }));
 vi.mock("../../../components/toast", () => ({ toastService: mocks.toast }));
 vi.mock("../../../modules/app/logger", () => ({
@@ -48,15 +40,6 @@ beforeEach(() => {
 });
 
 describe("useQueuedWorkActions", () => {
-  it("opens Your Work at the person's submissions from any page", () => {
-    const actions = render("job-1");
-
-    act(() => actions.current.openUploads());
-
-    expect(mocks.openWorkDashboard).toHaveBeenCalledWith("pending", "mySubmissions");
-    expect(mocks.navigate).toHaveBeenCalledWith("/home");
-  });
-
   it("tries a work again by clearing what stopped it and waking preparation", async () => {
     const actions = render("job-1");
 

@@ -283,6 +283,39 @@ describe("providers/JobQueueProvider", () => {
       }
     });
 
+    it("starts preparation when work or a review is queued", async () => {
+      const subscribedHandlers = new Set<(event: QueueEvent) => void>();
+      mockJobQueue.subscribe.mockImplementation((handler: (event: QueueEvent) => void) => {
+        subscribedHandlers.add(handler);
+        return () => subscribedHandlers.delete(handler);
+      });
+      renderHook(() => useJobQueue(), { wrapper: createWrapper() });
+      scheduleUploadPreparation.mockClear();
+
+      for (const kind of ["work", "approval"] as const) {
+        await act(async () => {
+          subscribedHandlers.forEach((handler) =>
+            handler({
+              type: "job_added",
+              jobId: `${kind}-1`,
+              job: {
+                id: `${kind}-1`,
+                kind,
+                payload: {},
+                chainId: 11155111,
+                userAddress: "0xSmartAccount",
+                createdAt: Date.now(),
+                attempts: 0,
+                synced: false,
+              } as Job,
+            })
+          );
+        });
+      }
+
+      expect(scheduleUploadPreparation).toHaveBeenCalledTimes(2);
+    });
+
     it("invalidates recipient-scoped approval reads when an approval job completes", async () => {
       const subscribedHandlers = new Set<(event: QueueEvent) => void>();
       mockJobQueue.subscribe.mockImplementation((handler: (event: QueueEvent) => void) => {
@@ -348,14 +381,17 @@ describe("providers/JobQueueProvider", () => {
       expect(context.kinds).not.toContain("approval");
     });
 
-    it("keeps sending everything for an embedded wallet, which has no Upload all batch", async () => {
+    it("holds embedded-wallet work and decisions for an explicit upload", async () => {
       Object.defineProperty(navigator, "onLine", { value: true, configurable: true });
       mockUseAuth.mockReturnValue({ authMode: "embedded" });
 
       renderHook(() => useJobQueue(), { wrapper: createWrapper() });
 
       await waitFor(() => expect(mockJobQueue.flush).toHaveBeenCalled());
-      expect(mockJobQueue.flush.mock.calls[0][0]).not.toHaveProperty("kinds");
+      const [context] = mockJobQueue.flush.mock.calls[0];
+      expect(context.kinds).toEqual(COMMITMENT_JOB_KINDS);
+      expect(context.kinds).not.toContain("work");
+      expect(context.kinds).not.toContain("approval");
     });
 
     it("does not auto-flush for wallet users", async () => {

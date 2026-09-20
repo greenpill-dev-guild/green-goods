@@ -7,7 +7,7 @@ export function useSendingWorkIds(account: string | null | undefined, chainId: n
   const [sending, setSending] = useState<Set<string>>(() => new Set());
   useEffect(() => setSending(new Set()), [account, chainId]);
   useJobQueueEvents(
-    ["job:processing", "job:completed", "job:failed", "queue:sync-completed"],
+    ["job:processing", "job:added", "job:completed", "job:failed", "queue:sync-completed"],
     (event, data) => {
       if (event === "queue:sync-completed") {
         setSending(new Set());

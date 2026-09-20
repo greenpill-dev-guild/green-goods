@@ -91,7 +91,13 @@ function refusesOneItem(error: string | undefined): boolean {
 }
 
 export async function uploadQueuedWork(
-  input: { userAddress: Address; chainId: number; sender: TransactionSender },
+  input: {
+    userAddress: Address;
+    chainId: number;
+    sender: TransactionSender;
+    /** When present, send only these jobs through the same checked upload path. */
+    jobIds?: readonly string[];
+  },
   ports: UploadQueuedWorkPorts
 ): Promise<UploadOutcome> {
   if (!(await ports.confirmOnline())) return { status: "connection-unconfirmed" };
@@ -244,8 +250,10 @@ export async function uploadQueuedWork(
     sent === 0 ? { status: "nothing-sent", flagged } : { status: "uploaded", sent, flagged };
 
   try {
+    const selected = input.jobIds ? new Set(input.jobIds) : undefined;
     const ready = (await ports.listJobs(input.userAddress)).filter(
       (job) =>
+        (!selected || selected.has(job.id)) &&
         isUploadJob(job) &&
         (job.chainId ?? chainId) === chainId &&
         queuedUploadStatus(job).state === "ready"

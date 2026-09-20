@@ -3,7 +3,7 @@ import { getEASConfig } from "../../config/blockchain";
 import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
 import { logger } from "../../modules/app/logger";
 import { parseEasAttestationRecord } from "../../modules/data/eas-parse";
-import { parseWorkApprovalAttestation } from "../../modules/data/eas";
+import { getWorksByUIDs, parseWorkApprovalAttestation } from "../../modules/data/eas";
 import { easGraphQL } from "../../modules/data/graphql";
 import { createEasClient } from "../../modules/data/graphql-client";
 import { type Address, type WorkApproval } from "../../types/domain";
@@ -28,7 +28,7 @@ export interface EnhancedWorkApproval extends WorkApproval {
 async function getWorkApprovalsByAttester(
   attesterAddress: Address,
   chainId: number
-): Promise<WorkApproval[]> {
+): Promise<Array<WorkApproval & { gardenId?: Address; title?: string }>> {
   const QUERY = easGraphQL(/* GraphQL */ `
     query Attestations($where: AttestationWhereInput) {
       attestations(where: $where) {
@@ -62,7 +62,7 @@ async function getWorkApprovalsByAttester(
     return [];
   }
 
-  return (data.attestations as unknown[]).flatMap((attestation: unknown) => {
+  const approvals = (data.attestations as unknown[]).flatMap((attestation: unknown) => {
     try {
       const att = parseEasAttestationRecord(attestation);
       const approval: WorkApproval = parseWorkApprovalAttestation(att);
@@ -76,6 +76,24 @@ async function getWorkApprovalsByAttester(
       return [];
     }
   });
+  if (approvals.length === 0) return approvals;
+
+  // An approval attestation has the work UID but no garden. Resolve the linked
+  // work in one read so history cards can open their detail route.
+  try {
+    const works = await getWorksByUIDs(
+      [...new Set(approvals.map((approval) => approval.workUID))],
+      chainId
+    );
+    const byId = new Map(works.map((work) => [work.id.toLowerCase(), work]));
+    return approvals.map((approval) => {
+      const work = byId.get(approval.workUID.toLowerCase());
+      return work ? { ...approval, gardenId: work.gardenAddress, title: work.title } : approval;
+    });
+  } catch (error) {
+    logger.warn("Could not resolve gardens for reviewed work", { error, count: approvals.length });
+    return approvals;
+  }
 }
 
 /**
@@ -105,7 +123,7 @@ export function useWorkApprovals(attesterAddress?: Address) {
         status: approval.approved ? "approved" : "rejected",
         size: JSON.stringify(approval).length,
         // Add missing UI properties to prevent errors
-        title: `Work ${(approval.workUID || "").slice(0, 8) || "Unknown"}...`,
+        title: approval.title || `Work ${(approval.workUID || "").slice(0, 8) || "Unknown"}...`,
         description:
           approval.feedback || `${approval.approved ? "Approved" : "Rejected"} work submission`,
       })

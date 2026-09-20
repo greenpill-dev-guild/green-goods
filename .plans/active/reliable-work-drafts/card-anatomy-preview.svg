@@ -1,0 +1,104 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1040" height="860" viewBox="0 0 1040 860" role="img" aria-labelledby="title desc">
+  <title id="title">Proposed 88-pixel work card anatomy</title>
+  <desc id="desc">Six fixed-height work cards in a mobile-width list. The primary state is aligned at the upper right, the supporting message stays on one line, and draft delete has its own trailing touch target.</desc>
+  <defs>
+    <style>
+      text{font-family:Inter,Arial,sans-serif;fill:#292524}
+      .small{font-size:13px;fill:#78716c}
+      .label{font-size:13px;font-weight:700;letter-spacing:.04em;fill:#78716c}
+      .title{font-size:15px;font-weight:650}
+      .sub{font-size:12px;fill:#78716c}
+      .detail{font-size:12px;fill:#57534e}
+      .badge{font-size:11px;font-weight:650}
+      .card{fill:#fff;stroke:#e7e1d8;stroke-width:1.5}
+      .thumb{fill:#e8e4da}
+      .pill-amber{fill:#fff2d7;stroke:#e5bc63}
+      .pill-blue{fill:#e9f2ff;stroke:#9ec3ef}
+      .pill-green{fill:#e8f6ed;stroke:#8bcda3}
+      .pill-stone{fill:#f3f1ed;stroke:#cbc5bc}
+    </style>
+  </defs>
+  <rect width="1040" height="860" fill="#faf8f5"/>
+  <text x="46" y="60" font-size="26" font-weight="700">Work card anatomy · review mock</text>
+  <text x="46" y="88" class="small">All rows remain 88 px tall at a 360 px mobile width. This is a visual proposal, not a production component.</text>
+  <text x="46" y="137" class="label">DRAFT + QUEUED</text>
+  <text x="542" y="137" class="label">REVIEW + COMPLETED</text>
+
+  <g transform="translate(46 158)">
+    <rect class="card" width="360" height="88" rx="16"/>
+    <path d="M16 0H88V88H16Q0 88 0 72V16Q0 0 16 0Z" class="thumb"/>
+    <text x="43" y="51" font-size="25" fill="#a8a29e">✎</text>
+    <text x="100" y="26" class="title">Prune the north beds</text>
+    <rect x="298" y="11" width="50" height="21" rx="10.5" class="pill-amber"/>
+    <text x="307" y="25" class="badge" fill="#7c520e">Draft</text>
+    <text x="100" y="47" class="sub">Greenhouse · 2 hours ago</text>
+    <text x="100" y="70" class="detail">Step 2 of 4 · 3 photos</text>
+    <rect x="306" y="39" width="44" height="44" rx="13" fill="#faf8f5" stroke="#e7e1d8"/>
+    <path d="M320 56h16m-13-4h10m-9 7 1 13h6l1-13" fill="none" stroke="#78716c" stroke-width="1.7" stroke-linecap="round"/>
+  </g>
+
+  <g transform="translate(46 267)">
+    <rect class="card" width="360" height="88" rx="16"/>
+    <path d="M16 0H88V88H16Q0 88 0 72V16Q0 0 16 0Z" class="thumb"/>
+    <circle cx="44" cy="44" r="14" fill="#c9d8c5"/>
+    <text x="100" y="26" class="title">Plant fruit trees</text>
+    <rect x="265" y="11" width="83" height="21" rx="10.5" class="pill-blue"/>
+    <text x="275" y="25" class="badge" fill="#265b96">To upload</text>
+    <text x="100" y="47" class="sub">You submitted · Today</text>
+    <text x="100" y="70" class="detail">Ready to sign and upload</text>
+  </g>
+
+  <g transform="translate(46 376)">
+    <rect class="card" width="360" height="88" rx="16"/>
+    <path d="M16 0H88V88H16Q0 88 0 72V16Q0 0 16 0Z" class="thumb"/>
+    <circle cx="44" cy="44" r="14" fill="#c9d8c5"/>
+    <text x="100" y="26" class="title">Plant fruit trees</text>
+    <rect x="275" y="11" width="73" height="21" rx="10.5" class="pill-blue"/>
+    <text x="285" y="25" class="badge" fill="#265b96">Checking</text>
+    <text x="100" y="47" class="sub">You submitted · Today</text>
+    <text x="100" y="70" class="detail">Checking transaction status</text>
+  </g>
+
+  <g transform="translate(542 158)">
+    <rect class="card" width="360" height="88" rx="16"/>
+    <path d="M16 0H88V88H16Q0 88 0 72V16Q0 0 16 0Z" class="thumb"/>
+    <circle cx="44" cy="44" r="14" fill="#c9d8c5"/>
+    <text x="100" y="26" class="title">Restore the trail</text>
+    <rect x="242" y="11" width="106" height="21" rx="10.5" class="pill-amber"/>
+    <text x="251" y="25" class="badge" fill="#7c520e">Needs review</text>
+    <text x="100" y="47" class="sub">Submitted by Maya · Yesterday</text>
+    <text x="100" y="70" class="detail">Awaiting your decision</text>
+  </g>
+
+  <g transform="translate(542 267)">
+    <rect class="card" width="360" height="88" rx="16"/>
+    <path d="M16 0H88V88H16Q0 88 0 72V16Q0 0 16 0Z" class="thumb"/>
+    <circle cx="44" cy="44" r="14" fill="#c9d8c5"/>
+    <text x="100" y="26" class="title">Restore the trail</text>
+    <rect x="265" y="11" width="83" height="21" rx="10.5" class="pill-blue"/>
+    <text x="275" y="25" class="badge" fill="#265b96">To upload</text>
+    <text x="100" y="47" class="sub">Reviewed by you · Today</text>
+    <text x="100" y="70" class="detail">Approval saved on this device</text>
+  </g>
+
+  <g transform="translate(542 376)">
+    <rect class="card" width="360" height="88" rx="16"/>
+    <path d="M16 0H88V88H16Q0 88 0 72V16Q0 0 16 0Z" class="thumb"/>
+    <circle cx="44" cy="44" r="14" fill="#c9d8c5"/>
+    <text x="100" y="26" class="title">Restore the trail</text>
+    <rect x="277" y="11" width="71" height="21" rx="10.5" class="pill-green"/>
+    <text x="287" y="25" class="badge" fill="#276646">Approved</text>
+    <text x="100" y="47" class="sub">Reviewed by you · Today</text>
+    <text x="100" y="70" class="detail">Added to the garden record</text>
+  </g>
+
+  <line x1="46" y1="522" x2="902" y2="522" stroke="#d6d0c8"/>
+  <text x="46" y="559" class="label">PROPOSED ROW RULES</text>
+  <text x="46" y="589" class="small">1. One right-aligned primary state badge. No second row of wrapping chips.</text>
+  <text x="46" y="618" class="small">2. Title, context, and one supporting message each get a fixed line with truncation.</text>
+  <text x="46" y="647" class="small">3. Draft delete stays a separate 44 × 44 px button, below the top-right Draft badge.</text>
+  <text x="46" y="676" class="small">4. Status changes alter copy and tone, never the card height or content alignment.</text>
+  <rect x="46" y="714" width="856" height="92" rx="16" fill="#f3f1ed"/>
+  <text x="66" y="748" font-size="14" font-weight="650">For review</text>
+  <text x="66" y="773" class="small">Confirm badge placement, draft delete placement, and whether the third line carries the right amount of detail.</text>
+</svg>

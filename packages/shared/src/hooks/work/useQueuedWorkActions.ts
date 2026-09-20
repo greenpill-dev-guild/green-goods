@@ -4,12 +4,8 @@ import { toastService } from "../../components/toast";
 import { logger } from "../../modules/app/logger";
 import { jobQueue } from "../../modules/job-queue/default-instance";
 import { scheduleUploadPreparation } from "../../modules/work/upload-preparation";
-import { useUIStore } from "../../stores/useUIStore";
-import { useNavigateToTop } from "../app/useNavigateToTop";
 
 export interface QueuedWorkActions {
-  /** Opens Your Work at the person's submissions, where Upload all sends queued work. */
-  openUploads(): void;
   /**
    * Prepares a work that needed attention again from the start: a photo that
    * would not convert, or a refusal the garden may have lifted since.
@@ -26,14 +22,8 @@ const TOAST = { id: "queued-work-action", context: "queued work" } as const;
 /** What the person can do with one queued work from its detail page. */
 export function useQueuedWorkActions(workId: string | undefined): QueuedWorkActions {
   const { formatMessage } = useIntl();
-  const navigateToTop = useNavigateToTop();
   const [isTryingAgain, setIsTryingAgain] = useState(false);
   const [isDiscarding, setIsDiscarding] = useState(false);
-
-  const openUploads = () => {
-    useUIStore.getState().openWorkDashboard("pending", "mySubmissions");
-    navigateToTop("/home");
-  };
 
   const tryAgain = async () => {
     if (!workId || isTryingAgain) return;
@@ -88,5 +78,5 @@ export function useQueuedWorkActions(workId: string | undefined): QueuedWorkActi
     }
   };
 
-  return { openUploads, tryAgain, isTryingAgain, discard, isDiscarding };
+  return { tryAgain, isTryingAgain, discard, isDiscarding };
 }

@@ -1,15 +1,22 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { EASWork, EASWorkApproval } from "../../../types/eas-responses";
 
-const seams = vi.hoisted(() => ({ list: vi.fn(), approvals: vi.fn() }));
+const seams = vi.hoisted(() => ({
+  list: vi.fn(),
+  approvals: vi.fn(),
+  byUID: vi.fn(),
+  approvalsForWork: vi.fn(),
+}));
 
 vi.mock("../../../modules/data/eas", () => ({
   WORK_LIST_PAGE_SIZE: 50,
   getWorkListPage: seams.list,
+  getWorksByUIDs: seams.byUID,
+  getWorkApprovalsForWork: seams.approvalsForWork,
   readWorkApprovalsForWorks: seams.approvals,
 }));
 
-const { readWorkList } = await import("../../../modules/work/work-list");
+const { readWorkByUID, readWorkList } = await import("../../../modules/work/work-list");
 
 function work(id: string): EASWork {
   return {
@@ -67,6 +74,30 @@ describe("readWorkList", () => {
 
     const [row] = await readWorkList({ garden: "garden", chainId: 42161 });
 
+    expect(row).not.toHaveProperty("approval");
+  });
+});
+
+describe("readWorkByUID", () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it("opens an older reviewed work outside the garden list window", async () => {
+    seams.byUID.mockResolvedValue([work("work-older")]);
+    seams.approvalsForWork.mockResolvedValue([approval("approval-1", "work-older", false)]);
+
+    const row = await readWorkByUID("work-older", 42161);
+
+    expect(seams.byUID).toHaveBeenCalledWith(["work-older"], 42161);
+    expect(row?.approval?.approved).toBe(false);
+  });
+
+  it("retains the work with unknown review status if the approval read fails", async () => {
+    seams.byUID.mockResolvedValue([work("work-older")]);
+    seams.approvalsForWork.mockRejectedValue(new Error("Unavailable"));
+
+    const row = await readWorkByUID("work-older", 42161);
+
+    expect(row?.id).toBe("work-older");
     expect(row).not.toHaveProperty("approval");
   });
 });

@@ -132,7 +132,7 @@ describe("queuedWorkExplanation", () => {
   const online = { isOnline: true };
 
   it.each([
-    ["ready", "Saved on your device. Upload it from Your Work."],
+    ["ready", "Saved on your device. Upload it here when you're connected."],
     ["preparing", "Preparing to upload"],
     ["photo-pending", "A photo is still converting"],
     ["photo-needs-attention", "A photo couldn't be converted"],
@@ -144,7 +144,7 @@ describe("queuedWorkExplanation", () => {
     ["awaiting-confirmation", messages["app.work.confirmationExplanation"]],
     ["checking-submission", messages["app.work.checkingSubmissionInfo"]],
     ["sending", "Uploading to the garden record..."],
-    [undefined, "Saved on your device. Upload it from Your Work."],
+    [undefined, "Saved on your device. Upload it here when you're connected."],
   ])("has one sentence for %s work", (submissionState, text) => {
     expect(textOf(queuedWorkExplanation({ submissionState }, online))).toBe(text);
   });
@@ -162,7 +162,7 @@ describe("queuedWorkExplanation", () => {
 
   it("never says work is uploading while the device is offline", () => {
     expect(textOf(queuedWorkExplanation({ submissionState: "sending" }, { isOnline: false }))).toBe(
-      "Saved on your device. Upload it from Your Work."
+      "Saved on your device. Upload it here when you're connected."
     );
   });
 
