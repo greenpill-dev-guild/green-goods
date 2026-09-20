@@ -76,12 +76,17 @@ describe("passkey cross-chain account construction", () => {
     expect(settlement.client.paymasterContext).toEqual({ sponsorshipPolicyId: "celo-policy" });
   });
 
-  it("refuses Celo construction before factory RPC when only a primary policy exists", async () => {
+  it("constructs the Celo account for authentication without a transfer policy", async () => {
+    vi.stubEnv("VITE_PIMLICO_API_KEY", "test-api-key");
     vi.stubEnv("VITE_PIMLICO_SPONSORSHIP_POLICY_ID", "arbitrum-policy");
     vi.stubEnv("VITE_PIMLICO_CELO_SPONSORSHIP_POLICY_ID", undefined);
-    await expect(
-      defaultPasskeyAdapters.buildSmartAccount(credential, 42220, defaultPasskeyAdapters.getRpId())
-    ).rejects.toMatchObject({ code: "policy_unavailable" });
-    expect(factoryCalls).toEqual([]);
+    const result = await defaultPasskeyAdapters.buildSmartAccount(
+      credential,
+      42220,
+      defaultPasskeyAdapters.getRpId()
+    );
+    expect(result.address).toBe(ACCOUNT);
+    expect(result.client.paymasterContext).toBeUndefined();
+    expect(factoryCalls).toHaveLength(1);
   });
 });

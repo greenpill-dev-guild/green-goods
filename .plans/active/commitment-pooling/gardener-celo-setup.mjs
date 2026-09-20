@@ -5,6 +5,7 @@ import { resolve } from "node:path";
 import {
   createPublicClient,
   decodeEventLog,
+  decodeFunctionData,
   getAddress,
   hashDomain,
   http,
@@ -13,6 +14,7 @@ import {
   maxUint256,
   parseAbi,
   parseUnits,
+  slice,
   toHex,
   zeroAddress,
 } from "viem";
@@ -33,6 +35,41 @@ const abi = parseAbi([
   "function getFees(uint256,address,address) view returns (uint256,bool)",
   "function gardenerDeliveryEnabled() view returns (bool)",
 ]);
+const kernelExecuteAbi = parseAbi(["function execute(bytes32 execMode, bytes executionCalldata)"]);
+const transferAbi = parseAbi([
+  "function transfer(address to, uint256 amount) returns (bool)",
+  "event Transfer(address indexed from, address indexed to, uint256 value)",
+]);
+
+/** Kernel 0.3.1 encodes one call as target(20) + value(32) + calldata. */
+function assertCanaryCall(callData, recipient, amount) {
+  let execution;
+  try {
+    execution = decodeFunctionData({ abi: kernelExecuteAbi, data: callData });
+  } catch {
+    throw new SetupError("Canary UserOperation is not a Kernel execute call.");
+  }
+  const [mode, payload] = execution.args;
+  if (slice(mode, 0, 1) !== "0x00" || payload.length < 108)
+    throw new SetupError("Canary UserOperation must contain one direct call.");
+  const target = getAddress(slice(payload, 0, 20));
+  const value = BigInt(slice(payload, 20, 52));
+  const transferData = slice(payload, 52);
+  let transfer;
+  try {
+    transfer = decodeFunctionData({ abi: transferAbi, data: transferData });
+  } catch {
+    throw new SetupError("Canary UserOperation does not call ERC-20 transfer.");
+  }
+  if (
+    target !== token ||
+    value !== 0n ||
+    transfer.functionName !== "transfer" ||
+    getAddress(transfer.args[0]) !== recipient ||
+    transfer.args[1] !== amount
+  )
+    throw new SetupError("Canary UserOperation token, recipient, or amount mismatch.");
+}
 // Pins from the locked permissionless Kernel 0.3.1 WebAuthn deployment map.
 // Cross-chain equality is an observation, not a substitute for approved code hashes.
 const pins = {
@@ -359,27 +396,79 @@ export async function verifyReceipt(
   if (receipt.blockHash !== block.hash)
     throw new SetupError("Receipt block is no longer canonical.");
   const events = receipt.logs
-    .filter((log) => log.address.toLowerCase() === entryPoint07Address.toLowerCase())
-    .flatMap((log) => {
+    .flatMap((log, index) => {
+      if (log.address.toLowerCase() !== entryPoint07Address.toLowerCase()) return [];
       try {
         const event = decodeEventLog({ abi: entryPoint07Abi, data: log.data, topics: log.topics });
-        return event.eventName === "UserOperationEvent" &&
-          event.args.userOpHash.toLowerCase() === userOperationHash.toLowerCase()
-          ? [event.args]
-          : [];
+        return event.eventName === "UserOperationEvent" ? [{ args: event.args, index }] : [];
       } catch {
         return [];
       }
     });
+  const matching = events.filter(
+    (event) => event.args.userOpHash.toLowerCase() === userOperationHash.toLowerCase()
+  );
   if (
-    events.length !== 1 ||
-    !events[0].success ||
-    getAddress(events[0].sender) !== sender ||
-    events[0].paymaster.toLowerCase() === zeroAddress
+    matching.length !== 1 ||
+    !matching[0].args.success ||
+    getAddress(matching[0].args.sender) !== sender ||
+    matching[0].args.paymaster.toLowerCase() === zeroAddress
   )
     throw new SetupError(
       "Expected one successful, sponsored EntryPoint event for the canary account."
     );
+  const transaction = await rpc.getTransaction({ hash: transactionHash });
+  let operations;
+  try {
+    if (getAddress(transaction.to) !== getAddress(entryPoint07Address))
+      throw new Error("Wrong EntryPoint");
+    const decoded = decodeFunctionData({ abi: entryPoint07Abi, data: transaction.input });
+    if (decoded.functionName !== "handleOps") throw new Error("Wrong EntryPoint call");
+    operations = decoded.args[0];
+  } catch {
+    throw new SetupError("Canary transaction must call EntryPoint.handleOps.");
+  }
+  if (operations.length !== events.length)
+    throw new SetupError("Canary transaction operation and event counts differ.");
+  const operationIndex = events.indexOf(matching[0]);
+  const operation = operations[operationIndex];
+  if (
+    !operation ||
+    getAddress(operation.sender) !== sender ||
+    (await rpc.readContract({
+      address: entryPoint07Address,
+      abi: entryPoint07Abi,
+      functionName: "getUserOpHash",
+      args: [operation],
+      blockNumber: receipt.blockNumber,
+    })).toLowerCase() !== userOperationHash.toLowerCase()
+  )
+    throw new SetupError("Canary transaction does not contain the matched UserOperation.");
+  assertCanaryCall(operation.callData, recipient, amount);
+  const previousEventIndex = operationIndex === 0 ? -1 : events[operationIndex - 1].index;
+  let logSenderDebit = 0n;
+  let logRecipientCredit = 0n;
+  for (const log of receipt.logs.slice(previousEventIndex + 1, matching[0].index)) {
+    if (log.address.toLowerCase() !== token.toLowerCase()) continue;
+    let transfer;
+    try {
+      transfer = decodeEventLog({ abi: transferAbi, data: log.data, topics: log.topics });
+    } catch {
+      continue;
+    }
+    if (transfer.eventName !== "Transfer") continue;
+    const from = getAddress(transfer.args.from);
+    const to = getAddress(transfer.args.to);
+    if (from === sender) logSenderDebit += transfer.args.value;
+    if (to === sender) logSenderDebit -= transfer.args.value;
+    if (to === recipient) logRecipientCredit += transfer.args.value;
+    if (from === recipient) logRecipientCredit -= transfer.args.value;
+  }
+  if (
+    logSenderDebit !== BigInt(before.totalDebit) ||
+    logRecipientCredit !== BigInt(before.recipientAmount)
+  )
+    throw new SetupError("Canary UserOperation transfer logs do not match the intended payment.");
   const [
     senderBefore,
     recipientBefore,
@@ -418,9 +507,9 @@ export async function verifyReceipt(
     block: block.number.toString(),
     blockHash: block.hash,
     timestamp: block.timestamp.toString(),
-    actualGasCostWei: events[0].actualGasCost.toString(),
-    actualGasUsed: events[0].actualGasUsed.toString(),
-    paymaster: events[0].paymaster,
+    actualGasCostWei: matching[0].args.actualGasCost.toString(),
+    actualGasUsed: matching[0].args.actualGasUsed.toString(),
+    paymaster: matching[0].args.paymaster,
     deployedCodeHash,
     senderDebit: (senderBefore - senderAfter).toString(),
     recipientCredit: (recipientAfter - recipientBefore).toString(),

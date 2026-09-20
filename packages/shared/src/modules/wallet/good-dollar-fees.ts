@@ -38,7 +38,7 @@ export async function quoteGoodDollarTransfer(
   const [fee, senderPays] = result as [bigint, boolean];
   const totalDebit = senderPays ? amount + fee : amount;
   const recipientAmount = senderPays ? amount : amount - fee;
-  if (totalDebit > maxUint256 || recipientAmount < 0n)
+  if (totalDebit > maxUint256 || recipientAmount <= 0n)
     throw new Error("Invalid G$ token fee quote");
   return { amount, fee, senderPays, totalDebit, recipientAmount };
 }

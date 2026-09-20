@@ -1,6 +1,9 @@
 /** @vitest-environment node */
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { TransactionRevertedError } from "../../../modules/transactions/types";
+import {
+  TransactionReplacementError,
+  TransactionRevertedError,
+} from "../../../modules/transactions/types";
 import { sendWithCheckpoint } from "../../../modules/work/send-with-checkpoint";
 import {
   forgetWorkBroadcast,
@@ -88,6 +91,35 @@ describe("sending one call while recording how far it got", () => {
       transactionHash: TX,
       broadcastPending: false,
     });
+  });
+
+  it("clears a cancelled wallet transaction checkpoint so a deliberate retry is safe", async () => {
+    const { record, current } = recorder();
+    const sender = createMockTransactionSender({ authMode: "wallet" });
+    vi.mocked(sender.sendContractCall).mockImplementation(async (_call, options) => {
+      await options?.onBeforeBroadcast?.();
+      await options?.onBroadcastReference?.({ kind: "transaction", hash: TX });
+      throw new TransactionReplacementError("cancelled");
+    });
+
+    await expect(send(sender, record as never)).resolves.toMatchObject({
+      status: "not-sent",
+      cancelled: true,
+    });
+    expect(current()).toBeUndefined();
+    for (const id of JOBS) expect(retainedWorkBroadcastReference(id)).toBeUndefined();
+  });
+
+  it("keeps a different replacement uncertain until its effect is inspected", async () => {
+    const { record, current } = recorder();
+    const sender = createMockTransactionSender({ authMode: "wallet" });
+    vi.mocked(sender.sendContractCall).mockImplementation(async (_call, options) => {
+      await options?.onBeforeBroadcast?.();
+      await options?.onBroadcastReference?.({ kind: "transaction", hash: TX });
+      throw new TransactionReplacementError("replaced");
+    });
+    await expect(send(sender, record as never)).resolves.toMatchObject({ status: "may-have-sent" });
+    expect(current()).toMatchObject({ broadcast: { kind: "transaction", hash: TX } });
   });
 
   it("records the hash a sender only returns", async () => {

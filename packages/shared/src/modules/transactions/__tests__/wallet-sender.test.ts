@@ -137,15 +137,20 @@ describe("WalletSender", () => {
 
     it("accepts repricing and returns the included replacement hash", async () => {
       const transactionHash = `0x${"b".repeat(64)}` as const;
+      const onBroadcastReference = vi.fn();
       vi.mocked(mockDeps.waitForTransactionReceipt).mockImplementationOnce(
         async (_config, params) => {
           params.onReplaced?.({ reason: "repriced" });
           return { status: "success", transactionHash };
         }
       );
-      await expect(sender.sendContractCall(TEST_CALL)).resolves.toEqual({
+      await expect(sender.sendContractCall(TEST_CALL, { onBroadcastReference })).resolves.toEqual({
         hash: transactionHash,
         sponsored: false,
+      });
+      expect(onBroadcastReference).toHaveBeenLastCalledWith({
+        kind: "transaction",
+        hash: transactionHash,
       });
     });
 

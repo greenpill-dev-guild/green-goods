@@ -45,15 +45,16 @@ function show(overrides: Partial<History> = {}, locale = "en", messages = en) {
 
 describe("Celo contributor receipts", () => {
   it.each([
-    ["queued", "Queued"],
-    ["dispatched", "Sent from the garden"],
-    ["delivery-delayed", "Taking longer than expected"],
-    ["executed-acknowledgment-pending", "Waiting for confirmation"],
-    ["not-started", "Being prepared"],
-    ["unknown", "Checking progress"],
-  ] as const)("keeps %s support on its way until authenticated source confirmation", (status, detail) => {
+    "queued",
+    "dispatched",
+    "delivery-delayed",
+    "executed-acknowledgment-pending",
+    "not-started",
+    "unknown",
+  ] as const)("keeps %s support on its way until authenticated source confirmation", (status) => {
     show({ receipts: [{ ...receipt, delivery: { status } }] });
-    expect(screen.getByRole("listitem")).toHaveTextContent(`Support on its way · ${detail}`);
+    expect(screen.getByRole("listitem")).toHaveTextContent("Support on its way");
+    expect(screen.getByRole("listitem")).not.toHaveTextContent(" · ");
     expect(screen.queryByText("Arrived")).not.toBeInTheDocument();
   });
 
@@ -62,7 +63,7 @@ describe("Celo contributor receipts", () => {
     expect(screen.getByText("Arrived")).toBeInTheDocument();
   });
 
-  it("explains a confirmed failure without claiming that support arrived", () => {
+  it("shows the approved failed status without claiming that support arrived", () => {
     show({ receipts: [{ ...receipt, delivery: { status: "failed", failureCode: 1 } }] });
     expect(screen.getByText("Support is being rearranged")).toBeInTheDocument();
     expect(screen.queryByText("Arrived")).not.toBeInTheDocument();

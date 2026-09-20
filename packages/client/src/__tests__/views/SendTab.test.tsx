@@ -53,6 +53,7 @@ let mockSendFailed = false;
 let mockSendPending = false;
 const mockCeloRefetch = vi.fn();
 let mockAuthMode = "passkey";
+let mockChainId = 42161;
 let mockCeloState = makeCeloState();
 function makeCeloState(): ReturnType<typeof useCeloWallet> {
   return {
@@ -116,7 +117,7 @@ vi.mock("@green-goods/shared/hooks/auth/useUser", async (importOriginal) => {
 vi.mock("@green-goods/shared/hooks/blockchain/useChainConfig", async (importOriginal) => {
   return {
     ...(await importOriginal()),
-    useCurrentChain: () => 42161,
+    useCurrentChain: () => mockChainId,
   };
 });
 
@@ -219,6 +220,7 @@ describe("SendTab", () => {
     mockFeeRead.mockResolvedValue([10n ** 18n, true]);
     mockIsOnline = true;
     mockAuthMode = "passkey";
+    mockChainId = 42161;
     mockCeloState = makeCeloState();
     mockTokensState = { tokens: [goodsToken, usdcToken], isLoading: false, isError: false };
   });
@@ -250,6 +252,37 @@ describe("SendTab", () => {
       amount: 10n * 10n ** 6n,
     });
     expect(mockSend.mock.calls[0][0].token.symbol).toBe("USDC");
+  });
+
+  it("deduplicates Celo G$ and hides tokens the passkey policy cannot sponsor", async () => {
+    mockChainId = 42220;
+    mockCeloState = { ...mockCeloState, token: celoToken, canSend: true };
+    mockTokensState = {
+      tokens: [{ ...usdcToken, chainId: 42220 }, celoToken],
+      isLoading: false,
+      isError: false,
+    };
+    const user = userEvent.setup();
+    render(<SendTab />);
+    expect(screen.getAllByRole("button", { name: "Send G$ · 25" })).toHaveLength(1);
+    await user.click(screen.getByRole("tab", { name: "Send" }));
+    await user.click(await screen.findByRole("button", { name: /alice\.eth/i }));
+    expect(screen.queryByRole("button", { name: /USDC · Celo/ })).not.toBeInTheDocument();
+  });
+
+  it("keeps supported Celo USDC available for a connected wallet", async () => {
+    mockChainId = 42220;
+    mockAuthMode = "wallet";
+    mockTokensState = {
+      tokens: [{ ...usdcToken, chainId: 42220 }],
+      isLoading: false,
+      isError: false,
+    };
+    const user = userEvent.setup();
+    render(<SendTab />);
+    await user.click(screen.getByRole("tab", { name: "Send" }));
+    await user.click(await screen.findByRole("button", { name: /alice\.eth/i }));
+    expect(screen.getByRole("button", { name: /USDC/ })).toBeInTheDocument();
   });
 
   it("does not show the governance callout for a non-governance token", async () => {

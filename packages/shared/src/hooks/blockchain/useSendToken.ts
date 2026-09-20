@@ -85,8 +85,7 @@ export function useSendToken() {
         throw new Error("Amount must be greater than zero and fit uint256");
       if (!isAddress(to) || /^0x0{40}$/i.test(to)) throw new Error("Invalid recipient");
       const celo = isCeloGoodDollar(token);
-      if ((token.chainId === 42220 || token.symbol === "G$") && !celo)
-        throw new Error("Unsupported Celo token");
+      if (token.symbol === "G$" && !celo) throw new Error("Unsupported Celo token");
       let totalDebit = amount;
       if (celo) {
         if ((await getGardenerDeliveryEnabled()) !== true)
@@ -143,6 +142,12 @@ export function useSendToken() {
         // A submission identifier alone (including a Safe proposal) cannot prove inclusion.
         if (!/^0x[0-9a-f]{64}$/i.test(result.hash))
           throw new Error("Celo transaction inclusion is unavailable");
+        // Production senders return a canonical hash only after a successful receipt.
+        // A second RPC wait can fail after the value transfer already succeeded,
+        // incorrectly presenting a retry that could pay the recipient twice.
+        if (result.confirmation !== "pending") {
+          return { ...result, account: primaryAddress.toLowerCase() };
+        }
         let changedTransaction = false;
         const receipt = await client.waitForTransactionReceipt({
           hash: result.hash,

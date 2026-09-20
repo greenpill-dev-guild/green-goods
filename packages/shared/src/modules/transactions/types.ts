@@ -25,7 +25,7 @@ export interface ContractCall {
 
 export type BroadcastReference =
   | { kind: "transaction"; hash: Hex }
-  | { kind: "user-operation"; hash: Hex };
+  | { kind: "user-operation"; hash: Hex; chainId?: number };
 
 export type BroadcastConfirmation =
   | { status: "confirmed"; transactionHash: Hex }

@@ -1,6 +1,6 @@
 import type { GoodDollarFeeQuote } from "@green-goods/shared/modules/wallet/good-dollar-fees";
 import { Button } from "@green-goods/shared/components/Button";
-import { formatUnits } from "viem";
+import { formatTokenAmount } from "@green-goods/shared/utils/blockchain/vaults";
 import { RiErrorWarningLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
 
@@ -25,7 +25,7 @@ export function GoodDollarFeeSummary({
   onRetry: () => void;
   isOnline: boolean;
 }) {
-  const { formatMessage } = useIntl();
+  const { formatMessage, locale } = useIntl();
   const amounts = quote
     ? ([
         ["app.celoWallet.fee.amount", quote.amount],
@@ -56,7 +56,7 @@ export function GoodDollarFeeSummary({
               <div key={id} className="flex flex-wrap justify-between gap-2">
                 <dt>{formatMessage({ id })}</dt>
                 <dd className="font-medium text-text-strong-950">
-                  {formatUnits(amount, decimals)} G$
+                  {formatTokenAmount(amount, decimals, decimals, locale)} G$
                 </dd>
               </div>
             ))}

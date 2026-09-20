@@ -3,8 +3,8 @@ import { readFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { dirname, join } from "node:path";
 import { test } from "node:test";
-import { encodeAbiParameters, encodeEventTopics, hashDomain, parseAbi, parseUnits, toHex, zeroAddress } from "viem";
-import { entryPoint07Address } from "viem/account-abstraction";
+import { concatHex, encodeAbiParameters, encodeEventTopics, encodeFunctionData, hashDomain, parseAbi, parseUnits, toHex, zeroAddress } from "viem";
+import { entryPoint07Abi, entryPoint07Address } from "viem/account-abstraction";
 import { policyPlan, preflight, verifyReceipt } from "./gardener-celo-setup.mjs";
 
 const sender = "0x1111111111111111111111111111111111111111";
@@ -12,6 +12,29 @@ const recipient = "0x2222222222222222222222222222222222222222";
 const paymaster = "0x3333333333333333333333333333333333333333";
 const hash = (n) => `0x${n.repeat(64)}`;
 const unit = parseUnits("1", 18);
+const token = JSON.parse(readFileSync(new URL("../../../packages/contracts/config/commitment-pooling-release.json", import.meta.url))).chains.celo.gDollar;
+const transferAbi = parseAbi(["function transfer(address,uint256) returns (bool)", "event Transfer(address indexed from,address indexed to,uint256 value)"]);
+const kernelExecuteAbi = parseAbi(["function execute(bytes32 execMode,bytes executionCalldata)"]);
+function canaryOperation({ target = token, to = recipient, amount = unit } = {}) {
+  const transferData = encodeFunctionData({ abi: transferAbi, functionName: "transfer", args: [to, amount] });
+  const callData = encodeFunctionData({
+    abi: kernelExecuteAbi,
+    functionName: "execute",
+    args: [toHex(0, { size: 32 }), concatHex([target, toHex(0, { size: 32 }), transferData])],
+  });
+  return {
+    sender, nonce: 0n, initCode: "0x", callData,
+    accountGasLimits: toHex(0, { size: 32 }), preVerificationGas: 0n,
+    gasFees: toHex(0, { size: 32 }), paymasterAndData: "0x", signature: "0x",
+  };
+}
+function transferLog({ from = sender, to = recipient, value = unit } = {}) {
+  return {
+    address: token,
+    topics: encodeEventTopics({ abi: transferAbi, eventName: "Transfer", args: { from, to } }),
+    data: encodeAbiParameters([{ type: "uint256" }], [value]),
+  };
+}
 const input = { sourceAccount: sender, celoAccount: sender, recipient, amount: "1" };
 const implementation = "0xBAC849bB641841b44E965fB01A4Bf5F074f84b4D";
 function kernelCode(chainId, suffix = "6001") {
@@ -33,13 +56,13 @@ const eventAbi = parseAbi([
   "event UserOperationEvent(bytes32 indexed userOpHash, address indexed sender, address indexed paymaster, uint256 nonce, bool success, uint256 actualGasCost, uint256 actualGasUsed)",
 ]);
 
-function event({ success = true, sponsoredBy = paymaster, account = sender } = {}) {
+function event({ success = true, sponsoredBy = paymaster, account = sender, operationHash = hash("b") } = {}) {
   return {
     address: entryPoint07Address,
     topics: encodeEventTopics({
       abi: eventAbi,
       eventName: "UserOperationEvent",
-      args: { userOpHash: hash("b"), sender: account, paymaster: sponsoredBy },
+      args: { userOpHash: operationHash, sender: account, paymaster: sponsoredBy },
     }),
     data: encodeAbiParameters(
       [{ type: "uint256" }, { type: "bool" }, { type: "uint256" }, { type: "uint256" }],
@@ -63,6 +86,7 @@ function rpc(chainId, overrides = {}) {
       if (functionName === "gardenerDeliveryEnabled") return false;
       if (functionName === "decimals") return 18;
       if (functionName === "getFees") return [0n, true];
+      if (functionName === "getUserOpHash") return hash("b");
       if (functionName === "balanceOf")
         return args[0] === sender
           ? (blockNumber === 100n ? 10n : 9n) * unit
@@ -76,7 +100,15 @@ function rpc(chainId, overrides = {}) {
       transactionHash: hash("a"),
       blockNumber: 101n,
       blockHash: hash("2"),
-      logs: [event()],
+      logs: [transferLog(), event()],
+    }),
+    getTransaction: async () => ({
+      to: entryPoint07Address,
+      input: encodeFunctionData({
+        abi: entryPoint07Abi,
+        functionName: "handleOps",
+        args: [[canaryOperation()], paymaster],
+      }),
     }),
     ...overrides,
   };
@@ -262,6 +294,51 @@ test("receipt checks successful sponsored EntryPoint event and exact historical 
   assert.equal(result.receiptChecksPassed, true);
   assert.equal(result.activationReady, false);
   assert.equal(result.actualGasCostWei, "100");
+});
+
+test("rejects a UserOperation that calls a different token or recipient", async () => {
+  const args = await receiptInput();
+  for (const operation of [
+    canaryOperation({ target: paymaster }),
+    canaryOperation({ to: paymaster }),
+    canaryOperation({ amount: unit / 2n }),
+  ]) {
+    await assert.rejects(
+      () => verifyReceipt(args, rpc(42220, {
+        getTransaction: async () => ({
+          to: entryPoint07Address,
+          input: encodeFunctionData({
+            abi: entryPoint07Abi,
+            functionName: "handleOps",
+            args: [[operation], paymaster],
+          }),
+        }),
+      })),
+      /UserOperation token, recipient, or amount mismatch/
+    );
+  }
+});
+
+test("rejects a transfer from another operation in the same transaction", async () => {
+  const args = await receiptInput();
+  const base = rpc(42220);
+  await assert.rejects(
+    () => verifyReceipt(args, rpc(42220, {
+      getTransaction: async () => ({
+        to: entryPoint07Address,
+        input: encodeFunctionData({
+          abi: entryPoint07Abi,
+          functionName: "handleOps",
+          args: [[canaryOperation(), canaryOperation()], paymaster],
+        }),
+      }),
+      getTransactionReceipt: async () => ({
+        ...(await base.getTransactionReceipt()),
+        logs: [transferLog(), event({ operationHash: hash("c") }), event()],
+      }),
+    })),
+    /transfer logs/
+  );
 });
 
 for (const options of [{ success: false }, { sponsoredBy: zeroAddress }, { account: recipient }]) {

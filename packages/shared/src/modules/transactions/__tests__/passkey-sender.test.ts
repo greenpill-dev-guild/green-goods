@@ -6,7 +6,7 @@
  * to send UserOperations via a bundler.
  */
 
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { P256Credential } from "viem/account-abstraction";
 import {
   createSmartAccountClientResolver,
@@ -35,6 +35,8 @@ import { PasskeySender } from "../passkey-sender";
 
 const VALID_RECIPIENT = "0x1111111111111111111111111111111111111111" as const;
 const TEST_CALL = createMockContractCall({ chainId: undefined });
+beforeEach(() => vi.stubEnv("VITE_PIMLICO_CELO_SPONSORSHIP_POLICY_ID", "test-celo-policy"));
+afterEach(() => vi.unstubAllEnvs());
 
 // ============================================
 // Tests
@@ -130,6 +132,7 @@ describe("PasskeySender", () => {
       expect(trace).toEqual(["sign", "intent", "broadcast"]);
       expect(onBeforeBroadcast).toHaveBeenCalledWith({
         kind: "user-operation",
+        chainId: sepolia.id,
         hash: getUserOperationHash({
           chainId: sepolia.id,
           entryPointAddress: entryPoint07Address,
@@ -263,6 +266,38 @@ describe("passkey chain routing", () => {
     expect(primary.sendUserOperation).not.toHaveBeenCalled();
   });
 
+  it("refuses a signature approved after the passkey session was invalidated", async () => {
+    const primary = createFakeSmartAccountClient();
+    const resolveSmartAccountClient = createSmartAccountClientResolver({
+      credential: {
+        id: "session",
+        publicKey: "0x1234",
+        raw: undefined as unknown as P256Credential["raw"],
+      },
+      primaryClient: primary,
+      primaryChainId: primary.chain!.id,
+      expectedAddress: primary.account!.address,
+      buildSmartAccount: vi.fn(),
+    });
+    let finishSignature!: (signature: `0x${string}`) => void;
+    vi.mocked(primary.account!.signUserOperation).mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          finishSignature = resolve;
+        })
+    );
+    const onBroadcastReference = vi.fn();
+    const pending = new PasskeySender(primary, { resolveSmartAccountClient }).sendContractCall(
+      TEST_CALL,
+      { onBroadcastReference }
+    );
+    await vi.waitFor(() => expect(finishSignature).toBeDefined());
+    invalidateSmartAccountClientResolver(resolveSmartAccountClient);
+    finishSignature("0x5555");
+    await expect(pending).rejects.toMatchObject({ code: "session_expired" });
+    expect(onBroadcastReference).not.toHaveBeenCalled();
+  });
+
   it("resolves explicitly requested Celo without submitting on the primary chain", async () => {
     const primary = createFakeSmartAccountClient();
     const celo = createFakeSmartAccountClient({ chain: celoChain });
@@ -272,8 +307,38 @@ describe("passkey chain routing", () => {
     expect(resolveSmartAccountClient).toHaveBeenCalledWith(42220);
     expect(primary.sendUserOperation).not.toHaveBeenCalled();
     expect(celo.sendUserOperation).toHaveBeenCalledWith(
-      expect.objectContaining({ account: celo.account, calls: expect.any(Array) })
+      expect.objectContaining({ calls: expect.any(Array) })
     );
+  });
+
+  it("blocks a Celo send before signing when its sponsorship policy is absent", async () => {
+    vi.stubEnv("VITE_PIMLICO_CELO_SPONSORSHIP_POLICY_ID", undefined);
+    const primary = createFakeSmartAccountClient();
+    const celo = createFakeSmartAccountClient({ chain: celoChain });
+    const sender = new PasskeySender(primary, {
+      resolveSmartAccountClient: vi.fn().mockResolvedValue(celo),
+    });
+    await expect(sender.sendContractCall({ ...TEST_CALL, chainId: 42220 })).rejects.toMatchObject({
+      code: "policy_unavailable",
+    });
+    expect(celo.sendUserOperation).not.toHaveBeenCalled();
+  });
+
+  it("reconciles a Celo operation against the Celo client", async () => {
+    const primary = createFakeSmartAccountClient();
+    const celo = createFakeSmartAccountClient({ chain: celoChain });
+    const sender = new PasskeySender(primary, {
+      resolveSmartAccountClient: vi.fn(async (chainId) => (chainId === 42220 ? celo : primary)),
+    });
+    const onBroadcastReference = vi.fn();
+    await sender.sendContractCall({ ...TEST_CALL, chainId: 42220 }, { onBroadcastReference });
+    const reference = onBroadcastReference.mock.calls[0][0];
+    expect(reference).toMatchObject({ kind: "user-operation", chainId: 42220 });
+    await expect(sender.reconcileBroadcast(reference)).resolves.toMatchObject({
+      status: "confirmed",
+    });
+    expect(celo.getUserOperationReceipt).toHaveBeenCalledOnce();
+    expect(primary.getUserOperationReceipt).not.toHaveBeenCalled();
   });
 
   it("requires a resolver for every explicit chain, including the primary chain", async () => {

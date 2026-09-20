@@ -10,6 +10,7 @@
 import type { SmartAccountClient } from "permissionless";
 import { encodeFunctionData } from "viem";
 import type { SmartAccountClientResolver } from "../../types/auth";
+import { getPimlicoSponsorshipPolicyId } from "../../config/pimlico";
 import {
   assertSmartAccountClient,
   assertSmartAccountClientResolverActive,
@@ -58,6 +59,7 @@ export class PasskeySender implements TransactionSender {
 
     const chainId = call.chainId ?? this.client.chain?.id;
     if (chainId === undefined) throw new SmartAccountClientError("chain_mismatch");
+    if (chainId === 42220) getPimlicoSponsorshipPolicyId(chainId);
     if (call.chainId !== undefined && !this.deps.resolveSmartAccountClient) {
       throw new SmartAccountClientError("resolver_unavailable");
     }
@@ -80,7 +82,7 @@ export class PasskeySender implements TransactionSender {
       account: this.reportingAccount(client, options),
       calls: [{ to: call.address, value: call.value ?? 0n, data }],
     });
-    await options.onBroadcastReference?.({ kind: "user-operation", hash: operationHash });
+    await options.onBroadcastReference?.({ kind: "user-operation", hash: operationHash, chainId });
     const receipt = await client.waitForUserOperationReceipt({
       hash: operationHash,
       timeout: TX_RECEIPT_TIMEOUT_MS,
@@ -114,17 +116,20 @@ export class PasskeySender implements TransactionSender {
    */
   private reportingAccount(client: SmartAccountClient, options: TransactionSendOptions) {
     const account = client.account!;
-    const onBeforeBroadcast = options.onBeforeBroadcast;
-    if (!onBeforeBroadcast) return account;
     const clientChainId = client.chain?.id;
     const signUserOperation: typeof account.signUserOperation = async (userOperation) => {
       const signature = await account.signUserOperation(userOperation);
+      // A WebAuthn prompt can outlive the session that opened it. Check again
+      // at the last point before viem can submit the signed operation.
+      assertSmartAccountClientResolverActive(this.deps.resolveSmartAccountClient);
+      await options.assertOwnership?.();
       const chainId = userOperation.chainId ?? clientChainId;
-      await onBeforeBroadcast(
+      await options.onBeforeBroadcast?.(
         chainId === undefined
           ? undefined
           : {
               kind: "user-operation",
+              chainId,
               // Hashed the way the account signs it, so it matches the bundler's return.
               hash: getUserOperationHash({
                 chainId,
@@ -150,7 +155,13 @@ export class PasskeySender implements TransactionSender {
   async reconcileBroadcast(reference: BroadcastReference): Promise<BroadcastConfirmation> {
     if (reference.kind !== "user-operation") return { status: "unresolved" };
     try {
-      const receipt = await this.client.getUserOperationReceipt({ hash: reference.hash });
+      const chainId = reference.chainId ?? this.client.chain?.id;
+      if (chainId === undefined) return { status: "unresolved" };
+      const client = this.deps.resolveSmartAccountClient
+        ? await this.deps.resolveSmartAccountClient(chainId)
+        : this.client;
+      assertSmartAccountClient(client, chainId, this.client.account!.address);
+      const receipt = await client.getUserOperationReceipt({ hash: reference.hash });
       if (!receipt) return { status: "unresolved" };
       return receipt.success
         ? { status: "confirmed", transactionHash: receipt.receipt.transactionHash }
