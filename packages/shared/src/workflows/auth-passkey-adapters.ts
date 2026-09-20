@@ -8,7 +8,6 @@ import {
   toWebAuthnAccount,
 } from "viem/account-abstraction";
 import { getChain } from "../config/chains";
-import { ENV } from "../lib/env";
 import {
   buildPasskeyRecoveryContext,
   createPasskey,
@@ -22,6 +21,7 @@ import {
   getPimlicoBundlerUrl,
   getPimlicoSponsorshipPolicyId,
 } from "../config/pimlico";
+import { ENV } from "../lib/env";
 import {
   trackAuthPasskeyLoginFailed,
   trackAuthPasskeyLoginStarted,
@@ -31,22 +31,22 @@ import {
   trackAuthPasskeyRegisterSuccess,
   trackAuthSessionRestored,
 } from "../modules/app/analytics-events";
-import { assertPrimaryPasskeyProfile } from "../modules/commitment-pooling/account-profiles";
 import {
   clearSignedOutSentinel,
   getAuthMode,
+  getPasskeyRequestIds,
   getStoredCredential,
   getStoredRpId,
   getStoredSmartAccountAddress,
   getStoredUsername,
-  getPasskeyRequestIds,
-  type PasskeyCredential,
   hasSignedOutSentinel,
+  type PasskeyCredential,
   setStoredCredential,
   setStoredRpId,
   setStoredSmartAccountAddress,
   setStoredUsername,
 } from "../modules/auth/session";
+import { assertPrimaryPasskeyProfile } from "../modules/commitment-pooling/account-profiles";
 
 export type PasskeyServerClientAdapter = ReturnType<typeof createPasskeyServerClient>;
 
@@ -126,11 +126,12 @@ async function buildSmartAccount(
   knownAddress?: Hex
 ): Promise<{ client: SmartAccountClient; address: Hex }> {
   assertPrimaryPasskeyProfile(chainId);
-  // Account construction is a read/auth capability. A missing Celo policy
-  // prevents sponsored submission, but must not prevent sign-in or recovery.
+  // Account construction is a read/auth capability. Missing sponsorship
+  // configuration prevents Celo submission, but not sign-in or recovery.
   const sponsorshipPolicyId =
     chainId === 42220
-      ? ENV.VITE_PIMLICO_CELO_SPONSORSHIP_POLICY_ID?.trim()
+      ? ENV.VITE_PIMLICO_CELO_SPONSORSHIP_POLICY_ID?.trim() ||
+        ENV.VITE_PIMLICO_SPONSORSHIP_POLICY_ID?.trim()
       : getPimlicoSponsorshipPolicyId(chainId);
   const chain = getChain(chainId);
   const publicClient = createPublicClientForChain(chainId);

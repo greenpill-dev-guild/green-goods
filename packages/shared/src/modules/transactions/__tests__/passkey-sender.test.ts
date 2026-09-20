@@ -6,21 +6,20 @@
  * to send UserOperations via a bundler.
  */
 
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import type { P256Credential } from "viem/account-abstraction";
-import {
-  createSmartAccountClientResolver,
-  invalidateSmartAccountClientResolver,
-} from "../../auth/smartAccountClientResolver";
-import { arbitrum, celo as celoChain } from "viem/chains";
-import { entryPoint07Address, getUserOperationHash } from "viem/account-abstraction";
-import { sepolia } from "viem/chains";
 import {
   createFakeSmartAccountClient,
   createMockContractCall,
   MOCK_TX_HASH,
 } from "@green-goods/shared/testing";
+import type { P256Credential } from "viem/account-abstraction";
+import { entryPoint07Address, getUserOperationHash } from "viem/account-abstraction";
+import { arbitrum, celo as celoChain, sepolia } from "viem/chains";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { fakePreparedUserOperation } from "../../../__tests__/test-utils/transaction-fakes";
+import {
+  createSmartAccountClientResolver,
+  invalidateSmartAccountClientResolver,
+} from "../../auth/smartAccountClientResolver";
 import type { ContractCall } from "../types";
 
 // ============================================
@@ -313,6 +312,7 @@ describe("passkey chain routing", () => {
 
   it("blocks a Celo send before signing when its sponsorship policy is absent", async () => {
     vi.stubEnv("VITE_PIMLICO_CELO_SPONSORSHIP_POLICY_ID", undefined);
+    vi.stubEnv("VITE_PIMLICO_SPONSORSHIP_POLICY_ID", undefined);
     const primary = createFakeSmartAccountClient();
     const celo = createFakeSmartAccountClient({ chain: celoChain });
     const sender = new PasskeySender(primary, {
@@ -322,6 +322,19 @@ describe("passkey chain routing", () => {
       code: "policy_unavailable",
     });
     expect(celo.sendUserOperation).not.toHaveBeenCalled();
+  });
+
+  it("allows a Celo send with the configured general sponsorship policy", async () => {
+    vi.stubEnv("VITE_PIMLICO_CELO_SPONSORSHIP_POLICY_ID", undefined);
+    vi.stubEnv("VITE_PIMLICO_SPONSORSHIP_POLICY_ID", "general-policy");
+    const primary = createFakeSmartAccountClient();
+    const celo = createFakeSmartAccountClient({ chain: celoChain });
+    const sender = new PasskeySender(primary, {
+      resolveSmartAccountClient: vi.fn().mockResolvedValue(celo),
+    });
+    await sender.sendContractCall({ ...TEST_CALL, chainId: 42220 });
+    expect(primary.sendUserOperation).not.toHaveBeenCalled();
+    expect(celo.sendUserOperation).toHaveBeenCalledOnce();
   });
 
   it("reconciles a Celo operation against the Celo client", async () => {
