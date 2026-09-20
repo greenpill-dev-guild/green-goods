@@ -1,14 +1,14 @@
 import { Button } from "@green-goods/shared/components/Button";
-import { formatTokenAmount } from "@green-goods/shared/utils/blockchain/vaults";
 import type { SendableTokenBalance } from "@green-goods/shared/hooks/blockchain/useSendableTokens";
+import { formatTokenAmount } from "@green-goods/shared/utils/blockchain/vaults";
 import {
   RiErrorWarningLine,
   RiSendPlaneLine,
   RiWallet3Line,
   RiWifiOffLine,
 } from "@remixicon/react";
-import { useIntl } from "react-intl";
 import type { ReactNode } from "react";
+import { useIntl } from "react-intl";
 import { EmptyState } from "@/components/Communication";
 import { PWA_SHEET_FOCAL_STATE_CLASSNAME } from "@/components/Pwa/sheetScrollStyles";
 
@@ -101,6 +101,8 @@ export function BalanceView({
   }
 
   const hasErroredToken = isError || tokens.some((token) => token.errored);
+  const hasRetryableError =
+    isError || tokens.some((token) => token.errored && token.chainId !== 42220);
   const unavailableLabel = formatMessage({ id: "app.balance.unavailable" });
 
   return (
@@ -114,15 +116,17 @@ export function BalanceView({
           <p className="text-xs text-warning-dark">
             {formatMessage({ id: "app.balance.partialError" })}
           </p>
-          <Button
-            type="button"
-            emphasis="secondary"
-            size="compact"
-            onClick={onRetry}
-            className="shrink-0"
-          >
-            {formatMessage({ id: "app.common.retry" })}
-          </Button>
+          {hasRetryableError ? (
+            <Button
+              type="button"
+              emphasis="secondary"
+              size="compact"
+              onClick={onRetry}
+              className="shrink-0"
+            >
+              {formatMessage({ id: "app.common.retry" })}
+            </Button>
+          ) : null}
         </div>
       ) : null}
       {tokens.map((token) => {

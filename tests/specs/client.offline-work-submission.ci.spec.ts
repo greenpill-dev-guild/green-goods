@@ -2,9 +2,9 @@
  * Client Offline Work Submission CI Tests
  *
  * Walks the whole work wizard with the network switched off and checks that
- * the submission lands in the durable queue instead of failing, that Upload all
- * in Your Work checks the connection before it sends anything, and that a
- * reconnect sends nothing on its own: the queued work waits for Upload all.
+ * the submission lands in the durable queue instead of failing, that Your Work
+ * does not offer an upload action while offline, and that a reconnect sends
+ * nothing on its own: the queued work waits for Upload all.
  * Uses the same clean-room seam as the other client CI specs: dev mock auth
  * (wallet mode) plus mocked indexer, EAS, and RPC boundaries.
  */
@@ -115,18 +115,11 @@ test.describe("Offline Work Submission CI Tests", () => {
       page.getByRole("status", { ...OFFLINE_STATUS, includeHidden: true })
     ).toBeVisible();
 
-    // Upload all sits in the sheet's bottom bar on every tab. Offline, a tap checks
-    // the connection, sends nothing, and says so.
-    const uploadAll = page.getByTestId("upload-all");
-    await expect(uploadAll).toHaveText("Upload all (1)");
+    // Pending still shows the queued work, but cannot offer upload while offline.
+    await expect(dashboard.getByTestId("upload-all")).toHaveCount(0);
     await attachScreenshot(page, "queued-in-dashboard-offline");
-    await uploadAll.click();
-    await expect(
-      page.getByText("Nothing was uploaded. Try again when the connection is steady.")
-    ).toBeVisible({ timeout: 15000 });
-    await expect(dashboard.getByText("You submitted")).toHaveCount(1);
     await dashboard.getByTestId("tab-completed").click();
-    await expect(page.getByTestId("upload-all")).toHaveText("Upload all (1)");
+    await expect(dashboard.getByTestId("upload-all")).toHaveCount(0);
     await dashboard.getByTestId("tab-pending").click();
 
     await dashboard.getByTestId("app-sheet-close").click();

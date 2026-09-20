@@ -18,19 +18,18 @@ import { toastService } from "../../components/toast";
 import { createPublicClientForChain } from "../../config/pimlico";
 import { queryInvalidation } from "../../config/query-keys/invalidation";
 import { isCeloGoodDollar, type SendableToken } from "../../config/tokens";
-import { getGardenerDeliveryEnabled } from "../../modules/commitment-pooling/data-settlement";
 import {
-  quoteGoodDollarTransfer,
   type GoodDollarFeeQuote,
+  quoteGoodDollarTransfer,
 } from "../../modules/wallet/good-dollar-fees";
 import type { Address } from "../../types/domain";
 import { ERC20_BALANCE_ABI, ERC20_TRANSFER_ABI } from "../../utils/blockchain/abis/erc20";
 import { createMutationErrorHandler } from "../../utils/errors/mutation-error-handler";
 import { useUser } from "../auth/useUser";
-import { useDelayedInvalidation } from "../utils/useTimeout";
 import { useSafeMutation } from "../utils/useSafeMutation";
-import { useTransactionSender } from "./useTransactionSender";
+import { useDelayedInvalidation } from "../utils/useTimeout";
 import { addRecentRecipient } from "./useRecentRecipients";
+import { useTransactionSender } from "./useTransactionSender";
 
 export interface SendTokenParams {
   /** The token to send (from the sendable-token registry). */
@@ -88,8 +87,6 @@ export function useSendToken() {
       if (token.symbol === "G$" && !celo) throw new Error("Unsupported Celo token");
       let totalDebit = amount;
       if (celo) {
-        if ((await getGardenerDeliveryEnabled()) !== true)
-          throw new Error("Gardener delivery is unavailable");
         const quote = await quoteGoodDollarTransfer(amount, primaryAddress as Address, to);
         if (
           !reviewedFee ||

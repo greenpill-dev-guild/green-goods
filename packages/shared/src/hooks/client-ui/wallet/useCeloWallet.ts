@@ -6,7 +6,6 @@ import { STALE_TIME_FAST, STALE_TIME_MEDIUM } from "../../../config/query-keys/c
 import { tokensKeys } from "../../../config/query-keys/tokens";
 import { CELO_G_DOLLAR_TOKEN } from "../../../config/tokens";
 import { getGardenerSettlementHistory } from "../../../modules/commitment-pooling/data-gardener-settlement";
-import { getGardenerDeliveryEnabled } from "../../../modules/commitment-pooling/data-settlement";
 import type { GardenerSettlementReceipt } from "../../../modules/commitment-pooling/types-settlement";
 import type { SmartAccountClientResolver } from "../../../types/auth";
 import { ERC20_BALANCE_ABI } from "../../../utils/blockchain/abis/erc20";
@@ -70,12 +69,6 @@ export function useCeloWallet() {
     };
   }, [account, authMode, enabled, online, resolveSmartAccountClient, retry]);
 
-  const delivery = useQuery({
-    queryKey: commitmentPoolingKeys.gardenerDelivery(42161, 42220),
-    queryFn: getGardenerDeliveryEnabled,
-    enabled: enabled && online,
-    staleTime: STALE_TIME_MEDIUM,
-  });
   const balance = useQuery({
     queryKey: tokensKeys.celoBalance(account),
     enabled: enabled && online,
@@ -125,8 +118,6 @@ export function useCeloWallet() {
           : clientState?.resolver === resolveSmartAccountClient && clientState.account === account
             ? clientState.readiness
             : "loading";
-  const deliveryEnabled =
-    enabled && online && delivery.data === true && !delivery.isError && !delivery.isStale;
   const token: SendableTokenBalance = {
     ...CELO_G_DOLLAR_TOKEN,
     balance: balance.data ?? null,
@@ -137,18 +128,15 @@ export function useCeloWallet() {
     token,
     balanceLoading: enabled && balance.isPending,
     balanceError: balance.error,
-    deliveryEnabled,
-    deliveryLoading: enabled && delivery.isPending,
-    deliveryError: delivery.error,
     readiness,
     receipts,
     historyLoading: enabled && history.isPending,
     historyError: history.error,
-    canSend: deliveryEnabled && readiness === "ready" && token.balance !== null && !token.errored,
+    canSend: online && readiness === "ready" && token.balance !== null && !token.errored,
     isOffline: !online,
     refetch: async () => {
       setRetry((value) => value + 1);
-      if (online) await Promise.all([delivery.refetch(), balance.refetch(), history.refetch()]);
+      if (online) await Promise.all([balance.refetch(), history.refetch()]);
     },
   };
 }

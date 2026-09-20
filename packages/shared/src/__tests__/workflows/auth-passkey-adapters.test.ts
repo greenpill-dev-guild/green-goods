@@ -1,7 +1,7 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
 import { createPublicClient, custom, encodeAbiParameters, type Hex } from "viem";
 import { entryPoint07Address, type P256Credential } from "viem/account-abstraction";
 import { arbitrum, celo } from "viem/chains";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 const { factoryCalls } = vi.hoisted(() => ({
   factoryCalls: [] as { chainId: number; data: Hex }[],
@@ -76,7 +76,7 @@ describe("passkey cross-chain account construction", () => {
     expect(settlement.client.paymasterContext).toEqual({ sponsorshipPolicyId: "celo-policy" });
   });
 
-  it("constructs the Celo account for authentication without a transfer policy", async () => {
+  it("constructs the Celo account with the general policy when no Celo override exists", async () => {
     vi.stubEnv("VITE_PIMLICO_API_KEY", "test-api-key");
     vi.stubEnv("VITE_PIMLICO_SPONSORSHIP_POLICY_ID", "arbitrum-policy");
     vi.stubEnv("VITE_PIMLICO_CELO_SPONSORSHIP_POLICY_ID", undefined);
@@ -86,7 +86,20 @@ describe("passkey cross-chain account construction", () => {
       defaultPasskeyAdapters.getRpId()
     );
     expect(result.address).toBe(ACCOUNT);
-    expect(result.client.paymasterContext).toBeUndefined();
+    expect(result.client.paymasterContext).toEqual({ sponsorshipPolicyId: "arbitrum-policy" });
     expect(factoryCalls).toHaveLength(1);
+  });
+
+  it("constructs the Celo account for authentication without any sponsorship policy", async () => {
+    vi.stubEnv("VITE_PIMLICO_API_KEY", "test-api-key");
+    vi.stubEnv("VITE_PIMLICO_SPONSORSHIP_POLICY_ID", undefined);
+    vi.stubEnv("VITE_PIMLICO_CELO_SPONSORSHIP_POLICY_ID", undefined);
+    const result = await defaultPasskeyAdapters.buildSmartAccount(
+      credential,
+      42220,
+      defaultPasskeyAdapters.getRpId()
+    );
+    expect(result.address).toBe(ACCOUNT);
+    expect(result.client.paymasterContext).toBeUndefined();
   });
 });

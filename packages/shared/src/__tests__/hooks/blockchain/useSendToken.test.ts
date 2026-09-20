@@ -388,11 +388,14 @@ describe("Celo send safety", () => {
     expect(mockSendContractCall).not.toHaveBeenCalled();
   });
 
-  it.each([null, false])("blocks indexed delivery %s", async (enabled) => {
+  it.each([null, false])("does not gate G$ sends on settlement delivery %s", async (enabled) => {
     mockDelivery.mockResolvedValue(enabled);
     const { result } = renderHook(() => useSendToken(), { wrapper: makeWrapper() });
-    await expect(result.current.mutateAsync(input)).rejects.toThrow(/delivery/i);
-    expect(mockSendContractCall).not.toHaveBeenCalled();
+    await expect(result.current.mutateAsync(input)).resolves.toMatchObject({
+      account: ACCOUNT.toLowerCase(),
+    });
+    expect(mockDelivery).not.toHaveBeenCalled();
+    expect(mockSendContractCall).toHaveBeenCalledOnce();
   });
 
   it.each(["getFees", "balanceOf"])("blocks a failed %s read", async (failedRead) => {

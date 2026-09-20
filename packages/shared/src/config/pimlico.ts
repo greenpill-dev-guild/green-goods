@@ -1,9 +1,9 @@
 import { createPimlicoClient } from "permissionless/clients/pimlico";
-import { ENV } from "../lib/env";
-import { SmartAccountClientError } from "../modules/auth/smartAccountClientResolver";
-import { type Chain, createPublicClient, http } from "viem";
+import { type Chain, createPublicClient, fallback, http } from "viem";
 import { entryPoint07Address } from "viem/account-abstraction";
 import { mainnet, sepolia } from "viem/chains";
+import { ENV } from "../lib/env";
+import { SmartAccountClientError } from "../modules/auth/smartAccountClientResolver";
 import { getRpcUrl } from "../utils/blockchain/chain-registry";
 import { getChain, isChainSupported } from "./chains";
 
@@ -31,10 +31,12 @@ const celoSepoliaProfileChain = {
   rpcUrls: { default: { http: [PIMLICO_API_ENDPOINTS[11142220]] } },
 } as const satisfies Chain;
 
-/** Celo deliberately has no shared-policy fallback. Hosted policy activation is a release step. */
+/** Celo can use the configured general policy when no Celo override is set. */
 export function getPimlicoSponsorshipPolicyId(chainId: number): string {
   if (chainId === 42220) {
-    const policyId = ENV.VITE_PIMLICO_CELO_SPONSORSHIP_POLICY_ID?.trim();
+    const policyId =
+      ENV.VITE_PIMLICO_CELO_SPONSORSHIP_POLICY_ID?.trim() ||
+      ENV.VITE_PIMLICO_SPONSORSHIP_POLICY_ID?.trim();
     if (!policyId) throw new SmartAccountClientError("policy_unavailable");
     return policyId;
   }
@@ -108,8 +110,12 @@ export function createPublicClientForChain(chainId: number) {
       ? getPimlicoBundlerUrl(chainId)
       : getRpcUrl(chainId, ENV.VITE_ALCHEMY_API_KEY);
 
+  const publicRpcUrl = getRpcUrl(chainId);
   return createPublicClient({
-    transport: http(rpcUrl),
+    transport:
+      chainId === 42220 && rpcUrl !== publicRpcUrl
+        ? fallback([http(rpcUrl), http(publicRpcUrl)])
+        : http(rpcUrl),
     chain,
   });
 }
