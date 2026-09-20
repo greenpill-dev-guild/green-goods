@@ -1,7 +1,7 @@
 import { WorkCard as SharedWorkCard } from "@green-goods/shared/components/Cards/WorkCard/WorkCard";
 import { useEnsName } from "@green-goods/shared/hooks/blockchain/useEnsName";
 import { useGreenGoodsEnsName } from "@green-goods/shared/hooks/ens/useGreenGoodsEnsName";
-import type { Work } from "@green-goods/shared/types/domain";
+import type { Work, WorkDisplayStatus } from "@green-goods/shared/types/domain";
 import { formatAddress, formatEnsNameForDisplay } from "@green-goods/shared/utils/app/text";
 import React from "react";
 import { useIntl } from "react-intl";
@@ -14,10 +14,18 @@ export interface MinimalWorkCardProps {
   actionTitle?: string;
   showGardenInfo?: boolean;
   badges?: React.ReactNode[];
+  presentation?: WorkCardPresentation;
   style?: React.CSSProperties;
   confirmed?: boolean;
   /** Variant controls subtitle content: "compact" (default) shows time only, "detailed" shows gardener + time */
   variant?: "compact" | "detailed";
+}
+
+export interface WorkCardPresentation {
+  statusLabel?: string;
+  statusTone?: WorkDisplayStatus;
+  contextLabel?: string;
+  supportingText?: string;
 }
 
 function getWorkCardLabels(formatMessage: ReturnType<typeof useIntl>["formatMessage"]) {
@@ -47,6 +55,7 @@ export const MinimalWorkCard: React.FC<MinimalWorkCardProps> = ({
   actionTitle,
   showGardenInfo = false,
   badges,
+  presentation,
   confirmed = false,
   variant = "compact",
 }) => {
@@ -96,6 +105,10 @@ export const MinimalWorkCard: React.FC<MinimalWorkCardProps> = ({
       showMediaCount={mediaCount > 0}
       showFeedbackBadge={hasFeedback}
       badges={extraBadges}
+      statusLabel={presentation?.statusLabel}
+      statusTone={presentation?.statusTone}
+      contextLabel={presentation?.contextLabel}
+      supportingText={presentation?.supportingText}
       labels={labels}
     />
   );

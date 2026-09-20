@@ -107,6 +107,27 @@ beforeEach(() => {
 });
 
 describe("Upload all", () => {
+  it("uploads only the selected decision when opened from its work detail", async () => {
+    const first = decision();
+    const second = decision();
+    const { ports } = harness([first, second]);
+    const sender = createMockTransactionSender();
+
+    await expect(
+      uploadQueuedWork({ userAddress: USER, chainId: 42161, sender, jobIds: [second.id] }, ports)
+    ).resolves.toEqual({ status: "uploaded", sent: 1, flagged: 0 });
+    expect(ports.attestation).toHaveBeenCalledOnce();
+    expect(ports.attestation).toHaveBeenCalledWith(
+      expect.objectContaining({ id: second.id }),
+      expect.anything()
+    );
+    expect(ports.processJob).toHaveBeenCalledWith(second.id, {
+      transactionSender: sender,
+      explicit: true,
+    });
+    expect(ports.processJob).not.toHaveBeenCalledWith(first.id, expect.anything());
+  });
+
   it("refuses on an unconfirmed connection before claiming anything", async () => {
     const { ports } = harness([work()], { confirmOnline: vi.fn(async () => false) });
     const sender = createMockTransactionSender();

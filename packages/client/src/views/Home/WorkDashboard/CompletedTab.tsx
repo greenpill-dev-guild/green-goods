@@ -1,12 +1,10 @@
 import { NativeSelect } from "@green-goods/shared/components/Form/ControlPrimitives";
 import type { Work } from "@green-goods/shared/types/domain";
-import { cn } from "@green-goods/shared/utils/styles/cn";
 import type { TimeFilter } from "@green-goods/shared/utils/time";
-import { RiCheckLine, RiUploadCloud2Line } from "@remixicon/react";
+import { RiCheckLine } from "@remixicon/react";
 import React from "react";
 import { useIntl } from "react-intl";
-import { WAITING_TO_UPLOAD_MESSAGE } from "@/components/Cards/Work/queuedWorkCopy";
-import { pwaStatusStyles } from "@/components/Pwa/statusStyles";
+import type { WorkCardPresentation } from "@/components/Cards/Work/WorkCard";
 import { TimeFilterControl } from "./TimeFilterControl";
 import { WorkListTab } from "./WorkListTab";
 
@@ -24,8 +22,6 @@ interface CompletedTabProps {
   onTimeFilterChange: (value: TimeFilter) => void;
   isOffline?: boolean;
   savedAt?: number;
-  /** Works whose decision from this device still waits for Upload all, by lowercase id. */
-  waitingUploadIds?: ReadonlySet<string>;
 }
 
 const COMPLETED_MESSAGES = {
@@ -58,48 +54,27 @@ export const CompletedTab: React.FC<CompletedTabProps> = ({
   onTimeFilterChange,
   isOffline,
   savedAt,
-  waitingUploadIds,
 }) => {
   const intl = useIntl();
 
-  const renderBadges = (item: Work): React.ReactNode[] => {
-    if (completedFilter === "reviewedByYou") {
-      const badges = [
-        <span key="reviewed" className="badge-pill-emerald">
-          <RiCheckLine className="w-3 h-3" />
-          {intl.formatMessage({
+  const renderPresentation = (work: Work): WorkCardPresentation => ({
+    contextLabel:
+      completedFilter === "reviewedByYou"
+        ? intl.formatMessage({
             id: "app.workDashboard.badge.reviewedByYou",
             defaultMessage: "Reviewed by you",
-          })}
-        </span>,
-      ];
-      // A decision made offline shows here at once; until Upload all sends it, it says so.
-      if (waitingUploadIds?.has(item.id.toLowerCase()))
-        badges.push(
-          <span
-            key="waiting-upload"
-            className={cn(
-              "badge-pill",
-              pwaStatusStyles.information.surface,
-              pwaStatusStyles.information.border,
-              pwaStatusStyles.information.text
-            )}
-          >
-            <RiUploadCloud2Line className="w-3 h-3" aria-hidden="true" />
-            {intl.formatMessage(WAITING_TO_UPLOAD_MESSAGE)}
-          </span>
-        );
-      return badges;
-    }
-    return [
-      <span key="work-reviewed" className="badge-pill-slate">
-        {intl.formatMessage({
-          id: "app.workDashboard.badge.yourWorkReviewed",
-          defaultMessage: "Your work was reviewed",
-        })}
-      </span>,
-    ];
-  };
+          })
+        : intl.formatMessage({
+            id: "app.workDashboard.badge.yourWorkReviewed",
+            defaultMessage: "Your work was reviewed",
+          }),
+    supportingText: work.feedback?.trim()
+      ? intl.formatMessage({ id: "app.workCard.feedback", defaultMessage: "Feedback" })
+      : intl.formatMessage({
+          id: "app.workCard.reviewRecorded",
+          defaultMessage: "Review added to the garden record",
+        }),
+  });
 
   return (
     <WorkListTab
@@ -112,7 +87,7 @@ export const CompletedTab: React.FC<CompletedTabProps> = ({
       onRefresh={onRefresh}
       isOffline={isOffline}
       savedAt={savedAt}
-      renderBadges={renderBadges}
+      renderPresentation={renderPresentation}
       messages={COMPLETED_MESSAGES}
       emptyIcon={<RiCheckLine />}
       headerContent={

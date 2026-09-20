@@ -294,6 +294,8 @@ export function useWorks(gardenId: string, options: UseWorksOptions = {}) {
     fetchStatus: online.fetchStatus,
     isPaused: !isOnline || online.isPaused,
     isLoading: isOnline && online.isPending && works.length === 0,
+    /** Local queued work may still be loading after the garden read settles. */
+    queuedLoading: offline && queued.isPending && works.length === 0,
     isFetching: isOnline && online.isFetching,
     isError: online.isError || (offline && queued.isError),
     refreshWarning:

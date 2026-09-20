@@ -1,5 +1,5 @@
 /**
- * Review uploads in the sync bar opens Your Work at the person's submissions,
+ * Review uploads in the sync bar opens Your Work with every Pending item visible,
  * going Home first from any other tab, because Your Work opens from Home.
  *
  * @vitest-environment jsdom
@@ -64,12 +64,12 @@ beforeEach(() => {
 });
 
 describe("AppBar Review uploads", () => {
-  it("goes Home and opens Your Work at the person's submissions from another tab", () => {
+  it("goes Home and opens all Pending work from another tab", () => {
     renderAt("/home/profile");
 
     fireEvent.click(screen.getByRole("button", { name: "Review uploads" }));
 
-    expect(openWorkDashboard).toHaveBeenCalledWith("pending", "mySubmissions");
+    expect(openWorkDashboard).toHaveBeenCalledWith("pending", "all");
     expect(screen.getByTestId("location")).toHaveTextContent(/^\/home$/);
   });
 
@@ -78,7 +78,7 @@ describe("AppBar Review uploads", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Review uploads" }));
 
-    expect(openWorkDashboard).toHaveBeenCalledWith("pending", "mySubmissions");
+    expect(openWorkDashboard).toHaveBeenCalledWith("pending", "all");
     expect(screen.getByTestId("location")).toHaveTextContent(/^\/home\/$/);
   });
 });

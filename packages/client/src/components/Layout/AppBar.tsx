@@ -39,7 +39,7 @@ export const AppBar = () => {
   const navigate = useNavigate();
   // Your Work opens from Home, so Review uploads goes there first from any other tab.
   const reviewUploads = () => {
-    openWorkDashboard("pending", "mySubmissions");
+    openWorkDashboard("pending", "all");
     if (pathname.replace(/\/$/, "") !== APP_ROUTES.home) navigate(APP_ROUTES.home);
   };
   // Browser mode shows SiteHeader only (D6); bottom nav is PWA-only
@@ -74,13 +74,12 @@ export const AppBar = () => {
 
   return (
     <>
-      <SyncStatusBar
-        className={cn(
-          "vt-sync-status bottom-[calc(69px+env(safe-area-inset-bottom))] rounded-t-[var(--radius-lg)] overflow-hidden transition-transform duration-[var(--spring-spatial-duration)] ease-[var(--spring-spatial-easing)]",
-          shouldHideBar ? "translate-y-full" : "translate-y-0"
-        )}
-        onReviewUploads={reviewUploads}
-      />
+      {!shouldHideBar && (
+        <SyncStatusBar
+          className="vt-sync-status bottom-[calc(69px+env(safe-area-inset-bottom))] rounded-t-[var(--radius-lg)] overflow-hidden"
+          onReviewUploads={reviewUploads}
+        />
+      )}
       <nav
         data-testid="authenticated-nav"
         className={cn(

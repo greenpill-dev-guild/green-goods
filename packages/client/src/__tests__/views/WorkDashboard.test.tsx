@@ -1,6 +1,6 @@
 import type { Work } from "@green-goods/shared/types/domain";
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
-import { createElement, type ReactNode } from "react";
+import { createElement } from "react";
 import { IntlProvider } from "react-intl";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -12,6 +12,7 @@ let mockReviewerGardenIds: string[] = [];
 let mockIsOnline = true;
 const ok = async () => ({ status: "success" });
 let mockNeedsReviewState: {
+  allWorks: Work[];
   works: Work[];
   decidedHere: Work[];
   ready: boolean;
@@ -21,6 +22,7 @@ let mockNeedsReviewState: {
   savedAt: number | undefined;
   refetch: ReturnType<typeof vi.fn>;
 } = {
+  allWorks: [],
   works: [],
   decidedHere: [],
   ready: true,
@@ -73,6 +75,7 @@ function idleUploads() {
     isPreparing: false,
     isUploading: false,
     waitingDecisionWorkIds: new Set<string>() as ReadonlySet<string>,
+    decisionFor: () => undefined,
     statusOf: () => undefined,
     upload: vi.fn(async () => undefined),
     prepareNow: vi.fn(),
@@ -200,12 +203,14 @@ vi.mock("@green-goods/shared/stores/useUIStore", () => ({
     selector: (s: {
       workDashboardInitialTab?: string;
       workDashboardInitialPendingFilter?: string;
+      rememberWorkDashboard: () => void;
       registerOpenSheet: () => () => void;
     }) => unknown
   ) =>
     selector({
       workDashboardInitialTab: undefined,
       workDashboardInitialPendingFilter: undefined,
+      rememberWorkDashboard: vi.fn(),
       registerOpenSheet: mockRegisterOpenSheet,
     }),
 }));
@@ -235,18 +240,20 @@ vi.mock("../../components/Cards", () => ({
   MinimalWorkCard: ({
     work,
     onClick,
-    badges,
+    presentation,
   }: {
     work: { title: string; feedback?: string };
     onClick: () => void;
-    badges?: ReactNode[];
+    presentation?: { statusLabel?: string; contextLabel?: string; supportingText?: string };
   }) =>
     createElement(
       "button",
       { type: "button", onClick },
-      work.title,
+      createElement("span", null, work.title),
       work.feedback ? createElement("span", null, work.feedback) : null,
-      ...(badges ?? [])
+      presentation?.statusLabel && createElement("span", null, presentation.statusLabel),
+      presentation?.contextLabel && createElement("span", null, presentation.contextLabel),
+      presentation?.supportingText && createElement("span", null, presentation.supportingText)
     ),
 }));
 
@@ -279,6 +286,7 @@ describe("WorkDashboard", () => {
     mockIsOnline = true;
     mockUploads = idleUploads();
     mockNeedsReviewState = {
+      allWorks: [],
       works: [],
       decidedHere: [],
       ready: true,
@@ -395,20 +403,42 @@ describe("WorkDashboard", () => {
     expect(screen.getByText("Just approved planting")).toBeInTheDocument();
   });
 
-  it("offers Upload all from the bar under every tab while work waits to upload", () => {
+  it("offers Upload all only in Pending while online", () => {
     mockUploads = { ...idleUploads(), readyCount: 2, queuedCount: 2 };
 
     renderDashboard();
 
     const uploadAll = screen.getByTestId("upload-all");
     expect(uploadAll).toHaveTextContent("Upload all (2)");
+    const actions = screen.getByTestId("work-list-actions");
+    expect(within(actions).getByRole("button", { name: "Refresh" })).toBeInTheDocument();
+    expect(within(actions).getByTestId("upload-all")).toBe(uploadAll);
+    expect(within(actions).queryByRole("combobox", { name: "Pending work filter" })).toBeNull();
     fireEvent.click(uploadAll);
     expect(mockUploads.upload).toHaveBeenCalledOnce();
 
     fireEvent.click(screen.getByTestId("tab-completed"));
-    expect(screen.getByTestId("upload-all")).toHaveTextContent("Upload all (2)");
+    expect(screen.queryByTestId("upload-all")).not.toBeInTheDocument();
     fireEvent.click(screen.getByTestId("tab-drafts"));
+    expect(screen.queryByTestId("upload-all")).not.toBeInTheDocument();
+    fireEvent.click(screen.getByTestId("tab-pending"));
     expect(screen.getByTestId("upload-all")).toHaveTextContent("Upload all (2)");
+
+    fireEvent.change(screen.getByRole("combobox", { name: "Pending work filter" }), {
+      target: { value: "mySubmissions" },
+    });
+    expect(screen.queryByTestId("upload-all")).not.toBeInTheDocument();
+    fireEvent.change(screen.getByRole("combobox", { name: "Pending work filter" }), {
+      target: { value: "all" },
+    });
+    expect(screen.getByTestId("upload-all")).toHaveTextContent("Upload all (2)");
+  });
+
+  it("does not offer an upload control while offline", () => {
+    mockUploads = { ...idleUploads(), readyCount: 2, queuedCount: 2 };
+    mockIsOnline = false;
+    renderDashboard();
+    expect(screen.queryByTestId("upload-all")).not.toBeInTheDocument();
   });
 
   it("shows no upload bar when nothing waits to upload", () => {
@@ -435,13 +465,14 @@ describe("WorkDashboard", () => {
     };
 
     renderDashboard();
-    fireEvent.click(screen.getByTestId("tab-completed"));
-
     const queued = screen.getByRole("button", { name: /Queued approval/ });
     expect(within(queued).getByText("Reviewed by you")).toBeInTheDocument();
-    expect(within(queued).getByText("Waiting to upload")).toBeInTheDocument();
+    expect(within(queued).getByText("To upload")).toBeInTheDocument();
+    expect(within(queued).getByText("Approval saved on this device")).toBeInTheDocument();
+    fireEvent.click(screen.getByTestId("tab-completed"));
+    expect(screen.queryByRole("button", { name: /Queued approval/ })).not.toBeInTheDocument();
     const sent = screen.getByRole("button", { name: /Sent approval/ });
-    expect(within(sent).queryByText("Waiting to upload")).not.toBeInTheDocument();
+    expect(within(sent).queryByText("Approval saved on this device")).not.toBeInTheDocument();
   });
 
   it("keeps an on-chain submission out of Pending until its review read lands", () => {
@@ -591,7 +622,7 @@ describe("WorkDashboard", () => {
 
     expect(onClose).toHaveBeenCalledOnce();
     expect(mockNavigate).toHaveBeenCalledWith("/home/garden-42/work/reviewed-work", {
-      state: { from: "dashboard", returnTo: "/home" },
+      state: { from: "dashboard", returnTo: "/home", workStatus: "approved" },
       viewTransition: true,
     });
     expect(onClose.mock.invocationCallOrder[0]).toBeLessThan(

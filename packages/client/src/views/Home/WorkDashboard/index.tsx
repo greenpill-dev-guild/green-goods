@@ -26,7 +26,7 @@ import { isUserAddress as sharedIsUserAddress } from "@green-goods/shared/utils/
 import { filterByTimeRange, type TimeFilter } from "@green-goods/shared/utils/time";
 import { RiCheckLine, RiDraftLine, RiTaskLine } from "@remixicon/react";
 import { useQuery } from "@tanstack/react-query";
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useIntl } from "react-intl";
 import { useNavigate } from "react-router-dom";
 import type { StandardTab } from "@/components/Navigation";
@@ -89,7 +89,7 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
   // Get draft count for badge
   const { draftCount } = useDrafts();
 
-  // Queued work and decisions go out together from the bar under every tab.
+  // Queued work and decisions go out together from the Pending toolbar.
   const uploads = useWorkUploads();
   const uploadActions = buildUploadActions(
     uploads,
@@ -112,6 +112,8 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
   // intentionally ignores later store writes.
   const initialTab = useUIStore((s) => s.workDashboardInitialTab);
   const initialPendingFilter = useUIStore((s) => s.workDashboardInitialPendingFilter);
+  const returnState = useUIStore((s) => s.workDashboardReturnState);
+  const rememberWorkDashboard = useUIStore((s) => s.rememberWorkDashboard);
   const [activeTab, setActiveTab] = useState<WorkDashboardTab>(initialTab ?? "pending");
   const [isClosing, setIsClosing] = useState(false);
   const closeCompletedRef = useRef(false);
@@ -119,9 +121,10 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
     initialPendingFilter ?? "all"
   );
   const [completedFilter, setCompletedFilter] = useState<"reviewedByYou" | "myWorkReviewed">(
-    "reviewedByYou"
+    returnState?.completedFilter ?? "reviewedByYou"
   );
-  const [timeFilter, setTimeFilter] = useState<TimeFilter>("month");
+  const [timeFilter, setTimeFilter] = useState<TimeFilter>(returnState?.timeFilter ?? "month");
+  const restoredScrollRef = useRef(false);
 
   // Needs review reads each garden you review the way its Work tab does, so a review
   // made on this device leaves the list at once — the same list the arrival toast counts.
@@ -150,12 +153,17 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
     [completedApprovals, needsReview.decidedHere]
   );
 
-  const reviewWorksById = useMemo(
-    () => buildWorkMap([...needsReview.works, ...needsReview.decidedHere]),
-    [needsReview.works, needsReview.decidedHere]
-  );
+  const reviewWorksById = useMemo(() => buildWorkMap(needsReview.allWorks), [needsReview.allWorks]);
 
   const pendingNeedsReview = needsReview.works;
+  const queuedDecisions = needsReview.decidedHere.filter((work) =>
+    uploads.waitingDecisionWorkIds.has(work.id.toLowerCase())
+  );
+  const checkingDecisionIds = new Set(
+    queuedDecisions
+      .filter((work) => uploads.decisionFor(work.id)?.status.state === "sent")
+      .map((work) => work.id.toLowerCase())
+  );
 
   // Reviewed by you: the history, plus decisions made here until the history has them.
   const completedReviewedByYou: Work[] = useMemo(() => {
@@ -166,8 +174,10 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
     const decidedHere = needsReview.decidedHere
       .filter((work) => !inHistory.has(work.id))
       .map((work) => ({ ...work, createdAt: decidedAt }));
-    return [...decidedHere, ...history];
-  }, [completedApprovals, needsReview.decidedHere]);
+    return [...decidedHere, ...history].filter(
+      (work) => !uploads.waitingDecisionWorkIds.has(work.id.toLowerCase())
+    );
+  }, [completedApprovals, needsReview.decidedHere, uploads.waitingDecisionWorkIds]);
 
   const myWorkGardenIds = useMemo(() => extractWorkGardenIds(myWorks || []), [myWorks]);
   const myWorksById = useMemo(() => buildWorkMap(myWorks || []), [myWorks]);
@@ -210,13 +220,13 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
   });
 
   const combinedPending = useMemo(
-    () => combinePendingWork(pendingNeedsReview, pendingMySubmissions),
-    [pendingNeedsReview, pendingMySubmissions]
+    () => combinePendingWork([...pendingNeedsReview, ...queuedDecisions], pendingMySubmissions),
+    [pendingNeedsReview, queuedDecisions, pendingMySubmissions]
   );
 
   const pendingWork =
     pendingFilter === "needsReview"
-      ? pendingNeedsReview
+      ? [...pendingNeedsReview, ...queuedDecisions]
       : pendingFilter === "mySubmissions"
         ? pendingMySubmissions
         : combinedPending;
@@ -233,15 +243,37 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
   const filteredPending = pendingWork;
   const filteredCompleted = filterByTimeRange(completedWork, timeFilter);
 
+  useLayoutEffect(() => {
+    if (!returnState || restoredScrollRef.current) return;
+    const scroller = document.getElementById("work-dashboard-scroll");
+    if (!scroller) return;
+    scroller.scrollTop = returnState.scrollTop;
+    // The list may arrive after the sheet mounts. Try again when its rows arrive,
+    // but stop once the old position fits so later filters never jump backward.
+    if (returnState.scrollTop === 0 || scroller.scrollTop >= returnState.scrollTop)
+      restoredScrollRef.current = true;
+  }, [returnState, filteredPending.length, filteredCompleted.length]);
+
   // Navigation handler - handles both Work and WorkApproval shapes
   const handleWorkClick = (work: Work | { workUID?: string; gardenAddress?: Address }) => {
     try {
       const nav = resolveWorkNavigation(work, reviewWorksById);
       if (!nav) return;
 
+      rememberWorkDashboard({
+        tab: activeTab,
+        pendingFilter,
+        completedFilter,
+        timeFilter,
+        scrollTop: document.getElementById("work-dashboard-scroll")?.scrollTop ?? 0,
+      });
       onClose?.();
       navigate(`/home/${nav.gardenId}/work/${nav.workId}`, {
-        state: { from: "dashboard", returnTo: "/home" },
+        state: {
+          from: "dashboard",
+          returnTo: "/home",
+          workStatus: "status" in work ? work.status : undefined,
+        },
         viewTransition: true,
       });
     } catch (err) {
@@ -409,7 +441,10 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
             activeAddress={activeAddress}
             reviewerGardenIds={reviewerGardenIds}
             reviewedByYou={reviewedByYou}
+            waitingUploadIds={uploads.waitingDecisionWorkIds}
+            checkingUploadIds={checkingDecisionIds}
             isUserAddress={isUserAddress}
+            uploadActions={uploadActions}
           />
         );
       case "completed":
@@ -428,7 +463,6 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
             onCompletedFilterChange={setCompletedFilter}
             timeFilter={timeFilter}
             onTimeFilterChange={setTimeFilter}
-            waitingUploadIds={uploads.waitingDecisionWorkIds}
           />
         );
     }
@@ -442,7 +476,6 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
       tabs={tabs}
       activeTab={activeTab}
       onTabChange={(tabId: string) => setActiveTab(tabId as WorkDashboardTab)}
-      actions={uploadActions}
     >
       {renderTabContent()}
     </WorkDashboardShell>

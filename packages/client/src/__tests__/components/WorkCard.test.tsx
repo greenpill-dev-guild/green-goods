@@ -46,4 +46,25 @@ describe("components/Cards/MinimalWorkCard", () => {
     expect(card).toHaveStyle({ height: "88px" });
     expect(media).toHaveStyle({ height: "100%", aspectRatio: "1 / 1" });
   });
+
+  it("uses one primary state and supporting line for a queued card", () => {
+    render(
+      <MinimalWorkCard
+        work={work as any}
+        onClick={vi.fn()}
+        presentation={{
+          statusLabel: "To upload",
+          statusTone: "uploading",
+          contextLabel: "You submitted",
+          supportingText: "Ready to sign and upload",
+        }}
+      />
+    );
+
+    const card = screen.getByRole("button");
+    expect(screen.getByText("To upload")).toBeInTheDocument();
+    expect(screen.queryByText("Approved")).not.toBeInTheDocument();
+    expect(screen.getByText("Ready to sign and upload")).toBeInTheDocument();
+    expect(card.querySelectorAll("h4")).toHaveLength(1);
+  });
 });

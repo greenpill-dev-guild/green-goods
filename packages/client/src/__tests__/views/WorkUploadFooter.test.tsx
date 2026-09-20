@@ -24,9 +24,10 @@ function renderFooter(work: Work, overrides: Partial<WorkUploadFooterProps> = {}
   const props: WorkUploadFooterProps = {
     work,
     isOnline: true,
+    pausedForDataSaver: false,
+    onPrepareNow: vi.fn(),
     onRetry: vi.fn(),
     isRetrying: false,
-    onOpenUploads: vi.fn(),
     onTryAgain: vi.fn(),
     isTryingAgain: false,
     onDiscard: vi.fn(async () => undefined),
@@ -70,12 +71,11 @@ describe("WorkUploadFooter", () => {
     });
   });
 
-  it("points waiting work to Your Work, where Upload all sends it", () => {
+  it("offers Upload now for waiting work", () => {
     const props = renderFooter(queuedWork("ready"));
 
-    fireEvent.click(screen.getByRole("button", { name: "Open uploads" }));
-    expect(props.onOpenUploads).toHaveBeenCalledOnce();
-    expect(screen.queryByRole("button", { name: "Upload now" })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Upload now" }));
+    expect(props.onRetry).toHaveBeenCalledOnce();
     expect(screen.queryByRole("button", { name: "Discard" })).not.toBeInTheDocument();
     expect(screen.queryByText(/You're offline/)).not.toBeInTheDocument();
   });
@@ -94,13 +94,30 @@ describe("WorkUploadFooter", () => {
     }
   });
 
-  it("keeps Open uploads while offline and says the work waits on this device", () => {
+  it("disables Upload now while offline and explains when to use it", () => {
     renderFooter(queuedWork("ready"), { isOnline: false });
 
-    expect(screen.getByRole("button", { name: "Open uploads" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Upload now" })).toBeDisabled();
     expect(
-      screen.getByText("You're offline. Upload it from Your Work once you're connected.")
+      screen.getByText("You're offline. Upload this work once you're connected.")
     ).toBeInTheDocument();
+  });
+
+  it("does not offer signing while a photo is still preparing", () => {
+    renderFooter(queuedWork("photo-pending"));
+
+    expect(screen.getByRole("button", { name: "Preparing uploads…" })).toHaveAttribute(
+      "aria-disabled",
+      "true"
+    );
+    expect(screen.queryByRole("button", { name: "Upload now" })).not.toBeInTheDocument();
+  });
+
+  it("lets the person start photo preparation under Data Saver", () => {
+    const props = renderFooter(queuedWork("photo-pending"), { pausedForDataSaver: true });
+
+    fireEvent.click(screen.getByRole("button", { name: "Prepare now" }));
+    expect(props.onPrepareNow).toHaveBeenCalledOnce();
   });
 
   it("offers to try refused work again or discard it", async () => {

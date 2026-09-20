@@ -16,11 +16,19 @@ const mocks = vi.hoisted(() => ({
   },
   userId: "0x1111111111111111111111111111111111111111" as string | undefined,
   sender: null as null | { authMode: string },
+  lookupResult: null as null | Record<string, unknown>,
+  queuedLoading: false,
 }));
 
 vi.mock("@tanstack/react-query", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@tanstack/react-query")>()),
   useQueryClient: () => ({ invalidateQueries: vi.fn() }),
+  useQuery: () => ({
+    data: mocks.lookupResult,
+    isLoading: false,
+    isError: false,
+    refetch: vi.fn(),
+  }),
 }));
 
 vi.mock("../../../config/default-chain", () => ({
@@ -43,13 +51,14 @@ vi.mock("../../../utils/eas/explorers", () => ({
 }));
 
 vi.mock("../../../modules/job-queue/default-instance", () => ({
-  jobQueue: { processJob: vi.fn(), retryJob: vi.fn() },
+  jobQueue: { getJobs: vi.fn(async () => []), processJob: vi.fn(), retryJob: vi.fn() },
 }));
 
 vi.mock("../../../config/query-keys/work", () => ({
   worksKeys: {
     merged: (...args: unknown[]) => ["works", "merged", ...args],
     offline: (...args: unknown[]) => ["works", "offline", ...args],
+    byUID: (...args: unknown[]) => ["works", "byUID", ...args],
   },
 }));
 
@@ -106,6 +115,7 @@ vi.mock("../../../hooks/work/useWorkMetadata", () => ({
 
 vi.mock("../../../hooks/work/useWorks", () => ({
   useWorks: () => ({
+    queuedLoading: mocks.queuedLoading,
     works: [
       {
         actionUID: "action-1",
@@ -120,11 +130,44 @@ vi.mock("../../../hooks/work/useWorks", () => ({
 }));
 
 import { useWorkDetailController } from "../../../hooks/client-ui/work/useWorkDetailController";
+import { useUIStore } from "../../../stores/useUIStore";
 
 function RouterWrapper({ children }: { children: ReactNode }) {
   return createElement(
     MemoryRouter,
     { initialEntries: ["/home/garden-1/work/work-1"] },
+    createElement(
+      IntlProvider,
+      { locale: "en", messages: {} },
+      createElement(
+        Routes,
+        null,
+        createElement(Route, { path: "/home/:id/work/:workId", element: children })
+      )
+    )
+  );
+}
+
+function DashboardRouterWrapper({ children }: { children: ReactNode }) {
+  return createElement(
+    MemoryRouter,
+    { initialEntries: [{ pathname: "/home/garden-1/work/work-1", state: { from: "dashboard" } }] },
+    createElement(
+      IntlProvider,
+      { locale: "en", messages: {} },
+      createElement(
+        Routes,
+        null,
+        createElement(Route, { path: "/home/:id/work/:workId", element: children })
+      )
+    )
+  );
+}
+
+function OlderWorkWrapper({ children }: { children: ReactNode }) {
+  return createElement(
+    MemoryRouter,
+    { initialEntries: ["/home/garden-1/work/work-older"] },
     createElement(
       IntlProvider,
       { locale: "en", messages: {} },
@@ -145,6 +188,40 @@ describe("useWorkDetailController", () => {
     mocks.canManageGarden.mockReturnValue(false);
     mocks.isUserAddress.mockReturnValue(false);
     mocks.sender = null;
+    mocks.lookupResult = null;
+    mocks.queuedLoading = false;
+  });
+
+  it("opens older reviewed work through the direct UID read", () => {
+    mocks.lookupResult = {
+      id: "work-older",
+      title: "Older work",
+      gardenAddress: "garden-1",
+      gardenerAddress: "0x2222222222222222222222222222222222222222",
+      actionUID: 1,
+      feedback: "",
+      media: [],
+      metadata: "{}",
+      createdAt: 1,
+      approval: { approved: false },
+    };
+
+    const { result } = renderHook(() => useWorkDetailController(), {
+      wrapper: OlderWorkWrapper,
+    });
+
+    expect(result.current.work?.title).toBe("Older work");
+    expect(result.current.work?.status).toBe("rejected");
+  });
+
+  it("keeps the detail loading while its queued work is still reading from this device", () => {
+    mocks.queuedLoading = true;
+    const { result } = renderHook(() => useWorkDetailController(), {
+      wrapper: OlderWorkWrapper,
+    });
+
+    expect(result.current.work).toBeUndefined();
+    expect(result.current.workLoading).toBe(true);
   });
 
   it("sends explicitly from Upload now and stays quiet when the prompt is declined", async () => {
@@ -162,8 +239,8 @@ describe("useWorkDetailController", () => {
       await result.current.retry();
     });
 
-    // Cleared first, so the queue does not refuse a reverted or retired work.
-    expect(jobQueue.retryJob).toHaveBeenCalledWith("work-1");
+    // A ready job keeps its prepared media and is never reset before sending.
+    expect(jobQueue.retryJob).not.toHaveBeenCalled();
     expect(jobQueue.processJob).toHaveBeenCalledWith("work-1", {
       transactionSender: mocks.sender,
       explicit: true,
@@ -231,6 +308,30 @@ describe("useWorkDetailController", () => {
     result.current.back();
 
     expect(mocks.navigateToTop).toHaveBeenCalledWith("/home/garden-1");
+  });
+
+  it("reopens the dashboard when returning from a work opened there", () => {
+    useUIStore.getState().rememberWorkDashboard({
+      tab: "pending",
+      pendingFilter: "needsReview",
+      completedFilter: "reviewedByYou",
+      timeFilter: "month",
+      scrollTop: 144,
+    });
+    useUIStore.getState().closeWorkDashboard();
+    const { result } = renderHook(() => useWorkDetailController(), {
+      wrapper: DashboardRouterWrapper,
+    });
+
+    result.current.back();
+
+    expect(mocks.navigateToTop).toHaveBeenCalledWith("/home");
+    expect(useUIStore.getState()).toMatchObject({
+      isWorkDashboardOpen: true,
+      workDashboardInitialTab: "pending",
+      workDashboardInitialPendingFilter: "needsReview",
+      workDashboardReturnState: { scrollTop: 144 },
+    });
   });
 
   it("uses the garden route as the final approval navigation", () => {

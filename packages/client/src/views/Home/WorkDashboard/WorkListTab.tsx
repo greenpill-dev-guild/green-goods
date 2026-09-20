@@ -5,6 +5,7 @@ import { RiErrorWarningLine, RiRefreshLine } from "@remixicon/react";
 import React from "react";
 import { type IntlShape, useIntl } from "react-intl";
 import { MinimalWorkCard } from "@/components/Cards";
+import type { WorkCardPresentation } from "@/components/Cards/Work/WorkCard";
 import { EmptyState, Loader } from "@/components/Communication";
 
 /** A time for today's saves, a short date for older ones (matches the garden Work tab). */
@@ -30,7 +31,8 @@ interface WorkListTabProps {
   errorMessage?: string;
   onWorkClick: (work: Work) => void;
   onRefresh?: () => void;
-  renderBadges?: (work: Work) => React.ReactNode[];
+  renderPresentation?: (work: Work) => WorkCardPresentation;
+  headerActions?: React.ReactNode;
   headerContent?: React.ReactNode;
   messages: WorkListMessages;
   emptyIcon: React.ReactNode;
@@ -48,7 +50,8 @@ export const WorkListTab: React.FC<WorkListTabProps> = ({
   errorMessage,
   onWorkClick,
   onRefresh,
-  renderBadges,
+  renderPresentation,
+  headerActions,
   headerContent,
   messages,
   emptyIcon,
@@ -74,9 +77,18 @@ export const WorkListTab: React.FC<WorkListTabProps> = ({
 
   return (
     <div className="min-h-full flex flex-col">
-      {/* One row. The status line and Refresh keep their width; the filters condense first. */}
-      <div className="mb-4 px-4 pt-4 flex items-center gap-2" data-testid="work-list-header">
-        <div className="flex shrink-0 items-center gap-0.5">
+      <div
+        className={`mb-4 px-4 pt-4 flex gap-2 ${headerActions ? "items-start" : "items-center"}`}
+        data-testid="work-list-header"
+      >
+        <div
+          className={
+            headerActions
+              ? "flex min-w-0 flex-1 flex-wrap items-center gap-0.5"
+              : "flex shrink-0 items-center gap-0.5"
+          }
+          data-testid="work-list-actions"
+        >
           {statusText ? (
             <p
               role="status"
@@ -100,8 +112,15 @@ export const WorkListTab: React.FC<WorkListTabProps> = ({
               onClick={onRefresh}
             />
           ) : null}
+          {headerActions}
         </div>
-        <div className="flex min-w-0 flex-1 justify-end">{headerContent}</div>
+        <div
+          className={
+            headerActions ? "flex shrink-0 justify-end" : "flex min-w-0 flex-1 justify-end"
+          }
+        >
+          {headerContent}
+        </div>
       </div>
 
       <div className="flex flex-1 flex-col px-4 pb-4">
@@ -167,7 +186,7 @@ export const WorkListTab: React.FC<WorkListTabProps> = ({
                 <MinimalWorkCard
                   work={work}
                   onClick={() => onWorkClick(work)}
-                  badges={renderBadges?.(work)}
+                  presentation={renderPresentation?.(work)}
                   className="cv-work-card"
                 />
               </li>

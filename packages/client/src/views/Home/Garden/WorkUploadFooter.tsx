@@ -10,17 +10,18 @@ import { readQueuedWorkState } from "@/components/Cards/Work/queuedWorkCopy";
 export interface WorkUploadFooterProps {
   work: Work;
   isOnline: boolean;
+  pausedForDataSaver: boolean;
+  onPrepareNow: () => void;
   /** Upload now, or a check on a work that was already sent. */
   onRetry: () => void;
   isRetrying: boolean;
-  onOpenUploads: () => void;
   onTryAgain: () => void;
   isTryingAgain: boolean;
   onDiscard: () => Promise<void>;
   isDiscarding: boolean;
 }
 
-type FooterGroup = "waiting" | "attention" | "failed" | "sent";
+type FooterGroup = "waiting" | "preparing" | "attention" | "failed" | "sent";
 
 function footerGroup(submissionState: string | undefined): FooterGroup {
   switch (submissionState) {
@@ -30,6 +31,9 @@ function footerGroup(submissionState: string | undefined): FooterGroup {
     case "retry-required":
     case "reverted":
       return "failed";
+    case "preparing":
+    case "photo-pending":
+      return "preparing";
     case "awaiting-confirmation":
     case "checking-submission":
     case "sending":
@@ -41,7 +45,7 @@ function footerGroup(submissionState: string | undefined): FooterGroup {
 
 /**
  * The actions for the gardener's own queued work, under the work detail page.
- * Waiting work points to Your Work, where Upload all sends it. Work that needs
+ * Waiting work can be uploaded here. Work that needs
  * attention can be prepared again or discarded. Work whose upload failed can be
  * uploaded now, and work already sent can be checked again. The header above
  * says where the work stands (queuedWorkExplanation), so nothing here repeats it.
@@ -49,9 +53,10 @@ function footerGroup(submissionState: string | undefined): FooterGroup {
 export const WorkUploadFooter: FC<WorkUploadFooterProps> = ({
   work,
   isOnline,
+  pausedForDataSaver,
+  onPrepareNow,
   onRetry,
   isRetrying,
-  onOpenUploads,
   onTryAgain,
   isTryingAgain,
   onDiscard,
@@ -67,6 +72,29 @@ export const WorkUploadFooter: FC<WorkUploadFooterProps> = ({
 
   const primary = (() => {
     switch (group) {
+      case "preparing":
+        return (
+          <Button
+            onClick={onPrepareNow}
+            size="lg"
+            loading={isOnline && !pausedForDataSaver}
+            disabled={!isOnline}
+            className="w-full"
+            data-testid="work-prepare-now"
+          >
+            {!isOnline
+              ? intl.formatMessage({ id: "app.home.work.uploadNow", defaultMessage: "Upload now" })
+              : pausedForDataSaver
+                ? intl.formatMessage({
+                    id: "app.uploads.prepareNow",
+                    defaultMessage: "Prepare now",
+                  })
+                : intl.formatMessage({
+                    id: "app.uploads.preparing",
+                    defaultMessage: "Preparing uploads…",
+                  })}
+          </Button>
+        );
       case "attention":
         return (
           <Button
@@ -114,13 +142,15 @@ export const WorkUploadFooter: FC<WorkUploadFooterProps> = ({
       default:
         return (
           <Button
-            onClick={onOpenUploads}
+            onClick={onRetry}
             size="lg"
+            loading={isRetrying}
+            disabled={!isOnline && !isRetrying}
             className="w-full"
             leadingIcon={<RiUploadCloudLine className="h-5 w-5" aria-hidden="true" />}
-            data-testid="work-open-uploads"
+            data-testid="work-send-now"
           >
-            {intl.formatMessage({ id: "app.uploads.openUploads", defaultMessage: "Open uploads" })}
+            {intl.formatMessage({ id: "app.home.work.uploadNow", defaultMessage: "Upload now" })}
           </Button>
         );
     }
@@ -130,7 +160,7 @@ export const WorkUploadFooter: FC<WorkUploadFooterProps> = ({
     <>
       <Alert
         variant={group === "attention" || group === "failed" ? "warning" : "info"}
-        className="fixed left-0 right-0 bottom-0 z-sticky overflow-hidden rounded-t-[var(--radius-lg)] border-t p-4 pb-6"
+        className="fixed left-0 right-0 bottom-0 z-sticky overflow-hidden rounded-t-[var(--radius-lg)] border-t p-4 pb-[calc(1.5rem+env(safe-area-inset-bottom))]"
       >
         <div
           className="mx-auto flex max-w-screen-sm flex-col gap-3"
@@ -151,11 +181,11 @@ export const WorkUploadFooter: FC<WorkUploadFooterProps> = ({
               </Button>
             )}
           </div>
-          {!isOnline && group === "waiting" && (
+          {!isOnline && (group === "waiting" || group === "preparing") && (
             <p className="text-center text-xs">
               {intl.formatMessage({
                 id: "app.home.work.offlineNotice",
-                defaultMessage: "You're offline. Upload it from Your Work once you're connected.",
+                defaultMessage: "You're offline. Upload this work once you're connected.",
               })}
             </p>
           )}

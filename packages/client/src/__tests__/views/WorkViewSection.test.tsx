@@ -132,7 +132,7 @@ describe("WorkViewSection — all WorkDisplayStatus values (#405)", () => {
       })
     );
     expect(screen.getByTestId("work-info")).toHaveTextContent(
-      "Saved on your device. Upload it from Your Work."
+      "Saved on your device. Upload it here when you're connected."
     );
   });
 

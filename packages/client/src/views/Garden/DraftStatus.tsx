@@ -11,11 +11,14 @@ export function DraftStatus({
   const intl = useIntl();
   return (
     <>
-      {!submissionCompleted && draft.saveState && draft.saveState !== "idle" && (
-        <div role="status" aria-live="polite" className="text-sm text-text-sub-600">
-          {intl.formatMessage({ id: `app.garden.draft.${draft.saveState ?? "loading"}` })}
-        </div>
-      )}
+      {!submissionCompleted &&
+        draft.saveState &&
+        draft.saveState !== "idle" &&
+        draft.saveState !== "saved" && (
+          <div role="status" aria-live="polite" className="text-sm text-text-sub-600">
+            {intl.formatMessage({ id: `app.garden.draft.${draft.saveState}` })}
+          </div>
+        )}
       {draft.missingAttachments?.map((attachment) => (
         <div key={attachment.id} role="alert">
           <p>

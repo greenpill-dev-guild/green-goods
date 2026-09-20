@@ -132,8 +132,8 @@ export function resolveWorkNavigation(
   let workId = "id" in work ? work.id : (work as { workUID?: string }).workUID;
   let gardenId = work.gardenAddress;
 
-  if (!isConcreteGardenAddress(gardenId) && "workUID" in work && work.workUID) {
-    const found = stewardWorksById.get(work.workUID);
+  if (!isConcreteGardenAddress(gardenId) && workId) {
+    const found = stewardWorksById.get(workId);
     if (found) {
       gardenId = found.gardenAddress;
       workId = found.id;

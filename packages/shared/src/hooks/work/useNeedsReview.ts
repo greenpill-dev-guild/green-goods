@@ -28,6 +28,8 @@ import { usePrimaryAddress } from "../auth/usePrimaryAddress";
 import { gardenWorkListQuery } from "./gardenWorkListQuery";
 
 export interface NeedsReviewState {
+  /** Loaded work rows, including reviewed history, for opening their detail route. */
+  allWorks: Work[];
   /**
    * Pending works someone else submitted in these gardens, newest first. Each
    * garden contributes its loaded page, the same window its Work tab shows.
@@ -124,6 +126,7 @@ export function useNeedsReview(
     const now = Date.now();
     const works: Work[] = [];
     const decidedHere: Work[] = [];
+    const allWorks: Work[] = [];
     let unknown = 0;
     let incomplete = false;
     gardens.forEach((garden, index) => {
@@ -139,6 +142,7 @@ export function useNeedsReview(
       });
       unknown += unknownIds.size;
       for (const row of rows) {
+        allWorks.push(row);
         // A work whose status is unknown stays out rather than asking for a second review.
         if (unknownIds.has(row.id)) continue;
         if (row.status === "pending") {
@@ -154,6 +158,7 @@ export function useNeedsReview(
     return {
       works: works.sort(newestFirst),
       decidedHere: decidedHere.sort(newestFirst),
+      allWorks: allWorks.sort(newestFirst),
       unknown,
       incomplete,
     };
@@ -168,6 +173,7 @@ export function useNeedsReview(
   }, [refetchers]);
 
   return {
+    allWorks: resolved.allWorks,
     works: resolved.works,
     decidedHere: resolved.decidedHere,
     ready:

@@ -1,12 +1,16 @@
 import { Button } from "@green-goods/shared/components/Button";
+import { toastService } from "@green-goods/shared/components/Toast/toast.service";
 import { SheetHeader } from "@green-goods/shared/components/Dialog/SheetHeader";
 import { SheetHeading } from "@green-goods/shared/components/Dialog/SheetHeading";
 import { ConfidenceSelector } from "@green-goods/shared/components/Form/ConfidenceSelector";
 import { Textarea } from "@green-goods/shared/components/Form/ControlPrimitives";
 import { useWorkDetailController } from "@green-goods/shared/hooks/client-ui/work/useWorkDetailController";
 import { useQueuedWorkActions } from "@green-goods/shared/hooks/work/useQueuedWorkActions";
+import { useWorkUploads } from "@green-goods/shared/hooks/work/useWorkUploads";
 import { cn } from "@green-goods/shared/utils/styles/cn";
-import { RiCheckLine, RiCloseLine, RiErrorWarningLine } from "@remixicon/react";
+import { isUserAddress } from "@green-goods/shared/utils/blockchain/address";
+import { useUser } from "@green-goods/shared/hooks/auth/useUser";
+import { RiCheckLine, RiCloseLine, RiErrorWarningLine, RiUploadCloud2Line } from "@remixicon/react";
 import React from "react";
 import { useIntl } from "react-intl";
 
@@ -19,6 +23,7 @@ import { WorkViewSection } from "./WorkViewSection";
 
 export const GardenWork: React.FC = () => {
   const intl = useIntl();
+  const { user } = useUser();
   const {
     actionTitle,
     back: handleBack,
@@ -41,6 +46,9 @@ export const GardenWork: React.FC = () => {
     isOnline,
     isRetrying,
     gardensLoading,
+    workLoading,
+    workLoadError,
+    retryWorkLoad,
     garden,
     gardenId,
     metadataError,
@@ -56,22 +64,34 @@ export const GardenWork: React.FC = () => {
     workApprovalMutation,
   } = useWorkDetailController();
   const queuedWork = useQueuedWorkActions(isOfflineWork ? work?.id : undefined);
+  const uploads = useWorkUploads();
 
   if (!work)
     return (
       <article>
         <TopNav onBackClick={handleBack} />
         <div className="padded">
-          {gardensLoading ? (
+          {gardensLoading || workLoading ? (
             <WorkViewSkeleton showMedia showActions={false} numDetails={3} />
           ) : (
             <div className="flex flex-col items-center justify-center gap-4 py-16 text-center">
               <p className="text-sm text-text-sub-600">
-                {intl.formatMessage({
-                  id: "app.home.work.notFound",
-                  defaultMessage: "Work submission not found.",
-                })}
+                {workLoadError
+                  ? intl.formatMessage({
+                      id: "app.home.work.loadError",
+                      defaultMessage:
+                        "Couldn't load this work. Check your connection and try again.",
+                    })
+                  : intl.formatMessage({
+                      id: "app.home.work.notFound",
+                      defaultMessage: "Work submission not found.",
+                    })}
               </p>
+              {workLoadError && (
+                <Button type="button" onClick={() => void retryWorkLoad()}>
+                  {intl.formatMessage({ id: "app.garden.loadRetry", defaultMessage: "Try Again" })}
+                </Button>
+              )}
             </div>
           )}
         </div>
@@ -88,13 +108,14 @@ export const GardenWork: React.FC = () => {
 
   // The gardener's own queued work: where it stands and what they can do about it.
   const retryFooter =
-    isOfflineWork && viewingMode === "gardener" ? (
+    isOfflineWork && isUserAddress(work.gardenerAddress, user?.id) ? (
       <WorkUploadFooter
         work={work}
         isOnline={isOnline}
+        pausedForDataSaver={uploads.pausedForDataSaver}
+        onPrepareNow={uploads.prepareNow}
         onRetry={handleRetry}
         isRetrying={isRetrying}
-        onOpenUploads={queuedWork.openUploads}
         onTryAgain={queuedWork.tryAgain}
         isTryingAgain={queuedWork.isTryingAgain}
         onDiscard={async () => {
@@ -104,8 +125,9 @@ export const GardenWork: React.FC = () => {
       />
     ) : null;
 
+  const queuedDecision = uploads.decisionFor(work.id);
   const approvalFooter =
-    viewingMode === "steward" && effectiveStatus === "pending" ? (
+    viewingMode === "steward" && effectiveStatus === "pending" && !queuedDecision ? (
       <>
         {/* Backdrop - Fades in over content */}
         <div
@@ -225,7 +247,7 @@ export const GardenWork: React.FC = () => {
                   {intl.formatMessage({
                     id: "app.home.workApproval.offline",
                     defaultMessage:
-                      "You're offline. Your decision stays on this device until you upload it from Your Work.",
+                      "You're offline. Your decision stays on this device until you upload it when connected.",
                   })}
                 </p>
               )}
@@ -313,6 +335,69 @@ export const GardenWork: React.FC = () => {
       </>
     ) : null;
 
+  const decisionFooter =
+    viewingMode === "steward" && queuedDecision ? (
+      <div className="fixed left-0 right-0 bottom-0 z-sticky rounded-t-[var(--radius-lg)] border-t border-stroke-soft-200 bg-bg-white-0 p-4 pb-[calc(1.5rem+env(safe-area-inset-bottom))]">
+        <div className="mx-auto flex max-w-screen-sm flex-col gap-2">
+          <p className="text-sm text-text-sub-600" role="status">
+            {queuedDecision.status.state === "sent"
+              ? intl.formatMessage({ id: "app.uploads.sendUnconfirmedTitle" })
+              : queuedDecision.status.state === "ready"
+                ? intl.formatMessage({ id: "app.uploads.state.waiting" })
+                : queuedDecision.status.state === "preparing"
+                  ? intl.formatMessage({ id: "app.uploads.state.preparing" })
+                  : intl.formatMessage({ id: "app.uploads.notUploadedTitle" })}
+          </p>
+          <Button
+            type="button"
+            size="lg"
+            className="w-full"
+            leadingIcon={<RiUploadCloud2Line className="h-5 w-5" aria-hidden="true" />}
+            disabled={
+              !isOnline ||
+              uploads.isUploading ||
+              (queuedDecision.status.state === "preparing" && !uploads.pausedForDataSaver)
+            }
+            loading={uploads.isUploading}
+            onClick={() => {
+              const { jobId, status } = queuedDecision;
+              const action =
+                status.state === "sent"
+                  ? uploads.checkOne(jobId)
+                  : status.state === "ready"
+                    ? uploads.uploadOne(jobId)
+                    : status.state === "preparing" && uploads.pausedForDataSaver
+                      ? Promise.resolve(uploads.prepareNow())
+                      : uploads.retryOne(jobId);
+              void action.catch((error) => {
+                // uploadOne already reports its mutation error with a toast.
+                if (status.state === "ready") return;
+                toastService.error({
+                  title: intl.formatMessage({ id: "app.uploads.failedTitle" }),
+                  message: intl.formatMessage({ id: "app.uploads.failedMessage" }),
+                  context: "work decision upload",
+                  error,
+                });
+              });
+            }}
+            data-testid="decision-upload-now"
+          >
+            {queuedDecision.status.state === "sent"
+              ? intl.formatMessage({ id: "app.uploads.checkAgain" })
+              : queuedDecision.status.state === "ready"
+                ? intl.formatMessage({ id: "app.home.work.uploadNow" })
+                : queuedDecision.status.state === "preparing"
+                  ? intl.formatMessage({
+                      id: uploads.pausedForDataSaver
+                        ? "app.uploads.prepareNow"
+                        : "app.uploads.state.preparing",
+                    })
+                  : intl.formatMessage({ id: "app.common.tryAgain" })}
+          </Button>
+        </div>
+      </div>
+    ) : null;
+
   // Success footer shows when work has been approved/rejected (on-chain resolved only)
   const isResolved = effectiveStatus === "approved" || effectiveStatus === "rejected";
   const successFooter =
@@ -374,9 +459,15 @@ export const GardenWork: React.FC = () => {
           onShare={handleShare}
           onViewAttestation={canViewAttestation ? handleViewAttestation : undefined}
           fulfills={<WorkFulfills chainId={chainId} workUID={onChainWorkId} gardenId={gardenId} />}
-          footer={retryFooter || approvalFooter || successFooter}
-          reserveFooterSpace={Boolean(retryFooter || approvalFooter || successFooter)}
-          footerSpacerClassName="h-[calc(112px+env(safe-area-inset-bottom))]"
+          footer={retryFooter || approvalFooter || decisionFooter || successFooter}
+          reserveFooterSpace={Boolean(
+            retryFooter || approvalFooter || decisionFooter || successFooter
+          )}
+          footerSpacerClassName={
+            retryFooter
+              ? "h-[calc(180px+env(safe-area-inset-bottom))]"
+              : "h-[calc(112px+env(safe-area-inset-bottom))]"
+          }
         />
 
         {metadataStatus === "unavailable" && (

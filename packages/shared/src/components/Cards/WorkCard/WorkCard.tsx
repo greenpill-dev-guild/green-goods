@@ -96,6 +96,11 @@ export interface WorkCardProps extends WorkCardVariantProps {
   showErrorBadge?: boolean;
   showRetryBadge?: boolean;
   badges?: React.ReactNode[];
+  /** Compact rows keep one primary state and one supporting line at every status. */
+  statusLabel?: string;
+  statusTone?: WorkDisplayStatus;
+  contextLabel?: string;
+  supportingText?: string;
   /** Translated labels - defaults to English */
   labels?: WorkCardLabels;
 }
@@ -140,6 +145,10 @@ export const WorkCard: React.FC<WorkCardProps> = ({
   showErrorBadge = false,
   showRetryBadge = false,
   badges,
+  statusLabel,
+  statusTone,
+  contextLabel,
+  supportingText,
   labels: labelsProp,
 }) => {
   const labels = {
@@ -152,8 +161,8 @@ export const WorkCard: React.FC<WorkCardProps> = ({
 
   const timeAgo = formatRelativeTime(work.createdAt);
   const thumbUrl = work.mediaPreview?.[0];
-  const displayStatus = labels.status[work.status] ?? work.status;
-  const statusColors = getStatusColors(work.status).combined;
+  const displayStatus = statusLabel ?? labels.status[work.status] ?? work.status;
+  const statusColors = getStatusColors(statusTone ?? work.status).combined;
   const hasFeedback = Boolean(work.feedback && work.feedback.trim().length > 0);
   const hasError = Boolean(work.error);
   const mediaCount = work.imageCount ?? work.mediaPreview?.length ?? 0;
@@ -183,7 +192,7 @@ export const WorkCard: React.FC<WorkCardProps> = ({
       <Wrapper
         className={cn(
           workCardVariants({ variant, interactive }),
-          getStatusBorderClass(work.status),
+          getStatusBorderClass(statusTone ?? work.status),
           className
         )}
         style={isCompact ? COMPACT_CARD_STYLE : undefined}
@@ -232,16 +241,18 @@ export const WorkCard: React.FC<WorkCardProps> = ({
         <div className={cn("flex min-w-0 flex-1 flex-col", isCompact ? "px-3 py-2" : "px-3 py-3")}>
           <div className="flex items-start justify-between gap-2">
             <h4
-              className="truncate pr-2 text-label-md font-medium text-text-strong-950"
+              className="min-w-0 flex-1 truncate text-label-md font-medium text-text-strong-950"
               title={work.title || labels.untitledWork}
             >
               {work.title || labels.untitledWork}
             </h4>
             <span
               className={cn(
-                "flex-shrink-0 rounded-full border px-2 py-0.5 text-xs font-medium",
+                "flex-shrink-0 truncate rounded-full border px-2 py-0.5 text-xs font-medium",
                 statusColors
               )}
+              style={{ maxWidth: "48%" }}
+              title={displayStatus}
             >
               {displayStatus}
             </span>
@@ -249,13 +260,17 @@ export const WorkCard: React.FC<WorkCardProps> = ({
 
           <div
             className="mt-0.5 truncate text-xs text-text-sub-600"
-            title={[showGardener && work.gardenerDisplayName, timeAgo, work.gardenName]
+            title={[
+              contextLabel ?? (showGardener && work.gardenerDisplayName),
+              timeAgo,
+              work.gardenName,
+            ]
               .filter(Boolean)
               .join(" • ")}
           >
-            {showGardener && work.gardenerDisplayName && (
+            {(contextLabel || (showGardener && work.gardenerDisplayName)) && (
               <>
-                {work.gardenerDisplayName}
+                {contextLabel || work.gardenerDisplayName}
                 <span className="mx-1">•</span>
               </>
             )}
@@ -268,31 +283,50 @@ export const WorkCard: React.FC<WorkCardProps> = ({
             )}
           </div>
 
-          <div className="mt-2 flex flex-wrap items-center gap-2 text-xs">
-            {showMediaCount && mediaCount > 0 && (
-              <span className="inline-flex items-center gap-1 rounded-full border border-information-light bg-information-lighter px-1.5 py-0.5 text-information-dark">
-                <RiImageLine className="h-3 w-3" /> {mediaCount}
-              </span>
+          <div
+            className={cn(
+              "min-w-0 items-center gap-2 text-xs",
+              isCompact ? "mt-1 flex overflow-hidden whitespace-nowrap" : "mt-2 flex flex-wrap"
             )}
-            {showErrorBadge && hasError && (
-              <span className="inline-flex items-center gap-1 rounded-full border border-error-light bg-error-lighter px-1.5 py-0.5 text-error-dark">
-                {labels.error}
-              </span>
+            title={isCompact ? supportingText : undefined}
+          >
+            {isCompact && supportingText ? (
+              <span className="min-w-0 truncate text-text-sub-600">{supportingText}</span>
+            ) : (
+              <>
+                {showMediaCount && mediaCount > 0 && (
+                  <span
+                    className={cn(
+                      "inline-flex items-center gap-1",
+                      isCompact
+                        ? "shrink-0 text-text-sub-600"
+                        : "rounded-full border border-information-light bg-information-lighter px-1.5 py-0.5 text-information-dark"
+                    )}
+                  >
+                    <RiImageLine className="h-3 w-3" /> {mediaCount}
+                  </span>
+                )}
+                {showErrorBadge && hasError && (
+                  <span className="inline-flex items-center gap-1 rounded-full border border-error-light bg-error-lighter px-1.5 py-0.5 text-error-dark">
+                    {labels.error}
+                  </span>
+                )}
+                {showRetryBadge && work.retryCount && work.retryCount > 0 && (
+                  <span className="inline-flex items-center gap-1 rounded-full border border-warning-light bg-warning-lighter px-1.5 py-0.5 text-warning-dark">
+                    ↻ {work.retryCount}
+                  </span>
+                )}
+                {showFeedbackBadge && hasFeedback && (
+                  <span className="inline-flex items-center gap-1 rounded-full border border-feature-light bg-feature-lighter px-1.5 py-0.5 text-feature-dark">
+                    {labels.feedback}
+                  </span>
+                )}
+                {badges?.map((badge, index) => (
+                  <React.Fragment key={index}>{badge}</React.Fragment>
+                ))}
+                {renderActions?.()}
+              </>
             )}
-            {showRetryBadge && work.retryCount && work.retryCount > 0 && (
-              <span className="inline-flex items-center gap-1 rounded-full border border-warning-light bg-warning-lighter px-1.5 py-0.5 text-warning-dark">
-                ↻ {work.retryCount}
-              </span>
-            )}
-            {showFeedbackBadge && hasFeedback && (
-              <span className="inline-flex items-center gap-1 rounded-full border border-feature-light bg-feature-lighter px-1.5 py-0.5 text-feature-dark">
-                {labels.feedback}
-              </span>
-            )}
-            {badges?.map((badge, index) => (
-              <React.Fragment key={index}>{badge}</React.Fragment>
-            ))}
-            {renderActions?.()}
           </div>
         </div>
       </Wrapper>

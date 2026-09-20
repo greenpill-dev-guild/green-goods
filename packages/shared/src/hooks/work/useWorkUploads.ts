@@ -5,6 +5,7 @@ import { toastService } from "../../components/toast";
 import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
 import { logger } from "../../modules/app/logger";
 import { jobQueueDB } from "../../modules/job-queue/db";
+import { jobQueue } from "../../modules/job-queue/default-instance";
 import { uploadOutcomeToast } from "../../modules/work/upload-outcome-toast";
 import {
   prepareUploadsNow,
@@ -38,16 +39,21 @@ export interface WorkUploads {
   /** Items are being prepared now, or will be shortly; not waiting for the connection. */
   isPreparing: boolean;
   isUploading: boolean;
-  /** Works whose decision from this device is still waiting to upload. */
+  /** Works whose decision from this device has not finished queue confirmation. */
   waitingDecisionWorkIds: ReadonlySet<string>;
+  decisionFor(workUID: string): { jobId: string; status: QueuedUploadStatus } | undefined;
   statusOf(jobId: string): QueuedUploadStatus | undefined;
   upload(): Promise<UploadOutcome | undefined>;
+  uploadOne(jobId: string): Promise<UploadOutcome | undefined>;
+  retryOne(jobId: string): Promise<void>;
+  checkOne(jobId: string): Promise<void>;
   prepareNow(): void;
 }
 
 function summarize(jobs: Job[], chainId: number) {
   const statuses = new Map<string, QueuedUploadStatus>();
   const waitingDecisionWorkIds = new Set<string>();
+  const decisionsByWorkId = new Map<string, { jobId: string; status: QueuedUploadStatus }>();
   let readyCount = 0;
   let preparingCount = 0;
   let attentionCount = 0;
@@ -55,16 +61,20 @@ function summarize(jobs: Job[], chainId: number) {
     if (!isUploadJob(job) || (job.chainId ?? chainId) !== chainId) continue;
     const status = queuedUploadStatus(job);
     statuses.set(job.id, status);
-    // A sent item is confirmed by the queue; it no longer waits for an upload.
+    if (job.kind === "approval") {
+      const workId = (job.payload as ApprovalJobPayload).workUID.toLowerCase();
+      waitingDecisionWorkIds.add(workId);
+      decisionsByWorkId.set(workId, { jobId: job.id, status });
+    }
+    // A sent item is still visible until the queue confirms it, but cannot be sent twice.
     if (status.state === "sent") continue;
     if (status.state === "ready") readyCount += 1;
     else if (status.state === "preparing" || status.state === "photo-pending") preparingCount += 1;
     else attentionCount += 1;
-    if (job.kind === "approval")
-      waitingDecisionWorkIds.add((job.payload as ApprovalJobPayload).workUID.toLowerCase());
   }
   return {
     statuses,
+    decisionsByWorkId,
     waitingDecisionWorkIds,
     readyCount,
     preparingCount,
@@ -99,7 +109,7 @@ export function useWorkUploads(): WorkUploads {
   }, []);
 
   const mutation = useMutation({
-    mutationFn: async (): Promise<UploadOutcome | undefined> => {
+    mutationFn: async (jobIds?: readonly string[]): Promise<UploadOutcome | undefined> => {
       if (!userAddress || !sender) {
         toastService.info({
           id: "work-uploads",
@@ -117,7 +127,7 @@ export function useWorkUploads(): WorkUploads {
         import("../../modules/work/upload-queued-work-defaults"),
       ]);
       return uploadQueuedWork(
-        { userAddress, chainId, sender },
+        { userAddress, chainId, sender, jobIds },
         await createDefaultUploadQueuedWorkPorts()
       );
     },
@@ -158,8 +168,43 @@ export function useWorkUploads(): WorkUploads {
       summary.preparingCount > 0 && preparation.paused === null && connectivity.state === "online",
     isUploading: mutation.isPending,
     waitingDecisionWorkIds: summary.waitingDecisionWorkIds,
+    decisionFor: (workUID) => summary.decisionsByWorkId.get(workUID.toLowerCase()),
     statusOf: (jobId) => summary.statuses.get(jobId),
-    upload: () => mutation.mutateAsync(),
-    prepareNow: prepareUploadsNow,
+    upload: () => mutation.mutateAsync(undefined),
+    uploadOne: (jobId) => mutation.mutateAsync([jobId]),
+    retryOne: async (jobId) => {
+      await jobQueue.retryJob(jobId);
+      scheduleUploadPreparation();
+    },
+    checkOne: async (jobId) => {
+      if (!sender || !(await connectivityStore.confirmOnline())) return;
+      await jobQueue.processJob(jobId, { transactionSender: sender, explicit: true });
+    },
+    prepareNow: () => {
+      void connectivityStore
+        .confirmOnline()
+        .then((confirmed) => {
+          if (confirmed) {
+            prepareUploadsNow();
+            return;
+          }
+          toastService.info({
+            id: "work-uploads",
+            title: formatMessage({ id: "app.uploads.notUploadedTitle" }),
+            message: formatMessage({ id: "app.work.connectionUnconfirmed" }),
+            context: "work uploads",
+          });
+        })
+        .catch((error) => {
+          logger.error("[useWorkUploads] Preparation could not start", { error });
+          toastService.error({
+            id: "work-uploads",
+            title: formatMessage({ id: "app.uploads.failedTitle" }),
+            message: formatMessage({ id: "app.uploads.failedMessage" }),
+            context: "work uploads",
+            error,
+          });
+        });
+    },
   };
 }

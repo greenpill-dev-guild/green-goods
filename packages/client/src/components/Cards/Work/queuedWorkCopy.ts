@@ -198,7 +198,7 @@ export function queuedWorkExplanation(
 ): MessageDescriptor {
   const waiting = {
     id: "app.home.work.offlineInfo",
-    defaultMessage: "Saved on your device. Upload it from Your Work.",
+    defaultMessage: "Saved on your device. Upload it here when you're connected.",
   };
   switch (state.submissionState) {
     case "awaiting-confirmation":

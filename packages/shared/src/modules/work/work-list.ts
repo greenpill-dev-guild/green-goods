@@ -1,6 +1,12 @@
-import type { EASWorkApproval, EASWorkListRow } from "../../types/eas-responses";
+import type { EASWork, EASWorkApproval, EASWorkListRow } from "../../types/eas-responses";
 import { logger } from "../app/logger";
-import { getWorkListPage, readWorkApprovalsForWorks, WORK_LIST_PAGE_SIZE } from "../data/eas";
+import {
+  getWorkApprovalsForWork,
+  getWorkListPage,
+  getWorksByUIDs,
+  readWorkApprovalsForWorks,
+  WORK_LIST_PAGE_SIZE,
+} from "../data/eas";
 
 export { WORK_LIST_PAGE_SIZE } from "../data/eas";
 
@@ -9,6 +15,29 @@ export interface ReadWorkListOptions {
   chainId: number;
   /** How many of the newest works to read; the screen widens this when asked for older work. */
   take?: number;
+}
+
+function withLatestApproval(work: EASWork, approvals: EASWorkApproval[]): EASWorkListRow {
+  const latestTime = Math.max(...approvals.map((approval) => approval.createdAt ?? 0), 0);
+  const latest = approvals.filter((approval) => (approval.createdAt ?? 0) === latestTime);
+  // Conflicting decisions in the same timestamp bucket have no execution order.
+  if (new Set(latest.map((approval) => approval.approved)).size > 1) return work;
+  return {
+    ...work,
+    approval: latest.sort((left, right) => left.id.localeCompare(right.id)).at(-1) ?? null,
+  };
+}
+
+/** Read an older work directly when it is outside the garden list's loaded page. */
+export async function readWorkByUID(uid: string, chainId: number): Promise<EASWorkListRow | null> {
+  const work = (await getWorksByUIDs([uid], chainId))[0];
+  if (!work) return null;
+  try {
+    return withLatestApproval(work, await getWorkApprovalsForWork(work.id, chainId));
+  } catch (error) {
+    logger.warn("[readWorkByUID] Approval status could not be read", { error });
+    return work;
+  }
 }
 
 /**
@@ -54,16 +83,6 @@ export async function readWorkList({
   return works.map((work) => {
     const key = work.id.toLowerCase();
     if (failedWorkUIDs.has(key)) return work;
-    const candidates = byWork.get(key) ?? [];
-    const latestTime = Math.max(...candidates.map((approval) => approval.createdAt ?? 0), 0);
-    const latest = candidates.filter((approval) => (approval.createdAt ?? 0) === latestTime);
-    // Conflicting decisions in the same timestamp bucket have no execution
-    // order in EAS GraphQL. Preserve the last known status instead of choosing
-    // an arbitrary approval or rejection.
-    if (new Set(latest.map((approval) => approval.approved)).size > 1) return work;
-    return {
-      ...work,
-      approval: latest.sort((left, right) => left.id.localeCompare(right.id)).at(-1) ?? null,
-    };
+    return withLatestApproval(work, byWork.get(key) ?? []);
   });
 }
