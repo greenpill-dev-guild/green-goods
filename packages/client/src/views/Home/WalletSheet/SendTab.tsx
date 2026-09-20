@@ -3,7 +3,7 @@ import { Alert } from "@green-goods/shared/components/Alert";
 import { Button } from "@green-goods/shared/components/Button";
 import { ConfirmDialog } from "@green-goods/shared/components/Dialog/ConfirmDialog";
 import { cn } from "@green-goods/shared/utils/styles/cn";
-import { formatUnits } from "viem";
+import { formatTokenAmount } from "@green-goods/shared/utils/blockchain/vaults";
 import {
   getNetworkConfigForChain,
   useCurrentChain,
@@ -13,7 +13,7 @@ import { useOffline } from "@green-goods/shared/hooks/app/useOffline";
 import { useSendFlowController } from "@green-goods/shared/hooks/client-ui/wallet/useSendFlowController";
 import { useSendableTokens } from "@green-goods/shared/hooks/blockchain/useSendableTokens";
 import { useSendToken } from "@green-goods/shared/hooks/blockchain/useSendToken";
-import { isSendableTokenAvailable } from "@green-goods/shared/config/tokens";
+import { isCeloGoodDollar, isSendableTokenAvailable } from "@green-goods/shared/config/tokens";
 import { useCeloWallet } from "@green-goods/shared/hooks/client-ui/wallet/useCeloWallet";
 import { useUser } from "@green-goods/shared/hooks/auth/useUser";
 import type { WalletMode } from "@green-goods/shared/modules/wallet/send-flow";
@@ -43,7 +43,7 @@ interface SendTabProps {
 }
 
 export const SendTab: React.FC<SendTabProps> = ({ resetNonce }) => {
-  const { formatMessage } = useIntl();
+  const { formatMessage, locale } = useIntl();
   const { primaryAddress, authMode } = useUser();
   const chainId = useCurrentChain();
   const { isOnline } = useOffline();
@@ -53,10 +53,22 @@ export const SendTab: React.FC<SendTabProps> = ({ resetNonce }) => {
   );
   const sendMutation = useSendToken();
   const celoWallet = useCeloWallet();
-  const allTokens = React.useMemo(
-    () => [...tokens, celoWallet.token].filter(isSendableTokenAvailable),
-    [tokens, celoWallet.token]
-  );
+  const allTokens = React.useMemo(() => {
+    const available = tokens.filter(
+      (token) =>
+        isSendableTokenAvailable(token) &&
+        (authMode !== "passkey" || token.chainId !== 42220 || isCeloGoodDollar(token))
+    );
+    const celoToken = celoWallet.token;
+    return isSendableTokenAvailable(celoToken) &&
+      !available.some(
+        (token) =>
+          token.chainId === celoToken.chainId &&
+          token.address.toLowerCase() === celoToken.address.toLowerCase()
+      )
+      ? [...available, celoToken]
+      : available;
+  }, [tokens, celoWallet.token, authMode]);
   const [receiveCelo, setReceiveCelo] = React.useState(false);
   const contentRef = React.useRef<HTMLDivElement>(null);
   const confirmWasOpen = React.useRef(false);
@@ -319,7 +331,12 @@ export const SendTab: React.FC<SendTabProps> = ({ resetNonce }) => {
                 : "app.send.confirm.description",
             },
             {
-              amount: formatUnits(validation.parsedAmount, selectedToken.decimals),
+              amount: formatTokenAmount(
+                validation.parsedAmount,
+                selectedToken.decimals,
+                selectedToken.decimals,
+                locale
+              ),
               symbol: selectedToken.symbol,
               recipient: recipientDisplayName,
             }

@@ -72,6 +72,9 @@ vi.mock("react-intl", () => ({
 
 const { useSendToken } = await import("../../../hooks/blockchain/useSendToken");
 const { toastService } = await import("../../../components/toast");
+const { TransactionReplacementError, TransactionRevertedError } = await import(
+  "../../../modules/transactions/types"
+);
 
 const TOKEN = {
   chainId: CHAIN,
@@ -356,7 +359,7 @@ describe("Celo send safety", () => {
     await result.current.mutateAsync(input);
     expect(mockClientForChain.mock.calls.every(([chain]) => chain === 42220)).toBe(true);
     expect(mockSendContractCall).toHaveBeenCalledWith(expect.objectContaining({ chainId: 42220 }));
-    expect(mockWaitForReceipt).toHaveBeenCalled();
+    expect(mockWaitForReceipt).not.toHaveBeenCalled();
     expect(invalidate.mock.calls).toContainEqual([
       { queryKey: ["greengoods", "tokens", "celoBalance", ACCOUNT.toLowerCase(), 42220] },
     ]);
@@ -431,7 +434,9 @@ describe("Celo send safety", () => {
   });
 
   it("does not claim success or invalidate balance for reverted inclusion", async () => {
-    mockWaitForReceipt.mockResolvedValue({ status: "reverted" });
+    mockSendContractCall.mockRejectedValue(
+      new TransactionRevertedError(`0x${"a".repeat(64)}`, "Transaction reverted on-chain")
+    );
     const { result } = renderHook(() => useSendToken(), { wrapper: makeWrapper() });
     const invalidate = vi.spyOn(queryClient, "invalidateQueries");
     await expect(result.current.mutateAsync(input)).rejects.toThrow(/revert/i);
@@ -442,23 +447,37 @@ describe("Celo send safety", () => {
   it.each([
     "cancelled",
     "replaced",
-  ])("does not report a %s transaction as confirmed", async (reason) => {
-    mockWaitForReceipt.mockImplementation(async ({ onReplaced }) => {
-      onReplaced({ reason });
-      return { status: "success" };
-    });
+  ] as const)("does not report a %s transaction as confirmed", async (reason) => {
+    mockSendContractCall.mockRejectedValue(new TransactionReplacementError(reason));
     const { result } = renderHook(() => useSendToken(), { wrapper: makeWrapper() });
-    await expect(result.current.mutateAsync(input)).rejects.toThrow(/cancelled or replaced/i);
+    await expect(result.current.mutateAsync(input)).rejects.toThrow(/cancelled|replaced/i);
     expect(mockAddRecent).not.toHaveBeenCalled();
   });
   it("accepts repricing and returns the confirmed replacement hash", async () => {
     const hash = `0x${"b".repeat(64)}`;
-    mockWaitForReceipt.mockImplementation(async ({ onReplaced }) => {
-      onReplaced({ reason: "repriced" });
-      return { status: "success", transactionHash: hash };
-    });
+    mockSendContractCall.mockResolvedValue({ hash, sponsored: false });
     const { result } = renderHook(() => useSendToken(), { wrapper: makeWrapper() });
     await expect(result.current.mutateAsync(input)).resolves.toMatchObject({ hash });
+    expect(mockWaitForReceipt).not.toHaveBeenCalled();
+  });
+
+  it("accepts a confirmed Celo send when a separate public RPC wait would fail", async () => {
+    mockWaitForReceipt.mockRejectedValue(new Error("Public RPC unavailable"));
+    const { result } = renderHook(() => useSendToken(), { wrapper: makeWrapper() });
+    await expect(result.current.mutateAsync(input)).resolves.toMatchObject({
+      hash: `0x${"a".repeat(64)}`,
+    });
+    expect(mockWaitForReceipt).not.toHaveBeenCalled();
+  });
+
+  it("allows registry-supported non-G$ Celo tokens without a G$ fee quote", async () => {
+    const token = { ...CELO_TOKEN, symbol: "USDC", address: TOKEN_ADDR };
+    const { result } = renderHook(() => useSendToken(), { wrapper: makeWrapper() });
+    await expect(
+      result.current.mutateAsync({ token, to: RECIPIENT, amount: 100n })
+    ).resolves.toMatchObject({ account: ACCOUNT.toLowerCase() });
+    expect(mockDelivery).not.toHaveBeenCalled();
+    expect(mockSendContractCall).toHaveBeenCalledWith(expect.objectContaining({ chainId: 42220 }));
   });
 
   it("allows an explicit retry after rejection and does not retry automatically", async () => {

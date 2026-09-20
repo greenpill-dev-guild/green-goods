@@ -1,7 +1,7 @@
 import { Alert } from "@green-goods/shared/components/Alert";
 import { Textarea } from "@green-goods/shared/components/Form/ControlPrimitives";
 import { SheetHeading } from "@green-goods/shared/components/Dialog/SheetHeading";
-import { formatUnits } from "viem";
+import { formatTokenAmount } from "@green-goods/shared/utils/blockchain/vaults";
 import type { SendableTokenBalance } from "@green-goods/shared/hooks/blockchain/useSendableTokens";
 import { RiPencilLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
@@ -72,7 +72,7 @@ export function ReviewStep({
   onEditRecipient,
   onEditAmount,
 }: ReviewStepProps) {
-  const { formatMessage } = useIntl();
+  const { formatMessage, locale } = useIntl();
   const editLabel = formatMessage({ id: "app.send.edit" });
 
   return (
@@ -95,7 +95,7 @@ export function ReviewStep({
         />
         <SummaryRow
           label={formatMessage({ id: "app.send.review.amount" })}
-          value={`${formatUnits(parsedAmount, token.decimals)} ${token.symbol}`}
+          value={`${formatTokenAmount(parsedAmount, token.decimals, token.decimals, locale)} ${token.symbol}`}
           onEdit={onEditAmount}
           editLabel={editLabel}
         />

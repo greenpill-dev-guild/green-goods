@@ -19,6 +19,7 @@ import type { SendCheckpoint } from "../../types/job-queue";
 import {
   type BroadcastReference,
   type ContractCall,
+  TransactionReplacementError,
   TransactionRevertedError,
   type TransactionSender,
   type TxResult,
@@ -110,6 +111,13 @@ export async function sendWithCheckpoint({
     return { status: "sent", hash: result.hash, confirmation: result.confirmation };
   } catch (error) {
     if (error instanceof TransactionRevertedError) return { status: "reverted", error };
+    if (error instanceof TransactionReplacementError && error.code === "transaction_cancelled") {
+      // The wallet confirmed replacement by a cancellation transaction. The
+      // original call cannot be included, so its checkpoint may be retried.
+      await record(() => undefined);
+      for (const id of jobIds) forgetWorkBroadcast(id);
+      return { status: "not-sent", cancelled: true, error };
+    }
     const failure = classifySendFailure(error, { intentRecorded, broadcastKnown });
     if (failure.kind === "may-have-sent") return { status: "may-have-sent", error };
     // Cleared even when the intent only half landed: a call that carries several

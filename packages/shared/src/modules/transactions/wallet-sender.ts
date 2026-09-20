@@ -148,19 +148,29 @@ export class WalletSender implements TransactionSender {
 
     // Wait for on-chain confirmation and verify the tx was not reverted
     let invalidReplacement: "cancelled" | "replaced" | undefined;
-    const receipt = await this.deps.waitForTransactionReceipt(this.config, {
-      hash,
-      chainId,
-      onReplaced: ({ reason }) => {
-        if (reason !== "repriced") invalidReplacement = reason;
-      },
-    });
+    let receipt: Awaited<ReturnType<WalletSenderDeps["waitForTransactionReceipt"]>>;
+    try {
+      receipt = await this.deps.waitForTransactionReceipt(this.config, {
+        hash,
+        chainId,
+        onReplaced: ({ reason }) => {
+          if (reason !== "repriced") invalidReplacement = reason;
+        },
+      });
+    } catch (error) {
+      if (invalidReplacement) throw new TransactionReplacementError(invalidReplacement);
+      throw error;
+    }
     if (invalidReplacement) throw new TransactionReplacementError(invalidReplacement);
     if (receipt.status === "reverted") {
       throw new TransactionRevertedError(hash, "Transaction reverted on-chain");
     }
 
     const confirmedHash = receipt.transactionHash ?? hash;
+    if (confirmedHash.toLowerCase() !== hash.toLowerCase()) {
+      await options.onBroadcastReference?.({ kind: "transaction", hash: confirmedHash });
+      await options.onBroadcast?.(confirmedHash);
+    }
     logger.debug("Wallet transaction confirmed", {
       source: "WalletSender",
       functionName: call.functionName,

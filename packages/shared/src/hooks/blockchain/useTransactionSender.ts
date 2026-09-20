@@ -1,4 +1,4 @@
-import { getWalletClient } from "@wagmi/core";
+import { getAccount, getWalletClient } from "@wagmi/core";
 /**
  * React hook wrapper around the TransactionSender factory.
  *
@@ -26,7 +26,7 @@ import { getWalletClient } from "@wagmi/core";
  */
 
 import { useMemo, useRef } from "react";
-import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
+import { isChainSupported } from "../../config/chains";
 import { ENV } from "../../lib/env";
 import { useConfig, useWriteContract } from "wagmi";
 import {
@@ -90,17 +90,30 @@ export function useTransactionSender(): TransactionSender | null {
         if (
           !primaryAddress ||
           address.toLowerCase() !== primaryAddress.toLowerCase() ||
-          chainId !== DEFAULT_CHAIN_ID ||
+          !isChainSupported(chainId) ||
           generation !== session.current.generation
         )
           throw new Error("submission-ownership-changed");
-        const wallet = authMode === "passkey" ? null : await getWalletClient(config, { chainId });
-        const account = authMode === "passkey" ? smartAccountClient?.account : wallet?.account;
-        if (
-          account?.address.toLowerCase() !== address.toLowerCase() ||
-          (wallet?.chain?.id !== undefined && wallet.chain.id !== chainId) ||
-          (authMode === "passkey" && smartAccountClient?.chain?.id !== chainId)
-        )
+        if (authMode === "passkey") {
+          const client =
+            smartAccountClient?.chain?.id === chainId
+              ? smartAccountClient
+              : await resolveSmartAccountClient?.(chainId);
+          if (
+            client?.account?.address.toLowerCase() !== address.toLowerCase() ||
+            client?.chain?.id !== chainId
+          )
+            throw new Error("submission-ownership-changed");
+        } else {
+          const wallet = await getWalletClient(config, { chainId });
+          const activeChainId = getAccount(config).chainId;
+          if (
+            wallet?.account?.address.toLowerCase() !== address.toLowerCase() ||
+            (activeChainId !== undefined && activeChainId !== chainId)
+          )
+            throw new Error("submission-ownership-changed");
+        }
+        if (generation !== session.current.generation)
           throw new Error("submission-ownership-changed");
       };
       return sender;

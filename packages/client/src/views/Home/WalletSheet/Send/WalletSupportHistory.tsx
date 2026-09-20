@@ -4,15 +4,6 @@ import { RiArrowDownLine, RiCheckLine, RiErrorWarningLine, RiTimeLine } from "@r
 import { useIntl } from "react-intl";
 import { Button } from "@green-goods/shared/components/Button";
 
-const progressMessageIds: Record<string, string> = {
-  queued: "app.celoWallet.receipts.queued",
-  dispatched: "app.celoWallet.receipts.dispatched",
-  "delivery-delayed": "app.celoWallet.receipts.delayed",
-  "executed-acknowledgment-pending": "app.celoWallet.receipts.confirmationPending",
-  "not-started": "app.celoWallet.receipts.notStarted",
-  unknown: "app.celoWallet.receipts.unknown",
-};
-
 export function WalletSupportHistory({
   receipts,
   decimals,
@@ -79,18 +70,7 @@ export function WalletSupportHistory({
               </div>
               <p className="flex items-start gap-1.5 text-text-sub-600">
                 <Icon className="h-4 w-4 shrink-0" aria-hidden />
-                <span>
-                  {formatMessage({ id: labelId })}
-                  {!complete && !interrupted ? (
-                    <>
-                      {" "}
-                      ·{" "}
-                      {formatMessage({
-                        id: progressMessageIds[status] ?? "app.celoWallet.receipts.unknown",
-                      })}
-                    </>
-                  ) : null}
-                </span>
+                <span>{formatMessage({ id: labelId })}</span>
               </p>
               <time
                 dateTime={new Date(receipt.createdAt * 1000).toISOString()}

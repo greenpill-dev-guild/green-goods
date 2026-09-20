@@ -106,7 +106,15 @@ export function useSendableTokens(
   });
 
   return {
-    tokens: (query.data ?? []).filter(isSendableTokenAvailable),
+    // Older persisted balance rows predate SendableToken.chainId. The query key
+    // supplies their authoritative chain until a fresh RPC read replaces them.
+    tokens:
+      chainId === undefined
+        ? []
+        : (query.data ?? [])
+            .filter((token) => token.chainId === undefined || token.chainId === chainId)
+            .map((token) => ({ ...token, chainId }))
+            .filter(isSendableTokenAvailable),
     isLoading: query.isLoading,
     isFetching: query.isFetching,
     isError: query.isError,

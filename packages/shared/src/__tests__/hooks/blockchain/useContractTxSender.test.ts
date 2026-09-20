@@ -9,7 +9,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { act, renderHook } from "@testing-library/react";
 import { createElement, type ReactNode } from "react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { arbitrum, celo } from "viem/chains";
 import { MOCK_ADDRESSES, MOCK_TX_HASH } from "../../test-utils/mock-factories";
 import { MOCK_CONTRACT_ABI } from "../../test-utils/transaction-fakes";
@@ -107,6 +107,7 @@ function createWrapper() {
 describe("useContractTxSender", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.stubEnv("VITE_PIMLICO_CELO_SPONSORSHIP_POLICY_ID", "test-celo-policy");
     mockAuthMode = "passkey";
     mockSmartAccountRef = mockSmartAccountClient;
     mockResolverAvailable = true;
@@ -119,6 +120,7 @@ describe("useContractTxSender", () => {
     mockWriteContractAsync.mockResolvedValue(MOCK_TX_HASH);
     mockWaitForTransactionReceipt.mockResolvedValue({ status: "success" });
   });
+  afterEach(() => vi.unstubAllEnvs());
 
   it("returns a function", () => {
     const { result } = renderHook(() => useContractTxSender(), {
@@ -157,8 +159,8 @@ describe("useContractTxSender", () => {
       const { result } = renderHook(() => useContractTxSender(), { wrapper: createWrapper() });
       await result.current({ ...TEST_REQUEST, chainId: 42220 });
       expect(mockResolveSmartAccountClient).toHaveBeenCalledWith(42220);
-      expect(mockSendUserOperation).toHaveBeenCalledWith(
-        expect.objectContaining({ account: mockSmartAccountClient.account })
+      expect(mockSendUserOperation.mock.calls[0][0].account.address).toBe(
+        mockSmartAccountClient.account.address
       );
       expect(mockWriteContractAsync).not.toHaveBeenCalled();
     });
@@ -183,7 +185,7 @@ describe("useContractTxSender", () => {
       });
 
       const sendTxArgs = mockSendUserOperation.mock.calls[0][0];
-      expect(sendTxArgs.account).toEqual(mockSmartAccountClient.account);
+      expect(sendTxArgs.account.address).toBe(mockSmartAccountClient.account.address);
       expect(sendTxArgs.calls[0].to).toBe(TEST_REQUEST.address);
       expect(sendTxArgs.calls[0].value).toBe(0n);
       // data should be a hex-encoded calldata string

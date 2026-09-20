@@ -8,6 +8,7 @@ import {
   toWebAuthnAccount,
 } from "viem/account-abstraction";
 import { getChain } from "../config/chains";
+import { ENV } from "../lib/env";
 import {
   buildPasskeyRecoveryContext,
   createPasskey,
@@ -125,7 +126,12 @@ async function buildSmartAccount(
   knownAddress?: Hex
 ): Promise<{ client: SmartAccountClient; address: Hex }> {
   assertPrimaryPasskeyProfile(chainId);
-  const sponsorshipPolicyId = getPimlicoSponsorshipPolicyId(chainId);
+  // Account construction is a read/auth capability. A missing Celo policy
+  // prevents sponsored submission, but must not prevent sign-in or recovery.
+  const sponsorshipPolicyId =
+    chainId === 42220
+      ? ENV.VITE_PIMLICO_CELO_SPONSORSHIP_POLICY_ID?.trim()
+      : getPimlicoSponsorshipPolicyId(chainId);
   const chain = getChain(chainId);
   const publicClient = createPublicClientForChain(chainId);
   const pimlicoClient = createPimlicoClientForChain(chainId);
@@ -141,7 +147,7 @@ async function buildSmartAccount(
     chain,
     bundlerTransport: http(getPimlicoBundlerUrl(chainId)),
     paymaster: pimlicoClient,
-    paymasterContext: { sponsorshipPolicyId },
+    ...(sponsorshipPolicyId ? { paymasterContext: { sponsorshipPolicyId } } : {}),
     userOperation: {
       estimateFeesPerGas: async () => {
         const { fast } = await pimlicoClient.getUserOperationGasPrice();

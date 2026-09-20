@@ -14,11 +14,13 @@ const mocks = vi.hoisted(() => ({
   gate: vi.fn(),
   history: vi.fn(),
   resolve: vi.fn(),
+  policy: vi.fn(),
   online: true,
 }));
 vi.mock("../../hooks/auth/useUser", () => ({ useUser: () => mocks.user }));
 vi.mock("../../config/pimlico", () => ({
   createPublicClientForChain: vi.fn(() => ({ readContract: mocks.balance })),
+  getPimlicoSponsorshipPolicyId: mocks.policy,
 }));
 vi.mock("../../modules/commitment-pooling/data-settlement", () => ({
   getGardenerDeliveryEnabled: mocks.gate,
@@ -41,6 +43,7 @@ beforeEach(() => {
     resolveSmartAccountClient: mocks.resolve,
   };
   mocks.resolve.mockResolvedValue({ chain: { id: 42220 }, account: { address: ACCOUNT } });
+  mocks.policy.mockReturnValue("test-celo-policy");
   mocks.gate.mockResolvedValue(true);
   mocks.balance.mockResolvedValue(123n);
   mocks.history.mockResolvedValue([
@@ -49,6 +52,15 @@ beforeEach(() => {
 });
 
 describe("useCeloWallet", () => {
+  it("shows policy unavailable after account resolution without blocking balance reads", async () => {
+    mocks.policy.mockImplementation(() => {
+      throw new Error("policy_unavailable");
+    });
+    const { result } = renderHookWithProviders(() => useCeloWallet());
+    await waitFor(() => expect(result.current.readiness).toBe("policy-unavailable"));
+    expect(result.current.token.balance).toBe(123n);
+    expect(result.current.canSend).toBe(false);
+  });
   it("reads canonical Celo balance and source-chain history and resolves passkey identity", async () => {
     const { result } = renderHookWithProviders(() => useCeloWallet());
     await waitFor(() => expect(result.current.canSend).toBe(true));

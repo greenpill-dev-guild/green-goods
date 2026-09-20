@@ -40,12 +40,13 @@ describe("GoodDollar transfer fee quotes", () => {
     });
   });
   it.each([
-    null,
-    [10n],
-    [10n, "true"],
-    ["10", true],
-    [-1n, true],
-    [101n, false],
+    [null],
+    [[10n]],
+    [[10n, "true"]],
+    [["10", true]],
+    [[-1n, true]],
+    [[101n, false]],
+    [[100n, false]],
   ])("rejects malformed or impossible fee %s", async (value) => {
     readContract.mockResolvedValue(value);
     await expect(quoteGoodDollarTransfer(100n, sender, recipient)).rejects.toThrow(/fee/i);

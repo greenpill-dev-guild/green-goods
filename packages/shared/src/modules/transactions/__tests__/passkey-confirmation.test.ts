@@ -48,7 +48,11 @@ describe("Passkey execution confirmation", () => {
       onBroadcast: broadcast,
       onBroadcastReference,
     } as Parameters<PasskeySender["sendContractCall"]>[1]);
-    expect(onBroadcastReference).toHaveBeenCalledWith({ kind: "user-operation", hash: operation });
+    expect(onBroadcastReference).toHaveBeenCalledWith({
+      kind: "user-operation",
+      hash: operation,
+      chainId: 11155111,
+    });
     expect(broadcast).toHaveBeenCalledWith(transaction);
     expect(result.hash).toBe(transaction);
   });
