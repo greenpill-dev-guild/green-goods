@@ -20,8 +20,12 @@ const BALANCE_REFETCH_DELAY_MS = 3000;
 const mockSendContractCall = vi.fn();
 const mockReadContract = vi.fn();
 const mockAddRecent = vi.fn();
+const mockWaitForReceipt = vi.fn();
+const mockClientForChain = vi.fn();
+const mockDelivery = vi.fn();
 const mockHandleError = vi.fn();
 let mockPrimaryAddress: string | null = ACCOUNT;
+const mockSender = { sendContractCall: mockSendContractCall };
 let mockAuthMode: AuthMode = "passkey";
 
 vi.mock("../../../hooks/auth/useUser", () => ({
@@ -34,15 +38,22 @@ vi.mock("../../../hooks/blockchain/useChainConfig", () => ({
   useCurrentChain: () => CHAIN,
 }));
 vi.mock("../../../hooks/blockchain/useTransactionSender", () => ({
-  useTransactionSender: () => ({ sendContractCall: mockSendContractCall }),
+  useTransactionSender: () => mockSender,
 }));
 vi.mock("../../../hooks/blockchain/useRecentRecipients", () => ({
   addRecentRecipient: (...args: unknown[]) => mockAddRecent(...args),
 }));
 vi.mock("../../../config/pimlico", () => ({
-  createPublicClientForChain: () => ({
-    readContract: (...args: unknown[]) => mockReadContract(...args),
-  }),
+  createPublicClientForChain: (chainId: number) => {
+    mockClientForChain(chainId);
+    return {
+      readContract: (...args: unknown[]) => mockReadContract(...args),
+      waitForTransactionReceipt: (...args: unknown[]) => mockWaitForReceipt(...args),
+    };
+  },
+}));
+vi.mock("../../../modules/commitment-pooling/data-settlement", () => ({
+  getGardenerDeliveryEnabled: () => mockDelivery(),
 }));
 vi.mock("../../../components/toast", () => ({
   toastService: {
@@ -61,8 +72,12 @@ vi.mock("react-intl", () => ({
 
 const { useSendToken } = await import("../../../hooks/blockchain/useSendToken");
 const { toastService } = await import("../../../components/toast");
+const { TransactionReplacementError, TransactionRevertedError } = await import(
+  "../../../modules/transactions/types"
+);
 
 const TOKEN = {
+  chainId: CHAIN,
   symbol: "GOODS",
   label: "Green Goods",
   address: TOKEN_ADDR,
@@ -73,6 +88,7 @@ const TOKEN = {
   errored: false,
 };
 
+let queryClient: QueryClient;
 // biome-ignore lint/suspicious/noExplicitAny: test fixture token shape
 const SEND_PARAMS = { token: TOKEN as any, to: RECIPIENT, amount: 100n, note: "hi" };
 const BALANCES_KEY = tokensKeys.balances(ACCOUNT.toLowerCase(), CHAIN);
@@ -84,6 +100,7 @@ function makeQueryClient() {
 }
 
 function makeWrapper(client: QueryClient = makeQueryClient()) {
+  queryClient = client;
   return ({ children }: { children: ReactNode }) =>
     createElement(QueryClientProvider, { client }, children);
 }
@@ -112,7 +129,12 @@ describe("hooks/blockchain/useSendToken", () => {
     mockPrimaryAddress = ACCOUNT;
     mockAuthMode = "passkey";
     mockSendContractCall.mockResolvedValue({ hash: "0xhash", sponsored: true });
-    mockReadContract.mockResolvedValue(1000n);
+    mockReadContract.mockImplementation(({ functionName }: { functionName: string }) =>
+      Promise.resolve(functionName === "getFees" ? [10n, true] : 1000n)
+    );
+    mockDelivery.mockResolvedValue(true);
+    mockWaitForReceipt.mockResolvedValue({ status: "success" });
+    Object.defineProperty(navigator, "onLine", { configurable: true, value: true });
   });
 
   afterEach(() => {
@@ -202,7 +224,6 @@ describe("hooks/blockchain/useSendToken", () => {
 
       // Read-after-write: balances refetch now and again once the RPC catches up.
       expect(invalidate).toHaveBeenCalledWith({ queryKey: BALANCES_KEY });
-      expect(invalidate).toHaveBeenCalledWith({ queryKey: tokensKeys.all });
       invalidate.mockClear();
       await act(async () => {
         await vi.advanceTimersByTimeAsync(BALANCE_REFETCH_DELAY_MS);
@@ -263,7 +284,10 @@ describe("hooks/blockchain/useSendToken", () => {
       expect(toastService.dismiss).toHaveBeenCalledWith("toast-id");
       expect(mockHandleError).toHaveBeenCalledWith(
         failure,
-        expect.objectContaining({ metadata: { to: RECIPIENT, token: "GOODS" }, showToast: true })
+        expect.objectContaining({
+          metadata: { chainId: CHAIN, token: "GOODS" },
+          showToast: true,
+        })
       );
       expect(invalidate).not.toHaveBeenCalled();
       expect(mockAddRecent).not.toHaveBeenCalled();
@@ -297,5 +321,171 @@ describe("hooks/blockchain/useSendToken", () => {
 
       expect(beforeUnloadCalls(removeSpy)).toHaveLength(1);
     });
+  });
+});
+
+const CELO_TOKEN = {
+  ...TOKEN,
+  chainId: 42220,
+  symbol: "G$",
+  confersGovernance: false,
+  address: "0x62B8B11039FcfE5aB0C56E502b1C372A3d2a9c7A" as Address,
+};
+const reviewedFee = {
+  amount: 100n,
+  fee: 10n,
+  senderPays: true,
+  totalDebit: 110n,
+  recipientAmount: 100n,
+};
+
+describe("Celo send safety", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockPrimaryAddress = ACCOUNT;
+    mockSendContractCall.mockResolvedValue({ hash: `0x${"a".repeat(64)}`, sponsored: true });
+    mockReadContract.mockImplementation(({ functionName }: { functionName: string }) =>
+      Promise.resolve(functionName === "getFees" ? [10n, true] : 1000n)
+    );
+    mockDelivery.mockResolvedValue(true);
+    mockWaitForReceipt.mockResolvedValue({ status: "success" });
+    Object.defineProperty(navigator, "onLine", { configurable: true, value: true });
+  });
+  const input = { token: CELO_TOKEN, to: RECIPIENT, amount: 100n, reviewedFee };
+
+  it("reads, sends, confirms and invalidates only the selected Celo chain", async () => {
+    const { result } = renderHook(() => useSendToken(), { wrapper: makeWrapper() });
+    const invalidate = vi.spyOn(queryClient, "invalidateQueries");
+    await result.current.mutateAsync(input);
+    expect(mockClientForChain.mock.calls.every(([chain]) => chain === 42220)).toBe(true);
+    expect(mockSendContractCall).toHaveBeenCalledWith(expect.objectContaining({ chainId: 42220 }));
+    expect(mockWaitForReceipt).not.toHaveBeenCalled();
+    expect(invalidate.mock.calls).toContainEqual([
+      { queryKey: ["greengoods", "tokens", "celoBalance", ACCOUNT.toLowerCase(), 42220] },
+    ]);
+    expect(invalidate.mock.calls).not.toContainEqual([{ queryKey: ["greengoods", "tokens"] }]);
+  });
+
+  it("requires balance for amount plus sender-paid fee", async () => {
+    mockReadContract.mockImplementation(({ functionName }: { functionName: string }) =>
+      Promise.resolve(functionName === "getFees" ? [10n, true] : 105n)
+    );
+    const { result } = renderHook(() => useSendToken(), { wrapper: makeWrapper() });
+    await expect(result.current.mutateAsync(input)).rejects.toThrow(/insufficient/i);
+    await waitFor(() => expect(result.current.isError).toBe(true));
+    expect(mockHandleError).toHaveBeenCalled();
+    expect(mockSendContractCall).not.toHaveBeenCalled();
+  });
+
+  it("blocks missing review and a changed fee before signing", async () => {
+    const { result } = renderHook(() => useSendToken(), { wrapper: makeWrapper() });
+    await expect(result.current.mutateAsync({ ...input, reviewedFee: undefined })).rejects.toThrow(
+      /fee/i
+    );
+    await expect(
+      result.current.mutateAsync({ ...input, reviewedFee: { ...reviewedFee, fee: 9n } })
+    ).rejects.toThrow(/fee/i);
+    expect(mockSendContractCall).not.toHaveBeenCalled();
+  });
+
+  it.each([null, false])("blocks indexed delivery %s", async (enabled) => {
+    mockDelivery.mockResolvedValue(enabled);
+    const { result } = renderHook(() => useSendToken(), { wrapper: makeWrapper() });
+    await expect(result.current.mutateAsync(input)).rejects.toThrow(/delivery/i);
+    expect(mockSendContractCall).not.toHaveBeenCalled();
+  });
+
+  it.each(["getFees", "balanceOf"])("blocks a failed %s read", async (failedRead) => {
+    mockReadContract.mockImplementation(({ functionName }: { functionName: string }) =>
+      functionName === failedRead
+        ? Promise.reject(new Error("unavailable"))
+        : Promise.resolve(functionName === "getFees" ? [10n, true] : 1000n)
+    );
+    const { result } = renderHook(() => useSendToken(), { wrapper: makeWrapper() });
+    await expect(result.current.mutateAsync(input)).rejects.toThrow();
+    expect(mockSendContractCall).not.toHaveBeenCalled();
+  });
+
+  it("rejects an account change while the balance read is pending", async () => {
+    let finishBalance!: (balance: bigint) => void;
+    mockReadContract.mockImplementation(({ functionName }: { functionName: string }) =>
+      functionName === "getFees"
+        ? Promise.resolve([10n, true])
+        : new Promise<bigint>((resolve) => {
+            finishBalance = resolve;
+          })
+    );
+    const { result, rerender } = renderHook(() => useSendToken(), { wrapper: makeWrapper() });
+    const pending = result.current.mutateAsync(input);
+    const failure = expect(pending).rejects.toThrow(/session changed/i);
+    await waitFor(() => expect(finishBalance).toBeDefined());
+    mockPrimaryAddress = RECIPIENT;
+    rerender();
+    finishBalance(1000n);
+    await failure;
+    expect(mockSendContractCall).not.toHaveBeenCalled();
+  });
+
+  it("never queues an offline send", async () => {
+    Object.defineProperty(navigator, "onLine", { configurable: true, value: false });
+    const { result } = renderHook(() => useSendToken(), { wrapper: makeWrapper() });
+    await expect(result.current.mutateAsync(input)).rejects.toThrow(/online/i);
+    expect(mockSendContractCall).not.toHaveBeenCalled();
+  });
+
+  it("does not claim success or invalidate balance for reverted inclusion", async () => {
+    mockSendContractCall.mockRejectedValue(
+      new TransactionRevertedError(`0x${"a".repeat(64)}`, "Transaction reverted on-chain")
+    );
+    const { result } = renderHook(() => useSendToken(), { wrapper: makeWrapper() });
+    const invalidate = vi.spyOn(queryClient, "invalidateQueries");
+    await expect(result.current.mutateAsync(input)).rejects.toThrow(/revert/i);
+    expect(mockAddRecent).not.toHaveBeenCalled();
+    expect(invalidate).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    "cancelled",
+    "replaced",
+  ] as const)("does not report a %s transaction as confirmed", async (reason) => {
+    mockSendContractCall.mockRejectedValue(new TransactionReplacementError(reason));
+    const { result } = renderHook(() => useSendToken(), { wrapper: makeWrapper() });
+    await expect(result.current.mutateAsync(input)).rejects.toThrow(/cancelled|replaced/i);
+    expect(mockAddRecent).not.toHaveBeenCalled();
+  });
+  it("accepts repricing and returns the confirmed replacement hash", async () => {
+    const hash = `0x${"b".repeat(64)}`;
+    mockSendContractCall.mockResolvedValue({ hash, sponsored: false });
+    const { result } = renderHook(() => useSendToken(), { wrapper: makeWrapper() });
+    await expect(result.current.mutateAsync(input)).resolves.toMatchObject({ hash });
+    expect(mockWaitForReceipt).not.toHaveBeenCalled();
+  });
+
+  it("accepts a confirmed Celo send when a separate public RPC wait would fail", async () => {
+    mockWaitForReceipt.mockRejectedValue(new Error("Public RPC unavailable"));
+    const { result } = renderHook(() => useSendToken(), { wrapper: makeWrapper() });
+    await expect(result.current.mutateAsync(input)).resolves.toMatchObject({
+      hash: `0x${"a".repeat(64)}`,
+    });
+    expect(mockWaitForReceipt).not.toHaveBeenCalled();
+  });
+
+  it("allows registry-supported non-G$ Celo tokens without a G$ fee quote", async () => {
+    const token = { ...CELO_TOKEN, symbol: "USDC", address: TOKEN_ADDR };
+    const { result } = renderHook(() => useSendToken(), { wrapper: makeWrapper() });
+    await expect(
+      result.current.mutateAsync({ token, to: RECIPIENT, amount: 100n })
+    ).resolves.toMatchObject({ account: ACCOUNT.toLowerCase() });
+    expect(mockDelivery).not.toHaveBeenCalled();
+    expect(mockSendContractCall).toHaveBeenCalledWith(expect.objectContaining({ chainId: 42220 }));
+  });
+
+  it("allows an explicit retry after rejection and does not retry automatically", async () => {
+    mockSendContractCall.mockRejectedValueOnce(new Error("User rejected"));
+    const { result } = renderHook(() => useSendToken(), { wrapper: makeWrapper() });
+    await expect(result.current.mutateAsync(input)).rejects.toThrow(/rejected/i);
+    expect(mockSendContractCall).toHaveBeenCalledTimes(1);
+    await result.current.mutateAsync(input);
+    expect(mockSendContractCall).toHaveBeenCalledTimes(2);
   });
 });

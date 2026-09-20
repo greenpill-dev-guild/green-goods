@@ -31,8 +31,8 @@ const mocks = vi.hoisted(() => ({
   pending: false,
 }));
 
-vi.mock("../../../hooks/app/useOffline", () => ({
-  useOffline: () => ({ isOnline: mocks.isOnline }),
+vi.mock("../../../hooks/app/useOnlineStatus", () => ({
+  useOnlineStatus: () => mocks.isOnline,
 }));
 
 vi.mock("../../../hooks/auth/usePrimaryAddress", () => ({

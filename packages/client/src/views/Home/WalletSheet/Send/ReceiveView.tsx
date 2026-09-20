@@ -11,7 +11,13 @@ import { PWA_SHEET_FOCAL_STATE_CLASSNAME } from "@/components/Pwa/sheetScrollSty
  * "Receive" side of the Tokens tab: shows the signed-in user's wallet QR and a
  * copyable address so another gardener can scan or paste it to send funds.
  */
-export function ReceiveView() {
+export function ReceiveView({
+  celo = false,
+  addressMismatch = false,
+}: {
+  celo?: boolean;
+  addressMismatch?: boolean;
+}) {
   const { formatMessage } = useIntl();
   const { primaryAddress } = useUser();
 
@@ -29,8 +35,15 @@ export function ReceiveView() {
 
   return (
     <div className="flex flex-col items-center gap-4 p-6 text-center">
+      {celo && addressMismatch ? (
+        <p role="status" className="text-sm text-warning-dark">
+          {formatMessage({ id: "app.celoWallet.addressMismatch" })}
+        </p>
+      ) : null}
       <p className="max-w-xs text-sm text-text-sub-600">
-        {formatMessage({ id: "app.receive.instruction" })}
+        {formatMessage({
+          id: celo ? "app.celoWallet.receiveInstruction" : "app.receive.instruction",
+        })}
       </p>
       <div className="rounded-2xl border border-stroke-soft-200 bg-static-white p-4">
         <QRCodeSVG
@@ -40,7 +53,9 @@ export function ReceiveView() {
           bgColor="var(--color-static-white)"
           fgColor="var(--color-static-black)"
           role="img"
-          aria-label={formatMessage({ id: "app.receive.qrLabel" })}
+          aria-label={formatMessage({
+            id: celo ? "app.celoWallet.qrLabel" : "app.receive.qrLabel",
+          })}
         />
       </div>
       <AddressDisplay address={primaryAddress as Address} />

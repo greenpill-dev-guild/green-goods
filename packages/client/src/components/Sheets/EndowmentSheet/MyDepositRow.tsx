@@ -1,22 +1,24 @@
+import {
+  FormattedAmountInput,
+  useFormattedAmountInput,
+} from "@green-goods/shared/components/Form/FormattedAmountInput";
 import { Button } from "@green-goods/shared/components/Button";
-import { TextInput } from "@green-goods/shared/components/Form/ControlPrimitives";
 import type { Address } from "@green-goods/shared/types/domain";
 import { ConfirmDialog } from "@green-goods/shared/components/Dialog/ConfirmDialog";
 import {
   formatTokenAmount,
   getVaultAssetDecimals,
   getVaultAssetSymbol,
-  validateDecimalInput,
 } from "@green-goods/shared/utils/blockchain/vaults";
 import type { GardenVault, VaultDeposit } from "@green-goods/shared/types/vaults";
 import { useDebouncedValue } from "@green-goods/shared/hooks/utils/useDebouncedValue";
-import { useOffline } from "@green-goods/shared/hooks/app/useOffline";
+import { useOnlineStatus } from "@green-goods/shared/hooks/app/useOnlineStatus";
 import { useUser } from "@green-goods/shared/hooks/auth/useUser";
 import { useVaultPreview } from "@green-goods/shared/hooks/vault/useVaultPreview";
 import { useVaultWithdraw } from "@green-goods/shared/hooks/vault/useVaultWithdraw";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { useIntl } from "react-intl";
-import { formatUnits, parseUnits } from "viem";
+import { formatUnits } from "viem";
 
 export interface MyDepositRowProps {
   deposit: VaultDeposit;
@@ -27,26 +29,18 @@ export interface MyDepositRowProps {
 export function MyDepositRow({ deposit, vault, gardenAddress }: MyDepositRowProps) {
   const { formatMessage } = useIntl();
   const { primaryAddress } = useUser();
-  const { isOnline } = useOffline();
+  const isOnline = useOnlineStatus();
   const withdrawMutation = useVaultWithdraw();
   const [amountInput, setAmountInput] = useState("");
   const [showWithdrawConfirm, setShowWithdrawConfirm] = useState(false);
 
   const assetDecimals = getVaultAssetDecimals(vault.asset, vault.chainId);
   const assetSymbol = getVaultAssetSymbol(vault.asset, vault.chainId);
-  const inputError = useMemo(
-    () => validateDecimalInput(amountInput, assetDecimals),
-    [amountInput, assetDecimals]
+  const { parsedAmount: amount, formatErrorId: inputError } = useFormattedAmountInput(
+    amountInput,
+    assetDecimals
   );
-
-  const parsedAmount = useMemo(() => {
-    if (!amountInput.trim() || inputError) return 0n;
-    try {
-      return parseUnits(amountInput, assetDecimals);
-    } catch {
-      return 0n;
-    }
-  }, [amountInput, inputError, assetDecimals]);
+  const parsedAmount = amount ?? 0n;
 
   const debouncedAmount = useDebouncedValue(parsedAmount, 300);
 
@@ -89,30 +83,29 @@ export function MyDepositRow({ deposit, vault, gardenAddress }: MyDepositRowProp
         {formatMessage({ id: "app.treasury.myShares" })}: {formatTokenAmount(deposit.shares, 18)}
       </p>
 
-      <div className="flex items-center gap-2">
-        <TextInput
-          type="text"
-          inputMode="decimal"
-          value={amountInput}
-          onChange={(event) => setAmountInput(event.target.value)}
-          placeholder={`0.0 ${assetSymbol}`}
-          aria-label={formatMessage({ id: "app.treasury.withdrawAmount" })}
-          aria-invalid={Boolean(inputError)}
-          invalid={Boolean(inputError)}
-        />
-        <Button
-          type="button"
-          emphasis="secondary"
-          onClick={() => setAmountInput(formatUnits(maxWithdrawable, assetDecimals))}
-        >
-          {formatMessage({ id: "app.treasury.max" })}
-        </Button>
-      </div>
-      {inputError && (
-        <p className="mt-1 text-xs text-error-dark" role="alert">
-          {formatMessage({ id: inputError })}
-        </p>
-      )}
+      <FormattedAmountInput
+        value={amountInput}
+        onValueChange={setAmountInput}
+        placeholder={`0.0 ${assetSymbol}`}
+        aria-label={formatMessage({ id: "app.treasury.withdrawAmount" })}
+        error={inputError ? formatMessage({ id: inputError }) : undefined}
+        inputClassName={`w-full rounded-md border px-3 py-2.5 text-sm text-text-strong-950 focus:outline-none focus:ring-2 focus:ring-primary-base/20 ${
+          inputError
+            ? "border-error-base focus:border-error-base"
+            : "border-stroke-sub-300 bg-bg-white-0 focus:border-primary-base"
+        }`}
+        errorClassName="mt-1 text-xs text-error-dark"
+        endSlot={
+          <Button
+            type="button"
+            emphasis="secondary"
+            size="sm"
+            onClick={() => setAmountInput(formatUnits(maxWithdrawable, assetDecimals))}
+          >
+            {formatMessage({ id: "app.treasury.max" })}
+          </Button>
+        }
+      />
 
       <Button
         type="button"
@@ -135,8 +128,7 @@ export function MyDepositRow({ deposit, vault, gardenAddress }: MyDepositRowProp
         description={formatMessage(
           { id: "app.treasury.confirmWithdrawDescription" },
           {
-            shares: formatTokenAmount(preview?.previewWithdrawShares ?? 0n, 18),
-            estimatedValue: formatTokenAmount(parsedAmount, assetDecimals),
+            amount: formatTokenAmount(parsedAmount, assetDecimals),
             asset: assetSymbol,
           }
         )}

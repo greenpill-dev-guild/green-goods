@@ -6,7 +6,13 @@
  * to send UserOperations via a bundler.
  */
 
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import type { P256Credential } from "viem/account-abstraction";
+import {
+  createSmartAccountClientResolver,
+  invalidateSmartAccountClientResolver,
+} from "../../auth/smartAccountClientResolver";
+import { arbitrum, celo as celoChain } from "viem/chains";
 import { entryPoint07Address, getUserOperationHash } from "viem/account-abstraction";
 import { sepolia } from "viem/chains";
 import {
@@ -29,6 +35,8 @@ import { PasskeySender } from "../passkey-sender";
 
 const VALID_RECIPIENT = "0x1111111111111111111111111111111111111111" as const;
 const TEST_CALL = createMockContractCall({ chainId: undefined });
+beforeEach(() => vi.stubEnv("VITE_PIMLICO_CELO_SPONSORSHIP_POLICY_ID", "test-celo-policy"));
+afterEach(() => vi.unstubAllEnvs());
 
 // ============================================
 // Tests
@@ -36,11 +44,12 @@ const TEST_CALL = createMockContractCall({ chainId: undefined });
 
 describe("PasskeySender", () => {
   let sender: PasskeySender;
+  let client: ReturnType<typeof createFakeSmartAccountClient>;
   let mockSendUserOperation: ReturnType<typeof createFakeSmartAccountClient>["sendUserOperation"];
 
   beforeEach(() => {
     vi.clearAllMocks();
-    const client = createFakeSmartAccountClient();
+    client = createFakeSmartAccountClient();
     mockSendUserOperation = client.sendUserOperation;
     sender = new PasskeySender(client);
   });
@@ -123,6 +132,7 @@ describe("PasskeySender", () => {
       expect(trace).toEqual(["sign", "intent", "broadcast"]);
       expect(onBeforeBroadcast).toHaveBeenCalledWith({
         kind: "user-operation",
+        chainId: sepolia.id,
         hash: getUserOperationHash({
           chainId: sepolia.id,
           entryPointAddress: entryPoint07Address,
@@ -176,5 +186,191 @@ describe("PasskeySender", () => {
     it("throws on empty batch", async () => {
       await expect(sender.sendBatch([])).rejects.toThrow("Cannot send empty batch");
     });
+  });
+});
+
+describe("passkey chain routing", () => {
+  it.each([
+    "userOpHash",
+    "sender",
+  ] as const)("rejects a receipt for a different %s", async (field) => {
+    const client = createFakeSmartAccountClient();
+    const hash = await client.sendUserOperation({ account: client.account!, calls: [] });
+    const receipt = await client.waitForUserOperationReceipt({ hash });
+    client.waitForUserOperationReceipt.mockResolvedValue({
+      ...receipt,
+      [field]: field === "sender" ? VALID_RECIPIENT : `0x${"e".repeat(64)}`,
+    });
+    await expect(new PasskeySender(client).sendContractCall(TEST_CALL)).rejects.toThrow(
+      "UserOperation receipt does not match"
+    );
+  });
+
+  it("propagates receipt failures without resubmitting", async () => {
+    const client = createFakeSmartAccountClient();
+    client.waitForUserOperationReceipt.mockRejectedValue(new Error("receipt unavailable"));
+    await expect(new PasskeySender(client).sendContractCall(TEST_CALL)).rejects.toThrow(
+      "receipt unavailable"
+    );
+    expect(client.sendUserOperation).toHaveBeenCalledOnce();
+  });
+
+  it("stops a sequential batch at a failed UserOperation", async () => {
+    const client = createFakeSmartAccountClient();
+    const receipt = await client.waitForUserOperationReceipt({ hash: MOCK_TX_HASH });
+    client.waitForUserOperationReceipt.mockResolvedValue({ ...receipt, success: false });
+    await expect(new PasskeySender(client).sendBatch([TEST_CALL, TEST_CALL])).rejects.toThrow(
+      "UserOperation execution reverted"
+    );
+    expect(client.sendUserOperation).toHaveBeenCalledOnce();
+  });
+
+  it("rejects a failed UserOperation inside a successful outer transaction", async () => {
+    const client = createFakeSmartAccountClient();
+    const receipt = await client.waitForUserOperationReceipt({ hash: MOCK_TX_HASH });
+    client.waitForUserOperationReceipt.mockResolvedValue({ ...receipt, success: false });
+    await expect(new PasskeySender(client).sendContractCall(TEST_CALL)).rejects.toThrow(
+      "UserOperation execution reverted"
+    );
+  });
+
+  it("rejects a quoted account that differs from the passkey account", async () => {
+    const primary = createFakeSmartAccountClient();
+    const sender = new PasskeySender(primary);
+    await expect(
+      sender.sendContractCall({ ...TEST_CALL, account: VALID_RECIPIENT })
+    ).rejects.toMatchObject({ code: "address_mismatch" });
+    expect(primary.sendUserOperation).not.toHaveBeenCalled();
+  });
+
+  it("blocks an in-flight send when sign-out occurs after client resolution", async () => {
+    const primary = createFakeSmartAccountClient();
+    const resolveSmartAccountClient = createSmartAccountClientResolver({
+      credential: {
+        id: "session",
+        publicKey: "0x1234",
+        raw: undefined as unknown as P256Credential["raw"],
+      },
+      primaryClient: primary,
+      primaryChainId: primary.chain!.id,
+      expectedAddress: primary.account!.address,
+      buildSmartAccount: vi.fn(),
+    });
+    const pending = new PasskeySender(primary, { resolveSmartAccountClient }).sendContractCall(
+      TEST_CALL
+    );
+    await Promise.resolve();
+    await Promise.resolve();
+    invalidateSmartAccountClientResolver(resolveSmartAccountClient);
+    await expect(pending).rejects.toMatchObject({ code: "session_expired" });
+    expect(primary.sendUserOperation).not.toHaveBeenCalled();
+  });
+
+  it("refuses a signature approved after the passkey session was invalidated", async () => {
+    const primary = createFakeSmartAccountClient();
+    const resolveSmartAccountClient = createSmartAccountClientResolver({
+      credential: {
+        id: "session",
+        publicKey: "0x1234",
+        raw: undefined as unknown as P256Credential["raw"],
+      },
+      primaryClient: primary,
+      primaryChainId: primary.chain!.id,
+      expectedAddress: primary.account!.address,
+      buildSmartAccount: vi.fn(),
+    });
+    let finishSignature!: (signature: `0x${string}`) => void;
+    vi.mocked(primary.account!.signUserOperation).mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          finishSignature = resolve;
+        })
+    );
+    const onBroadcastReference = vi.fn();
+    const pending = new PasskeySender(primary, { resolveSmartAccountClient }).sendContractCall(
+      TEST_CALL,
+      { onBroadcastReference }
+    );
+    await vi.waitFor(() => expect(finishSignature).toBeDefined());
+    invalidateSmartAccountClientResolver(resolveSmartAccountClient);
+    finishSignature("0x5555");
+    await expect(pending).rejects.toMatchObject({ code: "session_expired" });
+    expect(onBroadcastReference).not.toHaveBeenCalled();
+  });
+
+  it("resolves explicitly requested Celo without submitting on the primary chain", async () => {
+    const primary = createFakeSmartAccountClient();
+    const celo = createFakeSmartAccountClient({ chain: celoChain });
+    const resolveSmartAccountClient = vi.fn().mockResolvedValue(celo);
+    const sender = new PasskeySender(primary, { resolveSmartAccountClient });
+    await sender.sendContractCall({ ...TEST_CALL, chainId: 42220 });
+    expect(resolveSmartAccountClient).toHaveBeenCalledWith(42220);
+    expect(primary.sendUserOperation).not.toHaveBeenCalled();
+    expect(celo.sendUserOperation).toHaveBeenCalledWith(
+      expect.objectContaining({ calls: expect.any(Array) })
+    );
+  });
+
+  it("blocks a Celo send before signing when its sponsorship policy is absent", async () => {
+    vi.stubEnv("VITE_PIMLICO_CELO_SPONSORSHIP_POLICY_ID", undefined);
+    const primary = createFakeSmartAccountClient();
+    const celo = createFakeSmartAccountClient({ chain: celoChain });
+    const sender = new PasskeySender(primary, {
+      resolveSmartAccountClient: vi.fn().mockResolvedValue(celo),
+    });
+    await expect(sender.sendContractCall({ ...TEST_CALL, chainId: 42220 })).rejects.toMatchObject({
+      code: "policy_unavailable",
+    });
+    expect(celo.sendUserOperation).not.toHaveBeenCalled();
+  });
+
+  it("reconciles a Celo operation against the Celo client", async () => {
+    const primary = createFakeSmartAccountClient();
+    const celo = createFakeSmartAccountClient({ chain: celoChain });
+    const sender = new PasskeySender(primary, {
+      resolveSmartAccountClient: vi.fn(async (chainId) => (chainId === 42220 ? celo : primary)),
+    });
+    const onBroadcastReference = vi.fn();
+    await sender.sendContractCall({ ...TEST_CALL, chainId: 42220 }, { onBroadcastReference });
+    const reference = onBroadcastReference.mock.calls[0][0];
+    expect(reference).toMatchObject({ kind: "user-operation", chainId: 42220 });
+    await expect(sender.reconcileBroadcast(reference)).resolves.toMatchObject({
+      status: "confirmed",
+    });
+    expect(celo.getUserOperationReceipt).toHaveBeenCalledOnce();
+    expect(primary.getUserOperationReceipt).not.toHaveBeenCalled();
+  });
+
+  it("requires a resolver for every explicit chain, including the primary chain", async () => {
+    const primary = createFakeSmartAccountClient();
+    const sender = new PasskeySender(primary);
+    await expect(
+      sender.sendContractCall({ ...TEST_CALL, chainId: primary.chain!.id })
+    ).rejects.toMatchObject({ code: "resolver_unavailable" });
+    expect(primary.sendUserOperation).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ["chain_mismatch", { chain: arbitrum }],
+    ["address_mismatch", { chain: celoChain, accountAddress: VALID_RECIPIENT }],
+  ])("rejects %s before submission", async (code, overrides) => {
+    const primary = createFakeSmartAccountClient();
+    const client = createFakeSmartAccountClient(overrides);
+    const sender = new PasskeySender(primary, {
+      resolveSmartAccountClient: vi.fn().mockResolvedValue(client),
+    });
+    await expect(sender.sendContractCall({ ...TEST_CALL, chainId: 42220 })).rejects.toMatchObject({
+      code,
+    });
+    expect(primary.sendUserOperation).not.toHaveBeenCalled();
+    expect(client.sendUserOperation).not.toHaveBeenCalled();
+  });
+
+  it("uses the primary chain for calls without a chain ID", async () => {
+    const primary = createFakeSmartAccountClient();
+    const resolveSmartAccountClient = vi.fn().mockResolvedValue(primary);
+    await new PasskeySender(primary, { resolveSmartAccountClient }).sendContractCall(TEST_CALL);
+    expect(resolveSmartAccountClient).toHaveBeenCalledWith(primary.chain!.id);
+    expect(primary.sendUserOperation).toHaveBeenCalledOnce();
   });
 });

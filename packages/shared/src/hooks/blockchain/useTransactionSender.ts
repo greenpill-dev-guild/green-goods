@@ -1,4 +1,4 @@
-import { getWalletClient } from "@wagmi/core";
+import { getAccount, getWalletClient } from "@wagmi/core";
 /**
  * React hook wrapper around the TransactionSender factory.
  *
@@ -26,7 +26,7 @@ import { getWalletClient } from "@wagmi/core";
  */
 
 import { useMemo, useRef } from "react";
-import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
+import { isChainSupported } from "../../config/chains";
 import { ENV } from "../../lib/env";
 import { useConfig, useWriteContract } from "wagmi";
 import {
@@ -46,21 +46,29 @@ import { useUser } from "../auth/useUser";
  * Returns null when authentication is not yet initialized.
  */
 export function useTransactionSender(): TransactionSender | null {
-  const { authMode, smartAccountClient, primaryAddress } = useUser();
+  const { authMode, smartAccountClient, resolveSmartAccountClient, primaryAddress } = useUser();
   const { writeContractAsync } = useWriteContract();
   const config = useConfig();
 
   const erc7677ProxyUrl = ENV.VITE_ERC7677_PROXY_URL as string | undefined;
 
-  const session = useRef({ authMode, smartAccountClient, primaryAddress, generation: 0 });
+  const session = useRef({
+    authMode,
+    smartAccountClient,
+    resolveSmartAccountClient,
+    primaryAddress,
+    generation: 0,
+  });
   if (
     session.current.authMode !== authMode ||
     session.current.smartAccountClient !== smartAccountClient ||
+    session.current.resolveSmartAccountClient !== resolveSmartAccountClient ||
     session.current.primaryAddress !== primaryAddress
   )
     session.current = {
       authMode,
       smartAccountClient,
+      resolveSmartAccountClient,
       primaryAddress,
       generation: session.current.generation + 1,
     };
@@ -72,6 +80,7 @@ export function useTransactionSender(): TransactionSender | null {
       const sender = createTransactionSender({
         authMode,
         smartAccountClient,
+        resolveSmartAccountClient,
         wagmiConfig: config,
         writeContractAsync:
           writeContractAsync as unknown as TransactionSenderOptions["writeContractAsync"],
@@ -81,17 +90,30 @@ export function useTransactionSender(): TransactionSender | null {
         if (
           !primaryAddress ||
           address.toLowerCase() !== primaryAddress.toLowerCase() ||
-          chainId !== DEFAULT_CHAIN_ID ||
+          !isChainSupported(chainId) ||
           generation !== session.current.generation
         )
           throw new Error("submission-ownership-changed");
-        const wallet = authMode === "passkey" ? null : await getWalletClient(config, { chainId });
-        const account = authMode === "passkey" ? smartAccountClient?.account : wallet?.account;
-        if (
-          account?.address.toLowerCase() !== address.toLowerCase() ||
-          (wallet?.chain?.id !== undefined && wallet.chain.id !== chainId) ||
-          (authMode === "passkey" && smartAccountClient?.chain?.id !== chainId)
-        )
+        if (authMode === "passkey") {
+          const client =
+            smartAccountClient?.chain?.id === chainId
+              ? smartAccountClient
+              : await resolveSmartAccountClient?.(chainId);
+          if (
+            client?.account?.address.toLowerCase() !== address.toLowerCase() ||
+            client?.chain?.id !== chainId
+          )
+            throw new Error("submission-ownership-changed");
+        } else {
+          const wallet = await getWalletClient(config, { chainId });
+          const activeChainId = getAccount(config).chainId;
+          if (
+            wallet?.account?.address.toLowerCase() !== address.toLowerCase() ||
+            (activeChainId !== undefined && activeChainId !== chainId)
+          )
+            throw new Error("submission-ownership-changed");
+        }
+        if (generation !== session.current.generation)
           throw new Error("submission-ownership-changed");
       };
       return sender;
@@ -100,5 +122,13 @@ export function useTransactionSender(): TransactionSender | null {
       // loading during passkey init), return null gracefully.
       return null;
     }
-  }, [authMode, smartAccountClient, primaryAddress, writeContractAsync, config, erc7677ProxyUrl]);
+  }, [
+    authMode,
+    smartAccountClient,
+    resolveSmartAccountClient,
+    primaryAddress,
+    writeContractAsync,
+    config,
+    erc7677ProxyUrl,
+  ]);
 }

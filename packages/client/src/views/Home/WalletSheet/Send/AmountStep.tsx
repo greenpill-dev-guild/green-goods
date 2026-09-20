@@ -17,6 +17,8 @@ interface AmountStepProps {
   onAmountChange: (value: string) => void;
   validation: AmountValidation;
   onMax: () => void;
+  canMax?: boolean;
+  canSendCelo?: boolean;
 }
 
 function tokenIsSelectable(token: SendableTokenBalance): boolean {
@@ -32,6 +34,8 @@ export function AmountStep({
   onAmountChange,
   validation,
   onMax,
+  canMax = true,
+  canSendCelo = false,
 }: AmountStepProps) {
   const { formatMessage } = useIntl();
 
@@ -61,18 +65,21 @@ export function AmountStep({
             aria-label={formatMessage({ id: "app.send.token.title" })}
           >
             {tokens.map((token) => {
-              const selectable = tokenIsSelectable(token);
-              const selected = selectedToken?.address.toLowerCase() === token.address.toLowerCase();
+              const selectable =
+                tokenIsSelectable(token) && (token.chainId !== 42220 || canSendCelo);
+              const selected =
+                selectedToken?.chainId === token.chainId &&
+                selectedToken?.address.toLowerCase() === token.address.toLowerCase();
               return (
                 <button
-                  key={`${token.symbol}-${token.address}`}
+                  key={`${token.chainId}-${token.symbol}-${token.address}`}
                   type="button"
                   data-pressable="row"
                   disabled={!selectable}
                   onClick={() => onSelectToken(token)}
                   aria-pressed={selected}
                   className={cn(
-                    "flex w-full items-center justify-between gap-3 rounded-lg border p-3 text-left transition duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)]",
+                    "flex w-full items-center justify-between gap-3 rounded-lg border p-3 text-left transition duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-base",
                     selected
                       ? "border-primary-base bg-primary-base/10"
                       : "border-stroke-soft-200 bg-bg-white-0 hover:bg-bg-weak-50",
@@ -82,7 +89,9 @@ export function AmountStep({
                   <div className="min-w-0">
                     <div className="flex items-center gap-2">
                       <span className="text-sm font-medium text-text-strong-950">
-                        {token.symbol}
+                        {token.chainId === 42220
+                          ? formatMessage({ id: "app.celoWallet.asset" })
+                          : token.symbol}
                       </span>
                       {token.confersGovernance ? (
                         <span className="inline-flex rounded-full bg-primary-base/10 px-1.5 py-0.5 text-[10px] font-medium text-primary-base">
@@ -129,17 +138,22 @@ export function AmountStep({
 
       {selectedToken ? (
         <section className="space-y-2">
-          <SheetHeading as="h4">{formatMessage({ id: "app.send.amount.label" })}</SheetHeading>
+          <SheetHeading as="label" htmlFor="send-amount" className="block">
+            {formatMessage({ id: "app.send.amount.label" })}
+          </SheetHeading>
           <FormattedAmountInput
+            id="send-amount"
             value={amountInput}
             onValueChange={onAmountChange}
             placeholder="0.0"
             aria-label={formatMessage({ id: "app.send.amount.label" })}
             aria-invalid={Boolean(validation.formatErrorId || validation.insufficient)}
             endSlot={
-              <Button type="button" emphasis="secondary" onClick={onMax}>
-                {formatMessage({ id: "app.treasury.max" })}
-              </Button>
+              canMax ? (
+                <Button type="button" emphasis="secondary" onClick={onMax}>
+                  {formatMessage({ id: "app.treasury.max" })}
+                </Button>
+              ) : undefined
             }
             errorClassName="mt-2 text-xs text-error-dark"
             error={
@@ -153,6 +167,11 @@ export function AmountStep({
                   : null
             }
           />
+          {!canMax && selectedToken.chainId === 42220 ? (
+            <p className="text-xs text-text-sub-600">
+              {formatMessage({ id: "app.celoWallet.fee.maxUnavailable" })}
+            </p>
+          ) : null}
         </section>
       ) : null}
 

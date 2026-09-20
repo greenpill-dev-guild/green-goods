@@ -13,16 +13,19 @@ import type { Address } from "../../types/domain";
 /** A single contract call to execute */
 export interface ContractCall {
   address: Address;
+  /** Account whose balance and fee quote authorize this call. */
+  account?: Address;
   abi: Abi;
   functionName: string;
   args: readonly unknown[];
+  /** Authoritative execution chain; omitted calls use the primary application account. */
   chainId?: number;
   value?: bigint;
 }
 
 export type BroadcastReference =
   | { kind: "transaction"; hash: Hex }
-  | { kind: "user-operation"; hash: Hex };
+  | { kind: "user-operation"; hash: Hex; chainId?: number };
 
 export type BroadcastConfirmation =
   | { status: "confirmed"; transactionHash: Hex }
@@ -72,6 +75,18 @@ export interface TransactionSender {
 
   /** The auth mode this sender handles */
   readonly authMode: "passkey" | "embedded" | "wallet";
+}
+
+export class TransactionReplacementError extends Error {
+  readonly code: "transaction_cancelled" | "transaction_replaced";
+
+  constructor(reason: "cancelled" | "replaced") {
+    super(
+      reason === "cancelled" ? "Transaction cancelled" : "Transaction replaced by a different call"
+    );
+    this.name = "TransactionReplacementError";
+    this.code = reason === "cancelled" ? "transaction_cancelled" : "transaction_replaced";
+  }
 }
 
 /** A receipt proved failure; retry must be an explicit decision. */

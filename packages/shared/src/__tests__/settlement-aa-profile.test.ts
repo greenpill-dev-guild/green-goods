@@ -32,7 +32,6 @@ describe("settlement smart-account profiles", () => {
         sourceChainId: 421614,
         chainId: 11142220,
         indexed: true,
-        mainnetEvidenceReady: true,
       })
     ).toBe(false);
     expect(
@@ -40,7 +39,13 @@ describe("settlement smart-account profiles", () => {
         sourceChainId: 42161,
         chainId: 42220,
         indexed: null,
-        mainnetEvidenceReady: true,
+      })
+    ).toBe(false);
+    expect(
+      isGardenerDeliveryEnabled({
+        sourceChainId: 42161,
+        chainId: 42220,
+        indexed: false,
       })
     ).toBe(false);
     expect(
@@ -48,15 +53,6 @@ describe("settlement smart-account profiles", () => {
         sourceChainId: 42161,
         chainId: 42220,
         indexed: true,
-        mainnetEvidenceReady: false,
-      })
-    ).toBe(false);
-    expect(
-      isGardenerDeliveryEnabled({
-        sourceChainId: 42161,
-        chainId: 42220,
-        indexed: true,
-        mainnetEvidenceReady: true,
       })
     ).toBe(true);
     expect(
@@ -64,7 +60,6 @@ describe("settlement smart-account profiles", () => {
         sourceChainId: 421614,
         chainId: 42220,
         indexed: true,
-        mainnetEvidenceReady: true,
       })
     ).toBe(false);
   });

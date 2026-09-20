@@ -17,7 +17,7 @@ import {
 import { isCommitmentReasonPinError } from "../../../modules/commitment-pooling/reasons";
 import { selectCommitmentSeat } from "../../../modules/commitment-pooling/selectors";
 import type { Address } from "../../../types/domain";
-import { useOffline } from "../../app/useOffline";
+import { useOnlineStatus } from "../../app/useOnlineStatus";
 import { usePrimaryAddress } from "../../auth/usePrimaryAddress";
 import { useActions } from "../../blockchain/useBaseLists";
 import { useCommitmentJobs } from "../../commitment-pooling/useCommitmentJobs";
@@ -53,7 +53,7 @@ export function useGardenCommitmentController(input: {
 }): GardenCommitmentController {
   const { chainId, commitmentId, routeGarden: routeGardenInput } = input;
   const routeGarden = (routeGardenInput as Address | undefined) ?? null;
-  const { isOnline } = useOffline();
+  const isOnline = useOnlineStatus();
   const viewer = (usePrimaryAddress() as Address | null) ?? null;
   const commitmentQuery = useCommitment(
     { chainId, commitmentId: commitmentId ?? 0n },

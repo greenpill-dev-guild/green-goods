@@ -1,4 +1,4 @@
-import { useOffline } from "@green-goods/shared/hooks/app/useOffline";
+import { useOnlineStatus } from "@green-goods/shared/hooks/app/useOnlineStatus";
 import { useUser } from "@green-goods/shared/hooks/auth/useUser";
 import { useAllocateHypercertSupport } from "@green-goods/shared/hooks/conviction/useAllocateHypercertSupport";
 import { useConvictionStrategies } from "@green-goods/shared/hooks/conviction/useConvictionStrategies";
@@ -23,7 +23,7 @@ const WEI = 10n ** 18n;
 function withSignalPool({ eligible = true, weights = true, online = true } = {}) {
   return () => {
     mocked(useUser).mockReturnValue({ primaryAddress: ACCOUNT } as ReturnType<typeof useUser>);
-    mocked(useOffline).mockReturnValue({ isOnline: online } as ReturnType<typeof useOffline>);
+    mocked(useOnlineStatus).mockReturnValue(online);
     mocked(useConvictionStrategies).mockReturnValue({ strategies: [POOL] } as unknown as ReturnType<
       typeof useConvictionStrategies
     >);
@@ -79,7 +79,7 @@ function withSignalPool({ eligible = true, weights = true, online = true } = {})
     } as unknown as ReturnType<typeof useAllocateHypercertSupport>);
     return resetHookMocks(
       useUser,
-      useOffline,
+      useOnlineStatus,
       useConvictionStrategies,
       useHypercertConviction,
       useMemberVotingPower,

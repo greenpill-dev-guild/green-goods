@@ -190,6 +190,7 @@ const disconnectedAuthState: AuthStateValue = {
   credential: null,
   smartAccountAddress: null,
   smartAccountClient: null,
+  resolveSmartAccountClient: null,
   userName: null,
   hasStoredCredential: false,
   walletAddress: null,

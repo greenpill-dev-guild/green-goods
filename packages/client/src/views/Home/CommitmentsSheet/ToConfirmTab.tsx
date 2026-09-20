@@ -1,6 +1,6 @@
 import { StatusBadge } from "@green-goods/shared/components/StatusBadge";
 import { SheetHeading } from "@green-goods/shared/components/Dialog/SheetHeading";
-import { useOffline } from "@green-goods/shared/hooks/app/useOffline";
+import { useOnlineStatus } from "@green-goods/shared/hooks/app/useOnlineStatus";
 import {
   type CommitmentsToConfirm,
   isCapturedCommitment,
@@ -31,7 +31,7 @@ export interface ToConfirmTabProps {
  */
 export function ToConfirmTab({ toConfirm, onOpenCommitment }: ToConfirmTabProps) {
   const { formatMessage } = useIntl();
-  const { isOnline } = useOffline();
+  const isOnline = useOnlineStatus();
   const { byCID } = useCommitmentMetadata(
     useMemo(
       () => toConfirm.groups.flatMap((group) => group.rows.map((row) => row.commitment)),

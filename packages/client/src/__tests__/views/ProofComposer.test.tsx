@@ -48,6 +48,13 @@ vi.mock("@green-goods/shared/hooks/app/useOffline", async (importOriginal) => {
   };
 });
 
+vi.mock("@green-goods/shared/hooks/app/useOnlineStatus", async (importOriginal) => {
+  return {
+    ...(await importOriginal()),
+    useOnlineStatus: () => true,
+  };
+});
+
 const { ProofComposer } = await import("../../views/Home/Garden/Proof");
 
 const render = () =>

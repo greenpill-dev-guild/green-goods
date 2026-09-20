@@ -112,10 +112,10 @@ vi.mock("@green-goods/shared/hooks/blockchain/useBaseLists", async (importOrigin
   };
 });
 
-vi.mock("@green-goods/shared/hooks/app/useOffline", async (importOriginal) => {
+vi.mock("@green-goods/shared/hooks/app/useOnlineStatus", async (importOriginal) => {
   return {
     ...(await importOriginal()),
-    useOffline: () => mockUseOffline(),
+    useOnlineStatus: () => mockUseOffline().isOnline,
   };
 });
 

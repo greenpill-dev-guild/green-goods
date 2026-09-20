@@ -104,6 +104,7 @@ export function DevAuthProvider({
       credential: null,
       smartAccountAddress: null,
       smartAccountClient: null,
+      resolveSmartAccountClient: null,
       walletAddress: address,
       eoaAddress: address ?? undefined,
       embeddedAddress: null,

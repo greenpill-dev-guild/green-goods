@@ -69,8 +69,8 @@ const mocks = vi.hoisted(() => ({
   recordingComplete: null as ((file: File) => void) | null,
 }));
 
-vi.mock("../../../hooks/app/useOffline", () => ({
-  useOffline: () => ({ isOnline: mocks.isOnline }),
+vi.mock("../../../hooks/app/useOnlineStatus", () => ({
+  useOnlineStatus: () => mocks.isOnline,
 }));
 
 vi.mock("../../../hooks/auth/usePrimaryAddress", () => ({

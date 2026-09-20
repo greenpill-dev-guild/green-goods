@@ -12,7 +12,7 @@
 import type { SmartAccountClient } from "permissionless";
 import type { Hex } from "viem";
 import type { P256Credential } from "viem/account-abstraction";
-import type { AuthMode } from "../types/auth";
+import type { AuthMode, SmartAccountClientResolver } from "../types/auth";
 
 export type WalletConnectionType = "wallet" | "embedded";
 type RestorableAuthMode = Extract<AuthMode, WalletConnectionType>;
@@ -26,6 +26,7 @@ export interface AuthContext {
   credential: P256Credential | null;
   userName: string | null;
   smartAccountClient: SmartAccountClient | null;
+  resolveSmartAccountClient: SmartAccountClientResolver | null;
   smartAccountAddress: Hex | null;
 
   // Wallet session state (when authenticated via wallet)
@@ -88,6 +89,7 @@ export type AuthEvent =
 export interface PasskeySessionResult {
   credential: P256Credential;
   smartAccountClient: SmartAccountClient;
+  resolveSmartAccountClient?: SmartAccountClientResolver;
   smartAccountAddress: Hex;
   userName: string;
 }

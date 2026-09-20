@@ -21,10 +21,10 @@ vi.mock("@green-goods/shared/hooks/auth/useUser", async (importOriginal) => {
   };
 });
 
-vi.mock("@green-goods/shared/hooks/app/useOffline", async (importOriginal) => {
+vi.mock("@green-goods/shared/hooks/app/useOnlineStatus", async (importOriginal) => {
   return {
     ...(await importOriginal()),
-    useOffline: () => ({ isOnline: mocks.isOnline }),
+    useOnlineStatus: () => mocks.isOnline,
   };
 });
 

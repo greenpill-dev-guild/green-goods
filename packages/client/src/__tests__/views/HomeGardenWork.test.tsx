@@ -4,6 +4,8 @@ import { IntlProvider } from "react-intl";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+vi.mock("@green-goods/shared/hooks/app/useOnlineStatus", () => ({ useOnlineStatus: () => true }));
+
 const mockNavigate = vi.fn();
 const mockUseGardens = vi.fn();
 const mockUseWorks = vi.fn();

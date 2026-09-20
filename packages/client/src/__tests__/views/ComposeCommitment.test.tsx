@@ -58,6 +58,13 @@ vi.mock("@green-goods/shared/hooks/app/useOffline", async (importOriginal) => {
   };
 });
 
+vi.mock("@green-goods/shared/hooks/app/useOnlineStatus", async (importOriginal) => {
+  return {
+    ...(await importOriginal()),
+    useOnlineStatus: () => mockUseOffline().isOnline,
+  };
+});
+
 // The view imports one public controller. These reader-edge mocks keep that
 // controller real while replacing only its external data sources.
 vi.mock("@green-goods/shared/hooks/auth/usePrimaryAddress", () => ({
