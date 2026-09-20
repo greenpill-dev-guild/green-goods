@@ -16,6 +16,7 @@ export function useCookieJarFactoryAddress(options: { enabled?: boolean } = {}) 
   const moduleConfigured = !!moduleAddress && moduleAddress.toLowerCase() !== ZERO_ADDRESS;
 
   const query = useReadContract({
+    chainId,
     address: moduleAddress as Address,
     abi: COOKIE_JAR_MODULE_ABI,
     functionName: "cookieJarFactory",

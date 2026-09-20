@@ -112,6 +112,7 @@ export function useCampaignCookieJar(
   jarAddress?: Address,
   options: UseCampaignCookieJarOptions = {}
 ) {
+  const chainId = useCurrentChain();
   const { primaryAddress } = useUser();
   const enabled = options.enabled ?? true;
   const normalizedJar = jarAddress?.toLowerCase() as Address | undefined;
@@ -141,7 +142,7 @@ export function useCampaignCookieJar(
       { address: normalizedJar, abi: COOKIE_JAR_ABI, functionName: "getAllowlist" as const },
     ];
 
-    if (!normalizedUser) return baseContracts;
+    if (!normalizedUser) return baseContracts.map((contract) => ({ ...contract, chainId }));
 
     return [
       ...baseContracts,
@@ -163,8 +164,8 @@ export function useCampaignCookieJar(
         functionName: "hasRole" as const,
         args: [JAR_OWNER_ROLE, normalizedUser],
       },
-    ];
-  }, [normalizedJar, normalizedUser]);
+    ].map((contract) => ({ ...contract, chainId }));
+  }, [chainId, normalizedJar, normalizedUser]);
 
   const detailsQuery = useReadContracts({
     contracts: jarContracts,
@@ -180,8 +181,13 @@ export function useCampaignCookieJar(
   const tokenQuery = useReadContracts({
     contracts: currency
       ? [
-          { address: currency, abi: ERC20_DECIMALS_ABI, functionName: "decimals" as const },
-          { address: currency, abi: ERC20_SYMBOL_ABI, functionName: "symbol" as const },
+          {
+            address: currency,
+            abi: ERC20_DECIMALS_ABI,
+            functionName: "decimals" as const,
+            chainId,
+          },
+          { address: currency, abi: ERC20_SYMBOL_ABI, functionName: "symbol" as const, chainId },
         ]
       : [],
     allowFailure: true,
@@ -192,6 +198,7 @@ export function useCampaignCookieJar(
   });
 
   const metadataQuery = useReadContract({
+    chainId,
     address: factory.factoryAddress,
     abi: COOKIE_JAR_FACTORY_ABI,
     functionName: "getMetadata",

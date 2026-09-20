@@ -29,6 +29,7 @@ import { useIntl } from "react-intl";
 import { formatUnits } from "viem";
 import { useBalance } from "wagmi";
 import { WalletConnectButton } from "@/components/Actions/WalletConnectButton";
+import { useCurrentChain } from "@green-goods/shared/hooks/blockchain/useChainConfig";
 import { EditorialSkeleton, EditorialStatSkeleton } from "@/components/Public/atoms";
 import { classifyCookieJarStatus, type CookieJarStatus } from "@/components/Public/cookieJarStatus";
 export type CookieJarBucket = "for-you" | "active" | "unresolved";
@@ -403,6 +404,7 @@ function CampaignCookieJarInlineActions({
   jar: NonNullable<ReturnType<typeof useCampaignCookieJar>["jar"]>;
 }) {
   const { formatMessage, locale } = useIntl();
+  const chainId = useCurrentChain();
   const { primaryAddress } = useUser();
   const { loginWithWallet } = useAuth();
   const claimId = useId();
@@ -461,6 +463,7 @@ function CampaignCookieJarInlineActions({
     !primaryAddress || parsedDeposit <= 0n || Boolean(depositError) || depositMutation.isPending;
 
   const { data: walletBalance } = useBalance({
+    chainId,
     address: primaryAddress as Address | undefined,
     token: jar.assetAddress,
     query: { enabled: Boolean(primaryAddress && jar.assetAddress) },

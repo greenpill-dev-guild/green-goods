@@ -248,6 +248,23 @@ describe("CookiesPage", () => {
     expect(mockOpenWallet).not.toHaveBeenCalled();
   });
 
+  it("keeps wallet connection available when a listed jar cannot be read", async () => {
+    const user = userEvent.setup();
+    mockUseUser.mockReturnValue({ primaryAddress: undefined });
+    mockUseCampaignCookieJar.mockReturnValue({
+      jar: null,
+      isLoading: false,
+      error: new Error("read failed"),
+      hasDetailReadFailure: true,
+    });
+
+    renderPage("/cookies");
+
+    expect(await screen.findByText(/This cookie jar could not be loaded/i)).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Connect Wallet" }));
+    expect(mockLoginWithWallet).toHaveBeenCalledTimes(1);
+  });
+
   it("keeps the wallet surface deferred until the visitor asks to explore jars", () => {
     renderPage("/cookies", false);
 

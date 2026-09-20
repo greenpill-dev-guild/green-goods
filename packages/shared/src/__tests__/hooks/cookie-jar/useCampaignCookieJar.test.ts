@@ -17,6 +17,8 @@ const {
   mockFactoryQuery,
   mockMetadataQuery,
   mockTokenQuery,
+  mockUseReadContract,
+  mockUseReadContracts,
 } = vi.hoisted(() => ({
   TEST_CHAIN_ID: 11155111,
   TEST_JAR: "0x1111111111111111111111111111111111111111" as Address,
@@ -36,6 +38,8 @@ const {
   mockTokenQuery: {
     current: { data: undefined as unknown, isLoading: false, error: null as Error | null },
   },
+  mockUseReadContract: vi.fn(),
+  mockUseReadContracts: vi.fn(),
 }));
 
 vi.mock("../../../hooks/auth/useUser", () => ({
@@ -59,10 +63,12 @@ vi.mock("../../../utils/blockchain/vaults", () => ({
 
 vi.mock("wagmi", () => ({
   useReadContract: (args: { functionName?: string }) => {
+    mockUseReadContract(args);
     if (args.functionName === "getMetadata") return mockMetadataQuery.current;
     return mockFactoryQuery.current;
   },
   useReadContracts: (args: { contracts?: Array<{ functionName?: string }> }) => {
+    mockUseReadContracts(args);
     const firstFunction = args.contracts?.[0]?.functionName;
     if (firstFunction === "decimals") return mockTokenQuery.current;
     return mockDetailsQuery.current;
@@ -99,6 +105,7 @@ function campaignJarDetails() {
 
 describe("useCampaignCookieJar", () => {
   beforeEach(() => {
+    vi.clearAllMocks();
     mockDetailsQuery.current = {
       data: campaignJarDetails(),
       isLoading: false,
@@ -131,5 +138,22 @@ describe("useCampaignCookieJar", () => {
     expect(result.current.metadataError).toBeInstanceOf(Error);
     expect(result.current.hasMetadataReadFailure).toBe(true);
     expect(result.current.hasDetailReadFailure).toBe(true);
+  });
+
+  it("reads jar, token, and metadata on the app chain while disconnected", () => {
+    renderHook(() => useCampaignCookieJar(TEST_JAR));
+
+    for (const [args] of mockUseReadContracts.mock.calls) {
+      expect(args.contracts.length).toBeGreaterThan(0);
+      expect(
+        args.contracts.every((contract: { chainId?: number }) => contract.chainId === TEST_CHAIN_ID)
+      ).toBe(true);
+    }
+    expect(mockUseReadContract).toHaveBeenCalledWith(
+      expect.objectContaining({ functionName: "getMetadata", chainId: TEST_CHAIN_ID })
+    );
+    expect(mockUseReadContract).toHaveBeenCalledWith(
+      expect.objectContaining({ functionName: "cookieJarFactory", chainId: TEST_CHAIN_ID })
+    );
   });
 });
