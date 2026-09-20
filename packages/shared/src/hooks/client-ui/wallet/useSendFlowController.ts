@@ -1,25 +1,25 @@
-import { isCeloGoodDollar, isSendableTokenAvailable } from "../../../config/tokens";
-import type { SendableTokenBalance } from "../../../hooks/blockchain/useSendableTokens";
+import { useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useReducer, useRef, useState } from "react";
 import { useIntl } from "react-intl";
 import { formatUnits } from "viem";
-import { useQuery } from "@tanstack/react-query";
 import { tokensKeys } from "../../../config/query-keys/tokens";
+import { isCeloGoodDollar, isSendableTokenAvailable } from "../../../config/tokens";
+import type { SendableTokenBalance } from "../../../hooks/blockchain/useSendableTokens";
 import {
-  quoteGoodDollarTransfer,
   type GoodDollarFeeQuote,
+  quoteGoodDollarTransfer,
 } from "../../../modules/wallet/good-dollar-fees";
-import { useUser } from "../../auth/useUser";
-import type { Address } from "../../../types/domain";
 import {
   initialSendFlowState,
-  sendFlowReducer,
-  validateSendAmount,
   type SelectedRecipient,
   type SendFlowEvent,
+  sendFlowReducer,
+  validateSendAmount,
   type WalletMode,
 } from "../../../modules/wallet/send-flow";
+import type { Address } from "../../../types/domain";
 import { formatAddress } from "../../../utils/app/text";
+import { useUser } from "../../auth/useUser";
 
 interface SendMutationPort {
   isPending: boolean;
@@ -42,6 +42,7 @@ interface UseSendFlowControllerOptions {
   sendMutation: SendMutationPort;
   tokens?: SendableTokenBalance[];
   canSendCelo?: boolean;
+  eligibleCeloRecipients?: ReadonlySet<string>;
 }
 
 export function useSendFlowController({
@@ -51,6 +52,7 @@ export function useSendFlowController({
   sendMutation,
   tokens,
   canSendCelo = false,
+  eligibleCeloRecipients,
 }: UseSendFlowControllerOptions) {
   const { formatMessage } = useIntl();
   const [state, dispatch] = useReducer(sendFlowReducer, initialSendFlowState);
@@ -97,6 +99,10 @@ export function useSendFlowController({
     ? resolvedEnsName || recipient.ensName || formatAddress(recipient.address)
     : "";
   const celo = Boolean(selectedToken && isCeloGoodDollar(selectedToken));
+  const recipientEligible =
+    !celo || Boolean(recipient && eligibleCeloRecipients?.has(recipient.address.toLowerCase()));
+  const eligibilityRef = useRef(recipientEligible);
+  eligibilityRef.current = recipientEligible;
   const feeQuery = useQuery({
     queryKey: tokensKeys.transferFee(
       primaryAddress ?? "",
@@ -109,6 +115,7 @@ export function useSendFlowController({
       celo &&
       isOnline &&
       canSendCelo &&
+      recipientEligible &&
       Boolean(primaryAddress && recipient) &&
       validation.parsedAmount > 0n &&
       state.mode === "send",
@@ -135,8 +142,8 @@ export function useSendFlowController({
   const canAdvance =
     !sendMutation.isPending &&
     (step === "recipient"
-      ? Boolean(recipient)
-      : validation.valid && feeReady && (step !== "review" || isOnline));
+      ? Boolean(recipient) && recipientEligible
+      : validation.valid && recipientEligible && feeReady && (step !== "review" || isOnline));
   const canMax = Boolean(
     selectedToken?.balance &&
       !selectedToken.errored &&
@@ -154,6 +161,7 @@ export function useSendFlowController({
           generation.current !== actionGeneration ||
           !live.current.isOnline ||
           !live.current.canSendCelo ||
+          !eligibilityRef.current ||
           fresh.isError ||
           !fresh.data ||
           fresh.data.totalDebit > (selectedToken?.balance ?? 0n)
@@ -182,7 +190,14 @@ export function useSendFlowController({
         : formatMessage({ id: "app.send.sendCta" });
 
   const executeSend = () => {
-    if (!recipient || !selectedToken || !canAdvance || !isOnline || (celo && !confirmFee.current))
+    if (
+      !recipient ||
+      !selectedToken ||
+      !canAdvance ||
+      !eligibilityRef.current ||
+      !isOnline ||
+      (celo && !confirmFee.current)
+    )
       return;
     sendMutation.mutate(
       {
@@ -211,6 +226,7 @@ export function useSendFlowController({
     feeError,
     feeInsufficient,
     feeChanged,
+    recipientEligible,
     canMax,
     retryFee: () => feeQuery.refetch(),
     showConfirm: state.showConfirm && Boolean(selectedToken),

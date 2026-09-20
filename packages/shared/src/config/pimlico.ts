@@ -1,9 +1,9 @@
 import { createPimlicoClient } from "permissionless/clients/pimlico";
-import { ENV } from "../lib/env";
-import { SmartAccountClientError } from "../modules/auth/smartAccountClientResolver";
-import { type Chain, createPublicClient, http } from "viem";
+import { type Chain, createPublicClient, fallback, http } from "viem";
 import { entryPoint07Address } from "viem/account-abstraction";
 import { mainnet, sepolia } from "viem/chains";
+import { ENV } from "../lib/env";
+import { SmartAccountClientError } from "../modules/auth/smartAccountClientResolver";
 import { getRpcUrl } from "../utils/blockchain/chain-registry";
 import { getChain, isChainSupported } from "./chains";
 
@@ -108,8 +108,12 @@ export function createPublicClientForChain(chainId: number) {
       ? getPimlicoBundlerUrl(chainId)
       : getRpcUrl(chainId, ENV.VITE_ALCHEMY_API_KEY);
 
+  const publicRpcUrl = getRpcUrl(chainId);
   return createPublicClient({
-    transport: http(rpcUrl),
+    transport:
+      chainId === 42220 && rpcUrl !== publicRpcUrl
+        ? fallback([http(rpcUrl), http(publicRpcUrl)])
+        : http(rpcUrl),
     chain,
   });
 }

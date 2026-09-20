@@ -84,6 +84,17 @@ describe("flattenRecipientMembers", () => {
 });
 
 describe("buildRecipientDirectory", () => {
+  it("includes only gardener role holders when the G$ picker requests gardeners", () => {
+    const directory = buildRecipientDirectory(
+      [garden({ gardeners: [ALICE], stewards: [SELF, BOB], communities: [BOB] })],
+      SELF,
+      "gardener"
+    );
+    expect([...directory.byAddress.keys()]).toEqual([ALICE.toLowerCase()]);
+    expect(directory.myGardens[0].isMine).toBe(true);
+    expect(directory.byAddress.get(ALICE.toLowerCase())?.gardens[0].roles).toEqual(["gardener"]);
+  });
+
   it("splits my gardens from others and indexes members by address", () => {
     const directory = buildRecipientDirectory(
       [

@@ -1,17 +1,17 @@
 import { Button } from "@green-goods/shared/components/Button";
+import { SheetHeading } from "@green-goods/shared/components/Dialog/SheetHeading";
 import { TextInput } from "@green-goods/shared/components/Form/ControlPrimitives";
 import { IconButton } from "@green-goods/shared/components/IconButton";
-import { SheetHeading } from "@green-goods/shared/components/Dialog/SheetHeading";
+import { useUser } from "@green-goods/shared/hooks/auth/useUser";
+import { useGardens } from "@green-goods/shared/hooks/blockchain/useBaseLists";
+import { useEnsAddress } from "@green-goods/shared/hooks/blockchain/useEnsAddress";
+import { useRecentRecipients } from "@green-goods/shared/hooks/blockchain/useRecentRecipients";
 import type { Address } from "@green-goods/shared/types/domain";
 import {
   buildRecipientDirectory,
   flattenRecipientMembers,
   sharedGardenNames,
 } from "@green-goods/shared/utils/app/send-recipients";
-import { useEnsAddress } from "@green-goods/shared/hooks/blockchain/useEnsAddress";
-import { useGardens } from "@green-goods/shared/hooks/blockchain/useBaseLists";
-import { useRecentRecipients } from "@green-goods/shared/hooks/blockchain/useRecentRecipients";
-import { useUser } from "@green-goods/shared/hooks/auth/useUser";
 import {
   RiArrowLeftLine,
   RiArrowRightSLine,
@@ -30,9 +30,14 @@ import type { SelectedRecipient } from "./types";
 interface RecipientPickerProps {
   selectedAddress?: Address;
   onSelect: (recipient: SelectedRecipient) => void;
+  gDollarOnly?: boolean;
 }
 
-export function RecipientPicker({ selectedAddress, onSelect }: RecipientPickerProps) {
+export function RecipientPicker({
+  selectedAddress,
+  onSelect,
+  gDollarOnly = false,
+}: RecipientPickerProps) {
   const { formatMessage } = useIntl();
   const { primaryAddress } = useUser();
   const { data: gardens = [] } = useGardens();
@@ -41,6 +46,7 @@ export function RecipientPicker({ selectedAddress, onSelect }: RecipientPickerPr
   const [query, setQuery] = useState("");
   const [showScanner, setShowScanner] = useState(false);
   const [browseGardenId, setBrowseGardenId] = useState<string | null>(null);
+  const [recipientRejected, setRecipientRejected] = useState(false);
 
   const trimmed = query.trim();
   const queryIsAddress = isAddress(trimmed);
@@ -51,9 +57,19 @@ export function RecipientPicker({ selectedAddress, onSelect }: RecipientPickerPr
   );
 
   const directory = useMemo(
-    () => buildRecipientDirectory(gardens, primaryAddress),
-    [gardens, primaryAddress]
+    () => buildRecipientDirectory(gardens, primaryAddress, gDollarOnly ? "gardener" : undefined),
+    [gardens, primaryAddress, gDollarOnly]
   );
+  const canSelect = (address: Address) =>
+    !gDollarOnly || directory.byAddress.has(address.toLowerCase());
+  const selectRecipient = (recipient: SelectedRecipient) => {
+    if (!canSelect(recipient.address)) {
+      setRecipientRejected(true);
+      return;
+    }
+    setRecipientRejected(false);
+    onSelect(recipient);
+  };
 
   // Search matches wallet address or garden name across every garden (person-name
   // search is limited to the ENS input path — resolving every member is too costly).
@@ -74,6 +90,8 @@ export function RecipientPicker({ selectedAddress, onSelect }: RecipientPickerPr
     ? (trimmed as Address)
     : ((resolvedEns as Address | undefined) ?? null);
   const showResolveFailed = looksLikeEns && !ensResolving && !resolvedEns;
+  const manualAddressRejected = Boolean(manualAddress && !canSelect(manualAddress));
+  const eligibleRecents = recents.filter((recent) => canSelect(recent.address));
   const showInvalid =
     trimmed.length > 0 && !queryIsAddress && !looksLikeEns && searchResults.length === 0;
 
@@ -87,7 +105,7 @@ export function RecipientPicker({ selectedAddress, onSelect }: RecipientPickerPr
         onClose={() => setShowScanner(false)}
         onResult={(address) => {
           setShowScanner(false);
-          onSelect({ address, source: "qr" });
+          selectRecipient({ address, source: "qr" });
         }}
       />
     );
@@ -95,6 +113,11 @@ export function RecipientPicker({ selectedAddress, onSelect }: RecipientPickerPr
 
   return (
     <div className="space-y-3 p-4">
+      {gDollarOnly ? (
+        <p className="text-xs text-text-sub-600">
+          {formatMessage({ id: "app.send.recipient.gardenerOnly" })}
+        </p>
+      ) : null}
       {/* Search / paste / ENS input with QR affordance */}
       <div className="flex items-center gap-2">
         <TextInput
@@ -115,18 +138,23 @@ export function RecipientPicker({ selectedAddress, onSelect }: RecipientPickerPr
       </div>
 
       {/* Manual / ENS confirmation row */}
-      {manualAddress ? (
+      {manualAddress && !manualAddressRejected ? (
         <MemberRow
           address={manualAddress}
           selected={isSelected(manualAddress)}
           onSelect={() =>
-            onSelect({
+            selectRecipient({
               address: manualAddress,
               source: queryIsAddress ? "manual" : "ens",
               ensName: looksLikeEns ? trimmed : undefined,
             })
           }
         />
+      ) : null}
+      {manualAddressRejected || recipientRejected ? (
+        <p className="text-xs text-warning-dark" role="alert">
+          {formatMessage({ id: "app.send.recipient.gardenerOnly" })}
+        </p>
       ) : null}
       {ensResolving ? (
         <p className="flex items-center gap-2 text-xs text-text-soft-400">
@@ -157,7 +185,7 @@ export function RecipientPicker({ selectedAddress, onSelect }: RecipientPickerPr
               sharedGardens={sharedGardenNames(directory, member.address)}
               selected={isSelected(member.address)}
               onSelect={() =>
-                onSelect({
+                selectRecipient({
                   address: member.address,
                   source: "garden",
                   roles: member.roles,
@@ -195,7 +223,7 @@ export function RecipientPicker({ selectedAddress, onSelect }: RecipientPickerPr
               hideGarden
               selected={isSelected(member.address)}
               onSelect={() =>
-                onSelect({
+                selectRecipient({
                   address: member.address,
                   source: "garden",
                   roles: member.roles,
@@ -210,18 +238,22 @@ export function RecipientPicker({ selectedAddress, onSelect }: RecipientPickerPr
       {/* Default browse mode (no query, no drill-down) */}
       {!trimmed && !browseGarden ? (
         <>
-          {recents.length > 0 ? (
+          {eligibleRecents.length > 0 ? (
             <section className="space-y-2">
               <SheetHeading as="h4">
                 {formatMessage({ id: "app.send.recipient.recentTitle" })}
               </SheetHeading>
-              {recents.map((recent) => (
+              {eligibleRecents.map((recent) => (
                 <MemberRow
                   key={recent.address}
                   address={recent.address}
                   selected={isSelected(recent.address)}
                   onSelect={() =>
-                    onSelect({ address: recent.address, source: "recent", ensName: recent.ens })
+                    selectRecipient({
+                      address: recent.address,
+                      source: "recent",
+                      ensName: recent.ens,
+                    })
                   }
                 />
               ))}
@@ -241,7 +273,7 @@ export function RecipientPicker({ selectedAddress, onSelect }: RecipientPickerPr
                   hideGarden
                   selected={isSelected(member.address)}
                   onSelect={() =>
-                    onSelect({
+                    selectRecipient({
                       address: member.address,
                       source: "garden",
                       roles: member.roles,
@@ -286,13 +318,17 @@ export function RecipientPicker({ selectedAddress, onSelect }: RecipientPickerPr
             </section>
           ) : null}
 
-          {recents.length === 0 &&
+          {eligibleRecents.length === 0 &&
           directory.myGardens.length === 0 &&
           directory.otherGardens.length === 0 ? (
             <EmptyState
               icon={<RiUserLine />}
               title={formatMessage({ id: "app.send.recipient.empty" })}
-              description={formatMessage({ id: "app.send.recipient.emptyDescription" })}
+              description={formatMessage({
+                id: gDollarOnly
+                  ? "app.send.recipient.gardenerOnly"
+                  : "app.send.recipient.emptyDescription",
+              })}
             />
           ) : null}
         </>

@@ -7,9 +7,7 @@ type CeloWallet = ReturnType<typeof useCeloWallet>;
 
 function walletNeedsRetry(wallet: CeloWallet): boolean {
   return Boolean(
-    (!wallet.deliveryEnabled && !wallet.deliveryLoading) ||
-      wallet.deliveryError ||
-      wallet.balanceError ||
+    wallet.balanceError ||
       wallet.readiness === "unavailable" ||
       wallet.readiness === "policy-unavailable"
   );
@@ -25,21 +23,17 @@ export function CeloWalletStatus({
   const { formatMessage } = useIntl();
   const statusId = wallet.isOffline
     ? "app.celoWallet.offline"
-    : wallet.balanceLoading || wallet.deliveryLoading || wallet.readiness === "loading"
+    : wallet.balanceLoading || wallet.readiness === "loading"
       ? "app.celoWallet.loading"
-      : wallet.deliveryError
-        ? "app.celoWallet.gateError"
-        : !wallet.deliveryEnabled
-          ? "app.celoWallet.blocked"
-          : wallet.readiness === "address-mismatch"
-            ? "app.celoWallet.addressMismatch"
-            : wallet.readiness === "policy-unavailable"
-              ? "app.celoWallet.policyUnavailable"
-              : wallet.readiness === "unavailable"
-                ? "app.celoWallet.accountUnavailable"
-                : wallet.token.balance === 0n
-                  ? "app.send.token.zeroBalance"
-                  : null;
+      : wallet.readiness === "address-mismatch"
+        ? "app.celoWallet.addressMismatch"
+        : wallet.readiness === "policy-unavailable"
+          ? "app.celoWallet.policyUnavailable"
+          : wallet.readiness === "unavailable"
+            ? "app.celoWallet.accountUnavailable"
+            : wallet.token.balance === 0n
+              ? "app.send.token.zeroBalance"
+              : null;
   return (
     <div className="space-y-2 text-xs text-text-sub-600" role="status" aria-live="polite">
       {statusId ? (

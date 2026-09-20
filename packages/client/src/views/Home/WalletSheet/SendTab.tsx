@@ -1,23 +1,24 @@
-import type { Address } from "@green-goods/shared/types/domain";
 import { Alert } from "@green-goods/shared/components/Alert";
 import { Button } from "@green-goods/shared/components/Button";
 import { ConfirmDialog } from "@green-goods/shared/components/Dialog/ConfirmDialog";
-import { cn } from "@green-goods/shared/utils/styles/cn";
-import { formatTokenAmount } from "@green-goods/shared/utils/blockchain/vaults";
+import { SheetActions } from "@green-goods/shared/components/Dialog/SheetActions";
+import { isCeloGoodDollar, isSendableTokenAvailable } from "@green-goods/shared/config/tokens";
+import { useOnlineStatus } from "@green-goods/shared/hooks/app/useOnlineStatus";
+import { useUser } from "@green-goods/shared/hooks/auth/useUser";
+import { useGardens } from "@green-goods/shared/hooks/blockchain/useBaseLists";
 import {
   getNetworkConfigForChain,
   useCurrentChain,
 } from "@green-goods/shared/hooks/blockchain/useChainConfig";
 import { useEnsName } from "@green-goods/shared/hooks/blockchain/useEnsName";
-import { useOnlineStatus } from "@green-goods/shared/hooks/app/useOnlineStatus";
-import { useSendFlowController } from "@green-goods/shared/hooks/client-ui/wallet/useSendFlowController";
 import { useSendableTokens } from "@green-goods/shared/hooks/blockchain/useSendableTokens";
 import { useSendToken } from "@green-goods/shared/hooks/blockchain/useSendToken";
-import { isCeloGoodDollar, isSendableTokenAvailable } from "@green-goods/shared/config/tokens";
 import { useCeloWallet } from "@green-goods/shared/hooks/client-ui/wallet/useCeloWallet";
-import { useUser } from "@green-goods/shared/hooks/auth/useUser";
+import { useSendFlowController } from "@green-goods/shared/hooks/client-ui/wallet/useSendFlowController";
 import type { WalletMode } from "@green-goods/shared/modules/wallet/send-flow";
-import { SheetActions } from "@green-goods/shared/components/Dialog/SheetActions";
+import type { Address } from "@green-goods/shared/types/domain";
+import { formatTokenAmount } from "@green-goods/shared/utils/blockchain/vaults";
+import { cn } from "@green-goods/shared/utils/styles/cn";
 import { RiArrowLeftLine, RiPencilLine } from "@remixicon/react";
 import React from "react";
 import { useIntl } from "react-intl";
@@ -25,11 +26,11 @@ import { PWA_SHEET_SCROLL_CLASSNAME } from "@/components/Pwa/sheetScrollStyles";
 import { AmountStep } from "./Send/AmountStep";
 import { BalanceView } from "./Send/BalanceView";
 import { CeloWalletStatus } from "./Send/CeloWalletStatus";
-import { WalletSupportHistory } from "./Send/WalletSupportHistory";
 import { GoodDollarFeeSummary } from "./Send/GoodDollarFeeSummary";
 import { ReceiveView } from "./Send/ReceiveView";
 import { RecipientPicker } from "./Send/RecipientPicker";
 import { ReviewStep } from "./Send/ReviewStep";
+import { WalletSupportHistory } from "./Send/WalletSupportHistory";
 
 const WALLET_MODES: ReadonlyArray<{ value: WalletMode; labelId: string }> = [
   { value: "balance", labelId: "app.send.mode.balance" },
@@ -53,6 +54,14 @@ export const SendTab: React.FC<SendTabProps> = ({ resetNonce }) => {
   );
   const sendMutation = useSendToken();
   const celoWallet = useCeloWallet();
+  const { data: gardens } = useGardens();
+  const eligibleCeloRecipients = React.useMemo(
+    () =>
+      new Set(
+        gardens?.flatMap((garden) => garden.gardeners.map((address) => address.toLowerCase()))
+      ),
+    [gardens]
+  );
   const allTokens = React.useMemo(() => {
     const available = tokens.filter(
       (token) =>
@@ -91,6 +100,7 @@ export const SendTab: React.FC<SendTabProps> = ({ resetNonce }) => {
     primaryLabel,
     recipient,
     recipientDisplayName,
+    recipientEligible,
     selectedToken,
     showConfirm,
     step,
@@ -102,6 +112,7 @@ export const SendTab: React.FC<SendTabProps> = ({ resetNonce }) => {
     sendMutation,
     tokens: allTokens,
     canSendCelo: celoWallet.canSend,
+    eligibleCeloRecipients,
   });
 
   React.useEffect(() => setRecipientAddress(recipient?.address), [recipient?.address]);
@@ -234,6 +245,7 @@ export const SendTab: React.FC<SendTabProps> = ({ resetNonce }) => {
               <RecipientPicker
                 selectedAddress={recipient?.address}
                 onSelect={acts.selectRecipient}
+                gDollarOnly={Boolean(selectedToken && isCeloGoodDollar(selectedToken))}
               />
             ) : null}
 
@@ -253,6 +265,13 @@ export const SendTab: React.FC<SendTabProps> = ({ resetNonce }) => {
             ) : null}
             {step !== "recipient" && selectedToken?.chainId === 42220 ? (
               <>
+                {!recipientEligible ? (
+                  <div className="px-4 pb-3">
+                    <Alert variant="warning">
+                      {formatMessage({ id: "app.send.recipient.gardenerOnly" })}
+                    </Alert>
+                  </div>
+                ) : null}
                 {!celoWallet.canSend && isOnline ? (
                   <div className="px-4 pb-3">
                     <CeloWalletStatus wallet={celoWallet} showRetry />

@@ -3,14 +3,16 @@
  * @vitest-environment jsdom
  */
 
+import type { SendableTokenBalance } from "@green-goods/shared/hooks/blockchain/useSendableTokens";
+import type { useCeloWallet } from "@green-goods/shared/hooks/client-ui/wallet/useCeloWallet";
+import { waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { useCeloWallet } from "@green-goods/shared/hooks/client-ui/wallet/useCeloWallet";
-import type { SendableTokenBalance } from "@green-goods/shared/hooks/blockchain/useSendableTokens";
 import { renderWithProviders as render, screen } from "../test-utils";
 
 const SELF = "0x1111111111111111111111111111111111111111" as const;
 const MEMBER = "0x2222222222222222222222222222222222222222" as const;
+const NON_GARDENER = "0x3333333333333333333333333333333333333333" as const;
 const GOODS_ADDR = "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" as const;
 const USDC_ADDR = "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb" as const;
 
@@ -58,9 +60,6 @@ let mockCeloState = makeCeloState();
 function makeCeloState(): ReturnType<typeof useCeloWallet> {
   return {
     token: { ...celoToken, balance: 0n },
-    deliveryEnabled: false,
-    deliveryLoading: false,
-    deliveryError: null,
     readiness: "ready",
     balanceLoading: false,
     balanceError: null,
@@ -77,6 +76,8 @@ const mockSend = vi.fn();
 const mockRefetch = vi.fn();
 let mockIsOnline = true;
 let mockRealConfirm = false;
+let mockGardeners: string[] = [MEMBER];
+let mockExtraMember = false;
 
 let mockTokensState: { tokens: SendableTokenBalance[]; isLoading: boolean; isError: boolean } = {
   tokens: [usdcToken],
@@ -136,8 +137,8 @@ vi.mock("@green-goods/shared/hooks/blockchain/useBaseLists", async (importOrigin
         {
           id: "0xgarden",
           name: "Garden Alpha",
-          gardeners: [MEMBER],
-          stewards: [SELF],
+          gardeners: mockGardeners,
+          stewards: mockExtraMember ? [SELF, NON_GARDENER] : [SELF],
           evaluators: [],
           owners: [],
           funders: [],
@@ -221,6 +222,8 @@ describe("SendTab", () => {
     mockIsOnline = true;
     mockAuthMode = "passkey";
     mockChainId = 42161;
+    mockGardeners = [MEMBER];
+    mockExtraMember = false;
     mockCeloState = makeCeloState();
     mockTokensState = { tokens: [goodsToken, usdcToken], isLoading: false, isError: false };
   });
@@ -480,7 +483,9 @@ describe("Celo wallet", () => {
     mockFeeRead.mockResolvedValue([10n ** 18n, true]);
     mockIsOnline = true;
     mockAuthMode = "passkey";
-    mockCeloState = { ...makeCeloState(), token: celoToken, canSend: true, deliveryEnabled: true };
+    mockCeloState = { ...makeCeloState(), token: celoToken, canSend: true };
+    mockGardeners = [MEMBER];
+    mockExtraMember = false;
     mockTokensState = { tokens: [goodsToken, usdcToken], isLoading: false, isError: false };
   });
 
@@ -566,15 +571,6 @@ describe("Celo wallet", () => {
     expect(screen.getByText(message)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /^Send G\$ ·/ })).toBeDisabled();
     expect(screen.getByRole("tab", { name: "Receive" })).toBeEnabled();
-  });
-
-  it("keeps receiving available while delivery is blocked", () => {
-    mockCeloState = { ...mockCeloState, deliveryEnabled: false, canSend: false };
-    render(<SendTab />);
-    expect(
-      screen.getByText("G$ sending is paused. Your balance and past support remain here.")
-    ).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /^Send G\$ ·/ })).toBeDisabled();
   });
 
   it("shows unavailable for a failed Celo read and retries independently", async () => {
@@ -715,43 +711,33 @@ describe("Celo wallet", () => {
     expect(screen.getByText("12 G$")).toBeInTheDocument();
   });
 
-  it("refreshes a stale delivery gate from Balance without navigation", async () => {
-    mockCeloState = {
-      ...mockCeloState,
-      deliveryEnabled: false,
-      deliveryError: null,
-      canSend: false,
-    };
+  it("allows G$ selection only for gardeners in the recipient picker", async () => {
+    mockExtraMember = true;
     const user = userEvent.setup();
-    const { rerender } = render(<SendTab />);
-    expect(screen.getByRole("button", { name: /^Send G\$ ·/ })).toBeDisabled();
-    await user.click(screen.getByRole("button", { name: "Retry Celo wallet" }));
-    expect(mockCeloRefetch).toHaveBeenCalledOnce();
-    mockCeloState = { ...mockCeloState, deliveryEnabled: true, canSend: true };
-    rerender(<SendTab />);
-    expect(screen.getByRole("button", { name: /^Send G\$ ·/ })).toBeEnabled();
+    render(<SendTab />);
+    await user.click(screen.getByRole("button", { name: "Send G$ · 25" }));
+    await user.type(screen.getByRole("textbox", { name: /Search people/i }), NON_GARDENER);
+    expect(screen.queryByRole("button", { name: /alice\.eth/i })).not.toBeInTheDocument();
+    expect(
+      screen.getAllByText("For now, G$ can only be sent to gardeners in Green Goods.")
+    ).toHaveLength(2);
+    expect(mockSend).not.toHaveBeenCalled();
   });
 
-  it("refreshes delivery availability mid-send and retains the recipient and amount", async () => {
+  it("blocks Review if a selected G$ recipient loses the gardener role", async () => {
     const user = userEvent.setup();
     const { rerender } = render(<SendTab />);
     await pickMemberAndToken(user, /G\$ · Celo/);
     await screen.findByText("11 G$");
-    mockCeloState = {
-      ...mockCeloState,
-      deliveryEnabled: false,
-      deliveryError: null,
-      canSend: false,
-    };
+    mockGardeners = [];
     rerender(<SendTab />);
     expect(screen.getByRole("button", { name: "Review" })).toBeDisabled();
     expect(
-      screen.getByText("G$ sending is paused. Your balance and past support remain here.")
+      screen.getByText("For now, G$ can only be sent to gardeners in Green Goods.")
     ).toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: "Retry Celo wallet" }));
-    expect(mockCeloRefetch).toHaveBeenCalledOnce();
-    mockCeloState = { ...mockCeloState, deliveryEnabled: true, canSend: true };
+    mockGardeners = [MEMBER];
     rerender(<SendTab />);
+    await waitFor(() => expect(screen.getByRole("button", { name: "Review" })).toBeEnabled());
     expect(screen.getByRole("textbox", { name: "How much" })).toHaveValue("10");
     expect(screen.getByText(/Sending to: alice.eth/)).toBeInTheDocument();
   });

@@ -1,10 +1,11 @@
-import { act, renderHook, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { act, renderHook, waitFor } from "@testing-library/react";
 import { type ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { useSendFlowController } from "../../../../hooks/client-ui/wallet/useSendFlowController";
-import type { SendableTokenBalance } from "../../../../hooks/blockchain/useSendableTokens";
 import { CELO_G_DOLLAR_TOKEN } from "../../../../config/tokens";
+import type { SendableTokenBalance } from "../../../../hooks/blockchain/useSendableTokens";
+import { useSendFlowController } from "../../../../hooks/client-ui/wallet/useSendFlowController";
+
 const mocks = vi.hoisted(() => ({ quote: vi.fn(), mutate: vi.fn() }));
 vi.mock("../../../../modules/wallet/good-dollar-fees", () => ({
   quoteGoodDollarTransfer: mocks.quote,
@@ -32,12 +33,15 @@ const quote = {
   totalDebit: (amount * 11n) / 10n,
   recipientAmount: amount,
 };
-function setup() {
+function setup(
+  eligibleCeloRecipients: ReadonlySet<string> = new Set([recipient.address.toLowerCase()])
+) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return renderHook(
     (props: { isOnline: boolean; canSendCelo: boolean; tokens: SendableTokenBalance[] }) =>
       useSendFlowController({
         ...props,
+        eligibleCeloRecipients,
         sendMutation: { isPending: false, mutate: mocks.mutate },
       }),
     {
@@ -60,6 +64,15 @@ describe("useSendFlowController Celo review", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.quote.mockResolvedValue(quote);
+  });
+  it("blocks a manually entered recipient when G$ is selected later", async () => {
+    const { result } = setup(new Set());
+    await fill(result);
+    expect(result.current.recipientEligible).toBe(false);
+    expect(result.current.canAdvance).toBe(false);
+    expect(mocks.quote).not.toHaveBeenCalled();
+    act(() => result.current.acts.executeSend());
+    expect(mocks.mutate).not.toHaveBeenCalled();
   });
   it("quotes before review, hides unsafe Max, and requires another fresh quote for confirmation", async () => {
     const { result } = setup();
@@ -96,7 +109,7 @@ describe("useSendFlowController Celo review", () => {
     act(() => result.current.acts.executeSend());
     expect(result.current.amountInput).toBe("1");
   });
-  it("blocks offline, disabled delivery, failed quotes and insufficient gross balance", async () => {
+  it("blocks offline, unavailable Celo wallet, failed quotes and insufficient gross balance", async () => {
     const { result, rerender } = setup();
     await fill(result);
     rerender({ isOnline: false, canSendCelo: true, tokens: [token] });
