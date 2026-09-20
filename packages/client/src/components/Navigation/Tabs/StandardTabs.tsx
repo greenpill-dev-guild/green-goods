@@ -6,6 +6,7 @@ import { pwaStatusStyles } from "@/components/Pwa/statusStyles";
 export interface StandardTab {
   id: string;
   label: string;
+  accessibleLabel?: string;
   icon?: React.ReactNode;
   count?: number;
   disabled?: boolean;
@@ -81,6 +82,7 @@ export const StandardTabs: React.FC<StandardTabsProps> = ({
           type="button"
           data-pressable="tab"
           key={tab.id}
+          aria-label={tab.accessibleLabel}
           aria-current={activeTab === tab.id || undefined}
           onClick={(event) => {
             if (tab.disabled) return;

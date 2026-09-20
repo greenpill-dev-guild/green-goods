@@ -48,6 +48,19 @@ describe("StandardTabs", () => {
     expect(screen.getByText("Second Tab")).toBeInTheDocument();
   });
 
+  it("keeps a full accessible name when the visible label is shortened", () => {
+    render(
+      createElement(StandardTabs, {
+        tabs: [{ id: "agro", label: "Agro", accessibleLabel: "Agroforestry" }],
+        activeTab: "agro",
+        onTabChange: vi.fn(),
+      })
+    );
+
+    const tab = screen.getByRole("button", { name: "Agroforestry" });
+    expect(tab).toHaveTextContent("Agro");
+  });
+
   it("calls onTabChange when a tab is clicked", async () => {
     const onTabChange = vi.fn();
     const user = userEvent.setup();

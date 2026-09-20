@@ -96,6 +96,9 @@ const sourceMessageTriggerTokens = [
 const allowedIdenticalLocalizedKeys = new Set([
   "app.admin.nav.cookieJars",
   "app.community.weightScheme.linear",
+  // The compact Agro tab label is intentionally the same abbreviation in all locales;
+  // its accessible name uses the translated full domain name.
+  "app.gardenIntro.domain.agroShort",
   "cockpit.community.stats.pools",
   "public.fund.vaults.vaultCount",
   // Vault checkout reuses the product term "Endowment" untranslated, matching the

@@ -2053,6 +2053,7 @@
   "app.garden.work.errorLoadingWorks": "Error al cargar trabajos",
   "app.garden.work.noWork": "Aún no hay trabajo, comienza enviando trabajo nuevo.",
   "app.gardenIntro.domains.label": "Dominios",
+  "app.gardenIntro.domain.agroShort": "Agro",
   "app.gardener.profile.bio.error.message": "No se pudo actualizar tu biografía. Inténtalo de nuevo.",
   "app.gardener.profile.bio.error.title": "Falló la bio",
   "app.gardener.profile.bio.success.message": "Tu biografía ha sido actualizada.",

@@ -107,7 +107,7 @@ vi.mock("@/components/Navigation", () => ({
     className,
     triggerClassName,
   }: {
-    tabs: Array<{ id: string; label: string }>;
+    tabs: Array<{ id: string; label: string; accessibleLabel?: string }>;
     activeTab: string;
     onTabChange: (id: string) => void;
     className?: string;
@@ -123,6 +123,7 @@ vi.mock("@/components/Navigation", () => ({
             key: tab.id,
             "data-testid": `domain-tab-${tab.id}`,
             "data-active": String(tab.id === activeTab),
+            "aria-label": tab.accessibleLabel,
             className: triggerClassName,
             onClick: () => onTabChange(tab.id),
           },
@@ -162,6 +163,7 @@ const messages: Record<string, string> = {
   "app.garden.commitment.empty": "No eligible commitments match this garden and action.",
   "app.domain.tab.solar": "Solar",
   "app.domain.tab.agro": "Agroforestry",
+  "app.gardenIntro.domain.agroShort": "Agro",
   "app.domain.tab.waste": "Waste",
 };
 
@@ -249,11 +251,11 @@ describe("WorkIntro", () => {
 
     expect(screen.getByTestId("domain-tabs")).toHaveClass("-mx-4", "sm:-mx-6", "md:-mx-12");
     expect(screen.getByTestId("domain-tab-0")).toHaveClass(
-      "flex-auto",
       "text-xs",
       "[&>span]:break-normal",
       "[&>span]:whitespace-nowrap"
     );
+    expect(screen.getByTestId("domain-tab-0")).not.toHaveClass("flex-auto");
   });
 
   it("renders action cards for active actions", () => {
@@ -497,7 +499,8 @@ describe("WorkIntro", () => {
     expect(screen.getByTestId(`domain-tab-${Domain.SOLAR}`)).toBeInTheDocument();
     const agroTab = screen.getByTestId(`domain-tab-${Domain.AGRO}`);
     expect(agroTab).toBeInTheDocument();
-    expect(agroTab).toHaveTextContent("Agroforestry");
+    expect(agroTab).toHaveTextContent("Agro");
+    expect(agroTab).toHaveAccessibleName("Agroforestry");
     expect(agroTab).toHaveClass("text-xs", "[&>span]:whitespace-nowrap");
   });
 

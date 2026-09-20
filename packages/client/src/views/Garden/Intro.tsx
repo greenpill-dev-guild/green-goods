@@ -19,7 +19,7 @@ import { type WorkCommitmentChoice, WorkCommitmentSelection } from "./WorkCommit
 /** Domain i18n label ID (stable); labels resolved via intl at render time */
 const DOMAIN_TAB_CONFIG: Record<Domain, { labelId: string; defaultLabel: string }> = {
   [Domain.SOLAR]: { labelId: "app.domain.tab.solar", defaultLabel: "Solar" },
-  [Domain.AGRO]: { labelId: "app.domain.tab.agro", defaultLabel: "Agro" },
+  [Domain.AGRO]: { labelId: "app.domain.tab.agro", defaultLabel: "Agroforestry" },
   [Domain.EDU]: {
     labelId: "app.domain.tab.education",
     defaultLabel: "Education",
@@ -143,11 +143,19 @@ export const WorkIntro: React.FC<WorkIntroProps> = ({
     () =>
       availableDomains.map((d) => {
         const config = DOMAIN_TAB_CONFIG[d];
+        const fullLabel = config
+          ? intl.formatMessage({ id: config.labelId, defaultMessage: config.defaultLabel })
+          : `Domain ${d}`;
         return {
           id: String(d),
-          label: config
-            ? intl.formatMessage({ id: config.labelId, defaultMessage: config.defaultLabel })
-            : `Domain ${d}`,
+          label:
+            d === Domain.AGRO
+              ? intl.formatMessage({
+                  id: "app.gardenIntro.domain.agroShort",
+                  defaultMessage: "Agro",
+                })
+              : fullLabel,
+          accessibleLabel: d === Domain.AGRO ? fullLabel : undefined,
         };
       }),
     [availableDomains, intl]
@@ -185,7 +193,7 @@ export const WorkIntro: React.FC<WorkIntroProps> = ({
           })}
           variant="compact"
           className="-mx-4 mb-2 sm:-mx-6 md:-mx-12"
-          triggerClassName="flex-auto px-2 text-xs leading-4 [&>span]:break-normal [&>span]:whitespace-nowrap sm:px-3 sm:text-label-sm"
+          triggerClassName="px-2 text-xs leading-4 [&>span]:break-normal [&>span]:whitespace-nowrap sm:px-3 sm:text-label-sm"
         />
       )}
 
