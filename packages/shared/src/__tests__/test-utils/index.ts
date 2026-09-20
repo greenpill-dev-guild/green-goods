@@ -12,6 +12,7 @@ import enMessages from "../../i18n/en.json";
 import { createTestQueryClient, getTestQueryClient } from "./query-client";
 
 export { createTestQueryClient, resetTestQueryClient } from "./query-client";
+export { renderHookWithQueryClient } from "./query-client-render";
 
 // Re-export mock factories, offline helpers, and centralized barrel mock
 export * from "./mock-factories";

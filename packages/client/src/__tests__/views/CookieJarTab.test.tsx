@@ -35,7 +35,25 @@ const testJar = {
 vi.mock("@green-goods/shared/components/Dialog/ConfirmDialog", async (importOriginal) => {
   return {
     ...(await importOriginal()),
-    ConfirmDialog: ({ isOpen }: { isOpen: boolean }) => (isOpen ? <div /> : null),
+    ConfirmDialog: ({
+      isOpen,
+      onClose,
+      onConfirm,
+    }: {
+      isOpen: boolean;
+      onClose: () => void;
+      onConfirm: () => void;
+    }) =>
+      isOpen ? (
+        <div role="dialog" aria-label="Confirm claim">
+          <button type="button" onClick={onClose}>
+            Keep editing
+          </button>
+          <button type="button" onClick={onConfirm}>
+            Confirm claim
+          </button>
+        </div>
+      ) : null,
   };
 });
 
@@ -204,6 +222,34 @@ describe("CookieJarTab", () => {
     await user.click(screen.getByRole("button", { name: "Max" }));
 
     expect(screen.getByRole("textbox", { name: "How much" })).toHaveValue("0.1");
+  });
+
+  it("waits for confirmation before sending a claim and keeps cancellation local", async () => {
+    const user = userEvent.setup();
+    render(<CookieJarTab />);
+
+    await user.click(screen.getByRole("button", { name: /0\.1 USDC/i }));
+    await user.click(screen.getByRole("button", { name: "Max" }));
+    await user.type(screen.getByRole("textbox", { name: /purpose/i }), "Garden supplies");
+    await user.click(screen.getByRole("button", { name: "Claim" }));
+
+    expect(screen.getByRole("dialog", { name: "Confirm claim" })).toBeInTheDocument();
+    expect(mockWithdrawMutate).not.toHaveBeenCalled();
+
+    await user.click(screen.getByRole("button", { name: "Keep editing" }));
+    expect(screen.queryByRole("dialog", { name: "Confirm claim" })).not.toBeInTheDocument();
+    expect(mockWithdrawMutate).not.toHaveBeenCalled();
+
+    await user.click(screen.getByRole("button", { name: "Claim" }));
+    await user.click(screen.getByRole("button", { name: "Confirm claim" }));
+    expect(mockWithdrawMutate).toHaveBeenCalledWith(
+      {
+        jarAddress: TEST_JAR,
+        amount: 100000n,
+        purpose: "Garden supplies",
+      },
+      expect.objectContaining({ onSuccess: expect.any(Function) })
+    );
   });
 
   it("renders the empty state when no jars are confirmed", () => {

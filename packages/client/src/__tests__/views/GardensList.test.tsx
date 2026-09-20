@@ -5,7 +5,7 @@
  * join flow, and null address handling.
  */
 
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { createElement } from "react";
 import { IntlProvider } from "react-intl";
@@ -341,6 +341,8 @@ describe("GardensList", () => {
     await user.click(screen.getByRole("button", { name: "Join" }));
     await user.click(screen.getByTestId("confirm-join"));
 
+    expect(mockJoinState.joinGarden).toHaveBeenCalledExactlyOnceWith("0xfresh");
+
     // ensDiscoveryTimeout.set was called with the toast callback at 2000ms
     expect(mockTimeoutSet).toHaveBeenCalledTimes(1);
     const [scheduledFn, delay] = mockTimeoutSet.mock.calls[0] as [() => void, number];
@@ -352,6 +354,37 @@ describe("GardensList", () => {
     expect(toastService.info).toHaveBeenCalledWith(
       expect.objectContaining({ context: "ensDiscovery" })
     );
+  });
+
+  it("reports a failed garden join without showing success or scheduling discovery", async () => {
+    const user = userEvent.setup();
+    const { toastService } = await import("@green-goods/shared/components/Toast/toast.service");
+    const failure = new Error("Network request failed");
+    mockGardensState.data = [
+      {
+        id: "0xfresh",
+        name: "Fresh Garden",
+        location: "",
+        openJoining: true,
+        gardeners: [],
+        stewards: [],
+      },
+    ];
+    mockJoinState.joinGarden.mockRejectedValueOnce(failure);
+
+    render(wrap(createElement(GardensList, { primaryAddress: MOCK_ADDRESS as any })));
+    await user.click(screen.getByRole("button", { name: "Join" }));
+    await user.click(screen.getByTestId("confirm-join"));
+
+    await waitFor(() => {
+      expect(toastService.error).toHaveBeenCalledWith(
+        expect.objectContaining({ context: "joinGarden", error: failure })
+      );
+    });
+    expect(mockJoinState.joinGarden).toHaveBeenCalledExactlyOnceWith("0xfresh");
+    expect(toastService.success).not.toHaveBeenCalled();
+    expect(mockTimeoutSet).not.toHaveBeenCalled();
+    expect(screen.queryByTestId("join-dialog")).not.toBeInTheDocument();
   });
 
   it("does not schedule the discovery toast when user is already a member of another garden", async () => {

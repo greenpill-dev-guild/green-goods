@@ -155,6 +155,14 @@ Pre-commit runs `lint-staged` only. Pre-push runs this ready-for-CI gate. Per-fi
 critical-surface warnings may run during editing, but package-wide validation is owned by the
 coordinating agent rather than edit or task-completion hooks.
 
+For an ordinary, noncritical push, the plan keeps authenticated browser proof visible as pending
+readiness evidence. The pre-push hook succeeds only when every selected automated check passes;
+an unavailable automated capability, failed check, or missing focused proof still stops it. The
+browser check remains blocked when authenticated Brave is unavailable, but that manual obligation
+does not prevent sending ordinary work to CI. Critical push overrides and the readiness, ship,
+merge, and release gates still require the browser proof when selected. This policy does not accept
+manual receipts as a substitute for those gates.
+
 ## Ship Gate (explicit full local pipeline)
 
 The uncached full local gate for an explicit offline/full-readiness request, critical surface, or

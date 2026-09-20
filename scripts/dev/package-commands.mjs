@@ -49,6 +49,7 @@ const TEST_OPTIONS = {
   reporter: { type: "string", multiple: true },
   testNamePattern: { type: "string", short: "t" },
   project: { type: "string", multiple: true },
+  shard: { type: "string" },
   maxWorkers: { type: "string" },
   testTimeout: { type: "string" },
   exclude: { type: "string", multiple: true },
@@ -90,7 +91,7 @@ export function packageCommandHelp(pkg, action) {
   if (action === "typecheck") return `${prefix} [--scope source|tests|full]\nDefault: source. Full preserves every package TypeScript project.\n`;
   if (action === "format") return `${prefix} [--check] [paths...]\nDefault: write formatting; --check never writes.\n`;
   const scopes = { admin: "all", client: "all", shared: "default|all-configured|live", agent: "all|unit|sqlite", indexer: "full|handlers|contract-events" };
-  return `${prefix} [paths...] [--scope ${scopes[pkg]}]${pkg === "admin" ? " [--suite hub]" : ""}\n` +
+  return `${prefix} [paths...] [--scope ${scopes[pkg]}]${pkg === "admin" ? " [--suite hub]" : ""}${pkg === "shared" ? " [--shard 1/2|2/2]" : ""}\n` +
     (pkg === "indexer" ? "--coverage --scope handlers [--reporter text --reporter json]; --grep <pattern>\n" :
       `--watch${["admin", "agent"].includes(pkg) ? " | --ui" : ""}; --coverage; --testNamePattern <pattern>; --project <name>; --reporter <name>\n`) +
     (pkg === "shared" ? "Coverage requires --scope all-configured. Live selects the two maintained RPC tests.\n" : "") +
@@ -150,7 +151,7 @@ export function resolvePackageCommand(pkg, action, args = []) {
     }
     if (pkg === "indexer") {
       const scope = oneOf(values.scope ?? "full", ["full", "handlers", "contract-events"], "test scope");
-      for (const key of ["watch", "ui", "testNamePattern", "project", "maxWorkers", "testTimeout", "exclude"]) {
+      for (const key of ["watch", "ui", "testNamePattern", "project", "maxWorkers", "testTimeout", "exclude", "shard"]) {
         if (values[key] !== undefined) throw new Error(`--${key} is not supported for indexer`);
       }
       if (values.coverage && scope !== "handlers") throw new Error("Indexer coverage requires --scope handlers");
@@ -167,6 +168,10 @@ export function resolvePackageCommand(pkg, action, args = []) {
       if (values.grep) throw new Error("Use --testNamePattern for Vitest packages");
       const scopes = pkg === "shared" ? ["default", "all-configured", "live"] : pkg === "agent" ? ["all", "unit", "sqlite"] : ["all"];
       const scope = oneOf(values.scope ?? scopes[0], scopes, "test scope");
+      if (values.shard !== undefined &&
+        (pkg !== "shared" || scope !== "default" || !["1/2", "2/2"].includes(values.shard) || paths.length > 0 || values.coverage || values.watch || values.ui || values.testNamePattern || values.project || values.exclude)) {
+        throw new Error("--shard requires Shared's complete default run and 1/2 or 2/2");
+      }
       if (values.coverage && pkg === "shared" && scope !== "all-configured") throw new Error("Shared coverage requires --scope all-configured");
       if (values.coverage && pkg === "agent" && scope !== "unit") throw new Error("Agent coverage requires --scope unit");
       if (pkg === "agent" && (values.watch || values.ui) && scope !== "unit") throw new Error("Agent watch/UI requires --scope unit");

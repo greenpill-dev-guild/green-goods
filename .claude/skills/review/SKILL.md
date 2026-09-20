@@ -95,6 +95,12 @@ Correctness of what changed. Prioritize high-signal risk areas:
   handling, offline queue integrity, retry visibility — invariants in `.claude/context/shared.md`).
   Read every touched line on these surfaces. Apply the matrix's sensitive tier to indexer
   retry/lifecycle handlers, Plan Hub evidence, and agent dispatch scripts.
+- *Excess proof*: when tests change, ask which distinct failure each test catches and whether its
+  assertion sits at the owning layer. Review repeated setup, duplicate layers, class-only or source
+  assertions, and unexplained test/source growth against the [test budget](../../context/testing.md#test-budget).
+  Preserve tests for independent composition, recovery, interaction, and critical cleanup behavior.
+  Require same-failure surviving proof or verified absence of callers before accepting a deletion;
+  test counts and line ratios alone do not justify one.
 
 For large or critical diffs where an adversarial deep pass is warranted, the built-in `/code-review` (effort levels, verify pass) is the engine of choice — say so and use it rather than hand-rolling depth.
 

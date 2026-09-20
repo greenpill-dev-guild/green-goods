@@ -21,7 +21,7 @@ Expected files: `.claude/context/testing.md`, `.claude/skills/review/SKILL.md`, 
 | Accept manual receipts before push | Preserves the existing push requirement | Bind evidence to surface, checked inputs, authenticated session and freshness; stale/missing evidence cannot pass |
 | Permit ordinary push after automated checks, retain manual proof at readiness | Removes publication pressure to bypass automated checks | Distinguish published from ready; missing automated capabilities still block |
 
-The second is recommended, not approved. The attachment's “manual or capability-blocked” exemption must not become blanket success. Critical overrides and ship/merge/release requirements remain enforceable. CI clean-room evidence does not become authenticated local proof. Settle design before implementation and show the diff before publication.
+The user selected the second design on 2026-09-19. The local implementation permits ordinary noncritical push only after selected automated checks pass; manual authenticated browser proof stays pending for readiness. The attachment's “manual or capability-blocked” exemption must not become blanket success. Missing automated capabilities, critical overrides and readiness/ship/merge/release requirements remain enforceable. CI clean-room evidence does not become authenticated local proof. A later request authorized committing completed local slices; push and publication remain unauthorized.
 
 ## Requirements retained from the original prompt
 
@@ -43,10 +43,12 @@ The second is recommended, not approved. The attachment's “manual or capabilit
 
 The active codebase-architecture-skills hub owns the September 22 coverage checkpoint and PRD-835 visibility. This plan proposes a replacement policy but does not mark that obligation done or edit its mirror.
 
+The September 19 guidance slice names that ownership in `.claude/context/testing.md` without changing the existing two-point ratchet or any numerical threshold. The replacement proposal remains a separate decision for the checkpoint, supported by fresh measured coverage and parity evidence.
+
 PR #802 is stacked on #799. It overlaps review guidance and CookieJarTab tests and uses older WalletDrawer paths; reconcile with current WalletSheet code. PR #795 also edits `.husky/pre-push`; reconcile its hook/testing changes with steps 1–2. Its old development aliases need integration updates, not automatic restoration.
 
 No matching local/cached-origin refs or open PRs were found for the three queued test branches. Unpublished work in other checkouts was not exhaustively inspected; refresh ownership before overlapping edits.
 
 Planning uses the state_api lane; UI and contracts implementation are not selected. Future test/tooling execution remains serial and can be split by subject without creating a separate lane for every file. No lane is ready for unattended execution.
 
-No production architecture refactor, contract-suite overhaul, dependency installation, environment change, deploy, broad deletion, Linear write, commit, push or PR is authorized by this preparation session. Execution selection and item 4's policy are still owed. Representative helper/file changes need review before rollout; isolation remains enabled. Follow-on runtime, environment and pruning candidates remain with their owning hubs until selected.
+The execution request authorizes local implementation and Plan Hub updates, beginning with item 1. A later request authorizes committing completed local slices. Production architecture refactoring, a contract-suite overhaul, dependency installation, environment changes, deployment, broad deletion, Linear writes, pushes, and PRs remain unauthorized. Item 4's second policy is selected and locally implemented. Representative helper and file changes need review before rollout; isolation remains enabled. Follow-on runtime, environment, and pruning candidates remain with their owning hubs until selected.

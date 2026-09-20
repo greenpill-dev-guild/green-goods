@@ -133,6 +133,14 @@ jobs:
             --changed-file "$changed_file" \
             --github-output "$GITHUB_OUTPUT"
 
+      - name: Summarize test and source changes
+        if: github.event_name == 'pull_request'
+        continue-on-error: true
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: node scripts/quality/summarize-test-churn.mjs --base "$BASE_SHA" --head "$HEAD_SHA" --summary "$GITHUB_STEP_SUMMARY"
+
   format:
     name: Repository formatting
     needs: changes
@@ -259,4 +267,4 @@ jobs:
           bun-version: "1.4.2"
 
       - name: Run workflow performance parity tests
-        run: node --test scripts/quality/workflow-performance-parity.test.mjs
+        run: node --test scripts/quality/workflow-performance-parity.test.mjs scripts/quality/summarize-test-churn.test.mjs

@@ -160,3 +160,33 @@ it("re-probes a stale answer before confirming, and refuses when the probe fails
   await expect(connectivityStore.confirmOnline()).resolves.toBe(false);
   expect(connectivityStore.getStatusSnapshot().state).toBe("degraded");
 });
+
+it("reuses a recent origin answer for background work and re-probes after one minute", async () => {
+  vi.useFakeTimers();
+  const request = vi.fn().mockResolvedValue(new Response("ok"));
+  vi.stubGlobal("fetch", request);
+  stop = connectivityStore.configureProbe("/connectivity-check.txt");
+  await connectivityStore.check();
+  request.mockClear();
+
+  await vi.advanceTimersByTimeAsync(30_000);
+  await expect(connectivityStore.confirmForBackgroundWork()).resolves.toBe(true);
+  expect(request).not.toHaveBeenCalled();
+
+  await vi.advanceTimersByTimeAsync(30_001);
+  await expect(connectivityStore.confirmForBackgroundWork()).resolves.toBe(true);
+  expect(request).toHaveBeenCalledOnce();
+});
+
+it("leaves a degraded connection to its scheduled recovery instead of probing for background work", async () => {
+  vi.useFakeTimers();
+  const request = vi.fn().mockRejectedValue(new TypeError("Failed to fetch"));
+  vi.stubGlobal("fetch", request);
+  stop = connectivityStore.configureProbe("/connectivity-check.txt");
+  await connectivityStore.check();
+  expect(connectivityStore.getStatusSnapshot().state).toBe("degraded");
+  expect(request).toHaveBeenCalledTimes(2);
+
+  await expect(connectivityStore.confirmForBackgroundWork()).resolves.toBe(false);
+  expect(request).toHaveBeenCalledTimes(2);
+});

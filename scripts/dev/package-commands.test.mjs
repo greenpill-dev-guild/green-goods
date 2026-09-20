@@ -16,6 +16,19 @@ test("package test selections retain their actual scope", () => {
   assert.deepEqual(resolve("client", "test", ["--coverage"]).steps[0].args.slice(1), ["vitest", "run", "--coverage"]);
 });
 
+test("Shared CI shards forward through the test wrapper without changing nightly coverage", () => {
+  const unsharded = resolve("shared", "test").steps[0].args;
+  for (const shard of ["1/2", "2/2"]) {
+    const args = resolve("shared", "test", ["--shard", shard]).steps[0].args;
+    assert.deepEqual(args, [...unsharded, "--shard", shard]);
+  }
+  assert.ok(!resolve("shared", "test", ["--scope", "all-configured", "--coverage"]).steps[0].args.includes("--shard"));
+  for (const args of [["--shard", "0/2"], ["--shard", "1/3"], ["--shard", "1/2", "--coverage"], ["--shard", "1/2", "--scope", "live"], ["--shard", "1/2", "--testNamePattern", "only"], ["--shard", "1/2", "--exclude", "src/foo.test.ts"]]) {
+    assert.throws(() => resolve("shared", "test", args));
+  }
+  assert.throws(() => resolve("client", "test", ["--shard", "1/2"]));
+});
+
 test("agent default and explicit paths preserve Node and SQLite lanes", () => {
   const all = resolve("agent", "test");
   assert.equal(all.steps.length, 2);
@@ -70,7 +83,7 @@ test("format read/write selection preserves package roots", () => {
 });
 
 test("invalid scope and options fail before any subprocess", () => {
-  for (const [pkg, action, args] of [["shared", "test", ["--coverage"]], ["agent", "test", ["--coverage"]], ["indexer", "test", ["--coverage"]], ["client", "test", ["--ui"]], ["admin", "test", ["--suite", "hub", "extra.ts"]], ["admin", "test", ["--wat"]], ["shared", "typecheck", ["--scope", "none"]], ["client", "typecheck", ["--scope", "--help"]], ["root", "format", ["--check", "--check"]]]) assert.throws(() => resolve(pkg, action, args));
+  for (const [pkg, action, args] of [["shared", "test", ["--coverage"]], ["agent", "test", ["--coverage"]], ["indexer", "test", ["--coverage"]], ["indexer", "test", ["--scope", "handlers", "--shard", "1/2"]], ["client", "test", ["--ui"]], ["admin", "test", ["--suite", "hub", "extra.ts"]], ["admin", "test", ["--wat"]], ["shared", "typecheck", ["--scope", "none"]], ["client", "typecheck", ["--scope", "--help"]], ["root", "format", ["--check", "--check"]]]) assert.throws(() => resolve(pkg, action, args));
 });
 
 test("package executor stops after failure and preserves process boundaries", async () => {

@@ -17,6 +17,7 @@ const {
   mockFactoryQuery,
   mockMetadataQuery,
   mockTokenQuery,
+  mockUserAddress,
   mockUseReadContract,
   mockUseReadContracts,
 } = vi.hoisted(() => ({
@@ -38,12 +39,13 @@ const {
   mockTokenQuery: {
     current: { data: undefined as unknown, isLoading: false, error: null as Error | null },
   },
+  mockUserAddress: { current: "0x3333333333333333333333333333333333333333" as Address | undefined },
   mockUseReadContract: vi.fn(),
   mockUseReadContracts: vi.fn(),
 }));
 
 vi.mock("../../../hooks/auth/useUser", () => ({
-  useUser: () => ({ primaryAddress: TEST_USER }),
+  useUser: () => ({ primaryAddress: mockUserAddress.current }),
 }));
 
 vi.mock("../../../hooks/blockchain/useChainConfig", () => ({
@@ -106,6 +108,7 @@ function campaignJarDetails() {
 describe("useCampaignCookieJar", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockUserAddress.current = TEST_USER;
     mockDetailsQuery.current = {
       data: campaignJarDetails(),
       isLoading: false,
@@ -141,7 +144,8 @@ describe("useCampaignCookieJar", () => {
   });
 
   it("reads jar, token, and metadata on the app chain while disconnected", () => {
-    renderHook(() => useCampaignCookieJar(TEST_JAR));
+    mockUserAddress.current = undefined;
+    const { result } = renderHook(() => useCampaignCookieJar(TEST_JAR));
 
     for (const [args] of mockUseReadContracts.mock.calls) {
       expect(args.contracts.length).toBeGreaterThan(0);
@@ -155,5 +159,34 @@ describe("useCampaignCookieJar", () => {
     expect(mockUseReadContract).toHaveBeenCalledWith(
       expect.objectContaining({ functionName: "cookieJarFactory", chainId: TEST_CHAIN_ID })
     );
+    expect(result.current.jar?.isEligible).toBe(false);
+    expect(result.current.jar?.canClaimNow).toBe(false);
+  });
+
+  it("makes an allowlisted connected user eligible to claim", () => {
+    const { result } = renderHook(() => useCampaignCookieJar(TEST_JAR));
+
+    expect(result.current.jar?.isEligible).toBe(true);
+    expect(result.current.jar?.canClaimNow).toBe(true);
+    expect(result.current.jar?.isOwner).toBe(true);
+    expect(result.current.hasDetailReadFailure).toBe(false);
+  });
+
+  it("keeps usable jar details while reporting a failed optional contract read", () => {
+    mockDetailsQuery.current = {
+      data: campaignJarDetails().map((entry, index) =>
+        index === 10 ? { status: "failure", error: new Error("emergency flag unavailable") } : entry
+      ),
+      isLoading: false,
+      error: null,
+    };
+
+    const { result } = renderHook(() => useCampaignCookieJar(TEST_JAR));
+
+    expect(result.current.jar?.balance).toBe(100n);
+    expect(result.current.jar?.emergencyWithdrawalEnabled).toBe(false);
+    expect(result.current.detailErrorCount).toBe(1);
+    expect(result.current.hasDetailReadFailure).toBe(true);
+    expect(result.current.hasMetadataReadFailure).toBe(false);
   });
 });

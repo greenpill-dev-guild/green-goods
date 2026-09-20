@@ -461,6 +461,51 @@ test("QA app UI changes require rendered browser proof for readiness", () => {
   assert.equal(plan.budget.manualSeconds, 90);
 });
 
+test("ordinary push keeps browser proof pending for readiness without blocking automated publication", () => {
+  const changedPath = "packages/client/src/components/Panel.tsx";
+  const input = {
+    changedPaths: [changedPath],
+    testPaths: { client: ["src/components/Panel.test.tsx"] },
+    environment: { capabilities: { dependencies: true, authenticatedBrave: false } },
+  };
+  const push = selectValidation({ intent: "push", ...input });
+  const browserProof = push.checks.find((check) => check.id === "browser-proof");
+
+  assert.equal(push.status, "ready");
+  assert.equal(browserProof?.state, "blocked");
+  assert.deepEqual(browserProof?.blockedBy, ["authenticatedBrave"]);
+  assert.equal(browserProof?.mandatory, true);
+  assert.equal(browserProof?.deferredForReadiness, true);
+  assert.ok(browserProof?.selectedBy.includes("conditional:browser-proof"));
+
+  const missingAutomatedCapability = selectValidation({
+    intent: "push",
+    ...input,
+    environment: { capabilities: { dependencies: false, authenticatedBrave: false } },
+  });
+  assert.equal(missingAutomatedCapability.status, "blocked");
+  assert.equal(missingAutomatedCapability.checks.find((check) => check.id === "format")?.state, "blocked");
+
+  for (const intent of ["readiness", "ship", "merge", "release"]) {
+    const strict = selectValidation({ intent, ...input });
+    assert.equal(strict.status, "blocked", intent);
+    assert.equal(strict.checks.find((check) => check.id === "browser-proof")?.deferredForReadiness, false, intent);
+  }
+
+  const ciPush = selectValidation({ intent: "push", ci: true, ...input });
+  assert.equal(ciPush.status, "blocked");
+  assert.equal(ciPush.checks.find((check) => check.id === "browser-proof")?.deferredForReadiness, false);
+
+  const critical = selectValidation({
+    intent: "push",
+    ...input,
+    changedPaths: [changedPath, "packages/shared/src/providers/Work.tsx"],
+  });
+  assert.equal(critical.risk, "critical");
+  assert.equal(critical.status, "blocked");
+  assert.equal(critical.checks.find((check) => check.id === "browser-proof")?.deferredForReadiness, false);
+});
+
 test("QA locale changes require catalog tests and rendered browser proof", () => {
   for (const locale of ["en", "es", "pt"]) {
     const plan = selectValidation({

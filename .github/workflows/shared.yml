@@ -59,6 +59,7 @@ jobs:
               ".env.schema",
               ".github/actions/setup-js/action.yml",
               ".github/workflows/shared.yml",
+              "scripts/dev/package-commands.mjs",
               "scripts/quality/check-source-structure.js",
             ]);
             const prefixes = [
@@ -104,10 +105,16 @@ jobs:
             core.setOutput("shared", shared ? "true" : "false");
 
   test:
-    name: Test
+    name: Test (${{ matrix.shard }})
     needs: changes
     if: needs.changes.outputs.shared == 'true'
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - shard: "1/2"
+          - shard: "2/2"
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
@@ -117,7 +124,7 @@ jobs:
 
       - name: Run shared tests
         working-directory: packages/shared
-        run: bun run test
+        run: bun run test --shard ${{ matrix.shard }}
         env:
           CI: true
 

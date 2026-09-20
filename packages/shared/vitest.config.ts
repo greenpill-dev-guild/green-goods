@@ -96,6 +96,51 @@ export default defineConfig({
         functions: 59,
         lines: 62,
         statements: 61,
+        // Aggregate floors measured at 7f0d81f; global floors still include these files.
+        "src/modules/work/**": {
+          branches: 80,
+          functions: 85,
+          lines: 87,
+          statements: 85,
+        },
+        "src/modules/job-queue/**": {
+          branches: 76,
+          functions: 82,
+          lines: 85,
+          statements: 82,
+        },
+        "src/hooks/auth/**": {
+          branches: 73,
+          functions: 76,
+          lines: 77,
+          statements: 75,
+        },
+        "src/hooks/vault/**": {
+          branches: 57,
+          functions: 66,
+          lines: 71,
+          statements: 69,
+        },
+        // Exact files measured after direct Cookie Jar proof at 08f96dc.
+        "src/hooks/cookie-jar/useCookieJarDeposit.ts": {
+          branches: 58,
+          functions: 74,
+          lines: 86,
+          statements: 86,
+        },
+        "src/hooks/cookie-jar/useCampaignCookieJar.ts": {
+          branches: 43,
+          functions: 33,
+          lines: 39,
+          statements: 38,
+        },
+        // Exact file measured after direct work-media compression proof at 08f96dc.
+        "src/utils/work/image-compression.ts": {
+          branches: 35,
+          functions: 67,
+          lines: 69,
+          statements: 68,
+        },
       },
     },
     exclude: ["node_modules/", "dist/", "**/*.d.ts"],

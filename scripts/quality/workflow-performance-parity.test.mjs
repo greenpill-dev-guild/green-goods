@@ -8,6 +8,11 @@ import test from "node:test";
 import { resolvePackageCommand } from "../dev/package-commands.mjs";
 
 import { classifySupplyChainChanges } from "./classify-supply-chain-changes.mjs";
+import {
+  addedQuerySetupFromDiff,
+  hasQuerySetupAllowance,
+  newQuerySetupFromSource,
+} from "./check-test-query-setup.mjs";
 
 const root = resolve(import.meta.dirname, "../..");
 const workflowsDir = join(root, ".github/workflows");
@@ -42,6 +47,21 @@ function sourceFiles(relativeDirectory) {
         ? [relativePath]
         : [];
   });
+}
+
+function coverageGlobFloors(packageName) {
+  const source = read(`packages/${packageName}/vitest.config.ts`);
+  const entries = [...source.matchAll(/"(src\/[^\"]+)":\s*\{\s*branches:\s*(\d+),\s*functions:\s*(\d+),\s*lines:\s*(\d+),\s*statements:\s*(\d+),\s*\}/g)]
+    .map(([, glob, ...values]) => [glob, values.map(Number)]);
+  for (const [glob] of entries) {
+    const path = `packages/${packageName}/${glob}`;
+    if (glob.endsWith("/**")) {
+      assert.ok(sourceFiles(path.slice(0, -3)).length > 0, `${glob} must match source files`);
+    } else {
+      assert.ok(existsSync(join(root, path)), `${glob} must match a source file`);
+    }
+  }
+  return Object.fromEntries(entries);
 }
 
 function withoutComments(source) {
@@ -355,6 +375,27 @@ test("Shared outer routing matches the internal shared-impact detector", () => {
   }
   assert.match(source, /schedule:\s*\n\s*- cron:/);
   assert.match(source, /id:\s*filter/);
+  assert.match(source, /"scripts\/dev\/package-commands\.mjs",/g);
+});
+
+test("Shared CI runs both plain-test shards and leaves nightly coverage unsharded", () => {
+  const source = read(".github/workflows/shared.yml");
+  const testJob = source.slice(source.indexOf("  test:"), source.indexOf("  lint-", source.indexOf("  test:")));
+  assert.deepEqual([...testJob.matchAll(/- shard: ["']?(\d\/2)/g)].map((match) => match[1]), ["1/2", "2/2"]);
+  assert.match(testJob, /name: Test \(\$\{\{ matrix\.shard \}\}\)/);
+  assert.match(testJob, /run: bun run test --shard \$\{\{ matrix\.shard \}\}/);
+  assert.doesNotMatch(testJob, /fail-fast:\s*true|coverage/);
+
+  const nightly = read(".github/workflows/coverage-nightly.yml");
+  assert.doesNotMatch(nightly, /--shard/);
+});
+
+test("test churn summary is informational in the existing Supply Chain workflow", () => {
+  const source = read(".github/workflows/supply-chain-guardrails.yml");
+  const changesJob = source.slice(source.indexOf("  changes:"), source.indexOf("\n  format:\n"));
+  assert.match(changesJob, /name: Summarize test and source changes\n\s+if: github\.event_name == 'pull_request'\n\s+continue-on-error: true/);
+  assert.match(changesJob, /node scripts\/quality\/summarize-test-churn\.mjs/);
+  assert.match(source, /node --test scripts\/quality\/workflow-performance-parity\.test\.mjs scripts\/quality\/summarize-test-churn\.test\.mjs/);
 });
 
 test("CI coverage drops HTML generation without weakening local reports or thresholds", () => {
@@ -371,11 +412,9 @@ test("CI coverage drops HTML generation without weakening local reports or thres
     assert.match(source, /\["text", "json"\]/);
     assert.match(source, /\["text", "json", "html"\]|\["text", "html", "json"\]/);
     assert.doesNotMatch(source, /thresholds:\s*\{\s*global:/);
-    const actualThresholds = [
-      ...source.matchAll(
-        /(?:branches|functions|lines|statements):\s*(\d+)(?:,|\n)/g,
-      ),
-    ].map((match) => Number(match[1]));
+    const global = source.match(/thresholds:\s*\{\s*branches:\s*(\d+),\s*functions:\s*(\d+),\s*lines:\s*(\d+),\s*statements:\s*(\d+),/);
+    assert.ok(global, `${file} must retain explicit global thresholds`);
+    const actualThresholds = global.slice(1).map(Number);
     assert.deepEqual(actualThresholds, thresholds, `${file} thresholds drifted`);
   }
 
@@ -394,6 +433,32 @@ test("CI coverage drops HTML generation without weakening local reports or thres
     read(".github/workflows/indexer.yml"),
     /run:\s*bun run test --scope handlers --coverage --reporter text --reporter json/,
   );
+});
+
+test("Shared critical, Cookie Jar, and image-compression coverage globs preserve measured floors", () => {
+  assert.deepEqual(coverageGlobFloors("shared"), {
+    "src/modules/work/**": [80, 85, 87, 85],
+    "src/modules/job-queue/**": [76, 82, 85, 82],
+    "src/hooks/auth/**": [73, 76, 77, 75],
+    "src/hooks/vault/**": [57, 66, 71, 69],
+    "src/hooks/cookie-jar/useCookieJarDeposit.ts": [58, 74, 86, 86],
+    "src/hooks/cookie-jar/useCampaignCookieJar.ts": [43, 33, 39, 38],
+    "src/utils/work/image-compression.ts": [35, 67, 69, 68],
+  });
+});
+
+test("Client critical coverage globs preserve measured aggregate floors", () => {
+  assert.deepEqual(coverageGlobFloors("client"), {
+    "src/views/Home/WalletSheet/**": [67, 60, 75, 74],
+    "src/views/Profile/**": [78, 88, 86, 85],
+  });
+});
+
+test("Admin critical coverage globs preserve measured aggregate floors", () => {
+  assert.deepEqual(coverageGlobFloors("admin"), {
+    "src/components/Vault/**": [59, 50, 65, 63],
+    "src/views/Garden/Pool/**": [65, 68, 75, 73],
+  });
 });
 
 test("consumer Vitest configs share the local resource-aware worker policy", () => {
@@ -530,6 +595,43 @@ test("test quality Check 5 enforces direct-tested seams", () => {
   const source = read("scripts/quality/check-test-quality.sh");
   assert.match(source, /Check 5: Direct-tested seam integrity/);
   assert.match(source, /scripts\/quality\/check-direct-tested-seams\.mjs/);
+  assert.match(source, /Check 6: Diff-aware query setup/);
+  assert.match(source, /scripts\/quality\/check-test-query-setup\.mjs/);
+});
+
+test("test quality only flags added local query setup in package tests", () => {
+  const diff = [
+    "+++ b/packages/shared/src/__tests__/example.test.ts",
+    "@@ -4,1 +4,3 @@",
+    "-const old = true;",
+    "+const old = true;",
+    "+function createWrapper(client) {}",
+    "+const queryClient = new QueryClient();",
+    "+++ b/packages/shared/src/query.ts",
+    "@@ -0,0 +1 @@",
+    "+new QueryClient();",
+  ].join("\n");
+  assert.deepEqual(addedQuerySetupFromDiff(diff), [
+    { file: "packages/shared/src/__tests__/example.test.ts", line: 5 },
+    { file: "packages/shared/src/__tests__/example.test.ts", line: 6 },
+  ]);
+});
+
+test("test quality allows nearby reasoned query setup in new files", () => {
+  const file = "packages/client/src/__tests__/example.test.tsx";
+  const source = [
+    "// TEST-QUALITY: allow-local-query-setup - custom retry is the subject",
+    "const client = new QueryClient();",
+    "function createWrapper() {}",
+  ].join("\n");
+  assert.deepEqual(newQuerySetupFromSource(source, file), [
+    { file, line: 2 },
+    { file, line: 3 },
+  ]);
+  assert.equal(hasQuerySetupAllowance(source, 2), true);
+  assert.equal(hasQuerySetupAllowance(source, 3), true);
+  assert.equal(hasQuerySetupAllowance("const client = new QueryClient();", 1), false);
+  assert.deepEqual(newQuerySetupFromSource(source, "packages/agent/src/example.test.ts"), []);
 });
 
 test("Client CI keeps staged modules isolated", () => {

@@ -21,6 +21,7 @@ import {
 import {
   buildReceiptInputs,
   fingerprintReceiptInputs,
+  isDeferredManualBrowserProof,
   resolveGitInputs,
   loadPolicy,
   selectValidation,
@@ -415,7 +416,8 @@ export function applyCompatibilityFilters(plan, options) {
   // are the ones a compatibility filter just dropped, the remaining plan is
   // runnable and must not keep reporting blocked.
   const stillBlocked =
-    rescoped.some((check) => check.state === "blocked") || environmentBlockers.length > 0;
+    rescoped.some((check) => check.state === "blocked" && !isDeferredManualBrowserProof(plan, check)) ||
+    environmentBlockers.length > 0;
   const status = stillBlocked ? "blocked" : plan.status === "blocked" ? "ready" : plan.status;
   const budget = summarizeBudget(plan.effectiveIntent, rescoped, plan.risk);
   return { ...plan, checks: rescoped, status, budget, skipped, environmentBlockers };
@@ -616,6 +618,7 @@ export async function executePlan(plan, options = {}) {
   const externalSignal = options.signal;
   const results = [];
   const blocked = [];
+  const pendingManual = [];
   const receiptStore = options.receiptStore ?? new Map();
   const reusePassingReceipts = options.reusePassingReceipts === true;
   const concurrency = options.concurrency !== false;
@@ -677,6 +680,12 @@ export async function executePlan(plan, options = {}) {
       );
     }
     const check = plan.checks[index];
+
+    if (isDeferredManualBrowserProof(plan, check)) {
+      pendingManual.push({ id: check.id, blockedBy: [...check.blockedBy] });
+      index += 1;
+      continue;
+    }
 
     if (check.state === "blocked") {
       blocked.push({ id: check.id, blockedBy: [...check.blockedBy] });
@@ -783,7 +792,7 @@ export async function executePlan(plan, options = {}) {
   if (blocked.length > 0 || plan.status === "blocked") {
     return finish({ status: "blocked", exitCode: 2, results, blocked });
   }
-  return finish({ status: "passed", exitCode: 0, results, blocked });
+  return finish({ status: "passed", exitCode: 0, results, blocked, pendingManual });
 }
 
 export function loadPassingReceiptStore(path = defaultReceiptPath) {
@@ -831,7 +840,11 @@ function printPlan(plan) {
   for (const check of plan.checks) {
     const flags = [
       check.mandatory ? "mandatory" : null,
-      check.state === "blocked" ? `blocked:${check.blockedBy.join(",")}` : null,
+      isDeferredManualBrowserProof(plan, check)
+        ? `manual proof pending for readiness${check.blockedBy.length ? `:${check.blockedBy.join(",")}` : ""}`
+        : check.state === "blocked"
+          ? `blocked:${check.blockedBy.join(",")}`
+          : null,
     ]
       .filter(Boolean)
       .join(", ");
@@ -973,7 +986,11 @@ async function main() {
       `\n${colors.red}Validation exceeded its ${plan.budget.hardLimitSeconds}s local budget; remaining noncritical checks were stopped.${colors.reset}`,
     );
   } else if (execution.status === "passed") {
-    console.log(`\n${colors.green}Selected validation plan passed.${colors.reset}`);
+    console.log(
+      execution.pendingManual?.length
+        ? `\n${colors.green}Automated push checks passed.${colors.reset} Manual authenticated-browser proof remains pending for readiness.`
+        : `\n${colors.green}Selected validation plan passed.${colors.reset}`,
+    );
   } else {
     console.log(`\n${colors.red}Validation failed; dependent checks stopped.${colors.reset}`);
   }

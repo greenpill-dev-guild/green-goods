@@ -87,6 +87,19 @@ const TURBO_PACKAGES = new Map(
   ]),
 );
 
+export function isDeferredManualBrowserProof(plan, check) {
+  return (
+    plan.effectiveIntent === "push" &&
+    plan.ci !== true &&
+    plan.risk !== "critical" &&
+    check.id === "browser-proof" &&
+    check.manual === true &&
+    check.command === null &&
+    check.stopRule === "block-readiness" &&
+    (check.blockedBy ?? []).every((capability) => capability === "authenticatedBrave")
+  );
+}
+
 function owningSurface(path) {
   if (path.startsWith("docs/")) return "docs";
   return packageSurfaces.find((surface) => path.startsWith(`packages/${surface}/`)) ?? null;
@@ -600,19 +613,23 @@ export function selectValidation(input = {}, options = {}) {
   const environment = normalizeEnvironment(input.environment);
   let checks = policy.checks
     .filter((check) => selected.has(check.id))
-    .map((check) =>
-      ({
-        ...materializeCheck(check, environment, mandatory.has(check.id), testPaths, {
-          intent,
-          risk,
-          ci,
-          changedPaths,
-          deletedPaths,
-          checkpointScope: checkpointScope.effective,
-        }),
+    .map((check) => {
+      const materialized = materializeCheck(check, environment, mandatory.has(check.id), testPaths, {
+        intent,
+        risk,
+        ci,
+        changedPaths,
+        deletedPaths,
+        checkpointScope: checkpointScope.effective,
+      });
+      return {
+        ...materialized,
         selectedBy: [...(selectionReasons.get(check.id) ?? [])],
-      }),
-    );
+        ...(materialized.manual
+          ? { deferredForReadiness: isDeferredManualBrowserProof({ effectiveIntent: intent, risk, ci }, materialized) }
+          : {}),
+      };
+    });
   const toolchainBlockers = compareToolchain(policy.toolchain, environment.toolchain, checks);
   if (toolchainBlockers.length > 0) {
     const capabilities = toolchainBlockers.map((blocker) => blocker.capability);
@@ -622,7 +639,9 @@ export function selectValidation(input = {}, options = {}) {
       blockedBy: [...new Set([...check.blockedBy, ...capabilities])],
     }));
   }
-  const blockedChecks = checks.filter((check) => check.state === "blocked");
+  const blockedChecks = checks.filter(
+    (check) => check.state === "blocked" && !isDeferredManualBrowserProof({ effectiveIntent: intent, risk, ci }, check),
+  );
   const budget = summarizeBudget(intent, checks, risk);
   const missingFocus = fastPush
     ? focusedProofMissing(changedPaths, testPaths, requestedChecks)

@@ -2,10 +2,10 @@
  * @vitest-environment jsdom
  */
 
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { renderHook, waitFor } from "@testing-library/react";
-import { createElement, type ReactNode } from "react";
+import { waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { createTestQueryClient } from "../../test-utils/query-client";
+import { renderHookWithQueryClient } from "../../test-utils/query-client-render";
 
 const mocks = vi.hoisted(() => ({ query: vi.fn(), warn: vi.fn() }));
 
@@ -23,16 +23,6 @@ vi.mock("../../../config/default-chain", () => ({
 
 import { usePublicCommitmentImpact } from "../../../hooks/public/usePublicCommitmentImpact";
 import { getPublicCommitmentImpact } from "../../../modules/commitment-pooling/data-public-impact";
-
-function createQueryClient() {
-  return new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 } } });
-}
-
-function createWrapper(queryClient: QueryClient) {
-  return function Wrapper({ children }: { children: ReactNode }) {
-    return createElement(QueryClientProvider, { client: queryClient }, children);
-  };
-}
 
 function containsAddressValue(value: unknown): boolean {
   if (typeof value === "string") return /^0x[0-9a-f]{40}$/i.test(value);
@@ -123,9 +113,9 @@ describe("public commitment impact reader", () => {
       };
     });
 
-    const queryClient = createQueryClient();
-    const { result } = renderHook(() => usePublicCommitmentImpact(), {
-      wrapper: createWrapper(queryClient),
+    const queryClient = createTestQueryClient();
+    const { result } = renderHookWithQueryClient(() => usePublicCommitmentImpact(), {
+      queryClient,
     });
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
 

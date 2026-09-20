@@ -153,6 +153,8 @@ When you are dispatched from a Linear issue (delegated/assigned, labeled `ai:cod
 5. Run the lightest validation loop that still proves the change.
 6. Escalate to cross-package verification when shared contracts, shared types, or public APIs move.
 
+For test changes, apply the [test budget](.claude/context/testing.md#test-budget): prove distinct failures at their owning layer and verify surviving proof before deleting a test.
+
 **Two-phase rhythm for ambiguous or multi-issue work**: investigate (read-only) → present numbered findings → wait for explicit scope lock from the human → fix only locked items → run the validation ladder. This paragraph is the canonical spec (the former `audit-then-ship` skill folded into it; Claude gets the same gate from plan mode + CLAUDE.md § Scope Discipline). Do not invent a parallel Codex-specific protocol.
 
 For architecture opportunity discovery or structural review, load

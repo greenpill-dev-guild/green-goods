@@ -303,14 +303,16 @@ describe("timeframeDefinitionSchema", () => {
     expect(result.success).toBe(false);
   });
 
-  it("allows zero as valid timestamp (indefinite)", () => {
+  it.each([
+    { boundary: "an indefinite end", start: 1704067200, end: 0, accepted: true },
+    { boundary: "equal start and end", start: 1704067200, end: 1704067200, accepted: true },
+    { boundary: "an end before the start", start: 1704153600, end: 1704067200, accepted: false },
+  ])("handles $boundary", ({ start, end, accepted }) => {
     const timeframe = {
-      name: "Impact timeframe",
-      value: [1704067200, 0] as [number, number],
-      display_value: "Indefinite",
+      ...createValidTimeframeDefinition(),
+      value: [start, end] as [number, number],
     };
-    const result = timeframeDefinitionSchema.safeParse(timeframe);
-    expect(result.success).toBe(true);
+    expect(timeframeDefinitionSchema.safeParse(timeframe).success).toBe(accepted);
   });
 
   it("rejects empty name", () => {

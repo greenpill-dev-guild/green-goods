@@ -124,7 +124,8 @@ Client startup prints one `[vite-watch]` line with the checkout, client root, wa
 | `check-source-structure.test.mjs` | `bun run check --only validation-system-test` | Fixture coverage for placement, naming, layering, dead-export exclusions, staged modules, and exact baseline shrinkage |
 | `check-staged-modules.mjs` | `bun run check --only staged-modules`, validation selector | Keep deferred Card Endow modules marked and isolated from live Client imports |
 | `check-staged-modules.test.mjs` | `bun run check --only validation-system-test` | Positive and fail-closed fixtures for the staged-module boundary |
-| `check-test-quality.sh` | `bun run check --only test-quality` | Detect tautological assertions, ungoverned skips, `@ts-nocheck`, malformed new Solidity test names, and direct-test seam drift |
+| `check-test-quality.sh` | `bun run check --only test-quality` | Detect tautological assertions, ungoverned skips, `@ts-nocheck`, malformed new Solidity test names, direct-test seam drift, and unjustified new local query setup |
+| `check-test-query-setup.mjs` | `bun run check --only test-quality` | Diff-aware guard for new package-test query clients and wrappers, with reasoned local exceptions |
 | `check-direct-tested-seams.mjs` | `bun run check --only test-quality` | Resolve real package exports, require direct non-self-mocking subject proof, and validate selected/certified seam registry paths, composition, consumers, proof categories, and evidence fingerprints |
 | `check-direct-tested-seams.test.mjs` | `bun run check --only validation-system-test` | Fixture proof for export-map resolution, self-mocking rejection, missing/duplicate registry evidence, lifecycle gates, fingerprint freshness, and exact-baseline shrinkage |
 | `check-story-coverage.ts` | `design.yml` (via `packages/shared` script) | Storybook coverage policy per package |
@@ -134,6 +135,7 @@ Client startup prints one `[vite-watch]` line with the checkout, client root, wa
 | `check-browser-verification-policy.mjs` | `bun run check --only browser-verification-policy`, `bun run check --only agentic-readiness` | Verify authenticated Brave QA guidance across canonical agent docs, reject stale local isolated-browser guidance, and enforce browser-proof guard wiring |
 | `require-authenticated-browser-qa.mjs` | `bun run browser routes` via `agentic:browser-proof` | Block local isolated browser-proof runs unless `CI=true`, so clean-room proof cannot be reported as authenticated local QA |
 | `classify-supply-chain-changes.mjs` | Supply Chain Guardrails | Route ordinary source, guidance, dependency/toolchain, and validation/workflow changes to independent workflow jobs |
+| `summarize-test-churn.mjs` | Supply Chain Guardrails | Informational pull-request source/test line churn, changed-line ratio, and added/deleted file summary |
 | `select-validation.mjs` | `bun run check --plan`, `bun run check`, CI Gate | Shared intent/path/dependency/risk selector for agent plans, local execution, and expected PR workflows |
 | `select-validation.test.mjs` | `bun run check --only validation-system-test`, CI Gate | Fixture matrix for validation intent, risk overrides, dirty-tree freshness, toolchain blocking, budgets, and workflow routing |
 | `ci-gate.mjs` | `.github/workflows/ci-gate.yml` | Fail-closed PR aggregate that consumes the shared selector, fails immediately on terminal non-success, and keeps strict missing-workflow protection |

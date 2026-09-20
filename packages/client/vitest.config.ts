@@ -62,6 +62,19 @@ export default defineConfig({
         functions: 62,
         lines: 64,
         statements: 63,
+        // Aggregate floors measured at 08f96dc; global floors still include these files.
+        "src/views/Home/WalletSheet/**": {
+          branches: 67,
+          functions: 60,
+          lines: 75,
+          statements: 74,
+        },
+        "src/views/Profile/**": {
+          branches: 78,
+          functions: 88,
+          lines: 86,
+          statements: 85,
+        },
       },
     },
     exclude: ["node_modules/", "dist/", "build/", "**/*.d.ts"],

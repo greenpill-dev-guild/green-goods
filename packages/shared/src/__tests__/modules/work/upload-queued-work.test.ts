@@ -198,6 +198,27 @@ describe("Upload all", () => {
     expect(sender.sendContractCall.mock.calls[0][0].functionName).toBe("attest");
   });
 
+  it("leaves ready work on another chain out of the selected chain's send", async () => {
+    const selected = work();
+    const otherChain = work();
+    otherChain.chainId = 11155111;
+    const { ports } = harness([selected, otherChain]);
+    const acquire = vi.spyOn(ports, "acquire");
+    const sender = createMockTransactionSender();
+
+    await expect(upload(ports, sender)).resolves.toEqual({
+      status: "uploaded",
+      sent: 1,
+      flagged: 0,
+    });
+    expect(acquire).toHaveBeenCalledWith([selected.id]);
+    expect(ports.processJob).toHaveBeenCalledWith(selected.id, {
+      transactionSender: sender,
+      explicit: true,
+    });
+    expect(ports.processJob).not.toHaveBeenCalledWith(otherChain.id, expect.anything());
+  });
+
   it("flags the item the chain refuses and sends the rest", async () => {
     const [good, ended] = [work(), work()];
     const { ports, store } = harness([good, ended], {
@@ -335,6 +356,25 @@ describe("Upload all", () => {
       flagged: 1,
     });
     expect(ports.processJob).toHaveBeenCalledTimes(3);
+  });
+
+  it("stops an embedded wallet's run when the person cancels the send", async () => {
+    const [first, second, third] = [work(), work(), work()];
+    const { ports } = harness([first, second, third]);
+    const sender = createMockTransactionSender({ authMode: "embedded" });
+    vi.mocked(ports.processJob).mockImplementation(async (jobId) =>
+      jobId === second.id
+        ? { success: false, error: "send-cancelled" }
+        : { success: true, txHash: TX }
+    );
+
+    await expect(upload(ports, sender)).resolves.toEqual({
+      status: "declined",
+      sent: 1,
+      flagged: 0,
+    });
+    expect(ports.processJob).not.toHaveBeenCalledWith(third.id, expect.anything());
+    expect(sender.sendContractCall).not.toHaveBeenCalled();
   });
 
   it("stops an embedded wallet's run when the send itself fails, keeping what went", async () => {

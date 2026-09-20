@@ -2,11 +2,11 @@
 
 Green Goods has useful behavioral protection, but repeated test setup and an incomplete manual-evidence workflow make changes expensive to verify. This plan refreshes the September 18 test-audit prompt and sequences small improvements without treating test count as a quality target.
 
-Preparation and saving this hub were authorized on September 19, 2026. Preparation is complete; implementation has not started. The hub stays in backlog until execution is selected. The attached execution prompt is source material, not authorization to create branches, publish PRs, change gates, or write to Linear in this planning session.
+Preparation finished on September 19, 2026. The user then selected local implementation, starting with test-budget guidance, and the hub moved to active. A later request authorized committing completed local slices and updating this hub. Branch changes, publication, environment changes, and Linear writes remain outside the current authorization.
 
 Start with test-budget guidance, then resolve manual browser evidence in the push workflow. Improve CI feedback, protect important decisions, and only then remove repeated setup or redundant cases. Each deletion must identify surviving proof for the same failure or establish that the subject has no remaining caller.
 
-The first implementation milestone is two separate changes: original item 1 (test budget) and item 4 (manual browser evidence). Item 4 still needs a policy decision. The recommendation is to permit ordinary publication after automated requirements pass while retaining manual browser proof as a readiness requirement. Missing automated capabilities must still block.
+The first implementation milestone is two separate changes: original item 1 (test budget) and item 4 (manual browser evidence). The user selected ordinary publication after automated requirements pass while retaining manual browser proof as a readiness requirement. Missing automated capabilities still block. Both changes are implemented locally; no publication is authorized.
 
 The book's guiding principle is *Easier to Change*. Apply DRY to repeated knowledge, use difficult setup to find coupling, preserve independently valuable tests, and build one complete local development journey before expanding environment machinery. Source: the user-provided *The Pragmatic Programmer*, 20th anniversary edition, Topics 8–12, 41–42, and 50–51; the prior audit cites PDF page 365 on redundant tests.
 
