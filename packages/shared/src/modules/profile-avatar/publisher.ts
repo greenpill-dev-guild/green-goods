@@ -1,3 +1,4 @@
+import type { AccountFactoryArgs } from "../auth/account-message-signer";
 import type { Address } from "../../types/domain";
 import {
   buildProfileAvatarMessage,
@@ -6,7 +7,6 @@ import {
 } from "../../public-contracts/profile-avatar";
 import {
   ProfileAvatarTransportError,
-  type ProfileAvatarFactoryArgs,
   type ProfileAvatarPublishDependencies,
   type ProfileAvatarPublishInput,
 } from "./types";
@@ -20,7 +20,7 @@ function mutationFor(
   expectedVersion: number,
   signature: `0x${string}`,
   issuedAt: number,
-  factoryArgs?: ProfileAvatarFactoryArgs
+  factoryArgs?: AccountFactoryArgs
 ): ProfileAvatarMutation {
   return {
     avatarUri,

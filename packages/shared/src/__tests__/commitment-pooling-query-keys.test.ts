@@ -26,6 +26,8 @@ describe("commitment pooling query keys", () => {
       queryKeys.commitmentPooling.hypercertBundle(42161, 13n),
       queryKeys.commitmentPooling.funding(42161, 11n, ACCOUNT),
       queryKeys.commitmentPooling.settlementConfiguration(42161),
+      queryKeys.commitmentPooling.gardenerDelivery(42161, 42220),
+      queryKeys.commitmentPooling.gardenerSettlementHistory(42161, ACCOUNT),
       queryKeys.commitmentPooling.settlementAccount(42161, ACCOUNT),
       queryKeys.commitmentPooling.settlementSubject(42161, false, 14n),
       queryKeys.commitmentPooling.payoutPlan(42161, 15n),

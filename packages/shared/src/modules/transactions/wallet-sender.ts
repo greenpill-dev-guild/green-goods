@@ -11,13 +11,19 @@
  * @module modules/transactions/wallet-sender
  */
 
-import { waitForTransactionReceipt as defaultWaitForReceipt, type Config } from "@wagmi/core";
+import {
+  getAccount as defaultGetAccount,
+  waitForTransactionReceipt as defaultWaitForReceipt,
+  type Config,
+} from "@wagmi/core";
 import type { Hex } from "viem";
+import type { Address } from "../../types/domain";
 import { logger } from "../app/logger";
 import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
-import { ensureWagmiWalletChain } from "./chain-guard";
+import { assertWalletAccount, ensureWagmiWalletChain } from "./chain-guard";
 import { assertLocalArbitrumForkWallet } from "./local-fork-safety";
 import {
+  TransactionReplacementError,
   TransactionRevertedError,
   type ContractCall,
   type TransactionSender,
@@ -37,8 +43,13 @@ function isCanonicalTxHash(hash: string): hash is `0x${string}` {
 export interface WalletSenderDeps {
   waitForTransactionReceipt: (
     config: Config,
-    params: { hash: Hex; chainId?: number }
-  ) => Promise<{ status: string }>;
+    params: {
+      hash: Hex;
+      chainId?: number;
+      onReplaced?: (replacement: { reason: "cancelled" | "replaced" | "repriced" }) => void;
+    }
+  ) => Promise<{ status: string; transactionHash?: Hex }>;
+  getAccount?: () => { address?: Address };
   assertWriteSafety?: () => Promise<void>;
   ensureWalletChain?: (chainId: number) => Promise<void>;
 }
@@ -51,6 +62,7 @@ export class WalletSender implements TransactionSender {
   private config: Config;
   private writeContractAsync: (params: {
     address: `0x${string}`;
+    account?: Address;
     abi: readonly unknown[];
     functionName: string;
     args: readonly unknown[];
@@ -63,6 +75,7 @@ export class WalletSender implements TransactionSender {
     wagmiConfig: Config,
     writeContractAsync: (params: {
       address: `0x${string}`;
+      account?: Address;
       abi: readonly unknown[];
       functionName: string;
       args: readonly unknown[];
@@ -80,6 +93,7 @@ export class WalletSender implements TransactionSender {
       assertWriteSafety: assertLocalArbitrumForkWallet,
       ensureWalletChain: (chainId: number) => ensureWagmiWalletChain(this.config, chainId),
     };
+    this.deps.getAccount ??= () => defaultGetAccount(this.config);
     this.deps.assertWriteSafety ??= assertLocalArbitrumForkWallet;
     this.deps.ensureWalletChain ??= (chainId: number) =>
       ensureWagmiWalletChain(this.config, chainId);
@@ -97,6 +111,7 @@ export class WalletSender implements TransactionSender {
     const chainId = call.chainId ?? DEFAULT_CHAIN_ID;
     await this.deps.ensureWalletChain?.(chainId);
     await this.deps.assertWriteSafety?.();
+    if (call.account) assertWalletAccount(call.account, this.deps.getAccount?.().address);
 
     await options.assertOwnership?.();
     // The wallet approves and broadcasts in one step, so the intent is recorded
@@ -104,6 +119,7 @@ export class WalletSender implements TransactionSender {
     await options.onBeforeBroadcast?.();
 
     const hash: string = await this.writeContractAsync({
+      ...(call.account ? { account: call.account } : {}),
       address: call.address as `0x${string}`,
       abi: call.abi as readonly unknown[],
       functionName: call.functionName,
@@ -131,19 +147,38 @@ export class WalletSender implements TransactionSender {
     }
 
     // Wait for on-chain confirmation and verify the tx was not reverted
-    const receipt = await this.deps.waitForTransactionReceipt(this.config, { hash, chainId });
+    let invalidReplacement: "cancelled" | "replaced" | undefined;
+    let receipt: Awaited<ReturnType<WalletSenderDeps["waitForTransactionReceipt"]>>;
+    try {
+      receipt = await this.deps.waitForTransactionReceipt(this.config, {
+        hash,
+        chainId,
+        onReplaced: ({ reason }) => {
+          if (reason !== "repriced") invalidReplacement = reason;
+        },
+      });
+    } catch (error) {
+      if (invalidReplacement) throw new TransactionReplacementError(invalidReplacement);
+      throw error;
+    }
+    if (invalidReplacement) throw new TransactionReplacementError(invalidReplacement);
     if (receipt.status === "reverted") {
       throw new TransactionRevertedError(hash, "Transaction reverted on-chain");
     }
 
+    const confirmedHash = receipt.transactionHash ?? hash;
+    if (confirmedHash.toLowerCase() !== hash.toLowerCase()) {
+      await options.onBroadcastReference?.({ kind: "transaction", hash: confirmedHash });
+      await options.onBroadcast?.(confirmedHash);
+    }
     logger.debug("Wallet transaction confirmed", {
       source: "WalletSender",
       functionName: call.functionName,
       address: call.address,
-      hash,
+      hash: confirmedHash,
     });
 
-    return { hash, sponsored: false };
+    return { hash: confirmedHash, sponsored: false };
   }
 
   // sendBatch is intentionally not implemented for wallet mode.

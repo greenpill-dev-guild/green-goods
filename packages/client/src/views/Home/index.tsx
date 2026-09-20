@@ -4,7 +4,7 @@ import { queryKeys } from "@green-goods/shared/config/query-keys/registry";
 import { useArrivalState } from "@green-goods/shared/hooks/app/useArrivalState";
 import { useBrowserNavigation } from "@green-goods/shared/hooks/app/useBrowserNavigation";
 import { useLoadingWithMinDuration } from "@green-goods/shared/hooks/app/useLoadingWithMinDuration";
-import { useOffline } from "@green-goods/shared/hooks/app/useOffline";
+import { useOnlineStatus } from "@green-goods/shared/hooks/app/useOnlineStatus";
 import { useAuthState } from "@green-goods/shared/hooks/auth/useAuth";
 import { usePrimaryAddress } from "@green-goods/shared/hooks/auth/usePrimaryAddress";
 import { useGardens } from "@green-goods/shared/hooks/blockchain/useBaseLists";
@@ -94,7 +94,7 @@ const Home: React.FC = () => {
   const { data: gardens = [], isFetching, isPending, isError, refetch } = useGardens();
 
   // Auth & connectivity
-  const { isOnline } = useOffline();
+  const isOnline = useOnlineStatus();
   const primaryAddress = usePrimaryAddress();
   const normalizedAddress = primaryAddress?.toLowerCase() ?? null;
 

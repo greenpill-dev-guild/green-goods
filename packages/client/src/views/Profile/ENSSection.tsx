@@ -3,7 +3,7 @@ import { Button } from "@green-goods/shared/components/Button";
 import { ConfirmDialog } from "@green-goods/shared/components/Dialog/ConfirmDialog";
 import { TextInput } from "@green-goods/shared/components/Form/ControlPrimitives";
 import { ENSProgressTimeline } from "@green-goods/shared/components/Progress/ENSProgressTimeline";
-import { useOffline } from "@green-goods/shared/hooks/app/useOffline";
+import { useOnlineStatus } from "@green-goods/shared/hooks/app/useOnlineStatus";
 import { useENSClaim } from "@green-goods/shared/hooks/ens/useENSClaim";
 import { useENSRegistrationStatus } from "@green-goods/shared/hooks/ens/useENSRegistrationStatus";
 import { useENSReleaseName } from "@green-goods/shared/hooks/ens/useENSReleaseName";
@@ -34,7 +34,7 @@ interface ENSSectionProps {
 
 export const ENSSection: React.FC<ENSSectionProps> = ({ primaryAddress }) => {
   const intl = useIntl();
-  const { isOnline } = useOffline();
+  const isOnline = useOnlineStatus();
   const { data: isProtocolMember = false, isLoading: isMembershipLoading } =
     useProtocolMemberStatus(primaryAddress as `0x${string}` | undefined);
   const slugForm = useSlugForm();

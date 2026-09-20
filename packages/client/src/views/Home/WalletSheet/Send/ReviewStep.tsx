@@ -72,7 +72,7 @@ export function ReviewStep({
   onEditRecipient,
   onEditAmount,
 }: ReviewStepProps) {
-  const { formatMessage } = useIntl();
+  const { formatMessage, locale } = useIntl();
   const editLabel = formatMessage({ id: "app.send.edit" });
 
   return (
@@ -87,13 +87,15 @@ export function ReviewStep({
         />
         <SummaryRow
           label={formatMessage({ id: "app.send.review.token" })}
-          value={token.symbol}
+          value={
+            token.chainId === 42220 ? formatMessage({ id: "app.celoWallet.asset" }) : token.symbol
+          }
           onEdit={onEditAmount}
           editLabel={editLabel}
         />
         <SummaryRow
           label={formatMessage({ id: "app.send.review.amount" })}
-          value={`${formatTokenAmount(parsedAmount, token.decimals)} ${token.symbol}`}
+          value={`${formatTokenAmount(parsedAmount, token.decimals, token.decimals, locale)} ${token.symbol}`}
           onEdit={onEditAmount}
           editLabel={editLabel}
         />

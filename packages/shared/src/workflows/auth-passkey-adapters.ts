@@ -8,6 +8,7 @@ import {
   toWebAuthnAccount,
 } from "viem/account-abstraction";
 import { getChain } from "../config/chains";
+import { ENV } from "../lib/env";
 import {
   buildPasskeyRecoveryContext,
   createPasskey,
@@ -19,6 +20,7 @@ import {
   createPimlicoClientForChain,
   createPublicClientForChain,
   getPimlicoBundlerUrl,
+  getPimlicoSponsorshipPolicyId,
 } from "../config/pimlico";
 import {
   trackAuthPasskeyLoginFailed,
@@ -45,8 +47,6 @@ import {
   setStoredSmartAccountAddress,
   setStoredUsername,
 } from "../modules/auth/session";
-
-const DEFAULT_SPONSORSHIP_POLICY_ID = "sp_next_monster_badoon";
 
 export type PasskeyServerClientAdapter = ReturnType<typeof createPasskeyServerClient>;
 
@@ -126,6 +126,12 @@ async function buildSmartAccount(
   knownAddress?: Hex
 ): Promise<{ client: SmartAccountClient; address: Hex }> {
   assertPrimaryPasskeyProfile(chainId);
+  // Account construction is a read/auth capability. A missing Celo policy
+  // prevents sponsored submission, but must not prevent sign-in or recovery.
+  const sponsorshipPolicyId =
+    chainId === 42220
+      ? ENV.VITE_PIMLICO_CELO_SPONSORSHIP_POLICY_ID?.trim()
+      : getPimlicoSponsorshipPolicyId(chainId);
   const chain = getChain(chainId);
   const publicClient = createPublicClientForChain(chainId);
   const pimlicoClient = createPimlicoClientForChain(chainId);
@@ -136,14 +142,12 @@ async function buildSmartAccount(
     entryPoint: { address: entryPoint07Address, version: "0.7" },
     address: knownAddress,
   });
-  const sponsorshipPolicyId =
-    import.meta.env.VITE_PIMLICO_SPONSORSHIP_POLICY_ID || DEFAULT_SPONSORSHIP_POLICY_ID;
   const client = createSmartAccountClient({
     account,
     chain,
     bundlerTransport: http(getPimlicoBundlerUrl(chainId)),
     paymaster: pimlicoClient,
-    paymasterContext: { sponsorshipPolicyId },
+    ...(sponsorshipPolicyId ? { paymasterContext: { sponsorshipPolicyId } } : {}),
     userOperation: {
       estimateFeesPerGas: async () => {
         const { fast } = await pimlicoClient.getUserOperationGasPrice();

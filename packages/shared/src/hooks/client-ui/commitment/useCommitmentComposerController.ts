@@ -15,7 +15,7 @@ import {
   useCommitmentComposerDraftStore,
 } from "../../../stores/useCommitmentComposerDraftStore";
 import type { Address } from "../../../types/domain";
-import { useOffline } from "../../app/useOffline";
+import { useOnlineStatus } from "../../app/useOnlineStatus";
 import { usePrimaryAddress } from "../../auth/usePrimaryAddress";
 import { useActions, useGardens } from "../../blockchain/useBaseLists";
 import { useCommitmentCycleNames } from "../../commitment-pooling/useCommitmentCycleNames";
@@ -47,7 +47,7 @@ export function useCommitmentComposerController(
   input: UseCommitmentComposerControllerInput
 ): CommitmentComposerController {
   const garden = (input.garden as Address | null | undefined) ?? null;
-  const { isOnline } = useOffline();
+  const isOnline = useOnlineStatus();
   const viewer = (usePrimaryAddress() as Address | null) ?? null;
   const { pools } = useCommitmentPools({ chainId: input.chainId, garden: garden ?? undefined });
   const pool = pools[0];

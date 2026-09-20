@@ -58,6 +58,7 @@ describe("sendFlowReducer", () => {
 });
 
 const goods = {
+  chainId: 42161,
   symbol: "GOODS",
   label: "Green Goods",
   address: recipient.address,

@@ -87,7 +87,6 @@ export function isGardenerDeliveryEnabled(input: {
   sourceChainId: number;
   chainId: number;
   indexed: boolean | null;
-  mainnetEvidenceReady: boolean;
 }): boolean {
   const sourceProfile = getSettlementAccountProfile(input.sourceChainId);
   const profile = getSettlementAccountProfile(input.chainId);
@@ -97,7 +96,5 @@ export function isGardenerDeliveryEnabled(input: {
   } catch {
     return false;
   }
-  return Boolean(
-    profile?.production && input.indexed === true && input.mainnetEvidenceReady === true
-  );
+  return Boolean(profile.production && input.indexed === true);
 }

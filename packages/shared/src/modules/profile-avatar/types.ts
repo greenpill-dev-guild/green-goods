@@ -1,3 +1,4 @@
+import type { AccountFactoryArgs } from "../auth/account-message-signer";
 import type { Address } from "../../types/domain";
 import type { SerializedFileData } from "../../types/job-queue";
 import type {
@@ -27,19 +28,6 @@ export type ProfileAvatarPublishInput = {
   cid?: string;
 };
 
-export type ProfileAvatarFactoryArgs = {
-  factory?: string;
-  factoryData?: `0x${string}`;
-};
-
-export type ProfileAvatarSignerAccount = {
-  signMessage?: (args: { message: string }) => Promise<`0x${string}`>;
-  getFactoryArgs?: () =>
-    | ProfileAvatarFactoryArgs
-    | Promise<ProfileAvatarFactoryArgs | undefined>
-    | undefined;
-};
-
 export type ProfileAvatarPublishDependencies = {
   get: (chainId: number, address: Address) => Promise<ProfileAvatarRecord>;
   save: (
@@ -54,7 +42,7 @@ export type ProfileAvatarPublishDependencies = {
   clearDraft: () => Promise<void>;
   onStage?: (stage: "normalizing" | "uploading" | "signing" | "saving") => void;
   now?: () => number;
-  getFactoryArgs?: () => Promise<ProfileAvatarFactoryArgs | undefined>;
+  getFactoryArgs?: () => Promise<AccountFactoryArgs | undefined>;
 };
 
 export class ProfileAvatarTransportError extends Error {

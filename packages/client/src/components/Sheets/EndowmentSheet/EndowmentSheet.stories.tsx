@@ -1,5 +1,5 @@
 import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
-import { useOffline } from "@green-goods/shared/hooks/app/useOffline";
+import { useOnlineStatus } from "@green-goods/shared/hooks/app/useOnlineStatus";
 import { useUser } from "@green-goods/shared/hooks/auth/useUser";
 import { useCookieJarWithdraw } from "@green-goods/shared/hooks/cookie-jar/useCookieJarWithdraw";
 import { useGardenCookieJars } from "@green-goods/shared/hooks/cookie-jar/useGardenCookieJars";
@@ -77,7 +77,7 @@ function withEndowment({
 } = {}) {
   return () => {
     mocked(useUser).mockReturnValue({ primaryAddress: ACCOUNT } as ReturnType<typeof useUser>);
-    mocked(useOffline).mockReturnValue({ isOnline: online } as ReturnType<typeof useOffline>);
+    mocked(useOnlineStatus).mockReturnValue(online);
     mocked(useVaultDeposit).mockReturnValue(mutation(depositing));
     mocked(useVaultWithdraw).mockReturnValue(mutation());
     mocked(useCookieJarWithdraw).mockReturnValue(mutation());
@@ -110,7 +110,7 @@ function withEndowment({
     } as unknown as ReturnType<typeof useGardenCookieJars>);
     return resetHookMocks(
       useUser,
-      useOffline,
+      useOnlineStatus,
       useVaultDeposit,
       useVaultWithdraw,
       useCookieJarWithdraw,

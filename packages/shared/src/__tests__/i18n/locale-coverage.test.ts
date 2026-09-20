@@ -95,6 +95,8 @@ const sourceMessageTriggerTokens = [
 ];
 const allowedIdenticalLocalizedKeys = new Set([
   "app.admin.nav.cookieJars",
+  // Token symbol and network proper name have no words to translate.
+  "app.celoWallet.asset",
   "app.community.weightScheme.linear",
   // The compact Agro tab label is intentionally the same abbreviation in all locales;
   // its accessible name uses the translated full domain name.

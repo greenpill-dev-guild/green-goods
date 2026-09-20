@@ -87,8 +87,8 @@ vi.mock("@green-goods/shared/hooks/app/useNavigateToTop", () => ({
   useNavigateToTop: () => vi.fn(),
 }));
 
-vi.mock("@green-goods/shared/hooks/app/useOffline", () => ({
-  useOffline: () => ({ isOnline: true }),
+vi.mock("@green-goods/shared/hooks/app/useOnlineStatus", () => ({
+  useOnlineStatus: () => true,
 }));
 
 vi.mock("@green-goods/shared/hooks/auth/usePrimaryAddress", () => ({

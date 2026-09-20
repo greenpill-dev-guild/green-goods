@@ -1,3 +1,7 @@
+import {
+  createAccountMessageSigner,
+  resolveAccountFactoryArgs,
+} from "../../modules/auth/account-message-signer";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useSignMessage } from "wagmi";
@@ -12,13 +16,11 @@ import { uploadFileToIPFS } from "../../modules/data/ipfs/upload";
 import {
   clearProfileAvatarDraft,
   classifyProfileAvatarFailure,
-  createProfileAvatarSigner,
   loadProfileAvatarDraft,
   normalizeProfileAvatarFile,
   publishProfileAvatar,
   profileAvatarTransport,
   resolveProfileAvatar,
-  resolveProfileAvatarFactoryArgs,
   saveProfileAvatarDraft,
   type ProfileAvatarDraft,
   type ProfileAvatarResolution,
@@ -132,7 +134,7 @@ export function useProfileAvatarEditor(chainIdOrOptions?: number | ProfileAvatar
 
   const sign = useCallback(
     (message: string) =>
-      createProfileAvatarSigner({
+      createAccountMessageSigner({
         authMode: auth.authMode,
         signMessage: signMessageAsync,
         account: auth.smartAccountClient?.account,
@@ -142,7 +144,7 @@ export function useProfileAvatarEditor(chainIdOrOptions?: number | ProfileAvatar
 
   const getFactoryArgs = useCallback(async () => {
     if (auth.authMode !== "passkey") return undefined;
-    return resolveProfileAvatarFactoryArgs(
+    return resolveAccountFactoryArgs(
       auth.smartAccountClient?.account,
       editorOptions?.factory && editorOptions.factoryData
         ? {

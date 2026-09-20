@@ -9,6 +9,13 @@
 
 import type { SmartAccountClient } from "permissionless";
 import { encodeFunctionData } from "viem";
+import type { SmartAccountClientResolver } from "../../types/auth";
+import { getPimlicoSponsorshipPolicyId } from "../../config/pimlico";
+import {
+  assertSmartAccountClient,
+  assertSmartAccountClientResolverActive,
+  SmartAccountClientError,
+} from "../auth/smartAccountClientResolver";
 import { getUserOperationHash } from "viem/account-abstraction";
 import { logger } from "../app/logger";
 import { assertLocalArbitrumForkSmartAccountsDisabled } from "./local-fork-safety";
@@ -23,7 +30,8 @@ import {
 } from "./types";
 import { TX_RECEIPT_TIMEOUT_MS } from "../../utils/blockchain/polling";
 
-export interface PasskeySenderDeps {
+interface PasskeySenderDeps {
+  resolveSmartAccountClient?: SmartAccountClientResolver | null;
   assertWriteSafety?: () => Promise<void>;
 }
 
@@ -49,23 +57,43 @@ export class PasskeySender implements TransactionSender {
   ): Promise<TxResult> {
     await this.deps.assertWriteSafety?.();
 
+    const chainId = call.chainId ?? this.client.chain?.id;
+    if (chainId === undefined) throw new SmartAccountClientError("chain_mismatch");
+    if (chainId === 42220) getPimlicoSponsorshipPolicyId(chainId);
+    if (call.chainId !== undefined && !this.deps.resolveSmartAccountClient) {
+      throw new SmartAccountClientError("resolver_unavailable");
+    }
+    const client = this.deps.resolveSmartAccountClient
+      ? await this.deps.resolveSmartAccountClient(chainId)
+      : this.client;
+    if (!this.client.account) throw new SmartAccountClientError("address_mismatch");
+    assertSmartAccountClient(client, chainId, this.client.account.address);
+    if (call.account) assertSmartAccountClient(client, chainId, call.account);
+
     const data = encodeFunctionData({
       abi: call.abi,
       functionName: call.functionName,
       args: call.args as unknown[],
     });
 
+    assertSmartAccountClientResolverActive(this.deps.resolveSmartAccountClient);
     await options.assertOwnership?.();
-    const operationHash = await this.client.sendUserOperation({
-      account: this.reportingAccount(options),
+    const operationHash = await client.sendUserOperation({
+      account: this.reportingAccount(client, options),
       calls: [{ to: call.address, value: call.value ?? 0n, data }],
     });
-    await options.onBroadcastReference?.({ kind: "user-operation", hash: operationHash });
-    const receipt = await this.client.waitForUserOperationReceipt({
+    await options.onBroadcastReference?.({ kind: "user-operation", hash: operationHash, chainId });
+    const receipt = await client.waitForUserOperationReceipt({
       hash: operationHash,
       timeout: TX_RECEIPT_TIMEOUT_MS,
     });
-    if (!receipt.success)
+    if (
+      receipt.userOpHash.toLowerCase() !== operationHash.toLowerCase() ||
+      receipt.sender.toLowerCase() !== client.account!.address.toLowerCase()
+    ) {
+      throw new Error("UserOperation receipt does not match the submitted operation");
+    }
+    if (receipt.success !== true || receipt.receipt.status !== "success")
       throw new TransactionRevertedError(operationHash, "UserOperation execution reverted");
     const hash = receipt.receipt.transactionHash;
     await options.onBroadcast?.(hash);
@@ -86,19 +114,22 @@ export class PasskeySender implements TransactionSender {
    * between an approved prompt and the network: a declined prompt or a refused
    * sponsorship throws before `onBeforeBroadcast` runs.
    */
-  private reportingAccount(options: TransactionSendOptions) {
-    const account = this.client.account!;
-    const onBeforeBroadcast = options.onBeforeBroadcast;
-    if (!onBeforeBroadcast) return account;
-    const clientChainId = this.client.chain?.id;
+  private reportingAccount(client: SmartAccountClient, options: TransactionSendOptions) {
+    const account = client.account!;
+    const clientChainId = client.chain?.id;
     const signUserOperation: typeof account.signUserOperation = async (userOperation) => {
       const signature = await account.signUserOperation(userOperation);
+      // A WebAuthn prompt can outlive the session that opened it. Check again
+      // at the last point before viem can submit the signed operation.
+      assertSmartAccountClientResolverActive(this.deps.resolveSmartAccountClient);
+      await options.assertOwnership?.();
       const chainId = userOperation.chainId ?? clientChainId;
-      await onBeforeBroadcast(
+      await options.onBeforeBroadcast?.(
         chainId === undefined
           ? undefined
           : {
               kind: "user-operation",
+              chainId,
               // Hashed the way the account signs it, so it matches the bundler's return.
               hash: getUserOperationHash({
                 chainId,
@@ -124,7 +155,13 @@ export class PasskeySender implements TransactionSender {
   async reconcileBroadcast(reference: BroadcastReference): Promise<BroadcastConfirmation> {
     if (reference.kind !== "user-operation") return { status: "unresolved" };
     try {
-      const receipt = await this.client.getUserOperationReceipt({ hash: reference.hash });
+      const chainId = reference.chainId ?? this.client.chain?.id;
+      if (chainId === undefined) return { status: "unresolved" };
+      const client = this.deps.resolveSmartAccountClient
+        ? await this.deps.resolveSmartAccountClient(chainId)
+        : this.client;
+      assertSmartAccountClient(client, chainId, this.client.account!.address);
+      const receipt = await client.getUserOperationReceipt({ hash: reference.hash });
       if (!receipt) return { status: "unresolved" };
       return receipt.success
         ? { status: "confirmed", transactionHash: receipt.receipt.transactionHash }

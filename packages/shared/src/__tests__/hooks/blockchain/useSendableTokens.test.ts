@@ -111,5 +111,5 @@ it("filters GOODS from a fresh persisted cache without clearing other balances",
   const { result } = renderHook(() => useSendableTokens(ACCOUNT, 42161), {
     wrapper: makeWrapper(client),
   });
-  expect(result.current.tokens).toEqual([stable]);
+  expect(result.current.tokens).toEqual([{ ...stable, chainId: 42161 }]);
 });

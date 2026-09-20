@@ -18,7 +18,7 @@
  *   offline.ts - OfflineStatus, SyncMetrics, WorkConflict
  *
  * INFRASTRUCTURE:
- *   auth.ts - AuthMode, BaseAuthContext
+ *   auth.ts - AuthMode, BaseAuthContext, SmartAccountClientResolver
  *   contracts.ts - NetworkContracts, DeploymentParams
  *   blockchain.ts - ChainId, DeploymentConfig
  *
@@ -34,7 +34,7 @@
 // ============================================
 // Auth Types
 // ============================================
-export type { AuthMode, BaseAuthContext } from "./auth";
+export type { AuthMode, BaseAuthContext, SmartAccountClientResolver } from "./auth";
 // ============================================
 // Blockchain Types
 // ============================================

@@ -26,7 +26,7 @@ import { useIntl } from "react-intl";
 import { zeroAddress } from "viem";
 import { getErrorMessageKey, type HypercertCompletionData } from "./types";
 import { useValidationMessage, useWizardSteps } from "./wizardSteps";
-import { selectHypercertDirtyState } from "./wizardTransitions";
+import { selectHypercertDirtyState } from "../../../stores/transitions/hypercert-wizard";
 
 interface UseWizardDataOptions {
   gardenId: string;

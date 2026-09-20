@@ -1,4 +1,4 @@
-import { useOffline } from "@green-goods/shared/hooks/app/useOffline";
+import { useOnlineStatus } from "@green-goods/shared/hooks/app/useOnlineStatus";
 import { useENSClaim } from "@green-goods/shared/hooks/ens/useENSClaim";
 import { useENSRegistrationStatus } from "@green-goods/shared/hooks/ens/useENSRegistrationStatus";
 import { useENSReleaseName } from "@green-goods/shared/hooks/ens/useENSReleaseName";
@@ -15,7 +15,7 @@ const ACCOUNT = "0x2aa64e6d80390f5c017f0313cb908051be2fd35e" as Address;
 
 function withUsername({ releasing = false, online = true } = {}) {
   return () => {
-    mocked(useOffline).mockReturnValue({ isOnline: online } as ReturnType<typeof useOffline>);
+    mocked(useOnlineStatus).mockReturnValue(online);
     mocked(useProtocolMemberStatus).mockReturnValue({ data: true, isLoading: false } as ReturnType<
       typeof useProtocolMemberStatus
     >);
@@ -39,7 +39,7 @@ function withUsername({ releasing = false, online = true } = {}) {
       isSponsoredReleaseUnavailable: false,
     } as unknown as ReturnType<typeof useENSReleaseName>);
     return resetHookMocks(
-      useOffline,
+      useOnlineStatus,
       useProtocolMemberStatus,
       useGreenGoodsEnsName,
       useENSRegistrationStatus,

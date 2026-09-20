@@ -189,3 +189,69 @@ test("rejects growth after the initial structure baseline is established", () =>
   ]);
   assert.deepEqual(findStructureBaselineGrowth(grown, null), []);
 });
+
+test("enforces capability direction across relative paths, aliases and import syntax", () => {
+  const cases = [
+    ["stores/transitions/assessment.ts", 'import { step } from "../../hooks/admin-ui/hypercerts/wizardTransitions";'],
+    ["stores/transitions/assessment.ts", 'import type { ButtonProps } from "@shared/components/Button";'],
+    ["stores/transitions/assessment.ts", 'export { state } from "../../types/../providers/Auth";'],
+    ["stores/transitions/assessment.ts", 'const load = () => import("@green-goods/shared/hooks/app/useOnlineStatus");'],
+    ["stores/transitions/assessment.ts", 'type Props = import("../../components/Button").Props;'],
+    ["stores/transitions/assessment.ts", 'import UI = require("../../components/Button");'],
+    ["modules/wallet/send.ts", 'import { funding } from "../commitment-pooling/funding";'],
+    ["modules/auth/sign.ts", 'export * from "@green-goods/shared/profile-avatar";'],
+    ["modules/wallet/send.ts", 'import { funding } from "@shared/modules/commitment-pooling";'],
+    ["modules/auth/sign.ts", 'const avatar = require("../../profile-avatar/index.ts");'],
+    ["modules/auth/sign.ts", 'import { sign } from "@green-goods/shared";'],
+    ["modules/wallet/send.ts", 'import { sign } from "../index";'],
+  ];
+  for (const [relativePath, source] of cases) {
+    const path = `packages/shared/src/${relativePath}`;
+    const root = fixture({ [path]: source });
+    try {
+      const findings = audit(root, [path]).filter((finding) => finding.rule === "capability-boundary");
+      assert.equal(findings.length, 1, `${relativePath}: ${source}`);
+      assert.equal(findings[0].baselineEligible, false);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  }
+});
+
+test("resolves declared public aliases to their capability owner", () => {
+  const path = "packages/shared/src/stores/transitions/assessment.ts";
+  const root = fixture({
+    "packages/shared/package.json": JSON.stringify({ exports: { "./cards": "./src/components/Cards/index.ts" } }),
+    [path]: 'import { Card } from "@green-goods/shared/cards";',
+  });
+  try {
+    assert.equal(audit(root, [path]).filter((finding) => finding.rule === "capability-boundary").length, 1);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("allows capability consumers, pure state dependencies and comments describing imports", () => {
+  const files = {
+    "packages/shared/src/stores/transitions/assessment.ts": [
+      'import { step } from "./wizard-navigation";',
+      'import type { State } from "../useCreateAssessmentStore";',
+      'import type { Address } from "../../types/domain";',
+      '// import { useUI } from "../../hooks/ui/useUI";',
+      '/* export * from "@shared/components/Button"; */',
+      'const example = `import { useUI } from "../../hooks/ui/useUI";`;',
+      'const value = <string>input;',
+    ].join("\n"),
+    "packages/shared/src/modules/auth/surface.tsx": 'const hint = <span>Signing</span>;',
+    "packages/shared/src/modules/wallet/send.ts": 'import { ABI } from "../../utils/blockchain/abis/goodDollar";',
+    "packages/shared/src/modules/profile-avatar/publisher.ts": 'import { sign } from "../auth/account-message-signer";',
+    "packages/shared/src/hooks/client-ui/wallet/useCeloWallet.ts": 'import { settlement } from "../../../modules/commitment-pooling/funding";',
+    "packages/shared/src/hooks/admin-ui/hub/useAssessment.ts": 'import { select } from "../../../stores/transitions/assessment";',
+  };
+  const root = fixture(files);
+  try {
+    assert.deepEqual(audit(root, Object.keys(files)).filter((finding) => finding.rule === "capability-boundary"), []);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});

@@ -10,7 +10,6 @@ export {
 export {
   clearProfileAvatarDraft,
   classifyProfileAvatarFailure,
-  createProfileAvatarSigner,
   getProfileAvatarFailureMessage,
   getProfileAvatarStageMessage,
   loadProfileAvatarDraft,
@@ -18,18 +17,15 @@ export {
   profileAvatarTransport,
   publishProfileAvatar,
   resolveProfileAvatar,
-  resolveProfileAvatarFactoryArgs,
   saveProfileAvatarDraft,
   ProfileAvatarTransportError,
 } from "../modules/profile-avatar";
 export type {
   ProfileAvatarFailureAction,
   ProfileAvatarDraft,
-  ProfileAvatarFactoryArgs,
   ProfileAvatarPublishDependencies,
   ProfileAvatarPublishInput,
   ProfileAvatarResolution,
-  ProfileAvatarSignerAccount,
   ProfileAvatarSource,
 } from "../modules/profile-avatar";
 export {

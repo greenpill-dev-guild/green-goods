@@ -4,9 +4,9 @@ import { useSignMessage } from "wagmi";
 import { gardenJoinRequestKeys } from "../../config/query-keys/garden-join-requests";
 import { gardenJoinRequestTransport } from "../../modules/garden-join-requests";
 import {
-  createProfileAvatarSigner,
-  resolveProfileAvatarFactoryArgs,
-} from "../../modules/profile-avatar";
+  createAccountMessageSigner,
+  resolveAccountFactoryArgs,
+} from "../../modules/auth/account-message-signer";
 import {
   buildGardenJoinProofMessage,
   type CreateGardenJoinRequestInput,
@@ -76,7 +76,7 @@ export function useGardenJoinRequests(gardenAddress?: Address | null) {
 
   const signer = useMemo(
     () =>
-      createProfileAvatarSigner({
+      createAccountMessageSigner({
         authMode: auth.authMode,
         signMessage: signMessageAsync,
         account: auth.smartAccountClient?.account,
@@ -112,7 +112,7 @@ export function useGardenJoinRequests(gardenAddress?: Address | null) {
       const signature = await signer(buildGardenJoinProofMessage(unsigned, content));
       const factoryArgs =
         auth.authMode === "passkey"
-          ? await resolveProfileAvatarFactoryArgs(auth.smartAccountClient?.account)
+          ? await resolveAccountFactoryArgs(auth.smartAccountClient?.account)
           : undefined;
       return {
         ...unsigned,
