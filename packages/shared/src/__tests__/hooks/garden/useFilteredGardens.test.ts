@@ -42,7 +42,7 @@ function createGarden(overrides: Partial<Garden> = {}): Garden {
 function defaultFilters(overrides: Partial<GardenFiltersState> = {}): GardenFiltersState {
   return {
     scope: "all",
-    sort: "name",
+    sort: "recent",
     ...overrides,
   };
 }
@@ -255,18 +255,14 @@ describe("useFilteredGardens", () => {
     });
 
     it("isFilterActive true with sort filter", () => {
-      const result = useFilteredGardens([], defaultFilters({ sort: "recent" }), null);
+      const result = useFilteredGardens([], defaultFilters({ sort: "name" }), null);
 
       expect(result.isFilterActive).toBe(true);
       expect(result.activeFilterCount).toBe(1);
     });
 
     it("activeFilterCount 2 with both scope and sort filters", () => {
-      const result = useFilteredGardens(
-        [],
-        defaultFilters({ scope: "mine", sort: "recent" }),
-        null
-      );
+      const result = useFilteredGardens([], defaultFilters({ scope: "mine", sort: "name" }), null);
 
       expect(result.isFilterActive).toBe(true);
       expect(result.activeFilterCount).toBe(2);
@@ -331,7 +327,7 @@ describe("useFilteredGardens", () => {
         defaultFilters({ domains: [Domain.EDU, Domain.SOLAR] }),
         null
       );
-      expect(result.filteredGardens.map((garden) => garden.id)).toEqual(["agro-edu", "solar"]);
+      expect(result.filteredGardens.map((garden) => garden.id)).toEqual(["solar", "agro-edu"]);
       expect(result.isFilterActive).toBe(true);
       expect(result.activeFilterCount).toBe(1);
     });
@@ -339,7 +335,7 @@ describe("useFilteredGardens", () => {
     it("drops untagged gardens once a domain is chosen and counts it with the other filters", () => {
       const result = useFilteredGardens(
         gardens,
-        defaultFilters({ domains: [Domain.WASTE], sort: "recent", scope: "mine" }),
+        defaultFilters({ domains: [Domain.WASTE], sort: "name", scope: "mine" }),
         null
       );
       expect(result.filteredGardens).toHaveLength(0);

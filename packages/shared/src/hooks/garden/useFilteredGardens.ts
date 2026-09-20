@@ -34,7 +34,7 @@ export interface UseFilteredGardensResult {
  * ```tsx
  * const { data: gardens = [] } = useGardens();
  * const primaryAddress = usePrimaryAddress();
- * const [filters, setFilters] = useState<GardenFiltersState>({ scope: "all", sort: "name" });
+ * const [filters, setFilters] = useState<GardenFiltersState>({ scope: "all", sort: "recent" });
  *
  * const { filteredGardens, myGardensCount, isFilterActive } = useFilteredGardens(
  *   gardens,
@@ -91,7 +91,7 @@ export function useFilteredGardens(
 
   // Compute filter state
   const isScopeFiltered = scope !== "all";
-  const isSortFiltered = sort !== "name";
+  const isSortFiltered = sort !== "recent";
   const isDomainFiltered = domains.length > 0;
   const isFilterActive = isScopeFiltered || isSortFiltered || isDomainFiltered;
   const activeFilterCount =

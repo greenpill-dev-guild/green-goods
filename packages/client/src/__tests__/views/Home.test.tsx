@@ -10,6 +10,8 @@ import { IntlProvider } from "react-intl";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+const filterState = vi.hoisted(() => ({ sort: "" }));
+
 // Mock the shared barrel — Home imports all hooks/stores/utils from @green-goods/shared
 vi.mock("@green-goods/shared/utils/styles/cn", () => ({
   cn: (...args: unknown[]) => args.filter(Boolean).join(" "),
@@ -42,12 +44,15 @@ vi.mock("@green-goods/shared/config/default-chain", () => ({
 }));
 
 vi.mock("@green-goods/shared/hooks/garden/useFilteredGardens", () => ({
-  useFilteredGardens: (gardens: unknown[]) => ({
-    filteredGardens: gardens,
-    myGardensCount: 1,
-    isFilterActive: false,
-    activeFilterCount: 0,
-  }),
+  useFilteredGardens: (gardens: unknown[], filters: { sort: string }) => {
+    filterState.sort = filters.sort;
+    return {
+      filteredGardens: gardens,
+      myGardensCount: 1,
+      isFilterActive: false,
+      activeFilterCount: 0,
+    };
+  },
 }));
 
 vi.mock("@green-goods/shared/hooks/blockchain/useBaseLists", () => ({
@@ -247,6 +252,12 @@ describe("Home View", () => {
 
     expect(screen.getByTestId("garden-card")).toBeInTheDocument();
     expect(screen.getByText("Test Garden")).toBeInTheDocument();
+  });
+
+  it("starts with newest gardens first", () => {
+    renderWithProviders();
+
+    expect(filterState.sort).toBe("recent");
   });
 
   it("shows filter button", () => {

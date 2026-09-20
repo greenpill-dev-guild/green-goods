@@ -102,7 +102,7 @@ const Home: React.FC = () => {
   const { kind: arrivalKind, myGardenIds, needsReviewCount } = useArrivalState();
 
   // Filter state
-  const [filters, setFilters] = useState<GardenFiltersState>({ scope: "all", sort: "name" });
+  const [filters, setFilters] = useState<GardenFiltersState>({ scope: "all", sort: "recent" });
 
   // Use extracted hooks for cleaner logic
   const isLoadingData = isPending || (isFetching && gardens.length === 0);
@@ -264,7 +264,7 @@ const Home: React.FC = () => {
   };
 
   const handleResetFilters = () => {
-    setFilters({ scope: "all", sort: "name" });
+    setFilters({ scope: "all", sort: "recent" });
   };
 
   return (
