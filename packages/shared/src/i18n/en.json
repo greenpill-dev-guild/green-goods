@@ -840,7 +840,6 @@
   "app.celoWallet.receipts.unknown": "Checking progress",
   "app.celoWallet.receive": "Receive G$ on Celo",
   "app.celoWallet.receiveInstruction": "Receive G$ on the Celo network at this address.",
-  "app.celoWallet.retry": "Retry Celo wallet",
   "app.celoWallet.send": "Send G$ on Celo",
   "app.celoWallet.sendFailed": "The send didn't complete. Your recipient and amount are saved here; try again when you're ready.",
   "app.celoWallet.sendPending": "Sending G$ on Celo. Waiting for confirmation…",

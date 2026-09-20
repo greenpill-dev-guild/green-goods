@@ -573,20 +573,23 @@ describe("Celo wallet", () => {
     expect(screen.getByRole("tab", { name: "Receive" })).toBeEnabled();
   });
 
-  it("shows unavailable for a failed Celo read and retries independently", async () => {
+  it("shows unavailable for a failed Celo read without a retry button", () => {
     mockCeloState = {
       ...mockCeloState,
       balanceError: new Error("unavailable"),
       token: { ...celoToken, balance: null, errored: true },
       canSend: false,
     };
-    const user = userEvent.setup();
     render(<SendTab />);
     expect(
       screen.getByRole("button", { name: "Send G$ · Balance unavailable" })
     ).toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: "Retry Celo wallet" }));
-    expect(mockCeloRefetch).toHaveBeenCalledOnce();
+    expect(
+      screen.getByText(
+        "Your Celo balance couldn't refresh. Any balance shown is from the last successful check."
+      )
+    ).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /retry/i })).not.toBeInTheDocument();
   });
 
   it("retains a cached Celo balance and disables sending offline", () => {

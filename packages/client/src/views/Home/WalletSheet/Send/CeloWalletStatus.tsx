@@ -1,25 +1,10 @@
-import { Button } from "@green-goods/shared/components/Button";
 import type { useCeloWallet } from "@green-goods/shared/hooks/client-ui/wallet/useCeloWallet";
 import { RiErrorWarningLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
 
 type CeloWallet = ReturnType<typeof useCeloWallet>;
 
-function walletNeedsRetry(wallet: CeloWallet): boolean {
-  return Boolean(
-    wallet.balanceError ||
-      wallet.readiness === "unavailable" ||
-      wallet.readiness === "policy-unavailable"
-  );
-}
-
-export function CeloWalletStatus({
-  wallet,
-  showRetry = false,
-}: {
-  wallet: CeloWallet;
-  showRetry?: boolean;
-}) {
+export function CeloWalletStatus({ wallet }: { wallet: CeloWallet }) {
   const { formatMessage } = useIntl();
   const statusId = wallet.isOffline
     ? "app.celoWallet.offline"
@@ -43,11 +28,6 @@ export function CeloWalletStatus({
         </p>
       ) : null}
       {wallet.balanceError ? <p>{formatMessage({ id: "app.celoWallet.balanceError" })}</p> : null}
-      {showRetry && walletNeedsRetry(wallet) && !wallet.isOffline ? (
-        <Button type="button" emphasis="secondary" onClick={() => void wallet.refetch()}>
-          {formatMessage({ id: "app.celoWallet.retry" })}
-        </Button>
-      ) : null}
     </div>
   );
 }

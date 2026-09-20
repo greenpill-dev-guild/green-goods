@@ -840,7 +840,6 @@
   "app.celoWallet.receipts.unknown": "Verificando o andamento",
   "app.celoWallet.receive": "Receber G$ na Celo",
   "app.celoWallet.receiveInstruction": "Receba G$ na rede Celo neste endereço.",
-  "app.celoWallet.retry": "Tentar carteira Celo novamente",
   "app.celoWallet.send": "Enviar G$ na Celo",
   "app.celoWallet.sendFailed": "O envio não foi concluído. A pessoa destinatária e o valor continuam aqui; tente novamente quando quiser.",
   "app.celoWallet.sendPending": "Enviando G$ na Celo. Aguardando confirmação…",

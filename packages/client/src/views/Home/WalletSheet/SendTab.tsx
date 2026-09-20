@@ -168,7 +168,7 @@ export const SendTab: React.FC<SendTabProps> = ({ resetNonce }) => {
                 ? {
                     sendDisabled: !celoWallet.canSend || !token.balance,
                     balanceLoading: celoWallet.balanceLoading,
-                    details: <CeloWalletStatus wallet={celoWallet} showRetry />,
+                    details: <CeloWalletStatus wallet={celoWallet} />,
                   }
                 : {}),
             }))}
@@ -274,7 +274,7 @@ export const SendTab: React.FC<SendTabProps> = ({ resetNonce }) => {
                 ) : null}
                 {!celoWallet.canSend && isOnline ? (
                   <div className="px-4 pb-3">
-                    <CeloWalletStatus wallet={celoWallet} showRetry />
+                    <CeloWalletStatus wallet={celoWallet} />
                   </div>
                 ) : null}
                 <GoodDollarFeeSummary
