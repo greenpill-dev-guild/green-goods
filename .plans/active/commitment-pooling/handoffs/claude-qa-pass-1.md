@@ -313,6 +313,12 @@ it. It adds to the Wave 2 walkthrough above; it does not replace it.
   (`feature/commitment-seed-batch-tray`). The plan's § 4 carries what changed, the decisions made
   while building (19 to 23, for Afo to ratify), the proof, and a validation receipt for each. The
   tray was walked in Storybook served from its own worktree; nothing has been sent on chain.
+- **The catalog change is committed, not pushed** (`test/commitment-pooling-qa-catalog`, stacked on
+  Build 3): `451cb4b08`. 266 active cases became 304: 9 retired and split by outcome, 47 added, 5
+  corrected in place. The plan's § 5.6 says where the work differed from § 5.1 to § 5.4 and why,
+  and carries the act ledger: every reachable act against its cases. § 6.2 now names the cases to
+  walk at each step of each stage. A Build 2 copy defect found on the way is fixed in its own
+  commit, `98d3b27f5`.
 - **Gate:** this lane's manual gate is unchanged. Clearing it stays with Afo.
 - **Live read, Arbitrum block 507310713:** the module is unpaused and all 18 pools read
   `NotReady`, so pool setup is the first act of any staging walk.
