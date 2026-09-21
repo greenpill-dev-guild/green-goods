@@ -6,6 +6,14 @@ It does not deploy the app, create a hosted policy, sign a transaction, or enabl
 
 ## Selected community pilot policy
 
+**Update 2026-09-21 (owner decision, PR #854).** Celo takes the general sponsorship policy, as
+Arbitrum does. The app no longer requires `VITE_PIMLICO_CELO_SPONSORSHIP_POLICY_ID`: when it is
+blank, Celo falls back to `VITE_PIMLICO_SPONSORSHIP_POLICY_ID` and then to the built-in general
+policy. The community transfer policy described below is therefore not a launch prerequisite. It
+remains the path if sponsored transfers need their own limits, attached through the Celo override
+and the Arbitrum selection work in step 4. Until then, the limits that apply are the general
+policy's, and that policy has to allow chain `42220`.
+
 The user selected **DAI/USDC/WETH on Arbitrum One (42161), and G$ on Celo (42220)**, with
 verified Green Goods passkey senders and registered gardener/garden recipients. Use one community
 transfer policy covering both chains so the proposed 5/account/day and 200/global/day counters
@@ -93,7 +101,8 @@ use cents: a ceiling entered as `0.02` becomes `2`, without rounding or a multip
    Preserve permissions required by passkey registration/recovery. Keep policy-management
    credentials server-side. The app uses one `VITE_PIMLICO_API_KEY` across both chains.
    [API-key controls](https://docs.pimlico.io/guides/how-to/security/protect-api-keys)
-4. For Celo, the client reads `VITE_PIMLICO_CELO_SPONSORSHIP_POLICY_ID`. Arbitrum currently uses
+4. For Celo, the client reads `VITE_PIMLICO_CELO_SPONSORSHIP_POLICY_ID` when it is set and the
+   general policy otherwise. Arbitrum currently uses
    its primary policy for all actions. Before attaching this new policy, implement selection
    specifically for the three approved Arbitrum token transfers. Do not replace the general
    Arbitrum policy and break other actions. Rebuild after deployment environment changes.

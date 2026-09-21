@@ -53,6 +53,10 @@ configuration event, not a health timestamp; operational indexer monitoring rema
 Nothing in this section has been executed. Each production broadcast, value movement, policy
 activation, and delivery-toggle change requires fresh human authorization.
 
+Superseded 2026-09-21 (owner decision, PR #854): a blank `VITE_PIMLICO_CELO_SPONSORSHIP_POLICY_ID`
+now falls back to the general policy, so Celo passkey sends no longer wait on it. See
+`gardener-celo-wallets.md` section 2. The original instruction follows for the record.
+
 Set `VITE_PIMLICO_CELO_SPONSORSHIP_POLICY_ID` in the root deployment environment. A blank value
 blocks Celo passkey sends; it cannot inherit the Arbitrum/default policy. `.env.schema` documents
 the name without containing a policy credential or API key.
