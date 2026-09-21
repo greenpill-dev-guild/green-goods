@@ -1976,6 +1976,7 @@
   "app.garden.joinRequest.outcomeUnknown": "Não foi possível confirmar se a sua solicitação foi salva. Verifique o status antes de tentar novamente.",
   "app.garden.joinRequest.pendingDescription": "Uma pessoa responsável pode aceitar ou recusar sua solicitação.",
   "app.garden.joinRequest.pendingTitle": "Solicitação aguardando análise",
+  "app.garden.joinRequest.requestingAs": "Solicitando como {name}",
   "app.garden.joinRequest.send": "Enviar solicitação",
   "app.garden.joinRequest.sent": "Sua solicitação foi enviada às pessoas responsáveis pelo jardim.",
   "app.garden.joinRequest.title": "Solicitar entrada neste jardim",

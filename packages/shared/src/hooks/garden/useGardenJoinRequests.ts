@@ -2,7 +2,11 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useSignMessage } from "wagmi";
 import { gardenJoinRequestKeys } from "../../config/query-keys/garden-join-requests";
-import { gardenJoinRequestTransport } from "../../modules/garden-join-requests";
+import { trackGardenJoinRequestFailed } from "../../modules/app/analytics-events";
+import {
+  GardenJoinRequestTransportError,
+  gardenJoinRequestTransport,
+} from "../../modules/garden-join-requests";
 import {
   createAccountMessageSigner,
   resolveAccountFactoryArgs,
@@ -19,6 +23,7 @@ import {
   type ResolveGardenJoinRequestInput,
 } from "../../public-contracts/join-requests";
 import type { Address } from "../../types/domain";
+import { isCancelledTxError } from "../../utils/errors/tx-error-classifier";
 import { useAuth } from "../auth/useAuth";
 import { usePrimaryAddress } from "../auth/usePrimaryAddress";
 import { useCurrentChain } from "../blockchain/useChainConfig";
@@ -150,11 +155,11 @@ export function useGardenJoinRequests(gardenAddress?: Address | null) {
       }
       return response.request;
     } catch (caught) {
-      const error = toError(caught, "Unable to check your request status.");
+      const error = failureToShow(caught, "Unable to check your request status.", "read_self");
       if (isCurrentScope(operationScope) && operationId === latestRequestOperationRef.current) {
         setStatusState({ isLoading: false, error });
       }
-      throw error;
+      throw error ?? toError(caught, "Cancelled");
     } finally {
       if (isCurrentScope(operationScope)) {
         setStatusState((current) => ({ ...current, isLoading: false }));
@@ -181,11 +186,11 @@ export function useGardenJoinRequests(gardenAddress?: Address | null) {
         }
         return response.request;
       } catch (caught) {
-        const error = toError(caught, "Unable to send your join request.");
+        const error = failureToShow(caught, "Unable to send your join request.", "create");
         if (isCurrentScope(operationScope) && operationId === latestRequestOperationRef.current) {
           setMutationState({ isLoading: false, error });
         }
-        throw error;
+        throw error ?? toError(caught, "Cancelled");
       } finally {
         finishRequestMutation();
         if (isCurrentScope(operationScope)) {
@@ -219,11 +224,11 @@ export function useGardenJoinRequests(gardenAddress?: Address | null) {
       }
       return true;
     } catch (caught) {
-      const error = toError(caught, "Unable to withdraw your join request.");
+      const error = failureToShow(caught, "Unable to withdraw your join request.", "withdraw");
       if (isCurrentScope(operationScope) && operationId === latestRequestOperationRef.current) {
         setMutationState({ isLoading: false, error });
       }
-      throw error;
+      throw error ?? toError(caught, "Cancelled");
     } finally {
       finishRequestMutation();
       if (isCurrentScope(operationScope)) {
@@ -257,11 +262,11 @@ export function useGardenJoinRequests(gardenAddress?: Address | null) {
         }
         return response;
       } catch (caught) {
-        const error = toError(caught, "Unable to load join requests.");
+        const error = failureToShow(caught, "Unable to load join requests.", "list");
         if (isCurrentScope(operationScope)) {
           setQueueState({ isLoading: false, error });
         }
-        throw error;
+        throw error ?? toError(caught, "Cancelled");
       } finally {
         if (isCurrentScope(operationScope)) {
           setQueueState((current) => ({ ...current, isLoading: false }));
@@ -295,11 +300,11 @@ export function useGardenJoinRequests(gardenAddress?: Address | null) {
         }
         return response;
       } catch (caught) {
-        const error = toError(caught, "Unable to update this join request.");
+        const error = failureToShow(caught, "Unable to update this join request.", "resolve");
         if (isCurrentScope(operationScope)) {
           setMutationState({ isLoading: false, error });
         }
-        throw error;
+        throw error ?? toError(caught, "Cancelled");
       } finally {
         if (isCurrentScope(operationScope)) {
           setMutationState((current) => ({ ...current, isLoading: false }));
@@ -333,6 +338,28 @@ function randomNonce(): `0x${string}` {
   const bytes = new Uint8Array(32);
   crypto.getRandomValues(bytes);
   return `0x${Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("")}`;
+}
+
+/**
+ * The error to show for a failed call, or null when there is nothing to show.
+ *
+ * Declining the signature is a choice, not a failure, so it shows and records
+ * nothing. Every other failure is recorded without the account, name, or note,
+ * because until now a failed join request left no trace anywhere.
+ */
+function failureToShow(
+  caught: unknown,
+  fallback: string,
+  operation: Parameters<typeof trackGardenJoinRequestFailed>[0]["operation"]
+): Error | null {
+  if (isCancelledTxError(caught)) return null;
+  const error = toError(caught, fallback);
+  trackGardenJoinRequestFailed(
+    error instanceof GardenJoinRequestTransportError
+      ? { operation, status: error.status, errorCode: error.errorCode }
+      : { operation, errorName: error.name }
+  );
+  return error;
 }
 
 function toError(caught: unknown, fallback: string): Error {

@@ -12,6 +12,7 @@ const mocks = vi.hoisted(() => ({
   create: vi.fn(),
   withdraw: vi.fn(),
   list: vi.fn(),
+  trackFailed: vi.fn(),
 }));
 
 vi.mock("wagmi", () => ({
@@ -35,7 +36,12 @@ vi.mock("../../modules/auth/account-message-signer", () => ({
   resolveAccountFactoryArgs: vi.fn(async () => undefined),
 }));
 
-vi.mock("../../modules/garden-join-requests", () => ({
+vi.mock("../../modules/app/analytics-events", () => ({
+  trackGardenJoinRequestFailed: (...args: unknown[]) => mocks.trackFailed(...args),
+}));
+
+vi.mock("../../modules/garden-join-requests", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../../modules/garden-join-requests")>()),
   gardenJoinRequestTransport: {
     mine: (...args: unknown[]) => mocks.mine(...args),
     create: (...args: unknown[]) => mocks.create(...args),
@@ -45,6 +51,7 @@ vi.mock("../../modules/garden-join-requests", () => ({
 }));
 
 import { useGardenJoinRequests } from "../../hooks/garden/useGardenJoinRequests";
+import { GardenJoinRequestTransportError } from "../../modules/garden-join-requests";
 
 const GARDEN_A = "0x1111111111111111111111111111111111111111" as const;
 const GARDEN_B = "0x3333333333333333333333333333333333333333" as const;
@@ -193,6 +200,34 @@ describe("useGardenJoinRequests", () => {
     expect(mocks.mine).toHaveBeenCalledOnce();
     expect(result.current.request).toEqual(selfResponse.request);
     expect(result.current.hasCheckedStatus).toBe(true);
+  });
+
+  it("shows and records a failed request, but not a declined signature", async () => {
+    const { result } = renderHook(() => useGardenJoinRequests(GARDEN_A));
+    const input = { displayName: "Maya", requestedVia: "garden_detail" as const };
+
+    mocks.create.mockRejectedValueOnce(
+      new GardenJoinRequestTransportError("unavailable", 503, "provider_unavailable", true)
+    );
+    await act(async () => {
+      await result.current.submitRequest(input).catch(() => undefined);
+    });
+    expect(result.current.mutationState.error).toBeInstanceOf(GardenJoinRequestTransportError);
+    expect(mocks.trackFailed).toHaveBeenCalledWith({
+      operation: "create",
+      status: 503,
+      errorCode: "provider_unavailable",
+    });
+
+    mocks.trackFailed.mockClear();
+    mocks.create.mockRejectedValueOnce(
+      Object.assign(new Error("User rejected the request."), { code: 4001 })
+    );
+    await act(async () => {
+      await result.current.submitRequest(input).catch(() => undefined);
+    });
+    expect(result.current.mutationState.error).toBeNull();
+    expect(mocks.trackFailed).not.toHaveBeenCalled();
   });
 
   it("binds a withdrawal proof to the loaded request and revision", async () => {

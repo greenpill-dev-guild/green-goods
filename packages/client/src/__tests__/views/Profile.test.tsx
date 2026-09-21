@@ -18,7 +18,8 @@ vi.mock("@green-goods/shared/utils/styles/cn", () => ({
   cn: (...args: unknown[]) => args.filter(Boolean).join(" "),
 }));
 
-vi.mock("@green-goods/shared/utils/app/text", () => ({
+vi.mock("@green-goods/shared/utils/app/text", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@green-goods/shared/utils/app/text")>()),
   formatEnsNameForDisplay: (ensName?: string | null) =>
     ensName?.endsWith(".greengoods.eth") ? ensName.replace(".greengoods.eth", "") : ensName,
 }));

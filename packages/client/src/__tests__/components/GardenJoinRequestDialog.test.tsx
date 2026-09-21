@@ -10,6 +10,10 @@ import ptMessages from "@green-goods/shared/i18n/pt";
 const submitRequest = vi.fn(async () => ({ id: "request-1", state: "pending" }));
 const checkStatus = vi.fn(async () => null);
 const hookState = vi.hoisted(() => ({
+  // The account's names, best first: Green Goods name, ENS name, chosen passkey username.
+  greenGoodsName: null as string | null,
+  ensName: null as string | null,
+  userName: null as string | null,
   mutationError: null as Error | null,
   mutationLoading: false,
   statusError: null as Error | null,
@@ -29,11 +33,24 @@ vi.mock("@green-goods/shared/hooks/garden/useGardenJoinRequests", () => ({
   }),
 }));
 
+vi.mock("@green-goods/shared/hooks/auth/useAuth", () => ({
+  useAuthState: () => ({ userName: hookState.userName }),
+}));
+vi.mock("@green-goods/shared/hooks/ens/useGreenGoodsEnsName", () => ({
+  useGreenGoodsEnsName: () => ({ data: hookState.greenGoodsName, isLoading: false }),
+}));
+vi.mock("@green-goods/shared/hooks/blockchain/useEnsName", () => ({
+  useEnsName: () => ({ data: hookState.ensName, isLoading: false }),
+}));
+
 import { GardenJoinRequestDialog } from "../../components/Features/Garden/GardenJoinRequestDialog";
 
 describe("GardenJoinRequestDialog", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    hookState.greenGoodsName = null;
+    hookState.ensName = null;
+    hookState.userName = null;
     hookState.mutationError = null;
     hookState.mutationLoading = false;
     hookState.statusError = null;
@@ -65,6 +82,53 @@ describe("GardenJoinRequestDialog", () => {
       requestedVia: "garden_detail",
     });
     expect(await screen.findByText("Your request was sent to the garden stewards.")).toBeVisible();
+  });
+
+  it.each([
+    [
+      "its Green Goods name",
+      { greenGoodsName: "maya.greengoods.eth", ensName: "maya.eth" },
+      "maya.greengoods.eth",
+    ],
+    ["its ENS name", { ensName: "maya.eth", userName: "maya" }, "maya.eth"],
+    ["the username it chose", { userName: "maya" }, "maya"],
+  ])("requests under %s without asking for a display name", async (_label, names, expected) => {
+    Object.assign(hookState, names);
+    const user = userEvent.setup();
+    render(
+      <MemoryRouter>
+        <IntlProvider locale="en">
+          <GardenJoinRequestDialog gardenAddress="0x1111111111111111111111111111111111111111" />
+        </IntlProvider>
+      </MemoryRouter>
+    );
+
+    await user.click(screen.getByRole("button", { name: "Request to Join" }));
+    expect(screen.queryByLabelText("Display name")).not.toBeInTheDocument();
+    expect(screen.getByText(expected)).toBeVisible();
+    await user.click(screen.getByRole("button", { name: "Send Request" }));
+
+    expect(submitRequest).toHaveBeenCalledWith(expect.objectContaining({ displayName: expected }));
+  });
+
+  it("asks an account with a generated username what to be called", async () => {
+    hookState.userName = "user_1726850000";
+    const user = userEvent.setup();
+    render(
+      <MemoryRouter>
+        <IntlProvider locale="en">
+          <GardenJoinRequestDialog gardenAddress="0x1111111111111111111111111111111111111111" />
+        </IntlProvider>
+      </MemoryRouter>
+    );
+
+    await user.click(screen.getByRole("button", { name: "Request to Join" }));
+
+    expect(screen.getByLabelText("Display name")).toBeVisible();
+    expect(screen.getByRole("button", { name: "Send Request" })).toHaveAttribute(
+      "aria-disabled",
+      "true"
+    );
   });
 
   it("checks status only after an explicit action", async () => {

@@ -96,6 +96,9 @@ export const ANALYTICS_EVENTS = {
   WORK_APPROVAL_PRESENTATION_FAILED: "work_approval_presentation_failed",
   WORK_REJECTION_SUCCESS: "work_rejection_success",
 
+  // Garden join requests
+  GARDEN_JOIN_REQUEST_FAILED: "garden_join_request_failed",
+
   // Admin: Garden Management
   ADMIN_GARDEN_CREATE_STARTED: "admin_garden_create_started",
   ADMIN_GARDEN_CREATE_SUCCESS: "admin_garden_create_success",
@@ -340,6 +343,16 @@ export const trackWorkApprovalFailed = createTracker<{
   error: string;
   authMode: AuthMode;
 }>(ANALYTICS_EVENTS.WORK_APPROVAL_FAILED);
+
+/** A join-request call the person saw fail. Carries no address, name, or note. */
+export const trackGardenJoinRequestFailed = createTracker<{
+  operation: "create" | "read_self" | "withdraw" | "list" | "resolve";
+  /** HTTP status when the service answered; absent when it could not be reached. */
+  status?: number;
+  errorCode?: string;
+  /** The error's class name when the failure happened before the service was called. */
+  errorName?: string;
+}>(ANALYTICS_EVENTS.GARDEN_JOIN_REQUEST_FAILED);
 
 export const trackWorkApprovalLifecycle = createTracker<{
   approved: boolean;
