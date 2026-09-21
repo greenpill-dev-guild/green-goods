@@ -573,6 +573,22 @@ describe("WorkDashboard", () => {
     expect(screen.queryByRole("button", { name: "Refresh" })).not.toBeInTheDocument();
   });
 
+  it("keeps Completed loading while the gardener's own work is still being read", () => {
+    mockUseMyWorks.mockReturnValue({
+      data: undefined,
+      isLoading: true,
+      isFetching: true,
+      isError: false,
+      refetch: vi.fn(ok),
+    });
+
+    renderDashboard();
+    fireEvent.click(screen.getByTestId("tab-completed"));
+
+    expect(screen.getByText("Loading your work...")).toBeInTheDocument();
+    expect(screen.queryByText("No completed work")).not.toBeInTheDocument();
+  });
+
   it("opens the original work route from the My work reviewed completed filter", () => {
     const onClose = vi.fn();
     mockUseMyWorks.mockReturnValue({

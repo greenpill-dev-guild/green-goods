@@ -354,7 +354,8 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
     isLoading: isLoadingReviewerGardens || needsReview.isLoading,
     isError: needsReview.isError,
   };
-  const mySubmissionsState = {
+  // My pending submissions and my reviewed work both come from my works joined to approvals.
+  const myWorkState = {
     isLoading: isLoadingMyWorks || isLoadingMyApprovals,
     isError: isErrorMyWorks || (isErrorMyApprovals && allApprovals === undefined),
   };
@@ -362,21 +363,20 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
     pendingFilter === "needsReview"
       ? [needsReviewState]
       : pendingFilter === "mySubmissions"
-        ? [mySubmissionsState]
-        : [needsReviewState, mySubmissionsState];
+        ? [myWorkState]
+        : [needsReviewState, myWorkState];
   const isLoadingPending =
     pendingSources.some((source) => source.isLoading) && filteredPending.length === 0;
   const hasPendingError =
     pendingSources.some((source) => source.isError) && filteredPending.length === 0;
 
   const reviewHistoryState = { isLoading, isError: hasError };
-  const myReviewedWorkState = { isLoading: isLoadingMyApprovals, isError: isErrorMyApprovals };
   const completedSources =
     completedFilter === "reviewedByYou"
       ? [reviewHistoryState]
       : completedFilter === "myWorkReviewed"
-        ? [myReviewedWorkState]
-        : [reviewHistoryState, myReviewedWorkState];
+        ? [myWorkState]
+        : [reviewHistoryState, myWorkState];
   const isLoadingCompleted =
     completedSources.some((source) => source.isLoading) && filteredCompleted.length === 0;
   const hasCompletedError =
