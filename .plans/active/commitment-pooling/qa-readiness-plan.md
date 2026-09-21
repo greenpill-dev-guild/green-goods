@@ -40,6 +40,8 @@ Decided with Afo on 2026-09-20 over four question rounds.
 | 19 | Composing again is offered to whoever **made** the commitment, on every settled state (expired, fulfilled, reconciled, cancelled), as Offer It Again or Ask Again. Decided by Claude while building, from decision 8; Afo may overrule. | The act was keyed on the provider seat, which on a lapsed request is whoever took it up, not the asker whose words it is. A seat cannot say who made a commitment: the asker and every named confirmer read as confirmer. A disputed record is held, not settled, so it waits. |
 | 20 | A composer is never handed an answer it cannot show. The member's composer gets the member's own answers only; a named confirmer group, a declared payment, a gated offer, and the season-commitment kind are copied only into the steward's seeding wizard. Decided by Claude while building; Afo may overrule. | The member's composer has no fields for any of those, so copying a steward's would have a member promise money, or hand confirmation to other people, without seeing either. A season commitment becomes the nearest thing a member can make, a service kept by proof. |
 | 21 | The source has to belong to the pool being composed into, and the PWA opens the composer in the commitment's own pool. The rule is enforced where the answers are read, not only where the button is drawn. Decided by Claude while building; Afo may overrule. | Requirement rows name that pool's actions and the terms were agreed there. A protocol commitment is read from the reader's own garden, which is not the pool it belongs to. A link can be edited, so a refusal opens an ordinary empty composer rather than an error. |
+| 22 | A tray row gets its `clientCommitmentId` when it joins the tray and keeps it through every edit and every send. A row that was sent leaves the tray; a row that failed stays in the wizard marked Not sent, and is sent again under the same id. This now covers a single commitment too, which used to mint a new id on every press. Decided by Claude while building; Afo may overrule. | The queue dedupes a creation by that id and the chain by the key derived from it, so a row can only ever become one commitment. With an id minted at send time, a send whose job the queue kept (its transaction may be on chain) followed by a second press made a second job, and could make a second commitment. Decision 18 already drops an ordinary failed send, so the wizard is where a failed row waits, not the pool tab. |
+| 23 | The open-commitment guard counts offers only, and unknown never refuses. Room is the pool's commitment limit, less the steward's open commitments as the indexer mirrors the registry's own count, less offers still queued on this device. At the limit, Add Another Like This is held for an offer; over it, seeding is held, and both say why. Decided by Claude while building; Afo may overrule. | `CommitmentRegistry.commitUnits` charges the cap to whoever provides. An offer's creator provides, so it is charged at creation; a request is charged to whoever takes it up, later, so a tray of requests uses none of the steward's room. The registry enforces the cap whatever the wizard says, so a read that has not arrived must not block anyone. |
 
 ## 2. Verified ground truth (2026-09-20)
 
@@ -105,7 +107,7 @@ Each line was checked against the source or the chain in this session.
 | The admin can actually send a seeded or confirmed commitment | § 4 Build 1 part A | Built; live proof pending Stage A |
 | A landed act updates the screen without a reload | § 4 Build 1 part B | Built; live proof pending Stage A |
 | Reuse a commitment instead of retyping it | § 4 Build 2 | Built; rendered proof pending |
-| Create several commitments in one sitting | § 4 Build 3 (sequential; atomic later, § 7) | ⏳ |
+| Create several commitments in one sitting | § 4 Build 3 (sequential; atomic later, § 7) | ✅ built, unreviewed |
 | Catalog is correct, coherent, and one outcome per case | § 5 | ⏳ |
 | Strong cases for every reachable pooling act | § 5.3, § 5.5 | ⏳ |
 | A QA plan Afo can run on a call | § 6 | ⏳ |
@@ -299,21 +301,93 @@ Proof:
 
 ### Build 3 — Admin "Add another" batch tray
 
-**Branch**: `feature/commitment-seed-batch-tray` (stacked on Build 2)
+**Branch**: `feature/commitment-seed-batch-tray`, stacked on the Build 2 branch at Afo's direction.
+**Status**: committed as `968f964e7`, not pushed. Decisions 4 to 7, 22, 23.
 
-1. RED then GREEN for a pure tray model in shared (`seed-tray.ts`): add, replace, remove,
-   duplicate. Each row holds validated `CommitmentComposerValues` and a stable
-   `clientCommitmentId` minted when the row is added, never at send time.
-2. `Seed/index.tsx` and `SeedStepReview.tsx`: the review step lists the tray rows (title, units,
-   due, claim mode) with Edit and remove, an Add another like this action that saves the current
-   row and reopens step 1 prefilled from it, and a primary action reading Seed This Commitment for
-   one row or Create all (N) for several, with the wallet-confirmation count stated beside it.
-3. Send: loop the rows through `jobs.enqueue({ act: "create", payload })`. Do not stop on a
-   failure. Each row then lives in the existing pending and failed-act recovery, so retry and
-   discard need no new UI.
-4. Guard: refuse to add a row that would exceed the provider's remaining open-commitment cap, and
-   say so in plain words.
-5. Story for a three-row tray, including one failed row.
+What changed:
+
+- `modules/commitment-pooling/seed-tray.ts`: the pure tray. One row is always in hand, the one the
+  wizard's form holds, and it joins the tray once its answers pass the composer's rules. The moves
+  are keep, add another, take an earlier row back up, and remove; the last row is never removed.
+  `sendSeedTray` sends the rows in order and applies decision 7, recording why a row failed before
+  it moves on; `settleSeedTray` applies decision 22; `selectSeedTrayRoom` and
+  `selectSeedTrayCapacity` apply decision 23. The planned `duplicate` move turned out not to be
+  one: the form already carries the answers over, so adding another is keep plus a fresh id.
+- `hooks/admin-ui/pool/useSeedTray.ts`: binds the tray to the wizard's one form. When the form is
+  handed another row the answers go in as the steward's own, not as new defaults
+  (`form.reset(values, { keepDefaultValues: true })`). `useSeedTrayRoom` reads the steward's open
+  count from the pool detail the indexer already serves.
+- Admin: the review step lists the rows added so far (who offers or asks, units, due, claim mode)
+  with Edit and Remove, then This One with Remove This One. The footer gains Add Another Like This,
+  which keeps the reviewed commitment and reopens the first step on the same answers, and the seed
+  action reads Seed This Commitment for one or Create All (N) for several. The note states how many
+  times the wallet will ask. After a send that leaves rows behind, the review says how many were
+  sent and how many are still here. One commitment on its own keeps the plain failure sentence it
+  had.
+- New strings in `en`, `es`, `pt`, with ICU plurals for the counts.
+
+Found while building, and the reason `keepDefaultValues` matters: a plain `form.reset` makes the
+copied answers the new defaults, so none of them read as typed. The session hook applies late
+defaults (the season, the protocol pool) to every field that does not read as typed, and the
+refresh from Build 1 part B makes those arrive again after each creation lands. A copied Request
+would have been flipped back to the wizard's default Offer. The hook test fails with
+`expected 'OFFER' to be 'REQUEST'` when the option is removed.
+
+Proof:
+
+- RED first for the tray model (7 cases) and for the hook (4 cases): neither module existed.
+- Decision 7 was nearly broken. The first version stopped the batch at a declined wallet prompt, on
+  the reasoning that declining means stop. Decision 7 says a rejected row does not stop the batch,
+  so the test was restated first (RED: the result still carried `stopped`), then the model. One
+  consequence to know before the call: a steward who wants to abandon a batch part-way declines
+  one prompt for each row that is left.
+- Two mutations were checked and both were caught: a plain `form.reset` (above), and an id minted
+  at send time, which fails the view test that sends a failed row again
+  (`expected 'mock-uuid-…' to be 'mock-uuid-…'`).
+- View tests, over the real tray with only the queue faked: add another then Create All (2) sends
+  both under ids of their own; a row the chain refuses stays, the review says what is left, and the
+  second press sends it under its first id; more offers than room holds seeding and says why.
+- Rendered in Storybook served from this worktree (port 3004 was free, so it is this code): the
+  tray list with one row not sent, the review with a send report and with more offers than room,
+  the footer with Create All (3), and a walk of the real dialog: fill, Add Another Like This, first
+  step reopened on `Market rides`, second step on `rides`, `16` and `14`, review showing the first
+  row and Create All (2), Edit taking the first row back, Remove This One handing back the other.
+  Nothing was sent. At 375px the row was cramped, so the actions now drop below the words; the
+  page does not scroll sideways and the desktop row is unchanged.
+- Declaring `useSeedTray` changed the shared manifest, so the four `shared-*` seams were
+  re-certified in the same commit. None of their declared inputs were touched; their twelve proof
+  files pass (241 tests).
+
+Not proven:
+
+- **No live send.** A send needs a wallet signature and every pool on chain is `NotReady`. Stage A
+  (§ 6.2) is the first real proof: a tray of two lands both, one wallet prompt each.
+- Known limits, left as they are. Each failed row also raises the shared error toast, so a batch
+  with several failures, or several declined prompts, shows several. A row whose job the queue
+  kept (its transaction may be on chain) reads as Not sent in the wizard, and pressing again is
+  refused as an identity conflict rather than sent twice; its row on the pool tab, with Try Again,
+  is what settles it. Rooms are read from the indexer, so two batches sent back to back can outrun
+  it, and the registry then refuses the extra offer.
+
+Seen in passing, not part of this build: the shared `StatusBadge` drops its `variant` before its
+generic branch reads it, so every generic badge renders neutral grey, this tray's Not sent and the
+pool tab's Failed to send included. Status still reads by icon and words. Flagged as its own task
+because 23 call sites change colour when it is fixed.
+
+### Validation receipt, Build 3
+
+- **Tested implementation commit SHA**: `968f964e77ff913381dcd1dffb1e8b127d1aebed`. The gate ran on the working tree
+  immediately before the commit; the pre-commit formatter changed nothing, and
+  `git status --porcelain=v1 --untracked-files=all` is empty at that SHA.
+- **Run finished (UTC)**: `2026-09-21T09:45:50Z`
+- **Command**: `bun run check -- --intent push`
+- **Result**: every runnable check passed, 27 in all: format, lint, validation-system-test,
+  test-quality, shared typecheck, test-typecheck, test (5,509 passed) and build, client
+  test-typecheck, test (1,349 passed) and build, admin test-typecheck, test (872 passed) and build,
+  agent typecheck, test-typecheck, test (323 passed) and build, staged-modules, source-structure,
+  design-guardrails, ontology, agent-guidance, supply-chain, story-quality.
+- **Blocked**: `browser-proof` (`authenticatedBrave`), so the gate exits 2. Not a pass. The
+  Storybook walk above is rendered proof of the wizard, not authenticated proof of a send.
 
 **Out of scope**: atomic single-transaction creation, a PWA tray, an editable table, shared-defaults
 editing across rows.
@@ -379,8 +453,14 @@ A Garden counterparty is always reachable, so fallback never applies there.
   offline-work cases).
 - After a queued act completes, the screen updates without a reload (Build 1).
 - Ask Again on an own ended request; Seed another like this in the admin inspector (Build 2).
-- Batch tray: add, edit, and remove rows; Create all lands every row; one rejected wallet prompt
-  leaves that row retryable while the others land (Build 3).
+- Batch tray: Add Another Like This reopens the first step on the same answers, Edit and Remove
+  change the tray, and Create All (N) lands every row with one wallet confirmation each (Build 3).
+- A row the chain refuses stays in the wizard marked Not sent while the others land, and sending
+  it again lands it once (Build 3).
+- Declining one wallet prompt skips that row only: the others still land, and the declined one
+  stays in the wizard marked Not sent (Build 3).
+- More offers than the steward has room for under the pool's commitment limit holds seeding and
+  says why; a request takes none of that room (Build 3).
 - Cancel an open cycle with no live commitments and see it leave the public page (the rehearsal
   exit in § 6).
 - Seeding from the admin opens a wallet prompt and the commitment lands without a reload of the
