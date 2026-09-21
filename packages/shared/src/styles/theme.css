@@ -1134,18 +1134,29 @@
   :root {
     --gg-button-radius: var(--radius-lg);
     --gg-button-radius-pressed: var(--radius-squircle);
+    --gg-button-radius-compact: var(--radius-squircle);
+    --gg-button-radius-compact-pressed: var(--radius-md);
     --gg-button-weight: var(--text-label-sm--font-weight);
   }
 
   :root:has([data-site="website"]) {
     --gg-button-radius: var(--radius-none);
     --gg-button-radius-pressed: var(--radius-none);
+    --gg-button-radius-compact: var(--radius-none);
+    --gg-button-radius-compact-pressed: var(--radius-none);
     --gg-button-weight: var(--font-weight-semibold, 600);
   }
 
   .gg-button[data-emphasis] {
     border-radius: var(--gg-button-radius);
     font-weight: var(--gg-button-weight);
+  }
+
+  /* The compact size keeps the corner's proportion, not its number: 16px on a
+   * 32px button is a full capsule, which stopped reading as one of the app's
+   * buttons. It takes 12px at rest and 8px pressed; each surface sets both. */
+  .gg-button[data-size="compact"][data-emphasis] {
+    border-radius: var(--gg-button-radius-compact);
   }
 
   .gg-button[data-size="lg"] {
@@ -1254,11 +1265,41 @@
     color: rgb(var(--error-base));
   }
 
+  /* Pressed fill: touch has no hover, so the press itself shows the state the
+   * pointer gets on hover. Without it a tap on a phone changed nothing visible
+   * but a 4px corner. Toned buttons keep their own pressed colour. */
+  .gg-button[data-emphasis="primary"]:not([data-tone]):active {
+    background: rgb(var(--tone-action-hover, var(--primary-action-hover)));
+  }
+
+  .gg-button[data-emphasis="primary"][data-tone="danger"]:active {
+    background: rgb(var(--error-dark, var(--red-700)));
+  }
+
+  .gg-button[data-emphasis="primary"][data-tone="warning"]:active {
+    background: rgb(var(--warning-dark));
+  }
+
+  .gg-button[data-emphasis="secondary"]:not([data-tone]):active,
+  .gg-button[data-emphasis="tertiary"]:not([data-tone]):active {
+    background: rgb(var(--bg-weak-50));
+  }
+
+  .gg-button[data-emphasis="secondary"][data-tone="danger"]:active,
+  .gg-button[data-emphasis="tertiary"][data-tone="danger"]:active {
+    background: rgb(var(--error-base) / 0.08);
+  }
+
   /* Press morph (DL-001): a filled or outlined button tightens one step while
    * pressed. Reduced motion keeps the resting corner (see the end of this layer). */
   .gg-button[data-emphasis="primary"]:active,
   .gg-button[data-emphasis="secondary"]:active {
     border-radius: var(--gg-button-radius-pressed);
+  }
+
+  .gg-button[data-size="compact"][data-emphasis="primary"]:active,
+  .gg-button[data-size="compact"][data-emphasis="secondary"]:active {
+    border-radius: var(--gg-button-radius-compact-pressed);
   }
 
   /* ── Icon button (DL-026) ── A circle at 48 / 44 / 40 / 32 whose hit area never
@@ -1589,6 +1630,11 @@
     .gg-button[data-emphasis="primary"]:active,
     .gg-button[data-emphasis="secondary"]:active {
       border-radius: var(--gg-button-radius);
+    }
+
+    .gg-button[data-size="compact"][data-emphasis="primary"]:active,
+    .gg-button[data-size="compact"][data-emphasis="secondary"]:active {
+      border-radius: var(--gg-button-radius-compact);
     }
 
     .gg-icon-button:active {
