@@ -164,7 +164,7 @@ export const GardensFilterSheet = ({
         }),
         description: intl.formatMessage({
           id: "app.home.filters.description",
-          defaultMessage: "Choose which gardens to show and how to order them.",
+          defaultMessage: "Narrow and sort the garden list.",
         }),
       }}
       size="full"
