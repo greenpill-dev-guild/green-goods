@@ -10,7 +10,7 @@
     "overall_status": "closed",
     "priority": "p2",
     "created_at": "2026-09-11T02:58:28.332Z",
-    "updated_at": "2026-09-21T23:20:00.000Z"
+    "updated_at": "2026-09-21T23:52:52.414Z"
   },
   "links": {
     "brief": "brief.md",
@@ -23,7 +23,7 @@
     "project": null,
     "initiative": null,
     "syncDirection": "plans_to_linear_visibility",
-    "lastSyncedAt": null,
+    "lastSyncedAt": "2026-09-21T23:52:52.414Z",
     "lanes": {},
     "laneSyncMode": "parent_only"
   },
@@ -169,6 +169,14 @@
       "status": "closeout_recorded",
       "branch": null,
       "note": "Closed as closed: shipped in 22c616a4d and 4e4968cec on develop, first-run and team acceptance proven, contracts lane and QA review lanes left uncertified."
+    },
+    {
+      "timestamp": "2026-09-21T23:52:52.414Z",
+      "actor": "claude",
+      "lane": "system",
+      "status": "linear_sync_confirmed",
+      "branch": null,
+      "note": "Confirmed that the current Plan Hub state is reflected in Linear"
     }
   ]
 }
