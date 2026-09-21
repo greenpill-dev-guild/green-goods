@@ -10,8 +10,9 @@ Safe/CCIP canary or authorize a production transaction.
 
 The auth session owns a revocable resolver keyed by chain. It reuses the credential, requires the
 primary address on Celo, discards failed builds for explicit retry, and binds Kernel 0.3.1 and
-EntryPoint 0.7 to a dedicated Celo sponsorship policy. Passkey initialization cannot fall back to
-an external wallet. Calls without an explicit chain keep their primary client.
+EntryPoint 0.7 to the sponsorship policy that applies on Celo: its own override when one is set,
+otherwise the general policy (owner decision 2026-09-21, PR #854; it was a dedicated Celo policy
+before). Passkey initialization cannot fall back to an external wallet. Calls without an explicit chain keep their primary client.
 
 The Tokens tab adds Celo balance, receive context, and contributor payout receipts. Receipt status
 comes from the existing indexed settlement entities; only confirmed Arbitrum state means arrived.
@@ -37,7 +38,8 @@ configuration event, not a health timestamp; operational indexer monitoring rema
 | Boundary | Required result |
 |---|---|
 | Credential reused on Arbitrum/Celo | Same Kernel factory and initialization inputs, pinned version/EntryPoint; runtime address equality |
-| Missing resolver/policy, wrong chain/address, revoked session | Reject before submission |
+| Missing resolver, wrong chain/address, revoked session | Reject before submission |
+| No Celo policy override configured | Fall back to the general policy; a policy is never missing (2026-09-21, PR #854; it rejected before submission until then) |
 | Resolver build temporarily fails | Evict failure; explicit retry can rebuild |
 | Wallet/embedded send to Celo | Switch chain, user pays network fee, rejection retains draft |
 | Gate null/false/error/stale | Block sends; preserve history |
