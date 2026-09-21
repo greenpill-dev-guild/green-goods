@@ -61,14 +61,14 @@
       "role": "steward"
     },
     "ADM-026": {
-      "scenario": "Seed a commitment: 4-step wizard, named confirmers, review, queued creation",
+      "scenario": "Seed a commitment: 4-step wizard, named confirmers, review before sending",
       "preconditions": ["Garden pool open"],
       "steps": [
         "Run the 4-step seed wizard",
         "Add named confirmers incl. one bad address",
-        "Review, queue, and watch the queued row"
+        "Review, press Seed This Commitment, and confirm in the wallet"
       ],
-      "expected": "Beats validate; a bad or duplicate confirmer address is rejected visibly; review precedes queueing; the queued row appears before the indexer catches up",
+      "expected": "Each step validates before Next; a bad or duplicate confirmer address is rejected visibly; the review reads every answer back before anything is sent; seeding asks the wallet to confirm one creation and the wizard closes",
       "role": "steward"
     },
     "ADM-037": {
@@ -119,7 +119,7 @@
       "role": "steward"
     },
     "ADM-039": {
-      "scenario": "Seed an approval-gated protocol Request for a concrete service",
+      "scenario": "Seed an approval-gated protocol Request for garden work the test Garden can deliver",
       "preconditions": [
         "Signed in with Tester A's allowlisted wallet",
         "Tester A is a protocol steward",
@@ -127,12 +127,12 @@
       ],
       "steps": [
         "Open the Green Goods protocol pool",
-        "Seed a Request that names a concrete service and clear evidence",
-        "Require approval before a claimant is accepted",
-        "Review and submit the Request",
+        "Seed a Request of the Garden work (impact) type with one action row the test Garden can submit Work for",
+        "Keep claim mode on Steward-reviewed so a claimant must be accepted",
+        "Review and seed the Request, confirming in the wallet",
         "Wait for the Request to appear in the protocol pool"
       ],
-      "expected": "One approval-gated Request appears in the protocol pool with its service, evidence, and confirmation expectations intact",
+      "expected": "One steward-reviewed Request appears in the protocol pool with its action row, target, and confirmation expectations intact. It is the garden-work type, so it becomes ready through approved linked Work, not through evidence and Send for Confirmation",
       "role": "steward"
     },
     "PWA-047": {
@@ -301,7 +301,7 @@
   "journeys": {
     "service-relay": {
       "label": "Service relay: Green Goods → Garden → members",
-      "summary": "Two people follow a protocol Request from the Green Goods pool through Garden delivery, then use a separate Garden commitment to recognize the member's work.",
+      "summary": "Two people follow a protocol Request from the Green Goods pool through Garden delivery, then use a separate Garden commitment to recognize the member's work. Both commitments are the garden-work type: each becomes ready through approved linked Work, not through evidence and Send for Confirmation.",
       "lanes": {
         "protocol-review": {
           "label": "Protocol & review",
@@ -347,7 +347,7 @@
           "knownGate": "Protocol-to-Garden G$ settlement requires enabled settlement UI and value authority. If either is unavailable, record Blocked and continue with the non-value steps."
         },
         "ADM-026": {
-          "handoff": "Wait until the separate local commitment appears in the open Garden Campaign."
+          "handoff": "Seed it as Garden work with one action row, so the member's Work can link to it. Wait until the separate local commitment appears in the open Garden Campaign."
         },
         "PWA-050": {
           "handoff": "The reviewer waits for the local Work and evidence before opening review."

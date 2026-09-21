@@ -61,14 +61,14 @@
       "role": "Steward"
     },
     "ADM-026": {
-      "scenario": "Crea un compromiso: asistente de 4 pasos, confirmadores identificados, revisión y creación en cola",
+      "scenario": "Crea un compromiso: asistente de 4 pasos, confirmadores identificados y revisión antes de enviar",
       "preconditions": ["El pool del Garden está abierto"],
       "steps": [
         "Completa el asistente de creación de 4 pasos",
         "Añade confirmadores identificados, incluida una dirección incorrecta",
-        "Revisa, pon en cola y observa la fila en espera"
+        "Revisa, pulsa Sembrar este compromiso y confirma en la wallet"
       ],
-      "expected": "Los pasos validan; una dirección de confirmador incorrecta o duplicada se rechaza de forma visible; la revisión precede a la puesta en cola y la fila aparece antes de que el indexador se actualice",
+      "expected": "Cada paso valida antes de Siguiente; una dirección de confirmador incorrecta o duplicada se rechaza de forma visible; la revisión muestra todas las respuestas antes de enviar nada; al sembrar, la wallet pide confirmar una sola creación y el asistente se cierra",
       "role": "Steward"
     },
     "ADM-037": {
@@ -119,7 +119,7 @@
       "role": "Steward"
     },
     "ADM-039": {
-      "scenario": "Crea en el protocolo una Solicitud de servicio concreto que requiera aprobación",
+      "scenario": "Crea en el protocolo una Solicitud de trabajo de jardín sujeta a aprobación que el Garden de prueba pueda entregar",
       "preconditions": [
         "Sesión iniciada con la wallet autorizada de Tester A",
         "Tester A es Steward del protocolo",
@@ -127,12 +127,12 @@
       ],
       "steps": [
         "Abre el pool del protocolo Green Goods",
-        "Crea una Solicitud que indique un servicio concreto y pruebas claras",
-        "Exige aprobación antes de aceptar a quien la reclame",
-        "Revisa y envía la Solicitud",
+        "Crea una Solicitud del tipo Trabajo de jardín (impacto) con una fila de acción para la que el Garden de prueba pueda enviar Trabajo",
+        "Mantén el modo de reclamo en Revisado por responsables para que haya que aceptar a quien la reclame",
+        "Revisa y crea la Solicitud, confirmando en la wallet",
         "Espera a que la Solicitud aparezca en el pool del protocolo"
       ],
-      "expected": "Aparece una Solicitud sujeta a aprobación en el pool del protocolo con el servicio, las pruebas y las expectativas de confirmación intactas",
+      "expected": "Aparece una Solicitud revisada por responsables en el pool del protocolo con su fila de acción, su objetivo y sus expectativas de confirmación intactos. Es del tipo trabajo de jardín, así que queda lista mediante Trabajo vinculado y aprobado, no mediante pruebas y Enviar para confirmación",
       "role": "Steward"
     },
     "PWA-047": {
@@ -304,7 +304,7 @@
   "journeys": {
     "service-relay": {
       "label": "Relevo de servicios: Green Goods → Garden → miembros",
-      "summary": "Dos personas siguen una Solicitud del pool de Green Goods durante la entrega del Garden y después usan un compromiso separado del Garden para reconocer el trabajo de la persona miembro.",
+      "summary": "Dos personas siguen una Solicitud del pool de Green Goods durante la entrega del Garden y después usan un compromiso separado del Garden para reconocer el trabajo de la persona miembro. Ambos compromisos son del tipo trabajo de jardín: cada uno queda listo mediante Trabajo vinculado y aprobado, no mediante pruebas y Enviar para confirmación.",
       "lanes": {
         "protocol-review": {
           "label": "Protocolo y revisión",
@@ -350,7 +350,7 @@
           "knownGate": "La liquidación de G$ del protocolo al Garden requiere una interfaz de liquidación habilitada y autorización para mover valor. Si falta alguna, registra Bloqueado y continúa con los pasos que no mueven valor."
         },
         "ADM-026": {
-          "handoff": "Espera hasta que el compromiso local separado aparezca en la Campaña abierta del Garden."
+          "handoff": "Créalo como Trabajo de jardín con una fila de acción, para que el Trabajo de la persona miembro pueda vincularse. Espera hasta que el compromiso local separado aparezca en la Campaña abierta del Garden."
         },
         "PWA-050": {
           "handoff": "La persona revisora espera el Trabajo local y sus pruebas antes de abrir la revisión."
