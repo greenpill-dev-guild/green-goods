@@ -3,7 +3,6 @@ import { toastService } from "@green-goods/shared/components/Toast/toast.service
 import { useInstallGuidance } from "@green-goods/shared/hooks/app/useInstallGuidance";
 import { useApp } from "@green-goods/shared/providers/App";
 import { copyToClipboard } from "@green-goods/shared/utils/app/clipboard";
-import { hapticLight } from "@green-goods/shared/utils/app/haptics";
 import {
   RiAlertLine,
   RiDownloadLine,
@@ -109,7 +108,6 @@ export const InstallCta: React.FC = () => {
                 type="button"
                 size="sm"
                 onClick={() => {
-                  hapticLight();
                   window.location.href = guidance.openInBrowserUrl as string;
                 }}
                 leadingIcon={<RiExternalLinkLine className="h-4 w-4" aria-hidden="true" />}
@@ -125,7 +123,6 @@ export const InstallCta: React.FC = () => {
                 type="button"
                 size="sm"
                 onClick={async () => {
-                  hapticLight();
                   const success = await copyToClipboard(window.location.href);
                   if (success) {
                     toastService.success({

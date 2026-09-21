@@ -110,14 +110,7 @@ export const Compact: Story = {
 };
 
 export const GardenSections: Story = {
-  render: () => (
-    <TabsDemo
-      tabs={gardenSections}
-      variant="compact"
-      className="overflow-x-auto"
-      triggerClassName="flex-auto min-w-max whitespace-nowrap"
-    />
-  ),
+  render: () => <TabsDemo tabs={gardenSections} variant="compact" />,
   globals: { viewport: { value: "mobile" } },
 };
 

@@ -62,7 +62,9 @@ describe("GardenNotifications", () => {
   it("shows the empty state when nothing is pending", () => {
     renderNotifications([work("b", "approved")]);
 
-    expect(screen.getByText("No work submitted yet")).toBeInTheDocument();
+    // The sheet lists work waiting for review, and offers nothing else to press.
+    expect(screen.getByText("Nothing to review")).toBeInTheDocument();
     expect(screen.queryByRole("link")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button")).not.toBeInTheDocument();
   });
 });

@@ -1,8 +1,14 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
+import {
+  DEFAULT_GARDEN_FILTERS,
+  type GardenFiltersState,
+  parseGardenFilters,
+} from "../hooks/garden/useFilteredGardens";
 import type { TimeFilter } from "../utils/time";
 
-// Storage key for debug mode persistence
+// The storage key predates the garden filters: it held only the debug flag, and
+// renaming it would drop that flag on every device.
 const DEBUG_MODE_STORAGE_KEY = "green-goods:debug-mode";
 
 /** Tabs of the client Work Dashboard modal — lets callers open it to a specific tab. */
@@ -11,10 +17,13 @@ export type WorkDashboardTab = "drafts" | "pending" | "completed";
 /** Filters of the Work Dashboard's Pending tab — lets callers deep-link a preset. */
 export type WorkDashboardPendingFilter = "all" | "needsReview" | "mySubmissions";
 
+/** Filters of the Work Dashboard's Completed tab: everything, work you reviewed, or your own work. */
+export type WorkDashboardCompletedFilter = "all" | "reviewedByYou" | "myWorkReviewed";
+
 export interface WorkDashboardReturnState {
   tab: WorkDashboardTab;
   pendingFilter: WorkDashboardPendingFilter;
-  completedFilter: "reviewedByYou" | "myWorkReviewed";
+  completedFilter: WorkDashboardCompletedFilter;
   timeFilter: TimeFilter;
   scrollTop: number;
 }
@@ -40,6 +49,14 @@ export type UIState = {
   isGardenFilterOpen: boolean;
   openGardenFilter: () => void;
   closeGardenFilter: () => void;
+
+  /**
+   * Home's garden filters (client). They live here, and persist, so they hold
+   * when someone leaves Home or relaunches the app, until they reset them.
+   */
+  gardenFilters: GardenFiltersState;
+  setGardenFilters: (update: (current: GardenFiltersState) => GardenFiltersState) => void;
+  resetGardenFilters: () => void;
 
   // Endowment/treasury sheet controls (client)
   isEndowmentSheetOpen: boolean;
@@ -111,6 +128,11 @@ export const useUIStore = create<UIState>()(
       openGardenFilter: () => set({ isGardenFilterOpen: true }),
       closeGardenFilter: () => set({ isGardenFilterOpen: false }),
 
+      gardenFilters: DEFAULT_GARDEN_FILTERS,
+      setGardenFilters: (update) =>
+        set((state) => ({ gardenFilters: update(state.gardenFilters) })),
+      resetGardenFilters: () => set({ gardenFilters: DEFAULT_GARDEN_FILTERS }),
+
       isEndowmentSheetOpen: false,
       openEndowmentSheet: () => set({ isEndowmentSheetOpen: true }),
       closeEndowmentSheet: () => set({ isEndowmentSheetOpen: false }),
@@ -145,8 +167,16 @@ export const useUIStore = create<UIState>()(
     }),
     {
       name: DEBUG_MODE_STORAGE_KEY,
-      // Only persist debugMode to localStorage
-      partialize: (state) => ({ debugMode: state.debugMode }),
+      // Everything else is per-session UI state.
+      partialize: (state) => ({ debugMode: state.debugMode, gardenFilters: state.gardenFilters }),
+      merge: (persisted, current) => {
+        const saved = (persisted ?? {}) as { debugMode?: unknown; gardenFilters?: unknown };
+        return {
+          ...current,
+          debugMode: typeof saved.debugMode === "boolean" ? saved.debugMode : current.debugMode,
+          gardenFilters: parseGardenFilters(saved.gardenFilters),
+        };
+      },
     }
   )
 );

@@ -110,6 +110,10 @@ vi.mock("@green-goods/shared/stores/useUIStore", () => ({
       openGardenFilter: vi.fn(),
       closeGardenFilter: vi.fn(),
       openWorkDashboard: vi.fn(),
+      // Home reads its filters from the store so they outlive the view.
+      gardenFilters: { scope: "all", sort: "recent" },
+      setGardenFilters: vi.fn(),
+      resetGardenFilters: vi.fn(),
     };
     return selector(state);
   },

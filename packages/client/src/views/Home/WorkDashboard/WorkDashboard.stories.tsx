@@ -217,6 +217,9 @@ function DashboardFrame({
           savedAt={savedAt}
           completedFilter={completedFilter}
           onCompletedFilterChange={fn()}
+          reviewedByYou={
+            new Set(completedFilter === "myWorkReviewed" ? [] : items.map((item) => item.id))
+          }
           timeFilter={timeFilter}
           onTimeFilterChange={fn()}
         />

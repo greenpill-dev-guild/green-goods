@@ -164,7 +164,7 @@ export function CommitmentWork({
                   type="button"
                   data-pressable="row"
                   onClick={() => onOpenWork(entry.workUID)}
-                  className="flex w-full items-center justify-between gap-3 rounded-[var(--radius-lg)] border border-stroke-soft-200 p-3 text-left tap-feedback"
+                  className="flex w-full items-center justify-between gap-3 rounded-[var(--radius-lg)] border border-stroke-soft-200 p-3 text-left"
                   aria-label={formatMessage({ id: "app.commitment.work.open" }, { title })}
                   aria-describedby={statusId}
                 >
