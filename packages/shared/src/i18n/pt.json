@@ -4690,6 +4690,8 @@
   "public.cookies.claimTooLarge": "O claim máximo é {amount}.",
   "public.cookies.closeDialog": "Fechar diálogo da jar",
   "public.cookies.connectHint": "Conecte uma wallet para verificar acesso de claim e adicionar fundos.",
+  "public.cookies.checkClaimAccess": "Verificar acesso ao resgate",
+  "public.cookies.addFunds": "Adicionar fundos",
   "public.cookies.connectKicker": "§ 01 Entrar",
   "public.cookies.connectLede": "Jars de campanha geralmente são compartilhadas por link privado. Não lemos sua wallet até você conectar. Quando conectar, as jars reclamáveis aparecem primeiro.",
   "public.cookies.connectTitle": "Conecte uma wallet para ver o que foi deixado para você.",

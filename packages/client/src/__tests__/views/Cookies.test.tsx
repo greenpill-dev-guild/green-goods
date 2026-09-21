@@ -226,7 +226,7 @@ describe("CookiesPage", () => {
     mockDepositMutate.mockImplementation((_params, options) => options?.onSuccess?.());
   });
 
-  it("asks disconnected visitors to connect before claiming", async () => {
+  it("offers contextual wallet actions inside each jar", async () => {
     const user = userEvent.setup();
     mockUseUser.mockReturnValue({ primaryAddress: undefined });
 
@@ -241,15 +241,17 @@ describe("CookiesPage", () => {
     expect(
       await screen.findByText(/Connect a wallet to check claim access and add funds/i)
     ).toBeInTheDocument();
-    const connectButtons = screen.getAllByRole("button", { name: "Connect Wallet" });
-    expect(connectButtons.length).toBeGreaterThanOrEqual(1);
-    await user.click(connectButtons[0]!);
+    const card = await screen.findByRole("article", { name: "Earth Week Cookie Jar" });
+    expect(screen.queryByRole("button", { name: "Connect Wallet" })).toBeNull();
+
+    await user.click(within(card).getByRole("button", { name: "Check claim access" }));
     expect(mockLoginWithWallet).toHaveBeenCalledTimes(1);
+    await user.click(within(card).getByRole("button", { name: "Add funds" }));
+    expect(mockLoginWithWallet).toHaveBeenCalledTimes(2);
     expect(mockOpenWallet).not.toHaveBeenCalled();
   });
 
-  it("keeps wallet connection available when a listed jar cannot be read", async () => {
-    const user = userEvent.setup();
+  it("does not offer wallet actions when a listed jar cannot be read", async () => {
     mockUseUser.mockReturnValue({ primaryAddress: undefined });
     mockUseCampaignCookieJar.mockReturnValue({
       jar: null,
@@ -261,8 +263,8 @@ describe("CookiesPage", () => {
     renderPage("/cookies");
 
     expect(await screen.findByText(/This cookie jar could not be loaded/i)).toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: "Connect Wallet" }));
-    expect(mockLoginWithWallet).toHaveBeenCalledTimes(1);
+    expect(screen.queryByRole("button", { name: "Check claim access" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Add funds" })).toBeNull();
   });
 
   it("keeps the wallet surface deferred until the visitor asks to explore jars", () => {
