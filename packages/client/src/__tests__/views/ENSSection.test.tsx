@@ -30,8 +30,22 @@ vi.mock("@green-goods/shared/utils/styles/cn", () => ({
   cn: (...inputs: Array<string | undefined | null | false>) => inputs.filter(Boolean).join(" "),
 }));
 
-vi.mock("@green-goods/shared/utils/blockchain/ens", () => ({
+vi.mock("@green-goods/shared/utils/blockchain/ens", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@green-goods/shared/utils/blockchain/ens")>()),
   validateSlug: (slug: string) => mockValidateSlug(slug),
+}));
+
+// The names the account already goes by, which seed the claim.
+const mockNames = vi.hoisted(() => ({
+  userName: null as string | null,
+  walletEnsName: null as string | null,
+}));
+const mockUseSlugForm = vi.hoisted(() => vi.fn());
+vi.mock("@green-goods/shared/hooks/auth/useAuth", () => ({
+  useAuthState: () => ({ userName: mockNames.userName }),
+}));
+vi.mock("@green-goods/shared/hooks/blockchain/useEnsName", () => ({
+  useEnsName: () => ({ data: mockNames.walletEnsName }),
 }));
 
 vi.mock("@green-goods/shared/hooks/app/useOnlineStatus", () => ({
@@ -46,14 +60,17 @@ vi.mock("@green-goods/shared/hooks/ens/useProtocolMemberStatus", () => ({
 }));
 
 vi.mock("@green-goods/shared/hooks/ens/useSlugForm", () => ({
-  useSlugForm: () => ({
-    watch: (field: string) => (field === "slug" ? mockSlugValue : ""),
-    register: () => ({}),
-    trigger: mockTrigger,
-    getValues: mockGetValues,
-    reset: mockReset,
-    formState: { errors: {} },
-  }),
+  useSlugForm: (suggestedSlug?: string) => {
+    mockUseSlugForm(suggestedSlug);
+    return {
+      watch: (field: string) => (field === "slug" ? mockSlugValue : ""),
+      register: () => ({}),
+      trigger: mockTrigger,
+      getValues: mockGetValues,
+      reset: mockReset,
+      formState: { errors: {}, isDirty: false },
+    };
+  },
 }));
 
 vi.mock("@green-goods/shared/hooks/ens/useSlugAvailability", () => ({
@@ -145,6 +162,8 @@ describe("Profile ENSSection", () => {
     mockProtocolMemberLoading = false;
     mockRegistrationData = undefined;
     mockSlugValue = "";
+    mockNames.userName = null;
+    mockNames.walletEnsName = null;
     mockExistingGreenGoodsEnsName = null;
     mockSponsoredReleaseUnavailable = false;
     mockValidateSlug.mockReturnValue({ valid: true });
@@ -174,6 +193,22 @@ describe("Profile ENSSection", () => {
     ).toBeInTheDocument();
     expect(screen.getByText("Claim Name")).toBeInTheDocument();
     expect(mockUseENSRegistrationStatus).toHaveBeenCalledWith(undefined);
+  });
+
+  it.each([
+    ["the username chosen for the passkey", { userName: "Maya K", walletEnsName: null }, "maya-k"],
+    ["the wallet's ENS label", { userName: "user_1726850000", walletEnsName: "maya.eth" }, "maya"],
+    [
+      "nothing when the account has no name",
+      { userName: "user_1726850000", walletEnsName: null },
+      "",
+    ],
+  ])("starts the claim from %s", (_label, names, suggested) => {
+    Object.assign(mockNames, names);
+
+    renderENSSection();
+
+    expect(mockUseSlugForm).toHaveBeenLastCalledWith(suggested);
   });
 
   it("marks the claim unavailable with the join hint for gardeners without a garden", () => {
