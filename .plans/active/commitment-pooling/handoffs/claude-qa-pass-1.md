@@ -304,6 +304,10 @@ it. It adds to the Wave 2 walkthrough above; it does not replace it.
   `/qa-triage --call`.
 - **D2 decision:** Afo decided close-the-season as **finish**. Ending a season and recording an
   external payout are built in the fix window and walked in the re-QA run.
+- **Build 1 is committed, not pushed** (`fix/commitment-queued-acts-send-and-refresh`): wallet-mode
+  send `7d5963d97`, refresh after completion `bde103aba`. The admin never sent its queued
+  commitment acts before this; the plan's § 2 and § 4 carry the trace, the proof, and the
+  validation receipt. No live reproduction yet: Stage A is the first.
 - **Gate:** this lane's manual gate is unchanged. Clearing it stays with Afo.
 - **Live read, Arbitrum block 507310713:** the module is unpaused and all 18 pools read
   `NotReady`, so pool setup is the first act of any staging walk.

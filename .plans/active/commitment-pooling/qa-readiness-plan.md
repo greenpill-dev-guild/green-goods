@@ -100,6 +100,7 @@ Each line was checked against the source or the chain in this session.
 |-------------|-------|--------|
 | Fix clear issues that would slow the walk | § 4 Builds 1–3 | ⏳ |
 | The admin can actually send a seeded or confirmed commitment | § 4 Build 1 part A | Built; live proof pending Stage A |
+| A landed act updates the screen without a reload | § 4 Build 1 part B | Built; live proof pending Stage A |
 | Reuse a commitment instead of retyping it | § 4 Build 2 | ⏳ |
 | Create several commitments in one sitting | § 4 Build 3 (sequential; atomic later, § 7) | ⏳ |
 | Catalog is correct, coherent, and one outcome per case | § 5 | ⏳ |
@@ -120,9 +121,9 @@ against the final labels. Every new string lands in `en`, `es`, and `pt`. Hooks 
 JobQueue provider and a blockchain mutation hook). Read every touched line; keep the selector's
 critical override.
 
-**Scope status**: part A is committed as `7d5963d97` on
-`fix/commitment-queued-acts-send-and-refresh` and awaits review and a live reproduction. Part B is
-the refresh fix Afo locked in decision 1.
+**Scope status**: both parts are committed on `fix/commitment-queued-acts-send-and-refresh`, cut
+from `develop` at `574918cb5` and not pushed: part A `7d5963d97`, part B `bde103aba`. Both await
+review and a live reproduction in Stage A (§ 6.2).
 
 **Part A — wallet-mode send (built 2026-09-20, decisions 17 and 18).**
 
@@ -169,26 +170,60 @@ Not proven:
   because the hook cannot know that no provider is mounted; AppKit's email and social sign-in are
   off, so the admin is wallet-only today.
 
-**Part B — refresh after completion (locked).**
+**Part B — refresh after completion (built 2026-09-20, decision 1).**
 
-1. RED: in the JobQueue provider test, emit `job:completed` for a `claim` job and assert
-   `commitmentPoolingKeys.all(chainId)` and that commitment's key are invalidated at once and again
-   on the lag schedule. Add one case per remaining kind only if its payload carries the commitment
-   id differently.
-2. In `packages/shared/src/providers/JobQueue.tsx` `handleJobCompleted`, add a branch for
-   `COMMITMENT_JOB_KINDS`: invalidate the pooling keys, then start the existing
-   `useProgressiveInvalidation` schedule with `INDEXER_LAG_SCHEDULE_MS`. No new timer code
-   (React rule 1). Reuse `queryInvalidation` if it fits; do not add a parallel helper.
-3. Decide from the payload, not from UI memory, which commitment key to target: reuse
-   `subjectCommitmentId` from `useCommitmentJobs.ts` by moving it next to the job types if the
-   provider cannot import it cleanly.
-4. For the wallet-mode path from part A, invalidate after the explicit `processJob` resolves and
-   start the same lag schedule, so both sign-in modes refresh the same way.
-5. GREEN, then prove in the browser on staging or the mirror: take up a commitment, watch the
-   pending chip clear and the band change without a manual reload.
+What changed:
 
-**Out of scope**: list pagination, polling, optimistic state, mounting `JobQueueProvider` in the
-admin, background wallet prompts.
+- `useCommitmentCompletionRefresh` listens to the queue's event bus for a completed commitment job,
+  invalidates that chain's commitment reads, and invalidates them again on the shared
+  `INDEXER_LAG_SCHEDULE_MS` (2 s, 5 s, 15 s) through the existing `useProgressiveInvalidation`. No
+  new timer code.
+- It is mounted once per app, somewhere that stays mounted: inside `JobQueueProvider` for the
+  client, and in `routes/CanvasShell.tsx` for the admin. The admin has no queue provider, and its
+  send dialogs close as soon as the act lands, so a hook mounted inside one is gone before the
+  indexer catches up. The change to the Critical provider is one import and one hook call.
+
+Two departures from the steps first planned, both simpler:
+
+- No per-commitment key and no moved `subjectCommitmentId`. `commitmentPoolingKeys.all(chainId)` is
+  a prefix of every commitment key, and the whole subtree has to refresh anyway: an act moves the
+  pool's counts, the claim lists, and the inbox as well as its own record, and a creation has no
+  id to name yet.
+- One owner for the rule instead of a provider branch plus a hook-level schedule. Two listeners on
+  the client would each have invalidated the same reads.
+
+Proof:
+
+- RED first (the hook did not exist), then GREEN in `commitment-completion-refresh.test.tsx`:
+  invalidation at completion and at each step of the lag schedule, and no reaction to work or
+  approval jobs, whose handlers already refresh them.
+- `JobQueueProvider.test.tsx` proves the provider carries the refresh. One mutation was checked:
+  unmounting the hook fails that test. `CanvasLayout.test.tsx` proves the admin shell mounts it;
+  that one asserts the mount only, because the event bus is not a declared shared export.
+- Declaring the hook's export changed `packages/shared/package.json`, which every public seam
+  fingerprint hashes, so all four `shared-*` seams went stale. None of their declared inputs were
+  touched by this branch, their twelve proof files pass (241 tests), and the four fingerprints were
+  refreshed in the same commit, the same 8-line shape as `1fa2202e8`. They go stale again if
+  `develop` adds an export before this merges.
+
+### Validation receipt, Build 1
+
+- **Tested implementation commit SHA**: `bde103abad0c6675c5917fe16430ce85cf34ab4f`. The gate ran on
+  the working tree immediately before the commit; the pre-commit formatter changed nothing, and
+  `git status --porcelain=v1 --untracked-files=all` is empty at that SHA.
+- **Run finished (UTC)**: `2026-09-21T04:44:34Z`
+- **Command**: `bun run check -- --intent push --reuse-passing-receipts` (selector: push, critical,
+  27 changed paths)
+- **Result**: every runnable check passed: format, lint, validation-system-test, test-quality,
+  shared typecheck, test-typecheck, test (5,480 passed, 512 files) and build, client
+  test-typecheck, test (1,347 passed, 142 files) and build, admin test-typecheck, test (866 passed,
+  114 files) and build, agent typecheck, test-typecheck, test (323 passed) and build,
+  source-structure, design-guardrails, ontology, agent-guidance, supply-chain, story-quality.
+- **Blocked**: `browser-proof` (mandatory, `authenticatedBrave`). The gate therefore exits 2,
+  "Validation blocked". This is not a pass. The flow could not be exercised in a browser anyway:
+  every pool on chain is `NotReady` and the send needs a wallet signature.
+- **First run of the same gate failed** on `test-quality` Check 6: the new test built a local
+  `new QueryClient()`. It now uses `createTestQueryClient` and `createTestWrapper`.
 
 ### Build 2 — Prefilled Offer It Again, Ask Again, Seed another like this
 
