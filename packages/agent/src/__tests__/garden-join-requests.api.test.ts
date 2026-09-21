@@ -436,6 +436,27 @@ describe("garden join request public API", () => {
     }
   });
 
+  it("names the dependency a failed status check was waiting on", async () => {
+    const logged = vi.spyOn(logger, "error").mockImplementation(() => undefined);
+    const { app, chainReader } = createApp();
+    expect((await submit(app)).status).toBe(201);
+    chainReader.isMember.mockRejectedValue(new Error("HTTP request failed."));
+
+    try {
+      const mine = await app.request(`/public/gardens/${GARDEN}/join-requests/me`, {
+        headers: headers(proof("read_self")),
+      });
+
+      expect(mine.status).toBe(503);
+      expect(logged).toHaveBeenCalledWith(
+        { operation: "read_self", stage: "membership_read", errorName: "Error" },
+        "Garden join request operation unavailable"
+      );
+    } finally {
+      logged.mockRestore();
+    }
+  });
+
   it("does not let rotating allowed origins bypass the pre-authentication limit", async () => {
     const signatureVerifier = vi.fn(async () => false);
     const { app, rateLimitPressure } = createApp({ signatureVerifier });

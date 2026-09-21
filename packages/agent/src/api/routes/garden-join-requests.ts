@@ -49,15 +49,17 @@ async function handleMine(c: Context, ctx: GardenJoinRequestRouteContext) {
   const store = ctx.store;
   const chain = ctx.deps.gardenJoinRequestChainReader;
   if (!store || !chain) return gardenJoinRequestsUnavailable(c, ctx);
+  // Which dependency the request was waiting on, so a 503 names its cause.
+  let stage = "store_read";
   try {
     const nowIso = new Date(ctx.deps.now?.() ?? Date.now()).toISOString();
     let request = await store.getMine(preflight.garden, authenticated.proof.accountAddress, nowIso);
-    if (
-      request &&
-      request.state !== "welcomed" &&
-      (await chain.isMember(preflight.garden, authenticated.proof.accountAddress))
-    ) {
-      request = await store.reconcileWelcomed(preflight.garden, request.id, nowIso);
+    if (request && request.state !== "welcomed") {
+      stage = "membership_read";
+      if (await chain.isMember(preflight.garden, authenticated.proof.accountAddress)) {
+        stage = "store_reconcile";
+        request = await store.reconcileWelcomed(preflight.garden, request.id, nowIso);
+      }
     }
     void trackGardenJoinRequestEvent("join_request_status_checked", {
       state: request?.state ?? "none",
@@ -68,7 +70,7 @@ async function handleMine(c: Context, ctx: GardenJoinRequestRouteContext) {
       request: request ? toGardenJoinRequestSelfRecord(request) : null,
     });
   } catch (error) {
-    reportGardenJoinRequestUnavailable("read_self", "store_or_chain", error);
+    reportGardenJoinRequestUnavailable("read_self", stage, error);
     return gardenJoinRequestsUnavailable(c, ctx);
   }
 }
@@ -82,6 +84,7 @@ async function handleWithdraw(c: Context, ctx: GardenJoinRequestRouteContext) {
   if (!authenticated.ok) return authenticated.response;
   const store = ctx.store;
   if (!store) return gardenJoinRequestsUnavailable(c, ctx);
+  let stage = "proof_claim";
   try {
     const { requestId, expectedRevision } = authenticated.proof;
     if (!requestId || expectedRevision === undefined) {
@@ -102,6 +105,7 @@ async function handleWithdraw(c: Context, ctx: GardenJoinRequestRouteContext) {
         409
       );
     }
+    stage = "store_withdraw";
     const withdrawn = await store.withdraw({
       gardenAddress: preflight.garden,
       accountAddress: authenticated.proof.accountAddress,
@@ -122,7 +126,7 @@ async function handleWithdraw(c: Context, ctx: GardenJoinRequestRouteContext) {
     });
     return publicBrowserCorsResponse(c, ctx.deps, { ok: true });
   } catch (error) {
-    reportGardenJoinRequestUnavailable("withdraw", "store_or_chain", error);
+    reportGardenJoinRequestUnavailable("withdraw", stage, error);
     return gardenJoinRequestsUnavailable(c, ctx);
   }
 }
@@ -166,6 +170,7 @@ async function handleList(c: Context, ctx: GardenJoinRequestRouteContext) {
   const store = ctx.store;
   const chain = ctx.deps.gardenJoinRequestChainReader;
   if (!store || !chain) return gardenJoinRequestsUnavailable(c, ctx);
+  let stage = "role_read";
   try {
     if (!(await chain.canManage(preflight.garden, authenticated.proof.accountAddress))) {
       return gardenJoinRequestFailure(
@@ -176,6 +181,7 @@ async function handleList(c: Context, ctx: GardenJoinRequestRouteContext) {
         403
       );
     }
+    stage = "store_list";
     const page = await store.listPending(preflight.garden, {
       ...(cursor ? { cursor } : {}),
       limit,
@@ -183,6 +189,7 @@ async function handleList(c: Context, ctx: GardenJoinRequestRouteContext) {
     });
     const items = [];
     const resolvedAt = new Date(ctx.deps.now?.() ?? Date.now()).toISOString();
+    stage = "membership_read";
     const membership = chain.areMembers
       ? await chain.areMembers(
           preflight.garden,
@@ -191,6 +198,7 @@ async function handleList(c: Context, ctx: GardenJoinRequestRouteContext) {
       : await Promise.all(
           page.items.map((request) => chain.isMember(preflight.garden, request.accountAddress))
         );
+    stage = "store_reconcile";
     for (const [index, request] of page.items.entries()) {
       if (membership[index]) {
         await store.reconcileWelcomed(preflight.garden, request.id, resolvedAt);
@@ -209,7 +217,7 @@ async function handleList(c: Context, ctx: GardenJoinRequestRouteContext) {
       ...(page.nextCursor ? { nextCursor: page.nextCursor } : {}),
     });
   } catch (error) {
-    reportGardenJoinRequestUnavailable("list", "store_or_chain", error);
+    reportGardenJoinRequestUnavailable("list", stage, error);
     return gardenJoinRequestsUnavailable(c, ctx);
   }
 }
