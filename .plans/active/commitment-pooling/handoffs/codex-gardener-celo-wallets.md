@@ -107,6 +107,14 @@ Historical receipts remain visible, and no completed transfer is reversed.
 
 ## Validation receipt
 
+**Not covered below (2026-09-21, PR #854).** The receipt in this section predates the change that
+lets Celo fall back to the general sponsorship policy. For that change the policy, passkey sender,
+account construction, Celo wallet, and send-flow tests were updated and pass, and the local push
+gate passed with the critical override (Shared, Client, Admin, and Agent suites, typechecks, and
+builds) at `dd4e3a3cf`. The `release` intent was not re-run, authenticated Brave proof was not
+taken, and nothing has confirmed in Pimlico that the general policy sponsors chain `42220`. Treat
+the automated release checks as complete for the explicit-policy path only.
+
 Tested commit: `ea193295f9ce1f6ebac415481c320c5d7a61baae` on `develop`, containing implementation
 commit `b2ab43024` and its UI-test fixture correction. The tree was clean after the run completed at
 2026-09-05 22:32:48 UTC. No passing-receipt cache was used.

@@ -191,12 +191,16 @@ release's required finality before activation. Keep raw canary evidence outside 
 
 ## Deployment and activation order
 
-1. Finish CI and review. Configure the request guard and restricted browser key; test denials.
-2. Deploy the client with the Celo policy ID and primary chain `42161`, while delivery stays false.
-   Use the existing deployment workflow; this helper does not replace it. No contract deployment
-   or indexer schema change is needed for this wallet change.
+1. Finish CI and review. Configure the restricted browser key and test denials. When the community
+   transfer policy is attached, configure its request guard too.
+2. Deploy the client with primary chain `42161`, while delivery stays false. Set the Celo policy ID
+   only when the community transfer policy is attached; without it Celo takes the general policy
+   (update above). Use the existing deployment workflow; this helper does not replace it. No
+   contract deployment or indexer schema change is needed for this wallet change.
 3. Complete the operator first-use QA path, authorized funding/send and receipt checks above
-   under the community policy. Review actual network costs against the chosen pilot limits.
+   under the policy that applies: the community policy when attached, otherwise the general one,
+   after confirming in Pimlico that it allows chain `42220`. Review actual network costs against
+   the chosen pilot limits.
 4. With fresh artifact-specific authorization, have the owning protocol Safe call
    `SettlementModule.setGardenerDeliveryEnabled(true)` on Arbitrum. Verify its receipt and then
    the indexer's `SOURCE` configuration shows true. There is no browser env toggle for this gate.
@@ -206,6 +210,11 @@ release's required finality before activation. Keep raw canary evidence outside 
 Rollback: disabling the delivery flag blocks new app sends/contributor preparation. It does not
 revoke a public paymaster policy or stop an already submitted operation. Disable the community transfer policy
 separately for sponsorship abuse (this also stops its Arbitrum transfer sponsorship); pause source/executor separately if queued settlement must stop.
+Under the general policy there is no separate switch for Celo transfers: whatever pauses or
+tightens that policy in Pimlico applies to sponsored work submissions and reviews on Arbitrum as
+well. A client-side change does not stop someone calling the paymaster directly, because the
+policy ID and browser key ship in the client. A transfer-only switch exists only when the
+community policy is attached through the Celo override.
 Do not disable the shared browser key indiscriminately, which also affects primary-chain auth.
 Historical receipts remain visible.
 
