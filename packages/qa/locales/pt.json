@@ -60,7 +60,7 @@
       "expected": "Os estados são claros, ações destrutivas ou onchain exigem revisão e o cancelamento preserva o estado",
       "role": "Steward"
     },
-    "ADM-026": {
+    "ADM-140": {
       "scenario": "Crie um compromisso: assistente de 4 etapas, confirmadores identificados e revisão antes de enviar",
       "preconditions": ["O pool do Garden está aberto"],
       "steps": [
@@ -118,7 +118,7 @@
       "expected": "A Temporada e a Campanha abrem mesmo que a avaliação inicial ainda não tenha terminado de ser indexada; a avaliação continua sendo contextual",
       "role": "Steward"
     },
-    "ADM-039": {
+    "ADM-139": {
       "scenario": "Crie no protocolo uma Solicitação de trabalho de jardim sujeita a aprovação que o Garden de teste possa entregar",
       "preconditions": [
         "Sessão iniciada com a wallet autorizada de Tester A",
@@ -140,7 +140,7 @@
       "preconditions": [
         "Sessão iniciada com a wallet autorizada de Tester B",
         "Tester B é Steward do Garden de teste",
-        "ADM-039 está concluído"
+        "ADM-139 está concluído"
       ],
       "steps": [
         "Abra a Solicitação do protocolo",
@@ -238,7 +238,7 @@
       "preconditions": [
         "Sessão iniciada com a wallet autorizada de Tester B",
         "Tester B é uma pessoa integrante do Garden de teste",
-        "ADM-026 está concluído"
+        "ADM-140 está concluído"
       ],
       "steps": [
         "Abra a Campanha atual do Garden de teste",
@@ -330,7 +330,7 @@
         "ADM-038": {
           "handoff": "As duas pessoas confirmam que veem o mesmo Garden e o ciclo aberto; a avaliação oferece contexto, mas não é um pré-requisito."
         },
-        "ADM-039": {
+        "ADM-139": {
           "handoff": "Espere até que a Solicitação apareça no pool do protocolo para a pessoa integrante do Garden."
         },
         "PWA-047": {
@@ -349,7 +349,7 @@
           "handoff": "A pessoa integrante do Garden verifica o Safe de destino do Garden ou seu estado de preparação.",
           "knownGate": "A liquidação de G$ do protocolo para o Garden exige uma interface de liquidação habilitada e autorização para movimentar valor. Se uma delas não estiver disponível, registre Bloqueado e continue com as etapas que não movimentam valor."
         },
-        "ADM-026": {
+        "ADM-140": {
           "handoff": "Crie-o como Trabalho de jardim com uma linha de ação, para que o Trabalho da pessoa integrante possa ser vinculado. Espere até que o compromisso local separado apareça na Campanha aberta do Garden."
         },
         "PWA-050": {

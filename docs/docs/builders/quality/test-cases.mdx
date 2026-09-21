@@ -15,7 +15,7 @@ generated_from:
   - playwright.config.ts
   - scripts/data/qa-test-catalog.json
   - scripts/data/validation-policy.json
-source_digest: "sha256:5ad104d8727ee2dd09cc7690910399677cce0ac7f0ef9c6032d763588b793e6d"
+source_digest: "sha256:a3db19fc6b83474cf45d2b8c1b2c55a59043046b9d549be4ec95f1370544bb18"
 source_of_truth:
   - package.json
   - packages/admin/vitest.config.ts
@@ -74,7 +74,7 @@ Two people follow a protocol Request from the Green Goods pool through Garden de
 
 **Protocol asks**
 
-4. `ADM-039` — Act: Protocol & review; verify: Garden & member
+4. `ADM-139` — Act: Protocol & review; verify: Garden & member
    - **Handoff:** Wait until the Request appears in the protocol pool for the Garden member.
 5. `PWA-047` — Act: Garden & member; verify: Protocol & review
    - **Handoff:** The protocol reviewer waits for the pending Garden claim before accepting it.
@@ -97,7 +97,7 @@ Two people follow a protocol Request from the Green Goods pool through Garden de
 
 **Garden distributes**
 
-11. `ADM-026` — Act: Protocol & review; verify: Garden & member
+11. `ADM-140` — Act: Protocol & review; verify: Garden & member
    - **Handoff:** Seed it as Garden work with one action row, so the member's Work can link to it. Wait until the separate local commitment appears in the open Garden Campaign.
 12. `PWA-049` — Act: Garden & member
 13. `PWA-050` — Act: Garden & member; verify: Protocol & review
@@ -355,9 +355,7 @@ The catalog contract test enforces all of this, and [retired cases](#retired-cas
 | `ADM-012` | Transaction | Hub · Work | Full review decision path completes with actions visible | Screen recording; screenshot of the action region at ~1084x637 |
 | `ADM-013` | Transaction | Hub · Confirm | Commitment confirmation states who and what before commit | Screenshots of confirmation and result |
 | `ADM-018` | Transaction | Hub · Work | Decision integrity: no double decisions, honest tx failure | Screenshots of the blocked second decision and the failure state |
-| `ADM-026` | Transaction | Garden · Pool | Seed a commitment: 4-step wizard, named confirmers, review before sending | Screenshots of the rejected confirmer and the review |
 | `ADM-038` | Transaction | Garden · Pool | Open the test Season and Campaign independently of assessment state | Screenshot of the open Season and Campaign |
-| `ADM-039` | Transaction | Garden · Pool | Seed an approval-gated protocol Request for garden work the test Garden can deliver | Screenshot of the Request in the protocol pool |
 | `ADM-040` | Transaction | Garden · Pool | Accept the test Garden's institutional claim | Screenshot showing Accepted, the Garden provider, and protocol-pool context |
 | `ADM-041` | Transaction | Hub · Work | Approve Work linked to the protocol Request without joining its contributors | Screenshot of the approved Work and contributor roster |
 | `ADM-042` | Transaction | Hub · Confirm | Confirm the protocol Request after its Work is approved | Screenshot of the Fulfilled protocol Request |
@@ -389,8 +387,10 @@ The catalog contract test enforces all of this, and [retired cases](#retired-cas
 | `ADM-120` | Transaction | Garden · Settlement | Dispatch a prepared disbursement | Screenshots of the dispatched row and the plan status |
 | `ADM-121` | Transaction | Garden · Settlement | Retry Command resends the same command for a dispatched row | Screenshot of the retry review and the row afterwards |
 | `ADM-125` | Transaction | Garden · Pool | Seeding asks the wallet to confirm and the commitment appears without a reload | Screen recording from the press to the commitment appearing |
+| `ADM-139` | Transaction | Garden · Pool | Seed an approval-gated protocol Request for garden work the test Garden can deliver | Screenshot of the Request in the protocol pool |
+| `ADM-140` | Transaction | Garden · Pool | Seed a commitment: 4-step wizard, named confirmers, review before sending | Screenshots of the rejected confirmer and the review |
 
-### P1 (68) {#admin-dashboard-p1}
+### P1 (71) {#admin-dashboard-p1}
 
 | ID | Kind | Area | Scenario | Evidence requested |
 |---|---|---|---|---|
@@ -446,15 +446,15 @@ The catalog contract test enforces all of this, and [retired cases](#retired-cas
 | `ADM-105` | Journey | Cookies | Cookie jar routes are deployer-gated and the unconfigured factory is honest | Screenshots of the gate and the deployer view |
 | `ADM-107` | Journey | Hub · Work | The work inspector blocks self-review and expired-action decisions | Screenshots of both blocked inspectors |
 | `ADM-112` | Journey | Garden · Commitment | Fallback confirmation is not offered while ordinary confirmation is still reachable | Screenshot of the inspector with no fallback act |
-| `ADM-117` | Journey | Garden · Commitment | Kept is withheld from a steward on the roster, and for a record that had expired | Screenshot of the dialog without Kept |
+| `ADM-117` | Journey | Garden · Commitment | Kept is withheld from a steward who is on the commitment's roster | Screenshot of the dialog without Kept |
 | `ADM-122` | Transaction | Garden · Settlement | Requeue starts a new attempt for a failed disbursement | Screenshot of the requeued row |
 | `ADM-123` | Resilience | Garden · Settlement | A rejected wallet prompt leaves a disbursement row unchanged | Screenshot of the status line and the unchanged row |
-| `ADM-124` | Data integrity | Garden · Settlement | Read Again refreshes the settlement table from chain | Screenshots before and after Read Again |
+| `ADM-124` | Resilience | Garden · Settlement | Read Again recovers the settlement section after a failed chain read | Screenshots of the alert and of the section after Read Again |
 | `ADM-126` | Transaction | Garden · Pool | Declining the wallet prompt while seeding leaves nothing queued and keeps the answers | Screenshots of the review after the rejection and of the list afterwards |
 | `ADM-127` | Transaction | Garden · Pool | Try Again sends a creation that was left queued | Screenshots of the queued row and of the list afterwards |
 | `ADM-128` | Resilience | Garden · Pool | Discard removes a queued creation that was never sent | Screenshots of the queued row and of the pool tab after the reload |
 | `ADM-129` | Transaction | Garden · Pool | Seed several commitments in one sitting with Add Another Like This and Create All | Screenshot of the review with both commitments, and of the list afterwards |
-| `ADM-130` | Journey | Garden · Pool | Edit, Remove, and Remove This One change the sitting before anything is sent | Screenshots of the review after each change |
+| `ADM-130` | Journey | Garden · Pool | Edit takes an added commitment back into the seed wizard and keeps the one under review | Screenshots of the review before and after the edit |
 | `ADM-131` | Transaction | Garden · Pool | Declining one wallet prompt in a batch skips that commitment only | Screenshots of the review after the batch and of the list |
 | `ADM-132` | Transaction | Garden · Pool | A commitment left Not sent is sent again as itself and lands once | Screenshot of the list with each title once |
 | `ADM-133` | Journey | Garden · Pool | More offers than your commitment limit holds seeding and says why | Screenshots of the review as an offer and as a request |
@@ -462,6 +462,9 @@ The catalog contract test enforces all of this, and [retired cases](#retired-cas
 | `ADM-136` | Journey | Garden · Commitment | A steward on the commitment's team is offered no way to confirm it | Screenshot of the inspector with no confirm act |
 | `ADM-137` | Journey | Garden · Pool | Cancel season is offered only while the season has no live commitments | Screenshots of the season's acts before and after |
 | `ADM-138` | Transaction | Garden · Pool | Cancelling the open season frees the pool to start another | Screenshots of the card after the cancellation and with the new season |
+| `ADM-141` | Journey | Garden · Commitment | Kept is withheld for a record that had expired before the dispute | Screenshot of the dialog without Kept |
+| `ADM-142` | Journey | Garden · Pool | Remove drops one added commitment from the sitting | Screenshot of the review after the removal |
+| `ADM-143` | Journey | Garden · Pool | Remove This One drops the commitment under review and hands back the newest of the rest | Screenshot of the review after the removal |
 
 ### P2 (10) {#admin-dashboard-p2}
 
@@ -535,13 +538,15 @@ Retired cases never ship to a run sheet, but their IDs stay reserved and their h
 | `ADM-023` | Admin Dashboard · Endowment operations: vault deposit with limits, withdraw, harvest & distribute, emergency pause, auto-allocate | 2026-09-07 | Split by act: deposit, withdraw, harvest, owner gates | `ADM-066`, `ADM-067`, `ADM-068`, `ADM-069` |
 | `ADM-024` | Admin Dashboard · Cookie jar payouts: deposit, withdraw with purpose within limits and cooldown | 2026-09-07 | Split by act and extended to the manage modal the row never named | `ADM-070`, `ADM-071`, `ADM-074` |
 | `ADM-025` | Admin Dashboard · Commitment inspector steward acts: confirm ordinary/fallback, raise & resolve dispute, expire, recovery overrides | 2026-09-07 | Split into one row per inspector act | `ADM-075`, `ADM-076`, `ADM-077`, `ADM-078`, `ADM-079`, `ADM-080`, `ADM-081`, `ADM-082` |
+| `ADM-026` | Admin Dashboard · Seed a commitment: 4-step wizard, named confirmers, review, queued creation | 2026-09-21 | Its result changed: a wallet send now goes at once, so the queued row this case expected before the indexer caught up no longer appears. The wizard's validation and review are ADM-140; the send and the landing are ADM-125. | `ADM-140`, `ADM-125` |
 | `ADM-027` | Admin Dashboard · Coordination: create signal pools, manage strategies, register/deregister items, allocate weights | 2026-09-07 | Split by act: create pools, strategies, register, allocate | `ADM-090`, `ADM-091`, `ADM-092`, `ADM-093` |
 | `ADM-028` | Admin Dashboard · Hypercert marketplace: approvals gate, list for yield, cancel listing — including whether it's reachable at all | 2026-09-07 | Split by act: approve and list, cancel listing; reachability is part of the listing row | `ADM-094`, `ADM-095` |
 | `ADM-029` | Admin Dashboard · Global chrome: garden switch chip, command palette (⌘K), notifications sheet, view-public | 2026-09-07 | Split by act: garden switch, palette, notifications, view public | `ADM-096`, `ADM-097`, `ADM-098`, `ADM-099` |
+| `ADM-039` | Admin Dashboard · Seed an approval-gated protocol Request for a concrete service | 2026-09-21 | The relay walks the Work rails, which a service Request has no action rows for. Its successor seeds a garden-work Request with an action row, which is a different result from the service Request this case verified. | `ADM-139` |
 | `ADM-072` | Admin Dashboard · Pause and resume the payouts jar | 2026-09-19 | The manage modal was removed; pause and resume have no control until they return through the garden account | — |
 | `ADM-073` | Admin Dashboard · Emergency-withdraw the payouts jar | 2026-09-19 | The manage modal was removed; emergency withdraw has no control until it returns through the garden account | — |
 | `ADM-076` | Admin Dashboard · Confirm a commitment as garden fallback or Green Goods team fallback with a reason | 2026-09-21 | Split by outcome: the garden fallback, the Green Goods team fallback, and the case where neither is offered are three independent results. The fallback reason is recorded as written, not pinned. | `ADM-110`, `ADM-111`, `ADM-112` |
-| `ADM-078` | Admin Dashboard · Resolve a dispute with each outcome | 2026-09-21 | Split by outcome: four disputed commitments in one case produced one verdict for four results. Kept being withheld from a steward on the roster is its own case. | `ADM-113`, `ADM-114`, `ADM-115`, `ADM-116`, `ADM-117` |
+| `ADM-078` | Admin Dashboard · Resolve a dispute with each outcome | 2026-09-21 | Split by outcome: four disputed commitments in one case produced one verdict for four results. The two guards that withhold Kept, a steward on the roster and a record that had expired, are a case each. | `ADM-113`, `ADM-114`, `ADM-115`, `ADM-116`, `ADM-117`, `ADM-141` |
 | `ADM-083` | Admin Dashboard · Create and finalize a payout plan for a fulfilled commitment | 2026-09-21 | Split by act: creating and finalizing a payout plan are two transactions with two results. | `ADM-118`, `ADM-119` |
 | `ADM-085` | Admin Dashboard · Dispatch a disbursement, then retry or requeue a failed one | 2026-09-21 | Split by act: dispatch, retry, requeue, a rejected wallet prompt, and Read Again are five independent results. | `ADM-120`, `ADM-121`, `ADM-122`, `ADM-123`, `ADM-124` |
 | `DOCS-007` | Docs · Gardener guide walks true against the live PWA (joining, uploading work, offline sync, track status) | 2026-09-07 | Split into one row per gardener guide page so drift is tracked per page | `DOCS-014`, `DOCS-015`, `DOCS-016`, `DOCS-017` |

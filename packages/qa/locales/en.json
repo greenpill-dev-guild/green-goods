@@ -60,7 +60,7 @@
       "expected": "Statuses are honest, destructive/chain actions are gated behind review, and cancel preserves state",
       "role": "steward"
     },
-    "ADM-026": {
+    "ADM-140": {
       "scenario": "Seed a commitment: 4-step wizard, named confirmers, review before sending",
       "preconditions": ["Garden pool open"],
       "steps": [
@@ -118,7 +118,7 @@
       "expected": "The Season and Campaign open successfully whether or not the starting assessment has finished indexing; the assessment remains contextual",
       "role": "steward"
     },
-    "ADM-039": {
+    "ADM-139": {
       "scenario": "Seed an approval-gated protocol Request for garden work the test Garden can deliver",
       "preconditions": [
         "Signed in with Tester A's allowlisted wallet",
@@ -140,7 +140,7 @@
       "preconditions": [
         "Signed in with Tester B's allowlisted wallet",
         "Tester B is a steward of the test Garden",
-        "ADM-039 is complete"
+        "ADM-139 is complete"
       ],
       "steps": [
         "Open the protocol Request",
@@ -238,7 +238,7 @@
       "preconditions": [
         "Signed in with Tester B's allowlisted wallet",
         "Tester B is a member of the test Garden",
-        "ADM-026 is complete"
+        "ADM-140 is complete"
       ],
       "steps": [
         "Open the test Garden's current Campaign",
@@ -327,7 +327,7 @@
         "ADM-038": {
           "handoff": "Both people confirm the same Garden and open cycle are visible; the assessment is context, not a prerequisite."
         },
-        "ADM-039": {
+        "ADM-139": {
           "handoff": "Wait until the Request appears in the protocol pool for the Garden member."
         },
         "PWA-047": {
@@ -346,7 +346,7 @@
           "handoff": "The Garden member verifies the destination Garden Safe or its readiness state.",
           "knownGate": "Protocol-to-Garden G$ settlement requires enabled settlement UI and value authority. If either is unavailable, record Blocked and continue with the non-value steps."
         },
-        "ADM-026": {
+        "ADM-140": {
           "handoff": "Seed it as Garden work with one action row, so the member's Work can link to it. Wait until the separate local commitment appears in the open Garden Campaign."
         },
         "PWA-050": {

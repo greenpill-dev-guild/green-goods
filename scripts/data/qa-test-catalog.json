@@ -108,7 +108,7 @@
           "handoff": "Both people confirm the same Garden and open cycle are visible; the assessment is context, not a prerequisite."
         },
         {
-          "caseId": "ADM-039",
+          "caseId": "ADM-139",
           "phaseId": "protocol-asks",
           "leadLaneId": "protocol-review",
           "verifyLaneIds": ["garden-member"],
@@ -156,7 +156,7 @@
           "knownGate": "Protocol-to-Garden G$ settlement requires enabled settlement UI and value authority. If either is unavailable, record Blocked and continue with the non-value steps."
         },
         {
-          "caseId": "ADM-026",
+          "caseId": "ADM-140",
           "phaseId": "garden-distributes",
           "leadLaneId": "protocol-review",
           "verifyLaneIds": ["garden-member"],
@@ -3512,7 +3512,7 @@
       "preconditions": [
         "Signed in with Tester B's allowlisted wallet",
         "Tester B is a steward of the test Garden",
-        "ADM-039 is complete"
+        "ADM-139 is complete"
       ],
       "steps": [
         "Open the protocol Request",
@@ -3539,7 +3539,7 @@
       "preconditions": [
         "Signed in with Tester B's allowlisted wallet",
         "Tester B is a member of the test Garden",
-        "ADM-026 is complete"
+        "ADM-140 is complete"
       ],
       "steps": [
         "Open the test Garden's current Campaign",
@@ -3564,7 +3564,7 @@
       "area": "Commitments",
       "scenario": "A threshold of two needs both named confirmers before it is kept",
       "preconditions": [
-        "A commitment seeded from the admin with two named confirmers and a threshold of two (ADM-026), taken up, and sent for confirmation",
+        "A commitment seeded from the admin with two named confirmers and a threshold of two (ADM-140), taken up, and sent for confirmation",
         "Both named confirmers available, neither on its team"
       ],
       "steps": [
@@ -5569,7 +5569,7 @@
         "Type a reason and confirm",
         "Read the cycles list and the public garden page"
       ],
-      "expected": "Cancel names its blast radius and requires a reason; the cancellation is one transaction; the cycle shows as cancelled in the console and never appears on the public commitments story (PUB-027)",
+      "expected": "Cancel names its blast radius and requires a reason; the cancellation is one transaction; the cycle shows as cancelled in the console and never appears on the public commitments story (PUB-058)",
       "evidence": "Screenshots of the cancel dialog and the public page",
       "role": "steward",
       "tags": ["garden-pool", "cycle", "tx"],
@@ -5675,6 +5675,31 @@
       "priority": "P0",
       "kind": "transaction",
       "area": "Garden · Pool",
+      "scenario": "Seed a commitment: 4-step wizard, named confirmers, review, queued creation",
+      "preconditions": ["Garden pool open"],
+      "steps": [
+        "Run the 4-step seed wizard",
+        "Add named confirmers incl. one bad address",
+        "Review, queue, and watch the queued row"
+      ],
+      "expected": "Beats validate; a bad or duplicate confirmer address is rejected visibly; review precedes queueing; the queued row appears before the indexer catches up",
+      "evidence": "Screenshot of queued row",
+      "role": "steward",
+      "tags": ["garden-pool", "tx"],
+      "requiresProduction": false,
+      "status": "retired",
+      "retiredOn": "2026-09-21",
+      "retiredReason": "Its result changed: a wallet send now goes at once, so the queued row this case expected before the indexer caught up no longer appears. The wizard's validation and review are ADM-140; the send and the landing are ADM-125.",
+      "replacedBy": ["ADM-140", "ADM-125"],
+      "source": "qa-session-2026-08-29"
+    },
+    {
+      "id": "ADM-140",
+      "tab": "Admin Dashboard",
+      "platform": "Chromium Desktop",
+      "priority": "P0",
+      "kind": "transaction",
+      "area": "Garden · Pool",
       "scenario": "Seed a commitment: 4-step wizard, named confirmers, review before sending",
       "preconditions": ["Garden pool open"],
       "steps": [
@@ -5688,10 +5713,41 @@
       "tags": ["garden-pool", "tx"],
       "requiresProduction": false,
       "status": "active",
-      "source": "qa-session-2026-08-29"
+      "source": "qa-readiness-catalog-2026-09-21"
     },
     {
       "id": "ADM-039",
+      "tab": "Admin Dashboard",
+      "platform": "Chromium Desktop",
+      "priority": "P0",
+      "kind": "transaction",
+      "area": "Garden · Pool",
+      "scenario": "Seed an approval-gated protocol Request for a concrete service",
+      "preconditions": [
+        "Signed in with Tester A's allowlisted wallet",
+        "Tester A is a protocol steward",
+        "The protocol pool has an open cycle"
+      ],
+      "steps": [
+        "Open the Green Goods protocol pool",
+        "Seed a Request that names a concrete service and clear evidence",
+        "Require approval before a claimant is accepted",
+        "Review and submit the Request",
+        "Wait for the Request to appear in the protocol pool"
+      ],
+      "expected": "One approval-gated Request appears in the protocol pool with its service, evidence, and confirmation expectations intact",
+      "evidence": "Screenshot of the Request in the protocol pool",
+      "role": "steward",
+      "tags": ["protocol-pool", "request", "journey-relay", "tx"],
+      "requiresProduction": false,
+      "status": "retired",
+      "retiredOn": "2026-09-21",
+      "retiredReason": "The relay walks the Work rails, which a service Request has no action rows for. Its successor seeds a garden-work Request with an action row, which is a different result from the service Request this case verified.",
+      "replacedBy": ["ADM-139"],
+      "source": "qa-journey-mode-2026-09-02"
+    },
+    {
+      "id": "ADM-139",
       "tab": "Admin Dashboard",
       "platform": "Chromium Desktop",
       "priority": "P0",
@@ -5716,7 +5772,7 @@
       "tags": ["protocol-pool", "request", "journey-relay", "tx"],
       "requiresProduction": false,
       "status": "active",
-      "source": "qa-journey-mode-2026-09-02"
+      "source": "qa-readiness-catalog-2026-09-21"
     },
     {
       "id": "ADM-040",
@@ -5879,7 +5935,7 @@
         "A creation left queued on this device: with the seed wizard open on its review, turn the network off, press Seed This Commitment, then turn the network back on"
       ],
       "steps": ["On the queued row press Discard", "Reload and read the pool tab"],
-      "expected": "Discard removes the row at once and it does not return after a reload; nothing is created. Discard is not offered on a row whose send may already be on chain",
+      "expected": "Discard removes the row at once and it does not return after a reload; nothing is created",
       "evidence": "Screenshots of the queued row and of the pool tab after the reload",
       "role": "steward",
       "tags": ["garden-pool", "commitment", "queue"],
@@ -5917,18 +5973,59 @@
       "priority": "P1",
       "kind": "journey",
       "area": "Garden · Pool",
-      "scenario": "Edit, Remove, and Remove This One change the sitting before anything is sent",
+      "scenario": "Edit takes an added commitment back into the seed wizard and keeps the one under review",
       "preconditions": [
         "Steward with manage rights",
         "The seed wizard open on its review with three commitments in the sitting: compose one, press Add Another Like This and change the title, twice"
       ],
       "steps": [
-        "Press Edit on a row under Added so far, change its title, and return to the review",
-        "Press Remove on a row under Added so far",
-        "Press Remove This One"
+        "Press Edit on a row under Added so far",
+        "Read the first step, change the title, and go forward to the review again"
       ],
-      "expected": "Edit reopens the first step on that row's answers, and the commitment you were reviewing is kept in the list; Remove drops only that row; Remove This One drops the commitment under review and hands back the newest of the rest; the button counts what is left and reads Seed This Commitment when one remains; none of these sends anything",
-      "evidence": "Screenshots of the review after each change",
+      "expected": "Edit reopens the first step on that row's answers; back on the review the commitment you were reviewing before is listed under Added so far with its answers intact, and the edited one is This one with its new title; the button still counts all three; nothing is sent",
+      "evidence": "Screenshots of the review before and after the edit",
+      "role": "steward",
+      "tags": ["garden-pool", "commitment"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-readiness-catalog-2026-09-21"
+    },
+    {
+      "id": "ADM-142",
+      "tab": "Admin Dashboard",
+      "platform": "Chromium Desktop",
+      "priority": "P1",
+      "kind": "journey",
+      "area": "Garden · Pool",
+      "scenario": "Remove drops one added commitment from the sitting",
+      "preconditions": [
+        "Steward with manage rights",
+        "The seed wizard open on its review with three commitments in the sitting: compose one, press Add Another Like This and change the title, twice"
+      ],
+      "steps": ["Press Remove on a row under Added so far", "Read the review and the footer"],
+      "expected": "Only that row goes; the others and the commitment under review keep their answers; the button reads Create All (2); nothing is sent",
+      "evidence": "Screenshot of the review after the removal",
+      "role": "steward",
+      "tags": ["garden-pool", "commitment"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-readiness-catalog-2026-09-21"
+    },
+    {
+      "id": "ADM-143",
+      "tab": "Admin Dashboard",
+      "platform": "Chromium Desktop",
+      "priority": "P1",
+      "kind": "journey",
+      "area": "Garden · Pool",
+      "scenario": "Remove This One drops the commitment under review and hands back the newest of the rest",
+      "preconditions": [
+        "Steward with manage rights",
+        "The seed wizard open on its review with three commitments in the sitting: compose one, press Add Another Like This and change the title, twice"
+      ],
+      "steps": ["Press Remove This One", "Read the review and the footer"],
+      "expected": "The commitment under review goes; the newest of the rows that were under Added so far becomes This one, with its answers in the review; the button reads Create All (2), and Seed This Commitment once only one is left, when Remove This One is no longer offered; nothing is sent",
+      "evidence": "Screenshot of the review after the removal",
       "role": "steward",
       "tags": ["garden-pool", "commitment"],
       "requiresProduction": false,
@@ -6242,8 +6339,8 @@
       "requiresProduction": false,
       "status": "retired",
       "retiredOn": "2026-09-21",
-      "retiredReason": "Split by outcome: four disputed commitments in one case produced one verdict for four results. Kept being withheld from a steward on the roster is its own case.",
-      "replacedBy": ["ADM-113", "ADM-114", "ADM-115", "ADM-116", "ADM-117"],
+      "retiredReason": "Split by outcome: four disputed commitments in one case produced one verdict for four results. The two guards that withhold Kept, a steward on the roster and a record that had expired, are a case each.",
+      "replacedBy": ["ADM-113", "ADM-114", "ADM-115", "ADM-116", "ADM-117", "ADM-141"],
       "source": "qa-runs-catalog-third-pass-2026-09-07"
     },
     {
@@ -6344,13 +6441,34 @@
       "priority": "P1",
       "kind": "journey",
       "area": "Garden · Commitment",
-      "scenario": "Kept is withheld from a steward on the roster, and for a record that had expired",
+      "scenario": "Kept is withheld from a steward who is on the commitment's roster",
       "preconditions": [
-        "Steward of the pool's garden",
-        "A disputed commitment where you are on the roster, or one that had expired before the dispute"
+        "Steward of the pool's garden who is the provider or an active contributor on the commitment",
+        "That commitment, disputed, which had not expired before the dispute (ADM-077)"
       ],
       "steps": ["Press Resolve… and read the dialog"],
-      "expected": "Kept is not offered; the dialog says you can't mark this kept, because nobody confirms their own work and a record that had expired can't be kept, and that a steward who isn't on it may; the other three outcomes are still offered",
+      "expected": "Kept is not offered to you; the dialog says you can't mark this kept because nobody confirms their own work, and that a steward who isn't on it may; Restore Previous State, Cancelled, and Expired are still offered",
+      "evidence": "Screenshot of the dialog without Kept",
+      "role": "steward",
+      "tags": ["commitment"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-readiness-catalog-2026-09-21"
+    },
+    {
+      "id": "ADM-141",
+      "tab": "Admin Dashboard",
+      "platform": "Chromium Desktop",
+      "priority": "P1",
+      "kind": "journey",
+      "area": "Garden · Commitment",
+      "scenario": "Kept is withheld for a record that had expired before the dispute",
+      "preconditions": [
+        "Steward of the pool's garden who is not on the commitment's roster",
+        "A commitment that ran out of time and was disputed afterwards (ADM-064, then ADM-077)"
+      ],
+      "steps": ["Press Resolve… and read the dialog"],
+      "expected": "Kept is not offered, even to a steward who is not on the roster; the dialog says a record that had expired can't be kept; Restore Previous State, Cancelled, and Expired are still offered",
       "evidence": "Screenshot of the dialog without Kept",
       "role": "steward",
       "tags": ["commitment"],
@@ -6584,7 +6702,9 @@
       "kind": "transaction",
       "area": "Garden · Settlement",
       "scenario": "Prepare the garden payout on a garden-beneficiary plan",
-      "preconditions": ["A finalized payout plan of the garden-beneficiary kind (ADM-083)"],
+      "preconditions": [
+        "A finalized payout plan of the garden-beneficiary kind (ADM-118, then ADM-119)"
+      ],
       "steps": [
         "Press Prepare Garden Payout…, read 'Review before sending', and press Send Transaction",
         "Read the Disbursements table"
@@ -6606,7 +6726,7 @@
       "area": "Garden · Settlement",
       "scenario": "Prepare a contributor payout on a contributor-consideration plan",
       "preconditions": [
-        "A finalized payout plan of the contributor-consideration kind on a commitment with a contributor (ADM-083 on that commitment)"
+        "A finalized payout plan of the contributor-consideration kind on a commitment with a contributor (ADM-118, then ADM-119, on that commitment)"
       ],
       "steps": [
         "Press Prepare Payout for the contributor, read 'Review before sending', and press Send Transaction",
@@ -6748,15 +6868,20 @@
       "tab": "Admin Dashboard",
       "platform": "Chromium Desktop",
       "priority": "P1",
-      "kind": "data-integrity",
+      "kind": "resilience",
       "area": "Garden · Settlement",
-      "scenario": "Read Again refreshes the settlement table from chain",
+      "scenario": "Read Again recovers the settlement section after a failed chain read",
       "preconditions": [
-        "A plan with a disbursement whose state has changed on chain since the page loaded, for example after a dispatch from another session"
+        "A fulfilled commitment with a reward, so its settlement section is shown",
+        "A way to make the chain read fail, for example blocking the RPC endpoint in dev tools"
       ],
-      "steps": ["Press Read Again", "Read the plan status and the rows"],
-      "expected": "Read Again re-reads the plan and its disbursements from chain without a page reload, and every row shows its current state",
-      "evidence": "Screenshots before and after Read Again",
+      "steps": [
+        "With the chain read failing, open the commitment's settlement section and read the alert",
+        "Let the read succeed again and press Read Again",
+        "Read the plan status and the rows"
+      ],
+      "expected": "While the settlement module cannot be read the section says Couldn't read the settlement module and offers Read Again; once the read can succeed, Read Again re-reads from chain without a page reload, the alert goes, and the plan and every row show their current state",
+      "evidence": "Screenshots of the alert and of the section after Read Again",
       "role": "steward",
       "tags": ["settlement"],
       "requiresProduction": false,
