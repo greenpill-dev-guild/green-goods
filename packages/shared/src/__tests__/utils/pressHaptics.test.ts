@@ -19,6 +19,7 @@ describe("installPressHaptics", () => {
       <button class="gg-button" id="busy" aria-disabled="true">Saving</button>
       <button data-pressable="tab" id="tab">Work</button>
       <button data-pressable="card" id="card">Open garden</button>
+      <button data-pressable="card" aria-pressed="false" id="choice">Newest first</button>
     `;
     uninstall = installPressHaptics();
   });
@@ -30,6 +31,12 @@ describe("installPressHaptics", () => {
     document.getElementById("tab")?.click();
 
     expect(vibrate.mock.calls).toEqual([[10], [5]]);
+  });
+
+  it("answers a card that toggles a choice with the selection tap", () => {
+    document.getElementById("choice")?.click();
+
+    expect(vibrate.mock.calls).toEqual([[5]]);
   });
 
   it("stays quiet for a card that only navigates and for a control that is not available", () => {

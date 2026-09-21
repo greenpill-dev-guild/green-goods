@@ -160,9 +160,9 @@ export function hapticSelection(): void {
 /** Controls that commit an action: the shared buttons and the floating action button. */
 const PRESS_CONTROLS = '.gg-button, .gg-icon-button, [data-pressable="fab"]';
 
-/** Controls that change a selection: tabs, chips, switches, and radios. */
+/** Controls that change a selection: tabs, chips, switches, radios, and anything with a pressed state. */
 const SELECTION_CONTROLS =
-  '[data-pressable="tab"], [role="tab"], [role="switch"], [role="radio"], .gg-chip';
+  '[data-pressable="tab"], [role="tab"], [role="switch"], [role="radio"], [aria-pressed], .gg-chip';
 
 /**
  * Give every pressed control the same tactile answer, from one place.
@@ -170,7 +170,8 @@ const SELECTION_CONTROLS =
  * Buttons get the light tap and selection controls the subtler one, so a
  * control never has to remember to call a haptic itself. Cards and rows that
  * open something are left out on purpose: native apps do not vibrate on
- * navigation, only on actions and selection changes. A surface opts in by
+ * navigation, only on actions and selection changes. A card that toggles a
+ * choice says so with `aria-pressed`, and that is what earns it the selection tap. A surface opts in by
  * installing this (the installed PWA does; the admin cockpit and the public
  * website stay silent). Returns the function that removes it.
  *
