@@ -15,6 +15,7 @@ import {
   type GardenJoinRequestRouteContext,
   gardenJoinRequestFailure,
   gardenJoinRequestsUnavailable,
+  reportGardenJoinRequestUnavailable,
   prepareGardenJoinRequest,
 } from "./garden-join-request-auth";
 import { handleCreateGardenJoinRequest } from "./garden-join-request-create";
@@ -66,7 +67,8 @@ async function handleMine(c: Context, ctx: GardenJoinRequestRouteContext) {
       ok: true,
       request: request ? toGardenJoinRequestSelfRecord(request) : null,
     });
-  } catch {
+  } catch (error) {
+    reportGardenJoinRequestUnavailable("read_self", "store_or_chain", error);
     return gardenJoinRequestsUnavailable(c, ctx);
   }
 }
@@ -119,7 +121,8 @@ async function handleWithdraw(c: Context, ctx: GardenJoinRequestRouteContext) {
       is_counterfactual: authenticated.proof.factory !== undefined,
     });
     return publicBrowserCorsResponse(c, ctx.deps, { ok: true });
-  } catch {
+  } catch (error) {
+    reportGardenJoinRequestUnavailable("withdraw", "store_or_chain", error);
     return gardenJoinRequestsUnavailable(c, ctx);
   }
 }
@@ -205,7 +208,8 @@ async function handleList(c: Context, ctx: GardenJoinRequestRouteContext) {
         ) ?? false,
       ...(page.nextCursor ? { nextCursor: page.nextCursor } : {}),
     });
-  } catch {
+  } catch (error) {
+    reportGardenJoinRequestUnavailable("list", "store_or_chain", error);
     return gardenJoinRequestsUnavailable(c, ctx);
   }
 }

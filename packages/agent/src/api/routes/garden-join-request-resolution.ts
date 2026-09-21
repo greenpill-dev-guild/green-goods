@@ -12,6 +12,7 @@ import {
   type GardenJoinRequestRouteContext,
   gardenJoinRequestFailure,
   gardenJoinRequestsUnavailable,
+  reportGardenJoinRequestUnavailable,
   prepareGardenJoinRequest,
 } from "./garden-join-request-auth";
 
@@ -140,7 +141,8 @@ export async function handleGardenJoinRequestResolution(
     }
     void trackResolution("declined", authenticated.proof.factory !== undefined);
     return publicBrowserCorsResponse(c, ctx.deps, { ok: true, request: resolved.request });
-  } catch {
+  } catch (error) {
+    reportGardenJoinRequestUnavailable("resolve", "store_or_chain", error);
     return gardenJoinRequestsUnavailable(c, ctx);
   }
 }

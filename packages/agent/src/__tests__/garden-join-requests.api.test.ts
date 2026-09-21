@@ -13,6 +13,7 @@ import {
   GardenJoinRequestRateLimitPressure,
 } from "../services/garden-join-requests";
 import { initAgentAnalytics, resetAgentAnalyticsForTests } from "../services/analytics";
+import { logger } from "../services/logger";
 import type { ProfileAvatarSignatureVerifier } from "../services/profile-avatars";
 import { mockPostHog } from "./setup";
 
@@ -397,6 +398,40 @@ describe("garden join request public API", () => {
         })
       );
     } finally {
+      resetAgentAnalyticsForTests();
+    }
+  });
+
+  it("names the dependency a failed create was waiting on, without keeping the raw error", async () => {
+    mockPostHog.capture.mockClear();
+    initAgentAnalytics({ apiKey: "phc_agent_test", enabled: true });
+    const logged = vi.spyOn(logger, "error").mockImplementation(() => undefined);
+    const { app, chainReader } = createApp();
+    chainReader.isMember.mockRejectedValue(
+      new Error("HTTP request failed. URL: https://rpc.example/v2/secret-key")
+    );
+
+    try {
+      const response = await submit(app);
+
+      expect(response.status).toBe(503);
+      expect(logged).toHaveBeenCalledWith(
+        { operation: "create", stage: "membership_read", errorName: "Error" },
+        "Garden join request operation unavailable"
+      );
+      expect(JSON.stringify(logged.mock.calls)).not.toContain("secret-key");
+      await vi.waitFor(() =>
+        expect(mockPostHog.capture).toHaveBeenCalledWith({
+          distinctId: "green-goods-agent-runtime",
+          event: "join_request_create_rejected",
+          properties: expect.objectContaining({
+            error_class: "service_unavailable",
+            stage: "membership_read",
+          }),
+        })
+      );
+    } finally {
+      logged.mockRestore();
       resetAgentAnalyticsForTests();
     }
   });

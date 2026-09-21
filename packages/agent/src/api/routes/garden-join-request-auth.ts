@@ -10,6 +10,7 @@ import {
 import type { Address } from "@green-goods/shared/public-contracts";
 import type { Context } from "hono";
 import type { GardenJoinRequestStore } from "../../services/garden-join-requests";
+import { logger } from "../../services/logger";
 import { checkOrigin, publicBrowserCorsResponse } from "../http/public";
 import type { ApiRouteContext } from "../http/route-context";
 
@@ -98,7 +99,8 @@ export async function authenticateGardenJoinRequest(
       };
     }
     return { ok: true, proof: validation.value };
-  } catch {
+  } catch (error) {
+    reportGardenJoinRequestUnavailable(expectedAction, "signature_verification", error);
     return { ok: false, response: gardenJoinRequestsUnavailable(c, ctx) };
   }
 }
@@ -118,6 +120,26 @@ export function gardenJoinRequestFailure(
   status: number
 ) {
   return publicBrowserCorsResponse(c, ctx.deps, { ok: false, errorCode, message }, status);
+}
+
+/**
+ * Record why a join-request operation answered "unavailable".
+ *
+ * Every route turns a thrown dependency into the same 503, so without this the
+ * chain read, the signature check, and the store all fail identically and
+ * silently. The caught error can carry an RPC URL with its key or an account
+ * address, so only the operation, the stage it failed in, and the error's class
+ * name are kept.
+ */
+export function reportGardenJoinRequestUnavailable(
+  operation: string,
+  stage: string,
+  error: unknown
+): void {
+  logger.error(
+    { operation, stage, errorName: error instanceof Error ? error.name : typeof error },
+    "Garden join request operation unavailable"
+  );
 }
 
 export function gardenJoinRequestsUnavailable(c: Context, ctx: GardenJoinRequestRouteContext) {
