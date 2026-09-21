@@ -128,7 +128,7 @@ Interactive elements shift shape on engagement. This creates physical, tactile f
 - Press: scale(0.985). In the installed app every card or row that opens something (`data-pressable="card"` or `"row"`) presses in through one rule in the client's `animation.css` (DL-039); the public website's cards stay still
 - Combined: the card feels like it's being pressed into the surface
 
-**Haptics** (DL-039): the installed app answers every press from one listener (`installPressHaptics`, mounted by `AppShell`). Buttons, icon buttons, and floating action buttons get the light tap; tabs, chips, switches, and radios get the selection tap. Cards and rows that only navigate stay silent, as native apps do. A control never calls a press haptic itself; outcome haptics (success, error, warning) stay with the code that knows the outcome. The admin cockpit and the public website install nothing.
+**Haptics** (DL-039): the installed app answers every press from one listener (`installPressHaptics`, mounted by `AppShell`). Buttons, icon buttons, and floating action buttons get the light tap; tabs, chips, switches, radios, and anything with a pressed state (`aria-pressed`, such as a card that toggles a choice) get the selection tap. Cards and rows that only navigate stay silent, as native apps do. A control never calls a press haptic itself; outcome haptics (success, error, warning) stay with the code that knows the outcome. The admin cockpit and the public website install nothing.
 
 **Admin carve-out**: the card motion above is client canon. Admin cards never lift, scale, or glow — hover/press feedback is an elevation step (`--m3-elevation-1`→`2`) or the neutral ink layer `rgb(var(--m3-on-surface)/0.08)` only.
 
