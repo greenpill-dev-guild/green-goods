@@ -451,10 +451,14 @@
    the interaction model: buttons morph their corner in shared theme.css). It
    uses the `scale` property so it composes with any transform the element
    already carries, and sits in the components layer so an element's own
-   transition utilities still win. The public website's cards stay still. */
+   transition utilities still win: an element that declares its own transition
+   list puts `scale` in it, or the press snaps. This is the only press a declared
+   card or row gets; the older `tap-feedback` class scales through `transform`
+   and would stack on top of it. The public website's cards stay still. */
 @layer components {
   :root:not(:has([data-site="website"])) :is([data-pressable="card"], [data-pressable="row"]) {
     transition: scale var(--spring-spatial-fast);
+    touch-action: manipulation;
     -webkit-tap-highlight-color: transparent;
   }
 
