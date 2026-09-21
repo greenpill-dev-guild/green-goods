@@ -127,8 +127,8 @@ JobQueue provider and a blockchain mutation hook). Read every touched line; keep
 critical override.
 
 **Scope status**: both parts are committed on `fix/commitment-queued-acts-send-and-refresh`, cut
-from `develop` at `574918cb5` and not pushed: part A `7d5963d97`, part B `bde103aba`. Both await
-review and a live reproduction in Stage A (§ 6.2).
+from `develop` at `574918cb5`: part A `7d5963d97`, part B `bde103aba`. Open as PR #857, the first
+of four stacked PRs (#857 to #860). Both await review and a live reproduction in Stage A (§ 6.2).
 
 **Part A — wallet-mode send (built 2026-09-20, decisions 17 and 18).**
 
@@ -233,7 +233,7 @@ Proof:
 ### Build 2 — Prefilled Offer It Again, Ask Again, Seed another like this
 
 **Branch**: `feature/commitment-create-another`, stacked on the Build 1 branch at Afo's direction.
-**Status**: committed as `5c884ba9a`, not pushed. Decisions 8, 19, 20, 21.
+**Status**: committed as `5c884ba9a`, open as PR #858. Decisions 8, 19, 20, 21.
 
 What changed:
 
@@ -302,7 +302,7 @@ Proof:
 ### Build 3 — Admin "Add another" batch tray
 
 **Branch**: `feature/commitment-seed-batch-tray`, stacked on the Build 2 branch at Afo's direction.
-**Status**: committed as `968f964e7`, not pushed. Decisions 4 to 7, 22, 23.
+**Status**: committed as `968f964e7`, open as PR #859. Decisions 4 to 7, 22, 23.
 
 What changed:
 
@@ -486,9 +486,9 @@ case, every case proves one outcome, and nothing in § 7 has a case.
 ### 5.6 What was built (2026-09-21)
 
 **Branch**: `test/commitment-pooling-qa-catalog`, stacked on the Build 3 branch at Afo's direction.
-**Status**: committed as `451cb4b08`, not pushed.
+**Status**: committed as `451cb4b08`, open as PR #860. A review round followed; see below.
 
-The catalog went from 266 active cases to 304: 9 retired, 47 added, 5 corrected in place. Every
+The catalog went from 266 active cases to 307: 11 retired, 52 added, 3 corrected in place. Every
 label a row quotes was read from `packages/shared/src/i18n/en.json`, and every behaviour from the
 source, on the day the row was written.
 
@@ -503,15 +503,15 @@ Where the work differed from § 5.1 to § 5.4, and why:
   a pinned document.
 - **ADM-026 was stale, and it sits in the relay journey.** It expected a queued row to appear
   before the indexer caught up. Since Build 1 a wallet send goes at once and leaves no queued row,
-  so a tester would have failed a correct product. It is corrected in place to what it always
-  proved (the wizard validates, rejects a bad confirmer, reviews before sending); the send and
-  the landing are the new ADM-125.
+  so a tester would have failed a correct product. It is retired: the wizard's validation and
+  review are ADM-140, and the send and the landing are ADM-125.
 - **The relay's fixture was inconsistent.** ADM-039 seeded "a concrete service", but every later
   step walks the Work rails (link Work, approve it, confirm after approval), and only the
-  garden-work type has action rows Work can link to. ADM-039 now seeds a Garden work (impact)
-  Request with one action row, the journey summary says which rails it walks, and the ADM-026
-  step's handoff says the same of the local commitment. Both cases and both strings are updated
-  in the QA app's `en`, `es`, and `pt` locale files, which carry journey cases only.
+  garden-work type has action rows Work can link to. It is retired for ADM-139, which seeds a
+  Garden work (impact) Request with one action row. The journey summary says which rails it
+  walks, and the ADM-140 step's handoff says the same of the local commitment. The journey, both
+  successors, and the two rows that name them as a prerequisite (PWA-047, PWA-049) are updated in
+  the QA app's `en`, `es`, and `pt` locale files, which carry journey cases only.
 - **PUB-027's "finished cycles page with show-more" was already PUB-045**, so PUB-027 is replaced
   by four new cases and PUB-045 rather than a duplicate.
 - **ADM-059 already cancels a cycle and checks the public page.** The two new cycle cases are the
@@ -529,8 +529,9 @@ Where the work differed from § 5.1 to § 5.4, and why:
 - **"A contributor is refused when they try to confirm" became ADM-136**: a steward who is on the
   commitment's team is offered no confirm act, ordinary or fallback. That is where the rule is
   visible; nobody is shown a refusal.
-- **One extra successor for ADM-078**: Kept is withheld from a steward on the roster, and for a
-  record that had expired (ADM-117). It is a reachable result of its own.
+- **Two extra successors for ADM-078**: Kept is withheld from a steward on the roster (ADM-117),
+  and for a record that had expired before the dispute (ADM-141). `resolveFulfilled` checks the
+  two independently, so each is a case.
 - **Requeue and the two gave-up cases say what to do when the state cannot be produced**: leave
   the case without an entry. Recording N/A would count it as walked (the 2026-09-05 rule).
 
@@ -547,6 +548,29 @@ push gate did not select the docs check until this branch touched `docs/`. `mcp-
 by these branches); only their digest lines changed, and they are refreshed here because
 `docs-authority` fails otherwise.
 
+#### Review round on PR #860 (2026-09-21)
+
+The Codex reviewer left four comments. All four held up against the source and the catalog's own
+contract, so all four were taken:
+
+- **Retire, do not edit, a case whose result changed.** ADM-026 and ADM-039 had been corrected in
+  place. A verdict recorded before the change would then have read as a verdict on a different
+  check. Both rows are back to their original wording and retired, with successors ADM-140 and
+  ADM-139 (and ADM-125 for the send), so an earlier verdict shows as inherited.
+- **ADM-124 could not be walked.** Read Again is rendered only inside the alert for a failed chain
+  read (`CommitmentSettlement.tsx`, `settlement.chainRead === "failed"`). The row had been copied
+  from ADM-085's wording without being checked against the source, which is the rule this plan
+  set for every row. It now starts from the failed read.
+- **Active rows named retired ones as prerequisites.** ADM-084 and ADM-109 pointed at ADM-083, and
+  ADM-059 at PUB-027. The apply script had checked references in the new rows only. The fix
+  script now fails if any active row, or any journey step, names a retired case.
+- **ADM-117 grouped two independent guards.** Split into ADM-117 and ADM-141.
+
+The same flaw was then looked for in the rows this change added, and found once: ADM-130 asked
+for Edit, Remove, and Remove This One in one verdict. It is now ADM-130, ADM-142, and ADM-143.
+ADM-128 also claimed when Discard is *not* offered, which its steps never reach; that sentence is
+gone.
+
 #### Act ledger
 
 Every reachable act against its cases. Nothing in § 7 has a case.
@@ -556,9 +580,9 @@ Every reachable act against its cases. Nothing in § 7 has a case.
 | Set up commitments; settings; pause and resume; close; archive and reopen; console reads | ADM-056 · ADM-063 · ADM-060 · ADM-061 · ADM-062 · ADM-014 |
 | Start and open a season or campaign | ADM-057 · ADM-058 · ADM-038 |
 | Cancel a cycle | ADM-059 · ADM-137 · ADM-138 · PUB-058 |
-| Seed from the admin | ADM-026 · ADM-039 · ADM-125 · ADM-126 · ADM-135 |
+| Seed from the admin | ADM-140 · ADM-139 · ADM-125 · ADM-126 · ADM-135 |
 | Queued creations on the pool tab | ADM-127 · ADM-128 |
-| Seed several in one sitting | ADM-129 · ADM-130 · ADM-131 · ADM-132 · ADM-133 · ADM-134 |
+| Seed several in one sitting | ADM-129 · ADM-130 · ADM-142 · ADM-143 · ADM-131 · ADM-132 · ADM-133 · ADM-134 |
 | Compose in the app; drafts; compose again | PWA-081 · PWA-108 · PWA-109 · PWA-110 · PWA-111 · PWA-115 · PWA-116 · PWA-117 |
 | Take up; ask to take up; claim for a garden; join a team | PWA-084 · PWA-049 · PWA-085 · PWA-047 · PWA-092 |
 | Accept or decline a claim | PWA-086 · ADM-040 · PWA-103 · ADM-065 |
@@ -568,7 +592,7 @@ Every reachable act against its cases. Nothing in § 7 has a case.
 | Send for confirmation; mark ready | PWA-088 · ADM-075 · ADM-079 |
 | Confirm, including a threshold of two | PWA-089 · ADM-013 · ADM-042 · PWA-118 |
 | Fallback confirmation; who may never confirm | ADM-110 · ADM-111 · ADM-112 · ADM-136 |
-| Dispute and resolve | PWA-090 · ADM-077 · ADM-113 · ADM-114 · ADM-115 · ADM-116 · ADM-117 |
+| Dispute and resolve | PWA-090 · ADM-077 · ADM-113 · ADM-114 · ADM-115 · ADM-116 · ADM-117 · ADM-141 |
 | Queue behaviour in the app | PWA-112 · PWA-113 · PWA-114 · PWA-120 · PWA-121 |
 | Payout plan; prepare; dispatch, retry, requeue; rejected prompt; read again; cancel | ADM-118 · ADM-119 · ADM-084 · ADM-109 · ADM-120 · ADM-121 · ADM-122 · ADM-123 · ADM-124 · ADM-086 |
 | Relay settlement; gardener delivery; treasury top-up | ADM-043 · ADM-044 · ADM-087 · ADM-045 |
@@ -587,7 +611,7 @@ Every reachable act against its cases. Nothing in § 7 has a case.
   `docs-build`, and `validation-system-test`. Shared (5,509 passed) and client (1,350 passed,
   one more than Build 3: the band case) ran fresh. Admin (872) and agent (323) were Turbo
   cache hits: their inputs are unchanged since the Build 3 run that passed them.
-  `node packages/qa/build.mjs` projects 304 active cases with all three locales, and
+  `node packages/qa/build.mjs` projected 304 active cases with all three locales, and
   `check-qa-id-ledger.mjs --base feature/commitment-seed-batch-tray` reports 365 ids, none removed,
   reintroduced, or reactivated.
 - **Blocked**: `browser-proof` (`authenticatedBrave`), so the gate exits 2. Not a pass.
@@ -632,8 +656,8 @@ Open a real season with the agreed terms. Walk in this order, steward and member
 1. Pool console: statuses, settings edit, pause with a reason and resume, season and campaign
    (ADM-014, ADM-063, ADM-060, ADM-057, ADM-058).
 2. Seeding: single seed with named confirmers, the wallet send and a declined prompt, the batch
-   tray, the commitment limit, Seed Another Like This, a queued creation (ADM-026, ADM-125,
-   ADM-126, ADM-129 to ADM-134, ADM-135, ADM-127, ADM-128).
+   tray, the commitment limit, Seed Another Like This, a queued creation (ADM-140, ADM-125,
+   ADM-126, ADM-129 to ADM-134, ADM-142, ADM-143, ADM-135, ADM-127, ADM-128).
 3. PWA compose: offer, garden-work request, service request, draft resume and start fresh, Offer
    It Again and Ask Again (PWA-081, PWA-108, PWA-109, PWA-110, PWA-111, PWA-115, PWA-116,
    PWA-117).
@@ -644,7 +668,7 @@ Open a real season with the agreed terms. Walk in this order, steward and member
 6. Service path: proof composer with media, send for confirmation (PWA-034, PWA-088, ADM-075).
 7. Confirming: confirm from the PWA sheet and from the Hub queue; a threshold of two; nobody on
    the team may confirm; Not yet raises a dispute; resolve with each outcome (PWA-089, ADM-013,
-   PWA-118, ADM-136, PWA-090, ADM-077, ADM-113 to ADM-117).
+   PWA-118, ADM-136, PWA-090, ADM-077, ADM-113 to ADM-117, ADM-141).
 8. Steward recovery: mark ready with an override, garden fallback, fallback not offered while
    reachable, cancel with a reason, Expire Now (ADM-079, ADM-110, ADM-112, ADM-081, ADM-064).
 9. Resilience: an act that gave up then Try Again or Discard, a declined wallet prompt, a restart
@@ -653,7 +677,8 @@ Open a real season with the agreed terms. Walk in this order, steward and member
    can be produced.
 10. Settlement on the garden rail: create and finalize a plan, prepare payouts, dispatch, retry,
     requeue, a rejected prompt, Read Again, cancel a disbursement (ADM-118, ADM-119, ADM-084,
-    ADM-109, ADM-120 to ADM-124, ADM-086). Record Blocked at any `knownGate` actually met.
+    ADM-109, ADM-120 to ADM-124, ADM-086). ADM-124 needs a failed chain read, for example with
+    the RPC endpoint blocked in dev tools. Record Blocked at any `knownGate` actually met.
 11. Reads: Pool tab, commitment detail, Commitments drawer, work detail, public garden page
     (PWA-100, PWA-101, PWA-102, PWA-105, PUB-056, PUB-057, PUB-045, PUB-058, PUB-059).
 
@@ -663,7 +688,7 @@ each person holding one identity throughout: seed the approval-gated protocol Re
 garden's institutional claim, acceptance, the separate garden commitment, Work and evidence,
 approval without joining contributors, confirmation, protocol-to-garden compensation, and the
 garden-to-member payout. Both commitments are seeded as Garden work with one action row, which is
-what lets Work link to them (ADM-039). Then the Green Goods team fallback case (ADM-111) and the
+what lets Work link to them (ADM-139). Then the Green Goods team fallback case (ADM-111) and the
 `protocol-treasury-top-up` journey. At each named handoff the actor waits until the receiver can
 see the state. Drive every commitment terminal and cancel the rehearsal cycle.
 
