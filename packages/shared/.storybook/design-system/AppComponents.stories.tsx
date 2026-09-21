@@ -82,7 +82,10 @@ export const Buttons: Story = {
     ).filter((button) => !button.closest("[data-pressed-demo]"));
     await expect(buttons.length).toBeGreaterThan(30);
     for (const button of buttons) {
-      await expect(px(getComputedStyle(button).borderTopLeftRadius)).toBe(16);
+      // The compact size keeps the corner's proportion: 12px on 32px (DL-038).
+      await expect(px(getComputedStyle(button).borderTopLeftRadius)).toBe(
+        button.dataset.size === "compact" ? 12 : 16
+      );
       await expect(getComputedStyle(button).fontWeight).toBe("400");
     }
     const compact = canvas.getAllByRole("button", { name: "Compact 32" })[0];

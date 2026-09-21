@@ -110,7 +110,7 @@ export function ComposeActionRail({ form, chainId, actions: allActions }: Compos
                 aria-pressed={selected}
                 onClick={() => toggleAction(action)}
                 className={cn(
-                  "flex w-44 shrink-0 snap-start flex-col overflow-hidden rounded-[var(--radius-lg)] border text-left tap-feedback",
+                  "flex w-44 shrink-0 snap-start flex-col overflow-hidden rounded-[var(--radius-lg)] border text-left",
                   selected
                     ? "border-primary-alpha-24 bg-primary-alpha-10"
                     : "border-stroke-soft-200 bg-bg-white-0"

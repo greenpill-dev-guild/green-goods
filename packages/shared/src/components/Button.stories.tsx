@@ -110,7 +110,10 @@ export const EmphasisCatalog: Story = {
       const row = canvasElement.querySelector(`[data-size-row="${size}"]`);
       for (const button of Array.from(row?.querySelectorAll("button") ?? [])) {
         await expect(button.getBoundingClientRect().height).toBe(height);
-        await expect(px(getComputedStyle(button).borderTopLeftRadius)).toBe(16);
+        // The compact size keeps the corner's proportion: 12px on 32px (DL-038).
+        await expect(px(getComputedStyle(button).borderTopLeftRadius)).toBe(
+          size === "compact" ? 12 : 16
+        );
         // The two short sizes still reach a 48px hit area (DL-023).
         if (height < 44) {
           await expect(px(getComputedStyle(button, "::after").height)).toBe(48);
