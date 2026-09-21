@@ -37,9 +37,7 @@ export const Defaults: Story = {
     await expect(await screen.findByRole("button", { name: "Reset Filters" })).toBeDisabled();
     const sheet = within(await screen.findByRole("dialog", { name: "Filter Gardens" }));
     await expect(sheet.queryByRole("searchbox")).not.toBeInTheDocument();
-    await expect(
-      sheet.getByText("Choose which gardens to show and how to order them.")
-    ).toBeVisible();
+    await expect(sheet.getByText("Narrow and sort the garden list.")).toBeVisible();
     const all = sheet.getByRole("button", { name: "All gardens" }).getBoundingClientRect();
     const mine = sheet.getByRole("button", { name: /My gardens \(2\)/ }).getBoundingClientRect();
     const solar = sheet.getByRole("button", { name: "Solar" }).getBoundingClientRect();
