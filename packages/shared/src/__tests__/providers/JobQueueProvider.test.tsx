@@ -95,6 +95,8 @@ vi.mock("../../config/default-chain", () => ({
 import { useQueueConfirmationSync } from "../../hooks/work/useQueueConfirmationSync";
 import { COMMITMENT_JOB_KINDS } from "../../modules/commitment-pooling/job-types";
 import { queryKeys } from "../../config/query-keys";
+import { commitmentPoolingKeys } from "../../config/query-keys/commitment-pooling";
+import { jobQueueEventBus } from "../../modules/job-queue/event-bus";
 import { useAuth } from "../../hooks/auth/useAuth";
 import { usePrimaryAddress } from "../../hooks/auth/usePrimaryAddress";
 import { useUser } from "../../hooks/auth/useUser";
@@ -360,6 +362,23 @@ describe("providers/JobQueueProvider", () => {
         expect(mockSharedQueryClient.invalidateQueries).toHaveBeenCalledWith({
           queryKey: queryKeys.approvals.all,
         });
+      });
+    });
+
+    it("re-reads the commitment data when a background commitment act lands", async () => {
+      // The flush completes wherever the reader happens to be, so the provider,
+      // which is always mounted, is what carries the refresh. The rule itself is
+      // proven in `commitment-completion-refresh.test.tsx`; this proves it is mounted.
+      const invalidate = vi.spyOn(queryClient, "invalidateQueries");
+      renderHook(() => useJobQueue(), { wrapper: createWrapper() });
+
+      act(() => {
+        const job = { id: "claim-1", kind: "claim", chainId: 42161, payload: {} } as unknown as Job;
+        jobQueueEventBus.emit("job:completed", { jobId: job.id, job, txHash: "0xabc" });
+      });
+
+      expect(invalidate).toHaveBeenCalledWith({
+        queryKey: commitmentPoolingKeys.all(42161),
       });
     });
   });

@@ -17,8 +17,8 @@
         "conformance": ["packages/shared/src/__tests__/modules/job-queue.db.test.ts"],
         "integration": ["packages/shared/src/__tests__/modules/job-queue.imports.test.ts"]
       },
-      "reviewedAt": "2026-09-19",
-      "evidenceFingerprint": "sha256:1d06a2a9e4e13326a47c7154f5a608cc72b5d931d4a8481a61f4228ab376fa1b"
+      "reviewedAt": "2026-09-20",
+      "evidenceFingerprint": "sha256:3f64eb973919e770ad65f074f44032c69cabfdb6bd62f3181f94f99130e8718e"
     },
     {
       "id": "shared-auth-session",
@@ -36,8 +36,8 @@
         "conformance": ["packages/shared/src/__tests__/workflows/authServices.test.ts"],
         "integration": ["packages/shared/src/__tests__/providers/Auth.wallet-login.test.tsx"]
       },
-      "reviewedAt": "2026-09-19",
-      "evidenceFingerprint": "sha256:f6a46b92390e018e6357a746ba0c8e59f38425bc430ee59724aded8af3b545fe"
+      "reviewedAt": "2026-09-20",
+      "evidenceFingerprint": "sha256:8658763257adb5f385dc956fd089a2ef79a543b3935ad5694ef622c0fe13eaac"
     },
     {
       "id": "shared-work-provider-command",
@@ -57,8 +57,8 @@
         ],
         "integration": ["packages/shared/src/__tests__/providers/WorkProvider.test.tsx"]
       },
-      "reviewedAt": "2026-09-19",
-      "evidenceFingerprint": "sha256:63f22e3d393001f11dd678556087d824527674053884e9b1b4db1f9dc0eedc72"
+      "reviewedAt": "2026-09-20",
+      "evidenceFingerprint": "sha256:aa29933fba20f0f0685b88abfd925d39f76e6fd1374c2a6468bd333d996bd0c7"
     },
     {
       "id": "shared-commitment-pooling-public",
@@ -76,8 +76,8 @@
         "conformance": ["packages/shared/src/__tests__/commitment-pooling-read-repository.test.ts"],
         "integration": ["packages/shared/src/__tests__/commitment-pooling-hooks.test.tsx"]
       },
-      "reviewedAt": "2026-09-19",
-      "evidenceFingerprint": "sha256:d50c206349316641ca5829c1c6f6d22898b204bb47506ccc4498dc4f960dc6af"
+      "reviewedAt": "2026-09-20",
+      "evidenceFingerprint": "sha256:2bb03cfd21ae7f23a63123ebbe7020facdba29a2a43b7aa4cb5a245913d0fbb7"
     }
   ]
 }
