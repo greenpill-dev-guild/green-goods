@@ -1,6 +1,9 @@
 # Simplify development and onboarding
 
-Implementation follows the user-approved four-stage plan. No archive or publication is requested.
+**Status**: `CLOSED — shipped in 22c616a4d and 4e4968cec on develop; 588 manifest commands reduced to 95, with 17 at root`
+**Last Updated**: 2026-09-21
+
+Implementation followed the user-approved four-stage plan.
 
 - [x] Inspect manifests, callers, launcher modes, setup profiles, and developer resources.
 - [x] Forward root development arguments and consolidate health/smoke mode routing.
@@ -13,10 +16,10 @@ Implementation follows the user-approved four-stage plan. No archive or publicat
 - [x] Run focused development, documentation, and required contract checks.
 - [x] Verify external developer-resource destinations and replace retired references.
 - [x] Inspect rendered public browsing through the connected authenticated Brave profile.
-- [ ] Complete the frozen-lockfile install and fresh hosted launch in the isolated checkout.
-- [ ] Prove connected team readiness with available local services and credentials.
+- [x] Complete the frozen-lockfile install and fresh hosted launch in the isolated checkout.
+- [x] Prove connected team readiness with available local services and credentials.
 
-The remaining acceptance checks are capability/permission blocked, not reported as passing.
+Both acceptance checks were completed on 2026-09-21 once the installation permission was granted.
 See [eval.md](eval.md) and [implementation evidence](implementation.md). Root aliases decreased
 from 245 to 215; all manifest entries decreased from 588 to 548. There is no numerical deletion target.
 
@@ -57,5 +60,37 @@ The command policy and migration ledger live in scripts/data and generate public
 - [x] Enforce command admission and regenerate operational discovery and guidance.
 - [x] Run selected checks and record current proof, baseline failures, and capability blockers.
 
-No dependencies, broadcasts, application changes, deployment, branch changes, or archive.
-Earlier first-run and integration blockers remain separate until independently verified.
+No dependencies, broadcasts, application changes, deployment, or branch changes.
+
+## Closeout (2026-09-21)
+
+Closed as `closed`. Shipped in `22c616a4d` (2026-09-11) and `4e4968cec` (2026-09-13), both merged
+into `develop`. The developer journey is complete and independently proven: the nine manifests went
+from 588 commands to 95, the root from 245 to 17, and a disposable first-run clone of `develop`
+installs, sets up, launches hosted mode, passes the read-only production smoke, and releases its
+own service claims without touching anyone else's.
+
+This closes as `closed` rather than `completed` for two reasons. The contracts lane is only
+partially certified: its 2,083 Solidity tests, gas gates, and storage baselines passed on
+2026-09-13 against an uncommitted working copy, so they carry no commit SHA and cannot be given a
+commit-attributed receipt after the fact. And neither QA review lane ever ran — both were declared
+not-applicable in their own handoffs, since this is a developer-workflow change rather than
+application work, but neither was certified.
+
+The `state_api` lane is certified with a full receipt against `af6a97351`. See
+[eval.md](eval.md) for the acceptance run and [command-consolidation.md](command-consolidation.md)
+for the per-manifest reduction ledger.
+
+Still open:
+- Solidity suite, gas gates and storage baselines never commit-attributed → needs one
+  `bun run verify:contracts:fast` run on `develop`; not filed, Linear was unreachable at closeout.
+- `setup` and `dev:health` do not check Node against the `.mise.toml` pin of 22.22.1; the
+  acceptance run passed on Node v24.20.0 and the team path on v26.3.0, both `[PASS]`, while Node 24
+  is a known CI blocker → new finding, needs its own issue.
+- Hats Arbitrum fork rehearsal still needs a fresh reviewed block number, garden count, and
+  expected implementation inputs → unchanged pre-existing limit, carried by the contracts package.
+- Shard coverage audit reports 345 of 356 tests → pre-existing and unchanged from the baseline
+  commit; the 11 omitted tests keep dedicated runners. Dropped as not caused by this work.
+- Validation selector overselects unrelated suites for root-manifest-only QA → recorded limit,
+  dropped here; it belongs to the validation-policy surface, not this hub.
+- No independent QA review pass → dropped; the lanes were not applicable to a workflow change.

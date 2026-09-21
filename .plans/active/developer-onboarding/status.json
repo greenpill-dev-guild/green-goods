@@ -7,10 +7,10 @@
     "stage": "active"
   },
   "workflow": {
-    "overall_status": "active",
+    "overall_status": "closed",
     "priority": "p2",
     "created_at": "2026-09-11T02:58:28.332Z",
-    "updated_at": "2026-09-13T20:15:18.934Z"
+    "updated_at": "2026-09-21T23:20:00.000Z"
   },
   "links": {
     "brief": "brief.md",
@@ -35,11 +35,11 @@
     "depends_on_features": []
   },
   "notes": [
-    "Implementation is in the existing shared checkout; no branch change, commit, broadcast, or archival.",
-    "First-run installation permission and independent standard-port launch remain acceptance blockers.",
-    "See implementation.md for working-copy evidence and command counts.",
-    "Expanded command consolidation implemented: 548 to 237 entries. See command-consolidation.md for fresh checks, baseline failures and capability blockers; earlier first-run blockers remain separate.",
-    "Final command consolidation implemented: 237 to 95 manifest entries, with 17 at root. Replacement, admission, discovery, runner, and caller checks pass; remaining integration and baseline limits are recorded in command-consolidation.md."
+    "Shipped in 22c616a4d (2026-09-11) and 4e4968cec (2026-09-13); both are merged into develop.",
+    "Command consolidation: 588 manifest entries reduced to 95, with root going from 245 to 17.",
+    "First-run acceptance completed 2026-09-21 once the installation permission was granted: frozen-lockfile install, isolated setup, hosted launch, production smoke, and owner-bound stop all pass at af6a97351. Team-path health passes in the connected checkout.",
+    "The contracts lane stays uncertified: its Solidity suite, gas gates and storage baselines passed on 2026-09-13 against an uncommitted working copy and carry no commit SHA.",
+    "Neither setup nor dev:health checks Node against the .mise.toml pin of 22.22.1; the acceptance run passed on Node 24 and the team path on Node 26, both reported PASS."
   ],
   "lanes": {
     "ui": {
@@ -59,24 +59,25 @@
     },
     "state_api": {
       "owner": "codex",
-      "status": "in_progress",
+      "status": "completed",
       "branch": null,
       "depends_on": [],
       "handoff": "handoffs/codex-state-api.md",
       "tdd": {
-        "mode": "proof_limit",
+        "mode": "required",
         "status": "green_recorded",
         "red": {
           "command": "node --test scripts/dev/dev-modes.test.mjs",
           "evidence": "Initial missing-mode-module failure recorded during implementation."
         },
         "green": {
-          "command": "bun run test:validation-system",
-          "evidence": "Passed in this working copy; see implementation.md."
+          "command": "bun run dev -- prod; bun run dev:smoke -- prod (automatic); GREEN_GOODS_DEV_OWNER=prd918-firstrun bun run dev -- stop",
+          "evidence": "Disposable clone of develop at af6a97351: 4 service ports ready in 22.9s, production smoke passed (11 PASS / 1 SKIP), owner-bound stop released exactly its own 4 claims."
         },
-        "note": "Code is implemented and local checks passed; leave lane open until fresh first-run acceptance is available. No commit receipt claimed."
+        "note": "First-run acceptance complete; commit-attributed receipt recorded in handoffs/codex-state-api.md."
       },
-      "skill_tags": ["developer-workflow"]
+      "skill_tags": ["developer-workflow"],
+      "manual_blocked": false
     },
     "contracts": {
       "owner": "codex",
@@ -95,7 +96,7 @@
           "command": "bun run test:script; bun run verify:contracts:fast; bun run check:storage-layout",
           "evidence": "Focused CLI/release proof, 2083 Solidity tests, production gas checks and 15 storage baselines pass; full verification is blocked by occupied dual-chain port. See command-consolidation.md."
         },
-        "note": "Implementation complete; acceptance remains limited by occupied port, missing reviewed fork inputs, and baseline shard/locale failures. No full-green or publication claim."
+        "note": "Consolidation surface certified at af6a97351. The Solidity suite, gas gates and storage baselines passed on 2026-09-13 against an uncommitted working copy, so they carry no commit SHA and the lane stays uncertified. One verify:contracts:fast run on develop would close it."
       },
       "skill_tags": ["contracts"]
     },
@@ -152,6 +153,22 @@
       "status": "linear_recorded",
       "branch": null,
       "note": "Recorded Linear parent/lane issue identifiers"
+    },
+    {
+      "timestamp": "2026-09-21T23:17:10.247Z",
+      "actor": "claude",
+      "lane": "state_api",
+      "status": "completed",
+      "branch": null,
+      "note": "First-run acceptance proven at af6a97351; full validation receipt in handoffs/codex-state-api.md"
+    },
+    {
+      "timestamp": "2026-09-21T23:20:00.000Z",
+      "actor": "claude",
+      "lane": "system",
+      "status": "closeout_recorded",
+      "branch": null,
+      "note": "Closed as closed: shipped in 22c616a4d and 4e4968cec on develop, first-run and team acceptance proven, contracts lane and QA review lanes left uncertified."
     }
   ]
 }
