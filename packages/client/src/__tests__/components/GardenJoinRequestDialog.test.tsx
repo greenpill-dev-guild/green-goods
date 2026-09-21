@@ -12,7 +12,9 @@ const checkStatus = vi.fn(async () => null);
 const hookState = vi.hoisted(() => ({
   // The account's names, best first: Green Goods name, ENS name, chosen passkey username.
   greenGoodsName: null as string | null,
+  greenGoodsNameLoading: false,
   ensName: null as string | null,
+  authMode: "passkey" as "passkey" | "wallet",
   userName: null as string | null,
   mutationError: null as Error | null,
   mutationLoading: false,
@@ -34,10 +36,13 @@ vi.mock("@green-goods/shared/hooks/garden/useGardenJoinRequests", () => ({
 }));
 
 vi.mock("@green-goods/shared/hooks/auth/useAuth", () => ({
-  useAuthState: () => ({ userName: hookState.userName }),
+  useAuthState: () => ({ authMode: hookState.authMode, userName: hookState.userName }),
 }));
 vi.mock("@green-goods/shared/hooks/ens/useGreenGoodsEnsName", () => ({
-  useGreenGoodsEnsName: () => ({ data: hookState.greenGoodsName, isLoading: false }),
+  useGreenGoodsEnsName: () => ({
+    data: hookState.greenGoodsName,
+    isLoading: hookState.greenGoodsNameLoading,
+  }),
 }));
 vi.mock("@green-goods/shared/hooks/blockchain/useEnsName", () => ({
   useEnsName: () => ({ data: hookState.ensName, isLoading: false }),
@@ -49,7 +54,9 @@ describe("GardenJoinRequestDialog", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     hookState.greenGoodsName = null;
+    hookState.greenGoodsNameLoading = false;
     hookState.ensName = null;
+    hookState.authMode = "passkey";
     hookState.userName = null;
     hookState.mutationError = null;
     hookState.mutationLoading = false;
@@ -111,8 +118,12 @@ describe("GardenJoinRequestDialog", () => {
     expect(submitRequest).toHaveBeenCalledWith(expect.objectContaining({ displayName: expected }));
   });
 
-  it("asks an account with a generated username what to be called", async () => {
-    hookState.userName = "user_1726850000";
+  it.each([
+    ["a generated username", { userName: "user_1726850000" }],
+    // Auth keeps the last passkey username after a switch to a wallet.
+    ["a wallet and an earlier passkey username", { authMode: "wallet", userName: "maya" }],
+  ] as const)("asks an account with %s what to be called", async (_label, account) => {
+    Object.assign(hookState, account);
     const user = userEvent.setup();
     render(
       <MemoryRouter>
@@ -125,6 +136,28 @@ describe("GardenJoinRequestDialog", () => {
     await user.click(screen.getByRole("button", { name: "Request to Join" }));
 
     expect(screen.getByLabelText("Display name")).toBeVisible();
+    expect(screen.getByRole("button", { name: "Send Request" })).toHaveAttribute(
+      "aria-disabled",
+      "true"
+    );
+  });
+
+  it("waits for a name that outranks the username before it can send", async () => {
+    hookState.userName = "maya";
+    hookState.greenGoodsNameLoading = true;
+    const user = userEvent.setup();
+    render(
+      <MemoryRouter>
+        <IntlProvider locale="en">
+          <GardenJoinRequestDialog gardenAddress="0x1111111111111111111111111111111111111111" />
+        </IntlProvider>
+      </MemoryRouter>
+    );
+
+    await user.click(screen.getByRole("button", { name: "Request to Join" }));
+
+    expect(screen.queryByText("maya")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Display name")).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Send Request" })).toHaveAttribute(
       "aria-disabled",
       "true"

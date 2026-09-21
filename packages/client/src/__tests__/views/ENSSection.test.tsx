@@ -37,12 +37,13 @@ vi.mock("@green-goods/shared/utils/blockchain/ens", async (importOriginal) => ({
 
 // The names the account already goes by, which seed the claim.
 const mockNames = vi.hoisted(() => ({
+  authMode: "passkey" as "passkey" | "wallet",
   userName: null as string | null,
   walletEnsName: null as string | null,
 }));
 const mockUseSlugForm = vi.hoisted(() => vi.fn());
 vi.mock("@green-goods/shared/hooks/auth/useAuth", () => ({
-  useAuthState: () => ({ userName: mockNames.userName }),
+  useAuthState: () => ({ authMode: mockNames.authMode, userName: mockNames.userName }),
 }));
 vi.mock("@green-goods/shared/hooks/blockchain/useEnsName", () => ({
   useEnsName: () => ({ data: mockNames.walletEnsName }),
@@ -145,14 +146,16 @@ import { ENSSection } from "../../views/Profile/ENSSection";
 
 const PRIMARY_ADDRESS = "0x1234567890123456789012345678901234567890" as const;
 
-function renderENSSection(primaryAddress: Address = PRIMARY_ADDRESS) {
-  return render(
-    createElement(
-      IntlProvider,
-      { locale: "en", messages: {} },
-      createElement(ENSSection, { primaryAddress })
-    )
+function ensSection(primaryAddress: Address = PRIMARY_ADDRESS) {
+  return createElement(
+    IntlProvider,
+    { locale: "en", messages: {} },
+    createElement(ENSSection, { primaryAddress })
   );
+}
+
+function renderENSSection(primaryAddress?: Address) {
+  return render(ensSection(primaryAddress));
 }
 
 describe("Profile ENSSection", () => {
@@ -162,6 +165,7 @@ describe("Profile ENSSection", () => {
     mockProtocolMemberLoading = false;
     mockRegistrationData = undefined;
     mockSlugValue = "";
+    mockNames.authMode = "passkey";
     mockNames.userName = null;
     mockNames.walletEnsName = null;
     mockExistingGreenGoodsEnsName = null;
@@ -203,12 +207,34 @@ describe("Profile ENSSection", () => {
       { userName: "user_1726850000", walletEnsName: null },
       "",
     ],
-  ])("starts the claim from %s", (_label, names, suggested) => {
+    // Auth keeps the last passkey username after a switch to a wallet.
+    [
+      "the wallet's ENS label over an earlier passkey username",
+      { authMode: "wallet", userName: "Maya K", walletEnsName: "afo.eth" },
+      "afo",
+    ],
+  ] as const)("starts the claim from %s", (_label, names, suggested) => {
     Object.assign(mockNames, names);
 
     renderENSSection();
 
     expect(mockUseSlugForm).toHaveBeenLastCalledWith(suggested);
+  });
+
+  it("replaces its own suggestion when the account changes, never something typed", () => {
+    mockNames.walletEnsName = "maya.eth";
+    mockGetValues.mockReturnValue("maya");
+    const view = renderENSSection();
+
+    mockNames.walletEnsName = "afo.eth";
+    view.rerender(ensSection());
+    expect(mockReset).toHaveBeenCalledWith({ slug: "afo" });
+
+    mockReset.mockClear();
+    mockGetValues.mockReturnValue("typed-name");
+    mockNames.walletEnsName = "kit.eth";
+    view.rerender(ensSection());
+    expect(mockReset).not.toHaveBeenCalled();
   });
 
   it("marks the claim unavailable with the join hint for gardeners without a garden", () => {

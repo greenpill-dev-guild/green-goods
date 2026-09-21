@@ -162,7 +162,7 @@ export function useGardenJoinRequests(gardenAddress?: Address | null) {
       if (isCurrentScope(operationScope) && operationId === latestRequestOperationRef.current) {
         setStatusState({ isLoading: false, error });
       }
-      throw error ?? toError(caught, "Cancelled");
+      throw error ?? caught;
     } finally {
       if (isCurrentScope(operationScope)) {
         setStatusState((current) => ({ ...current, isLoading: false }));
@@ -193,7 +193,7 @@ export function useGardenJoinRequests(gardenAddress?: Address | null) {
         if (isCurrentScope(operationScope) && operationId === latestRequestOperationRef.current) {
           setMutationState({ isLoading: false, error });
         }
-        throw error ?? toError(caught, "Cancelled");
+        throw error ?? caught;
       } finally {
         finishRequestMutation();
         if (isCurrentScope(operationScope)) {
@@ -231,7 +231,7 @@ export function useGardenJoinRequests(gardenAddress?: Address | null) {
       if (isCurrentScope(operationScope) && operationId === latestRequestOperationRef.current) {
         setMutationState({ isLoading: false, error });
       }
-      throw error ?? toError(caught, "Cancelled");
+      throw error ?? caught;
     } finally {
       finishRequestMutation();
       if (isCurrentScope(operationScope)) {
@@ -269,7 +269,7 @@ export function useGardenJoinRequests(gardenAddress?: Address | null) {
         if (isCurrentScope(operationScope)) {
           setQueueState({ isLoading: false, error });
         }
-        throw error ?? toError(caught, "Cancelled");
+        throw error ?? caught;
       } finally {
         if (isCurrentScope(operationScope)) {
           setQueueState((current) => ({ ...current, isLoading: false }));
@@ -307,7 +307,7 @@ export function useGardenJoinRequests(gardenAddress?: Address | null) {
         if (isCurrentScope(operationScope)) {
           setMutationState({ isLoading: false, error });
         }
-        throw error ?? toError(caught, "Cancelled");
+        throw error ?? caught;
       } finally {
         if (isCurrentScope(operationScope)) {
           setMutationState((current) => ({ ...current, isLoading: false }));
@@ -347,7 +347,7 @@ function randomNonce(): `0x${string}` {
  * The error to show for a failed call, or null when there is nothing to show.
  *
  * Declining the signature is a choice, not a failure, so it shows and records
- * nothing. Every other failure is recorded without the account, name, or note,
+ * nothing; callers rethrow it as it arrived so it stays recognizable. Every other failure is recorded without the account, name, or note,
  * because until now a failed join request left no trace anywhere.
  */
 function failureToShow(
