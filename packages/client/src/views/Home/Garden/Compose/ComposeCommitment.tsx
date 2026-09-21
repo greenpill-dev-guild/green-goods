@@ -34,15 +34,31 @@ function directionFromRoute(value: string | null): Direction | null {
   return null;
 }
 
+/** The commitment being made again, when the link names one. Anything else is no source. */
+function sourceFromRoute(value: string | null): bigint | null {
+  return value && /^\d+$/.test(value) ? BigInt(value) : null;
+}
+
 /** Resolve the route door before mounting the form-backed controller. */
 export function ComposeCommitment() {
   const [searchParams] = useSearchParams();
   const direction = directionFromRoute(searchParams.get("direction"));
   if (!direction) return <Navigate to=".." replace />;
-  return <ComposeCommitmentForm direction={direction} />;
+  return (
+    <ComposeCommitmentForm
+      direction={direction}
+      fromCommitmentId={sourceFromRoute(searchParams.get("from"))}
+    />
+  );
 }
 
-function ComposeCommitmentForm({ direction }: { direction: Direction }) {
+function ComposeCommitmentForm({
+  direction,
+  fromCommitmentId,
+}: {
+  direction: Direction;
+  fromCommitmentId: bigint | null;
+}) {
   const { formatMessage, formatRelativeTime } = useIntl();
   const navigate = useNavigate();
   const { id: gardenAddress } = useParams<{ id: string }>();
@@ -52,6 +68,7 @@ function ComposeCommitmentForm({ direction }: { direction: Direction }) {
     direction,
     defaultUnitLabel:
       direction === "OFFER" ? formatMessage({ id: "app.compose.unit.hours" }) : undefined,
+    fromCommitmentId,
   });
   const [beat, setBeat] = useState<ComposerBeat>("what");
   const [readToEnd, setReadToEnd] = useState(false);

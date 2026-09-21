@@ -30,6 +30,7 @@ const LABELS: Record<CommitmentActKind, { labelId: string; destructive?: boolean
   sendForConfirmation: { labelId: "app.commitment.act.sendForConfirmation" },
   confirm: { labelId: "app.commitment.act.confirm" },
   offerAgain: { labelId: "app.commitment.act.offerAgain" },
+  askAgain: { labelId: "app.commitment.act.askAgain" },
 };
 
 export function commitmentActForKind(kind: CommitmentActKind | null): CommitmentAct | null {
@@ -38,9 +39,11 @@ export function commitmentActForKind(kind: CommitmentActKind | null): Commitment
 }
 
 export function selectCommitmentAct(input: {
-  commitment: Pick<CommitmentReadModel, "derivedState" | "claimMode">;
+  commitment: Pick<CommitmentReadModel, "derivedState" | "claimMode"> &
+    Partial<Pick<CommitmentReadModel, "direction">>;
   seat: CommitmentSeat | null;
   hasPendingJob?: boolean;
+  isCreator?: boolean;
 }): CommitmentAct | null {
   const kind = selectCommitmentActKind(input);
   return commitmentActForKind(kind);

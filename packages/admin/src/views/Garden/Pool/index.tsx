@@ -55,6 +55,7 @@ export function GardenPoolTab({
   const tone = presentation.tone;
   const [inspected, setInspected] = useState<string | null>(null);
   const [seedOpen, setSeedOpen] = useState(false);
+  const [seedFrom, setSeedFrom] = useState<string | null>(null);
   const [scope, setScope] = useState<PoolCommitmentScope>("open");
   const [dueOnly, setDueOnly] = useState(false);
   const [flow, setFlow] = useState<FlowState>(null);
@@ -81,6 +82,7 @@ export function GardenPoolTab({
   );
   const openSeed = useCallback(() => {
     if (presentation.inspector === "dialog") {
+      setSeedFrom(null);
       setSeedOpen(true);
       return;
     }
@@ -292,6 +294,8 @@ export function GardenPoolTab({
         setSettingsOpen={setSettingsOpen}
         seedOpen={seedOpen}
         setSeedOpen={setSeedOpen}
+        seedFrom={seedFrom}
+        setSeedFrom={setSeedFrom}
         inspected={inspected}
         setInspected={setInspected}
         reasonDialog={reasonDialog}

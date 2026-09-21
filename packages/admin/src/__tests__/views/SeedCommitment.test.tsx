@@ -32,6 +32,11 @@ const mocks = vi.hoisted(() => ({
   protocolRegistered: true,
   settlementActive: false,
   console: null as PoolConsoleController | null,
+  again: null as Record<string, unknown> | null,
+}));
+
+vi.mock("@green-goods/shared/hooks/commitment-pooling/useComposeAgainValues", () => ({
+  useComposeAgainValues: () => mocks.again,
 }));
 
 vi.mock("@green-goods/shared/hooks/admin-ui/pool/usePoolConsoleController", () => ({
@@ -210,7 +215,7 @@ function consoleFor(): PoolConsoleController {
   });
 }
 
-function renderSeed(props: { protocolContext?: boolean } = {}) {
+function renderSeed(props: { protocolContext?: boolean; fromCommitmentId?: bigint } = {}) {
   const onClose = vi.fn();
   const router = createMemoryRouter(
     [
@@ -223,6 +228,7 @@ function renderSeed(props: { protocolContext?: boolean } = {}) {
             garden={GARDEN}
             onClose={onClose}
             protocolContext={props.protocolContext}
+            fromCommitmentId={props.fromCommitmentId}
           />
         ),
       },
@@ -293,6 +299,7 @@ describe("SeedCommitmentDialog (W8)", () => {
     vi.clearAllMocks();
     mocks.protocolRegistered = true;
     mocks.settlementActive = false;
+    mocks.again = null;
     mocks.console = consoleFor();
     mocks.enqueue.mockResolvedValue("job-1");
   });
@@ -307,6 +314,25 @@ describe("SeedCommitmentDialog (W8)", () => {
       expect.stringMatching(/no cycle/i),
     ]);
     expect(select.value).toBe("12");
+  });
+
+  it("opens on the earlier commitment's answers, the steward's extras included, in this pool's season", async () => {
+    mocks.again = {
+      direction: "REQUEST",
+      kind: "SERVICE",
+      title: "Market rides",
+      unitLabel: "rides",
+      targetUnits: 16,
+      confirmers: ["0x3333333333333333333333333333333333333333"],
+      confirmationThreshold: 1,
+    };
+    renderSeed({ fromCommitmentId: 9n });
+
+    await waitFor(() =>
+      expect(within(dialog()).getByLabelText(/^title/i)).toHaveValue("Market rides")
+    );
+    // The season is this pool's own, never the earlier commitment's.
+    expect((within(dialog()).getByLabelText(/^cycle/i) as HTMLSelectElement).value).toBe("12");
   });
 
   it("queues a season commitment with the steward's extras in the payload", async () => {

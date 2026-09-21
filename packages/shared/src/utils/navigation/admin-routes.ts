@@ -196,8 +196,12 @@ export const adminRoutes = {
     return this.gardenMode("pool", context);
   },
   /** The seeding console, a route-backed dialog over the pool tab (§6.3). */
-  gardenPoolSeed(context?: AdminGardenRouteContext) {
-    return buildAdminHref("/garden/pool/seed", buildGardenContextSearch(context));
+  /** The seeding wizard; `from` names a commitment in the pool to start it from. */
+  gardenPoolSeed(context?: AdminGardenRouteContext, options?: { from?: string }) {
+    return buildAdminHref("/garden/pool/seed", {
+      ...buildGardenContextSearch(context),
+      from: options?.from,
+    });
   },
   /** One commitment, opened in the pool tab's inspector (§6.7). */
   gardenPoolCommitment(commitmentId: string, context?: AdminGardenRouteContext) {

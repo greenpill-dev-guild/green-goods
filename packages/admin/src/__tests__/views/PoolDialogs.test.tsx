@@ -78,16 +78,40 @@ vi.mock("@/views/Garden/Pool/PoolSettingsDialog", () => ({
   ),
 }));
 vi.mock("@/views/Garden/Pool/Seed", () => ({
-  SeedCommitmentDialog: ({ open, onClose }: { open: boolean; onClose: () => void }) =>
+  SeedCommitmentDialog: ({
+    open,
+    onClose,
+    fromCommitmentId,
+  }: {
+    open: boolean;
+    onClose: () => void;
+    fromCommitmentId?: bigint | null;
+  }) =>
     open ? (
-      <button type="button" data-testid="seed-dialog" onClick={onClose}>
+      <button
+        type="button"
+        data-testid="seed-dialog"
+        data-from={fromCommitmentId?.toString() ?? ""}
+        onClick={onClose}
+      >
         Close seed
       </button>
     ) : null,
 }));
 vi.mock("@/views/Garden/Pool/CommitmentDialog", () => ({
-  CommitmentDialogPanel: ({ commitmentId }: { commitmentId: string }) => (
-    <div data-testid="commitment-panel">{commitmentId}</div>
+  CommitmentDialogPanel: ({
+    commitmentId,
+    onSeedAnother,
+  }: {
+    commitmentId: string;
+    onSeedAnother?: (commitmentId: string) => void;
+  }) => (
+    <div data-testid="commitment-panel">
+      {commitmentId}
+      <button type="button" onClick={() => onSeedAnother?.(commitmentId)}>
+        Seed another
+      </button>
+    </div>
   ),
 }));
 vi.mock("@/views/Garden/Pool/PoolReasonDialogs", () => ({
@@ -113,6 +137,7 @@ function setup(overrides: Partial<Parameters<typeof PoolDialogs>[0]> = {}) {
     setFlow: vi.fn(),
     setSettingsOpen: vi.fn(),
     setSeedOpen: vi.fn(),
+    setSeedFrom: vi.fn(),
     setInspected: vi.fn(),
     setReasonDialog: vi.fn(),
     setConfirmDialog: vi.fn(),
@@ -127,6 +152,7 @@ function setup(overrides: Partial<Parameters<typeof PoolDialogs>[0]> = {}) {
       flow={null}
       settingsOpen={false}
       seedOpen={false}
+      seedFrom={null}
       inspected={null}
       reasonDialog={null}
       confirmDialog={null}
@@ -164,6 +190,25 @@ describe("PoolDialogs", () => {
     fireEvent.click(screen.getByRole("button", { name: "Close inspector" }));
     expect(setSeedOpen).toHaveBeenCalledWith(false);
     expect(setInspected).toHaveBeenCalledWith(null);
+  });
+
+  it("hands the inspected commitment to the seeding wizard, one dialog at a time", () => {
+    const { setSeedOpen, setSeedFrom, setInspected } = setup({
+      presentation: { inspector: "dialog" },
+      seedOpen: true,
+      seedFrom: "42",
+      inspected: "42",
+    });
+    expect(screen.getByTestId("seed-dialog")).toHaveAttribute("data-from", "42");
+
+    fireEvent.click(screen.getByRole("button", { name: "Seed another" }));
+    expect(setInspected).toHaveBeenCalledWith(null);
+    expect(setSeedFrom).toHaveBeenCalledWith("42");
+    expect(setSeedOpen).toHaveBeenCalledWith(true);
+
+    // Closing the wizard forgets the source, so the next plain Seed opens empty.
+    fireEvent.click(screen.getByTestId("seed-dialog"));
+    expect(setSeedFrom).toHaveBeenLastCalledWith(null);
   });
 
   it("does not mount dialog-owned inspectors in route presentation", () => {

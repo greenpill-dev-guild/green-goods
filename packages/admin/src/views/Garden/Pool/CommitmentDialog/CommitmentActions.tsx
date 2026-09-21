@@ -16,6 +16,7 @@ export function CommitmentActions({
   isActing,
   fallbackPath,
   onOpenDialog,
+  onSeedAnother,
 }: {
   isOnline: boolean;
   /** Why the acts are out of reach while the reader has no connection. */
@@ -26,6 +27,11 @@ export function CommitmentActions({
   isActing: boolean;
   fallbackPath: FallbackPath;
   onOpenDialog: (open: OpenDialog) => void;
+  /**
+   * Opens the seeding wizard on this commitment's answers. Absent wherever the
+   * reader may not seed this pool, so the button is simply not drawn.
+   */
+  onSeedAnother?: () => void;
 }) {
   const { formatMessage } = useIntl();
 
@@ -41,6 +47,14 @@ export function CommitmentActions({
         className="flex flex-wrap justify-end gap-2 border-t border-[rgb(var(--m3-outline-variant))] pt-3"
         data-testid="commitment-acts"
       >
+        {onSeedAnother ? (
+          <AdminButton type="button" variant="text" size="sm" onClick={onSeedAnother}>
+            {formatMessage({
+              id: "cockpit.garden.pool.commitment.act.seedAnother",
+              defaultMessage: "Seed Another Like This",
+            })}
+          </AdminButton>
+        ) : null}
         {can.expire ? (
           <AdminButton
             type="button"

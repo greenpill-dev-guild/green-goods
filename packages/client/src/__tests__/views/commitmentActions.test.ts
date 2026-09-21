@@ -110,13 +110,25 @@ describe("selectCommitmentAct", () => {
     }
   });
 
-  it("lets a lapsed commitment be offered again, but only by the person who made it", () => {
+  it("labels making a settled commitment again by its direction, for the person who made it", () => {
+    const expired = { ...base, derivedState: "EXPIRED" as const };
     expect(
-      selectCommitmentAct({ commitment: { ...base, derivedState: "EXPIRED" }, seat: "provider" })
-        ?.kind
-    ).toBe("offerAgain");
+      selectCommitmentAct({
+        commitment: { ...expired, direction: "OFFER" },
+        seat: "provider",
+        isCreator: true,
+      })
+    ).toMatchObject({ kind: "offerAgain", labelId: "app.commitment.act.offerAgain" });
     expect(
-      selectCommitmentAct({ commitment: { ...base, derivedState: "EXPIRED" }, seat: "bystander" })
+      selectCommitmentAct({
+        commitment: { ...expired, direction: "REQUEST" },
+        seat: "confirmer",
+        isCreator: true,
+      })
+    ).toMatchObject({ kind: "askAgain", labelId: "app.commitment.act.askAgain" });
+    // Whoever took a request up holds the provider seat, and the words are not theirs.
+    expect(
+      selectCommitmentAct({ commitment: { ...expired, direction: "REQUEST" }, seat: "provider" })
     ).toBeNull();
   });
 
