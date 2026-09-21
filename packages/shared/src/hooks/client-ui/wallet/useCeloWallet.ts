@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
-import { createPublicClientForChain, getPimlicoSponsorshipPolicyId } from "../../../config/pimlico";
+import { createPublicClientForChain } from "../../../config/pimlico";
 import { commitmentPoolingKeys } from "../../../config/query-keys/commitment-pooling";
 import { STALE_TIME_FAST, STALE_TIME_MEDIUM } from "../../../config/query-keys/constants";
 import { tokensKeys } from "../../../config/query-keys/tokens";
@@ -44,14 +44,7 @@ export function useCeloWallet() {
       (client) => {
         if (client.account?.address.toLowerCase() !== account) update("address-mismatch");
         else if (client.chain?.id !== 42220) update("unavailable");
-        else {
-          try {
-            getPimlicoSponsorshipPolicyId(42220);
-            update("ready");
-          } catch {
-            update("policy-unavailable");
-          }
-        }
+        else update("ready");
       },
       (error: unknown) => {
         const code = error && typeof error === "object" && "code" in error ? error.code : undefined;
