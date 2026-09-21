@@ -123,6 +123,14 @@ export function gardenJoinRequestFailure(
 }
 
 /**
+ * A class name is an identifier. `name` is writable, so anything else could carry the same URL or
+ * address the message does, and is logged as `unknown`.
+ */
+function loggableErrorName(name: string): string {
+  return /^[A-Za-z]{1,48}$/.test(name) ? name : "unknown";
+}
+
+/**
  * Record why a join-request operation answered "unavailable".
  *
  * Every route turns a thrown dependency into the same 503, so without this the
@@ -136,10 +144,8 @@ export function reportGardenJoinRequestUnavailable(
   stage: string,
   error: unknown
 ): void {
-  logger.error(
-    { operation, stage, errorName: error instanceof Error ? error.name : typeof error },
-    "Garden join request operation unavailable"
-  );
+  const errorName = error instanceof Error ? loggableErrorName(error.name) : typeof error;
+  logger.error({ operation, stage, errorName }, "Garden join request operation unavailable");
 }
 
 export function gardenJoinRequestsUnavailable(c: Context, ctx: GardenJoinRequestRouteContext) {

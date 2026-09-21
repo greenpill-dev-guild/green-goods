@@ -440,7 +440,10 @@ describe("garden join request public API", () => {
     const logged = vi.spyOn(logger, "error").mockImplementation(() => undefined);
     const { app, chainReader } = createApp();
     expect((await submit(app)).status).toBe(201);
-    chainReader.isMember.mockRejectedValue(new Error("HTTP request failed."));
+    // `name` is writable, so it gets the same treatment as the message.
+    const failure = new Error("HTTP request failed.");
+    failure.name = "https://rpc.example/v2/secret-key";
+    chainReader.isMember.mockRejectedValue(failure);
 
     try {
       const mine = await app.request(`/public/gardens/${GARDEN}/join-requests/me`, {
@@ -449,7 +452,7 @@ describe("garden join request public API", () => {
 
       expect(mine.status).toBe(503);
       expect(logged).toHaveBeenCalledWith(
-        { operation: "read_self", stage: "membership_read", errorName: "Error" },
+        { operation: "read_self", stage: "membership_read", errorName: "unknown" },
         "Garden join request operation unavailable"
       );
     } finally {

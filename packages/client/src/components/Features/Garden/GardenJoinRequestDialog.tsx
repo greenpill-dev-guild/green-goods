@@ -43,7 +43,10 @@ export function GardenJoinRequestDialog({ gardenAddress }: { gardenAddress: Addr
   const greenGoodsName = useGreenGoodsEnsName(join.accountAddress);
   const ensName = useEnsName(join.accountAddress);
   // While a lookup that outranks the name in hand is still running, the name can
-  // change, so nothing is shown or sent until it settles.
+  // change, so nothing is shown or sent until it settles. A lookup that fails falls
+  // through to the next name and finally to the display-name field, which is what
+  // every account was asked before: a name service being down must not block a
+  // request, and the request is tied to the account's address either way.
   const isResolvingName = greenGoodsName.isLoading || (!greenGoodsName.data && ensName.isLoading);
   const accountName = isResolvingName
     ? null
