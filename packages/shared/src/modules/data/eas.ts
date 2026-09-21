@@ -11,7 +11,7 @@ import { parseDataToGardenAssessment, parseDataToWork, parseDataToWorkApproval }
 
 export { parseWorkApprovalAttestation } from "./eas-parse";
 
-import { EASFetchError, validatedAttestations } from "./eas-read-validation";
+import { EASFetchError, easStoredAddress, validatedAttestations } from "./eas-read-validation";
 import { easGraphQL } from "./graphql";
 import { createEasClient, type GraphQLReader } from "./graphql-client";
 
@@ -80,7 +80,7 @@ export const getGardenAssessments = async (
   const where = {
     schemaId: { in: schemas },
     revoked: { equals: false },
-    ...(gardenAddress ? { recipient: { equals: gardenAddress } } : {}),
+    ...(gardenAddress ? { recipient: { equals: easStoredAddress(gardenAddress) } } : {}),
   };
   const pageSize = 100;
   const attestations: EASAttestationRaw[] = [];
@@ -146,10 +146,10 @@ export const getWorks = async (
   let recipientCondition;
   if (Array.isArray(gardenAddress)) {
     if (gardenAddress.length > 0) {
-      recipientCondition = { in: gardenAddress };
+      recipientCondition = { in: gardenAddress.map(easStoredAddress) };
     }
   } else if (gardenAddress) {
-    recipientCondition = { equals: gardenAddress };
+    recipientCondition = { equals: easStoredAddress(gardenAddress) };
   }
 
   const where = {
@@ -198,7 +198,7 @@ export const getWorksByGardener = async (
         {
           where: {
             schemaId: { equals: easConfig.WORK.uid },
-            attester: { equals: gardenerAddress },
+            attester: { equals: easStoredAddress(gardenerAddress) },
             revoked: { equals: false },
           },
           take,
@@ -248,7 +248,7 @@ export const getWorkApprovals = async (
   const where = gardenerAddress
     ? {
         schemaId,
-        recipient: { equals: gardenerAddress },
+        recipient: { equals: easStoredAddress(gardenerAddress) },
         revoked: { equals: false },
       }
     : {
