@@ -601,20 +601,22 @@ Every reachable act against its cases. Nothing in § 7 has a case.
 
 ### Validation receipt, catalog
 
-- **Tested implementation commit SHA**: `451cb4b08a324c46015edb2f1b1a68a561f52269`. The gate ran on the working tree
-  immediately before the commits on this branch; the pre-commit formatter changed nothing, and
-  `git status --porcelain=v1 --untracked-files=all` is empty at that SHA.
-- **Run finished (UTC)**: `2026-09-21T17:18:10Z`
+- **Tested implementation commit SHA**: `1c98db0aecbb265e92cdf1ea81760f3b421fe1cd`, the branch head
+  after the review round. `git status --porcelain=v1 --untracked-files=all` is empty at that SHA.
+- **Run finished (UTC)**: `2026-09-21T22:21:21Z`
 - **Command**: `bun run check -- --intent push`
-- **Result**: every runnable check passed, 33 in all: the 27 of Builds 1 to 3 plus `qa-id-ledger`,
-  `agent-tools-test` (the catalog contract test among its 257), `docs-authority`, `docs-test`,
-  `docs-build`, and `validation-system-test`. Shared (5,509 passed) and client (1,350 passed,
-  one more than Build 3: the band case) ran fresh. Admin (872) and agent (323) were Turbo
-  cache hits: their inputs are unchanged since the Build 3 run that passed them.
-  `node packages/qa/build.mjs` projected 304 active cases with all three locales, and
-  `check-qa-id-ledger.mjs --base feature/commitment-seed-batch-tray` reports 365 ids, none removed,
-  reintroduced, or reactivated.
-- **Blocked**: `browser-proof` (`authenticatedBrave`), so the gate exits 2. Not a pass.
+- **Result**: every runnable check passed, 8 in all: `format`, `lint`, `client-test` (24 passed),
+  `docs-authority`, `staged-modules`, `source-structure`, `qa-id-ledger`, and `agent-tools-test`
+  (the catalog contract test among its 257). `node packages/qa/build.mjs` projects **307 active
+  cases** with all three locales, and `check-qa-id-ledger.mjs` against the Build 3 branch reports
+  **370 ids**, none removed, reintroduced, or reactivated.
+- **Why only 8 checks**: the selector compares against the live PR base, so a stacked branch is
+  judged on its own diff (16 paths, rated `sensitive`). The gate exits 0 with browser proof pending
+  for readiness rather than blocking.
+- **Earlier, stack-wide run**: at `451cb4b08` against `develop` the plan rated `critical` and all 33
+  runnable checks passed, including the full shared (5,509), client (1,350), admin (872) and agent
+  (323) suites, `docs-test` and `docs-build`. That run predates the five ids the review round added
+  (ADM-139 to ADM-143); the run above is the one that covers them.
 
 ## 6. The QA plan
 
