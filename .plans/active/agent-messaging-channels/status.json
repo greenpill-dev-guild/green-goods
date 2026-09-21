@@ -1,0 +1,227 @@
+{
+  "version": 1,
+  "feature": {
+    "slug": "agent-messaging-channels",
+    "title": "Agent Messaging Channels (WhatsApp + SMS)",
+    "kind": "feature",
+    "stage": "active"
+  },
+  "workflow": {
+    "overall_status": "active",
+    "priority": "p1",
+    "created_at": "2026-04-17",
+    "updated_at": "2026-09-21T08:13:22.471Z"
+  },
+  "links": {
+    "brief": "brief.md",
+    "spec": "spec.md",
+    "plan": "plan.todo.md",
+    "eval": "eval.md"
+  },
+  "notes": [
+    "RESR-75 was accepted on 2026-09-21. The gate is cleared for the Buildathon prototype slice only; it does not authorize production data collection, a pilot provider decision, reporting delegation, custodial accounts, or any SMS work.",
+    "Scope-locked 2026-09-21: WhatsApp only; Meta Cloud API direct on the test number, not Twilio; no custodial wallets and no delegation; test garden with team and invited testers; no production data and no success claim.",
+    "A1 (Nigeria, English, TAS) is the pilot setting, not product scope. O2 is resolved as Meta direct for the prototype and stays open for the pilot. Both are corrected in spec.md section 1.",
+    "The slice is spec.md section 15.1 and the Buildathon prototype list in plan.todo.md. Everything else in the spec remains an unselected proposal.",
+    "Hub content was brought onto this branch from PR #846 (feature/plan-messaging-integrations, commit ed190b3b), which is still an open draft. Close #846 as superseded once this lands.",
+    "eval.md SEC-01 was written against Twilio request-signature validation. Under the Meta Cloud API it is X-Hub-Signature-256 verified with the app secret over the preserved raw body.",
+    "Account proof (PRD-946) is largely existing code: packages/agent/src/api/routes/garden-join-request-auth.ts:40-104 and packages/agent/src/services/profile-avatars.ts:90-127 already verify EOA, deployed ERC-1271 and counterfactual ERC-6492 accounts. Treat the lane as reuse, not new cryptography.",
+    "The agent is a single Fly machine with SQLite on the agent_data volume; the volume attaches to one machine, so single-replica operation is enforced by storage topology. Do not scale horizontally while draft state lives in that file.",
+    "Existing Linear mirror PRD-339 remains unresolved historical metadata. The live slice issues are PRD-943 through PRD-948. No Linear writes have been performed; proposed changes are listed in plan.todo.md.",
+    "The builder for the 2026-09-25 to 2026-10-02 window is not yet named. Lane owners below are placeholders until one is assigned."
+  ],
+  "lanes": {
+    "state_api": {
+      "owner": "claude",
+      "status": "ready",
+      "branch": "feature/whatsapp-prototype-agent",
+      "depends_on": [],
+      "handoff": "handoffs/claude-state-api.md",
+      "handoff_note": "Buildathon prototype steps 1-8 and 12: Meta webhook signature and normalization, draft and attachment tables, bounded media fetch, single-use link, draft-scoped account proof and read, chain-receipt confirmation. Proves SEC-01, CH-01, WORK-01, SEC-02, AUTH-01, AUTH-03, OPS-05. Reuse garden-join-request-auth.ts and profile-avatars.ts rather than writing new verification.",
+      "skill_tags": ["data-layer", "testing", "web3"],
+      "manual_blocked": false,
+      "ready_when_dependencies_met": true,
+      "tdd": {
+        "mode": "required",
+        "status": "pending",
+        "red": {
+          "command": "bun run test -- src/__tests__/whatsapp-signature.test.ts",
+          "evidence": ""
+        },
+        "green": {
+          "command": "bun run test -- src/__tests__/whatsapp-signature.test.ts src/__tests__/whatsapp-adapter.test.ts src/__tests__/whatsapp-media.test.ts src/__tests__/whatsapp-draft.test.ts src/__tests__/draft-links.test.ts src/__tests__/whatsapp-draft-auth.test.ts src/__tests__/whatsapp-drafts-route.test.ts src/__tests__/work-receipts.test.ts",
+          "evidence": ""
+        },
+        "note": "Unrun. Each of prototype steps 1-8 and 12 records its own RED then GREEN as it lands; the commands above are the first step's and the lane's full set. Step 3 additionally needs AGENT_SQLITE_INTEGRATION=1 for the sqlite lane."
+      }
+    },
+    "ui": {
+      "owner": "claude",
+      "status": "blocked",
+      "branch": "feature/whatsapp-prototype-handoff",
+      "depends_on": ["state_api"],
+      "handoff": "handoffs/claude-ui.md",
+      "handoff_note": "Buildathon prototype steps 9-11 and 13: draft intake port modelled on useShareTargetIntake, the ?wa= locator on /home/garden beside ?draftId= and ?shareTarget=, first-run passkey with the in-app-browser handoff, and EXIF/location stripping before publication. Proves UX-01, ID-01, part of UX-02, part of DATA-02. Shared auth and work surfaces take the critical override; step 11 needs authenticated Brave proof.",
+      "skill_tags": ["ui", "react", "web3"],
+      "manual_blocked": false,
+      "ready_when_dependencies_met": true,
+      "tdd": {
+        "mode": "required",
+        "status": "pending",
+        "red": {
+          "command": "bun run test -- useWhatsAppDraftIntake",
+          "evidence": ""
+        },
+        "green": {
+          "command": "bun run test -- useWhatsAppDraftIntake useDraftResume useLoginScreenController media-processing",
+          "evidence": ""
+        },
+        "note": "Unrun. Prototype steps 9-11 and 13. Step 11 also needs authenticated Brave proof on the deployed origin: a passkey ceremony cannot be proven by localhost mocks, so the Vitest GREEN alone does not close it."
+      }
+    },
+    "contracts": {
+      "owner": "unassigned",
+      "status": "n/a",
+      "branch": null,
+      "depends_on": [],
+      "handoff": "handoffs/contracts.md",
+      "handoff_note": "No contract change in this slice. WorkResolver and WorkApprovalResolver are unchanged; the gardener signs with their own passkey or EOA account. If any step turns out to need a contract change, stop that step and re-plan in contract, shared, indexer, application order.",
+      "skill_tags": ["contracts"],
+      "manual_blocked": false,
+      "ready_when_dependencies_met": false,
+      "tdd": {
+        "mode": "not_applicable",
+        "status": "pending",
+        "red": {},
+        "green": {},
+        "note": "No contract change in this slice. The gardener signs with their own passkey or EOA account, and WorkResolver and WorkApprovalResolver are untouched. If any step turns out to need a contract change, stop that step and re-plan in contract, shared, indexer, application order rather than editing a resolver inside the prototype."
+      }
+    },
+    "qa_pass_1": {
+      "owner": "claude",
+      "status": "blocked",
+      "branch": "feature/whatsapp-prototype-qa",
+      "depends_on": ["state_api", "ui"],
+      "handoff": "handoffs/claude-qa-pass-1.md",
+      "handoff_note": "Demo rehearsal on a real device against the Meta test number: full journey, then the adversarial pass (forwarded link, preview GET, replay, concurrent consume, foreign draft id, bad webhook signature). Authenticated Brave for the passkey ceremony. Record which deferred cases the demo does not evidence, specifically ID-05, ID-07, REC-03 and MIG-01.",
+      "skill_tags": ["testing", "review"],
+      "manual_blocked": false,
+      "ready_when_dependencies_met": true
+    },
+    "qa_pass_2": {
+      "owner": "codex",
+      "status": "blocked",
+      "branch": null,
+      "depends_on": ["qa_pass_1"],
+      "handoff": "handoffs/codex-qa-pass-2.md",
+      "handoff_note": "Out of prototype scope. Independent verification of auth, cross-garden denial, operation recovery and conditional delegation belongs to the pilot, after a provider decision and O5 agreement.",
+      "skill_tags": ["testing", "review", "contracts"],
+      "manual_blocked": true,
+      "ready_when_dependencies_met": false
+    }
+  },
+  "history": [
+    {
+      "timestamp": "2026-04-17T00:00:00Z",
+      "actor": "afo",
+      "lane": "system",
+      "status": "created",
+      "branch": null,
+      "note": "Hub created from superpowers spec + plan. Epic #464; outcome milestone #14. Decisions locked: Twilio provider, tier-Y capability, ERC-4337 session keys, 30d TTL, dual revoke path."
+    },
+    {
+      "timestamp": "2026-04-19T00:00:00Z",
+      "actor": "claude",
+      "lane": "system",
+      "status": "scaffolded",
+      "branch": null,
+      "note": "brief.md + eval.md + status.json scaffolded; spec.md migrated from docs/superpowers/specs/ (legacy folder deleted). plan.todo.md spec link rewired to ./spec.md. plan-hub.mjs validate green."
+    },
+    {
+      "timestamp": "2026-04-26T19:08:14.451Z",
+      "actor": "human",
+      "lane": "system",
+      "status": "moved_to_backlog",
+      "branch": null,
+      "note": "Moved feature hub from active to backlog"
+    },
+    {
+      "timestamp": "2026-05-10T06:37:51.000Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "dependency_closed",
+      "branch": "main",
+      "note": "Removed agent-posthog-observability from depends_on_features after it was archived as completed connector-first routine guidance."
+    },
+    {
+      "timestamp": "2026-05-10T22:34:39.903Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "linear_recorded",
+      "branch": null,
+      "note": "Recorded Linear parent/lane issue identifiers"
+    },
+    {
+      "timestamp": "2026-05-10T23:05:15.719Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "linear_recorded",
+      "branch": null,
+      "note": "Recorded Linear parent/lane issue identifiers"
+    },
+    {
+      "timestamp": "2026-06-27T00:01:48.864Z",
+      "actor": "human",
+      "lane": "system",
+      "status": "moved_to_ideas",
+      "branch": null,
+      "note": "Moved feature hub from backlog to ideas"
+    },
+    {
+      "timestamp": "2026-06-27T00:01:48.864Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "moved_to_ideas",
+      "branch": null,
+      "note": "Moved to ideas and neutralized lane mirroring until activation."
+    },
+    {
+      "timestamp": "2026-09-11T01:48:09Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "research_captured",
+      "branch": null,
+      "note": "Captured user-requested final architecture research in existing canonical hub. Distinguished accepted TAS/PWA decisions from proposed identity and delivery design, superseded April assumptions, and blocked stale execution metadata. Remains ideas; no implementation or Linear sync."
+    },
+    {
+      "timestamp": "2026-09-21T00:00:00Z",
+      "actor": "claude",
+      "lane": "system",
+      "status": "scope_locked",
+      "branch": null,
+      "note": "RESR-75 accepted; Buildathon prototype slice scope-locked by Afo. Brought the hub content forward from open draft PR #846 (ed190b3b), corrected A1 and O2 per the lock, added spec section 15.1 and a 13-step prototype dispatch list, and reset lanes to the slice. Contracts lane is n/a: no contract change. No Linear writes, no commit."
+    },
+    {
+      "timestamp": "2026-09-21T08:13:22.471Z",
+      "actor": "claude",
+      "lane": "system",
+      "status": "moved_to_active",
+      "branch": null,
+      "note": "Moved feature hub from ideas to active after Afo's scope lock. Run by Claude via plan-hub.mjs move; the scope-lock decision itself was Afo's."
+    }
+  ],
+  "taxonomy": {
+    "initiative": "agent-platform",
+    "tracks": ["agent", "shared", "client"],
+    "work_types": ["implementation", "qa"],
+    "surfaces": ["packages/agent", "packages/shared", "packages/client"],
+    "depends_on_features": []
+  },
+  "linear": {
+    "syncDirection": "plans_to_linear_visibility",
+    "lastSyncedAt": "2026-05-10T23:05:15.718Z",
+    "parentIssue": "PRD-339",
+    "lanes": {},
+    "project": "Agent Messaging Channels (WhatsApp + SMS)"
+  }
+}

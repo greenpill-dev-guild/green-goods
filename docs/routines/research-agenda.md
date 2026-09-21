@@ -189,7 +189,7 @@ Each track carries the same fields. The routine reads them literally, so keep th
 **Anchors.**
 - RESR-75 (define the entry criteria for reporting impact over WhatsApp and SMS; Backlog, unowned, filed 2026-09-02). The project below is Product-only, so the research issue stays unprojected and relates to PRD-834.
 - Linear project [Agent Messaging Channels (WhatsApp + SMS)](https://linear.app/greenpill-dev-guild/project/agent-messaging-channels-whatsapp-sms-71cda634fcf7) (Product, Backlog, target 2026-12-31): "research to entry criteria, then build behind the gate, then a pilot channel". PRD-290 (the epic) is Done as a spec. PRD-834 (third-party bot integration path for partner-run gardens; Backlog).
-- `.plans/ideas/agent-messaging-channels/` (session keys scoped by ERC-4337, tiered rate limits, a dual revoke path).
+- `.plans/active/agent-messaging-channels/` (the gardener signs each publication with their own passkey or EOA; no custodial wallets and no delegation. The ERC-4337 session keys, tiered rate limits and dual revoke path described here previously were the superseded April design).
 - The evidence mesh roadmap's Phase 1 evidence list (minutes per accepted submission, completion and abandonment, correction rate, operator minutes, data cost, language and device coverage, consent comprehension).
 - PostHog Agent project (`262124`) for what the Telegram agent already sees; read through growth-pulse or bug-intake, never re-queried here.
 
