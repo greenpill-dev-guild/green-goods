@@ -37,6 +37,9 @@ Decided with Afo on 2026-09-20 over four question rounds.
 | 16 | One Claude session builds the pre-QA items serially, one PR each. | No parallel agents in a week with little slack. |
 | 17 | Build 1 also gives wallet-mode readers, and so the whole admin, a send for queued commitment acts. Approved by Afo on 2026-09-20. | Found while scoping the refresh fix. Without it the admin cannot create or confirm a commitment, so the walk stops at its first seed. |
 | 18 | In wallet mode a send that fails, a declined prompt included, drops its job and reports the failure. Waiting acts, creations whose send is on chain, and failures the queue judged final stay queued. | Nothing else would ever retry a wallet-mode job, and the executor rewrites the stored payload (a published CID), so the same act queued again reads as an identity conflict rather than a second try. The queue's own `discardJob` refuses when the send may be on chain, and the composers keep their drafts, so nothing a person made is lost. |
+| 19 | Composing again is offered to whoever **made** the commitment, on every settled state (expired, fulfilled, reconciled, cancelled), as Offer It Again or Ask Again. Decided by Claude while building, from decision 8; Afo may overrule. | The act was keyed on the provider seat, which on a lapsed request is whoever took it up, not the asker whose words it is. A seat cannot say who made a commitment: the asker and every named confirmer read as confirmer. A disputed record is held, not settled, so it waits. |
+| 20 | A composer is never handed an answer it cannot show. The member's composer gets the member's own answers only; a named confirmer group, a declared payment, a gated offer, and the season-commitment kind are copied only into the steward's seeding wizard. Decided by Claude while building; Afo may overrule. | The member's composer has no fields for any of those, so copying a steward's would have a member promise money, or hand confirmation to other people, without seeing either. A season commitment becomes the nearest thing a member can make, a service kept by proof. |
+| 21 | The source has to belong to the pool being composed into, and the PWA opens the composer in the commitment's own pool. The rule is enforced where the answers are read, not only where the button is drawn. Decided by Claude while building; Afo may overrule. | Requirement rows name that pool's actions and the terms were agreed there. A protocol commitment is read from the reader's own garden, which is not the pool it belongs to. A link can be edited, so a refusal opens an ordinary empty composer rather than an error. |
 
 ## 2. Verified ground truth (2026-09-20)
 
@@ -101,7 +104,7 @@ Each line was checked against the source or the chain in this session.
 | Fix clear issues that would slow the walk | § 4 Builds 1–3 | ⏳ |
 | The admin can actually send a seeded or confirmed commitment | § 4 Build 1 part A | Built; live proof pending Stage A |
 | A landed act updates the screen without a reload | § 4 Build 1 part B | Built; live proof pending Stage A |
-| Reuse a commitment instead of retyping it | § 4 Build 2 | ⏳ |
+| Reuse a commitment instead of retyping it | § 4 Build 2 | Built; rendered proof pending |
 | Create several commitments in one sitting | § 4 Build 3 (sequential; atomic later, § 7) | ⏳ |
 | Catalog is correct, coherent, and one outcome per case | § 5 | ⏳ |
 | Strong cases for every reachable pooling act | § 5.3, § 5.5 | ⏳ |
@@ -227,25 +230,70 @@ Proof:
 
 ### Build 2 — Prefilled Offer It Again, Ask Again, Seed another like this
 
-**Branch**: `feature/commitment-create-another`
+**Branch**: `feature/commitment-create-another`, stacked on the Build 1 branch at Afo's direction.
+**Status**: committed as `5c884ba9a`, not pushed. Decisions 8, 19, 20, 21.
 
-1. RED then GREEN for a pure mapper in `packages/shared/src/modules/commitment-pooling/`:
-   `composerValuesFromCommitment(commitment, metadata)` returns `Partial<CommitmentComposerValues>`.
-   Copies direction, kind, title, note, links, unit label, target units, claim mode, team policy,
-   requirement rows, protocol fallback, consideration rail and amount, and (admin only) confirmers
-   and threshold. Resets everything else: claims, contributors, evidence, confirmations,
-   identities, settlement. `dueInDays` returns to the default and `cycleId` to the pool's current
-   open cycle, because both need fresh validation.
-2. `acts.ts`: offer the elective act to the creator of an `EXPIRED`, `FULFILLED`, or `CANCELLED`
-   commitment, for offers and requests. Table-test the seat and phase matrix. Labels: Offer It
-   Again for offers, Ask Again for requests.
-3. Client: `GardenCommitment.tsx` `offerAgain` navigates to the composer route with the source
-   commitment id. `useCommitmentComposerController` resolves it and passes the mapped values as
-   `initial`. A saved draft still wins through the existing Resume Draft dialog.
-4. Admin: `CommitmentDialog` gains Seed another like this for pool stewards. It opens
-   `Seed/index.tsx` with the mapped values as `initial` through the existing
-   `useCommitmentComposerSession`.
-5. Stories for both entries. `check:stories` and `check:story-quality` for shared.
+What changed:
+
+- `modules/commitment-pooling/compose-again.ts`: `composerValuesFromCommitment` maps a commitment,
+  its words, and its requirement rows to composer answers. It carries direction, kind, title, note,
+  links, unit label, target units, claim mode, team policy, the fallback choice, and requirement
+  rows in the order they were asked. It never carries claims, people, proof, confirmations, payout,
+  or identities, and it leaves out the due date and the cycle so both are chosen fresh. Decision 20
+  decides what each composer receives.
+- `acts.ts`: decision 19. `askAgain` joins `offerAgain`, both elective, so neither badges anyone.
+  `isCommitmentCreator` sits beside `selectCommitmentSeat`, because a seat cannot answer it.
+- `useComposeAgainValues` reads the source and applies decision 21 and the creator rule.
+- PWA: `GardenCommitment` opens `/home/<pool garden>/commitments/new?direction=…&from=<id>`;
+  `ComposeCommitment` reads `from`; the composer controller applies the answers as late defaults.
+  A draft the person resumes still wins, and nothing they have typed is overwritten.
+  `applyLateComposerDefaults` is now the one place that rule lives; the seeding wizard's session
+  hook calls the same function.
+- Admin: the inspector offers Seed Another Like This to the pool's stewards, only where a seeding
+  wizard exists (the Hub's Confirm stage renders the same panel without one). Route presentation
+  carries the source as `/garden/pool/seed?from=<id>`; dialog presentation hands it over in local
+  state and closes the inspector first. The wizard keeps this pool's current season.
+- One label per locale for Ask Again and Seed Another Like This.
+
+Behaviour that changed for an existing reader: whoever took up a request that then lapsed used to
+see Offer It Again, which only navigated back. They now see nothing, and the asker sees Ask Again.
+
+Proof:
+
+- RED first for the mapper and for the act rule. The mapper test also parses each result through
+  `commitmentComposerSchema`, so a prefilled composer opens valid.
+- The composer controller tests cover the prefill, the draft that wins, the draft that gives way
+  to Start Fresh, answers arriving after the person typed, and a link naming the other door. One
+  mutation was checked: letting the prefill overwrite a resumed draft fails its test.
+- View tests: the PWA detail opens the composer in the commitment's own pool; the real-controller
+  compose test opens on the reader's earlier answers; the admin inspector shows the entry to
+  stewards only; the dialog presentation hands the source to the wizard one dialog at a time; the
+  wizard opens on the earlier answers in this pool's season.
+- Declaring `useComposeAgainValues` changed the shared manifest, so the four `shared-*` seams were
+  re-certified in the same commit. None of their declared inputs were touched; their twelve proof
+  files pass (241 tests).
+
+### Validation receipt, Build 2
+
+- **Tested implementation commit SHA**: `5c884ba9abb4f855810a7a78d860317d3f4adab3`. The gate ran on the working tree
+  immediately before the commit; the pre-commit formatter changed nothing, and
+  `git status --porcelain=v1 --untracked-files=all` is empty at that SHA.
+- **Run finished (UTC)**: `2026-09-21T08:46:29Z`
+- **Command**: `bun run check -- --intent push --reuse-passing-receipts`
+- **Result**: every runnable check passed, 27 in all: format, lint, validation-system-test,
+  test-quality, shared typecheck, test-typecheck, test (5,498 passed) and build, client
+  test-typecheck, test (1,349 passed) and build, admin test-typecheck, test (869 passed) and build,
+  agent typecheck, test-typecheck, test (323 passed) and build, staged-modules, source-structure,
+  design-guardrails, ontology, agent-guidance, supply-chain, story-quality.
+- **Blocked**: `browser-proof` (`authenticatedBrave`), so the gate exits 2. Not a pass.
+- **No rendered proof, and why.** The authenticated Brave extension answered a tab-context probe,
+  so Brave is reachable. The only dev server running serves the main checkout, not this worktree,
+  and this worktree has no `.env`, so it cannot serve its own client. The demo world is built
+  around the mock viewer, who made commitments 1011 and 1012 (fulfilled offers), 1013 (an expired
+  offer) and 1014 (a cancelled request). Once this branch is what `:3001` serves, open
+  `/home/<demo garden>/commitments/1011?mockAuth=user&mockPooling=1&presentation=pwa` for Offer It
+  Again on a fulfilled offer, and `…/commitments/1014…` for Ask Again, then press each and read the
+  composer. Demo mode renders fixtures and refuses every write, so nothing is signed.
 
 **Out of scope**: starting from another person's commitment; series identity.
 
