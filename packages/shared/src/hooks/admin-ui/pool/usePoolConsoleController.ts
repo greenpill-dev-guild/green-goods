@@ -16,12 +16,16 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { PoolConsoleController } from "./controller.types";
 import { pinPoolCharter } from "../../../modules/commitment-pooling/pool-charter";
+import { jobQueue } from "../../../modules/job-queue/default-instance";
 import { selectPoolConsoleModel } from "../../../modules/commitment-pooling/pool-console";
 import { selectNextDueBoundary } from "../../../modules/commitment-pooling/steward-selectors";
 import type { Address } from "../../../types/domain";
+import { createMutationErrorHandler } from "../../../utils/errors/mutation-error-handler";
 import { useOnlineStatus } from "../../app/useOnlineStatus";
 import { usePrimaryAddress } from "../../auth/usePrimaryAddress";
+import { useTransactionSender } from "../../blockchain/useTransactionSender";
 import { useCommitmentCycleNames } from "../../commitment-pooling/useCommitmentCycleNames";
+import { retryQueuedCommitmentJob } from "../../commitment-pooling/useCommitmentJobs";
 import { useCommitmentMetadata } from "../../commitment-pooling/useCommitmentMetadata";
 import { useCommitmentMutation } from "../../commitment-pooling/useCommitmentMutations";
 import {
@@ -36,6 +40,12 @@ import { usePoolCharter } from "../../commitment-pooling/usePoolCharter";
 import { usePoolClaimRequests } from "../../commitment-pooling/usePoolClaimRequests";
 import { usePoolFunding } from "../../commitment-pooling/usePoolFunding";
 import { useTimeout } from "../../utils/useTimeout";
+
+/** Queue acts are not mutations, so their failures go through the same handler by hand. */
+const reportQueuedSendError = createMutationErrorHandler({
+  source: "usePoolConsoleController",
+  toastContext: "commitment",
+});
 
 export function usePoolConsoleController(input: {
   chainId: number;
@@ -136,6 +146,8 @@ export function usePoolConsoleController(input: {
 
   const poolMutation = useCommitmentPoolMutation({ chainId });
   const commitmentMutation = useCommitmentMutation({ chainId });
+  const sender = useTransactionSender();
+  const refreshQueue = queue.refresh;
 
   const requirePool = useCallback(() => {
     if (poolId === undefined) throw new Error("This garden has no commitment pool");
@@ -194,8 +206,33 @@ export function usePoolConsoleController(input: {
           });
         }
       },
+      // The admin mounts no queue provider, so nothing sends a queued creation
+      // unless the steward does. The row is re-read either way: a failed retry
+      // changes what it says.
+      retryQueued: async (jobId: string) => {
+        try {
+          await retryQueuedCommitmentJob(jobId, sender);
+        } catch (error) {
+          reportQueuedSendError(error, { gardenAddress: garden, metadata: { act: "retryQueued" } });
+        } finally {
+          refreshQueue();
+        }
+      },
+      discardQueued: async (jobId: string) => {
+        await jobQueue.discardJob(jobId);
+        refreshQueue();
+      },
     }),
-    [poolMutation, commitmentMutation, requirePool, garden, charter.charter?.purpose, pool]
+    [
+      poolMutation,
+      commitmentMutation,
+      requirePool,
+      garden,
+      charter.charter?.purpose,
+      pool,
+      sender,
+      refreshQueue,
+    ]
   );
 
   const refetch = useCallback(

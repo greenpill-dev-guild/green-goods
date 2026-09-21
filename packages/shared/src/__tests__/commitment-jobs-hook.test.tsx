@@ -23,13 +23,18 @@ const GARDEN = "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" as Address;
 // Hoisted factories run before the consts above them, so the address is inline.
 const mocks = vi.hoisted(() => ({
   addJob: vi.fn(),
+  processJob: vi.fn(),
   viewer: "0x1111111111111111111111111111111111111111" as string | null,
+  sender: null as { authMode: "wallet" | "passkey" | "embedded" } | null,
 }));
 
 vi.mock("../modules/job-queue/default-instance", () => ({
-  jobQueue: { addJob: mocks.addJob },
+  jobQueue: { addJob: mocks.addJob, processJob: mocks.processJob },
 }));
 vi.mock("../hooks/auth/usePrimaryAddress", () => ({ usePrimaryAddress: () => mocks.viewer }));
+vi.mock("../hooks/blockchain/useTransactionSender", () => ({
+  useTransactionSender: () => mocks.sender,
+}));
 vi.mock("../hooks/blockchain/useChainConfig", () => ({ useCurrentChain: () => 42161 }));
 
 function jobs() {
@@ -40,7 +45,9 @@ describe("useCommitmentJobs", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.viewer = VIEWER;
+    mocks.sender = null;
     mocks.addJob.mockResolvedValue("job-1");
+    mocks.processJob.mockResolvedValue({ success: true, txHash: "0xabc" });
   });
 
   it("sends a claim as its own job kind", async () => {
@@ -124,5 +131,37 @@ describe("useCommitmentJobs", () => {
       result.current.enqueue({ act: "confirm", commitmentId: 9n, gardenAddress: GARDEN })
     ).rejects.toThrow(/identity_conflict/);
     await waitFor(() => expect(result.current.error).toBeTruthy());
+  });
+
+  // What the queue then does with a sent, waiting, or failed act is proven
+  // against the real queue in `commitment-jobs-hook.composed.test.tsx`.
+  describe("sending", () => {
+    const confirm = { act: "confirm", commitmentId: 9n, gardenAddress: GARDEN } as const;
+
+    it("sends a wallet reader's act from their own tap, because nothing else will", async () => {
+      // The background flush only runs for passkey and embedded sign-in, and the
+      // admin mounts no queue provider at all. Without this send a steward's
+      // seeded commitment stays Queued forever and no wallet prompt ever opens.
+      mocks.sender = { authMode: "wallet" };
+
+      await expect(jobs().current.enqueue(confirm)).resolves.toBe("job-1");
+
+      expect(mocks.processJob).toHaveBeenCalledWith("job-1", {
+        transactionSender: mocks.sender,
+        explicit: true,
+      });
+    });
+
+    it.each([
+      { authMode: "passkey" },
+      { authMode: "embedded" },
+      null,
+    ] as const)("leaves the send to the background flush for %o", async (sender) => {
+      mocks.sender = sender;
+
+      await expect(jobs().current.enqueue(confirm)).resolves.toBe("job-1");
+
+      expect(mocks.processJob).not.toHaveBeenCalled();
+    });
   });
 });

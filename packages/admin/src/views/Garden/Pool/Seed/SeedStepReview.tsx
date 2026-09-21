@@ -241,7 +241,7 @@ export function SeedStepReview({
         {formatMessage({
           id: "cockpit.garden.pool.seed.queueNote",
           defaultMessage:
-            "Seeding queues the creation on this device and sends it when it can; the row shows on the pool tab right away.",
+            "Seeding asks your wallet to confirm and sends the creation now. If it has to wait, the row stays on the pool tab with Try Again.",
         })}
       </p>
     </div>

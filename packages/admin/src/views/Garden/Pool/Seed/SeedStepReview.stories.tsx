@@ -89,7 +89,7 @@ export const GardenWorkWithReward: Story = {
 };
 
 export const SeedFailed: Story = {
-  args: { submitError: "The commitment could not be queued. Nothing was sent; try again." },
+  args: { submitError: "The commitment was not sent, so nothing was created. Try again." },
 };
 
 export const QueueUnavailable: Story = {

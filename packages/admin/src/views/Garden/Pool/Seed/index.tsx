@@ -188,7 +188,7 @@ export function SeedCommitmentDialog({
       setSubmitError(
         formatMessage({
           id: "cockpit.garden.pool.seed.enqueueFailed",
-          defaultMessage: "The commitment could not be queued. Nothing was sent; try again.",
+          defaultMessage: "The commitment was not sent, so nothing was created. Try again.",
         })
       );
     }
