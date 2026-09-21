@@ -1,31 +1,27 @@
 import { Button } from "@green-goods/shared/components/Button";
-import { toastService } from "@green-goods/shared/components/Toast/toast.service";
 import { useGardens } from "@green-goods/shared/hooks/blockchain/useBaseLists";
 import {
   isGardenMember,
-  useJoinGarden,
   usePendingJoinsVersion,
 } from "@green-goods/shared/hooks/garden/useJoinGarden";
-import { useTimeout } from "@green-goods/shared/hooks/utils/useTimeout";
-import type { Address, Garden } from "@green-goods/shared/types/domain";
-import { hapticLight, hapticSuccess } from "@green-goods/shared/utils/app/haptics";
-import { debugError } from "@green-goods/shared/utils/debug";
-import {
-  isAlreadyGardenerError,
-  parseAndFormatError,
-} from "@green-goods/shared/utils/errors/contract-errors";
-import { RiCheckLine, RiMapPinLine, RiPlantLine } from "@remixicon/react";
-import { useMemo, useState } from "react";
+import type { Address } from "@green-goods/shared/types/domain";
+import { cn } from "@green-goods/shared/utils/styles/cn";
+import { RiArrowRightSLine, RiMapPinLine, RiPlantLine } from "@remixicon/react";
+import { useMemo } from "react";
 import { useIntl } from "react-intl";
 import { useNavigate } from "react-router-dom";
 import { Card } from "@/components/Cards";
+import { cardVariants } from "@/components/Cards/Card";
 import { Avatar } from "@/components/Display";
-import { JoinGardenConfirmDialog } from "@/components/Features/Garden/JoinGardenConfirmDialog";
 
 interface GardensListProps {
   primaryAddress: Address | undefined;
 }
 
+/**
+ * The gardens this account belongs to, each opening its garden. Joining and
+ * requesting to join live on the garden itself, so this list offers neither.
+ */
 export const GardensList: React.FC<GardensListProps> = ({ primaryAddress }) => {
   const intl = useIntl();
   const navigate = useNavigate();
@@ -35,111 +31,17 @@ export const GardensList: React.FC<GardensListProps> = ({ primaryAddress }) => {
     isLoading: gardensLoading,
     refetch: refetchGardens,
   } = useGardens();
-  const { joinGarden, isJoining, joiningGardenId } = useJoinGarden();
-  const [pendingGarden, setPendingGarden] = useState<Garden | null>(null);
-  const ensDiscoveryTimeout = useTimeout();
   const pendingJoinsVersion = usePendingJoinsVersion();
 
-  const allGardens = useMemo(() => {
-    if (!primaryAddress || !gardens.length) return [];
-
-    return gardens
-      .filter((garden) => {
-        const isOpen = garden.openJoining === true;
-        const isMember = isGardenMember(
-          primaryAddress,
-          garden.gardeners,
-          garden.stewards,
-          garden.id
-        );
-        return isOpen || isMember;
-      })
-      .map((garden) => ({
-        ...garden,
-        isMember: isGardenMember(primaryAddress, garden.gardeners, garden.stewards, garden.id),
-      }));
-    // pendingJoinsVersion retriggers when a join confirms or expires in-tab,
-    // so the Member badge updates without waiting for an unrelated re-render.
+  const myGardens = useMemo(() => {
+    if (!primaryAddress) return [];
+    return gardens.filter((garden) =>
+      isGardenMember(primaryAddress, garden.gardeners, garden.stewards, garden.id)
+    );
+    // pendingJoinsVersion retriggers when a join made on a garden confirms or
+    // expires in-tab, so that garden appears here without an unrelated re-render.
     // eslint-disable-next-line react-hooks/exhaustive-deps -- version counter is a deliberate cache-buster, not a read dependency
   }, [gardens, primaryAddress, pendingJoinsVersion]);
-
-  const handleJoinGarden = (garden: Garden) => {
-    setPendingGarden(garden);
-  };
-
-  const handleConfirmJoinGarden = async () => {
-    if (!pendingGarden) return;
-
-    hapticLight();
-    try {
-      await joinGarden(pendingGarden.id);
-
-      hapticSuccess();
-      toastService.success({
-        title: intl.formatMessage(
-          {
-            id: "app.account.joinedGarden",
-            defaultMessage: "Joined {gardenName}",
-          },
-          { gardenName: pendingGarden.name }
-        ),
-        message: intl.formatMessage({
-          id: "app.account.joinedGardenMessage",
-          defaultMessage: "Welcome to the garden!",
-        }),
-        context: "joinGarden",
-      });
-
-      const wasFirstJoin = allGardens.filter((g) => g.isMember).length === 0;
-      if (wasFirstJoin) {
-        ensDiscoveryTimeout.set(() => {
-          toastService.info({
-            title: intl.formatMessage({
-              id: "app.account.ensDiscovery",
-              defaultMessage: "Claim your Green Goods name",
-            }),
-            message: intl.formatMessage({
-              id: "app.account.ensDiscoveryMessage",
-              defaultMessage: "Pick a personal name so other gardeners can find you.",
-            }),
-            context: "ensDiscovery",
-          });
-        }, 2000);
-      }
-    } catch (err) {
-      if (isAlreadyGardenerError(err)) {
-        toastService.success({
-          title: intl.formatMessage({
-            id: "app.account.alreadyMember",
-            defaultMessage: "Already a member",
-          }),
-          message: intl.formatMessage(
-            {
-              id: "app.account.alreadyMemberMessage",
-              defaultMessage: "You're already a member of {gardenName}",
-            },
-            { gardenName: pendingGarden.name }
-          ),
-          context: "joinGarden",
-        });
-        setPendingGarden(null);
-        return;
-      }
-
-      debugError(`Failed to join garden ${pendingGarden.id}`, err);
-
-      const { title, message } = parseAndFormatError(err);
-
-      toastService.error({
-        title,
-        message,
-        context: "joinGarden",
-        error: err,
-      });
-    } finally {
-      setPendingGarden(null);
-    }
-  };
 
   if (!primaryAddress) return null;
 
@@ -148,7 +50,7 @@ export const GardensList: React.FC<GardensListProps> = ({ primaryAddress }) => {
       <h5 className="text-label-md text-text-strong-950">
         {intl.formatMessage({
           id: "app.profile.gardens",
-          defaultMessage: "Gardens",
+          defaultMessage: "My gardens",
         })}
       </h5>
 
@@ -181,64 +83,45 @@ export const GardensList: React.FC<GardensListProps> = ({ primaryAddress }) => {
             </Button>
           </div>
         </Card>
-      ) : allGardens.length > 0 ? (
-        <div className="flex flex-col gap-2">
-          {allGardens.map((garden) => {
-            const isJoiningThis = isJoining && joiningGardenId === garden.id;
-
-            return (
-              <Card key={garden.id}>
-                <div className="flex min-w-0 items-center gap-3 w-full">
-                  <Avatar>
-                    <div className="flex items-center justify-center text-center mx-auto text-primary">
-                      <RiPlantLine className="w-4" />
-                    </div>
-                  </Avatar>
-                  <div className="flex flex-col gap-0.5 min-w-0 flex-1 overflow-hidden">
-                    <div
-                      className="line-clamp-2 min-w-0 max-w-full text-sm font-medium leading-snug [overflow-wrap:anywhere]"
-                      title={garden.name}
-                    >
-                      {garden.name}
-                    </div>
-                    {garden.location && (
-                      <div className="flex min-w-0 max-w-full items-center gap-1 text-xs text-text-sub-600">
-                        <RiMapPinLine className="w-3 h-3 shrink-0" />
-                        <span className="min-w-0 truncate" title={garden.location}>
-                          {garden.location}
-                        </span>
-                      </div>
-                    )}
+      ) : myGardens.length > 0 ? (
+        <ul className="flex flex-col gap-2">
+          {myGardens.map((garden) => (
+            <li key={garden.id}>
+              <button
+                type="button"
+                data-pressable="card"
+                onClick={() => navigate(`/home/${garden.id}`)}
+                className={cn(cardVariants(), "w-full items-center gap-3 text-left")}
+              >
+                <Avatar>
+                  <div className="flex items-center justify-center text-center mx-auto text-primary">
+                    <RiPlantLine className="w-4" />
                   </div>
-                  {garden.isMember ? (
-                    <div className="flex items-center gap-1 text-xs text-primary shrink-0">
-                      <RiCheckLine className="w-4 h-4" />
-                      <span>
-                        {intl.formatMessage({
-                          id: "app.profile.member",
-                          defaultMessage: "Member",
-                        })}
+                </Avatar>
+                <div className="flex flex-col gap-0.5 min-w-0 flex-1 overflow-hidden">
+                  <div
+                    className="line-clamp-2 min-w-0 max-w-full text-sm font-medium leading-snug [overflow-wrap:anywhere]"
+                    title={garden.name}
+                  >
+                    {garden.name}
+                  </div>
+                  {garden.location && (
+                    <div className="flex min-w-0 max-w-full items-center gap-1 text-xs text-text-sub-600">
+                      <RiMapPinLine className="w-3 h-3 shrink-0" />
+                      <span className="min-w-0 truncate" title={garden.location}>
+                        {garden.location}
                       </span>
                     </div>
-                  ) : (
-                    <Button
-                      type="button"
-                      size="sm"
-                      onClick={() => handleJoinGarden(garden)}
-                      loading={isJoiningThis}
-                      className="shrink-0"
-                    >
-                      {intl.formatMessage({
-                        id: "app.profile.join",
-                        defaultMessage: "Join",
-                      })}
-                    </Button>
                   )}
                 </div>
-              </Card>
-            );
-          })}
-        </div>
+                <RiArrowRightSLine
+                  className="h-5 w-5 shrink-0 text-text-soft-400"
+                  aria-hidden="true"
+                />
+              </button>
+            </li>
+          ))}
+        </ul>
       ) : (
         <Card>
           <div className="flex flex-col items-center gap-3 w-full py-4">
@@ -270,14 +153,6 @@ export const GardensList: React.FC<GardensListProps> = ({ primaryAddress }) => {
           </div>
         </Card>
       )}
-
-      <JoinGardenConfirmDialog
-        isOpen={pendingGarden !== null}
-        gardenName={pendingGarden?.name ?? ""}
-        isJoining={isJoining}
-        onClose={() => setPendingGarden(null)}
-        onConfirm={handleConfirmJoinGarden}
-      />
     </>
   );
 };

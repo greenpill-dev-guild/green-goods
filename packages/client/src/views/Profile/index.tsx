@@ -4,6 +4,8 @@ import { useAuthState } from "@green-goods/shared/hooks/auth/useAuth";
 import { useEnsName } from "@green-goods/shared/hooks/blockchain/useEnsName";
 import { useGardenerProfile } from "@green-goods/shared/hooks/gardener/useGardenerProfile";
 import { useUser } from "@green-goods/shared/hooks/auth/useUser";
+import { useElementHeight } from "@green-goods/shared/hooks/utils/useElementHeight";
+import { cn } from "@green-goods/shared/utils/styles/cn";
 import { RiAwardLine, RiHeadphoneLine, RiSettings2Fill } from "@remixicon/react";
 import { useState } from "react";
 import { useIntl } from "react-intl";
@@ -35,6 +37,10 @@ const Profile: React.FC = () => {
   const initialTab: "account" | "badges" | "help" =
     requestedTab === "help" || requestedTab === "badges" ? requestedTab : "account";
   const [activeTab, setActiveTab] = useState<"account" | "badges" | "help">(initialTab);
+
+  // The header's height depends on its content (a location badge adds a row), so
+  // the content starts below its measured height instead of a fixed estimate.
+  const [measureHeader, headerHeight] = useElementHeight();
 
   const primaryAddress = user?.id as Address | undefined;
 
@@ -85,8 +91,9 @@ const Profile: React.FC = () => {
   return (
     <section className="flex h-full flex-col">
       {/* Fixed Header */}
-      <div className="fixed left-0 top-0 z-10 w-full bg-bg-white-0">
-        <div className="px-4 pt-6 pb-4">
+      <div ref={measureHeader} className="fixed left-0 top-0 z-10 w-full bg-bg-white-0">
+        {/* The top inset clears the offline banner, which overlays the first 24px. */}
+        <div className="px-4 pt-10 pb-4">
           <UserProfile
             displayName={displayName}
             avatar={DEFAULT_AVATAR}
@@ -112,7 +119,12 @@ const Profile: React.FC = () => {
       {/* Content - pb-24 ensures last items (logout) are visible above viewport edge */}
       <div
         id="profile-scroll"
-        className="flex-1 overflow-x-hidden overflow-y-auto pt-64 pb-24 native-scroll"
+        className={cn(
+          "flex-1 overflow-x-hidden overflow-y-auto pb-24 native-scroll",
+          // A static estimate covers the frame before the header is measured.
+          headerHeight === null && "pt-64"
+        )}
+        style={headerHeight !== null ? { paddingTop: `${headerHeight}px` } : undefined}
       >
         <div className="padded my-4 flex flex-col gap-4">
           {activeTab === "help" ? (
