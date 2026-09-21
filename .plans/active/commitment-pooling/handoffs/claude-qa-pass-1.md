@@ -289,3 +289,21 @@ by severity, the three highest-leverage changes, capture counts. Full reports li
   12/15/16 parked). Full record: `../reports/qa-experience-fixes-2026-08-25.md`; evidence:
   `../reports/evidence/qa-experience-fixes/` (26 captures + 2 measurement JSONs). No ledger
   flip, no on-chain writes, no Linear writes, no status.json edits.
+
+## QA readiness plan (2026-09-20)
+
+`../qa-readiness-plan.md` now carries what Wave 2 needs before it starts and the loop that follows
+it. It adds to the Wave 2 walkthrough above; it does not replace it.
+
+- **Before the walk:** refresh after queued acts, prefilled Offer It Again (plus Ask Again and
+  Seed another like this), an admin "Add another" batch tray, and one full catalog PR
+  (corrections, splits, new cases for reachable acts, a known gate on ADM-080).
+- **The walk:** recorded two-person calls on staging against live Arbitrum, staged from a
+  rehearsal cycle that is cancelled, to a real complete cycle, to the protocol pool relay, to the
+  partner garden last. Issues are noted on the call and brought back to an AI session through
+  `/qa-triage --call`.
+- **D2 decision:** Afo decided close-the-season as **finish**. Ending a season and recording an
+  external payout are built in the fix window and walked in the re-QA run.
+- **Gate:** this lane's manual gate is unchanged. Clearing it stays with Afo.
+- **Live read, Arbitrum block 507310713:** the module is unpaused and all 18 pools read
+  `NotReady`, so pool setup is the first act of any staging walk.
