@@ -615,7 +615,9 @@ describe("WorkDashboard", () => {
     renderDashboard(onClose);
 
     fireEvent.click(screen.getByTestId("tab-completed"));
-    fireEvent.change(screen.getByDisplayValue("By you"), {
+    // Completed opens on All, so a gardener sees their reviewed work without filtering.
+    expect(screen.getByText("Reviewed planting")).toBeInTheDocument();
+    fireEvent.change(screen.getByRole("combobox", { name: /completed work filter/i }), {
       target: { value: "myWorkReviewed" },
     });
     fireEvent.click(screen.getByText("Reviewed planting"));
@@ -704,7 +706,7 @@ describe("WorkDashboard", () => {
     renderDashboard();
 
     fireEvent.click(screen.getByTestId("tab-completed"));
-    fireEvent.change(screen.getByDisplayValue("By you"), {
+    fireEvent.change(screen.getByRole("combobox", { name: /completed work filter/i }), {
       target: { value: "myWorkReviewed" },
     });
 

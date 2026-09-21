@@ -17,11 +17,11 @@ import { useWorkUploads } from "@green-goods/shared/hooks/work/useWorkUploads";
 import { logger } from "@green-goods/shared/modules/app/logger";
 import {
   useUIStore,
+  type WorkDashboardCompletedFilter,
   type WorkDashboardPendingFilter,
   type WorkDashboardTab,
 } from "@green-goods/shared/stores/useUIStore";
 import type { Address, Work } from "@green-goods/shared/types/domain";
-import { hapticLight } from "@green-goods/shared/utils/app/haptics";
 import { isUserAddress as sharedIsUserAddress } from "@green-goods/shared/utils/blockchain/address";
 import { filterByTimeRange, type TimeFilter } from "@green-goods/shared/utils/time";
 import { RiCheckLine, RiDraftLine, RiTaskLine } from "@remixicon/react";
@@ -95,7 +95,6 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
     uploads,
     {
       onUpload: () => {
-        hapticLight();
         // useWorkUploads reports every outcome, a failure included.
         uploads.upload().catch(() => undefined);
       },
@@ -120,8 +119,8 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
   const [pendingFilter, setPendingFilter] = useState<WorkDashboardPendingFilter>(
     initialPendingFilter ?? "all"
   );
-  const [completedFilter, setCompletedFilter] = useState<"reviewedByYou" | "myWorkReviewed">(
-    returnState?.completedFilter ?? "reviewedByYou"
+  const [completedFilter, setCompletedFilter] = useState<WorkDashboardCompletedFilter>(
+    returnState?.completedFilter ?? "all"
   );
   const [timeFilter, setTimeFilter] = useState<TimeFilter>(returnState?.timeFilter ?? "month");
   const restoredScrollRef = useRef(false);
@@ -236,8 +235,17 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
     [myReceivedApprovals, myWorksById]
   );
 
-  const completedWork =
-    completedFilter === "reviewedByYou" ? completedReviewedByYou : completedMyWorkReviewed;
+  // All is both lists, newest first. A steward never reviews their own work, so
+  // the two do not overlap; the id check keeps that from ever showing a card twice.
+  const completedWork = useMemo(() => {
+    if (completedFilter === "reviewedByYou") return completedReviewedByYou;
+    if (completedFilter === "myWorkReviewed") return completedMyWorkReviewed;
+    const reviewedIds = new Set(completedReviewedByYou.map((work) => work.id));
+    return [
+      ...completedReviewedByYou,
+      ...completedMyWorkReviewed.filter((work) => !reviewedIds.has(work.id)),
+    ].sort((a, b) => b.createdAt - a.createdAt);
+  }, [completedFilter, completedReviewedByYou, completedMyWorkReviewed]);
 
   // Pending work stays listed however long it has waited; only history takes a time range.
   const filteredPending = pendingWork;
@@ -305,7 +313,6 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
 
   const handleRefresh = async () => {
     if (isRefreshing) return;
-    hapticLight();
     setIsRefreshing(true);
     const succeeded = (result: { status: string }) => result.status !== "error";
     const outcomes = await Promise.all([
@@ -362,10 +369,18 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
   const hasPendingError =
     pendingSources.some((source) => source.isError) && filteredPending.length === 0;
 
-  const isLoadingCompleted = completedFilter === "reviewedByYou" ? isLoading : isLoadingMyApprovals;
+  const reviewHistoryState = { isLoading, isError: hasError };
+  const myReviewedWorkState = { isLoading: isLoadingMyApprovals, isError: isErrorMyApprovals };
+  const completedSources =
+    completedFilter === "reviewedByYou"
+      ? [reviewHistoryState]
+      : completedFilter === "myWorkReviewed"
+        ? [myReviewedWorkState]
+        : [reviewHistoryState, myReviewedWorkState];
+  const isLoadingCompleted =
+    completedSources.some((source) => source.isLoading) && filteredCompleted.length === 0;
   const hasCompletedError =
-    (completedFilter === "reviewedByYou" ? hasError : isErrorMyApprovals) &&
-    filteredCompleted.length === 0;
+    completedSources.some((source) => source.isError) && filteredCompleted.length === 0;
   // Only the review history carries its own error text; the other reads use the tab's default.
   const completedErrorMessage = completedFilter === "reviewedByYou" ? errorMessage : undefined;
 
@@ -461,6 +476,7 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
             savedAt={completedSavedAt}
             completedFilter={completedFilter}
             onCompletedFilterChange={setCompletedFilter}
+            reviewedByYou={reviewedByYou}
             timeFilter={timeFilter}
             onTimeFilterChange={setTimeFilter}
           />
