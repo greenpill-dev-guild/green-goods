@@ -9,15 +9,20 @@ import {
   withAdminIdentity,
   withSeededQueryClient,
 } from "../../../../../../shared/.storybook/decorators";
-import { POOL_STORY_SEEDS, STORY_GARDEN } from "../poolStoryFixtures";
+import { POOL_STORY_SEEDS, STORY_GARDEN, storyPool } from "../poolStoryFixtures";
 import { SeedCommitmentDialog } from "./index";
 
 // The seeding console reads the pool through the shared controllers; the
-// cache carries the pool, its cycles and the (unregistered) protocol pool so
-// the real component renders without an indexer or a chain.
+// cache carries the pool, its cycles, the (unregistered) protocol pool and the
+// pool's open-commitment counts (nobody holds any yet) so the real component
+// renders without an indexer or a chain.
 const SEED_STORY_SEEDS: ReadonlyArray<readonly [QueryKey, unknown]> = [
   ...STORYBOOK_ADMIN_SHELL_SEEDS,
   ...POOL_STORY_SEEDS,
+  [
+    queryKeys.commitmentPooling.pool(DEFAULT_CHAIN_ID, 7n),
+    { pool: storyPool(), unitSummaries: [], providerExposures: [] },
+  ],
   [queryKeys.commitmentPooling.protocolPool(DEFAULT_CHAIN_ID), { poolId: null, rootGarden: null }],
   [
     queryKeys.commitmentPooling.settlementAccount(DEFAULT_CHAIN_ID, STORY_GARDEN),
@@ -34,7 +39,7 @@ const meta: Meta<typeof SeedCommitmentDialog> = {
     docs: {
       description: {
         component:
-          "W8, the steward's seeding console: a cast of the member composer over the same shared form, with the steward's extras. What → how much → proof & confirmation → sectioned review, then one queued creation.",
+          "W8, the steward's seeding console: a cast of the member composer over the same shared form, with the steward's extras. What → how much → proof & confirmation → sectioned review, then one queued creation. From the review, Add Another Like This keeps that commitment and starts the next from the same answers; the ones added so far are then created together, one wallet confirmation each.",
       },
     },
   },

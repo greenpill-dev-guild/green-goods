@@ -4,7 +4,8 @@ import { COMMITMENT_COMPOSER_DEFAULTS } from "@green-goods/shared/hooks/commitme
 import type { Meta, StoryObj } from "@storybook/react";
 import { STORYBOOK_ADMIN_ACTIONS } from "../../../../../../shared/.storybook/adminFixtures";
 import { STORY_JOAO, STORY_MARIA } from "../poolStoryFixtures";
-import { SeedStepReview } from "./SeedStepReview";
+import { type SeedReviewTray, SeedStepReview } from "./SeedStepReview";
+import { SEED_STORY_TRAY_ROWS } from "./seedStoryTray";
 import type { SeedCycleOption } from "./seedStepModel";
 
 // The garden's registered actions, keyed the way the registry keys them: only a
@@ -20,6 +21,23 @@ const CYCLE_OPTIONS: SeedCycleOption[] = [
   { value: "0", label: "No cycle (runs on its own)" },
 ];
 
+const noop = () => undefined;
+
+/** One commitment on its own: no tray to show, and room to spare. */
+const LONE_TRAY: SeedReviewTray = {
+  others: [],
+  currentNotSent: false,
+  lastSend: null,
+  cap: 24,
+  room: 20,
+  full: false,
+  over: false,
+  busy: false,
+  onEdit: noop,
+  onRemove: noop,
+  onRemoveCurrent: noop,
+};
+
 const meta: Meta<typeof SeedStepReview> = {
   title: "Admin/Pool/SeedStepReview",
   component: SeedStepReview,
@@ -28,7 +46,7 @@ const meta: Meta<typeof SeedStepReview> = {
     docs: {
       description: {
         component:
-          "The last step of the seeding console: every answer read back in the order it was asked for, so a steward can check the commitment before it is queued. Nothing is sent from here until Seed is pressed.",
+          "The last step of the seeding console: every answer read back in the order it was asked for, so a steward can check the commitment before it is queued. Nothing is sent from here until Seed is pressed. When several commitments are being seeded in one sitting, the ones added so far are listed above the one under review, and the note says how many times the wallet will ask.",
       },
     },
   },
@@ -48,6 +66,7 @@ const meta: Meta<typeof SeedStepReview> = {
     protocolRegistered: true,
     submitError: null,
     queueUnavailable: false,
+    tray: LONE_TRAY,
   },
   decorators: [
     (Story) => (
@@ -94,4 +113,33 @@ export const SeedFailed: Story = {
 
 export const QueueUnavailable: Story = {
   args: { queueUnavailable: true },
+};
+
+export const SeveralInOneSitting: Story = {
+  args: { tray: { ...LONE_TRAY, others: SEED_STORY_TRAY_ROWS.slice(0, 2) } },
+};
+
+/** Two were sent and one was not: it stays, marked, with what happened said above it. */
+export const SomeNotSent: Story = {
+  args: {
+    tray: {
+      ...LONE_TRAY,
+      others: SEED_STORY_TRAY_ROWS.slice(1, 2),
+      currentNotSent: true,
+      lastSend: { sent: 2, left: 2 },
+    },
+  },
+};
+
+/** More offers than the steward may hold open at once: seeding is held until one goes. */
+export const MoreOffersThanRoom: Story = {
+  args: {
+    tray: {
+      ...LONE_TRAY,
+      others: SEED_STORY_TRAY_ROWS.slice(0, 2),
+      room: 2,
+      full: true,
+      over: true,
+    },
+  },
 };

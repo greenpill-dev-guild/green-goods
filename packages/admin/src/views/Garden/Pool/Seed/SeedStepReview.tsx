@@ -1,11 +1,42 @@
 import { Alert } from "@green-goods/shared/components/Alert";
+import { StatusBadge } from "@green-goods/shared/components/StatusBadge";
+import type {
+  SeedTrayLastSend,
+  SeedTrayRow,
+} from "@green-goods/shared/hooks/admin-ui/pool/useSeedTray";
 import type { Action } from "@green-goods/shared/types/domain";
 import type { CommitmentComposerValues } from "@green-goods/shared/hooks/commitment-pooling/useCommitmentComposerForm";
 import { useIntl } from "react-intl";
+import { AdminButton } from "@/components/AdminButton";
+import { SeedTrayList } from "./SeedTrayList";
 import { actionUIDOf, type SeedCycleOption } from "./seedStepModel";
+
+/** The seeding tray as the review step shows it. */
+export interface SeedReviewTray {
+  /** The commitments added so far, beside the one under review. */
+  others: readonly SeedTrayRow[];
+  /** The one under review was sent before and nothing was created for it. */
+  currentNotSent: boolean;
+  /** What the last send left behind, until the tray changes. */
+  lastSend: SeedTrayLastSend | null;
+  /** The pool's commitment limit per person, where it is known. */
+  cap: number | null;
+  /** How many more open commitments the steward may hold; null while unread. */
+  room: number | null;
+  /** One more offer would not fit that room. */
+  full: boolean;
+  /** The offers already here do not fit it. */
+  over: boolean;
+  /** A send is under way: nothing in the tray may change. */
+  busy: boolean;
+  onEdit: (clientCommitmentId: string) => void;
+  onRemove: (clientCommitmentId: string) => void;
+  onRemoveCurrent: () => void;
+}
 
 export interface SeedStepReviewProps {
   values: CommitmentComposerValues;
+  tray: SeedReviewTray;
   /** The garden's registered actions, for naming garden-work requirements. */
   actions: Action[];
   chainId: number;
@@ -19,10 +50,13 @@ export interface SeedStepReviewProps {
 
 /**
  * Step four of the seeding console: the sectioned check a steward reads before
- * the creation is queued, in the same order the steps asked for it.
+ * the creation is queued, in the same order the steps asked for it. When more
+ * than one commitment is being seeded in a sitting, the ones added so far are
+ * listed above the one under review, and every one of them is sent together.
  */
 export function SeedStepReview({
   values,
+  tray,
   actions,
   chainId,
   cycleOptions,
@@ -63,8 +97,62 @@ export function SeedStepReview({
             defaultMessage: "Season / campaign commitment",
           });
 
+  const count = tray.others.length + 1;
+  // One commitment on its own keeps the wizard's plain failure sentence.
+  const lastSend =
+    tray.lastSend && tray.lastSend.sent + tray.lastSend.left > 1 ? tray.lastSend : null;
+
   return (
     <div className="space-y-4" data-testid="seed-review">
+      {lastSend ? (
+        <Alert variant="warning">
+          {formatMessage(
+            {
+              id: "cockpit.garden.pool.seed.tray.left",
+              defaultMessage:
+                "{sent, plural, =0 {Nothing was sent.} one {# commitment was sent.} other {# commitments were sent.}} {left, plural, one {# could not be sent, so nothing was created for it. It is still here to change or try again.} other {# could not be sent, so nothing was created for them. They are still here to change or try again.}}",
+            },
+            { sent: lastSend.sent, left: lastSend.left }
+          )}
+        </Alert>
+      ) : null}
+      <SeedTrayList
+        rows={tray.others}
+        busy={tray.busy}
+        onEdit={tray.onEdit}
+        onRemove={tray.onRemove}
+      />
+      {tray.others.length > 0 ? (
+        <div className="flex flex-wrap items-center gap-2" data-testid="seed-tray-current">
+          <p className="label-xs text-text-soft">
+            {formatMessage({
+              id: "cockpit.garden.pool.seed.tray.current",
+              defaultMessage: "This one",
+            })}
+          </p>
+          {tray.currentNotSent ? (
+            <StatusBadge variant="error" size="sm" className="shrink-0 whitespace-nowrap">
+              {formatMessage({
+                id: "cockpit.garden.pool.seed.tray.notSent",
+                defaultMessage: "Not sent",
+              })}
+            </StatusBadge>
+          ) : null}
+          <AdminButton
+            type="button"
+            variant="text"
+            size="sm"
+            disabled={tray.busy}
+            className="ml-auto"
+            onClick={tray.onRemoveCurrent}
+          >
+            {formatMessage({
+              id: "cockpit.garden.pool.seed.tray.removeCurrent",
+              defaultMessage: "Remove This One",
+            })}
+          </AdminButton>
+        </div>
+      ) : null}
       {section(
         formatMessage({ id: "cockpit.garden.pool.seed.step.what", defaultMessage: "What" }),
         [
@@ -228,6 +316,29 @@ export function SeedStepReview({
           ],
         ]
       )}
+      {tray.over ? (
+        <Alert variant="error">
+          {formatMessage(
+            {
+              id: "cockpit.garden.pool.seed.tray.roomOver",
+              defaultMessage:
+                "These offers are more than you can hold at once. You have room for {room, plural, =0 {no more} other {# more}} under the pool's commitment limit of {cap} per person. Remove an offer, change it to a request, or raise the limit in the pool settings.",
+            },
+            { room: tray.room ?? 0, cap: tray.cap ?? 0 }
+          )}
+        </Alert>
+      ) : tray.full && values.direction === "OFFER" ? (
+        <Alert variant="info">
+          {formatMessage(
+            {
+              id: "cockpit.garden.pool.seed.tray.roomFull",
+              defaultMessage:
+                "That is as many offers as you can hold at once: the pool's commitment limit is {cap} per person. A request takes none of that room.",
+            },
+            { cap: tray.cap ?? 0 }
+          )}
+        </Alert>
+      ) : null}
       {submitError ? <Alert variant="error">{submitError}</Alert> : null}
       {queueUnavailable ? (
         <Alert variant="warning">
@@ -238,11 +349,20 @@ export function SeedStepReview({
         </Alert>
       ) : null}
       <p className="text-xs text-text-soft">
-        {formatMessage({
-          id: "cockpit.garden.pool.seed.queueNote",
-          defaultMessage:
-            "Seeding asks your wallet to confirm and sends the creation now. If it has to wait, the row stays on the pool tab with Try Again.",
-        })}
+        {count > 1
+          ? formatMessage(
+              {
+                id: "cockpit.garden.pool.seed.tray.walletNote",
+                defaultMessage:
+                  "Your wallet will ask you to confirm {count} times, once for each commitment, one after another. If one has to wait, its row stays on the pool tab with Try Again.",
+              },
+              { count }
+            )
+          : formatMessage({
+              id: "cockpit.garden.pool.seed.queueNote",
+              defaultMessage:
+                "Seeding asks your wallet to confirm and sends the creation now. If it has to wait, the row stays on the pool tab with Try Again.",
+            })}
       </p>
     </div>
   );

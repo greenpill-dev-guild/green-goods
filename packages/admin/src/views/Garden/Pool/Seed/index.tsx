@@ -1,13 +1,17 @@
 import { Alert } from "@green-goods/shared/components/Alert";
 import { usePoolConsoleController } from "@green-goods/shared/hooks/admin-ui/pool/usePoolConsoleController";
+import {
+  type SeedTrayRow,
+  selectSeedTrayCapacity,
+  useSeedTray,
+  useSeedTrayRoom,
+} from "@green-goods/shared/hooks/admin-ui/pool/useSeedTray";
 import { useDirtyClose } from "@green-goods/shared/hooks/admin-ui/useDirtyClose";
 import { useActions } from "@green-goods/shared/hooks/blockchain/useBaseLists";
 import { useStepFocus } from "@green-goods/shared/hooks/utils/useStepFocus";
-import { logger } from "@green-goods/shared/modules/app/logger";
 import type { Address } from "@green-goods/shared/types/domain";
 import {
   buildCommitmentCreationPayload,
-  commitmentComposerSchema,
   useCommitmentComposerForm,
   useCommitmentComposerSession,
 } from "@green-goods/shared/hooks/commitment-pooling/useCommitmentComposerForm";
@@ -57,8 +61,10 @@ export interface SeedCommitmentDialogProps {
  * composer over the same shared form, with the steward's extras. What → how
  * much → proof & confirmation → sectioned review, then one queued creation
  * through useCommitmentJobs; the queued row appears on the pool tab before
- * the indexer has it. The cycle selector groups the one season, then the
- * campaigns, then cycle-less; claim mode is prefilled by context; the
+ * the indexer has it. Add Another Like This keeps the reviewed commitment in a
+ * tray and starts the next from the same answers, and the whole tray is then
+ * sent one creation after another. The cycle selector groups the one season,
+ * then the campaigns, then cycle-less; claim mode is prefilled by context; the
  * consideration rail defaults to none, names the external rail's fields,
  * and shows Celo settlement disabled with its readiness explanation unless
  * the garden's settlement account is active; the Green Goods team fallback is
@@ -115,18 +121,50 @@ export function SeedCommitmentDialog({
   const protocolRegistered = protocolPool.isRegistered;
   const settlementActive = Boolean(settlement.detail?.account?.active);
 
+  // One creation per tray row, under the id the row was given when it joined
+  // the tray: a row sent twice is the same creation to the queue and the chain.
+  const createRow = async (row: SeedTrayRow) => {
+    if (pool.poolId === undefined || !jobs.viewer) throw new Error("No pool or viewer to seed as");
+    const payload = buildCommitmentCreationPayload({
+      // The fallback choice cannot stand without a registered protocol pool.
+      values: protocolRegistered ? row.values : { ...row.values, protocolFallbackEnabled: false },
+      clientCommitmentId: row.clientCommitmentId,
+      poolId: pool.poolId,
+      creator: jobs.viewer,
+      gardenAddress: garden,
+      nowSeconds: Math.floor(Date.now() / 1000),
+      allowGatedOffers: true,
+    });
+    await jobs.enqueue({ act: "create", payload });
+  };
+  const tray = useSeedTray({ form, createRow });
+  const room = useSeedTrayRoom({
+    chainId,
+    poolId: pool.poolId,
+    cap: pool.pool?.providerOpenCommitmentCap,
+    viewer: jobs.viewer,
+    pendingCreates: pool.pendingCreates,
+  });
+  const capacity = selectSeedTrayCapacity({
+    room,
+    others: tray.others,
+    currentDirection: values.direction,
+  });
+  const busy = jobs.isPending || tray.isSending;
+
   const dirtyClose = useDirtyClose({
-    isDirty: open && form.formState.isDirty,
+    isDirty: open && (form.formState.isDirty || tray.others.length > 0),
     onClose,
     blockRouteChange: true,
-    preventRouteChange: jobs.isPending,
+    preventRouteChange: busy,
   });
 
-  const restart = useCallback(() => {
+  const restart = () => {
     setStepIndex(0);
     setConfirmerDraft("");
     setSubmitError(null);
-  }, []);
+    tray.restart();
+  };
   // This dialog stays mounted while `open` toggles, so a cancelled or seeded
   // attempt would otherwise be resumed — and queued a second time.
   useCommitmentComposerSession({
@@ -152,7 +190,6 @@ export function SeedCommitmentDialog({
 
   const currentStep = STEPS[stepIndex] ?? "review";
   const isLast = stepIndex === STEPS.length - 1;
-  const busy = jobs.isPending;
   const title = formatMessage({
     id: "cockpit.garden.pool.seed.title",
     defaultMessage: "Seed a Commitment",
@@ -163,14 +200,8 @@ export function SeedCommitmentDialog({
     if (valid) setStepIndex((index) => index + 1);
   }, [form, currentStep]);
 
-  const seed = useCallback(async () => {
+  const seed = async () => {
     setSubmitError(null);
-    const parsed = commitmentComposerSchema.safeParse(form.getValues());
-    if (!parsed.success) {
-      await form.trigger();
-      setStepIndex(0);
-      return;
-    }
     if (pool.poolId === undefined || !jobs.viewer) {
       setSubmitError(
         formatMessage({
@@ -180,26 +211,12 @@ export function SeedCommitmentDialog({
       );
       return;
     }
-    // The fallback choice cannot stand without a registered protocol pool.
-    const valuesToSend = protocolRegistered
-      ? parsed.data
-      : { ...parsed.data, protocolFallbackEnabled: false };
-    const payload = buildCommitmentCreationPayload({
-      values: valuesToSend,
-      clientCommitmentId: crypto.randomUUID(),
-      poolId: pool.poolId,
-      creator: jobs.viewer,
-      gardenAddress: garden,
-      nowSeconds: Math.floor(Date.now() / 1000),
-      allowGatedOffers: true,
-    });
-    try {
-      await jobs.enqueue({ act: "create", payload });
-      onClose();
-    } catch (error) {
-      logger.error("[SeedCommitmentDialog] enqueue failed", {
-        error: error instanceof Error ? error.message : String(error),
-      });
+    const alone = tray.size === 1;
+    const outcome = await tray.sendAll();
+    if (outcome === "sent") onClose();
+    else if (outcome === "invalid") setStepIndex(0);
+    // One commitment on its own keeps its plain sentence; a tray says what is left.
+    else if (alone) {
       setSubmitError(
         formatMessage({
           id: "cockpit.garden.pool.seed.enqueueFailed",
@@ -207,7 +224,16 @@ export function SeedCommitmentDialog({
         })
       );
     }
-  }, [form, pool.poolId, jobs, protocolRegistered, garden, onClose, formatMessage]);
+  };
+
+  // Both moves hand the form another row, which starts again from the first step.
+  // Answers that break a rule move nothing, and the first step is where they show.
+  const startRow = async (move: () => Promise<void>) => {
+    setSubmitError(null);
+    await move();
+    setConfirmerDraft("");
+    setStepIndex(0);
+  };
 
   const addConfirmer = () => {
     const named = withConfirmer(form.getValues("confirmers"), confirmerDraft);
@@ -278,6 +304,19 @@ export function SeedCommitmentDialog({
           protocolRegistered={protocolRegistered}
           submitError={submitError}
           queueUnavailable={pool.queueUnavailable}
+          tray={{
+            others: tray.others,
+            currentNotSent: tray.currentNotSent,
+            lastSend: tray.lastSend,
+            cap: pool.pool ? Number(pool.pool.providerOpenCommitmentCap) : null,
+            room,
+            full: capacity.full,
+            over: capacity.over,
+            busy,
+            onEdit: (id) => void startRow(() => tray.edit(id)),
+            onRemove: tray.remove,
+            onRemoveCurrent: tray.removeCurrent,
+          }}
         />
       );
   }
@@ -288,10 +327,13 @@ export function SeedCommitmentDialog({
       title={title}
       stepIndex={stepIndex}
       isLast={isLast}
-      seedDisabled={pool.poolId === undefined || pool.model.status !== "open"}
+      seedDisabled={pool.poolId === undefined || pool.model.status !== "open" || capacity.over}
+      count={tray.size}
+      addAnotherDisabled={capacity.full && values.direction === "OFFER"}
       onCancel={() => dirtyClose.onOpenChange(false)}
       onBack={() => setStepIndex((index) => index - 1)}
       onNext={() => void goNext()}
+      onAddAnother={() => void startRow(tray.addAnother)}
       onSeed={() => void seed()}
     />
   );
