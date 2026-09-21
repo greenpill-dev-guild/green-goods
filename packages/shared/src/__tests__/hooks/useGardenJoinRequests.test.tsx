@@ -36,7 +36,7 @@ vi.mock("../../modules/auth/account-message-signer", () => ({
   resolveAccountFactoryArgs: vi.fn(async () => undefined),
 }));
 
-vi.mock("../../modules/app/analytics-events", () => ({
+vi.mock("../../modules/garden-join-requests/analytics", () => ({
   trackGardenJoinRequestFailed: (...args: unknown[]) => mocks.trackFailed(...args),
 }));
 

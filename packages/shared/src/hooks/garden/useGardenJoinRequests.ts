@@ -2,7 +2,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useSignMessage } from "wagmi";
 import { gardenJoinRequestKeys } from "../../config/query-keys/garden-join-requests";
-import { trackGardenJoinRequestFailed } from "../../modules/app/analytics-events";
 import {
   GardenJoinRequestTransportError,
   gardenJoinRequestTransport,
@@ -22,6 +21,10 @@ import {
   type GardenJoinRequestSelfRecord,
   type ResolveGardenJoinRequestInput,
 } from "../../public-contracts/join-requests";
+import {
+  type GardenJoinRequestFailure,
+  trackGardenJoinRequestFailed,
+} from "../../modules/garden-join-requests/analytics";
 import type { Address } from "../../types/domain";
 import { isCancelledTxError } from "../../utils/errors/tx-error-classifier";
 import { useAuth } from "../auth/useAuth";
@@ -350,7 +353,7 @@ function randomNonce(): `0x${string}` {
 function failureToShow(
   caught: unknown,
   fallback: string,
-  operation: Parameters<typeof trackGardenJoinRequestFailed>[0]["operation"]
+  operation: GardenJoinRequestFailure["operation"]
 ): Error | null {
   if (isCancelledTxError(caught)) return null;
   const error = toError(caught, fallback);
