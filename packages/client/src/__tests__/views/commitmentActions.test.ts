@@ -276,6 +276,19 @@ describe("selectStatusBand", () => {
     expect(band?.titleId).toBe("app.commitment.band.any.expired.t");
   });
 
+  it("only tells a provider they can offer it again when that act is theirs", () => {
+    const lapsed = { derivedState: "EXPIRED" } as const;
+    // Whoever made the offer may offer it again, and the band says so.
+    expect(
+      selectStatusBand({ commitment: lapsed, seat: "provider", actKind: "offerAgain" })?.bodyId
+    ).toBe("app.commitment.band.provider.expired.b");
+    // Whoever took up someone else's request provided it too, but it is not theirs
+    // to offer again: the band states the fact and promises nothing.
+    expect(selectStatusBand({ commitment: lapsed, seat: "provider", actKind: null })?.bodyId).toBe(
+      "app.commitment.band.any.expired.b"
+    );
+  });
+
   it("says nothing to an unauthenticated reader that claims a relationship", () => {
     const band = selectStatusBand({ commitment: { derivedState: "ACTIVE" }, seat: null });
     expect(band).toBeNull();

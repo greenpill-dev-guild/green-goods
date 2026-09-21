@@ -78,7 +78,11 @@ export function GardenCommitment() {
 
   const { commitment, contributors, requirements } = controller.detail;
   const act = commitmentActForKind(controller.actKind);
-  const band = selectStatusBand({ commitment, seat: controller.seat });
+  const band = selectStatusBand({
+    commitment,
+    seat: controller.seat,
+    actKind: controller.actKind,
+  });
   const isPending = controller.isQueueing || controller.isSending;
   const units = commitment.unitLabel
     ? formatCommitmentUnits(intl, commitment.targetUnits, commitment.unitLabel)
