@@ -303,9 +303,17 @@ bump `PRAGMA user_version`.
   bundle carries `false`, passkey creation is off and `ID-01` is unreachable no matter what this
   step's hook test reports. The decision, the client build-time configuration and evidence of the
   deployed value all have to land before the UI lane is marked ready.
+  **The EOA variant of this journey is a named case, not an assumption.** `ID-03` is claimed for
+  the continuation journey, but step 7 proves only backend signature verification and everything
+  else in this step is the first-run passkey path, so nothing currently exercises an existing EOA
+  holder opening the link and publishing. An earlier revision of this plan deferred that case; two
+  independent reviewers flagged it, and they were right — a claimed criterion with no proof path is
+  the same defect as a mislabelled one. The journey needs a real wallet, so it is a QA pass 1 case:
+  an existing EOA holder opens the continuation link, signs the draft proof, publishes, and the
+  attestation's attester and the garden's membership are unchanged from before the run.
   *Proves part of `ID-01`: a new gardener creates a passkey with no other account step, and
   WhatsApp's in-app browser is refused with a handoff that preserves the draft. Publication is
-  step 12.*
+  step 12. `ID-03` is proven by the QA pass 1 EOA case, not by this step's hook tests.*
   `bun run --cwd packages/shared test -- useLoginScreenController locale-coverage && bun run --cwd packages/client test -- src/__tests__/views/Login.test.tsx` plus authenticated Brave proof — PRD-947
 - [ ] **12. Admit the new account before it publishes.** `package:shared`. Edit
   `src/hooks/client-ui/work/useWhatsAppDraftIntake.ts`, reuse
@@ -493,7 +501,13 @@ bump `PRAGMA user_version`.
   published. Asserting only the absence of GPS would let an image reach permanent IPFS still
   naming the device that took it, which is the identifying half of the criterion. A helper-only
   assertion does not prove this for an irreversible public path.*
-  `bun run --cwd packages/shared test -- media-processing upload-queued-work locale-coverage` — PRD-956
+  **`upload-queued-work` does not prove this and must not be cited as if it did.** That suite mocks
+  the attestation (`upload-queued-work.test.ts:78`) and exercises queue and transaction behaviour;
+  it names Pinata nowhere and asserts nothing about uploaded bytes. This step therefore adds a
+  publication-path test of its own — `whatsapp-publication-path` — which drives a WhatsApp-origin
+  draft through upload and asserts on the bytes Pinata actually received and on the media
+  references the attestation carries resolving to exactly those bytes.
+  `bun run --cwd packages/shared test -- media-processing whatsapp-publication-path locale-coverage` — PRD-956
 
 ## Cut line
 

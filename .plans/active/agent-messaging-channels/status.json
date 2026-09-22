@@ -78,7 +78,7 @@
           "evidence": ""
         },
         "green": {
-          "command": "bun run --cwd packages/shared test -- useWhatsAppDraftIntake useDraftResume useLoginScreenController join-garden-command media-processing upload-queued-work locale-coverage && bun run --cwd packages/client test -- src/__tests__/views/Login.test.tsx",
+          "command": "bun run --cwd packages/shared test -- useWhatsAppDraftIntake useDraftResume useLoginScreenController join-garden-command media-processing whatsapp-publication-path locale-coverage && bun run --cwd packages/client test -- src/__tests__/views/Login.test.tsx",
           "evidence": ""
         },
         "note": "Unrun. Prototype steps 9-12 and 15. Step 11 also needs authenticated Brave proof on the deployed origin: a passkey ceremony cannot be proven by localhost mocks."
@@ -109,7 +109,7 @@
       "branch": "feature/whatsapp-prototype-qa",
       "depends_on": ["state_api", "ui"],
       "handoff": "handoffs/claude-qa-pass-1.md",
-      "handoff_note": "Demo rehearsal on a real device against the Meta test number: full journey across steps 1-15, then the adversarial pass (forwarded link, preview GET, replay, concurrent consume, foreign draft id, bad webhook signature, redelivery after a mid-processing restart). Authenticated Brave for the passkey ceremony. Record which deferred cases the demo does not evidence, specifically ID-05, ID-07, REC-03 and MIG-01.",
+      "handoff_note": "Demo rehearsal on a real device against the Meta test number: full journey across steps 1-15, then the adversarial pass (forwarded link, preview GET, replay, concurrent consume, foreign draft id, bad webhook signature, redelivery after a mid-processing restart). Authenticated Brave for the passkey ceremony. Also run the ID-03 EOA case: an existing EOA holder opens the continuation link, signs the draft proof and publishes, with the attester and the garden's membership unchanged from before the run. That journey is claimed in eval.md and no automated step proves it. Record which deferred cases the demo does not evidence, specifically ID-05, ID-07, REC-03 and MIG-01.",
       "skill_tags": ["testing", "review"],
       "manual_blocked": true,
       "ready_when_dependencies_met": false,

@@ -34,7 +34,7 @@ The Buildathon prototype must pass exactly these, and claims nothing else:
 | `AUTH-03` — **draft-read path only** | 8 | PRD-946 |
 | `UX-01` | 9, 10 | PRD-947 |
 | `ID-01` — passkey creation, then admission and publication | 11, 12 | PRD-947 |
-| `ID-03` — **continuation journey only**, not WhatsApp linking | 7, 11 | PRD-946 |
+| `ID-03` — **continuation journey only**, not WhatsApp linking; proven by the QA pass 1 EOA case | 7, 11, QA pass 1 | PRD-946 |
 | `UX-02` — in-app-browser handoff only | 11 | PRD-947 |
 | `OPS-05` | 13, 14 | PRD-948 |
 | `DATA-02` — consent notice and deletion only | 5, 14 | PRD-944 |
@@ -68,6 +68,10 @@ timestamps but no domain or audience, and the origin check reads an HTTP header 
 caller controls. The criterion is claimed only because step 7 adds signed `Domain` and `Audience`
 fields and tests cross-environment replay; reusing the envelope unchanged would leave this row
 unearned.
+
+`ID-03` is proven by a named QA pass 1 case, not by a unit test: the journey needs a real wallet,
+and step 7 proves only backend signature verification while step 11 specifies the first-run passkey
+path. Without that case the row would be claimed with no proof path at all.
 
 `ID-03` is claimed for the **continuation journey only**: an existing EOA holder opens the link,
 signs the draft proof and publishes, with authorship unchanged. The linking half of its canonical
