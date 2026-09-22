@@ -2,6 +2,7 @@ import type { PoolConsoleController } from "@green-goods/shared/hooks/admin-ui/p
 import type { Dispatch, SetStateAction } from "react";
 import { useIntl } from "react-intl";
 import { AdminReasonDialog } from "@/components/AdminReasonDialog";
+import { PoolTarget, type PoolWriteTarget } from "./PoolTarget";
 import type { ReasonDialog } from "./poolDialogState";
 import { cycleName } from "./poolPresentation";
 
@@ -12,11 +13,14 @@ import { cycleName } from "./poolPresentation";
  */
 export function PoolReasonDialogs({
   pool,
+  target,
   tone,
   reasonDialog,
   setReasonDialog,
 }: {
   pool: PoolConsoleController;
+  /** The pool each reasoned act lands on, named first in every dialog. */
+  target: PoolWriteTarget;
   tone: "garden" | "hub" | "community";
   reasonDialog: ReasonDialog;
   setReasonDialog: Dispatch<SetStateAction<ReasonDialog>>;
@@ -74,7 +78,9 @@ export function PoolReasonDialogs({
           await pool.acts.pause(reason);
           setReasonDialog(null);
         }}
-      />
+      >
+        <PoolTarget target={target} />
+      </AdminReasonDialog>
 
       <AdminReasonDialog
         isOpen={reasonDialog?.kind === "cancel-cycle"}
@@ -147,7 +153,9 @@ export function PoolReasonDialogs({
           await pool.acts.cancelCycle(reasonDialog.cycle.cycleId, reason);
           setReasonDialog(null);
         }}
-      />
+      >
+        <PoolTarget target={target} />
+      </AdminReasonDialog>
 
       <AdminReasonDialog
         isOpen={reasonDialog?.kind === "decline-claim"}
@@ -201,7 +209,9 @@ export function PoolReasonDialogs({
           );
           setReasonDialog(null);
         }}
-      />
+      >
+        <PoolTarget target={target} />
+      </AdminReasonDialog>
     </>
   );
 }

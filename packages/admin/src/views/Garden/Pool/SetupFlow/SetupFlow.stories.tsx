@@ -22,7 +22,11 @@ const meta: Meta<typeof PoolSetupFlow> = {
       },
     },
   },
-  args: { open: true, onClose: () => undefined },
+  args: {
+    open: true,
+    onClose: () => undefined,
+    target: { gardenName: "Rocinha", isProtocol: false },
+  },
   decorators: [
     withAdminIdentity,
     withSeededQueryClient(STORYBOOK_ADMIN_SHELL_SEEDS),

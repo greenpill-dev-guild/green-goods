@@ -9,11 +9,11 @@ const meta: Meta<typeof SetupFailure> = {
     docs: {
       description: {
         component:
-          "A stopped setup run, read back to the steward: why it stopped, which writes already landed, and which one did not. The retry note only appears where repeating the unlanded write is safe.",
+          "Why a setup run stopped, in one sentence. Which writes landed is on the checklist above it, row by row. The retry note only appears where repeating the unlanded write is safe.",
       },
     },
   },
-  args: { isCampaign: false, landed: [], failedStep: null },
+  args: { isCampaign: false },
   decorators: [
     (Story) => (
       <div className="max-w-2xl p-4" data-tone="garden">
@@ -26,23 +26,21 @@ const meta: Meta<typeof SetupFailure> = {
 export default meta;
 type Story = StoryObj<typeof SetupFailure>;
 
-/** Three writes landed and the fourth did not, so trying again resumes there. */
-export const PartlyLanded: Story = {
+/** A send failed part way, so trying again resumes at the write that did not land. */
+export const SendFailed: Story = {
   args: {
     failure: "send-failed",
-    landed: ["setPoolCharter", "setProviderOpenCommitmentCap", "markPoolReady"],
-    failedStep: "seedCycle",
   },
 };
 
 /** No wallet was ready, so the run stopped before the first write. */
 export const NothingLanded: Story = {
-  args: { failure: "no-sender", landed: [], failedStep: null },
+  args: { failure: "no-sender" },
 };
 
 /** The pool already holds a prepared cycle, so seeding a second one was refused. */
 export const ExistingCycle: Story = {
-  args: { failure: "existing-cycle", landed: [], failedStep: "seedCycle" },
+  args: { failure: "existing-cycle" },
 };
 
 /** A campaign that was prepared but never opened; the wording follows the cycle type. */
@@ -50,17 +48,13 @@ export const CampaignNotConfirmed: Story = {
   args: {
     failure: "not-confirmed",
     isCampaign: true,
-    landed: ["seedCycle"],
-    failedStep: "openCycle",
   },
 };
 
-/** The chain went unreadable mid-run; the landed list still stands and a retry is safe. */
+/** The chain went unreadable mid-run; what landed still stands and a retry is safe. */
 export const ReadFailed: Story = {
   args: {
     failure: "read-failed",
-    landed: ["setPoolCharter", "setProviderOpenCommitmentCap"],
-    failedStep: "markPoolReady",
   },
 };
 
@@ -71,7 +65,5 @@ export const ReadFailed: Story = {
 export const SeedUnconfirmed: Story = {
   args: {
     failure: "seed-unconfirmed",
-    landed: ["setPoolCharter", "setProviderOpenCommitmentCap", "markPoolReady"],
-    failedStep: "seedCycle",
   },
 };

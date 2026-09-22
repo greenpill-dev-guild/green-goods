@@ -156,7 +156,7 @@ function cycle(overrides: Partial<CommitmentCycleRecord> = {}): CommitmentCycleR
   });
 }
 
-function consoleFor(): PoolConsoleController {
+function consoleFor(poolType: "GARDEN" | "PROTOCOL" = "GARDEN"): PoolConsoleController {
   const pool = poolFixture({
     id: "42161-7",
     chainId: 42161,
@@ -164,7 +164,7 @@ function consoleFor(): PoolConsoleController {
     registrationSeen: true,
     garden: GARDEN,
     gardenId: GARDEN,
-    poolType: "GARDEN",
+    poolType,
     state: "OPEN",
     charterCID: "bafy-charter",
     pauseReasonCID: null,
@@ -225,7 +225,7 @@ function consoleFor(): PoolConsoleController {
   });
 }
 
-function renderSeed(props: { protocolContext?: boolean; fromCommitmentId?: bigint } = {}) {
+function renderSeed(props: { fromCommitmentId?: bigint } = {}) {
   const onClose = vi.fn();
   const router = createMemoryRouter(
     [
@@ -237,7 +237,6 @@ function renderSeed(props: { protocolContext?: boolean; fromCommitmentId?: bigin
             chainId={42161}
             garden={GARDEN}
             onClose={onClose}
-            protocolContext={props.protocolContext}
             fromCommitmentId={props.fromCommitmentId}
           />
         ),
@@ -253,7 +252,7 @@ function renderSeed(props: { protocolContext?: boolean; fromCommitmentId?: bigin
  * The dialog as PoolDialogs mounts it: always rendered, `open` toggling around
  * it, and a re-render on demand so a query can be made to answer late.
  */
-function renderMounted(props: { protocolContext?: boolean } = {}) {
+function renderMounted() {
   function Harness() {
     const [open, setOpen] = useState(true);
     const [, setTick] = useState(0);
@@ -274,7 +273,6 @@ function renderMounted(props: { protocolContext?: boolean } = {}) {
           chainId={42161}
           garden={GARDEN}
           onClose={() => setOpen(false)}
-          protocolContext={props.protocolContext}
         />
       </>
     );
@@ -415,8 +413,10 @@ describe("SeedCommitmentDialog (W8)", () => {
     await waitFor(() => expect(onClose).toHaveBeenCalled());
   });
 
-  it("prefills steward review in protocol context and lets the steward gate an offer", async () => {
-    renderSeed({ protocolContext: true });
+  it("prefills steward review when the pool is the protocol's, and lets the steward gate an offer", async () => {
+    // Context comes from the pool itself, never from where the wizard was opened.
+    mocks.console = consoleFor("PROTOCOL");
+    renderSeed();
     fillWhat();
     next();
     await waitFor(() => expect(within(dialog()).getByLabelText(/^unit/i)).toBeInTheDocument());

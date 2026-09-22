@@ -22,18 +22,6 @@ export interface GardenPoolTabProps {
   garden: { id: Address; name: string };
   chainId: number;
   canManage: boolean;
-  /**
-   * Where the seed console and the commitment inspector open. The Garden
-   * workspace routes them (`/garden/pool/seed`, `/garden/pool/:id`); the
-   * Community → Pools protocol tab hosts the same console for another garden
-   * and opens both in place, in its own tone.
-   */
-  presentation?: {
-    inspector: "route" | "dialog";
-    tone: "garden" | "community";
-    /** Seeding in protocol context: requests default to steward review. */
-    protocolContext?: boolean;
-  };
 }
 
 /**
@@ -42,20 +30,20 @@ export interface GardenPoolTabProps {
  * pool's own status card on the right. Every act goes through the controller
  * in shared; every reasoned act through the one reason dialog; every row opens
  * in the Garden workspace's left inspector, route-backed.
+ *
+ * The console lives here and nowhere else, and it only ever acts on the pool
+ * of the garden the workspace has selected. The protocol pool is the Green
+ * Goods Community Garden's own pool, so it is managed from that garden, in
+ * protocol context because the pool says it is the protocol's, not because of
+ * where the console was mounted.
  */
-export function GardenPoolTab({
-  garden,
-  chainId,
-  canManage,
-  presentation = { inspector: "route", tone: "garden" },
-}: GardenPoolTabProps) {
+export function GardenPoolTab({ garden, chainId, canManage }: GardenPoolTabProps) {
   const { formatMessage } = useIntl();
   const navigate = useNavigate();
   const pool = usePoolConsoleController({ chainId, garden: garden.id });
-  const tone = presentation.tone;
-  const [inspected, setInspected] = useState<string | null>(null);
-  const [seedOpen, setSeedOpen] = useState(false);
-  const [seedFrom, setSeedFrom] = useState<string | null>(null);
+  const tone = "garden" as const;
+  const isProtocolPool = pool.pool?.poolType === "PROTOCOL";
+  const target = { gardenName: garden.name, isProtocol: isProtocolPool };
   const [scope, setScope] = useState<PoolCommitmentScope>("open");
   const [dueOnly, setDueOnly] = useState(false);
   const [flow, setFlow] = useState<FlowState>(null);
@@ -68,26 +56,17 @@ export function GardenPoolTab({
 
   const openCommitment = useCallback(
     (commitment: CommitmentReadModel) => {
-      if (presentation.inspector === "dialog") {
-        setInspected(commitment.commitmentId.toString());
-        return;
-      }
       navigate(
         adminRoutes.gardenPoolCommitment(commitment.commitmentId.toString(), {
           gardenId: garden.id,
         })
       );
     },
-    [navigate, garden.id, presentation.inspector]
+    [navigate, garden.id]
   );
   const openSeed = useCallback(() => {
-    if (presentation.inspector === "dialog") {
-      setSeedFrom(null);
-      setSeedOpen(true);
-      return;
-    }
     navigate(adminRoutes.gardenPoolSeed({ gardenId: garden.id }));
-  }, [navigate, garden.id, presentation.inspector]);
+  }, [navigate, garden.id]);
   const jumpTo = (id: string) => {
     if (typeof document === "undefined") return;
     document.getElementById(id)?.scrollIntoView({ block: "start" });
@@ -99,7 +78,7 @@ export function GardenPoolTab({
       open={fundingOpen}
       onOpenChange={setFundingOpen}
       funding={pool.funding}
-      protocolContext={presentation.protocolContext}
+      protocolContext={isProtocolPool}
       tone={tone}
       returnFocusRef={fundingDetailsButtonRef}
     />
@@ -111,7 +90,7 @@ export function GardenPoolTab({
         <AdminCard variant="elevated">
           <PoolFundingSection
             funding={pool.funding}
-            protocolContext={presentation.protocolContext}
+            protocolContext={isProtocolPool}
             onOpenDetails={() => setFundingOpen(true)}
             detailsButtonRef={fundingDetailsButtonRef}
           />
@@ -143,7 +122,7 @@ export function GardenPoolTab({
         jumpTo("pool-commitments");
       }}
       onOpenFundingDetails={() => setFundingOpen(true)}
-      protocolContext={presentation.protocolContext}
+      protocolContext={isProtocolPool}
       fundingDetailsButtonRef={fundingDetailsButtonRef}
     />
   );
@@ -284,20 +263,12 @@ export function GardenPoolTab({
 
       <PoolDialogs
         pool={pool}
-        garden={garden}
-        chainId={chainId}
+        target={target}
         tone={tone}
-        presentation={presentation}
         flow={flow}
         setFlow={setFlow}
         settingsOpen={settingsOpen}
         setSettingsOpen={setSettingsOpen}
-        seedOpen={seedOpen}
-        setSeedOpen={setSeedOpen}
-        seedFrom={seedFrom}
-        setSeedFrom={setSeedFrom}
-        inspected={inspected}
-        setInspected={setInspected}
         reasonDialog={reasonDialog}
         setReasonDialog={setReasonDialog}
         confirmDialog={confirmDialog}

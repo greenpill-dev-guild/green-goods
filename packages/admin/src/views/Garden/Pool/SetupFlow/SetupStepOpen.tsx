@@ -1,11 +1,17 @@
 import { Alert } from "@green-goods/shared/components/Alert";
 import type { PoolConsoleController } from "@green-goods/shared/hooks/admin-ui/pool/controller.types";
+import type { PoolSetupStepState } from "@green-goods/shared/hooks/commitment-pooling/useCommitmentPoolSetupSequence";
 import type { CommitmentCycleRecord } from "@green-goods/shared/modules/commitment-pooling/types-core";
+import { getNetworkName } from "@green-goods/shared/utils/blockchain/chain-registry";
 import { useIntl } from "react-intl";
 import { cycleName } from "../poolPresentation";
 import type { AllocationPercent, RecognitionPercent } from "./AllocationEditor";
 import { SetupFailure, type SetupFailureProps } from "./SetupFailure";
+import { SetupProgressList } from "./SetupProgressList";
 import type { PoolSetupIntent } from "./setupFlowModel";
+
+/** Where the run stands: before it, during it, stopped part way, or finished. */
+export type SetupPhase = "ready" | "running" | "stopped" | "done";
 
 export interface SetupStepOpenProps {
   intent: PoolSetupIntent;
@@ -21,14 +27,26 @@ export interface SetupStepOpenProps {
   recognition: RecognitionPercent;
   poolStatus: PoolConsoleController["model"]["status"];
   pinFailure: "charter" | "cycle" | null;
-  failed: boolean;
+  phase: SetupPhase;
   failure: SetupFailureProps["failure"];
-  landed: SetupFailureProps["landed"];
-  failedStep: SetupFailureProps["failedStep"];
+  /** Every write, as the checklist shows it: previewed before the run, live after. */
+  rows: readonly PoolSetupStepState[];
+  /** The wallet prompt each row rides in; rows sharing a number are approved together. */
+  promptNumbers: readonly (number | null)[];
+  promptTotal: number;
+  /** The garden whose pool this is, for the done screen. */
+  gardenName: string;
+  chainId: number;
   isOnline: boolean;
 }
 
-/** The last step: everything about to be written, then the writes themselves. */
+/**
+ * The last step: what is about to be written, how many times the wallet will
+ * ask, and then each write landing in place. A steward reads the checklist
+ * before pressing the button and watches the same rows fill in afterwards, so
+ * the wallet prompts are never a surprise and a pause is never mistaken for a
+ * loop.
+ */
 export function SetupStepOpen({
   intent,
   isCampaign,
@@ -43,13 +61,63 @@ export function SetupStepOpen({
   recognition,
   poolStatus,
   pinFailure,
-  failed,
+  phase,
   failure,
-  landed,
-  failedStep,
+  rows,
+  promptNumbers,
+  promptTotal,
+  gardenName,
+  chainId,
   isOnline,
 }: SetupStepOpenProps) {
   const { formatMessage } = useIntl();
+  const cycleLabel = cycle ? cycleName(cycle, cycleNames, formatMessage) : name.trim();
+
+  if (phase === "done") {
+    return (
+      <div className="space-y-4" data-testid="pool-setup-done">
+        <Alert
+          variant="success"
+          title={
+            intent === "first-run"
+              ? formatMessage(
+                  {
+                    id: "cockpit.garden.pool.setup.done.firstRun",
+                    defaultMessage: "{garden} is taking commitments",
+                  },
+                  { garden: gardenName }
+                )
+              : isCampaign
+                ? formatMessage({
+                    id: "cockpit.garden.pool.setup.done.campaign",
+                    defaultMessage: "The campaign is open",
+                  })
+                : formatMessage({
+                    id: "cockpit.garden.pool.setup.done.season",
+                    defaultMessage: "The season is open",
+                  })
+          }
+        >
+          {formatMessage(
+            {
+              id: "cockpit.garden.pool.setup.done.body",
+              defaultMessage:
+                "“{name}” is open. Neighbours can offer help, ask for it, and take each other up.",
+            },
+            { name: cycleLabel }
+          )}
+        </Alert>
+        <SetupProgressList
+          rows={rows}
+          numbers={promptNumbers}
+          isCampaign={isCampaign}
+          chainId={chainId}
+          showWhy="none"
+        />
+      </div>
+    );
+  }
+
   const summaryRows: Array<[string, string]> = [];
   if (intent === "first-run") {
     summaryRows.push([
@@ -77,9 +145,7 @@ export function SetupStepOpen({
     isCampaign
       ? formatMessage({ id: "cockpit.garden.pool.cycle.campaign", defaultMessage: "Campaign" })
       : formatMessage({ id: "cockpit.garden.pool.cycle.season", defaultMessage: "Season" }),
-    cycle
-      ? cycleName(cycle, cycleNames, formatMessage)
-      : `${name.trim()} · ${startDate} – ${endDate}`,
+    cycle ? cycleLabel : `${cycleLabel} · ${startDate} – ${endDate}`,
   ]);
   summaryRows.push([
     formatMessage({ id: "cockpit.garden.pool.setup.step.split", defaultMessage: "The split" }),
@@ -98,19 +164,96 @@ export function SetupStepOpen({
       { equal: recognition.equal, verified: recognition.verified }
     ),
   ]);
+
+  const current = rows.findIndex((row) => row.status === "signing" || row.status === "confirming");
+  const currentRow = current >= 0 ? rows[current] : null;
+  const currentPrompt = current >= 0 ? promptNumbers[current] : null;
+  const batched =
+    promptTotal > 0 && promptTotal < rows.filter((row) => row.status !== "already").length;
+  const doneCount = rows.filter(
+    (row) => row.status === "landed" || row.status === "already"
+  ).length;
+  const statusLine = (): string => {
+    if (phase === "running" && currentRow && currentPrompt) {
+      return currentRow.status === "signing"
+        ? formatMessage(
+            {
+              id: "cockpit.garden.pool.setup.live.signing",
+              defaultMessage: "Confirm in your wallet ({current} of {total})",
+            },
+            { current: currentPrompt, total: promptTotal }
+          )
+        : formatMessage(
+            {
+              id: "cockpit.garden.pool.setup.live.confirming",
+              defaultMessage: "Confirming on {network} ({current} of {total})",
+            },
+            { network: getNetworkName(chainId), current: currentPrompt, total: promptTotal }
+          );
+    }
+    if (phase === "running") {
+      return formatMessage({
+        id: "cockpit.garden.pool.setup.live.checking",
+        defaultMessage: "Reading the chain before the next write…",
+      });
+    }
+    if (phase === "stopped") {
+      return formatMessage(
+        {
+          id: "cockpit.garden.pool.setup.live.stopped",
+          defaultMessage: "Stopped with {done} of {total} writes done.",
+        },
+        { done: doneCount, total: rows.length }
+      );
+    }
+    return formatMessage(
+      {
+        id: "cockpit.garden.pool.setup.promptCount",
+        defaultMessage:
+          "{count, plural, one {Your wallet will ask you once.} =2 {Your wallet will ask you twice, one after the other.} other {Your wallet will ask you # times, one after another.}}",
+      },
+      { count: promptTotal }
+    );
+  };
+
   return (
     <div className="space-y-4">
-      <dl className="space-y-2">
-        {summaryRows.map(([label, value]) => (
-          <div key={label}>
-            <dt className="label-xs text-text-soft">{label}</dt>
-            <dd className="text-body-md text-text-strong" title={value}>
-              {value}
-            </dd>
-          </div>
-        ))}
-      </dl>
-      {!failed ? (
+      {phase === "ready" ? (
+        <dl className="space-y-2">
+          {summaryRows.map(([label, value]) => (
+            <div key={label}>
+              <dt className="label-xs text-text-soft">{label}</dt>
+              <dd className="text-body-md text-text-strong" title={value}>
+                {value}
+              </dd>
+            </div>
+          ))}
+        </dl>
+      ) : null}
+
+      <div className="space-y-2">
+        <p className="text-body-md font-medium text-text-strong" aria-live="polite">
+          {statusLine()}
+        </p>
+        {batched && phase === "ready" ? (
+          <p className="text-xs text-text-soft">
+            {formatMessage({
+              id: "cockpit.garden.pool.setup.promptBatched",
+              defaultMessage:
+                "Writes with the same number are approved together, in one transaction.",
+            })}
+          </p>
+        ) : null}
+        <SetupProgressList
+          rows={rows}
+          numbers={promptNumbers}
+          isCampaign={isCampaign}
+          chainId={chainId}
+          showWhy={phase === "ready" ? "all" : "current"}
+        />
+      </div>
+
+      {phase === "ready" ? (
         <Alert variant="info">
           {intent === "first-run"
             ? formatMessage({
@@ -137,6 +280,15 @@ export function SetupStepOpen({
                   })}
         </Alert>
       ) : null}
+      {phase === "running" ? (
+        <p className="text-xs text-text-soft">
+          {formatMessage({
+            id: "cockpit.garden.pool.setup.keepOpen",
+            defaultMessage:
+              "Keep this open until every write is done. If you leave, what is done stays done, and you can finish from the pool tab.",
+          })}
+        </p>
+      ) : null}
       {pinFailure ? (
         <Alert variant="error">
           {pinFailure === "charter"
@@ -152,14 +304,7 @@ export function SetupStepOpen({
               })}
         </Alert>
       ) : null}
-      {failed ? (
-        <SetupFailure
-          failure={failure}
-          isCampaign={isCampaign}
-          landed={landed}
-          failedStep={failedStep}
-        />
-      ) : null}
+      {phase === "stopped" ? <SetupFailure failure={failure} isCampaign={isCampaign} /> : null}
       {!isOnline ? (
         <Alert variant="warning">
           {formatMessage({

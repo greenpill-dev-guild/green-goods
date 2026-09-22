@@ -31,14 +31,17 @@ vi.mock("@/components/AdminDialog", () => ({
     onClose,
     onConfirm,
     confirmLabel,
+    children,
   }: {
     isOpen: boolean;
     onClose: () => void;
     onConfirm: () => Promise<void>;
     confirmLabel: string;
+    children?: ReactNode;
   }) =>
     isOpen ? (
       <section data-testid="confirm-dialog">
+        {children}
         <button type="button" onClick={onClose}>
           Cancel confirmation
         </button>
@@ -53,10 +56,12 @@ vi.mock("@/views/Garden/Pool/SetupFlow", () => ({
   PoolSetupFlow: ({
     open,
     intent,
+    target,
     onClose,
   }: {
     open: boolean;
     intent: string;
+    target: { gardenName: string; isProtocol: boolean };
     onClose: () => void;
   }) => (
     <button
@@ -64,6 +69,7 @@ vi.mock("@/views/Garden/Pool/SetupFlow", () => ({
       data-testid="setup-flow"
       data-open={String(open)}
       data-intent={intent}
+      data-target={`${target.gardenName}:${target.isProtocol}`}
       onClick={onClose}
     >
       Close setup
@@ -71,58 +77,41 @@ vi.mock("@/views/Garden/Pool/SetupFlow", () => ({
   ),
 }));
 vi.mock("@/views/Garden/Pool/PoolSettingsDialog", () => ({
-  PoolSettingsDialog: ({ open, onClose }: { open: boolean; onClose: () => void }) => (
-    <button type="button" data-testid="settings-dialog" data-open={String(open)} onClick={onClose}>
+  PoolSettingsDialog: ({
+    open,
+    target,
+    onClose,
+  }: {
+    open: boolean;
+    target: { gardenName: string; isProtocol: boolean };
+    onClose: () => void;
+  }) => (
+    <button
+      type="button"
+      data-testid="settings-dialog"
+      data-open={String(open)}
+      data-target={`${target.gardenName}:${target.isProtocol}`}
+      onClick={onClose}
+    >
       Close settings
     </button>
   ),
 }));
-vi.mock("@/views/Garden/Pool/Seed", () => ({
-  SeedCommitmentDialog: ({
-    open,
-    onClose,
-    fromCommitmentId,
-  }: {
-    open: boolean;
-    onClose: () => void;
-    fromCommitmentId?: bigint | null;
-  }) =>
-    open ? (
-      <button
-        type="button"
-        data-testid="seed-dialog"
-        data-from={fromCommitmentId?.toString() ?? ""}
-        onClick={onClose}
-      >
-        Close seed
-      </button>
-    ) : null,
-}));
-vi.mock("@/views/Garden/Pool/CommitmentDialog", () => ({
-  CommitmentDialogPanel: ({
-    commitmentId,
-    onSeedAnother,
-  }: {
-    commitmentId: string;
-    onSeedAnother?: (commitmentId: string) => void;
-  }) => (
-    <div data-testid="commitment-panel">
-      {commitmentId}
-      <button type="button" onClick={() => onSeedAnother?.(commitmentId)}>
-        Seed another
-      </button>
-    </div>
-  ),
-}));
 vi.mock("@/views/Garden/Pool/PoolReasonDialogs", () => ({
-  PoolReasonDialogs: ({ reasonDialog }: { reasonDialog: { kind: string } | null }) => (
-    <div data-testid="reason-dialog">{reasonDialog?.kind ?? "closed"}</div>
+  PoolReasonDialogs: ({
+    reasonDialog,
+    target,
+  }: {
+    reasonDialog: { kind: string } | null;
+    target: { gardenName: string; isProtocol: boolean };
+  }) => (
+    <div data-testid="reason-dialog" data-target={`${target.gardenName}:${target.isProtocol}`}>
+      {reasonDialog?.kind ?? "closed"}
+    </div>
   ),
 }));
 
 const { PoolDialogs } = await import("@/views/Garden/Pool/PoolDialogs");
-
-const GARDEN = "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" as const;
 
 function setup(overrides: Partial<Parameters<typeof PoolDialogs>[0]> = {}) {
   const closePool = vi.fn().mockResolvedValue(undefined);
@@ -136,24 +125,16 @@ function setup(overrides: Partial<Parameters<typeof PoolDialogs>[0]> = {}) {
   const setters = {
     setFlow: vi.fn(),
     setSettingsOpen: vi.fn(),
-    setSeedOpen: vi.fn(),
-    setSeedFrom: vi.fn(),
-    setInspected: vi.fn(),
     setReasonDialog: vi.fn(),
     setConfirmDialog: vi.fn(),
   };
   renderWithProviders(
     <PoolDialogs
       pool={pool}
-      garden={{ id: GARDEN, name: "Rocinha" }}
-      chainId={42161}
+      target={{ gardenName: "Rocinha", isProtocol: false }}
       tone="garden"
-      presentation={{ inspector: "route" }}
       flow={null}
       settingsOpen={false}
-      seedOpen={false}
-      seedFrom={null}
-      inspected={null}
       reasonDialog={null}
       confirmDialog={null}
       {...setters}
@@ -179,42 +160,23 @@ describe("PoolDialogs", () => {
     expect(setSettingsOpen).toHaveBeenCalledWith(false);
   });
 
-  it("mounts seed and commitment inspectors only for dialog presentation", () => {
-    const { setSeedOpen, setInspected } = setup({
-      presentation: { inspector: "dialog" },
-      seedOpen: true,
-      inspected: "42",
-    });
-    expect(screen.getByTestId("commitment-panel")).toHaveTextContent("42");
-    fireEvent.click(screen.getByTestId("seed-dialog"));
-    fireEvent.click(screen.getByRole("button", { name: "Close inspector" }));
-    expect(setSeedOpen).toHaveBeenCalledWith(false);
-    expect(setInspected).toHaveBeenCalledWith(null);
+  it("hands every dialog the one pool it writes to, and names it in each confirmation", () => {
+    setup({ flow: { intent: "first-run" }, settingsOpen: true, confirmDialog: "close" });
+    expect(screen.getByTestId("setup-flow")).toHaveAttribute("data-target", "Rocinha:false");
+    expect(screen.getByTestId("settings-dialog")).toHaveAttribute("data-target", "Rocinha:false");
+    expect(screen.getByTestId("reason-dialog")).toHaveAttribute("data-target", "Rocinha:false");
+    expect(screen.getByTestId("confirm-dialog")).toHaveTextContent("Writing to");
+    expect(screen.getByTestId("confirm-dialog")).toHaveTextContent("Rocinha’s pool");
   });
 
-  it("hands the inspected commitment to the seeding wizard, one dialog at a time", () => {
-    const { setSeedOpen, setSeedFrom, setInspected } = setup({
-      presentation: { inspector: "dialog" },
-      seedOpen: true,
-      seedFrom: "42",
-      inspected: "42",
+  it("sets the protocol pool apart as a warning, never as a garden's pool", () => {
+    setup({
+      confirmDialog: "compost",
+      target: { gardenName: "Green Goods Community Garden", isProtocol: true },
     });
-    expect(screen.getByTestId("seed-dialog")).toHaveAttribute("data-from", "42");
-
-    fireEvent.click(screen.getByRole("button", { name: "Seed another" }));
-    expect(setInspected).toHaveBeenCalledWith(null);
-    expect(setSeedFrom).toHaveBeenCalledWith("42");
-    expect(setSeedOpen).toHaveBeenCalledWith(true);
-
-    // Closing the wizard forgets the source, so the next plain Seed opens empty.
-    fireEvent.click(screen.getByTestId("seed-dialog"));
-    expect(setSeedFrom).toHaveBeenLastCalledWith(null);
-  });
-
-  it("does not mount dialog-owned inspectors in route presentation", () => {
-    setup({ presentation: { inspector: "route" }, seedOpen: true, inspected: "42" });
-    expect(screen.queryByTestId("seed-dialog")).not.toBeInTheDocument();
-    expect(screen.queryByTestId("commitment-panel")).not.toBeInTheDocument();
+    const dialog = screen.getByTestId("confirm-dialog");
+    expect(dialog).toHaveTextContent("Writing to the Green Goods protocol pool");
+    expect(dialog).not.toHaveTextContent("Green Goods Community Garden’s pool");
   });
 
   it.each([

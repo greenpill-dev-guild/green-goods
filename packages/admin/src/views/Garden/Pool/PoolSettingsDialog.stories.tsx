@@ -15,7 +15,11 @@ const meta: Meta<typeof PoolSettingsDialog> = {
       },
     },
   },
-  args: { open: true, onClose: () => undefined },
+  args: {
+    open: true,
+    onClose: () => undefined,
+    target: { gardenName: "Rocinha", isProtocol: false },
+  },
 };
 
 export default meta;
@@ -24,3 +28,11 @@ type Story = StoryObj<typeof PoolSettingsDialog>;
 export const Default: Story = { args: { console: storyPoolConsole() } };
 
 export const Offline: Story = { args: { console: storyPoolConsole({ isOnline: false }) } };
+
+/** Editing the protocol pool: the dialog says so before anything else. */
+export const ProtocolPool: Story = {
+  args: {
+    console: storyPoolConsole(),
+    target: { gardenName: "Green Goods Community Garden", isProtocol: true },
+  },
+};

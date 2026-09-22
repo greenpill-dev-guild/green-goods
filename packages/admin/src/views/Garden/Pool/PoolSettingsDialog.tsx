@@ -8,10 +8,13 @@ import { useIntl } from "react-intl";
 import { AdminButton } from "@/components/AdminButton";
 import { AdminDialog } from "@/components/AdminDialog";
 import { AdminTextArea, AdminTextField } from "@/components/AdminTextField";
+import { PoolTarget, type PoolWriteTarget } from "./PoolTarget";
 import { DiscardChangesDialog } from "@/components/DiscardChangesDialog";
 
 export interface PoolSettingsDialogProps {
   console: PoolConsoleController;
+  /** The pool the settings are written to, named first. */
+  target: PoolWriteTarget;
   open: boolean;
   onClose: () => void;
 }
@@ -23,7 +26,12 @@ export interface PoolSettingsDialogProps {
  * pinned before `setPoolCharter`, and a pin failure keeps the dialog open with
  * the words intact.
  */
-export function PoolSettingsDialog({ console: pool, open, onClose }: PoolSettingsDialogProps) {
+export function PoolSettingsDialog({
+  console: pool,
+  target,
+  open,
+  onClose,
+}: PoolSettingsDialogProps) {
   const { formatMessage } = useIntl();
   const purposeId = useId();
   const [purpose, setPurpose] = useState("");
@@ -116,6 +124,7 @@ export function PoolSettingsDialog({ console: pool, open, onClose }: PoolSetting
           </>
         }
       >
+        <PoolTarget target={target} />
         <AdminTextArea
           id={purposeId}
           label={formatMessage({

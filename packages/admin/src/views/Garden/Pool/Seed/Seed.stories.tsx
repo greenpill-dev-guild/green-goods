@@ -68,6 +68,22 @@ export const What: Story = {
   },
 };
 
+/**
+ * Seeding into the protocol pool: requests default to steward review because
+ * the pool itself is the protocol's, wherever the wizard was opened from.
+ */
 export const ProtocolContext: Story = {
-  args: { protocolContext: true },
+  decorators: [
+    withSeededQueryClient([
+      ...SEED_STORY_SEEDS,
+      [
+        queryKeys.commitmentPooling.pools(DEFAULT_CHAIN_ID, STORY_GARDEN),
+        [storyPool({ poolType: "PROTOCOL" })],
+      ],
+      [
+        queryKeys.commitmentPooling.pool(DEFAULT_CHAIN_ID, 7n),
+        { pool: storyPool({ poolType: "PROTOCOL" }), unitSummaries: [], providerExposures: [] },
+      ],
+    ]),
+  ],
 };

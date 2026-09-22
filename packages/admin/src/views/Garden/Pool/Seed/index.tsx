@@ -47,11 +47,6 @@ export interface SeedCommitmentDialogProps {
   chainId: number;
   garden: Address;
   onClose: () => void;
-  /**
-   * Seeding in protocol context (the root garden's pool): requests default to
-   * steward review. A garden campaign defaults to open claims.
-   */
-  protocolContext?: boolean;
   /** A commitment in this pool to start from (Seed Another Like This). */
   fromCommitmentId?: bigint | null;
 }
@@ -76,12 +71,15 @@ export function SeedCommitmentDialog({
   chainId,
   garden,
   onClose,
-  protocolContext = false,
   fromCommitmentId = null,
 }: SeedCommitmentDialogProps) {
   const { formatMessage } = useIntl();
   const noteId = useId();
   const pool = usePoolConsoleController({ chainId, garden });
+  // Seeding into the protocol pool (the Green Goods Community Garden's own):
+  // requests default to steward review. The pool says which it is, so the
+  // context holds wherever the wizard is opened from.
+  const protocolContext = pool.pool?.poolType === "PROTOCOL";
   const protocolPool = useProtocolPool({ chainId });
   const settlement = useSettlementAccount({ chainId, garden });
   const { data: actions = [] } = useActions(chainId);
@@ -177,7 +175,7 @@ export function SeedCommitmentDialog({
   useCommitmentComposerSession({
     form,
     open,
-    sessionKey: `${chainId}:${garden}:${protocolContext}:${fromCommitmentId ?? "new"}`,
+    sessionKey: `${chainId}:${garden}:${fromCommitmentId ?? "new"}`,
     initial,
     onRestart: restart,
   });
