@@ -6,7 +6,6 @@
 
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { fireEvent } from "@testing-library/react";
 import { renderWithProviders as render, screen, userEvent, waitFor, within } from "../test-utils";
 
 const TEST_JAR = "0x1111111111111111111111111111111111111111" as const;
@@ -177,16 +176,12 @@ vi.mock("@green-goods/shared/components/feedback/TransactionSuccessAffordance", 
 
 import CookiesPage from "../../views/Public/Cookies";
 
-function renderPage(path = `/cookies?jar=${TEST_JAR}`, openWalletSurface = true) {
-  const result = render(
+function renderPage(path = `/cookies?jar=${TEST_JAR}`) {
+  return render(
     <MemoryRouter initialEntries={[path]}>
       <CookiesPage />
     </MemoryRouter>
   );
-  if (openWalletSurface) {
-    fireEvent.click(screen.getByRole("button", { name: "Explore Cookie Jars" }));
-  }
-  return result;
 }
 
 describe("CookiesPage", () => {
@@ -267,11 +262,13 @@ describe("CookiesPage", () => {
     expect(screen.queryByRole("button", { name: "Add funds" })).toBeNull();
   });
 
-  it("keeps the wallet surface deferred until the visitor asks to explore jars", () => {
-    renderPage("/cookies", false);
+  it("shows public cookie jars without requiring an explore action", async () => {
+    renderPage("/cookies");
 
-    expect(screen.getByRole("button", { name: "Explore Cookie Jars" })).toBeInTheDocument();
-    expect(screen.queryByRole("article", { name: "Earth Week Cookie Jar" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Explore Cookie Jars" })).toBeNull();
+    expect(
+      await screen.findByRole("article", { name: "Earth Week Cookie Jar" })
+    ).toBeInTheDocument();
   });
 
   it("uses editorial record skeletons while the campaign list loads", async () => {
