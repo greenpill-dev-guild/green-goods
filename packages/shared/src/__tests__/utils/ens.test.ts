@@ -200,6 +200,13 @@ describe("suggestSlug", () => {
     expect(result.length).toBeLessThanOrEqual(50);
   });
 
+  it("never ends in a hyphen when the cut lands on a separator", () => {
+    const result = suggestSlug(`${"a".repeat(49)} b`);
+
+    expect(result).toBe("a".repeat(49));
+    expect(validateSlug(result).valid).toBe(true);
+  });
+
   it("collapses consecutive hyphens from replaced chars", () => {
     expect(suggestSlug("hello   world")).toBe("hello-world");
   });

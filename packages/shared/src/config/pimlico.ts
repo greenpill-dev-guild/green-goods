@@ -3,7 +3,6 @@ import { type Chain, createPublicClient, fallback, http } from "viem";
 import { entryPoint07Address } from "viem/account-abstraction";
 import { mainnet, sepolia } from "viem/chains";
 import { ENV } from "../lib/env";
-import { SmartAccountClientError } from "../modules/auth/smartAccountClientResolver";
 import { getRpcUrl } from "../utils/blockchain/chain-registry";
 import { getChain, isChainSupported } from "./chains";
 
@@ -31,16 +30,20 @@ const celoSepoliaProfileChain = {
   rpcUrls: { default: { http: [PIMLICO_API_ENDPOINTS[11142220]] } },
 } as const satisfies Chain;
 
-/** Celo can use the configured general policy when no Celo override is set. */
+/** The policy every chain takes unless the environment names another. */
+const GENERAL_SPONSORSHIP_POLICY_ID = "sp_next_monster_badoon";
+
+/**
+ * One general policy covers every chain, Celo included. Celo may name its own
+ * override; without one it takes the general policy exactly as Arbitrum does,
+ * so a Celo send never waits on configuration that Arbitrum does not need.
+ */
 export function getPimlicoSponsorshipPolicyId(chainId: number): string {
-  if (chainId === 42220) {
-    const policyId =
-      ENV.VITE_PIMLICO_CELO_SPONSORSHIP_POLICY_ID?.trim() ||
-      ENV.VITE_PIMLICO_SPONSORSHIP_POLICY_ID?.trim();
-    if (!policyId) throw new SmartAccountClientError("policy_unavailable");
-    return policyId;
-  }
-  return ENV.VITE_PIMLICO_SPONSORSHIP_POLICY_ID?.trim() || "sp_next_monster_badoon";
+  const celoOverride =
+    chainId === 42220 ? ENV.VITE_PIMLICO_CELO_SPONSORSHIP_POLICY_ID?.trim() : undefined;
+  return (
+    celoOverride || ENV.VITE_PIMLICO_SPONSORSHIP_POLICY_ID?.trim() || GENERAL_SPONSORSHIP_POLICY_ID
+  );
 }
 
 export function getPimlicoApiKey(): string {

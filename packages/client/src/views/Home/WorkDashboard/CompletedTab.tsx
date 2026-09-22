@@ -1,4 +1,5 @@
 import { NativeSelect } from "@green-goods/shared/components/Form/ControlPrimitives";
+import type { WorkDashboardCompletedFilter } from "@green-goods/shared/stores/useUIStore";
 import type { Work } from "@green-goods/shared/types/domain";
 import type { TimeFilter } from "@green-goods/shared/utils/time";
 import { RiCheckLine } from "@remixicon/react";
@@ -16,8 +17,10 @@ interface CompletedTabProps {
   errorMessage?: string;
   onWorkClick: (work: Work) => void;
   onRefresh: () => void;
-  completedFilter: "reviewedByYou" | "myWorkReviewed";
-  onCompletedFilterChange: (value: "reviewedByYou" | "myWorkReviewed") => void;
+  completedFilter: WorkDashboardCompletedFilter;
+  onCompletedFilterChange: (value: WorkDashboardCompletedFilter) => void;
+  /** Works this account reviewed; every other completed work is its own submission. */
+  reviewedByYou: ReadonlySet<string>;
   timeFilter: TimeFilter;
   onTimeFilterChange: (value: TimeFilter) => void;
   isOffline?: boolean;
@@ -50,6 +53,7 @@ export const CompletedTab: React.FC<CompletedTabProps> = ({
   onRefresh,
   completedFilter,
   onCompletedFilterChange,
+  reviewedByYou,
   timeFilter,
   onTimeFilterChange,
   isOffline,
@@ -58,16 +62,16 @@ export const CompletedTab: React.FC<CompletedTabProps> = ({
   const intl = useIntl();
 
   const renderPresentation = (work: Work): WorkCardPresentation => ({
-    contextLabel:
-      completedFilter === "reviewedByYou"
-        ? intl.formatMessage({
-            id: "app.workDashboard.badge.reviewedByYou",
-            defaultMessage: "Reviewed by you",
-          })
-        : intl.formatMessage({
-            id: "app.workDashboard.badge.yourWorkReviewed",
-            defaultMessage: "Your work was reviewed",
-          }),
+    // Under All the list mixes both kinds, so each card says which one it is.
+    contextLabel: reviewedByYou.has(work.id)
+      ? intl.formatMessage({
+          id: "app.workDashboard.badge.reviewedByYou",
+          defaultMessage: "Reviewed by you",
+        })
+      : intl.formatMessage({
+          id: "app.workDashboard.badge.yourWorkReviewed",
+          defaultMessage: "Your work was reviewed",
+        }),
     supportingText: work.feedback?.trim()
       ? intl.formatMessage({ id: "app.workCard.feedback", defaultMessage: "Feedback" })
       : intl.formatMessage({
@@ -102,19 +106,25 @@ export const CompletedTab: React.FC<CompletedTabProps> = ({
             className="w-auto min-w-16 max-w-48 field-sizing-content"
             value={completedFilter}
             onChange={(e) =>
-              onCompletedFilterChange(e.target.value as "reviewedByYou" | "myWorkReviewed")
+              onCompletedFilterChange(e.target.value as WorkDashboardCompletedFilter)
             }
           >
+            <option value="all">
+              {intl.formatMessage({
+                id: "app.workDashboard.filter.all",
+                defaultMessage: "All",
+              })}
+            </option>
             <option value="reviewedByYou">
               {intl.formatMessage({
                 id: "app.workDashboard.filter.reviewedByYou",
-                defaultMessage: "By you",
+                defaultMessage: "You reviewed",
               })}
             </option>
             <option value="myWorkReviewed">
               {intl.formatMessage({
                 id: "app.workDashboard.filter.myWorkReviewed",
-                defaultMessage: "Yours",
+                defaultMessage: "My work",
               })}
             </option>
           </NativeSelect>

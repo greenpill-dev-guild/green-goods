@@ -133,6 +133,8 @@
      (packages/shared/.storybook/surfaces.css); AdminDensityScale.guard pins both. */
   --gg-button-radius: var(--radius-full);
   --gg-button-radius-pressed: var(--radius-full);
+  --gg-button-radius-compact: var(--radius-full);
+  --gg-button-radius-compact-pressed: var(--radius-full);
   --gg-button-weight: 500;
   --gg-label-md: 0.875rem;
   --gg-label-sm: 0.875rem;
