@@ -112,4 +112,4 @@ Under QA Speed Mode (CLAUDE.md § Validation Intent Ladder), a fix may record in
 - `not_applicable` — behavior unchanged (copy, docs, static config, visual token/class with no logic path).
 - `proof_limit` — a targeted test would be brittler/slower than direct proof (one-off visual layout, staging-only, authenticated-browser-only state).
 
-Always record the substitute evidence (file re-read, existing targeted test, package-local typecheck/build, or authenticated Brave rendered proof). Never for auth/crypto/job-queue/mutation behavior, shared public-API changes, or release readiness — those need tests + the appropriate gate.
+Always record the substitute evidence (file re-read, existing targeted test, package-local typecheck/build, or rendered proof labeled per `AGENTS.md § Browser Evidence`). Never for auth/crypto/job-queue/mutation behavior, shared public-API changes, or release readiness — those need tests + the appropriate gate.

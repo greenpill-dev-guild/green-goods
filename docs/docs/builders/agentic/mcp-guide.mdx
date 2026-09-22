@@ -10,7 +10,7 @@ generated_from:
   - .mcp.json
   - AGENTS.md
   - scripts/mcp/brave-devtools.mjs
-source_digest: "sha256:70e74e0cbfd1e6ab9701a20be7dc2154cab75cd38e739d91fb2ce931d8128b36"
+source_digest: "sha256:45124c760b5dfc7c42a04bfc1b9743787918a4257ec4a31782ea8c9c40394fef"
 source_of_truth:
   - .mcp.json
   - AGENTS.md
@@ -28,8 +28,8 @@ This inventory is projected from the checked-in MCP configuration. Repository gu
 
 ## Safety boundary
 
-- Green Goods browser proof is Brave-only. Do not use Google Chrome, Chrome for Testing, Chromium, or Edge as a fallback.
+- WebMCP proof through this wrapper is Brave-only (navigator.modelContext). Do not point it at Google Chrome, Chrome for Testing, Chromium, or Edge.
 - The wrapper calls the upstream chrome-devtools-mcp package because that is the protocol package name; the browser executable must still be Brave.
 - This isolated DevTools MCP server is public clean-room evidence only; it is not authenticated local QA.
-- Use the authenticated Brave extension or visible-desktop path for admin, wallet, passkey, installed-PWA, and profile-dependent proof.
+- Use the authenticated Brave extension or visible-desktop path for wallet, passkey, session, installed-PWA, and profile-dependent proof (AGENTS.md § Browser Evidence).
 - Do not expose secrets, wallet state, passkeys, local storage, private garden data, telemetry identifiers, or hidden admin actions in prompts or reports.

@@ -92,8 +92,9 @@ foundations.
 - In QA Speed Mode, run the targeted view/component/model test when one covers the fix and capture authenticated rendered proof for visible UI. Use `bun run build` when route wiring, view imports, or build output could break; do not run Storybook checks unless shared primitives/stories/tokens moved.
 - Permission and role changes often originate in shared code; use the root quick verification
   loop when shared contracts or shared hooks move.
-- Visible changes follow root `AGENTS.md` section “Agentic Modern Web Standard”; if its
-  authenticated Brave path is unavailable, report browser QA as `BLOCKED`.
+- Visible changes follow root [`AGENTS.md` § Browser Evidence](../../AGENTS.md#browser-evidence):
+  label the engine and session behind the proof, and if the authenticated Brave path is
+  unavailable, record that proof as pending and continue with labeled evidence.
 - **Tailwind v4 gotcha**: admin's content scan does not reach `packages/shared/src/`, so a shared component that uses utility classes in its JSX may render off-center, missing padding, or wrong width in admin even when it looks fine in Storybook. Before debugging the shared component, check root `AGENTS.md` → "Known Gotchas" — the fix is a fork into `packages/admin/src/components/Shell/` (the Canvas shell pattern) or inline styles inside the shared component, not utility classes in shared JSX.
 
 ## Validation
@@ -103,10 +104,11 @@ foundations.
 - Conditional proof: Storybook checks apply only when shared primitives, stories, or tokens move.
 - Broader impact: run the root Repo Quick Gate when shared hooks, permissions, or public contracts move.
 
-## Authenticated Browser QA
+## Browser Evidence
 
-Local agentic browser QA for this package uses the authenticated Brave QA profile.
-Codex sessions use the Codex browser-extension path and claim the already-open Brave tab/window.
-Claude Code sessions use the Claude Code Chrome/Chromium extension path and select the authenticated Brave profile/tab.
-Do not use isolated Browser, Playwright, or DevTools MCP profiles for local QA.
-If authenticated Brave access is blocked, stop and report QA as blocked.
+Rendered proof for this package follows [AGENTS.md § Browser Evidence](../../AGENTS.md#browser-evidence):
+label the engine and session, use the authenticated Brave profile only for the authenticated surface
+class, and treat the `browser-proof` check as advisory locally.
+Admin views render under mock auth, so labeled mock-auth localhost or Storybook proof covers layout
+and copy; only write flows that reach the shared wallet, auth, or job-queue paths need the
+authenticated Brave profile.

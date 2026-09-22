@@ -121,4 +121,4 @@ The data attributes make the DOM self-identifying. This file tells the agent to 
 - [language.md](./language.md) — full Warm Earth token + motion spec
 - Project rules: `.claude/rules/frontend-design.md`
 - Tooling: `bun run check --only design-tokens`, `bun run check --only vocabulary`
-- Authenticated Brave QA: use the Codex browser-extension path or the Claude Code Chrome/Chromium extension path against the already-open authenticated Brave profile/tab. If that access is blocked, report QA as blocked rather than switching to an isolated Browser, Playwright, or DevTools MCP profile.
+- Browser evidence: follow `AGENTS.md § Browser Evidence`. Admin views render under mock auth, so a labeled mock-auth localhost DOM read is valid evidence for defect resolution; use the authenticated Brave profile (Codex browser-extension path or Claude Code Chrome/Chromium extension path against the already-open tab) for write flows that reach wallet, auth, or job-queue paths, and record that proof as pending rather than presenting an isolated profile as authenticated.
