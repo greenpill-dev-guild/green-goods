@@ -10,6 +10,7 @@ import {
   type GardenJoinRequestQueueItem,
 } from "@green-goods/shared/public-contracts/join-requests";
 import type { Address } from "@green-goods/shared/types/domain";
+import { isCancelledTxError } from "@green-goods/shared/utils/errors/tx-error-classifier";
 import { RiCheckLine, RiCloseLine, RiInbox2Line } from "@remixicon/react";
 import { useState } from "react";
 import { useIntl } from "react-intl";
@@ -62,6 +63,8 @@ export function CommunityJoinRequests({ gardenAddress }: { gardenAddress: Addres
           : formatMessage({ id: "cockpit.community.joinRequests.welcomed" })
       );
     } catch (caught) {
+      // Declining the signature is a choice, not a failure; the request stays in the queue.
+      if (isCancelledTxError(caught)) return;
       setLocalError(
         caught instanceof Error
           ? caught.message
@@ -217,13 +220,14 @@ export function CommunityJoinRequests({ gardenAddress }: { gardenAddress: Addres
           setDeclining(undefined);
         }}
         onConfirm={decline}
-        onError={(caught) =>
+        onError={(caught) => {
+          if (isCancelledTxError(caught)) return;
           setDeclineError(
             caught instanceof Error
               ? caught.message
               : formatMessage({ id: "cockpit.community.joinRequests.updateFailed" })
-          )
-        }
+          );
+        }}
         title={formatMessage({ id: "cockpit.community.joinRequests.declineTitle" })}
         description={formatMessage(
           { id: "cockpit.community.joinRequests.declineDescription" },

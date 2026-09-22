@@ -7,6 +7,7 @@ import React, { forwardRef, memo, type UIEvent, useCallback, useMemo } from "rea
 import { type IntlShape, useIntl } from "react-intl";
 import { MinimalWorkCard } from "@/components/Cards";
 import { EmptyState, Loader } from "@/components/Communication";
+import { PWA_SHEET_FOCAL_STATE_CLASSNAME } from "@/components/Pwa/sheetScrollStyles";
 
 interface GardenWorkProps {
   actions: Action[];
@@ -165,6 +166,8 @@ export const GardenWork = forwardRef<HTMLUListElement, GardenWorkProps>(
             })
       : null;
 
+    // Full-tab states share the Pool tab's anchor (the focal region plus the
+    // sheet placement), so switching tabs never moves the icon and title.
     return (
       <ul
         ref={ref}
@@ -189,8 +192,9 @@ export const GardenWork = forwardRef<HTMLUListElement, GardenWorkProps>(
         )}
 
         {hasError && (
-          <li>
+          <li className={PWA_SHEET_FOCAL_STATE_CLASSNAME}>
             <EmptyState
+              placement="sheet"
               tone="error"
               icon={<RiErrorWarningLine />}
               title={intl.formatMessage({
@@ -222,8 +226,9 @@ export const GardenWork = forwardRef<HTMLUListElement, GardenWorkProps>(
         )}
 
         {isEmpty && (
-          <li>
+          <li className={PWA_SHEET_FOCAL_STATE_CLASSNAME}>
             <EmptyState
+              placement="sheet"
               icon={<RiInboxLine />}
               title={intl.formatMessage({
                 id: "app.garden.work.noWork",

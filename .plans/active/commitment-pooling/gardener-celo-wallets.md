@@ -13,7 +13,7 @@ No contract deployment or indexer schema change is expected. Reopen the existing
 ### 1. Make passkey transaction routing chain-aware
 
 - Add a session-scoped `SmartAccountClientResolver(chainId)` capability to shared auth. Seed it with the existing primary client and lazily build/cache other clients from the same credential.
-- When resolving Celo `42220`, use Kernel `0.3.1`, EntryPoint `0.7`, and the dedicated Celo sponsorship policy. Require the derived address to equal the stored Arbitrum smart-account address; fail closed on any mismatch.
+- When resolving Celo `42220`, use Kernel `0.3.1`, EntryPoint `0.7`, and the sponsorship policy resolved for Celo (section 2: the general policy unless a Celo override is set). Require the derived address to equal the stored Arbitrum smart-account address; fail closed on any mismatch.
 - Remove a failed client promise from the cache so temporary RPC or Pimlico failures can be retried. Replace the resolver whenever the credential changes and discard it on sign-out.
 - Make `ContractCall.chainId` authoritative in `PasskeySender`. Resolve the matching client, verify its chain and account, and never silently submit through the primary client.
 - Remove the current passkey-to-wallet fallback when the smart-account client is unavailable; a passkey session must never send from a different identity.
@@ -24,8 +24,9 @@ No contract deployment or indexer schema change is expected. Reopen the existing
 - Simplify `isGardenerDeliveryEnabled` to require matching production profiles and indexed `gardenerDeliveryEnabled === true`; remove the unowned `mainnetEvidenceReady` application boolean.
 - Treat the production canary record as a release prerequisite, while the indexed on-chain flag is the sole runtime source of truth.
 - Read the source configuration explicitly from Arbitrum `42161`, role `SOURCE`; `null`, stale, missing, or false remains blocked.
-- Add chain-specific Pimlico configuration for Celo. The Celo policy ID must be explicit and must not fall back to the Arbitrum/default policy.
-- Configure the policy for chain `42220`, zero native value, canonical G$ only, and `transfer(address,uint256)` only. Set launch limits to 5 sponsored sends per account per day, 200 globally per day, and a per-operation cost cap of three times the measured canary cost. Pimlico supports global, per-user, and per-operation limits through hosted policies. [Pimlico sponsorship policies](https://docs.pimlico.io/guides/how-to/sponsorship-policies)
+- Celo takes the general sponsorship policy (owner decision, 2026-09-21, PR #854). Policy resolution is the same for every chain, with one Celo-only step in front: `VITE_PIMLICO_CELO_SPONSORSHIP_POLICY_ID` when it is set, then `VITE_PIMLICO_SPONSORSHIP_POLICY_ID`, then the built-in general policy. This supersedes the earlier rule that the Celo policy ID must be explicit and must not fall back to the Arbitrum/default policy. That rule left passkey gardeners on "Celo network fee coverage is unavailable" in every environment that relies on the built-in policy, which is how Arbitrum runs.
+- Keep the consequence in view. A Celo send is no longer held to a policy restricted to chain `42220`, canonical G$, and `transfer(address,uint256)`, or to per-account and global daily limits, unless the general policy carries them itself. What bounds sponsored Celo spend is whatever the general policy enforces in Pimlico. Confirm that policy allows chain `42220` before relying on it: if it does not, a send fails at the paymaster instead of being stopped beforehand. The Celo override stays, so Celo can move onto a restricted policy later without a code change.
+- Superseded by the decision above, kept for the override path: a dedicated Celo policy would cover chain `42220`, zero native value, canonical G$ only, and `transfer(address,uint256)` only. Its launch limits were to 5 sponsored sends per account per day, 200 globally per day, and a per-operation cost cap of three times the measured canary cost. Pimlico supports global, per-user, and per-operation limits through hosted policies. [Pimlico sponsorship policies](https://docs.pimlico.io/guides/how-to/sponsorship-policies)
 - Restrict the browser API key to approved Green Goods origins and required bundler/paymaster methods. Keep keys, passkey material, and policy credentials out of source and evidence artifacts.
 
 ### 3. Add the Celo wallet read model
@@ -80,7 +81,7 @@ No contract deployment or indexer schema change is expected. Reopen the existing
 - RED/GREEN tests must cover:
   - same credential derives the same Arbitrum/Celo address;
   - requested Celo calls use the Celo client;
-  - mismatched address, chain, missing policy, or missing resolver fails before submission;
+  - mismatched address, chain, or missing resolver fails before submission (a policy always resolves, section 2);
   - transient resolver failures can retry;
   - no-chain calls remain on Arbitrum;
   - passkey initialization never falls back to an external wallet;
@@ -111,10 +112,10 @@ Using the authenticated Brave QA profile:
 1. Deploy the app with the on-chain flag still false.
 2. Create a dedicated, non-personal production-RP canary passkey.
 3. Derive its Kernel address on Arbitrum and Celo; verify equality plus the pinned EntryPoint, factory, validator, implementation, and deployed code hashes.
-4. Configure a one-operation canary policy restricted to canonical G$ transfer and capped from the estimated UserOperation cost.
+4. No dedicated canary policy: the canary runs under the general policy (section 2). Confirm in Pimlico that it allows chain `42220` first.
 5. Fund the counterfactual Celo address with the quoted amount plus any sender-paid G$ fee.
 6. Submit one sponsored first-use G$ transfer through the shipping app and record the UserOperation receipt, transaction receipt, EntryPoint event, deployed code, fee quote, exact balance deltas, block, and time. Record no passkey material or personal identity.
-7. Set the launch policy limits to the agreed conservative pilot values.
+7. Review the general policy's limits in Pimlico against the pilot values. They apply to every sponsored action that policy covers, not to G$ sends alone.
 8. After fresh human authorization, call `setGardenerDeliveryEnabled(true)`.
 9. Wait for the indexer to expose true, confirm W23 unblocks, then execute one minimum-value contributor payout to the canary account and verify its receipt reaches “arrived.”
 10. Monitor policy denials, address/chain mismatches, inclusion failures, indexer lag, and Celo read failures without recording wallet addresses or session identifiers.

@@ -13,6 +13,7 @@ import {
   useFilteredGardens,
 } from "@green-goods/shared/hooks/garden/useFilteredGardens";
 import type { Domain } from "@green-goods/shared/types/domain";
+import { useExitPresence } from "@green-goods/shared/hooks/utils/useExitPresence";
 import { useTimeout } from "@green-goods/shared/hooks/utils/useTimeout";
 import { useUIStore } from "@green-goods/shared/stores/useUIStore";
 import { cn } from "@green-goods/shared/utils/styles/cn";
@@ -30,6 +31,7 @@ import {
 import { useIntl } from "react-intl";
 import { Outlet, useLocation, useMatch, useNavigate } from "react-router-dom";
 
+import { getPwaSheetExitMs } from "@/components/Pwa/sheetStyles";
 import { pwaStatusStyles } from "@/components/Pwa/statusStyles";
 import { APP_ROUTES } from "@/config/pwaRouting";
 import { ARRIVAL_TOASTS, type ArrivalActionKind } from "./arrivalToast";
@@ -101,8 +103,10 @@ const Home: React.FC = () => {
   // State-aware arrival orientation (replaces the old generic welcome toast).
   const { kind: arrivalKind, myGardenIds, needsReviewCount } = useArrivalState();
 
-  // Filter state
-  const [filters, setFilters] = useState<GardenFiltersState>({ scope: "all", sort: "recent" });
+  // Filters live in the UI store so they hold across navigation and relaunch.
+  const filters = useUIStore((s) => s.gardenFilters);
+  const setFilters = useUIStore((s) => s.setGardenFilters);
+  const resetFilters = useUIStore((s) => s.resetGardenFilters);
 
   // Use extracted hooks for cleaner logic
   const isLoadingData = isPending || (isFetching && gardens.length === 0);
@@ -129,6 +133,12 @@ const Home: React.FC = () => {
   const isCommitmentsSheetOpen = useUIStore((s) => s.isCommitmentsSheetOpen);
   const openCommitmentsSheet = useUIStore((s) => s.openCommitmentsSheet);
   const closeCommitmentsSheet = useUIStore((s) => s.closeCommitmentsSheet);
+
+  // Each sheet stays mounted until its exit has played; unmounting it on close
+  // removed it before the slide-out could run.
+  const isGardenFilterPresent = useExitPresence(isGardenFilterOpen, getPwaSheetExitMs);
+  const isWalletSheetPresent = useExitPresence(isWalletSheetOpen, getPwaSheetExitMs);
+  const isCommitmentsSheetPresent = useExitPresence(isCommitmentsSheetOpen, getPwaSheetExitMs);
 
   // Ensure proper re-rendering on browser navigation
   useBrowserNavigation();
@@ -190,7 +200,7 @@ const Home: React.FC = () => {
           return;
       }
     },
-    [myGardenIds, navigate, openWorkDashboard]
+    [myGardenIds, navigate, openWorkDashboard, setFilters]
   );
 
   // Show a state-aware arrival toast once per browser session, scoped to the signed-in address.
@@ -263,10 +273,6 @@ const Home: React.FC = () => {
     setFilters((current) => ({ ...current, domains: domains.length > 0 ? domains : undefined }));
   };
 
-  const handleResetFilters = () => {
-    setFilters({ scope: "all", sort: "recent" });
-  };
-
   return (
     <article ref={articleRef} className="mb-6">
       {location.pathname.replace(/\/$/, "") === APP_ROUTES.home && (
@@ -325,16 +331,16 @@ const Home: React.FC = () => {
               onBrowseAll={() => handleScopeChange("all")}
             />
           </div>
-          {isGardenFilterOpen ? (
+          {isGardenFilterPresent ? (
             <Suspense fallback={null}>
               <GardensFilterSheet
-                isOpen
+                isOpen={isGardenFilterOpen}
                 onClose={closeGardenFilter}
                 filters={filters}
                 onScopeChange={handleScopeChange}
                 onSortChange={handleSortChange}
                 onDomainsChange={handleDomainsChange}
-                onReset={handleResetFilters}
+                onReset={resetFilters}
                 canFilterMine={Boolean(normalizedAddress)}
                 myGardensCount={myGardensCount}
                 isFilterActive={isFilterActive}
@@ -344,14 +350,14 @@ const Home: React.FC = () => {
         </>
       )}
       <Outlet />
-      {isWalletSheetOpen ? (
+      {isWalletSheetPresent ? (
         <Suspense fallback={null}>
-          <WalletSheet isOpen onClose={closeWalletSheet} />
+          <WalletSheet isOpen={isWalletSheetOpen} onClose={closeWalletSheet} />
         </Suspense>
       ) : null}
-      {isCommitmentsSheetOpen ? (
+      {isCommitmentsSheetPresent ? (
         <Suspense fallback={null}>
-          <CommitmentsSheet isOpen onClose={closeCommitmentsSheet} />
+          <CommitmentsSheet isOpen={isCommitmentsSheetOpen} onClose={closeCommitmentsSheet} />
         </Suspense>
       ) : null}
     </article>

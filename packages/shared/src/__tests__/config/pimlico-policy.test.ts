@@ -4,12 +4,15 @@ import { getPimlicoSponsorshipPolicyId } from "../../config/pimlico";
 afterEach(() => vi.unstubAllEnvs());
 
 describe("chain-specific sponsorship policies", () => {
-  it.each([undefined, "", "   "])("blocks Celo without any configured policy (%s)", (value) => {
+  it.each([
+    undefined,
+    "",
+    "   ",
+  ])("gives Celo the same built-in general policy as Arbitrum when nothing is configured (%s)", (value) => {
     vi.stubEnv("VITE_PIMLICO_CELO_SPONSORSHIP_POLICY_ID", value);
     vi.stubEnv("VITE_PIMLICO_SPONSORSHIP_POLICY_ID", undefined);
-    expect(() => getPimlicoSponsorshipPolicyId(42220)).toThrow(
-      expect.objectContaining({ code: "policy_unavailable" })
-    );
+    expect(getPimlicoSponsorshipPolicyId(42220)).toBe(getPimlicoSponsorshipPolicyId(42161));
+    expect(getPimlicoSponsorshipPolicyId(42220)).toBe("sp_next_monster_badoon");
   });
 
   it("uses the general policy for Celo when no override is configured", () => {

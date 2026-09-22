@@ -538,14 +538,28 @@ function CampaignCookieJarInlineActions({
 
   if (!primaryAddress) {
     return (
-      <div className="mt-auto rounded-lg border border-stroke-soft-200 bg-bg-white-0 p-4">
+      <div className="mt-auto grid gap-3 border-t border-stroke-soft-200 pt-4">
         <p className="text-sm leading-[1.5] text-text-sub-600">
           {formatMessage({
             id: "public.cookies.connectHint",
             defaultMessage: "Connect a wallet to check claim access and add funds.",
           })}
         </p>
-        <WalletConnectButton className="mt-4" />
+        <WalletConnectButton
+          emphasis="secondary"
+          className="w-full"
+          connectLabel={formatMessage({
+            id: "public.cookies.checkClaimAccess",
+            defaultMessage: "Check claim access",
+          })}
+        />
+        <WalletConnectButton
+          className="w-full"
+          connectLabel={formatMessage({
+            id: "public.cookies.addFunds",
+            defaultMessage: "Add funds",
+          })}
+        />
       </div>
     );
   }
