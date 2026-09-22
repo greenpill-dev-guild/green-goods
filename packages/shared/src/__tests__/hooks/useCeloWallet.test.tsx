@@ -89,7 +89,6 @@ describe("useCeloWallet", () => {
 
   it.each([
     ["address_mismatch", "address-mismatch"],
-    ["policy_unavailable", "policy-unavailable"],
     ["chain_mismatch", "unavailable"],
   ])("fails closed for %s and retries resolver on explicit refresh", async (code, readiness) => {
     mocks.resolve.mockRejectedValueOnce(Object.assign(new Error(code), { code }));
