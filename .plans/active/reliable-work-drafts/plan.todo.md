@@ -1,4 +1,16 @@
-# Implementation
+# Reliable Work Drafts and Resumable Uploads
+
+**Feature Slug**: `reliable-work-drafts`
+**Stage**: `active`
+**Status**: ACTIVE — implementation complete; installed-device acceptance remains
+**Linear Issue**: PRD-920
+**Created**: 2026-09-09
+**Last Updated**: 2026-09-21
+
+The dated acceptance section below (`## Reliable offline submission and browsing — accepted
+2026-09-12`) records what the user approved on that date and keeps its own date.
+
+## Implementation
 
 - [x] Independent byte capture and compression fallback
 - [ ] Atomic complete snapshots, shared identity, hydration and legacy recovery

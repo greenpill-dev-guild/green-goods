@@ -1,6 +1,7 @@
 # Yield Split Visibility and Operator Presets
 
 **Branch**: `codex/yield-split-ui`
+**Stage**: backlog
 **Status**: BACKLOG
 **Created**: 2026-03-16
 **Last Updated**: 2026-06-26

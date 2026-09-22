@@ -395,7 +395,7 @@ function CookiesCampaignSurface() {
   );
 }
 
-export default function CookiesWalletSurface() {
+export default function CampaignJarSurface() {
   const { formatMessage } = useIntl();
 
   return (

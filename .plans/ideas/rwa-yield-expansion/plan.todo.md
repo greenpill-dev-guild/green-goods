@@ -6,6 +6,7 @@
 **Spec**: [spec.md](./spec.md)
 **Linear Issue**: `RESR-9`
 **Linear Source**: `source:plans`
+**Stage**: `ideas`
 **Status**: `BACKLOG / RESEARCH-FIRST`
 **Created**: `2026-04-17`
 **Last Updated**: `2026-05-10`
