@@ -563,7 +563,10 @@
             owner,
             person,
             ...(openRunId ? { run: openRunId } : {}),
-            ...(updatedAt ? { updatedAt } : { updatedAt: new Date().toISOString() }),
+            // Absent when nothing knows it: a queue an older page left has no
+            // stamp, and inventing "now" here would report a walk from days ago
+            // as edited this minute — the one thing the prompt exists to say.
+            ...(updatedAt ? { updatedAt } : {}),
             delta,
           }),
         );
@@ -607,18 +610,34 @@
     return parked.sort((left, right) => (left.run < right.run ? -1 : 1));
   }
 
-  /** "2 days ago", or "" for a queue an older page left without a stamp. */
+  /**
+   * "2 days ago", or "" for a queue an older page left without a stamp.
+   *
+   * `Intl.RelativeTimeFormat` rather than locale strings: it already carries
+   * every language's plural rules, so the three locale files do not need a
+   * phrase per unit per number to say something the platform says correctly.
+   */
   function agePhrase(iso) {
     const then = Date.parse(iso || "");
     if (!Number.isFinite(then)) return "";
     const seconds = Math.max(0, Math.round((Date.now() - then) / 1000));
-    if (seconds < 90) return "just now";
-    const minutes = Math.round(seconds / 60);
-    if (minutes < 90) return minutes + " minute" + (minutes === 1 ? "" : "s") + " ago";
-    const hours = Math.round(minutes / 60);
-    if (hours < 36) return hours + " hour" + (hours === 1 ? "" : "s") + " ago";
-    const days = Math.round(hours / 24);
-    return days + " day" + (days === 1 ? "" : "s") + " ago";
+    const [amount, unit] = seconds < 90
+      ? [seconds, "second"]
+      : seconds < 90 * 60
+        ? [Math.round(seconds / 60), "minute"]
+        : seconds < 36 * 3600
+          ? [Math.round(seconds / 3600), "hour"]
+          : [Math.round(seconds / 86400), "day"];
+    try {
+      return new Intl.RelativeTimeFormat(locale || "en", { numeric: "auto" }).format(-amount, unit);
+    } catch (e) {
+      return "";
+    }
+  }
+
+  /** Fill `{name}` placeholders in a locale string. Values are escaped by the caller. */
+  function fill(template, values) {
+    return String(template).replace(/\{(\w+)\}/g, (match, name) => (name in values ? values[name] : match));
   }
 
   /**
@@ -626,8 +645,30 @@
    * run it named as open. Nothing is dropped: the closed run stays immutable
    * and the pending verdicts land in the run that is actually recording.
    */
-  function rekeyOutbox(fromRun, toRun) {
+  function rekeyOutbox(fromRun, toRun, options) {
     if (!identity || fromRun === toRun) return 0;
+    let stored = null;
+    try {
+      stored = JSON.parse(localStorage.getItem(outboxKey(identity, fromRun)) || "null");
+    } catch (e) {}
+    const onDisk = stored && stored.delta && stored.owner === identity ? stored.delta : null;
+    // The stamp belongs to the tester's edit and rides along with the queue, so
+    // re-keying does not make old work look freshly typed.
+    const stamp = stored && typeof stored.updatedAt === "string" ? stored.updatedAt : "";
+    if (options && options.accepted) {
+      // The server took this delta and named the run it landed in. None of it
+      // is unsent, so parking any of it would offer back work that is already
+      // saved — and the acknowledgement that follows only clears the key for
+      // the run that is open now, leaving the parked copy to be offered again
+      // on the next open.
+      if (onDisk) outbox = mergedDictionary(onDisk, outbox);
+      try {
+        localStorage.removeItem(outboxKey(identity, fromRun));
+      } catch (e) {}
+      openRunId = toRun;
+      saveOutbox(stamp);
+      return 0;
+    }
     // What this page typed follows the boundary. What it recovered does not:
     // nothing here can tell a verdict taken a minute ago from one taken on
     // another day, and sending the second silently makes a new run look walked.
@@ -639,11 +680,6 @@
       delete outboxVersions[caseId];
       delete recovered[caseId];
     }
-    let stored = null;
-    try {
-      stored = JSON.parse(localStorage.getItem(outboxKey(identity, fromRun)) || "null");
-    } catch (e) {}
-    const onDisk = stored && stored.delta && stored.owner === identity ? stored.delta : null;
     const parked = mergedDictionary(onDisk, held);
     // A case the tester is editing right now belongs to the run they are moving
     // to; parking a second copy of it would send the same case twice.
@@ -657,8 +693,9 @@
             person: who,
             run: fromRun,
             // Keep the stamp the work was actually left with; the age the
-            // prompt reports is the tester's, not this moment's.
-            updatedAt: (stored && typeof stored.updatedAt === "string" && stored.updatedAt) || new Date().toISOString(),
+            // prompt reports is the tester's, not this moment's. An older page
+            // left no stamp, and the prompt says so rather than inventing one.
+            ...(stamp ? { updatedAt: stamp } : {}),
             delta: parked,
           }),
         );
@@ -667,7 +704,7 @@
       }
     } catch (e) {}
     openRunId = toRun;
-    saveOutbox();
+    saveOutbox(stamp);
     const count = Object.keys(parked).length;
     if (count) carryOpen = true;
     return count;
@@ -843,10 +880,26 @@
       } catch (e) {}
       if (!stored || !stored.delta) continue;
       for (const [caseId, patch] of Object.entries(stored.delta)) {
-        // A live edit already owns this case; the tester's current value wins.
-        if (hasOwn(outbox, caseId)) continue;
-        outbox[caseId] = patch;
-        moved.push(caseId);
+        const live = outbox[caseId];
+        if (!live) {
+          outbox[caseId] = patch;
+          moved.push(caseId);
+          continue;
+        }
+        // Field by field, like every other delta here. Dropping the whole
+        // parked patch because the tester happened to set a status in this run
+        // would delete the only copy of the note they typed in the last one.
+        // A delete on either side is a whole-case intent, and the live one is
+        // the later of the two, so it stands.
+        if (live.delete || patch.delete) continue;
+        let merged = false;
+        for (const field of ["s", "n"]) {
+          if (hasOwn(patch, field) && !hasOwn(live, field)) {
+            live[field] = patch[field];
+            merged = true;
+          }
+        }
+        if (merged) moved.push(caseId);
       }
       try {
         localStorage.removeItem(queue.key);
@@ -1330,20 +1383,28 @@
     const parked = parkedQueues();
     if (!parked.length) return "";
     const cases = parked.reduce((total, queue) => total + queue.cases, 0);
-    const sources = parked.map((queue) => describeRunId(queue.run)).join(", ");
+    const sources = esc(parked.map((queue) => describeRunId(queue.run)).join(", "));
+    const target = esc(describeRunId(openRunId));
     const newest = parked.map((queue) => queue.updatedAt).filter(Boolean).sort().pop() || "";
     const age = agePhrase(newest);
-    const summary = `${cases} verdict${cases === 1 ? "" : "s"} recorded in ${esc(sources)} never reached the server${age ? `, last edited ${esc(age)}` : ""}.`;
+    const counted = cases === 1
+      ? fill(uiText("carrySummaryOne", "1 verdict recorded in {runs} never reached the server"), { runs: sources })
+      : fill(uiText("carrySummaryMany", "{count} verdicts recorded in {runs} never reached the server"), { count: cases, runs: sources });
+    const when = age ? fill(uiText("carryWhen", ", last edited {age}"), { age: esc(age) }) : "";
+    const summary = `${counted}${when}.`;
     if (!carryOpen) {
-      return `<div class="header-row carry-row"><div class="carry-line">${summary}
-        <button type="button" class="carry-review" id="qa-carry-review">Review</button></div></div>`;
+      return `<div class="header-row carry-row" lang="${esc(locale)}"><div class="carry-line">${summary}
+        <button type="button" class="carry-review" id="qa-carry-review">${esc(uiText("carryReview", "Review"))}</button></div></div>`;
     }
-    return `<div class="header-row carry-row"><div class="carry-prompt" role="group" aria-label="Unsent verdicts from a closed run">
-        <p class="carry-confirm">${summary} ${esc(sources)} ${parked.length === 1 ? "is" : "are"} closed, so nothing can be written back there.
-        Send them to <b>${esc(describeRunId(openRunId))}</b>, which records them as part of that run, or keep them here and decide later.</p>
+    const where = fill(
+      uiText("carryWhere", "{runs} is closed, so nothing can be written back there. Send them to {target}, which records them as part of that run, or keep them here and decide later."),
+      { runs: sources, target: `<b>${target}</b>` },
+    );
+    return `<div class="header-row carry-row" lang="${esc(locale)}"><div class="carry-prompt" role="group" aria-label="${esc(uiText("carryLabel", "Unsent verdicts from a closed run"))}">
+        <p class="carry-confirm">${summary} ${where}</p>
         <div class="carry-actions">
-          <button type="button" class="rollover-btn" id="qa-carry-send">Send to ${esc(describeRunId(openRunId))}</button>
-          <button type="button" class="cancel-btn" id="qa-carry-keep">Keep for later</button>
+          <button type="button" class="rollover-btn" id="qa-carry-send">${fill(uiText("carrySend", "Send to {target}"), { target })}</button>
+          <button type="button" class="cancel-btn" id="qa-carry-keep">${esc(uiText("carryKeep", "Keep for later"))}</button>
         </div>
       </div></div>`;
   }
@@ -1960,19 +2021,16 @@
       // that is open now. Follow it the way a refusal is followed.
       if (result && typeof result.run === "string" && openRunId && result.run !== openRunId) {
         const closedId = openRunId;
-        const parked = rekeyOutbox(closedId, result.run);
+        // `accepted`: this response IS the write landing. Nothing here is
+        // unsent, so nothing is held back for a decision and the message is
+        // the plain one it always was.
+        rekeyOutbox(closedId, result.run, { accepted: true });
         if (selectedRun === closedId) {
           selectedRun = result.run;
           saveView();
         }
         refreshAfterSave = true;
-        notice(
-          parked
-            ? `${describeRunId(closedId)} was closed — ${parked} unsent verdict${parked === 1 ? "" : "s"} from it need${parked === 1 ? "s" : ""} a decision`
-            : `${describeRunId(closedId)} was closed — your saves went to ${describeRunId(result.run)}`,
-          parked ? "ro" : undefined,
-        );
-        if (parked) render();
+        notice(`${describeRunId(closedId)} was closed — your saves went to ${describeRunId(result.run)}`);
       }
       // Confirm the exact local version this response represents. Anything
       // typed during the request has a later version and remains pending.

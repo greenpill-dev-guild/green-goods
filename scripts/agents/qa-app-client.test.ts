@@ -1254,8 +1254,8 @@ async function runsHarness() {
     //    sent against that run.
     assert.equal(dom.window.localStorage.getItem("qa-outbox:" + OWNER), null);
     const adopted = JSON.parse(dom.window.localStorage.getItem("qa-outbox:" + OWNER + ":run-2"));
-    assert.match(adopted.updatedAt, /^\d{4}-\d\d-\d\dT[\d:.]+Z$/);
-    delete adopted.updatedAt;
+    // The run-less queue carried no stamp, and re-homing it does not invent
+    // one: an unknown age is reported as unknown, never as "just now".
     assert.deepEqual(adopted, { owner: OWNER, person: "Tester A", run: "run-2", delta: { "ADM-001": { s: "blocked" } } });
     await runTimer(400);
     assert.deepEqual(posts[0], { entries: { "ADM-001": { s: "blocked" } }, run: "run-2" });
@@ -1422,7 +1422,7 @@ async function carryPromptHarness() {
   const openRunRecord = (n, label) => ({ id: "run-" + n, n, label, openedAt: "2026-09-20T14:00:00.000Z", openedBy: OWNER, openedByLabel: "Tester A", closedByLabel: null, environment: "beta", catalog: null, builds: {}, window: null });
 
   /** One page life. `seed` writes localStorage before the page script runs. */
-  async function pageLife({ runs, openRun, seed, failPostsFor }, body) {
+  async function pageLife({ runs, openRun, seed, failPostsFor, retargetTo }, body) {
     const posts = [];
     const rollovers = [];
     const timers = new Map();
@@ -1473,6 +1473,21 @@ async function carryPromptHarness() {
             posts.push(sent);
             if (failPostsFor && sent.run === failPostsFor) {
               return response({ error: "entries could not be saved" }, 503);
+            }
+            if (retargetTo && sent.run && sent.run !== retargetTo) {
+              // The lease ran out mid-save: the server put the closed shard
+              // back, wrote the delta into the run that is open now, and says
+              // so. The write SUCCEEDED — nothing is left unsent.
+              const current = server.runs[server.runs.length - 1];
+              if (!current.closedAt) {
+                current.closedAt = "2026-09-22T04:37:10.303Z";
+                current.closedBy = OWNER;
+                current.closedByLabel = "Tester A";
+                current.window = { from: current.openedAt, to: current.closedAt };
+                server.runs.push(openRunRecord(current.n + 1, "QA 2026-09-22"));
+                server.openRun = retargetTo;
+              }
+              return response({ ok: true, person: "Tester A", count: 1, run: retargetTo, retargeted: true });
             }
             return response({ ok: true, person: "Tester A", count: 1, run: sent.run || server.openRun });
           }
@@ -1603,6 +1618,63 @@ async function carryPromptHarness() {
       assert.deepEqual(Object.keys(parked.delta).sort(), ["PWA-051", "PWA-052"]);
       assert.equal(parked.updatedAt, twoDaysAgo, "the age the tester sees is theirs, not the rollover's");
       assert.equal(dom.window.localStorage.getItem("qa-outbox:" + OWNER + ":run-3"), null);
+    },
+  );
+
+  // 5. A save the SERVER re-targeted landed; it is not unsent work. Parking it
+  //    would offer back verdicts the store already holds, and the
+  //    acknowledgement only clears the run that is open now, so the parked copy
+  //    would be offered again on every later open.
+  await pageLife(
+    {
+      runs: [openRunRecord(2, "Re-QA 2026-09-08")],
+      openRun: "run-2",
+      seed: { ["qa-outbox:" + OWNER + ":run-2"]: strandedQueue },
+      retargetTo: "run-3",
+    },
+    async ({ dom, posts, runTimer }) => {
+      await runTimer(400);
+      assert.equal(posts.length, 1);
+      assert.equal(posts[0].run, "run-2");
+      assert.equal(dom.window.localStorage.getItem("qa-outbox:" + OWNER + ":run-2"), null, "an accepted delta must not be parked back under the closed run");
+      assert.equal(dom.window.localStorage.getItem("qa-outbox:" + OWNER + ":run-3"), null, "and it is acknowledged, not left pending");
+      assert.equal(dom.window.document.querySelector(".carry-row"), null, "nothing to decide about work the server already stored");
+      // The save reported itself saved, not as something still needing a home.
+      const savebar = dom.window.document.querySelector("#savebar")?.textContent || "";
+      assert.doesNotMatch(savebar, /need/);
+      assert.match(savebar, /saved/);
+    },
+  );
+
+  // 6. Parked and live patches for one case are merged field by field, the way
+  //    every other delta here is. A status set in the new run must not delete
+  //    the only copy of a note typed in the old one.
+  await pageLife(
+    {
+      runs: [closedRun(2, "Re-QA 2026-09-08", "2026-09-20T14:00:00.000Z"), openRunRecord(3, "QA 2026-09-22")],
+      openRun: "run-3",
+      seed: {
+        ["qa-outbox:" + OWNER + ":run-2"]: JSON.stringify({
+          owner: OWNER,
+          person: "Tester A",
+          run: "run-2",
+          updatedAt: twoDaysAgo,
+          delta: { "PWA-051": { n: "note typed in the old run" } },
+        }),
+      },
+    },
+    async ({ dom, posts, runTimer }) => {
+      const document = dom.window.document;
+      const row = [...document.querySelectorAll(".row")].find((candidate) => candidate.querySelector(".rid b")?.textContent === "PWA-051");
+      row.querySelector('[data-s="fail"]').click();
+      await flush();
+      document.querySelector("#qa-carry-send").click();
+      await flush();
+      await runTimer(400);
+      assert.deepEqual(posts, [
+        { entries: { "PWA-051": { s: "fail", n: "note typed in the old run" } }, run: "run-3" },
+      ]);
+      assert.equal(dom.window.localStorage.getItem("qa-outbox:" + OWNER + ":run-2"), null);
     },
   );
 }
