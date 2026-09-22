@@ -178,8 +178,9 @@ export const RouteErrorBoundary: React.FC = () => {
 
   // A rejected dynamic import is cached for the lifetime of the document. A
   // full reload is therefore the only reliable retry after reconnecting. The
-  // shared session flag bounds both offline and stale-build recovery to one
-  // automatic attempt, and Root clears it only after a successful route boot.
+  // session flag bounds both offline and stale-build recovery to one automatic
+  // attempt for the lifetime of this tab. A parent route can commit before a
+  // nested lazy import finishes, so route mounts must not re-arm the guard.
   useEffect(() => {
     (window as Window & { __GG_MARK_BOOT_FAILED?: () => void }).__GG_MARK_BOOT_FAILED?.();
     if (hasChunkReloadAttempt()) return;

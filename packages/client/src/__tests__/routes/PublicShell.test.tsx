@@ -77,6 +77,10 @@ vi.mock("react-router-dom", async () => {
 });
 
 import PublicShell from "../../routes/PublicShell";
+import {
+  hasChunkReloadAttempt,
+  markChunkReloadAttempt,
+} from "../../components/Errors/errorClassification";
 
 const messages: Record<string, string> = {
   "public.nav.gardens": "Gardens",
@@ -142,6 +146,7 @@ function renderShellWithRoute(initialRoute: string, priorEntries: string[] = [])
 describe("PublicShell", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    sessionStorage.clear();
     Object.defineProperty(window, "scrollY", { configurable: true, writable: true, value: 0 });
     vi.spyOn(window, "scrollTo").mockImplementation((options: any) => {
       window.scrollY = options.top ?? 0;
@@ -162,6 +167,15 @@ describe("PublicShell", () => {
     const main = document.querySelector("main");
     expect(main).toBeInTheDocument();
     expect(header!.compareDocumentPosition(main!)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+  });
+
+  it("preserves the chunk reload guard while nested route content mounts", () => {
+    markChunkReloadAttempt();
+
+    renderShellWithRoute("/gardens");
+
+    expect(screen.getByTestId("gardens-content")).toBeInTheDocument();
+    expect(hasChunkReloadAttempt()).toBe(true);
   });
 
   it("/fund route renders within PublicShell", () => {
