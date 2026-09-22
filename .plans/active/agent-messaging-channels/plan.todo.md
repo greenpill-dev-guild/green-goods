@@ -325,8 +325,17 @@ bump `PRAGMA user_version`.
 - [ ] **13. Report the outcome back to the agent.** `package:shared`, `package:agent`. New
   `packages/agent/src/api/routes/whatsapp-draft-outcome.ts`, edit
   `packages/shared/src/modules/whatsapp-drafts/transport.ts`, edit
-  `packages/agent/src/api/server.ts`. New route: authenticated outcome registration for a draft.
-  Migration: add the operation columns to `whatsapp_drafts` through `ensureColumn()`.
+  `packages/agent/src/api/server.ts`. **Two** new routes: a pre-queue submission hold, and
+  authenticated outcome registration for a draft.
+  Migration: add the operation and hold columns to `whatsapp_drafts` through `ensureColumn()`.
+  **The hold is registered before the job is queued, not after it completes.** Step 14's retention
+  sweep skips held drafts, but a hold nothing ever sets is not a remedy: an offline job can sit
+  local past the seven-day window and the sweep would still delete the server draft its eventual
+  outcome needs to authenticate against. So this step defines the hold explicitly — a `held` state
+  with the signed authorization and an expiry, set by a call the submission path makes **before**
+  queue insertion, released on a registered outcome or a terminal failure, and renewable while the
+  job is still retryable. The advanced-clock test drives a submission into a hold, advances past the
+  sweep window, runs the sweep, and asserts the draft survives and its outcome still reconciles.
   **`ClientWorkIdMapping` is a Dexie table in the browser's IndexedDB**
   (`packages/shared/src/modules/job-queue/db-schema.ts:1-22`) and nothing sends `clientWorkId` to
   any server today, so the agent cannot read it.
