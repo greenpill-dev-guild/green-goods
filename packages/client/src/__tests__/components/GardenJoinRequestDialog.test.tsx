@@ -13,6 +13,8 @@ const hookState = vi.hoisted(() => ({
   // The account's names, best first: Green Goods name, ENS name, chosen passkey username.
   greenGoodsName: null as string | null,
   greenGoodsNameLoading: false,
+  /** A refetch over a cached answer: fetching without loading. */
+  greenGoodsNameRefetching: false,
   ensName: null as string | null,
   authMode: "passkey" as "passkey" | "wallet",
   userName: null as string | null,
@@ -42,10 +44,11 @@ vi.mock("@green-goods/shared/hooks/ens/useGreenGoodsEnsName", () => ({
   useGreenGoodsEnsName: () => ({
     data: hookState.greenGoodsName,
     isLoading: hookState.greenGoodsNameLoading,
+    isFetching: hookState.greenGoodsNameLoading || hookState.greenGoodsNameRefetching,
   }),
 }));
 vi.mock("@green-goods/shared/hooks/blockchain/useEnsName", () => ({
-  useEnsName: () => ({ data: hookState.ensName, isLoading: false }),
+  useEnsName: () => ({ data: hookState.ensName, isLoading: false, isFetching: false }),
 }));
 
 import { GardenJoinRequestDialog } from "../../components/Features/Garden/GardenJoinRequestDialog";
@@ -55,6 +58,7 @@ describe("GardenJoinRequestDialog", () => {
     vi.clearAllMocks();
     hookState.greenGoodsName = null;
     hookState.greenGoodsNameLoading = false;
+    hookState.greenGoodsNameRefetching = false;
     hookState.ensName = null;
     hookState.authMode = "passkey";
     hookState.userName = null;
@@ -142,9 +146,13 @@ describe("GardenJoinRequestDialog", () => {
     );
   });
 
-  it("waits for a name that outranks the username before it can send", async () => {
+  it.each([
+    ["is loading for the first time", { greenGoodsNameLoading: true }],
+    // Claiming a username invalidates these keys, so a cached empty answer refetches.
+    ["is refetching a cached empty answer", { greenGoodsNameRefetching: true }],
+  ] as const)("waits while a name that outranks the username %s", async (_label, lookup) => {
     hookState.userName = "maya";
-    hookState.greenGoodsNameLoading = true;
+    Object.assign(hookState, lookup);
     const user = userEvent.setup();
     render(
       <MemoryRouter>
