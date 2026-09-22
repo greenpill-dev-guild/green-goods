@@ -158,6 +158,12 @@ export const toastMessageIdsUpdate = {
   stalled: {
     title: "app.toast.update.stalled.title",
     message: "app.toast.update.stalled.message",
+    action: "app.toast.update.stalled.action",
+  },
+  failed: {
+    title: "app.toast.update.failed.title",
+    message: "app.toast.update.failed.message",
+    action: "app.toast.update.failed.action",
   },
   applied: {
     title: "app.toast.update.applied.title",

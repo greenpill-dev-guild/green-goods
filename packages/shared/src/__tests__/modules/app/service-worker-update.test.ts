@@ -8,6 +8,7 @@ import {
   buildUpdateTelemetry,
   consumeUpdateApplied,
   createInstallWatcher,
+  describeUpdateFailure,
   DOWNLOAD_TIMEOUT_MS,
   markUpdateApplied,
   observeUpdateAttempt,
@@ -100,6 +101,21 @@ describe("buildUpdateTelemetry", () => {
       target_is_controller: false,
       target_is_registered_waiting: false,
     });
+  });
+});
+
+describe("describeUpdateFailure", () => {
+  it("names the error so a network abort reads apart from a browser failure", () => {
+    const security = new Error("blocked");
+    security.name = "SecurityError";
+    expect(describeUpdateFailure(security)).toEqual({ error_name: "SecurityError" });
+    expect(describeUpdateFailure(new TypeError("failed to fetch"))).toEqual({
+      error_name: "TypeError",
+    });
+  });
+
+  it("falls back to a stable label for a non-error throw", () => {
+    expect(describeUpdateFailure("offline")).toEqual({ error_name: "unknown" });
   });
 
   it("stamps the active and waiting worker versions from the gg_v query on every event", () => {

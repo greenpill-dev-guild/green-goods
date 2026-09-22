@@ -651,6 +651,16 @@ describe("hooks/app/useServiceWorkerUpdate", () => {
         "sw_update_available",
         expect.objectContaining({ source: "initial_check" })
       );
+      // Marking the update clears the start time, so the check's own duration
+      // must be read before it.
+      expect(track).toHaveBeenCalledWith(
+        "sw_update_check_completed",
+        expect.objectContaining({
+          source: "initial_check",
+          found_update: true,
+          duration_ms: expect.any(Number),
+        })
+      );
     });
 
     it("reports a pending install when a manual check outlasts the wait", async () => {

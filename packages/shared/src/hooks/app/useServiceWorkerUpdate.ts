@@ -17,6 +17,7 @@ import {
   buildUpdateTelemetry,
   consumeUpdateApplied,
   createInstallWatcher,
+  describeUpdateFailure,
   DOWNLOAD_TIMEOUT_MS,
   durationSince,
   isServiceWorkerUpdateEnabled,
@@ -267,16 +268,14 @@ function useServiceWorkerUpdateController({
         });
 
         const checkForUpdates = async (force = false) => {
-          if (!force) {
-            const elapsed = Date.now() - lastAutoCheckRef.current;
-            if (elapsed < MIN_AUTO_CHECK_INTERVAL_MS) return;
-          }
+          if (!force && Date.now() - lastAutoCheckRef.current < MIN_AUTO_CHECK_INTERVAL_MS) return;
           lastAutoCheckRef.current = Date.now();
           checkStartedAtRef.current = now();
           setPhase((current) => (current === "idle" ? "checking" : current));
           const source = force ? "initial_check" : "auto_check";
           try {
             await registration.update();
+            // Read it now: marking a found update clears the start time.
             const duration = durationSince(checkStartedAtRef.current);
             if (registration.waiting) {
               markUpdateAvailable(registration.waiting, source);
@@ -298,13 +297,14 @@ function useServiceWorkerUpdateController({
                 found_update: Boolean(registration.waiting || registration.installing),
               })
             );
-          } catch {
+          } catch (error) {
             setPhase((current) => (current === "checking" ? "idle" : current));
             track(
               "sw_update_check_failed",
               buildTelemetry({
                 source,
                 duration_ms: durationSince(checkStartedAtRef.current),
+                ...describeUpdateFailure(error),
               })
             );
           }
@@ -431,6 +431,7 @@ function useServiceWorkerUpdateController({
         buildTelemetry({
           source: "manual_check",
           duration_ms: durationSince(checkStartedAtRef.current),
+          ...describeUpdateFailure(error),
         })
       );
       checkStartedAtRef.current = null;
