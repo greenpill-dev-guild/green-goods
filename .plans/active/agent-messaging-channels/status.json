@@ -31,7 +31,8 @@
     "The builder for the 2026-09-25 to 2026-10-02 window is not yet named. Lane owners below are placeholders until one is assigned.",
     "Lane sync is parent_only. The live implementation issues are PRD-943 through PRD-948 plus PRD-955 under the Buildathon prototype milestone; they are not lane mirrors. Do not let linear-sync create canonical lane issues under the historical PRD-339 parent.",
     "Bot review on PR #864 found three factual errors in the first draft of this hub, now corrected: the root test runner rejects positional paths and has no typecheck script, so every proof command is package-scoped; step 1 must register its route in api/server.ts because nothing is auto-discovered; and ClientWorkIdMapping is browser IndexedDB the agent cannot read, so the outcome is reported back through an authenticated route.",
-    "Codex found five more issues on the second pass, all fixed: the webhook claim needed a lease because the existing helper treats an unfinished claim as a duplicate and would lose a redelivered report; the WhatsApp subject must be encrypted with a keyed HMAC index rather than stored in the clear; the client has no attestation UID to report, since the mapping field named attestationId actually holds a transaction hash and can be synthetic offline, so the agent derives the UID from the receipt; the step-number projections were stale after renumbering; and the spec still called RESR-75 Todo eleven lines before saying it was accepted."
+    "Codex found five more issues on the second pass, all fixed: the webhook claim needed a lease because the existing helper treats an unfinished claim as a duplicate and would lose a redelivered report; the WhatsApp subject must be encrypted with a keyed HMAC index rather than stored in the clear; the client has no attestation UID to report, since the mapping field named attestationId actually holds a transaction hash and can be synthetic offline, so the agent derives the UID from the receipt; the step-number projections were stale after renumbering; and the spec still called RESR-75 Todo eleven lines before saying it was accepted.",
+    "Lanes route skill and package, not execution order. The fifteen steps are one sequential dispatch for one builder (steps are in dependency order in plan.todo.md). state_api and ui interleave in both directions -- ui step 9 creates packages/shared/src/modules/whatsapp-drafts/transport.ts, which state_api step 13 extends, while state_api step 14 consumes what step 13 registers -- so a blocking dependency between the lanes deadlocks. Follow the numbered step order; use the lanes to pick who works each step."
   ],
   "lanes": {
     "state_api": {
@@ -63,7 +64,7 @@
       "owner": "unassigned",
       "status": "blocked",
       "branch": "feature/whatsapp-prototype-handoff",
-      "depends_on": ["state_api"],
+      "depends_on": [],
       "handoff": "handoffs/claude-ui.md",
       "handoff_note": "Buildathon prototype steps 9-12 and 15: draft intake port modelled on useShareTargetIntake, the ?wa= locator on /home/garden beside ?draftId= and ?shareTarget=, first-run passkey with the in-app-browser handoff, open-joining admission before the attestation, the outcome call on submission completion, and EXIF/location stripping before publication. Proves UX-01, ID-01, part of UX-02, DATA-06. Shared auth and work surfaces take the critical override; step 11 needs authenticated Brave proof.",
       "skill_tags": ["ui", "react", "web3"],

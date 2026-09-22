@@ -41,6 +41,7 @@ reporting delegation, custodial accounts, or any SMS work.
 | O5 consent, retention, support, thresholds | **Minimum subset required; the rest deferred** | A test garden is not the same as no personal data. Invited testers use real WhatsApp accounts, so step 3 persists a real provider identifier, steps 4 and 5 retain real photos and descriptions, and step 15 publishes that evidence irreversibly to IPFS and chain. "No production data" describes the garden, not the people. A minimum of consent-at-first-contact, abandonment deletion and a named support owner is therefore above the cut line, folded into steps 5 and 14 rather than a sixteenth step. Thresholds, the full retention schedule and support tooling stay deferred to the TAS pilot. |
 | O3 deployed account-proof compatibility | **Largely answered by existing code** | See step 7. |
 | O4 total-loss recovery | **Open** | RESR-21. Unchanged; the prototype makes no recovery claim. |
+| Passkey server in production | **Open — blocks `ID-01`** | `isPasskeyServerEnabled` returns `false` whenever `VITE_PASSKEY_SERVER_ENABLED` is the string `false`, and defaults to `Boolean(env.PROD)` only when unset (`config/passkeyServer.ts:42-48`). The prototype's headline journey is a first-run passkey, so a deployed client bundle carrying `false` makes `ID-01` unreachable regardless of what any test reports. Decide the production value, record it here, configure the client build, and show the deployed setting before the UI lane leaves `blocked`. This is a deployment decision, not a coding step. |
 
 ## Decision log
 
@@ -90,8 +91,12 @@ refuses to start with intake enabled and no key.
 that intake, publication and confirmation can each be disabled while receipt reconciliation keeps
 draining. That is three configuration flags plus three guard points, and nothing else in steps 2
 through 15 adds them, so step 1 adds the flags and each owning step adds its guard: intake at the
-webhook route (step 1), publication at the continuation-link mint (step 6), confirmation at the
+webhook route (step 1), publication at the **submit boundary** (step 13), confirmation at the
 outbox drain (step 14) — with the receipt reconciler explicitly outside the confirmation switch.
+The publication guard must sit where the attestation is dispatched, not at the continuation-link
+mint: a link minted, or a draft already hydrated into the PWA, before an incident would otherwise
+still queue and broadcast an irreversible attestation after publication was disabled. Guarding the
+mint only stops new links, which is not what "disable publication" means.
 
 **Any new user-facing string lands in `en`, `es` and `pt`.** `AGENTS.md:73` admits no exception for
 an English-only test cohort, and `packages/shared/src/__tests__/i18n/locale-coverage.test.ts`
@@ -262,12 +267,21 @@ bump `PRAGMA user_version`.
   `bun run --cwd packages/shared test -- useDraftResume` — PRD-947
 - [ ] **11. First-run passkey from the link.** `package:shared`. Edit
   `src/hooks/client-ui/auth/useLoginScreenController.ts`, edit the install-guidance surface, edit
-  `src/hooks/client-ui/work/useWhatsAppDraftIntake.ts`. No new route, no migration. "Use my existing
-  account" comes first, "Create a passkey" second. The in-app-browser block already exists
+  `src/hooks/client-ui/work/useWhatsAppDraftIntake.ts`, edit
+  `packages/client/src/views/Login/index.tsx` — `package:client` is touched here too. No new route,
+  no migration. "Use my existing account" comes first, "Create a passkey" second — **and that
+  ordering is rendered in the client view, not in the shared hook**
+  (`packages/client/src/views/Login/index.tsx:176-209`), where a device with no stored credential
+  currently makes "Create Account" primary and wallet sign-in secondary. A shared-hook test cannot
+  see that mismatch, so this step carries an interaction test on the view itself. The in-app-browser block already exists
   (`useLoginScreenController.ts:83-95` with `utils/app/browser.ts:64-84`, which matches WhatsApp at
   line 75), so the work is a resumable handoff into Chrome or Safari that keeps the draft, not a new
-  detector. **Before starting, resolve whether the passkey server is on in production:**
-  `config/passkeyServer.ts:42-48` defaults it to `true`, `.env.schema:86-90` sets it `false`.
+  detector. **Blocked on a production decision — see the gate table.** `isPasskeyServerEnabled`
+  (`config/passkeyServer.ts:42-48`) returns `false` whenever `VITE_PASSKEY_SERVER_ENABLED` is the
+  string `false`, and defaults to `Boolean(env.PROD)` only when it is unset. If the deployed client
+  bundle carries `false`, passkey creation is off and `ID-01` is unreachable no matter what this
+  step's hook test reports. The decision, the client build-time configuration and evidence of the
+  deployed value all have to land before the UI lane is marked ready.
   *Proves part of `ID-01`: a new gardener creates a passkey with no other account step, and
   WhatsApp's in-app browser is refused with a handoff that preserves the draft. Publication is
   step 12.*
@@ -387,7 +401,12 @@ bump `PRAGMA user_version`.
   be withdrawn. The retention window for an abandoned draft is **7 days** for the prototype —
   deliberately shorter than the 30 days the spec proposes for the pilot, because these are test
   records — and a startup sweep plus a daily interval deletes what has passed it, proven with an
-  advanced clock rather than a real wait.*
+  advanced clock rather than a real wait. **A queued submission is not an abandoned draft**: an
+  offline browser job stays retryable longer than seven days and reports nothing until it completes,
+  so the sweep would delete the draft, its attachments and its subject index out from under a live
+  submission, and the later outcome callback would have nothing left to reconcile. Step 13 registers
+  a server-side pending-submission hold before queueing, the sweep skips held drafts, and the
+  advanced-clock test covers exactly that interaction.*
   `bun run --cwd packages/agent test -- src/__tests__/work-receipts.test.ts src/__tests__/whatsapp-outbox.test.ts src/__tests__/i18n.test.ts` — PRD-948
 
 ### Lane: publication safety
