@@ -138,8 +138,16 @@ bump `PRAGMA user_version`.
   case — and a Meta redelivery would then reclaim the expired row while the first worker is still
   running, so both create a draft and both reply, against the process-once claim `SEC-01` makes.
   Give each claim an owner epoch that the domain commit checks conditionally, so a worker whose
-  lease was reclaimed cannot commit; or make the domain write transactionally idempotent. The test
-  races a live slow worker against a reclaimed delivery, not just a restart.
+  lease was reclaimed cannot commit; or make the domain write transactionally idempotent.
+  **Fencing the commit alone still lets the loser speak.** A stale worker can fail its conditional
+  commit and then send its WhatsApp reply anyway, after the winner has already replied — so the
+  gardener is answered twice for one message, which is the half of this the paragraph above names
+  and the epoch does not reach. Step 14's outbox is no help: it carries chain-receipt
+  confirmations, not this ingress reply. So persist the reply **intent** in the same transaction as
+  the successful epoch-checked commit, keyed by `(provider realm, event ID, reply kind)`, and
+  dispatch it from that record with a provider idempotency key. A worker whose commit fails has no
+  record and therefore nothing to send. The test races a live slow worker against a reclaimed
+  delivery — not just a restart — and asserts one draft **and one reply**.
   `createServer` imports and calls every registrar explicitly (`src/api/server.ts:170-209`); nothing
   is auto-discovered, so the route is unreachable until it is registered there.
   HMAC alone authenticates a body but gives no freshness, so persist the event claim **before**
@@ -713,7 +721,8 @@ the Buildathon prototype and WhatsApp number working milestones.
 - PRD-955 records this hub promotion and scope lock. PRD-956 covers step 15, location stripping,
   which was split out because it affects app submissions too and is not specific to this prototype.
 - PRD-944 and PRD-946 were **not** split further. After the review rounds their remaining scope is
-  coherent — PRD-944 is steps 3 through 5, PRD-946 is steps 7 and 8 — and splitting mid-review would
+  coherent — PRD-944 is steps 3 through 5 and 14, since `DATA-02`'s consent notice and deletion path
+  span both ends; PRD-946 is steps 7 and 8 — and splitting mid-review would
   have orphaned the bodies that now carry the corrections.
 - `linear-sync` has **not** been run, deliberately. The hub is `parent_only`; with an empty lane map
   an `lane_issues` sync would have created duplicate canonical lane issues under the historical
