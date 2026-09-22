@@ -78,7 +78,7 @@
           "evidence": ""
         },
         "green": {
-          "command": "bun run --cwd packages/shared test -- useWhatsAppDraftIntake useDraftResume useLoginScreenController join-garden-command media-processing upload-queued-work locale-coverage",
+          "command": "bun run --cwd packages/shared test -- useWhatsAppDraftIntake useDraftResume useLoginScreenController join-garden-command media-processing upload-queued-work locale-coverage && bun run --cwd packages/client test -- src/__tests__/views/Login.test.tsx",
           "evidence": ""
         },
         "note": "Unrun. Prototype steps 9-12 and 15. Step 11 also needs authenticated Brave proof on the deployed origin: a passkey ceremony cannot be proven by localhost mocks."

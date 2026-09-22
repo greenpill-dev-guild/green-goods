@@ -285,7 +285,7 @@ bump `PRAGMA user_version`.
   *Proves part of `ID-01`: a new gardener creates a passkey with no other account step, and
   WhatsApp's in-app browser is refused with a handoff that preserves the draft. Publication is
   step 12.*
-  `bun run --cwd packages/shared test -- useLoginScreenController locale-coverage` plus authenticated Brave proof — PRD-947
+  `bun run --cwd packages/shared test -- useLoginScreenController locale-coverage && bun run --cwd packages/client test -- src/__tests__/views/Login.test.tsx` plus authenticated Brave proof — PRD-947
 - [ ] **12. Admit the new account before it publishes.** `package:shared`. Edit
   `src/hooks/client-ui/work/useWhatsAppDraftIntake.ts`, reuse
   `src/modules/garden/join-garden-command.ts:35-88`. No new route, no migration.
@@ -298,6 +298,13 @@ bump `PRAGMA user_version`.
   the attestation, sponsored for passkey users. No steward is in the critical path.
   This is one extra on-chain transaction, not one extra *account* step, which is what `ID-01`
   constrains. State that plainly in the demo narration rather than claiming a single transaction.
+  **Awaiting the join command is not the same as being a member.** `joinGarden-command.ts:41,55`
+  returns the submitted transaction hash without waiting for a receipt, while the work executor
+  simulates the attestation against current chain state immediately
+  (`job-executors.ts:150-159`), so a job dispatched straight after the join can still revert
+  `NotGardenMember`. Gate the work job on **receipt-backed membership**: confirm the join receipt,
+  then a chain read showing the account is a member, before the job is allowed to simulate or
+  publish. The proof is the join-to-publication ordering, not a unit test of the join command.
   *Proves the rest of `ID-01`: a brand-new passkey account reaches a signed on-chain publication
   without a second account step, and the attestation does not revert.*
   `bun run --cwd packages/shared test -- join-garden-command useWhatsAppDraftIntake` — PRD-947
@@ -372,9 +379,13 @@ bump `PRAGMA user_version`.
   the draft revision, the chosen action, the garden, and a content digest of each selected image
   before upload — and have step 14 check that the on-chain payload derives from that preimage.
   Establishing that derivation is the builder's first task in this step, because `encodeWorkData`
-  owns the transformation and its determinism has not been verified here; if it turns out not to be
-  derivable, say so and fall back to binding draft revision and attester only, with the weaker
-  guarantee stated plainly rather than implied. Never trust a
+  owns the transformation and its determinism has not been verified here. **If it is not derivable,
+  this step fails closed and the slice re-plans — it does not proceed on a weaker binding.** An
+  earlier revision of this plan offered draft-revision-and-attester as a fallback, which was wrong:
+  with only those two bound, the same attester can register any unrelated valid work transaction and
+  the chat confirms work that was never published from the saved draft. Stating a weaker guarantee
+  plainly does not make it safe to ship, because the gardener reads the confirmation, not the
+  caveat. No confirmation is better than a false one. Never trust a
   client-supplied UID, and reject a hash that resolves to no receipt, which is what a synthetic
   offline hash does. Persist the receipt and enqueue the reply in one transaction, then let a
   restart-safe consumer drain the outbox, so a process that dies between receipt and send still
@@ -423,10 +434,14 @@ bump `PRAGMA user_version`.
   `DATA-06` while a GPS-bearing video reaches permanent IPFS would be a false claim, so the
   prototype refuses video with a clear message in the chat and the composer. Lifting that limit is
   its own issue.
-  *Proves `DATA-06`: the test follows the publication path far enough to assert that the
-  bytes uploaded to Pinata carry no GPS and that the media references on the attestation resolve to
-  those bytes, for a sub-1 MB image; and that a video is refused rather than published. A
-  helper-only assertion does not prove this for an irreversible public path.*
+  *Proves `DATA-06`: the test follows the publication path far enough to assert that the bytes
+  uploaded to Pinata carry **neither GPS nor camera-identifying metadata** — the fixture is a
+  sub-1 MB image carrying representative `Make`, `Model`, `BodySerialNumber` and `Software` tags
+  alongside coordinates, and the assertion is that none of them survive — and that the media
+  references on the attestation resolve to those bytes; and that a video is refused rather than
+  published. Asserting only the absence of GPS would let an image reach permanent IPFS still
+  naming the device that took it, which is the identifying half of the criterion. A helper-only
+  assertion does not prove this for an irreversible public path.*
   `bun run --cwd packages/shared test -- media-processing upload-queued-work locale-coverage` — PRD-956
 
 ## Cut line
