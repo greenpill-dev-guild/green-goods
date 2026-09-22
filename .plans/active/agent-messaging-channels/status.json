@@ -40,7 +40,7 @@
     "Spec proposal P6 (model-assisted interpretation, bounded judgments plus one extraction model, in a shared module) is unselected and blocked on new gate O6 (inference-processor retention, training and regional terms). No step in the prototype calls an inference provider; nothing a gardener writes leaves Green Goods and Meta. A shadow-mode trial on real messages is inside O6, not outside it.",
     "eval.md gained UX-04 (step 16, above the cut line) and deferred gate 7, INT-01 through INT-04. A smooth step 16 demo shows a working walk, not a system that reads what the gardener wrote; PILOT-01's effort measure cannot be inferred from it.",
     "Step 16 is numbered out of runtime order deliberately. It executes between steps 5 and 6, but renumbering would have broken every existing cross-reference to steps 6 through 15 in spec.md, eval.md and the live Linear issues.",
-    "PRD-970 was created 2026-09-22 for step 16, under the Buildathon prototype milestone, blocked by PRD-944. Two Linear writes remain owed: PRD-947's body still describes composer hydration and needs the step 9 and 10 read-only review reflected, and spec proposal P6 with gate O6 needs a Research team issue that must NOT sit under the Buildathon prototype milestone."
+    "PRD-970 (Product, Buildathon prototype milestone, blocked by PRD-944) owns step 16. RESR-79 (Research, same project, no milestone) owns spec proposal P6 and gate O6, and must stay off the prototype milestone because P6 is unselected. One Linear write remains owed: PRD-947's body still describes composer hydration and needs the step 9 and 10 read-only review reflected."
   ],
   "lanes": {
     "state_api": {

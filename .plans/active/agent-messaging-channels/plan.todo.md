@@ -833,11 +833,13 @@ the Buildathon prototype and WhatsApp number working milestones.
   and PRD-955. It carries `package:agent` under the one-`package:*`-per-issue rule even though the
   pure walk module lands in shared, matching how PRD-946 and PRD-947 already resolve that
   constraint, and its body says so.
-- **Two Linear writes remain owed.** PRD-947's body still describes composer hydration and the
-  `useWhatsAppDraftIntake`/`useDraftResume` commands, which steps 9 and 10 no longer do; it needs
-  the read-only review reflected. And spec proposal P6 with gate O6 needs a **Research** team issue,
-  not a Product one — P6 is unselected, so it must not appear under the Buildathon prototype
-  milestone or read as accepted work.
+- RESR-79 carries spec proposal P6 and gate O6 on the **Research** team, in the same project but
+  under **no milestone** — P6 is unselected, so it must not read as accepted prototype work. It
+  names the go/no-go a recommendation has to reach and the three configurations to measure against
+  the PRD-970 walk as control.
+- **One Linear write remains owed.** PRD-947's body still describes composer hydration and the
+  `useWhatsAppDraftIntake`/`useDraftResume` validation commands, which steps 9 and 10 no longer do.
+  It needs the read-only review reflected before a builder picks it up.
 - `linear-sync` has **not** been run, deliberately. The hub is `parent_only`; with an empty lane map
   an `lane_issues` sync would have created duplicate canonical lane issues under the historical
   PRD-339 parent instead of using the live slice issues. Run the Implementation Start Gate only once
