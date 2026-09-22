@@ -267,7 +267,11 @@ async function outboxDurabilityHarness() {
     assert.deepEqual(posts, [], "the debounce should not have fired yet");
   });
   assert.ok(carried, "closing the tab left no recoverable copy of the unsent note");
-  assert.deepEqual(JSON.parse(carried), {
+  const carriedShape = JSON.parse(carried);
+  // Stamped so the carry prompt can say how old held-back work is.
+  assert.match(carriedShape.updatedAt, /^\d{4}-\d\d-\d\dT[\d:.]+Z$/);
+  delete carriedShape.updatedAt;
+  assert.deepEqual(carriedShape, {
     owner: AFO_ADDRESS,
     person: "Afo",
     delta: { "PUB-001": { n: "unsent when the tab closed" } },
@@ -303,10 +307,12 @@ async function outboxDurabilityHarness() {
   // delete the only copy of work Afo has not managed to save.
   await pageLife({ carried, person: "Gui", owner: GUI_ADDRESS }, async ({ storage, posts }) => {
     assert.deepEqual(posts, [], "Gui's page should not post Afo's work");
-    assert.deepEqual(
-      JSON.parse(storage.getItem(`qa-outbox:${AFO_ADDRESS}`) || "null"),
-      { owner: AFO_ADDRESS, person: "Afo", delta: { "PUB-001": { n: "unsent when the tab closed" } } },
-      "Afo's unsent work was discarded by another tester's page",
+    // Byte for byte what life one left, timestamp included: Gui's page must not
+    // rewrite Afo's queue, not even to restamp it.
+    assert.equal(
+      storage.getItem(`qa-outbox:${AFO_ADDRESS}`),
+      carried,
+      "Afo's unsent work was changed by another tester's page",
     );
   });
 
@@ -323,7 +329,12 @@ async function outboxDurabilityHarness() {
     note.dispatchEvent(new dom.window.Event("input", { bubbles: true }));
     await flush();
 
-    assert.deepEqual(JSON.parse(storage.getItem(`qa-outbox:${AFO_ADDRESS}`) || "null"), {
+    const stored = JSON.parse(storage.getItem(`qa-outbox:${AFO_ADDRESS}`) || "null");
+    // `updatedAt` is when the tester last touched the queue; the carry prompt
+    // reports its age, so only its shape is asserted here.
+    assert.match(stored.updatedAt, /^\d{4}-\d\d-\d\dT[\d:.]+Z$/);
+    delete stored.updatedAt;
+    assert.deepEqual(stored, {
       owner: AFO_ADDRESS,
       person: "Afo",
       delta: {
@@ -1243,6 +1254,8 @@ async function runsHarness() {
     //    sent against that run.
     assert.equal(dom.window.localStorage.getItem("qa-outbox:" + OWNER), null);
     const adopted = JSON.parse(dom.window.localStorage.getItem("qa-outbox:" + OWNER + ":run-2"));
+    assert.match(adopted.updatedAt, /^\d{4}-\d\d-\d\dT[\d:.]+Z$/);
+    delete adopted.updatedAt;
     assert.deepEqual(adopted, { owner: OWNER, person: "Tester A", run: "run-2", delta: { "ADM-001": { s: "blocked" } } });
     await runTimer(400);
     assert.deepEqual(posts[0], { entries: { "ADM-001": { s: "blocked" } }, run: "run-2" });
@@ -1378,6 +1391,222 @@ async function runsHarness() {
   }
 }
 
+/**
+ * Work that never reached the server before its run closed is offered to the
+ * tester rather than sent into a run it was never recorded against.
+ *
+ * This is the 2026-09-22 failure as a test: a queue that had been rejected for
+ * days was adopted by the rollover and became a brand-new run's results.
+ */
+async function carryPromptHarness() {
+  const dynamicImport = new Function("specifier", "return import(specifier)");
+  const assert = (await dynamicImport("node:assert/strict")).default;
+  const { readFileSync } = await dynamicImport("node:fs");
+  const path = await dynamicImport("node:path");
+  const { JSDOM, VirtualConsole } = await dynamicImport("jsdom");
+
+  const page = readFileSync(path.join(process.cwd(), "packages", "qa", "index.html"), "utf8");
+  const OWNER = "0x0000000000000000000000000000000000000001";
+  const cases = [
+    { id: "PWA-051", tab: "PWA", area: "Garden Join", pri: "P0", scenario: "Join an open garden", preconditions: [], steps: ["Join"], expected: "Joined", role: "gardener", rp: false, rd: false, tx: true },
+    { id: "PWA-052", tab: "PWA", area: "Garden Join", pri: "P0", scenario: "Request to join", preconditions: [], steps: ["Request"], expected: "Pending", role: "gardener", rp: false, rd: false, tx: true },
+    { id: "PWA-053", tab: "PWA", area: "Offline", pri: "P1", scenario: "Works offline", preconditions: [], steps: ["Go offline"], expected: "Usable", role: "gardener", rp: false, rd: false, tx: false },
+  ];
+  const response = (body, status = 200) => ({ ok: status < 400, status, json: async () => structuredClone(body) });
+  const flush = async () => {
+    await Promise.resolve();
+    await Promise.resolve();
+    await new Promise((resolve) => setImmediate(resolve));
+  };
+  const closedRun = (n, label, closedAt) => ({ id: "run-" + n, n, label, openedAt: "2026-09-08T14:00:00.000Z", openedBy: OWNER, openedByLabel: "Tester A", closedAt, closedBy: OWNER, closedByLabel: "Tester A", environment: "beta", catalog: null, builds: {}, window: { from: "2026-09-08T14:00:00.000Z", to: closedAt } });
+  const openRunRecord = (n, label) => ({ id: "run-" + n, n, label, openedAt: "2026-09-20T14:00:00.000Z", openedBy: OWNER, openedByLabel: "Tester A", closedByLabel: null, environment: "beta", catalog: null, builds: {}, window: null });
+
+  /** One page life. `seed` writes localStorage before the page script runs. */
+  async function pageLife({ runs, openRun, seed, failPostsFor }, body) {
+    const posts = [];
+    const rollovers = [];
+    const timers = new Map();
+    let timerId = 0;
+    let pollCallback = null;
+    let jsdomError = null;
+    const server = { openRun, runs: runs.slice() };
+    const virtualConsole = new VirtualConsole();
+    virtualConsole.on("jsdomError", (error) => {
+      jsdomError = error.cause?.stack || error.cause?.message || error.message;
+    });
+    const dom = new JSDOM(page, {
+      runScripts: "dangerously",
+      url: "http://localhost:4610/",
+      virtualConsole,
+      beforeParse(window) {
+        if (seed) for (const [key, value] of Object.entries(seed)) window.localStorage.setItem(key, value);
+        window.setTimeout = (callback, delay = 0) => {
+          const id = ++timerId;
+          timers.set(id, { callback, delay });
+          return id;
+        };
+        window.clearTimeout = (id) => timers.delete(id);
+        window.setInterval = (callback) => { pollCallback = callback; return 1; };
+        window.clearInterval = () => {};
+        window.fetch = async (input, init = {}) => {
+          const target = String(input);
+          if (target === "catalog.json") {
+            return response({ revision: "abc123def456", tabs: ["PWA"], journeys: [], locales: {}, cases });
+          }
+          if (target === "/api/runs") {
+            const requested = JSON.parse(String(init.body));
+            rollovers.push(requested);
+            const current = server.runs[server.runs.length - 1];
+            current.closedAt = "2026-09-22T04:37:10.303Z";
+            current.closedBy = OWNER;
+            current.closedByLabel = "Tester A";
+            current.window = { from: current.openedAt, to: current.closedAt };
+            const opened = openRunRecord(current.n + 1, requested.label);
+            server.runs.push(opened);
+            server.openRun = opened.id;
+            return response({ ok: true, closed: current, opened, runs: server.runs, openRun: opened.id });
+          }
+          const [route, query] = target.split("?");
+          if (route !== "/api/state") throw new Error("unexpected fetch " + target);
+          if (init.method === "POST") {
+            const sent = JSON.parse(String(init.body));
+            posts.push(sent);
+            if (failPostsFor && sent.run === failPostsFor) {
+              return response({ error: "entries could not be saved" }, 503);
+            }
+            return response({ ok: true, person: "Tester A", count: 1, run: sent.run || server.openRun });
+          }
+          const requested = query ? new URLSearchParams(query).get("run") : null;
+          return response({
+            team: ["Tester A"],
+            you: "Tester A",
+            address: OWNER,
+            named: true,
+            entries: {},
+            readAt: new Date().toISOString(),
+            runs: server.runs,
+            run: requested || server.openRun,
+            openRun: server.openRun,
+          });
+        };
+      },
+    });
+    const runTimer = async (delay) => {
+      const timer = [...timers.entries()].find(([, pending]) => pending.delay === delay);
+      assert.ok(timer, "expected a " + delay + "ms timer");
+      timers.delete(timer[0]);
+      await timer[1].callback();
+      await flush();
+    };
+    try {
+      await flush();
+      await flush();
+      assert.equal(jsdomError, null, jsdomError);
+      await body({ dom, posts, rollovers, runTimer, server, poll: async () => { await pollCallback(); await flush(); } });
+      assert.equal(jsdomError, null, jsdomError);
+    } finally {
+      dom.window.close();
+    }
+  }
+
+  const twoDaysAgo = new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString();
+  const strandedQueue = JSON.stringify({
+    owner: OWNER,
+    person: "Tester A",
+    run: "run-2",
+    updatedAt: twoDaysAgo,
+    delta: { "PWA-051": { s: "fail", n: "cannot join" }, "PWA-052": { s: "blocked" } },
+  });
+
+  // 1. A queue found under a run that has already closed is NOT sent. It is
+  //    reported with its size and age, and it stays where it was recorded.
+  await pageLife(
+    {
+      runs: [closedRun(2, "Re-QA 2026-09-08", "2026-09-20T14:00:00.000Z"), openRunRecord(3, "QA 2026-09-22")],
+      openRun: "run-3",
+      seed: { ["qa-outbox:" + OWNER + ":run-2"]: strandedQueue },
+    },
+    async ({ dom, posts, runTimer }) => {
+      const document = dom.window.document;
+      const summary = document.querySelector(".carry-confirm")?.textContent || "";
+      assert.match(summary, /2 verdicts recorded in Run 2 · Re-QA 2026-09-08 never reached the server, last edited 2 days ago\./);
+      assert.match(summary, /Send them to <?b?>?Run 3 · QA 2026-09-22/);
+      assert.deepEqual(posts, [], "stranded work must not be sent without being offered");
+      assert.equal(dom.window.localStorage.getItem("qa-outbox:" + OWNER + ":run-2"), strandedQueue);
+      // Nothing was adopted into the open run's queue either.
+      assert.equal(dom.window.localStorage.getItem("qa-outbox:" + OWNER + ":run-3"), null);
+      // The rows show no verdict: the run on screen does not own this work.
+      assert.equal(document.querySelector('[data-id="PWA-051"][aria-pressed="true"]'), null);
+
+      // 2. Keeping it collapses the prompt to a standing line and sends nothing.
+      document.querySelector("#qa-carry-keep")?.click();
+      await flush();
+      assert.equal(document.querySelector(".carry-prompt"), null);
+      assert.match(document.querySelector(".carry-line")?.textContent || "", /2 verdicts recorded in Run 2/);
+      assert.deepEqual(posts, []);
+      assert.equal(dom.window.localStorage.getItem("qa-outbox:" + OWNER + ":run-2"), strandedQueue);
+
+      // 3. Reviewing re-opens it; sending moves it to the open run, once.
+      document.querySelector("#qa-carry-review")?.click();
+      await flush();
+      assert.ok(document.querySelector(".carry-prompt"), "Review should re-open the prompt");
+      document.querySelector("#qa-carry-send")?.click();
+      await flush();
+      assert.equal(dom.window.localStorage.getItem("qa-outbox:" + OWNER + ":run-2"), null, "sent work leaves the closed run's key");
+      assert.equal(document.querySelector(".carry-row"), null, "nothing left to offer");
+      await runTimer(400);
+      assert.deepEqual(posts, [
+        { entries: { "PWA-051": { s: "fail", n: "cannot join" }, "PWA-052": { s: "blocked" } }, run: "run-3" },
+      ]);
+      assert.equal(dom.window.document.querySelector("#savebar")?.textContent, "saved ✓");
+    },
+  );
+
+  // 4. The 2026-09-22 sequence: a queue that keeps being rejected against the
+  //    OPEN run, and then the tester starts a new run. The work does not follow
+  //    the rollover, so the new run does not open already walked.
+  await pageLife(
+    {
+      runs: [openRunRecord(2, "Re-QA 2026-09-08")],
+      openRun: "run-2",
+      seed: { ["qa-outbox:" + OWNER + ":run-2"]: strandedQueue },
+      failPostsFor: "run-2",
+    },
+    async ({ dom, posts, rollovers, runTimer }) => {
+      const document = dom.window.document;
+      // Recovered work still retries against the run it names — that is the
+      // promise on the savebar — and here the store keeps refusing it.
+      await runTimer(400);
+      assert.equal(posts.length, 1);
+      assert.equal(posts[0].run, "run-2");
+      assert.equal(document.querySelector("#savebar")?.textContent, "not saved — kept locally, retrying");
+      assert.equal(document.querySelector(".carry-row"), null, "nothing is stranded while its run is open");
+
+      document.querySelector("#qa-run-rollover")?.click();
+      await flush();
+      const form = document.querySelector("#qa-rollover");
+      form.querySelector("#qa-rollover-label").value = "QA 2026-09-22";
+      form.dispatchEvent(new dom.window.Event("submit", { bubbles: true, cancelable: true }));
+      await flush();
+      await flush();
+      await flush();
+
+      assert.equal(rollovers.length, 1);
+      assert.equal(document.querySelector("#qa-run-select")?.value, "run-3");
+      assert.equal(posts.length, 1, "the held-back walk must not be posted into the new run");
+      assert.match(
+        document.querySelector("#savebar")?.textContent || "",
+        /2 unsent verdicts from Run 2 · Re-QA 2026-09-08 need a decision/,
+      );
+      assert.ok(document.querySelector(".carry-prompt"), "the new run offers the held-back work");
+      const parked = JSON.parse(dom.window.localStorage.getItem("qa-outbox:" + OWNER + ":run-2"));
+      assert.deepEqual(Object.keys(parked.delta).sort(), ["PWA-051", "PWA-052"]);
+      assert.equal(parked.updatedAt, twoDaysAgo, "the age the tester sees is theirs, not the rollover's");
+      assert.equal(dom.window.localStorage.getItem("qa-outbox:" + OWNER + ":run-3"), null);
+    },
+  );
+}
+
 describe("QA app client races", () => {
   // Each case spawns a Node subprocess and boots JSDOM once per page life, which
   // runs past Vitest's 5s default — the cause of the intermittent timeout here.
@@ -1466,6 +1695,20 @@ describe("QA app client races", () => {
       { cwd: repoRoot, stdio: "pipe" },
     );
   }, JSDOM_SUBPROCESS_TIMEOUT_MS);
+
+  it("offers work stranded by a closed run instead of sending it into the next one", () => {
+    execFileSync(
+      "node",
+      [
+        "scripts/dev/node-cli.js",
+        "node",
+        "--input-type=module",
+        "--eval",
+        `await (${carryPromptHarness.toString()})()`,
+      ],
+      { cwd: repoRoot, stdio: "inherit", timeout: JSDOM_SUBPROCESS_TIMEOUT_MS },
+    );
+  });
 
   it("orders a cross-surface journey, restores its view, and separates Act from Verify", () => {
     execFileSync(

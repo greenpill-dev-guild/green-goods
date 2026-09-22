@@ -229,6 +229,14 @@
   .cancel-btn:focus-visible { outline:2px solid var(--green); outline-offset:2px; }
   .rollover-confirm { grid-column:1 / -1; font-size:12.5px; color:var(--ink); }
   .rollover-actions { grid-column:1 / -1; display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+  .carry-prompt, .carry-line { display:flex; flex-direction:column; gap:8px; font-size:12.5px; color:var(--ink); }
+  .carry-line { flex-direction:row; align-items:center; gap:8px; flex-wrap:wrap; }
+  .carry-confirm { margin:0; }
+  .carry-actions { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+  .carry-review { border:1px solid var(--line); background:var(--surface); color:var(--ink);
+    border-radius:999px; min-height:26px; padding:2px 10px; font:inherit; font-size:12px; font-weight:600;
+    cursor:pointer; }
+  .carry-review:focus-visible { outline:2px solid var(--green); outline-offset:2px; }
   .cancel-btn { border:1px solid var(--line); background:var(--surface); color:var(--ink);
     border-radius:999px; min-height:32px; padding:4px 12px; font:inherit; font-size:12px; font-weight:600;
     cursor:pointer; }
@@ -515,46 +523,102 @@
   // reading it here would silently start every session with an empty one and
   // strand whatever the last session failed to send.
   let outbox = Object.create(null);
-  function writeOutbox(owner, person, delta) {
+  /**
+   * Cases in `outbox` that this page RECOVERED rather than typed.
+   *
+   * The difference decides whether a pending verdict may follow a run boundary
+   * on its own. Work typed in this session is a tester mid-walk, and carrying
+   * it is better than losing it. Work read back from storage may be days old —
+   * on 2026-09-22 a two-day-old PWA walk was adopted into a run that had just
+   * opened, three seconds after the rollover, and the run read as walked. So a
+   * recovered case is held back at the boundary and offered instead.
+   *
+   * Cleared as soon as the case stops being somebody else's session's work:
+   * the tester edits it, the server confirms it, or they send it themselves.
+   */
+  let recovered = Object.create(null);
+  /** Whether the parked-work prompt is expanded; storage holds the work itself. */
+  let carryOpen = false;
+  /**
+   * `touched` is when the TESTER last changed this queue, and only an edit
+   * passes it. Stamping every write instead would reset the age each time a
+   * page re-persisted recovered work, so a walk from two days ago would offer
+   * itself as typed a moment ago — which is exactly the thing the prompt exists
+   * to tell them. A queue an older page left carries no stamp at all; the
+   * prompt then omits the age rather than inventing one.
+   */
+  function writeOutbox(owner, person, delta, touched) {
     try {
+      const key = outboxKey(owner, openRunId);
       if (Object.keys(delta).length) {
+        let previous = null;
+        try {
+          previous = JSON.parse(localStorage.getItem(key) || "null");
+        } catch (e) {}
+        const kept = previous && typeof previous.updatedAt === "string" ? previous.updatedAt : "";
+        const updatedAt = touched || kept;
         localStorage.setItem(
-          outboxKey(owner, openRunId),
-          JSON.stringify({ owner, person, ...(openRunId ? { run: openRunId } : {}), delta }),
+          key,
+          JSON.stringify({
+            owner,
+            person,
+            ...(openRunId ? { run: openRunId } : {}),
+            ...(updatedAt ? { updatedAt } : { updatedAt: new Date().toISOString() }),
+            delta,
+          }),
         );
       } else {
-        localStorage.removeItem(outboxKey(owner, openRunId));
+        localStorage.removeItem(key);
       }
     } catch (e) {}
   }
 
   /**
-   * Adopt queues left under other runs' keys — a tester who was offline, or
-   * mid-save, when a teammate rolled the run over — into the open run, and
-   * remove them so they cannot be found and re-sent again later.
+   * Queues sitting under a run other than the open one: work an earlier page
+   * life never got to the server before that run closed.
+   *
+   * These used to be merged into the open run at boot and sent, which is how a
+   * walk recorded days earlier ended up as a fresh run's results. They now stay
+   * exactly where they are — under the run they were recorded against — until
+   * the tester says where they should go. Storage is the record rather than a
+   * variable, because parked work has to survive a reload and two copies would
+   * eventually disagree about whether anything is still unsent.
    */
-  function adoptStaleRunOutboxes(owner) {
-    if (!owner || !openRunId) return;
-    const prefix = outboxKey(owner, "");
-    const stale = [];
+  function parkedQueues() {
+    if (!identity || !openRunId) return [];
+    const prefix = outboxKey(identity, "");
+    const parked = [];
     try {
       for (let index = 0; index < localStorage.length; index++) {
         const key = localStorage.key(index);
-        if (key && key.startsWith(prefix + ":") && key !== outboxKey(owner, openRunId)) stale.push(key);
-      }
-      let adopted = false;
-      for (const key of stale) {
+        if (!key || !key.startsWith(prefix + ":") || key === outboxKey(identity, openRunId)) continue;
         const stored = JSON.parse(localStorage.getItem(key) || "null");
-        if (stored && stored.delta && stored.owner === owner) {
-          outbox = mergedDictionary(stored.delta, outbox);
-          adopted = true;
-        }
+        if (!stored || !stored.delta || stored.owner !== identity) continue;
+        const cases = Object.keys(stored.delta).length;
+        if (!cases) continue;
+        parked.push({
+          key,
+          run: key.slice(prefix.length + 1),
+          cases,
+          updatedAt: typeof stored.updatedAt === "string" ? stored.updatedAt : "",
+        });
       }
-      // Persist the merged queue under the open run's key BEFORE the stale
-      // copies go, so a reload in between cannot lose the only copy.
-      if (adopted) saveOutbox();
-      for (const key of stale) localStorage.removeItem(key);
     } catch (e) {}
+    return parked.sort((left, right) => (left.run < right.run ? -1 : 1));
+  }
+
+  /** "2 days ago", or "" for a queue an older page left without a stamp. */
+  function agePhrase(iso) {
+    const then = Date.parse(iso || "");
+    if (!Number.isFinite(then)) return "";
+    const seconds = Math.max(0, Math.round((Date.now() - then) / 1000));
+    if (seconds < 90) return "just now";
+    const minutes = Math.round(seconds / 60);
+    if (minutes < 90) return minutes + " minute" + (minutes === 1 ? "" : "s") + " ago";
+    const hours = Math.round(minutes / 60);
+    if (hours < 36) return hours + " hour" + (hours === 1 ? "" : "s") + " ago";
+    const days = Math.round(hours / 24);
+    return days + " day" + (days === 1 ? "" : "s") + " ago";
   }
 
   /**
@@ -563,14 +627,50 @@
    * and the pending verdicts land in the run that is actually recording.
    */
   function rekeyOutbox(fromRun, toRun) {
-    if (!identity || fromRun === toRun) return;
+    if (!identity || fromRun === toRun) return 0;
+    // What this page typed follows the boundary. What it recovered does not:
+    // nothing here can tell a verdict taken a minute ago from one taken on
+    // another day, and sending the second silently makes a new run look walked.
+    const held = Object.create(null);
+    for (const caseId of Object.keys(outbox)) {
+      if (!recovered[caseId]) continue;
+      held[caseId] = outbox[caseId];
+      delete outbox[caseId];
+      delete outboxVersions[caseId];
+      delete recovered[caseId];
+    }
+    let stored = null;
     try {
-      const stored = JSON.parse(localStorage.getItem(outboxKey(identity, fromRun)) || "null");
-      if (stored && stored.delta && stored.owner === identity) outbox = mergedDictionary(stored.delta, outbox);
-      localStorage.removeItem(outboxKey(identity, fromRun));
+      stored = JSON.parse(localStorage.getItem(outboxKey(identity, fromRun)) || "null");
+    } catch (e) {}
+    const onDisk = stored && stored.delta && stored.owner === identity ? stored.delta : null;
+    const parked = mergedDictionary(onDisk, held);
+    // A case the tester is editing right now belongs to the run they are moving
+    // to; parking a second copy of it would send the same case twice.
+    for (const caseId of Object.keys(parked)) if (hasOwn(outbox, caseId)) delete parked[caseId];
+    try {
+      if (Object.keys(parked).length) {
+        localStorage.setItem(
+          outboxKey(identity, fromRun),
+          JSON.stringify({
+            owner: identity,
+            person: who,
+            run: fromRun,
+            // Keep the stamp the work was actually left with; the age the
+            // prompt reports is the tester's, not this moment's.
+            updatedAt: (stored && typeof stored.updatedAt === "string" && stored.updatedAt) || new Date().toISOString(),
+            delta: parked,
+          }),
+        );
+      } else {
+        localStorage.removeItem(outboxKey(identity, fromRun));
+      }
     } catch (e) {}
     openRunId = toRun;
     saveOutbox();
+    const count = Object.keys(parked).length;
+    if (count) carryOpen = true;
+    return count;
   }
 
   /**
@@ -619,9 +719,9 @@
    * write merges: this tab is authoritative for the cases it is holding, and
    * silent about every other.
    */
-  function saveOutbox() {
+  function saveOutbox(touched) {
     if (!identity || !who) return;
-    writeOutbox(identity, who, mergedDictionary(storedOutboxFor(identity, who), outbox));
+    writeOutbox(identity, who, mergedDictionary(storedOutboxFor(identity, who), outbox), touched);
   }
 
   /**
@@ -641,6 +741,7 @@
     const owned = Object.keys(outbox);
     outbox = Object.create(null);
     outboxVersions = Object.create(null);
+    recovered = Object.create(null);
     forgetStoredCases(person || identity, owned);
   }
   /** Clearing a case is explicit, so clearing one field never means deletion. */
@@ -718,9 +819,59 @@
       if (entry) row[who] = entry;
       else delete row[who];
       outboxVersions[caseId] = markLocalEdit(caseId, who);
+      // Recovered, not typed here. It still retries against the run it names —
+      // that is the promise on the savebar — but it will not follow a rollover
+      // into a different run without the tester saying so.
+      recovered[caseId] = true;
     }
     saveOutbox();
     if (Object.keys(outbox).length) queueSave(400);
+  }
+
+  /**
+   * Send parked work into the run that is open now, because the tester said to.
+   *
+   * From here on it is this session's work: they made the call about which run
+   * records it, so it follows any later boundary the way a fresh edit does.
+   */
+  function sendCarry() {
+    const moved = [];
+    for (const queue of parkedQueues()) {
+      let stored = null;
+      try {
+        stored = JSON.parse(localStorage.getItem(queue.key) || "null");
+      } catch (e) {}
+      if (!stored || !stored.delta) continue;
+      for (const [caseId, patch] of Object.entries(stored.delta)) {
+        // A live edit already owns this case; the tester's current value wins.
+        if (hasOwn(outbox, caseId)) continue;
+        outbox[caseId] = patch;
+        moved.push(caseId);
+      }
+      try {
+        localStorage.removeItem(queue.key);
+      } catch (e) {}
+    }
+    carryOpen = false;
+    if (!moved.length) {
+      saveOutbox();
+      render();
+      return;
+    }
+    normalizeLoadedOutbox();
+    for (const caseId of moved) {
+      if (!hasOwn(outbox, caseId)) continue;
+      const entry = patchEntry(entryFor(caseId, who), outbox[caseId]);
+      const row = ensureEntryRow(caseId);
+      if (entry) row[who] = entry;
+      else delete row[who];
+      outboxVersions[caseId] = markLocalEdit(caseId, who);
+      delete recovered[caseId];
+    }
+    saveOutbox();
+    notice(`${moved.length} verdict${moved.length === 1 ? "" : "s"} moved to ${describeRunId(openRunId)} — saving`, "saving");
+    if (Object.keys(outbox).length) queueSave(400);
+    render();
   }
 
   function entryFor(caseId, person) {
@@ -739,7 +890,10 @@
     }
     else outbox[caseId] = { ...(pending || {}), ...patch };
     outboxVersions[caseId] = markLocalEdit(caseId, who);
-    saveOutbox();
+    // Touched in this session, so it is no longer an earlier session's work,
+    // and its age restarts from this edit.
+    delete recovered[caseId];
+    saveOutbox(new Date().toISOString());
   }
 
   /** The case's standing verdict: the most severe entry any tester recorded. */
@@ -1166,6 +1320,34 @@
       </form></div>`;
   }
 
+  /**
+   * What to do with verdicts that never reached the server before their run
+   * closed. Collapsed to one line once the tester has seen it, because the work
+   * is still theirs to place and hiding it entirely is how it got lost before.
+   */
+  function carryPrompt() {
+    if (!runsSupported || !who) return "";
+    const parked = parkedQueues();
+    if (!parked.length) return "";
+    const cases = parked.reduce((total, queue) => total + queue.cases, 0);
+    const sources = parked.map((queue) => describeRunId(queue.run)).join(", ");
+    const newest = parked.map((queue) => queue.updatedAt).filter(Boolean).sort().pop() || "";
+    const age = agePhrase(newest);
+    const summary = `${cases} verdict${cases === 1 ? "" : "s"} recorded in ${esc(sources)} never reached the server${age ? `, last edited ${esc(age)}` : ""}.`;
+    if (!carryOpen) {
+      return `<div class="header-row carry-row"><div class="carry-line">${summary}
+        <button type="button" class="carry-review" id="qa-carry-review">Review</button></div></div>`;
+    }
+    return `<div class="header-row carry-row"><div class="carry-prompt" role="group" aria-label="Unsent verdicts from a closed run">
+        <p class="carry-confirm">${summary} ${esc(sources)} ${parked.length === 1 ? "is" : "are"} closed, so nothing can be written back there.
+        Send them to <b>${esc(describeRunId(openRunId))}</b>, which records them as part of that run, or keep them here and decide later.</p>
+        <div class="carry-actions">
+          <button type="button" class="rollover-btn" id="qa-carry-send">Send to ${esc(describeRunId(openRunId))}</button>
+          <button type="button" class="cancel-btn" id="qa-carry-keep">Keep for later</button>
+        </div>
+      </div></div>`;
+  }
+
   function render() {
     const modeDescription = scope === null
       ? "Compare team coverage, verdicts, and notes"
@@ -1193,6 +1375,7 @@
         </label></div>
       </div>
       ${rolloverForm()}
+      ${carryPrompt()}
       ${journeyControls()}
       <div class="header-row filter-row">
         <div class="filters" role="group" aria-label="case status">${[["all", "All"], ["issues", "Issues"], ["open", "Undecided"], ...(compareRun ? [["reqa", "Re-QA"]] : [])].map(([k, l]) =>
@@ -1276,6 +1459,19 @@
       rolloverOpen = false;
       rolloverProblem = "";
       renderAndRestoreFocus("#qa-run-rollover");
+    });
+    mount.querySelector("#qa-carry-review")?.addEventListener("click", () => {
+      carryOpen = true;
+      renderAndRestoreFocus("#qa-carry-send");
+    });
+    mount.querySelector("#qa-carry-send")?.addEventListener("click", () => {
+      sendCarry();
+    });
+    mount.querySelector("#qa-carry-keep")?.addEventListener("click", () => {
+      // The work stays under the run it was recorded against. Nothing is
+      // dropped, and the collapsed line keeps saying it is there.
+      carryOpen = false;
+      renderAndRestoreFocus("#qa-carry-review");
     });
     mount.querySelector("#qa-rollover")?.addEventListener("submit", (event) => {
       event.preventDefault();
@@ -1443,13 +1639,18 @@
     const closedId = openRunId;
     const openedId = data.openRun;
     RUNS = Array.isArray(data.runs) ? data.runs : RUNS;
-    rekeyOutbox(closedId, openedId);
+    const parked = rekeyOutbox(closedId, openedId);
     if (selectedRun === closedId) {
       selectedRun = openedId;
       saveView();
     }
     const opener = runById(openedId)?.openedByLabel;
-    notice(`${describeRunId(openedId)} opened${opener ? ` by ${opener}` : ""} — recording continues there`);
+    notice(
+      parked
+        ? `${describeRunId(openedId)} opened${opener ? ` by ${opener}` : ""} — ${parked} unsent verdict${parked === 1 ? "" : "s"} from ${describeRunId(closedId)} need${parked === 1 ? "s" : ""} a decision`
+        : `${describeRunId(openedId)} opened${opener ? ` by ${opener}` : ""} — recording continues there`,
+      parked ? "ro" : undefined,
+    );
     if (Object.keys(outbox).length) queueSave(400);
   }
 
@@ -1495,12 +1696,17 @@
       }
       const closedId = openRunId;
       RUNS = Array.isArray(result.runs) ? result.runs : RUNS;
-      rekeyOutbox(closedId, result.openRun);
+      const parked = rekeyOutbox(closedId, result.openRun);
       selectedRun = result.openRun;
       rolloverOpen = false;
       entries = Object.create(null);
       saveView();
-      notice(`${describeRunId(result.openRun)} opened — recording continues there`);
+      notice(
+        parked
+          ? `${describeRunId(result.openRun)} opened — ${parked} unsent verdict${parked === 1 ? "" : "s"} from ${describeRunId(closedId)} need${parked === 1 ? "s" : ""} a decision before they count anywhere`
+          : `${describeRunId(result.openRun)} opened — recording continues there`,
+        parked ? "ro" : undefined,
+      );
       if (Object.keys(outbox).length) queueSave(400);
       poll();
     } catch (error) {
@@ -1726,13 +1932,21 @@
         const refusal = await response.json().catch(() => ({}));
         if (refusal.openRun && refusal.openRun !== openRunId && !retargeted) {
           const closedId = openRunId;
-          rekeyOutbox(closedId, refusal.openRun);
+          const parked = rekeyOutbox(closedId, refusal.openRun);
           if (selectedRun === closedId) {
             selectedRun = refusal.openRun;
             saveView();
           }
           refreshAfterSave = true;
-          notice(`${describeRunId(closedId)} was closed — your pending saves went to ${describeRunId(refusal.openRun)}`);
+          notice(
+            parked
+              ? `${describeRunId(closedId)} was closed — ${parked} unsent verdict${parked === 1 ? "" : "s"} from it need${parked === 1 ? "s" : ""} a decision`
+              : `${describeRunId(closedId)} was closed — your pending saves went to ${describeRunId(refusal.openRun)}`,
+            parked ? "ro" : undefined,
+          );
+          // Only when there is something new to show: a save in flight should
+          // not otherwise rebuild the list under the tester's cursor.
+          if (parked) render();
           return postDelta(person, true);
         }
         throw new Error("HTTP 409");
@@ -1746,13 +1960,19 @@
       // that is open now. Follow it the way a refusal is followed.
       if (result && typeof result.run === "string" && openRunId && result.run !== openRunId) {
         const closedId = openRunId;
-        rekeyOutbox(closedId, result.run);
+        const parked = rekeyOutbox(closedId, result.run);
         if (selectedRun === closedId) {
           selectedRun = result.run;
           saveView();
         }
         refreshAfterSave = true;
-        notice(`${describeRunId(closedId)} was closed — your saves went to ${describeRunId(result.run)}`);
+        notice(
+          parked
+            ? `${describeRunId(closedId)} was closed — ${parked} unsent verdict${parked === 1 ? "" : "s"} from it need${parked === 1 ? "s" : ""} a decision`
+            : `${describeRunId(closedId)} was closed — your saves went to ${describeRunId(result.run)}`,
+          parked ? "ro" : undefined,
+        );
+        if (parked) render();
       }
       // Confirm the exact local version this response represents. Anything
       // typed during the request has a later version and remains pending.
@@ -1770,6 +1990,7 @@
         confirmedVersions[key] = Math.max(confirmedVersions[key] || 0, sentVersions[caseId] || 0);
         const pending = outbox[caseId];
         if (!pending) {
+          delete recovered[caseId];
           settled.push(caseId);
           continue;
         }
@@ -1783,6 +2004,7 @@
         if (pending.delete || !Object.keys(pending).length) {
           delete outbox[caseId];
           delete outboxVersions[caseId];
+          delete recovered[caseId];
           settled.push(caseId);
         }
       }
@@ -1982,8 +2204,9 @@
       // Now that the session has named this tester, pick up anything a previous
       // page life left unsent for them.
       outbox = dictionary(storedOutboxFor(identity, who));
-      // Queues left under runs that have since closed join the open run's.
-      adoptStaleRunOutboxes(identity);
+      // Queues left under runs that have since closed stay there and are
+      // offered; they are not sent into a run they were never recorded against.
+      if (parkedQueues().length) carryOpen = true;
       // Persist the migrated copy before removing any legacy name-based key.
       saveOutbox();
       // The contents are in memory now; retire the legacy copy so a drained
