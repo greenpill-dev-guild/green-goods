@@ -47,9 +47,7 @@ export function dropExtensionExceptions(event: CaptureResult | null): CaptureRes
 }
 
 /** Drop the AbortError raised when a queued view transition is skipped by the next navigation. */
-export function dropSkippedTransitionExceptions(
-  event: CaptureResult | null
-): CaptureResult | null {
+export function dropSkippedTransitionExceptions(event: CaptureResult | null): CaptureResult | null {
   if (!event || event.event !== "$exception" || !event.properties) return event;
 
   const list = event.properties.$exception_list;
