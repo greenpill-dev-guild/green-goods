@@ -3,11 +3,13 @@ import { registerTelemetrySink, restoreExceptionTopLevelProps } from "./posthog"
 
 const POSTHOG_API_HOST = "https://us.i.posthog.com";
 const EXTENSION_TAB_ERROR = /^No tab with id: \d+\.$/;
-// react-router `viewTransition` navigations call `skipTransition()` when a second
-// navigation interrupts the first. The skipped transition rejects with this
-// AbortError, and RouterProvider re-throws it through an unhandled `finally`. The
-// route still commits, so this is noise, not breakage.
-const SKIPPED_TRANSITION_ERROR = /Transition was skipped/i;
+// When a navigation interrupts an in-flight view transition, the browser skips it and rejects
+// its `ready` promise with an AbortError. react-router never handles that promise, so it lands
+// as an unhandled rejection even though the route still commits. posthog-js stores the
+// DOMException name as a value prefix ("AbortError: ..."). Anchoring on it keeps other skip
+// reasons visible, such as a duplicate view-transition-name, which engines word almost the same
+// way but raise as InvalidStateError. The alternatives match Chromium, WebKit, and Gecko.
+const SKIPPED_TRANSITION_ERROR = /^AbortError: .*(?:transition was skipped|view ?transition)/i;
 let initializedKey: string | null = null;
 
 type ExceptionEntry = {
