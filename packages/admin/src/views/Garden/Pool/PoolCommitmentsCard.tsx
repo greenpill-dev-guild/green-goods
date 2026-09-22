@@ -272,12 +272,12 @@ export function PoolCommitmentsCard({
                   >
                     <span className="min-w-0 flex-1">
                       <span className="flex flex-wrap items-center gap-2">
+                        <span className="whitespace-nowrap text-xs text-text-soft">
+                          {directionLabel(commitment.direction, formatMessage)}
+                        </span>
                         <span className="truncate text-body-md text-text-strong" title={title}>
                           {title}
                         </span>
-                        <StatusBadge variant="info" size="sm">
-                          {directionLabel(commitment.direction, formatMessage)}
-                        </StatusBadge>
                         <StatusBadge variant={chip.variant} size="sm">
                           {chip.label}
                         </StatusBadge>
