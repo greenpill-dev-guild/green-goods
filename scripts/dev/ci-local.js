@@ -698,6 +698,7 @@ export async function executePlan(plan, options = {}) {
   const results = [];
   const blocked = [];
   const pendingManual = [];
+  const ignoredAttestations = [];
   const attestations = options.attestations ?? {};
   const receiptStore = options.receiptStore ?? new Map();
   const reusePassingReceipts = options.reusePassingReceipts === true;
@@ -766,6 +767,11 @@ export async function executePlan(plan, options = {}) {
       // pending however the runner was invoked, so a manual receipt can never stand in
       // for the advisory obligation on a push, review, ship, or merge plan.
       if (plan.effectiveIntent !== "release") {
+        // Say so rather than dropping it silently: someone who passed --attest here should not
+        // walk away believing the obligation was cleared.
+        if (attestations[check.id] !== undefined) {
+          ignoredAttestations.push({ id: check.id, intent: plan.effectiveIntent });
+        }
         pendingManual.push({ id: check.id, blockedBy: [...(check.blockedBy ?? [])] });
         index += 1;
         continue;
@@ -898,9 +904,9 @@ export async function executePlan(plan, options = {}) {
     return finish({ status: "failed", exitCode: 1, results, blocked });
   }
   if (blocked.length > 0 || plan.status === "blocked") {
-    return finish({ status: "blocked", exitCode: 2, results, blocked });
+    return finish({ status: "blocked", exitCode: 2, results, blocked, ignoredAttestations });
   }
-  return finish({ status: "passed", exitCode: 0, results, blocked, pendingManual });
+  return finish({ status: "passed", exitCode: 0, results, blocked, pendingManual, ignoredAttestations });
 }
 
 export function loadPassingReceiptStore(path = defaultReceiptPath) {
@@ -1078,6 +1084,12 @@ async function main() {
   process.removeListener("SIGINT", cancel);
   if (options.reusePassingReceipts) savePassingReceiptStore(receiptStore);
 
+  for (const ignored of execution.ignoredAttestations ?? []) {
+    console.log(
+      `\n${colors.yellow}--attest ${ignored.id} was ignored:${colors.reset} only the release gate` +
+        ` consumes a manual attestation, so this ${ignored.intent} plan leaves the proof pending.`,
+    );
+  }
   if (execution.status === "blocked") {
     console.log(`\n${colors.yellow}Validation blocked:${colors.reset}`);
     for (const entry of execution.blocked) {

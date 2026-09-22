@@ -427,7 +427,16 @@ test("advisory manual proof never masks automated failure or unavailable capabil
       !nonRelease.results.some((result) => result.id === "browser-proof"),
       `${intent} must not record an attested result`,
     );
+    // The attestation is disregarded, and the run says so rather than dropping it quietly.
+    assert.deepEqual(nonRelease.ignoredAttestations, [{ id: "browser-proof", intent }], intent);
   }
+
+  // Nothing is reported when no attestation was supplied in the first place.
+  input.effectiveIntent = "push";
+  const withoutAttestation = await executePlan(input, {
+    runCheck: async () => ({ ok: true, exitCode: 0 }),
+  });
+  assert.deepEqual(withoutAttestation.ignoredAttestations, []);
 });
 
 test("a toolchain mismatch never blocks a plan holding only the advisory proof", () => {
