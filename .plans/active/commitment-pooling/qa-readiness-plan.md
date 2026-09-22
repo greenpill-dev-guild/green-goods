@@ -571,6 +571,60 @@ for Edit, Remove, and Remove This One in one verdict. It is now ADM-130, ADM-142
 ADM-128 also claimed when Discard is *not* offered, which its steps never reach; that sentence is
 gone.
 
+#### Review rounds across the stack (2026-09-21)
+
+Twenty-two review comments across the four PRs. Five were answered in the first
+round on the catalog; the remaining seventeen were audited against the source
+before anything was changed, and eleven were taken.
+
+Fixed, each with a test:
+
+- **A commitment act whose send may already be on chain is kept** (`efb8fdfec`).
+  `SEND_RECORDS` covers only `work` and `approval`, so `hasRecordedSend` is
+  always false for a commitment job and `discardJob` had nothing to refuse on:
+  decision 18's safety claim was not true for these kinds. Only a declined
+  prompt is dropped now. Mutation-checked.
+- **A refused discard is reported** rather than leaving the row in place.
+- **A requirement naming a closed action window is dropped**, using the same
+  filter `ComposeActionRail` already applies.
+- **The new maker is never copied into their own confirmer group**, with the
+  threshold clamped to what is left. `normalizeConfirmers` drops the provider
+  and reverts `InvalidConfirmerRule` when too few remain.
+- **A tray row is not parked before the season and protocol-pool reads land**,
+  so it cannot carry a cold-load `cycleId` of `0`. The composer's session covers
+  the row in the form; a parked row is a snapshot nothing revisits.
+- Seed Another Like This is disabled offline; offering again waits for the
+  owning pool instead of falling back to the route's garden; the Not sent mark
+  survives on the last remaining row.
+- Three catalog rows corrected against the contracts (`28c3918cd`): ADM-119 does
+  not expect disbursements at finalization, ADM-120 keeps the plan Pending after
+  a dispatch, and PWA-113 no longer asserts a state its steps never reach.
+
+Tracked, not fixed: **PRD-957**, commitment acts sent from a Safe report success
+before the proposal executes. The pending confirmation is dropped by the
+executor, and every fix needs an already-sent guard for the four non-creation
+job kinds, which only the creation kinds have. Latent before this stack made the
+wallet path reachable.
+
+Left with the reasoning in each reply: the terminal-job resubmission path, the
+multi-chain refresh schedule, a copied Celo rail, the act offered on a non-open
+pool, and a non-settled source reached by editing the `from` parameter.
+
+### Validation receipt, review round
+
+- **Tested implementation commit SHA**: `28c3918cd`, the top of the stack.
+  `git status --porcelain=v1 --untracked-files=all` is empty at that SHA.
+- **Command**: the three package suites directly, plus `typecheck --scope full`
+  for each, `node packages/qa/build.mjs`, `check-qa-id-ledger.mjs`,
+  `scripts/docs/generate.mjs --check`, and `bun run check --only agent-tools-test`.
+- **Result**: shared 5,536 passed, client 1,358 passed, admin 874 passed; three
+  typechecks clean; 307 active cases and 370 ids; docs projections current; the
+  catalog contract test passes among agent-tools-test's 257.
+- **Why not the full gate**: it refused to start — "Validation needs focused
+  proof; no checks were started" — because its own estimate exceeds the 180s
+  budget for a `sensitive` plan. The package suites above are the same proof the
+  gate would have run, minus its orchestration.
+
 #### Act ledger
 
 Every reachable act against its cases. Nothing in § 7 has a case.
