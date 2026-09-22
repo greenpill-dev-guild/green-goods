@@ -1397,7 +1397,9 @@
         <button type="button" class="carry-review" id="qa-carry-review">${esc(uiText("carryReview", "Review"))}</button></div></div>`;
     }
     const where = fill(
-      uiText("carryWhere", "{runs} is closed, so nothing can be written back there. Send them to {target}, which records them as part of that run, or keep them here and decide later."),
+      // Number-agnostic on purpose: `{runs}` can name one closed run or several,
+      // and no locale should need a plural of this sentence to stay grammatical.
+      uiText("carryWhere", "Nothing can be written back to {runs}. Send them to {target}, which records them as part of that run, or keep them here and decide later."),
       { runs: sources, target: `<b>${target}</b>` },
     );
     return `<div class="header-row carry-row" lang="${esc(locale)}"><div class="carry-prompt" role="group" aria-label="${esc(uiText("carryLabel", "Unsent verdicts from a closed run"))}">

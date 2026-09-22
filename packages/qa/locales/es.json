@@ -12,7 +12,7 @@
     "carrySummaryMany": "{count} veredictos registrados en {runs} nunca llegaron al servidor",
     "carrySummaryOne": "1 veredicto registrado en {runs} nunca llegó al servidor",
     "carryWhen": ", editado por última vez {age}",
-    "carryWhere": "{runs} está cerrada, así que no se puede escribir nada allí. Envíalos a {target}, que los registrará como parte de esa ronda, o consérvalos aquí y decide más tarde.",
+    "carryWhere": "Ya no se puede escribir nada en {runs}. Envíalos a {target}, que los registrará como parte de esa ronda, o consérvalos aquí y decide más tarde.",
     "caseRole": "Rol requerido",
     "handoff": "Coordinación",
     "journey": "Recorrido",

@@ -12,7 +12,7 @@
     "carrySummaryMany": "{count} verdicts recorded in {runs} never reached the server",
     "carrySummaryOne": "1 verdict recorded in {runs} never reached the server",
     "carryWhen": ", last edited {age}",
-    "carryWhere": "{runs} is closed, so nothing can be written back there. Send them to {target}, which records them as part of that run, or keep them here and decide later.",
+    "carryWhere": "Nothing can be written back to {runs}. Send them to {target}, which records them as part of that run, or keep them here and decide later.",
     "caseRole": "Required role",
     "handoff": "Handoff",
     "journey": "Journey",
