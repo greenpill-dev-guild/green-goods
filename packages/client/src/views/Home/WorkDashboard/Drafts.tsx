@@ -1,5 +1,4 @@
 import { ConfirmDialog } from "@green-goods/shared/components/Dialog/ConfirmDialog";
-import { IconButton } from "@green-goods/shared/components/IconButton";
 import { toastService } from "@green-goods/shared/components/Toast/toast.service";
 import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
 import { useActions, useGardens } from "@green-goods/shared/hooks/blockchain/useBaseLists";
@@ -7,13 +6,14 @@ import { type DraftWithImages, useDrafts } from "@green-goods/shared/hooks/work/
 import { logger } from "@green-goods/shared/modules/app/logger";
 import type { Address } from "@green-goods/shared/types/domain";
 import { findActionByUID } from "@green-goods/shared/utils/action/parsers";
-import { RiDraftLine, RiLoader4Line, RiRefreshLine } from "@remixicon/react";
+import { RiDraftLine, RiLoader4Line } from "@remixicon/react";
 import React, { useState } from "react";
 import { useIntl } from "react-intl";
 import { useNavigate } from "react-router-dom";
 import { DraftCard } from "@/components/Cards";
 import { EmptyState } from "@/components/Communication";
 import { APP_ROUTES } from "@/config/pwaRouting";
+import { WorkListHeader } from "./WorkListTab";
 
 export interface DraftsTabProps {
   onBeforeNavigate?: () => void;
@@ -29,6 +29,11 @@ export const DraftsTab: React.FC<DraftsTabProps> = ({ onBeforeNavigate }) => {
   const { drafts, isLoading, deleteDraft, isDeleting, refetchDrafts } = useDrafts();
   const { data: actions = [] } = useActions();
   const { data: gardens = [] } = useGardens(DEFAULT_CHAIN_ID);
+
+  const refreshLabel = intl.formatMessage({
+    id: "app.drafts.refresh",
+    defaultMessage: "Refresh Drafts",
+  });
 
   // Confirm delete state
   const [draftToDelete, setDraftToDelete] = useState<DraftWithImages | null>(null);
@@ -103,17 +108,7 @@ export const DraftsTab: React.FC<DraftsTabProps> = ({ onBeforeNavigate }) => {
   if (drafts.length === 0) {
     return (
       <div className="flex min-h-full flex-col">
-        <div className="mb-4 flex min-h-14 items-center justify-end px-4 pt-4">
-          <IconButton
-            size="compact"
-            onClick={() => refetchDrafts()}
-            aria-label={intl.formatMessage({
-              id: "app.drafts.refresh",
-              defaultMessage: "Refresh Drafts",
-            })}
-            icon={<RiRefreshLine aria-hidden="true" />}
-          />
-        </div>
+        <WorkListHeader onRefresh={() => refetchDrafts()} refreshLabel={refreshLabel} />
         <EmptyState
           className="flex-1"
           placement="sheet"
@@ -133,33 +128,20 @@ export const DraftsTab: React.FC<DraftsTabProps> = ({ onBeforeNavigate }) => {
 
   return (
     <div className="flex min-h-full flex-col">
-      {/* Header */}
-      <div className="mb-4 flex min-h-14 items-center gap-2 px-4 pt-4">
-        <div className="flex shrink-0 items-center gap-0.5">
-          <p className="whitespace-nowrap text-sm text-text-sub-600" role="status">
-            {intl.formatMessage(
-              {
-                id: "app.drafts.count",
-                defaultMessage: "{count, plural, one {# draft} other {# drafts}}",
-              },
-              { count: drafts.length }
-            )}
-          </p>
-          <IconButton
-            className="shrink-0"
-            size="compact"
-            onClick={() => refetchDrafts()}
-            aria-label={intl.formatMessage({
-              id: "app.drafts.refresh",
-              defaultMessage: "Refresh Drafts",
-            })}
-            icon={<RiRefreshLine aria-hidden="true" />}
-          />
-        </div>
-      </div>
+      <WorkListHeader
+        statusText={intl.formatMessage(
+          {
+            id: "app.drafts.count",
+            defaultMessage: "{count, plural, one {# draft} other {# drafts}}",
+          },
+          { count: drafts.length }
+        )}
+        onRefresh={() => refetchDrafts()}
+        refreshLabel={refreshLabel}
+      />
 
       {/* List */}
-      <div className="flex-1 p-4">
+      <div className="flex-1 px-4 pb-4">
         <ul className="flex flex-col gap-3">
           {drafts.map((draft) => (
             <li key={draft.id} className="cv-draft-card">

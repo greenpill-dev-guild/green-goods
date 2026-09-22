@@ -416,6 +416,16 @@ export function withAdminIdentityRole(role: Exclude<DevMockAuthRole, "disconnect
 }
 
 /**
+ * Auth context with nobody signed in: no address and no chosen username. For a component that
+ * only reads the username from auth and takes its account from a mocked data hook.
+ */
+export const withSignedOutAuth: Decorator = (Story, context) => (
+  <DevAuthProvider mockRole="disconnected">
+    <Story {...context} />
+  </DevAuthProvider>
+);
+
+/**
  * Client runtime harness for protected PWA/client stories that render the real
  * shell widgets. It mirrors the auth + queue + work providers used by
  * `AppShell` while keeping wallet reads mocked and inert.

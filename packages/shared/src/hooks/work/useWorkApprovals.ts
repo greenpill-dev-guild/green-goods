@@ -4,6 +4,7 @@ import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
 import { logger } from "../../modules/app/logger";
 import { parseEasAttestationRecord } from "../../modules/data/eas-parse";
 import { getWorksByUIDs, parseWorkApprovalAttestation } from "../../modules/data/eas";
+import { easStoredAddress } from "../../modules/data/eas-read-validation";
 import { easGraphQL } from "../../modules/data/graphql";
 import { createEasClient } from "../../modules/data/graphql-client";
 import { type Address, type WorkApproval } from "../../types/domain";
@@ -49,7 +50,7 @@ async function getWorkApprovalsByAttester(
     {
       where: {
         schemaId: { equals: easConfig.WORK_APPROVAL.uid },
-        attester: { equals: attesterAddress }, // Filter by attester (reviewer)
+        attester: { equals: easStoredAddress(attesterAddress) }, // Filter by attester (reviewer)
       },
     },
     "getWorkApprovalsByAttester"

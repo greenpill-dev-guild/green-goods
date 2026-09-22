@@ -62,3 +62,12 @@ export function getPwaSheetCloseDelayMs(): number {
     window.getComputedStyle(document.documentElement).getPropertyValue(PWA_SHEET_CLOSE_DURATION_VAR)
   );
 }
+
+/**
+ * How long a parent keeps a closing sheet mounted. `PwaSheet` leaves the tree
+ * 40ms after its exit token; this waits a little longer so the parent never
+ * removes a sheet that is still on screen.
+ */
+export function getPwaSheetExitMs(): number {
+  return getPwaSheetCloseDelayMs() + 80;
+}
