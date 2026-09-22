@@ -213,6 +213,31 @@ export function readPinnedNodeVersion(cwd = process.cwd()) {
 }
 
 /**
+ * The lowest Node `package.json` engines accepts. `.mise.toml` names one exact
+ * version, but engines is what declares the supported range, so a contributor
+ * inside it is not stopped and one below it is.
+ */
+export function readEnginesNodeFloor(cwd = process.cwd()) {
+  const manifest = JSON.parse(readFileSync(path.join(cwd, "package.json"), "utf8"));
+  const floor = (manifest.engines?.node ?? "").match(/>=\s*v?(\d+\.\d+\.\d+)/)?.[1] ?? "";
+  if (!floor) {
+    throw new Error("package.json engines.node must declare a >=x.y.z floor");
+  }
+  return floor;
+}
+
+/** True when `version` is at or above `floor`, comparing major, minor, then patch. */
+function isAtLeastVersion(version, floor) {
+  if (!floor) return true;
+  const parts = (value) => value.split(".").map((part) => Number.parseInt(part, 10) || 0);
+  const [major, minor, patch] = parts(version);
+  const [floorMajor, floorMinor, floorPatch] = parts(floor);
+  if (major !== floorMajor) return major > floorMajor;
+  if (minor !== floorMinor) return minor > floorMinor;
+  return patch >= floorPatch;
+}
+
+/**
  * The first `node` on PATH, skipping the shim Bun injects into a `bun run`
  * child. `process.versions.node` cannot answer this: under `bun run` the
  * interpreter is Bun, and the Node version it reports is an emulation rather
@@ -224,8 +249,16 @@ function firstNodeOnPath({ env, probe, exists }) {
     if (!entry || isBunNodeShimDirectory(entry)) continue;
     const candidate = path.join(entry, executable);
     if (!exists(candidate)) continue;
-    const version = probe(candidate);
-    if (!version || version.startsWith("bun:")) continue;
+    let version = "";
+    try {
+      version = probe(candidate);
+    } catch {
+      version = "";
+    }
+    // A shim that answers as Bun is the one this walk exists to look past. A shim
+    // that answers nothing is broken, and `node ...` resolves to it rather than
+    // falling through to a later entry, so report it instead of searching on.
+    if (version.startsWith("bun:")) continue;
     return { path: candidate, version };
   }
   return { path: "", version: "" };
@@ -246,17 +279,19 @@ function pinnedNodeCandidates(pinned, env) {
 }
 
 /**
- * Compare the Node that runs this repository's scripts against the
- * `.mise.toml` pin, as `"matched"`, `"mismatched"`, or `"unknown"`.
+ * Compare the Node that runs this repository's scripts against the toolchain
+ * this repository accepts, as `"matched"`, `"mismatched"`, or `"unknown"`.
  *
- * The major is the gate. `package.json` engines accepts the whole `>=22.19.0 <23`
- * range, so a different patch is worth printing but only a different major is a
- * toolchain this repository does not run on. `fix` prefers a PATH change when
- * mise already holds the pinned version, because that is the entire repair on a
- * machine whose mise shims sit behind another Node.
+ * The accepted range is `package.json` engines, whose upper bound is the pinned
+ * major: a contributor on the engines floor is not stopped, a different major
+ * is, and so is a version below the floor even when its major matches. `fix`
+ * prefers a PATH change when mise already holds the pinned version, because
+ * that is the entire repair on a machine whose mise shims sit behind another
+ * Node.
  */
 export function inspectPinnedNode({
   pinned,
+  minimum,
   env = process.env,
   bunRuntime = process.versions.bun ?? "",
   interpreterNode = process.versions.node ?? "",
@@ -272,12 +307,13 @@ export function inspectPinnedNode({
     ? firstNodeOnPath({ env, probe, exists })
     : { path: "", version: interpreterNode };
   const major = majorVersion(detected.version);
-  const state = major === null ? "unknown" : major === pinnedMajor ? "matched" : "mismatched";
+  const accepted = (version) => majorVersion(version) === pinnedMajor && isAtLeastVersion(version, minimum);
+  const state = major === null ? "unknown" : accepted(detected.version) ? "matched" : "mismatched";
 
   const installed = state === "matched"
     ? detected.path
     : findCompatibleNode({
-        isSupported: (version) => majorVersion(version) === pinnedMajor,
+        isSupported: accepted,
         candidates: pinnedNodeCandidates(pinned, env),
         probe,
         exists,
@@ -292,8 +328,12 @@ export function inspectPinnedNode({
     detail: state === "matched"
       ? `v${detected.version}${where}; .mise.toml pins ${pinned}.`
       : state === "mismatched"
-        ? `v${detected.version}${where}; .mise.toml pins ${pinned} and CI runs that major only.`
-        : `No Node answered a version probe; .mise.toml pins ${pinned}.`,
+        ? major === pinnedMajor
+          ? `v${detected.version}${where}; package.json engines requires >=${minimum}, and .mise.toml pins ${pinned}.`
+          : `v${detected.version}${where}; .mise.toml pins ${pinned} and CI runs that major only.`
+        : detected.path
+          ? `Node at ${detected.path} answered no version; .mise.toml pins ${pinned}.`
+          : `No Node on PATH outside Bun's shim; .mise.toml pins ${pinned}.`,
     fix: state === "matched"
       ? ""
       : installed

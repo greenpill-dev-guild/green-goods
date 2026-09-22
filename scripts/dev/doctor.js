@@ -27,6 +27,7 @@ import {
   inspectPinnedSubmodules,
   majorVersion,
   profileRequiresContractSubmodules,
+  readEnginesNodeFloor,
   readPinnedNodeVersion,
 } from "../lib/dev-shared.js";
 import { inspectSurface } from "./surface-leases.mjs";
@@ -36,6 +37,7 @@ const __dirname = path.dirname(__filename);
 const projectRoot = path.resolve(__dirname, "../..");
 const requiredFoundryVersion = readPinnedFoundryVersion(projectRoot);
 const requiredNodeVersion = readPinnedNodeVersion(projectRoot);
+const minimumNodeVersion = readEnginesNodeFloor(projectRoot);
 
 
 const profileLabels = {
@@ -217,10 +219,10 @@ function checkPlatform() {
   });
 }
 
-// A Node major other than the pinned one is a failure, not a warning: CI
-// installs the pinned major only, and the validation policy blocks every local
-// check whose toolchain differs from it. An undetectable version warns instead,
-// because it is not evidence of a wrong Node.
+// A Node outside the range package.json engines accepts is a failure, not a
+// warning: CI installs the pinned major only, and the validation policy blocks
+// every local check whose toolchain differs from it. An unreadable version
+// warns instead, because it is not evidence of a wrong Node.
 const nodeLevels = { matched: "pass", mismatched: "fail", unknown: "warn" };
 const nodeTitles = {
   matched: "Node.js matches the repository pin",
@@ -229,7 +231,7 @@ const nodeTitles = {
 };
 
 function checkPinnedNode() {
-  const node = inspectPinnedNode({ pinned: requiredNodeVersion });
+  const node = inspectPinnedNode({ pinned: requiredNodeVersion, minimum: minimumNodeVersion });
   if (node.runtimeNote) {
     add("info", "Bun is running this check", node.runtimeNote, "", { check: "runtime:bun" });
   }

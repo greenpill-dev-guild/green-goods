@@ -17,6 +17,7 @@ import {
   inspectPinnedNode,
   parseSubmoduleStatus,
   profileRequiresContractSubmodules,
+  readEnginesNodeFloor,
   readPinnedNodeVersion,
   readSharedGitSettings,
   reexecUnderCompatibleNodeIfNeeded,
@@ -68,6 +69,13 @@ test("the pinned Node version comes from .mise.toml and must be exact", (t) => {
     write(floating);
     assert.throws(() => readPinnedNodeVersion(directory), /exact x\.y\.z/);
   }
+
+  // The pin is one version; engines is the range, and it owns the lower bound.
+  const manifest = path.join(directory, "package.json");
+  writeFileSync(manifest, JSON.stringify({ engines: { node: ">=22.19.0 <23" } }));
+  assert.equal(readEnginesNodeFloor(directory), "22.19.0");
+  writeFileSync(manifest, JSON.stringify({ engines: { node: "*" } }));
+  assert.throws(() => readEnginesNodeFloor(directory), />=x\.y\.z floor/);
 });
 
 test("the Node check reads the interpreter, and PATH only when Bun is the interpreter", () => {
@@ -77,10 +85,12 @@ test("the Node check reads the interpreter, and PATH only when Bun is the interp
     "/newer/bin/node": "24.20.0",
     "/home/dev/.bun/bin/node": "26.3.0",
     "/shim/node": "bun:1.4.2",
+    "/broken/node": "",
   };
   const inspect = (overrides) =>
     inspectPinnedNode({
       pinned: "22.22.1",
+      minimum: "22.19.0",
       exists: (candidate) => candidate in versions,
       probe: (candidate) => versions[candidate] ?? "",
       env: { MISE_DATA_DIR: "/mise", PATH: "" },
@@ -90,12 +100,21 @@ test("the Node check reads the interpreter, and PATH only when Bun is the interp
     });
 
   // Outside Bun the interpreter is the Node the machine resolved, so no probe
-  // can be more accurate: the major decides, and a different patch still passes.
+  // can be more accurate. A patch above the engines floor still passes.
   const matched = inspect({ interpreterNode: "22.19.0" });
   assert.equal(matched.state, "matched");
   assert.equal(matched.fix, "");
   assert.equal(matched.runtimeNote, "");
   assert.match(matched.detail, /v22\.19\.0; \.mise\.toml pins 22\.22\.1\./);
+
+  // The pinned major is not enough on its own: engines rejects 22.0.0 through
+  // 22.18.x, so the same major below the floor is still a stop.
+  for (const belowFloor of ["22.0.0", "22.18.9"]) {
+    const stopped = inspect({ interpreterNode: belowFloor });
+    assert.equal(stopped.state, "mismatched", belowFloor);
+    assert.match(stopped.detail, /package\.json engines requires >=22\.19\.0/);
+    assert.ok(stopped.fix, belowFloor);
+  }
 
   // The Node 24 fresh-clone report: setup and the doctor used to print this as a pass.
   const mismatched = inspect({ interpreterNode: "24.20.0" });
@@ -125,11 +144,21 @@ test("the Node check reads the interpreter, and PATH only when Bun is the interp
   assert.match(underBun.detail, /v22\.22\.1 at \/pinned\/bin\/node/);
   assert.match(underBun.runtimeNote, /Bun 1\.4\.2 ran this check and emulates Node 26\.3\.0/);
 
-  // A probe that answers nothing is not evidence of a wrong Node; callers warn,
-  // and the repair still points at the pinned toolchain.
+  // A broken first entry is the Node `node ...` resolves to, so it is reported
+  // rather than searched past to a healthy later one.
+  const broken = inspect({
+    bunRuntime: "1.4.2",
+    interpreterNode: "26.3.0",
+    env: { MISE_DATA_DIR: "/mise", PATH: "/broken:/pinned/bin" },
+  });
+  assert.equal(broken.state, "unknown");
+  assert.match(broken.detail, /Node at \/broken\/node answered no version/);
+
+  // No Node at all is not evidence of a wrong Node either; callers warn, and
+  // the repair still points at the pinned toolchain.
   const unknown = inspect({ bunRuntime: "1.4.2", interpreterNode: "26.3.0" });
   assert.equal(unknown.state, "unknown");
-  assert.match(unknown.detail, /No Node answered a version probe; \.mise\.toml pins 22\.22\.1\./);
+  assert.match(unknown.detail, /No Node on PATH outside Bun's shim; \.mise\.toml pins 22\.22\.1\./);
   assert.match(unknown.fix, /\/mise\/installs\/node\/22\.22\.1\/bin/);
 });
 

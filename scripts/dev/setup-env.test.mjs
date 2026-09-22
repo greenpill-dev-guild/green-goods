@@ -5,7 +5,7 @@ import { spawnSync } from "node:child_process";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { dependencyReadiness, majorVersion, readPinnedNodeVersion } from "../lib/dev-shared.js";
+import { dependencyReadiness, readEnginesNodeFloor, readPinnedNodeVersion } from "../lib/dev-shared.js";
 import { createBaselineEnv } from "../lib/setup-env.mjs";
 import { applyGroupEnvironment } from "./stack.js";
 
@@ -13,7 +13,9 @@ const projectRoot = fileURLToPath(new URL("../..", import.meta.url));
 const bun = spawnSync("command -v bun", { shell: true, encoding: "utf8" }).stdout.trim();
 const setupArguments = ["--profile", "isolated", "--install", "skip", "--env-mode", "skip"];
 const pinnedNode = readPinnedNodeVersion(projectRoot);
-const pinnedNodeMajor = majorVersion(pinnedNode);
+// The lowest Node the repository accepts. Using it rather than the pin proves
+// the gate opens across the whole engines range, not just on one exact version.
+const lowestAcceptedNode = readEnginesNodeFloor(projectRoot);
 // A major no Node release will ever carry, so the mismatch cannot depend on
 // which Node the host installed.
 const foreignNode = "99.0.0";
@@ -75,10 +77,10 @@ test("setup stops when the Node major differs from the .mise.toml pin", (t) => {
   assert.match(mismatched.stdout, new RegExp(`\\.mise\\.toml pins ${pinnedNode}`));
   assert.match(mismatched.stdout, /Missing required dependencies/);
 
-  // The pinned major opens the gate; a different patch inside it is not a stop,
-  // because package.json engines accepts the whole major.
-  const matched = runUnderBun(t, "setup.js", setupArguments, `${pinnedNodeMajor}.0.0`);
-  assert.match(matched.stdout, new RegExp(`Node\\.js v${pinnedNodeMajor}\\.0\\.0`));
+  // The engines floor opens the gate: a version inside the accepted range but
+  // below the exact pin is not a stop.
+  const matched = runUnderBun(t, "setup.js", setupArguments, lowestAcceptedNode);
+  assert.match(matched.stdout, new RegExp(`Node\\.js v${lowestAcceptedNode.replaceAll(".", "\\.")}`));
   assert.doesNotMatch(matched.stdout, /Missing required dependencies/);
 });
 
@@ -100,7 +102,7 @@ test("the doctor reports the Node on PATH against the pin, not Bun's emulated ve
     /Bun .* emulates Node/
   );
 
-  const matched = nodeCheck(runUnderBun(t, "doctor.js", ["--profile", "web", "--json"], `${pinnedNodeMajor}.0.0`));
+  const matched = nodeCheck(runUnderBun(t, "doctor.js", ["--profile", "web", "--json"], lowestAcceptedNode));
   assert.equal(matched.level, "pass");
   assert.equal(matched.fix, "");
 });

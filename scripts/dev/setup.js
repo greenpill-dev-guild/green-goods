@@ -24,6 +24,7 @@ import {
   inspectPinnedNode,
   inspectPinnedSubmodules,
   majorVersion,
+  readEnginesNodeFloor,
   readPinnedNodeVersion,
   resolveSubmoduleSetupAction,
 } from "../lib/dev-shared.js";
@@ -31,6 +32,7 @@ import {
 const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const requiredFoundryVersion = readPinnedFoundryVersion(projectRoot);
 const requiredNodeVersion = readPinnedNodeVersion(projectRoot);
+const minimumNodeVersion = readEnginesNodeFloor(projectRoot);
 
 const validProfiles = new Set(["host", "isolated", "cloud"]);
 const validInstallModes = new Set(["auto", "always", "skip"]);
@@ -336,7 +338,7 @@ function checkFoundryVersion() {
  * An undetectable version only warns: it is not evidence of a wrong Node.
  */
 function checkNodeVersion() {
-  const node = inspectPinnedNode({ pinned: requiredNodeVersion });
+  const node = inspectPinnedNode({ pinned: requiredNodeVersion, minimum: minimumNodeVersion });
   if (node.runtimeNote) log.info(node.runtimeNote);
   if (node.state === "matched") {
     log.success(`Node.js ${node.detail}`);
@@ -499,7 +501,7 @@ console.log("");
 if (!hasNode || !hasGit) {
   log.error("Missing required dependencies. Install them and try again.\n");
   console.log(`${c.dim}Required:${c.reset}
-  • Node.js ${majorVersion(requiredNodeVersion)} (.mise.toml pins ${requiredNodeVersion}): mise install, or https://nodejs.org
+  • Node.js ${minimumNodeVersion} or later in the same major (.mise.toml pins ${requiredNodeVersion}): mise install, or https://nodejs.org
   • Git: https://git-scm.com\n`);
   process.exit(1);
 }
