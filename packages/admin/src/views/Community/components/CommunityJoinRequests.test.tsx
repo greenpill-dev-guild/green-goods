@@ -143,6 +143,18 @@ describe("CommunityJoinRequests", () => {
     expect(await screen.findByText("The gardener was welcomed.")).toBeVisible();
   });
 
+  it("treats a declined signature as a choice, not a failure", async () => {
+    resolveRequest.mockRejectedValueOnce(new Error("User rejected the request."));
+    const user = userEvent.setup();
+    renderQueue();
+
+    await user.click(screen.getByRole("button", { name: "Welcome" }));
+    await waitFor(() => expect(resolveRequest).toHaveBeenCalledOnce());
+
+    await waitFor(() => expect(screen.getByRole("button", { name: "Welcome" })).toBeEnabled());
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
+
   it("shows decline failures inside the open dialog", async () => {
     resolveRequest.mockRejectedValueOnce(new Error("The request changed. Refresh and retry."));
     const user = userEvent.setup();

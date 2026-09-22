@@ -54,12 +54,15 @@ export function validateSlug(slug: string): SlugValidationResult {
  * strips leading/trailing hyphens, and truncates to max length.
  */
 export function suggestSlug(name: string): string {
-  return name
-    .toLowerCase()
-    .replace(/[^a-z0-9-]/g, "-")
-    .replace(/-+/g, "-")
-    .replace(/^-|-$/g, "")
-    .slice(0, SLUG_MAX_LENGTH);
+  return (
+    name
+      .toLowerCase()
+      .replace(/[^a-z0-9-]/g, "-")
+      .replace(/-+/g, "-")
+      .slice(0, SLUG_MAX_LENGTH)
+      // Trim after the cut: cutting at a separator would leave a trailing hyphen.
+      .replace(/^-|-$/g, "")
+  );
 }
 
 export type ResolveEnsOptions = {

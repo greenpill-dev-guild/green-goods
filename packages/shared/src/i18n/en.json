@@ -1970,6 +1970,7 @@
   "app.garden.joinRequest.outcomeUnknown": "We could not confirm whether your request was saved. Check its status before trying again.",
   "app.garden.joinRequest.pendingDescription": "A steward can welcome or decline your request.",
   "app.garden.joinRequest.pendingTitle": "Request awaiting review",
+  "app.garden.joinRequest.requestingAs": "Requesting as {name}",
   "app.garden.joinRequest.send": "Send Request",
   "app.garden.joinRequest.sent": "Your request was sent to the garden stewards.",
   "app.garden.joinRequest.title": "Request to Join This Garden",

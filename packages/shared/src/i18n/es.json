@@ -1970,6 +1970,7 @@
   "app.garden.joinRequest.outcomeUnknown": "No pudimos confirmar si se guardó tu solicitud. Comprueba su estado antes de volver a intentarlo.",
   "app.garden.joinRequest.pendingDescription": "Una persona responsable puede aceptar o rechazar tu solicitud.",
   "app.garden.joinRequest.pendingTitle": "Solicitud pendiente de revisión",
+  "app.garden.joinRequest.requestingAs": "Solicitando como {name}",
   "app.garden.joinRequest.send": "Enviar solicitud",
   "app.garden.joinRequest.sent": "Tu solicitud fue enviada a las personas responsables del jardín.",
   "app.garden.joinRequest.title": "Solicitar unirse a este jardín",

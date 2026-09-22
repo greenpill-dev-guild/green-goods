@@ -18,13 +18,14 @@ vi.mock("@green-goods/shared/utils/styles/cn", () => ({
   cn: (...args: unknown[]) => args.filter(Boolean).join(" "),
 }));
 
-vi.mock("@green-goods/shared/utils/app/text", () => ({
+vi.mock("@green-goods/shared/utils/app/text", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@green-goods/shared/utils/app/text")>()),
   formatEnsNameForDisplay: (ensName?: string | null) =>
     ensName?.endsWith(".greengoods.eth") ? ensName.replace(".greengoods.eth", "") : ensName,
 }));
 
 vi.mock("@green-goods/shared/hooks/auth/useAuth", () => ({
-  useAuthState: () => ({ userName: "alice" }),
+  useAuthState: () => ({ authMode: "passkey", userName: "alice" }),
 }));
 
 vi.mock("@green-goods/shared/hooks/blockchain/useEnsName", () => ({
@@ -131,7 +132,7 @@ describe("Profile View", () => {
     render(wrap(createElement(Profile)));
 
     expect(screen.getByTestId("user-profile")).toBeInTheDocument();
-    // With no ENS and no profile.name, falls back to userName "alice"
+    // With no ENS and no profile.name, falls back to the passkey account's chosen username.
     expect(screen.getByTestId("display-name")).toHaveTextContent("alice");
   });
 
