@@ -3367,13 +3367,13 @@
       "priority": "P1",
       "kind": "resilience",
       "area": "Commitments",
-      "scenario": "Discard removes a commitment act that gave up and cannot be on chain",
+      "scenario": "Discard removes a commitment act that gave up",
       "preconditions": [
         "Signed in with a passkey",
         "An act that gave up and shows as an alert on its commitment. If none can be produced, leave this case without an entry rather than recording N/A"
       ],
       "steps": ["Open the commitment and read the alert", "Press Discard"],
-      "expected": "Discard is offered only when the record cannot already be on chain; pressing it removes the act, the alert goes, and the drawer's failure badge clears; nothing is sent",
+      "expected": "Pressing Discard removes the act, the alert goes, and the drawer's failure badge clears; nothing is sent",
       "evidence": "Screenshots of the alert and the cleared state",
       "role": "gardener",
       "tags": ["commitments", "queue"],
@@ -6684,10 +6684,10 @@
       "steps": [
         "Press Finalize Payout Plan… and read Review before sending",
         "Press Send Transaction",
-        "Read the plan and its disbursements"
+        "Read the plan and the next step it offers"
       ],
-      "expected": "Finalizing reviews before sending and is one transaction; the plan moves from Draft to Pending and lists its disbursements",
-      "evidence": "Screenshot of the pending plan with its disbursements",
+      "expected": "Finalizing reviews before sending and is one transaction; the plan moves from Draft to Pending and offers its prepare step. No disbursement exists yet: preparing the payout is what creates one (ADM-084 or ADM-109)",
+      "evidence": "Screenshot of the pending plan and its prepare step",
       "role": "steward",
       "tags": ["settlement", "tx"],
       "requiresProduction": false,
@@ -6787,7 +6787,7 @@
         "Press Send Transaction",
         "Read the row and the plan status"
       ],
-      "expected": "The review names the disbursement, the amount, and the recipient, and says it goes over CCIP to Celo; dispatch is one transaction; the row moves to dispatched; the plan reads Partial until every row completes, then Complete",
+      "expected": "The review names the disbursement, the amount, and the recipient, and says it goes over CCIP to Celo; dispatch is one transaction; the row moves to dispatched while the plan stays Pending, because the plan only advances once Celo acknowledges a payout. A plan whose every payout is then confirmed reads Complete; one with several rows reads Partial in between",
       "evidence": "Screenshots of the dispatched row and the plan status",
       "role": "steward",
       "tags": ["settlement", "tx"],

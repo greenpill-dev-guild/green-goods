@@ -15,7 +15,7 @@ generated_from:
   - playwright.config.ts
   - scripts/data/qa-test-catalog.json
   - scripts/data/validation-policy.json
-source_digest: "sha256:a3db19fc6b83474cf45d2b8c1b2c55a59043046b9d549be4ec95f1370544bb18"
+source_digest: "sha256:72a68e8e47177d123e8c7cbbcd6358526a8a08bbd7a8a70dd6d236ab4293dc25"
 source_of_truth:
   - package.json
   - packages/admin/vitest.config.ts
@@ -307,7 +307,7 @@ The catalog contract test enforces all of this, and [retired cases](#retired-cas
 | `PWA-110` | Journey | Commitments | Resume Draft restores an abandoned composer | Screenshots of the draft dialog and the restored composer |
 | `PWA-111` | Journey | Commitments | Start Fresh discards an abandoned draft | Screenshot of the empty composer |
 | `PWA-112` | Resilience | Commitments | Try Again lands a commitment act that gave up | Screenshots of the alert and the cleared state |
-| `PWA-113` | Resilience | Commitments | Discard removes a commitment act that gave up and cannot be on chain | Screenshots of the alert and the cleared state |
+| `PWA-113` | Resilience | Commitments | Discard removes a commitment act that gave up | Screenshots of the alert and the cleared state |
 | `PWA-114` | Transaction | Commitments | With a wallet, declining the prompt drops the act instead of queueing it | Screenshots after the rejection and after the act lands |
 | `PWA-115` | Journey | Commitments | Offer It Again opens the composer on the earlier offer's answers | Screenshots of the ended offer and of the prefilled composer |
 | `PWA-116` | Journey | Commitments | Ask Again opens the composer on an ended request's answers | Screenshots of the ended request and of the prefilled composer |
@@ -383,7 +383,7 @@ The catalog contract test enforces all of this, and [retired cases](#retired-cas
 | `ADM-115` | Transaction | Garden · Commitment | Resolve a dispute as Cancelled | Screenshot of the Cancelled state with its reason |
 | `ADM-116` | Transaction | Garden · Commitment | Resolve a dispute as Expired | Screenshot of the Expired state with its reason |
 | `ADM-118` | Transaction | Garden · Settlement | Create a payout plan for a fulfilled commitment | Screenshots of the review step and the draft plan |
-| `ADM-119` | Transaction | Garden · Settlement | Finalize a payout plan | Screenshot of the pending plan with its disbursements |
+| `ADM-119` | Transaction | Garden · Settlement | Finalize a payout plan | Screenshot of the pending plan and its prepare step |
 | `ADM-120` | Transaction | Garden · Settlement | Dispatch a prepared disbursement | Screenshots of the dispatched row and the plan status |
 | `ADM-121` | Transaction | Garden · Settlement | Retry Command resends the same command for a dispatched row | Screenshot of the retry review and the row afterwards |
 | `ADM-125` | Transaction | Garden · Pool | Seeding asks the wallet to confirm and the commitment appears without a reload | Screen recording from the press to the commitment appearing |
