@@ -289,3 +289,36 @@ by severity, the three highest-leverage changes, capture counts. Full reports li
   12/15/16 parked). Full record: `../reports/qa-experience-fixes-2026-08-25.md`; evidence:
   `../reports/evidence/qa-experience-fixes/` (26 captures + 2 measurement JSONs). No ledger
   flip, no on-chain writes, no Linear writes, no status.json edits.
+
+## QA readiness plan (2026-09-20)
+
+`../qa-readiness-plan.md` now carries what Wave 2 needs before it starts and the loop that follows
+it. It adds to the Wave 2 walkthrough above; it does not replace it.
+
+- **Before the walk:** refresh after queued acts, prefilled Offer It Again (plus Ask Again and
+  Seed another like this), an admin "Add another" batch tray, and one full catalog PR
+  (corrections, splits, new cases for reachable acts, a known gate on ADM-080).
+- **The walk:** recorded two-person calls on staging against live Arbitrum, staged from a
+  rehearsal cycle that is cancelled, to a real complete cycle, to the protocol pool relay, to the
+  partner garden last. Issues are noted on the call and brought back to an AI session through
+  `/qa-triage --call`.
+- **D2 decision:** Afo decided close-the-season as **finish**. Ending a season and recording an
+  external payout are built in the fix window and walked in the re-QA run.
+- **Build 1 is open as PR #857** (`fix/commitment-queued-acts-send-and-refresh`): wallet-mode
+  send `7d5963d97`, refresh after completion `bde103aba`. The admin never sent its queued
+  commitment acts before this; the plan's § 2 and § 4 carry the trace, the proof, and the
+  validation receipt. No live reproduction yet: Stage A is the first.
+- **Builds 2 and 3 are open as PRs #858 and #859**, each stacked on the one before: compose again
+  `5c884ba9a` (`feature/commitment-create-another`) and the seeding tray `968f964e7`
+  (`feature/commitment-seed-batch-tray`). The plan's § 4 carries what changed, the decisions made
+  while building (19 to 23, for Afo to ratify), the proof, and a validation receipt for each. The
+  tray was walked in Storybook served from its own worktree; nothing has been sent on chain.
+- **The catalog change is open as PR #860** (`test/commitment-pooling-qa-catalog`, stacked on
+  Build 3): `451cb4b08`, then a review round. 266 active cases became 307: 11 retired, 52 added, 3
+  corrected in place. The plan's § 5.6 says where the work differed from § 5.1 to § 5.4 and why,
+  and carries the act ledger: every reachable act against its cases. § 6.2 now names the cases to
+  walk at each step of each stage. A Build 2 copy defect found on the way is fixed in its own
+  commit, `98d3b27f5`.
+- **Gate:** this lane's manual gate is unchanged. Clearing it stays with Afo.
+- **Live read, Arbitrum block 507310713:** the module is unpaused and all 18 pools read
+  `NotReady`, so pool setup is the first act of any staging walk.

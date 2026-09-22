@@ -61,6 +61,10 @@ const mocks = vi.hoisted(() => ({
   commitmentPending: false,
   pinPoolCharter: vi.fn(),
   fundingRefetch: vi.fn(),
+  sender: { authMode: "wallet" },
+  retryQueuedCommitmentJob: vi.fn(),
+  discardJob: vi.fn(),
+  reportError: vi.fn(),
 }));
 
 vi.mock("../../../ontology/query", () => ({
@@ -94,6 +98,22 @@ vi.mock("../../../hooks/commitment-pooling/useCommitmentCycleNames", () => ({
 
 vi.mock("../../../hooks/commitment-pooling/useCommitmentMetadata", () => ({
   useCommitmentMetadata: mocks.metadata,
+}));
+
+vi.mock("../../../hooks/blockchain/useTransactionSender", () => ({
+  useTransactionSender: () => mocks.sender,
+}));
+
+vi.mock("../../../hooks/commitment-pooling/useCommitmentJobs", () => ({
+  retryQueuedCommitmentJob: mocks.retryQueuedCommitmentJob,
+}));
+
+vi.mock("../../../modules/job-queue/default-instance", () => ({
+  jobQueue: { discardJob: mocks.discardJob },
+}));
+
+vi.mock("../../../utils/errors/mutation-error-handler", () => ({
+  createMutationErrorHandler: () => mocks.reportError,
 }));
 
 vi.mock("../../../hooks/commitment-pooling/useCommitmentQueueState", () => ({
@@ -495,6 +515,31 @@ describe("usePoolConsoleController", () => {
       result.current.acts.saveSettings({ purpose: "Expand the tool library", cap: 9n })
     ).rejects.toThrow("gateway down");
     expect(mocks.poolMutate).not.toHaveBeenCalled();
+  });
+
+  it("sends or drops a queued creation and re-reads the row either way", async () => {
+    // Nothing else in the admin sends a queued creation. A retry that fails is
+    // reported rather than thrown, because the row that offered it is still there.
+    const refresh = vi.fn();
+    mocks.queueState.mockReturnValue(queueState({ refresh }));
+    mocks.retryQueuedCommitmentJob
+      .mockResolvedValueOnce(undefined)
+      .mockRejectedValueOnce(new Error("User rejected the request"));
+    mocks.discardJob.mockResolvedValue(true);
+    const queryClient = testQueryClient();
+    seedControllerQueries(queryClient);
+    const { result } = renderController(queryClient);
+
+    await act(async () => {
+      await result.current.acts.retryQueued("job-1");
+      await result.current.acts.retryQueued("job-1");
+      await result.current.acts.discardQueued("job-2");
+    });
+
+    expect(mocks.retryQueuedCommitmentJob).toHaveBeenCalledWith("job-1", mocks.sender);
+    expect(mocks.reportError).toHaveBeenCalledTimes(1);
+    expect(mocks.discardJob).toHaveBeenCalledWith("job-2");
+    expect(refresh).toHaveBeenCalledTimes(3);
   });
 
   it("composes pending state from either mutation hook", () => {

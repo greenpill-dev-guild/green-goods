@@ -32,6 +32,21 @@ const mocks = vi.hoisted(() => ({
   protocolRegistered: true,
   settlementActive: false,
   console: null as PoolConsoleController | null,
+  again: null as Record<string, unknown> | null,
+  /** Open-commitment room the steward has left; null while it is not read. */
+  room: null as number | null,
+}));
+
+// The tray itself is the real one; only its read of the steward's open count is
+// answered here, so no test reaches for the indexer.
+vi.mock("@green-goods/shared/hooks/admin-ui/pool/useSeedTray", async (importOriginal) => {
+  const actual =
+    await importOriginal<typeof import("@green-goods/shared/hooks/admin-ui/pool/useSeedTray")>();
+  return { ...actual, useSeedTrayRoom: () => mocks.room };
+});
+
+vi.mock("@green-goods/shared/hooks/commitment-pooling/useComposeAgainValues", () => ({
+  useComposeAgainValues: () => mocks.again,
 }));
 
 vi.mock("@green-goods/shared/hooks/admin-ui/pool/usePoolConsoleController", () => ({
@@ -210,7 +225,7 @@ function consoleFor(): PoolConsoleController {
   });
 }
 
-function renderSeed(props: { protocolContext?: boolean } = {}) {
+function renderSeed(props: { protocolContext?: boolean; fromCommitmentId?: bigint } = {}) {
   const onClose = vi.fn();
   const router = createMemoryRouter(
     [
@@ -223,6 +238,7 @@ function renderSeed(props: { protocolContext?: boolean } = {}) {
             garden={GARDEN}
             onClose={onClose}
             protocolContext={props.protocolContext}
+            fromCommitmentId={props.fromCommitmentId}
           />
         ),
       },
@@ -288,11 +304,34 @@ function fillHowMuch() {
   fireEvent.change(within(dialog()).getByLabelText(/^target/i), { target: { value: "16" } });
 }
 
+/** From the first step to the review, with the answers a commitment cannot do without. */
+async function toReview(title?: string) {
+  fillWhat(title);
+  next();
+  await waitFor(() => expect(within(dialog()).getByLabelText(/^unit/i)).toBeInTheDocument());
+  fillHowMuch();
+  next();
+  await waitFor(() => expect(within(dialog()).getByText(/^confirmers$/i)).toBeInTheDocument());
+  next();
+  await waitFor(() => expect(screen.getByTestId("seed-review")).toBeInTheDocument());
+}
+
+const createdIds = () =>
+  mocks.enqueue.mock.calls.map(([input]) =>
+    input.act === "create" ? input.payload.clientCommitmentId : null
+  );
+const createdTitles = () =>
+  mocks.enqueue.mock.calls.map(([input]) =>
+    input.act === "create" ? (input.payload.metadata as { title: string }).title : null
+  );
+
 describe("SeedCommitmentDialog (W8)", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.protocolRegistered = true;
     mocks.settlementActive = false;
+    mocks.again = null;
+    mocks.room = null;
     mocks.console = consoleFor();
     mocks.enqueue.mockResolvedValue("job-1");
   });
@@ -307,6 +346,25 @@ describe("SeedCommitmentDialog (W8)", () => {
       expect.stringMatching(/no cycle/i),
     ]);
     expect(select.value).toBe("12");
+  });
+
+  it("opens on the earlier commitment's answers, the steward's extras included, in this pool's season", async () => {
+    mocks.again = {
+      direction: "REQUEST",
+      kind: "SERVICE",
+      title: "Market rides",
+      unitLabel: "rides",
+      targetUnits: 16,
+      confirmers: ["0x3333333333333333333333333333333333333333"],
+      confirmationThreshold: 1,
+    };
+    renderSeed({ fromCommitmentId: 9n });
+
+    await waitFor(() =>
+      expect(within(dialog()).getByLabelText(/^title/i)).toHaveValue("Market rides")
+    );
+    // The season is this pool's own, never the earlier commitment's.
+    expect((within(dialog()).getByLabelText(/^cycle/i) as HTMLSelectElement).value).toBe("12");
   });
 
   it("queues a season commitment with the steward's extras in the payload", async () => {
@@ -494,6 +552,82 @@ describe("SeedCommitmentDialog (W8)", () => {
     await waitFor(() =>
       expect(within(dialog()).getByRole("checkbox", { name: /green goods team/i })).toBeChecked()
     );
+  });
+
+  it("adds another like this, then creates them all, each under an id of its own", async () => {
+    const { onClose } = renderSeed();
+    await toReview("Market rides");
+    fireEvent.click(within(dialog()).getByRole("button", { name: /add another like this/i }));
+
+    // Back on the first step with the same answers, so only what differs is typed.
+    await waitFor(() =>
+      expect(within(dialog()).getByLabelText(/^title/i)).toHaveValue("Market rides")
+    );
+    expect(mocks.enqueue).not.toHaveBeenCalled();
+    await toReview("Clinic rides");
+
+    expect(within(screen.getByTestId("seed-tray")).getByText("Market rides")).toBeInTheDocument();
+    expect(screen.getByTestId("seed-review")).toHaveTextContent(/confirm 2 times/i);
+    fireEvent.click(within(dialog()).getByRole("button", { name: /create all \(2\)/i }));
+
+    await waitFor(() => expect(onClose).toHaveBeenCalled());
+    expect(createdTitles()).toEqual(["Market rides", "Clinic rides"]);
+    expect(new Set(createdIds()).size).toBe(2);
+  });
+
+  it("keeps the one that was not sent, says what is left, and sends it again as itself", async () => {
+    mocks.enqueue
+      .mockResolvedValueOnce("job-1")
+      .mockRejectedValueOnce(new Error("execution reverted"))
+      .mockResolvedValueOnce("job-2");
+    const { onClose } = renderSeed();
+    await toReview("Market rides");
+    fireEvent.click(within(dialog()).getByRole("button", { name: /add another like this/i }));
+    await waitFor(() => expect(within(dialog()).getByLabelText(/^title/i)).toBeInTheDocument());
+    await toReview("Clinic rides");
+    fireEvent.click(within(dialog()).getByRole("button", { name: /create all \(2\)/i }));
+
+    await waitFor(() =>
+      expect(screen.getByTestId("seed-review")).toHaveTextContent(
+        /1 commitment was sent\. 1 could not be sent/i
+      )
+    );
+    expect(onClose).not.toHaveBeenCalled();
+    // The one that landed has left the tray; the other is the one under review.
+    expect(screen.queryByTestId("seed-tray")).not.toBeInTheDocument();
+    expect(screen.getByTestId("seed-review")).toHaveTextContent("Clinic rides");
+
+    fireEvent.click(within(dialog()).getByRole("button", { name: /seed this commitment/i }));
+    await waitFor(() => expect(onClose).toHaveBeenCalled());
+    // Its second send carries the id of its first: it can only ever be one commitment.
+    expect(createdIds()[2]).toBe(createdIds()[1]);
+  });
+
+  it("keeps the Not sent mark when the failed commitment is the only one left", async () => {
+    mocks.enqueue
+      .mockRejectedValueOnce(new Error("execution reverted"))
+      .mockResolvedValueOnce("job-2");
+    renderSeed();
+    await toReview("Market rides");
+    fireEvent.click(within(dialog()).getByRole("button", { name: /add another like this/i }));
+    await waitFor(() => expect(within(dialog()).getByLabelText(/^title/i)).toBeInTheDocument());
+    await toReview("Clinic rides");
+    fireEvent.click(within(dialog()).getByRole("button", { name: /create all \(2\)/i }));
+
+    // One landed, so the one that failed is now the only commitment in the
+    // sitting. Its mark is what says it was promised and never sent.
+    await waitFor(() => expect(screen.queryByTestId("seed-tray")).not.toBeInTheDocument());
+    expect(within(screen.getByTestId("seed-tray-current")).getByText(/not sent/i)).toBeVisible();
+  });
+
+  it("holds seeding while the offers are more than the steward may hold open", async () => {
+    mocks.room = 0;
+    renderSeed();
+    await toReview();
+
+    expect(screen.getByTestId("seed-review")).toHaveTextContent(/more than you can hold at once/i);
+    expect(within(dialog()).getByRole("button", { name: /seed this commitment/i })).toBeDisabled();
+    expect(within(dialog()).getByRole("button", { name: /add another like this/i })).toBeDisabled();
   });
 
   it("never overwrites a choice the steward already made with a late default", () => {

@@ -117,6 +117,8 @@ export function storyPoolConsole(
     acceptClaim: noop,
     declineClaim: noop,
     saveSettings: async () => undefined,
+    retryQueued: async () => undefined,
+    discardQueued: async () => undefined,
   };
   return {
     chainId: DEFAULT_CHAIN_ID,

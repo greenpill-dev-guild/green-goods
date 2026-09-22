@@ -24,10 +24,14 @@ import type {
   EvidenceJobPayload,
   WorkLinkJobPayload,
 } from "../../modules/commitment-pooling/jobs";
+import type { ProcessJobResult } from "../../modules/job-queue/ports";
+import type { TransactionSender } from "../../modules/transactions/types";
 import type { Address } from "../../types/domain";
 import { createMutationErrorHandler } from "../../utils/errors/mutation-error-handler";
+import { isCancelledTxError } from "../../utils/errors/tx-error-classifier";
 import { usePrimaryAddress } from "../auth/usePrimaryAddress";
 import { useCurrentChain } from "../blockchain/useChainConfig";
+import { useTransactionSender } from "../blockchain/useTransactionSender";
 
 /** What a view asks for, before the queue fills in keys and hashes. */
 export type CommitmentJobInput =
@@ -63,10 +67,114 @@ function subjectCommitmentId(input: CommitmentJobInput): bigint | null {
   }
 }
 
+/** Put the act into the queue as the job kind its executor expects. */
+function queueAct(input: CommitmentJobInput, owner: Address, chainId: number): Promise<string> {
+  const meta = { chainId };
+
+  switch (input.act) {
+    case "claim":
+      return jobQueue.addJob("claim", input.payload, owner, meta);
+    case "evidence":
+      return jobQueue.addJob("evidence", input.payload, owner, meta);
+    case "workLink":
+      // `operationKey` is derived by the queue from `clientOperationId`, so a
+      // retry behind the same button reuses the key rather than minting one.
+      return jobQueue.addJob("workLink", input.payload as WorkLinkJobPayload, owner, meta);
+    case "sendForConfirmation":
+      return jobQueue.addJob(
+        "confirmation",
+        {
+          action: "submit",
+          commitmentId: input.commitmentId,
+          gardenAddress: input.gardenAddress,
+        },
+        owner,
+        meta
+      );
+    case "confirm":
+      return jobQueue.addJob(
+        "confirmation",
+        {
+          action: "confirm",
+          commitmentId: input.commitmentId,
+          gardenAddress: input.gardenAddress,
+          ...(input.membershipNotRequired ? { membershipNotRequired: true } : {}),
+        },
+        owner,
+        meta
+      );
+    case "create":
+      return jobQueue.addJob("commitment", input.payload as CommitmentCreationPayload, owner, meta);
+  }
+}
+
+const SEND_FAILED = "The commitment could not be sent";
+
+/** One explicit send, and the second pass that settles a creation it submitted. */
+async function sendAndSettle(jobId: string, sender: TransactionSender): Promise<ProcessJobResult> {
+  const context = { transactionSender: sender, explicit: true };
+  const result = await jobQueue.processJob(jobId, context);
+  const submitted = !result.success && result.skipped && Boolean(result.txHash);
+  return submitted ? jobQueue.processJob(jobId, context) : result;
+}
+
+/**
+ * A wallet reader's act is sent from here or it is never sent.
+ *
+ * The background flush in `JobQueueProvider` runs only for passkey and embedded
+ * sign-in, where no prompt interrupts anyone, and the admin mounts no provider
+ * at all. A wallet prompt has to answer the person's own tap, so this is that
+ * tap, the way a queued decision is sent in `submit-approval-command`.
+ *
+ * What the queue reports decides what happens to the job:
+ *
+ * - Sent, but a creation: its first pass only submits, and a second pass reads
+ *   the new id back from the chain and completes it. The background flush makes
+ *   that pass for a passkey; here it is made at once, since the wallet sender
+ *   has already waited for the receipt.
+ * - Waiting (no steady connection, membership still being read, work not indexed
+ *   yet): it stays queued and is not an error, because the tap cannot settle it.
+ * - Declined at the wallet: the send never left, so the job is dropped through
+ *   the queue's own `discardJob` and the refusal is reported. The composers keep
+ *   their own drafts, so nothing the person made is lost.
+ * - Failed any other way: the job stays. A commitment job records no broadcast
+ *   checkpoint, so a wallet that broadcast before the receipt timed out looks
+ *   exactly like one that never sent, and dropping it would throw away the only
+ *   record of a transaction that may still land. The queued row and the
+ *   failed-act surface carry it from here, with Try Again.
+ */
+async function sendFromTap(jobId: string, sender: TransactionSender | null): Promise<void> {
+  if (sender?.authMode !== "wallet") return;
+  const result = await sendAndSettle(jobId, sender);
+  if (result.success || result.skipped) return;
+
+  if (isCancelledTxError(result.error)) await jobQueue.discardJob(jobId);
+  throw new Error(result.error ?? SEND_FAILED);
+}
+
+/**
+ * Try Again on a queued row, where no queue provider is mounted to offer one
+ * (the admin). The queue gives the job a fresh run of attempts and it is sent as
+ * the person's own tap.
+ *
+ * Unlike a first tap, a failure here keeps the job: the row it came from still
+ * offers Try Again and Discard, and there is no open form to fall back on.
+ */
+export async function retryQueuedCommitmentJob(
+  jobId: string,
+  sender: TransactionSender | null
+): Promise<void> {
+  if (!sender) throw new Error("Sign in before sending a commitment");
+  await jobQueue.retryJob(jobId);
+  const result = await sendAndSettle(jobId, sender);
+  if (!result.success && !result.skipped) throw new Error(result.error ?? SEND_FAILED);
+}
+
 export function useCommitmentJobs(options: { chainId?: number } = {}) {
   const currentChainId = useCurrentChain();
   const chainId = options.chainId ?? currentChainId;
   const viewer = usePrimaryAddress();
+  const sender = useTransactionSender();
   const queryClient = useQueryClient();
   const handleError = createMutationErrorHandler({
     source: "useCommitmentJobs",
@@ -76,48 +184,9 @@ export function useCommitmentJobs(options: { chainId?: number } = {}) {
   const mutation = useMutation({
     mutationFn: async (input: CommitmentJobInput) => {
       if (!viewer) throw new Error("Sign in before making a commitment");
-      const meta = { chainId };
-
-      switch (input.act) {
-        case "claim":
-          return jobQueue.addJob("claim", input.payload, viewer, meta);
-        case "evidence":
-          return jobQueue.addJob("evidence", input.payload, viewer, meta);
-        case "workLink":
-          // `operationKey` is derived by the queue from `clientOperationId`, so a
-          // retry behind the same button reuses the key rather than minting one.
-          return jobQueue.addJob("workLink", input.payload as WorkLinkJobPayload, viewer, meta);
-        case "sendForConfirmation":
-          return jobQueue.addJob(
-            "confirmation",
-            {
-              action: "submit",
-              commitmentId: input.commitmentId,
-              gardenAddress: input.gardenAddress,
-            },
-            viewer,
-            meta
-          );
-        case "confirm":
-          return jobQueue.addJob(
-            "confirmation",
-            {
-              action: "confirm",
-              commitmentId: input.commitmentId,
-              gardenAddress: input.gardenAddress,
-              ...(input.membershipNotRequired ? { membershipNotRequired: true } : {}),
-            },
-            viewer,
-            meta
-          );
-        case "create":
-          return jobQueue.addJob(
-            "commitment",
-            input.payload as CommitmentCreationPayload,
-            viewer,
-            meta
-          );
-      }
+      const jobId = await queueAct(input, viewer, chainId);
+      await sendFromTap(jobId, sender);
+      return jobId;
     },
     onSuccess: async (_jobId, input) => {
       await queryClient.invalidateQueries({ queryKey: commitmentPoolingKeys.all(chainId) });

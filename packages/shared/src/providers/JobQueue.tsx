@@ -6,6 +6,7 @@ import { queryClient } from "../config/react-query";
 import { useAuth } from "../hooks/auth/useAuth";
 import { usePrimaryAddress } from "../hooks/auth/usePrimaryAddress";
 import { useTransactionSender } from "../hooks/blockchain/useTransactionSender";
+import { useCommitmentCompletionRefresh } from "../hooks/commitment-pooling/useCommitmentCompletionRefresh";
 import { queryInvalidation } from "../config/query-keys/invalidation";
 import { queueKeys } from "../config/query-keys/misc";
 import { approvalsKeys, workApprovalsKeys, worksKeys } from "../config/query-keys/work";
@@ -380,6 +381,10 @@ const JobQueueProviderInner: React.FC<JobQueueProviderProps> = ({ children, queu
 
   // Queued work and decisions are prepared in the background, so Upload all only signs.
   useWorkUploadPreparation(currentUserAddress, DEFAULT_CHAIN_ID);
+
+  // Work and decisions are refreshed by the completion handler above. Commitment
+  // acts are refreshed here, and again as the indexer catches up with the receipt.
+  useCommitmentCompletionRefresh();
 
   // Context value - useMemo kept here as it's passed to Provider (cross-boundary)
   const contextValue: JobQueueContextValue = React.useMemo(

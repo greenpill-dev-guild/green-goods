@@ -20,6 +20,7 @@ import { usePrimaryAddress } from "../../auth/usePrimaryAddress";
 import { useActions, useGardens } from "../../blockchain/useBaseLists";
 import { useCommitmentCycleNames } from "../../commitment-pooling/useCommitmentCycleNames";
 import {
+  applyLateComposerDefaults,
   buildCommitmentCreationPayload,
   type CommitmentComposerValues,
   useCommitmentComposerForm,
@@ -29,6 +30,7 @@ import {
   useCommitmentCycles,
   useCommitmentPools,
 } from "../../commitment-pooling/useCommitmentPooling";
+import { useComposeAgainValues } from "../../commitment-pooling/useComposeAgainValues";
 import { useHasRole } from "../../roles/useHasRole";
 import type {
   CommitmentComposerAccess,
@@ -41,6 +43,8 @@ export interface UseCommitmentComposerControllerInput {
   garden: Address | string | null | undefined;
   direction: CommitmentComposerDirection;
   defaultUnitLabel?: string;
+  /** One of the reader's own commitments to start from (Offer It Again, Ask Again). */
+  fromCommitmentId?: bigint | null;
 }
 
 export function useCommitmentComposerController(
@@ -136,7 +140,26 @@ export function useCommitmentComposerController(
     });
   }, [clientCommitmentId, draftDecision, draftKey, isDirty, placed, saveDraft, serialized]);
 
+  // Composing again starts from the old commitment's answers, but a draft the
+  // person chose to resume is newer than those and is theirs, so it wins. The
+  // answers arrive after the form is built and land only where nobody has typed.
+  const [resumed, setResumed] = useState(false);
+  const again = useComposeAgainValues({
+    chainId: input.chainId,
+    fromCommitmentId: input.fromCommitmentId ?? null,
+    composer: "member",
+    viewer,
+    poolId: pool?.poolId,
+  });
+  useEffect(() => {
+    if (!again || resumed || draftDecision !== "decided") return;
+    // The door decides the direction; a link that names the other one starts empty.
+    if (again.direction !== input.direction) return;
+    applyLateComposerDefaults(form, again);
+  }, [again, resumed, draftDecision, form, input.direction]);
+
   const resumeDraft = () => {
+    setResumed(Boolean(savedDraft));
     if (savedDraft) {
       form.reset({
         ...form.getValues(),
