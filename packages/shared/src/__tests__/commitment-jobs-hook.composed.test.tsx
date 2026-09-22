@@ -131,7 +131,7 @@ describe("useCommitmentJobs over the real queue, signed in with a wallet", () =>
     expect(await store.getJobs({ userAddress: VIEWER })).toEqual([]);
   });
 
-  it("keeps an act the queue is holding, and one it judged final", async () => {
+  it("keeps an act the queue is holding, one it judged final, and one that may have been sent", async () => {
     const waiting = setUp(async () => ({ status: "waiting", reason: "membership-unavailable" }));
     await expect(waiting.jobs.current.enqueue(confirm)).resolves.toEqual(expect.any(String));
     expect(await waiting.store.getJobs({ userAddress: VIEWER })).toHaveLength(1);
@@ -139,6 +139,15 @@ describe("useCommitmentJobs over the real queue, signed in with a wallet", () =>
     const final = setUp(async () => ({ status: "identity-conflict", reason: "commitment-frozen" }));
     await expect(final.jobs.current.enqueue(confirm)).rejects.toThrow(/commitment-frozen/);
     expect(await final.store.getJobs({ userAddress: VIEWER })).toHaveLength(1);
+
+    // A wallet that broadcast before the receipt timed out looks exactly like one
+    // that never sent, and a commitment job records no broadcast checkpoint. The
+    // row is the only trace of a transaction that may still land, so it stays.
+    const ambiguous = setUp(async () => {
+      throw new Error("timed out waiting for the receipt");
+    });
+    await expect(ambiguous.jobs.current.enqueue(confirm)).rejects.toThrow(/timed out/);
+    expect(await ambiguous.store.getJobs({ userAddress: VIEWER })).toHaveLength(1);
   });
 
   it("Try Again settles a kept creation, and a declined retry keeps the row it came from", async () => {

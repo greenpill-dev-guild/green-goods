@@ -218,9 +218,20 @@ export function usePoolConsoleController(input: {
           refreshQueue();
         }
       },
+      // The queue refuses a row whose send may already be on chain, and a row on
+      // screen can go stale. Say so rather than leaving it sitting there.
       discardQueued: async (jobId: string) => {
-        await jobQueue.discardJob(jobId);
-        refreshQueue();
+        try {
+          const discarded = await jobQueue.discardJob(jobId);
+          if (!discarded) throw new Error("This one may already have been sent, so it was kept.");
+        } catch (error) {
+          reportQueuedSendError(error, {
+            gardenAddress: garden,
+            metadata: { act: "discardQueued" },
+          });
+        } finally {
+          refreshQueue();
+        }
       },
     }),
     [
