@@ -268,16 +268,15 @@ function useServiceWorkerUpdateController({
         });
 
         const checkForUpdates = async (force = false) => {
-          if (!force) {
-            const elapsed = Date.now() - lastAutoCheckRef.current;
-            if (elapsed < MIN_AUTO_CHECK_INTERVAL_MS) return;
-          }
+          if (!force && Date.now() - lastAutoCheckRef.current < MIN_AUTO_CHECK_INTERVAL_MS) return;
           lastAutoCheckRef.current = Date.now();
           checkStartedAtRef.current = now();
           setPhase((current) => (current === "idle" ? "checking" : current));
           const source = force ? "initial_check" : "auto_check";
           try {
             await registration.update();
+            // Read it now: marking a found update clears the start time.
+            const duration = durationSince(checkStartedAtRef.current);
             if (registration.waiting) {
               markUpdateAvailable(registration.waiting, source);
             } else if (registration.installing) {
@@ -294,7 +293,7 @@ function useServiceWorkerUpdateController({
                   : registration.installing
                     ? "downloading"
                     : "idle",
-                duration_ms: durationSince(checkStartedAtRef.current),
+                duration_ms: duration,
                 found_update: Boolean(registration.waiting || registration.installing),
               })
             );
