@@ -316,9 +316,13 @@ bump `PRAGMA user_version`.
   and action are chosen.
   *Proves part of `UX-01`: a token fetches the server draft and populates the composer.*
   `bun run --cwd packages/shared test -- useWhatsAppDraftIntake` — PRD-947
-- [ ] **10. Wire the link into the composer route.** `package:shared`. Edit
+- [ ] **10. Wire the link into the composer route.** `package:shared`, `package:client`. Edit
   `src/hooks/client-ui/work/useWorkSubmissionFlowController.ts`, edit
-  `src/hooks/work/useDraftResume.ts`. No new route: `/home/garden` already reads `?draftId=` and
+  `src/hooks/work/useDraftResume.ts`, edit `packages/client/vercel.json` for the response headers,
+  and the agent's request-logging configuration for redaction — **a shared hook can set neither an
+  edge header nor a proxy log's redaction**, so naming only hooks would let a builder finish this
+  step with `?wa=` still reaching edge logs and leaving in a referrer. Proof includes a deployed
+  header check and a log-redaction check, not only the shared Vitest suite. No new route: `/home/garden` already reads `?draftId=` and
   `?shareTarget=`, so add `?wa=<token>` beside them and strip it from the address bar after
   exchange. No migration.
   **Address-bar cleanup is the last of three protections, not the only one.** Section 8 requires
@@ -446,8 +450,14 @@ bump `PRAGMA user_version`.
   undeliverable the moment the first POST fails. Capture an **action-bound signed authorization
   while the signer is still present**, at submission, and persist it with the callback: bound to
   this draft, this action and a nonce, with an expiry long enough to outlive a queued submission.
-  The agent accepts it once. Treat it as a bearer capability on the device and scope it to nothing
-  but registering this draft's outcome.
+  The agent accepts it once — **and spends it in the same transaction that records the outcome**.
+  If the nonce is claimed and the process then crashes, or the write fails, before the transaction
+  hash is stored, the durable browser callback retries with an authorization that is already spent
+  and can never register a successful publication: the work is on chain, the agent never learns it,
+  and the restart-safe path `OPS-05` promises is defeated by the very credential meant to protect
+  it. Consume the nonce and persist the outcome atomically, and let an exact replay of an
+  already-recorded outcome return success rather than a spent-nonce rejection. Treat it as a bearer
+  capability on the device and scope it to nothing but registering this draft's outcome.
   **Give the job and the authorization the same deadline.** A connectivity-blocked job stays pending
   without spending retries and this plan lets it remain retryable well past seven days, while the
   authorization expires on its own clock. If connectivity returns after expiry the job would publish
@@ -461,9 +471,14 @@ bump `PRAGMA user_version`.
   delivers, and a second delivery of the same hash changes nothing; and an unauthenticated,
   synthetic or foreign report is refused.*
   `bun run --cwd packages/agent test -- src/__tests__/whatsapp-draft-outcome.test.ts && bun run --cwd packages/shared test -- whatsapp-outcome-callbacks job-queue-upgrade` — PRD-948
-- [ ] **14. Confirm in chat only after the chain receipt.** `package:agent`. New
+- [ ] **14. Confirm in chat only after the chain receipt.** `package:agent`, `package:shared`. New
   `src/services/work-receipts.ts`, new `src/services/whatsapp-outbox.ts`, edit
-  `src/platforms/whatsapp/client.ts`, edit `src/api/routes/whatsapp-webhook.ts`. No new route.
+  `src/platforms/whatsapp/client.ts`, edit `src/api/routes/whatsapp-webhook.ts`, edit
+  `packages/shared/src/modules/job-queue/process-job.ts`. No new route. **The deletion path this
+  step proves runs in the browser, not the agent.** Revoking the hold server-side only helps if the
+  shared dispatch boundary rechecks it, so an agent-only proof can pass while a queued job
+  reconnects and publishes withdrawn evidence. The consent recheck and its test live in
+  `packages/shared`.
   Migration: add the outbox columns through `ensureColumn()`. Resolve the transaction receipt with the existing viem client and take the
   attestation UID from the EAS `Attested` log. **Attester and garden alone are not enough**: a
   gardener could otherwise register a transaction carrying an unrelated work attestation, or an
@@ -529,7 +544,7 @@ bump `PRAGMA user_version`.
   submission, and the later outcome callback would have nothing left to reconcile. Step 13 registers
   a server-side pending-submission hold before queueing, the sweep skips held drafts, and the
   advanced-clock test covers exactly that interaction.*
-  `bun run --cwd packages/agent test -- src/__tests__/work-receipts.test.ts src/__tests__/whatsapp-outbox.test.ts src/__tests__/i18n.test.ts` — PRD-948
+  `bun run --cwd packages/agent test -- src/__tests__/work-receipts.test.ts src/__tests__/whatsapp-outbox.test.ts src/__tests__/i18n.test.ts && bun run --cwd packages/shared test -- whatsapp-consent-revocation` — PRD-948
 
 ### Lane: publication safety
 
