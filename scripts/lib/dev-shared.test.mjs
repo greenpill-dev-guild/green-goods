@@ -14,8 +14,10 @@ import {
   fixtureGitEnvironment,
   dockerEnvironment,
   assertDockerReady,
+  inspectPinnedNode,
   parseSubmoduleStatus,
   profileRequiresContractSubmodules,
+  readPinnedNodeVersion,
   readSharedGitSettings,
   reexecUnderCompatibleNodeIfNeeded,
   resolveSubmoduleSetupAction,
@@ -48,6 +50,87 @@ test("Docker repairs a missing local socket without overriding an intentional en
 
 test("Docker preflight fails clearly when no CLI can be reached", () => {
   assert.throws(() => assertDockerReady({ PATH: "/nonexistent" }), /Docker is unavailable.*No services were started/);
+});
+
+test("the pinned Node version comes from .mise.toml and must be exact", (t) => {
+  const directory = mkdtempSync(path.join(tmpdir(), "pinned-node-version-"));
+  t.after(() => rmSync(directory, { recursive: true, force: true }));
+  const write = (tools) => writeFileSync(path.join(directory, ".mise.toml"), tools);
+
+  write('[tools]\nnode = "22.22.1"\nbun = "1.4.2"\nfoundry = "1.7.1"\n');
+  assert.equal(readPinnedNodeVersion(directory), "22.22.1");
+  write('[tools]\nnode = "v22.22.1"\n');
+  assert.equal(readPinnedNodeVersion(directory), "22.22.1");
+
+  // A floating pin cannot be compared against a running major, and CI installs
+  // one exact version, so setup and the doctor refuse to guess from it.
+  for (const floating of ['[tools]\nnode = "22"\n', '[tools]\nnode = "lts"\n', '[tools]\nbun = "1.4.2"\n']) {
+    write(floating);
+    assert.throws(() => readPinnedNodeVersion(directory), /exact x\.y\.z/);
+  }
+});
+
+test("the Node check reads the interpreter, and PATH only when Bun is the interpreter", () => {
+  const versions = {
+    "/mise/installs/node/22.22.1/bin/node": "22.22.1",
+    "/pinned/bin/node": "22.22.1",
+    "/newer/bin/node": "24.20.0",
+    "/home/dev/.bun/bin/node": "26.3.0",
+    "/shim/node": "bun:1.4.2",
+  };
+  const inspect = (overrides) =>
+    inspectPinnedNode({
+      pinned: "22.22.1",
+      exists: (candidate) => candidate in versions,
+      probe: (candidate) => versions[candidate] ?? "",
+      env: { MISE_DATA_DIR: "/mise", PATH: "" },
+      bunRuntime: "",
+      interpreterNode: "",
+      ...overrides,
+    });
+
+  // Outside Bun the interpreter is the Node the machine resolved, so no probe
+  // can be more accurate: the major decides, and a different patch still passes.
+  const matched = inspect({ interpreterNode: "22.19.0" });
+  assert.equal(matched.state, "matched");
+  assert.equal(matched.fix, "");
+  assert.equal(matched.runtimeNote, "");
+  assert.match(matched.detail, /v22\.19\.0; \.mise\.toml pins 22\.22\.1\./);
+
+  // The Node 24 fresh-clone report: setup and the doctor used to print this as a pass.
+  const mismatched = inspect({ interpreterNode: "24.20.0" });
+  assert.equal(mismatched.state, "mismatched");
+  assert.match(mismatched.detail, /v24\.20\.0; \.mise\.toml pins 22\.22\.1 and CI runs that major only\./);
+  assert.equal(
+    mismatched.fix,
+    'Put the pinned Node first on PATH: export PATH="/mise/installs/node/22.22.1/bin:$PATH"'
+  );
+
+  // The repair is the pinned toolchain, so another Node of the same major that
+  // mise does not own is not offered as one.
+  const unpinned = inspect({ interpreterNode: "24.20.0", env: { MISE_DATA_DIR: "/absent-mise", PATH: "/pinned/bin" } });
+  assert.equal(unpinned.state, "mismatched");
+  assert.match(unpinned.fix, /mise install from the repository root, or install 22\.22\.1 from nodejs\.org/);
+
+  // Under `bun run` the interpreter is Bun and its Node version is an emulation,
+  // so the verdict comes from PATH — past Bun's own shim and any shim that
+  // answers as Bun from a directory the name filter does not catch.
+  const underBun = inspect({
+    bunRuntime: "1.4.2",
+    interpreterNode: "26.3.0",
+    env: { MISE_DATA_DIR: "/mise", PATH: "/home/dev/.bun/bin:/shim:/pinned/bin" },
+  });
+  assert.equal(underBun.state, "matched");
+  assert.equal(underBun.path, "/pinned/bin/node");
+  assert.match(underBun.detail, /v22\.22\.1 at \/pinned\/bin\/node/);
+  assert.match(underBun.runtimeNote, /Bun 1\.4\.2 ran this check and emulates Node 26\.3\.0/);
+
+  // A probe that answers nothing is not evidence of a wrong Node; callers warn,
+  // and the repair still points at the pinned toolchain.
+  const unknown = inspect({ bunRuntime: "1.4.2", interpreterNode: "26.3.0" });
+  assert.equal(unknown.state, "unknown");
+  assert.match(unknown.detail, /No Node answered a version probe; \.mise\.toml pins 22\.22\.1\./);
+  assert.match(unknown.fix, /\/mise\/installs\/node\/22\.22\.1\/bin/);
 });
 
 test("submodule status parser distinguishes every actionable git state", () => {
