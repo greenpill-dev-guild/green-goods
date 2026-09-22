@@ -559,7 +559,6 @@ describe("Celo wallet", () => {
   });
 
   it.each([
-    ["policy-unavailable", "Celo network fee coverage is unavailable. Try again later."],
     [
       "address-mismatch",
       "We couldn't verify that this Celo account matches your wallet. Sending is paused.",

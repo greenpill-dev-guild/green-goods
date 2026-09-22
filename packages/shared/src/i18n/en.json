@@ -815,7 +815,6 @@
   "app.celoWallet.fee.totalDebit": "Total from your balance",
   "app.celoWallet.loading": "Checking your Celo wallet…",
   "app.celoWallet.offline": "You're offline. Showing your last Celo wallet details; reconnect to send.",
-  "app.celoWallet.policyUnavailable": "Celo network fee coverage is unavailable. Try again later.",
   "app.celoWallet.qrLabel": "Your Celo wallet QR code",
   "app.celoWallet.receipts.cancelled": "Support cancelled",
   "app.celoWallet.receipts.confirmationPending": "Waiting for confirmation",

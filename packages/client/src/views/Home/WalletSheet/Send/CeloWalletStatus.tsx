@@ -12,13 +12,11 @@ export function CeloWalletStatus({ wallet }: { wallet: CeloWallet }) {
       ? "app.celoWallet.loading"
       : wallet.readiness === "address-mismatch"
         ? "app.celoWallet.addressMismatch"
-        : wallet.readiness === "policy-unavailable"
-          ? "app.celoWallet.policyUnavailable"
-          : wallet.readiness === "unavailable"
-            ? "app.celoWallet.accountUnavailable"
-            : wallet.token.balance === 0n
-              ? "app.send.token.zeroBalance"
-              : null;
+        : wallet.readiness === "unavailable"
+          ? "app.celoWallet.accountUnavailable"
+          : wallet.token.balance === 0n
+            ? "app.send.token.zeroBalance"
+            : null;
   return (
     <div className="space-y-2 text-xs text-text-sub-600" role="status" aria-live="polite">
       {statusId ? (

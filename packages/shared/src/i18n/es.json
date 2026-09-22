@@ -815,7 +815,6 @@
   "app.celoWallet.fee.totalDebit": "Total descontado de tu saldo",
   "app.celoWallet.loading": "Consultando tu billetera Celo…",
   "app.celoWallet.offline": "Sin conexión. Se muestran los últimos datos de tu billetera Celo; vuelve a conectarte para enviar.",
-  "app.celoWallet.policyUnavailable": "La cobertura de la comisión de red de Celo no está disponible. Inténtalo más tarde.",
   "app.celoWallet.qrLabel": "Código QR de tu billetera Celo",
   "app.celoWallet.receipts.cancelled": "Apoyo cancelado",
   "app.celoWallet.receipts.confirmationPending": "Esperando confirmación",

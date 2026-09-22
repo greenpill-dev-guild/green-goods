@@ -10,7 +10,6 @@ export class SmartAccountClientError extends Error {
       | "chain_mismatch"
       | "address_mismatch"
       | "resolver_unavailable"
-      | "policy_unavailable"
   ) {
     super(`Smart account unavailable: ${code}`);
     this.name = "SmartAccountClientError";
