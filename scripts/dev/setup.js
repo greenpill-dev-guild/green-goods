@@ -21,13 +21,18 @@ import {
   commandExists,
   dependencyReadiness,
   commandVersion,
+  inspectPinnedNode,
   inspectPinnedSubmodules,
   majorVersion,
+  readEnginesNodeFloor,
+  readPinnedNodeVersion,
   resolveSubmoduleSetupAction,
 } from "../lib/dev-shared.js";
 
 const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const requiredFoundryVersion = readPinnedFoundryVersion(projectRoot);
+const requiredNodeVersion = readPinnedNodeVersion(projectRoot);
+const minimumNodeVersion = readEnginesNodeFloor(projectRoot);
 
 const validProfiles = new Set(["host", "isolated", "cloud"]);
 const validInstallModes = new Set(["auto", "always", "skip"]);
@@ -326,6 +331,25 @@ function checkFoundryVersion() {
   return true;
 }
 
+/**
+ * Setup is the first command a new contributor runs, so a Node whose major
+ * differs from the pin stops it here rather than surfacing later as a CI
+ * failure or as every validation check reporting `blocked:toolchain.node`.
+ * An undetectable version only warns: it is not evidence of a wrong Node.
+ */
+function checkNodeVersion() {
+  const node = inspectPinnedNode({ pinned: requiredNodeVersion, minimum: minimumNodeVersion });
+  if (node.runtimeNote) log.info(node.runtimeNote);
+  if (node.state === "matched") {
+    log.success(`Node.js ${node.detail}`);
+    return true;
+  }
+  const report = node.state === "mismatched" ? log.error : log.warning;
+  report(`Node.js ${node.detail}`);
+  console.log(`${c.dim}Fix: ${node.fix}${c.reset}`);
+  return node.state !== "mismatched";
+}
+
 function checkVersion(cmd, minVersion, name) {
   const version = commandVersion(cmd);
   if (!version) {
@@ -466,7 +490,7 @@ console.log(`\n${c.green}🌱 Green Goods Setup${c.reset}${c.dim} (${options.pro
 
 // Check dependencies
 log.info("Checking dependencies...\n");
-const hasNode = checkVersion("node", 22, "Node.js");
+const hasNode = checkNodeVersion();
 let hasBun = checkVersion("bun", 1, "bun");
 const hasGit = checkCommand("git", "Git");
 const hasDocker = isHost ? checkDocker() : false;
@@ -477,7 +501,7 @@ console.log("");
 if (!hasNode || !hasGit) {
   log.error("Missing required dependencies. Install them and try again.\n");
   console.log(`${c.dim}Required:${c.reset}
-  • Node.js 22+: https://nodejs.org
+  • Node.js ${minimumNodeVersion} or later in the same major (.mise.toml pins ${requiredNodeVersion}): mise install, or https://nodejs.org
   • Git: https://git-scm.com\n`);
   process.exit(1);
 }

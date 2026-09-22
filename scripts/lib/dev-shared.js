@@ -88,19 +88,28 @@ function isSupportedSystemNode(version) {
   return major !== null && major >= 22;
 }
 
-function miseDataDirectory() {
-  return process.env.MISE_DATA_DIR || path.join(homedir(), ".local/share/mise");
+function miseDataDirectory(env = process.env) {
+  return env.MISE_DATA_DIR || path.join(homedir(), ".local/share/mise");
+}
+
+function nodeExecutableName() {
+  return process.platform === "win32" ? "node.exe" : "node";
+}
+
+/** True for the `node` Bun injects into the environment of a `bun run` child. */
+function isBunNodeShimDirectory(entry) {
+  return entry.includes("bun-node") || entry.includes(`${path.sep}.bun${path.sep}bin`);
 }
 
 function nodeCandidates() {
-  const executable = process.platform === "win32" ? "node.exe" : "node";
+  const executable = nodeExecutableName();
   const miseData = miseDataDirectory();
   const candidates = [path.join(miseData, "shims", executable)];
   if (process.env.NODE) candidates.push(process.env.NODE);
 
   const pathEntries = (process.env.PATH || "").split(path.delimiter);
   for (const entry of pathEntries) {
-    if (!entry || entry.includes("bun-node") || entry.includes(`${path.sep}.bun${path.sep}bin`)) {
+    if (!entry || isBunNodeShimDirectory(entry)) {
       continue;
     }
     candidates.push(path.join(entry, executable));
@@ -186,6 +195,156 @@ function pinnedMiseTools(cwd) {
     if (tool) tools[tool[1]] = tool[2];
   }
   return tools;
+}
+
+const EXACT_VERSION_PATTERN = /^\d+\.\d+\.\d+$/;
+
+/**
+ * The exact Node version `.mise.toml` pins. CI installs this version, and the
+ * validation policy blocks every check whose toolchain differs from it, so
+ * setup and the doctor report against the pin instead of a floor of their own.
+ */
+export function readPinnedNodeVersion(cwd = process.cwd()) {
+  const pinned = (pinnedMiseTools(cwd).node ?? "").replace(/^v/, "");
+  if (!EXACT_VERSION_PATTERN.test(pinned)) {
+    throw new Error(".mise.toml must pin Node to an exact x.y.z version");
+  }
+  return pinned;
+}
+
+/**
+ * The lowest Node `package.json` engines accepts. `.mise.toml` names one exact
+ * version, but engines is what declares the supported range, so a contributor
+ * inside it is not stopped and one below it is.
+ */
+export function readEnginesNodeFloor(cwd = process.cwd()) {
+  const manifest = JSON.parse(readFileSync(path.join(cwd, "package.json"), "utf8"));
+  const floor = (manifest.engines?.node ?? "").match(/>=\s*v?(\d+\.\d+\.\d+)/)?.[1] ?? "";
+  if (!floor) {
+    throw new Error("package.json engines.node must declare a >=x.y.z floor");
+  }
+  return floor;
+}
+
+/** True when `version` is at or above `floor`, comparing major, minor, then patch. */
+function isAtLeastVersion(version, floor) {
+  if (!floor) return true;
+  const parts = (value) => value.split(".").map((part) => Number.parseInt(part, 10) || 0);
+  const [major, minor, patch] = parts(version);
+  const [floorMajor, floorMinor, floorPatch] = parts(floor);
+  if (major !== floorMajor) return major > floorMajor;
+  if (minor !== floorMinor) return minor > floorMinor;
+  return patch >= floorPatch;
+}
+
+/**
+ * The first `node` on PATH, skipping the shim Bun injects into a `bun run`
+ * child. `process.versions.node` cannot answer this: under `bun run` the
+ * interpreter is Bun, and the Node version it reports is an emulation rather
+ * than the Node that `node scripts/dev/<script>.js` will run.
+ */
+function firstNodeOnPath({ env, probe, exists }) {
+  const executable = nodeExecutableName();
+  for (const entry of (env.PATH || "").split(path.delimiter)) {
+    if (!entry || isBunNodeShimDirectory(entry)) continue;
+    const candidate = path.join(entry, executable);
+    if (!exists(candidate)) continue;
+    let version = "";
+    try {
+      version = probe(candidate);
+    } catch {
+      version = "";
+    }
+    // A shim that answers as Bun is the one this walk exists to look past. A shim
+    // that answers nothing is broken, and `node ...` resolves to it rather than
+    // falling through to a later entry, so report it instead of searching on.
+    if (version.startsWith("bun:")) continue;
+    return { path: candidate, version };
+  }
+  return { path: "", version: "" };
+}
+
+/**
+ * Where mise keeps the Node this repository pins, most specific first. The
+ * repair worth suggesting is the pinned toolchain, so this deliberately does
+ * not go looking for some other Node of the same major on PATH.
+ */
+function pinnedNodeCandidates(pinned, env) {
+  const executable = nodeExecutableName();
+  const miseData = miseDataDirectory(env);
+  return [
+    path.join(miseData, "installs/node", pinned, "bin", executable),
+    path.join(miseData, "shims", executable),
+  ];
+}
+
+/**
+ * Compare the Node that runs this repository's scripts against the toolchain
+ * this repository accepts, as `"matched"`, `"mismatched"`, or `"unknown"`.
+ *
+ * The accepted range is `package.json` engines, whose upper bound is the pinned
+ * major: a contributor on the engines floor is not stopped, a different major
+ * is, and so is a version below the floor even when its major matches. `fix`
+ * prefers a PATH change when mise already holds the pinned version, because
+ * that is the entire repair on a machine whose mise shims sit behind another
+ * Node.
+ */
+export function inspectPinnedNode({
+  pinned,
+  minimum,
+  env = process.env,
+  bunRuntime = process.versions.bun ?? "",
+  interpreterNode = process.versions.node ?? "",
+  probe = probeNodeVersion,
+  exists = executableExists,
+} = {}) {
+  const pinnedMajor = majorVersion(pinned);
+  // Outside Bun the interpreter running this script is the `node` the machine
+  // resolved for it, so read it directly: no probe is cheaper or more accurate.
+  // Under `bun run` the interpreter is Bun and its Node version is an
+  // emulation, so walk PATH for the Node that `node scripts/...` will run.
+  const detected = bunRuntime
+    ? firstNodeOnPath({ env, probe, exists })
+    : { path: "", version: interpreterNode };
+  const major = majorVersion(detected.version);
+  const accepted = (version) => majorVersion(version) === pinnedMajor && isAtLeastVersion(version, minimum);
+  const state = major === null ? "unknown" : accepted(detected.version) ? "matched" : "mismatched";
+
+  const installed = state === "matched"
+    ? detected.path
+    : findCompatibleNode({
+        isSupported: accepted,
+        candidates: pinnedNodeCandidates(pinned, env),
+        probe,
+        exists,
+      });
+
+  const where = detected.path ? ` at ${detected.path}` : "";
+  return {
+    state,
+    pinned,
+    version: detected.version,
+    path: detected.path,
+    detail: state === "matched"
+      ? `v${detected.version}${where}; .mise.toml pins ${pinned}.`
+      : state === "mismatched"
+        ? major === pinnedMajor
+          ? `v${detected.version}${where}; package.json engines requires >=${minimum}, and .mise.toml pins ${pinned}.`
+          : `v${detected.version}${where}; .mise.toml pins ${pinned} and CI runs that major only.`
+        : detected.path
+          ? `Node at ${detected.path} answered no version; .mise.toml pins ${pinned}.`
+          : `No Node on PATH outside Bun's shim; .mise.toml pins ${pinned}.`,
+    fix: state === "matched"
+      ? ""
+      : installed
+        ? `Put the pinned Node first on PATH: export PATH="${path.dirname(installed)}:$PATH"`
+        : `Install Node ${pinnedMajor}: run mise install from the repository root, or install ${pinned} from nodejs.org.`,
+    // `bun run` scripts execute under Bun's node shim, so name the interpreter
+    // whose reported version this check deliberately ignored.
+    runtimeNote: bunRuntime
+      ? `Bun ${bunRuntime} ran this check and emulates Node ${interpreterNode}; the pinned-Node check reads PATH instead.`
+      : "",
+  };
 }
 
 function matchingToolchainPathEntries(node, cwd) {

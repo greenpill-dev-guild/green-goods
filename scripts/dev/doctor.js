@@ -23,9 +23,12 @@ import {
   dependencyReadiness,
   dockerEnvironment,
   commandVersion,
+  inspectPinnedNode,
   inspectPinnedSubmodules,
   majorVersion,
   profileRequiresContractSubmodules,
+  readEnginesNodeFloor,
+  readPinnedNodeVersion,
 } from "../lib/dev-shared.js";
 import { inspectSurface } from "./surface-leases.mjs";
 
@@ -33,6 +36,8 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const projectRoot = path.resolve(__dirname, "../..");
 const requiredFoundryVersion = readPinnedFoundryVersion(projectRoot);
+const requiredNodeVersion = readPinnedNodeVersion(projectRoot);
+const minimumNodeVersion = readEnginesNodeFloor(projectRoot);
 
 
 const profileLabels = {
@@ -66,8 +71,9 @@ const profilePorts = { ...modePorts, contracts: [], upload: modePorts.web.filter
 
 const dockerEnv = dockerEnvironment();
 
+// Node is checked against the `.mise.toml` pin by checkPinnedNode, not by a
+// floor of its own.
 const requiredTools = [
-  { cmd: "node", label: "Node.js", minMajor: 22 },
   { cmd: "bun", label: "Bun", minMajor: 1 },
   { cmd: "git", label: "Git" },
 ];
@@ -213,7 +219,28 @@ function checkPlatform() {
   });
 }
 
+// A Node outside the range package.json engines accepts is a failure, not a
+// warning: CI installs the pinned major only, and the validation policy blocks
+// every local check whose toolchain differs from it. An unreadable version
+// warns instead, because it is not evidence of a wrong Node.
+const nodeLevels = { matched: "pass", mismatched: "fail", unknown: "warn" };
+const nodeTitles = {
+  matched: "Node.js matches the repository pin",
+  mismatched: "Node.js does not match the repository pin",
+  unknown: "Node.js version could not be read",
+};
+
+function checkPinnedNode() {
+  const node = inspectPinnedNode({ pinned: requiredNodeVersion, minimum: minimumNodeVersion });
+  if (node.runtimeNote) {
+    add("info", "Bun is running this check", node.runtimeNote, "", { check: "runtime:bun" });
+  }
+  add(nodeLevels[node.state], nodeTitles[node.state], node.detail, node.fix, { check: "tool:node" });
+}
+
 function checkTools() {
+  checkPinnedNode();
+
   for (const tool of requiredTools) {
     if (!commandExists(tool.cmd)) {
       add("fail", `${tool.label} not found`, "", `Install ${tool.label}, then rerun bun run setup.`, {
@@ -229,7 +256,7 @@ function checkTools() {
         "fail",
         `${tool.label} version is too old`,
         `${version || "unknown version"} detected; ${tool.minMajor}+ required.`,
-        tool.cmd === "node" ? "Install Node 22, or run mise install from the repo root." : "",
+        "",
         { check: `tool:${tool.cmd}` }
       );
       continue;
