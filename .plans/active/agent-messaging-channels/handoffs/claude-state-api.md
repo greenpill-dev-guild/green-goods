@@ -8,7 +8,7 @@
 
 ## Scope
 
-Buildathon prototype steps 1-8, 13 and 14: Meta webhook signature plus a leased event claim, normalization, encrypted-subject draft tables, bounded media fetch, single-use link with chat-side confirmation, draft-scoped account proof and read, the authenticated outcome route, and receipt derivation with a restart-safe outbox. Proves SEC-01, CH-01, WORK-01, SEC-02, AUTH-01, AUTH-03, OPS-05. Reuse garden-join-request-auth.ts and profile-avatars.ts rather than writing new verification.
+Buildathon prototype steps 1-8, 13 and 14: Meta webhook signature plus a leased event claim, normalization, encrypted-subject draft tables, bounded media fetch, single-use link with chat-side confirmation, draft-scoped account proof and read, the authenticated outcome route, and receipt derivation with a restart-safe outbox. Proves SEC-01, CH-01, WORK-01, SEC-02, AUTH-01, AUTH-03, OPS-05, and DATA-02 for the consent notice and the deletion path. Reuse garden-join-request-auth.ts and profile-avatars.ts rather than writing new verification.
 
 ## TDD Proof
 

@@ -40,12 +40,8 @@
       "branch": "feature/whatsapp-prototype-agent",
       "depends_on": [],
       "handoff": "handoffs/claude-state-api.md",
-      "handoff_note": "Buildathon prototype steps 1-8, 13 and 14: Meta webhook signature plus a leased event claim, normalization, encrypted-subject draft tables, bounded media fetch, single-use link with chat-side confirmation, draft-scoped account proof and read, the authenticated outcome route, and receipt derivation with a restart-safe outbox. Proves SEC-01, CH-01, WORK-01, SEC-02, AUTH-01, AUTH-03, OPS-05. Reuse garden-join-request-auth.ts and profile-avatars.ts rather than writing new verification.",
-      "skill_tags": [
-        "data-layer",
-        "testing",
-        "web3"
-      ],
+      "handoff_note": "Buildathon prototype steps 1-8, 13 and 14: Meta webhook signature plus a leased event claim, normalization, encrypted-subject draft tables, bounded media fetch, single-use link with chat-side confirmation, draft-scoped account proof and read, the authenticated outcome route, and receipt derivation with a restart-safe outbox. Proves SEC-01, CH-01, WORK-01, SEC-02, AUTH-01, AUTH-03, OPS-05, and DATA-02 for the consent notice and the deletion path. Reuse garden-join-request-auth.ts and profile-avatars.ts rather than writing new verification.",
+      "skill_tags": ["data-layer", "testing", "web3"],
       "manual_blocked": true,
       "ready_when_dependencies_met": false,
       "tdd": {
@@ -67,16 +63,10 @@
       "owner": "unassigned",
       "status": "blocked",
       "branch": "feature/whatsapp-prototype-handoff",
-      "depends_on": [
-        "state_api"
-      ],
+      "depends_on": ["state_api"],
       "handoff": "handoffs/claude-ui.md",
-      "handoff_note": "Buildathon prototype steps 9-12 and 15: draft intake port modelled on useShareTargetIntake, the ?wa= locator on /home/garden beside ?draftId= and ?shareTarget=, first-run passkey with the in-app-browser handoff, open-joining admission before the attestation, the outcome call on submission completion, and EXIF/location stripping before publication. Proves UX-01, ID-01, part of UX-02, part of DATA-02. Shared auth and work surfaces take the critical override; step 11 needs authenticated Brave proof.",
-      "skill_tags": [
-        "ui",
-        "react",
-        "web3"
-      ],
+      "handoff_note": "Buildathon prototype steps 9-12 and 15: draft intake port modelled on useShareTargetIntake, the ?wa= locator on /home/garden beside ?draftId= and ?shareTarget=, first-run passkey with the in-app-browser handoff, open-joining admission before the attestation, the outcome call on submission completion, and EXIF/location stripping before publication. Proves UX-01, ID-01, part of UX-02, DATA-06. Shared auth and work surfaces take the critical override; step 11 needs authenticated Brave proof.",
+      "skill_tags": ["ui", "react", "web3"],
       "manual_blocked": true,
       "ready_when_dependencies_met": false,
       "tdd": {
@@ -101,9 +91,7 @@
       "depends_on": [],
       "handoff": "handoffs/contracts.md",
       "handoff_note": "No contract change in this slice. WorkResolver and WorkApprovalResolver are unchanged; the gardener signs with their own passkey or EOA account. If any step turns out to need a contract change, stop that step and re-plan in contract, shared, indexer, application order.",
-      "skill_tags": [
-        "contracts"
-      ],
+      "skill_tags": ["contracts"],
       "manual_blocked": false,
       "ready_when_dependencies_met": false,
       "tdd": {
@@ -118,16 +106,10 @@
       "owner": "unassigned",
       "status": "blocked",
       "branch": "feature/whatsapp-prototype-qa",
-      "depends_on": [
-        "state_api",
-        "ui"
-      ],
+      "depends_on": ["state_api", "ui"],
       "handoff": "handoffs/claude-qa-pass-1.md",
       "handoff_note": "Demo rehearsal on a real device against the Meta test number: full journey across steps 1-15, then the adversarial pass (forwarded link, preview GET, replay, concurrent consume, foreign draft id, bad webhook signature, redelivery after a mid-processing restart). Authenticated Brave for the passkey ceremony. Record which deferred cases the demo does not evidence, specifically ID-05, ID-07, REC-03 and MIG-01.",
-      "skill_tags": [
-        "testing",
-        "review"
-      ],
+      "skill_tags": ["testing", "review"],
       "manual_blocked": true,
       "ready_when_dependencies_met": false,
       "blocked_reason": "No builder assigned for the 2026-09-25 to 2026-10-02 window. Unblock by naming the builder and setting the owner; do not dispatch from an unassigned lane."
@@ -136,16 +118,10 @@
       "owner": "codex",
       "status": "blocked",
       "branch": null,
-      "depends_on": [
-        "qa_pass_1"
-      ],
+      "depends_on": ["qa_pass_1"],
       "handoff": "handoffs/codex-qa-pass-2.md",
       "handoff_note": "Out of prototype scope. Independent verification of auth, cross-garden denial, operation recovery and conditional delegation belongs to the pilot, after a provider decision and O5 agreement.",
-      "skill_tags": [
-        "testing",
-        "review",
-        "contracts"
-      ],
+      "skill_tags": ["testing", "review", "contracts"],
       "manual_blocked": true,
       "ready_when_dependencies_met": false
     }
@@ -250,20 +226,9 @@
   ],
   "taxonomy": {
     "initiative": "agent-platform",
-    "tracks": [
-      "agent",
-      "shared",
-      "client"
-    ],
-    "work_types": [
-      "implementation",
-      "qa"
-    ],
-    "surfaces": [
-      "packages/agent",
-      "packages/shared",
-      "packages/client"
-    ],
+    "tracks": ["agent", "shared", "client"],
+    "work_types": ["implementation", "qa"],
+    "surfaces": ["packages/agent", "packages/shared", "packages/client"],
     "depends_on_features": []
   },
   "linear": {
