@@ -35,7 +35,7 @@ The Buildathon prototype must pass exactly these, and claims nothing else:
 | `AUTH-01` — includes signed domain/audience, not just an `Origin` header check | 7 | PRD-946 |
 | `AUTH-03` — **draft-read path only** | 8 | PRD-946 |
 | `UX-01` | 9, 10, 16 | PRD-947 |
-| `UX-04` — chat field walk and approval (new, see below) | 16 | PRD-957 |
+| `UX-04` — chat field walk and approval (new, see below) | 16 | PRD-970 |
 | `ID-01` — passkey creation, then admission and publication | 11, 12 | PRD-947 |
 | `ID-03` — **continuation journey only**, not WhatsApp linking; proven by the QA pass 1 EOA case | 7, 11, QA pass 1 | PRD-946 |
 | `UX-02` — in-app-browser handoff only | 11 | PRD-947 |

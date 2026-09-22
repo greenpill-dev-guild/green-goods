@@ -656,7 +656,7 @@ every existing reference to "step 6" through "step 15".
   refused with a catalogued message in `en`, `es` and `pt`, and an unapproved draft yields no link.
   Also proves that the walk writes a source entry per inbound message and gardener provenance on
   every field it sets.*
-  `bun run --cwd packages/shared test -- action-field-walk && bun run --cwd packages/agent test -- src/__tests__/whatsapp-walk.test.ts src/__tests__/i18n.test.ts` — PRD-957
+  `bun run --cwd packages/shared test -- action-field-walk && bun run --cwd packages/agent test -- src/__tests__/whatsapp-walk.test.ts src/__tests__/i18n.test.ts` — PRD-970
 
 ## Cut line
 
@@ -711,7 +711,7 @@ Afo before taking it, per PRD-946.
 | `AUTH-01` | 7 | PRD-946 |
 | `AUTH-03` | 8 | PRD-946 |
 | `UX-01` | 9, 10, 16 | PRD-947 |
-| `UX-04` — chat field walk and approval (new, see below) | 16 | PRD-957 |
+| `UX-04` — chat field walk and approval (new, see below) | 16 | PRD-970 |
 | `ID-01` — passkey creation, then admission and publication | 11, 12 | PRD-947 |
 | `UX-02`, in-app-browser handoff only | 11 | PRD-947 |
 | `OPS-05` | 13, 14 | PRD-948 |
@@ -827,14 +827,17 @@ the Buildathon prototype and WhatsApp number working milestones.
   coherent — PRD-944 is steps 3 through 5 and 14, since `DATA-02`'s consent notice and deletion path
   span both ends; PRD-946 is steps 7 and 8 — and splitting mid-review would
   have orphaned the bodies that now carry the corrections.
-- PRD-957 is **owed** and not yet written: it owns step 16, the chat field walk, added on
-  2026-09-22 when correction moved into the conversation and steps 9 and 10 became a read-only
-  review. It takes `package:agent` under the one-`package:*`-per-issue rule even though the pure
-  walk module lands in shared, matching how PRD-946 and PRD-947 already resolve that constraint, and
-  its body must say so. A separate issue records spec proposal P6 and gate O6 as research-tracked,
-  not as accepted work — P6 is unselected, so it must not appear under the Buildathon prototype
-  milestone. PRD-947's body needs the step 9 and 10 rewrite reflected; it currently describes
-  composer hydration.
+- PRD-970 was written on 2026-09-22 and owns step 16, the chat field walk, added when correction
+  moved into the conversation and steps 9 and 10 became a read-only review. It sits under the
+  Buildathon prototype milestone, blocked by PRD-944 for the draft tables, and related to PRD-947
+  and PRD-955. It carries `package:agent` under the one-`package:*`-per-issue rule even though the
+  pure walk module lands in shared, matching how PRD-946 and PRD-947 already resolve that
+  constraint, and its body says so.
+- **Two Linear writes remain owed.** PRD-947's body still describes composer hydration and the
+  `useWhatsAppDraftIntake`/`useDraftResume` commands, which steps 9 and 10 no longer do; it needs
+  the read-only review reflected. And spec proposal P6 with gate O6 needs a **Research** team issue,
+  not a Product one — P6 is unselected, so it must not appear under the Buildathon prototype
+  milestone or read as accepted work.
 - `linear-sync` has **not** been run, deliberately. The hub is `parent_only`; with an empty lane map
   an `lane_issues` sync would have created duplicate canonical lane issues under the historical
   PRD-339 parent instead of using the live slice issues. Run the Implementation Start Gate only once
