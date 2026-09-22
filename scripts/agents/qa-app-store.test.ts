@@ -38,7 +38,7 @@ import {
   runIndexShapeError,
   runShardPath,
 } from "../../packages/qa/runs";
-import { STORE_LOCK_PATH, ensureRunIndex, releaseStoreLock } from "../../packages/qa/store";
+import { STORE_LOCK_PATH, ensureRunIndex, releaseStoreLock, strongETag } from "../../packages/qa/store";
 
 /** Shards are keyed by owner address; the display name inside is only a label. */
 const ADDRESS = "0x2aa64e6d80390f5c017f0313cb908051be2fd35e";
@@ -50,6 +50,27 @@ const NOW = "2026-09-07T10:00:00.000Z";
 interface StoredBlob {
   body: string;
   etag: string;
+}
+
+/**
+ * Blob serves an object past roughly a kilobyte compressed, and a compressed
+ * representation carries a WEAK validator — `W/` around the same tag the small
+ * object reports bare. `put({ ifMatch })` compares strongly, so a weak
+ * validator never satisfies it.
+ *
+ * Every double below reproduces both halves. A double that hands `put` back
+ * whatever its own `get` returned cannot fail on a weak validator, which is
+ * why this suite stayed green while every save onto a grown shard failed in
+ * production (2026-09-20).
+ */
+const COMPRESSION_THRESHOLD = 1000;
+
+function servedETag(stored: StoredBlob): string {
+  return stored.body.length >= COMPRESSION_THRESHOLD ? `W/${stored.etag}` : stored.etag;
+}
+
+function preconditionHolds(ifMatch: unknown, stored: StoredBlob | null | undefined): boolean {
+  return typeof ifMatch === "string" && !ifMatch.startsWith("W/") && ifMatch === stored?.etag;
 }
 
 /**
@@ -77,7 +98,7 @@ function memoryBlob(initial: Record<string, string> = {}) {
     }
     const stored = objects.get(pathname);
     // The SDK reports the ETag on the blob metadata, not on the result.
-    return stored ? { statusCode: 200, stream: stored.body, blob: { etag: stored.etag } } : null;
+    return stored ? { statusCode: 200, stream: stored.body, blob: { etag: servedETag(stored) } } : null;
   });
   blob.put.mockImplementation(async (pathname: string, body: string, options: Record<string, unknown>) => {
     if (beforePut && pathname !== STORE_LOCK_PATH) {
@@ -88,7 +109,9 @@ function memoryBlob(initial: Record<string, string> = {}) {
     puts.push({ pathname, options });
     const stored = objects.get(pathname);
     if (options.allowOverwrite === false && stored) throw new Error("pathname already exists");
-    if (options.ifMatch && options.ifMatch !== stored?.etag) throw new BlobPreconditionFailedError("etag mismatch");
+    if (options.ifMatch && !preconditionHolds(options.ifMatch, stored)) {
+      throw new BlobPreconditionFailedError("etag mismatch");
+    }
     objects.set(pathname, { body: String(body), etag: `etag-${++etag}` });
     return {};
   });
@@ -763,12 +786,14 @@ describe("QA app Blob writes", () => {
         return null;
       }
       if (!stored) return null;
-      return { statusCode: 200, stream: stored.body, blob: { etag: stored.etag } };
+      return { statusCode: 200, stream: stored.body, blob: { etag: servedETag(stored) } };
     });
 
     blob.put.mockImplementation(async (_pathname, body, options) => {
       if (options.allowOverwrite === false && stored) throw new Error("pathname already exists");
-      if (options.ifMatch && options.ifMatch !== stored?.etag) throw new BlobPreconditionFailedError("etag mismatch");
+      if (options.ifMatch && !preconditionHolds(options.ifMatch, stored)) {
+        throw new BlobPreconditionFailedError("etag mismatch");
+      }
       stored = { body: String(body), etag: `etag-${++etag}` };
       return {};
     });
@@ -787,6 +812,36 @@ describe("QA app Blob writes", () => {
     expect(blob.put.mock.calls.every((call) => call[0] === runShardPath("run-2", ADDRESS))).toBe(true);
     expect(blob.put.mock.calls.slice(0, 2).every((call) => call[2].allowOverwrite === false)).toBe(true);
     expect(blob.put.mock.calls.some((call) => call[2].allowOverwrite === true && call[2].ifMatch)).toBe(true);
+  });
+
+  it("keeps recording into a shard the store serves with a weak validator", async () => {
+    // A shard is small while a tester is a few cases in and compressed after
+    // that, so this is the state every real session reaches. Passing the weak
+    // validator the store then reports straight to `ifMatch` refused every
+    // later save — the walk stayed in the browser's outbox, and the next
+    // rollover flushed it into a run it was never recorded against.
+    const walked = Object.fromEntries(
+      Array.from({ length: 12 }, (_, index) => [`PWA-0${60 + index}`, entry("fail", NOW, "x".repeat(80))]),
+    );
+    const grown = shardBody(ADDRESS, "Afo", walked);
+    expect(grown.length).toBeGreaterThanOrEqual(COMPRESSION_THRESHOLD);
+    const store = memoryBlob({ [runShardPath("run-2", ADDRESS)]: grown });
+
+    const shard = await applyDelta(ADDRESS, { "PWA-046": { s: "pass" } }, "Afo", "run-2");
+
+    expect(shard.entries).toHaveProperty("PWA-046");
+    expect(Object.keys(shard.entries)).toHaveLength(13);
+    expect(store.json(runShardPath("run-2", ADDRESS)).entries).toHaveProperty("PWA-046");
+    // One write, not four attempts that all lost on the precondition.
+    expect(store.puts).toHaveLength(1);
+    expect(store.puts[0].options).toMatchObject({ allowOverwrite: true, ifMatch: expect.any(String) });
+    expect(String(store.puts[0].options.ifMatch)).not.toMatch(/^W\//);
+  });
+
+  it("strips only the weak marker, and leaves a strong validator alone", () => {
+    expect(strongETag('W/"abc123"')).toBe('"abc123"');
+    expect(strongETag('"abc123"')).toBe('"abc123"');
+    expect(strongETag('"W/abc123"')).toBe('"W/abc123"');
   });
 });
 
