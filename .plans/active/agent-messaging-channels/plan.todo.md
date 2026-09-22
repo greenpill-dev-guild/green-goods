@@ -221,8 +221,18 @@ bump `PRAGMA user_version`.
   gardener. So after the browser proves an account, the agent asks for confirmation **back in the
   original WhatsApp conversation**, and the draft attaches only once that confirmation arrives —
   the two-sided proof section 6 already requires.
+  **A generic confirmation is not enough, though.** "Someone is trying to attach an account, approve
+  or deny?" can be approved by a gardener who assumes it is their own browser, which attaches the
+  forwarder instead — the very attack this step exists to stop. Mint an **attempt-specific
+  comparison code** when the browser presents its proof, persist it on the attempt with the account
+  context, show it in the browser, and put the same code in the chat prompt. The attempt is consumed
+  only when the gardener confirms that exact code, and a mismatch or a second concurrent attempt is
+  refused. This is the matching short phrase the canonical protocol in section 6 specifies, not an
+  extra invention.
   *Proves `SEC-02`: a forwarded link, a preview GET, a replay and two concurrent consumes disclose
-  nothing and change no binding; only the original conversation can complete the attach.*
+  nothing and change no binding; the chat prompt carries a code that matches only the browser
+  attempt that generated it, and approving a prompt whose code does not match the gardener's own
+  screen attaches nothing.*
   `bun run --cwd packages/agent test -- src/__tests__/draft-links.test.ts src/__tests__/i18n.test.ts` — PRD-945
 
 ### Lane: account proof
@@ -371,6 +381,14 @@ bump `PRAGMA user_version`.
   this draft, this action and a nonce, with an expiry long enough to outlive a queued submission.
   The agent accepts it once. Treat it as a bearer capability on the device and scope it to nothing
   but registering this draft's outcome.
+  **Give the job and the authorization the same deadline.** A connectivity-blocked job stays pending
+  without spending retries and this plan lets it remain retryable well past seven days, while the
+  authorization expires on its own clock. If connectivity returns after expiry the job would publish
+  irreversibly and then have every outcome registration rejected, so the gardener's work lands on
+  chain and WhatsApp never says so — the worst of both. The publication path therefore checks the
+  authorization deadline **before** it submits: past it, the job stops and surfaces as a failure the
+  gardener can act on rather than publishing blind. Renewal, if the builder adds one, must happen
+  before execution and with the signer present; a background renewal would defeat the binding.
   *Proves the input `OPS-05` needs: the agent learns the transaction hash for a draft from an
   authenticated caller that actually runs on submission; a failed POST followed by a reload still
   delivers, and a second delivery of the same hash changes nothing; and an unauthenticated,
@@ -443,8 +461,18 @@ bump `PRAGMA user_version`.
 ### Lane: publication safety
 
 - [ ] **15. Strip location metadata before publication.** `package:shared`. Edit
-  `src/modules/work/media-processing.ts`, edit `src/modules/work/heic-conversion.ts`. No new route,
-  no migration. Today there is no dedicated strip step: compression re-encodes only files over about
+  `src/modules/work/media-processing.ts`, edit `src/modules/work/heic-conversion.ts`, edit
+  `src/hooks/client-ui/work/useWhatsAppDraftIntake.ts`. No new route, no migration.
+  **The video refusal is scoped to WhatsApp intake, not applied repository-wide.**
+  `normalizeWorkMediaFiles` and `prepareMediaForUpload` are shared by ordinary work submission
+  (`modules/work/submission-flow.ts:45`), admin submission
+  (`hooks/admin-ui/garden/useSubmitWorkMediaController.ts:62`), draft autosave
+  (`hooks/work/useDraftAutoSave.ts:216`), the PWA share target
+  (`hooks/client-ui/work/useShareTargetIntake.ts:95`) and the commitment proof composer
+  (`hooks/client-ui/commitment/useProofComposerController.ts:159`) — all of which accept video
+  today. A blanket refusal in the shared helper would silently remove video from every one of them.
+  Add a source-scoped policy option instead, default permissive, and set it only at the WhatsApp
+  intake boundary. The stripping itself is safe to apply everywhere; only the refusal is scoped. Today there is no dedicated strip step: compression re-encodes only files over about
   1 MB, so smaller images and all videos publish with EXIF and GPS intact
   (`media-processing.ts:239,244,253`). Section 8 requires removing unnecessary EXIF and location
   while preserving consented evidence the garden needs.
@@ -454,7 +482,10 @@ bump `PRAGMA user_version`.
   `DATA-06` while a GPS-bearing video reaches permanent IPFS would be a false claim, so the
   prototype refuses video with a clear message in the chat and the composer. Lifting that limit is
   its own issue.
-  *Proves `DATA-06`: the test follows the publication path far enough to assert that the bytes
+  *Proves `DATA-06`, and proves the refusal does not leak outward: a video imported from a
+  WhatsApp draft is refused while a video attached through the ordinary composer, the share target,
+  the admin form and the proof composer still succeeds. The test follows the publication path far
+  enough to assert that the bytes
   uploaded to Pinata carry **neither GPS nor camera-identifying metadata** — the fixture is a
   sub-1 MB image carrying representative `Make`, `Model`, `BodySerialNumber` and `Software` tags
   alongside coordinates, and the assertion is that none of them survive — and that the media
