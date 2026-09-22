@@ -130,7 +130,18 @@ export function GardenCommitment() {
         navigate("proof", { relative: "path" });
         return;
       case "offerAgain":
-        navigate("../..", { relative: "path" });
+      case "askAgain": {
+        // Into the pool the commitment belongs to, which on the protocol pool is
+        // not the garden this screen was opened from. Without that read there is
+        // no honest destination: the route's garden would open a composer that
+        // refuses this source as belonging to another pool.
+        const poolGarden = controller.pool?.garden;
+        if (!poolGarden) return;
+        const door = act.kind === "askAgain" ? "request" : "offer";
+        navigate(
+          `/home/${poolGarden}/commitments/new?direction=${door}&from=${commitment.commitmentId.toString()}`
+        );
+      }
     }
   };
 

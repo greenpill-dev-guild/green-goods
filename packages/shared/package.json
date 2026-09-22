@@ -327,6 +327,7 @@
     "./hooks/commitment-pooling/useCommitmentCycleNames": "./src/hooks/commitment-pooling/useCommitmentCycleNames.ts",
     "./hooks/commitment-pooling/useCommitmentPooling": "./src/hooks/commitment-pooling/useCommitmentPooling.ts",
     "./hooks/commitment-pooling/useCommitmentPoolSetupSequence": "./src/hooks/commitment-pooling/useCommitmentPoolSetupSequence.ts",
+    "./hooks/commitment-pooling/useComposeAgainValues": "./src/hooks/commitment-pooling/useComposeAgainValues.ts",
     "./hooks/commitment-pooling/useCommitmentsInbox": "./src/hooks/commitment-pooling/useCommitmentsInbox.ts",
     "./hooks/commitment-pooling/useCommitmentsToConfirm": "./src/hooks/commitment-pooling/useCommitmentsToConfirm.ts",
     "./hooks/work/usePendingWorksCount": "./src/hooks/work/usePendingWorksCount.ts",

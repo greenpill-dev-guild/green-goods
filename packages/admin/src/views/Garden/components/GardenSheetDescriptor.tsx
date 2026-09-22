@@ -1,11 +1,13 @@
 import { useCurrentChain } from "@green-goods/shared/hooks/blockchain/useChainConfig";
 import type { Address } from "@green-goods/shared/types/domain";
+import { adminRoutes } from "@green-goods/shared/utils/navigation/admin-routes";
 import { useMemo } from "react";
 import { useIntl } from "react-intl";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { type LeftSheetConfig, useLeftSheetConfig } from "@/components/Layout";
 import HypercertDetail from "@/views/Garden/HypercertDetail";
 import { CommitmentDialogPanel } from "@/views/Garden/Pool/CommitmentDialog";
+import { parseCommitmentRouteId } from "@/views/Garden/Pool/CommitmentDialog/commitmentDialogPresentation";
 import { SeedCommitmentDialog } from "@/views/Garden/Pool/Seed";
 
 interface GardenSheetDescriptorProps {
@@ -36,7 +38,10 @@ export function GardenSheetDescriptor({
 }: GardenSheetDescriptorProps) {
   const { formatMessage } = useIntl();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const chainId = useCurrentChain();
+  // `/garden/pool/seed?from=<id>`: seed another like that commitment.
+  const seedFrom = parseCommitmentRouteId(searchParams.get("from") ?? "");
 
   const config = useMemo<LeftSheetConfig | null>(() => {
     if (hypercertId) {
@@ -61,6 +66,9 @@ export function GardenSheetDescriptor({
             garden={gardenAddress as Address}
             commitmentId={poolCommitmentId}
             tone="garden"
+            onSeedAnother={(from) =>
+              navigate(adminRoutes.gardenPoolSeed({ gardenId: gardenAddress }, { from }))
+            }
           />
         ),
         onClose: () => navigate(poolCloseTo),
@@ -90,6 +98,7 @@ export function GardenSheetDescriptor({
         chainId={chainId}
         garden={gardenAddress as Address}
         onClose={() => navigate(poolCloseTo)}
+        fromCommitmentId={seedFrom}
       />
     );
   }

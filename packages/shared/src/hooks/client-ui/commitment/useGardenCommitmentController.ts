@@ -15,7 +15,10 @@ import {
   selectCommitmentActKind,
 } from "../../../modules/commitment-pooling/acts";
 import { isCommitmentReasonPinError } from "../../../modules/commitment-pooling/reasons";
-import { selectCommitmentSeat } from "../../../modules/commitment-pooling/selectors";
+import {
+  isCommitmentCreator,
+  selectCommitmentSeat,
+} from "../../../modules/commitment-pooling/selectors";
 import type { Address } from "../../../types/domain";
 import { useOnlineStatus } from "../../app/useOnlineStatus";
 import { usePrimaryAddress } from "../../auth/usePrimaryAddress";
@@ -128,6 +131,7 @@ export function useGardenCommitmentController(input: {
         commitment,
         seat,
         hasPendingJob: pending || hasPendingClaimRequest || queueState.isUnavailable,
+        isCreator: isCommitmentCreator({ commitment, viewer: viewer ?? undefined }),
       })
     : null;
   const actGarden = commitment ? (commitment.providerGarden as Address | null) : null;

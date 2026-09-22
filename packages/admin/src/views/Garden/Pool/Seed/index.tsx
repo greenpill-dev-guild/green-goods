@@ -12,6 +12,7 @@ import {
   useCommitmentComposerSession,
 } from "@green-goods/shared/hooks/commitment-pooling/useCommitmentComposerForm";
 import { useCommitmentJobs } from "@green-goods/shared/hooks/commitment-pooling/useCommitmentJobs";
+import { useComposeAgainValues } from "@green-goods/shared/hooks/commitment-pooling/useComposeAgainValues";
 import { useProtocolPool } from "@green-goods/shared/hooks/commitment-pooling/useProtocolPool";
 import { useSettlementAccount } from "@green-goods/shared/hooks/commitment-pooling/useSettlementQueries";
 import { type ReactNode, useCallback, useId, useMemo, useState } from "react";
@@ -47,6 +48,8 @@ export interface SeedCommitmentDialogProps {
    * steward review. A garden campaign defaults to open claims.
    */
   protocolContext?: boolean;
+  /** A commitment in this pool to start from (Seed Another Like This). */
+  fromCommitmentId?: bigint | null;
 }
 
 /**
@@ -68,6 +71,7 @@ export function SeedCommitmentDialog({
   garden,
   onClose,
   protocolContext = false,
+  fromCommitmentId = null,
 }: SeedCommitmentDialogProps) {
   const { formatMessage } = useIntl();
   const noteId = useId();
@@ -84,6 +88,16 @@ export function SeedCommitmentDialog({
   // The season and the protocol pool arrive with their queries, so these are
   // not all known on a cold load; useCommitmentComposerSession carries the late
   // ones onto the untouched fields.
+  // Seeding another like an earlier commitment starts from that one's answers,
+  // the steward's extras included. They arrive with their own query, so they are
+  // late in the same way, and the season stays this pool's current one.
+  const again = useComposeAgainValues({
+    chainId,
+    fromCommitmentId,
+    composer: "steward",
+    viewer: jobs.viewer,
+    poolId: pool.poolId,
+  });
   const initial = useMemo(
     () => ({
       kind: "SEASON_CAMPAIGN" as const,
@@ -91,8 +105,9 @@ export function SeedCommitmentDialog({
       cycleId: pool.model.season ? pool.model.season.cycleId.toString() : "0",
       claimMode: (protocolContext ? "APPROVAL_GATED" : "OPEN") as "APPROVAL_GATED" | "OPEN",
       protocolFallbackEnabled: protocolPool.isRegistered,
+      ...again,
     }),
-    [pool.model.season, protocolContext, protocolPool.isRegistered]
+    [pool.model.season, protocolContext, protocolPool.isRegistered, again]
   );
   const form = useCommitmentComposerForm(initial);
   const requirements = useFieldArray({ control: form.control, name: "requirements" });
@@ -117,7 +132,7 @@ export function SeedCommitmentDialog({
   useCommitmentComposerSession({
     form,
     open,
-    sessionKey: `${chainId}:${garden}:${protocolContext}`,
+    sessionKey: `${chainId}:${garden}:${protocolContext}:${fromCommitmentId ?? "new"}`,
     initial,
     onRestart: restart,
   });

@@ -4,6 +4,7 @@ import type { Dispatch, SetStateAction } from "react";
 import { useIntl } from "react-intl";
 import { AdminConfirmDialog, AdminDialog } from "@/components/AdminDialog";
 import { CommitmentDialogPanel } from "./CommitmentDialog";
+import { parseCommitmentRouteId } from "./CommitmentDialog/commitmentDialogPresentation";
 import { PoolReasonDialogs } from "./PoolReasonDialogs";
 import { PoolSettingsDialog } from "./PoolSettingsDialog";
 import type { ConfirmDialog, FlowState, ReasonDialog } from "./poolDialogState";
@@ -22,6 +23,9 @@ export interface PoolDialogsProps {
   setSettingsOpen: Dispatch<SetStateAction<boolean>>;
   seedOpen: boolean;
   setSeedOpen: Dispatch<SetStateAction<boolean>>;
+  /** The commitment the seeding wizard starts from, or null for an empty one. */
+  seedFrom: string | null;
+  setSeedFrom: Dispatch<SetStateAction<string | null>>;
   inspected: string | null;
   setInspected: Dispatch<SetStateAction<string | null>>;
   reasonDialog: ReasonDialog;
@@ -48,6 +52,8 @@ export function PoolDialogs({
   setSettingsOpen,
   seedOpen,
   setSeedOpen,
+  seedFrom,
+  setSeedFrom,
   inspected,
   setInspected,
   reasonDialog,
@@ -78,8 +84,12 @@ export function PoolDialogs({
             open={seedOpen}
             chainId={chainId}
             garden={garden.id}
-            onClose={() => setSeedOpen(false)}
+            onClose={() => {
+              setSeedOpen(false);
+              setSeedFrom(null);
+            }}
             protocolContext={presentation.protocolContext}
+            fromCommitmentId={seedFrom === null ? null : parseCommitmentRouteId(seedFrom)}
           />
           <AdminDialog
             open={inspected !== null}
@@ -100,6 +110,12 @@ export function PoolDialogs({
                 garden={garden.id}
                 commitmentId={inspected}
                 tone={tone}
+                onSeedAnother={(from) => {
+                  // One dialog at a time: the inspector gives way to the wizard.
+                  setInspected(null);
+                  setSeedFrom(from);
+                  setSeedOpen(true);
+                }}
               />
             ) : null}
           </AdminDialog>
