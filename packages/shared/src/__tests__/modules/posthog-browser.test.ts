@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   dropDevelopmentHostExceptions,
   dropExtensionExceptions,
+  dropSkippedTransitionExceptions,
   initializePostHog,
 } from "../../modules/app/posthog-browser";
 import { restoreExceptionTopLevelProps } from "../../modules/app/posthog";
@@ -164,6 +165,46 @@ describe("dropDevelopmentHostExceptions", () => {
   });
 });
 
+describe("dropSkippedTransitionExceptions", () => {
+  it("drops the AbortError from a skipped view transition", () => {
+    const out = dropSkippedTransitionExceptions(
+      makeEvent({
+        $exception_list: [
+          {
+            type: "AbortError",
+            value: "Transition was skipped. New ViewTransition started",
+            mechanism: { handled: false },
+          },
+        ],
+      })
+    );
+
+    expect(out).toBeNull();
+  });
+
+  it("keeps an unrelated AbortError", () => {
+    const event = makeEvent({
+      $exception_list: [{ type: "AbortError", value: "The user aborted a request." }],
+    });
+
+    expect(dropSkippedTransitionExceptions(event)).toBe(event);
+  });
+
+  it("passes non-exception events through untouched", () => {
+    const event = makeEvent({ $current_url: "/home" }, "$pageview");
+    expect(dropSkippedTransitionExceptions(event)).toBe(event);
+  });
+
+  it("leaves the event untouched when there is no $exception_list", () => {
+    const event = makeEvent({});
+    expect(dropSkippedTransitionExceptions(event)).toBe(event);
+  });
+
+  it("handles a null event safely", () => {
+    expect(dropSkippedTransitionExceptions(null)).toBeNull();
+  });
+});
+
 describe("initializePostHog", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -179,6 +220,7 @@ describe("initializePostHog", () => {
           dropDevelopmentHostExceptions,
           restoreExceptionTopLevelProps,
           dropExtensionExceptions,
+          dropSkippedTransitionExceptions,
         ],
       })
     );

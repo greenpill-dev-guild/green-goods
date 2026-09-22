@@ -3,6 +3,11 @@ import { registerTelemetrySink, restoreExceptionTopLevelProps } from "./posthog"
 
 const POSTHOG_API_HOST = "https://us.i.posthog.com";
 const EXTENSION_TAB_ERROR = /^No tab with id: \d+\.$/;
+// react-router `viewTransition` navigations call `skipTransition()` when a second
+// navigation interrupts the first. The skipped transition rejects with this
+// AbortError, and RouterProvider re-throws it through an unhandled `finally`. The
+// route still commits, so this is noise, not breakage.
+const SKIPPED_TRANSITION_ERROR = /Transition was skipped/i;
 let initializedKey: string | null = null;
 
 type ExceptionEntry = {
@@ -39,6 +44,23 @@ export function dropExtensionExceptions(event: CaptureResult | null): CaptureRes
     );
 
   return isKnownFramelessExtensionError ? null : event;
+}
+
+/** Drop the AbortError raised when a queued view transition is skipped by the next navigation. */
+export function dropSkippedTransitionExceptions(
+  event: CaptureResult | null
+): CaptureResult | null {
+  if (!event || event.event !== "$exception" || !event.properties) return event;
+
+  const list = event.properties.$exception_list;
+  if (!Array.isArray(list)) return event;
+
+  const entries = list as ExceptionEntry[];
+  const isSkippedTransition = entries.some(
+    (entry) => typeof entry?.value === "string" && SKIPPED_TRANSITION_ERROR.test(entry.value)
+  );
+
+  return isSkippedTransition ? null : event;
 }
 
 /** Development hosts whose exceptions must never reach the shared production project. */
@@ -89,6 +111,7 @@ export function initializePostHog(apiKey: string): void {
       dropDevelopmentHostExceptions,
       restoreExceptionTopLevelProps,
       dropExtensionExceptions,
+      dropSkippedTransitionExceptions,
     ],
     debug: import.meta.env.VITE_POSTHOG_DEBUG === "true",
   });
