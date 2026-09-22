@@ -19,8 +19,10 @@
 **Linear milestone:** Buildathon prototype — target 2026-10-02, submission 2026-10-04
 
 **Mirror:** PRD-339 is stored historical metadata, unresolved during the 2026-09-11 research pass.
-The live slice issues are PRD-943 through PRD-948 under the Buildathon prototype milestone. No
-Linear writes have been performed; proposed changes are in [Linear changes](#linear-changes-proposed).
+The live slice issues are PRD-943 through PRD-948 under the Buildathon prototype milestone. The
+manual Linear writes described in [Linear changes](#linear-changes) **were applied on 2026-09-22**;
+what remains deliberately unrun is `linear-sync` and `record-linear`, the Implementation Start Gate.
+Do not repeat the manual writes.
 
 The **Buildathon prototype** section below is an active dispatch list. The
 [target delivery sequence](#target-delivery-sequence-post-prototype) after it remains a design for
@@ -36,7 +38,7 @@ reporting delegation, custodial accounts, or any SMS work.
 | --- | --- | --- |
 | O1 no-sign-up reading | **Resolved** | RESR-75 criterion 1: zero account steps to a private draft; one browser passkey step before a gardener-signed public record. |
 | O2 provider | **Resolved for the prototype** | Meta Cloud API direct, test number. Pilot provider stays open. |
-| O5 consent, retention, support, thresholds | **Not required for the prototype** | Test garden, team plus invited testers, no production data, no success claim. Required before the TAS pilot. |
+| O5 consent, retention, support, thresholds | **Minimum subset required; the rest deferred** | A test garden is not the same as no personal data. Invited testers use real WhatsApp accounts, so step 3 persists a real provider identifier, steps 4 and 5 retain real photos and descriptions, and step 15 publishes that evidence irreversibly to IPFS and chain. "No production data" describes the garden, not the people. A minimum of consent-at-first-contact, abandonment deletion and a named support owner is therefore above the cut line, folded into steps 5 and 14 rather than a sixteenth step. Thresholds, the full retention schedule and support tooling stay deferred to the TAS pilot. |
 | O3 deployed account-proof compatibility | **Largely answered by existing code** | See step 7. |
 | O4 total-loss recovery | **Open** | RESR-21. Unchanged; the prototype makes no recovery claim. |
 
@@ -70,7 +72,31 @@ package-scoped with `--cwd`. The package runner does accept positional paths
 
 Environment added once, at step 1, as Fly secrets, never the repository, per PRD-941:
 `META_APP_SECRET`, `META_VERIFY_TOKEN`, `META_PHONE_NUMBER_ID`, `META_WABA_ID`,
-`META_SYSTEM_USER_TOKEN`, `META_GRAPH_BASE_URL`.
+`META_SYSTEM_USER_TOKEN`, `META_GRAPH_BASE_URL`, and `WHATSAPP_SUBJECT_KEYRING` for step 3.
+
+**The subject key must be its own keyring, not a reused secret.** `ENCRYPTION_SECRET` is a single
+fixed key that also protects custodial private keys (`services/crypto.ts:56-89`) and falls back to
+deriving from `TELEGRAM_BOT_TOKEN` when unset, so rotating it for WhatsApp subjects would break
+unrelated ciphertext. Model the new value on `JOIN_REQUESTS_ENCRYPTION_KEY` instead, which is
+validated as required when its feature is enabled (`config.ts:346`), but make it a **versioned
+keyring** so a subject index can be re-keyed without a rewrite: `{version, key}` entries, newest
+used for writes, all retained for reads. Step 1 adds it to the root environment schema, to
+`config.ts` alongside `joinRequestsEncryptionKey`, and to production validation, so the service
+refuses to start with intake enabled and no key.
+
+**Rollout switches are part of step 1, not an afterthought.** The rollout contract below promises
+that intake, publication and confirmation can each be disabled while receipt reconciliation keeps
+draining. That is three configuration flags plus three guard points, and nothing else in steps 2
+through 15 adds them, so step 1 adds the flags and each owning step adds its guard: intake at the
+webhook route (step 1), publication at the continuation-link mint (step 6), confirmation at the
+outbox drain (step 14) — with the receipt reconciler explicitly outside the confirmation switch.
+
+**Any new user-facing string lands in `en`, `es` and `pt`.** `AGENTS.md:73` admits no exception for
+an English-only test cohort, and `packages/shared/src/__tests__/i18n/locale-coverage.test.ts`
+enforces it. Every step that introduces chat or composer copy — draft receipt (5), media failure
+(4), link confirmation (6), browser handoff (11), video refusal (15), chain outcome (14) — edits the
+agent message catalog and `packages/shared/src/i18n/{en,es,pt}.json` in the same step, and runs the
+locale-coverage test as part of its proof. No inline literals, no fallback-only strings.
 
 The agent has no migrations directory. Schema changes follow the existing idempotent
 `initSchema()` plus `ensureColumn()` convention in `packages/agent/src/services/db/schema.ts` and
@@ -118,15 +144,19 @@ bump `PRAGMA user_version`.
 ### Lane: durable drafts and media
 
 - [ ] **3. Add the draft tables.** `package:agent`. Edit `src/services/db/schema.ts`, new
-  `src/services/db/whatsapp-drafts.ts`, edit `src/services/db/core.ts`. Migration: `whatsapp_drafts`,
-  `draft_attachments`, `draft_link_attempts` — the third, fourth and fifth of this slice's tables
-  counting `webhook_events` from step 1 and the outbox columns in step 14. **The WhatsApp subject is a provider user or phone
+  `src/services/db/whatsapp-drafts.ts`, edit `src/services/db/core.ts`, edit `src/config.ts`.
+  Migration: `whatsapp_drafts`, `draft_attachments`, `draft_link_attempts` — the second, third and
+  fourth of this slice's four tables, counting `webhook_events` from step 1; step 14 adds outbox
+  columns to `whatsapp_drafts` rather than a fifth table. **The WhatsApp subject is a provider user or phone
   identifier and must not be stored or indexed in the clear** — section 4 requires encryption at
   rest plus a keyed HMAC for any searchable identifier index, because a plain hash of a phone
   number is enumerable. Store the subject as ciphertext and index the uniqueness constraint on a
   versioned keyed HMAC of it, reusing the AES-256-GCM helpers the agent already has
-  (`services/crypto.ts`) and the key-provisioning pattern of `JOIN_REQUESTS_ENCRYPTION_KEY`. Cover
-  key version and rotation. Bump `PRAGMA user_version`.
+  (`services/crypto.ts`) and reading the `WHATSAPP_SUBJECT_KEYRING` provisioned in step 1 — **not**
+  `ENCRYPTION_SECRET`, which is one fixed key shared with custodial private keys. Cover key version
+  and rotation: a write uses the newest version, a read tries each retained version, and a rotation
+  test proves an old-version row is still found by subject after a new key is prepended.
+  Bump `PRAGMA user_version`.
   *Proves part of `WORK-01`: the tables and their unique index survive a database reopen.*
   `AGENT_SQLITE_INTEGRATION=1 bun run --cwd packages/agent test -- storage.sqlite` — PRD-944
 - [ ] **4. Fetch WhatsApp media safely.** `package:agent`. New `src/services/whatsapp-media.ts`,
@@ -136,14 +166,29 @@ bump `PRAGMA user_version`.
   *Proves `WORK-01` and part of `DATA-03`: an oversize or malicious attachment is rejected, and a
   failed fetch is reported to the gardener in chat rather than silently dropped.*
   `bun run --cwd packages/agent test -- src/__tests__/whatsapp-media.test.ts` — PRD-944
-- [ ] **5. Persist the draft across a restart.** `package:agent`. New
-  `src/handlers/whatsapp-draft.ts`, edit `src/services/db/whatsapp-drafts.ts`, edit
-  `src/handlers/submit.ts`. No new route, no migration. `submit.ts:159` still writes `media: []` at
-  HEAD, so the empty-media defect the spec found is live; fix it or keep the new path clear of it,
-  but do not leave both.
+- [ ] **5. Persist the draft across a restart, ahead of the legacy account gate.** `package:agent`.
+  New `src/handlers/whatsapp-draft.ts`, edit `src/handlers/index.ts`, edit
+  `src/services/db/whatsapp-drafts.ts`, edit `src/handlers/submit.ts`. No new route, no migration.
+  **This step must route around the existing account gate, or the slice contradicts its own locked
+  decision.** `handleText` and `handlePhoto` both return `common.startFirst` when no legacy `users`
+  row exists (`handlers/index.ts:344-349,377-383`), and following `/start` calls
+  `generatePrivateKey()` and `db.createUser({..., privateKey})` (`handlers/start.ts:25-31`) — the
+  custodial EOA this slice explicitly forbids. A first-time gardener's first photo therefore cannot
+  reach a provisional draft today. Wire WhatsApp provisional intake **ahead of** that gate in the
+  explicit router, so an unknown WhatsApp sender gets a draft rather than a sign-up instruction, and
+  leave the Telegram path untouched. `submit.ts:159` still writes `media: []` at HEAD, so the
+  empty-media defect the spec found is live; fix it or keep the new path clear of it, but do not
+  leave both.
+  **Consent belongs at first contact, not at publication.** The first reply to an unknown sender
+  states in one line what is stored, that publication is public and permanent, and how to stop — and
+  the draft records that the notice was delivered. Nothing is published from a draft whose notice
+  was never sent. This and the deletion path in step 14 are the minimum O5 subset; they are folded
+  into existing steps to hold the fifteen-step cap.
   *Proves `WORK-01`: a draft with photo, description and garden is readable after the agent
-  restarts.*
-  `bun run --cwd packages/agent test -- src/__tests__/whatsapp-draft.test.ts` — PRD-944
+  restarts — and, at HTTP level, that a first message from an unknown WhatsApp sender creates
+  neither a `users` row nor a private key, and receives the consent notice before any draft is
+  retained.*
+  `bun run --cwd packages/agent test -- src/__tests__/whatsapp-draft.test.ts src/__tests__/whatsapp-first-message.test.ts` — PRD-944
 
 ### Lane: continuation link
 
@@ -248,14 +293,22 @@ bump `PRAGMA user_version`.
   only**, and step 14 derives the UID from the receipt. Wire the call into the submission
   completion path rather than leaving the route unused — but **not from a route-scoped hook**.
   `useWhatsAppDraftIntake` unmounts when the flow navigates away, while queued and offline work can
-  complete much later, and the `job:completed` event is not itself durable. Persist the WhatsApp
-  draft correlation **in the queued job payload** at submission time, and report the outcome from a
-  long-lived queue consumer, so a reload, a navigation or a background retry still reaches the
-  agent.
+  complete much later, and the `job:completed` event is not itself durable.
+  **The queued job is not a durable home for the correlation either.** `completeJob` calls
+  `deleteJob(jobId)` and only then emits `job:completed`
+  (`packages/shared/src/modules/job-queue/process-job.ts:65-79`), so by the time any consumer runs
+  the job row is gone and the event has no replay. If the outcome POST fails, or the page closes
+  between chain success and delivery, nothing remains to retry from and step 14 never fires.
+  Carry the correlation in the job payload at submission time **and** write a separate
+  `whatsapp_outcome_callbacks` record in the same Dexie transaction that marks the job synced. That
+  record is the retry unit: a long-lived consumer drains it with backoff and clears it only on an
+  acknowledged, idempotent registration, so repeated delivery of the same transaction hash is
+  harmless.
   *Proves the input `OPS-05` needs: the agent learns the transaction hash for a draft from an
-  authenticated caller that actually runs on submission, and an unauthenticated, synthetic or
-  foreign report is refused.*
-  `bun run --cwd packages/agent test -- src/__tests__/whatsapp-draft-outcome.test.ts` — PRD-948
+  authenticated caller that actually runs on submission; a failed POST followed by a reload still
+  delivers, and a second delivery of the same hash changes nothing; and an unauthenticated,
+  synthetic or foreign report is refused.*
+  `bun run --cwd packages/agent test -- src/__tests__/whatsapp-draft-outcome.test.ts && bun run --cwd packages/shared test -- whatsapp-outcome-callbacks` — PRD-948
 - [ ] **14. Confirm in chat only after the chain receipt.** `package:agent`. New
   `src/services/work-receipts.ts`, new `src/services/whatsapp-outbox.ts`, edit
   `src/platforms/whatsapp/client.ts`. No new route. Migration: add the outbox columns through
@@ -270,9 +323,20 @@ bump `PRAGMA user_version`.
   offline hash does. Persist the receipt and enqueue the reply in one transaction, then let a
   restart-safe consumer drain the outbox, so a process that dies between receipt and send still
   delivers. Model the reconciliation on the funding-intent tables (`db/schema.ts:178-256`).
+  **Say what happens when the 24-hour service window has closed.** The queue deliberately lets
+  offline work complete much later, so publication and its retries can cross that boundary, and an
+  approved template is stretch work that may not exist by 2026-10-02. Without a rule the outbox
+  would silently fail. For the prototype the outbox holds such a reply as `pending_window` and
+  delivers it on the gardener's next inbound message, which reopens the window; it does not drop it
+  and does not pretend to have sent it. The confirmation claim is narrowed to match: proactive
+  within the window, deferred-until-next-contact outside it.
   *Proves `OPS-05`: the confirmation follows the verified chain receipt rather than the submit, it
-  still arrives after a restart between the two, and a failed submit tells the gardener what to do
-  next.*
+  still arrives after a restart between the two, a receipt landing outside the 24-hour window is
+  held as `pending_window` and delivered on the next inbound message rather than dropped, and a
+  failed submit tells the gardener what to do next. Also proves the abandonment path: a tester who
+  sends `delete` or abandons a draft past its retention window has the draft, its attachments and
+  its subject index removed, and the command is refused for anything already published, which cannot
+  be withdrawn.*
   `bun run --cwd packages/agent test -- src/__tests__/work-receipts.test.ts src/__tests__/whatsapp-outbox.test.ts` — PRD-948
 
 ### Lane: publication safety
@@ -310,8 +374,9 @@ artifact and cannot be retracted afterwards.
    `addGardener` on chain, then the API reconciles by reading the chain and returns `202
    pendingOnchainMembership` until membership is effective. Step 12 uses `openJoining` self-join
    instead, so this is a showcase of the invite-only path rather than the demo's critical path.
-2. An approved template for replies past the 24-hour window. Template review can take up to 24
-   hours, so it must be submitted days ahead or dropped.
+2. An approved template for replies past the 24-hour window, upgrading step 14's `pending_window`
+   hold into a proactive send. Template review can take up to 24 hours, so it must be submitted days
+   ahead or dropped — the baseline deferred-until-next-contact behaviour stands either way.
 3. Voice notes. `Xenova/whisper-tiny.en` already runs in-process (`services/ai.ts:156-182`).
 4. PRD-942 owned-number registration, only if the five-tester cap on the Meta test number blocks a
    live judge demo. Registration allows ten attempts per number per 72 hours and then locks for 72
@@ -401,9 +466,13 @@ the agent horizontally while draft state lives in that file. Watch the 1 GB volu
 media: cap attachment size and count, and move bytes to Pinata at publication rather than retaining
 them.
 
-Keep intake, publication and confirmation behind independent switches. Rollback disables new actions
-while preserving drafts, operation records and receipt reconciliation. Do not fall back to custodial
-account creation or raw bot approval during an outage.
+Keep intake, publication and confirmation behind independent switches. These are not aspirational:
+the three flags are provisioned in step 1 and guarded at the webhook route (step 1), the
+continuation-link mint (step 6) and the outbox drain (step 14), and each step's proof exercises its
+own disabled state. Receipt reconciliation sits outside the confirmation switch deliberately, so a
+disabled confirmation still records what landed on chain and drains once re-enabled. Rollback
+disables new actions while preserving drafts, operation records and receipt reconciliation. Do not
+fall back to custodial account creation or raw bot approval during an outage.
 
 ## Exclusions
 
