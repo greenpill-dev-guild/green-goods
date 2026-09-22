@@ -1,5 +1,7 @@
 # Green Goods Name Reservation at Sign-Up Plan
 
+**Linear Issue**: PRD-949
+**Linear Source**: source:plans
 **Feature Slug**: `green-goods-name-reservation`
 **Stage**: `backlog`
 **Status**: `BLOCKED` — awaiting founder decisions 1, 2, and 3 in [`spec.md` § Human Judgment Points](./spec.md#human-judgment-points)

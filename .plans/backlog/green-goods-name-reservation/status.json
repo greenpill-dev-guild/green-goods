@@ -10,7 +10,7 @@
     "overall_status": "backlog",
     "priority": "p2",
     "created_at": "2026-09-22T00:26:22.875Z",
-    "updated_at": "2026-09-22T00:26:22.875Z"
+    "updated_at": "2026-09-22T00:43:30.976Z"
   },
   "links": {
     "brief": "brief.md",
@@ -19,12 +19,13 @@
     "eval": "eval.md"
   },
   "linear": {
-    "parentIssue": null,
+    "parentIssue": "PRD-949",
     "project": null,
     "initiative": null,
     "syncDirection": "plans_to_linear_visibility",
     "lastSyncedAt": null,
-    "lanes": {}
+    "lanes": {},
+    "laneSyncMode": "parent_only"
   },
   "taxonomy": {
     "initiative": "identity-ens",
@@ -34,7 +35,7 @@
     "depends_on_features": ["ens-l2-sender-admin-recovery"]
   },
   "notes": [
-    "Blocked on founder decisions 1, 2, and 3 in spec.md \u00a7 Human Judgment Points; steps 3 onward cannot be sequenced until they are answered.",
+    "Blocked on founder decisions 1, 2, and 3 in spec.md § Human Judgment Points; steps 3 onward cannot be sequenced until they are answered.",
     "The contracts lane activates only if decision 1 is answered on-chain, and then it belongs to the sender v2 in ens-l2-sender-admin-recovery rather than a second deployment.",
     "Sign-up and auth are critical surfaces: any check added there must never block account creation.",
     "status.json is authoritative; set a concrete <type>/<work-description> branch only when work begins."
@@ -140,6 +141,14 @@
       "status": "planned",
       "branch": null,
       "note": "Filled brief, spec, plan, and eval from a read-only investigation of the passkey sign-up and ENS claim paths. Twelve decisions locked by evidence; seven left for the founder."
+    },
+    {
+      "timestamp": "2026-09-22T00:43:30.976Z",
+      "actor": "claude",
+      "lane": "system",
+      "status": "linear_recorded",
+      "branch": null,
+      "note": "Recorded Linear parent/lane issue identifiers"
     }
   ]
 }
