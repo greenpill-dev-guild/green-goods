@@ -72,7 +72,9 @@ package-scoped with `--cwd`. The package runner does accept positional paths
 
 Environment added once, at step 1, as Fly secrets, never the repository, per PRD-941:
 `META_APP_SECRET`, `META_VERIFY_TOKEN`, `META_PHONE_NUMBER_ID`, `META_WABA_ID`,
-`META_SYSTEM_USER_TOKEN`, `META_GRAPH_BASE_URL`, and `WHATSAPP_SUBJECT_KEYRING` for step 3.
+`META_SYSTEM_USER_TOKEN`, `META_GRAPH_BASE_URL`, `WHATSAPP_SUBJECT_KEYRING` for step 3, and
+`WHATSAPP_PROTOTYPE_GARDEN` for step 5 — the last validated at startup against the deployed chain
+ID, so the agent refuses to start with intake enabled and no garden to file drafts into.
 
 **The subject key must be its own keyring, not a reused secret.** `ENCRYPTION_SECRET` is a single
 fixed key that also protects custodial private keys (`services/crypto.ts:56-89`) and falls back to
@@ -346,10 +348,19 @@ bump `PRAGMA user_version`.
   **The agent cannot compute that hash from the chat draft alone.** The PWA chooses the action and
   may edit or re-encode the media after fetching the draft, so the agent knows only the
   pre-browser content; comparing against it would either reject legitimate submissions or compare
-  against an incomplete expectation. Step 13's registration therefore carries an authenticated
-  **finalized canonical payload hash**, computed at submission from what is actually being
-  attested and covered by the same signed authorization, bound to the draft revision it descends
-  from. Step 14 compares the on-chain payload against that, not against the chat draft. Never trust a
+  against an incomplete expectation.
+  **But the finalized bytes do not exist at submission either, so do not bind to them.**
+  `encodeWorkData` performs the IPFS upload and produces the attestation data during job execution
+  (`packages/shared/src/modules/job-queue/job-executors.ts:163`), which for queued or offline work
+  happens long after the signer is present. An authorization bound to the final attestation bytes
+  could therefore never be produced for exactly the offline case step 13 exists to serve.
+  Bind instead to a **canonical pre-upload preimage** that is fully determined at submission —
+  the draft revision, the chosen action, the garden, and a content digest of each selected image
+  before upload — and have step 14 check that the on-chain payload derives from that preimage.
+  Establishing that derivation is the builder's first task in this step, because `encodeWorkData`
+  owns the transformation and its determinism has not been verified here; if it turns out not to be
+  derivable, say so and fall back to binding draft revision and attester only, with the weaker
+  guarantee stated plainly rather than implied. Never trust a
   client-supplied UID, and reject a hash that resolves to no receipt, which is what a synthetic
   offline hash does. Persist the receipt and enqueue the reply in one transaction, then let a
   restart-safe consumer drain the outbox, so a process that dies between receipt and send still
@@ -362,8 +373,11 @@ bump `PRAGMA user_version`.
   and does not pretend to have sent it. The confirmation claim is narrowed to match: proactive
   within the window, deferred-until-next-contact outside it. **That delivery needs an inbound-side
   wake-up**, so this step also edits `src/api/routes/whatsapp-webhook.ts`: any verified inbound
-  message drains `pending_window` rows for that subject before ordinary handling. Without it the
-  rows sit queued forever even after the gardener reopens the window.
+  message drains `pending_window` rows for that subject. Without it the rows sit queued forever even
+  after the gardener reopens the window. **Classify stop and delete commands first**, though: if the
+  first message after the window is the `delete` the consent copy invited, draining before applying
+  the withdrawal would send confirmations the gardener just asked to stop. Apply opt-out, then drain
+  only what is still permitted.
   *Proves `OPS-05`: the confirmation follows the verified chain receipt rather than the submit, it
   still arrives after a restart between the two, a receipt landing outside the 24-hour window is
   held as `pending_window` and delivered on the next inbound message rather than dropped, and a
@@ -431,7 +445,7 @@ Afo before taking it, per PRD-946.
 | --- | --- | --- |
 | `SEC-01` — signature and provider-event replay | 1 | PRD-943 |
 | `CH-01` — test-number text and photo only | 2 | PRD-943 |
-| `WORK-01` | 3, 4, 5 | PRD-944 |
+| `WORK-01` — through publication, not just storage | 3, 4, 5, 9, 13, 14 | PRD-944 |
 | `DATA-03`, attachment bounds only | 4 | PRD-944 |
 | `SEC-02` | 6 | PRD-945 |
 | `AUTH-01` | 7 | PRD-946 |

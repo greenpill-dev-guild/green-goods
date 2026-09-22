@@ -184,7 +184,7 @@ Each track carries the same fields. The routine reads them literally, so keep th
 
 **Question.** What must be true before gardeners can report impact from WhatsApp or SMS with no app install and no sign-up, and what is the smallest pilot that proves lower total reporting burden rather than burden moved onto operators?
 
-**Why it matters.** The *Accessible Participation* initiative (Planned, target 2026-10-31) sets "real pilot submissions" as the bar. The Q3 strategy says "no agent-channel implementation until entry criteria pass", and the Community Evidence Mesh roadmap's Phase 1 (September to November 2026) is exactly familiar-channel capture. The entry criteria became an accepted research question on 2026-09-02 (RESR-75); nobody has written them yet.
+**Why it matters.** The *Accessible Participation* initiative (Planned, target 2026-10-31) sets "real pilot submissions" as the bar. The Q3 strategy says "no agent-channel implementation until entry criteria pass", and the Community Evidence Mesh roadmap's Phase 1 (September to November 2026) is exactly familiar-channel capture. The entry criteria became an accepted research question on 2026-09-02 (RESR-75) and were accepted on 2026-09-21; they live in that issue's entry-criteria note, and the gate they guarded has cleared.
 
 **Anchors.**
 - RESR-75 (define the entry criteria for reporting impact over WhatsApp and SMS; **Done, accepted 2026-09-21**, filed 2026-09-02). The accepted criteria live in its entry-criteria note. The project below is Product-only, so the research issue stays unprojected and relates to PRD-834.

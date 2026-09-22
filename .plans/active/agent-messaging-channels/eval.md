@@ -11,8 +11,11 @@ unchanged from the 2026-09-11 research pass).
 
 These checks define what must be demonstrated before a selected feature is released. They are not
 test results. O1 and O2 were resolved on 2026-09-21 (see spec section 1): the no-sign-up reading
-is settled, and the prototype provider is Meta Cloud API direct. O5 is still required before the
-pilot but not for the prototype, which collects no production data. O3 account authentication is
+is settled, and the prototype provider is Meta Cloud API direct. O5 is **not** waived for the
+prototype: invited testers use real WhatsApp accounts, so a real identifier is persisted and real
+photos publish irreversibly. Its minimum subset — consent at first contact, abandonment deletion
+and a named support owner — is inside the prototype; thresholds, the full retention schedule and
+support tooling wait for the pilot. O3 account authentication is
 a baseline gate; reporting delegation has an additional optional gate. O4 total-loss recovery
 remains a disclosed limitation until independently solved.
 
