@@ -155,6 +155,7 @@
     "./hooks/admin-ui/pool/usePoolConsoleController": "./src/hooks/admin-ui/pool/usePoolConsoleController.ts",
     "./hooks/admin-ui/pool/useCommitmentSettlementController": "./src/hooks/admin-ui/pool/useCommitmentSettlementController.ts",
     "./hooks/admin-ui/pool/useProtocolFundingOperationsController": "./src/hooks/admin-ui/pool/useProtocolFundingOperationsController.ts",
+    "./hooks/admin-ui/pool/useSeedTray": "./src/hooks/admin-ui/pool/useSeedTray.ts",
     "./hooks/admin-ui/pool/useSettlementOperationsController": "./src/hooks/admin-ui/pool/useSettlementOperationsController.ts",
     "./hooks/admin-ui/useAdminAccessState": "./src/hooks/admin-ui/useAdminAccessState.ts",
     "./hooks/admin-ui/useDirtyClose": "./src/hooks/admin-ui/useDirtyClose.ts",

@@ -308,6 +308,11 @@ it. It adds to the Wave 2 walkthrough above; it does not replace it.
   send `7d5963d97`, refresh after completion `bde103aba`. The admin never sent its queued
   commitment acts before this; the plan's § 2 and § 4 carry the trace, the proof, and the
   validation receipt. No live reproduction yet: Stage A is the first.
+- **Builds 2 and 3 are committed, not pushed**, each stacked on the one before: compose again
+  `5c884ba9a` (`feature/commitment-create-another`) and the seeding tray `968f964e7`
+  (`feature/commitment-seed-batch-tray`). The plan's § 4 carries what changed, the decisions made
+  while building (19 to 23, for Afo to ratify), the proof, and a validation receipt for each. The
+  tray was walked in Storybook served from its own worktree; nothing has been sent on chain.
 - **Gate:** this lane's manual gate is unchanged. Clearing it stays with Afo.
 - **Live read, Arbitrum block 507310713:** the module is unpaused and all 18 pools read
   `NotReady`, so pool setup is the first act of any staging walk.
