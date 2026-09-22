@@ -15,6 +15,11 @@
  * - The source has to belong to the pool being composed into. Its requirement
  *   rows name that pool's actions, and its terms were agreed there.
  *
+ * Two answers are also checked against today rather than copied as written: a
+ * requirement naming an action whose window has closed is dropped, because Work
+ * is refused outside it, and the reader is never copied into the confirmer group
+ * of a commitment they are about to make.
+ *
  * @module hooks/commitment-pooling/useComposeAgainValues
  */
 
@@ -26,6 +31,7 @@ import {
 } from "../../modules/commitment-pooling/compose-again";
 import { isCommitmentCreator } from "../../modules/commitment-pooling/selectors";
 import type { Address } from "../../types/domain";
+import { useActions } from "../blockchain/useBaseLists";
 import type { CommitmentComposerValues } from "./useCommitmentComposerForm";
 import { useCommitmentMetadataFor } from "./useCommitmentMetadata";
 import { useCommitment } from "./useCommitmentPooling";
@@ -46,6 +52,18 @@ export function useComposeAgainValues(input: {
   );
   const detail = fromCommitmentId === null ? null : source.detail;
   const metadata = useCommitmentMetadataFor(detail?.commitment);
+  const { data: actions = [] } = useActions(chainId);
+  const usableActionUIDs = useMemo(() => {
+    const now = Date.now() / 1000;
+    const prefix = `${chainId}-`;
+    return new Set(
+      actions
+        .filter((action) => now >= action.startTime && now <= action.endTime)
+        .map((action) =>
+          action.id.startsWith(prefix) ? action.id.slice(prefix.length) : action.id
+        )
+    );
+  }, [actions, chainId]);
 
   return useMemo(() => {
     if (!detail || poolId === undefined || detail.commitment.poolId !== poolId) return null;
@@ -59,6 +77,8 @@ export function useComposeAgainValues(input: {
       commitment: detail.commitment,
       metadata,
       requirements: detail.requirements,
+      creator: viewer,
+      usableActionUIDs,
     });
-  }, [detail, metadata, composer, viewer, poolId]);
+  }, [detail, metadata, composer, viewer, poolId, usableActionUIDs]);
 }

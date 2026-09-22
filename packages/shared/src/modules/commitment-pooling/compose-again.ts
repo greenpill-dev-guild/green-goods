@@ -16,6 +16,8 @@
  */
 
 import type { CommitmentComposerValues } from "../../hooks/commitment-pooling/useCommitmentComposerForm";
+import type { Address } from "../../types/domain";
+import { isSameAccount } from "./selectors";
 import type { CommitmentMetadataV1 } from "./metadata";
 import type { CommitmentReadModel, CommitmentRequirementRecord } from "./types";
 
@@ -42,6 +44,18 @@ export interface ComposeAgainInput {
   >;
   /** The commitment's own words, or null when the document could not be read. */
   metadata: CommitmentMetadataV1 | null;
+  /**
+   * Who will make the new commitment. They are never copied into its own
+   * confirmer group: the contract drops the provider from that group when the
+   * commitment is taken up, and refuses it outright when too few are left.
+   */
+  creator?: Address | null;
+  /**
+   * The action UIDs a new commitment may still be kept by. Work is refused
+   * outside an action's window, so a row naming a closed one could never be
+   * met. Undefined copies every row, for a caller that has no catalog to check.
+   */
+  usableActionUIDs?: ReadonlySet<string>;
   requirements: readonly Pick<
     CommitmentRequirementRecord,
     "requirementIndex" | "actionUID" | "requiredCount"
@@ -62,13 +76,18 @@ function composerKind(input: ComposeAgainInput): ComposerKind {
 }
 
 /** The steward's extras: a named confirmer group, and one consideration rail. */
-function stewardExtras(
-  commitment: ComposeAgainInput["commitment"]
-): Partial<CommitmentComposerValues> {
+function stewardExtras(input: ComposeAgainInput): Partial<CommitmentComposerValues> {
+  const { commitment } = input;
   const extras: Partial<CommitmentComposerValues> = {};
-  if (commitment.confirmers.length > 0) {
-    extras.confirmers = [...commitment.confirmers];
-    extras.confirmationThreshold = commitment.confirmationThreshold ?? 1;
+  // Whoever makes this commitment cannot also confirm it, so copying them into
+  // the group would leave a threshold the contract can never reach.
+  const creator = input.creator;
+  const named = creator
+    ? commitment.confirmers.filter((confirmer) => !isSameAccount(confirmer, creator))
+    : [...commitment.confirmers];
+  if (named.length > 0) {
+    extras.confirmers = [...named];
+    extras.confirmationThreshold = Math.min(commitment.confirmationThreshold ?? 1, named.length);
   }
 
   const rail = commitment.considerationRail;
@@ -126,8 +145,9 @@ export function composerValuesFromCommitment(
   if (kind === "GARDEN_WORK") {
     values.requirements = [...input.requirements]
       .sort((left, right) => left.requirementIndex - right.requirementIndex)
-      .map((row) => ({ actionUID: row.actionUID.toString(), requiredCount: row.requiredCount }));
+      .map((row) => ({ actionUID: row.actionUID.toString(), requiredCount: row.requiredCount }))
+      .filter((row) => input.usableActionUIDs?.has(row.actionUID) ?? true);
   }
 
-  return composer === "steward" ? { ...values, ...stewardExtras(commitment) } : values;
+  return composer === "steward" ? { ...values, ...stewardExtras(input) } : values;
 }

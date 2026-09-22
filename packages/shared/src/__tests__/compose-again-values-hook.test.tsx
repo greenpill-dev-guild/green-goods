@@ -32,6 +32,7 @@ vi.mock("../hooks/commitment-pooling/useCommitmentPooling", () => ({
 vi.mock("../hooks/commitment-pooling/useCommitmentMetadata", () => ({
   useCommitmentMetadataFor: () => ({ version: 1, title: "Bike repair afternoons" }),
 }));
+vi.mock("../hooks/blockchain/useBaseLists", () => ({ useActions: () => ({ data: [] }) }));
 
 const commitment = {
   poolId: 7n,
