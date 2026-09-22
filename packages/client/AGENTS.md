@@ -53,10 +53,11 @@ should come from `@green-goods/shared`.
 - Conditional proof: typecheck/build and browser evidence follow the selector and the root validation pipeline.
 - Broader impact: run the root Repo Quick Gate when shared contracts or cross-package behavior moves.
 
-## Authenticated Browser QA
+## Browser Evidence
 
-Local agentic browser QA for this package uses the authenticated Brave QA profile.
-Codex sessions use the Codex browser-extension path and claim the already-open Brave tab/window.
-Claude Code sessions use the Claude Code Chrome/Chromium extension path and select the authenticated Brave profile/tab.
-Do not use isolated Browser, Playwright, or DevTools MCP profiles for local QA.
-If authenticated Brave access is blocked, stop and report QA as blocked.
+Rendered proof for this package follows [AGENTS.md § Browser Evidence](../../AGENTS.md#browser-evidence):
+label the engine and session, use the authenticated Brave profile only for the authenticated surface
+class, and treat the `browser-proof` check as advisory locally.
+PWA routes, the service worker, the login, profile, and wallet-sheet views, and the PWA config are in
+the authenticated surface class; `?mockAuth=<role>&presentation=pwa` on localhost covers the rest
+as labeled evidence.

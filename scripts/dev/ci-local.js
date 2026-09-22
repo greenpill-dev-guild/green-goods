@@ -21,7 +21,7 @@ import {
 import {
   buildReceiptInputs,
   fingerprintReceiptInputs,
-  isDeferredManualBrowserProof,
+  isAdvisoryManualCheck,
   resolveGitInputs,
   loadPolicy,
   selectValidation,
@@ -70,6 +70,7 @@ export function parseArguments(argv) {
     checkIds: [],
     onlyChecks: [],
     capabilities: {},
+    attestations: {},
     skipContracts: false,
     skipIndexer: false,
     skipBuild: false,
@@ -189,6 +190,15 @@ export function parseArguments(argv) {
         options.capabilities[name] = value === "true";
         break;
       }
+      case "--attest": {
+        const value = next();
+        const separator = value.indexOf("=");
+        if (separator < 1 || separator === value.length - 1) {
+          throw new Error("--attest must use check-id=evidence");
+        }
+        options.attestations[value.slice(0, separator)] = value.slice(separator + 1);
+        break;
+      }
       case "--help":
       case "-h":
         options.help = true;
@@ -232,6 +242,8 @@ Selector options:
   --list                 List stable checks without probing services
   --json                 JSON output for --plan or --list
   --capability k=true     Declare an environment capability; repeatable
+  --attest <id>=<text>    Record manual proof for an advisory check; only release requires it,
+                          e.g. --attest browser-proof="Brave, steward session, 2026-09-22: sheet renders"
   --plan-json             Print the exact plan as JSON without running it
   --cancelled             Emit a terminal cancelled plan
   --reuse-passing-receipts Reuse exact-fingerprint passes from .cache/validation
@@ -299,6 +311,9 @@ export async function arbitrumForkAvailable({
 }
 
 export function capabilityRecoveryHint(capability, contractSubmoduleState) {
+  if (capability === "manual-attestation-required") {
+    return 'Record the rendered proof, then rerun with --attest <check-id>="<engine, session, date, what was observed>".';
+  }
   if (capability === "arbitrumFork") {
     return "Start the local fork with `bun run --cwd packages/contracts dev:arbitrum-fork`.";
   }
@@ -410,13 +425,21 @@ export function applyCompatibilityFilters(plan, options) {
           const blockedBy = (check.blockedBy ?? []).filter(
             (capability) => !lifted.has(capability),
           );
-          return { ...check, blockedBy, state: blockedBy.length > 0 ? "blocked" : "pending" };
+          return {
+            ...check,
+            blockedBy,
+            state: isAdvisoryManualCheck(check)
+              ? "advisory"
+              : blockedBy.length > 0
+                ? "blocked"
+                : "pending",
+          };
         });
   // Recompute rather than inheriting plan.status: when the only blocked checks
   // are the ones a compatibility filter just dropped, the remaining plan is
   // runnable and must not keep reporting blocked.
   const stillBlocked =
-    rescoped.some((check) => check.state === "blocked" && !isDeferredManualBrowserProof(plan, check)) ||
+    rescoped.some((check) => check.state === "blocked" && !isAdvisoryManualCheck(check)) ||
     environmentBlockers.length > 0;
   const status = stillBlocked ? "blocked" : plan.status === "blocked" ? "ready" : plan.status;
   const budget = summarizeBudget(plan.effectiveIntent, rescoped, plan.risk);
@@ -619,6 +642,7 @@ export async function executePlan(plan, options = {}) {
   const results = [];
   const blocked = [];
   const pendingManual = [];
+  const attestations = options.attestations ?? {};
   const receiptStore = options.receiptStore ?? new Map();
   const reusePassingReceipts = options.reusePassingReceipts === true;
   const concurrency = options.concurrency !== false;
@@ -681,8 +705,24 @@ export async function executePlan(plan, options = {}) {
     }
     const check = plan.checks[index];
 
-    if (isDeferredManualBrowserProof(plan, check)) {
-      pendingManual.push({ id: check.id, blockedBy: [...check.blockedBy] });
+    if (isAdvisoryManualCheck(check)) {
+      const evidence = attestations[check.id];
+      if (evidence) {
+        const record = {
+          id: check.id,
+          ok: true,
+          attested: true,
+          exitCode: 0,
+          durationSeconds: 0,
+          details: [`attested: ${evidence}`],
+        };
+        results.push(record);
+        options.onCheckComplete?.(check, record);
+      } else if (plan.effectiveIntent === "release") {
+        blocked.push({ id: check.id, blockedBy: ["manual-attestation-required"] });
+      } else {
+        pendingManual.push({ id: check.id, blockedBy: [...(check.blockedBy ?? [])] });
+      }
       index += 1;
       continue;
     }
@@ -840,8 +880,10 @@ function printPlan(plan) {
   for (const check of plan.checks) {
     const flags = [
       check.mandatory ? "mandatory" : null,
-      isDeferredManualBrowserProof(plan, check)
-        ? `manual proof pending for readiness${check.blockedBy.length ? `:${check.blockedBy.join(",")}` : ""}`
+      isAdvisoryManualCheck(check)
+        ? plan.effectiveIntent === "release"
+          ? `manual attestation required: --attest ${check.id}="<evidence>"`
+          : "advisory manual proof; record it in the PR body"
         : check.state === "blocked"
           ? `blocked:${check.blockedBy.join(",")}`
           : null,
@@ -938,6 +980,7 @@ async function main() {
     signal: abortController.signal,
     reusePassingReceipts: options.reusePassingReceipts,
     receiptStore,
+    attestations: options.attestations,
     onCheckStart(check) {
       console.log(`\n${colors.blue}Running ${check.id}:${colors.reset} ${check.command ?? check.builtin}`);
     },
@@ -988,7 +1031,9 @@ async function main() {
   } else if (execution.status === "passed") {
     console.log(
       execution.pendingManual?.length
-        ? `\n${colors.green}Automated push checks passed.${colors.reset} Manual authenticated-browser proof remains pending for readiness.`
+        ? `\n${colors.green}Automated checks passed.${colors.reset} Manual rendered proof is still pending for ${execution.pendingManual
+            .map((entry) => entry.id)
+            .join(", ")}; record it, labeled, in the PR body (AGENTS.md § Browser Evidence).`
         : `\n${colors.green}Selected validation plan passed.${colors.reset}`,
     );
   } else {

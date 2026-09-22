@@ -87,17 +87,11 @@ const TURBO_PACKAGES = new Map(
   ]),
 );
 
-export function isDeferredManualBrowserProof(plan, check) {
-  return (
-    plan.effectiveIntent === "push" &&
-    plan.ci !== true &&
-    plan.risk !== "critical" &&
-    check.id === "browser-proof" &&
-    check.manual === true &&
-    check.command === null &&
-    check.stopRule === "block-readiness" &&
-    (check.blockedBy ?? []).every((capability) => capability === "authenticatedBrave")
-  );
+// A manual check with no command is evidence a person records, not a process the
+// runner can execute. The policy marks it advisory: every local intent reports it as
+// pending and never blocks on it; only the release gate asks for `--attest`.
+export function isAdvisoryManualCheck(check) {
+  return check?.manual === true && check.command === null && check.stopRule === "advisory";
 }
 
 function owningSurface(path) {
@@ -625,28 +619,38 @@ export function selectValidation(input = {}, options = {}) {
       return {
         ...materialized,
         selectedBy: [...(selectionReasons.get(check.id) ?? [])],
-        ...(materialized.manual
-          ? { deferredForReadiness: isDeferredManualBrowserProof({ effectiveIntent: intent, risk, ci }, materialized) }
-          : {}),
+        ...(materialized.manual ? { advisory: isAdvisoryManualCheck(materialized) } : {}),
       };
     });
   const toolchainBlockers = compareToolchain(policy.toolchain, environment.toolchain, checks);
   if (toolchainBlockers.length > 0) {
     const capabilities = toolchainBlockers.map((blocker) => blocker.capability);
-    checks = checks.map((check) => ({
-      ...check,
-      state: "blocked",
-      blockedBy: [...new Set([...check.blockedBy, ...capabilities])],
-    }));
+    checks = checks.map((check) =>
+      isAdvisoryManualCheck(check)
+        ? check
+        : {
+            ...check,
+            state: "blocked",
+            blockedBy: [...new Set([...check.blockedBy, ...capabilities])],
+          },
+    );
   }
   const blockedChecks = checks.filter(
-    (check) => check.state === "blocked" && !isDeferredManualBrowserProof({ effectiveIntent: intent, risk, ci }, check),
+    (check) => check.state === "blocked" && !isAdvisoryManualCheck(check),
   );
   const budget = summarizeBudget(intent, checks, risk);
   const missingFocus = fastPush
     ? focusedProofMissing(changedPaths, testPaths, requestedChecks)
     : [];
-  const plannedOverBudget = budget.enforced && budget.estimatedWallSeconds > budget.hardLimitSeconds;
+  // Static budgets are ceilings, not measurements. A plan whose package suites are all
+  // focused is not over-broad, so it runs and the hard deadline decides; only an
+  // unfocused suite turns an over-limit estimate into a request for narrower proof.
+  const unfocusedSuite = checks.some(
+    (check) =>
+      TURBO_PACKAGES.has(check.id) && !check.manual && (check.focusedPaths?.length ?? 0) === 0,
+  );
+  const plannedOverBudget =
+    budget.enforced && budget.estimatedWallSeconds > budget.hardLimitSeconds && unfocusedSuite;
   const needsFocus = missingFocus.length > 0 || plannedOverBudget;
   const blocked = blockedChecks.length > 0 || toolchainBlockers.length > 0;
   const status = blocked ? "blocked" : needsFocus ? "needs-focus" : "ready";
@@ -804,7 +808,7 @@ function materializeCheck(check, environment, mandatory, testPaths, context) {
     focusedPaths,
     budgetSeconds,
     mandatory,
-    state: blockedBy.length > 0 ? "blocked" : "pending",
+    state: isAdvisoryManualCheck(check) ? "advisory" : blockedBy.length > 0 ? "blocked" : "pending",
     blockedBy,
   };
 }

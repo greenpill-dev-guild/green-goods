@@ -272,8 +272,8 @@ test("ordinary push passes automated checks while reporting manual browser proof
     command: null,
     manual: true,
     mandatory: true,
-    stopRule: "block-readiness",
-    state: "blocked",
+    stopRule: "advisory",
+    state: "advisory",
     blockedBy: ["authenticatedBrave"],
   };
   const calls = [];
@@ -291,12 +291,12 @@ test("ordinary push passes automated checks while reporting manual browser proof
   assert.deepEqual(result.blocked, []);
 });
 
-test("local push plan retains the pending browser obligation after compatibility filtering", () => {
+test("local push plan keeps the advisory browser obligation after compatibility filtering", () => {
   const options = parseArguments([
     "--intent",
     "push",
     "--test-path",
-    "client:src/components/Panel.test.tsx",
+    "client:src/__tests__/routes/SessionGate.test.tsx",
   ]);
   const localPlan = buildLocalValidationPlan(
     options,
@@ -304,18 +304,32 @@ test("local push plan retains the pending browser obligation after compatibility
       base: "base",
       head: "head",
       workingCopyFingerprint: "working-copy",
-      changedPaths: ["packages/client/src/components/Panel.tsx"],
+      changedPaths: ["packages/client/src/routes/SessionGate.tsx"],
       deletedPaths: [],
     },
     { profile: "test", toolchain: {}, capabilities: { dependencies: true, authenticatedBrave: false } },
   );
 
   assert.equal(localPlan.status, "ready");
-  assert.equal(localPlan.checks.find((check) => check.id === "browser-proof")?.deferredForReadiness, true);
-  assert.equal(localPlan.checks.find((check) => check.id === "browser-proof")?.state, "blocked");
+  assert.equal(localPlan.checks.find((check) => check.id === "browser-proof")?.advisory, true);
+  assert.equal(localPlan.checks.find((check) => check.id === "browser-proof")?.state, "advisory");
 });
 
-test("manual browser deferral never masks automated failure, unavailable capability, or critical push", async () => {
+test("--attest records manual evidence per check id", () => {
+  const options = parseArguments([
+    "--intent",
+    "release",
+    "--attest",
+    "browser-proof=Brave, steward session, 2026-09-22: deposit sheet renders",
+  ]);
+  assert.deepEqual(options.attestations, {
+    "browser-proof": "Brave, steward session, 2026-09-22: deposit sheet renders",
+  });
+  assert.throws(() => parseArguments(["--attest", "browser-proof"]), /check-id=evidence/);
+  assert.throws(() => parseArguments(["--attest", "browser-proof="]), /check-id=evidence/);
+});
+
+test("advisory manual proof never masks automated failure or unavailable capability, and only release requires attestation", async () => {
   const input = plan(["format", "browser-proof"]);
   input.effectiveIntent = "push";
   input.checks[1] = {
@@ -323,8 +337,8 @@ test("manual browser deferral never masks automated failure, unavailable capabil
     command: null,
     manual: true,
     mandatory: true,
-    stopRule: "block-readiness",
-    state: "blocked",
+    stopRule: "advisory",
+    state: "advisory",
     blockedBy: ["authenticatedBrave"],
   };
   const failed = await executePlan(input, {
@@ -344,20 +358,38 @@ test("manual browser deferral never masks automated failure, unavailable capabil
 
   input.checks[0].state = "pending";
   input.checks[0].blockedBy = [];
-  input.checks[1].blockedBy = ["dependencies"];
-  const browserWithAutomatedCapabilityMissing = await executePlan(input, {
-    runCheck: async () => ({ ok: true, exitCode: 0 }),
-  });
-  assert.equal(browserWithAutomatedCapabilityMissing.status, "blocked");
-  assert.deepEqual(browserWithAutomatedCapabilityMissing.blocked, [{ id: "browser-proof", blockedBy: ["dependencies"] }]);
-
-  input.checks[1].blockedBy = ["authenticatedBrave"];
   input.risk = "critical";
   const critical = await executePlan(input, {
     runCheck: async () => ({ ok: true, exitCode: 0 }),
   });
-  assert.equal(critical.status, "blocked");
-  assert.deepEqual(critical.blocked, [{ id: "browser-proof", blockedBy: ["authenticatedBrave"] }]);
+  assert.equal(critical.status, "passed");
+  assert.equal(critical.exitCode, 0);
+  assert.deepEqual(critical.pendingManual, [{ id: "browser-proof", blockedBy: ["authenticatedBrave"] }]);
+
+  input.risk = "routine";
+  input.effectiveIntent = "release";
+  const unattestedRelease = await executePlan(input, {
+    runCheck: async () => ({ ok: true, exitCode: 0 }),
+  });
+  assert.equal(unattestedRelease.status, "blocked");
+  assert.equal(unattestedRelease.exitCode, 2);
+  assert.deepEqual(unattestedRelease.blocked, [
+    { id: "browser-proof", blockedBy: ["manual-attestation-required"] },
+  ]);
+
+  const evidence = "Brave, steward session, 2026-09-22: deposit sheet renders";
+  const attestedRelease = await executePlan(input, {
+    runCheck: async () => ({ ok: true, exitCode: 0 }),
+    attestations: { "browser-proof": evidence },
+  });
+  assert.equal(attestedRelease.status, "passed");
+  assert.equal(attestedRelease.exitCode, 0);
+  const attested = attestedRelease.results.find((result) => result.id === "browser-proof");
+  assert.equal(attested?.ok, true);
+  assert.equal(attested?.attested, true);
+  assert.deepEqual(attested?.details, [`attested: ${evidence}`]);
+  assert.deepEqual(attestedRelease.pendingManual, []);
+  assert.deepEqual(attestedRelease.blocked, []);
 });
 
 test("post-commit push receipt reuse is exact and invalidates on tree or policy drift", async () => {

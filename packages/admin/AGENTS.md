@@ -103,10 +103,11 @@ foundations.
 - Conditional proof: Storybook checks apply only when shared primitives, stories, or tokens move.
 - Broader impact: run the root Repo Quick Gate when shared hooks, permissions, or public contracts move.
 
-## Authenticated Browser QA
+## Browser Evidence
 
-Local agentic browser QA for this package uses the authenticated Brave QA profile.
-Codex sessions use the Codex browser-extension path and claim the already-open Brave tab/window.
-Claude Code sessions use the Claude Code Chrome/Chromium extension path and select the authenticated Brave profile/tab.
-Do not use isolated Browser, Playwright, or DevTools MCP profiles for local QA.
-If authenticated Brave access is blocked, stop and report QA as blocked.
+Rendered proof for this package follows [AGENTS.md § Browser Evidence](../../AGENTS.md#browser-evidence):
+label the engine and session, use the authenticated Brave profile only for the authenticated surface
+class, and treat the `browser-proof` check as advisory locally.
+Admin views render under mock auth, so labeled mock-auth localhost or Storybook proof covers layout
+and copy; only write flows that reach the shared wallet, auth, or job-queue paths need the
+authenticated Brave profile.

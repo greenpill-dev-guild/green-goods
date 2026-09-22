@@ -93,9 +93,10 @@ Run `bun run dev:smoke -- <mode>` after startup. Automatic smoke checks reachabi
 for connected modes, chain/indexer readiness. It submits no transactions. If replay is
 behind, leave the owning launcher running and rerun smoke after catch-up.
 
-For local agent browser verification, follow `AGENTS.md` and use the authenticated Brave
-extension path. If it cannot be reached, report browser proof as blocked. Do not substitute
-an isolated browser profile or report HTTP checks as authenticated UI proof.
+For local agent browser verification, follow `AGENTS.md § Browser Evidence`: label the engine and
+session behind every rendered proof, and use the authenticated Brave extension path only for the
+authenticated surface class. If it cannot be reached, record that proof as pending; never report
+an isolated profile as authenticated proof or an HTTP check as rendered proof.
 
 Keep the launcher in the foreground; Ctrl-C stops only its services. A detached stop uses
 `GREEN_GOODS_DEV_OWNER=<same-owner> bun run dev -- stop`. Never stop an unknown listener.

@@ -284,12 +284,49 @@ Single design language across frontend packages, with distinct admin, installed 
 
 ## Agentic Modern Web Standard
 
-- Baseline target: Baseline Widely Available. Before frontend, UI, CSS, accessibility, browser proof, or web-design changes, use repo-installed Modern Web Guidance through `DISABLE_TELEMETRY=1 bun --bun modern-web-guidance search "agentic frontend CSS accessibility browser validation DevTools MCP" && DISABLE_TELEMETRY=1 bun --bun modern-web-guidance retrieve accessibility` to search and retrieve current Chrome guidance as documentation/source material only; Green Goods local QA uses the authenticated Brave QA profile, while CI clean-room browser proof uses Brave only as non-authenticated evidence. Then apply the repo's Warm Earth and package-level design rules.
+- Baseline target: Baseline Widely Available. Before frontend, UI, CSS, accessibility, browser proof, or web-design changes, use repo-installed Modern Web Guidance through `DISABLE_TELEMETRY=1 bun --bun modern-web-guidance search "agentic frontend CSS accessibility browser validation DevTools MCP" && DISABLE_TELEMETRY=1 bun --bun modern-web-guidance retrieve accessibility` to search and retrieve current Chrome guidance as documentation/source material only; browser proof follows § Browser Evidence below. Then apply the repo's Warm Earth and package-level design rules.
 - Prefer semantic HTML, native controls, platform CSS, and browser primitives before custom JavaScript. Keep headings, landmarks, form labels, accessible names, focus order, visible focus, touch targets, loading/error/empty states, and reduced-motion behavior legible to humans, assistive tech, and browser agents.
-- Run `bun run check --only agentic-readiness` as the hard guidance-readiness front door for repo-installed Modern Web Guidance, design docs, token drift, the ontology sidecar (`bun run check --only ontology`), Codex/skill guidance, and shared Storybook story quality. For local built-route QA across client, admin, and docs, use the authenticated Brave QA profile through the live authenticated-browser path below. Treat `bun run --cwd packages/shared build-storybook`, `bun run browser routes`, and `bun run browser lighthouse` as CI/clean-room or code-level proof only unless they attach to authenticated Brave; do not report them as local authenticated verification. `dev-surfaces` remains the cross-repo/global doctor for shared Modern Web Guidance cache refresh, Brave, and MCP readiness.
-- Local agentic browser QA must use the authenticated Brave QA profile. Codex: use the Codex browser-extension path and claim the already-open Brave tab/window. Claude Code: use the Claude Code Chrome/Chromium extension path (`claude --chrome` or `/chrome`) and select the authenticated Brave profile/tab when it is installed, connected, and able to control the already-open Brave window. Do not fall back merely because the extension is branded Chrome. If the Brave extension path is unavailable or not connected, use Claude computer-use/visible desktop control of the already-open Brave window; if neither can reach authenticated Brave, report QA as blocked. Use this for admin, PWA, extension, wallet/passkey, staging-session, installed-app, and profile-dependent verification.
-- Do not use isolated Browser, Playwright, or DevTools MCP profiles for local QA. Existing isolated browser-proof commands are CI/clean-room checks only and must not be reported as authenticated verification. If authenticated Brave access is blocked, stop and report QA as blocked.
-- Brave DevTools MCP is project-configured in `.mcp.json` through `scripts/mcp/brave-devtools.mjs`, but do not use it for local QA, live admin/PWA verification, rendered DOM proof, screenshots, traces, or success claims because it can launch a separate non-authenticated profile. The wrapper calls the upstream `chrome-devtools-mcp` package because that is the protocol package name, but the browser executable must be Brave. It rejects Google Chrome, Chrome for Testing, Chromium, and Edge paths. Use this wrapper only for CI/clean-room public-route checks or explicit non-authenticated protocol debugging, and label any result as non-authenticated evidence. Native WebMCP discovery requires a Brave build that exposes `navigator.modelContext`. WebMCP v1 is implemented only for public-safe client/browser routes via `packages/client/src/modules/webmcp/public-tools.ts`; do not expose secrets, private data, hidden admin actions, onchain writes, destructive operations, or background-only actions as WebMCP tools.
+- Run `bun run check --only agentic-readiness` as the hard guidance-readiness front door for repo-installed Modern Web Guidance, design docs, token drift, the ontology sidecar (`bun run check --only ontology`), Codex/skill guidance, and shared Storybook story quality. `bun run --cwd packages/shared build-storybook`, `bun run browser routes`, and `bun run browser lighthouse` produce clean-room evidence; label it as such per § Browser Evidence. `dev-surfaces` remains the cross-repo/global doctor for shared Modern Web Guidance cache refresh, Brave, and MCP readiness.
+
+### Browser Evidence
+
+Rendered proof has three separate rules. Skills, package guides, and the validation policy link
+here instead of restating them.
+
+1. **Label every rendered proof** with the engine and session that produced it: `authenticated
+   Brave` (the user's real profile), `mock-auth localhost` (`?mockAuth=<role>` on a loopback dev
+   server), `Storybook`, `CI Playwright` (clean-room), or `none`. Never present one class as
+   another, and never call an HTTP or DOM-less check rendered proof.
+2. **Authenticated-session proof is required only for the authenticated surface class**: wallet and
+   passkey signing, session and auth providers, installed-PWA and service-worker behavior, the job
+   queue and offline uploads, profile identity, and the QA app catalog.
+   `scripts/data/validation-policy.json` selects the manual `browser-proof` check for exactly these
+   paths. Every other surface accepts labeled mock-auth localhost, Storybook, or CI Playwright
+   rendered proof; do not report that evidence as authenticated.
+3. **Brave specifically is required only for WebMCP, the browser-extension path, and installed-PWA
+   behavior.** For rendered DOM and CSS proof any Chromium engine is equivalent when labeled.
+
+The `browser-proof` check is advisory in every local intent: it never blocks a push, review,
+ship, or readiness run. Record the proof, or that it is pending and why, in the PR body. Only the
+release gate requires attestation:
+`node scripts/dev/ci-local.js --intent release --attest browser-proof="<engine, session, date, what was observed>"`.
+
+Authenticated path: Claude Code uses the Chrome/Chromium extension path against the already-open
+Brave profile/tab and probes reachability with a tab-context call, not the connected-browsers
+roster; Codex uses its browser-extension path against the same window; visible computer control of
+that Brave window is the fallback. If none can reach it, record the authenticated-class proof as
+pending and continue with labeled proof for everything else. Do not substitute an isolated
+Browser, Playwright, or DevTools MCP profile for authenticated-class proof.
+
+The Brave DevTools MCP wrapper in `.mcp.json` (`scripts/mcp/brave-devtools.mjs`) launches a
+separate non-authenticated profile: use it for WebMCP debugging and clean-room public-route
+checks, label its output as such, and never for authenticated-class proof. It calls the upstream
+`chrome-devtools-mcp` package because that is the protocol package name, but the executable must
+be Brave; it rejects Google Chrome, Chrome for Testing, Chromium, and Edge paths. Native WebMCP
+discovery requires a Brave build that exposes `navigator.modelContext`. WebMCP v1 covers only
+public-safe client/browser routes via `packages/client/src/webmcp.ts`; do not expose secrets,
+private data, hidden admin actions, onchain writes, destructive operations, or background-only
+actions as WebMCP tools.
 
 ## Known Gotchas
 

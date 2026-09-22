@@ -328,8 +328,24 @@
     {
       "check": "browser-proof",
       "match": "all",
-      "prefixes": ["packages/client/src/", "packages/admin/src/"],
-      "extensions": [".jsx", ".tsx", ".css", ".scss"]
+      "prefixes": [
+        "packages/shared/src/providers/",
+        "packages/shared/src/modules/auth/",
+        "packages/shared/src/modules/wallet/",
+        "packages/shared/src/modules/job-queue/",
+        "packages/shared/src/hooks/auth/",
+        "packages/shared/src/workflows/",
+        "packages/client/src/routes/",
+        "packages/client/src/sw/",
+        "packages/client/src/components/Pwa/",
+        "packages/client/src/views/Login/",
+        "packages/client/src/views/Profile/",
+        "packages/client/src/views/Home/WalletSheet/",
+        "packages/client/src/config/pwa",
+        "packages/client/src/PwaApp.tsx",
+        "packages/client/src/bootstrapPwa.tsx"
+      ],
+      "extensions": [".ts", ".tsx", ".jsx", ".css", ".scss"]
     },
     {
       "check": "agent-tools-test",
@@ -775,11 +791,11 @@
     {
       "id": "browser-proof",
       "command": null,
-      "risk": "visible UI behavior differs from unit and build evidence",
-      "expectedSignal": "authenticated Brave rendered proof is recorded",
+      "risk": "authenticated-session UI behavior (wallet, passkey, session, installed PWA, service worker, job queue, profile identity, QA app) differs from unit, story, and mock-auth evidence",
+      "expectedSignal": "rendered proof is recorded and labeled in the PR body; authenticated Brave for the authenticated surface class",
       "freshness": "exact-inputs-toolchain-and-authenticated-session",
       "budgetSeconds": 90,
-      "stopRule": "block-readiness",
+      "stopRule": "advisory",
       "capabilities": ["authenticatedBrave"],
       "manual": true
     },

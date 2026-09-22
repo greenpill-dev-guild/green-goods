@@ -49,11 +49,13 @@ Every selected check states:
 Push plans also report a concurrency-aware `budget.estimatedWallSeconds`,
 `budget.hardLimitSeconds`, and `budget.enforced`. Routine pushes have a 90-second hard limit;
 sensitive pushes have 180 seconds. Critical checks are uncapped and cannot be suppressed by a
-budget, receipt, or compatibility flag. Manual authenticated-browser proof is reported separately
-and is not part of the automated deadline.
+budget, receipt, or compatibility flag. The manual `browser-proof` check is advisory: it is
+reported separately, never blocks a local plan, and is not part of the automated deadline.
 
-If a push plan lacks direct behavior proof or its estimated critical path already exceeds the
-limit, the selector returns `needs-focus` and executes nothing. Supply a focused test with
+If a push plan lacks direct behavior proof, or its estimate exceeds the limit while a package
+suite is still unfocused, the selector returns `needs-focus` and executes nothing. A plan whose
+selected suites are all focused runs even when its static estimate exceeds the limit; the hard
+deadline then decides. Supply a focused test with
 `--test-path <surface>:<path>`, narrow the change, or select an existing explicit acceptance check.
 If execution reaches the deadline, the runner terminates the active noncritical process group,
 returns `budget-exceeded`, preserves receipts for checks that already passed, and starts no further
@@ -127,10 +129,11 @@ Conditional additions when the change touches the relevant surface:
 The root `bun run build` covers Contracts, Shared, Indexer, Client, and Admin. It does not build
 Agent or Docs; the conditional commands above close those scopes.
 
-Visible UI additionally requires rendered proof through the authenticated Brave QA profile. If
-that path is unavailable, record browser proof as `BLOCKED` and return `COMMENT_ONLY` unless a
-confirmed finding already requires changes. Isolated Browser, Playwright, DevTools MCP, and
-clean-room browser-proof commands cannot substitute for authenticated local QA.
+Visible UI additionally needs rendered proof labeled per `AGENTS.md § Browser Evidence`. Surfaces
+in the authenticated class need proof through the authenticated Brave profile; every other surface
+accepts labeled mock-auth localhost, Storybook, or CI Playwright proof. The `browser-proof` check
+is advisory: record the proof, or that it is pending and why, in the review, and never present
+clean-room evidence as authenticated proof.
 
 ## Ready-for-CI Push Gate
 
@@ -155,13 +158,12 @@ Pre-commit runs `lint-staged` only. Pre-push runs this ready-for-CI gate. Per-fi
 critical-surface warnings may run during editing, but package-wide validation is owned by the
 coordinating agent rather than edit or task-completion hooks.
 
-For an ordinary, noncritical push, the plan keeps authenticated browser proof visible as pending
-readiness evidence. The pre-push hook succeeds only when every selected automated check passes;
-an unavailable automated capability, failed check, or missing focused proof still stops it. The
-browser check remains blocked when authenticated Brave is unavailable, but that manual obligation
-does not prevent sending ordinary work to CI. Critical push overrides and the readiness, ship,
-merge, and release gates still require the browser proof when selected. This policy does not accept
-manual receipts as a substitute for those gates.
+In every local intent the plan lists the manual `browser-proof` check as advisory pending
+evidence. The pre-push hook succeeds when every selected automated check passes; an unavailable
+automated capability, failed check, or missing focused proof still stops it. The hook runs the gate
+through `scripts/dev/node-cli.js`, so a shell whose Node differs from the pinned toolchain no longer
+blocks every check. Only the release gate requires the manual proof, through
+`--attest browser-proof="<evidence>"`; no other gate accepts or requires manual receipts.
 
 ## Ship Gate (explicit full local pipeline)
 
@@ -177,6 +179,10 @@ review, ship may run mutating format and branch/commit safety steps because the 
 requested the full local gate. Ordinary commit, push, and PR creation use targeted proof plus the
 Ready-for-CI Push Gate, then rely on current-head GitHub CI for merge approval. Critical surfaces
 still require their selector-mandated complete local override before push and CI afterward.
+
+Release runs `node scripts/dev/ci-local.js --intent release`. When the change touches the
+authenticated surface class, that gate requires `--attest browser-proof="<engine, session, date,
+what was observed>"`; it is the only gate that accepts or requires manual proof.
 
 ## Repo Quick Gate
 

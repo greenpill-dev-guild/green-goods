@@ -132,8 +132,8 @@ Client startup prints one `[vite-watch]` line with the checkout, client root, wa
 | `check-story-quality.ts` | `design.yml` (via `packages/shared` script) | Storybook story-quality lints |
 | `check-docs-design-parity.mjs` | `bun run check --only docs-design-parity` | `docs/DESIGN.md` ↔ `docs/src/css/custom.css` role-accent + section-accent parity (light + dark) |
 | `check-react-patterns.js` | `bun run check --only react-patterns`, root `bun lint` | Blocks high-confidence state/import violations; `--report` exposes noisier cleanup heuristics without flooding normal lint |
-| `check-browser-verification-policy.mjs` | `bun run check --only browser-verification-policy`, `bun run check --only agentic-readiness` | Verify authenticated Brave QA guidance across canonical agent docs, reject stale local isolated-browser guidance, and enforce browser-proof guard wiring |
-| `require-authenticated-browser-qa.mjs` | `bun run browser routes` via `agentic:browser-proof` | Block local isolated browser-proof runs unless `CI=true`, so clean-room proof cannot be reported as authenticated local QA |
+| `check-browser-verification-policy.mjs` | `bun run check --only browser-verification-policy`, `bun run check --only agentic-readiness` | Keep `AGENTS.md § Browser Evidence` present with its three rules, make the other agent entry points link to it instead of restating it, and reject the "report QA as blocked" dead end |
+| `browser-evidence-label.mjs` | `bun run browser routes` | Print the clean-room evidence label before route proof so it is reported as non-authenticated evidence; never blocks |
 | `classify-supply-chain-changes.mjs` | Supply Chain Guardrails | Route ordinary source, guidance, dependency/toolchain, and validation/workflow changes to independent workflow jobs |
 | `summarize-test-churn.mjs` | Supply Chain Guardrails | Informational pull-request source/test line churn, changed-line ratio, and added/deleted file summary |
 | `select-validation.mjs` | `bun run check --plan`, `bun run check`, CI Gate | Shared intent/path/dependency/risk selector for agent plans, local execution, and expected PR workflows |
