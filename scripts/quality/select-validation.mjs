@@ -622,7 +622,14 @@ export function selectValidation(input = {}, options = {}) {
         ...(materialized.manual ? { advisory: isAdvisoryManualCheck(materialized) } : {}),
       };
     });
-  const toolchainBlockers = compareToolchain(policy.toolchain, environment.toolchain, checks);
+  // The toolchain gate protects commands that actually run. A plan holding nothing but the
+  // commandless advisory proof has no command to protect, so a version mismatch must not
+  // report it blocked.
+  const toolchainBlockers = compareToolchain(
+    policy.toolchain,
+    environment.toolchain,
+    checks.filter((check) => !isAdvisoryManualCheck(check)),
+  );
   if (toolchainBlockers.length > 0) {
     const capabilities = toolchainBlockers.map((blocker) => blocker.capability);
     checks = checks.map((check) =>

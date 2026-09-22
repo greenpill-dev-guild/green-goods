@@ -430,6 +430,43 @@ test("advisory manual proof never masks automated failure or unavailable capabil
   }
 });
 
+test("a toolchain mismatch never blocks a plan holding only the advisory proof", () => {
+  const git = {
+    base: "base",
+    head: "head",
+    workingCopyFingerprint: "working-copy",
+    changedPaths: ["packages/client/src/sw/sw.ts"],
+    deletedPaths: [],
+  };
+  const offPin = { node: "24.20.0", bun: "1.4.2" };
+  const environment = (toolchain) => ({
+    profile: "test",
+    toolchain,
+    capabilities: { dependencies: true, authenticatedBrave: false },
+  });
+
+  const advisoryOptions = parseArguments(["--only", "browser-proof"]);
+  const advisoryOnly = applyCompatibilityFilters(
+    buildLocalValidationPlan(advisoryOptions, git, environment(offPin)),
+    advisoryOptions,
+  );
+  assert.deepEqual(
+    advisoryOnly.checks.map((check) => check.id),
+    ["browser-proof"],
+  );
+  assert.equal(advisoryOnly.status, "ready");
+  assert.deepEqual(advisoryOnly.environmentBlockers, []);
+
+  // A selection that does run a command still reports the mismatch.
+  const executableOptions = parseArguments(["--only", "format"]);
+  const executable = applyCompatibilityFilters(
+    buildLocalValidationPlan(executableOptions, git, environment(offPin)),
+    executableOptions,
+  );
+  assert.equal(executable.status, "blocked");
+  assert.equal(executable.checks.find((check) => check.id === "format")?.state, "blocked");
+});
+
 test("a release attestation must name an accepted engine, a date, and an observation", () => {
   const check = { attestation: { engines: ["authenticated Brave"] } };
 

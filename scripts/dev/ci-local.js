@@ -434,9 +434,14 @@ export function applyCompatibilityFilters(plan, options) {
   // design-tokens` on a runner without Foundry is the case that bit CI. Work
   // out which tools the remaining checks actually require, by the same rule the
   // comparison uses, and drop the blockers that no longer apply.
-  const requiredTools = new Set(["node"]);
-  if (checks.some((check) => check.command?.includes("bun"))) requiredTools.add("bun");
-  if (checks.some((check) => check.capabilities?.includes("foundry"))) requiredTools.add("foundry");
+  // Same rule as the selector: only checks that run a command need a toolchain, so a filter
+  // that leaves nothing but the advisory proof must also drop the toolchain blockers.
+  const executableChecks = checks.filter((check) => !isAdvisoryManualCheck(check));
+  const requiredTools = new Set(executableChecks.length > 0 ? ["node"] : []);
+  if (executableChecks.some((check) => check.command?.includes("bun"))) requiredTools.add("bun");
+  if (executableChecks.some((check) => check.capabilities?.includes("foundry"))) {
+    requiredTools.add("foundry");
+  }
   const priorBlockers = plan.environmentBlockers ?? [];
   // A blocker is a { capability } record from the toolchain comparison, or a
   // bare capability string from a caller that built the plan by hand.
