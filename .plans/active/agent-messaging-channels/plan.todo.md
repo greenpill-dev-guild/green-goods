@@ -271,7 +271,7 @@ bump `PRAGMA user_version`.
   bytes uploaded to Pinata carry no GPS and that the media references on the attestation resolve to
   those bytes. Cover a sub-1 MB image and a video — a helper-only assertion does not prove this for
   an irreversible public path.*
-  `bun run --cwd packages/shared test -- media-processing upload-queued-work` — PRD-944
+  `bun run --cwd packages/shared test -- media-processing upload-queued-work` — PRD-956
 
 ## Cut line
 
@@ -316,7 +316,7 @@ Afo before taking it, per PRD-946.
 | `ID-01` — passkey creation, then admission and publication | 11, 12 | PRD-947 |
 | `UX-02`, in-app-browser handoff only | 11 | PRD-947 |
 | `OPS-05` | 13, 14 | PRD-948 |
-| `DATA-02`, location only | 15 | PRD-944 |
+| `DATA-02`, location only | 15 | PRD-956 |
 
 **Deferred, and not claimed by the demo.** All of gate 4 (`DEL-01` through `DEL-04`, `MIG-01`
 through `MIG-03`); recovery `REC-01` through `REC-05`; commitments `COM-01` and `COM-02`; `DATA-01`;
@@ -390,25 +390,30 @@ Telegram migration, protocol upgrade, or broad API-token distribution is authori
 Production data collection and a pilot provider decision remain out of scope: RESR-75 acceptance
 does not grant them.
 
-## Linear changes (proposed)
+## Linear changes
 
-Not yet written. Proposed, pending approval:
+Written on 2026-09-22. The live records are PRD-941 through PRD-948 plus PRD-955 and PRD-956, under
+the Buildathon prototype and WhatsApp number working milestones.
 
-- Remove the retired `claude` label from PRD-941 through PRD-948 and GROW-57. It was retired on
-  2026-09-12, and `AGENTS.md` lists `ai:claude` among the retired families.
-- Add `package:agent` to PRD-943, PRD-944, PRD-945, PRD-946 and PRD-948; add `package:shared` to
-  PRD-946 and PRD-947. PRD-947 already carries `package:pwa`.
-- Add a Validation section to PRD-943 through PRD-948 carrying the exact command and evaluation ID
-  from the step table above, so each meets the Codex-ready gate.
-- Split PRD-944, which currently carries schema, media fetch and draft persistence as one issue
-  (steps 3, 4 and 5) plus location stripping (step 13). Proposed: keep PRD-944 for media fetch and
-  storage; add "Persist WhatsApp drafts across a restart" and "Strip location metadata before
-  publication".
-- Split PRD-946 into proof verification (step 7) and draft-scoped read (step 8).
-- Add one issue covering the hub rebase and promotion, labelled `source:plans` and `package:docs`.
-- After approval, run the Implementation Start Gate:
-  `node scripts/harness/plan-hub.mjs linear-sync --feature agent-messaging-channels --json`, respect
-  `manifest.laneSyncMode`, then `record-linear`.
+- The retired `claude` label was removed from PRD-941 through PRD-948 and GROW-57. It was retired on
+  2026-09-12, and `AGENTS.md` lists `ai:claude` among the retired families. RESR-75 still carries it
+  and was left alone, being Done and outside this slice.
+- `package:agent` was added to PRD-943, PRD-944, PRD-945, PRD-946 and PRD-948. **Only one
+  `package:*` label is allowed per issue** — the workspace rejects a second one from the same group
+  — so PRD-946 carries `agent` alone despite also touching shared, and PRD-947 keeps its existing
+  `pwa` rather than gaining `shared`. Each of those two issues says so in its body.
+- The validation command for each step went into the existing `Done when` block rather than a new
+  heading: the Accepted Product Work structure is three blocks with headings capped at 6, and the
+  issue lint bans citing plan-hub filenames in a body.
+- PRD-955 records this hub promotion and scope lock. PRD-956 covers step 15, location stripping,
+  which was split out because it affects app submissions too and is not specific to this prototype.
+- PRD-944 and PRD-946 were **not** split further. After the review rounds their remaining scope is
+  coherent — PRD-944 is steps 3 through 5, PRD-946 is steps 7 and 8 — and splitting mid-review would
+  have orphaned the bodies that now carry the corrections.
+- `linear-sync` has **not** been run, deliberately. The hub is `parent_only`; with an empty lane map
+  an `lane_issues` sync would have created duplicate canonical lane issues under the historical
+  PRD-339 parent instead of using the live slice issues. Run the Implementation Start Gate only once
+  a builder is named and the lanes come off `blocked`.
 
 ## Validation and handoff
 
