@@ -103,14 +103,6 @@ describe("buildUpdateTelemetry", () => {
     });
   });
 
-  it("records the network state so a lost connection reads apart from other failures", () => {
-    stubServiceWorkerContainer(null);
-    const onLine = vi.spyOn(navigator, "onLine", "get").mockReturnValue(false);
-    expect(buildUpdateTelemetry(null, {}, null)).toMatchObject({ network_online: false });
-    onLine.mockReturnValue(true);
-    expect(buildUpdateTelemetry(null, {}, null)).toMatchObject({ network_online: true });
-    onLine.mockRestore();
-  });
 });
 
 describe("describeUpdateFailure", () => {

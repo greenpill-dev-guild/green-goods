@@ -16,8 +16,9 @@ function ServiceWorkerUpdateNotifier() {
   const { formatMessage } = useIntl();
   const { phase, shouldPrompt, activateNow, checkForUpdate, dismissUpdate, restartedOnNewVersion } =
     useServiceWorkerUpdate();
-  // A failed download recovers with a fresh check, not another activation; the
-  // check rejects on its own failure, which the next toast already reports.
+  // A failed install recovers with a fresh check, not another activation. The
+  // hook logs and tracks a rejected check on its own; a check that finds an
+  // update moves the phase on to surface it.
   const retryDownload = useCallback(() => void checkForUpdate().catch(() => {}), [checkForUpdate]);
   const announcedRestartRef = useRef(false);
   // Bind the i18n-aware update toasts so es/pt render instead of hardcoded English.
