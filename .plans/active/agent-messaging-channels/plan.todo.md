@@ -80,7 +80,11 @@ enabled and no garden to file drafts into. Checking the chain alone is not enoug
 invite-only garden would pass configuration validation and then fail the headline first-run journey
 at `joinGarden`, which step 12 depends on. Read `openJoining` from the garden at startup and refuse
 to enable intake when it is false, so the failure surfaces as a deployment error rather than as a
-gardener's first report reverting.
+gardener's first report reverting. **Capacity counts too**: `joinGarden()` reverts `GardenFull`
+when `maxGardeners > 0 && gardenMemberCount >= maxGardeners`
+(`packages/contracts/src/accounts/Garden.sol:233`), so an open garden that is already full fails
+exactly the same way. Readiness validation checks available capacity as well as `openJoining`, and
+the test covers a full open garden, not only an invite-only one.
 
 **The subject key must be its own keyring, not a reused secret.** `ENCRYPTION_SECRET` is a single
 fixed key that also protects custodial private keys (`services/crypto.ts:56-89`) and falls back to
@@ -129,7 +133,13 @@ bump `PRAGMA user_version`.
   status (`services/db/idempotency.ts:59-60`), so a process that dies after the claim insert and
   before the domain work completes would treat Meta's redelivery as a duplicate success and lose
   the gardener's report. Use a lease with a status and an expiry: an unfinished claim past its lease
-  is retryable, and only a completed claim answers a redelivery idempotently.
+  is retryable, and only a completed claim answers a redelivery idempotently. **A retryable lease
+  needs fencing.** Domain processing can outlive the lease — fetching provider media is the obvious
+  case — and a Meta redelivery would then reclaim the expired row while the first worker is still
+  running, so both create a draft and both reply, against the process-once claim `SEC-01` makes.
+  Give each claim an owner epoch that the domain commit checks conditionally, so a worker whose
+  lease was reclaimed cannot commit; or make the domain write transactionally idempotent. The test
+  races a live slow worker against a reclaimed delivery, not just a restart.
   `createServer` imports and calls every registrar explicitly (`src/api/server.ts:170-209`); nothing
   is auto-discovered, so the route is unreachable until it is registered there.
   HMAC alone authenticates a body but gives no freshness, so persist the event claim **before**
@@ -274,8 +284,16 @@ bump `PRAGMA user_version`.
   `src/api/routes/whatsapp-drafts.ts`, edit `src/api/server.ts`. New route: read one draft by
   locator. No migration. Keep the existing origin allowlist and per-route rate limiter
   (`src/api/http/public.ts`).
+  **A proven account plus a locator is not enough to read the draft.** Step 6 stops a forwarded
+  link from *attaching* an account, but disclosure happens earlier: whoever holds the link can
+  satisfy step 7 with their own account and then read the gardener's photo and description here,
+  before any confirmation is asked for. `SEC-02` promises a forwarded link discloses nothing, so
+  the read and the attachment bytes are gated on a **consumed, chat-confirmed attempt whose stored
+  account matches the presented proof** — the same attempt and comparison code step 6 mints. Until
+  that confirmation lands the route answers exactly as it does for an absent draft.
   *Proves `AUTH-03`: a foreign or absent draft id returns the same non-enumerating response, and no
-  attachment URL or metadata leaks.*
+  attachment URL or metadata leaks — and a holder of a forwarded link who proves their own account
+  but has no confirmed attempt gets that same empty answer, which is the `SEC-02` disclosure case.*
   `bun run --cwd packages/agent test -- src/__tests__/whatsapp-drafts-route.test.ts` — PRD-946
 
 ### Lane: browser handoff and signature
@@ -375,9 +393,17 @@ bump `PRAGMA user_version`.
   sweep skips held drafts, but a hold nothing ever sets is not a remedy: an offline job can sit
   local past the seven-day window and the sweep would still delete the server draft its eventual
   outcome needs to authenticate against. So this step defines the hold explicitly — a `held` state
-  with the signed authorization and an expiry, set by a call the submission path makes **before**
-  queue insertion, released on a registered outcome or a terminal failure, and renewable while the
-  job is still retryable. The advanced-clock test drives a submission into a hold, advances past the
+  with the signed authorization and an expiry, released on a registered outcome or a terminal
+  failure, and renewable while the job is still retryable.
+  **It cannot be registered at queue time, because queue time may be offline.** The existing path
+  enqueues straight into IndexedDB when connectivity is already gone
+  (`packages/shared/src/modules/work/submit-work-command.ts:198-203`), so a server call before
+  queue insertion would either fail or disable offline submission for imported WhatsApp drafts —
+  and renewal has the same problem during a long outage. Register the hold **while the draft is
+  still being hydrated and the browser is online**, at the same point the authorization is signed,
+  and carry it with the job. A submission that begins offline with no hold is refused for this
+  slice rather than queued unheld; say so in the composer. The test covers a submit that starts
+  offline, not only a clock advanced after a successful hold. The advanced-clock test drives a submission into a hold, advances past the
   sweep window, runs the sweep, and asserts the draft survives and its outcome still reconciles.
   **`ClientWorkIdMapping` is a Dexie table in the browser's IndexedDB**
   (`packages/shared/src/modules/job-queue/db-schema.ts:1-22`) and nothing sends `clientWorkId` to
@@ -478,6 +504,12 @@ bump `PRAGMA user_version`.
   still arrives after a restart between the two, a receipt landing outside the 24-hour window is
   held as `pending_window` and delivered on the next inbound message rather than dropped, and a
   failed submit tells the gardener what to do next. Also proves the abandonment path: a tester who
+  sends `delete` while a job is already queued has that job stopped, not merely the server copy
+  removed: the browser's Dexie job and its signed authorization both outlive the server draft, so a
+  reconnect would publish the very evidence the gardener asked to delete, irreversibly, and its
+  callback would then have nothing to reconcile against. Deletion invalidates the hold and the
+  authorization, and the publication dispatch boundary re-checks per-draft consent before
+  submitting, so a queue-then-delete-then-reconnect sequence publishes nothing. A tester who
   sends `delete` or abandons a draft past its retention window has the draft, its attachments and
   its subject index removed, and the command is refused for anything already published, which cannot
   be withdrawn. The retention window for an abandoned draft is **7 days** for the prototype —

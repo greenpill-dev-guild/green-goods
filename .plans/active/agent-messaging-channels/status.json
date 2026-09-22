@@ -10,7 +10,7 @@
     "overall_status": "active",
     "priority": "p1",
     "created_at": "2026-04-17",
-    "updated_at": "2026-09-21T08:13:22.471Z"
+    "updated_at": "2026-09-22T07:10:00Z"
   },
   "links": {
     "brief": "brief.md",
@@ -29,7 +29,7 @@
     "The agent is a single Fly machine with SQLite on the agent_data volume; the volume attaches to one machine, so single-replica operation is enforced by storage topology. Do not scale horizontally while draft state lives in that file.",
     "Existing Linear mirror PRD-339 remains unresolved historical metadata. The live slice issues are PRD-943 through PRD-948. The manual Linear writes were applied on 2026-09-22; only linear-sync and record-linear remain deliberately unrun.",
     "The builder for the 2026-09-25 to 2026-10-02 window is not yet named. Lane owners below are placeholders until one is assigned.",
-    "Lane sync is parent_only. The live implementation issues are PRD-943 through PRD-948 plus PRD-955 under the Buildathon prototype milestone; they are not lane mirrors. Do not let linear-sync create canonical lane issues under the historical PRD-339 parent.",
+    "Lane sync is parent_only. The live implementation issues are PRD-943 through PRD-948 plus PRD-955 and PRD-956 (PRD-956 owns step 15) under the Buildathon prototype milestone; they are not lane mirrors. Do not let linear-sync create canonical lane issues under the historical PRD-339 parent.",
     "Bot review on PR #864 found three factual errors in the first draft of this hub, now corrected: the root test runner rejects positional paths and has no typecheck script, so every proof command is package-scoped; step 1 must register its route in api/server.ts because nothing is auto-discovered; and ClientWorkIdMapping is browser IndexedDB the agent cannot read, so the outcome is reported back through an authenticated route.",
     "Codex found five more issues on the second pass, all fixed: the webhook claim needed a lease because the existing helper treats an unfinished claim as a duplicate and would lose a redelivered report; the WhatsApp subject must be encrypted with a keyed HMAC index rather than stored in the clear; the client has no attestation UID to report, since the mapping field named attestationId actually holds a transaction hash and can be synthetic offline, so the agent derives the UID from the receipt; the step-number projections were stale after renumbering; and the spec still called RESR-75 Todo eleven lines before saying it was accepted.",
     "Lanes route skill and package, not execution order. The fifteen steps are one sequential dispatch for one builder (steps are in dependency order in plan.todo.md). state_api and ui interleave in both directions -- ui step 9 creates packages/shared/src/modules/whatsapp-drafts/transport.ts, which state_api step 13 extends, while state_api step 14 consumes what step 13 registers -- so a blocking dependency between the lanes deadlocks. Follow the numbered step order; use the lanes to pick who works each step.",
