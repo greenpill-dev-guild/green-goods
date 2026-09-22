@@ -32,13 +32,14 @@
     "Lane sync is parent_only. The live implementation issues are PRD-943 through PRD-948 plus PRD-955 under the Buildathon prototype milestone; they are not lane mirrors. Do not let linear-sync create canonical lane issues under the historical PRD-339 parent.",
     "Bot review on PR #864 found three factual errors in the first draft of this hub, now corrected: the root test runner rejects positional paths and has no typecheck script, so every proof command is package-scoped; step 1 must register its route in api/server.ts because nothing is auto-discovered; and ClientWorkIdMapping is browser IndexedDB the agent cannot read, so the outcome is reported back through an authenticated route.",
     "Codex found five more issues on the second pass, all fixed: the webhook claim needed a lease because the existing helper treats an unfinished claim as a duplicate and would lose a redelivered report; the WhatsApp subject must be encrypted with a keyed HMAC index rather than stored in the clear; the client has no attestation UID to report, since the mapping field named attestationId actually holds a transaction hash and can be synthetic offline, so the agent derives the UID from the receipt; the step-number projections were stale after renumbering; and the spec still called RESR-75 Todo eleven lines before saying it was accepted.",
-    "Lanes route skill and package, not execution order. The fifteen steps are one sequential dispatch for one builder (steps are in dependency order in plan.todo.md). state_api and ui interleave in both directions -- ui step 9 creates packages/shared/src/modules/whatsapp-drafts/transport.ts, which state_api step 13 extends, while state_api step 14 consumes what step 13 registers -- so a blocking dependency between the lanes deadlocks. Follow the numbered step order; use the lanes to pick who works each step."
+    "Lanes route skill and package, not execution order. The fifteen steps are one sequential dispatch for one builder (steps are in dependency order in plan.todo.md). state_api and ui interleave in both directions -- ui step 9 creates packages/shared/src/modules/whatsapp-drafts/transport.ts, which state_api step 13 extends, while state_api step 14 consumes what step 13 registers -- so a blocking dependency between the lanes deadlocks. Follow the numbered step order; use the lanes to pick who works each step.",
+    "All lanes share one integration branch, feature/whatsapp-prototype. The lanes interleave -- step 13 consumes the transport that step 9 creates -- and one builder runs steps 1 to 15 in numbered order, so separate per-lane branches would leave step 13 without step 9 and hand QA two divergent inputs with no integration step."
   ],
   "lanes": {
     "state_api": {
       "owner": "unassigned",
       "status": "blocked",
-      "branch": "feature/whatsapp-prototype-agent",
+      "branch": "feature/whatsapp-prototype",
       "depends_on": [],
       "handoff": "handoffs/claude-state-api.md",
       "handoff_note": "Buildathon prototype steps 1-8, 13 and 14: Meta webhook signature plus a leased event claim, normalization, encrypted-subject draft tables, bounded media fetch, single-use link with chat-side confirmation, draft-scoped account proof and read, the authenticated outcome route, and receipt derivation with a restart-safe outbox. Proves SEC-01, CH-01, WORK-01, SEC-02, AUTH-01, AUTH-03, OPS-05, and DATA-02 for the consent notice and the deletion path. Reuse garden-join-request-auth.ts and profile-avatars.ts rather than writing new verification.",
@@ -63,7 +64,7 @@
     "ui": {
       "owner": "unassigned",
       "status": "blocked",
-      "branch": "feature/whatsapp-prototype-handoff",
+      "branch": "feature/whatsapp-prototype",
       "depends_on": [],
       "handoff": "handoffs/claude-ui.md",
       "handoff_note": "Buildathon prototype steps 9-12 and 15: draft intake port modelled on useShareTargetIntake, the ?wa= locator on /home/garden beside ?draftId= and ?shareTarget=, first-run passkey with the in-app-browser handoff, open-joining admission before the attestation, the outcome call on submission completion, and EXIF/location stripping before publication. Proves UX-01, ID-01, part of UX-02, DATA-06. Shared auth and work surfaces take the critical override; step 11 needs authenticated Brave proof.",
@@ -106,7 +107,7 @@
     "qa_pass_1": {
       "owner": "unassigned",
       "status": "blocked",
-      "branch": "feature/whatsapp-prototype-qa",
+      "branch": "feature/whatsapp-prototype",
       "depends_on": ["state_api", "ui"],
       "handoff": "handoffs/claude-qa-pass-1.md",
       "handoff_note": "Demo rehearsal on a real device against the Meta test number: full journey across steps 1-15, then the adversarial pass (forwarded link, preview GET, replay, concurrent consume, foreign draft id, bad webhook signature, redelivery after a mid-processing restart). Authenticated Brave for the passkey ceremony. Also run the ID-03 EOA case: an existing EOA holder opens the continuation link, signs the draft proof and publishes, with the attester and the garden's membership unchanged from before the run. That journey is claimed in eval.md and no automated step proves it. Record which deferred cases the demo does not evidence, specifically ID-05, ID-07, REC-03 and MIG-01.",

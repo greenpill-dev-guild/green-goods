@@ -75,7 +75,12 @@ Environment added once, at step 1, as Fly secrets, never the repository, per PRD
 `META_APP_SECRET`, `META_VERIFY_TOKEN`, `META_PHONE_NUMBER_ID`, `META_WABA_ID`,
 `META_SYSTEM_USER_TOKEN`, `META_GRAPH_BASE_URL`, `WHATSAPP_SUBJECT_KEYRING` for step 3, and
 `WHATSAPP_PROTOTYPE_GARDEN` for step 5 — the last validated at startup against the deployed chain
-ID, so the agent refuses to start with intake enabled and no garden to file drafts into.
+ID **and against its on-chain `openJoining` state**, so the agent refuses to start with intake
+enabled and no garden to file drafts into. Checking the chain alone is not enough: a same-chain but
+invite-only garden would pass configuration validation and then fail the headline first-run journey
+at `joinGarden`, which step 12 depends on. Read `openJoining` from the garden at startup and refuse
+to enable intake when it is false, so the failure surfaces as a deployment error rather than as a
+gardener's first report reverting.
 
 **The subject key must be its own keyring, not a reused secret.** `ENCRYPTION_SECRET` is a single
 fixed key that also protects custodial private keys (`services/crypto.ts:56-89`) and falls back to
@@ -163,8 +168,14 @@ bump `PRAGMA user_version`.
   versioned keyed HMAC of it, reusing the AES-256-GCM helpers the agent already has
   (`services/crypto.ts`) and reading the `WHATSAPP_SUBJECT_KEYRING` provisioned in step 1 — **not**
   `ENCRYPTION_SECRET`, which is one fixed key shared with custodial private keys. Cover key version
-  and rotation: a write uses the newest version, a read tries each retained version, and a rotation
-  test proves an old-version row is still found by subject after a new key is prepended.
+  and rotation. **Rotation must not be able to duplicate a sender.** If the uniqueness index is the
+  versioned HMAC itself, the same subject produces a different value under a new key, so the
+  constraint no longer collides with the existing row and a write or a concurrent delivery after
+  rotation creates a second active record for the same person — splitting their draft ownership,
+  consent state, deletion and outbox. Keep uniqueness on a **stable** subject key that does not move
+  with the keyring, and let the versioned HMAC serve lookup only; rotation then reindexes rows
+  atomically rather than silently forking them. The rotation test covers an **insert** after
+  rotation, not just a lookup: the second delivery from the same sender must find the existing row.
   Bump `PRAGMA user_version`.
   *Proves part of `WORK-01`: the tables and their unique index survive a database reopen.*
   `AGENT_SQLITE_INTEGRATION=1 bun run --cwd packages/agent test -- storage.sqlite` — PRD-944
@@ -284,7 +295,15 @@ bump `PRAGMA user_version`.
   `src/hooks/work/useDraftResume.ts`. No new route: `/home/garden` already reads `?draftId=` and
   `?shareTarget=`, so add `?wa=<token>` beside them and strip it from the address bar after
   exchange. No migration.
-  *Proves `UX-01`: the link opens that exact draft rather than a generic screen.*
+  **Address-bar cleanup is the last of three protections, not the only one.** Section 8 requires
+  redacting query values from logs, removing them from the address bar after exchange, **and** a
+  strict referrer policy; a locator in `?wa=` is already in the application, proxy and edge logs by
+  the time the route runs, and can leave as a `Referer` on any subresource the route loads. So this
+  step also adds query-value redaction on the serving edge and the agent's request logging, and a
+  `no-referrer` policy on the continuation route. Without those the single-use locator is single-use
+  only against someone who did not read a log.
+  *Proves `UX-01`: the link opens that exact draft rather than a generic screen — and the locator
+  appears in no request log and is sent in no referrer.*
   `bun run --cwd packages/shared test -- useDraftResume` — PRD-947
 - [ ] **11. First-run passkey from the link.** `package:shared`. Edit
   `src/hooks/client-ui/auth/useLoginScreenController.ts`, edit the install-guidance surface, edit
@@ -343,8 +362,14 @@ bump `PRAGMA user_version`.
 - [ ] **13. Report the outcome back to the agent.** `package:shared`, `package:agent`. New
   `packages/agent/src/api/routes/whatsapp-draft-outcome.ts`, edit
   `packages/shared/src/modules/whatsapp-drafts/transport.ts`, edit
-  `packages/agent/src/api/server.ts`. **Two** new routes: a pre-queue submission hold, and
-  authenticated outcome registration for a draft.
+  `packages/agent/src/api/server.ts`, edit `packages/shared/src/modules/job-queue/db-schema.ts`,
+  edit `packages/shared/src/modules/job-queue/db.ts`, edit
+  `packages/shared/src/modules/job-queue/ports.ts`, edit
+  `packages/shared/src/modules/job-queue/process-job.ts`, edit the submission path that queues work.
+  This step is larger than one session and should be split at the package boundary if it does not
+  fit; what it must not do is declare a narrow file list and then require changes outside it.
+  **Two** new routes: a pre-queue submission hold, and authenticated outcome registration for a
+  draft.
   Migration: add the operation and hold columns to `whatsapp_drafts` through `ensureColumn()`.
   **The hold is registered before the job is queued, not after it completes.** Step 14's retention
   sweep skips held drafts, but a hold nothing ever sets is not a remedy: an offline job can sit
@@ -489,7 +514,11 @@ bump `PRAGMA user_version`.
   video container needs a parser or transcoder that is well outside a prototype step. Claiming
   `DATA-06` while a GPS-bearing video reaches permanent IPFS would be a false claim, so the
   prototype refuses video with a clear message in the chat and the composer. Lifting that limit is
-  its own issue.
+  its own issue. **The chat half of that refusal lives in the agent, not here.** A video sent
+  straight to the WhatsApp webhook never traverses `useWhatsAppDraftIntake`, so the browser-side
+  policy cannot produce a chat message. The agent's media handler from step 4 refuses `video/*` at
+  intake with a catalogued message in `en`, `es` and `pt`, and that refusal is proven on the agent
+  side; the shared policy covers only a video arriving through the composer on an imported draft.
   *Proves `DATA-06`, and proves the refusal does not leak outward: a video imported from a
   WhatsApp draft is refused while a video attached through the ordinary composer, the share target,
   the admin form and the proof composer still succeeds. The test follows the publication path far
@@ -558,7 +587,8 @@ Afo before taking it, per PRD-946.
 
 **Deferred, and not claimed by the demo.** All of gate 4 (`DEL-01` through `DEL-04`, `MIG-01`
 through `MIG-03`); recovery `REC-01` through `REC-05`; commitments `COM-01` and `COM-02`; `DATA-01`;
-identity continuity `ID-02` through `ID-07`; authority `AUTH-02`, `AUTH-04` and `AUTH-05`;
+identity continuity `ID-02` and `ID-04` through `ID-07` — **`ID-03` is claimed**, see the
+evaluation contract; authority `AUTH-02`, `AUTH-04` and `AUTH-05`;
 operations `OPS-01` through `OPS-04`; containment `SEC-03` through `SEC-06`; provider `CH-02`
 through `CH-05`; and all of `PILOT-01` through `PILOT-03`. `ID-05`, `ID-07`, `REC-03` and `MIG-01`
 are called out explicitly because a smooth demo could be mistaken for evidence of them.

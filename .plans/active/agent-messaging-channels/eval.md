@@ -49,7 +49,8 @@ swallowing Meta's redelivery. It does **not** carry `OPS-01`: cross-channel dupl
 reservation and restart-safe business deduplication all remain deferred and unclaimed.
 
 Everything else below is deferred: all of gate 4, `REC-01` through `REC-05`, `COM-01`, `COM-02`,
-`DATA-01`, `ID-02` through `ID-07`, `AUTH-02`, `AUTH-04`, `AUTH-05`, `OPS-01` through `OPS-04`,
+`DATA-01`, `ID-02` and `ID-04` through `ID-07` (**`ID-03` is claimed**, see the prototype subset
+above), `AUTH-02`, `AUTH-04`, `AUTH-05`, `OPS-01` through `OPS-04`,
 `SEC-03` through `SEC-06`, `CH-02` through `CH-05`, and `PILOT-01` through `PILOT-03`. `ID-05`,
 `ID-07`, `REC-03` and `MIG-01` are named here because a smooth demo could be mistaken for
 evidence of them; it is not. `WORK-01` is mapped through publication because its required observation ends at "reaches
