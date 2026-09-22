@@ -18,10 +18,11 @@ WhatsApp is the first entry point for TAS in Nigeria, in English. Gardeners can 
 
 ## 1. Decisions and unresolved gates
 
-A1–A3 are accepted user decisions. P1–P5 were recommendations awaiting selection; P2 and P3 were
-adopted for the prototype slice on 2026-09-21, and P1, P4 and P5 remain unselected. O1 and O2 were
-resolved on 2026-09-21 to the extent stated below; O3, O4 and O5 remain open. Documentation
-completion does not close any of them.
+A1–A3 are accepted user decisions. P1–P6 were recommendations awaiting selection; P2 and P3 were
+adopted for the prototype slice on 2026-09-21, and P1, P4, P5 and P6 remain unselected. O1 and O2
+were resolved on 2026-09-21 to the extent stated below; O3, O4, O5 and O6 remain open. Documentation
+completion does not close any of them. P6 and O6 were added on 2026-09-22 and are described in
+section 8.1.
 
 | ID | State | Decision or question | Consequence |
 | --- | --- | --- | --- |
@@ -33,11 +34,13 @@ completion does not close any of them.
 | P3 | Proposed; **adopted for the prototype slice 2026-09-21** | Owner signs each work publication in first release | Avoid a new delegated signer or validator before the core journey is proven. |
 | P4 | Proposed | Add narrowly scoped reporting delegation only after independent security proof | Delegation excludes approval, commitments, funds, membership and account management. |
 | P5 | Proposed | One Green Goods business sender, garden context inside the application | Separate garden-owned business senders are a later operating model. |
+| P6 | Proposed 2026-09-22 | Interpret the opening message against the chosen action's own `Action.inputs` schema, in a shared module: bounded judgments to a judgment model, open values to one extraction model, validation and field ownership in code | Gives section 5's correction promise its model-assisted form (section 8.1). It removes questions the gardener already answered; it does not replace the deterministic walk underneath. Unselected for the prototype, which runs that walk and calls no model. |
 | O1 | **Resolved 2026-09-21** | Is one browser passkey setup acceptable before a new user's first onchain publication? | Yes, under RESR-75 criterion 1 as accepted: zero account steps to reach a saved private draft, then exactly one browser passkey step before that draft becomes a public, gardener-signed record. No custodial wallet is created, and phone access never grants a garden role or recovers an account. |
 | O2 | **Resolved for the prototype 2026-09-21; open for the pilot** | Direct Meta, Twilio or another provider; who owns sender, billing and support? | The prototype uses the **Meta WhatsApp Cloud API directly** on the free test number. A Twilio number exists but is held unregistered and, if used, is registered directly with Meta as a phone number only — Twilio is not the provider. The WhatsApp Business Account is operated by **WEFA LLC**. The pilot provider decision still needs actual Nigeria provisioning, media, template, migration and cost evidence. |
 | O3 | Open: technical/security | Can the deployed Kernel configuration verify both deployed and counterfactual account proofs and enforce the proposed reporting restriction? | First prove authentication; delegation is a separate optional gate. Generic SDK documentation is insufficient. |
 | O4 | Open: recovery | Which preconfigured mechanism can recover the same account after total signer loss? | RESR-21 is unresolved. Do not advertise phone-based wallet recovery. |
 | O5 | Open: operations | Consent wording, data retention, pilot budget, support ownership and pass/fail thresholds | Agree before recruitment or production data collection. |
+| O6 | Open: processors | Which inference providers may receive a gardener's account of their own work, under what retention, training and regional terms — and how little source text is enough for a sound judgment | Blocks every model call on real reporting data, a shadow-mode trial included. Section 8 already routes processor arrangements through O5; O6 separates them because this source text is a gardener's own words about their work rather than operational metadata, and because self-hosting the extraction model does not close it while a hosted judgment provider stays in the flow. |
 
 The no-sign-up branch remains private intake with clearly attributed assisted support. It does not become a gardener-signed public record until a real gardener account exists and authorizes publication. Retaining custodial account creation would be a different product and security decision, not an invisible fallback.
 
@@ -59,6 +62,8 @@ These are source-established observations at the commit above unless marked othe
 | Passkeys and EOAs | [Auth machine](../../../packages/shared/src/workflows/authMachine.ts), [passkey adapter](../../../packages/shared/src/workflows/auth-passkey-adapters.ts), [auth services](../../../packages/shared/src/workflows/authServices.ts). | Login currently selects wallet or passkey mode. Passkeys build Kernel 0.3.1 accounts with EntryPoint 0.7; changing modes does not link their identities. |
 | Passkey continuity | [Passkey configuration](../../../packages/shared/src/config/passkeyServer.ts) uses greengoods.app RP ID; hosted discovery is enabled by default in production. [Session metadata](../../../packages/shared/src/modules/auth/session.ts) includes local state. | Preserve canonical origin/account derivation. Browser metadata or successful credential lookup is not backend authentication. |
 | Commitments | [Call builder](../../../packages/shared/src/modules/job-queue/commitment-call-builder.ts), [account profiles](../../../packages/shared/src/modules/commitment-pooling/account-profiles.ts). | Binding payloads include participants, pool/cycle, requirements, due/confirmation times and consideration. Do not reduce them to an unscoped chat “yes.” |
+| Action field schema | [Domain types](../../../packages/shared/src/types/domain.ts) declare `Action.inputs` at `domain.ts:325-337`: per garden action, each field's `key`, `type` (`text`, `textarea`, `select`, `multi-select`, `number`, `band`, `repeater`), `required`, `options`, `bands` and `unit`. | This is already the bounded-answer source, published per garden. Enumerable inputs can be offered from the action's own options; open inputs cannot. Do not author a second per-garden question set or prompt text beside it — that would be a duplicate definition of what a garden accepts. |
+| Current interpretation | [AI service](../../../packages/agent/src/services/ai.ts) pairs `Xenova/whisper-tiny.en` with hand-written planting and weeding regexes, returning `ParsedWorkData {tasks, notes, date}` ([agent types](../../../packages/agent/src/types.ts) at `types.ts:352`). The published shape is `WorkSubmission {actionUID, title, timeSpentMinutes, feedback, details}` ([domain.ts:373](../../../packages/shared/src/types/domain.ts)). | The two shapes do not meet, and the WhatsApp path routes around this parser entirely (section 15.1, step 5). It is therefore not a baseline for this flow and must not serve as the control in any interpretation comparison. Its English-only transcription matches A1's setting rather than constraining it. |
 
 The April spec's Twilio selection, 30-day sessions renewed by SMS, delegated approvals, custom-validator audit dates, SMS-only fallback, Fastify routes and Q2 deadlines are superseded assumptions. No evidence establishes those deliverables as shipped. Template requirements also extend beyond marketing.
 
@@ -136,7 +141,7 @@ The gardener sends a photo and description. The bot confirms the garden and work
 
 Under proposed P3, the continuation opens the canonical Green Goods browser origin. Present “Use my existing account” prominently, followed by “Create a passkey.” Existing accounts authenticate; new passkeys create one permanent account after an explicit choice. Complete the two-sided link protocol below and attach the provisional draft without changing its content or attribution. First publication waits for account membership and the gardener's signature.
 
-The PWA opens that exact draft, not a generic home screen. The gardener reviews its public content, author account and garden, then signs. Persist the operation before broadcast. WhatsApp shows confirmation only after the defined chain receipt state; it can separately say that indexing is pending. Returning later opens the same record from either channel.
+The PWA opens that exact draft, not a generic home screen. The gardener reviews its public content, author account and garden, then signs. Correction belongs to the conversation, not the browser: by the time the link opens, the draft is what the gardener already approved in chat, and the browser's remaining job is to authenticate them, show exactly what is about to be published, and take the signature. A gardener who wants a different number goes back to the chat and says so. Persist the operation before broadcast. WhatsApp shows confirmation only after the defined chain receipt state; it can separately say that indexing is pending. Returning later opens the same record from either channel.
 
 Installing the PWA is optional. The browser should retain the task across authentication and offer installation after successful work, rather than making it a prerequisite. Browser handoff must handle WhatsApp's in-app browser: if passkeys cannot complete there, use a resumable continuation in the supported system browser without copying cookies or private keys. Actual Android/iOS behavior remains a pilot test.
 
@@ -248,6 +253,73 @@ Steward approval references the confirmed work UID and exact garden/action. The 
 Chat can help choose or draft a commitment, express interest and collect evidence. The PWA must display the complete binding payload: garden/pool/cycle, parties and their roles, work requirements, quantities, due and confirmation dates, consideration and any asset/amount effects. It authenticates the correct actor for create, claim, evidence/work linking, confirmation and any other supported lifecycle action. Validate each action against current protocol rules; do not expose methods just because a call builder can encode them.
 
 A chat “yes” can confirm draft wording or interest, never an unspecified financial or binding commitment. Keep funding, deposits, withdrawals, transfers and role changes outside reporting delegation. Provider policy review must cover the actual commitment experience; linking to a PWA is not proof of exemption from messaging restrictions. [WhatsApp Business policy](https://www.whatsapp.com/legal/business-policy/)
+
+## 8.1 Report interpretation and the two-layer draft
+
+Section 5 promises that the bot "confirms the garden and work details, allows corrections". Nothing
+above says how, and nothing in the repository implements it. This section supplies the contract.
+**P6 proposes the model-assisted form of it and remains unselected**; the deterministic form below
+stands on its own and is what the prototype builds.
+
+A draft holds two layers, and that separation is the whole design.
+
+| Layer | Contents | Written by | Lifetime |
+| --- | --- | --- | --- |
+| **Source** | The gardener's verbatim words and media, one immutable entry per inbound message, in arrival order | The transport, on receipt | Retained with the draft under the section 8 retention rules; never rewritten |
+| **Structured** | The `Action.inputs` fields of the chosen garden action, each with its provenance | The field walk, the gardener's own answer, or — under P6 — a model proposal | Derived; regenerable from the source layer |
+
+Publication signs the structured layer. The source layer remains the record of what was actually
+said, and every structured value points back to the source entry it came from, so a steward who
+doubts a number can read the sentence that produced it.
+
+**Provenance is per field, not per draft.** Each structured field records who last set it — the
+gardener, a deterministic rule, or a model — and which source entry it derived from. A field the
+gardener has answered is theirs: re-derivation never overwrites it, and a later message that
+contradicts it is raised as a question rather than applied. This is what makes propose, polish and
+approve safe on a channel where a reply can arrive after the person has moved on, and it is why the
+compare-and-swap conflict prompt in section 8 is not the mechanism here: the model never owns a
+value a person has confirmed, so there is nothing to collide over.
+
+**The action's own schema is the contract.** `Action.inputs` already declares each field's `key`,
+`type`, `required`, `options`, `bands` and `unit` (section 2). That declaration decides how the
+field may be filled, and no second per-garden configuration is introduced:
+
+| Input type | How it is filled | Why |
+| --- | --- | --- |
+| `select`, `multi-select`, `band` | Offered to the gardener as the action's own `options` or `bands` | The answer set is enumerable and already published. A gardener picking from a list is more reliable and cheaper than a model inferring which option they meant. |
+| `number` | Taken as a numeric reply and validated in code against the declared `unit` | Arithmetic, units and conversions stay out of every model. A quantity the gardener did not state is never supplied. |
+| `text`, `textarea` | Taken verbatim | A gardener's account of their own work is not summarized or rewritten before publication. |
+| `repeater` | Unsupported until a garden publishes one | No prototype garden action uses it; refusing is honest, guessing is not. |
+
+Interpretation's only job against this table is to **change which questions get asked**. A gardener
+who already stated a value should not be asked for it again — that is the whole benefit, and it is
+the effort measure RESR-75 applies. Interpretation never changes what a confirmed answer is.
+
+**Bounded and open judgments are different problems.** Deciding which of an action's published
+options a sentence refers to, whether a message is a correction to the saved draft, or whether the
+draft now claims something the gardener never said, are bounded judgments over supplied choices.
+Extracting a quantity, a unit, a date expression or an attribution from free text is not. P6 splits
+them accordingly rather than sending everything to one model, and gives the judgment step the
+original message alongside any extraction, because judging a summary hides whatever the summary
+dropped.
+
+**What no model may do here**, whichever providers are selected: decide that a draft may publish;
+choose the account, garden or chain; compute or convert a quantity; resolve a date without the
+garden's timezone; rewrite a gardener's words into a published field; or treat its own confidence as
+consent. Those stay in code and in the gardener's hands, exactly as sections 6 through 9 require. A
+model decision is never authorization.
+
+**Where it lives.** The interpretation module belongs in `packages/shared` beside the other work
+modules, as a pure function of an action schema, a draft and a source entry, with provider access
+injected. The agent composes it; no provider SDK reaches into the module. That keeps it testable
+without a running agent and without a network call, lets a browser surface reuse the same field
+mapping if one ever needs it, and makes replacing a provider a composition change rather than a
+rewrite. It is not an MCP server and not a separate service: nothing else consumes it yet, and
+section 9's single-machine, single-volume topology gives a second process no advantage.
+
+**Before any of this runs on real messages, O6 must close.** A gardener's description of their own
+work is the most sensitive text this system holds, and sending it to an inference provider is a new
+processing purpose that the section 8 consent notice does not currently cover.
 
 ## 9. Operations, retries and cross-channel continuity
 
@@ -378,16 +450,21 @@ prototype" (target 2026-10-02, submission 2026-10-04). The delivery steps are in
 [plan.todo.md](plan.todo.md); the acceptance cases are the existing IDs in [eval.md](eval.md).
 
 **The journey.** A gardener sends a photo and a description to the official WhatsApp sender. The
-agent saves a private draft with no account step and replies with a single-use link. The link opens
-the gardener's exact draft in Chrome or Safari, where they use an existing account or create one
-passkey, review the public content, and sign the work attestation on Arbitrum One. After the chain
-receipt — not the submit — the agent confirms in the chat.
+agent saves a private draft with no account step, then asks in chat — one field at a time — for
+whichever of the garden action's required inputs it does not already hold, offering the action's own
+published options wherever the field is a choice. When the gardener approves the completed draft,
+the agent replies with a single-use link. The link opens that exact draft in Chrome or Safari, where
+they use an existing account or create one passkey, see exactly what is about to be published, and
+sign the work attestation on Arbitrum One. The browser does not edit; correction happened in the
+chat, before the link. After the chain receipt — not the submit — the agent confirms in the chat.
 
 **What the slice adopts from the proposals above.** P2 (private drafts first, existing accounts
 reused) and P3 (the owner signs each publication). Nothing else. P1's participant record, P4's
-reporting delegation and P5's per-garden senders stay unselected.
+reporting delegation, P5's per-garden senders and P6's model-assisted interpretation stay
+unselected. Section 8.1's two-layer draft and deterministic field walk are inside the slice; P6 is
+the separable model layer above them.
 
-**Four deliberate narrowings of this document, for the prototype only.**
+**Five deliberate narrowings of this document, for the prototype only.**
 
 1. **No participant record.** Section 4 models Participant, AccountBinding, ChannelBinding,
    AccountDescriptor, AuthenticatorReference, GardenContext, DelegationGrant and Consent/Audit. The
@@ -433,11 +510,27 @@ reporting delegation and P5's per-garden senders stay unselected.
    the slice **for images only**: videos are passed through unchanged by that same path, and
    stripping a video container needs a parser or transcoder well outside a prototype step, so the
    prototype refuses video rather than claiming to sanitize it.
+5. **Correction is deterministic, and the browser stops editing.** Section 8.1's two-layer draft and
+   field walk ship; P6's model-assisted opening does not. The agent walks the configured garden
+   action's `Action.inputs` in code — the action's own `options` and `bands` become WhatsApp
+   interactive replies, a `number` is validated against its declared `unit`, `text` is kept verbatim
+   — so no inference provider is called, O6 is never reached, and no gardener's words leave Green
+   Goods and Meta. The consequence for the browser is deliberate rather than incidental: because
+   correction now works in the chat, steps 9 and 10 hydrate a **read-only review** instead of the
+   composer, which removes the share-target hydration and draft-resume wiring they previously
+   carried. Two costs come with it, and both will be visible on stage. A gardener whose first
+   message is wrong corrects it by answering in chat rather than by typing in a form. And the walk
+   asks about fields the gardener may already have stated in that first message — which is precisely
+   the effort P6 exists to remove, and precisely what a demo of this slice cannot claim to have
+   solved.
 
 **What the prototype does not establish.** Production provider eligibility, actual Nigerian delivery
 or cost, pilot success, recovery after total signer loss, delegation safety, or Telegram migration.
 A working demo is not evidence for `ID-05`, `ID-07`, `REC-03` or `MIG-01`, and none of those may be
-claimed from it. The prototype also does not authorize production data collection or a pilot
+claimed from it. It establishes nothing about interpretation either: the walk asks for every
+required field it does not already hold, so a smooth demo is not evidence that reading a gardener's
+own phrasing works, and the reporting-effort measure in `PILOT-01` cannot be read from it. `INT-01`
+through `INT-04` are recorded as deferred for exactly that reason. The prototype also does not authorize production data collection or a pilot
 provider decision: RESR-75 acceptance explicitly withholds both.
 
 **Boundary correction worth recording.** The architecture above says the April spec's Twilio

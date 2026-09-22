@@ -10,7 +10,7 @@
     "overall_status": "active",
     "priority": "p1",
     "created_at": "2026-04-17",
-    "updated_at": "2026-09-22T07:10:00Z"
+    "updated_at": "2026-09-22T19:30:00Z"
   },
   "links": {
     "brief": "brief.md",
@@ -33,7 +33,14 @@
     "Bot review on PR #864 found three factual errors in the first draft of this hub, now corrected: the root test runner rejects positional paths and has no typecheck script, so every proof command is package-scoped; step 1 must register its route in api/server.ts because nothing is auto-discovered; and ClientWorkIdMapping is browser IndexedDB the agent cannot read, so the outcome is reported back through an authenticated route.",
     "Codex found five more issues on the second pass, all fixed: the webhook claim needed a lease because the existing helper treats an unfinished claim as a duplicate and would lose a redelivered report; the WhatsApp subject must be encrypted with a keyed HMAC index rather than stored in the clear; the client has no attestation UID to report, since the mapping field named attestationId actually holds a transaction hash and can be synthetic offline, so the agent derives the UID from the receipt; the step-number projections were stale after renumbering; and the spec still called RESR-75 Todo eleven lines before saying it was accepted.",
     "Lanes route skill and package, not execution order. The fifteen steps are one sequential dispatch for one builder (steps are in dependency order in plan.todo.md). state_api and ui interleave in both directions -- ui step 9 creates packages/shared/src/modules/whatsapp-drafts/transport.ts, which state_api step 13 extends, while state_api step 14 consumes what step 13 registers -- so a blocking dependency between the lanes deadlocks. Follow the numbered step order; use the lanes to pick who works each step.",
-    "All lanes share one integration branch, feature/whatsapp-prototype. The lanes interleave -- step 13 consumes the transport that step 9 creates -- and one builder runs steps 1 to 15 in numbered order, so separate per-lane branches would leave step 13 without step 9 and hand QA two divergent inputs with no integration step."
+    "All lanes share one integration branch, feature/whatsapp-prototype. The lanes interleave -- step 13 consumes the transport that step 9 creates -- and one builder runs steps 1 to 15 in numbered order, so separate per-lane branches would leave step 13 without step 9 and hand QA two divergent inputs with no integration step.",
+    "Amended 2026-09-22: correction moved into the WhatsApp conversation. Spec section 8.1 adds the two-layer draft (an immutable verbatim source entry per inbound message, plus a derived structured layer carrying per-field provenance) and makes each garden action's own Action.inputs declaration the contract for how a field may be filled. Steps 9 and 10 became a read-only browser review; new step 16 walks the action's required inputs in chat.",
+    "Action.inputs at packages/shared/src/types/domain.ts:325-337 already declares key, type, required, options, bands and unit per garden action. It is the bounded-answer source. Do not author a second per-garden question set or prompt text beside it.",
+    "The legacy services/ai.ts regex parser and Xenova/whisper-tiny.en are NOT a baseline for the WhatsApp flow: step 5 routes around that path, and ParsedWorkData {tasks, notes, date} does not meet WorkSubmission {actionUID, title, timeSpentMinutes, feedback, details}. Any interpretation comparison uses the step 16 deterministic walk as its control.",
+    "Spec proposal P6 (model-assisted interpretation, bounded judgments plus one extraction model, in a shared module) is unselected and blocked on new gate O6 (inference-processor retention, training and regional terms). No step in the prototype calls an inference provider; nothing a gardener writes leaves Green Goods and Meta. A shadow-mode trial on real messages is inside O6, not outside it.",
+    "eval.md gained UX-04 (step 16, above the cut line) and deferred gate 7, INT-01 through INT-04. A smooth step 16 demo shows a working walk, not a system that reads what the gardener wrote; PILOT-01's effort measure cannot be inferred from it.",
+    "Step 16 is numbered out of runtime order deliberately. It executes between steps 5 and 6, but renumbering would have broken every existing cross-reference to steps 6 through 15 in spec.md, eval.md and the live Linear issues.",
+    "Linear writes owed for this amendment and not yet made: PRD-957 for step 16, a research-tracked issue for P6 and O6 that must NOT sit under the Buildathon prototype milestone, and a body correction on PRD-947, which still describes composer hydration."
   ],
   "lanes": {
     "state_api": {
@@ -224,6 +231,14 @@
       "status": "review_addressed",
       "branch": "chore/whatsapp-prototype-scope-lock",
       "note": "Addressed CodeRabbit and Codex review on PR #864: package-scoped proof commands, route registration and durable event dedup in step 1, an authenticated outcome route plus a restart-safe outbox replacing the unreadable browser mapping, openJoining self-join so a new passkey account can publish, a chat-side confirmation so a forwarded link cannot attach a draft, publication-boundary EXIF proof, narrowed CH-01 and SEC-01 claims, corrected origin-boundary reasoning, and lanes held non-ready until a builder is named."
+    },
+    {
+      "timestamp": "2026-09-22T19:30:00Z",
+      "actor": "claude",
+      "lane": "system",
+      "status": "scope_amended",
+      "branch": "chore/whatsapp-prototype-scope-lock",
+      "note": "Locked correction into the chat rather than the browser. Added spec section 8.1 (two-layer draft, Action.inputs as the fill contract, per-field provenance), proposal P6 and gate O6, two section 2 evidence rows, and a fifth section 15.1 narrowing. Rewrote steps 9 and 10 from composer hydration to a read-only review and added step 16, a deterministic chat field walk in a pure shared module, above the cut line. Added UX-04 and deferred gate 7. No package source changed; no inference provider is called anywhere in the slice."
     }
   ],
   "taxonomy": {

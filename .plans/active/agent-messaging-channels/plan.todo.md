@@ -8,7 +8,7 @@
 
 **Created:** 2026-04-17
 
-**Last updated:** 2026-09-21 UTC
+**Last updated:** 2026-09-22 UTC
 
 **Specification:** [canonical architecture](spec.md) — section 15.1 holds the prototype slice
 
@@ -41,6 +41,7 @@ reporting delegation, custodial accounts, or any SMS work.
 | O5 consent, retention, support, thresholds | **Minimum subset required; the rest deferred** | A test garden is not the same as no personal data. Invited testers use real WhatsApp accounts, so step 3 persists a real provider identifier, steps 4 and 5 retain real photos and descriptions, and step 15 publishes that evidence irreversibly to IPFS and chain. "No production data" describes the garden, not the people. A minimum of consent-at-first-contact, abandonment deletion and a named support owner is therefore above the cut line, folded into steps 5 and 14 rather than a sixteenth step. Thresholds, the full retention schedule and support tooling stay deferred to the TAS pilot. |
 | O3 deployed account-proof compatibility | **Largely answered by existing code** | See step 7. |
 | O4 total-loss recovery | **Open** | RESR-21. Unchanged; the prototype makes no recovery claim. |
+| O6 inference processors | **Open — not reached by this slice** | Added 2026-09-22 with spec proposal P6. No inference provider is called anywhere in steps 1 through 16: step 16 walks the action schema in code. The gate blocks P6, including a shadow-mode trial on real messages, and stays open until retention, training and regional terms are settled for every provider that would see a gardener's own description of their work. |
 | Passkey server in production | **Open — blocks `ID-01`** | `isPasskeyServerEnabled` returns `false` whenever `VITE_PASSKEY_SERVER_ENABLED` is the string `false`, and defaults to `Boolean(env.PROD)` only when unset (`config/passkeyServer.ts:42-48`). The prototype's headline journey is a first-run passkey, so a deployed client bundle carrying `false` makes `ID-01` unreachable regardless of what any test reports. Decide the production value, record it here, configure the client build, and show the deployed setting before the UI lane leaves `blocked`. This is a deployment decision, not a coding step. |
 
 ## Decision log
@@ -60,6 +61,9 @@ reporting delegation, custodial accounts, or any SMS work.
 | Legacy Telegram custodial accounts out of scope | Locked 2026-09-21 | No migration, no reuse, no relabelling. |
 | WhatsApp Business Account operated by WEFA LLC | Locked 2026-09-21 | Recorded in RESR-75. The entity question reopens before the pilot, not for the prototype. |
 | Browser session uses a per-request signed proof, not a cookie | Locked 2026-09-21 | Supersedes the section 6 same-origin-facade proposal for this slice. See step 7. |
+| Correction happens in chat; the browser authenticates, shows and signs | Locked 2026-09-22 | Steps 9 and 10 hydrate a read-only review instead of the composer, dropping share-target hydration and draft-resume wiring. New step 16 walks the garden action's required inputs in chat. |
+| The action's own `Action.inputs` schema drives the walk | Locked 2026-09-22 | `options` and `bands` become WhatsApp interactive replies; `number` is validated against its declared `unit`; `text` is verbatim; `repeater` is refused. No per-garden question set is authored beside the published action. |
+| Model-assisted interpretation is proposed, not built | Proposed P6 | Deferred past the prototype. Step 16 is its deterministic floor, and P6 only changes which questions the walk asks. Blocked on O6 before it may touch a real message. |
 
 ## Buildathon prototype
 
@@ -306,25 +310,37 @@ bump `PRAGMA user_version`.
 
 ### Lane: browser handoff and signature
 
-- [ ] **9. Add the draft intake port.** `package:shared`. New
+- [ ] **9. Add the draft review port.** `package:shared`. New
   `src/modules/whatsapp-drafts/transport.ts`, new
-  `src/hooks/client-ui/work/useWhatsAppDraftIntake.ts`, edit `src/hooks/client-ui/work/index.ts`.
+  `src/hooks/client-ui/work/useWhatsAppDraftReview.ts`, edit `src/hooks/client-ui/work/index.ts`.
   No new route, no migration. Model the transport on
-  `src/modules/garden-join-requests/transport.ts:117-154` and the intake on
-  `src/hooks/client-ui/work/useShareTargetIntake.ts:31-190`. The PWA Share Target already does this
-  exact shape: opaque token, external payload, composer hydration, draft persisted only once garden
-  and action are chosen.
-  *Proves part of `UX-01`: a token fetches the server draft and populates the composer.*
-  `bun run --cwd packages/shared test -- useWhatsAppDraftIntake` — PRD-947
-- [ ] **10. Wire the link into the composer route.** `package:shared`, `package:client`. Edit
+  `src/modules/garden-join-requests/transport.ts:117-154`.
+  **This is a review port, not an intake port, and the difference is the point.** The draft arrives
+  already complete: step 16 finished its required fields in chat and the gardener approved it there.
+  So this hook fetches the draft and exposes it for display and signature — it does not hydrate the
+  composer, does not create a local draft the gardener could diverge from, and offers no field
+  editing. That drops the `useShareTargetIntake.ts:31-190` hydration shape an earlier revision of
+  this step reused; the Share Target pattern solves a problem this slice no longer has, because a
+  Share Target payload has never been through a field walk. A gardener who wants a change returns to
+  the chat, per spec section 15.1 narrowing 5.
+  *Proves part of `UX-01`: a token fetches the server draft and renders exactly the fields that will
+  publish — and no path in the hook can mutate one.*
+  `bun run --cwd packages/shared test -- useWhatsAppDraftReview` — PRD-947
+- [ ] **10. Wire the link into a read-only review route.** `package:shared`, `package:client`. Edit
   `src/hooks/client-ui/work/useWorkSubmissionFlowController.ts`, edit
-  `src/hooks/work/useDraftResume.ts`, edit `packages/client/vercel.json` for the response headers,
+  `packages/client/vercel.json` for the response headers,
   and the agent's request-logging configuration for redaction — **a shared hook can set neither an
   edge header nor a proxy log's redaction**, so naming only hooks would let a builder finish this
   step with `?wa=` still reaching edge logs and leaving in a referrer. Proof includes a deployed
   header check and a log-redaction check, not only the shared Vitest suite. No new route: `/home/garden` already reads `?draftId=` and
   `?shareTarget=`, so add `?wa=<token>` beside them and strip it from the address bar after
   exchange. No migration.
+  **`?wa=` lands on review and signature, not on the composer.** `useDraftResume.ts` is no longer
+  edited by this step: resuming an editable local draft is the composer's behaviour, and this route
+  has no editable draft to resume. The controller shows the draft's fields, media and destination
+  garden read-only, states that publishing is public and permanent as section 8 requires, and offers
+  one action — sign. Anything that would let this route write a field belongs to the chat walk in
+  step 16 instead.
   **Address-bar cleanup is the last of three protections, not the only one.** Section 8 requires
   redacting query values from logs, removing them from the address bar after exchange, **and** a
   strict referrer policy; a locator in `?wa=` is already in the application, proxy and edge logs by
@@ -332,9 +348,10 @@ bump `PRAGMA user_version`.
   step also adds query-value redaction on the serving edge and the agent's request logging, and a
   `no-referrer` policy on the continuation route. Without those the single-use locator is single-use
   only against someone who did not read a log.
-  *Proves `UX-01`: the link opens that exact draft rather than a generic screen — and the locator
-  appears in no request log and is sent in no referrer.*
-  `bun run --cwd packages/shared test -- useDraftResume` — PRD-947
+  *Proves `UX-01` and `UX-04`: the link opens that exact draft rather than a generic screen, the
+  rendered fields match the draft the gardener approved in chat with no editable control among them,
+  and the locator appears in no request log and is sent in no referrer.*
+  `bun run --cwd packages/shared test -- useWorkSubmissionFlowController` — PRD-947
 - [ ] **11. First-run passkey from the link.** `package:shared`. Edit
   `src/hooks/client-ui/auth/useLoginScreenController.ts`, edit the install-guidance surface, edit
   `src/hooks/client-ui/work/useWhatsAppDraftIntake.ts`, edit
@@ -593,13 +610,73 @@ bump `PRAGMA user_version`.
   references the attestation carries resolving to exactly those bytes.
   `bun run --cwd packages/shared test -- media-processing whatsapp-publication-path locale-coverage` — PRD-956
 
+### Lane: chat correction
+
+Numbered 16 because it was added on 2026-09-22, after steps 1 through 15 were cross-referenced from
+spec.md, eval.md and the live Linear issues. At runtime it sits between step 5 and step 6: the draft
+is persisted, then walked, then linked. Renumbering to place it there would have silently broken
+every existing reference to "step 6" through "step 15".
+
+- [ ] **16. Walk the garden action's required inputs in chat.** `package:shared`, `package:agent`.
+  New `packages/shared/src/modules/work/action-field-walk.ts`, new
+  `packages/agent/src/handlers/whatsapp-walk.ts`, edit `packages/agent/src/handlers/index.ts`, edit
+  `packages/agent/src/services/db/whatsapp-drafts.ts`. No new route. Migration: the structured-field
+  and provenance columns on `whatsapp_drafts` described in spec section 8.1 — fold them into step
+  3's migration if step 3 has not shipped, and bump `PRAGMA user_version` again if it has.
+  **The shared module holds the rule; the agent holds the conversation.** `action-field-walk.ts` is
+  a pure function of an `Action`, the draft's current structured layer and an inbound answer: it
+  returns the next unanswered required input, or the completed set. It calls no provider, touches no
+  database and knows nothing about WhatsApp, so it is testable without either. The agent handler
+  renders each returned input as a WhatsApp message and records the answer.
+  **Render each input from its own declaration, not from a hand-written script.** `select` and
+  `band` become interactive replies built from that action's published `options` and `bands`;
+  `multi-select` accumulates across replies until the gardener says they are done; `number` accepts
+  a numeric reply and is validated in code against the declared `unit`, with a non-numeric reply
+  re-asked rather than coerced; `text` and `textarea` are stored verbatim with no rewriting.
+  `repeater` is **refused with a catalogued message** — no prototype garden action uses one, and
+  guessing at a nested shape would publish something the gardener never confirmed.
+  **Write the source layer before the structured layer.** Every inbound message appends an immutable
+  source entry first; each structured field records which entry it came from and that the gardener
+  set it. Nothing in this step derives a field from free text — that is P6, and it is not built.
+  The walk ends with a summary of every field and an explicit approval, and only an approved draft
+  reaches step 6's link.
+  **Interactive replies are capped by the provider, and the caps are tighter than they look.** The
+  Cloud API allows at most three reply buttons with 20-character labels, or a list of at most ten
+  sections carrying **ten rows in total across all sections combined** — not ten per section — with
+  24-character row titles. An action whose `options` exceed ten, or whose `optionLabels` do not fit
+  24 characters, must page or fall back to a numbered text prompt; silently truncating a gardener's
+  available choices would publish a report they could not have corrected. Check the configured
+  prototype action's option count and label lengths against these caps before building, and prove
+  whichever path it actually needs.
+  [Reply buttons](https://developers.facebook.com/docs/whatsapp/cloud-api/messages/interactive-reply-buttons-messages),
+  [list messages](https://developers.facebook.com/docs/whatsapp/cloud-api/messages/interactive-list-messages).
+  *Proves `UX-04`: an unknown sender's first photo reaches a draft, the walk asks only for required
+  inputs the draft does not already hold, a `select` is answered from the action's own published
+  options, a non-numeric answer to a `number` is re-asked rather than stored, a `repeater` action is
+  refused with a catalogued message in `en`, `es` and `pt`, and an unapproved draft yields no link.
+  Also proves that the walk writes a source entry per inbound message and gardener provenance on
+  every field it sets.*
+  `bun run --cwd packages/shared test -- action-field-walk && bun run --cwd packages/agent test -- src/__tests__/whatsapp-walk.test.ts src/__tests__/i18n.test.ts` — PRD-957
+
 ## Cut line
 
-**Must work for the 2026-10-02 demo:** steps 1 through 15.
+**Must work for the 2026-10-02 demo:** steps 1 through 16.
 
 Step 15 is above the line deliberately. The slice publishes to public IPFS and to a permanent
 on-chain record, so shipping GPS-tagged photos of a gardener's location is not an acceptable demo
 artifact and cannot be retracted afterwards.
+
+Step 16 is above the line by consequence, not by preference, and the accounting is worth stating
+plainly because it moved on 2026-09-22, ten days out. Locking correction into the chat made the
+browser a read-only review, which took work **out** of steps 9 and 10 — no composer hydration, no
+share-target payload shape, no `useDraftResume` edit, no editable-field surface to secure. It also
+made a chat-side walk mandatory: with no composer and no interpretation, a gardener whose first
+message omits a required field would otherwise have no way to supply it, and the draft could never
+become publishable. Net effect is roughly one step's worth of new work in exchange for two smaller
+ones, concentrated in a pure shared module that needs no provider, no network and no deployed
+surface to test. If the window tightens, step 16 is not the piece to drop — dropping it strands
+every incomplete draft. Reverting steps 9 and 10 to composer hydration is the honest fallback, and
+it costs the target flow rather than the demo.
 
 **Stretch, in priority order:**
 
@@ -633,7 +710,8 @@ Afo before taking it, per PRD-946.
 | `SEC-02` | 6 | PRD-945 |
 | `AUTH-01` | 7 | PRD-946 |
 | `AUTH-03` | 8 | PRD-946 |
-| `UX-01` | 9, 10 | PRD-947 |
+| `UX-01` | 9, 10, 16 | PRD-947 |
+| `UX-04` — chat field walk and approval (new, see below) | 16 | PRD-957 |
 | `ID-01` — passkey creation, then admission and publication | 11, 12 | PRD-947 |
 | `UX-02`, in-app-browser handoff only | 11 | PRD-947 |
 | `OPS-05` | 13, 14 | PRD-948 |
@@ -669,6 +747,7 @@ steps consume parts of workstreams 1, 2, 3, 7 and 10; the rest are untouched.
 | 12 | Telegram continuity and legacy transition | agent platforms/telegram.ts, handlers/start.ts, handlers/approve.ts, services/db/users.ts | Link existing records without changing original authors; no new custodial creation under enabled new flow; unresolved pending work reconciles. |
 | 13 | TAS staged rollout and incident rehearsal | Existing deployment/telemetry controls, with exact changes separately scoped | All applicable eval gates, real costs and total labor, kill switches, independent access/revoke, queue drain and rollback. |
 | 14 | Optional later extensions, each separately selected | Reporting permission proof in contracts/shared before agent signer; Nigeria SMS adapter only after inbound provisioning | Delegation's onchain negative cases and independent revoke; or actual Nigerian two-way SMS and photo handoff. Neither is a baseline release dependency. |
+| 15 | Model-assisted interpretation (spec P6), gated on O6 | shared modules/work/action-field-walk.ts from prototype step 16; the two-layer draft in spec section 8.1 | Labelled examples covering completed versus planned work, corrections, ambiguous units, multiple activities and support requests in the pilot's actual language mix. Three configurations measured on the same set — walk alone, walk plus extraction, walk plus extraction plus bounded judgment — reporting questions avoided, wrong values proposed, unsupported additions, latency, fallback rate and provider cost. Provider terms settled under O6 before a single real message is sent; an approved-synthetic set until then. Pinned model versions, so a rerun means something. |
 
 If any prototype step turns out to require a contract change, stop that slice and update this plan
 in contract, shared, indexer, consuming-application order before resuming. No contract change is
@@ -678,7 +757,9 @@ expected: `WorkResolver` and `WorkApprovalResolver` are unchanged by this slice.
 
 | User requirement | Architecture | Delivery | Proof |
 | --- | --- | --- | --- |
-| New WhatsApp user continues in PWA and signs | Spec 5, 6, 15.1 | Prototype 1 through 13 | ID-01, UX-01, WORK-01, AUTH-01 |
+| New WhatsApp user continues in PWA and signs | Spec 5, 6, 15.1 | Prototype 1 through 13, 16 | ID-01, UX-01, UX-04, WORK-01, AUTH-01 |
+| Complete and correct a report without leaving the chat | Spec 8.1, 15.1 | Prototype 16 | UX-04 |
+| Not be asked again for what the gardener already wrote | Spec 8.1, P6 | Target 15, blocked on O6 | INT-01 through INT-04, PILOT-01 |
 | Report using an existing passkey PWA account | Spec 4 through 6 | Prototype 7 through 11 | ID-01, AUTH-01 |
 | Report using an existing EOA | Spec 5 through 7 | Prototype 7 | ID-03 partial, AUTH-01 |
 | Only intended garden members act | Spec 7 | Prototype 8; target 3, 4, 8 through 11 | AUTH-02 through AUTH-04 |
@@ -718,6 +799,13 @@ Telegram migration, protocol upgrade, or broad API-token distribution is authori
 Production data collection and a pilot provider decision remain out of scope: RESR-75 acceptance
 does not grant them.
 
+Model-assisted interpretation is excluded specifically, not merely unbuilt. No step calls an
+inference provider, no gardener's message leaves Green Goods and Meta, and O6 is not reached. Spec
+proposal P6 stays unselected, and a demo of step 16 is evidence for a deterministic walk only.
+Reusing the legacy `services/ai.ts` regex parser is excluded on the same grounds: it belongs to the
+custodial Telegram path this slice routes around, and its `ParsedWorkData` shape does not meet
+`WorkSubmission` (spec section 2).
+
 ## Linear changes
 
 Written on 2026-09-22. The live records are PRD-941 through PRD-948 plus PRD-955 and PRD-956, under
@@ -739,6 +827,14 @@ the Buildathon prototype and WhatsApp number working milestones.
   coherent — PRD-944 is steps 3 through 5 and 14, since `DATA-02`'s consent notice and deletion path
   span both ends; PRD-946 is steps 7 and 8 — and splitting mid-review would
   have orphaned the bodies that now carry the corrections.
+- PRD-957 is **owed** and not yet written: it owns step 16, the chat field walk, added on
+  2026-09-22 when correction moved into the conversation and steps 9 and 10 became a read-only
+  review. It takes `package:agent` under the one-`package:*`-per-issue rule even though the pure
+  walk module lands in shared, matching how PRD-946 and PRD-947 already resolve that constraint, and
+  its body must say so. A separate issue records spec proposal P6 and gate O6 as research-tracked,
+  not as accepted work — P6 is unselected, so it must not appear under the Buildathon prototype
+  milestone. PRD-947's body needs the step 9 and 10 rewrite reflected; it currently describes
+  composer hydration.
 - `linear-sync` has **not** been run, deliberately. The hub is `parent_only`; with an empty lane map
   an `lane_issues` sync would have created duplicate canonical lane issues under the historical
   PRD-339 parent instead of using the live slice issues. Run the Implementation Start Gate only once
@@ -750,8 +846,8 @@ Each step names its acceptance test, file boundary, migration behaviour and vali
 above. Record fresh RED/GREEN evidence where behaviour changes, then write the lane handoff and the
 machine proof with `record-tdd`.
 
-Shared auth, work and job-queue changes retain the critical override; steps 9, 10, 11 and 13 touch
-shared surfaces and take it. Use the repository Bun wrappers. Authenticated local Brave evidence on
+Shared auth, work and job-queue changes retain the critical override; steps 9, 10, 11, 13 and 16
+touch shared surfaces and take it. Use the repository Bun wrappers. Authenticated local Brave evidence on
 the appropriate deployed origin is required for step 11: a passkey ceremony cannot be proven by
 localhost mocks, and no clean-room browser check substitutes for it.
 

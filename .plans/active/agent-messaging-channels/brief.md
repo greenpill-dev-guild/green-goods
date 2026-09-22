@@ -3,7 +3,7 @@
 **Status:** ACTIVE. The target architecture remains a proposal; the Buildathon prototype slice
 (spec section 15.1) was scope-locked on 2026-09-21 and is authorized to build.
 
-**Last updated:** 2026-09-21 UTC.
+**Last updated:** 2026-09-22 UTC.
 
 **Canonical architecture:** [Identity, garden workflows and provider design](spec.md).
 
@@ -19,7 +19,7 @@ publication in the browser. A browser visit does not require PWA installation.
 
 ## The proposed experience
 
-A new gardener sends a photo and description to the official WhatsApp sender. The bot saves a private draft, confirms the garden and offers a browser continuation. The gardener can use an existing account or explicitly create a passkey account. After secure pairing and garden admission, they review and sign the work. WhatsApp and the PWA then show the same draft and publication status.
+A new gardener sends a photo and description to the official WhatsApp sender. The bot saves a private draft, confirms the garden, and asks in chat for whatever the garden's chosen activity still needs — one field at a time, offering that activity's own published choices where there are any. The gardener approves the finished draft in the conversation, then follows a browser continuation. They can use an existing account or explicitly create a passkey account. After secure pairing and garden admission, they see exactly what is about to be published and sign it; the browser does not edit, because correction already happened in the chat. WhatsApp and the PWA then show the same draft and publication status.
 
 An existing PWA user connects WhatsApp from account settings. Both the account and channel must prove possession. This creates a channel binding, not another wallet. An existing EOA user keeps the EOA as author; a passkey linked to the same profile does not gain control of that EOA.
 
@@ -48,7 +48,12 @@ Stewards receive minimal notifications and approve the exact published work in t
 3. **Recovery and operations:** Total-passkey-loss recovery remains unresolved (RESR-21). Consent,
    retention, support ownership, budget and pilot thresholds must be agreed before any production
    collection — the prototype does not need them because it collects no production data.
-4. **Operating entity:** The WhatsApp Business Account sitting under WEFA is recorded, not settled.
+4. **Reading what the gardener wrote:** Whether a model should interpret a gardener's own
+   description, so they are not asked again for what they already said, is proposed and unselected
+   (spec P6). It is blocked on settling which inference providers may receive that text, under what
+   retention and training terms (spec O6). The prototype asks its questions deterministically and
+   calls no model, so nothing a gardener writes leaves Green Goods and Meta.
+5. **Operating entity:** The WhatsApp Business Account sitting under WEFA is recorded, not settled.
    Whether it stays there, moves to the fiscal sponsor or a Greenpill entity, or WEFA acts as a
    named service provider, is a decision owed before the pilot.
 

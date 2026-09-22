@@ -4,8 +4,9 @@
 Buildathon prototype must pass is listed in [Prototype subset](#prototype-subset-2026-09-21);
 everything else is deferred and must not be claimed from a demo.
 
-**Last updated:** 2026-09-21 UTC (prototype subset added 2026-09-21; the gate tables below are
-unchanged from the 2026-09-11 research pass).
+**Last updated:** 2026-09-22 UTC (prototype subset added 2026-09-21; `UX-04` and gate 7 added
+2026-09-22 with spec section 8.1; gates 1 through 6 are otherwise unchanged from the 2026-09-11
+research pass).
 
 **Architecture:** [spec.md](spec.md). **Sequence:** [plan.todo.md](plan.todo.md).
 
@@ -17,7 +18,8 @@ photos publish irreversibly. Its minimum subset — consent at first contact, ab
 and a named support owner — is inside the prototype; thresholds, the full retention schedule and
 support tooling wait for the pilot. O3 account authentication is
 a baseline gate; reporting delegation has an additional optional gate. O4 total-loss recovery
-remains a disclosed limitation until independently solved.
+remains a disclosed limitation until independently solved. O6 inference processors is **not reached
+by the prototype**: no step calls an inference provider, so gate 7 is entirely deferred.
 
 ## Prototype subset (2026-09-21)
 
@@ -32,7 +34,8 @@ The Buildathon prototype must pass exactly these, and claims nothing else:
 | `SEC-02` | 6 | PRD-945 |
 | `AUTH-01` — includes signed domain/audience, not just an `Origin` header check | 7 | PRD-946 |
 | `AUTH-03` — **draft-read path only** | 8 | PRD-946 |
-| `UX-01` | 9, 10 | PRD-947 |
+| `UX-01` | 9, 10, 16 | PRD-947 |
+| `UX-04` — chat field walk and approval (new, see below) | 16 | PRD-957 |
 | `ID-01` — passkey creation, then admission and publication | 11, 12 | PRD-947 |
 | `ID-03` — **continuation journey only**, not WhatsApp linking; proven by the QA pass 1 EOA case | 7, 11, QA pass 1 | PRD-946 |
 | `UX-02` — in-app-browser handoff only | 11 | PRD-947 |
@@ -51,9 +54,14 @@ reservation and restart-safe business deduplication all remain deferred and uncl
 Everything else below is deferred: all of gate 4, `REC-01` through `REC-05`, `COM-01`, `COM-02`,
 `DATA-01`, `ID-02` and `ID-04` through `ID-07` (**`ID-03` is claimed**, see the prototype subset
 above), `AUTH-02`, `AUTH-04`, `AUTH-05`, `OPS-01` through `OPS-04`,
-`SEC-03` through `SEC-06`, `CH-02` through `CH-05`, and `PILOT-01` through `PILOT-03`. `ID-05`,
+`SEC-03` through `SEC-06`, `CH-02` through `CH-05`, `INT-01` through `INT-04`, and `PILOT-01`
+through `PILOT-03`. `ID-05`,
 `ID-07`, `REC-03` and `MIG-01` are named here because a smooth demo could be mistaken for
-evidence of them; it is not. `WORK-01` is mapped through publication because its required observation ends at "reaches
+evidence of them; it is not. The `INT-*` cases are named for the same reason and deserve their own
+sentence: step 16 asks for every required field it does not already hold, so a gardener stating a
+quantity in their first message still gets asked for it. A demo that completes smoothly shows a
+working walk, not a system that reads what the gardener wrote, and the reporting-effort measure in
+`PILOT-01` cannot be inferred from it. `WORK-01` is mapped through publication because its required observation ends at "reaches
 consented published metadata; no empty-media fallback" — tests that stop at the agent's durable
 draft can all pass while the browser handoff, upload or attestation drops the attachment, so the
 criterion needs an end-to-end assertion against the published metadata.
@@ -172,10 +180,27 @@ Delegation checks apply only if that later feature is selected. They cannot be w
 | --- | --- | --- |
 | UX-01 | TAS gardeners complete first draft and publication | Clear draft/published/approved labels; exact continuation retained; account setup/installation distinction understood; no-sign-up conflict resolved explicitly. |
 | UX-02 | Low bandwidth, interrupted upload, device switch, in-app browser | Visible progress/retry; no lost confirmed draft; supported browser passkey handoff on actual TAS devices. |
+| UX-04 | Chat field walk, correction and approval over WhatsApp | Every required input of the garden's action is reachable from the chat alone: a choice is answered from that action's own published `options` or `bands`, a `number` rejects a non-numeric answer instead of coercing it, a `repeater` action is refused with a catalogued message rather than guessed at, an `options` set larger than the provider's list limit pages instead of truncating, and no link is issued until the gardener approves the summary. The verbatim source entry for each inbound message survives beside the structured fields, and every field set this way records the gardener as its origin. The browser offers no editable field. |
 | UX-03 | Authenticated PWA and steward journeys | Local evidence uses the authenticated Brave workflow; production device proof supplements it. Capture visible account, scope, error and recovery states without sensitive material. |
 | PILOT-01 | Baseline versus pilot reporting/review cycles | Measure gardener, steward and support labor together; consent comprehension, acceptance and correction rates, completion and abandonment; threshold and sample agreed before run. |
 | PILOT-02 | Actual invoices and operating effort | Cost per accepted submission includes provider/Meta, media, gas, subscriptions and support; separate estimates from observed costs. |
 | PILOT-03 | Research owner/TAS acceptance | RESR-75 entry criteria explicitly accepted or revised by their owner; publish no “successful pilot” claim from delivery counts alone. |
+
+## Gate 7: report interpretation (deferred; spec proposal P6)
+
+Added 2026-09-22 with spec section 8.1 and proposal P6. **Every case here is deferred and blocked on
+O6.** None may run against a real gardener's message until inference-provider retention, training and
+regional terms are settled; until then the fixtures are synthetic or explicitly approved. The
+control in every comparison is the deterministic walk from prototype step 16, not the legacy
+`services/ai.ts` regex parser, which this flow routes around and whose `ParsedWorkData` shape does
+not meet `WorkSubmission`.
+
+| ID | Scenario | Required observation |
+| --- | --- | --- |
+| INT-01 | A first message already states values the walk would ask for | Questions asked drop measurably against the step 16 control on the same labelled set, while every value the gardener explicitly stated survives unchanged into the structured layer with its source entry attached. A value the gardener did not state is never supplied. Measured on the pilot's actual language mix, not English alone. |
+| INT-02 | A later message corrects a field the gardener already confirmed | The correction is recognized as referring to the saved draft rather than starting a new report, and it is surfaced for confirmation rather than applied silently. A correction that changes the unit as well as the number ("ten bags" against a seedling count) yields a question, never a conversion. A proposal computed from a superseded source entry is discarded, not applied late. |
+| INT-03 | A draft claims more than its sources support | Additions, contradictions and inflated conclusions are flagged against the source layer — including impact language the gardener never used, such as survival, biodiversity or carbon claims derived from a planting count. Flagging is advisory: no flag blocks publication on its own, and no absence of a flag certifies a claim. High model confidence is recorded as a judgment, never as verification of the underlying event. |
+| INT-04 | Provider failure, timeout, malformed output, or an unsupported language | The private draft survives intact, the walk falls back to its deterministic questions, and the gardener sees no model error. Fallback frequency, latency at the deadline and cost per accepted report are recorded per pinned model version. A failure never strands a draft or loses a source entry. |
 
 ## Evidence recording
 
