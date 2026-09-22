@@ -30,7 +30,7 @@ The Buildathon prototype must pass exactly these, and claims nothing else:
 | `WORK-01` — through publication, not just storage | 3, 4, 5, 9, 13, 14 | PRD-944 |
 | `DATA-03` — attachment bounds only | 4 | PRD-944 |
 | `SEC-02` | 6 | PRD-945 |
-| `AUTH-01` | 7 | PRD-946 |
+| `AUTH-01` — includes signed domain/audience, not just an `Origin` header check | 7 | PRD-946 |
 | `AUTH-03` — **draft-read path only** | 8 | PRD-946 |
 | `UX-01` | 9, 10 | PRD-947 |
 | `ID-01` — passkey creation, then admission and publication | 11, 12 | PRD-947 |
@@ -61,6 +61,13 @@ criterion needs an end-to-end assertion against the published metadata.
 garden, work, draft and attachment IDs across reads, metadata, signed URLs and mutations; step 8
 adds one draft-read route and proves that one denial. The other object paths are unproven here and
 must not be reported as covered.
+
+`AUTH-01` requires rejecting a wrong origin or domain. The envelope step 7 generalizes does not
+supply that on its own: its signed message carries chain, garden, account, action, nonce and
+timestamps but no domain or audience, and the origin check reads an HTTP header a non-browser
+caller controls. The criterion is claimed only because step 7 adds signed `Domain` and `Audience`
+fields and tests cross-environment replay; reusing the envelope unchanged would leave this row
+unearned.
 
 `ID-03` is claimed for the **continuation journey only**: an existing EOA holder opens the link,
 signs the draft proof and publishes, with authorship unchanged. The linking half of its canonical

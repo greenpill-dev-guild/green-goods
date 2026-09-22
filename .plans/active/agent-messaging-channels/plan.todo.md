@@ -235,8 +235,19 @@ bump `PRAGMA user_version`.
   does nonce, expiry, chain allowlist, action binding, resource binding and one-time claim, and
   `services/profile-avatars.ts:90-127` already verifies an EOA, a deployed ERC-1271 account and a
   counterfactual ERC-6492 Kernel account. Bound any hostile-factory simulation.
+  **The existing envelope is not origin-bound, so generalizing it verbatim would not deliver the
+  origin rejection `AUTH-01` requires.** `buildGardenJoinProofMessage`
+  (`packages/shared/src/public-contracts/join-request-auth.ts`) signs chain, garden, account,
+  action, nonce and timestamps and **no domain or audience**, while `checkOrigin` reads the HTTP
+  `Origin` header, which a non-browser caller sets freely. A proof harvested in one environment is
+  therefore replayable into another by a caller that simply supplies the production origin — and
+  the one-time nonce claim does not stop it, because each environment keeps its own claim store.
+  The draft-proof contract adds **signed `Domain` and `Audience` fields**, verified against this
+  deployment's configured values, so the signature itself names where it may be spent.
   *Proves `AUTH-01`: an EOA, a deployed Kernel account and a counterfactual Kernel account all prove
-  ownership server side, and wrong chain, origin, nonce or expiry are rejected.*
+  ownership server side; wrong chain, nonce or expiry are rejected; and a proof signed for another
+  domain or audience is rejected even when the caller supplies a correct `Origin` header —
+  cross-environment replay, not just a header check.*
   `bun run --cwd packages/agent test -- src/__tests__/whatsapp-draft-auth.test.ts` — PRD-946
 - [ ] **8. Scope the draft read to the proven account.** `package:agent`. New
   `src/api/routes/whatsapp-drafts.ts`, edit `src/api/server.ts`. New route: read one draft by
