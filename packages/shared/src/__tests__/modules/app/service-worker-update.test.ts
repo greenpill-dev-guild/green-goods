@@ -102,7 +102,6 @@ describe("buildUpdateTelemetry", () => {
       target_is_registered_waiting: false,
     });
   });
-
 });
 
 describe("describeUpdateFailure", () => {

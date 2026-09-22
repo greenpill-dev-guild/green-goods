@@ -278,7 +278,6 @@ function useServiceWorkerUpdateController({
           const source = force ? "initial_check" : "auto_check";
           try {
             await registration.update();
-            const duration = durationSince(checkStartedAtRef.current);
             if (registration.waiting) {
               markUpdateAvailable(registration.waiting, source);
             } else if (registration.installing) {
@@ -295,7 +294,7 @@ function useServiceWorkerUpdateController({
                   : registration.installing
                     ? "downloading"
                     : "idle",
-                duration_ms: duration,
+                duration_ms: durationSince(checkStartedAtRef.current),
                 found_update: Boolean(registration.waiting || registration.installing),
               })
             );
