@@ -3,7 +3,6 @@ import { toastService } from "@green-goods/shared/components/Toast/toast.service
 import { useServiceWorkerUpdate } from "@green-goods/shared/hooks/app/useServiceWorkerUpdate";
 import { useTheme } from "@green-goods/shared/hooks/app/useTheme";
 import { type Locale, useApp } from "@green-goods/shared/providers/App";
-import { hapticLight } from "@green-goods/shared/utils/app/haptics";
 import { capitalize } from "@green-goods/shared/utils/app/text";
 import { RiEarthFill, RiRefreshLine, RiSettings2Line } from "@remixicon/react";
 import { type ReactNode, useMemo } from "react";
@@ -159,7 +158,6 @@ export const AppSettings: React.FC = () => {
   );
 
   const handleCheckClick = () => {
-    hapticLight();
     // Only ask the registration to look for a newer worker and act on what it
     // reports. Nothing on this path unregisters the worker or clears a cache;
     // that is what stranded installed users on the app-files screen before.
@@ -199,7 +197,6 @@ export const AppSettings: React.FC = () => {
   };
 
   const handleApplyClick = () => {
-    hapticLight();
     activateNow();
   };
 

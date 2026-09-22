@@ -1,5 +1,3 @@
-import { Button } from "@green-goods/shared/components/Button";
-import { useNavigateToTop } from "@green-goods/shared/hooks/app/useNavigateToTop";
 import { useEnsName } from "@green-goods/shared/hooks/blockchain/useEnsName";
 import type { Garden, Work } from "@green-goods/shared/types/domain";
 import { formatAddress } from "@green-goods/shared/utils/app/text";
@@ -10,12 +8,10 @@ import { useIntl } from "react-intl";
 import { Link } from "react-router-dom";
 import { EmptyState } from "@/components/Communication";
 import { pwaStatusStyles } from "@/components/Pwa/statusStyles";
-import { APP_ROUTES } from "@/config/pwaRouting";
 
 interface GardenNotificationsProps {
   garden: Garden;
   notifications: Work[];
-  onClose?: () => void;
 }
 
 function GardenNotificationItem({ garden, work }: { garden: Garden; work: Work }) {
@@ -68,10 +64,8 @@ function GardenNotificationItem({ garden, work }: { garden: Garden; work: Work }
 export const GardenNotifications: React.FC<GardenNotificationsProps> = ({
   garden,
   notifications,
-  onClose,
 }) => {
   const intl = useIntl();
-  const navigate = useNavigateToTop();
   const pendingNotifications = notifications.filter((work) => work.status === "pending");
 
   // The notifications sheet's content region owns scrolling; a nested
@@ -83,28 +77,12 @@ export const GardenNotifications: React.FC<GardenNotificationsProps> = ({
           icon={<RiSeedlingFill />}
           title={intl.formatMessage({
             id: "app.home.notifications.noWork",
-            defaultMessage: "No work submitted yet",
+            defaultMessage: "Nothing to review",
           })}
           description={intl.formatMessage({
             id: "app.home.notifications.encourageWork",
-            defaultMessage: "Start documenting your regenerative work!",
+            defaultMessage: "New submissions will appear here.",
           })}
-          action={
-            <Button
-              type="button"
-              emphasis="tertiary"
-              onClick={() => {
-                onClose?.();
-                navigate(APP_ROUTES.garden, { state: { gardenId: garden.id } });
-              }}
-              leadingIcon={<RiSeedlingFill className="h-4 w-4 shrink-0" aria-hidden="true" />}
-            >
-              {intl.formatMessage({
-                id: "app.home.notifications.visitGarden",
-                defaultMessage: "Visit Your Garden",
-              })}
-            </Button>
-          }
         />
       ) : (
         pendingNotifications.map((work) => (

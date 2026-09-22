@@ -21,6 +21,7 @@ import {
   usePendingJoinsVersion,
 } from "@green-goods/shared/hooks/garden/useJoinGarden";
 import { useHasRole } from "@green-goods/shared/hooks/roles/useHasRole";
+import { useElementHeight } from "@green-goods/shared/hooks/utils/useElementHeight";
 import { useGardenVaults } from "@green-goods/shared/hooks/vault/useGardenVaults";
 import { useVaultDeposits } from "@green-goods/shared/hooks/vault/useVaultDeposits";
 import { useWorks } from "@green-goods/shared/hooks/work/useWorks";
@@ -32,7 +33,7 @@ import {
   RiLoader4Line,
   RiMapPin2Fill,
 } from "@remixicon/react";
-import React, { useCallback, useMemo, useState } from "react";
+import React, { useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { Outlet, useLocation, useParams } from "react-router-dom";
 import { isAddress } from "viem";
@@ -58,25 +59,11 @@ export const Garden: React.FC = () => {
   const openEndowmentSheet = useUIStore((s) => s.openEndowmentSheet);
   const closeEndowmentSheet = useUIStore((s) => s.closeEndowmentSheet);
   const [isGovernanceOpen, setIsGovernanceOpen] = useState(false);
-  // Track the actual rendered height of the fixed header so the spacer below
-  // matches whatever the title section rendered as (including 1, 2, or 3+ line
-  // garden names). Avoids overflow when names exceed the previous hardcoded
-  // ~288px estimate. The header is absent while the garden loads and on child
-  // routes (work, assessments, commitments), so each header element gets its
-  // own observer, disconnected before the element leaves: a removed element
-  // reports a height of 0, which would slide the list under the header.
-  const [headerHeight, setHeaderHeight] = useState<number | null>(null);
-  const measureHeader = useCallback((element: HTMLDivElement | null) => {
-    if (!element || typeof ResizeObserver === "undefined") return;
-    const observer = new ResizeObserver((entries) => {
-      for (const entry of entries) {
-        setHeaderHeight(entry.contentRect.height);
-      }
-    });
-    observer.observe(element);
-    setHeaderHeight(element.getBoundingClientRect().height);
-    return () => observer.disconnect();
-  }, []);
+  // The spacer under the fixed header matches its measured height, whatever the
+  // title wraps to. The header is absent while the garden loads and on child
+  // routes (work, assessments, commitments); the hook observes each header
+  // element on its own so a removed one never reports 0 (see useElementHeight).
+  const [measureHeader, headerHeight] = useElementHeight();
 
   // Ensure proper re-rendering on browser navigation
   useBrowserNavigation();
@@ -361,7 +348,7 @@ export const Garden: React.FC = () => {
 
               {/* Title and meta below banner */}
               <div className="px-4 sm:px-5 md:px-6 mt-3 flex flex-col gap-1.5 pb-3 bg-bg-white-0">
-                <h1 className="line-clamp-2 text-[2rem] font-bold" title={name}>
+                <h1 className="line-clamp-2 text-2xl font-bold" title={name}>
                   {name}
                 </h1>
                 <div className="flex items-center gap-2">
@@ -394,8 +381,6 @@ export const Garden: React.FC = () => {
                   tabs={tabs}
                   activeTab={activeTab}
                   onTabChange={(tabId) => setActiveTab(tabId as GardenTab)}
-                  className="overflow-x-auto"
-                  triggerClassName="flex-auto min-w-max whitespace-nowrap"
                   ariaLabel={intl.formatMessage({
                     id: "app.garden.tabs.label",
                     defaultMessage: "Garden sections",

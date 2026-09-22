@@ -74,7 +74,7 @@ export function WorkFulfills({ chainId, workUID, gardenId }: WorkFulfillsProps) 
             `/home/${commitmentGarden}/commitments/${attribution.commitmentId.toString()}`
           )
         }
-        className="w-full text-left tap-feedback"
+        className="w-full text-left"
         aria-describedby="work-fulfills-decision-status"
       >
         <FormCard
