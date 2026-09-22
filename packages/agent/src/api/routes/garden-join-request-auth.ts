@@ -123,11 +123,13 @@ export function gardenJoinRequestFailure(
 }
 
 /**
- * A class name is an identifier. `name` is writable, so anything else could carry the same URL or
- * address the message does, and is logged as `unknown`.
+ * An error's class name ends in `Error` or `Exception`. `name` is writable, so a name in any
+ * other shape is not a class name and could carry the same URL or address the message does:
+ * it is logged as `unknown`. The client's failure telemetry applies the same rule to its own
+ * sink (`modules/garden-join-requests/analytics.ts`).
  */
 function loggableErrorName(name: string): string {
-  return /^[A-Za-z]{1,48}$/.test(name) ? name : "unknown";
+  return /^[A-Za-z]{0,40}(Error|Exception)$/.test(name) ? name : "unknown";
 }
 
 /**

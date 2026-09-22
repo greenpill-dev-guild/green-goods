@@ -440,9 +440,9 @@ describe("garden join request public API", () => {
     const logged = vi.spyOn(logger, "error").mockImplementation(() => undefined);
     const { app, chainReader } = createApp();
     expect((await submit(app)).status).toBe(201);
-    // `name` is writable, so it gets the same treatment as the message.
-    const failure = new Error("HTTP request failed.");
-    failure.name = "https://rpc.example/v2/secret-key";
+    // `name` is writable, so only a class name is kept; the rest goes the way of the message.
+    const failure = new Error("HTTP request failed. URL: https://rpc.example/v2/secret-key");
+    failure.name = "secrettoken";
     chainReader.isMember.mockRejectedValue(failure);
 
     try {
@@ -455,6 +455,7 @@ describe("garden join request public API", () => {
         { operation: "read_self", stage: "membership_read", errorName: "unknown" },
         "Garden join request operation unavailable"
       );
+      expect(JSON.stringify(logged.mock.calls)).not.toContain("secret");
     } finally {
       logged.mockRestore();
     }

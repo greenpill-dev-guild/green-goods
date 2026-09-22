@@ -10,6 +10,10 @@ describe("join-request failure telemetry", () => {
 
   it.each([
     ["an error class name", "ConnectorNotConnectedError", "ConnectorNotConnectedError"],
+    ["the base error class", "Error", "Error"],
+    ["a DOM exception", "DOMException", "DOMException"],
+    // `name` is writable, so a name that is not shaped like a class name is not kept.
+    ["a letters-only name that is not a class name", "secrettoken", "unknown"],
     [
       "a name that carries an address",
       "Error 0x1111111111111111111111111111111111111111",

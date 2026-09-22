@@ -10,12 +10,13 @@ export interface GardenJoinRequestFailure {
 }
 
 /**
- * An error's class name is an identifier such as `ConnectorNotConnectedError`. Anything that is
- * not shaped like one could carry an address or a URL, so it is recorded as `unknown`.
+ * An error's class name ends in `Error` or `Exception` (`TypeError`,
+ * `ConnectorNotConnectedError`, `DOMException`). `name` is writable, so a name in any other
+ * shape is not a class name and could carry anything: it is recorded as `unknown`.
  */
 function recordableErrorName(name: string | undefined): string | undefined {
   if (name === undefined) return undefined;
-  return /^[A-Za-z]{1,48}$/.test(name) ? name : "unknown";
+  return /^[A-Za-z]{0,40}(Error|Exception)$/.test(name) ? name : "unknown";
 }
 
 /** Records a join-request call the person saw fail, without the account, name, or note. */
