@@ -8,7 +8,7 @@
 
 ## Scope
 
-Buildathon prototype steps 9-11 and 13: draft intake port modelled on useShareTargetIntake, the ?wa= locator on /home/garden beside ?draftId= and ?shareTarget=, first-run passkey with the in-app-browser handoff, and EXIF/location stripping before publication. Proves UX-01, ID-01, part of UX-02, part of DATA-02. Shared auth and work surfaces take the critical override; step 11 needs authenticated Brave proof.
+Buildathon prototype steps 9-12 and 15: draft intake port modelled on useShareTargetIntake, the ?wa= locator on /home/garden beside ?draftId= and ?shareTarget=, first-run passkey with the in-app-browser handoff, open-joining admission before the attestation, the outcome call on submission completion, and EXIF/location stripping before publication. Proves UX-01, ID-01, part of UX-02, part of DATA-02. Shared auth and work surfaces take the critical override; step 11 needs authenticated Brave proof.
 
 ## TDD Proof
 

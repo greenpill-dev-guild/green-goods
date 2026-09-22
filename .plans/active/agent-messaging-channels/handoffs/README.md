@@ -2,8 +2,8 @@
 
 Keep lane handoffs short and factual. Use one file per lane:
 
-- `claude-state-api.md` — prototype steps 1-8 and 12 (agent)
-- `claude-ui.md` — prototype steps 9-11 and 13 (shared/client)
+- `claude-state-api.md` — prototype steps 1-8, 13 and 14 (agent)
+- `claude-ui.md` — prototype steps 9-12 and 15 (shared/client)
 - `contracts.md` — `n/a` for the prototype; no contract change
 - `claude-qa-pass-1.md` — demo rehearsal and the adversarial pass
 - `codex-qa-pass-2.md` — out of prototype scope; belongs to the pilot

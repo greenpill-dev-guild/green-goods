@@ -84,8 +84,12 @@ bump `PRAGMA user_version`.
   `src/platforms/whatsapp/signature.ts`, new `src/api/routes/whatsapp-webhook.ts`, edit
   `src/api/server.ts`, edit `src/config.ts`. New route `GET|POST /webhooks/whatsapp` (GET is Meta's
   subscription challenge, a separate mechanism from the POST signature and must not be conflated
-  with it). No migration — reuse the existing `idempotency_keys` table and its claim helper for the
-  durable `(provider realm, external event ID)` claim.
+  with it). Migration: a `webhook_events` claim table, because the existing
+  helper is not safe here. `claimIdempotencyKey` returns `false` for any existing row regardless of
+  status (`services/db/idempotency.ts:59-60`), so a process that dies after the claim insert and
+  before the domain work completes would treat Meta's redelivery as a duplicate success and lose
+  the gardener's report. Use a lease with a status and an expiry: an unfinished claim past its lease
+  is retryable, and only a completed claim answers a redelivery idempotently.
   `createServer` imports and calls every registrar explicitly (`src/api/server.ts:170-209`); nothing
   is auto-discovered, so the route is unreachable until it is registered there.
   HMAC alone authenticates a body but gives no freshness, so persist the event claim **before**
@@ -94,7 +98,7 @@ bump `PRAGMA user_version`.
   the raw body as `sha256=<hex>`, so preserve raw bytes before parsing.
   *Proves `SEC-01`: a bad or missing signature is rejected before any domain processing, a replayed
   event is not processed twice, and the route answers over HTTP.*
-  `bun run --cwd packages/agent test -- src/__tests__/whatsapp-signature.test.ts && bun run --cwd packages/agent typecheck` — PRD-943
+  `bun run --cwd packages/agent test -- src/__tests__/whatsapp-signature.test.ts src/__tests__/webhook-events.test.ts && bun run --cwd packages/agent typecheck` — PRD-943
 - [ ] **2. Normalize WhatsApp messages and reply.** `package:agent`. New
   `src/platforms/whatsapp/index.ts`, new `src/platforms/whatsapp/client.ts`, edit
   `src/api/routes/whatsapp-webhook.ts`. No new route, no migration. `Platform` already includes
@@ -109,8 +113,13 @@ bump `PRAGMA user_version`.
 
 - [ ] **3. Add the draft tables.** `package:agent`. Edit `src/services/db/schema.ts`, new
   `src/services/db/whatsapp-drafts.ts`, edit `src/services/db/core.ts`. Migration: `whatsapp_drafts`,
-  `draft_attachments`, `draft_link_attempts`, with a unique index on one active draft per
-  `(channel, externalSubject)`. Bump `PRAGMA user_version`.
+  `draft_attachments`, `draft_link_attempts`. **The WhatsApp subject is a provider user or phone
+  identifier and must not be stored or indexed in the clear** — section 4 requires encryption at
+  rest plus a keyed HMAC for any searchable identifier index, because a plain hash of a phone
+  number is enumerable. Store the subject as ciphertext and index the uniqueness constraint on a
+  versioned keyed HMAC of it, reusing the AES-256-GCM helpers the agent already has
+  (`services/crypto.ts`) and the key-provisioning pattern of `JOIN_REQUESTS_ENCRYPTION_KEY`. Cover
+  key version and rotation. Bump `PRAGMA user_version`.
   *Proves part of `WORK-01`: the tables and their unique index survive a database reopen.*
   `AGENT_SQLITE_INTEGRATION=1 bun run --cwd packages/agent test -- storage.sqlite` — PRD-944
 - [ ] **4. Fetch WhatsApp media safely.** `package:agent`. New `src/services/whatsapp-media.ts`,
@@ -224,16 +233,25 @@ bump `PRAGMA user_version`.
   Migration: add the operation columns to `whatsapp_drafts` through `ensureColumn()`.
   **`ClientWorkIdMapping` is a Dexie table in the browser's IndexedDB**
   (`packages/shared/src/modules/job-queue/db-schema.ts:1-22`) and nothing sends `clientWorkId` to
-  any server today, so the agent cannot read it. The client must report the transaction hash and
-  attestation UID back, authenticated by the same signed-proof envelope as step 7.
-  *Proves the input `OPS-05` needs: the agent learns the attestation UID for a draft, and an
-  unauthenticated or foreign report is refused.*
+  any server today, so the agent cannot read it.
+  **The client also has no attestation UID to report.** The field named `attestationId` in that
+  mapping actually holds a transaction hash — `db.ts:381` stores `transactionHash: attestationId`
+  and `process-job.ts:62` passes `completedTxHash` — and when the device is offline that value can
+  be a synthetic hash from `createOfflineTxHash`. So the client reports the **transaction hash
+  only**, and step 14 derives the UID from the receipt. Wire the call into the submission
+  completion path rather than leaving the route unused: the `job:completed` event carries the job
+  and its hash, and `useWhatsAppDraftIntake` knows which draft the submission came from.
+  *Proves the input `OPS-05` needs: the agent learns the transaction hash for a draft from an
+  authenticated caller that actually runs on submission, and an unauthenticated, synthetic or
+  foreign report is refused.*
   `bun run --cwd packages/agent test -- src/__tests__/whatsapp-draft-outcome.test.ts` — PRD-948
 - [ ] **14. Confirm in chat only after the chain receipt.** `package:agent`. New
   `src/services/work-receipts.ts`, new `src/services/whatsapp-outbox.ts`, edit
   `src/platforms/whatsapp/client.ts`. No new route. Migration: add the outbox columns through
-  `ensureColumn()`. Verify the reported UID **on chain** with the existing viem client; never trust
-  a client-supplied hash. Persist the receipt and enqueue the reply in one transaction, then let a
+  `ensureColumn()`. Resolve the transaction receipt with the existing viem client and take the
+  attestation UID from the EAS `Attested` log, then check the attester and garden match the draft.
+  Never trust a client-supplied UID, and reject a hash that resolves to no receipt — which is what a
+  synthetic offline hash does. Persist the receipt and enqueue the reply in one transaction, then let a
   restart-safe consumer drain the outbox, so a process that dies between receipt and send still
   delivers. Model the reconciliation on the funding-intent tables (`db/schema.ts:178-256`).
   *Proves `OPS-05`: the confirmation follows the verified chain receipt rather than the submit, it

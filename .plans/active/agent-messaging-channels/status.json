@@ -30,7 +30,8 @@
     "Existing Linear mirror PRD-339 remains unresolved historical metadata. The live slice issues are PRD-943 through PRD-948. No Linear writes have been performed; proposed changes are listed in plan.todo.md.",
     "The builder for the 2026-09-25 to 2026-10-02 window is not yet named. Lane owners below are placeholders until one is assigned.",
     "Lane sync is parent_only. The live implementation issues are PRD-943 through PRD-948 plus PRD-955 under the Buildathon prototype milestone; they are not lane mirrors. Do not let linear-sync create canonical lane issues under the historical PRD-339 parent.",
-    "Bot review on PR #864 found three factual errors in the first draft of this hub, now corrected: the root test runner rejects positional paths and has no typecheck script, so every proof command is package-scoped; step 1 must register its route in api/server.ts because nothing is auto-discovered; and ClientWorkIdMapping is browser IndexedDB the agent cannot read, so the outcome is reported back through an authenticated route."
+    "Bot review on PR #864 found three factual errors in the first draft of this hub, now corrected: the root test runner rejects positional paths and has no typecheck script, so every proof command is package-scoped; step 1 must register its route in api/server.ts because nothing is auto-discovered; and ClientWorkIdMapping is browser IndexedDB the agent cannot read, so the outcome is reported back through an authenticated route.",
+    "Codex found five more issues on the second pass, all fixed: the webhook claim needed a lease because the existing helper treats an unfinished claim as a duplicate and would lose a redelivered report; the WhatsApp subject must be encrypted with a keyed HMAC index rather than stored in the clear; the client has no attestation UID to report, since the mapping field named attestationId actually holds a transaction hash and can be synthetic offline, so the agent derives the UID from the receipt; the step-number projections were stale after renumbering; and the spec still called RESR-75 Todo eleven lines before saying it was accepted."
   ],
   "lanes": {
     "state_api": {
@@ -39,7 +40,7 @@
       "branch": "feature/whatsapp-prototype-agent",
       "depends_on": [],
       "handoff": "handoffs/claude-state-api.md",
-      "handoff_note": "Buildathon prototype steps 1-8 and 12: Meta webhook signature and normalization, draft and attachment tables, bounded media fetch, single-use link, draft-scoped account proof and read, chain-receipt confirmation. Proves SEC-01, CH-01, WORK-01, SEC-02, AUTH-01, AUTH-03, OPS-05. Reuse garden-join-request-auth.ts and profile-avatars.ts rather than writing new verification.",
+      "handoff_note": "Buildathon prototype steps 1-8, 13 and 14: Meta webhook signature plus a leased event claim, normalization, encrypted-subject draft tables, bounded media fetch, single-use link with chat-side confirmation, draft-scoped account proof and read, the authenticated outcome route, and receipt derivation with a restart-safe outbox. Proves SEC-01, CH-01, WORK-01, SEC-02, AUTH-01, AUTH-03, OPS-05. Reuse garden-join-request-auth.ts and profile-avatars.ts rather than writing new verification.",
       "skill_tags": ["data-layer", "testing", "web3"],
       "manual_blocked": true,
       "ready_when_dependencies_met": false,
@@ -64,7 +65,7 @@
       "branch": "feature/whatsapp-prototype-handoff",
       "depends_on": ["state_api"],
       "handoff": "handoffs/claude-ui.md",
-      "handoff_note": "Buildathon prototype steps 9-11 and 13: draft intake port modelled on useShareTargetIntake, the ?wa= locator on /home/garden beside ?draftId= and ?shareTarget=, first-run passkey with the in-app-browser handoff, and EXIF/location stripping before publication. Proves UX-01, ID-01, part of UX-02, part of DATA-02. Shared auth and work surfaces take the critical override; step 11 needs authenticated Brave proof.",
+      "handoff_note": "Buildathon prototype steps 9-12 and 15: draft intake port modelled on useShareTargetIntake, the ?wa= locator on /home/garden beside ?draftId= and ?shareTarget=, first-run passkey with the in-app-browser handoff, open-joining admission before the attestation, the outcome call on submission completion, and EXIF/location stripping before publication. Proves UX-01, ID-01, part of UX-02, part of DATA-02. Shared auth and work surfaces take the critical override; step 11 needs authenticated Brave proof.",
       "skill_tags": ["ui", "react", "web3"],
       "manual_blocked": true,
       "ready_when_dependencies_met": false,
@@ -107,7 +108,7 @@
       "branch": "feature/whatsapp-prototype-qa",
       "depends_on": ["state_api", "ui"],
       "handoff": "handoffs/claude-qa-pass-1.md",
-      "handoff_note": "Demo rehearsal on a real device against the Meta test number: full journey, then the adversarial pass (forwarded link, preview GET, replay, concurrent consume, foreign draft id, bad webhook signature). Authenticated Brave for the passkey ceremony. Record which deferred cases the demo does not evidence, specifically ID-05, ID-07, REC-03 and MIG-01.",
+      "handoff_note": "Demo rehearsal on a real device against the Meta test number: full journey across steps 1-15, then the adversarial pass (forwarded link, preview GET, replay, concurrent consume, foreign draft id, bad webhook signature, redelivery after a mid-processing restart). Authenticated Brave for the passkey ceremony. Record which deferred cases the demo does not evidence, specifically ID-05, ID-07, REC-03 and MIG-01.",
       "skill_tags": ["testing", "review"],
       "manual_blocked": true,
       "ready_when_dependencies_met": false,

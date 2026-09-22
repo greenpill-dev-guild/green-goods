@@ -30,15 +30,17 @@ The Buildathon prototype must pass exactly these, and claims nothing else:
 | `AUTH-01` | 7 | PRD-946 |
 | `AUTH-03` | 8 | PRD-946 |
 | `UX-01` | 9, 10 | PRD-947 |
-| `ID-01`, and `UX-02` handoff only | 11 | PRD-947 |
-| `OPS-05` | 12 | PRD-948 |
-| `DATA-02` — location only | 13 | PRD-944 |
+| `ID-01` — passkey creation, then admission and publication | 11, 12 | PRD-947 |
+| `UX-02` — in-app-browser handoff only | 11 | PRD-947 |
+| `OPS-05` | 13, 14 | PRD-948 |
+| `DATA-02` — location only | 15 | PRD-956 |
 
 `CH-01` is claimed only for text and photo from a verified tester on the Meta test number. Its
 Nigerian-payload and voice requirements are **not** claimed: Nigeria is the pilot setting and voice
 notes are stretch. `SEC-01` is claimed for signature rejection and for rejecting a replayed
-provider event, which step 1 covers with durable `(provider realm, external event ID)`
-deduplication. It does **not** carry `OPS-01`: cross-channel duplicates, one-logical-intent
+provider event, which step 1 covers with a leased, durable `(provider realm, external
+event ID)` claim — leased rather than a bare claim, so an unfinished one is retryable instead of
+swallowing Meta's redelivery. It does **not** carry `OPS-01`: cross-channel duplicates, one-logical-intent
 reservation and restart-safe business deduplication all remain deferred and unclaimed.
 
 Everything else below is deferred: all of gate 4, `REC-01` through `REC-05`, `COM-01`, `COM-02`,
