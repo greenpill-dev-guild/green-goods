@@ -24,16 +24,18 @@ The Buildathon prototype must pass exactly these, and claims nothing else:
 | --- | --- | --- |
 | `SEC-01` — signature rejection **and** provider-event replay | 1 | PRD-943 |
 | `CH-01` — **test-number text and photo only** | 2 | PRD-943 |
-| `WORK-01` | 3, 4, 5 | PRD-944 |
+| `WORK-01` — through publication, not just storage | 3, 4, 5, 9, 13, 14 | PRD-944 |
 | `DATA-03` — attachment bounds only | 4 | PRD-944 |
 | `SEC-02` | 6 | PRD-945 |
 | `AUTH-01` | 7 | PRD-946 |
-| `AUTH-03` | 8 | PRD-946 |
+| `AUTH-03` — **draft-read path only** | 8 | PRD-946 |
 | `UX-01` | 9, 10 | PRD-947 |
 | `ID-01` — passkey creation, then admission and publication | 11, 12 | PRD-947 |
+| `ID-03` — **continuation journey only**, not WhatsApp linking | 7, 11 | PRD-946 |
 | `UX-02` — in-app-browser handoff only | 11 | PRD-947 |
 | `OPS-05` | 13, 14 | PRD-948 |
-| `DATA-02` — location only, **images only** | 15 | PRD-956 |
+| `DATA-02` — consent notice and deletion only | 5, 14 | PRD-944 |
+| `DATA-06` — location sanitization, **images only** (new, see below) | 15 | PRD-956 |
 
 `CH-01` is claimed only for text and photo from a verified tester on the Meta test number. Its
 Nigerian-payload and voice requirements are **not** claimed: Nigeria is the pilot setting and voice
@@ -47,7 +49,30 @@ Everything else below is deferred: all of gate 4, `REC-01` through `REC-05`, `CO
 `DATA-01`, `ID-02` through `ID-07`, `AUTH-02`, `AUTH-04`, `AUTH-05`, `OPS-01` through `OPS-04`,
 `SEC-03` through `SEC-06`, `CH-02` through `CH-05`, and `PILOT-01` through `PILOT-03`. `ID-05`,
 `ID-07`, `REC-03` and `MIG-01` are named here because a smooth demo could be mistaken for
-evidence of them; it is not. `DATA-02` is claimed for images only: the publication path returns
+evidence of them; it is not. `WORK-01` is mapped through publication because its required observation ends at "reaches
+consented published metadata; no empty-media fallback" — tests that stop at the agent's durable
+draft can all pass while the browser handoff, upload or attestation drops the attachment, so the
+criterion needs an end-to-end assertion against the published metadata.
+
+`AUTH-03` is claimed for the **draft-read path only**. Its canonical observation covers foreign
+garden, work, draft and attachment IDs across reads, metadata, signed URLs and mutations; step 8
+adds one draft-read route and proves that one denial. The other object paths are unproven here and
+must not be reported as covered.
+
+`ID-03` is claimed for the **continuation journey only**: an existing EOA holder opens the link,
+signs the draft proof and publishes, with authorship unchanged. The linking half of its canonical
+case — binding a WhatsApp identity to that EOA — stays deferred. Without this row the hub's own
+success condition, which names both passkey and EOA gardeners, would rest on `AUTH-01` alone, and
+`AUTH-01` proves backend signature verification rather than a working EOA journey.
+
+**`DATA-06` is a new criterion, not a relabelled one.** Canonical `DATA-02` is private/public
+consent and withdrawal and contains no location requirement, so reporting an EXIF test against it
+would mark an unrelated consent gate partly satisfied. Location and metadata sanitization gets its
+own required observation: published bytes carry no GPS or camera-identifying metadata, and the
+media referenced by the attestation resolves to exactly those bytes. `DATA-02` itself is now
+genuinely in prototype scope, but only for the minimum the slice added — the first-contact consent
+notice and the abandonment/deletion path — not for withdrawal of an already published record, which
+cannot be withdrawn. `DATA-06` is claimed for images only: the publication path returns
 video bytes unchanged, so the prototype refuses video rather than claiming to sanitize it.
 
 ## Gate 1: identity continuity and real authentication
@@ -78,6 +103,7 @@ video bytes unchanged, so the prototype refuses video rather than claiming to sa
 | COM-02 | Each selected commitment lifecycle mutation in PWA | Full current payload and effects displayed; correct actor signs; edited/stale revision requires new review; incompatible role/account rejected. |
 | DATA-01 | Same draft edited in PWA and WhatsApp concurrently | Revision conflict visible; no silent overwrite; signed intent remains immutable. |
 | DATA-02 | Private/public consent and withdrawal | Publication requires appropriate content/purpose consent; opt-out stops applicable processing/delivery; deletion handles eligible private data and explains public-copy limits. |
+| DATA-06 | Location and camera metadata on published media | Published bytes carry no GPS or camera-identifying metadata; the media referenced by the attestation resolves to exactly those bytes; a format that cannot be sanitized is refused rather than published. |
 | DATA-03 | Oversized, misleading, redirected or malicious attachment | Bounded fetch/decode, no SSRF/token leak/executable processing; error visible; other gardens retain service capacity. |
 
 ## Gate 3: retries, recovery and containment

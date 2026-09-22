@@ -96,7 +96,9 @@ an English-only test cohort, and `packages/shared/src/__tests__/i18n/locale-cove
 enforces it. Every step that introduces chat or composer copy — draft receipt (5), media failure
 (4), link confirmation (6), browser handoff (11), video refusal (15), chain outcome (14) — edits the
 agent message catalog and `packages/shared/src/i18n/{en,es,pt}.json` in the same step, and runs the
-locale-coverage test as part of its proof. No inline literals, no fallback-only strings.
+locale-coverage test as part of its proof — `src/__tests__/i18n.test.ts` for agent copy,
+`locale-coverage` for shared copy, both appended to those steps' commands below rather than left as
+an intention. No inline literals, no fallback-only strings.
 
 The agent has no migrations directory. Schema changes follow the existing idempotent
 `initSchema()` plus `ensureColumn()` convention in `packages/agent/src/services/db/schema.ts` and
@@ -165,7 +167,7 @@ bump `PRAGMA user_version`.
   a timeout, a size cap and a MIME allowlist — the SSRF and token-leak boundary in section 8.
   *Proves `WORK-01` and part of `DATA-03`: an oversize or malicious attachment is rejected, and a
   failed fetch is reported to the gardener in chat rather than silently dropped.*
-  `bun run --cwd packages/agent test -- src/__tests__/whatsapp-media.test.ts` — PRD-944
+  `bun run --cwd packages/agent test -- src/__tests__/whatsapp-media.test.ts src/__tests__/i18n.test.ts` — PRD-944
 - [ ] **5. Persist the draft across a restart, ahead of the legacy account gate.** `package:agent`.
   New `src/handlers/whatsapp-draft.ts`, edit `src/handlers/index.ts`, edit
   `src/services/db/whatsapp-drafts.ts`, edit `src/handlers/submit.ts`. No new route, no migration.
@@ -176,7 +178,15 @@ bump `PRAGMA user_version`.
   custodial EOA this slice explicitly forbids. A first-time gardener's first photo therefore cannot
   reach a provisional draft today. Wire WhatsApp provisional intake **ahead of** that gate in the
   explicit router, so an unknown WhatsApp sender gets a draft rather than a sign-up instruction, and
-  leave the Telegram path untouched. `submit.ts:159` still writes `media: []` at HEAD, so the
+  leave the Telegram path untouched.
+  **Routing around the `users` row removes the only garden source, so name a new one.**
+  `InboundMessage` carries no garden (`types.ts`), and garden selection today lives solely in
+  `users.currentGarden`, which the legacy `/join` path sets. A provisional draft therefore has no
+  garden unless this step supplies one. For the prototype the source is a single configured
+  `WHATSAPP_PROTOTYPE_GARDEN` (the test garden from step 12), validated at startup against the
+  deployed chain ID, and echoed to the gardener in the consent reply so the destination is never
+  implicit. The draft stores that garden explicitly rather than resolving it later. Multi-garden
+  selection in chat is out of scope: the prototype has one garden. `submit.ts:159` still writes `media: []` at HEAD, so the
   empty-media defect the spec found is live; fix it or keep the new path clear of it, but do not
   leave both.
   **Consent belongs at first contact, not at publication.** The first reply to an unknown sender
@@ -188,7 +198,7 @@ bump `PRAGMA user_version`.
   restarts — and, at HTTP level, that a first message from an unknown WhatsApp sender creates
   neither a `users` row nor a private key, and receives the consent notice before any draft is
   retained.*
-  `bun run --cwd packages/agent test -- src/__tests__/whatsapp-draft.test.ts src/__tests__/whatsapp-first-message.test.ts` — PRD-944
+  `bun run --cwd packages/agent test -- src/__tests__/whatsapp-draft.test.ts src/__tests__/whatsapp-first-message.test.ts src/__tests__/i18n.test.ts` — PRD-944
 
 ### Lane: continuation link
 
@@ -206,7 +216,7 @@ bump `PRAGMA user_version`.
   the two-sided proof section 6 already requires.
   *Proves `SEC-02`: a forwarded link, a preview GET, a replay and two concurrent consumes disclose
   nothing and change no binding; only the original conversation can complete the attach.*
-  `bun run --cwd packages/agent test -- src/__tests__/draft-links.test.ts` — PRD-945
+  `bun run --cwd packages/agent test -- src/__tests__/draft-links.test.ts src/__tests__/i18n.test.ts` — PRD-945
 
 ### Lane: account proof
 
@@ -259,7 +269,7 @@ bump `PRAGMA user_version`.
   *Proves part of `ID-01`: a new gardener creates a passkey with no other account step, and
   WhatsApp's in-app browser is refused with a handoff that preserves the draft. Publication is
   step 12.*
-  `bun run --cwd packages/shared test -- useLoginScreenController` plus authenticated Brave proof — PRD-947
+  `bun run --cwd packages/shared test -- useLoginScreenController locale-coverage` plus authenticated Brave proof — PRD-947
 - [ ] **12. Admit the new account before it publishes.** `package:shared`. Edit
   `src/hooks/client-ui/work/useWhatsAppDraftIntake.ts`, reuse
   `src/modules/garden/join-garden-command.ts:35-88`. No new route, no migration.
@@ -304,21 +314,42 @@ bump `PRAGMA user_version`.
   record is the retry unit: a long-lived consumer drains it with backoff and clears it only on an
   acknowledged, idempotent registration, so repeated delivery of the same transaction hash is
   harmless.
+  **That store does not exist yet, so this step owns creating it.** Every store is declared in
+  `packages/shared/src/modules/job-queue/db-schema.ts` and reached through `db.ts`/`ports.ts`, and
+  the sync transition lives in `process-job.ts`. Add the Dexie version upgrade and an owning-store
+  operation that marks synced and writes the callback in one transaction — otherwise the crash
+  window this record exists to close is still open. Cover the upgrade from a database with no such
+  store, and the downgrade path of a client that has not upgraded.
+  **The retry also needs a credential, which it cannot obtain later.** The prototype has no browser
+  session and requires a signed proof per request (step 7), and a background retry cannot start a
+  passkey ceremony unattended — so a callback persisted with only a correlation and a hash is
+  undeliverable the moment the first POST fails. Capture an **action-bound signed authorization
+  while the signer is still present**, at submission, and persist it with the callback: bound to
+  this draft, this action and a nonce, with an expiry long enough to outlive a queued submission.
+  The agent accepts it once. Treat it as a bearer capability on the device and scope it to nothing
+  but registering this draft's outcome.
   *Proves the input `OPS-05` needs: the agent learns the transaction hash for a draft from an
   authenticated caller that actually runs on submission; a failed POST followed by a reload still
   delivers, and a second delivery of the same hash changes nothing; and an unauthenticated,
   synthetic or foreign report is refused.*
-  `bun run --cwd packages/agent test -- src/__tests__/whatsapp-draft-outcome.test.ts && bun run --cwd packages/shared test -- whatsapp-outcome-callbacks` — PRD-948
+  `bun run --cwd packages/agent test -- src/__tests__/whatsapp-draft-outcome.test.ts && bun run --cwd packages/shared test -- whatsapp-outcome-callbacks job-queue-upgrade` — PRD-948
 - [ ] **14. Confirm in chat only after the chain receipt.** `package:agent`. New
   `src/services/work-receipts.ts`, new `src/services/whatsapp-outbox.ts`, edit
-  `src/platforms/whatsapp/client.ts`. No new route. Migration: add the outbox columns through
-  `ensureColumn()`. Resolve the transaction receipt with the existing viem client and take the
+  `src/platforms/whatsapp/client.ts`, edit `src/api/routes/whatsapp-webhook.ts`. No new route.
+  Migration: add the outbox columns through `ensureColumn()`. Resolve the transaction receipt with the existing viem client and take the
   attestation UID from the EAS `Attested` log. **Attester and garden alone are not enough**: a
   gardener could otherwise register a transaction carrying an unrelated work attestation, or an
   `Attested` event from another emitter or schema, and have the chat confirm work that was never
   published from the saved draft. Require all of: a successful receipt, the log emitted by the
   configured EAS contract, the deployed Work schema UID, and decoded work fields matching the frozen
-  draft revision — compare a canonical payload hash rather than field-by-field. Never trust a
+  draft revision — compare a canonical payload hash rather than field-by-field.
+  **The agent cannot compute that hash from the chat draft alone.** The PWA chooses the action and
+  may edit or re-encode the media after fetching the draft, so the agent knows only the
+  pre-browser content; comparing against it would either reject legitimate submissions or compare
+  against an incomplete expectation. Step 13's registration therefore carries an authenticated
+  **finalized canonical payload hash**, computed at submission from what is actually being
+  attested and covered by the same signed authorization, bound to the draft revision it descends
+  from. Step 14 compares the on-chain payload against that, not against the chat draft. Never trust a
   client-supplied UID, and reject a hash that resolves to no receipt, which is what a synthetic
   offline hash does. Persist the receipt and enqueue the reply in one transaction, then let a
   restart-safe consumer drain the outbox, so a process that dies between receipt and send still
@@ -329,15 +360,21 @@ bump `PRAGMA user_version`.
   would silently fail. For the prototype the outbox holds such a reply as `pending_window` and
   delivers it on the gardener's next inbound message, which reopens the window; it does not drop it
   and does not pretend to have sent it. The confirmation claim is narrowed to match: proactive
-  within the window, deferred-until-next-contact outside it.
+  within the window, deferred-until-next-contact outside it. **That delivery needs an inbound-side
+  wake-up**, so this step also edits `src/api/routes/whatsapp-webhook.ts`: any verified inbound
+  message drains `pending_window` rows for that subject before ordinary handling. Without it the
+  rows sit queued forever even after the gardener reopens the window.
   *Proves `OPS-05`: the confirmation follows the verified chain receipt rather than the submit, it
   still arrives after a restart between the two, a receipt landing outside the 24-hour window is
   held as `pending_window` and delivered on the next inbound message rather than dropped, and a
   failed submit tells the gardener what to do next. Also proves the abandonment path: a tester who
   sends `delete` or abandons a draft past its retention window has the draft, its attachments and
   its subject index removed, and the command is refused for anything already published, which cannot
-  be withdrawn.*
-  `bun run --cwd packages/agent test -- src/__tests__/work-receipts.test.ts src/__tests__/whatsapp-outbox.test.ts` — PRD-948
+  be withdrawn. The retention window for an abandoned draft is **7 days** for the prototype —
+  deliberately shorter than the 30 days the spec proposes for the pilot, because these are test
+  records — and a startup sweep plus a daily interval deletes what has passed it, proven with an
+  advanced clock rather than a real wait.*
+  `bun run --cwd packages/agent test -- src/__tests__/work-receipts.test.ts src/__tests__/whatsapp-outbox.test.ts src/__tests__/i18n.test.ts` — PRD-948
 
 ### Lane: publication safety
 
@@ -350,14 +387,14 @@ bump `PRAGMA user_version`.
   **Videos are rejected for this prototype, not stripped.** The current path accepts any
   `video/*` and returns its bytes unchanged (`media-processing.ts:140-146,239,252`), and stripping a
   video container needs a parser or transcoder that is well outside a prototype step. Claiming
-  `DATA-02` while a GPS-bearing video reaches permanent IPFS would be a false claim, so the
+  `DATA-06` while a GPS-bearing video reaches permanent IPFS would be a false claim, so the
   prototype refuses video with a clear message in the chat and the composer. Lifting that limit is
   its own issue.
-  *Proves part of `DATA-02`: the test follows the publication path far enough to assert that the
+  *Proves `DATA-06`: the test follows the publication path far enough to assert that the
   bytes uploaded to Pinata carry no GPS and that the media references on the attestation resolve to
   those bytes, for a sub-1 MB image; and that a video is refused rather than published. A
   helper-only assertion does not prove this for an irreversible public path.*
-  `bun run --cwd packages/shared test -- media-processing upload-queued-work` — PRD-956
+  `bun run --cwd packages/shared test -- media-processing upload-queued-work locale-coverage` — PRD-956
 
 ## Cut line
 
@@ -403,7 +440,8 @@ Afo before taking it, per PRD-946.
 | `ID-01` — passkey creation, then admission and publication | 11, 12 | PRD-947 |
 | `UX-02`, in-app-browser handoff only | 11 | PRD-947 |
 | `OPS-05` | 13, 14 | PRD-948 |
-| `DATA-02`, location only | 15 | PRD-956 |
+| `DATA-02`, consent notice and deletion only | 5, 14 | PRD-944 |
+| `DATA-06`, location sanitization, images only | 15 | PRD-956 |
 
 **Deferred, and not claimed by the demo.** All of gate 4 (`DEL-01` through `DEL-04`, `MIG-01`
 through `MIG-03`); recovery `REC-01` through `REC-05`; commitments `COM-01` and `COM-02`; `DATA-01`;
