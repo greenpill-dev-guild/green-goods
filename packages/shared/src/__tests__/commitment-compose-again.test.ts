@@ -157,6 +157,35 @@ describe("composerValuesFromCommitment", () => {
     expect(celo).not.toHaveProperty("considerationToken");
   });
 
+  it("never copies the new maker into the confirmer group they would have to reach", () => {
+    // The contract drops the provider from the group when the commitment is taken
+    // up, and refuses it outright when too few are left, so copying CONFIRMER_A
+    // into a commitment CONFIRMER_A is about to make would strand it.
+    const values = composerValuesFromCommitment({
+      composer: "steward",
+      commitment: seeded,
+      metadata: words,
+      requirements: [],
+      creator: CONFIRMER_A,
+    });
+
+    expect(values.confirmers).toEqual([CONFIRMER_B]);
+    // The threshold follows the group down; two of one can never be met.
+    expect(values.confirmationThreshold).toBe(1);
+  });
+
+  it("drops a requirement naming an action that can no longer take work", () => {
+    const values = composerValuesFromCommitment({
+      composer: "member",
+      commitment: gardenWork,
+      metadata: words,
+      requirements,
+      usableActionUIDs: new Set(["44"]),
+    });
+
+    expect(values.requirements).toEqual([{ actionUID: "44", requiredCount: 2 }]);
+  });
+
   it("leaves the dates to be chosen fresh", () => {
     const values = composerValuesFromCommitment({
       composer: "steward",

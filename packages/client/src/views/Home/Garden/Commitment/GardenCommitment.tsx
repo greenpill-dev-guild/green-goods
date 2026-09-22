@@ -136,8 +136,10 @@ export function GardenCommitment() {
       case "offerAgain":
       case "askAgain": {
         // Into the pool the commitment belongs to, which on the protocol pool is
-        // not the garden this screen was opened from.
-        const poolGarden = controller.pool?.garden ?? controller.routeGarden;
+        // not the garden this screen was opened from. Without that read there is
+        // no honest destination: the route's garden would open a composer that
+        // refuses this source as belonging to another pool.
+        const poolGarden = controller.pool?.garden;
         if (!poolGarden) return;
         const door = act.kind === "askAgain" ? "request" : "offer";
         navigate(

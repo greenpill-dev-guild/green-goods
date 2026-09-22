@@ -603,6 +603,23 @@ describe("SeedCommitmentDialog (W8)", () => {
     expect(createdIds()[2]).toBe(createdIds()[1]);
   });
 
+  it("keeps the Not sent mark when the failed commitment is the only one left", async () => {
+    mocks.enqueue
+      .mockRejectedValueOnce(new Error("execution reverted"))
+      .mockResolvedValueOnce("job-2");
+    renderSeed();
+    await toReview("Market rides");
+    fireEvent.click(within(dialog()).getByRole("button", { name: /add another like this/i }));
+    await waitFor(() => expect(within(dialog()).getByLabelText(/^title/i)).toBeInTheDocument());
+    await toReview("Clinic rides");
+    fireEvent.click(within(dialog()).getByRole("button", { name: /create all \(2\)/i }));
+
+    // One landed, so the one that failed is now the only commitment in the
+    // sitting. Its mark is what says it was promised and never sent.
+    await waitFor(() => expect(screen.queryByTestId("seed-tray")).not.toBeInTheDocument());
+    expect(within(screen.getByTestId("seed-tray-current")).getByText(/not sent/i)).toBeVisible();
+  });
+
   it("holds seeding while the offers are more than the steward may hold open", async () => {
     mocks.room = 0;
     renderSeed();

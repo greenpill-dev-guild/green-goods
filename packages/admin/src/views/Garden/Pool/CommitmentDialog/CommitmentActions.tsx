@@ -48,7 +48,13 @@ export function CommitmentActions({
         data-testid="commitment-acts"
       >
         {onSeedAnother ? (
-          <AdminButton type="button" variant="text" size="sm" onClick={onSeedAnother}>
+          <AdminButton
+            type="button"
+            variant="text"
+            size="sm"
+            disabled={actDisabled}
+            onClick={onSeedAnother}
+          >
             {formatMessage({
               id: "cockpit.garden.pool.commitment.act.seedAnother",
               defaultMessage: "Seed Another Like This",

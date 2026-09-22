@@ -119,6 +119,13 @@ export function SeedCommitmentDialog({
   const requirements = useFieldArray({ control: form.control, name: "requirements" });
   const values = form.watch();
   const protocolRegistered = protocolPool.isRegistered;
+  // The season and the protocol pool arrive with their queries, and a row put
+  // into the tray keeps the answers it was parked with. Parking before they
+  // land would send that row with no cycle, or with the fallback off, when the
+  // steward chose neither. The composer's own session carries a late answer
+  // onto the untouched fields of the row still in the form; a parked one is a
+  // snapshot nothing revisits.
+  const poolDefaultsPending = pool.isLoading || protocolPool.isLoading;
   const settlementActive = Boolean(settlement.detail?.account?.active);
 
   // One creation per tray row, under the id the row was given when it joined
@@ -329,7 +336,7 @@ export function SeedCommitmentDialog({
       isLast={isLast}
       seedDisabled={pool.poolId === undefined || pool.model.status !== "open" || capacity.over}
       count={tray.size}
-      addAnotherDisabled={capacity.full && values.direction === "OFFER"}
+      addAnotherDisabled={poolDefaultsPending || (capacity.full && values.direction === "OFFER")}
       onCancel={() => dirtyClose.onOpenChange(false)}
       onBack={() => setStepIndex((index) => index - 1)}
       onNext={() => void goNext()}

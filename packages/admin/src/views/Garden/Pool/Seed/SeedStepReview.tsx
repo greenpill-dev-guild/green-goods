@@ -122,14 +122,18 @@ export function SeedStepReview({
         onEdit={tray.onEdit}
         onRemove={tray.onRemove}
       />
-      {tray.others.length > 0 ? (
+      {/* The mark stays whether or not others are beside it: the last row left
+          after a send is the one that failed, and it is still promised. */}
+      {tray.others.length > 0 || tray.currentNotSent ? (
         <div className="flex flex-wrap items-center gap-2" data-testid="seed-tray-current">
-          <p className="label-xs text-text-soft">
-            {formatMessage({
-              id: "cockpit.garden.pool.seed.tray.current",
-              defaultMessage: "This one",
-            })}
-          </p>
+          {tray.others.length > 0 ? (
+            <p className="label-xs text-text-soft">
+              {formatMessage({
+                id: "cockpit.garden.pool.seed.tray.current",
+                defaultMessage: "This one",
+              })}
+            </p>
+          ) : null}
           {tray.currentNotSent ? (
             <StatusBadge variant="error" size="sm" className="shrink-0 whitespace-nowrap">
               {formatMessage({
@@ -138,19 +142,22 @@ export function SeedStepReview({
               })}
             </StatusBadge>
           ) : null}
-          <AdminButton
-            type="button"
-            variant="text"
-            size="sm"
-            disabled={tray.busy}
-            className="ml-auto"
-            onClick={tray.onRemoveCurrent}
-          >
-            {formatMessage({
-              id: "cockpit.garden.pool.seed.tray.removeCurrent",
-              defaultMessage: "Remove This One",
-            })}
-          </AdminButton>
+          {/* Nothing to hand back to when this is the only one left. */}
+          {tray.others.length > 0 ? (
+            <AdminButton
+              type="button"
+              variant="text"
+              size="sm"
+              disabled={tray.busy}
+              className="ml-auto"
+              onClick={tray.onRemoveCurrent}
+            >
+              {formatMessage({
+                id: "cockpit.garden.pool.seed.tray.removeCurrent",
+                defaultMessage: "Remove This One",
+              })}
+            </AdminButton>
+          ) : null}
         </div>
       ) : null}
       {section(

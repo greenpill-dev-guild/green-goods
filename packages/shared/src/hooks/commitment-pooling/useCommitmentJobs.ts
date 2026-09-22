@@ -28,6 +28,7 @@ import type { ProcessJobResult } from "../../modules/job-queue/ports";
 import type { TransactionSender } from "../../modules/transactions/types";
 import type { Address } from "../../types/domain";
 import { createMutationErrorHandler } from "../../utils/errors/mutation-error-handler";
+import { isCancelledTxError } from "../../utils/errors/tx-error-classifier";
 import { usePrimaryAddress } from "../auth/usePrimaryAddress";
 import { useCurrentChain } from "../blockchain/useChainConfig";
 import { useTransactionSender } from "../blockchain/useTransactionSender";
@@ -133,22 +134,21 @@ async function sendAndSettle(jobId: string, sender: TransactionSender): Promise<
  *   has already waited for the receipt.
  * - Waiting (no steady connection, membership still being read, work not indexed
  *   yet): it stays queued and is not an error, because the tap cannot settle it.
- * - Failed, a declined prompt included: nothing else would ever retry it, and the
- *   executor has by then rewritten its stored payload (a published CID), so the
- *   same act queued again would read as an identity conflict rather than a second
- *   try. It is dropped through the queue's own `discardJob`, which refuses when
- *   the send may already be on chain, and the failure is reported. The composers
- *   keep their own drafts, so nothing the person made is lost.
- * - Judged final by the queue (`identity_conflict:`, `unavailable:`, the prefixes
- *   `process-job` writes): it stays, because the failed-act surface explains it.
+ * - Declined at the wallet: the send never left, so the job is dropped through
+ *   the queue's own `discardJob` and the refusal is reported. The composers keep
+ *   their own drafts, so nothing the person made is lost.
+ * - Failed any other way: the job stays. A commitment job records no broadcast
+ *   checkpoint, so a wallet that broadcast before the receipt timed out looks
+ *   exactly like one that never sent, and dropping it would throw away the only
+ *   record of a transaction that may still land. The queued row and the
+ *   failed-act surface carry it from here, with Try Again.
  */
 async function sendFromTap(jobId: string, sender: TransactionSender | null): Promise<void> {
   if (sender?.authMode !== "wallet") return;
   const result = await sendAndSettle(jobId, sender);
   if (result.success || result.skipped) return;
 
-  const judgedFinal = /^(identity_conflict|unavailable):/.test(result.error ?? "");
-  if (!judgedFinal) await jobQueue.discardJob(jobId);
+  if (isCancelledTxError(result.error)) await jobQueue.discardJob(jobId);
   throw new Error(result.error ?? SEND_FAILED);
 }
 
