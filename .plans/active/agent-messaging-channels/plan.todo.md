@@ -63,6 +63,11 @@ reporting delegation, custodial accounts, or any SMS work.
 One builder, 2026-09-25 to 2026-10-02. Steps are in dependency order. Each is one session, at most
 three or four files, with a one-sentence verification.
 
+**Command form.** The root `bun run test` accepts only `--cache` and `--force`
+(`scripts/dev/test.js:5`) and there is no root `typecheck` script, so every proof below is
+package-scoped with `--cwd`. The package runner does accept positional paths
+(`scripts/dev/package-commands.mjs:94,107`).
+
 Environment added once, at step 1, as Fly secrets, never the repository, per PRD-941:
 `META_APP_SECRET`, `META_VERIFY_TOKEN`, `META_PHONE_NUMBER_ID`, `META_WABA_ID`,
 `META_SYSTEM_USER_TOKEN`, `META_GRAPH_BASE_URL`.
@@ -71,25 +76,34 @@ The agent has no migrations directory. Schema changes follow the existing idempo
 `initSchema()` plus `ensureColumn()` convention in `packages/agent/src/services/db/schema.ts` and
 bump `PRAGMA user_version`.
 
+**The test garden must have `openJoining` enabled.** See step 12 for why.
+
 ### Lane: agent ingress
 
-- [ ] **1. Verify Meta webhooks.** `package:agent`. New `src/platforms/whatsapp/signature.ts`, new
-  `src/api/routes/whatsapp-webhook.ts`, edit `src/config.ts`. New route `GET|POST /webhooks/whatsapp`
-  (GET is Meta's subscription challenge; POST carries events). No migration. Environment as above.
-  Model on the existing HMAC verifier at `src/api/funding/thirdweb.ts:158-186`. Meta signs the raw
-  body as `sha256=<hex>`, so preserve raw bytes before parsing.
-  *Proves `SEC-01`: a webhook with a bad, missing or replayed signature is rejected before any
-  domain processing.*
-  `bun run test -- src/__tests__/whatsapp-signature.test.ts && bun run typecheck` — PRD-943
+- [ ] **1. Verify and deduplicate Meta webhooks.** `package:agent`. New
+  `src/platforms/whatsapp/signature.ts`, new `src/api/routes/whatsapp-webhook.ts`, edit
+  `src/api/server.ts`, edit `src/config.ts`. New route `GET|POST /webhooks/whatsapp` (GET is Meta's
+  subscription challenge, a separate mechanism from the POST signature and must not be conflated
+  with it). No migration — reuse the existing `idempotency_keys` table and its claim helper for the
+  durable `(provider realm, external event ID)` claim.
+  `createServer` imports and calls every registrar explicitly (`src/api/server.ts:170-209`); nothing
+  is auto-discovered, so the route is unreachable until it is registered there.
+  HMAC alone authenticates a body but gives no freshness, so persist the event claim **before**
+  acknowledging, process each event once, and answer a duplicate delivery with an idempotent success
+  rather than a signature error. Model the HMAC on `src/api/funding/thirdweb.ts:158-186`; Meta signs
+  the raw body as `sha256=<hex>`, so preserve raw bytes before parsing.
+  *Proves `SEC-01`: a bad or missing signature is rejected before any domain processing, a replayed
+  event is not processed twice, and the route answers over HTTP.*
+  `bun run --cwd packages/agent test -- src/__tests__/whatsapp-signature.test.ts && bun run --cwd packages/agent typecheck` — PRD-943
 - [ ] **2. Normalize WhatsApp messages and reply.** `package:agent`. New
   `src/platforms/whatsapp/index.ts`, new `src/platforms/whatsapp/client.ts`, edit
   `src/api/routes/whatsapp-webhook.ts`. No new route, no migration. `Platform` already includes
   `"whatsapp"` (`src/types.ts:19`); reuse `InboundMessage` rather than introducing a second shape.
   Treat the sender as an opaque provider subject, since WhatsApp may supply a business-scoped ID
   with no visible phone number.
-  *Proves `CH-01`: a text and a photo from a verified tester arrive as `InboundMessage`, and the
-  agent can reply while the 24-hour window is open.*
-  `bun run test -- src/__tests__/whatsapp-adapter.test.ts` — PRD-943
+  *Proves `CH-01` for text and photo on the test number: both arrive as `InboundMessage` and the
+  agent can reply inside the 24-hour window. Nigerian payloads and voice are not claimed.*
+  `bun run --cwd packages/agent test -- src/__tests__/whatsapp-adapter.test.ts` — PRD-943
 
 ### Lane: durable drafts and media
 
@@ -98,14 +112,14 @@ bump `PRAGMA user_version`.
   `draft_attachments`, `draft_link_attempts`, with a unique index on one active draft per
   `(channel, externalSubject)`. Bump `PRAGMA user_version`.
   *Proves part of `WORK-01`: the tables and their unique index survive a database reopen.*
-  `AGENT_SQLITE_INTEGRATION=1 bun run test -- storage.sqlite` — PRD-944
+  `AGENT_SQLITE_INTEGRATION=1 bun run --cwd packages/agent test -- storage.sqlite` — PRD-944
 - [ ] **4. Fetch WhatsApp media safely.** `package:agent`. New `src/services/whatsapp-media.ts`,
   edit `src/platforms/whatsapp/client.ts`. No new route, no migration. A Cloud API photo arrives as
   a media ID, so fetch through the authenticated Graph endpoint with host and redirect restrictions,
   a timeout, a size cap and a MIME allowlist — the SSRF and token-leak boundary in section 8.
   *Proves `WORK-01` and part of `DATA-03`: an oversize or malicious attachment is rejected, and a
   failed fetch is reported to the gardener in chat rather than silently dropped.*
-  `bun run test -- src/__tests__/whatsapp-media.test.ts` — PRD-944
+  `bun run --cwd packages/agent test -- src/__tests__/whatsapp-media.test.ts` — PRD-944
 - [ ] **5. Persist the draft across a restart.** `package:agent`. New
   `src/handlers/whatsapp-draft.ts`, edit `src/services/db/whatsapp-drafts.ts`, edit
   `src/handlers/submit.ts`. No new route, no migration. `submit.ts:159` still writes `media: []` at
@@ -113,19 +127,25 @@ bump `PRAGMA user_version`.
   but do not leave both.
   *Proves `WORK-01`: a draft with photo, description and garden is readable after the agent
   restarts.*
-  `bun run test -- src/__tests__/whatsapp-draft.test.ts` — PRD-944
+  `bun run --cwd packages/agent test -- src/__tests__/whatsapp-draft.test.ts` — PRD-944
 
 ### Lane: continuation link
 
-- [ ] **6. Mint and consume a single-use link.** `package:agent`. New `src/services/draft-links.ts`,
-  edit `src/api/routes/whatsapp-webhook.ts`, edit `src/services/db/whatsapp-drafts.ts`. No new route
-  beyond the link locator. Uses `draft_link_attempts` from step 3. At least 128 bits of randomness,
-  hashed at rest, 10-minute expiry, atomic single consumption. A GET must never consume an attempt,
-  authenticate a browser, or execute an action, so link previews and prefetch stay safe. Reuse the
-  one-time claim shape at `src/api/routes/garden-join-request-auth.ts:106-111`.
-  *Proves `SEC-02`: against a forwarded link, a preview GET, a replay and two concurrent consumes,
-  exactly one succeeds and nothing about the draft is disclosed.*
-  `bun run test -- src/__tests__/draft-links.test.ts` — PRD-945
+- [ ] **6. Mint a single-use link and confirm it in the chat.** `package:agent`. New
+  `src/services/draft-links.ts`, edit `src/api/routes/whatsapp-webhook.ts`, edit
+  `src/services/db/whatsapp-drafts.ts`. Uses `draft_link_attempts` from step 3. At least 128 bits of
+  randomness, hashed at rest, 10-minute expiry, atomic single consumption. A GET must never consume
+  an attempt, authenticate a browser, or execute an action, so link previews and prefetch stay safe.
+  Reuse the one-time claim shape at `src/api/routes/garden-join-request-auth.ts:106-111`.
+  **The link alone is not sufficient proof.** For a new gardener there is no pre-bound account, so
+  whoever holds a forwarded link could present a valid signature from their own account and win the
+  single consume. Single-use semantics stop races and replays; they do not identify the intended
+  gardener. So after the browser proves an account, the agent asks for confirmation **back in the
+  original WhatsApp conversation**, and the draft attaches only once that confirmation arrives —
+  the two-sided proof section 6 already requires.
+  *Proves `SEC-02`: a forwarded link, a preview GET, a replay and two concurrent consumes disclose
+  nothing and change no binding; only the original conversation can complete the attach.*
+  `bun run --cwd packages/agent test -- src/__tests__/draft-links.test.ts` — PRD-945
 
 ### Lane: account proof
 
@@ -139,14 +159,14 @@ bump `PRAGMA user_version`.
   counterfactual ERC-6492 Kernel account. Bound any hostile-factory simulation.
   *Proves `AUTH-01`: an EOA, a deployed Kernel account and a counterfactual Kernel account all prove
   ownership server side, and wrong chain, origin, nonce or expiry are rejected.*
-  `bun run test -- src/__tests__/whatsapp-draft-auth.test.ts` — PRD-946
+  `bun run --cwd packages/agent test -- src/__tests__/whatsapp-draft-auth.test.ts` — PRD-946
 - [ ] **8. Scope the draft read to the proven account.** `package:agent`. New
   `src/api/routes/whatsapp-drafts.ts`, edit `src/api/server.ts`. New route: read one draft by
   locator. No migration. Keep the existing origin allowlist and per-route rate limiter
   (`src/api/http/public.ts`).
   *Proves `AUTH-03`: a foreign or absent draft id returns the same non-enumerating response, and no
   attachment URL or metadata leaks.*
-  `bun run test -- src/__tests__/whatsapp-drafts-route.test.ts` — PRD-946
+  `bun run --cwd packages/agent test -- src/__tests__/whatsapp-drafts-route.test.ts` — PRD-946
 
 ### Lane: browser handoff and signature
 
@@ -158,16 +178,15 @@ bump `PRAGMA user_version`.
   `src/hooks/client-ui/work/useShareTargetIntake.ts:31-190`. The PWA Share Target already does this
   exact shape: opaque token, external payload, composer hydration, draft persisted only once garden
   and action are chosen.
-  *Proves part of `UX-01`: a token fetches the server draft and populates the composer, and the
-  draft persists once garden and action are chosen.*
-  `bun run test -- useWhatsAppDraftIntake` — PRD-947
+  *Proves part of `UX-01`: a token fetches the server draft and populates the composer.*
+  `bun run --cwd packages/shared test -- useWhatsAppDraftIntake` — PRD-947
 - [ ] **10. Wire the link into the composer route.** `package:shared`. Edit
   `src/hooks/client-ui/work/useWorkSubmissionFlowController.ts`, edit
   `src/hooks/work/useDraftResume.ts`. No new route: `/home/garden` already reads `?draftId=` and
   `?shareTarget=`, so add `?wa=<token>` beside them and strip it from the address bar after
   exchange. No migration.
   *Proves `UX-01`: the link opens that exact draft rather than a generic screen.*
-  `bun run test -- useDraftResume` — PRD-947
+  `bun run --cwd packages/shared test -- useDraftResume` — PRD-947
 - [ ] **11. First-run passkey from the link.** `package:shared`. Edit
   `src/hooks/client-ui/auth/useLoginScreenController.ts`, edit the install-guidance surface, edit
   `src/hooks/client-ui/work/useWhatsAppDraftIntake.ts`. No new route, no migration. "Use my existing
@@ -176,51 +195,81 @@ bump `PRAGMA user_version`.
   line 75), so the work is a resumable handoff into Chrome or Safari that keeps the draft, not a new
   detector. **Before starting, resolve whether the passkey server is on in production:**
   `config/passkeyServer.ts:42-48` defaults it to `true`, `.env.schema:86-90` sets it `false`.
-  *Proves `ID-01` and part of `UX-02`: a new gardener creates a passkey and signs with no other
-  account step, and WhatsApp's in-app browser is refused with a handoff that preserves the draft.*
-  `bun run test -- useLoginScreenController` plus authenticated Brave proof — PRD-947
+  *Proves part of `ID-01`: a new gardener creates a passkey with no other account step, and
+  WhatsApp's in-app browser is refused with a handoff that preserves the draft. Publication is
+  step 12.*
+  `bun run --cwd packages/shared test -- useLoginScreenController` plus authenticated Brave proof — PRD-947
+- [ ] **12. Admit the new account before it publishes.** `package:shared`. Edit
+  `src/hooks/client-ui/work/useWhatsAppDraftIntake.ts`, reuse
+  `src/modules/garden/join-garden-command.ts:35-88`. No new route, no migration.
+  **`WorkResolver.onAttest` reverts `NotGardenMember` for a non-member attester**
+  (`packages/contracts/src/resolvers/Work.sol:19-20,106-110`), and a passkey account created during
+  the continuation flow has no address anyone could have pre-admitted. Pre-admission only covers
+  accounts that already exist, so the first-run journey would revert at publication.
+  Resolution: the test garden runs with `openJoining` enabled, so the new account calls the existing
+  `GardenAccount.joinGarden()` itself (`packages/contracts/src/accounts/Garden.sol:224-243`) before
+  the attestation, sponsored for passkey users. No steward is in the critical path.
+  This is one extra on-chain transaction, not one extra *account* step, which is what `ID-01`
+  constrains. State that plainly in the demo narration rather than claiming a single transaction.
+  *Proves the rest of `ID-01`: a brand-new passkey account reaches a signed on-chain publication
+  without a second account step, and the attestation does not revert.*
+  `bun run --cwd packages/shared test -- join-garden-command useWhatsAppDraftIntake` — PRD-947
 
 ### Lane: confirmation
 
-- [ ] **12. Confirm only after the chain receipt.** `package:agent`. New
-  `src/services/work-receipts.ts`, edit `src/services/db/whatsapp-drafts.ts`, edit
-  `src/platforms/whatsapp/client.ts`. No new route. Migration: add the operation and outbox columns
-  to `whatsapp_drafts` through `ensureColumn()`. Correlate on `clientWorkId`, which is already the
-  stable submission identity (`shared/src/modules/job-queue/draft-snapshot.ts:82`) and is already
-  mapped to the attestation UID by `ClientWorkIdMapping`
-  (`shared/src/modules/job-queue/db-schema.ts:17-22`). Verify the UID on chain; never trust a
-  client-supplied transaction hash. Model reconciliation on the funding-intent tables
-  (`db/schema.ts:178-256`).
-  *Proves `OPS-05`: the confirmation follows the chain receipt rather than the submit, and a failed
-  submit tells the gardener what to do next.*
-  `bun run test -- src/__tests__/work-receipts.test.ts` — PRD-948
+- [ ] **13. Report the outcome back to the agent.** `package:shared`, `package:agent`. New
+  `packages/agent/src/api/routes/whatsapp-draft-outcome.ts`, edit
+  `packages/shared/src/modules/whatsapp-drafts/transport.ts`, edit
+  `packages/agent/src/api/server.ts`. New route: authenticated outcome registration for a draft.
+  Migration: add the operation columns to `whatsapp_drafts` through `ensureColumn()`.
+  **`ClientWorkIdMapping` is a Dexie table in the browser's IndexedDB**
+  (`packages/shared/src/modules/job-queue/db-schema.ts:1-22`) and nothing sends `clientWorkId` to
+  any server today, so the agent cannot read it. The client must report the transaction hash and
+  attestation UID back, authenticated by the same signed-proof envelope as step 7.
+  *Proves the input `OPS-05` needs: the agent learns the attestation UID for a draft, and an
+  unauthenticated or foreign report is refused.*
+  `bun run --cwd packages/agent test -- src/__tests__/whatsapp-draft-outcome.test.ts` — PRD-948
+- [ ] **14. Confirm in chat only after the chain receipt.** `package:agent`. New
+  `src/services/work-receipts.ts`, new `src/services/whatsapp-outbox.ts`, edit
+  `src/platforms/whatsapp/client.ts`. No new route. Migration: add the outbox columns through
+  `ensureColumn()`. Verify the reported UID **on chain** with the existing viem client; never trust
+  a client-supplied hash. Persist the receipt and enqueue the reply in one transaction, then let a
+  restart-safe consumer drain the outbox, so a process that dies between receipt and send still
+  delivers. Model the reconciliation on the funding-intent tables (`db/schema.ts:178-256`).
+  *Proves `OPS-05`: the confirmation follows the verified chain receipt rather than the submit, it
+  still arrives after a restart between the two, and a failed submit tells the gardener what to do
+  next.*
+  `bun run --cwd packages/agent test -- src/__tests__/work-receipts.test.ts src/__tests__/whatsapp-outbox.test.ts` — PRD-948
 
 ### Lane: publication safety
 
-- [ ] **13. Strip location metadata before publication.** `package:shared`. Edit
+- [ ] **15. Strip location metadata before publication.** `package:shared`. Edit
   `src/modules/work/media-processing.ts`, edit `src/modules/work/heic-conversion.ts`. No new route,
   no migration. Today there is no dedicated strip step: compression re-encodes only files over about
   1 MB, so smaller images and all videos publish with EXIF and GPS intact
   (`media-processing.ts:239,244,253`). Section 8 requires removing unnecessary EXIF and location
   while preserving consented evidence the garden needs.
-  *Proves part of `DATA-02`: published media carries no GPS, including files under 1 MB.*
-  `bun run test -- media-processing` — PRD-944
+  *Proves part of `DATA-02`: the test follows the publication path far enough to assert that the
+  bytes uploaded to Pinata carry no GPS and that the media references on the attestation resolve to
+  those bytes. Cover a sub-1 MB image and a video — a helper-only assertion does not prove this for
+  an irreversible public path.*
+  `bun run --cwd packages/shared test -- media-processing upload-queued-work` — PRD-944
 
 ## Cut line
 
-**Must work for the 2026-10-02 demo:** steps 1 through 13.
+**Must work for the 2026-10-02 demo:** steps 1 through 15.
 
-Step 13 is above the line deliberately. The slice publishes to public IPFS and to a permanent
+Step 15 is above the line deliberately. The slice publishes to public IPFS and to a permanent
 on-chain record, so shipping GPS-tagged photos of a gardener's location is not an acceptable demo
 artifact and cannot be retracted afterwards.
 
 **Stretch, in priority order:**
 
-1. Live steward approval on stage: a tester requests to join and a steward welcomes them during the
-   demo. The flow already exists — the steward's own wallet sends `addGardener` on chain, then the
-   API reconciles by reading the chain and returns `202 pendingOnchainMembership` until membership
-   is effective. It adds an on-chain admission transaction to the critical path, which is why it is
-   not the default.
+1. Live steward approval on stage, for an **invite-only** garden: a tester requests to join and a
+   steward welcomes them during the demo. The flow already exists — the steward's own wallet sends
+   `addGardener` on chain, then the API reconciles by reading the chain and returns `202
+   pendingOnchainMembership` until membership is effective. Step 12 uses `openJoining` self-join
+   instead, so this is a showcase of the invite-only path rather than the demo's critical path.
 2. An approved template for replies past the 24-hour window. Template review can take up to 24
    hours, so it must be submitted days ahead or dropped.
 3. Voice notes. `Xenova/whisper-tiny.en` already runs in-process (`services/ai.ts:156-182`).
@@ -238,17 +287,18 @@ Afo before taking it, per PRD-946.
 
 | Must pass | Step | Linear |
 | --- | --- | --- |
-| `SEC-01` | 1 | PRD-943 |
-| `CH-01` | 2 | PRD-943 |
+| `SEC-01` — signature and provider-event replay | 1 | PRD-943 |
+| `CH-01` — test-number text and photo only | 2 | PRD-943 |
 | `WORK-01` | 3, 4, 5 | PRD-944 |
 | `DATA-03`, attachment bounds only | 4 | PRD-944 |
 | `SEC-02` | 6 | PRD-945 |
 | `AUTH-01` | 7 | PRD-946 |
 | `AUTH-03` | 8 | PRD-946 |
 | `UX-01` | 9, 10 | PRD-947 |
-| `ID-01`, and `UX-02` handoff only | 11 | PRD-947 |
-| `OPS-05` | 12 | PRD-948 |
-| `DATA-02`, location only | 13 | PRD-944 |
+| `ID-01` — passkey creation, then admission and publication | 11, 12 | PRD-947 |
+| `UX-02`, in-app-browser handoff only | 11 | PRD-947 |
+| `OPS-05` | 13, 14 | PRD-948 |
+| `DATA-02`, location only | 15 | PRD-944 |
 
 **Deferred, and not claimed by the demo.** All of gate 4 (`DEL-01` through `DEL-04`, `MIG-01`
 through `MIG-03`); recovery `REC-01` through `REC-05`; commitments `COM-01` and `COM-02`; `DATA-01`;

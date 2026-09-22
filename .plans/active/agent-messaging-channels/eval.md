@@ -4,7 +4,8 @@
 Buildathon prototype must pass is listed in [Prototype subset](#prototype-subset-2026-09-21);
 everything else is deferred and must not be claimed from a demo.
 
-**Last updated:** 2026-09-11 UTC.
+**Last updated:** 2026-09-21 UTC (prototype subset added 2026-09-21; the gate tables below are
+unchanged from the 2026-09-11 research pass).
 
 **Architecture:** [spec.md](spec.md). **Sequence:** [plan.todo.md](plan.todo.md).
 
@@ -21,8 +22,8 @@ The Buildathon prototype must pass exactly these, and claims nothing else:
 
 | ID | Prototype step | Linear |
 | --- | --- | --- |
-| `SEC-01` | 1 | PRD-943 |
-| `CH-01` | 2 | PRD-943 |
+| `SEC-01` — signature rejection **and** provider-event replay | 1 | PRD-943 |
+| `CH-01` — **test-number text and photo only** | 2 | PRD-943 |
 | `WORK-01` | 3, 4, 5 | PRD-944 |
 | `DATA-03` — attachment bounds only | 4 | PRD-944 |
 | `SEC-02` | 6 | PRD-945 |
@@ -32,6 +33,13 @@ The Buildathon prototype must pass exactly these, and claims nothing else:
 | `ID-01`, and `UX-02` handoff only | 11 | PRD-947 |
 | `OPS-05` | 12 | PRD-948 |
 | `DATA-02` — location only | 13 | PRD-944 |
+
+`CH-01` is claimed only for text and photo from a verified tester on the Meta test number. Its
+Nigerian-payload and voice requirements are **not** claimed: Nigeria is the pilot setting and voice
+notes are stretch. `SEC-01` is claimed for signature rejection and for rejecting a replayed
+provider event, which step 1 covers with durable `(provider realm, external event ID)`
+deduplication. It does **not** carry `OPS-01`: cross-channel duplicates, one-logical-intent
+reservation and restart-safe business deduplication all remain deferred and unclaimed.
 
 Everything else below is deferred: all of gate 4, `REC-01` through `REC-05`, `COM-01`, `COM-02`,
 `DATA-01`, `ID-02` through `ID-07`, `AUTH-02`, `AUTH-04`, `AUTH-05`, `OPS-01` through `OPS-04`,

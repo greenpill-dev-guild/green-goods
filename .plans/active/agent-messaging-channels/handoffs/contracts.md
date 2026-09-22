@@ -4,7 +4,7 @@
 
 - Owner: n/a
 - Branch: set when work begins using `<type>/<work-description>`
-- Status: pending implementation
+- Status: n/a — no contract change in this slice
 
 ## Scope
 

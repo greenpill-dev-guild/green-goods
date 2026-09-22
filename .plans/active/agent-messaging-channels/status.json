@@ -28,56 +28,60 @@
     "Account proof (PRD-946) is largely existing code: packages/agent/src/api/routes/garden-join-request-auth.ts:40-104 and packages/agent/src/services/profile-avatars.ts:90-127 already verify EOA, deployed ERC-1271 and counterfactual ERC-6492 accounts. Treat the lane as reuse, not new cryptography.",
     "The agent is a single Fly machine with SQLite on the agent_data volume; the volume attaches to one machine, so single-replica operation is enforced by storage topology. Do not scale horizontally while draft state lives in that file.",
     "Existing Linear mirror PRD-339 remains unresolved historical metadata. The live slice issues are PRD-943 through PRD-948. No Linear writes have been performed; proposed changes are listed in plan.todo.md.",
-    "The builder for the 2026-09-25 to 2026-10-02 window is not yet named. Lane owners below are placeholders until one is assigned."
+    "The builder for the 2026-09-25 to 2026-10-02 window is not yet named. Lane owners below are placeholders until one is assigned.",
+    "Lane sync is parent_only. The live implementation issues are PRD-943 through PRD-948 plus PRD-955 under the Buildathon prototype milestone; they are not lane mirrors. Do not let linear-sync create canonical lane issues under the historical PRD-339 parent.",
+    "Bot review on PR #864 found three factual errors in the first draft of this hub, now corrected: the root test runner rejects positional paths and has no typecheck script, so every proof command is package-scoped; step 1 must register its route in api/server.ts because nothing is auto-discovered; and ClientWorkIdMapping is browser IndexedDB the agent cannot read, so the outcome is reported back through an authenticated route."
   ],
   "lanes": {
     "state_api": {
-      "owner": "claude",
-      "status": "ready",
+      "owner": "unassigned",
+      "status": "blocked",
       "branch": "feature/whatsapp-prototype-agent",
       "depends_on": [],
       "handoff": "handoffs/claude-state-api.md",
       "handoff_note": "Buildathon prototype steps 1-8 and 12: Meta webhook signature and normalization, draft and attachment tables, bounded media fetch, single-use link, draft-scoped account proof and read, chain-receipt confirmation. Proves SEC-01, CH-01, WORK-01, SEC-02, AUTH-01, AUTH-03, OPS-05. Reuse garden-join-request-auth.ts and profile-avatars.ts rather than writing new verification.",
       "skill_tags": ["data-layer", "testing", "web3"],
-      "manual_blocked": false,
-      "ready_when_dependencies_met": true,
+      "manual_blocked": true,
+      "ready_when_dependencies_met": false,
       "tdd": {
         "mode": "required",
         "status": "pending",
         "red": {
-          "command": "bun run test -- src/__tests__/whatsapp-signature.test.ts",
+          "command": "bun run --cwd packages/agent test -- src/__tests__/whatsapp-signature.test.ts",
           "evidence": ""
         },
         "green": {
-          "command": "bun run test -- src/__tests__/whatsapp-signature.test.ts src/__tests__/whatsapp-adapter.test.ts src/__tests__/whatsapp-media.test.ts src/__tests__/whatsapp-draft.test.ts src/__tests__/draft-links.test.ts src/__tests__/whatsapp-draft-auth.test.ts src/__tests__/whatsapp-drafts-route.test.ts src/__tests__/work-receipts.test.ts",
+          "command": "bun run --cwd packages/agent test -- src/__tests__/whatsapp-signature.test.ts src/__tests__/whatsapp-adapter.test.ts src/__tests__/whatsapp-media.test.ts src/__tests__/whatsapp-draft.test.ts src/__tests__/draft-links.test.ts src/__tests__/whatsapp-draft-auth.test.ts src/__tests__/whatsapp-drafts-route.test.ts src/__tests__/whatsapp-draft-outcome.test.ts src/__tests__/work-receipts.test.ts src/__tests__/whatsapp-outbox.test.ts",
           "evidence": ""
         },
-        "note": "Unrun. Each of prototype steps 1-8 and 12 records its own RED then GREEN as it lands; the commands above are the first step's and the lane's full set. Step 3 additionally needs AGENT_SQLITE_INTEGRATION=1 for the sqlite lane."
-      }
+        "note": "Unrun. Prototype steps 1-8, 13 and 14. Commands are package-scoped: the root runner accepts only --cache and --force and has no typecheck script. Step 3 additionally needs AGENT_SQLITE_INTEGRATION=1."
+      },
+      "blocked_reason": "No builder assigned for the 2026-09-25 to 2026-10-02 window. Unblock by naming the builder and setting the owner; do not dispatch from an unassigned lane."
     },
     "ui": {
-      "owner": "claude",
+      "owner": "unassigned",
       "status": "blocked",
       "branch": "feature/whatsapp-prototype-handoff",
       "depends_on": ["state_api"],
       "handoff": "handoffs/claude-ui.md",
       "handoff_note": "Buildathon prototype steps 9-11 and 13: draft intake port modelled on useShareTargetIntake, the ?wa= locator on /home/garden beside ?draftId= and ?shareTarget=, first-run passkey with the in-app-browser handoff, and EXIF/location stripping before publication. Proves UX-01, ID-01, part of UX-02, part of DATA-02. Shared auth and work surfaces take the critical override; step 11 needs authenticated Brave proof.",
       "skill_tags": ["ui", "react", "web3"],
-      "manual_blocked": false,
-      "ready_when_dependencies_met": true,
+      "manual_blocked": true,
+      "ready_when_dependencies_met": false,
       "tdd": {
         "mode": "required",
         "status": "pending",
         "red": {
-          "command": "bun run test -- useWhatsAppDraftIntake",
+          "command": "bun run --cwd packages/shared test -- useWhatsAppDraftIntake",
           "evidence": ""
         },
         "green": {
-          "command": "bun run test -- useWhatsAppDraftIntake useDraftResume useLoginScreenController media-processing",
+          "command": "bun run --cwd packages/shared test -- useWhatsAppDraftIntake useDraftResume useLoginScreenController join-garden-command media-processing upload-queued-work",
           "evidence": ""
         },
-        "note": "Unrun. Prototype steps 9-11 and 13. Step 11 also needs authenticated Brave proof on the deployed origin: a passkey ceremony cannot be proven by localhost mocks, so the Vitest GREEN alone does not close it."
-      }
+        "note": "Unrun. Prototype steps 9-12 and 15. Step 11 also needs authenticated Brave proof on the deployed origin: a passkey ceremony cannot be proven by localhost mocks."
+      },
+      "blocked_reason": "No builder assigned for the 2026-09-25 to 2026-10-02 window. Unblock by naming the builder and setting the owner; do not dispatch from an unassigned lane."
     },
     "contracts": {
       "owner": "unassigned",
@@ -98,15 +102,16 @@
       }
     },
     "qa_pass_1": {
-      "owner": "claude",
+      "owner": "unassigned",
       "status": "blocked",
       "branch": "feature/whatsapp-prototype-qa",
       "depends_on": ["state_api", "ui"],
       "handoff": "handoffs/claude-qa-pass-1.md",
       "handoff_note": "Demo rehearsal on a real device against the Meta test number: full journey, then the adversarial pass (forwarded link, preview GET, replay, concurrent consume, foreign draft id, bad webhook signature). Authenticated Brave for the passkey ceremony. Record which deferred cases the demo does not evidence, specifically ID-05, ID-07, REC-03 and MIG-01.",
       "skill_tags": ["testing", "review"],
-      "manual_blocked": false,
-      "ready_when_dependencies_met": true
+      "manual_blocked": true,
+      "ready_when_dependencies_met": false,
+      "blocked_reason": "No builder assigned for the 2026-09-25 to 2026-10-02 window. Unblock by naming the builder and setting the owner; do not dispatch from an unassigned lane."
     },
     "qa_pass_2": {
       "owner": "codex",
@@ -208,6 +213,14 @@
       "status": "moved_to_active",
       "branch": null,
       "note": "Moved feature hub from ideas to active after Afo's scope lock. Run by Claude via plan-hub.mjs move; the scope-lock decision itself was Afo's."
+    },
+    {
+      "timestamp": "2026-09-22T02:40:00Z",
+      "actor": "claude",
+      "lane": "system",
+      "status": "review_addressed",
+      "branch": "chore/whatsapp-prototype-scope-lock",
+      "note": "Addressed CodeRabbit and Codex review on PR #864: package-scoped proof commands, route registration and durable event dedup in step 1, an authenticated outcome route plus a restart-safe outbox replacing the unreadable browser mapping, openJoining self-join so a new passkey account can publish, a chat-side confirmation so a forwarded link cannot attach a draft, publication-boundary EXIF proof, narrowed CH-01 and SEC-01 claims, corrected origin-boundary reasoning, and lanes held non-ready until a builder is named."
     }
   ],
   "taxonomy": {
@@ -222,6 +235,7 @@
     "lastSyncedAt": "2026-05-10T23:05:15.718Z",
     "parentIssue": "PRD-339",
     "lanes": {},
-    "project": "Agent Messaging Channels (WhatsApp + SMS)"
+    "project": "Agent Messaging Channels (WhatsApp + SMS)",
+    "laneSyncMode": "parent_only"
   }
 }

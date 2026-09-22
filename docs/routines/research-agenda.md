@@ -187,7 +187,7 @@ Each track carries the same fields. The routine reads them literally, so keep th
 **Why it matters.** The *Accessible Participation* initiative (Planned, target 2026-10-31) sets "real pilot submissions" as the bar. The Q3 strategy says "no agent-channel implementation until entry criteria pass", and the Community Evidence Mesh roadmap's Phase 1 (September to November 2026) is exactly familiar-channel capture. The entry criteria became an accepted research question on 2026-09-02 (RESR-75); nobody has written them yet.
 
 **Anchors.**
-- RESR-75 (define the entry criteria for reporting impact over WhatsApp and SMS; Backlog, unowned, filed 2026-09-02). The project below is Product-only, so the research issue stays unprojected and relates to PRD-834.
+- RESR-75 (define the entry criteria for reporting impact over WhatsApp and SMS; **Done, accepted 2026-09-21**, filed 2026-09-02). The accepted criteria live in its entry-criteria note. The project below is Product-only, so the research issue stays unprojected and relates to PRD-834.
 - Linear project [Agent Messaging Channels (WhatsApp + SMS)](https://linear.app/greenpill-dev-guild/project/agent-messaging-channels-whatsapp-sms-71cda634fcf7) (Product, Backlog, target 2026-12-31): "research to entry criteria, then build behind the gate, then a pilot channel". PRD-290 (the epic) is Done as a spec. PRD-834 (third-party bot integration path for partner-run gardens; Backlog).
 - `.plans/active/agent-messaging-channels/` (the gardener signs each publication with their own passkey or EOA; no custodial wallets and no delegation. The ERC-4337 session keys, tiered rate limits and dual revoke path described here previously were the superseded April design).
 - The evidence mesh roadmap's Phase 1 evidence list (minutes per accepted submission, completion and abandonment, correction rate, operator minutes, data cost, language and device coverage, consent comprehension).
@@ -197,16 +197,16 @@ Each track carries the same fields. The routine reads them literally, so keep th
 
 **Settled.**
 - The Telegram agent exists and is the foundation; WhatsApp and SMS are adapters on the same handler set (agent-messaging-channels brief).
-- Transactional actions run under session keys, not an agent-held key; read is unlimited, write is rate-limited, and revocation works from web or by keyword.
+- The gardener signs each publication with their own passkey or EOA. The prototype uses a private draft, a single-use browser link confirmed back in the chat, and a per-request signed account proof; it creates no custodial wallet, session key or delegated signer. Reporting delegation is deferred behind a separate contract and security gate. (The session keys, tiered rate limits and keyword revocation previously recorded here were the superseded April design.)
 - Capture creates a private candidate, never an immediate public record, and every channel must produce the same candidate-evidence contract (evidence mesh thesis, locked).
 
 **Open.**
-1. The entry criteria themselves: identity and verification without sign-up, expected support load, cost per accepted submission by country, consent comprehension, and the manual fallback. RESR-75 holds this question. Next step: an owner drafts the criteria from the roadmap's Phase 1 gate and the panel accepts or returns them.
+1. ~~The entry criteria themselves.~~ **Answered 2026-09-21** by RESR-75's acceptance: no-sign-up is read as zero account steps to a private draft then one browser passkey step before a gardener-signed public record. Still owed before the pilot, per that note: the support-load baseline, the Oct 1 pricing recheck, the AI-provider terms for Brasil, cohort size, the metric set against Evidence Mesh Phase 1, and the operating entity for the WhatsApp Business Account.
 2. Provider and policy constraints for the WhatsApp Business platform and SMS in the pilot geographies: template approval, opt-in rules, per-country pricing, and number provisioning. Next step: a dated source table.
 3. The minimal "report impact" payload (photo, text, location) and how it maps to the base attestation schema in track 2. Next step: one worked example per pilot domain.
 4. Which pilot garden and which metric set. Next step: the evidence mesh 90-day go or no-go.
 
-**Implementable when.** The entry criteria are accepted by the panel and one pilot garden with its metric set is chosen.
+**Implementable when.** For the prototype: already unblocked — the criteria were accepted on 2026-09-21 and the slice is scope-locked in the active hub. For the TAS pilot: one pilot garden with its metric set is chosen and the O5 items above are agreed.
 
 **Watch keywords.** WhatsApp, SMS, Twilio, Meta Business, messaging, agent, session key, Telegram, low-bandwidth, USSD, voice note, opt-in, template message, entry criteria, feature phone.
 

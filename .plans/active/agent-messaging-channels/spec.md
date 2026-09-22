@@ -357,7 +357,7 @@ Emit privacy-safe events into the correct existing telemetry surface: Agent for 
 
 Rollback disables new actions while preserving drafts, operation records and receipt reconciliation. Keep PWA owner access and independent revoke available. Do not revert to custodial account creation or raw bot approval as an outage fallback. Drain/deduplicate outbound queues before switching provider or re-enabling a garden.
 
-Release requires all applicable tests in [eval.md](eval.md), approved O1/O2/O5 decisions, actual auth compatibility proof and operator incident rehearsal. Optional delegation and total-loss recovery cannot be described as shipped merely because baseline messaging launches.
+"Release" here means the **TAS pilot**, not the Buildathon prototype. Pilot release requires all applicable tests in [eval.md](eval.md), approved O1/O2/O5 decisions, actual auth compatibility proof and operator incident rehearsal. The prototype in section 15.1 is gated only on its own subset in [eval.md](eval.md); O5 is not required for it because it collects no production data, and it is not a release. Optional delegation and total-loss recovery cannot be described as shipped merely because baseline messaging launches.
 
 ## 15. Prior research and evidence limits
 
@@ -402,16 +402,28 @@ reporting delegation and P5's per-garden senders stay unselected.
    allowlist, action binding, resource binding and one-time claim — with the EOA, ERC-1271 and
    ERC-6492 verification already in production at
    `packages/agent/src/services/profile-avatars.ts:90-127`. This is smaller than the facade, has no
-   CSRF surface, and needs no deployment wiring. The PWA at `www.greengoods.app` and the agent at
-   `agent.greengoods.app` are sibling subdomains of the passkey RP ID `greengoods.app`, so the
-   facade's cross-origin premise is weaker here than section 6 assumed. The facade remains the right
-   answer for the pilot, when sessions outlive one action.
+   CSRF surface, and needs no deployment wiring.
+   To correct an earlier version of this section: `www.greengoods.app` and `agent.greengoods.app`
+   are **different HTTP origins**. A host-only cookie set by one is not shared with the other, and
+   the WebAuthn RP ID changes none of the origin, CORS, cookie or CSRF rules — it governs credential
+   scope only. The two hosts are same-*site* under the same registrable domain, which is what
+   `SameSite` keys on, but that is a narrow point and does not remove the facade's need for explicit
+   cross-origin controls. The facade remains the right answer for the pilot, when sessions outlive
+   one action, and it is a deployment choice that must carry those controls rather than inherit
+   them.
 3. **Membership is pre-arranged, not solved.** Section 7 requires an approved membership effective
    for the exact account before publication, and `WorkResolver.onAttest` enforces it, reverting
    `NotGardenMember` for a non-member attester
    (`packages/contracts/src/resolvers/Work.sol:19-20,106-110`). A freshly created passkey account is
-   not a gardener. For the demo the testers are admitted to the garden ahead of time. Live steward
-   approval during the demo is stretch, not baseline.
+   not a gardener, and no one can pre-admit an address that does not exist yet — so pre-admission
+   alone would leave the first-run journey reverting at publication. The prototype therefore runs
+   its test garden with `openJoining` enabled, and the new account calls the existing
+   `GardenAccount.joinGarden()` itself before attesting
+   (`packages/contracts/src/accounts/Garden.sol:224-243`), sponsored for passkey users. That is one
+   extra on-chain transaction, not one extra account step, which is what the no-sign-up criterion
+   constrains; say so in the demo rather than implying a single transaction. Testers with existing
+   accounts are still admitted ahead of time. Live steward approval for an invite-only garden stays
+   stretch.
 4. **Media is held privately, then published once.** Section 8 forbids raw media reaching public
    IPFS before the gardener publishes. The agent stores bytes on its own volume and they move to
    Pinata only at publication. Section 8's EXIF requirement is **not currently met by the codebase**:
