@@ -17,6 +17,7 @@ import {
   buildUpdateTelemetry,
   consumeUpdateApplied,
   createInstallWatcher,
+  describeUpdateFailure,
   DOWNLOAD_TIMEOUT_MS,
   durationSince,
   isServiceWorkerUpdateEnabled,
@@ -298,13 +299,14 @@ function useServiceWorkerUpdateController({
                 found_update: Boolean(registration.waiting || registration.installing),
               })
             );
-          } catch {
+          } catch (error) {
             setPhase((current) => (current === "checking" ? "idle" : current));
             track(
               "sw_update_check_failed",
               buildTelemetry({
                 source,
                 duration_ms: durationSince(checkStartedAtRef.current),
+                ...describeUpdateFailure(error),
               })
             );
           }
@@ -431,6 +433,7 @@ function useServiceWorkerUpdateController({
         buildTelemetry({
           source: "manual_check",
           duration_ms: durationSince(checkStartedAtRef.current),
+          ...describeUpdateFailure(error),
         })
       );
       checkStartedAtRef.current = null;

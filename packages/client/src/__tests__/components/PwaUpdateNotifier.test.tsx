@@ -10,12 +10,14 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const sharedMocks = vi.hoisted(() => ({
   activateNow: vi.fn(),
   applyUpdate: vi.fn(),
+  checkForUpdate: vi.fn(() => Promise.resolve("up-to-date")),
   dismissUpdate: vi.fn(),
   checking: vi.fn(),
   downloading: vi.fn(),
   ready: vi.fn(),
   applying: vi.fn(),
   stalled: vi.fn(),
+  failed: vi.fn(),
   applied: vi.fn(),
   preparingOffline: vi.fn(),
   offlineReady: vi.fn(),
@@ -31,6 +33,7 @@ vi.mock("@green-goods/shared/components/Toast/presets/update", () => ({
     ready: sharedMocks.ready,
     applying: sharedMocks.applying,
     stalled: sharedMocks.stalled,
+    failed: sharedMocks.failed,
     applied: sharedMocks.applied,
     preparingOffline: sharedMocks.preparingOffline,
     offlineReady: sharedMocks.offlineReady,
@@ -69,6 +72,7 @@ describe("PwaUpdateNotifier", () => {
       shouldPrompt: false,
       activateNow: sharedMocks.activateNow,
       applyUpdate: sharedMocks.applyUpdate,
+      checkForUpdate: sharedMocks.checkForUpdate,
       dismissUpdate: sharedMocks.dismissUpdate,
     });
   });
@@ -173,7 +177,7 @@ describe("PwaUpdateNotifier", () => {
     expect(sharedMocks.applying).toHaveBeenCalledTimes(1);
   });
 
-  it("shows the stalled toast in PWA presentation", () => {
+  it("offers retry and dismiss on the stalled toast after an apply timeout", () => {
     sharedMocks.useServiceWorkerUpdate.mockReturnValue({
       phase: "error",
       updateAvailable: false,
@@ -182,12 +186,39 @@ describe("PwaUpdateNotifier", () => {
       shouldPrompt: false,
       activateNow: sharedMocks.activateNow,
       applyUpdate: sharedMocks.applyUpdate,
+      checkForUpdate: sharedMocks.checkForUpdate,
       dismissUpdate: sharedMocks.dismissUpdate,
     });
 
     renderNotifier();
 
-    expect(sharedMocks.stalled).toHaveBeenCalledWith(sharedMocks.dismissUpdate);
+    expect(sharedMocks.stalled).toHaveBeenCalledWith(
+      sharedMocks.activateNow,
+      sharedMocks.dismissUpdate
+    );
+  });
+
+  it("surfaces a recovery toast that re-checks after a failed install", () => {
+    sharedMocks.useServiceWorkerUpdate.mockReturnValue({
+      phase: "install-failed",
+      updateAvailable: false,
+      isUpdating: false,
+      updateStalled: false,
+      shouldPrompt: false,
+      activateNow: sharedMocks.activateNow,
+      applyUpdate: sharedMocks.applyUpdate,
+      checkForUpdate: sharedMocks.checkForUpdate,
+      dismissUpdate: sharedMocks.dismissUpdate,
+    });
+
+    renderNotifier();
+
+    expect(sharedMocks.failed).toHaveBeenCalledTimes(1);
+    const [onRetry, onDismiss] = sharedMocks.failed.mock.calls[0];
+    expect(onDismiss).toBe(sharedMocks.dismissUpdate);
+
+    onRetry();
+    expect(sharedMocks.checkForUpdate).toHaveBeenCalledTimes(1);
   });
 
   it("uses the explicit phase instead of legacy boolean precedence", () => {

@@ -1,7 +1,7 @@
 import { createUpdateToasts } from "@green-goods/shared/components/Toast/presets/update";
 import { useApp } from "@green-goods/shared/providers/App";
 import { useServiceWorkerUpdate } from "@green-goods/shared/hooks/app/useServiceWorkerUpdate";
-import { useEffect, useMemo, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import { useIntl } from "react-intl";
 
 /**
@@ -14,8 +14,11 @@ const OFFLINE_READY_GRACE_MS = 1_500;
 
 function ServiceWorkerUpdateNotifier() {
   const { formatMessage } = useIntl();
-  const { phase, shouldPrompt, activateNow, dismissUpdate, restartedOnNewVersion } =
+  const { phase, shouldPrompt, activateNow, checkForUpdate, dismissUpdate, restartedOnNewVersion } =
     useServiceWorkerUpdate();
+  // A failed download recovers with a fresh check, not another activation; the
+  // check rejects on its own failure, which the next toast already reports.
+  const retryDownload = useCallback(() => void checkForUpdate().catch(() => {}), [checkForUpdate]);
   const announcedRestartRef = useRef(false);
   // Bind the i18n-aware update toasts so es/pt render instead of hardcoded English.
   const updateToasts = useMemo(() => createUpdateToasts(formatMessage), [formatMessage]);
@@ -75,12 +78,17 @@ function ServiceWorkerUpdateNotifier() {
         updateToasts.applying();
         return;
       case "error":
-        updateToasts.stalled(dismissUpdate);
+        // A timed-out activation may still finish on its own, so keep a retry in
+        // reach instead of asking the reader to close the app.
+        updateToasts.stalled(activateNow, dismissUpdate);
+        return;
+      case "install-failed":
+        updateToasts.failed(retryDownload, dismissUpdate);
         return;
       default:
         return;
     }
-  }, [phase, shouldPrompt, activateNow, dismissUpdate, updateToasts]);
+  }, [phase, shouldPrompt, activateNow, retryDownload, dismissUpdate, updateToasts]);
 
   return null;
 }

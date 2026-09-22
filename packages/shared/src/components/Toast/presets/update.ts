@@ -21,8 +21,14 @@ const updateDefaults = {
     message: "Restarting with the latest version.",
   },
   stalled: {
-    title: "Update needs a restart",
-    message: "Please close and reopen the app to finish updating.",
+    title: "Update not finished",
+    message: "The update has not finished. Try again, or keep using the app and update later.",
+    action: "Try again",
+  },
+  failed: {
+    title: "Update download failed",
+    message: "Green Goods could not download the update. Check your connection and try again.",
+    action: "Try again",
   },
   applied: {
     title: "Updated",
@@ -161,7 +167,7 @@ export function createUpdateToasts(formatMessage: FormatMessageFn) {
         suppressLogging: true,
       }),
 
-    stalled: (onDismiss?: () => void) =>
+    stalled: (onRetry: () => void, onDismiss?: () => void) =>
       toastService.info({
         id: "app-update",
         title: formatMessage({
@@ -174,6 +180,42 @@ export function createUpdateToasts(formatMessage: FormatMessageFn) {
         }),
         context: "app update",
         persistent: true,
+        action: {
+          label: formatMessage({
+            id: toastMessageIdsUpdate.stalled.action,
+            defaultMessage: updateDefaults.stalled.action,
+          }),
+          onClick: onRetry,
+          dismissOnClick: false,
+          testId: "update-retry-button",
+        },
+        closable: true,
+        onDismiss,
+        suppressLogging: true,
+      }),
+
+    failed: (onRetry: () => void, onDismiss?: () => void) =>
+      toastService.info({
+        id: "app-update",
+        title: formatMessage({
+          id: toastMessageIdsUpdate.failed.title,
+          defaultMessage: updateDefaults.failed.title,
+        }),
+        message: formatMessage({
+          id: toastMessageIdsUpdate.failed.message,
+          defaultMessage: updateDefaults.failed.message,
+        }),
+        context: "app update",
+        persistent: true,
+        action: {
+          label: formatMessage({
+            id: toastMessageIdsUpdate.failed.action,
+            defaultMessage: updateDefaults.failed.action,
+          }),
+          onClick: onRetry,
+          dismissOnClick: false,
+          testId: "update-retry-download-button",
+        },
         closable: true,
         onDismiss,
         suppressLogging: true,

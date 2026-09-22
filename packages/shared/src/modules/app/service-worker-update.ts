@@ -48,8 +48,14 @@ export function buildUpdateTelemetry(
       ? navigator.serviceWorker
       : null;
 
+  // Records the network state at the moment of the event so a failure caused by
+  // a lost connection reads apart from a browser or cache failure.
+  const networkOnline =
+    typeof navigator !== "undefined" && "onLine" in navigator ? navigator.onLine : undefined;
+
   return {
     app_version: APP_VERSION,
+    network_online: networkOnline,
     active_worker_version: getServiceWorkerVersion(serviceWorker?.controller),
     waiting_worker_version: getServiceWorkerVersion(waiting),
     controller_state: serviceWorker?.controller?.state ?? "none",
@@ -68,6 +74,18 @@ export function buildUpdateTelemetry(
 
 function hasController() {
   return Boolean(navigator.serviceWorker?.controller);
+}
+
+/**
+ * The failure cause as flat telemetry. The DOMException/error name is what tells
+ * a network abort apart from a browser (SecurityError) or cache/quota failure,
+ * so it rides alongside the online state on every failed check.
+ */
+export function describeUpdateFailure(error: unknown) {
+  if (error instanceof Error) {
+    return { error_name: error.name || "Error" };
+  }
+  return { error_name: "unknown" };
 }
 
 /** Observe an attempt's exact target without changing activation or reload behavior. */
