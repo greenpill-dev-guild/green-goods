@@ -3,7 +3,7 @@
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { createElement, StrictMode, type ReactNode } from "react";
 import { IntlProvider } from "react-intl";
-import { MemoryRouter, useNavigate } from "react-router-dom";
+import { MemoryRouter, useLocation, useNavigate } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
@@ -18,6 +18,7 @@ const mocks = vi.hoisted(() => ({
   loadShareTarget: vi.fn(),
   normalizeWorkMediaFiles: vi.fn(),
   saveOnExit: vi.fn(),
+  toastError: vi.fn(),
   setImages: vi.fn(),
   setValue: vi.fn(),
   loggerWarn: vi.fn(),
@@ -62,7 +63,7 @@ vi.mock("../../../utils/errors/contract-errors", () => ({
 }));
 
 vi.mock("../../../components/Toast/toast.service", () => ({
-  toastService: { error: vi.fn(), success: vi.fn() },
+  toastService: { error: mocks.toastError, success: vi.fn() },
 }));
 
 vi.mock("../../../modules/app/posthog", () => ({
@@ -221,6 +222,24 @@ function StrictShareWrapper({ children }: { children: ReactNode }) {
 }
 
 let navigateShareRoute: ((path: string) => void) | null = null;
+let exitPath = "";
+
+function ExitPathCapture({ children }: { children: ReactNode }) {
+  exitPath = useLocation().pathname;
+  return children;
+}
+
+function ExitWrapper({ children }: { children: ReactNode }) {
+  return createElement(
+    MemoryRouter,
+    { initialEntries: ["/home/garden"] },
+    createElement(
+      ExitPathCapture,
+      null,
+      createElement(IntlProvider, { locale: "en", messages: {} }, children)
+    )
+  );
+}
 
 function ShareNavigationCapture({ children }: { children: ReactNode }) {
   const navigate = useNavigate();
@@ -253,7 +272,9 @@ describe("useWorkSubmissionFlowController", () => {
     mocks.normalizeWorkMediaFiles.mockReset();
     mocks.saveOnExit.mockReset();
     mocks.saveOnExit.mockResolvedValue("draft-1");
+    mocks.toastError.mockReset();
     navigateShareRoute = null;
+    exitPath = "";
   });
 
   it("projects selection and owns the intro progress gate", () => {
@@ -287,6 +308,63 @@ describe("useWorkSubmissionFlowController", () => {
 
     await result.current.changeTab("Media" as never);
     expect(mocks.setActiveTab).toHaveBeenCalledWith("Media");
+  });
+
+  it("returns home without waiting for the background draft save", () => {
+    let releaseSave!: () => void;
+    const pendingSave = new Promise<string>((resolve) => {
+      releaseSave = () => resolve("draft-1");
+    });
+    mocks.saveOnExit.mockReturnValue(pendingSave);
+    const { result } = renderHook(
+      () =>
+        useWorkSubmissionFlowController({
+          homeRoute: "/home",
+          profileRoute: "/home/profile",
+          trackMediaJourneyEvent: vi.fn(),
+        }),
+      { wrapper: ExitWrapper }
+    );
+
+    act(() => {
+      void result.current.exit();
+    });
+    const pathBeforeSave = exitPath;
+    releaseSave();
+
+    expect(pathBeforeSave).toBe("/home");
+    expect(mocks.saveOnExit).toHaveBeenCalledTimes(1);
+  });
+
+  it("offers a retry toast when the background draft save fails", async () => {
+    const error = new Error("draft storage unavailable");
+    mocks.saveOnExit.mockRejectedValueOnce(error).mockResolvedValueOnce("draft-1");
+    const { result } = renderHook(
+      () =>
+        useWorkSubmissionFlowController({
+          homeRoute: "/home",
+          profileRoute: "/home/profile",
+          trackMediaJourneyEvent: vi.fn(),
+        }),
+      { wrapper: ExitWrapper }
+    );
+
+    act(() => {
+      void result.current.exit();
+    });
+
+    await waitFor(() => expect(mocks.toastError).toHaveBeenCalledTimes(1));
+    const descriptor = mocks.toastError.mock.calls[0][0];
+    expect(descriptor).toEqual(
+      expect.objectContaining({
+        error,
+        persistent: true,
+        action: expect.objectContaining({ onClick: expect.any(Function) }),
+      })
+    );
+
+    act(() => descriptor.action.onClick());
+    await waitFor(() => expect(mocks.saveOnExit).toHaveBeenCalledTimes(2));
   });
 
   it("imports and consumes a Share Target exactly once under Strict Mode", async () => {

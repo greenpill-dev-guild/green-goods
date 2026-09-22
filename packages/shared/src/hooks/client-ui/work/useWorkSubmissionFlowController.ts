@@ -396,6 +396,24 @@ export function useWorkSubmissionFlowController({
         )
       : null;
   }, [activeTab, intl, isOnline, pendingCount, syncStatus, workMutation.isPending]);
+  const saveDraftInBackground = useCallback(() => {
+    const attempt = () => {
+      void saveOnExit().catch((error) => {
+        toastService.error({
+          title: intl.formatMessage({ id: "app.garden.draft.backgroundSaveFailed.title" }),
+          message: intl.formatMessage({ id: "app.garden.draft.backgroundSaveFailed.message" }),
+          error,
+          persistent: true,
+          action: {
+            label: intl.formatMessage({ id: "app.garden.draft.retry" }),
+            onClick: attempt,
+            dismissOnClick: true,
+          },
+        });
+      });
+    };
+    attempt();
+  }, [intl, saveOnExit]);
   const draftStatus = useDraftSaveStatus();
   const canProceed =
     !isResumingFromUrl &&
@@ -446,13 +464,9 @@ export function useWorkSubmissionFlowController({
         if (scope === useWorkFlowStore.getState().draftScope) media.resetBrokenMedia();
       },
     },
-    exit: async () => {
-      try {
-        await saveOnExit();
-      } catch {
-        return;
-      }
+    exit: () => {
       navigate(homeRoute, { viewTransition: true });
+      saveDraftInBackground();
     },
     isJoiningCommunityGarden:
       join.isJoining &&

@@ -5714,6 +5714,8 @@
   "app.garden.draft.loading": "Loading saved work…",
   "app.garden.draft.saving": "Saving…",
   "app.garden.draft.saved": "Saved on this device",
+  "app.garden.draft.backgroundSaveFailed.title": "Work not saved",
+  "app.garden.draft.backgroundSaveFailed.message": "Your latest changes could not be saved on this device.",
   "app.garden.draft.failed": "Could not save or restore this work. Your previously saved work is still available.",
   "app.garden.draft.retry": "Retry",
   "app.garden.draft.limit": "You have 20 drafts. Delete a draft to make room; your existing drafts are safe.",

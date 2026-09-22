@@ -5714,6 +5714,8 @@
   "app.garden.draft.loading": "Cargando trabajo guardado…",
   "app.garden.draft.saving": "Guardando…",
   "app.garden.draft.saved": "Guardado en este dispositivo",
+  "app.garden.draft.backgroundSaveFailed.title": "Trabajo no guardado",
+  "app.garden.draft.backgroundSaveFailed.message": "No se pudieron guardar los últimos cambios en este dispositivo.",
   "app.garden.draft.failed": "No se pudo guardar o recuperar este trabajo. El trabajo guardado anteriormente sigue disponible.",
   "app.garden.draft.retry": "Reintentar",
   "app.garden.draft.limit": "Tienes 20 borradores. Elimina uno para liberar espacio; los existentes están a salvo.",

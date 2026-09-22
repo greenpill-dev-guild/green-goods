@@ -5714,6 +5714,8 @@
   "app.garden.draft.loading": "Carregando trabalho salvo…",
   "app.garden.draft.saving": "Salvando…",
   "app.garden.draft.saved": "Salvo neste dispositivo",
+  "app.garden.draft.backgroundSaveFailed.title": "Trabalho não salvo",
+  "app.garden.draft.backgroundSaveFailed.message": "Não foi possível salvar suas alterações mais recentes neste dispositivo.",
   "app.garden.draft.failed": "Não foi possível salvar ou restaurar este trabalho. O trabalho salvo anteriormente continua disponível.",
   "app.garden.draft.retry": "Tentar novamente",
   "app.garden.draft.limit": "Você tem 20 rascunhos. Exclua um para liberar espaço; os existentes estão seguros.",

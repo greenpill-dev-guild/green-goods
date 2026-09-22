@@ -73,14 +73,16 @@ describe("complete draft autosave", () => {
   it("includes audio, updates the shared resumed ID, and propagates storage failure", async () => {
     useWorkFlowStore.setState({ activeDraftId: "resumed" });
     const audioNotes = [new File(["audio"], "note.webm", { type: "audio/webm" })];
-    const { result } = renderHook(() => useDraftAutoSave({ ...base, audioNotes }, emptyImages), {
-      wrapper,
-    });
+    const { result, rerender } = renderHook(
+      ({ feedback }) => useDraftAutoSave({ ...base, feedback, audioNotes }, emptyImages),
+      { wrapper, initialProps: { feedback: "draft" } }
+    );
     await act(async () => {
       await result.current.saveOnExit();
     });
     expect(mocks.save.mock.calls[0][2]).toBe("resumed");
     expect(mocks.save.mock.calls[0][5]).toBe(audioNotes);
+    rerender({ feedback: "latest" });
     mocks.save.mockRejectedValueOnce(new Error("quota"));
     await act(async () => {
       await expect(result.current.saveOnExit()).rejects.toThrow("quota");
@@ -111,6 +113,41 @@ describe("complete draft autosave", () => {
       await Promise.all([first, second]);
     });
     expect(mocks.save.mock.calls.map((call) => call[3].feedback)).toEqual(["first", "second"]);
+  });
+  it("reuses the same in-flight save instead of writing one snapshot twice", async () => {
+    let release!: () => void;
+    mocks.save.mockImplementationOnce(
+      () =>
+        new Promise<{ id: string }>((resolve) => {
+          release = () => resolve({ id: "saved" });
+        })
+    );
+    const { result } = renderHook(() => useDraftAutoSave(base, emptyImages), { wrapper });
+
+    let first!: Promise<string | null>;
+    let second!: Promise<string | null>;
+    await act(async () => {
+      first = result.current.saveOnExit();
+      second = result.current.saveOnExit();
+      await Promise.resolve();
+    });
+
+    expect(mocks.save).toHaveBeenCalledTimes(1);
+    await act(async () => {
+      release();
+      await Promise.all([first, second]);
+    });
+    expect(mocks.save).toHaveBeenCalledTimes(1);
+  });
+  it("does not rewrite a snapshot that is already saved", async () => {
+    const { result } = renderHook(() => useDraftAutoSave(base, emptyImages), { wrapper });
+
+    await act(async () => {
+      await result.current.saveOnExit();
+      await result.current.saveOnExit();
+    });
+
+    expect(mocks.save).toHaveBeenCalledTimes(1);
   });
   it("cancels a delayed text save after discard", async () => {
     const { rerender } = renderHook(
