@@ -4,7 +4,7 @@
 
 - Owner: n/a
 - Branch: set when work begins using `<type>/<work-description>`
-- Status: n/a — no contract change in this slice
+- Status: n/a (see status.json; this block is derived from it)
 
 ## Scope
 

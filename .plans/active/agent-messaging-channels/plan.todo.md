@@ -95,9 +95,15 @@ bump `PRAGMA user_version`.
   HMAC alone authenticates a body but gives no freshness, so persist the event claim **before**
   acknowledging, process each event once, and answer a duplicate delivery with an idempotent success
   rather than a signature error. Model the HMAC on `src/api/funding/thirdweb.ts:158-186`; Meta signs
-  the raw body as `sha256=<hex>`, so preserve raw bytes before parsing.
+  the raw body as `sha256=<hex>`, so preserve raw bytes before parsing. **Bound the body first.**
+  Verifying the HMAC means materializing the raw bytes, so an unauthenticated caller could otherwise
+  stream a large or chunked body and consume memory before the signature is even checked. Reuse
+  `readLimitedTextBody` (`src/api/http/body.ts:64`), which rejects both an oversized declared
+  `Content-Length` and an over-limit stream, exactly as `src/api/funding/webhook.ts:21-25` does
+  before it verifies.
   *Proves `SEC-01`: a bad or missing signature is rejected before any domain processing, a replayed
-  event is not processed twice, and the route answers over HTTP.*
+  event is not processed twice, an oversized body is refused before hashing — with both a declared
+  `Content-Length` case and a no-length stream — and the route answers over HTTP.*
   `bun run --cwd packages/agent test -- src/__tests__/whatsapp-signature.test.ts src/__tests__/webhook-events.test.ts && bun run --cwd packages/agent typecheck` — PRD-943
 - [ ] **2. Normalize WhatsApp messages and reply.** `package:agent`. New
   `src/platforms/whatsapp/index.ts`, new `src/platforms/whatsapp/client.ts`, edit
@@ -113,7 +119,8 @@ bump `PRAGMA user_version`.
 
 - [ ] **3. Add the draft tables.** `package:agent`. Edit `src/services/db/schema.ts`, new
   `src/services/db/whatsapp-drafts.ts`, edit `src/services/db/core.ts`. Migration: `whatsapp_drafts`,
-  `draft_attachments`, `draft_link_attempts`. **The WhatsApp subject is a provider user or phone
+  `draft_attachments`, `draft_link_attempts` — the third, fourth and fifth of this slice's tables
+  counting `webhook_events` from step 1 and the outbox columns in step 14. **The WhatsApp subject is a provider user or phone
   identifier and must not be stored or indexed in the clear** — section 4 requires encryption at
   rest plus a keyed HMAC for any searchable identifier index, because a plain hash of a phone
   number is enumerable. Store the subject as ciphertext and index the uniqueness constraint on a
@@ -239,8 +246,12 @@ bump `PRAGMA user_version`.
   and `process-job.ts:62` passes `completedTxHash` — and when the device is offline that value can
   be a synthetic hash from `createOfflineTxHash`. So the client reports the **transaction hash
   only**, and step 14 derives the UID from the receipt. Wire the call into the submission
-  completion path rather than leaving the route unused: the `job:completed` event carries the job
-  and its hash, and `useWhatsAppDraftIntake` knows which draft the submission came from.
+  completion path rather than leaving the route unused — but **not from a route-scoped hook**.
+  `useWhatsAppDraftIntake` unmounts when the flow navigates away, while queued and offline work can
+  complete much later, and the `job:completed` event is not itself durable. Persist the WhatsApp
+  draft correlation **in the queued job payload** at submission time, and report the outcome from a
+  long-lived queue consumer, so a reload, a navigation or a background retry still reaches the
+  agent.
   *Proves the input `OPS-05` needs: the agent learns the transaction hash for a draft from an
   authenticated caller that actually runs on submission, and an unauthenticated, synthetic or
   foreign report is refused.*
@@ -249,9 +260,14 @@ bump `PRAGMA user_version`.
   `src/services/work-receipts.ts`, new `src/services/whatsapp-outbox.ts`, edit
   `src/platforms/whatsapp/client.ts`. No new route. Migration: add the outbox columns through
   `ensureColumn()`. Resolve the transaction receipt with the existing viem client and take the
-  attestation UID from the EAS `Attested` log, then check the attester and garden match the draft.
-  Never trust a client-supplied UID, and reject a hash that resolves to no receipt — which is what a
-  synthetic offline hash does. Persist the receipt and enqueue the reply in one transaction, then let a
+  attestation UID from the EAS `Attested` log. **Attester and garden alone are not enough**: a
+  gardener could otherwise register a transaction carrying an unrelated work attestation, or an
+  `Attested` event from another emitter or schema, and have the chat confirm work that was never
+  published from the saved draft. Require all of: a successful receipt, the log emitted by the
+  configured EAS contract, the deployed Work schema UID, and decoded work fields matching the frozen
+  draft revision — compare a canonical payload hash rather than field-by-field. Never trust a
+  client-supplied UID, and reject a hash that resolves to no receipt, which is what a synthetic
+  offline hash does. Persist the receipt and enqueue the reply in one transaction, then let a
   restart-safe consumer drain the outbox, so a process that dies between receipt and send still
   delivers. Model the reconciliation on the funding-intent tables (`db/schema.ts:178-256`).
   *Proves `OPS-05`: the confirmation follows the verified chain receipt rather than the submit, it
@@ -267,10 +283,16 @@ bump `PRAGMA user_version`.
   1 MB, so smaller images and all videos publish with EXIF and GPS intact
   (`media-processing.ts:239,244,253`). Section 8 requires removing unnecessary EXIF and location
   while preserving consented evidence the garden needs.
+  **Videos are rejected for this prototype, not stripped.** The current path accepts any
+  `video/*` and returns its bytes unchanged (`media-processing.ts:140-146,239,252`), and stripping a
+  video container needs a parser or transcoder that is well outside a prototype step. Claiming
+  `DATA-02` while a GPS-bearing video reaches permanent IPFS would be a false claim, so the
+  prototype refuses video with a clear message in the chat and the composer. Lifting that limit is
+  its own issue.
   *Proves part of `DATA-02`: the test follows the publication path far enough to assert that the
   bytes uploaded to Pinata carry no GPS and that the media references on the attestation resolve to
-  those bytes. Cover a sub-1 MB image and a video — a helper-only assertion does not prove this for
-  an irreversible public path.*
+  those bytes, for a sub-1 MB image; and that a video is refused rather than published. A
+  helper-only assertion does not prove this for an irreversible public path.*
   `bun run --cwd packages/shared test -- media-processing upload-queued-work` — PRD-956
 
 ## Cut line
@@ -367,8 +389,9 @@ expected: `WorkResolver` and `WorkApprovalResolver` are unchanged by this slice.
 
 ## Migration and rollout controls
 
-The prototype adds three tables and does not touch `users`, `sessions`, `pending_works` or any
-Telegram row. It must not merge established participants, export or relabel a custodial key, or
+The prototype adds four tables — `webhook_events`, `whatsapp_drafts`, `draft_attachments` and
+`draft_link_attempts` — plus outbox columns on `whatsapp_drafts`, and does not touch `users`,
+`sessions`, `pending_works` or any Telegram row. It must not merge established participants, export or relabel a custodial key, or
 delete anything unresolved legacy operations depend on.
 
 The agent is a single Fly machine in `jnb` with SQLite on the `agent_data` volume

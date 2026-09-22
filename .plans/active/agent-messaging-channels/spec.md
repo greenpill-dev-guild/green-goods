@@ -391,8 +391,8 @@ reporting delegation and P5's per-garden senders stay unselected.
 
 1. **No participant record.** Section 4 models Participant, AccountBinding, ChannelBinding,
    AccountDescriptor, AuthenticatorReference, GardenContext, DelegationGrant and Consent/Audit. The
-   slice adds three tables instead — a draft, its attachments, and a link attempt — and binds a
-   draft directly to the account that proves ownership of it. The invariants in section 4 still
+   slice adds four tables instead — a webhook event claim, a draft, its attachments, and a link
+   attempt — and binds a draft directly to the account that proves ownership of it. The invariants in section 4 still
    hold: linking unions no garden roles, every mutation freezes one account, chain, garden, action
    and revision, and a channel proof never broadens permissions.
 2. **No browser session.** Section 6 proposes a same-origin backend facade with host-only cookies
@@ -430,7 +430,9 @@ reporting delegation and P5's per-garden senders stay unselected.
    there is no dedicated strip step, and compression re-encodes only files over roughly 1 MB, so
    smaller images and all videos publish with location intact
    (`packages/shared/src/modules/work/media-processing.ts:239,244,253`). Closing that gap is inside
-   the slice.
+   the slice **for images only**: videos are passed through unchanged by that same path, and
+   stripping a video container needs a parser or transcoder well outside a prototype step, so the
+   prototype refuses video rather than claiming to sanitize it.
 
 **What the prototype does not establish.** Production provider eligibility, actual Nigerian delivery
 or cost, pilot success, recovery after total signer loss, delegation safety, or Telegram migration.

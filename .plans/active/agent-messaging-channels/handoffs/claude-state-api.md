@@ -4,7 +4,7 @@
 
 - Owner: unassigned (one builder, 2026-09-25 to 2026-10-02)
 - Branch: set when work begins using `<type>/<work-description>`
-- Status: pending implementation
+- Status: blocked (see status.json; this block is derived from it)
 
 ## Scope
 

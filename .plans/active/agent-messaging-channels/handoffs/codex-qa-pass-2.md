@@ -8,7 +8,7 @@
 
 ## Scope
 
-- Review regressions, implementation edges, and validation evidence after QA Pass 1.
+Out of prototype scope. Independent verification of auth, cross-garden denial, operation recovery and conditional delegation belongs to the pilot, after a provider decision and O5 agreement.
 
 ## Validation
 

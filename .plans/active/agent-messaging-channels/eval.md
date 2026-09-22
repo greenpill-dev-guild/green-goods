@@ -33,7 +33,7 @@ The Buildathon prototype must pass exactly these, and claims nothing else:
 | `ID-01` — passkey creation, then admission and publication | 11, 12 | PRD-947 |
 | `UX-02` — in-app-browser handoff only | 11 | PRD-947 |
 | `OPS-05` | 13, 14 | PRD-948 |
-| `DATA-02` — location only | 15 | PRD-956 |
+| `DATA-02` — location only, **images only** | 15 | PRD-956 |
 
 `CH-01` is claimed only for text and photo from a verified tester on the Meta test number. Its
 Nigerian-payload and voice requirements are **not** claimed: Nigeria is the pilot setting and voice
@@ -47,7 +47,8 @@ Everything else below is deferred: all of gate 4, `REC-01` through `REC-05`, `CO
 `DATA-01`, `ID-02` through `ID-07`, `AUTH-02`, `AUTH-04`, `AUTH-05`, `OPS-01` through `OPS-04`,
 `SEC-03` through `SEC-06`, `CH-02` through `CH-05`, and `PILOT-01` through `PILOT-03`. `ID-05`,
 `ID-07`, `REC-03` and `MIG-01` are named here because a smooth demo could be mistaken for
-evidence of them; it is not.
+evidence of them; it is not. `DATA-02` is claimed for images only: the publication path returns
+video bytes unchanged, so the prototype refuses video rather than claiming to sanitize it.
 
 ## Gate 1: identity continuity and real authentication
 
