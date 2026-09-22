@@ -310,6 +310,9 @@ The `browser-proof` check is advisory in every local intent: it never blocks a p
 ship, or readiness run. Record the proof, or that it is pending and why, in the PR body. Only the
 release gate requires attestation:
 `node scripts/dev/ci-local.js --intent release --attest browser-proof="<engine, session, date, what was observed>"`.
+The release gate rejects a placeholder: the text must name an engine the check accepts
+(`attestation.engines` in `scripts/data/validation-policy.json`), carry the date as `YYYY-MM-DD`,
+and say what was observed. No other intent consumes an attestation; the proof stays pending there.
 
 Authenticated path: Claude Code uses the Chrome/Chromium extension path against the already-open
 Brave profile/tab and probes reachability with a tab-context call, not the connected-browsers

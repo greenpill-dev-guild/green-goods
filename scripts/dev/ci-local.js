@@ -243,7 +243,7 @@ Selector options:
   --json                 JSON output for --plan or --list
   --capability k=true     Declare an environment capability; repeatable
   --attest <id>=<text>    Record manual proof for an advisory check; only release requires it,
-                          e.g. --attest browser-proof="Brave, steward session, 2026-09-22: sheet renders"
+                          e.g. --attest browser-proof="authenticated Brave, steward session, 2026-09-22: sheet renders"
   --plan-json             Print the exact plan as JSON without running it
   --cancelled             Emit a terminal cancelled plan
   --reuse-passing-receipts Reuse exact-fingerprint passes from .cache/validation
@@ -310,9 +310,43 @@ export async function arbitrumForkAvailable({
   return probe({ host: "127.0.0.1", port: 3009 });
 }
 
+// An attestation is a person's claim, so nothing here can prove it true. What it can do is
+// insist the claim says which engine and session produced the proof, when, and what was seen,
+// so a release cannot be cleared with a placeholder like "none".
+const ATTESTATION_MIN_OBSERVATION = 12;
+
+export function validateAttestation(check, evidence) {
+  const problems = [];
+  const text = typeof evidence === "string" ? evidence.trim() : "";
+  if (!text) return { ok: false, problems: ["no evidence was supplied"] };
+
+  const engines = check.attestation?.engines ?? [];
+  const matched = engines.find((engine) => text.toLowerCase().includes(engine.toLowerCase()));
+  if (engines.length > 0 && !matched) {
+    problems.push(`must name the rendered engine and session (${engines.join(", ")})`);
+  }
+
+  const date = text.match(/\b20\d{2}-\d{2}-\d{2}\b/);
+  if (!date) problems.push("must carry the observation date as YYYY-MM-DD");
+
+  const observation = text
+    .replace(matched ?? "", "")
+    .replace(date?.[0] ?? "", "")
+    .replace(/[\s,;:.\-]+/g, " ")
+    .trim();
+  if (observation.length < ATTESTATION_MIN_OBSERVATION) {
+    problems.push("must say what was observed, not only the engine and date");
+  }
+
+  return { ok: problems.length === 0, problems };
+}
+
 export function capabilityRecoveryHint(capability, contractSubmoduleState) {
   if (capability === "manual-attestation-required") {
     return 'Record the rendered proof, then rerun with --attest <check-id>="<engine, session, date, what was observed>".';
+  }
+  if (capability === "manual-attestation-invalid") {
+    return 'The supplied --attest text is not usable evidence; state the engine and session, the date as YYYY-MM-DD, and what you observed.';
   }
   if (capability === "arbitrumFork") {
     return "Start the local fork with `bun run --cwd packages/contracts dev:arbitrum-fork`.";
@@ -449,6 +483,23 @@ export function applyCompatibilityFilters(plan, options) {
 export function isSupportedCiNodeVersion(version) {
   const major = Number.parseInt(version.split(".")[0], 10);
   return Number.isInteger(major) && major >= 22;
+}
+
+// The selector compares the toolchain exactly, so a merely runnable Node — 22.22.0 against a
+// 22.22.1 pin — makes every check read `blocked:toolchain.node`, which is what drove people to
+// --no-verify. Re-exec whenever the running version is not the pin itself; when the pinned Node
+// is installed nowhere, this finds nothing, the run proceeds, and the plan reports the mismatch.
+export function pinnedCiNodeVersion(policyLoader = loadPolicy) {
+  try {
+    return policyLoader().toolchain?.node ?? null;
+  } catch {
+    return null;
+  }
+}
+
+export function isPinnedCiNodeVersion(version, pinnedVersion) {
+  if (!pinnedVersion) return isSupportedCiNodeVersion(version);
+  return version === pinnedVersion;
 }
 
 export function buildLocalValidationPlan(options, gitInputs, environment) {
@@ -706,22 +757,34 @@ export async function executePlan(plan, options = {}) {
     const check = plan.checks[index];
 
     if (isAdvisoryManualCheck(check)) {
-      const evidence = attestations[check.id];
-      if (evidence) {
+      // Only the release gate consumes an attestation. Everywhere else the proof stays
+      // pending however the runner was invoked, so a manual receipt can never stand in
+      // for the advisory obligation on a push, review, ship, or merge plan.
+      if (plan.effectiveIntent !== "release") {
+        pendingManual.push({ id: check.id, blockedBy: [...(check.blockedBy ?? [])] });
+        index += 1;
+        continue;
+      }
+      const attestation = validateAttestation(check, attestations[check.id]);
+      if (attestation.ok) {
         const record = {
           id: check.id,
           ok: true,
           attested: true,
           exitCode: 0,
           durationSeconds: 0,
-          details: [`attested: ${evidence}`],
+          details: [`attested: ${attestations[check.id].trim()}`],
         };
         results.push(record);
         options.onCheckComplete?.(check, record);
-      } else if (plan.effectiveIntent === "release") {
+      } else if (attestations[check.id] === undefined) {
         blocked.push({ id: check.id, blockedBy: ["manual-attestation-required"] });
       } else {
-        pendingManual.push({ id: check.id, blockedBy: [...(check.blockedBy ?? [])] });
+        blocked.push({
+          id: check.id,
+          blockedBy: ["manual-attestation-invalid"],
+          problems: attestation.problems,
+        });
       }
       index += 1;
       continue;
@@ -1014,6 +1077,7 @@ async function main() {
     console.log(`\n${colors.yellow}Validation blocked:${colors.reset}`);
     for (const entry of execution.blocked) {
       console.log(`  - ${entry.id}: ${entry.blockedBy.join(", ")}`);
+      for (const problem of entry.problems ?? []) console.log(`    ${problem}`);
       for (const capability of entry.blockedBy) {
         const hint = capabilityRecoveryHint(capability, environment.contractSubmoduleState);
         if (hint) console.log(`    ${hint}`);
@@ -1055,11 +1119,12 @@ if (isDirectRun) {
     sentinel: "GREEN_GOODS_CI_LOCAL_NODE_REEXEC",
     cwd: projectRoot,
   });
+  const pinnedNode = pinnedCiNodeVersion();
   reexecUnderCompatibleNodeIfNeeded({
     scriptPath: fileURLToPath(import.meta.url),
     sentinel: "GREEN_GOODS_CI_LOCAL_COMPAT_REEXEC",
     cwd: projectRoot,
-    isSupported: isSupportedCiNodeVersion,
+    isSupported: (version) => isPinnedCiNodeVersion(version, pinnedNode),
   });
   main().catch((error) => {
     console.error(`${colors.red}${error.message}${colors.reset}`);

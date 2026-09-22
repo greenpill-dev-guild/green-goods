@@ -43,8 +43,9 @@ should come from `@green-goods/shared`.
   rendered proof for visible UI. Build only when route wiring, render/build output, or PWA
   packaging behavior moves.
 - Route and rendering contract changes should get a build before PR/ship readiness, not only tests.
-- Visible changes follow root `AGENTS.md` section “Agentic Modern Web Standard”; if its
-  authenticated Brave path is unavailable, report browser QA as `BLOCKED`.
+- Visible changes follow root [`AGENTS.md` § Browser Evidence](../../AGENTS.md#browser-evidence):
+  label the engine and session behind the proof, and if the authenticated Brave path is
+  unavailable, record that proof as pending and continue with labeled evidence.
 
 ## Validation
 

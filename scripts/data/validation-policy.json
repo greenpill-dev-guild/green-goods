@@ -332,8 +332,15 @@
         "packages/shared/src/providers/",
         "packages/shared/src/modules/auth/",
         "packages/shared/src/modules/wallet/",
+        "packages/shared/src/modules/transactions/",
         "packages/shared/src/modules/job-queue/",
+        "packages/shared/src/modules/work/",
+        "packages/shared/src/modules/offline-content/",
+        "packages/shared/src/modules/profile-avatar/",
         "packages/shared/src/hooks/auth/",
+        "packages/shared/src/hooks/offline/",
+        "packages/shared/src/hooks/profile/",
+        "packages/shared/src/hooks/app/useOffline",
         "packages/shared/src/workflows/",
         "packages/client/src/routes/",
         "packages/client/src/sw/",
@@ -343,7 +350,10 @@
         "packages/client/src/views/Home/WalletSheet/",
         "packages/client/src/config/pwa",
         "packages/client/src/PwaApp.tsx",
-        "packages/client/src/bootstrapPwa.tsx"
+        "packages/client/src/bootstrapPwa.tsx",
+        "packages/client/src/main.tsx",
+        "packages/client/src/router.tsx",
+        "packages/client/src/App.tsx"
       ],
       "extensions": [".ts", ".tsx", ".jsx", ".css", ".scss"]
     },
@@ -797,7 +807,8 @@
       "budgetSeconds": 90,
       "stopRule": "advisory",
       "capabilities": ["authenticatedBrave"],
-      "manual": true
+      "manual": true,
+      "attestation": { "engines": ["authenticated Brave"] }
     },
     {
       "id": "story-quality",

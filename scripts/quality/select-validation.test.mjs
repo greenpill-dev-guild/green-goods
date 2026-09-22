@@ -535,16 +535,35 @@ test("browser proof is selected for the authenticated surface class only", () =>
       `${ordinaryUiPath} renders under mock auth or Storybook and must not select browser proof`,
     );
   }
+  // One path per class named in AGENTS.md § Browser Evidence rule 2. A release that changes
+  // any of these must attest the proof, so a gap here is a gap in the release gate.
   for (const authenticatedPath of [
     "packages/shared/src/providers/Auth.tsx",
+    "packages/shared/src/modules/auth/session.ts",
     "packages/shared/src/modules/wallet/send-flow.ts",
+    "packages/shared/src/modules/transactions/passkey-sender.ts",
     "packages/shared/src/modules/job-queue/index.ts",
+    "packages/shared/src/modules/work/passkey-submission.ts",
+    "packages/shared/src/modules/work/wallet-submission/submit-work.ts",
+    "packages/shared/src/modules/offline-content/index.ts",
+    "packages/shared/src/modules/profile-avatar/index.ts",
+    "packages/shared/src/hooks/auth/index.ts",
+    "packages/shared/src/hooks/offline/index.ts",
+    "packages/shared/src/hooks/profile/index.ts",
+    "packages/shared/src/hooks/app/useOffline.ts",
     "packages/shared/src/workflows/auth-passkey-adapters.ts",
     "packages/client/src/routes/WalletRuntimeProviders.tsx",
     "packages/client/src/sw/sw.ts",
+    "packages/client/src/views/Login/Login.tsx",
     "packages/client/src/views/Profile/InstallCta.tsx",
+    "packages/client/src/views/Home/WalletSheet/index.tsx",
+    "packages/client/src/components/Pwa/sheetStyles.ts",
     "packages/client/src/config/pwaManifest.ts",
     "packages/client/src/PwaApp.tsx",
+    "packages/client/src/bootstrapPwa.tsx",
+    "packages/client/src/main.tsx",
+    "packages/client/src/router.tsx",
+    "packages/client/src/App.tsx",
   ]) {
     const plan = selectValidation({ intent: "readiness", changedPaths: [authenticatedPath] });
     const browserProof = plan.checks.find((check) => check.id === "browser-proof");
@@ -552,11 +571,14 @@ test("browser proof is selected for the authenticated surface class only", () =>
     assert.ok(browserProof.selectedBy.includes("conditional:browser-proof"));
     assert.equal(browserProof.state, "advisory");
   }
-  const testOnly = selectValidation({
-    intent: "readiness",
-    changedPaths: ["packages/client/src/__tests__/routes/SessionGate.test.tsx"],
-  });
-  assert.ok(!ids(testOnly).includes("browser-proof"));
+  for (const validationOnlyPath of [
+    "packages/client/src/__tests__/routes/SessionGate.test.tsx",
+    "packages/shared/src/modules/work/__tests__/submit.test.ts",
+    "packages/client/src/views/Profile/Profile.stories.tsx",
+  ]) {
+    const plan = selectValidation({ intent: "readiness", changedPaths: [validationOnlyPath] });
+    assert.ok(!ids(plan).includes("browser-proof"), validationOnlyPath);
+  }
 });
 
 test("a focused push plan runs even when its static estimate exceeds the budget", () => {
@@ -1264,9 +1286,11 @@ test("critical Work path packages/shared/src/modules/work/submit.ts retains its 
 
     assert.equal(plan.risk, "critical", changedPath);
     assert.deepEqual(plan.surfaces, ["shared", "client", "admin", "agent"], changedPath);
-    // Providers shape the authenticated session, so the Work provider also carries the
-    // advisory browser-proof reminder; the module and hook paths do not.
-    const advisoryProof = changedPath.startsWith("packages/shared/src/providers/")
+    // Providers shape the authenticated session and work submission is the offline upload
+    // path, so both carry the advisory browser-proof reminder; the work hook does not.
+    const advisoryProof = ["packages/shared/src/providers/", "packages/shared/src/modules/work/"].some(
+      (prefix) => changedPath.startsWith(prefix),
+    )
       ? ["browser-proof"]
       : [];
     assert.deepEqual(

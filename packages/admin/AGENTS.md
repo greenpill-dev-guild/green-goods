@@ -92,8 +92,9 @@ foundations.
 - In QA Speed Mode, run the targeted view/component/model test when one covers the fix and capture authenticated rendered proof for visible UI. Use `bun run build` when route wiring, view imports, or build output could break; do not run Storybook checks unless shared primitives/stories/tokens moved.
 - Permission and role changes often originate in shared code; use the root quick verification
   loop when shared contracts or shared hooks move.
-- Visible changes follow root `AGENTS.md` section “Agentic Modern Web Standard”; if its
-  authenticated Brave path is unavailable, report browser QA as `BLOCKED`.
+- Visible changes follow root [`AGENTS.md` § Browser Evidence](../../AGENTS.md#browser-evidence):
+  label the engine and session behind the proof, and if the authenticated Brave path is
+  unavailable, record that proof as pending and continue with labeled evidence.
 - **Tailwind v4 gotcha**: admin's content scan does not reach `packages/shared/src/`, so a shared component that uses utility classes in its JSX may render off-center, missing padding, or wrong width in admin even when it looks fine in Storybook. Before debugging the shared component, check root `AGENTS.md` → "Known Gotchas" — the fix is a fork into `packages/admin/src/components/Shell/` (the Canvas shell pattern) or inline styles inside the shared component, not utility classes in shared JSX.
 
 ## Validation

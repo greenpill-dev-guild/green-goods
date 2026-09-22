@@ -41,8 +41,9 @@ types, i18n, and Storybook-backed shared UI building blocks.
   signatures, provider contracts, shared data shapes, or mutation flows can affect consumers.
 - When changing test helpers or hook contracts, keep tests aligned before downstream package fixes.
 - Storybook is the source of truth for shared UI foundations; keep stories aligned when primitives change.
-- Visible consumer changes follow root `AGENTS.md` section “Agentic Modern Web Standard”; if its
-  authenticated Brave path is unavailable, report browser QA as `BLOCKED`.
+- Visible consumer changes follow root [`AGENTS.md` § Browser Evidence](../../AGENTS.md#browser-evidence):
+  label the engine and session behind the proof, and if the authenticated Brave path is
+  unavailable, record that proof as pending and continue with labeled evidence.
 - **Tailwind v4 gotcha**: utility classes authored in shared JSX (`mx-4`, `w-max`, `self-center`, etc.) are not in admin/client content scans and silently fail to generate in consuming apps. They will look correct in Storybook and broken in the running app. Use inline styles or CSS custom properties for layout in shared components, or apply the utility class in the consumer's JSX. Full detail and commit references in root `AGENTS.md` → "Known Gotchas".
 
 ## Validation

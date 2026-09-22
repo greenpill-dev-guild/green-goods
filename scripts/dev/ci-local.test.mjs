@@ -10,11 +10,13 @@ import {
   buildLocalValidationPlan,
   capabilityRecoveryHint,
   executePlan,
+  isPinnedCiNodeVersion,
   isSupportedCiNodeVersion,
   loadPassingReceiptStore,
   parseArguments,
   resolveVitestBatchEnvironment,
   savePassingReceiptStore,
+  validateAttestation,
 } from "./ci-local.js";
 
 const GIBIBYTE = 1024 ** 3;
@@ -51,7 +53,10 @@ test("ci-local re-entry is wired only inside the direct-run guard", () => {
   assert.match(guardedEntrypoint, /GREEN_GOODS_CI_LOCAL_NODE_REEXEC/);
   assert.match(guardedEntrypoint, /reexecUnderCompatibleNodeIfNeeded\(\{/);
   assert.match(guardedEntrypoint, /GREEN_GOODS_CI_LOCAL_COMPAT_REEXEC/);
-  assert.match(guardedEntrypoint, /isSupported: isSupportedCiNodeVersion/);
+  // The compat re-exec must test the exact policy pin, not merely a runnable range: the
+  // selector compares the toolchain exactly, so a near-pin Node blocks every check.
+  assert.match(guardedEntrypoint, /pinnedCiNodeVersion\(\)/);
+  assert.match(guardedEntrypoint, /isSupported: \(version\) => isPinnedCiNodeVersion\(version, pinnedNode\)/);
 });
 
 test("ci-local compatibility accepts Node 22 and newer", () => {
@@ -340,6 +345,7 @@ test("advisory manual proof never masks automated failure or unavailable capabil
     stopRule: "advisory",
     state: "advisory",
     blockedBy: ["authenticatedBrave"],
+    attestation: { engines: ["authenticated Brave"] },
   };
   const failed = await executePlan(input, {
     runCheck: async () => ({ ok: false, exitCode: 7 }),
@@ -377,7 +383,20 @@ test("advisory manual proof never masks automated failure or unavailable capabil
     { id: "browser-proof", blockedBy: ["manual-attestation-required"] },
   ]);
 
-  const evidence = "Brave, steward session, 2026-09-22: deposit sheet renders";
+  const placeholderRelease = await executePlan(input, {
+    runCheck: async () => ({ ok: true, exitCode: 0 }),
+    attestations: { "browser-proof": "none" },
+  });
+  assert.equal(placeholderRelease.status, "blocked");
+  assert.equal(placeholderRelease.exitCode, 2);
+  assert.equal(placeholderRelease.blocked[0]?.id, "browser-proof");
+  assert.deepEqual(placeholderRelease.blocked[0]?.blockedBy, ["manual-attestation-invalid"]);
+  assert.ok((placeholderRelease.blocked[0]?.problems ?? []).length > 0);
+  assert.deepEqual(placeholderRelease.results, [{ id: "format", ok: true, exitCode: 0, receiptInputs: undefined }].map(
+    (entry) => ({ ...entry, receiptInputs: placeholderRelease.results[0]?.receiptInputs }),
+  ));
+
+  const evidence = "authenticated Brave, steward session, 2026-09-22: deposit sheet renders";
   const attestedRelease = await executePlan(input, {
     runCheck: async () => ({ ok: true, exitCode: 0 }),
     attestations: { "browser-proof": evidence },
@@ -390,6 +409,61 @@ test("advisory manual proof never masks automated failure or unavailable capabil
   assert.deepEqual(attested?.details, [`attested: ${evidence}`]);
   assert.deepEqual(attestedRelease.pendingManual, []);
   assert.deepEqual(attestedRelease.blocked, []);
+
+  // The same evidence on any other gate leaves the obligation pending rather than clearing it.
+  for (const intent of ["push", "readiness", "ship", "merge"]) {
+    input.effectiveIntent = intent;
+    const nonRelease = await executePlan(input, {
+      runCheck: async () => ({ ok: true, exitCode: 0 }),
+      attestations: { "browser-proof": evidence },
+    });
+    assert.equal(nonRelease.status, "passed", intent);
+    assert.deepEqual(
+      nonRelease.pendingManual,
+      [{ id: "browser-proof", blockedBy: ["authenticatedBrave"] }],
+      intent,
+    );
+    assert.ok(
+      !nonRelease.results.some((result) => result.id === "browser-proof"),
+      `${intent} must not record an attested result`,
+    );
+  }
+});
+
+test("a release attestation must name an accepted engine, a date, and an observation", () => {
+  const check = { attestation: { engines: ["authenticated Brave"] } };
+
+  assert.equal(
+    validateAttestation(check, "authenticated Brave, steward session, 2026-09-22: deposit sheet renders").ok,
+    true,
+  );
+  for (const placeholder of [undefined, "", "   ", "none", "n/a", "pending"]) {
+    assert.equal(validateAttestation(check, placeholder).ok, false, JSON.stringify(placeholder));
+  }
+  assert.match(
+    validateAttestation(check, "Storybook, 2026-09-22: deposit sheet renders").problems.join(" "),
+    /must name the rendered engine/,
+  );
+  assert.match(
+    validateAttestation(check, "authenticated Brave, deposit sheet renders").problems.join(" "),
+    /YYYY-MM-DD/,
+  );
+  assert.match(
+    validateAttestation(check, "authenticated Brave 2026-09-22").problems.join(" "),
+    /what was observed/,
+  );
+  // With no declared engines the check still demands a date and an observation.
+  assert.equal(validateAttestation({}, "some session, 2026-09-22: the sheet renders").ok, true);
+  assert.equal(validateAttestation({}, "none").ok, false);
+});
+
+test("the gate re-execs unless the running Node is the pinned version itself", () => {
+  assert.equal(isPinnedCiNodeVersion("22.22.1", "22.22.1"), true);
+  assert.equal(isPinnedCiNodeVersion("22.22.0", "22.22.1"), false);
+  assert.equal(isPinnedCiNodeVersion("24.20.0", "22.22.1"), false);
+  // Without a readable pin it falls back to the runnable range rather than refusing to run.
+  assert.equal(isPinnedCiNodeVersion("22.22.0", null), true);
+  assert.equal(isPinnedCiNodeVersion("21.0.0", null), false);
 });
 
 test("post-commit push receipt reuse is exact and invalidates on tree or policy drift", async () => {

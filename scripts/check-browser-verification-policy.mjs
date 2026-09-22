@@ -25,9 +25,13 @@ const pointerFiles = [
   'packages/shared/AGENTS.md',
 ];
 const pointerPattern = /AGENTS\.md(#browser-evidence| § Browser Evidence)/;
+// The first version of this guard matched two exact sentences and passed while all three
+// package guides still said "report browser QA as `BLOCKED`" in another section. Match the
+// shape instead: any instruction to report browser or QA work as blocked.
 const deadEndPatterns = [
+  /report\s+(?:the\s+)?(?:browser\s+)?QA\s+(?:proof\s+)?as\s+`?BLOCKED`?/i,
+  /report\s+browser\s+(?:proof|QA)\s+as\s+`?BLOCKED`?/i,
   /stop and report QA as blocked/i,
-  /report QA as blocked rather than/i,
 ];
 
 const failures = [];
