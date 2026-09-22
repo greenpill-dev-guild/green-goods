@@ -268,6 +268,68 @@ Full specs in [`.claude/skills/design/language.md`](.claude/skills/design/langua
 - **Progressive disclosure** — Four layers: Glance (<1s) → Scan (1-3s) → Engage (3s+) → Deep Dive (intentional).
 - **Hero moments** — Garden creation, first submission, hypercert mint. Amplify shape + color + motion + typography + material together. Succession-aware: pioneer=simple, intermediate=moderate, climax=full.
 
+## Interface Principles
+
+Everything above says how Green Goods should look. This section says how people actually read and use what we build, and it comes first when designing or reviewing any screen. The rules in `.claude/rules/frontend-design.md` and the admin invariants apply these principles; they do not replace them.
+
+It exists because of a failure that no visual rule caught. On 2026-09-22 a steward with Aiyeloja Family Garden selected set up the protocol pool instead. A tab under that garden's header held a console for a different pool, nothing in the dialog named the pool being written, and six wallet prompts arrived with no word of progress between them, so the run read as a loop. Every token and component was on-system; the screen still misled the person using it.
+
+The principles come from three books, restated in our own words and applied to Green Goods. Page numbers refer to the PDF editions the team holds.
+
+- **DMMT**: Steve Krug, *Don't Make Me Think, Revisited*. How people read screens and decide what to do.
+- **RUI**: Adam Wathan and Steve Schoger, *Refactoring UI*. How a screen shows what matters.
+- **AD**: Brad Frost, *Atomic Design*. How a design system is built, reused, and kept whole.
+
+### How people use what we build
+
+1. **Make every screen self-evident.** A steward should know at a glance what a screen is, whose it is, and what its main action will do. Each moment of "wait, which one?" costs a little trust, and the costs add up. A screen that cannot be self-evident must at least explain itself in place. *(DMMT ch. 1, pp. 29–38)* In Green Goods, the first read of any pool screen answers: which garden, which pool, and what happens if I press this.
+2. **Design for scanning and the first plausible click.** People skim for the words that match their task and take the first reasonable option rather than weighing them all. The obvious click has to be the right one, and a wrong one has to be cheap to undo. When it cannot be undone, it must be impossible to make by accident. *(DMMT ch. 2, pp. 39–47; ch. 4, pp. 70–76)* An on-chain write is never cheap to undo, so its target and consequence sit where the eye already is, not in a header two regions away.
+3. **Build for muddling through.** People keep using a tool with a rough, sometimes wrong idea of how it works. The interface has to catch a wrong assumption before it becomes an irreversible act, rather than rely on anyone remembering how a tab or selector behaves. *(DMMT ch. 2, pp. 44–47)*
+4. **Show where the steward is and what they are acting on.** From any screen it must be obvious which section this is and which garden is in scope; the trunk test (drop someone on the page and ask them to name it) should pass without hesitation. A control never acts outside the scope the page announces. When the scope genuinely differs, as with the protocol pool, the screen looks different; a different default tab is not enough. *(DMMT ch. 6, pp. 96–113; ch. 3, p. 56)* The garden in the header is the only garden a screen can change, and protocol work lives in the Green Goods Community Garden, whose pool the protocol pool is.
+5. **Keep conventions, and break them only for clarity.** Reuse patterns people already know, ours and the wider web's, so they learn once. When sameness would hide a difference that matters, clarity wins over consistency. *(DMMT ch. 3, pp. 48–56)*
+6. **Cut what is not earning its place.** Remove happy talk and instructions nobody reads. Say the one thing the steward needs, where they need it. *(DMMT ch. 5, pp. 77–80)*
+7. **Spend goodwill carefully.** Patience is a reserve. Silence at a moment of uncertainty (a wallet prompt with no word about why, a wait with no progress) drains it fastest; candour, saved steps, and recoverable mistakes refill it. *(DMMT ch. 11, pp. 204–211)*
+8. **Watch one real person use it.** Opinions do not settle design questions; watching someone try the flow does. Before a consequential flow ships, one person outside the build walks it cold while thinking aloud, and the worst problems are fixed first. *(DMMT ch. 8–9, pp. 135–170)*
+
+### How a screen shows what matters
+
+9. **Rank everything.** Decide what is primary, secondary, and tertiary on each screen, and let weight, colour, and position carry that ranking. When something does not stand out, quiet its neighbours rather than making it louder. *(RUI "Not all elements are equal" and "Emphasize by de-emphasizing", pp. 36–47)* On a screen that ends in a signature, the target of the write is the most prominent fact after the title.
+10. **One primary action per moment.** Actions form a pyramid: one clear primary, a few secondary, the rest tertiary. A destructive act stays modest where it sits and becomes the loud, primary action only inside its own confirmation. *(RUI "Semantics are secondary", pp. 60–62)*
+11. **Let values speak for themselves.** Format and context often already say what a value is. Add a label only when they do not, and keep it quieter than the value. *(RUI "Labels are a last resort", pp. 48–52)*
+12. **Design the in-between states on purpose.** Empty, loading, waiting on a wallet, three of six done, stopped part-way, finished: each is a screen someone will see, and each is designed rather than left to a spinner. *(RUI "Don't overlook empty states", pp. 234–237; AD ch. 4, p. 99)* A multi-signature act says how many prompts are coming, shows each one landing, names where it stopped, and ends on a clear done state.
+13. **Choose from the systems, not from scratch.** Spacing, type sizes, colour shades, elevation, and radii come from the defined scales; a value outside them is drift, not a decision. Colour is never the only signal. *(RUI "Limit your choices", pp. 28–32; spacing pp. 66–75; type pp. 102–107; colour pp. 142–168; depth pp. 180–185)*
+
+### How the system stays whole
+
+14. **Name each piece by what it is responsible for.** Atoms (a button, a step marker), molecules (a labelled field, the line naming a write's target), organisms (a pool console, a setup flow), templates, and pages. The larger and more stateful the piece, the more care each new placement needs. *(AD ch. 2, pp. 39–61)*
+15. **Reuse is a decision, and an organism is handed its context.** Promote a pattern to shared when a second real need matches the first one's context, not because the pattern already exists. An organism that writes is told its target and never infers it from wherever it happens to be mounted, and we keep track of everywhere it is used. *(AD ch. 5, p. 155; ch. 1, pp. 35–36; ch. 3, pp. 88–91)* The pool console has one home, the Garden workspace's Pool tab, and its protocol context comes from the pool itself.
+16. **Prove patterns with real and worst-case content.** A pattern is finished when real pages hold up: long names, zero items, errors, pending states, elevated permissions. Storybook carries those states for every pattern, not only the tidy one. *(AD ch. 2, pp. 48–54; ch. 3, pp. 77–81)*
+17. **Fix at the pattern, everywhere it lives.** When a flaw shows up in one placement, check every other placement and fix the shared piece once. The pattern library and the product are built from the same components, so they cannot drift apart. *(AD ch. 5, pp. 140–163)*
+
+### Applied to consequential writes
+
+These are how the principles above apply to on-chain acts, not a separate rulebook. The numbers point back to the principles.
+
+- **Scope.** A screen changes only the garden selected in the header (4, 15). The protocol pool is managed from the Green Goods Community Garden, like any garden's pool, and cannot be reached from another garden's workspace.
+- **Target.** Every write dialog names the pool it writes to before anything else, and the protocol pool is set apart as a warning (4, 9). This is the disambiguation case of the rule against restating the chrome's context.
+- **Count and reason.** Before the first prompt, the flow says how many times the wallet will ask and why each write is needed (1, 7).
+- **Progress.** While it runs, each write shows whether it is waiting for the wallet, confirming, or done, with a link to its transaction (7, 12).
+- **Stop and finish.** A stopped run names where and why, and trying again says how many prompts remain. A finished run stays on screen as a done state until the steward closes it (7, 12).
+- **Fewer prompts when the wallet allows.** When the wallet can run several calls as one transaction, related writes share one approval; otherwise they go one at a time, and the checklist shows which (6, 7).
+
+### How we follow them
+
+- **Before building,** start from the feature, not the layout (RUI pp. 8–11). Find the existing pattern for the job and reuse it, or say why not (15).
+- **For every UI change,** run the five-minute review:
+  1. Look at a screenshot for five seconds. Can you say which garden or pool this is, which step you are on, what the primary action does, and to what? If any answer needs reading or another selector, fix it (1, 4).
+  2. Is the most important thing the most prominent, with one primary action? (9, 10)
+  3. Does any control act outside the scope the page announces, or any tab change scope without saying so? (4)
+  4. Are the in-between states designed and in Storybook: empty, loading, waiting, part-way, failed, done? (12, 16)
+  5. Is every value on the defined scales, and does no status rely on colour alone? (13)
+  6. If a shared organism changed: where else is it mounted, and does each mount hand it its context? (15, 17)
+- **Before a consequential flow ships,** someone outside the build walks it cold, thinking aloud (8).
+- **Where it is enforced:** this section is the source. The design review checklist carries it as its clarity lens (`.claude/skills/design/review-checklist.md`), and every frontend rule points here (`.claude/rules/frontend-design.md`, Rule 20).
+
 ## Do's and Don'ts
 
 **Do:**
@@ -282,8 +344,10 @@ Full specs in [`.claude/skills/design/language.md`](.claude/skills/design/langua
 - Match complexity to garden maturity (succession stages)
 - Use both color AND icon for status indicators (WCAG 1.4.1)
 - Gate all animation behind `prefers-reduced-motion`
+- Name the target of every write, and show every step of a multi-signature act (Interface Principles 4, 12)
 
 **Don't:**
+- Let a control act outside the garden the page announces, or a tab change scope silently (Interface Principle 4)
 - Flood the screen with green — it's the accent (1-3%), not the canvas
 - Use dark scrims behind parallel admin sheets — depth comes from canvas recession and sheet material
 - Mix serif and sans-serif on the same surface (except browser editorial)
