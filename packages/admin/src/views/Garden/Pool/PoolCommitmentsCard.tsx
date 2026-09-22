@@ -52,6 +52,18 @@ export function PoolCommitmentsCard({
   const { model, titles, pendingCreates, isOnline, isActing, acts } = pool;
   const [search, setSearch] = useState("");
   const [expireTarget, setExpireTarget] = useState<CommitmentReadModel | null>(null);
+  const [busyJobId, setBusyJobId] = useState<string | null>(null);
+
+  // Nothing in the admin sends a queued creation on its own, so each row that is
+  // still here offers the send and, where the queue allows it, the way out.
+  const runQueued = async (jobId: string, act: (jobId: string) => Promise<void>) => {
+    setBusyJobId(jobId);
+    try {
+      await act(jobId);
+    } finally {
+      setBusyJobId(null);
+    }
+  };
   const dueIds = useMemo(() => new Set(model.dueLive.map((row) => row.id)), [model.dueLive]);
 
   const titleOf = (commitment: CommitmentReadModel) =>
@@ -201,6 +213,35 @@ export function PoolCommitmentsCard({
                 </StatusBadge>
                 <span className="text-xs text-text-soft">
                   {`${row.targetUnits} ${row.unitLabel}`}
+                </span>
+                <span className="ml-auto flex items-center gap-1.5">
+                  {row.discardable ? (
+                    <AdminButton
+                      type="button"
+                      variant="text"
+                      size="sm"
+                      disabled={busyJobId !== null}
+                      onClick={() => void runQueued(row.jobId, acts.discardQueued)}
+                    >
+                      {formatMessage({
+                        id: "cockpit.garden.pool.queued.discard",
+                        defaultMessage: "Discard",
+                      })}
+                    </AdminButton>
+                  ) : null}
+                  <AdminButton
+                    type="button"
+                    variant="outlined"
+                    size="sm"
+                    disabled={!isOnline || busyJobId !== null}
+                    loading={busyJobId === row.jobId}
+                    onClick={() => void runQueued(row.jobId, acts.retryQueued)}
+                  >
+                    {formatMessage({
+                      id: "cockpit.garden.pool.queued.retry",
+                      defaultMessage: "Try Again",
+                    })}
+                  </AdminButton>
                 </span>
               </li>
             ))}

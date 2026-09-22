@@ -321,6 +321,7 @@
     "./__tests__/test-utils/controller-fixtures": "./src/__tests__/test-utils/controller-fixtures.ts",
     "./__tests__/test-utils/query-client": "./src/__tests__/test-utils/query-client.ts",
     "./hooks/app/useLocalizedRelativeTime": "./src/hooks/app/useLocalizedRelativeTime.ts",
+    "./hooks/commitment-pooling/useCommitmentCompletionRefresh": "./src/hooks/commitment-pooling/useCommitmentCompletionRefresh.ts",
     "./hooks/commitment-pooling/useCommitmentComposerForm": "./src/hooks/commitment-pooling/useCommitmentComposerForm.ts",
     "./hooks/commitment-pooling/useCommitmentJobs": "./src/hooks/commitment-pooling/useCommitmentJobs.ts",
     "./hooks/commitment-pooling/useCommitmentCycleNames": "./src/hooks/commitment-pooling/useCommitmentCycleNames.ts",

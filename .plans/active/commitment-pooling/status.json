@@ -25,6 +25,7 @@
     "diagrams": "diagrams.md",
     "wireframes": "wireframes.md",
     "acceptance_matrix": "acceptance-matrix.md",
+    "qa_readiness_plan": "qa-readiness-plan.md",
     "erd_simplification_proposals": "reports/erd-simplification-proposals.md",
     "exchange_wave_gdoc_checklist": "reports/exchange-wave-gdoc-checklist.md",
     "standing_commitments_gdoc_checklist": "reports/standing-commitments-gdoc-checklist.md",
@@ -1317,6 +1318,14 @@
       "status": "deferred",
       "branch": null,
       "note": "Resolved the duplicate Community tracker. The Community PWA is a hackathon build that was deferred on 2026-09-07 in favor of QA, so PRD-682 was canceled as superseded and the work is tracked solely by PRD-691 in the community-interface hub. Cleared this lane's stale PRD-758 gate, its 2026-09-30 due date, and its Linear sync. COM-11 now waits on PRD-691 instead of PRD-682."
+    },
+    {
+      "timestamp": "2026-09-20T00:00:00Z",
+      "actor": "claude",
+      "lane": "qa_pass_1",
+      "status": "blocked",
+      "branch": null,
+      "note": "QA readiness plan recorded in qa-readiness-plan.md after four decision rounds with Afo. Before the walk: refresh after queued acts, prefilled Offer It Again, an admin batch tray, and one full catalog PR. The walk runs on recorded two-person calls against staging on live Arbitrum, staged from a cancelled rehearsal cycle to a real cycle, then the protocol pool relay, then the partner garden. Afo decided the D2 close-the-season call as finish: ending a season and recording an external payout are built in the fix window and walked in re-QA. The lane's manual gate is unchanged and remains Afo's to clear. Live read at Arbitrum block 507310713: all 18 pools NotReady."
     }
   ]
 }

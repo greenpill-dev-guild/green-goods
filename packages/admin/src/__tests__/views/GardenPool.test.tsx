@@ -195,6 +195,8 @@ function controller(overrides: ControllerOverrides = {}): PoolConsoleController 
     acceptClaim: vi.fn().mockResolvedValue("0x1"),
     declineClaim: vi.fn().mockResolvedValue("0x1"),
     saveSettings: vi.fn().mockResolvedValue(undefined),
+    retryQueued: vi.fn().mockResolvedValue(undefined),
+    discardQueued: vi.fn().mockResolvedValue(undefined),
   };
   const poolRecord = overrides.pool === undefined ? pool() : overrides.pool;
   const cycles = overrides.cycles ?? [cycle()];
@@ -586,6 +588,41 @@ describe("GardenPoolTab (W7)", () => {
     const dialog = await screen.findByRole("alertdialog");
     fireEvent.click(within(dialog).getByRole("button", { name: /close pool/i }));
     await waitFor(() => expect(mocks.controller!.acts.closePool).toHaveBeenCalled());
+  });
+
+  it("lets the steward send or drop a creation still queued here, since nothing else will", async () => {
+    // The admin mounts no queue provider, so a queued row with no button is a
+    // commitment that never reaches the chain. Discard shows only where the queue
+    // would allow it: a creation whose send may have landed must stay.
+    const queued = {
+      chainId: 42161,
+      poolId: "7",
+      direction: "OFFER" as const,
+      unitLabel: "workshop",
+      targetUnits: "1",
+      waitingForMembership: false,
+      failed: false,
+      createdAt: 1,
+    };
+    mocks.controller = controller({
+      pendingCreates: [
+        { ...queued, jobId: "job-unsent", title: "Compost workshop", discardable: true },
+        { ...queued, jobId: "job-sent", title: "Seed swap", discardable: false },
+      ],
+    });
+    renderTab();
+
+    const rows = within(screen.getByTestId("pool-queued")).getAllByRole("listitem");
+    expect(within(rows[1]).queryByRole("button", { name: /discard/i })).not.toBeInTheDocument();
+
+    fireEvent.click(within(rows[1]).getByRole("button", { name: /try again/i }));
+    await waitFor(() =>
+      expect(mocks.controller!.acts.retryQueued).toHaveBeenCalledWith("job-sent")
+    );
+    fireEvent.click(within(rows[0]).getByRole("button", { name: /discard/i }));
+    await waitFor(() =>
+      expect(mocks.controller!.acts.discardQueued).toHaveBeenCalledWith("job-unsent")
+    );
   });
 
   it("disables every online act and says why when the device is offline", () => {

@@ -212,6 +212,8 @@ const poolActs: PoolConsoleActs = {
   acceptClaim: successfulTransaction,
   declineClaim: successfulTransaction,
   saveSettings: async () => undefined,
+  retryQueued: async () => undefined,
+  discardQueued: async () => undefined,
 };
 
 type PoolConsoleFixtureOverrides = Omit<Partial<PoolConsoleController>, "pool" | "poolId"> & {
