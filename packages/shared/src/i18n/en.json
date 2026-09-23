@@ -4081,7 +4081,7 @@
   "cockpit.garden.pool.seed.confirmerAddress": "Add an Address",
   "cockpit.garden.pool.seed.confirmers": "Confirmers",
   "cockpit.garden.pool.seed.confirmersDefaultOffer": "Nobody named: whoever takes this up confirms it.",
-  "cockpit.garden.pool.seed.confirmersDefaultRequest": "Nobody named: the pool, as the asker, confirms through its stewards.",
+  "cockpit.garden.pool.seed.confirmersDefaultRequest": "Nobody named: you confirm it yourself, as the one asking.",
   "cockpit.garden.pool.seed.confirmersNamed": "A named group. The lead and every contributor are excluded by the contract.",
   "cockpit.garden.pool.seed.contributorPolicy": "Contributor policy",
   "cockpit.garden.pool.seed.cycle": "Cycle",
