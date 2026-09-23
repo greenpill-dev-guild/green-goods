@@ -77,8 +77,13 @@ describe("installPressHaptics", () => {
 
   it.each([
     ["a scrim", `<div data-pressable="scrim" id="target"></div>`],
+    ["a scrim drawn as a button", `<button data-pressable="scrim" id="target"></button>`],
     ["a text field", `<input type="text" id="target" />`],
     ["a dropdown trigger", `<button role="combobox" id="target">Theme</button>`],
+    [
+      "a dropdown trigger declared as a pressable trigger",
+      `<button role="combobox" data-pressable="trigger" id="target">Theme</button>`,
+    ],
     [
       "a control that is not available",
       `<button class="gg-button" aria-disabled="true" id="target">Saving</button>`,

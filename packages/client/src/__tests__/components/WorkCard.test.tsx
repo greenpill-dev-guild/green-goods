@@ -1,3 +1,4 @@
+import { WorkCard as SharedWorkCard } from "@green-goods/shared/components/Cards/WorkCard/WorkCard";
 import { describe, expect, it, vi } from "vitest";
 import { MinimalWorkCard } from "../../components/Cards/Work/WorkCard";
 import { renderWithProviders as render, screen, userEvent } from "../test-utils";
@@ -32,8 +33,25 @@ describe("components/Cards/MinimalWorkCard", () => {
 
     render(<MinimalWorkCard work={work as any} onClick={handleClick} />);
 
-    await user.click(screen.getByRole("button"));
+    const card = screen.getByRole("button");
+    expect(card).toHaveAttribute("data-pressable", "card");
+    await user.click(card);
     expect(handleClick).toHaveBeenCalledTimes(1);
+  });
+
+  it("renders a card with nothing to open as content, not a button that does nothing", () => {
+    render(
+      <SharedWorkCard
+        work={{
+          id: "work-2",
+          title: "Plant Flowers",
+          status: "approved",
+          createdAt: work.createdAt,
+        }}
+      />
+    );
+
+    expect(screen.queryByRole("button")).not.toBeInTheDocument();
   });
 
   it("keeps the compact row and its media square on the same height contract", () => {

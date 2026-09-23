@@ -176,17 +176,18 @@ const SELECTION_CONTROLS = [
 
 /**
  * Everything else a finger can press: buttons, links, and every declared
- * pressable (card, row, media, trigger, fab). A dropdown trigger opens a
- * picker the way a field takes focus, so it stays quiet like the fields do,
- * and so does the scrim a sheet closes from.
+ * pressable (card, row, media, trigger, fab).
  */
-const PRESS_CONTROLS = [
-  'button:not([role="combobox"])',
-  "a[href]",
-  '[role="button"]',
-  "summary",
-  '[data-pressable]:not([data-pressable="scrim"])',
-].join(", ");
+const PRESS_CONTROLS = ["button", "a[href]", '[role="button"]', "summary", "[data-pressable]"].join(
+  ", "
+);
+
+/**
+ * Controls that stay quiet whatever else they are: a dropdown trigger opens a
+ * picker the way a field takes focus, and a scrim only closes the sheet above
+ * it. They win over the lists above, even on a button or a declared pressable.
+ */
+const SILENT_CONTROLS = '[role="combobox"], [data-pressable="scrim"]';
 
 /**
  * Give every press the same tactile answer, from one place.
@@ -208,8 +209,12 @@ export function installPressHaptics(root: Document = document): () => void {
     // Only a finger's press counts. A click the app makes itself (a download
     // link's `link.click()`, once per file) follows a press that already answered.
     if (!event.isTrusted || !(event.target instanceof Element)) return;
-    const control = event.target.closest(`${SELECTION_CONTROLS}, ${PRESS_CONTROLS}`);
-    if (!control || control.matches(':disabled, [aria-disabled="true"]')) return;
+    const control = event.target.closest(
+      `${SILENT_CONTROLS}, ${SELECTION_CONTROLS}, ${PRESS_CONTROLS}`
+    );
+    if (!control || control.matches(`${SILENT_CONTROLS}, :disabled, [aria-disabled="true"]`)) {
+      return;
+    }
     if (control.matches(SELECTION_CONTROLS)) hapticSelection();
     else hapticLight();
   };
