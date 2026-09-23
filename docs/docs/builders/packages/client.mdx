@@ -4,7 +4,7 @@ sidebar_label: Client
 slug: /builders/packages/client
 audience: developer
 owner: docs
-last_verified: 2026-09-02
+last_verified: 2026-09-23
 feature_status: Live
 source_of_truth:
   - packages/client/AGENTS.md
@@ -32,6 +32,17 @@ package owns route composition and presentation.
 Never mix the two. If a route or shell change blurs the paths, check `router.tsx`, the shell
 component, and the matching Storybook story in the same pass. To tour the PWA without a wallet,
 use the [mock-auth URL from Getting Started](../getting-started#path-a-run-against-hosted-services).
+
+## Map
+
+| Directory | What lives there |
+|---|---|
+| `src/PublicApp.tsx` and `src/PwaApp.tsx` | Entry points for the public site and the installed app |
+| `src/router.tsx` and `src/config/routes.tsx` | How routes are composed for both presentations |
+| `src/views/` | Screens by area: Home, Garden, Profile, Login, and the public pages |
+| `src/sw/` | The service worker: the offline shell, media caching, the share target, and background work |
+| `src/config/` | The PWA manifest, routing rules, IPFS settings, and app bootstrap |
+| `src/content/` | Curated public content and social previews |
 
 ## Run and test
 

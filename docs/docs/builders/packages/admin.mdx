@@ -4,7 +4,7 @@ sidebar_label: Admin
 slug: /builders/packages/admin
 audience: developer
 owner: docs
-last_verified: 2026-09-02
+last_verified: 2026-09-23
 feature_status: Live
 source_of_truth:
   - packages/admin/AGENTS.md
@@ -29,6 +29,16 @@ actions), the `.workspace-canvas`, a `MainSheet`, and a bottom `NavigationBar` w
 items: Hub, Garden, Community, Actions. Every workspace overlay is a centered `AdminDialog`;
 profile, settings, and notifications render in a right-docked `AdminSideSheet` (bottom sheet on
 mobile). The `/hub` route is the reference surface for new page composition.
+
+## Map
+
+| Directory | What lives there |
+|---|---|
+| `src/router.tsx` and `src/routes/` | Route definitions, the canvas shell, and role guards like `RequireRole.tsx` |
+| `src/views/` | One folder per workspace: Hub, Garden, Community, Actions, Cookies, and Profile |
+| `src/components/` | Admin-owned building blocks such as `AdminButton`, `AdminCard`, and `AdminDialog`, each with a story |
+| `src/styles/` | The admin's Material 3 tokens, component styles, and type scale |
+| `src/__tests__/` | Vitest suites for views and components |
 
 ## Run and test
 

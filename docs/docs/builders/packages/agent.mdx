@@ -26,7 +26,9 @@ data.
 
 | Directory | What lives there |
 |---|---|
-| `src/handlers/` | Inbound message and command handlers |
+| `src/index.ts` | The entry point: starts the Telegram bot and the HTTP API |
+| `src/handlers/` | Inbound message and command handlers, such as start, join, submit, and approve |
+| `src/platforms/` | Messaging platform adapters (Telegram today) |
 | `src/api/` | Public HTTP routes (inventoried in the [API Index](./api-index)) |
 | `src/services/` | Service dependencies behind stable helper APIs |
 

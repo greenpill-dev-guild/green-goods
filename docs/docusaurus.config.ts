@@ -76,6 +76,14 @@ const config: Config = {
       '@docusaurus/plugin-client-redirects',
       {
         redirects: [
+          // The old sidebar generated these category landings; each section now has a real page.
+          {from: ['/category/user-journeys'], to: '/builders/architecture/anatomy'},
+          {from: ['/category/packages-and-apis'], to: '/builders/packages'},
+          {from: ['/category/product-specifications'], to: '/builders/reference/economics-explorer'},
+          {from: ['/category/integrations'], to: '/builders/integrations'},
+          {from: ['/category/agentic-development'], to: '/builders/agentic'},
+          {from: ['/category/testing', '/category/quality-assurance'], to: '/builders/testing'},
+          {from: ['/category/build-ci-and-deployments'], to: '/builders/quality/gh-actions'},
           {from: ['/builders/deployments/gh-actions'], to: '/builders/quality/gh-actions'},
           {from: ['/builders/deployments/status'], to: '/builders/reference/deployments'},
           {from: ['/builders/specs/revenue-explorer'], to: '/builders/reference/economics-explorer'},
