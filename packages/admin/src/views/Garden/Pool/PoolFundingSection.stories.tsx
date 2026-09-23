@@ -50,3 +50,38 @@ export const LastKnownBalance: Story = {
     funding: storyPoolFunding({ isError: true, hasStaleBalance: true }),
   },
 };
+
+const ready = storyPoolFunding().snapshot;
+
+/** Funding cannot be calculated: the rail names why, not only that. */
+export const FundingUnavailable: Story = {
+  args: {
+    funding: storyPoolFunding({
+      snapshot: ready && {
+        ...ready,
+        committed: null,
+        expected: null,
+        available: null,
+        shortfall: null,
+        suggestedTopUp: null,
+        fundingState: "unavailable",
+        fundingUnavailableReasons: ["ledger_unavailable"],
+        settlementReadiness: "unavailable",
+        settlementUnavailableReasons: ["ledger_unavailable"],
+      },
+    }),
+  },
+};
+
+/** Funding is healthy but settlement cannot run yet: the rail names the one thing in the way. */
+export const SettlementBlocked: Story = {
+  args: {
+    funding: storyPoolFunding({
+      snapshot: ready && {
+        ...ready,
+        settlementReadiness: "unavailable",
+        settlementUnavailableReasons: ["executor_paused"],
+      },
+    }),
+  },
+};

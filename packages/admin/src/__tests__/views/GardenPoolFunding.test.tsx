@@ -140,6 +140,20 @@ describe("PoolFundingSection", () => {
     expect(screen.getByText("No settlement Safe configured")).toBeInTheDocument();
     expect(screen.getAllByText("—").length).toBeGreaterThan(0);
     expect(screen.queryByText("0 G$")).not.toBeInTheDocument();
+    // The rail names what is in the way, not only that something is.
+    expect(screen.getByText("No settlement Safe is configured.")).toBeInTheDocument();
+  });
+
+  it("names the settlement blocker when funding itself is healthy", () => {
+    renderSection(
+      fundingView({
+        snapshot: snapshot({
+          settlementReadiness: "unavailable",
+          settlementUnavailableReasons: ["executor_paused"],
+        }),
+      })
+    );
+    expect(screen.getByText("The Celo settlement executor is paused.")).toBeInTheDocument();
   });
 
   it("reports an initial read failure as unavailable instead of a missing Safe", () => {

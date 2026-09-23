@@ -1,4 +1,5 @@
 import type {
+  PoolFundingSnapshot,
   PoolFundingState,
   SettlementUnavailableReason,
 } from "@green-goods/shared/modules/commitment-pooling/pool-funding";
@@ -10,6 +11,17 @@ export function formatGdollar(value: bigint | null, locale: string, detailed = f
   return value === null
     ? "—"
     : `${formatTokenAmount(value, 18, detailed ? 18 : 2, locale, true)} G$`;
+}
+
+/**
+ * The one reason the rail names when funding or settlement is unavailable:
+ * the first funding reason, because settlement cannot run without funding,
+ * then the first settlement reason. Null when nothing is in the way.
+ */
+export function primaryUnavailableReason(
+  snapshot: Pick<PoolFundingSnapshot, "fundingUnavailableReasons" | "settlementUnavailableReasons">
+): SettlementUnavailableReason | null {
+  return snapshot.fundingUnavailableReasons[0] ?? snapshot.settlementUnavailableReasons[0] ?? null;
 }
 
 export function shortAddress(address: Address): string {
