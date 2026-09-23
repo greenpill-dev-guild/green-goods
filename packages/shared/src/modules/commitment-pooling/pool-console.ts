@@ -139,3 +139,30 @@ export function selectPoolConsoleModel(input: {
     isPaused: status === "paused",
   };
 }
+
+/**
+ * How a cycle ends, as its steward may act on it now. An Open cycle ends
+ * (`closeCycle`, to Reconciled) once nothing in it is live; until then the
+ * steward is told how many commitments still hold it open. A Reconciled cycle
+ * can be archived (`compostCycle`, to Composted), which is final: the
+ * certificate composer takes only a Reconciled cycle, so an archived one can no
+ * longer be certified. A Seeded cycle only opens or is cancelled, and a
+ * finished one has nothing left to do.
+ */
+export type CycleEndAct =
+  | { kind: "end" }
+  | { kind: "end-blocked"; liveCommitments: bigint }
+  | { kind: "archive" }
+  | null;
+
+export function selectCycleEndAct(
+  cycle: Pick<CommitmentCycleRecord, "state" | "liveCommitmentCount">
+): CycleEndAct {
+  if (cycle.state === "OPEN") {
+    return cycle.liveCommitmentCount === 0n
+      ? { kind: "end" }
+      : { kind: "end-blocked", liveCommitments: cycle.liveCommitmentCount };
+  }
+  if (cycle.state === "RECONCILED") return { kind: "archive" };
+  return null;
+}
