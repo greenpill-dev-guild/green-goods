@@ -465,7 +465,7 @@ This section holds the finding index, the queue that fixes them, and each PR's r
 |---|---|---|
 | W1-1 Ledger freshness, and the rail names its reason | A18 | Built |
 | W1-2 Amounts in token units | A3 | Built |
-| W1-3 The target line in dialogs; Storybook matches the product | A13, A10, A8, A21, A14 (copy), A12 (Storybook) | Queued |
+| W1-3 The target line in dialogs; Storybook matches the product | A13, A10, A8, A21, A14 (copy), A12 (Storybook) | Built |
 | W1-4 Hub scope and the Confirm Kept review | A1, A4, A5, A30, A25 (Hub), A19 (inspector) | Queued |
 | W1-5 Settings through the setup sequence | A2, A15, A23 (settings) | Queued |
 | W1-6 End a season | Decision 29, A29 | Queued |
@@ -533,6 +533,44 @@ This section holds the finding index, the queue that fixes them, and each PR's r
   - `admin-pool-seedamountfield--*`: 10 G$ reads as 10, 2.5 USDC stores 2500000, too many decimals is refused, and an unreadable token holds the field;
   - `admin-pool-seedstepreview--garden-work-with-reward`: "External payout record · 250 USDC".
 - **Pending:** authenticated Brave proof of an on-chain seed.
+
+### W1-3: the target line in dialogs, and Storybook matching the product
+
+- **The slot:** `AdminDialog`, `AdminConfirmDialog` and `AdminReasonDialog` take an optional `target`, rendered under the title and before the description.
+- **What now names its target:**
+  - every pool dialog (close, archive, reopen, pause, cancel, decline, settings);
+  - every commitment inspector dialog;
+  - every seed wizard step;
+  - the past-due row's Expire.
+- **Decline:** names the commitment and who asked.
+- **`GardenPoolTarget`:** builds the line from a garden's address alone. It reads the name from the gardens list and recognises the protocol pool by the protocol's root garden.
+- **Protocol copy:** it now says the pool is the Green Goods Community Garden's own.
+- **Storybook:** the admin's named type classes moved to `packages/admin/src/styles/admin-type.css`, imported by both the admin entry and Storybook, so the two render the same way (titles 12px/500).
+- **D3 check:** the before/after pairs (12px/500 against 16px/600, the same colour and Plus Jakarta Sans) went to Afo. W2-3 waits for his yes.
+
+### Validation receipt, W1-3
+
+- **Tested implementation commit SHA:** `c434da8e45c14c39ce54e1afadebf6e14a96b4ea`.
+  - The gate ran on the working tree immediately before the three implementation commits, and the pre-commit formatter changed nothing.
+  - `git status --porcelain=v1 --untracked-files=all -- packages/` is empty at that SHA.
+- **Run finished (UTC):** `2026-09-23T03:47:21Z`.
+- **Command:** `bun run check -- --intent push`.
+- **Result:** all 25 checks passed:
+  - format, lint, validation-system-test and test-quality;
+  - shared, client, admin and agent typecheck, test-typecheck, test and build;
+  - source-structure, design-guardrails, ontology, agent-guidance, supply-chain and story-quality;
+  - storybook-build.
+- **Also run:**
+  - the nine affected admin suites together, 105 passed;
+  - `locale-coverage.test.ts`, 15 passed;
+  - shared and admin typecheck in the source and tests scopes.
+- **Story sweep:** 238 pooling stories, no new crash. The three settings dialog stories still crash on the missing data router; W1-5 fixes them.
+- **RED:** with the target rendered after the description (the old placement), the header-order case failed. It is recorded through `record-tdd` on the `ui` lane.
+- **Rendered proof (Storybook):**
+  - `admin-pool-pooldialogs--close-pool-confirm`: title, then "Writing to Rocinha's pool", then the consequence;
+  - `admin-pool-commitmentreasondialogs--decline-request`: the commitment in its garden's pool, and who asked;
+  - `admin-pool-seedcommitmentdialog--protocol-context`: the protocol warning above step one;
+  - `admin-pool-gardenpooltab--open`: titles at 12px/500, as on staging.
 
 ## 5. Catalog PR
 

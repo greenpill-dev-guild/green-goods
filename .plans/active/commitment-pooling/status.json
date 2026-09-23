@@ -10,7 +10,7 @@
     "overall_status": "active",
     "priority": "p1",
     "created_at": "2026-07-03",
-    "updated_at": "2026-09-23T02:14:54.433Z"
+    "updated_at": "2026-09-23T03:48:01.926Z"
   },
   "links": {
     "brief": "external-brief.md",
@@ -260,12 +260,12 @@
         "mode": "required",
         "status": "green_recorded",
         "red": {
-          "command": "packages/admin: bun run test -- src/__tests__/views/SeedCommitment.test.tsx (conversion mutated to store the typed text as base units)",
-          "evidence": "1 failed | 16 passed: 'records a declared reward in the token's own units, never its base units' (W1-2, A3)"
+          "command": "packages/admin: bun run test -- src/__tests__/components/AdminDialog.test.tsx (target rendered in the body after the description, the old placement)",
+          "evidence": "1 failed | 8 passed: 'names what the act writes to under the title, before the description' (W1-3, A13)"
         },
         "green": {
-          "command": "packages/admin: bun run test -- src/__tests__/views/SeedCommitment.test.tsx src/__tests__/views/seedStepModel.test.ts src/__tests__/views/SeedStepHowMuch.test.tsx",
-          "evidence": "3 files, 40 passed at b88b489d9: 2.5 of a six-decimal token records 2500000; unreadable token holds the amount; unit tables"
+          "command": "packages/admin: bun run test -- AdminDialog, AdminReasonDialog, PoolDialogs, PoolSetupFlow, SeedCommitment, CommitmentDialog, GardenPool, HubConfirm, CommitmentClaims suites",
+          "evidence": "9 files, 105 passed at c434da8e4: header order, pool/record/claimant targets, seed wizard names its pool and the protocol warning"
         },
         "note": ""
       },
@@ -1337,6 +1337,14 @@
     },
     {
       "timestamp": "2026-09-23T02:14:54.435Z",
+      "actor": "claude",
+      "lane": "ui",
+      "status": "tdd_recorded",
+      "branch": "feature/commitment-pooling-client-loop",
+      "note": "Recorded RED/GREEN TDD proof"
+    },
+    {
+      "timestamp": "2026-09-23T03:48:01.927Z",
       "actor": "claude",
       "lane": "ui",
       "status": "tdd_recorded",
