@@ -57,7 +57,7 @@ export const FirstRun: Story = {
     }),
   },
   play: async () => {
-    const dialog = await expectFirstStep("How it works");
+    const dialog = await expectFirstStep("How It Works");
     await expect(dialog.getByRole("button", { name: "Next" })).toBeDisabled();
     await userEvent.type(
       await dialog.findByRole("textbox", { name: "What this pool is for" }),
@@ -83,14 +83,14 @@ export const NewSeason: Story = {
     }),
   },
   play: async () => {
-    await expectFirstStep("The season");
+    await expectFirstStep("The Season");
   },
 };
 
 export const Campaign: Story = {
   args: { intent: "campaign", console: storyPoolConsole() },
   play: async () => {
-    await expectFirstStep("The campaign");
+    await expectFirstStep("The Campaign");
   },
 };
 
@@ -106,6 +106,6 @@ export const OpenPreparedSeason: Story = {
     }),
   },
   play: async () => {
-    await expectFirstStep("The split");
+    await expectFirstStep("The Split");
   },
 };
