@@ -474,7 +474,9 @@ This section holds the finding index, the queue that fixes them, and each PR's r
 | W1-9 Catalog PR | The cases Wave 1 changes | Built |
 | W2-1 Pool console hierarchy | A22, A19 (the rest), A14 (marker), A28, A31, A23 (reader view) | Built |
 | W2-2 Flow clarity | A11 (the rest), A16, A17, A20 (the rest) | Built |
-| W2-3 to W2-5 | The title rollout (after the D3 check), copy and tokens, and a catalog pass | Wave 2 |
+| W2-4 Copy and Title Case | A25, A26 | Built |
+| W2-3 Titles, with A27's colours | The title rollout and the raw `--m3-*` colours, in one pass per file | Waits on the D3 check |
+| W2-5 Catalog pass | The labels Wave 2 renamed | Wave 2 |
 
 ### W1-1: ledger freshness
 
@@ -970,6 +972,46 @@ This section holds the finding index, the queue that fixes them, and each PR's r
   - `admin-community-settlementoperationscard--owner-delivery-off` with its confirmation open.
 - **Pending:** authenticated Brave proof of resuming a pool, sending for confirmation and sending a queued creation, walked in the rehearsal.
 - **PR:** #890, stacked on #889.
+
+### W2-4: copy and Title Case
+
+- **Title Case** (A26, DL-012/013): English titles and action labels on the pooling surfaces follow the style rule. That covers card, section, dialog and flow step titles, and acts such as "Close Pool…", "Expire Now…" and "Confirm as Garden Fallback…". Status copy, field labels, hints, empty-state titles and banners stay in sentence case, and Spanish and Portuguese keep their own casing.
+- **Copy** (A25):
+  - three lines are cut: the status card's "container" line, the split's basis-points note, and the setup step's starting-assessment note;
+  - a write is a "change" in the setup copy;
+  - Retry Command… reads Resend….
+- **Order:** A27, the raw `--m3-*` colours, moves into W2-3, so each file gets one pass for its title and its colours. W2-3 waits on the D3 check.
+- **For W2-5:** ADM-059, 061, 062, 064, 077, 079, 081, 082, 088, 089, 110, 111 and 121 quote a renamed label.
+
+### Validation receipt, W2-4
+
+- **Tested commit SHA:** `a18f4bee0ae8a318fa02d8c2844e15624fd2a268`.
+  - The gate is the pre-push hook on that commit.
+  - `git status --porcelain=v1 --untracked-files=all -- packages/` is empty at that SHA.
+- **Run finished (UTC):** `2026-09-23T08:50:13Z`.
+- **Command:** `bun run check -- --intent push` (the pre-push hook).
+- **Result:** all 30 runnable checks passed:
+  - format, lint, validation-system-test and test-quality;
+  - the package typecheck, test and build checks;
+  - docs-authority, docs-test and docs-build;
+  - source-structure, design-guardrails, ontology, agent-guidance, qa-id-ledger, supply-chain and story-quality;
+  - storybook-build and agent-tools-test.
+- **Cache:** the package tests were cache hits on the same gate's uncached run on the same SHA. That run ended at `2026-09-23T08:48:08Z` with shared 5,615 passed and admin 928 passed, after which its push died with exit 141.
+- **Before commit:**
+  - the full admin suite, 117 files and 928 passed;
+  - the i18n suites, 41 passed, holding every source `defaultMessage` equal to its English value;
+  - admin and shared typecheck;
+  - design-tokens, source-structure, story-quality and react-patterns;
+  - the four story plays that quote a renamed label, probed headless with no play error.
+- **TDD:** not applicable. The PR changes copy, not behaviour.
+- **Rendered proof (Storybook, headless Chromium):**
+  - `admin-pool-poolstatuscard--ready-to-close`;
+  - `admin-pool-commitmentactions--ready-to-confirm`;
+  - `admin-community-protocolfundingoperationscard--protocol-steward`;
+  - `admin-community-settlementoperationscard--owner-delivery-off`;
+  - `admin-pool-allocationeditor--standard`;
+  - `admin-pool-transferreviewdialog--dispatch`.
+- **PR:** #891, stacked on #890.
 
 ## 5. Catalog PR
 
