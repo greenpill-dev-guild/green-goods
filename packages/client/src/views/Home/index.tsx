@@ -25,6 +25,7 @@ import {
   Suspense,
   useCallback,
   useEffect,
+  useLayoutEffect,
   useRef,
   useState,
 } from "react";
@@ -151,7 +152,7 @@ const Home: React.FC = () => {
   // Auth state for welcome message
   const { isAuthenticated } = useAuthState();
   const hasShownArrivalRef = useRef(false);
-  const { set: scheduleArrival } = useTimeout();
+  const { set: scheduleArrival, clear: cancelArrival } = useTimeout();
 
   // Ref for scrolling to article on card click
   const articleRef = useRef<HTMLElement>(null);
@@ -207,6 +208,12 @@ const Home: React.FC = () => {
     },
     [myGardenIds, navigate, openWorkDashboard, setFilters]
   );
+
+  // A garden opens as a child route, so Home stays mounted and a toast still waiting on its
+  // delay would land on that screen. Leaving Home cancels it; the arrival stays passed.
+  useLayoutEffect(() => {
+    if (location.pathname.replace(/\/$/, "") !== APP_ROUTES.home) cancelArrival();
+  }, [cancelArrival, location.pathname]);
 
   // Show a state-aware arrival toast once per browser session, scoped to the signed-in address,
   // and only while the session is still on the Home it opened on: AppShell marks the arrival

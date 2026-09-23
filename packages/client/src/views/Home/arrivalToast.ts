@@ -82,10 +82,26 @@ export const ARRIVAL_TOASTS: Record<Exclude<ArrivalKind, "none">, ArrivalToastSp
  */
 const arrivalPassedKey = (address: string) => `greengoods:arrival-shown:${address.toLowerCase()}`;
 
+/** Arrivals marked on this page load while session storage refused the write. */
+const passedWithoutStorage = new Set<string>();
+
 export function hasArrivalPassed(address: string): boolean {
-  return sessionStorage.getItem(arrivalPassedKey(address)) === "true";
+  const key = arrivalPassedKey(address);
+  if (passedWithoutStorage.has(key)) return true;
+  try {
+    return sessionStorage.getItem(key) === "true";
+  } catch {
+    // Storage can be unavailable; the arrival toast is a courtesy, not state.
+    return false;
+  }
 }
 
 export function markArrivalPassed(address: string): void {
-  sessionStorage.setItem(arrivalPassedKey(address), "true");
+  const key = arrivalPassedKey(address);
+  try {
+    sessionStorage.setItem(key, "true");
+  } catch {
+    // Storage can be unavailable; remember the arrival for this page load instead.
+    passedWithoutStorage.add(key);
+  }
 }

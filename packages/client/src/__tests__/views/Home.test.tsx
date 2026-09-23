@@ -4,11 +4,11 @@
  * Tests that the Home view renders without crashing.
  */
 
-import { render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import { createElement } from "react";
 import { IntlProvider } from "react-intl";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const filterState = vi.hoisted(() => ({ sort: "" }));
 const arrivalState = vi.hoisted(() => ({ kind: "none" as "none" | "draft" }));
@@ -96,24 +96,13 @@ vi.mock("@green-goods/shared/hooks/auth/usePrimaryAddress", () => ({
   usePrimaryAddress: () => "0x1234567890abcdef1234567890abcdef12345678",
 }));
 
-vi.mock("@green-goods/shared/hooks/utils/useTimeout", () => ({
-  useTimeout: () => ({
-    // Run scheduled work at once so the arrival toast lands inside the render under test.
-    set: vi.fn((callback: () => void) => {
-      callback();
-      return () => {};
-    }),
-    clear: vi.fn(),
-    isPending: vi.fn(() => false),
-  }),
-}));
-
 vi.mock("@green-goods/shared/stores/useUIStore", () => ({
   useUIStore: (selector: (s: any) => any) => {
     const state = {
       isGardenFilterOpen: false,
       openGardenFilter: vi.fn(),
       closeGardenFilter: vi.fn(),
+      closeWalletSheet: vi.fn(),
       openWorkDashboard: vi.fn(),
       // Home reads its filters from the store so they outlive the view.
       gardenFilters: { scope: "all", sort: "recent" },
@@ -251,25 +240,47 @@ describe("Home View", () => {
     sessionStorage.clear();
   });
 
-  it("shows the arrival toast to a session that opens on Home", () => {
-    arrivalState.kind = "draft";
+  describe("arrival toast", () => {
+    // Home waits 700 ms after an arrival resolves before it shows the toast.
+    const passArrivalDelay = () => act(() => vi.advanceTimersByTime(700));
 
-    renderWithProviders();
+    beforeEach(() => {
+      vi.useFakeTimers();
+      arrivalState.kind = "draft";
+    });
 
-    expect(toastService.info).toHaveBeenCalledTimes(1);
-    expect(toastService.info).toHaveBeenCalledWith(
-      expect.objectContaining({ title: "You have a draft saved" })
-    );
-  });
+    afterEach(() => {
+      vi.useRealTimers();
+    });
 
-  it("stays quiet on Home once the session has arrived on another screen", () => {
-    // e.g. the app reopened into the garden flow, where the user already declined a draft.
-    markArrivalPassed("0x1234567890abcdef1234567890abcdef12345678");
-    arrivalState.kind = "draft";
+    it("shows the arrival toast to a session that opens on Home", () => {
+      renderWithProviders();
+      passArrivalDelay();
 
-    renderWithProviders();
+      expect(toastService.info).toHaveBeenCalledTimes(1);
+      expect(toastService.info).toHaveBeenCalledWith(
+        expect.objectContaining({ title: "You have a draft saved" })
+      );
+    });
 
-    expect(toastService.info).not.toHaveBeenCalled();
+    it("stays quiet on Home once the session has arrived on another screen", () => {
+      // e.g. the app reopened into the garden flow, where the user already declined a draft.
+      markArrivalPassed("0x1234567890abcdef1234567890abcdef12345678");
+
+      renderWithProviders();
+      passArrivalDelay();
+
+      expect(toastService.info).not.toHaveBeenCalled();
+    });
+
+    it("drops a pending arrival toast when a garden opens before it shows", () => {
+      renderWithProviders();
+      // The garden is a child route, so Home stays mounted underneath it.
+      fireEvent.click(screen.getByTestId("garden-card"));
+      passArrivalDelay();
+
+      expect(toastService.info).not.toHaveBeenCalled();
+    });
   });
 
   it("renders without crashing", () => {
