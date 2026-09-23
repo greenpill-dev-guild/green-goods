@@ -15,7 +15,7 @@ generated_from:
   - playwright.config.ts
   - scripts/data/qa-test-catalog.json
   - scripts/data/validation-policy.json
-source_digest: "sha256:a8d0a1a21f2e2c4b17a2f36e9ef236ef77bde3ba9f359181b60852155ac81861"
+source_digest: "sha256:e8a6453b9624122b3e3d820f1069bad027c4756276dc91ae246d129c055c6f3d"
 source_of_truth:
   - package.json
   - packages/admin/vitest.config.ts
@@ -384,7 +384,7 @@ The catalog contract test enforces all of this, and [retired cases](#retired-cas
 | `ADM-118` | Transaction | Garden · Settlement | Create a payout plan for a fulfilled commitment | Screenshots of the review step and the draft plan |
 | `ADM-119` | Transaction | Garden · Settlement | Finalize a payout plan | Screenshot of the pending plan and its prepare step |
 | `ADM-120` | Transaction | Garden · Settlement | Dispatch a prepared disbursement | Screenshots of the dispatched row and the plan status |
-| `ADM-121` | Transaction | Garden · Settlement | Retry Command resends the same command for a dispatched row | Screenshot of the retry review and the row afterwards |
+| `ADM-121` | Transaction | Garden · Settlement | Resend… sends the same command again for a dispatched row | Screenshot of the review for Resend… and the row afterwards |
 | `ADM-125` | Transaction | Garden · Pool | Seeding asks the wallet to confirm and the commitment appears without a reload | Screen recording from the press to the commitment appearing |
 | `ADM-139` | Transaction | Garden · Pool | Seed an approval-gated protocol Request for garden work the test Garden can deliver | Screenshot of the Request in the protocol pool |
 | `ADM-140` | Transaction | Garden · Pool | Seed a commitment: 4-step wizard, named confirmers, review before sending | Screenshots of the rejected confirmer and the review |
@@ -392,7 +392,7 @@ The catalog contract test enforces all of this, and [retired cases](#retired-cas
 | `ADM-145` | Transaction | Hub · Confirm | Confirm Kept… reviews the commitment before confirming it | Screenshots of the review and of the commitment afterwards |
 | `ADM-157` | Journey | Garden · Pool | A declared G$ reward is typed and reviewed in G$ | Screenshots of the field and of the review |
 
-### P1 (79) {#admin-dashboard-p1}
+### P1 (82) {#admin-dashboard-p1}
 
 | ID | Kind | Area | Scenario | Evidence requested |
 |---|---|---|---|---|
@@ -425,11 +425,11 @@ The catalog contract test enforces all of this, and [retired cases](#retired-cas
 | `ADM-079` | Transaction | Garden · Commitment | Mark a commitment ready with an override reason | Screenshots of the override dialog and the ready band |
 | `ADM-080` | Transaction | Garden · Commitment | Attach an assessment to a commitment | Screenshot of the attached assessment |
 | `ADM-081` | Transaction | Garden · Commitment | Cancel a commitment with a reason from the inspector | Screenshots of the cancel dialog and the app's History |
-| `ADM-082` | Transaction | Garden · Commitment | Count approved linked work on a commitment | Screenshots of the readback status and the progress rows |
+| `ADM-082` | Transaction | Garden · Commitment | Count a commitment's approved linked work | Screenshots of the readback status and the progress rows |
 | `ADM-086` | Transaction | Garden · Settlement | Cancel a disbursement with a reason | Screenshot of the cancelled row |
 | `ADM-087` | Transaction | Community · Coordination | Enable or disable gardener delivery on the settlement card | Screenshots of the confirmation and the read-back state |
 | `ADM-088` | Transaction | Community · Coordination | Cancel a queued protocol transfer | Screenshots of the confirmation and the refreshed card |
-| `ADM-089` | Transaction | Community · Coordination | Dispatch, retry, or requeue a protocol transfer | Screenshots of the dispatched and failed rows |
+| `ADM-089` | Transaction | Community · Coordination | Dispatch, resend, or requeue a protocol transfer | Screenshots of the dispatched and failed rows |
 | `ADM-090` | Transaction | Community · Coordination | Create the garden's signal pools | Screenshots before and after creation |
 | `ADM-091` | Transaction | Community · Coordination | Add and remove a conviction strategy | Screenshots of the refused entries and the list |
 | `ADM-092` | Transaction | Community · Coordination | Register and deregister an item in a signal pool | Screenshots of the registered item and the empty pool |
@@ -461,22 +461,25 @@ The catalog contract test enforces all of this, and [retired cases](#retired-cas
 | `ADM-133` | Journey | Garden · Pool | More offers than your commitment limit holds seeding and says why | Screenshots of the review as an offer and as a request |
 | `ADM-135` | Journey | Garden · Commitment | Seed Another Like This opens the seed wizard on an earlier commitment's answers | Screenshots of the first step and the review |
 | `ADM-136` | Journey | Garden · Commitment | A steward on the commitment's team is offered no way to confirm it | Screenshot of the inspector with no confirm act |
-| `ADM-137` | Journey | Garden · Pool | Cancel season is offered only while the season has no live commitments | Screenshots of the season's acts before and after |
+| `ADM-137` | Journey | Garden · Pool | Cancel Season… is offered only while the season has no live commitments | Screenshots of the season's acts before and after |
 | `ADM-138` | Transaction | Garden · Pool | Cancelling the open season frees the pool to start another | Screenshots of the card after the cancellation and with the new season |
 | `ADM-141` | Journey | Garden · Commitment | Kept is withheld for a record that had expired before the dispute | Screenshot of the dialog without Kept |
 | `ADM-142` | Journey | Garden · Pool | Remove drops one added commitment from the sitting | Screenshot of the review after the removal |
 | `ADM-143` | Journey | Garden · Pool | Remove This One drops the commitment under review and hands back the newest of the rest | Screenshot of the review after the removal |
-| `ADM-147` | Transaction | Garden · Pool | Pool settings say how many times the wallet will ask, and end on Settings saved | Screenshots of the dialog before saving and after |
+| `ADM-147` | Transaction | Garden · Pool | Pool Settings says how many times the wallet will ask, and ends on Settings saved | Screenshots of the dialog before saving and after |
 | `ADM-148` | Transaction | Garden · Pool | A settings save stopped partway says what was saved, and Try Again sends only the rest | Screenshots of the stopped dialog and of Settings saved |
 | `ADM-150` | Transaction | Garden · Pool | Seeding several shows where each commitment stands, and ends on how each one went | Screenshots of the wizard during the pass and at the end |
 | `ADM-151` | Transaction | Garden · Pool | End Season… ends a season whose commitments have all finished | Screenshots of the dialog and of the cycles card afterwards |
 | `ADM-153` | Transaction | Garden · Pool | Archive… on a finished season warns that no impact certificate can be made afterwards | Screenshots of the dialog and of the archived season |
-| `ADM-154` | Data integrity | Garden · Pool | Pool funding reads Settlement ready for a garden whose settlement is set up | Screenshot of Pool funding reading ready |
+| `ADM-154` | Data integrity | Garden · Pool | Pool Funding reads Settlement ready for a garden whose settlement is set up | Screenshot of Pool Funding reading ready |
 | `ADM-156` | Journey | Community · Coordination | A protocol transfer names its receiving garden and is reviewed before it is sent | Screenshots of the row and of the review |
 | `ADM-158` | Journey | Garden · Pool | A declared external reward is typed in its token's own units | Screenshots of the field and of the review |
 | `ADM-159` | Transaction | Garden · Pool | Accept names who asks and says where it stands on its own row | Screenshots of the row while confirming and once accepted |
+| `ADM-164` | Transaction | Garden · Pool | Resume Pool says where it stands and stays closed until the pool reads open | Screenshots of the card while confirming and once resumed |
+| `ADM-165` | Transaction | Garden · Commitment | Send for Confirmation says where it stands and stays closed once sent | Screenshots of the inspector while confirming and once sent |
+| `ADM-166` | Transaction | Garden · Pool | Send Now on a queued row says where the send stands | Screenshots of the row after the rejection and while it sends |
 
-### P2 (14) {#admin-dashboard-p2}
+### P2 (18) {#admin-dashboard-p2}
 
 | ID | Kind | Area | Scenario | Evidence requested |
 |---|---|---|---|---|
@@ -490,9 +493,13 @@ The catalog contract test enforces all of this, and [retired cases](#retired-cas
 | `ADM-108` | Journey | Shell | Mobile chrome: the action button and bottom navigation reach the same acts | Screenshots at phone width |
 | `ADM-134` | Journey | Garden · Pool | At your commitment limit, Add Another Like This is held for an offer but not for a request | Screenshots of the footer as an offer and as a request |
 | `ADM-146` | Data integrity | Hub · Confirm | A commitment that has left the confirmation queue says so when its link is opened | Screenshot of the dialog opened from the copied address |
-| `ADM-149` | Journey | Garden · Pool | Closing Pool settings with an unsaved change asks Discard Changes? | Screenshot of the Discard Changes? prompt |
+| `ADM-149` | Journey | Garden · Pool | Closing Pool Settings with an unsaved change asks Discard Changes? | Screenshot of the Discard Changes? prompt |
 | `ADM-152` | Journey | Garden · Pool | A season with live commitments offers no End and says how many are live | Screenshot of the season with its live count |
-| `ADM-155` | Data integrity | Garden · Pool | When settlement is not ready, Pool funding names what is in the way | Screenshots of the rail and of the details |
+| `ADM-155` | Data integrity | Garden · Pool | When settlement is not ready, Pool Funding names what is in the way | Screenshots of the rail and of the details |
+| `ADM-160` | Journey | Garden · Pool | Each count on the pool tab lands on exactly what it counts | Screenshots of the counts and of each filtered list |
+| `ADM-161` | Content & vocabulary | Garden · Pool | The protocol's pool is marked Protocol pool on its status card | Screenshots of both Pool Status cards |
+| `ADM-162` | Resilience | Garden · Pool | Offline, Set Up Commitments says why it waits | Screenshots of the card offline and online |
+| `ADM-163` | Content & vocabulary | Garden · Pool | Setting up says how many times the wallet will ask, and that the split is fixed once the season opens | Screenshots of the note, The Split, and the last step |
 | `XPLAT-007` | Transaction | Hub · Work | Two stewards acting on the same submission converge on one state | Screenshots from both sessions |
 
 ## Docs

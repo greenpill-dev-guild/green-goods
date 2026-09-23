@@ -5285,7 +5285,7 @@
         "Read the rows and the count on the Confirm tab",
         "Select the second garden with the header chip and read Hub → Confirm again"
       ],
-      "expected": "With the first garden selected, its waiting commitments are listed and the Confirm tab's count matches them; with the second, the stage reads Nothing to confirm and the count is zero. Neither stage lists a Needs the Green Goods team row: those are confirmed from Protocol confirmations on /community/coordination",
+      "expected": "With the first garden selected, its waiting commitments are listed and the Confirm tab's count matches them; with the second, the stage reads Nothing to confirm and the count is zero. Neither stage lists a Needs the Green Goods team row: those are confirmed from Protocol Confirmations on /community/coordination",
       "evidence": "Screenshots of Hub → Confirm with each garden selected",
       "role": "steward",
       "tags": ["commitment", "confirm", "garden-switch"],
@@ -5544,16 +5544,16 @@
       "priority": "P1",
       "kind": "data-integrity",
       "area": "Garden · Pool",
-      "scenario": "Pool funding reads Settlement ready for a garden whose settlement is set up",
+      "scenario": "Pool Funding reads Settlement ready for a garden whose settlement is set up",
       "preconditions": [
         "Steward of a garden whose Celo settlement is fully set up: a funded settlement Safe, an active account and route, and an executor that is not paused"
       ],
       "steps": [
-        "Open /garden/pool and read Pool funding",
+        "Open /garden/pool and read Pool Funding",
         "Press Refresh Pool Funding and read it again"
       ],
-      "expected": "Pool funding shows Settlement ready and a funding state other than Funding unavailable, with no line naming something in the way; after the refresh it still reads ready and its Read time moves on",
-      "evidence": "Screenshot of Pool funding reading ready",
+      "expected": "Pool Funding shows Settlement ready and a funding state other than Funding unavailable, with no line naming something in the way; after the refresh it still reads ready and its Read time moves on",
+      "evidence": "Screenshot of Pool Funding reading ready",
       "role": "steward",
       "tags": ["garden-pool", "funding", "settlement"],
       "requiresProduction": false,
@@ -5567,10 +5567,10 @@
       "priority": "P2",
       "kind": "data-integrity",
       "area": "Garden · Pool",
-      "scenario": "When settlement is not ready, Pool funding names what is in the way",
-      "preconditions": ["Steward of a garden whose Pool funding reads Settlement unavailable"],
+      "scenario": "When settlement is not ready, Pool Funding names what is in the way",
+      "preconditions": ["Steward of a garden whose Pool Funding reads Settlement unavailable"],
       "steps": [
-        "Open /garden/pool and read Pool funding",
+        "Open /garden/pool and read Pool Funding",
         "Press View Funding Details and read the list"
       ],
       "expected": "One line under Settlement unavailable names what is in the way, and View Funding Details lists that same reason in the same words; nothing on the rail says the pool is ready",
@@ -5602,6 +5602,51 @@
       "requiresProduction": false,
       "status": "active",
       "source": "qa-runs-catalog-third-pass-2026-09-07"
+    },
+    {
+      "id": "ADM-162",
+      "tab": "Admin Dashboard",
+      "platform": "Chromium Desktop",
+      "priority": "P2",
+      "kind": "resilience",
+      "area": "Garden · Pool",
+      "scenario": "Offline, Set Up Commitments says why it waits",
+      "preconditions": ["Steward with manage rights on a garden with no pool"],
+      "steps": [
+        "Open /garden/pool",
+        "Turn the network off and read the card with Set Up Commitments",
+        "Turn the network back on and read it again"
+      ],
+      "expected": "Offline, Set Up Commitments is closed and the card says Needs a connection. Pool changes are sent straight to the chain.; back online, Set Up Commitments is offered again and the line is gone",
+      "evidence": "Screenshots of the card offline and online",
+      "role": "steward",
+      "tags": ["garden-pool", "offline"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-design-audit-wave-2-2026-09-23"
+    },
+    {
+      "id": "ADM-163",
+      "tab": "Admin Dashboard",
+      "platform": "Chromium Desktop",
+      "priority": "P2",
+      "kind": "content",
+      "area": "Garden · Pool",
+      "scenario": "Setting up says how many times the wallet will ask, and that the split is fixed once the season opens",
+      "preconditions": ["Steward with manage rights on a garden with no pool"],
+      "steps": [
+        "Open /garden/pool and read the note on the Pool Status card",
+        "Press Set Up Commitments, fill in How It Works and The Season, and go on to The Split",
+        "Read the line above the presets, each preset, and the hint under each share",
+        "Go on to the last step, read its button, then close the flow and discard it"
+      ],
+      "expected": "The note says setting up takes four short steps and that the wallet will ask up to six times, fewer when it can take several changes at once; The Split opens with This split is fixed for good once the season opens, and it decides how the season's impact certificate is shared.; each preset reads as its roles, such as Gardeners 60 % · Treasury 15 % · Steward 10 % · Evaluator 5 % · Community 5 % · Funder 5 % for Garden-led (standard), and each share says what it is for; the last step's button reads Set Up and Open; nothing is sent",
+      "evidence": "Screenshots of the note, The Split, and the last step",
+      "role": "steward",
+      "tags": ["garden-pool", "copy"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-design-audit-wave-2-2026-09-23"
     },
     {
       "id": "ADM-057",
@@ -5637,7 +5682,7 @@
       "preconditions": ["Steward with manage rights on a garden with an open season"],
       "steps": [
         "Press Start Campaign and complete the form",
-        "Press Open on the campaign",
+        "Press Open Campaign on the campaign, check its split, and press Open Campaign",
         "Read the rail in the app"
       ],
       "expected": "The campaign is created under the season and opens in one transaction; the app's rail shows it as a campaign with its dates and state",
@@ -5688,7 +5733,7 @@
         "A season or campaign that is prepared or open and has no live commitments. Cancel is offered only then (ADM-137)"
       ],
       "steps": [
-        "Press Cancel season… (or Cancel on a campaign) and try to confirm with an empty reason",
+        "Press Cancel Season… (or Cancel Campaign… on a campaign) and try to confirm with an empty reason",
         "Type a reason and confirm",
         "Read the cycles list and the public garden page"
       ],
@@ -5723,6 +5768,27 @@
       "source": "qa-runs-catalog-third-pass-2026-09-07"
     },
     {
+      "id": "ADM-164",
+      "tab": "Admin Dashboard",
+      "platform": "Chromium Desktop",
+      "priority": "P1",
+      "kind": "transaction",
+      "area": "Garden · Pool",
+      "scenario": "Resume Pool says where it stands and stays closed until the pool reads open",
+      "preconditions": ["Steward with manage rights on a garden whose pool is paused (ADM-060)"],
+      "steps": [
+        "Press Resume Pool and read the Pool Status card while the wallet prompt is open",
+        "Confirm in the wallet and read the card until the pool reads open"
+      ],
+      "expected": "The card says Confirm in your wallet., then Confirming on Arbitrum One… (or the network in use), then Resumed. The pool reads open once the index shows it.; Resume Pool stays closed from the press, so it cannot be sent twice; once the pool reads open the line is gone and Pause… is offered again",
+      "evidence": "Screenshots of the card while confirming and once resumed",
+      "role": "steward",
+      "tags": ["garden-pool", "tx"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-design-audit-wave-2-2026-09-23"
+    },
+    {
       "id": "ADM-061",
       "tab": "Admin Dashboard",
       "platform": "Chromium Desktop",
@@ -5734,7 +5800,7 @@
         "Steward with manage rights on a garden with an open pool and no live commitments"
       ],
       "steps": [
-        "Press Close pool… and read the confirmation",
+        "Press Close Pool… and read the confirmation",
         "Press Close Pool",
         "Read the console and the app's Pool tab"
       ],
@@ -5756,9 +5822,9 @@
       "scenario": "Archive a closed pool, then reopen it",
       "preconditions": ["Steward with manage rights on a garden with a closed pool"],
       "steps": [
-        "Press Archive pool… and confirm",
+        "Press Archive Pool… and confirm",
         "Read the console and the app",
-        "Press Reopen pool… and confirm",
+        "Press Reopen Pool… and confirm",
         "Start and open a season again (ADM-057), then read the app's Pool tab"
       ],
       "expected": "Archiving asks for confirmation and sends one transaction; the console and the app show the archived state; Reopen returns the pool to its setup state in one transaction, not to open; once a season is started and opened again the app takes new commitments",
@@ -5801,7 +5867,7 @@
       "priority": "P1",
       "kind": "transaction",
       "area": "Garden · Pool",
-      "scenario": "Pool settings say how many times the wallet will ask, and end on Settings saved",
+      "scenario": "Pool Settings says how many times the wallet will ask, and ends on Settings saved",
       "preconditions": ["Steward with manage rights on a garden with a pool"],
       "steps": [
         "Press Edit Pool and read the current values",
@@ -5850,7 +5916,7 @@
       "priority": "P2",
       "kind": "journey",
       "area": "Garden · Pool",
-      "scenario": "Closing Pool settings with an unsaved change asks Discard Changes?",
+      "scenario": "Closing Pool Settings with an unsaved change asks Discard Changes?",
       "preconditions": ["Steward with manage rights on a garden with a pool"],
       "steps": ["Press Edit Pool and change a setting", "Close the dialog without saving"],
       "expected": "Closing asks Discard Changes? before anything is lost; Keep Editing returns to the change, and Discard closes the dialog with nothing sent",
@@ -5920,7 +5986,7 @@
         "Steward with manage rights on a garden whose settlement account is active, so Celo G$ settlement can be chosen"
       ],
       "steps": [
-        "Run the seed wizard to its Proof & confirmation step and open Advanced: declared reward",
+        "Run the seed wizard to its Proof & Confirmation step and open Advanced: declared reward",
         "Choose Celo G$ settlement and type 10 in Amount (G$)",
         "Try an amount with more than 18 decimal places, then type 10 again and go on to the review",
         "Read the reward on the review and cancel out"
@@ -5946,7 +6012,7 @@
         "The address of a 6-decimal ERC-20 token on the pool's chain, such as USDC, and an address it is paid from"
       ],
       "steps": [
-        "Run the seed wizard to its Proof & confirmation step, open Advanced: declared reward, and choose External payout record",
+        "Run the seed wizard to its Proof & Confirmation step, open Advanced: declared reward, and choose External payout record",
         "Read the amount field, then enter the token address and the Paid from address and read it again",
         "Type 2.5, go on to the review, and read the reward",
         "Cancel out"
@@ -6017,6 +6083,28 @@
       "requiresProduction": false,
       "status": "active",
       "source": "qa-readiness-catalog-2026-09-21"
+    },
+    {
+      "id": "ADM-161",
+      "tab": "Admin Dashboard",
+      "platform": "Chromium Desktop",
+      "priority": "P2",
+      "kind": "content",
+      "area": "Garden · Pool",
+      "scenario": "The protocol's pool is marked Protocol pool on its status card",
+      "preconditions": ["Protocol steward who also stewards another garden with a pool"],
+      "steps": [
+        "Select the Green Goods protocol garden with the header chip and open /garden/pool",
+        "Read the Pool Status card",
+        "Select the other garden and read its Pool Status card"
+      ],
+      "expected": "The protocol garden's Pool Status card carries a Protocol pool chip, so every act on it is plainly on the protocol's pool; the other garden's card carries none",
+      "evidence": "Screenshots of both Pool Status cards",
+      "role": "steward",
+      "tags": ["garden-pool", "protocol-pool"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-design-audit-wave-2-2026-09-23"
     },
     {
       "id": "ADM-040",
@@ -6109,7 +6197,7 @@
         "A past-due commitment listed on the console"
       ],
       "steps": [
-        "Press Expire now… on the commitment row and read the confirmation",
+        "Press Expire Now… on the commitment row and read the confirmation",
         "Press Expire Now",
         "Open the commitment in the inspector and in the app"
       ],
@@ -6120,6 +6208,33 @@
       "requiresProduction": false,
       "status": "active",
       "source": "qa-runs-catalog-third-pass-2026-09-07"
+    },
+    {
+      "id": "ADM-160",
+      "tab": "Admin Dashboard",
+      "platform": "Chromium Desktop",
+      "priority": "P2",
+      "kind": "journey",
+      "area": "Garden · Pool",
+      "scenario": "Each count on the pool tab lands on exactly what it counts",
+      "preconditions": [
+        "Steward with manage rights on a garden with an open pool",
+        "At least one past-due commitment (as for ADM-064) and one claim request waiting (PWA-085); where one exists, a disputed commitment as well (ADM-077)"
+      ],
+      "steps": [
+        "Open /garden/pool and read the counts at the top: Claims waiting, Needs recovery, and Past due",
+        "Press the Claims waiting count",
+        "Press the Needs recovery count and read the commitments list",
+        "Press the Past due count and read the list",
+        "Where a count reads 0, try to press it"
+      ],
+      "expected": "The counts sit in one card, each number over its label; Claims waiting lands on the claims card; Needs recovery lands on the commitments list showing only the disputed and past-due commitments, each once, with the Needs recovery chip selected; Past due lands on the list showing only the past-due ones with the Past due chip selected; a count of 0 is plain text and goes nowhere",
+      "evidence": "Screenshots of the counts and of each filtered list",
+      "role": "steward",
+      "tags": ["garden-pool", "commitment"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-design-audit-wave-2-2026-09-23"
     },
     {
       "id": "ADM-125",
@@ -6190,6 +6305,31 @@
       "requiresProduction": false,
       "status": "active",
       "source": "qa-readiness-catalog-2026-09-21"
+    },
+    {
+      "id": "ADM-166",
+      "tab": "Admin Dashboard",
+      "platform": "Chromium Desktop",
+      "priority": "P1",
+      "kind": "transaction",
+      "area": "Garden · Pool",
+      "scenario": "Send Now on a queued row says where the send stands",
+      "preconditions": [
+        "Steward with manage rights, signed in with a wallet",
+        "A creation left queued on this device, made as for ADM-127"
+      ],
+      "steps": [
+        "Press Send Now on the queued row and read the row while the wallet prompt is open",
+        "Reject the prompt and read the row",
+        "Press the row's Send Now or Try Again, confirm in the wallet, and read the row until it leaves"
+      ],
+      "expected": "While the wallet asks, the row says Confirm in your wallet. and its buttons are closed; after the rejection it says It didn’t go through, and nothing changed. You can try again. and the row stays; once confirmed it says Confirming on Arbitrum One… (or the network in use), then Sent. This row leaves once the index shows the commitment., and the row leaves when the commitment appears in the list",
+      "evidence": "Screenshots of the row after the rejection and while it sends",
+      "role": "steward",
+      "tags": ["garden-pool", "commitment", "queue", "tx"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-design-audit-wave-2-2026-09-23"
     },
     {
       "id": "ADM-128",
@@ -6386,7 +6526,7 @@
       "scenario": "More offers than your commitment limit holds seeding and says why",
       "preconditions": [
         "Steward with manage rights",
-        "The pool's commitment limit set in Pool settings to the number of open commitments you already provide in this pool, so you have room for no more (ADM-147). With none open, seed one offer first and set the limit to 1"
+        "The pool's commitment limit set in Pool Settings to the number of open commitments you already provide in this pool, so you have room for no more (ADM-147). With none open, seed one offer first and set the limit to 1"
       ],
       "steps": [
         "Run the seed wizard with The pool offers to the review",
@@ -6411,7 +6551,7 @@
       "scenario": "At your commitment limit, Add Another Like This is held for an offer but not for a request",
       "preconditions": [
         "Steward with manage rights",
-        "The pool's commitment limit set in Pool settings so you have room for exactly one more open commitment (ADM-147)"
+        "The pool's commitment limit set in Pool Settings so you have room for exactly one more open commitment (ADM-147)"
       ],
       "steps": [
         "Run the seed wizard with The pool offers to the review and read the footer and the note",
@@ -6432,7 +6572,7 @@
       "priority": "P1",
       "kind": "journey",
       "area": "Garden · Pool",
-      "scenario": "Cancel season is offered only while the season has no live commitments",
+      "scenario": "Cancel Season… is offered only while the season has no live commitments",
       "preconditions": [
         "Steward with manage rights",
         "An open season with one live commitment in it"
@@ -6441,7 +6581,7 @@
         "Open the cycles card and read the acts on the season",
         "Cancel that commitment from the inspector (ADM-081) and return to the cycles card"
       ],
-      "expected": "With a live commitment in the season, Cancel season… is not offered; once the season has no live commitments it is offered again",
+      "expected": "With a live commitment in the season, Cancel Season… is not offered; once the season has no live commitments it is offered again",
       "evidence": "Screenshots of the season's acts before and after",
       "role": "steward",
       "tags": ["garden-pool", "cycle"],
@@ -6459,7 +6599,7 @@
       "scenario": "Cancelling the open season frees the pool to start another",
       "preconditions": ["Steward with manage rights", "An open season with no live commitments"],
       "steps": [
-        "Press Cancel season…, type a reason, and confirm",
+        "Press Cancel Season…, type a reason, and confirm",
         "Read the cycles card",
         "Press Start Season and start a new one"
       ],
@@ -6566,6 +6706,30 @@
       "source": "qa-runs-catalog-third-pass-2026-09-07"
     },
     {
+      "id": "ADM-165",
+      "tab": "Admin Dashboard",
+      "platform": "Chromium Desktop",
+      "priority": "P1",
+      "kind": "transaction",
+      "area": "Garden · Commitment",
+      "scenario": "Send for Confirmation says where it stands and stays closed once sent",
+      "preconditions": [
+        "Steward on the commitment's roster as provider, with evidence submitted (as for ADM-075)"
+      ],
+      "steps": [
+        "Open /garden/pool and the commitment",
+        "Press Send for Confirmation and read the inspector while the wallet prompt is open",
+        "Confirm in the wallet and read the inspector until the band moves on"
+      ],
+      "expected": "Under the act the inspector says Confirm in your wallet., then Confirming on Arbitrum One… (or the network in use), then Sent for confirmation. Its confirmers see it once the index shows it.; Send for Confirmation stays closed from the press, so it cannot be sent twice; the band then reads ready for confirmation",
+      "evidence": "Screenshots of the inspector while confirming and once sent",
+      "role": "steward",
+      "tags": ["commitment", "tx"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-design-audit-wave-2-2026-09-23"
+    },
+    {
       "id": "ADM-076",
       "tab": "Admin Dashboard",
       "platform": "Chromium Desktop",
@@ -6607,10 +6771,10 @@
       ],
       "steps": [
         "Open the commitment and read the confirm bar and the facts",
-        "Press Confirm as garden fallback… and press Confirm as Garden Fallback with an empty reason",
+        "Press Confirm as Garden Fallback… and press Confirm as Garden Fallback with an empty reason",
         "Type or pick a reason and confirm"
       ],
-      "expected": "The inspector says ordinary confirmation is unreachable and offers Confirm as garden fallback…; the dialog says it uses this garden's steward authority and that every frozen team address is blocked; an empty reason is refused; the reason is recorded as written, with no pinned document; the confirmation is one transaction, the commitment reads Kept, and the timeline says confirmed by garden steward, fallback, with the reason",
+      "expected": "The inspector says ordinary confirmation is unreachable and offers Confirm as Garden Fallback…; the dialog says it uses this garden's steward authority and that every frozen team address is blocked; an empty reason is refused; the reason is recorded as written, with no pinned document; the confirmation is one transaction, the commitment reads Kept, and the timeline says confirmed by garden steward, fallback, with the reason",
       "evidence": "Screenshots of the fallback dialog and the Kept state",
       "role": "steward",
       "tags": ["commitment", "tx"],
@@ -6631,11 +6795,11 @@
         "A commitment created with the Green Goods team fallback on, ready for confirmation, whose ordinary confirmation is unreachable (the same setup as ADM-110)"
       ],
       "steps": [
-        "On /community/coordination find the commitment under Protocol confirmations, press Confirm Kept… on its row to open it, and read the confirm bar",
-        "Press Confirm for Green Goods team… and press Confirm for Green Goods Team with an empty reason",
+        "On /community/coordination find the commitment under Protocol Confirmations, press Confirm Kept… on its row to open it, and read the confirm bar",
+        "Press Confirm for Green Goods Team… and press Confirm for Green Goods Team with an empty reason",
         "Type or pick a reason and confirm"
       ],
-      "expected": "Confirm for Green Goods team… is offered because the commitment lets the team step in; the dialog says it uses the Green Goods protocol garden's authority and that module ownership alone grants nothing; an empty reason is refused; the reason is recorded as written, with no pinned document; the confirmation is one transaction, the commitment reads Kept, and the timeline says confirmed by Green Goods team, fallback, with the reason",
+      "expected": "Confirm for Green Goods Team… is offered because the commitment lets the team step in; the dialog says it uses the Green Goods protocol garden's authority and that module ownership alone grants nothing; an empty reason is refused; the reason is recorded as written, with no pinned document; the confirmation is one transaction, the commitment reads Kept, and the timeline says confirmed by Green Goods team, fallback, with the reason",
       "evidence": "Screenshots of the team fallback dialog and the Kept state",
       "role": "steward",
       "tags": ["commitment", "tx"],
@@ -6656,7 +6820,7 @@
         "A commitment ready for confirmation whose ordinary confirmer can still act, for example a Request whose asker is not a contributor"
       ],
       "steps": ["Open the commitment in the inspector", "Read the confirm bar and the facts"],
-      "expected": "Neither Confirm as garden fallback… nor Confirm for Green Goods team… is offered, and nothing says ordinary confirmation is unreachable; the person who can still confirm sees their own confirm act",
+      "expected": "Neither Confirm as Garden Fallback… nor Confirm for Green Goods Team… is offered, and nothing says ordinary confirmation is unreachable; the person who can still confirm sees their own confirm act",
       "evidence": "Screenshot of the inspector with no fallback act",
       "role": "steward",
       "tags": ["commitment"],
@@ -6677,7 +6841,7 @@
         "A commitment ready for confirmation"
       ],
       "steps": [
-        "Press Raise dispute… and try to confirm without a reason",
+        "Press Raise Dispute… and try to confirm without a reason",
         "Type a reason and press Raise Dispute",
         "Read the band, Hub → Confirm with the pool's garden selected in the header, and the app"
       ],
@@ -6859,7 +7023,7 @@
         "An in-progress commitment whose provider cannot send it"
       ],
       "steps": [
-        "Press Mark ready… and read the override dialog",
+        "Press Mark Ready… and read the override dialog",
         "Type a reason and press Mark Ready",
         "Read the band"
       ],
@@ -6882,10 +7046,10 @@
       "preconditions": [
         "Steward with manage rights",
         "A commitment and a submitted assessment for the garden",
-        "Known gate: no composer can create a commitment that requires an assessment yet, so Attach assessment… is never offered. Look for it, and record Blocked only on meeting this gate"
+        "Known gate: no composer can create a commitment that requires an assessment yet, so Attach Assessment… is never offered. Look for it, and record Blocked only on meeting this gate"
       ],
       "steps": [
-        "Press Attach assessment…",
+        "Press Attach Assessment…",
         "Pick the assessment and confirm",
         "Read the commitment's facts"
       ],
@@ -6907,7 +7071,7 @@
       "scenario": "Cancel a commitment with a reason from the inspector",
       "preconditions": ["Steward with manage rights", "A commitment that has not been fulfilled"],
       "steps": [
-        "Press Cancel commitment… with an empty reason",
+        "Press Cancel Commitment… with an empty reason",
         "Type a reason and press Cancel Commitment",
         "Read the commitment in the app's drawer as its provider"
       ],
@@ -6926,14 +7090,14 @@
       "priority": "P1",
       "kind": "transaction",
       "area": "Garden · Commitment",
-      "scenario": "Count approved linked work on a commitment",
+      "scenario": "Count a commitment's approved linked work",
       "preconditions": [
         "Steward with manage rights",
         "A domain-impact commitment with approved linked work not yet counted"
       ],
       "steps": [
         "Open the recovery section and read the work-decision readback status",
-        "Press Count approved linked work",
+        "Press Count Linked Work, read the dialog, and press Count Linked Work",
         "Reload and read the progress rows and the recovery section"
       ],
       "expected": "The readback status reads pending, unavailable, or needs fresh review honestly; counting sends one transaction and the requirement progress rises by the approved work; afterwards the control is gone or disabled while the readback settles, and a reload keeps the counted total",
@@ -7031,7 +7195,7 @@
       ],
       "steps": [
         "Open the commitment's settlement section and read the plan state",
-        "Press Create Payout Plan… and read Review before sending",
+        "Press Create Payout Plan… and read Review Before Sending",
         "Press Send Transaction and read the plan"
       ],
       "expected": "The plan starts as Not created yet; the review names the step, the amount, the payer, and the recipient before anything is sent; creating is one transaction; the plan then shows its id as Draft",
@@ -7052,7 +7216,7 @@
       "scenario": "Finalize a payout plan",
       "preconditions": ["Steward with manage rights", "A payout plan in Draft (ADM-118)"],
       "steps": [
-        "Press Finalize Payout Plan… and read Review before sending",
+        "Press Finalize Payout Plan… and read Review Before Sending",
         "Press Send Transaction",
         "Read the plan and the next step it offers"
       ],
@@ -7076,7 +7240,7 @@
         "A finalized payout plan of the garden-beneficiary kind (ADM-118, then ADM-119)"
       ],
       "steps": [
-        "Press Prepare Garden Payout…, read 'Review before sending', and press Send Transaction",
+        "Press Prepare Garden Payout…, read 'Review Before Sending', and press Send Transaction",
         "Read the Disbursements table"
       ],
       "expected": "The prepare step reviews before sending and is one transaction; the table lists the garden's disbursement with its amount and status; no contributor action is offered on this plan kind",
@@ -7099,7 +7263,7 @@
         "A finalized payout plan of the contributor-consideration kind on a commitment with a contributor (ADM-118, then ADM-119, on that commitment)"
       ],
       "steps": [
-        "Press Prepare Payout for the contributor, read 'Review before sending', and press Send Transaction",
+        "Press Prepare Payout for the contributor, read 'Review Before Sending', and press Send Transaction",
         "Read the Disbursements table"
       ],
       "expected": "The prepare step names the contributor, reviews before sending, and is one transaction; the table lists one disbursement for that contributor with its amount and status; no garden payout action is offered on this plan kind",
@@ -7153,7 +7317,7 @@
         "Gardener delivery enabled for a contributor payout (ADM-087)"
       ],
       "steps": [
-        "Press Dispatch… on a prepared row and read Review before sending",
+        "Press Dispatch… on a prepared row and read Review Before Sending",
         "Press Send Transaction",
         "Read the row and the plan status"
       ],
@@ -7172,15 +7336,15 @@
       "priority": "P0",
       "kind": "transaction",
       "area": "Garden · Settlement",
-      "scenario": "Retry Command resends the same command for a dispatched row",
+      "scenario": "Resend… sends the same command again for a dispatched row",
       "preconditions": ["A dispatched disbursement that has not been acknowledged yet (ADM-120)"],
       "steps": [
-        "On the dispatched row press Retry Command… and read the review",
+        "On the dispatched row press Resend… and read the review",
         "Press Send Transaction",
         "Read the row"
       ],
-      "expected": "Retry Command… is offered on a dispatched row; the review says it resends the same command for that disbursement; it is one transaction and the row stays one dispatched row, never a second one",
-      "evidence": "Screenshot of the retry review and the row afterwards",
+      "expected": "Resend… is offered on a dispatched row; the review says it resends the same command for that disbursement; it is one transaction and the row stays one dispatched row, never a second one",
+      "evidence": "Screenshot of the review for Resend… and the row afterwards",
       "role": "steward",
       "tags": ["settlement", "tx"],
       "requiresProduction": false,
@@ -7221,7 +7385,7 @@
       "scenario": "A rejected wallet prompt leaves a disbursement row unchanged",
       "preconditions": ["A prepared or dispatched disbursement row"],
       "steps": [
-        "Press Dispatch… or Retry Command…, then Send Transaction",
+        "Press Dispatch… or Resend…, then Send Transaction",
         "Reject the wallet prompt",
         "Read the status line and the row"
       ],
@@ -7602,7 +7766,7 @@
         "Open the protocol treasury funding action",
         "Choose the destination Garden under Receiving garden and enter the amount",
         "Verify no commitment is requested or attached",
-        "If value authority is available, press Review seed or top-up…, read the confirmation, and press Queue seed or top-up",
+        "If value authority is available, press Review Seed or Top-Up…, read the confirmation, and press Queue Seed or Top-Up",
         "Otherwise stop at the visible gate and record Blocked",
         "Ask Tester B to verify the Garden balance or readiness state"
       ],
@@ -7625,10 +7789,10 @@
       "preconditions": ["Protocol steward", "A queued seed or top-up (ADM-045)"],
       "steps": [
         "Open the protocol funding card on /community/coordination",
-        "Press Cancel… on the queued row, read the confirmation, and press Cancel transfer",
-        "Press Refresh funding"
+        "Press Cancel… on the queued row, read the confirmation, and press Cancel Transfer",
+        "Press Refresh Funding"
       ],
-      "expected": "The queued row offers Cancel… with a confirmation; cancelling is one transaction and the row leaves the queue; Refresh funding re-reads the facts from chain",
+      "expected": "The queued row offers Cancel… with a confirmation; cancelling is one transaction and the row leaves the queue; Refresh Funding re-reads the facts from chain",
       "evidence": "Screenshots of the confirmation and the refreshed card",
       "role": "steward",
       "tags": ["protocol-funding", "tx"],
@@ -7643,19 +7807,19 @@
       "priority": "P1",
       "kind": "transaction",
       "area": "Community · Coordination",
-      "scenario": "Dispatch, retry, or requeue a protocol transfer",
+      "scenario": "Dispatch, resend, or requeue a protocol transfer",
       "preconditions": [
         "Protocol steward",
         "A queued transfer",
         "Where one can be produced, a transfer the indexer reports as failed; otherwise record the Requeue step as Blocked"
       ],
       "steps": [
-        "Press Dispatch… on the queued row, read Review before sending, and press Send Transaction",
-        "On the dispatched row press Retry Command… and send it the same way",
+        "Press Dispatch… on the queued row, read Review Before Sending, and press Send Transaction",
+        "On the dispatched row press Resend… and send it the same way",
         "On a row the indexer reports as failed press Requeue… and send it the same way",
         "Reject a wallet prompt on one send and read the row"
       ],
-      "expected": "Dispatch sends the transfer and the row reads Dispatched; Retry Command… re-sends a dispatched row's command; Requeue… is offered only on a failed row and returns it to the queue; a rejected wallet prompt leaves the row as it was; a row never claims a state it did not reach",
+      "expected": "Dispatch sends the transfer and the row reads Dispatched; Resend… sends a dispatched row's command again; Requeue… is offered only on a failed row and returns it to the queue; a rejected wallet prompt leaves the row as it was; a row never claims a state it did not reach",
       "evidence": "Screenshots of the dispatched and failed rows",
       "role": "steward",
       "tags": ["protocol-funding", "tx"],
@@ -7677,7 +7841,7 @@
         "Press Dispatch… and read the review",
         "Press Cancel"
       ],
-      "expected": "The row reads the amount and the receiving garden by name, then the transfer number and its Celo account, with no internal enum words; Dispatch… opens Review before sending, which names the transfer, its amount, and the receiving garden and says it goes over CCIP to Celo; Cancel closes it with nothing sent and the row unchanged",
+      "expected": "The row reads the amount and the receiving garden by name, then the transfer number and its Celo account, with no internal enum words; Dispatch… opens Review Before Sending, which names the transfer, its amount, and the receiving garden and says it goes over CCIP to Celo; Cancel closes it with nothing sent and the row unchanged",
       "evidence": "Screenshots of the row and of the review",
       "role": "steward",
       "tags": ["coordination", "protocol-funding"],
@@ -7697,10 +7861,10 @@
       "steps": [
         "As the plain steward read the settlement operations card on /community/coordination",
         "As the owner press Enable Gardener Delivery…, read the confirmation, and press Enable Gardener Delivery",
-        "Press Check on chain",
+        "Press Check on Chain",
         "Disable it the same way"
       ],
-      "expected": "The plain steward sees the state but no switch; the confirmation says enabling lets stewards prepare and dispatch member payouts on Celo without moving funds by itself; the switch reads back from chain after confirming; disabling reverses it",
+      "expected": "The plain steward sees the state but no switch; the confirmation says enabling lets stewards in every garden prepare and dispatch member payouts on Celo without moving funds by itself; once the chain has it the card reads Confirmed on chain: gardener delivery is on. and the switch shows On; disabling reverses it the same way, and its confirmation says it applies in every garden",
       "evidence": "Screenshots of the confirmation and the read-back state",
       "role": "steward",
       "tags": ["settlement", "tx"],

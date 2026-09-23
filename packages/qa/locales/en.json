@@ -300,7 +300,7 @@
         "Open the protocol treasury funding action",
         "Choose the destination Garden under Receiving garden and enter the amount",
         "Verify no commitment is requested or attached",
-        "If value authority is available, press Review seed or top-up…, read the confirmation, and press Queue seed or top-up",
+        "If value authority is available, press Review Seed or Top-Up…, read the confirmation, and press Queue Seed or Top-Up",
         "Otherwise stop at the visible gate and record Blocked",
         "Ask Tester B to verify the Garden balance or readiness state"
       ],
