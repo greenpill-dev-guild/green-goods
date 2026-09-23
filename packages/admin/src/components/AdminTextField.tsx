@@ -1,69 +1,14 @@
 import { cn } from "@green-goods/shared/utils/styles/cn";
 import { RiArrowDownSLine } from "@remixicon/react";
 import * as React from "react";
-import { type ComponentType, useCallback, useId, useRef, useState } from "react";
-
-// ============================================================================
-// Types
-// ============================================================================
-
-type AdminTextFieldControl = HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement;
-
-interface AdminTextFieldCommonProps {
-  label: string;
-  value?: string;
-  defaultValue?: string;
-  error?: string;
-  helperText?: string;
-  required?: boolean;
-  disabled?: boolean;
-  leadingIcon?: ComponentType<{ className?: string }>;
-  trailingIcon?: ComponentType<{ className?: string }>;
-  variant?: "filled" | "outlined";
-  name?: string;
-  id?: string;
-  placeholder?: string;
-  className?: string;
-}
-
-export interface AdminTextFieldProps extends AdminTextFieldCommonProps {
-  onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  onBlur?: (e: React.FocusEvent<HTMLInputElement>) => void;
-  type?: string;
-  inputProps?: React.ComponentPropsWithoutRef<"input">;
-}
-
-export interface AdminTextAreaProps extends AdminTextFieldCommonProps {
-  onChange?: (e: React.ChangeEvent<HTMLTextAreaElement>) => void;
-  onBlur?: (e: React.FocusEvent<HTMLTextAreaElement>) => void;
-  /** Visible text rows before scrolling; the field is vertically resizable. */
-  rows?: number;
-  textareaProps?: React.ComponentPropsWithoutRef<"textarea"> & {
-    [key: `data-${string}`]: string | undefined;
-  };
-}
-
-export interface AdminSelectProps extends AdminTextFieldCommonProps {
-  onChange?: (e: React.ChangeEvent<HTMLSelectElement>) => void;
-  onBlur?: (e: React.FocusEvent<HTMLSelectElement>) => void;
-  /** The `<option>` elements. An empty-value option acts as the placeholder row. */
-  children: React.ReactNode;
-  selectProps?: React.ComponentPropsWithoutRef<"select"> & {
-    [key: `data-${string}`]: string | undefined;
-  };
-}
-
-// Internal shape the base renders from. The public wrappers narrow the
-// handler/ref types back to their concrete control element.
-interface AdminTextFieldBaseProps extends AdminTextFieldCommonProps {
-  multiline?: boolean;
-  select?: boolean;
-  rows?: number;
-  type?: string;
-  onChange?: (e: React.ChangeEvent<AdminTextFieldControl>) => void;
-  onBlur?: (e: React.FocusEvent<AdminTextFieldControl>) => void;
-  controlProps?: Record<string, unknown>;
-}
+import { useCallback, useId, useRef, useState } from "react";
+import type {
+  AdminSelectProps,
+  AdminTextAreaProps,
+  AdminTextFieldBaseProps,
+  AdminTextFieldControl,
+  AdminTextFieldProps,
+} from "./AdminTextField.types";
 
 // ============================================================================
 // Base
