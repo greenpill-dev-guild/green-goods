@@ -10,7 +10,7 @@
     "overall_status": "active",
     "priority": "p1",
     "created_at": "2026-07-03",
-    "updated_at": "2026-09-23T07:07:15.509Z"
+    "updated_at": "2026-09-23T07:54:11.580Z"
   },
   "links": {
     "brief": "external-brief.md",
@@ -260,12 +260,12 @@
         "mode": "required",
         "status": "green_recorded",
         "red": {
-          "command": "packages/shared: bun run test -- job-queue.send-phases (a phase report sent before the executor's checkpoint); packages/shared: bun run test -- commitment-seed-tray (a row that ended reopens); packages/admin: bun run test -- SeedCommitment (the wizard closes itself after a pass)",
-          "evidence": "2 failed | 2 passed; 3 failed | 11 passed; 1 failed | 17 passed: reports after the checkpoints and never in the send's way (decision 32), a row's ending is final, the wizard ends on the done screen (decision 28)"
+          "command": "packages/admin: bun run test -- GardenPool (Needs recovery lands on the past-due list; a zero count is a button; Set Up waits offline in silence)",
+          "evidence": "1 failed | 20 passed, three times: each count lands on exactly what it counts, a count of nothing goes nowhere, and a held act says why (A22, A31)"
         },
         "green": {
-          "command": "packages/shared: bun run test -- job-queue.send-phases, commitment-seed-tray, seed-tray-hook, commitment-jobs-hook, commitment-jobs-hook.composed; packages/admin: bun run test -- SeedCommitment, GardenPool, PoolSetupFlow, PoolSettings",
-          "evidence": "shared 5 files, 42 passed; admin 4 files, 64 passed at 73ca25441: a seeding pass followed row by row, the done screen with created, sends later and not sent, Send Now on a queued row that never tried"
+          "command": "packages/shared: bun run test -- commitment-pool-console, usePoolConsoleController; packages/admin: bun run test -- GardenPool, PoolCycles, ProtocolFundingOperationsCard, SeedCommitment, CommitmentDialog",
+          "evidence": "shared 2 files, 24 passed; admin 5 files, 74 passed at c67c0d2a5: one stats card whose counts land on their own lists, calm destructive acts, the protocol pool marked, Set Up saying why offline"
         },
         "note": ""
       },
@@ -1385,6 +1385,14 @@
     },
     {
       "timestamp": "2026-09-23T07:07:15.509Z",
+      "actor": "human",
+      "lane": "ui",
+      "status": "tdd_recorded",
+      "branch": "feature/commitment-pooling-client-loop",
+      "note": "Recorded RED/GREEN TDD proof"
+    },
+    {
+      "timestamp": "2026-09-23T07:54:11.581Z",
       "actor": "human",
       "lane": "ui",
       "status": "tdd_recorded",

@@ -472,7 +472,8 @@ This section holds the finding index, the queue that fixes them, and each PR's r
 | W1-7 Claims and protocol transfers | A9, A6, A11 (Accept), A20 (label), A23 (panel) | Built |
 | W1-8 Seed tray progress and the done screen | A7, A24 | Built |
 | W1-9 Catalog PR | The cases Wave 1 changes | Built |
-| W2-1 to W2-5 | The remaining P2 and P3 findings, the title rollout, and a catalog pass | Wave 2 |
+| W2-1 Pool console hierarchy | A22, A19 (the rest), A14 (marker), A28, A31, A23 (reader view) | Built |
+| W2-2 to W2-5 | Flow clarity, the title rollout (after the D3 check), copy and tokens, and a catalog pass | Wave 2 |
 
 ### W1-1: ledger freshness
 
@@ -859,6 +860,61 @@ This section holds the finding index, the queue that fixes them, and each PR's r
   - `bun run check --only` for qa-id-ledger, agent-tools-test (the catalog contract tests among its 260), docs-generated, docs-authority and ontology.
 - **TDD:** not applicable. The PR changes catalog data and generated docs, not behaviour.
 - **PR:** #888, stacked on #887.
+
+### W2-1: pool console hierarchy
+
+- **Stats** (A22): the three filled tiles become one hairline card, `PoolStatsCard`, with each number over its label and no button chrome.
+  - Each count lands on exactly what it counts: Claims waiting on the claims card, Needs recovery and Past due on the commitments list filtered to them.
+  - The console model carries the recovery rows (`needsRecovery`: live, and disputed or past due), and the commitments card has a Needs recovery chip.
+  - A zero goes nowhere, so it is calm text.
+- **Destructive acts** (A19): Close pool…, Expire now…, Cancel commitment… and a disbursement's Cancel… are outlined where they sit. The red stays on each dialog's confirm.
+- **Protocol pool** (A14): its status card carries a Protocol pool chip.
+- **Alignment and weights** (A28):
+  - the status card's acts and protocol funding's acts are end-aligned;
+  - a queued transfer's Cancel… and Dispatch… are its paired decision, with Dispatch… rightmost;
+  - the seed footer drops its tonal weight;
+  - campaign acts read Open Campaign, End Campaign… and Cancel Campaign….
+- **Set Up offline** (A31): `PoolNotReadyCard` says why the act waits.
+- **Stories** (A23): the reader view, plus the new cards' states.
+- **Token baseline:** the tiles' raw button entry moves with the button to `PoolStatsCard`.
+- **For W2-5:** ADM-014 reads the stats card, and the campaign labels changed. Cases that name "Open" or "Cancel…" on a campaign take the new labels.
+
+### Validation receipt, W2-1
+
+- **Tested implementation commit SHA:** `c67c0d2a5e6ae325f7294a85d960da7364a57e49`.
+  - The gate is the pre-push hook on that commit.
+  - `git status --porcelain=v1 --untracked-files=all -- packages/` is empty at that SHA.
+- **Run finished (UTC):** `2026-09-23T07:53:19Z`.
+- **Command:** `bun run check -- --intent push` (the pre-push hook, `critical · 186 changed path(s)`).
+- **Result:** all 30 runnable checks passed:
+  - format, lint, validation-system-test and test-quality;
+  - the package typecheck, test and build checks;
+  - docs-authority, docs-test and docs-build;
+  - source-structure, design-guardrails, ontology, agent-guidance, qa-id-ledger, supply-chain and story-quality;
+  - storybook-build and agent-tools-test.
+- **Cache:** the package tests were cache hits on the same gate's uncached run on the same SHA. That run ended at `2026-09-23T07:50:48Z` with shared 5,606 passed and admin 924 passed, after which its push died with exit 141.
+- **Also run at that SHA:**
+  - the shared console and controller suites, 24 passed;
+  - the admin pool-tab, cycles, protocol funding, seeding and inspector suites, 74 passed.
+- **Before commit:**
+  - the full admin suite, 117 files and 924 passed;
+  - shared and admin typecheck in the source and tests scopes;
+  - design-tokens, source-structure, story-quality, react-patterns and the direct-tested seams check.
+- **RED:** five mutations, each caught. Three are recorded through `record-tdd` on the `ui` lane:
+  - Needs recovery landing on the past-due list;
+  - a zero count rendered as a button;
+  - Set Up waiting offline in silence.
+- **Story sweep:** 281 stories, headless. None crash.
+- **Rendered proof (Storybook, headless Chromium):**
+  - `admin-pool-gardenpooltab--open`;
+  - `admin-pool-poolstatscard--recovery-only`;
+  - `admin-pool-poolcommitmentscard--needs-recovery`;
+  - `admin-pool-poolstatuscard--protocol-pool` and `--ready-to-close`;
+  - `admin-pool-poolnotreadycard--offline`;
+  - `admin-pool-gardenpooltab--reader-view`;
+  - `admin-community-protocolfundingoperationscard--protocol-steward`;
+  - `admin-pool-poolcyclescard--ready-to-end`.
+- **PR:** #889, stacked on #888.
 
 ## 5. Catalog PR
 
