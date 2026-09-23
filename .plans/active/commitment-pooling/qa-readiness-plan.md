@@ -3,7 +3,7 @@
 **Feature Slug**: `commitment-pooling`
 **Status**: ACTIVE
 **Created**: 2026-09-20
-**Last Updated**: 2026-09-20
+**Last Updated**: 2026-09-22
 **Owning lanes**: `state_api`, `ui` (`ui_client`, `ui_admin`), `qa_pass_1`
 **Companions**: `handoffs/claude-qa-pass-1.md` (Wave 2), `acceptance-matrix.md`,
 `standing-commitments-spec.md`, `.claude/context/qa.md`
@@ -42,6 +42,18 @@ Decided with Afo on 2026-09-20 over four question rounds.
 | 21 | The source has to belong to the pool being composed into, and the PWA opens the composer in the commitment's own pool. The rule is enforced where the answers are read, not only where the button is drawn. Decided by Claude while building; Afo may overrule. | Requirement rows name that pool's actions and the terms were agreed there. A protocol commitment is read from the reader's own garden, which is not the pool it belongs to. A link can be edited, so a refusal opens an ordinary empty composer rather than an error. |
 | 22 | A tray row gets its `clientCommitmentId` when it joins the tray and keeps it through every edit and every send. A row that was sent leaves the tray; a row that failed stays in the wizard marked Not sent, and is sent again under the same id. This now covers a single commitment too, which used to mint a new id on every press. Decided by Claude while building; Afo may overrule. | The queue dedupes a creation by that id and the chain by the key derived from it, so a row can only ever become one commitment. With an id minted at send time, a send whose job the queue kept (its transaction may be on chain) followed by a second press made a second job, and could make a second commitment. Decision 18 already drops an ordinary failed send, so the wizard is where a failed row waits, not the pool tab. |
 | 23 | The open-commitment guard counts offers only, and unknown never refuses. Room is the pool's commitment limit, less the steward's open commitments as the indexer mirrors the registry's own count, less offers still queued on this device. At the limit, Add Another Like This is held for an offer; over it, seeding is held, and both say why. Decided by Claude while building; Afo may overrule. | `CommitmentRegistry.commitUnits` charges the cap to whoever provides. An offer's creator provides, so it is charged at creation; a request is charged to whoever takes it up, later, so a tray of requests uses none of the steward's room. The registry enforces the cap whatever the wizard says, so a read that has not arrived must not block anyone. |
+| 24 | Hub → Confirm follows the garden in the header, like the Hub's other stages. When the selected garden confirms a commitment that lives in another garden's pool, the row names that pool. Decided with Afo on 2026-09-22, after the design audit in § 4b. | Root `DESIGN.md` § Interface Principles, principle 4: a page never acts outside the garden it shows. The queue spanned every garden the steward stewards, and each row confirmed in one click. |
+| 25 | Confirm Kept opens a review dialog, the same one in the Hub and the commitment inspector. It names the commitment, who kept it, the garden's pool, and that it is final. | The act that closes a commitment for good went straight to the wallet, while Expire had a full confirmation. Spec C.48 already said the Hub's acts open a dialog. |
+| 26 | Admin card and section titles become 16px semibold across the whole admin, after Afo approves a rendered before/after pair. | They render at 12px, the size of their own descriptions. Storybook showed them at 16px because it never loaded the admin's type classes, so reviews there saw a hierarchy the product lacks. |
+| 27 | G$ settlement is enabled for every garden, so a pool's funding rail reads ready. | Every rail read "Funding unavailable" and "Settlement unavailable": ledger freshness used the indexer's caught-up timestamp, which is written once. Freshness now comes from each chain's processed block, timed on that chain. |
+| 28 | The seed wizard ends on a done screen that lists each commitment as created (with its transaction), sends later, or not sent. | Create All sent one wallet prompt per commitment with an unlabelled bar between them, then closed. |
+| 29 | Ending a season is built in this queue as two acts: End (`closeCycle`) frees the slot, and Archive (`compostCycle`) is final and says no certificate can be made for that season afterwards. | Builds decision 14. The certificate step is not built yet, and a pool closes only once its seasons are archived. |
+| 30 | Protocol transfer Dispatch, Retry and Requeue open the same Review before sending dialog as a commitment's disbursements. | The same act was reviewed on a commitment and sent in one click on the protocol card. |
+| 31 | Accepting a claim stays one click. The row names the claimant and shows a status line while the wallet runs. | The decision row keeps its paired acts; the gap was a claimant shown only as a truncated address. |
+| 32 | Seed rows show the wallet and confirming phases, through an optional, report-only callback on the job queue. | The same phases as the setup checklist; the queue stores nothing new. |
+| 33 | Every PR in the § 4b queue stacks on PR #873, the money fixes included, and the chain rebases onto `develop` once #873 merges. | One chain to review. |
+| 34 | Protocol confirmations live only in Community → Coordination. Hub → Confirm never lists protocol fallback rows. | One home per organism, as `packages/admin/DESIGN.md` § Workspace Scope records. |
+| 35 | § 4b lands in two waves. Wave 1 (the P0 and P1 fixes, the ledger fix and ending a season) lands before the QA call, and the call waits for all of it. Wave 2 lands before the Oct 2 cut. | Afo chose that nothing slips to after the call. |
 
 ## 2. Verified ground truth (2026-09-20)
 
@@ -401,6 +413,94 @@ changes, and the story checks when a story changes. Run Biome on touched files b
 The push gate's `browser-proof` check needs the authenticated Brave profile; if it is unreachable,
 say so in the PR rather than claiming local authenticated proof. Record RED and GREEN with
 `plan-hub.mjs record-tdd` and fill a Validation Receipt in the lane handoff.
+
+## 4b. Design audit follow-ups (2026-09-22)
+
+A read-only audit on 2026-09-22 checked the admin's commitment-pooling screens against root
+`DESIGN.md` § Interface Principles, on PR #873's branch. The full report stays outside the repo.
+This section holds the finding index, the queue that fixes them, and each PR's receipt. Decisions
+24 to 35 settle the questions the audit raised.
+
+### Finding index
+
+- **P0**
+  - A1: Hub → Confirm acted on every stewarded garden, not only the one in the header.
+  - A2: Edit Pool sent two unannounced prompts and could say "not recorded" after the first had landed.
+  - A3: The seed wizard took the Celo G$ reward in base units and echoed it raw.
+- **P1**
+  - A4: Confirm Kept went to the wallet in one click, with no review.
+  - A5: Protocol confirmation rows named the acting garden, not the commitment's own.
+  - A6: Protocol transfer rows showed a truncated Safe and enum names, and dispatched in one click.
+  - A7: The seed tray's Create All ran several prompts behind an unlabelled bar, with no done state.
+  - A8: The seed wizard never named the pool it writes to.
+  - A9: Claimants read as truncated addresses beside a one-click Accept.
+  - A10: Commitment inspector dialogs named no garden or pool.
+  - A18: Every pool's funding rail read unavailable, because of the ledger freshness bug.
+- **P2**
+  - A11: One-signature acts waited in silence while the wallet was open.
+  - A12: Card titles render at 12px in the admin and at 16px in Storybook.
+  - A13: The "Writing to" line followed the consequence text in confirm and reason dialogs.
+  - A14: The protocol pool's console had no marker, and its target copy contradicted the model.
+  - A15: A stopped setup run did not say how many prompts a retry needs.
+  - A16: The split step did not say the split is permanent, and its presets were unlabelled numbers.
+  - A17: The first-run entry and button undersold a run of up to six prompts.
+  - A19: Destructive acts sat red in place: Close pool, Expire now, Cancel commitment, disbursement Cancel.
+  - A20: The gardener-delivery switch hid that it reaches every garden.
+  - A21: Decline dialogs named neither the person nor the commitment.
+  - A22: The "What needs you" counts were button tiles, and Needs recovery opened an unfiltered list.
+  - A23: The settings dialog's stories crashed, and several states had no story.
+- **P3**
+  - A24: Queued rows offered Try Again before anything had been tried.
+  - A25: Copy that did not earn its place, including developer vocabulary.
+  - A26: Titles and action labels outside Title Case.
+  - A27: Raw `--m3-*` colour tokens in pooling views.
+  - A28: Left-aligned action clusters, three button weights in one footer, and generic labels.
+  - A29: The second-season alert pointed to a close act that did not exist.
+  - A30: Hub row details: an error chip for "under review", and two labels for one act.
+  - A31: Set Up was disabled offline with no reason given.
+
+### Queue
+
+| PR | Covers | Status |
+|---|---|---|
+| W1-1 Ledger freshness, and the rail names its reason | A18 | Built |
+| W1-2 Amounts in token units | A3 | Queued |
+| W1-3 The target line in dialogs; Storybook matches the product | A13, A10, A8, A21, A14 (copy), A12 (Storybook) | Queued |
+| W1-4 Hub scope and the Confirm Kept review | A1, A4, A5, A30, A25 (Hub), A19 (inspector) | Queued |
+| W1-5 Settings through the setup sequence | A2, A15, A23 (settings) | Queued |
+| W1-6 End a season | Decision 29, A29 | Queued |
+| W1-7 Claims and protocol transfers | A9, A6, A11 (Accept), A20 (label), A23 (panel) | Queued |
+| W1-8 Seed tray progress and the done screen | A7, A24 | Queued |
+| W1-9 Catalog PR | The cases Wave 1 changes | Queued |
+| W2-1 to W2-5 | The remaining P2 and P3 findings, the title rollout, and a catalog pass | Wave 2 |
+
+### W1-1: ledger freshness
+
+- **Fix:** freshness now comes from each chain's `latest_processed_block`, read from the indexer, and that block's time, read from the chain (`data-pool-funding-freshness.ts`). The ledger is fresh when the oldest processed block is under 120 seconds old.
+- **Why the old check failed:** `timestamp_caught_up_to_head_or_endblock` is written once, when a chain first reaches head, so every rail read stale two minutes after the indexer started. A stopped indexer still reads stale, because its processed blocks age.
+- **Rail:** it names the first unavailable reason, in the words the details dialog already uses.
+- **Scope:** settlement acts never read the funding snapshot (`selectSettlementWorkflow`), so the bug was display-only.
+
+### Validation receipt, W1-1
+
+- **Tested implementation commit SHA:** `fd5060697f97a3d442ae0b587c9c8dfeaefd64bd`.
+  - The gate ran on the working tree immediately before the two implementation commits.
+  - Biome had already formatted every file, so the pre-commit formatter changed nothing.
+  - `git status --porcelain=v1 --untracked-files=all -- packages/` is empty at that SHA.
+- **Run finished (UTC):** `2026-09-23T01:42:29Z`.
+- **Command:** `bun run check -- --intent push`.
+- **Result:** every automated check passed:
+  - format and lint;
+  - shared-test (74 passed, affected scope) and admin-test (69 passed);
+  - admin-build;
+  - source-structure, agent-guidance and story-quality.
+- **Also run:**
+  - the shared funding suites, 48 passed;
+  - `GardenPoolFunding.test.tsx`, 19 passed;
+  - shared and admin typecheck in the source and tests scopes, both clean.
+- **RED:** with the old freshness rule restored, 3 of the data suite's cases failed. They are recorded through `record-tdd`.
+- **Rendered proof (Storybook):** `admin-pool-poolfundingsection--funding-unavailable` and `--settlement-blocked` show the reason line.
+- **Pending:** authenticated Brave proof. The staging rails can read ready only once this is deployed.
 
 ## 5. Catalog PR
 

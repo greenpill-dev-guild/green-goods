@@ -10,7 +10,7 @@
     "overall_status": "active",
     "priority": "p1",
     "created_at": "2026-07-03",
-    "updated_at": "2026-09-05T22:45:56.684Z"
+    "updated_at": "2026-09-23T01:56:46.308Z"
   },
   "links": {
     "brief": "external-brief.md",
@@ -234,14 +234,14 @@
         "mode": "required",
         "status": "green_recorded",
         "red": {
-          "command": "bun run --filter @green-goods/shared test -- src/__tests__/hooks/blockchain/useSendToken.test.ts",
-          "evidence": "2026-09-05: 9 failed, 5 passed before implementation; Celo chain routing, fee/gate checks and receipt/invalidation behavior were absent. Resolver and wallet/embedded regression RED/GREEN details are in handoffs/codex-gardener-celo-wallets.md."
+          "command": "packages/shared: bun run test -- src/__tests__/commitment-pooling-pool-funding-data.test.ts (pre-fix freshness rule restored)",
+          "evidence": "3 failed | 16 passed: with the caught-up timestamp 14 days old and blocks current, the fresh-ledger cases read stale (W1-1, A18)"
         },
         "green": {
-          "command": "bun run --filter @green-goods/shared test -- src/__tests__/hooks/blockchain/useSendToken.test.ts src/__tests__/hooks/client-ui/wallet/useSendFlowController.test.tsx",
-          "evidence": "2026-09-05 22:02:06Z: 23 passed across 2 files. Separate transaction module proof: 105 passed, 5 existing skips; auth regression: 192 passed, 5 existing skips. Final release receipt and tested commit are recorded in handoffs/codex-gardener-celo-wallets.md. Final fresh release receipt: ea193295f9ce1f6ebac415481c320c5d7a61baae, 35 automated checks passed; browser-proof BLOCKED. See evidence/gardener-celo-wallet-validation-2026-09-05.json."
+          "command": "packages/shared: bun run test -- src/__tests__/commitment-pooling-pool-funding-data.test.ts src/__tests__/pool-funding.test.ts",
+          "evidence": "2 files, 48 passed at fd5060697: freshness from processed-block timestamps, ledgerAgeSeconds table, stale after 121s"
         },
-        "note": "Gardener Celo wallet RED/GREEN proof recorded; earlier lane proof remains historical."
+        "note": ""
       },
       "skill_tags": ["indexer", "react", "tanstack-query", "data-layer"]
     },
@@ -1326,6 +1326,14 @@
       "status": "blocked",
       "branch": null,
       "note": "QA readiness plan recorded in qa-readiness-plan.md after four decision rounds with Afo. Before the walk: refresh after queued acts, prefilled Offer It Again, an admin batch tray, and one full catalog PR. The walk runs on recorded two-person calls against staging on live Arbitrum, staged from a cancelled rehearsal cycle to a real cycle, then the protocol pool relay, then the partner garden. Afo decided the D2 close-the-season call as finish: ending a season and recording an external payout are built in the fix window and walked in re-QA. The lane's manual gate is unchanged and remains Afo's to clear. Live read at Arbitrum block 507310713: all 18 pools NotReady."
+    },
+    {
+      "timestamp": "2026-09-23T01:56:46.309Z",
+      "actor": "claude",
+      "lane": "state_api",
+      "status": "tdd_recorded",
+      "branch": "feature/commitment-pooling-api-modules",
+      "note": "Recorded RED/GREEN TDD proof"
     }
   ]
 }
