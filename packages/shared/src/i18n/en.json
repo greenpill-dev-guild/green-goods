@@ -2913,6 +2913,8 @@
   "app.settings.themeDark": "Dark",
   "app.settings.themeLight": "Light",
   "app.settings.themeSystem": "System",
+  "app.settings.vibration": "Vibration",
+  "app.settings.vibrationDescription": "Vibrate lightly when you tap",
   "app.signal.actionPool.actionIdLabel": "Action UID",
   "app.signal.actionPool.actionIdRequired": "Action UID is required",
   "app.signal.actionPool.alreadyRegistered": "This action is already registered",

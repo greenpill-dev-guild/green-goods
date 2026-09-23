@@ -6,7 +6,6 @@ import { logger } from "@green-goods/shared/modules/app/logger";
 import { JobQueueProvider } from "@green-goods/shared/providers/JobQueue";
 import { WorkProvider } from "@green-goods/shared/providers/Work";
 import { useUIStore } from "@green-goods/shared/stores/useUIStore";
-import { installPressHaptics } from "@green-goods/shared/utils/app/haptics";
 import { lazy, Suspense, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Outlet, useLocation } from "react-router-dom";
 import { OfflineIndicator } from "@/components/Communication/Offline/OfflineIndicator";
@@ -64,8 +63,6 @@ function DeferredEnsClaimReminder() {
 export default function AppShell() {
   const { pathname } = useLocation();
   useEffect(() => configureConnectivityProbe("/connectivity-check.txt"), []);
-  // One listener answers every button, tab, and chip press in the installed app.
-  useEffect(() => installPressHaptics(), []);
   const closeWorkDashboard = useUIStore((state) => state.closeWorkDashboard);
   const previousPathnameRef = useRef(pathname);
   const primaryAddress = usePrimaryAddress();

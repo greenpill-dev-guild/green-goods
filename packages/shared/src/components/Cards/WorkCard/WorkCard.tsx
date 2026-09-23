@@ -166,7 +166,10 @@ export const WorkCard: React.FC<WorkCardProps> = ({
   const hasFeedback = Boolean(work.feedback && work.feedback.trim().length > 0);
   const hasError = Boolean(work.error);
   const mediaCount = work.imageCount ?? work.mediaPreview?.length ?? 0;
-  const canOpenPreview = Boolean(thumbUrl) && !interactive;
+  // A card with nothing to open is content, not a button: a button that does
+  // nothing would still take focus, announce itself, and answer a press.
+  const isInteractive = interactive && onClick !== undefined;
+  const canOpenPreview = Boolean(thumbUrl) && !isInteractive;
   const isCompact = variant === "compact";
 
   React.useEffect(() => {
@@ -184,14 +187,16 @@ export const WorkCard: React.FC<WorkCardProps> = ({
     };
   }, [isPreviewOpen]);
 
-  const Wrapper = interactive ? "button" : "div";
-  const wrapperProps = interactive ? { onClick, type: "button" as const } : {};
+  const Wrapper = isInteractive ? "button" : "div";
+  const wrapperProps = isInteractive
+    ? { onClick, type: "button" as const, "data-pressable": "card" }
+    : {};
 
   return (
     <>
       <Wrapper
         className={cn(
-          workCardVariants({ variant, interactive }),
+          workCardVariants({ variant, interactive: isInteractive }),
           getStatusBorderClass(statusTone ?? work.status),
           className
         )}

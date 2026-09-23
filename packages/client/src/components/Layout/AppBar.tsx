@@ -105,6 +105,8 @@ export const AppBar = () => {
               to={path}
               key={title}
               viewTransition
+              // A destination tab: it answers a press with the tab's selection tap.
+              data-pressable="tab"
               aria-current={isActive ? "page" : undefined}
               className={cn(
                 "flex flex-col items-center",
