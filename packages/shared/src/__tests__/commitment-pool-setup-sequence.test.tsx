@@ -18,6 +18,7 @@ import {
   openSeasonSteps,
   type PoolChainReader,
   type PoolSetupStep,
+  settingsSteps,
   walletPrompts,
 } from "../modules/commitment-pooling/pool-setup";
 import { createTestQueryClient, renderHookWithProviders } from "./test-utils";
@@ -290,6 +291,44 @@ describe("useCommitmentPoolSetupSequence", () => {
     expect(sentFunctions()).toEqual(["openCycle"]);
     expect(result.current.state.status).toBe("complete");
     expect(result.current.state.landed).toHaveLength(6);
+  });
+
+  it("saves edited settings agreement first, and a retry after the limit fails sends only the limit", async () => {
+    // A set-up pool whose steward changed both settings. The limit's send
+    // fails after the agreement landed; the chain, not the app, says which.
+    const { reader, apply, chain } = fakeChain({
+      poolState: POOL.OPEN,
+      charterCID: "bafy-old-charter",
+      cap: 24n,
+    });
+    let calls = 0;
+    mocks.sender.sendContractCall.mockImplementation(async (call) => {
+      calls += 1;
+      if (calls === 2) throw new Error("User rejected the request");
+      return apply(call);
+    });
+    const { result } = renderSequence(reader);
+    const settings = settingsSteps({ poolId: POOL_ID, charterCID: "bafy-new-charter", cap: 12n });
+
+    await act(async () => {
+      await result.current.run(settings);
+    });
+
+    expect(sentFunctions()).toEqual(["setPoolCharter", "setProviderOpenCommitmentCap"]);
+    expect(result.current.state.status).toBe("failed");
+    expect(result.current.state.landed).toEqual(["setPoolCharter"]);
+    expect(result.current.state.failedStep).toBe("setProviderOpenCommitmentCap");
+    expect(chain.charterCID).toBe("bafy-new-charter");
+    expect(chain.cap).toBe(24n);
+
+    mocks.sender.sendContractCall.mockClear();
+    await act(async () => {
+      await result.current.retry();
+    });
+
+    expect(sentFunctions()).toEqual(["setProviderOpenCommitmentCap"]);
+    expect(result.current.state.steps.map((step) => step.status)).toEqual(["already", "landed"]);
+    expect(chain.cap).toBe(12n);
   });
 
   it("recognises a write that was mined although the send reported failure, and does not send it twice", async () => {
@@ -717,6 +756,40 @@ describe("walletPrompts", () => {
   it("never batches a lone write", () => {
     expect(walletPrompts(["seedCycle", "openCycle"], true)).toEqual([1, 2]);
     expect(walletPrompts(["openCycle"], true)).toEqual([1]);
+  });
+});
+
+describe("settingsSteps", () => {
+  it.each([
+    {
+      changed: "both",
+      charterCID: "bafy-new",
+      cap: 12n,
+      expected: ["setPoolCharter", "setProviderOpenCommitmentCap"],
+    },
+    { changed: "the agreement", charterCID: "bafy-new", cap: null, expected: ["setPoolCharter"] },
+    {
+      changed: "the limit",
+      charterCID: null,
+      cap: 12n,
+      expected: ["setProviderOpenCommitmentCap"],
+    },
+    { changed: "nothing", charterCID: null, cap: null, expected: [] },
+  ])("writes only what changed, the agreement first, when $changed changed", ({
+    charterCID,
+    cap,
+    expected,
+  }) => {
+    const steps = settingsSteps({ poolId: POOL_ID, charterCID, cap });
+    expect(steps.map((step) => step.action)).toEqual(expected);
+    expect(steps.every((step) => step.poolId === POOL_ID)).toBe(true);
+  });
+
+  it("carries the pinned agreement and the new limit into the writes", () => {
+    expect(settingsSteps({ poolId: POOL_ID, charterCID: "bafy-new", cap: 12n })).toEqual([
+      { action: "setPoolCharter", poolId: POOL_ID, charterCID: "bafy-new" },
+      { action: "setProviderOpenCommitmentCap", poolId: POOL_ID, cap: 12n },
+    ]);
   });
 });
 

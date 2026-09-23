@@ -5,7 +5,7 @@
  * where the run is: waiting for the wallet, confirming on chain, done.
  *
  * First-run setup is six writes, opening a seeded season is two, a campaign
- * is two (`pool-setup.ts` plans them). Each step is judged from the module
+ * is two, edited settings one or two (`pool-setup.ts` plans them). Each step is judged from the module
  * before it is sent and again after: a step the chain already shows is
  * recorded as already done and skipped, a step that reverts stops the run with
  * the landed list up to it, and `retry()` walks the same steps again, so only
@@ -128,6 +128,8 @@ export function useCommitmentPoolSetupSequence(
     chainId?: number;
     /** Injected by tests; the default reads the module through wagmi. */
     reader?: PoolChainReader;
+    /** What a failure toast calls the run; setup unless the caller says otherwise. */
+    toastContext?: string;
   } = {}
 ) {
   const currentChainId = useCurrentChain();
@@ -138,13 +140,14 @@ export function useCommitmentPoolSetupSequence(
     () => options.reader ?? createPoolChainReader(chainId),
     [options.reader, chainId]
   );
+  const toastContext = options.toastContext ?? "pool setup";
   const handleError = useMemo(
     () =>
       createMutationErrorHandler({
         source: "useCommitmentPoolSetupSequence",
-        toastContext: "pool setup",
+        toastContext,
       }),
-    []
+    [toastContext]
   );
   const [state, setState] = useState<PoolSetupSequenceState>(IDLE);
   const [batching, setBatching] = useState<PoolSetupBatching>("checking");
