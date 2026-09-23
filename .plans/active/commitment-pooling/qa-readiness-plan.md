@@ -464,7 +464,7 @@ This section holds the finding index, the queue that fixes them, and each PR's r
 | PR | Covers | Status |
 |---|---|---|
 | W1-1 Ledger freshness, and the rail names its reason | A18 | Built |
-| W1-2 Amounts in token units | A3 | Queued |
+| W1-2 Amounts in token units | A3 | Built |
 | W1-3 The target line in dialogs; Storybook matches the product | A13, A10, A8, A21, A14 (copy), A12 (Storybook) | Queued |
 | W1-4 Hub scope and the Confirm Kept review | A1, A4, A5, A30, A25 (Hub), A19 (inspector) | Queued |
 | W1-5 Settings through the setup sequence | A2, A15, A23 (settings) | Queued |
@@ -501,6 +501,38 @@ This section holds the finding index, the queue that fixes them, and each PR's r
 - **RED:** with the old freshness rule restored, 3 of the data suite's cases failed. They are recorded through `record-tdd`.
 - **Rendered proof (Storybook):** `admin-pool-poolfundingsection--funding-unavailable` and `--settlement-blocked` show the reason line.
 - **Pending:** authenticated Brave proof. The staging rails can read ready only once this is deployed.
+
+### W1-2: amounts in token units
+
+- **Before:** the seed wizard took a declared reward in base units and echoed the raw number in the review. Typing 50 on the Celo rail recorded 5 × 10⁻¹⁷ G$.
+- **After:** the amount is typed in the token's own units and stored as its base units, which is what the contract records.
+  - G$ units come from `CELO_G_DOLLAR_TOKEN`.
+  - An external token's units are read from the chain (`useErc20Metadata`). While they are unknown, the field waits and says why, and nothing with a reward can be seeded.
+  - The review shows the formatted amount.
+  - Changing the rail clears the amount. Changing the token keeps the typed amount's meaning.
+- **Unchanged:** the schema, the payload and compose-again.
+- **Seams:** the new shared export changes `packages/shared/package.json`, so the four certified seams are re-fingerprinted.
+
+### Validation receipt, W1-2
+
+- **Tested implementation commit SHA:** `b88b489d97b08ce75a672a25af77a73344ad7dfd`.
+  - The gate ran on the working tree immediately before the two implementation commits, and the pre-commit formatter changed nothing.
+  - `git status --porcelain=v1 --untracked-files=all -- packages/ scripts/` is empty at that SHA.
+- **Run finished (UTC):** `2026-09-23T02:14:22Z`.
+- **Command:** `bun run check -- --intent push`.
+- **Result:** the `package.json` change escalated the gate to the full suite, and all 24 checks passed:
+  - format, lint, validation-system-test and test-quality;
+  - shared, client, admin and agent typecheck, test-typecheck, test and build;
+  - source-structure, design-guardrails, ontology, agent-guidance, supply-chain and story-quality.
+- **Also run:**
+  - the seed wizard, seed model and how-much suites, 40 passed;
+  - `locale-coverage.test.ts`, 15 passed;
+  - `check-direct-tested-seams.mjs`, no drift.
+- **RED:** with the conversion storing typed text as base units, the payload case failed. It is recorded through `record-tdd` on the `ui` lane.
+- **Rendered proof (Storybook):**
+  - `admin-pool-seedamountfield--*`: 10 G$ reads as 10, 2.5 USDC stores 2500000, too many decimals is refused, and an unreadable token holds the field;
+  - `admin-pool-seedstepreview--garden-work-with-reward`: "External payout record · 250 USDC".
+- **Pending:** authenticated Brave proof of an on-chain seed.
 
 ## 5. Catalog PR
 

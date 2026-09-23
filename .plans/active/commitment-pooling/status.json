@@ -10,7 +10,7 @@
     "overall_status": "active",
     "priority": "p1",
     "created_at": "2026-07-03",
-    "updated_at": "2026-09-23T01:56:46.308Z"
+    "updated_at": "2026-09-23T02:14:54.433Z"
   },
   "links": {
     "brief": "external-brief.md",
@@ -260,14 +260,14 @@
         "mode": "required",
         "status": "green_recorded",
         "red": {
-          "command": "bun run --filter @green-goods/client test -- src/__tests__/views/SendTab.test.tsx",
-          "evidence": "2026-09-05 21:48:58Z: 9 failed, 14 passed; all new Celo cases failed because the G$ · Celo card, controls and state copy were absent. Representative failure: missing accessible heading G$ · Celo."
+          "command": "packages/admin: bun run test -- src/__tests__/views/SeedCommitment.test.tsx (conversion mutated to store the typed text as base units)",
+          "evidence": "1 failed | 16 passed: 'records a declared reward in the token's own units, never its base units' (W1-2, A3)"
         },
         "green": {
-          "command": "bun run --filter @green-goods/client test -- src/__tests__/views/SendTab.test.tsx src/__tests__/views/CeloWalletCard.test.tsx src/__tests__/views/WalletDrawer.test.tsx",
-          "evidence": "2026-09-05: 53 passed across 3 files, including exact fee precision and real dialog focus restoration. Authenticated Brave proof remains BLOCKED; final release receipt and tested commit are recorded in handoffs/codex-gardener-celo-wallets.md. Final fresh release receipt: ea193295f9ce1f6ebac415481c320c5d7a61baae, 35 automated checks passed; browser-proof BLOCKED. See evidence/gardener-celo-wallet-validation-2026-09-05.json."
+          "command": "packages/admin: bun run test -- src/__tests__/views/SeedCommitment.test.tsx src/__tests__/views/seedStepModel.test.ts src/__tests__/views/SeedStepHowMuch.test.tsx",
+          "evidence": "3 files, 40 passed at b88b489d9: 2.5 of a six-decimal token records 2500000; unreadable token holds the amount; unit tables"
         },
-        "note": "Gardener Celo WalletDrawer RED/GREEN proof recorded. Authenticated Brave proof is blocked; this does not close other UI sub-lanes."
+        "note": ""
       },
       "skill_tags": ["ui", "react", "design"]
     },
@@ -1333,6 +1333,14 @@
       "lane": "state_api",
       "status": "tdd_recorded",
       "branch": "feature/commitment-pooling-api-modules",
+      "note": "Recorded RED/GREEN TDD proof"
+    },
+    {
+      "timestamp": "2026-09-23T02:14:54.435Z",
+      "actor": "claude",
+      "lane": "ui",
+      "status": "tdd_recorded",
+      "branch": "feature/commitment-pooling-client-loop",
       "note": "Recorded RED/GREEN TDD proof"
     }
   ]
