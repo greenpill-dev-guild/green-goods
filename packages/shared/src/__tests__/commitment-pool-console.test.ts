@@ -230,6 +230,8 @@ describe("selectPoolConsoleModel", () => {
     expect(model.groups.confirmed.map((row) => row.commitmentId)).toEqual([3n]);
     expect(model.groups.past.map((row) => row.commitmentId)).toEqual([4n]);
     expect(model.dueLive.map((row) => row.commitmentId)).toEqual([6n]);
+    // The recovery count lands on exactly the rows it counts: the dispute and the past due.
+    expect(model.needsRecovery.map((row) => row.commitmentId)).toEqual([5n, 6n]);
     expect(model.counts).toEqual({ claimsWaiting: 2, needsRecovery: 2, pastDue: 1 });
   });
 

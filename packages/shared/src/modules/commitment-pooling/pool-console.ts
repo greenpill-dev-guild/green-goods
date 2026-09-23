@@ -46,6 +46,11 @@ export interface PoolConsoleModel {
   closure: ReturnType<typeof selectPoolClosureEligibility>;
   /** Live and past their due: each carries Expire now. */
   dueLive: CommitmentReadModel[];
+  /**
+   * What the recovery count counts, in list order: a live commitment that is
+   * disputed or past its due, each once.
+   */
+  needsRecovery: CommitmentReadModel[];
   counts: { claimsWaiting: number; needsRecovery: number; pastDue: number };
   groups: {
     open: CommitmentReadModel[];
@@ -115,7 +120,8 @@ export function selectPoolConsoleModel(input: {
   const past = commitments.filter(
     (row) => row.onchainState === "CANCELLED" || row.onchainState === "EXPIRED"
   );
-  const disputed = commitments.filter((row) => row.onchainState === "DISPUTED").length;
+  const dueIds = new Set(dueLive.map((row) => row.id));
+  const needsRecovery = open.filter((row) => row.onchainState === "DISPUTED" || dueIds.has(row.id));
   return {
     status,
     readiness,
@@ -130,9 +136,10 @@ export function selectPoolConsoleModel(input: {
       nonTerminalCycleCount: pool?.nonTerminalCycleCount ?? 0n,
     }),
     dueLive,
+    needsRecovery,
     counts: {
       claimsWaiting: input.pendingClaimCount,
-      needsRecovery: disputed + dueLive.length,
+      needsRecovery: needsRecovery.length,
       pastDue: dueLive.length,
     },
     groups: { open, confirmed, past },
