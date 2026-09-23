@@ -15,7 +15,7 @@ generated_from:
   - playwright.config.ts
   - scripts/data/qa-test-catalog.json
   - scripts/data/validation-policy.json
-source_digest: "sha256:e8a6453b9624122b3e3d820f1069bad027c4756276dc91ae246d129c055c6f3d"
+source_digest: "sha256:30715704949f905b28f92f8e1a06133f0194bdbe5478162db03443f4601c5926"
 source_of_truth:
   - package.json
   - packages/admin/vitest.config.ts
@@ -479,7 +479,7 @@ The catalog contract test enforces all of this, and [retired cases](#retired-cas
 | `ADM-165` | Transaction | Garden · Commitment | Send for Confirmation says where it stands and stays closed once sent | Screenshots of the inspector while confirming and once sent |
 | `ADM-166` | Transaction | Garden · Pool | Send Now on a queued row says where the send stands | Screenshots of the row after the rejection and while it sends |
 
-### P2 (18) {#admin-dashboard-p2}
+### P2 (19) {#admin-dashboard-p2}
 
 | ID | Kind | Area | Scenario | Evidence requested |
 |---|---|---|---|---|
@@ -500,6 +500,7 @@ The catalog contract test enforces all of this, and [retired cases](#retired-cas
 | `ADM-161` | Content & vocabulary | Garden · Pool | The protocol's pool is marked Protocol pool on its status card | Screenshots of both Pool Status cards |
 | `ADM-162` | Resilience | Garden · Pool | Offline, Set Up Commitments says why it waits | Screenshots of the card offline and online |
 | `ADM-163` | Content & vocabulary | Garden · Pool | Setting up says how many times the wallet will ask, and that the split is fixed once the season opens | Screenshots of the note, The Split, and the last step |
+| `ADM-167` | Content & vocabulary | Garden · Pool | The pool's description stops at 420 characters and a season's name at 120, each counted as you type | Screenshots of both setup fields at their limits and of the count in Edit Pool |
 | `XPLAT-007` | Transaction | Hub · Work | Two stewards acting on the same submission converge on one state | Screenshots from both sessions |
 
 ## Docs

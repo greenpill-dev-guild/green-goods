@@ -5649,6 +5649,32 @@
       "source": "qa-design-audit-wave-2-2026-09-23"
     },
     {
+      "id": "ADM-167",
+      "tab": "Admin Dashboard",
+      "platform": "Chromium Desktop",
+      "priority": "P2",
+      "kind": "content",
+      "area": "Garden · Pool",
+      "scenario": "The pool's description stops at 420 characters and a season's name at 120, each counted as you type",
+      "preconditions": [
+        "Steward with manage rights on a garden with no pool, and on a garden with a pool",
+        "A passage longer than 420 characters, copied to paste"
+      ],
+      "steps": [
+        "On the garden with no pool, open /garden/pool, press Set Up Commitments, and read the count under What this pool is for",
+        "Type a few words and read the count, then paste the passage and read the field and its count",
+        "Delete one character and read the count, then go on to The Season, paste the passage into Name, and read the field and its count",
+        "Close the flow and discard it, then on the garden with a pool press Edit Pool and read the count under What this pool is for"
+      ],
+      "expected": "The description's count sits at the end of the row under the field, starts at 0 / 420, and rises as you type; the pasted passage stops at 420 characters and reads 420 / 420, then 419 / 420 after the deletion; Name stops at 120 characters and reads 120 / 120; Edit Pool counts the saved description the same way, out of 420 (one saved before the limit loads in full with its count past 420 in red, and a change to it saves only once it fits); nothing is sent",
+      "evidence": "Screenshots of both setup fields at their limits and of the count in Edit Pool",
+      "role": "steward",
+      "tags": ["garden-pool", "cycle", "validation"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "prd-971"
+    },
+    {
       "id": "ADM-057",
       "tab": "Admin Dashboard",
       "platform": "Chromium Desktop",
