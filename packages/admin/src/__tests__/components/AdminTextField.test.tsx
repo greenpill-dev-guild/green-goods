@@ -4,7 +4,7 @@
 
 import { AdminSelect, AdminTextArea, AdminTextField } from "@/components/AdminTextField";
 import { describe, expect, it, vi } from "vitest";
-import { fireEvent, render, screen } from "../test-utils";
+import { fireEvent, render, screen, userEvent } from "../test-utils";
 
 describe("AdminTextField", () => {
   it("floats the label when a forwarded ref restores an uncontrolled value", () => {
@@ -62,6 +62,50 @@ describe("AdminTextArea", () => {
     fireEvent.focus(control);
     expect(screen.getByText("Reason")).toHaveClass("top-0.5", "leading-4");
     expect(control).toHaveClass("pt-5", "pb-1", "leading-5");
+  });
+});
+
+/**
+ * The character counter (CharacterCounter) is reached through the field that
+ * opts into it: `showCount` counts toward the control's own `maxLength`, and
+ * the control is described by the count in words.
+ */
+describe("the character counter", () => {
+  it("counts as the steward types, describes the field, and says once that the limit is reached", async () => {
+    const user = userEvent.setup();
+    render(
+      <AdminTextArea
+        label="What this pool is for"
+        helperText="Members read this."
+        showCount
+        textareaProps={{ maxLength: 12 }}
+      />
+    );
+    const field = screen.getByRole("textbox", { name: "What this pool is for" });
+    const status = screen.getByRole("status");
+
+    expect(screen.getByText("0 / 12")).toHaveAttribute("aria-hidden", "true");
+    expect(field).toHaveAccessibleDescription("Members read this. 0 of 12 characters used");
+
+    await user.type(field, "Rides");
+    expect(screen.getByText("5 / 12")).toBeInTheDocument();
+    expect(field).toHaveAccessibleDescription("Members read this. 5 of 12 characters used");
+    expect(status).toBeEmptyDOMElement();
+
+    await user.type(field, ", tools and more");
+    expect(field).toHaveValue("Rides, tools");
+    expect(screen.getByText("12 / 12")).toBeInTheDocument();
+    expect(status).toHaveTextContent("Character limit reached");
+
+    await user.type(field, "{Backspace}");
+    expect(screen.getByText("11 / 12")).toBeInTheDocument();
+    expect(status).toBeEmptyDOMElement();
+  });
+
+  it("shows no counter unless the field opts in", () => {
+    render(<AdminTextArea label="Reason" textareaProps={{ maxLength: 12 }} />);
+    expect(screen.queryByText("0 / 12")).not.toBeInTheDocument();
+    expect(screen.getByRole("textbox", { name: "Reason" })).not.toHaveAttribute("aria-describedby");
   });
 });
 

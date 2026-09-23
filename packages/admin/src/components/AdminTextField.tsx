@@ -9,6 +9,7 @@ import type {
   AdminTextFieldControl,
   AdminTextFieldProps,
 } from "./AdminTextField.types";
+import { CharacterCounter } from "./CharacterCounter";
 
 // ============================================================================
 // Base
@@ -23,6 +24,7 @@ import type {
  * - Active indicator line (filled) or outline ring (outlined) reflecting focus/error state
  * - Leading and trailing icon slots (20dp, on-surface-variant)
  * - Supporting text / error message below with aria-describedby linkage
+ * - Opt-in character counter at the end of that row, toward the control's maxLength
  * - forwardRef compatible — wraps the native control for react-hook-form register()
  *
  * Floating label is triggered by: focus OR value is non-empty OR defaultValue exists
@@ -51,15 +53,24 @@ const AdminTextFieldBase = React.forwardRef<AdminTextFieldControl, AdminTextFiel
       placeholder,
       className,
       controlProps,
+      showCount = false,
     },
     ref
   ) => {
     const autoId = useId();
     const inputId = idProp ?? autoId;
     const supportingId = `${inputId}-supporting`;
+    // The counter reads its limit off the control, so the two cannot drift.
+    const maxLength = controlProps?.maxLength;
+    const counter =
+      showCount && typeof maxLength === "number"
+        ? { id: `${inputId}-count`, max: maxLength }
+        : null;
 
     const [focused, setFocused] = useState(false);
-    const [uncontrolledHasValue, setUncontrolledHasValue] = useState(Boolean(defaultValue));
+    // An uncontrolled field (register(), defaultValue) tracks its own length:
+    // it floats the label and feeds the counter.
+    const [uncontrolledLength, setUncontrolledLength] = useState(defaultValue?.length ?? 0);
 
     // Internal ref to read uncontrolled control value for isFloating detection
     const internalRef = useRef<AdminTextFieldControl | null>(null);
@@ -76,16 +87,14 @@ const AdminTextFieldBase = React.forwardRef<AdminTextFieldControl, AdminTextFiel
           (ref as React.MutableRefObject<AdminTextFieldControl | null>).current = node;
         }
 
-        if (node && value === undefined) {
-          const nextHasValue = node.value.length > 0;
-          setUncontrolledHasValue((current) => (current === nextHasValue ? current : nextHasValue));
-        }
+        if (node && value === undefined) setUncontrolledLength(node.value.length);
       },
       [ref, value]
     );
 
-    // Determine if the label should be in floating position
-    const hasValue = value !== undefined ? value.length > 0 : uncontrolledHasValue;
+    // What the control holds: the counter shows its length, any text floats the label.
+    const length = value !== undefined ? value.length : uncontrolledLength;
+    const hasValue = length > 0;
 
     // A native <select> always shows its selected option's text, and date/time
     // inputs paint intrinsic format text (mm/dd/yyyy) — a resting centered
@@ -108,7 +117,7 @@ const AdminTextFieldBase = React.forwardRef<AdminTextFieldControl, AdminTextFiel
     };
 
     const handleChange = (e: React.ChangeEvent<AdminTextFieldControl>) => {
-      setUncontrolledHasValue(e.currentTarget.value.length > 0);
+      setUncontrolledLength(e.currentTarget.value.length);
       onChange?.(e);
     };
 
@@ -162,7 +171,11 @@ const AdminTextFieldBase = React.forwardRef<AdminTextFieldControl, AdminTextFiel
           ? true
           : ((controlProps?.["aria-invalid"] as boolean | undefined) ?? undefined),
       "aria-describedby":
-        [supportingText ? supportingId : null, controlProps?.["aria-describedby"] as string]
+        [
+          supportingText ? supportingId : null,
+          counter?.id,
+          controlProps?.["aria-describedby"] as string,
+        ]
           .filter(Boolean)
           .join(" ") || undefined,
       onChange: handleChange,
@@ -219,19 +232,35 @@ const AdminTextFieldBase = React.forwardRef<AdminTextFieldControl, AdminTextFiel
       </label>
     );
 
-    const supporting = supportingText ? (
-      <p
-        id={supportingId}
-        role={hasError ? "alert" : undefined}
-        className={cn(
-          "mt-1 px-4 text-body-sm",
-          hasError ? "text-[rgb(var(--m3-error))]" : "text-[rgb(var(--m3-on-surface-variant))]",
-          disabled && "text-[rgb(var(--m3-on-surface)/0.38)]"
-        )}
-      >
-        {supportingText}
-      </p>
-    ) : null;
+    // Supporting text at the start of the row, the counter at its end (M3).
+    const supporting =
+      supportingText || counter ? (
+        <div className="mt-1 flex gap-4 px-4 text-body-sm">
+          {supportingText ? (
+            <p
+              id={supportingId}
+              role={hasError ? "alert" : undefined}
+              className={cn(
+                hasError
+                  ? "text-[rgb(var(--m3-error))]"
+                  : "text-[rgb(var(--m3-on-surface-variant))]",
+                disabled && "text-[rgb(var(--m3-on-surface)/0.38)]"
+              )}
+            >
+              {supportingText}
+            </p>
+          ) : null}
+          {counter ? (
+            <CharacterCounter
+              id={counter.id}
+              count={length}
+              max={counter.max}
+              error={hasError}
+              disabled={disabled}
+            />
+          ) : null}
+        </div>
+      ) : null;
 
     // -------------------------------------------------------------------------
     // Filled variant

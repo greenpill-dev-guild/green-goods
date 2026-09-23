@@ -1,5 +1,6 @@
 import { Alert } from "@green-goods/shared/components/Alert";
 import type { PoolConsoleController } from "@green-goods/shared/hooks/admin-ui/pool/controller.types";
+import { CYCLE_NAME_MAX_LENGTH } from "@green-goods/shared/modules/commitment-pooling/cycle-metadata";
 import { useIntl } from "react-intl";
 import { AdminTextField } from "@/components/AdminTextField";
 import { cycleName } from "../poolPresentation";
@@ -67,6 +68,8 @@ export function SetupStepCycle({
         }
         disabled={disabled}
         required
+        showCount
+        inputProps={{ maxLength: CYCLE_NAME_MAX_LENGTH }}
       />
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <AdminTextField

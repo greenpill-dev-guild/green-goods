@@ -6,6 +6,7 @@ import {
   useCommitmentPoolSetupSequence,
 } from "@green-goods/shared/hooks/commitment-pooling/useCommitmentPoolSetupSequence";
 import { logger } from "@green-goods/shared/modules/app/logger";
+import { POOL_PURPOSE_MAX_LENGTH } from "@green-goods/shared/modules/commitment-pooling/pool-charter";
 import {
   isRetriablePoolSetupFailure,
   type PoolSetupStep,
@@ -96,6 +97,9 @@ export function PoolSettingsDialog({
     editing &&
     dirty &&
     purpose.trim().length > 0 &&
+    // An agreement written before the limit can load longer than it; a
+    // changed one is written only once it fits. Its counter shows the excess.
+    (!changes.agreement || purpose.length <= POOL_PURPOSE_MAX_LENGTH) &&
     capValue !== null &&
     capValue > 0n &&
     !busy &&
@@ -235,7 +239,8 @@ export function PoolSettingsDialog({
               rows={4}
               required
               disabled={busy}
-              textareaProps={{ maxLength: 2000 }}
+              showCount
+              textareaProps={{ maxLength: POOL_PURPOSE_MAX_LENGTH }}
             />
             <AdminTextField
               label={formatMessage({

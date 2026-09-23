@@ -20,6 +20,12 @@ interface AdminTextFieldCommonProps {
   id?: string;
   placeholder?: string;
   className?: string;
+  /**
+   * Count the text toward the control's own `maxLength`, shown as M3's
+   * "324 / 420" at the end of the supporting row. Without a `maxLength` there
+   * is nothing to count toward, and no counter shows.
+   */
+  showCount?: boolean;
 }
 
 export interface AdminTextFieldProps extends AdminTextFieldCommonProps {
@@ -39,7 +45,7 @@ export interface AdminTextAreaProps extends AdminTextFieldCommonProps {
   };
 }
 
-export interface AdminSelectProps extends AdminTextFieldCommonProps {
+export interface AdminSelectProps extends Omit<AdminTextFieldCommonProps, "showCount"> {
   onChange?: (e: React.ChangeEvent<HTMLSelectElement>) => void;
   onBlur?: (e: React.FocusEvent<HTMLSelectElement>) => void;
   /** The `<option>` elements. An empty-value option acts as the placeholder row. */

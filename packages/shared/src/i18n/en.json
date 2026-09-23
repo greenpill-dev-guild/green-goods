@@ -4649,6 +4649,8 @@
   "cockpit.settings.userProfile": "Profile",
   "cockpit.settings.version": "Version",
   "cockpit.tabRail.itemCount": "{count, plural, one {# item} other {# items}}",
+  "cockpit.textField.characterCount": "{count, number} of {max, number} characters used",
+  "cockpit.textField.characterLimitReached": "Character limit reached",
   "cockpit.topBar.back": "Back",
   "cockpit.topBar.notifications": "Notifications",
   "cockpit.topBar.openProfile": "Profile",
