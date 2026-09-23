@@ -5,6 +5,7 @@ import type { CommitmentReadModel } from "@green-goods/shared/modules/commitment
 import { RiArrowRightSLine, RiSeedlingLine } from "@remixicon/react";
 import { useMemo, useState } from "react";
 import { FormattedMessage, useIntl } from "react-intl";
+import { ActPhaseLine } from "@/components/ActPhaseLine";
 import { AdminButton } from "@/components/AdminButton";
 import { AdminCard } from "@/components/AdminCard";
 import { AdminFilterChip } from "@/components/AdminFilterChip";
@@ -274,6 +275,16 @@ export function PoolCommitmentsCard({
                         })}
                   </AdminButton>
                 </span>
+                <div className="basis-full">
+                  <ActPhaseLine
+                    phase={pool.queuedPhase(row.jobId)}
+                    chainId={pool.chainId}
+                    confirmed={formatMessage({
+                      id: "cockpit.garden.pool.queued.sent",
+                      defaultMessage: "Sent. This row leaves once the index shows the commitment.",
+                    })}
+                  />
+                </div>
               </li>
             ))}
           </ul>

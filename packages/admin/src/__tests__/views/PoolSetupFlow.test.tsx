@@ -243,8 +243,15 @@ function assertStep(step: StepId) {
     expect(within(dialog()).getByLabelText(/^name/i)).toBeInTheDocument();
   } else if (step === "split") {
     expect(within(dialog()).getByText(/total: 100 %/i)).toBeInTheDocument();
+    // The step says the split is fixed at open, and a preset reads as its roles.
+    expect(
+      within(dialog()).getByText(/this split is fixed for good once the (season|campaign) opens/i)
+    ).toBeVisible();
+    expect(within(dialog()).getByText(/^gardeners 60 % · treasury 15 %/i)).toBeInTheDocument();
   } else {
-    expect(within(dialog()).getByRole("button", { name: /^open/i })).toBeInTheDocument();
+    expect(
+      within(dialog()).getByRole("button", { name: /^(open|set up and open)/i })
+    ).toBeInTheDocument();
   }
 }
 
@@ -327,7 +334,7 @@ describe("PoolSetupFlow (W11)", () => {
     fillCycle();
     next();
     next();
-    fireEvent.click(within(dialog()).getByRole("button", { name: /^open season$/i }));
+    fireEvent.click(within(dialog()).getByRole("button", { name: /^set up and open$/i }));
 
     expect(await within(dialog()).findByText(new RegExp(message, "i"))).toBeInTheDocument();
     expect(mocks.run).not.toHaveBeenCalled();
@@ -403,7 +410,7 @@ describe("PoolSetupFlow (W11)", () => {
     fillCycle();
     next();
     next();
-    fireEvent.click(within(dialog()).getByRole("button", { name: /^open season$/i }));
+    fireEvent.click(within(dialog()).getByRole("button", { name: /^set up and open$/i }));
 
     await waitFor(() => expect(mocks.run).toHaveBeenCalledTimes(1));
     expect(mocks.pinPoolCharter).toHaveBeenCalledWith({
@@ -525,7 +532,7 @@ describe("PoolSetupFlow (W11)", () => {
     fillCycle();
     next();
     next();
-    fireEvent.click(within(dialog()).getByRole("button", { name: /^open season$/i }));
+    fireEvent.click(within(dialog()).getByRole("button", { name: /^set up and open$/i }));
 
     // The mocked hook's state is read on the next render; a rerender follows the run's resolution.
     await waitFor(() => expect(screen.getByTestId("pool-setup-failed")).toBeInTheDocument());

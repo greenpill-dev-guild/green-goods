@@ -62,6 +62,25 @@ export const Paused: Story = {
   },
 };
 
+/** Resume is on its way: held closed, with where it stands beneath it. */
+export const Resuming: Story = {
+  args: {
+    console: storyPoolConsole({
+      pool: storyPool({ state: "PAUSED", pauseReasonCID: "bafy-reason" }),
+      pauseReason: {
+        reason: { version: 1, reason: "Seasonal flooding, back after the rains" },
+        isLoading: false,
+        isUnavailable: false,
+      },
+      resumePhase: {
+        status: "confirming",
+        key: "resume-pool",
+        hash: `0x${"3f".repeat(32)}`,
+      },
+    }),
+  },
+};
+
 export const ReadyToClose: Story = {
   args: {
     console: storyPoolConsole({

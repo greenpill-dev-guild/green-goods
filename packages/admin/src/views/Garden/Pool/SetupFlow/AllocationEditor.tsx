@@ -98,6 +98,8 @@ export interface AllocationEditorProps {
   onAllocationChange: (allocation: AllocationPercent) => void;
   recognition: RecognitionPercent;
   onRecognitionChange: (recognition: RecognitionPercent) => void;
+  /** The cycle the split is fixed for when it opens. */
+  cycleKind?: "season" | "campaign";
   disabled?: boolean;
 }
 
@@ -106,7 +108,9 @@ export interface AllocationEditorProps {
  * with a "stored on-chain as basis points" helper (uiux-spec §6.10). Presets
  * prefill the editor; every field stays editable. The sum must equal 100 %
  * (the contract's InvalidAllocation guard) and a treasury share under the
- * 15 % guidance floor warns without blocking.
+ * 15 % guidance floor warns without blocking. The step opens by saying the
+ * split is fixed once the cycle opens (the CycleOpened snapshot is immutable),
+ * each preset names its roles, and each role says what its share is for.
  */
 export function AllocationEditor({
   preset,
@@ -115,6 +119,7 @@ export function AllocationEditor({
   onAllocationChange,
   recognition,
   onRecognitionChange,
+  cycleKind = "season",
   disabled = false,
 }: AllocationEditorProps) {
   const { formatMessage } = useIntl();
@@ -133,12 +138,16 @@ export function AllocationEditor({
     onAllocationChange({ ...allocation, [key]: value });
   };
 
-  const fields: Array<{ key: keyof AllocationPercent; label: string }> = [
+  const fields: Array<{ key: keyof AllocationPercent; label: string; hint: string }> = [
     {
       key: "gardeners",
       label: formatMessage({
         id: "cockpit.garden.pool.split.gardeners",
         defaultMessage: "Gardeners",
+      }),
+      hint: formatMessage({
+        id: "cockpit.garden.pool.split.gardenersHint",
+        defaultMessage: "Shared among the gardeners whose commitments were kept",
       }),
     },
     {
@@ -147,18 +156,30 @@ export function AllocationEditor({
         id: "cockpit.garden.pool.split.treasury",
         defaultMessage: "Treasury",
       }),
+      hint: formatMessage({
+        id: "cockpit.garden.pool.split.treasuryHint",
+        defaultMessage: "Held by the garden itself",
+      }),
     },
     // The on-chain class is named `operator`; this form key and the label stay
     // `steward`, the word stewards read for their own role.
     {
       key: "steward",
       label: formatMessage({ id: "cockpit.garden.pool.split.steward", defaultMessage: "Steward" }),
+      hint: formatMessage({
+        id: "cockpit.garden.pool.split.stewardHint",
+        defaultMessage: "For the garden's stewards",
+      }),
     },
     {
       key: "evaluator",
       label: formatMessage({
         id: "cockpit.garden.pool.split.evaluator",
         defaultMessage: "Evaluator",
+      }),
+      hint: formatMessage({
+        id: "cockpit.garden.pool.split.evaluatorHint",
+        defaultMessage: "For those who assess the garden's impact",
       }),
     },
     {
@@ -167,15 +188,36 @@ export function AllocationEditor({
         id: "cockpit.garden.pool.split.community",
         defaultMessage: "Community",
       }),
+      hint: formatMessage({
+        id: "cockpit.garden.pool.split.communityHint",
+        defaultMessage: "For the wider community around the garden",
+      }),
     },
     {
       key: "funder",
       label: formatMessage({ id: "cockpit.garden.pool.split.funder", defaultMessage: "Funder" }),
+      hint: formatMessage({
+        id: "cockpit.garden.pool.split.funderHint",
+        defaultMessage: "For those who fund the garden",
+      }),
     },
   ];
+  // A preset reads as its roles, not a row of bare numbers.
+  const presetShares = (preset: Exclude<AllocationPreset, "custom">) =>
+    fields.map((field) => `${field.label} ${ALLOCATION_PRESETS[preset][field.key]} %`).join(" · ");
 
   return (
     <div className="space-y-4" data-component="AllocationEditor">
+      <p className="text-body-md font-medium text-text-strong" data-slot="split-fixed">
+        {formatMessage(
+          {
+            id: "cockpit.garden.pool.split.fixed",
+            defaultMessage:
+              "{kind, select, campaign {This split is fixed for good once the campaign opens, and it decides how the campaign's impact certificate is shared.} other {This split is fixed for good once the season opens, and it decides how the season's impact certificate is shared.}}",
+          },
+          { kind: cycleKind }
+        )}
+      </p>
       <AdminChoiceGroup
         ariaLabel={formatMessage({
           id: "cockpit.garden.pool.split.preset",
@@ -195,7 +237,7 @@ export function AllocationEditor({
               id: "cockpit.garden.pool.split.preset.model1",
               defaultMessage: "Garden-led (standard)",
             }),
-            description: "60 · 15 · 10 · 5 · 5 · 5",
+            description: presetShares("model1"),
             disabled,
           },
           {
@@ -204,7 +246,7 @@ export function AllocationEditor({
               id: "cockpit.garden.pool.split.preset.model2",
               defaultMessage: "Treasury-led",
             }),
-            description: "30 · 45 · 10 · 5 · 5 · 5",
+            description: presetShares("model2"),
             disabled,
           },
           {
@@ -213,7 +255,7 @@ export function AllocationEditor({
               id: "cockpit.garden.pool.split.preset.model3",
               defaultMessage: "Balanced",
             }),
-            description: "40 · 20 · 20 · 10 · 5 · 5",
+            description: presetShares("model3"),
             disabled,
           },
           {
@@ -244,6 +286,7 @@ export function AllocationEditor({
               "aria-invalid": valid.allocation ? undefined : true,
             }}
             trailingIcon={PercentSign}
+            helperText={field.hint}
             disabled={disabled}
           />
         ))}

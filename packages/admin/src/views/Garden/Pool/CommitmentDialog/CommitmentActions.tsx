@@ -1,5 +1,6 @@
 import type { CommitmentDialogController } from "@green-goods/shared/hooks/admin-ui/pool/controller.types";
 import { useIntl } from "react-intl";
+import { ActPhaseLine } from "@/components/ActPhaseLine";
 import { AdminButton } from "@/components/AdminButton";
 import type { FallbackPath, OpenDialog } from "./commitmentDialogPresentation";
 
@@ -17,6 +18,8 @@ export function CommitmentActions({
   fallbackPath,
   onOpenDialog,
   onSeedAnother,
+  sendPhase,
+  chainId,
 }: {
   isOnline: boolean;
   /** Why the acts are out of reach while the reader has no connection. */
@@ -32,8 +35,13 @@ export function CommitmentActions({
    * reader may not seed this pool, so the button is simply not drawn.
    */
   onSeedAnother?: () => void;
+  /** Where Send for Confirmation stands, followed from the wallet to the chain. */
+  sendPhase: CommitmentDialogController["sendPhase"];
+  chainId: number;
 }) {
   const { formatMessage } = useIntl();
+  // Sent, or kept queued to send: the act stays closed until the record moves on.
+  const sendHeld = sendPhase.status !== "idle" && sendPhase.status !== "failed";
 
   return (
     <>
@@ -127,8 +135,8 @@ export function CommitmentActions({
             type="button"
             variant="filled"
             size="sm"
-            onClick={() => void acts.sendForConfirmation()}
-            disabled={isActing}
+            onClick={() => void acts.sendForConfirmation().catch(() => undefined)}
+            disabled={isActing || sendHeld}
           >
             {formatMessage({
               id: "cockpit.garden.pool.commitment.act.send",
@@ -137,6 +145,16 @@ export function CommitmentActions({
           </AdminButton>
         ) : null}
       </div>
+      {can.sendForConfirmation || sendPhase.status !== "idle" ? (
+        <ActPhaseLine
+          phase={sendPhase}
+          chainId={chainId}
+          confirmed={formatMessage({
+            id: "cockpit.garden.pool.commitment.act.sent",
+            defaultMessage: "Sent for confirmation. Its confirmers see it once the index shows it.",
+          })}
+        />
+      ) : null}
 
       {can.expire ? (
         // Final and destructive, so it never shares the routine cluster: its own

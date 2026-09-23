@@ -14,7 +14,8 @@ export interface ActPhaseLineProps {
 /**
  * The one line a single-signature act shows on the row it started from, so a
  * steward never watches a greyed-out button in silence: waiting on the wallet,
- * waiting on the chain, done, or failed with nothing changed.
+ * waiting on the chain, done, left queued on this device, or failed with
+ * nothing changed.
  */
 export function ActPhaseLine({ phase, chainId, confirmed }: ActPhaseLineProps) {
   const { formatMessage } = useIntl();
@@ -32,10 +33,15 @@ export function ActPhaseLine({ phase, chainId, confirmed }: ActPhaseLineProps) {
           )
         : phase.status === "confirmed"
           ? confirmed
-          : formatMessage({
-              id: "app.admin.actPhase.failed",
-              defaultMessage: "It didn’t go through, and nothing changed. You can try again.",
-            });
+          : phase.status === "queued"
+            ? formatMessage({
+                id: "app.admin.actPhase.queued",
+                defaultMessage: "Queued on this device. It sends once it can.",
+              })
+            : formatMessage({
+                id: "app.admin.actPhase.failed",
+                defaultMessage: "It didn’t go through, and nothing changed. You can try again.",
+              });
   return (
     <p
       role="status"

@@ -545,6 +545,45 @@ describe("GardenPoolTab (W7)", () => {
     await waitFor(() => expect(mocks.controller!.acts.resume).toHaveBeenCalled());
   });
 
+  it("holds Resume from the wallet until the pool reads open, and says where it stands", () => {
+    mocks.controller = controller({
+      pool: pool({ state: "PAUSED", pauseReasonCID: "bafy-reason" }),
+      // The receipt landed; the pool read still lags behind it.
+      resumePhase: { status: "confirmed", key: "resume-pool", hash: null },
+    });
+    renderTab();
+    expect(screen.getByRole("button", { name: /resume pool/i })).toBeDisabled();
+    expect(
+      screen.getByText("Resumed. The pool reads open once the index shows it.")
+    ).toBeInTheDocument();
+  });
+
+  it("puts a queued send's line on the row it started from", () => {
+    const queued = {
+      chainId: 42161,
+      poolId: "7",
+      direction: "OFFER" as const,
+      unitLabel: "workshop",
+      targetUnits: "1",
+      waitingForMembership: false,
+      failed: false,
+      createdAt: 1,
+      discardable: true,
+    };
+    mocks.controller = controller({
+      pendingCreates: [
+        { ...queued, jobId: "job-a", title: "Compost workshop" },
+        { ...queued, jobId: "job-b", title: "Seed swap" },
+      ],
+      queuedPhase: (jobId: string) =>
+        jobId === "job-b" ? { status: "signing", key: "job-b" } : { status: "idle" },
+    });
+    renderTab();
+    const rows = within(screen.getByTestId("pool-queued")).getAllByRole("listitem");
+    expect(within(rows[0]).queryByText("Confirm in your wallet.")).not.toBeInTheDocument();
+    expect(within(rows[1]).getByText("Confirm in your wallet.")).toBeInTheDocument();
+  });
+
   it("accepts a claim directly and declines one with a reason, keyed to the stored claimant", async () => {
     mocks.controller = controller({
       claims: [

@@ -271,6 +271,7 @@ export function PoolSetupFlow({
           onAllocationChange={setAllocation}
           recognition={recognition}
           onRecognitionChange={setRecognition}
+          cycleKind={isCampaign ? "campaign" : "season"}
           disabled={submitting}
         />
       );

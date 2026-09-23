@@ -26,6 +26,8 @@ const meta: Meta<typeof CommitmentActions> = {
     isActing: false,
     fallbackPath: null,
     onOpenDialog: () => undefined,
+    sendPhase: { status: "idle" },
+    chainId: 42161,
   },
   decorators: [
     (Story) => (
@@ -40,6 +42,11 @@ export default meta;
 type Story = StoryObj<typeof CommitmentActions>;
 
 export const SendForConfirmation: Story = {};
+
+/** Sent and landed: the act stays closed until the record moves on. */
+export const SentForConfirmation: Story = {
+  args: { sendPhase: { status: "confirmed", key: "send-for-confirmation:9", hash: null } },
+};
 
 /**
  * Kept and waiting on this reader: Confirm Kept opens its review, and Expire

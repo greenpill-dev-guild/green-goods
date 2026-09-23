@@ -4,6 +4,7 @@ import type { PoolConsoleController } from "@green-goods/shared/hooks/admin-ui/p
 import { RiCheckLine, RiCloseLine } from "@remixicon/react";
 import type { RefObject } from "react";
 import { useIntl } from "react-intl";
+import { ActPhaseLine } from "@/components/ActPhaseLine";
 import { AdminButton } from "@/components/AdminButton";
 import { AdminCard } from "@/components/AdminCard";
 import { PoolFundingSection } from "./PoolFundingSection";
@@ -74,6 +75,11 @@ export function PoolStatusCard({
     defaultMessage: "Needs a connection. Pool changes are sent straight to the chain.",
   });
   const actDisabled = offline || isActing;
+  // Resume stays closed from the wallet until the pool reads open again.
+  const resumeHeld =
+    pool.resumePhase.status === "signing" ||
+    pool.resumePhase.status === "confirming" ||
+    pool.resumePhase.status === "confirmed";
 
   return (
     <AdminCard variant="elevated" data-component="PoolStatusCard" className="space-y-4">
@@ -201,7 +207,7 @@ export function PoolStatusCard({
           {formatMessage({
             id: "cockpit.garden.pool.setup.note",
             defaultMessage:
-              "Setting up writes how this pool works and opens its first season. One pass, four short steps.",
+              "Setting up writes how this pool works and opens its first season, in four short steps. Your wallet will ask up to six times, fewer when it can take several writes at once.",
           })}
         </p>
       ) : null}
@@ -278,8 +284,8 @@ export function PoolStatusCard({
               type="button"
               variant="filled"
               size="sm"
-              onClick={() => void acts.resume()}
-              disabled={actDisabled}
+              onClick={() => void acts.resume().catch(() => undefined)}
+              disabled={actDisabled || resumeHeld}
             >
               {formatMessage({
                 id: "cockpit.garden.pool.act.resume",
@@ -298,6 +304,16 @@ export function PoolStatusCard({
             </AdminButton>
           ) : null}
         </div>
+      ) : null}
+      {model.status === "paused" ? (
+        <ActPhaseLine
+          phase={pool.resumePhase}
+          chainId={pool.chainId}
+          confirmed={formatMessage({
+            id: "cockpit.garden.pool.act.resumed",
+            defaultMessage: "Resumed. The pool reads open once the index shows it.",
+          })}
+        />
       ) : null}
 
       {running && model.closure.allowed ? (

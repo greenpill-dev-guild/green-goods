@@ -108,6 +108,31 @@ export const Queued: Story = {
   },
 };
 
+/** Send Now pressed: the row says the wallet is asking. */
+export const QueuedSending: Story = {
+  args: {
+    console: storyPoolConsole({
+      pendingCreates: [
+        {
+          jobId: "job-1",
+          chainId: 42161,
+          poolId: "7",
+          direction: "OFFER",
+          title: "Compost workshop",
+          unitLabel: "workshop",
+          targetUnits: "1",
+          waitingForMembership: false,
+          discardable: true,
+          failed: false,
+          createdAt: daysAgo(0) * 1000,
+        },
+      ],
+      queuedPhase: (jobId) =>
+        jobId === "job-1" ? { status: "signing", key: "job-1" } : { status: "idle" },
+    }),
+  },
+};
+
 /** The two queued rows that are not plain "Queued": send failure and the membership wait. */
 export const QueuedNeedsAttention: Story = {
   args: {

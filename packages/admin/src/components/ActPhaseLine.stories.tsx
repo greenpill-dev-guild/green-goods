@@ -42,6 +42,11 @@ export const Confirmed: Story = {
   args: { phase: { status: "confirmed", key: "row", hash: HASH } },
 };
 
+/** A job-queue send kept on this device: not landed, and not a failure. */
+export const Queued: Story = {
+  args: { phase: { status: "queued", key: "row" } },
+};
+
 export const Failed: Story = {
   args: { phase: { status: "failed", key: "row" } },
 };

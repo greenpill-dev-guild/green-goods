@@ -343,6 +343,27 @@ describe("CommitmentDialogPanel (W10)", () => {
     await waitFor(() => expect(acts.sendForConfirmation).toHaveBeenCalled());
   });
 
+  it("keeps Send for Confirmation closed once sent, and says what happens next", () => {
+    mocks.controller = controller({
+      can: can({ sendForConfirmation: true }),
+      sendPhase: { status: "confirmed", key: "send-for-confirmation:9", hash: null },
+    });
+    renderPanel();
+    expect(screen.getByRole("button", { name: /send for confirmation/i })).toBeDisabled();
+    expect(
+      screen.getByText("Sent for confirmation. Its confirmers see it once the index shows it.")
+    ).toBeInTheDocument();
+  });
+
+  it("says a send kept on this device is queued, not failed", () => {
+    mocks.controller = controller({
+      can: can({ sendForConfirmation: true }),
+      sendPhase: { status: "queued", key: "send-for-confirmation:9" },
+    });
+    renderPanel();
+    expect(screen.getByText("Queued on this device. It sends once it can.")).toBeInTheDocument();
+  });
+
   it("shows the fallback banner and act only when the ordinary path is unreachable, naming the garden's authority", async () => {
     const ordinary = controller({
       commitment: {

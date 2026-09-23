@@ -98,7 +98,7 @@ export function SetupFlowFooter({
                 {intent === "first-run"
                   ? formatMessage({
                       id: "cockpit.garden.pool.setup.openAll",
-                      defaultMessage: "Open Season",
+                      defaultMessage: "Set Up and Open",
                     })
                   : isCampaign
                     ? formatMessage({

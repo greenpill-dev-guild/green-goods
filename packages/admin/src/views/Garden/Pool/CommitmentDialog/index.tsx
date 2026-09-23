@@ -190,6 +190,8 @@ function CommitmentRecord({
         isActing={dialog.isActing}
         fallbackPath={fallbackPath}
         onOpenDialog={setOpen}
+        sendPhase={dialog.sendPhase}
+        chainId={chainId}
         onSeedAnother={
           onSeedAnother && dialog.isLocalSteward
             ? () => onSeedAnother(commitment.commitmentId.toString())
