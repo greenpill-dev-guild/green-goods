@@ -8,7 +8,8 @@ docs gates in eval.md.
 
 ## Validation Receipt
 
-_Pending — filled per phase before terminal claims._
+_The lane's closing receipt is still pending. The per-phase receipts below record each phase's
+validation._
 
 ## Phase 1 receipt pointer
 

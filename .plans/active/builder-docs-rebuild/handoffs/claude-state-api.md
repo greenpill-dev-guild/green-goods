@@ -33,12 +33,16 @@
 - **Validated paths**: `scripts/docs/**`, `docs/**` (content, components, client modules, config),
   `biome.json`, `.claude/launch.json`
 - **Worktree identity**: `git status --porcelain=v1 --untracked-files=all -- scripts/docs docs` →
-  empty
+  empty. This check covered `scripts/docs` and `docs` only; `biome.json` and `.claude/launch.json`
+  were validated by the format and build gates above, not by this status check.
 - **Known limit**: svg-pan-zoom attaches on first visibility via IntersectionObserver; the embedded
   verification pane reports `document.visibilityState === "hidden"` permanently, so the attach step
   is queued-but-unfired there (states verified as `queued` on all three ERD diagrams). Confirm the
   zoom controls once in a visible browser (Vercel preview or local `bun run --cwd docs serve`).
   Discovery, sizing, accent, conditional sections, and all build gates are machine-verified above.
+  Superseded in the Phase 2 tone round: svg-pan-zoom was replaced by the Expand overlay
+  (`docs/src/clientModules/mermaidExpand.ts`), which decorates diagrams immediately and needs no
+  visibility check.
 - **Pre-existing, out of scope**: `cd docs && bun run typecheck` fails on two recharts formatter
   types in `RevenueProjectionChart.tsx` (present on develop since the TS7 upgrade, #639); zero
   errors reference Phase 1 files.

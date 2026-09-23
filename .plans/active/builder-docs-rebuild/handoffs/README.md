@@ -3,7 +3,7 @@
 Keep lane handoffs short and factual. Use one file per lane:
 
 - `claude-ui.md`
-- `codex-state-api.md`
+- `claude-state-api.md`
 - `codex-contracts.md`
 - `claude-qa-pass-1.md`
 - `codex-qa-pass-2.md`
