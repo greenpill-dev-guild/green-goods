@@ -241,8 +241,7 @@ or the repository root `.env`; do not add a package-level `.env`.
 3. **Enable "Include source files outside of the Root Directory in the Build Step"** — required, not
    optional. `build.mjs` reads `scripts/data/qa-test-catalog.json` from the repository root, which
    the build sandbox excludes without this, and the deploy fails on a missing catalog. The
-   Storybook project needs the same setting for the same reason
-   (`docs/docs/builders/testing/storybook.mdx`).
+   Storybook project (`packages/shared/vercel.json`) needs the same setting for the same reason.
 4. **Set wallet authentication environment** — add `QA_SESSION_SECRET` and `QA_ALLOWLIST` as described
    above. Confirm the connected Blob store supplied `BLOB_READ_WRITE_TOKEN`.
 5. **Verify** before relying on it: use two allowlisted wallets in two browser profiles, sign in, and

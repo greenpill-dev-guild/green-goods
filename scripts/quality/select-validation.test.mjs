@@ -1846,7 +1846,7 @@ test("workflow mapping preserves exact live and intended trigger parity", () => 
       ["Admin", "Agent", "Client", "Contracts", "Indexer", "Shared", "Supply Chain Guardrails"],
     ],
     ["scripts/lib/git-guardrails.mjs", ["Contracts", "Supply Chain Guardrails"]],
-    ["docs/docs/builders/testing/storybook.mdx", ["Design", "Docs", "Supply Chain Guardrails"]],
+    ["docs/docs/builders/testing/index.mdx", ["Design", "Docs", "Supply Chain Guardrails"]],
     ["packages/client/DESIGN-pwa.md", ["Client", "Design", "Supply Chain Guardrails"]],
     [
       "packages/shared/.storybook/preview.ts",

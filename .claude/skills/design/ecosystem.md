@@ -211,5 +211,5 @@ For simple, single-user surfaces (a form, a settings page, a static view), the A
 | **EPIC 2023** — "Toward an Ethnography of Friction and Ease in Complex Systems" | Three frictions, three systems phenomena, theoretical foundation |
 | **NNGroup** — "User-Ecosystem Thinking: An Anthropologic Approach to Design" | Practitioner-oriented framework summary |
 | **MHCLG Digital** — "Applying User Ecosystem Thinking in Funding Service" | UK gov case study: workshop format, surprises, outcomes |
-| **Green Goods Personas** | `docs/docs/reference/design-research.md#user-personas` — Maria, David, Dr. Chen, Amara, Kwame |
+| **Green Goods Personas** | `docs/docs/builders/reference/persona-surfaces.mdx#personas` — Gardener, Steward, Evaluator, Funder, Community Member, projected from the ontology |
 | **Green Goods Tone** | `.claude/context/product.md` § Persona & Tone Quick-Reference |

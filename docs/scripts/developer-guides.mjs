@@ -58,7 +58,7 @@ async function readOptional(file) {
 
 // Only maintained developer entrypoints belong here; dated execution reports are historical.
 export async function developerGuidePaths(root) {
-  const paths = ["README.md", "ONBOARDING.md", "CONTRIBUTING.md", "docs/README.md", "scripts/README.md", "packages/contracts/deployments/README.md", "docs/docs/builders/getting-started.mdx", "docs/docs/builders/env-management.mdx", "docs/docs/builders/how-to-contribute.mdx"];
+  const paths = ["README.md", "ONBOARDING.md", "CONTRIBUTING.md", "docs/README.md", "scripts/README.md", "packages/contracts/deployments/README.md", "docs/docs/builders/getting-started.mdx", "docs/docs/builders/how-to-contribute.mdx", "docs/docs/builders/testing/index.mdx"];
   const packages = await fs.readdir(path.join(root, "packages"), { withFileTypes: true }).catch(() => []);
   for (const item of packages) if (item.isDirectory()) paths.push(`packages/${item.name}/README.md`);
   return paths;

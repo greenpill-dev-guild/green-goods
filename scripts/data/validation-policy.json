@@ -1226,7 +1226,7 @@
         "package.json",
         "docs/DESIGN.md",
         "docs/docs/builders/packages/admin.mdx",
-        "docs/docs/builders/testing/storybook.mdx",
+        "docs/docs/builders/testing/index.mdx",
         "scripts/data/banned-vocabulary.json",
         "packages/admin/AGENTS.md",
         "packages/admin/DESIGN.md",

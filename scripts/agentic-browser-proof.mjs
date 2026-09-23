@@ -46,7 +46,7 @@ const surfaces = [
     routes: [
       "/",
       "/builders/agentic/mcp-guide",
-      "/builders/testing/storybook",
+      "/builders/testing",
       "/builders/quality/product-experience-qa",
       "/builders/quality/test-cases",
       "/builders/quality/gh-actions",
