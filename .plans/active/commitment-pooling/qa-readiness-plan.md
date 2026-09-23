@@ -467,7 +467,7 @@ This section holds the finding index, the queue that fixes them, and each PR's r
 | W1-2 Amounts in token units | A3 | Built |
 | W1-3 The target line in dialogs; Storybook matches the product | A13, A10, A8, A21, A14 (copy), A12 (Storybook) | Built |
 | W1-4 Hub scope and the Confirm Kept review | A1, A4, A5, A30, A25 (Hub), A19 (inspector) | Built |
-| W1-5 Settings through the setup sequence | A2, A15, A23 (settings) | Queued |
+| W1-5 Settings through the setup sequence | A2, A15, A23 (settings) | Built |
 | W1-6 End a season | Decision 29, A29 | Queued |
 | W1-7 Claims and protocol transfers | A9, A6, A11 (Accept), A20 (label), A23 (panel) | Queued |
 | W1-8 Seed tray progress and the done screen | A7, A24 | Queued |
@@ -533,6 +533,7 @@ This section holds the finding index, the queue that fixes them, and each PR's r
   - `admin-pool-seedamountfield--*`: 10 G$ reads as 10, 2.5 USDC stores 2500000, too many decimals is refused, and an unreadable token holds the field;
   - `admin-pool-seedstepreview--garden-work-with-reward`: "External payout record · 250 USDC".
 - **Pending:** authenticated Brave proof of an on-chain seed.
+- **CI follow-up:** Build Docs failed on #875. The new export left `api-index.mdx` and `commands.mdx` with stale digests, and the local push gate does not run `docs-generated`. `c8b10e885` regenerates them on W1-2's branch; the branches above it carry the fix when the stack merges in order.
 
 ### W1-3: the target line in dialogs, and Storybook matching the product
 
@@ -618,6 +619,53 @@ This section holds the finding index, the queue that fixes them, and each PR's r
   - `admin-pool-confirmkeptdialog--*`: closes it, counts toward it, protocol pool, sending;
   - `admin-pool-commitmentactions--ready-to-confirm`: Expire in its own row.
 - **Pending:** authenticated Brave proof of a wallet confirmation, walked in the rehearsal.
+
+### W1-5: settings through the setup sequence
+
+- **The save** (A2): `settingsSteps` plans only what changed, the agreement first, and the dialog runs it through `useCommitmentPoolSetupSequence`.
+  - Before saving, the dialog says how many times the wallet will ask: once when the wallet takes both writes together, otherwise once per write.
+  - Each write shows as it lands (`PoolSettingsProgress`).
+  - A stop names what was saved, for example "The new agreement is saved. The commitment limit is not."
+  - Try Again sends only what is left, and the dialog ends on "Settings saved.".
+  - A pin failure keeps the words on screen with nothing sent.
+- **Removed:** the console's `saveSettings` act. Its tests move to the planner and the dialog.
+- **Retry counts** (A15): a stopped run numbers its prompts over the writes still to send. The note says "Your wallet will ask N more times." Setup and settings share the running line and the prompt count through `setupWrites.ts`.
+- **Toast:** the sequence takes a `toastContext`, so a failed settings save reads "Pool settings failed".
+- **Stories** (A23): `withDataRouter` mounts the settings stories in the data router `useBlocker` needs, so all three render again. Five pooling stories use it in place of inline routers. The `PoolSettingsProgress` stories cover signing, confirming, a partial stop, nothing saved, no wallet, and saved.
+- **For W1-9:**
+  - ADM-063 expects one transaction per save; it becomes "the dialog says how many prompts a save takes, and a partial stop names what was saved";
+  - ADM-056 and ADM-057 take the retry count.
+
+### Validation receipt, W1-5
+
+- **Tested implementation commit SHA:** `15d40ed794c9e2c2a9d855cab638a4438517cf30`.
+  - The gate is the pre-push hook on that commit.
+  - `git status --porcelain=v1 --untracked-files=all -- packages/` is empty at that SHA.
+- **Run finished (UTC):** `2026-09-23T05:20:38Z`.
+- **Command:** `bun run check -- --intent push` (the pre-push hook, `critical · 118 changed path(s)`).
+- **Result:** all 25 checks passed:
+  - format, lint, validation-system-test and test-quality;
+  - shared, client, admin and agent typecheck, test-typecheck, test and build;
+  - source-structure, design-guardrails, ontology, agent-guidance, supply-chain and story-quality;
+  - storybook-build.
+- **Cache:** the package tests were cache hits on a full, uncached run of the same gate on the same SHA. That run ended at about `2026-09-23T05:18Z`, after which its push died with exit 141.
+- **Also run at that SHA:**
+  - the shared sequence and console suites, 39 passed;
+  - the admin settings, setup-writes, setup-flow and pool-tab suites, 52 passed.
+- **Before commit:**
+  - the full admin suite, 116 files and 913 passed;
+  - shared and admin typecheck in the source and tests scopes;
+  - design-tokens, source-structure, story-quality and react-patterns.
+- **RED:** three mutations, each caught and recorded through `record-tdd` on the `ui` lane.
+  - Counting landed writes after a stop failed 4 cases.
+  - Planning the limit before the agreement failed 3.
+  - A Try Again that re-runs instead of retrying failed 1.
+- **Story sweep:** 50 affected stories, headless. None crash. `pooldialogs--all-closed` renders nothing, as intended.
+- **Rendered proof (Storybook, headless Chromium):**
+  - `admin-pool-poolsettingsdialog--both-changed`: the prompt count before saving;
+  - `admin-pool-poolsettingsprogress--*`: signing, confirming, a partial stop, nothing saved, no wallet, saved;
+  - `admin-pool-setupfailure--several-still-to-send`: "Your wallet will ask 4 more times."
+- **Pending:** authenticated Brave proof of a two-write save with the second prompt refused, walked in the rehearsal.
 
 ## 5. Catalog PR
 
