@@ -163,5 +163,46 @@ describe("useCommitmentJobs", () => {
 
       expect(mocks.processJob).not.toHaveBeenCalled();
     });
+
+    it("tells whoever asked where the send stands, then how it ended", async () => {
+      mocks.sender = { authMode: "wallet" };
+      mocks.processJob.mockImplementation(async (_jobId, context) => {
+        context.onPhase?.({ stage: "wallet" });
+        context.onPhase?.({ stage: "confirming", txHash: "0xabc" });
+        return { success: true, txHash: "0xabc" };
+      });
+      const report = vi.fn();
+
+      await jobs().current.enqueue({ ...confirm, report });
+
+      expect(report.mock.calls.map(([event]) => event)).toEqual([
+        { stage: "wallet" },
+        { stage: "confirming", txHash: "0xabc" },
+        { stage: "landed", txHash: "0xabc" },
+      ]);
+    });
+
+    it.each([
+      ["a sign-in the wallet never asks", { authMode: "passkey" }, null],
+      ["a send that has to wait", { authMode: "wallet" }, { success: false, skipped: true }],
+    ] as const)("reports %s as queued to send later", async (_case, sender, result) => {
+      mocks.sender = sender;
+      if (result) mocks.processJob.mockResolvedValue(result);
+      const report = vi.fn();
+
+      await expect(jobs().current.enqueue({ ...confirm, report })).resolves.toBe("job-1");
+
+      expect(report).toHaveBeenLastCalledWith({ stage: "queued" });
+    });
+
+    it("never lets a report that throws turn an act that landed into a failure", async () => {
+      mocks.sender = { authMode: "wallet" };
+      const report = vi.fn(() => {
+        throw new Error("the view is gone");
+      });
+
+      await expect(jobs().current.enqueue({ ...confirm, report })).resolves.toBe("job-1");
+      expect(report).toHaveBeenCalledWith({ stage: "landed", txHash: "0xabc" });
+    });
   });
 });
