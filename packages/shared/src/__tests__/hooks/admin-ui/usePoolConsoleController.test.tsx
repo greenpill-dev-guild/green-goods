@@ -103,7 +103,8 @@ vi.mock("../../../hooks/blockchain/useTransactionSender", () => ({
   useTransactionSender: () => mocks.sender,
 }));
 
-vi.mock("../../../hooks/commitment-pooling/useCommitmentJobs", () => ({
+vi.mock("../../../hooks/commitment-pooling/useCommitmentJobs", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../../../hooks/commitment-pooling/useCommitmentJobs")>()),
   retryQueuedCommitmentJob: mocks.retryQueuedCommitmentJob,
 }));
 
@@ -431,7 +432,8 @@ describe("usePoolConsoleController", () => {
 
     expect(mocks.poolMutate.mock.calls.map(([input]) => input)).toEqual([
       { action: "pausePool", poolId: POOL_ID, reason: "Maintenance", gardenAddress: GARDEN },
-      { action: "resumePool", poolId: POOL_ID },
+      // Resume follows its own send, so the status card can say where it stands.
+      { action: "resumePool", poolId: POOL_ID, send: { onBroadcast: expect.any(Function) } },
       { action: "closePool", poolId: POOL_ID },
       { action: "compostPool", poolId: POOL_ID },
       { action: "reopenPool", poolId: POOL_ID, toOpen: false },
@@ -482,7 +484,15 @@ describe("usePoolConsoleController", () => {
       await result.current.acts.discardQueued("job-2");
     });
 
-    expect(mocks.retryQueuedCommitmentJob).toHaveBeenCalledWith("job-1", mocks.sender);
+    // Each send reports how it ended, and the row it came from reads it:
+    // the second one failed, and no other row carries a line.
+    expect(mocks.retryQueuedCommitmentJob).toHaveBeenCalledWith(
+      "job-1",
+      mocks.sender,
+      expect.any(Function)
+    );
+    expect(result.current.queuedPhase("job-1")).toEqual({ status: "failed", key: "job-1" });
+    expect(result.current.queuedPhase("job-2")).toEqual({ status: "idle" });
     expect(mocks.reportError).toHaveBeenCalledTimes(1);
     expect(mocks.discardJob).toHaveBeenCalledWith("job-2");
     expect(refresh).toHaveBeenCalledTimes(3);

@@ -17,7 +17,11 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import type { PoolConsoleController } from "./controller.types";
 import { jobQueue } from "../../../modules/job-queue/default-instance";
 import { selectPoolConsoleModel } from "../../../modules/commitment-pooling/pool-console";
-import { actPhaseFor, claimActKey } from "../../../modules/transactions/act-phase";
+import {
+  actPhaseFor,
+  claimActKey,
+  RESUME_POOL_ACT_KEY,
+} from "../../../modules/transactions/act-phase";
 import { selectNextDueBoundary } from "../../../modules/commitment-pooling/steward-selectors";
 import type { Address } from "../../../types/domain";
 import { createMutationErrorHandler } from "../../../utils/errors/mutation-error-handler";
@@ -25,7 +29,10 @@ import { useOnlineStatus } from "../../app/useOnlineStatus";
 import { usePrimaryAddress } from "../../auth/usePrimaryAddress";
 import { useTransactionSender } from "../../blockchain/useTransactionSender";
 import { useCommitmentCycleNames } from "../../commitment-pooling/useCommitmentCycleNames";
-import { retryQueuedCommitmentJob } from "../../commitment-pooling/useCommitmentJobs";
+import {
+  retryQueuedCommitmentJob,
+  toActPhaseReport,
+} from "../../commitment-pooling/useCommitmentJobs";
 import { useCommitmentMetadata } from "../../commitment-pooling/useCommitmentMetadata";
 import { useCommitmentMutation } from "../../commitment-pooling/useCommitmentMutations";
 import {
@@ -150,6 +157,12 @@ export function usePoolConsoleController(input: {
   // Accept is one signature from a list row: the row follows it to the chain.
   const claimAct = useTxActPhase();
   const trackClaim = claimAct.track;
+  // Resume and a queued row's send are single signatures too: each says where
+  // it stands on the card it started from.
+  const poolAct = useTxActPhase();
+  const trackPool = poolAct.track;
+  const queuedAct = useTxActPhase();
+  const trackQueued = queuedAct.trackReported;
   const sender = useTransactionSender();
   const refreshQueue = queue.refresh;
 
@@ -167,7 +180,13 @@ export function usePoolConsoleController(input: {
           reason,
           gardenAddress: garden,
         }),
-      resume: () => poolMutation.mutateAsync({ action: "resumePool", poolId: requirePool() }),
+      resume: () => {
+        // Refused before the line starts: an act with no pool never asks the wallet.
+        const poolId = requirePool();
+        return trackPool(RESUME_POOL_ACT_KEY, (send) =>
+          poolMutation.mutateAsync({ action: "resumePool", poolId, send })
+        );
+      },
       closePool: () => poolMutation.mutateAsync({ action: "closePool", poolId: requirePool() }),
       compostPool: () => poolMutation.mutateAsync({ action: "compostPool", poolId: requirePool() }),
       reopenPool: (toOpen: boolean) =>
@@ -196,7 +215,9 @@ export function usePoolConsoleController(input: {
       // changes what it says.
       retryQueued: async (jobId: string) => {
         try {
-          await retryQueuedCommitmentJob(jobId, sender);
+          await trackQueued(jobId, (report) =>
+            retryQueuedCommitmentJob(jobId, sender, toActPhaseReport(report))
+          );
         } catch (error) {
           reportQueuedSendError(error, { gardenAddress: garden, metadata: { act: "retryQueued" } });
         } finally {
@@ -219,7 +240,17 @@ export function usePoolConsoleController(input: {
         }
       },
     }),
-    [poolMutation, commitmentMutation, trackClaim, requirePool, garden, sender, refreshQueue]
+    [
+      poolMutation,
+      commitmentMutation,
+      trackClaim,
+      trackPool,
+      trackQueued,
+      requirePool,
+      garden,
+      sender,
+      refreshQueue,
+    ]
   );
 
   const refetch = useCallback(
@@ -263,6 +294,8 @@ export function usePoolConsoleController(input: {
     acts,
     claimPhase: (commitmentId: bigint, claimant: Address) =>
       actPhaseFor(claimAct.phase, claimActKey(commitmentId, claimant)),
+    resumePhase: actPhaseFor(poolAct.phase, RESUME_POOL_ACT_KEY),
+    queuedPhase: (jobId: string) => actPhaseFor(queuedAct.phase, jobId),
     isActing: poolMutation.isPending || commitmentMutation.isPending,
     isLoading,
     isError,

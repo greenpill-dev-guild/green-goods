@@ -96,6 +96,10 @@ export interface PoolConsoleController {
   acts: PoolConsoleActs;
   /** Where an Accept started from this claimant's row stands. */
   claimPhase: (commitmentId: bigint, claimant: Address) => TxActPhase;
+  /** Where Resume Pool stands. */
+  resumePhase: TxActPhase;
+  /** Where the send started from this queued row stands. */
+  queuedPhase: (jobId: string) => TxActPhase;
   isActing: boolean;
   isLoading: boolean;
   isError: boolean;
@@ -200,6 +204,8 @@ export interface CommitmentDialogController {
   acts: CommitmentDialogActs;
   /** Where an Accept started from this claimant's row stands. */
   claimPhase: (claimant: Address) => TxActPhase;
+  /** Where Send for Confirmation stands. */
+  sendPhase: TxActPhase;
   isActing: boolean;
   isLoading: boolean;
   isError: boolean;

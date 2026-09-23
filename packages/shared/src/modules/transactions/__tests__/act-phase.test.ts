@@ -58,6 +58,18 @@ describe("actPhaseReducer", () => {
       to: failed,
     },
     {
+      case: "a job-queue send kept on this device ends queued, not failed",
+      from: signing,
+      event: { type: "queued", key: "a" },
+      to: { status: "queued", key: "a" },
+    },
+    {
+      case: "a queued line stays queued",
+      from: { status: "queued", key: "a" },
+      event: { type: "confirmed", key: "a" },
+      to: { status: "queued", key: "a" },
+    },
+    {
       case: "a newer act replaces a running one",
       from: confirming,
       event: { type: "start", key: "b" },

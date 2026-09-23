@@ -15,6 +15,7 @@
  */
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import type { Hex } from "viem";
 
 import { commitmentPoolingKeys } from "../../config/query-keys/commitment-pooling";
 import { logger } from "../../modules/app/logger";
@@ -26,6 +27,7 @@ import type {
   WorkLinkJobPayload,
 } from "../../modules/commitment-pooling/jobs";
 import type { JobSendPhase, ProcessJobResult } from "../../modules/job-queue/ports";
+import type { ActPhaseReport } from "../../modules/transactions/act-phase";
 import type { TransactionSender } from "../../modules/transactions/types";
 import type { Address } from "../../types/domain";
 import { createMutationErrorHandler } from "../../utils/errors/mutation-error-handler";
@@ -127,6 +129,18 @@ export type CommitmentJobVariables = CommitmentJobInput & {
 const SEND_FAILED = "The commitment could not be sent";
 
 /**
+ * A send's reports, fed to a view's act-phase line: broadcast when the chain
+ * has the transaction, then either landed or left queued on this device.
+ */
+export function toActPhaseReport(report: ActPhaseReport): (event: CommitmentSendReport) => void {
+  return (event) => {
+    if (event.stage === "confirming") report({ type: "broadcast", hash: event.txHash as Hex });
+    else if (event.stage === "landed") report({ type: "confirmed" });
+    else if (event.stage === "queued") report({ type: "queued" });
+  };
+}
+
+/**
  * Tell the view how a send ended. The telling can never change the ending: a
  * report that throws is logged, and an act that landed still resolves.
  */
@@ -212,16 +226,26 @@ async function sendFromTap(
  * the person's own tap.
  *
  * Unlike a first tap, a failure here keeps the job: the row it came from still
- * offers Try Again and Discard, and there is no open form to fall back on.
+ * offers its send act and Discard, and there is no open form to fall back on.
+ * The report says how the send ended, as it does for a first tap.
  */
 export async function retryQueuedCommitmentJob(
   jobId: string,
-  sender: TransactionSender | null
+  sender: TransactionSender | null,
+  report?: (event: CommitmentSendReport) => void
 ): Promise<void> {
   if (!sender) throw new Error("Sign in before sending a commitment");
   await jobQueue.retryJob(jobId);
-  const result = await sendAndSettle(jobId, sender);
-  if (!result.success && !result.skipped) throw new Error(result.error ?? SEND_FAILED);
+  const result = await sendAndSettle(jobId, sender, report);
+  if (result.success) {
+    tell(report, { stage: "landed", txHash: result.txHash ?? null });
+    return;
+  }
+  if (result.skipped) {
+    tell(report, { stage: "queued" });
+    return;
+  }
+  throw new Error(result.error ?? SEND_FAILED);
 }
 
 export function useCommitmentJobs(options: { chainId?: number } = {}) {

@@ -177,6 +177,29 @@ describe("useCommitmentPoolMutation", () => {
     expect(mocks.sender.sendContractCall).toHaveBeenCalledTimes(actions.length);
   });
 
+  it("hands the wallet an act's own send callbacks, and none when it brings none", async () => {
+    const queryClient = createTestQueryClient();
+    vi.spyOn(queryClient, "invalidateQueries").mockResolvedValue();
+    const { result } = renderHookWithProviders(
+      () => useCommitmentPoolMutation({ chainId: 42161 }),
+      { queryClient }
+    );
+    const send = { onBroadcast: vi.fn(async () => undefined) };
+
+    await act(async () => {
+      await result.current.mutateAsync({ action: "resumePool", poolId: 7n, send });
+    });
+    expect(mocks.sender.sendContractCall).toHaveBeenLastCalledWith(
+      expect.objectContaining({ functionName: "resumePool", args: [7n] }),
+      send
+    );
+
+    await act(async () => {
+      await result.current.mutateAsync({ action: "resumePool", poolId: 7n });
+    });
+    expect(mocks.sender.sendContractCall.mock.lastCall).toHaveLength(1);
+  });
+
   it("invalidates the chain prefix plus the pool or cycle that changed", async () => {
     const queryClient = createTestQueryClient();
     const invalidate = vi.spyOn(queryClient, "invalidateQueries").mockResolvedValue();
