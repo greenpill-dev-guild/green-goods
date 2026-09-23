@@ -8,27 +8,35 @@ import { installPressHaptics, resetHapticsState, setHapticsEnabled } from "../..
 const LIGHT = [10];
 const SELECTION = [5];
 
+type ClickListener = (event: Pick<Event, "isTrusted" | "target">) => void;
+
 describe("installPressHaptics", () => {
   const vibrate = vi.fn();
+  // jsdom cannot make the trusted click a finger makes, and the listener ignores
+  // untrusted ones on purpose, so a stub root hands the test the listener itself.
+  const root = { addEventListener: vi.fn(), removeEventListener: vi.fn() };
   let uninstall: () => void;
+  let onClick: ClickListener;
 
   beforeEach(() => {
     localStorage.clear();
     resetHapticsState();
     vibrate.mockClear();
+    root.addEventListener.mockClear();
+    root.removeEventListener.mockClear();
     Object.defineProperty(navigator, "vibrate", { value: vibrate, configurable: true });
-    uninstall = installPressHaptics();
+    uninstall = installPressHaptics(root as unknown as Document);
+    onClick = root.addEventListener.mock.calls[0][1] as ClickListener;
   });
 
   afterEach(() => {
-    uninstall();
     document.body.innerHTML = "";
   });
 
-  /** Presses the `#target` element of the markup and returns what vibrated. */
-  const press = (markup: string) => {
+  /** Clicks the `#target` element of the markup and returns what vibrated. */
+  const press = (markup: string, isTrusted = true) => {
     document.body.innerHTML = markup;
-    document.getElementById("target")?.click();
+    onClick({ isTrusted, target: document.getElementById("target") });
     return vibrate.mock.calls;
   };
 
@@ -80,15 +88,21 @@ describe("installPressHaptics", () => {
     expect(press(markup)).toEqual([]);
   });
 
+  it("stays quiet for a click the app makes itself, such as a download link's", () => {
+    expect(press(`<a href="#file" download id="target">photo.jpg</a>`, false)).toEqual([]);
+  });
+
   it("stays quiet once the person turns vibration off", () => {
     setHapticsEnabled(false);
 
     expect(press(`<button id="target">Save</button>`)).toEqual([]);
   });
 
-  it("stops answering once it is removed", () => {
+  it("listens in the capture phase, so a control that stops propagation still answers, until removed", () => {
+    expect(root.addEventListener).toHaveBeenCalledWith("click", onClick, true);
+
     uninstall();
 
-    expect(press(`<button id="target">Save</button>`)).toEqual([]);
+    expect(root.removeEventListener).toHaveBeenCalledWith("click", onClick, true);
   });
 });

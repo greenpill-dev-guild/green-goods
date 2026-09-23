@@ -11,6 +11,11 @@ vi.mock("../../components/Communication/PwaUpdateNotifier", () => ({
   PwaUpdateNotifier: () => null,
 }));
 
+const pressHaptics = vi.hoisted(() => ({ install: vi.fn(), uninstall: vi.fn() }));
+vi.mock("@green-goods/shared/utils/app/haptics", () => ({
+  installPressHaptics: pressHaptics.install,
+}));
+
 vi.mock("../../routes/WalletRuntimeProviders", () => ({
   default: ({ children }: { children: ReactNode }) => {
     void children;
@@ -41,17 +46,14 @@ describe("PwaRuntime", () => {
   });
 
   it("answers presses before the sign-in providers load, and stops when it unmounts", () => {
-    const vibrate = vi.fn();
-    Object.defineProperty(navigator, "vibrate", { value: vibrate, configurable: true });
-    const press = document.body.appendChild(document.createElement("button"));
+    pressHaptics.install.mockClear().mockReturnValue(pressHaptics.uninstall);
+    pressHaptics.uninstall.mockClear();
 
     const { unmount } = renderRuntime();
-    press.click();
-    unmount();
-    press.click();
+    expect(pressHaptics.install).toHaveBeenCalledTimes(1);
+    expect(pressHaptics.uninstall).not.toHaveBeenCalled();
 
-    expect(vibrate.mock.calls).toEqual([[10]]);
-    press.remove();
-    Reflect.deleteProperty(navigator, "vibrate");
+    unmount();
+    expect(pressHaptics.uninstall).toHaveBeenCalledTimes(1);
   });
 });

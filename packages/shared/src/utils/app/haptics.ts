@@ -195,17 +195,19 @@ const PRESS_CONTROLS = [
  * selection tap, and buttons, links, cards, rows, and the rest with the light
  * tap. The rule reads what the markup already says (a button, a link, a
  * `data-pressable`), so a new control answers without asking and never calls
- * a haptic itself. Text fields, dropdowns, backdrops, and disabled controls
- * stay silent. A surface opts in by installing this (the installed PWA does;
- * the admin cockpit and the public website stay silent). Returns the function
- * that removes it.
+ * a haptic itself. Text fields, dropdowns, backdrops, disabled controls, and
+ * clicks the app makes itself stay silent. A surface opts in by installing
+ * this (the installed PWA does; the admin cockpit and the public website stay
+ * silent). Returns the function that removes it.
  *
  * Outcome haptics (success, error, warning) stay with the code that knows the
  * outcome.
  */
 export function installPressHaptics(root: Document = document): () => void {
   const handleClick = (event: Event) => {
-    if (!(event.target instanceof Element)) return;
+    // Only a finger's press counts. A click the app makes itself (a download
+    // link's `link.click()`, once per file) follows a press that already answered.
+    if (!event.isTrusted || !(event.target instanceof Element)) return;
     const control = event.target.closest(`${SELECTION_CONTROLS}, ${PRESS_CONTROLS}`);
     if (!control || control.matches(':disabled, [aria-disabled="true"]')) return;
     if (control.matches(SELECTION_CONTROLS)) hapticSelection();
