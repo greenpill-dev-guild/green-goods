@@ -21,14 +21,15 @@ keywords:
 
 # EAS (Attestation Service)
 
-The [Ethereum Attestation Service](https://docs.attest.org/docs/welcome) is the record layer of
-Green Goods. Every protocol claim that matters (work submitted, work approved, an assessment
-authored) is an EAS attestation, and that's a deliberate choice: attestations are portable, signed,
-inspectable records that outlive any app Green Goods ships.
+The [Ethereum Attestation Service](https://docs.attest.org/docs/welcome) is where Green Goods
+records its claims about work. Work submitted, work approved, and an assessment authored are all
+EAS attestations, and that's a deliberate choice: attestations are portable, signed, inspectable
+records that outlive any app Green Goods ships. (Commitments are the exception; they live in their
+own contracts.)
 
 What makes the integration more than "we write attestations" is the resolver pattern. Each Green
 Goods schema is bound to a resolver contract that validates authorization at write time, so an
-approval signed by someone without a steward hat cannot be recorded at all. Meaning is enforced,
+approval signed by someone without steward authority cannot be recorded at all. Meaning is enforced,
 not implied.
 
 ## The records
