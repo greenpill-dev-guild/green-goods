@@ -117,12 +117,12 @@ describe("ProtocolFundingOperationsCard", () => {
     expect(screen.getByDisplayValue("Aiyeloja")).toBeInTheDocument();
     expect(screen.getByText("Protocol Safe").parentElement).toHaveTextContent("4,120 G$");
     expect(screen.getByText("0xa237…cc37")).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "Review seed or top-up…" }));
+    fireEvent.click(screen.getByRole("button", { name: "Review Seed or Top-Up…" }));
     const dialog = await screen.findByRole("alertdialog");
     expect(within(dialog).getByText(/Queue 2 G\$.*Aiyeloja/)).toBeInTheDocument();
     // The review is in stewards' words: no enum names (A6).
     expect(dialog).not.toHaveTextContent(/ProtocolToGarden|no commitment ID/);
-    fireEvent.click(within(dialog).getByRole("button", { name: "Queue seed or top-up" }));
+    fireEvent.click(within(dialog).getByRole("button", { name: "Queue Seed or Top-Up" }));
 
     await waitFor(() => expect(queueFunding).toHaveBeenCalledWith(AIYELOJA, 2n * G));
     await waitFor(() =>
@@ -202,7 +202,7 @@ describe("ProtocolFundingOperationsCard", () => {
     expect(within(row).queryByRole("button", { name: "Cancel…" })).not.toBeInTheDocument();
 
     fireEvent.click(within(row).getByRole("button", { name: "Dispatch…" }));
-    const review = await screen.findByRole("alertdialog", { name: "Review before sending" });
+    const review = await screen.findByRole("alertdialog", { name: "Review Before Sending" });
     expect(review).toHaveTextContent(/Dispatch disbursement #10 for 2 G\$ to Aiyeloja/);
     expect(dispatch).not.toHaveBeenCalled();
 

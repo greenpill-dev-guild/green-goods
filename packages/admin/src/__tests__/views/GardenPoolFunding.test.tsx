@@ -103,7 +103,7 @@ function FundingDetailsHarness() {
 describe("PoolFundingSection", () => {
   it("shows the canonical Safe, balance, committed amount, available amount, and readiness", () => {
     renderSection();
-    expect(screen.getByRole("heading", { name: "Pool funding" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Pool Funding" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /0x1111…1111/i })).toHaveAttribute(
       "href",
       expect.stringContaining(`/address/${SAFE}`)
@@ -191,7 +191,7 @@ describe("PoolFundingSection", () => {
   it("uses the same component for Protocol context and adds only the treasury note", () => {
     renderSection(fundingView(), true);
     expect(screen.getByText(/upstream treasury inflow is not recorded/i)).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Pool funding" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Pool Funding" })).toBeInTheDocument();
   });
 
   it("shares one manual refresh and announces only its completion", async () => {
@@ -206,7 +206,7 @@ describe("PoolFundingSection", () => {
     renderWithProviders(<FundingDetailsHarness />);
     const trigger = screen.getByRole("button", { name: "View Funding Details" });
     fireEvent.click(trigger);
-    const dialog = screen.getByRole("dialog", { name: "Pool funding details" });
+    const dialog = screen.getByRole("dialog", { name: "Pool Funding Details" });
     fireEvent.keyDown(dialog, { key: "Escape" });
     await waitFor(() => expect(trigger).toHaveFocus());
   });
@@ -222,9 +222,9 @@ describe("PoolFundingDialog", () => {
         tone="garden"
       />
     );
-    const dialog = screen.getByRole("dialog", { name: "Pool funding details" });
-    expect(within(dialog).getByText("Balance composition")).toBeInTheDocument();
-    const network = within(dialog).getByRole("heading", { name: "Network fees" }).parentElement!;
+    const dialog = screen.getByRole("dialog", { name: "Pool Funding Details" });
+    expect(within(dialog).getByText("Balance Composition")).toBeInTheDocument();
+    const network = within(dialog).getByRole("heading", { name: "Network Fees" }).parentElement!;
     expect(within(network).getByText(/5 CELO/)).toBeInTheDocument();
     expect(within(network).getByText(/not G\$ pool liquidity/i)).toBeInTheDocument();
   });

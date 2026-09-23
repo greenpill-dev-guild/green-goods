@@ -148,7 +148,7 @@ export function SetupStepOpen({
     cycle ? cycleLabel : `${cycleLabel} · ${startDate} – ${endDate}`,
   ]);
   summaryRows.push([
-    formatMessage({ id: "cockpit.garden.pool.setup.step.split", defaultMessage: "The split" }),
+    formatMessage({ id: "cockpit.garden.pool.setup.step.split", defaultMessage: "The Split" }),
     `${formatMessage({ id: "cockpit.garden.pool.split.gardeners", defaultMessage: "Gardeners" })} ${allocation.gardeners} · ${formatMessage({ id: "cockpit.garden.pool.split.treasury", defaultMessage: "Treasury" })} ${allocation.treasury} · ${formatMessage({ id: "cockpit.garden.pool.split.steward", defaultMessage: "Steward" })} ${allocation.steward} · ${formatMessage({ id: "cockpit.garden.pool.split.evaluator", defaultMessage: "Evaluator" })} ${allocation.evaluator} · ${formatMessage({ id: "cockpit.garden.pool.split.community", defaultMessage: "Community" })} ${allocation.community} · ${formatMessage({ id: "cockpit.garden.pool.split.funder", defaultMessage: "Funder" })} ${allocation.funder}`,
   ]);
   summaryRows.push([
@@ -178,7 +178,7 @@ export function SetupStepOpen({
       return formatMessage(
         {
           id: "cockpit.garden.pool.setup.live.stopped",
-          defaultMessage: "Stopped with {done} of {total} writes done.",
+          defaultMessage: "Stopped with {done} of {total} changes done.",
         },
         { done: doneCount, total: rows.length }
       );
@@ -210,7 +210,7 @@ export function SetupStepOpen({
             {formatMessage({
               id: "cockpit.garden.pool.setup.promptBatched",
               defaultMessage:
-                "Writes with the same number are approved together, in one transaction.",
+                "Changes with the same number are approved together, in one transaction.",
             })}
           </p>
         ) : null}
@@ -241,7 +241,7 @@ export function SetupStepOpen({
                 ? formatMessage({
                     id: "cockpit.garden.pool.setup.openNoteGuard",
                     defaultMessage:
-                      "The pool is set up and opens with this season: two ordered writes, the pool first, then the season with its split.",
+                      "The pool is set up and opens with this season: two changes in order, the pool first, then the season with its split.",
                   })
                 : formatMessage({
                     id: "cockpit.garden.pool.setup.openNoteSeason",
@@ -255,7 +255,7 @@ export function SetupStepOpen({
           {formatMessage({
             id: "cockpit.garden.pool.setup.keepOpen",
             defaultMessage:
-              "Keep this open until every write is done. If you leave, what is done stays done, and you can finish from the pool tab.",
+              "Keep this open until every change is done. If you leave, what is done stays done, and you can finish from the pool tab.",
           })}
         </p>
       ) : null}

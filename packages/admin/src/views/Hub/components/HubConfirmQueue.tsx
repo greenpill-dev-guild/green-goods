@@ -293,7 +293,7 @@ export function HubConfirmQueue({
         }
         title={formatMessage({
           id: "cockpit.hub.confirm.notYet.title",
-          defaultMessage: "Not yet: raise a dispute",
+          defaultMessage: "Not Yet: Raise a Dispute",
         })}
         description={formatMessage({
           id: "cockpit.hub.confirm.notYet.description",

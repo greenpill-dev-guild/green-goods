@@ -59,7 +59,7 @@ export const ReviewBeforeDispatch: Story = {
   },
   play: async ({ canvasElement }) => {
     await userEvent.click(within(canvasElement).getByRole("button", { name: "Dispatch…" }));
-    const review = await screen.findByRole("alertdialog", { name: "Review before sending" });
+    const review = await screen.findByRole("alertdialog", { name: "Review Before Sending" });
     await expect(review).toHaveTextContent(/to Aiyeloja/);
   },
 };

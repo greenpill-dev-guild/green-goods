@@ -80,7 +80,7 @@ export function ProtocolFundingOperationsCard({
           <h3 className="label-md text-text-strong">
             {formatMessage({
               id: "cockpit.community.protocolFunding.title",
-              defaultMessage: "Protocol funding",
+              defaultMessage: "Protocol Funding",
             })}
           </h3>
           <p className="mt-1 max-w-2xl text-xs text-text-soft">
@@ -100,7 +100,7 @@ export function ProtocolFundingOperationsCard({
         >
           {formatMessage({
             id: "cockpit.community.protocolFunding.refresh",
-            defaultMessage: "Refresh funding",
+            defaultMessage: "Refresh Funding",
           })}
         </AdminButton>
       </div>
@@ -214,7 +214,7 @@ export function ProtocolFundingOperationsCard({
             >
               {formatMessage({
                 id: "cockpit.community.protocolFunding.review",
-                defaultMessage: "Review seed or top-up…",
+                defaultMessage: "Review Seed or Top-Up…",
               })}
             </AdminButton>
           </div>
@@ -272,7 +272,7 @@ export function ProtocolFundingOperationsCard({
         variant="warning"
         title={formatMessage({
           id: "cockpit.community.protocolFunding.confirm.title",
-          defaultMessage: "Queue protocol funding?",
+          defaultMessage: "Queue Protocol Funding?",
         })}
         description={formatMessage(
           {
@@ -287,7 +287,7 @@ export function ProtocolFundingOperationsCard({
         )}
         confirmLabel={formatMessage({
           id: "cockpit.community.protocolFunding.confirm.action",
-          defaultMessage: "Queue seed or top-up",
+          defaultMessage: "Queue Seed or Top-Up",
         })}
         cancelLabel={formatMessage({ id: "app.common.cancel", defaultMessage: "Cancel" })}
         confirmDisabled={!targetGarden || !amountValue || !operations.canQueueFunding}
@@ -328,7 +328,7 @@ export function ProtocolFundingOperationsCard({
         variant="danger"
         title={formatMessage({
           id: "cockpit.community.protocolFunding.cancel.title",
-          defaultMessage: "Cancel this funding transfer?",
+          defaultMessage: "Cancel This Funding Transfer?",
         })}
         description={formatMessage({
           id: "cockpit.community.protocolFunding.cancel.body",
@@ -337,7 +337,7 @@ export function ProtocolFundingOperationsCard({
         })}
         confirmLabel={formatMessage({
           id: "cockpit.community.protocolFunding.cancel.action",
-          defaultMessage: "Cancel transfer",
+          defaultMessage: "Cancel Transfer",
         })}
         isLoading={operations.isActing}
         onConfirm={async (reason) => {

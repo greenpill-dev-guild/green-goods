@@ -88,15 +88,9 @@ export function PoolStatusCard({
           <h3 className="label-md text-text-strong">
             {formatMessage({
               id: "cockpit.garden.pool.status.title",
-              defaultMessage: "Pool status",
+              defaultMessage: "Pool Status",
             })}
           </h3>
-          <p className="mt-1 text-xs text-text-soft">
-            {formatMessage({
-              id: "cockpit.garden.pool.status.description",
-              defaultMessage: "The container your seasons and campaigns run in.",
-            })}
-          </p>
         </div>
         <div className="flex flex-wrap items-center justify-end gap-1.5">
           {/* The protocol pool is managed from its garden like any pool; the
@@ -207,7 +201,7 @@ export function PoolStatusCard({
           {formatMessage({
             id: "cockpit.garden.pool.setup.note",
             defaultMessage:
-              "Setting up writes how this pool works and opens its first season, in four short steps. Your wallet will ask up to six times, fewer when it can take several writes at once.",
+              "Setting up writes how this pool works and opens its first season, in four short steps. Your wallet will ask up to six times, fewer when it can take several changes at once.",
           })}
         </p>
       ) : null}
@@ -329,7 +323,7 @@ export function PoolStatusCard({
           >
             {formatMessage({
               id: "cockpit.garden.pool.act.closePool",
-              defaultMessage: "Close pool…",
+              defaultMessage: "Close Pool…",
             })}
           </AdminButton>
         </div>
@@ -354,7 +348,7 @@ export function PoolStatusCard({
             >
               {formatMessage({
                 id: "cockpit.garden.pool.act.compostPool",
-                defaultMessage: "Archive pool…",
+                defaultMessage: "Archive Pool…",
               })}
             </AdminButton>
           </div>
@@ -380,7 +374,7 @@ export function PoolStatusCard({
             >
               {formatMessage({
                 id: "cockpit.garden.pool.act.reopenPool",
-                defaultMessage: "Reopen pool…",
+                defaultMessage: "Reopen Pool…",
               })}
             </AdminButton>
           </div>

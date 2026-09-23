@@ -79,7 +79,7 @@ export function CommitmentActions({
           >
             {formatMessage({
               id: "cockpit.garden.pool.commitment.act.raiseDispute",
-              defaultMessage: "Raise dispute…",
+              defaultMessage: "Raise Dispute…",
             })}
           </AdminButton>
         ) : null}
@@ -108,11 +108,11 @@ export function CommitmentActions({
             {fallbackPath === "PROTOCOL_FALLBACK"
               ? formatMessage({
                   id: "cockpit.garden.pool.commitment.act.confirmProtocol",
-                  defaultMessage: "Confirm for Green Goods team…",
+                  defaultMessage: "Confirm for Green Goods Team…",
                 })
               : formatMessage({
                   id: "cockpit.garden.pool.commitment.act.confirmGarden",
-                  defaultMessage: "Confirm as garden fallback…",
+                  defaultMessage: "Confirm as Garden Fallback…",
                 })}
           </AdminButton>
         ) : null}
@@ -170,7 +170,7 @@ export function CommitmentActions({
           >
             {formatMessage({
               id: "cockpit.garden.pool.row.act.expire",
-              defaultMessage: "Expire now…",
+              defaultMessage: "Expire Now…",
             })}
           </AdminButton>
         </div>

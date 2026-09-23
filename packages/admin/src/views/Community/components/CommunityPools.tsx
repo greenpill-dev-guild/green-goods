@@ -240,13 +240,13 @@ function ProtocolOperations({
           className="space-y-2"
           aria-label={formatMessage({
             id: "cockpit.community.pools.confirmations",
-            defaultMessage: "Protocol confirmations",
+            defaultMessage: "Protocol Confirmations",
           })}
         >
           <h3 className="label-md text-text-strong">
             {formatMessage({
               id: "cockpit.community.pools.confirmations",
-              defaultMessage: "Protocol confirmations",
+              defaultMessage: "Protocol Confirmations",
             })}
           </h3>
           <p className="text-xs text-text-soft">

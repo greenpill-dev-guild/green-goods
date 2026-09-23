@@ -79,7 +79,7 @@ export function CommitmentSettlementDisbursements({
           >
             {formatMessage({
               id: "cockpit.garden.pool.settlement.act.retry",
-              defaultMessage: "Retry Command…",
+              defaultMessage: "Resend…",
             })}
           </AdminButton>
         ) : null}

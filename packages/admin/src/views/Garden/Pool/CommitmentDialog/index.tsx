@@ -283,7 +283,7 @@ function CommitmentRecord({
         variant="warning"
         title={formatMessage({
           id: "cockpit.garden.pool.commitment.reconciliation.title",
-          defaultMessage: "Count approved linked work",
+          defaultMessage: "Count Approved Linked Work",
         })}
         description={`${formatMessage(
           {
@@ -299,7 +299,7 @@ function CommitmentRecord({
         })}`}
         confirmLabel={formatMessage({
           id: "cockpit.garden.pool.commitment.reconciliation.confirm",
-          defaultMessage: "Count linked work",
+          defaultMessage: "Count Linked Work",
         })}
         cancelLabel={formatMessage({ id: "app.common.cancel", defaultMessage: "Cancel" })}
         isLoading={dialog.isActing}

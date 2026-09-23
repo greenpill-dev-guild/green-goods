@@ -100,7 +100,7 @@ export const ReaderView: Story = {
   decorators: decorators(OPEN_SEEDS),
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    await expect(await canvas.findByText("Pool funding")).toBeVisible();
+    await expect(await canvas.findByText("Pool Funding")).toBeVisible();
     await expect(canvas.queryByRole("button", { name: "Seed Commitment" })).toBeNull();
   },
 };

@@ -128,7 +128,7 @@ export function CommitmentReasonDialogs({
         target={target}
         title={formatMessage({
           id: "cockpit.garden.pool.commitment.dispute.title",
-          defaultMessage: "Raise a dispute",
+          defaultMessage: "Raise a Dispute",
         })}
         description={formatMessage({
           id: "cockpit.garden.pool.commitment.dispute.description",

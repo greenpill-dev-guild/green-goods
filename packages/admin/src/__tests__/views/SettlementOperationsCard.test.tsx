@@ -117,7 +117,7 @@ describe("SettlementOperationsCard", () => {
     expect(screen.getByText(/Awaiting Safe execution/)).toBeInTheDocument();
     expect(screen.getByTestId("gardener-delivery-state")).toHaveTextContent("Off");
     expect(screen.getByRole("button", { name: "Enable Gardener Delivery…" })).toBeDisabled();
-    fireEvent.click(screen.getByRole("button", { name: "Check on chain" }));
+    fireEvent.click(screen.getByRole("button", { name: "Check on Chain" }));
     expect(checkDeliveryStatus).toHaveBeenCalledTimes(1);
   });
 
@@ -145,7 +145,7 @@ describe("SettlementOperationsCard", () => {
     expect(screen.getByTestId("gardener-delivery-status")).toHaveTextContent(
       "Confirmed on chain: gardener delivery is on."
     );
-    expect(screen.queryByRole("button", { name: "Check on chain" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Check on Chain" })).not.toBeInTheDocument();
   });
 
   it("reports a rejected transaction without changing the switch", () => {

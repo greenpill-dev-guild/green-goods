@@ -174,7 +174,7 @@ describe("CommitmentSettlement", () => {
     expect(stepStatus("dispatch")).toBe("done");
     expect(stepStatus("acknowledgement")).toBe("current");
     expect(screen.getByText("Awaiting acknowledgement")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Retry Command…" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Resend…" })).toBeEnabled();
     second.unmount();
 
     const complete = commitmentSettlementControllerFixture({

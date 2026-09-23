@@ -197,7 +197,7 @@ export function SeedStepReview({
       {section(
         formatMessage({
           id: "cockpit.garden.pool.seed.step.howMuch",
-          defaultMessage: "How much",
+          defaultMessage: "How Much",
         }),
         [
           [
@@ -252,7 +252,7 @@ export function SeedStepReview({
       {section(
         formatMessage({
           id: "cockpit.garden.pool.seed.step.proof",
-          defaultMessage: "Proof & confirmation",
+          defaultMessage: "Proof & Confirmation",
         }),
         [
           [

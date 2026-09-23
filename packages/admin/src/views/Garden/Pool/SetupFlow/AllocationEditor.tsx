@@ -1,5 +1,4 @@
 import {
-  ALLOCATION_BPS_TOTAL,
   type CommitmentAllocationBps,
   type CommitmentRecognitionPolicyBps,
   isValidCycleSplit,
@@ -105,8 +104,8 @@ export interface AllocationEditorProps {
 
 /**
  * The six-role split and the within-gardeners recognition policy, in percent
- * with a "stored on-chain as basis points" helper (uiux-spec §6.10). Presets
- * prefill the editor; every field stays editable. The sum must equal 100 %
+ * (uiux-spec §6.10; the chain stores basis points). Presets prefill the
+ * editor; every field stays editable. The sum must equal 100 %
  * (the contract's InvalidAllocation guard) and a treasury share under the
  * 15 % guidance floor warns without blocking. The step opens by saying the
  * split is fixed once the cycle opens (the CycleOpened snapshot is immutable),
@@ -322,15 +321,6 @@ export function AllocationEditor({
             })}
           </p>
         ) : null}
-        <p className="text-text-soft">
-          {formatMessage(
-            {
-              id: "cockpit.garden.pool.split.bpsHelper",
-              defaultMessage: "Stored on-chain as basis points (×100): {total} in all.",
-            },
-            { total: ALLOCATION_BPS_TOTAL }
-          )}
-        </p>
       </div>
 
       <div className="space-y-2 border-t border-[rgb(var(--m3-outline-variant))] pt-3">

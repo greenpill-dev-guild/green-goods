@@ -74,7 +74,7 @@ export function ProtocolFundingRows({
       <h4 id="protocol-funding-rows-title" className="label-md text-text-strong">
         {formatMessage({
           id: "cockpit.community.protocolFunding.rows",
-          defaultMessage: "Protocol-to-garden transfers",
+          defaultMessage: "Protocol-to-Garden Transfers",
         })}
       </h4>
       {operations.rows.length === 0 ? (
@@ -152,7 +152,7 @@ export function ProtocolFundingRows({
                     >
                       {formatMessage({
                         id: "cockpit.community.protocolFunding.retry",
-                        defaultMessage: "Retry Command…",
+                        defaultMessage: "Resend…",
                       })}
                     </AdminButton>
                   ) : null}

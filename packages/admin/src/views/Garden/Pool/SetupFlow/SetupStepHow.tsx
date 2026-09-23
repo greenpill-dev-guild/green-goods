@@ -55,13 +55,6 @@ export function SetupStepHow({
         disabled={disabled}
         required
       />
-      <p className="text-xs text-text-soft">
-        {formatMessage({
-          id: "cockpit.garden.pool.setup.baselineNote",
-          defaultMessage:
-            "A starting assessment from the Hub helps the season's report later; nothing here waits on it.",
-        })}
-      </p>
     </div>
   );
 }

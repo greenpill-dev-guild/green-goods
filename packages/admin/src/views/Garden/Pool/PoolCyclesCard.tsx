@@ -232,7 +232,7 @@ export function PoolCyclesCard({
               >
                 {formatMessage({
                   id: "cockpit.garden.pool.cycle.act.cancelSeason",
-                  defaultMessage: "Cancel season…",
+                  defaultMessage: "Cancel Season…",
                 })}
               </AdminButton>
             ) : null}

@@ -40,7 +40,7 @@ type Story = StoryObj<typeof TransferReviewDialog>;
 /** A protocol transfer, named by the garden that receives it. */
 export const Dispatch: Story = {
   play: async () => {
-    const review = await screen.findByRole("alertdialog", { name: "Review before sending" });
+    const review = await screen.findByRole("alertdialog", { name: "Review Before Sending" });
     await expect(review).toHaveTextContent(/Dispatch disbursement #40 for 2 G\$ to Aiyeloja/);
   },
 };

@@ -216,7 +216,7 @@ export function PoolSettingsDialog({
         preventClose={busy}
         title={formatMessage({
           id: "cockpit.garden.pool.settings.title",
-          defaultMessage: "Pool settings",
+          defaultMessage: "Pool Settings",
         })}
         target={<PoolTarget target={target} />}
         bodyClassName="space-y-4"

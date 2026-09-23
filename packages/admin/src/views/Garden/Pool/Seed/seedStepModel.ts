@@ -166,7 +166,7 @@ export function buildSeedStepConfigs(formatMessage: FormatMessage): ActionFlowSt
       id: "howMuch",
       title: formatMessage({
         id: "cockpit.garden.pool.seed.step.howMuch",
-        defaultMessage: "How much",
+        defaultMessage: "How Much",
       }),
       description: formatMessage({
         id: "cockpit.garden.pool.seed.step.howMuchHint",
@@ -177,7 +177,7 @@ export function buildSeedStepConfigs(formatMessage: FormatMessage): ActionFlowSt
       id: "proof",
       title: formatMessage({
         id: "cockpit.garden.pool.seed.step.proof",
-        defaultMessage: "Proof & confirmation",
+        defaultMessage: "Proof & Confirmation",
       }),
       description: formatMessage({
         id: "cockpit.garden.pool.seed.step.proofHint",

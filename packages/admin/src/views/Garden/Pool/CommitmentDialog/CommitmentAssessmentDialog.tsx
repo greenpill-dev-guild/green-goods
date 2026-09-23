@@ -52,7 +52,7 @@ export function CommitmentAssessmentDialog({
       target={target}
       title={formatMessage({
         id: "cockpit.garden.pool.commitment.attach.title",
-        defaultMessage: "Attach an assessment",
+        defaultMessage: "Attach an Assessment",
       })}
       description={formatMessage({
         id: "cockpit.garden.pool.commitment.attach.description",

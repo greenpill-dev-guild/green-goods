@@ -74,7 +74,7 @@ export function SettlementOperationsCard({
         <h3 className="label-md text-text-strong">
           {formatMessage({
             id: "cockpit.community.settlementOps.title",
-            defaultMessage: "Settlement operations",
+            defaultMessage: "Settlement Operations",
           })}
         </h3>
         <p className="mt-1 text-xs text-text-soft">
@@ -215,7 +215,7 @@ export function SettlementOperationsCard({
         >
           {formatMessage({
             id: "cockpit.community.settlementOps.status.check",
-            defaultMessage: "Check on chain",
+            defaultMessage: "Check on Chain",
           })}
         </AdminButton>
       ) : null}
@@ -229,11 +229,11 @@ export function SettlementOperationsCard({
           confirming
             ? formatMessage({
                 id: "cockpit.community.settlementOps.delivery.confirmTitle",
-                defaultMessage: "Enable gardener delivery?",
+                defaultMessage: "Enable Gardener Delivery?",
               })
             : formatMessage({
                 id: "cockpit.community.settlementOps.delivery.confirmDisableTitle",
-                defaultMessage: "Disable gardener delivery?",
+                defaultMessage: "Disable Gardener Delivery?",
               })
         }
         description={

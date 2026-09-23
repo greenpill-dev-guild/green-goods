@@ -75,7 +75,7 @@ export function TransferReviewDialog({
       variant="warning"
       title={formatMessage({
         id: "cockpit.garden.pool.settlement.review.title",
-        defaultMessage: "Review before sending",
+        defaultMessage: "Review Before Sending",
       })}
       description={body()}
       confirmLabel={formatMessage({

@@ -68,7 +68,7 @@ export function PoolFundingSection({
           <h4 id="pool-funding-title" className="label-md text-text-strong">
             {formatMessage({
               id: "cockpit.garden.pool.funding.title",
-              defaultMessage: "Pool funding",
+              defaultMessage: "Pool Funding",
             })}
           </h4>
           <p className="mt-1 text-xs text-text-soft">

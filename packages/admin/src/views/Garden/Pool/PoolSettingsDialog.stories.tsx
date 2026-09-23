@@ -45,7 +45,7 @@ export const Default: Story = { args: { console: storyPoolConsole() } };
 export const BothChanged: Story = {
   args: { console: storyPoolConsole() },
   play: async () => {
-    const dialog = await screen.findByRole("dialog", { name: "Pool settings" });
+    const dialog = await screen.findByRole("dialog", { name: "Pool Settings" });
     const purpose = await screen.findByLabelText(/what this pool is for/i);
     await userEvent.clear(purpose);
     await userEvent.type(purpose, "Keep the tool library lending all year.");

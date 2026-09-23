@@ -420,7 +420,7 @@ export function PoolCommitmentsCard({
                     >
                       {formatMessage({
                         id: "cockpit.garden.pool.row.act.expire",
-                        defaultMessage: "Expire now…",
+                        defaultMessage: "Expire Now…",
                       })}
                     </AdminButton>
                   ) : null}

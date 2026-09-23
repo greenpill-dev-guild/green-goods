@@ -137,7 +137,7 @@ export function runningStatus(
   }
   return formatMessage({
     id: "cockpit.garden.pool.setup.live.checking",
-    defaultMessage: "Reading the chain before the next write…",
+    defaultMessage: "Reading the chain before the next change…",
   });
 }
 
