@@ -3,11 +3,11 @@ import { queryKeys } from "@green-goods/shared/config/query-keys/registry";
 import type { Meta, StoryObj } from "@storybook/react";
 import type { QueryKey } from "@tanstack/react-query";
 import type { ComponentType } from "react";
-import { createMemoryRouter, RouterProvider } from "react-router-dom";
 import { expect, within } from "storybook/test";
 import { STORYBOOK_ADMIN_SHELL_SEEDS } from "../../../../../shared/.storybook/adminFixtures";
 import {
   withAdminIdentity,
+  withDataRouter,
   withSeededQueryClient,
 } from "../../../../../shared/.storybook/decorators";
 import { GardenPoolTab } from "./index";
@@ -42,22 +42,11 @@ function decorators(seeds: ReadonlyArray<readonly [QueryKey, unknown]>) {
     withAdminIdentity,
     withSeededQueryClient(seeds),
     (Story: ComponentType) => (
-      <RouterProvider
-        router={createMemoryRouter(
-          [
-            {
-              path: "/garden/pool",
-              element: (
-                <div className="p-4" data-tone="garden">
-                  <Story />
-                </div>
-              ),
-            },
-          ],
-          { initialEntries: ["/garden/pool"] }
-        )}
-      />
+      <div className="p-4" data-tone="garden">
+        <Story />
+      </div>
     ),
+    withDataRouter("/garden/pool"),
   ];
 }
 

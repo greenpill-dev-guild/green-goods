@@ -2,11 +2,11 @@ import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
 import { queryKeys } from "@green-goods/shared/config/query-keys/registry";
 import type { Meta, StoryObj } from "@storybook/react";
 import type { QueryKey } from "@tanstack/react-query";
-import { createMemoryRouter, RouterProvider } from "react-router-dom";
 import { expect, within } from "storybook/test";
 import { STORYBOOK_ADMIN_SHELL_SEEDS } from "../../../../../../shared/.storybook/adminFixtures";
 import {
   withAdminIdentity,
+  withDataRouter,
   withSeededQueryClient,
 } from "../../../../../../shared/.storybook/decorators";
 import { POOL_STORY_SEEDS, STORY_GARDEN, storyPool } from "../poolStoryFixtures";
@@ -47,13 +47,7 @@ const meta: Meta<typeof SeedCommitmentDialog> = {
   decorators: [
     withAdminIdentity,
     withSeededQueryClient(SEED_STORY_SEEDS),
-    (Story) => (
-      <RouterProvider
-        router={createMemoryRouter([{ path: "/garden/pool/seed", element: <Story /> }], {
-          initialEntries: ["/garden/pool/seed"],
-        })}
-      />
-    ),
+    withDataRouter("/garden/pool/seed"),
   ],
 };
 

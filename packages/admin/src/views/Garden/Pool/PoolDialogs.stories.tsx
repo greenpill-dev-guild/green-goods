@@ -1,8 +1,8 @@
 import type { Meta, StoryObj } from "@storybook/react";
-import { createMemoryRouter, RouterProvider } from "react-router-dom";
 import { STORYBOOK_ADMIN_SHELL_SEEDS } from "../../../../../shared/.storybook/adminFixtures";
 import {
   withAdminIdentity,
+  withDataRouter,
   withSeededQueryClient,
 } from "../../../../../shared/.storybook/decorators";
 import { PoolDialogs } from "./PoolDialogs";
@@ -41,22 +41,11 @@ const meta: Meta<typeof PoolDialogs> = {
     withAdminIdentity,
     withSeededQueryClient(STORYBOOK_ADMIN_SHELL_SEEDS),
     (Story) => (
-      <RouterProvider
-        router={createMemoryRouter(
-          [
-            {
-              path: "/garden/pool",
-              element: (
-                <div className="p-4" data-tone="garden">
-                  <Story />
-                </div>
-              ),
-            },
-          ],
-          { initialEntries: ["/garden/pool"] }
-        )}
-      />
+      <div className="p-4" data-tone="garden">
+        <Story />
+      </div>
     ),
+    withDataRouter("/garden/pool"),
   ],
 };
 

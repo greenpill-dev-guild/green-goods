@@ -1,9 +1,9 @@
 import type { Meta, StoryObj } from "@storybook/react";
-import { createMemoryRouter, RouterProvider } from "react-router-dom";
 import { expect, userEvent, waitFor, within } from "storybook/test";
 import { STORYBOOK_ADMIN_SHELL_SEEDS } from "../../../../../../shared/.storybook/adminFixtures";
 import {
   withAdminIdentity,
+  withDataRouter,
   withSeededQueryClient,
 } from "../../../../../../shared/.storybook/decorators";
 import { storyCycle, storyNotReadyPool, storyPool, storyPoolConsole } from "../poolStoryFixtures";
@@ -31,13 +31,7 @@ const meta: Meta<typeof PoolSetupFlow> = {
     withAdminIdentity,
     withSeededQueryClient(STORYBOOK_ADMIN_SHELL_SEEDS),
     // useDirtyClose blocks route changes through a data router.
-    (Story) => (
-      <RouterProvider
-        router={createMemoryRouter([{ path: "/garden/pool", element: <Story /> }], {
-          initialEntries: ["/garden/pool"],
-        })}
-      />
-    ),
+    withDataRouter("/garden/pool"),
   ],
 };
 
