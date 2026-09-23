@@ -9029,7 +9029,7 @@
       "steps": [
         "Follow each stage of the Anatomy page against the shipped client, admin, and contracts",
         "Open the schema and code links on the page",
-        "Check the persona surfaces matrix against the three surfaces"
+        "Check the persona surfaces matrix against the five surfaces it names: admin, client, agent, public, and docs"
       ],
       "expected": "Each stage matches the current flow and names current screens, every schema and code link resolves, and the matrix assigns each persona to the surfaces that ship; drift is listed per stage",
       "evidence": "List of drifted statements or dead links with the page path",

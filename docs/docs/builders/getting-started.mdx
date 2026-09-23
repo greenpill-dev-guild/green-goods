@@ -5,7 +5,7 @@ sidebar_position: 1
 slug: /builders/getting-started
 audience: developer
 owner: docs
-last_verified: 2026-09-22
+last_verified: 2026-09-23
 feature_status: Live
 goal: "Run Green Goods locally and see the app working before you change anything."
 difficulty: "standard"
@@ -87,20 +87,24 @@ confirm is a real production transaction, so don't confirm one while you're expl
    bun run dev -- prod
    ```
 
-5. **Checkpoint**: open the surfaces.
+5. **Checkpoint**: open the surfaces. The launcher prints these same links when it starts.
 
    | Surface | URL |
    |---|---|
-   | Client (public site + PWA) | [localhost:3001](http://localhost:3001) |
-   | Admin (steward cockpit) | [localhost:3002](http://localhost:3002) |
-   | Docs (this site) | [localhost:3003](http://localhost:3003) |
-   | Storybook | [localhost:3004](http://localhost:3004) |
+   | Client (public site + PWA) | [https://localhost:3001](https://localhost:3001) |
+   | Admin (steward cockpit) | [https://localhost:3002](https://localhost:3002) |
+   | Docs (this site) | [http://localhost:3003](http://localhost:3003) |
+   | Storybook | [http://localhost:3004](http://localhost:3004) |
+
+   The client and admin run over HTTPS with a local certificate from
+   [mkcert](https://github.com/FiloSottile/mkcert). The first time, you may be asked for your
+   password so your machine can trust that certificate.
 
    To see the installed-app experience without connecting a wallet, open
-   [localhost:3001/?mockAuth=steward&presentation=pwa](http://localhost:3001/?mockAuth=steward&presentation=pwa).
+   [https://localhost:3001/?mockAuth=steward&presentation=pwa](https://localhost:3001/?mockAuth=steward&presentation=pwa).
    Mock auth signs you in as a test steward, in the PWA presentation. It works only on localhost,
    and it never signs a transaction. The same `?mockAuth=steward` opens the admin at
-   [localhost:3002/?mockAuth=steward](http://localhost:3002/?mockAuth=steward).
+   [https://localhost:3002/?mockAuth=steward](https://localhost:3002/?mockAuth=steward).
 
 6. Confirm the services respond. The smoke check submits no transactions:
 
@@ -162,8 +166,9 @@ Each mode takes the same name in all three commands, for example `bun run dev --
 
 - **`full`** adds this docs site and Storybook to the default stack.
 - **`fork`** swaps live Arbitrum for a local [Anvil](https://getfoundry.sh/anvil/overview) fork on
-  port 3009, for contract work you want off the live chain. Restarting Anvil resets its state, the
-  indexer still reads live networks, and passkeys don't work there.
+  port 3009, for contract work you want off the live chain. The local indexer still reads live
+  Arbitrum, so it won't show what you do on the fork. Restarting Anvil resets the fork, and
+  passkeys don't work there.
 - **Service names** start a narrower set: `bun run dev -- client admin` starts just those two,
   without the agent or indexer behind them.
 

@@ -4,7 +4,7 @@ sidebar_label: Tokenbound Accounts
 slug: /builders/integrations/tokenbound
 audience: developer
 owner: docs
-last_verified: 2026-09-02
+last_verified: 2026-09-23
 feature_status: Live
 source_of_truth:
   - packages/contracts/src/accounts/Garden.sol
@@ -22,7 +22,9 @@ keywords:
 garden is more than a database row: each garden is an ERC-721 token whose bound account is the
 garden on-chain. That account holds the treasury, wears the [Hats](./hats) role tree, and receives
 the garden's [attestations](./eas). Transfer the token and you've transferred the garden, assets
-and history included; no app of ours has to exist for a garden to keep being real.
+and history included, as long as transfers are open: the GardenToken contract can limit them to
+the protocol's admin or lock them entirely (`transferRestriction`). Either way, no app of ours has
+to exist for a garden to keep being real.
 
 ## Where it lives in the code
 

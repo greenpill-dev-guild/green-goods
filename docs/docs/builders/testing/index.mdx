@@ -4,7 +4,7 @@ sidebar_label: Testing Guide
 slug: /builders/testing
 audience: developer
 owner: docs
-last_verified: 2026-09-22
+last_verified: 2026-09-23
 feature_status: Live
 source_of_truth:
   - CONTRIBUTING.md
@@ -60,7 +60,7 @@ copy any single line on its own.
 | Shared | `bun run --cwd packages/shared test` and `bun run --cwd packages/shared typecheck` | `bun run --cwd packages/shared check:stories` when UI foundations move |
 | Client | `bun run --cwd packages/client test` | `bun run --cwd packages/client build` when routes, rendering, or PWA packaging change |
 | Admin | `bun run --cwd packages/admin test` | `bun run --cwd packages/admin test --coverage` for the fuller pass |
-| Contracts | `bun run --cwd packages/contracts test --suite solidity --profile match test/<file>.t.sol` for one behavior | `bun run --cwd packages/contracts test` for the package, `bun run --cwd packages/contracts test:audit full` for the audit suite |
+| Contracts | `bun run --cwd packages/contracts test --suite solidity --profile match test/E2EWorkflow.t.sol` for one behavior (swap in your test file) | `bun run --cwd packages/contracts test` for the package, `bun run --cwd packages/contracts test:audit full` for the audit suite |
 | Indexer | `bun run --cwd packages/indexer check:indexing-boundary` and `bun run --cwd packages/indexer test` | `bun run --cwd packages/indexer codegen` first after schema or config changes, then `bun run --cwd packages/indexer build` |
 | Agent | `bun run --cwd packages/agent test` and `bun run --cwd packages/agent typecheck` | Both, whenever a response shape changes |
 
@@ -78,7 +78,7 @@ presets.
 ## Manual QA
 
 - Tour authenticated client surfaces without a wallet:
-  [localhost:3001/?mockAuth=steward&presentation=pwa](http://localhost:3001/?mockAuth=steward&presentation=pwa)
+  [https://localhost:3001/?mockAuth=steward&presentation=pwa](https://localhost:3001/?mockAuth=steward&presentation=pwa)
   from [Getting Started](/builders/getting-started).
 - Check shared UI in Storybook, locally on port 3004 or live at
   [design.greengoods.app](https://design.greengoods.app), including dark mode and viewport
@@ -97,10 +97,11 @@ presets.
 CI Gate aggregates every workflow your change triggers; the
 [GitHub Actions page](/builders/quality/gh-actions) is the generated inventory of them. The local
 equivalent of the gate is exactly what the pre-push hook runs. You can invoke it yourself, naming
-the test that proves your change:
+the test that proves your change. This example uses a client test; swap in your own package and
+test file:
 
 ```bash
-bun run check -- --intent push --reuse-passing-receipts --test-path <package>:<test file>
+bun run check -- --intent push --reuse-passing-receipts --test-path client:src/__tests__/bootFallback.test.tsx
 ```
 
 If a CI check fails that didn't run locally, the selector chose differently under CI conditions;

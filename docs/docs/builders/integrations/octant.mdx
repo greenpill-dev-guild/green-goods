@@ -4,7 +4,7 @@ sidebar_label: Octant
 slug: /builders/integrations/octant
 audience: developer
 owner: docs
-last_verified: 2026-09-02
+last_verified: 2026-09-23
 feature_status: Live
 source_of_truth:
   - packages/shared/src/ontology/green-goods-ontology.json
@@ -21,8 +21,9 @@ import {IntegrationProjection} from "@site/src/components/docs";
 # Octant
 
 [Octant](https://docs.octant.app) provides the vault mechanics that let a garden hold an
-endowment: funders deposit into a garden vault, the principal stays theirs to withdraw, and the
-yield flows to the garden's work. The Octant module owns vault creation, deposits, withdrawals,
+endowment. Funders deposit into a garden vault and keep a claim on what they put in, while the
+yield it earns flows to the garden's work. The deposit sits in a yield strategy, so like any
+on-chain investment, a strategy loss or a contract bug could reduce what can be withdrawn. The Octant module owns vault creation, deposits, withdrawals,
 and that yield-donation routing.
 
 ## Where it lives in the code

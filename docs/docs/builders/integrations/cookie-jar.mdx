@@ -4,7 +4,7 @@ sidebar_label: Cookie Jar
 slug: /builders/integrations/cookie-jar
 audience: developer
 owner: docs
-last_verified: 2026-09-02
+last_verified: 2026-09-23
 feature_status: Live
 source_of_truth:
   - packages/shared/src/ontology/green-goods-ontology.json
@@ -20,21 +20,27 @@ import {IntegrationProjection} from "@site/src/components/docs";
 
 # Cookie Jar
 
-Cookie Jars are Green Goods' own distribution primitive: a garden-linked jar that lets a
-community hand out small, capped allowances without a proposal process for every withdrawal.
-Where vaults hold an endowment, a jar holds spending money; it's the difference between a
-treasury and a kitchen tin everyone trusts each other to dip into.
+Cookie Jars let a garden's community hand out small, capped allowances without a proposal for
+every withdrawal. Where vaults hold an endowment, a jar holds spending money; it's the difference
+between a treasury and a kitchen tin everyone trusts each other to dip into.
+
+The jars come from [1Hive's Cookie Jar](https://github.com/1Hive/cookie-jar) protocol. When a
+garden is minted, the Green Goods Cookie Jar module deploys one jar per supported asset through
+1Hive's `CookieJarFactory`. Only people wearing the garden's gardener [hat](./hats) can claim;
+hats are ERC-1155 tokens, so the jar checks them directly. Each asset also has its own per-claim
+limit.
 
 ## Where it lives in the code
 
 | Layer | Source |
 |---|---|
-| Module and factory | `packages/contracts/src/modules/CookieJar.sol` |
+| Module | `packages/contracts/src/modules/CookieJar.sol` |
+| Factory interface | `packages/contracts/src/interfaces/ICookieJarFactory.sol` |
 | Data access | `packages/shared/src/modules/data/campaign-cookie-jars.ts` |
 | Hooks | `packages/shared/src/hooks/cookie-jar` |
 
-Unlike the other integrations, this one is native: there is no external protocol to link, and the
-contract source above is the whole story.
+The jars themselves are 1Hive's contracts. The module above is the Green Goods side that creates
+and configures them.
 
 <IntegrationProjection id="cookie-jar" />
 
@@ -46,6 +52,8 @@ without real funds.
 
 ## Go deeper
 
+- [1Hive Cookie Jar](https://github.com/1Hive/cookie-jar) is the upstream protocol behind every
+  jar.
 - [`CookieJar.sol`](https://github.com/greenpill-dev-guild/green-goods/blob/develop/packages/contracts/src/modules/CookieJar.sol)
-  is the contract itself.
+  is the Green Goods module that creates them.
 - The public [Cookies surface](https://greengoods.app/cookies) shows jars in the product.

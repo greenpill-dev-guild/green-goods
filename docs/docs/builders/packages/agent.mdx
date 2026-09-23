@@ -4,7 +4,7 @@ sidebar_label: Agent
 slug: /builders/packages/agent
 audience: developer
 owner: docs
-last_verified: 2026-09-02
+last_verified: 2026-09-23
 feature_status: Live
 source_of_truth:
   - packages/agent/AGENTS.md
@@ -43,8 +43,10 @@ security-sensitive changes.
 
 ## How it connects
 
-The agent consumes shared hooks and data modules like the other apps, and it's the one surface
-that manages wallets on behalf of users, so its security posture is stricter than the rest.
+The agent is a server, so it doesn't use shared's React hooks. It imports shared's plain modules
+instead: the public API contracts, types, chain config, and a few protocol helpers. It's also the
+one surface that manages wallets on behalf of users, so its security posture is stricter than the
+rest.
 
 ## Conventions that will bite you
 

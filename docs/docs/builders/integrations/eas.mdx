@@ -4,7 +4,7 @@ sidebar_label: EAS
 slug: /builders/integrations/eas
 audience: developer
 owner: docs
-last_verified: 2026-09-02
+last_verified: 2026-09-23
 feature_status: Live
 source_of_truth:
   - packages/contracts/src/resolvers/Work.sol
@@ -49,9 +49,10 @@ stack, and the [Data Model](../architecture/data-model) shows how they relate.
 | Schema definitions | `packages/contracts/src/Schemas.sol` and `packages/contracts/config/schemas.json` |
 | Client-side encode, query, decode | `packages/shared/src/modules/data/eas.ts` |
 
-Schema UIDs and EAS endpoints are chain-specific. Read them from the deployment artifacts and
-schema configuration rather than copying them into code or prose; the
-[deployment status page](/builders/reference/deployments) is the checked-in record.
+Schema UIDs and EAS endpoints are different on every chain, so read them from their source
+instead of copying them into code or prose. Each chain's deployment artifact lists its schema UIDs
+under `schemas` (for Arbitrum One, `packages/contracts/deployments/42161-latest.json`), and the EAS
+GraphQL endpoints the apps query live in `packages/shared/src/config/blockchain.ts`.
 
 ## Working with it locally
 
