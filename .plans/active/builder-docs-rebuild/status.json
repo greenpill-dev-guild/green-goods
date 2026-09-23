@@ -16,7 +16,8 @@
     "brief": "brief.md",
     "spec": "spec.md",
     "plan": "plan.todo.md",
-    "eval": "eval.md"
+    "eval": "eval.md",
+    "blueprint": "artifacts/builder-docs-blueprint-rev3.html"
   },
   "linear": {
     "parentIssue": "PRD-862",

@@ -24,7 +24,9 @@ digest-gated, external links everywhere they teach, and the whole site agent-rea
 ## Blueprint
 
 The full research brief and page-by-page dispositions live in the review artifact
-("Builder Docs Rebuild", rev 2 — private link, decisions D1–D10 locked with Afo on 2026-09-02):
+("Builder Docs Rebuild", rev 3, decisions D1-D12 locked with Afo on 2026-09-02). A byte-for-byte
+copy is committed at `artifacts/builder-docs-blueprint-rev3.html`; `artifacts/README.md` lists the
+decisions made after rev 3. Original (private link):
 https://claude.ai/code/artifact/3f55d286-fca3-4d50-b032-d8e61001268a
 
 `spec.md` in this hub carries the durable subset: target IA, locked decisions, page templates,
