@@ -16,7 +16,15 @@ describe("useGardenDerivedState", () => {
   function renderDerivedState(
     domainMask: number | undefined,
     openSection = vi.fn(),
-    cookieJars: CookieJar[] = []
+    cookieJars: CookieJar[] = [],
+    canAccessCommunity = true,
+    allocations: Array<{
+      txHash: string;
+      timestamp: number;
+      cookieJarAmount: bigint;
+      fractionsAmount: bigint;
+      juiceboxAmount: bigint;
+    }> = []
   ) {
     const now = Date.now();
 
@@ -38,7 +46,7 @@ describe("useGardenDerivedState", () => {
         ],
         assessments: [],
         hypercerts: [],
-        allocations: [],
+        allocations,
         gardenVaults: [{}],
         vaultNetDeposited: 1n,
         roleMembers,
@@ -46,6 +54,7 @@ describe("useGardenDerivedState", () => {
         activityFilter: "all",
         memberSearch: "",
         section: undefined,
+        canAccessCommunity,
         cookieJars,
         formatMessage: ({ id }, values) => (values ? `${id} ${JSON.stringify(values)}` : id),
         openSection,
@@ -119,6 +128,34 @@ describe("useGardenDerivedState", () => {
       daiJar({ maxWithdrawal: 10n * 10n ** 18n }),
     ]);
     expect(raised.result.current.overviewAlerts).toEqual([]);
+  });
+
+  it("keeps community activity visible without unreachable links or alerts when Community is denied", () => {
+    const allocation = {
+      txHash: "0xallocation",
+      timestamp: Date.now(),
+      cookieJarAmount: 1n,
+      fractionsAmount: 0n,
+      juiceboxAmount: 0n,
+    };
+    const { result } = renderDerivedState(undefined, vi.fn(), [daiJar({})], false, [allocation]);
+
+    expect(result.current.overviewAlerts).toEqual([]);
+    expect(
+      result.current.activityEvents.find((event) => event.category === "community")
+    ).toMatchObject({
+      id: "allocation-0xallocation",
+      href: undefined,
+    });
+    expect(
+      result.current.activityEvents.find((event) => event.category === "work")?.href
+    ).toBeTruthy();
+
+    const permitted = renderDerivedState(undefined, vi.fn(), [daiJar({})], true, [allocation]);
+    expect(permitted.result.current.overviewAlerts).toHaveLength(1);
+    expect(
+      permitted.result.current.activityEvents.find((event) => event.category === "community")?.href
+    ).toContain("/community/payouts");
   });
 
   it("does not surface the domain recovery alert while domain state is unknown", () => {

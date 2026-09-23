@@ -76,6 +76,7 @@ interface DerivedStateInput {
   activityFilter: ActivityFilter;
   memberSearch: string;
   section: string | undefined;
+  canAccessCommunity?: boolean;
   formatMessage: (descriptor: { id: string }, values?: Record<string, any>) => string;
   openSection: (tab: GardenDetailTab, section: string, itemId?: string) => void;
 }
@@ -94,6 +95,7 @@ export function useGardenDerivedState({
   activityFilter,
   memberSearch,
   section,
+  canAccessCommunity = true,
   formatMessage,
   openSection,
 }: DerivedStateInput) {
@@ -221,14 +223,14 @@ export function useGardenDerivedState({
           onAction: () => openSection("impact", "reporting"),
         }
       : null,
-    treasurySeverity === "critical"
+    canAccessCommunity && treasurySeverity === "critical"
       ? {
           key: "treasury-critical",
           severity: "critical" as const,
           label: formatMessage({ id: "app.garden.detail.alert.treasuryEmpty" }),
           onAction: () => openSection("community", "endowment"),
         }
-      : treasurySeverity === "warn"
+      : canAccessCommunity && treasurySeverity === "warn"
         ? {
             key: "treasury-warning",
             severity: "warn" as const,
@@ -247,7 +249,7 @@ export function useGardenDerivedState({
     // Computed from the jar itself, so it clears once the limit is raised: nothing to dismiss
     // or store. Critical while the jar holds funds a gardener could be claiming a cent at a time.
     ...cookieJars
-      .filter((jar) => isJarClaimLimitLow(jar, garden.chainId || undefined))
+      .filter((jar) => canAccessCommunity && isJarClaimLimitLow(jar, garden.chainId || undefined))
       .map((jar) => {
         const asset = getVaultAssetSymbol(jar.assetAddress, garden.chainId || undefined);
         const funded = jar.balance > 0n;
@@ -338,7 +340,9 @@ export function useGardenDerivedState({
         }
       ),
       timestamp: toMs(allocation.timestamp),
-      href: adminRoutes.communityPayouts({ gardenId: gardenAddress, item: allocation.txHash }),
+      href: canAccessCommunity
+        ? adminRoutes.communityPayouts({ gardenId: gardenAddress, item: allocation.txHash })
+        : undefined,
       itemId: allocation.txHash,
     })),
   ].sort((a, b) => b.timestamp - a.timestamp);
