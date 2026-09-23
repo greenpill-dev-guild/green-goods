@@ -43,6 +43,8 @@ interface CompletedApproval {
   actionUID: number | string;
   gardenerAddress: Address;
   gardenId?: Address;
+  /** The reviewed work's photos, when the history could read the work. */
+  media?: string[];
   feedback?: string;
   createdAt: number;
   status: "approved" | "rejected" | "pending" | "syncing" | "failed";
@@ -82,7 +84,7 @@ export function approvalsToCompletedWorks(approvals: CompletedApproval[]): Work[
       gardenAddress: approval.gardenId ?? ZERO_ADDRESS,
       feedback: approval.feedback || "",
       metadata: "",
-      media: [],
+      media: approval.media ?? [],
       createdAt: approval.createdAt,
       status: approval.status as "approved" | "rejected" | "pending",
     }));
