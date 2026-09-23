@@ -23,7 +23,8 @@ const MARKER: Record<SeedRowStatus, TxStepMarkerState> = {
   wallet: "active",
   confirming: "active",
   created: "complete",
-  later: "warning",
+  // Not done, and not a failure: a cross here would read as one.
+  later: "queued",
   "not-sent": "failed",
 };
 

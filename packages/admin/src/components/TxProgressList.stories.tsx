@@ -112,7 +112,7 @@ export const Ended: Story = {
       {
         ...row("b", "Clinic rides", 2),
         status: "later",
-        marker: "warning",
+        marker: "queued",
         label: "Sends later",
         tone: "warning",
       },
