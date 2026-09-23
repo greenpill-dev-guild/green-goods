@@ -470,7 +470,7 @@ This section holds the finding index, the queue that fixes them, and each PR's r
 | W1-5 Settings through the setup sequence | A2, A15, A23 (settings) | Built |
 | W1-6 End a season | Decision 29, A29 | Built |
 | W1-7 Claims and protocol transfers | A9, A6, A11 (Accept), A20 (label), A23 (panel) | Built |
-| W1-8 Seed tray progress and the done screen | A7, A24 | Queued |
+| W1-8 Seed tray progress and the done screen | A7, A24 | Built |
 | W1-9 Catalog PR | The cases Wave 1 changes | Queued |
 | W2-1 to W2-5 | The remaining P2 and P3 findings, the title rollout, and a catalog pass | Wave 2 |
 
@@ -761,6 +761,59 @@ This section holds the finding index, the queue that fixes them, and each PR's r
   - `admin-community-protocolfundingoperationscard--review-before-dispatch`;
   - `admin-community-protocolfundingoperationspanel--registered-recipients`.
 - **Pending:** authenticated Brave proof of accepting a claim and dispatching a protocol transfer, walked in the rehearsal.
+
+### W1-8: seed tray progress and the done screen
+
+- **The pass** (A7, decisions 28 and 32): while a pass runs, the wizard lists every row with where it stands. One line above the list names the prompt the wallet is on: "Confirm in your wallet (2 of 3)", then "Confirming on Arbitrum One (2 of 3)".
+- **The done screen** (decision 28): the wizard stays open on how each row ended.
+  - A created row links to its transaction.
+  - A row that sends later waits on the pool tab with Send Now. Its marker is a clock, not the cross a failure shows.
+  - A row not sent has nothing created for it.
+
+  Done closes the wizard. When rows were not sent, Back to Review returns to them and Try Again sends them again under the ids they already had. Once every row is sent the steps stop opening, since seeding the same answers again would make a second commitment.
+- **The prompt count** sits beside the button that asks. It replaces the progress bar and the review step's two notes.
+- **Send reporting** (decision 32):
+  - `ProcessJobContext.onPhase` is optional and report-only. The queue calls it after the executor's own checkpoints and never stores or awaits it. A throw inside it is logged and ignored.
+  - `useCommitmentJobs` takes a `report` for each act. A report that throws cannot fail an act that landed.
+  - `seed-tray` follows the pass row by row.
+- **Certified seam:** the job-queue handle's `processJob` context gains the optional `onPhase`. The certified evidence is unchanged, and the new cases sit in `job-queue.send-phases.test.ts`. Folding them into that evidence would re-certify the seam, which is a `module-seams-review` act, so it is left for that review.
+- **One list:** `TxProgressList` is the setup's progress list, moved to `components/`, and `SetupProgressList` adapts it.
+- **A24:** a queued row says Send Now until a send has failed, and Try Again only after that.
+- **For W1-9:** ADM-125, ADM-126, ADM-127 (Send Now), ADM-129, ADM-131, ADM-132 and ADM-140, and a new case for the pass and the done screen.
+
+### Validation receipt, W1-8
+
+- **Tested implementation commit SHA:** `73ca254411f0f216f693f2ee3de5e15f2a0efa9a`.
+  - The gate is the pre-push hook on that commit.
+  - `git status --porcelain=v1 --untracked-files=all -- packages/` is empty at that SHA.
+- **Run finished (UTC):** `2026-09-23T07:05:34Z`.
+- **Command:** `bun run check -- --intent push` (the pre-push hook, `critical · 170 changed path(s)`).
+- **Result:** all 25 checks passed:
+  - format, lint, validation-system-test and test-quality;
+  - shared and agent typecheck;
+  - shared, client, admin and agent test-typecheck, test and build;
+  - source-structure, design-guardrails, ontology, agent-guidance, supply-chain and story-quality;
+  - storybook-build.
+- **Cache:** the shared tests (523 files, 5,606 passed) and the admin tests (117 files, 921 passed) ran in full. The client and agent tests were cache hits on the same gate's uncached run at `78d821bb0`, the commit before the marker fix. That run passed all 25 at `2026-09-23T06:58:51Z`.
+- **Also run at that SHA:**
+  - the shared send-phase, seed-tray and commitment-jobs suites, 5 files and 42 passed;
+  - the admin seed, pool-tab, setup-flow and settings suites, 4 files and 64 passed.
+- **Earlier in the work:**
+  - 147 shared files, 1,538 passed;
+  - shared, admin and client typecheck in the source scope, and shared and admin in the tests scope;
+  - design-tokens, source-structure, story-quality, react-patterns and the direct-tested seams check (4 certified seams, no drift).
+- **RED:** 14 mutations, each caught. Three are recorded through `record-tdd` on the `ui` lane:
+  - reporting before the executor's checkpoint failed 2 send-phase cases;
+  - reopening a row that ended failed 3 seed-tray cases;
+  - closing the wizard after a pass failed the seed flow.
+- **Story sweep:** 260 pool and progress stories, headless. None crash.
+- **Rendered proof (Storybook, headless Chromium):**
+  - `admin-pool-seedstepdone--sending-at-the-wallet` and `--sending-confirming`;
+  - `admin-pool-seedstepdone--mixed` and `--nothing-created`;
+  - `admin-pool-seedflowfooter--ready-to-create-several` and `--done-with-unsent`;
+  - `admin-pool-poolcommitmentscard--queued-needs-attention`;
+  - `admin-primitives-txstepmarker--all-states`.
+- **Pending:** authenticated Brave proof of seeding a tray of several in a real wallet, walked in the rehearsal.
 
 ## 5. Catalog PR
 
