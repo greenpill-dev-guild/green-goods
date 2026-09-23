@@ -4081,7 +4081,7 @@
   "cockpit.garden.pool.seed.confirmerAddress": "Adicionar um endereço",
   "cockpit.garden.pool.seed.confirmers": "Confirmadores",
   "cockpit.garden.pool.seed.confirmersDefaultOffer": "Ninguém nomeado: quem o aceitar confirma-o.",
-  "cockpit.garden.pool.seed.confirmersDefaultRequest": "Ninguém nomeado: o fundo comum, como requerente, confirma através dos seus responsáveis.",
+  "cockpit.garden.pool.seed.confirmersDefaultRequest": "Ninguém nomeado: confirmas tu, como quem o pede.",
   "cockpit.garden.pool.seed.confirmersNamed": "Um grupo nomeado. O contrato exclui o líder e todos os colaboradores.",
   "cockpit.garden.pool.seed.contributorPolicy": "Política de colaboradores",
   "cockpit.garden.pool.seed.cycle": "Ciclo",
