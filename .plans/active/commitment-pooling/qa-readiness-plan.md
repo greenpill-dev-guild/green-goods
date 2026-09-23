@@ -469,7 +469,7 @@ This section holds the finding index, the queue that fixes them, and each PR's r
 | W1-4 Hub scope and the Confirm Kept review | A1, A4, A5, A30, A25 (Hub), A19 (inspector) | Built |
 | W1-5 Settings through the setup sequence | A2, A15, A23 (settings) | Built |
 | W1-6 End a season | Decision 29, A29 | Built |
-| W1-7 Claims and protocol transfers | A9, A6, A11 (Accept), A20 (label), A23 (panel) | Queued |
+| W1-7 Claims and protocol transfers | A9, A6, A11 (Accept), A20 (label), A23 (panel) | Built |
 | W1-8 Seed tray progress and the done screen | A7, A24 | Queued |
 | W1-9 Catalog PR | The cases Wave 1 changes | Queued |
 | W2-1 to W2-5 | The remaining P2 and P3 findings, the title rollout, and a catalog pass | Wave 2 |
@@ -707,6 +707,60 @@ This section holds the finding index, the queue that fixes them, and each PR's r
   - `admin-pool-poolcyclescard--open-season-with-campaigns`, `--ready-to-end` and `--reconciled-season`;
   - `admin-pool-poolcycledialogs--end-season`, `--end-campaign` and `--archive-season`.
 - **Pending:** authenticated Brave proof of ending and archiving a season, walked in the rehearsal.
+
+### W1-7: claims and protocol transfers
+
+- **Accept** (A9, the A11 minimum, decision 31): it stays one click.
+  - The claimant is named: a garden by its name, a person by their resolved name. So are the requester and the inspector's roster.
+  - While the act runs, the row shows one line: confirm in your wallet, confirming on Arbitrum One, accepted, or failed.
+  - The row's acts stay closed until the index moves the request on.
+- **Phase tracking:** `actPhaseReducer` is keyed per row and ignores late events from a replaced act. `useTxActPhase` feeds it, and `useCommitmentMutation` takes the send callbacks per call.
+  - Both stay internal. The controllers expose `claimPhase`, so no new package export was needed.
+  - The pool mutation gets the same callbacks in W2-2, when Resume uses them.
+- **Transfers** (A6, decision 30):
+  - Rows name the receiving garden, from the indexed `Disbursement.garden`, which `queueFunding` sets to the receiver.
+  - The enum copy is gone.
+  - Dispatch, Retry and Requeue open `TransferReviewDialog`, extracted from the commitment disbursements with its wording.
+- **A20:** the delivery confirmation reads "Enable Gardener Delivery" or "Disable Gardener Delivery". Naming its reach and its read-back state is W2-2.
+- **A23:** the protocol-funding panel story runs as the deployer and renders.
+- **For W1-9:**
+  - claims: ADM-040 and ADM-065;
+  - transfers: ADM-045, ADM-088 and ADM-089;
+  - the delivery label: ADM-087.
+
+### Validation receipt, W1-7
+
+- **Tested implementation commit SHA:** `e39075e18824fdd4130e1ef137e9572ddef8ecef`.
+  - The gate is the pre-push hook on that commit, run uncached.
+  - `git status --porcelain=v1 --untracked-files=all -- packages/` is empty at that SHA.
+- **Run finished (UTC):** `2026-09-23T06:19:53Z`.
+- **Command:** `bun run check -- --intent push` (the pre-push hook, `critical · 154 changed path(s)`).
+- **Result:** all 25 checks passed:
+  - format, lint, validation-system-test and test-quality;
+  - shared, client, admin and agent typecheck, test-typecheck, test and build;
+  - source-structure, design-guardrails, ontology, agent-guidance, supply-chain and story-quality;
+  - storybook-build.
+- **Also run at that SHA:**
+  - the shared act-phase, console, hooks and funding-data suites, 82 passed;
+  - the admin claims, transfers, delivery, settlement and pool-tab suites, 45 passed.
+- **Before commit:**
+  - the full admin suite, 117 files and 920 passed;
+  - 20 affected shared files, 208 passed;
+  - shared and admin typecheck in the source and tests scopes;
+  - design-tokens, source-structure, story-quality, react-patterns and the direct-tested seams check.
+- **RED:** three mutations, each caught and recorded through `record-tdd` on the `ui` lane.
+  - Letting a replaced act's events move the line failed the table.
+  - Reopening a row while Accept runs failed 2 claim cases.
+  - Dispatching straight from the row failed the transfer flow.
+- **Story sweep:** 69 affected stories, headless. None crash.
+- **Rendered proof (Storybook, headless Chromium):**
+  - `admin-pool-poolclaimscard--accepting`;
+  - `admin-pool-commitmentclaims--accepted-awaiting-index`;
+  - `admin-pool-claimantname--garden`;
+  - `admin-community-protocolfundingrows--queued`;
+  - `admin-community-protocolfundingoperationscard--review-before-dispatch`;
+  - `admin-community-protocolfundingoperationspanel--registered-recipients`.
+- **Pending:** authenticated Brave proof of accepting a claim and dispatching a protocol transfer, walked in the rehearsal.
 
 ## 5. Catalog PR
 

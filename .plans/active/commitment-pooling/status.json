@@ -10,7 +10,7 @@
     "overall_status": "active",
     "priority": "p1",
     "created_at": "2026-07-03",
-    "updated_at": "2026-09-23T05:46:13.802Z"
+    "updated_at": "2026-09-23T06:20:35.940Z"
   },
   "links": {
     "brief": "external-brief.md",
@@ -260,12 +260,12 @@
         "mode": "required",
         "status": "green_recorded",
         "red": {
-          "command": "packages/shared: bun run test -- commitment-pool-console; packages/admin: bun run test -- PoolCycles (End offered while commitments are live); packages/admin: bun run test -- PoolCycles (Archive sends closeCycle)",
-          "evidence": "1 failed | 13 passed and 1 failed | 3 passed: End only once nothing is live; 1 failed | 3 passed: Archive composts (W1-6, decision 29, A29)"
+          "command": "packages/shared: bun run test -- act-phase (a replaced act's events move the line); packages/admin: bun run test -- CommitmentClaims (row reopens while Accept runs); packages/admin: bun run test -- ProtocolFundingOperationsCard (Dispatch sends from the row)",
+          "evidence": "1 failed | 11 passed; 2 failed | 2 passed; 1 failed | 4 passed: keyed act phases, Accept held closed until the index moves (decision 31), transfer review before dispatch (decision 30)"
         },
         "green": {
-          "command": "packages/shared: bun run test -- commitment-pool-console; packages/admin: bun run test -- PoolCycles, PoolDialogs, GardenPool, PoolSetupFlow suites",
-          "evidence": "shared 1 file, 14 passed; admin 4 files, 46 passed at b681c850b: End on a season and a campaign, the live count holds a cycle open, Archive warns then composts, both name the cycle in its pool"
+          "command": "packages/shared: bun run test -- act-phase, usePoolConsoleController, commitment-pooling-hooks, pool-funding-data; packages/admin: bun run test -- CommitmentClaims, ProtocolFundingOperationsCard, SettlementOperationsCard, CommitmentSettlement, GardenPool suites",
+          "evidence": "shared 4 files, 82 passed; admin 5 files, 45 passed at e39075e18: named claimants, Accept's line on its row, transfers name their garden and open the review, delivery labelled by its act"
         },
         "note": ""
       },
@@ -1369,6 +1369,14 @@
     },
     {
       "timestamp": "2026-09-23T05:46:13.803Z",
+      "actor": "human",
+      "lane": "ui",
+      "status": "tdd_recorded",
+      "branch": "feature/commitment-pooling-client-loop",
+      "note": "Recorded RED/GREEN TDD proof"
+    },
+    {
+      "timestamp": "2026-09-23T06:20:35.940Z",
       "actor": "human",
       "lane": "ui",
       "status": "tdd_recorded",
