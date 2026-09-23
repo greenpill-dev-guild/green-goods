@@ -27,6 +27,7 @@ import { CommitmentResolveDialog } from "./CommitmentResolveDialog";
 import { CommitmentSettlementSection, showsSettlement } from "./CommitmentSettlement";
 import { CommitmentSummary } from "./CommitmentSummary";
 import { CommitmentTimeline } from "./CommitmentTimeline";
+import { ConfirmKeptDialog } from "./ConfirmKeptDialog";
 import {
   type OpenDialog,
   parseCommitmentRouteId,
@@ -213,6 +214,19 @@ function CommitmentRecord({
           await acts.expire();
           closeDialog();
         }}
+      />
+      <ConfirmKeptDialog
+        open={open === "confirm-kept"}
+        onClose={closeDialog}
+        onConfirm={() => acts.confirmOrdinary()}
+        tone={tone}
+        chainId={chainId}
+        poolGarden={garden}
+        title={title}
+        keptBy={commitment.leadProvider ?? commitment.creator ?? null}
+        confirmationCount={commitment.confirmationCount ?? 0}
+        confirmationThreshold={commitment.confirmationThreshold ?? 1}
+        isLoading={dialog.isActing}
       />
       <CommitmentResolveDialog
         open={open}

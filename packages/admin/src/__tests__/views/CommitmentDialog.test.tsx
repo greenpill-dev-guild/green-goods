@@ -447,6 +447,44 @@ describe("CommitmentDialogPanel (W10)", () => {
     ).toBeInTheDocument();
   });
 
+  it("confirms a record as kept only from the review the Hub shares, naming the record, its pool and who kept it", async () => {
+    mocks.controller = controller({
+      commitment: {
+        onchainState: "READY_FOR_CONFIRMATION",
+        state: "READY_FOR_CONFIRMATION",
+        derivedState: "READY_FOR_CONFIRMATION",
+        confirmationThreshold: 2,
+        confirmationCount: 0,
+      },
+      can: can({ confirmOrdinary: true }),
+    });
+    renderPanel();
+    fireEvent.click(screen.getByRole("button", { name: /^confirm kept…$/i }));
+    const acts = mocks.controller!.acts;
+    expect(acts.confirmOrdinary).not.toHaveBeenCalled();
+    const review = screen.getByRole("dialog", { name: /confirm this commitment kept/i });
+    expect(review).toHaveTextContent(/“Repair tool handles” in .+’s pool/);
+    expect(review).toHaveTextContent(/kept by/i);
+    expect(review).toHaveTextContent(
+      /confirmation 1 of the 2 needed, and it cannot be taken back/i
+    );
+    fireEvent.click(within(review).getByRole("button", { name: /^confirm kept$/i }));
+    await waitFor(() => expect(acts.confirmOrdinary).toHaveBeenCalledTimes(1));
+  });
+
+  it("sets Expire apart from the routine acts, in its own row", () => {
+    mocks.controller = controller({
+      commitment: { onchainState: "READY_FOR_CONFIRMATION", state: "READY_FOR_CONFIRMATION" },
+      can: can({ confirmOrdinary: true, raiseDispute: true, expire: true }),
+    });
+    renderPanel();
+    const routine = screen.getByTestId("commitment-acts");
+    expect(within(routine).getByRole("button", { name: /^confirm kept…$/i })).toBeInTheDocument();
+    expect(within(routine).queryByRole("button", { name: /expire now/i })).not.toBeInTheDocument();
+    const expire = screen.getByRole("button", { name: /expire now/i });
+    expect(expire.closest('[data-slot="expire"]')).not.toBeNull();
+  });
+
   // ConfirmLib.markReadyForConfirmation waives the requirement counters and the
   // commitment type both, so the override is the only recovery a stalled
   // Work-backed record has. Hiding the row left it with none.

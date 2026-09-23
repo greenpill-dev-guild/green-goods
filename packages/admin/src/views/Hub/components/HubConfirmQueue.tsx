@@ -17,7 +17,13 @@ import { AdminDialog } from "@/components/AdminDialog";
 import { AdminLinearProgress } from "@/components/AdminLinearProgress";
 import { AdminReasonDialog } from "@/components/AdminReasonDialog";
 import { CommitmentDialogPanel } from "@/views/Garden/Pool/CommitmentDialog";
-import { confirmEligibilityChip, shortAddress } from "@/views/Garden/Pool/poolPresentation";
+import { ConfirmKeptDialog } from "@/views/Garden/Pool/CommitmentDialog/ConfirmKeptDialog";
+import { GardenPoolTarget } from "@/views/Garden/Pool/PoolTarget";
+import {
+  confirmEligibilityChip,
+  otherPoolGardenLabel,
+  shortAddress,
+} from "@/views/Garden/Pool/poolPresentation";
 import { HubWorkbenchSkeletonRows } from "./HubWorkbenchSkeletonRows";
 
 export interface HubConfirmQueueProps {
@@ -32,10 +38,11 @@ export interface HubConfirmQueueProps {
 
 /**
  * W13, the Hub's Confirm stage (uiux-spec §6.9, C.48): commitments waiting on
- * the steward, each with who committed, the title, the garden, N-of-group
- * progress, a visible eligibility badge and the decision row. Confirm on an
- * ordinary row enqueues the confirmation; on a fallback row it opens the
- * commitment dialog, where the reasoned fallback lives; Not yet opens the
+ * the steward, each with who committed, the title, the pool it lives in when
+ * that is not the acting garden's own, N-of-group progress, a visible
+ * eligibility badge and the decision row. Confirm on an ordinary row opens the
+ * Confirm Kept review, which enqueues the confirmation; on a fallback row it
+ * opens the commitment dialog, where the reasoned fallback lives; Not yet opens the
  * reasoned dispute dialog, and appears only where the pool's own steward
  * authority makes it legal; a disputed row carries Resolve instead. Loading
  * and read-error casts never render as an empty queue, and the error cast
@@ -52,6 +59,7 @@ export function HubConfirmQueue({
   const { formatMessage } = useIntl();
   const queue = useHubConfirmQueueController({ chainId, toConfirm, search: normalizedSearch });
   const [notYet, setNotYet] = useState<ConfirmQueueRow | null>(null);
+  const [confirming, setConfirming] = useState<ConfirmQueueRow | null>(null);
   const selected = selectedCommitmentId
     ? queue.rows.find((row) => row.commitment.commitmentId.toString() === selectedCommitmentId)
     : undefined;
@@ -122,6 +130,7 @@ export function HubConfirmQueue({
           const count = commitment.confirmationCount ?? 0;
           const disputed = commitment.onchainState === "DISPUTED";
           const eligibility = disputed ? null : badge(row.eligibility);
+          const otherPool = otherPoolGardenLabel(row);
           const id = commitment.commitmentId.toString();
           const selectedRow = selectedCommitmentId === id;
           const progressLabel = formatMessage(
@@ -155,18 +164,28 @@ export function HubConfirmQueue({
                   >
                     {[
                       shortAddress(commitment.leadProvider ?? commitment.creator),
-                      row.gardenName,
+                      // The acting garden is the one in the header; a commitment that
+                      // lives in another garden's pool says whose.
+                      otherPool
+                        ? formatMessage(
+                            {
+                              id: "cockpit.hub.confirm.inPool",
+                              defaultMessage: "in {garden}’s pool",
+                            },
+                            { garden: otherPool }
+                          )
+                        : null,
                       `${commitment.targetUnits.toString()} ${commitment.unitLabel ?? ""}`.trim(),
                     ]
                       .filter(Boolean)
                       .join(" · ")}
                   </span>
                 </button>
-                <StatusBadge variant={eligibility?.variant ?? "error"} size="sm">
+                <StatusBadge variant={eligibility?.variant ?? "warning"} size="sm">
                   {eligibility?.label ??
                     formatMessage({
                       id: "cockpit.hub.confirm.disputed",
-                      defaultMessage: "under review",
+                      defaultMessage: "Under review",
                     })}
                 </StatusBadge>
               </div>
@@ -215,12 +234,12 @@ export function HubConfirmQueue({
                         type="button"
                         variant="filled"
                         size="sm"
-                        onClick={() => void queue.acts.confirm(row)}
+                        onClick={() => setConfirming(row)}
                         disabled={queue.isConfirming}
                       >
                         {formatMessage({
                           id: "cockpit.hub.confirm.act.confirm",
-                          defaultMessage: "Confirm Kept",
+                          defaultMessage: "Confirm Kept…",
                         })}
                       </AdminButton>
                     ) : (
@@ -231,8 +250,8 @@ export function HubConfirmQueue({
                         onClick={() => onOpenCommitment(id)}
                       >
                         {formatMessage({
-                          id: "cockpit.hub.confirm.act.confirmFallback",
-                          defaultMessage: "Confirm kept…",
+                          id: "cockpit.hub.confirm.act.confirm",
+                          defaultMessage: "Confirm Kept…",
                         })}
                       </AdminButton>
                     )}
@@ -263,6 +282,15 @@ export function HubConfirmQueue({
         isOpen={notYet !== null}
         onClose={() => setNotYet(null)}
         tone="hub"
+        target={
+          notYet ? (
+            <GardenPoolTarget
+              chainId={chainId}
+              garden={notYet.poolGarden ?? notYet.garden}
+              record={titleOf(notYet)}
+            />
+          ) : null
+        }
         title={formatMessage({
           id: "cockpit.hub.confirm.notYet.title",
           defaultMessage: "Not yet: raise a dispute",
@@ -304,6 +332,22 @@ export function HubConfirmQueue({
           setNotYet(null);
         }}
       />
+
+      {confirming ? (
+        <ConfirmKeptDialog
+          open
+          onClose={() => setConfirming(null)}
+          onConfirm={() => queue.acts.confirm(confirming)}
+          tone="hub"
+          chainId={chainId}
+          poolGarden={confirming.poolGarden ?? confirming.garden}
+          title={titleOf(confirming)}
+          keptBy={confirming.commitment.leadProvider ?? confirming.commitment.creator ?? null}
+          confirmationCount={confirming.commitment.confirmationCount ?? 0}
+          confirmationThreshold={confirming.commitment.confirmationThreshold ?? 1}
+          isLoading={queue.isConfirming}
+        />
+      ) : null}
 
       <AdminDialog
         open={Boolean(selectedCommitmentId)}

@@ -44,7 +44,7 @@ export function CommitmentActions({
       ) : null}
 
       <div
-        className="flex flex-wrap justify-end gap-2 border-t border-[rgb(var(--m3-outline-variant))] pt-3"
+        className="flex flex-wrap justify-end gap-2 border-t border-stroke-soft pt-3"
         data-testid="commitment-acts"
       >
         {onSeedAnother ? (
@@ -58,20 +58,6 @@ export function CommitmentActions({
             {formatMessage({
               id: "cockpit.garden.pool.commitment.act.seedAnother",
               defaultMessage: "Seed Another Like This",
-            })}
-          </AdminButton>
-        ) : null}
-        {can.expire ? (
-          <AdminButton
-            type="button"
-            variant="danger"
-            size="sm"
-            onClick={() => onOpenDialog("expire")}
-            disabled={actDisabled}
-          >
-            {formatMessage({
-              id: "cockpit.garden.pool.row.act.expire",
-              defaultMessage: "Expire now…",
             })}
           </AdminButton>
         ) : null}
@@ -127,12 +113,12 @@ export function CommitmentActions({
             type="button"
             variant="filled"
             size="sm"
-            onClick={() => void acts.confirmOrdinary()}
+            onClick={() => onOpenDialog("confirm-kept")}
             disabled={isActing}
           >
             {formatMessage({
               id: "cockpit.garden.pool.commitment.act.confirm",
-              defaultMessage: "Confirm, Commitment Kept",
+              defaultMessage: "Confirm Kept…",
             })}
           </AdminButton>
         ) : null}
@@ -151,6 +137,26 @@ export function CommitmentActions({
           </AdminButton>
         ) : null}
       </div>
+
+      {can.expire ? (
+        // Final and destructive, so it never shares the routine cluster: its own
+        // row after the routine ones, quiet where it sits, loud only inside its
+        // confirmation.
+        <div className="flex justify-end border-t border-stroke-soft pt-3" data-slot="expire">
+          <AdminButton
+            type="button"
+            variant="outlined"
+            size="sm"
+            onClick={() => onOpenDialog("expire")}
+            disabled={actDisabled}
+          >
+            {formatMessage({
+              id: "cockpit.garden.pool.row.act.expire",
+              defaultMessage: "Expire now…",
+            })}
+          </AdminButton>
+        </div>
+      ) : null}
     </>
   );
 }

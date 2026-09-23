@@ -41,6 +41,22 @@ type Story = StoryObj<typeof CommitmentActions>;
 
 export const SendForConfirmation: Story = {};
 
+/**
+ * Kept and waiting on this reader: Confirm Kept opens its review, and Expire
+ * stands apart in its own row after the routine acts.
+ */
+export const ReadyToConfirm: Story = {
+  args: {
+    can: {
+      ...dialog.can,
+      sendForConfirmation: false,
+      confirmOrdinary: true,
+      raiseDispute: true,
+      expire: true,
+    },
+  },
+};
+
 export const UnderReview: Story = {
   args: {
     can: {
