@@ -185,7 +185,9 @@ export const WorkCard: React.FC<WorkCardProps> = ({
   }, [isPreviewOpen]);
 
   const Wrapper = interactive ? "button" : "div";
-  const wrapperProps = interactive ? { onClick, type: "button" as const } : {};
+  const wrapperProps = interactive
+    ? { onClick, type: "button" as const, "data-pressable": "card" }
+    : {};
 
   return (
     <>

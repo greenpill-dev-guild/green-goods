@@ -157,23 +157,48 @@ export function hapticSelection(): void {
   }
 }
 
-/** Controls that commit an action: the shared buttons and the floating action button. */
-const PRESS_CONTROLS = '.gg-button, .gg-icon-button, [data-pressable="fab"]';
-
-/** Controls that change a selection: tabs, chips, switches, radios, and anything with a pressed state. */
-const SELECTION_CONTROLS =
-  '[data-pressable="tab"], [role="tab"], [role="switch"], [role="radio"], [aria-pressed], .gg-chip';
+/**
+ * Controls that change a selection: tabs (the app bar's included), chips,
+ * switches, radios and checkboxes (native or ARIA), and anything with a
+ * pressed state.
+ */
+const SELECTION_CONTROLS = [
+  '[data-pressable="tab"]',
+  '[role="tab"]',
+  '[role="switch"]',
+  '[role="radio"]',
+  '[role="checkbox"]',
+  'input[type="radio"]',
+  'input[type="checkbox"]',
+  "[aria-pressed]",
+  ".gg-chip",
+].join(", ");
 
 /**
- * Give every pressed control the same tactile answer, from one place.
+ * Everything else a finger can press: buttons, links, and every declared
+ * pressable (card, row, media, trigger, fab). A dropdown trigger opens a
+ * picker the way a field takes focus, so it stays quiet like the fields do,
+ * and so does the scrim a sheet closes from.
+ */
+const PRESS_CONTROLS = [
+  'button:not([role="combobox"])',
+  "a[href]",
+  '[role="button"]',
+  "summary",
+  '[data-pressable]:not([data-pressable="scrim"])',
+].join(", ");
+
+/**
+ * Give every press the same tactile answer, from one place.
  *
- * Buttons get the light tap and selection controls the subtler one, so a
- * control never has to remember to call a haptic itself. Cards and rows that
- * open something are left out on purpose: native apps do not vibrate on
- * navigation, only on actions and selection changes. A card that toggles a
- * choice says so with `aria-pressed`, and that is what earns it the selection tap. A surface opts in by
- * installing this (the installed PWA does; the admin cockpit and the public
- * website stay silent). Returns the function that removes it.
+ * Anything a finger can press answers: selection controls with the subtler
+ * selection tap, and buttons, links, cards, rows, and the rest with the light
+ * tap. The rule reads what the markup already says (a button, a link, a
+ * `data-pressable`), so a new control answers without asking and never calls
+ * a haptic itself. Text fields, dropdowns, backdrops, and disabled controls
+ * stay silent. A surface opts in by installing this (the installed PWA does;
+ * the admin cockpit and the public website stay silent). Returns the function
+ * that removes it.
  *
  * Outcome haptics (success, error, warning) stay with the code that knows the
  * outcome.

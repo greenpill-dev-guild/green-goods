@@ -43,10 +43,6 @@ vi.mock("@green-goods/shared/utils/domain", () => {
   };
 });
 
-vi.mock("@green-goods/shared/utils/app/haptics", () => ({
-  hapticSelection: vi.fn(),
-}));
-
 vi.mock("@green-goods/shared/utils/action/translations", () => ({
   localizeAction: (action: Action) => action,
 }));
@@ -314,27 +310,35 @@ describe("WorkIntro", () => {
     expect(emptyState.closest("[data-testid='carousel-item']")?.className).toContain("basis-full");
   });
 
-  it("fires setActionUID when an action card is clicked", () => {
+  it("chooses an action from its toggle and marks the chosen one pressed", () => {
     const setActionUID = vi.fn();
-    const actions = [makeAction({ id: "action-1", title: "Plant Trees" })];
+    const actions = [
+      makeAction({ id: "action-1", title: "Plant Trees" }),
+      makeAction({ id: "action-2", title: "Water Beds" }),
+    ];
 
-    renderIntro({ actions, setActionUID });
+    renderIntro({ actions, setActionUID, selectedActionUID: 2 });
 
-    // The carousel item wrapping the action card receives the click
-    const actionCard = screen.getByTestId("action-card-Plant Trees");
-    fireEvent.click(actionCard.closest("[data-testid='carousel-item']")!);
+    fireEvent.click(screen.getByRole("button", { name: "Plant Trees" }));
 
     expect(setActionUID).toHaveBeenCalledWith(1);
+    expect(screen.getByRole("button", { name: "Plant Trees" })).toHaveAttribute(
+      "aria-pressed",
+      "false"
+    );
+    expect(screen.getByRole("button", { name: "Water Beds" })).toHaveAttribute(
+      "aria-pressed",
+      "true"
+    );
   });
 
-  it("fires setGardenAddress when a garden card is clicked", () => {
+  it("chooses a garden from its toggle", () => {
     const setGardenAddress = vi.fn();
     const gardens = [makeGarden({ id: "0xABC" as Address, name: "My Garden" })];
 
     renderIntro({ gardens, setGardenAddress });
 
-    const gardenCard = screen.getByTestId("garden-card-My Garden");
-    fireEvent.click(gardenCard.closest("[data-testid='carousel-item']")!);
+    fireEvent.click(screen.getByRole("button", { name: "My Garden" }));
 
     expect(setGardenAddress).toHaveBeenCalledWith("0xABC");
   });
