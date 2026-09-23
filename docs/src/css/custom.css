@@ -3,6 +3,8 @@
 :root {
   /* Root DESIGN.md rounded.md, projected locally for docs media. */
   --radius-md: 8px;
+  --radius-full: 999px;
+  --blur-material-thick: 8px;
 
   /* Primary green — matches shared theme green-500 */
   --ifm-color-primary: #1a7544;
@@ -256,7 +258,7 @@ body.gg-builders-route .menu__link--active:hover {
   color: var(--ifm-font-color-secondary);
   background: var(--ifm-background-surface-color);
   border: 1px solid var(--ifm-color-emphasis-300);
-  border-radius: 999px;
+  border-radius: var(--radius-full);
   cursor: pointer;
   opacity: 0.75;
 }
@@ -275,7 +277,7 @@ body.gg-builders-route .menu__link--active:hover {
   display: flex;
   flex-direction: column;
   background: color-mix(in srgb, var(--ifm-background-color) 92%, transparent);
-  backdrop-filter: blur(4px);
+  backdrop-filter: blur(var(--blur-material-thick));
 }
 
 .gg-diagram-overlay-open {
@@ -297,7 +299,7 @@ body.gg-builders-route .menu__link--active:hover {
   color: var(--ifm-font-color-base);
   background: var(--ifm-background-surface-color);
   border: 1px solid var(--ifm-color-emphasis-300);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   cursor: pointer;
 }
 
@@ -312,6 +314,16 @@ body.gg-builders-route .menu__link--active:hover {
   overflow: auto;
   padding: 1rem;
   cursor: grab;
+}
+
+.gg-diagram-viewport.is-panning {
+  cursor: grabbing;
+  user-select: none;
+}
+
+.gg-diagram-viewport:focus-visible {
+  outline: 2px solid var(--docs-accent-builders);
+  outline-offset: -2px;
 }
 
 .gg-diagram-stage {
