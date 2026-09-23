@@ -180,7 +180,7 @@
           "leadLaneId": "protocol-review"
         },
         {
-          "caseId": "ADM-013",
+          "caseId": "ADM-145",
           "phaseId": "garden-distributes",
           "leadLaneId": "protocol-review",
           "verifyLaneIds": ["garden-member"],
@@ -5262,8 +5262,87 @@
       "role": "steward",
       "tags": ["commitments", "confirm", "stale-data", "tx"],
       "requiresProduction": false,
-      "status": "active",
+      "status": "retired",
+      "retiredOn": "2026-09-23",
+      "retiredReason": "Its result changed: Confirm Kept… now opens a review before anything is sent, where this case's one press never offered one, and Hub → Confirm lists only what the garden in the header confirms (ADM-144). Confirming through the review is ADM-145, and a commitment that has left the queue is ADM-146. Not yet… raises a dispute, which is ADM-077.",
+      "replacedBy": ["ADM-145", "ADM-146"],
       "source": "mdx-matrix"
+    },
+    {
+      "id": "ADM-144",
+      "tab": "Admin Dashboard",
+      "platform": "Chromium Desktop",
+      "priority": "P0",
+      "kind": "journey",
+      "area": "Hub · Confirm",
+      "scenario": "Hub → Confirm lists only what the garden in the header confirms",
+      "preconditions": [
+        "Steward of two gardens",
+        "At least one commitment waiting for the first garden's confirmation, and none waiting for the second's"
+      ],
+      "steps": [
+        "Select the first garden with the header chip and open Hub → Confirm (/hub/confirm)",
+        "Read the rows and the count on the Confirm tab",
+        "Select the second garden with the header chip and read Hub → Confirm again"
+      ],
+      "expected": "With the first garden selected, its waiting commitments are listed and the Confirm tab's count matches them; with the second, the stage reads Nothing to confirm and the count is zero. Neither stage lists a Needs the Green Goods team row: those are confirmed from Protocol confirmations on /community/coordination",
+      "evidence": "Screenshots of Hub → Confirm with each garden selected",
+      "role": "steward",
+      "tags": ["commitment", "confirm", "garden-switch"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-design-audit-wave-1-2026-09-23"
+    },
+    {
+      "id": "ADM-145",
+      "tab": "Admin Dashboard",
+      "platform": "Chromium Desktop",
+      "priority": "P0",
+      "kind": "transaction",
+      "area": "Hub · Confirm",
+      "scenario": "Confirm Kept… reviews the commitment before confirming it",
+      "preconditions": [
+        "Steward with the garden that confirms the commitment selected in the header",
+        "A commitment waiting for that garden's confirmation and marked Ready to confirm"
+      ],
+      "steps": [
+        "Open Hub → Confirm and press Confirm Kept… on the commitment's row",
+        "Read the review",
+        "Press Confirm Kept and confirm in the wallet",
+        "Read Hub → Confirm and the commitment afterwards"
+      ],
+      "expected": "Before anything is sent, the review names the commitment, the garden's pool it lives in, and who kept it, and says either that this confirmation closes it as kept for everyone or which confirmation of how many it is, and that it cannot be undone; confirming is one transaction; the commitment then reads Kept and leaves the queue, or its row shows one more confirmation",
+      "evidence": "Screenshots of the review and of the commitment afterwards",
+      "role": "steward",
+      "tags": ["commitment", "confirm", "journey-relay", "tx"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-design-audit-wave-1-2026-09-23"
+    },
+    {
+      "id": "ADM-146",
+      "tab": "Admin Dashboard",
+      "platform": "Chromium Desktop",
+      "priority": "P2",
+      "kind": "data-integrity",
+      "area": "Hub · Confirm",
+      "scenario": "A commitment that has left the confirmation queue says so when its link is opened",
+      "preconditions": [
+        "Steward with the garden that confirms the commitment selected in the header",
+        "A commitment waiting for that garden's confirmation, whose next confirmation closes it"
+      ],
+      "steps": [
+        "Open the commitment from its row in Hub → Confirm and copy the page's address",
+        "Confirm it (ADM-145) and wait until it leaves the queue",
+        "Open the copied address"
+      ],
+      "expected": "The commitment dialog says This commitment is not in your confirmation queue any more. and offers no act on it; the stage no longer lists it",
+      "evidence": "Screenshot of the dialog opened from the copied address",
+      "role": "steward",
+      "tags": ["commitment", "confirm", "stale-data", "deep-link"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-design-audit-wave-1-2026-09-23"
     },
     {
       "id": "ADM-042",
@@ -5457,6 +5536,50 @@
       "requiresProduction": false,
       "status": "active",
       "source": "mdx-matrix"
+    },
+    {
+      "id": "ADM-154",
+      "tab": "Admin Dashboard",
+      "platform": "Chromium Desktop",
+      "priority": "P1",
+      "kind": "data-integrity",
+      "area": "Garden · Pool",
+      "scenario": "Pool funding reads Settlement ready for a garden whose settlement is set up",
+      "preconditions": [
+        "Steward of a garden whose Celo settlement is fully set up: a funded settlement Safe, an active account and route, and an executor that is not paused"
+      ],
+      "steps": [
+        "Open /garden/pool and read Pool funding",
+        "Press Refresh Pool Funding and read it again"
+      ],
+      "expected": "Pool funding shows Settlement ready and a funding state other than Funding unavailable, with no line naming something in the way; after the refresh it still reads ready and its Read time moves on",
+      "evidence": "Screenshot of Pool funding reading ready",
+      "role": "steward",
+      "tags": ["garden-pool", "funding", "settlement"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-design-audit-wave-1-2026-09-23"
+    },
+    {
+      "id": "ADM-155",
+      "tab": "Admin Dashboard",
+      "platform": "Chromium Desktop",
+      "priority": "P2",
+      "kind": "data-integrity",
+      "area": "Garden · Pool",
+      "scenario": "When settlement is not ready, Pool funding names what is in the way",
+      "preconditions": ["Steward of a garden whose Pool funding reads Settlement unavailable"],
+      "steps": [
+        "Open /garden/pool and read Pool funding",
+        "Press View Funding Details and read the list"
+      ],
+      "expected": "One line under Settlement unavailable names what is in the way, and View Funding Details lists that same reason in the same words; nothing on the rail says the pool is ready",
+      "evidence": "Screenshots of the rail and of the details",
+      "role": "steward",
+      "tags": ["garden-pool", "funding", "settlement"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-design-audit-wave-1-2026-09-23"
     },
     {
       "id": "ADM-056",
@@ -5665,8 +5788,78 @@
       "role": "steward",
       "tags": ["garden-pool", "tx"],
       "requiresProduction": false,
-      "status": "active",
+      "status": "retired",
+      "retiredOn": "2026-09-23",
+      "retiredReason": "Its result changed: a save no longer sends one transaction. The dialog says how many times the wallet will ask and shows each change landing (ADM-147); a save stopped partway names what was saved, and Try Again sends only the rest (ADM-148). Closing with an unsaved change is ADM-149.",
+      "replacedBy": ["ADM-147", "ADM-148", "ADM-149"],
       "source": "qa-runs-catalog-third-pass-2026-09-07"
+    },
+    {
+      "id": "ADM-147",
+      "tab": "Admin Dashboard",
+      "platform": "Chromium Desktop",
+      "priority": "P1",
+      "kind": "transaction",
+      "area": "Garden · Pool",
+      "scenario": "Pool settings say how many times the wallet will ask, and end on Settings saved",
+      "preconditions": ["Steward with manage rights on a garden with a pool"],
+      "steps": [
+        "Press Edit Pool and read the current values",
+        "Change What this pool is for and How many commitments one person can hold at once, and read the dialog",
+        "Press Save Settings and confirm each wallet prompt",
+        "Read the dialog and the console"
+      ],
+      "expected": "The dialog shows the current values; before saving it says how many times the wallet will ask: once when the wallet can take both changes together, otherwise once for each; each change shows as it lands; the dialog ends on Settings saved. and the console reflects both changes",
+      "evidence": "Screenshots of the dialog before saving and after",
+      "role": "steward",
+      "tags": ["garden-pool", "tx"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-design-audit-wave-1-2026-09-23"
+    },
+    {
+      "id": "ADM-148",
+      "tab": "Admin Dashboard",
+      "platform": "Chromium Desktop",
+      "priority": "P1",
+      "kind": "transaction",
+      "area": "Garden · Pool",
+      "scenario": "A settings save stopped partway says what was saved, and Try Again sends only the rest",
+      "preconditions": [
+        "Steward with manage rights on a garden with a pool",
+        "A wallet that asks once for each change: with both settings changed, the dialog says the wallet will ask twice"
+      ],
+      "steps": [
+        "Change What this pool is for and How many commitments one person can hold at once, and press Save Settings",
+        "Confirm the first wallet prompt and reject the second",
+        "Read the dialog",
+        "Press Try Again and confirm the wallet prompt"
+      ],
+      "expected": "After the rejection the dialog says The new agreement is saved. The commitment limit is not. and that the wallet will ask once more; Try Again sends only the limit, with one wallet prompt; the dialog ends on Settings saved.",
+      "evidence": "Screenshots of the stopped dialog and of Settings saved",
+      "role": "steward",
+      "tags": ["garden-pool", "tx"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-design-audit-wave-1-2026-09-23"
+    },
+    {
+      "id": "ADM-149",
+      "tab": "Admin Dashboard",
+      "platform": "Chromium Desktop",
+      "priority": "P2",
+      "kind": "journey",
+      "area": "Garden · Pool",
+      "scenario": "Closing Pool settings with an unsaved change asks Discard Changes?",
+      "preconditions": ["Steward with manage rights on a garden with a pool"],
+      "steps": ["Press Edit Pool and change a setting", "Close the dialog without saving"],
+      "expected": "Closing asks Discard Changes? before anything is lost; Keep Editing returns to the change, and Discard closes the dialog with nothing sent",
+      "evidence": "Screenshot of the Discard Changes? prompt",
+      "role": "steward",
+      "tags": ["garden-pool"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-design-audit-wave-1-2026-09-23"
     },
     {
       "id": "ADM-026",
@@ -5707,13 +5900,64 @@
         "Add named confirmers incl. one bad address",
         "Review, press Seed This Commitment, and confirm in the wallet"
       ],
-      "expected": "Each step validates before Next; a bad or duplicate confirmer address is rejected visibly; the review reads every answer back before anything is sent; seeding asks the wallet to confirm one creation and the wizard closes",
+      "expected": "Each step validates before Next; a bad or duplicate confirmer address is rejected visibly; the review reads every answer back before anything is sent; seeding asks the wallet to confirm one creation, and the wizard shows it as Created until Done closes it",
       "evidence": "Screenshots of the rejected confirmer and the review",
       "role": "steward",
       "tags": ["garden-pool", "tx"],
       "requiresProduction": false,
       "status": "active",
       "source": "qa-readiness-catalog-2026-09-21"
+    },
+    {
+      "id": "ADM-157",
+      "tab": "Admin Dashboard",
+      "platform": "Chromium Desktop",
+      "priority": "P0",
+      "kind": "journey",
+      "area": "Garden · Pool",
+      "scenario": "A declared G$ reward is typed and reviewed in G$",
+      "preconditions": [
+        "Steward with manage rights on a garden whose settlement account is active, so Celo G$ settlement can be chosen"
+      ],
+      "steps": [
+        "Run the seed wizard to its Proof & confirmation step and open Advanced: declared reward",
+        "Choose Celo G$ settlement and type 10 in Amount (G$)",
+        "Try an amount with more than 18 decimal places, then type 10 again and go on to the review",
+        "Read the reward on the review and cancel out"
+      ],
+      "expected": "The field takes 10 as ten G$; an amount with more than 18 decimal places is refused with Too many decimal places; the review reads Celo G$ settlement · 10 G$; nothing is sent",
+      "evidence": "Screenshots of the field and of the review",
+      "role": "steward",
+      "tags": ["garden-pool", "commitment", "settlement"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-design-audit-wave-1-2026-09-23"
+    },
+    {
+      "id": "ADM-158",
+      "tab": "Admin Dashboard",
+      "platform": "Chromium Desktop",
+      "priority": "P1",
+      "kind": "journey",
+      "area": "Garden · Pool",
+      "scenario": "A declared external reward is typed in its token's own units",
+      "preconditions": [
+        "Steward with manage rights",
+        "The address of a 6-decimal ERC-20 token on the pool's chain, such as USDC, and an address it is paid from"
+      ],
+      "steps": [
+        "Run the seed wizard to its Proof & confirmation step, open Advanced: declared reward, and choose External payout record",
+        "Read the amount field, then enter the token address and the Paid from address and read it again",
+        "Type 2.5, go on to the review, and read the reward",
+        "Cancel out"
+      ],
+      "expected": "Before the token is known the amount waits with Enter the token address first.; once the token is read the field is labelled with its symbol, such as Amount (USDC), and takes 2.5 as 2.5 of that token; the review reads External payout record · 2.5 and the symbol; nothing is sent",
+      "evidence": "Screenshots of the field and of the review",
+      "role": "steward",
+      "tags": ["garden-pool", "commitment"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-design-audit-wave-1-2026-09-23"
     },
     {
       "id": "ADM-039",
@@ -5828,6 +6072,31 @@
       "source": "qa-runs-catalog-third-pass-2026-09-07"
     },
     {
+      "id": "ADM-159",
+      "tab": "Admin Dashboard",
+      "platform": "Chromium Desktop",
+      "priority": "P1",
+      "kind": "transaction",
+      "area": "Garden · Pool",
+      "scenario": "Accept names who asks and says where it stands on its own row",
+      "preconditions": [
+        "Steward of the pool's garden",
+        "A pending claim request on an approval-gated commitment (PWA-085)"
+      ],
+      "steps": [
+        "Open the claims card on /garden/pool and read the request",
+        "Press Accept and confirm in the wallet",
+        "Read the request's row until it leaves the list"
+      ],
+      "expected": "The request names who asks: a garden by its name, a person by their name when one resolves and otherwise by a short address; Accept sends at once, and the row says Confirm in your wallet., then Confirming on Arbitrum One… (or the network in use), then Accepted. The request leaves this list once the index shows it.; the row's acts stay closed until it leaves",
+      "evidence": "Screenshots of the row while confirming and once accepted",
+      "role": "steward",
+      "tags": ["garden-pool", "claim", "tx"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-design-audit-wave-1-2026-09-23"
+    },
+    {
       "id": "ADM-064",
       "tab": "Admin Dashboard",
       "platform": "Chromium Desktop",
@@ -5864,9 +6133,9 @@
       "steps": [
         "Run the seed wizard to the review and press Seed This Commitment",
         "Confirm in the wallet",
-        "Stay on the pool tab without reloading and read the commitments list"
+        "Read the wizard, press Done, and stay on the pool tab without reloading to read the commitments list"
       ],
-      "expected": "Seeding opens a wallet prompt at once and sends one creation; the wizard closes; the new commitment appears in the pool's list without a reload, normally within about 15 seconds, and no queued row is left behind",
+      "expected": "Seeding opens a wallet prompt at once and sends one creation; the wizard ends on the commitment as Created, and Done closes it; the new commitment appears in the pool's list without a reload, normally within about 15 seconds, and no queued row is left behind",
       "evidence": "Screen recording from the press to the commitment appearing",
       "role": "steward",
       "tags": ["garden-pool", "commitment", "queue", "tx"],
@@ -5886,10 +6155,10 @@
       "steps": [
         "Run the seed wizard to the review and press Seed This Commitment",
         "Reject the wallet prompt",
-        "Read the review step and the pool tab",
+        "Read the wizard, press Back to Review, and read the review and the pool tab",
         "Press Seed This Commitment again and confirm in the wallet"
       ],
-      "expected": "After the rejection the wizard stays open on the review with every answer intact and says the commitment was not sent, so nothing was created; no queued row appears on the pool tab; the second press sends it, and exactly one commitment with that title appears",
+      "expected": "After the rejection the wizard stays open and says nothing was created and the commitment was not sent, offering Back to Review and Try Again; Back to Review returns to the review with every answer intact; no queued row appears on the pool tab; the second press sends it, and exactly one commitment with that title appears",
       "evidence": "Screenshots of the review after the rejection and of the list afterwards",
       "role": "steward",
       "tags": ["garden-pool", "commitment", "queue", "tx"],
@@ -5904,17 +6173,17 @@
       "priority": "P1",
       "kind": "transaction",
       "area": "Garden · Pool",
-      "scenario": "Try Again sends a creation that was left queued",
+      "scenario": "Send Now sends a creation that was left queued",
       "preconditions": [
         "Steward with manage rights, signed in with a wallet",
-        "A creation left queued on this device: with the seed wizard open on its review, turn the network off, press Seed This Commitment, then turn the network back on"
+        "A creation left queued on this device: with the seed wizard open on its review, turn the network off, press Seed This Commitment and then Done, then turn the network back on"
       ],
       "steps": [
         "Open the pool tab and read the queued row",
-        "Press Try Again and confirm in the wallet",
+        "Press Send Now and confirm in the wallet",
         "Read the list without reloading"
       ],
-      "expected": "The queued row shows the title, Queued, and its units, with Try Again and Discard; Try Again opens a wallet prompt and sends that one creation; the queued row goes and the commitment appears in the list",
+      "expected": "The queued row shows the title, Queued, and its units, with Send Now and Discard; Send Now opens a wallet prompt and sends that one creation; the queued row goes and the commitment appears in the list",
       "evidence": "Screenshots of the queued row and of the list afterwards",
       "role": "steward",
       "tags": ["garden-pool", "commitment", "queue", "tx"],
@@ -5932,7 +6201,7 @@
       "scenario": "Discard removes a queued creation that was never sent",
       "preconditions": [
         "Steward with manage rights, signed in with a wallet",
-        "A creation left queued on this device: with the seed wizard open on its review, turn the network off, press Seed This Commitment, then turn the network back on"
+        "A creation left queued on this device: with the seed wizard open on its review, turn the network off, press Seed This Commitment and then Done, then turn the network back on"
       ],
       "steps": ["On the queued row press Discard", "Reload and read the pool tab"],
       "expected": "Discard removes the row at once and it does not return after a reload; nothing is created",
@@ -5955,10 +6224,10 @@
       "steps": [
         "Run the seed wizard to the review and press Add Another Like This",
         "Read the first step, change the title, and go forward to the review again",
-        "Read the review and its note, then press Create All (2) and confirm each wallet prompt",
-        "Read the pool's list"
+        "Read the review and the footer, then press Create All (2) and confirm each wallet prompt",
+        "Read the wizard, press Done, and read the pool's list"
       ],
-      "expected": "Add Another Like This reopens the first step with the same answers; the review lists the first commitment under Added so far and the second as This one; the button reads Create All (2) and the note says the wallet will ask 2 times; the wallet asks once for each, one after another; the wizard closes and both commitments appear in the list, each once",
+      "expected": "Add Another Like This reopens the first step with the same answers; the review lists the first commitment under Added so far and the second as This one; the button reads Create All (2), and beside it the footer says the wallet will ask twice; the wallet asks once for each, one after another; the wizard ends on both as Created, Done closes it, and both commitments appear in the list, each once",
       "evidence": "Screenshot of the review with both commitments, and of the list afterwards",
       "role": "steward",
       "tags": ["garden-pool", "commitment", "tx"],
@@ -6047,9 +6316,9 @@
       "steps": [
         "Press Create All (3)",
         "Reject the first wallet prompt, confirm the second, and reject the third",
-        "Read the review and the pool's list"
+        "Read the wizard, press Back to Review, and read the review and the pool's list"
       ],
-      "expected": "The wallet asks about every commitment, whatever was rejected before it; the wizard stays open and says 1 commitment was sent and 2 could not be sent, so nothing was created for them; both are still there marked Not sent, one under Added so far and one as This one; the confirmed one appears in the list; the button reads Create All (2)",
+      "expected": "The wallet asks about every commitment, whatever was rejected before it; the wizard stays open on 1 commitment created and 2 not sent, with nothing created for them; back on the review it says 1 commitment was sent and 2 could not be sent, so nothing was created for them; both are still there marked Not sent, one under Added so far and one as This one; the confirmed one appears in the list; the button reads Create All (2)",
       "evidence": "Screenshots of the review after the batch and of the list",
       "role": "steward",
       "tags": ["garden-pool", "commitment", "queue", "tx"],
@@ -6069,14 +6338,43 @@
         "Steward with manage rights, signed in with a wallet",
         "The seed wizard still open with commitments marked Not sent (ADM-131)"
       ],
-      "steps": ["Press Create All (2) and confirm both wallet prompts", "Read the pool's list"],
-      "expected": "Each remaining commitment is sent and the wizard closes; every title from the sitting appears in the list exactly once, with no second copy of the one sent earlier",
+      "steps": [
+        "Press Create All (2) and confirm both wallet prompts",
+        "Read the wizard, press Done, and read the pool's list"
+      ],
+      "expected": "Each remaining commitment is sent and the wizard ends on them as Created; every title from the sitting appears in the list exactly once, with no second copy of the one sent earlier",
       "evidence": "Screenshot of the list with each title once",
       "role": "steward",
       "tags": ["garden-pool", "commitment", "queue", "tx"],
       "requiresProduction": false,
       "status": "active",
       "source": "qa-readiness-catalog-2026-09-21"
+    },
+    {
+      "id": "ADM-150",
+      "tab": "Admin Dashboard",
+      "platform": "Chromium Desktop",
+      "priority": "P1",
+      "kind": "transaction",
+      "area": "Garden · Pool",
+      "scenario": "Seeding several shows where each commitment stands, and ends on how each one went",
+      "preconditions": [
+        "Steward with manage rights, signed in with a wallet",
+        "The seed wizard open on its review with two commitments in the sitting: compose one, press Add Another Like This, and change the title"
+      ],
+      "steps": [
+        "Press Create All (2) and read the wizard while the first wallet prompt is open",
+        "Confirm it, and read the wizard while the second prompt is open",
+        "Confirm the second and read the wizard when it finishes",
+        "Press View on one row"
+      ],
+      "expected": "While the wallet asks, the wizard lists both commitments under one line that says Confirm in your wallet (1 of 2), then (2 of 2), and a row reads Created once the chain has it; the wizard ends on 2 commitments created. with each row Created and a View link that opens its transaction; Done closes it",
+      "evidence": "Screenshots of the wizard during the pass and at the end",
+      "role": "steward",
+      "tags": ["garden-pool", "commitment", "queue", "tx"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-design-audit-wave-1-2026-09-23"
     },
     {
       "id": "ADM-133",
@@ -6088,7 +6386,7 @@
       "scenario": "More offers than your commitment limit holds seeding and says why",
       "preconditions": [
         "Steward with manage rights",
-        "The pool's commitment limit set in Pool settings to the number of open commitments you already provide in this pool, so you have room for no more (ADM-063). With none open, seed one offer first and set the limit to 1"
+        "The pool's commitment limit set in Pool settings to the number of open commitments you already provide in this pool, so you have room for no more (ADM-147). With none open, seed one offer first and set the limit to 1"
       ],
       "steps": [
         "Run the seed wizard with The pool offers to the review",
@@ -6113,7 +6411,7 @@
       "scenario": "At your commitment limit, Add Another Like This is held for an offer but not for a request",
       "preconditions": [
         "Steward with manage rights",
-        "The pool's commitment limit set in Pool settings so you have room for exactly one more open commitment (ADM-063)"
+        "The pool's commitment limit set in Pool settings so you have room for exactly one more open commitment (ADM-147)"
       ],
       "steps": [
         "Run the seed wizard with The pool offers to the review and read the footer and the note",
@@ -6174,6 +6472,78 @@
       "source": "qa-readiness-catalog-2026-09-21"
     },
     {
+      "id": "ADM-151",
+      "tab": "Admin Dashboard",
+      "platform": "Chromium Desktop",
+      "priority": "P1",
+      "kind": "transaction",
+      "area": "Garden · Pool",
+      "scenario": "End Season… ends a season whose commitments have all finished",
+      "preconditions": [
+        "Steward with manage rights",
+        "An open season with no live commitments: every commitment in it kept, cancelled, or expired"
+      ],
+      "steps": [
+        "Read the season's acts on the cycles card",
+        "Press End Season… and read the dialog",
+        "Press End Season and confirm in the wallet",
+        "Read the cycles card"
+      ],
+      "expected": "End Season… is offered; the dialog names the season and the pool it belongs to, and says nobody can make or take up commitments in it any more, that its record is reconciled and ready for an impact certificate, and that a new season can start; ending is one transaction; the season moves under Finished as Reconciled with Archive… offered, and the card reads No season running and offers Start Season",
+      "evidence": "Screenshots of the dialog and of the cycles card afterwards",
+      "role": "steward",
+      "tags": ["garden-pool", "cycle", "tx"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-design-audit-wave-1-2026-09-23"
+    },
+    {
+      "id": "ADM-152",
+      "tab": "Admin Dashboard",
+      "platform": "Chromium Desktop",
+      "priority": "P2",
+      "kind": "journey",
+      "area": "Garden · Pool",
+      "scenario": "A season with live commitments offers no End and says how many are live",
+      "preconditions": [
+        "Steward with manage rights",
+        "An open season with at least one live commitment"
+      ],
+      "steps": ["Read the season on the cycles card"],
+      "expected": "End Season… is not offered; the season says how many commitments are still live and that it can end once each is kept, cancelled or expired",
+      "evidence": "Screenshot of the season with its live count",
+      "role": "steward",
+      "tags": ["garden-pool", "cycle"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-design-audit-wave-1-2026-09-23"
+    },
+    {
+      "id": "ADM-153",
+      "tab": "Admin Dashboard",
+      "platform": "Chromium Desktop",
+      "priority": "P1",
+      "kind": "transaction",
+      "area": "Garden · Pool",
+      "scenario": "Archive… on a finished season warns that no impact certificate can be made afterwards",
+      "preconditions": [
+        "Steward with manage rights",
+        "A season listed under Finished as Reconciled, for example the one ended in ADM-151"
+      ],
+      "steps": [
+        "Press Archive… on the season and read the dialog",
+        "Press Archive Season and confirm in the wallet",
+        "Read the season under Finished"
+      ],
+      "expected": "The dialog names the season and the pool it belongs to, says archiving is final and that no impact certificate can be made for the season afterwards, so one should be made first if the garden wants it; archiving is one transaction; the season then reads Finished with no act on it and stays in the pool's history",
+      "evidence": "Screenshots of the dialog and of the archived season",
+      "role": "steward",
+      "tags": ["garden-pool", "cycle", "tx"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-design-audit-wave-1-2026-09-23"
+    },
+    {
       "id": "ADM-075",
       "tab": "Admin Dashboard",
       "platform": "Chromium Desktop",
@@ -6185,9 +6555,9 @@
       "steps": [
         "Open /garden/pool and the commitment",
         "Press Send for Confirmation",
-        "Read the timeline and /hub/confirm"
+        "Read the timeline, then Hub → Confirm with the confirming garden selected in the header"
       ],
-      "expected": "The act is offered only to the provider once evidence exists; it sends in one transaction; the timeline records it and the commitment appears in /hub/confirm for its confirmers",
+      "expected": "The act is offered only to the provider once evidence exists; it sends in one transaction; the timeline records it and the commitment appears in Hub → Confirm for its confirmers",
       "evidence": "Screenshots of the inspector and the confirm queue",
       "role": "steward",
       "tags": ["commitment", "tx"],
@@ -6261,7 +6631,7 @@
         "A commitment created with the Green Goods team fallback on, ready for confirmation, whose ordinary confirmation is unreachable (the same setup as ADM-110)"
       ],
       "steps": [
-        "Open the commitment and read the confirm bar",
+        "On /community/coordination find the commitment under Protocol confirmations, press Confirm Kept… on its row to open it, and read the confirm bar",
         "Press Confirm for Green Goods team… and press Confirm for Green Goods Team with an empty reason",
         "Type or pick a reason and confirm"
       ],
@@ -6309,9 +6679,9 @@
       "steps": [
         "Press Raise dispute… and try to confirm without a reason",
         "Type a reason and press Raise Dispute",
-        "Read the band, /hub/confirm, and the app"
+        "Read the band, Hub → Confirm with the pool's garden selected in the header, and the app"
       ],
-      "expected": "The reason is required; the dispute is one transaction; the commitment reads disputed in the inspector, the confirm queue, and the app; the ordinary confirm is withheld while disputed and the reason is in the timeline",
+      "expected": "The reason is required; the dispute is one transaction; the commitment reads disputed in the inspector and the app, and Under review with Resolve… in Hub → Confirm; the ordinary confirm is withheld while disputed and the reason is in the timeline",
       "evidence": "Screenshots of the dispute dialog and the disputed band",
       "role": "steward",
       "tags": ["commitment", "tx"],
@@ -7222,7 +7592,7 @@
       "priority": "P1",
       "kind": "transaction",
       "area": "Community · Coordination",
-      "scenario": "Queue a discretionary ProtocolToGarden treasury top-up",
+      "scenario": "Queue a discretionary protocol-to-garden treasury top-up",
       "preconditions": [
         "Signed in with Tester A's allowlisted wallet",
         "ADM-014 has confirmed funding readiness",
@@ -7230,14 +7600,14 @@
       ],
       "steps": [
         "Open the protocol treasury funding action",
-        "Choose ProtocolToGarden and identify the destination Garden",
-        "Verify no commitment ID is requested or attached",
-        "If value authority is available, review and queue the top-up",
+        "Choose the destination Garden under Receiving garden and enter the amount",
+        "Verify no commitment is requested or attached",
+        "If value authority is available, press Review seed or top-up…, read the confirmation, and press Queue seed or top-up",
         "Otherwise stop at the visible gate and record Blocked",
         "Ask Tester B to verify the Garden balance or readiness state"
       ],
       "expected": "When authorized and enabled, a discretionary top-up is queued for the correct Garden and its balance reflects the result; it never substitutes for earned compensation or references a commitment",
-      "evidence": "Screenshot of the ProtocolToGarden review and resulting balance or visible gate",
+      "evidence": "Screenshot of the queue confirmation naming the Garden, and the resulting balance or visible gate",
       "role": "steward",
       "tags": ["protocol-treasury", "funding", "garden", "tx"],
       "requiresProduction": false,
@@ -7255,10 +7625,10 @@
       "preconditions": ["Protocol steward", "A queued seed or top-up (ADM-045)"],
       "steps": [
         "Open the protocol funding card on /community/coordination",
-        "Press Cancel transfer and confirm",
+        "Press Cancel… on the queued row, read the confirmation, and press Cancel transfer",
         "Press Refresh funding"
       ],
-      "expected": "The queued row offers Cancel transfer with a confirmation; cancelling is one transaction and the row leaves the queue; Refresh funding re-reads the facts from chain",
+      "expected": "The queued row offers Cancel… with a confirmation; cancelling is one transaction and the row leaves the queue; Refresh funding re-reads the facts from chain",
       "evidence": "Screenshots of the confirmation and the refreshed card",
       "role": "steward",
       "tags": ["protocol-funding", "tx"],
@@ -7280,18 +7650,40 @@
         "Where one can be produced, a transfer the indexer reports as failed; otherwise record the Requeue step as Blocked"
       ],
       "steps": [
-        "Press Dispatch on the queued row and confirm",
-        "On the dispatched row press Retry command",
-        "On a row the indexer reports as failed press Requeue",
+        "Press Dispatch… on the queued row, read Review before sending, and press Send Transaction",
+        "On the dispatched row press Retry Command… and send it the same way",
+        "On a row the indexer reports as failed press Requeue… and send it the same way",
         "Reject a wallet prompt on one send and read the row"
       ],
-      "expected": "Dispatch sends the transfer and the row reads Dispatched; Retry command re-sends a dispatched row's command; Requeue is offered only on a failed row and returns it to the queue; a rejected wallet prompt leaves the row as it was; a row never claims a state it did not reach",
+      "expected": "Dispatch sends the transfer and the row reads Dispatched; Retry Command… re-sends a dispatched row's command; Requeue… is offered only on a failed row and returns it to the queue; a rejected wallet prompt leaves the row as it was; a row never claims a state it did not reach",
       "evidence": "Screenshots of the dispatched and failed rows",
       "role": "steward",
       "tags": ["protocol-funding", "tx"],
       "requiresProduction": false,
       "status": "active",
       "source": "qa-runs-catalog-third-pass-2026-09-07"
+    },
+    {
+      "id": "ADM-156",
+      "tab": "Admin Dashboard",
+      "platform": "Chromium Desktop",
+      "priority": "P1",
+      "kind": "journey",
+      "area": "Community · Coordination",
+      "scenario": "A protocol transfer names its receiving garden and is reviewed before it is sent",
+      "preconditions": ["Protocol steward", "A queued protocol transfer (ADM-045)"],
+      "steps": [
+        "Read the queued row on the protocol funding card on /community/coordination",
+        "Press Dispatch… and read the review",
+        "Press Cancel"
+      ],
+      "expected": "The row reads the amount and the receiving garden by name, then the transfer number and its Celo account, with no internal enum words; Dispatch… opens Review before sending, which names the transfer, its amount, and the receiving garden and says it goes over CCIP to Celo; Cancel closes it with nothing sent and the row unchanged",
+      "evidence": "Screenshots of the row and of the review",
+      "role": "steward",
+      "tags": ["coordination", "protocol-funding"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-design-audit-wave-1-2026-09-23"
     },
     {
       "id": "ADM-087",
@@ -7304,7 +7696,7 @@
       "preconditions": ["Settlement module owner identity and a plain steward identity"],
       "steps": [
         "As the plain steward read the settlement operations card on /community/coordination",
-        "As the owner press Enable Gardener Delivery…, read the confirmation, and press Send Transaction",
+        "As the owner press Enable Gardener Delivery…, read the confirmation, and press Enable Gardener Delivery",
         "Press Check on chain",
         "Disable it the same way"
       ],

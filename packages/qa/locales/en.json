@@ -42,17 +42,19 @@
       "expected": "The complete decision path works and commit/cancel actions are never hidden inside a clipped scrolling region",
       "role": "steward"
     },
-    "ADM-013": {
-      "scenario": "Commitment confirmation states who and what before commit",
-      "preconditions": ["Steward session; at least one pending commitment confirmation"],
-      "steps": [
-        "Open /hub/confirm",
-        "Open a commitment",
-        "Verify who and what is affected is stated",
-        "Confirm or decline",
-        "Reopen after an external change to exercise stale data"
+    "ADM-145": {
+      "scenario": "Confirm Kept… reviews the commitment before confirming it",
+      "preconditions": [
+        "Steward with the garden that confirms the commitment selected in the header",
+        "A commitment waiting for that garden's confirmation and marked Ready to confirm"
       ],
-      "expected": "Consequences are named before the act, stale data is handled honestly, and the resulting state is visible",
+      "steps": [
+        "Open Hub → Confirm and press Confirm Kept… on the commitment's row",
+        "Read the review",
+        "Press Confirm Kept and confirm in the wallet",
+        "Read Hub → Confirm and the commitment afterwards"
+      ],
+      "expected": "Before anything is sent, the review names the commitment, the garden's pool it lives in, and who kept it, and says either that this confirmation closes it as kept for everyone or which confirmation of how many it is, and that it cannot be undone; confirming is one transaction; the commitment then reads Kept and leaves the queue, or its row shows one more confirmation",
       "role": "steward"
     },
     "ADM-014": {
@@ -76,7 +78,7 @@
         "Add named confirmers incl. one bad address",
         "Review, press Seed This Commitment, and confirm in the wallet"
       ],
-      "expected": "Each step validates before Next; a bad or duplicate confirmer address is rejected visibly; the review reads every answer back before anything is sent; seeding asks the wallet to confirm one creation and the wizard closes",
+      "expected": "Each step validates before Next; a bad or duplicate confirmer address is rejected visibly; the review reads every answer back before anything is sent; seeding asks the wallet to confirm one creation, and the wizard shows it as Created until Done closes it",
       "role": "steward"
     },
     "ADM-037": {
@@ -288,7 +290,7 @@
       "role": "steward"
     },
     "ADM-045": {
-      "scenario": "Queue a discretionary ProtocolToGarden treasury top-up",
+      "scenario": "Queue a discretionary protocol-to-garden treasury top-up",
       "preconditions": [
         "Signed in with Tester A's allowlisted wallet",
         "ADM-014 has confirmed funding readiness",
@@ -296,9 +298,9 @@
       ],
       "steps": [
         "Open the protocol treasury funding action",
-        "Choose ProtocolToGarden and identify the destination Garden",
-        "Verify no commitment ID is requested or attached",
-        "If value authority is available, review and queue the top-up",
+        "Choose the destination Garden under Receiving garden and enter the amount",
+        "Verify no commitment is requested or attached",
+        "If value authority is available, press Review seed or top-up…, read the confirmation, and press Queue seed or top-up",
         "Otherwise stop at the visible gate and record Blocked",
         "Ask Tester B to verify the Garden balance or readiness state"
       ],
@@ -360,7 +362,7 @@
         "PWA-050": {
           "handoff": "The reviewer waits for the local Work and evidence before opening review."
         },
-        "ADM-013": {
+        "ADM-145": {
           "handoff": "Both people verify the local commitment is complete and remains distinct from the protocol Request."
         },
         "ADM-044": {
