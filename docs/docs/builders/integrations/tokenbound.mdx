@@ -26,6 +26,20 @@ and history included, as long as transfers are open: the GardenToken contract ca
 the protocol's admin or lock them entirely (`transferRestriction`). Either way, no app of ours has
 to exist for a garden to keep being real.
 
+## How it flows
+
+Minting a garden creates the token and its account together. From then on, the account is the
+garden.
+
+```mermaid
+flowchart LR
+  mint["Garden minted"] --> token["Garden token<br/>(ERC-721)"]
+  token -->|ERC-6551 registry| account["Garden account"]
+  account --> treasury["Treasury and module state"]
+  account --> roles["Hats role tree"]
+  account --> records["Attestations it receives"]
+```
+
 ## Where it lives in the code
 
 | Layer | Source |
@@ -50,3 +64,9 @@ exercises the full token-plus-account flow without real gas.
   reading in full.
 - [Tokenbound documentation](https://docs.tokenbound.org) for the reference implementation the
   ecosystem builds against.
+
+## Next steps
+
+- [Hats Protocol](/builders/integrations/hats) covers the role tree each garden account wears.
+- [EAS](/builders/integrations/eas) shows the attestations a garden account receives.
+- [Architecture](/builders/architecture#a-garden-is-an-account) explains why a garden is an account at all.

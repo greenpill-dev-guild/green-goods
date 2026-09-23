@@ -4,7 +4,7 @@ sidebar_label: Gardens
 slug: /builders/integrations/gardens
 audience: developer
 owner: docs
-last_verified: 2026-09-02
+last_verified: 2026-09-23
 feature_status: Live
 source_of_truth:
   - packages/shared/src/ontology/green-goods-ontology.json
@@ -24,6 +24,17 @@ The Gardens module connects a Green Goods garden to
 [Gardens](https://gardens.fund), the conviction-voting platform for community governance. Through
 it, a garden's community can participate in signal pools: expressing sustained preference over
 where support should flow, rather than one-off votes.
+
+## How it flows
+
+The module links a garden to its Gardens community, where members signal support over time.
+
+```mermaid
+flowchart LR
+  garden["Garden"] -->|Gardens module| community["Gardens community"]
+  community --> pools["Signal pools"]
+  members([Community members]) -->|signal support over time| pools
+```
 
 ## Where it lives in the code
 
@@ -45,3 +56,9 @@ Gardens platform itself needs the real chain.
 
 - [gardens.fund](https://gardens.fund) for the platform and its conviction-voting model.
 - [Gardens documentation](https://docs.gardens.fund) for the concepts and mechanics.
+
+## Next steps
+
+- [Hats Protocol](/builders/integrations/hats) covers the roles a garden's community members wear.
+- [Octant](/builders/integrations/octant) covers the other side of a garden's funding: its vault.
+- [Architecture](/builders/architecture) shows where opt-in modules fit in the system.

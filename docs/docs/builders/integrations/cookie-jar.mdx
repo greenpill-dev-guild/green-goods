@@ -30,6 +30,20 @@ garden is minted, the Green Goods Cookie Jar module deploys one jar per supporte
 hats are ERC-1155 tokens, so the jar checks them directly. Each asset also has its own per-claim
 limit.
 
+## How it flows
+
+Jars are created with the garden, filled by funders, and emptied a little at a time by the people
+doing the work.
+
+```mermaid
+flowchart LR
+  mint["Garden minted"] --> module["Cookie Jar module"]
+  module -->|one jar per asset| factory["1Hive CookieJarFactory"]
+  factory --> jar["Garden jar"]
+  funders([Funders]) -->|deposit| jar
+  gardeners([Gardener hat wearers]) -->|claim up to the limit| jar
+```
+
 ## Where it lives in the code
 
 | Layer | Source |

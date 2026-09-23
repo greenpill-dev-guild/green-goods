@@ -4,7 +4,7 @@ sidebar_label: Passkeys
 slug: /builders/integrations/passkey
 audience: developer
 owner: docs
-last_verified: 2026-09-02
+last_verified: 2026-09-23
 feature_status: Live
 source_of_truth:
   - packages/shared/src/hooks/auth
@@ -22,6 +22,19 @@ Gardeners should never need a seed phrase to plant trees. Passkey authentication
 with the platform authenticator they already have (Face ID, a fingerprint, a device PIN) and backs
 their identity with a smart account, so field workers get real on-chain records without wallet
 onboarding. Wallets remain available for stewards and power users; passkeys are the default path.
+
+## How it flows
+
+A gardener signs with their device, and Green Goods sponsors the gas, so there's no wallet to set
+up.
+
+```mermaid
+flowchart LR
+  gardener([Gardener]) -->|Face ID, fingerprint, or PIN| passkey["Device passkey<br/>(WebAuthn)"]
+  passkey -->|signs for| account["Smart account"]
+  account -->|sponsored transaction| bundler["Bundler (Pimlico)"]
+  bundler --> chain["Arbitrum One"]
+```
 
 ## Where it lives in the code
 
@@ -46,3 +59,9 @@ exercised in the Playwright authentication projects.
 - [passkeys.dev](https://passkeys.dev) for the practical, platform-by-platform guidance.
 - [The WebAuthn specification](https://www.w3.org/TR/webauthn-2/) when you need the exact
   ceremony semantics.
+
+## Next steps
+
+- [Getting Started](/builders/getting-started) lets you try the app with mock auth.
+- [Anatomy of a Work Submission](/builders/architecture/anatomy) follows a gardener from sign-in to a recorded submission.
+- [Testing Guide](/builders/testing) lists the Playwright projects that exercise sign-in.

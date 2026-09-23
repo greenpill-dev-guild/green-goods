@@ -4,7 +4,7 @@ sidebar_label: Hats Protocol
 slug: /builders/integrations/hats
 audience: developer
 owner: docs
-last_verified: 2026-09-02
+last_verified: 2026-09-23
 feature_status: Live
 source_of_truth:
   - packages/shared/src/ontology/green-goods-ontology.json
@@ -21,10 +21,24 @@ import {IntegrationProjection} from "@site/src/components/docs";
 # Hats Protocol
 
 [Hats Protocol](https://docs.hatsprotocol.xyz) provides the on-chain role hierarchy that decides
-who may do what in a garden. Steward hats can approve work, gardener hats can submit it, and
-evaluator hats can attest assessments. Because hats are tokens, the
+who may do what in a garden. Gardeners submit work, evaluators attest assessments, and stewards
+approve work. Roles stack, so stewards can also do what the roles below them do, and the garden's
+owner can do all of it. Because hats are tokens, the
 [EAS resolvers](./eas) check them directly at write time, and because each garden's hats form a
 tree, its whole authority structure is inspectable at once.
+
+## How it flows
+
+Stewards and the garden's owner manage the tree through the Hats module. Everything else only reads
+it.
+
+```mermaid
+flowchart LR
+  steward([Owner or steward]) -->|grants or revokes| module["Hats module"]
+  module --> tree["Garden hat tree<br/>(Hats Protocol)"]
+  resolvers["EAS resolvers"] -->|check the signer's hat| tree
+  apps["Client and admin"] -->|read roles| tree
+```
 
 ## Where it lives in the code
 
@@ -59,3 +73,9 @@ real gas.
 - [Supported chains](https://docs.hatsprotocol.xyz/using-hats/hats-protocol-supported-chains) for
   official addresses.
 - [app.hatsprotocol.xyz](https://app.hatsprotocol.xyz) to view a garden's tree.
+
+## Next steps
+
+- [EAS](/builders/integrations/eas) shows where these roles are checked: in the resolvers, at the moment a record is written.
+- [Tokenbound Accounts](/builders/integrations/tokenbound) covers the garden account that wears the tree.
+- [Anatomy of a Work Submission](/builders/architecture/anatomy) puts the roles to work in one real flow.

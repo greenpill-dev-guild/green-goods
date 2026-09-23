@@ -4,7 +4,7 @@ sidebar_label: Karma GAP
 slug: /builders/integrations/karma
 audience: developer
 owner: docs
-last_verified: 2026-09-02
+last_verified: 2026-09-23
 feature_status: Live
 source_of_truth:
   - packages/shared/src/ontology/green-goods-ontology.json
@@ -25,6 +25,17 @@ activity to project reporting and milestone records. When the module is active, 
 assessment mirrors to a GAP milestone, so grant programs that already track accountability
 through GAP see Green Goods work in the format they trust.
 
+## How it flows
+
+Stewards record the assessment once in Green Goods, and the module carries it over to GAP.
+
+```mermaid
+flowchart LR
+  steward([Steward]) -->|records| assessment["Garden assessment"]
+  assessment -->|Karma module mirrors| milestone["Karma GAP milestone"]
+  milestone --> programs["Grant programs<br/>that track GAP"]
+```
+
 ## Where it lives in the code
 
 | Layer | Source |
@@ -44,3 +55,9 @@ chain.
 
 - [Karma GAP documentation](https://docs.gap.karmahq.xyz) for projects, grants, and milestones.
 - [gap.karmahq.xyz](https://gap.karmahq.xyz) to browse live records.
+
+## Next steps
+
+- [Making an assessment](/community/steward-guide/making-an-assessment) shows the steward flow that feeds a GAP milestone.
+- [Hypercerts](/builders/integrations/hypercerts) turns the same body of work into a claim funders can hold.
+- [Deployment Status](/builders/reference/deployments) lists where the Karma module is recorded.

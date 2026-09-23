@@ -41,6 +41,20 @@ not implied.
 The [Anatomy of a Work Submission](../architecture/anatomy) follows one record through the whole
 stack, and the [Data Model](../architecture/data-model) shows how they relate.
 
+## How it flows
+
+Here's the path one record takes, from a signature to the pages that show it. The resolver can
+refuse the write, so any record you can read has already passed its role check.
+
+```mermaid
+flowchart LR
+  person([Gardener or steward]) -->|signs| app["Client or admin"]
+  app -->|attest| eas["EAS contract"]
+  eas -->|asks| resolver["Green Goods resolver<br/>(checks roles)"]
+  eas --> graphql[("EAS GraphQL<br/>(easscan)")]
+  graphql -->|shared EAS data layer| app
+```
+
 ## Where it lives in the code
 
 | Layer | Source |
@@ -71,3 +85,9 @@ preserve that distinction in anything you build.
 - [Per-chain contracts](https://docs.attest.org/docs/quick--start/contracts) for official EAS
   addresses.
 - [arbitrum.easscan.org](https://arbitrum.easscan.org) to browse Green Goods records live.
+
+## Next steps
+
+- [Anatomy of a Work Submission](/builders/architecture/anatomy) follows one attestation from a phone to the chain.
+- [Hats Protocol](/builders/integrations/hats) explains the roles the resolvers check.
+- [Data Model & Ontology](/builders/architecture/data-model) shows how work, approvals, and assessments relate.
