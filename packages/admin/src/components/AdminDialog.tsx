@@ -22,6 +22,13 @@ export interface AdminDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   title: ReactNode;
+  /**
+   * What the dialog's act writes to, named under the title and before the
+   * description: the chrome cannot prove which record a write changes, so a
+   * consequential act says so first (DESIGN.md § Interface Principles 4, 9).
+   * Rendered only in the structured header; flows name it in their own body.
+   */
+  target?: ReactNode;
   description?: ReactNode;
   icon?: ComponentType<{ className?: string }> | ReactNode;
   children: ReactNode;
@@ -68,6 +75,8 @@ export interface AdminConfirmDialogProps {
   icon?: ReactNode;
   /** Workspace tone, forwarded to the portaled surface (see AdminDialogProps.tone). */
   tone?: AdminDialogProps["tone"];
+  /** What the act writes to, named under the title (see AdminDialogProps.target). */
+  target?: ReactNode;
   /** The facts the confirmation rests on (what changes, from what to what), under the description. */
   children?: ReactNode;
 }
@@ -160,6 +169,7 @@ export function AdminDialog({
   open,
   onOpenChange,
   title,
+  target,
   description,
   icon: Icon,
   children,
@@ -312,6 +322,11 @@ export function AdminDialog({
                   <Dialog.Title className="text-lg font-semibold leading-7 text-[rgb(var(--m3-on-surface))]">
                     {title}
                   </Dialog.Title>
+                  {target ? (
+                    <div data-slot="target" className="mt-2">
+                      {target}
+                    </div>
+                  ) : null}
                   <Dialog.Description
                     className={cn(
                       description ? "mt-0.5 text-sm" : "sr-only",
@@ -385,6 +400,7 @@ export function AdminConfirmDialog({
   confirmDisabled = false,
   icon,
   tone,
+  target,
   children,
 }: AdminConfirmDialogProps) {
   const { formatMessage } = useIntl();
@@ -434,6 +450,7 @@ export function AdminConfirmDialog({
         if (!open) onClose();
       }}
       title={title}
+      target={target}
       description={description}
       icon={iconNode}
       variant="confirm"

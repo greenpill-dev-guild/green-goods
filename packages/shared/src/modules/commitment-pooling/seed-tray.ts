@@ -15,6 +15,7 @@
  */
 
 import type { CommitmentComposerValues } from "../../hooks/commitment-pooling/useCommitmentComposerForm";
+import type { CommitmentSendReport } from "../../hooks/commitment-pooling/useCommitmentJobs";
 import type { Address } from "../../types/domain";
 import { logger } from "../app/logger";
 import { isSameAccount } from "./selectors";
@@ -40,6 +41,85 @@ export interface SeedTray {
 export interface SeedTraySendResult {
   sent: string[];
   failed: string[];
+}
+
+/**
+ * Where one row stands in a pass: waiting its turn, being prepared, at the
+ * wallet, confirming on the chain, or how it ended: created, queued to send
+ * later (its row stays on the pool tab), or not sent.
+ */
+export type SeedRowStatus =
+  | "waiting"
+  | "preparing"
+  | "wallet"
+  | "confirming"
+  | "created"
+  | "later"
+  | "not-sent";
+
+export interface SeedRowProgress {
+  clientCommitmentId: string;
+  /** The row's name, as the steward wrote it. */
+  title: string;
+  status: SeedRowStatus;
+  /** The transaction that carried it, once the wallet has returned one. */
+  txHash: string | null;
+}
+
+/** What happens to one row during a pass. */
+export type SeedRowEvent =
+  | { type: "start" }
+  | { type: "report"; report: CommitmentSendReport }
+  | { type: "settled" }
+  | { type: "failed" };
+
+const ENDED = new Set<SeedRowStatus>(["created", "later", "not-sent"]);
+
+/** Every row of a pass waiting its turn, in tray order. */
+export function startSeedPass(rows: readonly SeedTrayRow[]): SeedRowProgress[] {
+  return rows.map((row) => ({
+    clientCommitmentId: row.clientCommitmentId,
+    title: row.values.title,
+    status: "waiting",
+    txHash: null,
+  }));
+}
+
+function nextRow(row: SeedRowProgress, event: SeedRowEvent): SeedRowProgress {
+  if (ENDED.has(row.status)) return row;
+  switch (event.type) {
+    case "start":
+      return { ...row, status: "preparing" };
+    case "failed":
+      return { ...row, status: "not-sent" };
+    case "settled":
+      // Resolved without saying how: it did not fail, so its row waits on the pool tab.
+      return { ...row, status: "later" };
+    case "report": {
+      const { report } = event;
+      switch (report.stage) {
+        case "wallet":
+          return { ...row, status: "wallet" };
+        case "confirming":
+          return { ...row, status: "confirming", txHash: report.txHash };
+        case "landed":
+          return { ...row, status: "created", txHash: report.txHash ?? row.txHash };
+        case "queued":
+          return { ...row, status: "later" };
+      }
+    }
+  }
+}
+
+/** One row moves on; the others stay where they are. A row that ended stays ended. */
+export function advanceSeedRow(
+  pass: readonly SeedRowProgress[],
+  clientCommitmentId: string,
+  event: SeedRowEvent
+): SeedRowProgress[] {
+  return pass.map((row) =>
+    row.clientCommitmentId === clientCommitmentId ? nextRow(row, event) : row
+  );
 }
 
 export function startSeedTray(clientCommitmentId: string): SeedTray {
@@ -112,7 +192,9 @@ export function currentTrayRow(tray: SeedTray): SeedTrayRow | undefined {
 }
 
 /**
- * Send the rows one after another. `send` rejects when nothing was created.
+ * Send the rows one after another. `send` rejects when nothing was created,
+ * and may report where the row stands as it goes; `onRow` hears each row's
+ * start, reports and ending, so a view can follow the pass row by row.
  *
  * Nothing ends the pass early, neither a row the chain refuses nor a wallet
  * prompt the steward declines: the rows are separate commitments, and what
@@ -120,14 +202,19 @@ export function currentTrayRow(tray: SeedTray): SeedTrayRow | undefined {
  */
 export async function sendSeedTray(
   rows: readonly SeedTrayRow[],
-  send: (row: SeedTrayRow) => Promise<unknown>
+  send: (row: SeedTrayRow, report: (event: CommitmentSendReport) => void) => Promise<unknown>,
+  onRow?: (clientCommitmentId: string, event: SeedRowEvent) => void
 ): Promise<SeedTraySendResult> {
   const result: SeedTraySendResult = { sent: [], failed: [] };
   for (const row of rows) {
+    const id = row.clientCommitmentId;
+    onRow?.(id, { type: "start" });
     try {
-      await send(row);
+      await send(row, (report) => onRow?.(id, { type: "report", report }));
+      onRow?.(id, { type: "settled" });
       result.sent.push(row.clientCommitmentId);
     } catch (error) {
+      onRow?.(id, { type: "failed" });
       // Recorded here so that moving on to the next row never loses why this one failed.
       logger.error("[seed-tray] a row was not sent", {
         clientCommitmentId: row.clientCommitmentId,

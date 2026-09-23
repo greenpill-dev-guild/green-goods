@@ -2,38 +2,30 @@ import { usePoolConsoleController } from "@green-goods/shared/hooks/admin-ui/poo
 import type { Address } from "@green-goods/shared/types/domain";
 import { adminRoutes } from "@green-goods/shared/utils/navigation/admin-routes";
 import type { CommitmentReadModel } from "@green-goods/shared/modules/commitment-pooling/types-core";
-import { RiSeedlingLine } from "@remixicon/react";
 import { useCallback, useRef, useState } from "react";
 import { useIntl } from "react-intl";
 import { useNavigate } from "react-router-dom";
-import { AdminButton } from "@/components/AdminButton";
 import { AdminCard } from "@/components/AdminCard";
 import { PoolClaimsCard } from "./PoolClaimsCard";
-import { type PoolCommitmentScope, PoolCommitmentsCard } from "./PoolCommitmentsCard";
+import {
+  type PoolCommitmentFocus,
+  type PoolCommitmentScope,
+  PoolCommitmentsCard,
+} from "./PoolCommitmentsCard";
 import { PoolCyclesCard } from "./PoolCyclesCard";
 import { PoolDialogs } from "./PoolDialogs";
 import { PoolFundingDialog } from "./PoolFundingDialog";
 import { PoolFundingSection } from "./PoolFundingSection";
+import { PoolNotReadyCard } from "./PoolNotReadyCard";
+import { PoolStatsCard } from "./PoolStatsCard";
 import { PoolStatusCard } from "./PoolStatusCard";
 import { PoolStatusCasts } from "./PoolStatusCasts";
-import type { ConfirmDialog, FlowState, ReasonDialog } from "./poolDialogState";
+import type { ConfirmDialog, CycleDialog, FlowState, ReasonDialog } from "./poolDialogState";
 
 export interface GardenPoolTabProps {
   garden: { id: Address; name: string };
   chainId: number;
   canManage: boolean;
-  /**
-   * Where the seed console and the commitment inspector open. The Garden
-   * workspace routes them (`/garden/pool/seed`, `/garden/pool/:id`); the
-   * Community → Pools protocol tab hosts the same console for another garden
-   * and opens both in place, in its own tone.
-   */
-  presentation?: {
-    inspector: "route" | "dialog";
-    tone: "garden" | "community";
-    /** Seeding in protocol context: requests default to steward review. */
-    protocolContext?: boolean;
-  };
 }
 
 /**
@@ -42,25 +34,26 @@ export interface GardenPoolTabProps {
  * pool's own status card on the right. Every act goes through the controller
  * in shared; every reasoned act through the one reason dialog; every row opens
  * in the Garden workspace's left inspector, route-backed.
+ *
+ * The console lives here and nowhere else, and it only ever acts on the pool
+ * of the garden the workspace has selected. The protocol pool is the Green
+ * Goods Community Garden's own pool, so it is managed from that garden, in
+ * protocol context because the pool says it is the protocol's, not because of
+ * where the console was mounted.
  */
-export function GardenPoolTab({
-  garden,
-  chainId,
-  canManage,
-  presentation = { inspector: "route", tone: "garden" },
-}: GardenPoolTabProps) {
+export function GardenPoolTab({ garden, chainId, canManage }: GardenPoolTabProps) {
   const { formatMessage } = useIntl();
   const navigate = useNavigate();
   const pool = usePoolConsoleController({ chainId, garden: garden.id });
-  const tone = presentation.tone;
-  const [inspected, setInspected] = useState<string | null>(null);
-  const [seedOpen, setSeedOpen] = useState(false);
-  const [seedFrom, setSeedFrom] = useState<string | null>(null);
+  const tone = "garden" as const;
+  const isProtocolPool = pool.pool?.poolType === "PROTOCOL";
+  const target = { gardenName: garden.name, isProtocol: isProtocolPool };
   const [scope, setScope] = useState<PoolCommitmentScope>("open");
-  const [dueOnly, setDueOnly] = useState(false);
+  const [focus, setFocus] = useState<PoolCommitmentFocus>(null);
   const [flow, setFlow] = useState<FlowState>(null);
   const [reasonDialog, setReasonDialog] = useState<ReasonDialog>(null);
   const [confirmDialog, setConfirmDialog] = useState<ConfirmDialog>(null);
+  const [cycleDialog, setCycleDialog] = useState<CycleDialog>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [fundingOpen, setFundingOpen] = useState(false);
   const fundingDetailsButtonRef = useRef<HTMLButtonElement>(null);
@@ -68,26 +61,17 @@ export function GardenPoolTab({
 
   const openCommitment = useCallback(
     (commitment: CommitmentReadModel) => {
-      if (presentation.inspector === "dialog") {
-        setInspected(commitment.commitmentId.toString());
-        return;
-      }
       navigate(
         adminRoutes.gardenPoolCommitment(commitment.commitmentId.toString(), {
           gardenId: garden.id,
         })
       );
     },
-    [navigate, garden.id, presentation.inspector]
+    [navigate, garden.id]
   );
   const openSeed = useCallback(() => {
-    if (presentation.inspector === "dialog") {
-      setSeedFrom(null);
-      setSeedOpen(true);
-      return;
-    }
     navigate(adminRoutes.gardenPoolSeed({ gardenId: garden.id }));
-  }, [navigate, garden.id, presentation.inspector]);
+  }, [navigate, garden.id]);
   const jumpTo = (id: string) => {
     if (typeof document === "undefined") return;
     document.getElementById(id)?.scrollIntoView({ block: "start" });
@@ -99,7 +83,7 @@ export function GardenPoolTab({
       open={fundingOpen}
       onOpenChange={setFundingOpen}
       funding={pool.funding}
-      protocolContext={presentation.protocolContext}
+      protocolContext={isProtocolPool}
       tone={tone}
       returnFocusRef={fundingDetailsButtonRef}
     />
@@ -111,7 +95,7 @@ export function GardenPoolTab({
         <AdminCard variant="elevated">
           <PoolFundingSection
             funding={pool.funding}
-            protocolContext={presentation.protocolContext}
+            protocolContext={isProtocolPool}
             onOpenDetails={() => setFundingOpen(true)}
             detailsButtonRef={fundingDetailsButtonRef}
           />
@@ -138,27 +122,30 @@ export function GardenPoolTab({
       onCompostPool={() => setConfirmDialog("compost")}
       onReopenPool={() => setConfirmDialog("reopen")}
       onReviewLive={() => {
-        setDueOnly(false);
+        setFocus(null);
         setScope("open");
         jumpTo("pool-commitments");
       }}
       onOpenFundingDetails={() => setFundingOpen(true)}
-      protocolContext={presentation.protocolContext}
+      protocolContext={isProtocolPool}
       fundingDetailsButtonRef={fundingDetailsButtonRef}
     />
   );
 
+  // Each count lands on exactly what it counts (interaction-patterns §5).
+  const openFocus = (next: PoolCommitmentFocus) => {
+    setScope("open");
+    setFocus(next);
+    jumpTo("pool-commitments");
+  };
   const summary =
     !preOpen && !finished ? (
-      <div
-        className="grid grid-cols-3 gap-2"
-        data-component="PoolSummaryRow"
-        aria-label={formatMessage({
+      <PoolStatsCard
+        label={formatMessage({
           id: "cockpit.garden.pool.summary.label",
           defaultMessage: "What needs you",
         })}
-      >
-        {[
+        stats={[
           {
             id: "claims",
             count: model.counts.claimsWaiting,
@@ -166,7 +153,7 @@ export function GardenPoolTab({
               id: "cockpit.garden.pool.summary.claims",
               defaultMessage: "Claims waiting",
             }),
-            onClick: () => jumpTo("pool-claims"),
+            onOpen: () => jumpTo("pool-claims"),
           },
           {
             id: "recovery",
@@ -175,11 +162,7 @@ export function GardenPoolTab({
               id: "cockpit.garden.pool.summary.recovery",
               defaultMessage: "Needs recovery",
             }),
-            onClick: () => {
-              setDueOnly(false);
-              setScope("open");
-              jumpTo("pool-commitments");
-            },
+            onOpen: () => openFocus("recovery"),
           },
           {
             id: "pastDue",
@@ -188,23 +171,10 @@ export function GardenPoolTab({
               id: "cockpit.garden.pool.summary.pastDue",
               defaultMessage: "Past due",
             }),
-            onClick: () => {
-              setDueOnly(true);
-              jumpTo("pool-commitments");
-            },
+            onOpen: () => openFocus("pastDue"),
           },
-        ].map((stat) => (
-          <button
-            key={stat.id}
-            type="button"
-            onClick={stat.onClick}
-            className="m3-state-layer rounded-[var(--m3-shape-md)] bg-[rgb(var(--m3-surface-container-highest))] px-3 py-2 text-left [--state-layer-color:var(--m3-on-surface)]"
-          >
-            <span className="block text-lg font-semibold text-text-strong">{stat.count}</span>
-            <span className="block text-xs text-text-soft">{stat.label}</span>
-          </button>
-        ))}
-      </div>
+        ]}
+      />
     ) : null;
 
   return (
@@ -217,36 +187,10 @@ export function GardenPoolTab({
         {summary}
 
         {preOpen ? (
-          <AdminCard
-            variant="elevated"
-            className="flex min-h-56 flex-col items-center justify-center gap-3 text-center"
-          >
-            <RiSeedlingLine className="h-6 w-6 text-text-soft" aria-hidden />
-            <p className="label-md text-text-strong">
-              {formatMessage({
-                id: "cockpit.garden.pool.notReady.title",
-                defaultMessage: "This garden isn’t taking commitments yet",
-              })}
-            </p>
-            <p className="max-w-md text-sm text-text-soft">
-              {formatMessage({
-                id: "cockpit.garden.pool.notReady.body",
-                defaultMessage:
-                  "Neighbours can offer help and ask for it here once you’ve set up how this pool works.",
-              })}
-            </p>
-            <AdminButton
-              type="button"
-              variant="filled"
-              onClick={() => setFlow({ intent: "first-run" })}
-              disabled={!pool.isOnline}
-            >
-              {formatMessage({
-                id: "cockpit.garden.pool.act.setUp",
-                defaultMessage: "Set Up Commitments",
-              })}
-            </AdminButton>
-          </AdminCard>
+          <PoolNotReadyCard
+            isOnline={pool.isOnline}
+            onSetUp={() => setFlow({ intent: "first-run" })}
+          />
         ) : finished ? null : (
           <PoolCyclesCard
             console={pool}
@@ -255,6 +199,8 @@ export function GardenPoolTab({
             onStartCampaign={() => setFlow({ intent: "campaign" })}
             onOpenCampaign={(cycle) => setFlow({ intent: "open-campaign", cycle })}
             onCancelCycle={(cycle) => setReasonDialog({ kind: "cancel-cycle", cycle })}
+            onEndCycle={(cycle) => setCycleDialog({ kind: "end", cycle })}
+            onArchiveCycle={(cycle) => setCycleDialog({ kind: "archive", cycle })}
           />
         )}
 
@@ -270,8 +216,8 @@ export function GardenPoolTab({
             console={pool}
             scope={scope}
             onScopeChange={setScope}
-            dueOnly={dueOnly}
-            onDueOnlyChange={setDueOnly}
+            focus={focus}
+            onFocusChange={setFocus}
             onOpenCommitment={openCommitment}
             onSeed={openSeed}
             canSeed={canSeed}
@@ -284,24 +230,18 @@ export function GardenPoolTab({
 
       <PoolDialogs
         pool={pool}
-        garden={garden}
-        chainId={chainId}
+        target={target}
         tone={tone}
-        presentation={presentation}
         flow={flow}
         setFlow={setFlow}
         settingsOpen={settingsOpen}
         setSettingsOpen={setSettingsOpen}
-        seedOpen={seedOpen}
-        setSeedOpen={setSeedOpen}
-        seedFrom={seedFrom}
-        setSeedFrom={setSeedFrom}
-        inspected={inspected}
-        setInspected={setInspected}
         reasonDialog={reasonDialog}
         setReasonDialog={setReasonDialog}
         confirmDialog={confirmDialog}
         setConfirmDialog={setConfirmDialog}
+        cycleDialog={cycleDialog}
+        setCycleDialog={setCycleDialog}
       />
       {fundingDialog}
     </div>

@@ -15,9 +15,13 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { PoolConsoleController } from "./controller.types";
-import { pinPoolCharter } from "../../../modules/commitment-pooling/pool-charter";
 import { jobQueue } from "../../../modules/job-queue/default-instance";
 import { selectPoolConsoleModel } from "../../../modules/commitment-pooling/pool-console";
+import {
+  actPhaseFor,
+  claimActKey,
+  RESUME_POOL_ACT_KEY,
+} from "../../../modules/transactions/act-phase";
 import { selectNextDueBoundary } from "../../../modules/commitment-pooling/steward-selectors";
 import type { Address } from "../../../types/domain";
 import { createMutationErrorHandler } from "../../../utils/errors/mutation-error-handler";
@@ -25,7 +29,10 @@ import { useOnlineStatus } from "../../app/useOnlineStatus";
 import { usePrimaryAddress } from "../../auth/usePrimaryAddress";
 import { useTransactionSender } from "../../blockchain/useTransactionSender";
 import { useCommitmentCycleNames } from "../../commitment-pooling/useCommitmentCycleNames";
-import { retryQueuedCommitmentJob } from "../../commitment-pooling/useCommitmentJobs";
+import {
+  retryQueuedCommitmentJob,
+  toActPhaseReport,
+} from "../../commitment-pooling/useCommitmentJobs";
 import { useCommitmentMetadata } from "../../commitment-pooling/useCommitmentMetadata";
 import { useCommitmentMutation } from "../../commitment-pooling/useCommitmentMutations";
 import {
@@ -40,6 +47,7 @@ import { usePoolCharter } from "../../commitment-pooling/usePoolCharter";
 import { usePoolClaimRequests } from "../../commitment-pooling/usePoolClaimRequests";
 import { usePoolFunding } from "../../commitment-pooling/usePoolFunding";
 import { useTimeout } from "../../utils/useTimeout";
+import { useTxActPhase } from "../../blockchain/useTxActPhase";
 
 /** Queue acts are not mutations, so their failures go through the same handler by hand. */
 const reportQueuedSendError = createMutationErrorHandler({
@@ -146,6 +154,15 @@ export function usePoolConsoleController(input: {
 
   const poolMutation = useCommitmentPoolMutation({ chainId });
   const commitmentMutation = useCommitmentMutation({ chainId });
+  // Accept is one signature from a list row: the row follows it to the chain.
+  const claimAct = useTxActPhase();
+  const trackClaim = claimAct.track;
+  // Resume and a queued row's send are single signatures too: each says where
+  // it stands on the card it started from.
+  const poolAct = useTxActPhase();
+  const trackPool = poolAct.track;
+  const queuedAct = useTxActPhase();
+  const trackQueued = queuedAct.trackReported;
   const sender = useTransactionSender();
   const refreshQueue = queue.refresh;
 
@@ -163,7 +180,13 @@ export function usePoolConsoleController(input: {
           reason,
           gardenAddress: garden,
         }),
-      resume: () => poolMutation.mutateAsync({ action: "resumePool", poolId: requirePool() }),
+      resume: () => {
+        // Refused before the line starts: an act with no pool never asks the wallet.
+        const poolId = requirePool();
+        return trackPool(RESUME_POOL_ACT_KEY, (send) =>
+          poolMutation.mutateAsync({ action: "resumePool", poolId, send })
+        );
+      },
       closePool: () => poolMutation.mutateAsync({ action: "closePool", poolId: requirePool() }),
       compostPool: () => poolMutation.mutateAsync({ action: "compostPool", poolId: requirePool() }),
       reopenPool: (toOpen: boolean) =>
@@ -176,7 +199,9 @@ export function usePoolConsoleController(input: {
       expire: (commitmentId: bigint) =>
         commitmentMutation.mutateAsync({ action: "expireCommitment", commitmentId }),
       acceptClaim: (commitmentId: bigint, claimant: Address) =>
-        commitmentMutation.mutateAsync({ action: "acceptClaim", commitmentId, claimant }),
+        trackClaim(claimActKey(commitmentId, claimant), (send) =>
+          commitmentMutation.mutateAsync({ action: "acceptClaim", commitmentId, claimant, send })
+        ),
       declineClaim: (commitmentId: bigint, claimant: Address, reason: string) =>
         commitmentMutation.mutateAsync({
           action: "declineClaim",
@@ -185,33 +210,14 @@ export function usePoolConsoleController(input: {
           reason,
           gardenAddress: garden,
         }),
-      /**
-       * Edit pool settings: the charter sentence is pinned before
-       * `setPoolCharter`; the cap goes straight to the register. Only what
-       * changed is written, and the charter lands first so a cap failure
-       * leaves the words recorded.
-       */
-      saveSettings: async (next: { purpose: string; cap: bigint }) => {
-        const id = requirePool();
-        const purposeChanged = next.purpose.trim() !== (charter.charter?.purpose ?? "");
-        if (purposeChanged) {
-          const charterCID = await pinPoolCharter({ purpose: next.purpose, gardenAddress: garden });
-          await poolMutation.mutateAsync({ action: "setPoolCharter", poolId: id, charterCID });
-        }
-        if (next.cap !== (pool?.providerOpenCommitmentCap ?? 0n)) {
-          await poolMutation.mutateAsync({
-            action: "setProviderOpenCommitmentCap",
-            poolId: id,
-            cap: next.cap,
-          });
-        }
-      },
       // The admin mounts no queue provider, so nothing sends a queued creation
       // unless the steward does. The row is re-read either way: a failed retry
       // changes what it says.
       retryQueued: async (jobId: string) => {
         try {
-          await retryQueuedCommitmentJob(jobId, sender);
+          await trackQueued(jobId, (report) =>
+            retryQueuedCommitmentJob(jobId, sender, toActPhaseReport(report))
+          );
         } catch (error) {
           reportQueuedSendError(error, { gardenAddress: garden, metadata: { act: "retryQueued" } });
         } finally {
@@ -237,10 +243,11 @@ export function usePoolConsoleController(input: {
     [
       poolMutation,
       commitmentMutation,
+      trackClaim,
+      trackPool,
+      trackQueued,
       requirePool,
       garden,
-      charter.charter?.purpose,
-      pool,
       sender,
       refreshQueue,
     ]
@@ -285,6 +292,10 @@ export function usePoolConsoleController(input: {
     queueUnavailable: queue.isUnavailable,
     funding: fundingView,
     acts,
+    claimPhase: (commitmentId: bigint, claimant: Address) =>
+      actPhaseFor(claimAct.phase, claimActKey(commitmentId, claimant)),
+    resumePhase: actPhaseFor(poolAct.phase, RESUME_POOL_ACT_KEY),
+    queuedPhase: (jobId: string) => actPhaseFor(queuedAct.phase, jobId),
     isActing: poolMutation.isPending || commitmentMutation.isPending,
     isLoading,
     isError,

@@ -59,7 +59,6 @@ const mocks = vi.hoisted(() => ({
   commitmentMutate: vi.fn<CommitmentMutate>(),
   poolPending: false,
   commitmentPending: false,
-  pinPoolCharter: vi.fn(),
   fundingRefetch: vi.fn(),
   sender: { authMode: "wallet" },
   retryQueuedCommitmentJob: vi.fn(),
@@ -104,7 +103,8 @@ vi.mock("../../../hooks/blockchain/useTransactionSender", () => ({
   useTransactionSender: () => mocks.sender,
 }));
 
-vi.mock("../../../hooks/commitment-pooling/useCommitmentJobs", () => ({
+vi.mock("../../../hooks/commitment-pooling/useCommitmentJobs", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../../../hooks/commitment-pooling/useCommitmentJobs")>()),
   retryQueuedCommitmentJob: mocks.retryQueuedCommitmentJob,
 }));
 
@@ -155,13 +155,6 @@ vi.mock("../../../hooks/commitment-pooling/useCommitmentMutations", () => ({
     isPending: mocks.commitmentPending,
   }),
 }));
-
-vi.mock("../../../modules/commitment-pooling/pool-charter", async () => {
-  const actual = await vi.importActual<
-    typeof import("../../../modules/commitment-pooling/pool-charter")
-  >("../../../modules/commitment-pooling/pool-charter");
-  return { ...actual, pinPoolCharter: mocks.pinPoolCharter };
-});
 
 const CHAIN_ID = DEMO_CHAIN_ID;
 const GARDEN = DEMO_GARDEN;
@@ -265,7 +258,6 @@ beforeEach(() => {
   mocks.queueState.mockReturnValue(queueState());
   mocks.poolMutate.mockResolvedValue("0xpool");
   mocks.commitmentMutate.mockResolvedValue("0xcommitment");
-  mocks.pinPoolCharter.mockResolvedValue("bafy-new-charter");
   mocks.getCommitmentPools.mockResolvedValue([POOL]);
   mocks.getCommitmentCycles.mockResolvedValue([CYCLE]);
   mocks.getCommitments.mockResolvedValue([COMMITMENT]);
@@ -416,11 +408,7 @@ describe("usePoolConsoleController", () => {
     for (const call of synchronousCalls) {
       expect(call).toThrow(expected);
     }
-    await expect(result.current.acts.saveSettings({ purpose: "", cap: 0n })).rejects.toThrow(
-      expected
-    );
     expect(mocks.poolMutate).not.toHaveBeenCalled();
-    expect(mocks.pinPoolCharter).not.toHaveBeenCalled();
   });
 
   it("forwards every lifecycle and claim act exactly", async () => {
@@ -444,7 +432,8 @@ describe("usePoolConsoleController", () => {
 
     expect(mocks.poolMutate.mock.calls.map(([input]) => input)).toEqual([
       { action: "pausePool", poolId: POOL_ID, reason: "Maintenance", gardenAddress: GARDEN },
-      { action: "resumePool", poolId: POOL_ID },
+      // Resume follows its own send, so the status card can say where it stands.
+      { action: "resumePool", poolId: POOL_ID, send: { onBroadcast: expect.any(Function) } },
       { action: "closePool", poolId: POOL_ID },
       { action: "compostPool", poolId: POOL_ID },
       { action: "reopenPool", poolId: POOL_ID, toOpen: false },
@@ -459,7 +448,13 @@ describe("usePoolConsoleController", () => {
     ]);
     expect(mocks.commitmentMutate.mock.calls.map(([input]) => input)).toEqual([
       { action: "expireCommitment", commitmentId: 30n },
-      { action: "acceptClaim", commitmentId: 31n, claimant: CLAIMANT },
+      // Accept follows its own send, so its row can say where it stands.
+      {
+        action: "acceptClaim",
+        commitmentId: 31n,
+        claimant: CLAIMANT,
+        send: { onBroadcast: expect.any(Function) },
+      },
       {
         action: "declineClaim",
         commitmentId: 32n,
@@ -468,53 +463,6 @@ describe("usePoolConsoleController", () => {
         gardenAddress: GARDEN,
       },
     ]);
-  });
-
-  it("writes changed settings in pin, charter, cap order and skips unchanged values", async () => {
-    const queryClient = testQueryClient();
-    seedControllerQueries(queryClient);
-    const { result } = renderController(queryClient);
-
-    await act(async () => {
-      await result.current.acts.saveSettings({ purpose: "Keep tools in service", cap: 5n });
-    });
-    expect(mocks.pinPoolCharter).not.toHaveBeenCalled();
-    expect(mocks.poolMutate).not.toHaveBeenCalled();
-
-    await act(async () => {
-      await result.current.acts.saveSettings({ purpose: "Expand the tool library", cap: 9n });
-    });
-
-    expect(mocks.pinPoolCharter).toHaveBeenCalledWith({
-      purpose: "Expand the tool library",
-      gardenAddress: GARDEN,
-    });
-    expect(mocks.poolMutate.mock.calls.map(([input]) => input)).toEqual([
-      {
-        action: "setPoolCharter",
-        poolId: POOL_ID,
-        charterCID: "bafy-new-charter",
-      },
-      { action: "setProviderOpenCommitmentCap", poolId: POOL_ID, cap: 9n },
-    ]);
-    expect(mocks.pinPoolCharter.mock.invocationCallOrder[0]).toBeLessThan(
-      mocks.poolMutate.mock.invocationCallOrder[0] ?? Number.POSITIVE_INFINITY
-    );
-    expect(mocks.poolMutate.mock.invocationCallOrder[0]).toBeLessThan(
-      mocks.poolMutate.mock.invocationCallOrder[1] ?? Number.POSITIVE_INFINITY
-    );
-  });
-
-  it("stops before both writes when charter pinning rejects", async () => {
-    const queryClient = testQueryClient();
-    seedControllerQueries(queryClient);
-    mocks.pinPoolCharter.mockRejectedValue(new Error("gateway down"));
-    const { result } = renderController(queryClient);
-
-    await expect(
-      result.current.acts.saveSettings({ purpose: "Expand the tool library", cap: 9n })
-    ).rejects.toThrow("gateway down");
-    expect(mocks.poolMutate).not.toHaveBeenCalled();
   });
 
   it("sends or drops a queued creation and re-reads the row either way", async () => {
@@ -536,7 +484,15 @@ describe("usePoolConsoleController", () => {
       await result.current.acts.discardQueued("job-2");
     });
 
-    expect(mocks.retryQueuedCommitmentJob).toHaveBeenCalledWith("job-1", mocks.sender);
+    // Each send reports how it ended, and the row it came from reads it:
+    // the second one failed, and no other row carries a line.
+    expect(mocks.retryQueuedCommitmentJob).toHaveBeenCalledWith(
+      "job-1",
+      mocks.sender,
+      expect.any(Function)
+    );
+    expect(result.current.queuedPhase("job-1")).toEqual({ status: "failed", key: "job-1" });
+    expect(result.current.queuedPhase("job-2")).toEqual({ status: "idle" });
     expect(mocks.reportError).toHaveBeenCalledTimes(1);
     expect(mocks.discardJob).toHaveBeenCalledWith("job-2");
     expect(refresh).toHaveBeenCalledTimes(3);

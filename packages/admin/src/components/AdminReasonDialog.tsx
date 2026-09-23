@@ -28,6 +28,8 @@ export interface AdminReasonDialogProps {
   /** Blocks the act without hiding it, with the sentence saying why (offline, paused). */
   blockedReason?: string;
   tone?: AdminDialogProps["tone"];
+  /** What the act writes to, named under the title (see AdminDialogProps.target). */
+  target?: ReactNode;
   /** Extra facts rendered above the field (for example what is frozen or who confirms). */
   children?: ReactNode;
 }
@@ -65,6 +67,7 @@ export function AdminReasonDialog({
   isLoading = false,
   blockedReason,
   tone,
+  target,
   children,
 }: AdminReasonDialogProps) {
   const { formatMessage } = useIntl();
@@ -107,6 +110,7 @@ export function AdminReasonDialog({
         if (!open && !busy) onClose();
       }}
       title={title}
+      target={target}
       description={description}
       icon={isDanger ? <RiAlertLine className="h-6 w-6 text-[rgb(var(--m3-error))]" /> : undefined}
       variant="confirm"

@@ -5,12 +5,12 @@ import type { SettlementDisbursementView } from "@green-goods/shared/modules/com
 import { useState } from "react";
 import { useIntl } from "react-intl";
 import { AdminButton } from "@/components/AdminButton";
-import { AdminConfirmDialog } from "@/components/AdminDialog";
 import { AdminReasonDialog } from "@/components/AdminReasonDialog";
 import { formatGdollar, shortAddress } from "../poolFundingPresentation";
+import { type TransferAct, TransferReviewDialog } from "../TransferReviewDialog";
 import { displayChip } from "./commitmentSettlementPresentation";
 
-type RowAct = "dispatch" | "retry" | "requeue";
+type RowAct = TransferAct;
 type OpenDialog = { act: RowAct | "cancel"; disbursementId: bigint } | null;
 
 /**
@@ -79,7 +79,7 @@ export function CommitmentSettlementDisbursements({
           >
             {formatMessage({
               id: "cockpit.garden.pool.settlement.act.retry",
-              defaultMessage: "Retry Command…",
+              defaultMessage: "Resend…",
             })}
           </AdminButton>
         ) : null}
@@ -100,7 +100,7 @@ export function CommitmentSettlementDisbursements({
         {view.actions.cancel ? (
           <AdminButton
             type="button"
-            variant="danger"
+            variant="outlined"
             size="sm"
             disabled={disabled}
             onClick={() => setOpen({ act: "cancel", disbursementId: id })}
@@ -112,40 +112,6 @@ export function CommitmentSettlementDisbursements({
           </AdminButton>
         ) : null}
       </div>
-    );
-  };
-
-  const confirmBody = (act: RowAct, view: SettlementDisbursementView | undefined) => {
-    const id = view ? idLabel(view.disbursement.disbursementId) : "";
-    if (act === "dispatch") {
-      return formatMessage(
-        {
-          id: "cockpit.garden.pool.settlement.review.dispatchBody",
-          defaultMessage:
-            "Dispatch disbursement {id} for {amount} to {recipient} over CCIP to Celo.",
-        },
-        {
-          id,
-          amount: formatGdollar(view?.disbursement.amount ?? null, locale),
-          recipient: view ? who(view.disbursement.recipient) : "—",
-        }
-      );
-    }
-    if (act === "retry") {
-      return formatMessage(
-        {
-          id: "cockpit.garden.pool.settlement.review.retryBody",
-          defaultMessage: "Resend the same command for disbursement {id}.",
-        },
-        { id }
-      );
-    }
-    return formatMessage(
-      {
-        id: "cockpit.garden.pool.settlement.review.requeueBody",
-        defaultMessage: "Start a new attempt for failed disbursement {id}.",
-      },
-      { id }
     );
   };
 
@@ -196,28 +162,21 @@ export function CommitmentSettlementDisbursements({
         })}
       </ul>
 
-      <AdminConfirmDialog
-        isOpen={open !== null && open.act !== "cancel"}
-        onClose={() => setOpen(null)}
+      <TransferReviewDialog
+        review={
+          open && open.act !== "cancel"
+            ? { act: open.act, disbursementId: open.disbursementId }
+            : null
+        }
+        amount={openView?.disbursement.amount ?? null}
+        recipient={openView ? who(openView.disbursement.recipient) : "—"}
         tone={tone}
-        variant="warning"
-        title={formatMessage({
-          id: "cockpit.garden.pool.settlement.review.title",
-          defaultMessage: "Review before sending",
-        })}
-        description={open && open.act !== "cancel" ? confirmBody(open.act, openView) : undefined}
-        confirmLabel={formatMessage({
-          id: "cockpit.garden.pool.settlement.review.confirm",
-          defaultMessage: "Send Transaction",
-        })}
-        cancelLabel={formatMessage({ id: "app.common.cancel", defaultMessage: "Cancel" })}
         isLoading={settlement.isActing}
+        onClose={() => setOpen(null)}
         onConfirm={async () => {
           if (!open || open.act === "cancel") return;
           await runRowAct(open.act, open.disbursementId);
-          setOpen(null);
         }}
-        onError={() => setOpen(null)}
       />
       <AdminReasonDialog
         isOpen={open?.act === "cancel"}

@@ -1,6 +1,12 @@
 import type { Meta, StoryObj } from "@storybook/react";
+import { STORYBOOK_ADMIN_SHELL_SEEDS } from "../../../../../shared/.storybook/adminFixtures";
+import {
+  withAdminIdentity,
+  withDataRouter,
+  withSeededQueryClient,
+} from "../../../../../shared/.storybook/decorators";
 import { PoolDialogs } from "./PoolDialogs";
-import { STORY_GARDEN, storyPoolConsole } from "./poolStoryFixtures";
+import { storyPoolConsole } from "./poolStoryFixtures";
 
 const noop = () => undefined;
 
@@ -12,35 +18,36 @@ const meta: Meta<typeof PoolDialogs> = {
     docs: {
       description: {
         component:
-          "Every dialog the pool console can open, in one place: the setup and open flows, the settings sheet, the seeding console and the commitment inspector, the three reasoned acts, and the three confirmations that carry zero-count facts rather than a reason.",
+          "Every dialog the pool console opens in place: the setup and open flows, the settings sheet, the three reasoned acts, and the three confirmations. Each names the pool it writes to first, and the protocol pool is set apart as a warning.",
       },
     },
   },
   args: {
     pool: storyPoolConsole(),
-    garden: { id: STORY_GARDEN, name: "Rocinha" },
-    chainId: 42161,
+    target: { gardenName: "Rocinha", isProtocol: false },
     tone: "garden" as const,
-    presentation: { inspector: "route" as const },
     flow: null,
     setFlow: noop,
     settingsOpen: false,
     setSettingsOpen: noop,
-    seedOpen: false,
-    setSeedOpen: noop,
-    inspected: null,
-    setInspected: noop,
     reasonDialog: null,
     setReasonDialog: noop,
     confirmDialog: null,
     setConfirmDialog: noop,
+    cycleDialog: null,
+    setCycleDialog: noop,
   },
+  // The setup flow is always mounted and reads the signed-in steward and the
+  // query cache, and its dirty-close guard needs a data router.
   decorators: [
+    withAdminIdentity,
+    withSeededQueryClient(STORYBOOK_ADMIN_SHELL_SEEDS),
     (Story) => (
       <div className="p-4" data-tone="garden">
         <Story />
       </div>
     ),
+    withDataRouter("/garden/pool"),
   ],
 };
 
@@ -50,6 +57,14 @@ type Story = StoryObj<typeof PoolDialogs>;
 export const AllClosed: Story = {};
 
 export const SettingsOpen: Story = { args: { settingsOpen: true } };
+
+/** The protocol pool's settings: the target reads as the protocol's, never a garden's. */
+export const ProtocolPoolSettings: Story = {
+  args: {
+    settingsOpen: true,
+    target: { gardenName: "Green Goods Community Garden", isProtocol: true },
+  },
+};
 
 export const FirstRunSetup: Story = { args: { flow: { intent: "first-run" } } };
 

@@ -343,6 +343,27 @@ describe("CommitmentDialogPanel (W10)", () => {
     await waitFor(() => expect(acts.sendForConfirmation).toHaveBeenCalled());
   });
 
+  it("keeps Send for Confirmation closed once sent, and says what happens next", () => {
+    mocks.controller = controller({
+      can: can({ sendForConfirmation: true }),
+      sendPhase: { status: "confirmed", key: "send-for-confirmation:9", hash: null },
+    });
+    renderPanel();
+    expect(screen.getByRole("button", { name: /send for confirmation/i })).toBeDisabled();
+    expect(
+      screen.getByText("Sent for confirmation. Its confirmers see it once the index shows it.")
+    ).toBeInTheDocument();
+  });
+
+  it("says a send kept on this device is queued, not failed", () => {
+    mocks.controller = controller({
+      can: can({ sendForConfirmation: true }),
+      sendPhase: { status: "queued", key: "send-for-confirmation:9" },
+    });
+    renderPanel();
+    expect(screen.getByText("Queued on this device. It sends once it can.")).toBeInTheDocument();
+  });
+
   it("shows the fallback banner and act only when the ordinary path is unreachable, naming the garden's authority", async () => {
     const ordinary = controller({
       commitment: {
@@ -445,6 +466,44 @@ describe("CommitmentDialogPanel (W10)", () => {
         name: /^kept/i,
       })
     ).toBeInTheDocument();
+  });
+
+  it("confirms a record as kept only from the review the Hub shares, naming the record, its pool and who kept it", async () => {
+    mocks.controller = controller({
+      commitment: {
+        onchainState: "READY_FOR_CONFIRMATION",
+        state: "READY_FOR_CONFIRMATION",
+        derivedState: "READY_FOR_CONFIRMATION",
+        confirmationThreshold: 2,
+        confirmationCount: 0,
+      },
+      can: can({ confirmOrdinary: true }),
+    });
+    renderPanel();
+    fireEvent.click(screen.getByRole("button", { name: /^confirm kept…$/i }));
+    const acts = mocks.controller!.acts;
+    expect(acts.confirmOrdinary).not.toHaveBeenCalled();
+    const review = screen.getByRole("dialog", { name: /confirm this commitment kept/i });
+    expect(review).toHaveTextContent(/“Repair tool handles” in .+’s pool/);
+    expect(review).toHaveTextContent(/kept by/i);
+    expect(review).toHaveTextContent(
+      /confirmation 1 of the 2 needed, and it cannot be taken back/i
+    );
+    fireEvent.click(within(review).getByRole("button", { name: /^confirm kept$/i }));
+    await waitFor(() => expect(acts.confirmOrdinary).toHaveBeenCalledTimes(1));
+  });
+
+  it("sets Expire apart from the routine acts, in its own row", () => {
+    mocks.controller = controller({
+      commitment: { onchainState: "READY_FOR_CONFIRMATION", state: "READY_FOR_CONFIRMATION" },
+      can: can({ confirmOrdinary: true, raiseDispute: true, expire: true }),
+    });
+    renderPanel();
+    const routine = screen.getByTestId("commitment-acts");
+    expect(within(routine).getByRole("button", { name: /^confirm kept…$/i })).toBeInTheDocument();
+    expect(within(routine).queryByRole("button", { name: /expire now/i })).not.toBeInTheDocument();
+    const expire = screen.getByRole("button", { name: /expire now/i });
+    expect(expire.closest('[data-slot="expire"]')).not.toBeNull();
   });
 
   // ConfirmLib.markReadyForConfirmation waives the requirement counters and the

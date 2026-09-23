@@ -1,10 +1,13 @@
+import { AddressDisplay } from "@green-goods/shared/components/AddressDisplay";
 import { StatusBadge } from "@green-goods/shared/components/StatusBadge";
 import type { PoolConsoleController } from "@green-goods/shared/hooks/admin-ui/pool/controller.types";
 import type { PoolClaimRequestRow } from "@green-goods/shared/modules/commitment-pooling/types-core";
 import { useIntl } from "react-intl";
 import { AdminButton } from "@/components/AdminButton";
+import { ActPhaseLine } from "@/components/ActPhaseLine";
 import { AdminCard } from "@/components/AdminCard";
-import { directionLabel, formatUnixDate, shortAddress } from "./poolPresentation";
+import { ClaimantName } from "./ClaimantName";
+import { directionLabel, formatUnixDate } from "./poolPresentation";
 
 export interface PoolClaimsCardProps {
   console: PoolConsoleController;
@@ -13,16 +16,19 @@ export interface PoolClaimsCardProps {
 
 /**
  * The claims queue (uiux-spec §6.2 section 4), rendered only while
- * steward-reviewed requests are waiting. Every row names the stored
- * claimant, who asked on their behalf when that differs, the claim type and
- * when; accept and decline are paired opposites keyed to that claimant.
- * Accepting supersedes the other pending rows on the same commitment, an
- * indexer fact the note states. While the pool is paused the acts are absent,
- * not disabled: the contract refuses them, so the row only waits.
+ * steward-reviewed requests are waiting. Every row names the stored claimant
+ * the way the steward knows them (a garden by name, a person by resolved
+ * name), who asked on their behalf when that differs, the claim type and when;
+ * accept and decline are paired opposites keyed to that claimant. Accept stays
+ * one click (hub decision 31) and its row then says where it stands, holding
+ * the act closed until the index moves the request on. Accepting supersedes the
+ * other pending rows on the same commitment, an indexer fact the note states.
+ * While the pool is paused the acts are absent, not disabled: the contract
+ * refuses them, so the row only waits.
  */
 export function PoolClaimsCard({ console: pool, onDecline }: PoolClaimsCardProps) {
   const { formatMessage, locale } = useIntl();
-  const { claims, titles, model, isOnline, isActing, acts } = pool;
+  const { claims, titles, model, isOnline, isActing, acts, chainId } = pool;
   if (claims.length === 0) return null;
   const actDisabled = !isOnline || isActing;
 
@@ -60,6 +66,9 @@ export function PoolClaimsCard({ console: pool, onDecline }: PoolClaimsCardProps
               { id: row.commitment.commitmentId.toString() }
             );
           const onBehalf = row.claim.requestedBy.toLowerCase() !== row.claim.claimant.toLowerCase();
+          const phase = pool.claimPhase(row.claim.commitmentId, row.claim.claimant);
+          // Held closed from the wallet until the index moves the request on.
+          const inFlight = phase.status !== "idle" && phase.status !== "failed";
           return (
             <li
               key={row.claim.id}
@@ -81,14 +90,14 @@ export function PoolClaimsCard({ console: pool, onDecline }: PoolClaimsCardProps
                     })}
                   </StatusBadge>
                 </div>
-                <p className="text-xs text-text-soft" title={row.claim.claimant}>
+                <p className="text-xs text-text-soft">
                   {formatMessage(
                     {
                       id: "cockpit.garden.pool.claims.meta",
                       defaultMessage: "{claimant} · {type} · asked {when}",
                     },
                     {
-                      claimant: shortAddress(row.claim.claimant),
+                      claimant: <ClaimantName claim={row.claim} chainId={chainId} />,
                       type:
                         row.claim.claimType === "GARDEN"
                           ? formatMessage({
@@ -102,16 +111,32 @@ export function PoolClaimsCard({ console: pool, onDecline }: PoolClaimsCardProps
                       when: formatUnixDate(row.claim.requestedAt, locale, "—"),
                     }
                   )}
-                  {onBehalf
-                    ? ` · ${formatMessage(
+                  {onBehalf ? (
+                    <>
+                      {" · "}
+                      {formatMessage(
                         {
                           id: "cockpit.garden.pool.claims.requestedBy",
                           defaultMessage: "asked by {who}",
                         },
-                        { who: shortAddress(row.claim.requestedBy) }
-                      )}`
-                    : null}
+                        {
+                          who: (
+                            <AddressDisplay address={row.claim.requestedBy} interactive={false} />
+                          ),
+                        }
+                      )}
+                    </>
+                  ) : null}
                 </p>
+                <ActPhaseLine
+                  phase={phase}
+                  chainId={chainId}
+                  confirmed={formatMessage({
+                    id: "cockpit.garden.pool.claims.accepted",
+                    defaultMessage:
+                      "Accepted. The request leaves this list once the index shows it.",
+                  })}
+                />
               </div>
               {model.isPaused ? null : (
                 <div className="flex items-center gap-2">
@@ -120,7 +145,7 @@ export function PoolClaimsCard({ console: pool, onDecline }: PoolClaimsCardProps
                     variant="outlined"
                     size="sm"
                     onClick={() => onDecline(row)}
-                    disabled={actDisabled}
+                    disabled={actDisabled || inFlight}
                   >
                     {formatMessage({
                       id: "cockpit.garden.pool.claims.act.decline",
@@ -132,9 +157,11 @@ export function PoolClaimsCard({ console: pool, onDecline }: PoolClaimsCardProps
                     variant="filled"
                     size="sm"
                     onClick={() =>
-                      void acts.acceptClaim(row.claim.commitmentId, row.claim.claimant)
+                      void acts
+                        .acceptClaim(row.claim.commitmentId, row.claim.claimant)
+                        .catch(() => undefined)
                     }
-                    disabled={actDisabled}
+                    disabled={actDisabled || inFlight}
                   >
                     {formatMessage({
                       id: "cockpit.garden.pool.claims.act.accept",

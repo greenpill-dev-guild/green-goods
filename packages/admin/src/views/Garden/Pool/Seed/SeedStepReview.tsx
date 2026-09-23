@@ -8,6 +8,7 @@ import type { Action } from "@green-goods/shared/types/domain";
 import type { CommitmentComposerValues } from "@green-goods/shared/hooks/commitment-pooling/useCommitmentComposerForm";
 import { useIntl } from "react-intl";
 import { AdminButton } from "@/components/AdminButton";
+import { formatRewardAmount, type RewardUnits } from "./seedRewardAmount";
 import { SeedTrayList } from "./SeedTrayList";
 import { actionUIDOf, type SeedCycleOption } from "./seedStepModel";
 
@@ -43,6 +44,8 @@ export interface SeedStepReviewProps {
   cycleOptions: SeedCycleOption[];
   /** Without a registered protocol pool the Green Goods team fallback reads off. */
   protocolRegistered: boolean;
+  /** The units the declared reward is read in. */
+  rewardUnits: RewardUnits;
   submitError: string | null;
   /** The device queue could not be read; seeding will still try. */
   queueUnavailable: boolean;
@@ -61,10 +64,12 @@ export function SeedStepReview({
   chainId,
   cycleOptions,
   protocolRegistered,
+  rewardUnits,
   submitError,
   queueUnavailable,
 }: SeedStepReviewProps) {
-  const { formatMessage } = useIntl();
+  const { formatMessage, locale } = useIntl();
+  const rewardAmount = formatRewardAmount(values.considerationAmount, rewardUnits, locale);
   const cycleLabel = cycleOptions.find((option) => option.value === values.cycleId)?.label ?? "—";
   const section = (heading: string, rows: Array<[string, string]>) => (
     <div className="space-y-1.5">
@@ -97,7 +102,6 @@ export function SeedStepReview({
             defaultMessage: "Season / campaign commitment",
           });
 
-  const count = tray.others.length + 1;
   // One commitment on its own keeps the wizard's plain failure sentence.
   const lastSend =
     tray.lastSend && tray.lastSend.sent + tray.lastSend.left > 1 ? tray.lastSend : null;
@@ -193,7 +197,7 @@ export function SeedStepReview({
       {section(
         formatMessage({
           id: "cockpit.garden.pool.seed.step.howMuch",
-          defaultMessage: "How much",
+          defaultMessage: "How Much",
         }),
         [
           [
@@ -248,7 +252,7 @@ export function SeedStepReview({
       {section(
         formatMessage({
           id: "cockpit.garden.pool.seed.step.proof",
-          defaultMessage: "Proof & confirmation",
+          defaultMessage: "Proof & Confirmation",
         }),
         [
           [
@@ -313,9 +317,9 @@ export function SeedStepReview({
               defaultMessage: "Reward rail",
             }),
             values.considerationRail === "ARBITRUM_EXTERNAL"
-              ? `${formatMessage({ id: "cockpit.garden.pool.seed.rail.external", defaultMessage: "External payout record" })} · ${values.considerationAmount}`
+              ? `${formatMessage({ id: "cockpit.garden.pool.seed.rail.external", defaultMessage: "External payout record" })} · ${rewardAmount}`
               : values.considerationRail === "CELO_SETTLEMENT"
-                ? `${formatMessage({ id: "cockpit.garden.pool.seed.rail.celo", defaultMessage: "Celo G$ settlement" })} · ${values.considerationAmount}`
+                ? `${formatMessage({ id: "cockpit.garden.pool.seed.rail.celo", defaultMessage: "Celo G$ settlement" })} · ${rewardAmount}`
                 : formatMessage({
                     id: "cockpit.garden.pool.seed.rail.none",
                     defaultMessage: "None",
@@ -355,21 +359,13 @@ export function SeedStepReview({
           })}
         </Alert>
       ) : null}
+      {/* How many times the wallet will ask sits beside the button that asks. */}
       <p className="text-xs text-text-soft">
-        {count > 1
-          ? formatMessage(
-              {
-                id: "cockpit.garden.pool.seed.tray.walletNote",
-                defaultMessage:
-                  "Your wallet will ask you to confirm {count} times, once for each commitment, one after another. If one has to wait, its row stays on the pool tab with Try Again.",
-              },
-              { count }
-            )
-          : formatMessage({
-              id: "cockpit.garden.pool.seed.queueNote",
-              defaultMessage:
-                "Seeding asks your wallet to confirm and sends the creation now. If it has to wait, the row stays on the pool tab with Try Again.",
-            })}
+        {formatMessage({
+          id: "cockpit.garden.pool.seed.queueNote",
+          defaultMessage:
+            "If a commitment has to wait, its row stays on the pool tab with Send Now.",
+        })}
       </p>
     </div>
   );

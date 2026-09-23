@@ -15,8 +15,10 @@
  */
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import type { Hex } from "viem";
 
 import { commitmentPoolingKeys } from "../../config/query-keys/commitment-pooling";
+import { logger } from "../../modules/app/logger";
 import { jobQueue } from "../../modules/job-queue/default-instance";
 import type {
   ClaimJobPayload,
@@ -24,7 +26,8 @@ import type {
   EvidenceJobPayload,
   WorkLinkJobPayload,
 } from "../../modules/commitment-pooling/jobs";
-import type { ProcessJobResult } from "../../modules/job-queue/ports";
+import type { JobSendPhase, ProcessJobResult } from "../../modules/job-queue/ports";
+import type { ActPhaseReport } from "../../modules/transactions/act-phase";
 import type { TransactionSender } from "../../modules/transactions/types";
 import type { Address } from "../../types/domain";
 import { createMutationErrorHandler } from "../../utils/errors/mutation-error-handler";
@@ -108,11 +111,61 @@ function queueAct(input: CommitmentJobInput, owner: Address, chainId: number): P
   }
 }
 
+/**
+ * Where one tap's send stands, for a view that follows it: the wallet is asked,
+ * the chain is confirming, and then either the act landed or it stays queued
+ * to send later. A send that fails rejects instead.
+ */
+export type CommitmentSendReport =
+  | JobSendPhase
+  | { stage: "landed"; txHash: string | null }
+  | { stage: "queued" };
+
+/** An act, and optionally who to tell where its send stands. */
+export type CommitmentJobVariables = CommitmentJobInput & {
+  report?: (event: CommitmentSendReport) => void;
+};
+
 const SEND_FAILED = "The commitment could not be sent";
 
+/**
+ * A send's reports, fed to a view's act-phase line: broadcast when the chain
+ * has the transaction, then either landed or left queued on this device.
+ */
+export function toActPhaseReport(report: ActPhaseReport): (event: CommitmentSendReport) => void {
+  return (event) => {
+    if (event.stage === "confirming") report({ type: "broadcast", hash: event.txHash as Hex });
+    else if (event.stage === "landed") report({ type: "confirmed" });
+    else if (event.stage === "queued") report({ type: "queued" });
+  };
+}
+
+/**
+ * Tell the view how a send ended. The telling can never change the ending: a
+ * report that throws is logged, and an act that landed still resolves.
+ */
+function tell(
+  report: ((event: CommitmentSendReport) => void) | undefined,
+  event: CommitmentSendReport
+): void {
+  if (!report) return;
+  try {
+    report(event);
+  } catch (error) {
+    logger.warn("[useCommitmentJobs] a send report threw", {
+      stage: event.stage,
+      error: error instanceof Error ? error.message : String(error),
+    });
+  }
+}
+
 /** One explicit send, and the second pass that settles a creation it submitted. */
-async function sendAndSettle(jobId: string, sender: TransactionSender): Promise<ProcessJobResult> {
-  const context = { transactionSender: sender, explicit: true };
+async function sendAndSettle(
+  jobId: string,
+  sender: TransactionSender,
+  onPhase?: (phase: JobSendPhase) => void
+): Promise<ProcessJobResult> {
+  const context = { transactionSender: sender, explicit: true, onPhase };
   const result = await jobQueue.processJob(jobId, context);
   const submitted = !result.success && result.skipped && Boolean(result.txHash);
   return submitted ? jobQueue.processJob(jobId, context) : result;
@@ -143,10 +196,25 @@ async function sendAndSettle(jobId: string, sender: TransactionSender): Promise<
  *   record of a transaction that may still land. The queued row and the
  *   failed-act surface carry it from here, with Try Again.
  */
-async function sendFromTap(jobId: string, sender: TransactionSender | null): Promise<void> {
-  if (sender?.authMode !== "wallet") return;
-  const result = await sendAndSettle(jobId, sender);
-  if (result.success || result.skipped) return;
+async function sendFromTap(
+  jobId: string,
+  sender: TransactionSender | null,
+  report?: (event: CommitmentSendReport) => void
+): Promise<void> {
+  if (sender?.authMode !== "wallet") {
+    // No prompt to answer here: the background flush sends it.
+    tell(report, { stage: "queued" });
+    return;
+  }
+  const result = await sendAndSettle(jobId, sender, report);
+  if (result.success) {
+    tell(report, { stage: "landed", txHash: result.txHash ?? null });
+    return;
+  }
+  if (result.skipped) {
+    tell(report, { stage: "queued" });
+    return;
+  }
 
   if (isCancelledTxError(result.error)) await jobQueue.discardJob(jobId);
   throw new Error(result.error ?? SEND_FAILED);
@@ -158,16 +226,26 @@ async function sendFromTap(jobId: string, sender: TransactionSender | null): Pro
  * the person's own tap.
  *
  * Unlike a first tap, a failure here keeps the job: the row it came from still
- * offers Try Again and Discard, and there is no open form to fall back on.
+ * offers its send act and Discard, and there is no open form to fall back on.
+ * The report says how the send ended, as it does for a first tap.
  */
 export async function retryQueuedCommitmentJob(
   jobId: string,
-  sender: TransactionSender | null
+  sender: TransactionSender | null,
+  report?: (event: CommitmentSendReport) => void
 ): Promise<void> {
   if (!sender) throw new Error("Sign in before sending a commitment");
   await jobQueue.retryJob(jobId);
-  const result = await sendAndSettle(jobId, sender);
-  if (!result.success && !result.skipped) throw new Error(result.error ?? SEND_FAILED);
+  const result = await sendAndSettle(jobId, sender, report);
+  if (result.success) {
+    tell(report, { stage: "landed", txHash: result.txHash ?? null });
+    return;
+  }
+  if (result.skipped) {
+    tell(report, { stage: "queued" });
+    return;
+  }
+  throw new Error(result.error ?? SEND_FAILED);
 }
 
 export function useCommitmentJobs(options: { chainId?: number } = {}) {
@@ -182,10 +260,10 @@ export function useCommitmentJobs(options: { chainId?: number } = {}) {
   });
 
   const mutation = useMutation({
-    mutationFn: async (input: CommitmentJobInput) => {
+    mutationFn: async ({ report, ...input }: CommitmentJobVariables) => {
       if (!viewer) throw new Error("Sign in before making a commitment");
-      const jobId = await queueAct(input, viewer, chainId);
-      await sendFromTap(jobId, sender);
+      const jobId = await queueAct(input as CommitmentJobInput, viewer, chainId);
+      await sendFromTap(jobId, sender, report);
       return jobId;
     },
     onSuccess: async (_jobId, input) => {

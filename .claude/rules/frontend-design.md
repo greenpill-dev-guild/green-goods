@@ -221,6 +221,7 @@ When to redeclare:
 - A list **mixes entities** (cross-garden feed, multi-workspace dashboard) — then the row must name its garden because chrome can't.
 - A card may be **detached** from chrome (PDF export, email digest, screenshot share) — keep an accessible `title=""` attribute even if the visible line is removed for in-app contexts.
 - The body **disambiguates** (e.g., "the garden's vault is X, the parent DAO's vault is Y") — declaring the qualifier is the whole point of the line.
+- A dialog **commits an irreversible write** — it names its target first (`PoolTarget` for pool writes), because the chrome cannot prove which pool or record the dialog is about to change.
 
 Otherwise: trust the chrome. Anti-pattern guard for review: search the rendered DOM for the active garden / workspace / entity name; if it appears more than once outside chrome, justify it or remove it.
 
@@ -273,5 +274,13 @@ import { TextInput } from "@green-goods/shared/components/Form/ControlPrimitives
 // Good — a whole card that opens a detail view declares itself
 <button type="button" data-pressable="card" onClick={openWork} className="rounded-lg ...">…</button>
 ```
+
+## Rule 20: Interface Principles Come First
+
+Every rule in this file applies root `DESIGN.md` § Interface Principles (grounded in *Don't Make Me Think*, *Refactoring UI*, and *Atomic Design*). Read that section before designing or reviewing UI, and run its five-minute review on every UI change. A screen that passes every rule here but fails that review is not done.
+
+- A control never acts outside the scope the page announces, and a tab never changes scope silently.
+- A write that needs several signatures says how many up front, shows each one landing, and ends on a done state.
+- An organism that writes is handed its target explicitly and has one home; any other mount is a recorded decision.
 
 > Full surface context: [.claude/context/client.md](../context/client.md) / [.claude/context/admin.md](../context/admin.md); implementation runbook: [.claude/skills/design/implementation.md](../skills/design/implementation.md).

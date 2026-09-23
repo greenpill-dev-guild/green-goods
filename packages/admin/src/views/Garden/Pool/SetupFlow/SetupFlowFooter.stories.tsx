@@ -28,6 +28,8 @@ const meta: Meta<typeof SetupFlowFooter> = {
     onNext: () => undefined,
     onSubmit: () => undefined,
     onRetry: () => undefined,
+    onDone: () => undefined,
+    complete: false,
   },
   decorators: [
     (Story) => (
@@ -54,12 +56,17 @@ export const LastStep: Story = {
   args: { stepIndex: 3, isLast: true },
 };
 
-/** The writes are going out: the progress bar runs and nothing else moves. */
+/** The writes are going out: the bar fills as each one lands, and nothing else moves. */
 export const Submitting: Story = {
-  args: { stepIndex: 3, isLast: true, submitting: true },
+  args: { stepIndex: 3, isLast: true, submitting: true, progress: 50 },
 };
 
 /** A run that stopped where repeating the unlanded write is safe. */
 export const Retryable: Story = {
   args: { stepIndex: 3, isLast: true, failed: true, retryable: true },
+};
+
+/** The run finished: Done is the only way on. */
+export const Complete: Story = {
+  args: { stepIndex: 3, isLast: true, complete: true },
 };

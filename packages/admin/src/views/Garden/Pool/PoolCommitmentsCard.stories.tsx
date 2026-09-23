@@ -2,21 +2,26 @@ import type { Meta, StoryObj } from "@storybook/react";
 import { type ComponentProps, useState } from "react";
 import { expect, userEvent, within } from "storybook/test";
 import { daysAgo } from "../../../../../shared/.storybook/fixtures";
-import { type PoolCommitmentScope, PoolCommitmentsCard } from "./PoolCommitmentsCard";
+import {
+  type PoolCommitmentFocus,
+  type PoolCommitmentScope,
+  PoolCommitmentsCard,
+} from "./PoolCommitmentsCard";
+import { STORY_COMMITMENTS, storyCommitment } from "./poolStoryCommitments";
 import { storyPoolConsole } from "./poolStoryFixtures";
 
 /** The card owns no filter state; the story does, so the chips work. */
 function PoolCommitmentsCardWithScope(props: ComponentProps<typeof PoolCommitmentsCard>) {
   const [scope, setScope] = useState<PoolCommitmentScope>(props.scope);
-  const [dueOnly, setDueOnly] = useState(props.dueOnly);
+  const [focus, setFocus] = useState<PoolCommitmentFocus>(props.focus);
   return (
     <div className="max-w-2xl p-4" data-tone="garden">
       <PoolCommitmentsCard
         {...props}
         scope={scope}
         onScopeChange={setScope}
-        dueOnly={dueOnly}
-        onDueOnlyChange={setDueOnly}
+        focus={focus}
+        onFocusChange={setFocus}
       />
     </div>
   );
@@ -30,7 +35,7 @@ const meta: Meta<typeof PoolCommitmentsCard> = {
     docs: {
       description: {
         component:
-          "One commitments card for the whole pool: search, the Open · Confirmed · Past chips, a Past due chip for live rows the chain would let anyone expire, and rows that open in the left inspector.",
+          "One commitments card for the whole pool: search, the Open · Confirmed · Past chips, a Past due chip for live rows the chain would let anyone expire, a Needs recovery chip for those and the disputed ones, and rows that open in the left inspector. Expire now… is outlined where it sits; the red is for the confirm inside its dialog.",
       },
     },
   },
@@ -39,7 +44,7 @@ const meta: Meta<typeof PoolCommitmentsCard> = {
     onSeed: () => undefined,
     canSeed: true,
     scope: "open",
-    dueOnly: false,
+    focus: null,
   },
   render: (args) => <PoolCommitmentsCardWithScope {...args} />,
 };
@@ -58,7 +63,27 @@ export const Open: Story = {
 };
 
 export const PastDue: Story = {
-  args: { console: storyPoolConsole(), dueOnly: true },
+  args: { console: storyPoolConsole(), focus: "pastDue" },
+};
+
+/** Reached from Needs recovery on the stats card: the dispute and the past-due row, nothing else. */
+export const NeedsRecovery: Story = {
+  args: {
+    console: storyPoolConsole({
+      commitments: [
+        ...STORY_COMMITMENTS,
+        storyCommitment({
+          id: "42161-7",
+          commitmentId: 7n,
+          onchainState: "DISPUTED",
+          derivedState: "DISPUTED",
+          state: "DISPUTED",
+          metadataCID: "bafy-6",
+        }),
+      ],
+    }),
+    focus: "recovery",
+  },
 };
 
 export const Queued: Story = {
@@ -79,6 +104,31 @@ export const Queued: Story = {
           createdAt: daysAgo(0) * 1000,
         },
       ],
+    }),
+  },
+};
+
+/** Send Now pressed: the row says the wallet is asking. */
+export const QueuedSending: Story = {
+  args: {
+    console: storyPoolConsole({
+      pendingCreates: [
+        {
+          jobId: "job-1",
+          chainId: 42161,
+          poolId: "7",
+          direction: "OFFER",
+          title: "Compost workshop",
+          unitLabel: "workshop",
+          targetUnits: "1",
+          waitingForMembership: false,
+          discardable: true,
+          failed: false,
+          createdAt: daysAgo(0) * 1000,
+        },
+      ],
+      queuedPhase: (jobId) =>
+        jobId === "job-1" ? { status: "signing", key: "job-1" } : { status: "idle" },
     }),
   },
 };

@@ -10,7 +10,7 @@
     "overall_status": "active",
     "priority": "p1",
     "created_at": "2026-07-03",
-    "updated_at": "2026-09-05T22:45:56.684Z"
+    "updated_at": "2026-09-23T08:29:37.938Z"
   },
   "links": {
     "brief": "external-brief.md",
@@ -234,14 +234,14 @@
         "mode": "required",
         "status": "green_recorded",
         "red": {
-          "command": "bun run --filter @green-goods/shared test -- src/__tests__/hooks/blockchain/useSendToken.test.ts",
-          "evidence": "2026-09-05: 9 failed, 5 passed before implementation; Celo chain routing, fee/gate checks and receipt/invalidation behavior were absent. Resolver and wallet/embedded regression RED/GREEN details are in handoffs/codex-gardener-celo-wallets.md."
+          "command": "packages/shared: bun run test -- src/__tests__/commitment-pooling-pool-funding-data.test.ts (pre-fix freshness rule restored)",
+          "evidence": "3 failed | 16 passed: with the caught-up timestamp 14 days old and blocks current, the fresh-ledger cases read stale (W1-1, A18)"
         },
         "green": {
-          "command": "bun run --filter @green-goods/shared test -- src/__tests__/hooks/blockchain/useSendToken.test.ts src/__tests__/hooks/client-ui/wallet/useSendFlowController.test.tsx",
-          "evidence": "2026-09-05 22:02:06Z: 23 passed across 2 files. Separate transaction module proof: 105 passed, 5 existing skips; auth regression: 192 passed, 5 existing skips. Final release receipt and tested commit are recorded in handoffs/codex-gardener-celo-wallets.md. Final fresh release receipt: ea193295f9ce1f6ebac415481c320c5d7a61baae, 35 automated checks passed; browser-proof BLOCKED. See evidence/gardener-celo-wallet-validation-2026-09-05.json."
+          "command": "packages/shared: bun run test -- src/__tests__/commitment-pooling-pool-funding-data.test.ts src/__tests__/pool-funding.test.ts",
+          "evidence": "2 files, 48 passed at fd5060697: freshness from processed-block timestamps, ledgerAgeSeconds table, stale after 121s"
         },
-        "note": "Gardener Celo wallet RED/GREEN proof recorded; earlier lane proof remains historical."
+        "note": ""
       },
       "skill_tags": ["indexer", "react", "tanstack-query", "data-layer"]
     },
@@ -260,14 +260,14 @@
         "mode": "required",
         "status": "green_recorded",
         "red": {
-          "command": "bun run --filter @green-goods/client test -- src/__tests__/views/SendTab.test.tsx",
-          "evidence": "2026-09-05 21:48:58Z: 9 failed, 14 passed; all new Celo cases failed because the G$ · Celo card, controls and state copy were absent. Representative failure: missing accessible heading G$ · Celo."
+          "command": "packages/shared: bun run test -- useTxActPhase (a silent send reads as landed); packages/admin: bun run test -- GardenPool (Resume reopens before the pool reads open); packages/admin: bun run test -- CommitmentDialog (Send for Confirmation reopens once sent)",
+          "evidence": "1 failed | 3 passed; 1 failed | 22 passed; 1 failed | 27 passed: a job-queue send never claims to have landed, and a single-signature act stays closed until its record moves on (A11)"
         },
         "green": {
-          "command": "bun run --filter @green-goods/client test -- src/__tests__/views/SendTab.test.tsx src/__tests__/views/CeloWalletCard.test.tsx src/__tests__/views/WalletDrawer.test.tsx",
-          "evidence": "2026-09-05: 53 passed across 3 files, including exact fee precision and real dialog focus restoration. Authenticated Brave proof remains BLOCKED; final release receipt and tested commit are recorded in handoffs/codex-gardener-celo-wallets.md. Final fresh release receipt: ea193295f9ce1f6ebac415481c320c5d7a61baae, 35 automated checks passed; browser-proof BLOCKED. See evidence/gardener-celo-wallet-validation-2026-09-05.json."
+          "command": "packages/shared: bun run test -- act-phase, useTxActPhase, commitment-pool-mutations, commitment-jobs-hook, usePoolConsoleController; packages/admin: bun run test -- GardenPool, CommitmentDialog, PoolSetupFlow, SettlementOperationsCard",
+          "evidence": "shared 5 files, 58 passed; admin 4 files, 75 passed at f349f3ea7: Resume, Send for Confirmation and queued sends say where they stand; the split says it is fixed at open; the first run counts its prompts; delivery names its reach and reads its state back"
         },
-        "note": "Gardener Celo WalletDrawer RED/GREEN proof recorded. Authenticated Brave proof is blocked; this does not close other UI sub-lanes."
+        "note": ""
       },
       "skill_tags": ["ui", "react", "design"]
     },
@@ -1326,6 +1326,86 @@
       "status": "blocked",
       "branch": null,
       "note": "QA readiness plan recorded in qa-readiness-plan.md after four decision rounds with Afo. Before the walk: refresh after queued acts, prefilled Offer It Again, an admin batch tray, and one full catalog PR. The walk runs on recorded two-person calls against staging on live Arbitrum, staged from a cancelled rehearsal cycle to a real cycle, then the protocol pool relay, then the partner garden. Afo decided the D2 close-the-season call as finish: ending a season and recording an external payout are built in the fix window and walked in re-QA. The lane's manual gate is unchanged and remains Afo's to clear. Live read at Arbitrum block 507310713: all 18 pools NotReady."
+    },
+    {
+      "timestamp": "2026-09-23T01:56:46.309Z",
+      "actor": "claude",
+      "lane": "state_api",
+      "status": "tdd_recorded",
+      "branch": "feature/commitment-pooling-api-modules",
+      "note": "Recorded RED/GREEN TDD proof"
+    },
+    {
+      "timestamp": "2026-09-23T02:14:54.435Z",
+      "actor": "claude",
+      "lane": "ui",
+      "status": "tdd_recorded",
+      "branch": "feature/commitment-pooling-client-loop",
+      "note": "Recorded RED/GREEN TDD proof"
+    },
+    {
+      "timestamp": "2026-09-23T03:48:01.927Z",
+      "actor": "claude",
+      "lane": "ui",
+      "status": "tdd_recorded",
+      "branch": "feature/commitment-pooling-client-loop",
+      "note": "Recorded RED/GREEN TDD proof"
+    },
+    {
+      "timestamp": "2026-09-23T04:28:49.445Z",
+      "actor": "human",
+      "lane": "ui",
+      "status": "tdd_recorded",
+      "branch": "feature/commitment-pooling-client-loop",
+      "note": "Recorded RED/GREEN TDD proof"
+    },
+    {
+      "timestamp": "2026-09-23T05:21:09.660Z",
+      "actor": "human",
+      "lane": "ui",
+      "status": "tdd_recorded",
+      "branch": "feature/commitment-pooling-client-loop",
+      "note": "Recorded RED/GREEN TDD proof"
+    },
+    {
+      "timestamp": "2026-09-23T05:46:13.803Z",
+      "actor": "human",
+      "lane": "ui",
+      "status": "tdd_recorded",
+      "branch": "feature/commitment-pooling-client-loop",
+      "note": "Recorded RED/GREEN TDD proof"
+    },
+    {
+      "timestamp": "2026-09-23T06:20:35.940Z",
+      "actor": "human",
+      "lane": "ui",
+      "status": "tdd_recorded",
+      "branch": "feature/commitment-pooling-client-loop",
+      "note": "Recorded RED/GREEN TDD proof"
+    },
+    {
+      "timestamp": "2026-09-23T07:07:15.509Z",
+      "actor": "human",
+      "lane": "ui",
+      "status": "tdd_recorded",
+      "branch": "feature/commitment-pooling-client-loop",
+      "note": "Recorded RED/GREEN TDD proof"
+    },
+    {
+      "timestamp": "2026-09-23T07:54:11.581Z",
+      "actor": "human",
+      "lane": "ui",
+      "status": "tdd_recorded",
+      "branch": "feature/commitment-pooling-client-loop",
+      "note": "Recorded RED/GREEN TDD proof"
+    },
+    {
+      "timestamp": "2026-09-23T08:29:37.938Z",
+      "actor": "human",
+      "lane": "ui",
+      "status": "tdd_recorded",
+      "branch": "feature/commitment-pooling-client-loop",
+      "note": "Recorded RED/GREEN TDD proof"
     }
   ]
 }

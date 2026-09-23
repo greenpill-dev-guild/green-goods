@@ -251,7 +251,10 @@ describe("useCommitmentsToConfirm", () => {
     // The garden confirms as a party, but the commitment lives in another
     // garden's pool, and only that pool's steward may raise a dispute
     // (TerminalLib.raiseDispute via GuardLib.isPoolSteward).
-    mocks.gardens = [garden(GARDEN_A, "Rocinha", { stewards: [VIEWER] })];
+    mocks.gardens = [
+      garden(GARDEN_A, "Rocinha", { stewards: [VIEWER] }),
+      garden(GARDEN_B, "Aiyeloja"),
+    ];
     mocks.getPools.mockResolvedValue([pool(4n, GARDEN_B), pool(5n, GARDEN_A)]);
     mocks.getCommitments.mockImplementation(async (input: { account?: string; state?: string }) => {
       if (input.account?.toLowerCase() === VIEWER.toLowerCase()) return [];
@@ -264,9 +267,15 @@ describe("useCommitmentsToConfirm", () => {
 
     const result = await toConfirm();
 
-    expect(result.current.groups[0]?.rows.map((row) => [row.poolGarden, row.canDispute])).toEqual([
-      [GARDEN_A, true],
-      [GARDEN_B, false],
+    expect(
+      result.current.groups[0]?.rows.map((row) => [
+        row.poolGarden,
+        row.poolGardenName,
+        row.canDispute,
+      ])
+    ).toEqual([
+      [GARDEN_A, "Rocinha", true],
+      [GARDEN_B, "Aiyeloja", false],
     ]);
   });
 

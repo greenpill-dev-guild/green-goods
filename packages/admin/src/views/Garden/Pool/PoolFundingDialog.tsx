@@ -31,7 +31,7 @@ export function PoolFundingDialog({
       onOpenChange={onOpenChange}
       title={formatMessage({
         id: "cockpit.garden.pool.funding.dialog.title",
-        defaultMessage: "Pool funding details",
+        defaultMessage: "Pool Funding Details",
       })}
       description={formatMessage({
         id: "cockpit.garden.pool.funding.dialog.description",

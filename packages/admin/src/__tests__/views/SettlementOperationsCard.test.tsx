@@ -72,18 +72,22 @@ describe("SettlementOperationsCard", () => {
     fireEvent.click(screen.getByRole("button", { name: "Enable Gardener Delivery…" }));
     const dialog = await screen.findByRole("alertdialog");
     expect(
-      within(dialog).getByText(/permits|lets stewards prepare and dispatch/)
+      // Its reach is the whole module: every garden's payouts.
+      within(dialog).getByText(/lets stewards in every garden prepare and dispatch/)
     ).toBeInTheDocument();
     expect(setGardenerDelivery).not.toHaveBeenCalled();
 
-    fireEvent.click(within(dialog).getByRole("button", { name: "Send Transaction" }));
+    // The confirmation names its act rather than "Send Transaction" (A20).
+    fireEvent.click(within(dialog).getByRole("button", { name: "Enable Gardener Delivery" }));
     await waitFor(() => expect(setGardenerDelivery).toHaveBeenCalledWith(true));
     // The displayed state is the controller's chain read, not the request.
     expect(screen.getByTestId("gardener-delivery-state")).toHaveTextContent("Off");
     await waitFor(() =>
-      expect(mocks.toastSuccess).toHaveBeenCalledWith(
-        expect.objectContaining({ title: "Transaction submitted" })
-      )
+      // What happens next, never a hash fragment.
+      expect(mocks.toastSuccess).toHaveBeenCalledWith({
+        title: "Transaction submitted",
+        message: "The switch reads back from the chain once it confirms.",
+      })
     );
   });
 
@@ -113,7 +117,7 @@ describe("SettlementOperationsCard", () => {
     expect(screen.getByText(/Awaiting Safe execution/)).toBeInTheDocument();
     expect(screen.getByTestId("gardener-delivery-state")).toHaveTextContent("Off");
     expect(screen.getByRole("button", { name: "Enable Gardener Delivery…" })).toBeDisabled();
-    fireEvent.click(screen.getByRole("button", { name: "Check on chain" }));
+    fireEvent.click(screen.getByRole("button", { name: "Check on Chain" }));
     expect(checkDeliveryStatus).toHaveBeenCalledTimes(1);
   });
 
@@ -137,7 +141,11 @@ describe("SettlementOperationsCard", () => {
       "data-phase",
       "confirmed"
     );
-    expect(screen.queryByRole("button", { name: "Check on chain" })).not.toBeInTheDocument();
+    // The confirmation reads the state back rather than pointing at a hash.
+    expect(screen.getByTestId("gardener-delivery-status")).toHaveTextContent(
+      "Confirmed on chain: gardener delivery is on."
+    );
+    expect(screen.queryByRole("button", { name: "Check on Chain" })).not.toBeInTheDocument();
   });
 
   it("reports a rejected transaction without changing the switch", () => {

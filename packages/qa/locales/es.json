@@ -42,17 +42,19 @@
       "expected": "La ruta completa de decisión funciona y las acciones de confirmar o cancelar nunca quedan ocultas dentro de una zona de desplazamiento recortada",
       "role": "Steward"
     },
-    "ADM-013": {
-      "scenario": "La confirmación del compromiso indica a quién y qué afecta antes de confirmar",
-      "preconditions": ["Sesión de Steward; al menos una confirmación de compromiso pendiente"],
-      "steps": [
-        "Abre /hub/confirm",
-        "Abre un compromiso",
-        "Comprueba que se indique a quién y qué afecta",
-        "Confirma o rechaza",
-        "Vuelve a abrirlo después de un cambio externo para comprobar los datos desactualizados"
+    "ADM-145": {
+      "scenario": "Confirmar cumplido… revisa el compromiso antes de confirmarlo",
+      "preconditions": [
+        "Steward con el Garden que confirma el compromiso seleccionado en el encabezado",
+        "Un compromiso que espera la confirmación de ese Garden y marcado como Lista para confirmar"
       ],
-      "expected": "Las consecuencias se explican antes de actuar, los datos desactualizados se gestionan con claridad y el estado resultante es visible",
+      "steps": [
+        "Abre Hub → Confirmar y pulsa Confirmar cumplido… en la fila del compromiso",
+        "Lee la revisión",
+        "Pulsa Confirmar cumplido y confirma en la wallet",
+        "Lee Hub → Confirmar y el compromiso después"
+      ],
+      "expected": "Antes de enviar nada, la revisión nombra el compromiso, el pool del Garden en el que está y quién lo cumplió, e indica si esta confirmación lo cierra como cumplido para todos o qué confirmación de cuántas es, y que no se puede deshacer; confirmar es una sola transacción; después el compromiso aparece como Cumplido y sale de la cola, o su fila muestra una confirmación más",
       "role": "Steward"
     },
     "ADM-014": {
@@ -76,7 +78,7 @@
         "Añade confirmadores identificados, incluida una dirección incorrecta",
         "Revisa, pulsa Sembrar este compromiso y confirma en la wallet"
       ],
-      "expected": "Cada paso valida antes de Siguiente; una dirección de confirmador incorrecta o duplicada se rechaza de forma visible; la revisión muestra todas las respuestas antes de enviar nada; al sembrar, la wallet pide confirmar una sola creación y el asistente se cierra",
+      "expected": "Cada paso valida antes de Siguiente; una dirección de confirmador incorrecta o duplicada se rechaza de forma visible; la revisión muestra todas las respuestas antes de enviar nada; al sembrar, la wallet pide confirmar una sola creación, y el asistente la muestra como Creado hasta que Listo lo cierra",
       "role": "Steward"
     },
     "ADM-037": {
@@ -291,7 +293,7 @@
       "role": "Steward"
     },
     "ADM-045": {
-      "scenario": "Pon en cola una recarga discrecional de tesorería ProtocolToGarden",
+      "scenario": "Pon en cola una recarga discrecional de tesorería del protocolo a un Garden",
       "preconditions": [
         "Sesión iniciada con la wallet autorizada de Tester A",
         "ADM-014 ha confirmado que la financiación está lista",
@@ -299,9 +301,9 @@
       ],
       "steps": [
         "Abre la acción de financiación de la tesorería del protocolo",
-        "Elige ProtocolToGarden e identifica el Garden de destino",
-        "Comprueba que no se solicite ni adjunte ningún ID de compromiso",
-        "Si hay autorización para mover valor, revisa y pon la recarga en cola",
+        "Elige el Garden de destino en Jardín receptor e introduce la cantidad",
+        "Comprueba que no se solicite ni adjunte ningún compromiso",
+        "Si hay autorización para mover valor, pulsa Revisar aporte…, lee la confirmación y pulsa Poner aporte en cola",
         "Si no, detente en la condición visible y registra Bloqueado",
         "Pide a Tester B que verifique el saldo o el estado de preparación del Garden"
       ],
@@ -363,7 +365,7 @@
         "PWA-050": {
           "handoff": "La persona revisora espera el Trabajo local y sus pruebas antes de abrir la revisión."
         },
-        "ADM-013": {
+        "ADM-145": {
           "handoff": "Ambas personas verifican que el compromiso local esté completo y siga siendo distinto de la Solicitud del protocolo."
         },
         "ADM-044": {

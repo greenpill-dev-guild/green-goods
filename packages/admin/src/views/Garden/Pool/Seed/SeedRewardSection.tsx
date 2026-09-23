@@ -3,6 +3,8 @@ import { Controller, type UseFormReturn } from "react-hook-form";
 import { useIntl } from "react-intl";
 import { AdminChoiceGroup } from "@/components/AdminChoiceGroup";
 import { AdminTextField } from "@/components/AdminTextField";
+import { SeedAmountField } from "./SeedAmountField";
+import type { RewardUnits } from "./seedRewardAmount";
 import type { SeedFieldError } from "./seedStepModel";
 
 export interface SeedRewardSectionProps {
@@ -12,11 +14,14 @@ export interface SeedRewardSectionProps {
   errorOf: SeedFieldError;
   /** Celo settlement stays disabled until the garden's account is active. */
   settlementActive: boolean;
+  /** The units the amount is typed in, read once by the wizard for every step. */
+  units: RewardUnits;
 }
 
 /**
  * The declared reward, folded away as advanced: one rail only, the external one
- * naming its fields, and nothing here pays anyone.
+ * naming its fields, and nothing here pays anyone. The amount is typed in the
+ * rail's own token units.
  */
 export function SeedRewardSection({
   form,
@@ -24,6 +29,7 @@ export function SeedRewardSection({
   busy,
   errorOf,
   settlementActive,
+  units,
 }: SeedRewardSectionProps) {
   const { formatMessage } = useIntl();
 
@@ -46,7 +52,13 @@ export function SeedRewardSection({
                 defaultMessage: "Reward rail",
               })}
               value={field.value}
-              onChange={field.onChange}
+              onChange={(rail) => {
+                // An amount means nothing in another rail's units, so it starts over.
+                if (rail !== field.value) {
+                  form.setValue("considerationAmount", "", { shouldDirty: true });
+                }
+                field.onChange(rail);
+              }}
               options={[
                 {
                   value: "NONE",
@@ -126,38 +138,20 @@ export function SeedRewardSection({
               placeholder="0x…"
               disabled={busy}
             />
-            <AdminTextField
-              label={formatMessage({
-                id: "cockpit.garden.pool.seed.rewardAmount",
-                defaultMessage: "Amount (base units)",
-              })}
+            <SeedAmountField
+              form={form}
               value={values.considerationAmount}
-              onChange={(event) =>
-                form.setValue("considerationAmount", event.target.value, {
-                  shouldDirty: true,
-                  shouldValidate: true,
-                })
-              }
+              units={units}
               error={errorOf("considerationAmount")}
-              inputProps={{ inputMode: "numeric" }}
               disabled={busy}
             />
           </div>
         ) : values.considerationRail === "CELO_SETTLEMENT" ? (
-          <AdminTextField
-            label={formatMessage({
-              id: "cockpit.garden.pool.seed.rewardAmountCelo",
-              defaultMessage: "Amount in G$ base units",
-            })}
+          <SeedAmountField
+            form={form}
             value={values.considerationAmount}
-            onChange={(event) =>
-              form.setValue("considerationAmount", event.target.value, {
-                shouldDirty: true,
-                shouldValidate: true,
-              })
-            }
+            units={units}
             error={errorOf("considerationAmount")}
-            inputProps={{ inputMode: "numeric" }}
             disabled={busy}
           />
         ) : null}

@@ -11,7 +11,13 @@ import {
 import { type RefObject, useState } from "react";
 import { useIntl } from "react-intl";
 import { AdminButton, AdminIconButton } from "@/components/AdminButton";
-import { formatGdollar, fundingStateMessage, shortAddress } from "./poolFundingPresentation";
+import {
+  formatGdollar,
+  fundingStateMessage,
+  primaryUnavailableReason,
+  readinessReasonMessage,
+  shortAddress,
+} from "./poolFundingPresentation";
 
 export interface PoolFundingSectionProps {
   funding: PoolFundingControllerView;
@@ -39,6 +45,12 @@ export function PoolFundingSection({
   const snapshot = funding.snapshot;
   const stale = (funding.isError || funding.hasStaleBalance) && snapshot !== null;
   const derivedUnavailable = stale || snapshot?.fundingState === "unavailable";
+  // A chip that only says "unavailable" is a dead end; the rail names what is
+  // in the way, the same words the details dialog lists in full.
+  const blockedBy =
+    snapshot && (derivedUnavailable || snapshot.settlementReadiness !== "ready")
+      ? primaryUnavailableReason(snapshot)
+      : null;
   const handleRefresh = async () => {
     setManualRefresh("running");
     await funding.refetch();
@@ -56,7 +68,7 @@ export function PoolFundingSection({
           <h4 id="pool-funding-title" className="label-md text-text-strong">
             {formatMessage({
               id: "cockpit.garden.pool.funding.title",
-              defaultMessage: "Pool funding",
+              defaultMessage: "Pool Funding",
             })}
           </h4>
           <p className="mt-1 text-xs text-text-soft">
@@ -200,6 +212,12 @@ export function PoolFundingSection({
                   })}
             </StatusBadge>
           </div>
+
+          {blockedBy ? (
+            <p className="text-xs text-text-sub" data-slot="funding-blocked-by">
+              {readinessReasonMessage(blockedBy, intl)}
+            </p>
+          ) : null}
 
           <p className="text-xs text-text-soft">
             {funding.isRefetching

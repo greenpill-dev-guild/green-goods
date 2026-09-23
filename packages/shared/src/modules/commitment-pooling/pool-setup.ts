@@ -5,8 +5,9 @@
  * `setProviderOpenCommitmentCap`, `markPoolReady`, `seedCycle`, `openPool`,
  * `openCycle`); opening an existing Seeded season is two (`openPool`,
  * `openCycle`); a Campaign on an open pool is two more (`seedCycle`,
- * `openCycle`). Any of them can land partially, and the steward's question
- * after a failure is *what already landed* (uiux-spec C.51).
+ * `openCycle`); edited settings are one or two (`setPoolCharter`,
+ * `setProviderOpenCommitmentCap`). Any of them can land partially, and the
+ * steward's question after a failure is *what already landed* (uiux-spec C.51).
  *
  * This module answers that question from the chain. Each step carries a
  * predicate over the module's own reads (`getPool`, `getCycle`, the
@@ -201,6 +202,30 @@ export function newSeasonSteps(plan: {
       recognitionPolicy: plan.recognitionPolicy,
     },
   ];
+}
+
+/**
+ * Edited settings on a pool that is already set up: the agreement (pinned by
+ * the caller first) and the per-person commitment limit, each only when it
+ * changed. The agreement goes first, so a limit that fails leaves the new
+ * words recorded and a retry sends only the limit. Nothing changed, nothing
+ * planned.
+ */
+export function settingsSteps(plan: {
+  poolId: bigint;
+  /** The pinned new agreement, or null when the words did not change. */
+  charterCID: string | null;
+  /** The new limit, or null when it did not change. */
+  cap: bigint | null;
+}): PoolSetupStep[] {
+  const steps: PoolSetupStep[] = [];
+  if (plan.charterCID !== null) {
+    steps.push({ action: "setPoolCharter", poolId: plan.poolId, charterCID: plan.charterCID });
+  }
+  if (plan.cap !== null) {
+    steps.push({ action: "setProviderOpenCommitmentCap", poolId: plan.poolId, cap: plan.cap });
+  }
+  return steps;
 }
 
 /** A Campaign beside the open season: `seedCycle` then `openCycle`. */

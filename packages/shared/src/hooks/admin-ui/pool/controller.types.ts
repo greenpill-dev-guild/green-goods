@@ -20,6 +20,7 @@ import type {
   HexString,
   PoolClaimRequestRow,
 } from "../../../modules/commitment-pooling/types";
+import type { TxActPhase } from "../../../modules/transactions/act-phase";
 import type { Address } from "../../../types/domain";
 import type { EASGardenAssessment } from "../../../types/eas-responses";
 import type { CommitmentWorkDecision } from "../../../modules/commitment-pooling/work-decisions";
@@ -60,12 +61,14 @@ export interface PoolConsoleActs {
   expire: (commitmentId: bigint) => Promise<HexString>;
   acceptClaim: (commitmentId: bigint, claimant: Address) => Promise<HexString>;
   declineClaim: (commitmentId: bigint, claimant: Address, reason: string) => Promise<HexString>;
-  saveSettings: (next: { purpose: string; cap: bigint }) => Promise<void>;
   /** Send a creation still queued on this device, as the steward's own tap. */
   retryQueued: (jobId: string) => Promise<void>;
   /** Remove a queued creation. The queue refuses one whose send may be on chain. */
   discardQueued: (jobId: string) => Promise<void>;
 }
+
+/** Where a single-signature act started from a row stands. */
+export type { TxActPhase };
 
 export interface PoolConsoleController {
   chainId: number;
@@ -91,6 +94,12 @@ export interface PoolConsoleController {
   queueUnavailable: boolean;
   funding: PoolFundingControllerView;
   acts: PoolConsoleActs;
+  /** Where an Accept started from this claimant's row stands. */
+  claimPhase: (commitmentId: bigint, claimant: Address) => TxActPhase;
+  /** Where Resume Pool stands. */
+  resumePhase: TxActPhase;
+  /** Where the send started from this queued row stands. */
+  queuedPhase: (jobId: string) => TxActPhase;
   isActing: boolean;
   isLoading: boolean;
   isError: boolean;
@@ -111,6 +120,8 @@ export interface ConfirmQueueRow {
   eligibility: ConfirmQueueEligibility;
   title: string | null;
   poolGarden?: Address | null;
+  /** The pool's garden by name, when the commitment lives outside the confirming garden. */
+  poolGardenName?: string | null;
   canDispute?: boolean;
 }
 
@@ -191,6 +202,10 @@ export interface CommitmentDialogController {
   can: ReturnType<typeof selectCommitmentActPermissions>;
   reconciliation: CommitmentWorkReconciliation;
   acts: CommitmentDialogActs;
+  /** Where an Accept started from this claimant's row stands. */
+  claimPhase: (claimant: Address) => TxActPhase;
+  /** Where Send for Confirmation stands. */
+  sendPhase: TxActPhase;
   isActing: boolean;
   isLoading: boolean;
   isError: boolean;
@@ -308,6 +323,8 @@ export type ProtocolFundingDisplayState =
 export interface ProtocolFundingRow {
   id: string;
   disbursementId: bigint;
+  /** The garden receiving the transfer; its recipient is that garden's Celo account. */
+  garden?: Address | null;
   recipient: Address;
   amount: bigint;
   state: ProtocolFundingDisplayState;

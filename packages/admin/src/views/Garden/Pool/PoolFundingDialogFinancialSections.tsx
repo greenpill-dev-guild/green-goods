@@ -33,7 +33,7 @@ export function PoolFundingDialogFinancialSections({
         <h3 id="funding-composition-title" className="label-lg text-text-strong">
           {formatMessage({
             id: "cockpit.garden.pool.funding.dialog.composition",
-            defaultMessage: "Balance composition",
+            defaultMessage: "Balance Composition",
           })}
         </h3>
         <dl className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -92,7 +92,7 @@ export function PoolFundingDialogFinancialSections({
             <h4 className="label-md text-text-strong">
               {formatMessage({
                 id: "cockpit.garden.pool.funding.dialog.obligations",
-                defaultMessage: "Obligation breakdown",
+                defaultMessage: "Obligation Breakdown",
               })}
             </h4>
             <ul className="divide-y divide-stroke-soft rounded-[var(--m3-shape-sm)] bg-[rgb(var(--m3-surface-container))] px-3">
@@ -137,7 +137,7 @@ export function PoolFundingDialogFinancialSections({
         <h3 id="funding-transit-title" className="label-lg text-text-strong">
           {formatMessage({
             id: "cockpit.garden.pool.funding.dialog.transit",
-            defaultMessage: "Funds in transit",
+            defaultMessage: "Funds in Transit",
           })}
         </h3>
         <dl className="grid gap-3 sm:grid-cols-3">
@@ -179,7 +179,7 @@ export function PoolFundingDialogFinancialSections({
         <h3 id="funding-fees-title" className="label-lg text-text-strong">
           {formatMessage({
             id: "cockpit.garden.pool.funding.dialog.fees",
-            defaultMessage: "GoodDollar fees",
+            defaultMessage: "GoodDollar Fees",
           })}
         </h3>
         <dl className="grid gap-3 sm:grid-cols-2">
@@ -246,7 +246,7 @@ export function PoolFundingDialogFinancialSections({
         <h3 id="funding-limits-title" className="label-lg text-text-strong">
           {formatMessage({
             id: "cockpit.garden.pool.funding.dialog.limits",
-            defaultMessage: "Settlement limits",
+            defaultMessage: "Settlement Limits",
           })}
         </h3>
         <dl className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">

@@ -1,66 +1,16 @@
 import { Alert } from "@green-goods/shared/components/Alert";
 import {
   isRetriablePoolSetupFailure,
-  type PoolSetupAction,
   type PoolSetupFailure as PoolSetupFailureReason,
 } from "@green-goods/shared/modules/commitment-pooling/pool-setup";
 import { RiShieldCheckLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
+import { retryPromptCount } from "./setupWrites";
 
 type FormatMessage = (
   descriptor: { id: string; defaultMessage: string },
   values?: Record<string, string | number>
 ) => string;
-
-/** What each write did, in the words the steward reads back after a failure. */
-function actionLabel(
-  action: PoolSetupAction,
-  isCampaign: boolean,
-  formatMessage: FormatMessage
-): string {
-  switch (action) {
-    case "setPoolCharter":
-      return formatMessage({
-        id: "cockpit.garden.pool.setup.write.charter",
-        defaultMessage: "Agreement written",
-      });
-    case "setProviderOpenCommitmentCap":
-      return formatMessage({
-        id: "cockpit.garden.pool.setup.write.cap",
-        defaultMessage: "Commitment limit set",
-      });
-    case "markPoolReady":
-      return formatMessage({
-        id: "cockpit.garden.pool.setup.write.ready",
-        defaultMessage: "Pool marked ready",
-      });
-    case "seedCycle":
-      return isCampaign
-        ? formatMessage({
-            id: "cockpit.garden.pool.setup.write.seedCampaign",
-            defaultMessage: "Campaign prepared",
-          })
-        : formatMessage({
-            id: "cockpit.garden.pool.setup.write.seedSeason",
-            defaultMessage: "Season prepared",
-          });
-    case "openPool":
-      return formatMessage({
-        id: "cockpit.garden.pool.setup.write.openPool",
-        defaultMessage: "Pool opened",
-      });
-    case "openCycle":
-      return isCampaign
-        ? formatMessage({
-            id: "cockpit.garden.pool.setup.write.openCampaign",
-            defaultMessage: "Campaign opened with its split",
-          })
-        : formatMessage({
-            id: "cockpit.garden.pool.setup.write.openSeason",
-            defaultMessage: "Season opened with its split",
-          });
-  }
-}
 
 /** Why the run stopped, in the words the steward reads first. */
 function failureMessage(
@@ -140,61 +90,24 @@ function failureMessage(
 export interface SetupFailureProps {
   failure: PoolSetupFailureReason | null;
   isCampaign: boolean;
-  landed: PoolSetupAction[];
-  failedStep: PoolSetupAction | null;
+  /** How many more times the wallet will ask on a retry, over the rows still to send. */
+  remainingPrompts: number;
 }
 
 /**
- * A stopped run, named: why it stopped, what already landed, and what did not.
- * The retry note only shows where repeating the unlanded call is safe.
+ * Why a run stopped, in one sentence, and whether trying again is safe and how
+ * many more prompts it takes. What landed and what did not is on the checklist
+ * above it, row by row.
  */
-export function SetupFailure({ failure, isCampaign, landed, failedStep }: SetupFailureProps) {
+export function SetupFailure({ failure, isCampaign, remainingPrompts }: SetupFailureProps) {
   const { formatMessage } = useIntl();
   return (
-    <div className="space-y-3" data-testid="pool-setup-failed">
+    <div className="space-y-2" data-testid="pool-setup-failed">
       <Alert variant="error">{failureMessage(failure, isCampaign, formatMessage)}</Alert>
-      <dl className="space-y-2 text-body-md">
-        <div>
-          <dt className="label-xs text-text-soft">
-            {formatMessage({
-              id: "cockpit.garden.pool.setup.landed",
-              defaultMessage: "Landed",
-            })}
-          </dt>
-          <dd className="text-text-strong" data-testid="pool-setup-landed">
-            {landed.length > 0
-              ? landed.map((action) => actionLabel(action, isCampaign, formatMessage)).join(" · ")
-              : formatMessage({
-                  id: "cockpit.garden.pool.setup.landedNothing",
-                  defaultMessage: "Nothing yet",
-                })}
-          </dd>
-        </div>
-        <div>
-          <dt className="label-xs text-text-soft">
-            {formatMessage({
-              id: "cockpit.garden.pool.setup.didNot",
-              defaultMessage: "Did not",
-            })}
-          </dt>
-          <dd className="text-text-strong" data-testid="pool-setup-failed-step">
-            {failedStep
-              ? actionLabel(failedStep, isCampaign, formatMessage)
-              : formatMessage({
-                  id: "cockpit.garden.pool.setup.didNotStart",
-                  defaultMessage: "The first write",
-                })}
-          </dd>
-        </div>
-      </dl>
       {isRetriablePoolSetupFailure(failure) ? (
         <p className="flex items-center gap-1.5 text-xs text-text-soft">
           <RiShieldCheckLine className="h-3.5 w-3.5" aria-hidden />
-          {formatMessage({
-            id: "cockpit.garden.pool.setup.retryNote",
-            defaultMessage:
-              "Retrying repeats only the unlanded step. Nothing already recorded is written twice.",
-          })}
+          {retryPromptCount(remainingPrompts, formatMessage)}
         </p>
       ) : null}
     </div>

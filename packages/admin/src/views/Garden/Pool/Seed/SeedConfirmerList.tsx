@@ -45,8 +45,7 @@ export function SeedConfirmerList({
           ? values.direction === "REQUEST"
             ? formatMessage({
                 id: "cockpit.garden.pool.seed.confirmersDefaultRequest",
-                defaultMessage:
-                  "Nobody named: the pool, as the asker, confirms through its stewards.",
+                defaultMessage: "Nobody named: you confirm it yourself, as the one asking.",
               })
             : formatMessage({
                 id: "cockpit.garden.pool.seed.confirmersDefaultOffer",

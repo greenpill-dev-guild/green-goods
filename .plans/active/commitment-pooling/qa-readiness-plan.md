@@ -3,7 +3,7 @@
 **Feature Slug**: `commitment-pooling`
 **Status**: ACTIVE
 **Created**: 2026-09-20
-**Last Updated**: 2026-09-20
+**Last Updated**: 2026-09-22
 **Owning lanes**: `state_api`, `ui` (`ui_client`, `ui_admin`), `qa_pass_1`
 **Companions**: `handoffs/claude-qa-pass-1.md` (Wave 2), `acceptance-matrix.md`,
 `standing-commitments-spec.md`, `.claude/context/qa.md`
@@ -42,6 +42,18 @@ Decided with Afo on 2026-09-20 over four question rounds.
 | 21 | The source has to belong to the pool being composed into, and the PWA opens the composer in the commitment's own pool. The rule is enforced where the answers are read, not only where the button is drawn. Decided by Claude while building; Afo may overrule. | Requirement rows name that pool's actions and the terms were agreed there. A protocol commitment is read from the reader's own garden, which is not the pool it belongs to. A link can be edited, so a refusal opens an ordinary empty composer rather than an error. |
 | 22 | A tray row gets its `clientCommitmentId` when it joins the tray and keeps it through every edit and every send. A row that was sent leaves the tray; a row that failed stays in the wizard marked Not sent, and is sent again under the same id. This now covers a single commitment too, which used to mint a new id on every press. Decided by Claude while building; Afo may overrule. | The queue dedupes a creation by that id and the chain by the key derived from it, so a row can only ever become one commitment. With an id minted at send time, a send whose job the queue kept (its transaction may be on chain) followed by a second press made a second job, and could make a second commitment. Decision 18 already drops an ordinary failed send, so the wizard is where a failed row waits, not the pool tab. |
 | 23 | The open-commitment guard counts offers only, and unknown never refuses. Room is the pool's commitment limit, less the steward's open commitments as the indexer mirrors the registry's own count, less offers still queued on this device. At the limit, Add Another Like This is held for an offer; over it, seeding is held, and both say why. Decided by Claude while building; Afo may overrule. | `CommitmentRegistry.commitUnits` charges the cap to whoever provides. An offer's creator provides, so it is charged at creation; a request is charged to whoever takes it up, later, so a tray of requests uses none of the steward's room. The registry enforces the cap whatever the wizard says, so a read that has not arrived must not block anyone. |
+| 24 | Hub → Confirm follows the garden in the header, like the Hub's other stages. When the selected garden confirms a commitment that lives in another garden's pool, the row names that pool. Decided with Afo on 2026-09-22, after the design audit in § 4b. | Root `DESIGN.md` § Interface Principles, principle 4: a page never acts outside the garden it shows. The queue spanned every garden the steward stewards, and each row confirmed in one click. |
+| 25 | Confirm Kept opens a review dialog, the same one in the Hub and the commitment inspector. It names the commitment, who kept it, the garden's pool, and that it is final. | The act that closes a commitment for good went straight to the wallet, while Expire had a full confirmation. Spec C.48 already said the Hub's acts open a dialog. |
+| 26 | Admin card and section titles become 16px semibold across the whole admin, after Afo approves a rendered before/after pair. | They render at 12px, the size of their own descriptions. Storybook showed them at 16px because it never loaded the admin's type classes, so reviews there saw a hierarchy the product lacks. |
+| 27 | G$ settlement is enabled for every garden, so a pool's funding rail reads ready. | Every rail read "Funding unavailable" and "Settlement unavailable": ledger freshness used the indexer's caught-up timestamp, which is written once. Freshness now comes from each chain's processed block, timed on that chain. |
+| 28 | The seed wizard ends on a done screen that lists each commitment as created (with its transaction), sends later, or not sent. | Create All sent one wallet prompt per commitment with an unlabelled bar between them, then closed. |
+| 29 | Ending a season is built in this queue as two acts: End (`closeCycle`) frees the slot, and Archive (`compostCycle`) is final and says no certificate can be made for that season afterwards. | Builds decision 14. The certificate step is not built yet, and a pool closes only once its seasons are archived. |
+| 30 | Protocol transfer Dispatch, Retry and Requeue open the same Review before sending dialog as a commitment's disbursements. | The same act was reviewed on a commitment and sent in one click on the protocol card. |
+| 31 | Accepting a claim stays one click. The row names the claimant and shows a status line while the wallet runs. | The decision row keeps its paired acts; the gap was a claimant shown only as a truncated address. |
+| 32 | Seed rows show the wallet and confirming phases, through an optional, report-only callback on the job queue. | The same phases as the setup checklist; the queue stores nothing new. |
+| 33 | Every PR in the § 4b queue stacks on PR #873, the money fixes included, and the chain rebases onto `develop` once #873 merges. | One chain to review. |
+| 34 | Protocol confirmations live only in Community → Coordination. Hub → Confirm never lists protocol fallback rows. | One home per organism, as `packages/admin/DESIGN.md` § Workspace Scope records. |
+| 35 | § 4b lands in two waves. Wave 1 (the P0 and P1 fixes, the ledger fix and ending a season) lands before the QA call, and the call waits for all of it. Wave 2 lands before the Oct 2 cut. | Afo chose that nothing slips to after the call. |
 
 ## 2. Verified ground truth (2026-09-20)
 
@@ -401,6 +413,647 @@ changes, and the story checks when a story changes. Run Biome on touched files b
 The push gate's `browser-proof` check needs the authenticated Brave profile; if it is unreachable,
 say so in the PR rather than claiming local authenticated proof. Record RED and GREEN with
 `plan-hub.mjs record-tdd` and fill a Validation Receipt in the lane handoff.
+
+## 4b. Design audit follow-ups (2026-09-22)
+
+A read-only audit on 2026-09-22 checked the admin's commitment-pooling screens against root
+`DESIGN.md` § Interface Principles, on PR #873's branch. The full report stays outside the repo.
+This section holds the finding index, the queue that fixes them, and each PR's receipt. Decisions
+24 to 35 settle the questions the audit raised.
+
+### Finding index
+
+- **P0**
+  - A1: Hub → Confirm acted on every stewarded garden, not only the one in the header.
+  - A2: Edit Pool sent two unannounced prompts and could say "not recorded" after the first had landed.
+  - A3: The seed wizard took the Celo G$ reward in base units and echoed it raw.
+- **P1**
+  - A4: Confirm Kept went to the wallet in one click, with no review.
+  - A5: Protocol confirmation rows named the acting garden, not the commitment's own.
+  - A6: Protocol transfer rows showed a truncated Safe and enum names, and dispatched in one click.
+  - A7: The seed tray's Create All ran several prompts behind an unlabelled bar, with no done state.
+  - A8: The seed wizard never named the pool it writes to.
+  - A9: Claimants read as truncated addresses beside a one-click Accept.
+  - A10: Commitment inspector dialogs named no garden or pool.
+  - A18: Every pool's funding rail read unavailable, because of the ledger freshness bug.
+- **P2**
+  - A11: One-signature acts waited in silence while the wallet was open.
+  - A12: Card titles render at 12px in the admin and at 16px in Storybook.
+  - A13: The "Writing to" line followed the consequence text in confirm and reason dialogs.
+  - A14: The protocol pool's console had no marker, and its target copy contradicted the model.
+  - A15: A stopped setup run did not say how many prompts a retry needs.
+  - A16: The split step did not say the split is permanent, and its presets were unlabelled numbers.
+  - A17: The first-run entry and button undersold a run of up to six prompts.
+  - A19: Destructive acts sat red in place: Close pool, Expire now, Cancel commitment, disbursement Cancel.
+  - A20: The gardener-delivery switch hid that it reaches every garden.
+  - A21: Decline dialogs named neither the person nor the commitment.
+  - A22: The "What needs you" counts were button tiles, and Needs recovery opened an unfiltered list.
+  - A23: The settings dialog's stories crashed, and several states had no story.
+- **P3**
+  - A24: Queued rows offered Try Again before anything had been tried.
+  - A25: Copy that did not earn its place, including developer vocabulary.
+  - A26: Titles and action labels outside Title Case.
+  - A27: Raw `--m3-*` colour tokens in pooling views.
+  - A28: Left-aligned action clusters, three button weights in one footer, and generic labels.
+  - A29: The second-season alert pointed to a close act that did not exist.
+  - A30: Hub row details: an error chip for "under review", and two labels for one act.
+  - A31: Set Up was disabled offline with no reason given.
+
+### Queue
+
+| PR | Covers | Status |
+|---|---|---|
+| W1-1 Ledger freshness, and the rail names its reason | A18 | Built |
+| W1-2 Amounts in token units | A3 | Built |
+| W1-3 The target line in dialogs; Storybook matches the product | A13, A10, A8, A21, A14 (copy), A12 (Storybook) | Built |
+| W1-4 Hub scope and the Confirm Kept review | A1, A4, A5, A30, A25 (Hub), A19 (inspector) | Built |
+| W1-5 Settings through the setup sequence | A2, A15, A23 (settings) | Built |
+| W1-6 End a season | Decision 29, A29 | Built |
+| W1-7 Claims and protocol transfers | A9, A6, A11 (Accept), A20 (label), A23 (panel) | Built |
+| W1-8 Seed tray progress and the done screen | A7, A24 | Built |
+| W1-9 Catalog PR | The cases Wave 1 changes | Built |
+| W2-1 Pool console hierarchy | A22, A19 (the rest), A14 (marker), A28, A31, A23 (reader view) | Built |
+| W2-2 Flow clarity | A11 (the rest), A16, A17, A20 (the rest) | Built |
+| W2-4 Copy and Title Case | A25, A26 | Built |
+| W2-3 Titles, with A27's colours | The title rollout and the raw `--m3-*` colours, in one pass per file | Waits on the D3 check |
+| W2-5 Catalog pass | The labels Wave 2 renamed | Built |
+
+### W1-1: ledger freshness
+
+- **Fix:** freshness now comes from each chain's `latest_processed_block`, read from the indexer, and that block's time, read from the chain (`data-pool-funding-freshness.ts`). The ledger is fresh when the oldest processed block is under 120 seconds old.
+- **Why the old check failed:** `timestamp_caught_up_to_head_or_endblock` is written once, when a chain first reaches head, so every rail read stale two minutes after the indexer started. A stopped indexer still reads stale, because its processed blocks age.
+- **Rail:** it names the first unavailable reason, in the words the details dialog already uses.
+- **Scope:** settlement acts never read the funding snapshot (`selectSettlementWorkflow`), so the bug was display-only.
+
+### Validation receipt, W1-1
+
+- **Tested implementation commit SHA:** `fd5060697f97a3d442ae0b587c9c8dfeaefd64bd`.
+  - The gate ran on the working tree immediately before the two implementation commits.
+  - Biome had already formatted every file, so the pre-commit formatter changed nothing.
+  - `git status --porcelain=v1 --untracked-files=all -- packages/` is empty at that SHA.
+- **Run finished (UTC):** `2026-09-23T01:42:29Z`.
+- **Command:** `bun run check -- --intent push`.
+- **Result:** every automated check passed:
+  - format and lint;
+  - shared-test (74 passed, affected scope) and admin-test (69 passed);
+  - admin-build;
+  - source-structure, agent-guidance and story-quality.
+- **Also run:**
+  - the shared funding suites, 48 passed;
+  - `GardenPoolFunding.test.tsx`, 19 passed;
+  - shared and admin typecheck in the source and tests scopes, both clean.
+- **RED:** with the old freshness rule restored, 3 of the data suite's cases failed. They are recorded through `record-tdd`.
+- **Rendered proof (Storybook):** `admin-pool-poolfundingsection--funding-unavailable` and `--settlement-blocked` show the reason line.
+- **Pending:** authenticated Brave proof. The staging rails can read ready only once this is deployed.
+
+### W1-2: amounts in token units
+
+- **Before:** the seed wizard took a declared reward in base units and echoed the raw number in the review. Typing 50 on the Celo rail recorded 5 × 10⁻¹⁷ G$.
+- **After:** the amount is typed in the token's own units and stored as its base units, which is what the contract records.
+  - G$ units come from `CELO_G_DOLLAR_TOKEN`.
+  - An external token's units are read from the chain (`useErc20Metadata`). While they are unknown, the field waits and says why, and nothing with a reward can be seeded.
+  - The review shows the formatted amount.
+  - Changing the rail clears the amount. Changing the token keeps the typed amount's meaning.
+- **Unchanged:** the schema, the payload and compose-again.
+- **Seams:** the new shared export changes `packages/shared/package.json`, so the four certified seams are re-fingerprinted.
+
+### Validation receipt, W1-2
+
+- **Tested implementation commit SHA:** `b88b489d97b08ce75a672a25af77a73344ad7dfd`.
+  - The gate ran on the working tree immediately before the two implementation commits, and the pre-commit formatter changed nothing.
+  - `git status --porcelain=v1 --untracked-files=all -- packages/ scripts/` is empty at that SHA.
+- **Run finished (UTC):** `2026-09-23T02:14:22Z`.
+- **Command:** `bun run check -- --intent push`.
+- **Result:** the `package.json` change escalated the gate to the full suite, and all 24 checks passed:
+  - format, lint, validation-system-test and test-quality;
+  - shared, client, admin and agent typecheck, test-typecheck, test and build;
+  - source-structure, design-guardrails, ontology, agent-guidance, supply-chain and story-quality.
+- **Also run:**
+  - the seed wizard, seed model and how-much suites, 40 passed;
+  - `locale-coverage.test.ts`, 15 passed;
+  - `check-direct-tested-seams.mjs`, no drift.
+- **RED:** with the conversion storing typed text as base units, the payload case failed. It is recorded through `record-tdd` on the `ui` lane.
+- **Rendered proof (Storybook):**
+  - `admin-pool-seedamountfield--*`: 10 G$ reads as 10, 2.5 USDC stores 2500000, too many decimals is refused, and an unreadable token holds the field;
+  - `admin-pool-seedstepreview--garden-work-with-reward`: "External payout record · 250 USDC".
+- **Pending:** authenticated Brave proof of an on-chain seed.
+- **CI follow-up:** Build Docs failed on #875. The new export left `api-index.mdx` and `commands.mdx` with stale digests, and the local push gate does not run `docs-generated`. `c8b10e885` regenerates them on W1-2's branch; the branches above it carry the fix when the stack merges in order.
+
+### W1-3: the target line in dialogs, and Storybook matching the product
+
+- **The slot:** `AdminDialog`, `AdminConfirmDialog` and `AdminReasonDialog` take an optional `target`, rendered under the title and before the description.
+- **What now names its target:**
+  - every pool dialog (close, archive, reopen, pause, cancel, decline, settings);
+  - every commitment inspector dialog;
+  - every seed wizard step;
+  - the past-due row's Expire.
+- **Decline:** names the commitment and who asked.
+- **`GardenPoolTarget`:** builds the line from a garden's address alone. It reads the name from the gardens list and recognises the protocol pool by the protocol's root garden.
+- **Protocol copy:** it now says the pool is the Green Goods Community Garden's own.
+- **Storybook:** the admin's named type classes moved to `packages/admin/src/styles/admin-type.css`, imported by both the admin entry and Storybook, so the two render the same way (titles 12px/500).
+- **D3 check:** the before/after pairs (12px/500 against 16px/600, the same colour and Plus Jakarta Sans) went to Afo. W2-3 waits for his yes.
+
+### Validation receipt, W1-3
+
+- **Tested implementation commit SHA:** `c434da8e45c14c39ce54e1afadebf6e14a96b4ea`.
+  - The gate ran on the working tree immediately before the three implementation commits, and the pre-commit formatter changed nothing.
+  - `git status --porcelain=v1 --untracked-files=all -- packages/` is empty at that SHA.
+- **Run finished (UTC):** `2026-09-23T03:47:21Z`.
+- **Command:** `bun run check -- --intent push`.
+- **Result:** all 25 checks passed:
+  - format, lint, validation-system-test and test-quality;
+  - shared, client, admin and agent typecheck, test-typecheck, test and build;
+  - source-structure, design-guardrails, ontology, agent-guidance, supply-chain and story-quality;
+  - storybook-build.
+- **Also run:**
+  - the nine affected admin suites together, 105 passed;
+  - `locale-coverage.test.ts`, 15 passed;
+  - shared and admin typecheck in the source and tests scopes.
+- **Story sweep:** 238 pooling stories, no new crash. The three settings dialog stories still crash on the missing data router; W1-5 fixes them.
+- **RED:** with the target rendered after the description (the old placement), the header-order case failed. It is recorded through `record-tdd` on the `ui` lane.
+- **Rendered proof (Storybook):**
+  - `admin-pool-pooldialogs--close-pool-confirm`: title, then "Writing to Rocinha's pool", then the consequence;
+  - `admin-pool-commitmentreasondialogs--decline-request`: the commitment in its garden's pool, and who asked;
+  - `admin-pool-seedcommitmentdialog--protocol-context`: the protocol warning above step one;
+  - `admin-pool-gardenpooltab--open`: titles at 12px/500, as on staging.
+
+### W1-4: Hub scope and the Confirm Kept review
+
+- **Scope** (A1, decision 24): Hub → Confirm lists only what the garden in the header confirms. That is its own group, the garden fallbacks its steward may step into, and the disputes in its own pool, and the tab count follows. `selectToConfirmForGarden` does the narrowing. The confirmation hook's inputs are unchanged, so the PWA reads as before.
+- **Protocol rows** (decision 34): never listed in the Hub. They stay in Community → Coordination.
+- **Whose pool** (A5): a row whose commitment lives in another garden's pool says "in {garden}’s pool". While the gardens list is unread it shows the address instead. In Coordination, rows used to name the Green Goods team; they now name the garden whose pool the team confirms in.
+- **The review** (A4, decision 25): `ConfirmKeptDialog`, shared by the Hub and the inspector, names:
+  - the commitment and its garden's pool;
+  - who kept it;
+  - whether this confirmation closes it.
+
+  Both cases say a confirmation cannot be taken back, because `ConfirmLib.confirmFulfillment` records it for good.
+- **Hub copy** (A30, A25):
+  - one label, "Confirm Kept…", on every row;
+  - the chips read "Ready to confirm", "Needs a steward step-in" and "Needs the Green Goods team";
+  - "Under review" sits on a warning chip, not an error chip.
+- **Inspector** (A19): Expire leaves the routine cluster for its own row after it, as an outlined button. The red stays inside its confirmation.
+- **For W1-9:** the catalog cases that quote the old flow or labels are ADM-013, ADM-075, ADM-076, ADM-110, ADM-111, ADM-112 and ADM-136.
+
+### Validation receipt, W1-4
+
+- **Tested implementation commit SHA:** `918a6b8b23d688eaf3677acb3752ee185d849974`.
+  - The gate is the pre-push run on that commit.
+  - `git status --porcelain=v1 --untracked-files=all -- packages/` is empty at that SHA.
+- **Run finished (UTC):** `2026-09-23T04:27:29Z`.
+- **Command:** `bun run check -- --intent push` (the pre-push hook).
+- **Result:** all 25 checks passed:
+  - format, lint, validation-system-test and test-quality;
+  - shared, client, admin and agent typecheck, test-typecheck, test and build;
+  - source-structure, design-guardrails, ontology, agent-guidance, supply-chain and story-quality;
+  - storybook-build.
+- **Cache:** the shared tests ran in full. The client, admin and agent tests were cache hits on inputs identical to a full run of the same gate that ended at `2026-09-23T04:21:01Z`.
+- **Also run at that SHA:**
+  - the shared scope and naming suites, 20 passed;
+  - seven admin suites (HubConfirm, CommitmentDialog, CommunityPools, GardenPool, PoolDialogs, SeedCommitment, AdminDialog), 97 passed.
+- **Before commit:**
+  - the i18n suites, 41 passed;
+  - shared and admin typecheck in the source and tests scopes.
+- **RED:** two mutations, each caught and recorded through `record-tdd` on the `ui` lane.
+  - Letting protocol rows into the garden's stage failed the scope table.
+  - Sending Confirm Kept straight from the row failed two Hub cases.
+- **Rendered proof (Storybook, headless Chromium):**
+  - `admin-hub-hubconfirmqueue--in-another-gardens-pool` and `--protocol-confirmations`: the pool named on each row;
+  - `admin-hub-hubconfirmqueue--confirm-kept-review`: the review opens from the row;
+  - `admin-pool-confirmkeptdialog--*`: closes it, counts toward it, protocol pool, sending;
+  - `admin-pool-commitmentactions--ready-to-confirm`: Expire in its own row.
+- **Pending:** authenticated Brave proof of a wallet confirmation, walked in the rehearsal.
+
+### W1-5: settings through the setup sequence
+
+- **The save** (A2): `settingsSteps` plans only what changed, the agreement first, and the dialog runs it through `useCommitmentPoolSetupSequence`.
+  - Before saving, the dialog says how many times the wallet will ask: once when the wallet takes both writes together, otherwise once per write.
+  - Each write shows as it lands (`PoolSettingsProgress`).
+  - A stop names what was saved, for example "The new agreement is saved. The commitment limit is not."
+  - Try Again sends only what is left, and the dialog ends on "Settings saved.".
+  - A pin failure keeps the words on screen with nothing sent.
+- **Removed:** the console's `saveSettings` act. Its tests move to the planner and the dialog.
+- **Retry counts** (A15): a stopped run numbers its prompts over the writes still to send. The note says "Your wallet will ask N more times." Setup and settings share the running line and the prompt count through `setupWrites.ts`.
+- **Toast:** the sequence takes a `toastContext`, so a failed settings save reads "Pool settings failed".
+- **Stories** (A23): `withDataRouter` mounts the settings stories in the data router `useBlocker` needs, so all three render again. Five pooling stories use it in place of inline routers. The `PoolSettingsProgress` stories cover signing, confirming, a partial stop, nothing saved, no wallet, and saved.
+- **For W1-9:**
+  - ADM-063 expects one transaction per save; it becomes "the dialog says how many prompts a save takes, and a partial stop names what was saved";
+  - ADM-056 and ADM-057 take the retry count.
+
+### Validation receipt, W1-5
+
+- **Tested implementation commit SHA:** `15d40ed794c9e2c2a9d855cab638a4438517cf30`.
+  - The gate is the pre-push hook on that commit.
+  - `git status --porcelain=v1 --untracked-files=all -- packages/` is empty at that SHA.
+- **Run finished (UTC):** `2026-09-23T05:20:38Z`.
+- **Command:** `bun run check -- --intent push` (the pre-push hook, `critical · 118 changed path(s)`).
+- **Result:** all 25 checks passed:
+  - format, lint, validation-system-test and test-quality;
+  - shared, client, admin and agent typecheck, test-typecheck, test and build;
+  - source-structure, design-guardrails, ontology, agent-guidance, supply-chain and story-quality;
+  - storybook-build.
+- **Cache:** the package tests were cache hits on a full, uncached run of the same gate on the same SHA. That run ended at about `2026-09-23T05:18Z`, after which its push died with exit 141.
+- **Also run at that SHA:**
+  - the shared sequence and console suites, 39 passed;
+  - the admin settings, setup-writes, setup-flow and pool-tab suites, 52 passed.
+- **Before commit:**
+  - the full admin suite, 116 files and 913 passed;
+  - shared and admin typecheck in the source and tests scopes;
+  - design-tokens, source-structure, story-quality and react-patterns.
+- **RED:** three mutations, each caught and recorded through `record-tdd` on the `ui` lane.
+  - Counting landed writes after a stop failed 4 cases.
+  - Planning the limit before the agreement failed 3.
+  - A Try Again that re-runs instead of retrying failed 1.
+- **Story sweep:** 50 affected stories, headless. None crash. `pooldialogs--all-closed` renders nothing, as intended.
+- **Rendered proof (Storybook, headless Chromium):**
+  - `admin-pool-poolsettingsdialog--both-changed`: the prompt count before saving;
+  - `admin-pool-poolsettingsprogress--*`: signing, confirming, a partial stop, nothing saved, no wallet, saved;
+  - `admin-pool-setupfailure--several-still-to-send`: "Your wallet will ask 4 more times."
+- **Pending:** authenticated Brave proof of a two-write save with the second prompt refused, walked in the rehearsal.
+
+### W1-6: end a season
+
+- **The rule** (decision 29): `selectCycleEndAct` mirrors the guards in CyclesLib. It offers:
+  - End (`closeCycle`) on an Open cycle with nothing live;
+  - the live count while commitments still hold it open;
+  - Archive (`compostCycle`) on a Reconciled cycle.
+- **The card:** the running season and each open campaign offer End. Until they can, they say how many commitments are still live. A Reconciled cycle in Finished offers Archive.
+- **The dialogs:** both name the cycle in its pool first. Archive warns that no impact certificate can be made afterwards, because the certificate composer takes only a Reconciled cycle.
+- **Closing a pool:** `closePool` needs every cycle terminal, and a Reconciled cycle is not. Archive is how a pool with ended seasons reaches Closed.
+- **A29:** the second-season alert now points at End.
+- **For W1-9:** ADM-057 and ADM-138 (the second-season path), and new cases for End and Archive.
+
+### Validation receipt, W1-6
+
+- **Tested implementation commit SHA:** `b681c850b6bd6ee29f497483670a0dd52b0537f4`.
+  - The gate is the pre-push hook on that commit.
+  - `git status --porcelain=v1 --untracked-files=all -- packages/` is empty at that SHA.
+- **Run finished (UTC):** `2026-09-23T05:45:42Z`.
+- **Command:** `bun run check -- --intent push` (the pre-push hook).
+- **Result:** all 25 checks passed:
+  - format, lint, validation-system-test and test-quality;
+  - shared, client, admin and agent typecheck, test-typecheck, test and build;
+  - source-structure, design-guardrails, ontology, agent-guidance, supply-chain and story-quality;
+  - storybook-build.
+- **Cache:** the package tests were cache hits on a full, uncached run of the same gate on the same SHA. That run ended at `2026-09-23T05:42:49Z`, after which its push died with exit 141.
+- **Also run at that SHA:**
+  - `commitment-pool-console.test.ts`, 14 passed;
+  - the admin cycles, dialogs, pool-tab and setup-flow suites, 46 passed.
+- **Before commit:**
+  - the full admin suite, 117 files and 917 passed;
+  - the i18n suites, 41 passed;
+  - shared and admin typecheck in the source and tests scopes;
+  - design-tokens, source-structure, story-quality and react-patterns.
+- **RED:** two mutations, each caught and recorded through `record-tdd` on the `ui` lane.
+  - Offering End while commitments are live failed the table and the flow.
+  - Archive sending `closeCycle` failed the flow.
+- **Rendered proof (Storybook, headless Chromium):**
+  - `admin-pool-poolcyclescard--open-season-with-campaigns`, `--ready-to-end` and `--reconciled-season`;
+  - `admin-pool-poolcycledialogs--end-season`, `--end-campaign` and `--archive-season`.
+- **Pending:** authenticated Brave proof of ending and archiving a season, walked in the rehearsal.
+
+### W1-7: claims and protocol transfers
+
+- **Accept** (A9, the A11 minimum, decision 31): it stays one click.
+  - The claimant is named: a garden by its name, a person by their resolved name. So are the requester and the inspector's roster.
+  - While the act runs, the row shows one line: confirm in your wallet, confirming on Arbitrum One, accepted, or failed.
+  - The row's acts stay closed until the index moves the request on.
+- **Phase tracking:** `actPhaseReducer` is keyed per row and ignores late events from a replaced act. `useTxActPhase` feeds it, and `useCommitmentMutation` takes the send callbacks per call.
+  - Both stay internal. The controllers expose `claimPhase`, so no new package export was needed.
+  - The pool mutation gets the same callbacks in W2-2, when Resume uses them.
+- **Transfers** (A6, decision 30):
+  - Rows name the receiving garden, from the indexed `Disbursement.garden`, which `queueFunding` sets to the receiver.
+  - The enum copy is gone.
+  - Dispatch, Retry and Requeue open `TransferReviewDialog`, extracted from the commitment disbursements with its wording.
+- **A20:** the delivery confirmation reads "Enable Gardener Delivery" or "Disable Gardener Delivery". Naming its reach and its read-back state is W2-2.
+- **A23:** the protocol-funding panel story runs as the deployer and renders.
+- **For W1-9:**
+  - claims: ADM-040 and ADM-065;
+  - transfers: ADM-045, ADM-088 and ADM-089;
+  - the delivery label: ADM-087.
+
+### Validation receipt, W1-7
+
+- **Tested implementation commit SHA:** `e39075e18824fdd4130e1ef137e9572ddef8ecef`.
+  - The gate is the pre-push hook on that commit, run uncached.
+  - `git status --porcelain=v1 --untracked-files=all -- packages/` is empty at that SHA.
+- **Run finished (UTC):** `2026-09-23T06:19:53Z`.
+- **Command:** `bun run check -- --intent push` (the pre-push hook, `critical · 154 changed path(s)`).
+- **Result:** all 25 checks passed:
+  - format, lint, validation-system-test and test-quality;
+  - shared, client, admin and agent typecheck, test-typecheck, test and build;
+  - source-structure, design-guardrails, ontology, agent-guidance, supply-chain and story-quality;
+  - storybook-build.
+- **Also run at that SHA:**
+  - the shared act-phase, console, hooks and funding-data suites, 82 passed;
+  - the admin claims, transfers, delivery, settlement and pool-tab suites, 45 passed.
+- **Before commit:**
+  - the full admin suite, 117 files and 920 passed;
+  - 20 affected shared files, 208 passed;
+  - shared and admin typecheck in the source and tests scopes;
+  - design-tokens, source-structure, story-quality, react-patterns and the direct-tested seams check.
+- **RED:** three mutations, each caught and recorded through `record-tdd` on the `ui` lane.
+  - Letting a replaced act's events move the line failed the table.
+  - Reopening a row while Accept runs failed 2 claim cases.
+  - Dispatching straight from the row failed the transfer flow.
+- **Story sweep:** 69 affected stories, headless. None crash.
+- **Rendered proof (Storybook, headless Chromium):**
+  - `admin-pool-poolclaimscard--accepting`;
+  - `admin-pool-commitmentclaims--accepted-awaiting-index`;
+  - `admin-pool-claimantname--garden`;
+  - `admin-community-protocolfundingrows--queued`;
+  - `admin-community-protocolfundingoperationscard--review-before-dispatch`;
+  - `admin-community-protocolfundingoperationspanel--registered-recipients`.
+- **Pending:** authenticated Brave proof of accepting a claim and dispatching a protocol transfer, walked in the rehearsal.
+
+### W1-8: seed tray progress and the done screen
+
+- **The pass** (A7, decisions 28 and 32): while a pass runs, the wizard lists every row with where it stands. One line above the list names the prompt the wallet is on: "Confirm in your wallet (2 of 3)", then "Confirming on Arbitrum One (2 of 3)".
+- **The done screen** (decision 28): the wizard stays open on how each row ended.
+  - A created row links to its transaction.
+  - A row that sends later waits on the pool tab with Send Now. Its marker is a clock, not the cross a failure shows.
+  - A row not sent has nothing created for it.
+
+  Done closes the wizard. When rows were not sent, Back to Review returns to them and Try Again sends them again under the ids they already had. Once every row is sent the steps stop opening, since seeding the same answers again would make a second commitment.
+- **The prompt count** sits beside the button that asks. It replaces the progress bar and the review step's two notes.
+- **Send reporting** (decision 32):
+  - `ProcessJobContext.onPhase` is optional and report-only. The queue calls it after the executor's own checkpoints and never stores or awaits it. A throw inside it is logged and ignored.
+  - `useCommitmentJobs` takes a `report` for each act. A report that throws cannot fail an act that landed.
+  - `seed-tray` follows the pass row by row.
+- **Certified seam:** the job-queue handle's `processJob` context gains the optional `onPhase`. The certified evidence is unchanged, and the new cases sit in `job-queue.send-phases.test.ts`. Folding them into that evidence would re-certify the seam, which is a `module-seams-review` act, so it is left for that review.
+- **One list:** `TxProgressList` is the setup's progress list, moved to `components/`, and `SetupProgressList` adapts it.
+- **A24:** a queued row says Send Now until a send has failed, and Try Again only after that.
+- **For W1-9:** ADM-125, ADM-126, ADM-127 (Send Now), ADM-129, ADM-131, ADM-132 and ADM-140, and a new case for the pass and the done screen.
+
+### Validation receipt, W1-8
+
+- **Tested implementation commit SHA:** `73ca254411f0f216f693f2ee3de5e15f2a0efa9a`.
+  - The gate is the pre-push hook on that commit.
+  - `git status --porcelain=v1 --untracked-files=all -- packages/` is empty at that SHA.
+- **Run finished (UTC):** `2026-09-23T07:05:34Z`.
+- **Command:** `bun run check -- --intent push` (the pre-push hook, `critical · 170 changed path(s)`).
+- **Result:** all 25 checks passed:
+  - format, lint, validation-system-test and test-quality;
+  - shared and agent typecheck;
+  - shared, client, admin and agent test-typecheck, test and build;
+  - source-structure, design-guardrails, ontology, agent-guidance, supply-chain and story-quality;
+  - storybook-build.
+- **Cache:** the shared tests (523 files, 5,606 passed) and the admin tests (117 files, 921 passed) ran in full. The client and agent tests were cache hits on the same gate's uncached run at `78d821bb0`, the commit before the marker fix. That run passed all 25 at `2026-09-23T06:58:51Z`.
+- **Also run at that SHA:**
+  - the shared send-phase, seed-tray and commitment-jobs suites, 5 files and 42 passed;
+  - the admin seed, pool-tab, setup-flow and settings suites, 4 files and 64 passed.
+- **Earlier in the work:**
+  - 147 shared files, 1,538 passed;
+  - shared, admin and client typecheck in the source scope, and shared and admin in the tests scope;
+  - design-tokens, source-structure, story-quality, react-patterns and the direct-tested seams check (4 certified seams, no drift).
+- **RED:** 14 mutations, each caught. Three are recorded through `record-tdd` on the `ui` lane:
+  - reporting before the executor's checkpoint failed 2 send-phase cases;
+  - reopening a row that ended failed 3 seed-tray cases;
+  - closing the wizard after a pass failed the seed flow.
+- **Story sweep:** 260 pool and progress stories, headless. None crash.
+- **Rendered proof (Storybook, headless Chromium):**
+  - `admin-pool-seedstepdone--sending-at-the-wallet` and `--sending-confirming`;
+  - `admin-pool-seedstepdone--mixed` and `--nothing-created`;
+  - `admin-pool-seedflowfooter--ready-to-create-several` and `--done-with-unsent`;
+  - `admin-pool-poolcommitmentscard--queued-needs-attention`;
+  - `admin-primitives-txstepmarker--all-states`.
+- **Pending:** authenticated Brave proof of seeding a tray of several in a real wallet, walked in the rehearsal.
+
+### W1-9: the catalog after Wave 1
+
+- **Retired**, because their result changed:
+  - ADM-013, for ADM-145 (the Confirm Kept review) and ADM-146 (a commitment that has left the queue). The relay journey walks ADM-145 in its place, in all three QA locales.
+  - ADM-063, for ADM-147 (the prompt count, then Settings saved), ADM-148 (a stop partway) and ADM-149 (Discard Changes?).
+- **Added**, one outcome each:
+  - ADM-144, Hub scope;
+  - ADM-150, the seeding pass and its done screen;
+  - ADM-151 to ADM-153, End, End withheld while live, and Archive;
+  - ADM-154 and ADM-155, the funding rail ready and naming its reason;
+  - ADM-156, the transfer review;
+  - ADM-157 and ADM-158, reward amounts in their own units;
+  - ADM-159, Accept's progress on its row.
+- **Corrected in place**, with meaning unchanged:
+  - ADM-045 and ADM-140, including their es and pt copy;
+  - ADM-075, ADM-077, ADM-087, ADM-088, ADM-089 and ADM-111;
+  - the seeding rows ADM-125 to ADM-129 and ADM-131 to ADM-134.
+- **Where this differs from the plan's list:**
+  - ADM-013 is retired rather than rewritten, because its result changed.
+  - ADM-040, 042, 043, 044, 061, 137, 138 and 139 needed no change.
+  - ADM-155 and ADM-159 were added so every Wave 1 behaviour has a case.
+- **Counts:** 321 active cases and 386 ids.
+- **Docs:** the Test Cases page projection, plus the package index digests. The digests repeat `c8b10e885`'s regeneration, because touching `docs/` makes the gate select the docs checks.
+
+### Validation receipt, W1-9
+
+- **Tested commit SHA:** `76b1c78fd8916d78bfe112a4ff769e000acd20ac`.
+  - The gate is the pre-push hook on that commit.
+  - `git status --porcelain=v1 --untracked-files=all` is empty at that SHA.
+- **Run finished (UTC):** `2026-09-23T07:26:40Z`.
+- **Command:** `bun run check -- --intent push` (the pre-push hook, `critical · 178 changed path(s)`).
+- **Result:** all 30 runnable checks passed:
+  - format, lint, validation-system-test and test-quality;
+  - the package typecheck, test and build checks;
+  - docs-authority, docs-test and docs-build;
+  - source-structure, design-guardrails, ontology, agent-guidance, qa-id-ledger, supply-chain and story-quality;
+  - storybook-build and agent-tools-test.
+- **Cache:** the package tests were cache hits. No package source changed since W1-8's uncached run at `73ca25441`.
+- **Also run before commit:**
+  - `node packages/qa/build.mjs`: 321 active cases in en, es and pt;
+  - `check-qa-id-ledger.mjs --base fix/seed-tray-progress`: 386 ids, none removed, reintroduced or reactivated;
+  - `bun run check --only` for qa-id-ledger, agent-tools-test (the catalog contract tests among its 260), docs-generated, docs-authority and ontology.
+- **TDD:** not applicable. The PR changes catalog data and generated docs, not behaviour.
+- **PR:** #888, stacked on #887.
+
+### W2-1: pool console hierarchy
+
+- **Stats** (A22): the three filled tiles become one hairline card, `PoolStatsCard`, with each number over its label and no button chrome.
+  - Each count lands on exactly what it counts: Claims waiting on the claims card, Needs recovery and Past due on the commitments list filtered to them.
+  - The console model carries the recovery rows (`needsRecovery`: live, and disputed or past due), and the commitments card has a Needs recovery chip.
+  - A zero goes nowhere, so it is calm text.
+- **Destructive acts** (A19): Close pool…, Expire now…, Cancel commitment… and a disbursement's Cancel… are outlined where they sit. The red stays on each dialog's confirm.
+- **Protocol pool** (A14): its status card carries a Protocol pool chip.
+- **Alignment and weights** (A28):
+  - the status card's acts and protocol funding's acts are end-aligned;
+  - a queued transfer's Cancel… and Dispatch… are its paired decision, with Dispatch… rightmost;
+  - the seed footer drops its tonal weight;
+  - campaign acts read Open Campaign, End Campaign… and Cancel Campaign….
+- **Set Up offline** (A31): `PoolNotReadyCard` says why the act waits.
+- **Stories** (A23): the reader view, plus the new cards' states.
+- **Token baseline:** the tiles' raw button entry moves with the button to `PoolStatsCard`.
+- **For W2-5:** ADM-014 reads the stats card, and the campaign labels changed. Cases that name "Open" or "Cancel…" on a campaign take the new labels.
+
+### Validation receipt, W2-1
+
+- **Tested implementation commit SHA:** `c67c0d2a5e6ae325f7294a85d960da7364a57e49`.
+  - The gate is the pre-push hook on that commit.
+  - `git status --porcelain=v1 --untracked-files=all -- packages/` is empty at that SHA.
+- **Run finished (UTC):** `2026-09-23T07:53:19Z`.
+- **Command:** `bun run check -- --intent push` (the pre-push hook, `critical · 186 changed path(s)`).
+- **Result:** all 30 runnable checks passed:
+  - format, lint, validation-system-test and test-quality;
+  - the package typecheck, test and build checks;
+  - docs-authority, docs-test and docs-build;
+  - source-structure, design-guardrails, ontology, agent-guidance, qa-id-ledger, supply-chain and story-quality;
+  - storybook-build and agent-tools-test.
+- **Cache:** the package tests were cache hits on the same gate's uncached run on the same SHA. That run ended at `2026-09-23T07:50:48Z` with shared 5,606 passed and admin 924 passed, after which its push died with exit 141.
+- **Also run at that SHA:**
+  - the shared console and controller suites, 24 passed;
+  - the admin pool-tab, cycles, protocol funding, seeding and inspector suites, 74 passed.
+- **Before commit:**
+  - the full admin suite, 117 files and 924 passed;
+  - shared and admin typecheck in the source and tests scopes;
+  - design-tokens, source-structure, story-quality, react-patterns and the direct-tested seams check.
+- **RED:** five mutations, each caught. Three are recorded through `record-tdd` on the `ui` lane:
+  - Needs recovery landing on the past-due list;
+  - a zero count rendered as a button;
+  - Set Up waiting offline in silence.
+- **Story sweep:** 281 stories, headless. None crash.
+- **Rendered proof (Storybook, headless Chromium):**
+  - `admin-pool-gardenpooltab--open`;
+  - `admin-pool-poolstatscard--recovery-only`;
+  - `admin-pool-poolcommitmentscard--needs-recovery`;
+  - `admin-pool-poolstatuscard--protocol-pool` and `--ready-to-close`;
+  - `admin-pool-poolnotreadycard--offline`;
+  - `admin-pool-gardenpooltab--reader-view`;
+  - `admin-community-protocolfundingoperationscard--protocol-steward`;
+  - `admin-pool-poolcyclescard--ready-to-end`.
+- **PR:** #889, stacked on #888.
+
+### W2-2: flow clarity
+
+- **Single-signature acts** (A11): Resume Pool, Send for Confirmation and a queued row's send each show one line: confirm in your wallet, confirming on the network, then what the act did, queued on this device, or failed.
+  - Resume stays closed until the pool reads open, and Send for Confirmation until the record moves on.
+  - The pool mutation takes an act's own send callbacks.
+  - Job-queue acts use `trackReported` and the reducer's new `queued` ending. A send that never said how it ended reads as queued, never as landed.
+- **The split** (A16): the step opens by saying the split is fixed for good once the cycle opens and decides how its impact certificate is shared. Presets read as their roles, and each role says what its share is for.
+- **The first run** (A17): the entry note gives the prompt range (up to six), and the last button reads Set Up and Open.
+- **Gardener delivery** (A20): the confirmations say they reach every garden. The toast says what happens next instead of a hash, and the confirmed line reads the state back.
+- **Differs from the plan:** the three settlement status lines stay. They model a Safe proposal's submitted state, which the act-phase line has no place for.
+- **For W2-5:**
+  - ADM-056 takes Set Up and Open and the prompt range;
+  - ADM-060 can check Resume's line;
+  - ADM-075 can check Send for Confirmation's line;
+  - ADM-087's confirmation names every garden and reads the state back.
+
+### Validation receipt, W2-2
+
+- **Tested implementation commit SHA:** `f349f3ea7e5cdbe1997e9c70e32014b11b7fe22e`.
+  - The gate is the pre-push hook on that commit.
+  - `git status --porcelain=v1 --untracked-files=all -- packages/` is empty at that SHA.
+- **Run finished (UTC):** `2026-09-23T08:28:43Z`.
+- **Command:** `bun run check -- --intent push` (the pre-push hook, `critical · 190 changed path(s)`).
+- **Result:** all 30 runnable checks passed:
+  - format, lint, validation-system-test and test-quality;
+  - the package typecheck, test and build checks;
+  - docs-authority, docs-test and docs-build;
+  - source-structure, design-guardrails, ontology, agent-guidance, qa-id-ledger, supply-chain and story-quality;
+  - storybook-build and agent-tools-test.
+- **Cache:** the package tests were cache hits on the same gate's uncached run on the same SHA. That run ended at `2026-09-23T08:25:58Z` with shared 5,615 passed and admin 928 passed, after which its push died with exit 141.
+- **Also run at that SHA:**
+  - the shared act-phase, tracker, pool-mutation, jobs and console suites, 58 passed;
+  - the admin pool-tab, inspector, setup-flow and settlement-operations suites, 75 passed.
+- **Before commit:**
+  - the full admin suite, 117 files and 928 passed;
+  - 183 shared files, 1,927 passed;
+  - admin, shared and client typecheck;
+  - design-tokens, source-structure, story-quality, react-patterns and the direct-tested seams check.
+- **RED:** nine mutations, each caught. Three are recorded through `record-tdd` on the `ui` lane:
+  - a silent send reading as landed;
+  - Resume reopening before the pool reads open;
+  - Send for Confirmation reopening once sent.
+- **Story sweep:** 289 stories, headless. None crash.
+- **Rendered proof (Storybook, headless Chromium):**
+  - `admin-pool-poolstatuscard--resuming` and `--not-ready`;
+  - `admin-pool-commitmentactions--sent-for-confirmation`;
+  - `admin-pool-poolcommitmentscard--queued-sending`;
+  - `admin-primitives-actphaseline--queued`;
+  - `admin-pool-allocationeditor--standard`;
+  - `admin-pool-setupflowfooter--last-step`;
+  - `admin-community-settlementoperationscard--owner-delivery-off` with its confirmation open.
+- **Pending:** authenticated Brave proof of resuming a pool, sending for confirmation and sending a queued creation, walked in the rehearsal.
+- **PR:** #890, stacked on #889.
+
+### W2-4: copy and Title Case
+
+- **Title Case** (A26, DL-012/013): English titles and action labels on the pooling surfaces follow the style rule. That covers card, section, dialog and flow step titles, and acts such as "Close Pool…", "Expire Now…" and "Confirm as Garden Fallback…". Status copy, field labels, hints, empty-state titles and banners stay in sentence case, and Spanish and Portuguese keep their own casing.
+- **Copy** (A25):
+  - three lines are cut: the status card's "container" line, the split's basis-points note, and the setup step's starting-assessment note;
+  - a write is a "change" in the setup copy;
+  - Retry Command… reads Resend….
+- **Order:** A27, the raw `--m3-*` colours, moves into W2-3, so each file gets one pass for its title and its colours. W2-3 waits on the D3 check.
+- **For W2-5:** ADM-059, 061, 062, 064, 077, 079, 081, 082, 088, 089, 110, 111 and 121 quote a renamed label.
+
+### Validation receipt, W2-4
+
+- **Tested commit SHA:** `a18f4bee0ae8a318fa02d8c2844e15624fd2a268`.
+  - The gate is the pre-push hook on that commit.
+  - `git status --porcelain=v1 --untracked-files=all -- packages/` is empty at that SHA.
+- **Run finished (UTC):** `2026-09-23T08:50:13Z`.
+- **Command:** `bun run check -- --intent push` (the pre-push hook).
+- **Result:** all 30 runnable checks passed:
+  - format, lint, validation-system-test and test-quality;
+  - the package typecheck, test and build checks;
+  - docs-authority, docs-test and docs-build;
+  - source-structure, design-guardrails, ontology, agent-guidance, qa-id-ledger, supply-chain and story-quality;
+  - storybook-build and agent-tools-test.
+- **Cache:** the package tests were cache hits on the same gate's uncached run on the same SHA. That run ended at `2026-09-23T08:48:08Z` with shared 5,615 passed and admin 928 passed, after which its push died with exit 141.
+- **Before commit:**
+  - the full admin suite, 117 files and 928 passed;
+  - the i18n suites, 41 passed, holding every source `defaultMessage` equal to its English value;
+  - admin and shared typecheck;
+  - design-tokens, source-structure, story-quality and react-patterns;
+  - the four story plays that quote a renamed label, probed headless with no play error.
+- **TDD:** not applicable. The PR changes copy, not behaviour.
+- **Rendered proof (Storybook, headless Chromium):**
+  - `admin-pool-poolstatuscard--ready-to-close`;
+  - `admin-pool-commitmentactions--ready-to-confirm`;
+  - `admin-community-protocolfundingoperationscard--protocol-steward`;
+  - `admin-community-settlementoperationscard--owner-delivery-off`;
+  - `admin-pool-allocationeditor--standard`;
+  - `admin-pool-transferreviewdialog--dispatch`.
+- **PR:** #891, stacked on #890.
+
+### W2-5: the catalog after Wave 2
+
+- **Retired:** none. No case's result changed.
+- **Corrected in place**, with meaning unchanged:
+  - Title Case on the labels the rows quote: ADM-045, 061, 062, 064, 077, 079 to 082, 084, 088, 089, 109 to 112, 118 to 120, 133, 134, 137, 138, 144, 147, 149 and 154 to 158. ADM-045's English QA-app text follows; its Spanish and Portuguese labels did not change.
+  - Resend… for Retry Command… in ADM-089, 121 and 123.
+  - The campaign acts in ADM-058 and 059.
+  - ADM-087's reach and read-back.
+- **Added**, one outcome each:
+  - ADM-160, the pool tab's counts;
+  - ADM-161, the Protocol pool chip;
+  - ADM-162, Set Up offline;
+  - ADM-163, the setup note, the split's permanence, presets as roles, and Set Up and Open;
+  - ADM-164 to ADM-166, the act lines on Resume Pool, Send for Confirmation and a queued row's Send Now.
+- **Where this differs from the notes above:**
+  - ADM-056, 060 and 075 keep their checks. Their new lines are new cases (ADM-163 to 165), because a new check changes what a row proves, as ADM-159 did for Accept.
+  - ADM-014 needed no change; the counts get ADM-160.
+  - W2-3 changes how titles look, not what they say, so it needs no catalog pass.
+- **Counts:** 328 active cases and 393 ids.
+- **Carries W2-4's record:** once #891 was open, the gate refused W2-4's docs-only record commit on its branch. The gate wanted focused proof of the shared i18n change, and the hook cannot pass `--test-path`. The record rides in this PR instead, where the full gate ran on it.
+
+### Validation receipt, W2-5
+
+- **Tested commit SHA:** `b3c78eba2cfb6045c9f575dbe71e66633f42ca10`.
+  - The gate is the pre-push hook on that commit.
+  - `git status --porcelain=v1 --untracked-files=all` is empty at that SHA.
+- **Run finished (UTC):** `2026-09-23T09:08:19Z`.
+- **Command:** `bun run check -- --intent push` (the pre-push hook, `critical · 197 changed path(s)`).
+- **Result:** all 30 runnable checks passed:
+  - format, lint, validation-system-test and test-quality;
+  - the package typecheck, test and build checks;
+  - docs-authority, docs-test and docs-build;
+  - source-structure, design-guardrails, ontology, agent-guidance, qa-id-ledger, supply-chain and story-quality;
+  - storybook-build and agent-tools-test.
+- **Cache:** the package tests were cache hits. No package source changed since W2-4's uncached run at `a18f4bee0`.
+- **Also run before commit:**
+  - `node packages/qa/build.mjs`: 328 active cases in en, es and pt;
+  - `check-qa-id-ledger.mjs --base c5f37d6c4`: 393 ids, none removed, reintroduced or reactivated;
+  - `bun run check --only` for docs-generated, qa-id-ledger, agent-tools-test, docs-authority and ontology.
+- **TDD:** not applicable. The PR changes catalog data and generated docs, not behaviour.
+- **PR:** #892, stacked on #891.
 
 ## 5. Catalog PR
 
