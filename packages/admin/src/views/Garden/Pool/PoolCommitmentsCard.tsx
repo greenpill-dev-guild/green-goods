@@ -10,6 +10,7 @@ import { AdminCard } from "@/components/AdminCard";
 import { AdminFilterChip } from "@/components/AdminFilterChip";
 import { AdminSearchToolbar } from "@/components/AdminSearchToolbar";
 import { CommitmentExpireDialog } from "./CommitmentExpireDialog";
+import { GardenPoolTarget } from "./PoolTarget";
 import { commitmentStateChip, directionLabel, formatUnixDate } from "./poolPresentation";
 
 export type PoolCommitmentScope = "open" | "confirmed" | "past";
@@ -401,6 +402,16 @@ export function PoolCommitmentsCard({
         isOpen={expireTarget !== null}
         onClose={() => setExpireTarget(null)}
         title={expireTarget ? titleOf(expireTarget) : ""}
+        target={
+          expireTarget ? (
+            <GardenPoolTarget
+              chainId={pool.chainId}
+              garden={pool.garden}
+              isProtocol={pool.pool?.poolType === "PROTOCOL"}
+              record={titleOf(expireTarget)}
+            />
+          ) : undefined
+        }
         tone={tone}
         isLoading={isActing}
         onConfirm={async () => {

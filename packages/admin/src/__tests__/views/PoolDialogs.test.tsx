@@ -31,16 +31,19 @@ vi.mock("@/components/AdminDialog", () => ({
     onClose,
     onConfirm,
     confirmLabel,
+    target,
     children,
   }: {
     isOpen: boolean;
     onClose: () => void;
     onConfirm: () => Promise<void>;
     confirmLabel: string;
+    target?: ReactNode;
     children?: ReactNode;
   }) =>
     isOpen ? (
       <section data-testid="confirm-dialog">
+        {target}
         {children}
         <button type="button" onClick={onClose}>
           Cancel confirmation

@@ -1,4 +1,6 @@
 import type { PoolConsoleController } from "@green-goods/shared/hooks/admin-ui/pool/controller.types";
+import { AddressDisplay } from "@green-goods/shared/components/AddressDisplay";
+import type { PoolClaimRequestRow } from "@green-goods/shared/modules/commitment-pooling/types-core";
 import type { Dispatch, SetStateAction } from "react";
 import { useIntl } from "react-intl";
 import { AdminReasonDialog } from "@/components/AdminReasonDialog";
@@ -26,6 +28,13 @@ export function PoolReasonDialogs({
   setReasonDialog: Dispatch<SetStateAction<ReasonDialog>>;
 }) {
   const { formatMessage } = useIntl();
+  // The commitment a declined request was for, by the title its metadata carries.
+  const claimTitle = (row: PoolClaimRequestRow) =>
+    (row.commitment.metadataCID && pool.titles.get(row.commitment.metadataCID.trim())?.title) ??
+    formatMessage(
+      { id: "cockpit.garden.pool.row.untitled", defaultMessage: "Commitment {id}" },
+      { id: row.commitment.commitmentId.toString() }
+    );
   return (
     <>
       <AdminReasonDialog
@@ -78,9 +87,8 @@ export function PoolReasonDialogs({
           await pool.acts.pause(reason);
           setReasonDialog(null);
         }}
-      >
-        <PoolTarget target={target} />
-      </AdminReasonDialog>
+        target={<PoolTarget target={target} />}
+      />
 
       <AdminReasonDialog
         isOpen={reasonDialog?.kind === "cancel-cycle"}
@@ -153,9 +161,17 @@ export function PoolReasonDialogs({
           await pool.acts.cancelCycle(reasonDialog.cycle.cycleId, reason);
           setReasonDialog(null);
         }}
-      >
-        <PoolTarget target={target} />
-      </AdminReasonDialog>
+        target={
+          <PoolTarget
+            target={target}
+            record={
+              reasonDialog?.kind === "cancel-cycle"
+                ? cycleName(reasonDialog.cycle, pool.cycleNames, formatMessage)
+                : undefined
+            }
+          />
+        }
+      />
 
       <AdminReasonDialog
         isOpen={reasonDialog?.kind === "decline-claim"}
@@ -209,9 +225,24 @@ export function PoolReasonDialogs({
           );
           setReasonDialog(null);
         }}
-      >
-        <PoolTarget target={target} />
-      </AdminReasonDialog>
+        target={
+          reasonDialog?.kind === "decline-claim" ? (
+            <PoolTarget
+              target={target}
+              record={claimTitle(reasonDialog.row)}
+              party={{
+                label: formatMessage({
+                  id: "cockpit.garden.pool.target.requestFrom",
+                  defaultMessage: "Request from",
+                }),
+                value: (
+                  <AddressDisplay address={reasonDialog.row.claim.claimant} interactive={false} />
+                ),
+              }}
+            />
+          ) : null
+        }
+      />
     </>
   );
 }

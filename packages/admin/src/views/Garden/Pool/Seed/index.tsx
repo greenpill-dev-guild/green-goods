@@ -28,6 +28,7 @@ import { DiscardChangesDialog } from "@/components/DiscardChangesDialog";
 import { ActionFlowShell } from "@/components/Layout/ActionFlowShell";
 import { FlowStepHeader } from "@/components/Layout/FlowStepHeader";
 import { cycleName } from "../poolPresentation";
+import { GardenPoolTarget } from "../PoolTarget";
 import { SeedFlowFooter } from "./SeedFlowFooter";
 import { SeedStepHowMuch } from "./SeedStepHowMuch";
 import { SeedStepProof } from "./SeedStepProof";
@@ -393,6 +394,7 @@ export function SeedCommitmentDialog({
           footer={footer}
         >
           <div ref={stepRef} tabIndex={-1} className="space-y-4 outline-none">
+            <GardenPoolTarget chainId={chainId} garden={garden} isProtocol={protocolContext} />
             <FlowStepHeader
               title={stepConfigs[stepIndex]?.title ?? title}
               description={stepConfigs[stepIndex]?.description}

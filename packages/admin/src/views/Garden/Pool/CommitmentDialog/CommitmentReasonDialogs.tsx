@@ -1,6 +1,10 @@
 import type { CommitmentDialogController } from "@green-goods/shared/hooks/admin-ui/pool/controller.types";
+import type { ReactNode } from "react";
 import { useIntl } from "react-intl";
+import { AddressDisplay } from "@green-goods/shared/components/AddressDisplay";
+import type { Address } from "@green-goods/shared/types/domain";
 import { AdminReasonDialog } from "@/components/AdminReasonDialog";
+import { GardenPoolTarget } from "../PoolTarget";
 import type {
   CommitmentDialogTone,
   FallbackPath,
@@ -15,6 +19,8 @@ interface ReasonDialogProps {
   acts: CommitmentDialogController["acts"];
   /** Why confirming is out of reach, or undefined when it is within reach. */
   blockedReason: string | undefined;
+  /** The commitment and its pool, named under each dialog's title. */
+  target?: ReactNode;
 }
 
 /**
@@ -28,6 +34,7 @@ export function CommitmentReasonDialogs({
   tone,
   acts,
   blockedReason,
+  target,
 }: ReasonDialogProps) {
   const { formatMessage } = useIntl();
 
@@ -37,6 +44,7 @@ export function CommitmentReasonDialogs({
         isOpen={open === "cancel"}
         onClose={onClose}
         tone={tone}
+        target={target}
         variant="danger"
         title={formatMessage({
           id: "cockpit.garden.pool.commitment.cancel.title",
@@ -79,6 +87,7 @@ export function CommitmentReasonDialogs({
         isOpen={open === "mark-ready"}
         onClose={onClose}
         tone={tone}
+        target={target}
         title={formatMessage({
           id: "cockpit.garden.pool.commitment.markReady.title",
           defaultMessage: "Mark Ready with Override",
@@ -116,6 +125,7 @@ export function CommitmentReasonDialogs({
         isOpen={open === "raise-dispute"}
         onClose={onClose}
         tone={tone}
+        target={target}
         title={formatMessage({
           id: "cockpit.garden.pool.commitment.dispute.title",
           defaultMessage: "Raise a dispute",
@@ -165,6 +175,7 @@ export function CommitmentFallbackDialog({
   acts,
   blockedReason,
   fallbackPath,
+  target,
 }: ReasonDialogProps & { fallbackPath: FallbackPath }) {
   const { formatMessage } = useIntl();
 
@@ -173,6 +184,7 @@ export function CommitmentFallbackDialog({
       isOpen={open === "fallback-confirm"}
       onClose={onClose}
       tone={tone}
+      target={target}
       title={
         fallbackPath === "PROTOCOL_FALLBACK"
           ? formatMessage({
@@ -255,7 +267,16 @@ export function CommitmentDeclineClaimDialog({
   tone,
   acts,
   blockedReason,
-}: ReasonDialogProps) {
+  chainId,
+  garden,
+  record,
+}: Omit<ReasonDialogProps, "target"> & {
+  chainId: number;
+  /** The pool's garden, for the line naming what is declined and for whom. */
+  garden: Address;
+  /** The commitment's title. */
+  record: string;
+}) {
   const { formatMessage } = useIntl();
 
   return (
@@ -263,6 +284,22 @@ export function CommitmentDeclineClaimDialog({
       isOpen={typeof open === "object" && open?.kind === "decline-claim"}
       onClose={onClose}
       tone={tone}
+      target={
+        typeof open === "object" && open?.kind === "decline-claim" ? (
+          <GardenPoolTarget
+            chainId={chainId}
+            garden={garden}
+            record={record}
+            party={{
+              label: formatMessage({
+                id: "cockpit.garden.pool.target.requestFrom",
+                defaultMessage: "Request from",
+              }),
+              value: <AddressDisplay address={open.claimant} interactive={false} />,
+            }}
+          />
+        ) : null
+      }
       title={formatMessage({
         id: "cockpit.garden.pool.declineClaim.title",
         defaultMessage: "Decline This Request",

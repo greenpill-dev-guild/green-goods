@@ -97,9 +97,8 @@ export function PoolDialogs({
           await pool.acts.closePool();
           setConfirmDialog(null);
         }}
-      >
-        <PoolTarget target={target} />
-      </AdminConfirmDialog>
+        target={<PoolTarget target={target} />}
+      />
 
       <AdminConfirmDialog
         isOpen={confirmDialog === "compost"}
@@ -128,9 +127,8 @@ export function PoolDialogs({
           await pool.acts.compostPool();
           setConfirmDialog(null);
         }}
-      >
-        <PoolTarget target={target} />
-      </AdminConfirmDialog>
+        target={<PoolTarget target={target} />}
+      />
 
       <AdminConfirmDialog
         isOpen={confirmDialog === "reopen"}
@@ -158,9 +156,8 @@ export function PoolDialogs({
           await pool.acts.reopenPool(false);
           setConfirmDialog(null);
         }}
-      >
-        <PoolTarget target={target} />
-      </AdminConfirmDialog>
+        target={<PoolTarget target={target} />}
+      />
     </>
   );
 }

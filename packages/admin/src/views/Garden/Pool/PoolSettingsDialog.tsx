@@ -98,6 +98,7 @@ export function PoolSettingsDialog({
           id: "cockpit.garden.pool.settings.title",
           defaultMessage: "Pool settings",
         })}
+        target={<PoolTarget target={target} />}
         bodyClassName="space-y-4"
         actions={
           <>
@@ -124,7 +125,6 @@ export function PoolSettingsDialog({
           </>
         }
       >
-        <PoolTarget target={target} />
         <AdminTextArea
           id={purposeId}
           label={formatMessage({

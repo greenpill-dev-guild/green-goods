@@ -71,6 +71,10 @@ vi.mock("@green-goods/shared/hooks/blockchain/useBaseLists", () => ({
   useActions: (() => ({
     data: [{ id: "42161-44", title: "Prune trees" }],
   })) as unknown as ActionsModule["useActions"],
+  // The wizard names the pool it seeds into from the gardens list.
+  useGardens: (() => ({
+    data: [{ id: GARDEN, name: "Rocinha" }],
+  })) as unknown as ActionsModule["useGardens"],
 }));
 
 vi.mock("@green-goods/shared/hooks/ui/useMediaQuery", () => ({
@@ -351,6 +355,8 @@ describe("SeedCommitmentDialog (W8)", () => {
 
   it("groups the cycle choice as the one season, then the campaigns, then cycle-less, defaulting to the season", () => {
     renderSeed();
+    // Every step names the pool the commitments land in before anything else.
+    expect(within(dialog()).getByText("Rocinha’s pool")).toBeInTheDocument();
     const select = within(dialog()).getByLabelText(/^cycle/i) as HTMLSelectElement;
     const labels = Array.from(select.options).map((option) => option.textContent);
     expect(labels).toEqual([
@@ -432,6 +438,10 @@ describe("SeedCommitmentDialog (W8)", () => {
     // Context comes from the pool itself, never from where the wizard was opened.
     mocks.console = consoleFor("PROTOCOL");
     renderSeed();
+    // The protocol pool is set apart from the first step, not only in its defaults.
+    expect(
+      within(dialog()).getByText("Writing to the Green Goods protocol pool")
+    ).toBeInTheDocument();
     fillWhat();
     next();
     await waitFor(() => expect(within(dialog()).getByLabelText(/^unit/i)).toBeInTheDocument());
