@@ -1,4 +1,4 @@
-import { GENERATOR_PATH, generatedFrontmatter } from "./generator-core.mjs";
+import { GENERATOR_PATH, generatedFrontmatter, regenerationHint } from "./generator-core.mjs";
 import { OPERATIONS } from "../../packages/contracts/script/cli/operations.mjs";
 import {
   deploymentAddressFields,
@@ -150,7 +150,7 @@ export function renderIntegrationProjections({ root, sources, digest }) {
     };
   }
   const payload = {
-    $generated: "GENERATED FILE: do not edit. Run `node scripts/docs/generate.mjs` or `node scripts/docs/generate.mjs -- --scope integration`.",
+    $generated: `GENERATED FILE: do not edit. ${regenerationHint("integration")}`,
     generator: GENERATOR_PATH,
     digest,
     integrations,
@@ -189,18 +189,34 @@ const ERD_GROUPS = [
   },
 ];
 
+/**
+ * Places every ontology entity in exactly one diagram group. Throws when an entity is missing, is
+ * listed in two groups (it would render twice), or a group names an entity the ontology lacks.
+ */
+export function assignDataModelGroups(entityIds, groups) {
+  const groupOf = new Map();
+  const duplicated = new Set();
+  for (const group of groups) {
+    for (const member of group.members) {
+      if (groupOf.has(member)) duplicated.add(member);
+      groupOf.set(member, group.title);
+    }
+  }
+  const known = new Set(entityIds);
+  const unassigned = entityIds.filter((id) => !groupOf.has(id));
+  const unknown = [...groupOf.keys()].filter((id) => !known.has(id));
+  if (unassigned.length || unknown.length || duplicated.size) {
+    throw new Error(
+      `Data model grouping is out of date. Unassigned entities: ${unassigned.join(", ") || "none"}. Unknown group members: ${unknown.join(", ") || "none"}. Listed in more than one group: ${[...duplicated].join(", ") || "none"}.`
+    );
+  }
+  return groupOf;
+}
+
 export function renderDataModel({ root, sources, digest }) {
   const ontology = readJson(root, declaredSource(sources, "packages/shared/src/ontology/green-goods-ontology.json"));
   const byId = new Map(ontology.entities.map((entity) => [entity.id, entity]));
-  const groupOf = new Map();
-  for (const group of ERD_GROUPS) for (const member of group.members) groupOf.set(member, group.title);
-  const unassigned = ontology.entities.filter((entity) => !groupOf.has(entity.id)).map((entity) => entity.id);
-  const unknown = [...groupOf.keys()].filter((id) => !byId.has(id));
-  if (unassigned.length || unknown.length) {
-    throw new Error(
-      `Data model grouping is out of date. Unassigned entities: ${unassigned.join(", ") || "none"}. Unknown group members: ${unknown.join(", ") || "none"}.`
-    );
-  }
+  assignDataModelGroups(ontology.entities.map((entity) => entity.id), ERD_GROUPS);
   const node = (id) => id.replaceAll("-", "_");
   let body = pageHeader(
     { title: "Data Model & Ontology", slug: "/builders/architecture/data-model", sources, digest },
@@ -251,14 +267,24 @@ function skillFrontmatterDescription(root, source) {
   return match[1].trim().replace(/^["']|["']$/g, "");
 }
 
-function readmeLeadParagraph(root, source) {
+// The labeled README paragraphs a catalog entry shows, in reading order.
+const SKILL_README_FIELDS = ["When to use it", "What you get", "How to invoke"];
+
+/** A skill README's lead paragraph is its purpose; `**Label:** text` paragraphs are its fields. */
+function readSkillReadme(root, source) {
   const text = readText(root, source).replace(/^---\n[\s\S]*?\n---\n/, "");
   const paragraphs = text
     .split(/\n\s*\n/)
-    .map((block) => block.trim())
+    .map((block) => block.trim().replaceAll("\n", " "))
     .filter((block) => block && !block.startsWith("#"));
-  if (!paragraphs.length) throw new Error(`Skill README has no lead paragraph: ${source}`);
-  return paragraphs[0].replaceAll("\n", " ");
+  const fields = {};
+  for (const paragraph of paragraphs) {
+    const match = /^\*\*([^*]+):\*\*\s*(.+)$/.exec(paragraph);
+    if (match) fields[match[1]] = match[2];
+  }
+  const purpose = paragraphs.find((paragraph) => !/^\*\*[^*]+:\*\*/.test(paragraph));
+  if (!purpose) throw new Error(`Skill README has no lead paragraph: ${source}`);
+  return { purpose, fields };
 }
 
 export function renderSkills({ root, sources, digest }) {
@@ -273,14 +299,16 @@ export function renderSkills({ root, sources, digest }) {
   let body = pageHeader(
     { title: "Skills Catalog", slug: "/builders/agentic/skills", sources, digest },
     "Skills Catalog",
-    "Each skill is a packaged workflow that a coding agent (or a contributor driving one) invokes by name for a specific kind of task. This catalog projects each skill's purpose from its folder; the folder's README and SKILL.md stay the source of truth."
+    "Skills are packaged workflows. A coding agent, or you driving one, runs a skill by name for a specific kind of task. Each entry below comes from the skill's own folder, where its README and SKILL.md stay the source of truth."
   );
   for (const [name, entry] of [...byName.entries()].sort(([a], [b]) => a.localeCompare(b))) {
     if (!entry.skill) throw new Error(`Skill ${name} is missing SKILL.md`);
-    const purpose = entry.readme
-      ? readmeLeadParagraph(root, declaredSource(sources, entry.readme))
-      : skillFrontmatterDescription(root, declaredSource(sources, entry.skill));
-    body += `### ${name} {#${name}}\n\n${purpose}\n\n`;
+    const { purpose, fields } = entry.readme
+      ? readSkillReadme(root, declaredSource(sources, entry.readme))
+      : { purpose: skillFrontmatterDescription(root, declaredSource(sources, entry.skill)), fields: {} };
+    body += `## ${name} {#${name}}\n\n${purpose}\n\n`;
+    const fieldLines = SKILL_README_FIELDS.filter((label) => fields[label]).map((label) => `- **${label}:** ${fields[label]}`);
+    if (fieldLines.length) body += `${fieldLines.join("\n")}\n\n`;
     body += `[Skill folder](https://github.com/greenpill-dev-guild/green-goods/tree/main/.claude/skills/${name})\n\n`;
   }
   return body;

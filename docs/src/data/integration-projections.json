@@ -1,5 +1,5 @@
 {
-  "$generated": "GENERATED FILE: do not edit. Run `node scripts/docs/generate.mjs` or `node scripts/docs/generate.mjs -- --scope integration`.",
+  "$generated": "GENERATED FILE: do not edit. Run `node scripts/docs/generate.mjs` or `node scripts/docs/generate.mjs --scope integration`.",
   "generator": "scripts/docs/generate.mjs",
   "digest": "sha256:c925611fca7e01d4b00e7454e8dbab3a2291fc34b61586bc0e2985e35dbd4f47",
   "integrations": {

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
-import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { mkdtempSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import test from "node:test";
@@ -9,6 +9,7 @@ import {
   generatedFrontmatter,
   normalizeText,
   parseGeneratorArgs,
+  regenerationHint,
   renderProjection,
   sourceDigest,
   syncProjections,
@@ -26,7 +27,7 @@ import {
   sourcePathsContaining,
   workflowSourcePaths,
 } from "./source-readers.mjs";
-import { renderSkills } from "./renderers.mjs";
+import { assignDataModelGroups, renderSkills } from "./renderers.mjs";
 import { selectExpectedWorkflows } from "../quality/select-validation.mjs";
 
 const REPO_ROOT = path.resolve(import.meta.dirname, "../..");
@@ -202,6 +203,13 @@ test("detects missing, stale, and extra generated outputs", () => {
     const extra = path.join(root, "docs/docs/builders/reference/extra.mdx");
     writeFileSync(extra, "---\ngenerated: true\ngenerator: scripts/docs/generate.mjs\n---\n");
     assert.ok(syncProjections({ root, projections: [item], check: true }).includes("extra: docs/docs/builders/reference/extra.mdx"));
+
+    mkdirSync(path.join(root, "docs/src/data"), { recursive: true });
+    writeFileSync(path.join(root, "docs/src/data/retired.json"), '{"generator": "scripts/docs/generate.mjs"}\n');
+    writeFileSync(path.join(root, "docs/src/data/hand-written.json"), '{"title": "not generated"}\n');
+    const problems = syncProjections({ root, projections: [item], check: true });
+    assert.ok(problems.includes("extra: docs/src/data/retired.json"), "a generated JSON file no projection owns is extra");
+    assert.ok(!problems.some((problem) => problem.includes("hand-written.json")), "plain data files are not generator-owned");
   } finally {
     rmSync(root, { recursive: true, force: true });
   }
@@ -232,6 +240,40 @@ test("fixture CLI exits nonzero for broken authority and modified output", () =>
 test("rejects malformed CLI input", () => {
   assert.throws(() => parseGeneratorArgs(["--scope", "unknown"]), /Unknown docs generator scope/);
   assert.throws(() => parseGeneratorArgs(["--wat"]), /Unknown docs generator argument/);
+});
+
+test("generated banners quote regeneration commands the generator accepts", () => {
+  const integrationData = createProjections(REPO_ROOT).find(
+    (item) => item.output === "docs/src/data/integration-projections.json",
+  );
+  assert.ok(integrationData);
+  const banners = [
+    generatedFrontmatter({ title: "Fixture", slug: "/fixture", sources: [], digest: "sha256:test" }),
+    JSON.parse(renderProjection(REPO_ROOT, integrationData)).$generated,
+  ];
+  for (const banner of banners) {
+    const commands = [...banner.matchAll(/`node scripts\/docs\/generate\.mjs([^`]*)`/g)].map((match) =>
+      match[1].trim().split(/\s+/).filter(Boolean).map((word) => (word === "<scope>" ? "package" : word)),
+    );
+    assert.equal(commands.length, 2, `banner should quote the full and scoped commands: ${banner}`);
+    for (const args of commands) assert.doesNotThrow(() => parseGeneratorArgs(args), `${args.join(" ")} must parse`);
+  }
+  assert.equal(parseGeneratorArgs(["--scope", "integration"]).scope, "integration");
+  assert.match(regenerationHint("qa"), /--scope qa`\.$/);
+});
+
+test("data model grouping places every entity in exactly one group", () => {
+  const groups = [
+    { title: "One", members: ["a", "b"] },
+    { title: "Two", members: ["c"] },
+  ];
+  assert.equal(assignDataModelGroups(["a", "b", "c"], groups).get("c"), "Two");
+  assert.throws(
+    () => assignDataModelGroups(["a", "b", "c"], [...groups, { title: "Three", members: ["b"] }]),
+    /Listed in more than one group: b/,
+  );
+  assert.throws(() => assignDataModelGroups(["a", "b", "c", "d"], groups), /Unassigned entities: d/);
+  assert.throws(() => assignDataModelGroups(["a", "b"], groups), /Unknown group members: c/);
 });
 
 test("every projection source is routed to the Docs workflow", () => {
@@ -290,7 +332,8 @@ test("skills catalog prefers a skill README and falls back to the SKILL.md descr
     );
     writeFileSync(
       path.join(root, ".claude/skills/alpha/README.md"),
-      "# Alpha\n\nAlpha readme purpose paragraph.\n\n## More\n\nDetail\n",
+      "# Alpha\n\nAlpha readme purpose paragraph.\n\n**When to use it:** When alpha applies.\n\n" +
+        "**What you get:** An alpha result.\n\n**How to invoke:** Type `/alpha`.\n\n## More\n\nDetail\n",
     );
     writeFileSync(
       path.join(root, ".claude/skills/beta/SKILL.md"),
@@ -302,9 +345,14 @@ test("skills catalog prefers a skill README and falls back to the SKILL.md descr
       ".claude/skills/beta/SKILL.md",
     ];
     const rendered = renderSkills({ root, sources, digest: "sha256:test" });
-    assert.match(rendered, /Alpha readme purpose paragraph\./);
+    assert.match(rendered, /## alpha \{#alpha\}\n\nAlpha readme purpose paragraph\./);
+    assert.match(
+      rendered,
+      /- \*\*When to use it:\*\* When alpha applies\.\n- \*\*What you get:\*\* An alpha result\.\n- \*\*How to invoke:\*\* Type `\/alpha`\./,
+    );
     assert.doesNotMatch(rendered, /Alpha description sentence\./);
-    assert.match(rendered, /Beta description sentence\./);
+    assert.match(rendered, /## beta \{#beta\}\n\nBeta description sentence\./);
+    assert.doesNotMatch(rendered, /^### /m, "skill headings sit directly under the page title");
   } finally {
     rmSync(root, { recursive: true, force: true });
   }
@@ -316,8 +364,18 @@ test("skills catalog projects every repository skill", () => {
   );
   assert.ok(projection);
   const rendered = renderProjection(REPO_ROOT, projection);
-  for (const skill of ["research", "review", "ship", "plan", "debug", "qa-session"]) {
-    assert.match(rendered, new RegExp(`### ${skill}\\b`));
+  const skills = readdirSync(path.join(REPO_ROOT, ".claude/skills"), { withFileTypes: true })
+    .filter((entry) => entry.isDirectory())
+    .map((entry) => entry.name);
+  assert.ok(skills.length > 0);
+  for (const skill of skills) {
+    const start = rendered.indexOf(`## ${skill} {#${skill}}`);
+    assert.notEqual(start, -1, `${skill} must have a catalog entry`);
+    const next = rendered.indexOf("\n## ", start + 1);
+    const entry = rendered.slice(start, next === -1 ? undefined : next);
+    for (const label of ["When to use it", "What you get", "How to invoke"]) {
+      assert.ok(entry.includes(`- **${label}:**`), `${skill} must say ${label} (add it to its README)`);
+    }
   }
   assert.match(rendered, /tree\/main\/\.claude\/skills\/research/);
 });
