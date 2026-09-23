@@ -131,9 +131,11 @@ describe("useEffectiveToolbarPermissions", () => {
     });
   });
 
-  it("evaluator-only sees only Work (showWork: true, rest false)", () => {
+  it("evaluator, gardener, and community member sees Hub and Garden, not Community", () => {
     const gardenA = makeGarden("garden-a", {
       evaluators: [ADDR_USER],
+      gardeners: [ADDR_USER],
+      communities: [ADDR_USER],
     });
 
     setupDefaults({ gardens: [gardenA] });
@@ -141,7 +143,7 @@ describe("useEffectiveToolbarPermissions", () => {
     const { result } = renderHook(() => useEffectiveToolbarPermissions());
 
     expect(result.current.showWork).toBe(true);
-    expect(result.current.showGarden).toBe(false);
+    expect(result.current.showGarden).toBe(true);
     expect(result.current.showCommunity).toBe(false);
     expect(result.current.showActions).toBe(false);
     expect(result.current.isLoading).toBe(false);
@@ -217,7 +219,7 @@ describe("useEffectiveToolbarPermissions", () => {
     expect(result.current.isLoading).toBe(false);
   });
 
-  it("single-garden scope: steward in A, evaluator in B, scope=B -> Work only", () => {
+  it("single-garden scope: steward in A, evaluator in B, scope=B -> Hub and Garden only", () => {
     const gardenA = makeGarden("garden-a", {
       stewards: [ADDR_USER],
     });
@@ -232,9 +234,9 @@ describe("useEffectiveToolbarPermissions", () => {
 
     const { result } = renderHook(() => useEffectiveToolbarPermissions());
 
-    // Scoped to garden B where user is only evaluator: only Work visible
+    // Steward authority in A does not grant Community access in B.
     expect(result.current.showWork).toBe(true);
-    expect(result.current.showGarden).toBe(false);
+    expect(result.current.showGarden).toBe(true);
     expect(result.current.showCommunity).toBe(false);
     expect(result.current.showActions).toBe(false);
     expect(result.current.isLoading).toBe(false);

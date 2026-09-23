@@ -1,6 +1,7 @@
 import { AddressDisplay } from "@green-goods/shared/components/AddressDisplay";
 import { Alert } from "@green-goods/shared/components/Alert";
 import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
+import { useEnsNames } from "@green-goods/shared/hooks/blockchain/useEnsName";
 import type { Address } from "@green-goods/shared/types/domain";
 import { formatAddress } from "@green-goods/shared/utils/app/text";
 import {
@@ -65,6 +66,7 @@ export function ManageMembersDialog({
       ),
     [roleMembers]
   );
+  const ensNames = useEnsNames(open ? rows.map((row) => row.address) : []);
   const normalizedSearch = memberSearch.trim().toLowerCase();
   const visibleRows = useMemo(() => {
     const roleScopedRows =
@@ -74,11 +76,15 @@ export function ManageMembersDialog({
 
     return roleScopedRows.filter((row) => {
       const roleLabel = getRoleLabel(row.role, formatMessage);
-      return [row.address, formatAddress(row.address), roleLabel.singular, roleLabel.plural].some(
-        (value) => value.toLowerCase().includes(normalizedSearch)
-      );
+      return [
+        row.address,
+        formatAddress(row.address),
+        ensNames.get(row.address.toLowerCase()) ?? "",
+        roleLabel.singular,
+        roleLabel.plural,
+      ].some((value) => value.toLowerCase().includes(normalizedSearch));
     });
-  }, [formatMessage, normalizedSearch, roleFilter, rows]);
+  }, [ensNames, formatMessage, normalizedSearch, roleFilter, rows]);
   const busy = isLoading || removing;
   const pendingRemovalLabel = pendingRemoval
     ? getRoleLabel(pendingRemoval.role, formatMessage)
@@ -158,7 +164,7 @@ export function ManageMembersDialog({
             onSearchChange={setMemberSearch}
             placeholder={formatMessage({
               id: "app.admin.roles.searchPlaceholder",
-              defaultMessage: "Search members by address or role",
+              defaultMessage: "Search members by address, ENS name, or role",
             })}
           />
 

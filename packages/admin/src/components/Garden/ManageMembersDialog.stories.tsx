@@ -1,7 +1,9 @@
 import type { Address } from "@green-goods/shared/types/domain";
+import { queryKeys } from "@green-goods/shared/config/query-keys/registry";
 import type { GardenRole } from "@green-goods/shared/utils/blockchain/garden-roles";
 import type { Meta, StoryObj } from "@storybook/react";
 import { fn } from "storybook/test";
+import { withSeededQueryClient } from "../../../../shared/.storybook/decorators";
 import { ManageMembersDialog } from "./ManageMembersDialog";
 
 const OWNER = "0x1111111111111111111111111111111111111111" as Address;
@@ -56,6 +58,12 @@ export default meta;
 type Story = StoryObj<typeof ManageMembersDialog>;
 
 export const Default: Story = {};
+
+export const ENSNameSearch: Story = {
+  decorators: [
+    withSeededQueryClient([[queryKeys.ens.name(GARDENER_B.toLowerCase()), "garden.bloom.eth"]]),
+  ],
+};
 
 export const ReadOnly: Story = {
   args: {

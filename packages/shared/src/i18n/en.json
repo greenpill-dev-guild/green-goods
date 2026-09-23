@@ -660,7 +660,7 @@
   "app.admin.roles.removed": "{role} removed successfully",
   "app.admin.roles.removing": "Removing {role}...",
   "app.admin.roles.roleLabel": "Role",
-  "app.admin.roles.searchPlaceholder": "Search members by address or role",
+  "app.admin.roles.searchPlaceholder": "Search members by address, ENS name, or role",
   "app.admin.sidebar.admin": "Admin",
   "app.admin.sidebar.signOut": "Sign Out",
   "app.admin.sortSelect.sortBy": "Sort by",

@@ -5,13 +5,20 @@
  * the Add Members entry ("keep it simple" collapse of the old roles stack).
  */
 
-import { fireEvent, screen, within } from "@testing-library/react";
+import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { createElement } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Address } from "@green-goods/shared/types/domain";
 import type { GardenRole } from "@green-goods/shared/utils/blockchain/garden-roles";
 import { renderWithProviders as render } from "../../test-utils";
+import { resetTestQueryClient } from "@green-goods/shared/__tests__/test-utils/query-client";
+
+const mockResolveEnsName = vi.fn();
+
+vi.mock("@green-goods/shared/utils/blockchain/ens", () => ({
+  resolveEnsName: (...args: unknown[]) => mockResolveEnsName(...args),
+}));
 
 vi.mock("@green-goods/shared/components/AddressDisplay", () => ({
   AddressDisplay: ({ address, className }: { address: string; className?: string }) =>
@@ -46,6 +53,10 @@ describe("components/Garden/ManageMembersDialog", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    resetTestQueryClient();
+    mockResolveEnsName.mockImplementation(async (address: string) =>
+      address === GARDENER_B.toLowerCase() ? "Garden.Bloom.eth" : null
+    );
   });
 
   it("renders one flat roster across all roles with the member count", () => {
@@ -71,7 +82,9 @@ describe("components/Garden/ManageMembersDialog", () => {
     const user = userEvent.setup();
     render(createElement(ManageMembersDialog, defaultProps));
 
-    const search = screen.getByRole("textbox", { name: "Search members by address or role" });
+    const search = screen.getByRole("textbox", {
+      name: "Search members by address, ENS name, or role",
+    });
 
     await user.type(search, "5555");
     expect(screen.getAllByTestId("address-display")).toHaveLength(1);
@@ -81,6 +94,28 @@ describe("components/Garden/ManageMembersDialog", () => {
     await user.type(search, "owner");
     expect(screen.getAllByTestId("address-display")).toHaveLength(1);
     expect(screen.getByText(OWNER.slice(0, 10))).toBeInTheDocument();
+  });
+
+  it("matches a resolved ENS name by case-insensitive substring", async () => {
+    const user = userEvent.setup();
+    let finishLookup: ((name: string) => void) | undefined;
+    const lookup = new Promise<string>((resolve) => {
+      finishLookup = resolve;
+    });
+    mockResolveEnsName.mockImplementation(async (address: string) =>
+      address === GARDENER_B.toLowerCase() ? lookup : null
+    );
+    render(createElement(ManageMembersDialog, defaultProps));
+
+    const search = screen.getByRole("textbox", {
+      name: "Search members by address, ENS name, or role",
+    });
+    await user.type(search, "BLOOM");
+    expect(screen.getByText("No members match your search")).toBeInTheDocument();
+    finishLookup?.("Garden.Bloom.eth");
+
+    await waitFor(() => expect(screen.getAllByTestId("address-display")).toHaveLength(1));
+    expect(screen.getByText(GARDENER_B.slice(0, 10))).toBeInTheDocument();
   });
 
   it("shows the empty state when a role filter has no members", async () => {
