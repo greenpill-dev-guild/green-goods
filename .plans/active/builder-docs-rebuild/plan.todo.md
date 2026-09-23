@@ -3,7 +3,7 @@
 **Feature Slug**: `builder-docs-rebuild`
 **Status**: ACTIVE
 **Created**: 2026-09-02
-**Last Updated**: 2026-09-22
+**Last Updated**: 2026-09-23
 
 ## Decision Log
 
@@ -20,6 +20,7 @@
 | 9 | Keep `GG_PUSH_GATE_ARGS` on develop's pre-push gate line (Afo, 2026-09-22) | Does nothing unless set; this branch's full push plan needs explicit focus or a narrower base |
 | 10 | Community invites follow the product: Telegram `+N3o3_43iRec1Y2Jh` (Afo, 2026-09-22) and Discord `discord.gg/greenpill` to match | One invite set across the app, the docs, and the repo |
 | 11 | Develop's generated Command inventory and Contract operations pages stay under Packages (Afo, 2026-09-22) | Matches their slugs; Getting Started links Command inventory as the command source |
+| 12 | The integration projection stays English-only (Afo, 2026-09-23) | The docs site ships no locales, so routing its labels through i18n would add keys nobody reads; revisit if the docs add locales |
 
 ## Requirements Coverage
 
@@ -29,7 +30,7 @@
 | D2 journeys deleted + redirects | 3 | ✅ |
 | D3 Economics Explorer → Reference | 4 | ✅ |
 | D4 hybrid integration pages | 1 (mechanism) + 3 (prose) | ✅ |
-| D5 llms.txt + .md twins | 5 | ⏳ |
+| D5 llms.txt + .md twins | 5 | ✅ 44059edf3: `llms.txt` plus a Markdown twin of every page (67 in the build) |
 | D7 real category landings | 1 (CSS fallback) + 3 (pages) | ✅ all categories |
 | D8 Skills catalog + Working with Agents | 1 (generator) + 4 (prose/READMEs) | ✅ (13 READMEs authored) |
 | D9 Design page under Architecture | 4 | ✅ |
@@ -39,7 +40,7 @@
 | ERD layered + zoomable | 1 | ✅ 26e2f6cf3 + ade03f693 |
 | Spine rewrites (Getting Started, First Contribution, System Overview) | 2 | ✅ 6b7d408c4 (tone gate open) |
 | Package template ×7 incl. new QA page | 3 | ✅ |
-| Link audit: every page has next steps + external links | 5 | ⏳ |
+| Link audit: every page has next steps + external links | 5 | ✅ 295be57a9 + a2d5a207d: all 29 hand-written pages link out and end with next steps |
 | CONTRIBUTING.md circularity fix | 5 | ✅ develop's CONTRIBUTING names First Contribution the full guide; First Contribution no longer defers its core flow back (merge round) |
 
 ## Phase 1 — Generators & mechanics (lanes `state_api` + `ui`, this branch)
@@ -97,6 +98,10 @@ Economics Explorer → Reference (D3) · License page (D10) + community Credits 
 ## Phase 5 — Sweep
 `llms.txt` + `.md` twins (D5) · track-wide link audit (next steps + external links per page) ·
 CONTRIBUTING.md one-way pointer · final `docs:audit` green · redirect map verification.
+
+Status (2026-09-23): all five items done; the receipt is in `handoffs/claude-ui.md` and the gate
+measurements are in `eval.md`. Two outcome gates wait on Afo: the page-length gate and whether
+Reference gets a landing page.
 
 ## CLAUDE.md Compliance
 - [x] No package-level env files touched; docs generators read repo sources only

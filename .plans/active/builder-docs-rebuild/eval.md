@@ -1,7 +1,7 @@
 # Builder Docs Rebuild — Eval
 
 **Feature Slug**: `builder-docs-rebuild`
-**Last Updated**: 2026-09-02
+**Last Updated**: 2026-09-23
 
 ## Per-phase gates (every phase)
 
@@ -23,6 +23,22 @@
 | Diagrams | largest single diagram | 21 entities, no zoom | ≤ ~10 nodes per diagram, all zoomable |
 | Agent-readability | llms.txt + .md twins served | none | both, in build output |
 | Package coverage | packages with a docs page | 6 of 7 | 7 of 7 |
+
+## Sweep results (2026-09-23)
+
+Measured on the local production build at `a2d5a207d`: page text from the sources, rendered
+checks in Playwright headless Chromium (unauthenticated, light theme).
+
+| Gate | Result | Status |
+|------|--------|--------|
+| Fragmentation | 14 of 29 hand-written pages are under 300 words: nine integration pages (their projections render the rest), the Integrations and Packages landings, License, Economics Explorer, and the Agent package page | Afo's call |
+| Link poverty | every hand-written page links out; 121 external links across 13,374 words, one per 111 | ✅ |
+| Flow | all 29 hand-written pages end with next steps | ✅ |
+| Landings | every builder section has a real landing page except Reference | Afo's call |
+| Accent | the same teal on the active sidebar link across all 41 builder routes | ✅ |
+| Diagrams | 17 diagrams render with no errors; the largest are two generated Data Model layers at 12 nodes each, counting shared anchors like Garden and Work; every diagram expands and zooms | Near target |
+| Agent-readability | `llms.txt` (94 lines) and 67 Markdown twins in the build output | ✅ |
+| Package coverage | 7 of 7 | ✅ |
 
 ## Human gates
 

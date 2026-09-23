@@ -118,3 +118,32 @@ renders all 13 skills.
   `acb13e7b9`→`929995a37`, `8d0202ab8`→`126ee8098`, `bb8247967`→`f3d4de691`,
   `6cd031fd8`→`8cf6be4ba`.
 - **Browser proof**: pending; the Vercel branch preview rebuilds from `552622bc0`.
+
+## Validation Receipt — Review fixes and Phase 5 sweep (2026-09-23)
+
+- **Tested implementation commit SHAs**: review fixes `eb86483e4` (merge of origin/develop
+  `f91c76fb6`) through `efd85dceb`, pushed with CI green; Phase 5 `295be57a9` (flow diagrams and
+  next steps), `44059edf3` (`llms.txt` and Markdown twins, D5), `576fb6fc7` (EAS scope),
+  `2c327c588` (Getting Started checkpoint screenshot), `a2d5a207d` (the last two next-steps gaps).
+- **Run at (UTC)**: `2026-09-23T23:17:13Z`
+- **Results**: generator tests 22/22 · docs package tests 69/69 across 7 files, including the
+  llms and diagram-id tests · `node scripts/docs/generate.mjs --check` (14) ·
+  `node docs/scripts/docs-audit.mjs --ci` exit 0 (the two advisory endpoint notes only) ·
+  ontology guards pass · docs build green with 67 Markdown twins and `llms.txt` · 225 of 225
+  redirects land on built pages. The ready-for-CI push gate runs on the final head before the
+  push; its result goes in PR #795's body.
+- **Browser proof** (Playwright headless Chromium against the local production build,
+  unauthenticated): the Expand overlay passes 12 of 12 checks (focus trap, zoom keys, drag pan,
+  Escape, focus return, theme switch, route change); 11 pages render their flow diagrams; the
+  Getting Started figure loads in light and dark themes. Accent and diagram measurements are in
+  `eval.md`.
+- **Review feedback**: 63 threads and reviews collected; every actionable item is fixed on the
+  branch. Two are declined with reasons: the fork-indexer claim (in fork mode the local indexer
+  still reads live Arbitrum, and Getting Started now says so) and the projection i18n ask
+  (decision 12). No GitHub replies or thread resolutions yet; those wait for Afo's go-ahead.
+- **Offline queue wording**: Anatomy and Architecture now match the code. Queued work is prepared
+  in the background for wallet and passkey users alike, and nothing is sent until the gardener
+  taps Upload all. Only commitment actions send on their own, and only for passkey and embedded
+  logins (`packages/shared/src/providers/JobQueue.tsx`).
+- **Human gates open**: D12 (Afo judges the rendered Anatomy page), the page-length gate, and a
+  Reference landing (see `eval.md`).
