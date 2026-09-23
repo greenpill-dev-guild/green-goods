@@ -12,7 +12,7 @@ import {
   type PoolSetupAction,
   walletPrompts,
 } from "@green-goods/shared/modules/commitment-pooling/pool-setup";
-import { getNetworkName } from "@green-goods/shared/utils/blockchain/chain-registry";
+import { getChainName } from "@green-goods/shared/config/chains";
 import type { PoolSetupIntent } from "./setupFlowModel";
 
 type FormatMessage = (
@@ -132,7 +132,7 @@ export function runningStatus(
             id: "cockpit.garden.pool.setup.live.confirming",
             defaultMessage: "Confirming on {network} ({current} of {total})",
           },
-          { network: getNetworkName(chainId), current: prompt, total }
+          { network: getChainName(chainId), current: prompt, total }
         );
   }
   return formatMessage({

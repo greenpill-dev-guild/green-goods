@@ -166,8 +166,10 @@ function CommitmentRecord({
       {pendingClaims.length > 0 ? (
         <CommitmentClaims
           claims={pendingClaims}
+          chainId={chainId}
           can={can}
           acts={acts}
+          phaseFor={dialog.claimPhase}
           actDisabled={actDisabled}
           onOpenDialog={setOpen}
         />
