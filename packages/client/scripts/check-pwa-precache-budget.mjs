@@ -35,6 +35,14 @@ const FORBIDDEN_PUBLIC_MODULES = [
   "/hooks/blockchain/",
 ];
 
+// The shape of every lazy chunk's file name, set by `chunkFileNames` in
+// vite.config.ts. Privacy filters match a site's own files by name (Brave's
+// Aggressive blocking, uBlock Origin): EasyPrivacy's `/analytics-events-` rule
+// blocks the chunk every auth-importing route loads, and the browser reports the
+// failure against the route's chunk. The `-<hash>` suffix is also what lets the
+// worker reuse an unchanged file (`isContentAddressed` in src/sw/shellAssets.ts).
+const OPAQUE_CHUNK_FILE = /^assets\/chunk-[A-Za-z0-9_-]{8,}\.js$/;
+
 const ROUTE_SOURCE_SUFFIXES = [
   "src/views/Public/Home.tsx",
   "src/views/Public/Gardens.tsx",
@@ -144,6 +152,23 @@ try {
 
   const manifest = readJson(viteManifestPath);
   const graph = readJson(buildGraphPath);
+  const lazyChunkFiles = [
+    ...new Set(
+      Object.values(manifest)
+        .filter((entry) => !entry.isEntry && String(entry.file ?? "").endsWith(".js"))
+        .map((entry) => entry.file)
+    ),
+  ];
+  const namedChunks = lazyChunkFiles.filter((file) => !OPAQUE_CHUNK_FILE.test(file)).sort();
+  if (namedChunks.length) {
+    const shown = namedChunks.slice(0, 20);
+    const more = namedChunks.length - shown.length;
+    failures.push(
+      `lazy chunk file names must be opaque (assets/chunk-<hash>.js):\n  ${shown.join("\n  ")}${
+        more > 0 ? `\n  …and ${more} more` : ""
+      }`
+    );
+  }
   const mainKey =
     findManifestKey(manifest, "src/main.tsx") ??
     Object.keys(manifest).find((key) => manifest[key].isEntry);
@@ -276,6 +301,7 @@ try {
       `public startup ${formatBytes(publicGzip)} gzip`,
       `installed startup ${formatBytes(pwaStartupGzip)} gzip`,
       `${modulePreloads} module preloads`,
+      `${lazyChunkFiles.length} opaque lazy chunks`,
       `offline shell ${formatBytes(shellRaw)} raw / ${formatBytes(shellGzip)} gzip`,
       `critical ${shell.criticalAssets.length} assets (${formatBytes(criticalRaw)} raw / ${formatBytes(criticalGzip)} gzip)`,
       `offline-ready ${shell.priorityAssets.length} assets (${formatBytes(priorityRaw)} raw / ${formatBytes(priorityGzip)} gzip)`,

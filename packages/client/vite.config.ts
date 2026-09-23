@@ -443,6 +443,14 @@ export default defineConfig(async ({ command, mode }): Promise<UserConfig> => {
           ],
         },
         output: {
+          // Keep lazy chunk URLs opaque, as admin does. Privacy filters block a
+          // site's own files by name under Brave's Aggressive blocking and in
+          // uBlock Origin: EasyPrivacy's `/analytics-events-` rule blocks the
+          // chunk every auth-importing lazy route loads, and the browser reports
+          // that against the route's chunk. Keep the `-<hash>` suffix: the worker
+          // reuses an unchanged shell file only when its name is content-addressed.
+          // scripts/check-pwa-precache-budget.mjs fails a build that drifts.
+          chunkFileNames: "assets/chunk-[hash].js",
           codeSplitting: {
             groups: [
               // Keep Vite's dynamic-import helper neutral. If it is assigned to a feature
