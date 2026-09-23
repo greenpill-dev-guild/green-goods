@@ -72,6 +72,8 @@ const config: Config = {
   ],
 
   plugins: [
+    // Publishes llms.txt plus a Markdown twin of every page for agents.
+    './plugins/llms-twins.mjs',
     [
       '@docusaurus/plugin-client-redirects',
       {
