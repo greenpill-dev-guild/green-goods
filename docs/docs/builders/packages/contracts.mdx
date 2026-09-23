@@ -38,14 +38,21 @@ resolvers, and the deployment artifacts that record what exists where. The
 ## Run and test
 
 ```bash
-cd packages/contracts
-bun run build
-bun run test
+bun run --cwd packages/contracts build
+bun run --cwd packages/contracts test
 ```
 
-For one behavior, `bun run test:match -- test/<path>.t.sol` is the fast loop; add
-`bun run build:target -- src/<path>.sol` when the compiled surface moves. The full audit suite is
-`bun run test:audit:full`.
+For one behavior, the match profile is the fast loop. Add a target build when the compiled surface
+moves:
+
+```bash
+bun run --cwd packages/contracts test --suite solidity --profile match test/<path>.t.sol
+bun run --cwd packages/contracts build --mode target src/<path>.sol
+```
+
+The full audit suite is `bun run --cwd packages/contracts test:audit full`. The
+[contract operations](./contract-operations) page lists every deploy, upgrade, and verification
+command.
 
 ## How it connects
 

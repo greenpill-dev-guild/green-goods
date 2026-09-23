@@ -5,13 +5,14 @@ slug: /builders/how-to-contribute
 sidebar_position: 2
 audience: developer
 owner: docs
-last_verified: 2026-09-02
+last_verified: 2026-09-22
 feature_status: Live
 source_of_truth:
   - CONTRIBUTING.md
   - AGENTS.md
   - ONBOARDING.md
   - package.json
+  - .claude/context/validation-pipeline.md
 keywords:
   - contributing
   - pull request
@@ -27,22 +28,20 @@ Green Goods is open-source infrastructure built by the
 welcome. A fixed typo teaches you the PR flow just as well as a feature does. This page walks the
 whole path: finding something to work on, making the change, proving it, and getting it merged.
 
-The repository's
+This page is the full contributor guide. The repository's
 [CONTRIBUTING.md](https://github.com/greenpill-dev-guild/green-goods/blob/develop/CONTRIBUTING.md)
-is the canonical process reference for the branch model, release cadence, and quality gate. This
-page is the guided version of that flow.
+is its one-screen summary, kept next to the code.
 
 ## Find something to work on
 
 Green Goods tracks its work in Linear, not GitHub issues; GitHub is for pull requests and code
 review. That means the best first step is a conversation: say hello on
-[Telegram](https://t.me/+n7g-u8wYtwQ2YjVi) or [Discord](https://discord.gg/ZJjft2EKz7), tell us
+[Telegram](https://t.me/+N3o3_43iRec1Y2Jh) or [Discord](https://discord.gg/greenpill), tell us
 what interests you, and a maintainer will point you at a scoped task that fits.
 
-Two honest ground rules from the
-[contribution flow](https://github.com/greenpill-dev-guild/green-goods/blob/develop/CONTRIBUTING.md#contribution-flow):
-confirm scope with a maintainer before investing serious time, and don't treat unlabeled roadmap
-items as funded work. Paid implementation is grant-dependent and always scoped in writing first.
+Two honest ground rules: confirm scope with a maintainer before investing serious time, and don't
+treat unlabeled roadmap items as funded work. Green Goods doesn't run open-ended bounties; paid
+implementation is grant-dependent and always scoped in writing first.
 
 ## Set up
 
@@ -55,13 +54,14 @@ Building with AI agents is a core part of how Green Goods gets made, not a side 
 maintainers develop with [Claude Code](https://claude.com/claude-code) and Codex daily, and the
 repository is instrumented for it: an
 [`AGENTS.md`](https://github.com/greenpill-dev-guild/green-goods/blob/develop/AGENTS.md) contract
-at the root and in every package, a [catalog of packaged skills](./agentic/skills) for common
+at the root and in most packages, a [catalog of packaged skills](./agentic/skills) for common
 workflows, and a validation selector that keeps agent-made changes honest.
 
 The fastest start: open
 [`ONBOARDING.md`](https://github.com/greenpill-dev-guild/green-goods/blob/develop/ONBOARDING.md)
 and paste it into your agent. It's written to be read by one: your agent becomes an onboarding
-buddy that checks your setup, walks the checklist with you, and hands you the starter task.
+buddy that checks your setup, picks the right path, and finishes with a short report of what it
+verified, what's still missing, and which package owns your first task.
 
 Agents get no shortcuts. Their changes pass the same review, the same CI Gate, and the same
 [repo rules](https://github.com/greenpill-dev-guild/green-goods/blob/develop/CONTRIBUTING.md#repo-rules)
@@ -73,7 +73,7 @@ as anyone else's, and that's exactly why the practice works.
    `fix/garden-join-toast` or `feature/assessment-export`. PRs target `develop`, the staging
    branch; maintainers promote to `main` in monthly releases.
 2. Read the nearest `AGENTS.md` before editing a package. The root one maps the monorepo, and
-   each package carries its own with the rules that actually bite.
+   most packages carry their own with the rules that actually bite.
 3. Keep the change inside the smallest package boundary that solves the problem, and add or
    update tests when behavior changes.
 
@@ -85,25 +85,26 @@ and there's exactly one `.env`, at the root. The full list lives in
 
 ## Prove it
 
-Ask the repository which checks your change actually needs; it picks the smallest honest set:
+Ask the repository which checks your change actually needs; it picks the smallest honest set from
+what you changed:
 
 ```bash
-bun run validation:plan -- --intent "what you changed"
+bun run check --plan -- --intent qa
 ```
 
-Run what it selects. Before opening a normal PR, the baseline gate is:
+Run the focused test that proves your change first, then the package checks the plan selects.
+When you push, the pre-push hook runs the ready-for-CI gate for you. To run the same gate by hand,
+name the test that proves your change:
 
 ```bash
-bun run format:check
-bun run lint
-bun run check:source-structure
-bun run test
-bun run build
+bun run check -- --intent push --reuse-passing-receipts --test-path <package>:<test file>
 ```
 
-Always `bun run test`, never `bun test`: the repo's test orchestration depends on it. For
-end-to-end or authentication changes, run the matching Playwright project; the commands are in
-[CONTRIBUTING.md § Quality Gate](https://github.com/greenpill-dev-guild/green-goods/blob/develop/CONTRIBUTING.md#quality-gate).
+CI covers broad regression across the repo, so you don't need to run everything locally. Two
+habits help: always `bun run test`, never `bun test`, because the repo's test orchestration
+depends on it; and `bun run format` fixes formatting, while `bun run format --check` only reports
+it. For end-to-end or authentication changes, run the matching Playwright project from the
+[Testing Guide](/builders/testing#commands-per-surface).
 
 ## Open the pull request
 
@@ -119,7 +120,7 @@ Then expect some robot company:
 
 ## Join the guild {#join-the-guild}
 
-- [Telegram](https://t.me/+n7g-u8wYtwQ2YjVi) and [Discord](https://discord.gg/ZJjft2EKz7), where
+- [Telegram](https://t.me/+N3o3_43iRec1Y2Jh) and [Discord](https://discord.gg/greenpill), where
   the conversation happens.
 - The [guild-wide contributing guide](https://github.com/greenpill-dev-guild/.github/blob/main/CONTRIBUTING.md)
   covers how the Dev Guild works across all its projects.

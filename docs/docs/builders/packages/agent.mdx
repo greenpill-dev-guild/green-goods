@@ -33,13 +33,13 @@ data.
 ## Run and test
 
 ```bash
-cd packages/agent
-bun run test
-bun run typecheck
+bun run --cwd packages/agent test
+bun run --cwd packages/agent typecheck
 ```
 
 Response-shape changes ripple through platform adapters quickly, so run both whenever handlers,
-adapters, or service contracts move. `bun run test:coverage` backs security-sensitive changes.
+adapters, or service contracts move. `bun run --cwd packages/agent test --coverage` backs
+security-sensitive changes.
 
 ## How it connects
 

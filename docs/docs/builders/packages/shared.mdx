@@ -38,13 +38,12 @@ agent packages stay thin on purpose.
 ## Run and test
 
 ```bash
-cd packages/shared
-bun run test
-bun run typecheck
+bun run --cwd packages/shared test
+bun run --cwd packages/shared typecheck
 ```
 
-`bun run check:stories` proves story coverage when UI foundations change; `bun run coverage` is
-the fuller pass.
+`bun run --cwd packages/shared check:stories` proves story coverage when UI foundations change;
+`bun run --cwd packages/shared test --scope all-configured --coverage` is the fuller pass.
 
 ## How it connects
 

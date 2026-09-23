@@ -38,7 +38,7 @@ Three design choices make agent-assisted work trustworthy here:
 - **Generated truth.** Deployment tables, the data model, the skills catalog, and other volatile
   facts are projected from code with digest gates, so neither humans nor agents can let them
   drift silently.
-- **Selected validation.** `bun run validation:plan -- --intent "..."` picks the smallest honest
+- **Selected validation.** `bun run check --plan -- --intent qa` picks the smallest honest
   check set for a change, and the push gate runs it again before anything leaves the machine.
 - **No shortcuts for anyone.** Agent-made changes pass the same CI Gate, the same review bots,
   and the same repo rules as human-made ones.

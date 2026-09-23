@@ -4,13 +4,15 @@ sidebar_label: Testing Guide
 slug: /builders/testing
 audience: developer
 owner: docs
-last_verified: 2026-09-02
+last_verified: 2026-09-22
 feature_status: Live
 source_of_truth:
   - CONTRIBUTING.md
   - package.json
   - playwright.config.ts
   - scripts/data/validation-policy.json
+  - scripts/dev/package-commands.mjs
+  - scripts/dev/test-e2e.js
 keywords:
   - testing
   - vitest
@@ -40,35 +42,38 @@ Ask the repository what your change needs, run exactly that, and escalate only w
 says to:
 
 ```bash
-bun run validation:plan -- --intent "what you changed"
+bun run check --plan -- --intent qa
 ```
 
-For cache-aware full-scope iteration after targeted proof, `bun run test:fast` runs everything
+For cache-aware full-scope iteration after targeted proof, `bun run test --cache` runs everything
 turbo knows is affected. Two rules apply everywhere: always `bun run test`, never `bun test` (the
-orchestration depends on it), and the [pre-push gate](/builders/quality/gh-actions) reruns the honest
-subset before anything leaves your machine.
+orchestration depends on it), and the pre-push hook reruns the honest subset before anything
+leaves your machine.
 
 ## Commands per surface
 
-- **Shared**: `bun run test`, `bun run typecheck`, and `bun run check:stories` when UI foundations
-  move.
-- **Client**: `bun run test`, plus `bun run build` when routes, rendering, or PWA packaging
-  change.
-- **Admin**: `bun run test`; `bun run test:coverage` for the fuller pass.
-- **Contracts**: `bun run test:match -- test/<file>.t.sol` for one behavior,
-  `bun run test` for the package, `bun run test:audit:full` for the audit suite.
-- **Indexer**: `bun run check:indexing-boundary && bun run test && bun run build`, with
-  `bun run codegen` first after schema or config changes.
-- **Agent**: `bun run test && bun run typecheck`; response-shape changes need both.
+Every command below runs from the repository root. `--cwd` points it at the package, so you can
+copy any single line on its own.
 
-For end-to-end work, run the CI-parity Playwright project that matches your surface:
+| Surface | Everyday proof | When you need more |
+|---|---|---|
+| Shared | `bun run --cwd packages/shared test` and `bun run --cwd packages/shared typecheck` | `bun run --cwd packages/shared check:stories` when UI foundations move |
+| Client | `bun run --cwd packages/client test` | `bun run --cwd packages/client build` when routes, rendering, or PWA packaging change |
+| Admin | `bun run --cwd packages/admin test` | `bun run --cwd packages/admin test --coverage` for the fuller pass |
+| Contracts | `bun run --cwd packages/contracts test --suite solidity --profile match test/<file>.t.sol` for one behavior | `bun run --cwd packages/contracts test` for the package, `bun run --cwd packages/contracts test:audit full` for the audit suite |
+| Indexer | `bun run --cwd packages/indexer check:indexing-boundary` and `bun run --cwd packages/indexer test` | `bun run --cwd packages/indexer codegen` first after schema or config changes, then `bun run --cwd packages/indexer build` |
+| Agent | `bun run --cwd packages/agent test` and `bun run --cwd packages/agent typecheck` | Both, whenever a response shape changes |
+
+For end-to-end work, run the CI-parity Playwright project that matches your surface. This is the
+exact command CI runs:
 
 ```bash
 PLAYWRIGHT_APP=client APP_ENV=test bunx playwright test --project=client-ci
 ```
 
-(`admin-ci` for admin work; `critical-path`, `performance`, and `client-full` exist for deeper
-runs.)
+Use `admin-ci` for admin work. `bun run browser e2e --preset smoke` boots a local web stack and
+runs the client and admin smoke specs in one go, and `bun run browser e2e --help` lists the deeper
+presets.
 
 ## Manual QA
 
@@ -80,15 +85,22 @@ runs.)
   variants.
 - Structured product QA lives in [Product Experience QA](/builders/quality/product-experience-qa), with
   the prioritized [test cases](/builders/quality/test-cases) and the QA app.
+- When a screenshot is your proof, say where it came from: mock auth on localhost, Storybook, CI
+  Playwright, or a real signed-in browser. Mock auth and Storybook prove layout and states well.
+  Wallet and passkey signing, sessions, the installed app, and offline uploads need a real
+  signed-in browser; the
+  [browser evidence rules](https://github.com/greenpill-dev-guild/green-goods/blob/develop/AGENTS.md#browser-evidence)
+  have the full list.
 
 ## Reproducing CI locally
 
 CI Gate aggregates every workflow your change triggers; the
 [GitHub Actions page](/builders/quality/gh-actions) is the generated inventory of them. The local
-equivalent of the gate is exactly what the pre-push hook runs, and you can invoke it yourself:
+equivalent of the gate is exactly what the pre-push hook runs. You can invoke it yourself, naming
+the test that proves your change:
 
 ```bash
-node scripts/dev/ci-local.js --intent push --reuse-passing-receipts
+bun run check -- --intent push --reuse-passing-receipts --test-path <package>:<test file>
 ```
 
 If a CI check fails that didn't run locally, the selector chose differently under CI conditions;

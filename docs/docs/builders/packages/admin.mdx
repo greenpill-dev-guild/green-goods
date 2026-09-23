@@ -33,13 +33,12 @@ mobile). The `/hub` route is the reference surface for new page composition.
 ## Run and test
 
 ```bash
-cd packages/admin
-bun run test
-bun run build
+bun run --cwd packages/admin test
+bun run --cwd packages/admin build
 ```
 
-`bun run test:coverage` is the fuller pass. Visible UI changes also want rendered proof; the
-package guide describes the authenticated browser QA path.
+`bun run --cwd packages/admin test --coverage` is the fuller pass. Visible UI changes also want
+rendered proof; the package guide describes the authenticated browser QA path.
 
 ## How it connects
 

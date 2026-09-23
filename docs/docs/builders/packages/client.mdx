@@ -31,17 +31,16 @@ package owns route composition and presentation.
 
 Never mix the two. If a route or shell change blurs the paths, check `router.tsx`, the shell
 component, and the matching Storybook story in the same pass. To tour the PWA without a wallet,
-use the [mock-auth URL from Getting Started](../getting-started#path-a-run-the-web-surfaces).
+use the [mock-auth URL from Getting Started](../getting-started#path-a-run-against-hosted-services).
 
 ## Run and test
 
 ```bash
-cd packages/client
-bun run test
-bun run build
+bun run --cwd packages/client test
+bun run --cwd packages/client build
 ```
 
-Run `bun run build` whenever route wiring, render output, or PWA packaging moves; tests alone
+Run the build whenever route wiring, render output, or PWA packaging moves; tests alone
 don't prove those.
 
 ## How it connects

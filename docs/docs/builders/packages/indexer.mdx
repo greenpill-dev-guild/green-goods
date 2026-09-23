@@ -37,15 +37,15 @@ keeping attestations out of Envio keeps the two truth paths independently verifi
 ## Run and test
 
 ```bash
-cd packages/indexer
-bun run check:indexing-boundary
-bun run test
-bun run build
+bun run --cwd packages/indexer check:indexing-boundary
+bun run --cwd packages/indexer test
+bun run --cwd packages/indexer build
 ```
 
-After any change to `schema.graphql`, `config.yaml`, or generated types, run `bun run codegen`
-first; skipping it makes failures show up late. Local development uses the Docker-based scripts
-from the repo's [full-stack path](../getting-started#path-b-run-the-full-local-stack).
+After any change to `schema.graphql`, `config.yaml`, or generated types, run
+`bun run --cwd packages/indexer codegen` first; skipping it makes failures show up late. Local
+development runs the indexer in Docker through the
+[team stack](../getting-started#path-b-run-the-connected-local-stack).
 
 ## How it connects
 
@@ -60,8 +60,8 @@ step.
   cross-chain collisions. One documented exception: `Garden.id` stays the bare garden account
   address for GraphQL compatibility; don't convert it.
 - When a relationship changes, update both sides of it.
-- `envio dev` preserves the local database. `bun run dev:restart` is a destructive local replay;
-  use it only when that's explicitly intended.
+- `envio dev` preserves the local database. `bun run --cwd packages/indexer dev --restart` is a
+  destructive local replay; use it only when that's explicitly intended.
 - Envio v3 registrations use `indexer.onEvent` and `indexer.contractRegister`; the v2 patterns
   (generated imports, `MockDb`) are gone and must not come back.
 
