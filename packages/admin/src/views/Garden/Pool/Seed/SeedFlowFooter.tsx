@@ -109,7 +109,7 @@ export function SeedFlowFooter({
           <>
             <AdminButton
               type="button"
-              variant="tonal"
+              variant="outlined"
               onClick={onAddAnother}
               disabled={busy || addAnotherDisabled}
               className="w-full sm:w-auto"

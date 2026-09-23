@@ -100,7 +100,7 @@ export function CommitmentSettlementDisbursements({
         {view.actions.cancel ? (
           <AdminButton
             type="button"
-            variant="danger"
+            variant="outlined"
             size="sm"
             disabled={disabled}
             onClick={() => setOpen({ act: "cancel", disbursementId: id })}

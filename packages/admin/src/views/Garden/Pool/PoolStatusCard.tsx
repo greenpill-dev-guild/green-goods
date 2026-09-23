@@ -92,9 +92,21 @@ export function PoolStatusCard({
             })}
           </p>
         </div>
-        <StatusBadge variant={chip.variant} size="sm">
-          {chip.label}
-        </StatusBadge>
+        <div className="flex flex-wrap items-center justify-end gap-1.5">
+          {/* The protocol pool is managed from its garden like any pool; the
+              chip says so before any dialog does (A14). */}
+          {protocolContext ? (
+            <StatusBadge variant="neutral" size="sm">
+              {formatMessage({
+                id: "cockpit.garden.pool.status.protocol",
+                defaultMessage: "Protocol pool",
+              })}
+            </StatusBadge>
+          ) : null}
+          <StatusBadge variant={chip.variant} size="sm">
+            {chip.label}
+          </StatusBadge>
+        </div>
       </div>
 
       {model.status === "not-ready" ? (
@@ -251,7 +263,7 @@ export function PoolStatusCard({
       ) : null}
 
       {!inSetup && model.status !== "closed" && model.status !== "composted" ? (
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-wrap items-center justify-end gap-2">
           <AdminButton
             type="button"
             variant="outlined"
@@ -289,10 +301,12 @@ export function PoolStatusCard({
       ) : null}
 
       {running && model.closure.allowed ? (
-        <div className="flex flex-wrap items-center gap-2">
+        // Its own row, outlined where it sits: the red is for the confirm
+        // inside the dialog, which names what closing affects.
+        <div className="flex flex-wrap items-center justify-end gap-2">
           <AdminButton
             type="button"
-            variant="danger"
+            variant="outlined"
             size="sm"
             onClick={onClosePool}
             disabled={actDisabled}
@@ -314,7 +328,7 @@ export function PoolStatusCard({
                 "The pool is closed. Its history stays with the garden. Archiving it keeps that history; reopening starts the next era.",
             })}
           </p>
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex flex-wrap items-center justify-end gap-2">
             <AdminButton
               type="button"
               variant="outlined"
@@ -340,7 +354,7 @@ export function PoolStatusCard({
                 "This pool is archived. Reopening preserves its history; members can't take part again until a season opens.",
             })}
           </p>
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex flex-wrap items-center justify-end gap-2">
             <AdminButton
               type="button"
               variant="filled"

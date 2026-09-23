@@ -205,17 +205,19 @@ export function ProtocolFundingOperationsCard({
               </dd>
             </div>
           </dl>
-          <AdminButton
-            type="button"
-            variant="filled"
-            disabled={!canReview || operations.isActing}
-            onClick={() => setConfirmQueue(true)}
-          >
-            {formatMessage({
-              id: "cockpit.community.protocolFunding.review",
-              defaultMessage: "Review seed or top-up…",
-            })}
-          </AdminButton>
+          <div className="flex justify-end">
+            <AdminButton
+              type="button"
+              variant="filled"
+              disabled={!canReview || operations.isActing}
+              onClick={() => setConfirmQueue(true)}
+            >
+              {formatMessage({
+                id: "cockpit.community.protocolFunding.review",
+                defaultMessage: "Review seed or top-up…",
+              })}
+            </AdminButton>
+          </div>
         </div>
       ) : (
         <p className="text-xs text-text-soft" data-testid="protocol-funding-unavailable">

@@ -248,9 +248,10 @@ export function CommitmentRecovery({
                 })}
               </span>
             </p>
+            {/* Outlined where it sits; the red is for the confirm inside its dialog. */}
             <AdminButton
               type="button"
-              variant="danger"
+              variant="outlined"
               size="sm"
               onClick={() => onOpenDialog("cancel")}
               disabled={actDisabled || !can.cancel}

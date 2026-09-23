@@ -2,18 +2,22 @@ import { usePoolConsoleController } from "@green-goods/shared/hooks/admin-ui/poo
 import type { Address } from "@green-goods/shared/types/domain";
 import { adminRoutes } from "@green-goods/shared/utils/navigation/admin-routes";
 import type { CommitmentReadModel } from "@green-goods/shared/modules/commitment-pooling/types-core";
-import { RiSeedlingLine } from "@remixicon/react";
 import { useCallback, useRef, useState } from "react";
 import { useIntl } from "react-intl";
 import { useNavigate } from "react-router-dom";
-import { AdminButton } from "@/components/AdminButton";
 import { AdminCard } from "@/components/AdminCard";
 import { PoolClaimsCard } from "./PoolClaimsCard";
-import { type PoolCommitmentScope, PoolCommitmentsCard } from "./PoolCommitmentsCard";
+import {
+  type PoolCommitmentFocus,
+  type PoolCommitmentScope,
+  PoolCommitmentsCard,
+} from "./PoolCommitmentsCard";
 import { PoolCyclesCard } from "./PoolCyclesCard";
 import { PoolDialogs } from "./PoolDialogs";
 import { PoolFundingDialog } from "./PoolFundingDialog";
 import { PoolFundingSection } from "./PoolFundingSection";
+import { PoolNotReadyCard } from "./PoolNotReadyCard";
+import { PoolStatsCard } from "./PoolStatsCard";
 import { PoolStatusCard } from "./PoolStatusCard";
 import { PoolStatusCasts } from "./PoolStatusCasts";
 import type { ConfirmDialog, CycleDialog, FlowState, ReasonDialog } from "./poolDialogState";
@@ -45,7 +49,7 @@ export function GardenPoolTab({ garden, chainId, canManage }: GardenPoolTabProps
   const isProtocolPool = pool.pool?.poolType === "PROTOCOL";
   const target = { gardenName: garden.name, isProtocol: isProtocolPool };
   const [scope, setScope] = useState<PoolCommitmentScope>("open");
-  const [dueOnly, setDueOnly] = useState(false);
+  const [focus, setFocus] = useState<PoolCommitmentFocus>(null);
   const [flow, setFlow] = useState<FlowState>(null);
   const [reasonDialog, setReasonDialog] = useState<ReasonDialog>(null);
   const [confirmDialog, setConfirmDialog] = useState<ConfirmDialog>(null);
@@ -118,7 +122,7 @@ export function GardenPoolTab({ garden, chainId, canManage }: GardenPoolTabProps
       onCompostPool={() => setConfirmDialog("compost")}
       onReopenPool={() => setConfirmDialog("reopen")}
       onReviewLive={() => {
-        setDueOnly(false);
+        setFocus(null);
         setScope("open");
         jumpTo("pool-commitments");
       }}
@@ -128,17 +132,20 @@ export function GardenPoolTab({ garden, chainId, canManage }: GardenPoolTabProps
     />
   );
 
+  // Each count lands on exactly what it counts (interaction-patterns §5).
+  const openFocus = (next: PoolCommitmentFocus) => {
+    setScope("open");
+    setFocus(next);
+    jumpTo("pool-commitments");
+  };
   const summary =
     !preOpen && !finished ? (
-      <div
-        className="grid grid-cols-3 gap-2"
-        data-component="PoolSummaryRow"
-        aria-label={formatMessage({
+      <PoolStatsCard
+        label={formatMessage({
           id: "cockpit.garden.pool.summary.label",
           defaultMessage: "What needs you",
         })}
-      >
-        {[
+        stats={[
           {
             id: "claims",
             count: model.counts.claimsWaiting,
@@ -146,7 +153,7 @@ export function GardenPoolTab({ garden, chainId, canManage }: GardenPoolTabProps
               id: "cockpit.garden.pool.summary.claims",
               defaultMessage: "Claims waiting",
             }),
-            onClick: () => jumpTo("pool-claims"),
+            onOpen: () => jumpTo("pool-claims"),
           },
           {
             id: "recovery",
@@ -155,11 +162,7 @@ export function GardenPoolTab({ garden, chainId, canManage }: GardenPoolTabProps
               id: "cockpit.garden.pool.summary.recovery",
               defaultMessage: "Needs recovery",
             }),
-            onClick: () => {
-              setDueOnly(false);
-              setScope("open");
-              jumpTo("pool-commitments");
-            },
+            onOpen: () => openFocus("recovery"),
           },
           {
             id: "pastDue",
@@ -168,23 +171,10 @@ export function GardenPoolTab({ garden, chainId, canManage }: GardenPoolTabProps
               id: "cockpit.garden.pool.summary.pastDue",
               defaultMessage: "Past due",
             }),
-            onClick: () => {
-              setDueOnly(true);
-              jumpTo("pool-commitments");
-            },
+            onOpen: () => openFocus("pastDue"),
           },
-        ].map((stat) => (
-          <button
-            key={stat.id}
-            type="button"
-            onClick={stat.onClick}
-            className="m3-state-layer rounded-[var(--m3-shape-md)] bg-[rgb(var(--m3-surface-container-highest))] px-3 py-2 text-left [--state-layer-color:var(--m3-on-surface)]"
-          >
-            <span className="block text-lg font-semibold text-text-strong">{stat.count}</span>
-            <span className="block text-xs text-text-soft">{stat.label}</span>
-          </button>
-        ))}
-      </div>
+        ]}
+      />
     ) : null;
 
   return (
@@ -197,36 +187,10 @@ export function GardenPoolTab({ garden, chainId, canManage }: GardenPoolTabProps
         {summary}
 
         {preOpen ? (
-          <AdminCard
-            variant="elevated"
-            className="flex min-h-56 flex-col items-center justify-center gap-3 text-center"
-          >
-            <RiSeedlingLine className="h-6 w-6 text-text-soft" aria-hidden />
-            <p className="label-md text-text-strong">
-              {formatMessage({
-                id: "cockpit.garden.pool.notReady.title",
-                defaultMessage: "This garden isn’t taking commitments yet",
-              })}
-            </p>
-            <p className="max-w-md text-sm text-text-soft">
-              {formatMessage({
-                id: "cockpit.garden.pool.notReady.body",
-                defaultMessage:
-                  "Neighbours can offer help and ask for it here once you’ve set up how this pool works.",
-              })}
-            </p>
-            <AdminButton
-              type="button"
-              variant="filled"
-              onClick={() => setFlow({ intent: "first-run" })}
-              disabled={!pool.isOnline}
-            >
-              {formatMessage({
-                id: "cockpit.garden.pool.act.setUp",
-                defaultMessage: "Set Up Commitments",
-              })}
-            </AdminButton>
-          </AdminCard>
+          <PoolNotReadyCard
+            isOnline={pool.isOnline}
+            onSetUp={() => setFlow({ intent: "first-run" })}
+          />
         ) : finished ? null : (
           <PoolCyclesCard
             console={pool}
@@ -252,8 +216,8 @@ export function GardenPoolTab({ garden, chainId, canManage }: GardenPoolTabProps
             console={pool}
             scope={scope}
             onScopeChange={setScope}
-            dueOnly={dueOnly}
-            onDueOnlyChange={setDueOnly}
+            focus={focus}
+            onFocusChange={setFocus}
             onOpenCommitment={openCommitment}
             onSeed={openSeed}
             canSeed={canSeed}

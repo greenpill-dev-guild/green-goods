@@ -130,7 +130,7 @@ describe("ending a season or campaign", () => {
     renderWithProviders(<Harness pool={pool} />);
 
     fireEvent.click(
-      within(screen.getByTestId("pool-cycle-13")).getByRole("button", { name: "End…" })
+      within(screen.getByTestId("pool-cycle-13")).getByRole("button", { name: "End Campaign…" })
     );
     const dialog = screen.getByRole("dialog", { name: "End This Campaign" });
     expect(dialog).toHaveTextContent("“Market rides” in Rocinha’s pool");

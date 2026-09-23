@@ -655,6 +655,66 @@ describe("GardenPoolTab (W7)", () => {
     );
   });
 
+  it("lands each count on exactly what it counts, and a count of nothing goes nowhere", () => {
+    mocks.controller = controller({
+      commitments: [
+        commitment(),
+        commitment({
+          id: "42161-2",
+          commitmentId: 2n,
+          onchainState: "DISPUTED",
+          derivedState: "DISPUTED",
+          state: "DISPUTED",
+        }),
+        commitment({ id: "42161-3", commitmentId: 3n, dueDate: NOW - 10n }),
+      ],
+    });
+    renderTab();
+    const stats = screen.getByRole("list", { name: /what needs you/i });
+    // No claim waits, so its zero is text rather than a way in.
+    expect(within(stats).getByText(/claims waiting/i)).toBeInTheDocument();
+    expect(
+      within(stats).queryByRole("button", { name: /claims waiting/i })
+    ).not.toBeInTheDocument();
+
+    const list = screen.getByTestId("pool-commitments");
+    fireEvent.click(within(stats).getByRole("button", { name: /2\s*needs recovery/i }));
+    expect(within(list).queryByTestId("pool-commitment-1")).not.toBeInTheDocument();
+    expect(within(list).getByTestId("pool-commitment-2")).toBeInTheDocument();
+    expect(within(list).getByTestId("pool-commitment-3")).toBeInTheDocument();
+
+    fireEvent.click(within(stats).getByRole("button", { name: /1\s*past due/i }));
+    expect(within(list).queryByTestId("pool-commitment-2")).not.toBeInTheDocument();
+    expect(within(list).getByTestId("pool-commitment-3")).toBeInTheDocument();
+  });
+
+  it("says on its status card when the pool is the protocol's", () => {
+    mocks.controller = controller({ pool: pool({ poolType: "PROTOCOL" }) });
+    const protocol = renderTab();
+    expect(screen.getByText("Protocol pool")).toBeInTheDocument();
+    protocol.unmount();
+
+    // Any other garden's pool carries no such chip.
+    mocks.controller = controller();
+    renderTab();
+    expect(screen.queryByText("Protocol pool")).not.toBeInTheDocument();
+  });
+
+  it("holds Set Up while offline and says why beneath it", () => {
+    mocks.controller = controller({
+      isOnline: false,
+      pool: pool({ state: "NOT_READY", openSeasonCycleId: null, charterCID: null }),
+      cycles: [],
+      commitments: [],
+    });
+    renderTab();
+    const setUp = screen.getByRole("button", { name: /set up commitments/i });
+    expect(setUp).toBeDisabled();
+    // The reason sits with the act it holds, not only in the status card.
+    const card = setUp.closest("[data-component='PoolNotReadyCard']") as HTMLElement;
+    expect(within(card).getByRole("status")).toHaveTextContent(/needs a connection/i);
+  });
+
   it("disables every online act and says why when the device is offline", () => {
     mocks.controller = controller({ isOnline: false });
     renderTab();

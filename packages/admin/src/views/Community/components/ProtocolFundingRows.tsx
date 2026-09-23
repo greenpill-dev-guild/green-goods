@@ -115,30 +115,18 @@ export function ProtocolFundingRows({
                     {statusLabel(row.state)}
                   </StatusBadge>
                 </div>
-                <div className="flex flex-wrap gap-2">
-                  {row.canDispatch ? (
-                    <AdminButton
-                      variant="filled"
-                      size="sm"
-                      disabled={operations.isActing}
-                      onClick={() => onReview("dispatch", row)}
-                    >
-                      {formatMessage({
-                        id: "cockpit.community.protocolFunding.dispatch",
-                        defaultMessage: "Dispatch…",
-                      })}
-                    </AdminButton>
-                  ) : null}
-                  {row.canRetry ? (
+                {/* End-aligned, two weights, the affirmative act rightmost: a queued
+                    transfer's Cancel… and Dispatch… are the row's paired decision. */}
+                <div className="flex flex-wrap items-center justify-end gap-2">
+                  {row.canCancel ? (
                     <AdminButton
                       variant="outlined"
                       size="sm"
-                      disabled={operations.isActing}
-                      onClick={() => onReview("retry", row)}
+                      onClick={() => onCancel(row.disbursementId)}
                     >
                       {formatMessage({
-                        id: "cockpit.community.protocolFunding.retry",
-                        defaultMessage: "Retry Command…",
+                        id: "cockpit.community.protocolFunding.cancel",
+                        defaultMessage: "Cancel…",
                       })}
                     </AdminButton>
                   ) : null}
@@ -155,15 +143,29 @@ export function ProtocolFundingRows({
                       })}
                     </AdminButton>
                   ) : null}
-                  {row.canCancel ? (
+                  {row.canRetry ? (
                     <AdminButton
-                      variant="text"
+                      variant="outlined"
                       size="sm"
-                      onClick={() => onCancel(row.disbursementId)}
+                      disabled={operations.isActing}
+                      onClick={() => onReview("retry", row)}
                     >
                       {formatMessage({
-                        id: "cockpit.community.protocolFunding.cancel",
-                        defaultMessage: "Cancel…",
+                        id: "cockpit.community.protocolFunding.retry",
+                        defaultMessage: "Retry Command…",
+                      })}
+                    </AdminButton>
+                  ) : null}
+                  {row.canDispatch ? (
+                    <AdminButton
+                      variant="filled"
+                      size="sm"
+                      disabled={operations.isActing}
+                      onClick={() => onReview("dispatch", row)}
+                    >
+                      {formatMessage({
+                        id: "cockpit.community.protocolFunding.dispatch",
+                        defaultMessage: "Dispatch…",
                       })}
                     </AdminButton>
                   ) : null}

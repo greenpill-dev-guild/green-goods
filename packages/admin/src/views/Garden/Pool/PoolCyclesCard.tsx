@@ -88,7 +88,10 @@ export function PoolCyclesCard({
         disabled={actDisabled}
       >
         {cycle.cycleType === "CAMPAIGN"
-          ? formatMessage({ id: "cockpit.garden.pool.cycle.act.end", defaultMessage: "End…" })
+          ? formatMessage({
+              id: "cockpit.garden.pool.cycle.act.end",
+              defaultMessage: "End Campaign…",
+            })
           : formatMessage({
               id: "cockpit.garden.pool.cycle.act.endSeason",
               defaultMessage: "End Season…",
@@ -135,7 +138,10 @@ export function PoolCyclesCard({
               onClick={() => onOpenCampaign(cycle)}
               disabled={actDisabled || model.status !== "open"}
             >
-              {formatMessage({ id: "cockpit.garden.pool.cycle.act.open", defaultMessage: "Open" })}
+              {formatMessage({
+                id: "cockpit.garden.pool.cycle.act.open",
+                defaultMessage: "Open Campaign",
+              })}
             </AdminButton>
           ) : null}
           {canCancel ? (
@@ -148,7 +154,7 @@ export function PoolCyclesCard({
             >
               {formatMessage({
                 id: "cockpit.garden.pool.cycle.act.cancel",
-                defaultMessage: "Cancel…",
+                defaultMessage: "Cancel Campaign…",
               })}
             </AdminButton>
           ) : null}

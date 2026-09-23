@@ -144,7 +144,7 @@ packages/admin/src/components/Layout/CanvasWorkspaceSelectionState.tsx <button	l
 packages/admin/src/components/Layout/CommandPalette.tsx <button	legacy-runtime	afo	2027-02-28	shared field primitive pending Admin field-family migration (DL-011/012 adoption program)
 packages/admin/src/views/Cookies/components/CampaignCookieJar/CampaignJarListRow.tsx <button	legacy-runtime	afo	2027-02-28	shared field primitive pending Admin field-family migration (DL-011/012 adoption program)
 packages/admin/src/views/Garden/Pool/PoolCommitmentsCard.tsx <button	legacy-runtime	afo	2027-02-28	shared field primitive pending Admin field-family migration (DL-011/012 adoption program)
-packages/admin/src/views/Garden/Pool/index.tsx <button	legacy-runtime	afo	2027-02-28	shared field primitive pending Admin field-family migration (DL-011/012 adoption program)
+packages/admin/src/views/Garden/Pool/PoolStatsCard.tsx <button	legacy-runtime	afo	2027-02-28	shared field primitive pending Admin field-family migration (DL-011/012 adoption program)
 packages/admin/src/views/Garden/WorkDetail/ReviewForm.tsx <Textarea	legacy-runtime	afo	2027-02-28	shared field primitive pending Admin field-family migration (DL-011/012 adoption program)
 packages/admin/src/views/Garden/WorkDetail/ReviewForm.tsx <button	legacy-runtime	afo	2027-02-28	shared field primitive pending Admin field-family migration (DL-011/012 adoption program)
 packages/admin/src/views/Garden/components/OverviewTab.tsx <button	legacy-runtime	afo	2027-02-28	shared field primitive pending Admin field-family migration (DL-011/012 adoption program)

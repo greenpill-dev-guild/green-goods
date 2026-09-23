@@ -15,13 +15,19 @@ import { commitmentStateChip, directionLabel, formatUnixDate } from "./poolPrese
 
 export type PoolCommitmentScope = "open" | "confirmed" | "past";
 
+/**
+ * A count's own list, reached from the stats card: the live rows past their
+ * due, or every row that needs recovery (disputed or past due). Null is the
+ * scope chips' ordinary list.
+ */
+export type PoolCommitmentFocus = "pastDue" | "recovery" | null;
+
 export interface PoolCommitmentsCardProps {
   console: PoolConsoleController;
   scope: PoolCommitmentScope;
   onScopeChange: (scope: PoolCommitmentScope) => void;
-  /** Only the past-due rows, the W7@due-live cast reached from the summary row. */
-  dueOnly: boolean;
-  onDueOnlyChange: (dueOnly: boolean) => void;
+  focus: PoolCommitmentFocus;
+  onFocusChange: (focus: PoolCommitmentFocus) => void;
   onOpenCommitment: (commitment: CommitmentReadModel) => void;
   onSeed: () => void;
   canSeed: boolean;
@@ -32,8 +38,8 @@ export interface PoolCommitmentsCardProps {
 /**
  * One commitments card for the whole pool (uiux-spec §6.2 section 3, 2026-07-18
  * addendum): search, the Open · Confirmed · Past chips, a Past due chip for
- * the live rows the chain would let anyone expire, and rows that open in the
- * left inspector. The row information contract: kind · lifecycle · at most one
+ * the live rows the chain would let anyone expire, a Needs recovery chip for
+ * those and the disputed ones, and rows that open in the left inspector. The row information contract: kind · lifecycle · at most one
  * attention chip; meta = who · how much · when. Creations still queued on this
  * device render above the indexed rows so a seeded commitment shows up before
  * the indexer has it.
@@ -42,8 +48,8 @@ export function PoolCommitmentsCard({
   console: pool,
   scope,
   onScopeChange,
-  dueOnly,
-  onDueOnlyChange,
+  focus,
+  onFocusChange,
   onOpenCommitment,
   onSeed,
   canSeed,
@@ -75,13 +81,18 @@ export function PoolCommitmentsCard({
     );
 
   const rows = useMemo(() => {
-    const base = dueOnly ? model.dueLive : model.groups[scope];
+    const base =
+      focus === "pastDue"
+        ? model.dueLive
+        : focus === "recovery"
+          ? model.needsRecovery
+          : model.groups[scope];
     const needle = search.trim().toLowerCase();
     if (!needle) return base;
     return base.filter((row) => titleOf(row).toLowerCase().includes(needle));
     // titleOf reads from `titles`, listed below.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [dueOnly, model.dueLive, model.groups, scope, search, titles]);
+  }, [focus, model.dueLive, model.needsRecovery, model.groups, scope, search, titles]);
 
   const actDisabled = !isOnline || isActing;
   const total = model.groups.open.length + model.groups.confirmed.length + model.groups.past.length;
@@ -138,9 +149,9 @@ export function PoolCommitmentsCard({
                 id: "cockpit.garden.pool.commitments.open",
                 defaultMessage: "Open",
               })}
-              selected={scope === "open" && !dueOnly}
+              selected={scope === "open" && focus === null}
               onToggle={() => {
-                onDueOnlyChange(false);
+                onFocusChange(null);
                 onScopeChange("open");
               }}
             />
@@ -149,9 +160,9 @@ export function PoolCommitmentsCard({
                 id: "cockpit.garden.pool.commitments.confirmed",
                 defaultMessage: "Confirmed",
               })}
-              selected={scope === "confirmed" && !dueOnly}
+              selected={scope === "confirmed" && focus === null}
               onToggle={() => {
-                onDueOnlyChange(false);
+                onFocusChange(null);
                 onScopeChange("confirmed");
               }}
             />
@@ -160,9 +171,9 @@ export function PoolCommitmentsCard({
                 id: "cockpit.garden.pool.commitments.past",
                 defaultMessage: "Past",
               })}
-              selected={scope === "past" && !dueOnly}
+              selected={scope === "past" && focus === null}
               onToggle={() => {
-                onDueOnlyChange(false);
+                onFocusChange(null);
                 onScopeChange("past");
               }}
             />
@@ -175,14 +186,27 @@ export function PoolCommitmentsCard({
                   },
                   { count: model.dueLive.length }
                 )}
-                selected={dueOnly}
-                onToggle={() => onDueOnlyChange(!dueOnly)}
+                selected={focus === "pastDue"}
+                onToggle={() => onFocusChange(focus === "pastDue" ? null : "pastDue")}
+              />
+            ) : null}
+            {model.needsRecovery.length > 0 ? (
+              <AdminFilterChip
+                label={formatMessage(
+                  {
+                    id: "cockpit.garden.pool.commitments.needsRecovery",
+                    defaultMessage: "Needs recovery ({count})",
+                  },
+                  { count: model.needsRecovery.length }
+                )}
+                selected={focus === "recovery"}
+                onToggle={() => onFocusChange(focus === "recovery" ? null : "recovery")}
               />
             ) : null}
           </div>
         </AdminSearchToolbar>
 
-        {pendingCreates.length > 0 && scope === "open" && !dueOnly ? (
+        {pendingCreates.length > 0 && scope === "open" && focus === null ? (
           <ul
             className="divide-y divide-[rgb(var(--m3-outline-variant))]"
             data-testid="pool-queued"
@@ -374,9 +398,11 @@ export function PoolCommitmentsCard({
                     <RiArrowRightSLine className="h-4 w-4 shrink-0 text-text-soft" aria-hidden />
                   </button>
                   {isDue ? (
+                    // Outlined where it sits: the red is for the confirm inside
+                    // the dialog, which names the blast radius first.
                     <AdminButton
                       type="button"
-                      variant="danger"
+                      variant="outlined"
                       size="sm"
                       onClick={() => setExpireTarget(commitment)}
                       disabled={actDisabled}
@@ -393,7 +419,7 @@ export function PoolCommitmentsCard({
           </ul>
         )}
 
-        {dueOnly && rows.length > 0 ? (
+        {focus === "pastDue" && rows.length > 0 ? (
           <p className="text-xs text-text-soft">
             {formatMessage({
               id: "cockpit.garden.pool.commitments.dueNote",

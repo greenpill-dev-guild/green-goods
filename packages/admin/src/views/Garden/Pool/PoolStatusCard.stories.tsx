@@ -86,6 +86,11 @@ export const Archived: Story = {
   args: { console: storyPoolConsole({ pool: storyPool({ state: "COMPOSTED" }) }) },
 };
 
+/** The protocol pool, managed from its own garden, says so in its header. */
+export const ProtocolPool: Story = {
+  args: { console: storyPoolConsole(), protocolContext: true },
+};
+
 export const Offline: Story = {
   args: { console: storyPoolConsole({ isOnline: false }) },
 };

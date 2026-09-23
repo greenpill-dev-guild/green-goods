@@ -93,3 +93,14 @@ export const NotReady: Story = {
 export const Unregistered: Story = {
   decorators: decorators(UNREGISTERED_SEEDS),
 };
+
+/** A reader who cannot manage the pool: its status and funding, and no acts. */
+export const ReaderView: Story = {
+  args: { canManage: false },
+  decorators: decorators(OPEN_SEEDS),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(await canvas.findByText("Pool funding")).toBeVisible();
+    await expect(canvas.queryByRole("button", { name: "Seed Commitment" })).toBeNull();
+  },
+};
