@@ -59,7 +59,6 @@ const mocks = vi.hoisted(() => ({
   commitmentMutate: vi.fn<CommitmentMutate>(),
   poolPending: false,
   commitmentPending: false,
-  pinPoolCharter: vi.fn(),
   fundingRefetch: vi.fn(),
   sender: { authMode: "wallet" },
   retryQueuedCommitmentJob: vi.fn(),
@@ -155,13 +154,6 @@ vi.mock("../../../hooks/commitment-pooling/useCommitmentMutations", () => ({
     isPending: mocks.commitmentPending,
   }),
 }));
-
-vi.mock("../../../modules/commitment-pooling/pool-charter", async () => {
-  const actual = await vi.importActual<
-    typeof import("../../../modules/commitment-pooling/pool-charter")
-  >("../../../modules/commitment-pooling/pool-charter");
-  return { ...actual, pinPoolCharter: mocks.pinPoolCharter };
-});
 
 const CHAIN_ID = DEMO_CHAIN_ID;
 const GARDEN = DEMO_GARDEN;
@@ -265,7 +257,6 @@ beforeEach(() => {
   mocks.queueState.mockReturnValue(queueState());
   mocks.poolMutate.mockResolvedValue("0xpool");
   mocks.commitmentMutate.mockResolvedValue("0xcommitment");
-  mocks.pinPoolCharter.mockResolvedValue("bafy-new-charter");
   mocks.getCommitmentPools.mockResolvedValue([POOL]);
   mocks.getCommitmentCycles.mockResolvedValue([CYCLE]);
   mocks.getCommitments.mockResolvedValue([COMMITMENT]);
@@ -416,11 +407,7 @@ describe("usePoolConsoleController", () => {
     for (const call of synchronousCalls) {
       expect(call).toThrow(expected);
     }
-    await expect(result.current.acts.saveSettings({ purpose: "", cap: 0n })).rejects.toThrow(
-      expected
-    );
     expect(mocks.poolMutate).not.toHaveBeenCalled();
-    expect(mocks.pinPoolCharter).not.toHaveBeenCalled();
   });
 
   it("forwards every lifecycle and claim act exactly", async () => {
@@ -468,53 +455,6 @@ describe("usePoolConsoleController", () => {
         gardenAddress: GARDEN,
       },
     ]);
-  });
-
-  it("writes changed settings in pin, charter, cap order and skips unchanged values", async () => {
-    const queryClient = testQueryClient();
-    seedControllerQueries(queryClient);
-    const { result } = renderController(queryClient);
-
-    await act(async () => {
-      await result.current.acts.saveSettings({ purpose: "Keep tools in service", cap: 5n });
-    });
-    expect(mocks.pinPoolCharter).not.toHaveBeenCalled();
-    expect(mocks.poolMutate).not.toHaveBeenCalled();
-
-    await act(async () => {
-      await result.current.acts.saveSettings({ purpose: "Expand the tool library", cap: 9n });
-    });
-
-    expect(mocks.pinPoolCharter).toHaveBeenCalledWith({
-      purpose: "Expand the tool library",
-      gardenAddress: GARDEN,
-    });
-    expect(mocks.poolMutate.mock.calls.map(([input]) => input)).toEqual([
-      {
-        action: "setPoolCharter",
-        poolId: POOL_ID,
-        charterCID: "bafy-new-charter",
-      },
-      { action: "setProviderOpenCommitmentCap", poolId: POOL_ID, cap: 9n },
-    ]);
-    expect(mocks.pinPoolCharter.mock.invocationCallOrder[0]).toBeLessThan(
-      mocks.poolMutate.mock.invocationCallOrder[0] ?? Number.POSITIVE_INFINITY
-    );
-    expect(mocks.poolMutate.mock.invocationCallOrder[0]).toBeLessThan(
-      mocks.poolMutate.mock.invocationCallOrder[1] ?? Number.POSITIVE_INFINITY
-    );
-  });
-
-  it("stops before both writes when charter pinning rejects", async () => {
-    const queryClient = testQueryClient();
-    seedControllerQueries(queryClient);
-    mocks.pinPoolCharter.mockRejectedValue(new Error("gateway down"));
-    const { result } = renderController(queryClient);
-
-    await expect(
-      result.current.acts.saveSettings({ purpose: "Expand the tool library", cap: 9n })
-    ).rejects.toThrow("gateway down");
-    expect(mocks.poolMutate).not.toHaveBeenCalled();
   });
 
   it("sends or drops a queued creation and re-reads the row either way", async () => {

@@ -542,9 +542,8 @@ describe("PoolSetupFlow (W11)", () => {
     expect(rows[5]).toHaveTextContent(/open the season with its split/i);
     expect(rows[5]).toHaveTextContent(/didn’t go through/i);
     expect(within(dialog()).getByText("Stopped with 5 of 6 writes done.")).toBeInTheDocument();
-    expect(
-      within(dialog()).getByText(/retrying repeats only the unlanded step/i)
-    ).toBeInTheDocument();
+    // Only the failed opening is left, so a retry asks the wallet once more.
+    expect(within(dialog()).getByText(/your wallet will ask once more\./i)).toBeInTheDocument();
 
     fireEvent.click(within(dialog()).getByRole("button", { name: /try again/i }));
     await waitFor(() => expect(mocks.retry).toHaveBeenCalledTimes(1));

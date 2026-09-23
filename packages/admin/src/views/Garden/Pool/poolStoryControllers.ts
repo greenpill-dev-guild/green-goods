@@ -116,7 +116,6 @@ export function storyPoolConsole(
     expire: noop,
     acceptClaim: noop,
     declineClaim: noop,
-    saveSettings: async () => undefined,
     retryQueued: async () => undefined,
     discardQueued: async () => undefined,
   };

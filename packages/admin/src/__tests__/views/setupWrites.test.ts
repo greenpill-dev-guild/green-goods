@@ -57,4 +57,37 @@ describe("setup checklist writes", () => {
       total: 2,
     });
   });
+
+  // A stop at the second of six writes: during the run the numbers hold, and
+  // once it has stopped a retry is counted over the writes still to send.
+  const stoppedAtTwo = previewRows("first-run", false).map((row, index) => ({
+    ...row,
+    status:
+      index === 0 ? ("landed" as const) : index === 1 ? ("failed" as const) : ("pending" as const),
+  }));
+  it.each([
+    {
+      when: "while it runs",
+      stopped: false,
+      batching: false,
+      numbers: [1, 2, 3, 4, 5, 6],
+      total: 6,
+    },
+    {
+      when: "once stopped",
+      stopped: true,
+      batching: false,
+      numbers: [null, 1, 2, 3, 4, 5],
+      total: 5,
+    },
+    {
+      when: "once stopped, batching",
+      stopped: true,
+      batching: true,
+      numbers: [null, 1, 1, 1, 1, 2],
+      total: 2,
+    },
+  ])("numbers the writes $when", ({ stopped, batching, numbers, total }) => {
+    expect(promptNumbers(stoppedAtTwo, batching, stopped)).toEqual({ numbers, total });
+  });
 });

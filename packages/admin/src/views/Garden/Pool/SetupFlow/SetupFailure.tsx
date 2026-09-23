@@ -5,6 +5,7 @@ import {
 } from "@green-goods/shared/modules/commitment-pooling/pool-setup";
 import { RiShieldCheckLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
+import { retryPromptCount } from "./setupWrites";
 
 type FormatMessage = (
   descriptor: { id: string; defaultMessage: string },
@@ -89,13 +90,16 @@ function failureMessage(
 export interface SetupFailureProps {
   failure: PoolSetupFailureReason | null;
   isCampaign: boolean;
+  /** How many more times the wallet will ask on a retry, over the rows still to send. */
+  remainingPrompts: number;
 }
 
 /**
- * Why a run stopped, in one sentence, and whether trying again is safe. What
- * landed and what did not is on the checklist above it, row by row.
+ * Why a run stopped, in one sentence, and whether trying again is safe and how
+ * many more prompts it takes. What landed and what did not is on the checklist
+ * above it, row by row.
  */
-export function SetupFailure({ failure, isCampaign }: SetupFailureProps) {
+export function SetupFailure({ failure, isCampaign, remainingPrompts }: SetupFailureProps) {
   const { formatMessage } = useIntl();
   return (
     <div className="space-y-2" data-testid="pool-setup-failed">
@@ -103,11 +107,7 @@ export function SetupFailure({ failure, isCampaign }: SetupFailureProps) {
       {isRetriablePoolSetupFailure(failure) ? (
         <p className="flex items-center gap-1.5 text-xs text-text-soft">
           <RiShieldCheckLine className="h-3.5 w-3.5" aria-hidden />
-          {formatMessage({
-            id: "cockpit.garden.pool.setup.retryNote",
-            defaultMessage:
-              "Retrying repeats only the unlanded step. Nothing already recorded is written twice.",
-          })}
+          {retryPromptCount(remainingPrompts, formatMessage)}
         </p>
       ) : null}
     </div>

@@ -12,6 +12,7 @@ import {
   type PoolSetupAction,
   walletPrompts,
 } from "@green-goods/shared/modules/commitment-pooling/pool-setup";
+import { getNetworkName } from "@green-goods/shared/utils/blockchain/chain-registry";
 import type { PoolSetupIntent } from "./setupFlowModel";
 
 type FormatMessage = (
@@ -60,19 +61,84 @@ export function previewRows(intent: PoolSetupIntent, poolIsOpen: boolean): PoolS
 
 /**
  * Which wallet prompt each row rides in (null for a row already done), and how
- * many prompts there are. Rows sharing a number are approved together.
+ * many prompts there are. Rows sharing a number are approved together. Once a
+ * run has stopped, what it landed is done too: a retry skips it, so the rows
+ * still to send are numbered from one and `total` is how many more times the
+ * wallet will ask.
  */
 export function promptNumbers(
   rows: readonly PoolSetupStepState[],
-  batching: boolean
+  batching: boolean,
+  stopped = false
 ): { numbers: Array<number | null>; total: number } {
-  const toSend = rows.filter((row) => row.status !== "already").map((row) => row.action);
+  const done = (row: PoolSetupStepState) =>
+    row.status === "already" || (stopped && row.status === "landed");
+  const toSend = rows.filter((row) => !done(row)).map((row) => row.action);
   const prompts = walletPrompts(toSend, batching);
   let cursor = 0;
-  const numbers = rows.map((row) =>
-    row.status === "already" ? null : (prompts[cursor++] ?? null)
-  );
+  const numbers = rows.map((row) => (done(row) ? null : (prompts[cursor++] ?? null)));
   return { numbers, total: prompts.at(-1) ?? 0 };
+}
+
+/** How many times the wallet will ask before anything is sent. */
+export function promptCount(total: number, formatMessage: FormatMessage): string {
+  return formatMessage(
+    {
+      id: "cockpit.garden.pool.setup.promptCount",
+      defaultMessage:
+        "{count, plural, one {Your wallet will ask you once.} =2 {Your wallet will ask you twice, one after the other.} other {Your wallet will ask you # times, one after another.}}",
+    },
+    { count: total }
+  );
+}
+
+/** How many more times a retry will ask, counted over the rows still to send. */
+export function retryPromptCount(total: number, formatMessage: FormatMessage): string {
+  return formatMessage(
+    {
+      id: "cockpit.garden.pool.setup.retryCount",
+      defaultMessage:
+        "{count, plural, one {Your wallet will ask once more.} other {Your wallet will ask # more times.}} Nothing already recorded is written twice.",
+    },
+    { count: total }
+  );
+}
+
+/**
+ * Where a running sequence stands, in one line: the prompt the wallet is
+ * showing, or the one the chain is confirming, out of how many.
+ */
+export function runningStatus(
+  rows: readonly PoolSetupStepState[],
+  numbers: readonly (number | null)[],
+  total: number,
+  chainId: number,
+  formatMessage: FormatMessage
+): string {
+  const current = rows.findIndex((row) => row.status === "signing" || row.status === "confirming");
+  const row = current >= 0 ? rows[current] : null;
+  const prompt = current >= 0 ? numbers[current] : null;
+  if (row && prompt) {
+    return row.status === "signing"
+      ? formatMessage(
+          {
+            id: "cockpit.garden.pool.setup.live.signing",
+            defaultMessage: "Confirm in your wallet ({current} of {total})",
+          },
+          { current: prompt, total }
+        )
+      : formatMessage(
+          {
+            id: "cockpit.garden.pool.setup.live.confirming",
+            defaultMessage: "Confirming on {network} ({current} of {total})",
+          },
+          { network: getNetworkName(chainId), current: prompt, total }
+        );
+  }
+  return formatMessage({
+    id: "cockpit.garden.pool.setup.live.checking",
+    defaultMessage: "Reading the chain before the next write…",
+  });
 }
 
 /** What the write is called while it is still to do. */

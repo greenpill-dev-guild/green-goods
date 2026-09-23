@@ -65,6 +65,31 @@ vi.mock("@/views/Garden/Pool/SetupFlow", () => ({
   PoolSetupFlow: ({ open, intent }: { open: boolean; intent: string }) =>
     open ? <div data-testid="pool-setup-flow">{intent}</div> : null,
 }));
+// The settings dialog saves through the setup sequence, which reads the
+// signed-in wallet; here it only has to open.
+vi.mock(
+  "@green-goods/shared/hooks/commitment-pooling/useCommitmentPoolSetupSequence",
+  async (importOriginal) => ({
+    ...(await importOriginal<
+      typeof import("@green-goods/shared/hooks/commitment-pooling/useCommitmentPoolSetupSequence")
+    >()),
+    useCommitmentPoolSetupSequence: () => ({
+      state: {
+        status: "idle",
+        steps: [],
+        landed: [],
+        failedStep: null,
+        failure: null,
+        error: null,
+        cycleId: null,
+      },
+      run: vi.fn(),
+      retry: vi.fn(),
+      reset: vi.fn(),
+      batching: "unavailable",
+    }),
+  })
+);
 
 const { GardenPoolTab } = await import("@/views/Garden/Pool");
 const { default: GardenView } = await import("@/views/Garden");
@@ -194,7 +219,6 @@ function controller(overrides: ControllerOverrides = {}): PoolConsoleController 
     expire: vi.fn().mockResolvedValue("0x1"),
     acceptClaim: vi.fn().mockResolvedValue("0x1"),
     declineClaim: vi.fn().mockResolvedValue("0x1"),
-    saveSettings: vi.fn().mockResolvedValue(undefined),
     retryQueued: vi.fn().mockResolvedValue(undefined),
     discardQueued: vi.fn().mockResolvedValue(undefined),
   };

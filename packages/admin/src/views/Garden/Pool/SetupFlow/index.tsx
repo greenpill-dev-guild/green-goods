@@ -224,7 +224,8 @@ export function PoolSetupFlow({
     sequence.state.steps.length > 0
       ? sequence.state.steps
       : previewRows(intent, model.status === "open");
-  const prompts = promptNumbers(rows, sequence.batching === "available");
+  // Once stopped, what landed is done: a retry asks only for the rest.
+  const prompts = promptNumbers(rows, sequence.batching === "available", failed);
   const doneCount = rows.filter(
     (row) => row.status === "landed" || row.status === "already"
   ).length;

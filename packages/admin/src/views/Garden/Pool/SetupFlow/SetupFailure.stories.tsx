@@ -9,11 +9,11 @@ const meta: Meta<typeof SetupFailure> = {
     docs: {
       description: {
         component:
-          "Why a setup run stopped, in one sentence. Which writes landed is on the checklist above it, row by row. The retry note only appears where repeating the unlanded write is safe.",
+          "Why a setup run stopped, in one sentence. Which writes landed is on the checklist above it, row by row. The retry note only appears where repeating the unlanded writes is safe, and says how many more times the wallet will ask.",
       },
     },
   },
-  args: { isCampaign: false },
+  args: { isCampaign: false, remainingPrompts: 1 },
   decorators: [
     (Story) => (
       <div className="max-w-2xl p-4" data-tone="garden">
@@ -30,6 +30,14 @@ type Story = StoryObj<typeof SetupFailure>;
 export const SendFailed: Story = {
   args: {
     failure: "send-failed",
+  },
+};
+
+/** Stopped at the second of six writes: a retry still asks four more times. */
+export const SeveralStillToSend: Story = {
+  args: {
+    failure: "send-failed",
+    remainingPrompts: 4,
   },
 };
 

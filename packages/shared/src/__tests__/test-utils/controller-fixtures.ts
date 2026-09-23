@@ -211,7 +211,6 @@ const poolActs: PoolConsoleActs = {
   expire: successfulTransaction,
   acceptClaim: successfulTransaction,
   declineClaim: successfulTransaction,
-  saveSettings: async () => undefined,
   retryQueued: async () => undefined,
   discardQueued: async () => undefined,
 };

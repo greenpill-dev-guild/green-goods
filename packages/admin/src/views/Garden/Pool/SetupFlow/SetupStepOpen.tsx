@@ -2,13 +2,13 @@ import { Alert } from "@green-goods/shared/components/Alert";
 import type { PoolConsoleController } from "@green-goods/shared/hooks/admin-ui/pool/controller.types";
 import type { PoolSetupStepState } from "@green-goods/shared/hooks/commitment-pooling/useCommitmentPoolSetupSequence";
 import type { CommitmentCycleRecord } from "@green-goods/shared/modules/commitment-pooling/types-core";
-import { getNetworkName } from "@green-goods/shared/utils/blockchain/chain-registry";
 import { useIntl } from "react-intl";
 import { cycleName } from "../poolPresentation";
 import type { AllocationPercent, RecognitionPercent } from "./AllocationEditor";
 import { SetupFailure, type SetupFailureProps } from "./SetupFailure";
 import { SetupProgressList } from "./SetupProgressList";
 import type { PoolSetupIntent } from "./setupFlowModel";
+import { promptCount, runningStatus } from "./setupWrites";
 
 /** Where the run stands: before it, during it, stopped part way, or finished. */
 export type SetupPhase = "ready" | "running" | "stopped" | "done";
@@ -165,37 +165,14 @@ export function SetupStepOpen({
     ),
   ]);
 
-  const current = rows.findIndex((row) => row.status === "signing" || row.status === "confirming");
-  const currentRow = current >= 0 ? rows[current] : null;
-  const currentPrompt = current >= 0 ? promptNumbers[current] : null;
   const batched =
     promptTotal > 0 && promptTotal < rows.filter((row) => row.status !== "already").length;
   const doneCount = rows.filter(
     (row) => row.status === "landed" || row.status === "already"
   ).length;
   const statusLine = (): string => {
-    if (phase === "running" && currentRow && currentPrompt) {
-      return currentRow.status === "signing"
-        ? formatMessage(
-            {
-              id: "cockpit.garden.pool.setup.live.signing",
-              defaultMessage: "Confirm in your wallet ({current} of {total})",
-            },
-            { current: currentPrompt, total: promptTotal }
-          )
-        : formatMessage(
-            {
-              id: "cockpit.garden.pool.setup.live.confirming",
-              defaultMessage: "Confirming on {network} ({current} of {total})",
-            },
-            { network: getNetworkName(chainId), current: currentPrompt, total: promptTotal }
-          );
-    }
     if (phase === "running") {
-      return formatMessage({
-        id: "cockpit.garden.pool.setup.live.checking",
-        defaultMessage: "Reading the chain before the next write…",
-      });
+      return runningStatus(rows, promptNumbers, promptTotal, chainId, formatMessage);
     }
     if (phase === "stopped") {
       return formatMessage(
@@ -206,14 +183,7 @@ export function SetupStepOpen({
         { done: doneCount, total: rows.length }
       );
     }
-    return formatMessage(
-      {
-        id: "cockpit.garden.pool.setup.promptCount",
-        defaultMessage:
-          "{count, plural, one {Your wallet will ask you once.} =2 {Your wallet will ask you twice, one after the other.} other {Your wallet will ask you # times, one after another.}}",
-      },
-      { count: promptTotal }
-    );
+    return promptCount(promptTotal, formatMessage);
   };
 
   return (
@@ -304,7 +274,9 @@ export function SetupStepOpen({
               })}
         </Alert>
       ) : null}
-      {phase === "stopped" ? <SetupFailure failure={failure} isCampaign={isCampaign} /> : null}
+      {phase === "stopped" ? (
+        <SetupFailure failure={failure} isCampaign={isCampaign} remainingPrompts={promptTotal} />
+      ) : null}
       {!isOnline ? (
         <Alert variant="warning">
           {formatMessage({

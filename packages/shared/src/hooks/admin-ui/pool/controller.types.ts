@@ -60,7 +60,6 @@ export interface PoolConsoleActs {
   expire: (commitmentId: bigint) => Promise<HexString>;
   acceptClaim: (commitmentId: bigint, claimant: Address) => Promise<HexString>;
   declineClaim: (commitmentId: bigint, claimant: Address, reason: string) => Promise<HexString>;
-  saveSettings: (next: { purpose: string; cap: bigint }) => Promise<void>;
   /** Send a creation still queued on this device, as the steward's own tap. */
   retryQueued: (jobId: string) => Promise<void>;
   /** Remove a queued creation. The queue refuses one whose send may be on chain. */

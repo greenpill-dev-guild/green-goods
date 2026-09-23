@@ -15,7 +15,6 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { PoolConsoleController } from "./controller.types";
-import { pinPoolCharter } from "../../../modules/commitment-pooling/pool-charter";
 import { jobQueue } from "../../../modules/job-queue/default-instance";
 import { selectPoolConsoleModel } from "../../../modules/commitment-pooling/pool-console";
 import { selectNextDueBoundary } from "../../../modules/commitment-pooling/steward-selectors";
@@ -185,27 +184,6 @@ export function usePoolConsoleController(input: {
           reason,
           gardenAddress: garden,
         }),
-      /**
-       * Edit pool settings: the charter sentence is pinned before
-       * `setPoolCharter`; the cap goes straight to the register. Only what
-       * changed is written, and the charter lands first so a cap failure
-       * leaves the words recorded.
-       */
-      saveSettings: async (next: { purpose: string; cap: bigint }) => {
-        const id = requirePool();
-        const purposeChanged = next.purpose.trim() !== (charter.charter?.purpose ?? "");
-        if (purposeChanged) {
-          const charterCID = await pinPoolCharter({ purpose: next.purpose, gardenAddress: garden });
-          await poolMutation.mutateAsync({ action: "setPoolCharter", poolId: id, charterCID });
-        }
-        if (next.cap !== (pool?.providerOpenCommitmentCap ?? 0n)) {
-          await poolMutation.mutateAsync({
-            action: "setProviderOpenCommitmentCap",
-            poolId: id,
-            cap: next.cap,
-          });
-        }
-      },
       // The admin mounts no queue provider, so nothing sends a queued creation
       // unless the steward does. The row is re-read either way: a failed retry
       // changes what it says.
@@ -234,16 +212,7 @@ export function usePoolConsoleController(input: {
         }
       },
     }),
-    [
-      poolMutation,
-      commitmentMutation,
-      requirePool,
-      garden,
-      charter.charter?.purpose,
-      pool,
-      sender,
-      refreshQueue,
-    ]
+    [poolMutation, commitmentMutation, requirePool, garden, sender, refreshQueue]
   );
 
   const refetch = useCallback(
