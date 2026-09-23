@@ -2,17 +2,20 @@ import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
 import { queryKeys } from "@green-goods/shared/config/query-keys/registry";
 import type { QueryKey } from "@tanstack/react-query";
 import type { Meta, StoryObj } from "@storybook/react";
-import { STORYBOOK_ADMIN_SHELL_SEEDS } from "../../../../../shared/.storybook/adminFixtures";
+import { expect, within } from "storybook/test";
+import { STORYBOOK_ADMIN_DEPLOYER_SEEDS } from "../../../../../shared/.storybook/adminFixtures";
 import {
-  withAdminIdentity,
+  withAdminIdentityRole,
   withAdminPrimitiveFrame,
   withSeededQueryClient,
 } from "../../../../../shared/.storybook/decorators";
 import { STORY_GARDEN, STORY_ROOT_GARDEN, storyPool } from "../../Garden/Pool/poolStoryFixtures";
 import { ProtocolFundingOperationsPanel } from "./ProtocolFundingOperationsPanel";
 
+// The deployer sees the panel before its settlement authority resolves, which
+// is all a wallet-less story can read; the acts stay read-only.
 const SEEDS: ReadonlyArray<readonly [QueryKey, unknown]> = [
-  ...STORYBOOK_ADMIN_SHELL_SEEDS,
+  ...STORYBOOK_ADMIN_DEPLOYER_SEEDS,
   [
     queryKeys.commitmentPooling.pools(DEFAULT_CHAIN_ID),
     [
@@ -32,7 +35,11 @@ const meta: Meta<typeof ProtocolFundingOperationsPanel> = {
   title: "Admin/Community/ProtocolFundingOperationsPanel",
   component: ProtocolFundingOperationsPanel,
   tags: ["autodocs"],
-  decorators: [withAdminIdentity, withSeededQueryClient(SEEDS), withAdminPrimitiveFrame],
+  decorators: [
+    withAdminIdentityRole("deployer"),
+    withSeededQueryClient(SEEDS),
+    withAdminPrimitiveFrame,
+  ],
   args: {
     chainId: DEFAULT_CHAIN_ID,
     protocolGarden: STORY_ROOT_GARDEN,
@@ -50,4 +57,10 @@ const meta: Meta<typeof ProtocolFundingOperationsPanel> = {
 export default meta;
 type Story = StoryObj<typeof ProtocolFundingOperationsPanel>;
 
-export const RegisteredRecipients: Story = {};
+export const RegisteredRecipients: Story = {
+  play: async ({ canvasElement }) => {
+    await expect(
+      await within(canvasElement).findByText("Protocol-to-garden transfers")
+    ).toBeInTheDocument();
+  },
+};

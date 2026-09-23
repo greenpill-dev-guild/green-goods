@@ -242,10 +242,17 @@ export function SettlementOperationsCard({
                   "Disabling blocks new contributor payout preparation and member delivery. Garden Safe payouts keep running.",
               })
         }
-        confirmLabel={formatMessage({
-          id: "cockpit.community.settlementOps.delivery.confirm",
-          defaultMessage: "Send Transaction",
-        })}
+        confirmLabel={
+          confirming
+            ? formatMessage({
+                id: "cockpit.community.settlementOps.delivery.confirmEnable",
+                defaultMessage: "Enable Gardener Delivery",
+              })
+            : formatMessage({
+                id: "cockpit.community.settlementOps.delivery.confirmDisable",
+                defaultMessage: "Disable Gardener Delivery",
+              })
+        }
         cancelLabel={formatMessage({ id: "app.common.cancel", defaultMessage: "Cancel" })}
         isLoading={operations.isPending}
         onConfirm={async () => {

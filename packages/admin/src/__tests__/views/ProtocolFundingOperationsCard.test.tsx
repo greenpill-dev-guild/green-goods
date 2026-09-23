@@ -120,7 +120,8 @@ describe("ProtocolFundingOperationsCard", () => {
     fireEvent.click(screen.getByRole("button", { name: "Review seed or top-up…" }));
     const dialog = await screen.findByRole("alertdialog");
     expect(within(dialog).getByText(/Queue 2 G\$.*Aiyeloja/)).toBeInTheDocument();
-    expect(within(dialog).getByText(/no commitment ID/)).toBeInTheDocument();
+    // The review is in stewards' words: no enum names (A6).
+    expect(dialog).not.toHaveTextContent(/ProtocolToGarden|no commitment ID/);
     fireEvent.click(within(dialog).getByRole("button", { name: "Queue seed or top-up" }));
 
     await waitFor(() => expect(queueFunding).toHaveBeenCalledWith(AIYELOJA, 2n * G));
@@ -161,11 +162,11 @@ describe("ProtocolFundingOperationsCard", () => {
 
     expect(screen.getByTestId("protocol-funding-unavailable")).toBeInTheDocument();
     expect(screen.queryByLabelText("Receiving garden")).not.toBeInTheDocument();
-    expect(screen.getByText(/Funding \/ ProtocolToGarden/)).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Dispatch" })).not.toBeInTheDocument();
+    expect(screen.getByText(/^Transfer #9/)).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Dispatch…" })).not.toBeInTheDocument();
   });
 
-  it("exposes only the row actions selected for the connected authority", async () => {
+  it("names the receiving garden, and reviews a transfer before the wallet is asked", async () => {
     const dispatch = vi.fn(async (): Promise<HexString> => TX_HASH);
     renderWithProviders(
       <ProtocolFundingOperationsCard
@@ -175,6 +176,7 @@ describe("ProtocolFundingOperationsCard", () => {
             {
               id: "42161-10",
               disbursementId: 10n,
+              garden: AIYELOJA,
               recipient: RECIPIENT,
               amount: 2n * G,
               state: "queued",
@@ -192,10 +194,20 @@ describe("ProtocolFundingOperationsCard", () => {
       />
     );
 
-    fireEvent.click(screen.getByRole("button", { name: "Dispatch" }));
+    const row = screen.getByText(/^2 G\$ to Aiyeloja$/).closest("li")!;
+    expect(row).toHaveTextContent("Transfer #10");
+    expect(row).not.toHaveTextContent(/ProtocolToGarden|no commitment ID/);
+    // Only the acts the connected authority holds are offered.
+    expect(within(row).queryByRole("button", { name: "Requeue…" })).not.toBeInTheDocument();
+    expect(within(row).queryByRole("button", { name: "Cancel…" })).not.toBeInTheDocument();
+
+    fireEvent.click(within(row).getByRole("button", { name: "Dispatch…" }));
+    const review = await screen.findByRole("alertdialog", { name: "Review before sending" });
+    expect(review).toHaveTextContent(/Dispatch disbursement #10 for 2 G\$ to Aiyeloja/);
+    expect(dispatch).not.toHaveBeenCalled();
+
+    fireEvent.click(within(review).getByRole("button", { name: "Send Transaction" }));
     await waitFor(() => expect(dispatch).toHaveBeenCalledWith(10n));
-    expect(screen.queryByRole("button", { name: "Requeue" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Cancel…" })).not.toBeInTheDocument();
   });
 
   it("renders Celo execution separately from indexed confirmation", () => {

@@ -76,7 +76,8 @@ describe("SettlementOperationsCard", () => {
     ).toBeInTheDocument();
     expect(setGardenerDelivery).not.toHaveBeenCalled();
 
-    fireEvent.click(within(dialog).getByRole("button", { name: "Send Transaction" }));
+    // The confirmation names its act rather than "Send Transaction" (A20).
+    fireEvent.click(within(dialog).getByRole("button", { name: "Enable Gardener Delivery" }));
     await waitFor(() => expect(setGardenerDelivery).toHaveBeenCalledWith(true));
     // The displayed state is the controller's chain read, not the request.
     expect(screen.getByTestId("gardener-delivery-state")).toHaveTextContent("Off");

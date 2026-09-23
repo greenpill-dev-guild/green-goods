@@ -1,7 +1,10 @@
 import { Alert } from "@green-goods/shared/components/Alert";
 import { toastService } from "@green-goods/shared/components/Toast/toast.service";
 import { CELO_G_DOLLAR_TOKEN } from "@green-goods/shared/config/tokens";
-import type { ProtocolFundingOperationsController } from "@green-goods/shared/hooks/admin-ui/pool/controller.types";
+import type {
+  ProtocolFundingOperationsController,
+  ProtocolFundingRow,
+} from "@green-goods/shared/hooks/admin-ui/pool/controller.types";
 import type { Address } from "@green-goods/shared/types/domain";
 import { RiRefreshLine } from "@remixicon/react";
 import { useState } from "react";
@@ -13,6 +16,7 @@ import { AdminConfirmDialog } from "@/components/AdminDialog";
 import { AdminReasonDialog } from "@/components/AdminReasonDialog";
 import { AdminSelect, AdminTextField } from "@/components/AdminTextField";
 import { formatGdollar, shortAddress } from "@/views/Garden/Pool/poolFundingPresentation";
+import { type TransferAct, TransferReviewDialog } from "@/views/Garden/Pool/TransferReviewDialog";
 import { ProtocolFundingRows } from "./ProtocolFundingRows";
 
 type GardenOption = { id: Address; name: string };
@@ -32,6 +36,7 @@ export function ProtocolFundingOperationsCard({
   const [amount, setAmount] = useState("2");
   const [confirmQueue, setConfirmQueue] = useState(false);
   const [cancelId, setCancelId] = useState<bigint | null>(null);
+  const [review, setReview] = useState<{ act: TransferAct; row: ProtocolFundingRow } | null>(null);
   if (!operations.showOperations) return null;
 
   let amountValue: bigint | null = null;
@@ -47,6 +52,11 @@ export function ProtocolFundingOperationsCard({
   const source = operations.sourceFunding.snapshot;
   const target = operations.targetFunding.snapshot;
   const canReview = Boolean(targetGarden && amountValue);
+
+  const gardenName = (garden: Address | null | undefined) =>
+    garden
+      ? (gardens.find((entry) => entry.id.toLowerCase() === garden.toLowerCase())?.name ?? null)
+      : null;
 
   const submit = async (act: () => Promise<string>) => {
     const identifier = await act();
@@ -217,7 +227,12 @@ export function ProtocolFundingOperationsCard({
         </p>
       )}
 
-      <ProtocolFundingRows operations={operations} onSubmit={submit} onCancel={setCancelId} />
+      <ProtocolFundingRows
+        operations={operations}
+        gardenName={gardenName}
+        onReview={(act, row) => setReview({ act, row })}
+        onCancel={setCancelId}
+      />
 
       {operations.lastAct ? (
         <p
@@ -261,7 +276,7 @@ export function ProtocolFundingOperationsCard({
           {
             id: "cockpit.community.protocolFunding.confirm.body",
             defaultMessage:
-              "Queue {amount} from the protocol Safe to {garden}. The module derives the registered recipient Safe and canonical G$. This creates Funding / ProtocolToGarden with no commitment ID.",
+              "Queue {amount} from the protocol Safe to {garden}. The module derives the registered recipient Safe and canonical G$.",
           },
           {
             amount: formatGdollar(amountValue, locale),
@@ -279,6 +294,28 @@ export function ProtocolFundingOperationsCard({
           if (!targetGarden || !amountValue) return;
           await submit(() => operations.queueFunding(targetGarden, amountValue));
           setConfirmQueue(false);
+        }}
+      />
+
+      <TransferReviewDialog
+        review={review ? { act: review.act, disbursementId: review.row.disbursementId } : null}
+        amount={review?.row.amount ?? null}
+        recipient={
+          review ? (gardenName(review.row.garden) ?? shortAddress(review.row.recipient)) : "—"
+        }
+        tone="community"
+        isLoading={operations.isActing}
+        onClose={() => setReview(null)}
+        onConfirm={async () => {
+          if (!review) return;
+          const { act, row } = review;
+          await submit(() =>
+            act === "dispatch"
+              ? operations.dispatch(row.disbursementId)
+              : act === "retry"
+                ? operations.retry(row.disbursementId)
+                : operations.requeue(row.disbursementId)
+          );
         }}
       />
 
