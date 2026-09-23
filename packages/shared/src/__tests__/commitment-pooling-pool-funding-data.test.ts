@@ -2,6 +2,7 @@ import type { PublicClient } from "viem";
 import { describe, expect, it, vi } from "vitest";
 import type { RawRow } from "../modules/commitment-pooling/data-core";
 import { getPoolFundingSnapshot } from "../modules/commitment-pooling/data-pool-funding";
+import { ledgerAgeSeconds } from "../modules/commitment-pooling/data-pool-funding-freshness";
 import type { GraphQLReader } from "../modules/data/graphql-client";
 
 const GARDEN = "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" as const;
@@ -124,9 +125,13 @@ function reader(
             data: {
               chain_metadata:
                 overrides.metadataRows ??
+                // The live shape: caught up once, long ago, and still processing every block.
                 [42161, 42220].map((chainId) => ({
                   chain_id: chainId,
-                  timestamp_caught_up_to_head_or_endblock: new Date(now * 1_000).toISOString(),
+                  latest_processed_block: 50,
+                  timestamp_caught_up_to_head_or_endblock: new Date(
+                    (now - 14 * 86_400) * 1_000
+                  ).toISOString(),
                 })),
             },
           };
@@ -307,10 +312,24 @@ describe("pool funding hybrid reader", () => {
     expect(snapshot.available).toBe(849n);
     expect(snapshot.nativeFeeBalance).toBe(123n);
     expect(indexer.query).toHaveBeenCalledWith(
-      expect.stringContaining("timestamp_caught_up_to_head_or_endblock"),
+      expect.stringContaining("latest_processed_block"),
       { chainIds: [42161, 42220] },
       "getPoolFundingFreshness"
     );
+    expect(snapshot.fundingUnavailableReasons).toEqual([]);
+  });
+
+  it("reads the ledger stale once its processed blocks are more than two minutes old", async () => {
+    // An indexer that stopped writing: its processed blocks age with the clock.
+    const now = 2_050;
+    const snapshot = await getPoolFundingSnapshot(42161, GARDEN, {
+      reader: reader(now),
+      createClient: clientFactory({ blockTimestamp: BigInt(now - 121) }).createClient,
+      now,
+    });
+    expect(snapshot.balance?.value).toBe(1_000n);
+    expect(snapshot.available).toBeNull();
+    expect(snapshot.fundingUnavailableReasons).toContain("ledger_stale");
   });
 
   it("turns an RPC balance failure into unavailable data, never zero", async () => {
@@ -363,16 +382,11 @@ describe("pool funding hybrid reader", () => {
     expect(snapshot.fundingUnavailableReasons).toContain("ledger_unavailable");
   });
 
-  it("requires caught-up metadata for both the source and executor chains", async () => {
+  it("requires processed blocks for both the source and executor chains", async () => {
     const now = 2_050;
     const snapshot = await getPoolFundingSnapshot(42161, GARDEN, {
       reader: reader(now, {
-        metadataRows: [
-          {
-            chain_id: 42161,
-            timestamp_caught_up_to_head_or_endblock: new Date(now * 1_000).toISOString(),
-          },
-        ],
+        metadataRows: [{ chain_id: 42161, latest_processed_block: 50 }],
       }),
       createClient: clientFactory().createClient,
       now,
@@ -573,5 +587,17 @@ describe("pool funding hybrid reader", () => {
 
     expect(snapshot.expected).toBe(20_100n);
     expect(snapshot.expectedFeeBuffer).toBe(201n);
+  });
+});
+
+describe("ledgerAgeSeconds", () => {
+  it.each([
+    { case: "fresh on both chains", timestamps: [1_990, 2_000], age: 60 },
+    { case: "the oldest chain decides", timestamps: [1_929, 2_049], age: 121 },
+    { case: "a block stamped after now reads as zero", timestamps: [2_100], age: 0 },
+    { case: "an unread chain is unknown, not fresh", timestamps: [2_000, null], age: null },
+    { case: "no chains is unknown", timestamps: [], age: null },
+  ])("$case", ({ timestamps, age }) => {
+    expect(ledgerAgeSeconds(timestamps, 2_050)).toBe(age);
   });
 });

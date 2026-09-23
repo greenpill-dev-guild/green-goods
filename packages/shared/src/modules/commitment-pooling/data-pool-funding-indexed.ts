@@ -3,12 +3,13 @@ import { type GraphQLReader, greenGoodsIndexer } from "../data/graphql-client";
 import { address, integer, number, optionalInteger, type RawRow } from "./data-core";
 import {
   type FundingPage,
-  queryCaughtUpAt,
+  type PoolFundingProcessedBlock,
   queryExecutions,
   queryExecutorConfiguration,
   queryFundingPages,
   queryPayoutRows,
   queryPoolFundingHeader,
+  queryProcessedBlocks,
 } from "./data-pool-funding-indexed-queries";
 import {
   mapSettlementAccount,
@@ -38,7 +39,8 @@ export interface PoolFundingLedger {
   fundings: PoolFundingDeposit[];
   disbursements: PoolFundingDisbursement[];
   executions: PoolFundingExecution[];
-  caughtUpAt: number | null;
+  /** Where the indexer stands on each chain the ledger spans; null when unknown. */
+  processedBlocks: PoolFundingProcessedBlock[] | null;
   readAt: number;
   coherent: boolean;
 }
@@ -165,21 +167,21 @@ export async function getPoolFundingLedger(
       fundings: [],
       disbursements: [],
       executions: [],
-      caughtUpAt: await queryCaughtUpAt(reader, [sourceChainId]),
+      processedBlocks: await queryProcessedBlocks(reader, [sourceChainId]),
       readAt: now,
       coherent: true,
     };
   }
 
   const executorChainId = sourceConfiguration.remoteEvmChainId;
-  const [executorResult, pageResult, caughtUpAt] = await Promise.all([
+  const [executorResult, pageResult, processedBlocks] = await Promise.all([
     queryExecutorConfiguration(reader, executorChainId)
       .then((row) => ({ row, error: null }))
       .catch((error: unknown) => ({ row: null, error })),
     queryFundingPages(reader, sourceChainId, garden, route.safe)
       .then((page) => ({ page, error: null }))
       .catch((error: unknown) => ({ page: null, error })),
-    queryCaughtUpAt(reader, [sourceChainId, executorChainId]),
+    queryProcessedBlocks(reader, [sourceChainId, executorChainId]),
   ]);
   const executorConfiguration = executorResult.row
     ? mapSettlementConfiguration(executorResult.row)
@@ -247,7 +249,7 @@ export async function getPoolFundingLedger(
           ]
         : []
     ),
-    caughtUpAt,
+    processedBlocks,
     readAt: now,
     coherent,
   };

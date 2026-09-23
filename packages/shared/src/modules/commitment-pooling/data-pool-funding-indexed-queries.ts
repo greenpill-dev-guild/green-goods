@@ -1,6 +1,6 @@
 import type { Address } from "../../types/domain";
 import type { GraphQLReader } from "../data/graphql-client";
-import { number, type RawRow } from "./data-core";
+import { number, optionalInteger, type RawRow } from "./data-core";
 
 const PAGE_SIZE = 200;
 
@@ -67,14 +67,26 @@ export async function queryExecutorConfiguration(
   return result.data.SettlementConfiguration?.[0] ?? null;
 }
 
-export async function queryCaughtUpAt(
+/** The last block the indexer has processed on one chain. */
+export interface PoolFundingProcessedBlock {
+  chainId: number;
+  block: bigint;
+}
+
+/**
+ * How far the indexer has processed each chain, or null when any chain is
+ * missing. The caught-up timestamp beside it is written once, when a chain
+ * first reaches head, so it cannot say whether the ledger is still current;
+ * the processed block can, once its time is read from the chain itself.
+ */
+export async function queryProcessedBlocks(
   reader: GraphQLReader,
   chainIds: number[]
-): Promise<number | null> {
+): Promise<PoolFundingProcessedBlock[] | null> {
   const required = [...new Set(chainIds)];
   const query = `query PoolFundingFreshness($chainIds: [Int!]!) {
     chain_metadata(where: { chain_id: { _in: $chainIds } }, order_by: { chain_id: asc }, limit: 2) {
-      chain_id timestamp_caught_up_to_head_or_endblock
+      chain_id latest_processed_block
     }
   }`;
   const result = await reader.query<{ chain_metadata: RawRow[] }>(
@@ -86,12 +98,12 @@ export async function queryCaughtUpAt(
   const byChain = new Map(
     (result.data.chain_metadata ?? []).map((row) => [
       number(row.chain_id),
-      parseTimestamp(row.timestamp_caught_up_to_head_or_endblock),
+      optionalInteger(row.latest_processed_block),
     ])
   );
-  const timestamps = required.map((chainId) => byChain.get(chainId) ?? null);
-  return timestamps.every((value): value is number => value !== null)
-    ? Math.min(...timestamps)
+  const blocks = required.map((chainId) => ({ chainId, block: byChain.get(chainId) ?? null }));
+  return blocks.every((row): row is PoolFundingProcessedBlock => row.block !== null)
+    ? blocks
     : null;
 }
 
@@ -200,14 +212,4 @@ export async function queryExecutions(
     }
   }
   return rows;
-}
-
-function parseTimestamp(value: unknown): number | null {
-  if (typeof value === "number") {
-    return value > 1_000_000_000_000 ? Math.floor(value / 1_000) : value;
-  }
-  if (typeof value !== "string" || value.length === 0) return null;
-  if (/^\d+$/.test(value)) return parseTimestamp(Number(value));
-  const milliseconds = Date.parse(value);
-  return Number.isNaN(milliseconds) ? null : Math.floor(milliseconds / 1_000);
 }
