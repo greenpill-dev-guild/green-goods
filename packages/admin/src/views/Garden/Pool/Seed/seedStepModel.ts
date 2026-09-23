@@ -87,7 +87,7 @@ const SEED_ERROR_MESSAGES = {
   },
   considerationAmount: {
     id: "cockpit.garden.pool.seed.error.considerationAmount",
-    defaultMessage: "Enter a whole amount above zero.",
+    defaultMessage: "Enter an amount above zero.",
   },
 } satisfies Record<
   keyof typeof COMMITMENT_COMPOSER_ERROR_IDS,

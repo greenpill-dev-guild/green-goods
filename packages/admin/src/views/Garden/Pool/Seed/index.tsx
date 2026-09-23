@@ -8,6 +8,7 @@ import {
 } from "@green-goods/shared/hooks/admin-ui/pool/useSeedTray";
 import { useDirtyClose } from "@green-goods/shared/hooks/admin-ui/useDirtyClose";
 import { useActions } from "@green-goods/shared/hooks/blockchain/useBaseLists";
+import { useErc20Metadata } from "@green-goods/shared/hooks/blockchain/useErc20Metadata";
 import { useStepFocus } from "@green-goods/shared/hooks/utils/useStepFocus";
 import type { Address } from "@green-goods/shared/types/domain";
 import {
@@ -32,6 +33,7 @@ import { SeedStepHowMuch } from "./SeedStepHowMuch";
 import { SeedStepProof } from "./SeedStepProof";
 import { SeedStepReview } from "./SeedStepReview";
 import { SeedStepWhat } from "./SeedStepWhat";
+import { rewardUnitsFor } from "./seedRewardAmount";
 import {
   buildSeedCycleOptions,
   buildSeedStepConfigs,
@@ -124,6 +126,14 @@ export function SeedCommitmentDialog({
   // onto the untouched fields of the row still in the form; a parked one is a
   // snapshot nothing revisits.
   const poolDefaultsPending = pool.isLoading || protocolPool.isLoading;
+  // The declared reward is typed in its token's units, read once for every step.
+  // Until they are known, nothing with a reward can be seeded.
+  const rewardToken = useErc20Metadata(
+    chainId,
+    values.considerationRail === "ARBITRUM_EXTERNAL" ? values.considerationToken : null
+  );
+  const rewardUnits = rewardUnitsFor(values.considerationRail, rewardToken);
+  const rewardUnitsUnknown = values.considerationRail !== "NONE" && rewardUnits.status !== "ready";
   const settlementActive = Boolean(settlement.detail?.account?.active);
 
   // One creation per tray row, under the id the row was given when it joined
@@ -296,6 +306,7 @@ export function SeedCommitmentDialog({
           onAddConfirmer={addConfirmer}
           protocolRegistered={protocolRegistered}
           settlementActive={settlementActive}
+          rewardUnits={rewardUnits}
         />
       );
       break;
@@ -307,6 +318,7 @@ export function SeedCommitmentDialog({
           chainId={chainId}
           cycleOptions={cycleOptions}
           protocolRegistered={protocolRegistered}
+          rewardUnits={rewardUnits}
           submitError={submitError}
           queueUnavailable={pool.queueUnavailable}
           tray={{
@@ -332,7 +344,12 @@ export function SeedCommitmentDialog({
       title={title}
       stepIndex={stepIndex}
       isLast={isLast}
-      seedDisabled={pool.poolId === undefined || pool.model.status !== "open" || capacity.over}
+      seedDisabled={
+        pool.poolId === undefined ||
+        pool.model.status !== "open" ||
+        capacity.over ||
+        rewardUnitsUnknown
+      }
       count={tray.size}
       addAnotherDisabled={poolDefaultsPending || (capacity.full && values.direction === "OFFER")}
       onCancel={() => dirtyClose.onOpenChange(false)}

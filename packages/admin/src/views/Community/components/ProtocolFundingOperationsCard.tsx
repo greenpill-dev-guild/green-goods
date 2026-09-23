@@ -1,5 +1,6 @@
 import { Alert } from "@green-goods/shared/components/Alert";
 import { toastService } from "@green-goods/shared/components/Toast/toast.service";
+import { CELO_G_DOLLAR_TOKEN } from "@green-goods/shared/config/tokens";
 import type { ProtocolFundingOperationsController } from "@green-goods/shared/hooks/admin-ui/pool/controller.types";
 import type { Address } from "@green-goods/shared/types/domain";
 import { RiRefreshLine } from "@remixicon/react";
@@ -35,7 +36,7 @@ export function ProtocolFundingOperationsCard({
 
   let amountValue: bigint | null = null;
   try {
-    const parsed = parseUnits(amount, 18);
+    const parsed = parseUnits(amount, CELO_G_DOLLAR_TOKEN.decimals);
     amountValue = parsed > 0n ? parsed : null;
   } catch {
     amountValue = null;

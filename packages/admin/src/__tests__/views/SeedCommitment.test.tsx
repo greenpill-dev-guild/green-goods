@@ -20,6 +20,7 @@ import { fireEvent, renderWithProviders, screen, waitFor, within } from "../test
 const GARDEN = "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" as const;
 const VIEWER = "0x1111111111111111111111111111111111111111" as const;
 const CONFIRMER = "0x2222222222222222222222222222222222222222" as const;
+const REWARD_TOKEN = "0x4444444444444444444444444444444444444444" as const;
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000" as const;
 const NOW = 1_756_000_000n;
 
@@ -35,6 +36,19 @@ const mocks = vi.hoisted(() => ({
   again: null as Record<string, unknown> | null,
   /** Open-commitment room the steward has left; null while it is not read. */
   room: null as number | null,
+  /** Whether the external reward token answers decimals(); it reads as six-decimal USDC. */
+  rewardTokenReadable: true,
+}));
+
+// The reward token is read on chain; here it answers as a six-decimal token,
+// or not at all, so no test reaches for an RPC.
+vi.mock("@green-goods/shared/hooks/blockchain/useErc20Metadata", () => ({
+  useErc20Metadata: (_chainId: number, token: string | null | undefined) =>
+    !token || !/^0x[0-9a-fA-F]{40}$/.test(token)
+      ? { status: "idle" }
+      : mocks.rewardTokenReadable
+        ? { status: "ready", metadata: { decimals: 6, symbol: "USDC" } }
+        : { status: "unreadable" },
 }));
 
 // The tray itself is the real one; only its read of the steward's open count is
@@ -330,6 +344,7 @@ describe("SeedCommitmentDialog (W8)", () => {
     mocks.settlementActive = false;
     mocks.again = null;
     mocks.room = null;
+    mocks.rewardTokenReadable = true;
     mocks.console = consoleFor();
     mocks.enqueue.mockResolvedValue("job-1");
   });
@@ -502,15 +517,64 @@ describe("SeedCommitmentDialog (W8)", () => {
       ).toBeInTheDocument()
     );
     fireEvent.click(within(dialog()).getByRole("radio", { name: /external payout record/i }));
-    fireEvent.change(within(dialog()).getByLabelText(/^amount \(base units\)/i), {
+    fireEvent.change(within(dialog()).getByLabelText(/token \(address\)/i), {
+      target: { value: REWARD_TOKEN },
+    });
+    fireEvent.change(await within(dialog()).findByLabelText(/^amount \(usdc\)/i), {
       target: { value: "0" },
     });
     // The schema says this as a message id; a raw one reaching the DOM is the
     // regression, and only a catalog lookup turns it back into a sentence.
     await waitFor(() =>
-      expect(within(dialog()).getByText("Enter a whole amount above zero.")).toBeInTheDocument()
+      expect(within(dialog()).getByText("Enter an amount above zero.")).toBeInTheDocument()
     );
     expect(dialog().textContent).not.toContain("cockpit.garden.pool.seed.error");
+  });
+
+  it("records a declared reward in the token's own units, never its base units", async () => {
+    renderSeed();
+    fillWhat();
+    next();
+    await waitFor(() => expect(within(dialog()).getByLabelText(/^unit/i)).toBeInTheDocument());
+    fillHowMuch();
+    next();
+    await waitFor(() => expect(within(dialog()).getByText(/^confirmers$/i)).toBeInTheDocument());
+    fireEvent.click(within(dialog()).getByRole("radio", { name: /external payout record/i }));
+    fireEvent.change(within(dialog()).getByLabelText(/paid from/i), {
+      target: { value: GARDEN },
+    });
+    fireEvent.change(within(dialog()).getByLabelText(/token \(address\)/i), {
+      target: { value: REWARD_TOKEN },
+    });
+    fireEvent.change(await within(dialog()).findByLabelText(/^amount \(usdc\)/i), {
+      target: { value: "2.5" },
+    });
+    next();
+    await waitFor(() => expect(screen.getByTestId("seed-review")).toBeInTheDocument());
+    expect(within(dialog()).getByText(/2\.5 USDC/)).toBeInTheDocument();
+    fireEvent.click(within(dialog()).getByRole("button", { name: /seed this commitment/i }));
+    await waitFor(() => expect(mocks.enqueue).toHaveBeenCalledTimes(1));
+    const input = mocks.enqueue.mock.calls[0]?.[0];
+    if (!input || input.act !== "create") throw new Error("Expected a create commitment job");
+    expect(input.payload.consideration.amount).toBe(2_500_000n);
+  });
+
+  it("holds the amount, and says why, when the reward token's units cannot be read", async () => {
+    mocks.rewardTokenReadable = false;
+    renderSeed();
+    fillWhat();
+    next();
+    await waitFor(() => expect(within(dialog()).getByLabelText(/^unit/i)).toBeInTheDocument());
+    fillHowMuch();
+    next();
+    await waitFor(() => expect(within(dialog()).getByText(/^confirmers$/i)).toBeInTheDocument());
+    fireEvent.click(within(dialog()).getByRole("radio", { name: /external payout record/i }));
+    fireEvent.change(within(dialog()).getByLabelText(/token \(address\)/i), {
+      target: { value: REWARD_TOKEN },
+    });
+    // Guessing 18 decimals would record the amount wrong by orders of magnitude.
+    expect(within(dialog()).getByLabelText(/^amount/i)).toBeDisabled();
+    expect(within(dialog()).getByText(/units could not be read/i)).toBeInTheDocument();
   });
 
   it("starts a fresh draft each time the mounted dialog reopens", async () => {

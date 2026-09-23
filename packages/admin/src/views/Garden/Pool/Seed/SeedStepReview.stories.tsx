@@ -64,6 +64,7 @@ const meta: Meta<typeof SeedStepReview> = {
     chainId: DEFAULT_CHAIN_ID,
     cycleOptions: CYCLE_OPTIONS,
     protocolRegistered: true,
+    rewardUnits: { status: "none" },
     submitError: null,
     queueUnavailable: false,
     tray: LONE_TRAY,
@@ -104,6 +105,8 @@ export const GardenWorkWithReward: Story = {
       considerationRail: "ARBITRUM_EXTERNAL",
       considerationAmount: "250000000",
     },
+    // A six-decimal token, like USDC: the review reads 250, never the base units.
+    rewardUnits: { status: "ready", decimals: 6, symbol: "USDC" },
   },
 };
 
