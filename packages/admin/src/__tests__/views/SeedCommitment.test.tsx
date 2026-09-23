@@ -8,7 +8,7 @@ import {
   poolFixture,
 } from "@green-goods/shared/__tests__/test-utils/commitment-pooling-fixtures";
 import { poolConsoleControllerFixture } from "@green-goods/shared/__tests__/test-utils/controller-fixtures";
-import type { CommitmentJobInput } from "@green-goods/shared/hooks/commitment-pooling/useCommitmentJobs";
+import type { CommitmentJobVariables } from "@green-goods/shared/hooks/commitment-pooling/useCommitmentJobs";
 import { selectPoolConsoleModel } from "@green-goods/shared/modules/commitment-pooling/pool-console";
 import type { CommitmentCycleRecord } from "@green-goods/shared/modules/commitment-pooling/types-core";
 
@@ -23,10 +23,11 @@ const CONFIRMER = "0x2222222222222222222222222222222222222222" as const;
 const REWARD_TOKEN = "0x4444444444444444444444444444444444444444" as const;
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000" as const;
 const NOW = 1_756_000_000n;
+const TX_HASH = `0x${"ab".repeat(32)}`;
 
 type ActionsModule = typeof import("@green-goods/shared/hooks/blockchain/useBaseLists");
 type PoolingModule = typeof import("@green-goods/shared/commitment-pooling");
-type Enqueue = (input: CommitmentJobInput) => Promise<string>;
+type Enqueue = (input: CommitmentJobVariables) => Promise<string>;
 
 const mocks = vi.hoisted(() => ({
   enqueue: vi.fn<Enqueue>(),
@@ -431,7 +432,13 @@ describe("SeedCommitmentDialog (W8)", () => {
       consideration: { rail: 0, amount: 0n },
     });
     expect((input.payload.metadata as { title: string }).title).toBe("Market rides");
-    await waitFor(() => expect(onClose).toHaveBeenCalled());
+    // The wizard ends on what the pass made, and Done is what closes it.
+    await waitFor(() => expect(screen.getByTestId("seed-done")).toBeInTheDocument());
+    expect(onClose).not.toHaveBeenCalled();
+    // Every row was sent, so its answers are spent: no step opens them again.
+    expect(within(dialog()).queryAllByRole("button", { name: /^what$/i })).toHaveLength(0);
+    fireEvent.click(within(dialog()).getByRole("button", { name: /^done$/i }));
+    expect(onClose).toHaveBeenCalled();
   });
 
   it("prefills steward review when the pool is the protocol's, and lets the steward gate an offer", async () => {
@@ -641,10 +648,14 @@ describe("SeedCommitmentDialog (W8)", () => {
     await toReview("Clinic rides");
 
     expect(within(screen.getByTestId("seed-tray")).getByText("Market rides")).toBeInTheDocument();
-    expect(screen.getByTestId("seed-review")).toHaveTextContent(/confirm 2 times/i);
+    // How many times the wallet will ask sits beside the button that asks.
+    expect(screen.getByTestId("seed-prompt-count")).toHaveTextContent(/ask you twice/i);
     fireEvent.click(within(dialog()).getByRole("button", { name: /create all \(2\)/i }));
 
-    await waitFor(() => expect(onClose).toHaveBeenCalled());
+    await waitFor(() => expect(screen.getByTestId("seed-done")).toBeInTheDocument());
+    expect(within(screen.getByTestId("seed-pass")).getAllByRole("listitem")).toHaveLength(2);
+    fireEvent.click(within(dialog()).getByRole("button", { name: /^done$/i }));
+    expect(onClose).toHaveBeenCalled();
     expect(createdTitles()).toEqual(["Market rides", "Clinic rides"]);
     expect(new Set(createdIds()).size).toBe(2);
   });
@@ -661,6 +672,17 @@ describe("SeedCommitmentDialog (W8)", () => {
     await toReview("Clinic rides");
     fireEvent.click(within(dialog()).getByRole("button", { name: /create all \(2\)/i }));
 
+    // The pass ends on how each row went, and a row left unsent keeps the way back open.
+    await waitFor(() =>
+      expect(screen.getByTestId("seed-done")).toHaveTextContent(
+        /1 was not sent, so nothing was created for it/i
+      )
+    );
+    expect(within(dialog()).queryByRole("button", { name: /^done$/i })).not.toBeInTheDocument();
+    // What was not sent can still be changed, so the steps stay open.
+    expect(within(dialog()).getAllByRole("button", { name: /^what$/i }).length).toBeGreaterThan(0);
+    fireEvent.click(within(dialog()).getByRole("button", { name: /back to review/i }));
+
     await waitFor(() =>
       expect(screen.getByTestId("seed-review")).toHaveTextContent(
         /1 commitment was sent\. 1 could not be sent/i
@@ -672,9 +694,61 @@ describe("SeedCommitmentDialog (W8)", () => {
     expect(screen.getByTestId("seed-review")).toHaveTextContent("Clinic rides");
 
     fireEvent.click(within(dialog()).getByRole("button", { name: /seed this commitment/i }));
-    await waitFor(() => expect(onClose).toHaveBeenCalled());
+    await waitFor(() => expect(screen.getByTestId("seed-done")).toBeInTheDocument());
+    fireEvent.click(within(dialog()).getByRole("button", { name: /^done$/i }));
+    expect(onClose).toHaveBeenCalled();
     // Its second send carries the id of its first: it can only ever be one commitment.
     expect(createdIds()[2]).toBe(createdIds()[1]);
+  });
+
+  it("follows each row to the wallet and the chain, then ends on what was created", async () => {
+    // The wallet's answer to the first prompt, given when the test says so.
+    let answer: () => void = () => undefined;
+    const answered = new Promise<void>((resolve) => {
+      answer = resolve;
+    });
+    mocks.enqueue
+      .mockImplementationOnce(async ({ report }) => {
+        report?.({ stage: "wallet" });
+        await answered;
+        report?.({ stage: "confirming", txHash: TX_HASH });
+        report?.({ stage: "landed", txHash: TX_HASH });
+        return "job-1";
+      })
+      .mockImplementationOnce(async ({ report }) => {
+        // Broadcast, but the chain has not shown it yet: it waits on the pool tab.
+        report?.({ stage: "wallet" });
+        report?.({ stage: "confirming", txHash: `0x${"cd".repeat(32)}` });
+        report?.({ stage: "queued" });
+        return "job-2";
+      });
+    const { onClose } = renderSeed();
+    await toReview("Market rides");
+    fireEvent.click(within(dialog()).getByRole("button", { name: /add another like this/i }));
+    await waitFor(() => expect(within(dialog()).getByLabelText(/^title/i)).toBeInTheDocument());
+    await toReview("Clinic rides");
+    fireEvent.click(within(dialog()).getByRole("button", { name: /create all \(2\)/i }));
+
+    // While the wallet asks, the pass says which prompt it is on, of how many.
+    await waitFor(() =>
+      expect(screen.getByTestId("seed-sending")).toHaveTextContent(
+        /confirm in your wallet \(1 of 2\)/i
+      )
+    );
+    expect(within(dialog()).getByText("Creating the Commitments")).toBeInTheDocument();
+    answer();
+
+    await waitFor(() => expect(screen.getByTestId("seed-done")).toBeInTheDocument());
+    const done = screen.getByTestId("seed-done");
+    expect(done).toHaveTextContent(/1 commitment created\./i);
+    expect(done).toHaveTextContent(/1 sends later: its row waits on the pool tab with send now/i);
+    // Only the one the chain holds links to its transaction.
+    const links = within(done).getAllByRole("link");
+    expect(links).toHaveLength(1);
+    expect(links[0]).toHaveAccessibleName("View the transaction for “Market rides”");
+    expect(links[0]?.getAttribute("href")).toContain(TX_HASH);
+    fireEvent.click(within(dialog()).getByRole("button", { name: /^done$/i }));
+    expect(onClose).toHaveBeenCalled();
   });
 
   it("keeps the Not sent mark when the failed commitment is the only one left", async () => {
@@ -687,6 +761,8 @@ describe("SeedCommitmentDialog (W8)", () => {
     await waitFor(() => expect(within(dialog()).getByLabelText(/^title/i)).toBeInTheDocument());
     await toReview("Clinic rides");
     fireEvent.click(within(dialog()).getByRole("button", { name: /create all \(2\)/i }));
+    await waitFor(() => expect(screen.getByTestId("seed-done")).toBeInTheDocument());
+    fireEvent.click(within(dialog()).getByRole("button", { name: /back to review/i }));
 
     // One landed, so the one that failed is now the only commitment in the
     // sitting. Its mark is what says it was promised and never sent.

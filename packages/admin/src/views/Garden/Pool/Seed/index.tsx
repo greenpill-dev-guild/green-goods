@@ -16,7 +16,10 @@ import {
   useCommitmentComposerForm,
   useCommitmentComposerSession,
 } from "@green-goods/shared/hooks/commitment-pooling/useCommitmentComposerForm";
-import { useCommitmentJobs } from "@green-goods/shared/hooks/commitment-pooling/useCommitmentJobs";
+import {
+  type CommitmentSendReport,
+  useCommitmentJobs,
+} from "@green-goods/shared/hooks/commitment-pooling/useCommitmentJobs";
 import { useComposeAgainValues } from "@green-goods/shared/hooks/commitment-pooling/useComposeAgainValues";
 import { useProtocolPool } from "@green-goods/shared/hooks/commitment-pooling/useProtocolPool";
 import { useSettlementAccount } from "@green-goods/shared/hooks/commitment-pooling/useSettlementQueries";
@@ -30,6 +33,7 @@ import { FlowStepHeader } from "@/components/Layout/FlowStepHeader";
 import { cycleName } from "../poolPresentation";
 import { GardenPoolTarget } from "../PoolTarget";
 import { SeedFlowFooter } from "./SeedFlowFooter";
+import { SeedStepDone, SeedStepSending } from "./SeedStepDone";
 import { SeedStepHowMuch } from "./SeedStepHowMuch";
 import { SeedStepProof } from "./SeedStepProof";
 import { SeedStepReview } from "./SeedStepReview";
@@ -139,7 +143,7 @@ export function SeedCommitmentDialog({
 
   // One creation per tray row, under the id the row was given when it joined
   // the tray: a row sent twice is the same creation to the queue and the chain.
-  const createRow = async (row: SeedTrayRow) => {
+  const createRow = async (row: SeedTrayRow, report: (event: CommitmentSendReport) => void) => {
     if (pool.poolId === undefined || !jobs.viewer) throw new Error("No pool or viewer to seed as");
     const payload = buildCommitmentCreationPayload({
       // The fallback choice cannot stand without a registered protocol pool.
@@ -151,7 +155,7 @@ export function SeedCommitmentDialog({
       nowSeconds: Math.floor(Date.now() / 1000),
       allowGatedOffers: true,
     });
-    await jobs.enqueue({ act: "create", payload });
+    await jobs.enqueue({ act: "create", payload, report });
   };
   const tray = useSeedTray({ form, createRow });
   const room = useSeedTrayRoom({
@@ -167,9 +171,12 @@ export function SeedCommitmentDialog({
     currentDirection: values.direction,
   });
   const busy = jobs.isPending || tray.isSending;
+  // A pass ends on the done screen; with every row sent there is nothing to lose.
+  const settled = !tray.isSending && tray.pass !== null;
+  const unsent = settled && (tray.pass?.some((row) => row.status === "not-sent") ?? false);
 
   const dirtyClose = useDirtyClose({
-    isDirty: open && (form.formState.isDirty || tray.others.length > 0),
+    isDirty: open && !(settled && !unsent) && (form.formState.isDirty || tray.others.length > 0),
     onClose,
     blockRouteChange: true,
     preventRouteChange: busy,
@@ -227,19 +234,9 @@ export function SeedCommitmentDialog({
       );
       return;
     }
-    const alone = tray.size === 1;
+    // A pass that ran ends on the done screen, which says how each row ended.
     const outcome = await tray.sendAll();
-    if (outcome === "sent") onClose();
-    else if (outcome === "invalid") setStepIndex(0);
-    // One commitment on its own keeps its plain sentence; a tray says what is left.
-    else if (alone) {
-      setSubmitError(
-        formatMessage({
-          id: "cockpit.garden.pool.seed.enqueueFailed",
-          defaultMessage: "The commitment was not sent, so nothing was created. Try again.",
-        })
-      );
-    }
+    if (outcome === "invalid") setStepIndex(0);
   };
 
   // Both moves hand the form another row, which starts again from the first step.
@@ -339,10 +336,33 @@ export function SeedCommitmentDialog({
       );
   }
 
+  if (tray.pass && (tray.isSending || settled)) {
+    body = tray.isSending ? (
+      <SeedStepSending pass={tray.pass} chainId={chainId} />
+    ) : (
+      <SeedStepDone pass={tray.pass} chainId={chainId} />
+    );
+  }
+  const passHeader = tray.isSending
+    ? formatMessage(
+        {
+          id: "cockpit.garden.pool.seed.sendingTitle",
+          defaultMessage:
+            "{count, plural, one {Creating the Commitment} other {Creating the Commitments}}",
+        },
+        { count: tray.pass?.length ?? 1 }
+      )
+    : settled
+      ? formatMessage({
+          id: "cockpit.garden.pool.seed.doneTitle",
+          defaultMessage: "What Was Created",
+        })
+      : null;
+
   const footer = (
     <SeedFlowFooter
+      phase={tray.isSending ? "sending" : settled ? "done" : "compose"}
       busy={busy}
-      title={title}
       stepIndex={stepIndex}
       isLast={isLast}
       seedDisabled={
@@ -356,8 +376,14 @@ export function SeedCommitmentDialog({
       onCancel={() => dirtyClose.onOpenChange(false)}
       onBack={() => setStepIndex((index) => index - 1)}
       onNext={() => void goNext()}
+      unsent={unsent}
       onAddAnother={() => void startRow(tray.addAnother)}
       onSeed={() => void seed()}
+      onDone={onClose}
+      onBackToTray={() => {
+        tray.clearPass();
+        setStepIndex(STEPS.length - 1);
+      }}
     />
   );
 
@@ -388,16 +414,25 @@ export function SeedCommitmentDialog({
           }
           steps={stepConfigs}
           currentStep={stepIndex + 1}
-          onStepClick={(step) => {
-            if (!busy && step - 1 < stepIndex) setStepIndex(step - 1);
-          }}
+          // Once every row is sent, the answers are spent: seeding them again
+          // would be a second commitment, so no step opens and the way on is Done.
+          onStepClick={
+            settled && !unsent
+              ? undefined
+              : (step) => {
+                  if (busy || step - 1 >= stepIndex) return;
+                  // Going back to a step leaves the done screen for the rows still unsent.
+                  tray.clearPass();
+                  setStepIndex(step - 1);
+                }
+          }
           footer={footer}
         >
           <div ref={stepRef} tabIndex={-1} className="space-y-4 outline-none">
             <GardenPoolTarget chainId={chainId} garden={garden} isProtocol={protocolContext} />
             <FlowStepHeader
-              title={stepConfigs[stepIndex]?.title ?? title}
-              description={stepConfigs[stepIndex]?.description}
+              title={passHeader ?? stepConfigs[stepIndex]?.title ?? title}
+              description={passHeader ? undefined : stepConfigs[stepIndex]?.description}
             />
             {pool.model.status !== "open" && pool.poolId !== undefined ? (
               <Alert variant="warning">

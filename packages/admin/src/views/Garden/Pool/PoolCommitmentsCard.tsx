@@ -238,10 +238,16 @@ export function PoolCommitmentsCard({
                     loading={busyJobId === row.jobId}
                     onClick={() => void runQueued(row.jobId, acts.retryQueued)}
                   >
-                    {formatMessage({
-                      id: "cockpit.garden.pool.queued.retry",
-                      defaultMessage: "Try Again",
-                    })}
+                    {/* A row that never tried has nothing to try again (A24). */}
+                    {row.failed
+                      ? formatMessage({
+                          id: "cockpit.garden.pool.queued.retry",
+                          defaultMessage: "Try Again",
+                        })
+                      : formatMessage({
+                          id: "cockpit.garden.pool.queued.sendNow",
+                          defaultMessage: "Send Now",
+                        })}
                   </AdminButton>
                 </span>
               </li>

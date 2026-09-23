@@ -102,7 +102,6 @@ export function SeedStepReview({
             defaultMessage: "Season / campaign commitment",
           });
 
-  const count = tray.others.length + 1;
   // One commitment on its own keeps the wizard's plain failure sentence.
   const lastSend =
     tray.lastSend && tray.lastSend.sent + tray.lastSend.left > 1 ? tray.lastSend : null;
@@ -360,21 +359,13 @@ export function SeedStepReview({
           })}
         </Alert>
       ) : null}
+      {/* How many times the wallet will ask sits beside the button that asks. */}
       <p className="text-xs text-text-soft">
-        {count > 1
-          ? formatMessage(
-              {
-                id: "cockpit.garden.pool.seed.tray.walletNote",
-                defaultMessage:
-                  "Your wallet will ask you to confirm {count} times, once for each commitment, one after another. If one has to wait, its row stays on the pool tab with Try Again.",
-              },
-              { count }
-            )
-          : formatMessage({
-              id: "cockpit.garden.pool.seed.queueNote",
-              defaultMessage:
-                "Seeding asks your wallet to confirm and sends the creation now. If it has to wait, the row stays on the pool tab with Try Again.",
-            })}
+        {formatMessage({
+          id: "cockpit.garden.pool.seed.queueNote",
+          defaultMessage:
+            "If a commitment has to wait, its row stays on the pool tab with Send Now.",
+        })}
       </p>
     </div>
   );

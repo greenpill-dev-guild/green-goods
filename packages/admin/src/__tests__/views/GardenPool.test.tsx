@@ -631,7 +631,7 @@ describe("GardenPoolTab (W7)", () => {
     mocks.controller = controller({
       pendingCreates: [
         { ...queued, jobId: "job-unsent", title: "Compost workshop", discardable: true },
-        { ...queued, jobId: "job-sent", title: "Seed swap", discardable: false },
+        { ...queued, jobId: "job-sent", title: "Seed swap", discardable: false, failed: true },
       ],
     });
     renderTab();
@@ -639,6 +639,12 @@ describe("GardenPoolTab (W7)", () => {
     const rows = within(screen.getByTestId("pool-queued")).getAllByRole("listitem");
     expect(within(rows[1]).queryByRole("button", { name: /discard/i })).not.toBeInTheDocument();
 
+    // A row that never tried is sent now; only one that failed is tried again.
+    expect(within(rows[0]).queryByRole("button", { name: /try again/i })).not.toBeInTheDocument();
+    fireEvent.click(within(rows[0]).getByRole("button", { name: /send now/i }));
+    await waitFor(() =>
+      expect(mocks.controller!.acts.retryQueued).toHaveBeenCalledWith("job-unsent")
+    );
     fireEvent.click(within(rows[1]).getByRole("button", { name: /try again/i }));
     await waitFor(() =>
       expect(mocks.controller!.acts.retryQueued).toHaveBeenCalledWith("job-sent")
