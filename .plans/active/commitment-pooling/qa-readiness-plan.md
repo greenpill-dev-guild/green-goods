@@ -476,7 +476,7 @@ This section holds the finding index, the queue that fixes them, and each PR's r
 | W2-2 Flow clarity | A11 (the rest), A16, A17, A20 (the rest) | Built |
 | W2-4 Copy and Title Case | A25, A26 | Built |
 | W2-3 Titles, with A27's colours | The title rollout and the raw `--m3-*` colours, in one pass per file | Waits on the D3 check |
-| W2-5 Catalog pass | The labels Wave 2 renamed | Wave 2 |
+| W2-5 Catalog pass | The labels Wave 2 renamed | Built |
 
 ### W1-1: ledger freshness
 
@@ -1012,6 +1012,48 @@ This section holds the finding index, the queue that fixes them, and each PR's r
   - `admin-pool-allocationeditor--standard`;
   - `admin-pool-transferreviewdialog--dispatch`.
 - **PR:** #891, stacked on #890.
+
+### W2-5: the catalog after Wave 2
+
+- **Retired:** none. No case's result changed.
+- **Corrected in place**, with meaning unchanged:
+  - Title Case on the labels the rows quote: ADM-045, 061, 062, 064, 077, 079 to 082, 084, 088, 089, 109 to 112, 118 to 120, 133, 134, 137, 138, 144, 147, 149 and 154 to 158. ADM-045's English QA-app text follows; its Spanish and Portuguese labels did not change.
+  - Resend… for Retry Command… in ADM-089, 121 and 123.
+  - The campaign acts in ADM-058 and 059.
+  - ADM-087's reach and read-back.
+- **Added**, one outcome each:
+  - ADM-160, the pool tab's counts;
+  - ADM-161, the Protocol pool chip;
+  - ADM-162, Set Up offline;
+  - ADM-163, the setup note, the split's permanence, presets as roles, and Set Up and Open;
+  - ADM-164 to ADM-166, the act lines on Resume Pool, Send for Confirmation and a queued row's Send Now.
+- **Where this differs from the notes above:**
+  - ADM-056, 060 and 075 keep their checks. Their new lines are new cases (ADM-163 to 165), because a new check changes what a row proves, as ADM-159 did for Accept.
+  - ADM-014 needed no change; the counts get ADM-160.
+  - W2-3 changes how titles look, not what they say, so it needs no catalog pass.
+- **Counts:** 328 active cases and 393 ids.
+- **Carries W2-4's record:** once #891 was open, the gate refused W2-4's docs-only record commit on its branch. The gate wanted focused proof of the shared i18n change, and the hook cannot pass `--test-path`. The record rides in this PR instead, where the full gate ran on it.
+
+### Validation receipt, W2-5
+
+- **Tested commit SHA:** `b3c78eba2cfb6045c9f575dbe71e66633f42ca10`.
+  - The gate is the pre-push hook on that commit.
+  - `git status --porcelain=v1 --untracked-files=all` is empty at that SHA.
+- **Run finished (UTC):** `2026-09-23T09:08:19Z`.
+- **Command:** `bun run check -- --intent push` (the pre-push hook, `critical · 197 changed path(s)`).
+- **Result:** all 30 runnable checks passed:
+  - format, lint, validation-system-test and test-quality;
+  - the package typecheck, test and build checks;
+  - docs-authority, docs-test and docs-build;
+  - source-structure, design-guardrails, ontology, agent-guidance, qa-id-ledger, supply-chain and story-quality;
+  - storybook-build and agent-tools-test.
+- **Cache:** the package tests were cache hits. No package source changed since W2-4's uncached run at `a18f4bee0`.
+- **Also run before commit:**
+  - `node packages/qa/build.mjs`: 328 active cases in en, es and pt;
+  - `check-qa-id-ledger.mjs --base c5f37d6c4`: 393 ids, none removed, reintroduced or reactivated;
+  - `bun run check --only` for docs-generated, qa-id-ledger, agent-tools-test, docs-authority and ontology.
+- **TDD:** not applicable. The PR changes catalog data and generated docs, not behaviour.
+- **PR:** #892, stacked on #891.
 
 ## 5. Catalog PR
 
