@@ -15,7 +15,7 @@ generated_from:
   - playwright.config.ts
   - scripts/data/qa-test-catalog.json
   - scripts/data/validation-policy.json
-source_digest: "sha256:7613b2f6325a483195cd00bb02f87d33cc6a83bf1c0a0aa51b901637bab2e401"
+source_digest: "sha256:3ab7c7c430556f40f60e90e57501ff802356014190c5e7f4d5988f21bbb54524"
 source_of_truth:
   - package.json
   - packages/admin/vitest.config.ts
@@ -506,7 +506,7 @@ The catalog contract test enforces all of this, and [retired cases](#retired-cas
 | `DOCS-002` | Journey | Site | Local search returns relevant results with keyboard flow | Screenshot of results |
 | `DOCS-003` | Content & vocabulary | Site | Glossary anchor links resolve — they are a client API | Screenshots of anchored terms |
 | `DOCS-004` | Accessibility | Site | Docs shell holds at 375px and 1440px | Screenshots at both widths |
-| `DOCS-011` | Content & vocabulary | Builder Docs | Builder onboarding path: getting-started and env-management commands run on a fresh checkout | Terminal transcript |
+| `DOCS-011` | Content & vocabulary | Builder Docs | Builder onboarding path: Getting Started commands run on a fresh checkout | Terminal transcript |
 | `DOCS-024` | Content & vocabulary | Funder Guide | Donate to a Garden guide page walks true against the live product | List of drifted steps with the page path |
 | `DOCS-025` | Content & vocabulary | Funder Guide | Endow a Garden guide page walks true against the live product | List of drifted steps with the page path |
 | `DOCS-026` | Content & vocabulary | Funder Guide | Remove an Endowment guide page walks true against the live product | List of drifted steps with the page path |
@@ -517,12 +517,12 @@ The catalog contract test enforces all of this, and [retired cases](#retired-cas
 |---|---|---|---|---|
 | `DOCS-005` | Accessibility | Site | Docs are navigable by keyboard with visible focus | Notes or short recording |
 | `DOCS-006` | Accessibility | Site | Dark mode and mermaid diagrams render legibly | Paired light/dark screenshots |
-| `DOCS-027` | Content & vocabulary | Builder Docs | Builder journey pages describe the shipped flows | List of drifted statements with the page path |
 | `DOCS-028` | Content & vocabulary | Builder Docs | Quality pages reflect the QA process and point at the catalog | Screenshot of the Test Cases page beside the QA app |
-| `DOCS-029` | Content & vocabulary | Builder Docs | Testing pages' commands run as written | Terminal output for each command |
+| `DOCS-029` | Content & vocabulary | Builder Docs | Testing Guide commands run as written | Terminal output for each command |
 | `DOCS-030` | Content & vocabulary | Reference | FAQ and product history are current | List of stale answers or missing releases |
 | `DOCS-031` | Content & vocabulary | Reference | Generated ontology, claims, and glossary pages render and agree | Screenshots of any broken block or mismatched term |
 | `DOCS-032` | Content & vocabulary | Builder Docs | Deployment status and GitHub Actions pages match the live pipeline | List of drifted rows with the page path |
+| `DOCS-033` | Content & vocabulary | Builder Docs | Anatomy of a Work Submission traces the shipped flow | List of drifted statements or dead links with the page path |
 
 ## Retired cases {#retired-cases}
 
@@ -555,6 +555,7 @@ Retired cases never ship to a run sheet, but their IDs stay reserved and their h
 | `DOCS-010` | Docs · Evaluator guide holds: in-product assessment steps plus runnable query-eas / query-indexer / export instructions | 2026-09-07 | The evaluator guide with runnable query samples does not exist in the docs tree; the in-product assessment steps live in the steward guide | — |
 | `DOCS-012` | Docs · Builder journeys and quality pages describe shipped reality | 2026-09-07 | Split by page group: journeys, quality, testing | `DOCS-027`, `DOCS-028`, `DOCS-029` |
 | `DOCS-013` | Docs · Reference layer truth: FAQ, changelog, generated ontology/claims pages, glossary consistency | 2026-09-07 | Split by check: FAQ and product history, generated pages; the changelog now redirects to product history | `DOCS-030`, `DOCS-031` |
+| `DOCS-027` | Docs · Builder journey pages describe the shipped flows | 2026-09-22 | The builder docs rebuild deleted the journey pages. The Anatomy of a Work Submission page now traces the flow, and the Persona Surfaces matrix moved to Reference. | `DOCS-033` |
 | `PUB-004` | Public Website · Fund page and funding dialog render without provider crash | 2026-08-29 | Superseded by the end-to-end funding walks in catalog v2 | `PUB-014`, `PUB-030` |
 | `PUB-005` | Public Website · Funding dialog is usable on mobile | 2026-08-29 | Mobile funding-dialog coverage folded into the end-to-end donate walk in catalog v2 | `PUB-014` |
 | `PUB-009` | Public Website · Vaults page explains donate/endow boundaries and fails safely | 2026-08-29 | Vaults explanation and safe-failure coverage folded into the vault checkout and read-only browse walks | `PUB-017`, `PUB-030` |
