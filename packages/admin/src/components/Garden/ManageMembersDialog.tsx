@@ -20,6 +20,7 @@ import { getRoleLabel } from "./gardenUtils";
 
 export interface ManageMembersDialogProps {
   open: boolean;
+  initialSearch?: string;
   onClose: () => void;
   roleMembers: Record<GardenRole, Address[]>;
   canManage: boolean;
@@ -44,6 +45,7 @@ interface MemberRow {
  */
 export function ManageMembersDialog({
   open,
+  initialSearch = "",
   onClose,
   roleMembers,
   canManage,
@@ -54,7 +56,7 @@ export function ManageMembersDialog({
 }: ManageMembersDialogProps) {
   const { formatMessage } = useIntl();
   const [roleFilter, setRoleFilter] = useState<GardenRole | "all">("all");
-  const [memberSearch, setMemberSearch] = useState("");
+  const [memberSearch, setMemberSearch] = useState(initialSearch);
   const [pendingRemoval, setPendingRemoval] = useState<MemberRow | null>(null);
   const [removing, setRemoving] = useState(false);
   const [removeErrorRole, setRemoveErrorRole] = useState<GardenRole | null>(null);

@@ -59,6 +59,10 @@ type Story = StoryObj<typeof ManageMembersDialog>;
 
 export const Default: Story = {};
 
+export const MemberPrefilled: Story = {
+  args: { initialSearch: GARDENER_A },
+};
+
 export const ENSNameSearch: Story = {
   decorators: [
     withSeededQueryClient([[queryKeys.ens.name(GARDENER_B.toLowerCase()), "garden.bloom.eth"]]),

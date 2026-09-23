@@ -174,6 +174,7 @@ export function CommunityMembersTab({
                           to={adminRoutes.communityMembers({
                             ...gardenRouteContext,
                             item: "manage-members",
+                            member: entry.address,
                           })}
                         >
                           <RiUserSettingsLine className="h-4 w-4" />
