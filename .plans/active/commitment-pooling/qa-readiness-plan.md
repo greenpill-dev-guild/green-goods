@@ -471,7 +471,7 @@ This section holds the finding index, the queue that fixes them, and each PR's r
 | W1-6 End a season | Decision 29, A29 | Built |
 | W1-7 Claims and protocol transfers | A9, A6, A11 (Accept), A20 (label), A23 (panel) | Built |
 | W1-8 Seed tray progress and the done screen | A7, A24 | Built |
-| W1-9 Catalog PR | The cases Wave 1 changes | Queued |
+| W1-9 Catalog PR | The cases Wave 1 changes | Built |
 | W2-1 to W2-5 | The remaining P2 and P3 findings, the title rollout, and a catalog pass | Wave 2 |
 
 ### W1-1: ledger freshness
@@ -814,6 +814,51 @@ This section holds the finding index, the queue that fixes them, and each PR's r
   - `admin-pool-poolcommitmentscard--queued-needs-attention`;
   - `admin-primitives-txstepmarker--all-states`.
 - **Pending:** authenticated Brave proof of seeding a tray of several in a real wallet, walked in the rehearsal.
+
+### W1-9: the catalog after Wave 1
+
+- **Retired**, because their result changed:
+  - ADM-013, for ADM-145 (the Confirm Kept review) and ADM-146 (a commitment that has left the queue). The relay journey walks ADM-145 in its place, in all three QA locales.
+  - ADM-063, for ADM-147 (the prompt count, then Settings saved), ADM-148 (a stop partway) and ADM-149 (Discard Changes?).
+- **Added**, one outcome each:
+  - ADM-144, Hub scope;
+  - ADM-150, the seeding pass and its done screen;
+  - ADM-151 to ADM-153, End, End withheld while live, and Archive;
+  - ADM-154 and ADM-155, the funding rail ready and naming its reason;
+  - ADM-156, the transfer review;
+  - ADM-157 and ADM-158, reward amounts in their own units;
+  - ADM-159, Accept's progress on its row.
+- **Corrected in place**, with meaning unchanged:
+  - ADM-045 and ADM-140, including their es and pt copy;
+  - ADM-075, ADM-077, ADM-087, ADM-088, ADM-089 and ADM-111;
+  - the seeding rows ADM-125 to ADM-129 and ADM-131 to ADM-134.
+- **Where this differs from the plan's list:**
+  - ADM-013 is retired rather than rewritten, because its result changed.
+  - ADM-040, 042, 043, 044, 061, 137, 138 and 139 needed no change.
+  - ADM-155 and ADM-159 were added so every Wave 1 behaviour has a case.
+- **Counts:** 321 active cases and 386 ids.
+- **Docs:** the Test Cases page projection, plus the package index digests. The digests repeat `c8b10e885`'s regeneration, because touching `docs/` makes the gate select the docs checks.
+
+### Validation receipt, W1-9
+
+- **Tested commit SHA:** `76b1c78fd8916d78bfe112a4ff769e000acd20ac`.
+  - The gate is the pre-push hook on that commit.
+  - `git status --porcelain=v1 --untracked-files=all` is empty at that SHA.
+- **Run finished (UTC):** `2026-09-23T07:26:40Z`.
+- **Command:** `bun run check -- --intent push` (the pre-push hook, `critical · 178 changed path(s)`).
+- **Result:** all 30 runnable checks passed:
+  - format, lint, validation-system-test and test-quality;
+  - the package typecheck, test and build checks;
+  - docs-authority, docs-test and docs-build;
+  - source-structure, design-guardrails, ontology, agent-guidance, qa-id-ledger, supply-chain and story-quality;
+  - storybook-build and agent-tools-test.
+- **Cache:** the package tests were cache hits. No package source changed since W1-8's uncached run at `73ca25441`.
+- **Also run before commit:**
+  - `node packages/qa/build.mjs`: 321 active cases in en, es and pt;
+  - `check-qa-id-ledger.mjs --base fix/seed-tray-progress`: 386 ids, none removed, reintroduced or reactivated;
+  - `bun run check --only` for qa-id-ledger, agent-tools-test (the catalog contract tests among its 260), docs-generated, docs-authority and ontology.
+- **TDD:** not applicable. The PR changes catalog data and generated docs, not behaviour.
+- **PR:** #888, stacked on #887.
 
 ## 5. Catalog PR
 
