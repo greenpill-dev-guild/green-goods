@@ -17,6 +17,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import type { PoolConsoleController } from "./controller.types";
 import { jobQueue } from "../../../modules/job-queue/default-instance";
 import { selectPoolConsoleModel } from "../../../modules/commitment-pooling/pool-console";
+import { actPhaseFor, claimActKey } from "../../../modules/transactions/act-phase";
 import { selectNextDueBoundary } from "../../../modules/commitment-pooling/steward-selectors";
 import type { Address } from "../../../types/domain";
 import { createMutationErrorHandler } from "../../../utils/errors/mutation-error-handler";
@@ -39,6 +40,7 @@ import { usePoolCharter } from "../../commitment-pooling/usePoolCharter";
 import { usePoolClaimRequests } from "../../commitment-pooling/usePoolClaimRequests";
 import { usePoolFunding } from "../../commitment-pooling/usePoolFunding";
 import { useTimeout } from "../../utils/useTimeout";
+import { useTxActPhase } from "../../blockchain/useTxActPhase";
 
 /** Queue acts are not mutations, so their failures go through the same handler by hand. */
 const reportQueuedSendError = createMutationErrorHandler({
@@ -145,6 +147,9 @@ export function usePoolConsoleController(input: {
 
   const poolMutation = useCommitmentPoolMutation({ chainId });
   const commitmentMutation = useCommitmentMutation({ chainId });
+  // Accept is one signature from a list row: the row follows it to the chain.
+  const claimAct = useTxActPhase();
+  const trackClaim = claimAct.track;
   const sender = useTransactionSender();
   const refreshQueue = queue.refresh;
 
@@ -175,7 +180,9 @@ export function usePoolConsoleController(input: {
       expire: (commitmentId: bigint) =>
         commitmentMutation.mutateAsync({ action: "expireCommitment", commitmentId }),
       acceptClaim: (commitmentId: bigint, claimant: Address) =>
-        commitmentMutation.mutateAsync({ action: "acceptClaim", commitmentId, claimant }),
+        trackClaim(claimActKey(commitmentId, claimant), (send) =>
+          commitmentMutation.mutateAsync({ action: "acceptClaim", commitmentId, claimant, send })
+        ),
       declineClaim: (commitmentId: bigint, claimant: Address, reason: string) =>
         commitmentMutation.mutateAsync({
           action: "declineClaim",
@@ -212,7 +219,7 @@ export function usePoolConsoleController(input: {
         }
       },
     }),
-    [poolMutation, commitmentMutation, requirePool, garden, sender, refreshQueue]
+    [poolMutation, commitmentMutation, trackClaim, requirePool, garden, sender, refreshQueue]
   );
 
   const refetch = useCallback(
@@ -254,6 +261,8 @@ export function usePoolConsoleController(input: {
     queueUnavailable: queue.isUnavailable,
     funding: fundingView,
     acts,
+    claimPhase: (commitmentId: bigint, claimant: Address) =>
+      actPhaseFor(claimAct.phase, claimActKey(commitmentId, claimant)),
     isActing: poolMutation.isPending || commitmentMutation.isPending,
     isLoading,
     isError,

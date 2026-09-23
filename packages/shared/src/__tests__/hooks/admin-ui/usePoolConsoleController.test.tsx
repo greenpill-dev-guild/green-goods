@@ -446,7 +446,13 @@ describe("usePoolConsoleController", () => {
     ]);
     expect(mocks.commitmentMutate.mock.calls.map(([input]) => input)).toEqual([
       { action: "expireCommitment", commitmentId: 30n },
-      { action: "acceptClaim", commitmentId: 31n, claimant: CLAIMANT },
+      // Accept follows its own send, so its row can say where it stands.
+      {
+        action: "acceptClaim",
+        commitmentId: 31n,
+        claimant: CLAIMANT,
+        send: { onBroadcast: expect.any(Function) },
+      },
       {
         action: "declineClaim",
         commitmentId: 32n,

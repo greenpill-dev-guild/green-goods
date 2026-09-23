@@ -131,7 +131,7 @@ export async function queryFundingPages(
         id fundingId commitmentId depositedAmount state
       }
       Disbursement(where: { chainId: { _eq: $sourceChainId }, _or: [{ source: { _eq: $safe } }, { recipient: { _eq: $safe } }] }, order_by: { id: asc }, limit: $limit, offset: $offset) {
-        id disbursementId commitmentId payoutPlanId fundingId batchId kind source recipient amount state executionKey
+        id disbursementId garden commitmentId payoutPlanId fundingId batchId kind source recipient amount state executionKey
       }
     }`;
     const result = await reader.query<FundingPage>(

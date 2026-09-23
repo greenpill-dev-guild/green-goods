@@ -46,6 +46,8 @@ import { usePrimaryAddress } from "../../auth/usePrimaryAddress";
 import { useCommitmentJobs } from "../../commitment-pooling/useCommitmentJobs";
 import { useCommitmentMetadataFor } from "../../commitment-pooling/useCommitmentMetadata";
 import { useCommitmentMutation } from "../../commitment-pooling/useCommitmentMutations";
+import { useTxActPhase } from "../../blockchain/useTxActPhase";
+import { actPhaseFor, claimActKey } from "../../../modules/transactions/act-phase";
 import { useCommitmentWorkDecisions } from "../../commitment-pooling/useCommitmentWorkDecisions";
 import {
   useCommitment,
@@ -102,6 +104,8 @@ export function useCommitmentDialogController(input: {
   );
   const queue = useCommitmentQueueState(viewer);
   const mutation = useCommitmentMutation({ chainId });
+  const claimAct = useTxActPhase();
+  const trackClaim = claimAct.track;
   const [submittedDecisions, setSubmittedDecisions] = useState<
     readonly { workUID: string; decisionUID: string }[]
   >([]);
@@ -308,7 +312,9 @@ export function useCommitmentDialogController(input: {
       confirmFallback: (reason: string) =>
         mutation.mutateAsync({ action: "confirmFulfillmentAsFallback", commitmentId, reason }),
       acceptClaim: (claimant: Address) =>
-        mutation.mutateAsync({ action: "acceptClaim", commitmentId, claimant }),
+        trackClaim(claimActKey(commitmentId, claimant), (send) =>
+          mutation.mutateAsync({ action: "acceptClaim", commitmentId, claimant, send })
+        ),
       declineClaim: (claimant: Address, reason: string) =>
         mutation.mutateAsync({
           action: "declineClaim",
@@ -339,6 +345,7 @@ export function useCommitmentDialogController(input: {
     }),
     [
       mutation,
+      trackClaim,
       jobs,
       commitmentId,
       garden,
@@ -410,6 +417,8 @@ export function useCommitmentDialogController(input: {
       refetch: workDecisions.refetch,
     },
     acts,
+    claimPhase: (claimant: Address) =>
+      actPhaseFor(claimAct.phase, claimActKey(commitmentId, claimant)),
     isActing: mutation.isPending || jobs.isPending,
     isLoading: detailQuery.isLoading || activity.isLoading || poolsQuery.isLoading,
     // Decision reads have their own bounded recovery row. They must not hide

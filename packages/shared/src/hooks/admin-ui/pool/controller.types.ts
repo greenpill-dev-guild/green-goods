@@ -20,6 +20,7 @@ import type {
   HexString,
   PoolClaimRequestRow,
 } from "../../../modules/commitment-pooling/types";
+import type { TxActPhase } from "../../../modules/transactions/act-phase";
 import type { Address } from "../../../types/domain";
 import type { EASGardenAssessment } from "../../../types/eas-responses";
 import type { CommitmentWorkDecision } from "../../../modules/commitment-pooling/work-decisions";
@@ -66,6 +67,9 @@ export interface PoolConsoleActs {
   discardQueued: (jobId: string) => Promise<void>;
 }
 
+/** Where a single-signature act started from a row stands. */
+export type { TxActPhase };
+
 export interface PoolConsoleController {
   chainId: number;
   garden: Address;
@@ -90,6 +94,8 @@ export interface PoolConsoleController {
   queueUnavailable: boolean;
   funding: PoolFundingControllerView;
   acts: PoolConsoleActs;
+  /** Where an Accept started from this claimant's row stands. */
+  claimPhase: (commitmentId: bigint, claimant: Address) => TxActPhase;
   isActing: boolean;
   isLoading: boolean;
   isError: boolean;
@@ -192,6 +198,8 @@ export interface CommitmentDialogController {
   can: ReturnType<typeof selectCommitmentActPermissions>;
   reconciliation: CommitmentWorkReconciliation;
   acts: CommitmentDialogActs;
+  /** Where an Accept started from this claimant's row stands. */
+  claimPhase: (claimant: Address) => TxActPhase;
   isActing: boolean;
   isLoading: boolean;
   isError: boolean;
@@ -309,6 +317,8 @@ export type ProtocolFundingDisplayState =
 export interface ProtocolFundingRow {
   id: string;
   disbursementId: bigint;
+  /** The garden receiving the transfer; its recipient is that garden's Celo account. */
+  garden?: Address | null;
   recipient: Address;
   amount: bigint;
   state: ProtocolFundingDisplayState;

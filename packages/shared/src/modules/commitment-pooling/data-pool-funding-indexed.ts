@@ -52,6 +52,7 @@ function normalizeDisbursement(row: RawRow): PoolFundingDisbursement | null {
   return {
     id: String(row.id),
     disbursementId: integer(row.disbursementId),
+    garden: address(row.garden),
     commitmentId: optionalInteger(row.commitmentId),
     payoutPlanId: optionalInteger(row.payoutPlanId),
     fundingId: optionalInteger(row.fundingId),
