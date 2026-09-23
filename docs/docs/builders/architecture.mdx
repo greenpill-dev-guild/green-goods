@@ -40,6 +40,8 @@ flowchart LR
   client --> queue["Job queue<br/>(saved on the device)"]
   queue --> contracts["Contracts + EAS resolvers<br/>(authorization, attestations)"]
   contracts --> eas[("EAS records<br/>(work, approvals)")]
+  contracts -. current values .-> client
+  contracts -. current values .-> admin
   contracts --> indexer[("Envio indexer<br/>(garden and module events)")]
   eas --> client
   eas --> admin["Admin cockpit<br/>(review, approve)"]
@@ -56,19 +58,23 @@ keeps it on the device until the gardener is back online and taps Upload all. Th
 lands in the [contracts](./packages/contracts) as an [EAS](./integrations/eas) attestation,
 checked by a resolver at the moment it's written.
 
-From there, the data takes two roads. Attestations, meaning the work itself and every approval,
-are read straight from EAS through the shared EAS data layer. Everything else the protocol does,
-like garden state, memberships, and module activity, is picked up by the
-[indexer](./packages/indexer) and served as GraphQL read models. The client shows gardeners their
-status from both, the [admin cockpit](./packages/admin) is where a steward reviews and approves,
-and the [agent](./packages/agent) serves bots and the public API. An approval travels the same
-road as the work it approves.
+From there, apps read the data three ways:
+
+- **Attestations**, meaning the work itself and every approval, come straight from EAS through the
+  shared EAS data layer.
+- **History**, like garden events, membership changes, and module activity, comes from the
+  [indexer](./packages/indexer)'s GraphQL read models.
+- **Current values**, like someone's roles in a garden or a vault's yield status, come from the
+  contracts directly.
+
+The client uses all three to show gardeners their status, the [admin cockpit](./packages/admin)
+is where a steward reviews and approves, and the [agent](./packages/agent) serves bots and the
+public API. An approval travels the same road as the work it approves.
 
 Two consequences of this shape are worth knowing early. Apps don't dig through the chain's history
-themselves: history comes from the indexer and from EAS, and EAS stays outside our indexer on
-purpose so the two read paths stay independent. When an app needs one current value, like a vault
-balance, it reads that contract directly. And writes have exactly one door: everything that
-becomes protocol truth goes through the contracts.
+themselves, and EAS stays outside our indexer on purpose, so the attestation and history read
+paths stay independent. And writes have exactly one door: everything that becomes protocol truth
+goes through the contracts.
 
 ## Three ideas carry the protocol
 

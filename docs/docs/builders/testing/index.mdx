@@ -23,7 +23,7 @@ keywords:
 
 # Testing Guide
 
-Four runners cover the stack, and one selector decides which of them your change actually needs.
+Five runners cover the stack, and one selector decides which of them your change actually needs.
 This page is the map, the everyday loop, and the commands per surface; the runners' own excellent
 docs cover everything deeper.
 
@@ -35,6 +35,7 @@ docs cover everything deeper.
 | Playwright | End-to-end flows and authentication across client and admin | `tests/` at the root, projects in `playwright.config.ts` | [playwright.dev](https://playwright.dev) |
 | Storybook | Shared UI states, variants, and interactions in isolation | Stories beside shared components; live at [design.greengoods.app](https://design.greengoods.app) | [storybook.js.org/docs](https://storybook.js.org/docs) |
 | Foundry (forge) | Contract behavior, invariants, gas, and upgrade safety | `packages/contracts/test/*.t.sol` | [getfoundry.sh](https://getfoundry.sh) |
+| Mocha | Indexer handlers and contract events | `packages/indexer/test/` | [mochajs.org](https://mochajs.org) |
 
 ## The everyday loop
 

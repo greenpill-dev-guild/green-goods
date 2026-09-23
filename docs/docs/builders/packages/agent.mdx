@@ -40,7 +40,7 @@ bun run --cwd packages/agent typecheck
 ```
 
 Response-shape changes ripple through platform adapters quickly, so run both whenever handlers,
-adapters, or service contracts move. `bun run --cwd packages/agent test --coverage` backs
+adapters, or service contracts move. `bun run --cwd packages/agent test --scope unit --coverage` backs
 security-sensitive changes.
 
 ## How it connects
