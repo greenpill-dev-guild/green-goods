@@ -1,12 +1,26 @@
+import { registerDraftFormReset } from "../../modules/work/draft-lifecycle";
+import { useIntl } from "react-intl";
+import {
+  roundWorkLocation,
+  validateWorkAttachments,
+  validateWorkVideo,
+} from "../../modules/work/work-attachments";
 import {
   useCallback,
+  useEffect,
   useMemo,
   useState,
   type BaseSyntheticEvent,
   type Dispatch,
   type SetStateAction,
 } from "react";
-import type { Control, FormState, UseFormRegister, UseFormSetValue } from "react-hook-form";
+import type {
+  Control,
+  FormState,
+  UseFormRegister,
+  UseFormReset,
+  UseFormSetValue,
+} from "react-hook-form";
 import { useShallow } from "zustand/react/shallow";
 import { validationToasts } from "../../components/toast";
 import { getDefaultChain } from "../../config/blockchain";
@@ -55,7 +69,7 @@ export interface WorkFormValue {
   feedback: string;
   timeSpentMinutes: number | undefined;
   values: Record<string, unknown>;
-  reset: () => void;
+  reset: UseFormReset<WorkFormData>;
   uploadWork: (event?: BaseSyntheticEvent) => Promise<void>;
   workMutation: ReturnType<typeof useWorkMutation>;
   validationErrors: string[];
@@ -83,7 +97,7 @@ export interface WorkDataProps {
     feedback: string;
     timeSpentMinutes: number | undefined;
     values: Record<string, unknown>;
-    reset: () => void;
+    reset: UseFormReset<WorkFormData>;
     validationErrors: string[];
   };
   activeTab: WorkTab;
@@ -95,6 +109,7 @@ export function useWorkSubmissionFlow(): {
   formValue: WorkFormValue;
   legacyValue: WorkDataProps;
 } {
+  const intl = useIntl();
   const { authMode, primaryAddress } = useUser();
   const chainId = DEFAULT_CHAIN_ID;
   const rootGardenAddress = getDefaultChain().rootGarden?.address;
@@ -151,6 +166,8 @@ export function useWorkSubmissionFlow(): {
   );
   const { images, setImages } = useWorkImages();
   const workForm = useWorkForm(selectedAction?.inputs ?? []);
+  const { reset: resetDraftForm } = workForm;
+  useEffect(() => registerDraftFormReset(() => resetDraftForm({ feedback: "" })), [resetDraftForm]);
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
   const workMutation = useWorkMutation({
     authMode,
@@ -164,11 +181,13 @@ export function useWorkSubmissionFlow(): {
     : 0;
   const handleUploadWork = useCallback(
     async (data: WorkFormData) => {
-      const { feedback: _feedback, timeSpentMinutes: _time, ...dynamicFields } = data;
+      const { feedback: _feedback, timeSpentMinutes: _time, location, ...dynamicFields } = data;
       const audioNotes = useWorkFlowStore.getState().audioNotes.slice();
       const draft = {
         feedback: data.feedback ?? "",
         details: dynamicFields as Record<string, unknown>,
+        location: roundWorkLocation(location),
+        tags: useWorkFlowStore.getState().tags,
         ...(typeof data.timeSpentMinutes === "number"
           ? { timeSpentMinutes: data.timeSpentMinutes }
           : {}),
@@ -176,13 +195,24 @@ export function useWorkSubmissionFlow(): {
       };
       const errors = [
         ...(userAddress ? [] : ["User address is required for work submission"]),
+        // A HEIC photo still waiting to convert is kept: it becomes a JPEG before it uploads.
         ...validateWorkSubmissionContext(gardenAddress, actionUID, images, {
           minRequired: minRequiredImages,
+          audioNotes,
+          pendingHeic: "accept",
         }),
       ];
+      for (const file of images.filter((file) => file.type.startsWith("video/"))) {
+        if (!(await validateWorkVideo(file)))
+          errors.push(intl.formatMessage({ id: "app.garden.attachments.invalid" }));
+      }
       if (errors.length > 0) {
         setValidationErrors(errors);
-        validationToasts.formError(errors[0]);
+        validationToasts.formError(
+          validateWorkAttachments(images, audioNotes, 0, { pendingHeic: "accept" }).length
+            ? intl.formatMessage({ id: "app.garden.attachments.invalid" })
+            : errors[0]
+        );
         if (DEBUG_ENABLED) {
           debugWarn("[WorkProvider] Work submission context validation failed", { errors });
         }
@@ -206,7 +236,7 @@ export function useWorkSubmissionFlow(): {
         throw error;
       }
     },
-    [gardenAddress, actionUID, images, workMutation, minRequiredImages, userAddress]
+    [gardenAddress, actionUID, images, workMutation, minRequiredImages, userAddress, intl]
   );
   const uploadWork = workForm.handleSubmit(handleUploadWork);
   const isLoading = actionsLoading || gardensLoading;

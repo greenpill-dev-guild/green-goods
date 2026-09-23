@@ -1,3 +1,6 @@
+import { Chip } from "@green-goods/shared/components/Chip";
+import { TextInput } from "@green-goods/shared/components/Form/ControlPrimitives";
+import { IconButton } from "@green-goods/shared/components/IconButton";
 import type { Action } from "@green-goods/shared/types/domain";
 import { cn } from "@green-goods/shared/utils/styles/cn";
 import { DomainBadge } from "@green-goods/shared/components/DomainBadge";
@@ -13,15 +16,6 @@ import { useIntl } from "react-intl";
 import { ImageWithFallback } from "@/components/Display";
 
 const ROW_COUNT_CHOICES = [1, 2, 4] as const;
-
-function chipClass(selected: boolean) {
-  return cn(
-    "rounded-full border px-3 py-1.5 text-xs font-medium tap-target-lg",
-    selected
-      ? "border-primary-alpha-24 bg-primary-alpha-10 text-primary"
-      : "border-stroke-soft-200 text-text-sub-600"
-  );
-}
 
 export interface ComposeActionRailProps {
   form: UseFormReturn<CommitmentComposerValues>;
@@ -112,10 +106,11 @@ export function ComposeActionRail({ form, chainId, actions: allActions }: Compos
               <button
                 key={action.id}
                 type="button"
+                data-pressable="card"
                 aria-pressed={selected}
                 onClick={() => toggleAction(action)}
                 className={cn(
-                  "flex w-44 shrink-0 snap-start flex-col overflow-hidden rounded-[var(--radius-lg)] border text-left tap-feedback",
+                  "flex w-44 shrink-0 snap-start flex-col overflow-hidden rounded-[var(--radius-lg)] border text-left",
                   selected
                     ? "border-primary-alpha-24 bg-primary-alpha-10"
                     : "border-stroke-soft-200 bg-bg-white-0"
@@ -158,29 +153,25 @@ export function ComposeActionRail({ form, chainId, actions: allActions }: Compos
                 <span className="min-w-0 truncate text-sm font-medium text-text-strong-950">
                   {rowTitle(row.actionUID)}
                 </span>
-                <button
-                  type="button"
+                <IconButton
+                  size="compact"
                   onClick={() => setRows(requirements.filter((r) => r.actionUID !== row.actionUID))}
                   aria-label={formatMessage(
                     { id: "app.compose.proof.remove" },
                     { action: rowTitle(row.actionUID) }
                   )}
-                  className="shrink-0 rounded-full p-1 text-text-sub-600 tap-target-lg"
-                >
-                  <RiCloseLine className="h-4 w-4" aria-hidden="true" />
-                </button>
+                  icon={<RiCloseLine aria-hidden="true" />}
+                />
               </div>
               <div className="mt-2 flex flex-wrap items-center gap-2">
                 {ROW_COUNT_CHOICES.map((count) => (
-                  <button
+                  <Chip
                     key={count}
-                    type="button"
-                    aria-pressed={row.requiredCount === count}
+                    selected={row.requiredCount === count}
                     onClick={() => setRowCount(row.actionUID, count)}
-                    className={chipClass(row.requiredCount === count)}
                   >
                     {formatMessage({ id: "app.compose.proof.times" }, { count })}
-                  </button>
+                  </Chip>
                 ))}
                 <label className="sr-only" htmlFor={`compose-row-${row.actionUID}`}>
                   {formatMessage(
@@ -188,14 +179,14 @@ export function ComposeActionRail({ form, chainId, actions: allActions }: Compos
                     { action: rowTitle(row.actionUID) }
                   )}
                 </label>
-                <input
+                <TextInput
                   id={`compose-row-${row.actionUID}`}
                   type="number"
                   inputMode="numeric"
                   min={1}
                   value={Number.isFinite(row.requiredCount) ? row.requiredCount : ""}
                   onChange={(event) => setRowCount(row.actionUID, Number(event.target.value))}
-                  className="w-20 rounded-[var(--radius-lg)] border border-stroke-soft-200 bg-bg-weak-50 p-2 text-sm text-text-strong-950"
+                  className="w-20"
                 />
               </div>
             </li>

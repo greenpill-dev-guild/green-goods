@@ -11,7 +11,7 @@ const workCardVariants = tv({
   base: "@container flex w-full flex-col overflow-hidden rounded-lg border border-stroke-soft-200 bg-bg-white text-left transition-all duration-[var(--spring-spatial-duration)] ease-[var(--spring-spatial-easing)] @[480px]:flex-row",
   variants: {
     variant: {
-      compact: "min-h-[88px] flex-row",
+      compact: "flex-row",
       detailed: "",
       auto: "",
     },
@@ -96,9 +96,22 @@ export interface WorkCardProps extends WorkCardVariantProps {
   showErrorBadge?: boolean;
   showRetryBadge?: boolean;
   badges?: React.ReactNode[];
+  /** Compact rows keep one primary state and one supporting line at every status. */
+  statusLabel?: string;
+  statusTone?: WorkDisplayStatus;
+  contextLabel?: string;
+  supportingText?: string;
   /** Translated labels - defaults to English */
   labels?: WorkCardLabels;
 }
+
+/**
+ * Compact list thumbnail: its height follows the compact row and aspect-ratio keeps it square,
+ * so the row owns the size and a future row-height change cannot leave a gap (DL-034). Inline
+ * because shared utility classes are not in the client's Tailwind scan.
+ */
+const COMPACT_CARD_STYLE: React.CSSProperties = { height: 88 };
+const COMPACT_THUMBNAIL_STYLE: React.CSSProperties = { height: "100%", aspectRatio: "1 / 1" };
 
 /** Maps work status to a left-border accent color class. */
 export function getStatusBorderClass(status: WorkDisplayStatus | string): string {
@@ -132,6 +145,10 @@ export const WorkCard: React.FC<WorkCardProps> = ({
   showErrorBadge = false,
   showRetryBadge = false,
   badges,
+  statusLabel,
+  statusTone,
+  contextLabel,
+  supportingText,
   labels: labelsProp,
 }) => {
   const labels = {
@@ -144,12 +161,15 @@ export const WorkCard: React.FC<WorkCardProps> = ({
 
   const timeAgo = formatRelativeTime(work.createdAt);
   const thumbUrl = work.mediaPreview?.[0];
-  const displayStatus = labels.status[work.status] ?? work.status;
-  const statusColors = getStatusColors(work.status).combined;
+  const displayStatus = statusLabel ?? labels.status[work.status] ?? work.status;
+  const statusColors = getStatusColors(statusTone ?? work.status).combined;
   const hasFeedback = Boolean(work.feedback && work.feedback.trim().length > 0);
   const hasError = Boolean(work.error);
   const mediaCount = work.imageCount ?? work.mediaPreview?.length ?? 0;
-  const canOpenPreview = Boolean(thumbUrl) && !interactive;
+  // A card with nothing to open is content, not a button: a button that does
+  // nothing would still take focus, announce itself, and answer a press.
+  const isInteractive = interactive && onClick !== undefined;
+  const canOpenPreview = Boolean(thumbUrl) && !isInteractive;
   const isCompact = variant === "compact";
 
   React.useEffect(() => {
@@ -167,26 +187,28 @@ export const WorkCard: React.FC<WorkCardProps> = ({
     };
   }, [isPreviewOpen]);
 
-  const Wrapper = interactive ? "button" : "div";
-  const wrapperProps = interactive ? { onClick, type: "button" as const } : {};
+  const Wrapper = isInteractive ? "button" : "div";
+  const wrapperProps = isInteractive
+    ? { onClick, type: "button" as const, "data-pressable": "card" }
+    : {};
 
   return (
     <>
       <Wrapper
         className={cn(
-          workCardVariants({ variant, interactive }),
-          getStatusBorderClass(work.status),
+          workCardVariants({ variant, interactive: isInteractive }),
+          getStatusBorderClass(statusTone ?? work.status),
           className
         )}
+        style={isCompact ? COMPACT_CARD_STYLE : undefined}
         {...wrapperProps}
       >
         <div
           className={cn(
             "relative overflow-hidden bg-bg-weak-50",
-            isCompact
-              ? "w-20 shrink-0 self-stretch"
-              : "w-full aspect-video @[480px]:w-56 @[480px]:flex-shrink-0"
+            isCompact ? "shrink-0" : "w-full aspect-video @[480px]:w-56 @[480px]:flex-shrink-0"
           )}
+          style={isCompact ? COMPACT_THUMBNAIL_STYLE : undefined}
         >
           {thumbUrl ? (
             canOpenPreview ? (
@@ -202,16 +224,16 @@ export const WorkCard: React.FC<WorkCardProps> = ({
                 <ImageWithFallback
                   src={thumbUrl}
                   alt=""
-                  className="h-full w-full object-cover"
-                  fallbackClassName="h-full w-full"
+                  className="absolute inset-0 h-full w-full object-cover"
+                  fallbackClassName="absolute inset-0 h-full w-full"
                 />
               </button>
             ) : (
               <ImageWithFallback
                 src={thumbUrl}
                 alt=""
-                className="h-full w-full object-cover"
-                fallbackClassName="h-full w-full"
+                className="absolute inset-0 h-full w-full object-cover"
+                fallbackClassName="absolute inset-0 h-full w-full"
               />
             )
           ) : (
@@ -224,16 +246,18 @@ export const WorkCard: React.FC<WorkCardProps> = ({
         <div className={cn("flex min-w-0 flex-1 flex-col", isCompact ? "px-3 py-2" : "px-3 py-3")}>
           <div className="flex items-start justify-between gap-2">
             <h4
-              className="truncate pr-2 text-label-md font-medium text-text-strong-950"
+              className="min-w-0 flex-1 truncate text-label-md font-medium text-text-strong-950"
               title={work.title || labels.untitledWork}
             >
               {work.title || labels.untitledWork}
             </h4>
             <span
               className={cn(
-                "flex-shrink-0 rounded-full border px-2 py-0.5 text-xs font-medium",
+                "flex-shrink-0 truncate rounded-full border px-2 py-0.5 text-xs font-medium",
                 statusColors
               )}
+              style={{ maxWidth: "48%" }}
+              title={displayStatus}
             >
               {displayStatus}
             </span>
@@ -241,13 +265,17 @@ export const WorkCard: React.FC<WorkCardProps> = ({
 
           <div
             className="mt-0.5 truncate text-xs text-text-sub-600"
-            title={[showGardener && work.gardenerDisplayName, timeAgo, work.gardenName]
+            title={[
+              contextLabel ?? (showGardener && work.gardenerDisplayName),
+              timeAgo,
+              work.gardenName,
+            ]
               .filter(Boolean)
               .join(" • ")}
           >
-            {showGardener && work.gardenerDisplayName && (
+            {(contextLabel || (showGardener && work.gardenerDisplayName)) && (
               <>
-                {work.gardenerDisplayName}
+                {contextLabel || work.gardenerDisplayName}
                 <span className="mx-1">•</span>
               </>
             )}
@@ -260,31 +288,50 @@ export const WorkCard: React.FC<WorkCardProps> = ({
             )}
           </div>
 
-          <div className="mt-2 flex flex-wrap items-center gap-2 text-xs">
-            {showMediaCount && mediaCount > 0 && (
-              <span className="inline-flex items-center gap-1 rounded-full border border-information-light bg-information-lighter px-1.5 py-0.5 text-information-dark">
-                <RiImageLine className="h-3 w-3" /> {mediaCount}
-              </span>
+          <div
+            className={cn(
+              "min-w-0 items-center gap-2 text-xs",
+              isCompact ? "mt-1 flex overflow-hidden whitespace-nowrap" : "mt-2 flex flex-wrap"
             )}
-            {showErrorBadge && hasError && (
-              <span className="inline-flex items-center gap-1 rounded-full border border-error-light bg-error-lighter px-1.5 py-0.5 text-error-dark">
-                {labels.error}
-              </span>
+            title={isCompact ? supportingText : undefined}
+          >
+            {isCompact && supportingText ? (
+              <span className="min-w-0 truncate text-text-sub-600">{supportingText}</span>
+            ) : (
+              <>
+                {showMediaCount && mediaCount > 0 && (
+                  <span
+                    className={cn(
+                      "inline-flex items-center gap-1",
+                      isCompact
+                        ? "shrink-0 text-text-sub-600"
+                        : "rounded-full border border-information-light bg-information-lighter px-1.5 py-0.5 text-information-dark"
+                    )}
+                  >
+                    <RiImageLine className="h-3 w-3" /> {mediaCount}
+                  </span>
+                )}
+                {showErrorBadge && hasError && (
+                  <span className="inline-flex items-center gap-1 rounded-full border border-error-light bg-error-lighter px-1.5 py-0.5 text-error-dark">
+                    {labels.error}
+                  </span>
+                )}
+                {showRetryBadge && work.retryCount && work.retryCount > 0 && (
+                  <span className="inline-flex items-center gap-1 rounded-full border border-warning-light bg-warning-lighter px-1.5 py-0.5 text-warning-dark">
+                    ↻ {work.retryCount}
+                  </span>
+                )}
+                {showFeedbackBadge && hasFeedback && (
+                  <span className="inline-flex items-center gap-1 rounded-full border border-feature-light bg-feature-lighter px-1.5 py-0.5 text-feature-dark">
+                    {labels.feedback}
+                  </span>
+                )}
+                {badges?.map((badge, index) => (
+                  <React.Fragment key={index}>{badge}</React.Fragment>
+                ))}
+                {renderActions?.()}
+              </>
             )}
-            {showRetryBadge && work.retryCount && work.retryCount > 0 && (
-              <span className="inline-flex items-center gap-1 rounded-full border border-warning-light bg-warning-lighter px-1.5 py-0.5 text-warning-dark">
-                ↻ {work.retryCount}
-              </span>
-            )}
-            {showFeedbackBadge && hasFeedback && (
-              <span className="inline-flex items-center gap-1 rounded-full border border-feature-light bg-feature-lighter px-1.5 py-0.5 text-feature-dark">
-                {labels.feedback}
-              </span>
-            )}
-            {badges?.map((badge, index) => (
-              <React.Fragment key={index}>{badge}</React.Fragment>
-            ))}
-            {renderActions?.()}
           </div>
         </div>
       </Wrapper>

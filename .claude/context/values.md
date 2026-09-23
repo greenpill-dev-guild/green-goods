@@ -29,6 +29,10 @@ Apply this compact contract whenever writing or reviewing production code:
   configuration, factories, wrappers, extension points, or compatibility branches.
 - **Evidence-driven DRY**: search for the existing local solution first. Consolidate only when the
   repeated code expresses the same policy and the result reduces total code and decision surface.
+- **Reuse and capability ownership**: for new components/helpers and cross-feature dependencies,
+  apply [the architecture contract](codebase-architecture.md#reuse-and-capability-ownership).
+  Record the nearest existing implementation, its actual gap, and the capability owner before
+  editing; check that rationale again in the final simplification pass.
 - **SLAP**: keep each function at one level of abstraction. Orchestration should read as a sequence
   of domain steps; move low-level parsing, transport, or persistence detail behind well-named
   helpers only when that makes the flow easier to verify.

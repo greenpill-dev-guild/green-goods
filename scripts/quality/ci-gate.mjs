@@ -2,6 +2,8 @@
 
 import { selectExpectedWorkflows } from "./select-validation.mjs";
 
+const requiredJobs = new Map([["Shared", ["Test (1/2)", "Test (2/2)"]]]);
+
 export function expectedWorkflowNames(files) {
   return selectExpectedWorkflows({ changedPaths: files, intent: "merge", ci: true });
 }
@@ -53,6 +55,18 @@ async function workflowRuns(token, repository, headSha) {
   return latestRunsByName(data.workflow_runs);
 }
 
+async function workflowJobs(token, repository, runId) {
+  const jobs = [];
+  for (let page = 1; ; page += 1) {
+    const data = await githubJson(
+      token,
+      `/repos/${repository}/actions/runs/${runId}/jobs?filter=latest&per_page=100&page=${page}`,
+    );
+    jobs.push(...data.jobs);
+    if (data.jobs.length < 100) return jobs;
+  }
+}
+
 export async function runGate(
   {
     token,
@@ -75,6 +89,7 @@ export async function runGate(
     loadChangedFiles = changedFiles,
     selectWorkflows = expectedWorkflowNames,
     loadWorkflowRuns = workflowRuns,
+    loadWorkflowJobs = workflowJobs,
     wait = (delayMs) => new Promise((resolve) => setTimeout(resolve, delayMs)),
     logger = console,
   } = dependencies;
@@ -109,6 +124,18 @@ export async function runGate(
       for (const run of pending) logger.log(`  - pending: ${run.name} [${run.status}]`);
       if (attempt < maxAttempts) await wait(intervalMs);
       continue;
+    }
+
+    for (const name of expected) {
+      const names = requiredJobs.get(name);
+      if (!names) continue;
+      const jobs = await loadWorkflowJobs(token, repository, runs.get(name).id);
+      for (const jobName of names) {
+        const job = jobs.find((entry) => entry.name === jobName);
+        if (!job || job.status !== "completed" || job.conclusion !== "success") {
+          throw new Error(`${name} required job ${jobName} ${job ? `concluded ${job.conclusion ?? job.status}` : "is missing"}`);
+        }
+      }
     }
 
     for (const name of expected) {

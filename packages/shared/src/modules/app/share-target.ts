@@ -1,5 +1,6 @@
-const SHARE_INBOX_CACHE = "gg-share-inbox-v1";
-const SHARE_ENVELOPE_PREFIX = "/__gg_share_envelope__/";
+import { SHARE_ENVELOPE_PREFIX, SW_CACHES } from "./service-worker-protocol";
+
+const SHARE_INBOX_CACHE = SW_CACHES.SHARE_INBOX;
 
 export interface ShareTargetFileEntry {
   cacheKey: string;

@@ -13,20 +13,20 @@ Implementation facts come from code and configuration. Authored pages explain fl
 Run commands from the repository root:
 
 ```bash
-bun run dev:docs
+bun run dev -- docs
 ```
 
 The docs server listens on port 3003. Before handing off a change, run the docs checks selected by the validation planner:
 
 ```bash
-bun run docs:audit:ci
-bun run check:docs-generated
-bun run test:docs
-bun run build:docs
+node docs/scripts/docs-audit.mjs --ci
+bun run check --only docs-generated
+bun run --cwd docs test
+bun run --cwd docs build
 bun run --cwd docs check:search-index
 ```
 
-The static build is written to `docs/build`. `bun run build:docs` also fails unless the generated
+The static build is written to `docs/build`. `bun run --cwd docs build` also fails unless the generated
 search index contains every live documentation source route.
 
 ## Content map
@@ -57,16 +57,16 @@ Frontmatter must name the audience, owner, status, and exact `source_of_truth` p
 Generated MDX is committed and reviewed, but never edited directly. Each page declares its generator, source list, and source digest.
 
 ```bash
-bun run docs:generate
-bun run docs:generate -- --scope package
-bun run docs:generate -- --scope integration
-bun run docs:generate -- --scope ontology
-bun run docs:generate -- --scope workflow
-bun run docs:generate -- --scope qa
-bun run docs:generate -- --scope agentic
+node scripts/docs/generate.mjs
+node scripts/docs/generate.mjs -- --scope package
+node scripts/docs/generate.mjs -- --scope integration
+node scripts/docs/generate.mjs -- --scope ontology
+node scripts/docs/generate.mjs -- --scope workflow
+node scripts/docs/generate.mjs -- --scope qa
+node scripts/docs/generate.mjs -- --scope agentic
 ```
 
-`bun run check:docs-generated` renders every projection in memory and fails when an output is missing, extra, or stale.
+`bun run check --only docs-generated` renders every projection in memory and fails when an output is missing, extra, or stale.
 
 ## Deployment
 

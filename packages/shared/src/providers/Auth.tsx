@@ -44,11 +44,10 @@ import { useAuthActor } from "../hooks/auth/useAuthActor";
 import { useWalletRestoreLifecycle } from "../hooks/auth/useWalletRestoreLifecycle";
 import { useWalletModalOpen } from "../hooks/auth/useWalletModalOpen";
 import { logger } from "../modules/app/logger";
-import { serviceWorkerManager } from "../modules/app/service-worker";
 import {
   type AuthMode,
-  clearAuthMode,
-  clearEmbeddedAddress,
+  clearSessionForSignOut,
+  clearStoredWalletAddress,
   clearStoredCredential,
   clearStoredSmartAccountAddress,
   clearStoredUsername,
@@ -57,8 +56,9 @@ import {
   hasStoredCredential,
   setAuthMode as saveAuthModeToStorage,
   setEmbeddedAddress,
-  setSignedOutSentinel,
+  setStoredWalletAddress,
 } from "../modules/auth/session";
+import type { SmartAccountClientResolver } from "../types/auth";
 import type { PasskeyAdapters } from "../workflows/auth-passkey-adapters";
 import type { AuthActor } from "../workflows/authActor";
 import type { WalletConnectionType } from "../workflows/authMachine";
@@ -80,6 +80,7 @@ export interface AuthStateValue {
   credential: P256Credential | null;
   smartAccountAddress: Hex | null;
   smartAccountClient: SmartAccountClient | null;
+  resolveSmartAccountClient: SmartAccountClientResolver | null;
   userName: string | null;
   hasStoredCredential: boolean;
   walletAddress: Hex | null;
@@ -228,6 +229,7 @@ export function AuthProvider({ children, adapters }: AuthProviderProps) {
           address: currentAddress,
         });
         actor.send({ type: "EXTERNAL_WALLET_CONNECTED", address: currentAddress, connectionType });
+        if (connectionType === "wallet") setStoredWalletAddress(currentAddress);
 
         const currentState = actor.getSnapshot();
         const isEmbeddedConnector = isAppKitEmbeddedConnector(connector);
@@ -494,8 +496,15 @@ export function AuthProvider({ children, adapters }: AuthProviderProps) {
     // When AppKit creates the embedded wallet, wagmi detects the connection
     // and WALLET EVENT SYNC handles the LOGIN_EMBEDDED dispatch.
     saveAuthModeToStorage("embedded");
+    if (isConnected && wagmiWalletAddress && isAppKitEmbeddedConnector(connector)) {
+      const address = wagmiWalletAddress as Hex;
+      actor.send({ type: "EXTERNAL_WALLET_CONNECTED", address, connectionType: "embedded" });
+      actor.send({ type: "LOGIN_EMBEDDED", address });
+      setEmbeddedAddress(address);
+      return;
+    }
     getAppKit()?.open();
-  }, [actor]);
+  }, [actor, isConnected, wagmiWalletAddress, connector]);
 
   const switchToWallet = useCallback(() => {
     if (!actor) return;
@@ -510,6 +519,7 @@ export function AuthProvider({ children, adapters }: AuthProviderProps) {
       const finalUserName = userName ?? getStoredUsername() ?? "";
       actor.send({ type: "SWITCH_TO_PASSKEY", userName: finalUserName });
       saveAuthModeToStorage("passkey");
+      clearStoredWalletAddress();
     },
     [actor]
   );
@@ -519,30 +529,28 @@ export function AuthProvider({ children, adapters }: AuthProviderProps) {
 
     actor.send({ type: "SIGN_OUT" });
 
-    await disconnectWallet();
+    // Sign out of the app locally. Transport disconnect can require network access
+    // and its late completion can tear down a subsequent login. The connected
+    // wallet grants no app session without explicit login intent (cleared below).
 
-    // Clear auth mode and embedded address, but keep passkey recovery metadata.
-    // Username + credential + expected address are the local cache for same-device fallback.
-    clearAuthMode();
-    clearEmbeddedAddress();
+    clearSessionForSignOut();
     clearRestoreAttempt();
-    // Make sign-out durable: suppress automatic passkey session restore on
-    // refresh until the next successful passkey sign-in (sign-in intent alone
-    // does not clear the sentinel — a dismissed ceremony stays signed out).
-    // The cached metadata still powers one-tap re-login.
-    setSignedOutSentinel();
 
     // Reset wallet restore guard to allow future auto-restore
     walletRestoreAttemptedRef.current = false;
     manualWalletLoginPendingRef.current = false;
 
-    queryClient.clear();
-
-    // Clear SW caches and IndexedDB to prevent stale data leaking across sessions
-    serviceWorkerManager.clearAllCaches().catch((error) => {
-      logger.warn("[AuthProvider] clearAllCaches failed during sign-out", { error });
+    // Keep cached reads. Rebuild local work projections for the next account
+    // from its own IndexedDB jobs, without deleting those jobs or drafts.
+    queryClient.removeQueries({
+      predicate: ({ queryKey: [namespace, group, source] }) =>
+        namespace !== "greengoods" ||
+        group === "queue" ||
+        (group === "works" && (source === "offline" || source === "merged")) ||
+        (group === "workApprovals" && source === "offline"),
     });
-  }, [actor, clearRestoreAttempt, disconnectWallet]);
+    queryClient.getMutationCache().clear();
+  }, [actor, clearRestoreAttempt]);
 
   const retry = useCallback(() => {
     if (!actor) return;
@@ -587,6 +595,7 @@ export function AuthProvider({ children, adapters }: AuthProviderProps) {
         credential: null,
         smartAccountAddress: null,
         smartAccountClient: null,
+        resolveSmartAccountClient: null,
         userName: null,
         hasStoredCredential: false,
         walletAddress: null,
@@ -641,6 +650,7 @@ export function AuthProvider({ children, adapters }: AuthProviderProps) {
       credential: snapshot.context.credential,
       smartAccountAddress: snapshot.context.smartAccountAddress,
       smartAccountClient: snapshot.context.smartAccountClient,
+      resolveSmartAccountClient: snapshot.context.resolveSmartAccountClient,
       userName: snapshot.context.userName,
       hasStoredCredential: storedCredential,
       // Wallet address is only set when wallet is the PRIMARY auth
@@ -668,6 +678,7 @@ export function AuthProvider({ children, adapters }: AuthProviderProps) {
       credential: computedValues.credential,
       smartAccountAddress: computedValues.smartAccountAddress,
       smartAccountClient: computedValues.smartAccountClient,
+      resolveSmartAccountClient: computedValues.resolveSmartAccountClient,
       userName: computedValues.userName,
       hasStoredCredential: computedValues.hasStoredCredential,
       walletAddress: computedValues.walletAddress,

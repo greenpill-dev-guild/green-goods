@@ -1,6 +1,11 @@
+import { Button } from "@green-goods/shared/components/Button";
 import { AudioPlayer } from "@green-goods/shared/components/Audio/AudioPlayer";
-import { mediaResourceManager } from "@green-goods/shared/modules/job-queue/media-resource-manager";
-import { getWorkMediaId, isVideoFile } from "@green-goods/shared/modules/work/media-processing";
+import { useWorkPreviewUrls } from "@green-goods/shared/hooks/work/useWorkImages";
+import {
+  getWorkMediaId,
+  isHeicFile,
+  isVideoFile,
+} from "@green-goods/shared/modules/work/media-processing";
 import type { Action, Garden, WorkInput } from "@green-goods/shared/types/domain";
 import { formatTimeSpent } from "@green-goods/shared/utils/form/normalizers";
 import { cn } from "@green-goods/shared/utils/styles/cn";
@@ -13,13 +18,11 @@ import {
 } from "@remixicon/react";
 import { useMemo } from "react";
 import { useIntl } from "react-intl";
-import { WorkView } from "@/components/Features/Work";
+import { PendingPhotoTile, type PendingPhotoState, WorkView } from "@/components/Features/Work";
 import { pwaStatusStyles } from "@/components/Pwa/statusStyles";
 import type { WorkCommitmentChoice } from "./WorkCommitmentSelection";
 
 /** Stable tracking ID for work draft media URLs (shared with Media.tsx) */
-const WORK_DRAFT_TRACKING_ID = "work-draft";
-const VIDEO_TRACKING_ID = "work-draft-video";
 
 function getDisplayLabel(input: WorkInput, value: string) {
   return input.optionLabels?.[value] ?? input.bandLabels?.[value] ?? value;
@@ -50,6 +53,8 @@ interface WorkReviewProps {
   brokenMediaIds?: ReadonlySet<string>;
   onPreviewFailed?: (file: File, surface: "review") => void;
   onRemoveBrokenMedia?: (surface: "review") => void;
+  heicStateOf?: (file: File) => PendingPhotoState | undefined;
+  onRetryHeicConversion?: (file: File) => void;
   commitmentSelection?: WorkCommitmentChoice | null;
   onClearCommitment?: () => void;
 }
@@ -66,6 +71,8 @@ export const WorkReview: React.FC<WorkReviewProps> = ({
   brokenMediaIds,
   onPreviewFailed,
   onRemoveBrokenMedia,
+  heicStateOf,
+  onRetryHeicConversion,
   commitmentSelection = null,
   onClearCommitment,
 }) => {
@@ -130,29 +137,23 @@ export const WorkReview: React.FC<WorkReviewProps> = ({
   ];
 
   // Separate photos from videos (both can coexist)
-  const { photoFiles, videoFiles } = useMemo(() => {
-    const videos = images.filter(isVideoFile);
-    const photos = images.filter((f) => !isVideoFile(f));
-    return { photoFiles: photos, videoFiles: videos };
-  }, [images]);
+  // A HEIC photo still waiting to convert has no preview, so it shows as a placeholder.
+  const { photoFiles, pendingPhotos, videoFiles } = useMemo(
+    () => ({
+      photoFiles: images.filter((f) => !isVideoFile(f) && !isHeicFile(f)),
+      pendingPhotos: images.filter((f) => !isVideoFile(f) && isHeicFile(f)),
+      videoFiles: images.filter(isVideoFile),
+    }),
+    [images]
+  );
 
   const brokenCount = useMemo(
     () => images.filter((file) => brokenMediaIds?.has(getWorkMediaId(file))).length,
     [brokenMediaIds, images]
   );
 
-  // Stable URLs for photos (same tracking ID as Media.tsx)
-  const photoUrls = useMemo(
-    () =>
-      photoFiles.map((file) => mediaResourceManager.getOrCreateUrl(file, WORK_DRAFT_TRACKING_ID)),
-    [photoFiles]
-  );
-
-  // Stable URLs for videos
-  const videoUrls = useMemo(
-    () => videoFiles.map((file) => mediaResourceManager.getOrCreateUrl(file, VIDEO_TRACKING_ID)),
-    [videoFiles]
-  );
+  const photoUrls = useWorkPreviewUrls(photoFiles);
+  const videoUrls = useWorkPreviewUrls(videoFiles);
 
   return (
     <div className="flex flex-col gap-4">
@@ -182,16 +183,17 @@ export const WorkReview: React.FC<WorkReviewProps> = ({
               { count: brokenCount }
             )}
           </p>
-          <button
+          <Button
             type="button"
-            className="self-start min-h-11 rounded-[var(--radius-md)] border border-stroke-sub-300 bg-bg-white-0 px-3 text-sm font-medium text-text-strong-950"
+            emphasis="secondary"
+            className="self-start"
             onClick={() => onRemoveBrokenMedia?.("review")}
           >
             {intl.formatMessage({
               id: "app.garden.review.removeBrokenMedia",
               defaultMessage: "Remove Broken Media",
             })}
-          </button>
+          </Button>
         </div>
       )}
 
@@ -238,26 +240,41 @@ export const WorkReview: React.FC<WorkReviewProps> = ({
                     </p>
                   </div>
                 </div>
-                <button
+                <Button
                   type="button"
+                  emphasis="tertiary"
+                  size="compact"
                   onClick={onClearCommitment}
-                  className="flex min-h-11 shrink-0 items-center gap-1 rounded-[var(--radius-md)] px-2 text-xs font-medium text-text-sub-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-alpha-24"
+                  leadingIcon={<RiCloseLine className="h-4 w-4" aria-hidden="true" />}
+                  className="shrink-0"
                 >
-                  <RiCloseLine className="h-4 w-4" aria-hidden />
                   {intl.formatMessage({
                     id: "app.garden.commitment.none",
                     defaultMessage: "Not for a Commitment",
                   })}
-                </button>
+                </Button>
               </div>
             </section>
           ) : null
         }
-        onMediaError={(_mediaUrl, index) => {
+        onMediaError={(mediaUrl, index) => {
           const file = photoFiles[index];
-          if (file) onPreviewFailed?.(file, "review");
+          if (file && mediaUrl) onPreviewFailed?.(file, "review");
         }}
       />
+
+      {pendingPhotos.length > 0 && (
+        <div className="padded grid grid-cols-1 gap-2 sm:grid-cols-2">
+          {pendingPhotos.map((file) => (
+            <PendingPhotoTile
+              key={getWorkMediaId(file)}
+              state={heicStateOf?.(file) ?? "waiting"}
+              name={file.name}
+              onRetry={onRetryHeicConversion ? () => onRetryHeicConversion(file) : undefined}
+            />
+          ))}
+        </div>
+      )}
 
       {/* Video previews (shown alongside photos, not mutually exclusive) */}
       {videoUrls.length > 0 && (
@@ -272,7 +289,7 @@ export const WorkReview: React.FC<WorkReviewProps> = ({
             /* eslint-disable-next-line jsx-a11y/media-has-caption -- user-generated content */
             <video
               key={getWorkMediaId(videoFiles[index])}
-              src={url}
+              src={url || undefined}
               controls
               aria-label={intl.formatMessage({
                 id: "app.garden.review.video",
@@ -281,7 +298,7 @@ export const WorkReview: React.FC<WorkReviewProps> = ({
               className="w-full rounded-lg"
               onError={() => {
                 const file = videoFiles[index];
-                if (file) onPreviewFailed?.(file, "review");
+                if (file && url) onPreviewFailed?.(file, "review");
               }}
             >
               <track kind="captions" />

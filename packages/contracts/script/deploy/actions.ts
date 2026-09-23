@@ -51,7 +51,9 @@ export class ActionDeployer extends GardenDeployer {
     } catch (error: unknown) {
       const errorMsg = error instanceof Error ? error.message : String(error);
       console.error(`❌ Failed to load contract addresses: ${errorMsg}`);
-      console.error(`Please deploy core contracts first: bun deploy.ts core --network ${options.network} --broadcast`);
+      console.error(
+        `Please deploy core contracts first: bun run contracts -- deploy core --network ${options.network} --mode broadcast`,
+      );
       process.exit(1);
     }
 

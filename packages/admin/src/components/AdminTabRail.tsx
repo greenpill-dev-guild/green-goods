@@ -40,7 +40,7 @@ export interface AdminTabRailProps {
  * Anatomy:
  * - Rail: flex row, 4px gap, hairline bottom rule on the warm stone border
  *   step; the active underline overlaps it (-1px bottom margin).
- * - Tab: 10px 16px padding, 14px text. Active: weight 600 in the workspace
+ * - Tab: 7px 16px padding on a 20px line, 14px text — 36px with the underline (DL-011). Active: weight 600 in the workspace
  *   accent + 2px underline in the same color — tone use 1 of 3. Inactive:
  *   weight 500 sub ink; hover darkens the text only (never a hue or bg shift).
  * - Count badge: 1px 8px pill, 12px/600. Active rides tone-primary-container /
@@ -152,7 +152,7 @@ export function AdminTabRail({
             }}
             onKeyDown={(event) => handleKeyDown(event, tab.id)}
             className={cn(
-              "relative -mb-px inline-flex shrink-0 cursor-pointer items-center gap-2 border-b-2 bg-transparent px-4 py-2",
+              "relative -mb-px inline-flex shrink-0 cursor-pointer items-center gap-2 border-b-2 bg-transparent px-4 py-1.75",
               "text-label-lg leading-5",
               "transition-colors duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)] motion-reduce:transition-none",
               "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--tone-focus-ring,var(--m3-primary)))]",

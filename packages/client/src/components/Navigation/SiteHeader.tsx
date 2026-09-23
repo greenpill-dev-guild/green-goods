@@ -1,8 +1,11 @@
+import { Button } from "@green-goods/shared/components/Button";
+import { IconButton } from "@green-goods/shared/components/IconButton";
+import { useDocumentScrollLock } from "@green-goods/shared/hooks/ui/useDocumentScrollLock";
 import { APP_NAME } from "@green-goods/shared/config/app";
 import { useEventListener } from "@green-goods/shared/hooks/utils/useEventListener";
 import { cn } from "@green-goods/shared/utils/styles/cn";
 import { RiCloseLine, RiMenuLine } from "@remixicon/react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useIntl } from "react-intl";
 import { Link, useLocation } from "react-router-dom";
 import { PublicInstallAction } from "@/components/Public/PublicInstallAction";
@@ -34,30 +37,6 @@ const NAV_ITEMS = [
 // hero image has scrolled past, but the fade is gradual.
 const HEADER_FADE_DISTANCE_PX = 220;
 
-/**
- * Walks up from the given node to find the nearest scrollable ancestor.
- * Returns `window` if no element ancestor scrolls — the page-level scroll
- * container in this app is the wrapper from `routes/Root.tsx`, not window,
- * because that wrapper is `h-full overflow-x-hidden`.
- */
-function findScrollAncestor(node: HTMLElement | null): HTMLElement | Window {
-  if (typeof window === "undefined") return null as unknown as Window;
-  let el: HTMLElement | null = node?.parentElement ?? null;
-  while (el) {
-    const cs = window.getComputedStyle(el);
-    const overflowY = cs.overflowY;
-    if (overflowY === "auto" || overflowY === "scroll") {
-      if (el.scrollHeight > el.clientHeight) return el;
-    }
-    el = el.parentElement;
-  }
-  return window;
-}
-
-function readScrollTop(target: HTMLElement | Window): number {
-  return target instanceof Window ? target.scrollY : target.scrollTop;
-}
-
 function computeHeaderOpacity(scrollTop: number): number {
   // Defensive: jsdom and some older browsers can return undefined for
   // `window.scrollY` / `el.scrollTop`. Treat any non-finite value as 0
@@ -72,30 +51,21 @@ export const SiteHeader = () => {
   const { pathname } = useLocation();
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [headerOpacity, setHeaderOpacity] = useState(1);
-  const [scrollTarget, setScrollTarget] = useState<HTMLElement | Window | null>(null);
-  const headerRef = useRef<HTMLElement | null>(null);
 
   const closeDrawer = useCallback(() => setIsDrawerOpen(false), []);
 
-  // Locate the real scroll container once mounted, then mirror its scroll
-  // position into the fade opacity. The page-level scroll container is the
-  // wrapper div from routes/Root.tsx (overflow-x-hidden + h-full), not window,
-  // so window.scrollY would never change.
   useEffect(() => {
-    const target = findScrollAncestor(headerRef.current);
-    setScrollTarget(target);
-    setHeaderOpacity(computeHeaderOpacity(readScrollTop(target)));
+    setHeaderOpacity(computeHeaderOpacity(window.scrollY));
   }, [pathname]);
-
   useEventListener(
-    scrollTarget,
+    window,
     "scroll",
     () => {
-      if (!scrollTarget) return;
-      setHeaderOpacity(computeHeaderOpacity(readScrollTop(scrollTarget)));
+      setHeaderOpacity(computeHeaderOpacity(window.scrollY));
     },
     { passive: true }
   );
+  useDocumentScrollLock(isDrawerOpen);
 
   // Close drawer on route change.
   useEffect(() => {
@@ -110,18 +80,6 @@ export const SiteHeader = () => {
     };
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [isDrawerOpen]);
-
-  // Prevent body scroll when drawer is open.
-  useEffect(() => {
-    if (isDrawerOpen) {
-      document.body.style.overflow = "hidden";
-    } else {
-      document.body.style.overflow = "";
-    }
-    return () => {
-      document.body.style.overflow = "";
-    };
   }, [isDrawerOpen]);
 
   // Drawer pins the header fully visible regardless of scroll position; the
@@ -143,7 +101,6 @@ export const SiteHeader = () => {
       }) => (
         <>
           <header
-            ref={headerRef}
             className={cn(
               "fixed inset-x-0 top-0 z-sticky border-0 bg-transparent transition-opacity duration-[var(--spring-effects-fast-duration)] ease-out",
               isFullyHidden && "pointer-events-none"
@@ -189,33 +146,29 @@ export const SiteHeader = () => {
 
                 {/* Desktop: Install App | Mobile: hamburger */}
                 <div className="flex items-center gap-3">
-                  <a
-                    href={href}
-                    onClick={onClick}
-                    aria-disabled={disabled || undefined}
-                    data-install-action={dataInstallAction}
-                    className={cn(
-                      "hidden cursor-pointer rounded-full bg-primary-action px-4 py-2 text-sm font-semibold text-primary-action-foreground transition-colors hover:bg-primary-action-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-action focus-visible:ring-offset-2 md:inline-flex",
-                      disabled && "cursor-not-allowed opacity-70"
-                    )}
-                  >
-                    {label}
-                  </a>
+                  <Button asChild className="hidden md:inline-flex">
+                    <a
+                      href={href}
+                      onClick={onClick}
+                      aria-disabled={disabled || undefined}
+                      data-install-action={dataInstallAction}
+                    >
+                      {label}
+                    </a>
+                  </Button>
 
-                  {/* Mobile hamburger */}
-                  <button
-                    type="button"
+                  {/* Mobile hamburger: light ink over the hero image */}
+                  <IconButton
                     onClick={() => setIsDrawerOpen(true)}
-                    className="flex h-10 w-10 items-center justify-center rounded-lg text-static-white/90 transition-colors hover:text-static-white md:hidden"
+                    className="text-static-white/90 hover:bg-static-white/10 hover:text-static-white md:hidden"
                     aria-label={intl.formatMessage({
                       id: "public.nav.openMenu",
                       defaultMessage: "Open Menu",
                     })}
                     aria-expanded={isDrawerOpen}
                     aria-controls="mobile-nav-drawer"
-                  >
-                    <RiMenuLine className="h-6 w-6" />
-                  </button>
+                    icon={<RiMenuLine aria-hidden="true" />}
+                  />
                 </div>
               </div>
             </div>
@@ -231,6 +184,7 @@ export const SiteHeader = () => {
             >
               <button
                 type="button"
+                data-pressable="scrim"
                 className="absolute inset-0 bg-static-black/40"
                 onClick={() => setIsDrawerOpen(false)}
                 aria-label={intl.formatMessage({
@@ -253,17 +207,14 @@ export const SiteHeader = () => {
                   >
                     <img src="/icon.png" alt={APP_NAME} className="h-8 w-auto" />
                   </Link>
-                  <button
-                    type="button"
+                  <IconButton
                     onClick={() => setIsDrawerOpen(false)}
-                    className="flex h-10 w-10 items-center justify-center rounded-lg text-text-sub-600 hover:text-text-strong-950"
                     aria-label={intl.formatMessage({
                       id: "public.nav.closeMenu",
                       defaultMessage: "Close Menu",
                     })}
-                  >
-                    <RiCloseLine className="h-6 w-6" />
-                  </button>
+                    icon={<RiCloseLine aria-hidden="true" />}
+                  />
                 </div>
 
                 <div className="flex flex-1 flex-col gap-1 p-4">
@@ -289,29 +240,28 @@ export const SiteHeader = () => {
                 </div>
 
                 <div className="border-t border-stroke-soft-200 p-4">
-                  <a
-                    href={href}
-                    data-install-action={dataInstallAction}
-                    aria-disabled={disabled || undefined}
-                    onClick={(event) => {
-                      if (!disabled) closeDrawer();
-                      onClick(event);
-                    }}
-                    className={cn(
-                      "block w-full cursor-pointer rounded-lg bg-primary-action px-4 py-3 text-center text-sm font-medium text-primary-action-foreground transition-colors hover:bg-primary-action-hover",
-                      disabled && "cursor-not-allowed opacity-70"
-                    )}
-                  >
-                    {label}
-                  </a>
+                  <Button asChild className="w-full">
+                    <a
+                      href={href}
+                      data-install-action={dataInstallAction}
+                      aria-disabled={disabled || undefined}
+                      onClick={(event) => {
+                        if (!disabled) closeDrawer();
+                        onClick(event);
+                      }}
+                    >
+                      {label}
+                    </a>
+                  </Button>
                   {hasInstallFallback ? (
-                    <button
+                    <Button
                       type="button"
+                      emphasis="secondary"
                       onClick={onInstallFallbackClick}
-                      className="mt-3 w-full cursor-pointer rounded-lg border border-stroke-soft-200 bg-bg-white-0 px-4 py-3 text-center text-sm font-medium text-text-sub-600 transition-colors hover:bg-bg-weak-50 hover:text-text-strong-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-action focus-visible:ring-offset-2"
+                      className="mt-3 w-full"
                     >
                       {fallbackLabel}
-                    </button>
+                    </Button>
                   ) : null}
                 </div>
               </nav>

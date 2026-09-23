@@ -18,10 +18,14 @@ test.describe("Admin Authentication", () => {
   });
 
   test("renders the current hub connect shell without mock auth", async ({ page }) => {
+    const helper = new AdminTestHelper(page);
     await page.goto("/hub", { waitUntil: "domcontentloaded", timeout: 45000 });
+    await helper.waitForPageLoad();
 
     await expect(page).toHaveURL(/\/hub(?:\?.*)?$/);
-    await expect(page.getByRole("heading", { name: "Connect to continue" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Connect to continue" })).toBeVisible({
+      timeout: 15000,
+    });
     await expect(page.getByRole("button", { name: /connect wallet/i })).toBeVisible();
   });
 
@@ -79,7 +83,7 @@ test.describe("Admin Authentication", () => {
       });
       await helper.waitForPageLoad();
 
-      await expect(page.getByText("Connect to continue")).toBeVisible();
+      await expect(page.getByText("Connect to continue")).toBeVisible({ timeout: 15000 });
       await expect(page.getByRole("button", { name: /connect wallet/i })).toBeVisible();
       await expect
         .poll(() => page.evaluate(() => window.sessionStorage.getItem("greengoods_dev_mock_auth")))

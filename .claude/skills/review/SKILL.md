@@ -11,10 +11,13 @@ One command for change review. Three passes over one resolved scope, then a verd
 `--fix` is explicitly requested. Evidence/diagnosis review is targeted by default; full production
 readiness is a separate, explicit intent.
 
-When the candidate changes module shape, public exports, dependency direction, composition, or test
-seams, read [`../../context/codebase-architecture.md`](../../context/codebase-architecture.md). Apply
+When the candidate adds components/helpers or changes module shape, public exports, dependency
+direction, composition, or test seams, read [`../../context/codebase-architecture.md`](../../context/codebase-architecture.md). Apply
 that shared depth, locality, leverage, export-taxonomy, and proof model to the changed design. Route
 repository-wide architecture opportunity discovery to `plan`; this skill judges a resolved change.
+Verify the contract's reuse evidence: closest existing implementation, actual behavior gap, and
+capability owner. Report unjustified duplicate UI, misplaced general helpers, or pass-through layers
+as design gaps; passing graph checks alone does not settle module depth or seam placement.
 
 It answers three questions with fresh evidence: **regression safety** (Pass 1), **requirement closure**
 (Pass 2), and the user's requested **evidence or readiness level** (Pass 3). `APPROVE` is reserved for
@@ -47,7 +50,7 @@ Resolve intent separately from code scope:
   CI on the current head SHA. Run the full local Production Review Readiness Gate only for explicit
   offline/full-local readiness or a critical surface.
 
-Render the planned checks with `bun run validation:plan -- --intent review`. For explicit
+Render the planned checks with `bun run check --plan -- --intent review`. For explicit
 offline/full-local production readiness, use `--intent readiness` so the plan remains non-mutating
 while criticality can only add checks. For a live PR, use `--intent review` for direct local
 evidence and inspect required CI at the current head SHA; criticality may still escalate the local
@@ -77,7 +80,7 @@ Correctness of what changed. Prioritize high-signal risk areas:
 - retry, trust-boundary, migration, or destructive-operation changes
 - missing or misleading tests on changed behavior (bugfix with no regression test; public API change with no test update)
 
-**Repo invariants** (the durable list lives in CLAUDE.md § Key Patterns and `.claude/context/<pkg>.md` — check the diff against them): hooks only in `@green-goods/shared`; imports only from declared `packages/shared/package.json#exports` paths (never `shared/src/**` internals); addresses from deployment artifacts; `Address` type; no package-level `.env`; `bun run test` never `bun test`; user-facing strings localized (en/es/pt); `parseContractError` + `createMutationErrorHandler` on mutation paths; `logger` not `console.log`; query keys via `queryKeys.*` helpers; vocabulary/enum/EAS-schema/glossary-entity edits update the ontology sidecar in the same change — `bun run check:ontology` gates it (protocol: `.claude/context/ontology.md`).
+**Repo invariants** (the durable list lives in CLAUDE.md § Key Patterns and `.claude/context/<pkg>.md` — check the diff against them): hooks only in `@green-goods/shared`; imports only from declared `packages/shared/package.json#exports` paths (never `shared/src/**` internals); addresses from deployment artifacts; `Address` type; no package-level `.env`; `bun run test` never `bun test`; user-facing strings localized (en/es/pt); `parseContractError` + `createMutationErrorHandler` on mutation paths; `logger` not `console.log`; query keys via `queryKeys.*` helpers; vocabulary/enum/EAS-schema/glossary-entity edits update the ontology sidecar in the same change — `bun run check --only ontology` gates it (protocol: `.claude/context/ontology.md`).
 
 **Structural lenses** — apply when the diff shows the signal, not ritually:
 
@@ -95,6 +98,12 @@ Correctness of what changed. Prioritize high-signal risk areas:
   handling, offline queue integrity, retry visibility — invariants in `.claude/context/shared.md`).
   Read every touched line on these surfaces. Apply the matrix's sensitive tier to indexer
   retry/lifecycle handlers, Plan Hub evidence, and agent dispatch scripts.
+- *Excess proof*: when tests change, ask which distinct failure each test catches and whether its
+  assertion sits at the owning layer. Review repeated setup, duplicate layers, class-only or source
+  assertions, and unexplained test/source growth against the [test budget](../../context/testing.md#test-budget).
+  Preserve tests for independent composition, recovery, interaction, and critical cleanup behavior.
+  Require same-failure surviving proof or verified absence of callers before accepting a deletion;
+  test counts and line ratios alone do not justify one.
 
 For large or critical diffs where an adversarial deep pass is warranted, the built-in `/code-review` (effort levels, verify pass) is the engine of choice — say so and use it rather than hand-rolling depth.
 
@@ -165,11 +174,13 @@ path-scoped `git diff --exit-code <tested>..HEAD -- <validated paths>` proving a
 implementation, dependency, configuration, and validation-entrypoint surfaces are unchanged, plus
 an empty `git status --porcelain=v1 --untracked-files=all -- <validated paths>` proving no staged,
 unstaged, or untracked path changes exist. If a
-rung can't run here (env-gated, or it requires an authenticated browser), mark it `BLOCKED`, name the unavailable
-capability, and do not retry until that capability changes. User cancellation is terminal: stop
+rung can't run here (env-gated), mark it `BLOCKED`, name the unavailable capability, and do not
+retry until that capability changes; the advisory `browser-proof` check is recorded as pending, not
+blocked. User cancellation is terminal: stop
 active validation, schedule no further checks, and report evidence already collected. Visible-UI
-claims need rendered proof via the authenticated Brave
-QA path or are reported as blocked (CLAUDE.md § Agentic Modern Web Standard). Dated reports under
+claims need rendered proof labeled by engine and session per AGENTS.md § Browser Evidence;
+authenticated-class surfaces need authenticated Brave proof or are recorded as pending, and
+clean-room proof is never presented as authenticated. Dated reports under
 `.plans/**/reports/` are immutable audit inputs; put corrections or closure evidence in a new report.
 
 ## Finding Closure
@@ -220,7 +231,7 @@ Only on explicit request ("fix the findings", `--fix`). Report first, then group
 should-fix items by root-cause class and address at most three classes per iteration; leave
 nice-to-have and all Human Call-Outs alone. Complete the sibling and recurrence sweeps from Finding
 Closure, then re-run the Pass 3 rung. Contract-touching fixes also run
-`bun run verify:contracts:fast`.
+`bun run check --only contracts-verify-fast`.
 
 ## Linear Routing
 

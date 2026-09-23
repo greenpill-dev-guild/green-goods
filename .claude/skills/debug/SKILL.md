@@ -53,7 +53,7 @@ message, attached user screenshot, paraphrased complaint — they all engage thi
 ### QA-slice signals → qa_slice_fix mode
 
 - "pull in the QA issues", "work the QA slices", "fix what we found in QA", "pick up the
-  qa-sync slices", "did QA earlier — start on the findings"
+  QA session slices", "did QA earlier — start on the findings"
 - The work objects are slice sub-issues of a `QA session YYYY-MM-DD` parent in Linear, written
   by `/qa-triage --call` or the `qa-call-report` routine after a team QA call.
 - Focus: one slice at a time, measured repair per `.claude/context/qa.md § Fix posture` — never
@@ -141,7 +141,9 @@ branch = one PR, and the posture is repair, not feature building.
    list its open sub-issues **and its related already-tracked Issues** in priority order. Only
    `Todo`/`Backlog` items are available to take — a related Issue already `In Progress` or
    `In Review` is someone's active work: show it as context, keep its state, never select it as
-   a slice. Confirm which slice to take — or take the top available one when the user already
+   a slice. A sub-issue with no `package:*` label is not a slice either — the
+   `Product decisions from QA session YYYY-MM-DD` child is that case — so it is context for a design
+   call and never selected. Confirm which slice to take — or take the top available one when the user already
    said to work through them.
 2. **Take ONE slice.** Move it to `In Progress` only when work actually starts — after the
    grounding below and the branch go in step 5; a slice stopped before then (design call,
@@ -165,7 +167,7 @@ branch = one PR, and the posture is repair, not feature building.
    in the PR's `Fixes PRD-NNN` line.
 6. **Repair to the slice's "Done when"** — the catalog Test IDs' expected results — and stop
    there.
-7. **Validate via the selector**: render `bun run validation:plan -- --intent qa` for the
+7. **Validate via the selector**: render `bun run check --plan -- --intent qa` for the
    touched paths and run the returned plan, plus the slice's named validation command — never an
    invented fixed suite (the selector owns criticality overrides and stop conditions).
 8. **Ship**: the `ship` skill gates the push; the PR references the issue (`Fixes PRD-NNN`), one
@@ -174,7 +176,9 @@ branch = one PR, and the posture is repair, not feature building.
    IDs re-record as pass in the QA app (whoever recorded the fail re-records).
 10. **Next slice or stop** — the user's call at each boundary. When the parent report's last
     open slice lands, close the parent against its `Done when` (every slice Done or explicitly
-    deferred, re-QA re-recorded) — or say what still holds it open.
+    deferred with re-QA re-recorded, the decisions child Done or Canceled, no open investigate
+    line) — or say what still holds it open: an unruled decisions child or investigate line
+    keeps a parent open after its last slice lands.
 
 ### User-Observed UI Regression Protocol
 
@@ -298,7 +302,7 @@ After debugging provide:
 
 ### Verification
 - Commands executed and outcomes
-- Contract-touching fixes should also run: `bun run verify:contracts:fast`
+- Contract-touching fixes should also run: `bun run check --only contracts-verify-fast`
 
 ### Next Step
 - `DONE`, `NEEDS_INPUT`, or `ESCALATE`
@@ -314,7 +318,7 @@ the slice being worked. The shared routing core (team routing,
 Debug-specific deltas, applied after a bug is reproduced and root-caused:
 
 - Raw user/telemetry signal → Linear **Customer Need** (Product team) using the structured body shape (Source / Customer type / Need statement / Evidence / Disposition).
-- Accepted fixes, QA follow-ups, or product investigations → Product Issue with `activity:qa` + relevant `package:*` + `protocol:*`.
+- Accepted fixes, QA follow-ups, or product investigations → Product Issue with `activity:build` (or `activity:maintenance` for hygiene) + relevant `package:*` + `protocol:*`.
 - The PostHog/Sentry-to-Linear privacy specifics live in `AGENTS.md § Linear Workspace` and
   `docs/routines/README.md`.
 

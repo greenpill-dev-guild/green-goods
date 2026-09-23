@@ -60,7 +60,10 @@ export const GardenAssessment: FC<GardenAssessmentProps> = () => {
           >
             {garden.name}
           </p>
-          <h1 className="title-screen line-clamp-3 text-text-strong-950" title={assessment.title}>
+          <h1
+            className="line-clamp-3 text-[2rem] font-bold text-text-strong-950"
+            title={assessment.title}
+          >
             {assessment.title}
           </h1>
           <p className="line-clamp-4 text-sm text-text-sub-600" title={assessment.description}>

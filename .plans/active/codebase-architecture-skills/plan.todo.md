@@ -5,7 +5,7 @@
 **Status**: `ACTIVE`
 **Created**: `2026-08-24`
 **Last Updated**: `2026-08-24`
-**Historical predecessor**: [`../../archive/module-seams-and-velocity/`](../../archive/module-seams-and-velocity/)
+**Historical predecessor**: `module-seams-and-velocity`, closed `completed` on 2026-08-24 — see the [archive ledger](../../ARCHIVE.md); the hub itself lives only in Git history.
 **Coordination boundary**: `../client-structure-and-agent-guides/` owns AGENTS/CLAUDE consolidation.
 
 ## Decision Log

@@ -112,7 +112,7 @@ test("infraExitCode maps to a distinct error status instead of fail", () => {
   const check = {
     id: "ontology",
     label: "Ontology drift",
-    command: ["bun", "run", "check:ontology"],
+    command: ["node", "scripts/quality/check-ontology.mjs"],
     route: "review",
     severity: "medium",
     infraExitCode: 2,

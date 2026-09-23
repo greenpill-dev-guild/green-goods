@@ -1,0 +1,591 @@
+/** @vitest-environment node */
+import type { Hex } from "viem";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { EASConfig } from "../../../config/blockchain";
+import {
+  type ContractCall,
+  TransactionRevertedError,
+  type TransactionSender,
+} from "../../../modules/transactions/types";
+import { SimulationRejected } from "../../../modules/work/simulation-rejected";
+import {
+  uploadQueuedWork,
+  type UploadQueuedWorkPorts,
+} from "../../../modules/work/upload-queued-work";
+import { retainedWorkBroadcast } from "../../../modules/work/work-confirmation";
+import type { Job, SendCheckpoint, WorkJobPayload } from "../../../types/job-queue";
+import {
+  QUEUED_JOB_GARDEN,
+  QUEUED_JOB_USER,
+  queuedDecisionJob,
+  queuedWorkJob,
+} from "../../test-utils/queued-jobs";
+import { createMockTransactionSender } from "../../test-utils/transaction-fakes";
+
+const USER = QUEUED_JOB_USER;
+const GARDEN = QUEUED_JOB_GARDEN;
+const OPERATION = `0x${"cd".repeat(32)}` as const;
+const TX = `0x${"ab".repeat(32)}` as const;
+const EAS_CONFIG = {
+  EAS: { address: "0x5555555555555555555555555555555555555555" },
+  WORK: { uid: `0x${"66".repeat(32)}`, schema: "" },
+  WORK_APPROVAL: { uid: `0x${"77".repeat(32)}`, schema: "" },
+  ASSESSMENT: { uid: `0x${"00".repeat(32)}`, schema: "" },
+  ASSESSMENT_V3: { uid: `0x${"00".repeat(32)}`, schema: "" },
+  SCHEMA_REGISTRY: { address: "0x8888888888888888888888888888888888888888" },
+} satisfies EASConfig;
+const READY = { preparation: { status: "ready", checkedAt: "2026-09-17T09:00:00.000Z" } };
+
+// Each item's feedback is its own, so it can be recognised in the call that goes out.
+let sequence = 0;
+function work(meta: Job["meta"] = READY): Job {
+  sequence += 1;
+  return queuedWorkJob({
+    id: `work-${sequence}`,
+    meta,
+    payload: {
+      feedback: `work ${sequence}`,
+      clientWorkId: `client-${sequence}`,
+      uploadCheckpoint: { submittedAt: "2026-09-17T09:00:00.000Z", files: {} },
+    },
+  });
+}
+
+function decision(): Job {
+  sequence += 1;
+  return queuedDecisionJob({ id: `decision-${sequence}`, meta: READY });
+}
+
+function harness(jobs: Job[], overrides: Partial<UploadQueuedWorkPorts> = {}) {
+  const store = new Map(jobs.map((job) => [job.id, structuredClone(job)]));
+  const released = vi.fn();
+  const resumed = vi.fn();
+  const ports: UploadQueuedWorkPorts = {
+    confirmOnline: vi.fn(async () => true),
+    suspendPreparation: vi.fn(() => resumed),
+    listJobs: async () => [...store.values()].map((job) => structuredClone(job)),
+    getJob: async (id) => structuredClone(store.get(id)),
+    acquire: async (ids) =>
+      new Map(ids.map((id) => [id, { token: id, assertOwned: vi.fn(), release: released }])),
+    hold: () => () => undefined,
+    save: vi.fn(async (_claim, id, amend) => {
+      const stored = store.get(id);
+      if (!stored) throw new Error("submission-ownership-changed");
+      amend(stored);
+    }),
+    // Each kind's own attestation is proven in upload-kinds.test.ts; here a job's
+    // data only has to be recognisable in the call that goes out.
+    attestation: vi.fn(async (job: Job) => ({
+      schema: (job.kind === "work" ? EAS_CONFIG.WORK.uid : EAS_CONFIG.WORK_APPROVAL.uid) as Hex,
+      gardenAddress: GARDEN as Hex,
+      attestationData:
+        job.kind === "work"
+          ? (`0x${Buffer.from((job.payload as WorkJobPayload).feedback).toString("hex")}` as Hex)
+          : (`0x${"ee".repeat(8)}` as Hex),
+    })),
+    easConfig: () => EAS_CONFIG,
+    simulate: vi.fn(async () => undefined),
+    processJob: vi.fn(async () => ({ success: true, txHash: TX })),
+    now: () => Date.parse("2026-09-17T10:00:00.000Z"),
+    ...overrides,
+  };
+  return { ports, store, released, resumed };
+}
+
+const upload = (ports: UploadQueuedWorkPorts, sender: TransactionSender) =>
+  uploadQueuedWork({ userAddress: USER, chainId: 42161, sender }, ports);
+
+const sendOf = (store: Map<string, Job>, id: string): SendCheckpoint | undefined => {
+  const job = store.get(id)!;
+  return job.kind === "work"
+    ? (job.payload as WorkJobPayload).uploadCheckpoint
+    : (job.payload as { sendCheckpoint?: SendCheckpoint }).sendCheckpoint;
+};
+
+beforeEach(() => {
+  vi.clearAllMocks();
+});
+
+describe("Upload all", () => {
+  it("uploads only the selected decision when opened from its work detail", async () => {
+    const first = decision();
+    const second = decision();
+    const { ports } = harness([first, second]);
+    const sender = createMockTransactionSender();
+
+    await expect(
+      uploadQueuedWork({ userAddress: USER, chainId: 42161, sender, jobIds: [second.id] }, ports)
+    ).resolves.toEqual({ status: "uploaded", sent: 1, flagged: 0 });
+    expect(ports.attestation).toHaveBeenCalledOnce();
+    expect(ports.attestation).toHaveBeenCalledWith(
+      expect.objectContaining({ id: second.id }),
+      expect.anything()
+    );
+    expect(ports.processJob).toHaveBeenCalledWith(second.id, {
+      transactionSender: sender,
+      explicit: true,
+    });
+    expect(ports.processJob).not.toHaveBeenCalledWith(first.id, expect.anything());
+  });
+
+  it("refuses on an unconfirmed connection before claiming anything", async () => {
+    const { ports } = harness([work()], { confirmOnline: vi.fn(async () => false) });
+    const sender = createMockTransactionSender();
+
+    await expect(upload(ports, sender)).resolves.toEqual({ status: "connection-unconfirmed" });
+    expect(ports.suspendPreparation).not.toHaveBeenCalled();
+    expect(sender.sendContractCall).not.toHaveBeenCalled();
+  });
+
+  it("sends every ready work and decision as one UserOperation, recording the send on each first", async () => {
+    const jobs = [work(), work(), decision()];
+    const { ports, store, released, resumed } = harness(jobs);
+    const sender = createMockTransactionSender();
+    const recordedBeforeSend: Array<SendCheckpoint | undefined> = [];
+    vi.mocked(sender.sendContractCall).mockImplementation(async (call, options) => {
+      await options?.onBeforeBroadcast?.({ kind: "user-operation", hash: OPERATION });
+      recordedBeforeSend.push(...jobs.map(({ id }) => sendOf(store, id)));
+      await options?.onBroadcastReference?.({ kind: "user-operation", hash: OPERATION });
+      await options?.onBroadcast?.(TX);
+      expect(call.functionName).toBe("multiAttest");
+      return { hash: TX, sponsored: true };
+    });
+
+    await expect(upload(ports, sender)).resolves.toEqual({
+      status: "uploaded",
+      sent: 3,
+      flagged: 0,
+    });
+
+    expect(sender.sendContractCall).toHaveBeenCalledOnce();
+    const [call] = vi.mocked(sender.sendContractCall).mock.calls[0];
+    expect(
+      (call.args[0] as Array<{ schema: string; data: unknown[] }>).map((group) => [
+        group.schema,
+        group.data.length,
+      ])
+    ).toEqual([
+      [EAS_CONFIG.WORK.uid, 2],
+      [EAS_CONFIG.WORK_APPROVAL.uid, 1],
+    ]);
+    // Every item carried the intent before the operation could reach the network.
+    expect(recordedBeforeSend).toEqual(
+      jobs.map(() =>
+        expect.objectContaining({
+          broadcastPending: true,
+          broadcast: { kind: "user-operation", hash: OPERATION },
+        })
+      )
+    );
+    for (const { id } of jobs) {
+      expect(sendOf(store, id)).toMatchObject({ transactionHash: TX, broadcastPending: false });
+      expect(ports.processJob).toHaveBeenCalledWith(id, {
+        transactionSender: sender,
+        explicit: true,
+      });
+    }
+    expect(released).toHaveBeenCalledTimes(3);
+    expect(resumed).toHaveBeenCalledOnce();
+  });
+
+  it("sends a wallet's items as one transaction, and splits a long queue into calls within the limit", async () => {
+    const wallet = harness(Array.from({ length: 12 }, () => work()));
+    const walletSender = createMockTransactionSender({ authMode: "wallet" });
+
+    await upload(wallet.ports, walletSender);
+    expect(walletSender.sendContractCall).toHaveBeenCalledTimes(2);
+
+    const passkey = harness(Array.from({ length: 7 }, () => work()));
+    const passkeySender = createMockTransactionSender();
+    await upload(passkey.ports, passkeySender);
+    const sizes = vi
+      .mocked(passkeySender.sendContractCall)
+      .mock.calls.map(
+        ([call]) => (call.args[0] as Array<{ data: unknown[] }>)[0]?.data?.length ?? 1
+      );
+    expect(sizes).toEqual([5, 2]);
+  });
+
+  it("sends only ready items", async () => {
+    const ready = work();
+    const blocked = work({
+      preparation: { status: "blocked", reason: "ActionExpired", checkedAt: "x" },
+    });
+    const preparing = work({});
+    const { ports } = harness([ready, blocked, preparing]);
+    const sender = createMockTransactionSender();
+
+    await expect(upload(ports, sender)).resolves.toMatchObject({ status: "uploaded", sent: 1 });
+    expect(sender.sendContractCall.mock.calls[0][0].functionName).toBe("attest");
+  });
+
+  it("leaves ready work on another chain out of the selected chain's send", async () => {
+    const selected = work();
+    const otherChain = work();
+    otherChain.chainId = 11155111;
+    const { ports } = harness([selected, otherChain]);
+    const acquire = vi.spyOn(ports, "acquire");
+    const sender = createMockTransactionSender();
+
+    await expect(upload(ports, sender)).resolves.toEqual({
+      status: "uploaded",
+      sent: 1,
+      flagged: 0,
+    });
+    expect(acquire).toHaveBeenCalledWith([selected.id]);
+    expect(ports.processJob).toHaveBeenCalledWith(selected.id, {
+      transactionSender: sender,
+      explicit: true,
+    });
+    expect(ports.processJob).not.toHaveBeenCalledWith(otherChain.id, expect.anything());
+  });
+
+  it("flags the item the chain refuses and sends the rest", async () => {
+    const [good, ended] = [work(), work()];
+    const { ports, store } = harness([good, ended], {
+      simulate: vi.fn(async (call: ContractCall) => {
+        const refused =
+          call.functionName === "multiAttest" ||
+          JSON.stringify(call.args, (_key, value) =>
+            typeof value === "bigint" ? value.toString() : value
+          ).includes(Buffer.from((ended.payload as WorkJobPayload).feedback).toString("hex"));
+        if (refused) throw new SimulationRejected("Action ended", "ActionExpired", true);
+      }),
+    });
+    const sender = createMockTransactionSender();
+
+    await expect(upload(ports, sender)).resolves.toEqual({
+      status: "uploaded",
+      sent: 1,
+      flagged: 1,
+    });
+    expect(store.get(ended.id)?.meta?.preparation).toMatchObject({
+      status: "blocked",
+      reason: "ActionExpired",
+    });
+    expect(sender.sendContractCall).toHaveBeenCalledOnce();
+  });
+
+  it("sends nothing when the upload check cannot reach the chain", async () => {
+    const { ports } = harness([work(), work()], {
+      simulate: vi.fn(async () => {
+        throw new SimulationRejected("Check failed", "unknown", false);
+      }),
+    });
+    const sender = createMockTransactionSender();
+
+    await expect(upload(ports, sender)).resolves.toMatchObject({ status: "failed" });
+    expect(sender.sendContractCall).not.toHaveBeenCalled();
+  });
+
+  it("clears the send when the call reverts, flags what the chain now refuses, and keeps the rest ready", async () => {
+    const [good, ended] = [work(), work()];
+    let sent = false;
+    const { ports, store } = harness([good, ended], {
+      simulate: vi.fn(async (call: ContractCall) => {
+        const endedData = Buffer.from((ended.payload as WorkJobPayload).feedback).toString("hex");
+        const carriesEnded = JSON.stringify(call.args, (_k, v) =>
+          typeof v === "bigint" ? v.toString() : v
+        ).includes(endedData);
+        if (sent && call.functionName === "attest" && carriesEnded)
+          throw new SimulationRejected("Action ended", "ActionExpired", true);
+      }),
+    });
+    const sender = createMockTransactionSender();
+    vi.mocked(sender.sendContractCall).mockImplementation(async (_call, options) => {
+      await options?.onBeforeBroadcast?.({ kind: "user-operation", hash: OPERATION });
+      await options?.onBroadcastReference?.({ kind: "user-operation", hash: OPERATION });
+      sent = true;
+      throw new TransactionRevertedError(OPERATION, "UserOperation execution reverted");
+    });
+
+    await expect(upload(ports, sender)).resolves.toEqual({
+      status: "reverted",
+      sent: 0,
+      flagged: 1,
+    });
+    for (const { id } of [good, ended]) {
+      expect(sendOf(store, id)).not.toHaveProperty("broadcast");
+      expect(sendOf(store, id)).not.toHaveProperty("broadcastPending");
+      expect(retainedWorkBroadcast(id)).toBeUndefined();
+    }
+    expect(store.get(good.id)?.meta?.preparation).toMatchObject({ status: "ready" });
+    expect(ports.processJob).not.toHaveBeenCalled();
+  });
+
+  it("clears the intent and stops when the person declines", async () => {
+    const [first, second] = [work(), work()];
+    const { ports, store } = harness([first, second]);
+    const sender = createMockTransactionSender({ authMode: "wallet" });
+    vi.mocked(sender.sendContractCall).mockImplementation(async (_call, options) => {
+      await options?.onBeforeBroadcast?.();
+      throw Object.assign(new Error("User rejected the request."), { code: 4001 });
+    });
+
+    await expect(upload(ports, sender)).resolves.toEqual({
+      status: "declined",
+      sent: 0,
+      flagged: 0,
+    });
+    expect(sendOf(store, first.id)).not.toHaveProperty("broadcastPending");
+    expect(store.get(first.id)?.meta?.preparation).toMatchObject({ status: "ready" });
+  });
+
+  it("keeps the recorded send when the answer is lost, for the queue to confirm", async () => {
+    const item = work();
+    const { ports, store } = harness([item]);
+    const sender = createMockTransactionSender();
+    vi.mocked(sender.sendContractCall).mockImplementation(async (_call, options) => {
+      await options?.onBeforeBroadcast?.({ kind: "user-operation", hash: OPERATION });
+      throw Object.assign(new Error("The request took too long"), { name: "TimeoutError" });
+    });
+
+    await expect(upload(ports, sender)).resolves.toMatchObject({ status: "send-unconfirmed" });
+    expect(sendOf(store, item.id)).toMatchObject({
+      broadcastPending: true,
+      broadcast: { kind: "user-operation", hash: OPERATION },
+    });
+  });
+
+  it("sends an embedded wallet's items one at a time through the queue", async () => {
+    const jobs = [work(), decision()];
+    const { ports } = harness(jobs);
+    const sender = createMockTransactionSender({ authMode: "embedded" });
+
+    await expect(upload(ports, sender)).resolves.toEqual({
+      status: "uploaded",
+      sent: 2,
+      flagged: 0,
+    });
+    expect(sender.sendContractCall).not.toHaveBeenCalled();
+    expect(ports.processJob).toHaveBeenCalledTimes(2);
+  });
+
+  it("keeps sending an embedded wallet's remaining items past one the queue retired", async () => {
+    const [first, second, third] = [work(), work(), work()];
+    const { ports } = harness([first, second, third]);
+    const sender = createMockTransactionSender({ authMode: "embedded" });
+    vi.mocked(ports.processJob).mockImplementation(async (jobId) =>
+      jobId === second.id
+        ? { success: false, error: "unavailable:work-transaction-reverted" }
+        : { success: true, txHash: TX }
+    );
+
+    await expect(upload(ports, sender)).resolves.toEqual({
+      status: "uploaded",
+      sent: 2,
+      flagged: 1,
+    });
+    expect(ports.processJob).toHaveBeenCalledTimes(3);
+  });
+
+  it("stops an embedded wallet's run when the person cancels the send", async () => {
+    const [first, second, third] = [work(), work(), work()];
+    const { ports } = harness([first, second, third]);
+    const sender = createMockTransactionSender({ authMode: "embedded" });
+    vi.mocked(ports.processJob).mockImplementation(async (jobId) =>
+      jobId === second.id
+        ? { success: false, error: "send-cancelled" }
+        : { success: true, txHash: TX }
+    );
+
+    await expect(upload(ports, sender)).resolves.toEqual({
+      status: "declined",
+      sent: 1,
+      flagged: 0,
+    });
+    expect(ports.processJob).not.toHaveBeenCalledWith(third.id, expect.anything());
+    expect(sender.sendContractCall).not.toHaveBeenCalled();
+  });
+
+  it("stops an embedded wallet's run when the send itself fails, keeping what went", async () => {
+    const [first, second, third] = [work(), work(), work()];
+    const { ports } = harness([first, second, third]);
+    const sender = createMockTransactionSender({ authMode: "embedded" });
+    vi.mocked(ports.processJob).mockImplementation(async (jobId) =>
+      jobId === second.id
+        ? { success: false, error: "Network request failed" }
+        : { success: true, txHash: TX }
+    );
+
+    await expect(upload(ports, sender)).resolves.toEqual({
+      status: "failed",
+      sent: 1,
+      flagged: 0,
+      error: "Network request failed",
+    });
+    expect(ports.processJob).not.toHaveBeenCalledWith(third.id, expect.anything());
+  });
+
+  it("reports nothing to upload", async () => {
+    const { ports } = harness([work({})]);
+    const sender = createMockTransactionSender();
+
+    await expect(upload(ports, sender)).resolves.toEqual({ status: "nothing-ready" });
+  });
+
+  it("says nothing was sent when every ready item is held elsewhere", async () => {
+    // Another tab, or the confirmation pass, holds the claims: the tap must not
+    // report an upload of nothing as a success.
+    const { ports } = harness([work(), work()], { acquire: async () => new Map() });
+    const sender = createMockTransactionSender();
+
+    await expect(upload(ports, sender)).resolves.toEqual({ status: "nothing-sent", flagged: 0 });
+    expect(sender.sendContractCall).not.toHaveBeenCalled();
+  });
+
+  it("says nothing was sent, and what needs attention, when the only ready item is refused at the tap", async () => {
+    const ended = work();
+    const { ports, store } = harness([ended], {
+      simulate: vi.fn(async () => {
+        throw new SimulationRejected("Action ended", "ActionExpired", true);
+      }),
+    });
+    const sender = createMockTransactionSender();
+
+    await expect(upload(ports, sender)).resolves.toEqual({ status: "nothing-sent", flagged: 1 });
+    expect(store.get(ended.id)?.meta?.preparation).toMatchObject({
+      status: "blocked",
+      reason: "ActionExpired",
+    });
+    expect(sender.sendContractCall).not.toHaveBeenCalled();
+  });
+
+  it("never sends a call the chain refuses as a whole when no single item explains it", async () => {
+    const jobs = [work(), work()];
+    const { ports, store } = harness(jobs, {
+      simulate: vi.fn(async (call: ContractCall) => {
+        if (call.functionName === "multiAttest")
+          throw new SimulationRejected("Refused together", "reverted", true);
+      }),
+    });
+    const sender = createMockTransactionSender();
+
+    await expect(upload(ports, sender)).resolves.toMatchObject({
+      status: "failed",
+      sent: 0,
+      flagged: 0,
+    });
+    expect(sender.sendContractCall).not.toHaveBeenCalled();
+    for (const { id } of jobs) expect(sendOf(store, id)).not.toHaveProperty("broadcastPending");
+  });
+
+  it("flags every item when a revert has no single culprit, so the same call never goes out again", async () => {
+    const jobs = [work(), work()];
+    const { ports, store } = harness(jobs);
+    const sender = createMockTransactionSender();
+    vi.mocked(sender.sendContractCall).mockImplementation(async (_call, options) => {
+      await options?.onBeforeBroadcast?.({ kind: "user-operation", hash: OPERATION });
+      await options?.onBroadcastReference?.({ kind: "user-operation", hash: OPERATION });
+      throw new TransactionRevertedError(OPERATION, "UserOperation execution reverted");
+    });
+
+    await expect(upload(ports, sender)).resolves.toEqual({
+      status: "reverted",
+      sent: 0,
+      flagged: 2,
+    });
+    for (const { id } of jobs) {
+      expect(store.get(id)?.meta?.preparation).toMatchObject({
+        status: "blocked",
+        reason: "reverted",
+      });
+      expect(sendOf(store, id)).not.toHaveProperty("broadcast");
+    }
+  });
+
+  it("keeps its claims alive for the whole send, and lets go of them after", async () => {
+    const jobs = [work(), work()];
+    const stopHolding = vi.fn();
+    const hold = vi.fn((_claims: unknown[]) => stopHolding);
+    const { ports, released } = harness(jobs, { hold });
+    const sender = createMockTransactionSender();
+    vi.mocked(sender.sendContractCall).mockImplementation(async () => {
+      // A prompt can sit open past a claim's lifetime: renewal is running, and
+      // nothing is released, while the person decides.
+      expect(hold).toHaveBeenCalledOnce();
+      expect(stopHolding).not.toHaveBeenCalled();
+      expect(released).not.toHaveBeenCalled();
+      return { hash: TX, sponsored: true };
+    });
+
+    await upload(ports, sender);
+
+    expect(hold.mock.calls[0][0]).toHaveLength(2);
+    expect(stopHolding).toHaveBeenCalledOnce();
+    expect(released).toHaveBeenCalledTimes(2);
+  });
+
+  it("sends nothing when its claim is lost before the intent is on record", async () => {
+    const jobs = [work(), work()];
+    const { ports, store } = harness(jobs);
+    vi.mocked(ports.save).mockImplementation(async (_claim, id, amend) => {
+      if (id === jobs[1].id) throw new Error("submission-ownership-changed");
+      amend(store.get(id)!);
+    });
+    const sender = createMockTransactionSender();
+    let broadcast = false;
+    vi.mocked(sender.sendContractCall).mockImplementation(async (_call, options) => {
+      await options?.onBeforeBroadcast?.({ kind: "user-operation", hash: OPERATION });
+      broadcast = true;
+      return { hash: TX, sponsored: true };
+    });
+
+    await expect(upload(ports, sender)).rejects.toThrow("submission-ownership-changed");
+    // The failed write stopped the send before the network, and the item that
+    // did take the intent is sendable again.
+    expect(broadcast).toBe(false);
+    expect(sendOf(store, jobs[0].id)).not.toHaveProperty("broadcastPending");
+  });
+
+  it("prepares an item again when its saved uploads cannot be read back, and sends the rest", async () => {
+    const [good, unreadable] = [work(), work()];
+    const { ports, store } = harness([good, unreadable]);
+    const attest = vi.mocked(ports.attestation).getMockImplementation()!;
+    vi.mocked(ports.attestation).mockImplementation(async (job, context) => {
+      if (job.id === unreadable.id) throw new Error("upload could not be read back");
+      return attest(job, context);
+    });
+    const sender = createMockTransactionSender();
+
+    await expect(upload(ports, sender)).resolves.toEqual({
+      status: "uploaded",
+      sent: 1,
+      flagged: 0,
+    });
+    expect(store.get(unreadable.id)?.meta).not.toHaveProperty("preparation");
+    expect(store.get(good.id)?.meta?.preparation).toMatchObject({ status: "ready" });
+  });
+
+  it("keeps work ahead of decisions across the call limit, and reports what went before a later prompt is declined", async () => {
+    const jobs = [work(), work(), work(), work(), decision(), decision(), decision()];
+    const { ports } = harness(jobs);
+    const sender = createMockTransactionSender();
+    const calls: Array<Array<[string, number]>> = [];
+    vi.mocked(sender.sendContractCall).mockImplementation(async (call, options) => {
+      if (calls.length === 1) {
+        await options?.onBeforeBroadcast?.({ kind: "user-operation", hash: OPERATION });
+        throw new DOMException("Not allowed by the user.", "NotAllowedError");
+      }
+      calls.push(
+        (call.args[0] as Array<{ schema: string; data: unknown[] }>).map((group) => [
+          group.schema,
+          group.data.length,
+        ])
+      );
+      return { hash: TX, sponsored: true };
+    });
+
+    await expect(upload(ports, sender)).resolves.toEqual({
+      status: "declined",
+      sent: 5,
+      flagged: 0,
+    });
+    expect(calls).toEqual([
+      [
+        [EAS_CONFIG.WORK.uid, 4],
+        [EAS_CONFIG.WORK_APPROVAL.uid, 1],
+      ],
+    ]);
+  });
+});

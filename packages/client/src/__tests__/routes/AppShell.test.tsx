@@ -6,6 +6,18 @@ import { Link, MemoryRouter, Route, Routes } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useUIStore } from "@green-goods/shared/stores/useUIStore";
 
+vi.mock("@green-goods/shared/hooks/offline/useOfflineContent", () => ({
+  useOfflineContentPreparation: vi.fn(),
+}));
+vi.mock("@green-goods/shared/hooks/app/useOnlineStatus", () => ({
+  configureConnectivityProbe: () => () => {},
+}));
+
+const { ADDRESS } = vi.hoisted(() => ({ ADDRESS: "0xAbCdEf0123456789aBcDeF0123456789AbCdEf01" }));
+vi.mock("@green-goods/shared/hooks/auth/usePrimaryAddress", () => ({
+  usePrimaryAddress: () => ADDRESS,
+}));
+
 vi.mock("@green-goods/shared/providers/JobQueue", () => ({
   JobQueueProvider: ({ children }: { children: ReactNode }) => children,
 }));
@@ -18,12 +30,16 @@ vi.mock("@/components/Communication/Offline/OfflineIndicator", () => ({
   OfflineIndicator: () => null,
 }));
 
+vi.mock("@/components/Communication/Offline/InstallNudge", () => ({
+  InstallNudge: () => null,
+}));
+
 vi.mock("@/components/Communication/PwaBadgeCoordinator", () => ({
   PwaBadgeCoordinator: () => null,
 }));
 
 vi.mock("@/components/Layout/AppBar", () => ({
-  AppBar: () => null,
+  AppBar: () => <nav data-testid="authenticated-nav" />,
 }));
 
 vi.mock("@/routes/ENSClaimReminder", () => ({
@@ -36,6 +52,7 @@ vi.mock("react-router-dom", async (importOriginal) => {
 });
 
 import AppShell from "../../routes/AppShell";
+import { hasArrivalPassed } from "../../views/Home/arrivalToast";
 
 function HomeRoute() {
   return <Link to="/home/garden-1/work/work-1">Open work</Link>;
@@ -51,6 +68,7 @@ function WorkDetailRoute() {
 
 describe("AppShell", () => {
   beforeEach(() => {
+    vi.spyOn(window, "scrollTo").mockImplementation(() => {});
     useUIStore.getState().closeWorkDashboard();
     document.documentElement.classList.remove("modal-open");
     Object.defineProperty(HTMLElement.prototype, "scrollTo", {
@@ -62,8 +80,60 @@ describe("AppShell", () => {
   });
 
   afterEach(() => {
+    vi.restoreAllMocks();
     useUIStore.getState().closeWorkDashboard();
     document.documentElement.classList.remove("modal-open");
+    sessionStorage.clear();
+  });
+
+  it.each([
+    ["/home", false],
+    ["/home/", false],
+    ["/home/garden", true],
+    ["/home/profile", true],
+    ["/home/garden-1/work/work-1", true],
+  ])("leaves the Home arrival toast open only for a session on Home (%s)", (path, passed) => {
+    render(
+      <MemoryRouter initialEntries={[path]}>
+        <Routes>
+          <Route element={<AppShell />}>
+            <Route path="*" element={<div>Screen</div>} />
+          </Route>
+        </Routes>
+      </MemoryRouter>
+    );
+
+    expect(hasArrivalPassed(ADDRESS)).toBe(passed);
+  });
+
+  it("scrolls content inside #app-scroll so the app bar stays outside any overscroll stretch", () => {
+    render(
+      <MemoryRouter initialEntries={["/home"]}>
+        <Routes>
+          <Route element={<AppShell />}>
+            <Route path="home" element={<HomeRoute />} />
+          </Route>
+        </Routes>
+      </MemoryRouter>
+    );
+
+    const main = screen.getByRole("main");
+    const appScroll = document.getElementById("app-scroll");
+    if (!appScroll) throw new Error("App scroll container is missing");
+
+    // A viewport-height shell keeps the document unscrollable: Android Chrome
+    // then has no document overscroll to stretch, and pulls from the top still
+    // chain to it for native refresh.
+    expect(main).toHaveClass("h-dvh", "overflow-clip");
+    // Positioned, so main's clip also contains absolutely positioned content
+    // such as screen-reader status regions; unpositioned, they escape and make
+    // the document scrollable again.
+    expect(main).toHaveClass("relative");
+    expect(appScroll).toHaveClass("overflow-y-auto");
+    // Contained overscroll would stop the pull from reaching the document.
+    expect(appScroll.className).not.toMatch(/overscroll-(?:y-)?(?:contain|none)/);
+    expect(main).toContainElement(appScroll);
+    expect(appScroll).not.toContainElement(screen.getByTestId("authenticated-nav"));
   });
 
   it("clears stale dashboard state and document locks on route changes", () => {
@@ -92,6 +162,7 @@ describe("AppShell", () => {
     expect(useUIStore.getState().isWorkDashboardOpen).toBe(false);
     expect(document.documentElement).not.toHaveClass("modal-open");
     expect(appScroll.scrollTop).toBe(0);
+    expect(window.scrollTo).not.toHaveBeenCalled();
   });
 
   it("preserves an intentionally opened dashboard when submission returns home", () => {

@@ -60,7 +60,9 @@ describe("one act table for every surface", () => {
     expect(commitmentNeedsSeat({ commitment: offered, seat: "provider" })).toBe(false);
 
     const expired = { ...base, derivedState: "EXPIRED" as CommitmentDerivedState };
-    expect(commitmentNeedsSeat({ commitment: expired, seat: "provider" })).toBe(false);
+    expect(commitmentNeedsSeat({ commitment: expired, seat: "provider", isCreator: true })).toBe(
+      false
+    );
 
     // Taking something up is an invitation, not an obligation.
     expect(commitmentNeedsSeat({ commitment: offered, seat: "bystander" })).toBe(false);
@@ -79,6 +81,75 @@ describe("one act table for every surface", () => {
   it("withholds every act while one is already waiting to send", () => {
     for (const seat of ["provider", "confirmer", "contributor", "bystander"] as const) {
       expect(selectCommitmentActKind({ commitment: base, seat, hasPendingJob: true })).toBeNull();
+    }
+  });
+});
+describe("composing a settled commitment again", () => {
+  const SETTLED: CommitmentDerivedState[] = ["EXPIRED", "FULFILLED", "RECONCILED", "CANCELLED"];
+  const SEATS = ["provider", "confirmer", "contributor", "bystander"] as const;
+
+  it("offers it to whoever made the commitment, in the commitment's own direction", () => {
+    for (const derivedState of SETTLED) {
+      // The person who made an offer reads as its provider; whoever asked reads
+      // as the confirmer of their own request.
+      expect(
+        selectCommitmentActKind({
+          commitment: { ...base, derivedState, direction: "OFFER" },
+          seat: "provider",
+          isCreator: true,
+        })
+      ).toBe("offerAgain");
+      expect(
+        selectCommitmentActKind({
+          commitment: { ...base, derivedState, direction: "REQUEST" },
+          seat: "confirmer",
+          isCreator: true,
+        })
+      ).toBe("askAgain");
+    }
+  });
+
+  it("offers it to nobody else, whatever seat they hold", () => {
+    // Whoever took a request up sits in the provider seat once it lapses, and
+    // the words are still the asker's. Starting from somebody else's commitment
+    // is a different act, and not one this table offers.
+    for (const derivedState of SETTLED) {
+      for (const seat of SEATS) {
+        for (const direction of ["OFFER", "REQUEST"] as const) {
+          expect(
+            selectCommitmentActKind({ commitment: { ...base, derivedState, direction }, seat })
+          ).toBeNull();
+        }
+      }
+    }
+  });
+
+  it("waits while the record is held under review, and never stands in for a live act", () => {
+    expect(
+      selectCommitmentActKind({
+        commitment: { ...base, derivedState: "DISPUTED", direction: "OFFER" },
+        seat: "provider",
+        isCreator: true,
+      })
+    ).toBeNull();
+    expect(
+      selectCommitmentActKind({
+        commitment: { ...base, derivedState: "OFFERED", direction: "OFFER" },
+        seat: "provider",
+        isCreator: true,
+      })
+    ).toBe("withdraw");
+  });
+
+  it("is the reader's own choice, so it never badges them", () => {
+    for (const direction of ["OFFER", "REQUEST"] as const) {
+      expect(
+        commitmentNeedsSeat({
+          commitment: { ...base, derivedState: "FULFILLED", direction },
+          seat: direction === "OFFER" ? "provider" : "confirmer",
+          isCreator: true,
+        })
+      ).toBe(false);
     }
   });
 });

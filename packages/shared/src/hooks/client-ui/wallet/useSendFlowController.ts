@@ -1,15 +1,25 @@
-import type { SendableTokenBalance } from "../../../hooks/blockchain/useSendableTokens";
-import { useEffect, useMemo, useReducer } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { useEffect, useMemo, useReducer, useRef, useState } from "react";
 import { useIntl } from "react-intl";
 import { formatUnits } from "viem";
+import { tokensKeys } from "../../../config/query-keys/tokens";
+import { isCeloGoodDollar, isSendableTokenAvailable } from "../../../config/tokens";
+import type { SendableTokenBalance } from "../../../hooks/blockchain/useSendableTokens";
+import {
+  type GoodDollarFeeQuote,
+  quoteGoodDollarTransfer,
+} from "../../../modules/wallet/good-dollar-fees";
 import {
   initialSendFlowState,
+  type SelectedRecipient,
+  type SendFlowEvent,
   sendFlowReducer,
   validateSendAmount,
-  type SelectedRecipient,
   type WalletMode,
 } from "../../../modules/wallet/send-flow";
+import type { Address } from "../../../types/domain";
 import { formatAddress } from "../../../utils/app/text";
+import { useUser } from "../../auth/useUser";
 
 interface SendMutationPort {
   isPending: boolean;
@@ -19,6 +29,7 @@ interface SendMutationPort {
       to: SelectedRecipient["address"];
       amount: bigint;
       note: string;
+      reviewedFee?: GoodDollarFeeQuote;
     },
     options: { onSuccess: () => void }
   ): void;
@@ -29,6 +40,9 @@ interface UseSendFlowControllerOptions {
   resolvedEnsName?: string | null;
   resetNonce?: number;
   sendMutation: SendMutationPort;
+  tokens?: SendableTokenBalance[];
+  canSendCelo?: boolean;
+  eligibleCeloRecipients?: ReadonlySet<string>;
 }
 
 export function useSendFlowController({
@@ -36,13 +50,45 @@ export function useSendFlowController({
   resolvedEnsName,
   resetNonce,
   sendMutation,
+  tokens,
+  canSendCelo = false,
+  eligibleCeloRecipients,
 }: UseSendFlowControllerOptions) {
   const { formatMessage } = useIntl();
   const [state, dispatch] = useReducer(sendFlowReducer, initialSendFlowState);
-  const { amountInput, note, recipient, selectedToken, step } = state;
+  const { amountInput, note, recipient, step } = state;
+  const { primaryAddress } = useUser();
+  const currentToken =
+    tokens && state.selectedToken
+      ? (tokens.find(
+          (token) =>
+            token.chainId === state.selectedToken?.chainId &&
+            token.address.toLowerCase() === state.selectedToken.address.toLowerCase()
+        ) ?? null)
+      : state.selectedToken;
+  const selectedToken =
+    currentToken && isSendableTokenAvailable(currentToken) ? currentToken : null;
+  const generation = useRef(0);
+  const actionPending = useRef(false);
+  const confirmFee = useRef<GoodDollarFeeQuote | undefined>(undefined);
+  const [feeChanged, setFeeChanged] = useState(false);
+  const previousAccount = useRef(primaryAddress);
+  const live = useRef({ isOnline, canSendCelo });
+  live.current = { isOnline, canSendCelo };
+  useEffect(() => {
+    if (previousAccount.current !== primaryAddress) {
+      previousAccount.current = primaryAddress;
+      generation.current++;
+      confirmFee.current = undefined;
+      dispatch({ type: "reset-after-send" });
+    }
+  }, [primaryAddress]);
 
   useEffect(() => {
-    if (resetNonce !== undefined) dispatch({ type: "reset-tab" });
+    if (resetNonce !== undefined) {
+      generation.current++;
+      dispatch({ type: "reset-tab" });
+    }
   }, [resetNonce]);
 
   const validation = useMemo(
@@ -52,12 +98,90 @@ export function useSendFlowController({
   const recipientDisplayName = recipient
     ? resolvedEnsName || recipient.ensName || formatAddress(recipient.address)
     : "";
+  const celo = Boolean(selectedToken && isCeloGoodDollar(selectedToken));
+  const recipientEligible =
+    !celo || Boolean(recipient && eligibleCeloRecipients?.has(recipient.address.toLowerCase()));
+  const eligibilityRef = useRef(recipientEligible);
+  eligibilityRef.current = recipientEligible;
+  const feeQuery = useQuery({
+    queryKey: tokensKeys.transferFee(
+      primaryAddress ?? "",
+      selectedToken?.chainId ?? 0,
+      selectedToken?.address ?? "",
+      recipient?.address ?? "",
+      validation.parsedAmount
+    ),
+    enabled:
+      celo &&
+      isOnline &&
+      canSendCelo &&
+      recipientEligible &&
+      Boolean(primaryAddress && recipient) &&
+      validation.parsedAmount > 0n &&
+      state.mode === "send",
+    queryFn: () =>
+      quoteGoodDollarTransfer(
+        validation.parsedAmount,
+        primaryAddress as Address,
+        recipient!.address
+      ),
+    staleTime: 0,
+    retry: false,
+  });
+  const feeQuote = celo ? feeQuery.data : undefined;
+  const feeLoading = celo && feeQuery.isFetching;
+  const feeError = celo && feeQuery.isError;
+  const feeInsufficient = Boolean(
+    feeQuote &&
+      selectedToken?.balance !== null &&
+      feeQuote.totalDebit > (selectedToken?.balance ?? 0n)
+  );
+  const feeReady =
+    !celo ||
+    Boolean(feeQuote && !feeLoading && !feeError && !feeInsufficient && canSendCelo && isOnline);
   const canAdvance =
-    step === "recipient"
-      ? Boolean(recipient)
-      : step === "amount"
-        ? validation.valid
-        : isOnline && !sendMutation.isPending;
+    !sendMutation.isPending &&
+    (step === "recipient"
+      ? Boolean(recipient) && recipientEligible
+      : validation.valid && recipientEligible && feeReady && (step !== "review" || isOnline));
+  const canMax = Boolean(
+    selectedToken?.balance &&
+      !selectedToken.errored &&
+      (!celo || (feeQuote && !(feeQuote.senderPays && feeQuote.fee > 0n)))
+  );
+
+  const primary = async () => {
+    if (!canAdvance || actionPending.current) return;
+    const actionGeneration = generation.current;
+    if (celo && step !== "recipient") {
+      actionPending.current = true;
+      try {
+        const fresh = await feeQuery.refetch();
+        if (
+          generation.current !== actionGeneration ||
+          !live.current.isOnline ||
+          !live.current.canSendCelo ||
+          !eligibilityRef.current ||
+          fresh.isError ||
+          !fresh.data ||
+          fresh.data.totalDebit > (selectedToken?.balance ?? 0n)
+        )
+          return;
+        if (
+          step === "review" &&
+          (fresh.data.fee !== feeQuote?.fee || fresh.data.senderPays !== feeQuote?.senderPays)
+        ) {
+          setFeeChanged(true);
+          return;
+        }
+        setFeeChanged(false);
+        if (step === "review") confirmFee.current = fresh.data;
+      } finally {
+        actionPending.current = false;
+      }
+    }
+    dispatch(step === "review" ? { type: "open-confirm" } : { type: "advance" });
+  };
   const primaryLabel =
     step === "recipient"
       ? formatMessage({ id: "app.send.continue" })
@@ -66,20 +190,46 @@ export function useSendFlowController({
         : formatMessage({ id: "app.send.sendCta" });
 
   const executeSend = () => {
-    if (!recipient || !selectedToken) return;
+    if (
+      !recipient ||
+      !selectedToken ||
+      !canAdvance ||
+      !eligibilityRef.current ||
+      !isOnline ||
+      (celo && !confirmFee.current)
+    )
+      return;
     sendMutation.mutate(
       {
         token: selectedToken,
         to: recipient.address,
         amount: validation.parsedAmount,
         note,
+        ...(celo ? { reviewedFee: confirmFee.current } : {}),
       },
       { onSuccess: () => dispatch({ type: "reset-after-send" }) }
     );
   };
 
+  const updateDraft = (event: SendFlowEvent) => {
+    generation.current++;
+    confirmFee.current = undefined;
+    setFeeChanged(false);
+    dispatch(event);
+  };
+
   return {
     ...state,
+    selectedToken,
+    feeQuote,
+    feeLoading,
+    feeError,
+    feeInsufficient,
+    feeChanged,
+    recipientEligible,
+    canMax,
+    retryFee: () => feeQuery.refetch(),
+    showConfirm: state.showConfirm && Boolean(selectedToken),
     canAdvance,
     isOnline,
     isSending: sendMutation.isPending,
@@ -87,28 +237,28 @@ export function useSendFlowController({
     recipientDisplayName,
     validation,
     acts: {
-      back: () => dispatch({ type: "back" }),
-      changeAmount: (amount: string) => dispatch({ type: "change-amount", amount }),
+      back: () => updateDraft({ type: "back" }),
+      changeAmount: (amount: string) => updateDraft({ type: "change-amount", amount }),
       changeNote: (nextNote: string) => dispatch({ type: "change-note", note: nextNote }),
       closeConfirm: () => dispatch({ type: "close-confirm" }),
-      editAmount: () => dispatch({ type: "edit-amount" }),
-      editRecipient: () => dispatch({ type: "edit-recipient" }),
+      editAmount: () => updateDraft({ type: "edit-amount" }),
+      editRecipient: () => updateDraft({ type: "edit-recipient" }),
       executeSend,
       max: () => {
-        if (selectedToken?.balance) {
-          dispatch({
+        if (canMax && selectedToken?.balance) {
+          updateDraft({
             type: "change-amount",
             amount: formatUnits(selectedToken.balance, selectedToken.decimals),
           });
         }
       },
-      primary: () => dispatch(step === "review" ? { type: "open-confirm" } : { type: "advance" }),
-      selectMode: (mode: WalletMode) => dispatch({ type: "select-mode", mode }),
+      primary,
+      selectMode: (mode: WalletMode) => updateDraft({ type: "select-mode", mode }),
       selectRecipient: (nextRecipient: SelectedRecipient) =>
-        dispatch({ type: "select-recipient", recipient: nextRecipient }),
+        updateDraft({ type: "select-recipient", recipient: nextRecipient }),
       selectToken: (token: SendableTokenBalance | null) =>
-        dispatch({ type: "select-token", token }),
-      startSend: (token: SendableTokenBalance) => dispatch({ type: "start-send", token }),
+        updateDraft({ type: "select-token", token }),
+      startSend: (token: SendableTokenBalance) => updateDraft({ type: "start-send", token }),
     },
   };
 }

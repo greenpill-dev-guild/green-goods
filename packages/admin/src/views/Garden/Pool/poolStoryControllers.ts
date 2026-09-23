@@ -71,6 +71,8 @@ export function storyPoolFunding(
       settlementUnavailableReasons: [],
       obligations: [],
       transit: { dispatched: 0n, executedAwaitingConfirmation: 0n, incoming: 0n },
+      disbursements: [],
+      executions: [],
       limits: {
         rolesAllowanceRemaining: 5_000n * G,
         periodAllowanceRemaining: 10_000n * G,
@@ -115,6 +117,8 @@ export function storyPoolConsole(
     acceptClaim: noop,
     declineClaim: noop,
     saveSettings: async () => undefined,
+    retryQueued: async () => undefined,
+    discardQueued: async () => undefined,
   };
   return {
     chainId: DEFAULT_CHAIN_ID,

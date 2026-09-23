@@ -91,6 +91,13 @@ const NON_VISUAL_ADMIN_COMPONENTS = new Set<string>([
   // UI of its own — the dialog it drives is covered by CanvasLayout stories.
   // Re-homed here from the retired shared Canvas/LeftSheetContext.tsx.
   "components/Layout/leftSheetChannel.tsx",
+
+  // Boot sequence glue. `bootAdmin.tsx` is the entry-point orchestration
+  // (create root, load the tree, start optional services) and `AdminRoot.tsx`
+  // is the provider tree it mounts; neither has a state catalog of its own.
+  // The visible boot frames (`BootSurface.tsx`) carry the story.
+  "components/Boot/AdminRoot.tsx",
+  "components/Boot/bootAdmin.tsx",
 ]);
 
 /**

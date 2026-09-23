@@ -2,9 +2,9 @@
 
 **Feature Slug**: `commitment-pooling`
 **Stage**: `active`
-**Status**: `ACTIVE: Pooling contracts and the complete pooling indexer read model are merged to develop. PRD-723 source implementation and local proof are complete. The hosted indexer still requires a manual Envio deploy, fresh full sync, and read-back before pooling queries become available. The client D1 slice is on PR #749 and the editorial UI on PR #748; the admin console has a narrowed dispatch prepared (`prompt-admin-console.md`) in a worktree stacked on PR #749; settlement/Celo selectors and the Operations workspace remain gated. Celo Safe authority is frozen in the manifest and both fee reserves are funded; the ceremony is re-scoped to paused-safe-owned, so ownership transfer comes first, then the Safe-sent route, ping, and canary. Value release, audit, and external evidence remain separately blocked.`
+**Status**: `ACTIVE: Pooling contracts and the complete pooling indexer read model are merged to develop. PRD-723 source implementation and local proof are complete. The hosted indexer still requires a manual Envio deploy, fresh full sync, and read-back before pooling queries become available. The client D1 slice (PR #749) and the editorial UI (PR #748) both merged on 2026-08-22, and the admin Pool console shipped; settlement/Celo selectors and the Operations workspace remain gated. Celo GardenAccount ownership completed on 2026-09-10 — all 18 GardenAccounts and their 2-of-3 Garden Safes are live, and both fee reserves are funded. Value release, audit, and external evidence remain separately blocked. **The current front is the release QA walk** — read [`qa-readiness-plan.md`](qa-readiness-plan.md) (2026-09-20) and the gardener-Celo section below, not this paragraph, for what is in flight.`
 **Created**: `2026-07-03`
-**Last Updated**: `2026-08-21`
+**Last Updated**: `2026-09-21`
 
 Linear mirror: project [Commitment Pooling](https://linear.app/greenpill-dev-guild/project/commitment-pooling-4bc53572f354). Native phases: **Scope and Design** (2026-07-22), **Build** (2026-07-31), **Release** (2026-08-12), and **Follow On / Hardening** (2026-09-30). Operational checkpoints are separate: July dry run (2026-07-31) and Community plus settlement-evidence delivery (2026-09-30). **The full document map is the next section.** Community-specific diagrams, wireframes, journeys, and research operations live in `.plans/active/community-interface/`. The 2026-07-10/11 reconciliation, PRD-686/RESR-57 predicate, and null PRD-651/697 dates were live-verified historical state; current Linear convergence must be reread before any write. **Fourth-garden policy (Decision Log #29, 2026-07-18 — supersedes Decision Log #25 and Decision Log #27): no fourth garden is selected.** The slot is open, candidates are under consideration, and **no artifact names one**. The three named gardens cover all four action domains on their own. The earlier Decision Log #25→Decision Log #26→Decision Log #27 naming sequence is closed history; do not re-apply it.
 
@@ -12,21 +12,42 @@ Linear mirror: project [Commitment Pooling](https://linear.app/greenpill-dev-gui
 >
 > **Canonical historical mapping (2026-07-20).** References to the retired identifiers resolve as **PRD-701 → COM-3** and **RESR-62 → COM-7**. Preserve the old identifiers inside frozen archives and dated history; use COM-3 and COM-7 for active instructions. **Extended 2026-07-24: PRD-735 → COM-11** (the settlement-evidence lane issue moved to the Community team; parent PRD-650, Follow On / Hardening milestone, and 2026-09-30 due date unchanged) — use COM-11 for active instructions (corrections-log §13).
 
+## Gardener Celo wallets — approved 2026-09-05
+
+The [accepted wallet plan](gardener-celo-wallets.md) reopens `state_api`, `ui_client`, and
+`release_ops`. The existing Garden Safe/CCIP canary remains accepted. The separate Kernel
+passkey/G$ canary and production activation remain human release prerequisites.
+
+- [x] Complete chain-aware passkey routing and the dedicated Celo policy binding. (2026-09-21, PR #854: the binding now falls back to the general policy when no Celo override is set.)
+- [x] Complete the Celo balance, contributor receipts, and fee-aware existing send flow.
+- [x] Complete W23 translations, DOM tests, and the automated critical release checks.
+- [ ] Complete authenticated Brave proof and the production Kernel canary.
+- [ ] Obtain fresh authorization for production policy activation and the delivery toggle.
+
+Current implementation and proof: [wallet handoff](handoffs/codex-gardener-celo-wallets.md).
+The [validation receipt](evidence/gardener-celo-wallet-validation-2026-09-05.json) records 35
+automated passes at `ea193295f`; authenticated Brave proof and production actions remain blocked.
+
 ## Document map
 
-Every file in this hub, by role — **192 files**: 42 at the hub root, 42 under `artifacts/`,
-25 under `handoffs/`, 22 under `hifi/`, 20 under `operations/`, 40 under `reports/` (including
-`reports/linear/`), and 1 under `evidence/`. Counts re-taken 2026-08-24 when the two QA
-dispatch prompts landed; the previous 182 predated the commitment-walk
-generator/caption/curation files and the 2026-08-22 report wave.
+Every file in this hub, by role — **370 files**: 48 at the hub root, 42 under `artifacts/`,
+27 under `handoffs/`, 22 under `hifi/`, 20 under `operations/`, 209 under `reports/` (45 at its
+own root, plus `reports/evidence/` at 162 and `reports/linear/` at 2), and 2 under `evidence/`.
+Counts re-taken 2026-09-21 against `git ls-files`; the previous 192 was taken 2026-08-24 and
+predated `reports/evidence/`, the September QA-readiness wave, and the gardener-Celo files.
 **This list is the index — if you add a document here, add its row.** Root files each get their own
 row; the six subtrees get one row apiece naming their own in-tree index, because the row for a
 subtree is only honest if that index actually enumerates the tree (this failed review on
 2026-08-05: five root files had no row, three subtrees had no inventory at all, and the
 `handoffs/` row pointed at a README that described source order rather than listing the files).
+**The rows have not caught up with the 2026-09-21 re-count.** Five root files still have no row —
+`gardener-celo-launch.md`, `gardener-celo-setup.mjs`, `gardener-celo-setup.test.mjs`,
+`prompt-qa-experience-fixes.md`, `qa-readiness-plan.md` — and `reports/evidence/` has no subtree
+row. Write those before treating the table below as a complete index.
 
 | Document | Role | Authority |
 |---|---|---|
+| `gardener-celo-wallets.md` | Approved W23 implementation and separate Kernel canary plan | User-approved scope |
 | `plan.todo.md` | **This file.** Decisions, tracks, lane checklists, follow-ups. The hub entry point. | Lane-level execution truth |
 | `standing-commitments-spec.md` | Offer once or Offer over time → pool-scoped internal `CommitmentSeries` for the ongoing path → finite Offer instances → linked Story; honest availability, persistence, trust, succession, and artifact ownership | **Ongoing-Offer architecture source of truth** |
 | `contract-spec.md` | Pooling module + register: state machines, events, §6.1 permission matrix | **Contract-layer source of truth** |
@@ -52,7 +73,7 @@ subtree is only honest if that index actually enumerates the tree (this failed r
 | `prompt-editorial-backend.md` | Codex dispatch prompt for the editorial backend readers (merged as PR #745 / #746) | Dispatch prompt — historical once merged |
 | `prompt-client-loop.md` | Claude Code dispatch prompt to finish the client PWA in a worktree: Phase 0 fixes, D1 close-the-loop (W2a, W4, DomainImpact rows, WFLOW, claims, W25), D2 Offer over time (W32, W34, W35); written from `reports/build-review-2026-08-21.md` | Dispatch prompt — re-verify its "Present state" before use |
 | `prompt-admin-console.md` | Claude Code dispatch prompt for the steward console in a worktree: Phase 0 shared foundation (pool/cycle mutations, resumable write chains, steward readers), D1 run-the-season (W7, W11, W8, W10, W13, W12), D2 close-the-season (W7C, W26, W9, W14, W7M); written 2026-08-21 from the build review plus a code read of `develop@bcf6adfc2` and PR #749; scope recorded in `handoffs/claude-ui-admin.md` § Narrowed dispatch option | Dispatch prompt — stacked on PR #749; the D1 PR opens after #749 lands; re-verify its "Present state" before use |
-| `prompt-qa-functional.md` | Agent dispatch prompt for QA Pass 1 · Wave 1 (functional QA across client PWA, steward console, and editorial): Mode A fixture & regression (unattended) or Mode B co-piloted production live loop (two sanctioned test gardens, `dev:prod:mirror`, Afo signs every prompt under the friendly-window protocol); tier-labeled coverage, routed defects, no fixes; written and finalized 2026-08-24 from `develop@cc8722a7e` after #748/#749/#752 merged. Wave 2 (human experience QA) lives in `handoffs/claude-qa-pass-1.md` | Dispatch prompt — re-verify its "Present state" before use |
+| `prompt-qa-functional.md` | Agent dispatch prompt for QA Pass 1 · Wave 1 (functional QA across client PWA, steward console, and editorial): Mode A fixture & regression (unattended) or Mode B co-piloted production live loop (two sanctioned test gardens, `bun run dev -- prod-mirror`, Afo signs every prompt under the friendly-window protocol); tier-labeled coverage, routed defects, no fixes; written and finalized 2026-08-24 from `develop@cc8722a7e` after #748/#749/#752 merged. Wave 2 (human experience QA) lives in `handoffs/claude-qa-pass-1.md` | Dispatch prompt — re-verify its "Present state" before use |
 | `prompt-qa-experience-audit.md` | Agent dispatch prompt for the design & experience audit feeding Wave 2: read-only, no signatures — Half 1 design-system conformance (review-checklist Lenses 1–5, interaction-patterns, defect-grammar identifiers, accepted-deviation awareness) + Half 2 experience walk reusing `flow-audit-prompt.md`'s six-qualities/relay/arc method against the shipped surfaces; Storybook + fixture-world capture grid across themes/widths/locales; output = ranked improvement backlog + Wave 2 judgment shortlist; written 2026-08-24 from `develop@557abcb74` | Dispatch prompt — judgment-heavy; recommended for Fable/Claude, not Codex |
 | `reports/build-review-2026-08-21.md` | Layer-by-layer build review of the PRD-650 tree: status board, coverage tables, severity-ordered findings, tracking drift, ranked risks, next moves, and the commands run | Dated review evidence — findings carry file:line anchors as of `develop@665e8a573` |
 | `reports/client-loop-2026-08-21.md` | D1 session report for `feature/commitment-pooling-client-loop` (PR #749): built/not-built table keyed to every state id, the seven open decisions, and the demo-world addendum | Dated session evidence — the branch's own account of itself |
@@ -94,7 +115,7 @@ subtree is only honest if that index actually enumerates the tree (this failed r
 | `artifacts/visuals/` (42 files) | The 21 hand-crafted SVG assets and their 2x PNG upload companions. **`visual-assets.md` is the per-asset index** — it names every file, its Google Doc placement, and what it must show. Nothing here is generated by a build script; each pair is authored | Published audience graphics |
 | `hifi/` (22 files) | Executable hi-fi screen registry consumed by `prototypes-artifact.build.ts`: `screens/{client,client-wallet,admin,settlement,exchange,funding,public,index}.ts` plus `journeys.ts`, `validate.ts`, `types.ts`, `fixtures.ts`, `tokens.ts`, `player.ts`, `html.ts`, `ascii.ts`, `icons.ts`, `kit.ts`, `legacy.ts`, `components.ts`, `frames.ts`, and the generated `state-reference.gen.ts`. The closure validator asserts directly against `screens/client.ts`, `screens/admin.ts`, `screens/settlement.ts`, `journeys.ts`, `types.ts`, and `validate.ts` | **Executable state/journey truth for the prototypes** |
 | `operations/` (20 files) | Live-chain operational evidence, one directory per operation. `steward-hat-relabel/` holds the PRD-748 Steward relabel: `README.md` (its own index), the `prepare.ts` / `relabel.ts` / `refresh-direct-plan.ts` scripts, dated `preflight-*` / `steward-upgrade-baseline-*` / `direct-admin-plan-*` / `execution-partitions-*` JSON captures keyed by chain and block, plus `preflight-findings.md`, `upgrade-plan-review.md`, and `post-execution-evidence.md` | **Dated operational evidence — captures are immutable** |
-| `evidence/` (1 file) | Pinned external-dependency capture: `celo-zodiac-roles-mastercopies-2026-08-18.json` records the Zodiac Roles v2 mastercopy addresses the Celo settlement authority is pinned to. Added by PR #727, outside the prototype lane | **Dated external pin — immutable capture** |
+| `evidence/` (2 files) | `celo-zodiac-roles-mastercopies-2026-08-18.json` pins the Zodiac Roles v2 mastercopies. `gardener-celo-wallet-validation-2026-09-05.json` records the tested wallet commit, automated checks, and remaining browser/production limits | **Dated evidence captures** |
 
 **Published artifacts** (rebuilt from this hub, same URLs on each rebuild):
 
@@ -1964,15 +1985,14 @@ does not begin against moving contracts or indexer queries.
 16. [ ] **Walkthrough-video completion (PRD-728):** after QA Pass 2, record, edit, caption, transcribe, privacy-review, and replay the approved client PWA, admin, editorial, gardener, Garden Steward, evaluator, and operational walkthroughs against the final source SHA.
 17. [ ] **Cycle 1 and separately authorized value operations:** open Cycle 1 from the approved mandate artifacts only when its readiness gate passes. Settlement broadcast/canary/exit proof remains human-owned and independently authorized; one Fulfilled commitment may read Confirmed only after the authenticated acknowledgment. The `CreditRegistry` remains an August-wave companion, but its contracts lane cannot dispatch until the in-code pooling/settlement interface freeze, spec revalidation, and human legal/operations review gates all clear.
 
-PRD-758 is a parallel Community Needs & Signals architecture gate. It blocks PRD-682 only and is
-not part of the Commitment Pooling backend critical path.
+PRD-758 closed on 2026-08-29. It was never part of the Commitment Pooling backend critical path.
 
 ### Track C: September community interface
 
-- [ ] PRD-682 shared-foundation extraction, then independent `packages/community` scaffold at `community.greengoods.app` / local port 3010 (after PRD-723 substrate; canonical artifacts in `.plans/active/community-interface/`)
-- [ ] PRD-691 Community admin seeding intake after the Commitment Pooling admin and PRD-682 Community substrate are GREEN (canceled PRD-683 is historical only)
+- [ ] Deferred 2026-09-07 in favor of QA: shared-foundation extraction, then the independent `packages/community` scaffold at `community.greengoods.app` / local port 3010. This is a hackathon build tracked by PRD-691; canonical artifacts are in `.plans/backlog/community-interface/`. PRD-682 was canceled as superseded on 2026-09-11.
+- [ ] PRD-691 Community admin seeding intake after the Commitment Pooling admin and the Community substrate are GREEN (canceled PRD-683 is historical only)
 
-The Needs layer consumed by PRD-682 and PRD-691 (Need/NeedSignal/NeedStatus/FundingAttribution schemas, shared substrate, admin triage, funder lens) is planned and tracked separately in `.plans/active/community-interface/` and the **Community Needs & Signals** Linear project. Canceled PRD-683 remains historical traceability only; register #28 records the schema-count amendment.
+The Needs layer consumed by PRD-691 (Need/NeedSignal/NeedStatus/FundingAttribution schemas, shared substrate, admin triage, funder lens) is planned and tracked separately in `.plans/backlog/community-interface/` and the **Community Needs & Signals** Linear project. Canceled PRD-683 remains historical traceability only; register #28 records the schema-count amendment.
 
 ## TDD / Proof Order
 
@@ -2193,7 +2213,7 @@ Per the Validation Intent Ladder: lane work uses targeted proof; the coordinator
 - [ ] Lane-targeted: lane handoff Validation sections name the commands for each Afo-dispatched work unit
 - [ ] Checkpoint: `node scripts/dev/ci-local.js --quick` after multi-lane merges
 - [ ] Ship Gate before release: `bun format && bun lint && bun run test && bun run build` + `bun run lint:vocab` + `bun run agentic:check` + `bun run check:design-md` + `bun run check:design-generated` + `bun run check:design-tokens` + `bun run --filter @green-goods/shared check:stories` and `check:story-quality` where Storybook-covered surfaces changed
-- [ ] Full-local dogfood before cycle 1: `bun run dev` + `bun run dev:smoke:full`
+- [ ] Full-local dogfood before cycle 1: `bun run dev` + `bun run dev:smoke -- full`
 
 ## Follow-ups from the 2026-07-18 audit response (Linear MCP was unauthenticated this session — file these when it reconnects)
 

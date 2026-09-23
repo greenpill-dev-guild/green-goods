@@ -74,6 +74,42 @@ Do not expose an internal port solely because a test wants access to implementat
 - **Leaf exports are graph controls**: declared leaf specifiers can reduce import and mock graphs,
   but they do not prove depth, ownership, useful behavior, or a sound seam.
 
+## Reuse and capability ownership
+
+Before adding a component, hook, helper, or cross-feature dependency, record three things in the
+existing implementation plan or review: the closest existing implementation, the behavior it does
+not cover, and the capability that should own that behavior. Link the concrete source. Prefer
+extending or moving the existing implementation when it can meet the need without mixing policy.
+Do not create a separate inventory or report for this evidence.
+
+Place general capabilities with their capability owner, regardless of which feature first needed
+them. Keep feature policy with its feature and cross-feature orchestration at the consuming hook,
+provider, or other explicit composition root. For example, message signing belongs to auth;
+connectivity does not require a work queue; amount parsing does not own withdrawal eligibility.
+Store transitions stay independent of UI hooks, providers, and components. Domain dirty-state
+rules stay with their own state transitions; shared wizard navigation belongs to neither wizard's UI.
+
+A new visual container is a product decision. Reuse the existing list, form, or drawer when it can
+express the content and interactions clearly. A new capability does not by itself justify a new
+card. Review the rendered result and its loading, empty, and failure states when changing the UI.
+
+File length is a maintenance constraint, not a design rationale. An extraction must hide coherent
+behavior, reduce repeated decisions, or preserve a real boundary. Do not split solely to meet a
+ceiling, wrap a single call to give it another name, or add injectable ports for pure computation.
+Keep related behavior together behind the smallest useful interface; more files or fewer lines
+per file do not establish module depth.
+
+During final review, check the reuse evidence and dependency direction. Treat unexplained duplicate
+controls, general helpers owned by unrelated features, and pass-through layers as actionable design
+gaps even when exports, typechecks, and tests pass. Remove obsolete paths and redundant tests when
+moving behavior; test the interface real callers use.
+
+The source-structure checker enforces the accepted narrow directions: pure store transitions
+cannot import UI code, and generic auth/wallet modules cannot import profile-avatar or
+commitment-pooling features. Protected scopes must use capability leaves instead of mixed Shared
+barrels. These checks prevent known dependency regressions; review still owns module depth,
+necessary UI, and seam placement. Extend guards only for another concrete, accepted boundary.
+
 ## Export taxonomy
 
 Every declared public specifier belongs to one category:
@@ -140,3 +176,21 @@ Do not collapse these signals:
 Architecture certification requires the applicable proof categories and a fresh deterministic
 registry fingerprint. A checker can verify declared evidence and graph facts; it cannot prove that
 an interface is deep or that a design choice is wise.
+
+<!-- shared-engineering:begin -->
+## Domain-driven application
+
+When architecture work changes domain meaning or behavior, use the shared
+`domain-driven-design` skill through root `AGENTS.md`. Read `product.md` for the
+relevant user outcome and `ontology.md` for authoritative entities, vocabularies,
+constraints, and state machines. The existing candidate workflow remains in force.
+
+For a selected change, identify the rule owner, required consistency, callers,
+and a concrete valid and rejected scenario. Distinguish local job state, chain
+state, and indexed observations when the workflow crosses those boundaries.
+Check retry identity and partial completion where relevant. A package is not
+proof of a bounded context; preserve actual trust, protocol, and deployment
+boundaries. Use existing modules and adapters before adding another abstraction.
+Capture consequential decisions and proof in the owning Plan Hub, not a parallel
+DDD architecture record.
+<!-- shared-engineering:end -->

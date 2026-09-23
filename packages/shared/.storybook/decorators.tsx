@@ -4,7 +4,7 @@ import {
   QueryClientProvider,
   type QueryKey,
 } from "@tanstack/react-query";
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useLayoutEffect, useMemo, useState } from "react";
 import { IntlProvider } from "react-intl";
 import { MemoryRouter, type MemoryRouterProps } from "react-router-dom";
 import { useGlobals } from "storybook/preview-api";
@@ -122,6 +122,59 @@ export const withAdminStoryIsolation: Decorator = (Story, context) => {
   }, [context.id]);
 
   return <Story />;
+};
+
+/**
+ * Surface parity. One Storybook build serves shared, admin, and client stories,
+ * so each surface's tokens must load only for that surface's stories. The
+ * surface is stamped on <html> as `data-surface` (so dialogs and sheets that
+ * portal out of the story still match) and the CSS in `surfaces.css` keys off
+ * it: the admin M3 type scale, Plus Jakarta Sans, and the Tier 1a colour
+ * aliases for `admin`; the client typography rules for `app` and `website`;
+ * and `data-site="website"` (the public shell's attribute, DL-026) around
+ * website stories so the shared buttons take the square corner and semibold
+ * label (DL-029).
+ *
+ * `withSurface` runs globally (preview.tsx) and infers the surface from the
+ * story title — `Admin/*` → admin, `Client/Public/*` and `Public/*` → website,
+ * everything else → app. A story overrides it with `parameters.surface`, which
+ * keeps a single surface root: a root nested by a story decorator would be
+ * overwritten by this outer one, whose layout effect runs after its child's.
+ */
+export type StorySurface = "app" | "website" | "admin";
+
+export function surfaceForTitle(title: string): StorySurface {
+  if (/^(Admin\/|Design System\/Admin)/.test(title)) return "admin";
+  if (/^(Client\/Public\/|Public\/|Design System\/Website)/.test(title)) return "website";
+  return "app";
+}
+
+function SurfaceRoot({ surface, children }: { surface: StorySurface; children: React.ReactNode }) {
+  useLayoutEffect(() => {
+    document.documentElement.dataset.surface = surface;
+    return () => {
+      delete document.documentElement.dataset.surface;
+    };
+  }, [surface]);
+
+  if (surface === "website") {
+    return (
+      <div data-site="website" className="contents">
+        {children}
+      </div>
+    );
+  }
+  return <>{children}</>;
+}
+
+export const withSurface: Decorator = (Story, context) => {
+  const surface =
+    (context.parameters.surface as StorySurface | undefined) ?? surfaceForTitle(context.title);
+  return (
+    <SurfaceRoot surface={surface}>
+      <Story />
+    </SurfaceRoot>
+  );
 };
 
 export const withTheme: Decorator = (Story) => {
@@ -361,6 +414,16 @@ export function withAdminIdentityRole(role: Exclude<DevMockAuthRole, "disconnect
     );
   };
 }
+
+/**
+ * Auth context with nobody signed in: no address and no chosen username. For a component that
+ * only reads the username from auth and takes its account from a mocked data hook.
+ */
+export const withSignedOutAuth: Decorator = (Story, context) => (
+  <DevAuthProvider mockRole="disconnected">
+    <Story {...context} />
+  </DevAuthProvider>
+);
 
 /**
  * Client runtime harness for protected PWA/client stories that render the real

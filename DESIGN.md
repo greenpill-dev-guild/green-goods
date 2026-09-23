@@ -38,7 +38,9 @@ typography:
     fontWeight: 700
     lineHeight: 1.1
 rounded:
+  none: 0px
   md: 8px
+  squircle: 12px
   lg: 16px
   xl: 20px
   2xl: 24px
@@ -67,8 +69,15 @@ components:
     typography: "{typography.label-md}"
   accent-indicator:
     backgroundColor: "{colors.tertiary}"
-    textColor: "{colors.on-tertiary}"
     rounded: "{rounded.full}"
+  count-badge:
+    backgroundColor: "{colors.tertiary-action}"
+    textColor: "{colors.on-tertiary-action}"
+    typography: "{typography.label-md}"
+    rounded: "{rounded.full}"
+  accent-ink:
+    textColor: "{colors.on-tertiary}"
+    typography: "{typography.label-md}"
   warning-badge:
     backgroundColor: "{colors.amber}"
     textColor: "{colors.neutral-dark}"
@@ -86,10 +95,29 @@ components:
     textColor: "{colors.on-tertiary-action}"
     typography: "{typography.label-md}"
     padding: "{spacing.md}"
-    rounded: "{rounded.full}"
+    rounded: "{rounded.lg}"
   button-primary-hover:
     backgroundColor: "{colors.tertiary-action-hover}"
     textColor: "{colors.on-tertiary-action}"
+    typography: "{typography.label-md}"
+    rounded: "{rounded.lg}"
+  button-primary-website:
+    backgroundColor: "{colors.tertiary-action}"
+    textColor: "{colors.on-tertiary-action}"
+    typography: "{typography.label-md}"
+    padding: "{spacing.md}"
+    rounded: "{rounded.none}"
+  button-secondary:
+    textColor: "{colors.primary}"
+    typography: "{typography.label-md}"
+    padding: "{spacing.md}"
+    rounded: "{rounded.lg}"
+  field:
+    textColor: "{colors.primary}"
+    typography: "{typography.body-md}"
+    rounded: "{rounded.lg}"
+  chip:
+    textColor: "{colors.primary}"
     typography: "{typography.label-md}"
     rounded: "{rounded.full}"
   app-title:
@@ -110,9 +138,9 @@ components:
 
 This file uses **role vocabulary** (neutral/primary/secondary/tertiary = canvas/ink/stone/accent). The codebase uses its own internal token naming — `--color-primary`, `bg-primary`, and `bg-primary-base` are historical implementation labels that resolve to the **green accent/action family**, not the DesignMD `primary` role. Neither renames — this file translates between them.
 
-Text-bearing filled CTAs use the darker `tertiary-action` role so white text passes contrast. The brighter `tertiary` garden green stays available for icons, active nav, badges, progress, soft highlights, and low-volume brand accents.
+Any green fill that carries text, a number, or a glyph uses the darker `tertiary-action` role with white `on-tertiary-action`: filled CTAs, count badges, step markers, selected chips, and pills. White on `tertiary-action` measures 5.72:1; white on bright `tertiary` is 2.36:1, and dark `on-tertiary` on it reads muddy at 4.64:1 (DL-017).
 
-Tiny text on bright `tertiary` surfaces uses `on-tertiary` so count badges and selected chips can stay visually bright without failing contrast.
+The brighter `tertiary` garden green stays on text-free accents: icons, active nav, dots, progress lines, soft highlights, and low-volume brand accents.
 
 ---
 
@@ -233,7 +261,7 @@ Surface-specific copy patterns (browser editorial, PWA gardener-facing, admin ut
 
 Full specs in [`.claude/skills/design/language.md`](.claude/skills/design/language.md). AI prompts should honor these one-line rules:
 
-- **Shape** — *Fixed* (badges, avatars), *Capsule* (primary CTA, icon buttons), *Concentric* (nested: `child_radius = parent_radius − padding`). Shape alone creates hierarchy — capsule reads as primary next to squircle secondary.
+- **Shape** — *Fixed* (badges, avatars), *Capsule* (icon buttons, chips), *Concentric* (nested: `child_radius = parent_radius − padding`). Buttons take one corner per surface whatever their emphasis: the 12px squircle (`rounded.squircle`) in the installed app, 16px (`rounded.lg`) on the public website; fill, outline, and colour carry emphasis. Fields are 16px (`rounded.lg`). Buttons and fields share one height scale: 48 / 44 / 40 / 32px.
 - **Motion** — Named spring tokens only (`--spring-spatial`, `--spring-spatial-fast`, `--spring-effects`, etc.). Never hardcoded `cubic-bezier` or `duration`. Things settle like a leaf on water.
 - **Material** — Five thicknesses (ultrathin 20% / thin 40% / regular 65% / thick 85% / solid 100%). Match thickness to content density. Never body text on ultrathin. Admin limits glass to Navigation/FAB chrome only; the admin `AppBar` root stays transparent and dialogs/side sheets stay solid.
 - **Elevation** — Five Z-layers (Z0 substrate → Z4 overlay). Admin workspace action/detail flows open in centered `AdminDialog`; the canvas stays at rest and depth comes from the dialog scrim/elevation. Global AppBar surfaces use solid `AdminSideSheet`. Viewport dialogs and PWA sheets may use the shared scrim token.
@@ -246,7 +274,7 @@ Full specs in [`.claude/skills/design/language.md`](.claude/skills/design/langua
 - Use role vocabulary (canvas/ink/stone/green) when describing designs to AI tools
 - Use semantic color tokens in code, never raw values
 - Let the canvas breathe — generous whitespace
-- Use shape to create hierarchy (capsule > squircle > concentric)
+- Give every button on a surface the same corner; show importance with fill, outline, and colour
 - Celebrate milestone moments with expressive motion
 - Design for sunlight readability (high contrast on warm backgrounds)
 - Use spring physics for all transitions

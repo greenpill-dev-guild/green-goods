@@ -15,7 +15,6 @@ import {
   useSettlementConfigurations,
   useSettlementSubject,
 } from "../hooks/commitment-pooling/useSettlementQueries";
-import { useSettlementWalletTransfer } from "../hooks/commitment-pooling/useSettlementWalletTransfer";
 import { createTestQueryClient, renderHookWithProviders } from "./test-utils";
 
 const ACCOUNT = "0x1111111111111111111111111111111111111111";
@@ -430,7 +429,8 @@ describe("useSettlementOperationsCapabilities", () => {
     );
     expect(owner.result.current).toMatchObject({
       canQueueFunding: true,
-      canOperateSettlement: true,
+      canDispatchOrRetry: false,
+      canRequeueOrCancel: false,
       showOperations: true,
       isLoading: false,
     });
@@ -454,7 +454,8 @@ describe("useSettlementOperationsCapabilities", () => {
     );
     expect(stewardDispatcher.result.current).toMatchObject({
       canQueueFunding: true,
-      canOperateSettlement: true,
+      canDispatchOrRetry: true,
+      canRequeueOrCancel: false,
       showOperations: true,
     });
   });
@@ -472,7 +473,8 @@ describe("useSettlementOperationsCapabilities", () => {
     );
     expect(unresolved.result.current).toMatchObject({
       canQueueFunding: false,
-      canOperateSettlement: false,
+      canDispatchOrRetry: false,
+      canRequeueOrCancel: false,
       showOperations: true,
       isLoading: true,
     });
@@ -490,7 +492,8 @@ describe("useSettlementOperationsCapabilities", () => {
     );
     expect(errored.result.current).toMatchObject({
       canQueueFunding: false,
-      canOperateSettlement: false,
+      canDispatchOrRetry: false,
+      canRequeueOrCancel: false,
       showOperations: false,
     });
     errored.unmount();
@@ -507,100 +510,12 @@ describe("useSettlementOperationsCapabilities", () => {
     );
     expect(unavailable.result.current).toMatchObject({
       canQueueFunding: false,
-      canOperateSettlement: false,
+      canDispatchOrRetry: false,
+      canRequeueOrCancel: false,
       showOperations: false,
     });
     expect(mocks.useReadContract).toHaveBeenLastCalledWith(
       expect.objectContaining({ query: { enabled: false } })
     );
-  });
-});
-
-describe("useSettlementWalletTransfer", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-    mocks.senderAvailable = true;
-    mocks.sender.sendContractCall.mockResolvedValue({ hash: "0xabc", sponsored: true });
-  });
-
-  function renderTransfer(
-    overrides: Partial<Parameters<typeof useSettlementWalletTransfer>[0]> = {}
-  ) {
-    const queryClient = createTestQueryClient();
-    const invalidate = vi.spyOn(queryClient, "invalidateQueries").mockResolvedValue();
-    const hook = renderHookWithProviders(
-      () =>
-        useSettlementWalletTransfer({
-          primaryChainId: 42161,
-          chainId: 42220,
-          indexedGardenerDeliveryEnabled: true,
-          mainnetEvidenceReady: true,
-          ...overrides,
-        }),
-      { queryClient }
-    );
-    return { ...hook, invalidate };
-  }
-
-  it("sends an enabled positive transfer and invalidates settlement configuration", async () => {
-    const { result, invalidate } = renderTransfer();
-    expect(result.current.enabled).toBe(true);
-
-    await act(async () => {
-      await result.current.mutateAsync({ token: TOKEN, to: ACCOUNT, amount: 10n });
-    });
-    expect(mocks.sender.sendContractCall).toHaveBeenCalledWith({
-      address: TOKEN,
-      abi: expect.any(Array),
-      functionName: "transfer",
-      args: [ACCOUNT, 10n],
-      chainId: 42220,
-    });
-    expect(invalidate).toHaveBeenCalledWith({
-      queryKey: queryKeys.commitmentPooling.settlementConfiguration(42220),
-    });
-  });
-
-  it.each([
-    {
-      name: "account-profile chain mismatch",
-      overrides: { chainId: 421614 },
-      configure: () => {},
-      amount: 10n,
-      message: "Gardener delivery is unavailable",
-    },
-    {
-      name: "missing sender",
-      overrides: {},
-      configure: () => {
-        mocks.senderAvailable = false;
-      },
-      amount: 10n,
-      message: "Transaction sender is unavailable",
-    },
-    {
-      name: "non-positive amount",
-      overrides: {},
-      configure: () => {},
-      amount: 0n,
-      message: "Transfer amount must be positive",
-    },
-  ])("fails closed for $name and reports transfer context", async (testCase) => {
-    testCase.configure();
-    const { result } = renderTransfer(testCase.overrides);
-    const request = { token: TOKEN, to: ACCOUNT, amount: testCase.amount };
-
-    await act(async () => {
-      await expect(result.current.mutateAsync(request)).rejects.toThrow(testCase.message);
-    });
-    expect(mocks.sender.sendContractCall).not.toHaveBeenCalled();
-    expect(mocks.mutationErrorHandler).toHaveBeenCalledWith(expect.any(Error), {
-      metadata: {
-        action: "transfer",
-        chainId: testCase.overrides.chainId ?? 42220,
-        token: TOKEN,
-        parsedErrorName: "MockContractError",
-      },
-    });
   });
 });

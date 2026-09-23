@@ -1,3 +1,4 @@
+import { WorkCard as SharedWorkCard } from "@green-goods/shared/components/Cards/WorkCard/WorkCard";
 import { describe, expect, it, vi } from "vitest";
 import { MinimalWorkCard } from "../../components/Cards/Work/WorkCard";
 import { renderWithProviders as render, screen, userEvent } from "../test-utils";
@@ -32,7 +33,56 @@ describe("components/Cards/MinimalWorkCard", () => {
 
     render(<MinimalWorkCard work={work as any} onClick={handleClick} />);
 
-    await user.click(screen.getByRole("button"));
+    const card = screen.getByRole("button");
+    expect(card).toHaveAttribute("data-pressable", "card");
+    await user.click(card);
     expect(handleClick).toHaveBeenCalledTimes(1);
+  });
+
+  it("renders a card with nothing to open as content, not a button that does nothing", () => {
+    render(
+      <SharedWorkCard
+        work={{
+          id: "work-2",
+          title: "Plant Flowers",
+          status: "approved",
+          createdAt: work.createdAt,
+        }}
+      />
+    );
+
+    expect(screen.queryByRole("button")).not.toBeInTheDocument();
+  });
+
+  it("keeps the compact row and its media square on the same height contract", () => {
+    render(<MinimalWorkCard work={work as any} onClick={vi.fn()} />);
+
+    const card = screen.getByRole("button");
+    const image = card.querySelector("img");
+    const media = image?.parentElement;
+
+    expect(card).toHaveStyle({ height: "88px" });
+    expect(media).toHaveStyle({ height: "100%", aspectRatio: "1 / 1" });
+  });
+
+  it("uses one primary state and supporting line for a queued card", () => {
+    render(
+      <MinimalWorkCard
+        work={work as any}
+        onClick={vi.fn()}
+        presentation={{
+          statusLabel: "To upload",
+          statusTone: "uploading",
+          contextLabel: "You submitted",
+          supportingText: "Ready to sign and upload",
+        }}
+      />
+    );
+
+    const card = screen.getByRole("button");
+    expect(screen.getByText("To upload")).toBeInTheDocument();
+    expect(screen.queryByText("Approved")).not.toBeInTheDocument();
+    expect(screen.getByText("Ready to sign and upload")).toBeInTheDocument();
+    expect(card.querySelectorAll("h4")).toHaveLength(1);
   });
 });

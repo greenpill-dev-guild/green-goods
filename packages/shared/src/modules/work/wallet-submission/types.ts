@@ -1,3 +1,4 @@
+import type { WorkUploadCheckpoint } from "../../../types/domain";
 export type WalletSubmissionStage =
   | "validating"
   | "uploading"
@@ -8,6 +9,11 @@ export type WalletSubmissionStage =
 export type OnProgressCallback = (stage: WalletSubmissionStage, message: string) => void;
 
 export interface WalletSubmissionOptions {
+  userAddress?: import("../../../types/domain").Address;
+  assertOwnership?: () => void | Promise<void>;
+  onBroadcast?: (hash: `0x${string}`) => Promise<void>;
+  checkpoint?: WorkUploadCheckpoint;
+  onCheckpoint?: (checkpoint: WorkUploadCheckpoint) => Promise<void>;
   clientWorkId?: string;
   onProgress?: OnProgressCallback;
   txTimeout?: number;

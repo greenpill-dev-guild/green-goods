@@ -62,10 +62,11 @@ export function AddressCopy({
     <div className={cn("w-full", className)}>
       <button
         type="button"
+        data-pressable="row"
         onClick={handleCopy}
         aria-describedby={statusId}
         className={cn(
-          "flex w-full items-center justify-between gap-3 rounded-[var(--radius-xl)] border border-stroke-soft-200 bg-bg-white-0 text-left shadow-sm tap-feedback transition-[background-color,border-color,box-shadow,transform] duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)]",
+          "flex w-full items-center justify-between gap-3 rounded-[var(--radius-xl)] border border-stroke-soft-200 bg-bg-white-0 text-left shadow-sm transition-[background-color,border-color,box-shadow,transform,scale] duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)]",
           "active:scale-[0.99]",
           "focus:outline-none",
           pwaStatusStyles.primary.focus,

@@ -6,16 +6,16 @@
  * Dependency-free (node:fs / node:path / node:url only). Does a surgical text
  * replace of the FIRST `"version"` field in each file rather than JSON
  * parse/stringify, so the diff is exactly one line per file and passes
- * `bun run format:check` (biome) untouched.
+ * `bun run format --check` (biome) untouched.
  *
  * Usage:
- *   bun run version:bump <x.y.z> [--dry-run|--check]
+ *   node scripts/ops/bump-version.mjs <x.y.z> [--dry-run|--check]
  *
  * Examples:
- *   bun run version:bump 1.2.0            # monthly minor bump
- *   bun run version:bump 1.2.1            # hotfix patch bump
- *   bun run version:bump 1.2.0 --dry-run  # preview, write nothing
- *   bun run version:check 1.2.0            # fail unless every release marker matches
+ *   node scripts/ops/bump-version.mjs 1.2.0            # monthly minor bump
+ *   node scripts/ops/bump-version.mjs 1.2.1            # hotfix patch bump
+ *   node scripts/ops/bump-version.mjs 1.2.0 --dry-run  # preview, write nothing
+ *   node scripts/ops/bump-version.mjs --check 1.2.0            # fail unless every release marker matches
  *
  * Canonical release runbook: CONTRIBUTING.md § Releases and hotfixes
  */
@@ -52,7 +52,7 @@ function main() {
   const target = args.find((arg) => !arg.startsWith("--"));
 
   if (!target) {
-    fail("missing target version. Usage: bun run version:bump <x.y.z> [--dry-run|--check]");
+    fail("missing target version. Usage: node scripts/ops/bump-version.mjs <x.y.z> [--dry-run|--check]");
   }
   if (!SEMVER.test(target)) fail(`invalid target version "${target}" (expected semver like 1.2.0)`);
   if (dryRun && check) fail("--dry-run and --check cannot be combined");

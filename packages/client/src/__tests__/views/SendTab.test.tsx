@@ -3,17 +3,21 @@
  * @vitest-environment jsdom
  */
 
+import type { SendableTokenBalance } from "@green-goods/shared/hooks/blockchain/useSendableTokens";
+import type { useCeloWallet } from "@green-goods/shared/hooks/client-ui/wallet/useCeloWallet";
+import { waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { SendableTokenBalance } from "@green-goods/shared/hooks/blockchain/useSendableTokens";
 import { renderWithProviders as render, screen } from "../test-utils";
 
 const SELF = "0x1111111111111111111111111111111111111111" as const;
 const MEMBER = "0x2222222222222222222222222222222222222222" as const;
+const NON_GARDENER = "0x3333333333333333333333333333333333333333" as const;
 const GOODS_ADDR = "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" as const;
 const USDC_ADDR = "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb" as const;
 
 const goodsToken: SendableTokenBalance = {
+  chainId: 42161,
   symbol: "GOODS",
   label: "Green Goods",
   address: GOODS_ADDR,
@@ -24,6 +28,7 @@ const goodsToken: SendableTokenBalance = {
   errored: false,
 };
 const usdcToken: SendableTokenBalance = {
+  chainId: 42161,
   symbol: "USDC",
   label: "USDC",
   address: USDC_ADDR,
@@ -34,24 +39,71 @@ const usdcToken: SendableTokenBalance = {
   errored: false,
 };
 
+const celoToken: SendableTokenBalance = {
+  chainId: 42220,
+  symbol: "G$",
+  label: "GoodDollar",
+  address: "0x62B8B11039FcfE5aB0C56E502b1C372A3d2a9c7A",
+  decimals: 18,
+  confersGovernance: false,
+  supported: true,
+  balance: 25n * 10n ** 18n,
+  errored: false,
+};
+const mockFeeRead = vi.fn();
+let mockSendFailed = false;
+let mockSendPending = false;
+const mockCeloRefetch = vi.fn();
+let mockAuthMode = "passkey";
+let mockChainId = 42161;
+let mockCeloState = makeCeloState();
+function makeCeloState(): ReturnType<typeof useCeloWallet> {
+  return {
+    token: { ...celoToken, balance: 0n },
+    readiness: "ready",
+    balanceLoading: false,
+    balanceError: null,
+    receipts: [],
+    historyLoading: false,
+    historyError: null,
+    canSend: false,
+    isOffline: false,
+    refetch: mockCeloRefetch,
+  };
+}
+
 const mockSend = vi.fn();
 const mockRefetch = vi.fn();
 let mockIsOnline = true;
+let mockRealConfirm = false;
+let mockGardeners: string[] = [MEMBER];
+let mockExtraMember = false;
 
 let mockTokensState: { tokens: SendableTokenBalance[]; isLoading: boolean; isError: boolean } = {
-  tokens: [goodsToken, usdcToken],
+  tokens: [usdcToken],
   isLoading: false,
   isError: false,
 };
 
 vi.mock("@green-goods/shared/components/Dialog/ConfirmDialog", async (importOriginal) => {
+  const original =
+    await importOriginal<typeof import("@green-goods/shared/components/Dialog/ConfirmDialog")>();
   return {
-    ...(await importOriginal()),
-    ConfirmDialog: ({ isOpen, onConfirm }: { isOpen: boolean; onConfirm: () => void }) =>
-      isOpen ? (
-        <button type="button" data-testid="confirm-send" onClick={onConfirm}>
-          confirm
-        </button>
+    ...original,
+    ConfirmDialog: (
+      props: import("@green-goods/shared/components/Dialog/ConfirmDialog").ConfirmDialogProps
+    ) =>
+      mockRealConfirm ? (
+        <original.ConfirmDialog {...props} />
+      ) : props.isOpen ? (
+        <div role="dialog" aria-label="Confirm Send">
+          <button type="button" data-testid="confirm-send" onClick={props.onConfirm}>
+            confirm
+          </button>
+          <button type="button" data-testid="cancel-send" onClick={props.onClose}>
+            Cancel
+          </button>
+        </div>
       ) : null,
   };
 });
@@ -59,21 +111,21 @@ vi.mock("@green-goods/shared/components/Dialog/ConfirmDialog", async (importOrig
 vi.mock("@green-goods/shared/hooks/auth/useUser", async (importOriginal) => {
   return {
     ...(await importOriginal()),
-    useUser: () => ({ primaryAddress: SELF }),
+    useUser: () => ({ primaryAddress: SELF, authMode: mockAuthMode }),
   };
 });
 
 vi.mock("@green-goods/shared/hooks/blockchain/useChainConfig", async (importOriginal) => {
   return {
     ...(await importOriginal()),
-    useCurrentChain: () => 42161,
+    useCurrentChain: () => mockChainId,
   };
 });
 
-vi.mock("@green-goods/shared/hooks/app/useOffline", async (importOriginal) => {
+vi.mock("@green-goods/shared/hooks/app/useOnlineStatus", async (importOriginal) => {
   return {
     ...(await importOriginal()),
-    useOffline: () => ({ isOnline: mockIsOnline }),
+    useOnlineStatus: () => mockIsOnline,
   };
 });
 
@@ -85,8 +137,8 @@ vi.mock("@green-goods/shared/hooks/blockchain/useBaseLists", async (importOrigin
         {
           id: "0xgarden",
           name: "Garden Alpha",
-          gardeners: [MEMBER],
-          stewards: [SELF],
+          gardeners: mockGardeners,
+          stewards: mockExtraMember ? [SELF, NON_GARDENER] : [SELF],
           evaluators: [],
           owners: [],
           funders: [],
@@ -135,11 +187,21 @@ vi.mock("@green-goods/shared/hooks/blockchain/useSendableTokens", async (importO
 vi.mock("@green-goods/shared/hooks/blockchain/useSendToken", async (importOriginal) => {
   return {
     ...(await importOriginal()),
-    useSendToken: () => ({ mutate: mockSend, isPending: false }),
+    useSendToken: () => ({ mutate: mockSend, isPending: mockSendPending, isError: mockSendFailed }),
   };
 });
 
-import { SendTab } from "../../views/Home/WalletDrawer/SendTab";
+vi.mock("@green-goods/shared/hooks/client-ui/wallet/useCeloWallet", async (importOriginal) => ({
+  ...(await importOriginal()),
+  useCeloWallet: () => mockCeloState,
+}));
+
+vi.mock("@green-goods/shared/config/pimlico", async (importOriginal) => ({
+  ...(await importOriginal()),
+  createPublicClientForChain: () => ({ readContract: mockFeeRead }),
+}));
+
+import { SendTab } from "../../views/Home/WalletSheet/SendTab";
 
 async function pickMemberAndToken(user: ReturnType<typeof userEvent.setup>, tokenName: RegExp) {
   // The Tokens tab opens on Balance — switch to the Send flow first.
@@ -152,11 +214,21 @@ async function pickMemberAndToken(user: ReturnType<typeof userEvent.setup>, toke
 describe("SendTab", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockSend.mockReset();
+    mockSendFailed = false;
+    mockRealConfirm = false;
+    mockSendPending = false;
+    mockFeeRead.mockResolvedValue([10n ** 18n, true]);
     mockIsOnline = true;
+    mockAuthMode = "passkey";
+    mockChainId = 42161;
+    mockGardeners = [MEMBER];
+    mockExtraMember = false;
+    mockCeloState = makeCeloState();
     mockTokensState = { tokens: [goodsToken, usdcToken], isLoading: false, isError: false };
   });
 
-  it("walks recipient → token+amount → review and confirms a GOODS send", async () => {
+  it("walks recipient → token+amount → review and confirms a USDC send", async () => {
     const user = userEvent.setup();
     render(<SendTab />);
 
@@ -168,21 +240,52 @@ describe("SendTab", () => {
     expect(screen.getByText(/Sending to/i)).toBeInTheDocument();
 
     // Step 2: choose GOODS and enter an amount.
-    await user.click(await screen.findByRole("button", { name: /GOODS/ }));
+    await user.click(await screen.findByRole("button", { name: /USDC/ }));
     await user.type(screen.getByRole("textbox", { name: "How much" }), "10");
     await user.click(screen.getByRole("button", { name: "Review" }));
 
-    // Step 3: governance callout for GOODS, then confirm.
-    expect(screen.getByText("Sending governance")).toBeInTheDocument();
+    // Step 3: ordinary transfer review, then confirm.
+    expect(screen.queryByText("Sending governance")).not.toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Send" }));
     await user.click(screen.getByTestId("confirm-send"));
 
     expect(mockSend).toHaveBeenCalledTimes(1);
     expect(mockSend.mock.calls[0][0]).toMatchObject({
       to: MEMBER,
-      amount: 10n * 10n ** 18n,
+      amount: 10n * 10n ** 6n,
     });
-    expect(mockSend.mock.calls[0][0].token.symbol).toBe("GOODS");
+    expect(mockSend.mock.calls[0][0].token.symbol).toBe("USDC");
+  });
+
+  it("deduplicates Celo G$ and hides tokens the passkey policy cannot sponsor", async () => {
+    mockChainId = 42220;
+    mockCeloState = { ...mockCeloState, token: celoToken, canSend: true };
+    mockTokensState = {
+      tokens: [{ ...usdcToken, chainId: 42220 }, celoToken],
+      isLoading: false,
+      isError: false,
+    };
+    const user = userEvent.setup();
+    render(<SendTab />);
+    expect(screen.getAllByRole("button", { name: "Send G$ · 25" })).toHaveLength(1);
+    await user.click(screen.getByRole("tab", { name: "Send" }));
+    await user.click(await screen.findByRole("button", { name: /alice\.eth/i }));
+    expect(screen.queryByRole("button", { name: /USDC · Celo/ })).not.toBeInTheDocument();
+  });
+
+  it("keeps supported Celo USDC available for a connected wallet", async () => {
+    mockChainId = 42220;
+    mockAuthMode = "wallet";
+    mockTokensState = {
+      tokens: [{ ...usdcToken, chainId: 42220 }],
+      isLoading: false,
+      isError: false,
+    };
+    const user = userEvent.setup();
+    render(<SendTab />);
+    await user.click(screen.getByRole("tab", { name: "Send" }));
+    await user.click(await screen.findByRole("button", { name: /alice\.eth/i }));
+    expect(screen.getByRole("button", { name: /USDC/ })).toBeInTheDocument();
   });
 
   it("does not show the governance callout for a non-governance token", async () => {
@@ -198,7 +301,7 @@ describe("SendTab", () => {
     mockIsOnline = false;
     const user = userEvent.setup();
     render(<SendTab />);
-    await pickMemberAndToken(user, /GOODS/);
+    await pickMemberAndToken(user, /USDC/);
     await user.click(screen.getByRole("button", { name: "Review" }));
 
     expect(screen.getByText("You're offline. Reconnect to send.")).toBeInTheDocument();
@@ -223,7 +326,7 @@ describe("SendTab", () => {
     rerender(<SendTab resetNonce={1} />);
 
     // The send flow reset — back on the Balance list.
-    expect(await screen.findByRole("button", { name: /^Send GOODS/ })).toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: /^Send USDC/ })).toBeInTheDocument();
     expect(screen.queryByText(/Sending to/i)).not.toBeInTheDocument();
   });
 
@@ -231,19 +334,56 @@ describe("SendTab", () => {
     mockSend.mockImplementation((_params, opts) => opts?.onSuccess?.());
     const user = userEvent.setup();
     render(<SendTab />);
-    await pickMemberAndToken(user, /GOODS/);
+    await pickMemberAndToken(user, /USDC/);
     await user.click(screen.getByRole("button", { name: "Review" }));
     await user.click(screen.getByRole("button", { name: "Send" }));
     await user.click(screen.getByTestId("confirm-send"));
 
-    expect(await screen.findByRole("button", { name: /^Send GOODS/ })).toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: /^Send USDC/ })).toBeInTheDocument();
     expect(screen.queryByText(/Sending to/i)).not.toBeInTheDocument();
+  });
+
+  it("sends nothing and stays on review when the confirm is cancelled", async () => {
+    const user = userEvent.setup();
+    render(<SendTab />);
+    await pickMemberAndToken(user, /USDC/);
+    await user.click(screen.getByRole("button", { name: "Review" }));
+    await user.click(screen.getByRole("button", { name: "Send" }));
+
+    await user.click(screen.getByTestId("cancel-send"));
+
+    expect(mockSend).not.toHaveBeenCalled();
+    expect(screen.queryByTestId("confirm-send")).not.toBeInTheDocument();
+    expect(screen.queryByText("Sending governance")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Send" })).toBeEnabled();
+  });
+
+  it("keeps the review step ready to retry when a send does not succeed", async () => {
+    // The mutation reports its own toast; the flow only resets on success.
+    mockSend.mockImplementation(() => undefined);
+    const user = userEvent.setup();
+    render(<SendTab />);
+    await pickMemberAndToken(user, /USDC/);
+    await user.click(screen.getByRole("button", { name: "Review" }));
+    await user.click(screen.getByRole("button", { name: "Send" }));
+    await user.click(screen.getByTestId("confirm-send"));
+
+    expect(mockSend).toHaveBeenCalledTimes(1);
+    expect(screen.queryByText("Sending governance")).not.toBeInTheDocument();
+    const send = screen.getByRole("button", { name: "Send" });
+    expect(send).toBeEnabled();
+
+    await user.click(send);
+    await user.click(screen.getByTestId("confirm-send"));
+
+    expect(mockSend).toHaveBeenCalledTimes(2);
+    expect(mockSend.mock.calls[1][0]).toMatchObject({ to: MEMBER, amount: 10n * 10n ** 6n });
   });
 
   it("lets you edit the recipient from the review step", async () => {
     const user = userEvent.setup();
     render(<SendTab />);
-    await pickMemberAndToken(user, /GOODS/);
+    await pickMemberAndToken(user, /USDC/);
     await user.click(screen.getByRole("button", { name: "Review" }));
 
     // The "To" row is the first tappable "Change" affordance on the review step.
@@ -252,10 +392,11 @@ describe("SendTab", () => {
     expect(await screen.findByRole("button", { name: /alice\.eth/i })).toBeInTheDocument();
   });
 
-  it("opens on the Balance view listing holdings", async () => {
+  it("opens on the Balance view listing ordinary holdings without governance", async () => {
     render(<SendTab />);
-    expect(await screen.findByRole("button", { name: /^Send GOODS/ })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /^Send USDC/ })).toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: /^Send USDC/ })).toBeInTheDocument();
+    expect(screen.queryByText("Governance")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /^Send GOODS/ })).not.toBeInTheDocument();
   });
 
   it("shows a load error with retry — never a fake empty state — when balances fail", async () => {
@@ -263,7 +404,7 @@ describe("SendTab", () => {
     const user = userEvent.setup();
     render(<SendTab />);
 
-    expect(await screen.findByText("Couldn't load your balances")).toBeInTheDocument();
+    expect(await screen.findByText("Some balances couldn't load.")).toBeInTheDocument();
     expect(screen.queryByText("No tokens yet")).not.toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: "Retry" }));
@@ -287,22 +428,22 @@ describe("SendTab", () => {
     mockIsOnline = false;
     render(<SendTab />);
 
-    expect(screen.getByRole("status")).toHaveTextContent(
-      "You're offline — balances can't refresh right now."
-    );
-    expect(screen.getByRole("button", { name: /^Send GOODS/ })).toBeInTheDocument();
+    expect(
+      screen.getByText("You're offline — balances can't refresh right now.")
+    ).toHaveTextContent("You're offline — balances can't refresh right now.");
+    expect(screen.getByRole("button", { name: /^Send USDC/ })).toBeInTheDocument();
   });
 
   it("shows a dash — not a zero — when a token balance can't be read", () => {
     mockTokensState = {
-      tokens: [{ ...goodsToken, balance: null, errored: true }],
+      tokens: [{ ...usdcToken, balance: null, errored: true }],
       isLoading: false,
       isError: false,
     };
     render(<SendTab />);
 
     expect(
-      screen.getByRole("button", { name: "Send GOODS · Balance unavailable" })
+      screen.getByRole("button", { name: "Send USDC · Balance unavailable" })
     ).toBeInTheDocument();
     expect(screen.getByText("—")).toBeInTheDocument();
     expect(screen.getByText("Some balances couldn't load.")).toBeInTheDocument();
@@ -323,11 +464,326 @@ describe("SendTab", () => {
     const user = userEvent.setup();
     render(<SendTab />);
 
-    // Tap GOODS in the Balance list → send flow with GOODS pre-selected.
-    await user.click(await screen.findByRole("button", { name: /^Send GOODS/ }));
+    // Tap USDC in the Balance list → send flow with USDC pre-selected.
+    await user.click(await screen.findByRole("button", { name: /^Send USDC/ }));
     await user.click(await screen.findByRole("button", { name: /alice\.eth/i }));
 
     // The amount step is reached directly, with the token already chosen.
     expect(screen.getByRole("textbox", { name: "How much" })).toBeInTheDocument();
+  });
+});
+
+describe("Celo wallet", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockSend.mockReset();
+    mockSendFailed = false;
+    mockRealConfirm = false;
+    mockSendPending = false;
+    mockFeeRead.mockResolvedValue([10n ** 18n, true]);
+    mockIsOnline = true;
+    mockAuthMode = "passkey";
+    mockCeloState = { ...makeCeloState(), token: celoToken, canSend: true };
+    mockGardeners = [MEMBER];
+    mockExtraMember = false;
+    mockTokensState = { tokens: [goodsToken, usdcToken], isLoading: false, isError: false };
+  });
+
+  it("uses the same balance list for G$ and other tokens, and receives through the network picker", async () => {
+    const user = userEvent.setup();
+    render(<SendTab />);
+    expect(screen.queryByRole("heading", { name: "G$ · Celo" })).not.toBeInTheDocument();
+    expect(screen.getByText("GoodDollar · Celo")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /^Send USDC/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /^Send G\$ ·/ })).toBeEnabled();
+    await user.click(screen.getByRole("tab", { name: "Receive" }));
+    await user.click(screen.getByRole("radio", { name: "Celo" }));
+    expect(screen.getByRole("img", { name: "Your Celo wallet QR code" })).toBeInTheDocument();
+    expect(screen.getByText("Receive G$ on the Celo network at this address.")).toBeInTheDocument();
+  });
+
+  it("keeps loaded balances visible while the Celo balance is still pending", () => {
+    mockCeloState = {
+      ...mockCeloState,
+      token: { ...celoToken, balance: null },
+      balanceLoading: true,
+      canSend: false,
+    };
+    const { rerender } = render(<SendTab />);
+    expect(screen.getByRole("button", { name: "Send USDC · 50" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Send G$ · Loading..." })).toBeDisabled();
+    expect(screen.getByText("Checking your Celo wallet…")).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Send G$ · Balance unavailable" })
+    ).not.toBeInTheDocument();
+    mockCeloState = { ...mockCeloState, token: celoToken, balanceLoading: false, canSend: true };
+    rerender(<SendTab />);
+    expect(screen.getByRole("button", { name: "Send G$ · 25" })).toBeEnabled();
+    expect(screen.queryByText("Checking your Celo wallet…")).not.toBeInTheDocument();
+  });
+
+  it("starts a G$ send from the shared balance row", async () => {
+    const user = userEvent.setup();
+    render(<SendTab />);
+    await user.click(screen.getByRole("button", { name: "Send G$ · 25" }));
+    await user.click(await screen.findByRole("button", { name: /alice\.eth/i }));
+    expect(screen.getByRole("textbox", { name: "How much" })).toBeInTheDocument();
+    expect(screen.getByText("G$ · Celo")).toBeInTheDocument();
+  });
+
+  it("switches receive networks without initiating a transfer", async () => {
+    const user = userEvent.setup();
+    render(<SendTab />);
+    await user.click(screen.getByRole("tab", { name: "Receive" }));
+    expect(screen.getByRole("img", { name: "Your wallet QR code" })).toBeInTheDocument();
+    await user.click(screen.getByRole("radio", { name: "Celo" }));
+    expect(screen.getByRole("img", { name: "Your Celo wallet QR code" })).toBeInTheDocument();
+    await user.click(screen.getByRole("radio", { name: "Arbitrum One" }));
+    expect(screen.getByRole("img", { name: "Your wallet QR code" })).toBeInTheDocument();
+    expect(mockSend).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    "wallet",
+    "embedded",
+  ])("discloses user-paid network fees for %s users", async (authMode) => {
+    mockAuthMode = authMode;
+    const user = userEvent.setup();
+    render(<SendTab />);
+    await pickMemberAndToken(user, /G\$ · Celo/);
+    expect(
+      screen.getByText(
+        "Your wallet will switch to Celo. You pay the Celo network fee, plus any G$ token fee."
+      )
+    ).toBeInTheDocument();
+  });
+
+  it.each([
+    [
+      "address-mismatch",
+      "We couldn't verify that this Celo account matches your wallet. Sending is paused.",
+    ],
+    ["unavailable", "Your Celo account couldn't be prepared. Try again."],
+  ] as const)("explains %s and blocks sending", (readiness, message) => {
+    mockCeloState = { ...mockCeloState, readiness, canSend: false };
+    render(<SendTab />);
+    expect(screen.getByText(message)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /^Send G\$ ·/ })).toBeDisabled();
+    expect(screen.getByRole("tab", { name: "Receive" })).toBeEnabled();
+  });
+
+  it("shows unavailable for a failed Celo read without a retry button", () => {
+    mockCeloState = {
+      ...mockCeloState,
+      balanceError: new Error("unavailable"),
+      token: { ...celoToken, balance: null, errored: true },
+      canSend: false,
+    };
+    render(<SendTab />);
+    expect(
+      screen.getByRole("button", { name: "Send G$ · Balance unavailable" })
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        "Your Celo balance couldn't refresh. Any balance shown is from the last successful check."
+      )
+    ).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /retry/i })).not.toBeInTheDocument();
+  });
+
+  it("retains a cached Celo balance and disables sending offline", () => {
+    mockIsOnline = false;
+    mockCeloState = { ...mockCeloState, isOffline: true, canSend: false };
+    render(<SendTab />);
+    expect(
+      screen.getByText("You're offline. Showing your last Celo wallet details; reconnect to send.")
+    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Send G$ · 25" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /^Send G\$ ·/ })).toBeDisabled();
+  });
+
+  it("shows sender-paid G$ fees on amount and review, hides Max, and sends the reviewed quote", async () => {
+    const user = userEvent.setup();
+    render(<SendTab />);
+    await pickMemberAndToken(user, /G\$ · Celo/);
+    expect(await screen.findByText("11 G$")).toBeInTheDocument();
+    expect(screen.getByText("Total from your balance")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Max" })).not.toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Review" }));
+    expect(await screen.findByText("To")).toBeInTheDocument();
+    expect(screen.getByText("11 G$")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Send" }));
+    await user.click(await screen.findByTestId("confirm-send"));
+    expect(mockSend).toHaveBeenCalledWith(
+      expect.objectContaining({
+        token: expect.objectContaining({ chainId: 42220 }),
+        amount: 10n * 10n ** 18n,
+        reviewedFee: expect.objectContaining({ fee: 10n ** 18n, totalDebit: 11n * 10n ** 18n }),
+      }),
+      expect.anything()
+    );
+  });
+
+  it("shows the recipient's net G$ amount for receiver-paid fees", async () => {
+    mockFeeRead.mockResolvedValue([10n ** 18n, false]);
+    const user = userEvent.setup();
+    render(<SendTab />);
+    await pickMemberAndToken(user, /G\$ · Celo/);
+    expect(await screen.findByText("9 G$")).toBeInTheDocument();
+    expect(screen.getByText("Recipient receives")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Max" })).toBeInTheDocument();
+  });
+
+  it("blocks Review when the balance cannot cover the sender-paid token fee", async () => {
+    mockCeloState = { ...mockCeloState, token: { ...celoToken, balance: 10n * 10n ** 18n } };
+    const user = userEvent.setup();
+    render(<SendTab />);
+    await pickMemberAndToken(user, /G\$ · Celo/);
+    expect(
+      await screen.findByText("Your balance doesn't cover the amount and G$ token fee.")
+    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Review" })).toBeDisabled();
+  });
+
+  it("blocks invalid quotes and preserves the amount when retrying the fee", async () => {
+    mockFeeRead.mockResolvedValue(["invalid", true]);
+    const user = userEvent.setup();
+    render(<SendTab />);
+    await pickMemberAndToken(user, /G\$ · Celo/);
+    expect(
+      await screen.findByText("The G$ token fee couldn't be checked. Retry before sending.")
+    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Review" })).toBeDisabled();
+    mockFeeRead.mockResolvedValue([10n ** 18n, true]);
+    await user.click(screen.getByRole("button", { name: "Retry G$ fee" }));
+    expect(await screen.findByText("11 G$")).toBeInTheDocument();
+    expect(screen.getByRole("textbox", { name: "How much" })).toHaveValue("10");
+  });
+
+  it("retains recipient and amount and restores Send focus after cancellation", async () => {
+    const user = userEvent.setup();
+    render(<SendTab />);
+    await pickMemberAndToken(user, /G\$ · Celo/);
+    await screen.findByText("11 G$");
+    await user.click(screen.getByRole("button", { name: "Review" }));
+    await user.click(await screen.findByRole("button", { name: "Send" }));
+    await user.click(await screen.findByRole("button", { name: "Cancel" }));
+    expect(screen.getByRole("button", { name: "Send" })).toHaveFocus();
+    expect(screen.getAllByText("10 G$")).toHaveLength(2);
+    expect(screen.getByText(/Sending to: alice.eth/)).toBeInTheDocument();
+    expect(mockSend).not.toHaveBeenCalled();
+  });
+
+  it("announces pending and failed sends while retaining the review for retry", async () => {
+    const user = userEvent.setup();
+    const { rerender } = render(<SendTab />);
+    await pickMemberAndToken(user, /G\$ · Celo/);
+    await screen.findByText("11 G$");
+    await user.click(screen.getByRole("button", { name: "Review" }));
+    await screen.findByRole("button", { name: "Send" });
+    mockSendPending = true;
+    rerender(<SendTab />);
+    expect(screen.getByText("Sending G$ on Celo. Waiting for confirmation…")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Send" })).toHaveAttribute("aria-disabled", "true");
+    mockSendPending = false;
+    mockSendFailed = true;
+    rerender(<SendTab />);
+    expect(
+      screen.getByText(
+        "The send didn't complete. Your recipient and amount are saved here; try again when you're ready."
+      )
+    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Send" })).toBeEnabled();
+    expect(screen.getByText(/Sending to: alice.eth/)).toBeInTheDocument();
+  });
+
+  it("asks for another review when the fresh G$ fee changes", async () => {
+    const user = userEvent.setup();
+    render(<SendTab />);
+    await pickMemberAndToken(user, /G\$ · Celo/);
+    await screen.findByText("11 G$");
+    await user.click(screen.getByRole("button", { name: "Review" }));
+    await screen.findByRole("button", { name: "Send" });
+    mockFeeRead.mockResolvedValue([2n * 10n ** 18n, true]);
+    await user.click(screen.getByRole("button", { name: "Send" }));
+    expect(
+      await screen.findByText("The G$ token fee changed. Check the updated amounts before sending.")
+    ).toBeInTheDocument();
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(screen.getByText("12 G$")).toBeInTheDocument();
+  });
+
+  it("allows G$ selection only for gardeners in the recipient picker", async () => {
+    mockExtraMember = true;
+    const user = userEvent.setup();
+    render(<SendTab />);
+    await user.click(screen.getByRole("button", { name: "Send G$ · 25" }));
+    await user.type(screen.getByRole("textbox", { name: /Search people/i }), NON_GARDENER);
+    expect(screen.queryByRole("button", { name: /alice\.eth/i })).not.toBeInTheDocument();
+    expect(
+      screen.getAllByText("For now, G$ can only be sent to gardeners in Green Goods.")
+    ).toHaveLength(2);
+    expect(mockSend).not.toHaveBeenCalled();
+  });
+
+  it("blocks Review if a selected G$ recipient loses the gardener role", async () => {
+    const user = userEvent.setup();
+    const { rerender } = render(<SendTab />);
+    await pickMemberAndToken(user, /G\$ · Celo/);
+    await screen.findByText("11 G$");
+    mockGardeners = [];
+    rerender(<SendTab />);
+    expect(screen.getByRole("button", { name: "Review" })).toBeDisabled();
+    expect(
+      screen.getByText("For now, G$ can only be sent to gardeners in Green Goods.")
+    ).toBeInTheDocument();
+    mockGardeners = [MEMBER];
+    rerender(<SendTab />);
+    await waitFor(() => expect(screen.getByRole("button", { name: "Review" })).toBeEnabled());
+    expect(screen.getByRole("textbox", { name: "How much" })).toHaveValue("10");
+    expect(screen.getByText(/Sending to: alice.eth/)).toBeInTheDocument();
+  });
+
+  it("keeps the address mismatch explanation when receiving at the stored address", async () => {
+    mockCeloState = { ...mockCeloState, readiness: "address-mismatch", canSend: false };
+    const user = userEvent.setup();
+    render(<SendTab />);
+    await user.click(screen.getByRole("tab", { name: "Receive" }));
+    await user.click(screen.getByRole("radio", { name: "Celo" }));
+    expect(
+      screen.getByText(
+        "We couldn't verify that this Celo account matches your wallet. Sending is paused."
+      )
+    ).toBeInTheDocument();
+    expect(screen.getByRole("img", { name: "Your Celo wallet QR code" })).toBeInTheDocument();
+  });
+
+  it("restores Send focus after closing the actual confirmation dialog", async () => {
+    mockRealConfirm = true;
+    const user = userEvent.setup();
+    render(<SendTab />);
+    await pickMemberAndToken(user, /G\$ · Celo/);
+    await screen.findByText("11 G$");
+    await user.click(screen.getByRole("button", { name: "Review" }));
+    await user.click(await screen.findByRole("button", { name: "Send" }));
+    await user.click(await screen.findByRole("button", { name: "Cancel" }));
+    expect(screen.getByRole("button", { name: "Send" })).toHaveFocus();
+    expect(mockSend).not.toHaveBeenCalled();
+  });
+
+  it("shows tiny G$ fees and the exact total debit without rounding", async () => {
+    mockFeeRead.mockResolvedValue([10n ** 13n, true]);
+    const user = userEvent.setup();
+    render(<SendTab />);
+    await pickMemberAndToken(user, /G\$ · Celo/);
+    const amount = screen.getByRole("textbox", { name: "How much" });
+    await user.clear(amount);
+    await user.type(amount, "1");
+    expect(await screen.findByText("1.00001 G$")).toBeInTheDocument();
+    expect(screen.getByText("0.00001 G$")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Review" }));
+    await screen.findByRole("button", { name: "Send" });
+    expect(screen.getByText("1.00001 G$")).toBeInTheDocument();
+    expect(screen.getByText("0.00001 G$")).toBeInTheDocument();
   });
 });

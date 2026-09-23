@@ -8,7 +8,7 @@ owner: docs
 last_verified: 2026-04-07
 feature_status: Live
 source_of_truth:
-  - packages/client/src/views/Landing/index.tsx
+  - packages/client/src/views/Public/Home.tsx
   - packages/client/src/views/Home/index.tsx
   - packages/client/src/views/Garden/index.tsx
   - packages/shared/src/modules/auth
@@ -40,7 +40,7 @@ Green Goods combines several innovations to make documenting and funding regener
 
 ## Local 1st Experience
 
-Green Goods is built for the reality of field work – **intermittent connectivity**, **mid-range devices**, and **diverse languages**. Everything works locally first, then syncs when conditions allow.
+Green Goods is built for the reality of field work – **intermittent connectivity**, **mid-range devices**, and **diverse languages**. Everything works locally first. When you're back online, the app gets your queued work ready, and you send it with **Upload all**.
 
 ### Privacy & Security
 
@@ -83,7 +83,7 @@ Green Goods is a [Progressive Web App](/glossary#pwa) – it works like a native
 
 - **Install from your browser** – Tap "Add to Home Screen" on any mobile browser. No app store required.
 - **Offline-first** – All submissions are saved locally before syncing. The service worker caches the app shell and critical assets.
-- **Background sync** – When you come back online, queued submissions sync automatically with exponential backoff and retry logic.
+- **Upload when you're ready** – When you come back online, the app gets queued work ready in the background, and one tap on **Upload all** in **Your Work** sends all of it. Most accounts confirm once per batch.
 - **Mobile optimized** – Designed for mid-range Android devices with limited bandwidth. Touch targets, image compression, and lazy loading keep the experience fast.
 
 ### Supports English, Spanish & Portuguese Currently

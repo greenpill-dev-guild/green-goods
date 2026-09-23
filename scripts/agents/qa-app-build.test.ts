@@ -133,7 +133,9 @@ describe("QA app page", () => {
     expect(overview).toContain("data-notes-toggle");
     expect(overview).not.toContain("data-note=");
     expect(overview).not.toContain('class="st ');
-    expect(personal).toContain("const editable = selected === who");
+    expect(personal).toContain("const editable = selected === who && runOpen()");
+    // N/A means out of scope for this run; a skipped case has no entry.
+    expect(personal).toContain("N/A — out of scope for this run");
     expect(personal).toContain('class="readonly-status');
     expect(personal).toContain("data-note=");
   });
@@ -173,7 +175,7 @@ describe("QA app page", () => {
   it("caps notes at the length the API stores", () => {
     // The API slices at 4000. Without a matching cap the tester types past it,
     // the save returns ok, and the tail is gone with nothing to show for it.
-    const apiLimit = readFileSync(path.join(appDir, "api", "state.ts"), "utf8").match(
+    const apiLimit = readFileSync(path.join(appDir, "store.ts"), "utf8").match(
       /MAX_NOTE_LENGTH = (\d+)/,
     );
     expect(apiLimit).not.toBeNull();
@@ -196,12 +198,25 @@ describe("QA app page", () => {
     }
   });
 
+  it("loads the generated Warm Earth radius tokens", () => {
+    const dev = readFileSync(path.join(appDir, "dev.mjs"), "utf8");
+    expect(page).toContain('<link rel="stylesheet" href="design-md.generated.css">');
+    expect(dev).toContain('["/design-md.generated.css", "design-md.generated.css"]');
+    expect(dev).toContain('".css": "text/css; charset=utf-8"');
+    expect(page).toMatch(/--radius-md\s*:\s*var\(--gg-radius-md\)/);
+    expect(page).toMatch(/--radius-full\s*:\s*var\(--gg-radius-full\)/);
+    expect(page).toMatch(/\.journey-chip\s*\{[^}]*border-radius\s*:\s*var\(--radius-full\)/s);
+    expect(page).toMatch(
+      /\.journey-handoff, \.known-gate\s*\{[^}]*border-radius\s*:\s*0 var\(--radius-md\) var\(--radius-md\) 0/s,
+    );
+  });
+
   it("names an unnamed tester the same way on both sides", () => {
     // Shards are keyed by address and the display name is self-declared, so
     // there is no roster to agree on any more — but a tester who has not named
     // themselves must read identically in the page and in the pulled run sheet,
     // or the same person appears as two people.
-    const api = readFileSync(path.join(appDir, "api", "state.ts"), "utf8");
+    const api = readFileSync(path.join(appDir, "store.ts"), "utf8");
     const cli = readFileSync(path.join(repoRoot, "scripts", "agents", "qa-state.ts"), "utf8");
     const shape = /address\.slice\(0, 6\)\}…\$\{address\.slice\(-4\)/;
     expect(api).toMatch(shape);
@@ -283,6 +298,9 @@ describe("QA app build", () => {
     execFileSync("node", [path.join(appDir, "build.mjs")], { stdio: "pipe" });
     const dist = path.join(appDir, "dist");
     expect(existsSync(path.join(dist, "index.html"))).toBe(true);
+    expect(readFileSync(path.join(dist, "design-md.generated.css"), "utf8")).toBe(
+      readFileSync(path.join(repoRoot, "packages", "shared", "src", "styles", "design-md.generated.css"), "utf8"),
+    );
 
     const built = JSON.parse(readFileSync(path.join(dist, "catalog.json"), "utf8"));
     const source = JSON.parse(
@@ -296,8 +314,81 @@ describe("QA app build", () => {
     // A retired case on a run sheet is a tester walking a scenario we removed.
     for (const testCase of built.cases) expect(retired.has(testCase.id)).toBe(false);
     expect(Object.keys(built.cases[0]).sort()).toEqual(
-      ["area", "expected", "id", "pri", "rd", "rp", "scenario", "tab", "tx"],
+      ["area", "expected", "id", "preconditions", "pri", "rd", "role", "rp", "scenario", "steps", "tab", "tx"],
     );
+    // A successor carries the retired ids it replaces — following chains, so a
+    // verdict recorded under a twice-retired id still lands on the current row —
+    // and a row that replaced nothing carries no key at all.
+    const byId = new Map(built.cases.map((testCase: { id: string }) => [testCase.id, testCase]));
+    expect((byId.get("PWA-051") as { replaces?: string[] }).replaces).toEqual(["PWA-021"]);
+    expect((byId.get("PWA-060") as { replaces?: string[] }).replaces).toEqual(["PWA-038", "PWA-IOS-011"]);
+    expect((byId.get("PUB-001") as { replaces?: string[] }).replaces).toBeUndefined();
+    // The catalog revision lets a run record which build it opened with.
+    expect(built.revision).toMatch(/^[0-9a-f]{12}$/);
+    expect(built.journeys.map((journey: { id: string }) => journey.id)).toEqual([
+      "service-relay",
+      "protocol-treasury-top-up",
+    ]);
+    const activeIds = new Set(built.cases.map((testCase: { id: string }) => testCase.id));
+    const journeyCaseIds = new Set<string>();
+    for (const journey of built.journeys) {
+      for (const step of journey.steps) {
+        expect(activeIds.has(step.caseId)).toBe(true);
+        journeyCaseIds.add(step.caseId);
+      }
+    }
+    const gated = built.journeys.flatMap((journey: { steps: Array<{ knownGate?: string }> }) =>
+      journey.steps.filter((step) => step.knownGate),
+    );
+    expect(gated).toHaveLength(3);
+    expect(gated.every((step: { knownGate: string }) => step.knownGate.trim().length > 0)).toBe(true);
+    expect(Object.keys(built.locales).sort()).toEqual(["en", "es", "pt"]);
+    for (const locale of Object.values(built.locales) as Array<{
+      ui: Record<string, string>;
+      journeys: Record<string, unknown>;
+      cases: Record<string, {
+        scenario: string;
+        preconditions: string[];
+        steps: string[];
+        expected: string;
+        role: string;
+      }>;
+    }>) {
+      expect(locale.ui.journey.trim()).not.toBe("");
+      expect(locale.ui.caseRole.trim()).not.toBe("");
+      expect(locale.ui.preconditions.trim()).not.toBe("");
+      expect(locale.ui.roleRequirements.trim()).not.toBe("");
+      expect(Object.keys(locale.journeys).sort()).toEqual([
+        "protocol-treasury-top-up",
+        "service-relay",
+      ]);
+      expect(Object.keys(locale.cases).sort()).toEqual([...journeyCaseIds].sort());
+      for (const copy of Object.values(locale.cases)) {
+        expect(copy.scenario.trim()).not.toBe("");
+        expect(copy.preconditions.every((item) => item.trim().length > 0)).toBe(true);
+        expect(copy.steps.every((step) => step.trim().length > 0)).toBe(true);
+        expect(copy.expected.trim()).not.toBe("");
+        expect(copy.role.trim()).not.toBe("");
+      }
+    }
+    const builtById = new Map(built.cases.map((testCase: { id: string }) => [testCase.id, testCase]));
+    expect(builtById.get("ADM-038").preconditions).toContain(
+      "The test Garden commitment pool is ready",
+    );
+    expect(builtById.get("ADM-043").preconditions).toContain(
+      "The destination Garden Safe is known",
+    );
+    expect(builtById.get("ADM-045").preconditions).toContain(
+      "The destination Garden and amount are explicitly authorized",
+    );
+    expect(builtById.get("ADM-045").role).toBe("steward");
+    for (const locale of Object.values(built.locales) as Array<{
+      cases: Record<string, { preconditions: string[] }>;
+    }>) {
+      for (const [caseId, copy] of Object.entries(locale.cases)) {
+        expect(copy.preconditions).toHaveLength(builtById.get(caseId).preconditions.length);
+      }
+    }
   });
 });
 
@@ -340,6 +431,16 @@ describe("QA catalog contract", () => {
         .filter((testCase: { status: string }) => testCase.status === "active")
         .map((testCase: { id: string }) => testCase.id),
     );
+    const byId = new Map<string, { status: string; replacedBy?: string[] }>(
+      catalog.cases.map((testCase: { id: string; status: string; replacedBy?: string[] }) => [testCase.id, testCase]),
+    );
+    const resolvesToActive = (id: string, trail: Set<string>): boolean => {
+      const candidate = byId.get(id);
+      if (!candidate || trail.has(id)) return false;
+      if (candidate.status === "active") return true;
+      trail.add(id);
+      return (candidate.replacedBy ?? []).some((next) => resolvesToActive(next, trail));
+    };
     const seen = new Set<string>();
     for (const testCase of catalog.cases) {
       // IDs are permanent addresses: an OBS record or a Linear slice keyed on one
@@ -354,7 +455,12 @@ describe("QA catalog contract", () => {
         // Shape and calendar validity together: "2026-02-31" round-trips to another day.
         expect(new Date(`${retiredOn}T00:00:00.000Z`).toISOString().slice(0, 10)).toBe(retiredOn);
         expect(String(testCase.retiredReason ?? "").trim()).not.toBe("");
-        for (const successor of testCase.replacedBy ?? []) expect(activeIds.has(successor)).toBe(true);
+        // A successor may itself have retired since (PWA-IOS-011 → PWA-038 → its
+        // per-act rows): every chain must end in at least one active id, so a
+        // verdict on a retired case always has somewhere current to land.
+        for (const successor of testCase.replacedBy ?? []) {
+          expect(resolvesToActive(successor, new Set()), `${testCase.id} → ${successor}`).toBe(true);
+        }
       } else {
         expect(testCase.retiredOn).toBeUndefined();
         expect(testCase.retiredReason).toBeUndefined();

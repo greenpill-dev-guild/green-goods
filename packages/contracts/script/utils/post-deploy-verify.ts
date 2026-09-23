@@ -785,7 +785,7 @@ function syncIndexerConfigFromDeployment(chainId: string, failures: string[]): b
 function startLocalIndexerStack(failures: string[]): boolean {
   const indexerRoot = path.join(__dirname, "../../../indexer");
   try {
-    execFileSync("bun", ["run", "dev:docker:detach"], {
+    execFileSync("bun", ["run", "docker", "up", "--build", "-d"], {
       cwd: indexerRoot,
       stdio: "inherit",
       env: process.env,
@@ -801,7 +801,7 @@ function startLocalIndexerStack(failures: string[]): boolean {
 function stopLocalIndexerStack(): void {
   const indexerRoot = path.join(__dirname, "../../../indexer");
   try {
-    execFileSync("bun", ["run", "dev:docker:down"], {
+    execFileSync("bun", ["run", "docker", "down"], {
       cwd: indexerRoot,
       stdio: "inherit",
       env: process.env,

@@ -1,9 +1,10 @@
+import { IconButton } from "@green-goods/shared/components/IconButton";
 import { toastService } from "@green-goods/shared/components/Toast/toast.service";
 import { queryKeys } from "@green-goods/shared/config/query-keys/registry";
 import { useArrivalState } from "@green-goods/shared/hooks/app/useArrivalState";
 import { useBrowserNavigation } from "@green-goods/shared/hooks/app/useBrowserNavigation";
 import { useLoadingWithMinDuration } from "@green-goods/shared/hooks/app/useLoadingWithMinDuration";
-import { useOffline } from "@green-goods/shared/hooks/app/useOffline";
+import { useOnlineStatus } from "@green-goods/shared/hooks/app/useOnlineStatus";
 import { useAuthState } from "@green-goods/shared/hooks/auth/useAuth";
 import { usePrimaryAddress } from "@green-goods/shared/hooks/auth/usePrimaryAddress";
 import { useGardens } from "@green-goods/shared/hooks/blockchain/useBaseLists";
@@ -11,6 +12,8 @@ import {
   type GardenFiltersState,
   useFilteredGardens,
 } from "@green-goods/shared/hooks/garden/useFilteredGardens";
+import type { Domain } from "@green-goods/shared/types/domain";
+import { useExitPresence } from "@green-goods/shared/hooks/utils/useExitPresence";
 import { useTimeout } from "@green-goods/shared/hooks/utils/useTimeout";
 import { useUIStore } from "@green-goods/shared/stores/useUIStore";
 import { cn } from "@green-goods/shared/utils/styles/cn";
@@ -22,42 +25,48 @@ import {
   Suspense,
   useCallback,
   useEffect,
+  useLayoutEffect,
   useRef,
   useState,
 } from "react";
 import { useIntl } from "react-intl";
 import { Outlet, useLocation, useMatch, useNavigate } from "react-router-dom";
 
-import { PullToRefresh } from "@/components/Inputs/PullToRefresh";
+import { getPwaSheetExitMs } from "@/components/Pwa/sheetStyles";
 import { pwaStatusStyles } from "@/components/Pwa/statusStyles";
 import { APP_ROUTES } from "@/config/pwaRouting";
-import { ARRIVAL_TOASTS, type ArrivalActionKind } from "./arrivalToast";
-import { CommitmentsDrawerIcon } from "./CommitmentsDrawer/Icon";
+import {
+  ARRIVAL_TOASTS,
+  type ArrivalActionKind,
+  hasArrivalPassed,
+  markArrivalPassed,
+} from "./arrivalToast";
+import { CommitmentsSheetIcon } from "./CommitmentsSheet/Icon";
 import { GardenList } from "./GardenList";
-import { WalletDrawerIcon } from "./WalletDrawer/Icon";
+import { WalletSheetIcon } from "./WalletSheet/Icon";
 import { WorkDashboardIcon } from "./WorkDashboard/Icon";
 
-const CommitmentsDrawer = lazy(() =>
-  import("./CommitmentsDrawer").then(({ CommitmentsDrawer }) => ({ default: CommitmentsDrawer }))
+const CommitmentsSheet = lazy(() =>
+  import("./CommitmentsSheet").then(({ CommitmentsSheet }) => ({ default: CommitmentsSheet }))
 );
-const CommitmentsDrawerLauncher = lazy(
+const CommitmentsSheetLauncher = lazy(
   (): Promise<{ default: ComponentType<{ onClick: () => void }> }> =>
-    import("./CommitmentsDrawer/Launcher")
-      .then(({ CommitmentsDrawerLauncher }) => ({
-        default: CommitmentsDrawerLauncher,
+    import("./CommitmentsSheet/Launcher")
+      .then(({ CommitmentsSheetLauncher }) => ({
+        default: CommitmentsSheetLauncher,
       }))
       // Ambient adjunct: if the launcher chunk cannot load (offline dev serving),
       // hide it rather than failing the whole Home route.
       .catch(() => ({ default: () => null }))
 );
-const GardensFilterDrawer = lazy(() =>
-  import("./GardenFilters").then(({ GardensFilterDrawer }) => ({ default: GardensFilterDrawer }))
+const GardensFilterSheet = lazy(() =>
+  import("./GardenFilters").then(({ GardensFilterSheet }) => ({ default: GardensFilterSheet }))
 );
-const WalletDrawer = lazy(() =>
-  import("./WalletDrawer").then(({ WalletDrawer }) => ({ default: WalletDrawer }))
+const WalletSheet = lazy(() =>
+  import("./WalletSheet").then(({ WalletSheet }) => ({ default: WalletSheet }))
 );
 
-function DeferredCommitmentsDrawerLauncher({ onClick }: { onClick: () => void }) {
+function DeferredCommitmentsSheetLauncher({ onClick }: { onClick: () => void }) {
   const [loadCounts, setLoadCounts] = useState(false);
 
   useEffect(() => {
@@ -71,10 +80,10 @@ function DeferredCommitmentsDrawerLauncher({ onClick }: { onClick: () => void })
     };
   }, []);
 
-  if (!loadCounts) return <CommitmentsDrawerIcon onClick={onClick} actCount={0} />;
+  if (!loadCounts) return <CommitmentsSheetIcon onClick={onClick} actCount={0} />;
   return (
-    <Suspense fallback={<CommitmentsDrawerIcon onClick={onClick} actCount={0} />}>
-      <CommitmentsDrawerLauncher onClick={onClick} />
+    <Suspense fallback={<CommitmentsSheetIcon onClick={onClick} actCount={0} />}>
+      <CommitmentsSheetLauncher onClick={onClick} />
     </Suspense>
   );
 }
@@ -93,15 +102,17 @@ const Home: React.FC = () => {
   const { data: gardens = [], isFetching, isPending, isError, refetch } = useGardens();
 
   // Auth & connectivity
-  const { isOnline } = useOffline();
+  const isOnline = useOnlineStatus();
   const primaryAddress = usePrimaryAddress();
   const normalizedAddress = primaryAddress?.toLowerCase() ?? null;
 
   // State-aware arrival orientation (replaces the old generic welcome toast).
   const { kind: arrivalKind, myGardenIds, needsReviewCount } = useArrivalState();
 
-  // Filter state
-  const [filters, setFilters] = useState<GardenFiltersState>({ scope: "all", sort: "default" });
+  // Filters live in the UI store so they hold across navigation and relaunch.
+  const filters = useUIStore((s) => s.gardenFilters);
+  const setFilters = useUIStore((s) => s.setGardenFilters);
+  const resetFilters = useUIStore((s) => s.resetGardenFilters);
 
   // Use extracted hooks for cleaner logic
   const isLoadingData = isPending || (isFetching && gardens.length === 0);
@@ -122,12 +133,18 @@ const Home: React.FC = () => {
   const openGardenFilter = useUIStore((s) => s.openGardenFilter);
   const closeGardenFilter = useUIStore((s) => s.closeGardenFilter);
   const openWorkDashboard = useUIStore((s) => s.openWorkDashboard);
-  const isWalletDrawerOpen = useUIStore((s) => s.isWalletDrawerOpen);
-  const openWalletDrawer = useUIStore((s) => s.openWalletDrawer);
-  const closeWalletDrawer = useUIStore((s) => s.closeWalletDrawer);
-  const isCommitmentsDrawerOpen = useUIStore((s) => s.isCommitmentsDrawerOpen);
-  const openCommitmentsDrawer = useUIStore((s) => s.openCommitmentsDrawer);
-  const closeCommitmentsDrawer = useUIStore((s) => s.closeCommitmentsDrawer);
+  const isWalletSheetOpen = useUIStore((s) => s.isWalletSheetOpen);
+  const openWalletSheet = useUIStore((s) => s.openWalletSheet);
+  const closeWalletSheet = useUIStore((s) => s.closeWalletSheet);
+  const isCommitmentsSheetOpen = useUIStore((s) => s.isCommitmentsSheetOpen);
+  const openCommitmentsSheet = useUIStore((s) => s.openCommitmentsSheet);
+  const closeCommitmentsSheet = useUIStore((s) => s.closeCommitmentsSheet);
+
+  // Each sheet stays mounted until its exit has played; unmounting it on close
+  // removed it before the slide-out could run.
+  const isGardenFilterPresent = useExitPresence(isGardenFilterOpen, getPwaSheetExitMs);
+  const isWalletSheetPresent = useExitPresence(isWalletSheetOpen, getPwaSheetExitMs);
+  const isCommitmentsSheetPresent = useExitPresence(isCommitmentsSheetOpen, getPwaSheetExitMs);
 
   // Ensure proper re-rendering on browser navigation
   useBrowserNavigation();
@@ -135,7 +152,7 @@ const Home: React.FC = () => {
   // Auth state for welcome message
   const { isAuthenticated } = useAuthState();
   const hasShownArrivalRef = useRef(false);
-  const { set: scheduleArrival } = useTimeout();
+  const { set: scheduleArrival, clear: cancelArrival } = useTimeout();
 
   // Ref for scrolling to article on card click
   const articleRef = useRef<HTMLElement>(null);
@@ -148,18 +165,18 @@ const Home: React.FC = () => {
 
   // Reset loading state when navigating back to home
   useEffect(() => {
-    if (location.pathname === APP_ROUTES.home) {
+    if (location.pathname.replace(/\/$/, "") === APP_ROUTES.home) {
       resetLoadingState();
     }
   }, [location.pathname, resetLoadingState]);
 
   // Close home drawers when navigating away
   useEffect(() => {
-    if (location.pathname !== APP_ROUTES.home) {
+    if (location.pathname.replace(/\/$/, "") !== APP_ROUTES.home) {
       closeGardenFilter();
-      closeWalletDrawer();
+      closeWalletSheet();
     }
-  }, [location.pathname, closeGardenFilter, closeWalletDrawer]);
+  }, [location.pathname, closeGardenFilter, closeWalletSheet]);
 
   // Resolve an arrival action to its concrete client side effect.
   const runArrivalAction = useCallback(
@@ -189,24 +206,31 @@ const Home: React.FC = () => {
           return;
       }
     },
-    [myGardenIds, navigate, openWorkDashboard]
+    [myGardenIds, navigate, openWorkDashboard, setFilters]
   );
 
-  // Show a state-aware arrival toast once per browser session, scoped to the signed-in address.
+  // A garden opens as a child route, so Home stays mounted and a toast still waiting on its
+  // delay would land on that screen. Leaving Home cancels it; the arrival stays passed.
+  useLayoutEffect(() => {
+    if (location.pathname.replace(/\/$/, "") !== APP_ROUTES.home) cancelArrival();
+  }, [cancelArrival, location.pathname]);
+
+  // Show a state-aware arrival toast once per browser session, scoped to the signed-in address,
+  // and only while the session is still on the Home it opened on: AppShell marks the arrival
+  // passed as soon as the session is on any other screen.
   // useArrivalState already gates on data confidence, so we fire only when arrivalKind !== "none".
   useEffect(() => {
     if (!isAuthenticated || hasShownArrivalRef.current) return;
-    if (location.pathname !== APP_ROUTES.home) return;
+    if (location.pathname.replace(/\/$/, "") !== APP_ROUTES.home) return;
     if (!normalizedAddress || arrivalKind === "none") return;
 
-    const shownKey = `greengoods:arrival-shown:${normalizedAddress}`;
-    if (sessionStorage.getItem(shownKey) === "true") {
+    if (hasArrivalPassed(normalizedAddress)) {
       hasShownArrivalRef.current = true;
       return;
     }
 
-    // Mark shown BEFORE scheduling so re-renders / remounts this session don't re-fire.
-    sessionStorage.setItem(shownKey, "true");
+    // Mark it passed BEFORE scheduling so re-renders / remounts this session don't re-fire.
+    markArrivalPassed(normalizedAddress);
     hasShownArrivalRef.current = true;
 
     const spec = ARRIVAL_TOASTS[arrivalKind];
@@ -243,13 +267,6 @@ const Home: React.FC = () => {
     refetch();
   };
 
-  // Pull-to-refresh handler
-  const handlePullToRefresh = useCallback(async () => {
-    resetLoadingState();
-    queryClient.invalidateQueries({ queryKey: queryKeys.gardens.all });
-    await refetch();
-  }, [queryClient, refetch, resetLoadingState]);
-
   const handleCardClick = (id: string) => {
     navigate(`/home/${id}`);
     articleRef.current?.scrollIntoView();
@@ -265,65 +282,49 @@ const Home: React.FC = () => {
     setFilters((current) => (current.sort === nextSort ? current : { ...current, sort: nextSort }));
   };
 
-  const handleResetFilters = () => {
-    setFilters({ scope: "all", sort: "default" });
+  const handleDomainsChange = (domains: Domain[]) => {
+    setFilters((current) => ({ ...current, domains: domains.length > 0 ? domains : undefined }));
   };
 
   return (
     <article ref={articleRef} className="mb-6">
-      {location.pathname === APP_ROUTES.home && !isOnline ? (
-        <p className="px-4 pt-2 text-center text-xs text-text-soft-400" role="status">
-          {intl.formatMessage({
-            id: "app.home.pullToRefreshOffline",
-            defaultMessage: "Offline. Pull to refresh is paused until you reconnect.",
-          })}
-        </p>
-      ) : null}
-      {location.pathname === APP_ROUTES.home && (
-        <PullToRefresh
-          onRefresh={handlePullToRefresh}
-          isRefreshing={isFetching && !isPending}
-          disabled={!isOnline}
-          refreshLabel={intl.formatMessage({
-            id: "app.home.pullToRefresh",
-            defaultMessage: "Pull to refresh",
-          })}
-        >
+      {location.pathname.replace(/\/$/, "") === APP_ROUTES.home && (
+        <>
           <div className="flex items-center justify-between w-full py-6 px-4 sm:px-6 md:px-12">
-            <h4 className="font-semibold flex-1">{intl.formatMessage({ id: "app.home" })}</h4>
+            <h4 className="flex-1 text-[1.125rem] font-semibold">
+              {intl.formatMessage({ id: "app.home" })}
+            </h4>
             <div className="ml-4 flex items-center gap-2">
-              <button
-                type="button"
+              <IconButton
+                emphasis="secondary"
+                size="compact"
                 onClick={openGardenFilter}
-                className={cn(
-                  "relative p-1 rounded-lg border transition-[color,border-color,box-shadow,transform] duration-[var(--spring-spatial-fast-duration)] ease-[var(--spring-spatial-fast-easing)] tap-feedback",
-                  "active:scale-95",
-                  "flex items-center justify-center w-8 h-8 tap-target-lg",
-                  "focus:outline-none focus:ring-2",
-                  pwaStatusStyles.primary.focus,
+                // Active filters tint the outline and icon, and count on the badge.
+                className={
                   isFilterActive
                     ? cn(pwaStatusStyles.primary.border, pwaStatusStyles.primary.icon)
-                    : cn(pwaStatusStyles.neutral.border, pwaStatusStyles.neutral.icon)
-                )}
+                    : undefined
+                }
                 aria-label={intl.formatMessage({
                   id: "app.home.filters.button",
                   defaultMessage: "Filters",
                 })}
-              >
-                <RiFilterLine className="h-4 w-4" />
-                {isFilterActive && (
-                  <span
-                    className={cn(
-                      "absolute -top-1.5 -right-1.5 inline-flex min-w-[16px] items-center justify-center rounded-full px-1 text-[10px] font-semibold leading-none",
-                      pwaStatusStyles.primary.badge
-                    )}
-                  >
-                    {activeFilterCount}
-                  </span>
-                )}
-              </button>
-              <WalletDrawerIcon onClick={openWalletDrawer} />
-              <DeferredCommitmentsDrawerLauncher onClick={openCommitmentsDrawer} />
+                icon={<RiFilterLine aria-hidden="true" />}
+                badge={
+                  isFilterActive ? (
+                    <span
+                      className={cn(
+                        "inline-flex min-w-[16px] items-center justify-center rounded-full px-1 text-[10px] font-semibold leading-none",
+                        pwaStatusStyles.primary.badge
+                      )}
+                    >
+                      {activeFilterCount}
+                    </span>
+                  ) : undefined
+                }
+              />
+              <WalletSheetIcon onClick={openWalletSheet} />
+              <DeferredCommitmentsSheetLauncher onClick={openCommitmentsSheet} />
               <WorkDashboardIcon />
             </div>
           </div>
@@ -343,32 +344,33 @@ const Home: React.FC = () => {
               onBrowseAll={() => handleScopeChange("all")}
             />
           </div>
-          {isGardenFilterOpen ? (
+          {isGardenFilterPresent ? (
             <Suspense fallback={null}>
-              <GardensFilterDrawer
-                isOpen
+              <GardensFilterSheet
+                isOpen={isGardenFilterOpen}
                 onClose={closeGardenFilter}
                 filters={filters}
                 onScopeChange={handleScopeChange}
                 onSortChange={handleSortChange}
-                onReset={handleResetFilters}
+                onDomainsChange={handleDomainsChange}
+                onReset={resetFilters}
                 canFilterMine={Boolean(normalizedAddress)}
                 myGardensCount={myGardensCount}
                 isFilterActive={isFilterActive}
               />
             </Suspense>
           ) : null}
-        </PullToRefresh>
+        </>
       )}
       <Outlet />
-      {isWalletDrawerOpen ? (
+      {isWalletSheetPresent ? (
         <Suspense fallback={null}>
-          <WalletDrawer isOpen onClose={closeWalletDrawer} />
+          <WalletSheet isOpen={isWalletSheetOpen} onClose={closeWalletSheet} />
         </Suspense>
       ) : null}
-      {isCommitmentsDrawerOpen ? (
+      {isCommitmentsSheetPresent ? (
         <Suspense fallback={null}>
-          <CommitmentsDrawer isOpen onClose={closeCommitmentsDrawer} />
+          <CommitmentsSheet isOpen={isCommitmentsSheetOpen} onClose={closeCommitmentsSheet} />
         </Suspense>
       ) : null}
     </article>

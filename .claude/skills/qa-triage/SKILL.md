@@ -2,7 +2,7 @@
 name: qa-triage
 user-invocable: true
 description: Turn Build Sync QA notes or a qa-session deferred handoff into scope-locked Linear records and private QA Sheet rows. Fires on a QA call/sync/meeting, Build Sync, Product Sync (legacy name), or a request to file or triage recent meeting bugs. Pulls notes from Drive (Downloads fallback), enriches against PostHog and existing Linear/Sheet records, requires exact Test IDs for qa-session issues, then writes only after confirmation. For a live or dictated walkthrough, use qa-session instead.
-argument-hint: "[<notes-path|slug|qa-sync:YYYY-MM-DD>] [--call [<date>]] [--dry-run] [--no-codex] [--no-sheet] [--fixture]"
+argument-hint: "[<notes-path|slug|session:YYYY-MM-DD>] [--call [<date>]] [--dry-run] [--no-codex] [--no-sheet] [--fixture]"
 ---
 
 # QA Triage Skill
@@ -24,7 +24,7 @@ confirmed Linear and Sheet writes only.
 | `/qa-triage` | Discover the latest Build Sync notes (Drive → Downloads). If the [`qa-triage-pulse`](../../../docs/routines/qa-triage-pulse.md) routine has pre-staged Customer Needs for the latest sync, offer to resume from those instead. |
 | `/qa-triage <path>` | Use the supplied notes path (absolute, relative, or `~/Downloads/...`). A `tmp/qa-session/<slug>/deferred-<slug>.md` extract from the qa-session skill is a supported source — it contains only deferred observations (never fixed/answered/dropped ones), the slugged filename keeps each handoff's workspace distinct, its numbered, typed, verbatim-quoted items parse directly, and its exact `case:` Test IDs bypass fuzzy matching. For session-log inputs, use `source:qa-session` (resolve-or-create) instead of `source:drive` in Phase 6 |
 | `/qa-triage <slug>` | Resume an incomplete run from `tmp/qa-triage/<slug>/notes.md` |
-| `/qa-triage qa-sync:<YYYY-MM-DD>` | Resume from routine-pre-staged Customer Needs carrying that `qa-sync:*` label. Phases 1-3 are skipped (already done by `qa-triage-pulse`); triage gate fires immediately. |
+| `/qa-triage session:<YYYY-MM-DD>` | Resume from routine-pre-staged Customer Needs carrying that `session:*` label. Phases 1-3 are skipped (already done by `qa-triage-pulse`); triage gate fires immediately. |
 | `/qa-triage --call [<date>]` | Post-QA-call mode (§ Call mode below): join the QA app's pulled state with the call's Gemini notes, cluster into slices, and — after the Phase 4 gate — write the `QA session <date>` parent report + slice sub-issues. Interactive sibling of the [`qa-call-report`](../../../docs/routines/qa-call-report.md) routine. |
 | `/qa-triage … --dry-run` | Print payloads instead of writing to Linear; still emit Sheet CSVs |
 | `/qa-triage … --no-codex` | Skip the Codex parallel pass (default is automatic dispatch) |
@@ -38,36 +38,88 @@ The post-QA-call variant: same phases, three deltas. The unattended sibling is t
 write rules; this mode runs them interactively at the desk. Run one of the two per session; the
 Phase 3b dedupe catches the other's records if both ran.
 
-- **Phases 1-2** — the source is twofold: `bun run qa:pull --slug <date>` (the QA app's verdicts
-  and notes, exact Test IDs) plus the call's Gemini notes from Drive (title contains "QA" or
-  "Build Sync"). App verdicts recorded **during the call window** are ground truth — the store
-  is long-lived and the pull merges every shard ever written, so filter joined entries by their
-  `at` timestamps (the routine's session-window rule) before calling anything verdict-backed;
-  older entries are standing state. Then `bun run qa:report --slug <date> --window <start>..<end>`
-  — with `--out <the directory you pulled into>` whenever the collision branch below sent the pull
-  to `tmp/qa-session/<date>-call`, so the report reads that pull and not the earlier session's
-  (add `--build client=<sha>,admin=<sha>` once Phase 6 has the deploys): the `report.md` written
-  beside that pull is where both results blocks of the parent come from — never count by hand.
-  Note items without a Test ID may be fuzzy-matched into
-  *proposals* here, because the Phase 4 gate confirms each one with you — the unattended routine
-  never guesses an ID. If `tmp/qa-session/<date>/` already holds a pulled session (a local
-  close, or an earlier failed run), `qa:pull` refuses to overwrite it: pull to a fresh directory
-  with `--out tmp/qa-session/<date>-call` and continue from that path — never `--force` over an
-  existing pull, whose severity edits and redactions are sacred.
-- **Phases 3-5** — findings cluster into slices: same catalog area + same suspected seam, split
-  past 3 Test IDs or a package boundary, cap 8 by priority with overflow named in the report.
-  Payloads use [linear-templates.md § QA session report / § QA slice](./linear-templates.md) —
-  one `QA session <date>` parent, slices as sub-issues via `parentId`. Before drafting the
-  parent, look for an existing one — use the `qa-sync:<date>` label to narrow candidates, but
-  require the parent shape before reuse: the exact `QA session <date>` title and no `package:*`
-  label (the pulse stamps the same label on its pre-staged tracking Issues, and Phase 3b's
-  package-scoped scan cannot see the parent at all); an existing parent is reused, never
-  duplicated. Verdict-backed slices
-  propose `Todo` + derived priority (P0-case fail → High, P1 → Medium, else Low; Urgent only for
-  call-flagged release blockers); note-only items propose `Backlog`. The Phase 4 scope-lock gate
-  runs unchanged over the slice list.
+- **Phases 1-2** — the source is threefold: `bun run qa pull --slug <slug> --run <id>` (the QA
+  app's verdicts and notes, exact Test IDs, from the run the call recorded into: the `run-N` id
+  in the session header, or in the parent's lede on a rerun; `--run latest-closed` when the run
+  was rolled over before this ran), the call's Gemini notes from Drive (title contains "QA" or
+  "Build Sync"), and any evidence page a tester linked from a note (a Notion or Drive URL beside
+  an issue number, carried into the slice's evidence comment as a link, never re-typed). App
+  verdicts recorded **during the call window** are ground truth — a run can hold several
+  sessions, so filter joined entries by their `at` timestamps (the routine's session-window rule)
+  before calling anything verdict-backed; older entries are standing state. For a re-QA also pull
+  the run it checks (`bun run qa pull --slug <slug> --run <previous id> --out
+  tmp/qa-session/<slug>/previous`) and pass `--previous tmp/qa-session/<slug>/previous/qa-state.json`
+  to `qa report`, whose delta then names both runs. `N/A` means out of scope, never skipped
+  ([`.claude/context/qa.md § Verdict vocabulary`](../../context/qa.md)); ask the tester to clear a
+  skipped case in the app before the pull; when that cannot happen, pass those IDs to
+  `qa report --skipped <ID,ID>` so the generator counts them as not walked and lists them in its
+  header, never as covered. Then
+  `bun run qa report --slug <slug> --window <start>..<end>` — with `--out <the directory you
+  pulled into>` whenever the collision branch below sent the pull to `tmp/qa-session/<slug>-call`,
+  so the report reads that pull and not the earlier session's (add `--build client=<sha>,admin=<sha>`
+  once Phase 6 has the deploys): the `report.md` written beside that pull is where both results
+  blocks of the parent come from — never count by hand. Note items without a Test ID may be
+  fuzzy-matched into *proposals* here, because the Phase 4 gate confirms each one with you — the
+  unattended routine never guesses an ID. If `tmp/qa-session/<slug>/` already holds a pulled
+  session (a local close, or an earlier failed run), `qa pull` refuses to overwrite it: pull to a
+  fresh directory with `--out tmp/qa-session/<slug>-call` and continue from that path — never
+  `--force` over an existing pull, whose severity edits and redactions are sacred.
+- **Phase 2b — split, then classify.** A dictated app note is several observations, not one
+  finding: on 2026-09-04 one note carried six polish items and the session's only release blocker
+  in a single paragraph. Before anything clusters, extract one numbered observation per distinct
+  symptom from every app note (the Phase 2 extraction rule, applied to app notes exactly as to
+  meeting notes), each tagged with its Test ID, tester, and verdict, and give each observation one
+  disposition from [`.claude/context/qa.md § Finding dispositions`](../../context/qa.md):
+  `defect`, `polish`, `decision`, `investigate`, `catalog`, or `environment`. Write the `catalog`
+  observations to `tmp/qa-triage/<slug>/catalog-feedback.md` — they feed the next catalog change
+  and never reach Linear; at Phase 7 copy the file, de-attributed (no verdicts, no tester names),
+  into the plan hub that owns the next catalog change (today `.plans/active/qa-runs/`) before the
+  workspace is removed, so cleanup cannot lose it. A note that says "major regression", "major blocker", or "completely
+  broken" proposes Urgent for its cluster; the priority stays derived until the gate confirms.
+- **Phases 3-5** — `defect` and `polish` observations cluster into slices: same catalog area +
+  same suspected seam, split past 3 Test IDs or a package boundary, ordered by priority. The
+  cap is a **Todo queue budget**, default 8; the gate may raise it when the week's fixing
+  capacity matches. File every accepted defect and polish cluster, or link its existing tracked
+  Issue. After deriving state and priority below, the first N Todo-eligible slices by priority
+  propose `Todo`; file every remaining slice as `Backlog`, keeping its derived priority. Record
+  the budget and the Todo/Backlog split in the parent's Slices intro and list all slices there;
+  the cap never sends a formed slice to `Not sliced`. That section holds note-only follow-ups
+  without an exact Test ID and uncorrelated telemetry, alongside investigate and environment
+  lines; catalog feedback keeps its separate disposition. Standing fail/blocked entries
+  **outside** the window are never slices by default;
+  the gate may accept ones that were never filed (no open Issue carries their Test ID), and such a
+  slice opens with `Standing since <date>.` and is listed that way in the parent. `decision`
+  observations become the parent's `Decisions needed` section plus one child issue
+  ([linear-templates.md § Product decisions child](./linear-templates.md)); `investigate`
+  observations become `Not sliced · investigate` lines; `environment` observations become one line
+  in the parent. Each slice states where its Test IDs can be verified — `local` (dev:prod on a
+  laptop), `device` (a case marked `requiresDevice`), or `production` (`requiresProduction`) — so
+  the fix loop takes local-verifiable slices first. Payloads use
+  [linear-templates.md § QA session report / § QA slice](./linear-templates.md) — one
+  `QA session <date>` parent, slices as sub-issues via `parentId`. Before drafting the parent,
+  look for an existing one — use the `session:<date>` label to narrow candidates, but require the
+  parent shape before reuse: the exact `QA session <date>` title and no `package:*` label (the
+  pulse stamps the same label on its pre-staged tracking Issues, and Phase 3b's package-scoped
+  scan cannot see the parent at all); an existing parent is reused, never duplicated.
+  Verdict-backed slices propose `Todo` + derived priority (P0-case fail → High, P1 → Medium, else
+  Low; Urgent when the call flagged it release-blocking, or proposed from a tester's note and
+  confirmed at the gate); `polish` slices propose Low (`Todo` when a member entry sits inside the
+  window, else `Backlog`); note-only items propose `Backlog`. **Human-filed issues**: list Product Issues created since the window opened,
+  whatever their labels (a teammate filing from the call rarely stamps an activity label); propose a
+  match per slice by title and surface; the gate confirms each. A confirmed match is linked as
+  `already tracked`, and the slice's Test IDs are posted as a comment on that Issue; the routine's
+  exact-key scan reads pipeline comments as well as source lines, so the reverse lookup works next
+  time. The Phase 4 scope-lock gate runs once over everything the run proposes, with this reply
+  grammar in place of the default prompt's tags: slice numbers, `all`, or `none`; `S3:urgent` /
+  `S3:high` / `S3:medium` / `S3:low` to override a priority; `D2:drop` to drop a decision line;
+  `I1:slice` to promote an investigate line into a slice; `M2:PRD-849` to confirm a proposed match
+  or `M2:none` to reject it; catalog and environment lines are recorded as listed unless the reply
+  says `C3:slice` or `E1:slice`. Nothing outside the reply is filed.
 - **Phase 6** — write the parent first — Results by priority and Results by kind pasted verbatim
-  from `report.md` — then the children. The routine's window-scoped
+  from `report.md` — then attach the full `report.md` to the parent as a Linear document
+  ([linear-templates.md § Full report document](./linear-templates.md), after the privacy grep;
+  team display names allowed, nothing else private) and link it from the lede, then the decisions
+  child, then the slices. The routine's window-scoped
   enrichment runs here too (build under test via Vercel; PostHog/Sentry safe summaries into each
   slice's first comment — see `qa-call-report.md` § Phase 4); Sheet Defects rows are still
   offered per slice member with the usual confirmation (the routine never writes the Sheet), and
@@ -105,6 +157,7 @@ Contents:
 - `schema-bootstrap.csv` — emitted only when the Defects tab needs the 6 new PostHog/Linear columns
 - `codex-merge.json` — idempotency ledger for the background Codex result (result digest, stable item keys, assigned item numbers, and merge status)
 - `report.md` — Phase 7 final summary
+- `catalog-feedback.md` — call mode only: the `catalog` observations from Phase 2b; copied de-attributed into the catalog-owning plan hub at Phase 7 before cleanup
 
 Skill-wide cache: `~/.config/qa-triage/cache.json` — stores the resolved Sheet file
 id, column ordering, and last-verified permissions snapshot. User-specific assignment
@@ -131,7 +184,7 @@ All deviations from a real run, in one place:
 2. **Resolve Linear handles by name** at the start of every run:
    - Team: `Product` (fallback `Research` only when the user asks).
    - Workflow states: expect `Backlog`, `Todo`.
-   - Label families: `protocol:green-goods`, `package:*`, `activity:qa`, `activity:maintenance`, `source:drive`, `source:qa-triage-pulse`, `source:qa-session` (resolve-or-create; for qa-session handoff inputs), `ai:claude`, `ai:codex`, `ai:routine`. The per-week label `qa-sync:YYYY-MM-DD` is resolve-or-created on each run that needs it.
+   - Label families: `protocol:green-goods`, `package:*`, `activity:build`, `activity:design`, `activity:qa`, `activity:maintenance`, `source:drive`, `source:qa-triage-pulse`, `source:qa-session` (resolve-or-create; for qa-session handoff inputs), `ai:codex`, `ai:routine`. The per-week label `session:YYYY-MM-DD` is resolve-or-created on each run that needs it.
    - If any required label family is missing, fail loud and stop — do not invent records under a different label.
 3. **Probe PostHog reachability** with a single-event query against both `POSTHOG_PROJECT_ID_APP` (`163591`) and `POSTHOG_PROJECT_ID_ADMIN` (`262122`). If either is unreachable, mark the affected surface as `enrichment: unavailable` and continue. (Skipped in fixture mode.)
 
@@ -161,7 +214,7 @@ See [`sheet-schema.md`](./sheet-schema.md) for the canonical Defects and Test-ta
 
 Lookup order, first match wins:
 
-0. **Resume from `qa-triage-pulse` pre-stage** — if invoked as `/qa-triage qa-sync:<YYYY-MM-DD>`, OR if no explicit path/slug was given but Linear has ≥1 open Customer Need carrying both `source:qa-triage-pulse` and a `qa-sync:<latest-date>` label, surface the resume prompt:
+0. **Resume from `qa-triage-pulse` pre-stage** — if invoked as `/qa-triage session:<YYYY-MM-DD>`, OR if no explicit path/slug was given but Linear has ≥1 open Customer Need carrying both `source:qa-triage-pulse` and a `session:<latest-date>` label, surface the resume prompt:
 
    > Found {N} pre-staged Customer Needs from {date}'s Build Sync (routine: qa-triage-pulse). Resume from those, or run a fresh extract from notes? `[resume / fresh / quit]`
 
@@ -204,7 +257,7 @@ Show the candidate list (max 5, last 14 days) with title + modified date. Confir
    3. [feedback] ...
    ```
 
-   Item types: `bug` → eligible for a main `activity:qa` Issue. `idea` / `feedback` → track-only by default, meaning Customer Need + lightweight Backlog tracking Issue.
+   Item types: `bug` → eligible for a main `activity:build` Issue. `idea` / `feedback` → track-only by default, meaning Customer Need + lightweight Backlog tracking Issue.
 
 3. **Dispatch Codex automatically (required unless `--no-codex` or `--fixture` is set).** Fire the worktree dispatch on every real run that carries neither flag — no judgment override, no "skipped to keep the flow tight". The parallel extraction pass exists specifically to catch what a single-agent extraction misses; skipping defeats the dual-extraction design. Dispatch mechanics (worktree add, fixed non-secret child environment, notes/schema copy, `codex exec -s read-only --ephemeral … < /dev/null` invocation, prompt rendering) live in [codex-prompt.md § Dispatch mechanics](./codex-prompt.md); `--full-auto` no longer exists on `codex exec`, and an open stdin makes it wait forever, so use the snippet as written. Copy the resolved notes into the temporary worktree and render that absolute copy path into the prompt; a primary-checkout-relative `tmp/qa-triage/.../notes.md` path is not reachable from the separate checkout. The root `.env` is never linked because this pass needs only the copied notes and schema; a configured `CODEX_HOME` is preserved so the CLI keeps its own authentication and installed skills. Fire via `Bash` with `run_in_background: true` and continue to Phase 3 immediately. When the result lands, process it through the idempotent completion handler below; never merge the file ad hoc.
 
@@ -291,7 +344,7 @@ Output: `cross-ref.md`, one block per item:
 - Deploy correlation: commit `abc1234` (Gui · 2h before first_seen) — packages/client work-submission · [diff](https://github.com/.../compare/...)
 - Linear scan: 1 related (PRD-1234), no duplicates
 - Tracker scan: not present
-- Disposition (proposed): new Issue, package:client, activity:qa
+- Disposition (proposed): new Issue, package:pwa, activity:build
 ```
 
 ## Phase 4 — Triage gate (REQUIRED USER GATE)
@@ -338,8 +391,8 @@ Three hard constraints shape every payload — full detail, including the Codex-
 
 | Item shape | Issue created | Customer Need created |
 |---|---|---|
-| Clear actionable bug (named surface + suggestable fix) | **Main Issue** — `activity:qa` + `Todo` + priority by severity | Yes, linked via `issue` |
-| Bug with no repro or no clear surface | **Backlog Issue** — `activity:qa` + `Backlog` | Yes, linked via `issue` |
+| Clear actionable bug (named surface + suggestable fix) | **Main Issue** — `activity:build` + `Todo` + priority by severity | Yes, linked via `issue` |
+| Bug with no repro or no clear surface | **Backlog Issue** — `activity:build` + `Backlog` | Yes, linked via `issue` |
 | Idea / feedback / UX polish / strategic gap | **Track-only Issue** — `activity:maintenance` (or `activity:architecture` for strategic items) + `Backlog` + priority Low/Medium | Yes, linked via `issue` |
 | Question / "me too" / no actionable content | Skip both | Skip both |
 | Duplicate of existing record | No new Issue; link via `relatedTo` | Optional — comment on existing if user wants the verbatim quote preserved |
@@ -350,12 +403,12 @@ Title shape for track-only Issues: a plain action-verb-led sentence, no prefix �
 
 Single bulk prompt up front, then surface only the items where the proposed assignee differs from the default — never ask 27 separate questions.
 
-> Default assignee for all N filed Issues: (a) Afo, (b) `ai:claude`, (c) unassigned, (d) other engineer (name).
-> Per-item overrides? Reply with bullets like `5:gferreira525, 12-15:ai:claude, 18:unassigned` or `confirm` to accept the default for everything.
+> Default assignee for all N filed Issues: (a) Afo, (b) Claude (unlabelled), (c) unassigned, (d) other engineer (name).
+> Per-item overrides? Reply with bullets like `5:gferreira525, 12-15:claude, 18:unassigned` or `confirm` to accept the default for everything.
 
-Then, before writing, the assistant surfaces a **proposed exceptions list** for the user to ratify — items where the bulk default seems wrong given context (e.g., an admin bug when the default is Gui, a PWA architectural bug when the default is `ai:claude`). The user sees only items that need a decision, not the whole list.
+Then, before writing, the assistant surfaces a **proposed exceptions list** for the user to ratify — items where the bulk default seems wrong given context (e.g., an admin bug when the default is Gui, a PWA architectural bug when the default is Claude). The user sees only items that need a decision, not the whole list.
 
-Recall `ai:*` is single-value: when delegate (`ai:claude` / `ai:codex`) is chosen, the originating agent is implicit and goes in a comment when it matters — never in the body, whose `## Provenance` section was retired 2026-08-27. The interactive skill running in Claude Code is the origin by default.
+Recall `ai:*` is single-value: when Codex delegation (`ai:codex`) is chosen, the originating agent is implicit and goes in a comment when it matters — never in the body, whose `## Provenance` section was retired 2026-08-27. The interactive skill running in Claude Code is the origin by default.
 
 **Per-item preference capture (subtle)**:
 
@@ -398,9 +451,9 @@ Surface vocabulary on the Defects row: `Public Website | PWA iOS | PWA Android |
 
    **Linear writes** (via Linear MCP):
    - Issues first (Customer Needs require an `issue` parameter — Linear API rejects standalone Needs).
-   - **`save_issue` `labels` is REPLACE, not append.** When adding a single new label to an existing Issue, always read the current label list first and pass `[...existing, newLabel]`. Passing `["activity:qa"]` alone will strip every other label off the Issue.
+   - **`save_issue` `labels` is REPLACE, not append.** When adding a single new label to an existing Issue, always read the current label list first and pass `[...existing, newLabel]`. Passing `["build"]` alone will strip every other label off the Issue.
    - **Snapshot before in-place edits.** When updating Customer Need bodies or Issue descriptions in bulk on already-filed records, write a JSON dump of every record's pre-edit `{id, title, description, body, labels, priority, status}` to `tmp/qa-triage/<slug>/pre-edit-snapshot.json` first. Cheap safety net if the bulk write goes sideways.
-   - Issue labels: `protocol:green-goods` + ONE `package:*` (primary surface) + `activity:qa` (bug) or `activity:maintenance` (polish) or `activity:architecture` (strategic) + the source label matching the resolved input (`source:drive` for Drive/Downloads notes; `source:qa-session` for qa-session handoff extracts; keep `source:qa-triage-pulse` on records resumed from a `qa-sync:<date>` pre-stage — never stamp Drive provenance on a live-session input or strip the pulse's provenance on resume) + ONE `ai:*` (delegate-to wins). Translate every one to its **bare child name** before calling `save_issue` (`["green-goods", "client", "qa", "drive", "claude"]`): the API rejects the `group:child` display form, and one unresolvable entry rejects the whole array and files nothing.
+   - Issue labels: `protocol:green-goods` + ONE `package:*` (primary surface) + ONE activity — `activity:build` (bug), `activity:design` (visual polish), `activity:maintenance` (hygiene), or `activity:architecture` (strategic); never `activity:qa`, which marks the validation pass itself and not the defects it found — + the source label matching the resolved input (`source:drive` for Drive/Downloads notes; `source:qa-session` for qa-session handoff extracts; keep `source:qa-triage-pulse` on records resumed from a `session:<date>` pre-stage — never stamp Drive provenance on a live-session input or strip the pulse's provenance on resume) + ONE `ai:*` (delegate-to wins). Translate every one to its **bare child name** before calling `save_issue` (`["green-goods", "pwa", "build", "drive"]`): the API rejects the `group:child` display form, and one unresolvable entry rejects the whole array and files nothing.
    - Then Customer Needs, each linked to its Issue via the `issue` parameter. Customer Needs accept `body` and `issue`/`project` only — no labels per the API surface.
    - Track-only Issues are created in the same pass as the main Issues, before the Customer Needs that reference them.
 
@@ -459,13 +512,14 @@ Write `report.md` and print:
 <status: dispatched (worktree path, result file) | prompt emitted (path) | skipped | failed>
 
 ### Next step
-- Spawn implementation sessions for `ai:claude`-labelled Issues, or
+- Spawn implementation sessions for Issues assigned to Afo, or
 - Sync with the team on the deferred items, or
 - Done.
 ```
 
 Then run Codex worktree cleanup for the current run only if dispatched (unless
-`--dry-run`). After all confirmed Linear and Sheet writes succeed, remove only
+`--dry-run`). After all confirmed Linear and Sheet writes succeed — and, in call mode, after
+`catalog-feedback.md` has been copied into its plan hub — remove only
 `tmp/qa-triage/<slug>/`; for dry runs, failed writes, or incomplete runs, keep it and
 surface the resume path.
 

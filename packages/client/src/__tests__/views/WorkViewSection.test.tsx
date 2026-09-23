@@ -11,6 +11,10 @@ import { cleanup, render, screen } from "@testing-library/react";
 import { createElement } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+const connection = { online: true };
+vi.mock("@green-goods/shared/hooks/app/useOnlineStatus", () => ({
+  useOnlineStatus: () => connection.online,
+}));
 vi.mock("react-intl", () => ({
   useIntl: () => ({
     formatMessage: ({ defaultMessage }: { defaultMessage?: string }) => defaultMessage ?? "",
@@ -23,11 +27,6 @@ vi.mock("@green-goods/shared/utils/form/normalizers", async (importOriginal) => 
     formatTimeSpent: (mins: number) => `${mins}m`,
   };
 });
-
-vi.mock("@/components/Actions", () => ({
-  Button: ({ label, onClick }: { label: string; onClick?: () => void }) =>
-    createElement("button", { onClick, type: "button" }, label),
-}));
 
 vi.mock("@/components/Features/Work", () => ({
   WorkView: ({ title, info }: { title: string; info: string }) =>
@@ -91,7 +90,7 @@ describe("WorkViewSection — all WorkDisplayStatus values (#405)", () => {
         effectiveStatus: "sync_failed" as WorkDisplayStatus,
       })
     );
-    expect(screen.getByTestId("work-title")).toHaveTextContent("Sending didn't work");
+    expect(screen.getByTestId("work-title")).toHaveTextContent("Upload didn't work");
   });
 
   it("shows 'Saved on your device' title for syncing status", () => {
@@ -114,14 +113,15 @@ describe("WorkViewSection — all WorkDisplayStatus values (#405)", () => {
     expect(screen.getByTestId("work-title")).toHaveTextContent("Saved on your device");
   });
 
-  it("shows the warm sending info for syncing/uploading statuses", () => {
+  it("shows sending info only for an observed active send", () => {
     render(
       createElement(WorkViewSection, {
         ...baseProps,
         effectiveStatus: "uploading" as WorkDisplayStatus,
+        work: { ...mockWork, metadata: JSON.stringify({ submissionState: "sending" }) } as any,
       })
     );
-    expect(screen.getByTestId("work-info")).toHaveTextContent("Sending to the garden record...");
+    expect(screen.getByTestId("work-info")).toHaveTextContent("Uploading to the garden record...");
   });
 
   it("shows the offline-saved info for offline status", () => {
@@ -132,7 +132,26 @@ describe("WorkViewSection — all WorkDisplayStatus values (#405)", () => {
       })
     );
     expect(screen.getByTestId("work-info")).toHaveTextContent(
-      "Saved on your device. We'll send it to the garden record when you're online."
+      "Saved on your device. Upload it here when you're connected."
+    );
+  });
+
+  it("says why refused work cannot go, where it once told the person to upload it", () => {
+    render(
+      createElement(WorkViewSection, {
+        ...baseProps,
+        effectiveStatus: "offline" as WorkDisplayStatus,
+        work: {
+          ...mockWork,
+          metadata: JSON.stringify({
+            submissionState: "blocked",
+            blockedReason: "NotActiveAction",
+          }),
+        } as any,
+      })
+    );
+    expect(screen.getByTestId("work-info")).toHaveTextContent(
+      "Can't upload: this action has ended"
     );
   });
 
@@ -144,7 +163,7 @@ describe("WorkViewSection — all WorkDisplayStatus values (#405)", () => {
       })
     );
     expect(screen.getByTestId("work-info")).toHaveTextContent(
-      "We couldn't send this just now. We'll keep trying when you're online."
+      "Your media stays saved. Choose Upload now when you’re ready to try again."
     );
   });
 
@@ -169,4 +188,34 @@ describe("WorkViewSection — all WorkDisplayStatus values (#405)", () => {
     );
     expect(screen.getByTestId("work-info")).toHaveTextContent("Submitted for review");
   });
+});
+
+it("does not describe an offline queued record as actively sending", () => {
+  connection.online = false;
+  render(
+    createElement(WorkViewSection, {
+      ...baseProps,
+      work: { ...mockWork, metadata: JSON.stringify({ submissionState: "ready" }) } as any,
+      effectiveStatus: "offline",
+    })
+  );
+  expect(screen.getByTestId("work-info")).toHaveTextContent("Saved on your device");
+  expect(screen.getByTestId("work-info")).not.toHaveTextContent("Sending to");
+  cleanup();
+  connection.online = true;
+});
+it("distinguishes an uncertain signing checkpoint from a known broadcast", () => {
+  render(
+    createElement(WorkViewSection, {
+      ...baseProps,
+      work: {
+        ...mockWork,
+        metadata: JSON.stringify({ submissionState: "checking-submission" }),
+      } as any,
+      effectiveStatus: "offline",
+    })
+  );
+  expect(screen.getByTestId("work-title")).toHaveTextContent("Checking whether this work was sent");
+  expect(screen.getByTestId("work-info")).not.toHaveTextContent("Your work was sent");
+  cleanup();
 });

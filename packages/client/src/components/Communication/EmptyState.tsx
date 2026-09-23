@@ -9,6 +9,8 @@ export interface EmptyStateProps {
   description?: React.ReactNode;
   action?: React.ReactNode;
   tone?: EmptyStateTone;
+  /** Keep the icon and title fixed while sheet descriptions and actions grow below them. */
+  placement?: "center" | "sheet";
   className?: string;
 }
 
@@ -24,12 +26,16 @@ export function EmptyState({
   description,
   action,
   tone = "neutral",
+  placement = "center",
   className,
 }: EmptyStateProps) {
   return (
     <div
       className={cn(
-        "flex min-h-[12rem] flex-col items-center justify-center px-6 py-8 text-center",
+        "flex min-h-[12rem] flex-col items-center px-6 text-center",
+        placement === "sheet"
+          ? "justify-start pt-[clamp(3rem,13dvh,7rem)] pb-8"
+          : "justify-center py-8",
         className
       )}
     >
@@ -43,7 +49,7 @@ export function EmptyState({
         <span className="flex items-center justify-center [&>svg]:h-6 [&>svg]:w-6">{icon}</span>
       </div>
       <div className="mt-3 max-w-sm">
-        <h3 className="text-sm font-medium text-text-strong-950">{title}</h3>
+        <h3 className="text-sm font-semibold text-text-strong-950">{title}</h3>
         {description ? (
           <p className="mt-1 text-sm leading-relaxed text-text-sub-600">{description}</p>
         ) : null}

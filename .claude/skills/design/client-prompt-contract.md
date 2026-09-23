@@ -33,7 +33,7 @@ Use these terms when describing client UI:
 
 ## Never Use (in client prompts)
 
-> **Machine policy**: the full client-banned phrase list lives in [`scripts/data/banned-vocabulary.json`](../../../scripts/data/banned-vocabulary.json) (`prompt_vocabulary_client_banned`). `bun run lint:vocab` reads the same file for lint-enforced cross-surface terms.
+> **Machine policy**: the full client-banned phrase list lives in [`scripts/data/banned-vocabulary.json`](../../../scripts/data/banned-vocabulary.json) (`prompt_vocabulary_client_banned`). `bun run check --only vocabulary` reads the same file for lint-enforced cross-surface terms.
 
 The categories below are contract-specific framing — *why* client output should reject these patterns. The exact phrase set is the glossary's job:
 

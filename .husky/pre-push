@@ -1,6 +1,12 @@
 #!/usr/bin/env sh
 set -eu
 
+# git exports GIT_DIR to hooks in a linked worktree, and a git that inherits it ignores `cwd`, so
+# a test fixture run by this gate works on this repository instead of its throwaway one. Clear
+# every variable that binds git to a repository (git lists them itself). Worktrees whose hooks
+# path points at the main checkout run this file, so it protects them even on older code.
+unset $(git rev-parse --local-env-vars)
+
 # Enable pipefail only if supported (dash doesn't support it)
 (set -o pipefail) 2>/dev/null && set -o pipefail
 
@@ -18,19 +24,15 @@ fi
 
 echo "🔍 Running the focused ready-for-CI gate..."
 
-# git exports GIT_DIR/GIT_WORK_TREE/GIT_INDEX_FILE to hooks. Any test fixture
-# that spawns git in a temp directory would inherit them and operate on THIS
-# repository instead (observed 2026-09-02: fixture commits and core.bare=true
-# written into the real repo from the push gate). Hooks must not leak them.
-unset GIT_DIR GIT_WORK_TREE GIT_INDEX_FILE
-
 # Bun is the repository's required package manager.
 if ! command -v bun >/dev/null 2>&1; then
   echo "Error: Bun is required. Install bun: https://bun.sh"
   exit 1
 fi
-# GG_PUSH_GATE_ARGS forwards ci-local's own sanctioned flags (e.g. --check <id>,
-# --test-path <surface>:<path>) for plans that require explicit focus; the gate
-# itself still runs and still decides.
+# Run the gate through the repo's Node wrapper so a Bun or wrong-Node shell still reaches real
+# Node. The gate then re-execs itself under the exact pinned Node, because a plan that reads
+# "blocked:toolchain.node" on every check only teaches people to reach for --no-verify.
+# GG_PUSH_GATE_ARGS forwards ci-local's own flags (for example --base <rev>, --check <id>, or
+# --test-path <surface>:<path>) when a plan needs explicit focus; the gate still runs and decides.
 # shellcheck disable=SC2086
-node scripts/dev/ci-local.js --intent push --reuse-passing-receipts ${GG_PUSH_GATE_ARGS:-}
+node scripts/dev/node-cli.js scripts/dev/ci-local.js --intent push --reuse-passing-receipts ${GG_PUSH_GATE_ARGS:-}

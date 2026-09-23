@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 import {
   buildProfileAvatarMessage,
   isCanonicalProfileAvatarUri,
+  parseProfileAvatarAddressList,
+  PROFILE_AVATAR_BATCH_LIMIT,
   validateProfileAvatarMutation,
   validateProfileAvatarRequest,
 } from "../../public-contracts/profile-avatar";
@@ -71,5 +73,26 @@ describe("profile avatar public contract", () => {
     );
     expect(expired.ok ? null : expired.error.errorCode).toBe("signature_expired");
     expect(unsupported.ok ? null : unsupported.error.errorCode).toBe("chain_unsupported");
+  });
+
+  it("parses a batch address list into unique lowercase addresses in request order", () => {
+    const other = "0xabcdefabcdefabcdefabcdefabcdefabcdefabcd";
+    expect(
+      parseProfileAvatarAddressList(
+        `${other}, ${address.toUpperCase().replace("0X", "0x")},${other}`
+      )
+    ).toEqual([other, address]);
+  });
+
+  it("rejects empty, malformed, and oversized batch address lists", () => {
+    const tooMany = Array.from(
+      { length: PROFILE_AVATAR_BATCH_LIMIT + 1 },
+      (_, index) => `0x${index.toString(16).padStart(40, "0")}`
+    ).join(",");
+    expect(parseProfileAvatarAddressList(undefined)).toBeNull();
+    expect(parseProfileAvatarAddressList("")).toBeNull();
+    expect(parseProfileAvatarAddressList(`${address},`)).toBeNull();
+    expect(parseProfileAvatarAddressList(`${address},0x1234`)).toBeNull();
+    expect(parseProfileAvatarAddressList(tooMany)).toBeNull();
   });
 });

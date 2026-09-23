@@ -138,7 +138,7 @@ export function CookieJarWithdrawModal({
             disabled={!selectedWithdrawJar || parsedWithdrawAmount <= 0n}
             onClick={handleWithdraw}
           >
-            {formatMessage({ id: "app.cookieJar.withdraw", defaultMessage: "Withdraw" })}
+            {formatMessage({ id: "app.cookieJar.withdraw", defaultMessage: "Claim" })}
           </AdminButton>
         </>
       }
@@ -165,7 +165,7 @@ export function CookieJarWithdrawModal({
           <AdminTextField
             id="withdraw-amount"
             className="min-w-0 flex-1"
-            label={formatMessage({ id: "app.cookieJar.amount", defaultMessage: "Amount" })}
+            label={formatMessage({ id: "app.cookieJar.amount", defaultMessage: "How much" })}
             type="text"
             value={withdrawAmount}
             onChange={(e) => setWithdrawAmount(e.target.value)}

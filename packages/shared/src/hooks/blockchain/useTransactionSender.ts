@@ -1,3 +1,4 @@
+import { getAccount, getWalletClient } from "@wagmi/core";
 /**
  * React hook wrapper around the TransactionSender factory.
  *
@@ -24,7 +25,8 @@
  * ```
  */
 
-import { useMemo } from "react";
+import { useMemo, useRef } from "react";
+import { isChainSupported } from "../../config/chains";
 import { ENV } from "../../lib/env";
 import { useConfig, useWriteContract } from "wagmi";
 import {
@@ -44,28 +46,89 @@ import { useUser } from "../auth/useUser";
  * Returns null when authentication is not yet initialized.
  */
 export function useTransactionSender(): TransactionSender | null {
-  const { authMode, smartAccountClient } = useUser();
+  const { authMode, smartAccountClient, resolveSmartAccountClient, primaryAddress } = useUser();
   const { writeContractAsync } = useWriteContract();
   const config = useConfig();
 
   const erc7677ProxyUrl = ENV.VITE_ERC7677_PROXY_URL as string | undefined;
 
+  const session = useRef({
+    authMode,
+    smartAccountClient,
+    resolveSmartAccountClient,
+    primaryAddress,
+    generation: 0,
+  });
+  if (
+    session.current.authMode !== authMode ||
+    session.current.smartAccountClient !== smartAccountClient ||
+    session.current.resolveSmartAccountClient !== resolveSmartAccountClient ||
+    session.current.primaryAddress !== primaryAddress
+  )
+    session.current = {
+      authMode,
+      smartAccountClient,
+      resolveSmartAccountClient,
+      primaryAddress,
+      generation: session.current.generation + 1,
+    };
   return useMemo(() => {
     if (!authMode) return null;
 
     try {
-      return createTransactionSender({
+      const generation = session.current.generation;
+      const sender = createTransactionSender({
         authMode,
         smartAccountClient,
+        resolveSmartAccountClient,
         wagmiConfig: config,
         writeContractAsync:
           writeContractAsync as unknown as TransactionSenderOptions["writeContractAsync"],
         erc7677ProxyUrl,
       });
+      sender.assertOwnership = async (address, chainId) => {
+        if (
+          !primaryAddress ||
+          address.toLowerCase() !== primaryAddress.toLowerCase() ||
+          !isChainSupported(chainId) ||
+          generation !== session.current.generation
+        )
+          throw new Error("submission-ownership-changed");
+        if (authMode === "passkey") {
+          const client =
+            smartAccountClient?.chain?.id === chainId
+              ? smartAccountClient
+              : await resolveSmartAccountClient?.(chainId);
+          if (
+            client?.account?.address.toLowerCase() !== address.toLowerCase() ||
+            client?.chain?.id !== chainId
+          )
+            throw new Error("submission-ownership-changed");
+        } else {
+          const wallet = await getWalletClient(config, { chainId });
+          const activeChainId = getAccount(config).chainId;
+          if (
+            wallet?.account?.address.toLowerCase() !== address.toLowerCase() ||
+            (activeChainId !== undefined && activeChainId !== chainId)
+          )
+            throw new Error("submission-ownership-changed");
+        }
+        if (generation !== session.current.generation)
+          throw new Error("submission-ownership-changed");
+      };
+      return sender;
     } catch {
       // If required deps aren't available yet (e.g., smartAccountClient
       // loading during passkey init), return null gracefully.
       return null;
     }
-  }, [authMode, smartAccountClient, writeContractAsync, config, erc7677ProxyUrl]);
+  }, [
+    authMode,
+    smartAccountClient,
+    resolveSmartAccountClient,
+    primaryAddress,
+    writeContractAsync,
+    config,
+    erc7677ProxyUrl,
+  ]);
 }

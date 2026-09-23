@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef } from "react";
 import { getAuthMode } from "../../modules/auth/session";
 import { trackAuthWalletRestore } from "../../modules/app/authWalletRestoreAnalytics";
 import { logger } from "../../modules/app/logger";
+import { connectivityStore } from "../../stores/connectivity";
 import type { AuthActor } from "../../workflows/authActor";
 import type { WalletConnectionType } from "../../workflows/authMachine";
 
@@ -22,8 +23,20 @@ interface RestoreAttempt {
   failed: boolean;
 }
 
-function canRestoreProgress(): boolean {
-  return navigator.onLine !== false && document.visibilityState === "visible";
+/**
+ * The restore deadline only counts while the connector could actually answer:
+ * a visible page with a usable connection. Offline, the remembered wallet
+ * identity keeps the session readable and the clock waits for reconnection.
+ */
+function canAdvanceRestoreClock(): boolean {
+  return (
+    document.visibilityState === "visible" &&
+    connectivityStore.getStatusSnapshot().state !== "offline"
+  );
+}
+
+function canRetryConnector(): boolean {
+  return canAdvanceRestoreClock();
 }
 
 /** Keeps persisted wallet intent protected while its connector hydrates. */
@@ -86,7 +99,7 @@ export function useWalletRestoreLifecycle(
         attempt.mode !== restoringMode ||
         attempt.failed ||
         attempt.activeStartedAt !== null ||
-        !canRestoreProgress()
+        !canAdvanceRestoreClock()
       ) {
         return;
       }
@@ -122,25 +135,41 @@ export function useWalletRestoreLifecycle(
         Math.max(0, RESTORE_TIMEOUT_MS - attempt.activeElapsedMs)
       );
     };
-    const syncClock = () => (canRestoreProgress() ? startClock() : stopClock());
+    const syncClock = () => (canAdvanceRestoreClock() ? startClock() : stopClock());
+    let retryArmed = true;
     const retryRestore = () => {
       syncClock();
-      if (!canRestoreProgress() || !actor.getSnapshot().matches("restoring")) return;
+      if (!retryArmed || !canRetryConnector() || !actor.getSnapshot().matches("restoring")) return;
+      retryArmed = false;
       void reconnect(wagmiConfig).catch((error) => {
         logger.debug("[AuthProvider] Wallet reconnect retry did not complete", { error });
       });
     };
-    const handleVisibility = () =>
-      document.visibilityState === "visible" ? retryRestore() : stopClock();
+    const handleVisibility = () => {
+      if (document.visibilityState === "visible") retryRestore();
+      else {
+        retryArmed = true;
+        stopClock();
+      }
+    };
+
+    // Browsers announce `online` before the reachability probe has necessarily
+    // settled. The native event starts that transition; the store transition
+    // is the authoritative retry point once the connector can answer.
+    const handleConnectivity = () => {
+      syncClock();
+      if (canRetryConnector()) retryRestore();
+      else retryArmed = true;
+    };
+    const unsubscribeConnectivity = connectivityStore.subscribeStatus(handleConnectivity);
 
     startClock();
     window.addEventListener("online", retryRestore);
-    window.addEventListener("offline", stopClock);
     document.addEventListener("visibilitychange", handleVisibility);
     return () => {
       stopClock();
+      unsubscribeConnectivity();
       window.removeEventListener("online", retryRestore);
-      window.removeEventListener("offline", stopClock);
       document.removeEventListener("visibilitychange", handleVisibility);
     };
   }, [actor, beginAttempt, restoringMode, wagmiConfig]);

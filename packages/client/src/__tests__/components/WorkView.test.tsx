@@ -10,22 +10,17 @@ import userEvent from "@testing-library/user-event";
 import { createElement } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+const offlineState = { online: true, assets: {} as Record<string, boolean> };
+vi.mock("@green-goods/shared/hooks/offline/useOfflineAssetAvailability", () => ({
+  useOfflineAssetAvailability: () => offlineState.assets,
+}));
+vi.mock("@green-goods/shared/hooks/app/useOnlineStatus", () => ({
+  useOnlineStatus: () => offlineState.online,
+}));
 vi.mock("react-intl", () => ({
   useIntl: () => ({
     formatMessage: ({ defaultMessage }: { defaultMessage?: string }) => defaultMessage ?? "",
   }),
-}));
-
-vi.mock("@/components/Actions", () => ({
-  Button: ({
-    label,
-    onClick,
-    disabled,
-  }: {
-    label: string;
-    onClick?: () => void;
-    disabled?: boolean;
-  }) => createElement("button", { onClick, disabled, type: "button" }, label),
 }));
 
 vi.mock("@/components/Cards", () => ({
@@ -86,6 +81,8 @@ describe("WorkView", () => {
   });
 
   afterEach(() => {
+    offlineState.online = true;
+    offlineState.assets = {};
     cleanup();
   });
 
@@ -129,6 +126,21 @@ describe("WorkView", () => {
 
       expect(screen.getByText("Media")).toBeInTheDocument();
       expect(screen.getAllByTestId("media-image")).toHaveLength(2);
+    });
+
+    it("keeps one slot per photo while preview URLs are still being created", () => {
+      // Local previews start as empty URLs and resolve a moment later. Keying
+      // slots by URL alone gave the placeholders one shared key, and React left
+      // an orphaned slot behind once the real URLs arrived.
+      const errors = vi.spyOn(console, "error").mockImplementation(() => undefined);
+      const { rerender } = render(<WorkView {...defaultProps} media={["", ""]} />);
+      rerender(<WorkView {...defaultProps} media={["blob:one", "blob:two"]} />);
+
+      expect(screen.getAllByTestId("carousel-item")).toHaveLength(2);
+      expect(errors.mock.calls.some(([message]) => String(message).includes("same key"))).toBe(
+        false
+      );
+      errors.mockRestore();
     });
 
     it("hides media when showMedia is false", () => {
@@ -292,4 +304,27 @@ describe("WorkView", () => {
       expect(spacer).toBeInTheDocument();
     });
   });
+});
+
+it("keeps photo previews visible but disables unavailable original downloads and playback offline", () => {
+  offlineState.online = false;
+  render(
+    createElement(WorkView, {
+      title: "Work",
+      info: "Saved",
+      actionTitle: "Action",
+      details: [],
+      media: ["https://media.test/photo", "https://media.test/video"],
+      mediaTypes: ["image/jpeg", "video/mp4"],
+      audioNoteCids: ["audio"],
+      primaryActions: [{ id: "download-media", label: "Download originals", onClick: vi.fn() }],
+    })
+  );
+  expect(screen.getByTestId("media-image")).toBeInTheDocument();
+  expect(screen.queryByTestId("audio-player")).toBeNull();
+  expect(document.querySelector("video")).toBeNull();
+  expect(screen.getByRole("button", { name: "Download originals" })).toBeDisabled();
+  expect(screen.getByRole("status")).toHaveTextContent("Photo previews may still be available");
+  cleanup();
+  offlineState.online = true;
 });

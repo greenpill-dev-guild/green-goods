@@ -98,14 +98,18 @@ export function useWorkApprovalActions({
     [gardenId, onApprovalComplete, scheduleTimeout]
   );
 
-  const workApprovalMutation = useWorkApproval({ onApprovalComplete: completeApproval });
+  // This is the client's work detail, where Your Work and Upload all are on hand:
+  // a wallet decision made offline waits on the device like a passkey's.
+  const workApprovalMutation = useWorkApproval({
+    onApprovalComplete: completeApproval,
+    queueWalletDecisions: true,
+  });
 
   const effectiveStatus = optimisticStatus ?? work?.status ?? "pending";
 
   // --- Approval feedback handlers ---
 
   const handleApprovePress = () => {
-    if (navigator.vibrate) navigator.vibrate([50]);
     setFeedbackMode("approve");
     setConfidence(Confidence.MEDIUM);
     scheduleTimeout(() => {
@@ -114,7 +118,6 @@ export function useWorkApprovalActions({
   };
 
   const handleRejectPress = () => {
-    if (navigator.vibrate) navigator.vibrate([30, 10, 30]);
     setFeedbackMode("reject");
     setConfidence(Confidence.NONE);
     scheduleTimeout(() => {

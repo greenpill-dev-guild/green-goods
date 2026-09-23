@@ -1,13 +1,13 @@
-import { lazy, Suspense, useState } from "react";
+import { lazy, Suspense } from "react";
 import { useIntl } from "react-intl";
 import { EditorialHeading, EditorialKicker, EditorialTitleAccent } from "@/components/Public/atoms";
 import { PublicEditorialHero } from "@/components/Public/PublicEditorialHero";
 import { PublicFooter } from "@/components/Public/PublicFooter";
 import { getPublicHeroImage, publicCuration } from "@/content/publicCuration";
 
-const CookiesWalletSurface = lazy(() => import("./CookiesWalletSurface"));
+const CampaignJarSurface = lazy(() => import("./CampaignJarSurface"));
 
-function CookiesReadOnlyPage({ onExplore }: { onExplore: () => void }) {
+function CookiesLoadingPage() {
   const { formatMessage } = useIntl();
 
   return (
@@ -49,16 +49,6 @@ function CookiesReadOnlyPage({ onExplore }: { onExplore: () => void }) {
                 "Connect a wallet to see which jars you can claim from, or add funds to support a seasonal campaign.",
             })}
           </p>
-          <button
-            type="button"
-            onClick={onExplore}
-            className="mt-8 inline-flex min-h-12 items-center justify-center border border-primary-action bg-primary-action px-6 py-3 text-sm font-semibold text-primary-action-foreground transition-colors hover:bg-primary-action-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-action focus-visible:ring-offset-2"
-          >
-            {formatMessage({
-              id: "public.cookies.openWalletSurface",
-              defaultMessage: "Explore Cookie Jars",
-            })}
-          </button>
         </div>
       </section>
       <PublicFooter variant="soil" />
@@ -67,16 +57,9 @@ function CookiesReadOnlyPage({ onExplore }: { onExplore: () => void }) {
 }
 
 export default function CookiesPage() {
-  const [showWalletSurface, setShowWalletSurface] = useState(false);
-  const openWalletSurface = () => setShowWalletSurface(true);
-
-  if (showWalletSurface) {
-    return (
-      <Suspense fallback={<CookiesReadOnlyPage onExplore={openWalletSurface} />}>
-        <CookiesWalletSurface />
-      </Suspense>
-    );
-  }
-
-  return <CookiesReadOnlyPage onExplore={openWalletSurface} />;
+  return (
+    <Suspense fallback={<CookiesLoadingPage />}>
+      <CampaignJarSurface />
+    </Suspense>
+  );
 }

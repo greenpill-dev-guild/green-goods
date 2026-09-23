@@ -1,5 +1,6 @@
+import type { MissingDraftAttachment } from "../types/job-queue";
 import { create } from "zustand";
-import type { Address, Domain } from "../types/domain";
+import type { Address, Domain, ApproximateWorkLocation } from "../types/domain";
 import {
   registerWorkImageUrlTransition,
   resetWorkFlowTransition,
@@ -23,6 +24,15 @@ export type WorkDraftState = {
 };
 
 export type WorkFlowState = WorkDraftState & {
+  activeDraftId: string | null;
+  draftScope: string | null;
+  draftHydrated: boolean;
+  draftEpoch: number;
+  draftDeleting: boolean;
+  draftMissingAttachments: MissingDraftAttachment[];
+  draftSaveState: "idle" | "loading" | "saving" | "saved" | "failed";
+  draftError: string | null;
+  location?: ApproximateWorkLocation;
   activeTab: WorkTab;
   submissionCompleted: boolean;
   workSubmissionJourneyId: string | null;
@@ -72,6 +82,15 @@ function createWorkSubmissionJourneyId(): string {
 
 export const useWorkFlowStore = create<WorkFlowState>((set, get) => ({
   ...initial,
+  activeDraftId: null,
+  draftScope: null,
+  draftHydrated: false,
+  draftEpoch: 0,
+  draftDeleting: false,
+  draftMissingAttachments: [],
+  draftSaveState: "loading",
+  draftError: null,
+  location: undefined,
   activeTab: WorkTab.Intro,
   submissionCompleted: false,
   workSubmissionJourneyId: null,

@@ -116,8 +116,8 @@ separate pure controllers or view models from rendered reachability; a directly 
 does not prove its view actually uses it.
 
 For critical Shared surfaces, read every touched line and apply the mutation-reliability rules from
-`review`. For visible UI behavior, authenticated Brave proof is required; otherwise record the UI
-claim as `BLOCKED`.
+`review`. For visible UI behavior, label the rendered proof per AGENTS.md § Browser Evidence;
+authenticated-class surfaces need authenticated Brave proof or are recorded as pending.
 
 ### 5. Review validation velocity
 
@@ -150,7 +150,7 @@ coverage.
 
 ## Validation
 
-Start with non-mutating inspection. Render `bun run validation:plan -- --intent review`; use
+Start with non-mutating inspection. Render `bun run check --plan -- --intent review`; use
 `--intent readiness` only when the user explicitly asks for production quality, approval, or
 merge/readiness certification. Execute the returned plan according to `review` and the shared
 validation pipeline.
@@ -159,7 +159,7 @@ Useful existing acceptance checks include:
 
 - `bash scripts/quality/check-test-quality.sh`
 - `node --test scripts/quality/workflow-performance-parity.test.mjs`
-- `bun run check:source-structure`
+- `bun run check --only source-structure`
 - `node scripts/harness/plan-hub.mjs validate`
 
 Run them only when they cover the resolved candidate. For every command, record risk, expected

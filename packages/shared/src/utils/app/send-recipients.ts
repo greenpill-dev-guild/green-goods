@@ -50,21 +50,26 @@ const ROLE_ARRAY_KEYS: ReadonlyArray<{ role: GardenRole; key: keyof Garden }> = 
  */
 export function buildSendRecipientGroups(
   gardens: Garden[] | undefined,
-  self?: Address | string | null
+  self?: Address | string | null,
+  allowedRole?: GardenRole
 ): RecipientGardenGroup[] {
   const selfKey = self ? self.toLowerCase() : null;
   const groups: RecipientGardenGroup[] = [];
 
   for (const garden of gardens ?? []) {
     const byAddress = new Map<string, RecipientMember>();
-    let selfIsMember = false;
+    const selfIsMember = ROLE_ARRAY_KEYS.some(({ key }) =>
+      ((garden[key] as Address[] | undefined) ?? []).some(
+        (address) => address.toLowerCase() === selfKey
+      )
+    );
 
     for (const { role, key } of ROLE_ARRAY_KEYS) {
+      if (allowedRole && role !== allowedRole) continue;
       const addresses = (garden[key] as Address[] | undefined) ?? [];
       for (const address of addresses) {
         const addressKey = address.toLowerCase();
         if (addressKey === selfKey) {
-          selfIsMember = true;
           continue;
         }
         const existing = byAddress.get(addressKey);
@@ -159,9 +164,10 @@ export interface RecipientDirectory {
  */
 export function buildRecipientDirectory(
   gardens: Garden[] | undefined,
-  self?: Address | string | null
+  self?: Address | string | null,
+  allowedRole?: GardenRole
 ): RecipientDirectory {
-  const groups = buildSendRecipientGroups(gardens, self);
+  const groups = buildSendRecipientGroups(gardens, self, allowedRole);
   const byAddress = new Map<string, DirectoryMember>();
 
   for (const group of groups) {

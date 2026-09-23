@@ -44,6 +44,24 @@ describe("WalletSender", () => {
     sender = new WalletSender(fakeWagmi.config, mockWriteContractAsync, undefined, mockDeps);
   });
 
+  it("awaits broadcast persistence before requesting a receipt", async () => {
+    const broadcast = vi.fn(async () => {
+      expect(mockDeps.waitForTransactionReceipt).not.toHaveBeenCalled();
+    });
+    await sender.sendContractCall(TEST_CALL, { onBroadcast: broadcast });
+    expect(broadcast).toHaveBeenCalledWith(MOCK_TX_HASH);
+    expect(mockDeps.waitForTransactionReceipt).toHaveBeenCalledOnce();
+  });
+  it("does not hide a failed broadcast checkpoint", async () => {
+    await expect(
+      sender.sendContractCall(TEST_CALL, {
+        onBroadcast: async () => {
+          throw new Error("quota");
+        },
+      })
+    ).rejects.toThrow("quota");
+    expect(mockDeps.waitForTransactionReceipt).not.toHaveBeenCalled();
+  });
   describe("properties", () => {
     it("reports supportsSponsorship as false (no EIP-5792 available)", () => {
       expect(sender.supportsSponsorship).toBe(false);
@@ -80,6 +98,82 @@ describe("WalletSender", () => {
       });
     });
 
+    it("rejects an account change during the Celo switch before submitting", async () => {
+      const expectedAccount = "0x1111111111111111111111111111111111111111" as const;
+      let activeAccount: `0x${string}` = expectedAccount;
+      mockDeps.getAccount = () => ({ address: activeAccount });
+      vi.mocked(mockDeps.ensureWalletChain!).mockImplementationOnce(async () => {
+        activeAccount = "0x2222222222222222222222222222222222222222";
+      });
+      await expect(
+        sender.sendContractCall({ ...TEST_CALL, chainId: 42220, account: expectedAccount })
+      ).rejects.toMatchObject({ code: "account_mismatch" });
+      expect(mockWriteContractAsync).not.toHaveBeenCalled();
+    });
+
+    it("binds the quoted account to the wallet write parameters", async () => {
+      const account = "0x1111111111111111111111111111111111111111" as const;
+      mockDeps.getAccount = () => ({ address: account });
+      await sender.sendContractCall({ ...TEST_CALL, chainId: 42220, account });
+      expect(mockWriteContractAsync).toHaveBeenCalledWith(
+        expect.objectContaining({ account, chainId: 42220 })
+      );
+    });
+
+    it.each([
+      "cancelled",
+      "replaced",
+    ] as const)("rejects a %s receipt instead of reporting the original send confirmed", async (reason) => {
+      vi.mocked(mockDeps.waitForTransactionReceipt).mockImplementationOnce(
+        async (_config, params) => {
+          params.onReplaced?.({ reason });
+          return { status: "success", transactionHash: `0x${"b".repeat(64)}` };
+        }
+      );
+      await expect(sender.sendContractCall(TEST_CALL)).rejects.toMatchObject({
+        code: reason === "cancelled" ? "transaction_cancelled" : "transaction_replaced",
+      });
+    });
+
+    it("accepts repricing and returns the included replacement hash", async () => {
+      const transactionHash = `0x${"b".repeat(64)}` as const;
+      const onBroadcastReference = vi.fn();
+      vi.mocked(mockDeps.waitForTransactionReceipt).mockImplementationOnce(
+        async (_config, params) => {
+          params.onReplaced?.({ reason: "repriced" });
+          return { status: "success", transactionHash };
+        }
+      );
+      await expect(sender.sendContractCall(TEST_CALL, { onBroadcastReference })).resolves.toEqual({
+        hash: transactionHash,
+        sponsored: false,
+      });
+      expect(onBroadcastReference).toHaveBeenLastCalledWith({
+        kind: "transaction",
+        hash: transactionHash,
+      });
+    });
+
+    it("switches to Celo and confirms a user-paid send", async () => {
+      const result = await sender.sendContractCall({ ...TEST_CALL, chainId: 42220 });
+      expect(mockDeps.ensureWalletChain).toHaveBeenCalledWith(42220);
+      expect(mockWriteContractAsync).toHaveBeenCalled();
+      expect(mockDeps.waitForTransactionReceipt).toHaveBeenCalledWith(expect.anything(), {
+        onReplaced: expect.any(Function),
+        hash: MOCK_TX_HASH,
+        chainId: 42220,
+      });
+      expect(result.sponsored).toBe(false);
+    });
+
+    it("does not submit when Celo switching is rejected", async () => {
+      vi.mocked(mockDeps.ensureWalletChain!).mockRejectedValueOnce(new Error("Switch rejected"));
+      await expect(sender.sendContractCall({ ...TEST_CALL, chainId: 42220 })).rejects.toThrow(
+        "Switch rejected"
+      );
+      expect(mockWriteContractAsync).not.toHaveBeenCalled();
+    });
+
     it("switches to the target chain before sending", async () => {
       await sender.sendContractCall(TEST_CALL);
 
@@ -106,6 +200,7 @@ describe("WalletSender", () => {
       expect(result.hash).toBe(MOCK_TX_HASH);
       expect(mockDeps.waitForTransactionReceipt).toHaveBeenCalledOnce();
       expect(mockDeps.waitForTransactionReceipt).toHaveBeenCalledWith(expect.anything(), {
+        onReplaced: expect.any(Function),
         hash: MOCK_TX_HASH,
         chainId: TEST_CALL.chainId,
       });
@@ -128,6 +223,7 @@ describe("WalletSender", () => {
       const result = await sender.sendContractCall(TEST_CALL);
 
       expect(result.hash).toBe(safeStyleHash);
+      expect(result.confirmation).toBe("pending");
       expect(result.sponsored).toBe(false);
       expect(mockDeps.waitForTransactionReceipt).not.toHaveBeenCalled();
     });

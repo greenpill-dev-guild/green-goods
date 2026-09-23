@@ -1,11 +1,11 @@
+import { IconButton } from "@green-goods/shared/components/IconButton";
 import { cn } from "@green-goods/shared/utils/styles/cn";
-import type { DraftWithImages } from "@green-goods/shared/hooks/work/useDrafts";
+import { useDraftThumbnail, type DraftWithImages } from "@green-goods/shared/hooks/work/useDrafts";
 import { formatRelativeTime } from "@green-goods/shared/utils/relativeTime";
 import { RiDeleteBinLine, RiDraftLine, RiImageLine } from "@remixicon/react";
 import React from "react";
 import { useIntl } from "react-intl";
 import { ImageWithFallback } from "@/components/Display";
-import { pwaStatusStyles } from "@/components/Pwa/statusStyles";
 
 export interface DraftCardProps {
   draft: DraftWithImages;
@@ -31,8 +31,9 @@ export const DraftCard: React.FC<DraftCardProps> = ({
 }) => {
   const intl = useIntl();
   const timeAgo = formatRelativeTime(draft.updatedAt);
-  const imageCount = draft.images.length;
-  const thumbUrl = draft.thumbnailUrl;
+  const imageCount = draft.attachmentCount ?? draft.images.length;
+  const thumbnail = useDraftThumbnail(draft);
+  const thumbUrl = draft.thumbnailUrl ?? thumbnail.url;
 
   // Determine step progress
   const stepProgress = getStepProgress(draft.firstIncompleteStep);
@@ -44,40 +45,39 @@ export const DraftCard: React.FC<DraftCardProps> = ({
 
   return (
     <div
+      ref={thumbnail.ref}
       className={cn(
-        "relative flex items-stretch gap-0 overflow-hidden rounded-[var(--radius-lg)] border w-full cursor-pointer text-left tap-feedback transition-[background-color,border-color,box-shadow,transform] duration-[var(--spring-spatial-fast-duration)] ease-[var(--spring-spatial-fast-easing)] hover:border-warning-base hover:shadow-sm",
-        pwaStatusStyles.warning.surface,
-        pwaStatusStyles.warning.border,
+        "relative flex h-22 w-full items-stretch overflow-hidden rounded-lg border border-stroke-soft-200 bg-bg-white text-left transition-all duration-[var(--spring-spatial-duration)] ease-[var(--spring-spatial-easing)] hover:shadow-md active:brightness-98",
         className
       )}
     >
       <button
         onClick={onResume}
         type="button"
-        className="flex min-w-0 flex-1 items-stretch gap-0 text-left focus:outline-none focus-visible:shadow-button-primary-focus"
+        data-pressable="card"
+        className="flex min-w-0 flex-1 cursor-pointer items-stretch gap-0 text-left focus:outline-none focus-visible:shadow-button-primary-focus"
       >
-        {/* Media thumbnail */}
-        <div className="w-22 flex-shrink-0 bg-warning-light overflow-hidden relative aspect-square">
+        {/* Media thumbnail: a fixed square the photo can't resize, same as work cards (DL-019) */}
+        <div className="relative h-full aspect-square flex-shrink-0 overflow-hidden bg-bg-weak-50">
           {thumbUrl ? (
             <ImageWithFallback
               src={thumbUrl}
               alt=""
-              className="w-full h-full object-cover"
-              fallbackClassName="w-22 aspect-square"
+              className="absolute inset-0 h-full w-full object-cover"
+              fallbackClassName="absolute inset-0 h-full w-full"
             />
           ) : (
-            <div className="w-full h-full flex items-center justify-center text-warning-base">
+            <div className="w-full h-full flex items-center justify-center text-text-soft-400">
               <RiDraftLine className="w-6 h-6" />
             </div>
           )}
         </div>
 
         {/* Content */}
-        <div className="flex-1 min-w-0 pl-2 pr-14 py-3">
-          {/* Title row */}
-          <div className="flex items-start justify-between">
+        <div className="min-w-0 flex-1 overflow-hidden px-3 py-2 pr-16">
+          <div className="flex min-w-0 items-start">
             <h4
-              className="truncate pr-2 text-label-md font-medium text-text-strong-950"
+              className="min-w-0 flex-1 truncate text-label-md font-medium text-text-strong-950"
               title={
                 actionTitle ||
                 intl.formatMessage({ id: "app.draft.untitled", defaultMessage: "Untitled Draft" })
@@ -86,9 +86,6 @@ export const DraftCard: React.FC<DraftCardProps> = ({
               {actionTitle ||
                 intl.formatMessage({ id: "app.draft.untitled", defaultMessage: "Untitled Draft" })}
             </h4>
-            <span className="text-xs font-medium px-2 py-0.5 rounded-full border flex-shrink-0 bg-warning-lighter text-warning-dark border-warning-light">
-              {intl.formatMessage({ id: "app.draft.status", defaultMessage: "Draft" })}
-            </span>
           </div>
 
           {/* Subtitle */}
@@ -105,36 +102,49 @@ export const DraftCard: React.FC<DraftCardProps> = ({
             {timeAgo}
           </div>
 
-          {/* Meta / Tags */}
-          <div className="mt-2 flex items-center gap-2 text-xs">
-            {imageCount > 0 && (
-              <span className="badge-pill-blue">
-                <RiImageLine className="w-3 h-3" /> {imageCount}
-              </span>
-            )}
-            <span className="badge-pill-amber">
+          <div className="mt-1 flex min-w-0 items-center gap-1 truncate text-xs text-text-sub-600">
+            <span className="shrink-0">
               {intl.formatMessage(
                 { id: "app.draft.stepProgress", defaultMessage: "Step {step}/4" },
                 { step: stepProgress }
               )}
             </span>
+            {imageCount > 0 && (
+              <span
+                className="min-w-0 truncate"
+                aria-label={intl.formatMessage(
+                  {
+                    id: "app.draft.photoCount",
+                    defaultMessage: "{count, plural, one {# photo} other {# photos}}",
+                  },
+                  { count: imageCount }
+                )}
+              >
+                <span aria-hidden="true" className="mx-0.5">
+                  ·
+                </span>
+                <RiImageLine className="inline-block h-3 w-3" aria-hidden="true" /> {imageCount}
+              </span>
+            )}
           </div>
         </div>
       </button>
 
+      <span className="absolute right-2 top-2 rounded-full border border-warning-light bg-warning-lighter px-2 py-0.5 text-xs font-medium text-warning-dark">
+        {intl.formatMessage({ id: "app.draft.status", defaultMessage: "Draft" })}
+      </span>
+
       {/* Delete button — vertically centered, 44x44 px tap target separated
           from the Resume button content. */}
-      <button
-        type="button"
+      <IconButton
         onClick={handleDelete}
-        className="absolute top-1/2 right-2 -translate-y-1/2 flex h-11 w-11 items-center justify-center rounded-full text-text-soft-400 transition-colors duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)] hover:bg-error-lighter hover:text-error-base focus:outline-none focus-visible:shadow-button-primary-focus"
+        className="absolute bottom-1 right-2"
         aria-label={intl.formatMessage({
           id: "app.draft.delete",
           defaultMessage: "Delete Draft",
         })}
-      >
-        <RiDeleteBinLine className="w-4 h-4" />
-      </button>
+        icon={<RiDeleteBinLine aria-hidden="true" />}
+      />
     </div>
   );
 };

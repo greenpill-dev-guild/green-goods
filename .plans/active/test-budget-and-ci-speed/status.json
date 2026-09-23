@@ -1,0 +1,413 @@
+{
+  "version": 2,
+  "feature": {
+    "slug": "test-budget-and-ci-speed",
+    "title": "Reduce test maintenance and improve validation feedback",
+    "kind": "feature",
+    "stage": "active"
+  },
+  "workflow": {
+    "overall_status": "active",
+    "priority": "p2",
+    "created_at": "2026-09-19T22:46:56.155Z",
+    "updated_at": "2026-09-20T03:56:56.592Z"
+  },
+  "links": {
+    "brief": "brief.md",
+    "spec": "spec.md",
+    "plan": "plan.todo.md",
+    "eval": "eval.md"
+  },
+  "linear": {
+    "parentIssue": null,
+    "project": null,
+    "initiative": null,
+    "syncDirection": "plans_to_linear_visibility",
+    "lastSyncedAt": null,
+    "lanes": {},
+    "laneSyncMode": "parent_only"
+  },
+  "taxonomy": {
+    "initiative": "engineering-quality",
+    "tracks": ["shared", "docs", "ops"],
+    "work_types": ["maintenance", "qa"],
+    "surfaces": ["shared", "client", "admin", "agent", "tooling", "docs"],
+    "depends_on_features": []
+  },
+  "notes": [
+    "User selected local implementation on 2026-09-19, beginning with step 1 guidance, and later authorized a commit of completed slices. Branch changes, publication, and Linear writes remain unauthorized.",
+    "Preparation complete at 459ca0b904a46511e31293ef921dfc8c3af70496. See reports/2026-09-19-preparation.md for evidence and limitations.",
+    "Steps 1–2, 4, 6 and 7 are locally complete. Step 8's first Shared helper batch and diff-aware guard passed review; further package batches remain. Step 3 sharding and step 5 measured floors have local proof, with current-SHA CI pending. Live Shared tests fail another session's uncommitted locale case. The default Apple Git exposes a separate validation-system failure; command-scoped Git 2.55 passes. Remaining local work: step 8 expansion, steps 9–10, and snapshot 06.",
+    "Selected order: original items 1, 4, 3, 11, 2+7, 5+8+9+10+6b, 12. Item 6a deferred.",
+    "The 2026-09-22 coverage checkpoint remains in codebase-architecture-skills. Step 1 changes no thresholds or ratchet obligation. Live PR checks confirmed #795 and #802 remain open at their preparation heads.",
+    "The linear-sync start manifest proposed a missing parent with parent_only visibility. No Linear write is authorized or recorded."
+  ],
+  "lanes": {
+    "ui": {
+      "owner": "claude",
+      "status": "n/a",
+      "branch": null,
+      "depends_on": [],
+      "handoff": "handoffs/claude-ui.md",
+      "tdd": {
+        "mode": "not_applicable",
+        "status": "pending",
+        "red": {
+          "command": "",
+          "evidence": ""
+        },
+        "green": {
+          "command": "",
+          "evidence": ""
+        },
+        "note": "No runtime UI or contract implementation selected in this test/tooling plan."
+      },
+      "skill_tags": ["ui", "frontend-design", "react"]
+    },
+    "state_api": {
+      "owner": "codex",
+      "status": "in_progress",
+      "branch": null,
+      "depends_on": [],
+      "handoff": "handoffs/codex-state-api.md",
+      "tdd": {
+        "mode": "required",
+        "status": "green_recorded",
+        "red": {
+          "command": "node scripts/dev/node-cli.js node --test scripts/quality/workflow-performance-parity.test.mjs",
+          "evidence": "Image-compression exact-file parity before config edit: 31/32 passed, floor missing. /private/tmp/green-goods-image-compression-floor-red.log"
+        },
+        "green": {
+          "command": "node scripts/dev/node-cli.js node --test scripts/quality/workflow-performance-parity.test.mjs",
+          "evidence": "After measured image-compression floor: 32/32 passed; fixed-source full Shared coverage 499 files/5326 tests passed. /private/tmp/green-goods-image-compression-floor-green.log and /private/tmp/green-goods-image-compression-full-coverage-08f.log"
+        },
+        "note": ""
+      },
+      "skill_tags": ["planning", "testing", "tooling"],
+      "manual_blocked": false
+    },
+    "contracts": {
+      "owner": "codex",
+      "status": "n/a",
+      "branch": null,
+      "depends_on": [],
+      "handoff": "handoffs/codex-contracts.md",
+      "tdd": {
+        "mode": "not_applicable",
+        "status": "pending",
+        "red": {
+          "command": "",
+          "evidence": ""
+        },
+        "green": {
+          "command": "",
+          "evidence": ""
+        },
+        "note": "No runtime UI or contract implementation selected in this test/tooling plan."
+      },
+      "skill_tags": ["contracts"]
+    },
+    "qa_pass_1": {
+      "owner": "claude",
+      "status": "blocked",
+      "ready_when_dependencies_met": true,
+      "manual_blocked": true,
+      "branch": null,
+      "depends_on": ["ui", "state_api", "contracts"],
+      "handoff": "handoffs/claude-qa-pass-1.md",
+      "skill_tags": ["testing", "review"]
+    },
+    "qa_pass_2": {
+      "owner": "codex",
+      "status": "blocked",
+      "ready_when_dependencies_met": true,
+      "manual_blocked": true,
+      "branch": null,
+      "depends_on": ["qa_pass_1"],
+      "handoff": "handoffs/codex-qa-pass-2.md",
+      "skill_tags": ["testing", "review"]
+    }
+  },
+  "history": [
+    {
+      "timestamp": "2026-09-19T22:46:56.164Z",
+      "actor": "human",
+      "lane": "system",
+      "status": "scaffolded",
+      "branch": null,
+      "note": "Scaffolded feature hub in backlog"
+    },
+    {
+      "timestamp": "2026-09-19T22:55:35.579169Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "preparation_complete",
+      "branch": null,
+      "note": "Refreshed source targets, accessible CI/coverage baselines and PR overlaps; saved proposed order without selecting implementation."
+    },
+    {
+      "timestamp": "2026-09-19T23:13:18.127Z",
+      "actor": "human",
+      "lane": "system",
+      "status": "moved_to_active",
+      "branch": null,
+      "note": "Moved feature hub from backlog to active"
+    },
+    {
+      "timestamp": "2026-09-19T23:13:33.577Z",
+      "actor": "codex",
+      "lane": "state_api",
+      "status": "in_progress",
+      "branch": null,
+      "note": "Step 1 guidance implementation selected; browser-evidence policy remains a later decision."
+    },
+    {
+      "timestamp": "2026-09-19T23:18:39.230Z",
+      "actor": "codex",
+      "lane": "state_api",
+      "status": "in_progress",
+      "branch": null,
+      "note": "Step 1 guidance implemented locally; direct guidance checks passed; selected validation-system test failed on unchanged Git-variable enumeration; step 2 policy pending."
+    },
+    {
+      "timestamp": "2026-09-20T00:42:05.548Z",
+      "actor": "codex",
+      "lane": "state_api",
+      "status": "tdd_recorded",
+      "branch": null,
+      "note": "Recorded RED/GREEN TDD proof"
+    },
+    {
+      "timestamp": "2026-09-20T00:43:04.991Z",
+      "actor": "codex",
+      "lane": "state_api",
+      "status": "in_progress",
+      "branch": null,
+      "note": "Step 2 browser policy selected and implemented locally. Focused RED/GREEN and disposable pre-push hook passed; selected validation-system suite remains failed on unchanged Apple Git-variable case. Step 3 Shared CI sharding next."
+    },
+    {
+      "timestamp": "2026-09-20T01:01:55.137Z",
+      "actor": "codex",
+      "lane": "state_api",
+      "status": "tdd_recorded",
+      "branch": null,
+      "note": "Recorded RED/GREEN TDD proof"
+    },
+    {
+      "timestamp": "2026-09-20T01:05:50.347Z",
+      "actor": "codex",
+      "lane": "state_api",
+      "status": "in_progress",
+      "branch": null,
+      "note": "Step 3 sharding code implemented locally; focused and selected tooling checks passed with installed Git 2.55, but Shared shard 2 and unsharded both fail another session locale case. Current-SHA CI and comparable CI timings pending."
+    },
+    {
+      "timestamp": "2026-09-20T01:11:14.404Z",
+      "actor": "codex",
+      "lane": "state_api",
+      "status": "tdd_recorded",
+      "branch": null,
+      "note": "Recorded RED/GREEN TDD proof"
+    },
+    {
+      "timestamp": "2026-09-20T01:12:42.662Z",
+      "actor": "codex",
+      "lane": "state_api",
+      "status": "in_progress",
+      "branch": null,
+      "note": "Step 4 informational churn summary implemented locally; focused 31/31 and selected validation 289/289 with installed Git 2.55. Step 5 requires stable exact-glob baseline and September 22 coverage checkpoint coordination."
+    },
+    {
+      "timestamp": "2026-09-20T01:37:38.440Z",
+      "actor": "codex",
+      "lane": "state_api",
+      "status": "tdd_recorded",
+      "branch": null,
+      "note": "Recorded RED/GREEN TDD proof"
+    },
+    {
+      "timestamp": "2026-09-20T01:40:43.504Z",
+      "actor": "codex",
+      "lane": "state_api",
+      "status": "tdd_recorded",
+      "branch": null,
+      "note": "Recorded RED/GREEN TDD proof"
+    },
+    {
+      "timestamp": "2026-09-20T01:42:10.257Z",
+      "actor": "codex",
+      "lane": "state_api",
+      "status": "tdd_recorded",
+      "branch": null,
+      "note": "Recorded RED/GREEN TDD proof"
+    },
+    {
+      "timestamp": "2026-09-20T01:58:54.693Z",
+      "actor": "codex",
+      "lane": "state_api",
+      "status": "tdd_recorded",
+      "branch": null,
+      "note": "Recorded RED/GREEN TDD proof"
+    },
+    {
+      "timestamp": "2026-09-20T02:00:09.643Z",
+      "actor": "codex",
+      "lane": "state_api",
+      "status": "in_progress",
+      "branch": null,
+      "note": "Step 5 Client floors locally implemented from fixed 08f96dc coverage. RED/GREEN parity, full coverage, and live selected QA checks passed; Admin floors next, current-SHA CI still pending."
+    },
+    {
+      "timestamp": "2026-09-20T02:10:28.169Z",
+      "actor": "codex",
+      "lane": "state_api",
+      "status": "tdd_recorded",
+      "branch": null,
+      "note": "Recorded RED/GREEN TDD proof"
+    },
+    {
+      "timestamp": "2026-09-20T02:15:28.408Z",
+      "actor": "codex",
+      "lane": "state_api",
+      "status": "in_progress",
+      "branch": null,
+      "note": "Step 5 Admin floors locally implemented: exact baseline, RED/GREEN parity, live full coverage and selected QA checks passed. Step 6 Cookie Jar direct proof next; current-SHA CI pending."
+    },
+    {
+      "timestamp": "2026-09-20T02:20:49.092Z",
+      "actor": "codex",
+      "lane": "state_api",
+      "status": "in_progress",
+      "branch": null,
+      "note": "Step 6 Cookie Jar deposit direct proof added; focused 4/4 and selected format/lint/test-typecheck/test passed. Campaign behavior and measured Cookie Jar floor next."
+    },
+    {
+      "timestamp": "2026-09-20T02:29:43.444Z",
+      "actor": "codex",
+      "lane": "state_api",
+      "status": "in_progress",
+      "branch": null,
+      "note": "Step 6 campaign-read proof passed focused 4/4 and selected format/lint/test-typecheck/test. Stable-source Cookie Jar coverage and floor next."
+    },
+    {
+      "timestamp": "2026-09-20T02:44:09.883Z",
+      "actor": "codex",
+      "lane": "state_api",
+      "status": "in_progress",
+      "branch": null,
+      "note": "Step 6 campaign-deposit direct proof passed focused 5/5 and selected checks. Fixed-source Shared coverage probe passed and identified low campaign file coverage; exact-file floors next."
+    },
+    {
+      "timestamp": "2026-09-20T02:58:44.406Z",
+      "actor": "codex",
+      "lane": "state_api",
+      "status": "tdd_recorded",
+      "branch": null,
+      "note": "Recorded RED/GREEN TDD proof"
+    },
+    {
+      "timestamp": "2026-09-20T02:58:50.203Z",
+      "actor": "codex",
+      "lane": "state_api",
+      "status": "in_progress",
+      "branch": null,
+      "note": "Step 6 Cookie Jar exact-file floors implemented: parity RED/GREEN, deliberate threshold failure, and fixed-source full Shared coverage passed. Live selected QA stopped on another session locale assertion after format/lint/validation-system/typecheck passed. Connectivity proof next; current-SHA CI pending authorization."
+    },
+    {
+      "timestamp": "2026-09-20T03:01:24.246Z",
+      "actor": "codex",
+      "lane": "state_api",
+      "status": "in_progress",
+      "branch": null,
+      "note": "Step 6 connectivity background-work proof passed all selected checks, including 14/14 focused tests; no runtime change. Queued-upload branches next. Current-SHA CI remains pending authorization."
+    },
+    {
+      "timestamp": "2026-09-20T03:04:11.825Z",
+      "actor": "codex",
+      "lane": "state_api",
+      "status": "in_progress",
+      "branch": null,
+      "note": "Step 6 queued-upload other-chain and embedded-cancellation proofs passed all selected checks, 23/23 focused tests. No runtime change; compression direct proof next."
+    },
+    {
+      "timestamp": "2026-09-20T03:18:49.033Z",
+      "actor": "codex",
+      "lane": "state_api",
+      "status": "tdd_recorded",
+      "branch": null,
+      "note": "Recorded RED/GREEN TDD proof"
+    },
+    {
+      "timestamp": "2026-09-20T03:18:54.799Z",
+      "actor": "codex",
+      "lane": "state_api",
+      "status": "in_progress",
+      "branch": null,
+      "note": "Step 6 image-compression direct proof and exact-file floor passed focused, parity RED/GREEN and fixed-source full Shared coverage. Live selected QA stopped on another session locale assertion after tooling and typecheck passed. Login/timeframe next; current-SHA CI pending authorization."
+    },
+    {
+      "timestamp": "2026-09-20T03:20:47.045Z",
+      "actor": "codex",
+      "lane": "state_api",
+      "status": "in_progress",
+      "branch": null,
+      "note": "Step 6 login-message direct proof passed all selected checks, focused 7/7. Timeframe boundary table next; current-SHA CI remains pending publication authorization."
+    },
+    {
+      "timestamp": "2026-09-20T03:22:43.950Z",
+      "actor": "codex",
+      "lane": "state_api",
+      "status": "in_progress",
+      "branch": null,
+      "note": "Step 6 local direct-proof subjects complete: timeframe table passed 58/58 selected focused tests; no runtime changes or test deletions. Step 7 Admin withdrawal proof next; current-SHA CI remains pending publication authorization."
+    },
+    {
+      "timestamp": "2026-09-20T03:25:41.543Z",
+      "actor": "codex",
+      "lane": "state_api",
+      "status": "in_progress",
+      "branch": null,
+      "note": "Step 7 Admin excessive-withdrawal/no-mutation proof passed selected format/lint/typecheck and focused 3/3. Client claim/join slices next; #802/#795 refresh failed network access, so CookieJarTab remains untouched."
+    },
+    {
+      "timestamp": "2026-09-20T03:28:57.565Z",
+      "actor": "codex",
+      "lane": "state_api",
+      "status": "in_progress",
+      "branch": null,
+      "note": "Step 7 Client claim-confirmation wiring passed selected checks, 15/15 focused tests and staged boundary. Cached dated #802 lacked this proof; fresh PR head/status unavailable. Garden-join proof next."
+    },
+    {
+      "timestamp": "2026-09-20T03:31:30.283Z",
+      "actor": "codex",
+      "lane": "state_api",
+      "status": "in_progress",
+      "branch": null,
+      "note": "Step 7 local direct proof complete: garden-join argument/failure cases passed selected checks, 13/13 focused tests. Step 8 representative helper conversion next; current-SHA CI pending authorization."
+    },
+    {
+      "timestamp": "2026-09-20T03:42:39.882Z",
+      "actor": "codex",
+      "lane": "state_api",
+      "status": "in_progress",
+      "branch": null,
+      "note": "Step 8 first helper conversion reviewed; selected QA and same-name before/after test passed. Bounded expansion and guard next."
+    },
+    {
+      "timestamp": "2026-09-20T03:50:28.485Z",
+      "actor": "codex",
+      "lane": "state_api",
+      "status": "in_progress",
+      "branch": null,
+      "note": "Step 8 bounded Shared helper batch and diff-aware test-quality guard reviewed; selected checks and test-quality pass. Further package batches and steps 9-11 remain."
+    },
+    {
+      "timestamp": "2026-09-20T03:56:56.597Z",
+      "actor": "codex",
+      "lane": "state_api",
+      "status": "in_progress",
+      "branch": null,
+      "note": "User authorized committing completed local slices and hub only; steps 3/5 retain current-SHA CI obligations, steps 8-11 remain open. No push or Linear write."
+    }
+  ]
+}

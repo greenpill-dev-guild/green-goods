@@ -9,6 +9,7 @@ export type PublicRouteClass =
   | "garden_impact_read"
   | "upload_sign"
   | "profile_avatar_read"
+  | "profile_avatar_batch_read"
   | "profile_avatar_mutation"
   | "saved_offers_challenge"
   | "saved_offers_session"
@@ -55,6 +56,8 @@ export const PUBLIC_RATE_LIMIT_POLICIES = {
   garden_impact_read: { limit: 120, windowMs: 10 * 60 * 1000 },
   upload_sign: { limit: 20, windowMs: 60 * 1000 },
   profile_avatar_read: { limit: 120, windowMs: 10 * 60 * 1000 },
+  // Member lists fetch photos in batches; a separate budget keeps them from locking out the editor.
+  profile_avatar_batch_read: { limit: 600, windowMs: 10 * 60 * 1000 },
   profile_avatar_mutation: { limit: 10, windowMs: 10 * 60 * 1000 },
   saved_offers_challenge: { limit: 10, windowMs: 10 * 60 * 1000 },
   saved_offers_session: { limit: 10, windowMs: 10 * 60 * 1000 },

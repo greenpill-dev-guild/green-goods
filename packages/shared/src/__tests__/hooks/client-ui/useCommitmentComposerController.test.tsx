@@ -29,10 +29,15 @@ const mocks = vi.hoisted(() => ({
   owner: { hasRole: false, isLoading: false },
   enqueue: vi.fn<Enqueue>(),
   pending: false,
+  again: null as Record<string, unknown> | null,
 }));
 
-vi.mock("../../../hooks/app/useOffline", () => ({
-  useOffline: () => ({ isOnline: mocks.isOnline }),
+vi.mock("../../../hooks/commitment-pooling/useComposeAgainValues", () => ({
+  useComposeAgainValues: () => mocks.again,
+}));
+
+vi.mock("../../../hooks/app/useOnlineStatus", () => ({
+  useOnlineStatus: () => mocks.isOnline,
 }));
 
 vi.mock("../../../hooks/auth/usePrimaryAddress", () => ({
@@ -68,7 +73,11 @@ vi.mock("../../../hooks/roles/useHasRole", () => ({
 }));
 
 const renderController = (
-  overrides: Partial<{ garden: Address; direction: "OFFER" | "REQUEST" }> = {}
+  overrides: Partial<{
+    garden: Address;
+    direction: "OFFER" | "REQUEST";
+    fromCommitmentId: bigint;
+  }> = {}
 ) =>
   renderHook(() =>
     useCommitmentComposerController({
@@ -76,6 +85,7 @@ const renderController = (
       garden: overrides.garden ?? DEMO_GARDEN,
       direction: overrides.direction ?? "OFFER",
       defaultUnitLabel: "hours",
+      fromCommitmentId: overrides.fromCommitmentId,
     })
   );
 
@@ -90,6 +100,7 @@ beforeEach(() => {
   mocks.steward = { hasRole: false, isLoading: false };
   mocks.owner = { hasRole: false, isLoading: false };
   mocks.pending = false;
+  mocks.again = null;
   mocks.enqueue.mockResolvedValue("job-1");
 });
 
@@ -249,5 +260,72 @@ describe("useCommitmentComposerController", () => {
 
     expect(result.current.openCycles.map((cycle) => cycle.cycleId)).toEqual([8n, 9n]);
     expect(result.current).toMatchObject({ poolOpen: true, gardenName: "Green Goods Garden" });
+  });
+  describe("composing a commitment again", () => {
+    const earlier = {
+      direction: "OFFER",
+      kind: "SERVICE",
+      title: "Bike repair afternoons",
+      unitLabel: "afternoons",
+      targetUnits: 3,
+    };
+
+    it("opens on the earlier commitment's answers without calling that a draft", async () => {
+      mocks.again = earlier;
+      const { result } = renderController({ fromCommitmentId: 9n });
+
+      await waitFor(() => expect(result.current.values.title).toBe("Bike repair afternoons"));
+      expect(result.current.values).toMatchObject({ unitLabel: "afternoons", targetUnits: 3 });
+      // Nothing was typed, so leaving now must not leave a draft behind.
+      expect(result.current.form.formState.isDirty).toBe(false);
+      expect(useCommitmentComposerDraftStore.getState().drafts).toEqual({});
+    });
+
+    it("lets a draft the person resumes win, and gives way only when they start fresh", async () => {
+      const key = commitmentComposerDraftKey({
+        chainId: DEMO_CHAIN_ID,
+        viewer: TUNDE,
+        garden: DEMO_GARDEN,
+        direction: "OFFER",
+      });
+      const saveDraft = () =>
+        useCommitmentComposerDraftStore
+          .getState()
+          .saveDraft(key, { values: { title: "My unfinished one" }, clientCommitmentId: "d" }, 10);
+      mocks.again = earlier;
+
+      saveDraft();
+      const resumedRun = renderController({ fromCommitmentId: 9n });
+      // Undecided: the form holds neither yet.
+      expect(resumedRun.result.current.values.title).toBe("");
+      act(() => resumedRun.result.current.resumeDraft());
+      await waitFor(() => expect(resumedRun.result.current.values.title).toBe("My unfinished one"));
+      resumedRun.unmount();
+
+      saveDraft();
+      const freshRun = renderController({ fromCommitmentId: 9n });
+      act(() => freshRun.result.current.startFresh());
+      await waitFor(() =>
+        expect(freshRun.result.current.values.title).toBe("Bike repair afternoons")
+      );
+    });
+
+    it("keeps what the person has already typed when the earlier answers arrive late", async () => {
+      const { result, rerender } = renderController({ fromCommitmentId: 9n });
+      act(() => result.current.form.setValue("title", "Typed first", { shouldDirty: true }));
+
+      mocks.again = earlier;
+      rerender();
+
+      await waitFor(() => expect(result.current.values.unitLabel).toBe("afternoons"));
+      expect(result.current.values.title).toBe("Typed first");
+    });
+
+    it("starts empty when the link names the other door", () => {
+      mocks.again = { ...earlier, direction: "REQUEST" };
+      const { result } = renderController({ fromCommitmentId: 9n, direction: "OFFER" });
+
+      expect(result.current.values.title).toBe("");
+    });
   });
 });

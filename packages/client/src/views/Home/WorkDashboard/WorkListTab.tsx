@@ -1,9 +1,20 @@
+import { Button } from "@green-goods/shared/components/Button";
+import { IconButton } from "@green-goods/shared/components/IconButton";
 import type { Work } from "@green-goods/shared/types/domain";
 import { RiErrorWarningLine, RiRefreshLine } from "@remixicon/react";
 import React from "react";
-import { useIntl } from "react-intl";
+import { type IntlShape, useIntl } from "react-intl";
 import { MinimalWorkCard } from "@/components/Cards";
+import type { WorkCardPresentation } from "@/components/Cards/Work/WorkCard";
 import { EmptyState, Loader } from "@/components/Communication";
+
+/** A time for today's saves, a short date for older ones (matches the garden Work tab). */
+function formatSavedAt(intl: IntlShape, timestamp: number): string {
+  const saved = new Date(timestamp);
+  return saved.toDateString() === new Date().toDateString()
+    ? intl.formatTime(saved, { hour: "numeric", minute: "2-digit" })
+    : intl.formatDate(saved, { month: "short", day: "numeric" });
+}
 
 interface WorkListMessages {
   itemCount: { id: string; defaultMessage: string };
@@ -20,11 +31,93 @@ interface WorkListTabProps {
   errorMessage?: string;
   onWorkClick: (work: Work) => void;
   onRefresh?: () => void;
-  renderBadges?: (work: Work) => React.ReactNode[];
+  renderPresentation?: (work: Work) => WorkCardPresentation;
+  headerActions?: React.ReactNode;
   headerContent?: React.ReactNode;
   messages: WorkListMessages;
   emptyIcon: React.ReactNode;
+  /** Offline, the status line says when the rows on screen were saved and Refresh is hidden. */
+  isOffline?: boolean;
+  /** When the rows on screen were last read, in milliseconds. */
+  savedAt?: number;
 }
+
+interface WorkListHeaderProps {
+  /** The count or offline line; it never truncates (DL-032). */
+  statusText?: string | null;
+  /** Shows the compact Refresh beside the status line when set. */
+  onRefresh?: () => void;
+  isFetching?: boolean;
+  refreshLabel?: string;
+  /** Actions that sit with the status line, such as Upload all. */
+  actions?: React.ReactNode;
+  /** Filters, right-aligned; they give way before the status line does. */
+  children?: React.ReactNode;
+}
+
+/**
+ * The one header row every Work Dashboard tab shares: status line and compact
+ * Refresh on the left, filters on the right (DL-032). The row keeps the height
+ * of a tab that has a filter, so a tab without one (Drafts) starts its list at
+ * the same place.
+ */
+export const WorkListHeader: React.FC<WorkListHeaderProps> = ({
+  statusText,
+  onRefresh,
+  isFetching,
+  refreshLabel,
+  actions,
+  children,
+}) => {
+  const intl = useIntl();
+  return (
+    <div
+      className={`mb-4 flex min-h-14 gap-2 px-4 pt-4 ${actions ? "items-start" : "items-center"}`}
+      data-testid="work-list-header"
+    >
+      <div
+        className={
+          actions
+            ? "flex min-w-0 flex-1 flex-wrap items-center gap-0.5"
+            : "flex shrink-0 items-center gap-0.5"
+        }
+        data-testid="work-list-actions"
+      >
+        {statusText ? (
+          <p
+            role="status"
+            className="whitespace-nowrap text-sm text-text-sub-600"
+            title={statusText}
+          >
+            {statusText}
+          </p>
+        ) : null}
+        {onRefresh ? (
+          <IconButton
+            className="shrink-0"
+            size="compact"
+            aria-label={
+              isFetching
+                ? intl.formatMessage({
+                    id: "app.common.refreshing",
+                    defaultMessage: "Refreshing...",
+                  })
+                : (refreshLabel ??
+                  intl.formatMessage({ id: "app.common.refresh", defaultMessage: "Refresh" }))
+            }
+            icon={<RiRefreshLine className="h-4 w-4" aria-hidden="true" />}
+            loading={isFetching}
+            onClick={onRefresh}
+          />
+        ) : null}
+        {actions}
+      </div>
+      <div className={actions ? "flex shrink-0 justify-end" : "flex min-w-0 flex-1 justify-end"}>
+        {children}
+      </div>
+    </div>
+  );
+};
 
 export const WorkListTab: React.FC<WorkListTabProps> = ({
   items,
@@ -34,36 +127,45 @@ export const WorkListTab: React.FC<WorkListTabProps> = ({
   errorMessage,
   onWorkClick,
   onRefresh,
-  renderBadges,
+  renderPresentation,
+  headerActions,
   headerContent,
   messages,
   emptyIcon,
+  isOffline = false,
+  savedAt,
 }) => {
   const intl = useIntl();
+  // The body already explains a failed load, so the status line stays quiet then.
+  const statusText =
+    isLoading || hasError
+      ? null
+      : isOffline && savedAt
+        ? intl.formatMessage(
+            { id: "app.workDashboard.offlineSaved", defaultMessage: "Offline · {when}" },
+            { when: formatSavedAt(intl, savedAt) }
+          )
+        : items.length > 0
+          ? intl.formatMessage(messages.itemCount, { count: items.length })
+          : null;
+  // Offline there is nothing to refresh, so neither the header nor the error state offers it.
+  const canRefresh = Boolean(onRefresh) && !isOffline;
+  const showRefresh = canRefresh && !isLoading && !hasError;
 
   return (
     <div className="min-h-full flex flex-col">
-      <div className="mb-4 px-4 pt-4 flex items-center justify-between gap-3">
-        <div>
-          {isLoading ? null : hasError ? (
-            <p className="text-sm text-error-base">
-              {intl.formatMessage({
-                id: "app.workDashboard.error.fetchingData",
-                defaultMessage: "Error loading data. Please try again.",
-              })}
-            </p>
-          ) : items.length > 0 ? (
-            <p className="text-sm text-text-sub-600">
-              {intl.formatMessage(messages.itemCount, { count: items.length })}
-            </p>
-          ) : null}
-        </div>
+      <WorkListHeader
+        statusText={statusText}
+        onRefresh={showRefresh ? onRefresh : undefined}
+        isFetching={isFetching}
+        actions={headerActions}
+      >
         {headerContent}
-      </div>
+      </WorkListHeader>
 
-      <div className="flex-1 px-4 pb-4">
+      <div className="flex flex-1 flex-col px-4 pb-4">
         {isLoading ? (
-          <div className="h-full flex flex-col items-center justify-center pb-12">
+          <div className="flex flex-1 flex-col items-center justify-center pb-32">
             <Loader />
             <p className="text-sm text-text-soft-400 mt-4">
               {intl.formatMessage(messages.loading)}
@@ -71,6 +173,8 @@ export const WorkListTab: React.FC<WorkListTabProps> = ({
           </div>
         ) : hasError ? (
           <EmptyState
+            className="flex-1"
+            placement="sheet"
             icon={<RiErrorWarningLine />}
             tone="error"
             title={intl.formatMessage({
@@ -86,13 +190,14 @@ export const WorkListTab: React.FC<WorkListTabProps> = ({
               })
             }
             action={
-              onRefresh ? (
-                <button
+              canRefresh ? (
+                <Button
+                  type="button"
+                  emphasis="secondary"
                   onClick={onRefresh}
-                  disabled={isFetching}
-                  className="inline-flex items-center gap-2 rounded-[var(--radius-md)] border border-stroke-soft-200 px-3 py-1.5 text-sm font-medium text-primary transition-colors duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)] hover:bg-bg-weak-50 disabled:opacity-50"
+                  loading={isFetching}
+                  leadingIcon={<RiRefreshLine className="h-4 w-4" aria-hidden="true" />}
                 >
-                  <RiRefreshLine className="h-4 w-4" />
                   {isFetching
                     ? intl.formatMessage({
                         id: "app.common.refreshing",
@@ -102,48 +207,31 @@ export const WorkListTab: React.FC<WorkListTabProps> = ({
                         id: "app.workDashboard.error.retry",
                         defaultMessage: "Retry",
                       })}
-                </button>
+                </Button>
               ) : null
             }
           />
         ) : items.length === 0 ? (
           <EmptyState
+            className="flex-1"
+            placement="sheet"
             icon={emptyIcon}
             title={intl.formatMessage(messages.emptyTitle)}
             description={intl.formatMessage(messages.emptyDescription)}
-            action={
-              onRefresh ? (
-                <button
-                  onClick={onRefresh}
-                  disabled={isFetching}
-                  className="inline-flex items-center gap-1.5 rounded-[var(--radius-md)] border border-stroke-soft-200 px-3 py-1.5 text-xs font-medium text-text-sub-600 transition-colors duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)] hover:bg-bg-weak-50 disabled:opacity-50"
-                >
-                  <RiRefreshLine className="h-3.5 w-3.5" />
-                  {isFetching
-                    ? intl.formatMessage({
-                        id: "app.common.refreshing",
-                        defaultMessage: "Refreshing...",
-                      })
-                    : intl.formatMessage({
-                        id: "app.common.refresh",
-                        defaultMessage: "Refresh",
-                      })}
-                </button>
-              ) : null
-            }
           />
         ) : (
-          <div className="animate-stagger-in space-y-3">
+          <ul className="animate-stagger-in space-y-3">
             {items.map((work) => (
-              <MinimalWorkCard
-                key={work.id}
-                work={work}
-                onClick={() => onWorkClick(work)}
-                badges={renderBadges?.(work)}
-                className="cv-work-card"
-              />
+              <li key={work.id}>
+                <MinimalWorkCard
+                  work={work}
+                  onClick={() => onWorkClick(work)}
+                  presentation={renderPresentation?.(work)}
+                  className="cv-work-card"
+                />
+              </li>
             ))}
-          </div>
+          </ul>
         )}
       </div>
     </div>

@@ -1,3 +1,5 @@
+import { Button } from "@green-goods/shared/components/Button";
+import { NativeSelect } from "@green-goods/shared/components/Form/ControlPrimitives";
 import {
   RiCloseLine,
   RiErrorWarningLine,
@@ -81,29 +83,33 @@ export function WorkCommitmentSelection({
             })}
           </span>
           {intentInvalid && onSelectedKeyChange ? (
-            <button
+            <Button
               type="button"
+              emphasis="tertiary"
+              size="compact"
               onClick={() => onSelectedKeyChange(null)}
-              className="flex min-h-11 shrink-0 items-center gap-1 rounded-[var(--radius-md)] px-2 font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-alpha-24"
+              leadingIcon={<RiCloseLine className="h-4 w-4" aria-hidden="true" />}
+              className="shrink-0"
             >
-              <RiCloseLine className="h-4 w-4" aria-hidden="true" />
               {intl.formatMessage({
                 id: "app.garden.commitment.none",
                 defaultMessage: "Not for a Commitment",
               })}
-            </button>
+            </Button>
           ) : readFailed && onRetry ? (
-            <button
+            <Button
               type="button"
+              emphasis="tertiary"
+              size="compact"
               onClick={onRetry}
-              className="flex min-h-11 shrink-0 items-center gap-1 rounded-[var(--radius-md)] px-2 font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-alpha-24"
+              leadingIcon={<RiRefreshLine className="h-4 w-4" aria-hidden="true" />}
+              className="shrink-0"
             >
-              <RiRefreshLine className="h-4 w-4" aria-hidden="true" />
               {intl.formatMessage({
                 id: "app.garden.commitment.retry",
                 defaultMessage: "Try Again",
               })}
-            </button>
+            </Button>
           ) : null}
         </div>
       ) : null}
@@ -126,12 +132,11 @@ export function WorkCommitmentSelection({
           <p id="work-commitment-selection-description" className="sr-only">
             {description}
           </p>
-          <select
+          <NativeSelect
             id="work-commitment-selection"
             aria-describedby="work-commitment-selection-description"
             value={selectedKey ?? ""}
             onChange={(event) => onSelectedKeyChange?.(event.target.value || null)}
-            className="w-full rounded-[var(--radius-lg)] border border-stroke-soft-200 bg-bg-white-0 p-3 text-sm text-text-strong-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-alpha-24"
           >
             <option value="">
               {intl.formatMessage({
@@ -150,7 +155,7 @@ export function WorkCommitmentSelection({
                 )}
               </option>
             ))}
-          </select>
+          </NativeSelect>
         </>
       ) : null}
     </div>

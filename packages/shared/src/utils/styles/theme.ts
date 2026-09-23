@@ -18,6 +18,18 @@ function systemTheme(): Resolved {
 }
 
 /**
+ * Point the browser chrome (Android status bar, installed-app title bar) at the
+ * resolved theme. The colors live on the document's `theme-color` meta as
+ * `data-light` / `data-dark`, which keeps per-build branding (production vs the
+ * beta build's single pinned color) out of this module.
+ */
+function syncThemeColor(resolved: Resolved): void {
+  const meta = document.querySelector<HTMLMetaElement>('meta[name="theme-color"]');
+  const color = meta?.dataset[resolved];
+  if (meta && color) meta.content = color;
+}
+
+/**
  * Apply theme to DOM by setting data-theme attribute
  */
 function apply(theme: Theme): void {
@@ -25,6 +37,7 @@ function apply(theme: Theme): void {
 
   const resolved: Resolved = theme === "system" ? systemTheme() : theme;
   document.documentElement.dataset.theme = resolved;
+  syncThemeColor(resolved);
 }
 
 /**

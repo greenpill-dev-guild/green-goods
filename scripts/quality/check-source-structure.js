@@ -2,7 +2,8 @@
 
 import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
-import { basename, resolve } from "node:path";
+import { basename, posix, resolve } from "node:path";
+import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
 
 import { STAGED_MARKER, STAGED_MODULES } from "./check-staged-modules.mjs";
@@ -25,7 +26,8 @@ const STRUCTURE_BASELINE_PATH = "scripts/data/source-structure-baseline.json";
 const ALLOWED_TOP_LEVEL_DIRECTORIES = {
   admin: new Set(["components", "routes", "styles", "views"]),
   agent: new Set(["api", "handlers", "platforms", "runtime", "services"]),
-  client: new Set(["components", "config", "content", "routes", "styles", "views"]),
+  // `sw` is the service worker's own source, bundled separately from the app.
+  client: new Set(["components", "config", "content", "routes", "styles", "sw", "views"]),
   contracts: new Set([
     "accounts",
     "interfaces",
@@ -117,24 +119,21 @@ const FROZEN_ALLOWLIST = {
   "packages/agent/src/handlers/index.ts": 508,
   "packages/agent/src/platforms/telegram.ts": 590,
   "packages/agent/src/services/blockchain.ts": 627,
-  "packages/client/src/components/Dialogs/ConvictionDrawer.tsx": 569,
-  "packages/client/src/components/Errors/AppErrorBoundary.tsx": 529,
-  "packages/client/src/components/Errors/RouteErrorBoundary.tsx": 541,
-  "packages/client/src/components/Public/PublicCookieJarCard.tsx": 797,
-  "packages/client/src/components/Public/PublicEndowmentPanel.tsx": 726,
-  "packages/client/src/components/Public/PublicFundingCard.tsx": 1015,
-  "packages/client/src/components/Public/Vault/VaultCardEndowFlow.tsx": 1507,
-  "packages/client/src/components/Public/Vault/VaultCardPaymentPanel.tsx": 709,
-  "packages/client/src/components/Public/Vault/VaultCardWalletManage.tsx": 695,
-  "packages/client/src/components/Public/Vault/VaultCheckoutDialog.tsx": 1174,
-  "packages/client/src/components/Public/Vault/VaultCheckoutShell.tsx": 493,
-  "packages/client/src/components/Public/Vault/VaultManagePositionsPanel.tsx": 928,
-  "packages/client/src/components/Public/atoms/EditorialAtoms.tsx": 565,
-  "packages/client/src/views/Garden/Media.tsx": 828,
-  "packages/client/src/views/Profile/ENSSection.tsx": 651,
+  "packages/client/src/components/Sheets/ConvictionSheet.tsx": 569,
+  "packages/client/src/components/Errors/AppErrorBoundary.tsx": 520,
+  "packages/client/src/components/Errors/RouteErrorBoundary.tsx": 522,
+  "packages/client/src/components/Public/PublicCookieJarCard.tsx": 756,
+  "packages/client/src/components/Public/PublicEndowmentPanel.tsx": 719,
+  "packages/client/src/components/Public/PublicFundingCard.tsx": 1010,
+  "packages/client/src/components/Public/Vault/VaultCardEndowFlow.tsx": 1503,
+  "packages/client/src/components/Public/Vault/VaultCardPaymentPanel.tsx": 705,
+  "packages/client/src/components/Public/Vault/VaultCardWalletManage.tsx": 688,
+  "packages/client/src/components/Public/Vault/VaultCheckoutDialog.tsx": 1171,
+  "packages/client/src/components/Public/Vault/VaultManagePositionsPanel.tsx": 923,
+  "packages/client/src/components/Public/atoms/EditorialAtoms.tsx": 538,
+  "packages/client/src/views/Garden/Media.tsx": 728,
   "packages/client/src/views/Public/Fund.tsx": 775,
-  "packages/client/src/views/Public/Impact.tsx": 630,
-  "packages/client/src/views/Public/Vaults.tsx": 705,
+  "packages/client/src/views/Public/Impact.tsx": 627,
   "packages/contracts/src/modules/Gardens.sol": 914,
   "packages/contracts/src/modules/Hats.sol": 851,
   "packages/contracts/src/modules/Octant.sol": 769,
@@ -142,7 +141,7 @@ const FROZEN_ALLOWLIST = {
   "packages/contracts/src/tokens/Garden.sol": 502,
   "packages/shared/src/components/Canvas/NavigationBar.tsx": 577,
   "packages/shared/src/components/Toast/toast.service.tsx": 799,
-  "packages/shared/src/hooks/app/useServiceWorkerUpdate.ts": 581,
+  "packages/shared/src/hooks/app/useServiceWorkerUpdate.ts": 568,
   "packages/shared/src/hooks/cookie-jar/useCampaignCookieJar.ts": 727,
   "packages/shared/src/hooks/index.ts": 604,
   "packages/shared/src/hooks/work/useWorkMutation.ts": 528,
@@ -150,7 +149,7 @@ const FROZEN_ALLOWLIST = {
   "packages/shared/src/modules/app/analytics-events.ts": 520,
   "packages/shared/src/modules/app/posthog.ts": 577,
   "packages/shared/src/modules/data/marketplace.ts": 550,
-  "packages/shared/src/modules/job-queue/db.ts": 540,
+  "packages/shared/src/modules/job-queue/db.ts": 536,
   "packages/shared/src/providers/Auth.tsx": 739,
   "packages/shared/src/public-contracts/index.ts": 582,
   "packages/shared/src/types/domain.ts": 614,
@@ -275,6 +274,91 @@ function sourceImportSpecifiers(source) {
   return [...matches].map((match) => match[1]);
 }
 
+// Reuse Shared's declared parser dependency; protected boundaries need real imports,
+// including types/re-exports, without treating commented examples as dependencies.
+const sharedRequire = createRequire(new URL("../../packages/shared/package.json", import.meta.url));
+
+function protectedImportSpecifiers(filePath, source) {
+  const { parse } = sharedRequire("@babel/parser");
+  const tree = parse(source, {
+    sourceType: "module",
+    plugins: filePath.endsWith(".tsx") ? ["typescript", "jsx"] : ["typescript"],
+  });
+  const specifiers = new Set();
+  function visit(node) {
+    if (!node || typeof node !== "object") return;
+    if (
+      ["ImportDeclaration", "ExportNamedDeclaration", "ExportAllDeclaration", "ImportExpression", "TSImportType"].includes(node.type) &&
+      node.source?.type === "StringLiteral"
+    ) {
+      specifiers.add(node.source.value);
+    }
+    if (node.type === "TSExternalModuleReference" && node.expression?.type === "StringLiteral") {
+      specifiers.add(node.expression.value);
+    }
+    if (
+      node.type === "CallExpression" &&
+      (node.callee?.type === "Import" || node.callee?.name === "require") &&
+      node.arguments[0]?.type === "StringLiteral"
+    ) {
+      specifiers.add(node.arguments[0].value);
+    }
+    for (const value of Object.values(node)) {
+      if (Array.isArray(value)) value.forEach(visit);
+      else if (value && typeof value === "object") visit(value);
+    }
+  }
+  visit(tree.program);
+  return [...specifiers];
+}
+
+function sharedDependencyPath(filePath, specifier, sharedExports) {
+  let target;
+  if (specifier.startsWith(".")) target = posix.join(posix.dirname(filePath), specifier);
+  else if (specifier === "@green-goods/shared") target = "packages/shared/src/index";
+  else if (specifier.startsWith("@shared/")) {
+    target = `packages/shared/src/${specifier.slice("@shared/".length)}`;
+  }
+  else if (specifier.startsWith("@green-goods/shared/")) {
+    const key = `./${specifier.slice("@green-goods/shared/".length)}`;
+    const declared = sharedExports[key];
+    target = typeof declared === "string"
+      ? posix.join("packages/shared", declared)
+      : `packages/shared/src/${key.slice(2).replace(/^src\//, "")}`;
+  } else return null;
+  return posix.normalize(target)
+    .replace(/\.(?:[cm]?[jt]sx?)$/, "")
+    .replace(/\/index$/, "")
+    .replace(/\/$/, "");
+}
+
+function capabilityBoundaryViolations(filePath, source, sharedExports) {
+  const transitions = filePath.startsWith("packages/shared/src/stores/transitions/");
+  const genericAccount = /^packages\/shared\/src\/modules\/(auth|wallet)\//.test(filePath);
+  if (!transitions && !genericAccount) return [];
+  return protectedImportSpecifiers(filePath, source).flatMap((specifier) => {
+    const target = sharedDependencyPath(filePath, specifier, sharedExports);
+    const mixedBarrel = ["packages/shared/src", "packages/shared/src/modules"].includes(target);
+    const uiDependency = transitions &&
+      /^packages\/shared\/src\/(hooks|providers|components)(?:\/|$)/.test(target);
+    const featureDependency = genericAccount &&
+      /^packages\/shared\/src\/(?:modules\/)?(profile-avatar|commitment-pooling)(?:\/|$)/.test(target);
+    if (!mixedBarrel && !uiDependency && !featureDependency) return [];
+    const reason = mixedBarrel
+      ? "use a capability leaf instead of a mixed Shared barrel"
+      : uiDependency
+        ? "store transitions cannot depend on UI hooks, providers, or components"
+        : "generic auth/wallet modules cannot depend on avatar or commitment-pooling features";
+    return [{
+      id: `capability-boundary:${filePath}:${specifier}`,
+      rule: "capability-boundary",
+      path: filePath,
+      baselineEligible: false,
+      message: `${filePath}: ${specifier}: ${reason}; see .claude/context/codebase-architecture.md`,
+    }];
+  });
+}
+
 function sharedExportMatches(exportKey, requestedKey) {
   if (!exportKey.includes("*")) return exportKey === requestedKey;
   const [prefix, suffix] = exportKey.split("*");
@@ -387,6 +471,10 @@ export function collectStructureViolations({
   stagedModulePaths = [],
   sharedExportKeys = new Set(["."]),
 }) {
+  const sharedManifestPath = resolve(root, "packages/shared/package.json");
+  const sharedExports = existsSync(sharedManifestPath)
+    ? JSON.parse(readFileSync(sharedManifestPath, "utf8")).exports ?? {}
+    : {};
   const violations = [];
   const staged = new Set(stagedModulePaths);
   const policyFiles = filePaths.filter(isStructurePolicyFile).filter((filePath) =>
@@ -426,6 +514,7 @@ export function collectStructureViolations({
     }
 
     const source = readSource(root, filePath);
+    violations.push(...capabilityBoundaryViolations(filePath, source, sharedExports));
     if (packageName !== "shared") {
       for (const hookName of hookDefinitions(source)) {
         violations.push({
@@ -618,7 +707,7 @@ function printFailure(messageLines) {
   }
   console.error("");
   console.error(
-    "Remediation: split responsibilities into smaller modules, extract helpers/components, or reduce the touched file back under its frozen ceiling before merge.",
+    "Remediation: remove duplication or reuse a cohesive existing module. Extract only for a justified responsibility or boundary, never solely for file length; follow .claude/context/codebase-architecture.md and stay under the frozen ceiling.",
   );
   console.error(
     "Do not raise an allowlist ceiling to make a change fit. If a ceiling is wrong after a shrink, lower it to the new line count instead.",

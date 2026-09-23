@@ -22,6 +22,19 @@ const PROTOCOL_SEEDS: ReadonlyArray<readonly [QueryKey, unknown]> = [
   ...STORYBOOK_ADMIN_SHELL_SEEDS,
   ...POOL_STORY_SEEDS,
   [
+    queryKeys.commitmentPooling.pools(DEFAULT_CHAIN_ID),
+    [
+      storyPool({
+        id: `${DEFAULT_CHAIN_ID}-1`,
+        poolId: 1n,
+        poolType: "PROTOCOL",
+        garden: STORY_ROOT_GARDEN,
+        gardenId: STORY_ROOT_GARDEN,
+      }),
+      storyPool(),
+    ],
+  ],
+  [
     queryKeys.commitmentPooling.protocolPool(DEFAULT_CHAIN_ID),
     { poolId: 1n, rootGarden: STORY_ROOT_GARDEN },
   ],

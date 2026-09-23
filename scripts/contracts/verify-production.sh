@@ -5,13 +5,12 @@
 #
 # Verifies contracts are ready for production deployment by running:
 #   Phase 1: Full compilation (via_ir, all sources including test/script)
-#   Phase 2: Lint (forge fmt --check) + Solhint (parallel, no forge lock)
+#   Phase 2: Lint (pinned forge fmt --check + Solhint through the real-Node wrapper)
 #   Phase 3: Unit tests + E2E workflow test (sequential, forge lock)
 #   Phase 4: Deployment dry runs — Sepolia, Arbitrum, Celo (sequential, cached)
 #
 # Parallelism constraints:
 #   All forge subcommands share out/ and cache/ dirs → single lock, must serialize.
-#   Only solhint (non-forge) can run truly parallel with forge tasks.
 #
 # Usage:
 #   ./scripts/contracts/verify-production.sh            # Full verification
@@ -83,9 +82,11 @@ if ! command -v bun &>/dev/null; then
   fail "bun not found — install Bun: https://bun.sh"
 fi
 
-cd "$CONTRACTS_DIR"
+# The validation runner is a root script; the phases below are package scripts.
+(cd "$ROOT_DIR" && bun run check --only foundry-version) ||
+  fail "Foundry version does not match the repository pin"
 
-bun run check:foundry-version || fail "Foundry version does not match the repository pin"
+cd "$CONTRACTS_DIR"
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # Phase 1: Full Compilation
@@ -96,53 +97,23 @@ bun run check:foundry-version || fail "Foundry version does not match the reposi
 phase "Phase 1/4: Full Compilation"
 phase_start "build"
 
-bun build:full || fail "Compilation failed"
+bun run build --mode full || fail "Compilation failed"
 success "Build passed"
 
 phase_end
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# Phase 2: Lint (forge fmt ∥ solhint)
+# Phase 2: Lint
 # ═══════════════════════════════════════════════════════════════════════════════
-# forge fmt --check: read-only source formatting check (~1s)
-# solhint: independent static analysis (no forge lock) — runs in background
-#
-# These two are the ONLY tasks that can truly parallelize since solhint
-# doesn't touch forge's out/cache directories.
+# Keep this on the package's canonical lint entrypoint. It checks the pinned
+# Foundry version and runs Solhint through the repository's real-Node wrapper,
+# avoiding Bun's nested-script temp-directory shim in restricted environments.
 # ═══════════════════════════════════════════════════════════════════════════════
 phase "Phase 2/4: Lint"
 phase_start "lint"
 
-LINT_TMPDIR=$(mktemp -d)
-
-# Background: solhint (independent of forge). Resolve the package-local binary
-# through Bun so the root wrapper does not depend on a globally installed CLI.
-bun run solhint --config ./.solhint.json 'src/**/*.sol' --ignore-path .solhintignore \
-  > "$LINT_TMPDIR/solhint.log" 2>&1 &
-SOLHINT_PID=$!
-
-# Foreground: forge fmt check (fast, read-only)
-if forge fmt --check > "$LINT_TMPDIR/fmt.log" 2>&1; then
-  success "forge fmt --check passed"
-else
-  echo -e "${YELLOW}  forge fmt --check output:${NC}"
-  cat "$LINT_TMPDIR/fmt.log"
-  wait "$SOLHINT_PID" 2>/dev/null || true
-  rm -rf "$LINT_TMPDIR"
-  fail "Formatting check failed — run 'bun lint' to fix"
-fi
-
-# Collect solhint result
-if wait "$SOLHINT_PID"; then
-  success "solhint passed"
-else
-  echo -e "${YELLOW}  solhint output:${NC}"
-  cat "$LINT_TMPDIR/solhint.log"
-  rm -rf "$LINT_TMPDIR"
-  fail "Solhint found issues"
-fi
-
-rm -rf "$LINT_TMPDIR"
+(cd "$ROOT_DIR" && bun run check --only static-lint) || fail "Contract lint failed"
+success "Contract lint passed"
 phase_end
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -161,8 +132,8 @@ success "Unit tests passed"
 
 if [ "$SKIP_E2E" = false ]; then
   echo -e "  ${DIM}Running E2E workflow test...${NC}"
-  # Use bun run test:e2e:workflow which includes adaptive build (cache hit ~2s)
-  bun run test:e2e:workflow || fail "E2E workflow test failed"
+  # Use bun run browser e2e --preset all workflow which includes adaptive build (cache hit ~2s)
+  bun run browser e2e --preset all workflow || fail "E2E workflow test failed"
   success "E2E workflow passed"
 else
   info "E2E skipped (--skip-e2e)"
@@ -187,7 +158,7 @@ if [ "$SKIP_DRY_RUN" = false ]; then
 
   for i in "${!NETWORKS[@]}"; do
     echo -e "  ${DIM}${NETWORKS[$i]} (${CHAIN_IDS[$i]})...${NC}"
-    bun run "deploy:dry:${NETWORKS[$i]}" || fail "${NETWORKS[$i]} dry run failed"
+    bun run contracts -- deploy core --network "${NETWORKS[$i]}" --mode preflight || fail "${NETWORKS[$i]} dry run failed"
     success "${NETWORKS[$i]} dry run passed"
   done
 

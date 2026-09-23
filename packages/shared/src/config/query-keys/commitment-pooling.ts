@@ -136,6 +136,14 @@ export const commitmentPoolingKeys = {
     ] as const,
   settlementConfiguration: (chainId: number) =>
     [...commitmentPoolingKeys.all(chainId), "settlement-configuration"] as const,
+  gardenerDelivery: (sourceChainId: number, destinationChainId: number) =>
+    [...commitmentPoolingKeys.all(sourceChainId), "gardener-delivery", destinationChainId] as const,
+  gardenerSettlementHistory: (chainId: number, account: Address | string) =>
+    [
+      ...commitmentPoolingKeys.all(chainId),
+      "gardener-settlement-history",
+      normalizeAddress(account),
+    ] as const,
   settlementAccount: (chainId: number, garden: Address | string) =>
     [
       ...commitmentPoolingKeys.all(chainId),
@@ -153,6 +161,16 @@ export const commitmentPoolingKeys = {
     ] as const,
   payoutPlan: (chainId: number, payoutPlanId: bigint | string | number) =>
     [...commitmentPoolingKeys.all(chainId), "payout-plan", String(payoutPlanId)] as const,
+  /**
+   * The settlement module's own answer for one commitment: its plan, the
+   * frozen rows, the queued children and the delivery gate, read from the
+   * chain so a steward resumes from the truth rather than from the index.
+   */
+  settlementChain: (chainId: number, commitmentId: bigint | string | number) =>
+    [...commitmentPoolingKeys.all(chainId), "settlement-chain", String(commitmentId)] as const,
+  /** Owner, pause flag and gardener-delivery gate of the settlement module. */
+  settlementOperations: (chainId: number) =>
+    [...commitmentPoolingKeys.all(chainId), "settlement-operations"] as const,
   memberHistory: (
     chainId: number,
     poolId: bigint | string | number,

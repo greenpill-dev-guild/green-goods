@@ -16,11 +16,6 @@ vi.mock("react-intl", () => ({
   }),
 }));
 
-// Mock Button component from relative path
-vi.mock("../../components/Actions", () => ({
-  Button: ({ label, onClick }: any) => createElement("button", { onClick, type: "button" }, label),
-}));
-
 // Mock shared barrel to avoid WalletConnect/shared dependency chain resolution
 vi.mock("@green-goods/shared/modules/app/error-events", () => ({
   trackErrorBoundary: vi.fn(),

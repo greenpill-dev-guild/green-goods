@@ -464,6 +464,7 @@ export const GardenSettingsEditor = forwardRef<
 
           {canEditProfile ? (
             <FileUploadField
+              surface="admin"
               accept="image/*"
               showPreview={false}
               disabled={isSaving}

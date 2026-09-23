@@ -1,7 +1,9 @@
 [tools]
+# scripts/dev/setup.js and scripts/dev/doctor.js fail when the running Node
+# major differs from this pin, because CI installs this version only.
 node = "22.22.1"
 # Keep local setup exactly aligned with packageManager and GitHub Actions.
-bun = "1.3.14"
+bun = "1.4.2"
 # Forge formatter output is version-sensitive. Keep local setup and CI on the
 # exact release that owns the checked-in Solidity format.
 foundry = "1.7.1"

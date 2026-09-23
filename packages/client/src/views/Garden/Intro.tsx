@@ -1,12 +1,11 @@
+import { Button } from "@green-goods/shared/components/Button";
 import { type Action, Domain, type Garden } from "@green-goods/shared/types/domain";
 import { expandDomainMask, hasDomain } from "@green-goods/shared/utils/domain";
-import { hapticSelection } from "@green-goods/shared/utils/app/haptics";
 import { parseActionUID } from "@green-goods/shared/utils/action/parsers";
 import { localizeAction } from "@green-goods/shared/utils/action/translations";
-import { RiHammerFill, RiLoader4Line, RiPlantFill, RiUserAddLine } from "@remixicon/react";
+import { RiHammerFill, RiPlantFill, RiUserAddLine } from "@remixicon/react";
 import React, { useMemo } from "react";
 import { useIntl } from "react-intl";
-import { Button } from "@/components/Actions";
 import { ActionCard } from "@/components/Cards/Action/ActionCard";
 import { ActionCardSkeleton } from "@/components/Cards/Action/ActionCardSkeleton";
 import { FormInfo } from "@/components/Cards/Form/FormInfo";
@@ -19,7 +18,7 @@ import { type WorkCommitmentChoice, WorkCommitmentSelection } from "./WorkCommit
 /** Domain i18n label ID (stable); labels resolved via intl at render time */
 const DOMAIN_TAB_CONFIG: Record<Domain, { labelId: string; defaultLabel: string }> = {
   [Domain.SOLAR]: { labelId: "app.domain.tab.solar", defaultLabel: "Solar" },
-  [Domain.AGRO]: { labelId: "app.domain.tab.agro", defaultLabel: "Agro" },
+  [Domain.AGRO]: { labelId: "app.domain.tab.agro", defaultLabel: "Agroforestry" },
   [Domain.EDU]: {
     labelId: "app.domain.tab.education",
     defaultLabel: "Education",
@@ -52,6 +51,32 @@ interface WorkIntroProps {
   onRetryCommitmentChoices?: () => void;
   selectedCommitmentKey?: string | null;
   setSelectedCommitmentKey?: (key: string | null) => void;
+}
+
+/**
+ * A picker slide is a toggle: pressing it chooses that card, and `aria-pressed`
+ * tells assistive tech which card is chosen and gives the press the selection tap.
+ */
+function PickerChoice({
+  selected,
+  onSelect,
+  children,
+}: {
+  selected: boolean;
+  onSelect: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      data-pressable="card"
+      aria-pressed={selected}
+      onClick={onSelect}
+      className="block w-full rounded-2xl text-left"
+    >
+      {children}
+    </button>
+  );
 }
 
 export const WorkIntro: React.FC<WorkIntroProps> = ({
@@ -143,11 +168,19 @@ export const WorkIntro: React.FC<WorkIntroProps> = ({
     () =>
       availableDomains.map((d) => {
         const config = DOMAIN_TAB_CONFIG[d];
+        const fullLabel = config
+          ? intl.formatMessage({ id: config.labelId, defaultMessage: config.defaultLabel })
+          : `Domain ${d}`;
         return {
           id: String(d),
-          label: config
-            ? intl.formatMessage({ id: config.labelId, defaultMessage: config.defaultLabel })
-            : `Domain ${d}`,
+          label:
+            d === Domain.AGRO
+              ? intl.formatMessage({
+                  id: "app.gardenIntro.domain.agroShort",
+                  defaultMessage: "Agro",
+                })
+              : fullLabel,
+          accessibleLabel: d === Domain.AGRO ? fullLabel : undefined,
         };
       }),
     [availableDomains, intl]
@@ -173,7 +206,6 @@ export const WorkIntro: React.FC<WorkIntroProps> = ({
           activeTab={String(effectiveDomain ?? "")}
           onTabChange={(tabId) => {
             const domain = Number(tabId) as Domain;
-            hapticSelection();
             setSelectedDomain(domain);
             // Clear action/garden selection when switching domains
             setActionUID(null);
@@ -184,8 +216,8 @@ export const WorkIntro: React.FC<WorkIntroProps> = ({
             defaultMessage: "Domains",
           })}
           variant="compact"
-          className="mb-2"
-          triggerClassName="px-1 text-[10px] leading-4 sm:px-3 sm:text-label-sm"
+          className="-mx-4 mb-2 sm:-mx-6 md:-mx-12"
+          triggerClassName="px-2 text-xs leading-4 [&>span]:break-normal [&>span]:whitespace-nowrap sm:px-3 sm:text-label-sm"
         />
       )}
 
@@ -239,21 +271,20 @@ export const WorkIntro: React.FC<WorkIntroProps> = ({
               const uid = parseActionUID(action.id);
               const displayAction = localizeAction(action, intl.locale);
               return (
-                <CarouselItem
-                  key={action.id}
-                  onClick={() => {
-                    if (uid !== null) {
-                      hapticSelection();
-                      setActionUID(uid);
-                    }
-                  }}
-                >
-                  <ActionCard
-                    action={displayAction}
+                <CarouselItem key={action.id}>
+                  <PickerChoice
                     selected={selectedActionUID === uid}
-                    media="small"
-                    height="selection"
-                  />
+                    onSelect={() => {
+                      if (uid !== null) setActionUID(uid);
+                    }}
+                  >
+                    <ActionCard
+                      action={displayAction}
+                      selected={selectedActionUID === uid}
+                      media="small"
+                      height="selection"
+                    />
+                  </PickerChoice>
                 </CarouselItem>
               );
             })}
@@ -273,21 +304,20 @@ export const WorkIntro: React.FC<WorkIntroProps> = ({
                 const uid = parseActionUID(action.id);
                 const displayAction = localizeAction(action, intl.locale);
                 return (
-                  <CarouselItem
-                    key={action.id}
-                    onClick={() => {
-                      if (uid !== null) {
-                        hapticSelection();
-                        setActionUID(uid);
-                      }
-                    }}
-                  >
-                    <ActionCard
-                      action={displayAction}
+                  <CarouselItem key={action.id}>
+                    <PickerChoice
                       selected={selectedActionUID === uid}
-                      media="small"
-                      height="selection"
-                    />
+                      onSelect={() => {
+                        if (uid !== null) setActionUID(uid);
+                      }}
+                    >
+                      <ActionCard
+                        action={displayAction}
+                        selected={selectedActionUID === uid}
+                        media="small"
+                        height="selection"
+                      />
+                    </PickerChoice>
                   </CarouselItem>
                 );
               })}
@@ -360,25 +390,18 @@ export const WorkIntro: React.FC<WorkIntroProps> = ({
                     </div>
                   </div>
                   <Button
-                    variant="primary"
-                    mode="filled"
-                    size="small"
+                    type="button"
+                    size="sm"
                     onClick={onJoinCommunityGarden}
-                    disabled={isJoiningCommunityGarden}
-                    aria-busy={isJoiningCommunityGarden || undefined}
-                    leadingIcon={
-                      isJoiningCommunityGarden ? (
-                        <RiLoader4Line className="h-4 w-4 animate-spin" aria-hidden />
-                      ) : (
-                        <RiUserAddLine className="h-4 w-4" />
-                      )
-                    }
-                    label={intl.formatMessage({
+                    loading={isJoiningCommunityGarden}
+                    leadingIcon={<RiUserAddLine className="h-4 w-4" aria-hidden="true" />}
+                    className="w-full"
+                  >
+                    {intl.formatMessage({
                       id: "app.garden.communityOnramp.action",
                       defaultMessage: "Join Garden",
                     })}
-                    className="w-full"
-                  />
+                  </Button>
                 </div>
               </CarouselItem>
             )}
@@ -394,22 +417,21 @@ export const WorkIntro: React.FC<WorkIntroProps> = ({
 
           {filteredGardens.length > 0 &&
             filteredGardens.map((garden) => (
-              <CarouselItem
-                key={garden.id}
-                onClick={() => {
-                  hapticSelection();
-                  setGardenAddress(garden.id);
-                }}
-              >
-                <GardenCard
-                  garden={garden}
-                  media="small"
-                  height="selection"
+              <CarouselItem key={garden.id}>
+                <PickerChoice
                   selected={garden.id === selectedGardenAddress}
-                  showDescription={true}
-                  showStewards={false}
-                  showStats={false}
-                />
+                  onSelect={() => setGardenAddress(garden.id)}
+                >
+                  <GardenCard
+                    garden={garden}
+                    media="small"
+                    height="selection"
+                    selected={garden.id === selectedGardenAddress}
+                    showDescription={true}
+                    showStewards={false}
+                    showStats={false}
+                  />
+                </PickerChoice>
               </CarouselItem>
             ))}
         </CarouselContent>

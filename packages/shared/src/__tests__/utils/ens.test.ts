@@ -7,12 +7,18 @@
 
 import { describe, expect, it, vi } from "vitest";
 
+const mocks = vi.hoisted(() => ({
+  getEnsName: vi.fn(async () => null as string | null),
+  getEnsAddress: vi.fn(async () => null as `0x${string}` | null),
+  getEnsAvatar: vi.fn(async () => null as string | null),
+}));
+
 // Mock the pimlico config before importing ens utils (they import createPublicClientForChain)
 vi.mock("../../config/pimlico", () => ({
   createPublicClientForChain: vi.fn(() => ({
-    getEnsName: vi.fn(async () => null),
-    getEnsAddress: vi.fn(async () => null),
-    getEnsAvatar: vi.fn(async () => null),
+    getEnsName: mocks.getEnsName,
+    getEnsAddress: mocks.getEnsAddress,
+    getEnsAvatar: mocks.getEnsAvatar,
   })),
 }));
 
@@ -24,7 +30,27 @@ vi.mock("../../config/default-chain", () => ({
   DEFAULT_CHAIN_ID: 11155111,
 }));
 
-import { suggestSlug, validateSlug } from "../../utils/blockchain/ens";
+import {
+  resolveEnsAddress,
+  resolveEnsAvatar,
+  resolveEnsName,
+  suggestSlug,
+  validateSlug,
+} from "../../utils/blockchain/ens";
+
+const TEST_ADDRESS = "0x1234567890123456789012345678901234567890";
+
+describe("ENS read failures", () => {
+  it.each([
+    ["name", () => resolveEnsName(TEST_ADDRESS), mocks.getEnsName],
+    ["address", () => resolveEnsAddress("garden.eth"), mocks.getEnsAddress],
+    ["avatar", () => resolveEnsAvatar(TEST_ADDRESS), mocks.getEnsName],
+  ])("rejects a %s transport failure instead of persisting null", async (_label, read, method) => {
+    method.mockRejectedValueOnce(new Error("RPC unavailable"));
+
+    await expect(read()).rejects.toThrow("RPC unavailable");
+  });
+});
 
 // ============================================================================
 // VALIDATE SLUG
@@ -172,6 +198,13 @@ describe("suggestSlug", () => {
     const longName = "a".repeat(60);
     const result = suggestSlug(longName);
     expect(result.length).toBeLessThanOrEqual(50);
+  });
+
+  it("never ends in a hyphen when the cut lands on a separator", () => {
+    const result = suggestSlug(`${"a".repeat(49)} b`);
+
+    expect(result).toBe("a".repeat(49));
+    expect(validateSlug(result).valid).toBe(true);
   });
 
   it("collapses consecutive hyphens from replaced chars", () => {

@@ -75,6 +75,8 @@ export function selectPoolFundingSnapshot(input: PoolFundingCalculationInput): P
     settlementUnavailableReasons: settlementReasons,
     obligations: obligationData.groups,
     transit: obligationData.transit,
+    disbursements: input.disbursements,
+    executions: input.executions,
     limits: input.limits,
     nativeFeeBalance: input.nativeFeeBalance,
   };

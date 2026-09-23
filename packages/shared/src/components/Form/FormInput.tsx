@@ -21,7 +21,7 @@ export interface FormInputProps extends InputHTMLAttributes<HTMLInputElement> {
  * />
  */
 export const FormInput = forwardRef<HTMLInputElement, FormInputProps>(
-  ({ label, helperText, error, className, ...props }, ref) => {
+  ({ label, helperText, error, className, required, ...props }, ref) => {
     const helperId = props.id ? `${props.id}-helper-text` : undefined;
     const ariaDescribedBy = (helperText || error) && helperId ? helperId : undefined;
 
@@ -29,6 +29,7 @@ export const FormInput = forwardRef<HTMLInputElement, FormInputProps>(
       <FormFieldWrapper
         id={props.id}
         label={label}
+        required={required}
         helperText={helperText}
         error={error}
         className={className}
@@ -38,6 +39,7 @@ export const FormInput = forwardRef<HTMLInputElement, FormInputProps>(
           data-invalid={!!error || undefined}
           aria-describedby={ariaDescribedBy}
           aria-invalid={!!error || undefined}
+          required={required}
           {...props}
           ref={ref}
         />

@@ -11,8 +11,10 @@ in this file.
 - `.claude/skills/` is the shared Claude/Codex skill source. `.agents/skills` is its symlinked Codex
   discovery path; never create a second copy.
 - Feature execution truth lives in `.plans/{ideas|backlog|active}/<feature-slug>/`; the passive
-  `plan` skill owns lifecycle and Linear mirroring. Closed hubs are deleted at closeout and
-  indexed in `.plans/ARCHIVE.md` — Git history is the only archive.
+  `plan` skill owns lifecycle and Linear mirroring. Close a hub only through its
+  [Closing a Plan Hub](.claude/skills/plan/SKILL.md#closing-a-plan-hub) procedure: commit the
+  closeout record, then archive. Closed hubs are indexed in `.plans/ARCHIVE.md` — Git history is
+  the only archive.
 - Use [`.claude/context/codebase-architecture.md`](.claude/context/codebase-architecture.md) for
   architecture opportunities, structural review, and deep-module or seam vocabulary.
 - Use [`.claude/context/validation-pipeline.md`](.claude/context/validation-pipeline.md) for the
@@ -23,12 +25,12 @@ in this file.
 ## Claude Commands
 
 ```bash
-bun run dev:doctor -- --profile web  # Non-mutating local readiness check
+bun run dev:health -- --profile web  # Non-mutating local readiness check
 bun run dev                          # Start the repo-native PM2 development stack
-bun run dev:stop                     # Stop repo-owned development services
-bun run test:fast                    # Cache-aware full-scope iteration after targeted proof
-bun run test:fast:force              # Same scope without cache reuse
-bun run eval:skills                  # One semantic routing run after skill trigger wording stabilizes
+bun run dev -- stop                     # Stop repo-owned development services
+bun run test --cache                    # Cache-aware full-scope iteration after targeted proof
+bun run test --cache --force              # Same scope without cache reuse
+bun run check --only skill-evaluation                  # One semantic routing run after skill trigger wording stabilizes
 ```
 
 Use `bun run test`, never `bun test`. Commands shared by all agents are listed in `AGENTS.md`; package
@@ -37,15 +39,18 @@ commands live in the nearest package guide. Service variants and operational ent
 
 ## Claude Tool Routing
 
-- For authenticated local UI QA, use the authenticated Brave QA profile.
-  Take the Claude Code Chrome/Chromium extension path and claim the already-open authenticated Brave profile/tab.
-  (Codex sessions take the Codex browser-extension path for the same window.)
+- Rendered proof follows `AGENTS.md § Browser Evidence`: label the engine and session behind every
+  screenshot or DOM read, and use the authenticated Brave profile only for the authenticated surface
+  class (wallet, passkey, session, installed PWA, service worker, job queue, profile identity).
+  For that class, take the Claude Code Chrome/Chromium extension path and claim the already-open
+  Brave profile/tab (Codex sessions take the Codex browser-extension path for the same window).
   Probe reachability behaviorally with a tab-context call (`tabs_context_mcp`), never the
   connected-browsers listing — the roster registers lazily and reads empty while the extension
   is fully working (observed 2026-08-28); only a failed tab-context call is disconnection evidence.
-  If the extension cannot reach it, use visible computer control of that Brave window.
-  Do not use isolated Browser, Playwright, or DevTools MCP profiles for local QA.
-  If authenticated Brave access is blocked, stop and report QA as blocked.
+  If the extension cannot reach it, use visible computer control of that Brave window. If neither
+  can, record that proof as pending in the report and continue with labeled mock-auth localhost,
+  Storybook, or CI evidence for everything else; never present an isolated Browser, Playwright, or
+  DevTools MCP profile as authenticated proof.
 - Linear MCP is the visibility and coordination surface. Follow `AGENTS.md § Linear Workspace` and
   [`.claude/context/linear-routing-rules.md`](.claude/context/linear-routing-rules.md); keep Plan Hub
   lane truth in `.plans`.

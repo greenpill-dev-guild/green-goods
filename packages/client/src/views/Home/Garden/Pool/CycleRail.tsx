@@ -79,10 +79,11 @@ export function CycleRail({ cycles, selectedCycleId, onSelect }: CycleRailProps)
           <button
             key={cycle.id}
             type="button"
+            data-pressable="card"
             aria-pressed={selected}
             onClick={() => onSelect(selected ? null : cycle.cycleId)}
             className={cn(
-              "min-w-[13rem] shrink-0 snap-start rounded-[var(--radius-lg)] border p-3 text-left tap-feedback",
+              "min-w-[13rem] shrink-0 snap-start rounded-[var(--radius-lg)] border p-3 text-left",
               selected
                 ? "border-primary-alpha-24 bg-primary-alpha-10"
                 : "border-stroke-soft-200 bg-bg-white-0"

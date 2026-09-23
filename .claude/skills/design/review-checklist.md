@@ -39,8 +39,8 @@ Unified PR review flow combining all four design lenses. Run in order — each l
 | 2.1 | **Paradigm declared?** Surface type chosen (Command / Ambient / Data Landscape / Conversational) | | Choose paradigm using the Decision Matrix below. Add comment to component: `// Paradigm: Command Surface` |
 | 2.2 | **Material appropriate?** Glass blur level matches content density | | Text-dense → thick material (solid bg). Glanceable → regular (light blur). Status → thin (max blur). See `surfaces.md`. Admin: solid everywhere except the nav dock — blur outside the admin chrome files fails `check:design-tokens` |
 | 2.3 | **Depth hierarchy?** Z-axis used for information priority (Z0–Z4) | | Primary content at Z2 (main pane), contextual at Z1 (recessed), alerts at Z3 (elevated). See `surfaces.md`. Admin: depth is backed by the single `--m3-elevation-0/1/2` ladder plus the warm chrome shadow |
-| 2.4 | **Hit targets ≥ 44px?** All interactive elements large enough for touch/gaze | | Increase padding. Use `min-h-11 min-w-11` (44px) on clickable areas |
-| 2.5 | **Rounded corners scale?** Larger elements have larger radii | | Client: badge `rounded-lg` (8px), card `rounded-xl` (12px), modal `rounded-2xl` (16px), full pane `rounded-3xl` (24px). Admin: badge 8, card 12, dialog/pane 16, pill 9999 — no 24px step |
+| 2.4 | **Hit targets ≥ 44px?** All interactive elements large enough for touch/gaze | | Use the shared `Button` / `IconButton` / `Chip` sizes, which keep a 44–48px hit area at every height (DL-023). Custom pressables use `min-h-11 min-w-11` (44px) |
+| 2.5 | **Rounded corners scale?** Larger elements have larger radii; buttons share one corner per surface | | Client runtime scale (not stock Tailwind): tag `rounded-md` (8px), inner content `var(--radius-squircle)` (12px), card and field `rounded-lg` (16px), panel and sheet `rounded-xl` (20px), modal `rounded-2xl` (24px). Buttons: every emphasis 16px in the app and square on the website, icon circle, chip capsule (DL-026, DL-029) — never a radius class on a button or field. Admin: badge 8, card 12, dialog/pane 16, pill 9999 — no 24px step |
 | 2.6 | **Progressive disclosure?** Information layers: glance → scan → engage → deep dive | | Surface summary first. Details on click/expand. Full data behind navigation |
 | 2.7 | **Container-query aware?** Components adapt to container, not viewport | | Replace `@media` with `@container` where component may appear in different layout contexts |
 | 2.8 | **Motion respects reduced-motion?** Animations degrade gracefully | | Wrap animations in `@media (prefers-reduced-motion: no-preference)`. Use `motion-safe:` prefix |
@@ -157,20 +157,20 @@ Each lens has a manual review pass. Some lenses also have automation that runs t
 
 | Lens | Manual Review | Automation | Status |
 |------|--------------|-----------|--------|
-| **1 — Regenerative** | Value-flow, succession, recovery, motivation, capability, and aesthetic checks | `bun run lint:vocab` — scans `packages/*/src/i18n/*.json` for `linter_enforced.terms` from `scripts/data/banned-vocabulary.json`; prompt-only admin/client vocabulary is guidance, not a runtime check | **Wired** |
+| **1 — Regenerative** | Value-flow, succession, recovery, motivation, capability, and aesthetic checks | `bun run check --only vocabulary` — scans `packages/*/src/i18n/*.json` for `linter_enforced.terms` from `scripts/data/banned-vocabulary.json`; prompt-only admin/client vocabulary is guidance, not a runtime check | **Wired** |
 | **2 — Spatial** | Paradigm declared, material thickness matches content density | Chromatic visual regression on paradigm-tagged stories; `@container` coverage lint | **Proposed** |
 | **3 — Ecosystem** | Archetype mapping, cascade visibility, surrogate flows | Playwright role-based flows (gardener / steward / evaluator / funder); vitest surrogate-path tests; indexer archetype-span checks | **Proposed** |
 | **4 — Compliance** | WCAG 2.1 AA, i18n readiness, responsive breakpoints | `@storybook/addon-a11y` (installed, not CI-gating); viewport tests at 320/768/1280; i18n-key coverage lint; `prefers-reduced-motion` vitest matcher | **Partial** — addon installed, no CI gate |
-| **Cross-cutting** | Token consistency across docs and implementation | `bun run check:design-tokens` — spec ↔ `theme.css` (shared) + `packages/admin/src/styles/admin-m3-tokens.css` / `admin-m3-components.css` + `token_version` declared in `design/SKILL.md` | **Wired** |
+| **Cross-cutting** | Token consistency across docs and implementation | `bun run check --only design-tokens` — spec ↔ `theme.css` (shared) + `packages/admin/src/styles/admin-m3-tokens.css` / `admin-m3-components.css` + `token_version` declared in `design/SKILL.md` | **Wired** |
 
 ### Quick wiring reference — currently runnable
 
 ```bash
 # Lens 1 — lint-enforced banned vocabulary in user-facing i18n strings
-bun run lint:vocab
+bun run check --only vocabulary
 
 # Cross-cutting — Warm Earth token spec ↔ theme.css + admin-m3-tokens.css/admin-m3-components.css + version coupling
-bun run check:design-tokens
+bun run check --only design-tokens
 ```
 
 ### Roadmap — not yet wired

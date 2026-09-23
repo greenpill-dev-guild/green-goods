@@ -241,9 +241,9 @@ for editorial.
 
 ```bash
 npx pm2 list                     # is a stack already up? whose? reuse it, never restart it
-bun run dev:doctor -- --profile full
+bun run dev:health -- --profile full
 bun run dev                      # only if nothing is up
-bun run dev:health && bun run dev:smoke:full
+bun run dev:health && bun run dev:smoke -- full
 ```
 
 Client `https://localhost:3001` · admin `https://localhost:3002` · Storybook
@@ -256,8 +256,8 @@ Docker; `ENVIO_API_TOKEN` must be set or HyperSync 429s. Tool shells may not hav
 
 ```bash
 npx pm2 list                     # never restart a stack another session owns
-bun run dev:prod:mirror:health
-bun run dev:prod:mirror          # local surfaces + local Envio indexing live Arbitrum One
+bun run dev:health -- prod-mirror
+bun run dev -- prod-mirror          # local surfaces + local Envio indexing live Arbitrum One
 ```
 
 The mirror is what makes real writes readable: the hosted indexer has no pooling schema, so a

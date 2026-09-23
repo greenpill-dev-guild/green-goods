@@ -106,7 +106,10 @@ describe("DraftCard", () => {
       )
     );
 
-    expect(screen.getByTestId("thumb")).toBeInTheDocument();
+    const thumbnail = screen.getByTestId("thumb");
+    expect(thumbnail).toBeInTheDocument();
+    expect(thumbnail.parentElement).toHaveClass("h-full", "aspect-square");
+    expect(thumbnail.closest(".h-22")).toBeInTheDocument();
   });
 
   it("falls back to draft icon when no thumbnail", () => {
@@ -205,7 +208,7 @@ describe("DraftCard", () => {
     expect(onResume).not.toHaveBeenCalled();
   });
 
-  it("delete button uses a 44x44 tap target (h-11 w-11)", () => {
+  it("delete button is the shared 44px icon button", () => {
     render(
       wrap(
         createElement(DraftCard, {
@@ -217,8 +220,10 @@ describe("DraftCard", () => {
     );
 
     const deleteBtn = screen.getByLabelText("Delete Draft");
-    // Class assertion proxies for the actual tap target dimension.
-    expect(deleteBtn.className).toContain("h-11");
-    expect(deleteBtn.className).toContain("w-11");
+    // The md IconButton is a 44px circle (DL-023, DL-026); theme.css owns the size.
+    expect(deleteBtn).toHaveClass("gg-icon-button");
+    expect(deleteBtn).toHaveAttribute("data-size", "md");
+    expect(deleteBtn).toHaveClass("bottom-1", "right-2");
+    expect(screen.getByText("Draft")).toHaveClass("top-2", "right-2");
   });
 });

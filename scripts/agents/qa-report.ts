@@ -9,7 +9,7 @@
  * only the CLI at the bottom touches the filesystem, and nothing here reads the
  * Blob store.
  *
- *   bun run qa:report --slug <slug> [--window a..b] [--previous path]
+ *   bun run qa report --slug <slug> [--window a..b] [--previous <earlier run's qa-state.json>]
  *     [--build client=sha,admin=sha] [--public] [--stale-days n] [--out dir]
  *
  * `report.md` is the private variant: attributed notes and per-tester coverage,
@@ -21,11 +21,20 @@
  * example and the Discord lede, nothing else.
  */
 
-import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { describeRun } from "../../packages/qa/runs";
 import { type Entry, type MergedEntries, notesFor, rollupVerdict } from "./qa-state";
+import {
+  acquirePrivateSessionLock,
+  assertPrivateOutputPath,
+  releasePrivateSessionLock,
+  verifyPrivateArtifactSet,
+  writePrivateFileAtomically,
+  type RunSummary,
+} from "./qa-state-pull";
 import { DEFAULT_STALE_DAYS, findStaleCases, type StaleCase } from "./qa-status";
 import { type Catalog, type CatalogCase, loadCatalog, SEVERITY_VALUES } from "./qa-workbook-build";
 
@@ -62,8 +71,9 @@ export interface ReportIssue {
   notes: string;
 }
 
-/** Standing verdicts compared case by case against an earlier pulled session. */
+/** Standing verdicts compared case by case against an earlier pulled run. */
 export interface ReportDelta {
+  /** "Run 1 · Baseline (closed …)" when the baseline was pulled from a run, else its file path. */
   baseline: string;
   newlyFailing: string[];
   newlyBlocked: string[];
@@ -72,6 +82,12 @@ export interface ReportDelta {
   stillBlocked: string[];
   /** Fail or Blocked in the baseline, now missing, note-only, or N/A — a cleared entry is not a fix. */
   cleared: string[];
+  /** Fail or Blocked in the baseline and set aside by --skipped this run: not walked, so neither fixed nor cleared. */
+  skipped: string[];
+  /** Walked now with a verdict, and never recorded in the baseline. */
+  newlyWalked: string[];
+  /** Successors that borrowed the baseline verdict of a case retired between the two runs. */
+  inherited: Array<{ id: string; from: string }>;
   /** Keys on either side that are not active catalog cases — reported, never dropped, never published. */
   unknown: string[];
 }
@@ -94,6 +110,10 @@ export interface ReportModel {
   standing: { failing: string[]; blocked: string[] };
   delta: ReportDelta | null;
   testers: { count: number; perPerson: Record<string, { touched: number; decided: number }> };
+  /** IDs passed as --skipped and how many in-window N/A entries that set aside. */
+  skipped: { ids: string[]; excluded: number };
+  /** The run the state was pulled from, when the pull recorded one. */
+  run?: RunSummary;
 }
 
 export interface ReportOptions {
@@ -102,18 +122,33 @@ export interface ReportOptions {
   window?: ReportWindow;
   build?: { client?: string; admin?: string };
   staleDays?: number;
+  /** The run this state was pulled from, when the pull recorded one. */
+  run?: RunSummary;
   /**
-   * An earlier qa-state.json to diff against. Shards keep one entry per case per
-   * tester and a re-record overwrites the previous verdict, so this snapshot is
-   * the only place a pre-session verdict survives.
+   * An earlier qa-state.json to diff against — normally the previous run,
+   * pulled with `qa:pull --run <id>`. Its `run` names the baseline in the
+   * report; an older pull without one is named by its path.
    */
-  previous?: { path: string; entries: MergedEntries };
+  previous?: { path: string; entries: MergedEntries; run?: RunSummary };
+  /**
+   * Retired Test ID → the active successors that now prove what it proved,
+   * from the catalog's `replacedBy` chains. A baseline verdict on a retired id
+   * is read on each successor, labelled as inherited, so a case split between
+   * two runs still shows what was failing.
+   */
+  replacedBy?: Record<string, string[]>;
   /**
    * Test ID → notes text from results.csv. results.csv is unwindowed, so a cell
    * only wins when it differs from what the raw state would have written there —
    * that is, when someone redacted or corrected it.
    */
   noteOverrides?: Map<string, string>;
+  /**
+   * Test IDs whose in-window N/A entries were a tester's "skipped", not an
+   * out-of-scope call. Those entries are set aside so the case counts as not
+   * walked; any other verdict on the same case stands.
+   */
+  skipped?: string[];
 }
 
 const DAY = /^\d{4}-\d{2}-\d{2}$/;
@@ -122,7 +157,7 @@ const DAY = /^\d{4}-\d{2}-\d{2}$/;
 const ZONED = /(?:Z|[+-]\d{2}:?\d{2})$/i;
 
 /**
- * The store is long-lived and the pull merges every shard ever written, so only
+ * A run can hold several sessions and the pull merges every shard in it, so only
  * entries inside the window are this session's verdicts. Without an explicit
  * window the slug's UTC day stands in, the same fallback the routine uses.
  */
@@ -188,27 +223,101 @@ function groupBuckets(
   return Object.fromEntries(keys.map((key) => [key, bucket(cases.filter((testCase) => keyOf(testCase) === key), verdictOf)]));
 }
 
-function compareStanding(cases: CatalogCase[], current: MergedEntries, previous: { path: string; entries: MergedEntries }): ReportDelta {
+/** The name a delta heading gives its baseline: the run when known, else the file. */
+export function describeBaseline(previous: { path: string; run?: RunSummary }): string {
+  if (!previous.run) return previous.path;
+  const closed = previous.run.closedAt ? ` (closed ${previous.run.closedAt})` : " (still open)";
+  return `${describeRun(previous.run)}${closed}`;
+}
+
+/**
+ * Successors of every retired id, following `replacedBy` chains to the active
+ * ids at their ends. A cycle or a dangling chain contributes nothing.
+ */
+export function successorMap(cases: Array<Pick<CatalogCase, "id" | "status" | "replacedBy">>): Record<string, string[]> {
+  const byId = new Map(cases.map((testCase) => [testCase.id, testCase]));
+  const resolve = (id: string, seen: Set<string>): string[] => {
+    const testCase = byId.get(id);
+    if (!testCase || seen.has(id)) return [];
+    if (testCase.status !== "retired") return [id];
+    seen.add(id);
+    return (testCase.replacedBy ?? []).flatMap((successor) => resolve(successor, seen));
+  };
+  const map: Record<string, string[]> = {};
+  for (const testCase of cases) {
+    if (testCase.status !== "retired") continue;
+    const successors = [...new Set(resolve(testCase.id, new Set()))];
+    if (successors.length) map[testCase.id] = successors;
+  }
+  return map;
+}
+
+const hasEntries = (byPerson: Record<string, Entry> | undefined) => Boolean(byPerson && Object.keys(byPerson).length);
+
+function compareStanding(
+  cases: CatalogCase[],
+  current: MergedEntries,
+  previous: { path: string; entries: MergedEntries; run?: RunSummary },
+  skipped: Set<string>,
+  replacedBy: Record<string, string[]> = {},
+): ReportDelta {
   const delta: ReportDelta = {
-    baseline: previous.path,
+    baseline: describeBaseline(previous),
     newlyFailing: [],
     newlyBlocked: [],
     fixed: [],
     stillFailing: [],
     stillBlocked: [],
     cleared: [],
+    skipped: [],
+    newlyWalked: [],
+    inherited: [],
     unknown: [],
   };
+  const active = new Set(cases.map((testCase) => testCase.id));
+  // A verdict on an id retired since the baseline is read on each successor
+  // that has no baseline verdict of its own; the retired id is then accounted
+  // for rather than reported as unknown.
+  const baseline: MergedEntries = { ...previous.entries };
+  const accounted = new Set<string>();
+  for (const [retiredId, successors] of Object.entries(replacedBy)) {
+    if (!hasEntries(previous.entries[retiredId])) continue;
+    for (const successor of successors) {
+      // A successor with its own baseline verdict inherits nothing. A note-only
+      // successor row is walked but undecided, so a Fail or Blocked on the
+      // retired predecessor still carries over (mirrors the page's comparedStatus).
+      if (!active.has(successor) || rollupVerdict(previous.entries[successor])) continue;
+      // Several retired ids can converge on one successor (PUB-004 and PUB-005
+      // both lead to PUB-014). Merge every predecessor's entries under keys
+      // that name their source, so the rollup sees all of them and the most
+      // severe verdict wins regardless of catalog order.
+      const inheritedEntries = Object.fromEntries(
+        Object.entries(previous.entries[retiredId]).map(([person, entry]) => [`${person} (${retiredId})`, entry]),
+      );
+      baseline[successor] = { ...(delta.inherited.some((pair) => pair.id === successor) ? baseline[successor] : {}), ...inheritedEntries };
+      delta.inherited.push({ id: successor, from: retiredId });
+      accounted.add(retiredId);
+    }
+  }
+  delta.inherited.sort((a, b) => a.id.localeCompare(b.id) || a.from.localeCompare(b.from));
   for (const testCase of cases) {
-    const before = rollupVerdict(previous.entries[testCase.id]);
+    const before = rollupVerdict(baseline[testCase.id]);
     const now = rollupVerdict(current[testCase.id]);
+    // A note without a verdict counts as walked but not judged (qa.md), so
+    // presence, not a verdict, makes a case newly walked.
+    if (hasEntries(current[testCase.id]) && !hasEntries(baseline[testCase.id])) delta.newlyWalked.push(testCase.id);
     if (now === "Fail") (before === "Fail" ? delta.stillFailing : delta.newlyFailing).push(testCase.id);
     else if (now === "Blocked") (before === "Blocked" ? delta.stillBlocked : delta.newlyBlocked).push(testCase.id);
-    else if (before === "Fail" || before === "Blocked") (now === "Pass" ? delta.fixed : delta.cleared).push(testCase.id);
+    else if (before === "Fail" || before === "Blocked") {
+      if (now === "Pass") delta.fixed.push(testCase.id);
+      else if (now === "" && skipped.has(testCase.id)) delta.skipped.push(testCase.id);
+      // An inherited failure nobody re-walked is not cleared: the successor was simply not walked yet.
+      else if (!hasEntries(current[testCase.id]) && delta.inherited.some((pair) => pair.id === testCase.id)) continue;
+      else delta.cleared.push(testCase.id);
+    }
   }
-  const active = new Set(cases.map((testCase) => testCase.id));
   delta.unknown = [...new Set([...Object.keys(previous.entries), ...Object.keys(current)])]
-    .filter((id) => !active.has(id))
+    .filter((id) => !active.has(id) && !accounted.has(id))
     .sort();
   return delta;
 }
@@ -217,15 +326,42 @@ export function buildReportModel(cases: CatalogCase[], entries: MergedEntries, o
   let window = options.window ?? parseWindow(undefined, options.slug);
   let windowNote: string | undefined;
   const pulledAtMs = Date.parse(options.pulledAt);
+  if (!ZONED.test(options.pulledAt) || !Number.isFinite(pulledAtMs)) {
+    throw new Error("snapshot pull time must be a valid timestamp with a time zone");
+  }
+  if (pulledAtMs < Date.parse(window.start)) {
+    throw new Error("snapshot pull time precedes the report window");
+  }
   // The routine pads the call end by an hour but pulls right away; a snapshot
   // cannot hold entries recorded after it, so say exactly what the report covers.
   if (Number.isFinite(pulledAtMs) && pulledAtMs < Date.parse(window.end)) {
     const clampedTo = new Date(pulledAtMs).toISOString();
-    windowNote = `Window end clamped to the pull time ${clampedTo}: entries recorded after it are not in this snapshot — re-run qa:pull once the window has closed, then re-run this report.`;
+    windowNote = `Window end clamped to the pull time ${clampedTo}: entries recorded after it are not in this snapshot — re-run qa pull once the window has closed, then re-run this report.`;
     window = { ...window, end: clampedTo, clampedTo };
   }
   const staleDays = options.staleDays ?? DEFAULT_STALE_DAYS;
   const session = new Map(cases.map((testCase) => [testCase.id, sessionEntries(entries[testCase.id], window)]));
+  const skippedIds = [...new Set(options.skipped ?? [])];
+  const known = new Set(cases.map((testCase) => testCase.id));
+  const unknownSkipped = skippedIds.filter((id) => !known.has(id));
+  if (unknownSkipped.length) {
+    throw new Error(`--skipped names unknown or retired Test IDs: ${unknownSkipped.join(", ")}`);
+  }
+  let excluded = 0;
+  // The standing lists and the delta read the unwindowed store, so the skipped
+  // in-window N/A is set aside there too — or coverage and delta would contradict.
+  const current: MergedEntries = skippedIds.length ? { ...entries } : entries;
+  for (const id of skippedIds) {
+    const byPerson = session.get(id) ?? {};
+    const kept = Object.fromEntries(Object.entries(byPerson).filter(([, entry]) => entry.s !== "na"));
+    excluded += Object.keys(byPerson).length - Object.keys(kept).length;
+    session.set(id, kept);
+    if (entries[id]) {
+      current[id] = Object.fromEntries(
+        Object.entries(entries[id]).filter(([, entry]) => !(entry.s === "na" && inWindow(entry, window))),
+      );
+    }
+  }
   // null = nobody touched the case inside the window; "" = touched, no verdict yet.
   const verdictOf = (testCase: CatalogCase): string | null => {
     const byPerson = session.get(testCase.id) ?? {};
@@ -251,7 +387,7 @@ export function buildReportModel(cases: CatalogCase[], entries: MergedEntries, o
     }];
   });
 
-  const standingVerdict = (testCase: CatalogCase) => rollupVerdict(entries[testCase.id]);
+  const standingVerdict = (testCase: CatalogCase) => rollupVerdict(current[testCase.id]);
   const neverWalked: Record<string, string[]> = {};
   for (const testCase of untouched) (neverWalked[testCase.priority] ??= []).push(testCase.id);
 
@@ -284,8 +420,12 @@ export function buildReportModel(cases: CatalogCase[], entries: MergedEntries, o
       failing: untouched.filter((testCase) => standingVerdict(testCase) === "Fail").map((testCase) => testCase.id),
       blocked: untouched.filter((testCase) => standingVerdict(testCase) === "Blocked").map((testCase) => testCase.id),
     },
-    delta: options.previous ? compareStanding(cases, entries, options.previous) : null,
+    delta: options.previous
+      ? compareStanding(cases, current, options.previous, new Set(skippedIds), options.replacedBy)
+      : null,
     testers: { count: perPerson.size, perPerson: sortedPeople },
+    skipped: { ids: skippedIds, excluded },
+    run: options.run,
   };
 }
 
@@ -325,9 +465,21 @@ export function renderReport(model: ReportModel, catalog: Pick<Catalog, "kinds">
       : [];
   const header = [
     `QA session ${model.slug}`,
+    // The run label is free text a tester typed; the public projection keeps
+    // to the run number, environment, and timestamps.
+    ...(model.run
+      ? [
+          `Run: ${isPublic ? `Run ${model.run.n}` : describeRun(model.run)} · ${model.run.environment} · ${model.run.closedAt ? `closed ${model.run.closedAt}` : "open"}${model.run.legacy ? " · migrated baseline" : ""}`,
+        ]
+      : []),
     `Window: ${model.window.start} – ${model.window.end} (${model.window.source === "flag" ? "from --window" : "slug day, UTC"}) · pulled ${model.pulledAt}`,
     ...(model.windowNote ? [`Caveat: ${model.windowNote}`] : []),
     ...(build.length ? [`Build under test: ${build.join(" · ")}`] : []),
+    ...(model.skipped.ids.length
+      ? [
+          `Skipped: ${idList(model.skipped.ids)} — recorded N/A during the walk; ${model.skipped.excluded} in-window entr${model.skipped.excluded === 1 ? "y" : "ies"} set aside and counted as not walked`,
+        ]
+      : []),
     ...(!isPublic && model.notesFromResults
       ? [`Notes: results.csv for ${model.notesFromResults} case(s) — redactions and corrections honored`]
       : []),
@@ -345,15 +497,21 @@ export function renderReport(model: ReportModel, catalog: Pick<Catalog, "kinds">
   const stale = model.gaps.stale.map(({ id, lastEntryAt }) => `\`${id}\` — last entry ${lastEntryAt}`);
   // Unknown keys and the baseline path are the two delta fields not drawn from the
   // catalog; the public variant carries their counts, never their text.
+  const inherited = model.delta?.inherited.map((pair) => `\`${pair.id}\` ← \`${pair.from}\``) ?? [];
   const delta = model.delta
     ? [
-        isPublic ? "## Delta vs previous snapshot" : `## Delta vs ${model.delta.baseline}`,
+        isPublic ? "## Delta vs previous run" : `## Delta vs ${model.delta.baseline}`,
         countedLine("Newly failing", model.delta.newlyFailing),
         countedLine("Newly blocked", model.delta.newlyBlocked),
         countedLine("Fixed", model.delta.fixed),
+        countedLine("Newly walked", model.delta.newlyWalked),
         countedLine("Cleared without a pass", model.delta.cleared),
+        ...(model.delta.skipped.length ? [countedLine("Skipped (baseline fail or blocked, not walked)", model.delta.skipped)] : []),
         countedLine("Still failing", model.delta.stillFailing),
         countedLine("Still blocked", model.delta.stillBlocked),
+        ...(inherited.length
+          ? [`- Inherited from retired cases (${inherited.length}): ${inherited.join(", ")}`]
+          : []),
         ...(model.delta.unknown.length
           ? [
               isPublic
@@ -412,9 +570,20 @@ export interface CliOptions {
   public: boolean;
   staleDays: number;
   out?: string;
+  skipped?: string[];
 }
 
-const VALUE_FLAGS = new Set(["--slug", "--window", "--previous", "--build", "--stale-days", "--out"]);
+const VALUE_FLAGS = new Set(["--slug", "--window", "--previous", "--build", "--stale-days", "--out", "--skipped"]);
+// Catalog Test IDs (PWA-032, PWA-IOS-002, XPLAT-005): validated here by shape, against the catalog in the model.
+const TEST_ID = /^[A-Z][A-Z0-9]*(?:-[A-Z0-9]+)+$/;
+
+function parseSkipped(value: string): string[] {
+  const ids = value.split(",").map((id) => id.trim()).filter(Boolean);
+  if (!ids.length || ids.some((id) => !TEST_ID.test(id))) {
+    throw new Error("--skipped must be a comma-separated list of catalog Test IDs (e.g. PWA-032,PWA-IOS-002)");
+  }
+  return [...new Set(ids)];
+}
 // Both values are printed in report headers, the public one included: keep them to identifiers.
 const SLUG = /^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$/;
 const COMMIT_SHA = /^[0-9a-f]{7,40}$/;
@@ -451,6 +620,7 @@ export function parseArgs(argv: string[]): CliOptions {
     else if (flag === "--previous") options.previous = value;
     else if (flag === "--out") options.out = value;
     else if (flag === "--build") options.build = parseBuild(value);
+    else if (flag === "--skipped") options.skipped = parseSkipped(value);
     else {
       options.staleDays = Number(value);
       if (!Number.isInteger(options.staleDays) || options.staleDays <= 0) {
@@ -463,15 +633,18 @@ export function parseArgs(argv: string[]): CliOptions {
 }
 
 interface PulledState {
+  slug?: string;
   pulledAt?: string;
+  /** Present on pulls made since the store gained runs. */
+  run?: RunSummary;
   entries: MergedEntries;
 }
 
-/** Parse a pulled state file without ever quoting its contents — notes live in there. */
-function readState(filePath: string, label: string): PulledState {
+/** Parse pulled state text without ever quoting its contents — notes live in there. */
+function parseState(text: string, label: string): PulledState {
   let parsed: unknown;
   try {
-    parsed = JSON.parse(readFileSync(filePath, "utf8"));
+    parsed = JSON.parse(text);
   } catch {
     throw new Error(`${label} is not valid JSON`);
   }
@@ -480,6 +653,10 @@ function readState(filePath: string, label: string): PulledState {
     throw new Error(`${label} has no entries object`);
   }
   return parsed as PulledState;
+}
+
+function readState(filePath: string, label: string): PulledState {
+  return parseState(readFileSync(filePath, "utf8"), label);
 }
 
 /** Minimal RFC 4180 reader for our own results.csv: quoted fields, doubled quotes, newlines inside quotes. */
@@ -538,7 +715,7 @@ export function resultsNotes(text: string): Map<string, string> {
 
 export async function runReport(
   options: CliOptions,
-  deps: { catalog: Catalog; repoRoot: string },
+  deps: { catalog: Catalog; repoRoot: string; afterSnapshotVerified?: () => void },
 ): Promise<{ report: string; publicReport?: string; windowNote?: string }> {
   const privateRoot = path.join(deps.repoRoot, "tmp");
   const outDir = path.resolve(deps.repoRoot, options.out ?? path.join("tmp", "qa-session", options.slug));
@@ -550,39 +727,75 @@ export async function runReport(
   ) {
     throw new Error("--out must stay under the repo's gitignored tmp/ directory — the report carries tester names and notes");
   }
+  assertPrivateOutputPath(deps.repoRoot, outDir);
   const statePath = path.join(outDir, "qa-state.json");
   if (!existsSync(statePath)) {
     throw new Error(
-      `${path.relative(deps.repoRoot, statePath)} is missing — run bun run qa:pull --slug ${options.slug} first`,
+      `${path.relative(deps.repoRoot, statePath)} is missing — run bun run qa pull --slug ${options.slug} first`,
     );
   }
-  const state = readState(statePath, "qa-state.json");
-  const resultsPath = path.join(outDir, "results.csv");
-  const noteOverrides = existsSync(resultsPath) ? resultsNotes(readFileSync(resultsPath, "utf8")) : undefined;
-  let previous: ReportOptions["previous"];
-  if (options.previous) {
-    const previousPath = path.resolve(deps.repoRoot, options.previous);
-    if (!existsSync(previousPath)) throw new Error(`--previous file ${options.previous} is missing`);
-    previous = { path: options.previous, entries: readState(previousPath, "--previous file").entries };
-  }
-  const window = parseWindow(options.window, options.slug);
-  const active = deps.catalog.cases.filter((testCase) => testCase.status !== "retired");
-  const model = buildReportModel(active, state.entries, {
-    slug: options.slug,
-    pulledAt: state.pulledAt ?? "unknown",
-    window,
-    build: options.build,
-    staleDays: options.staleDays,
-    previous,
-    noteOverrides,
-  });
+  const lock = acquirePrivateSessionLock(outDir, "qa:report");
+  try {
+    const stateText = readFileSync(statePath, "utf8");
+    const state = parseState(stateText, "qa-state.json");
+    if (state.slug !== options.slug) {
+      throw new Error("qa-state.json belongs to a different session slug");
+    }
+    const resultsPath = path.join(outDir, "results.csv");
+    const resultsText = existsSync(resultsPath) ? readFileSync(resultsPath, "utf8") : undefined;
+    verifyPrivateArtifactSet(
+      outDir,
+      {
+        "qa-state.json": stateText,
+        ...(resultsText === undefined ? {} : { "results.csv": resultsText }),
+      },
+      undefined,
+      lock,
+    );
+    deps.afterSnapshotVerified?.();
+    const noteOverrides = resultsText === undefined ? undefined : resultsNotes(resultsText);
+    let previous: ReportOptions["previous"];
+    if (options.previous) {
+      const previousPath = path.resolve(deps.repoRoot, options.previous);
+      if (!existsSync(previousPath)) throw new Error(`--previous file ${options.previous} is missing`);
+      const previousState = readState(previousPath, "--previous file");
+      // A later run passed as the baseline would read every fix as a regression.
+      if (previousState.run && state.run && previousState.run.n >= state.run.n) {
+        throw new Error("--previous must name an earlier run than qa-state.json");
+      }
+      // A snapshot pulled while its run was still open can miss verdicts recorded
+      // before the close, which the delta would then read as newly walked or fixed.
+      if (previousState.run && !previousState.run.closedAt) {
+        throw new Error(
+          `--previous was pulled while ${previousState.run.id} was still open — pull the closed run with qa pull --run ${previousState.run.id} and try again`,
+        );
+      }
+      previous = { path: options.previous, entries: previousState.entries, run: previousState.run };
+    }
+    const window = parseWindow(options.window, options.slug);
+    const active = deps.catalog.cases.filter((testCase) => testCase.status !== "retired");
+    const model = buildReportModel(active, state.entries, {
+      slug: options.slug,
+      pulledAt: state.pulledAt ?? "unknown",
+      window,
+      build: options.build,
+      staleDays: options.staleDays,
+      run: state.run,
+      previous,
+      replacedBy: successorMap(deps.catalog.cases),
+      noteOverrides,
+      skipped: options.skipped,
+    });
 
-  const report = path.join(outDir, "report.md");
-  writeFileSync(report, renderReport(model, deps.catalog, { variant: "private" }));
-  if (!options.public) return { report, windowNote: model.windowNote };
-  const publicReport = path.join(outDir, "report.public.md");
-  writeFileSync(publicReport, renderReport(model, deps.catalog, { variant: "public" }));
-  return { report, publicReport, windowNote: model.windowNote };
+    const report = path.join(outDir, "report.md");
+    writePrivateFileAtomically(report, renderReport(model, deps.catalog, { variant: "private" }));
+    if (!options.public) return { report, windowNote: model.windowNote };
+    const publicReport = path.join(outDir, "report.public.md");
+    writePrivateFileAtomically(publicReport, renderReport(model, deps.catalog, { variant: "public" }));
+    return { report, publicReport, windowNote: model.windowNote };
+  } finally {
+    releasePrivateSessionLock(lock);
+  }
 }
 
 async function main(): Promise<void> {

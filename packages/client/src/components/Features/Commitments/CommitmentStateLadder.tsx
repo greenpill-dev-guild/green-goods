@@ -1,3 +1,4 @@
+import { Button } from "@green-goods/shared/components/Button";
 import { Alert } from "@green-goods/shared/components/Alert";
 import { cn } from "@green-goods/shared/utils/styles/cn";
 import { type CommitmentPoolingAvailability } from "@green-goods/shared/commitment-pooling";
@@ -6,6 +7,10 @@ import type React from "react";
 import { useIntl } from "react-intl";
 
 import { EmptyState } from "@/components/Communication";
+import {
+  PWA_SHEET_FOCAL_STATE_CLASSNAME,
+  PWA_SHEET_STATE_CLASSNAME,
+} from "@/components/Pwa/sheetScrollStyles";
 
 /**
  * Each tab reads from its own source, so each says its own recovery words. A
@@ -29,10 +34,30 @@ export interface TabCopy {
   emptyLead?: React.ReactNode;
 }
 
-function Region({ className, children }: { className?: string; children: React.ReactNode }) {
+function Region({
+  className,
+  children,
+  center = false,
+  focal = false,
+}: {
+  className?: string;
+  children: React.ReactNode;
+  center?: boolean;
+  focal?: boolean;
+}) {
   return (
     <div className={cn("min-h-0 flex-1 overflow-y-auto", className)}>
-      <div className="space-y-4 p-4">{children}</div>
+      <div
+        className={
+          focal
+            ? PWA_SHEET_FOCAL_STATE_CLASSNAME
+            : center
+              ? PWA_SHEET_STATE_CLASSNAME
+              : "space-y-4 p-4"
+        }
+      >
+        {children}
+      </div>
     </div>
   );
 }
@@ -73,8 +98,9 @@ export function CommitmentStateLadder({
 
   if (availability.status !== "available") {
     return (
-      <Region className={regionClassName}>
+      <Region className={regionClassName} focal>
         <EmptyState
+          placement="sheet"
           icon={<RiPlantLine />}
           title={formatMessage({ id: "app.commitments.notReady.title" })}
           description={formatMessage({ id: "app.commitments.notReady.description" })}
@@ -85,7 +111,7 @@ export function CommitmentStateLadder({
 
   if (isLoading) {
     return (
-      <Region className={regionClassName}>
+      <Region className={regionClassName} center>
         <div className="space-y-2.5" role="status">
           <p className="text-xs text-text-soft-400">{formatMessage({ id: copy.loadingId })}</p>
           <div className="space-y-2.5 animate-pulse" aria-hidden="true">
@@ -104,34 +130,37 @@ export function CommitmentStateLadder({
 
   if (isError) {
     return (
-      <Region className={regionClassName}>
+      <Region className={regionClassName} center>
         <Alert variant="error" className="p-3">
           {formatMessage({ id: copy.errorId })}
         </Alert>
-        <button
+        <Button
           type="button"
+          emphasis="secondary"
           onClick={onRetry}
-          className="flex w-full items-center justify-center gap-2 rounded-[var(--radius-lg)] border border-stroke-soft-200 p-3 text-sm font-medium text-text-strong-950 tap-target-lg"
+          className="w-full"
+          leadingIcon={<RiRefreshLine className="h-4 w-4" aria-hidden="true" />}
         >
-          <RiRefreshLine className="h-4 w-4" aria-hidden="true" />
           {formatMessage({ id: "app.commitments.retry" })}
-        </button>
+        </Button>
       </Region>
     );
   }
 
   if (isEmpty) {
     return (
-      <Region className={regionClassName}>
+      <Region className={regionClassName} focal>
         {copy.emptyLead}
         {!isOnline ? (
           <EmptyState
+            placement="sheet"
             icon={<RiWifiOffLine />}
             title={formatMessage({ id: "app.commitments.offline.title" })}
             description={formatMessage({ id: "app.commitments.offline.description" })}
           />
         ) : (
           <EmptyState
+            placement="sheet"
             icon={<RiInboxLine />}
             title={formatMessage({ id: copy.emptyTitleId })}
             description={formatMessage({ id: copy.emptyDescriptionId })}

@@ -166,16 +166,16 @@ test("contract guard fails when missing addresses imply a P0", () => {
   ]);
 });
 
-test("visible-UI guard fails when blocked Brave proof is replaced by isolated proof", () => {
+test("visible-UI guard fails when the labeled-proof rule is replaced by any screenshot", () => {
   const sources = replaceRequiredMarker(
     liveSources,
     ".claude/skills/review/SKILL.md",
-    /reported as blocked/i,
-    "substituted with isolated browser proof",
+    /Browser Evidence/,
+    "any screenshot",
   );
 
   assert.deepEqual(failedScenarioIds(evaluateSkillBehaviorContracts(sources)), [
-    "visible-ui-needs-authenticated-brave-or-blocked",
+    "visible-ui-needs-labeled-rendered-proof",
   ]);
 });
 

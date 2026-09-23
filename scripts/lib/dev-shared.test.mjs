@@ -1,19 +1,166 @@
 import assert from "node:assert/strict";
-import { chmodSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { execFileSync } from "node:child_process";
+import { chmodSync, existsSync, mkdirSync, mkdtempSync, realpathSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import test from "node:test";
 
 import {
+  REPOSITORY_LOCAL_GIT_VARIABLES,
+  clearRepositoryLocalGitVariables,
   findCompatibleNode,
+  findInheritedFixtureIdentity,
+  findSharedGitSettingChanges,
+  fixtureGitEnvironment,
+  dockerEnvironment,
+  assertDockerReady,
+  inspectPinnedNode,
   parseSubmoduleStatus,
   profileRequiresContractSubmodules,
+  readEnginesNodeFloor,
+  readPinnedNodeVersion,
+  readSharedGitSettings,
   reexecUnderCompatibleNodeIfNeeded,
   resolveSubmoduleSetupAction,
   resolveVitestMaxWorkers,
 } from "./dev-shared.js";
 
 const GIBIBYTE = 1024 ** 3;
+
+test("Docker repairs a missing local socket without overriding an intentional endpoint", () => {
+  const home = "/home/dev";
+  const socket = `${home}/.orbstack/run/docker.sock`;
+  const existing = new Set([socket, "/usr/local/bin/docker", "/live.sock"]);
+  const resolve = (env) => dockerEnvironment({ env, home, exists: (file) => existing.has(file) });
+  const stale = { PATH: "/bin", DOCKER_HOST: "unix:///missing.sock" };
+  assert.equal(resolve(stale).DOCKER_HOST, `unix://${socket}`);
+  assert.equal(stale.DOCKER_HOST, "unix:///missing.sock");
+  assert.ok(resolve(stale).PATH.includes("/usr/local/bin"));
+  const desktop = resolve({ DOCKER_CONTEXT: "desktop-linux", DOCKER_HOST: `unix://${home}/.docker/run/docker.sock` });
+  assert.equal(desktop.DOCKER_CONTEXT, "orbstack");
+  assert.equal(desktop.DOCKER_HOST, `unix://${socket}`);
+  for (const env of [
+    { DOCKER_HOST: "unix:///live.sock" },
+    { DOCKER_HOST: "ssh://docker-host" },
+    { DOCKER_HOST: "unix:///missing.sock", DOCKER_CONTEXT: "remote" },
+    {},
+  ]) assert.equal(resolve(env).DOCKER_HOST, env.DOCKER_HOST);
+  existing.delete(socket);
+  assert.equal(resolve(stale).DOCKER_HOST, stale.DOCKER_HOST);
+});
+
+test("Docker preflight fails clearly when no CLI can be reached", () => {
+  assert.throws(() => assertDockerReady({ PATH: "/nonexistent" }), /Docker is unavailable.*No services were started/);
+});
+
+test("the pinned Node version comes from .mise.toml and must be exact", (t) => {
+  const directory = mkdtempSync(path.join(tmpdir(), "pinned-node-version-"));
+  t.after(() => rmSync(directory, { recursive: true, force: true }));
+  const write = (tools) => writeFileSync(path.join(directory, ".mise.toml"), tools);
+
+  write('[tools]\nnode = "22.22.1"\nbun = "1.4.2"\nfoundry = "1.7.1"\n');
+  assert.equal(readPinnedNodeVersion(directory), "22.22.1");
+  write('[tools]\nnode = "v22.22.1"\n');
+  assert.equal(readPinnedNodeVersion(directory), "22.22.1");
+
+  // A floating pin cannot be compared against a running major, and CI installs
+  // one exact version, so setup and the doctor refuse to guess from it.
+  for (const floating of ['[tools]\nnode = "22"\n', '[tools]\nnode = "lts"\n', '[tools]\nbun = "1.4.2"\n']) {
+    write(floating);
+    assert.throws(() => readPinnedNodeVersion(directory), /exact x\.y\.z/);
+  }
+
+  // The pin is one version; engines is the range, and it owns the lower bound.
+  const manifest = path.join(directory, "package.json");
+  writeFileSync(manifest, JSON.stringify({ engines: { node: ">=22.19.0 <23" } }));
+  assert.equal(readEnginesNodeFloor(directory), "22.19.0");
+  writeFileSync(manifest, JSON.stringify({ engines: { node: "*" } }));
+  assert.throws(() => readEnginesNodeFloor(directory), />=x\.y\.z floor/);
+});
+
+test("the Node check reads the interpreter, and PATH only when Bun is the interpreter", () => {
+  const versions = {
+    "/mise/installs/node/22.22.1/bin/node": "22.22.1",
+    "/pinned/bin/node": "22.22.1",
+    "/newer/bin/node": "24.20.0",
+    "/home/dev/.bun/bin/node": "26.3.0",
+    "/shim/node": "bun:1.4.2",
+    "/broken/node": "",
+  };
+  const inspect = (overrides) =>
+    inspectPinnedNode({
+      pinned: "22.22.1",
+      minimum: "22.19.0",
+      exists: (candidate) => candidate in versions,
+      probe: (candidate) => versions[candidate] ?? "",
+      env: { MISE_DATA_DIR: "/mise", PATH: "" },
+      bunRuntime: "",
+      interpreterNode: "",
+      ...overrides,
+    });
+
+  // Outside Bun the interpreter is the Node the machine resolved, so no probe
+  // can be more accurate. A patch above the engines floor still passes.
+  const matched = inspect({ interpreterNode: "22.19.0" });
+  assert.equal(matched.state, "matched");
+  assert.equal(matched.fix, "");
+  assert.equal(matched.runtimeNote, "");
+  assert.match(matched.detail, /v22\.19\.0; \.mise\.toml pins 22\.22\.1\./);
+
+  // The pinned major is not enough on its own: engines rejects 22.0.0 through
+  // 22.18.x, so the same major below the floor is still a stop.
+  for (const belowFloor of ["22.0.0", "22.18.9"]) {
+    const stopped = inspect({ interpreterNode: belowFloor });
+    assert.equal(stopped.state, "mismatched", belowFloor);
+    assert.match(stopped.detail, /package\.json engines requires >=22\.19\.0/);
+    assert.ok(stopped.fix, belowFloor);
+  }
+
+  // The Node 24 fresh-clone report: setup and the doctor used to print this as a pass.
+  const mismatched = inspect({ interpreterNode: "24.20.0" });
+  assert.equal(mismatched.state, "mismatched");
+  assert.match(mismatched.detail, /v24\.20\.0; \.mise\.toml pins 22\.22\.1 and CI runs that major only\./);
+  assert.equal(
+    mismatched.fix,
+    'Put the pinned Node first on PATH: export PATH="/mise/installs/node/22.22.1/bin:$PATH"'
+  );
+
+  // The repair is the pinned toolchain, so another Node of the same major that
+  // mise does not own is not offered as one.
+  const unpinned = inspect({ interpreterNode: "24.20.0", env: { MISE_DATA_DIR: "/absent-mise", PATH: "/pinned/bin" } });
+  assert.equal(unpinned.state, "mismatched");
+  assert.match(unpinned.fix, /mise install from the repository root, or install 22\.22\.1 from nodejs\.org/);
+
+  // Under `bun run` the interpreter is Bun and its Node version is an emulation,
+  // so the verdict comes from PATH — past Bun's own shim and any shim that
+  // answers as Bun from a directory the name filter does not catch.
+  const underBun = inspect({
+    bunRuntime: "1.4.2",
+    interpreterNode: "26.3.0",
+    env: { MISE_DATA_DIR: "/mise", PATH: "/home/dev/.bun/bin:/shim:/pinned/bin" },
+  });
+  assert.equal(underBun.state, "matched");
+  assert.equal(underBun.path, "/pinned/bin/node");
+  assert.match(underBun.detail, /v22\.22\.1 at \/pinned\/bin\/node/);
+  assert.match(underBun.runtimeNote, /Bun 1\.4\.2 ran this check and emulates Node 26\.3\.0/);
+
+  // A broken first entry is the Node `node ...` resolves to, so it is reported
+  // rather than searched past to a healthy later one.
+  const broken = inspect({
+    bunRuntime: "1.4.2",
+    interpreterNode: "26.3.0",
+    env: { MISE_DATA_DIR: "/mise", PATH: "/broken:/pinned/bin" },
+  });
+  assert.equal(broken.state, "unknown");
+  assert.match(broken.detail, /Node at \/broken\/node answered no version/);
+
+  // No Node at all is not evidence of a wrong Node either; callers warn, and
+  // the repair still points at the pinned toolchain.
+  const unknown = inspect({ bunRuntime: "1.4.2", interpreterNode: "26.3.0" });
+  assert.equal(unknown.state, "unknown");
+  assert.match(unknown.detail, /No Node on PATH outside Bun's shim; \.mise\.toml pins 22\.22\.1\./);
+  assert.match(unknown.fix, /\/mise\/installs\/node\/22\.22\.1\/bin/);
+});
 
 test("submodule status parser distinguishes every actionable git state", () => {
   const fixtures = [
@@ -88,7 +235,7 @@ test("local Vitest workers respect CPU, memory, and concurrent package share", (
 
 test("compatible Node selection honors candidate order and skips Bun shims", () => {
   const versions = new Map([
-    ["/mise-shim/node", "bun:1.3.14"],
+    ["/mise-shim/node", "bun:1.4.2"],
     ["/env/node", "20.18.0"],
     ["/path/node", "22.22.1"],
     ["/mise-install/node", "22.21.0"],
@@ -181,7 +328,7 @@ test("successful re-entry carries the pinned Node, Bun, and Foundry toolchain", 
   t.after(() => rmSync(directory, { recursive: true, force: true }));
   const miseData = path.join(directory, "mise");
   const node = path.join(miseData, "installs/node/22.22.1/bin/node");
-  const bun = path.join(miseData, "installs/bun/1.3.14/bin/bun");
+  const bun = path.join(miseData, "installs/bun/1.4.2/bin/bun");
   const forge = path.join(miseData, "installs/foundry/1.7.1/forge");
   for (const executable of [node, bun, forge]) {
     mkdirSync(path.dirname(executable), { recursive: true });
@@ -190,7 +337,7 @@ test("successful re-entry carries the pinned Node, Bun, and Foundry toolchain", 
   }
   writeFileSync(
     path.join(directory, ".mise.toml"),
-    '[tools]\nnode = "22.22.1"\nbun = "1.3.14"\nfoundry = "1.7.1"\n',
+    '[tools]\nnode = "22.22.1"\nbun = "1.4.2"\nfoundry = "1.7.1"\n',
   );
 
   const originalMiseData = process.env.MISE_DATA_DIR;
@@ -259,4 +406,158 @@ test("the re-entry sentinel prevents an infinite spawn loop", () => {
     if (original === undefined) delete process.env[sentinel];
     else process.env[sentinel] = original;
   }
+});
+
+test("a fixture's git stays in its own directory while a hook binds git to the pushed repository", (t) => {
+  const root = realpathSync(mkdtempSync(path.join(tmpdir(), "git-fixture-isolation-")));
+  t.after(() => rmSync(root, { recursive: true, force: true }));
+  const pushed = path.join(root, "pushed");
+  const fixture = path.join(root, "fixture");
+  mkdirSync(pushed);
+  mkdirSync(fixture);
+  const git = (cwd, env, ...args) => execFileSync("git", args, { cwd, env, encoding: "utf8" }).trim();
+
+  const unbound = fixtureGitEnvironment();
+  git(pushed, unbound, "init", "--quiet");
+  git(pushed, unbound, "commit", "--quiet", "--allow-empty", "-m", "pushed work");
+  const pushedHead = git(pushed, unbound, "rev-parse", "HEAD");
+  const pushedSettings = readSharedGitSettings({ cwd: pushed });
+
+  // What git hands every child of a hook in a linked worktree: `cwd` no longer chooses.
+  const hook = {
+    ...process.env,
+    GIT_DIR: path.join(pushed, ".git"),
+    GIT_INDEX_FILE: path.join(pushed, ".git/index"),
+  };
+  assert.equal(git(fixture, hook, "rev-parse", "--absolute-git-dir"), path.join(pushed, ".git"));
+
+  const isolated = fixtureGitEnvironment(hook);
+  git(fixture, isolated, "init", "--quiet");
+  writeFileSync(path.join(fixture, "seed.txt"), "seed\n");
+  git(fixture, isolated, "add", ".");
+  git(fixture, isolated, "commit", "--quiet", "-m", "fixture work");
+
+  assert.equal(git(fixture, isolated, "rev-parse", "--absolute-git-dir"), path.join(fixture, ".git"));
+  assert.equal(git(fixture, isolated, "log", "-1", "--format=%an <%ae>"), "Fixture <fixture@example.invalid>");
+  assert.equal(existsSync(path.join(fixture, ".git/config")), true);
+  assert.equal(git(pushed, unbound, "rev-parse", "HEAD"), pushedHead);
+  assert.equal(git(pushed, unbound, "status", "--porcelain"), "");
+  assert.deepEqual(readSharedGitSettings({ cwd: pushed }), pushedSettings);
+});
+
+test("clearing git's repository-local variables releases a hook's binding and keeps the rest", () => {
+  const environment = {
+    PATH: "/bin",
+    GIT_DIR: "/pushed/.git/worktrees/lane",
+    GIT_INDEX_FILE: "/pushed/.git/worktrees/lane/index",
+    GIT_WORK_TREE: "/pushed",
+    GIT_EDITOR: "true",
+    GIT_SSH_COMMAND: "ssh -i key",
+  };
+  assert.equal(clearRepositoryLocalGitVariables(environment), environment);
+  assert.deepEqual(environment, { PATH: "/bin", GIT_EDITOR: "true", GIT_SSH_COMMAND: "ssh -i key" });
+
+  // The list of record is git's own: a git that binds through a new variable must extend ours.
+  const listedByGit = execFileSync("git", ["rev-parse", "--local-env-vars"], { encoding: "utf8" })
+    .split("\n")
+    .filter(Boolean);
+  assert.deepEqual(
+    listedByGit.filter((variable) => !REPOSITORY_LOCAL_GIT_VARIABLES.includes(variable)),
+    [],
+  );
+});
+
+test("shared git settings come from the repository's own config, and are absent without one", () => {
+  const calls = [];
+  const answering = (stdout, status) => (command, args, options) => {
+    calls.push({ command, args, cwd: options.cwd, bound: "GIT_DIR" in options.env });
+    return { stdout, status };
+  };
+
+  assert.deepEqual(
+    readSharedGitSettings({
+      cwd: "/repo",
+      run: answering("core.bare false\nuser.name Release Operator Test\n", 0),
+    }),
+    { "core.bare": "false", "user.name": "Release Operator Test" },
+  );
+  // --local keeps a developer's global identity out of the comparison.
+  assert.equal(calls[0].command, "git");
+  assert.deepEqual(calls[0].args.slice(0, 2), ["config", "--local"]);
+  assert.deepEqual([calls[0].cwd, calls[0].bound], ["/repo", false]);
+
+  assert.deepEqual(readSharedGitSettings({ cwd: "/repo", run: answering("", 1) }), {});
+  assert.equal(readSharedGitSettings({ cwd: "/tarball", run: answering("", 128) }), null);
+});
+
+test("an inherited fixture identity is reported, and a contributor's own identity is not", () => {
+  const healthy = { problems: [], repairs: [] };
+  assert.deepEqual(findInheritedFixtureIdentity({ "core.bare": "false" }), healthy);
+  assert.deepEqual(findInheritedFixtureIdentity(null), healthy);
+  // A per-repository identity is legitimate, whatever its domain resembles.
+  for (const email of ["ada@contest.com", "ada@myexample.com", "ada@users.noreply.github.com"]) {
+    assert.deepEqual(findInheritedFixtureIdentity({ "user.name": "Ada", "user.email": email }), healthy, email);
+  }
+
+  assert.deepEqual(
+    findInheritedFixtureIdentity({
+      "user.name": "Release Operator Test",
+      "user.email": "release-operator@example.invalid",
+    }),
+    {
+      problems: ["user.email is release-operator@example.invalid, an address reserved for tests"],
+      repairs: ["git config --local --unset-all user.name", "git config --local --unset-all user.email"],
+    },
+  );
+  for (const email of ["validation@example.com", "t@docs.example.org", "ci@runner.test"]) {
+    assert.equal(findInheritedFixtureIdentity({ "user.email": email }).problems.length, 1, email);
+  }
+
+  // What the fixtures actually left behind: the identity, signing off, and a bare repository.
+  // Repairing only the identity would leave every later commit unsigned.
+  assert.deepEqual(
+    findInheritedFixtureIdentity({
+      "core.bare": "true",
+      "commit.gpgsign": "false",
+      "user.name": "Release Operator Test",
+      "user.email": "release-operator@example.invalid",
+    }).repairs,
+    [
+      "git config --local --unset-all user.name",
+      "git config --local --unset-all user.email",
+      "git config --local --unset-all commit.gpgsign",
+      "git config --local core.bare false",
+    ],
+  );
+  // Without a fixture identity, a contributor's own signing choice is theirs to keep.
+  assert.deepEqual(findInheritedFixtureIdentity({ "commit.gpgsign": "false", "core.bare": "false" }), healthy);
+});
+
+test("settings a run changed in the shared git config are reported with the commands that restore them", () => {
+  const before = { "core.bare": "false", "user.name": "Ada O'Neil" };
+  assert.deepEqual(findSharedGitSettingChanges(before, { ...before }), { problems: [], repairs: [] });
+  assert.deepEqual(findSharedGitSettingChanges(null, before), { problems: [], repairs: [] });
+
+  assert.deepEqual(
+    findSharedGitSettingChanges(before, {
+      "core.bare": "true",
+      "user.name": "Validation Test",
+      "user.email": "validation@example.com",
+      "commit.gpgsign": "false",
+    }),
+    {
+      problems: [
+        "core.bare changed from false to true while validation ran",
+        "user.name changed from Ada O'Neil to Validation Test while validation ran",
+        "user.email changed from unset to validation@example.com while validation ran",
+        "commit.gpgsign changed from unset to false while validation ran",
+      ],
+      repairs: [
+        "git config --local core.bare 'false'",
+        "git config --local user.name 'Ada O'\\''Neil'",
+        "git config --local --unset-all user.email",
+        "git config --local --unset-all commit.gpgsign",
+      ],
+    },
+  );
 });

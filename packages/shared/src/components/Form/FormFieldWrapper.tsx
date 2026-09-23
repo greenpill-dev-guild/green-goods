@@ -33,18 +33,24 @@ export function FormFieldWrapper({
         {required && <span className="ml-0.5 text-error-base">*</span>}
       </label>
       {children}
-      {(helperText || error) && (
-        <p
-          id={id ? `${id}-helper-text` : undefined}
-          role={error ? "alert" : undefined}
-          className={cn(
-            "text-body-sm min-h-[1rem]",
-            error ? "text-error-dark" : "text-text-sub-600"
-          )}
-        >
-          {error || helperText}
-        </p>
-      )}
+      <p
+        id={id ? `${id}-helper-text` : undefined}
+        role={error ? "alert" : undefined}
+        tabIndex={helperText || error ? 0 : undefined}
+        // Reserve two lines so hints and errors appear without moving the form; a rare third
+        // line grows the slot instead of scrolling inside it (DL-018).
+        style={{
+          minBlockSize: "2lh",
+          flexShrink: 0,
+          fontSize: "var(--type-body-sm)",
+          letterSpacing: "var(--type-body-sm-ls)",
+          lineHeight: "var(--type-body-sm-lh)",
+          overflowWrap: "anywhere",
+        }}
+        className={cn("gg-field-feedback", error ? "text-error-dark" : "text-text-sub-600")}
+      >
+        {error || helperText}
+      </p>
     </div>
   );
 }

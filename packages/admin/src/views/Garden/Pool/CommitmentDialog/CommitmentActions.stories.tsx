@@ -60,6 +60,14 @@ export const OrdinaryUnreachable: Story = {
   },
 };
 
+/** A pool steward reading a settled commitment, with the seeding wizard one tap away. */
+export const SeedAnotherLikeThis: Story = {
+  args: {
+    can: { ...dialog.can, raiseDispute: false, sendForConfirmation: false },
+    onSeedAnother: () => undefined,
+  },
+};
+
 export const Offline: Story = {
   args: { isOnline: false, actDisabled: true },
 };

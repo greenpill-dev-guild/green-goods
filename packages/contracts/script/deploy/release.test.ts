@@ -296,16 +296,20 @@ describe("release CLI real entrypoints", () => {
     expect(corePlan).toMatch(/"includedInThisCeremony": \[\s*"ownership-transfer"\s*\]/u);
     expect(corePlan).toContain("backfill while the module remains paused");
     expect(corePlan).toContain("separate later unpause authorization");
-    expect(corePlan).not.toContain('"command": "bun run release:ownership:plan:arbitrum"');
-    expect(corePlan).not.toContain('"command": "bun run pooling:backfill:dry:arbitrum"');
-    expect(corePlan).toContain(
-      '"command": "bun run pooling:deploy:dry:arbitrum --expected-nonce <fresh-pending-nonce>"',
+    expect(corePlan).not.toContain(
+      '"command": "bun run contracts -- deploy ownership-transfer --network arbitrum --mode preflight"',
+    );
+    expect(corePlan).not.toContain(
+      '"command": "bun run contracts -- pooling backfill --network arbitrum --mode simulate --authority deployer"',
     );
     expect(corePlan).toContain(
-      '"command": "bun run settlement:module:plan:arbitrum --expected-nonce <fresh-pending-nonce>"',
+      '"command": "bun run contracts -- deploy pooling --network arbitrum --mode simulate --expected-nonce <fresh-pending-nonce>"',
     );
     expect(corePlan).toContain(
-      '"command": "bun run credit:registry:plan:arbitrum --expected-nonce <fresh-pending-nonce>"',
+      '"command": "bun run contracts -- deploy settlement-module --network arbitrum --mode preflight --expected-nonce <fresh-pending-nonce>"',
+    );
+    expect(corePlan).toContain(
+      '"command": "bun run contracts -- deploy credit-registry --network arbitrum --mode preflight --expected-nonce <fresh-pending-nonce>"',
     );
 
     // Ownership transfer is now part of the ceremony, so the pre-RPC guard is the boundary contract
@@ -376,19 +380,14 @@ describe("release CLI real entrypoints", () => {
 
   it("documents a reviewed nonce on every release-stage planning command", () => {
     const cliHelp = fs.readFileSync(path.join(CONTRACTS_ROOT, "script/deploy/cli.ts"), "utf8");
-    const handoff = fs.readFileSync(
-      path.join(CONTRACTS_ROOT, "../../.plans/active/commitment-pooling/handoffs/human-release-ops.md"),
-      "utf8",
-    );
     const requiredCommands = [
-      "pooling:deploy:dry:arbitrum --expected-nonce <fresh-pending-nonce>",
-      "settlement:module:plan:arbitrum --expected-nonce <fresh-pending-nonce>",
-      "credit:registry:plan:arbitrum --expected-nonce <fresh-pending-nonce>",
-      "settlement:executor:plan:celo --expected-nonce <fresh-pending-nonce>",
+      "deploy pooling --network arbitrum --mode simulate --expected-nonce <fresh-pending-nonce>",
+      "deploy settlement-module --network arbitrum --mode preflight --expected-nonce <fresh-pending-nonce>",
+      "deploy credit-registry --network arbitrum --mode preflight --expected-nonce <fresh-pending-nonce>",
+      "deploy settlement-executor --network celo --mode preflight --expected-nonce <fresh-pending-nonce>",
     ];
 
-    for (const command of requiredCommands) expect(cliHelp).toContain(command);
-    expect(handoff).toContain("contracts:pooling:deploy:dry:arbitrum --expected-nonce <fresh-pending-nonce>");
+    for (const command of requiredCommands) expect(cliHelp).toContain(`bun run contracts -- ${command}`);
   });
 
   it("runs scoped recovery simulation through the real CLI without canonical mutation", () => {

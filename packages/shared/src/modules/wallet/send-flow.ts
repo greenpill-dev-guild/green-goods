@@ -1,3 +1,4 @@
+import { isSendableTokenAvailable } from "../../config/tokens";
 import type { SendableTokenBalance } from "../../hooks/blockchain/useSendableTokens";
 import type { Address } from "../../types/domain";
 import { validateDecimalInput } from "../../utils/blockchain/vaults";
@@ -60,13 +61,19 @@ export const initialSendFlowState: SendFlowState = {
 };
 
 export function sendFlowReducer(state: SendFlowState, event: SendFlowEvent): SendFlowState {
+  if (state.selectedToken && !isSendableTokenAvailable(state.selectedToken)) {
+    state = { ...state, selectedToken: null, step: "amount", showConfirm: false };
+  }
   switch (event.type) {
     case "select-mode":
       return { ...state, mode: event.mode };
     case "select-recipient":
       return { ...state, recipient: event.recipient, step: "amount" };
     case "select-token":
-      return { ...state, selectedToken: event.token };
+      return {
+        ...state,
+        selectedToken: event.token && isSendableTokenAvailable(event.token) ? event.token : null,
+      };
     case "change-amount":
       return { ...state, amountInput: event.amount };
     case "change-note":
@@ -88,11 +95,16 @@ export function sendFlowReducer(state: SendFlowState, event: SendFlowEvent): Sen
     case "edit-amount":
       return { ...state, step: "amount" };
     case "open-confirm":
-      return { ...state, showConfirm: true };
+      return {
+        ...state,
+        showConfirm: Boolean(state.selectedToken && isSendableTokenAvailable(state.selectedToken)),
+      };
     case "close-confirm":
       return { ...state, showConfirm: false };
     case "start-send":
-      return { ...state, mode: "send", step: "recipient", selectedToken: event.token };
+      return isSendableTokenAvailable(event.token)
+        ? { ...state, mode: "send", step: "recipient", selectedToken: event.token }
+        : state;
     case "reset-tab":
       return { ...state, mode: "balance", step: "recipient", showConfirm: false };
     case "reset-after-send":
@@ -110,7 +122,7 @@ export function validateSendAmount(
     insufficient: false,
     valid: false,
   };
-  if (!token) return empty;
+  if (!token || !isSendableTokenAvailable(token)) return empty;
 
   const formatErrorId = validateDecimalInput(amountInput, token.decimals) || null;
   if (formatErrorId || !amountInput.trim()) return { ...empty, formatErrorId };

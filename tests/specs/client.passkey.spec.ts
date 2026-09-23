@@ -5,7 +5,7 @@
  * Uses Playwright's route interception to mock Pimlico API responses, enabling
  * full passkey E2E testing without real infrastructure.
  *
- * Run with: bun test:e2e:passkey
+ * Run with: bun run browser e2e --preset passkey
  */
 import { expect, type Page, type Route, test } from "@playwright/test";
 import { ClientTestHelper, TEST_URLS } from "../helpers/test-utils";
@@ -106,7 +106,7 @@ test.describe("Passkey Authentication (Mocked)", () => {
         if (hasAppError) {
           console.log("App error detected - checking state...");
           await page.screenshot({ path: "test-results/passkey-app-error.png" });
-          // SKIP: #338 owner:afo expiry:2026-09-17 — runtime env detection
+          // SKIP: #338 owner:afo expiry:2026-10-16 — runtime env detection
           test.skip(true, "App has error - likely missing environment");
           return;
         }

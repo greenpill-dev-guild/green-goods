@@ -38,9 +38,9 @@ export function CommitmentSummary({
     <>
       <header className="space-y-2">
         <div className="flex flex-wrap items-center gap-2">
-          <StatusBadge variant="info" size="sm">
+          <span className="whitespace-nowrap text-xs text-text-soft">
             {directionLabel(commitment.direction, formatMessage)}
-          </StatusBadge>
+          </span>
           <StatusBadge variant={chip.variant} size="sm">
             {chip.label}
           </StatusBadge>

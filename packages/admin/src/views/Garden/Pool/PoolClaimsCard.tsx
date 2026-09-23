@@ -68,12 +68,12 @@ export function PoolClaimsCard({ console: pool, onDecline }: PoolClaimsCardProps
             >
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-center gap-2">
+                  <span className="whitespace-nowrap text-xs text-text-soft">
+                    {directionLabel(row.commitment.direction, formatMessage)}
+                  </span>
                   <span className="truncate text-body-md text-text-strong" title={title}>
                     {title}
                   </span>
-                  <StatusBadge variant="info" size="sm">
-                    {directionLabel(row.commitment.direction, formatMessage)}
-                  </StatusBadge>
                   <StatusBadge variant="warning" size="sm">
                     {formatMessage({
                       id: "cockpit.garden.pool.claims.waiting",

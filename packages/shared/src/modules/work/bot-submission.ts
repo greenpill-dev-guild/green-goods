@@ -62,7 +62,7 @@ export async function submitWorkBot(
  * attestations and every PWA approval path. Recipient-scoped approval queries key on
  * garden addresses, so any other recipient makes the approval invisible to them.
  * (Historical bot approvals were attested with recipient = gardener; those are
- * immutable — the read side tolerates both via utils/work/pending-review.ts.)
+ * immutable — the garden work read tolerates both by matching approvals to their work.)
  */
 export async function submitApprovalBot(
   client: WalletClient,

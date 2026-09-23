@@ -5,6 +5,7 @@ import { logger } from "../../modules/app/logger";
 import { useUIStore } from "../../stores/useUIStore";
 import { capitalize } from "../../utils/app/text";
 import { cn } from "../../utils/styles/cn";
+import { Button } from "../Button";
 import { createToastDismissQueue } from "./toast.queue";
 
 type ToastFn = typeof toast.success;
@@ -44,7 +45,7 @@ export interface ToastDescriptor {
    * `duration: Infinity`, but reads as intent at the call site.
    */
   persistent?: boolean;
-  /** Optional toast action rendered as a subtle button. */
+  /** Optional toast action rendered with the standard green text-button treatment. */
   action?: ToastAction;
   /** Optional flag to silence diagnostics for known, handled errors. */
   suppressLogging?: boolean;
@@ -128,8 +129,17 @@ const STATUS_ARIA_ROLE: Record<ToastStatus, "status" | "alert"> = {
   error: "alert",
 };
 
-const ACTION_BUTTON_BASE =
-  "inline-flex items-center text-xs font-medium text-[var(--color-primary-base)] hover:text-[var(--color-primary-dark)] focus:outline-none focus:underline focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[var(--color-primary-base)] rounded transition-colors";
+// The shared Button carries its own finger box (48px in the app, 44px in the
+// cockpit; DL-031), so the action keeps the surface's sm height and only widens
+// to a 44px minimum for one-word labels.
+const ACTION_BUTTON_STYLE: React.CSSProperties = {
+  color: "rgb(var(--tone-action, var(--primary-action)))",
+  maxWidth: "100%",
+  minWidth: "44px",
+  overflowWrap: "anywhere",
+  paddingInline: "0.25rem",
+  whiteSpace: "normal",
+};
 
 /**
  * Self-managed auto-dismiss timers.
@@ -518,89 +528,35 @@ function ToastMessage({
     "focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary-base)] focus-visible:ring-offset-2"
   );
 
-  // Dismissible toasts use a clickable container.
-  // We avoid role="button" since there are nested <button> elements inside (invalid HTML).
-  // Instead, we make the container focusable and handle keyboard events directly.
-  // The inner action buttons remain as real <button> elements for proper semantics.
-  if (dismissible) {
-    const handleKeyDown = (e: React.KeyboardEvent) => {
-      // Only handle keyboard dismiss if the target is the container itself (not nested buttons)
-      if (e.target === e.currentTarget && (e.key === "Enter" || e.key === " ")) {
-        e.preventDefault();
-        handleDismiss();
-      }
-    };
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    // Only handle keyboard dismiss if the target is the container itself (not nested buttons)
+    if (e.target === e.currentTarget && (e.key === "Enter" || e.key === " ")) {
+      e.preventDefault();
+      handleDismiss();
+    }
+  };
 
-    const handleContainerClick = (e: React.MouseEvent) => {
-      // Only dismiss if clicking the container, not nested buttons
-      if (e.target === e.currentTarget || !(e.target as HTMLElement).closest("button")) {
-        handleDismiss();
-      }
-    };
+  const handleContainerClick = (e: React.MouseEvent) => {
+    // Only dismiss if clicking the container, not nested buttons
+    if (e.target === e.currentTarget || !(e.target as HTMLElement).closest("button")) {
+      handleDismiss();
+    }
+  };
 
-    return (
-      <div // eslint-disable-line jsx-a11y/no-noninteractive-element-interactions -- live-region container is the dismiss target; nested <button>s forbid role="button"
-        role="status"
-        tabIndex={0} // eslint-disable-line jsx-a11y/no-noninteractive-tabindex -- must be focusable to dismiss by keyboard and to pause auto-dismiss on focus
-        className={containerClassName}
-        aria-label={ariaLabel}
-        data-testid="toast-content"
-        onClick={handleContainerClick}
-        onKeyDown={handleKeyDown}
-        {...pauseHandlers}
-      >
-        {closeButton}
-        {title ? <p className="text-sm font-semibold leading-tight">{title}</p> : null}
-        <p className="text-sm leading-snug">{message}</p>
-        {description ? (
-          <p className="text-xs leading-snug text-[color:var(--color-text-sub-600)]">
-            {description}
-          </p>
-        ) : null}
-        {/* Debug mode: show verbose error info */}
-        {debugDescription ? (
-          <div className="mt-1 rounded bg-[var(--color-bg-weak-50)] p-2">
-            <p className="break-all font-mono text-[10px] leading-tight text-[color:var(--color-text-sub-600)]">
-              {debugDescription}
-            </p>
-          </div>
-        ) : null}
-        {/* Action buttons row */}
-        <div className="flex items-center gap-3">
-          {action ? (
-            <button
-              type="button"
-              onClick={handleAction}
-              className={ACTION_BUTTON_BASE}
-              data-testid={action.testId}
-            >
-              {buttonLabel}
-            </button>
-          ) : null}
-          {/* Debug mode: copy error button */}
-          {onCopyError ? (
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation(); // Prevent triggering dismiss
-                onCopyError();
-              }}
-              className={cn(ACTION_BUTTON_BASE, copySuccess && "text-[var(--color-success-base)]")}
-              data-testid="toast-copy-error"
-            >
-              {copySuccess ? "✓ Copied" : "📋 Copy Error"}
-            </button>
-          ) : null}
-        </div>
-      </div>
-    );
-  }
+  // Dismissible toasts use a clickable container. We avoid role="button" since
+  // there are nested <button> elements inside (invalid HTML): the live-region
+  // container is focusable and handles keyboard events directly, and the inner
+  // action buttons remain real <button> elements for proper semantics.
+  const dismissProps = dismissible
+    ? { role: "status", tabIndex: 0, onClick: handleContainerClick, onKeyDown: handleKeyDown }
+    : undefined;
 
   return (
     <div
       className={containerClassName}
       aria-label={ariaLabel}
       data-testid="toast-content"
+      {...dismissProps}
       {...pauseHandlers}
     >
       {closeButton}
@@ -618,30 +574,34 @@ function ToastMessage({
         </div>
       ) : null}
       {/* Action buttons row */}
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-3" style={{ flexWrap: "wrap" }}>
         {action ? (
-          <button
+          <Button
             type="button"
+            emphasis="tertiary"
+            size="sm"
             onClick={handleAction}
-            className={ACTION_BUTTON_BASE}
+            style={ACTION_BUTTON_STYLE}
             data-testid={action.testId}
           >
             {buttonLabel}
-          </button>
+          </Button>
         ) : null}
         {/* Debug mode: copy error button */}
         {onCopyError ? (
-          <button
+          <Button
             type="button"
+            emphasis="tertiary"
+            size="sm"
             onClick={(e) => {
               e.stopPropagation(); // Prevent triggering dismiss
               onCopyError();
             }}
-            className={cn(ACTION_BUTTON_BASE, copySuccess && "text-[var(--color-success-base)]")}
+            style={ACTION_BUTTON_STYLE}
             data-testid="toast-copy-error"
           >
             {copySuccess ? "✓ Copied" : "📋 Copy Error"}
-          </button>
+          </Button>
         ) : null}
       </div>
     </div>

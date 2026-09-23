@@ -127,6 +127,7 @@ contract CapturingCookieJarFactory {
 
     // Track per-call data
     address[] public createdJarAddresses;
+    mapping(address currency => uint256 maxWithdrawal) public maxWithdrawalByCurrency;
 
     event MockJarCreated(address indexed jarAddress, address indexed jarOwner, address indexed currency);
 
@@ -143,6 +144,7 @@ contract CapturingCookieJarFactory {
 
         // Store config for assertions
         _lastJarConfig = params;
+        maxWithdrawalByCurrency[params.supportedCurrency] = params.maxWithdrawal;
         // Manual copy of AccessConfig (nested struct with dynamic array)
         delete _lastAccessConfig;
         _lastAccessConfig.nftRequirement = accessConfig.nftRequirement;
@@ -692,7 +694,7 @@ contract CookieJarModuleTest is Test {
     // ═══════════════════════════════════════════════════════════════════════════
 
     function test_storageGap_totalSlots() public {
-        // CookieJarModule has 11 explicit vars + 1 ReentrancyGuard slot + 38 gap = 50 total slots
+        // CookieJarModule has 12 explicit vars + 38 gap = 50 total slots
         // This test just verifies the contract compiles with the gap annotation
         // The actual gap is verified by StorageLayout.t.sol
         assertTrue(true, "Storage gap compiles correctly");
@@ -755,6 +757,76 @@ contract CookieJarModuleTest is Test {
         vm.prank(address(0x999));
         vm.expectRevert("Ownable: caller is not the owner");
         cookieJarModule.setDefaultMaxWithdrawal(1 ether);
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // Per-asset max withdrawal
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    /// @dev One default cannot serve every asset: 0.01 WETH is a fair claim, 0.01 DAI is a cent.
+    function testCookieJarModule_newJarTakesItsAssetsOwnLimit() public {
+        vm.startPrank(owner);
+        cookieJarModule.setDefaultMaxWithdrawal(0.01 ether);
+        cookieJarModule.setAssetMaxWithdrawal(asset2, 10 ether);
+        vm.stopPrank();
+
+        vm.prank(gardenToken);
+        cookieJarModule.onGardenMinted(garden1);
+
+        assertEq(factory.maxWithdrawalByCurrency(asset2), 10 ether, "asset with its own limit should use it");
+        assertEq(factory.maxWithdrawalByCurrency(asset1), 0.01 ether, "asset without one should fall back to the default");
+    }
+
+    function testCookieJarModule_clearedAssetLimitFallsBackToDefault() public {
+        vm.startPrank(owner);
+        cookieJarModule.setAssetMaxWithdrawal(asset1, 10 ether);
+        cookieJarModule.setAssetMaxWithdrawal(asset1, 0);
+        vm.stopPrank();
+
+        vm.prank(gardenToken);
+        cookieJarModule.onGardenMinted(garden1);
+
+        assertEq(
+            factory.maxWithdrawalByCurrency(asset1), cookieJarModule.defaultMaxWithdrawal(), "zero should clear the limit"
+        );
+    }
+
+    function testCookieJarModule_setAssetMaxWithdrawalRejectsNonOwner() public {
+        vm.prank(address(0x999));
+        vm.expectRevert("Ownable: caller is not the owner");
+        cookieJarModule.setAssetMaxWithdrawal(asset1, 10 ether);
+    }
+
+    function testCookieJarModule_setAssetMaxWithdrawalRejectsZeroAsset() public {
+        vm.prank(owner);
+        vm.expectRevert(ICookieJarModule.ZeroAddress.selector);
+        cookieJarModule.setAssetMaxWithdrawal(address(0), 10 ether);
+    }
+
+    /// @dev The limit lives in a slot taken from the storage gap, so an upgrade must leave every
+    ///      earlier value, including the jars already recorded, exactly where it was.
+    function testUpgrade_CookieJarModule_keepsStateAndAcceptsAssetLimits() public {
+        vm.prank(gardenToken);
+        address[] memory jarsBefore = cookieJarModule.onGardenMinted(garden1);
+
+        CookieJarModule newImpl = new CookieJarModule();
+        vm.startPrank(owner);
+        cookieJarModule.upgradeTo(address(newImpl));
+        cookieJarModule.setAssetMaxWithdrawal(asset1, 10 ether);
+        vm.stopPrank();
+
+        assertEq(cookieJarModule.owner(), owner, "owner should survive the upgrade");
+        assertEq(cookieJarModule.gardenToken(), gardenToken, "gardenToken should survive the upgrade");
+        assertEq(cookieJarModule.hatsProtocol(), HATS_PROTOCOL, "hatsProtocol should survive the upgrade");
+        assertEq(cookieJarModule.defaultWithdrawalInterval(), 86_400, "interval should survive the upgrade");
+        assertEq(cookieJarModule.getSupportedAssets().length, 2, "supported assets should survive the upgrade");
+        assertEq(cookieJarModule.getGardenJars(garden1), jarsBefore, "recorded jars should survive the upgrade");
+        assertEq(cookieJarModule.assetMaxWithdrawal(asset1), 10 ether, "asset limit should be stored");
+
+        // Existing jars are never touched; only a garden minted afterwards sees the new limit.
+        vm.prank(gardenToken);
+        cookieJarModule.onGardenMinted(garden2);
+        assertEq(factory.maxWithdrawalByCurrency(asset1), 10 ether, "new jar should take the asset limit");
     }
 
     // ═══════════════════════════════════════════════════════════════════════════

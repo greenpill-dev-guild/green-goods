@@ -75,7 +75,7 @@ export class DeploymentCLI {
     console.log(`
 Green Goods Deployment CLI
 
-Usage: bun deploy.ts <command> [options]
+Usage: bun run contracts -- deploy <command> [options]
 
 Commands:
   core                     Deploy core contracts
@@ -136,60 +136,60 @@ Common Options:
 
 Examples:
   # Fresh deployment
-  bun deploy.ts core --network sepolia --broadcast
+  bun run contracts -- deploy core --network sepolia --mode broadcast
 
   # Update schemas only
-  bun deploy.ts core --network sepolia --broadcast --update-schemas
+  bun run contracts -- deploy core --network sepolia --mode broadcast --update-schemas
 
   # Deploy garden
-  bun deploy.ts garden config/my-garden.json --network arbitrum --broadcast
+  bun run contracts -- deploy garden config/my-garden.json --network arbitrum --mode broadcast
 
   # Deploy actions
-  bun deploy.ts actions config/my-actions.json --network arbitrum --broadcast
+  bun run contracts -- deploy actions config/my-actions.json --network arbitrum --mode broadcast
 
   # Deploy Octant vault factory
-  bun deploy.ts octant-factory --network arbitrum --broadcast
+  bun run contracts -- deploy octant-factory --network arbitrum --mode broadcast
 
   # Create Hats tree
-  bun deploy.ts hats-tree --network sepolia --broadcast
+  bun run contracts -- deploy hats-tree --network sepolia --mode broadcast
 
   # Plan initial GreenWill badge locks and proxy configuration
-  bun run greenwill:locks:dry:arbitrum
-  bun run greenwill:dry:arbitrum
+  bun run contracts -- deploy badge-locks --network arbitrum --mode preflight
+  bun run contracts -- deploy greenwill --network arbitrum --mode simulate
 
   # Broadcast initial GreenWill badge locks and proxy configuration
-  bun run greenwill:locks:arbitrum
-  bun run greenwill:arbitrum
+  bun run contracts -- deploy badge-locks --network arbitrum --mode broadcast
+  bun run contracts -- deploy greenwill --network arbitrum --mode broadcast
 
   # Future/backlog portable badge attestation schema, not required for initial three-badge launch
-  bun deploy.ts badge-schemas --network arbitrum --dry-run
+  bun run contracts -- deploy badge-schemas --network arbitrum --mode preflight
 
   # Migrate stuck greengoods.eth registrations into the current mainnet receiver
-  bun deploy.ts ens-migrate --network mainnet --broadcast
+  bun run contracts -- ens migrate --network mainnet --mode broadcast
 
   # Plan the Commitment Pooling lane, in order. Each step's output is the next step's input, so
   # the sequence cannot be reordered. Rehearse the whole thing first on an Arbitrum One fork:
-  #   bun run test:fork:pooling:arbitrum
-  bun run pooling:schemas:plan:arbitrum --expected-nonce <fresh-pending-nonce>
-  bun run pooling:deploy:dry:arbitrum --expected-nonce <fresh-pending-nonce>
-  bun run pooling:finalize:plan:arbitrum --expected-nonce <fresh-pending-nonce>
-  bun run pooling:upgrade:plan:arbitrum --expected-nonce <fresh-pending-nonce>
-  bun run pooling:backfill:dry:arbitrum
+  #   APP_ENV=development bun run --cwd packages/contracts test:shard run pooling-arbitrum
+  bun run contracts -- deploy commitment-schemas --network arbitrum --mode plan --sender 0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6 --expected-nonce <fresh-pending-nonce>
+  bun run contracts -- deploy pooling --network arbitrum --mode simulate --expected-nonce <fresh-pending-nonce>
+  bun run contracts -- deploy commitment-schemas --network arbitrum --mode plan --finalize-community-testimony --sender 0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6 --expected-nonce <fresh-pending-nonce>
+  bun run contracts -- upgrade commitment-pooling --network arbitrum --mode plan --sender 0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6 --expected-nonce <fresh-pending-nonce>
+  bun run contracts -- pooling backfill --network arbitrum --mode simulate --authority deployer
 
   # Phase A release engineering (never broadcasts)
-  bun run release:manifest
-  bun run release:core:plan:arbitrum
-  bun run settlement:module:plan:arbitrum --expected-nonce <fresh-pending-nonce>
-  bun run credit:registry:plan:arbitrum --expected-nonce <fresh-pending-nonce>
-  bun run settlement:executor:plan:celo --expected-nonce <fresh-pending-nonce>
-  bun run settlement:safe:plan:celo
-  bun run release:verify:plan:arbitrum
-  bun run release:indexer:handoff
+  bun run contracts -- release manifest --network arbitrum
+  bun run contracts -- release core --network arbitrum --mode preflight
+  bun run contracts -- deploy settlement-module --network arbitrum --mode preflight --expected-nonce <fresh-pending-nonce>
+  bun run contracts -- deploy credit-registry --network arbitrum --mode preflight --expected-nonce <fresh-pending-nonce>
+  bun run contracts -- deploy settlement-executor --network celo --mode preflight --expected-nonce <fresh-pending-nonce>
+  bun run contracts -- settlement safe --network celo --mode preflight
+  bun run contracts -- release verify --network arbitrum --mode preflight
+  bun run contracts -- release indexer-handoff --network arbitrum --mode preflight
 
 Available networks: ${this.networkManager.getAvailableNetworks().join(", ")}
 
 Note: Contracts are automatically verified on all networks except localhost.
-For UUPS upgrades, use: bun upgrade.ts <contract> --network <network> --broadcast
+For UUPS upgrades, use: bun run contracts -- upgrade <contract> --network <network> --mode broadcast
     `);
   }
 

@@ -239,6 +239,7 @@ export function PublicEvidenceCard({
   return (
     <button
       type="button"
+      data-pressable="card"
       onClick={() => onOpen(record)}
       className="group flex h-full cursor-pointer flex-col gap-3 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-action focus-visible:ring-offset-2"
       aria-label={record.title}

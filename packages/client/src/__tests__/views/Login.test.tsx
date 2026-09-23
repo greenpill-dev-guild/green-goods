@@ -183,12 +183,13 @@ vi.mock("@/components/Layout", () => ({
 
 // Import after mocks
 import { toastService } from "@green-goods/shared/components/Toast/toast.service";
+import en from "@green-goods/shared/i18n/en.json";
 import { Login } from "../../views/Login";
 
-const createLoginTree = (initialRoute = "/home/login") =>
+const createLoginTree = (initialRoute = "/home/login", messages: Record<string, string> = {}) =>
   createElement(
     IntlProvider,
-    { locale: "en", messages: {} },
+    { locale: "en", messages },
     createElement(
       HelmetProvider,
       null,
@@ -279,7 +280,7 @@ describe("Login View - New User (two-step create)", () => {
     expect(screen.queryByTestId("secondary-button")).not.toBeInTheDocument();
     expect(screen.getByTestId("tertiary-button")).toHaveTextContent("Back");
     // The input's visible instruction lives in the shared message zone.
-    expect(screen.getByTestId("info-message")).toHaveTextContent(/synced passkey/i);
+    expect(screen.getByTestId("info-message")).toHaveTextContent(/sign in on another device/i);
 
     await user.click(screen.getByTestId("tertiary-button"));
 
@@ -334,12 +335,12 @@ describe("Login View - New User (two-step create)", () => {
 
     await user.click(screen.getByTestId("tertiary-button"));
 
-    expect(screen.getByTestId("primary-button")).toHaveTextContent("Recover with Passkey");
+    expect(screen.getByTestId("primary-button")).toHaveTextContent("Sign in with Passkey");
     expect(screen.getByTestId("username-input")).toBeInTheDocument();
     // Flat sub-flow: no wallet, no fork — just Back.
     expect(screen.queryByTestId("secondary-button")).not.toBeInTheDocument();
     expect(screen.getByTestId("tertiary-button")).toHaveTextContent("Back");
-    expect(screen.getByTestId("info-message")).toHaveTextContent(/synced passkeys/i);
+    expect(screen.getByTestId("info-message")).toHaveTextContent(/on a phone nearby/i);
   });
 
   it("recovers by username through passkey login", async () => {
@@ -351,6 +352,27 @@ describe("Login View - New User (two-step create)", () => {
     await user.click(screen.getByTestId("primary-button"));
 
     expect(mockLoginWithPasskey).toHaveBeenCalledWith("testuser");
+  });
+
+  it("renders the same form copy whether or not the message bundle loaded", async () => {
+    // These tests render without a bundle, so they read the fallback text in the view. If that
+    // drifts from en.json, a missing bundle shows retired copy and the tests above still pass.
+    const readForm = async (messages: Record<string, string>, entryControl: string) => {
+      const user = userEvent.setup();
+      const view = render(createLoginTree("/home/login", messages));
+      await user.click(screen.getByTestId(entryControl));
+      const copy = {
+        button: screen.getByTestId("primary-button").textContent,
+        info: screen.getByTestId("info-message").textContent,
+      };
+      view.unmount();
+      return copy;
+    };
+
+    // Entry primary opens the create form; entry tertiary opens the recover form.
+    for (const entryControl of ["primary-button", "tertiary-button"]) {
+      expect(await readForm({}, entryControl)).toEqual(await readForm(en, entryControl));
+    }
   });
 
   it("failed recovery shows the error with no separate-account fork", async () => {
@@ -366,7 +388,7 @@ describe("Login View - New User (two-step create)", () => {
     // Recovery is flat: the user retries or goes Back — nothing else appears.
     expect(screen.queryByTestId("secondary-button")).not.toBeInTheDocument();
     expect(screen.getByTestId("tertiary-button")).toHaveTextContent("Back");
-    expect(screen.getByTestId("primary-button")).toHaveTextContent("Recover with Passkey");
+    expect(screen.getByTestId("primary-button")).toHaveTextContent("Sign in with Passkey");
 
     // Back returns to the entry screen where a fresh account can be created.
     await user.click(screen.getByTestId("tertiary-button"));
@@ -484,13 +506,16 @@ describe("Login View - Existing User (entry screen)", () => {
 
     await user.click(screen.getByTestId("tertiary-button"));
 
-    expect(screen.getByTestId("primary-button")).toHaveTextContent("Recover with Passkey");
+    expect(screen.getByTestId("primary-button")).toHaveTextContent("Sign in with Passkey");
     expect(screen.getByTestId("username-input")).toBeInTheDocument();
     expect(screen.queryByTestId("secondary-button")).not.toBeInTheDocument();
     expect(screen.getByTestId("tertiary-button")).toHaveTextContent("Back");
 
     await user.click(screen.getByTestId("tertiary-button"));
 
+    // The form shares its button label with the entry screen, so check what only the entry has.
+    expect(screen.queryByTestId("username-input")).not.toBeInTheDocument();
+    expect(screen.getByTestId("secondary-button")).toHaveTextContent("Sign in with a Wallet");
     expect(screen.getByTestId("primary-button")).toHaveTextContent("Sign in with Passkey");
   });
 

@@ -1,74 +1,94 @@
 import { cn } from "@green-goods/shared/utils/styles/cn";
-import { useApp } from "@green-goods/shared/providers/App";
-import { useOffline } from "@green-goods/shared/hooks/app/useOffline";
-import { RiCheckLine, RiCloudOffLine, RiDownloadLine, RiUserLine } from "@remixicon/react";
+import {
+  useConnectivityStatus,
+  useOnlineStatus,
+} from "@green-goods/shared/hooks/app/useOnlineStatus";
+import { RiCheckLine, RiCloudOffLine } from "@remixicon/react";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
-import { useNavigate } from "react-router-dom";
-import { APP_ROUTES } from "@/config/pwaRouting";
 
 interface OfflineIndicatorProps {
   className?: string;
   forceShow?: boolean;
-  testState?: "offline" | "back-online" | "install" | null;
+  testState?: IndicatorState;
 }
 
-type IndicatorState = "offline" | "back-online" | "install" | null;
+type IndicatorState = "offline" | "degraded" | "back-online" | null;
 
 export const OfflineIndicator: React.FC<OfflineIndicatorProps> = ({
   className,
   forceShow = false,
   testState,
 }) => {
-  const navigate = useNavigate();
   const { formatMessage } = useIntl();
-  const { isOnline } = useOffline();
-  const { isMobile, isInstalled } = useApp();
+  const isOnline = useOnlineStatus();
+  const connection = useConnectivityStatus();
 
   // State for tracking "back online" message
   const [showBackOnline, setShowBackOnline] = useState(false);
   const [wasOffline, setWasOffline] = useState(!isOnline);
-  // Allow user to dismiss install banner for this session
-  const [installDismissed, setInstallDismissed] = useState(false);
 
   // Handle online/offline transitions
   useEffect(() => {
-    if (wasOffline && isOnline) {
-      setShowBackOnline(true);
-      const timer = setTimeout(() => {
-        setShowBackOnline(false);
-      }, 3000);
-      return () => clearTimeout(timer);
+    if (!isOnline) {
+      setShowBackOnline(false);
+      setWasOffline(true);
+      return;
     }
-    setWasOffline(!isOnline);
+
+    if (!wasOffline) return;
+
+    setShowBackOnline(true);
+    const timer = setTimeout(() => {
+      setShowBackOnline(false);
+      setWasOffline(false);
+    }, 3000);
+    return () => clearTimeout(timer);
   }, [isOnline, wasOffline]);
 
-  // Display priority: offline > back-online > install nudge
+  // Display priority: offline > degraded > back-online.
   const displayPriority = useMemo((): IndicatorState => {
     if (testState !== undefined) return testState;
 
-    if (showBackOnline) return "back-online";
     if (!isOnline) return "offline";
-
-    // Install nudge: mobile web (not installed) and not dismissed
-    if (isMobile && !isInstalled && !installDismissed) return "install";
+    if (connection.state === "degraded") return "degraded";
+    if (showBackOnline) return "back-online";
 
     if (forceShow) return "offline";
     return null;
-  }, [isOnline, showBackOnline, testState, forceShow, isMobile, isInstalled, installDismissed]);
+  }, [connection.state, isOnline, showBackOnline, testState, forceShow]);
 
   const renderIndicator = useCallback(() => {
     const baseBarClasses =
-      "w-full flex items-center justify-center gap-2 px-3 py-0.5 text-[8px] font-medium transition-all duration-[var(--spring-effects-duration)] ease-[var(--spring-effects-easing)] backdrop-blur-md shadow-sm";
+      "w-full flex items-center justify-center gap-2 px-3 py-1 text-xs font-medium transition-all duration-[var(--spring-effects-duration)] ease-[var(--spring-effects-easing)] backdrop-blur-md shadow-sm";
 
     switch (displayPriority) {
+      case "degraded":
+        return (
+          <div
+            className={`${baseBarClasses} bg-bg-strong-950/95 text-text-white-0 pointer-events-auto`}
+            role="status"
+            aria-live="polite"
+          >
+            <RiCloudOffLine size={12} aria-hidden="true" />
+            <span>
+              {formatMessage({
+                id: "app.offline.degraded",
+                defaultMessage: "Connection unstable",
+              })}
+            </span>
+          </div>
+        );
       case "offline":
         return (
           <div
             className={`${baseBarClasses} bg-bg-strong-950/95 text-text-white-0 pointer-events-auto`}
             role="status"
             aria-live="polite"
-            aria-label="App is in offline mode"
+            aria-label={formatMessage({
+              id: "app.offline.label",
+              defaultMessage: "App is in offline mode",
+            })}
           >
             <RiCloudOffLine size={8} aria-hidden="true" />
             <span>{formatMessage({ id: "app.offline.mode", defaultMessage: "Offline Mode" })}</span>
@@ -78,10 +98,13 @@ export const OfflineIndicator: React.FC<OfflineIndicatorProps> = ({
       case "back-online":
         return (
           <div
-            className={`${baseBarClasses} bg-primary/95 text-primary-accent-foreground pointer-events-auto pulse-success`}
+            className={`${baseBarClasses} bg-primary-action/95 text-primary-action-foreground pointer-events-auto pulse-success`}
             role="status"
             aria-live="polite"
-            aria-label="App is back online"
+            aria-label={formatMessage({
+              id: "app.offline.backOnlineLabel",
+              defaultMessage: "App is back online",
+            })}
           >
             <RiCheckLine size={10} aria-hidden="true" />
             <span>
@@ -90,57 +113,23 @@ export const OfflineIndicator: React.FC<OfflineIndicatorProps> = ({
           </div>
         );
 
-      case "install":
-        return (
-          <div
-            className={`${baseBarClasses} bg-bg-white-0/95 text-text-strong-950 border-b border-stroke-soft-200 pointer-events-auto`}
-            role="status"
-          >
-            <RiDownloadLine size={10} className="text-primary" aria-hidden="true" />
-            <span className="text-[10px]">
-              {formatMessage({
-                id: "app.offline.installPrompt",
-                defaultMessage: "Install for full experience.",
-              })}
-            </span>
-            <button
-              type="button"
-              onClick={() => navigate(APP_ROUTES.profile, { viewTransition: true })}
-              className="ml-1 inline-flex items-center gap-1 rounded-full border border-stroke-sub-300 bg-bg-white-0 px-2 py-0.5 text-[10px] hover:bg-bg-weak-50 active:scale-95 transition-transform duration-[var(--spring-spatial-fast-duration)] ease-[var(--spring-spatial-fast-easing)]"
-            >
-              <RiUserLine className="h-3 w-3" />
-              {formatMessage({
-                id: "app.offline.installPromptProfile",
-                defaultMessage: "Profile",
-              })}
-            </button>
-            <button
-              type="button"
-              onClick={() => setInstallDismissed(true)}
-              className="ml-1 text-[10px] text-text-sub-600 hover:text-text-strong-950"
-              aria-label={formatMessage({
-                id: "app.offline.installPromptDismiss",
-                defaultMessage: "Dismiss",
-              })}
-            >
-              ✕
-            </button>
-          </div>
-        );
-
       default:
         return null;
     }
-  }, [displayPriority, navigate, formatMessage]);
+  }, [displayPriority, formatMessage]);
 
   const containerClasses = cn(
-    "fixed top-0 left-0 right-0 z-nav transition-all duration-[var(--spring-effects-slow-duration)] ease-[var(--spring-effects-slow-easing)] pointer-events-none",
+    "vt-offline-banner fixed top-0 left-0 right-0 z-nav transition-all duration-[var(--spring-effects-slow-duration)] ease-[var(--spring-effects-slow-easing)] pointer-events-none",
     displayPriority ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-full",
     className
   );
 
   return (
-    <div className={containerClasses} data-testid="offline-indicator">
+    <div
+      className={containerClasses}
+      style={{ top: "env(safe-area-inset-top, 0px)", zIndex: "calc(var(--z-nav, 30) + 1)" }}
+      data-testid="offline-indicator"
+    >
       {renderIndicator()}
     </div>
   );

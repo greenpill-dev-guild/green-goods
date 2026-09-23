@@ -19,6 +19,7 @@ export * from "./poolStoryActors";
 export * from "./poolStoryCommitments";
 export * from "./poolStoryControllers";
 export * from "./poolStoryPools";
+export * from "./poolStorySettlement";
 
 /**
  * Seeds for the route stories: the garden's pool, its cycles, commitments

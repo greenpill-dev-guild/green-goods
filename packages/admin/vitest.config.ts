@@ -46,12 +46,16 @@ export default defineConfig({
       },
       {
         find: "@walletconnect/utils",
-        replacement: resolve(
-          __dirname,
-          "../shared/src/__mocks__/walletconnect-utils.ts",
-        ),
+        replacement: resolve(__dirname, "../shared/src/__mocks__/walletconnect-utils.ts"),
       },
       // Shared package aliases
+      // Mirrors vite.config.ts: the boot sequence loads Sentry through the
+      // declared `./sentry` subpath, which the generic prefix alias below
+      // would otherwise resolve to a non-existent `src/sentry`.
+      {
+        find: "@green-goods/shared/sentry",
+        replacement: resolve(__dirname, "../shared/src/modules/app/sentry.ts"),
+      },
       {
         find: "@green-goods/shared/hooks",
         replacement: resolve(__dirname, "../shared/src/hooks"),
@@ -118,9 +122,7 @@ export default defineConfig({
     globals: true,
     environment: "jsdom",
     setupFiles: ["./src/__tests__/setup.ts"],
-    exclude: [
-      "**/node_modules/**",
-    ],
+    exclude: ["**/node_modules/**"],
     coverage: {
       provider: "v8",
       reporter: process.env.CI ? ["text", "json"] : ["text", "json", "html"],
@@ -138,6 +140,19 @@ export default defineConfig({
         functions: 44,
         lines: 53,
         statements: 51,
+        // Aggregate floors measured at 08f96dc; global floors still include these files.
+        "src/components/Vault/**": {
+          branches: 59,
+          functions: 50,
+          lines: 65,
+          statements: 63,
+        },
+        "src/views/Garden/Pool/**": {
+          branches: 65,
+          functions: 68,
+          lines: 75,
+          statements: 73,
+        },
       },
     },
     pool: "threads",

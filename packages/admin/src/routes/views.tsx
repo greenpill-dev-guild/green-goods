@@ -1,3 +1,4 @@
+import { GOVERNANCE_ENABLED } from "@green-goods/shared/config/app";
 import { SkeletonGrid } from "@green-goods/shared/components/Skeleton";
 import {
   type AdminIndexRedirectKind,
@@ -57,6 +58,10 @@ function PreserveSearchRedirect({ pathname }: { pathname: string }) {
   const location = useLocation();
   return <Navigate to={{ pathname, search: location.search }} replace />;
 }
+
+const governanceRoute: Pick<RouteObject, "lazy" | "element"> = GOVERNANCE_ENABLED
+  ? { lazy: communityView }
+  : { element: <PreserveSearchRedirect pathname="/community/coordination" /> };
 
 export const adminCanvasRoutes: RouteObject[] = [
   {
@@ -239,11 +244,11 @@ export const adminCanvasRoutes: RouteObject[] = [
           },
           {
             path: "strategies",
-            lazy: communityView,
+            ...governanceRoute,
           },
           {
             path: "signal-pool/:poolType",
-            lazy: communityView,
+            ...governanceRoute,
           },
         ],
       },
@@ -330,15 +335,15 @@ export const adminCanvasRoutes: RouteObject[] = [
         children: [
           {
             index: true,
-            lazy: communityView,
+            ...governanceRoute,
           },
           {
             path: "strategies",
-            lazy: communityView,
+            ...governanceRoute,
           },
           {
             path: "signal-pool/:poolType",
-            lazy: communityView,
+            ...governanceRoute,
           },
         ],
       },

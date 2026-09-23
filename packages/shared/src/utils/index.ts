@@ -293,7 +293,6 @@ export {
 } from "./eas/explorers";
 export {
   buildApprovalAttestTx,
-  buildBatchWorkAttestTx,
   buildWorkAttestTx,
 } from "./eas/transaction-builder";
 export type { BlockchainErrorInfo, BlockchainErrorType } from "./errors/blockchain-errors";
@@ -486,11 +485,6 @@ export {
   imageCompressor,
 } from "./work/image-compression";
 export { convertJobsToWorks, fetchOfflineWorks } from "./work/offline";
-export {
-  collectApprovalRecipientsForWorks,
-  collectApprovedWorkUIDs,
-  filterPendingNeedsReview,
-} from "./work/pending-review";
 export {
   resolveWorkSubmissionTitle,
   stripGeneratedWorkTitleTimestamp,

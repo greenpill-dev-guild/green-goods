@@ -23,6 +23,7 @@ const mockUsePools = vi.fn();
 const mockUseCycles = vi.fn();
 const mockUseActions = vi.fn();
 const mockEnqueue = vi.fn();
+const mockUseCommitment = vi.fn();
 
 // Live now: the rail hides actions outside their window, because Work is
 // refused there and a commitment kept by such an action could never be kept.
@@ -58,6 +59,13 @@ vi.mock("@green-goods/shared/hooks/app/useOffline", async (importOriginal) => {
   };
 });
 
+vi.mock("@green-goods/shared/hooks/app/useOnlineStatus", async (importOriginal) => {
+  return {
+    ...(await importOriginal()),
+    useOnlineStatus: () => mockUseOffline().isOnline,
+  };
+});
+
 // The view imports one public controller. These reader-edge mocks keep that
 // controller real while replacing only its external data sources.
 vi.mock("@green-goods/shared/hooks/auth/usePrimaryAddress", () => ({
@@ -67,6 +75,7 @@ vi.mock("@green-goods/shared/hooks/auth/usePrimaryAddress", () => ({
 vi.mock("@green-goods/shared/hooks/commitment-pooling/useCommitmentPooling", () => ({
   useCommitmentPools: () => mockUsePools(),
   useCommitmentCycles: () => mockUseCycles(),
+  useCommitment: () => mockUseCommitment(),
 }));
 
 vi.mock("@green-goods/shared/hooks/commitment-pooling/useCommitmentCycleNames", () => ({
@@ -96,12 +105,12 @@ const { useCommitmentComposerDraftStore } = await import(
   "@green-goods/shared/stores/useCommitmentComposerDraftStore"
 );
 
-const render = (direction: string | null = "offer") =>
+const render = (direction: string | null = "offer", from?: string) =>
   renderWithProviders(
     <MemoryRouter
       initialEntries={[
         direction
-          ? `/home/${GARDEN}/commitments/new?direction=${direction}`
+          ? `/home/${GARDEN}/commitments/new?direction=${direction}${from ? `&from=${from}` : ""}`
           : `/home/${GARDEN}/commitments/new`,
       ]}
     >
@@ -147,6 +156,7 @@ describe("ComposeCommitment", () => {
     });
     mockUseCycles.mockReturnValue({ cycles: [] });
     mockUseActions.mockReturnValue({ data: ACTIONS });
+    mockUseCommitment.mockReturnValue({ detail: null });
     mockEnqueue.mockResolvedValue("job-1");
   });
 
@@ -155,6 +165,32 @@ describe("ComposeCommitment", () => {
     expect(screen.getByText("Make an offer")).toBeInTheDocument();
     expect(screen.getByText("What are you offering?")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /Offering something/ })).not.toBeInTheDocument();
+  });
+
+  it("opens on the reader's own earlier commitment when the link names one", async () => {
+    const earlier = {
+      poolId: 7n,
+      creator: VIEWER,
+      direction: "OFFER",
+      commitmentType: "SUPPORT_SERVICE",
+      unitLabel: "sessions",
+      targetUnits: 3n,
+      claimMode: "OPEN",
+      contributorPolicy: "OPEN",
+      confirmers: [],
+      metadataCID: null,
+    };
+    mockUseCommitment.mockReturnValue({ detail: { commitment: earlier, requirements: [] } });
+    const user = userEvent.setup();
+    render("offer", "9");
+
+    // The kind it was made with is already chosen, so the next beat is its count.
+    await user.type(screen.getByLabelText("Name it"), "Compost workshop");
+    await user.click(next());
+    expect(screen.getByRole("button", { name: "sessions" })).toHaveAttribute(
+      "aria-pressed",
+      "true"
+    );
   });
 
   it("leaves the flow when no door opened it, rather than guessing a direction", () => {

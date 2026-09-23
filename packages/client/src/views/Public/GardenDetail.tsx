@@ -1,3 +1,4 @@
+import { Button } from "@green-goods/shared/components/Button";
 import type { Address } from "@green-goods/shared/types/domain";
 import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
 import {
@@ -9,7 +10,11 @@ import { usePublicGardenDetail } from "@green-goods/shared/hooks/public/usePubli
 import { useEffect, useMemo } from "react";
 import { useIntl } from "react-intl";
 import { Link, useParams } from "react-router-dom";
-import { EditorialGhostLink, EditorialPrimaryLink } from "@/components/Public/atoms";
+import {
+  EditorialGhostButton,
+  EditorialGhostLink,
+  EditorialPrimaryLink,
+} from "@/components/Public/atoms";
 import { PublicEditorialHero } from "@/components/Public/PublicEditorialHero";
 import { PublicFooter } from "@/components/Public/PublicFooter";
 import { PublicInstallCta } from "@/components/Public/PublicInstallCta";
@@ -129,7 +134,7 @@ export default function GardenDetail() {
           })
         }
         actions={
-          <EditorialGhostLink to="/gardens">
+          <EditorialGhostLink to="/gardens" size="lg">
             <span aria-hidden="true">←</span>
             {formatMessage({
               id: "public.gardenDetail.backToArchive",
@@ -221,7 +226,7 @@ export default function GardenDetail() {
         </div>
       </div>
 
-      <PublicInstallCta />
+      <PublicInstallCta destination={garden ? `/home/${garden.id}` : undefined} />
       <PublicFooter variant="soil" />
     </>
   );
@@ -229,10 +234,11 @@ export default function GardenDetail() {
 
 function GardenUnavailable({ onRetry }: { onRetry: () => void }) {
   const { formatMessage } = useIntl();
+  const { id } = useParams<{ id: string }>();
   return (
     <>
       <div className="mx-auto max-w-6xl px-6 py-32 sm:px-10">
-        <h1 className="font-serif text-3xl text-text-strong-950">
+        <h1 className="font-serif text-3xl font-bold text-text-strong-950">
           {formatMessage({
             id: "public.gardenDetail.unavailable",
             defaultMessage: "This Garden could not be loaded",
@@ -246,25 +252,20 @@ function GardenUnavailable({ onRetry }: { onRetry: () => void }) {
           })}
         </p>
         <div className="mt-6 flex flex-wrap gap-3">
-          <button
-            type="button"
-            onClick={onRetry}
-            className="inline-flex rounded-full border border-stroke-soft-200 bg-bg-white-0 px-5 py-2.5 text-sm font-medium text-text-strong-950 hover:bg-bg-weak-50"
-          >
+          <EditorialGhostButton onClick={onRetry}>
             {formatMessage({ id: "public.gardenDetail.retry", defaultMessage: "Try Again" })}
-          </button>
-          <Link
-            to="/gardens"
-            viewTransition
-            className="inline-flex rounded-full px-5 py-2.5 text-sm font-medium text-text-sub-600 hover:text-text-strong-950"
-          >
-            {formatMessage({
-              id: "public.gardenDetail.backToGardens",
-              defaultMessage: "Browse Gardens",
-            })}
-          </Link>
+          </EditorialGhostButton>
+          <Button asChild emphasis="tertiary">
+            <Link to="/gardens" viewTransition>
+              {formatMessage({
+                id: "public.gardenDetail.backToGardens",
+                defaultMessage: "Browse Gardens",
+              })}
+            </Link>
+          </Button>
         </div>
       </div>
+      <PublicInstallCta destination={`/home/${id}`} />
       <PublicFooter variant="soil" />
     </>
   );
@@ -272,10 +273,11 @@ function GardenUnavailable({ onRetry }: { onRetry: () => void }) {
 
 function GardenNotFound() {
   const { formatMessage } = useIntl();
+  const { id } = useParams<{ id: string }>();
   return (
     <>
       <div className="mx-auto max-w-6xl px-6 py-32 sm:px-10">
-        <h1 className="font-serif text-3xl text-text-strong-950">
+        <h1 className="font-serif text-3xl font-bold text-text-strong-950">
           {formatMessage({
             id: "public.gardenDetail.notFound",
             defaultMessage: "Garden not found",
@@ -283,22 +285,19 @@ function GardenNotFound() {
         </h1>
         <p className="mt-3 text-sm text-text-sub-600">
           {formatMessage({
-            id: "public.gardenDetail.notFoundHelp",
+            id: "public.sharedLink.unavailableHelp",
             defaultMessage:
-              "The link may be stale. Browse all Gardens to find what you're looking for.",
+              "This record may require sign-in or may no longer be available. Open it in the app and sign in to check access.",
           })}
         </p>
-        <Link
-          to="/gardens"
-          viewTransition
-          className="mt-6 inline-flex rounded-full border border-stroke-soft-200 bg-bg-white-0 px-5 py-2.5 text-sm font-medium text-text-strong-950 hover:bg-bg-weak-50"
-        >
+        <EditorialGhostLink to="/gardens" className="mt-6">
           {formatMessage({
             id: "public.gardenDetail.backToGardens",
             defaultMessage: "Browse Gardens",
           })}
-        </Link>
+        </EditorialGhostLink>
       </div>
+      <PublicInstallCta destination={`/home/${id}`} />
       <PublicFooter variant="soil" />
     </>
   );

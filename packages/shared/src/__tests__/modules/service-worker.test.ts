@@ -26,11 +26,35 @@ describe("modules/service-worker", () => {
     expect(status).toHaveProperty("isRegistered");
   });
 
-  it("removes React Query localStorage persistence when clearing caches", async () => {
+  it("preserves query snapshots, drafts, jobs, share inbox and the offline shell", async () => {
     localStorage.setItem("__rq_pc__", JSON.stringify({ timestamp: Date.now() }));
 
+    const deleteDatabase = vi.spyOn(indexedDB, "deleteDatabase");
+    const removeCache = vi.fn(async (_key: string) => true);
+    vi.stubGlobal("caches", {
+      keys: async () => [
+        "gg-pwa-shell-current",
+        "gg-pwa-shell-meta",
+        "gg-js-runtime",
+        "workbox-precache-v2",
+        "gg-share-inbox-v1",
+        "image-cache",
+        "ipfs-cache",
+        "indexer-cache",
+        "graphql-cache",
+        "js-cache",
+      ],
+      delete: removeCache,
+    });
     await serviceWorkerManager.clearAllCaches();
-
-    expect(localStorage.getItem("__rq_pc__")).toBeNull();
+    expect(localStorage.getItem("__rq_pc__")).not.toBeNull();
+    expect(deleteDatabase).not.toHaveBeenCalled();
+    expect(removeCache.mock.calls.map(([key]) => key)).toEqual([
+      "indexer-cache",
+      "graphql-cache",
+      "js-cache",
+    ]);
+    vi.unstubAllGlobals();
+    vi.restoreAllMocks();
   });
 });

@@ -1,5 +1,6 @@
 import React from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { GardenVault } from "@green-goods/shared/types/vaults";
 import { renderWithProviders, screen, userEvent } from "../test-utils";
 
 const { mockParseUnits } = vi.hoisted(() => ({ mockParseUnits: vi.fn() }));
@@ -198,6 +199,23 @@ vi.mock("@/components/AdminDialog", () => ({
 
 import { WithdrawModal } from "@/components/Vault/WithdrawModal";
 
+const vaults: GardenVault[] = [
+  {
+    id: "vault-1",
+    chainId: 11155111,
+    asset: "0xasset" as `0x${string}`,
+    vaultAddress: "0xvault" as `0x${string}`,
+    totalDeposited: 1n,
+    totalWithdrawn: 0n,
+    totalHarvestCount: 0,
+    donationAddress: null,
+    depositorCount: 1,
+    paused: false,
+    createdAt: 0,
+    garden: "0xgarden" as `0x${string}`,
+  },
+];
+
 describe("WithdrawModal", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -211,22 +229,7 @@ describe("WithdrawModal", () => {
         isOpen
         onClose={vi.fn()}
         gardenAddress={"0xgarden" as `0x${string}`}
-        vaults={[
-          {
-            id: "vault-1",
-            chainId: 11155111,
-            asset: "0xasset" as `0x${string}`,
-            vaultAddress: "0xvault" as `0x${string}`,
-            totalDeposited: 1n,
-            totalWithdrawn: 0n,
-            totalHarvestCount: 0,
-            donationAddress: null,
-            depositorCount: 1,
-            paused: false,
-            createdAt: 0,
-            garden: "0xgarden" as `0x${string}`,
-          },
-        ]}
+        vaults={vaults}
         defaultAsset="0xasset"
       />
     );
@@ -250,22 +253,7 @@ describe("WithdrawModal", () => {
         isOpen
         onClose={vi.fn()}
         gardenAddress={"0xgarden" as `0x${string}`}
-        vaults={[
-          {
-            id: "vault-1",
-            chainId: 11155111,
-            asset: "0xasset" as `0x${string}`,
-            vaultAddress: "0xvault" as `0x${string}`,
-            totalDeposited: 1n,
-            totalWithdrawn: 0n,
-            totalHarvestCount: 0,
-            donationAddress: null,
-            depositorCount: 1,
-            paused: false,
-            createdAt: 0,
-            garden: "0xgarden" as `0x${string}`,
-          },
-        ]}
+        vaults={vaults}
         defaultAsset="0xasset"
       />
     );
@@ -289,5 +277,24 @@ describe("WithdrawModal", () => {
       }),
       expect.any(Object)
     );
+  });
+
+  it("rejects an amount above the available balance without starting a withdrawal", async () => {
+    const user = userEvent.setup();
+    renderWithProviders(
+      <WithdrawModal
+        isOpen
+        onClose={vi.fn()}
+        gardenAddress={"0xgarden" as `0x${string}`}
+        vaults={vaults}
+        defaultAsset="0xasset"
+      />
+    );
+
+    await user.type(screen.getByRole("textbox", { name: /amount/i }), "0.000002");
+
+    expect(screen.getByText("Amount exceeds available balance")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Withdraw" })).toBeDisabled();
+    expect(mockWithdrawMutate).not.toHaveBeenCalled();
   });
 });

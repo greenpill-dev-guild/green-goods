@@ -9,7 +9,11 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 
 import {
   SUBMODULE_RECOVERY_COMMAND,
+  clearRepositoryLocalGitVariables,
+  findInheritedFixtureIdentity,
+  findSharedGitSettingChanges,
   inspectPinnedSubmodules,
+  readSharedGitSettings,
   reexecUnderCompatibleNodeIfNeeded,
   reexecUnderSystemNodeIfNeeded,
   resolveVitestMaxWorkers,
@@ -17,7 +21,9 @@ import {
 import {
   buildReceiptInputs,
   fingerprintReceiptInputs,
+  isAdvisoryManualCheck,
   resolveGitInputs,
+  loadPolicy,
   selectValidation,
   summarizeBudget,
 } from "../quality/select-validation.mjs";
@@ -62,7 +68,9 @@ export function parseArguments(argv) {
     changedPaths: [],
     testPaths: {},
     checkIds: [],
+    onlyChecks: [],
     capabilities: {},
+    attestations: {},
     skipContracts: false,
     skipIndexer: false,
     skipBuild: false,
@@ -81,7 +89,7 @@ export function parseArguments(argv) {
     const arg = argv[index];
     const next = () => {
       const value = argv[++index];
-      if (!value) throw new Error(`${arg} requires a value`);
+      if (!value || value.startsWith("--")) throw new Error(`${arg} requires a value`);
       return value;
     };
 
@@ -118,6 +126,23 @@ export function parseArguments(argv) {
         break;
       case "--no-fail-fast":
         options.failFast = false;
+        break;
+      case "--plan":
+        options.planOnly = true;
+        break;
+      case "--list":
+        options.list = true;
+        break;
+      case "--json":
+        options.json = true;
+        break;
+      case "--only": {
+        const id = next();
+        options.onlyChecks.push(id);
+        options.checkIds.push(id);
+        break;
+      }
+      case "--":
         break;
       case "--plan-json":
         options.planJson = true;
@@ -165,6 +190,15 @@ export function parseArguments(argv) {
         options.capabilities[name] = value === "true";
         break;
       }
+      case "--attest": {
+        const value = next();
+        const separator = value.indexOf("=");
+        if (separator < 1 || separator === value.length - 1) {
+          throw new Error("--attest must use check-id=evidence");
+        }
+        options.attestations[value.slice(0, separator)] = value.slice(separator + 1);
+        break;
+      }
       case "--help":
       case "-h":
         options.help = true;
@@ -172,6 +206,13 @@ export function parseArguments(argv) {
       default:
         throw new Error(`Unknown argument: ${arg}`);
     }
+  }
+  if (options.onlyChecks.length && !argv.includes("--intent")) options.intent = "diagnose";
+  if (options.json && !options.planOnly && !options.planJson && !options.list) {
+    throw new Error("--json requires --plan or --list");
+  }
+  if (options.list && (options.checkIds.length || options.planOnly || options.planJson)) {
+    throw new Error("--list cannot be combined with check selection or --plan");
   }
   if (
     options.intent === "checkpoint" &&
@@ -185,7 +226,7 @@ export function parseArguments(argv) {
 }
 
 function showHelp() {
-  console.log(`Usage: node scripts/dev/ci-local.js [options]
+  console.log(`Usage: bun run check -- [options]
 
 Selector options:
   --intent <intent>       diagnose|qa|review|checkpoint|readiness|push|ship|merge|release
@@ -196,7 +237,13 @@ Selector options:
   --risk <risk>           routine|sensitive|critical
   --test-path <pkg:path>  Direct behavior proof for push, e.g. shared:src/utils/date.test.ts
   --check <check-id>      Add an explicit acceptance check; repeatable
+  --only <check-id>       Select checks plus mandatory checks; repeatable
+  --plan                 Show the plan without executing checks
+  --list                 List stable checks without probing services
+  --json                 JSON output for --plan or --list
   --capability k=true     Declare an environment capability; repeatable
+  --attest <id>=<text>    Record manual proof for an advisory check; only release requires it,
+                          e.g. --attest browser-proof="authenticated Brave, steward session, 2026-09-22: sheet renders"
   --plan-json             Print the exact plan as JSON without running it
   --cancelled             Emit a terminal cancelled plan
   --reuse-passing-receipts Reuse exact-fingerprint passes from .cache/validation
@@ -263,9 +310,46 @@ export async function arbitrumForkAvailable({
   return probe({ host: "127.0.0.1", port: 3009 });
 }
 
+// An attestation is a person's claim, so nothing here can prove it true. What it can do is
+// insist the claim says which engine and session produced the proof, when, and what was seen,
+// so a release cannot be cleared with a placeholder like "none".
+const ATTESTATION_MIN_OBSERVATION = 12;
+
+export function validateAttestation(check, evidence) {
+  const problems = [];
+  const text = typeof evidence === "string" ? evidence.trim() : "";
+  if (!text) return { ok: false, problems: ["no evidence was supplied"] };
+
+  const engines = check.attestation?.engines ?? [];
+  const matched = engines.find((engine) => text.toLowerCase().includes(engine.toLowerCase()));
+  if (engines.length > 0 && !matched) {
+    problems.push(`must name the rendered engine and session (${engines.join(", ")})`);
+  }
+
+  const date = text.match(/\b20\d{2}-\d{2}-\d{2}\b/);
+  if (!date) problems.push("must carry the observation date as YYYY-MM-DD");
+
+  const observation = text
+    .replace(matched ?? "", "")
+    .replace(date?.[0] ?? "", "")
+    .replace(/[\s,;:.\-]+/g, " ")
+    .trim();
+  if (observation.length < ATTESTATION_MIN_OBSERVATION) {
+    problems.push("must say what was observed, not only the engine and date");
+  }
+
+  return { ok: problems.length === 0, problems };
+}
+
 export function capabilityRecoveryHint(capability, contractSubmoduleState) {
+  if (capability === "manual-attestation-required") {
+    return 'Record the rendered proof, then rerun with --attest <check-id>="<engine, session, date, what was observed>".';
+  }
+  if (capability === "manual-attestation-invalid") {
+    return 'The supplied --attest text is not usable evidence; state the engine and session, the date as YYYY-MM-DD, and what you observed.';
+  }
   if (capability === "arbitrumFork") {
-    return "Start the local fork with `bun run dev:contracts:arbitrum-fork`.";
+    return "Start the local fork with `bun run --cwd packages/contracts dev:arbitrum-fork`.";
   }
   if (capability === "contractSubmodules") {
     if (contractSubmoduleState === "modified") {
@@ -322,6 +406,7 @@ export function applyCompatibilityFilters(plan, options) {
   const skipped = [];
   const keep = (check) => {
     let requestedSkip = false;
+    if (options.onlyChecks?.length && !options.onlyChecks.includes(check.id)) requestedSkip = true;
     if (options.onlyLint && !["format", "lint"].includes(check.id)) requestedSkip = true;
     if (
       options.skipContracts &&
@@ -343,19 +428,83 @@ export function applyCompatibilityFilters(plan, options) {
     return false;
   };
   const checks = plan.checks.filter(keep);
+  // The toolchain comparison upstream runs over the unfiltered plan, so a tool
+  // that only a dropped check needed — Foundry for contracts-test, say — would
+  // otherwise keep every surviving check blocked. `bun run check --only
+  // design-tokens` on a runner without Foundry is the case that bit CI. Work
+  // out which tools the remaining checks actually require, by the same rule the
+  // comparison uses, and drop the blockers that no longer apply.
+  // Same rule as the selector: only checks that run a command need a toolchain, so a filter
+  // that leaves nothing but the advisory proof must also drop the toolchain blockers.
+  const executableChecks = checks.filter((check) => !isAdvisoryManualCheck(check));
+  const requiredTools = new Set(executableChecks.length > 0 ? ["node"] : []);
+  if (executableChecks.some((check) => check.command?.includes("bun"))) requiredTools.add("bun");
+  if (executableChecks.some((check) => check.capabilities?.includes("foundry"))) {
+    requiredTools.add("foundry");
+  }
+  const priorBlockers = plan.environmentBlockers ?? [];
+  // A blocker is a { capability } record from the toolchain comparison, or a
+  // bare capability string from a caller that built the plan by hand.
+  const capabilityOf = (blocker) =>
+    typeof blocker === "string" ? blocker : String(blocker?.capability ?? "");
+  const environmentBlockers = priorBlockers.filter((blocker) =>
+    requiredTools.has(capabilityOf(blocker).replace(/^toolchain\./, "")),
+  );
+  const lifted = new Set(
+    priorBlockers
+      .filter((blocker) => !environmentBlockers.includes(blocker))
+      .map(capabilityOf),
+  );
+  // A lifted toolchain blocker was stamped onto every check, including the ones
+  // that survived; clear it there too, leaving capability blocks untouched.
+  const rescoped =
+    lifted.size === 0
+      ? checks
+      : checks.map((check) => {
+          const blockedBy = (check.blockedBy ?? []).filter(
+            (capability) => !lifted.has(capability),
+          );
+          return {
+            ...check,
+            blockedBy,
+            state: isAdvisoryManualCheck(check)
+              ? "advisory"
+              : blockedBy.length > 0
+                ? "blocked"
+                : "pending",
+          };
+        });
   // Recompute rather than inheriting plan.status: when the only blocked checks
   // are the ones a compatibility filter just dropped, the remaining plan is
   // runnable and must not keep reporting blocked.
   const stillBlocked =
-    checks.some((check) => check.state === "blocked") || plan.environmentBlockers?.length > 0;
+    rescoped.some((check) => check.state === "blocked" && !isAdvisoryManualCheck(check)) ||
+    environmentBlockers.length > 0;
   const status = stillBlocked ? "blocked" : plan.status === "blocked" ? "ready" : plan.status;
-  const budget = summarizeBudget(plan.effectiveIntent, checks, plan.risk);
-  return { ...plan, checks, status, budget, skipped };
+  const budget = summarizeBudget(plan.effectiveIntent, rescoped, plan.risk);
+  return { ...plan, checks: rescoped, status, budget, skipped, environmentBlockers };
 }
 
 export function isSupportedCiNodeVersion(version) {
   const major = Number.parseInt(version.split(".")[0], 10);
   return Number.isInteger(major) && major >= 22;
+}
+
+// The selector compares the toolchain exactly, so a merely runnable Node — 22.22.0 against a
+// 22.22.1 pin — makes every check read `blocked:toolchain.node`, which is what drove people to
+// --no-verify. Re-exec whenever the running version is not the pin itself; when the pinned Node
+// is installed nowhere, this finds nothing, the run proceeds, and the plan reports the mismatch.
+export function pinnedCiNodeVersion(policyLoader = loadPolicy) {
+  try {
+    return policyLoader().toolchain?.node ?? null;
+  } catch {
+    return null;
+  }
+}
+
+export function isPinnedCiNodeVersion(version, pinnedVersion) {
+  if (!pinnedVersion) return isSupportedCiNodeVersion(version);
+  return version === pinnedVersion;
 }
 
 export function buildLocalValidationPlan(options, gitInputs, environment) {
@@ -366,6 +515,10 @@ export function buildLocalValidationPlan(options, gitInputs, environment) {
     head: gitInputs.head,
     workingCopyFingerprint: gitInputs.workingCopyFingerprint,
     changedPaths: gitInputs.changedPaths,
+    // A path deleted or moved since the base is still a changed path; without
+    // this the scoped format and lint commands hand Biome a file that no
+    // longer exists and the whole plan fails at its first check.
+    deletedPaths: gitInputs.deletedPaths ?? [],
     risk: options.risk,
     cancelled: options.cancelled,
     testPaths: options.testPaths,
@@ -544,6 +697,9 @@ export async function executePlan(plan, options = {}) {
   const externalSignal = options.signal;
   const results = [];
   const blocked = [];
+  const pendingManual = [];
+  const ignoredAttestations = [];
+  const attestations = options.attestations ?? {};
   const receiptStore = options.receiptStore ?? new Map();
   const reusePassingReceipts = options.reusePassingReceipts === true;
   const concurrency = options.concurrency !== false;
@@ -605,6 +761,45 @@ export async function executePlan(plan, options = {}) {
       );
     }
     const check = plan.checks[index];
+
+    if (isAdvisoryManualCheck(check)) {
+      // Only the release gate consumes an attestation. Everywhere else the proof stays
+      // pending however the runner was invoked, so a manual receipt can never stand in
+      // for the advisory obligation on a push, review, ship, or merge plan.
+      if (plan.effectiveIntent !== "release") {
+        // Say so rather than dropping it silently: someone who passed --attest here should not
+        // walk away believing the obligation was cleared.
+        if (attestations[check.id] !== undefined) {
+          ignoredAttestations.push({ id: check.id, intent: plan.effectiveIntent });
+        }
+        pendingManual.push({ id: check.id, blockedBy: [...(check.blockedBy ?? [])] });
+        index += 1;
+        continue;
+      }
+      const attestation = validateAttestation(check, attestations[check.id]);
+      if (attestation.ok) {
+        const record = {
+          id: check.id,
+          ok: true,
+          attested: true,
+          exitCode: 0,
+          durationSeconds: 0,
+          details: [`attested: ${attestations[check.id].trim()}`],
+        };
+        results.push(record);
+        options.onCheckComplete?.(check, record);
+      } else if (attestations[check.id] === undefined) {
+        blocked.push({ id: check.id, blockedBy: ["manual-attestation-required"] });
+      } else {
+        blocked.push({
+          id: check.id,
+          blockedBy: ["manual-attestation-invalid"],
+          problems: attestation.problems,
+        });
+      }
+      index += 1;
+      continue;
+    }
 
     if (check.state === "blocked") {
       blocked.push({ id: check.id, blockedBy: [...check.blockedBy] });
@@ -709,9 +904,9 @@ export async function executePlan(plan, options = {}) {
     return finish({ status: "failed", exitCode: 1, results, blocked });
   }
   if (blocked.length > 0 || plan.status === "blocked") {
-    return finish({ status: "blocked", exitCode: 2, results, blocked });
+    return finish({ status: "blocked", exitCode: 2, results, blocked, ignoredAttestations });
   }
-  return finish({ status: "passed", exitCode: 0, results, blocked });
+  return finish({ status: "passed", exitCode: 0, results, blocked, pendingManual, ignoredAttestations });
 }
 
 export function loadPassingReceiptStore(path = defaultReceiptPath) {
@@ -759,7 +954,13 @@ function printPlan(plan) {
   for (const check of plan.checks) {
     const flags = [
       check.mandatory ? "mandatory" : null,
-      check.state === "blocked" ? `blocked:${check.blockedBy.join(",")}` : null,
+      isAdvisoryManualCheck(check)
+        ? plan.effectiveIntent === "release"
+          ? `manual attestation required: --attest ${check.id}="<evidence>"`
+          : "advisory manual proof; record it in the PR body"
+        : check.state === "blocked"
+          ? `blocked:${check.blockedBy.join(",")}`
+          : null,
     ]
       .filter(Boolean)
       .join(", ");
@@ -770,10 +971,34 @@ function printPlan(plan) {
   }
 }
 
+function reportGitFixtureLeak({ problems, repairs }, consequence) {
+  if (problems.length === 0) return false;
+  console.error(
+    `\n${colors.red}The git config shared by every worktree shows a test-fixture leak:${colors.reset}`,
+  );
+  for (const problem of problems) console.error(`  - ${problem}`);
+  console.error(`${consequence} Restore the config with:`);
+  for (const repair of repairs) console.error(`  ${repair}`);
+  return true;
+}
+
 async function main() {
+  // The push hook exports GIT_DIR inside a linked worktree, and every check inherits this
+  // environment. Clear it so `cwd` chooses the repository for each of them.
+  clearRepositoryLocalGitVariables();
   const options = parseArguments(process.argv.slice(2));
   if (options.help) {
     showHelp();
+    return;
+  }
+  const policy = loadPolicy();
+  if (!policy.intentOrder.includes(options.intent)) throw new Error(`Unknown validation intent: ${options.intent}`);
+  for (const id of options.checkIds) {
+    if (!policy.checks.some((check) => check.id === id)) throw new Error(`Unknown validation check: ${id}`);
+  }
+  if (options.list) {
+    const checks = policy.checks.map(({ id, command, capabilities, risk, expectedSignal }) => ({ id, command, capabilities: capabilities ?? [], risk, expectedSignal }));
+    console.log(options.json ? JSON.stringify(checks, null, 2) : checks.map((check) => `${check.id}: ${check.expectedSignal}`).join("\n"));
     return;
   }
 
@@ -782,6 +1007,7 @@ async function main() {
         base: options.base ?? null,
         head: options.head ?? null,
         changedPaths: options.changedPaths,
+        deletedPaths: [],
         workingCopyFingerprint: null,
       }
     : resolveGitInputs(options);
@@ -790,16 +1016,33 @@ async function main() {
     : await detectEnvironment(options);
   const plan = buildLocalValidationPlan(options, gitInputs, environment);
 
-  if (options.planJson) {
+  if (options.planJson || options.planOnly && options.json) {
     console.log(JSON.stringify(plan, null, 2));
     return;
   }
 
   printPlan(plan);
+  if (options.planOnly) return;
   if (options.generateIndexer) {
     console.log(
       `${colors.yellow}Note:${colors.reset} --generate-indexer is retained for compatibility; selected Indexer package commands own code generation.`,
     );
+  }
+
+  // A fixture identity left in the shared config authors every commit made since. Refuse to
+  // publish them, because repairing a pushed author needs a force-push; lighter intents only warn.
+  const sharedGitSettings = readSharedGitSettings({ cwd: projectRoot });
+  const publishing =
+    policy.intentOrder.indexOf(options.intent) >= policy.intentOrder.indexOf("push");
+  const inheritedIdentity = reportGitFixtureLeak(
+    findInheritedFixtureIdentity(sharedGitSettings),
+    publishing
+      ? "Commits made since carry that author, so nothing is published from here."
+      : "Commits made since carry that author, and a push will be refused.",
+  );
+  if (inheritedIdentity && publishing) {
+    process.exitCode = 1;
+    return;
   }
 
   const abortController = new AbortController();
@@ -811,6 +1054,7 @@ async function main() {
     signal: abortController.signal,
     reusePassingReceipts: options.reusePassingReceipts,
     receiptStore,
+    attestations: options.attestations,
     onCheckStart(check) {
       console.log(`\n${colors.blue}Running ${check.id}:${colors.reset} ${check.command ?? check.builtin}`);
     },
@@ -840,10 +1084,17 @@ async function main() {
   process.removeListener("SIGINT", cancel);
   if (options.reusePassingReceipts) savePassingReceiptStore(receiptStore);
 
+  for (const ignored of execution.ignoredAttestations ?? []) {
+    console.log(
+      `\n${colors.yellow}--attest ${ignored.id} was ignored:${colors.reset} only the release gate` +
+        ` consumes a manual attestation, so this ${ignored.intent} plan leaves the proof pending.`,
+    );
+  }
   if (execution.status === "blocked") {
     console.log(`\n${colors.yellow}Validation blocked:${colors.reset}`);
     for (const entry of execution.blocked) {
       console.log(`  - ${entry.id}: ${entry.blockedBy.join(", ")}`);
+      for (const problem of entry.problems ?? []) console.log(`    ${problem}`);
       for (const capability of entry.blockedBy) {
         const hint = capabilityRecoveryHint(capability, environment.contractSubmoduleState);
         if (hint) console.log(`    ${hint}`);
@@ -859,11 +1110,22 @@ async function main() {
       `\n${colors.red}Validation exceeded its ${plan.budget.hardLimitSeconds}s local budget; remaining noncritical checks were stopped.${colors.reset}`,
     );
   } else if (execution.status === "passed") {
-    console.log(`\n${colors.green}Selected validation plan passed.${colors.reset}`);
+    console.log(
+      execution.pendingManual?.length
+        ? `\n${colors.green}Automated checks passed.${colors.reset} Manual rendered proof is still pending for ${execution.pendingManual
+            .map((entry) => entry.id)
+            .join(", ")}; record it, labeled, in the PR body (AGENTS.md § Browser Evidence).`
+        : `\n${colors.green}Selected validation plan passed.${colors.reset}`,
+    );
   } else {
     console.log(`\n${colors.red}Validation failed; dependent checks stopped.${colors.reset}`);
   }
-  process.exitCode = execution.exitCode;
+  // A leaking fixture passes its own test, so only the config it wrote to can report it.
+  const leaked = reportGitFixtureLeak(
+    findSharedGitSettingChanges(sharedGitSettings, readSharedGitSettings({ cwd: projectRoot })),
+    "One of these checks wrote to it, or a worktree without this guard did meanwhile.",
+  );
+  process.exitCode = leaked && execution.exitCode === 0 ? 1 : execution.exitCode;
 }
 
 const isDirectRun =
@@ -874,11 +1136,12 @@ if (isDirectRun) {
     sentinel: "GREEN_GOODS_CI_LOCAL_NODE_REEXEC",
     cwd: projectRoot,
   });
+  const pinnedNode = pinnedCiNodeVersion();
   reexecUnderCompatibleNodeIfNeeded({
     scriptPath: fileURLToPath(import.meta.url),
     sentinel: "GREEN_GOODS_CI_LOCAL_COMPAT_REEXEC",
     cwd: projectRoot,
-    isSupported: isSupportedCiNodeVersion,
+    isSupported: (version) => isPinnedCiNodeVersion(version, pinnedNode),
   });
   main().catch((error) => {
     console.error(`${colors.red}${error.message}${colors.reset}`);

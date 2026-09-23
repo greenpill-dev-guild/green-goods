@@ -68,12 +68,13 @@ export function WorkFulfills({ chainId, workUID, gardenId }: WorkFulfillsProps) 
     <div data-component="WorkFulfillsRow">
       <button
         type="button"
+        data-pressable="row"
         onClick={() =>
           navigateToTop(
             `/home/${commitmentGarden}/commitments/${attribution.commitmentId.toString()}`
           )
         }
-        className="w-full text-left tap-feedback"
+        className="w-full text-left"
         aria-describedby="work-fulfills-decision-status"
       >
         <FormCard

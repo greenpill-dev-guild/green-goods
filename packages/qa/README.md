@@ -9,10 +9,10 @@ their taps never save. This is the same interface with a store behind it.
 
 ## How it stays correct with two writers
 
-Each tester owns exactly one blob — `qa/entries/<lowercase-address>.json` — and only ever writes that one.
-Two people recording the same case touch **different objects**, so there is nothing to resolve
-between them and no way for one tester's work to overwrite another's. `GET /api/state` reads every
-shard and merges.
+Each tester owns exactly one blob per run — `qa/runs/<runId>/entries/<lowercase-address>.json` —
+and only ever writes that one. Two people recording the same case touch **different objects**, so
+there is nothing to resolve between them and no way for one tester's work to overwrite another's.
+`GET /api/state` reads every shard of one run and merges.
 
 Within one tester there *is* a conflict to handle, because the workflow expects a phone on the PWA
 and a laptop on admin at once. Three things make that safe:
@@ -25,6 +25,16 @@ and a laptop on admin at once. Three things make that safe:
 - The poll adopts your own entries too, but rejects an own-entry snapshot that began before a local
   edit was confirmed. That lets the phone and laptop converge without allowing a slow GET to roll
   the UI back after `saved ✓`.
+- Every save and every rollover runs under one **store lock** (`qa/lock.json`, a create-only
+  object with an eight-second lease). A save validates its run and writes its shard under the same
+  lease a rollover takes to close that run, so a run cannot close between the check and the write,
+  and one tester's two clients never interleave. A lease that outlives its holder is taken over
+  conditionally, and a holder releases by expiring its own lease conditionally on the version that
+  carries its token, so an old holder can never remove a successor's lease. Contention is a few
+  polls, then a 503 the page answers by keeping its outbox and retrying.
+- A run's roster is everyone who recorded into it plus everyone allowlisted now. Removing an
+  address from `QA_ALLOWLIST` stops it making requests; it never rewrites a run's history or hides
+  a former tester's verdicts from a comparison, because reads enumerate the run's shard prefix.
 
 Ordering is by **arrival at the server**, which restamps every entry it stores. Client clocks are
 never trusted: a device an hour fast would otherwise win every comparison forever, silently dropping
@@ -37,8 +47,76 @@ Two more details that look like bugs if you get them wrong:
   and a rejected write is a lost verdict.
 - Every keystroke lands in `localStorage` before any network call, so a reload, a crash, a closed
   tab, or a failed save never costs anyone their notes — a pending delta outlives the page session
-  and goes out on the next open, and is dropped only once the server confirms the write. The page
-  says "not saved — kept locally, retrying" rather than claiming success.
+  and goes out on the next open **against the run it was recorded in**, and is dropped only once
+  the server confirms the write. The page says "not saved — kept locally, retrying" rather than
+  claiming success. A queue whose run has closed in the meantime is not sent anywhere on its own;
+  see **Work stranded by a closed run** below.
+
+## Runs
+
+A **run** is one team pass over the catalog. The store keeps a small index at `qa/runs.json`
+(label, environment, who opened and closed it and when, the catalog revision and optional build
+SHAs) beside the per-run shards, and exactly one run is open at any time:
+
+- The first authenticated request after the runs deploy copied every pre-runs shard
+  (`qa/entries/<address>.json`) byte for byte into **Run 1 · Baseline** and created the index with
+  Run 1 open. Every copy and the index are create-only, so concurrent first requests cannot
+  clobber each other and running the migration again changes nothing; the legacy shards are never
+  written or deleted, which keeps it reversible. A tester the allowlist no longer names is not
+  migrated (the app never showed them either); `qa:pull`'s legacy fallback still reads them.
+- **Start new run** (any allowlisted tester) closes the open run and opens its successor in one
+  ETag-conditional write of the index. Two testers pressing it at once get one winner and one 409
+  carrying the fresh index — never two open runs. The closed run stays readable and comparable;
+  nothing is ever deleted. The winner also carries every named tester into the new run as an
+  empty shard, so the roster does not fall back to short addresses.
+- `POST /api/state` writes only to the open run. A save that names a closed or unknown run is
+  refused with `409 { reason, openRun }` and no write. What the page does next depends on whose
+  work it is: edits typed in this page session move to the open run and are sent once more, and the
+  page says which run received them, while work recovered from storage is parked rather than
+  re-aimed (**Work stranded by a closed run**). A save whose run closes between the server's check
+  and its shard write is caught
+  after the write: the closed shard is put back exactly as it was, the delta is re-applied to
+  the run that is open now, and the response names that run with `retargeted: true`, which the
+  page follows the same way. A rollover names the run the tester confirmed closing
+  (`expectedOpenRun`); a stale tab gets `409 { reason: "stale" }` instead of closing the next
+  run too. A page that names no run — the version before runs — records into the open run.
+- The page can show any run (closed runs render read-only) and compare the run on screen with
+  any closed run: the compared verdict and notes sit under every row, the tally adds fixed, still
+  failing, regressed, and newly walked, and the **Re-QA** filter lists what the compared run left
+  failing or blocked. A verdict on a case retired since that run is read on each active successor
+  named by the catalog's `replacedBy` chain (the build ships that reverse map as `replaces`) and
+  labelled *inherited*.
+
+### Work stranded by a closed run
+
+A pending queue is keyed by tester and run (`qa-outbox:<address>:<runId>`). When a run closes, what
+happens to it depends on who typed it, because the page cannot tell a verdict recorded a minute ago
+from one recorded on another day:
+
+- **Typed in this page session** — it follows the run boundary and is sent, which is the case the
+  behaviour exists for: a tester mid-save when a teammate rolls over, where losing the work is the
+  worse outcome.
+- **Recovered from storage** — it stays under the run it was recorded in and is offered instead, with
+  how many cases it holds and when the tester last edited them. They send it to the open run or keep
+  it where it is; keeping collapses the offer to a standing line rather than hiding it. Nothing is
+  sent into a run it was never recorded against without somebody choosing that.
+
+This is not hypothetical tidiness. On 2026-09-22 a PWA walk from two days earlier — held locally
+because every save had been refused since the shard passed a kilobyte — was adopted by a rollover
+three seconds after the new run opened, and that run read as already walked while the run the
+verdicts were taken against stayed empty.
+
+`updatedAt` on a stored queue is when the **tester** last changed it, not when the page last wrote
+it; stamping every write would reset the age each time a page re-persisted recovered work. A queue
+an older page left carries no stamp, and the offer omits the age rather than inventing one. Ages
+render through `Intl.RelativeTimeFormat`, so they follow the tester's language without a phrase per
+unit in each locale file.
+
+- N/A means out of scope for this run; a skipped case has no entry. A note starting with
+  `[beta]`, `[prod]`, or `[local]` marks a verdict taken outside the run's environment.
+
+The run lifecycle itself — what a run is, the index shape, rollover, the legacy baseline — lives
+in `runs.ts`, one pure module both the deployed functions and the local server import.
 
 ### The trust boundary
 
@@ -70,15 +148,56 @@ read the shared run and change only their own address-owned shard.
 | Path | What it is |
 |---|---|
 | `index.html` | The whole UI — static, inline CSS/JS, no bundler |
-| `auth.ts` | SIWE message, nonce, allowlist, cookie, and session verification |
+| `auth.ts` | SIWE message, nonce, allowlist, cookie, session verification, and the caller resolver both endpoints share |
+| `runs.ts` | What a run is: the index shape and its validation, the legacy baseline, and the rollover — pure, imported by the functions and by `dev.mjs` |
+| `store.ts` | The Blob-facing half: shard shape, create-only and ETag-conditional writes, the run index, and the one-time migration |
 | `api/auth.ts` | `GET` issues a challenge, `POST` consumes it once and creates a session, `DELETE` signs out |
-| `api/state.ts` | Authenticated `GET` merges shards; authenticated `POST` merges the caller's delta |
-| `build.mjs` | Copies the page and projects the active catalog into `dist/catalog.json` |
-| `dev.mjs` | Loopback-only rehearsal server with a local identity bypass and state in `tmp/qa/` |
+| `api/state.ts` | Authenticated `GET` merges one run's shards (`?run=<id>`, default open); authenticated `POST` merges the caller's delta into the open run and refuses a closed one |
+| `api/runs.ts` | Authenticated `GET` lists the runs; `POST { action: "rollover" }` closes the open run and opens its successor |
+| `locales/{en,es,pt}.json` | Journey controls, roles, case instructions, handoffs, and gates in each supported language |
+| `build.mjs` | Copies the page and Warm Earth radius tokens, then projects the active catalog (with the retired ids each case replaces and the catalog revision) and journey locales into `dist/catalog.json` |
+| `dev.mjs` | Loopback-only rehearsal server with a local identity bypass and state in `tmp/qa/` (`runs.json` plus `runs/<runId>/<name>.json`; `QA_DEV_STATE_DIR` points it elsewhere) |
+| `vercel.json` | Deployment settings. Its install is filtered to this package (`--filter @green-goods/qa`) because nothing here needs the other workspaces: `build.mjs` runs on node builtins alone, and the functions import only `@vercel/blob` and `viem`. Adding a dependency to `package.json` is enough for it to install; importing a sibling workspace is not, and would need the filter widened |
 
 Case **definitions** come from `scripts/data/qa-test-catalog.json` at build time, so a deployment is
 pinned to the catalog revision it shipped with and a case cannot change shape mid-session. Only
-active cases ship; retired rows stay in the catalog as an audit trail.
+active cases ship; retired rows stay in the catalog as an audit trail. Catalog v3 also projects
+top-level `journeys`: ordered choreography over active Test IDs, with lanes, phases, Act/Verify
+roles, handoffs, and known gates. `case.kind: "journey"` remains the category of an individual
+case; top-level journeys describe how multiple cases are walked together.
+Journey copy lives in the three locale files beside the page. The build requires every locale to
+cover the same journeys, lanes, phases, case instructions, handoffs, and gates, and requires English
+to match the canonical catalog so the two sources cannot quietly drift.
+
+## Journey mode
+
+**Walk** remains the default order. **Priority** keeps its P0/P1/P2 bands. **Journey** can cross
+Admin and PWA in the order two people experience a workflow, grouping rows by phase instead of area
+or priority.
+
+- **Journey** chooses the shared flow. **Part** narrows to steps where that lane acts or verifies,
+  with the selected role requirements shown beside it.
+- **View** remains independent: it chooses whose recorded results are shown, not which role the
+  current browser is playing.
+- Journey starts at **All surfaces** and can be narrowed to a participating surface.
+- Journey language follows the tester's saved choice, then their browser language, with English as
+  the fallback. It covers the controls, choreography, and case instructions; cases outside Journey
+  mode retain the established English copy.
+- Journey, Part, surface, and scroll position live only in `sessionStorage`. Tester names and role
+  assignments do not enter the public catalog or shared store.
+- A known gate is shown as context and never writes a verdict. The tester records Blocked only
+  after they encounter that gate.
+
+The first pair of journeys covers the service relay from the Green Goods protocol pool to a Garden
+and then to its member, plus a separate discretionary Protocol treasury top-up. The relay uses two
+commitment records: the protocol Request stays in the protocol pool with the Garden as provider,
+then the Garden creates a separate local commitment for its member. The treasury top-up has no
+commitment identity and does not substitute for earned compensation.
+
+Two-person sessions use two allowlisted wallets throughout. The protocol reviewer and Garden member
+each select their own Part, wait for the other person to observe every named handoff, and may both
+record a verdict on explicitly shared verification cases. Existing results remain keyed only by Test
+ID and signing wallet, so Journey mode needs no state API, Blob, or migration change.
 
 ## Run it locally
 
@@ -88,8 +207,11 @@ node packages/qa/build.mjs && node packages/qa/dev.mjs
 
 Serves <http://127.0.0.1:4610> with state in gitignored `tmp/qa/`. It binds only to `127.0.0.1` and
 does not use a wallet or the production allowlist. Open `?as=Afo`, `?as=Nansel`, or `?as=Gui` to pin
-that browser to a local test identity. The bypass is implemented only by `dev.mjs`; it is not imported
-by either deployed function and `dist/` contains only the static page and catalog.
+that browser to a local test identity. A pre-runs `tmp/qa/<name>.json` store migrates into Run 1
+on the first request exactly like the deployment, so the rollover, the closed-run refusal, and
+the compare can be rehearsed locally before a session. The bypass is implemented only by `dev.mjs`; it is not imported
+by either deployed function and `dist/` contains only the static page, catalog, and generated
+radius-token stylesheet.
 
 Loopback is a network boundary, not user authentication. Other processes or users on the same
 machine can reach the rehearsal server. Keep only disposable local QA state there.
@@ -130,13 +252,14 @@ or the repository root `.env`; do not add a package-level `.env`.
 ## Getting results back into the repo
 
 ```bash
-bun run qa:pull
+bun run qa pull --slug <slug> --run open        # or latest-closed, or run-N
 ```
 
-Reads the shards straight from the Blob store (needs `BLOB_READ_WRITE_TOKEN` in the process environment
-or root `.env`) and
-writes `tmp/qa-session/<slug>/results.csv` plus `qa-state.json`, the artifacts the `qa-session`
-skill closes out with. It reads the store rather than the app, so it needs no browser session and
+Reads one run's shards straight from the Blob store (needs `BLOB_READ_WRITE_TOKEN` in the process
+environment or root `.env`) and writes `tmp/qa-session/<slug>/results.csv` plus `qa-state.json`
+(which names the run), the artifacts the `qa-session` skill closes out with. Pull the previous run
+into `tmp/qa-session/<slug>/previous` and hand it to `qa report --previous` for a run-versus-run
+delta; `bun run qa status` reads the open run and names it first. It reads the store rather than the app, so it needs no browser session and
 still works if the deployment is down. Results stay in gitignored `tmp/` —
 definitions live in git, results never do. It lists address-keyed shards from the store rather than
 copying the deployment allowlist into the repository.
@@ -147,6 +270,5 @@ with `--out`, or pass `--force` to say the local copy is expendable.
 
 ## Deliberately not here yet
 
-Dev-stack/PM2 registration, named per-release runs (storage is keyed so adding them is additive),
-ERC-1271 contract-wallet authentication, severity capture in the UI, nonce-marker cleanup, and
-screenshot upload.
+Dev-stack/PM2 registration, ERC-1271 contract-wallet authentication, severity capture in the UI,
+nonce-marker cleanup, and screenshot upload.

@@ -72,11 +72,11 @@ test.describe("Work Submission CI Tests", () => {
         buffer: ONE_PIXEL_PNG,
       });
 
-      const detailsButton = page.getByRole("button", { name: "Add Details" });
+      const detailsButton = page.getByRole("button", { name: "Details", exact: true });
       await expect(detailsButton).toBeEnabled({ timeout: 15000 });
       await detailsButton.click();
 
-      await expect(page.getByText("Seedlings Planted", { exact: true })).toBeVisible();
+      await expect(page.getByRole("spinbutton", { name: /^Seedlings Planted/ })).toBeVisible();
       const reviewButton = page.getByRole("button", { name: "Review Work" });
       await expect(reviewButton).toBeDisabled();
     });

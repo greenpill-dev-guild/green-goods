@@ -34,10 +34,6 @@ vi.mock("@green-goods/shared/utils/app/clipboard", () => ({
   copyToClipboard: vi.fn().mockResolvedValue(true),
 }));
 
-vi.mock("@green-goods/shared/utils/app/haptics", () => ({
-  hapticLight: vi.fn(),
-}));
-
 vi.mock("@green-goods/shared/components/Toast/toast.service", () => ({
   toastService: { success: vi.fn(), error: vi.fn(), info: vi.fn() },
 }));
@@ -56,15 +52,11 @@ vi.mock("@remixicon/react", () => ({
   RiDownloadLine: (props: any) => createElement("span", props),
   RiExternalLinkLine: (props: any) => createElement("span", props),
   RiFileCopyLine: (props: any) => createElement("span", props),
+  RiLoader4Line: (props: any) => createElement("span", props),
   RiSmartphoneLine: (props: any) => createElement("span", props),
 }));
 
 // Mock client components
-vi.mock("@/components/Actions", () => ({
-  Button: ({ label, onClick }: { label: string; onClick?: () => void; [key: string]: unknown }) =>
-    createElement("button", { onClick, "data-testid": `btn-${label}` }, label),
-}));
-
 vi.mock("@/components/Cards", () => ({
   Card: ({ children }: { children: React.ReactNode }) =>
     createElement("div", { "data-testid": "card" }, children),
@@ -154,7 +146,7 @@ describe("InstallCta", () => {
 
     render(wrap(createElement(InstallCta)));
 
-    expect(screen.getByTestId("btn-Install")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Install" })).toBeInTheDocument();
     expect(screen.getByText(/install for the best experience/i)).toBeInTheDocument();
   });
 
@@ -166,7 +158,7 @@ describe("InstallCta", () => {
 
     expect(screen.getByText("Switch Browser")).toBeInTheDocument();
     expect(screen.getByText("Please use Safari to install")).toBeInTheDocument();
-    expect(screen.getByTestId("btn-Copy Link")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Copy Link" })).toBeInTheDocument();
   });
 
   it("shows in-app-browser warning with open in chrome button", () => {
@@ -177,6 +169,16 @@ describe("InstallCta", () => {
     render(wrap(createElement(InstallCta)));
 
     expect(screen.getByText("Open in Browser")).toBeInTheDocument();
-    expect(screen.getByTestId("btn-Open in Chrome")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Open in Chrome" })).toBeInTheDocument();
+  });
+
+  it("keeps the installing action focusable while it is busy", () => {
+    mockGuidanceState.scenario = "installing";
+
+    render(wrap(createElement(InstallCta)));
+
+    const installing = screen.getByRole("button", { name: "Installing" });
+    expect(installing).toHaveAttribute("aria-busy", "true");
+    expect(installing).toHaveAttribute("aria-disabled", "true");
   });
 });

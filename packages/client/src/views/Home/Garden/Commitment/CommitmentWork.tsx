@@ -1,3 +1,4 @@
+import { Button } from "@green-goods/shared/components/Button";
 import type { Action, Work } from "@green-goods/shared/types/domain";
 import { StatusBadge } from "@green-goods/shared/components/StatusBadge";
 import {
@@ -161,8 +162,9 @@ export function CommitmentWork({
               <li key={entry.id}>
                 <button
                   type="button"
+                  data-pressable="row"
                   onClick={() => onOpenWork(entry.workUID)}
-                  className="flex w-full items-center justify-between gap-3 rounded-[var(--radius-lg)] border border-stroke-soft-200 p-3 text-left tap-feedback"
+                  className="flex w-full items-center justify-between gap-3 rounded-[var(--radius-lg)] border border-stroke-soft-200 p-3 text-left"
                   aria-label={formatMessage({ id: "app.commitment.work.open" }, { title })}
                   aria-describedby={statusId}
                 >
@@ -220,14 +222,16 @@ export function CommitmentWork({
                   </span>
                 </span>
                 {canLink ? (
-                  <button
+                  <Button
                     type="button"
+                    emphasis="secondary"
+                    size="compact"
                     onClick={() => onLink(work.id, requirement?.requirementIndex ?? null)}
-                    className="flex shrink-0 items-center gap-1 rounded-full border border-stroke-soft-200 bg-bg-white-0 px-3 py-1.5 text-xs font-medium text-text-strong-950 tap-target-lg"
+                    leadingIcon={<RiLinkM className="h-4 w-4" aria-hidden="true" />}
+                    className="shrink-0"
                   >
-                    <RiLinkM className="h-4 w-4" aria-hidden="true" />
                     {formatMessage({ id: "app.commitment.work.linkIt" })}
-                  </button>
+                  </Button>
                 ) : null}
               </li>
             );

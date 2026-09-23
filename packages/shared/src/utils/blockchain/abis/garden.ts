@@ -1,7 +1,7 @@
 /**
  * Garden Account ABIs
  *
- * Minimal ABIs for Garden role checks, token binding, and module addresses.
+ * Minimal ABIs for Garden role checks, token binding, account execution, and module addresses.
  */
 
 export const GARDEN_ACCOUNT_ROLE_ABI = [
@@ -67,6 +67,43 @@ export const GARDEN_ACCOUNT_TOKEN_ABI = [
       { name: "tokenContract", type: "address" },
       { name: "tokenId", type: "uint256" },
     ],
+  },
+] as const;
+
+/**
+ * The ERC-6551 surface of a garden account: who may act for the garden, and the call that acts.
+ * Contracts that name the garden account as their owner (its cookie jars) only accept writes
+ * that arrive through `execute`.
+ */
+export const GARDEN_ACCOUNT_EXECUTION_ABI = [
+  {
+    type: "function",
+    name: "owner",
+    stateMutability: "view",
+    inputs: [],
+    outputs: [{ name: "", type: "address" }],
+  },
+  {
+    type: "function",
+    name: "isValidSigner",
+    stateMutability: "view",
+    inputs: [
+      { name: "signer", type: "address" },
+      { name: "context", type: "bytes" },
+    ],
+    outputs: [{ name: "magicValue", type: "bytes4" }],
+  },
+  {
+    type: "function",
+    name: "execute",
+    stateMutability: "payable",
+    inputs: [
+      { name: "to", type: "address" },
+      { name: "value", type: "uint256" },
+      { name: "data", type: "bytes" },
+      { name: "operation", type: "uint8" },
+    ],
+    outputs: [{ name: "", type: "bytes" }],
   },
 ] as const;
 

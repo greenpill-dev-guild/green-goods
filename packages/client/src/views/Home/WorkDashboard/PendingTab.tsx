@@ -1,11 +1,16 @@
+import { Button } from "@green-goods/shared/components/Button";
+import type { SheetActionsProps } from "@green-goods/shared/components/Dialog/SheetActions";
+import { NativeSelect } from "@green-goods/shared/components/Form/ControlPrimitives";
 import type { Address, Work } from "@green-goods/shared/types/domain";
-import { cn } from "@green-goods/shared/utils/styles/cn";
-import type { TimeFilter } from "@green-goods/shared/utils/time";
-import { RiCheckLine, RiTimeLine } from "@remixicon/react";
+import { RiTimeLine } from "@remixicon/react";
 import React from "react";
 import { useIntl } from "react-intl";
-import { pwaStatusStyles } from "@/components/Pwa/statusStyles";
-import { TimeFilterControl } from "./TimeFilterControl";
+import {
+  queuedWorkDetailMessage,
+  queuedWorkStatusMessage,
+  readQueuedWorkState,
+} from "@/components/Cards/Work/queuedWorkCopy";
+import type { WorkCardPresentation } from "@/components/Cards/Work/WorkCard";
 import { WorkListTab } from "./WorkListTab";
 import { isStewardForGarden } from "./workDashboardUtils";
 
@@ -19,20 +24,23 @@ interface PendingTabProps {
   onRefresh: () => void;
   pendingFilter: "all" | "needsReview" | "mySubmissions";
   onPendingFilterChange: (value: "all" | "needsReview" | "mySubmissions") => void;
-  timeFilter: TimeFilter;
-  onTimeFilterChange: (value: TimeFilter) => void;
+  isOffline?: boolean;
+  savedAt?: number;
   activeAddress: Address | undefined;
   reviewerGardenIds: string[];
   reviewedByYou: Set<string>;
+  waitingUploadIds?: ReadonlySet<string>;
+  checkingUploadIds?: ReadonlySet<string>;
   isUserAddress: (address: Address | undefined) => boolean;
+  uploadActions?: SheetActionsProps;
 }
 
 const PENDING_MESSAGES = {
   itemCount: {
     id: "app.workDashboard.pending.itemsPending",
-    defaultMessage: "{count} items in progress",
+    defaultMessage: "{count, plural, one {# item} other {# items}}",
   },
-  loading: { id: "app.workDashboard.loading", defaultMessage: "Loading pending work..." },
+  loading: { id: "app.workDashboard.loading", defaultMessage: "Loading your work..." },
   emptyTitle: { id: "app.workDashboard.pending.noPending", defaultMessage: "No pending work" },
   emptyDescription: {
     id: "app.workDashboard.pending.description",
@@ -50,78 +58,125 @@ export const PendingTab: React.FC<PendingTabProps> = ({
   onRefresh,
   pendingFilter,
   onPendingFilterChange,
-  timeFilter,
-  onTimeFilterChange,
+  isOffline,
+  savedAt,
   activeAddress,
   reviewerGardenIds,
   reviewedByYou,
+  waitingUploadIds,
+  checkingUploadIds,
   isUserAddress,
+  uploadActions,
 }) => {
   const intl = useIntl();
 
-  const renderBadges = (item: Work): React.ReactNode[] => {
-    const badges: React.ReactNode[] = [];
+  const renderPresentation = (item: Work): WorkCardPresentation => {
+    const state = readQueuedWorkState(item.metadata);
+    const detail = queuedWorkDetailMessage(state);
     const isGardener = isUserAddress(item.gardenerAddress);
     const isSteward = isStewardForGarden(activeAddress, reviewerGardenIds, item.gardenAddress);
     const reviewed = reviewedByYou.has(item.id);
-
-    if (isSteward && !reviewed) {
-      badges.push(
-        <span
-          key="review"
-          className={cn(
-            "badge-pill",
-            pwaStatusStyles.warning.surface,
-            pwaStatusStyles.warning.border,
-            pwaStatusStyles.warning.text
-          )}
-        >
-          <RiTimeLine className="w-3 h-3" />
-          {intl.formatMessage({
-            id: "app.workDashboard.badge.needsReview",
-            defaultMessage: "Needs review",
-          })}
-        </span>
-      );
-    }
-    if (reviewed) {
-      badges.push(
-        <span
-          key="reviewed"
-          className={cn(
-            "badge-pill",
-            pwaStatusStyles.success.surface,
-            pwaStatusStyles.success.border,
-            pwaStatusStyles.success.text
-          )}
-        >
-          <RiCheckLine className="w-3 h-3" />
-          {intl.formatMessage({
+    const waitingDecision = waitingUploadIds?.has(item.id.toLowerCase());
+    const contextLabel = isGardener
+      ? intl.formatMessage({
+          id: "app.workDashboard.badge.youSubmitted",
+          defaultMessage: "You submitted",
+        })
+      : reviewed
+        ? intl.formatMessage({
             id: "app.workDashboard.badge.reviewedByYou",
             defaultMessage: "Reviewed by you",
-          })}
-        </span>
-      );
+          })
+        : undefined;
+
+    if (waitingDecision) {
+      return {
+        statusLabel: checkingUploadIds?.has(item.id.toLowerCase())
+          ? intl.formatMessage({ id: "app.uploads.chip.checking", defaultMessage: "Checking" })
+          : intl.formatMessage({ id: "app.uploads.chip.toUpload", defaultMessage: "To upload" }),
+        statusTone: "uploading",
+        contextLabel,
+        supportingText: checkingUploadIds?.has(item.id.toLowerCase())
+          ? intl.formatMessage({
+              id: "app.workCard.checkingDecision",
+              defaultMessage: "Checking transaction status",
+            })
+          : intl.formatMessage({
+              id: "app.workCard.approvalSaved",
+              defaultMessage: "Approval saved on this device",
+            }),
+      };
     }
-    if (isGardener) {
-      badges.push(
-        <span
-          key="submitted"
-          className={cn(
-            "badge-pill",
-            pwaStatusStyles.neutral.surface,
-            pwaStatusStyles.neutral.border,
-            pwaStatusStyles.neutral.text
-          )}
-        >
-          {intl.formatMessage({
-            id: "app.workDashboard.badge.youSubmitted",
-            defaultMessage: "You submitted",
-          })}
-        </span>
-      );
+
+    const queuedStatus = queuedWorkStatusMessage(state.submissionState);
+    if (queuedStatus) {
+      return {
+        statusLabel:
+          state.submissionState === "checking-submission"
+            ? intl.formatMessage({ id: "app.uploads.chip.checking", defaultMessage: "Checking" })
+            : intl.formatMessage(queuedStatus),
+        statusTone:
+          state.submissionState === "blocked" || state.submissionState === "photo-needs-attention"
+            ? "sync_failed"
+            : "uploading",
+        contextLabel,
+        supportingText: detail
+          ? intl.formatMessage(detail)
+          : state.submissionState === "awaiting-confirmation"
+            ? intl.formatMessage({
+                id: "app.workCard.sentForConfirmation",
+                defaultMessage: "Transaction sent",
+              })
+            : state.submissionState === "checking-submission"
+              ? intl.formatMessage({
+                  id: "app.work.checkingSubmission",
+                  defaultMessage: "Checking whether this work was sent",
+                })
+              : intl.formatMessage({
+                  id: "app.workCard.readyToSign",
+                  defaultMessage: "Ready to sign and upload",
+                }),
+      };
     }
-    return badges;
+
+    // Your own submission is never yours to review, even in a garden you steward.
+    if (isSteward && !reviewed && !isGardener)
+      return {
+        statusLabel: intl.formatMessage({
+          id: "app.workDashboard.badge.needsReview",
+          defaultMessage: "Needs review",
+        }),
+        statusTone: "pending",
+        supportingText: intl.formatMessage({
+          id: "app.workCard.awaitingDecision",
+          defaultMessage: "Awaiting your decision",
+        }),
+      };
+
+    if (reviewed)
+      return {
+        statusLabel: intl.formatMessage({
+          id: "app.workDashboard.badge.reviewedByYou",
+          defaultMessage: "Reviewed by you",
+        }),
+        statusTone: "approved",
+        supportingText: intl.formatMessage({
+          id: "app.work.awaitingConfirmation",
+          defaultMessage: "Awaiting confirmation",
+        }),
+      };
+
+    return {
+      contextLabel,
+      supportingText: detail
+        ? intl.formatMessage(detail)
+        : isGardener
+          ? intl.formatMessage({
+              id: "app.workCard.awaitingReview",
+              defaultMessage: "Awaiting review",
+            })
+          : undefined,
+    };
   };
 
   return (
@@ -133,13 +188,53 @@ export const PendingTab: React.FC<PendingTabProps> = ({
       errorMessage={errorMessage}
       onWorkClick={onWorkClick}
       onRefresh={onRefresh}
-      renderBadges={renderBadges}
+      isOffline={isOffline}
+      savedAt={savedAt}
+      renderPresentation={renderPresentation}
       messages={PENDING_MESSAGES}
       emptyIcon={<RiTimeLine />}
+      headerActions={
+        !isOffline &&
+        pendingFilter === "all" &&
+        (uploadActions?.primary || uploadActions?.secondary) ? (
+          <>
+            {uploadActions?.primary && (
+              <Button
+                type="button"
+                size="compact"
+                loading={uploadActions.primary.loading}
+                disabled={uploadActions.primary.disabled}
+                onClick={uploadActions.primary.onClick}
+                data-testid={uploadActions.primary.testId}
+                leadingIcon={uploadActions.primary.icon}
+              >
+                {uploadActions.primary.label}
+              </Button>
+            )}
+            {uploadActions?.secondary && (
+              <Button
+                type="button"
+                emphasis="tertiary"
+                size="compact"
+                onClick={uploadActions.secondary.onClick}
+                data-testid={uploadActions.secondary.testId}
+              >
+                {uploadActions.secondary.label}
+              </Button>
+            )}
+          </>
+        ) : null
+      }
       headerContent={
-        <div className="flex items-center gap-2">
-          <select
-            className="border border-stroke-soft-200 text-xs rounded-md px-2 py-1 bg-bg-white-0"
+        <div className="flex min-w-0 items-center justify-end">
+          <NativeSelect
+            aria-label={intl.formatMessage({
+              id: "app.workDashboard.pendingFilter.label",
+              defaultMessage: "Pending work filter",
+            })}
+            controlSize="sm"
+            density="condensed"
+            className="w-auto min-w-16 max-w-48 field-sizing-content"
             value={pendingFilter}
             onChange={(e) =>
               onPendingFilterChange(e.target.value as "all" | "needsReview" | "mySubmissions")
@@ -163,8 +258,7 @@ export const PendingTab: React.FC<PendingTabProps> = ({
                 defaultMessage: "My submissions",
               })}
             </option>
-          </select>
-          <TimeFilterControl value={timeFilter} onChange={onTimeFilterChange} />
+          </NativeSelect>
         </div>
       }
     />

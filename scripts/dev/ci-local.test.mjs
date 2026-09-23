@@ -10,14 +10,36 @@ import {
   buildLocalValidationPlan,
   capabilityRecoveryHint,
   executePlan,
+  isPinnedCiNodeVersion,
   isSupportedCiNodeVersion,
   loadPassingReceiptStore,
   parseArguments,
   resolveVitestBatchEnvironment,
   savePassingReceiptStore,
+  validateAttestation,
 } from "./ci-local.js";
 
 const GIBIBYTE = 1024 ** 3;
+
+test("check selects explicit checks without dropping mandatory overrides", () => {
+  const options = parseArguments(["--only", "lint", "--plan", "--json"]);
+  assert.equal(options.intent, "diagnose");
+  assert.deepEqual(options.onlyChecks, ["lint"]);
+  const input = plan(["format", "lint", "contracts-test"]);
+  input.checks[2].mandatory = true;
+  const selected = applyCompatibilityFilters(input, options);
+  assert.deepEqual(selected.checks.map((check) => check.id), ["lint", "contracts-test"]);
+  assert.equal(options.planOnly, true);
+  assert.equal(options.json, true);
+});
+
+test("check rejects malformed discovery and selection before execution", () => {
+  for (const argv of [["--only"], ["--only", "--plan"], ["--json"], ["--list", "--only", "lint"], ["--unknown"]]) {
+    assert.throws(() => parseArguments(argv));
+  }
+  assert.equal(parseArguments(["--list", "--json"]).list, true);
+  assert.equal(parseArguments(["--only", "lint", "--intent", "release"]).intent, "release");
+});
 
 test("ci-local re-entry is wired only inside the direct-run guard", () => {
   const source = readFileSync(new URL("./ci-local.js", import.meta.url), "utf8");
@@ -31,7 +53,10 @@ test("ci-local re-entry is wired only inside the direct-run guard", () => {
   assert.match(guardedEntrypoint, /GREEN_GOODS_CI_LOCAL_NODE_REEXEC/);
   assert.match(guardedEntrypoint, /reexecUnderCompatibleNodeIfNeeded\(\{/);
   assert.match(guardedEntrypoint, /GREEN_GOODS_CI_LOCAL_COMPAT_REEXEC/);
-  assert.match(guardedEntrypoint, /isSupported: isSupportedCiNodeVersion/);
+  // The compat re-exec must test the exact policy pin, not merely a runnable range: the
+  // selector compares the toolchain exactly, so a near-pin Node blocks every check.
+  assert.match(guardedEntrypoint, /pinnedCiNodeVersion\(\)/);
+  assert.match(guardedEntrypoint, /isSupported: \(version\) => isPinnedCiNodeVersion\(version, pinnedNode\)/);
 });
 
 test("ci-local compatibility accepts Node 22 and newer", () => {
@@ -71,7 +96,7 @@ test("ci-local detects the Arbitrum fork from an RPC override or port probe", as
 });
 
 test("environment blockers name their recovery commands", () => {
-  assert.match(capabilityRecoveryHint("arbitrumFork"), /bun run dev:contracts:arbitrum-fork/);
+  assert.match(capabilityRecoveryHint("arbitrumFork"), /bun run --cwd packages\/contracts dev:arbitrum-fork/);
   assert.match(
     capabilityRecoveryHint("contractSubmodules", "uninitialized"),
     /git submodule update --init --recursive/,
@@ -243,6 +268,250 @@ test("a fully blocked plan runs zero checks and exits non-zero", async () => {
   assert.equal(result.blocked.length, 2);
 });
 
+test("ordinary push passes automated checks while reporting manual browser proof as pending", async () => {
+  const input = plan(["format", "browser-proof"]);
+  input.effectiveIntent = "push";
+  input.risk = "routine";
+  input.checks[1] = {
+    ...input.checks[1],
+    command: null,
+    manual: true,
+    mandatory: true,
+    stopRule: "advisory",
+    state: "advisory",
+    blockedBy: ["authenticatedBrave"],
+  };
+  const calls = [];
+  const result = await executePlan(input, {
+    runCheck: async (check) => {
+      calls.push(check.id);
+      return { ok: true, exitCode: 0 };
+    },
+  });
+
+  assert.equal(result.status, "passed");
+  assert.equal(result.exitCode, 0);
+  assert.deepEqual(calls, ["format"]);
+  assert.deepEqual(result.pendingManual, [{ id: "browser-proof", blockedBy: ["authenticatedBrave"] }]);
+  assert.deepEqual(result.blocked, []);
+});
+
+test("local push plan keeps the advisory browser obligation after compatibility filtering", () => {
+  const options = parseArguments([
+    "--intent",
+    "push",
+    "--test-path",
+    "client:src/__tests__/routes/SessionGate.test.tsx",
+  ]);
+  const localPlan = buildLocalValidationPlan(
+    options,
+    {
+      base: "base",
+      head: "head",
+      workingCopyFingerprint: "working-copy",
+      changedPaths: ["packages/client/src/routes/SessionGate.tsx"],
+      deletedPaths: [],
+    },
+    { profile: "test", toolchain: {}, capabilities: { dependencies: true, authenticatedBrave: false } },
+  );
+
+  assert.equal(localPlan.status, "ready");
+  assert.equal(localPlan.checks.find((check) => check.id === "browser-proof")?.advisory, true);
+  assert.equal(localPlan.checks.find((check) => check.id === "browser-proof")?.state, "advisory");
+});
+
+test("--attest records manual evidence per check id", () => {
+  const options = parseArguments([
+    "--intent",
+    "release",
+    "--attest",
+    "browser-proof=Brave, steward session, 2026-09-22: deposit sheet renders",
+  ]);
+  assert.deepEqual(options.attestations, {
+    "browser-proof": "Brave, steward session, 2026-09-22: deposit sheet renders",
+  });
+  assert.throws(() => parseArguments(["--attest", "browser-proof"]), /check-id=evidence/);
+  assert.throws(() => parseArguments(["--attest", "browser-proof="]), /check-id=evidence/);
+});
+
+test("advisory manual proof never masks automated failure or unavailable capability, and only release requires attestation", async () => {
+  const input = plan(["format", "browser-proof"]);
+  input.effectiveIntent = "push";
+  input.checks[1] = {
+    ...input.checks[1],
+    command: null,
+    manual: true,
+    mandatory: true,
+    stopRule: "advisory",
+    state: "advisory",
+    blockedBy: ["authenticatedBrave"],
+    attestation: { engines: ["authenticated Brave"] },
+  };
+  const failed = await executePlan(input, {
+    runCheck: async () => ({ ok: false, exitCode: 7 }),
+  });
+  assert.equal(failed.status, "failed");
+  assert.equal(failed.exitCode, 7);
+
+  input.checks[0].state = "blocked";
+  input.checks[0].blockedBy = ["dependencies"];
+  const unavailable = await executePlan(input, {
+    runCheck: async () => ({ ok: true, exitCode: 0 }),
+  });
+  assert.equal(unavailable.status, "blocked");
+  assert.equal(unavailable.exitCode, 2);
+  assert.deepEqual(unavailable.blocked, [{ id: "format", blockedBy: ["dependencies"] }]);
+
+  input.checks[0].state = "pending";
+  input.checks[0].blockedBy = [];
+  input.risk = "critical";
+  const critical = await executePlan(input, {
+    runCheck: async () => ({ ok: true, exitCode: 0 }),
+  });
+  assert.equal(critical.status, "passed");
+  assert.equal(critical.exitCode, 0);
+  assert.deepEqual(critical.pendingManual, [{ id: "browser-proof", blockedBy: ["authenticatedBrave"] }]);
+
+  input.risk = "routine";
+  input.effectiveIntent = "release";
+  const unattestedRelease = await executePlan(input, {
+    runCheck: async () => ({ ok: true, exitCode: 0 }),
+  });
+  assert.equal(unattestedRelease.status, "blocked");
+  assert.equal(unattestedRelease.exitCode, 2);
+  assert.deepEqual(unattestedRelease.blocked, [
+    { id: "browser-proof", blockedBy: ["manual-attestation-required"] },
+  ]);
+
+  const placeholderRelease = await executePlan(input, {
+    runCheck: async () => ({ ok: true, exitCode: 0 }),
+    attestations: { "browser-proof": "none" },
+  });
+  assert.equal(placeholderRelease.status, "blocked");
+  assert.equal(placeholderRelease.exitCode, 2);
+  assert.equal(placeholderRelease.blocked[0]?.id, "browser-proof");
+  assert.deepEqual(placeholderRelease.blocked[0]?.blockedBy, ["manual-attestation-invalid"]);
+  assert.ok((placeholderRelease.blocked[0]?.problems ?? []).length > 0);
+  assert.deepEqual(placeholderRelease.results, [{ id: "format", ok: true, exitCode: 0, receiptInputs: undefined }].map(
+    (entry) => ({ ...entry, receiptInputs: placeholderRelease.results[0]?.receiptInputs }),
+  ));
+
+  const evidence = "authenticated Brave, steward session, 2026-09-22: deposit sheet renders";
+  const attestedRelease = await executePlan(input, {
+    runCheck: async () => ({ ok: true, exitCode: 0 }),
+    attestations: { "browser-proof": evidence },
+  });
+  assert.equal(attestedRelease.status, "passed");
+  assert.equal(attestedRelease.exitCode, 0);
+  const attested = attestedRelease.results.find((result) => result.id === "browser-proof");
+  assert.equal(attested?.ok, true);
+  assert.equal(attested?.attested, true);
+  assert.deepEqual(attested?.details, [`attested: ${evidence}`]);
+  assert.deepEqual(attestedRelease.pendingManual, []);
+  assert.deepEqual(attestedRelease.blocked, []);
+
+  // The same evidence on any other gate leaves the obligation pending rather than clearing it.
+  for (const intent of ["push", "readiness", "ship", "merge"]) {
+    input.effectiveIntent = intent;
+    const nonRelease = await executePlan(input, {
+      runCheck: async () => ({ ok: true, exitCode: 0 }),
+      attestations: { "browser-proof": evidence },
+    });
+    assert.equal(nonRelease.status, "passed", intent);
+    assert.deepEqual(
+      nonRelease.pendingManual,
+      [{ id: "browser-proof", blockedBy: ["authenticatedBrave"] }],
+      intent,
+    );
+    assert.ok(
+      !nonRelease.results.some((result) => result.id === "browser-proof"),
+      `${intent} must not record an attested result`,
+    );
+    // The attestation is disregarded, and the run says so rather than dropping it quietly.
+    assert.deepEqual(nonRelease.ignoredAttestations, [{ id: "browser-proof", intent }], intent);
+  }
+
+  // Nothing is reported when no attestation was supplied in the first place.
+  input.effectiveIntent = "push";
+  const withoutAttestation = await executePlan(input, {
+    runCheck: async () => ({ ok: true, exitCode: 0 }),
+  });
+  assert.deepEqual(withoutAttestation.ignoredAttestations, []);
+});
+
+test("a toolchain mismatch never blocks a plan holding only the advisory proof", () => {
+  const git = {
+    base: "base",
+    head: "head",
+    workingCopyFingerprint: "working-copy",
+    changedPaths: ["packages/client/src/sw/sw.ts"],
+    deletedPaths: [],
+  };
+  const offPin = { node: "24.20.0", bun: "1.4.2" };
+  const environment = (toolchain) => ({
+    profile: "test",
+    toolchain,
+    capabilities: { dependencies: true, authenticatedBrave: false },
+  });
+
+  const advisoryOptions = parseArguments(["--only", "browser-proof"]);
+  const advisoryOnly = applyCompatibilityFilters(
+    buildLocalValidationPlan(advisoryOptions, git, environment(offPin)),
+    advisoryOptions,
+  );
+  assert.deepEqual(
+    advisoryOnly.checks.map((check) => check.id),
+    ["browser-proof"],
+  );
+  assert.equal(advisoryOnly.status, "ready");
+  assert.deepEqual(advisoryOnly.environmentBlockers, []);
+
+  // A selection that does run a command still reports the mismatch.
+  const executableOptions = parseArguments(["--only", "format"]);
+  const executable = applyCompatibilityFilters(
+    buildLocalValidationPlan(executableOptions, git, environment(offPin)),
+    executableOptions,
+  );
+  assert.equal(executable.status, "blocked");
+  assert.equal(executable.checks.find((check) => check.id === "format")?.state, "blocked");
+});
+
+test("a release attestation must name an accepted engine, a date, and an observation", () => {
+  const check = { attestation: { engines: ["authenticated Brave"] } };
+
+  assert.equal(
+    validateAttestation(check, "authenticated Brave, steward session, 2026-09-22: deposit sheet renders").ok,
+    true,
+  );
+  for (const placeholder of [undefined, "", "   ", "none", "n/a", "pending"]) {
+    assert.equal(validateAttestation(check, placeholder).ok, false, JSON.stringify(placeholder));
+  }
+  assert.match(
+    validateAttestation(check, "Storybook, 2026-09-22: deposit sheet renders").problems.join(" "),
+    /must name the rendered engine/,
+  );
+  assert.match(
+    validateAttestation(check, "authenticated Brave, deposit sheet renders").problems.join(" "),
+    /YYYY-MM-DD/,
+  );
+  assert.match(
+    validateAttestation(check, "authenticated Brave 2026-09-22").problems.join(" "),
+    /what was observed/,
+  );
+  // With no declared engines the check still demands a date and an observation.
+  assert.equal(validateAttestation({}, "some session, 2026-09-22: the sheet renders").ok, true);
+  assert.equal(validateAttestation({}, "none").ok, false);
+});
+
+test("the gate re-execs unless the running Node is the pinned version itself", () => {
+  assert.equal(isPinnedCiNodeVersion("22.22.1", "22.22.1"), true);
+  assert.equal(isPinnedCiNodeVersion("22.22.0", "22.22.1"), false);
+  assert.equal(isPinnedCiNodeVersion("24.20.0", "22.22.1"), false);
+  // Without a readable pin it falls back to the runnable range rather than refusing to run.
+  assert.equal(isPinnedCiNodeVersion("22.22.0", null), true);
+  assert.equal(isPinnedCiNodeVersion("21.0.0", null), false);
+});
+
 test("post-commit push receipt reuse is exact and invalidates on tree or policy drift", async () => {
   const receiptStore = new Map();
   let calls = 0;
@@ -368,6 +637,35 @@ test("ci-local rejects a lane checkpoint without explicit changed paths", () => 
     () => parseArguments(["--quick", "--checkpoint-scope", "lane"]),
     /lane checkpoint requires --changed/i,
   );
+});
+
+test("ci-local keeps deleted and moved paths out of the scoped format and lint commands", () => {
+  // A hub promotion moves .plans/backlog/<slug>/ to .plans/active/<slug>/; git
+  // reports the old paths as deleted, and Biome fails on a file it cannot open.
+  const options = parseArguments(["--intent", "push"]);
+  const localPlan = buildLocalValidationPlan(
+    options,
+    {
+      base: "base",
+      head: "head",
+      workingCopyFingerprint: "move-fingerprint",
+      changedPaths: [
+        ".plans/active/example/plan.todo.md",
+        ".plans/backlog/example/plan.todo.md",
+        "packages/client/src/components/Panel.tsx",
+      ],
+      deletedPaths: [".plans/backlog/example/plan.todo.md"],
+    },
+    { profile: "test", toolchain: {}, capabilities: {} },
+  );
+
+  const format = localPlan.checks.find((check) => check.id === "format");
+  assert.ok(format, "push plan selects format");
+  assert.equal(format.command.includes(".plans/backlog/example/plan.todo.md"), false);
+  assert.equal(format.command.includes(".plans/active/example/plan.todo.md"), true);
+  const lint = localPlan.checks.find((check) => check.id === "lint");
+  assert.ok(lint, "push plan selects lint");
+  assert.equal(lint.command.includes(".plans/backlog/example/plan.todo.md"), false);
 });
 
 test("ci-local passes explicit lane checkpoint scope into the selector", () => {
@@ -651,9 +949,78 @@ test("a mandatory blocked check is never dropped by a compatibility filter", () 
 
 test("environment blockers keep the plan blocked even with no blocked checks", () => {
   const plan = filterablePlan([
-    { id: "format", state: "pending", mandatory: false, budgetSeconds: 5 },
+    {
+      id: "format",
+      state: "pending",
+      mandatory: false,
+      budgetSeconds: 5,
+      command: "bunx @biomejs/biome format",
+    },
   ]);
   plan.environmentBlockers = ["toolchain.bun"];
 
   assert.equal(applyCompatibilityFilters(plan, {}).status, "blocked");
+});
+
+test("a toolchain blocker only a dropped check needed stops blocking the plan", () => {
+  // `bun run check --only design-tokens` on a runner without Foundry: the
+  // toolchain comparison upstream sees contracts-test and blocks everything,
+  // but the surviving check is a shell script that never touches Foundry.
+  const plan = filterablePlan([
+    {
+      id: "design-tokens",
+      state: "blocked",
+      blockedBy: ["toolchain.foundry"],
+      mandatory: false,
+      budgetSeconds: 60,
+      command: "bash scripts/design/check-tokens.sh",
+      capabilities: ["dependencies"],
+    },
+    {
+      id: "contracts-test",
+      state: "blocked",
+      blockedBy: ["toolchain.foundry"],
+      mandatory: false,
+      budgetSeconds: 60,
+      capabilities: ["foundry"],
+    },
+  ]);
+  plan.environmentBlockers = [{ capability: "toolchain.foundry", expected: "1.0.0", actual: null }];
+
+  const filtered = applyCompatibilityFilters(plan, { onlyChecks: ["design-tokens"] });
+
+  assert.deepEqual(
+    filtered.checks.map((check) => check.id),
+    ["design-tokens"],
+  );
+  assert.deepEqual(filtered.checks[0].blockedBy, []);
+  assert.equal(filtered.checks[0].state, "pending");
+  assert.deepEqual(filtered.environmentBlockers, []);
+  assert.equal(filtered.status, "ready");
+});
+
+test("a toolchain blocker a surviving check still needs keeps the plan blocked", () => {
+  const plan = filterablePlan([
+    {
+      id: "contracts-test",
+      state: "blocked",
+      blockedBy: ["toolchain.foundry"],
+      mandatory: false,
+      budgetSeconds: 60,
+      capabilities: ["foundry"],
+    },
+    {
+      id: "indexer-test",
+      state: "blocked",
+      blockedBy: ["toolchain.foundry"],
+      mandatory: false,
+      budgetSeconds: 60,
+    },
+  ]);
+  plan.environmentBlockers = [{ capability: "toolchain.foundry", expected: "1.0.0", actual: null }];
+
+  const filtered = applyCompatibilityFilters(plan, { skipIndexer: true });
+
+  assert.equal(filtered.checks[0].state, "blocked");
+  assert.equal(filtered.status, "blocked");
 });

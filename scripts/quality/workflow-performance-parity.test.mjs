@@ -1,9 +1,18 @@
 import assert from "node:assert/strict";
-import { existsSync, readFileSync, readdirSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync, mkdtempSync, mkdirSync, writeFileSync, rmSync } from "node:fs";
+import { spawnSync } from "node:child_process";
+import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import test from "node:test";
 
+import { resolvePackageCommand } from "../dev/package-commands.mjs";
+
 import { classifySupplyChainChanges } from "./classify-supply-chain-changes.mjs";
+import {
+  addedQuerySetupFromDiff,
+  hasQuerySetupAllowance,
+  newQuerySetupFromSource,
+} from "./check-test-query-setup.mjs";
 
 const root = resolve(import.meta.dirname, "../..");
 const workflowsDir = join(root, ".github/workflows");
@@ -40,6 +49,21 @@ function sourceFiles(relativeDirectory) {
   });
 }
 
+function coverageGlobFloors(packageName) {
+  const source = read(`packages/${packageName}/vitest.config.ts`);
+  const entries = [...source.matchAll(/"(src\/[^\"]+)":\s*\{\s*branches:\s*(\d+),\s*functions:\s*(\d+),\s*lines:\s*(\d+),\s*statements:\s*(\d+),\s*\}/g)]
+    .map(([, glob, ...values]) => [glob, values.map(Number)]);
+  for (const [glob] of entries) {
+    const path = `packages/${packageName}/${glob}`;
+    if (glob.endsWith("/**")) {
+      assert.ok(sourceFiles(path.slice(0, -3)).length > 0, `${glob} must match source files`);
+    } else {
+      assert.ok(existsSync(join(root, path)), `${glob} must match a source file`);
+    }
+  }
+  return Object.fromEntries(entries);
+}
+
 function withoutComments(source) {
   return source.replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/.*$/gm, "");
 }
@@ -48,7 +72,7 @@ test("shared JS setup pins the toolchain and installs from the frozen lockfile",
   const action = read(".github/actions/setup-js/action.yml");
 
   assert.match(action, /node-version:\s*["']22\.22\.1["']/);
-  assert.match(action, /bun-version:\s*["']1\.3\.14["']/);
+  assert.match(action, /bun-version:\s*["']1\.4\.2["']/);
   assert.match(action, /uses:\s*actions\/setup-node@[0-9a-f]{40}/);
   assert.match(action, /uses:\s*oven-sh\/setup-bun@[0-9a-f]{40}/);
   assert.match(action, /bun install --frozen-lockfile/);
@@ -192,7 +216,7 @@ test("local hooks keep commit light and reuse the focused push contract", () => 
   assert.doesNotMatch(preCommit, /ci-local|bun run lint|bun run test|typecheck/);
   assert.match(
     prePush,
-    /node scripts\/dev\/ci-local\.js --intent push --reuse-passing-receipts/,
+    /node scripts\/dev\/node-cli\.js scripts\/dev\/ci-local\.js --intent push --reuse-passing-receipts/,
   );
   assert.doesNotMatch(prePush, /verify:contracts|format:check|check:source-structure|agentic:check/);
 
@@ -210,7 +234,7 @@ test("every direct Node and Bun setup uses the exact repository versions", () =>
       assert.equal(match[1], "22.22.1", `${file} has a drifting Node pin`);
     }
     for (const match of source.matchAll(/bun-version:\s*["']?([^\s"']+)/g)) {
-      assert.equal(match[1], "1.3.14", `${file} has a drifting Bun pin`);
+      assert.equal(match[1], "1.4.2", `${file} has a drifting Bun pin`);
     }
   }
 });
@@ -266,7 +290,7 @@ test("owning workflows enforce strict test and story typechecks", () => {
     const source = read(`.github/workflows/${file}`);
     assert.match(
       source,
-      new RegExp(`working-directory: packages/${packageName}\\n\\s+run: bun run typecheck:tests`),
+      new RegExp(`working-directory: packages/${packageName}\\n\\s+run: bun run typecheck --scope tests`),
       `${file} must typecheck ${packageName} tests and stories`,
     );
   }
@@ -278,12 +302,22 @@ test("client and admin production builds follow their full consumer project grap
     const solution = JSON.parse(read(`packages/${packageName}/tsconfig.json`));
     const references = solution.references.map(({ path }) => path);
 
-    assert.deepEqual(references, [
-      "./tsconfig.app.json",
-      "./tsconfig.node.json",
-      "./tsconfig.test.json",
-    ]);
-    assert.match(packageJson.scripts["typecheck:full"], /tsc -b(?:\s|$)/);
+    // The client also builds its service worker, which needs the worker library.
+    assert.deepEqual(
+      references,
+      packageName === "client"
+        ? [
+            "./tsconfig.app.json",
+            "./tsconfig.node.json",
+            "./tsconfig.sw.json",
+            "./tsconfig.test.json",
+          ]
+        : ["./tsconfig.app.json", "./tsconfig.node.json", "./tsconfig.test.json"],
+    );
+    const full = resolvePackageCommand(packageName, "typecheck", ["--scope", "full"]);
+    assert.equal(full.steps.length, 1);
+    assert.deepEqual(full.steps[0].args.slice(1), ["tsc", "-b", packageName === "admin" ? "packages/admin/tsconfig.json" : "tsconfig.json"]);
+    assert.equal(full.steps[0].cwd, packageName === "admin" ? root : join(root, "packages/client"));
     assert.match(packageJson.scripts.build, /tsc -b(?:\s|$)/);
     assert.doesNotMatch(packageJson.scripts.build, /tsc --noEmit/);
   }
@@ -341,6 +375,27 @@ test("Shared outer routing matches the internal shared-impact detector", () => {
   }
   assert.match(source, /schedule:\s*\n\s*- cron:/);
   assert.match(source, /id:\s*filter/);
+  assert.match(source, /"scripts\/dev\/package-commands\.mjs",/g);
+});
+
+test("Shared CI runs both plain-test shards and leaves nightly coverage unsharded", () => {
+  const source = read(".github/workflows/shared.yml");
+  const testJob = source.slice(source.indexOf("  test:"), source.indexOf("  lint-", source.indexOf("  test:")));
+  assert.deepEqual([...testJob.matchAll(/- shard: ["']?(\d\/2)/g)].map((match) => match[1]), ["1/2", "2/2"]);
+  assert.match(testJob, /name: Test \(\$\{\{ matrix\.shard \}\}\)/);
+  assert.match(testJob, /run: bun run test --shard \$\{\{ matrix\.shard \}\}/);
+  assert.doesNotMatch(testJob, /fail-fast:\s*true|coverage/);
+
+  const nightly = read(".github/workflows/coverage-nightly.yml");
+  assert.doesNotMatch(nightly, /--shard/);
+});
+
+test("test churn summary is informational in the existing Supply Chain workflow", () => {
+  const source = read(".github/workflows/supply-chain-guardrails.yml");
+  const changesJob = source.slice(source.indexOf("  changes:"), source.indexOf("\n  format:\n"));
+  assert.match(changesJob, /name: Summarize test and source changes\n\s+if: github\.event_name == 'pull_request'\n\s+continue-on-error: true/);
+  assert.match(changesJob, /node scripts\/quality\/summarize-test-churn\.mjs/);
+  assert.match(source, /node --test scripts\/quality\/workflow-performance-parity\.test\.mjs scripts\/quality\/summarize-test-churn\.test\.mjs/);
 });
 
 test("CI coverage drops HTML generation without weakening local reports or thresholds", () => {
@@ -357,11 +412,9 @@ test("CI coverage drops HTML generation without weakening local reports or thres
     assert.match(source, /\["text", "json"\]/);
     assert.match(source, /\["text", "json", "html"\]|\["text", "html", "json"\]/);
     assert.doesNotMatch(source, /thresholds:\s*\{\s*global:/);
-    const actualThresholds = [
-      ...source.matchAll(
-        /(?:branches|functions|lines|statements):\s*(\d+)(?:,|\n)/g,
-      ),
-    ].map((match) => Number(match[1]));
+    const global = source.match(/thresholds:\s*\{\s*branches:\s*(\d+),\s*functions:\s*(\d+),\s*lines:\s*(\d+),\s*statements:\s*(\d+),/);
+    assert.ok(global, `${file} must retain explicit global thresholds`);
+    const actualThresholds = global.slice(1).map(Number);
     assert.deepEqual(actualThresholds, thresholds, `${file} thresholds drifted`);
   }
 
@@ -371,14 +424,41 @@ test("CI coverage drops HTML generation without weakening local reports or thres
     [c8.branches, c8.functions, c8.lines, c8.statements],
     [50, 50, 50, 50],
   );
-  assert.match(
-    read("packages/indexer/package.json"),
-    /"test:coverage:ci":\s*"c8 --reporter text --reporter json bun run mocha"/,
-  );
+  const indexerCoverage = resolvePackageCommand("indexer", "test", ["--scope", "handlers", "--coverage", "--reporter", "text", "--reporter", "json"]);
+  assert.equal(indexerCoverage.steps.length, 1);
+  const coverageArgs = indexerCoverage.steps[0].args;
+  assert.deepEqual(coverageArgs.slice(1, 6), ["c8", "--reporter", "text", "--reporter", "json"]);
+  assert.deepEqual(coverageArgs.slice(8), ["mocha", "--require", "tsx", "--timeout", "30000", "test/**/*.ts"]);
   assert.match(
     read(".github/workflows/indexer.yml"),
-    /run:\s*bun run test:coverage:ci/,
+    /run:\s*bun run test --scope handlers --coverage --reporter text --reporter json/,
   );
+});
+
+test("Shared critical, Cookie Jar, and image-compression coverage globs preserve measured floors", () => {
+  assert.deepEqual(coverageGlobFloors("shared"), {
+    "src/modules/work/**": [80, 85, 87, 85],
+    "src/modules/job-queue/**": [76, 82, 85, 82],
+    "src/hooks/auth/**": [73, 76, 77, 75],
+    "src/hooks/vault/**": [57, 66, 71, 69],
+    "src/hooks/cookie-jar/useCookieJarDeposit.ts": [58, 74, 86, 86],
+    "src/hooks/cookie-jar/useCampaignCookieJar.ts": [43, 33, 39, 38],
+    "src/utils/work/image-compression.ts": [35, 67, 69, 68],
+  });
+});
+
+test("Client critical coverage globs preserve measured aggregate floors", () => {
+  assert.deepEqual(coverageGlobFloors("client"), {
+    "src/views/Home/WalletSheet/**": [67, 60, 75, 74],
+    "src/views/Profile/**": [78, 88, 86, 85],
+  });
+});
+
+test("Admin critical coverage globs preserve measured aggregate floors", () => {
+  assert.deepEqual(coverageGlobFloors("admin"), {
+    "src/components/Vault/**": [59, 50, 65, 63],
+    "src/views/Garden/Pool/**": [65, 68, 75, 73],
+  });
 });
 
 test("consumer Vitest configs share the local resource-aware worker policy", () => {
@@ -515,6 +595,43 @@ test("test quality Check 5 enforces direct-tested seams", () => {
   const source = read("scripts/quality/check-test-quality.sh");
   assert.match(source, /Check 5: Direct-tested seam integrity/);
   assert.match(source, /scripts\/quality\/check-direct-tested-seams\.mjs/);
+  assert.match(source, /Check 6: Diff-aware query setup/);
+  assert.match(source, /scripts\/quality\/check-test-query-setup\.mjs/);
+});
+
+test("test quality only flags added local query setup in package tests", () => {
+  const diff = [
+    "+++ b/packages/shared/src/__tests__/example.test.ts",
+    "@@ -4,1 +4,3 @@",
+    "-const old = true;",
+    "+const old = true;",
+    "+function createWrapper(client) {}",
+    "+const queryClient = new QueryClient();",
+    "+++ b/packages/shared/src/query.ts",
+    "@@ -0,0 +1 @@",
+    "+new QueryClient();",
+  ].join("\n");
+  assert.deepEqual(addedQuerySetupFromDiff(diff), [
+    { file: "packages/shared/src/__tests__/example.test.ts", line: 5 },
+    { file: "packages/shared/src/__tests__/example.test.ts", line: 6 },
+  ]);
+});
+
+test("test quality allows nearby reasoned query setup in new files", () => {
+  const file = "packages/client/src/__tests__/example.test.tsx";
+  const source = [
+    "// TEST-QUALITY: allow-local-query-setup - custom retry is the subject",
+    "const client = new QueryClient();",
+    "function createWrapper() {}",
+  ].join("\n");
+  assert.deepEqual(newQuerySetupFromSource(source, file), [
+    { file, line: 2 },
+    { file, line: 3 },
+  ]);
+  assert.equal(hasQuerySetupAllowance(source, 2), true);
+  assert.equal(hasQuerySetupAllowance(source, 3), true);
+  assert.equal(hasQuerySetupAllowance("const client = new QueryClient();", 1), false);
+  assert.deepEqual(newQuerySetupFromSource(source, "packages/agent/src/example.test.ts"), []);
 });
 
 test("Client CI keeps staged modules isolated", () => {
@@ -524,7 +641,7 @@ test("Client CI keeps staged modules isolated", () => {
     assert.match(trigger, /scripts\/quality\/check-staged-modules\.mjs/);
     assert.match(trigger, /scripts\/quality\/check-staged-modules\.test\.mjs/);
   }
-  assert.match(source, /name: Check staged client modules\n\s+run: bun run check:staged-modules/);
+  assert.match(source, /name: Check staged client modules\n\s+run: bun run check --only staged-modules/);
 });
 
 test("PR Test jobs run plain tests; thresholds are enforced nightly and on main", () => {
@@ -544,11 +661,18 @@ test("PR Test jobs run plain tests; thresholds are enforced nightly and on main"
   assert.match(workflowEventBlock(source, "push"), /branches:\s*\[main\]/);
   assert.match(source, /workflow_dispatch:\s*\{\}/);
   assert.match(source, /fail-fast:\s*false/);
-  assert.match(source, /package:\s*shared\s*\n\s*script:\s*coverage/);
-  assert.match(source, /package:\s*client\s*\n\s*script:\s*coverage/);
-  assert.match(source, /package:\s*admin\s*\n\s*script:\s*test:coverage/);
+  const selections = [...source.matchAll(/package:\s*(\w+)\s*\n\s*args:\s*([^\n]+)/g)]
+    .map(([, pkg, args]) => [pkg, args.trim().split(/\s+/)]);
+  assert.deepEqual(selections, [["shared", ["--scope", "all-configured", "--coverage"]], ["client", ["--coverage"]], ["admin", ["--coverage"]]]);
+  for (const [pkg, args] of selections) {
+    const plan = resolvePackageCommand(pkg, "test", args);
+    assert.equal(plan.steps.length, 1);
+    assert.ok(plan.steps[0].args.includes("--coverage"));
+    assert.ok(!plan.steps[0].args.includes("--exclude"), `${pkg} nightly coverage must retain all configured tests`);
+    assert.equal(plan.steps[0].cwd, join(root, "packages", pkg));
+  }
   assert.match(source, /uses:\s*\.\/\.github\/actions\/setup-js/);
-  assert.match(source, /run:\s*bun run \$\{\{ matrix\.script \}\}/);
+  assert.match(source, /run:\s*bun run test \$\{\{ matrix\.args \}\}/);
   assert.match(source, /CI:\s*true/);
 });
 
@@ -572,7 +696,7 @@ test("repository formatting runs once, early in the broad guardrail", () => {
   for (const file of ["admin.yml", "agent.yml", "client.yml", "shared.yml"]) {
     assert.doesNotMatch(
       read(`.github/workflows/${file}`),
-      /bun run format:check/,
+      /bun run format --check/,
       `${file} must not duplicate repository formatting`,
     );
   }
@@ -583,6 +707,87 @@ test("repository formatting runs once, early in the broad guardrail", () => {
   assert.ok(formatIndex >= 0 && formatIndex < guidanceIndex);
   assert.match(
     guardrails.slice(formatIndex, formatIndex + 120),
-    /bun run format:check/,
+    /bun run format --check/,
   );
+});
+
+test("contract fork CI selects the same shards through the argument-based runner", () => {
+  const source = read(".github/workflows/contracts.yml");
+  const core = source.slice(source.indexOf("  fork-readiness-core:"), source.indexOf("  fork-readiness-arbitrum:"));
+  assert.deepEqual([...core.matchAll(/- shard: ([\w-]+)/g)].map((match) => match[1]), ["sepolia", "ethereum"]);
+  assert.match(core, /working-directory: packages\/contracts\s+run: bun run test:shard run \$\{\{ matrix\.shard \}\}/);
+  const sequential = source.slice(source.indexOf("  fork-readiness-arbitrum:"));
+  assert.deepEqual([...sequential.matchAll(/bun run test:shard run ([\w-]+)/g)].map((match) => match[1]), [
+    "arbitrum", "gardens", "octant", "settlement-lane",
+  ]);
+  assert.doesNotMatch(source, /test:fork:[\w:-]+/);
+});
+
+function aggregateFixture(command, failingPackage) {
+  const fixture = mkdtempSync(join(tmpdir(), "gg-aggregate-selection-"));
+  const log = join(fixture, "calls");
+  const rootScripts = JSON.parse(read("package.json")).scripts;
+  writeFileSync(log, "");
+  for (const relative of ["scripts/dev/test.js", "scripts/lib/command-runner.mjs"]) {
+    mkdirSync(join(fixture, relative, ".."), { recursive: true });
+    writeFileSync(join(fixture, relative), read(relative));
+  }
+  mkdirSync(join(fixture, "bin"));
+  writeFileSync(join(fixture, "bin/bun"), `#!/bin/sh
+if [ "$1" = "--bun" ] && [ "$2" = "x" ] && [ "$3" = "vitest" ]; then
+  echo tools >> "$CALL_LOG"
+else
+  PATH="$AGGREGATE_PATH" exec bun "$@"
+fi
+`, { mode: 0o755 });
+  writeFileSync(join(fixture, "package.json"), JSON.stringify({
+    private: true,
+    type: "module",
+    workspaces: ["packages/*", "docs"],
+    scripts: { test: rootScripts.test, build: rootScripts.build, "test:agent-tools": 'echo tools >> "$CALL_LOG"' },
+  }));
+  for (const name of ["contracts", "shared", "indexer", "client", "admin", "agent", "docs"]) {
+    const directory = join(fixture, name === "docs" ? "docs" : `packages/${name}`);
+    mkdirSync(directory, { recursive: true });
+    writeFileSync(join(directory, "package.json"), JSON.stringify({
+      name: `@green-goods/${name}`,
+      scripts: Object.fromEntries(["test", "build"].map((script) => [script,
+        `echo ${name} >> "$CALL_LOG"${failingPackage === name ? " && exit 23" : ""}`,
+      ])),
+    }));
+  }
+  try {
+    if (command === "test") assert.equal(rootScripts.test, "node scripts/dev/test.js");
+    const result = spawnSync(command === "test" ? "node" : "bun", command === "test" ? ["scripts/dev/test.js"] : ["--no-env-file", "run", command], {
+      cwd: fixture, encoding: "utf8", timeout: 10_000,
+      env: { ...process.env, CALL_LOG: log, AGGREGATE_PATH: process.env.PATH, PATH: `${join(fixture, "bin")}:${process.env.PATH}` },
+    });
+    return { ...result, calls: readFileSync(log, "utf8").trim().split("\n") };
+  } finally {
+    rmSync(fixture, { recursive: true, force: true });
+  }
+}
+
+test("root aggregate build retains dependency order without package forwarding aliases", () => {
+  const result = aggregateFixture("build");
+  assert.equal(result.status, 0, result.stderr);
+  assert.deepEqual(result.calls, ["contracts", "shared", "indexer", "client", "admin"]);
+});
+
+test("root aggregate tests retain every package and parallel-stage boundaries", () => {
+  const result = aggregateFixture("test");
+  assert.equal(result.status, 0, result.stderr);
+  assert.deepEqual(result.calls.slice(0, 2), ["tools", "contracts"]);
+  assert.deepEqual(result.calls.slice(2, 4).sort(), ["docs", "shared"]);
+  assert.equal(result.calls[4], "indexer");
+  assert.deepEqual(result.calls.slice(5).sort(), ["admin", "agent", "client"]);
+});
+
+test("root aggregate tests stop before downstream stages when a parallel member fails", () => {
+  const result = aggregateFixture("test", "shared");
+  assert.notEqual(result.status, 0);
+  assert.ok(result.calls.includes("shared"), `${result.stderr}\n${JSON.stringify(result.calls)}`);
+  for (const downstream of ["indexer", "client", "admin", "agent"]) {
+    assert.ok(!result.calls.includes(downstream), `${downstream} must not run after a failing stage`);
+  }
 });

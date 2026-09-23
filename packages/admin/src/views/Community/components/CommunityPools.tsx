@@ -18,6 +18,8 @@ import { AdminTabRail } from "@/components/AdminTabRail";
 import { GardenPoolTab } from "@/views/Garden/Pool";
 import { poolStatusChip } from "@/views/Garden/Pool/poolPresentation";
 import { HubConfirmQueue } from "@/views/Hub/components/HubConfirmQueue";
+import { SettlementOperationsPanel } from "./SettlementOperationsCard";
+import { ProtocolFundingOperationsPanel } from "./ProtocolFundingOperationsPanel";
 
 export interface CommunityPoolsProps {
   chainId: number;
@@ -157,6 +159,11 @@ export function CommunityPools({ chainId, garden, canManage }: CommunityPoolsPro
           </AdminCard>
         ) : (
           <div className="space-y-4" data-testid="protocol-pool">
+            <SettlementOperationsPanel chainId={chainId} />
+            <ProtocolFundingOperationsPanel
+              chainId={chainId}
+              protocolGarden={protocolPool.rootGarden}
+            />
             {toConfirm.isProtocolSteward ? (
               <section
                 className="space-y-2"

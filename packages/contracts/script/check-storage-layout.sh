@@ -26,6 +26,7 @@ CONTRACTS=(
   "GardenAccount:src/accounts/Garden.sol"
   "HatsModule:src/modules/Hats.sol"
   "KarmaGAPModule:src/modules/Karma.sol"
+  "CookieJarModule:src/modules/CookieJar.sol"
   "ActionRegistry:src/registries/Action.sol"
   "CommitmentRegistry:src/registries/Commitment.sol"
   "CreditRegistry:src/registries/Credit.sol"

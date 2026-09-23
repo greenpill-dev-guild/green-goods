@@ -41,7 +41,7 @@ const WORK = `0x${"ab".repeat(32)}` as `0x${string}`;
 const mockUseController = vi.fn();
 const mockReason = vi.fn();
 const mockFlush = vi.fn();
-const mockRetryJob = vi.fn();
+const mockRetryAndSend = vi.fn();
 const mockDiscardJob = vi.fn();
 const mockActs = {
   claim: vi.fn(),
@@ -80,17 +80,24 @@ vi.mock("@green-goods/shared/hooks/app/useOffline", async (importOriginal) => {
   };
 });
 
+vi.mock("@green-goods/shared/hooks/app/useOnlineStatus", async (importOriginal) => {
+  return {
+    ...(await importOriginal()),
+    useOnlineStatus: () => true,
+  };
+});
+
 vi.mock("@green-goods/shared/providers/JobQueue", async (importOriginal) => {
   return {
     ...(await importOriginal()),
-    useJobQueue: () => ({ flush: mockFlush }),
+    useJobQueue: () => ({ flush: mockFlush, retryAndSend: mockRetryAndSend }),
   };
 });
 
 vi.mock("@green-goods/shared/modules/job-queue/default-instance", async (importOriginal) => {
   return {
     ...(await importOriginal()),
-    jobQueue: { retryJob: mockRetryJob, discardJob: mockDiscardJob },
+    jobQueue: { discardJob: mockDiscardJob },
   };
 });
 
@@ -260,6 +267,7 @@ function render(commitmentId = "9") {
   return renderWithProviders(
     <MemoryRouter initialEntries={[`/home/${GARDEN}/commitments/${commitmentId}`]}>
       <Routes>
+        <Route path="/home/:id/commitments/new" element={<ComposerRoute />} />
         <Route path="/home/:id/commitments/:commitmentId" element={<GardenCommitment />} />
         <Route path="/home/:id/commitments/:commitmentId/proof" element={<p>Proof composer</p>} />
         <Route path="/home/:id/work/:workId" element={<p>Work detail</p>} />
@@ -267,6 +275,11 @@ function render(commitmentId = "9") {
       </Routes>
     </MemoryRouter>
   );
+}
+
+function ComposerRoute() {
+  const location = useLocation();
+  return <output data-testid="composer-route">{`${location.pathname}${location.search}`}</output>;
 }
 
 function WorkSubmissionRoute() {
@@ -336,6 +349,25 @@ describe("GardenCommitment", () => {
     render();
     await userEvent.click(screen.getByRole("button", { name: "Add Proof" }));
     expect(screen.getByText("Proof composer")).toBeInTheDocument();
+  });
+
+  it("opens the composer on the commitment being made again, in the pool it belongs to", async () => {
+    // A protocol commitment is read from the reader's own garden, and the new one
+    // has to be composed into the protocol pool, not into the garden it was opened from.
+    const PROTOCOL_GARDEN = "0x9999999999999999999999999999999999999999";
+    mockUseController.mockReturnValue(
+      controller({
+        actKind: "askAgain",
+        pool: poolFixture({ poolId: 1n, poolType: "PROTOCOL", garden: PROTOCOL_GARDEN }),
+      })
+    );
+    render();
+
+    await userEvent.click(screen.getByRole("button", { name: "Ask Again" }));
+
+    expect(screen.getByTestId("composer-route")).toHaveTextContent(
+      `/home/${PROTOCOL_GARDEN}/commitments/new?direction=request&from=9`
+    );
   });
 
   it("renders the team and delegates joining to the controller", async () => {
@@ -466,7 +498,7 @@ describe("GardenCommitment", () => {
     );
     expect(screen.getByRole("button", { name: "Add Proof" })).toBeDisabled();
 
-    mockRetryJob.mockResolvedValue(undefined);
+    mockRetryAndSend.mockResolvedValue(undefined);
     mockDiscardJob.mockResolvedValue(true);
     mockFlush.mockResolvedValue(undefined);
     mockUseController.mockReturnValue(
@@ -493,7 +525,9 @@ describe("GardenCommitment", () => {
     const alert = screen.getByRole("alert");
     await userEvent.click(within(alert).getByRole("button", { name: "Try Again" }));
     await userEvent.click(within(alert).getByRole("button", { name: "Discard" }));
-    expect(mockRetryJob).toHaveBeenCalledWith("job-9");
+    // Trying the act again sends only that act, never the rest of the queue.
+    expect(mockRetryAndSend).toHaveBeenCalledWith("job-9");
+    expect(mockFlush).not.toHaveBeenCalled();
     expect(mockDiscardJob).toHaveBeenCalledWith("job-9");
   });
 

@@ -10,6 +10,8 @@
  * like 56dp search bars and arbitrary M3 token colors can be dropped. */
 @source "../../admin/src";
 @source "../../client/src";
+/* Storybook-owned Design System pages (specimens, measurement chips). */
+@source "./design-system";
 
 /* Configure dark mode to use data-theme attribute (matching shared theme system) */
 @custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
@@ -26,6 +28,15 @@
 /* Import admin-only M3 utilities used by Admin/* stories. */
 @import "../../admin/src/styles/admin-m3-tokens.css";
 @import "../../admin/src/styles/admin-m3-components.css";
+
+/* Per-surface tokens (admin type scale + font + colour aliases, client button
+ * corner scopes), keyed to the `data-surface` root attribute the `withSurface`
+ * decorator sets. See surfaces.css for the parity contract. */
+@import "./surfaces.css";
+
+/* Chrome for the Design System review pages (specimen frames, measurement
+ * readouts, pass/fail chips). Neutral and Storybook-only. */
+@import "./design-system/design-system.css";
 
 /* Admin Storybook parity subset. The shared Storybook preview intentionally
  * avoids importing the full admin app entrypoint because that file owns
@@ -504,57 +515,42 @@
    * overrides, so neither should Storybook.
    */
 
-  h1,
-  h2,
-  h3,
-  h4,
-  h5,
-  h6 {
+  /* Client parity (packages/client/src/styles/typography.css): headings take the
+     header colour on the client surfaces only — the cockpit has no heading or
+     link colour rule, so admin stories inherit ink like production. */
+  :where(:root:not([data-surface="admin"])) h1,
+  :where(:root:not([data-surface="admin"])) h2,
+  :where(:root:not([data-surface="admin"])) h3,
+  :where(:root:not([data-surface="admin"])) h4,
+  :where(:root:not([data-surface="admin"])) h5,
+  :where(:root:not([data-surface="admin"])) h6 {
     font-family: var(--font-family-sans);
     color: var(--color-header-text);
   }
 
-  * {
+  /* `--font-family-sans` is undefined in every build, so this declaration is
+     invalid at computed-value time and resolves to `inherit` — but it still wins
+     the cascade over the components layer. The editorial underline field keeps
+     its serif only because it is excluded here, exactly as the client does. */
+  *:where(:not(.gg-control[data-surface="editorial"])) {
     font-family: var(--font-family-sans);
   }
 
-  h1 {
-    font-size: 2em;
-    font-weight: bold;
-  }
 
-  h2 {
-    font-size: 1.5em;
-    font-weight: bold;
-  }
 
-  h3 {
-    font-size: 1.25em;
-    font-weight: bold;
-  }
 
-  h4 {
-    font-size: 1.125em;
-    font-weight: bold;
-  }
 
-  h5 {
-    font-size: 1.125em;
-    font-weight: bold;
-  }
 
-  h6 {
-    font-size: 1em;
-    font-weight: 600;
-  }
 
-  p {
-    font-size: 1em;
-  }
 
   a {
-    color: var(--color-primary);
     text-decoration: none;
+  }
+
+  /* Links rendered as shared buttons take their colour from their emphasis
+     (client typography.css); the cockpit has no global link colour at all. */
+  :where(:root:not([data-surface="admin"])) a:where(:not(.gg-button, .gg-icon-button, .gg-chip)) {
+    color: var(--color-primary);
   }
 
   ul {

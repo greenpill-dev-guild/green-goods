@@ -39,7 +39,7 @@ export {
 } from "./DevAuthProvider";
 
 // Job Queue Provider
-export { JobQueueProvider, useJobQueue, useQueueFlush, useQueueStats } from "./JobQueue";
+export { JobQueueProvider, useJobQueue, useQueueStats } from "./JobQueue";
 
 // Work Provider
 export type { WorkDataProps, WorkFormValue, WorkSelectionValue } from "./Work";

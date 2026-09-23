@@ -2,6 +2,7 @@ import type { Address, Work } from "@green-goods/shared/types/domain";
 import { ZERO_ADDRESS } from "@green-goods/shared/utils/blockchain/address";
 import { describe, expect, it } from "vitest";
 import {
+  approvalsToCompletedWorks,
   extractWorkGardenIds,
   resolveWorkNavigation,
 } from "../../views/Home/WorkDashboard/workDashboardUtils";
@@ -49,5 +50,32 @@ describe("workDashboardUtils", () => {
         new Map([[original.id, original]])
       )
     ).toEqual({ workId: original.id, gardenId: GARDEN_ADDRESS });
+  });
+
+  it("uses the loaded work garden for a history card with only a work id", () => {
+    const original = createWork({ id: "work-1", gardenAddress: GARDEN_ADDRESS });
+    const history = createWork({ id: original.id, gardenAddress: ZERO_ADDRESS });
+
+    expect(resolveWorkNavigation(history, new Map([[original.id, original]]))).toEqual({
+      workId: original.id,
+      gardenId: GARDEN_ADDRESS,
+    });
+  });
+
+  it("keeps the reviewed work's photos on a card you reviewed", () => {
+    const media = ["https://gateway.test/ipfs/bafy-trail"];
+    const [card] = approvalsToCompletedWorks([
+      {
+        workUID: "work-1",
+        actionUID: 1,
+        gardenerAddress: "0x2222222222222222222222222222222222222222" as Address,
+        gardenId: GARDEN_ADDRESS,
+        media,
+        createdAt: 1,
+        status: "approved",
+      },
+    ]);
+
+    expect(card.media).toEqual(media);
   });
 });

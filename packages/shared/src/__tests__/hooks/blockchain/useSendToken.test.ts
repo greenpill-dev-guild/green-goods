@@ -4,37 +4,56 @@
  */
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { renderHook } from "@testing-library/react";
+import { act, renderHook, waitFor } from "@testing-library/react";
 import { createElement, type ReactNode } from "react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { tokensKeys } from "../../../config/query-keys/tokens";
+import type { AuthMode } from "../../../types/auth";
 import type { Address } from "../../../types/domain";
 
 const ACCOUNT = "0x1111111111111111111111111111111111111111" as Address;
 const RECIPIENT = "0x2222222222222222222222222222222222222222" as Address;
 const TOKEN_ADDR = "0x3333333333333333333333333333333333333333" as Address;
 const CHAIN = 42161;
+const BALANCE_REFETCH_DELAY_MS = 3000;
 
 const mockSendContractCall = vi.fn();
 const mockReadContract = vi.fn();
 const mockAddRecent = vi.fn();
+const mockWaitForReceipt = vi.fn();
+const mockClientForChain = vi.fn();
+const mockDelivery = vi.fn();
+const mockHandleError = vi.fn();
 let mockPrimaryAddress: string | null = ACCOUNT;
+const mockSender = { sendContractCall: mockSendContractCall };
+let mockAuthMode: AuthMode = "passkey";
 
 vi.mock("../../../hooks/auth/useUser", () => ({
-  useUser: () => ({ primaryAddress: mockPrimaryAddress }),
+  useUser: () => ({ primaryAddress: mockPrimaryAddress, authMode: mockAuthMode }),
+}));
+vi.mock("../../../providers/Auth", () => ({
+  useOptionalAuthContext: () => ({ authMode: mockAuthMode }),
 }));
 vi.mock("../../../hooks/blockchain/useChainConfig", () => ({
   useCurrentChain: () => CHAIN,
 }));
 vi.mock("../../../hooks/blockchain/useTransactionSender", () => ({
-  useTransactionSender: () => ({ sendContractCall: mockSendContractCall }),
+  useTransactionSender: () => mockSender,
 }));
 vi.mock("../../../hooks/blockchain/useRecentRecipients", () => ({
   addRecentRecipient: (...args: unknown[]) => mockAddRecent(...args),
 }));
 vi.mock("../../../config/pimlico", () => ({
-  createPublicClientForChain: () => ({
-    readContract: (...args: unknown[]) => mockReadContract(...args),
-  }),
+  createPublicClientForChain: (chainId: number) => {
+    mockClientForChain(chainId);
+    return {
+      readContract: (...args: unknown[]) => mockReadContract(...args),
+      waitForTransactionReceipt: (...args: unknown[]) => mockWaitForReceipt(...args),
+    };
+  },
+}));
+vi.mock("../../../modules/commitment-pooling/data-settlement", () => ({
+  getGardenerDeliveryEnabled: () => mockDelivery(),
 }));
 vi.mock("../../../components/toast", () => ({
   toastService: {
@@ -45,15 +64,20 @@ vi.mock("../../../components/toast", () => ({
   },
 }));
 vi.mock("../../../utils/errors/mutation-error-handler", () => ({
-  createMutationErrorHandler: () => vi.fn(),
+  createMutationErrorHandler: () => mockHandleError,
 }));
 vi.mock("react-intl", () => ({
   useIntl: () => ({ formatMessage: ({ id }: { id: string }) => id }),
 }));
 
 const { useSendToken } = await import("../../../hooks/blockchain/useSendToken");
+const { toastService } = await import("../../../components/toast");
+const { TransactionReplacementError, TransactionRevertedError } = await import(
+  "../../../modules/transactions/types"
+);
 
 const TOKEN = {
+  chainId: CHAIN,
   symbol: "GOODS",
   label: "Green Goods",
   address: TOKEN_ADDR,
@@ -64,31 +88,62 @@ const TOKEN = {
   errored: false,
 };
 
-function makeWrapper() {
-  const client = new QueryClient({
+let queryClient: QueryClient;
+// biome-ignore lint/suspicious/noExplicitAny: test fixture token shape
+const SEND_PARAMS = { token: TOKEN as any, to: RECIPIENT, amount: 100n, note: "hi" };
+const BALANCES_KEY = tokensKeys.balances(ACCOUNT.toLowerCase(), CHAIN);
+
+function makeQueryClient() {
+  return new QueryClient({
     defaultOptions: { mutations: { retry: false }, queries: { retry: false } },
   });
+}
+
+function makeWrapper(client: QueryClient = makeQueryClient()) {
+  queryClient = client;
   return ({ children }: { children: ReactNode }) =>
     createElement(QueryClientProvider, { client }, children);
+}
+
+function beforeUnloadCalls(spy: ReturnType<typeof vi.spyOn>) {
+  return spy.mock.calls.filter(
+    (call: Parameters<Window["addEventListener"]>) => call[0] === "beforeunload"
+  );
+}
+
+/** A wallet request that stays open until the test settles it. */
+function deferredHandoff() {
+  let resolve!: (value: { hash: string; sponsored: boolean }) => void;
+  let reject!: (reason: unknown) => void;
+  const promise = new Promise<{ hash: string; sponsored: boolean }>((res, rej) => {
+    resolve = res;
+    reject = rej;
+  });
+  mockSendContractCall.mockReturnValueOnce(promise);
+  return { resolve, reject };
 }
 
 describe("hooks/blockchain/useSendToken", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockPrimaryAddress = ACCOUNT;
+    mockAuthMode = "passkey";
     mockSendContractCall.mockResolvedValue({ hash: "0xhash", sponsored: true });
-    mockReadContract.mockResolvedValue(1000n);
+    mockReadContract.mockImplementation(({ functionName }: { functionName: string }) =>
+      Promise.resolve(functionName === "getFees" ? [10n, true] : 1000n)
+    );
+    mockDelivery.mockResolvedValue(true);
+    mockWaitForReceipt.mockResolvedValue({ status: "success" });
+    Object.defineProperty(navigator, "onLine", { configurable: true, value: true });
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
   });
 
   it("sends an ERC-20 transfer with the right args and records the recipient", async () => {
     const { result } = renderHook(() => useSendToken(), { wrapper: makeWrapper() });
-    // biome-ignore lint/suspicious/noExplicitAny: test fixture token shape
-    await result.current.mutateAsync({
-      token: TOKEN as any,
-      to: RECIPIENT,
-      amount: 100n,
-      note: "hi",
-    });
+    await result.current.mutateAsync(SEND_PARAMS);
 
     expect(mockSendContractCall).toHaveBeenCalledTimes(1);
     const call = mockSendContractCall.mock.calls[0][0];
@@ -128,5 +183,312 @@ describe("hooks/blockchain/useSendToken", () => {
       })
     ).rejects.toThrow();
     expect(mockSendContractCall).not.toHaveBeenCalled();
+  });
+
+  describe("leave-page guard across the wallet handoff", () => {
+    let addSpy: ReturnType<typeof vi.spyOn>;
+    let removeSpy: ReturnType<typeof vi.spyOn>;
+
+    beforeEach(() => {
+      addSpy = vi.spyOn(window, "addEventListener");
+      removeSpy = vi.spyOn(window, "removeEventListener");
+    });
+
+    afterEach(() => {
+      addSpy.mockRestore();
+      removeSpy.mockRestore();
+    });
+
+    it("does not warn about leaving while an external wallet signs, then refreshes balances", async () => {
+      vi.useFakeTimers({ shouldAdvanceTime: true });
+      mockAuthMode = "wallet";
+      const client = makeQueryClient();
+      const invalidate = vi.spyOn(client, "invalidateQueries");
+      const handoff = deferredHandoff();
+      const { result } = renderHook(() => useSendToken(), { wrapper: makeWrapper(client) });
+
+      let send!: Promise<unknown>;
+      act(() => {
+        send = result.current.mutateAsync(SEND_PARAMS);
+      });
+      await waitFor(() => expect(mockSendContractCall).toHaveBeenCalledTimes(1));
+      await waitFor(() => expect(result.current.isPending).toBe(true));
+
+      // The wallet owns the request now; navigating to it is not lost work.
+      expect(beforeUnloadCalls(addSpy)).toHaveLength(0);
+
+      await act(async () => {
+        handoff.resolve({ hash: "0xhash", sponsored: false });
+        await send;
+      });
+
+      // Read-after-write: balances refetch now and again once the RPC catches up.
+      expect(invalidate).toHaveBeenCalledWith({ queryKey: BALANCES_KEY });
+      invalidate.mockClear();
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(BALANCE_REFETCH_DELAY_MS);
+      });
+      expect(invalidate).toHaveBeenCalledWith({ queryKey: BALANCES_KEY });
+      expect(beforeUnloadCalls(addSpy)).toHaveLength(0);
+    });
+
+    it("keeps the guard while an in-page signer is pending and removes it once settled", async () => {
+      mockAuthMode = "passkey";
+      const handoff = deferredHandoff();
+      const { result } = renderHook(() => useSendToken(), { wrapper: makeWrapper() });
+
+      let send!: Promise<unknown>;
+      act(() => {
+        send = result.current.mutateAsync(SEND_PARAMS);
+      });
+      await waitFor(() => expect(result.current.isPending).toBe(true));
+
+      expect(beforeUnloadCalls(addSpy)).toHaveLength(1);
+      expect(beforeUnloadCalls(removeSpy)).toHaveLength(0);
+
+      await act(async () => {
+        handoff.resolve({ hash: "0xhash", sponsored: true });
+        await send;
+      });
+
+      expect(beforeUnloadCalls(removeSpy)).toHaveLength(1);
+      expect(result.current.isPending).toBe(false);
+    });
+
+    it.each([
+      [
+        "rejects in the wallet",
+        Object.assign(new Error("User rejected the request"), { code: 4001 }),
+      ],
+      ["fails on-chain", new Error("Transaction reverted on-chain")],
+    ])("recovers when the user %s: no refetch, no guard left, and a retry sends again", async (_label, failure) => {
+      mockAuthMode = "wallet";
+      const client = makeQueryClient();
+      const invalidate = vi.spyOn(client, "invalidateQueries");
+      const handoff = deferredHandoff();
+      const { result } = renderHook(() => useSendToken(), { wrapper: makeWrapper(client) });
+
+      let send!: Promise<unknown>;
+      act(() => {
+        send = result.current.mutateAsync(SEND_PARAMS).catch((error: unknown) => error);
+      });
+      await waitFor(() => expect(result.current.isPending).toBe(true));
+
+      let outcome: unknown;
+      await act(async () => {
+        handoff.reject(failure);
+        outcome = await send;
+      });
+
+      expect(outcome).toBe(failure);
+      expect(toastService.dismiss).toHaveBeenCalledWith("toast-id");
+      expect(mockHandleError).toHaveBeenCalledWith(
+        failure,
+        expect.objectContaining({
+          metadata: { chainId: CHAIN, token: "GOODS" },
+          showToast: true,
+        })
+      );
+      expect(invalidate).not.toHaveBeenCalled();
+      expect(mockAddRecent).not.toHaveBeenCalled();
+      expect(beforeUnloadCalls(addSpy)).toHaveLength(0);
+      await waitFor(() => expect(result.current.isPending).toBe(false));
+
+      // The lock released with the failure, so the next attempt reaches the wallet again.
+      await act(async () => {
+        await result.current.mutateAsync(SEND_PARAMS);
+      });
+
+      expect(mockSendContractCall).toHaveBeenCalledTimes(2);
+      expect(invalidate).toHaveBeenCalledWith({ queryKey: BALANCES_KEY });
+    });
+
+    it("removes the in-page guard when the send fails", async () => {
+      mockAuthMode = "passkey";
+      const handoff = deferredHandoff();
+      const { result } = renderHook(() => useSendToken(), { wrapper: makeWrapper() });
+
+      let send!: Promise<unknown>;
+      act(() => {
+        send = result.current.mutateAsync(SEND_PARAMS).catch(() => undefined);
+      });
+      await waitFor(() => expect(beforeUnloadCalls(addSpy)).toHaveLength(1));
+
+      await act(async () => {
+        handoff.reject(new Error("Transaction reverted on-chain"));
+        await send;
+      });
+
+      expect(beforeUnloadCalls(removeSpy)).toHaveLength(1);
+    });
+  });
+});
+
+const CELO_TOKEN = {
+  ...TOKEN,
+  chainId: 42220,
+  symbol: "G$",
+  confersGovernance: false,
+  address: "0x62B8B11039FcfE5aB0C56E502b1C372A3d2a9c7A" as Address,
+};
+const reviewedFee = {
+  amount: 100n,
+  fee: 10n,
+  senderPays: true,
+  totalDebit: 110n,
+  recipientAmount: 100n,
+};
+
+describe("Celo send safety", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockPrimaryAddress = ACCOUNT;
+    mockSendContractCall.mockResolvedValue({ hash: `0x${"a".repeat(64)}`, sponsored: true });
+    mockReadContract.mockImplementation(({ functionName }: { functionName: string }) =>
+      Promise.resolve(functionName === "getFees" ? [10n, true] : 1000n)
+    );
+    mockDelivery.mockResolvedValue(true);
+    mockWaitForReceipt.mockResolvedValue({ status: "success" });
+    Object.defineProperty(navigator, "onLine", { configurable: true, value: true });
+  });
+  const input = { token: CELO_TOKEN, to: RECIPIENT, amount: 100n, reviewedFee };
+
+  it("reads, sends, confirms and invalidates only the selected Celo chain", async () => {
+    const { result } = renderHook(() => useSendToken(), { wrapper: makeWrapper() });
+    const invalidate = vi.spyOn(queryClient, "invalidateQueries");
+    await result.current.mutateAsync(input);
+    expect(mockClientForChain.mock.calls.every(([chain]) => chain === 42220)).toBe(true);
+    expect(mockSendContractCall).toHaveBeenCalledWith(expect.objectContaining({ chainId: 42220 }));
+    expect(mockWaitForReceipt).not.toHaveBeenCalled();
+    expect(invalidate.mock.calls).toContainEqual([
+      { queryKey: ["greengoods", "tokens", "celoBalance", ACCOUNT.toLowerCase(), 42220] },
+    ]);
+    expect(invalidate.mock.calls).not.toContainEqual([{ queryKey: ["greengoods", "tokens"] }]);
+  });
+
+  it("requires balance for amount plus sender-paid fee", async () => {
+    mockReadContract.mockImplementation(({ functionName }: { functionName: string }) =>
+      Promise.resolve(functionName === "getFees" ? [10n, true] : 105n)
+    );
+    const { result } = renderHook(() => useSendToken(), { wrapper: makeWrapper() });
+    await expect(result.current.mutateAsync(input)).rejects.toThrow(/insufficient/i);
+    await waitFor(() => expect(result.current.isError).toBe(true));
+    expect(mockHandleError).toHaveBeenCalled();
+    expect(mockSendContractCall).not.toHaveBeenCalled();
+  });
+
+  it("blocks missing review and a changed fee before signing", async () => {
+    const { result } = renderHook(() => useSendToken(), { wrapper: makeWrapper() });
+    await expect(result.current.mutateAsync({ ...input, reviewedFee: undefined })).rejects.toThrow(
+      /fee/i
+    );
+    await expect(
+      result.current.mutateAsync({ ...input, reviewedFee: { ...reviewedFee, fee: 9n } })
+    ).rejects.toThrow(/fee/i);
+    expect(mockSendContractCall).not.toHaveBeenCalled();
+  });
+
+  it.each([null, false])("does not gate G$ sends on settlement delivery %s", async (enabled) => {
+    mockDelivery.mockResolvedValue(enabled);
+    const { result } = renderHook(() => useSendToken(), { wrapper: makeWrapper() });
+    await expect(result.current.mutateAsync(input)).resolves.toMatchObject({
+      account: ACCOUNT.toLowerCase(),
+    });
+    expect(mockDelivery).not.toHaveBeenCalled();
+    expect(mockSendContractCall).toHaveBeenCalledOnce();
+  });
+
+  it.each(["getFees", "balanceOf"])("blocks a failed %s read", async (failedRead) => {
+    mockReadContract.mockImplementation(({ functionName }: { functionName: string }) =>
+      functionName === failedRead
+        ? Promise.reject(new Error("unavailable"))
+        : Promise.resolve(functionName === "getFees" ? [10n, true] : 1000n)
+    );
+    const { result } = renderHook(() => useSendToken(), { wrapper: makeWrapper() });
+    await expect(result.current.mutateAsync(input)).rejects.toThrow();
+    expect(mockSendContractCall).not.toHaveBeenCalled();
+  });
+
+  it("rejects an account change while the balance read is pending", async () => {
+    let finishBalance!: (balance: bigint) => void;
+    mockReadContract.mockImplementation(({ functionName }: { functionName: string }) =>
+      functionName === "getFees"
+        ? Promise.resolve([10n, true])
+        : new Promise<bigint>((resolve) => {
+            finishBalance = resolve;
+          })
+    );
+    const { result, rerender } = renderHook(() => useSendToken(), { wrapper: makeWrapper() });
+    const pending = result.current.mutateAsync(input);
+    const failure = expect(pending).rejects.toThrow(/session changed/i);
+    await waitFor(() => expect(finishBalance).toBeDefined());
+    mockPrimaryAddress = RECIPIENT;
+    rerender();
+    finishBalance(1000n);
+    await failure;
+    expect(mockSendContractCall).not.toHaveBeenCalled();
+  });
+
+  it("never queues an offline send", async () => {
+    Object.defineProperty(navigator, "onLine", { configurable: true, value: false });
+    const { result } = renderHook(() => useSendToken(), { wrapper: makeWrapper() });
+    await expect(result.current.mutateAsync(input)).rejects.toThrow(/online/i);
+    expect(mockSendContractCall).not.toHaveBeenCalled();
+  });
+
+  it("does not claim success or invalidate balance for reverted inclusion", async () => {
+    mockSendContractCall.mockRejectedValue(
+      new TransactionRevertedError(`0x${"a".repeat(64)}`, "Transaction reverted on-chain")
+    );
+    const { result } = renderHook(() => useSendToken(), { wrapper: makeWrapper() });
+    const invalidate = vi.spyOn(queryClient, "invalidateQueries");
+    await expect(result.current.mutateAsync(input)).rejects.toThrow(/revert/i);
+    expect(mockAddRecent).not.toHaveBeenCalled();
+    expect(invalidate).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    "cancelled",
+    "replaced",
+  ] as const)("does not report a %s transaction as confirmed", async (reason) => {
+    mockSendContractCall.mockRejectedValue(new TransactionReplacementError(reason));
+    const { result } = renderHook(() => useSendToken(), { wrapper: makeWrapper() });
+    await expect(result.current.mutateAsync(input)).rejects.toThrow(/cancelled|replaced/i);
+    expect(mockAddRecent).not.toHaveBeenCalled();
+  });
+  it("accepts repricing and returns the confirmed replacement hash", async () => {
+    const hash = `0x${"b".repeat(64)}`;
+    mockSendContractCall.mockResolvedValue({ hash, sponsored: false });
+    const { result } = renderHook(() => useSendToken(), { wrapper: makeWrapper() });
+    await expect(result.current.mutateAsync(input)).resolves.toMatchObject({ hash });
+    expect(mockWaitForReceipt).not.toHaveBeenCalled();
+  });
+
+  it("accepts a confirmed Celo send when a separate public RPC wait would fail", async () => {
+    mockWaitForReceipt.mockRejectedValue(new Error("Public RPC unavailable"));
+    const { result } = renderHook(() => useSendToken(), { wrapper: makeWrapper() });
+    await expect(result.current.mutateAsync(input)).resolves.toMatchObject({
+      hash: `0x${"a".repeat(64)}`,
+    });
+    expect(mockWaitForReceipt).not.toHaveBeenCalled();
+  });
+
+  it("allows registry-supported non-G$ Celo tokens without a G$ fee quote", async () => {
+    const token = { ...CELO_TOKEN, symbol: "USDC", address: TOKEN_ADDR };
+    const { result } = renderHook(() => useSendToken(), { wrapper: makeWrapper() });
+    await expect(
+      result.current.mutateAsync({ token, to: RECIPIENT, amount: 100n })
+    ).resolves.toMatchObject({ account: ACCOUNT.toLowerCase() });
+    expect(mockDelivery).not.toHaveBeenCalled();
+    expect(mockSendContractCall).toHaveBeenCalledWith(expect.objectContaining({ chainId: 42220 }));
+  });
+
+  it("allows an explicit retry after rejection and does not retry automatically", async () => {
+    mockSendContractCall.mockRejectedValueOnce(new Error("User rejected"));
+    const { result } = renderHook(() => useSendToken(), { wrapper: makeWrapper() });
+    await expect(result.current.mutateAsync(input)).rejects.toThrow(/rejected/i);
+    expect(mockSendContractCall).toHaveBeenCalledTimes(1);
+    await result.current.mutateAsync(input);
+    expect(mockSendContractCall).toHaveBeenCalledTimes(2);
   });
 });

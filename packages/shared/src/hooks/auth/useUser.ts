@@ -30,6 +30,7 @@
  * ```
  */
 
+import type { SmartAccountClientResolver } from "../../types/auth";
 import type { SmartAccountClient } from "permissionless";
 import { useAuth } from "./useAuth";
 import type { Address } from "../../types/domain";
@@ -53,6 +54,7 @@ export interface UseUserReturn {
   smartAccountAddress: Address | null;
   /** Smart account client for transactions (passkey mode only) */
   smartAccountClient: SmartAccountClient | null;
+  resolveSmartAccountClient: SmartAccountClientResolver | null;
   /** Current authentication mode */
   authMode: "wallet" | "passkey" | "embedded" | null;
   /** Passkey username (only set when authMode === "passkey") */
@@ -81,6 +83,7 @@ export function useUser(): UseUserReturn {
     externalWalletConnected = false,
     externalWalletAddress = null,
     smartAccountClient = null,
+    resolveSmartAccountClient = null,
   } = auth;
 
   const primaryAddress = getPrimaryAddress(
@@ -105,6 +108,7 @@ export function useUser(): UseUserReturn {
     eoa,
     smartAccountAddress,
     smartAccountClient,
+    resolveSmartAccountClient,
     authMode,
     userName,
     ensName: null, // Disabled - useEnsName was called before QueryClient was available

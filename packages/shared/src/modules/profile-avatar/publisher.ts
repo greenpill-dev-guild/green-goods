@@ -1,3 +1,4 @@
+import type { AccountFactoryArgs } from "../auth/account-message-signer";
 import type { Address } from "../../types/domain";
 import {
   buildProfileAvatarMessage,
@@ -6,7 +7,6 @@ import {
 } from "../../public-contracts/profile-avatar";
 import {
   ProfileAvatarTransportError,
-  type ProfileAvatarFactoryArgs,
   type ProfileAvatarPublishDependencies,
   type ProfileAvatarPublishInput,
 } from "./types";
@@ -20,7 +20,7 @@ function mutationFor(
   expectedVersion: number,
   signature: `0x${string}`,
   issuedAt: number,
-  factoryArgs?: ProfileAvatarFactoryArgs
+  factoryArgs?: AccountFactoryArgs
 ): ProfileAvatarMutation {
   return {
     avatarUri,
@@ -78,7 +78,12 @@ export async function publishProfileAvatar(
   const avatarUri = targetUri(input);
   if (input.action === "set" && !avatarUri)
     throw new Error("Profile image upload did not return a CID.");
-  let mutation = await signedMutation(dependencies, chainId, address, avatarUri, current.version);
+  // A prior request may have completed after the client timed out.
+  if (current.avatarUri === avatarUri) {
+    await dependencies.clearDraft();
+    return current;
+  }
+  const mutation = await signedMutation(dependencies, chainId, address, avatarUri, current.version);
   dependencies.onStage?.("saving");
   try {
     const record = await dependencies.save(chainId, address, mutation);
@@ -93,11 +98,7 @@ export async function publishProfileAvatar(
       await dependencies.clearDraft();
       return refreshed;
     }
-    if (isVersionConflict) throw error;
-    mutation = await signedMutation(dependencies, chainId, address, avatarUri, refreshed.version);
-    dependencies.onStage?.("saving");
-    const record = await dependencies.save(chainId, address, mutation);
-    await dependencies.clearDraft();
-    return record;
+    // Another signature requires another explicit action from the gardener.
+    throw error;
   }
 }

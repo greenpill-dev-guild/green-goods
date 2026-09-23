@@ -1,8 +1,8 @@
 import { createPimlicoClient } from "permissionless/clients/pimlico";
-import { ENV } from "../lib/env";
-import { type Chain, createPublicClient, http } from "viem";
+import { type Chain, createPublicClient, fallback, http } from "viem";
 import { entryPoint07Address } from "viem/account-abstraction";
 import { mainnet, sepolia } from "viem/chains";
+import { ENV } from "../lib/env";
 import { getRpcUrl } from "../utils/blockchain/chain-registry";
 import { getChain, isChainSupported } from "./chains";
 
@@ -29,6 +29,22 @@ const celoSepoliaProfileChain = {
   nativeCurrency: { name: "CELO", symbol: "CELO", decimals: 18 },
   rpcUrls: { default: { http: [PIMLICO_API_ENDPOINTS[11142220]] } },
 } as const satisfies Chain;
+
+/** The policy every chain takes unless the environment names another. */
+const GENERAL_SPONSORSHIP_POLICY_ID = "sp_next_monster_badoon";
+
+/**
+ * One general policy covers every chain, Celo included. Celo may name its own
+ * override; without one it takes the general policy exactly as Arbitrum does,
+ * so a Celo send never waits on configuration that Arbitrum does not need.
+ */
+export function getPimlicoSponsorshipPolicyId(chainId: number): string {
+  const celoOverride =
+    chainId === 42220 ? ENV.VITE_PIMLICO_CELO_SPONSORSHIP_POLICY_ID?.trim() : undefined;
+  return (
+    celoOverride || ENV.VITE_PIMLICO_SPONSORSHIP_POLICY_ID?.trim() || GENERAL_SPONSORSHIP_POLICY_ID
+  );
+}
 
 export function getPimlicoApiKey(): string {
   const apiKey = ENV.VITE_PIMLICO_API_KEY;
@@ -97,8 +113,12 @@ export function createPublicClientForChain(chainId: number) {
       ? getPimlicoBundlerUrl(chainId)
       : getRpcUrl(chainId, ENV.VITE_ALCHEMY_API_KEY);
 
+  const publicRpcUrl = getRpcUrl(chainId);
   return createPublicClient({
-    transport: http(rpcUrl),
+    transport:
+      chainId === 42220 && rpcUrl !== publicRpcUrl
+        ? fallback([http(rpcUrl), http(publicRpcUrl)])
+        : http(rpcUrl),
     chain,
   });
 }

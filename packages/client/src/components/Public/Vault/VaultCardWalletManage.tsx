@@ -38,6 +38,7 @@ import {
   useSendAndConfirmTransaction,
 } from "thirdweb/react";
 import { inAppWallet, preAuthenticate } from "thirdweb/wallets/in-app";
+import { TextInput } from "@green-goods/shared/components/Form/ControlPrimitives";
 import { EditorialGhostButton } from "../atoms";
 import { PositionsList, VaultPositionRowView } from "./VaultManagePositionsPanel";
 import { prepareCardWalletRedeem, readCardWalletMaxRedeemable } from "./vaultCardWalletManageCalls";
@@ -489,7 +490,7 @@ function PendingFundedDepositCard({
       {sessionLive ? (
         <EditorialGhostButton
           variant="warm"
-          className="mt-4 w-full px-5 py-2.5 text-sm"
+          className="mt-4 w-full"
           disabled={busy || !tokenAddress || !expectedAmount}
           onClick={() => void finishDeposit()}
         >
@@ -607,7 +608,7 @@ function RestoreEmailWallet({
         >
           {formatMessage({ id: "public.vaults.manage.card.emailLabel", defaultMessage: "Email" })}
         </label>
-        <input
+        <TextInput
           id={emailInputId}
           type="email"
           autoComplete="email"
@@ -621,15 +622,9 @@ function RestoreEmailWallet({
             }
             setError(null);
           }}
-          className="min-h-11 w-full rounded-full border border-stroke-soft-200 bg-bg-white-0 px-4 py-2.5 text-sm text-text-strong-950 outline-none transition-colors placeholder:text-text-soft-400 focus:border-primary-action"
         />
         {!otpSent ? (
-          <EditorialGhostButton
-            variant="warm"
-            type="submit"
-            disabled={!canSend}
-            className="mt-1 px-5 py-2.5 text-sm"
-          >
+          <EditorialGhostButton variant="warm" type="submit" disabled={!canSend} className="mt-1">
             {formatMessage({
               id: "public.vaults.manage.card.sendCode",
               defaultMessage: "Send Email Code",
@@ -658,7 +653,7 @@ function RestoreEmailWallet({
               defaultMessage: "Email code",
             })}
           </label>
-          <input
+          <TextInput
             id={otpInputId}
             inputMode="numeric"
             autoComplete="one-time-code"
@@ -668,13 +663,12 @@ function RestoreEmailWallet({
               setOtp(event.target.value);
               setError(null);
             }}
-            className="min-h-11 w-full rounded-full border border-stroke-soft-200 bg-bg-white-0 px-4 py-2.5 text-sm text-text-strong-950 outline-none transition-colors placeholder:text-text-soft-400 focus:border-primary-action"
           />
           <EditorialGhostButton
             variant="warm"
             type="submit"
             disabled={!canVerify || isConnecting}
-            className="mt-1 px-5 py-2.5 text-sm"
+            className="mt-1"
           >
             {formatMessage({
               id: "public.vaults.manage.card.verify",

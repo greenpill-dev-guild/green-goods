@@ -6,19 +6,9 @@ import { expect, within } from "storybook/test";
 import { withClientAppRuntime, withInstalledPwa } from "../../../../shared/.storybook/decorators";
 import { AppBar } from "./AppBar";
 
-function WithDrawerOpen({
-  drawer,
-  children,
-}: {
-  drawer: "isWorkDashboardOpen" | "isGardenFilterOpen" | "isEndowmentDrawerOpen";
-  children: React.ReactNode;
-}) {
-  useEffect(() => {
-    useUIStore.setState({ [drawer]: true });
-    return () => {
-      useUIStore.setState({ [drawer]: false });
-    };
-  }, [drawer]);
+/** Registers one open sheet for the story's lifetime, the way every sheet does while open. */
+function WithSheetOpen({ children }: { children: React.ReactNode }) {
+  useEffect(() => useUIStore.getState().registerOpenSheet(), []);
   return <>{children}</>;
 }
 
@@ -101,44 +91,20 @@ export const HiddenOnWorkDetailRoute: Story = {
   },
 };
 
-export const HiddenWhenWorkDashboardOpen: Story = {
-  decorators: [
-    (Story) => (
-      <WithDrawerOpen drawer="isWorkDashboardOpen">
-        <Story />
-      </WithDrawerOpen>
-    ),
-    withRouter(["/home"]),
-  ],
-  play: async ({ canvasElement }) => {
-    const canvas = within(canvasElement);
-    const nav = canvas.getByTestId("authenticated-nav");
-    expect(nav.className).toContain("translate-y-full");
+export const HiddenWhenSheetOpen: Story = {
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Any open sheet or dialog hides the bottom nav (DL-015): sheets register themselves while open, so there is no list to keep in sync.",
+      },
+    },
   },
-};
-
-export const HiddenWhenGardenFilterOpen: Story = {
   decorators: [
     (Story) => (
-      <WithDrawerOpen drawer="isGardenFilterOpen">
+      <WithSheetOpen>
         <Story />
-      </WithDrawerOpen>
-    ),
-    withRouter(["/home"]),
-  ],
-  play: async ({ canvasElement }) => {
-    const canvas = within(canvasElement);
-    const nav = canvas.getByTestId("authenticated-nav");
-    expect(nav.className).toContain("translate-y-full");
-  },
-};
-
-export const HiddenWhenEndowmentDrawerOpen: Story = {
-  decorators: [
-    (Story) => (
-      <WithDrawerOpen drawer="isEndowmentDrawerOpen">
-        <Story />
-      </WithDrawerOpen>
+      </WithSheetOpen>
     ),
     withRouter(["/home"]),
   ],

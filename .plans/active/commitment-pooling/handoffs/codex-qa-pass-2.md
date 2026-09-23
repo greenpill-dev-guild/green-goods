@@ -78,3 +78,62 @@
   garden-retained amount, no-child finalization, idempotent per-contributor preparation, stable
   parent pointer, child amounts, and reasons.
 - Treat any single-provider fallback, four-item product cap, equal-by-presence allocation, garden-retention omission, or fulfillment reversal after child failure as a release blocker.
+
+## 2026-09-04 staging/beta QA unblock
+
+This pass is limited to the staging admin and beta client. Production rollout, contract changes,
+indexer schema changes, general PWA cache work, a custom payout editor, and TAS settlement remain
+out of scope. Pool configuration is an intentional part of the walkthrough and is not a blocker.
+
+### Implemented candidate
+
+- The Zodiac allowance read now decodes `refill, maxRefill, period, balance, timestamp` and displays
+  the current `balance`. A timestamp-shaped regression fixture protects the tuple position.
+- Settlement authority is action-specific: protocol steward or module owner may queue funding; the
+  executor-garden steward or exact dispatcher may dispatch and retry; only the executor-garden
+  steward may requeue or cancel. Deployer status and module ownership alone do not expose payout
+  operations.
+- A Safe proposal remains `submitted` until `gardenerDeliveryEnabled()` reads back the requested
+  value. The admin shows that Safe execution is pending and provides **Check on chain**; a rejected
+  or failed submission does not change the displayed chain state.
+- The protocol-funding card derives receiving-garden choices from registered commitment pools, so
+  a stale persisted garden catalogue no longer hides Aiyeloja, TAS, or another registered pool.
+- Existing boot recovery, query-persistence recovery, settlement controllers, and settlement UI
+  remain intact.
+
+### Evidence
+
+- Initial RED: 10 focused failures covered the allowance tuple, role matrix, and Safe submission
+  readback behavior before the implementation was corrected.
+- Targeted GREEN: shared funding, settlement hooks, workflow, selectors, and controllers passed;
+  admin boot recovery, commitment settlement, protocol funding, and settlement operation tests
+  passed. The final targeted runs passed 99/99 shared tests and 55/55 admin tests.
+- Build GREEN: shared and admin full typechecks passed. The production admin build passed and its
+  artifact contains the boot marker, protocol-funding surface, and submitted-Safe copy.
+- Guard GREEN: formatting, vocabulary, Storybook coverage, Storybook quality, design, ontology,
+  documentation generation, and source-structure checks passed during this pass.
+- Repo Quick Gate: every runnable check passed. Its browser-proof entry remained
+  `manual-proof-required`; the authenticated Brave evidence below is the corresponding manual
+  proof.
+- Authenticated Brave GREEN on the local staging-configured build: the admin root, `/hub/confirm`,
+  Community, Garden, Pool, and Protocol pool surfaces rendered without an application crash. The
+  Protocol pool displayed a 999,999 G$ Safe balance, 14,999,999 G$ remaining allowance, a
+  7,000,000 G$ transfer cap, and the indexed confirmed Community-to-Aiyeloja row. The recipient
+  selector included Aiyeloja and TAS, and selecting Aiyeloja resolved its Safe with a 2 G$ amount.
+  A rendered settlement story showed **Submitted. Awaiting Safe execution and on-chain
+  confirmation.** and **Check on chain**.
+- Direct staging-indexer read at `95c2129` returned 18 registered pools. Community, Aiyeloja, and
+  TAS are present and currently `NOT_READY`, which is the expected starting state for the paired
+  UI setup.
+
+### Remaining human-observed acceptance
+
+The code and local authenticated-browser candidate are ready for deployment proof. This handoff is
+not the record of completed value movement: after current-head CI and both staging deployments are
+green, a human must approve the Safe and wallet transactions used to enable delivery, configure the
+three pools, complete the 2 G$ Community-to-Aiyeloja transfer, and complete the 0.5 G$ Aiyeloja
+contributor payout. Both flows must converge to indexed `Confirmed` before the end-to-end QA pass is
+called complete.
+
+The reviewed tree is the commit containing this section. Resolve its exact SHA with
+`git rev-parse HEAD`; the working tree is expected to be clean after that commit.

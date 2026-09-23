@@ -1,4 +1,5 @@
 import type {
+  CommitmentActKind,
   CommitmentDerivedState,
   CommitmentReadModel,
   CommitmentSeat,
@@ -223,10 +224,18 @@ const NEUTRAL_FALLBACK: Record<string, StatusBand> = {
 export function selectStatusBand(input: {
   commitment: Pick<CommitmentReadModel, "derivedState">;
   seat: CommitmentSeat | null;
+  /**
+   * The one act this reader is offered. The provider's lapsed band promises
+   * "you can offer it again", and that act belongs to whoever made the
+   * commitment, not to whoever took up somebody else's request.
+   */
+  actKind?: CommitmentActKind | null;
 }): StatusBand | null {
   const { commitment, seat } = input;
   const phase = commitment.derivedState;
-  if (seat) {
+  const promisesAnActNotOffered =
+    seat === "provider" && phase === "EXPIRED" && input.actKind !== "offerAgain";
+  if (seat && !promisesAnActNotOffered) {
     const seated = BANDS[key(seat, phase)];
     if (seated) return seated;
   }

@@ -7,6 +7,7 @@
 #   3. Type-safety bypasses: @ts-nocheck in test files
 #   4. Newly added or renamed Solidity tests use the canonical naming format
 #   5. Direct-tested seams import their subject and never mock that subject
+#   6. New local query setup uses a shared helper or records why it cannot
 
 set -euo pipefail
 
@@ -159,6 +160,18 @@ if [ "$DIRECT_SEAM_STATUS" -eq 1 ]; then
 elif [ "$DIRECT_SEAM_STATUS" -ne 0 ]; then
   echo "ERROR: Direct-tested seam checker could not run (exit $DIRECT_SEAM_STATUS)."
   exit "$DIRECT_SEAM_STATUS"
+fi
+echo ""
+
+# ── Summary ─────────────────────────────────────────────────────
+echo "--- Check 6: Diff-aware query setup ---"
+QUERY_SETUP_STATUS=0
+node "$REPO_ROOT/scripts/quality/check-test-query-setup.mjs" || QUERY_SETUP_STATUS=$?
+if [ "$QUERY_SETUP_STATUS" -eq 1 ]; then
+  VIOLATIONS=$((VIOLATIONS + 1))
+elif [ "$QUERY_SETUP_STATUS" -ne 0 ]; then
+  echo "ERROR: Test query-setup checker could not run (exit $QUERY_SETUP_STATUS)."
+  exit "$QUERY_SETUP_STATUS"
 fi
 echo ""
 

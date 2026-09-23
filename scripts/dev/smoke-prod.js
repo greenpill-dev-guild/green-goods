@@ -26,6 +26,20 @@ reexecUnderSystemNodeIfNeeded({
 const ARBITRUM_CHAIN_ID = 42161;
 const DEFAULT_PRODUCTION_INDEXER_URL = "https://indexer.hyperindex.xyz/0bf0e0f/v1/graphql";
 const DEFAULT_PRODUCTION_AGENT_URL = "https://agent.greengoods.app";
+// Browser surfaces that must reach the production agent. AGENT_ALLOWED_ORIGINS
+// lives only in Fly secrets, so this live preflight is what guards the list.
+// The staging names are DNS aliases of the beta deployments.
+const PRODUCTION_AGENT_BROWSER_ORIGINS = [
+  "https://greengoods.app",
+  "https://www.greengoods.app",
+  "https://admin.greengoods.app",
+  "https://beta.greengoods.app",
+  "https://beta.admin.greengoods.app",
+  "https://staging.greengoods.app",
+  "https://staging-admin.greengoods.app",
+];
+// An origin the agent must refuse with HTTP 403, so an allowlist that admits anything fails too.
+const PRODUCTION_AGENT_REFUSED_ORIGIN = "https://not-allowed.example.com";
 const LOCAL_INDEXER_URL = "http://localhost:3006/v1/graphql";
 const DEFAULT_ARBITRUM_RPC_URL = "https://arb1.arbitrum.io/rpc";
 const DEFAULT_MAX_INDEXER_LAG_BLOCKS = 2_000;
@@ -554,6 +568,89 @@ async function checkProductionAgentHealth() {
   }
 }
 
+async function preflightUploadSign(uploadSignUrl, origin) {
+  const response = await fetch(uploadSignUrl, {
+    method: "OPTIONS",
+    headers: {
+      Origin: origin,
+      "Access-Control-Request-Method": "POST",
+      "Access-Control-Request-Headers": "Content-Type",
+    },
+    signal: AbortSignal.timeout(12_000),
+  });
+  return {
+    origin,
+    status: response.status,
+    text: await response.text(),
+    allowedOrigin: response.headers.get("access-control-allow-origin"),
+    allowedMethods: response.headers.get("access-control-allow-methods") || "",
+    allowedHeaders: response.headers.get("access-control-allow-headers") || "",
+  };
+}
+
+function describeAllowedOriginProblem(preflight) {
+  const { origin, status, text, allowedOrigin, allowedMethods, allowedHeaders } = preflight;
+  if (status !== 204) {
+    return `${origin}: HTTP ${status} ${text.slice(0, 80)}`;
+  }
+  if (allowedOrigin !== origin) {
+    return `${origin}: Access-Control-Allow-Origin=${allowedOrigin || "missing"}`;
+  }
+
+  const methodsList = allowedMethods.split(",").map((m) => m.trim().toUpperCase());
+  if (!methodsList.includes("POST")) {
+    return `${origin}: Access-Control-Allow-Methods=${allowedMethods || "missing"} (POST not permitted)`;
+  }
+
+  const headersList = allowedHeaders.split(",").map((h) => h.trim().toLowerCase());
+  if (!headersList.includes("content-type")) {
+    return `${origin}: Access-Control-Allow-Headers=${allowedHeaders || "missing"} (Content-Type not permitted)`;
+  }
+  return null;
+}
+
+async function checkProductionAgentBrowserOrigins() {
+  const agentBaseUrl = getAgentBaseUrl();
+  const uploadSignUrl = new URL("/api/uploads/sign", `${agentBaseUrl}/`).toString();
+
+  try {
+    const [refused, ...allowed] = await Promise.all(
+      [PRODUCTION_AGENT_REFUSED_ORIGIN, ...PRODUCTION_AGENT_BROWSER_ORIGINS].map((origin) =>
+        preflightUploadSign(uploadSignUrl, origin)
+      )
+    );
+
+    const problems = allowed.map(describeAllowedOriginProblem).filter(Boolean);
+    if (refused.status !== 403 || refused.allowedOrigin) {
+      const allowOriginNote = refused.allowedOrigin
+        ? ` with Access-Control-Allow-Origin=${refused.allowedOrigin}`
+        : "";
+      problems.push(
+        `${refused.origin}: expected HTTP 403 without Access-Control-Allow-Origin, got HTTP ${refused.status}${allowOriginNote}`
+      );
+    }
+    if (problems.length > 0) {
+      throw new Error(problems.join("; "));
+    }
+
+    return {
+      name: "production-agent-browser-origins",
+      level: "pass",
+      ready: true,
+      detail: `${allowed.length} browser origins allowed; unlisted origin refused with HTTP ${refused.status}`,
+      url: redactUrl(uploadSignUrl),
+    };
+  } catch (error) {
+    return {
+      name: "production-agent-browser-origins",
+      level: "fail",
+      ready: false,
+      detail: error instanceof Error ? error.message : String(error),
+      url: redactUrl(uploadSignUrl),
+    };
+  }
+}
+
 async function checkLocalIndexerService() {
   if (options.mode !== "mirror") {
     return {
@@ -609,6 +706,7 @@ const serviceResults = await Promise.all(
 const rpcChainResult = await checkRpcChain();
 const contractBytecodeResult = await checkContractBytecode();
 const productionAgentHealthResult = await checkProductionAgentHealth();
+const productionAgentBrowserOriginsResult = await checkProductionAgentBrowserOrigins();
 const indexerGraphqlResult = await checkIndexerGraphql();
 const indexerLagResult = await checkIndexerLag(indexerGraphqlResult);
 const localIndexerServiceResult = await checkLocalIndexerService();
@@ -617,6 +715,7 @@ const results = [
   rpcChainResult,
   contractBytecodeResult,
   productionAgentHealthResult,
+  productionAgentBrowserOriginsResult,
   indexerGraphqlResult,
   indexerLagResult,
   localIndexerServiceResult,
@@ -631,9 +730,9 @@ const payload = {
     timeoutMs: options.timeoutMs,
   },
   entrypoints: {
-    prod: "bun run dev:prod",
-    mirror: "bun run dev:prod:mirror",
-    smoke: "bun run dev:prod:smoke",
+    prod: "bun run dev -- prod",
+    mirror: "bun run dev -- prod-mirror",
+    smoke: "bun run dev:smoke -- prod",
   },
 };
 

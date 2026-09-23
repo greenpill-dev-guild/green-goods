@@ -3,7 +3,7 @@ import { DEFAULT_CHAIN_ID } from "../../../config/default-chain";
 import { jobQueue } from "../../../modules/job-queue/default-instance";
 import { useJobQueue } from "../../../providers/JobQueue";
 import type { Address } from "../../../types/domain";
-import { useOffline } from "../../app/useOffline";
+import { useOnlineStatus } from "../../app/useOnlineStatus";
 import { usePrimaryAddress } from "../../auth/usePrimaryAddress";
 import { useHasRole } from "../../roles/useHasRole";
 import {
@@ -25,7 +25,7 @@ const NON_PARTICIPATING_STATES = new Set(["NOT_READY", "READY", "CLOSED", "COMPO
 export function useGardenPoolController(pool: CommitmentPoolRecord) {
   const chainId = DEFAULT_CHAIN_ID;
   const viewer = usePrimaryAddress();
-  const { isOnline } = useOffline();
+  const isOnline = useOnlineStatus();
   const [selectedCycleId, setSelectedCycleId] = useState<bigint | null>(null);
   const [direction, setDirection] = useState<GardenPoolDirection>("all");
   // The daily list defaults to the living; the settled fold behind a scope
@@ -48,7 +48,7 @@ export function useGardenPoolController(pool: CommitmentPoolRecord) {
   );
   const queue = useCommitmentQueueState(viewer as Address | null);
   const { pendingCreates, refresh: refreshQueue } = queue;
-  const { flush } = useJobQueue();
+  const { retryAndSend } = useJobQueue();
   const commitments = useCommitments({
     chainId,
     poolId: pool.poolId,
@@ -89,14 +89,14 @@ export function useGardenPoolController(pool: CommitmentPoolRecord) {
     async (jobId: string) => {
       setBusyJobId(jobId);
       try {
-        await jobQueue.retryJob(jobId);
-        await flush();
+        // Retrying one act sends only that act, never the rest of the queue.
+        await retryAndSend(jobId);
       } finally {
         setBusyJobId(null);
         refreshQueue();
       }
     },
-    [flush, refreshQueue]
+    [retryAndSend, refreshQueue]
   );
   const discard = useCallback(
     async (jobId: string) => {
@@ -132,6 +132,6 @@ export function useGardenPoolController(pool: CommitmentPoolRecord) {
     poolState,
     isParticipating: !NON_PARTICIPATING_STATES.has(poolState),
     canCreate: poolState === "OPEN" && (pool.poolType !== "PROTOCOL" || stewardsPool || ownsPool),
-    acts: { flush, retry, discard },
+    acts: { retry, discard },
   };
 }

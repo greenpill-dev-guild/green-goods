@@ -206,9 +206,6 @@ export {
 } from "./cookie-jar/useCampaignCookieJar";
 export { useCampaignCookieJarCampaigns } from "./cookie-jar/useCampaignCookieJarCampaigns";
 export {
-  useCookieJarEmergencyWithdraw,
-  useCookieJarPause,
-  useCookieJarUnpause,
   useCookieJarUpdateInterval,
   useCookieJarUpdateMaxWithdrawal,
 } from "./cookie-jar/useCookieJarAdmin";
@@ -276,6 +273,7 @@ export type {
   UseFilteredGardensResult,
 } from "./garden/useFilteredGardens";
 export { useFilteredGardens } from "./garden/useFilteredGardens";
+export { useGardenAccountSigner } from "./garden/useGardenAccountSigner";
 export { useGardenDerivedState } from "./garden/useGardenDerivedState";
 export { useGardenDetailData } from "./garden/useGardenDetailData";
 export { useGardenDomains } from "./garden/useGardenDomains";
@@ -539,7 +537,6 @@ export {
 } from "./vault/vault-helpers";
 export { fetchApprovalsByRecipients } from "./work/useAggregatedApprovals";
 export { useBatchWorkApproval } from "./work/useBatchWorkApproval";
-export { useBatchWorkSync } from "./work/useBatchWorkSync";
 export type { UseCrossGardenQueueResult } from "./work/useCrossGardenQueue";
 export { useCrossGardenQueue } from "./work/useCrossGardenQueue";
 export { useDraftAutoSave } from "./work/useDraftAutoSave";
@@ -547,12 +544,12 @@ export { useDraftResume } from "./work/useDraftResume";
 export type { DraftWithImages, UseDraftsReturn } from "./work/useDrafts";
 export { useDrafts } from "./work/useDrafts";
 export { useMyOnlineWorks, useMyWorks } from "./work/useMyWorks";
+export { type NeedsReviewState, useNeedsReview } from "./work/useNeedsReview";
 export type { PendingReviewCountState } from "./work/usePendingReviewCount";
 export { usePendingReviewCount } from "./work/usePendingReviewCount";
 export type { PlatformStats } from "./work/usePlatformStats";
 export { usePlatformStats } from "./work/usePlatformStats";
 export { useReviewerGardenIds } from "./work/useReviewerGardenIds";
-export { useReviewerWorks } from "./work/useReviewerWorks";
 export type {
   SubmissionProgressState,
   SubmissionStage,
@@ -586,7 +583,6 @@ export {
   useQueueStatistics,
   useWorks,
 } from "./work/useWorks";
-// YIELD
 export { useAllocateYield } from "./yield/useAllocateYield";
 export {
   type GardenYieldSummary,
@@ -602,3 +598,4 @@ export {
 } from "./yield/useProtocolYieldSummary";
 export { useSplitConfig } from "./yield/useSplitConfig";
 export { useYieldAllocations } from "./yield/useYieldAllocations";
+export * from "./offline/useOfflineContent";

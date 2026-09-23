@@ -107,7 +107,7 @@ function ensureBuildOutputs() {
   const missing = surfaces.filter((surface) => !existsSync(path.join(surface.root, "index.html")));
   if (missing.length) {
     throw new Error(
-      `Missing built output for ${missing.map((surface) => surface.name).join(", ")}. Run bun run browser-proof:routes.`,
+      `Missing built output for ${missing.map((surface) => surface.name).join(", ")}. Run bun run browser routes.`,
     );
   }
 }

@@ -311,15 +311,28 @@ export function useCommitmentComposerSession(input: {
   }, [form, open, sessionKey]);
 
   useEffect(() => {
-    if (!open) return;
-    for (const [field, value] of Object.entries(initial)) {
-      const name = field as keyof CommitmentComposerValues;
-      if (value === undefined || form.getFieldState(name).isDirty) continue;
-      if (form.getValues(name) === value) continue;
-      // Not dirty: this is the default arriving, not an answer being given.
-      form.setValue(name, value as never, { shouldDirty: false });
-    }
+    if (open) applyLateComposerDefaults(form, initial);
   }, [form, open, initial]);
+}
+
+/**
+ * Give the form answers that arrived after it was built: a default only a query
+ * could supply, or the commitment it is being composed again from.
+ *
+ * Field by field, and only where nobody has typed, so a late answer never
+ * overwrites the person's own.
+ */
+export function applyLateComposerDefaults(
+  form: UseFormReturn<CommitmentComposerValues>,
+  values: Partial<CommitmentComposerValues>
+): void {
+  for (const [field, value] of Object.entries(values)) {
+    const name = field as keyof CommitmentComposerValues;
+    if (value === undefined || form.getFieldState(name).isDirty) continue;
+    if (form.getValues(name) === value) continue;
+    // Not dirty: this is the default arriving, not an answer being given.
+    form.setValue(name, value as never, { shouldDirty: false });
+  }
 }
 
 /**

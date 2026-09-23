@@ -38,6 +38,13 @@ const tabsWithDisabled = [
   { id: "archived", label: "Archived", disabled: true },
 ];
 
+const gardenSections = [
+  { id: "work", label: "Work" },
+  { id: "pool", label: "Pool" },
+  { id: "insights", label: "Insights" },
+  { id: "gardeners", label: "Gardeners" },
+];
+
 const meta: Meta<typeof StandardTabs> = {
   title: "Client/Navigation/StandardTabs",
   component: StandardTabs,
@@ -100,6 +107,11 @@ export const WithDisabled: Story = {
 
 export const Compact: Story = {
   render: () => <TabsDemo tabs={basicTabs} variant="compact" />,
+};
+
+export const GardenSections: Story = {
+  render: () => <TabsDemo tabs={gardenSections} variant="compact" />,
+  globals: { viewport: { value: "mobile" } },
 };
 
 export const Loading: Story = {

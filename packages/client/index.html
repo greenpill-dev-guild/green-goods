@@ -64,8 +64,10 @@
       name="msapplication-TileImage"
       content="%BASE_URL%%PWA_MS_TILE_IMAGE%"
     />
-    <meta name="theme-color" content="%PWA_THEME_COLOR_LIGHT%" media="(prefers-color-scheme: light)" />
-    <meta name="theme-color" content="%PWA_THEME_COLOR_DARK%" media="(prefers-color-scheme: dark)" />
+    <!-- Carries both scheme colors. The boot-theme script below and shared theme.ts
+         set the content from the matching data-* value, so the browser chrome follows
+         the selected theme rather than the OS scheme. -->
+    <meta name="theme-color" content="%PWA_THEME_COLOR_LIGHT%" data-light="%PWA_THEME_COLOR_LIGHT%" data-dark="%PWA_THEME_COLOR_DARK%" />
 
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -85,13 +87,26 @@
     />
 
     <title>%PWA_APP_NAME%</title>
-    <script>
+    <script id="boot-theme">
       // Set theme before render to prevent flash
       (function() {
-        var stored = localStorage.getItem('theme') || 'system';
+        var stored = 'system';
+        try {
+          stored = localStorage.getItem('theme') || 'system';
+        } catch (_) {
+          // Denied storage falls back to the OS scheme, as getTheme() does.
+        }
         var systemDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
         var isDark = stored === 'dark' || (stored === 'system' && systemDark);
-        document.documentElement.dataset.theme = isDark ? 'dark' : 'light';
+        var resolved = isDark ? 'dark' : 'light';
+        document.documentElement.dataset.theme = resolved;
+
+        // Point the theme-color meta at the selected theme, so the browser
+        // chrome matches the app instead of the OS scheme. Shared theme.ts
+        // keeps it current after boot.
+        var meta = document.querySelector('meta[name="theme-color"]');
+        var color = meta && meta.dataset[resolved];
+        if (color) meta.content = color;
       })();
     </script>
     <script id="boot-presentation-detector">
@@ -251,15 +266,6 @@
         font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
       }
 
-      html[data-boot-presentation="pwa"],
-      html[data-boot-presentation="pwa"] body {
-        width: 100%;
-        height: 100%;
-        margin: 0;
-        overflow: hidden;
-        font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      }
-
       [data-theme="dark"] #boot-fallback {
         --boot-canvas: var(--color-bg-weak-50, #161412);
         --boot-card: var(--color-bg-weak-50, #161412);
@@ -269,8 +275,18 @@
         --boot-deep: var(--color-editorial-deep, #120d09);
       }
 
+      /* The loader stays up until auth is ready, then hands off to html, body,
+         and SplashScaffold, which all paint bg-white-0; taking the same token
+         leaves the handoff seamless. The dark action fallback exists because a
+         dark canvas drops the old one to 1.7:1 when the stylesheet never
+         arrived. */
       html[data-boot-presentation="pwa"] #boot-fallback {
-        --boot-canvas: var(--color-static-white, #ffffff);
+        --boot-canvas: var(--color-bg-white-0, #ffffff);
+      }
+
+      html[data-boot-presentation="pwa"][data-theme="dark"] #boot-fallback {
+        --boot-canvas: var(--color-bg-white-0, #0c0a09);
+        --boot-action: var(--color-primary-action, #1a7544);
       }
 
       .boot-editorial-shell {
@@ -577,8 +593,8 @@
         box-sizing: border-box;
         overflow-x: hidden;
         overflow-y: auto;
-        background: var(--color-static-white, #ffffff);
-        color: var(--color-static-black, #1f2a24);
+        background: var(--boot-canvas);
+        color: var(--boot-ink);
         text-align: center;
       }
 
@@ -896,9 +912,10 @@
             applying: "Updating Green Goods…",
             applyingAction: "Updating…",
             loading: "Green Goods is loading.",
-            offline: "You’re offline. Reconnect, then try again.",
+            offline: "You’re offline. Saved screens may still be available.",
             retry: "Try Again",
-            stalled: "Update failed. Close and reopen Green Goods, or try again.",
+            stalled: "Close every Green Goods window, then open the app again.",
+            updateWaiting: "Update waiting. Close every Green Goods window, then open the app again.",
             update: "Green Goods needs the latest app files.",
             updateAction: "Update app",
             websiteRecoveryTitle: "This page is taking longer than expected.",
@@ -909,9 +926,10 @@
             applying: "Actualizando Green Goods…",
             applyingAction: "Actualizando…",
             loading: "Green Goods se está cargando.",
-            offline: "Estás sin conexión. Vuelve a conectarte e inténtalo de nuevo.",
+            offline: "Estás sin conexión. Las pantallas guardadas pueden seguir disponibles.",
             retry: "Intentar de nuevo",
-            stalled: "La actualización falló. Cierra y abre Green Goods, o reintenta.",
+            stalled: "Cierra todas las ventanas de Green Goods y vuelve a abrir la app.",
+            updateWaiting: "Actualización pendiente. Cierra todas las ventanas de Green Goods y vuelve a abrir la app.",
             update: "Green Goods necesita los archivos más recientes.",
             updateAction: "Actualizar app",
             websiteRecoveryTitle: "Esta página está tardando más de lo esperado.",
@@ -922,9 +940,10 @@
             applying: "Atualizando o Green Goods…",
             applyingAction: "Atualizando…",
             loading: "Green Goods está carregando.",
-            offline: "Você está offline. Reconecte-se e tente novamente.",
+            offline: "Você está offline. As telas salvas ainda podem estar disponíveis.",
             retry: "Tentar novamente",
-            stalled: "A atualização falhou. Feche e abra o Green Goods, ou tente de novo.",
+            stalled: "Feche todas as janelas do Green Goods e abra o app novamente.",
+            updateWaiting: "Atualização pendente. Feche todas as janelas do Green Goods e abra o app novamente.",
             update: "Green Goods precisa dos arquivos mais recentes.",
             updateAction: "Atualizar app",
             websiteRecoveryTitle: "Esta página está demorando mais do que o esperado.",
@@ -940,7 +959,6 @@
         var recoveryRegistration;
         var recoveryInstallingWorker;
         var recoveryInFlight = false;
-        var controllerChangeListening = false;
 
         var PWA_RECOVERY_TIMEOUT_MS = 15000;
 
@@ -1019,12 +1037,8 @@
           if (recoveryInstallingWorker) {
             recoveryInstallingWorker.removeEventListener("statechange", handleInstallingStateChange);
           }
-          if (controllerChangeListening && "serviceWorker" in navigator) {
-            navigator.serviceWorker.removeEventListener("controllerchange", handleControllerChange);
-          }
           recoveryRegistration = undefined;
           recoveryInstallingWorker = undefined;
-          controllerChangeListening = false;
         }
 
         function setPwaRecoveryState(kind, message) {
@@ -1064,31 +1078,16 @@
           if (pwaReload) pwaReload.focus();
         }
 
-        function handleControllerChange() {
-          removeRecoveryListeners();
-          recoveryInFlight = false;
-          window.location.reload();
-        }
-
         function activateWaitingWorker(worker) {
           if (!worker || !recoveryInFlight || !("serviceWorker" in navigator)) {
             stallPwaRecovery(labels.stalled);
             return;
           }
 
-          try {
-            if (!controllerChangeListening) {
-              controllerChangeListening = true;
-              navigator.serviceWorker.addEventListener(
-                "controllerchange",
-                handleControllerChange,
-                { once: true }
-              );
-            }
-            worker.postMessage({ type: "SKIP_WAITING" });
-          } catch (_) {
-            stallPwaRecovery(labels.stalled);
-          }
+          // A waiting worker activates when every page using the old worker is
+          // closed. The boot scene must not force activation around the app's
+          // quiescence handshake.
+          stallPwaRecovery(labels.updateWaiting);
         }
 
         function handleInstallingStateChange() {
@@ -1248,10 +1247,6 @@
           },
           true
         );
-
-        document.addEventListener("gg-module-load-failed", function () {
-          showFallback("recovery");
-        });
 
         if (root && "MutationObserver" in window) {
           observer = new MutationObserver(function () {

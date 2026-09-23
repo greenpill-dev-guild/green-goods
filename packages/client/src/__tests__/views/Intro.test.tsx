@@ -43,27 +43,11 @@ vi.mock("@green-goods/shared/utils/domain", () => {
   };
 });
 
-vi.mock("@green-goods/shared/utils/app/haptics", () => ({
-  hapticSelection: vi.fn(),
-}));
-
 vi.mock("@green-goods/shared/utils/action/translations", () => ({
   localizeAction: (action: Action) => action,
 }));
 
 // Mock child components used by WorkIntro
-vi.mock("@/components/Actions", () => ({
-  Button: ({
-    label,
-    onClick,
-    disabled,
-  }: {
-    label: string;
-    onClick?: () => void;
-    disabled?: boolean;
-  }) => createElement("button", { onClick, disabled, type: "button" }, label),
-}));
-
 vi.mock("@/components/Cards/Action/ActionCard", () => ({
   ActionCard: ({ action, selected }: { action: { title: string }; selected: boolean }) =>
     createElement(
@@ -116,16 +100,18 @@ vi.mock("@/components/Navigation", () => ({
     tabs,
     activeTab,
     onTabChange,
+    className,
     triggerClassName,
   }: {
-    tabs: Array<{ id: string; label: string }>;
+    tabs: Array<{ id: string; label: string; accessibleLabel?: string }>;
     activeTab: string;
     onTabChange: (id: string) => void;
+    className?: string;
     triggerClassName?: string;
   }) =>
     createElement(
       "div",
-      { "data-testid": "domain-tabs" },
+      { "data-testid": "domain-tabs", className },
       tabs.map((tab) =>
         createElement(
           "button",
@@ -133,6 +119,7 @@ vi.mock("@/components/Navigation", () => ({
             key: tab.id,
             "data-testid": `domain-tab-${tab.id}`,
             "data-active": String(tab.id === activeTab),
+            "aria-label": tab.accessibleLabel,
             className: triggerClassName,
             onClick: () => onTabChange(tab.id),
           },
@@ -172,6 +159,7 @@ const messages: Record<string, string> = {
   "app.garden.commitment.empty": "No eligible commitments match this garden and action.",
   "app.domain.tab.solar": "Solar",
   "app.domain.tab.agro": "Agroforestry",
+  "app.gardenIntro.domain.agroShort": "Agro",
   "app.domain.tab.waste": "Waste",
 };
 
@@ -246,6 +234,26 @@ describe("WorkIntro", () => {
     expect(screen.getByText("Select Your Garden")).toBeInTheDocument();
   });
 
+  it("uses the full-width domain rail with readable single-line labels", () => {
+    const gardens = [
+      makeGarden({
+        id: "0xGarden" as Address,
+        domainMask:
+          (1 << Domain.SOLAR) | (1 << Domain.AGRO) | (1 << Domain.EDU) | (1 << Domain.WASTE),
+      }),
+    ];
+
+    renderIntro({ gardens });
+
+    expect(screen.getByTestId("domain-tabs")).toHaveClass("-mx-4", "sm:-mx-6", "md:-mx-12");
+    expect(screen.getByTestId("domain-tab-0")).toHaveClass(
+      "text-xs",
+      "[&>span]:break-normal",
+      "[&>span]:whitespace-nowrap"
+    );
+    expect(screen.getByTestId("domain-tab-0")).not.toHaveClass("flex-auto");
+  });
+
   it("renders action cards for active actions", () => {
     const actions = [
       makeAction({ id: "action-1", title: "Plant Trees" }),
@@ -302,27 +310,35 @@ describe("WorkIntro", () => {
     expect(emptyState.closest("[data-testid='carousel-item']")?.className).toContain("basis-full");
   });
 
-  it("fires setActionUID when an action card is clicked", () => {
+  it("chooses an action from its toggle and marks the chosen one pressed", () => {
     const setActionUID = vi.fn();
-    const actions = [makeAction({ id: "action-1", title: "Plant Trees" })];
+    const actions = [
+      makeAction({ id: "action-1", title: "Plant Trees" }),
+      makeAction({ id: "action-2", title: "Water Beds" }),
+    ];
 
-    renderIntro({ actions, setActionUID });
+    renderIntro({ actions, setActionUID, selectedActionUID: 2 });
 
-    // The carousel item wrapping the action card receives the click
-    const actionCard = screen.getByTestId("action-card-Plant Trees");
-    fireEvent.click(actionCard.closest("[data-testid='carousel-item']")!);
+    fireEvent.click(screen.getByRole("button", { name: "Plant Trees" }));
 
     expect(setActionUID).toHaveBeenCalledWith(1);
+    expect(screen.getByRole("button", { name: "Plant Trees" })).toHaveAttribute(
+      "aria-pressed",
+      "false"
+    );
+    expect(screen.getByRole("button", { name: "Water Beds" })).toHaveAttribute(
+      "aria-pressed",
+      "true"
+    );
   });
 
-  it("fires setGardenAddress when a garden card is clicked", () => {
+  it("chooses a garden from its toggle", () => {
     const setGardenAddress = vi.fn();
     const gardens = [makeGarden({ id: "0xABC" as Address, name: "My Garden" })];
 
     renderIntro({ gardens, setGardenAddress });
 
-    const gardenCard = screen.getByTestId("garden-card-My Garden");
-    fireEvent.click(gardenCard.closest("[data-testid='carousel-item']")!);
+    fireEvent.click(screen.getByRole("button", { name: "My Garden" }));
 
     expect(setGardenAddress).toHaveBeenCalledWith("0xABC");
   });
@@ -487,8 +503,9 @@ describe("WorkIntro", () => {
     expect(screen.getByTestId(`domain-tab-${Domain.SOLAR}`)).toBeInTheDocument();
     const agroTab = screen.getByTestId(`domain-tab-${Domain.AGRO}`);
     expect(agroTab).toBeInTheDocument();
-    expect(agroTab).toHaveTextContent("Agroforestry");
-    expect(agroTab.className).toContain("text-[10px]");
+    expect(agroTab).toHaveTextContent("Agro");
+    expect(agroTab).toHaveAccessibleName("Agroforestry");
+    expect(agroTab).toHaveClass("text-xs", "[&>span]:whitespace-nowrap");
   });
 
   it("hides domain tabs when only one domain exists", () => {

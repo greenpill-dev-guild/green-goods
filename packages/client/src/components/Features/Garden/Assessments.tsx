@@ -11,7 +11,6 @@ import {
   RiErrorWarningLine,
   RiExternalLinkLine,
   RiFileTextLine,
-  RiInformationLine,
   RiPriceTag3Line,
   RiStackLine,
 } from "@remixicon/react";
@@ -240,22 +239,13 @@ export const GardenAssessments = forwardRef<HTMLDivElement, GardenAssessmentsPro
     return (
       <div className="flex flex-col gap-6" ref={ref}>
         {hasDescription && (
-          <section>
-            <Card className="p-0">
-              <div className="flex w-full flex-col gap-2">
-                <div className="flex w-full flex-row border-b border-stroke-soft-200 p-3">
-                  <RiInformationLine size={24} className="text-primary" aria-hidden="true" />
-                  <h2 className="px-2 font-medium text-text-strong-950">
-                    {intl.formatMessage({ id: "app.garden.description.label" })}
-                  </h2>
-                </div>
-                <div className="items-start justify-start pb-3 pl-4 pt-1 text-left text-label-sm">
-                  <p className="whitespace-pre-line leading-relaxed text-text-sub-600">
-                    {description}
-                  </p>
-                </div>
-              </div>
-            </Card>
+          <section className="space-y-3">
+            <h2 className="text-base font-semibold text-text-strong-950">
+              {intl.formatMessage({ id: "app.garden.description.label" })}
+            </h2>
+            <p className="whitespace-pre-line text-sm leading-relaxed text-text-sub-600">
+              {description}
+            </p>
           </section>
         )}
 

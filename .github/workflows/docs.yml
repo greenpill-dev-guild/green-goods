@@ -9,7 +9,7 @@ on:
       - "docs/**"
       - ".mcp.json"
       - ".claude/context/task-routing.json"
-      - ".claude/skills/*/SKILL.md"
+      - ".claude/skills/**"
       - "AGENTS.md"
       - "CLAUDE.md"
       - "DESIGN.md"
@@ -20,6 +20,12 @@ on:
       - "scripts/data/banned-vocabulary.json"
       - "scripts/data/qa-test-catalog.json"
       - "scripts/data/validation-policy.json"
+      - "scripts/data/command-migration.json"
+      - "scripts/data/command-policy.json"
+      - "scripts/dev/browser.js"
+      - "scripts/dev/package-commands.mjs"
+      - "scripts/dev/test.js"
+      - "scripts/agents/qa.mjs"
       - "scripts/quality/check-ontology.mjs"
       - "scripts/quality/ontology-render.mjs"
       - "scripts/quality/task-routing-contract.mjs"
@@ -39,6 +45,9 @@ on:
       - "packages/client/vitest.config.ts"
       - "packages/contracts/package.json"
       - "packages/contracts/config/schemas.json"
+      - "packages/contracts/config/command-migration.json"
+      - "packages/contracts/script/cli/operations.mjs"
+      - "packages/contracts/script/utils/package-commands.mjs"
       - "packages/contracts/deployments/networks.json"
       - "packages/contracts/deployments/*-latest.json"
       - "packages/contracts/src/modules/CookieJar.sol"
@@ -52,6 +61,7 @@ on:
       - "packages/indexer/config.yaml"
       - "packages/indexer/schema.graphql"
       - "packages/shared/package.json"
+      - "packages/qa/package.json"
       - "packages/shared/vitest.config.ts"
       - "packages/shared/src/config/chains.ts"
       - "packages/shared/src/config/gardens-subgraph.ts"
@@ -66,7 +76,7 @@ on:
       - "docs/**"
       - ".mcp.json"
       - ".claude/context/task-routing.json"
-      - ".claude/skills/*/SKILL.md"
+      - ".claude/skills/**"
       - "AGENTS.md"
       - "CLAUDE.md"
       - "DESIGN.md"
@@ -77,6 +87,12 @@ on:
       - "scripts/data/banned-vocabulary.json"
       - "scripts/data/qa-test-catalog.json"
       - "scripts/data/validation-policy.json"
+      - "scripts/data/command-migration.json"
+      - "scripts/data/command-policy.json"
+      - "scripts/dev/browser.js"
+      - "scripts/dev/package-commands.mjs"
+      - "scripts/dev/test.js"
+      - "scripts/agents/qa.mjs"
       - "scripts/quality/check-ontology.mjs"
       - "scripts/quality/ontology-render.mjs"
       - "scripts/quality/task-routing-contract.mjs"
@@ -96,6 +112,9 @@ on:
       - "packages/client/vitest.config.ts"
       - "packages/contracts/package.json"
       - "packages/contracts/config/schemas.json"
+      - "packages/contracts/config/command-migration.json"
+      - "packages/contracts/script/cli/operations.mjs"
+      - "packages/contracts/script/utils/package-commands.mjs"
       - "packages/contracts/deployments/networks.json"
       - "packages/contracts/deployments/*-latest.json"
       - "packages/contracts/src/modules/CookieJar.sol"
@@ -109,6 +128,7 @@ on:
       - "packages/indexer/config.yaml"
       - "packages/indexer/schema.graphql"
       - "packages/shared/package.json"
+      - "packages/qa/package.json"
       - "packages/shared/vitest.config.ts"
       - "packages/shared/src/config/chains.ts"
       - "packages/shared/src/config/gardens-subgraph.ts"
@@ -141,25 +161,25 @@ jobs:
         uses: ./.github/actions/setup-js
 
       - name: Test deterministic docs generators
-        run: node --test scripts/docs/generate.test.mjs docs/scripts/docs-audit.test.mjs docs/scripts/check-search-index.test.mjs scripts/quality/task-routing-contract.test.mjs
+        run: node --test scripts/docs/generate.test.mjs docs/scripts/docs-audit.test.mjs docs/scripts/developer-guides.test.mjs docs/scripts/check-search-index.test.mjs scripts/quality/task-routing-contract.test.mjs
 
       - name: Audit documentation authority
-        run: bun run docs:audit:ci
+        run: node docs/scripts/docs-audit.mjs --ci
 
       - name: Check generated documentation
-        run: bun run check:docs-generated
+        run: bun run check --only docs-generated
 
       - name: Check ontology projections
-        run: bun run check:ontology
+        run: bun run check --only ontology
 
       - name: Check task-to-skill routing
-        run: bun run check:skill-behavior
+        run: bun run check --only skill-behavior
 
       - name: Test docs
-        run: bun run test:docs
+        run: bun run --cwd docs test
 
       - name: Build docs
-        run: bun run build:docs
+        run: bun run --cwd docs build
 
       - name: Verify search index
         run: bun run --cwd docs check:search-index

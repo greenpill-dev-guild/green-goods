@@ -1,4 +1,5 @@
 import { cn } from "@green-goods/shared/utils/styles/cn";
+import { Button } from "@green-goods/shared/components/Button";
 import { StatusBadge } from "@green-goods/shared/components/StatusBadge";
 import { type PendingCommitmentCreation } from "@green-goods/shared/commitment-pooling";
 import { formatCommitmentUnits } from "@green-goods/shared/i18n/commitmentUnits";
@@ -101,26 +102,27 @@ export function PendingCreationRow({
               can still find the commitment, while throwing it away would file a
               second one. Only the safe case is offered a way to delete. */}
           {creation.discardable ? (
-            <button
+            <Button
               type="button"
+              emphasis="secondary"
+              size="sm"
               onClick={() => onDiscard(creation.jobId)}
               disabled={isBusy}
-              className="flex items-center justify-center gap-1 rounded-[var(--radius-lg)] border border-stroke-soft-200 px-3 py-2 text-xs font-medium text-text-strong-950 tap-target-lg disabled:opacity-60"
+              leadingIcon={<RiDeleteBinLine className="h-4 w-4" aria-hidden="true" />}
             >
-              <RiDeleteBinLine className="h-4 w-4" aria-hidden="true" />
               {formatMessage({ id: "app.pool.queued.discard" })}
-            </button>
+            </Button>
           ) : null}
-          <button
+          <Button
             type="button"
+            size="sm"
             onClick={() => onRetry(creation.jobId)}
             disabled={isBusy}
             hidden={discardOnly}
-            className="flex items-center justify-center gap-1 rounded-[var(--radius-lg)] bg-primary-action px-3 py-2 text-xs font-medium text-primary-action-foreground tap-target-lg disabled:opacity-60"
+            leadingIcon={<RiRefreshLine className="h-4 w-4" aria-hidden="true" />}
           >
-            <RiRefreshLine className="h-4 w-4" aria-hidden="true" />
             {formatMessage({ id: "app.pool.queued.retry" })}
-          </button>
+          </Button>
         </div>
       ) : null}
     </div>

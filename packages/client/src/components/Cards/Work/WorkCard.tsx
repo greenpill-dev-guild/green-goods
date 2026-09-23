@@ -1,10 +1,11 @@
 import { WorkCard as SharedWorkCard } from "@green-goods/shared/components/Cards/WorkCard/WorkCard";
 import { useEnsName } from "@green-goods/shared/hooks/blockchain/useEnsName";
 import { useGreenGoodsEnsName } from "@green-goods/shared/hooks/ens/useGreenGoodsEnsName";
-import type { Work } from "@green-goods/shared/types/domain";
+import type { Work, WorkDisplayStatus } from "@green-goods/shared/types/domain";
 import { formatAddress, formatEnsNameForDisplay } from "@green-goods/shared/utils/app/text";
 import React from "react";
 import { useIntl } from "react-intl";
+import { queuedWorkStatusMessage, readQueuedWorkState } from "./queuedWorkCopy";
 
 export interface MinimalWorkCardProps {
   work: Work;
@@ -13,15 +14,23 @@ export interface MinimalWorkCardProps {
   actionTitle?: string;
   showGardenInfo?: boolean;
   badges?: React.ReactNode[];
+  presentation?: WorkCardPresentation;
   style?: React.CSSProperties;
   confirmed?: boolean;
   /** Variant controls subtitle content: "compact" (default) shows time only, "detailed" shows gardener + time */
   variant?: "compact" | "detailed";
 }
 
+export interface WorkCardPresentation {
+  statusLabel?: string;
+  statusTone?: WorkDisplayStatus;
+  contextLabel?: string;
+  supportingText?: string;
+}
+
 function getWorkCardLabels(formatMessage: ReturnType<typeof useIntl>["formatMessage"]) {
   return {
-    error: formatMessage({ id: "app.workCard.error", defaultMessage: "Error" }),
+    error: formatMessage({ id: "app.workCard.error", defaultMessage: "Error loading work" }),
     feedback: formatMessage({ id: "app.workCard.feedback", defaultMessage: "Feedback" }),
     status: {
       approved: formatMessage({ id: "app.status.approved", defaultMessage: "Approved" }),
@@ -46,6 +55,7 @@ export const MinimalWorkCard: React.FC<MinimalWorkCardProps> = ({
   actionTitle,
   showGardenInfo = false,
   badges,
+  presentation,
   confirmed = false,
   variant = "compact",
 }) => {
@@ -61,8 +71,10 @@ export const MinimalWorkCard: React.FC<MinimalWorkCardProps> = ({
   const { data: gardenEnsName } = useEnsName(showGardenInfo ? work.gardenAddress : null, {
     enabled: Boolean(showGardenInfo && work.gardenAddress),
   });
-  const isOfflineWork = work.id.startsWith("0xoffline_");
-  const effectiveStatus = isOfflineWork ? "uploading" : work.status;
+  const effectiveStatus = work.status;
+  // Work still on this device names where it stands instead of reading "Offline".
+  const queuedStatus = queuedWorkStatusMessage(readQueuedWorkState(work.metadata).submissionState);
+  if (queuedStatus) labels.status.offline = formatMessage(queuedStatus);
   const mediaPreview = work.media.length > 0 ? work.media : undefined;
   const hasFeedback = Boolean(work.feedback && work.feedback.trim().length > 0);
   const mediaCount = Array.isArray(work.media) ? work.media.length : 0;
@@ -93,6 +105,10 @@ export const MinimalWorkCard: React.FC<MinimalWorkCardProps> = ({
       showMediaCount={mediaCount > 0}
       showFeedbackBadge={hasFeedback}
       badges={extraBadges}
+      statusLabel={presentation?.statusLabel}
+      statusTone={presentation?.statusTone}
+      contextLabel={presentation?.contextLabel}
+      supportingText={presentation?.supportingText}
       labels={labels}
     />
   );

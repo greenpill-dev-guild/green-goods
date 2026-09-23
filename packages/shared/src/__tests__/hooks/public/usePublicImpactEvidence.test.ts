@@ -3,12 +3,12 @@
  * @vitest-environment jsdom
  */
 
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { renderHook, waitFor } from "@testing-library/react";
-import { createElement, type ReactNode } from "react";
+import { waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Address } from "../../../types/domain";
 import { createMockGarden, createMockWork } from "../../test-utils/mock-factories";
+import { createTestQueryClient } from "../../test-utils/query-client";
+import { renderHookWithQueryClient } from "../../test-utils/query-client-render";
 
 const mockGetGardens = vi.fn();
 const mockGetActions = vi.fn();
@@ -33,20 +33,12 @@ vi.mock("../../../config/default-chain", () => ({ DEFAULT_CHAIN_ID: 11155111 }))
 
 import { usePublicImpactEvidence } from "../../../hooks/public/usePublicImpactEvidence";
 
-function createWrapper(queryClient: QueryClient) {
-  return function Wrapper({ children }: { children: ReactNode }) {
-    return createElement(QueryClientProvider, { client: queryClient }, children);
-  };
-}
-
 describe("usePublicImpactEvidence", () => {
-  let queryClient: QueryClient;
+  let queryClient: ReturnType<typeof createTestQueryClient>;
 
   beforeEach(() => {
     vi.clearAllMocks();
-    queryClient = new QueryClient({
-      defaultOptions: { queries: { retry: false, gcTime: 0 } },
-    });
+    queryClient = createTestQueryClient();
     mockGetActions.mockResolvedValue([]);
     mockGetGardenAssessments.mockResolvedValue([]);
     mockGetGardenHypercerts.mockResolvedValue([]);
@@ -62,9 +54,7 @@ describe("usePublicImpactEvidence", () => {
       createMockWork({ id: "case-work", gardenAddress: checksummedGarden }),
     ]);
 
-    const { result } = renderHook(() => usePublicImpactEvidence(), {
-      wrapper: createWrapper(queryClient),
-    });
+    const { result } = renderHookWithQueryClient(() => usePublicImpactEvidence(), { queryClient });
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
 

@@ -2,13 +2,13 @@ import { initGlobalErrorHandlers } from "@green-goods/shared/modules/app/error-e
 import { initTheme } from "@green-goods/shared/utils/styles/theme";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
-
+import { getBootPresentation, loadClientBootstrap } from "@/config/bootstrap";
+import { restartPublicPageWithoutLegacyRootWorker } from "@/config/legacyServiceWorkerMigration";
 import {
   createPwaRoutingConfig,
   PWA_APP_SCOPE,
   PWA_DEV_SERVICE_WORKER_SCRIPT,
 } from "@/config/pwaRouting";
-import { getBootPresentation, loadClientBootstrap } from "@/config/bootstrap";
 
 import "@/index.css";
 import "@/config";
@@ -59,6 +59,7 @@ function initializeDeferredRuntime() {
           scriptUrl: devServiceWorkerEnabled
             ? PWA_DEV_SERVICE_WORKER_SCRIPT
             : pwaRouting.serviceWorkerScriptUrl,
+          ...(devServiceWorkerEnabled ? { type: "module" as const } : {}),
           scope: pwaRouting.manifestScope,
           legacyScopes: pwaRouting.manifestScope === PWA_APP_SCOPE ? ["/"] : [],
         }
@@ -70,14 +71,24 @@ function initializeDeferredRuntime() {
 const container = document.getElementById("root");
 if (!container) throw new Error("Root container missing in index.html");
 
-const { default: Bootstrap } = await loadClientBootstrap(getBootPresentation());
-createRoot(container).render(
-  <StrictMode>
-    <Bootstrap />
-  </StrictMode>
-);
-initializeDeferredRuntime();
+const presentation = getBootPresentation();
+const restartingWithoutLegacyWorker =
+  presentation === "public" &&
+  (await restartPublicPageWithoutLegacyRootWorker(
+    presentation,
+    import.meta.env.VITE_APP_VERSION ?? ""
+  ));
 
-const markReactMounted = (window as Window & { __GG_MARK_REACT_MOUNTED?: () => void })
-  .__GG_MARK_REACT_MOUNTED;
-if (markReactMounted) window.requestAnimationFrame(() => markReactMounted());
+if (!restartingWithoutLegacyWorker) {
+  const { default: Bootstrap } = await loadClientBootstrap(presentation);
+  createRoot(container).render(
+    <StrictMode>
+      <Bootstrap />
+    </StrictMode>
+  );
+  initializeDeferredRuntime();
+
+  const markReactMounted = (window as Window & { __GG_MARK_REACT_MOUNTED?: () => void })
+    .__GG_MARK_REACT_MOUNTED;
+  if (markReactMounted) window.requestAnimationFrame(() => markReactMounted());
+}

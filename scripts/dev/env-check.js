@@ -28,7 +28,7 @@ const projectRoot = path.resolve(__dirname, "../..");
 const schemaPath = path.join(projectRoot, ".env.schema");
 const envPath = path.join(projectRoot, ".env");
 
-// Conservative required list: only the keys that MUST be present for `bun run dev:web`
+// Conservative required list: only the keys that MUST be present for `bun run dev -- web`
 // to function. It remains a fallback until `.env.schema` carries `@required-in dev`.
 const baselineRequiredKeys = new Set([
   "APP_ENV",
@@ -90,7 +90,7 @@ function main() {
   const env = readEnvironment({ source: options.envSource, envFilePath: envPath });
   if (!env) {
     console.error("error: .env not found.");
-    console.error("  fix: Run `bun run env:template:init` then `bun run env:sync` to create one.");
+    console.error("  fix: Run `node scripts/dev/env-template-init.js` then `bun run env:sync` to create one.");
     process.exit(1);
   }
 

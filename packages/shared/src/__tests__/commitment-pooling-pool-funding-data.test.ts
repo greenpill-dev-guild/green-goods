@@ -12,6 +12,7 @@ const EXECUTOR = "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee" as const;
 const TOKEN = "0xffffffffffffffffffffffffffffffffffffffff" as const;
 const RECIPIENT = "0x1111111111111111111111111111111111111111" as const;
 const KEY = `0x${"12".repeat(32)}` as const;
+const GDOLLAR_UNIT = 10n ** 18n;
 
 function configuration(chainId: number, role: "SOURCE" | "EXECUTOR") {
   return {
@@ -258,7 +259,7 @@ function clientFactory(
           if (functionName === "nativeFeeBalance") return 123n;
           if (functionName === "isAcknowledgmentFeeReserveLow") return false;
           if (functionName === "allowances") {
-            return options.allowance ?? ([100n, 1_000n, 100n, 2_000n, 500n] as const);
+            return options.allowance ?? ([100n, 1_000n, 100n, 500n, 2_000n] as const);
           }
           if (functionName === "getFees") {
             if (options.feeProbe) {
@@ -512,20 +513,26 @@ describe("pool funding hybrid reader", () => {
     expect(snapshot.settlementUnavailableReasons).not.toContain("fee_quote_unavailable");
   });
 
-  it("uses the sampled Celo block time for period and Roles allowance resets", async () => {
+  it("uses the canonical Zodiac balance-before-timestamp tuple with the sampled Celo time", async () => {
     const snapshot = await getPoolFundingSnapshot(42161, GARDEN, {
-      reader: reader(2_101),
+      reader: reader(1_787_288_500),
       createClient: clientFactory({
-        blockTimestamp: 2_099n,
-        periodDuration: 100n,
+        blockTimestamp: 1_787_288_500n,
+        periodDuration: 2_592_000n,
         maxPeriodAmount: 10_000n,
-        periodSpend: [2_000n, 1_000n],
-        allowance: [100n, 1_000n, 100n, 2_000n, 500n],
+        periodSpend: [1_787_000_000n, 1_000n],
+        allowance: [
+          15_000_000n * GDOLLAR_UNIT,
+          15_000_000n * GDOLLAR_UNIT,
+          2_592_000n,
+          14_999_999n * GDOLLAR_UNIT,
+          1_787_288_413n,
+        ],
       }).createClient,
-      now: 2_101,
+      now: 1_787_288_500,
     });
 
-    expect(snapshot.limits.rolesAllowanceRemaining).toBe(500n);
+    expect(snapshot.limits.rolesAllowanceRemaining).toBe(14_999_999n * GDOLLAR_UNIT);
     expect(snapshot.limits.periodAllowanceRemaining).toBe(9_000n);
   });
 

@@ -2,6 +2,7 @@
 
 import { describe, expect, it, vi } from "vitest";
 import {
+  createDefaultCreateAssessmentPorts,
   createAssessment,
   resolveAssessmentDomain,
   type CreateAssessmentCommand,
@@ -39,6 +40,7 @@ function ports(events: string[] = []): CreateAssessmentPorts {
         easAddress: "0x2222222222222222222222222222222222222222",
         schemaUid: `0x${"44".repeat(32)}`,
         schema: "assessment schema",
+        schemaVersion: 2 as const,
       })),
       encode: vi.fn((_schema, values) => {
         events.push("encode");
@@ -128,6 +130,34 @@ describe("createAssessment", () => {
     expect(dependencies.sender.attest).toHaveBeenCalledWith(
       expect.objectContaining({ gardenId, schemaUid: `0x${"44".repeat(32)}` })
     );
+  });
+
+  it.each([42161, 11155111])("writes the latest registered schema on chain %s", async (chainId) => {
+    const { getEASConfig } = await import("../../config/blockchain");
+    const config = getEASConfig(chainId);
+    const defaultPorts = createDefaultCreateAssessmentPorts({
+      walletClient: {} as Parameters<typeof createDefaultCreateAssessmentPorts>[0]["walletClient"],
+      reportEvidenceFailures: vi.fn(),
+      reportMetricsFailure: vi.fn(),
+    });
+    const dependencies = ports();
+    dependencies.reader = defaultPorts.reader;
+    const encoded = vi.spyOn(dependencies.reader, "encode");
+    await createAssessment({ params: params(), chainId, onReady: vi.fn() }, dependencies);
+    const schema = chainId === 42161 ? config.ASSESSMENT_V3 : config.ASSESSMENT;
+    expect(dependencies.sender.attest).toHaveBeenCalledWith(
+      expect.objectContaining({ schemaUid: schema.uid })
+    );
+    expect(encoded.mock.calls[0][0]).toBe(schema.schema);
+    const values = encoded.mock.calls[0][1];
+    expect(values).toHaveLength(chainId === 42161 ? 10 : 7);
+    if (chainId === 42161) {
+      expect(values.slice(-3)).toEqual([
+        { name: "assessmentKind", value: 0, type: "uint8" },
+        { name: "cycleId", value: 0, type: "uint256" },
+        { name: "baselineUID", value: `0x${"00".repeat(32)}`, type: "bytes32" },
+      ]);
+    }
   });
 
   it("rejects unknown domains before connecting or uploading documents", async () => {

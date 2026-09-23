@@ -160,7 +160,7 @@ test("ontology-scoped changes require the ontology workflow", () => {
     "Ontology",
     "Supply Chain Guardrails",
   ]);
-  assert.deepEqual(expectedWorkflowNames([".plans/active/commitment-credit-follow-on/spec.md"]), [
+  assert.deepEqual(expectedWorkflowNames([".plans/backlog/commitment-credit-follow-on/spec.md"]), [
     "Ontology",
     "Supply Chain Guardrails",
   ]);
@@ -316,6 +316,30 @@ test("all completed successes pass the gate", async () => {
 
   await runGate(gateOptions, fixture.dependencies);
   assert.deepEqual(fixture.calls(), { runRequests: 1, waits: 0 });
+});
+
+test("Shared requires both successful shard jobs even when its workflow reports success", async () => {
+  const jobs = [
+    { name: "Test (1/2)", status: "completed", conclusion: "success" },
+    { name: "Test (2/2)", status: "completed", conclusion: "success" },
+  ];
+  const dependencies = {
+    loadChangedFiles: async () => ["packages/shared/src/index.ts"],
+    selectWorkflows: () => ["Shared"],
+    loadWorkflowRuns: async () => new Map([["Shared", workflowRun("Shared", { id: 42 })]]),
+    loadWorkflowJobs: async () => jobs,
+    logger: silentLogger,
+  };
+
+  await runGate(gateOptions, dependencies);
+  await assert.rejects(
+    runGate(gateOptions, { ...dependencies, loadWorkflowJobs: async () => jobs.slice(0, 1) }),
+    /Shared.*Test \(2\/2\)/,
+  );
+  await assert.rejects(
+    runGate(gateOptions, { ...dependencies, loadWorkflowJobs: async () => [jobs[0], { ...jobs[1], conclusion: "failure" }] }),
+    /Shared.*Test \(2\/2\)/,
+  );
 });
 
 test("a missing workflow may register on a later poll", async () => {

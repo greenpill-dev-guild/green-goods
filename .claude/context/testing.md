@@ -38,6 +38,16 @@ Enforced global thresholds live in each `vitest.config.ts` (branches/functions/l
 
 The first ratchet review is 2026-09-22. Once coverage supports it, raise every configured metric by two percentage points and update the matching arrays in `scripts/quality/workflow-performance-parity.test.mjs` in the same change. Policy targets remain critical paths ≥80% and auth/crypto 100%. Contracts use Foundry, not Vitest — see `.claude/context/contracts.md` and `docs/docs/builders/testing/index.mdx`.
 
+The active [architecture hub](../../.plans/active/codebase-architecture-skills/plan.todo.md) owns that September 22 checkpoint. The test-budget guidance below does not change its obligation or any numerical floor. Reconsidering the ratchet requires measured coverage and a separate decision at that checkpoint, with parity expectations updated alongside any approved threshold change.
+
+## Test budget
+
+Prove a decision at the lowest layer that owns it. Add another layer when wiring, composition, recovery, or user interaction can fail independently. Use tables for pure decisions and existing `@green-goods/shared/testing` helpers for common setup. Keep test isolation enabled.
+
+For each new or retained test, name the failure it would catch and assert an observable result. Source assertions earn their place when the source contract itself is the requirement and no cheaper faithful signal exists. Spend more proof on money, identity, and data paths, including cleanup and failure behavior, without repeating every assertion across layers solely because a path is critical.
+
+When maintenance cost grows, review duplicate layers, repeated setup, class-only assertions, uncalled exports, and unexplained test/source growth. Counts and ratios identify candidates for inspection, not deletion targets. Before removing a test, identify surviving proof for the same failure or establish that its subject has no callers. Move tests with the code they protect, and remove exclusive tests only after verified-unused code is removed.
+
 ## Critical paths (deepest coverage in `packages/shared/src/`)
 
 Auth / work / job-queue / vault / blockchain surfaces are the `critical` tier in **CLAUDE.md § Criticality Matrix** — follow it, don't restate. Coverage-specific additions:
@@ -56,7 +66,7 @@ module through its own specifier outside every `vi.mock` factory. That subject-n
 not mock the same specifier. Importing a barrel that re-exports the module, importing the real
 module only from a mock factory, or testing a mocked copy does not prove the seam.
 
-`bun run check:test-quality` enforces this rule for conventionally named tests. Existing audited
+`bun run check --only test-quality` enforces this rule for conventionally named tests. Existing audited
 violations live in `scripts/data/direct-tested-seam-baseline.json`; the baseline is exact and must
 shrink when a violation is fixed, while every new or stale entry fails the check.
 
@@ -102,4 +112,4 @@ Under QA Speed Mode (CLAUDE.md § Validation Intent Ladder), a fix may record in
 - `not_applicable` — behavior unchanged (copy, docs, static config, visual token/class with no logic path).
 - `proof_limit` — a targeted test would be brittler/slower than direct proof (one-off visual layout, staging-only, authenticated-browser-only state).
 
-Always record the substitute evidence (file re-read, existing targeted test, package-local typecheck/build, or authenticated Brave rendered proof). Never for auth/crypto/job-queue/mutation behavior, shared public-API changes, or release readiness — those need tests + the appropriate gate.
+Always record the substitute evidence (file re-read, existing targeted test, package-local typecheck/build, or rendered proof labeled per `AGENTS.md § Browser Evidence`). Never for auth/crypto/job-queue/mutation behavior, shared public-API changes, or release readiness — those need tests + the appropriate gate.

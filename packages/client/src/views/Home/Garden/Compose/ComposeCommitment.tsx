@@ -4,8 +4,9 @@ import {
   type ComposerBlockedReason,
   selectBeatValidity,
 } from "@green-goods/shared/hooks/client-ui/commitment/composerBeats";
+import { Button } from "@green-goods/shared/components/Button";
 import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
-import { DialogShell } from "@green-goods/shared/components/Dialog/ConfirmDialog";
+import { DialogShell } from "@green-goods/shared/components/Dialog/DialogShell";
 import { useCommitmentComposerController } from "@green-goods/shared/hooks/client-ui/commitment/useCommitmentComposerController";
 import { useCallback, useRef, useState } from "react";
 import { useIntl } from "react-intl";
@@ -33,15 +34,31 @@ function directionFromRoute(value: string | null): Direction | null {
   return null;
 }
 
+/** The commitment being made again, when the link names one. Anything else is no source. */
+function sourceFromRoute(value: string | null): bigint | null {
+  return value && /^\d+$/.test(value) ? BigInt(value) : null;
+}
+
 /** Resolve the route door before mounting the form-backed controller. */
 export function ComposeCommitment() {
   const [searchParams] = useSearchParams();
   const direction = directionFromRoute(searchParams.get("direction"));
   if (!direction) return <Navigate to=".." replace />;
-  return <ComposeCommitmentForm direction={direction} />;
+  return (
+    <ComposeCommitmentForm
+      direction={direction}
+      fromCommitmentId={sourceFromRoute(searchParams.get("from"))}
+    />
+  );
 }
 
-function ComposeCommitmentForm({ direction }: { direction: Direction }) {
+function ComposeCommitmentForm({
+  direction,
+  fromCommitmentId,
+}: {
+  direction: Direction;
+  fromCommitmentId: bigint | null;
+}) {
   const { formatMessage, formatRelativeTime } = useIntl();
   const navigate = useNavigate();
   const { id: gardenAddress } = useParams<{ id: string }>();
@@ -51,6 +68,7 @@ function ComposeCommitmentForm({ direction }: { direction: Direction }) {
     direction,
     defaultUnitLabel:
       direction === "OFFER" ? formatMessage({ id: "app.compose.unit.hours" }) : undefined,
+    fromCommitmentId,
   });
   const [beat, setBeat] = useState<ComposerBeat>("what");
   const [readToEnd, setReadToEnd] = useState(false);
@@ -104,13 +122,9 @@ function ComposeCommitmentForm({ direction }: { direction: Direction }) {
               { direction }
             )}
           </p>
-          <button
-            type="button"
-            onClick={back}
-            className="mt-2 rounded-[var(--radius-lg)] bg-primary-action px-4 py-3 text-sm font-medium text-primary-action-foreground tap-target-lg"
-          >
+          <Button type="button" size="lg" onClick={back} className="mt-2">
             {formatMessage({ id: "app.compose.done.back" })}
-          </button>
+          </Button>
         </div>
       </ComposeShell>
     );
@@ -137,33 +151,35 @@ function ComposeCommitmentForm({ direction }: { direction: Direction }) {
               </p>
             ) : null}
             {isReview && !readToEnd ? (
-              <button
+              <Button
                 type="button"
+                emphasis="tertiary"
                 onClick={() => {
                   reviewEndRef.current?.scrollIntoView({ block: "end" });
                   setReadToEnd(true);
                 }}
-                className="mb-2 flex w-full items-center justify-center rounded-[var(--radius-lg)] px-4 py-2 text-sm font-medium text-text-sub-600 tap-target-lg"
+                className="mb-2 w-full"
               >
                 {formatMessage({ id: "app.compose.review.readToEnd" })}
-              </button>
+              </Button>
             ) : null}
-            <button
+            <Button
               aria-describedby={
                 !validity.canAdvance && blockingReasonId ? "compose-blocked" : undefined
               }
               type="button"
-              disabled={primaryBlocked}
-              aria-busy={controller.isPending}
+              size="lg"
+              loading={controller.isPending}
+              disabled={primaryBlocked && !controller.isPending}
               onClick={() =>
                 isReview
                   ? void controller.place()
                   : setBeat(COMPOSER_BEATS[beatIndex + 1] as ComposerBeat)
               }
-              className="w-full rounded-[var(--radius-lg)] bg-primary-action px-4 py-3 text-sm font-medium text-primary-action-foreground tap-target-lg disabled:opacity-60"
+              className="w-full"
             >
               {formatMessage({ id: isReview ? placeLabelId : "app.compose.next" })}
-            </button>
+            </Button>
           </div>
         }
       >
@@ -218,29 +234,26 @@ function ComposeCommitmentForm({ direction }: { direction: Direction }) {
             : undefined
         }
         size="md"
+        actions={{
+          primary: {
+            label: formatMessage({ id: "app.compose.draft.resume" }),
+            onClick: controller.resumeDraft,
+          },
+          secondary: {
+            label: formatMessage({ id: "app.compose.draft.fresh" }),
+            onClick: controller.startFresh,
+          },
+        }}
       >
-        <div className="space-y-3">
-          {typeof controller.savedDraft?.values.title === "string" &&
-          controller.savedDraft.values.title ? (
-            <p className="truncate text-sm font-medium text-text-strong-950">
-              {controller.savedDraft.values.title}
-            </p>
-          ) : null}
-          <button
-            type="button"
-            onClick={controller.resumeDraft}
-            className="w-full rounded-[var(--radius-lg)] bg-primary-action px-4 py-3 text-sm font-medium text-primary-action-foreground tap-target-lg"
+        {typeof controller.savedDraft?.values.title === "string" &&
+        controller.savedDraft.values.title ? (
+          <p
+            className="truncate text-sm font-medium text-text-strong-950"
+            title={controller.savedDraft.values.title}
           >
-            {formatMessage({ id: "app.compose.draft.resume" })}
-          </button>
-          <button
-            type="button"
-            onClick={controller.startFresh}
-            className="w-full rounded-[var(--radius-lg)] px-4 py-3 text-sm font-medium text-text-sub-600 tap-target-lg"
-          >
-            {formatMessage({ id: "app.compose.draft.fresh" })}
-          </button>
-        </div>
+            {controller.savedDraft.values.title}
+          </p>
+        ) : null}
       </DialogShell>
     </>
   );

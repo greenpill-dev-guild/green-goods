@@ -1,3 +1,4 @@
+import { connectivityStore } from "../../../stores/connectivity";
 import { type FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { type IntlShape, useIntl } from "react-intl";
 import { toastService, validationToasts } from "../../../components/toast";
@@ -6,7 +7,7 @@ import { logger } from "../../../modules/app/logger";
 import { validateWorkSubmissionContext } from "../../../modules/work/work-submission";
 import type { AuthStateValue } from "../../../providers/Auth";
 import type { Action, Address, Domain } from "../../../types/domain";
-import { findActionByUID, getActionTitle, parseActionUID } from "../../../utils/action/parsers";
+import { findActionByUID, parseActionUID } from "../../../utils/action/parsers";
 import { compareAddresses } from "../../../utils/blockchain/address";
 import { expandDomainMask } from "../../../utils/domain";
 import { useActions, useGardens } from "../../blockchain/useBaseLists";
@@ -24,7 +25,7 @@ export type SubmitWorkAuthSnapshot = Pick<AuthStateValue, "authMode" | "isAuthen
 
 export type SubmitWorkStepId = "action" | "media" | "details" | "review";
 
-export const SUBMIT_WORK_STEP_IDS: SubmitWorkStepId[] = ["action", "media", "details", "review"];
+const SUBMIT_WORK_STEP_IDS: SubmitWorkStepId[] = ["action", "media", "details", "review"];
 
 export function getMinRequiredWorkImages(action: Action | null) {
   if (!action?.mediaInfo?.required) return 0;
@@ -32,7 +33,7 @@ export function getMinRequiredWorkImages(action: Action | null) {
 }
 
 function browserIsOffline() {
-  return typeof navigator !== "undefined" && navigator.onLine === false;
+  return !connectivityStore.getSnapshot();
 }
 
 interface UseSubmitWorkControllerOptions {
@@ -204,7 +205,8 @@ export function useSubmitWorkController({
     const { feedback, timeSpentMinutes, ...details } = data as Record<string, unknown>;
     const draft = {
       actionUID: selectedActionUID,
-      title: getActionTitle(actions, selectedActionUID),
+      // No placeholder: the submission falls back to its own title when this is empty.
+      title: findActionByUID(actions, selectedActionUID)?.title ?? "",
       timeSpentMinutes: typeof timeSpentMinutes === "number" ? timeSpentMinutes : 0,
       feedback: typeof feedback === "string" ? feedback : "",
       media: images,

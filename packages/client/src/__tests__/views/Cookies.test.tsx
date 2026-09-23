@@ -6,7 +6,6 @@
 
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { fireEvent } from "@testing-library/react";
 import { renderWithProviders as render, screen, userEvent, waitFor, within } from "../test-utils";
 
 const TEST_JAR = "0x1111111111111111111111111111111111111111" as const;
@@ -97,7 +96,8 @@ vi.mock("@green-goods/shared/utils/styles/cn", () => ({
   cn: (...classes: Array<string | false | null | undefined>) => classes.filter(Boolean).join(" "),
 }));
 
-vi.mock("@green-goods/shared/utils/blockchain/vaults", () => ({
+vi.mock("@green-goods/shared/utils/blockchain/vaults", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@green-goods/shared/utils/blockchain/vaults")>()),
   formatTokenAmount: (value: bigint, decimals = 18) => String(Number(value) / 10 ** decimals),
 }));
 
@@ -170,71 +170,18 @@ vi.mock("@green-goods/shared/hooks/auth/useUser", () => ({
   useUser: () => mockUseUser(),
 }));
 
-vi.mock("@green-goods/shared/components/Form/FormattedAmountInput", async () => {
-  return {
-    useFormattedAmountInput: (value: string) => {
-      const trimmed = value.trim();
-      let parsedAmount: bigint | null = null;
-      if (trimmed && /^\d+(\.\d+)?$/.test(trimmed)) {
-        // 18-decimal parse mirroring the real hook closely enough for gating.
-        const [whole, frac = ""] = trimmed.split(".");
-        parsedAmount = BigInt(whole + frac.padEnd(18, "0").slice(0, 18));
-      }
-      return {
-        parsedAmount,
-        formatErrorId: null,
-        exceeds: false,
-        isEmpty: trimmed.length === 0,
-      };
-    },
-    FormattedAmountInput: ({
-      value,
-      onValueChange,
-      error,
-      endSlot,
-      inputClassName: _inputClassName,
-      errorClassName: _errorClassName,
-      containerClassName: _containerClassName,
-      ...props
-    }: {
-      value: string;
-      onValueChange: (next: string) => void;
-      error?: React.ReactNode;
-      endSlot?: React.ReactNode;
-      inputClassName?: string;
-      errorClassName?: string;
-      containerClassName?: string;
-    } & Omit<React.InputHTMLAttributes<HTMLInputElement>, "value" | "onChange" | "type">) => (
-      <div>
-        <input
-          type="text"
-          value={value}
-          onChange={(event) => onValueChange(event.target.value)}
-          {...props}
-        />
-        {endSlot}
-        {error ? <p role="alert">{error}</p> : null}
-      </div>
-    ),
-  };
-});
-
 vi.mock("@green-goods/shared/components/feedback/TransactionSuccessAffordance", () => ({
   TransactionSuccessAffordance: () => null,
 }));
 
 import CookiesPage from "../../views/Public/Cookies";
 
-function renderPage(path = `/cookies?jar=${TEST_JAR}`, openWalletSurface = true) {
-  const result = render(
+function renderPage(path = `/cookies?jar=${TEST_JAR}`) {
+  return render(
     <MemoryRouter initialEntries={[path]}>
       <CookiesPage />
     </MemoryRouter>
   );
-  if (openWalletSurface) {
-    fireEvent.click(screen.getByRole("button", { name: "Explore Cookie Jars" }));
-  }
-  return result;
 }
 
 describe("CookiesPage", () => {
@@ -274,7 +221,7 @@ describe("CookiesPage", () => {
     mockDepositMutate.mockImplementation((_params, options) => options?.onSuccess?.());
   });
 
-  it("asks disconnected visitors to connect before claiming", async () => {
+  it("offers contextual wallet actions inside each jar", async () => {
     const user = userEvent.setup();
     mockUseUser.mockReturnValue({ primaryAddress: undefined });
 
@@ -289,18 +236,39 @@ describe("CookiesPage", () => {
     expect(
       await screen.findByText(/Connect a wallet to check claim access and add funds/i)
     ).toBeInTheDocument();
-    const connectButtons = screen.getAllByRole("button", { name: "Connect Wallet" });
-    expect(connectButtons.length).toBeGreaterThanOrEqual(1);
-    await user.click(connectButtons[0]!);
+    const card = await screen.findByRole("article", { name: "Earth Week Cookie Jar" });
+    expect(screen.queryByRole("button", { name: "Connect Wallet" })).toBeNull();
+
+    await user.click(within(card).getByRole("button", { name: "Check claim access" }));
     expect(mockLoginWithWallet).toHaveBeenCalledTimes(1);
+    await user.click(within(card).getByRole("button", { name: "Add funds" }));
+    expect(mockLoginWithWallet).toHaveBeenCalledTimes(2);
     expect(mockOpenWallet).not.toHaveBeenCalled();
   });
 
-  it("keeps the wallet surface deferred until the visitor asks to explore jars", () => {
-    renderPage("/cookies", false);
+  it("does not offer wallet actions when a listed jar cannot be read", async () => {
+    mockUseUser.mockReturnValue({ primaryAddress: undefined });
+    mockUseCampaignCookieJar.mockReturnValue({
+      jar: null,
+      isLoading: false,
+      error: new Error("read failed"),
+      hasDetailReadFailure: true,
+    });
 
-    expect(screen.getByRole("button", { name: "Explore Cookie Jars" })).toBeInTheDocument();
-    expect(screen.queryByRole("article", { name: "Earth Week Cookie Jar" })).toBeNull();
+    renderPage("/cookies");
+
+    expect(await screen.findByText(/This cookie jar could not be loaded/i)).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Check claim access" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Add funds" })).toBeNull();
+  });
+
+  it("shows public cookie jars without requiring an explore action", async () => {
+    renderPage("/cookies");
+
+    expect(screen.queryByRole("button", { name: "Explore Cookie Jars" })).toBeNull();
+    expect(
+      await screen.findByRole("article", { name: "Earth Week Cookie Jar" })
+    ).toBeInTheDocument();
   });
 
   it("uses editorial record skeletons while the campaign list loads", async () => {
@@ -421,6 +389,32 @@ describe("CookiesPage", () => {
 
     expect(await screen.findByText(/wallet is not on the list yet/i));
     expect(screen.getByRole("button", { name: "Claim Cookie" })).toBeDisabled();
+  });
+
+  it("announces and clears precision errors through the real amount input without submitting", async () => {
+    const user = userEvent.setup();
+    mockUseCampaignCookieJar.mockReturnValue({
+      jar: { ...eligibleJar, decimals: 6 },
+      isLoading: false,
+      error: null,
+      hasDetailReadFailure: false,
+    });
+    const { container } = renderPage();
+    const input = await screen.findByRole("textbox", { name: "Deposit amount" });
+    const feedback = container.querySelector(`[id="${input.id}-error"]`);
+    expect(feedback).toBeEmptyDOMElement();
+    await user.type(input, "0.0000001");
+    expect(screen.getByRole("textbox", { name: "Deposit amount" })).toBe(input);
+    expect(input).toHaveAccessibleDescription("Too many decimal places");
+    expect(screen.getByRole("alert")).toBe(feedback);
+    expect(screen.getByRole("button", { name: "Deposit" })).toBeDisabled();
+    await user.clear(input);
+    await user.type(input, "1");
+    expect(feedback).toBeEmptyDOMElement();
+    expect(input).not.toHaveAttribute("aria-invalid");
+    expect(input).not.toHaveAttribute("aria-describedby");
+    expect(screen.getByRole("button", { name: "Deposit" })).toBeEnabled();
+    expect(mockDepositMutate).not.toHaveBeenCalled();
   });
 
   it("submits a deposit from the same public page", async () => {

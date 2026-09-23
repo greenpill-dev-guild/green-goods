@@ -20,6 +20,7 @@ const mockGetValues = vi.fn(() => "river");
 const mockReset = vi.fn();
 
 let mockProtocolMember = true;
+let mockProtocolMemberLoading = false;
 let mockRegistrationData: Record<string, unknown> | undefined;
 let mockSlugValue = "";
 let mockExistingGreenGoodsEnsName: string | null = null;
@@ -29,27 +30,48 @@ vi.mock("@green-goods/shared/utils/styles/cn", () => ({
   cn: (...inputs: Array<string | undefined | null | false>) => inputs.filter(Boolean).join(" "),
 }));
 
-vi.mock("@green-goods/shared/utils/blockchain/ens", () => ({
+vi.mock("@green-goods/shared/utils/blockchain/ens", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@green-goods/shared/utils/blockchain/ens")>()),
   validateSlug: (slug: string) => mockValidateSlug(slug),
 }));
 
-vi.mock("@green-goods/shared/hooks/app/useOffline", () => ({
-  useOffline: () => ({ isOnline: true }),
+// The names the account already goes by, which seed the claim.
+const mockNames = vi.hoisted(() => ({
+  authMode: "passkey" as "passkey" | "wallet",
+  userName: null as string | null,
+  walletEnsName: null as string | null,
+}));
+const mockUseSlugForm = vi.hoisted(() => vi.fn());
+vi.mock("@green-goods/shared/hooks/auth/useAuth", () => ({
+  useAuthState: () => ({ authMode: mockNames.authMode, userName: mockNames.userName }),
+}));
+vi.mock("@green-goods/shared/hooks/blockchain/useEnsName", () => ({
+  useEnsName: () => ({ data: mockNames.walletEnsName }),
+}));
+
+vi.mock("@green-goods/shared/hooks/app/useOnlineStatus", () => ({
+  useOnlineStatus: () => true,
 }));
 
 vi.mock("@green-goods/shared/hooks/ens/useProtocolMemberStatus", () => ({
-  useProtocolMemberStatus: () => ({ data: mockProtocolMember }),
+  useProtocolMemberStatus: () => ({
+    data: mockProtocolMember,
+    isLoading: mockProtocolMemberLoading,
+  }),
 }));
 
 vi.mock("@green-goods/shared/hooks/ens/useSlugForm", () => ({
-  useSlugForm: () => ({
-    watch: (field: string) => (field === "slug" ? mockSlugValue : ""),
-    register: () => ({}),
-    trigger: mockTrigger,
-    getValues: mockGetValues,
-    reset: mockReset,
-    formState: { errors: {} },
-  }),
+  useSlugForm: (suggestedSlug?: string) => {
+    mockUseSlugForm(suggestedSlug);
+    return {
+      watch: (field: string) => (field === "slug" ? mockSlugValue : ""),
+      register: () => ({}),
+      trigger: mockTrigger,
+      getValues: mockGetValues,
+      reset: mockReset,
+      formState: { errors: {}, isDirty: false },
+    };
+  },
 }));
 
 vi.mock("@green-goods/shared/hooks/ens/useSlugAvailability", () => ({
@@ -112,18 +134,6 @@ vi.mock("@green-goods/shared/components/Dialog/ConfirmDialog", () => ({
       : null,
 }));
 
-vi.mock("@/components/Actions", () => ({
-  Button: ({
-    label,
-    onClick,
-    disabled,
-  }: {
-    label: string;
-    onClick?: () => void;
-    disabled?: boolean;
-  }) => createElement("button", { onClick, disabled }, label),
-}));
-
 vi.mock("@/components/Cards", () => ({
   Card: ({ children }: { children: ReactNode }) => createElement("div", null, children),
 }));
@@ -136,22 +146,28 @@ import { ENSSection } from "../../views/Profile/ENSSection";
 
 const PRIMARY_ADDRESS = "0x1234567890123456789012345678901234567890" as const;
 
-function renderENSSection(primaryAddress: Address = PRIMARY_ADDRESS) {
-  return render(
-    createElement(
-      IntlProvider,
-      { locale: "en", messages: {} },
-      createElement(ENSSection, { primaryAddress })
-    )
+function ensSection(primaryAddress: Address = PRIMARY_ADDRESS) {
+  return createElement(
+    IntlProvider,
+    { locale: "en", messages: {} },
+    createElement(ENSSection, { primaryAddress })
   );
+}
+
+function renderENSSection(primaryAddress?: Address) {
+  return render(ensSection(primaryAddress));
 }
 
 describe("Profile ENSSection", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockProtocolMember = true;
+    mockProtocolMemberLoading = false;
     mockRegistrationData = undefined;
     mockSlugValue = "";
+    mockNames.authMode = "passkey";
+    mockNames.userName = null;
+    mockNames.walletEnsName = null;
     mockExistingGreenGoodsEnsName = null;
     mockSponsoredReleaseUnavailable = false;
     mockValidateSlug.mockReturnValue({ valid: true });
@@ -181,6 +197,70 @@ describe("Profile ENSSection", () => {
     ).toBeInTheDocument();
     expect(screen.getByText("Claim Name")).toBeInTheDocument();
     expect(mockUseENSRegistrationStatus).toHaveBeenCalledWith(undefined);
+  });
+
+  it.each([
+    ["the username chosen for the passkey", { userName: "Maya K", walletEnsName: null }, "maya-k"],
+    ["the wallet's ENS label", { userName: "user_1726850000", walletEnsName: "maya.eth" }, "maya"],
+    [
+      "nothing when the account has no name",
+      { userName: "user_1726850000", walletEnsName: null },
+      "",
+    ],
+    // Auth keeps the last passkey username after a switch to a wallet.
+    [
+      "the wallet's ENS label over an earlier passkey username",
+      { authMode: "wallet", userName: "Maya K", walletEnsName: "afo.eth" },
+      "afo",
+    ],
+  ] as const)("starts the claim from %s", (_label, names, suggested) => {
+    Object.assign(mockNames, names);
+
+    renderENSSection();
+
+    expect(mockUseSlugForm).toHaveBeenLastCalledWith(suggested);
+  });
+
+  it("replaces its own suggestion when the account changes, never something typed", () => {
+    mockNames.walletEnsName = "maya.eth";
+    mockGetValues.mockReturnValue("maya");
+    const view = renderENSSection();
+
+    mockNames.walletEnsName = "afo.eth";
+    view.rerender(ensSection());
+    expect(mockReset).toHaveBeenCalledWith({ slug: "afo" });
+
+    mockReset.mockClear();
+    mockGetValues.mockReturnValue("typed-name");
+    mockNames.walletEnsName = "kit.eth";
+    view.rerender(ensSection());
+    expect(mockReset).not.toHaveBeenCalled();
+  });
+
+  it("marks the claim unavailable with the join hint for gardeners without a garden", () => {
+    mockProtocolMember = false;
+
+    renderENSSection();
+
+    expect(screen.getByText("Claim your name")).toBeInTheDocument();
+    expect(screen.getByText("Claim your Green Goods name")).toBeInTheDocument();
+    const status = screen.getByRole("status");
+    expect(status).toHaveTextContent("Not available yet");
+    expect(status).toHaveTextContent("Join a garden to unlock your Green Goods name.");
+    expect(screen.queryByText("Claim Name")).not.toBeInTheDocument();
+    expect(
+      screen.queryByLabelText("Choose your personal Green Goods name")
+    ).not.toBeInTheDocument();
+  });
+
+  it("keeps the claim hidden until membership has resolved", () => {
+    mockProtocolMember = false;
+    mockProtocolMemberLoading = true;
+
+    renderENSSection();
+
+    expect(screen.queryByText("Claim your name")).not.toBeInTheDocument();
+    expect(screen.queryByRole("status")).not.toBeInTheDocument();
   });
 
   it("hides claim form after successful ENS claim and shows progress timeline", async () => {

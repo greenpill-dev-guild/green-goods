@@ -8,7 +8,10 @@ import type { Address } from "../../types/domain";
 
 const FUNDING_REFRESH_INTERVAL_MS = 30_000;
 
-export function usePoolFunding(input: { chainId: number; garden: Address }) {
+export function usePoolFunding(
+  input: { chainId: number; garden: Address },
+  options: { enabled?: boolean } = {}
+) {
   const lastBalance = useRef<{
     chainId: number;
     garden: Address;
@@ -18,6 +21,7 @@ export function usePoolFunding(input: { chainId: number; garden: Address }) {
   const query = useQuery({
     queryKey: commitmentPoolingKeys.poolFunding(input.chainId, input.garden),
     queryFn: () => getPoolFundingSnapshot(input.chainId, input.garden),
+    enabled: options.enabled ?? true,
     staleTime: STALE_TIME_MEDIUM,
     refetchInterval: FUNDING_REFRESH_INTERVAL_MS,
     refetchIntervalInBackground: false,

@@ -14,15 +14,20 @@ import {
   hashWorkLinkPayload,
 } from "../../modules/commitment-pooling/jobs";
 import { createCommitmentChainReads } from "../../modules/job-queue/commitment-chain-reads";
-import {
-  executeApprovalJob,
-  executeCommitmentQueueJob,
-  executeWorkJob,
-} from "../../modules/job-queue/job-executors";
+import { executeApprovalJob } from "../../modules/job-queue/approval-executor";
+import { executeCommitmentQueueJob, executeWorkJob } from "../../modules/job-queue/job-executors";
+import { jobQueueDB } from "../../modules/job-queue/db";
 import { createJobExecutorRegistry } from "../../modules/job-queue/executor-registry";
 import type { Address } from "../../types/domain";
 import type { ApprovalJobPayload, Job, WorkJobPayload } from "../../types/job-queue";
 import { createMockTransactionSender } from "../test-utils/transaction-fakes";
+import { PendingHeicConversionError } from "../../modules/work/work-attachments";
+
+// An untitled job looks its action up; keep that lookup off the network.
+vi.mock("../../modules/data/greengoods", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../../modules/data/greengoods")>()),
+  getActions: vi.fn(async () => []),
+}));
 import { MOCK_TX_HASH } from "../test-utils/mock-factories";
 
 const USER = "0x1111111111111111111111111111111111111111" as Address;
@@ -152,9 +157,70 @@ describe("work and approval job executors", () => {
     expect(encodeWork).toHaveBeenCalledWith(
       expect.objectContaining({ media: [image], audioNotes: [audio], title: "Action 7" }),
       11155111,
-      { gardenAddress: GARDEN, authMode: "passkey" }
+      expect.objectContaining({
+        gardenAddress: GARDEN,
+        authMode: "passkey",
+        onCheckpoint: expect.any(Function),
+      })
     );
     expect(sender.sendContractCall).toHaveBeenCalledOnce();
+  });
+
+  it("sends an untitled job under its action's title, never a placeholder", async () => {
+    const encodeWork = vi.fn().mockResolvedValue(HASH);
+    const simulate = vi.fn().mockResolvedValue(undefined);
+    const resolveTitle = vi.fn().mockResolvedValue("Weeding");
+    const work = job<WorkJobPayload>("work", {
+      actionUID: 7,
+      gardenAddress: GARDEN,
+      feedback: "Done",
+    });
+
+    await executeWorkJob("job-work", work, 11155111, createMockTransactionSender(), {
+      images: vi.fn().mockResolvedValue([]),
+      convertMedia: vi.fn().mockResolvedValue({ status: "ready" }),
+      resolveTitle,
+      simulate,
+      encodeWork,
+      easConfig: EAS_CONFIG,
+    });
+
+    expect(resolveTitle).toHaveBeenCalledWith(work, 11155111);
+    expect(simulate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        actionTitle: "Weeding",
+        draft: expect.objectContaining({ title: "Weeding" }),
+      })
+    );
+    expect(encodeWork.mock.calls[0][0]).toMatchObject({ title: "Weeding" });
+  });
+
+  it.each([
+    ["pending", "photo-conversion-pending"],
+    ["needs-attention", "photo-needs-attention"],
+  ] as const)("waits instead of uploading while a queued photo is %s", async (status, reason) => {
+    const images = vi.fn();
+    const encodeWork = vi.fn();
+    const sender = createMockTransactionSender();
+    const work = job<WorkJobPayload>("work", {
+      actionUID: 7,
+      gardenAddress: GARDEN,
+      feedback: "Done",
+    });
+
+    const attempt = executeWorkJob("job-work", work, 11155111, sender, {
+      images,
+      convertMedia: vi.fn().mockResolvedValue({ status }),
+      simulate: vi.fn(),
+      encodeWork,
+      easConfig: EAS_CONFIG,
+    });
+
+    await expect(attempt).rejects.toBeInstanceOf(PendingHeicConversionError);
+    await expect(attempt).rejects.toMatchObject({ reason });
+    expect(images).not.toHaveBeenCalled();
+    expect(encodeWork).not.toHaveBeenCalled();
+    expect(sender.sendContractCall).not.toHaveBeenCalled();
   });
 
   it("encodes and sends an approval through the injected dependencies", async () => {
@@ -748,5 +814,434 @@ describe("job executor registry", () => {
     expect(() =>
       registry.execute("job-unknown", job("unknown", {}), 42161, createMockTransactionSender())
     ).toThrow("Unsupported job kind: unknown");
+  });
+  it("persists upload checkpoints on the same job object used by subsequent queue writes", async () => {
+    const media = [
+      new File(["first"], "first.jpg", { type: "image/jpeg" }),
+      new File(["second"], "second.jpg", { type: "image/jpeg" }),
+    ];
+    const id = await jobQueueDB.addJob({
+      kind: "work",
+      userAddress: USER,
+      chainId: 11155111,
+      payload: {
+        clientWorkId: "queue-checkpoint-test",
+        actionUID: 7,
+        gardenAddress: GARDEN,
+        feedback: "done",
+        media,
+      },
+    });
+    const queued = (await jobQueueDB.getJob(id)) as Job<WorkJobPayload>;
+    expect(queued.payload).not.toHaveProperty("media");
+    expect((await jobQueueDB.getImagesForJob(id)).map((item) => item.file.name)).toEqual([
+      "first.jpg",
+      "second.jpg",
+    ]);
+    const checkpoint = {
+      submittedAt: "2026-09-09T00:00:00Z",
+      files: { photo: { attachmentId: "one", contentHash: "photo", cid: "confirmed" } },
+    };
+    await expect(
+      executeWorkJob(id, queued, 11155111, createMockTransactionSender(), {
+        simulate: vi.fn().mockResolvedValue(undefined),
+        encodeWork: vi.fn(async (_data, _chain, options) => {
+          await options?.onCheckpoint?.(checkpoint);
+          throw new Error("timeout after media");
+        }),
+        easConfig: EAS_CONFIG,
+      })
+    ).rejects.toThrow("timeout after media");
+    expect(queued.payload.uploadCheckpoint).toEqual(checkpoint);
+    await jobQueueDB.updateJob({ ...queued, lastAttemptAt: Date.now() });
+    expect((await jobQueueDB.getJob(id))?.payload).toMatchObject({ uploadCheckpoint: checkpoint });
+    const duplicate = await jobQueueDB.addJob({
+      kind: "work",
+      userAddress: USER,
+      chainId: 11155111,
+      payload: {
+        clientWorkId: "queue-checkpoint-test",
+        actionUID: 7,
+        gardenAddress: GARDEN,
+        feedback: "done",
+        media,
+      },
+    });
+    expect(duplicate).toBe(id);
+    expect((await jobQueueDB.getJob(id))?.payload).toMatchObject({ uploadCheckpoint: checkpoint });
+    await jobQueueDB.deleteJob(id);
+  });
+});
+
+it("queued known transaction must be reconciled before another send", async () => {
+  const sender = createMockTransactionSender({ authMode: "wallet" });
+  const work = job<WorkJobPayload>("work", {
+    actionUID: 3,
+    gardenAddress: GARDEN,
+    feedback: "Done",
+    clientWorkId: "review-known-broadcast",
+    uploadCheckpoint: { submittedAt: new Date().toISOString(), files: {}, transactionHash: HASH },
+  });
+  await executeWorkJob(work.id, work, 11155111, sender, {
+    reconcile: vi.fn().mockResolvedValue("confirmed"),
+    images: vi.fn().mockResolvedValue([]),
+    simulate: vi.fn().mockResolvedValue(undefined),
+    encodeWork: vi.fn().mockResolvedValue(HASH),
+    easConfig: EAS_CONFIG,
+  });
+  expect(sender.sendContractCall).not.toHaveBeenCalled();
+});
+
+it("rechecks after a sender timeout without uploading or sending again", async () => {
+  const work = job<WorkJobPayload>(
+    "work",
+    { actionUID: 3, gardenAddress: GARDEN, feedback: "Done" },
+    { id: "timeout-confirmation" }
+  );
+  const sender = createMockTransactionSender({ authMode: "wallet" });
+  vi.mocked(sender.sendContractCall).mockImplementation(async (_call, options) => {
+    await options?.onBroadcast?.(HASH);
+    throw new Error("receipt timeout");
+  });
+  const deps = {
+    images: vi.fn().mockResolvedValue([]),
+    simulate: vi.fn().mockResolvedValue(undefined),
+    encodeWork: vi.fn().mockResolvedValue(HASH),
+    easConfig: EAS_CONFIG,
+    reconcile: vi.fn().mockResolvedValue("unresolved"),
+  };
+  await expect(executeWorkJob(work.id, work, 11155111, sender, deps)).rejects.toThrow(
+    "awaiting-confirmation"
+  );
+  // The stored job already says so, in case this tab dies before the receipt arrives.
+  expect(work.meta?.waitingReason).toBe("awaiting-confirmation");
+  await expect(executeWorkJob(work.id, work, 11155111, sender, deps)).rejects.toThrow(
+    "awaiting-confirmation"
+  );
+  expect(sender.sendContractCall).toHaveBeenCalledTimes(1);
+  expect(deps.encodeWork).toHaveBeenCalledTimes(1);
+  deps.reconcile.mockResolvedValue("confirmed");
+  expect(await executeWorkJob(work.id, work, 11155111, sender, deps)).toBe(HASH);
+});
+
+it("keeps the broadcast in memory when writing its checkpoint fails", async () => {
+  const work = job<WorkJobPayload>(
+    "work",
+    { actionUID: 3, gardenAddress: GARDEN, feedback: "Done" },
+    { id: "failed-broadcast-write" }
+  );
+  const sender = createMockTransactionSender({ authMode: "wallet" });
+  const update = vi.spyOn(jobQueueDB, "updateJob").mockRejectedValueOnce(new Error("quota"));
+  vi.mocked(sender.sendContractCall).mockImplementation(async (_call, options) => {
+    await options?.onBroadcast?.(HASH);
+    return { hash: HASH, sponsored: false };
+  });
+  const deps = {
+    images: vi.fn().mockResolvedValue([]),
+    simulate: vi.fn().mockResolvedValue(undefined),
+    encodeWork: vi.fn().mockResolvedValue(HASH),
+    easConfig: EAS_CONFIG,
+    reconcile: vi.fn().mockResolvedValue("confirmed"),
+  };
+  await expect(executeWorkJob(work.id, work, 11155111, sender, deps)).rejects.toThrow(
+    "awaiting-confirmation"
+  );
+  // A later attempt may reload the old persisted payload.
+  delete work.payload.uploadCheckpoint;
+  await executeWorkJob(work.id, work, 11155111, sender, deps);
+  expect(sender.sendContractCall).toHaveBeenCalledTimes(1);
+  update.mockRestore();
+});
+
+it("surfaces a sender-confirmed revert as explicit retry without discarding media checkpoints", async () => {
+  const { TransactionRevertedError } = await import("../../modules/transactions/types");
+  const work = job<WorkJobPayload>(
+    "work",
+    { actionUID: 3, gardenAddress: GARDEN, feedback: "Done" },
+    { id: "sender-reverted-work" }
+  );
+  const sender = createMockTransactionSender({ authMode: "wallet" });
+  vi.mocked(sender.sendContractCall).mockImplementation(async (_call, options) => {
+    await options?.onBroadcast?.(HASH);
+    throw new TransactionRevertedError(HASH);
+  });
+  await expect(
+    executeWorkJob(work.id, work, 11155111, sender, {
+      images: vi.fn().mockResolvedValue([]),
+      simulate: vi.fn().mockResolvedValue(undefined),
+      encodeWork: vi.fn().mockResolvedValue(HASH),
+      easConfig: EAS_CONFIG,
+    })
+  ).rejects.toThrow("work-transaction-reverted");
+  expect(work.meta?.workTransactionReverted).toBe(true);
+  expect(work.payload.uploadCheckpoint?.transactionHash).toBe(HASH);
+});
+
+it("reconciles a persisted UserOperation after restart without reading or uploading its evidence", async () => {
+  const operation = `0x${"ab".repeat(32)}` as const;
+  const work = job<WorkJobPayload>(
+    "work",
+    {
+      actionUID: 3,
+      gardenAddress: GARDEN,
+      feedback: "Done",
+      uploadCheckpoint: {
+        files: {},
+        submittedAt: "2026-09-12",
+        broadcast: { kind: "user-operation", hash: operation },
+      },
+    },
+    { id: crypto.randomUUID() }
+  );
+  const sender = createMockTransactionSender();
+  sender.reconcileBroadcast = vi
+    .fn()
+    .mockResolvedValueOnce({ status: "unresolved" })
+    .mockResolvedValueOnce({ status: "confirmed", transactionHash: HASH });
+  const images = vi.fn();
+  await expect(executeWorkJob(work.id, work, 11155111, sender, { images })).rejects.toThrow(
+    "awaiting-confirmation"
+  );
+  await expect(executeWorkJob(work.id, work, 11155111, sender, { images })).resolves.toBe(HASH);
+  expect(images).not.toHaveBeenCalled();
+  expect(sender.sendContractCall).not.toHaveBeenCalled();
+});
+it("keeps a proved failed UserOperation terminal until explicit Retry", async () => {
+  const operation = `0x${"ac".repeat(32)}` as const;
+  const work = job<WorkJobPayload>(
+    "work",
+    {
+      actionUID: 3,
+      gardenAddress: GARDEN,
+      feedback: "Done",
+      uploadCheckpoint: {
+        files: {},
+        submittedAt: "2026-09-12",
+        broadcast: { kind: "user-operation", hash: operation },
+      },
+    },
+    { id: crypto.randomUUID() }
+  );
+  const sender = createMockTransactionSender();
+  sender.reconcileBroadcast = vi.fn().mockResolvedValue({ status: "reverted" });
+  await expect(executeWorkJob(work.id, work, 11155111, sender)).rejects.toThrow(
+    "work-transaction-reverted"
+  );
+  expect(work.meta?.workTransactionReverted).toBe(true);
+  expect(work.payload.uploadCheckpoint?.broadcast).toEqual({
+    kind: "user-operation",
+    hash: operation,
+  });
+  expect(sender.sendContractCall).not.toHaveBeenCalled();
+});
+
+it("retains the operation identity in memory when its durable checkpoint write fails", async () => {
+  const operation = `0x${"bc".repeat(32)}` as const;
+  const work = job<WorkJobPayload>(
+    "work",
+    { actionUID: 3, gardenAddress: GARDEN, feedback: "Done" },
+    { id: crypto.randomUUID() }
+  );
+  const sender = createMockTransactionSender();
+  const update = vi.spyOn(jobQueueDB, "updateJob").mockRejectedValueOnce(new Error("quota"));
+  vi.mocked(sender.sendContractCall).mockImplementation(async (_call, options) => {
+    await options?.onBroadcastReference?.({ kind: "user-operation", hash: operation });
+    return { hash: HASH, sponsored: true };
+  });
+  sender.reconcileBroadcast = vi
+    .fn()
+    .mockResolvedValue({ status: "confirmed", transactionHash: HASH });
+  const deps = {
+    images: vi.fn().mockResolvedValue([]),
+    simulate: vi.fn().mockResolvedValue(undefined),
+    encodeWork: vi.fn().mockResolvedValue(HASH),
+    easConfig: EAS_CONFIG,
+  };
+  try {
+    await expect(executeWorkJob(work.id, work, 11155111, sender, deps)).rejects.toThrow(
+      "awaiting-confirmation"
+    );
+    delete work.payload.uploadCheckpoint;
+    await expect(executeWorkJob(work.id, work, 11155111, sender, deps)).resolves.toBe(HASH);
+    expect(sender.reconcileBroadcast).toHaveBeenCalledWith({
+      kind: "user-operation",
+      hash: operation,
+    });
+    expect(sender.sendContractCall).toHaveBeenCalledTimes(1);
+  } finally {
+    update.mockRestore();
+  }
+});
+
+describe("settling a send whose answer was lost", () => {
+  const LANDED = `0x${"ab".repeat(32)}` as const;
+  const stranded = (checkpoint: Partial<NonNullable<WorkJobPayload["uploadCheckpoint"]>>) =>
+    job<WorkJobPayload>(
+      "work",
+      {
+        actionUID: 3,
+        gardenAddress: GARDEN,
+        feedback: "Done",
+        clientWorkId: crypto.randomUUID(),
+        uploadCheckpoint: { submittedAt: "2026-09-16T11:00:00.000Z", files: {}, ...checkpoint },
+      },
+      { id: crypto.randomUUID() }
+    );
+
+  it("checks a UserOperation no bundler reports the same way", async () => {
+    const work = stranded({ broadcast: { kind: "user-operation", hash: HASH } });
+    const sender = createMockTransactionSender();
+    sender.reconcileBroadcast = vi.fn().mockResolvedValue({ status: "unresolved" });
+    const settleStrandedIntent = vi.fn().mockResolvedValue(LANDED);
+
+    await expect(
+      executeWorkJob(work.id, work, 11155111, sender, { settleStrandedIntent })
+    ).resolves.toBe(LANDED);
+    expect(settleStrandedIntent).toHaveBeenCalledWith(work, 11155111, HASH);
+    expect(sender.sendContractCall).not.toHaveBeenCalled();
+  });
+
+  it("never settles an unresolved transaction hash, which may be a Safe transaction", async () => {
+    const work = stranded({
+      broadcast: { kind: "transaction", hash: HASH },
+      transactionHash: HASH,
+    });
+    const sender = createMockTransactionSender({ authMode: "wallet" });
+    const settleStrandedIntent = vi.fn();
+
+    await expect(
+      executeWorkJob(work.id, work, 11155111, sender, {
+        settleStrandedIntent,
+        reconcile: vi.fn().mockResolvedValue("unresolved"),
+      })
+    ).rejects.toThrow("awaiting-confirmation");
+    expect(settleStrandedIntent).not.toHaveBeenCalled();
+    expect(sender.sendContractCall).not.toHaveBeenCalled();
+  });
+});
+
+describe("sending a decision once", () => {
+  const LANDED = `0x${"ab".repeat(32)}` as const;
+  const decision = (sendCheckpoint?: ApprovalJobPayload["sendCheckpoint"]) =>
+    job<ApprovalJobPayload>(
+      "approval",
+      {
+        actionUID: 7,
+        workUID: HASH,
+        gardenAddress: GARDEN,
+        gardenerAddress: USER,
+        approved: true,
+        confidence: 2,
+        verificationMethod: 1,
+        ...(sendCheckpoint ? { sendCheckpoint } : {}),
+      },
+      { id: crypto.randomUUID() }
+    );
+  const sendDeps = (overrides = {}) => ({
+    encodeApproval: vi.fn().mockReturnValue(HASH),
+    easConfig: EAS_CONFIG,
+    persist: vi.fn().mockResolvedValue(undefined),
+    ...overrides,
+  });
+  const lostResponse = () =>
+    Object.assign(new Error("The request took too long"), { name: "TimeoutError" });
+
+  it("never sends a decision again when its answer is lost after the send", async () => {
+    const approval = decision();
+    const sender = createMockTransactionSender();
+    vi.mocked(sender.sendContractCall).mockImplementation(async (_call, options) => {
+      await options?.onBeforeBroadcast?.({ kind: "user-operation", hash: HASH });
+      await options?.onBroadcastReference?.({ kind: "user-operation", hash: HASH });
+      throw lostResponse();
+    });
+    sender.reconcileBroadcast = vi
+      .fn()
+      .mockResolvedValueOnce({ status: "unresolved" })
+      .mockResolvedValueOnce({ status: "confirmed", transactionHash: LANDED });
+    const deps = sendDeps({
+      settleStrandedIntent: vi.fn().mockRejectedValue(new Error("waiting")),
+    });
+
+    await expect(executeApprovalJob(approval, 11155111, sender, deps)).rejects.toThrow(
+      "awaiting-confirmation"
+    );
+    expect(approval.payload.sendCheckpoint).toMatchObject({
+      broadcast: { kind: "user-operation", hash: HASH },
+      broadcastPending: false,
+    });
+    expect(deps.persist).toHaveBeenCalled();
+
+    // The next run asks about the operation instead of sending the decision again.
+    await expect(executeApprovalJob(approval, 11155111, sender, deps)).rejects.toThrow("waiting");
+    await expect(executeApprovalJob(approval, 11155111, sender, deps)).resolves.toBe(LANDED);
+    expect(sender.sendContractCall).toHaveBeenCalledOnce();
+  });
+
+  it("confirms a recorded transaction by its receipt, and never gives up on an unresolved one", async () => {
+    const sender = createMockTransactionSender();
+    const settleStrandedIntent = vi.fn();
+    const confirmed = sendDeps({
+      reconcile: vi.fn().mockResolvedValue("confirmed"),
+      settleStrandedIntent,
+    });
+    const unresolved = sendDeps({
+      reconcile: vi.fn().mockResolvedValue("unresolved"),
+      settleStrandedIntent,
+    });
+
+    await expect(
+      executeApprovalJob(decision({ transactionHash: LANDED }), 11155111, sender, confirmed)
+    ).resolves.toBe(LANDED);
+    // A transaction hash may be a Safe transaction still collecting signatures.
+    await expect(
+      executeApprovalJob(decision({ transactionHash: LANDED }), 11155111, sender, unresolved)
+    ).rejects.toThrow("awaiting-confirmation");
+    expect(settleStrandedIntent).not.toHaveBeenCalled();
+    expect(sender.sendContractCall).not.toHaveBeenCalled();
+  });
+
+  it("clears a send that reverted, so the decision may be sent again", async () => {
+    const approval = decision({ transactionHash: LANDED });
+    const sender = createMockTransactionSender();
+    const deps = sendDeps({ reconcile: vi.fn().mockResolvedValue("reverted") });
+
+    await expect(executeApprovalJob(approval, 11155111, sender, deps)).rejects.toThrow(
+      "Transaction reverted"
+    );
+    expect(approval.payload.sendCheckpoint).toBeUndefined();
+    expect(deps.persist).toHaveBeenCalledWith(approval);
+    expect(sender.sendContractCall).not.toHaveBeenCalled();
+  });
+
+  it("asks the steward's own decisions about a send whose answer was lost", async () => {
+    const approval = decision({
+      broadcastPending: true,
+      broadcastPendingAt: "2026-09-16T11:00:00.000Z",
+    });
+    const sender = createMockTransactionSender();
+    const settleStrandedIntent = vi.fn().mockResolvedValue(LANDED);
+
+    await expect(
+      executeApprovalJob(approval, 11155111, sender, sendDeps({ settleStrandedIntent }))
+    ).resolves.toBe(LANDED);
+    expect(settleStrandedIntent).toHaveBeenCalledWith(approval, 11155111, "0x");
+    expect(sender.sendContractCall).not.toHaveBeenCalled();
+  });
+
+  it("clears the intent when the wallet rejects, and holds the decision for the person to send", async () => {
+    const approval = decision();
+    const sender = createMockTransactionSender({ authMode: "wallet" });
+    vi.mocked(sender.sendContractCall).mockImplementation(async (_call, options) => {
+      await options?.onBeforeBroadcast?.();
+      throw Object.assign(new Error("User rejected the request."), { code: 4001 });
+    });
+    const deps = sendDeps();
+
+    await expect(executeApprovalJob(approval, 11155111, sender, deps)).rejects.toThrow(
+      "User rejected"
+    );
+    expect(approval.payload.sendCheckpoint).toBeUndefined();
+    expect(approval.meta?.requiresExplicitSend).toBe(true);
+    expect(deps.persist).toHaveBeenCalledTimes(3);
   });
 });

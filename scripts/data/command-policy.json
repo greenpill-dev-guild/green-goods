@@ -1,0 +1,185 @@
+{
+  "version": 1,
+  "root": {
+    "setup": {
+      "owner": "repository",
+      "purpose": "Create a preserved host, isolated, or cloud onboarding baseline",
+      "consumer": "README and ONBOARDING first-run paths"
+    },
+    "dev": {
+      "owner": "repository",
+      "purpose": "Own and launch the declared local service graph",
+      "consumer": "daily development, PM2 workbench, and onboarding"
+    },
+    "dev:health": {
+      "owner": "repository",
+      "purpose": "Check prerequisites for a selected development mode",
+      "consumer": "onboarding and developer diagnosis"
+    },
+    "dev:smoke": {
+      "owner": "repository",
+      "purpose": "Verify running services for a selected development mode",
+      "consumer": "onboarding and local runtime verification"
+    },
+    "dev:clean": {
+      "owner": "repository",
+      "purpose": "Inspect and remove disposable local artifacts",
+      "consumer": "documented local maintenance workflow"
+    },
+    "env:sync": {
+      "owner": "repository",
+      "purpose": "Resolve the shared team environment through the existing credential path",
+      "consumer": "team onboarding"
+    },
+    "env:check": {
+      "owner": "repository",
+      "purpose": "Validate root environment capabilities without exposing values",
+      "consumer": "setup, development health, and validation"
+    },
+    "check": {
+      "owner": "repository",
+      "purpose": "Select, explain, and execute stable validation checks",
+      "consumer": "agents, contributors, CI preparation, and package guides"
+    },
+    "test": {
+      "owner": "repository",
+      "purpose": "Run the ordered uncached or Turbo-cached repository test scope",
+      "consumer": "full local validation and CI iteration"
+    },
+    "build": {
+      "owner": "repository",
+      "purpose": "Build applications in dependency order",
+      "consumer": "CI, release preparation, and full local validation"
+    },
+    "lint": {
+      "owner": "repository",
+      "purpose": "Run the repository's aggregate static analysis",
+      "consumer": "CI and ready-for-CI validation"
+    },
+    "format": {
+      "owner": "repository",
+      "purpose": "Apply or check repository formatting through one interface",
+      "consumer": "contributors and ready-for-CI validation"
+    },
+    "contracts": {
+      "owner": "repository",
+      "purpose": "Dispatch guarded contract operations from package-owned definitions",
+      "consumer": "contract operators, release tooling, and contract runbooks"
+    },
+    "browser": {
+      "owner": "repository",
+      "purpose": "Select browser E2E, route, and Lighthouse proof",
+      "consumer": "QA, CI, and authenticated browser verification"
+    },
+    "qa": {
+      "owner": "repository",
+      "purpose": "Build, pull, inspect, and report QA sessions",
+      "consumer": "QA session skills and team QA runbooks"
+    },
+    "prepare": {
+      "owner": "repository",
+      "purpose": "Repository prepare workflow",
+      "consumer": "package-manager lifecycle"
+    },
+    "postinstall": {
+      "owner": "repository",
+      "purpose": "Repository postinstall workflow",
+      "consumer": "package-manager lifecycle"
+    }
+  },
+  "packages": {
+    "packages/contracts/package.json": [
+      "predev",
+      "dev",
+      "dev:arbitrum-fork",
+      "check:foundry-version",
+      "format",
+      "lint",
+      "build",
+      "build:abis",
+      "check:sizes",
+      "check:storage-layout",
+      "clean",
+      "typecheck",
+      "test",
+      "test:e2e",
+      "test:fork",
+      "test:audit",
+      "test:shard",
+      "contracts"
+    ],
+    "packages/admin/package.json": [
+      "predev",
+      "dev",
+      "test",
+      "format",
+      "lint",
+      "build",
+      "preview",
+      "typecheck"
+    ],
+    "packages/qa/package.json": ["build"],
+    "packages/agent/package.json": [
+      "dev",
+      "intake:smoke",
+      "build",
+      "start",
+      "lint",
+      "test",
+      "format",
+      "typecheck",
+      "sentry:sourcemaps"
+    ],
+    "packages/shared/package.json": [
+      "lint",
+      "format",
+      "build",
+      "typecheck",
+      "test",
+      "prestorybook",
+      "storybook",
+      "build-storybook",
+      "check:stories",
+      "check:story-quality",
+      "test:stories:ci",
+      "chromatic"
+    ],
+    "packages/client/package.json": [
+      "predev",
+      "dev",
+      "test",
+      "format",
+      "lint",
+      "build",
+      "check:pwa-precache",
+      "preview",
+      "typecheck"
+    ],
+    "packages/indexer/package.json": [
+      "clean",
+      "build",
+      "watch",
+      "codegen",
+      "dev",
+      "start",
+      "check:indexing-boundary",
+      "db:up",
+      "db:down",
+      "test",
+      "lint",
+      "reset",
+      "docker"
+    ],
+    "docs/package.json": [
+      "docusaurus",
+      "predev",
+      "dev",
+      "test",
+      "build",
+      "check:search-index",
+      "audit",
+      "typecheck"
+    ]
+  },
+  "exceptions": []
+}

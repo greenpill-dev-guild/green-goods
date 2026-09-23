@@ -5,13 +5,6 @@ import type { Address } from "../../types/domain";
 export const queryInvalidation = {
   invalidateAll: () => queryKeys.all,
 
-  /**
-   * Wagmi-owned root query keys for direct on-chain reads. Invalidating these
-   * forces every `useReadContract(s)` and balance query to refetch after a
-   * state-changing transaction. Keep the key shapes here, not in hooks.
-   */
-  onchainReads: () => [["readContract"], ["readContracts"], ["balance"]],
-
   invalidateQueueStats: () => queryKeys.queue.stats(),
 
   invalidateWorksForGarden: (gardenId: string, chainId: number) => [
@@ -175,7 +168,7 @@ export const queryInvalidation = {
   /** Refresh sendable-token balances after a token send (direct RPC reads). */
   onTokenSent: (account: string, chainId: number) => [
     queryKeys.tokens.balances(account, chainId),
-    queryKeys.tokens.all,
+    ...(chainId === 42220 ? [queryKeys.tokens.celoBalance(account)] : []),
   ],
 
   ...financeInvalidation,

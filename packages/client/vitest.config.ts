@@ -62,6 +62,19 @@ export default defineConfig({
         functions: 62,
         lines: 64,
         statements: 63,
+        // Aggregate floors measured at 08f96dc; global floors still include these files.
+        "src/views/Home/WalletSheet/**": {
+          branches: 67,
+          functions: 60,
+          lines: 75,
+          statements: 74,
+        },
+        "src/views/Profile/**": {
+          branches: 78,
+          functions: 88,
+          lines: 86,
+          statements: 85,
+        },
       },
     },
     exclude: ["node_modules/", "dist/", "build/", "**/*.d.ts"],
@@ -87,6 +100,16 @@ export default defineConfig({
   resolve: {
     conditions: ["import", "module", "browser", "default"],
     alias: [
+      // Declared package exports whose path does not mirror their source
+      // location; the build aliases these too, so tests must resolve them the
+      // same way or an import that ships fine fails only under test.
+      {
+        find: "@green-goods/shared/service-worker",
+        replacement: path.resolve(
+          __dirname,
+          "../shared/src/modules/app/service-worker-registration.ts"
+        ),
+      },
       {
         find: "@green-goods/shared/hooks",
         replacement: path.resolve(__dirname, "../shared/src/hooks"),

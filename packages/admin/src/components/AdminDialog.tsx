@@ -68,6 +68,8 @@ export interface AdminConfirmDialogProps {
   icon?: ReactNode;
   /** Workspace tone, forwarded to the portaled surface (see AdminDialogProps.tone). */
   tone?: AdminDialogProps["tone"];
+  /** The facts the confirmation rests on (what changes, from what to what), under the description. */
+  children?: ReactNode;
 }
 
 // Three tiers by action weight (not five — a modal's size should read as a
@@ -126,7 +128,8 @@ const closeButtonClasses = cn(
   "absolute right-3 top-1.5 z-10",
   "flex h-10 w-10 items-center justify-center",
   "rounded-full",
-  "m3-state-layer",
+  // 44px finger box on the 40px circle (DL-030).
+  "m3-state-layer admin-hit-target-lg",
   "[--state-layer-color:var(--m3-on-surface)]",
   "text-[rgb(var(--m3-on-surface-variant))]",
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--tone-focus-ring,var(--m3-primary)))]"
@@ -382,6 +385,7 @@ export function AdminConfirmDialog({
   confirmDisabled = false,
   icon,
   tone,
+  children,
 }: AdminConfirmDialogProps) {
   const { formatMessage } = useIntl();
   const resolvedConfirmLabel = confirmLabel ?? formatMessage({ id: "app.common.confirm" });
@@ -457,6 +461,7 @@ export function AdminConfirmDialog({
       {description ? null : (
         <p className="text-body-md text-[rgb(var(--m3-on-surface-variant))]">{title}</p>
       )}
+      {children}
     </AdminDialog>
   );
 }

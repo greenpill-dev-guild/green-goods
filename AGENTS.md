@@ -4,6 +4,25 @@ Primary runtime contract for coding agents in this repository. Start here, then 
 `AGENTS.md` for the package you are editing. Package-level guides override this file for
 their subtree.
 
+## Shared engineering guidance
+
+Use the personal `pragmatic-programming` skill for coding work and
+`domain-driven-design` when changing domain meaning, behavior, identity, lifecycle,
+consistency, or integration contracts. If not discovered, read the relevant
+`~/.agents/skills/<skill-name>/SKILL.md` when available. On an environment without
+these personal skills, follow this repository's guidance and report the missing
+shared guidance; do not install or duplicate it automatically. Load only relevant
+references. Existing repository rules and explicit user decisions govern the work.
+
+Apply these methods through the existing [Implementation Quality Contract](.claude/context/values.md#implementation-quality-contract),
+[architecture model](.claude/context/codebase-architecture.md), and
+[ontology workflow](.claude/context/ontology.md). Inspect the owning implementation
+and caller before changing a rule; keep canonical knowledge and generated projections
+in their existing sources. Verify changed behavior at its owning layer, then follow
+[the validation selector and completion gates](.claude/context/validation-pipeline.md).
+A guidance or documentation edit needs link, routing, and consistency proof, not an
+invented runtime behavior change. Keep unrelated repairs outside the task.
+
 ## Monorepo Map
 
 - `packages/contracts` — Solidity contracts, deploy/upgrade wrappers, Foundry tests
@@ -26,14 +45,14 @@ Read the nearest guide before editing a package. It narrows this root contract f
 
 ## Common Commands
 
-- `bun run validation:plan -- --intent <intent>` — select evidence from intent, paths, dependencies, and criticality
-- `bun run test:fast` — cache-aware full-scope iteration after targeted proof is green
-- `bun run test:fast:force` — repeat the same full scope without cache reuse
+- `bun run check --plan -- --intent <intent>` — select evidence from intent, paths, dependencies, and criticality
+- `bun run test --cache` — cache-aware full-scope iteration after targeted proof is green
+- `bun run test --cache --force` — repeat the same full scope without cache reuse
 - `node scripts/dev/ci-local.js --quick` — cross-package checkpoint
 - `node scripts/dev/ci-local.js --intent push --reuse-passing-receipts --test-path <surface>:<path>` — targeted ready-for-CI gate
 - `bun run test` — exact uncached full test gate
 - `VITE_CHAIN_ID=11155111 bun run build` — deterministic root application build
-- `bun run build:agent` / `bun run build:docs` — Agent and Docs builds, which the root build does not include
+- `bun run --cwd packages/agent build` / `bun run --cwd docs build` — Agent and Docs builds, which the root build does not include
 
 The command definitions, conditional checks, receipt rules, and stop conditions live in
 [`.claude/context/validation-pipeline.md`](.claude/context/validation-pipeline.md). Development and
@@ -71,15 +90,15 @@ service entrypoints live in [`scripts/README.md`](scripts/README.md).
 
 Linear (workspace `greenpill-dev-guild`) is the durable backlog as of 2026-05-09. GitHub is for PRs and code review only — never open GitHub Issues for backlog work. Routine and label-scheme details: `docs/routines/README.md`. Live workspace state (active initiatives, projects, customers, cycle status) — query the Linear MCP at the time you need it; do not hardcode it here, it drifts.
 
-**Teams**: five as of 2026-07-14 — Product (`PRD`), Research (`RESR`), Community (`COM`), Growth (`GROW`), Marketing (`MAR`). Green Goods work writes only to **Product**. States: PRD and RESR have `Triage`; COM/GROW/MAR use the standard set without it; the old Product `QA`/`Ready` states are retired (QA proof lives in `In Review` + acceptance rules). Matters when filtering or transitioning issues.
+**Teams**: five as of 2026-07-14 — Product (`PRD`), Research (`RESR`), Community (`COM`), Growth (`GROW`), Marketing (`MAR`). Green Goods work writes only to **Product**, with one exception: the `research-synthesis` routine writes Research-team comments, status updates, and at most one Research issue per run, because research is its surface. States: PRD and RESR have `Triage`; COM/GROW/MAR use the standard set without it; the old Product `QA`/`Ready` states are retired (QA proof lives in `In Review` + acceptance rules). Matters when filtering or transitioning issues.
 
 **Records**: `Customer Need` (raw signal, structured body) → `Issue` (accepted work). `.plans/` remains execution truth for agent implementation; Linear mirrors carry the `source:plans` label.
 
 **Project routing**: new Issues default unprojected on the Product team. Graduate into a bounded active project only when one already exists for the work; never route new work into a project whose status is Completed.
 
-**Canonical label families** (only these): `protocol:* / package:* / activity:* / source:* / ai:* / funding:*`. Retired and not to be reintroduced: `area:*`, `work:*`, `task:*`, `automation:*`, `health:*`, `grant:*`. The `ai:*` family distinguishes `ai:claude` (interactive Claude Code), `ai:codex` (Codex), and `ai:routine` (cron'd routine writes) — they are not synonymous. This family was written as `agent:*` in earlier docs; the live group is `ai`, and `agent` exists only as `package:agent` (the agent runtime package), which is unrelated. **`group:child` above is display shorthand — `save_issue` resolves labels by bare child name or ID**, so pass `["green-goods", "qa"]`, not `["protocol:green-goods", "activity:qa"]`. A single unresolvable entry rejects the whole array and files nothing.
+**Canonical label families** (only these): `protocol:* / package:* / activity:* / source:* / ai:* / funding:* / session:*`. Retired and not to be reintroduced: `area:*`, `work:*`, `task:*`, `automation:*`, `health:*`, `grant:*`. The `ai:*` family distinguishes `ai:codex` (a live Codex queue) from `ai:routine` (cron'd routine writes) — they are not synonymous. `ai:claude` was retired 2026-09-11: it sat on over half the board and recorded only which agent typed the issue, which never changed what anyone did next. Interactive writes now carry no `ai:*` label. `session:<YYYY-MM-DD>` (renamed from `qa-sync` on 2026-09-11) marks which working session a record came from, so `/qa-triage` and `qa-call-report` can resume one session's exact set. `activity:qa` means the validation pass itself — a defect a QA pass found is `activity:build`, `activity:design`, or `activity:maintenance`. In `package:*`, the client splits by surface: `package:pwa` for the installed app, `package:editorial` for the public website, and `package:client` only for plumbing both share. This family was written as `agent:*` in earlier docs; the live group is `ai`, and `agent` exists only as `package:agent` (the agent runtime package), which is unrelated. **`group:child` above is display shorthand — `save_issue` resolves labels by bare child name or ID**, so pass `["green-goods", "qa"]`, not `["protocol:green-goods", "activity:qa"]`. A single unresolvable entry rejects the whole array and files nothing.
 
-**Cloud routines that write Linear** (hosted at claude.ai/code/routines, per-routine docs in `docs/routines/`): `bug-intake`, `health-watch`, `growth-pulse`, `qa-triage-pulse` (Customer-Need pre-stage), and the on-demand `qa-call-report` (QA session report + fix slices). Codex does not run these — they are Claude Code routines. Codex consumes the Linear surface they produce.
+**Cloud routines that write Linear** (hosted at claude.ai/code/routines, per-routine docs in `docs/routines/`): `bug-intake`, `health-watch`, `growth-pulse`, `qa-triage-pulse` (Customer-Need pre-stage), the on-demand `qa-call-report` (QA session report + fix slices), and `research-synthesis` (weekly status updates and comments on the tracks in `docs/routines/research-agenda.md`). Codex does not run these — they are Claude Code routines. Codex consumes the Linear surface they produce.
 
 **Linear MCP** is wired into the Codex environment; it is the same Linear MCP that Claude Code uses. No project `.mcp.json` config needed. Use it for read/query, triage/promote, state transitions, and branch-context loading.
 
@@ -130,9 +149,13 @@ When you are dispatched from a Linear issue (delegated/assigned, labeled `ai:cod
 2. For specialized work, route through [`.claude/context/task-routing.json`](.claude/context/task-routing.json); it defines each core task's skill, mutation boundary, output, and handoff.
 3. Apply [the Implementation Quality Contract](.claude/context/values.md#implementation-quality-contract)
    while planning, writing, and reviewing code.
+   For new components/helpers or cross-feature dependencies, also apply the
+   [reuse and capability ownership rules](.claude/context/codebase-architecture.md#reuse-and-capability-ownership).
 4. Keep the change inside the smallest sensible package boundary.
 5. Run the lightest validation loop that still proves the change.
 6. Escalate to cross-package verification when shared contracts, shared types, or public APIs move.
+
+For test changes, apply the [test budget](.claude/context/testing.md#test-budget): prove distinct failures at their owning layer and verify surviving proof before deleting a test.
 
 **Two-phase rhythm for ambiguous or multi-issue work**: investigate (read-only) → present numbered findings → wait for explicit scope lock from the human → fix only locked items → run the validation ladder. This paragraph is the canonical spec (the former `audit-then-ship` skill folded into it; Claude gets the same gate from plan mode + CLAUDE.md § Scope Discipline). Do not invent a parallel Codex-specific protocol.
 
@@ -162,6 +185,8 @@ For ambiguous, multi-package, or high-risk work, do not jump straight into edits
 4. Surface human judgment points before editing protected or irreversible surfaces.
 5. Implement only after the research and plan are coherent. If the session went down the wrong path, summarize the useful findings and restart with clean context.
 
+Plan Hubs close through the plan skill's [Closing a Plan Hub](.claude/skills/plan/SKILL.md#closing-a-plan-hub) procedure: the finishing PR carries the hub's closeout record, and the archive commit follows the merge. Code, tests, and CI never read files under `.plans/`.
+
 ## Contract Deployment Review Phases
 
 For new or not-yet-broadcast contract work, missing addresses in
@@ -188,7 +213,7 @@ Before reporting that a fix works, a setting takes effect, or a behavior holds, 
 
 ## Validation
 
-Render `bun run validation:plan -- --intent <intent>` before executing validation. Follow its
+Render `bun run check --plan -- --intent <intent>` before executing validation. Follow its
 selected checks and inspect `selectedBy`; do not invent a broader suite or omit a direct acceptance
 check. Use these rungs:
 
@@ -246,25 +271,65 @@ Single design language across frontend packages, with distinct admin, installed 
 
 **Client** (`packages/client`) — adaptive shell. Browser = `SiteHeader` + hamburger. Installed PWA = bottom `AppBar` (Home / Garden / Profile). Never mix. Inter across PWA; editorial serif only on public browser site. Hero moments (garden creation, first submission, hypercert mint, vault deposit, seasonal transitions, assessment completion, role milestone) live here, never in admin.
 
-**Tokens** — root `DESIGN.md` front matter is the canonical DesignMD token source; generated `--gg-*` tokens and runtime aliases live in `packages/shared/src/styles/theme.css`. Never hardcode `cubic-bezier`, `duration`, or raw color / radius values. Use `--spring-*` (6 tokens), `--color-*`, `--radius-*`, `--color-material-*`, `--blur-material-*`. Concentricity: `child_radius = parent_radius − padding`. 4-role volume hierarchy: canvas 80–90% / ink 8–15% / stone 3–5% / accent green 1–3%.
+**Tokens** — root `DESIGN.md` front matter is the canonical DesignMD token source; generated `--gg-*` tokens and runtime aliases live in `packages/shared/src/styles/theme.css`. Never hardcode `cubic-bezier`, `duration`, or raw color / radius values. Use `--spring-*` (7 tokens), `--color-*`, `--radius-*`, `--color-material-*`, `--blur-material-*`. Concentricity: `child_radius = parent_radius − padding`. 4-role volume hierarchy: canvas 80–90% / ink 8–15% / stone 3–5% / accent green 1–3%.
 
 **Banned vocabulary and prompt-only wording**:
-- Lint-enforced i18n terms (`bun run lint:vocab`, from `scripts/data/banned-vocabulary.json` → `linter_enforced.terms`): `streak`, `countdown`, `leaderboard`, `FOMO`, `urgent`, `limited time`, `re-engagement`, `retention hook`.
+- Lint-enforced i18n terms (`bun run check --only vocabulary`, from `scripts/data/banned-vocabulary.json` → `linter_enforced.terms`): `streak`, `countdown`, `leaderboard`, `FOMO`, `urgent`, `limited time`, `re-engagement`, `retention hook`.
 - Admin prompt-only vocabulary (not parsed by `lint:vocab`): `hero moment`, `gallery`, `decorative gradient`, AppBar glass, glass outside Navigation/FAB chrome.
 - Client prompt-only vocabulary (not parsed by `lint:vocab`): `operator cockpit`, `utility copy`, `Plus Jakarta Sans`, `KPI tile`, `dashboard`.
 
-**Additional validation steps**: `bun run check:design-md` (root + dialect DesignMD lint), `bun run check:design-generated` (root DesignMD ↔ generated artifacts), `bun run check:design-tokens` (runtime projection guard + version coupling), and `bun run lint:vocab` (i18n vocabulary guard). Add these to the Validation Ladder for frontend work; when a component, story, or Storybook-covered surface changes, also run `bun run --filter @green-goods/shared check:stories` and `bun run --filter @green-goods/shared check:story-quality`.
+**Additional validation steps**: `bun run check --only design-md` (root + dialect DesignMD lint), `bun run check --only design-generated` (root DesignMD ↔ generated artifacts), `bun run check --only design-tokens` (runtime projection guard + version coupling), and `bun run check --only vocabulary` (i18n vocabulary guard). Add these to the Validation Ladder for frontend work; when a component, story, or Storybook-covered surface changes, also run `bun run --filter @green-goods/shared check:stories` and `bun run --filter @green-goods/shared check:story-quality`.
 
 **Design-system alignment reviews**: for any full-repo design-system alignment review — DesignMD files, Warm Earth, `theme.css`, Storybook, admin, client PWA/browser, docs UI, agentic guidance, Claude + Codex repo instructions — Codex must read and follow the Claude-owned repo protocol at `.claude/skills/design/system-alignment-review.md`. Treat it as the single source of truth for this review shape; do not author a separate Codex-only review protocol and do not duplicate the Warm Earth spec inside Codex guidance. The protocol starts read-only and does not apply fixes unless explicitly requested.
 
 ## Agentic Modern Web Standard
 
-- Baseline target: Baseline Widely Available. Before frontend, UI, CSS, accessibility, browser proof, or web-design changes, use repo-installed Modern Web Guidance through `bun run agentic:guidance` to search and retrieve current Chrome guidance as documentation/source material only; Green Goods local QA uses the authenticated Brave QA profile, while CI clean-room browser proof uses Brave only as non-authenticated evidence. Then apply the repo's Warm Earth and package-level design rules.
+- Baseline target: Baseline Widely Available. Before frontend, UI, CSS, accessibility, browser proof, or web-design changes, use repo-installed Modern Web Guidance through `DISABLE_TELEMETRY=1 bun --bun modern-web-guidance search "agentic frontend CSS accessibility browser validation DevTools MCP" && DISABLE_TELEMETRY=1 bun --bun modern-web-guidance retrieve accessibility` to search and retrieve current Chrome guidance as documentation/source material only; browser proof follows § Browser Evidence below. Then apply the repo's Warm Earth and package-level design rules.
 - Prefer semantic HTML, native controls, platform CSS, and browser primitives before custom JavaScript. Keep headings, landmarks, form labels, accessible names, focus order, visible focus, touch targets, loading/error/empty states, and reduced-motion behavior legible to humans, assistive tech, and browser agents.
-- Run `bun run agentic:check` as the hard guidance-readiness front door for repo-installed Modern Web Guidance, design docs, token drift, the ontology sidecar (`bun run check:ontology`), Codex/skill guidance, and shared Storybook story quality. For local built-route QA across client, admin, and docs, use the authenticated Brave QA profile through the live authenticated-browser path below. Treat `bun run agentic:verify`, `bun run agentic:browser-proof`, and `bun run lighthouse` as CI/clean-room or code-level proof only unless they attach to authenticated Brave; do not report them as local authenticated verification. `dev-surfaces` remains the cross-repo/global doctor for shared Modern Web Guidance cache refresh, Brave, and MCP readiness.
-- Local agentic browser QA must use the authenticated Brave QA profile. Codex: use the Codex browser-extension path and claim the already-open Brave tab/window. Claude Code: use the Claude Code Chrome/Chromium extension path (`claude --chrome` or `/chrome`) and select the authenticated Brave profile/tab when it is installed, connected, and able to control the already-open Brave window. Do not fall back merely because the extension is branded Chrome. If the Brave extension path is unavailable or not connected, use Claude computer-use/visible desktop control of the already-open Brave window; if neither can reach authenticated Brave, report QA as blocked. Use this for admin, PWA, extension, wallet/passkey, staging-session, installed-app, and profile-dependent verification.
-- Do not use isolated Browser, Playwright, or DevTools MCP profiles for local QA. Existing isolated browser-proof commands are CI/clean-room checks only and must not be reported as authenticated verification. If authenticated Brave access is blocked, stop and report QA as blocked.
-- Brave DevTools MCP is project-configured in `.mcp.json` through `scripts/mcp/brave-devtools.mjs`, but do not use it for local QA, live admin/PWA verification, rendered DOM proof, screenshots, traces, or success claims because it can launch a separate non-authenticated profile. The wrapper calls the upstream `chrome-devtools-mcp` package because that is the protocol package name, but the browser executable must be Brave. It rejects Google Chrome, Chrome for Testing, Chromium, and Edge paths. Use this wrapper only for CI/clean-room public-route checks or explicit non-authenticated protocol debugging, and label any result as non-authenticated evidence. Native WebMCP discovery requires a Brave build that exposes `navigator.modelContext`. WebMCP v1 is implemented only for public-safe client/browser routes via `packages/client/src/modules/webmcp/public-tools.ts`; do not expose secrets, private data, hidden admin actions, onchain writes, destructive operations, or background-only actions as WebMCP tools.
+- Run `bun run check --only agentic-readiness` as the hard guidance-readiness front door for repo-installed Modern Web Guidance, design docs, token drift, the ontology sidecar (`bun run check --only ontology`), Codex/skill guidance, and shared Storybook story quality. `bun run --cwd packages/shared build-storybook`, `bun run browser routes`, and `bun run browser lighthouse` produce clean-room evidence; label it as such per § Browser Evidence. `dev-surfaces` remains the cross-repo/global doctor for shared Modern Web Guidance cache refresh, Brave, and MCP readiness.
+
+### Browser Evidence
+
+Rendered proof has three separate rules. Skills, package guides, and the validation policy link
+here instead of restating them.
+
+1. **Label every rendered proof** with the engine and session that produced it: `authenticated
+   Brave` (the user's real profile), `mock-auth localhost` (`?mockAuth=<role>` on a loopback dev
+   server), `Storybook`, `CI Playwright` (clean-room), or `none`. Never present one class as
+   another, and never call an HTTP or DOM-less check rendered proof.
+2. **Authenticated-session proof is required only for the authenticated surface class**: wallet and
+   passkey signing, session and auth providers, installed-PWA and service-worker behavior, the job
+   queue and offline uploads, profile identity, and the QA app catalog.
+   `scripts/data/validation-policy.json` selects the manual `browser-proof` check for exactly these
+   paths. Every other surface accepts labeled mock-auth localhost, Storybook, or CI Playwright
+   rendered proof; do not report that evidence as authenticated.
+3. **Brave specifically is required only for WebMCP, the browser-extension path, and installed-PWA
+   behavior.** For rendered DOM and CSS proof any Chromium engine is equivalent when labeled.
+
+The `browser-proof` check is advisory in every local intent: it never blocks a push, review,
+ship, or readiness run. Record the proof, or that it is pending and why, in the PR body. Only the
+release gate requires attestation:
+`node scripts/dev/ci-local.js --intent release --attest browser-proof="<engine, session, date, what was observed>"`.
+The release gate rejects a placeholder: the text must name an engine the check accepts
+(`attestation.engines` in `scripts/data/validation-policy.json`), carry the date as `YYYY-MM-DD`,
+and say what was observed. No other intent consumes an attestation; the proof stays pending there.
+
+Authenticated path: Claude Code uses the Chrome/Chromium extension path against the already-open
+Brave profile/tab and probes reachability with a tab-context call, not the connected-browsers
+roster; Codex uses its browser-extension path against the same window; visible computer control of
+that Brave window is the fallback. If none can reach it, record the authenticated-class proof as
+pending and continue with labeled proof for everything else. Do not substitute an isolated
+Browser, Playwright, or DevTools MCP profile for authenticated-class proof.
+
+The Brave DevTools MCP wrapper in `.mcp.json` (`scripts/mcp/brave-devtools.mjs`) launches a
+separate non-authenticated profile: use it for WebMCP debugging and clean-room public-route
+checks, label its output as such, and never for authenticated-class proof. It calls the upstream
+`chrome-devtools-mcp` package because that is the protocol package name, but the executable must
+be Brave; it rejects Google Chrome, Chrome for Testing, Chromium, and Edge paths. Native WebMCP
+discovery requires a Brave build that exposes `navigator.modelContext`. WebMCP v1 covers only
+public-safe client/browser routes via `packages/client/src/webmcp.ts`; do not expose secrets,
+private data, hidden admin actions, onchain writes, destructive operations, or background-only
+actions as WebMCP tools.
 
 ## Known Gotchas
 

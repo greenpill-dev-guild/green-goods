@@ -62,6 +62,7 @@
   },
   "include": ["src/**/*", "src/types/**/*.d.ts", "../shared/src/types/**/*.d.ts", "../../env.d.ts"],
   "exclude": [
+    "src/sw/**",
     "src/__tests__",
     "src/**/__tests__/**",
     "src/**/*.test.ts",

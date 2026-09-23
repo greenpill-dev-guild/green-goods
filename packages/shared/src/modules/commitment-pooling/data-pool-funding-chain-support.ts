@@ -1,5 +1,5 @@
 import type { Address } from "../../types/domain";
-import { ERC20_BALANCE_ABI } from "../../utils/blockchain/abis/erc20";
+import { BOOLEAN_PAUSED_ABI } from "../../utils/blockchain/abis/goodDollar";
 import { address, integer } from "./data-core";
 import type { ZodiacAllowance } from "./pool-funding";
 
@@ -9,35 +9,6 @@ export interface PoolFundingLiveRoute {
   allowanceKey: `0x${string}`;
   active: boolean;
 }
-
-export const BOOLEAN_PAUSED_ABI = [
-  {
-    type: "function",
-    name: "paused",
-    stateMutability: "view",
-    inputs: [],
-    outputs: [{ name: "", type: "bool" }],
-  },
-] as const;
-
-export const GOOD_DOLLAR_ABI = [
-  ...ERC20_BALANCE_ABI,
-  ...BOOLEAN_PAUSED_ABI,
-  {
-    type: "function",
-    name: "getFees",
-    stateMutability: "view",
-    inputs: [
-      { name: "amount", type: "uint256" },
-      { name: "sender", type: "address" },
-      { name: "recipient", type: "address" },
-    ],
-    outputs: [
-      { name: "fee", type: "uint256" },
-      { name: "senderPays", type: "bool" },
-    ],
-  },
-] as const;
 
 export const EXECUTOR_ABI = [
   ...BOOLEAN_PAUSED_ABI,
@@ -152,8 +123,8 @@ export const ROLES_ALLOWANCE_ABI = [
       { name: "refill", type: "uint128" },
       { name: "maxRefill", type: "uint128" },
       { name: "period", type: "uint64" },
-      { name: "timestamp", type: "uint64" },
       { name: "balance", type: "uint128" },
+      { name: "timestamp", type: "uint64" },
     ],
   },
 ] as const;
@@ -200,8 +171,8 @@ export function allowanceTuple(value: unknown): ZodiacAllowance | null {
     refill: integer(row.refill ?? row[0]),
     maxRefill: integer(row.maxRefill ?? row[1]),
     period: integer(row.period ?? row[2]),
-    timestamp: integer(row.timestamp ?? row[3]),
-    balance: integer(row.balance ?? row[4]),
+    balance: integer(row.balance ?? row[3]),
+    timestamp: integer(row.timestamp ?? row[4]),
   };
 }
 

@@ -1,29 +1,33 @@
 #!/usr/bin/env node
+import { groups, smokeInvocation } from "../lib/dev-modes.mjs";
 
 /**
  * Start or stop PM2-backed development stacks.
  *
  * Usage:
- *   node scripts/dev/stack.js                 # default: full
- *   node scripts/dev/stack.js full            # every app in ecosystem.config.cjs
+ *   node scripts/dev/stack.js                 # default: local app services
+ *   node scripts/dev/stack.js full            # local services + docs, Storybook, browser
  *   node scripts/dev/stack.js web             # client, admin, docs, storybook, browser
  *   node scripts/dev/stack.js status          # inspect port/service ownership
  *   node scripts/dev/stack.js stop            # stop services owned by GREEN_GOODS_DEV_OWNER
  *   node scripts/dev/stack.js client admin    # custom subset (any app name from ecosystem.config.cjs)
  */
 
-import fs from "node:fs";
 import net from "node:net";
 import path from "node:path";
-import { spawn } from "node:child_process";
+import { execFileSync, spawn } from "node:child_process";
 import { randomUUID } from "node:crypto";
 import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
+import { assertDockerReady, dockerEnvironment } from "../lib/dev-shared.js";
 import {
   claimSurface,
   inspectSurface,
+  isProcessAlive,
+  readLeaseStore,
   releaseOwnerClaims,
   releaseSurface,
+  withStartupLock,
 } from "./surface-leases.mjs";
 
 const require = createRequire(import.meta.url);
@@ -32,56 +36,24 @@ const pm2 = require("pm2");
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const projectRoot = path.resolve(__dirname, "../..");
-const ecosystem = require(path.join(projectRoot, "ecosystem.config.cjs"));
-const rootEnv = parseRootEnv();
-
-const allApps = ecosystem.apps || [];
-const validNames = new Set(allApps.map((app) => app.name));
-
 const PRODUCTION_INDEXER_URL = "https://indexer.hyperindex.xyz/0bf0e0f/v1/graphql";
 const PRODUCTION_AGENT_URL = "https://agent.greengoods.app";
 const LOCAL_INDEXER_URL = "http://localhost:3006/v1/graphql";
 const ARBITRUM_PUBLIC_RPC_URL = "https://arb1.arbitrum.io/rpc";
+// Settings that decide which chain, indexer, and agent the browser apps talk to.
+const CONNECTION_KEYS = [
+  "VITE_CHAIN_ID",
+  "VITE_DEV_CHAIN_MODE",
+  "VITE_LOCAL_FORK_RPC_URL",
+  "VITE_ENABLE_ANVIL_WALLETS",
+  "VITE_ENVIO_INDEXER_URL",
+  "VITE_API_BASE_URL",
+];
+const BROWSER_APPS = ["client", "admin", "docs"];
 
-function parseRootEnv() {
-  const envPath = path.join(projectRoot, ".env");
-  if (!fs.existsSync(envPath)) return {};
 
-  const env = {};
-  for (const rawLine of fs.readFileSync(envPath, "utf8").split(/\r?\n/)) {
-    const line = rawLine.trim();
-    if (!line || line.startsWith("#")) continue;
 
-    const match = line.match(/^([A-Za-z_][A-Za-z0-9_]*)=(.*)$/);
-    if (!match) continue;
-
-    let value = match[2].trim();
-    if (
-      (value.startsWith('"') && value.endsWith('"')) ||
-      (value.startsWith("'") && value.endsWith("'"))
-    ) {
-      value = value.slice(1, -1);
-    }
-    env[match[1]] = value;
-  }
-  return env;
-}
-
-function envValue(key, fallback = "") {
-  return process.env[key] || rootEnv[key] || fallback;
-}
-
-const groups = {
-  // `browser` waits on ports and opens tabs (PWA + website + admin + docs +
-  // storybook). `tunnel` is a best-effort cloudflared launcher for both the
-  // client and admin Vite servers — admin has a real mobile review surface, so
-  // it ships in `web` alongside the client. Both apps are no-ops if their
-  // prerequisites (Brave / cloudflared) aren't installed.
-  web: ["docs", "admin", "client", "storybook", "browser", "tunnel"],
-  full: allApps.map((app) => app.name),
-  prod: ["docs", "admin", "client", "storybook", "browser"],
-  "prod-mirror": ["docs", "admin", "client", "indexer", "storybook", "browser"],
-};
+const validNames = new Set([...Object.values(groups).flat(), "tunnel"]);
 
 // Apps that bind to a TCP port we can probe for readiness. Other apps (tunnel,
 // browser) finish their work without listening on a deterministic port.
@@ -96,19 +68,22 @@ const portsByApp = {
 };
 
 const forbiddenPortsByGroup = {
+  local: [3009],
+  full: [3009],
+  web: [3009],
   prod: [3005, 3006, 3007, 3008, 3009],
   "prod-mirror": [3005, 3009],
 };
 
-function parseArgs(argv) {
-  const args = argv.slice(2);
+export function parseArgs(argv) {
+  const args = argv.slice(2).filter((arg) => arg !== "--");
 
   if (args.includes("--help") || args.includes("-h")) {
     return { mode: "help" };
   }
 
   if (args.length === 0) {
-    return { mode: "group", group: "full", names: groups.full };
+    return { mode: "group", group: "local", names: groups.local };
   }
 
   if (args.length === 1 && args[0] === "stop") {
@@ -134,12 +109,12 @@ function parseArgs(argv) {
 function usage(stream = process.stdout) {
   stream.write(
     [
-      "Usage: node scripts/dev/stack.js [<group>|<app>...|status|stop]",
+      "Usage: bun run dev -- [<mode>|<service>...|status|stop]",
       "",
       "Groups:",
       ...Object.entries(groups).map(([name, apps]) => `  ${name.padEnd(11)} ${apps.join(", ")}`),
       "",
-      `Apps: ${allApps.map((app) => app.name).join(", ")}`,
+      `Apps: ${[...validNames].join(", ")}`,
       "",
       "Set GREEN_GOODS_DEV_OWNER to a stable agent/session ID when detached stop authority is needed.",
       "",
@@ -208,6 +183,10 @@ async function deleteOwnedApps(names, ownerId) {
         requested.has(processDescription.name) && pm2Owner(processDescription) === ownerId
     )
     .map((processDescription) => processDescription.name);
+  // Keep PM2 ownership records until Docker teardown succeeds. If Docker is
+  // temporarily unavailable, the next launch can still verify and recover them.
+  // Compose's foreground process alone does not guarantee PostgreSQL stops.
+  if (ownedNames.includes("indexer")) stopIndexerContainers();
   const results = await deleteApps(ownedNames);
   const failures = results.filter((result) => result.error);
   if (failures.length > 0) {
@@ -216,6 +195,66 @@ async function deleteOwnedApps(names, ownerId) {
     );
   }
   return results.map((result) => result.name);
+}
+
+function stopIndexerContainers() {
+  const cwd = path.join(projectRoot, "packages/indexer");
+  const env = dockerEnvironment();
+  const compose = ["compose", "-f", path.join(cwd, "docker-compose.indexer.yaml")];
+  const run = (args) => execFileSync("docker", args, {
+    cwd, env, encoding: "utf8", timeout: 45_000, stdio: ["ignore", "pipe", "pipe"],
+  });
+  const ids = run([...compose, "ps", "--all", "--quiet"]).trim().split(/\s+/).filter(Boolean);
+  if (ids.length === 0) return;
+  const labels = run(["inspect", "--format", "{{json .Config.Labels}}", ...ids])
+    .trim().split("\n").map((line) => JSON.parse(line));
+  if (labels.some((label) => label["com.docker.compose.project.working_dir"] !== cwd)) {
+    throw new Error("Refusing to stop indexer containers belonging to another checkout.");
+  }
+  run([...compose, "down"]);
+}
+
+export function findOrphanedApps(apps, claims, processes, processAlive = isProcessAlive) {
+  // Profile compatibility controls reuse; recovery only stops verified dead owners.
+  const orphaned = [];
+  for (const app of apps) {
+    const ports = portsByApp[app.name] || [];
+    const appClaims = ports.map((port) => claims[port]).filter(Boolean);
+    if (appClaims.length === 0 || appClaims.some((claim) => processAlive(claim.ownerPid))) continue;
+    const ownerId = appClaims[0].ownerId;
+    if (appClaims.some((claim) => claim.ownerId !== ownerId || claim.service !== app.name)) {
+      throw new Error(`Cannot verify orphaned ${app.name} ownership; leaving its processes untouched.`);
+    }
+    const matching = processes.filter((entry) => entry.name === app.name);
+    if (matching.length === 0) {
+      // Compose containers survive both their foreground PM2 wrapper and PM2's own
+      // state. stopIndexerContainers performs the final checkout-label proof.
+      if (app.name === "indexer") orphaned.push({ name: app.name, ownerId, ports, detached: true });
+      continue; // Ordinary claims still reject an unknown live listener.
+    }
+    const entry = matching[0];
+    if (matching.length !== 1 ||
+      pm2Owner(entry) !== ownerId || path.resolve(entry.pm2_env?.pm_cwd || "/") !== projectRoot) {
+      throw new Error(`Cannot verify orphaned ${app.name} ownership; leaving its processes untouched.`);
+    }
+    orphaned.push({ name: app.name, ownerId, ports });
+  }
+  return orphaned;
+}
+
+async function recoverOrphanedApps(apps) {
+  const orphaned = findOrphanedApps(apps, readLeaseStore().claims, await listPm2Apps());
+  for (const app of orphaned) {
+    console.log(`[stack] recovering ${app.name} left by exited launcher ${app.ownerId}.`);
+    if (app.detached) stopIndexerContainers();
+    else await deleteOwnedApps([app.name], app.ownerId);
+    for (const port of app.ports) {
+      if (await portIsLive(port)) {
+        throw new Error(`${app.name}:${port} is still occupied after stopping its verified service; leaving the listener untouched.`);
+      }
+    }
+    await releaseClaims(app.ports, app.ownerId);
+  }
 }
 
 function startApps(apps) {
@@ -259,16 +298,6 @@ function probePort(port, host = "127.0.0.1") {
   });
 }
 
-async function waitForPort(port, timeoutMs, hosts = ["127.0.0.1", "::1"]) {
-  const deadline = Date.now() + timeoutMs;
-  while (Date.now() < deadline) {
-    const checks = await Promise.all(hosts.map((host) => probePort(port, host)));
-    if (checks.some(Boolean)) return true;
-    await new Promise((resolve) => setTimeout(resolve, 500));
-  }
-  return false;
-}
-
 async function portIsLive(port) {
   const checks = await Promise.all(
     ["127.0.0.1", "::1"].map((host) => probePort(port, host))
@@ -281,8 +310,9 @@ function ownerIdForLaunch() {
   return explicit || `stack:${process.pid}:${randomUUID().slice(0, 8)}`;
 }
 
-function compatibilityKey(group, appName) {
-  const profile = group === "prod" || group === "prod-mirror" ? group : "local";
+export function compatibilityKey(group, appName) {
+  // The old :local key described a fork. Never reuse those processes for live writes.
+  const profile = ["prod", "prod-mirror", "fork"].includes(group) ? group : "local-live";
   return `${appName}:${profile}`;
 }
 
@@ -408,99 +438,175 @@ async function claimApps(apps, group, ownerId) {
   return { appsToStart, reusedApps, skippedHelpers, claimedPorts };
 }
 
-async function reportReadiness(apps) {
-  const probed = apps
-    .flatMap((app) =>
-      (portsByApp[app.name] || []).map((port) => ({ name: app.name, port }))
+/**
+ * Name reused services whose running process was started with different connection
+ * settings. Compatibility keys cover only the profile, so without this check a
+ * second session would silently test the first session's chain, indexer, or agent.
+ */
+export function connectionMismatches(reusedApps, processes) {
+  return reusedApps.flatMap((app) => {
+    const running = processes
+      .filter((entry) => entry.name === app.name)
+      .map((entry) => entry.pm2_env || {});
+    const keys = CONNECTION_KEYS.filter(
+      (key) =>
+        app.env?.[key] !== undefined &&
+        running.some((env) => `${env[key] ?? ""}` !== `${app.env[key]}`)
     );
-
-  if (probed.length === 0) {
-    console.log("[stack] no port-binding apps in this group; skipping readiness probe.");
-    return true;
-  }
-
-  const start = Date.now();
-  // Indexer Docker rebuilds can take a while on cold start; give it more time.
-  const timeoutMs = probed.some((item) => item.name === "indexer") ? 180_000 : 90_000;
-  const results = await Promise.all(
-    probed.map(async (item) => ({
-      ...item,
-      ready: await waitForPort(item.port, timeoutMs),
-    }))
-  );
-  const elapsed = ((Date.now() - start) / 1000).toFixed(1);
-
-  const ready = results.filter((item) => item.ready);
-  const failed = results.filter((item) => !item.ready);
-
-  if (failed.length === 0) {
-    console.log(`[stack] all ${ready.length} services ready in ${elapsed}s.`);
-    return true;
-  }
-
-  console.log(
-    `[stack] ${ready.length}/${results.length} services ready in ${elapsed}s — failed: ${failed
-      .map((item) => `${item.name}:${item.port}`)
-      .join(", ")}`
-  );
-  return false;
+    return keys.length > 0 ? [`${app.name} (${keys.join(", ")})`] : [];
+  });
 }
 
-function productionProfileEnv(group, appName) {
-  if (group !== "prod" && group !== "prod-mirror") return {};
-
-  if (group === "prod-mirror" && appName === "indexer") {
-    return {
-      NODE_ENV: "development",
-      GREEN_GOODS_STACK_PROFILE: group,
-      GREEN_GOODS_DEV_CHAIN_MODE: "",
-      ARBITRUM_RPC_URL: envValue("ARBITRUM_RPC_URL", ARBITRUM_PUBLIC_RPC_URL),
-    };
+export async function reportReadiness(apps, {
+  processes,
+  probe = portIsLive,
+  // A cold Docker install/export can exceed three minutes; exited processes
+  // still fail on the next poll instead of consuming this build allowance.
+  timeoutMs = apps.some((app) => app.name === "indexer") ? 600_000 : 90_000,
+  pollMs = 500,
+} = {}) {
+  const pending = apps.flatMap((app) =>
+    (portsByApp[app.name] || []).map((port) => ({ name: app.name, port }))
+  );
+  const total = pending.length;
+  const start = Date.now();
+  const ready = [];
+  while (pending.length > 0) {
+    // Inspect once per poll, including apps that exited before the PM2 bus attached.
+    const states = processes ? await processes() : [];
+    const failed = states.filter((app) =>
+      apps.some((requested) => requested.name === app.name && portsByApp[app.name]) &&
+      ["stopped", "errored"].includes(app.pm2_env?.status)
+    );
+    if (failed.length > 0) {
+      console.error(`[stack] startup failed: ${failed.map((app) => app.name).join(", ")} exited.`);
+      for (const app of failed) {
+        if (app.pm2_env?.pm_err_log_path) console.error(`[stack] ${app.name} error log: ${app.pm2_env.pm_err_log_path}`);
+      }
+      return false;
+    }
+    const checks = await Promise.all(pending.map(async (item) => ({ ...item, live: await probe(item.port) })));
+    for (let index = checks.length - 1; index >= 0; index--) {
+      if (checks[index].live) ready.push(...pending.splice(index, 1));
+    }
+    if (pending.length === 0) break;
+    if (Date.now() - start >= timeoutMs) {
+      console.error(`[stack] startup timed out: ${pending.map((item) => `${item.name}:${item.port}`).join(", ")}.`);
+      return false;
+    }
+    await new Promise((resolve) => setTimeout(resolve, pollMs));
   }
+  console.log(`[stack] all ${total} service ports ready in ${((Date.now() - start) / 1000).toFixed(1)}s.`);
+  for (const item of ready.sort((a, b) => a.port - b.port)) {
+    const url = { 3001: "https://localhost:3001", 3002: "https://localhost:3002", 3003: "http://localhost:3003", 3004: "http://localhost:3004" }[item.port];
+    if (url) console.log(`[stack] ${item.name}: ${url}`);
+  }
+  return true;
+}
 
+function productionProfileEnv(group) {
+  const fork = group === "fork";
+  const hostedAgent = group === "prod" || group === "prod-mirror";
   return {
     APP_ENV: "development",
     NODE_ENV: "development",
-    GREEN_GOODS_STACK_PROFILE: group,
+    GREEN_GOODS_STACK_PROFILE: group || "local",
+    GREEN_GOODS_DEV_CHAIN_MODE: "",
     VITE_CHAIN_ID: "42161",
-    VITE_DEV_CHAIN_MODE: "",
-    VITE_LOCAL_FORK_RPC_URL: "",
-    VITE_ENABLE_ANVIL_WALLETS: "false",
-    VITE_ENVIO_INDEXER_URL:
-      group === "prod-mirror" ? LOCAL_INDEXER_URL : PRODUCTION_INDEXER_URL,
-    VITE_API_BASE_URL: PRODUCTION_AGENT_URL,
+    VITE_DEV_CHAIN_MODE: fork ? "arbitrum_fork" : "",
+    VITE_LOCAL_FORK_RPC_URL: fork ? "http://127.0.0.1:3009" : "",
+    ARBITRUM_RPC_URL: fork ? "http://127.0.0.1:3009" : ARBITRUM_PUBLIC_RPC_URL,
+    VITE_ENABLE_ANVIL_WALLETS: String(fork),
+    VITE_ENVIO_INDEXER_URL: group === "prod" ? PRODUCTION_INDEXER_URL : LOCAL_INDEXER_URL,
+    VITE_API_BASE_URL: hostedAgent ? PRODUCTION_AGENT_URL : "http://127.0.0.1:3005",
   };
 }
 
-function applyGroupEnvironment(app, group) {
-  const env = productionProfileEnv(group, app.name);
-  if (Object.keys(env).length === 0) return app;
+/**
+ * Apply a stack profile without re-enabling explicitly disabled local Vite connections.
+ * Hosted and fork profiles always use their own indexer: fork writes land only in the
+ * local fork indexer, so a configured hosted indexer would hide them.
+ */
+export function applyGroupEnvironment(app, group) {
+  const profileEnv = productionProfileEnv(group);
+  const configuredIndexerUrl = app.env?.VITE_ENVIO_INDEXER_URL;
+  const disableLocalChain = app.env?.VITE_DISABLE_LOCAL_CHAIN === "true";
+  const disableLocalAgent = app.env?.VITE_DISABLE_LOCAL_AGENT === "true";
+  const preserveConfiguredIndexer = !["prod", "prod-mirror", "fork"].includes(group);
+  const { VITE_ENVIO_INDEXER_URL: profileIndexerUrl, ...sharedProfileEnv } = profileEnv;
+  const configuredChainEnv = disableLocalChain
+    ? {
+        VITE_DEV_CHAIN_MODE: app.env.VITE_DEV_CHAIN_MODE,
+        VITE_CHAIN_ID: app.env.VITE_CHAIN_ID,
+        VITE_LOCAL_FORK_RPC_URL: app.env.VITE_LOCAL_FORK_RPC_URL,
+        VITE_ENABLE_ANVIL_WALLETS: app.env.VITE_ENABLE_ANVIL_WALLETS,
+      }
+    : {};
+  const configuredAgentEnv = disableLocalAgent
+    ? { VITE_API_BASE_URL: app.env.VITE_API_BASE_URL }
+    : {};
+
   return {
     ...app,
     env: {
       ...(app.env || {}),
-      ...env,
+      ...sharedProfileEnv,
+      ...(preserveConfiguredIndexer
+        ? configuredIndexerUrl === undefined
+          ? {}
+          : { VITE_ENVIO_INDEXER_URL: configuredIndexerUrl }
+        : { VITE_ENVIO_INDEXER_URL: profileIndexerUrl }),
+      ...configuredChainEnv,
+      ...configuredAgentEnv,
     },
   };
 }
 
-function printProductionModeNotice(group) {
-  if (group !== "prod" && group !== "prod-mirror") return;
+/**
+ * Resolve the connection settings the launched browser apps receive, and which of
+ * them depart from the group profile (a configured indexer or a disable flag).
+ */
+export function launchConnections(apps, group) {
+  const profileEnv = productionProfileEnv(group);
+  const appEnv =
+    BROWSER_APPS.map((name) => apps.find((app) => app.name === name)?.env).find(Boolean) ??
+    profileEnv;
+  const env = Object.fromEntries(CONNECTION_KEYS.map((key) => [key, `${appEnv[key] ?? ""}`]));
+  const customKeys = CONNECTION_KEYS.filter((key) => env[key] !== `${profileEnv[key] ?? ""}`);
+  return { env, customKeys };
+}
 
+// Print only the origin: a configured URL can carry a path or query we should not echo.
+function urlOrigin(value) {
+  try {
+    return new URL(value).origin;
+  } catch {
+    return "an unparseable URL";
+  }
+}
+
+/** Describe the topology the apps actually received, not the group's defaults. */
+export function productionModeNotice(group, connections = launchConnections([], group)) {
+  if (group === "fork") return [];
+
+  const { VITE_CHAIN_ID: chainId, VITE_ENVIO_INDEXER_URL: indexerUrl } = connections.env;
+  const arbitrum = chainId === "42161";
   const indexerMode =
-    group === "prod-mirror"
-      ? "local live-indexer mirror on localhost:3006"
-      : "hosted production indexer";
+    indexerUrl === PRODUCTION_INDEXER_URL
+      ? "hosted production indexer"
+      : indexerUrl === LOCAL_INDEXER_URL
+        ? "local live-indexer mirror on localhost:3006"
+        : `configured indexer at ${urlOrigin(indexerUrl)}`;
 
-  console.log("");
-  console.log("[stack] Production-backed Green Goods dev mode is active.");
-  console.log(`[stack] Chain: Arbitrum One (42161); indexer: ${indexerMode}.`);
-  console.log(`[stack] Agent API: ${PRODUCTION_AGENT_URL}.`);
-  console.log(
-    "[stack] Connected wallet transactions are real Arbitrum writes and can spend funds."
-  );
-  console.log("[stack] The automatic smoke is read-only and never submits transactions.");
-  console.log("");
+  return [
+    "",
+    `[stack] ${arbitrum ? "Production-backed Green Goods" : "Green Goods"} dev mode is active.`,
+    `[stack] Chain: ${arbitrum ? "Arbitrum One (42161)" : `chain ${chainId}`}; indexer: ${indexerMode}.`,
+    `[stack] Agent API: ${urlOrigin(connections.env.VITE_API_BASE_URL)}.`,
+    `[stack] Connected wallet transactions are real ${arbitrum ? "Arbitrum" : "onchain"} writes and can spend funds.`,
+    "[stack] The automatic smoke is read-only and never submits transactions.",
+    "",
+  ];
 }
 
 function smokeModeForGroup(group) {
@@ -509,40 +615,60 @@ function smokeModeForGroup(group) {
   return "";
 }
 
-function runProductionSmoke(group) {
+export function runStartupSmoke(
+  group,
+  spawnProcess = spawn,
+  connections = launchConnections([], group)
+) {
   const smokeMode = smokeModeForGroup(group);
-  if (!smokeMode) return Promise.resolve();
+  const isLocal = ["local", "full", "fork"].includes(group);
+  if (!smokeMode && !isLocal) return Promise.resolve(true);
 
-  const scriptPath = path.join(projectRoot, "scripts/dev/smoke-prod.js");
+  const label = isLocal ? "local QA" : "production";
+  // Each smoke checks its profile's own chain, indexer, and agent. Passing it would
+  // certify services the apps are not using, so custom connections skip it.
+  if (connections.customKeys.length > 0) {
+    console.log(
+      `[stack] skipped the ${label} smoke: the apps use custom ${connections.customKeys.join(", ")} settings that it does not check. QA readiness is not verified.`
+    );
+    return Promise.resolve(false);
+  }
+
+  const invocation = smokeInvocation([group]);
+  const scriptPath = path.join(projectRoot, "scripts/dev", invocation.script);
+  const args = invocation.args;
   return new Promise((resolve) => {
-    console.log(`[stack] running production smoke (${smokeMode})...`);
-    const child = spawn(process.execPath, [scriptPath, "--mode", smokeMode], {
+    console.log(`[stack] checking ${label} readiness, including Arbitrum indexer progress...`);
+    const child = spawnProcess(process.execPath, [scriptPath, ...args], {
       cwd: projectRoot,
       env: {
         ...process.env,
-        ...productionProfileEnv(group, "smoke"),
+        ...productionProfileEnv(group),
       },
       stdio: "inherit",
     });
 
     child.on("error", (error) => {
-      console.error(`[stack] production smoke failed to start: ${error.message}`);
-      resolve();
+      console.error(`[stack] ${label} smoke failed to start: ${error.message}`);
+      resolve(false);
     });
     child.on("exit", (code, signal) => {
       if (code === 0) {
-        console.log("[stack] production smoke passed.");
+        console.log(`[stack] ${label} smoke passed; environment ready for QA.`);
       } else {
         console.error(
-          `[stack] production smoke failed (${signal ? `signal ${signal}` : `exit ${code}`}); stack remains running.`
+          `[stack] NOT READY FOR QA: ${label} smoke failed (${signal ? `signal ${signal}` : `exit ${code}`}); services remain running so indexing can continue.${isLocal ? " Rerun bun run dev:smoke after resolving the reported failures." : ""}`
         );
       }
-      resolve();
+      resolve(code === 0);
     });
   });
 }
 
+let shutdownStarted = false;
 async function stopAndExit(names, ownerId, claimedPorts, exitCode = 0) {
+  if (shutdownStarted) return;
+  shutdownStarted = true;
   try {
     await deleteOwnedApps(names, ownerId);
     await releaseClaims(claimedPorts, ownerId);
@@ -577,22 +703,29 @@ async function main() {
     return;
   }
 
+  let stopOwnerId = "";
   if (parsed.mode === "stop") {
-    const ownerId = (process.env.GREEN_GOODS_DEV_OWNER || "").trim();
-    if (!ownerId) {
+    stopOwnerId = (process.env.GREEN_GOODS_DEV_OWNER || "").trim();
+    if (!stopOwnerId) {
       throw new Error(
         "Refusing an ownerless stop. Use Ctrl+C in the launching terminal, or rerun with the same GREEN_GOODS_DEV_OWNER used to start the stack."
       );
     }
+  }
+
+  // Load service configuration only after argument and stop-ownership validation.
+  const allApps = require(path.join(projectRoot, "ecosystem.config.cjs")).apps || [];
+
+  if (parsed.mode === "stop") {
     await connect();
     await deleteOwnedApps(
       allApps.map((app) => app.name),
-      ownerId
+      stopOwnerId
     );
-    const released = releaseOwnerClaims({ ownerId });
+    const released = releaseOwnerClaims({ ownerId: stopOwnerId });
     disconnect();
     console.log(
-      `Stopped Green Goods dev services owned by ${ownerId}; released ${released.length} claim(s).`
+      `Stopped Green Goods dev services owned by ${stopOwnerId}; released ${released.length} claim(s).`
     );
     return;
   }
@@ -604,20 +737,44 @@ async function main() {
   if (apps.length === 0) {
     throw new Error(`No PM2 apps matched: ${parsed.names.join(", ")}`);
   }
+  const connections = launchConnections(apps, group);
+
+  const dockerEnv = dockerEnvironment();
+  if (apps.some((app) => app.name === "indexer")) assertDockerReady(dockerEnv);
 
   const ownerId = ownerIdForLaunch();
-  const { appsToStart, reusedApps, skippedHelpers, claimedPorts } = await claimApps(
-    apps,
-    group,
-    ownerId
-  );
-  const ownedApps = appsToStart.map((app) => ({
-    ...app,
-    env: {
-      ...(app.env || {}),
-      GREEN_GOODS_DEV_OWNER: ownerId,
-    },
-  }));
+  await connect();
+  const { ownedApps, reusedApps, skippedHelpers, claimedPorts } = await withStartupLock(async () => {
+    // Retire verified orphans from the previous profile, including its Anvil process.
+    await recoverOrphanedApps(allApps);
+    const claims = await claimApps(apps, group, ownerId);
+    try {
+      const running = claims.reusedApps.length > 0 ? await listPm2Apps() : [];
+      const mismatched = connectionMismatches(claims.reusedApps, running);
+      if (mismatched.length > 0) {
+        throw new Error(
+          `Refusing to reuse live services started with different connection settings: ${mismatched.join("; ")}. Launch with the owning session's settings, or stop those services from that session first.`
+        );
+      }
+    } catch (error) {
+      await releaseClaims(claims.claimedPorts, ownerId);
+      throw error;
+    }
+    const ownedApps = claims.appsToStart.map((app) => ({
+      ...app,
+      env: { ...dockerEnv, ...(app.env || {}), GREEN_GOODS_DEV_OWNER: ownerId },
+    }));
+    try {
+      await assertAppsReplaceable(ownedApps.map((app) => app.name), ownerId);
+      await deleteOwnedApps(ownedApps.map((app) => app.name), ownerId);
+      if (ownedApps.length > 0) await startApps(ownedApps);
+    } catch (error) {
+      await deleteOwnedApps(ownedApps.map((app) => app.name), ownerId);
+      await releaseClaims(claims.claimedPorts, ownerId);
+      throw error;
+    }
+    return { ...claims, ownedApps };
+  });
 
   if (reusedApps.length > 0) {
     console.log(
@@ -633,32 +790,20 @@ async function main() {
   if (ownedApps.length === 0) {
     console.log(`[stack] all requested services are already live; owner remains unchanged.`);
     const ready = await reportReadiness(apps);
-    if (ready) await runProductionSmoke(group);
-    return;
-  }
-
-  await connect();
-  try {
-    await assertAppsReplaceable(
-      ownedApps.map((app) => app.name),
-      ownerId
-    );
-    await deleteOwnedApps(
-      ownedApps.map((app) => app.name),
-      ownerId
-    );
-    await startApps(ownedApps);
-  } catch (error) {
-    await releaseClaims(claimedPorts, ownerId);
+    if (ready) await runStartupSmoke(group, spawn, connections);
     disconnect();
-    throw error;
+    return;
   }
 
   const label = parsed.mode === "group" ? `${parsed.group} stack` : "custom stack";
   console.log(`Started Green Goods ${label}: ${ownedApps.map((app) => app.name).join(", ")}`);
   console.log(`[stack] lease owner: ${ownerId}`);
-  printProductionModeNotice(group);
+  for (const line of productionModeNotice(group, connections)) console.log(line);
   console.log("Press Ctrl+C to stop services.\n");
+
+  for (const signal of ["SIGINT", "SIGTERM", "SIGHUP"]) {
+    process.on(signal, () => stopAndExit(ownedApps.map((app) => app.name), ownerId, claimedPorts));
+  }
 
   const bus = await launchBus();
   bus.on("log:out", (packet) => writeLog(packet, process.stdout));
@@ -668,34 +813,19 @@ async function main() {
     console.log(`[pm2] ${packet.process.name} ${packet.event}`);
   });
 
-  process.on("SIGINT", () => {
-    stopAndExit(
-      ownedApps.map((app) => app.name),
-      ownerId,
-      claimedPorts,
-      0
-    );
-  });
-  process.on("SIGTERM", () => {
-    stopAndExit(
-      ownedApps.map((app) => app.name),
-      ownerId,
-      claimedPorts,
-      0
-    );
-  });
-
   // Run readiness probe in the background so logs flow uninterrupted.
-  reportReadiness(apps).then(async (ready) => {
-    if (ready) await runProductionSmoke(group);
-  }).catch((error) => {
+  reportReadiness(apps, { processes: listPm2Apps }).then(async (ready) => {
+    if (ready) await runStartupSmoke(group, spawn, connections);
+    else await stopAndExit(ownedApps.map((app) => app.name), ownerId, claimedPorts, 1);
+  }).catch(async (error) => {
     console.error(`[stack] readiness probe failed: ${error.message}`);
+    await stopAndExit(ownedApps.map((app) => app.name), ownerId, claimedPorts, 1);
   });
 
   await new Promise(() => {});
 }
 
-main().catch((error) => {
+if (process.argv[1] && path.resolve(process.argv[1]) === __filename) main().catch((error) => {
   disconnect();
   console.error(error instanceof Error ? error.message : String(error));
   process.exitCode = 1;

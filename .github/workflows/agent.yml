@@ -5,6 +5,7 @@ on:
     branches: [main, develop]
     paths:
       - "package.json"
+      - "scripts/dev/package-commands.mjs"
       - "bun.lock"
       - "biome.json"
       - ".env.schema"
@@ -21,6 +22,7 @@ on:
   pull_request:
     paths:
       - "package.json"
+      - "scripts/dev/package-commands.mjs"
       - "bun.lock"
       - "biome.json"
       - ".env.schema"
@@ -55,7 +57,7 @@ jobs:
 
       - name: Run agent tests with coverage
         working-directory: packages/agent
-        run: bun run test:coverage
+        run: bun run test --scope unit --coverage
         env:
           CI: true
           ENCRYPTION_SECRET: "test-secret-for-ci-encryption-32chars"

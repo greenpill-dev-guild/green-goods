@@ -91,7 +91,7 @@ If the user's description can't be mapped to a canonical `Admin*` wrapper or reg
 | `typography` | Wrong role (`label-sm` vs `label-lg`), weight, line-height, font (Plus Jakarta vs Inter). | Role token in `theme.css`. |
 | `responsive` | Breaks at a specific width/container size, overflow, missing truncation. | Container queries (`@[Npx]:`), Rule 11 breakpoints. |
 | `a11y` | Missing `aria-label`, role, focus trap, keyboard trap, missing `prefers-reduced-motion`. | StatusBadge + FormField + Alert components. |
-| `token-drift` | Raw color/radius/duration used where a token should be. Surfaced by `bun run check:design-tokens`; copy/vocabulary drift is a separate `lint:vocab` i18n check. | `CLAUDE.md § Design System` tokens. |
+| `token-drift` | Raw color/radius/duration used where a token should be. Surfaced by `bun run check --only design-tokens`; copy/vocabulary drift is a separate `lint:vocab` i18n check. | `CLAUDE.md § Design System` tokens. |
 | `surface-identity` | Admin has glass anywhere except the `NavigationBar`/FAB Controlled Chrome (the `AppBar` root is transparent by spec), or client copy leaks into admin, or vice versa. | `prompt-contract.md § Never Use`. |
 | `missing-primitive` | A composition that SHOULD use a canonical `Admin*` wrapper uses raw HTML instead. | The `Admin*` wrappers in `prompt-contract.md` (filesystem is the count of record). |
 
@@ -120,5 +120,5 @@ The data attributes make the DOM self-identifying. This file tells the agent to 
 - [review-checklist.md](./review-checklist.md) — 4-lens PR review (Regenerative / Spatial / Ecosystem / Compliance)
 - [language.md](./language.md) — full Warm Earth token + motion spec
 - Project rules: `.claude/rules/frontend-design.md`
-- Tooling: `bun run check:design-tokens`, `bun run lint:vocab`
-- Authenticated Brave QA: use the Codex browser-extension path or the Claude Code Chrome/Chromium extension path against the already-open authenticated Brave profile/tab. If that access is blocked, report QA as blocked rather than switching to an isolated Browser, Playwright, or DevTools MCP profile.
+- Tooling: `bun run check --only design-tokens`, `bun run check --only vocabulary`
+- Browser evidence: follow `AGENTS.md § Browser Evidence`. Admin views render under mock auth, so a labeled mock-auth localhost DOM read is valid evidence for defect resolution; use the authenticated Brave profile (Codex browser-extension path or Claude Code Chrome/Chromium extension path against the already-open tab) for write flows that reach wallet, auth, or job-queue paths, and record that proof as pending rather than presenting an isolated profile as authenticated.

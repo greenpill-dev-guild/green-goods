@@ -291,6 +291,56 @@ export function isSameOriginMutation(request: Request): boolean {
   }
 }
 
+export interface Caller {
+  /** Lowercase address proven by the signed session cookie. */
+  address: string;
+  /** Every address allowed to record, so callers can fan out over the roster. */
+  allowlist: string[];
+}
+
+/**
+ * Resolve who is calling from their signed session, never from the request.
+ *
+ * This is the whole point of wallet auth here. The previous model took the
+ * tester's NAME out of the request body, so anyone reaching the endpoint could
+ * record as anyone — and with no deployment password in front of it, "anyone"
+ * meant the internet. The signing address is the identity; the body never
+ * gets a vote. The allowlist is re-read on every request, so removing an
+ * address revokes its existing sessions.
+ */
+export async function resolveCaller(
+  request: Request,
+  now: number = Date.now(),
+): Promise<Caller | { error: string; status: number }> {
+  // These endpoints answer unauthenticated callers, so a configuration
+  // problem is logged in full here and reported to the caller as one generic
+  // sentence: the deployment's variable names are not the caller's business.
+  const misconfigured = { error: "QA sign-in is misconfigured — ask an operator to check the deployment", status: 503 };
+  const secret = process.env.QA_SESSION_SECRET;
+  if (!secret || secret.length < 32) {
+    console.error("qa/auth: QA_SESSION_SECRET is missing or too short (needs 32+ characters)");
+    return misconfigured;
+  }
+  let allowlist: string[];
+  try {
+    allowlist = parseAllowlist(process.env.QA_ALLOWLIST);
+  } catch (error) {
+    console.error("qa/auth: QA_ALLOWLIST is invalid", error instanceof Error ? error.message : error);
+    return misconfigured;
+  }
+  if (!allowlist.length) {
+    console.error("qa/auth: QA_ALLOWLIST is empty — nobody can sign in");
+    return misconfigured;
+  }
+
+  const session = await readSession(secret, readCookie(request.headers.get("cookie"), SESSION_COOKIE), now);
+  if (!session) return { error: "sign in with your wallet to record QA results", status: 401 };
+  if (!isAllowed(allowlist, session.address)) {
+    return { error: "this address is no longer on the QA allowlist", status: 403 };
+  }
+  return { address: session.address, allowlist };
+}
+
 export function sessionCookie(token: string, maxAgeSeconds: number): string {
   // HttpOnly keeps the token out of reach of any script on the page; SameSite
   // Lax is enough because every write is a same-origin fetch from this app.

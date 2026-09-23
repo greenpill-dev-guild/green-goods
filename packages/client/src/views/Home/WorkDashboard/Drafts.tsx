@@ -6,19 +6,16 @@ import { type DraftWithImages, useDrafts } from "@green-goods/shared/hooks/work/
 import { logger } from "@green-goods/shared/modules/app/logger";
 import type { Address } from "@green-goods/shared/types/domain";
 import { findActionByUID } from "@green-goods/shared/utils/action/parsers";
-import { cn } from "@green-goods/shared/utils/styles/cn";
-import { RiAlertLine, RiDraftLine, RiLoader4Line, RiRefreshLine } from "@remixicon/react";
+import { RiDraftLine, RiLoader4Line } from "@remixicon/react";
 import React, { useState } from "react";
 import { useIntl } from "react-intl";
 import { useNavigate } from "react-router-dom";
 import { DraftCard } from "@/components/Cards";
 import { EmptyState } from "@/components/Communication";
-import { pwaStatusStyles } from "@/components/Pwa/statusStyles";
 import { APP_ROUTES } from "@/config/pwaRouting";
+import { WorkListHeader } from "./WorkListTab";
 
 export interface DraftsTabProps {
-  className?: string;
-  headerContent?: React.ReactNode;
   onBeforeNavigate?: () => void;
 }
 
@@ -26,12 +23,17 @@ export interface DraftsTabProps {
  * Drafts tab for WorkDashboard.
  * Shows all saved work drafts with options to resume or delete.
  */
-export const DraftsTab: React.FC<DraftsTabProps> = ({ headerContent, onBeforeNavigate }) => {
+export const DraftsTab: React.FC<DraftsTabProps> = ({ onBeforeNavigate }) => {
   const intl = useIntl();
   const navigate = useNavigate();
   const { drafts, isLoading, deleteDraft, isDeleting, refetchDrafts } = useDrafts();
   const { data: actions = [] } = useActions();
   const { data: gardens = [] } = useGardens(DEFAULT_CHAIN_ID);
+
+  const refreshLabel = intl.formatMessage({
+    id: "app.drafts.refresh",
+    defaultMessage: "Refresh Drafts",
+  });
 
   // Confirm delete state
   const [draftToDelete, setDraftToDelete] = useState<DraftWithImages | null>(null);
@@ -62,6 +64,7 @@ export const DraftsTab: React.FC<DraftsTabProps> = ({ headerContent, onBeforeNav
     if (draftToDelete) {
       try {
         await deleteDraft(draftToDelete.id);
+        setDraftToDelete(null);
       } catch (error) {
         logger.error("[DraftsTab] Failed to delete draft:", { error });
         toastService.error({
@@ -76,23 +79,18 @@ export const DraftsTab: React.FC<DraftsTabProps> = ({ headerContent, onBeforeNav
           context: "drafts",
         });
       }
-      setDraftToDelete(null);
     }
   };
 
   const handleCancelDelete = () => {
-    setDraftToDelete(null);
+    if (!isDeleting) setDraftToDelete(null);
   };
 
   if (isLoading) {
     return (
       <div className="flex min-h-full flex-col">
-        {headerContent && (
-          <div className="flex items-center justify-between px-4 py-2 border-b border-stroke-soft-200">
-            {headerContent}
-          </div>
-        )}
-        <div className="flex-1 flex items-center justify-center">
+        <div className="mb-4 h-14 px-4 pt-4" aria-hidden="true" />
+        <div className="flex-1 flex items-center justify-center pb-32">
           <div className="flex items-center gap-2 text-text-sub-600">
             <RiLoader4Line className="w-5 h-5 animate-spin" />
             <span className="text-sm">
@@ -110,23 +108,10 @@ export const DraftsTab: React.FC<DraftsTabProps> = ({ headerContent, onBeforeNav
   if (drafts.length === 0) {
     return (
       <div className="flex min-h-full flex-col">
-        {headerContent && (
-          <div className="flex items-center justify-between px-4 py-2 border-b border-stroke-soft-200">
-            {headerContent}
-            <button
-              onClick={() => refetchDrafts()}
-              className="p-2 hover:bg-bg-weak-50 rounded-lg tap-target-lg transition-colors duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)]"
-              aria-label={intl.formatMessage({
-                id: "app.drafts.refresh",
-                defaultMessage: "Refresh Drafts",
-              })}
-            >
-              <RiRefreshLine className="w-4 h-4 text-text-sub-600" />
-            </button>
-          </div>
-        )}
+        <WorkListHeader onRefresh={() => refetchDrafts()} refreshLabel={refreshLabel} />
         <EmptyState
           className="flex-1"
+          placement="sheet"
           icon={<RiDraftLine />}
           title={intl.formatMessage({
             id: "app.drafts.empty.title",
@@ -143,31 +128,20 @@ export const DraftsTab: React.FC<DraftsTabProps> = ({ headerContent, onBeforeNav
 
   return (
     <div className="flex min-h-full flex-col">
-      {/* Header */}
-      <div className="flex items-center justify-between px-4 py-2 border-b border-stroke-soft-200">
-        <div className="flex items-center gap-2">
-          {headerContent}
-          <span className="text-xs text-text-sub-600">
-            {intl.formatMessage(
-              { id: "app.drafts.count", defaultMessage: "{count} draft(s)" },
-              { count: drafts.length }
-            )}
-          </span>
-        </div>
-        <button
-          onClick={() => refetchDrafts()}
-          className="p-2 hover:bg-bg-weak-50 rounded-lg tap-target-lg transition-colors duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)]"
-          aria-label={intl.formatMessage({
-            id: "app.drafts.refresh",
-            defaultMessage: "Refresh Drafts",
-          })}
-        >
-          <RiRefreshLine className="w-4 h-4 text-text-sub-600" />
-        </button>
-      </div>
+      <WorkListHeader
+        statusText={intl.formatMessage(
+          {
+            id: "app.drafts.count",
+            defaultMessage: "{count, plural, one {# draft} other {# drafts}}",
+          },
+          { count: drafts.length }
+        )}
+        onRefresh={() => refetchDrafts()}
+        refreshLabel={refreshLabel}
+      />
 
       {/* List */}
-      <div className="flex-1 p-4">
+      <div className="flex-1 px-4 pb-4">
         <ul className="flex flex-col gap-3">
           {drafts.map((draft) => (
             <li key={draft.id} className="cv-draft-card">
@@ -183,31 +157,18 @@ export const DraftsTab: React.FC<DraftsTabProps> = ({ headerContent, onBeforeNav
         </ul>
       </div>
 
-      {/* Delete Confirmation Dialog */}
+      {/* Delete confirmation — the shared confirm surface (bottom sheet on
+          narrow viewports, centered dialog otherwise). */}
       <ConfirmDialog
-        isOpen={!!draftToDelete}
+        isOpen={draftToDelete !== null}
         onClose={handleCancelDelete}
         onConfirm={handleConfirmDelete}
-        title={intl.formatMessage({
-          id: "app.drafts.delete.title",
-          defaultMessage: "Delete Draft?",
-        })}
-        description={intl.formatMessage({
-          id: "app.drafts.delete.description",
-          defaultMessage:
-            "This will permanently delete your draft and all associated images. This action cannot be undone.",
-        })}
-        confirmLabel={intl.formatMessage({
-          id: "app.drafts.delete.confirm",
-          defaultMessage: "Delete",
-        })}
-        cancelLabel={intl.formatMessage({
-          id: "app.drafts.delete.cancel",
-          defaultMessage: "Cancel",
-        })}
+        title={intl.formatMessage({ id: "app.drafts.delete.title" })}
+        description={intl.formatMessage({ id: "app.drafts.delete.description" })}
+        confirmLabel={intl.formatMessage({ id: "app.drafts.delete.confirm" })}
+        cancelLabel={intl.formatMessage({ id: "app.drafts.delete.cancel" })}
         variant="danger"
         isLoading={isDeleting}
-        icon={<RiAlertLine className={cn("w-6 h-6", pwaStatusStyles.error.icon)} />}
       />
     </div>
   );

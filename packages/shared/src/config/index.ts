@@ -89,11 +89,12 @@ export {
 // From react-query.ts
 export { GC_TIMES, queryClient, STALE_TIMES } from "./react-query";
 export {
-  createQueryPersister,
+  createQueryPersistence,
   createShouldDehydrateQuery,
   PERSIST_MAX_AGE,
-  type CreateQueryPersisterOptions,
+  type CreateQueryPersistenceOptions,
   type CreateShouldDehydrateQueryOptions,
+  type QueryPersistence,
 } from "./query-persistence";
 
 // From sdg.ts

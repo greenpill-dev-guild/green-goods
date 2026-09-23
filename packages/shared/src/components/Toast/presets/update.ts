@@ -21,105 +21,27 @@ const updateDefaults = {
     message: "Restarting with the latest version.",
   },
   stalled: {
-    title: "Update needs a restart",
-    message: "Please close and reopen the app to finish updating.",
+    title: "Update not finished",
+    message: "The update has not finished. Try again, or keep using the app and update later.",
+    action: "Try again",
   },
-};
-
-export const updateToasts = {
-  /** Show quiet progress when an explicit update check is running */
-  checking: () =>
-    toastService.loading({
-      id: "app-update",
-      title: updateDefaults.checking.title,
-      message: updateDefaults.checking.message,
-      context: "app update",
-      suppressLogging: true,
-    }),
-
-  /** Show progress while the browser installs the waiting worker */
-  downloading: () =>
-    toastService.loading({
-      id: "app-update",
-      title: updateDefaults.downloading.title,
-      message: updateDefaults.downloading.message,
-      context: "app update",
-      suppressLogging: true,
-    }),
-
-  /** Show info when an update is ready with action to restart */
-  ready: (onUpdate: () => void, onDismiss?: () => void) =>
-    toastService.info({
-      id: "app-update",
-      title: updateDefaults.ready.title,
-      message: updateDefaults.ready.message,
-      context: "app update",
-      persistent: true, // Stay visible until user acts or toast is replaced
-      action: {
-        label: updateDefaults.ready.action,
-        onClick: onUpdate,
-        dismissOnClick: false,
-        testId: "update-now-button",
-      },
-      closable: true,
-      onDismiss,
-      suppressLogging: true,
-    }),
-
-  /** Show loading state when update is being applied */
-  applying: () =>
-    toastService.loading({
-      id: "app-update",
-      title: updateDefaults.applying.title,
-      message: updateDefaults.applying.message,
-      context: "app update",
-      suppressLogging: true,
-    }),
-
-  /** Backward-compatible alias for the ready phase */
-  available: (onUpdate: () => void, onDismiss?: () => void) =>
-    toastService.info({
-      id: "app-update",
-      title: updateDefaults.ready.title,
-      message: updateDefaults.ready.message,
-      context: "app update",
-      persistent: true,
-      action: {
-        label: updateDefaults.ready.action,
-        onClick: onUpdate,
-        dismissOnClick: false,
-        testId: "update-now-button",
-      },
-      closable: true,
-      onDismiss,
-      suppressLogging: true,
-    }),
-
-  /** Backward-compatible alias for the applying phase */
-  updating: () =>
-    toastService.loading({
-      id: "app-update",
-      title: updateDefaults.applying.title,
-      message: updateDefaults.applying.message,
-      context: "app update",
-      suppressLogging: true,
-    }),
-
-  /** Show manual restart guidance when applyUpdate times out */
-  stalled: (onDismiss?: () => void) =>
-    toastService.info({
-      id: "app-update",
-      title: updateDefaults.stalled.title,
-      message: updateDefaults.stalled.message,
-      context: "app update",
-      persistent: true,
-      closable: true,
-      onDismiss,
-      suppressLogging: true,
-    }),
-
-  /** Dismiss the update toast */
-  dismiss: () => toastService.dismiss("app-update"),
+  failed: {
+    title: "Update download failed",
+    message: "Green Goods could not download the update. Check your connection and try again.",
+    action: "Try again",
+  },
+  applied: {
+    title: "Updated",
+    message: "Green Goods restarted on the latest version.",
+  },
+  preparingOffline: {
+    title: "Updated",
+    message: "Getting it ready to work offline.",
+  },
+  offlineReady: {
+    title: "Ready to work offline",
+    message: "You can add work without a signal.",
+  },
 };
 
 /**
@@ -128,6 +50,51 @@ export const updateToasts = {
  */
 export function createUpdateToasts(formatMessage: FormatMessageFn) {
   const localizedToasts = {
+    applied: () =>
+      toastService.success({
+        id: "app-update",
+        title: formatMessage({
+          id: toastMessageIdsUpdate.applied.title,
+          defaultMessage: updateDefaults.applied.title,
+        }),
+        message: formatMessage({
+          id: toastMessageIdsUpdate.applied.message,
+          defaultMessage: updateDefaults.applied.message,
+        }),
+        context: "app update",
+        suppressLogging: true,
+      }),
+
+    preparingOffline: () =>
+      toastService.loading({
+        id: "app-update",
+        title: formatMessage({
+          id: toastMessageIdsUpdate.preparingOffline.title,
+          defaultMessage: updateDefaults.preparingOffline.title,
+        }),
+        message: formatMessage({
+          id: toastMessageIdsUpdate.preparingOffline.message,
+          defaultMessage: updateDefaults.preparingOffline.message,
+        }),
+        context: "app update",
+        suppressLogging: true,
+      }),
+
+    offlineReady: () =>
+      toastService.success({
+        id: "app-update",
+        title: formatMessage({
+          id: toastMessageIdsUpdate.offlineReady.title,
+          defaultMessage: updateDefaults.offlineReady.title,
+        }),
+        message: formatMessage({
+          id: toastMessageIdsUpdate.offlineReady.message,
+          defaultMessage: updateDefaults.offlineReady.message,
+        }),
+        context: "app update",
+        suppressLogging: true,
+      }),
+
     checking: () =>
       toastService.loading({
         id: "app-update",
@@ -200,7 +167,7 @@ export function createUpdateToasts(formatMessage: FormatMessageFn) {
         suppressLogging: true,
       }),
 
-    stalled: (onDismiss?: () => void) =>
+    stalled: (onRetry: () => void, onDismiss?: () => void) =>
       toastService.info({
         id: "app-update",
         title: formatMessage({
@@ -213,6 +180,42 @@ export function createUpdateToasts(formatMessage: FormatMessageFn) {
         }),
         context: "app update",
         persistent: true,
+        action: {
+          label: formatMessage({
+            id: toastMessageIdsUpdate.stalled.action,
+            defaultMessage: updateDefaults.stalled.action,
+          }),
+          onClick: onRetry,
+          dismissOnClick: false,
+          testId: "update-retry-button",
+        },
+        closable: true,
+        onDismiss,
+        suppressLogging: true,
+      }),
+
+    failed: (onRetry: () => void, onDismiss?: () => void) =>
+      toastService.info({
+        id: "app-update",
+        title: formatMessage({
+          id: toastMessageIdsUpdate.failed.title,
+          defaultMessage: updateDefaults.failed.title,
+        }),
+        message: formatMessage({
+          id: toastMessageIdsUpdate.failed.message,
+          defaultMessage: updateDefaults.failed.message,
+        }),
+        context: "app update",
+        persistent: true,
+        action: {
+          label: formatMessage({
+            id: toastMessageIdsUpdate.failed.action,
+            defaultMessage: updateDefaults.failed.action,
+          }),
+          onClick: onRetry,
+          dismissOnClick: false,
+          testId: "update-retry-download-button",
+        },
         closable: true,
         onDismiss,
         suppressLogging: true,

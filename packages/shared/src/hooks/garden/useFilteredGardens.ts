@@ -1,13 +1,37 @@
-import type { Garden } from "../../types/domain";
+import { Domain, type Garden } from "../../types/domain";
 import { gardenHasMember } from "../../utils/app/garden";
+import { expandDomainMask } from "../../utils/domain";
 
 export type GardenFilterScope = "all" | "mine";
-export type GardenSortOrder = "default" | "name" | "recent";
+export type GardenSortOrder = "name" | "recent";
 
 export interface GardenFiltersState {
   scope: GardenFilterScope;
   sort: GardenSortOrder;
-  search?: string;
+  /** Keep gardens tagged with any of these domains; empty or unset keeps all. */
+  domains?: Domain[];
+}
+
+/** What Home shows before anyone filters, and what Reset returns to. */
+export const DEFAULT_GARDEN_FILTERS: GardenFiltersState = { scope: "all", sort: "recent" };
+
+/**
+ * Read filters saved on the device. Saved input is untrusted: anything that is
+ * not a known scope, sort, or domain falls back to the default for that field.
+ */
+export function parseGardenFilters(value: unknown): GardenFiltersState {
+  if (!value || typeof value !== "object") return DEFAULT_GARDEN_FILTERS;
+  const saved = value as { scope?: unknown; sort?: unknown; domains?: unknown };
+  const domains = Array.isArray(saved.domains)
+    ? saved.domains.filter(
+        (domain): domain is Domain => typeof domain === "number" && domain in Domain
+      )
+    : [];
+  return {
+    scope: saved.scope === "mine" ? "mine" : DEFAULT_GARDEN_FILTERS.scope,
+    sort: saved.sort === "name" ? "name" : DEFAULT_GARDEN_FILTERS.sort,
+    ...(domains.length > 0 ? { domains } : {}),
+  };
 }
 
 export interface UseFilteredGardensResult {
@@ -17,7 +41,7 @@ export interface UseFilteredGardensResult {
   myGardensCount: number;
   /** Whether any filter is active (not default) */
   isFilterActive: boolean;
-  /** Count of active filters (0-2) */
+  /** Count of active filters (0-3) */
   activeFilterCount: number;
 }
 
@@ -32,7 +56,7 @@ export interface UseFilteredGardensResult {
  * ```tsx
  * const { data: gardens = [] } = useGardens();
  * const primaryAddress = usePrimaryAddress();
- * const [filters, setFilters] = useState<GardenFiltersState>({ scope: "all", sort: "default" });
+ * const [filters, setFilters] = useState<GardenFiltersState>({ scope: "all", sort: "recent" });
  *
  * const { filteredGardens, myGardensCount, isFilterActive } = useFilteredGardens(
  *   gardens,
@@ -46,7 +70,7 @@ export function useFilteredGardens(
   filters: GardenFiltersState,
   userAddress: string | null
 ): UseFilteredGardensResult {
-  const { scope, sort, search } = filters;
+  const { scope, sort, domains = [] } = filters;
 
   // Count user's gardens
   const myGardensCount = userAddress
@@ -69,35 +93,31 @@ export function useFilteredGardens(
     }
   }
 
-  // Filter by search text
-  if (search) {
-    const term = search.toLowerCase();
-    working = working.filter(
-      (garden) =>
-        (garden.name || "").toLowerCase().includes(term) ||
-        (garden.location || "").toLowerCase().includes(term)
+  // Filter by domain: a garden stays when it carries any of the chosen domains
+  if (domains.length > 0) {
+    const wanted = new Set(domains);
+    working = working.filter((garden) =>
+      expandDomainMask(garden.domainMask ?? 0).some((domain) => wanted.has(domain))
     );
   }
 
   // Sort
   let filteredGardens: Garden[];
-  if (sort === "name") {
+  if (sort === "recent") {
+    filteredGardens = [...working].sort((a, b) => (b.createdAt ?? 0) - (a.createdAt ?? 0));
+  } else {
     filteredGardens = [...working].sort((a, b) =>
       (a.name || "").localeCompare(b.name || "", undefined, { sensitivity: "base" })
     );
-  } else if (sort === "recent") {
-    filteredGardens = [...working].sort((a, b) => (b.createdAt ?? 0) - (a.createdAt ?? 0));
-  } else {
-    filteredGardens = [...working];
   }
 
   // Compute filter state
-  const isScopeFiltered = scope !== "all";
-  const isSortFiltered = sort !== "default";
-  const isSearchActive = !!search;
-  const isFilterActive = isScopeFiltered || isSortFiltered || isSearchActive;
+  const isScopeFiltered = scope !== DEFAULT_GARDEN_FILTERS.scope;
+  const isSortFiltered = sort !== DEFAULT_GARDEN_FILTERS.sort;
+  const isDomainFiltered = domains.length > 0;
+  const isFilterActive = isScopeFiltered || isSortFiltered || isDomainFiltered;
   const activeFilterCount =
-    (isScopeFiltered ? 1 : 0) + (isSortFiltered ? 1 : 0) + (isSearchActive ? 1 : 0);
+    (isScopeFiltered ? 1 : 0) + (isSortFiltered ? 1 : 0) + (isDomainFiltered ? 1 : 0);
 
   return {
     filteredGardens,

@@ -1,7 +1,12 @@
 import type { CaptureResult } from "posthog-js";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { dropExtensionExceptions, initializePostHog } from "../../modules/app/posthog-browser";
+import {
+  dropDevelopmentHostExceptions,
+  dropExtensionExceptions,
+  dropSkippedTransitionExceptions,
+  initializePostHog,
+} from "../../modules/app/posthog-browser";
 import { restoreExceptionTopLevelProps } from "../../modules/app/posthog";
 
 const posthogMock = vi.hoisted(() => ({
@@ -113,18 +118,126 @@ describe("dropExtensionExceptions", () => {
   });
 });
 
+describe("dropDevelopmentHostExceptions", () => {
+  it("drops an exception raised on localhost", () => {
+    const event = makeEvent({
+      $current_url: "https://localhost:3001/?mockAuth=1&presentation=1",
+      $exception_list: [{ type: "TypeError", value: "Failed to fetch" }],
+    });
+
+    expect(dropDevelopmentHostExceptions(event)).toBeNull();
+  });
+
+  it("drops an exception raised on a loopback address", () => {
+    const event = makeEvent({
+      $current_url: "http://127.0.0.1:3001/gardens",
+      $exception_list: [{ type: "TypeError", value: "Failed to fetch" }],
+    });
+
+    expect(dropDevelopmentHostExceptions(event)).toBeNull();
+  });
+
+  it("drops an exception raised on a Cloudflare dev tunnel host", () => {
+    const event = makeEvent({
+      $current_url: "https://calm-forest-1234.trycloudflare.com/gardens",
+      $exception_list: [{ type: "TypeError", value: "Failed to fetch" }],
+    });
+
+    expect(dropDevelopmentHostExceptions(event)).toBeNull();
+  });
+
+  it("keeps an exception raised on the production host", () => {
+    const event = makeEvent({
+      $current_url: "https://www.greengoods.app/gardens",
+      $exception_list: [{ type: "TypeError", value: "Failed to fetch" }],
+    });
+
+    expect(dropDevelopmentHostExceptions(event)).toBe(event);
+  });
+
+  it("passes non-exception events through untouched", () => {
+    const event = makeEvent({ $current_url: "https://localhost:3001/" }, "$pageview");
+    expect(dropDevelopmentHostExceptions(event)).toBe(event);
+  });
+
+  it("handles a null event safely", () => {
+    expect(dropDevelopmentHostExceptions(null)).toBeNull();
+  });
+});
+
+describe("dropSkippedTransitionExceptions", () => {
+  // posthog-js records a DOMException as type "DOMException" and value "<name>: <message>".
+  const makeDomExceptionEvent = (value: string) =>
+    makeEvent({
+      $exception_list: [
+        { type: "DOMException", value, mechanism: { handled: false, synthetic: false } },
+      ],
+    });
+
+  it.each([
+    // Chromium, current and older wording
+    "AbortError: Transition was skipped. New ViewTransition started",
+    "AbortError: Transition was skipped",
+    // WebKit, including Chrome on iOS
+    "AbortError: Old view transition aborted by new view transition.",
+    "AbortError: Skipping view transition because skipTransition() was called.",
+    // Gecko
+    "AbortError: Skipped ViewTransition due to another transition starting",
+  ])("drops the skipped view transition %s", (value) => {
+    expect(dropSkippedTransitionExceptions(makeDomExceptionEvent(value))).toBeNull();
+  });
+
+  it.each([
+    // Other skip reasons stay visible; a duplicate view-transition-name, for one, is a real bug
+    "InvalidStateError: Transition was aborted because of invalid state",
+    "InvalidStateError: Skipping view transition because viewport size changed.",
+    // An aborted request is not a view transition
+    "AbortError: The user aborted a request.",
+  ])("keeps %s", (value) => {
+    const event = makeDomExceptionEvent(value);
+    expect(dropSkippedTransitionExceptions(event)).toBe(event);
+  });
+
+  it("keeps a non-DOMException error that quotes the skip message", () => {
+    const event = makeEvent({
+      $exception_list: [{ type: "Error", value: "Transition was skipped" }],
+    });
+
+    expect(dropSkippedTransitionExceptions(event)).toBe(event);
+  });
+
+  it("passes non-exception events through untouched", () => {
+    const event = makeEvent({ $current_url: "/home" }, "$pageview");
+    expect(dropSkippedTransitionExceptions(event)).toBe(event);
+  });
+
+  it("leaves the event untouched when there is no $exception_list", () => {
+    const event = makeEvent({});
+    expect(dropSkippedTransitionExceptions(event)).toBe(event);
+  });
+
+  it("handles a null event safely", () => {
+    expect(dropSkippedTransitionExceptions(null)).toBeNull();
+  });
+});
+
 describe("initializePostHog", () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it("chains compatibility restoration before extension filtering", () => {
+  it("drops development-host exceptions before restoring and extension filtering", () => {
     initializePostHog("test-project-key");
 
     expect(posthogMock.init).toHaveBeenCalledWith(
       "test-project-key",
       expect.objectContaining({
-        before_send: [restoreExceptionTopLevelProps, dropExtensionExceptions],
+        before_send: [
+          dropDevelopmentHostExceptions,
+          restoreExceptionTopLevelProps,
+          dropExtensionExceptions,
+          dropSkippedTransitionExceptions,
+        ],
       })
     );
   });

@@ -111,10 +111,21 @@ describe("commitment pooling availability", () => {
     expect(selectCommitmentPoolingAvailability(undefined)).toEqual({ status: "unknown-chain" });
   });
 
-  it("uses the chain-scoped capability ledger for the hosted-indexer and Sepolia gaps", () => {
-    expect(
-      selectCommitmentPoolingAvailability(getOntologyChainMaturity("entity:commitment-pool", 42161))
-    ).toMatchObject({ status: "unavailable", reason: "not-integrated" });
+  it("uses the chain-scoped capability ledger: Arbitrum is integrated, Sepolia and Celo stay closed", () => {
+    // The generated manifest is the runtime ledger every read and write hook
+    // consults. Arbitrum carries the deployed, active, integrated, and
+    // available projection, so supported reads and writes are permitted there.
+    const arbitrum = getOntologyChainMaturity("entity:commitment-pool", 42161);
+    expect(arbitrum).toMatchObject({
+      deployment: "deployed",
+      activation: "active",
+      integration: "integrated",
+      availability: "available",
+    });
+    expect(selectCommitmentPoolingAvailability(arbitrum)).toMatchObject({
+      status: "available",
+      capability: arbitrum,
+    });
     expect(
       selectCommitmentPoolingAvailability(
         getOntologyChainMaturity("entity:commitment-pool", 11155111)

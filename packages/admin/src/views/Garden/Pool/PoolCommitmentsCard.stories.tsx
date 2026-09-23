@@ -83,6 +83,42 @@ export const Queued: Story = {
   },
 };
 
+/** The two queued rows that are not plain "Queued": send failure and the membership wait. */
+export const QueuedNeedsAttention: Story = {
+  args: {
+    console: storyPoolConsole({
+      pendingCreates: [
+        {
+          jobId: "job-2",
+          chainId: 42161,
+          poolId: "7",
+          direction: "OFFER",
+          title: "Repair the tool library",
+          unitLabel: "repair",
+          targetUnits: "1",
+          waitingForMembership: false,
+          discardable: true,
+          failed: true,
+          createdAt: daysAgo(0) * 1000,
+        },
+        {
+          jobId: "job-3",
+          chainId: 42161,
+          poolId: "7",
+          direction: "REQUEST",
+          title: "Seed swap afternoon",
+          unitLabel: "session",
+          targetUnits: "2",
+          waitingForMembership: true,
+          discardable: true,
+          failed: false,
+          createdAt: daysAgo(0) * 1000,
+        },
+      ],
+    }),
+  },
+};
+
 export const Empty: Story = {
   args: { console: storyPoolConsole({ commitments: [], claims: [] }) },
 };

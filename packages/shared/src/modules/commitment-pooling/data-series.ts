@@ -24,7 +24,7 @@ export async function getCommitmentSeries(input: {
     variables.holder = input.holder.toLowerCase();
   }
   if (input.state) {
-    declarations.push("$state: CommitmentSeriesState!");
+    declarations.push("$state: commitmentseriesstate!");
     clauses.push("state: { _eq: $state }");
     variables.state = input.state;
   }

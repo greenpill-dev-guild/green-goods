@@ -3,6 +3,8 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import {fileURLToPath} from "node:url";
 import * as yaml from "js-yaml";
+import { auditDeveloperGuides, auditWorkflowCommands, auditRetiredCommandCallers, auditCommandPolicy } from "./developer-guides.mjs";
+import { resolveCommand } from "../../packages/contracts/script/cli/operations.mjs";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -79,62 +81,10 @@ const projectSpecificExternalClaimPattern =
   /\b(?:Green Goods (?:uses|relies on|runs|operates|deploys|integrates|adopts)|we (?:use|run|operate|deploy|integrate|adopt)|standing pipeline|production pipeline)\b/i;
 const negatedProjectClaimPattern = /\b(?:that Green Goods|does not|not currently|intentionally not made)\b/i;
 
-const readmeRequiredHeadings = [
-  "Getting Started",
-  "Tech Stack",
-  "Contributing",
-  "Resources",
-];
-
-const readmeRequiredSnippets = [
-  "npm run setup",
-  "Agent-Assisted Setup",
-  "Read ONBOARDING.md and AGENTS.md",
-  "explain any env blockers before making changes",
-  "Agent References",
-  "root `.env`",
-  ".env.schema",
-  "1Password CLI",
-  "https://developer.1password.com/docs/cli/",
-  "bun run env:template:init",
-  "bun run env:sync",
-  "bun run env:check",
-  "VITE_ENVIO_INDEXER_URL",
-  "VITE_API_BASE_URL",
-  "PINATA_JWT_OP_REF",
-  "VITE_PINATA_GATEWAY_URL",
-  "never embed this in browser bundles",
-  "VITE_PIMLICO_API_KEY",
-  "VITE_WALLETCONNECT_PROJECT_ID",
-  "TELEGRAM_BOT_TOKEN",
-  "Upload-capable media",
-  "Passkey auth",
-  "Wallet auth",
-  "op://Vault/Item/field",
-  "bun run dev:doctor -- --profile web",
-  "bun run dev:doctor -- --profile full",
-  "bun run dev:web",
-  "bun run dev:smoke:web",
-  "bun run dev",
-  "bun run dev:stop",
-  "bun run format:check",
-  "bun run lint",
-  "bun run test",
-  "bun run build",
-  "https://github.com/greenpill-dev-guild/green-goods",
-  "https://docs.greengoods.app/builders/getting-started",
-  "https://docs.greengoods.app/builders/architecture",
-  "https://docs.greengoods.app/builders/how-to-contribute",
-  "./ONBOARDING.md",
-  "./AGENTS.md",
-  "./CLAUDE.md",
-];
+const readmeRequiredHeadings = [];
+const readmeRequiredSnippets = ["ONBOARDING.md", "AGENTS.md", "CONTRIBUTING.md"];
 
 const readmeForbiddenPatterns = [
-  {
-    pattern: /bun run dev:full/i,
-    message: "Contains removed full-stack command: use `bun run dev` instead.",
-  },
   {
     pattern: /docs\.greengoods\.app\/welcome\//i,
     message: "Contains stale docs link pattern: docs.greengoods.app/welcome/...",
@@ -886,6 +836,10 @@ auditDocumentAnchors();
 await auditStaticAssets();
 await auditInternalAuthorityEdges();
 await auditReadme(docSlugSet);
+errors.push(...await auditDeveloperGuides(repoRoot, undefined, { resolveContracts: resolveCommand }));
+errors.push(...await auditWorkflowCommands(repoRoot));
+errors.push(...await auditRetiredCommandCallers(repoRoot));
+errors.push(...await auditCommandPolicy(repoRoot));
 
 const sortedWarnings = warnings.sort((a, b) => {
   if (a.filePath === b.filePath) {

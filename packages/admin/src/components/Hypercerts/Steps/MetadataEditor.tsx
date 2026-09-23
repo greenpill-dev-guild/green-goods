@@ -258,6 +258,7 @@ export function MetadataEditor({
 
         <div className="grid gap-3 sm:grid-cols-2">
           <DatePicker
+            surface="admin"
             id="hypercert-work-start"
             label={formatMessage({ id: "app.hypercerts.metadata.startDate" })}
             value={draft.workTimeframeStart}
@@ -266,6 +267,7 @@ export function MetadataEditor({
             required
           />
           <DatePicker
+            surface="admin"
             id="hypercert-work-end"
             label={formatMessage({ id: "app.hypercerts.metadata.endDate" })}
             value={draft.workTimeframeEnd}
@@ -306,6 +308,7 @@ export function MetadataEditor({
 
         <div className="grid gap-3 sm:grid-cols-2">
           <DatePicker
+            surface="admin"
             id="hypercert-impact-start"
             label={formatMessage({ id: "app.hypercerts.metadata.startDate" })}
             value={draft.impactTimeframeStart || draft.workTimeframeStart}
@@ -313,6 +316,7 @@ export function MetadataEditor({
             placeholder={formatMessage({ id: "app.hypercerts.metadata.selectDate" })}
           />
           <DatePicker
+            surface="admin"
             id="hypercert-impact-end"
             label={
               <>

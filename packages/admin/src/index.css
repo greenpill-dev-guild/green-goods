@@ -114,6 +114,45 @@
   --radius-full: var(--gg-radius-full);
 }
 
+/* The xl / 2xl remap above is emitted inside @layer theme, where the shared
+   theme.css `:root` block (imported first, but later in the same layer) wins and
+   put 20 / 24px back on every rounded-xl / rounded-2xl in the cockpit. This
+   unlayered declaration outranks the layer and makes the 16px step land. */
+:root {
+  --radius-xl: var(--admin-radius-lg);
+  --radius-2xl: var(--admin-radius-lg);
+
+  /* The shared control family in the cockpit (DL-031). Shared pieces rendered
+     here (FileUploadField, DatePicker, ConfidenceSelector, AudioRecorder,
+     ImagePreviewDialog, toast actions, AssetSelector, AddressDisplay, Alert)
+     ride the shared Button / IconButton / Chip / control classes, which read
+     these tokens: pills, one 14px / 500 label, the 28 / 32 / 40 tiers (the
+     app's four sizes collapse onto the cockpit's three: lg and md land on 40,
+     sm on 32, compact on 28) and the 44px finger box. Keep in step with
+     AdminButton and the Storybook admin scope
+     (packages/shared/.storybook/surfaces.css); AdminDensityScale.guard pins both. */
+  --gg-button-radius: var(--radius-full);
+  --gg-button-radius-pressed: var(--radius-full);
+  --gg-button-radius-compact: var(--radius-full);
+  --gg-button-radius-compact-pressed: var(--radius-full);
+  --gg-button-weight: 500;
+  --gg-label-md: 0.875rem;
+  --gg-label-sm: 0.875rem;
+  --gg-button-block-lg: 2.5rem;
+  --gg-button-block-md: 2.5rem;
+  --gg-button-block-sm: 2rem;
+  --gg-button-block-compact: 1.75rem;
+  --gg-button-inline-lg: 1.25rem;
+  --gg-button-inline-md: 1.25rem;
+  --gg-button-inline-sm: 1rem;
+  --gg-button-inline-compact: 0.625rem;
+  --gg-icon-size-lg: 2.5rem;
+  --gg-icon-size-md: 2.5rem;
+  --gg-icon-size-sm: 2rem;
+  --gg-icon-size-compact: 1.75rem;
+  --gg-hit-block: 2.75rem;
+}
+
 /* Base layer: Admin-specific element resets */
 @layer base {
   body {

@@ -23,6 +23,7 @@ import {
 import { CommitmentExpireDialog } from "../CommitmentExpireDialog";
 import { CommitmentRecovery } from "./CommitmentRecovery";
 import { CommitmentResolveDialog } from "./CommitmentResolveDialog";
+import { CommitmentSettlementSection, showsSettlement } from "./CommitmentSettlement";
 import { CommitmentSummary } from "./CommitmentSummary";
 import { CommitmentTimeline } from "./CommitmentTimeline";
 import {
@@ -37,6 +38,11 @@ export interface CommitmentDialogPanelProps {
   garden: Address;
   commitmentId: string;
   tone: "garden" | "hub" | "community";
+  /**
+   * Open the seeding wizard on this commitment's answers. Only a surface that
+   * has a seeding wizard passes it, and only the pool's stewards are offered it.
+   */
+  onSeedAnother?: (commitmentId: string) => void;
 }
 
 /**
@@ -62,6 +68,7 @@ function CommitmentRecord({
   garden,
   commitmentId,
   tone,
+  onSeedAnother,
 }: Omit<CommitmentDialogPanelProps, "commitmentId"> & { commitmentId: bigint }) {
   const { formatMessage } = useIntl();
   const dialog = useCommitmentDialogController({ chainId, garden, commitmentId });
@@ -127,6 +134,15 @@ function CommitmentRecord({
 
       <CommitmentFacts commitment={commitment} detail={detail} />
 
+      {showsSettlement(commitment) ? (
+        <CommitmentSettlementSection
+          chainId={chainId}
+          commitment={commitment}
+          detail={detail}
+          tone={tone}
+        />
+      ) : null}
+
       {dialog.isLocalSteward &&
       (commitment.onchainState === "ACCEPTED" ||
         dialog.reconciliation.readbackStatus !== "idle") ? (
@@ -166,6 +182,11 @@ function CommitmentRecord({
         isActing={dialog.isActing}
         fallbackPath={fallbackPath}
         onOpenDialog={setOpen}
+        onSeedAnother={
+          onSeedAnother && dialog.isLocalSteward
+            ? () => onSeedAnother(commitment.commitmentId.toString())
+            : undefined
+        }
       />
 
       <CommitmentReasonDialogs

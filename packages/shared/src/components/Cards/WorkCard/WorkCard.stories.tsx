@@ -1,4 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react";
+import { fn } from "storybook/test";
 import { FIXTURE_WORK_MEDIA, hoursAgo } from "../../../../.storybook/fixtures";
 import { WorkCard, type WorkCardData } from "./WorkCard";
 
@@ -17,6 +18,8 @@ const meta: Meta<typeof WorkCard> = {
   title: "Shared/Cards/WorkCard",
   component: WorkCard,
   tags: ["autodocs", "storybook-ci"],
+  // A card is a button only when it has something to open.
+  args: { onClick: fn() },
   argTypes: {
     variant: {
       control: "select",

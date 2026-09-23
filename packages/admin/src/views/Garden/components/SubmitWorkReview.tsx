@@ -145,7 +145,10 @@ export function SubmitWorkReview({
             value={timeValue}
           />
           <ReviewRow
-            label={formatMessage({ id: "app.admin.work.submit.feedback", defaultMessage: "Notes" })}
+            label={formatMessage({
+              id: "app.admin.work.submit.feedback",
+              defaultMessage: "Feedback",
+            })}
             value={feedback || emptyValue}
           />
         </div>

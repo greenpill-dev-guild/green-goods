@@ -1,4 +1,5 @@
 import { GENERATOR_PATH, generatedFrontmatter } from "./generator-core.mjs";
+import { OPERATIONS } from "../../packages/contracts/script/cli/operations.mjs";
 import {
   deploymentAddressFields,
   deploymentInventory,
@@ -61,6 +62,7 @@ export function renderApiIndex({ root, sources, digest }) {
     "API Index",
     "Use package export specifiers and public route constants as the stable entrypoints. Source-file imports bypass package boundaries and are not public APIs."
   );
+  body += "[Runnable command inventory](./commands) is generated from the workspace manifests.\n\n";
   body += "## Public Agent routes\n\n| Name | Path | Registered methods |\n|---|---|---|\n";
   for (const route of routes) {
     const methods = routeRegistrations.get(route.name) ?? routeRegistrations.get(route.value) ?? [];
@@ -148,7 +150,7 @@ export function renderIntegrationProjections({ root, sources, digest }) {
     };
   }
   const payload = {
-    $generated: "GENERATED FILE: do not edit. Run `bun run docs:generate` or `bun run docs:generate -- --scope integration`.",
+    $generated: "GENERATED FILE: do not edit. Run `node scripts/docs/generate.mjs` or `node scripts/docs/generate.mjs -- --scope integration`.",
     generator: GENERATOR_PATH,
     digest,
     integrations,
@@ -414,13 +416,41 @@ export function renderQaCatalog({ root, sources, digest }) {
   body += "\n\nPriority sets run order only. A failure's severity is assigned separately during triage.";
   body += "\n\nEach case carries one **kind**, the category axis:\n\n";
   body += catalog.kinds.map((kind) => `- **${esc(kind.label)}** — ${esc(kind.verifies)}.`).join("\n");
+  if (catalog.journeys?.length) {
+    body += "\n\n## Guided journeys\n\n";
+    body += "Guided journeys choreograph active Test IDs across surfaces. A case's kind still describes that individual check; a guided journey describes who acts, who verifies, and when the handoff happens.\n\n";
+    for (const journey of catalog.journeys) {
+      const lanes = new Map(journey.lanes.map((lane) => [lane.id, lane]));
+      body += `### ${esc(journey.label)}\n\n${esc(journey.summary)}\n\n`;
+      body += "**Parts**\n\n";
+      body += journey.lanes.map((lane) => `- **${esc(lane.label)}** — ${esc(lane.role)}.`).join("\n");
+      body += "\n\n**Phases and Test IDs**\n\n";
+      let stepNumber = 0;
+      for (const phase of journey.phases) {
+        const phaseSteps = journey.steps.filter((step) => step.phaseId === phase.id);
+        if (!phaseSteps.length) continue;
+        const renderedSteps = phaseSteps.map((step) => {
+          stepNumber += 1;
+          const lead = lanes.get(step.leadLaneId)?.label ?? step.leadLaneId;
+          const verify = (step.verifyLaneIds ?? [])
+            .map((laneId) => lanes.get(laneId)?.label ?? laneId)
+            .join(", ");
+          const roles = `Act: ${esc(lead)}${verify ? `; verify: ${esc(verify)}` : ""}`;
+          const handoff = step.handoff ? `\n   - **Handoff:** ${esc(step.handoff)}` : "";
+          const knownGate = step.knownGate ? `\n   - **Known gate:** ${esc(step.knownGate)}` : "";
+          return `${stepNumber}. \`${esc(step.caseId)}\` — ${roles}${handoff}${knownGate}`;
+        });
+        body += `**${esc(phase.label)}**\n\n${renderedSteps.join("\n")}\n\n`;
+      }
+    }
+  }
   body += "\n\n## How this catalog changes {#lifecycle}\n\n";
   body += "`scripts/data/qa-test-catalog.json` is the source of truth, and it changes the way code does: by pull request. Every case carries one **status**:\n\n";
   body += catalog.statuses.map((status) => `- **${esc(status.id)}** — ${esc(status.means)}.`).join("\n");
   body += "\n\n- A new case enters as `active`, takes the next number in its surface prefix, is appended to the ID ledger (`scripts/data/qa-test-id-ledger.json`), and names where it came from in `source`.\n";
   body += "- Wording, step, and evidence edits happen in place — the ID keeps meaning the same check.\n";
   body += "- When what a case proves changes, it is retired with `retiredOn`, `retiredReason`, and `replacedBy` when successors exist, and the new check gets a new ID — so every past verdict keeps its meaning.\n";
-  body += "- After a catalog change merges, redeploy the QA app (a deployment pins the catalog revision it shipped with) and regenerate this page with `bun run docs:generate`; CI rejects a stale copy.\n\n";
+  body += "- After a catalog change merges, redeploy the QA app (a deployment pins the catalog revision it shipped with) and regenerate this page with `node scripts/docs/generate.mjs`; CI rejects a stale copy.\n\n";
   body += "The catalog contract test enforces all of this, and [retired cases](#retired-cases) are listed at the end of this page.\n\n";
   for (const tab of catalog.tabs) {
     const tabCases = active.filter((candidate) => candidate.tab === tab);
@@ -447,5 +477,77 @@ export function renderQaCatalog({ root, sources, digest }) {
     body += `| \`${esc(item.id)}\` | ${esc(item.tab)} · ${esc(item.scenario)} | ${esc(item.retiredOn)} | ${esc(item.retiredReason)} | ${successors} |\n`;
   }
   body += "\n";
+  return body;
+}
+
+// The ledger stores manifest -> name -> replacement; flatten it back to rows.
+function migrationRows(migration, status) {
+  return Object.entries(migration[status === "replacement" ? "replacements" : "retained"] ?? {}).flatMap(
+    ([manifest, names]) => Object.entries(names).map(([name, replacement]) => ({ manifest, name, replacement, status })),
+  );
+}
+
+export function renderCommands({ root, sources, digest }) {
+  const manifestSources = sources.filter((source) => source.endsWith("package.json"));
+  const migration = readJson(root, declaredSource(sources, "scripts/data/command-migration.json"));
+  const validation = readJson(root, declaredSource(sources, "scripts/data/validation-policy.json"));
+  const implementationSources = sources.filter((source) => /(?:scripts\/(?:dev|agents)|packages\/contracts\/script)\/.+\.(?:mjs|js)$/.test(source));
+  let body = pageHeader(
+    { title: "Command inventory", slug: "/builders/packages/commands", sources, digest },
+    "Command inventory",
+    "Generated from package manifests and owning command definitions. Start with the getting-started guide for everyday commands. Operational scripts can write to live networks; read the owning runbook before using them."
+  );
+  let total = 0;
+  for (const source of manifestSources) {
+    const manifest = readJson(root, source);
+    const names = Object.keys(manifest.scripts ?? {}).sort();
+    total += names.length;
+    const directory = source === "package.json" ? "" : source.slice(0, -"/package.json".length);
+    body += `## ${esc(directory || "Repository root")} (${names.length})\n\n`;
+    body += "| Script | Invocation from repository root |\n|---|---|\n";
+    for (const name of names) {
+      body += `| ${esc(name)} | \`bun run ${directory ? `--cwd ${directory} ` : ""}${esc(name)}\` |\n`;
+    }
+    body += "\n";
+  }
+  body += `Total: ${total} manifest entries across ${manifestSources.length} manifests. The root exposes ${Object.keys(readJson(root, "package.json").scripts ?? {}).length}.\n\n`;
+  body += "## Selectable operations and implementation\n\n";
+  body += `Manifest counts stay separate from the ${OPERATIONS.length} contract operations and ${validation.checks?.length ?? 0} stable validation checks selected behind the root interfaces. Those definitions preserve capabilities without adding aliases.\n\n`;
+  body += `This projection tracks ${implementationSources.length} owning command implementation files:\n\n`;
+  for (const source of implementationSources) body += `- \`${esc(source)}\`\n`;
+  body += "\n## Removed command replacements\n\nThe former names below are not runnable aliases. Use the replacement exactly as shown, including its working directory and flags.\n\n";
+  body += "| Previous manifest | Previous name | Replacement |\n|---|---|---|\n";
+  for (const entry of migrationRows(migration, "replacement")) {
+    const replacement = esc(entry.replacement)
+      .replaceAll("<", "&lt;")
+      .replaceAll(">", "&gt;")
+      .replaceAll("{", "&#123;")
+      .replaceAll("}", "&#125;");
+    body += `| \`${esc(entry.manifest)}\` | \`${esc(entry.name)}\` | <code>${replacement}</code> |\n`;
+  }
+  return body;
+}
+
+export function renderContractOperations({ root, sources, digest }) {
+  declaredSource(sources, "packages/contracts/script/cli/operations.mjs");
+  const migration = readJson(root, declaredSource(sources, "packages/contracts/config/command-migration.json"));
+  let body = pageHeader(
+    { title: "Contract operations", slug: "/builders/packages/contract-operations", sources, digest },
+    "Contract operations",
+    "Generated from the package-owned CLI definitions. Use `bun run contracts -- help` for discovery, or append `--help` to a command. Deployments, upgrades, migrations, and repairs require an explicit network and execution mode."
+  );
+  body += "`--explain --json` describes resolution without credentials, service access, or execution. Broadcasts require release authorization. Planning, compilation, simulation, and upload can write artifacts. Read the owning runbook before executing an operation.\n\n";
+  body += "## Execution modes\n\n| Mode | Meaning |\n|---|---|\n| preflight | Compile/artifact checks without RPC |\n| simulate | RPC simulation without broadcasting |\n| plan | Produce transaction-plan artifacts |\n| broadcast | Execute transactions |\n| upload | Upload content and write associated artifacts |\n\n";
+  body += "Only the modes listed for each operation are accepted. Read-only operations do not require a mode. Release sessions retain the existing operator's stage, commit, credential, and transaction-boundary checks.\n\n";
+  body += "## Operations\n\n| Command after `bun run contracts --` | Networks | Modes | Additional options |\n|---|---|---|---|\n";
+  for (const operation of OPERATIONS) {
+    const command = `${operation.command}${operation.positional ? " <input>" : ""}`;
+    const modes = operation.modes ? `${Object.keys(operation.modes).join(", ")}${operation.modeOptional ? " (optional)" : ""}` : "none";
+    const options = [...operation.flags.map((flag) => `--${flag}`), ...operation.values.map((flag) => `--${flag} <value>${operation.required?.includes(flag) ? " (required)" : ""}`)].join(", ") || "none";
+    body += `| <code>${esc(command).replaceAll("<", "&lt;").replaceAll(">", "&gt;")}</code> | ${operation.network ? operation.networks.join(", ") : "not network-scoped"} | ${modes} | <code>${esc(options).replaceAll("<", "&lt;").replaceAll(">", "&gt;")}</code> |\n`;
+  }
+  body += "\n## Command migration\n\nOld names below are historical labels. Replacements run from the repository root. Explicit network and execution mode replace implicit defaults; operation-owned safeguards still apply.\n\n";
+  body += "| Previous manifest | Retired name | Replacement |\n|---|---|---|\n";
+  for (const entry of migration.entries) body += `| ${esc(entry.scope)} | <code>${esc(entry.name)}</code> | <code>${esc(entry.replacement).replaceAll("<", "&lt;").replaceAll(">", "&gt;")}</code> |\n`;
   return body;
 }

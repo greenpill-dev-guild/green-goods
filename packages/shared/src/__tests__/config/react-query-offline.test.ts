@@ -24,15 +24,13 @@ describe("offline React Query configuration", () => {
   });
 
   it("resumes paused mutations when connectivity returns", async () => {
-    const addEventListener = vi.spyOn(window, "addEventListener");
+    Object.defineProperty(navigator, "onLine", { configurable: true, value: false });
     const { queryClient } = await import("../../config/react-query");
     const resumePausedMutations = vi
       .spyOn(queryClient, "resumePausedMutations")
       .mockResolvedValue(undefined);
-    const onlineListener = addEventListener.mock.calls.find(([event]) => event === "online")?.[1];
-
-    expect(onlineListener).toBeTypeOf("function");
-    (onlineListener as EventListener)(new Event("online"));
+    Object.defineProperty(navigator, "onLine", { configurable: true, value: true });
+    window.dispatchEvent(new Event("online"));
 
     expect(resumePausedMutations).toHaveBeenCalledOnce();
     queryClient.clear();

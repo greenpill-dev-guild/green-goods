@@ -157,8 +157,8 @@ Do not resolve a thread merely because a local edit exists.
 4. If the selector identifies a critical surface, run its complete mandatory local override before
    publication. Do not run the full local Ship Gate for ordinary comment fixes merely because a
    commit or push is in scope.
-5. For visible UI changes, obtain the required authenticated Brave rendered proof or report browser
-   QA as blocked.
+5. For visible UI changes, record rendered proof labeled per AGENTS.md § Browser Evidence;
+   authenticated-class surfaces need authenticated Brave proof or are recorded as pending.
 6. Repeat the root-cause search after all fixes. Any remaining approved manifestation keeps the
    feedback cluster open.
 7. Re-read the changed code, require the allowlisted paths to have no unstaged or untracked changes,

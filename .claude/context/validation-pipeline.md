@@ -23,7 +23,7 @@ wiring, production composition, or a fresh readiness gate.
 Render the repository-owned plan first:
 
 ```bash
-bun run validation:plan -- --intent <intent>
+bun run check --plan -- --intent <intent>
 ```
 
 The selector combines intent, changed paths, dependency impact, and criticality. Agents execute the
@@ -49,11 +49,13 @@ Every selected check states:
 Push plans also report a concurrency-aware `budget.estimatedWallSeconds`,
 `budget.hardLimitSeconds`, and `budget.enforced`. Routine pushes have a 90-second hard limit;
 sensitive pushes have 180 seconds. Critical checks are uncapped and cannot be suppressed by a
-budget, receipt, or compatibility flag. Manual authenticated-browser proof is reported separately
-and is not part of the automated deadline.
+budget, receipt, or compatibility flag. The manual `browser-proof` check is advisory: it is
+reported separately, never blocks a local plan, and is not part of the automated deadline.
 
-If a push plan lacks direct behavior proof or its estimated critical path already exceeds the
-limit, the selector returns `needs-focus` and executes nothing. Supply a focused test with
+If a push plan lacks direct behavior proof, or its estimate exceeds the limit while a package
+suite is still unfocused, the selector returns `needs-focus` and executes nothing. A plan whose
+selected suites are all focused runs even when its static estimate exceeds the limit; the hard
+deadline then decides. Supply a focused test with
 `--test-path <surface>:<path>`, narrow the change, or select an existing explicit acceptance check.
 If execution reaches the deadline, the runner terminates the active noncritical process group,
 returns `budget-exceeded`, preserves receipts for checks that already passed, and starts no further
@@ -67,7 +69,7 @@ rather than trusted.
 
 `node scripts/dev/ci-local.js` renders and executes Ship intent by default. Prefer an explicit
 intent in agent workflows: `--intent push` for the ready-for-CI contract and `--intent ship` only
-for a requested full local gate. Use `bun run test:fast` for a cache-aware full-scope iteration
+for a requested full local gate. Use `bun run test --cache` for a cache-aware full-scope iteration
 loop; keep the exact uncached `bun run test` for gates that name it.
 
 Never reuse failures. User cancellation is terminal: stop active validation, schedule nothing else,
@@ -91,7 +93,7 @@ The strict local evidence gate for an explicit production-readiness review. It p
 readiness without editing tracked files:
 
 ```bash
-bun format:check && bun lint && bun run test && VITE_CHAIN_ID=11155111 bun run build
+bun run format --check && bun run lint && bun run test && VITE_CHAIN_ID=11155111 bun run build
 ```
 
 Run every selected stage fresh unless an exact matching receipt satisfies the freshness contract
@@ -105,32 +107,33 @@ the PR approved.
 
 Conditional additions when the change touches the relevant surface:
 
-- Design/tokens/CSS: `bun run check:design-md`, `bun run check:design-generated`,
-  `bun run check:design-tokens`
-- i18n / user-visible copy: `bun run lint:vocab` (locale parity runs inside
+- Design/tokens/CSS: `bun run check --only design-md`, `bun run check --only design-generated`,
+  `bun run check --only design-tokens`
+- i18n / user-visible copy: `bun run check --only vocabulary` (locale parity runs inside
   `bun run test` via `packages/shared/src/__tests__/i18n/locale-coverage.test.ts`)
 - Stories / Storybook-covered surfaces:
   `bun run --filter @green-goods/shared check:stories` and
   `bun run --filter @green-goods/shared check:story-quality`
-- Changed non-test source under `packages/*/src/**`: `bun run check:source-structure`
-- Contract-touching changes: `bun run verify:contracts:fast`; when protocol behavior changed,
+- Changed non-test source under `packages/*/src/**`: `bun run check --only source-structure`
+- Contract-touching changes: `bun run check --only contracts-verify-fast`; when protocol behavior changed,
   also run `bun run --filter @green-goods/contracts test:fork`
 - Frontend, UI, CSS, accessibility, or web-design changes: retrieve current guidance with
-  `bun run agentic:guidance`, then run `bun run agentic:check`
+  `DISABLE_TELEMETRY=1 bun --bun modern-web-guidance search "agentic frontend CSS accessibility browser validation DevTools MCP" && DISABLE_TELEMETRY=1 bun --bun modern-web-guidance retrieve accessibility`, then run `bun run check --only agentic-readiness`
 - Changed E2E specs or CI auth paths (`AuthGate`, `DevAuthProvider`, CI auth helpers): run the
   matching Playwright CI project — client: `PLAYWRIGHT_APP=client APP_ENV=test bunx playwright
   test --project=client-ci`; admin: `PLAYWRIGHT_APP=admin APP_ENV=test bunx playwright test
   --project=admin-ci`
-- Agent runtime changes: `bun run build:agent`
-- Docs runtime, navigation, or build configuration changes: `bun run build:docs`
+- Agent runtime changes: `bun run --cwd packages/agent build`
+- Docs runtime, navigation, or build configuration changes: `bun run --cwd docs build`
 
 The root `bun run build` covers Contracts, Shared, Indexer, Client, and Admin. It does not build
 Agent or Docs; the conditional commands above close those scopes.
 
-Visible UI additionally requires rendered proof through the authenticated Brave QA profile. If
-that path is unavailable, record browser proof as `BLOCKED` and return `COMMENT_ONLY` unless a
-confirmed finding already requires changes. Isolated Browser, Playwright, DevTools MCP, and
-clean-room browser-proof commands cannot substitute for authenticated local QA.
+Visible UI additionally needs rendered proof labeled per `AGENTS.md § Browser Evidence`. Surfaces
+in the authenticated class need proof through the authenticated Brave profile; every other surface
+accepts labeled mock-auth localhost, Storybook, or CI Playwright proof. The `browser-proof` check
+is advisory: record the proof, or that it is pending and why, in the review, and never present
+clean-room evidence as authenticated proof.
 
 ## Ready-for-CI Push Gate
 
@@ -155,6 +158,13 @@ Pre-commit runs `lint-staged` only. Pre-push runs this ready-for-CI gate. Per-fi
 critical-surface warnings may run during editing, but package-wide validation is owned by the
 coordinating agent rather than edit or task-completion hooks.
 
+In every local intent the plan lists the manual `browser-proof` check as advisory pending
+evidence. The pre-push hook succeeds when every selected automated check passes; an unavailable
+automated capability, failed check, or missing focused proof still stops it. The hook runs the gate
+through `scripts/dev/node-cli.js`, so a shell whose Node differs from the pinned toolchain no longer
+blocks every check. Only the release gate requires the manual proof, through
+`--attest browser-proof="<evidence>"`; no other gate accepts or requires manual receipts.
+
 ## Ship Gate (explicit full local pipeline)
 
 The uncached full local gate for an explicit offline/full-readiness request, critical surface, or
@@ -169,6 +179,10 @@ review, ship may run mutating format and branch/commit safety steps because the 
 requested the full local gate. Ordinary commit, push, and PR creation use targeted proof plus the
 Ready-for-CI Push Gate, then rely on current-head GitHub CI for merge approval. Critical surfaces
 still require their selector-mandated complete local override before push and CI afterward.
+
+Release runs `node scripts/dev/ci-local.js --intent release`. When the change touches the
+authenticated surface class, that gate requires `--attest browser-proof="<engine, session, date,
+what was observed>"`; it is the only gate that accepts or requires manual proof.
 
 ## Repo Quick Gate
 
@@ -189,9 +203,9 @@ that proves the touched behavior (see the intent ladder). Common shapes:
   path-scoped and non-mutating. Do not use workspace-mutating `bun format` or broad `bun lint` for
   isolated style-only QA.
 - One behavior: `bun run --filter <pkg> test <path/to/file>`
-- Baseline capture before a sweep: non-mutating `bun run format:check && bun lint`, then the
+- Baseline capture before a sweep: non-mutating `bun run format --check && bun lint`, then the
   selector-chosen tests. Use the mutating `bun format` only in explicit fix/Ship intent.
   (build intentionally omitted until the sweep lands)
 
 Failing tests are never cached and never skipped around — fix the test, not
-the cache (`bun run test:fast:force` for a suspicious cache hit).
+the cache (`bun run test --cache --force` for a suspicious cache hit).

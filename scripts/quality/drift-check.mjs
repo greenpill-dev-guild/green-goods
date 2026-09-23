@@ -12,7 +12,7 @@ export const scopes = {
     {
       id: "codex-guidance",
       label: "Codex guidance",
-      command: ["bun", "run", "check:codex-guidance"],
+      command: ["node", "scripts/quality/check-codex-docs.js"],
       route: "review",
       severity: "medium",
     },
@@ -37,28 +37,28 @@ export const scopes = {
     {
       id: "design-generated",
       label: "Design generated artifacts",
-      command: ["bun", "run", "check:design-generated"],
+      command: ["node", "scripts/design/md-generate.mjs", "--check"],
       route: "design",
       severity: "medium",
     },
     {
       id: "design-tokens",
       label: "Design tokens",
-      command: ["bun", "run", "check:design-tokens"],
+      command: ["bash", "scripts/design/check-tokens.sh"],
       route: "design",
       severity: "medium",
     },
     {
       id: "vocab",
       label: "Banned vocabulary",
-      command: ["bun", "run", "lint:vocab"],
+      command: ["bash", "scripts/design/check-vocab.sh"],
       route: "design",
       severity: "medium",
     },
     {
       id: "docs-design-parity",
       label: "Docs design parity",
-      command: ["bun", "run", "check:docs-design-parity"],
+      command: ["node", "scripts/quality/check-docs-design-parity.mjs"],
       route: "design",
       severity: "medium",
     },
@@ -67,7 +67,7 @@ export const scopes = {
     {
       id: "docs-audit",
       label: "Docs audit",
-      command: ["bun", "run", "docs:audit:ci"],
+      command: ["node", "docs/scripts/docs-audit.mjs", "--ci"],
       route: "review",
       severity: "medium",
       warningPattern: /docs-audit: [1-9]\d* warning\(s\)\./,
@@ -77,14 +77,14 @@ export const scopes = {
     {
       id: "source-structure",
       label: "Source structure",
-      command: ["bun", "run", "check:source-structure"],
+      command: ["node", "scripts/quality/check-source-structure.js"],
       route: "clean --dry-run",
       severity: "medium",
     },
     {
       id: "react-patterns",
       label: "React pattern lint",
-      command: ["bun", "run", "lint:rules"],
+      command: ["node", "scripts/quality/check-react-patterns.js"],
       route: "clean --dry-run",
       severity: "medium",
       warningPattern: /check-react-patterns: [1-9]\d* new warning\(s\):/,
@@ -94,7 +94,7 @@ export const scopes = {
     {
       id: "test-quality",
       label: "Test quality",
-      command: ["bun", "run", "check:test-quality"],
+      command: ["bash", "scripts/quality/check-test-quality.sh"],
       route: "review",
       severity: "high",
     },
@@ -103,7 +103,7 @@ export const scopes = {
     {
       id: "ontology",
       label: "Ontology drift",
-      command: ["bun", "run", "check:ontology"],
+      command: ["node", "scripts/quality/check-ontology.mjs"],
       route: "review",
       severity: "medium",
       // check-ontology.mjs exits 2 for infrastructure faults (missing or

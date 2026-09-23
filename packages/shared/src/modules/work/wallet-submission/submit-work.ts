@@ -1,3 +1,8 @@
+import {
+  AwaitingWorkConfirmation,
+  WorkTransactionReverted,
+  reconcileWorkTransaction,
+} from "../work-confirmation";
 import type { Address } from "viem";
 import { getWalletClient } from "@wagmi/core";
 import type { WorkDraft } from "../../../types/domain";
@@ -22,7 +27,7 @@ import {
 } from "../../../utils/blockchain/polling";
 import { simulateWorkSubmission } from "../simulate";
 import { WorkSubmissionError, type WalletSubmissionOptions } from "./types";
-import { TransactionReceiptTimeoutError, waitForReceiptWithTimeout } from "./receipt";
+import { TransactionRevertedError, waitForReceiptWithTimeout } from "./receipt";
 
 export async function submitWorkDirectly(
   draft: WorkDraft,
@@ -36,6 +41,13 @@ export async function submitWorkDirectly(
   const { onProgress, txTimeout = TX_RECEIPT_TIMEOUT_MS } = options;
   const startTime = Date.now();
   const uploadBatchId = crypto.randomUUID();
+  if (options.checkpoint?.transactionHash) {
+    const hash = options.checkpoint.transactionHash;
+    const state = await reconcileWorkTransaction(hash, chainId);
+    if (state === "confirmed") return hash;
+    if (state === "reverted") throw new WorkTransactionReverted(hash);
+    throw new AwaitingWorkConfirmation(hash);
+  }
 
   debugLog("[WalletSubmission] Starting direct work submission", {
     gardenAddress,
@@ -57,6 +69,19 @@ export async function submitWorkDirectly(
     throw new Error("Wallet not connected. Please connect your wallet and try again.");
   }
 
+  const originatingAccount = options.userAddress ?? walletClient.account?.address;
+  const assertOwnership = async () => {
+    await options.assertOwnership?.();
+    const current = await getWalletClient(wagmiConfig, { chainId });
+    if (
+      !originatingAccount ||
+      current?.account?.address.toLowerCase() !== originatingAccount.toLowerCase() ||
+      (current.chain?.id !== undefined && current.chain.id !== chainId)
+    )
+      throw new Error("submission-ownership-changed");
+    return current;
+  };
+  await assertOwnership();
   if (walletClient.account?.address) {
     try {
       debugLog("[WalletSubmission] Simulating transaction before upload...");
@@ -97,6 +122,8 @@ export async function submitWorkDirectly(
       chainId,
       {
         clientWorkId: options.clientWorkId,
+        checkpoint: options.checkpoint,
+        onCheckpoint: options.onCheckpoint,
         gardenAddress,
         authMode: "wallet",
         uploadBatchId,
@@ -125,12 +152,29 @@ export async function submitWorkDirectly(
     debugLog("[WalletSubmission] Sending transaction", { to: txParams.to });
     await assertLocalArbitrumForkWallet();
 
-    hash = await walletClient.sendTransaction({
+    const currentWallet = await assertOwnership();
+    draft.uploadCheckpoint = {
+      submittedAt: new Date().toISOString(),
+      files: {},
+      ...draft.uploadCheckpoint,
+      broadcastPending: true,
+      broadcastPendingAt: new Date().toISOString(),
+    };
+    await options.onCheckpoint?.(draft.uploadCheckpoint);
+    await options.assertOwnership?.();
+    hash = await currentWallet.sendTransaction({
       ...txParams,
       chain: getChain(chainId),
-      account: walletClient.account,
+      account: currentWallet.account,
     });
 
+    draft.uploadCheckpoint = {
+      ...draft.uploadCheckpoint,
+      transactionHash: hash,
+      broadcast: { kind: "transaction", hash },
+      broadcastPending: false,
+    };
+    await options.onBroadcast?.(hash);
     debugLog("[WalletSubmission] Transaction sent", { hash });
   } catch (err: unknown) {
     debugError("[WalletSubmission] Transaction phase failed", err);
@@ -146,11 +190,8 @@ export async function submitWorkDirectly(
     await waitForReceiptWithTimeout(hash, chainId, txTimeout);
     debugLog("[WalletSubmission] Transaction confirmed", { hash });
   } catch (err: unknown) {
-    if (!(err instanceof TransactionReceiptTimeoutError)) {
-      debugError("[WalletSubmission] Receipt phase failed", err);
-      throw new WorkSubmissionError(extractErrorMessage(err), "transaction", uploadBatchId, err);
-    }
-    debugLog("[WalletSubmission] Transaction timeout, continuing...", { hash });
+    if (err instanceof TransactionRevertedError) throw new WorkTransactionReverted(hash);
+    throw new AwaitingWorkConfirmation(hash);
   }
 
   const optimisticWork: EASWork = {

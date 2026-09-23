@@ -64,9 +64,15 @@ These are mandatory:
 
 `/audit drift [scope]` is the fast, read-only classifier (formerly the standalone `drift` skill). It does not run the numbered full-audit parts.
 
-1. Run `bun run drift:check -- --scope <scope>` (scopes: `all`, `guidance`, `plans`, `design`, `docs`, `ontology`, `cleanup`, `quality`; add `--json` for machine output). The `ontology` scope reports a distinct infra-fault status when the checker itself cannot run — treat that as a tooling failure to fix, not ontology drift.
+1. Run `bun run check --only drift -- --scope <scope>` (scopes: `all`, `guidance`, `plans`, `design`, `docs`, `ontology`, `cleanup`, `quality`; add `--json` for machine output). The `ontology` scope reports a distinct infra-fault status when the checker itself cannot run — treat that as a tooling failure to fix, not ontology drift.
 2. Report numbered findings with category, severity, evidence, and recommended route. Treat `WARN` output as a finding; include working-tree context if the checker reports a dirty tree.
 3. Stop for human scope lock before fixing anything.
+
+Run `/audit drift plans` weekly. Beyond the checker's output, list **closeout candidates**: active
+hubs whose implementation PR has merged, whose Linear parent is `Done`, or whose lanes stayed
+`ready` or `in_progress` after the merge, plus hubs untouched for 14+ days
+(`node scripts/harness/plan-hub.mjs stale --days 14`). After scope lock, close each through the plan
+skill's [Closing a Plan Hub](../plan/SKILL.md#closing-a-plan-hub) procedure.
 
 Routing: guidance/plans/docs drift → a scoped fix pass after the user approves findings by number (plan mode for anything large); design-system drift → `/review --scope design-system`; cleanup-shaped findings → recommend `clean --scope <scope> --dry-run` first, never full `/clean` without approval; anything that looks like a production bug, broken flow, or data/API/indexer failure → `debug`, not cleanup.
 
@@ -155,7 +161,7 @@ Extract per package: overall coverage %, files with 0% coverage, files below 50%
 Contract coverage is outside the read-only audit phase because the supported wrapper writes generated
 artifacts under `output/contracts-test-audit/`. During audit, inspect any commit-bound coverage
 evidence already supplied and otherwise record "coverage not measured". After the user authorizes a
-validation or remediation phase, run `bun run test:audit:coverage` from `packages/contracts`; never
+validation or remediation phase, run `bun run test:audit coverage` from `packages/contracts`; never
 bypass the repository wrapper with raw Forge. Do not run concurrent coverage invocations in one
 checkout because the wrapper uses fixed output paths.
 

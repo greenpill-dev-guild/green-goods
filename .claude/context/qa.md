@@ -16,23 +16,30 @@ connects them.
    retirement carries `retiredOn`, `retiredReason`, and, when active successors exist,
    `replacedBy`. The contract test in
    [`qa-app-build.test.ts`](../../scripts/agents/qa-app-build.test.ts) enforces all of it at one
-   revision, [`check-qa-id-ledger.mjs`](../../scripts/quality/check-qa-id-ledger.mjs) rejects any
-   id removed since the merge-base, and the public
+   revision, [`check-qa-id-ledger.mjs`](../../scripts/quality/check-qa-id-ledger.mjs) rejects ids
+   removed from the catalog or ledger, reintroduced after removal, or reactivated after retirement,
+   and the public
    [Test Cases](../../docs/docs/builders/quality/test-cases.mdx) page renders it.
    [`packages/qa/build.mjs`](../../packages/qa/build.mjs) projects active cases into the deployed
-   app; retired cases remain in git as audit history.
+   app; retired cases remain in git as audit history. Catalog v3's top-level `journeys` are ordered,
+   role-aware choreography over active Test IDs. They do not replace the per-case `kind` axis.
 2. **Recording** — the wallet-authenticated [QA app](../../packages/qa/README.md) records one private
-   shard per allowlisted signing address in the Blob store. Testers enter verdicts and notes there.
+   shard per allowlisted signing address **per run** in the Blob store. A run is one team pass
+   over the catalog: exactly one run is open, testers record into it, and a rollover closes it
+   and opens its successor, so a re-QA never overwrites the pass it is checking (§ Runs).
 3. **Session** — [`qa-session`](../skills/qa-session/SKILL.md) runs the live, paired, or transcript
    loop: pre-flight, observation capture, bounded fix-now work, revalidation, deferred handoff, and
    receipt preparation.
-4. **Pull** — `bun run qa:pull --slug <slug>` reads the live shards into gitignored
-   `tmp/qa-session/<slug>/results.csv` and `qa-state.json`. It is the private close-out artifact,
-   not a public coverage report. `bun run qa:report --slug <slug>` then derives `report.md` from
-   that pull — results by priority and by kind, the fail/blocked list, coverage gaps, standing
-   state, and per-tester coverage, private and attributed — and, with `--public`,
+4. **Pull** — `bun run qa pull --slug <slug> --run <open | latest-closed | run-N>` reads one
+   run's shards into gitignored `tmp/qa-session/<slug>/results.csv` and `qa-state.json` (the
+   default is the open run; `qa-state.json` names the run it came from). It is the private
+   close-out artifact, not a public coverage report. `bun run qa report --slug <slug>` then
+   derives `report.md` from that pull — results by priority and by kind, the fail/blocked list,
+   coverage gaps, standing state, a run-versus-run delta when `--previous` names the earlier
+   run's pull, and per-tester coverage, private and attributed — and, with `--public`,
    `report.public.md` under the `qa:status` projection rule. The public file exists only for the
-   docs example and the Discord lede; every session record embeds the private one.
+   docs example and the Discord lede. The private file is attached to the session's Linear parent
+   as a document (§ Artifact ownership), so the full record outlives the laptop that pulled it.
 5. **Triage** — [`qa-triage`](../skills/qa-triage/SKILL.md) enriches and scope-locks accepted
    findings, then writes safe Issue and Customer Need records to Linear and appends private defect
    rows to the Green Goods v1.1 QA Sheet. After a team QA call, the
@@ -73,11 +80,12 @@ deferred handoff, or a live session — works in this order:
 | --- | --- | --- |
 | Test-case definitions | `scripts/data/qa-test-catalog.json` in git | Product or engineering change, reviewed like code |
 | Verdicts and notes | QA app private Blob store | The allowlisted signing address through the app |
-| Session log, pulled results, generated report, local handoff | `tmp/qa-session/<slug>/` | `qa-session`, `qa:pull`, and `qa:report`; local and gitignored — only `report.public.md` may leave, for the docs example or the Discord lede |
-| Coverage report | Standard output from `bun run qa:status` | Read-only command; nothing is persisted |
+| Session log, pulled results, generated report, local handoff | `tmp/qa-session/<slug>/` | `qa-session`, `qa:pull`, and `qa:report`; local and gitignored — `report.md` leaves only as the session parent's attached Linear document (below), `report.public.md` only for the docs example or the Discord lede |
+| Coverage report | Standard output from `bun run qa status` | Read-only command; nothing is persisted |
 | Defect tracking | Linear plus the private Green Goods v1.1 QA Sheet | `qa-triage`, after explicit scope and write confirmation |
 | Session report and fix slices | Linear Product team — `QA session YYYY-MM-DD` parent plus slice sub-issues | [`qa-call-report`](../../docs/routines/qa-call-report.md) after a team call, or `/qa-triage --call` interactively |
-| Session receipts and cleared evidence | Restricted Drive QA folder | `qa-session`, after content inspection |
+| Full session report, attributed | Linear document `QA session YYYY-MM-DD · full report` attached to the session parent; beside the receipt in the restricted Drive QA folder when a solo session has no parent | [`qa-call-report`](../../docs/routines/qa-call-report.md), `/qa-triage --call`, or the `qa-session` close, after the privacy grep |
+| Session receipts, screenshots, and recordings | Restricted Drive QA folder | `qa-session`, after content inspection |
 | Locked design decisions | `.claude/skills/design/decision-log.md` in git | `qa-session`, after the decision lock gate |
 
 ## Public-repository boundary
@@ -85,17 +93,23 @@ deferred handoff, or a live session — works in this order:
 This repository is public. QA results, notes, wallet addresses, the address allowlist, and the identity
 attached to a tester's results never enter it. `QA_ALLOWLIST` lives in the deployment environment;
 display names live inside private address-owned shards. Operational artifacts stay under gitignored
-`tmp/` until cleared receipts and evidence move to the restricted Drive QA folder.
+`tmp/` until the full report is attached to the session parent in Linear and cleared media moves to
+the restricted Drive QA folder.
 
 `qa:status` is safe to print because it projects only catalog IDs, aggregate verdict counts, entry
 timestamps, and optional Linear issue keys. It never prints notes or shard-owner names. Do not add a
 notes, attribution, or per-person flag.
 
-Linear receives only the public-safe issue narrative allowed by
-[`linear-routing-rules.md`](linear-routing-rules.md). The private QA Sheet is the one narrow
-exception that may hold a PostHog session ID and replay URL after its permissions are verified.
-Distinct IDs, wallet addresses, and reporter identifiers stay out of both. Media must be inspected
-visually before upload; a text scan cannot clear pixels.
+Linear issue bodies and comments receive only the public-safe narrative allowed by
+[`linear-routing-rules.md`](linear-routing-rules.md). One carve-out, decided 2026-09-05: the full
+session report is attached to the `QA session YYYY-MM-DD` parent as a Linear **document**, and that
+document may carry team members' display names and their own notes, because the workspace is
+private and the report is useless without them. Wallet addresses, session IDs, replay URLs, and the
+identity of anyone outside the team stay out of the document too: the privacy grep that gates every
+Linear write runs on it first, and a hit is redacted before the document is saved. The private QA
+Sheet remains the one place that may hold a PostHog session ID and replay URL after its permissions
+are verified. Media must be inspected visually before upload; a text scan cannot clear pixels, so
+screenshots and recordings go to the restricted Drive QA folder, never into Linear.
 
 ## Wallet authentication and trust boundary
 
@@ -145,6 +159,74 @@ slice's Linear *priority* from case priority plus verdict — a queue-ordering d
 session re-judges at take-up, not a severity judgment; Sheet severity stays independently
 assigned.
 
+## Verdict vocabulary
+
+`Pass`, `Fail`, and `Blocked` describe what happened on the walk. `N/A` means the case was
+intentionally outside the run's agreed scope: a device or role nobody on the walk could hold, or a
+surface consciously excluded when scope was set. A case nobody walked has **no entry**. Do not
+record `N/A` to mean "skipped this time": the report counts `N/A` as walked and judged, so a
+skipped case recorded as `N/A` overstates coverage and hides the gap the next walk should close.
+(Decided 2026-09-05, after the 2026-09-04 call recorded thirteen skipped commitment cases as N/A.)
+
+Environment attribution: a run records its environment (production, beta/staging, or local) when
+it opens, the QA app shows it in the header, and the session header and the Linear parent lede
+repeat it. A tester who crosses to another environment for one case prefixes that note with
+`[beta]`, `[prod]`, or `[local]`: every verdict taken outside the run's environment carries its
+prefix, whichever of the three the run's is.
+
+## Runs
+
+A **run** is one team pass over the catalog; several sessions may feed it. The store keeps one
+shard per tester per run plus a small index (`qa/runs.json`: label, environment, who opened and
+closed it and when, the catalog revision and optional build SHAs). Exactly one run is open at any
+time. Any allowlisted tester may press **Start new run** in the app: that closes the open run and
+opens its successor in one conditional write, and the closed run stays readable forever — nothing
+is ever erased. The first request after the runs deploy migrated the pre-runs shards into
+**Run 1 · Baseline**, a legacy latest-state run rather than a dated walk; its window is the span
+of everything recorded before runs existed.
+
+Rules that follow from this:
+
+- Record into the open run only. The app refuses a save that names a closed run and re-targets
+  the pending queue at the open run, so a tester who was offline through a rollover loses nothing.
+- Before a re-QA, start a new run. The compare control shows the previous run's verdict and notes
+  on every row, the tally adds fixed, still failing, regressed, and newly walked, and the **Re-QA**
+  filter lists what the compared run left failing or blocked.
+- A verdict on a case retired between two runs is read on each active successor named by the
+  catalog's `replacedBy` chain and labelled *inherited*, in the app and in `qa:report`.
+- The session header names the run id (`run-N`) the walk records into; the call-report path
+  pulls that run (`qa:pull --run <id>`, `latest-closed` when it was rolled over before the report
+  ran) and the previous run beside it for `qa:report --previous`.
+
+## Finding dispositions
+
+Every observation a session produces (an app note, a dictated OBS record, or a meeting-notes item)
+resolves to exactly one disposition before anything is filed. A dictated app note usually carries
+several observations; split it into one observation per distinct symptom, each keeping its Test
+ID, tester, and verdict, before assigning dispositions or clustering.
+
+| Disposition | What it is | Where it lands |
+| --- | --- | --- |
+| `defect` | The product does not do what the case expects | Every accepted cluster becomes a slice, or links an existing tracked Issue; the Todo queue budget limits ordering, never filing — overflow is `Backlog` at its derived priority, never `Not sliced` |
+| `polish` | It works but looks or reads wrong; it may sit beside a Pass verdict | A slice at Low priority regardless of case priority, clustered by seam: `Todo` when at least one member entry was recorded inside the session window (a pass with a note counts), `Backlog` when reconstructed from notes alone |
+| `decision` | Needs a product or design ruling before a fix is honest (limits, copy direction, flow choices) | The parent's `Decisions needed` section plus the session's single decisions child |
+| `investigate` | A symptom whose cause or intent is unknown; not fixable until someone looks | A `Not sliced · investigate` line in the parent; a slice only after the look |
+| `catalog` | Feedback about the test case itself: split it, rename it, move it, unclear, missing twin | `tmp/qa-triage/<slug>/catalog-feedback.md` from the skill, copied at close into the plan hub that owns the next catalog change (de-attributed: no verdicts, no tester names, because the repository is public), or one `Catalog feedback` comment on the parent from the routine; never a slice |
+| `environment` | Behaviour caused by the harness or environment, not the product (cold start, beta-only data, wrong wallet) | One environment line in the parent; never a slice |
+
+The same queue budget applies to `polish`: derive state and priority first, then keep only the
+first N Todo-eligible slices by priority in `Todo` and file the rest as `Backlog`. The default is 8;
+the interactive gate may raise it. List every accepted slice in the parent's `Slices`, including
+Backlog. Session-window acceptance and Test ID linkage still apply; the budget never admits
+standing state or guesses a case. `Not sliced` holds note-only follow-ups without an exact Test ID
+and uncorrelated telemetry, plus investigate and environment lines; catalog feedback keeps its
+separate disposition above.
+
+Observations that already carry a tracked Issue (exact Test ID or error hash, or a title match a
+human confirmed at the gate) are linked, not re-filed. A tester's own words carry severity: "major
+regression", "major blocker", or "completely broken" in a note proposes Urgent at the gate, where a
+human confirms it.
+
 ## Roster and attribution
 
 The deployed roster is the unique address list in `QA_ALLOWLIST`; it is discovered at runtime and is
@@ -157,21 +239,53 @@ sign out before starting as another allowlisted address. When a session expires 
 page keeps the address-keyed outbox locally and requires the same wallet before it will resume that
 work.
 
+## Journey choreography
+
+The QA app supports two complementary paired styles. A broad session may split by surface for
+coverage. A role-choreographed session selects one **Journey** and gives each person a **Part**, so
+they meet at shared handoffs across Admin and PWA. Neither style replaces the other.
+
+Journey, Part, surface narrowing, and scroll position are presentation state in `sessionStorage`
+only. **View** continues to choose whose results are shown. Tester names and session role assignments
+never enter the public catalog or shared state; verdicts remain keyed by Test ID and signing address.
+
+For the commitment relay, two people keep two distinct allowlisted wallets and one identity each for
+the entire walk:
+
+- **Protocol & review** is the protocol steward and independent steward or evaluator of the test
+  Garden. This person must remain outside both contributor rosters.
+- **Garden & member** is a steward and member of the test Garden. This person makes the institutional
+  claim and contributes the Work and evidence.
+
+The protocol Request stays in the protocol pool after the Garden claims it. The protocol-to-Garden
+payout is earned compensation. The Garden-to-member obligation is a separate Garden-pool commitment.
+The Protocol treasury top-up is discretionary funding with no commitment ID and never substitutes
+for earned compensation. A starting assessment adds context but does not gate opening a Season or
+Campaign.
+
+At a named handoff, the acting person waits until the receiving person can see the state. Both people
+may record independent verdicts on a case explicitly shared for verification. A catalog
+`knownGate` is explanatory text, never a default verdict: attempt the step, record Blocked only when
+the gate is encountered, and continue every remaining non-value step without implying settlement
+completed.
+
 ## Reading current state
 
 Use two queries for two different questions:
 
-- `bun run qa:status` answers what has been walked in the live store. It reports per-surface
-  walked/total and verdict counts, never-walked cases, stale cases, and failing or blocked Test IDs.
+- `bun run qa status` answers what has been walked in the open run of the live store. Its first
+  line names that run; it then reports per-surface walked/total and verdict counts, never-walked
+  cases, stale cases, and failing or blocked Test IDs.
   Staleness defaults to 30 days and can be changed with `--stale-days <N>`. It uses each case's
   newest `entry.at` timestamp because the store has no build SHA; the result is recency evidence,
   not build-aware coverage.
-- Open Linear Issues carrying `activity:qa` answer what work remains outstanding. Resolve the
+- Open Linear Issues carrying `activity:build` answer what defect work remains outstanding
+  (`activity:qa` marks the validation pass itself, not its findings). Resolve the
   Product team and labels live rather than hardcoding workspace IDs.
 
 The repository intentionally has no Linear credential. To render open work beside failing cases:
 
-1. Use the Linear MCP to list open Product Issues carrying `activity:qa`, read their Test ID source
+1. Use the Linear MCP to list open Product Issues carrying `activity:build`, read their Test ID source
    lines, and write only the reverse lookup to a gitignored temporary file:
 
    ```json
@@ -181,7 +295,7 @@ The repository intentionally has no Linear credential. To render open work besid
    }
    ```
 
-2. Run `bun run qa:status --issues tmp/qa-status-issues.json`.
+2. Run `bun run qa status --issues tmp/qa-status-issues.json`.
 
 The command validates that the file contains only Test IDs and Linear-style issue keys. The agent
 must include only open issues; `qa:status` does not query Linear or infer workflow state.
@@ -199,7 +313,7 @@ case definition.
 
 ## Workbook exception
 
-`bun run qa:workbook` is the exception path for production passes, installed-device passes, and
+`bun run qa workbook` is the exception path for production passes, installed-device passes, and
 work that needs a Sheet-compatible file. Generated workbooks carry private QA state, belong in the
 restricted Drive QA folder, and never enter git. The QA app remains the default recording surface
 for networked sessions.

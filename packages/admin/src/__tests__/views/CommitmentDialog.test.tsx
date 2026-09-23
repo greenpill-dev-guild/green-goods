@@ -664,6 +664,35 @@ describe("CommitmentDialogPanel (W10)", () => {
     expect(screen.queryByTestId("commitment-acts")).not.toBeInTheDocument();
   });
 
+  it("offers Seed Another Like This to the pool's steward, and only where a seeding wizard exists", () => {
+    const onSeedAnother = vi.fn();
+    const withWizard = (
+      <CommitmentDialogPanel
+        chainId={42161}
+        garden={GARDEN}
+        commitmentId="9"
+        tone="garden"
+        onSeedAnother={onSeedAnother}
+      />
+    );
+
+    const steward = renderWithProviders(withWizard);
+    fireEvent.click(screen.getByRole("button", { name: "Seed Another Like This" }));
+    expect(onSeedAnother).toHaveBeenCalledWith("9");
+    steward.unmount();
+
+    // A reader who may not seed this pool is not offered the way in.
+    mocks.controller = controller({ isLocalSteward: false });
+    const reader = renderWithProviders(withWizard);
+    expect(screen.queryByRole("button", { name: "Seed Another Like This" })).toBeNull();
+    reader.unmount();
+
+    // The Hub's Confirm stage renders this panel with no wizard beside it.
+    mocks.controller = controller();
+    renderPanel();
+    expect(screen.queryByRole("button", { name: "Seed Another Like This" })).toBeNull();
+  });
+
   it("names an unavailable chain and offers no retry that cannot run", () => {
     mocks.controller = controller({
       commitment: null,

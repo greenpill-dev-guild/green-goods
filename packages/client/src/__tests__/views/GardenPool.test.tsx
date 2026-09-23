@@ -43,7 +43,7 @@ const mockUseHasRole = vi.fn();
 const mockUseQueueState = vi.fn();
 const mockUseReason = vi.fn();
 const mockFlush = vi.fn();
-const mockRetryJob = vi.fn();
+const mockRetryAndSend = vi.fn();
 const mockDiscardJob = vi.fn();
 const mockUseGardenPoolController = vi.fn();
 
@@ -198,20 +198,16 @@ function useGardenPoolControllerMock(targetPool: CommitmentPoolRecord) {
       poolState === "OPEN" && (targetPool.poolType !== "PROTOCOL" || stewardsPool || ownsPool),
     acts: {
       flush: mockFlush,
-      retry: (jobId: string) =>
-        runBusy(jobId, async () => {
-          await mockRetryJob(jobId);
-          await mockFlush();
-        }),
+      retry: (jobId: string) => runBusy(jobId, () => mockRetryAndSend(jobId)),
       discard: (jobId: string) => runBusy(jobId, () => mockDiscardJob(jobId)),
     },
   };
 }
 
-vi.mock("@green-goods/shared/hooks/app/useOffline", async (importOriginal) => {
+vi.mock("@green-goods/shared/hooks/app/useOnlineStatus", async (importOriginal) => {
   return {
     ...(await importOriginal()),
-    useOffline: () => mockUseOffline(),
+    useOnlineStatus: () => mockUseOffline().isOnline,
   };
 });
 
@@ -253,7 +249,7 @@ describe("GardenPool", () => {
       refresh: vi.fn(),
     });
     mockUseReason.mockReturnValue({ reason: null, isLoading: false, isUnavailable: false });
-    mockRetryJob.mockResolvedValue(undefined);
+    mockRetryAndSend.mockResolvedValue(undefined);
     mockDiscardJob.mockResolvedValue(undefined);
     mockFlush.mockResolvedValue(undefined);
     mockUseCommitments.mockReturnValue(commitmentsResult());
@@ -329,8 +325,8 @@ describe("GardenPool", () => {
 
     expect(screen.getByText("Didn't send")).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Try Again" }));
-    expect(mockRetryJob).toHaveBeenCalledWith("job-1");
-    expect(mockFlush).toHaveBeenCalledTimes(1);
+    expect(mockRetryAndSend).toHaveBeenCalledWith("job-1");
+    expect(mockFlush).not.toHaveBeenCalled();
 
     await user.click(screen.getByRole("button", { name: "Discard" }));
     expect(mockDiscardJob).toHaveBeenCalledWith("job-1");

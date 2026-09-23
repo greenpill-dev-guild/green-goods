@@ -1,3 +1,4 @@
+import { Button } from "@green-goods/shared/components/Button";
 import { RiSearchLine, RiWifiOffLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
 
@@ -76,13 +77,9 @@ export function ProofState({
             description={formatMessage({ id: "app.commitment.error.body" })}
           />
           {onRetry ? (
-            <button
-              type="button"
-              onClick={onRetry}
-              className="rounded-[var(--radius-lg)] bg-primary-action px-4 py-3 text-sm font-medium text-primary-action-foreground tap-target-lg"
-            >
+            <Button type="button" onClick={onRetry}>
               {formatMessage({ id: "app.commitments.retry" })}
-            </button>
+            </Button>
           ) : null}
         </div>
       ) : kind === "loading" ? (
@@ -113,13 +110,9 @@ export function ProofState({
               id: isOnline ? "app.proof.queued.body" : "app.proof.queued.offlineBody",
             })}
           </p>
-          <button
-            type="button"
-            onClick={onBack}
-            className="mt-2 rounded-[var(--radius-lg)] bg-primary-action px-4 py-3 text-sm font-medium text-primary-action-foreground tap-target-lg"
-          >
+          <Button type="button" onClick={onBack} className="mt-2">
             {formatMessage({ id: "app.proof.queued.back" })}
-          </button>
+          </Button>
         </div>
       )}
     </ProofShell>
