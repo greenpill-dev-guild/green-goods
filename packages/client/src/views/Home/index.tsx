@@ -34,7 +34,12 @@ import { Outlet, useLocation, useMatch, useNavigate } from "react-router-dom";
 import { getPwaSheetExitMs } from "@/components/Pwa/sheetStyles";
 import { pwaStatusStyles } from "@/components/Pwa/statusStyles";
 import { APP_ROUTES } from "@/config/pwaRouting";
-import { ARRIVAL_TOASTS, type ArrivalActionKind } from "./arrivalToast";
+import {
+  ARRIVAL_TOASTS,
+  type ArrivalActionKind,
+  hasArrivalPassed,
+  markArrivalPassed,
+} from "./arrivalToast";
 import { CommitmentsSheetIcon } from "./CommitmentsSheet/Icon";
 import { GardenList } from "./GardenList";
 import { WalletSheetIcon } from "./WalletSheet/Icon";
@@ -203,21 +208,22 @@ const Home: React.FC = () => {
     [myGardenIds, navigate, openWorkDashboard, setFilters]
   );
 
-  // Show a state-aware arrival toast once per browser session, scoped to the signed-in address.
+  // Show a state-aware arrival toast once per browser session, scoped to the signed-in address,
+  // and only while the session is still on the Home it opened on: AppShell marks the arrival
+  // passed as soon as the session is on any other screen.
   // useArrivalState already gates on data confidence, so we fire only when arrivalKind !== "none".
   useEffect(() => {
     if (!isAuthenticated || hasShownArrivalRef.current) return;
     if (location.pathname.replace(/\/$/, "") !== APP_ROUTES.home) return;
     if (!normalizedAddress || arrivalKind === "none") return;
 
-    const shownKey = `greengoods:arrival-shown:${normalizedAddress}`;
-    if (sessionStorage.getItem(shownKey) === "true") {
+    if (hasArrivalPassed(normalizedAddress)) {
       hasShownArrivalRef.current = true;
       return;
     }
 
-    // Mark shown BEFORE scheduling so re-renders / remounts this session don't re-fire.
-    sessionStorage.setItem(shownKey, "true");
+    // Mark it passed BEFORE scheduling so re-renders / remounts this session don't re-fire.
+    markArrivalPassed(normalizedAddress);
     hasShownArrivalRef.current = true;
 
     const spec = ARRIVAL_TOASTS[arrivalKind];

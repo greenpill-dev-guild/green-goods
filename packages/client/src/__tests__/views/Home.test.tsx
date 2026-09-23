@@ -11,6 +11,7 @@ import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const filterState = vi.hoisted(() => ({ sort: "" }));
+const arrivalState = vi.hoisted(() => ({ kind: "none" as "none" | "draft" }));
 
 // Mock the shared barrel — Home imports all hooks/stores/utils from @green-goods/shared
 vi.mock("@green-goods/shared/utils/styles/cn", () => ({
@@ -26,7 +27,7 @@ vi.mock("@green-goods/shared/components/Toast/toast.service", () => ({
 }));
 
 vi.mock("@green-goods/shared/hooks/app/useArrivalState", () => ({
-  useArrivalState: () => ({ kind: "none", myGardenIds: [], needsReviewCount: 0 }),
+  useArrivalState: () => ({ kind: arrivalState.kind, myGardenIds: [], needsReviewCount: 0 }),
 }));
 
 vi.mock("@green-goods/shared/hooks/auth/useAuth", () => ({
@@ -97,7 +98,11 @@ vi.mock("@green-goods/shared/hooks/auth/usePrimaryAddress", () => ({
 
 vi.mock("@green-goods/shared/hooks/utils/useTimeout", () => ({
   useTimeout: () => ({
-    set: vi.fn(),
+    // Run scheduled work at once so the arrival toast lands inside the render under test.
+    set: vi.fn((callback: () => void) => {
+      callback();
+      return () => {};
+    }),
     clear: vi.fn(),
     isPending: vi.fn(() => false),
   }),
@@ -208,12 +213,17 @@ vi.mock("../../views/Home/WorkDashboard/Icon", () => ({
 }));
 
 // Import after mocks
+import { toastService } from "@green-goods/shared/components/Toast/toast.service";
 import Home from "../../views/Home";
+import { markArrivalPassed } from "../../views/Home/arrivalToast";
 
 const messages = {
   "app.home": "Home",
   "app.home.filters.button": "Filters",
   "app.home.messages.noGardensFound": "No gardens found",
+  "app.home.arrival.draft.title": "You have a draft saved",
+  "app.home.arrival.draft.message": "Pick up where you left off.",
+  "app.home.arrival.draft.action": "Resume",
 };
 
 const renderWithProviders = (initialRoute = "/home") => {
@@ -237,6 +247,29 @@ const renderWithProviders = (initialRoute = "/home") => {
 describe("Home View", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    arrivalState.kind = "none";
+    sessionStorage.clear();
+  });
+
+  it("shows the arrival toast to a session that opens on Home", () => {
+    arrivalState.kind = "draft";
+
+    renderWithProviders();
+
+    expect(toastService.info).toHaveBeenCalledTimes(1);
+    expect(toastService.info).toHaveBeenCalledWith(
+      expect.objectContaining({ title: "You have a draft saved" })
+    );
+  });
+
+  it("stays quiet on Home once the session has arrived on another screen", () => {
+    // e.g. the app reopened into the garden flow, where the user already declined a draft.
+    markArrivalPassed("0x1234567890abcdef1234567890abcdef12345678");
+    arrivalState.kind = "draft";
+
+    renderWithProviders();
+
+    expect(toastService.info).not.toHaveBeenCalled();
   });
 
   it("renders without crashing", () => {
