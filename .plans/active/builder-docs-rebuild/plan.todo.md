@@ -3,7 +3,7 @@
 **Feature Slug**: `builder-docs-rebuild`
 **Status**: ACTIVE
 **Created**: 2026-09-02
-**Last Updated**: 2026-09-02
+**Last Updated**: 2026-09-22
 
 ## Decision Log
 
@@ -16,6 +16,10 @@
 | 5 | Mermaid zoom implemented site-wide, not per-page | Every diagram benefits; one mechanism to maintain |
 | 6 | Redirect entries land in the same PR as each slug move or deletion | No window where old links dead-end |
 | 7 | QA pages (`quality/*`) stay owned by the qa-report stream; this effort only re-parents and cross-links | Avoid rework of pages rewritten 09-01/02 (#793) |
+| 8 | Merge `develop` into the branch rather than rebase (Afo, 2026-09-22) | A rebase replays 18 commits over the same files, and a force-push would orphan the 46 open review threads |
+| 9 | Keep `GG_PUSH_GATE_ARGS` on develop's pre-push gate line (Afo, 2026-09-22) | Does nothing unless set; this branch's full push plan needs explicit focus or a narrower base |
+| 10 | Community invites follow the product: Telegram `+N3o3_43iRec1Y2Jh` (Afo, 2026-09-22) and Discord `discord.gg/greenpill` to match | One invite set across the app, the docs, and the repo |
+| 11 | Develop's generated Command inventory and Contract operations pages stay under Packages (Afo, 2026-09-22) | Matches their slugs; Getting Started links Command inventory as the command source |
 
 ## Requirements Coverage
 
@@ -36,7 +40,7 @@
 | Spine rewrites (Getting Started, First Contribution, System Overview) | 2 | ✅ 6b7d408c4 (tone gate open) |
 | Package template ×7 incl. new QA page | 3 | ✅ |
 | Link audit: every page has next steps + external links | 5 | ⏳ |
-| CONTRIBUTING.md circularity fix | 5 | ⏳ |
+| CONTRIBUTING.md circularity fix | 5 | ✅ develop's CONTRIBUTING names First Contribution the full guide; First Contribution no longer defers its core flow back (merge round) |
 
 ## Phase 1 — Generators & mechanics (lanes `state_api` + `ui`, this branch)
 

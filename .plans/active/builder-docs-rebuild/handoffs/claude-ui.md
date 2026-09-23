@@ -90,3 +90,30 @@ renders all 13 skills.
   shape.
 - **Session note**: the previous process exited mid-phase; resumed, completed agent-guidance
   fixes, and pushed.
+
+## Validation Receipt — Develop merge (2026-09-22)
+
+- **Tested implementation commit SHAs**: `5d4da7761` (merge of origin/develop `cda3494d4`) +
+  `8eb035d98` (guides on develop's setup model) + `d46b45771` (link and trigger retargets) +
+  `552622bc0` (QA catalog); pushed `f3d4de691..552622bc0`.
+- **Results**: generator tests 20/20 · select-validation 78/78 · validation-system suite 307/307 ·
+  docs-authority tests 44/44 · docs package tests 59/59 · `node docs/scripts/docs-audit.mjs --ci`
+  exit 0 (the two advisory endpoint notes only) · `node scripts/docs/generate.mjs --check` (14) ·
+  ontology guards pass · agent-guidance green (codex docs, 15 skill scenarios, 74 guidance files) ·
+  qa-id-ledger 371 ids · source-structure clean in diff mode · docs build green, search index 67
+  routes · push gate green through the hook with `GG_PUSH_GATE_ARGS="--check ontology"` (the
+  ontology sidecar change needs an acceptance check to count as focused proof).
+- **Pre-existing on develop, not from this merge**: docs typecheck (two recharts errors in
+  `RevenueProjectionChart.tsx`, file untouched here) and `check-docs-design-parity.mjs` (it still
+  expects the `operator` role accent renamed to `steward` on 2026-08-23; no CI job runs it).
+- **Scope**: 28 conflicts resolved (8 projections regenerated, 7 integration pages kept, the erd,
+  journeys/funding, and env-management deletions kept, ONBOARDING.md and the QA catalog taken from
+  develop, 8 hand merges). Guides moved onto develop's isolated/host setup profiles and
+  consolidated commands; the env page's rewrite folded into Getting Started. Integration pages
+  describe the fork as its own mode. Links, workflow triggers, and the policy parity fixture
+  retargeted. QA: DOCS-027 retired for DOCS-033 (Anatomy trace); DOCS-011 and DOCS-029 wording.
+- **Evidence note**: earlier receipts in this file cite pre-rewrite SHAs. The branch was
+  re-authored after 2026-09-03 to remove the leaked fixture identity (`Validation Test`):
+  `acb13e7b9`→`929995a37`, `8d0202ab8`→`126ee8098`, `bb8247967`→`f3d4de691`,
+  `6cd031fd8`→`8cf6be4ba`.
+- **Browser proof**: pending; the Vercel branch preview rebuilds from `552622bc0`.
