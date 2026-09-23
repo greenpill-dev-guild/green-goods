@@ -59,7 +59,7 @@ test.describe("Offline Work Submission CI Tests", () => {
       mimeType: "image/png",
       buffer: ONE_PIXEL_PNG,
     });
-    const detailsButton = page.getByRole("button", { name: "Add Details" });
+    const detailsButton = page.getByRole("button", { name: "Details", exact: true });
     await expect(detailsButton).toBeEnabled({ timeout: 15000 });
     await page.getByRole("button", { name: "Remove media 1" }).click();
     await expect(detailsButton).toBeDisabled();

@@ -242,7 +242,7 @@ const messages = {
   "app.garden.review.title": "Review",
   "app.garden.submit.tab.review.instruction": "Check info",
   "app.garden.submit.tab.intro.label": "Start Gardening",
-  "app.garden.submit.tab.media.label": "Add Details",
+  "app.garden.submit.tab.media.label": "Details",
   "app.garden.submit.tab.details.label": "Review Work",
   "app.garden.submit.tab.review.label": "Upload Work",
   "app.garden.unknown": "Unknown Garden",
