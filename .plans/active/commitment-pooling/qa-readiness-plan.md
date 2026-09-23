@@ -473,7 +473,8 @@ This section holds the finding index, the queue that fixes them, and each PR's r
 | W1-8 Seed tray progress and the done screen | A7, A24 | Built |
 | W1-9 Catalog PR | The cases Wave 1 changes | Built |
 | W2-1 Pool console hierarchy | A22, A19 (the rest), A14 (marker), A28, A31, A23 (reader view) | Built |
-| W2-2 to W2-5 | Flow clarity, the title rollout (after the D3 check), copy and tokens, and a catalog pass | Wave 2 |
+| W2-2 Flow clarity | A11 (the rest), A16, A17, A20 (the rest) | Built |
+| W2-3 to W2-5 | The title rollout (after the D3 check), copy and tokens, and a catalog pass | Wave 2 |
 
 ### W1-1: ledger freshness
 
@@ -915,6 +916,60 @@ This section holds the finding index, the queue that fixes them, and each PR's r
   - `admin-community-protocolfundingoperationscard--protocol-steward`;
   - `admin-pool-poolcyclescard--ready-to-end`.
 - **PR:** #889, stacked on #888.
+
+### W2-2: flow clarity
+
+- **Single-signature acts** (A11): Resume Pool, Send for Confirmation and a queued row's send each show one line: confirm in your wallet, confirming on the network, then what the act did, queued on this device, or failed.
+  - Resume stays closed until the pool reads open, and Send for Confirmation until the record moves on.
+  - The pool mutation takes an act's own send callbacks.
+  - Job-queue acts use `trackReported` and the reducer's new `queued` ending. A send that never said how it ended reads as queued, never as landed.
+- **The split** (A16): the step opens by saying the split is fixed for good once the cycle opens and decides how its impact certificate is shared. Presets read as their roles, and each role says what its share is for.
+- **The first run** (A17): the entry note gives the prompt range (up to six), and the last button reads Set Up and Open.
+- **Gardener delivery** (A20): the confirmations say they reach every garden. The toast says what happens next instead of a hash, and the confirmed line reads the state back.
+- **Differs from the plan:** the three settlement status lines stay. They model a Safe proposal's submitted state, which the act-phase line has no place for.
+- **For W2-5:**
+  - ADM-056 takes Set Up and Open and the prompt range;
+  - ADM-060 can check Resume's line;
+  - ADM-075 can check Send for Confirmation's line;
+  - ADM-087's confirmation names every garden and reads the state back.
+
+### Validation receipt, W2-2
+
+- **Tested implementation commit SHA:** `f349f3ea7e5cdbe1997e9c70e32014b11b7fe22e`.
+  - The gate is the pre-push hook on that commit.
+  - `git status --porcelain=v1 --untracked-files=all -- packages/` is empty at that SHA.
+- **Run finished (UTC):** `2026-09-23T08:28:43Z`.
+- **Command:** `bun run check -- --intent push` (the pre-push hook, `critical · 190 changed path(s)`).
+- **Result:** all 30 runnable checks passed:
+  - format, lint, validation-system-test and test-quality;
+  - the package typecheck, test and build checks;
+  - docs-authority, docs-test and docs-build;
+  - source-structure, design-guardrails, ontology, agent-guidance, qa-id-ledger, supply-chain and story-quality;
+  - storybook-build and agent-tools-test.
+- **Cache:** the package tests were cache hits on the same gate's uncached run on the same SHA. That run ended at `2026-09-23T08:25:58Z` with shared 5,615 passed and admin 928 passed, after which its push died with exit 141.
+- **Also run at that SHA:**
+  - the shared act-phase, tracker, pool-mutation, jobs and console suites, 58 passed;
+  - the admin pool-tab, inspector, setup-flow and settlement-operations suites, 75 passed.
+- **Before commit:**
+  - the full admin suite, 117 files and 928 passed;
+  - 183 shared files, 1,927 passed;
+  - admin, shared and client typecheck;
+  - design-tokens, source-structure, story-quality, react-patterns and the direct-tested seams check.
+- **RED:** nine mutations, each caught. Three are recorded through `record-tdd` on the `ui` lane:
+  - a silent send reading as landed;
+  - Resume reopening before the pool reads open;
+  - Send for Confirmation reopening once sent.
+- **Story sweep:** 289 stories, headless. None crash.
+- **Rendered proof (Storybook, headless Chromium):**
+  - `admin-pool-poolstatuscard--resuming` and `--not-ready`;
+  - `admin-pool-commitmentactions--sent-for-confirmation`;
+  - `admin-pool-poolcommitmentscard--queued-sending`;
+  - `admin-primitives-actphaseline--queued`;
+  - `admin-pool-allocationeditor--standard`;
+  - `admin-pool-setupflowfooter--last-step`;
+  - `admin-community-settlementoperationscard--owner-delivery-off` with its confirmation open.
+- **Pending:** authenticated Brave proof of resuming a pool, sending for confirmation and sending a queued creation, walked in the rehearsal.
+- **PR:** #890, stacked on #889.
 
 ## 5. Catalog PR
 

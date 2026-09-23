@@ -10,7 +10,7 @@
     "overall_status": "active",
     "priority": "p1",
     "created_at": "2026-07-03",
-    "updated_at": "2026-09-23T07:54:11.580Z"
+    "updated_at": "2026-09-23T08:29:37.938Z"
   },
   "links": {
     "brief": "external-brief.md",
@@ -260,12 +260,12 @@
         "mode": "required",
         "status": "green_recorded",
         "red": {
-          "command": "packages/admin: bun run test -- GardenPool (Needs recovery lands on the past-due list; a zero count is a button; Set Up waits offline in silence)",
-          "evidence": "1 failed | 20 passed, three times: each count lands on exactly what it counts, a count of nothing goes nowhere, and a held act says why (A22, A31)"
+          "command": "packages/shared: bun run test -- useTxActPhase (a silent send reads as landed); packages/admin: bun run test -- GardenPool (Resume reopens before the pool reads open); packages/admin: bun run test -- CommitmentDialog (Send for Confirmation reopens once sent)",
+          "evidence": "1 failed | 3 passed; 1 failed | 22 passed; 1 failed | 27 passed: a job-queue send never claims to have landed, and a single-signature act stays closed until its record moves on (A11)"
         },
         "green": {
-          "command": "packages/shared: bun run test -- commitment-pool-console, usePoolConsoleController; packages/admin: bun run test -- GardenPool, PoolCycles, ProtocolFundingOperationsCard, SeedCommitment, CommitmentDialog",
-          "evidence": "shared 2 files, 24 passed; admin 5 files, 74 passed at c67c0d2a5: one stats card whose counts land on their own lists, calm destructive acts, the protocol pool marked, Set Up saying why offline"
+          "command": "packages/shared: bun run test -- act-phase, useTxActPhase, commitment-pool-mutations, commitment-jobs-hook, usePoolConsoleController; packages/admin: bun run test -- GardenPool, CommitmentDialog, PoolSetupFlow, SettlementOperationsCard",
+          "evidence": "shared 5 files, 58 passed; admin 4 files, 75 passed at f349f3ea7: Resume, Send for Confirmation and queued sends say where they stand; the split says it is fixed at open; the first run counts its prompts; delivery names its reach and reads its state back"
         },
         "note": ""
       },
@@ -1393,6 +1393,14 @@
     },
     {
       "timestamp": "2026-09-23T07:54:11.581Z",
+      "actor": "human",
+      "lane": "ui",
+      "status": "tdd_recorded",
+      "branch": "feature/commitment-pooling-client-loop",
+      "note": "Recorded RED/GREEN TDD proof"
+    },
+    {
+      "timestamp": "2026-09-23T08:29:37.938Z",
       "actor": "human",
       "lane": "ui",
       "status": "tdd_recorded",
