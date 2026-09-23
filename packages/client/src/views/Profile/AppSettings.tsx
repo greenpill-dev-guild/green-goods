@@ -1,11 +1,18 @@
 import { Button } from "@green-goods/shared/components/Button";
+import { Switch } from "@green-goods/shared/components/Form/ControlPrimitives";
 import { toastService } from "@green-goods/shared/components/Toast/toast.service";
 import { useServiceWorkerUpdate } from "@green-goods/shared/hooks/app/useServiceWorkerUpdate";
 import { useTheme } from "@green-goods/shared/hooks/app/useTheme";
 import { type Locale, useApp } from "@green-goods/shared/providers/App";
+import {
+  hapticSelection,
+  isHapticsEnabled,
+  isHapticsSupported,
+  setHapticsEnabled,
+} from "@green-goods/shared/utils/app/haptics";
 import { capitalize } from "@green-goods/shared/utils/app/text";
-import { RiEarthFill, RiRefreshLine, RiSettings2Line } from "@remixicon/react";
-import { type ReactNode, useMemo } from "react";
+import { RiEarthFill, RiRefreshLine, RiSettings2Line, RiVolumeVibrateLine } from "@remixicon/react";
+import { type ReactNode, useId, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { Card } from "@/components/Cards";
 import { Avatar } from "@/components/Display";
@@ -48,16 +55,63 @@ const SETTING_CONTROL_WIDTH = "w-[120px] sm:w-[140px]";
 const SETTING_SELECT_TRIGGER = `${SETTING_CONTROL_WIDTH} [&>span]:whitespace-nowrap`;
 
 /**
- * Every subtitle reserves two lines whether or not it wraps, so the three
+ * Every subtitle reserves two lines whether or not it wraps, so the settings
  * cards stay the same height and a status change never moves the row.
  */
 const SETTING_DESCRIPTION = "min-h-8 text-xs text-text-sub-600 line-clamp-2";
+
+/** One settings row: an icon, a fixed title, its two-line description, and one control. */
+function SettingRow({
+  icon,
+  title,
+  titleId,
+  description,
+  control,
+}: {
+  icon: ReactNode;
+  title: string;
+  titleId?: string;
+  description: ReactNode;
+  control: ReactNode;
+}) {
+  return (
+    <Card>
+      <div className="flex flex-row items-center gap-3 w-full">
+        <Avatar>
+          <div className="flex items-center justify-center text-center mx-auto text-primary">
+            {icon}
+          </div>
+        </Avatar>
+        <div className="flex flex-col gap-0.5 min-w-0 flex-1">
+          <div id={titleId} className="text-sm font-medium truncate">
+            {title}
+          </div>
+          {description}
+        </div>
+        <div className="shrink-0">{control}</div>
+      </div>
+    </Card>
+  );
+}
 
 export const AppSettings: React.FC = () => {
   const { theme, setTheme } = useTheme();
   const { locale, switchLanguage, availableLocales } = useApp();
   const { phase, checkForUpdate, activateNow, activationBlocked } = useServiceWorkerUpdate();
   const intl = useIntl();
+  // Where the device cannot vibrate (iPhones have no Vibration API) the switch
+  // would do nothing, so the row is not offered at all.
+  const canVibrate = isHapticsSupported();
+  const [vibrationOn, setVibrationOn] = useState(isHapticsEnabled);
+  const vibrationTitleId = useId();
+
+  const handleVibrationChange = (enabled: boolean) => {
+    setHapticsEnabled(enabled);
+    setVibrationOn(enabled);
+    // The press listener read the preference before this switch changed it,
+    // so switching on is the one press it could not answer: preview it here.
+    if (enabled) hapticSelection();
+  };
 
   const themeOptions = useMemo(
     () => [
@@ -299,67 +353,73 @@ export const AppSettings: React.FC = () => {
         })}
       </h5>
       {applicationSettings.map(({ title, Icon, description, Option }) => (
-        <Card key={title}>
-          <div className="flex flex-row items-center gap-3 w-full">
-            <Avatar>
-              <div className="flex items-center justify-center text-center mx-auto text-primary">
-                {Icon}
-              </div>
-            </Avatar>
-            <div className="flex flex-col gap-0.5 min-w-0 flex-1">
-              <div className="text-sm font-medium truncate">{title}</div>
-              <div className={SETTING_DESCRIPTION}>{description}</div>
-            </div>
-            <div className="shrink-0">
-              <Option />
-            </div>
-          </div>
-        </Card>
+        <SettingRow
+          key={title}
+          icon={Icon}
+          title={title}
+          description={<div className={SETTING_DESCRIPTION}>{description}</div>}
+          control={<Option />}
+        />
       ))}
+
+      {canVibrate ? (
+        <SettingRow
+          icon={<RiVolumeVibrateLine className="w-4" />}
+          title={intl.formatMessage({ id: "app.settings.vibration", defaultMessage: "Vibration" })}
+          titleId={vibrationTitleId}
+          description={
+            <div className={SETTING_DESCRIPTION}>
+              {intl.formatMessage({
+                id: "app.settings.vibrationDescription",
+                defaultMessage: "Vibrate lightly when you tap",
+              })}
+            </div>
+          }
+          control={
+            <Switch
+              checked={vibrationOn}
+              onCheckedChange={handleVibrationChange}
+              aria-labelledby={vibrationTitleId}
+            />
+          }
+        />
+      ) : null}
 
       <OfflineContentRow controlClassName={SETTING_CONTROL_WIDTH} />
 
       {/* Always present: with nothing pending there was no way to check (PWA-041). */}
-      <Card>
-        <div className="flex flex-row items-center gap-3 w-full">
-          <Avatar>
-            <div className="flex items-center justify-center text-center mx-auto text-primary">
-              <RiRefreshLine className="w-4" />
-            </div>
-          </Avatar>
-          <div className="flex flex-col gap-0.5 min-w-0 flex-1">
-            <div className="text-sm font-medium truncate">
-              {intl.formatMessage({
-                id: "app.update.check.title",
-                defaultMessage: "Update",
-              })}
-            </div>
-            <div
-              role="status"
-              aria-label={intl.formatMessage({
-                id: "app.update.check.title",
-                defaultMessage: "Update",
-              })}
-              className={SETTING_DESCRIPTION}
-            >
-              {updateRow.status}
-            </div>
+      <SettingRow
+        icon={<RiRefreshLine className="w-4" />}
+        title={intl.formatMessage({
+          id: "app.update.check.title",
+          defaultMessage: "Update",
+        })}
+        description={
+          <div
+            role="status"
+            aria-label={intl.formatMessage({
+              id: "app.update.check.title",
+              defaultMessage: "Update",
+            })}
+            className={SETTING_DESCRIPTION}
+          >
+            {updateRow.status}
           </div>
-          <div className="shrink-0">
-            <Button
-              type="button"
-              emphasis="secondary"
-              size="sm"
-              loading={updateRow.busy}
-              disabled={phase === "waiting" && activationBlocked}
-              onClick={updateRow.onClick}
-              className={SETTING_CONTROL_WIDTH}
-            >
-              {updateRow.label}
-            </Button>
-          </div>
-        </div>
-      </Card>
+        }
+        control={
+          <Button
+            type="button"
+            emphasis="secondary"
+            size="sm"
+            loading={updateRow.busy}
+            disabled={phase === "waiting" && activationBlocked}
+            onClick={updateRow.onClick}
+            className={SETTING_CONTROL_WIDTH}
+          >
+            {updateRow.label}
+          </Button>
+        }
+      />
     </>
   );
 };

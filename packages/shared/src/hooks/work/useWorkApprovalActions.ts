@@ -110,7 +110,6 @@ export function useWorkApprovalActions({
   // --- Approval feedback handlers ---
 
   const handleApprovePress = () => {
-    if (navigator.vibrate) navigator.vibrate([50]);
     setFeedbackMode("approve");
     setConfidence(Confidence.MEDIUM);
     scheduleTimeout(() => {
@@ -119,7 +118,6 @@ export function useWorkApprovalActions({
   };
 
   const handleRejectPress = () => {
-    if (navigator.vibrate) navigator.vibrate([30, 10, 30]);
     setFeedbackMode("reject");
     setConfidence(Confidence.NONE);
     scheduleTimeout(() => {

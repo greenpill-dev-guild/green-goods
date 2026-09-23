@@ -40,9 +40,11 @@ const ActionCard = React.forwardRef<HTMLDivElement, ActionCardRootProps>(
       <Card
         ref={ref}
         data-testid="action-card"
+        // No press of its own: the picker toggle around it presses in (DL-039),
+        // and a second press here would stack with it.
         className={cn(
           classes,
-          "@container tap-feedback transition-all duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)]"
+          "@container transition-all duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)]"
         )}
         {...props}
       >

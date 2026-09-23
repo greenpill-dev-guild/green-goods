@@ -147,7 +147,7 @@ describe("useWorkApprovals", () => {
       expect(result.current.approvals).toEqual([]);
     });
 
-    it("resolves the linked garden so a reviewed work card can open", async () => {
+    it("resolves the linked work so a reviewed work card can open and show its photos", async () => {
       const workUID = `0x${"ab".repeat(32)}`;
       mockQueryFn.mockResolvedValue({
         data: {
@@ -166,8 +166,9 @@ describe("useWorkApprovals", () => {
         },
         error: null,
       });
+      const media = ["https://gateway.test/ipfs/bafy-trail"];
       mockGetWorksByUIDs.mockResolvedValue([
-        { id: workUID, gardenAddress: MOCK_ADDRESSES.garden, title: "Restored trail" },
+        { id: workUID, gardenAddress: MOCK_ADDRESSES.garden, title: "Restored trail", media },
       ]);
 
       const { result } = renderHook(() => useWorkApprovals(MOCK_ADDRESSES.steward), {
@@ -179,6 +180,7 @@ describe("useWorkApprovals", () => {
       expect(result.current.completedApprovals[0]).toMatchObject({
         gardenId: MOCK_ADDRESSES.garden,
         title: "Restored trail",
+        media,
       });
     });
   });
