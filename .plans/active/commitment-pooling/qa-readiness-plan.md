@@ -466,7 +466,7 @@ This section holds the finding index, the queue that fixes them, and each PR's r
 | W1-1 Ledger freshness, and the rail names its reason | A18 | Built |
 | W1-2 Amounts in token units | A3 | Built |
 | W1-3 The target line in dialogs; Storybook matches the product | A13, A10, A8, A21, A14 (copy), A12 (Storybook) | Built |
-| W1-4 Hub scope and the Confirm Kept review | A1, A4, A5, A30, A25 (Hub), A19 (inspector) | Queued |
+| W1-4 Hub scope and the Confirm Kept review | A1, A4, A5, A30, A25 (Hub), A19 (inspector) | Built |
 | W1-5 Settings through the setup sequence | A2, A15, A23 (settings) | Queued |
 | W1-6 End a season | Decision 29, A29 | Queued |
 | W1-7 Claims and protocol transfers | A9, A6, A11 (Accept), A20 (label), A23 (panel) | Queued |
@@ -571,6 +571,53 @@ This section holds the finding index, the queue that fixes them, and each PR's r
   - `admin-pool-commitmentreasondialogs--decline-request`: the commitment in its garden's pool, and who asked;
   - `admin-pool-seedcommitmentdialog--protocol-context`: the protocol warning above step one;
   - `admin-pool-gardenpooltab--open`: titles at 12px/500, as on staging.
+
+### W1-4: Hub scope and the Confirm Kept review
+
+- **Scope** (A1, decision 24): Hub → Confirm lists only what the garden in the header confirms. That is its own group, the garden fallbacks its steward may step into, and the disputes in its own pool, and the tab count follows. `selectToConfirmForGarden` does the narrowing. The confirmation hook's inputs are unchanged, so the PWA reads as before.
+- **Protocol rows** (decision 34): never listed in the Hub. They stay in Community → Coordination.
+- **Whose pool** (A5): a row whose commitment lives in another garden's pool says "in {garden}’s pool". While the gardens list is unread it shows the address instead. In Coordination, rows used to name the Green Goods team; they now name the garden whose pool the team confirms in.
+- **The review** (A4, decision 25): `ConfirmKeptDialog`, shared by the Hub and the inspector, names:
+  - the commitment and its garden's pool;
+  - who kept it;
+  - whether this confirmation closes it.
+
+  Both cases say a confirmation cannot be taken back, because `ConfirmLib.confirmFulfillment` records it for good.
+- **Hub copy** (A30, A25):
+  - one label, "Confirm Kept…", on every row;
+  - the chips read "Ready to confirm", "Needs a steward step-in" and "Needs the Green Goods team";
+  - "Under review" sits on a warning chip, not an error chip.
+- **Inspector** (A19): Expire leaves the routine cluster for its own row after it, as an outlined button. The red stays inside its confirmation.
+- **For W1-9:** the catalog cases that quote the old flow or labels are ADM-013, ADM-075, ADM-076, ADM-110, ADM-111, ADM-112 and ADM-136.
+
+### Validation receipt, W1-4
+
+- **Tested implementation commit SHA:** `918a6b8b23d688eaf3677acb3752ee185d849974`.
+  - The gate is the pre-push run on that commit.
+  - `git status --porcelain=v1 --untracked-files=all -- packages/` is empty at that SHA.
+- **Run finished (UTC):** `2026-09-23T04:27:29Z`.
+- **Command:** `bun run check -- --intent push` (the pre-push hook).
+- **Result:** all 25 checks passed:
+  - format, lint, validation-system-test and test-quality;
+  - shared, client, admin and agent typecheck, test-typecheck, test and build;
+  - source-structure, design-guardrails, ontology, agent-guidance, supply-chain and story-quality;
+  - storybook-build.
+- **Cache:** the shared tests ran in full. The client, admin and agent tests were cache hits on inputs identical to a full run of the same gate that ended at `2026-09-23T04:21:01Z`.
+- **Also run at that SHA:**
+  - the shared scope and naming suites, 20 passed;
+  - seven admin suites (HubConfirm, CommitmentDialog, CommunityPools, GardenPool, PoolDialogs, SeedCommitment, AdminDialog), 97 passed.
+- **Before commit:**
+  - the i18n suites, 41 passed;
+  - shared and admin typecheck in the source and tests scopes.
+- **RED:** two mutations, each caught and recorded through `record-tdd` on the `ui` lane.
+  - Letting protocol rows into the garden's stage failed the scope table.
+  - Sending Confirm Kept straight from the row failed two Hub cases.
+- **Rendered proof (Storybook, headless Chromium):**
+  - `admin-hub-hubconfirmqueue--in-another-gardens-pool` and `--protocol-confirmations`: the pool named on each row;
+  - `admin-hub-hubconfirmqueue--confirm-kept-review`: the review opens from the row;
+  - `admin-pool-confirmkeptdialog--*`: closes it, counts toward it, protocol pool, sending;
+  - `admin-pool-commitmentactions--ready-to-confirm`: Expire in its own row.
+- **Pending:** authenticated Brave proof of a wallet confirmation, walked in the rehearsal.
 
 ## 5. Catalog PR
 
