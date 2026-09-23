@@ -172,6 +172,7 @@
     "./hooks/blockchain/useChainConfig": "./src/hooks/blockchain/useChainConfig.ts",
     "./hooks/blockchain/useEnsAddress": "./src/hooks/blockchain/useEnsAddress.ts",
     "./hooks/blockchain/useEnsName": "./src/hooks/blockchain/useEnsName.ts",
+    "./hooks/blockchain/useErc20Metadata": "./src/hooks/blockchain/useErc20Metadata.ts",
     "./hooks/conviction/useConvictionProposalsForPool": "./src/hooks/conviction/useConvictionProposalsForPool.ts",
     "./hooks/conviction/useConvictionStrategies": "./src/hooks/conviction/useConvictionStrategies.ts",
     "./hooks/conviction/useConvictionWeightAllocator": "./src/hooks/conviction/useConvictionWeightAllocator.ts",
