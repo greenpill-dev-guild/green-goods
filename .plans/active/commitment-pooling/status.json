@@ -10,7 +10,7 @@
     "overall_status": "active",
     "priority": "p1",
     "created_at": "2026-07-03",
-    "updated_at": "2026-09-23T05:21:09.659Z"
+    "updated_at": "2026-09-23T05:46:13.802Z"
   },
   "links": {
     "brief": "external-brief.md",
@@ -260,12 +260,12 @@
         "mode": "required",
         "status": "green_recorded",
         "red": {
-          "command": "packages/admin: bun run test -- setupWrites, PoolSettings, PoolSetupFlow (landed writes still counted after a stop); packages/shared: bun run test -- commitment-pool-setup-sequence (limit planned before the agreement); packages/admin: bun run test -- PoolSettings (Try Again re-runs instead of retrying)",
-          "evidence": "4 failed | 30 passed; 3 failed | 26 passed; 1 failed | 10 passed: stopped prompt numbering (A15), agreement-first settings (A2), retry sends only what is left (W1-5)"
+          "command": "packages/shared: bun run test -- commitment-pool-console; packages/admin: bun run test -- PoolCycles (End offered while commitments are live); packages/admin: bun run test -- PoolCycles (Archive sends closeCycle)",
+          "evidence": "1 failed | 13 passed and 1 failed | 3 passed: End only once nothing is live; 1 failed | 3 passed: Archive composts (W1-6, decision 29, A29)"
         },
         "green": {
-          "command": "packages/shared: bun run test -- commitment-pool-setup-sequence, usePoolConsoleController; packages/admin: bun run test -- PoolSettings, setupWrites, PoolSetupFlow, GardenPool suites",
-          "evidence": "shared 2 files, 39 passed; admin 4 files, 52 passed at 15d40ed79: settings planned agreement first, a partial stop named, the retry sends only the limit, retry prompts counted over what is left"
+          "command": "packages/shared: bun run test -- commitment-pool-console; packages/admin: bun run test -- PoolCycles, PoolDialogs, GardenPool, PoolSetupFlow suites",
+          "evidence": "shared 1 file, 14 passed; admin 4 files, 46 passed at b681c850b: End on a season and a campaign, the live count holds a cycle open, Archive warns then composts, both name the cycle in its pool"
         },
         "note": ""
       },
@@ -1361,6 +1361,14 @@
     },
     {
       "timestamp": "2026-09-23T05:21:09.660Z",
+      "actor": "human",
+      "lane": "ui",
+      "status": "tdd_recorded",
+      "branch": "feature/commitment-pooling-client-loop",
+      "note": "Recorded RED/GREEN TDD proof"
+    },
+    {
+      "timestamp": "2026-09-23T05:46:13.803Z",
       "actor": "human",
       "lane": "ui",
       "status": "tdd_recorded",

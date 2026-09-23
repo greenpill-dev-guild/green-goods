@@ -468,7 +468,7 @@ This section holds the finding index, the queue that fixes them, and each PR's r
 | W1-3 The target line in dialogs; Storybook matches the product | A13, A10, A8, A21, A14 (copy), A12 (Storybook) | Built |
 | W1-4 Hub scope and the Confirm Kept review | A1, A4, A5, A30, A25 (Hub), A19 (inspector) | Built |
 | W1-5 Settings through the setup sequence | A2, A15, A23 (settings) | Built |
-| W1-6 End a season | Decision 29, A29 | Queued |
+| W1-6 End a season | Decision 29, A29 | Built |
 | W1-7 Claims and protocol transfers | A9, A6, A11 (Accept), A20 (label), A23 (panel) | Queued |
 | W1-8 Seed tray progress and the done screen | A7, A24 | Queued |
 | W1-9 Catalog PR | The cases Wave 1 changes | Queued |
@@ -666,6 +666,47 @@ This section holds the finding index, the queue that fixes them, and each PR's r
   - `admin-pool-poolsettingsprogress--*`: signing, confirming, a partial stop, nothing saved, no wallet, saved;
   - `admin-pool-setupfailure--several-still-to-send`: "Your wallet will ask 4 more times."
 - **Pending:** authenticated Brave proof of a two-write save with the second prompt refused, walked in the rehearsal.
+
+### W1-6: end a season
+
+- **The rule** (decision 29): `selectCycleEndAct` mirrors the guards in CyclesLib. It offers:
+  - End (`closeCycle`) on an Open cycle with nothing live;
+  - the live count while commitments still hold it open;
+  - Archive (`compostCycle`) on a Reconciled cycle.
+- **The card:** the running season and each open campaign offer End. Until they can, they say how many commitments are still live. A Reconciled cycle in Finished offers Archive.
+- **The dialogs:** both name the cycle in its pool first. Archive warns that no impact certificate can be made afterwards, because the certificate composer takes only a Reconciled cycle.
+- **Closing a pool:** `closePool` needs every cycle terminal, and a Reconciled cycle is not. Archive is how a pool with ended seasons reaches Closed.
+- **A29:** the second-season alert now points at End.
+- **For W1-9:** ADM-057 and ADM-138 (the second-season path), and new cases for End and Archive.
+
+### Validation receipt, W1-6
+
+- **Tested implementation commit SHA:** `b681c850b6bd6ee29f497483670a0dd52b0537f4`.
+  - The gate is the pre-push hook on that commit.
+  - `git status --porcelain=v1 --untracked-files=all -- packages/` is empty at that SHA.
+- **Run finished (UTC):** `2026-09-23T05:45:42Z`.
+- **Command:** `bun run check -- --intent push` (the pre-push hook).
+- **Result:** all 25 checks passed:
+  - format, lint, validation-system-test and test-quality;
+  - shared, client, admin and agent typecheck, test-typecheck, test and build;
+  - source-structure, design-guardrails, ontology, agent-guidance, supply-chain and story-quality;
+  - storybook-build.
+- **Cache:** the package tests were cache hits on a full, uncached run of the same gate on the same SHA. That run ended at `2026-09-23T05:42:49Z`, after which its push died with exit 141.
+- **Also run at that SHA:**
+  - `commitment-pool-console.test.ts`, 14 passed;
+  - the admin cycles, dialogs, pool-tab and setup-flow suites, 46 passed.
+- **Before commit:**
+  - the full admin suite, 117 files and 917 passed;
+  - the i18n suites, 41 passed;
+  - shared and admin typecheck in the source and tests scopes;
+  - design-tokens, source-structure, story-quality and react-patterns.
+- **RED:** two mutations, each caught and recorded through `record-tdd` on the `ui` lane.
+  - Offering End while commitments are live failed the table and the flow.
+  - Archive sending `closeCycle` failed the flow.
+- **Rendered proof (Storybook, headless Chromium):**
+  - `admin-pool-poolcyclescard--open-season-with-campaigns`, `--ready-to-end` and `--reconciled-season`;
+  - `admin-pool-poolcycledialogs--end-season`, `--end-campaign` and `--archive-season`.
+- **Pending:** authenticated Brave proof of ending and archiving a season, walked in the rehearsal.
 
 ## 5. Catalog PR
 
