@@ -1,9 +1,14 @@
 import { createHash } from "node:crypto";
-import { existsSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
 export const GENERATOR_PATH = "scripts/docs/generate.mjs";
 export const SCOPES = ["package", "integration", "ontology", "workflow", "qa", "agentic"];
+
+/** The regeneration commands every generated banner quotes; readers copy these, so they must run. */
+export function regenerationHint(scope = "<scope>") {
+  return `Run \`node ${GENERATOR_PATH}\` or \`node ${GENERATOR_PATH} --scope ${scope}\`.`;
+}
 
 export function normalizeText(value) {
   return String(value).replaceAll("\r\n", "\n").replaceAll("\r", "\n").replace(/\n*$/, "\n");
@@ -40,7 +45,7 @@ export function generatedFrontmatter({ title, slug, audience = "developer", feat
     ...extra,
     "---",
     "",
-    `<!-- GENERATED FILE: do not edit. Run \`node scripts/docs/generate.mjs\` or \`node scripts/docs/generate.mjs -- --scope <scope>\`. -->`,
+    `<!-- GENERATED FILE: do not edit. ${regenerationHint()} -->`,
     "",
   ].join("\n");
 }
@@ -60,22 +65,42 @@ export function parseGeneratorArgs(argv) {
   return { check, scope };
 }
 
+function jsonGenerator(text) {
+  try {
+    return JSON.parse(text).generator;
+  } catch {
+    return undefined;
+  }
+}
+
+// Generated pages mark themselves in frontmatter; generated data files carry a `generator` field.
+// Both count as owned, so a renamed or retired projection shows up as an extra file.
+const OWNED_OUTPUT_TREES = [
+  {
+    directory: "docs/docs",
+    extension: /\.mdx?$/,
+    owns: (text) =>
+      /^generated:\s*true\s*$/m.test(text) &&
+      new RegExp(`^generator:\\s*${GENERATOR_PATH.replaceAll("/", "\\/")}\\s*$`, "m").test(text),
+  },
+  { directory: "docs/src/data", extension: /\.json$/, owns: (text) => jsonGenerator(text) === GENERATOR_PATH },
+];
+
 function generatorOwnedFiles(root) {
-  const docsRoot = path.join(root, "docs/docs");
   const found = [];
-  const visit = (directory) => {
+  const visit = (directory, tree) => {
     for (const entry of readdirSync(directory, { withFileTypes: true })) {
       const absolute = path.join(directory, entry.name);
-      if (entry.isDirectory()) visit(absolute);
-      else if (/\.mdx?$/.test(entry.name)) {
-        const text = readFileSync(absolute, "utf8");
-        if (/^generated:\s*true\s*$/m.test(text) && new RegExp(`^generator:\\s*${GENERATOR_PATH.replaceAll("/", "\\/")}\\s*$`, "m").test(text)) {
-          found.push(path.relative(root, absolute));
-        }
+      if (entry.isDirectory()) visit(absolute, tree);
+      else if (tree.extension.test(entry.name) && tree.owns(readFileSync(absolute, "utf8"))) {
+        found.push(path.relative(root, absolute));
       }
     }
   };
-  visit(docsRoot);
+  for (const tree of OWNED_OUTPUT_TREES) {
+    const directory = path.join(root, tree.directory);
+    if (existsSync(directory)) visit(directory, tree);
+  }
   return found.sort();
 }
 
@@ -95,7 +120,10 @@ export function syncProjections({ root, projections, scope = null, check = false
     const current = existsSync(absolute) ? normalizeText(readFileSync(absolute, "utf8")) : null;
     if (current !== rendered) {
       if (check) problems.push(`${current === null ? "missing" : "stale"}: ${projection.output}`);
-      else writeFileSync(absolute, rendered);
+      else {
+        mkdirSync(path.dirname(absolute), { recursive: true });
+        writeFileSync(absolute, rendered);
+      }
     }
   }
 

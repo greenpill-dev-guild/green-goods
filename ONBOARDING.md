@@ -57,7 +57,7 @@ bun run dev
 
 Host setup reports how to configure the environment; it does not fetch shared secrets.
 If `.env.template` is absent, use `node scripts/dev/env-template-init.js`, populate the required team
-references, and then sync. The [environment guide](https://docs.greengoods.app/builders/env-management)
+references, and then sync. The [environment guide](https://docs.greengoods.app/builders/getting-started#environment)
 explains 1Password access and personal credentials. Never create package-level env files.
 
 The default stack starts local client, admin, agent, and Docker indexer against **live

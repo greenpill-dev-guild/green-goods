@@ -92,4 +92,4 @@ outside CI and HTTP in CI.
 - [`ARCHITECTURE.md`](./ARCHITECTURE.md)
 - [`E2E_TEST_GUIDE.md`](./E2E_TEST_GUIDE.md)
 - [`TESTING_GUIDE.md`](./TESTING_GUIDE.md)
-- [Builder guide: Playwright](../docs/docs/builders/testing/playwright.mdx)
+- [Builder guide: Testing](../docs/docs/builders/testing/index.mdx)

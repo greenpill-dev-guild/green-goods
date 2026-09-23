@@ -37,7 +37,7 @@ Green Goods is the verified impact operations layer for community-led regenerati
 - Steward copy: may reference on-chain verification as a trust mechanism, but not Solidity internals
 - Evaluator copy: may use research/assessment terminology freely
 - Funder copy: may reference attestation integrity; never use "guaranteed returns"
-- For full persona profiles with behavioral scenarios: `docs/docs/reference/design-research.md#user-personas`
+- For full persona profiles with behavioral scenarios: `docs/docs/builders/architecture/design.mdx`
 - For vocabulary constraints (Use/Avoid lists): see Messaging Constraints below
 
 ## UX Quality Bars
@@ -279,4 +279,4 @@ These are already part of the core product baseline and should be treated as liv
 - Organizational mission and values → `docs/docs/community/why-we-build.mdx`
 - Impact model (CIDS) and action domains → `docs/docs/community/how-it-works.mdx`
 - Public capability boundaries → `docs/docs/community/green-goods-claims.generated.mdx`
-- Real communities and localization → `docs/docs/reference/design-research.md`
+- Real communities and localization → `docs/docs/builders/architecture/design.mdx`

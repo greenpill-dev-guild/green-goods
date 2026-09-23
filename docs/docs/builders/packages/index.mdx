@@ -1,0 +1,51 @@
+---
+title: Monorepo Map
+sidebar_label: Monorepo Map
+slug: /builders/packages
+audience: developer
+owner: docs
+last_verified: 2026-09-02
+feature_status: Live
+source_of_truth:
+  - AGENTS.md
+  - package.json
+keywords:
+  - monorepo
+  - packages
+  - ownership
+---
+
+# Monorepo Map
+
+Seven packages, one rule: find the owner before you change anything. Each package below has its
+own page with a directory map, its commands, and the conventions that actually bite.
+
+## Which package owns your change?
+
+| You're changing | Start in |
+|---|---|
+| Protocol behavior, authorization, attestation schemas, deployments | [`contracts`](/builders/packages/contracts) |
+| A hook, provider, store, shared UI primitive, or translation | [`shared`](/builders/packages/shared) |
+| The public website or the installed PWA | [`client`](/builders/packages/client) |
+| The steward cockpit | [`admin`](/builders/packages/admin) |
+| Bots, webhooks, or the public HTTP API | [`agent`](/builders/packages/agent) |
+| Event-derived read models or GraphQL shapes | [`indexer`](/builders/packages/indexer) |
+| The team's QA checklist app | [`qa`](/builders/packages/qa) |
+
+Dependencies point one way: `contracts → shared → client / admin / agent`, with `indexer` fed by
+contract events. If your change crosses that arrow, validate from the repo root rather than inside
+one package.
+
+## The packages
+
+- [Contracts](/builders/packages/contracts): the Solidity protocol, built with Foundry.
+- [Shared](/builders/packages/shared): the single home for cross-app hooks, modules, and UI foundations.
+- [Client](/builders/packages/client): the public site and the offline-first PWA at
+  [greengoods.app](https://greengoods.app).
+- [Admin](/builders/packages/admin): the steward cockpit at
+  [admin.greengoods.app](https://admin.greengoods.app).
+- [Agent](/builders/packages/agent): messaging bots and the public API.
+- [Indexer](/builders/packages/indexer): the Envio pipeline behind every read model.
+- [QA](/builders/packages/qa): the two-writer QA checklist at
+  [qa.greengoods.app](https://qa.greengoods.app).
+- [API Index](/builders/packages/api-index): every public export and route, generated from the code.

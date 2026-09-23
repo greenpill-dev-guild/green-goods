@@ -32,4 +32,7 @@ fi
 # Run the gate through the repo's Node wrapper so a Bun or wrong-Node shell still reaches real
 # Node. The gate then re-execs itself under the exact pinned Node, because a plan that reads
 # "blocked:toolchain.node" on every check only teaches people to reach for --no-verify.
-node scripts/dev/node-cli.js scripts/dev/ci-local.js --intent push --reuse-passing-receipts
+# GG_PUSH_GATE_ARGS forwards ci-local's own flags (for example --base <rev>, --check <id>, or
+# --test-path <surface>:<path>) when a plan needs explicit focus; the gate still runs and decides.
+# shellcheck disable=SC2086
+node scripts/dev/node-cli.js scripts/dev/ci-local.js --intent push --reuse-passing-receipts ${GG_PUSH_GATE_ARGS:-}

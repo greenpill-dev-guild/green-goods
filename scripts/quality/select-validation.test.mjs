@@ -1846,7 +1846,7 @@ test("workflow mapping preserves exact live and intended trigger parity", () => 
       ["Admin", "Agent", "Client", "Contracts", "Indexer", "Shared", "Supply Chain Guardrails"],
     ],
     ["scripts/lib/git-guardrails.mjs", ["Contracts", "Supply Chain Guardrails"]],
-    ["docs/docs/builders/testing/storybook.mdx", ["Design", "Docs", "Supply Chain Guardrails"]],
+    ["docs/docs/builders/testing/index.mdx", ["Design", "Docs", "Supply Chain Guardrails"]],
     ["packages/client/DESIGN-pwa.md", ["Client", "Design", "Supply Chain Guardrails"]],
     [
       "packages/shared/.storybook/preview.ts",
@@ -1866,7 +1866,7 @@ test("workflow mapping preserves exact live and intended trigger parity", () => 
     ["scripts/quality/ontology-render.mjs", ["Docs", "Ontology", "Supply Chain Guardrails"]],
     ["scripts/data/ontology-drift-baseline.json", ["Ontology", "Supply Chain Guardrails"]],
     [".plans/active/commitment-pooling/contract-spec.md", ["Ontology", "Supply Chain Guardrails"]],
-    ["docs/docs/builders/architecture/erd.mdx", ["Docs", "Ontology", "Supply Chain Guardrails"]],
+    ["docs/docs/builders/architecture/data-model.mdx", ["Docs", "Ontology", "Supply Chain Guardrails"]],
     ["packages/contracts/script/DeployBadgeSchema.s.sol", ["Contracts", "Ontology", "Supply Chain Guardrails"]],
     ["bunfig.toml", ["Supply Chain Guardrails"]],
     [".npmrc", ["Supply Chain Guardrails"]],

@@ -1,31 +1,67 @@
 ---
-title: Agent Package
+title: Agent
 sidebar_label: Agent
 slug: /builders/packages/agent
 audience: developer
 owner: docs
-last_verified: 2026-08-30
+last_verified: 2026-09-23
 feature_status: Live
 source_of_truth:
   - packages/agent/AGENTS.md
   - packages/agent/package.json
-  - packages/agent/src/index.ts
-  - packages/agent/src/api/routes/public-garden-impact.ts
-  - packages/agent/README.md
+keywords:
+  - bots
+  - webhooks
+  - api
 ---
 
-# Agent Package
+# Agent
 
-The Agent package owns messaging handlers, webhooks, scheduled runtime work, and public HTTP
-surfaces that need server-side aggregation or signing boundaries.
+`packages/agent` is the bot and webhook service: it receives inbound platform messages, routes
+them through handlers, and serves the public HTTP API. It's how people interact with Green Goods
+from messaging platforms without installing anything, and how external systems read public garden
+data.
 
-## Boundary
+## Map
 
-- Runtime assembly starts in `packages/agent/src/index.ts`.
-- Route and response contracts use shared public-contract exports.
-- Chain-aware data readers remain in shared modules; Agent routes compose them with HTTP policy,
-  rate limiting, cache behavior, and safe error responses.
-- Secrets and provider configuration stay in the root environment pipeline.
+| Directory | What lives there |
+|---|---|
+| `src/index.ts` | The entry point: starts the Telegram bot and the HTTP API |
+| `src/handlers/` | Inbound message and command handlers, such as start, join, submit, and approve |
+| `src/platforms/` | Messaging platform adapters (Telegram today) |
+| `src/api/` | Public HTTP routes (inventoried in the [API Index](./api-index)) |
+| `src/services/` | Service dependencies behind stable helper APIs |
 
-Read `packages/agent/AGENTS.md` and `packages/agent/README.md` before changing or deploying this
-package. Use the generated [API index](./api-index) for current public routes and package exports.
+## Run and test
+
+```bash
+bun run --cwd packages/agent test
+bun run --cwd packages/agent typecheck
+```
+
+Response-shape changes ripple through platform adapters quickly, so run both whenever handlers,
+adapters, or service contracts move. `bun run --cwd packages/agent test --scope unit --coverage` backs
+security-sensitive changes.
+
+## How it connects
+
+The agent is a server, so it doesn't use shared's React hooks. It imports shared's plain modules
+instead: the public API contracts, types, chain config, and a few protocol helpers. It's also the
+one surface that manages wallets on behalf of users, so its security posture is stricter than the
+rest.
+
+## Conventions that will bite you
+
+- Never store plaintext private keys. Key material flows only through the crypto helpers, and the
+  database service is the single persistence boundary: keys are encrypted before insert and
+  decrypted on read.
+- Logs may carry platform ids, addresses, and transaction hashes, never raw key material.
+- Externally triggered actions are rate-limited, and user-facing failures stay generic; internal
+  error detail never leaks to users.
+- Keep handlers pure where possible and inject the dependencies that need mocking.
+
+## Go deeper
+
+- [`packages/agent/AGENTS.md`](https://github.com/greenpill-dev-guild/green-goods/blob/develop/packages/agent/AGENTS.md)
+  is the full package contract, including the key-material flow.
+- [API Index](./api-index) lists the public routes and their registered methods.

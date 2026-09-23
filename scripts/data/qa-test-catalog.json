@@ -8913,10 +8913,10 @@
       "priority": "P1",
       "kind": "content",
       "area": "Builder Docs",
-      "scenario": "Builder onboarding path: getting-started and env-management commands run on a fresh checkout",
+      "scenario": "Builder onboarding path: Getting Started commands run on a fresh checkout",
       "preconditions": ["Clean repo checkout"],
       "steps": [
-        "On a fresh checkout, run every getting-started and env-management command",
+        "On a fresh checkout, run every Getting Started command on both paths, including the environment section",
         "Verify ports and URLs",
         "Check how-to-contribute against the real gate model"
       ],
@@ -8948,7 +8948,10 @@
       "role": "any",
       "tags": ["docs", "builder-docs"],
       "requiresProduction": false,
-      "status": "active",
+      "status": "retired",
+      "retiredOn": "2026-09-22",
+      "retiredReason": "The builder docs rebuild deleted the journey pages. The Anatomy of a Work Submission page now traces the flow, and the Persona Surfaces matrix moved to Reference.",
+      "replacedBy": ["DOCS-033"],
       "source": "qa-runs-catalog-third-pass-2026-09-07"
     },
     {
@@ -8979,10 +8982,10 @@
       "priority": "P2",
       "kind": "content",
       "area": "Builder Docs",
-      "scenario": "Testing pages' commands run as written",
+      "scenario": "Testing Guide commands run as written",
       "preconditions": ["A fresh checkout with dependencies installed"],
       "steps": [
-        "Run the commands quoted on the Forge, Playwright, Vitest, and Storybook pages",
+        "Run the commands quoted in the Testing Guide",
         "Note any command that fails or needs a flag the page omits"
       ],
       "expected": "Every quoted command runs as written or the page says what it needs; stale flags and paths are listed",
@@ -9013,6 +9016,28 @@
       "requiresProduction": false,
       "status": "active",
       "source": "qa-runs-catalog-third-pass-2026-09-07"
+    },
+    {
+      "id": "DOCS-033",
+      "tab": "Docs",
+      "platform": "Any",
+      "priority": "P2",
+      "kind": "content",
+      "area": "Builder Docs",
+      "scenario": "Anatomy of a Work Submission traces the shipped flow",
+      "preconditions": ["The Anatomy of a Work Submission page and the Persona Surfaces matrix"],
+      "steps": [
+        "Follow each stage of the Anatomy page against the shipped client, admin, and contracts",
+        "Open the schema and code links on the page",
+        "Check the persona surfaces matrix against the five surfaces it names: admin, client, agent, public, and docs"
+      ],
+      "expected": "Each stage matches the current flow and names current screens, every schema and code link resolves, and the matrix assigns each persona to the surfaces that ship; drift is listed per stage",
+      "evidence": "List of drifted statements or dead links with the page path",
+      "role": "any",
+      "tags": ["docs", "builder-docs"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "prd-862"
     },
     {
       "id": "DOCS-030",
