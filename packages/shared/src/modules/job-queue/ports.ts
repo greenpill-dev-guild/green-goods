@@ -7,6 +7,12 @@ import type {
 } from "../../types/job-queue";
 import type { TransactionSender } from "../transactions/types";
 
+/**
+ * Where one send stands while the person who asked for it watches: the wallet
+ * is being asked, or the send is broadcast and the chain is confirming it.
+ */
+export type JobSendPhase = { stage: "wallet" } | { stage: "confirming"; txHash: string };
+
 export interface ProcessJobContext {
   transactionSender: TransactionSender | null;
   assertOwnership?: () => void | Promise<void>;
@@ -16,6 +22,12 @@ export interface ProcessJobContext {
    * retry backoff: nothing is hammering the network when someone taps.
    */
   explicit?: boolean;
+  /**
+   * Told when the wallet is asked and when the send is broadcast, so a view can
+   * say where one row stands. Report-only: it is never stored, never awaited,
+   * and a throw inside it never reaches the send.
+   */
+  onPhase?: (phase: JobSendPhase) => void;
 }
 
 export interface ProcessJobResult {

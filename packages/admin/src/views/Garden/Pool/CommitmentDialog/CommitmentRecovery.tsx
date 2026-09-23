@@ -58,7 +58,7 @@ export function CommitmentRecovery({
               <span className="font-medium text-text-strong">
                 {formatMessage({
                   id: "cockpit.garden.pool.commitment.reconciliation.title",
-                  defaultMessage: "Count approved linked work",
+                  defaultMessage: "Count Approved Linked Work",
                 })}
               </span>{" "}
               <span className="text-text-soft">
@@ -84,7 +84,7 @@ export function CommitmentRecovery({
           >
             {formatMessage({
               id: "cockpit.garden.pool.commitment.reconciliation.confirm",
-              defaultMessage: "Count linked work",
+              defaultMessage: "Count Linked Work",
             })}
           </AdminButton>
           {blockedReason ? (
@@ -198,7 +198,7 @@ export function CommitmentRecovery({
             >
               {formatMessage({
                 id: "cockpit.garden.pool.commitment.act.markReady",
-                defaultMessage: "Mark ready…",
+                defaultMessage: "Mark Ready…",
               })}
             </AdminButton>
           </div>
@@ -228,7 +228,7 @@ export function CommitmentRecovery({
               >
                 {formatMessage({
                   id: "cockpit.garden.pool.commitment.act.attachAssessment",
-                  defaultMessage: "Attach assessment…",
+                  defaultMessage: "Attach Assessment…",
                 })}
               </AdminButton>
             </div>
@@ -248,16 +248,17 @@ export function CommitmentRecovery({
                 })}
               </span>
             </p>
+            {/* Outlined where it sits; the red is for the confirm inside its dialog. */}
             <AdminButton
               type="button"
-              variant="danger"
+              variant="outlined"
               size="sm"
               onClick={() => onOpenDialog("cancel")}
               disabled={actDisabled || !can.cancel}
             >
               {formatMessage({
                 id: "cockpit.garden.pool.commitment.act.cancel",
-                defaultMessage: "Cancel commitment…",
+                defaultMessage: "Cancel Commitment…",
               })}
             </AdminButton>
           </div>

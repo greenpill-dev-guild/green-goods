@@ -20,7 +20,7 @@ type ProtocolPoolView = Pick<
   "poolId" | "rootGarden" | "isRegistered" | "isLoading" | "isError" | "refetch"
 >;
 type OwnPoolsView = {
-  pools: Array<{ state: string; openSeasonCycleId: bigint | null }>;
+  pools: Array<{ state: string; openSeasonCycleId: bigint | null; poolType?: string }>;
   isLoading: boolean;
 };
 
@@ -29,7 +29,6 @@ const mocks = vi.hoisted(() => ({
   toConfirm: null as CommitmentsToConfirm | null,
   ownPools: null as OwnPoolsView | null,
   navigate: vi.fn(),
-  poolTabGardens: [] as string[],
   confirmQueueProps: [] as CommitmentsToConfirm[],
 }));
 
@@ -109,24 +108,7 @@ vi.mock("react-router-dom", async (importOriginal) => {
   return { ...actual, useNavigate: () => mocks.navigate };
 });
 
-// The pool console and the confirm queue are tested on their own; here they
-// only need to prove which garden they were handed.
-vi.mock("@/views/Garden/Pool", () => ({
-  GardenPoolTab: ({
-    garden,
-    presentation,
-  }: {
-    garden: { id: string };
-    presentation?: { protocolContext?: boolean };
-  }) => {
-    mocks.poolTabGardens.push(garden.id);
-    return (
-      <div data-testid="pool-tab">
-        {garden.id}:{presentation?.protocolContext ? "protocol" : "garden"}
-      </div>
-    );
-  },
-}));
+// The confirm queue is tested on its own; here it only needs to prove what it was handed.
 vi.mock("@/views/Hub/components/HubConfirmQueue", () => ({
   HubConfirmQueue: ({ toConfirm }: { toConfirm: CommitmentsToConfirm }) => {
     mocks.confirmQueueProps.push(toConfirm);
@@ -136,20 +118,19 @@ vi.mock("@/views/Hub/components/HubConfirmQueue", () => ({
 
 const { CommunityPools } = await import("@/views/Community/components/CommunityPools");
 
-function renderPools(canManage = true) {
+function renderPools(garden: string = GARDEN, canManage = true) {
   return renderWithProviders(
     <CommunityPools
       chainId={42161}
-      garden={{ id: GARDEN, name: "Rocinha" }}
+      garden={{ id: garden as `0x${string}`, name: garden === ROOT ? "Green Goods" : "Rocinha" }}
       canManage={canManage}
     />
   );
 }
 
-describe("CommunityPools (W12)", () => {
+describe("CommunityPools", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mocks.poolTabGardens = [];
     mocks.confirmQueueProps = [];
     mocks.protocolPool = {
       poolId: 1n,
@@ -176,24 +157,33 @@ describe("CommunityPools (W12)", () => {
     };
   });
 
-  it("offers exactly two tabs, Protocol pool and This garden", () => {
-    renderPools();
-    const rail = screen.getByRole("tablist", { name: /pools/i });
-    expect(
-      within(rail)
-        .getAllByRole("tab")
-        .map((tab) => tab.textContent)
-    ).toEqual([expect.stringMatching(/protocol pool/i), expect.stringMatching(/this garden/i)]);
+  it("gives an ordinary garden only its own pool: nothing of the protocol's, even for a protocol steward", () => {
+    // The 2026-09-22 incident: this garden's Community tab set up the protocol pool.
+    renderPools(GARDEN);
+    expect(screen.getByTestId("current-garden-pool")).toBeInTheDocument();
+    expect(screen.queryByTestId("protocol-pool")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("protocol-confirm-queue")).not.toBeInTheDocument();
+    expect(screen.queryByRole("tablist")).not.toBeInTheDocument();
+    expect(mocks.confirmQueueProps).toEqual([]);
   });
 
-  it("renders the protocol pool console for the root garden in protocol context, with the protocol confirmations for a protocol steward", () => {
-    renderPools();
+  it("shows the protocol's operations and confirmations inside the protocol garden", () => {
+    renderPools(ROOT);
     expect(screen.getByTestId("protocol-pool")).toBeInTheDocument();
-    expect(screen.getByTestId("pool-tab")).toHaveTextContent(`${ROOT}:protocol`);
+    expect(screen.getByTestId("protocol-funding-operations")).toBeInTheDocument();
     expect(screen.getByTestId("protocol-confirm-queue")).toBeInTheDocument();
-    // Never another garden's pool.
-    expect(mocks.poolTabGardens).toEqual([ROOT]);
-    expect(mocks.poolTabGardens).not.toContain(OTHER_GARDEN);
+    // The protocol pool's console is that garden's own Pool tab, not embedded here.
+    expect(screen.getByTestId("current-garden-pool")).toBeInTheDocument();
+  });
+
+  it("knows the protocol garden by its pool's type when the chain read fails", () => {
+    mocks.protocolPool = { ...mocks.protocolPool!, rootGarden: null, isError: true };
+    mocks.ownPools = {
+      pools: [{ state: "OPEN", openSeasonCycleId: 12n, poolType: "PROTOCOL" }],
+      isLoading: false,
+    };
+    renderPools(ROOT);
+    expect(screen.getByText(/couldn.t read the protocol pool/i)).toBeInTheDocument();
   });
 
   it("gives the protocol section only the cross-garden rows the team was asked into", () => {
@@ -234,52 +224,49 @@ describe("CommunityPools (W12)", () => {
       count: 5,
       isProtocolSteward: true,
     });
-    renderPools();
+    renderPools(ROOT);
     const handed = mocks.confirmQueueProps.at(-1);
     expect(handed?.groups).toEqual([]);
     expect(handed?.fallback).toEqual([protocolRow]);
     expect(handed?.disputed).toEqual([]);
     expect(handed?.count).toBe(1);
-    // The tab badge counts the same rows the section will show.
-    expect(within(screen.getByRole("tablist", { name: /pools/i })).getByText("1")).toBeVisible();
   });
 
   it("keeps the protocol confirmations queue from a steward who does not steward the protocol garden", () => {
     mocks.toConfirm = { ...mocks.toConfirm!, isProtocolSteward: false };
-    renderPools();
+    renderPools(ROOT);
     expect(screen.queryByTestId("protocol-confirm-queue")).not.toBeInTheDocument();
-    expect(screen.getByTestId("pool-tab")).toBeInTheDocument();
+    expect(screen.getByTestId("protocol-pool")).toBeInTheDocument();
   });
 
-  it("says when no protocol pool is registered instead of rendering a console", () => {
+  it("says when no protocol pool is registered", () => {
     mocks.protocolPool = {
       ...mocks.protocolPool!,
       poolId: null,
       rootGarden: ROOT,
       isRegistered: false,
     };
-    renderPools();
+    renderPools(ROOT);
     expect(screen.getByTestId("protocol-pool-unregistered")).toBeInTheDocument();
-    expect(screen.queryByTestId("pool-tab")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("protocol-pool")).not.toBeInTheDocument();
   });
 
   it("shows loading and read-error casts for the protocol read", () => {
     mocks.protocolPool = { ...mocks.protocolPool!, isLoading: true };
-    const first = renderPools();
-    expect(screen.getByRole("status")).toBeInTheDocument();
+    const first = renderPools(ROOT);
+    expect(screen.getByRole("status", { name: /loading the protocol pool/i })).toBeInTheDocument();
     first.unmount();
 
     const refetch = vi.fn();
     mocks.protocolPool = { ...mocks.protocolPool!, isLoading: false, isError: true, refetch };
-    renderPools();
+    renderPools(ROOT);
     expect(screen.getByText(/couldn.t read the protocol pool/i)).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: /try again/i }));
     expect(refetch).toHaveBeenCalled();
   });
 
-  it("is one tap into this garden's pool console, with its status and no duplicated grammar", () => {
-    renderPools();
-    fireEvent.click(screen.getByRole("tab", { name: /this garden/i }));
+  it("is one tap into this garden's pool console, with its status", () => {
+    renderPools(GARDEN);
     const card = screen.getByTestId("current-garden-pool");
     expect(within(card).getByText("Rocinha")).toBeInTheDocument();
     expect(within(card).getByText(/taking commitments/i)).toBeInTheDocument();
@@ -287,6 +274,5 @@ describe("CommunityPools (W12)", () => {
     expect(mocks.navigate).toHaveBeenCalledWith(
       expect.stringMatching(/^\/garden\/pool\?gardenId=/)
     );
-    expect(screen.queryByTestId("pool-tab")).not.toBeInTheDocument();
   });
 });

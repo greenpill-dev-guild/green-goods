@@ -29,6 +29,11 @@
 @import "../../admin/src/styles/admin-m3-tokens.css";
 @import "../../admin/src/styles/admin-m3-components.css";
 
+/* The admin's named type classes (label-*, body-*, subheading-*, the section
+ * title), the same file admin/src/index.css imports, so admin stories render
+ * titles and labels exactly as the product does. */
+@import "../../admin/src/styles/admin-type.css";
+
 /* Per-surface tokens (admin type scale + font + colour aliases, client button
  * corner scopes), keyed to the `data-surface` root attribute the `withSurface`
  * decorator sets. See surfaces.css for the parity contract. */

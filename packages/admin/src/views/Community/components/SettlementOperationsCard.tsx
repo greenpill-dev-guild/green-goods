@@ -49,13 +49,17 @@ export function SettlementOperationsCard({
           });
 
   const flip = async (next: boolean) => {
-    const hash = await operations.setGardenerDelivery(next);
+    await operations.setGardenerDelivery(next);
+    // What happens next, not a hash fragment: the card reads the switch back.
     toastService.success({
       title: formatMessage({
         id: "cockpit.community.settlementOps.status.submittedTitle",
         defaultMessage: "Transaction submitted",
       }),
-      message: `${hash.slice(0, 10)}…`,
+      message: formatMessage({
+        id: "cockpit.community.settlementOps.status.submittedMessage",
+        defaultMessage: "The switch reads back from the chain once it confirms.",
+      }),
     });
   };
 
@@ -70,7 +74,7 @@ export function SettlementOperationsCard({
         <h3 className="label-md text-text-strong">
           {formatMessage({
             id: "cockpit.community.settlementOps.title",
-            defaultMessage: "Settlement operations",
+            defaultMessage: "Settlement Operations",
           })}
         </h3>
         <p className="mt-1 text-xs text-text-soft">
@@ -187,10 +191,13 @@ export function SettlementOperationsCard({
                   defaultMessage: "Submitted. Awaiting Safe execution and on-chain confirmation.",
                 })
               : operations.lastAct.phase === "confirmed"
-                ? formatMessage({
-                    id: "cockpit.community.settlementOps.status.confirmed",
-                    defaultMessage: "Confirmed on chain. The switch shows the chain's value.",
-                  })
+                ? formatMessage(
+                    {
+                      id: "cockpit.community.settlementOps.status.confirmed",
+                      defaultMessage: "Confirmed on chain: gardener delivery is {state}.",
+                    },
+                    { state: deliveryLabel.toLowerCase() }
+                  )
                 : formatMessage({
                     id: "cockpit.community.settlementOps.status.failed",
                     defaultMessage:
@@ -208,7 +215,7 @@ export function SettlementOperationsCard({
         >
           {formatMessage({
             id: "cockpit.community.settlementOps.status.check",
-            defaultMessage: "Check on chain",
+            defaultMessage: "Check on Chain",
           })}
         </AdminButton>
       ) : null}
@@ -222,11 +229,11 @@ export function SettlementOperationsCard({
           confirming
             ? formatMessage({
                 id: "cockpit.community.settlementOps.delivery.confirmTitle",
-                defaultMessage: "Enable gardener delivery?",
+                defaultMessage: "Enable Gardener Delivery?",
               })
             : formatMessage({
                 id: "cockpit.community.settlementOps.delivery.confirmDisableTitle",
-                defaultMessage: "Disable gardener delivery?",
+                defaultMessage: "Disable Gardener Delivery?",
               })
         }
         description={
@@ -234,18 +241,25 @@ export function SettlementOperationsCard({
             ? formatMessage({
                 id: "cockpit.community.settlementOps.delivery.confirmBody",
                 defaultMessage:
-                  "Enabling lets stewards prepare and dispatch G$ payouts to individual members on Celo. It does not move funds by itself. The switch is read back from the chain after the transaction confirms.",
+                  "Enabling lets stewards in every garden prepare and dispatch G$ payouts to individual members on Celo. It does not move funds by itself. The switch is read back from the chain after the transaction confirms.",
               })
             : formatMessage({
                 id: "cockpit.community.settlementOps.delivery.confirmDisableBody",
                 defaultMessage:
-                  "Disabling blocks new contributor payout preparation and member delivery. Garden Safe payouts keep running.",
+                  "Disabling blocks new contributor payout preparation and member delivery in every garden. Garden Safe payouts keep running.",
               })
         }
-        confirmLabel={formatMessage({
-          id: "cockpit.community.settlementOps.delivery.confirm",
-          defaultMessage: "Send Transaction",
-        })}
+        confirmLabel={
+          confirming
+            ? formatMessage({
+                id: "cockpit.community.settlementOps.delivery.confirmEnable",
+                defaultMessage: "Enable Gardener Delivery",
+              })
+            : formatMessage({
+                id: "cockpit.community.settlementOps.delivery.confirmDisable",
+                defaultMessage: "Disable Gardener Delivery",
+              })
+        }
         cancelLabel={formatMessage({ id: "app.common.cancel", defaultMessage: "Cancel" })}
         isLoading={operations.isPending}
         onConfirm={async () => {

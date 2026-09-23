@@ -46,6 +46,11 @@ export interface PoolConsoleModel {
   closure: ReturnType<typeof selectPoolClosureEligibility>;
   /** Live and past their due: each carries Expire now. */
   dueLive: CommitmentReadModel[];
+  /**
+   * What the recovery count counts, in list order: a live commitment that is
+   * disputed or past its due, each once.
+   */
+  needsRecovery: CommitmentReadModel[];
   counts: { claimsWaiting: number; needsRecovery: number; pastDue: number };
   groups: {
     open: CommitmentReadModel[];
@@ -115,7 +120,8 @@ export function selectPoolConsoleModel(input: {
   const past = commitments.filter(
     (row) => row.onchainState === "CANCELLED" || row.onchainState === "EXPIRED"
   );
-  const disputed = commitments.filter((row) => row.onchainState === "DISPUTED").length;
+  const dueIds = new Set(dueLive.map((row) => row.id));
+  const needsRecovery = open.filter((row) => row.onchainState === "DISPUTED" || dueIds.has(row.id));
   return {
     status,
     readiness,
@@ -130,12 +136,40 @@ export function selectPoolConsoleModel(input: {
       nonTerminalCycleCount: pool?.nonTerminalCycleCount ?? 0n,
     }),
     dueLive,
+    needsRecovery,
     counts: {
       claimsWaiting: input.pendingClaimCount,
-      needsRecovery: disputed + dueLive.length,
+      needsRecovery: needsRecovery.length,
       pastDue: dueLive.length,
     },
     groups: { open, confirmed, past },
     isPaused: status === "paused",
   };
+}
+
+/**
+ * How a cycle ends, as its steward may act on it now. An Open cycle ends
+ * (`closeCycle`, to Reconciled) once nothing in it is live; until then the
+ * steward is told how many commitments still hold it open. A Reconciled cycle
+ * can be archived (`compostCycle`, to Composted), which is final: the
+ * certificate composer takes only a Reconciled cycle, so an archived one can no
+ * longer be certified. A Seeded cycle only opens or is cancelled, and a
+ * finished one has nothing left to do.
+ */
+export type CycleEndAct =
+  | { kind: "end" }
+  | { kind: "end-blocked"; liveCommitments: bigint }
+  | { kind: "archive" }
+  | null;
+
+export function selectCycleEndAct(
+  cycle: Pick<CommitmentCycleRecord, "state" | "liveCommitmentCount">
+): CycleEndAct {
+  if (cycle.state === "OPEN") {
+    return cycle.liveCommitmentCount === 0n
+      ? { kind: "end" }
+      : { kind: "end-blocked", liveCommitments: cycle.liveCommitmentCount };
+  }
+  if (cycle.state === "RECONCILED") return { kind: "archive" };
+  return null;
 }

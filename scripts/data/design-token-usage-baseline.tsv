@@ -62,9 +62,6 @@ packages/shared/src/styles/utilities.css background: linear-gradient(	legacy-run
 packages/shared/src/styles/utilities.css background: linear-gradient(to bottom, rgb(var(--static-black) / 0.5), transparent);	legacy-runtime	shared	2026-12-31	viewer scrim fade; token-driven, the scanner matches the gradient form
 packages/shared/src/styles/utilities.css background: linear-gradient(to top, rgb(var(--static-black) / 0.5), transparent);	legacy-runtime	shared	2026-12-31	viewer scrim fade; token-driven, the scanner matches the gradient form
 packages/admin/src/components/Hypercerts/CreateListingDialog.tsx <RiCheckLine className="h-3 w-3 text-white" />	legacy-runtime	admin	2026-12-31	legacy literal tracked for migration to Warm Earth tokens
-packages/admin/src/components/Hypercerts/Steps/MintProgress.tsx : "border-error-base bg-error-base text-white"),	legacy-runtime	admin	2026-12-31	legacy literal tracked for migration to Warm Earth tokens
-packages/admin/src/components/Hypercerts/Steps/MintProgress.tsx ? "border-warning-base bg-warning-base text-white"	legacy-runtime	admin	2026-12-31	legacy literal tracked for migration to Warm Earth tokens
-packages/admin/src/components/Hypercerts/Steps/MintProgress.tsx isStepComplete && "border-success-base bg-success-base text-white",	legacy-runtime	admin	2026-12-31	legacy literal tracked for migration to Warm Earth tokens
 packages/shared/src/components/Audio/AudioPlayer.tsx "bg-primary-base text-white hover:bg-primary-dark"	legacy-runtime	shared	2026-12-31	legacy literal tracked for migration to Warm Earth tokens
 packages/shared/src/components/Badge/Badge.tsx black: "bg-black text-white",	legacy-runtime	shared	2026-12-31	legacy literal tracked for migration to Warm Earth tokens
 packages/shared/src/components/Canvas/AppBar.tsx "rounded-md bg-neutral-900/90 px-2.5 py-1 text-xs font-medium text-white",	legacy-runtime	shared	2026-12-31	legacy literal tracked for migration to Warm Earth tokens
@@ -147,7 +144,7 @@ packages/admin/src/components/Layout/CanvasWorkspaceSelectionState.tsx <button	l
 packages/admin/src/components/Layout/CommandPalette.tsx <button	legacy-runtime	afo	2027-02-28	shared field primitive pending Admin field-family migration (DL-011/012 adoption program)
 packages/admin/src/views/Cookies/components/CampaignCookieJar/CampaignJarListRow.tsx <button	legacy-runtime	afo	2027-02-28	shared field primitive pending Admin field-family migration (DL-011/012 adoption program)
 packages/admin/src/views/Garden/Pool/PoolCommitmentsCard.tsx <button	legacy-runtime	afo	2027-02-28	shared field primitive pending Admin field-family migration (DL-011/012 adoption program)
-packages/admin/src/views/Garden/Pool/index.tsx <button	legacy-runtime	afo	2027-02-28	shared field primitive pending Admin field-family migration (DL-011/012 adoption program)
+packages/admin/src/views/Garden/Pool/PoolStatsCard.tsx <button	legacy-runtime	afo	2027-02-28	shared field primitive pending Admin field-family migration (DL-011/012 adoption program)
 packages/admin/src/views/Garden/WorkDetail/ReviewForm.tsx <Textarea	legacy-runtime	afo	2027-02-28	shared field primitive pending Admin field-family migration (DL-011/012 adoption program)
 packages/admin/src/views/Garden/WorkDetail/ReviewForm.tsx <button	legacy-runtime	afo	2027-02-28	shared field primitive pending Admin field-family migration (DL-011/012 adoption program)
 packages/admin/src/views/Garden/components/OverviewTab.tsx <button	legacy-runtime	afo	2027-02-28	shared field primitive pending Admin field-family migration (DL-011/012 adoption program)

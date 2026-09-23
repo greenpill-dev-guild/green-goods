@@ -67,6 +67,7 @@ vi.mock(
         run: mocks.run,
         retry: mocks.retry,
         reset: mocks.reset,
+        batching: "unavailable",
       }),
     };
   }
@@ -168,6 +169,7 @@ function renderFlow(
     intent?: keyof typeof STEPS_BY_INTENT;
     console?: PoolConsoleController;
     cycle?: CommitmentCycleRecord;
+    target?: { gardenName: string; isProtocol: boolean };
   } = {}
 ) {
   const onClose = vi.fn();
@@ -181,6 +183,7 @@ function renderFlow(
             intent={props.intent ?? "first-run"}
             cycle={props.cycle}
             console={props.console ?? controller()}
+            target={props.target ?? { gardenName: "Rocinha", isProtocol: false }}
             onClose={onClose}
           />
         ),
@@ -200,6 +203,7 @@ function renderRoutedFlow() {
         open
         intent="first-run"
         console={controller()}
+        target={{ gardenName: "Rocinha", isProtocol: false }}
         onClose={() => navigate("/hub")}
       />
     );
@@ -239,8 +243,15 @@ function assertStep(step: StepId) {
     expect(within(dialog()).getByLabelText(/^name/i)).toBeInTheDocument();
   } else if (step === "split") {
     expect(within(dialog()).getByText(/total: 100 %/i)).toBeInTheDocument();
+    // The step says the split is fixed at open, and a preset reads as its roles.
+    expect(
+      within(dialog()).getByText(/this split is fixed for good once the (season|campaign) opens/i)
+    ).toBeVisible();
+    expect(within(dialog()).getByText(/^gardeners 60 % · treasury 15 %/i)).toBeInTheDocument();
   } else {
-    expect(within(dialog()).getByRole("button", { name: /^open/i })).toBeInTheDocument();
+    expect(
+      within(dialog()).getByRole("button", { name: /^(open|set up and open)/i })
+    ).toBeInTheDocument();
   }
 }
 
@@ -323,7 +334,7 @@ describe("PoolSetupFlow (W11)", () => {
     fillCycle();
     next();
     next();
-    fireEvent.click(within(dialog()).getByRole("button", { name: /^open season$/i }));
+    fireEvent.click(within(dialog()).getByRole("button", { name: /^set up and open$/i }));
 
     expect(await within(dialog()).findByText(new RegExp(message, "i"))).toBeInTheDocument();
     expect(mocks.run).not.toHaveBeenCalled();
@@ -369,6 +380,29 @@ describe("PoolSetupFlow (W11)", () => {
   });
 
   it("submits the six first-run writes in order, pinning the charter and the season name first", async () => {
+    // The hook reports the finished run; the flow stays open on its done screen.
+    mocks.run.mockImplementation(async (steps) => {
+      mocks.state = {
+        ...mocks.state,
+        status: "complete",
+        steps: steps.map((step, index) => ({
+          action: step.action,
+          status: "landed",
+          hash: `0x${String(index + 1).repeat(64)}` as `0x${string}`,
+          batched: false,
+        })),
+        landed: steps.map((step) => step.action),
+        cycleId: 40n,
+      };
+      return {
+        status: "complete",
+        landed: steps.map((step) => step.action),
+        failedStep: null,
+        failure: null,
+        error: null,
+        cycleId: 40n,
+      };
+    });
     const pool = controller();
     const { onClose } = renderFlow({ console: pool });
     await fillHow();
@@ -376,7 +410,7 @@ describe("PoolSetupFlow (W11)", () => {
     fillCycle();
     next();
     next();
-    fireEvent.click(within(dialog()).getByRole("button", { name: /^open season$/i }));
+    fireEvent.click(within(dialog()).getByRole("button", { name: /^set up and open$/i }));
 
     await waitFor(() => expect(mocks.run).toHaveBeenCalledTimes(1));
     expect(mocks.pinPoolCharter).toHaveBeenCalledWith({
@@ -414,15 +448,55 @@ describe("PoolSetupFlow (W11)", () => {
       },
       recognitionPolicy: { equalParticipationBps: 2000, verifiedContributionBps: 8000 },
     });
-    await waitFor(() => expect(onClose).toHaveBeenCalled());
-    expect(pool.refetch).toHaveBeenCalled();
+    await waitFor(() => expect(screen.getByTestId("pool-setup-done")).toBeInTheDocument());
+    expect(within(dialog()).getByText(/rocinha is taking commitments/i)).toBeInTheDocument();
+    await waitFor(() => expect(pool.refetch).toHaveBeenCalled());
+    // Finishing never closes the flow by itself: the steward reads what is live, then leaves.
+    expect(onClose).not.toHaveBeenCalled();
+    fireEvent.click(within(dialog()).getByRole("button", { name: /^done$/i }));
+    expect(onClose).toHaveBeenCalled();
+  });
+
+  it("names the pool it writes to on every step, and sets the protocol pool apart", async () => {
+    const first = renderFlow();
+    expect(within(dialog()).getByText("Rocinha’s pool")).toBeInTheDocument();
+    first.unmount();
+
+    renderFlow({ target: { gardenName: "Green Goods Community Garden", isProtocol: true } });
+    expect(
+      within(dialog()).getByText("Writing to the Green Goods protocol pool")
+    ).toBeInTheDocument();
+    expect(within(dialog()).queryByText(/community garden’s pool/i)).not.toBeInTheDocument();
+  });
+
+  it("says before the first prompt how many times the wallet will ask, and why each write", async () => {
+    renderFlow();
+    await fillHow();
+    next();
+    fillCycle();
+    next();
+    next();
+    expect(
+      within(dialog()).getByText("Your wallet will ask you 6 times, one after another.")
+    ).toBeInTheDocument();
+    const writes = within(screen.getByTestId("pool-setup-writes")).getAllByRole("listitem");
+    expect(writes).toHaveLength(6);
+    expect(writes[0]).toHaveTextContent(/write the agreement/i);
+    expect(writes[0]).toHaveTextContent(/stores what this pool is for/i);
+    expect(writes[5]).toHaveTextContent(/fixes the split for good/i);
   });
 
   it("names what landed when a step fails, and the retry repeats only the unlanded call", async () => {
-    mocks.run.mockImplementation(async () => {
+    mocks.run.mockImplementation(async (steps) => {
       mocks.state = {
         ...mocks.state,
         status: "failed",
+        steps: steps.map((step) => ({
+          action: step.action,
+          status: step.action === "openCycle" ? "failed" : "landed",
+          hash: null,
+          batched: false,
+        })),
         landed: [
           "setPoolCharter",
           "setProviderOpenCommitmentCap",
@@ -458,24 +532,30 @@ describe("PoolSetupFlow (W11)", () => {
     fillCycle();
     next();
     next();
-    fireEvent.click(within(dialog()).getByRole("button", { name: /^open season$/i }));
+    fireEvent.click(within(dialog()).getByRole("button", { name: /^set up and open$/i }));
 
     // The mocked hook's state is read on the next render; a rerender follows the run's resolution.
     await waitFor(() => expect(screen.getByTestId("pool-setup-failed")).toBeInTheDocument());
-    expect(screen.getByTestId("pool-setup-landed")).toHaveTextContent(
-      /agreement written · commitment limit set · pool marked ready · season prepared · pool opened/i
-    );
-    expect(screen.getByTestId("pool-setup-failed-step")).toHaveTextContent(
-      /season opened with its split/i
-    );
-    expect(
-      within(dialog()).getByText(/retrying repeats only the unlanded step/i)
-    ).toBeInTheDocument();
+    const rows = within(screen.getByTestId("pool-setup-writes")).getAllByRole("listitem");
+    expect(rows.map((row) => row.getAttribute("data-status"))).toEqual([
+      "landed",
+      "landed",
+      "landed",
+      "landed",
+      "landed",
+      "failed",
+    ]);
+    expect(rows[0]).toHaveTextContent(/agreement written/i);
+    expect(rows[5]).toHaveTextContent(/open the season with its split/i);
+    expect(rows[5]).toHaveTextContent(/didn’t go through/i);
+    expect(within(dialog()).getByText("Stopped with 5 of 6 changes done.")).toBeInTheDocument();
+    // Only the failed opening is left, so a retry asks the wallet once more.
+    expect(within(dialog()).getByText(/your wallet will ask once more\./i)).toBeInTheDocument();
 
     fireEvent.click(within(dialog()).getByRole("button", { name: /try again/i }));
     await waitFor(() => expect(mocks.retry).toHaveBeenCalledTimes(1));
     expect(mocks.run).toHaveBeenCalledTimes(1);
-    await waitFor(() => expect(onClose).toHaveBeenCalled());
+    expect(onClose).not.toHaveBeenCalled();
   });
 
   it("starts every fresh open from today, so a discarded date range never comes back", () => {
@@ -491,6 +571,7 @@ describe("PoolSetupFlow (W11)", () => {
             open={open}
             intent="campaign"
             console={pool}
+            target={{ gardenName: "Rocinha", isProtocol: false }}
             onClose={() => setOpen(false)}
           />
         </>

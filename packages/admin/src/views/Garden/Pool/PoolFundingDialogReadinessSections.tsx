@@ -29,7 +29,7 @@ export function PoolFundingDialogReadinessSections({
         <h3 id="funding-route-title" className="label-lg text-text-strong">
           {formatMessage({
             id: "cockpit.garden.pool.funding.dialog.route",
-            defaultMessage: "Account and route readiness",
+            defaultMessage: "Account and Route Readiness",
           })}
         </h3>
         <dl className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -85,7 +85,7 @@ export function PoolFundingDialogReadinessSections({
         <h3 id="funding-network-title" className="label-lg text-text-strong">
           {formatMessage({
             id: "cockpit.garden.pool.funding.dialog.networkFees",
-            defaultMessage: "Network fees",
+            defaultMessage: "Network Fees",
           })}
         </h3>
         <Fact

@@ -3,9 +3,9 @@ import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
 import { useTxErrorMessages } from "@green-goods/shared/hooks/utils/useTxErrorMessages";
 import type { MintingState } from "@green-goods/shared/stores/useHypercertWizardStore";
 import { cn } from "@green-goods/shared/utils/styles/cn";
-import { RiCheckLine, RiCloseLine, RiLoader4Line } from "@remixicon/react";
 import { useEffect, useMemo, useRef } from "react";
 import { useIntl } from "react-intl";
+import { TxStepMarker } from "@/components/TxStepMarker";
 
 interface MintStep {
   id: string;
@@ -141,28 +141,20 @@ export function MintProgress({ state, chainId = DEFAULT_CHAIN_ID }: MintProgress
                   )}
                 >
                   <div className="flex items-center gap-2">
-                    {/* Step indicator circle */}
-                    <div
-                      className={cn(
-                        "flex h-8 w-8 items-center justify-center rounded-full border-2 text-sm font-medium transition-all",
-                        isStepComplete && "border-success-base bg-success-base text-white",
-                        isStepActive &&
-                          !isStepFailed &&
-                          "border-primary-base bg-primary-base text-primary-foreground",
-                        isStepFailed &&
-                          (isFailureWarning
-                            ? "border-warning-base bg-warning-base text-white"
-                            : "border-error-base bg-error-base text-white"),
-                        isStepPending && "border-stroke-sub bg-bg-white text-text-sub"
-                      )}
-                    >
-                      {isStepComplete && <RiCheckLine className="h-4 w-4" />}
-                      {isStepActive && !isStepFailed && (
-                        <RiLoader4Line className="h-4 w-4 animate-spin" />
-                      )}
-                      {isStepFailed && <RiCloseLine className="h-4 w-4" />}
-                      {isStepPending && <span>{index + 1}</span>}
-                    </div>
+                    <TxStepMarker
+                      state={
+                        isStepComplete
+                          ? "complete"
+                          : isStepFailed
+                            ? isFailureWarning
+                              ? "warning"
+                              : "failed"
+                            : isStepActive
+                              ? "active"
+                              : "pending"
+                      }
+                      label={index + 1}
+                    />
                     {/* Step label */}
                     <span
                       className={cn(

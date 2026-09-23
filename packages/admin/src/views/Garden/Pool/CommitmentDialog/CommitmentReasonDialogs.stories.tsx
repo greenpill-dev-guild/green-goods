@@ -1,5 +1,13 @@
+import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
+import type { Address } from "@green-goods/shared/types/domain";
 import type { Meta, StoryObj } from "@storybook/react";
+import {
+  STORYBOOK_ADMIN_SHELL_SEEDS,
+  STORYBOOK_PRIMARY_ADMIN_GARDEN,
+} from "../../../../../../shared/.storybook/adminFixtures";
+import { withSeededQueryClient } from "../../../../../../shared/.storybook/decorators";
 import { STORY_MARIA, storyCommitmentDialog } from "../poolStoryFixtures";
+import { PoolTarget } from "../PoolTarget";
 import {
   CommitmentDeclineClaimDialog,
   CommitmentFallbackDialog,
@@ -7,11 +15,19 @@ import {
 } from "./CommitmentReasonDialogs";
 
 const dialog = storyCommitmentDialog();
+const RECORD = "Ride to the market on Saturday";
 const REASONED = {
   onClose: () => undefined,
   tone: "garden" as const,
   acts: dialog.acts,
   blockedReason: undefined,
+  // Every dialog names the commitment and its garden's pool under its title.
+  target: (
+    <PoolTarget
+      target={{ gardenName: STORYBOOK_PRIMARY_ADMIN_GARDEN.name, isProtocol: false }}
+      record={RECORD}
+    />
+  ),
 };
 
 const meta: Meta<typeof CommitmentReasonDialogs> = {
@@ -55,10 +71,15 @@ export const GardenFallbackConfirm: Story = {
   ),
 };
 
+/** Names who asked, and for which commitment, from the seeded gardens list. */
 export const DeclineRequest: Story = {
+  decorators: [withSeededQueryClient(STORYBOOK_ADMIN_SHELL_SEEDS)],
   render: () => (
     <CommitmentDeclineClaimDialog
       {...REASONED}
+      chainId={DEFAULT_CHAIN_ID}
+      garden={STORYBOOK_PRIMARY_ADMIN_GARDEN.id as Address}
+      record={RECORD}
       open={{ kind: "decline-claim", claimant: STORY_MARIA }}
     />
   ),

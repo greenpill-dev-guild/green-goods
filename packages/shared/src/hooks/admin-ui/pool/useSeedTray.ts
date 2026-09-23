@@ -21,15 +21,18 @@ import type { UseFormReturn } from "react-hook-form";
 
 import {
   addAnotherRow,
+  advanceSeedRow,
   currentTrayRow,
   keepCurrentRow,
   otherTrayRows,
   removeTrayRow,
+  type SeedRowProgress,
   type SeedTray,
   type SeedTrayRow,
   selectSeedTrayRoom,
   sendSeedTray,
   settleSeedTray,
+  startSeedPass,
   startSeedTray,
   takeUpRow,
 } from "../../../modules/commitment-pooling/seed-tray";
@@ -39,9 +42,12 @@ import {
   commitmentComposerSchema,
 } from "../../commitment-pooling/useCommitmentComposerForm";
 import { useCommitmentPool } from "../../commitment-pooling/useCommitmentPooling";
+import type { CommitmentSendReport } from "../../commitment-pooling/useCommitmentJobs";
 import type { PendingCommitmentCreation } from "../../commitment-pooling/useCommitmentQueueState";
 
 export {
+  type SeedRowProgress,
+  type SeedRowStatus,
   type SeedTrayRow,
   selectSeedTrayCapacity,
 } from "../../../modules/commitment-pooling/seed-tray";
@@ -61,6 +67,13 @@ export interface SeedTrayController {
   currentNotSent: boolean;
   isSending: boolean;
   lastSend: SeedTrayLastSend | null;
+  /**
+   * The last pass, row by row: where each row stands while it runs, and how
+   * each one ended once it is over. Null until a pass starts in this sitting.
+   */
+  pass: readonly SeedRowProgress[] | null;
+  /** Put the last pass away, to go back to the rows still in the tray. */
+  clearPass: () => void;
   /** A new sitting: an empty tray and a fresh id for the row in the form. */
   restart: () => void;
   /** Keep the row in the form and start another from the same answers. */
@@ -79,13 +92,17 @@ export interface SeedTrayController {
 
 export function useSeedTray(input: {
   form: UseFormReturn<CommitmentComposerValues>;
-  /** Creates one row's commitment. Rejects when nothing was created for it. */
-  createRow: (row: SeedTrayRow) => Promise<unknown>;
+  /**
+   * Creates one row's commitment, reporting where its send stands. Rejects when
+   * nothing was created for it.
+   */
+  createRow: (row: SeedTrayRow, report: (event: CommitmentSendReport) => void) => Promise<unknown>;
 }): SeedTrayController {
   const { form, createRow } = input;
   const [tray, setTray] = useState<SeedTray>(() => startSeedTray(crypto.randomUUID()));
   const [isSending, setIsSending] = useState(false);
   const [lastSend, setLastSend] = useState<SeedTrayLastSend | null>(null);
+  const [pass, setPass] = useState<SeedRowProgress[] | null>(null);
 
   /** The form's answers once they pass the composer's rules; otherwise it shows why. */
   const readAnswers = async (): Promise<CommitmentComposerValues | null> => {
@@ -109,9 +126,12 @@ export function useSeedTray(input: {
     currentNotSent: currentTrayRow(tray)?.notSent === true,
     isSending,
     lastSend,
+    pass,
+    clearPass: () => setPass(null),
     restart: () => {
       setTray(startSeedTray(crypto.randomUUID()));
       setLastSend(null);
+      setPass(null);
     },
     addAnother: async () => {
       const values = await readAnswers();
@@ -143,9 +163,12 @@ export function useSeedTray(input: {
       const kept = keepCurrentRow(tray, values);
       setTray(kept);
       setLastSend(null);
+      setPass(startSeedPass(kept.rows));
       setIsSending(true);
       try {
-        const result = await sendSeedTray(kept.rows, createRow);
+        const result = await sendSeedTray(kept.rows, createRow, (id, event) =>
+          setPass((current) => (current ? advanceSeedRow(current, id, event) : current))
+        );
         const left = settleSeedTray(kept, result);
         const row = left ? currentTrayRow(left) : undefined;
         if (!left || !row) {

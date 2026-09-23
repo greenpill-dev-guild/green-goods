@@ -1,9 +1,9 @@
 import type { Meta, StoryObj } from "@storybook/react";
-import { createMemoryRouter, RouterProvider } from "react-router-dom";
 import { expect, userEvent, waitFor, within } from "storybook/test";
 import { STORYBOOK_ADMIN_SHELL_SEEDS } from "../../../../../../shared/.storybook/adminFixtures";
 import {
   withAdminIdentity,
+  withDataRouter,
   withSeededQueryClient,
 } from "../../../../../../shared/.storybook/decorators";
 import { storyCycle, storyNotReadyPool, storyPool, storyPoolConsole } from "../poolStoryFixtures";
@@ -22,18 +22,16 @@ const meta: Meta<typeof PoolSetupFlow> = {
       },
     },
   },
-  args: { open: true, onClose: () => undefined },
+  args: {
+    open: true,
+    onClose: () => undefined,
+    target: { gardenName: "Rocinha", isProtocol: false },
+  },
   decorators: [
     withAdminIdentity,
     withSeededQueryClient(STORYBOOK_ADMIN_SHELL_SEEDS),
     // useDirtyClose blocks route changes through a data router.
-    (Story) => (
-      <RouterProvider
-        router={createMemoryRouter([{ path: "/garden/pool", element: <Story /> }], {
-          initialEntries: ["/garden/pool"],
-        })}
-      />
-    ),
+    withDataRouter("/garden/pool"),
   ],
 };
 
@@ -59,7 +57,7 @@ export const FirstRun: Story = {
     }),
   },
   play: async () => {
-    const dialog = await expectFirstStep("How it works");
+    const dialog = await expectFirstStep("How It Works");
     await expect(dialog.getByRole("button", { name: "Next" })).toBeDisabled();
     await userEvent.type(
       await dialog.findByRole("textbox", { name: "What this pool is for" }),
@@ -85,14 +83,14 @@ export const NewSeason: Story = {
     }),
   },
   play: async () => {
-    await expectFirstStep("The season");
+    await expectFirstStep("The Season");
   },
 };
 
 export const Campaign: Story = {
   args: { intent: "campaign", console: storyPoolConsole() },
   play: async () => {
-    await expectFirstStep("The campaign");
+    await expectFirstStep("The Campaign");
   },
 };
 
@@ -108,6 +106,6 @@ export const OpenPreparedSeason: Story = {
     }),
   },
   play: async () => {
-    await expectFirstStep("The split");
+    await expectFirstStep("The Split");
   },
 };

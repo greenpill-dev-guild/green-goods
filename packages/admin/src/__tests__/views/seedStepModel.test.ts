@@ -10,6 +10,12 @@ import {
   STEPS,
   withConfirmer,
 } from "@/views/Garden/Pool/Seed/seedStepModel";
+import {
+  formatRewardAmount,
+  rewardAmountFromBaseUnits,
+  rewardAmountToBaseUnits,
+  rewardUnitsFor,
+} from "@/views/Garden/Pool/Seed/seedRewardAmount";
 
 const ADDRESS = "0x1111111111111111111111111111111111111111";
 const OTHER = "0x2222222222222222222222222222222222222222";
@@ -76,6 +82,57 @@ describe("seedStepModel", () => {
   it("maps composer message ids to operator-facing descriptors", () => {
     expect(
       SEED_ERROR_DESCRIPTOR_BY_ID.get("cockpit.garden.pool.seed.error.considerationAmount")
-    ).toMatchObject({ defaultMessage: "Enter a whole amount above zero." });
+    ).toMatchObject({ defaultMessage: "Enter an amount above zero." });
+  });
+});
+
+describe("declared reward units", () => {
+  const usdc = { status: "ready", decimals: 6, symbol: "USDC" } as const;
+
+  it.each([
+    { text: "10", decimals: 18, baseUnits: "10000000000000000000", errorId: null },
+    { text: "2.5", decimals: 6, baseUnits: "2500000", errorId: null },
+    { text: ".5", decimals: 6, baseUnits: "500000", errorId: null },
+    { text: "  ", decimals: 18, baseUnits: "", errorId: null },
+    { text: "1.1234567", decimals: 6, baseUnits: "", errorId: "app.treasury.tooManyDecimals" },
+    { text: "1,5", decimals: 6, baseUnits: "", errorId: "app.treasury.invalidAmount" },
+  ])("stores $text as $baseUnits in $decimals-decimal units", ({ text, decimals, ...stored }) => {
+    expect(rewardAmountToBaseUnits(text, decimals)).toEqual(stored);
+  });
+
+  it.each([
+    { baseUnits: "10000000000000000000", decimals: 18, text: "10" },
+    { baseUnits: "2500000", decimals: 6, text: "2.5" },
+    { baseUnits: "", decimals: 18, text: "" },
+  ])("reads $baseUnits back as '$text'", ({ baseUnits, decimals, text }) => {
+    expect(rewardAmountFromBaseUnits(baseUnits, decimals)).toBe(text);
+  });
+
+  it("takes Celo settlement in G$ and waits on an external token until it answers", () => {
+    expect(rewardUnitsFor("CELO_SETTLEMENT", { status: "idle" })).toEqual({
+      status: "ready",
+      decimals: 18,
+      symbol: "G$",
+    });
+    expect(rewardUnitsFor("NONE", { status: "idle" })).toEqual({ status: "none" });
+    expect(rewardUnitsFor("ARBITRUM_EXTERNAL", { status: "idle" })).toEqual({
+      status: "waiting",
+      reason: "noToken",
+    });
+    expect(rewardUnitsFor("ARBITRUM_EXTERNAL", { status: "unreadable" })).toEqual({
+      status: "waiting",
+      reason: "unreadable",
+    });
+    expect(
+      rewardUnitsFor("ARBITRUM_EXTERNAL", {
+        status: "ready",
+        metadata: { decimals: 6, symbol: "USDC" },
+      })
+    ).toEqual(usdc);
+  });
+
+  it("reviews an amount in token units, and never in units it does not know", () => {
+    expect(formatRewardAmount("2500000", usdc, "en")).toBe("2.5 USDC");
+    expect(formatRewardAmount("2500000", { status: "waiting", reason: "loading" }, "en")).toBe("—");
   });
 });

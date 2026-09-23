@@ -121,7 +121,7 @@ export function CommitmentSettlement({ settlement, tone }: CommitmentSettlementP
           <h4 id="commitment-settlement-title" className="label-md text-text-strong">
             {formatMessage({
               id: "cockpit.garden.pool.settlement.title",
-              defaultMessage: "G$ payout",
+              defaultMessage: "G$ Payout",
             })}
           </h4>
           <p className="mt-1 text-xs text-text-soft">
@@ -276,7 +276,7 @@ export function CommitmentSettlement({ settlement, tone }: CommitmentSettlementP
         variant="warning"
         title={formatMessage({
           id: "cockpit.garden.pool.settlement.review.title",
-          defaultMessage: "Review before sending",
+          defaultMessage: "Review Before Sending",
         })}
         description={
           review

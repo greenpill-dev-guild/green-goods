@@ -1,4 +1,4 @@
-import type { TransactionSender } from "../transactions/types";
+import type { TransactionSender, TransactionSendOptions } from "../transactions/types";
 import {
   acquireWorkJobs,
   retainedWorkBroadcast,
@@ -15,6 +15,7 @@ import type {
   JobExecutorRegistry,
   JobQueueLogger,
   JobQueueStore,
+  JobSendPhase,
   ProcessJobContext,
   ProcessJobResult,
 } from "./ports";
@@ -79,6 +80,43 @@ async function completeJob(
   deps.events.emit("job:completed", { jobId, job: completedJob, txHash: completedTxHash });
   deps.analytics.jobProcessed(job.kind, deps.clock.now() - startedAt, job.attempts + 1);
   return { success: true, txHash: completedTxHash };
+}
+
+/**
+ * The send options with the context's phase reports added, when it asked for
+ * them. The executor's own callbacks run first and keep their say: a checkpoint
+ * that fails to save still stops the send. The report runs after and can never
+ * stop it. Without `onPhase` the options pass through untouched.
+ */
+function withPhaseReports(
+  options: TransactionSendOptions,
+  jobId: string,
+  context: ProcessJobContext,
+  logger: JobQueueLogger
+): TransactionSendOptions {
+  const onPhase = context.onPhase;
+  if (!onPhase) return options;
+  const report = (phase: JobSendPhase) => {
+    try {
+      onPhase(phase);
+    } catch (error) {
+      logger.warn("[JobQueue] a send phase report threw", {
+        jobId,
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+  };
+  return {
+    ...options,
+    onBeforeBroadcast: async (reference) => {
+      await options.onBeforeBroadcast?.(reference);
+      report({ stage: "wallet" });
+    },
+    onBroadcast: async (hash) => {
+      await options.onBroadcast?.(hash);
+      report({ stage: "confirming", txHash: hash });
+    },
+  };
 }
 
 export function createJobProcessor(deps: ProcessJobDependencies) {
@@ -158,7 +196,7 @@ export function createJobProcessor(deps: ProcessJobDependencies) {
       };
       guardedSender.sendContractCall = (call, options = {}) =>
         sender.sendContractCall(call, {
-          ...options,
+          ...withPhaseReports(options, jobId, context, deps.logger),
           assertOwnership: async () => {
             await context.assertOwnership?.();
             await sender.assertOwnership?.(job.userAddress, chainId);

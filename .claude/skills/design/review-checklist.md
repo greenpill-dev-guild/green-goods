@@ -1,15 +1,23 @@
 # Design Review Checklist
 
-Unified PR review flow combining all four design lenses. Run in order — each lens builds on the previous.
+Unified PR review flow combining the design lenses. Run in order — each lens builds on the previous, and Lens 0 comes first.
 
 ---
 
 ## When to Use
 
 - **Every PR** that touches UI components, views, or styles
-- **Quick pass** (5 min): Lenses 1 + 4 only (Regenerative + Compliance)
-- **Full pass** (15 min): All four lenses in order
+- **Quick pass** (5 min): Lenses 0, 1 + 4 (Clarity, Regenerative, Compliance)
+- **Full pass** (15 min): All lenses in order
 - **New view/feature**: Full pass + Paradigm Validation (bottom of this file)
+
+---
+
+## Lens 0: Clarity and Scope
+
+> Can someone tell where they are, what they are acting on, and what will happen?
+
+Run the five-minute review in root [`DESIGN.md` § Interface Principles](../../../DESIGN.md#interface-principles) ("How we follow them"). It is the source; this lens only puts it first. The pass fails if any of its six questions fails: the five-second read, one primary action, no scope leaks or silent scope-changing tabs, designed in-between states, on-system values without colour-only status, and explicit context for every mount of a shared organism.
 
 ---
 
@@ -130,6 +138,9 @@ Q4: Is this AI/guidance interaction?
 ## Review Order Summary
 
 ```
+0. CLARITY (Lens 0) — Where am I, what am I acting on, what happens next?
+   ↓ Catches: scope leaks, unnamed write targets, silent multi-step flows,
+     undesigned in-between states (DESIGN.md § Interface Principles)
 1. REGENERATIVE (Lens 1) — Is this design aligned with regen principles?
    ↓ Catches: gamification, extraction patterns, degen aesthetics
 2. SPATIAL (Lens 2) — Is depth/material used intentionally?

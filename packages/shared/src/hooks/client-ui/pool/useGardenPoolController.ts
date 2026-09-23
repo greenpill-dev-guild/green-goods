@@ -33,7 +33,20 @@ export function useGardenPoolController(pool: CommitmentPoolRecord) {
   const [liveness, setLiveness] = useState<GardenPoolLiveness>("live");
   const [busyJobId, setBusyJobId] = useState<string | null>(null);
 
-  const { cycles } = useCommitmentCycles({ chainId, poolId: pool.poolId });
+  const { cycles: poolCycles } = useCommitmentCycles({ chainId, poolId: pool.poolId });
+  // A cancelled season is not part of the garden's story: the public garden
+  // page leaves it out, and so does the member rail. Commitments it once held
+  // stay in the list under All and Settled; only the season's own chip goes.
+  const cycles = useMemo(
+    () => poolCycles.filter((cycle) => cycle.state !== "CANCELLED"),
+    [poolCycles]
+  );
+  // A season cancelled while it was chosen falls back to All rather than
+  // filtering by a season the rail no longer shows.
+  const activeCycleId =
+    selectedCycleId !== null && cycles.some((cycle) => cycle.cycleId === selectedCycleId)
+      ? selectedCycleId
+      : null;
   const { hasRole: stewardsPool } = useHasRole(
     pool.garden as Address,
     (viewer ?? undefined) as Address | undefined,
@@ -52,7 +65,7 @@ export function useGardenPoolController(pool: CommitmentPoolRecord) {
   const commitments = useCommitments({
     chainId,
     poolId: pool.poolId,
-    cycleId: selectedCycleId ?? undefined,
+    cycleId: activeCycleId ?? undefined,
   });
 
   const ownCreations = useMemo(
@@ -116,7 +129,7 @@ export function useGardenPoolController(pool: CommitmentPoolRecord) {
     chainId,
     isOnline,
     cycles,
-    selectedCycleId,
+    selectedCycleId: activeCycleId,
     setSelectedCycleId,
     direction,
     setDirection,

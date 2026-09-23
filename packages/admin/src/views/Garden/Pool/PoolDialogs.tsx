@@ -1,65 +1,53 @@
 import type { PoolConsoleController } from "@green-goods/shared/hooks/admin-ui/pool/controller.types";
-import type { Address } from "@green-goods/shared/types/domain";
 import type { Dispatch, SetStateAction } from "react";
 import { useIntl } from "react-intl";
-import { AdminConfirmDialog, AdminDialog } from "@/components/AdminDialog";
-import { CommitmentDialogPanel } from "./CommitmentDialog";
-import { parseCommitmentRouteId } from "./CommitmentDialog/commitmentDialogPresentation";
+import { AdminConfirmDialog } from "@/components/AdminDialog";
+import { PoolCycleDialogs } from "./PoolCycleDialogs";
 import { PoolReasonDialogs } from "./PoolReasonDialogs";
 import { PoolSettingsDialog } from "./PoolSettingsDialog";
-import type { ConfirmDialog, FlowState, ReasonDialog } from "./poolDialogState";
-import { SeedCommitmentDialog } from "./Seed";
+import { PoolTarget, type PoolWriteTarget } from "./PoolTarget";
+import type { ConfirmDialog, CycleDialog, FlowState, ReasonDialog } from "./poolDialogState";
 import { PoolSetupFlow } from "./SetupFlow";
 
 export interface PoolDialogsProps {
   pool: PoolConsoleController;
-  garden: { id: Address; name: string };
-  chainId: number;
+  /** The pool every dialog here writes to, named first in each of them. */
+  target: PoolWriteTarget;
   tone: "garden" | "hub" | "community";
-  presentation: { inspector: "route" | "dialog"; protocolContext?: boolean };
   flow: FlowState;
   setFlow: Dispatch<SetStateAction<FlowState>>;
   settingsOpen: boolean;
   setSettingsOpen: Dispatch<SetStateAction<boolean>>;
-  seedOpen: boolean;
-  setSeedOpen: Dispatch<SetStateAction<boolean>>;
-  /** The commitment the seeding wizard starts from, or null for an empty one. */
-  seedFrom: string | null;
-  setSeedFrom: Dispatch<SetStateAction<string | null>>;
-  inspected: string | null;
-  setInspected: Dispatch<SetStateAction<string | null>>;
   reasonDialog: ReasonDialog;
   setReasonDialog: Dispatch<SetStateAction<ReasonDialog>>;
   confirmDialog: ConfirmDialog;
   setConfirmDialog: Dispatch<SetStateAction<ConfirmDialog>>;
+  cycleDialog: CycleDialog;
+  setCycleDialog: Dispatch<SetStateAction<CycleDialog>>;
 }
 
 /**
- * Every dialog the pool console can open: the setup and open flows, the
- * settings sheet, the seeding console and the commitment inspector, the three
- * reasoned acts, and the three blast-radius confirmations. Split out of
- * `index.tsx`, which is at its source-structure cap.
+ * Every dialog the pool console opens in place: the setup and open flows, the
+ * settings sheet, the three reasoned acts, the three blast-radius
+ * confirmations, and a cycle's end. Each one names the pool it writes to
+ * before anything else.
+ * The seeding console and the commitment inspector are routes of the Garden
+ * workspace, not dialogs here.
  */
 export function PoolDialogs({
   pool,
-  garden,
-  chainId,
+  target,
   tone,
-  presentation,
   flow,
   setFlow,
   settingsOpen,
   setSettingsOpen,
-  seedOpen,
-  setSeedOpen,
-  seedFrom,
-  setSeedFrom,
-  inspected,
-  setInspected,
   reasonDialog,
   setReasonDialog,
   confirmDialog,
   setConfirmDialog,
+  cycleDialog,
+  setCycleDialog,
 }: PoolDialogsProps) {
   const { formatMessage } = useIntl();
   return (
@@ -69,64 +57,31 @@ export function PoolDialogs({
         intent={flow?.intent ?? "first-run"}
         cycle={flow?.cycle ?? null}
         console={pool}
+        target={target}
         onClose={() => setFlow(null)}
       />
 
       <PoolSettingsDialog
         console={pool}
+        target={target}
         open={settingsOpen}
         onClose={() => setSettingsOpen(false)}
       />
 
-      {presentation.inspector === "dialog" ? (
-        <>
-          <SeedCommitmentDialog
-            open={seedOpen}
-            chainId={chainId}
-            garden={garden.id}
-            onClose={() => {
-              setSeedOpen(false);
-              setSeedFrom(null);
-            }}
-            protocolContext={presentation.protocolContext}
-            fromCommitmentId={seedFrom === null ? null : parseCommitmentRouteId(seedFrom)}
-          />
-          <AdminDialog
-            open={inspected !== null}
-            onOpenChange={(next) => {
-              if (!next) setInspected(null);
-            }}
-            size="lg"
-            tone={tone}
-            title={formatMessage({
-              id: "cockpit.garden.pool.commitment.title",
-              defaultMessage: "Commitment",
-            })}
-            bodyClassName="p-0"
-          >
-            {inspected ? (
-              <CommitmentDialogPanel
-                chainId={chainId}
-                garden={garden.id}
-                commitmentId={inspected}
-                tone={tone}
-                onSeedAnother={(from) => {
-                  // One dialog at a time: the inspector gives way to the wizard.
-                  setInspected(null);
-                  setSeedFrom(from);
-                  setSeedOpen(true);
-                }}
-              />
-            ) : null}
-          </AdminDialog>
-        </>
-      ) : null}
-
       <PoolReasonDialogs
         pool={pool}
+        target={target}
         tone={tone}
         reasonDialog={reasonDialog}
         setReasonDialog={setReasonDialog}
+      />
+
+      <PoolCycleDialogs
+        pool={pool}
+        target={target}
+        tone={tone}
+        cycleDialog={cycleDialog}
+        setCycleDialog={setCycleDialog}
       />
 
       <AdminConfirmDialog
@@ -156,6 +111,7 @@ export function PoolDialogs({
           await pool.acts.closePool();
           setConfirmDialog(null);
         }}
+        target={<PoolTarget target={target} />}
       />
 
       <AdminConfirmDialog
@@ -185,6 +141,7 @@ export function PoolDialogs({
           await pool.acts.compostPool();
           setConfirmDialog(null);
         }}
+        target={<PoolTarget target={target} />}
       />
 
       <AdminConfirmDialog
@@ -213,6 +170,7 @@ export function PoolDialogs({
           await pool.acts.reopenPool(false);
           setConfirmDialog(null);
         }}
+        target={<PoolTarget target={target} />}
       />
     </>
   );

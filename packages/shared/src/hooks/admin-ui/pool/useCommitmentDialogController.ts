@@ -43,9 +43,15 @@ import { selectWorkDecisionReadback } from "../../../modules/commitment-pooling/
 import { useOnlineStatus } from "../../app/useOnlineStatus";
 import { useGardenAssessments } from "../../assessment/useGardenAssessments";
 import { usePrimaryAddress } from "../../auth/usePrimaryAddress";
-import { useCommitmentJobs } from "../../commitment-pooling/useCommitmentJobs";
+import { toActPhaseReport, useCommitmentJobs } from "../../commitment-pooling/useCommitmentJobs";
 import { useCommitmentMetadataFor } from "../../commitment-pooling/useCommitmentMetadata";
 import { useCommitmentMutation } from "../../commitment-pooling/useCommitmentMutations";
+import { useTxActPhase } from "../../blockchain/useTxActPhase";
+import {
+  actPhaseFor,
+  claimActKey,
+  sendForConfirmationActKey,
+} from "../../../modules/transactions/act-phase";
 import { useCommitmentWorkDecisions } from "../../commitment-pooling/useCommitmentWorkDecisions";
 import {
   useCommitment,
@@ -102,6 +108,12 @@ export function useCommitmentDialogController(input: {
   );
   const queue = useCommitmentQueueState(viewer);
   const mutation = useCommitmentMutation({ chainId });
+  const claimAct = useTxActPhase();
+  const trackClaim = claimAct.track;
+  // Send for Confirmation goes through the queue, which says whether it landed
+  // or stays queued on this device.
+  const sendAct = useTxActPhase();
+  const trackSend = sendAct.trackReported;
   const [submittedDecisions, setSubmittedDecisions] = useState<
     readonly { workUID: string; decisionUID: string }[]
   >([]);
@@ -284,7 +296,14 @@ export function useCommitmentDialogController(input: {
       markReady: (reason: string) =>
         mutation.mutateAsync({ action: "markReadyForConfirmation", commitmentId, reason }),
       sendForConfirmation: () =>
-        jobs.enqueue({ act: "sendForConfirmation", commitmentId, gardenAddress: garden }),
+        trackSend(sendForConfirmationActKey(commitmentId), (report) =>
+          jobs.enqueue({
+            act: "sendForConfirmation",
+            commitmentId,
+            gardenAddress: garden,
+            report: toActPhaseReport(report),
+          })
+        ),
       attachAssessment: (assessmentUID: `0x${string}`) =>
         mutation.mutateAsync({ action: "attachAssessment", commitmentId, assessmentUID }),
       raiseDispute: (reason: string) =>
@@ -308,7 +327,9 @@ export function useCommitmentDialogController(input: {
       confirmFallback: (reason: string) =>
         mutation.mutateAsync({ action: "confirmFulfillmentAsFallback", commitmentId, reason }),
       acceptClaim: (claimant: Address) =>
-        mutation.mutateAsync({ action: "acceptClaim", commitmentId, claimant }),
+        trackClaim(claimActKey(commitmentId, claimant), (send) =>
+          mutation.mutateAsync({ action: "acceptClaim", commitmentId, claimant, send })
+        ),
       declineClaim: (claimant: Address, reason: string) =>
         mutation.mutateAsync({
           action: "declineClaim",
@@ -339,6 +360,8 @@ export function useCommitmentDialogController(input: {
     }),
     [
       mutation,
+      trackClaim,
+      trackSend,
       jobs,
       commitmentId,
       garden,
@@ -410,6 +433,9 @@ export function useCommitmentDialogController(input: {
       refetch: workDecisions.refetch,
     },
     acts,
+    claimPhase: (claimant: Address) =>
+      actPhaseFor(claimAct.phase, claimActKey(commitmentId, claimant)),
+    sendPhase: actPhaseFor(sendAct.phase, sendForConfirmationActKey(commitmentId)),
     isActing: mutation.isPending || jobs.isPending,
     isLoading: detailQuery.isLoading || activity.isLoading || poolsQuery.isLoading,
     // Decision reads have their own bounded recovery row. They must not hide

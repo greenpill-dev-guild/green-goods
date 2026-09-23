@@ -52,6 +52,7 @@ const meta: Meta<typeof SeedStepProof> = {
     confirmerDraft: "",
     protocolRegistered: true,
     settlementActive: false,
+    rewardUnits: { status: "none" },
   },
   render: (args) => <SeedStepProofWithForm {...args} />,
   decorators: [

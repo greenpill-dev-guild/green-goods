@@ -9,7 +9,7 @@
  */
 
 import { act } from "@testing-library/react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useCommitmentPoolSetupSequence } from "../hooks/commitment-pooling/useCommitmentPoolSetupSequence";
 import {
   campaignSteps,
@@ -18,6 +18,8 @@ import {
   openSeasonSteps,
   type PoolChainReader,
   type PoolSetupStep,
+  settingsSteps,
+  walletPrompts,
 } from "../modules/commitment-pooling/pool-setup";
 import { createTestQueryClient, renderHookWithProviders } from "./test-utils";
 
@@ -289,6 +291,44 @@ describe("useCommitmentPoolSetupSequence", () => {
     expect(sentFunctions()).toEqual(["openCycle"]);
     expect(result.current.state.status).toBe("complete");
     expect(result.current.state.landed).toHaveLength(6);
+  });
+
+  it("saves edited settings agreement first, and a retry after the limit fails sends only the limit", async () => {
+    // A set-up pool whose steward changed both settings. The limit's send
+    // fails after the agreement landed; the chain, not the app, says which.
+    const { reader, apply, chain } = fakeChain({
+      poolState: POOL.OPEN,
+      charterCID: "bafy-old-charter",
+      cap: 24n,
+    });
+    let calls = 0;
+    mocks.sender.sendContractCall.mockImplementation(async (call) => {
+      calls += 1;
+      if (calls === 2) throw new Error("User rejected the request");
+      return apply(call);
+    });
+    const { result } = renderSequence(reader);
+    const settings = settingsSteps({ poolId: POOL_ID, charterCID: "bafy-new-charter", cap: 12n });
+
+    await act(async () => {
+      await result.current.run(settings);
+    });
+
+    expect(sentFunctions()).toEqual(["setPoolCharter", "setProviderOpenCommitmentCap"]);
+    expect(result.current.state.status).toBe("failed");
+    expect(result.current.state.landed).toEqual(["setPoolCharter"]);
+    expect(result.current.state.failedStep).toBe("setProviderOpenCommitmentCap");
+    expect(chain.charterCID).toBe("bafy-new-charter");
+    expect(chain.cap).toBe(24n);
+
+    mocks.sender.sendContractCall.mockClear();
+    await act(async () => {
+      await result.current.retry();
+    });
+
+    expect(sentFunctions()).toEqual(["setProviderOpenCommitmentCap"]);
+    expect(result.current.state.steps.map((step) => step.status)).toEqual(["already", "landed"]);
+    expect(chain.cap).toBe(12n);
   });
 
   it("recognises a write that was mined although the send reported failure, and does not send it twice", async () => {
@@ -698,5 +738,227 @@ describe("useCommitmentPoolSetupSequence", () => {
       evidence: [],
       verified_at: "2026-08-16",
     };
+  });
+});
+
+describe("walletPrompts", () => {
+  const FIRST_RUN_ACTIONS = FIRST_RUN.map((step) => step.action);
+
+  it("gives every write its own prompt when the wallet cannot batch", () => {
+    expect(walletPrompts(FIRST_RUN_ACTIONS, false)).toEqual([1, 2, 3, 4, 5, 6]);
+  });
+
+  it("puts every write before the opening in one prompt when it can", () => {
+    expect(walletPrompts(FIRST_RUN_ACTIONS, true)).toEqual([1, 1, 1, 1, 1, 2]);
+    expect(walletPrompts(["seedCycle", "openPool", "openCycle"], true)).toEqual([1, 1, 2]);
+  });
+
+  it("never batches a lone write", () => {
+    expect(walletPrompts(["seedCycle", "openCycle"], true)).toEqual([1, 2]);
+    expect(walletPrompts(["openCycle"], true)).toEqual([1]);
+  });
+});
+
+describe("settingsSteps", () => {
+  it.each([
+    {
+      changed: "both",
+      charterCID: "bafy-new",
+      cap: 12n,
+      expected: ["setPoolCharter", "setProviderOpenCommitmentCap"],
+    },
+    { changed: "the agreement", charterCID: "bafy-new", cap: null, expected: ["setPoolCharter"] },
+    {
+      changed: "the limit",
+      charterCID: null,
+      cap: 12n,
+      expected: ["setProviderOpenCommitmentCap"],
+    },
+    { changed: "nothing", charterCID: null, cap: null, expected: [] },
+  ])("writes only what changed, the agreement first, when $changed changed", ({
+    charterCID,
+    cap,
+    expected,
+  }) => {
+    const steps = settingsSteps({ poolId: POOL_ID, charterCID, cap });
+    expect(steps.map((step) => step.action)).toEqual(expected);
+    expect(steps.every((step) => step.poolId === POOL_ID)).toBe(true);
+  });
+
+  it("carries the pinned agreement and the new limit into the writes", () => {
+    expect(settingsSteps({ poolId: POOL_ID, charterCID: "bafy-new", cap: 12n })).toEqual([
+      { action: "setPoolCharter", poolId: POOL_ID, charterCID: "bafy-new" },
+      { action: "setProviderOpenCommitmentCap", poolId: POOL_ID, cap: 12n },
+    ]);
+  });
+});
+
+describe("useCommitmentPoolSetupSequence with a wallet that batches", () => {
+  const BATCH_HASH = `0x${"b".repeat(64)}` as `0x${string}`;
+  type BatchSender = typeof mocks.sender & {
+    canSendAtomicBatch?: ReturnType<typeof vi.fn>;
+    sendAtomicBatch?: ReturnType<typeof vi.fn>;
+  };
+  const batchSender = mocks.sender as BatchSender;
+
+  /** One transaction: every call runs in order, and the seed log sits under the batch hash. */
+  function atomicBatch(
+    apply: ReturnType<typeof fakeChain>["apply"],
+    chain: ReturnType<typeof fakeChain>["chain"]
+  ) {
+    return async (
+      calls: Array<{ functionName: string; args: readonly unknown[] }>,
+      options?: { onAccepted?: () => Promise<void> }
+    ) => {
+      await options?.onAccepted?.();
+      const seededId = chain.nextCycleId;
+      for (const call of calls) apply(call);
+      if (calls.some((call) => call.functionName === "seedCycle")) {
+        chain.seededByHash.set(BATCH_HASH, seededId);
+      }
+      return { hash: BATCH_HASH, sponsored: false };
+    };
+  }
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    batchSender.canSendAtomicBatch = vi.fn(async () => true);
+  });
+  afterEach(() => {
+    delete batchSender.canSendAtomicBatch;
+    delete batchSender.sendAtomicBatch;
+  });
+
+  it("asks once for the five writes before the opening, then once to open the season", async () => {
+    const { reader, apply, chain } = fakeChain({ poolState: POOL.NOT_READY });
+    batchSender.sendAtomicBatch = vi.fn(atomicBatch(apply, chain));
+    mocks.sender.sendContractCall.mockImplementation(async (call) => apply(call));
+    const { result } = renderSequence(reader);
+
+    await act(async () => {
+      await result.current.run(FIRST_RUN);
+    });
+
+    expect(result.current.batching).toBe("available");
+    const batched = batchSender.sendAtomicBatch.mock.calls[0]?.[0] as Array<{
+      functionName: string;
+    }>;
+    expect(batchSender.sendAtomicBatch).toHaveBeenCalledOnce();
+    expect(batched.map((call) => call.functionName)).toEqual([
+      "setPoolCharter",
+      "setProviderOpenCommitmentCap",
+      "markPoolReady",
+      "seedCycle",
+      "openPool",
+    ]);
+    // The opening needs the id the batch receipt named.
+    expect(sentFunctions()).toEqual(["openCycle"]);
+    expect(
+      (mocks.sender.sendContractCall.mock.calls[0]?.[0] as { args: readonly unknown[] }).args[0]
+    ).toBe(40n);
+    expect(result.current.state.status).toBe("complete");
+    expect(result.current.state.steps.map((step) => [step.status, step.batched])).toEqual([
+      ["landed", true],
+      ["landed", true],
+      ["landed", true],
+      ["landed", true],
+      ["landed", true],
+      ["landed", false],
+    ]);
+    expect(result.current.state.steps[0]?.hash).toBe(BATCH_HASH);
+    expect(chain.poolState).toBe(POOL.OPEN);
+  });
+
+  it("leaves out a write the chain already shows, and says so", async () => {
+    const { reader, apply, chain } = fakeChain({ poolState: POOL.NOT_READY, cap: 24n });
+    batchSender.sendAtomicBatch = vi.fn(atomicBatch(apply, chain));
+    mocks.sender.sendContractCall.mockImplementation(async (call) => apply(call));
+    const { result } = renderSequence(reader);
+
+    await act(async () => {
+      await result.current.run(FIRST_RUN);
+    });
+
+    const batched = batchSender.sendAtomicBatch.mock.calls[0]?.[0] as Array<{
+      functionName: string;
+    }>;
+    expect(batched.map((call) => call.functionName)).toEqual([
+      "setPoolCharter",
+      "markPoolReady",
+      "seedCycle",
+      "openPool",
+    ]);
+    expect(result.current.state.steps[1]?.status).toBe("already");
+    expect(result.current.state.landed).toHaveLength(6);
+  });
+
+  it("writes nothing when the steward refuses the batch, and asks again on retry", async () => {
+    const { reader, apply, chain } = fakeChain({ poolState: POOL.NOT_READY });
+    const send = atomicBatch(apply, chain);
+    let refused = false;
+    batchSender.sendAtomicBatch = vi.fn(async (calls, options) => {
+      if (!refused) {
+        refused = true;
+        throw new Error("User rejected the request");
+      }
+      return send(calls, options);
+    });
+    mocks.sender.sendContractCall.mockImplementation(async (call) => apply(call));
+    const { result } = renderSequence(reader);
+
+    await act(async () => {
+      await result.current.run(FIRST_RUN);
+    });
+    expect(result.current.state.failure).toBe("send-failed");
+    expect(result.current.state.landed).toEqual([]);
+    expect(chain.poolState).toBe(POOL.NOT_READY);
+
+    await act(async () => {
+      await result.current.retry();
+    });
+    expect(batchSender.sendAtomicBatch).toHaveBeenCalledTimes(2);
+    expect(result.current.state.status).toBe("complete");
+  });
+
+  it("fails closed when a batch carrying the seed ends with an unknown outcome", async () => {
+    const { reader, apply, chain } = fakeChain({ poolState: POOL.NOT_READY });
+    batchSender.sendAtomicBatch = vi.fn(
+      async (calls: Array<{ functionName: string; args: readonly unknown[] }>) => {
+        // Mined, but the wallet never reported back.
+        for (const call of calls) apply(call);
+        throw new Error("The batch outcome is unknown. Read the chain before sending again.");
+      }
+    );
+    const { result } = renderSequence(reader);
+
+    await act(async () => {
+      await result.current.run(FIRST_RUN);
+    });
+    expect(result.current.state.failure).toBe("seed-unconfirmed");
+    expect(isRetriablePoolSetupFailure(result.current.state.failure)).toBe(false);
+
+    await act(async () => {
+      await result.current.retry();
+    });
+    expect(batchSender.sendAtomicBatch).toHaveBeenCalledOnce();
+    expect(mocks.sender.sendContractCall).not.toHaveBeenCalled();
+    expect(chain.cycles.size).toBe(1);
+  });
+
+  it("sends one write at a time when the wallet cannot batch", async () => {
+    const { reader, apply, chain } = fakeChain({ poolState: POOL.NOT_READY });
+    batchSender.canSendAtomicBatch = vi.fn(async () => false);
+    batchSender.sendAtomicBatch = vi.fn(atomicBatch(apply, chain));
+    mocks.sender.sendContractCall.mockImplementation(async (call) => apply(call));
+    const { result } = renderSequence(reader);
+
+    await act(async () => {
+      await result.current.run(FIRST_RUN);
+    });
+
+    expect(result.current.batching).toBe("unavailable");
+    expect(batchSender.sendAtomicBatch).not.toHaveBeenCalled();
+    expect(sentFunctions()).toHaveLength(6);
+    expect(result.current.state.steps.every((step) => step.status === "landed")).toBe(true);
   });
 });

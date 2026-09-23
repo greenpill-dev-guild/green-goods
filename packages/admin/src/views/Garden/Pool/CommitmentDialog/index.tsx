@@ -21,11 +21,13 @@ import {
   CommitmentReasonDialogs,
 } from "./CommitmentReasonDialogs";
 import { CommitmentExpireDialog } from "../CommitmentExpireDialog";
+import { GardenPoolTarget } from "../PoolTarget";
 import { CommitmentRecovery } from "./CommitmentRecovery";
 import { CommitmentResolveDialog } from "./CommitmentResolveDialog";
 import { CommitmentSettlementSection, showsSettlement } from "./CommitmentSettlement";
 import { CommitmentSummary } from "./CommitmentSummary";
 import { CommitmentTimeline } from "./CommitmentTimeline";
+import { ConfirmKeptDialog } from "./ConfirmKeptDialog";
 import {
   type OpenDialog,
   parseCommitmentRouteId,
@@ -100,6 +102,10 @@ function CommitmentRecord({
       { id: commitment.commitmentId.toString() }
     );
   const actDisabled = !dialog.isOnline || dialog.isActing;
+  // Every dialog below names the commitment and its garden's pool first: the
+  // inspector also opens from the Hub and the protocol list, where the header
+  // cannot say which garden a write lands in.
+  const target = <GardenPoolTarget chainId={chainId} garden={garden} record={title} />;
   const stage = stageIndex(commitment.onchainState, commitment.evidenceCount);
   const pendingClaims = (detail?.claimRequests ?? []).filter((claim) => claim.state === "PENDING");
   const fallbackPath =
@@ -160,8 +166,10 @@ function CommitmentRecord({
       {pendingClaims.length > 0 ? (
         <CommitmentClaims
           claims={pendingClaims}
+          chainId={chainId}
           can={can}
           acts={acts}
+          phaseFor={dialog.claimPhase}
           actDisabled={actDisabled}
           onOpenDialog={setOpen}
         />
@@ -182,6 +190,8 @@ function CommitmentRecord({
         isActing={dialog.isActing}
         fallbackPath={fallbackPath}
         onOpenDialog={setOpen}
+        sendPhase={dialog.sendPhase}
+        chainId={chainId}
         onSeedAnother={
           onSeedAnother && dialog.isLocalSteward
             ? () => onSeedAnother(commitment.commitmentId.toString())
@@ -195,17 +205,32 @@ function CommitmentRecord({
         tone={tone}
         acts={acts}
         blockedReason={blockedReason}
+        target={target}
       />
       <CommitmentExpireDialog
         isOpen={open === "expire"}
         onClose={closeDialog}
         tone={tone}
         title={title}
+        target={target}
         isLoading={dialog.isActing}
         onConfirm={async () => {
           await acts.expire();
           closeDialog();
         }}
+      />
+      <ConfirmKeptDialog
+        open={open === "confirm-kept"}
+        onClose={closeDialog}
+        onConfirm={() => acts.confirmOrdinary()}
+        tone={tone}
+        chainId={chainId}
+        poolGarden={garden}
+        title={title}
+        keptBy={commitment.leadProvider ?? commitment.creator ?? null}
+        confirmationCount={commitment.confirmationCount ?? 0}
+        confirmationThreshold={commitment.confirmationThreshold ?? 1}
+        isLoading={dialog.isActing}
       />
       <CommitmentResolveDialog
         open={open}
@@ -216,6 +241,7 @@ function CommitmentRecord({
         resolution={resolution}
         onResolutionChange={setResolution}
         blockedReason={blockedReason}
+        target={target}
       />
       <CommitmentFallbackDialog
         open={open}
@@ -224,6 +250,7 @@ function CommitmentRecord({
         acts={acts}
         blockedReason={blockedReason}
         fallbackPath={fallbackPath}
+        target={target}
       />
       <CommitmentDeclineClaimDialog
         open={open}
@@ -231,6 +258,9 @@ function CommitmentRecord({
         tone={tone}
         acts={acts}
         blockedReason={blockedReason}
+        chainId={chainId}
+        garden={garden}
+        record={title}
       />
       <CommitmentAssessmentDialog
         open={open}
@@ -243,15 +273,17 @@ function CommitmentRecord({
         onAssessmentUIDChange={setAssessmentUID}
         actDisabled={actDisabled}
         isActing={dialog.isActing}
+        target={target}
       />
       <AdminConfirmDialog
         isOpen={open === "reconcile-work"}
         onClose={closeDialog}
         tone={tone}
+        target={target}
         variant="warning"
         title={formatMessage({
           id: "cockpit.garden.pool.commitment.reconciliation.title",
-          defaultMessage: "Count approved linked work",
+          defaultMessage: "Count Approved Linked Work",
         })}
         description={`${formatMessage(
           {
@@ -267,7 +299,7 @@ function CommitmentRecord({
         })}`}
         confirmLabel={formatMessage({
           id: "cockpit.garden.pool.commitment.reconciliation.confirm",
-          defaultMessage: "Count linked work",
+          defaultMessage: "Count Linked Work",
         })}
         cancelLabel={formatMessage({ id: "app.common.cancel", defaultMessage: "Cancel" })}
         isLoading={dialog.isActing}

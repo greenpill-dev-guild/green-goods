@@ -1,12 +1,15 @@
 import { useIntl } from "react-intl";
 import { AdminButton } from "@/components/AdminButton";
-import { AdminLinearProgress } from "@/components/AdminLinearProgress";
+import { promptCount } from "../SetupFlow/setupWrites";
 
 export interface SeedFlowFooterProps {
+  /**
+   * Composing the tray, sending it (the body follows the pass row by row), or
+   * done (the body says how each row ended).
+   */
+  phase: "compose" | "sending" | "done";
   /** A creation is being queued: the whole flow is held. */
   busy: boolean;
-  /** The dialog title, which the progress bar borrows as its label. */
-  title: string;
   stepIndex: number;
   isLast: boolean;
   /** No pool, or a pool that is not open: nothing can be seeded into it. */
@@ -15,35 +18,81 @@ export interface SeedFlowFooterProps {
   count: number;
   /** Another like this would be one offer more than the steward has room for. */
   addAnotherDisabled: boolean;
+  /** The last pass left rows in the tray that were not sent. */
+  unsent: boolean;
   onCancel: () => void;
   onBack: () => void;
   onNext: () => void;
   onAddAnother: () => void;
   onSeed: () => void;
+  /** Done: nothing is left to send, close the wizard. */
+  onDone: () => void;
+  /** Done with rows still in the tray: go back to them. */
+  onBackToTray: () => void;
 }
 
-/** The seeding console's pinned footer: progress on the left, step controls on the right. */
+/**
+ * The seeding console's pinned footer. While composing, the last step says how
+ * many times the wallet will ask, beside the button that asks. Once a pass is
+ * over it offers Done, or, with rows still unsent, Back to Review and Try
+ * Again.
+ */
 export function SeedFlowFooter({
+  phase,
   busy,
-  title,
   stepIndex,
   isLast,
   seedDisabled,
   count,
   addAnotherDisabled,
+  unsent,
   onCancel,
   onBack,
   onNext,
   onAddAnother,
   onSeed,
+  onDone,
+  onBackToTray,
 }: SeedFlowFooterProps) {
   const { formatMessage } = useIntl();
 
+  if (phase === "done") {
+    return (
+      <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-center sm:justify-end">
+        {unsent ? (
+          <>
+            <AdminButton type="button" variant="outlined" onClick={onBackToTray}>
+              {formatMessage({
+                id: "cockpit.garden.pool.seed.backToReview",
+                defaultMessage: "Back to Review",
+              })}
+            </AdminButton>
+            <AdminButton
+              type="button"
+              variant="filled"
+              onClick={onSeed}
+              className="w-full sm:w-auto"
+            >
+              {formatMessage({
+                id: "cockpit.garden.pool.setup.retry",
+                defaultMessage: "Try Again",
+              })}
+            </AdminButton>
+          </>
+        ) : (
+          <AdminButton type="button" variant="filled" onClick={onDone} className="w-full sm:w-auto">
+            {formatMessage({ id: "app.common.done", defaultMessage: "Done" })}
+          </AdminButton>
+        )}
+      </div>
+    );
+  }
+
   return (
     <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-center">
-      <div className="min-w-0 sm:flex-1" aria-live="polite">
-        {busy ? <AdminLinearProgress ariaLabel={title} /> : null}
-      </div>
+      <p className="min-w-0 text-xs text-text-soft sm:flex-1" data-testid="seed-prompt-count">
+        {isLast && phase === "compose" ? promptCount(count, formatMessage) : null}
+      </p>
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-end">
         <AdminButton
           type="button"
@@ -60,7 +109,7 @@ export function SeedFlowFooter({
           <>
             <AdminButton
               type="button"
-              variant="tonal"
+              variant="outlined"
               onClick={onAddAnother}
               disabled={busy || addAnotherDisabled}
               className="w-full sm:w-auto"

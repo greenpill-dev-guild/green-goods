@@ -11,8 +11,10 @@
 import { describe, expect, it, vi } from "vitest";
 
 import { COMMITMENT_COMPOSER_DEFAULTS } from "../hooks/commitment-pooling/useCommitmentComposerForm";
+import type { CommitmentSendReport } from "../hooks/commitment-pooling/useCommitmentJobs";
 import {
   addAnotherRow,
+  advanceSeedRow,
   keepCurrentRow,
   otherTrayRows,
   removeTrayRow,
@@ -20,7 +22,9 @@ import {
   selectSeedTrayCapacity,
   selectSeedTrayRoom,
   sendSeedTray,
+  type SeedRowProgress,
   settleSeedTray,
+  startSeedPass,
   startSeedTray,
   takeUpRow,
 } from "../modules/commitment-pooling/seed-tray";
@@ -108,6 +112,94 @@ describe("the seeding tray", () => {
     });
     expect(await sendSeedTray(rows, declined)).toEqual({ sent: ["b", "c"], failed: ["a"] });
     expect(declined.mock.calls.map(([row]) => row.clientCommitmentId)).toEqual(["a", "b", "c"]);
+  });
+
+  // How a row ends is the only thing the done screen says about it, so every
+  // way a send can go is read here once: what it reported, then whether it
+  // resolved or rejected.
+  it.each<[string, CommitmentSendReport[], "resolves" | "rejects", Partial<SeedRowProgress>]>([
+    [
+      "created, linked to the transaction that carried it",
+      [
+        { stage: "wallet" },
+        { stage: "confirming", txHash: "0xabc" },
+        { stage: "landed", txHash: "0xabc" },
+      ],
+      "resolves",
+      { status: "created", txHash: "0xabc" },
+    ],
+    [
+      "created under the hash it was broadcast with when the queue returns none",
+      [
+        { stage: "confirming", txHash: "0xabc" },
+        { stage: "landed", txHash: null },
+      ],
+      "resolves",
+      { status: "created", txHash: "0xabc" },
+    ],
+    ["sent later when no wallet was asked", [{ stage: "queued" }], "resolves", { status: "later" }],
+    ["sent later when the send resolves without saying how", [], "resolves", { status: "later" }],
+    [
+      "not sent when the wallet was declined",
+      [{ stage: "wallet" }],
+      "rejects",
+      { status: "not-sent" },
+    ],
+    [
+      "not sent when the chain refused what was broadcast",
+      [{ stage: "wallet" }, { stage: "confirming", txHash: "0xabc" }],
+      "rejects",
+      { status: "not-sent", txHash: "0xabc" },
+    ],
+  ])("ends a row as %s", async (_outcome, reports, ending, expected) => {
+    const rows = keepCurrentRow(startSeedTray("a"), answers("Market rides")).rows;
+    let pass = startSeedPass(rows);
+    expect(pass).toEqual([
+      { clientCommitmentId: "a", title: "Market rides", status: "waiting", txHash: null },
+    ]);
+
+    await sendSeedTray(
+      rows,
+      async (_row, report) => {
+        for (const event of reports) report(event);
+        if (ending === "rejects") throw new Error("execution reverted");
+      },
+      (id, event) => {
+        pass = advanceSeedRow(pass, id, event);
+      }
+    );
+
+    expect(pass[0]).toMatchObject(expected);
+  });
+
+  it("follows the pass one row at a time, and a row that ended stays ended", async () => {
+    const rows = trayOfThree().rows;
+    let pass = startSeedPass(rows);
+    const atEachPrompt: string[][] = [];
+
+    await sendSeedTray(
+      rows,
+      async (row, report) => {
+        report({ stage: "wallet" });
+        atEachPrompt.push(pass.map((each) => each.status));
+        if (row.clientCommitmentId === "b") throw new Error("User rejected the request.");
+        report({ stage: "landed", txHash: `0x${row.clientCommitmentId}` });
+      },
+      (id, event) => {
+        pass = advanceSeedRow(pass, id, event);
+      }
+    );
+
+    // While one row is at the wallet, the ones before it have ended and the rest wait.
+    expect(atEachPrompt).toEqual([
+      ["wallet", "waiting", "waiting"],
+      ["created", "wallet", "waiting"],
+      ["created", "not-sent", "wallet"],
+    ]);
+    // A late report never reopens a row that ended.
+    const late = advanceSeedRow(pass, "b", { type: "report", report: { stage: "wallet" } });
+    expect(late[1]?.status).toBe("not-sent");
+    expect(advanceSeedRow(pass, "a", { type: "start" })[0]?.status).toBe("created");
   });
 
   it("settles a send: what was sent leaves, what failed stays marked, and the hand moves to what is left", () => {

@@ -79,6 +79,12 @@ export type PoolFundingDisbursementState =
 export interface PoolFundingDisbursement {
   id: string;
   disbursementId: bigint;
+  /**
+   * The garden the disbursement is for. On a protocol funding transfer that is
+   * the garden receiving it (`queueFunding(garden, …)`), which the recipient
+   * account alone does not name.
+   */
+  garden?: Address | null;
   commitmentId: bigint | null;
   payoutPlanId: bigint | null;
   fundingId: bigint | null;

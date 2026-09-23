@@ -103,7 +103,7 @@ function FundingDetailsHarness() {
 describe("PoolFundingSection", () => {
   it("shows the canonical Safe, balance, committed amount, available amount, and readiness", () => {
     renderSection();
-    expect(screen.getByRole("heading", { name: "Pool funding" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Pool Funding" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /0x1111…1111/i })).toHaveAttribute(
       "href",
       expect.stringContaining(`/address/${SAFE}`)
@@ -140,6 +140,20 @@ describe("PoolFundingSection", () => {
     expect(screen.getByText("No settlement Safe configured")).toBeInTheDocument();
     expect(screen.getAllByText("—").length).toBeGreaterThan(0);
     expect(screen.queryByText("0 G$")).not.toBeInTheDocument();
+    // The rail names what is in the way, not only that something is.
+    expect(screen.getByText("No settlement Safe is configured.")).toBeInTheDocument();
+  });
+
+  it("names the settlement blocker when funding itself is healthy", () => {
+    renderSection(
+      fundingView({
+        snapshot: snapshot({
+          settlementReadiness: "unavailable",
+          settlementUnavailableReasons: ["executor_paused"],
+        }),
+      })
+    );
+    expect(screen.getByText("The Celo settlement executor is paused.")).toBeInTheDocument();
   });
 
   it("reports an initial read failure as unavailable instead of a missing Safe", () => {
@@ -177,7 +191,7 @@ describe("PoolFundingSection", () => {
   it("uses the same component for Protocol context and adds only the treasury note", () => {
     renderSection(fundingView(), true);
     expect(screen.getByText(/upstream treasury inflow is not recorded/i)).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Pool funding" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Pool Funding" })).toBeInTheDocument();
   });
 
   it("shares one manual refresh and announces only its completion", async () => {
@@ -192,7 +206,7 @@ describe("PoolFundingSection", () => {
     renderWithProviders(<FundingDetailsHarness />);
     const trigger = screen.getByRole("button", { name: "View Funding Details" });
     fireEvent.click(trigger);
-    const dialog = screen.getByRole("dialog", { name: "Pool funding details" });
+    const dialog = screen.getByRole("dialog", { name: "Pool Funding Details" });
     fireEvent.keyDown(dialog, { key: "Escape" });
     await waitFor(() => expect(trigger).toHaveFocus());
   });
@@ -208,9 +222,9 @@ describe("PoolFundingDialog", () => {
         tone="garden"
       />
     );
-    const dialog = screen.getByRole("dialog", { name: "Pool funding details" });
-    expect(within(dialog).getByText("Balance composition")).toBeInTheDocument();
-    const network = within(dialog).getByRole("heading", { name: "Network fees" }).parentElement!;
+    const dialog = screen.getByRole("dialog", { name: "Pool Funding Details" });
+    expect(within(dialog).getByText("Balance Composition")).toBeInTheDocument();
+    const network = within(dialog).getByRole("heading", { name: "Network Fees" }).parentElement!;
     expect(within(network).getByText(/5 CELO/)).toBeInTheDocument();
     expect(within(network).getByText(/not G\$ pool liquidity/i)).toBeInTheDocument();
   });

@@ -65,7 +65,7 @@ export function buildStepConfigs(
           id,
           title: formatMessage({
             id: "cockpit.garden.pool.setup.step.how",
-            defaultMessage: "How it works",
+            defaultMessage: "How It Works",
           }),
           description: formatMessage({
             id: "cockpit.garden.pool.setup.step.howHint",
@@ -78,11 +78,11 @@ export function buildStepConfigs(
           title: isCampaign
             ? formatMessage({
                 id: "cockpit.garden.pool.setup.step.campaign",
-                defaultMessage: "The campaign",
+                defaultMessage: "The Campaign",
               })
             : formatMessage({
                 id: "cockpit.garden.pool.setup.step.season",
-                defaultMessage: "The season",
+                defaultMessage: "The Season",
               }),
           description: formatMessage({
             id: "cockpit.garden.pool.setup.step.cycleHint",
@@ -94,7 +94,7 @@ export function buildStepConfigs(
           id,
           title: formatMessage({
             id: "cockpit.garden.pool.setup.step.split",
-            defaultMessage: "The split",
+            defaultMessage: "The Split",
           }),
           description: formatMessage({
             id: "cockpit.garden.pool.setup.step.splitHint",
@@ -110,7 +110,7 @@ export function buildStepConfigs(
           }),
           description: formatMessage({
             id: "cockpit.garden.pool.setup.step.openHint",
-            defaultMessage: "Check, then write",
+            defaultMessage: "Check, then sign",
           }),
         };
     }

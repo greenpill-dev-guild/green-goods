@@ -15,7 +15,7 @@ import {
   createMockContractCall,
   MOCK_TX_HASH,
 } from "@green-goods/shared/testing";
-import type { ContractCall } from "../types";
+import { TransactionRevertedError, type ContractCall } from "../types";
 import { WalletSender, type WalletSenderDeps } from "../wallet-sender";
 
 // ============================================
@@ -247,6 +247,125 @@ describe("WalletSender", () => {
   describe("sendBatch (unsupported)", () => {
     it("does not expose sendBatch", () => {
       expect("sendBatch" in sender).toBe(false);
+    });
+  });
+
+  describe("atomic batches", () => {
+    const BATCH_HASH = `0x${"b".repeat(64)}` as const;
+    const SECOND_CALL = createMockContractCall({ functionName: "approve" });
+    let batchDeps: WalletSenderDeps;
+    let batchWrite: ReturnType<typeof createFakeWagmiDeps>["writeContractAsync"];
+    let batchConfig: ReturnType<typeof createFakeWagmiDeps>["config"];
+    let trace: string[];
+
+    beforeEach(() => {
+      trace = [];
+      const fake = createFakeWagmiDeps();
+      batchWrite = fake.writeContractAsync;
+      batchConfig = fake.config;
+      batchDeps = {
+        ...fake,
+        ensureWalletChain: vi.fn(async () => {
+          trace.push("chain");
+        }),
+        assertWriteSafety: vi.fn(async () => {
+          trace.push("safety");
+        }),
+        getCapabilities: vi.fn(async () => ({ atomic: { status: "supported" } })),
+        sendCalls: vi.fn(async () => {
+          trace.push("sendCalls");
+          return { id: "bundle-1" };
+        }),
+        waitForCallsStatus: vi.fn(async () => {
+          trace.push("status");
+          return {
+            status: "success",
+            receipts: [{ status: "success", transactionHash: BATCH_HASH }],
+          };
+        }),
+      };
+      sender = new WalletSender(batchConfig, batchWrite, undefined, batchDeps);
+    });
+
+    it("offers a batch only to a wallet that already runs calls as one transaction", async () => {
+      await expect(sender.canSendAtomicBatch(42161)).resolves.toBe(true);
+      // "ready" would first ask to upgrade the account; setup never starts that.
+      vi.mocked(batchDeps.getCapabilities!).mockResolvedValueOnce({ atomic: { status: "ready" } });
+      await expect(sender.canSendAtomicBatch(42161)).resolves.toBe(false);
+      vi.mocked(batchDeps.getCapabilities!).mockResolvedValueOnce({
+        atomic: { status: "unsupported" },
+      });
+      await expect(sender.canSendAtomicBatch(42161)).resolves.toBe(false);
+      vi.mocked(batchDeps.getCapabilities!).mockRejectedValueOnce(
+        new Error("Method not supported")
+      );
+      await expect(sender.canSendAtomicBatch(42161)).resolves.toBe(false);
+    });
+
+    it("treats a wallet that never answers as one that cannot batch", async () => {
+      vi.useFakeTimers();
+      try {
+        vi.mocked(batchDeps.getCapabilities!).mockReturnValueOnce(new Promise(() => {}));
+        const answer = sender.canSendAtomicBatch(42161);
+        await vi.advanceTimersByTimeAsync(4_000);
+        await expect(answer).resolves.toBe(false);
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    it("guards the chain first, then sends every call in one atomic request", async () => {
+      const accepted = vi.fn(async () => {
+        trace.push("accepted");
+      });
+      const result = await sender.sendAtomicBatch([TEST_CALL, SECOND_CALL], {
+        onAccepted: accepted,
+      });
+
+      expect(result).toEqual({ hash: BATCH_HASH, sponsored: false });
+      expect(trace).toEqual(["chain", "safety", "sendCalls", "accepted", "status"]);
+      expect(batchDeps.sendCalls).toHaveBeenCalledWith(batchConfig, {
+        chainId: TEST_CALL.chainId,
+        forceAtomic: true,
+        calls: [
+          {
+            to: TEST_CALL.address,
+            abi: TEST_CALL.abi,
+            functionName: TEST_CALL.functionName,
+            args: TEST_CALL.args,
+          },
+          {
+            to: SECOND_CALL.address,
+            abi: SECOND_CALL.abi,
+            functionName: "approve",
+            args: SECOND_CALL.args,
+          },
+        ],
+      });
+      expect(batchWrite).not.toHaveBeenCalled();
+    });
+
+    it("says a reverted batch wrote nothing, and an unanswered one is unknown", async () => {
+      vi.mocked(batchDeps.waitForCallsStatus!).mockResolvedValueOnce({
+        status: "failure",
+        receipts: [{ status: "reverted", transactionHash: BATCH_HASH }],
+      });
+      await expect(sender.sendAtomicBatch([TEST_CALL, SECOND_CALL])).rejects.toBeInstanceOf(
+        TransactionRevertedError
+      );
+
+      vi.mocked(batchDeps.waitForCallsStatus!).mockResolvedValueOnce({ status: "pending" });
+      await expect(sender.sendAtomicBatch([TEST_CALL, SECOND_CALL])).rejects.toThrow(
+        "The batch outcome is unknown"
+      );
+    });
+
+    it("refuses an empty batch and a batch across two chains before asking", async () => {
+      await expect(sender.sendAtomicBatch([])).rejects.toThrow("Cannot send empty batch");
+      await expect(
+        sender.sendAtomicBatch([TEST_CALL, { ...SECOND_CALL, chainId: 42220 }])
+      ).rejects.toThrow("An atomic batch runs on one chain");
+      expect(batchDeps.sendCalls).not.toHaveBeenCalled();
     });
   });
 });

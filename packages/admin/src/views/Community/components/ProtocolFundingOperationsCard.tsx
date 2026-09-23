@@ -1,6 +1,10 @@
 import { Alert } from "@green-goods/shared/components/Alert";
 import { toastService } from "@green-goods/shared/components/Toast/toast.service";
-import type { ProtocolFundingOperationsController } from "@green-goods/shared/hooks/admin-ui/pool/controller.types";
+import { CELO_G_DOLLAR_TOKEN } from "@green-goods/shared/config/tokens";
+import type {
+  ProtocolFundingOperationsController,
+  ProtocolFundingRow,
+} from "@green-goods/shared/hooks/admin-ui/pool/controller.types";
 import type { Address } from "@green-goods/shared/types/domain";
 import { RiRefreshLine } from "@remixicon/react";
 import { useState } from "react";
@@ -12,6 +16,7 @@ import { AdminConfirmDialog } from "@/components/AdminDialog";
 import { AdminReasonDialog } from "@/components/AdminReasonDialog";
 import { AdminSelect, AdminTextField } from "@/components/AdminTextField";
 import { formatGdollar, shortAddress } from "@/views/Garden/Pool/poolFundingPresentation";
+import { type TransferAct, TransferReviewDialog } from "@/views/Garden/Pool/TransferReviewDialog";
 import { ProtocolFundingRows } from "./ProtocolFundingRows";
 
 type GardenOption = { id: Address; name: string };
@@ -31,11 +36,12 @@ export function ProtocolFundingOperationsCard({
   const [amount, setAmount] = useState("2");
   const [confirmQueue, setConfirmQueue] = useState(false);
   const [cancelId, setCancelId] = useState<bigint | null>(null);
+  const [review, setReview] = useState<{ act: TransferAct; row: ProtocolFundingRow } | null>(null);
   if (!operations.showOperations) return null;
 
   let amountValue: bigint | null = null;
   try {
-    const parsed = parseUnits(amount, 18);
+    const parsed = parseUnits(amount, CELO_G_DOLLAR_TOKEN.decimals);
     amountValue = parsed > 0n ? parsed : null;
   } catch {
     amountValue = null;
@@ -46,6 +52,11 @@ export function ProtocolFundingOperationsCard({
   const source = operations.sourceFunding.snapshot;
   const target = operations.targetFunding.snapshot;
   const canReview = Boolean(targetGarden && amountValue);
+
+  const gardenName = (garden: Address | null | undefined) =>
+    garden
+      ? (gardens.find((entry) => entry.id.toLowerCase() === garden.toLowerCase())?.name ?? null)
+      : null;
 
   const submit = async (act: () => Promise<string>) => {
     const identifier = await act();
@@ -69,7 +80,7 @@ export function ProtocolFundingOperationsCard({
           <h3 className="label-md text-text-strong">
             {formatMessage({
               id: "cockpit.community.protocolFunding.title",
-              defaultMessage: "Protocol funding",
+              defaultMessage: "Protocol Funding",
             })}
           </h3>
           <p className="mt-1 max-w-2xl text-xs text-text-soft">
@@ -89,7 +100,7 @@ export function ProtocolFundingOperationsCard({
         >
           {formatMessage({
             id: "cockpit.community.protocolFunding.refresh",
-            defaultMessage: "Refresh funding",
+            defaultMessage: "Refresh Funding",
           })}
         </AdminButton>
       </div>
@@ -194,17 +205,19 @@ export function ProtocolFundingOperationsCard({
               </dd>
             </div>
           </dl>
-          <AdminButton
-            type="button"
-            variant="filled"
-            disabled={!canReview || operations.isActing}
-            onClick={() => setConfirmQueue(true)}
-          >
-            {formatMessage({
-              id: "cockpit.community.protocolFunding.review",
-              defaultMessage: "Review seed or top-up…",
-            })}
-          </AdminButton>
+          <div className="flex justify-end">
+            <AdminButton
+              type="button"
+              variant="filled"
+              disabled={!canReview || operations.isActing}
+              onClick={() => setConfirmQueue(true)}
+            >
+              {formatMessage({
+                id: "cockpit.community.protocolFunding.review",
+                defaultMessage: "Review Seed or Top-Up…",
+              })}
+            </AdminButton>
+          </div>
         </div>
       ) : (
         <p className="text-xs text-text-soft" data-testid="protocol-funding-unavailable">
@@ -216,7 +229,12 @@ export function ProtocolFundingOperationsCard({
         </p>
       )}
 
-      <ProtocolFundingRows operations={operations} onSubmit={submit} onCancel={setCancelId} />
+      <ProtocolFundingRows
+        operations={operations}
+        gardenName={gardenName}
+        onReview={(act, row) => setReview({ act, row })}
+        onCancel={setCancelId}
+      />
 
       {operations.lastAct ? (
         <p
@@ -254,13 +272,13 @@ export function ProtocolFundingOperationsCard({
         variant="warning"
         title={formatMessage({
           id: "cockpit.community.protocolFunding.confirm.title",
-          defaultMessage: "Queue protocol funding?",
+          defaultMessage: "Queue Protocol Funding?",
         })}
         description={formatMessage(
           {
             id: "cockpit.community.protocolFunding.confirm.body",
             defaultMessage:
-              "Queue {amount} from the protocol Safe to {garden}. The module derives the registered recipient Safe and canonical G$. This creates Funding / ProtocolToGarden with no commitment ID.",
+              "Queue {amount} from the protocol Safe to {garden}. The module derives the registered recipient Safe and canonical G$.",
           },
           {
             amount: formatGdollar(amountValue, locale),
@@ -269,7 +287,7 @@ export function ProtocolFundingOperationsCard({
         )}
         confirmLabel={formatMessage({
           id: "cockpit.community.protocolFunding.confirm.action",
-          defaultMessage: "Queue seed or top-up",
+          defaultMessage: "Queue Seed or Top-Up",
         })}
         cancelLabel={formatMessage({ id: "app.common.cancel", defaultMessage: "Cancel" })}
         confirmDisabled={!targetGarden || !amountValue || !operations.canQueueFunding}
@@ -281,6 +299,28 @@ export function ProtocolFundingOperationsCard({
         }}
       />
 
+      <TransferReviewDialog
+        review={review ? { act: review.act, disbursementId: review.row.disbursementId } : null}
+        amount={review?.row.amount ?? null}
+        recipient={
+          review ? (gardenName(review.row.garden) ?? shortAddress(review.row.recipient)) : "—"
+        }
+        tone="community"
+        isLoading={operations.isActing}
+        onClose={() => setReview(null)}
+        onConfirm={async () => {
+          if (!review) return;
+          const { act, row } = review;
+          await submit(() =>
+            act === "dispatch"
+              ? operations.dispatch(row.disbursementId)
+              : act === "retry"
+                ? operations.retry(row.disbursementId)
+                : operations.requeue(row.disbursementId)
+          );
+        }}
+      />
+
       <AdminReasonDialog
         isOpen={cancelId !== null}
         onClose={() => setCancelId(null)}
@@ -288,7 +328,7 @@ export function ProtocolFundingOperationsCard({
         variant="danger"
         title={formatMessage({
           id: "cockpit.community.protocolFunding.cancel.title",
-          defaultMessage: "Cancel this funding transfer?",
+          defaultMessage: "Cancel This Funding Transfer?",
         })}
         description={formatMessage({
           id: "cockpit.community.protocolFunding.cancel.body",
@@ -297,7 +337,7 @@ export function ProtocolFundingOperationsCard({
         })}
         confirmLabel={formatMessage({
           id: "cockpit.community.protocolFunding.cancel.action",
-          defaultMessage: "Cancel transfer",
+          defaultMessage: "Cancel Transfer",
         })}
         isLoading={operations.isActing}
         onConfirm={async (reason) => {

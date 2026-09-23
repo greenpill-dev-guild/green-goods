@@ -142,6 +142,18 @@ Admin dashboard modals use AdminDialog or AdminConfirmDialog. Desktop renders as
 
 ---
 
+## Workspace Scope and Consequential Writes
+
+This is the admin's application of the root [Interface Principles](../../DESIGN.md#interface-principles) (4, 9, 12, 15). The principles are the source; this section names the admin pieces that carry them.
+
+- **The GardenChip sets the scope.** Every workspace (Hub, Garden, Community, Actions) acts only on the garden the AppBar's GardenChip shows. No tab, card, or dialog writes to another garden's records.
+- **The protocol lives in its own garden.** The protocol pool is the Green Goods Community Garden's pool. Its console is that garden's Garden → Pool tab, like any garden's, and the protocol's operations (settlement, protocol funding, protocol confirmations) appear in that garden's Community → Coordination tab and nowhere else.
+- **One home per organism.** `GardenPoolTab` mounts only in the Garden workspace. Its protocol context comes from the pool it reads (`poolType`), never from where it is mounted. Mounting a writing organism anywhere else is a design decision to record, not a convenience.
+- **Name the target.** Every pool write dialog opens with `PoolTarget`: a quiet "Writing to" line for a garden's pool, a warning for the protocol pool.
+- **Show every signature.** A flow that sends several writes shows them all in `SetupProgressList`, each with a `TxStepMarker`: how many prompts are coming, which one the wallet is waiting on, which are confirming or done, where a run stopped, and a done state the steward closes. The same marker drives hypercert minting, so progress reads the same everywhere.
+
+---
+
 ## Navigation
 
 - **AppBar** (top context bar, Z3): GardenChip selector, search, settings, notifications, avatar

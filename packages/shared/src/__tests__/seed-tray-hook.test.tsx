@@ -18,8 +18,12 @@ import {
   type CommitmentComposerValues,
   useCommitmentComposerForm,
 } from "../hooks/commitment-pooling/useCommitmentComposerForm";
+import type { CommitmentSendReport } from "../hooks/commitment-pooling/useCommitmentJobs";
 
-type CreateRow = (row: SeedTrayRow) => Promise<unknown>;
+type CreateRow = (
+  row: SeedTrayRow,
+  report: (event: CommitmentSendReport) => void
+) => Promise<unknown>;
 
 function setup(createRow: CreateRow = vi.fn(async () => "job")) {
   const view = renderHook(() => {
@@ -89,6 +93,31 @@ describe("useSeedTray", () => {
     act(() => view.result.current.tray.removeCurrent());
     expect(view.result.current.form.getValues("title")).toBe("Clinic rides");
     expect(view.result.current.tray.size).toBe(1);
+  });
+
+  it("keeps the last pass, row by row, until the steward puts it away", async () => {
+    const createRow = vi.fn<CreateRow>(async (row, report) => {
+      if (row.values.title === "Clinic rides") throw new Error("execution reverted");
+      report({ stage: "landed", txHash: "0xabc" });
+    });
+    const { view, write } = setup(createRow);
+    expect(view.result.current.tray.pass).toBeNull();
+    write(rides);
+    await act(() => view.result.current.tray.addAnother());
+    write({ title: "Clinic rides" });
+
+    await act(async () => {
+      await view.result.current.tray.sendAll();
+    });
+
+    expect(view.result.current.tray.pass).toEqual([
+      expect.objectContaining({ title: "Market rides", status: "created", txHash: "0xabc" }),
+      expect.objectContaining({ title: "Clinic rides", status: "not-sent", txHash: null }),
+    ]);
+    act(() => view.result.current.tray.clearPass());
+    expect(view.result.current.tray.pass).toBeNull();
+    // Putting the pass away keeps the row that was not sent, ready to send again.
+    expect(view.result.current.tray.currentNotSent).toBe(true);
   });
 
   it("sends each row under the id it was given, keeps what failed, and sends that one again as itself", async () => {

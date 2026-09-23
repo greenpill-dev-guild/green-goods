@@ -1,4 +1,5 @@
 import type { CommitmentDialogController } from "@green-goods/shared/hooks/admin-ui/pool/controller.types";
+import type { ReactNode } from "react";
 import { useIntl } from "react-intl";
 import { AdminButton } from "@/components/AdminButton";
 import { AdminChoiceGroup } from "@/components/AdminChoiceGroup";
@@ -22,6 +23,7 @@ export function CommitmentAssessmentDialog({
   onAssessmentUIDChange,
   actDisabled,
   isActing,
+  target,
 }: {
   open: OpenDialog;
   onClose: () => void;
@@ -34,6 +36,8 @@ export function CommitmentAssessmentDialog({
   onAssessmentUIDChange: (assessmentUID: string | null) => void;
   actDisabled: boolean;
   isActing: boolean;
+  /** The commitment and its pool, named under the title. */
+  target?: ReactNode;
 }) {
   const { formatMessage, locale } = useIntl();
 
@@ -45,9 +49,10 @@ export function CommitmentAssessmentDialog({
       }}
       size="md"
       tone={tone}
+      target={target}
       title={formatMessage({
         id: "cockpit.garden.pool.commitment.attach.title",
-        defaultMessage: "Attach an assessment",
+        defaultMessage: "Attach an Assessment",
       })}
       description={formatMessage({
         id: "cockpit.garden.pool.commitment.attach.description",

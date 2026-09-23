@@ -7,7 +7,10 @@
 
 import { describe, expect, it } from "vitest";
 
-import { selectPoolConsoleModel } from "../modules/commitment-pooling/pool-console";
+import {
+  selectCycleEndAct,
+  selectPoolConsoleModel,
+} from "../modules/commitment-pooling/pool-console";
 import type {
   CommitmentCycleRecord,
   CommitmentPoolRecord,
@@ -227,6 +230,8 @@ describe("selectPoolConsoleModel", () => {
     expect(model.groups.confirmed.map((row) => row.commitmentId)).toEqual([3n]);
     expect(model.groups.past.map((row) => row.commitmentId)).toEqual([4n]);
     expect(model.dueLive.map((row) => row.commitmentId)).toEqual([6n]);
+    // The recovery count lands on exactly the rows it counts: the dispute and the past due.
+    expect(model.needsRecovery.map((row) => row.commitmentId)).toEqual([5n, 6n]);
     expect(model.counts).toEqual({ claimsWaiting: 2, needsRecovery: 2, pastDue: 1 });
   });
 
@@ -282,5 +287,26 @@ describe("selectPoolConsoleModel", () => {
         now: NOW,
       }).status
     ).toBe("composted");
+  });
+});
+
+describe("selectCycleEndAct", () => {
+  // closeCycle wants an Open cycle with nothing live (CyclesLib), compostCycle
+  // a Reconciled one; every other state has no ending left to offer.
+  it.each([
+    { state: "OPEN", live: 0n, offers: "End", expected: { kind: "end" } },
+    {
+      state: "OPEN",
+      live: 3n,
+      offers: "the live count",
+      expected: { kind: "end-blocked", liveCommitments: 3n },
+    },
+    { state: "RECONCILED", live: 0n, offers: "Archive", expected: { kind: "archive" } },
+    { state: "SEEDED", live: 0n, offers: "nothing", expected: null },
+    { state: "COMPOSTED", live: 0n, offers: "nothing", expected: null },
+    { state: "CANCELLED", live: 0n, offers: "nothing", expected: null },
+    { state: null, live: 0n, offers: "nothing", expected: null },
+  ] as const)("offers $offers for a $state cycle with $live live", ({ state, live, expected }) => {
+    expect(selectCycleEndAct({ state, liveCommitmentCount: live })).toEqual(expected);
   });
 });
