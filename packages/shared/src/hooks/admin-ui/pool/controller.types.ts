@@ -111,6 +111,8 @@ export interface ConfirmQueueRow {
   eligibility: ConfirmQueueEligibility;
   title: string | null;
   poolGarden?: Address | null;
+  /** The pool's garden by name, when the commitment lives outside the confirming garden. */
+  poolGardenName?: string | null;
   canDispute?: boolean;
 }
 

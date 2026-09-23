@@ -15,6 +15,8 @@ export interface ConfirmQueueProjectionRow {
   eligibility: ConfirmQueueEligibility;
   title: string | null;
   poolGarden?: Address | null;
+  /** The pool's garden by name, when the commitment lives outside the confirming garden. */
+  poolGardenName?: string | null;
   canDispute?: boolean;
 }
 
@@ -25,6 +27,7 @@ export interface ConfirmQueueProjectionInput {
     rows: ReadonlyArray<{
       commitment: CommitmentReadModel;
       poolGarden?: Address | null;
+      poolGardenName?: string | null;
       canDispute?: boolean;
     }>;
   }>;
@@ -34,6 +37,7 @@ export interface ConfirmQueueProjectionInput {
     garden: Address;
     gardenName: string;
     poolGarden?: Address | null;
+    poolGardenName?: string | null;
     canDispute?: boolean;
   }>;
   disputed?: ReadonlyArray<{
@@ -63,6 +67,7 @@ export function selectConfirmQueueRows(input: {
       eligibility: "ORDINARY" as const,
       title: titleOf(row.commitment),
       poolGarden: row.poolGarden,
+      poolGardenName: row.poolGardenName,
       canDispute: row.canDispute,
     }))
   );
@@ -73,6 +78,7 @@ export function selectConfirmQueueRows(input: {
     eligibility: row.path,
     title: titleOf(row.commitment),
     poolGarden: row.poolGarden,
+    poolGardenName: row.poolGardenName,
     canDispute: row.canDispute,
   }));
   const disputed = (toConfirm.disputed ?? []).map((row) => ({
@@ -82,6 +88,7 @@ export function selectConfirmQueueRows(input: {
     eligibility: "DISPUTED" as const,
     title: titleOf(row.commitment),
     poolGarden: row.garden,
+    poolGardenName: row.gardenName,
     canDispute: true,
   }));
   const included = include ? new Set(include) : null;
