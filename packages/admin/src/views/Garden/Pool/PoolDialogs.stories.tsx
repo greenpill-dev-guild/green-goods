@@ -34,6 +34,8 @@ const meta: Meta<typeof PoolDialogs> = {
     setReasonDialog: noop,
     confirmDialog: null,
     setConfirmDialog: noop,
+    cycleDialog: null,
+    setCycleDialog: noop,
   },
   // The setup flow is always mounted and reads the signed-in steward and the
   // query cache, and its dirty-close guard needs a data router.

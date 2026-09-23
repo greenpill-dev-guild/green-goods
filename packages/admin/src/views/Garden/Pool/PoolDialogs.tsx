@@ -2,10 +2,11 @@ import type { PoolConsoleController } from "@green-goods/shared/hooks/admin-ui/p
 import type { Dispatch, SetStateAction } from "react";
 import { useIntl } from "react-intl";
 import { AdminConfirmDialog } from "@/components/AdminDialog";
+import { PoolCycleDialogs } from "./PoolCycleDialogs";
 import { PoolReasonDialogs } from "./PoolReasonDialogs";
 import { PoolSettingsDialog } from "./PoolSettingsDialog";
 import { PoolTarget, type PoolWriteTarget } from "./PoolTarget";
-import type { ConfirmDialog, FlowState, ReasonDialog } from "./poolDialogState";
+import type { ConfirmDialog, CycleDialog, FlowState, ReasonDialog } from "./poolDialogState";
 import { PoolSetupFlow } from "./SetupFlow";
 
 export interface PoolDialogsProps {
@@ -21,12 +22,15 @@ export interface PoolDialogsProps {
   setReasonDialog: Dispatch<SetStateAction<ReasonDialog>>;
   confirmDialog: ConfirmDialog;
   setConfirmDialog: Dispatch<SetStateAction<ConfirmDialog>>;
+  cycleDialog: CycleDialog;
+  setCycleDialog: Dispatch<SetStateAction<CycleDialog>>;
 }
 
 /**
  * Every dialog the pool console opens in place: the setup and open flows, the
- * settings sheet, the three reasoned acts, and the three blast-radius
- * confirmations. Each one names the pool it writes to before anything else.
+ * settings sheet, the three reasoned acts, the three blast-radius
+ * confirmations, and a cycle's end. Each one names the pool it writes to
+ * before anything else.
  * The seeding console and the commitment inspector are routes of the Garden
  * workspace, not dialogs here.
  */
@@ -42,6 +46,8 @@ export function PoolDialogs({
   setReasonDialog,
   confirmDialog,
   setConfirmDialog,
+  cycleDialog,
+  setCycleDialog,
 }: PoolDialogsProps) {
   const { formatMessage } = useIntl();
   return (
@@ -68,6 +74,14 @@ export function PoolDialogs({
         tone={tone}
         reasonDialog={reasonDialog}
         setReasonDialog={setReasonDialog}
+      />
+
+      <PoolCycleDialogs
+        pool={pool}
+        target={target}
+        tone={tone}
+        cycleDialog={cycleDialog}
+        setCycleDialog={setCycleDialog}
       />
 
       <AdminConfirmDialog

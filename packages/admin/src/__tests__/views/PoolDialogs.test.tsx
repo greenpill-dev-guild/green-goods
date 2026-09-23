@@ -130,6 +130,7 @@ function setup(overrides: Partial<Parameters<typeof PoolDialogs>[0]> = {}) {
     setSettingsOpen: vi.fn(),
     setReasonDialog: vi.fn(),
     setConfirmDialog: vi.fn(),
+    setCycleDialog: vi.fn(),
   };
   renderWithProviders(
     <PoolDialogs
@@ -140,6 +141,7 @@ function setup(overrides: Partial<Parameters<typeof PoolDialogs>[0]> = {}) {
       settingsOpen={false}
       reasonDialog={null}
       confirmDialog={null}
+      cycleDialog={null}
       {...setters}
       {...overrides}
     />

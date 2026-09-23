@@ -1,5 +1,6 @@
 import { StatusBadge } from "@green-goods/shared/components/StatusBadge";
 import type { PoolConsoleController } from "@green-goods/shared/hooks/admin-ui/pool/controller.types";
+import { selectCycleEndAct } from "@green-goods/shared/modules/commitment-pooling/pool-console";
 import type { CommitmentCycleRecord } from "@green-goods/shared/modules/commitment-pooling/types-core";
 import { useIntl } from "react-intl";
 import { AdminButton } from "@/components/AdminButton";
@@ -13,15 +14,19 @@ export interface PoolCyclesCardProps {
   onStartCampaign: () => void;
   onOpenCampaign: (cycle: CommitmentCycleRecord) => void;
   onCancelCycle: (cycle: CommitmentCycleRecord) => void;
+  /** Reconcile an Open cycle whose commitments have all finished. */
+  onEndCycle: (cycle: CommitmentCycleRecord) => void;
+  /** Archive a Reconciled cycle, which is final. */
+  onArchiveCycle: (cycle: CommitmentCycleRecord) => void;
 }
 
 /**
  * The cycles console (uiux-spec §6.2 section 2): one season slot, the
  * campaigns beside it as peers, and the finished cycles below. The card's
- * header is the season itself. One act on a cycle at a time: the next step in
- * its life. Closing a season (the W26 ceremony) is D2; here a running cycle
- * offers only the wind-down the contract allows while the pool is paused or
- * open, which is cancelling an empty cycle.
+ * header is the season itself. Each cycle offers the next step in its life
+ * (hub decision 29): a running cycle ends once nothing in it is live, and says
+ * how many commitments still hold it open until then; a reconciled one can be
+ * archived; an empty one can still be cancelled.
  */
 export function PoolCyclesCard({
   console: pool,
@@ -30,6 +35,8 @@ export function PoolCyclesCard({
   onStartCampaign,
   onOpenCampaign,
   onCancelCycle,
+  onEndCycle,
+  onArchiveCycle,
 }: PoolCyclesCardProps) {
   const { formatMessage, locale } = useIntl();
   const { model, cycleNames, isOnline, isActing } = pool;
@@ -53,6 +60,41 @@ export function PoolCyclesCard({
         end: formatUnixDate(cycle.endTime, locale, "—"),
       }
     );
+
+  // Why a running cycle cannot end yet, with the count that holds it open.
+  const endBlockedNote = (cycle: CommitmentCycleRecord) => {
+    const act = selectCycleEndAct(cycle);
+    if (act?.kind !== "end-blocked") return null;
+    return (
+      <p className="text-xs text-text-soft">
+        {formatMessage(
+          {
+            id: "cockpit.garden.pool.cycle.endBlocked",
+            defaultMessage:
+              "{count, plural, one {# commitment is still live.} other {# commitments are still live.}} It can end once each is kept, cancelled or expired.",
+          },
+          { count: act.liveCommitments.toString() }
+        )}
+      </p>
+    );
+  };
+  const endButton = (cycle: CommitmentCycleRecord) =>
+    selectCycleEndAct(cycle)?.kind === "end" ? (
+      <AdminButton
+        type="button"
+        variant="outlined"
+        size="sm"
+        onClick={() => onEndCycle(cycle)}
+        disabled={actDisabled}
+      >
+        {cycle.cycleType === "CAMPAIGN"
+          ? formatMessage({ id: "cockpit.garden.pool.cycle.act.end", defaultMessage: "End…" })
+          : formatMessage({
+              id: "cockpit.garden.pool.cycle.act.endSeason",
+              defaultMessage: "End Season…",
+            })}
+      </AdminButton>
+    ) : null;
 
   const cycleRow = (cycle: CommitmentCycleRecord) => {
     const chip = cycleStateChip(cycle, model.isPaused, formatMessage);
@@ -81,8 +123,10 @@ export function PoolCyclesCard({
             </StatusBadge>
           </div>
           <p className="text-xs text-text-soft">{cycleMeta(cycle)}</p>
+          {endBlockedNote(cycle)}
         </div>
         <div className="flex items-center gap-2">
+          {endButton(cycle)}
           {cycle.state === "SEEDED" ? (
             <AdminButton
               type="button"
@@ -153,8 +197,10 @@ export function PoolCyclesCard({
                   )
                 : cycleMeta(season)}
             </p>
+            {endBlockedNote(season)}
           </div>
           <div className="flex items-center gap-2">
+            {endButton(season)}
             {season.state === "SEEDED" ? (
               <AdminButton
                 type="button"
@@ -296,7 +342,11 @@ export function PoolCyclesCard({
               const chip = cycleStateChip(cycle, false, formatMessage);
               const name = cycleName(cycle, cycleNames, formatMessage);
               return (
-                <li key={cycle.id} className="flex flex-wrap items-center gap-2 py-2">
+                <li
+                  key={cycle.id}
+                  className="flex flex-wrap items-center gap-2 py-2"
+                  data-testid={`pool-cycle-${cycle.cycleId.toString()}`}
+                >
                   <span className="truncate text-body-md text-text-strong" title={name}>
                     {name}
                   </span>
@@ -314,6 +364,21 @@ export function PoolCyclesCard({
                   <StatusBadge variant={chip.variant} size="sm">
                     {chip.label}
                   </StatusBadge>
+                  {selectCycleEndAct(cycle)?.kind === "archive" ? (
+                    <AdminButton
+                      type="button"
+                      variant="text"
+                      size="sm"
+                      className="ml-auto"
+                      onClick={() => onArchiveCycle(cycle)}
+                      disabled={actDisabled}
+                    >
+                      {formatMessage({
+                        id: "cockpit.garden.pool.cycle.act.archive",
+                        defaultMessage: "Archive…",
+                      })}
+                    </AdminButton>
+                  ) : null}
                 </li>
               );
             })}

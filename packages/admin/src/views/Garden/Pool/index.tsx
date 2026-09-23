@@ -16,7 +16,7 @@ import { PoolFundingDialog } from "./PoolFundingDialog";
 import { PoolFundingSection } from "./PoolFundingSection";
 import { PoolStatusCard } from "./PoolStatusCard";
 import { PoolStatusCasts } from "./PoolStatusCasts";
-import type { ConfirmDialog, FlowState, ReasonDialog } from "./poolDialogState";
+import type { ConfirmDialog, CycleDialog, FlowState, ReasonDialog } from "./poolDialogState";
 
 export interface GardenPoolTabProps {
   garden: { id: Address; name: string };
@@ -49,6 +49,7 @@ export function GardenPoolTab({ garden, chainId, canManage }: GardenPoolTabProps
   const [flow, setFlow] = useState<FlowState>(null);
   const [reasonDialog, setReasonDialog] = useState<ReasonDialog>(null);
   const [confirmDialog, setConfirmDialog] = useState<ConfirmDialog>(null);
+  const [cycleDialog, setCycleDialog] = useState<CycleDialog>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [fundingOpen, setFundingOpen] = useState(false);
   const fundingDetailsButtonRef = useRef<HTMLButtonElement>(null);
@@ -234,6 +235,8 @@ export function GardenPoolTab({ garden, chainId, canManage }: GardenPoolTabProps
             onStartCampaign={() => setFlow({ intent: "campaign" })}
             onOpenCampaign={(cycle) => setFlow({ intent: "open-campaign", cycle })}
             onCancelCycle={(cycle) => setReasonDialog({ kind: "cancel-cycle", cycle })}
+            onEndCycle={(cycle) => setCycleDialog({ kind: "end", cycle })}
+            onArchiveCycle={(cycle) => setCycleDialog({ kind: "archive", cycle })}
           />
         )}
 
@@ -273,6 +276,8 @@ export function GardenPoolTab({ garden, chainId, canManage }: GardenPoolTabProps
         setReasonDialog={setReasonDialog}
         confirmDialog={confirmDialog}
         setConfirmDialog={setConfirmDialog}
+        cycleDialog={cycleDialog}
+        setCycleDialog={setCycleDialog}
       />
       {fundingDialog}
     </div>

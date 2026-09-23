@@ -44,7 +44,7 @@ export function SetupStepCycle({
             {
               id: "cockpit.garden.pool.setup.secondSeasonBlocked",
               defaultMessage:
-                "One season runs at a time. “{name}” is still running; close it first, or start a campaign beside it.",
+                "One season runs at a time. “{name}” is still running: end it on the pool tab once nothing in it is live, or start a campaign beside it.",
             },
             { name: cycleName(runningSeason, cycleNames, formatMessage) }
           )}
