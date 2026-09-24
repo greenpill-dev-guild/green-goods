@@ -8,8 +8,8 @@ import {
   type GardenRole,
 } from "@green-goods/shared/utils/blockchain/garden-roles";
 import { parseAndFormatError } from "@green-goods/shared/utils/errors/contract-errors";
-import { RiAddLine, RiClipboardLine, RiCloseLine } from "@remixicon/react";
-import { useMemo, useState } from "react";
+import { RiAddLine, RiClipboardLine } from "@remixicon/react";
+import { type ReactNode, useId, useMemo, useState } from "react";
 import { FormattedMessage, useIntl } from "react-intl";
 import { isAddress } from "viem";
 import { EnsAddressText } from "@/components/EnsAddressText";
@@ -17,6 +17,16 @@ import { AdminButton, AdminIconButton } from "../AdminButton";
 import { AdminDialog, type AdminDialogProps } from "../AdminDialog";
 import { AdminSelect, AdminTextField } from "../AdminTextField";
 import { DiscardChangesDialog } from "../DiscardChangesDialog";
+import {
+  buildRolesByAddress,
+  canStage,
+  checkEntry,
+  formatRoleNames,
+  type StagedMember,
+  sharedRole,
+} from "./addMembersEntry";
+import { getRoleLabel } from "./gardenUtils";
+import { StagedMemberList } from "./StagedMemberList";
 
 export interface AddMembersDialogProps {
   open: boolean;
@@ -27,6 +37,13 @@ export interface AddMembersDialogProps {
    * retry. Wire this to `useGardenOperations` in the hosting view.
    */
   onAdd: (role: GardenRole, address: Address) => Promise<{ success: boolean }>;
+  /**
+   * Who holds which role today. The dialog uses it to refuse a role someone
+   * already has and to show what adding a role changes for an existing member.
+   */
+  roleMembers: Record<GardenRole, Address[]>;
+  /** Starts the field with this person (the Manage Roles path into promotion). */
+  initialAddress?: Address;
   /** Disables inputs while the hosting view runs an unrelated write. */
   isLoading?: boolean;
   tone?: AdminDialogProps["tone"];
@@ -34,24 +51,42 @@ export interface AddMembersDialogProps {
 
 /**
  * Add Members — the single add path for garden membership (multi-add with a
- * staged list). Role select + address/ENS input; each resolved entry stages
- * into a fixed-height list (the dialog never grows), then the whole batch
- * commits on submit. Failed writes stay staged for retry.
+ * staged list). Role select + address/ENS input; each resolved person stages
+ * into a fixed-height list with the role picked for them (changing the picker
+ * only affects the next person), then the whole batch commits on submit.
+ * Someone who already holds the picked role cannot be staged, so the dialog
+ * never asks the wallet to sign for nothing. Failed writes stay staged for retry.
  */
 export function AddMembersDialog({
   open,
   onClose,
   onAdd,
+  roleMembers,
+  initialAddress,
   isLoading = false,
   tone,
 }: AddMembersDialogProps) {
-  const { formatMessage } = useIntl();
+  const intl = useIntl();
+  const { formatMessage } = intl;
+  const statusId = useId();
   const [selectedRole, setSelectedRole] = useState<GardenRole>("gardener");
-  const [input, setInput] = useState("");
-  const [pending, setPending] = useState<Address[]>([]);
+  const [input, setInput] = useState(initialAddress ?? "");
+  const [pending, setPending] = useState<StagedMember[]>([]);
   const [error, setError] = useState("");
   const [submitResolving, setSubmitResolving] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [shownFor, setShownFor] = useState({ open, initialAddress });
+
+  // Each opening, and each change of the person it opens for, starts the field
+  // from `initialAddress`. Resetting here, rather than remounting through a
+  // key, keeps the closing dialog mounted so its exit motion plays.
+  if (open !== shownFor.open || initialAddress !== shownFor.initialAddress) {
+    setShownFor({ open, initialAddress });
+    if (open) {
+      setInput(initialAddress ?? "");
+      setError("");
+    }
+  }
 
   const trimmed = input.trim();
   const isHexAddress = useMemo(() => (trimmed ? isAddress(trimmed) : false), [trimmed]);
@@ -61,6 +96,7 @@ export function AddMembersDialog({
     { enabled: shouldResolveEns }
   );
   const busy = submitResolving || submitting || isLoading;
+  const rolesByAddress = useMemo(() => buildRolesByAddress(roleMembers), [roleMembers]);
   const typedResolvedAddress = useMemo<Address | null>(() => {
     if (!trimmed) return null;
     if (isHexAddress) return trimmed as Address;
@@ -68,11 +104,13 @@ export function AddMembersDialog({
       ? (resolvedEnsAddress as Address)
       : null;
   }, [isHexAddress, resolvedEnsAddress, trimmed]);
-  const typedAddressAlreadyStaged = typedResolvedAddress
-    ? pending.some((entry) => entry.toLowerCase() === typedResolvedAddress.toLowerCase())
-    : false;
-  const typedEntryCommitReady = Boolean(typedResolvedAddress) && !typedAddressAlreadyStaged;
+  const typedCheck = typedResolvedAddress
+    ? checkEntry(typedResolvedAddress, selectedRole, pending, rolesByAddress)
+    : null;
+  const typedEntryCommitReady = typedCheck !== null && canStage(typedCheck);
   const typedInputInvalid = Boolean(trimmed) && !resolvingEns && !typedResolvedAddress;
+
+  const roleName = (role: GardenRole) => getRoleLabel(role, formatMessage).singular;
 
   const resetDraft = () => {
     setInput("");
@@ -95,13 +133,8 @@ export function AddMembersDialog({
     }
   };
 
-  const stage = (address: Address) => {
-    setPending((prev) =>
-      prev.some((entry) => entry.toLowerCase() === address.toLowerCase())
-        ? prev
-        : [...prev, address]
-    );
-  };
+  const stageable = (address: Address) =>
+    canStage(checkEntry(address, selectedRole, pending, rolesByAddress));
 
   const handleAddToList = async () => {
     setError("");
@@ -110,12 +143,14 @@ export function AddMembersDialog({
       setError(formatMessage({ id: "app.admin.roles.error.ensResolutionFailed" }));
       return;
     }
-    stage(resolved);
+    // The status line under the field already says why a person can't be added.
+    if (!stageable(resolved)) return;
+    setPending((prev) => [...prev, { address: resolved, role: selectedRole }]);
     setInput("");
   };
 
   const removeEntry = (address: Address) =>
-    setPending((prev) => prev.filter((entry) => entry !== address));
+    setPending((prev) => prev.filter((entry) => entry.address !== address));
 
   const handlePaste = async () => {
     try {
@@ -134,14 +169,15 @@ export function AddMembersDialog({
     event.preventDefault();
     setError("");
 
-    const failed: Address[] = [];
+    const failed: StagedMember[] = [];
     let processedCount = 0;
     let batch = pending;
     try {
-      // Fold a typed-but-not-yet-staged address into the batch so a single
-      // entry doesn't require the extra "Add" tap. ENS submit resolution is
-      // marked busy before awaiting so close paths cannot continue into a
-      // wallet write after the steward cancels.
+      // Fold a typed-but-not-yet-staged person into the batch so a single
+      // entry doesn't require the extra "Add" tap. Someone already queued, or
+      // already holding the role, is left out; the status line says why. ENS
+      // submit resolution is marked busy before awaiting so close paths cannot
+      // continue into a wallet write after the steward cancels.
       if (trimmed) {
         if (!isHexAddress) setSubmitResolving(true);
         const resolved = await resolveInput();
@@ -149,9 +185,7 @@ export function AddMembersDialog({
           setError(formatMessage({ id: "app.admin.roles.error.ensResolutionFailed" }));
           return;
         }
-        batch = pending.some((entry) => entry.toLowerCase() === resolved.toLowerCase())
-          ? pending
-          : [...pending, resolved];
+        if (stageable(resolved)) batch = [...pending, { address: resolved, role: selectedRole }];
       }
 
       if (batch.length === 0) {
@@ -161,10 +195,10 @@ export function AddMembersDialog({
 
       setSubmitResolving(false);
       setSubmitting(true);
-      for (const [index, address] of batch.entries()) {
-        const result = await onAdd(selectedRole, address);
+      for (const [index, entry] of batch.entries()) {
+        const result = await onAdd(entry.role, entry.address);
         processedCount = index + 1;
-        if (!result.success) failed.push(address);
+        if (!result.success) failed.push(entry);
       }
       if (failed.length > 0) {
         // Keep only the failures staged for retry.
@@ -186,17 +220,94 @@ export function AddMembersDialog({
     }
   };
 
+  // What the typed entry means, most specific first. A typed ENS name is
+  // repeated as typed; a pasted address shows its ENS name when it has one.
+  const typedMember: ReactNode =
+    isHexAddress && typedResolvedAddress ? (
+      <EnsAddressText address={typedResolvedAddress} />
+    ) : (
+      trimmed
+    );
+  let entryStatus: ReactNode = null;
+  if (resolvingEns) {
+    entryStatus = formatMessage({
+      id: "admin.addMember.resolvingEns",
+      defaultMessage: "Resolving ENS name...",
+    });
+  } else if (typedCheck?.kind === "staged") {
+    entryStatus = (
+      <FormattedMessage
+        id="admin.addMember.alreadyStaged"
+        values={{
+          member: typedMember,
+          role: roleName(typedCheck.stagedRole),
+          roleKey: typedCheck.stagedRole,
+        }}
+      />
+    );
+  } else if (typedCheck?.kind === "held") {
+    entryStatus = (
+      <FormattedMessage
+        id="admin.addMember.alreadyHasRole"
+        values={{ member: typedMember, role: roleName(selectedRole), roleKey: selectedRole }}
+      />
+    );
+  } else if (typedCheck?.kind === "member") {
+    entryStatus = (
+      <FormattedMessage
+        id="admin.addMember.currentRolesHint"
+        values={{
+          member: typedMember,
+          roles: formatRoleNames(typedCheck.currentRoles, intl),
+          firstRoleKey: typedCheck.currentRoles[0],
+        }}
+      />
+    );
+  } else if (shouldResolveEns) {
+    entryStatus = resolvedEnsAddress ? (
+      <FormattedMessage
+        id="admin.addMember.ensResolved"
+        defaultMessage="Resolves to {address}"
+        values={{ address: <EnsAddressText address={resolvedEnsAddress} /> }}
+      />
+    ) : (
+      formatMessage({
+        id: "admin.addMember.enterValidAddress",
+        defaultMessage: "Enter a valid ENS name or 0x address.",
+      })
+    );
+  }
+
   const formId = "admin-add-members-dialog";
-  const batchCount = pending.length + (typedEntryCommitReady ? 1 : 0);
+  const batchRoles = [
+    ...pending.map((entry) => entry.role),
+    ...(typedEntryCommitReady ? [selectedRole] : []),
+  ];
+  const batchCount = batchRoles.length;
+  // The button names the role when every row shares it; an empty list names
+  // the role the picker would add.
+  const batchRole = batchCount === 0 ? selectedRole : sharedRole(batchRoles);
+  const submitLabel = batchRole
+    ? formatMessage(
+        { id: "admin.addMember.addCountRole" },
+        { count: batchCount, ...getRoleLabel(batchRole, formatMessage) }
+      )
+    : formatMessage(
+        {
+          id: "admin.addMember.addCount",
+          defaultMessage: "{count, plural, one {Add # Member} other {Add # Members}}",
+        },
+        { count: batchCount }
+      );
   const closeAndReset = () => {
     resetDraft();
     onClose();
   };
   // Confirm-before-discard: a staged batch (or typed input) is unsaved
-  // steward input, so X/scrim/Escape confirm first. The footer Cancel still
-  // exits directly per the dialog contract.
+  // steward input, so X/scrim/Escape confirm first. A prefilled person nobody
+  // changed is not. The footer Cancel still exits directly per the dialog contract.
   const dirtyClose = useDirtyClose({
-    isDirty: pending.length > 0 || Boolean(trimmed),
+    isDirty: pending.length > 0 || (Boolean(trimmed) && trimmed !== (initialAddress ?? "")),
     onClose: closeAndReset,
   });
   const handleOpenChange = (next: boolean) => {
@@ -215,7 +326,7 @@ export function AddMembersDialog({
         title={formatMessage({ id: "admin.addMember.title", defaultMessage: "Add Members" })}
         description={formatMessage({
           id: "admin.addMember.description",
-          defaultMessage: "Stage one or more addresses, then add them all in one pass.",
+          defaultMessage: "Choose a role for each person, then add the whole list.",
         })}
         actions={
           <>
@@ -228,13 +339,7 @@ export function AddMembersDialog({
               loading={submitResolving || submitting}
               disabled={busy || batchCount === 0 || typedInputInvalid || resolvingEns}
             >
-              {formatMessage(
-                {
-                  id: "admin.addMember.addCount",
-                  defaultMessage: "{count, plural, one {Add # member} other {Add # members}}",
-                },
-                { count: batchCount }
-              )}
+              {submitLabel}
             </AdminButton>
           </>
         }
@@ -270,7 +375,10 @@ export function AddMembersDialog({
                   defaultMessage: "0x... or name.eth",
                 })}
                 disabled={busy}
-                inputProps={{ "aria-invalid": !!error || typedInputInvalid }}
+                inputProps={{
+                  "aria-invalid": !!error || typedInputInvalid,
+                  "aria-describedby": statusId,
+                }}
               />
               <div className="flex items-center gap-2 pt-1.5">
                 <AdminIconButton
@@ -294,74 +402,24 @@ export function AddMembersDialog({
                 </AdminButton>
               </div>
             </div>
-            {shouldResolveEns && (
-              <p className="mt-1 body-sm text-text-soft">
-                {resolvingEns ? (
-                  formatMessage({
-                    id: "admin.addMember.resolvingEns",
-                    defaultMessage: "Resolving ENS name...",
-                  })
-                ) : resolvedEnsAddress ? (
-                  <FormattedMessage
-                    id="admin.addMember.ensResolved"
-                    defaultMessage="Resolves to {address}"
-                    values={{ address: <EnsAddressText address={resolvedEnsAddress} /> }}
-                  />
-                ) : (
-                  formatMessage({
-                    id: "admin.addMember.enterValidAddress",
-                    defaultMessage: "Enter a valid ENS name or 0x address.",
-                  })
-                )}
-              </p>
-            )}
+            {/* Always mounted so screen readers hear each change; guidance is
+                calm supporting text, never an error state, inset like the
+                field's own supporting text. */}
+            <p
+              id={statusId}
+              aria-live="polite"
+              className="mt-1 px-4 body-sm text-text-soft empty:mt-0"
+            >
+              {entryStatus}
+            </p>
           </div>
 
-          {/* Reserved-geometry staging area: fixed height from first paint so
-            adding names never grows the dialog (§ dialog standard — loading/
-            list regions reserve their final dimensions). */}
-          <div
-            className="h-44 overflow-y-auto rounded-[var(--m3-shape-md)] border border-stroke-soft bg-bg-weak/40 p-2"
-            role="group"
-            aria-label={formatMessage({
-              id: "admin.addMember.pendingList",
-              defaultMessage: "Members to add",
-            })}
-          >
-            {pending.length === 0 ? (
-              <p className="flex h-full items-center justify-center px-4 text-center text-xs text-text-soft">
-                {formatMessage({
-                  id: "admin.addMember.stagedEmpty",
-                  defaultMessage: "Resolved addresses appear here before they are added.",
-                })}
-              </p>
-            ) : (
-              <ul className="space-y-2">
-                {pending.map((address) => (
-                  <li
-                    key={address}
-                    className="flex items-center justify-between gap-2 rounded-[var(--m3-shape-md)] bg-[rgb(var(--m3-surface-container))] px-3 py-2"
-                  >
-                    <span className="min-w-0 truncate text-body-md text-text-strong">
-                      <EnsAddressText address={address} />
-                    </span>
-                    <AdminIconButton
-                      size="sm"
-                      className="shrink-0"
-                      onClick={() => removeEntry(address)}
-                      disabled={busy}
-                      label={formatMessage({
-                        id: "admin.addMember.remove",
-                        defaultMessage: "Remove",
-                      })}
-                    >
-                      <RiCloseLine />
-                    </AdminIconButton>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
+          <StagedMemberList
+            members={pending}
+            rolesByAddress={rolesByAddress}
+            onRemove={removeEntry}
+            disabled={busy}
+          />
         </form>
       </AdminDialog>
       <DiscardChangesDialog

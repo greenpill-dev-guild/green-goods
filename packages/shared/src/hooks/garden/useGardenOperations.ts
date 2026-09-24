@@ -11,6 +11,7 @@ import { useCallback, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
 import type { Address, Garden } from "../../types/domain";
+import { formatAddress } from "../../utils/app/text";
 import type { GardenRole } from "../../utils/blockchain/garden-roles";
 import { useToastAction } from "../app/useToastAction";
 import { gardensKeys } from "../../config/query-keys/garden";
@@ -23,55 +24,9 @@ import {
   type GardenOperationResult,
   type OptimisticUpdateCallback,
 } from "./createGardenOperation";
+import { applyOptimisticUpdate, isOnCachedRoster, rollBackFailedWrite } from "./gardenRosterCache";
 import { usePrimaryAddress } from "../auth/usePrimaryAddress";
 import { useTransactionSender } from "../blockchain/useTransactionSender";
-
-/**
- * Apply optimistic update to garden cache data
- */
-function applyOptimisticUpdate(
-  gardens: Garden[],
-  gardenId: string,
-  memberType: GardenRole,
-  operationType: "add" | "remove",
-  targetAddress: string
-): Garden[] {
-  const roleFieldMap: Record<GardenRole, keyof Garden> = {
-    gardener: "gardeners",
-    steward: "stewards",
-    evaluator: "evaluators",
-    owner: "owners",
-    funder: "funders",
-    community: "communities",
-  };
-
-  return gardens.map((garden) => {
-    if (garden.id !== gardenId) return garden;
-
-    const memberKey = roleFieldMap[memberType];
-    const currentMembers = (garden[memberKey] as string[] | undefined) || [];
-
-    let newMembers: string[];
-    if (operationType === "add") {
-      // Add if not already present
-      if (currentMembers.includes(targetAddress.toLowerCase())) {
-        newMembers = currentMembers;
-      } else {
-        newMembers = [...currentMembers, targetAddress.toLowerCase()];
-      }
-    } else {
-      // Remove the address
-      newMembers = currentMembers.filter(
-        (addr) => addr.toLowerCase() !== targetAddress.toLowerCase()
-      );
-    }
-
-    return {
-      ...garden,
-      [memberKey]: newMembers,
-    };
-  });
-}
 
 export function useGardenOperations(gardenId: string) {
   // Garden ids are token-bound account addresses; callers still pass them as route strings.
@@ -113,6 +68,13 @@ export function useGardenOperations(gardenId: string) {
           { id: isAdd ? "app.admin.roles.addFailed" : "app.admin.roles.removeFailed" },
           { role }
         ),
+        alreadyHeld: isAdd
+          ? (targetAddress) =>
+              formatMessage(
+                { id: "app.admin.roles.alreadyHeld" },
+                { address: formatAddress(targetAddress), role, roleKey: memberType }
+              )
+          : undefined,
       };
     },
     [formatMessage, roleLabels]
@@ -142,46 +104,37 @@ export function useGardenOperations(gardenId: string) {
     [gardenId, queryClient, chainId]
   );
 
-  // Rollback optimistic update on failure
-  const rollbackOptimisticUpdate = useCallback(
-    (memberType: GardenRole, operationType: "add" | "remove", targetAddress: string) => {
-      const queryKey = gardensKeys.byChain(chainId);
-      const currentData = queryClient.getQueryData<Garden[]>(queryKey);
-      if (!currentData) return;
-
-      // Reverse the operation
-      const reverseOperation = operationType === "add" ? "remove" : "add";
-      const rolledBackData = applyOptimisticUpdate(
-        currentData,
-        gardenId,
-        memberType,
-        reverseOperation,
-        targetAddress
-      );
-
-      queryClient.setQueryData(queryKey, rolledBackData);
-    },
-    [gardenId, queryClient, chainId]
-  );
-
-  // Wrapper to handle operation result and potential rollback
+  // Wrapper that undoes a failed write's optimistic step. The roster is read
+  // before the call, so a no-op step (adding someone already listed) is left
+  // alone instead of being "undone" into a removal.
   const createOperationWrapper = useCallback(
-    (operation: GardenOperation, memberType: GardenRole, operationType: "add" | "remove") => {
+    (operation: GardenOperation, memberType: GardenRole) => {
       return async (
         targetAddress: Address,
         options?: GardenOperationCallOptions
       ): Promise<GardenOperationResult> => {
+        const queryKey = gardensKeys.byChain(chainId);
+        const wasOnRoster = isOnCachedRoster(
+          queryClient.getQueryData<Garden[]>(queryKey) ?? [],
+          gardenId,
+          memberType,
+          targetAddress
+        );
+
         const result = await operation(targetAddress, options);
 
-        if (!result.success && result.optimisticUpdate) {
-          // Rollback if transaction failed after optimistic update was applied
-          rollbackOptimisticUpdate(memberType, operationType, targetAddress);
+        const currentData = queryClient.getQueryData<Garden[]>(queryKey);
+        if (!result.success && result.optimisticUpdate && currentData) {
+          queryClient.setQueryData(
+            queryKey,
+            rollBackFailedWrite(currentData, gardenId, result.optimisticUpdate, wasOnRoster)
+          );
         }
 
         return result;
       };
     },
-    [rollbackOptimisticUpdate]
+    [chainId, gardenId, queryClient]
   );
 
   // Create memoized operations using the factory with optimistic updates
@@ -227,8 +180,7 @@ export function useGardenOperations(gardenId: string) {
           setIsLoading,
           optimisticCallback
         ),
-        "gardener",
-        "add"
+        "gardener"
       ),
       removeGardener: createOperationWrapper(
         createGardenOperation(
@@ -244,8 +196,7 @@ export function useGardenOperations(gardenId: string) {
           setIsLoading,
           optimisticCallback
         ),
-        "gardener",
-        "remove"
+        "gardener"
       ),
       addSteward: createOperationWrapper(
         createGardenOperation(
@@ -261,8 +212,7 @@ export function useGardenOperations(gardenId: string) {
           setIsLoading,
           optimisticCallback
         ),
-        "steward",
-        "add"
+        "steward"
       ),
       removeSteward: createOperationWrapper(
         createGardenOperation(
@@ -278,8 +228,7 @@ export function useGardenOperations(gardenId: string) {
           setIsLoading,
           optimisticCallback
         ),
-        "steward",
-        "remove"
+        "steward"
       ),
       addEvaluator: createOperationWrapper(
         createGardenOperation(
@@ -295,8 +244,7 @@ export function useGardenOperations(gardenId: string) {
           setIsLoading,
           optimisticCallback
         ),
-        "evaluator",
-        "add"
+        "evaluator"
       ),
       removeEvaluator: createOperationWrapper(
         createGardenOperation(
@@ -312,8 +260,7 @@ export function useGardenOperations(gardenId: string) {
           setIsLoading,
           optimisticCallback
         ),
-        "evaluator",
-        "remove"
+        "evaluator"
       ),
       addOwner: createOperationWrapper(
         createGardenOperation(
@@ -329,8 +276,7 @@ export function useGardenOperations(gardenId: string) {
           setIsLoading,
           optimisticCallback
         ),
-        "owner",
-        "add"
+        "owner"
       ),
       removeOwner: createOperationWrapper(
         createGardenOperation(
@@ -346,8 +292,7 @@ export function useGardenOperations(gardenId: string) {
           setIsLoading,
           optimisticCallback
         ),
-        "owner",
-        "remove"
+        "owner"
       ),
       addFunder: createOperationWrapper(
         createGardenOperation(
@@ -363,8 +308,7 @@ export function useGardenOperations(gardenId: string) {
           setIsLoading,
           optimisticCallback
         ),
-        "funder",
-        "add"
+        "funder"
       ),
       removeFunder: createOperationWrapper(
         createGardenOperation(
@@ -380,8 +324,7 @@ export function useGardenOperations(gardenId: string) {
           setIsLoading,
           optimisticCallback
         ),
-        "funder",
-        "remove"
+        "funder"
       ),
       addCommunity: createOperationWrapper(
         createGardenOperation(
@@ -397,8 +340,7 @@ export function useGardenOperations(gardenId: string) {
           setIsLoading,
           optimisticCallback
         ),
-        "community",
-        "add"
+        "community"
       ),
       removeCommunity: createOperationWrapper(
         createGardenOperation(
@@ -414,8 +356,7 @@ export function useGardenOperations(gardenId: string) {
           setIsLoading,
           optimisticCallback
         ),
-        "community",
-        "remove"
+        "community"
       ),
     };
   }, [

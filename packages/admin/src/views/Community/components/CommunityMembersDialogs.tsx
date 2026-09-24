@@ -25,6 +25,8 @@ export function CommunityMembersDialogs({
 }: CommunityMembersDialogsProps) {
   const [manageMembersOpen, setManageMembersOpen] = useState(selectedItem === "manage-members");
   const [addMembersOpen, setAddMembersOpen] = useState(selectedItem === "add-member");
+  // The person Manage Members was showing when Add Members opened over it.
+  const [addMembersPrefill, setAddMembersPrefill] = useState<Address | undefined>();
   const [searchParams] = useSearchParams();
   const memberParam = searchParams.get("member");
   const initialMemberAddress =
@@ -69,8 +71,13 @@ export function CommunityMembersDialogs({
     setManageMembersOpen(false);
     if (selectedItem === "manage-members") closeMembersModal();
   };
+  const openAddMembers = (prefill?: Address) => {
+    setAddMembersPrefill(prefill);
+    setAddMembersOpen(true);
+  };
   const closeAddMembers = () => {
     setAddMembersOpen(false);
+    setAddMembersPrefill(undefined);
     if (selectedItem === "add-member") closeMembersModal();
   };
   const handleRemoveMember = async (address: Address, role: GardenRole) => {
@@ -91,13 +98,15 @@ export function CommunityMembersDialogs({
         canManage={canManage}
         isLoading={operations.isLoading}
         onRemoveMember={handleRemoveMember}
-        onAddMembers={() => setAddMembersOpen(true)}
+        onAddMembers={openAddMembers}
       />
       <AddMembersDialog
         key={garden.id}
         open={addMembersOpen}
         onClose={closeAddMembers}
         tone="community"
+        roleMembers={roleMembers}
+        initialAddress={addMembersPrefill}
         isLoading={operations.isLoading}
         onAdd={(role, address) => addByRole[role](address)}
       />

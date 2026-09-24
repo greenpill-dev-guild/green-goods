@@ -2,14 +2,17 @@
  * AddMembersDialog Component Tests
  *
  * Multi-add staging semantics: resolved addresses stage into a fixed-height
- * list, the batch commits on submit, and failed writes stay staged for retry.
+ * list with the role picked for each person, the batch commits on submit, and
+ * failed writes stay staged for retry. Someone who already holds the picked
+ * role never reaches the list, so the wallet is never asked to sign for nothing.
  */
 
-import { fireEvent, screen, waitFor } from "@testing-library/react";
+import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { createElement } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Address } from "@green-goods/shared/types/domain";
+import type { GardenRole } from "@green-goods/shared/utils/blockchain/garden-roles";
 import { renderWithProviders as render } from "../../test-utils";
 
 vi.mock("@green-goods/shared/hooks/admin-ui/useDirtyClose", async () => {
@@ -76,11 +79,23 @@ import { AddMembersDialog } from "../../../components/Garden/AddMembersDialog";
 const ADDRESS_A = "0x1111111111111111111111111111111111111111" as Address;
 const ADDRESS_B = "0x2222222222222222222222222222222222222222" as Address;
 
+const NO_MEMBERS: Record<GardenRole, Address[]> = {
+  owner: [],
+  steward: [],
+  evaluator: [],
+  gardener: [],
+  funder: [],
+  community: [],
+};
+// ADDRESS_A already gardens here.
+const WITH_GARDENER_A: Record<GardenRole, Address[]> = { ...NO_MEMBERS, gardener: [ADDRESS_A] };
+
 describe("components/Garden/AddMembersDialog", () => {
   const defaultProps = {
     open: true,
     onClose: vi.fn(),
     onAdd: vi.fn(async () => ({ success: true })),
+    roleMembers: NO_MEMBERS,
     isLoading: false,
   };
 
@@ -117,7 +132,8 @@ describe("components/Garden/AddMembersDialog", () => {
     await user.paste(ADDRESS_B);
 
     // Typed-but-unstaged address folds into the batch — one staged + one typed.
-    await user.click(screen.getByRole("button", { name: "Add 2 members" }));
+    // Every row shares the role, so the button names it.
+    await user.click(screen.getByRole("button", { name: "Add 2 Gardeners" }));
 
     await waitFor(() => {
       expect(defaultProps.onAdd).toHaveBeenCalledTimes(2);
@@ -143,7 +159,7 @@ describe("components/Garden/AddMembersDialog", () => {
     await user.click(screen.getByRole("button", { name: "Add" }));
     await user.click(input);
     await user.paste(ADDRESS_B);
-    await user.click(screen.getByRole("button", { name: "Add 2 members" }));
+    await user.click(screen.getByRole("button", { name: "Add 2 Gardeners" }));
 
     // First write failed → its address stays staged, the dialog stays open.
     await waitFor(() => {
@@ -151,7 +167,7 @@ describe("components/Garden/AddMembersDialog", () => {
     });
     expect(defaultProps.onClose).not.toHaveBeenCalled();
     expect(screen.getByTestId("staged-address")).toHaveTextContent(ADDRESS_A.slice(0, 10));
-    expect(screen.getByRole("button", { name: "Add 1 member" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Add 1 Gardener" })).toBeInTheDocument();
   });
 
   it("submits a typed address directly without requiring the stage step", async () => {
@@ -161,7 +177,7 @@ describe("components/Garden/AddMembersDialog", () => {
     const input = screen.getByLabelText(/Ethereum Address or ENS Name/);
     await user.click(input);
     await user.paste(ADDRESS_A);
-    await user.click(screen.getByRole("button", { name: "Add 1 member" }));
+    await user.click(screen.getByRole("button", { name: "Add 1 Gardener" }));
 
     await waitFor(() => {
       expect(defaultProps.onAdd).toHaveBeenCalledWith("gardener", ADDRESS_A);
@@ -177,8 +193,94 @@ describe("components/Garden/AddMembersDialog", () => {
     await user.paste("not-a-wallet");
 
     expect(screen.getByRole("button", { name: "Add" })).toBeDisabled();
-    expect(screen.getByRole("button", { name: "Add 0 members" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Add Gardeners" })).toBeDisabled();
     expect(defaultProps.onAdd).not.toHaveBeenCalled();
+  });
+
+  it("refuses a role the person already holds, then lets them be promoted", async () => {
+    const user = userEvent.setup({ delay: null });
+    render(createElement(AddMembersDialog, { ...defaultProps, roleMembers: WITH_GARDENER_A }));
+
+    const input = screen.getByLabelText(/Ethereum Address or ENS Name/);
+    await user.click(input);
+    await user.paste(ADDRESS_A);
+
+    // Calm guidance, not an error: the address is fine, only this role is taken.
+    expect(screen.getByRole("button", { name: "Add" })).toBeDisabled();
+    expect(
+      screen.getByText(/is already a Gardener\. Choose another role to add them\./)
+    ).toBeInTheDocument();
+    expect(input).toHaveAttribute("aria-invalid", "false");
+
+    await user.selectOptions(screen.getByLabelText("Role"), "steward");
+    expect(screen.getByText(/is currently a Gardener\./)).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Add" }));
+
+    // The row names the role being added and the roles held today.
+    const list = screen.getByRole("group", { name: "Members to add" });
+    expect(within(list).getByText("Steward")).toBeInTheDocument();
+    expect(within(list).getByText("Currently a Gardener")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Add 1 Steward" }));
+    await waitFor(() => {
+      expect(defaultProps.onAdd).toHaveBeenCalledWith("steward", ADDRESS_A);
+    });
+  });
+
+  it("keeps each row's role when the picker changes and names a mixed list", async () => {
+    const user = userEvent.setup({ delay: null });
+    render(createElement(AddMembersDialog, defaultProps));
+
+    const input = screen.getByLabelText(/Ethereum Address or ENS Name/);
+    await user.click(input);
+    await user.paste(ADDRESS_A);
+    await user.click(screen.getByRole("button", { name: "Add" }));
+    await user.selectOptions(screen.getByLabelText("Role"), "steward");
+    await user.click(input);
+    await user.paste(ADDRESS_B);
+    await user.click(screen.getByRole("button", { name: "Add" }));
+
+    const list = screen.getByRole("group", { name: "Members to add" });
+    expect(within(list).getByText("Gardener")).toBeInTheDocument();
+    expect(within(list).getByText("Steward")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Add 2 Members" }));
+
+    await waitFor(() => {
+      expect(defaultProps.onAdd).toHaveBeenCalledWith("gardener", ADDRESS_A);
+      expect(defaultProps.onAdd).toHaveBeenCalledWith("steward", ADDRESS_B);
+    });
+  });
+
+  it("says when a person is already in the list", async () => {
+    const user = userEvent.setup({ delay: null });
+    render(createElement(AddMembersDialog, defaultProps));
+
+    const input = screen.getByLabelText(/Ethereum Address or ENS Name/);
+    await user.click(input);
+    await user.paste(ADDRESS_A);
+    await user.click(screen.getByRole("button", { name: "Add" }));
+    await user.click(input);
+    await user.paste(ADDRESS_A);
+
+    expect(screen.getByRole("button", { name: "Add" })).toBeDisabled();
+    expect(screen.getByText(/is already in the list as a Gardener\./)).toBeInTheDocument();
+  });
+
+  it("opens on a prefilled person without treating it as unsaved input", async () => {
+    const user = userEvent.setup({ delay: null });
+    render(
+      createElement(AddMembersDialog, {
+        ...defaultProps,
+        roleMembers: WITH_GARDENER_A,
+        initialAddress: ADDRESS_A,
+      })
+    );
+
+    expect(screen.getByLabelText(/Ethereum Address or ENS Name/)).toHaveValue(ADDRESS_A);
+    expect(screen.getByText(/is already a Gardener\./)).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Close" }));
+    expect(screen.queryByText("Discard changes?")).not.toBeInTheDocument();
+    expect(defaultProps.onClose).toHaveBeenCalledTimes(1);
   });
 
   it("confirms before discarding a staged batch on dialog dismiss", async () => {
