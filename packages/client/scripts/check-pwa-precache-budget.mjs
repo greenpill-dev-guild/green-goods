@@ -41,7 +41,9 @@ const FORBIDDEN_PUBLIC_MODULES = [
 // blocks the chunk every auth-importing route loads, and the browser reports the
 // failure against the route's chunk. The `-<hash>` suffix is also what lets the
 // worker reuse an unchanged file (`isContentAddressed` in src/sw/shellAssets.ts).
-const OPAQUE_CHUNK_FILE = /^assets\/chunk-[A-Za-z0-9_-]{8,}\.js$/;
+// The config pins an 8-character hash so no module name can hide after `chunk-`;
+// rolldown appends a numeric suffix to some names (`chunk-0Z0fNygk2.js`).
+const OPAQUE_CHUNK_FILE = /^assets\/chunk-[A-Za-z0-9_-]{8}\d*\.js$/;
 
 const ROUTE_SOURCE_SUFFIXES = [
   "src/views/Public/Home.tsx",

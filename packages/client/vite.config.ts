@@ -440,8 +440,9 @@ export default defineConfig(async ({ command, mode }): Promise<UserConfig> => {
           // chunk every auth-importing lazy route loads, and the browser reports
           // that against the route's chunk. Keep the `-<hash>` suffix: the worker
           // reuses an unchanged shell file only when its name is content-addressed.
-          // scripts/check-pwa-precache-budget.mjs fails a build that drifts.
-          chunkFileNames: "assets/chunk-[hash].js",
+          // scripts/check-pwa-precache-budget.mjs fails a build that drifts and
+          // expects exactly this 8-character hash.
+          chunkFileNames: "assets/chunk-[hash:8].js",
           codeSplitting: {
             groups: [
               // Keep Vite's dynamic-import helper neutral. If it is assigned to a feature

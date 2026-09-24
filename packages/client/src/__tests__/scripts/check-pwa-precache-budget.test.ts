@@ -189,16 +189,21 @@ describe("PWA build budgets", () => {
   });
 
   it("passes a build whose lazy chunks carry opaque names", () => {
-    const fixture = createFixture({ lazyChunkFiles: ["assets/chunk-shared01.js"] });
+    // Rolldown appends a numeric suffix to some hash-only names.
+    const fixture = createFixture({
+      lazyChunkFiles: ["assets/chunk-shared01.js", "assets/chunk-0Z0fNygk2.js"],
+    });
     expect(runFailure(fixture, {})).toBe("");
   });
 
   // EasyPrivacy's `/analytics-events-` rule blocks this name under Brave's
   // Aggressive blocking and uBlock Origin, failing every lazy route that imports auth.
-  it("fails a lazy chunk whose file name carries its module name", () => {
-    const fixture = createFixture({ lazyChunkFiles: ["assets/analytics-events-OnL9QVlN.js"] });
-    const output = runFailure(fixture, {});
+  it.each([
+    "assets/analytics-events-OnL9QVlN.js",
+    "assets/chunk-analytics-events-OnL9QVlN.js",
+  ])("fails a lazy chunk whose file name carries its module name: %s", (file) => {
+    const output = runFailure(createFixture({ lazyChunkFiles: [file] }), {});
     expect(output).toContain("lazy chunk file names must be opaque");
-    expect(output).toContain("assets/analytics-events-OnL9QVlN.js");
+    expect(output).toContain(file);
   });
 });
