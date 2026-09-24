@@ -242,6 +242,24 @@ describe("GardenSettingsEditor explicit save", () => {
     expect(mockUpdateBannerImage).not.toHaveBeenCalled();
   });
 
+  it("holds a name that fits 72 characters but not the 72 bytes the contract counts", async () => {
+    const user = userEvent.setup();
+    renderEditor();
+
+    const nameInput = screen.getByLabelText(/Name/);
+    await user.clear(nameInput);
+    // 68 characters, 73 UTF-8 bytes: updateName would revert NameTooLong after signing.
+    await user.type(
+      nameInput,
+      "Jardim Agroecológico da Associação de Moradores da Rocinha — Cachopa"
+    );
+
+    expect(screen.getByText("73 / 72")).toBeInTheDocument();
+    expect(nameInput).toHaveAttribute("aria-invalid", "true");
+    expect(screen.getByRole("button", { name: "Save Changes" })).toBeDisabled();
+    expect(mockUpdateName).not.toHaveBeenCalled();
+  });
+
   it("stages a selected banner as a draft and uploads to IPFS only on Save", async () => {
     const user = userEvent.setup();
     const onBannerPreviewChange = vi.fn();

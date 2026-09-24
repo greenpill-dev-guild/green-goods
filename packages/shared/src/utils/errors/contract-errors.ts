@@ -15,6 +15,10 @@ const LOCALIZED_ERROR_FALLBACKS = {
     message: "You cannot review your own work submission",
     action: "Ask another garden steward to approve or reject this work",
   },
+  NameTooLong: {
+    message: "This garden name is too long to save",
+    action: "Shorten it: accented letters count as two, and some symbols as more",
+  },
 } as const;
 
 const ERROR_SIGNATURES: Record<string, ErrorInfo> = {
@@ -94,6 +98,13 @@ const ERROR_SIGNATURES: Record<string, ErrorInfo> = {
     message: "Failed to create milestone on Karma GAP",
     recoverable: false,
     suggestedAction: "contact-support",
+  },
+  // A name past 72 UTF-8 bytes, on create (initialize) or rename (updateName).
+  "0x680b6caf": {
+    name: "NameTooLong",
+    messageKey: "app.errors.contract.nameTooLong.message",
+    actionKey: "app.errors.contract.nameTooLong.action",
+    recoverable: false,
   },
 
   // ============================================================================
