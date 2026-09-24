@@ -2160,6 +2160,8 @@
   "app.home.filters.scope.mine": "Mis jardines ({count})",
   "app.home.filters.scope.mineDisabled": "Inicia sesión para filtrar por tus jardines.",
   "app.home.filters.scope.mineEmpty": "Aún no hay jardines asignados.",
+  "app.home.filters.scope.open": "Jardines abiertos ({count})",
+  "app.home.filters.scope.openDescription": "Cualquiera puede unirse sin invitación.",
   "app.home.filters.scopeTitle": "Mostrar",
   "app.home.filters.sort.name": "Nombre (A-Z)",
   "app.home.filters.sort.recent": "Más recientes",

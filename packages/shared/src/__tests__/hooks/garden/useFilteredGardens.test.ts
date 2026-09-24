@@ -1,8 +1,8 @@
 /**
  * useFilteredGardens Tests
  *
- * Tests garden filtering by scope (all/mine), sorting (name/recent),
- * member counting, and filter state computation.
+ * Tests garden filtering by scope (all/mine/open), sorting (name/recent),
+ * member and open-garden counting, and filter state computation.
  */
 
 import { describe, expect, it } from "vitest";
@@ -133,6 +133,40 @@ describe("useFilteredGardens", () => {
       const result = useFilteredGardens(gardens, defaultFilters({ scope: "mine" }), USER_ADDRESS);
 
       expect(result.filteredGardens).toHaveLength(0);
+    });
+  });
+
+  // ------------------------------------------
+  // Scope: open
+  // ------------------------------------------
+
+  describe("scope: open", () => {
+    const openJoined = createGarden({
+      id: "open-joined",
+      openJoining: true,
+      gardeners: [USER_ADDRESS] as any[],
+    });
+    const openOther = createGarden({ id: "open-other", openJoining: true });
+    const inviteOnly = createGarden({ id: "invite-only", openJoining: false });
+    const unset = createGarden({ id: "unset" });
+    const gardens = [openJoined, openOther, inviteOnly, unset];
+
+    it("keeps gardens anyone can join, including ones the user already belongs to", () => {
+      const result = useFilteredGardens(gardens, defaultFilters({ scope: "open" }), USER_ADDRESS);
+
+      expect(result.filteredGardens.map((garden) => garden.id)).toEqual([
+        "open-joined",
+        "open-other",
+      ]);
+      expect(result.activeFilterCount).toBe(1);
+    });
+
+    it("does not need a signed-in user, and counts open gardens under any scope", () => {
+      const signedOut = useFilteredGardens(gardens, defaultFilters({ scope: "open" }), null);
+      const allScope = useFilteredGardens(gardens, defaultFilters(), USER_ADDRESS);
+
+      expect(signedOut.filteredGardens).toHaveLength(2);
+      expect(allScope.openGardensCount).toBe(2);
     });
   });
 
