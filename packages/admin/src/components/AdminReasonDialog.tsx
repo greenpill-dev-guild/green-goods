@@ -1,4 +1,5 @@
 import { logger } from "@green-goods/shared/modules/app/logger";
+import { MAX_REASON } from "@green-goods/shared/modules/commitment-pooling/reasons";
 import { RiAlertLine } from "@remixicon/react";
 import { type ReactNode, useEffect, useState } from "react";
 import { useIntl } from "react-intl";
@@ -19,7 +20,10 @@ export interface AdminReasonDialogProps {
   cancelLabel?: string;
   reasonLabel?: string;
   reasonPlaceholder?: string;
-  /** Maximum accepted reason length when the downstream contract is narrower. */
+  /**
+   * Maximum accepted reason length when the downstream contract is narrower.
+   * Defaults to the commitment-pooling limit the reason builder refuses past.
+   */
   maxReasonLength?: number;
   /** Short phrases a steward can start from; each fills the field, editable. */
   suggestions?: string[];
@@ -33,8 +37,6 @@ export interface AdminReasonDialogProps {
   /** Extra facts rendered above the field (for example what is frozen or who confirms). */
   children?: ReactNode;
 }
-
-const DEFAULT_MAX_REASON_LENGTH = 2000;
 
 /**
  * AdminReasonDialog — the reason-required confirmation.
@@ -61,7 +63,7 @@ export function AdminReasonDialog({
   cancelLabel,
   reasonLabel,
   reasonPlaceholder,
-  maxReasonLength = DEFAULT_MAX_REASON_LENGTH,
+  maxReasonLength = MAX_REASON,
   suggestions = [],
   variant = "default",
   isLoading = false,

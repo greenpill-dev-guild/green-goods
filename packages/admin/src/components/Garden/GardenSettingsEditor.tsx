@@ -1,7 +1,10 @@
 import { FileUploadField } from "@green-goods/shared/components/FileUploadField";
 import { Switch } from "@green-goods/shared/components/Form/ControlPrimitives";
 import { toastService } from "@green-goods/shared/components/Toast/toast.service";
-import { GARDEN_NAME_MAX_LENGTH } from "@green-goods/shared/hooks/garden/useCreateGardenForm";
+import {
+  GARDEN_NAME_MAX_LENGTH,
+  gardenNameFits,
+} from "@green-goods/shared/hooks/garden/useCreateGardenForm";
 import { useSetGardenDomains } from "@green-goods/shared/hooks/garden/useSetGardenDomains";
 import {
   useSetMaxGardeners,
@@ -246,6 +249,7 @@ export const GardenSettingsEditor = forwardRef<
   const canEditAnything = canEditProfile || canEditName;
 
   const nameInvalid = canEditName && draft.name.trim().length === 0;
+  const nameTooLong = canEditName && !gardenNameFits(draft.name);
   const maxGardenersInvalid =
     draft.limitGardeners &&
     (draft.maxGardeners.trim() === "" ||
@@ -254,7 +258,7 @@ export const GardenSettingsEditor = forwardRef<
   // Unreachable via the min-one toggle guard, but keeps Save honest if a garden
   // ever reaches an empty selection through some other path.
   const domainsInvalid = dirtyFields.includes("domains") && draft.domains.length === 0;
-  const hasValidationError = nameInvalid || maxGardenersInvalid || domainsInvalid;
+  const hasValidationError = nameInvalid || nameTooLong || maxGardenersInvalid || domainsInvalid;
 
   const resolvedSavedBanner =
     garden.bannerImage && !draft.bannerRemoved ? resolveIPFSUrl(garden.bannerImage) : "";
@@ -389,35 +393,27 @@ export const GardenSettingsEditor = forwardRef<
     // header inside a dialog).
     <section data-component="GardenSettingsEditor">
       <div className="space-y-5">
-        <div>
-          <AdminTextField
-            id="garden-settings-name"
-            label={formatMessage({ id: "app.garden.settings.name", defaultMessage: "Name" })}
-            required={canEditName}
-            error={
-              nameInvalid
-                ? formatMessage({
-                    id: "app.garden.settings.nameRequired",
-                    defaultMessage: "Garden name is required",
-                  })
-                : undefined
-            }
-            value={draft.name}
-            onChange={(e) => setDraft((current) => ({ ...current, name: e.target.value }))}
-            disabled={!canEditName || isSaving}
-            inputProps={{ maxLength: GARDEN_NAME_MAX_LENGTH }}
-          />
-          <p
-            className={cn(
-              "mt-1 text-right label-xs tabular-nums",
-              draft.name.length > GARDEN_NAME_MAX_LENGTH * 0.85
-                ? "text-warning-dark"
-                : "text-text-soft"
-            )}
-          >
-            {draft.name.length}/{GARDEN_NAME_MAX_LENGTH}
-          </p>
-        </div>
+        {/* Counted in UTF-8 bytes, as `updateName` counts it: past 72 the
+            field says why, and Save waits. */}
+        <AdminTextField
+          id="garden-settings-name"
+          label={formatMessage({ id: "app.garden.settings.name", defaultMessage: "Name" })}
+          required={canEditName}
+          error={
+            nameInvalid
+              ? formatMessage({
+                  id: "app.garden.settings.nameRequired",
+                  defaultMessage: "Garden name is required",
+                })
+              : undefined
+          }
+          value={draft.name}
+          onChange={(e) => setDraft((current) => ({ ...current, name: e.target.value }))}
+          disabled={!canEditName || isSaving}
+          showCount
+          countBytes
+          inputProps={{ maxLength: GARDEN_NAME_MAX_LENGTH }}
+        />
 
         <AdminTextArea
           id="garden-settings-description"

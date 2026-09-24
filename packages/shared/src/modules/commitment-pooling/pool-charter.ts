@@ -27,19 +27,35 @@ export interface PoolCharterV1 {
   purpose: string;
 }
 
-const MAX_PURPOSE = 2000;
+/**
+ * The longest purpose a charter can be written with, in characters. The
+ * admin field stops there and counts toward it; `buildPoolCharter` refuses
+ * anything longer rather than cutting it.
+ */
+export const POOL_PURPOSE_MAX_LENGTH = 420;
 
-function cleanPurpose(value: unknown): string | null {
+/**
+ * Charters pinned before the write limit could run to 2,000 characters.
+ * Readers keep that tolerance, so an older charter still reads in full.
+ */
+const PURPOSE_READ_TOLERANCE = 2000;
+
+/** Whitespace collapsed to single spaces, then trimmed; null when nothing is left. */
+function collapsePurpose(value: unknown): string | null {
   if (typeof value !== "string") return null;
   const collapsed = value.replace(/\s+/g, " ").trim();
-  if (collapsed.length === 0) return null;
-  return collapsed.slice(0, MAX_PURPOSE);
+  return collapsed.length > 0 ? collapsed : null;
 }
 
 /** Build the document a charter surface writes. */
 export function buildPoolCharter(input: { purpose: string }): PoolCharterV1 {
-  const purpose = cleanPurpose(input.purpose);
+  const purpose = collapsePurpose(input.purpose);
   if (!purpose) throw new Error("A charter needs a purpose");
+  if (purpose.length > POOL_PURPOSE_MAX_LENGTH) {
+    throw new Error(
+      `A charter's purpose can be at most ${POOL_PURPOSE_MAX_LENGTH} characters; this one has ${purpose.length}`
+    );
+  }
   return { version: POOL_CHARTER_VERSION, purpose };
 }
 
@@ -51,7 +67,7 @@ export function buildPoolCharter(input: { purpose: string }): PoolCharterV1 {
 export function parsePoolCharter(raw: unknown): PoolCharterV1 | null {
   if (!raw || typeof raw !== "object") return null;
   const record = raw as Record<string, unknown>;
-  const purpose = cleanPurpose(record.purpose);
+  const purpose = collapsePurpose(record.purpose)?.slice(0, PURPOSE_READ_TOLERANCE);
   if (!purpose) return null;
   const version =
     typeof record.version === "number" && Number.isFinite(record.version)

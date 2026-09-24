@@ -25,7 +25,12 @@ import { useForm, type UseFormReturn } from "react-hook-form";
 import { z } from "zod";
 
 import type { CommitmentCreationPayload } from "../../modules/commitment-pooling/jobs";
-import { buildCommitmentMetadata } from "../../modules/commitment-pooling/metadata";
+import {
+  buildCommitmentMetadata,
+  COMMITMENT_NOTE_MAX_LENGTH,
+  COMMITMENT_TITLE_MAX_LENGTH,
+  COMMITMENT_UNIT_LABEL_MAX_LENGTH,
+} from "../../modules/commitment-pooling/metadata";
 import { MAX_LINKED_WORKS_PER_COMMITMENT } from "../../modules/commitment-pooling/acts";
 import type { Address } from "../../types/domain";
 
@@ -92,16 +97,19 @@ const confirmerAddressSchema = addressSchema.refine(
 );
 
 /**
- * Message ids for the rules the steward's seeding console added, resolved by the
- * view through `formatMessage`.
- *
- * The composer's older messages are developer English that no surface shows —
- * the member composer says the missing thing in its own words instead. These
- * rules have no such restatement: the seeding console renders the schema's
- * message directly, so an id is the only way a Spanish or Portuguese steward
- * reads them in their language.
+ * Message ids the steward's seeding console resolves through `formatMessage`.
+ * It renders the schema's message directly, so an id is the only way a Spanish
+ * or Portuguese steward reads one in their language. The rules the console
+ * added carry ids, and so do the title, unit and note rules, whose fields it
+ * shares with the member composer. The member composer never shows a schema
+ * message: it says the missing thing in its own words instead.
  */
 export const COMMITMENT_COMPOSER_ERROR_IDS = {
+  titleRequired: "cockpit.garden.pool.seed.error.titleRequired",
+  titleTooLong: "cockpit.garden.pool.seed.error.titleTooLong",
+  unitRequired: "cockpit.garden.pool.seed.error.unitRequired",
+  unitTooLong: "cockpit.garden.pool.seed.error.unitTooLong",
+  noteTooLong: "cockpit.garden.pool.seed.error.noteTooLong",
   confirmersTooMany: "cockpit.garden.pool.seed.error.confirmersTooMany",
   thresholdAtLeastOne: "cockpit.garden.pool.seed.error.thresholdAtLeastOne",
   thresholdAboveGroup: "cockpit.garden.pool.seed.error.thresholdAboveGroup",
@@ -121,17 +129,25 @@ export const commitmentComposerSchema = z
      */
     kind: z.enum(["SERVICE", "GARDEN_WORK", "SEASON_CAMPAIGN"]),
     /** What this is called. The contract stores only a CID, so the words are the metadata. */
-    title: z.string().trim().min(1, "Give it a name").max(120, "Keep the name short"),
+    title: z
+      .string()
+      .trim()
+      .min(1, COMMITMENT_COMPOSER_ERROR_IDS.titleRequired)
+      .max(COMMITMENT_TITLE_MAX_LENGTH, COMMITMENT_COMPOSER_ERROR_IDS.titleTooLong),
     /** Optional context, in the member's words. Goes into the metadata document as `note`. */
-    note: z.string().trim().max(2000, "That is very long").optional(),
+    note: z
+      .string()
+      .trim()
+      .max(COMMITMENT_NOTE_MAX_LENGTH, COMMITMENT_COMPOSER_ERROR_IDS.noteTooLong)
+      .optional(),
     /** Web addresses that belong with it. */
     links: z.array(webLink).max(10, "That is a lot of links"),
     /** What is being counted, in the member's own words: "hours", "rides". */
     unitLabel: z
       .string()
       .trim()
-      .min(1, "Say what you are counting")
-      .max(40, "Keep the label short"),
+      .min(1, COMMITMENT_COMPOSER_ERROR_IDS.unitRequired)
+      .max(COMMITMENT_UNIT_LABEL_MAX_LENGTH, COMMITMENT_COMPOSER_ERROR_IDS.unitTooLong),
     targetUnits: z.number().int().positive("How many?"),
     /** Days from now. A commitment with no end never lapses and never settles. */
     dueInDays: z.number().int().positive("Give it an end"),

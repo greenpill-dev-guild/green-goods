@@ -1,5 +1,6 @@
 import type { Action } from "@green-goods/shared/types/domain";
 import type { CommitmentComposerValues } from "@green-goods/shared/hooks/commitment-pooling/useCommitmentComposerForm";
+import { COMMITMENT_UNIT_LABEL_MAX_LENGTH } from "@green-goods/shared/modules/commitment-pooling/metadata";
 import { RiAddLine, RiCloseLine } from "@remixicon/react";
 import { Controller, type UseFieldArrayReturn, type UseFormReturn } from "react-hook-form";
 import { useIntl } from "react-intl";
@@ -57,6 +58,8 @@ export function SeedStepHowMuch({
           })}
           disabled={busy}
           required
+          showCount
+          inputProps={{ maxLength: COMMITMENT_UNIT_LABEL_MAX_LENGTH }}
         />
         <AdminTextField
           label={formatMessage({
