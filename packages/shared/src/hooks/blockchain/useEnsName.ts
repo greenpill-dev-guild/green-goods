@@ -40,15 +40,22 @@ export function useEnsName(
   );
 }
 
-/** Resolve a roster's ENS names through the same cache keys as AddressDisplay. */
-export function useEnsNames(addresses: readonly Address[]): Map<string, string> {
+/**
+ * Resolve a roster's ENS names through the same cache keys as AddressDisplay.
+ * While `enabled` is false no lookup starts, but names already in the cache are
+ * still returned, so a closing dialog keeps the matches it was showing.
+ */
+export function useEnsNames(
+  addresses: readonly Address[],
+  { enabled = true }: { enabled?: boolean } = {}
+): Map<string, string> {
   const uniqueAddresses = [...new Set(addresses.map((address) => address.toLowerCase()))];
   const results = useQueries({
     queries: uniqueAddresses.map((address) => ({
       queryKey: ensKeys.name(address),
       queryFn: () => resolveEnsName(address),
       staleTime: STALE_TIME_RARE,
-      enabled: isAddress(address),
+      enabled: enabled && isAddress(address),
     })),
   });
 

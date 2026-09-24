@@ -82,7 +82,10 @@ export function ManageMembersDialog({
       ),
     [roleMembers]
   );
-  const ensNames = useEnsNames(open ? rows.map((row) => row.address) : []);
+  const ensNames = useEnsNames(
+    rows.map((row) => row.address),
+    { enabled: open }
+  );
   const normalizedSearch = memberSearch.trim().toLowerCase();
   const visibleRows = useMemo(() => {
     const roleScopedRows =

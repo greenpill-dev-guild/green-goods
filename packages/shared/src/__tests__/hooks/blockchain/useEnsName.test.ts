@@ -226,6 +226,28 @@ describe("useEnsName", () => {
     ).toBe("vitalik.eth");
   });
 
+  it("keeps resolved roster names while disabled, and starts no lookup", async () => {
+    mockResolveEnsName.mockResolvedValue("vitalik.eth");
+    const { result, rerender } = renderHook(
+      ({ enabled }) => useEnsNames([VALID_ADDRESS], { enabled }),
+      { wrapper: createWrapper(queryClient), initialProps: { enabled: true } }
+    );
+    await waitFor(() => {
+      expect(result.current.get(VALID_ADDRESS.toLowerCase())).toBe("vitalik.eth");
+    });
+
+    // A closing dialog disables lookups but must keep matching what it showed.
+    rerender({ enabled: false });
+    expect(result.current.get(VALID_ADDRESS.toLowerCase())).toBe("vitalik.eth");
+
+    mockResolveEnsName.mockClear();
+    const unopened = renderHook(() => useEnsNames([ZERO_ADDRESS], { enabled: false }), {
+      wrapper: createWrapper(queryClient),
+    });
+    expect(unopened.result.current.size).toBe(0);
+    expect(mockResolveEnsName).not.toHaveBeenCalled();
+  });
+
   // ------------------------------------------
   // Options
   // ------------------------------------------
