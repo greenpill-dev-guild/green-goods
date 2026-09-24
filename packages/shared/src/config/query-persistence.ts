@@ -241,6 +241,7 @@ export function createQueryPersistence(options: CreateQueryPersistenceOptions): 
   }
 
   async function restoreAll(client: QueryClient): Promise<void> {
+    await store.reconcile();
     await migrateLegacySnapshot();
     const now = Date.now();
     for (const [key, stored] of await store.entries()) {
