@@ -5,9 +5,11 @@
  * the user's garden-level roles, aggregated across all managed
  * gardens or scoped to the selected garden.
  *
- * Fail-open: while loading or on error, all slots are visible. `isLoading` is
- * true only while role and garden data are pending, so a route guard that
- * waits on it never stalls on a terminal state (no address, failed list).
+ * Fail-open: while loading or on error, the navigation slots stay visible.
+ * `isLoading` is true only while role and garden data are pending, so a route
+ * guard that waits on it never stalls on a terminal state (no address, failed
+ * list). `showCommunity` also authorizes the Community routes, so a terminal
+ * state denies it rather than failing open.
  */
 
 import { useMemo } from "react";
@@ -48,7 +50,7 @@ export function useEffectiveToolbarPermissions(): ToolbarPermissions {
     }
 
     if (!address || (eligibleGardensError && eligibleGardens.length === 0)) {
-      return { ...FAIL_OPEN, isLoading: false };
+      return { ...FAIL_OPEN, showCommunity: false, isLoading: false };
     }
 
     // Determine which gardens to check

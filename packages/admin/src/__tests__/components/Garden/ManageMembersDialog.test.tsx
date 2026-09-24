@@ -96,30 +96,33 @@ describe("components/Garden/ManageMembersDialog", () => {
     expect(screen.getByText(OWNER.slice(0, 10))).toBeInTheDocument();
   });
 
-  it("starts every opening from its member address and only that member's roles", () => {
+  it("starts from its member address on every opening and every member change", async () => {
+    const user = userEvent.setup();
     const search = () =>
       screen.getByRole("textbox", { name: "Search members by address, ENS name, or role" });
-    const { rerender } = render(
-      createElement(ManageMembersDialog, { ...defaultProps, initialSearch: GARDENER_A })
-    );
+    const dialog = (props: Partial<typeof defaultProps> & { initialSearch?: string }) =>
+      createElement(ManageMembersDialog, { ...defaultProps, ...props });
+    const { rerender } = render(dialog({ initialSearch: GARDENER_A }));
 
     expect(search()).toHaveValue(GARDENER_A);
     expect(screen.getAllByTestId("address-display")).toHaveLength(1);
     expect(screen.getByText(GARDENER_A.slice(0, 10))).toBeInTheDocument();
 
-    // The dialog stays mounted between openings, so reopening must replace the search.
-    rerender(
-      createElement(ManageMembersDialog, {
-        ...defaultProps,
-        open: false,
-        initialSearch: GARDENER_A,
-      })
-    );
-    rerender(createElement(ManageMembersDialog, { ...defaultProps, initialSearch: GARDENER_B }));
-
+    // Browser history can swap the member while the dialog stays open.
+    rerender(dialog({ initialSearch: GARDENER_B }));
     expect(search()).toHaveValue(GARDENER_B);
-    expect(screen.getAllByTestId("address-display")).toHaveLength(1);
     expect(screen.getByText(GARDENER_B.slice(0, 10))).toBeInTheDocument();
+
+    // A search the steward typed survives a roster refresh for the same member.
+    await user.clear(search());
+    await user.type(search(), "owner");
+    rerender(dialog({ initialSearch: GARDENER_B, roleMembers: { ...roleMembers } }));
+    expect(search()).toHaveValue("owner");
+
+    // The dialog stays mounted between openings, so reopening must replace the search.
+    rerender(dialog({ open: false, initialSearch: GARDENER_B }));
+    rerender(dialog({ initialSearch: GARDENER_B }));
+    expect(search()).toHaveValue(GARDENER_B);
   });
 
   it("matches a resolved ENS name by case-insensitive substring", async () => {

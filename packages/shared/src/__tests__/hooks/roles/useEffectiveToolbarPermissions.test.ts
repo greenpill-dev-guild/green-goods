@@ -252,10 +252,11 @@ describe("useEffectiveToolbarPermissions", () => {
 
   // A route guard shows its fallback while isLoading is true, so a terminal
   // state that stayed "loading" would hold the guard on its skeleton forever.
+  // Community is the one slot that also authorizes routes, so it stays closed.
   it.each([
     ["the garden list failed with nothing to show", { eligibleGardensError: true, gardens: [] }],
     ["no address is connected", { address: "" }],
-  ])("fails open without loading when %s", (_state, overrides) => {
+  ])("settles without loading, and keeps Community closed, when %s", (_state, overrides) => {
     setupDefaults(overrides);
 
     const { result } = renderHook(() => useEffectiveToolbarPermissions());
@@ -263,7 +264,7 @@ describe("useEffectiveToolbarPermissions", () => {
     expect(result.current).toEqual({
       showWork: true,
       showGarden: true,
-      showCommunity: true,
+      showCommunity: false,
       showActions: true,
       isLoading: false,
     });

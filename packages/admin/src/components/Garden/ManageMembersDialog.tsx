@@ -60,13 +60,14 @@ export function ManageMembersDialog({
   const [pendingRemoval, setPendingRemoval] = useState<MemberRow | null>(null);
   const [removing, setRemoving] = useState(false);
   const [removeErrorRole, setRemoveErrorRole] = useState<GardenRole | null>(null);
-  const [wasOpen, setWasOpen] = useState(open);
+  const [shownFor, setShownFor] = useState({ open, initialSearch });
 
-  // Each opening starts from `initialSearch`. Resetting here, rather than
-  // remounting through a key, keeps the closing dialog mounted so its exit
-  // motion still plays.
-  if (open !== wasOpen) {
-    setWasOpen(open);
+  // Each opening, and each change of the member it shows (browser history can
+  // swap it while the dialog stays open), starts from `initialSearch`; a search
+  // typed since is kept until then. Resetting here, rather than remounting
+  // through a key, keeps the closing dialog mounted so its exit motion plays.
+  if (open !== shownFor.open || initialSearch !== shownFor.initialSearch) {
+    setShownFor({ open, initialSearch });
     if (open) {
       setRoleFilter("all");
       setMemberSearch(initialSearch);
