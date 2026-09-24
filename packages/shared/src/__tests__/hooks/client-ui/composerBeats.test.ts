@@ -21,8 +21,11 @@ describe("selectBeatValidity", () => {
 
   it.each([
     ["what", { title: "" }, false, "title"],
+    // Copied in from an older commitment: typing stops at the limit.
+    ["what", { title: "t".repeat(61) }, false, "titleTooLong"],
     ["what", {}, true, null],
     ["howMuch", { unitLabel: "" }, false, "unit"],
+    ["howMuch", { unitLabel: "u".repeat(25) }, false, "unitTooLong"],
     ["howMuch", { targetUnits: 0 }, false, "count"],
     ["howMuch", { dueInDays: 0 }, false, null],
     [
@@ -45,6 +48,7 @@ describe("selectBeatValidity", () => {
       null,
     ],
     ["details", { links: ["not a link"] }, false, null],
+    ["details", { note: "n".repeat(281) }, false, "noteTooLong"],
     ["details", { links: ["https://example.org"] }, true, null],
     ["review", { title: "" }, true, null],
   ] as const)("gates %s with %o", (beat, overrides, canAdvance, reason) => {

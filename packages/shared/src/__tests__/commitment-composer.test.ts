@@ -61,6 +61,26 @@ describe("commitment composer validation", () => {
     expect(commitmentComposerSchema.safeParse(values).success).toBe(true);
   });
 
+  // The words stop where the metadata builder and the unit's own limit do, and
+  // the refusals are ids the seeding console reads in the steward's language.
+  const text = (length: number) => "x".repeat(length);
+  it.each([
+    ["title", text(60), undefined],
+    ["title", text(61), COMMITMENT_COMPOSER_ERROR_IDS.titleTooLong],
+    ["title", "  ", COMMITMENT_COMPOSER_ERROR_IDS.titleRequired],
+    ["unitLabel", text(24), undefined],
+    ["unitLabel", text(25), COMMITMENT_COMPOSER_ERROR_IDS.unitTooLong],
+    ["unitLabel", "  ", COMMITMENT_COMPOSER_ERROR_IDS.unitRequired],
+    ["note", text(280), undefined],
+    ["note", text(281), COMMITMENT_COMPOSER_ERROR_IDS.noteTooLong],
+  ])("holds %s to its limit (%#)", (field, value, message) => {
+    const result = commitmentComposerSchema.safeParse({ ...values, [field]: value });
+    const issue = result.success
+      ? undefined
+      : result.error.issues.find((candidate) => candidate.path[0] === field);
+    expect(issue?.message).toBe(message);
+  });
+
   it("requires garden work to name at least one action, each with a count of one or more", () => {
     expect(commitmentComposerSchema.safeParse({ ...gardenWork, requirements: [] }).success).toBe(
       false

@@ -8,8 +8,10 @@ import {
 } from "@green-goods/shared/hooks/commitment-pooling/useCommitmentComposerForm";
 import { useState } from "react";
 import { useFieldArray } from "react-hook-form";
+import { useIntl } from "react-intl";
 import { describe, expect, it } from "vitest";
 import { SeedStepHowMuch } from "@/views/Garden/Pool/Seed/SeedStepHowMuch";
+import { seedErrorText } from "@/views/Garden/Pool/Seed/seedStepModel";
 import { fireEvent, renderWithProviders, screen, waitFor } from "../test-utils";
 
 function action(id: string, title: string): Action {
@@ -48,6 +50,7 @@ function Harness({
   const requirements = useFieldArray({ control: form.control, name: "requirements" });
   const values = form.watch();
   const [result, setResult] = useState("unchecked");
+  const { formatMessage } = useIntl();
 
   return (
     <>
@@ -56,7 +59,10 @@ function Harness({
         values={values}
         noteId="seed-how"
         busy={busy}
-        errorOf={(field) => form.formState.errors[field]?.message as string | undefined}
+        errorOf={(field) => {
+          const message = form.formState.errors[field]?.message as string | undefined;
+          return message === undefined ? undefined : seedErrorText(message, formatMessage);
+        }}
         requirements={requirements}
         actions={actions}
         chainId={42161}
@@ -85,7 +91,8 @@ describe("SeedStepHowMuch", () => {
     renderWithProviders(<Harness />);
     fireEvent.click(screen.getByRole("button", { name: "Validate" }));
 
-    expect(await screen.findByText("Say what you are counting")).toBeInTheDocument();
+    // The unit's message is an id the console translates; the rest are still prose.
+    expect(await screen.findByText("Say what you are counting.")).toBeInTheDocument();
     expect(screen.getByText("How many?")).toBeInTheDocument();
     expect(screen.getByText("Give it an end")).toBeInTheDocument();
     expect(screen.getByTestId("validation-result")).toHaveTextContent("invalid");
