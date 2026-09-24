@@ -289,20 +289,11 @@ export default defineConfig(async ({ command, mode }): Promise<UserConfig> => {
         // Build-time VITE_ flags come from the same env files.
         envOptions: { envDir: rootDir, envPrefix: ["VITE_"] },
         maximumFileSizeToCacheInBytes: 2 * 1024 * 1024,
+        // No JavaScript is precached here: the worker installs it from the
+        // shell tiers listed in pwa-shell-assets.json.
         globPatterns: ["index.html", "assets/*.css", "pwa-shell-assets.json"],
         globIgnores: [
           "**/*.map",
-          "assets/Actions-*.js",
-          "assets/Cookies-*.js",
-          "assets/EditorialReadDeeper-*.js",
-          "assets/Fund-*.js",
-          "assets/Gardens-*.js",
-          "assets/Glossary-*.js",
-          "assets/Impact-*.js",
-          "assets/Public*.js",
-          "assets/TopNav-*.js",
-          "assets/index-*.js",
-          "assets/socials-*.js",
           "social/**",
           "social-*.png",
           "actions/index.html",
