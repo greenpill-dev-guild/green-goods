@@ -3,6 +3,7 @@
  */
 
 import { AdminSelect, AdminTextArea, AdminTextField } from "@/components/AdminTextField";
+import { useState } from "react";
 import { describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen, userEvent } from "../test-utils";
 
@@ -128,6 +129,34 @@ describe("the character counter", () => {
     expect(screen.getByRole("status")).toBeEmptyDOMElement();
   });
 
+  it("stays quiet when the caller replaces what the steward typed", async () => {
+    const user = userEvent.setup();
+    // A refreshed charter or another garden's snapshot, adopted while the field stays mounted.
+    function Reloading() {
+      const [text, setText] = useState("");
+      return (
+        <>
+          <AdminTextArea
+            label="What this pool is for"
+            value={text}
+            onChange={(event) => setText(event.target.value)}
+            showCount
+            textareaProps={{ maxLength: 12 }}
+          />
+          <button type="button" onClick={() => setText("Rides, tools")}>
+            Reload
+          </button>
+        </>
+      );
+    }
+    render(<Reloading />);
+
+    await user.type(screen.getByRole("textbox", { name: "What this pool is for" }), "Rides");
+    await user.click(screen.getByRole("button", { name: "Reload" }));
+    expect(screen.getByText("12 / 12")).toBeInTheDocument();
+    expect(screen.getByRole("status")).toBeEmptyDOMElement();
+  });
+
   it("counts bytes when a contract does, and says why the text no longer fits", async () => {
     const user = userEvent.setup();
     render(
@@ -145,6 +174,10 @@ describe("the character counter", () => {
     );
     // A screen reader hears the unit the count is in.
     expect(field).toHaveAccessibleDescription(/14 of 12 bytes used$/);
+
+    // The count is what is sent: a trailing space is trimmed away.
+    await user.type(field, " ");
+    expect(screen.getByText("14 / 12")).toBeInTheDocument();
   });
 
   it("shows no counter unless the field opts in", () => {

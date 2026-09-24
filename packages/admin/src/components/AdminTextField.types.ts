@@ -29,9 +29,10 @@ interface AdminTextFieldCommonProps {
   showCount?: boolean;
   /**
    * With `showCount`, count UTF-8 bytes rather than characters, for text a
-   * contract measures in bytes: an accented letter counts as two. `maxLength`
-   * still stops the characters at that number, which never cuts text that
-   * fits the bytes, but typing can now pass the limit, so the error says why.
+   * contract measures in bytes: an accented letter counts as two. The text is
+   * counted trimmed, as it is sent. `maxLength` still stops the characters at
+   * that number, which never cuts text that fits the bytes, but typing can now
+   * pass the limit, so the error says why.
    */
   countBytes?: boolean;
 }

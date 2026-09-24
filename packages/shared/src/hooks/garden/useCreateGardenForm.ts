@@ -27,9 +27,9 @@ import { utf8ByteLength } from "../../utils/app/text";
  */
 export const GARDEN_NAME_MAX_LENGTH = 72;
 
-/** Whether a name fits what the contract stores, counted as it counts. */
+/** Whether a name fits what the contract stores: trimmed, as create and rename send it. */
 export function gardenNameFits(name: string): boolean {
-  return utf8ByteLength(name) <= GARDEN_NAME_MAX_LENGTH;
+  return utf8ByteLength(name.trim()) <= GARDEN_NAME_MAX_LENGTH;
 }
 
 // ---------------------------------------------------------------------------

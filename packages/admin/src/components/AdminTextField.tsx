@@ -77,9 +77,10 @@ const AdminTextFieldBase = React.forwardRef<AdminTextFieldControl, AdminTextFiel
     const [uncontrolledLength, setUncontrolledLength] = useState(() =>
       countedLength(defaultValue ?? "", countBytes)
     );
-    // Until the first edit the text was loaded, not typed: a limit it is at or
-    // past is described when the control takes focus, never announced.
-    const [edited, setEdited] = useState(false);
+    // Text the steward did not type (loaded, or a controlled value the caller
+    // replaced) is described when the control takes focus, never announced.
+    const [typedText, setTypedText] = useState<string | null>(null);
+    const edited = typedText !== null && (value === undefined || value === typedText);
 
     // Internal ref to read uncontrolled control value for isFloating detection
     const internalRef = useRef<AdminTextFieldControl | null>(null);
@@ -104,7 +105,8 @@ const AdminTextFieldBase = React.forwardRef<AdminTextFieldControl, AdminTextFiel
 
     // What the control holds: the counter shows its length, any text floats the label.
     const length = value !== undefined ? countedLength(value, countBytes) : uncontrolledLength;
-    const hasValue = length > 0;
+    // Raw text floats the label: a trimmed byte count can read 0 over spaces.
+    const hasValue = (value !== undefined ? value.length : uncontrolledLength) > 0;
 
     // A native <select> always shows its selected option's text, and date/time
     // inputs paint intrinsic format text (mm/dd/yyyy) — a resting centered
@@ -135,7 +137,7 @@ const AdminTextFieldBase = React.forwardRef<AdminTextFieldControl, AdminTextFiel
 
     const handleChange = (e: React.ChangeEvent<AdminTextFieldControl>) => {
       setUncontrolledLength(countedLength(e.currentTarget.value, countBytes));
-      setEdited(true);
+      setTypedText(e.currentTarget.value);
       onChange?.(e);
     };
 

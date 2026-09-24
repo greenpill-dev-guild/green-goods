@@ -2,9 +2,12 @@ import { utf8ByteLength } from "@green-goods/shared/utils/app/text";
 import { cn } from "@green-goods/shared/utils/styles/cn";
 import { type IntlShape, useIntl } from "react-intl";
 
-/** The text's length as the counter counts it: characters, or UTF-8 bytes. */
+/**
+ * The text's length as the counter counts it: characters, or the UTF-8 bytes
+ * of the text as it is sent, trimmed, which is what the contract measures.
+ */
 export const countedLength = (text: string, bytes: boolean) =>
-  bytes ? utf8ByteLength(text) : text.length;
+  bytes ? utf8ByteLength(text.trim()) : text.length;
 
 /**
  * What a field past its limit says: how to bring the text back under it. Past

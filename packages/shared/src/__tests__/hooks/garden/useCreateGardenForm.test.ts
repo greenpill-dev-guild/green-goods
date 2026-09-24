@@ -88,6 +88,8 @@ describe("createGardenSchema", () => {
       ["72 plain letters", "g".repeat(72), true],
       ["36 accented letters, 72 bytes", "é".repeat(36), true],
       ["37 accented letters, 74 bytes", "é".repeat(37), false],
+      // Create and rename send the name trimmed, so an edge space costs nothing.
+      ["36 accented letters and a trailing space", `${"é".repeat(36)} `, true],
       [
         "68 characters that take 73 bytes",
         "Jardim Agroecológico da Associação de Moradores da Rocinha — Cachopa",
