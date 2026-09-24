@@ -6,6 +6,7 @@ import { basename, posix, resolve } from "node:path";
 import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
 
+import { parseBaseArgs, resolveGitBase } from "../lib/git-guardrails.mjs";
 import { STAGED_MARKER, STAGED_MODULES } from "./check-staged-modules.mjs";
 
 const repoRoot = resolve(new URL("../..", import.meta.url).pathname);
@@ -20,7 +21,6 @@ const MODIFIED_FILE_MAX_LINES = 500;
 // They get a wide cap instead of a split demand; anything past it is a sign the
 // underlying contract surface itself needs decomposition. Decision: PR #694.
 const DECLARATION_ONLY_INTERFACE_MAX_LINES = 1200;
-const ZERO_SHA = "0000000000000000000000000000000000000000";
 const STRUCTURE_BASELINE_PATH = "scripts/data/source-structure-baseline.json";
 
 const ALLOWED_TOP_LEVEL_DIRECTORIES = {
@@ -180,18 +180,20 @@ function runGit(args, { allowFailure = false } = {}) {
   }
 }
 
-function parseArgs(argv) {
-  const args = { base: process.env.SOURCE_STRUCTURE_BASE_REF || "" };
-
-  for (let index = 0; index < argv.length; index += 1) {
-    const token = argv[index];
-    if (token === "--base") {
-      args.base = argv[index + 1] || "";
-      index += 1;
-    }
+// Resolve the base the way the other diff-aware checks do: an explicit --base, then CI's
+// SOURCE_STRUCTURE_BASE_REF, then origin/develop. A ref that does not resolve, such as a push
+// event's all-zero `before`, falls through to the next candidate.
+function resolveStructureBase(argv) {
+  try {
+    return resolveGitBase({
+      repoRoot,
+      explicitBase: parseBaseArgs(argv).base,
+      environmentVariables: ["SOURCE_STRUCTURE_BASE_REF"],
+    });
+  } catch (error) {
+    console.error(`❌ check-source-structure: ${error.message}`);
+    process.exit(2);
   }
-
-  return args;
 }
 
 function listFromGit(args, options) {
@@ -616,34 +618,33 @@ function isDisallowedJavaScriptSourceFile(filePath) {
   return true;
 }
 
+function mergeBaseWith(baseRef) {
+  return runGit(["merge-base", "HEAD", baseRef], { allowFailure: true }) || baseRef;
+}
+
+// Judge committed work against the base, as CI judges the pushed head, and uncommitted and
+// untracked work as well. Judging only the working tree let a committed violation pass the local
+// push gate and fail CI on the same head (PR #898).
 function resolveChangedFiles(baseRef) {
   const changed = new Set();
   const added = new Set();
-
-  if (baseRef && baseRef !== ZERO_SHA) {
-    const mergeBase = runGit(["merge-base", "HEAD", baseRef], { allowFailure: true });
-    const diffBase = mergeBase || baseRef;
-
-    for (const filePath of listFromGit(["diff", "--name-only", "--diff-filter=AM", `${diffBase}...HEAD`])) {
+  const collect = (revisions) => {
+    for (const filePath of listFromGit(["diff", "--name-only", "--diff-filter=AM", ...revisions])) {
       changed.add(filePath);
     }
 
-    for (const filePath of listFromGit(["diff", "--name-only", "--diff-filter=A", `${diffBase}...HEAD`])) {
+    for (const filePath of listFromGit(["diff", "--name-only", "--diff-filter=A", ...revisions])) {
       added.add(filePath);
     }
-  } else {
-    for (const filePath of listFromGit(["diff", "--name-only", "--diff-filter=AM", "HEAD"])) {
-      changed.add(filePath);
-    }
+  };
 
-    for (const filePath of listFromGit(["diff", "--name-only", "--diff-filter=A", "HEAD"])) {
-      added.add(filePath);
-    }
-
-    for (const filePath of listFromGit(["ls-files", "--others", "--exclude-standard"])) {
-      changed.add(filePath);
-      added.add(filePath);
-    }
+  if (baseRef) {
+    collect([`${mergeBaseWith(baseRef)}...HEAD`]);
+  }
+  collect(["HEAD"]);
+  for (const filePath of listFromGit(["ls-files", "--others", "--exclude-standard"])) {
+    changed.add(filePath);
+    added.add(filePath);
   }
 
   return {
@@ -681,10 +682,7 @@ function loadStructureBaseline() {
 }
 
 function loadPreviousStructureBaseline(baseRef) {
-  const ref =
-    baseRef && baseRef !== ZERO_SHA
-      ? runGit(["merge-base", "HEAD", baseRef], { allowFailure: true }) || baseRef
-      : "HEAD";
+  const ref = baseRef ? mergeBaseWith(baseRef) : "HEAD";
   const source = runGit(["show", `${ref}:${STRUCTURE_BASELINE_PATH}`], { allowFailure: true });
   return source ? parseStructureBaseline(source) : null;
 }
@@ -750,7 +748,7 @@ function printDisallowedJavaScriptFailure(filePaths) {
 }
 
 function run() {
-  const { base } = parseArgs(process.argv.slice(2));
+  const base = resolveStructureBase(process.argv.slice(2));
   const { changed, added } = resolveChangedFiles(base);
   const allFiles = resolveAllFiles();
   const disallowedJavaScriptFiles = changed
@@ -834,8 +832,11 @@ function run() {
     printFailure(failures);
   }
 
+  const scope = base
+    ? `against ${base} and the working tree`
+    : "in the working tree only, because no base ref resolved";
   console.log(
-    `✅ check-source-structure: ${policyViolations.length} known policy violation(s) matched the shrinking baseline; checked ${relevantFiles.length} changed non-test source file(s); ${allowlistedChecks} oversized baseline file(s) stayed within frozen ceilings.`,
+    `✅ check-source-structure: ${policyViolations.length} known policy violation(s) matched the shrinking baseline; checked ${relevantFiles.length} changed non-test source file(s) ${scope}; ${allowlistedChecks} oversized baseline file(s) stayed within frozen ceilings.`,
   );
 }
 

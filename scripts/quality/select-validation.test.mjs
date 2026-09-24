@@ -693,6 +693,20 @@ test("routine push uses focused owner proof inside the hard 90-second limit", ()
   }
 });
 
+test("push judges source structure against the plan's comparison base", () => {
+  const plan = selectValidation({
+    intent: "push",
+    base: "base-sha",
+    changedPaths: ["packages/shared/src/utils/calendar-date.ts"],
+    testPaths: { shared: ["src/__tests__/utils/calendar-date.test.ts"] },
+  });
+
+  assert.equal(
+    plan.checks.find((check) => check.id === "source-structure").command,
+    "node scripts/quality/check-source-structure.js --base 'base-sha'",
+  );
+});
+
 test("routine push without focused behavior proof stops before execution", () => {
   const plan = selectValidation({
     intent: "push",
