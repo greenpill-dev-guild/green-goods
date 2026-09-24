@@ -75,6 +75,10 @@ export interface QueryPersistence {
   persistQuery(client: QueryClient, queryKey: QueryKey): Promise<void>;
   /** Remove expired and incompatible entries. Resolves with how many were removed. */
   gc(): Promise<number>;
+  /**
+   * Forget every stored read. Rejects when the preferred tier, normally
+   * IndexedDB, never answered: the next launch would restore its copies.
+   */
   clear(): Promise<void>;
 }
 

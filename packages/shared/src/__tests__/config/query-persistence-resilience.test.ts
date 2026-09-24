@@ -286,14 +286,31 @@ describe("query persistence resilience", () => {
     const collected = persistence.gc();
     await vi.advanceTimersByTimeAsync(3_000);
     await expect(collected).resolves.toBe(0);
-    const source = clientWithGardens();
-    await persistence.persistQuery(source, gardensKey);
-    expect(storage.length).toBe(3);
-    await persistence.clear();
 
     expect(storage.length).toBe(2);
     expect(storage.getItem("gg-commitment-proof-drafts")).toBe(commitmentDraft);
     expect(storage.getItem("gg-pwa-installed")).toBe("true");
+  });
+
+  it("does not report a clear as done when IndexedDB never answered it", async () => {
+    vi.useFakeTimers();
+    const dbName = `gg-stalled-clear-${crypto.randomUUID()}`;
+    const storage = memoryStorage();
+    storage.setItem("gg-commitment-proof-drafts", commitmentDraft);
+    const source = clientWithGardens();
+    setIndexedDB(undefined);
+    await createQueryPersistence({ dbName, storage }).persistQuery(source, gardensKey);
+    setIndexedDB(stalledIndexedDB());
+
+    const cleared = expect(createQueryPersistence({ dbName, storage }).clear()).rejects.toThrow(
+      /could not clear/
+    );
+    await vi.advanceTimersByTimeAsync(3_000);
+    await cleared;
+
+    // Web storage still loses its reading-cache copy; only IndexedDB's are left for the next launch.
+    expect(storage.length).toBe(1);
+    expect(storage.getItem("gg-commitment-proof-drafts")).toBe(commitmentDraft);
     source.clear();
   });
 

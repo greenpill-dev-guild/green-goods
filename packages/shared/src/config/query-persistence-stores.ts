@@ -283,6 +283,9 @@ function createFailoverQueryStore(
           debugWarn("[Persister] Could not clear a lower reading cache tier", { error });
         });
       }
+      // The preferred tier keeps what a clear it never answered should have
+      // removed, and the next launch restores from it, so this is not done.
+      if (active !== 0) throw new Error("Reading cache could not clear its preferred storage tier");
     },
     reconcile,
   };
