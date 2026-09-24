@@ -20,6 +20,7 @@ import {
 } from "./query-persistence-legacy";
 export type { LegacySnapshotSource };
 import { answeredAt, createReadingCacheStore } from "./query-persistence-stores";
+import { createWebQueryStore } from "./query-persistence-tiers";
 import { PERSIST_MAX_AGE, QUERY_CACHE_SCHEMA_VERSION } from "./query-cache-policy";
 
 export { PERSIST_MAX_AGE, QUERY_CACHE_SCHEMA_VERSION } from "./query-cache-policy";
@@ -331,7 +332,9 @@ export function createShouldDehydrateQuery({
 
 /**
  * Forget an app's persisted reads, including any snapshot an older build left
- * behind. Best effort and never throws.
+ * behind. Drafts and settings that share the `gg-` prefix in web storage stay:
+ * the admin's boot recovery offers this as clearing cached data only. Best
+ * effort and never throws.
  */
 export async function clearPersistedQueryClient(
   options: Pick<CreateQueryPersistenceOptions, "dbName" | "legacy">
@@ -342,10 +345,7 @@ export async function clearPersistedQueryClient(
     const storage = resolveDefaultStorage();
     if (!storage) return;
     storage.removeItem(LEGACY_SNAPSHOT_KEY);
-    for (let index = storage.length - 1; index >= 0; index -= 1) {
-      const key = storage.key(index);
-      if (key?.startsWith(`${DEFAULT_PREFIX}-`)) storage.removeItem(key);
-    }
+    await createWebQueryStore(storage, DEFAULT_PREFIX).clear();
   } catch (error) {
     debugWarn("[Persister] Failed to clear the storage cache:", { error });
   }

@@ -5,6 +5,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
   type CreateQueryPersistenceOptions,
+  clearPersistedQueryClient,
   createQueryPersistence,
   isDurableWorkRead,
   QUERY_CACHE_SCHEMA_VERSION,
@@ -556,6 +557,26 @@ describe("query persistence resilience", () => {
     expect(storage.length).toBe(2);
     expect(storage.getItem("gg-commitment-proof-drafts")).toBe(commitmentDraft);
     expect(storage.getItem("gg-pwa-installed")).toBe("true");
+  });
+
+  it("keeps drafts and settings when the boot recovery clears cached data", async () => {
+    const dbName = `gg-reset-${crypto.randomUUID()}`;
+    setIndexedDB(undefined);
+    window.localStorage.clear();
+    window.localStorage.setItem("gg-commitment-proof-drafts", commitmentDraft);
+    window.localStorage.setItem("gg-language", "pt");
+    window.localStorage.setItem("__rq_pc__", "{}");
+    const source = clientWithGardens();
+    await createQueryPersistence({ dbName }).persistQuery(source, gardensKey);
+    expect(window.localStorage.length).toBe(4);
+
+    await clearPersistedQueryClient({ dbName });
+
+    expect(window.localStorage.length).toBe(2);
+    expect(window.localStorage.getItem("gg-commitment-proof-drafts")).toBe(commitmentDraft);
+    expect(window.localStorage.getItem("gg-language")).toBe("pt");
+    window.localStorage.clear();
+    source.clear();
   });
 
   it("does not report a clear as done when IndexedDB never answered it", async () => {
