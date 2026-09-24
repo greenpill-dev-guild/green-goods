@@ -6,6 +6,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   type CreateQueryPersistenceOptions,
   createQueryPersistence,
+  isDurableWorkRead,
   QUERY_CACHE_SCHEMA_VERSION,
   restoreDurableWorkQuery,
   type StoredQuery,
@@ -474,6 +475,65 @@ describe("query persistence resilience", () => {
     await expect(launchAndRead(options, lowercase)).resolves.toEqual([{ id: "newer" }]);
     await expect(launchAndRead({ ...options, storage: undefined }, lowercase)).resolves.toEqual([
       { id: "newer" },
+    ]);
+    source.clear();
+  });
+
+  it("does not serve a copy the restore policy excludes while reconcile runs", async () => {
+    vi.useFakeTimers();
+    const dbName = `gg-excluded-read-${crypto.randomUUID()}`;
+    const storage = memoryStorage();
+    const projection = ["greengoods", "works", "offline", "0xabc", 42161] as const;
+    const source = createTestQueryClient();
+    // An earlier session on web storage kept gardens and a local queue projection.
+    setIndexedDB(undefined);
+    const earlierSession = createQueryPersistence({ dbName, storage });
+    for (const queryKey of [gardensKey, projection]) {
+      source.setQueryData(queryKey, [{ id: "stored" }]);
+      await earlierSession.persistQuery(source, queryKey);
+    }
+    setIndexedDB(originalIndexedDB);
+
+    // The next launch reconciles gardens first; a screen reads the projection meanwhile.
+    const persistence = createQueryPersistence({
+      dbName,
+      storage,
+      shouldRestoreQuery: (stored) => isDurableWorkRead(stored.queryKey),
+    });
+    void persistence.restore(createTestQueryClient());
+    const read = clientWithPersistence(persistence).fetchQuery({
+      queryKey: projection,
+      queryFn: async () => [{ id: "rebuilt" }],
+    });
+    await vi.advanceTimersByTimeAsync(100);
+
+    await expect(read).resolves.toEqual([{ id: "rebuilt" }]);
+    source.clear();
+  });
+
+  it("does not let an IndexedDB copy this build would not restore beat a valid web copy", async () => {
+    vi.useFakeTimers();
+    const dbName = `gg-reconcile-preferred-schema-${crypto.randomUUID()}`;
+    const storage = memoryStorage();
+    const source = createTestQueryClient();
+    // An older build still open wrote a later answer to IndexedDB under another cache schema.
+    source.setQueryData(gardensKey, [{ id: "older build" }], { updatedAt: Date.now() + 1_000 });
+    const olderBuild = createQueryPersistence({
+      dbName,
+      storage: undefined,
+      buster: "0",
+    }).persistQuery(source, gardensKey);
+    await vi.advanceTimersByTimeAsync(100);
+    await olderBuild;
+    // This build, during an earlier stall, kept a valid answer in web storage.
+    setIndexedDB(undefined);
+    source.setQueryData(gardensKey, [{ id: "this build" }]);
+    await createQueryPersistence({ dbName, storage }).persistQuery(source, gardensKey);
+    setIndexedDB(originalIndexedDB);
+
+    await expect(launchAndRead({ dbName, storage })).resolves.toEqual([{ id: "this build" }]);
+    await expect(launchAndRead({ dbName, storage: undefined })).resolves.toEqual([
+      { id: "this build" },
     ]);
     source.clear();
   });

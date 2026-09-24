@@ -173,14 +173,18 @@ function createFailoverQueryStore(
     try {
       for (const lower of tiers.slice(1).filter((tier) => tier.isDurable())) {
         const listed = await lower.entries();
-        for (const [key] of listed) unreconciled.set(key, lower);
+        for (const [key, record] of listed) {
+          if (isRestorable(record)) unreconciled.set(key, lower);
+        }
         for (const [key, record] of listed) {
           if (active !== 0) return;
           if (isRestorable(record)) {
             // Only watched while reading: claiming now would make a write
             // already in flight stand down even if nothing replaces it.
             const newestBefore = newestMutation.get(key);
-            const held = await run((tier) => tier.get(key));
+            const found = await run((tier) => tier.get(key));
+            // A preferred copy this build would not restore counts as absent.
+            const held = found && isRestorable(found) ? found : undefined;
             const untouched = newestMutation.get(key) === newestBefore;
             if (active === 0 && untouched && answeredAt(record) > answeredAt(held)) {
               await runMutation(claim(key), (tier, isStale) => tier.set(key, record, isStale));
