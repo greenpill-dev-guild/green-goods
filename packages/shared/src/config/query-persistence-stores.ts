@@ -1,25 +1,23 @@
 /**
- * Where the reading cache keeps its records, and how it falls back.
+ * How the reading cache falls back across its storage tiers.
  *
  * IndexedDB is preferred, web storage is the fallback, and memory holds reads
- * for the session when neither can be reached. This module owns those tiers,
- * the deadline on every storage operation, and putting the tiers back in
- * order after a session had to leave IndexedDB; `query-persistence.ts` owns
- * what is written and restored.
+ * for the session when neither can be reached. This module owns the deadline
+ * on every storage operation, which tier answers, and putting the tiers back
+ * in order after a session had to leave IndexedDB. `query-persistence-tiers.ts`
+ * owns each medium, and `query-persistence.ts` what is written and restored.
  *
  * @module config/query-persistence-stores
  */
 
 import type { PersistedQuery as StoredQuery } from "@tanstack/query-persist-client-core";
-import {
-  createStore,
-  clear as idbClear,
-  del as idbDel,
-  entries as idbEntries,
-  get as idbGet,
-  promisifyRequest,
-} from "idb-keyval";
 import { debugWarn } from "../utils/debug";
+import {
+  createIdbQueryStore,
+  createMemoryQueryStore,
+  createWebQueryStore,
+  type QueryStore,
+} from "./query-persistence-tiers";
 
 /**
  * How long one reading-cache operation may run before its storage tier counts
@@ -31,106 +29,10 @@ import { debugWarn } from "../utils/debug";
  */
 const STORE_OPERATION_TIMEOUT_MS = 3_000;
 
-interface QueryStore {
-  /** Whether this tier survives a page restart. */
-  isDurable(): boolean;
-  get(key: string): Promise<StoredQuery | undefined>;
-  /** `isStale` is asked again when a write that waited on the tier finally runs. */
-  set(key: string, value: StoredQuery, isStale?: () => boolean): Promise<void>;
-  remove(key: string): Promise<void>;
-  entries(): Promise<Array<[string, StoredQuery]>>;
-  clear(): Promise<void>;
-}
-
 /** Every tier behind one store. */
 export interface ReadingCacheStore extends QueryStore {
   /** Fold newer answers a lower tier kept into the preferred tier. Never throws. */
   reconcile(isRestorable: (record: StoredQuery) => boolean): Promise<void>;
-}
-
-function createIdbQueryStore(dbName: string, storeName: string): QueryStore | undefined {
-  if (typeof indexedDB === "undefined" || !indexedDB) return undefined;
-  try {
-    const store = createStore(dbName, storeName);
-    return {
-      isDurable: () => true,
-      get: (key) => idbGet<StoredQuery>(key, store),
-      // A stalled open runs every write queued on it once it succeeds, which
-      // can be long after the store moved on; a stale one then stays out.
-      set: (key, value, isStale) =>
-        store("readwrite", (objectStore) => {
-          if (isStale?.()) return;
-          objectStore.put(value, key);
-          return promisifyRequest(objectStore.transaction);
-        }),
-      remove: (key) => idbDel(key, store),
-      entries: async () =>
-        (await idbEntries<string, StoredQuery>(store)).filter(
-          ([key, value]) => typeof key === "string" && value !== undefined
-        ),
-      clear: () => idbClear(store),
-    };
-  } catch (error) {
-    debugWarn("[Persister] IndexedDB is unavailable, falling back to web storage:", { error });
-    return undefined;
-  }
-}
-
-function createWebQueryStore(storage: Storage, prefix: string): QueryStore {
-  // Other features keep their own `gg-` keys in this storage, drafts among
-  // them. A record's key is the prefix and its query hash, and a query hash is
-  // a serialized array, so only those keys are ever read, moved or cleared.
-  const recordPrefix = `${prefix}-[`;
-  const recordKeys = () => {
-    const keys: string[] = [];
-    for (let index = 0; index < storage.length; index += 1) {
-      const key = storage.key(index);
-      if (key?.startsWith(recordPrefix)) keys.push(key);
-    }
-    return keys;
-  };
-  const parse = (raw: string | null): StoredQuery | undefined => {
-    if (!raw) return undefined;
-    try {
-      return JSON.parse(raw) as StoredQuery;
-    } catch {
-      return undefined;
-    }
-  };
-  return {
-    isDurable: () => true,
-    get: async (key) => parse(storage.getItem(key)),
-    set: async (key, value) => {
-      storage.setItem(key, JSON.stringify(value));
-    },
-    remove: async (key) => {
-      storage.removeItem(key);
-    },
-    entries: async () =>
-      recordKeys().flatMap((key): Array<[string, StoredQuery]> => {
-        const value = parse(storage.getItem(key));
-        return value ? [[key, value]] : [];
-      }),
-    clear: async () => {
-      for (const key of recordKeys()) storage.removeItem(key);
-    },
-  };
-}
-
-function createMemoryQueryStore(): QueryStore {
-  const memory = new Map<string, StoredQuery>();
-  return {
-    isDurable: () => false,
-    get: async (key) => memory.get(key),
-    set: async (key, value) => {
-      memory.set(key, value);
-    },
-    remove: async (key) => {
-      memory.delete(key);
-    },
-    entries: async () => [...memory.entries()],
-    clear: async () => memory.clear(),
-  };
 }
 
 /** Settle with the operation, or reject once it has run past the deadline. */
@@ -146,7 +48,11 @@ function withDeadline<T>(operation: Promise<T>, timeoutMs: number): Promise<T> {
 }
 
 /** When a stored answer was fetched; a record without that time counts as oldest. */
-const answeredAt = (record: StoredQuery | undefined) => Number(record?.state?.dataUpdatedAt) || 0;
+export const answeredAt = (record: StoredQuery | undefined) =>
+  Number(record?.state?.dataUpdatedAt) || 0;
+
+/** Where a mutation ended up: a durable tier, memory only, or nowhere because a newer one won. */
+type Kept = "durable" | "memory" | "superseded";
 
 /** The newer of a late answer and the active tier's; a tie keeps the active one. */
 const newerAnswer = (late: StoredQuery | undefined, current: StoredQuery | undefined) =>
@@ -170,10 +76,11 @@ function newerEntries(late: Array<[string, StoredQuery]>, current: Array<[string
  * IDB -> web storage -> memory chain real.
  *
  * A deadline cannot cancel what it abandons: once the stall clears, IndexedDB
- * still runs every operation that was waiting on it. The store therefore
- * never assumes the tiers agree. A read answered late by a demoted tier keeps
- * the newer of its answer and the active tier's, a mutation stands down for a
- * newer one of the same key, and `reconcile` sorts out the copies at boot.
+ * still runs every operation that was waiting on it, so the store never
+ * assumes the tiers agree. A read a demoted tier answers late keeps the newer
+ * of its answer and the active tier's. A mutation that lands there replays on
+ * the active tier, and one that is stale by then stands down. `reconcile`
+ * sorts out the copies at boot.
  *
  * A tier failing is not itself a persistence error: a read that falls back, or
  * a write that web storage keeps, lost nothing. `onLostWrite` hears only about
@@ -186,6 +93,8 @@ function createFailoverQueryStore(
 ): ReadingCacheStore {
   let active = 0;
   const newestMutation = new Map<string, symbol>();
+  /** Keys a lower tier still holds a copy of until `reconcile` reaches them. */
+  const unreconciled = new Map<string, QueryStore>();
 
   const run = async <T>(
     operation: (tier: QueryStore) => Promise<T>,
@@ -225,10 +134,11 @@ function createFailoverQueryStore(
   };
 
   /**
-   * Run a claimed mutation, resolving with whether it landed. A retry starts
-   * only after the failed tier's deadline, by which time a newer mutation of
-   * the same key may have landed on the next tier; the older one then stands
-   * down rather than write its answer over the newer one. An attempt the
+   * Run a claimed mutation. A retry starts only after the failed tier's
+   * deadline, by which time a newer mutation of the same key may have landed
+   * on the next tier; the older one then stands down rather than write over
+   * it. One that landed on a tier another operation demoted meanwhile replays
+   * on the active tier, which is the one this session reads. An attempt the
    * deadline abandoned may still run later, and is stale by then if a newer
    * mutation started or a durable tier kept this one.
    */
@@ -239,12 +149,15 @@ function createFailoverQueryStore(
     let attempt = 0;
     let keptDurably = false;
     const isStale = () => keptDurably || !isNewest();
-    return run(async (tier) => {
-      if (attempt++ > 0 && !isNewest()) return false;
-      await operation(tier, isStale);
-      if (tier.isDurable()) keptDurably = true;
-      return true;
-    });
+    return run(
+      async (tier): Promise<Kept> => {
+        if (attempt++ > 0 && !isNewest()) return keptDurably ? "durable" : "superseded";
+        await operation(tier, isStale);
+        if (tier.isDurable()) keptDurably = true;
+        return keptDurably ? "durable" : "memory";
+      },
+      (_demoted, replayed) => replayed
+    );
   };
 
   /**
@@ -259,7 +172,9 @@ function createFailoverQueryStore(
   const reconcile = async (isRestorable: (record: StoredQuery) => boolean) => {
     try {
       for (const lower of tiers.slice(1).filter((tier) => tier.isDurable())) {
-        for (const [key, record] of await lower.entries()) {
+        const listed = await lower.entries();
+        for (const [key] of listed) unreconciled.set(key, lower);
+        for (const [key, record] of listed) {
           if (active !== 0) return;
           if (isRestorable(record)) {
             // Only watched while reading: claiming now would make a write
@@ -278,25 +193,34 @@ function createFailoverQueryStore(
           // demoted, the lower copy is what this session reads and writes.
           if (active !== 0) return;
           if (answeredAt(current) <= answeredAt(record)) await lower.remove(key);
+          unreconciled.delete(key);
         }
       }
     } catch (error) {
       debugWarn("[Persister] Could not reconcile the reading cache tiers", { error });
+    } finally {
+      unreconciled.clear();
     }
   };
 
   return {
     isDurable: () => tiers[active].isDurable(),
-    get: (key) => run((tier) => tier.get(key), newerAnswer),
+    get: async (key) => {
+      const answer = await run((tier) => tier.get(key), newerAnswer);
+      // Boot stops waiting for the restore after its timeout, and until
+      // reconcile reaches a key its newer answer may still be in a lower tier.
+      const lower = active === 0 ? unreconciled.get(key) : undefined;
+      return lower ? newerAnswer(await lower.get(key).catch(() => undefined), answer) : answer;
+    },
     set: async (key, value) => {
-      let landed: boolean;
+      let kept: Kept;
       try {
-        landed = await runMutation(claim(key), (tier, isStale) => tier.set(key, value, isStale));
+        kept = await runMutation(claim(key), (tier, isStale) => tier.set(key, value, isStale));
       } catch (error) {
         onLostWrite(error);
         throw error;
       }
-      if (landed && !tiers[active].isDurable()) {
+      if (kept === "memory") {
         onLostWrite(new Error("Reading cache is keeping this write in memory only"));
       }
     },
@@ -305,16 +229,22 @@ function createFailoverQueryStore(
     },
     entries: () => run((tier) => tier.entries(), newerEntries),
     clear: async () => {
-      await run((tier) => tier.clear());
-      // A copy left in a lower tier would come back at the next reconcile.
-      for (const lower of tiers.slice(active + 1)) {
+      let preferredCleared = false;
+      await run(async (tier) => {
+        await tier.clear();
+        if (tier === tiers[0]) preferredCleared = true;
+      });
+      // Every lower tier is cleared too, including one the clear fell back to:
+      // a copy left in any of them would come back at the next reconcile.
+      for (const lower of tiers.slice(1)) {
         await lower.clear().catch((error: unknown) => {
           debugWarn("[Persister] Could not clear a lower reading cache tier", { error });
         });
       }
       // The preferred tier keeps what a clear it never answered should have
       // removed, and the next launch restores from it, so this is not done.
-      if (active !== 0) throw new Error("Reading cache could not clear its preferred storage tier");
+      if (!preferredCleared)
+        throw new Error("Reading cache could not clear its preferred storage tier");
     },
     reconcile,
   };

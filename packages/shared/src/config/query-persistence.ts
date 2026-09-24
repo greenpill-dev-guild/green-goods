@@ -19,7 +19,7 @@ import {
   readLegacySnapshot,
 } from "./query-persistence-legacy";
 export type { LegacySnapshotSource };
-import { createReadingCacheStore } from "./query-persistence-stores";
+import { answeredAt, createReadingCacheStore } from "./query-persistence-stores";
 import { PERSIST_MAX_AGE, QUERY_CACHE_SCHEMA_VERSION } from "./query-cache-policy";
 
 export { PERSIST_MAX_AGE, QUERY_CACHE_SCHEMA_VERSION } from "./query-cache-policy";
@@ -257,7 +257,15 @@ export function createQueryPersistence(options: CreateQueryPersistenceOptions): 
       const restored = transformRestoredQuery ? transformRestoredQuery(stored) : stored;
       if (restored.queryHash !== stored.queryHash) {
         await store.remove(key);
-        await store.set(storageKey(restored.queryHash), restored).catch(() => undefined);
+        const destination = storageKey(restored.queryHash);
+        const held = await store.get(destination).catch(() => undefined);
+        // The key it moves to can already hold a newer answer, from a session
+        // that wrote it there or a folded fallback copy; that answer then wins
+        // in storage, and its own entry restores it.
+        if (held && classify(held, now) === "keep" && answeredAt(held) >= answeredAt(restored)) {
+          continue;
+        }
+        await store.set(destination, restored).catch(() => undefined);
       }
       // A screen that already fetched this read while boot waited keeps its data.
       if (client.getQueryState(restored.queryKey)?.data !== undefined) continue;

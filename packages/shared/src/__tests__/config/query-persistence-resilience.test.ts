@@ -1,12 +1,13 @@
 /** @vitest-environment jsdom */
 
-import { hashKey, QueryClient } from "@tanstack/react-query";
+import { hashKey, QueryClient, type QueryKey } from "@tanstack/react-query";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
   type CreateQueryPersistenceOptions,
   createQueryPersistence,
   QUERY_CACHE_SCHEMA_VERSION,
+  restoreDurableWorkQuery,
   type StoredQuery,
 } from "../../config/query-persistence";
 import { attachQueryPersistence } from "../../providers/QueryPersistence";
@@ -121,15 +122,18 @@ function webGardens(storage: Storage): unknown {
   return record ? (JSON.parse(record) as StoredQuery).state.data : undefined;
 }
 
-/** What a launch over these stores restores for the gardens read. */
-async function launchAndReadGardens(options: CreateQueryPersistenceOptions): Promise<unknown> {
+/** What a launch over these stores restores for one read, the gardens read unless named. */
+async function launchAndRead(
+  options: CreateQueryPersistenceOptions,
+  queryKey: QueryKey = gardensKey
+): Promise<unknown> {
   const client = createTestQueryClient();
   // The shared test client collects idle reads at once; keep this one to read it back.
-  client.setQueryDefaults(gardensKey, { gcTime: Number.POSITIVE_INFINITY });
+  client.setQueryDefaults(queryKey, { gcTime: Number.POSITIVE_INFINITY });
   const restored = createQueryPersistence(options).restore(client);
   await vi.advanceTimersByTimeAsync(100);
   await restored;
-  return client.getQueryData(gardensKey);
+  return client.getQueryData(queryKey);
 }
 
 describe("query persistence resilience", () => {
@@ -274,15 +278,13 @@ describe("query persistence resilience", () => {
     // IndexedDB answers what waited, but the abandoned write is stale by then and stays out.
     answerStalledOperations();
     await vi.advanceTimersByTimeAsync(100);
-    await expect(launchAndReadGardens({ dbName, storage: undefined })).resolves.toEqual([
+    await expect(launchAndRead({ dbName, storage: undefined })).resolves.toEqual([
       { id: "earlier" },
     ]);
 
     // The next launch prefers IndexedDB again, yet restores the newer answer and moves it there.
-    await expect(launchAndReadGardens({ dbName, storage })).resolves.toEqual([{ id: "newer" }]);
-    await expect(launchAndReadGardens({ dbName, storage: undefined })).resolves.toEqual([
-      { id: "newer" },
-    ]);
+    await expect(launchAndRead({ dbName, storage })).resolves.toEqual([{ id: "newer" }]);
+    await expect(launchAndRead({ dbName, storage: undefined })).resolves.toEqual([{ id: "newer" }]);
     expect(storage.length).toBe(1);
     expect(storage.getItem("gg-commitment-proof-drafts")).toBe(commitmentDraft);
     source.clear();
@@ -334,7 +336,7 @@ describe("query persistence resilience", () => {
     await restored;
 
     expect(webGardens(storage)).toEqual([{ id: "rewritten" }]);
-    await expect(launchAndReadGardens({ dbName, storage })).resolves.toEqual([{ id: "rewritten" }]);
+    await expect(launchAndRead({ dbName, storage })).resolves.toEqual([{ id: "rewritten" }]);
     source.clear();
   });
 
@@ -356,10 +358,123 @@ describe("query persistence resilience", () => {
     await createQueryPersistence({ dbName, storage, buster: "0" }).persistQuery(source, gardensKey);
     setIndexedDB(originalIndexedDB);
 
-    await expect(launchAndReadGardens({ dbName, storage })).resolves.toEqual([
-      { id: "this build" },
-    ]);
+    await expect(launchAndRead({ dbName, storage })).resolves.toEqual([{ id: "this build" }]);
     expect(storage.length).toBe(0);
+    source.clear();
+  });
+
+  it("replays a write IndexedDB takes after another operation demoted it", async () => {
+    vi.useFakeTimers();
+    const dbName = `gg-replayed-write-${crypto.randomUUID()}`;
+    const storage = memoryStorage();
+    const answerStalledOperations = await stallIndexedDB(dbName, [{ id: "earlier" }]);
+    const persistence = createQueryPersistence({ dbName, storage });
+    const source = createTestQueryClient();
+
+    // Boot's restore meets the stall at 0s, and a write reaches IndexedDB at 1s.
+    void persistence.restore(createTestQueryClient());
+    await vi.advanceTimersByTimeAsync(1_000);
+    source.setQueryData(gardensKey, [{ id: "written" }]);
+    const written = persistence.persistQuery(source, gardensKey);
+    // The restore demotes IndexedDB at 3s, and IndexedDB takes the write before its 4s deadline.
+    await vi.advanceTimersByTimeAsync(2_500);
+    answerStalledOperations();
+    await vi.advanceTimersByTimeAsync(100);
+    await written;
+
+    // The session now reads web storage, so the write has to be there too.
+    expect(webGardens(storage)).toEqual([{ id: "written" }]);
+    source.clear();
+  });
+
+  it("finishes a clear IndexedDB takes after another operation demoted it", async () => {
+    vi.useFakeTimers();
+    const dbName = `gg-late-clear-${crypto.randomUUID()}`;
+    const storage = memoryStorage();
+    const source = clientWithGardens();
+    setIndexedDB(undefined);
+    await createQueryPersistence({ dbName, storage }).persistQuery(source, gardensKey);
+    setIndexedDB(originalIndexedDB);
+    const answerStalledOperations = await stallIndexedDB(dbName, [{ id: "earlier" }]);
+    const persistence = createQueryPersistence({ dbName, storage });
+
+    // Boot's restore meets the stall at 0s, and the clear reaches IndexedDB at 1s.
+    void persistence.restore(createTestQueryClient());
+    await vi.advanceTimersByTimeAsync(1_000);
+    const cleared = persistence.clear();
+    // The restore demotes IndexedDB at 3s, and IndexedDB takes the clear before its 4s deadline.
+    await vi.advanceTimersByTimeAsync(2_500);
+    answerStalledOperations();
+    await vi.advanceTimersByTimeAsync(100);
+
+    await expect(cleared).resolves.toBeUndefined();
+    expect(storage.length).toBe(0);
+    await expect(launchAndRead({ dbName, storage })).resolves.toBeUndefined();
+    source.clear();
+  });
+
+  it("reads a key's newer web copy before reconcile has reached it", async () => {
+    vi.useFakeTimers();
+    const dbName = `gg-unreconciled-read-${crypto.randomUUID()}`;
+    const storage = memoryStorage();
+    const actionsKey = ["greengoods", "actions", 42161] as const;
+    const startedAt = Date.now();
+    const source = createTestQueryClient();
+    const earlierSession = createQueryPersistence({ dbName, storage: undefined });
+    for (const queryKey of [gardensKey, actionsKey]) {
+      source.setQueryData(queryKey, [{ id: "earlier" }], { updatedAt: startedAt });
+      const written = earlierSession.persistQuery(source, queryKey);
+      await vi.advanceTimersByTimeAsync(10);
+      await written;
+    }
+    // A stalled session then wrote newer answers for both to web storage.
+    setIndexedDB(undefined);
+    const stalledSession = createQueryPersistence({ dbName, storage });
+    for (const queryKey of [gardensKey, actionsKey]) {
+      source.setQueryData(queryKey, [{ id: "newer" }], { updatedAt: startedAt + 1_000 });
+      await stalledSession.persistQuery(source, queryKey);
+    }
+    setIndexedDB(originalIndexedDB);
+
+    // The next launch reconciles gardens first; a screen reads actions before it gets there.
+    const persistence = createQueryPersistence({ dbName, storage });
+    void persistence.restore(createTestQueryClient());
+    const actions = clientWithPersistence(persistence).fetchQuery({
+      queryKey: actionsKey,
+      queryFn: async () => [],
+    });
+    await vi.advanceTimersByTimeAsync(100);
+
+    await expect(actions).resolves.toEqual([{ id: "newer" }]);
+    source.clear();
+  });
+
+  it("keeps a newer answer at the key a restored record moves to", async () => {
+    vi.useFakeTimers();
+    const dbName = `gg-moved-record-${crypto.randomUUID()}`;
+    const storage = memoryStorage();
+    const checksummed = ["greengoods", "works", "online", "0xAbC", 42161] as const;
+    const lowercase = ["greengoods", "works", "online", "0xabc", 42161] as const;
+    const source = createTestQueryClient();
+    const startedAt = Date.now();
+    source.setQueryData(lowercase, [{ id: "newer" }], { updatedAt: startedAt });
+    const kept = createQueryPersistence({ dbName, storage: undefined }).persistQuery(
+      source,
+      lowercase
+    );
+    await vi.advanceTimersByTimeAsync(100);
+    await kept;
+    // A build from before the lowercase key left an older answer in web storage.
+    setIndexedDB(undefined);
+    source.setQueryData(checksummed, [{ id: "older" }], { updatedAt: startedAt - 1_000 });
+    await createQueryPersistence({ dbName, storage }).persistQuery(source, checksummed);
+    setIndexedDB(originalIndexedDB);
+
+    const options = { dbName, storage, transformRestoredQuery: restoreDurableWorkQuery };
+    await expect(launchAndRead(options, lowercase)).resolves.toEqual([{ id: "newer" }]);
+    await expect(launchAndRead({ ...options, storage: undefined }, lowercase)).resolves.toEqual([
+      { id: "newer" },
+    ]);
     source.clear();
   });
 
@@ -418,7 +533,7 @@ describe("query persistence resilience", () => {
     await vi.advanceTimersByTimeAsync(100);
     await cleared;
 
-    await expect(launchAndReadGardens({ dbName, storage })).resolves.toBeUndefined();
+    await expect(launchAndRead({ dbName, storage })).resolves.toBeUndefined();
     source.clear();
   });
 
