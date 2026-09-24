@@ -39,6 +39,7 @@ export interface AdminCommunityRouteContext {
   /** @deprecated Use gardenId. Kept so old call sites and bookmarks can normalize safely. */
   gardenAddress?: Address | string;
   item?: string;
+  member?: Address;
 }
 
 export const ADMIN_GARDEN_ID_PARAM = "gardenId";
@@ -119,6 +120,7 @@ function buildCommunityContextSearch(
   return {
     [ADMIN_GARDEN_ID_PARAM]: context.gardenId ?? context.gardenAddress,
     item: context.item,
+    member: context.member,
   };
 }
 

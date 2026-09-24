@@ -3,6 +3,8 @@ import { useGardenOperations } from "@green-goods/shared/hooks/garden/useGardenO
 import type { Address } from "@green-goods/shared/types/domain";
 import type { GardenRole } from "@green-goods/shared/utils/blockchain/garden-roles";
 import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
+import { isAddress } from "viem";
 import { AddMembersDialog } from "@/components/Garden/AddMembersDialog";
 import { ManageMembersDialog } from "@/components/Garden/ManageMembersDialog";
 
@@ -23,6 +25,14 @@ export function CommunityMembersDialogs({
 }: CommunityMembersDialogsProps) {
   const [manageMembersOpen, setManageMembersOpen] = useState(selectedItem === "manage-members");
   const [addMembersOpen, setAddMembersOpen] = useState(selectedItem === "add-member");
+  // The person Manage Members was showing when Add Members opened over it.
+  const [addMembersPrefill, setAddMembersPrefill] = useState<Address | undefined>();
+  const [searchParams] = useSearchParams();
+  const memberParam = searchParams.get("member");
+  const initialMemberAddress =
+    selectedItem === "manage-members" && memberParam && isAddress(memberParam)
+      ? memberParam
+      : undefined;
   const operations = useGardenOperations(garden.id);
 
   useEffect(() => {
@@ -61,8 +71,13 @@ export function CommunityMembersDialogs({
     setManageMembersOpen(false);
     if (selectedItem === "manage-members") closeMembersModal();
   };
+  const openAddMembers = (prefill?: Address) => {
+    setAddMembersPrefill(prefill);
+    setAddMembersOpen(true);
+  };
   const closeAddMembers = () => {
     setAddMembersOpen(false);
+    setAddMembersPrefill(undefined);
     if (selectedItem === "add-member") closeMembersModal();
   };
   const handleRemoveMember = async (address: Address, role: GardenRole) => {
@@ -74,20 +89,25 @@ export function CommunityMembersDialogs({
   return (
     <>
       <ManageMembersDialog
+        key={garden.id}
         open={manageMembersOpen}
+        initialSearch={initialMemberAddress}
         onClose={closeManageMembers}
         tone="community"
         roleMembers={roleMembers}
         canManage={canManage}
         isLoading={operations.isLoading}
         onRemoveMember={handleRemoveMember}
-        onAddMembers={() => setAddMembersOpen(true)}
+        onAddMembers={openAddMembers}
       />
       <AddMembersDialog
         key={garden.id}
         open={addMembersOpen}
         onClose={closeAddMembers}
         tone="community"
+        gardenAddress={garden.id}
+        roleMembers={roleMembers}
+        initialAddress={addMembersPrefill}
         isLoading={operations.isLoading}
         onAdd={(role, address) => addByRole[role](address)}
       />

@@ -5,7 +5,11 @@
  * the user's garden-level roles, aggregated across all managed
  * gardens or scoped to the selected garden.
  *
- * Fail-open: while loading or on error, all slots are visible.
+ * Fail-open: while loading or on error, the navigation slots stay visible.
+ * `isLoading` is true only while role and garden data are pending, so a route
+ * guard that waits on it never stalls on a terminal state (no address, failed
+ * list). `showCommunity` also authorizes the Community routes, so a terminal
+ * state denies it rather than failing open.
  */
 
 import { useMemo } from "react";
@@ -23,13 +27,12 @@ export interface ToolbarPermissions {
   isLoading: boolean;
 }
 
-const FAIL_OPEN: ToolbarPermissions = {
+const FAIL_OPEN = {
   showWork: true,
   showGarden: true,
   showCommunity: true,
   showActions: true,
-  isLoading: true,
-};
+} satisfies Omit<ToolbarPermissions, "isLoading">;
 
 export function useEffectiveToolbarPermissions(): ToolbarPermissions {
   const address = usePrimaryAddress();
@@ -42,13 +45,12 @@ export function useEffectiveToolbarPermissions(): ToolbarPermissions {
   } = useEligibleAdminGardens();
 
   return useMemo(() => {
-    // Fail-open while loading or on error (gardens data undefined)
-    if (roleLoading || !eligibleGardensLoaded || !address) {
-      return FAIL_OPEN;
+    if (roleLoading || !eligibleGardensLoaded) {
+      return { ...FAIL_OPEN, isLoading: true };
     }
 
-    if (eligibleGardensError && eligibleGardens.length === 0) {
-      return FAIL_OPEN;
+    if (!address || (eligibleGardensError && eligibleGardens.length === 0)) {
+      return { ...FAIL_OPEN, showCommunity: false, isLoading: false };
     }
 
     // Determine which gardens to check
@@ -59,6 +61,7 @@ export function useEffectiveToolbarPermissions(): ToolbarPermissions {
     // Compute aggregated roles across the scope
     let hasAnyRole = false;
     let isStewardOrOwner = false;
+    let isEvaluator = false;
 
     for (const garden of scope) {
       const inStewards = isAddressInList(address, garden.stewards);
@@ -75,11 +78,14 @@ export function useEffectiveToolbarPermissions(): ToolbarPermissions {
       if (inStewards || inOwners) {
         isStewardOrOwner = true;
       }
+      if (inEvaluators) {
+        isEvaluator = true;
+      }
     }
 
     return {
       showWork: hasAnyRole,
-      showGarden: isStewardOrOwner,
+      showGarden: isStewardOrOwner || isEvaluator,
       // Stewards participate in Community: they manage roles, deposits, and
       // payouts. Gating to deployer-or-owner only hid that surface from people
       // who do most of the day-to-day work.

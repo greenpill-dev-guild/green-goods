@@ -76,6 +76,7 @@ interface DerivedStateInput {
   activityFilter: ActivityFilter;
   memberSearch: string;
   section: string | undefined;
+  canAccessCommunity?: boolean;
   formatMessage: (descriptor: { id: string }, values?: Record<string, any>) => string;
   openSection: (tab: GardenDetailTab, section: string, itemId?: string) => void;
 }
@@ -94,6 +95,7 @@ export function useGardenDerivedState({
   activityFilter,
   memberSearch,
   section,
+  canAccessCommunity = true,
   formatMessage,
   openSection,
 }: DerivedStateInput) {
@@ -138,6 +140,10 @@ export function useGardenDerivedState({
     : vaultNetDeposited === 0n
       ? "critical"
       : "none";
+  // The treasury's alert opens Community, so a viewer without Community access
+  // gets no alert. Its badge and health contributions go with it: a warning
+  // status must always have the alert that explains it.
+  const treasuryAttention: TabBadgeSeverity = canAccessCommunity ? treasurySeverity : "none";
 
   const workBadge: TabBadgeState =
     pendingCriticalCount > 0
@@ -151,7 +157,7 @@ export function useGardenDerivedState({
     : { severity: "none" };
 
   const communityBadge: TabBadgeState =
-    treasurySeverity === "none" ? { severity: "none" } : { severity: treasurySeverity, count: 1 };
+    treasuryAttention === "none" ? { severity: "none" } : { severity: treasuryAttention, count: 1 };
 
   const hasNoDomains = garden.domainMask === 0;
   const domainBadge: TabBadgeState = hasNoDomains
@@ -175,10 +181,10 @@ export function useGardenDerivedState({
       : [];
 
   const gardenHealthSeverity: TabBadgeSeverity =
-    workBadge.severity === "critical" || treasurySeverity === "critical"
+    workBadge.severity === "critical" || treasuryAttention === "critical"
       ? "critical"
       : workBadge.severity === "warn" ||
-          treasurySeverity === "warn" ||
+          treasuryAttention === "warn" ||
           impactBadge.severity === "warn" ||
           hasNoDomains
         ? "warn"
@@ -221,14 +227,14 @@ export function useGardenDerivedState({
           onAction: () => openSection("impact", "reporting"),
         }
       : null,
-    treasurySeverity === "critical"
+    treasuryAttention === "critical"
       ? {
           key: "treasury-critical",
           severity: "critical" as const,
           label: formatMessage({ id: "app.garden.detail.alert.treasuryEmpty" }),
           onAction: () => openSection("community", "endowment"),
         }
-      : treasurySeverity === "warn"
+      : treasuryAttention === "warn"
         ? {
             key: "treasury-warning",
             severity: "warn" as const,
@@ -247,7 +253,7 @@ export function useGardenDerivedState({
     // Computed from the jar itself, so it clears once the limit is raised: nothing to dismiss
     // or store. Critical while the jar holds funds a gardener could be claiming a cent at a time.
     ...cookieJars
-      .filter((jar) => isJarClaimLimitLow(jar, garden.chainId || undefined))
+      .filter((jar) => canAccessCommunity && isJarClaimLimitLow(jar, garden.chainId || undefined))
       .map((jar) => {
         const asset = getVaultAssetSymbol(jar.assetAddress, garden.chainId || undefined);
         const funded = jar.balance > 0n;
@@ -338,7 +344,9 @@ export function useGardenDerivedState({
         }
       ),
       timestamp: toMs(allocation.timestamp),
-      href: adminRoutes.communityPayouts({ gardenId: gardenAddress, item: allocation.txHash }),
+      href: canAccessCommunity
+        ? adminRoutes.communityPayouts({ gardenId: gardenAddress, item: allocation.txHash })
+        : undefined,
       itemId: allocation.txHash,
     })),
   ].sort((a, b) => b.timestamp - a.timestamp);

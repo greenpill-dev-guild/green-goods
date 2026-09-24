@@ -8,6 +8,7 @@ import type { UserRole } from "@green-goods/shared/hooks/gardener/useRole";
 import type { ComponentType } from "react";
 import { Navigate, type RouteObject, useLocation } from "react-router-dom";
 import RequireRole from "@/routes/RequireRole";
+import RequireCommunityAccess from "@/routes/RequireCommunityAccess";
 
 type LazyRoute = NonNullable<RouteObject["lazy"]>;
 
@@ -226,6 +227,7 @@ export const adminCanvasRoutes: RouteObject[] = [
   },
   {
     path: "community",
+    element: <RequireCommunityAccess loadingFallback={<RoleGateSkeleton />} />,
     children: [
       {
         index: true,

@@ -11,7 +11,14 @@ interface FixtureOptions {
   route?: { source: string; contents: string };
   shellAssets?: string[];
   files?: Record<string, string>;
+  /** Shared chunks nothing imports, added only for the file-name rule. */
+  lazyChunks?: { file: string; name?: string }[];
 }
+
+// Real builds name every lazy chunk `assets/chunk-<hash>.js`.
+const PUBLIC_CHUNK = "assets/chunk-X4mQ9aTe.js";
+const PWA_CHUNK = "assets/chunk-Hn2Rw7Kd.js";
+const ROUTE_CHUNK = "assets/chunk-bV6sE1yZ.js";
 
 const fixtureDirectories: string[] = [];
 const checkerPath = resolve(process.cwd(), "scripts/check-pwa-precache-budget.mjs");
@@ -37,12 +44,12 @@ function createFixture(options: FixtureOptions = {}) {
   const manifest: Record<string, Record<string, unknown>> = {
     "src/main.tsx": { file: "assets/main.js", isEntry: true, src: "src/main.tsx" },
     "src/bootstrapPublic.tsx": {
-      file: "assets/public.js",
+      file: PUBLIC_CHUNK,
       isDynamicEntry: true,
       src: "src/bootstrapPublic.tsx",
     },
     "src/bootstrapPwa.tsx": {
-      file: "assets/pwa.js",
+      file: PWA_CHUNK,
       isDynamicEntry: true,
       src: "src/bootstrapPwa.tsx",
     },
@@ -54,12 +61,12 @@ function createFixture(options: FixtureOptions = {}) {
         dynamicImports: [],
         modules: ["packages/client/src/main.tsx"],
       },
-      "assets/public.js": {
+      [PUBLIC_CHUNK]: {
         imports: [],
         dynamicImports: [],
         modules: options.publicModules ?? ["packages/client/src/bootstrapPublic.tsx"],
       },
-      "assets/pwa.js": {
+      [PWA_CHUNK]: {
         imports: [],
         dynamicImports: [],
         modules: ["packages/client/src/bootstrapPwa.tsx"],
@@ -68,22 +75,26 @@ function createFixture(options: FixtureOptions = {}) {
 
   if (options.route) {
     manifest[options.route.source] = {
-      file: "assets/route.js",
+      file: ROUTE_CHUNK,
       isDynamicEntry: true,
       src: options.route.source,
     };
-    chunks["assets/route.js"] = {
+    chunks[ROUTE_CHUNK] = {
       imports: [],
       dynamicImports: [],
       modules: [`packages/client/${options.route.source}`],
     };
-    writeFileSync(resolve(directory, "assets/route.js"), options.route.contents);
+    writeFileSync(resolve(directory, ROUTE_CHUNK), options.route.contents);
+  }
+
+  for (const chunk of options.lazyChunks ?? []) {
+    manifest[`_${chunk.file.slice("assets/".length)}`] = { ...chunk };
   }
 
   const files = {
     "assets/main.js": "export const main = true",
-    "assets/public.js": "export const publicApp = true",
-    "assets/pwa.js": "export const pwa = true",
+    [PUBLIC_CHUNK]: "export const publicApp = true",
+    [PWA_CHUNK]: "export const pwa = true",
     ...options.files,
   };
   for (const [file, contents] of Object.entries(files)) {
@@ -175,5 +186,30 @@ describe("PWA build budgets", () => {
   ])("fails the %s ceiling", (message, fixtureOptions, limits) => {
     const output = runFailure(createFixture(fixtureOptions as FixtureOptions), limits);
     expect(output).toContain(message);
+  });
+
+  it("passes a build whose lazy chunks carry opaque names", () => {
+    const fixture = createFixture({
+      lazyChunks: [
+        { file: "assets/chunk-Q7fZ2kLp.js", name: "analytics-events" },
+        // Rolldown appends a numeric suffix to some hash-only names.
+        { file: "assets/chunk-0Z0fNygk2.js", name: "CampaignJarSurface" },
+        // A random hash can spell a short name; those are not checked.
+        { file: "assets/chunk-CfAB5leN2.js", name: "en" },
+      ],
+    });
+    expect(runFailure(fixture, {})).toBe("");
+  });
+
+  // EasyPrivacy's `/analytics-events-` rule blocks the first two names under Brave's
+  // Aggressive blocking and uBlock Origin, failing every lazy route that imports auth.
+  it.each([
+    { file: "assets/analytics-events-OnL9QVlN.js", name: "analytics-events" },
+    { file: "assets/chunk-analytics-events-OnL9QVlN.js", name: "analytics-events" },
+    { file: "assets/chunk-public01.js", name: "public" },
+  ])("fails a lazy chunk whose file name carries its name: $file", (chunk) => {
+    const output = runFailure(createFixture({ lazyChunks: [chunk] }), {});
+    expect(output).toContain("lazy chunk file names must be opaque");
+    expect(output).toContain(chunk.file);
   });
 });

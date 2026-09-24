@@ -11,6 +11,7 @@ import { useAdminGardenWorkspaceSelection } from "@green-goods/shared/hooks/gard
 import { useGardenDerivedState } from "@green-goods/shared/hooks/garden/useGardenDerivedState";
 import { useGardenDetailData } from "@green-goods/shared/hooks/garden/useGardenDetailData";
 import { useLocalizedRelativeTime } from "@green-goods/shared/hooks/app/useLocalizedRelativeTime";
+import { useEffectiveToolbarPermissions } from "@green-goods/shared/hooks/roles/useEffectiveToolbarPermissions";
 import { useCallback, useMemo } from "react";
 import { useIntl } from "react-intl";
 import { useNavigate } from "react-router-dom";
@@ -22,6 +23,7 @@ export function AdminNotificationPanel({ onCloseSheet }: { onCloseSheet: () => v
   const { selectedGarden } = useAdminGardenWorkspaceSelection();
   const selectedGardenAddress = selectedGarden?.id;
   const workspace = useGardenDetailData(selectedGarden?.id);
+  const { showCommunity, isLoading: permissionsLoading } = useEffectiveToolbarPermissions();
 
   const navigateFromNotification = useCallback(
     (path: string) => {
@@ -64,6 +66,7 @@ export function AdminNotificationPanel({ onCloseSheet }: { onCloseSheet: () => v
     activityFilter: "all",
     memberSearch: "",
     section: undefined,
+    canAccessCommunity: showCommunity && !permissionsLoading,
     formatMessage,
     openSection,
   });

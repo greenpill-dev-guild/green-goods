@@ -1,32 +1,39 @@
 import { AddressDisplay } from "@green-goods/shared/components/AddressDisplay";
 import { Alert } from "@green-goods/shared/components/Alert";
 import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
+import { useEnsNames } from "@green-goods/shared/hooks/blockchain/useEnsName";
 import type { Address } from "@green-goods/shared/types/domain";
 import { formatAddress } from "@green-goods/shared/utils/app/text";
 import {
   GARDEN_ROLE_ORDER,
   type GardenRole,
-  getRoleColorClasses,
 } from "@green-goods/shared/utils/blockchain/garden-roles";
 import { RiDeleteBinLine, RiUserAddLine, RiUserLine } from "@remixicon/react";
 import { useMemo, useState } from "react";
 import { useIntl } from "react-intl";
+import { isAddress } from "viem";
 import { AdminButton, AdminIconButton } from "../AdminButton";
 import { AdminConfirmDialog, AdminDialog, type AdminDialogProps } from "../AdminDialog";
 import { AdminFilterChip } from "../AdminFilterChip";
 import { AdminSearchToolbar } from "../AdminSearchToolbar";
 import { getRoleLabel } from "./gardenUtils";
+import { RoleChip } from "./RoleChip";
 
 export interface ManageMembersDialogProps {
   open: boolean;
+  initialSearch?: string;
   onClose: () => void;
   roleMembers: Record<GardenRole, Address[]>;
   canManage: boolean;
   /** True while a membership write is in flight — disables row actions. */
   isLoading: boolean;
   onRemoveMember: (address: Address, role: GardenRole) => Promise<{ success: boolean }>;
-  /** Opens the Add Members dialog (the single add path). */
-  onAddMembers: () => void;
+  /**
+   * Opens the Add Members dialog (the single add path). When the roster is
+   * searched by one exact address, as the Manage Roles link does, that address
+   * is passed along so Add Members starts with the person already filled in.
+   */
+  onAddMembers: (prefill?: Address) => void;
   tone?: AdminDialogProps["tone"];
 }
 
@@ -43,6 +50,7 @@ interface MemberRow {
  */
 export function ManageMembersDialog({
   open,
+  initialSearch = "",
   onClose,
   roleMembers,
   canManage,
@@ -53,10 +61,25 @@ export function ManageMembersDialog({
 }: ManageMembersDialogProps) {
   const { formatMessage } = useIntl();
   const [roleFilter, setRoleFilter] = useState<GardenRole | "all">("all");
-  const [memberSearch, setMemberSearch] = useState("");
+  const [memberSearch, setMemberSearch] = useState(initialSearch);
   const [pendingRemoval, setPendingRemoval] = useState<MemberRow | null>(null);
   const [removing, setRemoving] = useState(false);
   const [removeErrorRole, setRemoveErrorRole] = useState<GardenRole | null>(null);
+  const [shownFor, setShownFor] = useState({ open, initialSearch });
+
+  // Each opening, and each change of the member it shows (browser history can
+  // swap it while the dialog stays open), starts from `initialSearch`; a search
+  // typed since is kept until then. Resetting here, rather than remounting
+  // through a key, keeps the closing dialog mounted so its exit motion plays.
+  if (open !== shownFor.open || initialSearch !== shownFor.initialSearch) {
+    setShownFor({ open, initialSearch });
+    if (open) {
+      setRoleFilter("all");
+      setMemberSearch(initialSearch);
+      setPendingRemoval(null);
+      setRemoveErrorRole(null);
+    }
+  }
 
   const rows = useMemo<MemberRow[]>(
     () =>
@@ -64,6 +87,10 @@ export function ManageMembersDialog({
         (roleMembers[role] ?? []).map((address) => ({ address, role }))
       ),
     [roleMembers]
+  );
+  const ensNames = useEnsNames(
+    rows.map((row) => row.address),
+    { enabled: open }
   );
   const normalizedSearch = memberSearch.trim().toLowerCase();
   const visibleRows = useMemo(() => {
@@ -74,12 +101,18 @@ export function ManageMembersDialog({
 
     return roleScopedRows.filter((row) => {
       const roleLabel = getRoleLabel(row.role, formatMessage);
-      return [row.address, formatAddress(row.address), roleLabel.singular, roleLabel.plural].some(
-        (value) => value.toLowerCase().includes(normalizedSearch)
-      );
+      return [
+        row.address,
+        formatAddress(row.address),
+        ensNames.get(row.address.toLowerCase()) ?? "",
+        roleLabel.singular,
+        roleLabel.plural,
+      ].some((value) => value.toLowerCase().includes(normalizedSearch));
     });
-  }, [formatMessage, normalizedSearch, roleFilter, rows]);
+  }, [ensNames, formatMessage, normalizedSearch, roleFilter, rows]);
   const busy = isLoading || removing;
+  const searchedAddress = memberSearch.trim();
+  const addMembersPrefill = isAddress(searchedAddress) ? searchedAddress : undefined;
   const pendingRemovalLabel = pendingRemoval
     ? getRoleLabel(pendingRemoval.role, formatMessage)
     : null;
@@ -134,7 +167,7 @@ export function ManageMembersDialog({
                 type="button"
                 variant="filled"
                 leadingIcon={<RiUserAddLine />}
-                onClick={onAddMembers}
+                onClick={() => onAddMembers(addMembersPrefill)}
                 disabled={busy}
               >
                 {formatMessage({ id: "admin.addMember.openAction", defaultMessage: "Add Members" })}
@@ -158,7 +191,7 @@ export function ManageMembersDialog({
             onSearchChange={setMemberSearch}
             placeholder={formatMessage({
               id: "app.admin.roles.searchPlaceholder",
-              defaultMessage: "Search members by address or role",
+              defaultMessage: "Search members by address, ENS name, or role",
             })}
           />
 
@@ -207,7 +240,6 @@ export function ManageMembersDialog({
               <ul className="space-y-2">
                 {visibleRows.map(({ address, role }) => {
                   const label = getRoleLabel(role, formatMessage);
-                  const colors = getRoleColorClasses(role);
                   const isRemovingRow =
                     removing &&
                     pendingRemoval?.role === role &&
@@ -219,11 +251,7 @@ export function ManageMembersDialog({
                     >
                       <div className="flex min-w-0 flex-1 items-center gap-3">
                         <AddressDisplay address={address} className="min-w-0 flex-1" />
-                        <span
-                          className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-medium ${colors.iconBg} ${colors.iconText}`}
-                        >
-                          {label.singular}
-                        </span>
+                        <RoleChip role={role} />
                       </div>
                       {canManage ? (
                         <AdminIconButton

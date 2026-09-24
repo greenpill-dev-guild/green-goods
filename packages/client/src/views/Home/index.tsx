@@ -122,11 +122,8 @@ const Home: React.FC = () => {
     reset: resetLoadingState,
   } = useLoadingWithMinDuration(isLoadingData, gardens.length > 0);
 
-  const { filteredGardens, myGardensCount, isFilterActive, activeFilterCount } = useFilteredGardens(
-    gardens,
-    filters,
-    normalizedAddress
-  );
+  const { filteredGardens, myGardensCount, openGardensCount, isFilterActive, activeFilterCount } =
+    useFilteredGardens(gardens, filters, normalizedAddress);
 
   // UI state from store
   const isGardenFilterOpen = useUIStore((s) => s.isGardenFilterOpen);
@@ -356,6 +353,7 @@ const Home: React.FC = () => {
                 onReset={resetFilters}
                 canFilterMine={Boolean(normalizedAddress)}
                 myGardensCount={myGardensCount}
+                openGardensCount={openGardensCount}
                 isFilterActive={isFilterActive}
               />
             </Suspense>

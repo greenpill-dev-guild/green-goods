@@ -36,6 +36,13 @@ describe("Home garden filters in the UI store", () => {
     expect(useUIStore.getState().gardenFilters).toEqual(DEFAULT_GARDEN_FILTERS);
   });
 
+  it("restores the open-gardens scope saved on the device", () => {
+    expect(parseGardenFilters({ scope: "open", sort: "recent" })).toEqual({
+      scope: "open",
+      sort: "recent",
+    });
+  });
+
   it("falls back field by field when saved filters are not ones it knows", () => {
     expect(parseGardenFilters(null)).toEqual(DEFAULT_GARDEN_FILTERS);
     expect(

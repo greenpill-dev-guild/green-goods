@@ -74,6 +74,7 @@ export const ADMIN_COMMAND_ROUTES = [
     defaultLabel: view.label,
     href: view.href,
     roles: view.commandRoles,
+    permission: view.permission,
   })),
   ...ADMIN_TEAM_COMMAND_ROUTES,
 ];
