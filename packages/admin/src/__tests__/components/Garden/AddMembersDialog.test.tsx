@@ -258,6 +258,10 @@ describe("components/Garden/AddMembersDialog", () => {
     });
     expect(screen.queryByText(/is already a Gardener/)).not.toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Add" }));
+    // The staged row trusts the chain too: no "Currently a Gardener" beside Gardener.
+    const list = screen.getByRole("group", { name: "Members to add" });
+    expect(within(list).getByText("Gardener")).toBeInTheDocument();
+    expect(within(list).queryByText(/Currently/)).not.toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Add 1 Gardener" }));
     await waitFor(() => {
       expect(defaultProps.onAdd).toHaveBeenCalledWith("gardener", ADDRESS_A);

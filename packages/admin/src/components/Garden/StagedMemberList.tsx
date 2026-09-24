@@ -51,7 +51,11 @@ export function StagedMemberList({
       ) : (
         <ul className="space-y-2">
           {members.map(({ address, role }) => {
-            const currentRoles = rolesByAddress.get(address.toLowerCase()) ?? [];
+            // A row's own role is never one they hold: only people without it
+            // are staged, and the chain can overrule a roster that lags a revoke.
+            const currentRoles = (rolesByAddress.get(address.toLowerCase()) ?? []).filter(
+              (held) => held !== role
+            );
             const currentRolesLabel =
               currentRoles.length > 0
                 ? formatMessage(
