@@ -12,13 +12,13 @@ interface FixtureOptions {
   shellAssets?: string[];
   files?: Record<string, string>;
   /** Shared chunks nothing imports, added only for the file-name rule. */
-  lazyChunkFiles?: string[];
+  lazyChunks?: { file: string; name?: string }[];
 }
 
 // Real builds name every lazy chunk `assets/chunk-<hash>.js`.
-const PUBLIC_CHUNK = "assets/chunk-public01.js";
-const PWA_CHUNK = "assets/chunk-pwaboot1.js";
-const ROUTE_CHUNK = "assets/chunk-routeaa1.js";
+const PUBLIC_CHUNK = "assets/chunk-X4mQ9aTe.js";
+const PWA_CHUNK = "assets/chunk-Hn2Rw7Kd.js";
+const ROUTE_CHUNK = "assets/chunk-bV6sE1yZ.js";
 
 const fixtureDirectories: string[] = [];
 const checkerPath = resolve(process.cwd(), "scripts/check-pwa-precache-budget.mjs");
@@ -87,8 +87,8 @@ function createFixture(options: FixtureOptions = {}) {
     writeFileSync(resolve(directory, ROUTE_CHUNK), options.route.contents);
   }
 
-  for (const file of options.lazyChunkFiles ?? []) {
-    manifest[`_${file.slice("assets/".length)}`] = { file };
+  for (const chunk of options.lazyChunks ?? []) {
+    manifest[`_${chunk.file.slice("assets/".length)}`] = { ...chunk };
   }
 
   const files = {
@@ -189,21 +189,27 @@ describe("PWA build budgets", () => {
   });
 
   it("passes a build whose lazy chunks carry opaque names", () => {
-    // Rolldown appends a numeric suffix to some hash-only names.
     const fixture = createFixture({
-      lazyChunkFiles: ["assets/chunk-shared01.js", "assets/chunk-0Z0fNygk2.js"],
+      lazyChunks: [
+        { file: "assets/chunk-Q7fZ2kLp.js", name: "analytics-events" },
+        // Rolldown appends a numeric suffix to some hash-only names.
+        { file: "assets/chunk-0Z0fNygk2.js", name: "CampaignJarSurface" },
+        // A random hash can spell a short name; those are not checked.
+        { file: "assets/chunk-CfAB5leN2.js", name: "en" },
+      ],
     });
     expect(runFailure(fixture, {})).toBe("");
   });
 
-  // EasyPrivacy's `/analytics-events-` rule blocks this name under Brave's
+  // EasyPrivacy's `/analytics-events-` rule blocks the first two names under Brave's
   // Aggressive blocking and uBlock Origin, failing every lazy route that imports auth.
   it.each([
-    "assets/analytics-events-OnL9QVlN.js",
-    "assets/chunk-analytics-events-OnL9QVlN.js",
-  ])("fails a lazy chunk whose file name carries its module name: %s", (file) => {
-    const output = runFailure(createFixture({ lazyChunkFiles: [file] }), {});
+    { file: "assets/analytics-events-OnL9QVlN.js", name: "analytics-events" },
+    { file: "assets/chunk-analytics-events-OnL9QVlN.js", name: "analytics-events" },
+    { file: "assets/chunk-public01.js", name: "public" },
+  ])("fails a lazy chunk whose file name carries its name: $file", (chunk) => {
+    const output = runFailure(createFixture({ lazyChunks: [chunk] }), {});
     expect(output).toContain("lazy chunk file names must be opaque");
-    expect(output).toContain(file);
+    expect(output).toContain(chunk.file);
   });
 });

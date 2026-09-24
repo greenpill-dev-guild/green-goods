@@ -43,7 +43,18 @@ const FORBIDDEN_PUBLIC_MODULES = [
 // worker reuse an unchanged file (`isContentAddressed` in src/sw/shellAssets.ts).
 // The config pins an 8-character hash so no module name can hide after `chunk-`;
 // rolldown appends a numeric suffix to some names (`chunk-0Z0fNygk2.js`).
-const OPAQUE_CHUNK_FILE = /^assets\/chunk-[A-Za-z0-9_-]{8}\d*\.js$/;
+const OPAQUE_CHUNK_FILE = /^assets\/chunk-([A-Za-z0-9_-]{8}\d*)\.js$/;
+// Nor may the hash spell the chunk's own name, which Vite's manifest records.
+// Names under five characters are skipped: a random hash spells those by chance
+// (`chunk-CfAB5leN2.js` holds the `en` chunk).
+const MIN_CHECKED_NAME_LENGTH = 5;
+
+function isOpaqueChunk({ file, name }) {
+  const hash = OPAQUE_CHUNK_FILE.exec(file)?.[1];
+  if (!hash) return false;
+  if (typeof name !== "string" || name.length < MIN_CHECKED_NAME_LENGTH) return true;
+  return !hash.toLowerCase().includes(name.toLowerCase());
+}
 
 const ROUTE_SOURCE_SUFFIXES = [
   "src/views/Public/Home.tsx",
@@ -154,14 +165,13 @@ try {
 
   const manifest = readJson(viteManifestPath);
   const graph = readJson(buildGraphPath);
-  const lazyChunkFiles = [
-    ...new Set(
-      Object.values(manifest)
-        .filter((entry) => !entry.isEntry && String(entry.file ?? "").endsWith(".js"))
-        .map((entry) => entry.file)
-    ),
-  ];
-  const namedChunks = lazyChunkFiles.filter((file) => !OPAQUE_CHUNK_FILE.test(file)).sort();
+  const lazyChunks = Object.values(manifest).filter(
+    (entry) => !entry.isEntry && String(entry.file ?? "").endsWith(".js")
+  );
+  const lazyChunkFiles = [...new Set(lazyChunks.map((entry) => entry.file))];
+  const namedChunks = [
+    ...new Set(lazyChunks.filter((entry) => !isOpaqueChunk(entry)).map((entry) => entry.file)),
+  ].sort();
   if (namedChunks.length) {
     const shown = namedChunks.slice(0, 20);
     const more = namedChunks.length - shown.length;
