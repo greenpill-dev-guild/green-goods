@@ -23,6 +23,31 @@ describe("commitment metadata", () => {
     expect(() => buildCommitmentMetadata({ title: "   " })).toThrow();
   });
 
+  // The write limits and the read tolerance side by side: metadata written
+  // before the limits, longer than anyone can write today, still reads whole.
+  const text = (length: number) => "x".repeat(length);
+  it.each([
+    { label: "a 60-character title", field: "title", length: 60, written: 60, read: 60 },
+    { label: "a 61-character title", field: "title", length: 61, written: "refused", read: 61 },
+    { label: "a 121-character title", field: "title", length: 121, written: "refused", read: 120 },
+    { label: "a 280-character note", field: "note", length: 280, written: 280, read: 280 },
+    { label: "a 281-character note", field: "note", length: 281, written: "refused", read: 281 },
+    {
+      label: "a 2,001-character note",
+      field: "note",
+      length: 2001,
+      written: "refused",
+      read: 2000,
+    },
+  ] as const)("writes and reads $label", ({ field, length, written, read }) => {
+    const words =
+      field === "title" ? { title: text(length) } : { title: "Rides", note: text(length) };
+    const write = () => buildCommitmentMetadata(words)[field]?.length;
+    if (written === "refused") expect(write).toThrow(`${field} can be at most`);
+    else expect(write()).toBe(written);
+    expect(parseCommitmentMetadata({ version: 1, ...words })?.[field]?.length).toBe(read);
+  });
+
   it("omits an absent note rather than writing an empty one", () => {
     expect(buildCommitmentMetadata({ title: "Rides" })).toEqual({
       version: COMMITMENT_METADATA_VERSION,

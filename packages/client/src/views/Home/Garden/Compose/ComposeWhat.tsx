@@ -3,6 +3,7 @@ import type {
   CommitmentCycleRecord,
   CycleMetadataNameResolution,
 } from "@green-goods/shared/commitment-pooling";
+import { COMMITMENT_TITLE_MAX_LENGTH } from "@green-goods/shared/modules/commitment-pooling/metadata";
 import { TextInput } from "@green-goods/shared/components/Form/ControlPrimitives";
 import { RiHandHeartLine, RiLeafLine } from "@remixicon/react";
 import { type UseFormReturn, useWatch } from "react-hook-form";
@@ -170,7 +171,7 @@ export function ComposeWhat({ form, openCycles, cycleNames }: ComposeWhatProps) 
           id="compose-title"
           type="text"
           value={title}
-          maxLength={120}
+          maxLength={COMMITMENT_TITLE_MAX_LENGTH}
           placeholder={formatMessage({
             id: isRequest
               ? "app.compose.what.titlePlaceholderRequest"

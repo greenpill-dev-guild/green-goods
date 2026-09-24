@@ -144,6 +144,22 @@ describe("cookie jar campaign utilities", () => {
     ).toBeNull();
   });
 
+  it("writes a description up to the limit and refuses one past it rather than cutting it", () => {
+    const build = (description: string) =>
+      buildCampaignCookieJarMetadata({
+        title: "Earth Week",
+        slug: "earth-week",
+        description,
+        sourceGardens: [GARDEN_A],
+        extraAllowlist: [],
+        chainId: 11155111,
+      });
+    const words = (length: number) => "x".repeat(length);
+
+    expect(build(`  ${words(480)}  `).description).toBe(words(480));
+    expect(() => build(words(481))).toThrow("past 480 characters");
+  });
+
   it("drops unsafe optional metadata URLs", () => {
     const metadata = buildCampaignCookieJarMetadata({
       title: "Earth Week",

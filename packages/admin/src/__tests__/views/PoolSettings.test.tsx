@@ -222,6 +222,37 @@ describe("PoolSettingsDialog", () => {
     expect(screen.getByLabelText(/what this pool is for/i)).toHaveValue("Lend all year.");
   });
 
+  it("loads an older agreement past the limit in full, and writes it again only once it fits", () => {
+    const older = "x".repeat(1500);
+    renderDialog(
+      controller({
+        charter: {
+          charter: { version: 1, purpose: older },
+          isLoading: false,
+          isUnavailable: false,
+        },
+      })
+    );
+    const agreement = screen.getByLabelText(/what this pool is for/i);
+    const save = screen.getByRole("button", { name: /save settings/i });
+    expect(agreement).toHaveValue(older);
+    expect(screen.getByText("1,500 / 420")).toBeInTheDocument();
+    // The field says why, not only the red count.
+    expect(agreement).toHaveAttribute("aria-invalid", "true");
+    expect(agreement).toHaveAccessibleDescription(/shorten this to 420 characters or fewer/i);
+
+    // Only the limit changes, so the older agreement is not written again.
+    fireEvent.change(screen.getByLabelText(/how many commitments one person/i), {
+      target: { value: "12" },
+    });
+    expect(save).toBeEnabled();
+
+    fireEvent.change(agreement, { target: { value: "x".repeat(1499) } });
+    expect(save).toBeDisabled();
+    fireEvent.change(agreement, { target: { value: "x".repeat(420) } });
+    expect(save).toBeEnabled();
+  });
+
   it("names what a stopped save left saved, and retries only what is left", async () => {
     mocks.state = stoppedAt(["landed", "failed"]);
     mocks.retry.mockResolvedValue({ ...IDLE, status: "complete" });

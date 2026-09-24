@@ -1,5 +1,7 @@
 /** Step model, date helpers, and stepper copy for the W11 pool setup flow. */
 
+import { POOL_PURPOSE_MAX_LENGTH } from "@green-goods/shared/modules/commitment-pooling/pool-charter";
+
 type FormatMessage = (
   descriptor: { id: string; defaultMessage: string },
   values?: Record<string, string | number>
@@ -152,7 +154,14 @@ export interface StepValidity {
 export function isStepValid(id: StepId, input: StepValidity): boolean {
   switch (id) {
     case "how":
-      return input.purpose.trim().length > 0 && input.capValue !== null && input.capValue > 0n;
+      // An agreement written before the limit can load longer than it, and
+      // setup pins it again, so it has to fit before the flow moves on.
+      return (
+        input.purpose.trim().length > 0 &&
+        input.purpose.length <= POOL_PURPOSE_MAX_LENGTH &&
+        input.capValue !== null &&
+        input.capValue > 0n
+      );
     case "cycle":
       return input.name.trim().length > 0 && input.datesValid && !input.secondSeasonBlocked;
     case "split":

@@ -1,13 +1,15 @@
 import { cycleFixture } from "@green-goods/shared/__tests__/test-utils/commitment-pooling-fixtures";
+import { COMMITMENT_COMPOSER_ERROR_IDS } from "@green-goods/shared/hooks/commitment-pooling/useCommitmentComposerForm";
+import { createIntl } from "react-intl";
 import { describe, expect, it } from "vitest";
 import {
   actionUIDOf,
   buildSeedCycleOptions,
   buildSeedStepConfigs,
   CONFIRMER_ADDRESS_PATTERN,
-  SEED_ERROR_DESCRIPTOR_BY_ID,
   STEP_FIELDS,
   STEPS,
+  seedErrorText,
   withConfirmer,
 } from "@/views/Garden/Pool/Seed/seedStepModel";
 import {
@@ -79,10 +81,16 @@ describe("seedStepModel", () => {
     ).toEqual([{ value: "0", label: "No cycle (runs on its own)" }]);
   });
 
-  it("maps composer message ids to operator-facing descriptors", () => {
-    expect(
-      SEED_ERROR_DESCRIPTOR_BY_ID.get("cockpit.garden.pool.seed.error.considerationAmount")
-    ).toMatchObject({ defaultMessage: "Enter an amount above zero." });
+  it("says what the composer said in the steward's words, naming limits from their constants", () => {
+    const { formatMessage: format } = createIntl({ locale: "en", messages: {}, onError: () => {} });
+    expect(seedErrorText(COMMITMENT_COMPOSER_ERROR_IDS.considerationAmount, format)).toBe(
+      "Enter an amount above zero."
+    );
+    expect(seedErrorText(COMMITMENT_COMPOSER_ERROR_IDS.titleTooLong, format)).toBe(
+      "Shorten the title to 60 characters or fewer."
+    );
+    // The composer's remaining messages are English prose, shown as they are.
+    expect(seedErrorText("How many?", format)).toBe("How many?");
   });
 });
 
