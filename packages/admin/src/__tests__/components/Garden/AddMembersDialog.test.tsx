@@ -48,8 +48,8 @@ vi.mock("@green-goods/shared/utils/blockchain/ens", () => ({
   resolveEnsAddress: vi.fn(async () => null),
 }));
 
-// The chain's answer to "does this person wear the role's hat". Default: it
-// confirms whatever the roster claims.
+// The chain's answer to "does this person wear the role's hat". Default: not
+// answered yet, so the roster's answer stands.
 const mockUseGardenRoleHat = vi.fn();
 vi.mock("@green-goods/shared/hooks/roles/useGardenRoleHat", () => ({
   useGardenRoleHat: (...args: unknown[]) => mockUseGardenRoleHat(...args),
@@ -110,14 +110,7 @@ describe("components/Garden/AddMembersDialog", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    mockUseGardenRoleHat.mockImplementation(
-      (
-        _garden: Address,
-        _account: Address,
-        _role: GardenRole,
-        { enabled }: { enabled: boolean }
-      ) => ({ wearsHat: enabled ? true : undefined, isLoading: false, isError: false })
-    );
+    mockUseGardenRoleHat.mockReturnValue({ wearsHat: undefined, isLoading: false, isError: false });
   });
 
   it("stages resolved addresses into the reserved list and clears the input", async () => {
@@ -266,6 +259,23 @@ describe("components/Garden/AddMembersDialog", () => {
     await waitFor(() => {
       expect(defaultProps.onAdd).toHaveBeenCalledWith("gardener", ADDRESS_A);
     });
+  });
+
+  it("refuses a role the chain shows was just granted, before the roster catches up", async () => {
+    const user = userEvent.setup({ delay: null });
+    // Nobody is on the roster yet, but ADDRESS_A already wears the gardener hat.
+    mockUseGardenRoleHat.mockReturnValue({ wearsHat: true, isLoading: false, isError: false });
+    render(createElement(AddMembersDialog, defaultProps));
+
+    const input = screen.getByLabelText(/Ethereum Address or ENS Name/);
+    await user.click(input);
+    await user.paste(ADDRESS_A);
+
+    expect(mockUseGardenRoleHat).toHaveBeenLastCalledWith(GARDEN, ADDRESS_A, "gardener", {
+      enabled: true,
+    });
+    expect(screen.getByRole("button", { name: "Add" })).toBeDisabled();
+    expect(screen.getByText(/is already a Gardener/)).toBeInTheDocument();
   });
 
   it("keeps each row's role when the picker changes and names a mixed list", async () => {

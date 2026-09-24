@@ -53,8 +53,13 @@ const meta: Meta<typeof AddMembersDialog> = {
       [queryKeys.ens.name(KOFI.toLowerCase()), "kofi.eth"],
       [queryKeys.ens.name(NEW_A.toLowerCase()), null],
       [queryKeys.ens.name(NEW_B.toLowerCase()), null],
-      // The chain confirms the roster: Rosa wears the gardener hat.
+      // The chain's answers for every entry the stories type: Rosa wears the
+      // gardener hat and nothing else; the new people wear none.
       [queryKeys.role.roleHat(GARDEN.toLowerCase(), ROSA.toLowerCase(), "gardener"), true],
+      [queryKeys.role.roleHat(GARDEN.toLowerCase(), ROSA.toLowerCase(), "steward"), false],
+      [queryKeys.role.roleHat(GARDEN.toLowerCase(), NEW_A.toLowerCase(), "gardener"), false],
+      [queryKeys.role.roleHat(GARDEN.toLowerCase(), NEW_B.toLowerCase(), "gardener"), false],
+      [queryKeys.role.roleHat(GARDEN.toLowerCase(), NEW_B.toLowerCase(), "funder"), false],
     ]),
   ],
   parameters: {

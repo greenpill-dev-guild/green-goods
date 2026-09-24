@@ -45,10 +45,10 @@ export type EntryCheck =
   | { kind: "new" };
 
 /**
- * `rolesByAddress` is the indexed roster, which can lag a revoke, so it only
- * proposes `held`. Pass `heldOnChain` once the chain has answered: `false`
- * overrules the roster and lets the grant through, while `undefined` (not
- * checked yet, or the read failed) keeps the roster's answer.
+ * `rolesByAddress` is the indexed roster: the instant answer, but it can lag a
+ * recent grant or revoke. Pass `heldOnChain` once the chain has answered; it
+ * overrules the roster either way. `undefined` (not answered yet, or the read
+ * failed) keeps the roster's answer.
  */
 export function checkEntry(
   address: Address,
@@ -62,7 +62,7 @@ export function checkEntry(
   if (queued) return { kind: "staged", stagedRole: queued.role };
 
   const rosterRoles = rolesByAddress.get(key) ?? [];
-  if (rosterRoles.includes(selectedRole) && heldOnChain !== false) return { kind: "held" };
+  if (heldOnChain ?? rosterRoles.includes(selectedRole)) return { kind: "held" };
   const currentRoles = rosterRoles.filter((role) => role !== selectedRole);
   return currentRoles.length > 0 ? { kind: "member", currentRoles } : { kind: "new" };
 }

@@ -109,8 +109,9 @@ export function AddMembersDialog({
       ? (resolvedEnsAddress as Address)
       : null;
   }, [isHexAddress, resolvedEnsAddress, trimmed]);
-  // The indexed roster can lag a revoke, so a "held" it proposes is confirmed
-  // on chain. Until the chain answers, or if the read fails, the roster stands.
+  // The indexed roster answers instantly but can lag a recent grant or revoke,
+  // so the chain checks every resolved entry and overrules the roster either
+  // way once it answers. Until then, or if the read fails, the roster stands.
   const typedRosterCheck = typedResolvedAddress
     ? checkEntry(typedResolvedAddress, selectedRole, pending, rolesByAddress)
     : null;
@@ -118,7 +119,7 @@ export function AddMembersDialog({
     gardenAddress,
     typedResolvedAddress,
     selectedRole,
-    { enabled: typedRosterCheck?.kind === "held" }
+    { enabled: typedRosterCheck !== null && typedRosterCheck.kind !== "staged" }
   );
   const typedCheck = typedResolvedAddress
     ? checkEntry(typedResolvedAddress, selectedRole, pending, rolesByAddress, typedHeldOnChain)

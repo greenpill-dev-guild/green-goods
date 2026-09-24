@@ -21,9 +21,9 @@ export interface UseGardenRoleHatResult {
 /**
  * Whether `account` wears the exact hat for `role` in `gardenAddress`: the
  * membership `grantRole` checks, not the inclusive permission view. Use it to
- * confirm what an indexed roster claims before acting on it, since the roster
- * can lag a grant or a revoke. Pass `enabled: false` until there is a claim to
- * confirm, so reads only happen when they can change a decision.
+ * check an indexed roster before acting on it, since the roster can lag a grant
+ * or a revoke. Pass `enabled: false` when the answer cannot change a decision
+ * (for example, the person is already queued), so reads stay purposeful.
  */
 export function useGardenRoleHat(
   gardenAddress?: Address | null,
