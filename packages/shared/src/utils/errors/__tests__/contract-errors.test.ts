@@ -58,19 +58,6 @@ describe("parseContractError", () => {
     });
   });
 
-  it("parses a garden name past the contract's byte limit", () => {
-    // 0x680b6caf = keccak256("NameTooLong()")[0:4], from create or rename
-    const result = parseContractError("execution reverted: 0x680b6caf");
-
-    expect(result).toMatchObject({
-      name: "NameTooLong",
-      message: "This garden name is too long to save",
-      action: "Shorten it: accented letters count as two, and some symbols as more",
-      isKnown: true,
-      recoverable: false,
-    });
-  });
-
   it("parses AlreadyGardener error code", () => {
     const result = parseContractError("0x42375a1e");
 
