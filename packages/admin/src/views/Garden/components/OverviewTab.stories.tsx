@@ -123,3 +123,13 @@ export const EmptyActivity: Story = {
     pendingWorkCount: 0,
   },
 };
+
+export const EvaluatorActivity: Story = {
+  args: {
+    mode: "activity",
+    filteredActivityEvents: [
+      { ...MOCK_ACTIVITY[0], href: "/hub/work/w-1" },
+      { ...MOCK_ACTIVITY[2], href: undefined },
+    ],
+  },
+};

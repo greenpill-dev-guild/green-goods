@@ -8,6 +8,7 @@ import { useAdminGardenWorkspaceSelection } from "../../garden/useAdminGardenWor
 import { useGardenDerivedState } from "../../garden/useGardenDerivedState";
 import { useGardenDetailData } from "../../garden/useGardenDetailData";
 import { useKarmaIntegration } from "../../garden/useKarmaIntegration";
+import { useEffectiveToolbarPermissions } from "../../roles/useEffectiveToolbarPermissions";
 import { useCanvasSearchParams } from "../../navigation/useCanvasSearchParams";
 import { useMediaQuery } from "../../ui/useMediaQuery";
 import { useSheetWidth } from "../../useSheetWidth";
@@ -36,6 +37,8 @@ export function useGardenWorkspaceController() {
   }>();
   const { searchParams, updateSearch } = useCanvasSearchParams();
   const { selectedGarden, gardenOptions, handleSelectGarden } = useAdminGardenWorkspaceSelection();
+  const { showCommunity, isLoading: permissionsLoading } = useEffectiveToolbarPermissions();
+  const canAccessCommunity = showCommunity && !permissionsLoading;
   const { containerRef } = useSheetWidth();
   const gardenStateKey = selectedGarden?.id ?? "";
   const selectedGardenAddress = selectedGarden?.id;
@@ -147,6 +150,7 @@ export function useGardenWorkspaceController() {
     activityFilter,
     memberSearch: "",
     section: undefined,
+    canAccessCommunity,
     formatMessage,
     openSection,
   });
@@ -176,10 +180,12 @@ export function useGardenWorkspaceController() {
 
       return {
         ...event,
-        href: adminRoutes.communityEndowment({ gardenId: selectedGardenAddress }),
+        href: canAccessCommunity
+          ? adminRoutes.communityEndowment({ gardenId: selectedGardenAddress })
+          : undefined,
       };
     });
-  }, [derived.filteredActivityEvents, selectedGarden, selectedGardenAddress]);
+  }, [canAccessCommunity, derived.filteredActivityEvents, selectedGarden, selectedGardenAddress]);
 
   const clearSection = useCallback(
     () => updateSearch({ section: undefined, item: undefined }, false),

@@ -6,9 +6,11 @@
  * @module hooks/blockchain/useEnsName
  */
 
+import { useQueries } from "@tanstack/react-query";
 import { type Address, isAddress } from "viem";
 import { resolveEnsName } from "../../utils/blockchain/ens";
 import { ensKeys } from "../../config/query-keys/identity";
+import { STALE_TIME_RARE } from "../../config/query-keys/constants";
 import { type UseEnsQueryOptions, type UseEnsQueryResult, useEnsQuery } from "./useEnsQuery";
 
 /**
@@ -36,4 +38,30 @@ export function useEnsName(
       validator: isAddress,
     }
   );
+}
+
+/**
+ * Resolve a roster's ENS names through the same cache keys as AddressDisplay.
+ * While `enabled` is false no lookup starts, but names already in the cache are
+ * still returned, so a closing dialog keeps the matches it was showing.
+ */
+export function useEnsNames(
+  addresses: readonly Address[],
+  { enabled = true }: { enabled?: boolean } = {}
+): Map<string, string> {
+  const uniqueAddresses = [...new Set(addresses.map((address) => address.toLowerCase()))];
+  const results = useQueries({
+    queries: uniqueAddresses.map((address) => ({
+      queryKey: ensKeys.name(address),
+      queryFn: () => resolveEnsName(address),
+      staleTime: STALE_TIME_RARE,
+      enabled: enabled && isAddress(address),
+    })),
+  });
+
+  const names = new Map<string, string>();
+  results.forEach((result, index) => {
+    if (result.data) names.set(uniqueAddresses[index]!, result.data);
+  });
+  return names;
 }

@@ -3,6 +3,8 @@ import { useGardenOperations } from "@green-goods/shared/hooks/garden/useGardenO
 import type { Address } from "@green-goods/shared/types/domain";
 import type { GardenRole } from "@green-goods/shared/utils/blockchain/garden-roles";
 import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
+import { isAddress } from "viem";
 import { AddMembersDialog } from "@/components/Garden/AddMembersDialog";
 import { ManageMembersDialog } from "@/components/Garden/ManageMembersDialog";
 
@@ -23,6 +25,12 @@ export function CommunityMembersDialogs({
 }: CommunityMembersDialogsProps) {
   const [manageMembersOpen, setManageMembersOpen] = useState(selectedItem === "manage-members");
   const [addMembersOpen, setAddMembersOpen] = useState(selectedItem === "add-member");
+  const [searchParams] = useSearchParams();
+  const memberParam = searchParams.get("member");
+  const initialMemberAddress =
+    selectedItem === "manage-members" && memberParam && isAddress(memberParam)
+      ? memberParam
+      : undefined;
   const operations = useGardenOperations(garden.id);
 
   useEffect(() => {
@@ -74,7 +82,9 @@ export function CommunityMembersDialogs({
   return (
     <>
       <ManageMembersDialog
+        key={garden.id}
         open={manageMembersOpen}
+        initialSearch={initialMemberAddress}
         onClose={closeManageMembers}
         tone="community"
         roleMembers={roleMembers}
