@@ -7,12 +7,15 @@
  */
 
 import { describe, expect, it } from "vitest";
+import { roleKeys } from "../../../config/query-keys/identity";
 import {
   applyOptimisticUpdate,
   isOnCachedRoster,
+  resetRoleHatAnswers,
   rollBackFailedWrite,
 } from "../../../hooks/garden/gardenRosterCache";
 import type { Garden } from "../../../types/domain";
+import { createTestQueryClient } from "../../test-utils/query-client";
 
 const GARDEN_ID = "0x1111111111111111111111111111111111111111";
 // The indexer stores lowercase; stewards type or paste checksummed addresses.
@@ -66,5 +69,21 @@ describe("hooks/garden/gardenRosterCache", () => {
     const after = failAfterOptimisticStep(gardensWithGardeners([MEMBER]), "remove", MEMBER);
 
     expect(after[0].gardeners).toEqual([MEMBER]);
+  });
+
+  it("forgets only the written person's exact-hat answers, for every role and chain", async () => {
+    const client = createTestQueryClient();
+    const memberGardener = roleKeys.roleHat(GARDEN_ID, MEMBER, "gardener", 42161);
+    const memberEvaluator = roleKeys.roleHat(GARDEN_ID, MEMBER, "evaluator", 11155111);
+    const newcomerGardener = roleKeys.roleHat(GARDEN_ID, NEWCOMER, "gardener", 42161);
+    for (const key of [memberGardener, memberEvaluator, newcomerGardener]) {
+      client.setQueryData(key, false);
+    }
+
+    await resetRoleHatAnswers(client, GARDEN_ID, MEMBER_CHECKSUMMED);
+
+    expect(client.getQueryData(memberGardener)).toBeUndefined();
+    expect(client.getQueryData(memberEvaluator)).toBeUndefined();
+    expect(client.getQueryData(newcomerGardener)).toBe(false);
   });
 });

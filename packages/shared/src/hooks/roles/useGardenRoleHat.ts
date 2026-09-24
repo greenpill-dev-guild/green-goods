@@ -36,7 +36,7 @@ export function useGardenRoleHat(
   );
 
   const query = useQuery({
-    queryKey: roleKeys.roleHat(gardenAddress?.toLowerCase(), account?.toLowerCase(), role),
+    queryKey: roleKeys.roleHat(gardenAddress?.toLowerCase(), account?.toLowerCase(), role, chainId),
     queryFn: () =>
       readGardenRoleHat(gardenAddress as Address, account as Address, role as GardenRole, chainId),
     enabled: canRead,

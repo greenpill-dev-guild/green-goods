@@ -1,8 +1,11 @@
 /**
- * Pure edits to the cached garden list behind optimistic membership writes.
- * `useGardenOperations` applies them to the `gardensKeys.byChain` query data.
+ * Cache edits behind membership writes. The garden-list edits are pure and
+ * `useGardenOperations` applies them to the `gardensKeys.byChain` query data;
+ * `resetRoleHatAnswers` keeps the exact-hat answers coherent with a write.
  */
 
+import type { QueryClient } from "@tanstack/react-query";
+import { roleKeys } from "../../config/query-keys/identity";
 import type { Garden } from "../../types/domain";
 import type { GardenRole } from "../../utils/blockchain/garden-roles";
 
@@ -75,4 +78,21 @@ export function rollBackFailedWrite(
   if (!changedRoster) return gardens;
   const reverse: MembershipWrite = write.operationType === "add" ? "remove" : "add";
   return applyOptimisticUpdate(gardens, gardenId, write.memberType, reverse, write.targetAddress);
+}
+
+/**
+ * Forget every exact-hat answer cached for one person in one garden after a
+ * write to their roles settled on chain (every sender waits for the receipt).
+ * All their roles are reset, not just the written one, because a steward or
+ * owner grant also changes the hats beneath it. Active checks refetch now;
+ * the rest start fresh instead of replaying a stale answer.
+ */
+export function resetRoleHatAnswers(
+  queryClient: QueryClient,
+  gardenId: string,
+  account: string
+): Promise<void> {
+  return queryClient.resetQueries({
+    queryKey: roleKeys.roleHatsOf(gardenId.toLowerCase(), account.toLowerCase()),
+  });
 }

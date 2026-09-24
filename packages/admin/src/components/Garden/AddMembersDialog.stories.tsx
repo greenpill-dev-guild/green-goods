@@ -1,3 +1,4 @@
+import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
 import { queryKeys } from "@green-goods/shared/config/query-keys/registry";
 import type { Address } from "@green-goods/shared/types/domain";
 import type { GardenRole } from "@green-goods/shared/utils/blockchain/garden-roles";
@@ -55,11 +56,51 @@ const meta: Meta<typeof AddMembersDialog> = {
       [queryKeys.ens.name(NEW_B.toLowerCase()), null],
       // The chain's answers for every entry the stories type: Rosa wears the
       // gardener hat and nothing else; the new people wear none.
-      [queryKeys.role.roleHat(GARDEN.toLowerCase(), ROSA.toLowerCase(), "gardener"), true],
-      [queryKeys.role.roleHat(GARDEN.toLowerCase(), ROSA.toLowerCase(), "steward"), false],
-      [queryKeys.role.roleHat(GARDEN.toLowerCase(), NEW_A.toLowerCase(), "gardener"), false],
-      [queryKeys.role.roleHat(GARDEN.toLowerCase(), NEW_B.toLowerCase(), "gardener"), false],
-      [queryKeys.role.roleHat(GARDEN.toLowerCase(), NEW_B.toLowerCase(), "funder"), false],
+      [
+        queryKeys.role.roleHat(
+          GARDEN.toLowerCase(),
+          ROSA.toLowerCase(),
+          "gardener",
+          DEFAULT_CHAIN_ID
+        ),
+        true,
+      ],
+      [
+        queryKeys.role.roleHat(
+          GARDEN.toLowerCase(),
+          ROSA.toLowerCase(),
+          "steward",
+          DEFAULT_CHAIN_ID
+        ),
+        false,
+      ],
+      [
+        queryKeys.role.roleHat(
+          GARDEN.toLowerCase(),
+          NEW_A.toLowerCase(),
+          "gardener",
+          DEFAULT_CHAIN_ID
+        ),
+        false,
+      ],
+      [
+        queryKeys.role.roleHat(
+          GARDEN.toLowerCase(),
+          NEW_B.toLowerCase(),
+          "gardener",
+          DEFAULT_CHAIN_ID
+        ),
+        false,
+      ],
+      [
+        queryKeys.role.roleHat(
+          GARDEN.toLowerCase(),
+          NEW_B.toLowerCase(),
+          "funder",
+          DEFAULT_CHAIN_ID
+        ),
+        false,
+      ],
     ]),
   ],
   parameters: {

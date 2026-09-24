@@ -24,7 +24,12 @@ import {
   type GardenOperationResult,
   type OptimisticUpdateCallback,
 } from "./createGardenOperation";
-import { applyOptimisticUpdate, isOnCachedRoster, rollBackFailedWrite } from "./gardenRosterCache";
+import {
+  applyOptimisticUpdate,
+  isOnCachedRoster,
+  resetRoleHatAnswers,
+  rollBackFailedWrite,
+} from "./gardenRosterCache";
 import { usePrimaryAddress } from "../auth/usePrimaryAddress";
 import { useTransactionSender } from "../blockchain/useTransactionSender";
 
@@ -122,6 +127,12 @@ export function useGardenOperations(gardenId: string) {
         );
 
         const result = await operation(targetAddress, options);
+
+        if (result.success) {
+          // The chain now answers differently for this person, so a cached
+          // "doesn't wear it" must not outlive the write (Add Members trusts it).
+          void resetRoleHatAnswers(queryClient, gardenId, targetAddress);
+        }
 
         const currentData = queryClient.getQueryData<Garden[]>(queryKey);
         if (!result.success && result.optimisticUpdate && currentData) {
