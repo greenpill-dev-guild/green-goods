@@ -82,7 +82,7 @@ export function CommunityMembersDialogs({
   return (
     <>
       <ManageMembersDialog
-        key={`${garden.id}-${manageMembersOpen}-${initialMemberAddress ?? "all"}`}
+        key={garden.id}
         open={manageMembersOpen}
         initialSearch={initialMemberAddress}
         onClose={closeManageMembers}

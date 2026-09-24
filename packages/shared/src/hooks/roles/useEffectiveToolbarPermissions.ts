@@ -5,7 +5,9 @@
  * the user's garden-level roles, aggregated across all managed
  * gardens or scoped to the selected garden.
  *
- * Fail-open: while loading or on error, all slots are visible.
+ * Fail-open: while loading or on error, all slots are visible. `isLoading` is
+ * true only while role and garden data are pending, so a route guard that
+ * waits on it never stalls on a terminal state (no address, failed list).
  */
 
 import { useMemo } from "react";
@@ -23,13 +25,12 @@ export interface ToolbarPermissions {
   isLoading: boolean;
 }
 
-const FAIL_OPEN: ToolbarPermissions = {
+const FAIL_OPEN = {
   showWork: true,
   showGarden: true,
   showCommunity: true,
   showActions: true,
-  isLoading: true,
-};
+} satisfies Omit<ToolbarPermissions, "isLoading">;
 
 export function useEffectiveToolbarPermissions(): ToolbarPermissions {
   const address = usePrimaryAddress();
@@ -42,13 +43,12 @@ export function useEffectiveToolbarPermissions(): ToolbarPermissions {
   } = useEligibleAdminGardens();
 
   return useMemo(() => {
-    // Fail-open while loading or on error (gardens data undefined)
-    if (roleLoading || !eligibleGardensLoaded || !address) {
-      return FAIL_OPEN;
+    if (roleLoading || !eligibleGardensLoaded) {
+      return { ...FAIL_OPEN, isLoading: true };
     }
 
-    if (eligibleGardensError && eligibleGardens.length === 0) {
-      return FAIL_OPEN;
+    if (!address || (eligibleGardensError && eligibleGardens.length === 0)) {
+      return { ...FAIL_OPEN, isLoading: false };
     }
 
     // Determine which gardens to check

@@ -60,6 +60,20 @@ export function ManageMembersDialog({
   const [pendingRemoval, setPendingRemoval] = useState<MemberRow | null>(null);
   const [removing, setRemoving] = useState(false);
   const [removeErrorRole, setRemoveErrorRole] = useState<GardenRole | null>(null);
+  const [wasOpen, setWasOpen] = useState(open);
+
+  // Each opening starts from `initialSearch`. Resetting here, rather than
+  // remounting through a key, keeps the closing dialog mounted so its exit
+  // motion still plays.
+  if (open !== wasOpen) {
+    setWasOpen(open);
+    if (open) {
+      setRoleFilter("all");
+      setMemberSearch(initialSearch);
+      setPendingRemoval(null);
+      setRemoveErrorRole(null);
+    }
+  }
 
   const rows = useMemo<MemberRow[]>(
     () =>

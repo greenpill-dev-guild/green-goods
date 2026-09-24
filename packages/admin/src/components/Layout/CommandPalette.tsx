@@ -6,6 +6,7 @@ import { useActions } from "@green-goods/shared/hooks/blockchain/useBaseLists";
 import { useAdminGardenContext } from "@green-goods/shared/hooks/garden/useAdminGardenContext";
 import { useEligibleAdminGardens } from "@green-goods/shared/hooks/garden/useEligibleAdminGardens";
 import { useRole } from "@green-goods/shared/hooks/gardener/useRole";
+import { useEffectiveToolbarPermissions } from "@green-goods/shared/hooks/roles/useEffectiveToolbarPermissions";
 import { cn } from "@green-goods/shared/utils/styles/cn";
 import {
   RiArrowDownLine,
@@ -39,6 +40,7 @@ export function CommandPalette({ open: externalOpen, onOpenChange }: CommandPale
   const { data: actions } = useActions(DEFAULT_CHAIN_ID);
   const { data: assessments } = useAllAssessments(DEFAULT_CHAIN_ID);
   const { role } = useRole();
+  const permissions = useEffectiveToolbarPermissions();
   const { selectGarden } = useAdminGardenContext();
   const commandPaletteData = useMemo(
     () => ({
@@ -46,8 +48,9 @@ export function CommandPalette({ open: externalOpen, onOpenChange }: CommandPale
       actions: actions ?? [],
       assessments: assessments ?? [],
       role,
+      permissions,
     }),
-    [actions, assessments, eligibleGardens, role]
+    [actions, assessments, eligibleGardens, permissions, role]
   );
   const {
     activeIndex,

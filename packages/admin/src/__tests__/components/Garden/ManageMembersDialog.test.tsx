@@ -96,14 +96,30 @@ describe("components/Garden/ManageMembersDialog", () => {
     expect(screen.getByText(OWNER.slice(0, 10))).toBeInTheDocument();
   });
 
-  it("opens with a member address in the search field and only that member's roles", () => {
-    render(createElement(ManageMembersDialog, { ...defaultProps, initialSearch: GARDENER_A }));
+  it("starts every opening from its member address and only that member's roles", () => {
+    const search = () =>
+      screen.getByRole("textbox", { name: "Search members by address, ENS name, or role" });
+    const { rerender } = render(
+      createElement(ManageMembersDialog, { ...defaultProps, initialSearch: GARDENER_A })
+    );
 
-    expect(
-      screen.getByRole("textbox", { name: "Search members by address, ENS name, or role" })
-    ).toHaveValue(GARDENER_A);
+    expect(search()).toHaveValue(GARDENER_A);
     expect(screen.getAllByTestId("address-display")).toHaveLength(1);
     expect(screen.getByText(GARDENER_A.slice(0, 10))).toBeInTheDocument();
+
+    // The dialog stays mounted between openings, so reopening must replace the search.
+    rerender(
+      createElement(ManageMembersDialog, {
+        ...defaultProps,
+        open: false,
+        initialSearch: GARDENER_A,
+      })
+    );
+    rerender(createElement(ManageMembersDialog, { ...defaultProps, initialSearch: GARDENER_B }));
+
+    expect(search()).toHaveValue(GARDENER_B);
+    expect(screen.getAllByTestId("address-display")).toHaveLength(1);
+    expect(screen.getByText(GARDENER_B.slice(0, 10))).toBeInTheDocument();
   });
 
   it("matches a resolved ENS name by case-insensitive substring", async () => {

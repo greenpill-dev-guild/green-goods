@@ -140,6 +140,10 @@ export function useGardenDerivedState({
     : vaultNetDeposited === 0n
       ? "critical"
       : "none";
+  // The treasury's alert opens Community, so a viewer without Community access
+  // gets no alert. Its badge and health contributions go with it: a warning
+  // status must always have the alert that explains it.
+  const treasuryAttention: TabBadgeSeverity = canAccessCommunity ? treasurySeverity : "none";
 
   const workBadge: TabBadgeState =
     pendingCriticalCount > 0
@@ -153,7 +157,7 @@ export function useGardenDerivedState({
     : { severity: "none" };
 
   const communityBadge: TabBadgeState =
-    treasurySeverity === "none" ? { severity: "none" } : { severity: treasurySeverity, count: 1 };
+    treasuryAttention === "none" ? { severity: "none" } : { severity: treasuryAttention, count: 1 };
 
   const hasNoDomains = garden.domainMask === 0;
   const domainBadge: TabBadgeState = hasNoDomains
@@ -177,10 +181,10 @@ export function useGardenDerivedState({
       : [];
 
   const gardenHealthSeverity: TabBadgeSeverity =
-    workBadge.severity === "critical" || treasurySeverity === "critical"
+    workBadge.severity === "critical" || treasuryAttention === "critical"
       ? "critical"
       : workBadge.severity === "warn" ||
-          treasurySeverity === "warn" ||
+          treasuryAttention === "warn" ||
           impactBadge.severity === "warn" ||
           hasNoDomains
         ? "warn"
@@ -223,14 +227,14 @@ export function useGardenDerivedState({
           onAction: () => openSection("impact", "reporting"),
         }
       : null,
-    canAccessCommunity && treasurySeverity === "critical"
+    treasuryAttention === "critical"
       ? {
           key: "treasury-critical",
           severity: "critical" as const,
           label: formatMessage({ id: "app.garden.detail.alert.treasuryEmpty" }),
           onAction: () => openSection("community", "endowment"),
         }
-      : canAccessCommunity && treasurySeverity === "warn"
+      : treasuryAttention === "warn"
         ? {
             key: "treasury-warning",
             severity: "warn" as const,

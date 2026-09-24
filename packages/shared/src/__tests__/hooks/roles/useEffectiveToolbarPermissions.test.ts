@@ -242,20 +242,31 @@ describe("useEffectiveToolbarPermissions", () => {
     expect(result.current.isLoading).toBe(false);
   });
 
-  it("error state: useGardens errors -> all visible (fail-open)", () => {
-    setupDefaults({ eligibleGardensError: true, gardens: [] });
+  it("reports loading until the eligible gardens resolve", () => {
+    setupDefaults({ eligibleGardensLoaded: false });
 
     const { result } = renderHook(() => useEffectiveToolbarPermissions());
 
-    // When gardens data is undefined/null (error), the hook should still
-    // produce a result. With no gardens in scope, hasAnyRole=false,
-    // so all slots should be false. But the spec says fail-open on error.
-    // This test asserts the DESIRED behavior (fail-open on error),
-    // which may not match current implementation yet.
-    expect(result.current.showWork).toBe(true);
-    expect(result.current.showGarden).toBe(true);
-    expect(result.current.showCommunity).toBe(true);
-    expect(result.current.showActions).toBe(true);
+    expect(result.current.isLoading).toBe(true);
+  });
+
+  // A route guard shows its fallback while isLoading is true, so a terminal
+  // state that stayed "loading" would hold the guard on its skeleton forever.
+  it.each([
+    ["the garden list failed with nothing to show", { eligibleGardensError: true, gardens: [] }],
+    ["no address is connected", { address: "" }],
+  ])("fails open without loading when %s", (_state, overrides) => {
+    setupDefaults(overrides);
+
+    const { result } = renderHook(() => useEffectiveToolbarPermissions());
+
+    expect(result.current).toEqual({
+      showWork: true,
+      showGarden: true,
+      showCommunity: true,
+      showActions: true,
+      isLoading: false,
+    });
   });
 
   it("uses role-confirmed fallback gardens when the base list is stale", () => {

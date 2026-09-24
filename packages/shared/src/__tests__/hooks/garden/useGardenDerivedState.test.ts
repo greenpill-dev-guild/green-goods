@@ -13,19 +13,27 @@ const roleMembers = {
 };
 
 describe("useGardenDerivedState", () => {
-  function renderDerivedState(
-    domainMask: number | undefined,
+  function renderDerivedState({
+    domainMask,
     openSection = vi.fn(),
-    cookieJars: CookieJar[] = [],
+    cookieJars = [],
     canAccessCommunity = true,
-    allocations: Array<{
+    allocations = [],
+    vaultNetDeposited = 1n,
+  }: {
+    domainMask?: number;
+    openSection?: Parameters<typeof useGardenDerivedState>[0]["openSection"];
+    cookieJars?: CookieJar[];
+    canAccessCommunity?: boolean;
+    allocations?: Array<{
       txHash: string;
       timestamp: number;
       cookieJarAmount: bigint;
       fractionsAmount: bigint;
       juiceboxAmount: bigint;
-    }> = []
-  ) {
+    }>;
+    vaultNetDeposited?: bigint;
+  } = {}) {
     const now = Date.now();
 
     return renderHook(() =>
@@ -48,7 +56,7 @@ describe("useGardenDerivedState", () => {
         hypercerts: [],
         allocations,
         gardenVaults: [{}],
-        vaultNetDeposited: 1n,
+        vaultNetDeposited,
         roleMembers,
         selectedRange: "30d",
         activityFilter: "all",
@@ -80,7 +88,7 @@ describe("useGardenDerivedState", () => {
 
   it("surfaces a recovery alert when a garden has no action domains", () => {
     const openSection = vi.fn();
-    const { result } = renderDerivedState(0, openSection);
+    const { result } = renderDerivedState({ domainMask: 0, openSection });
 
     expect(result.current.overviewBadge).toEqual({ severity: "warn", count: 1 });
     expect(result.current.tabBadges.overview).toEqual({ severity: "warn", count: 1 });
@@ -101,7 +109,7 @@ describe("useGardenDerivedState", () => {
   it("raises a critical alert for a funded jar whose claim limit is low, and opens its editor", () => {
     const openSection = vi.fn();
     const jar = daiJar({});
-    const { result } = renderDerivedState(undefined, openSection, [jar]);
+    const { result } = renderDerivedState({ openSection, cookieJars: [jar] });
 
     expect(result.current.overviewAlerts).toHaveLength(1);
     const [alert] = result.current.overviewAlerts;
@@ -118,15 +126,15 @@ describe("useGardenDerivedState", () => {
   });
 
   it("only warns while the low-limit jar is empty, and clears once the limit is raised", () => {
-    const empty = renderDerivedState(undefined, vi.fn(), [daiJar({ balance: 0n })]);
+    const empty = renderDerivedState({ cookieJars: [daiJar({ balance: 0n })] });
     expect(empty.result.current.overviewAlerts[0]).toMatchObject({
       severity: "warn",
       description: "app.garden.detail.alert.jarLimitLowEmpty",
     });
 
-    const raised = renderDerivedState(undefined, vi.fn(), [
-      daiJar({ maxWithdrawal: 10n * 10n ** 18n }),
-    ]);
+    const raised = renderDerivedState({
+      cookieJars: [daiJar({ maxWithdrawal: 10n * 10n ** 18n })],
+    });
     expect(raised.result.current.overviewAlerts).toEqual([]);
   });
 
@@ -138,9 +146,19 @@ describe("useGardenDerivedState", () => {
       fractionsAmount: 0n,
       juiceboxAmount: 0n,
     };
-    const { result } = renderDerivedState(undefined, vi.fn(), [daiJar({})], false, [allocation]);
+    // An empty vault and a low-limit jar: both alerts open Community.
+    const communitySignals = {
+      cookieJars: [daiJar({})],
+      allocations: [allocation],
+      vaultNetDeposited: 0n,
+    };
+    const { result } = renderDerivedState({ ...communitySignals, canAccessCommunity: false });
 
     expect(result.current.overviewAlerts).toEqual([]);
+    // No status may point at an alert the viewer cannot see.
+    expect(result.current.gardenHealthSeverity).toBe("none");
+    expect(result.current.overviewBadge).toEqual({ severity: "none" });
+    expect(result.current.tabBadges.community).toEqual({ severity: "none" });
     expect(
       result.current.activityEvents.find((event) => event.category === "community")
     ).toMatchObject({
@@ -151,15 +169,19 @@ describe("useGardenDerivedState", () => {
       result.current.activityEvents.find((event) => event.category === "work")?.href
     ).toBeTruthy();
 
-    const permitted = renderDerivedState(undefined, vi.fn(), [daiJar({})], true, [allocation]);
-    expect(permitted.result.current.overviewAlerts).toHaveLength(1);
+    const permitted = renderDerivedState(communitySignals);
+    expect(permitted.result.current.overviewAlerts.map((alert) => alert.key)).toEqual([
+      "treasury-critical",
+      `jar-limit-low-${daiJar({}).jarAddress.toLowerCase()}`,
+    ]);
+    expect(permitted.result.current.gardenHealthSeverity).toBe("critical");
     expect(
       permitted.result.current.activityEvents.find((event) => event.category === "community")?.href
     ).toContain("/community/payouts");
   });
 
   it("does not surface the domain recovery alert while domain state is unknown", () => {
-    const { result } = renderDerivedState(undefined);
+    const { result } = renderDerivedState();
 
     expect(result.current.overviewBadge).toEqual({ severity: "none" });
     expect(result.current.gardenHealthSeverity).toBe("none");
