@@ -1,5 +1,4 @@
 import { Button } from "@green-goods/shared/components/Button";
-import { toastService } from "@green-goods/shared/components/Toast/toast.service";
 import { SheetHeader } from "@green-goods/shared/components/Dialog/SheetHeader";
 import { SheetHeading } from "@green-goods/shared/components/Dialog/SheetHeading";
 import { ConfidenceSelector } from "@green-goods/shared/components/Form/ConfidenceSelector";
@@ -10,13 +9,14 @@ import { useWorkUploads } from "@green-goods/shared/hooks/work/useWorkUploads";
 import { cn } from "@green-goods/shared/utils/styles/cn";
 import { isUserAddress } from "@green-goods/shared/utils/blockchain/address";
 import { useUser } from "@green-goods/shared/hooks/auth/useUser";
-import { RiCheckLine, RiCloseLine, RiErrorWarningLine, RiUploadCloud2Line } from "@remixicon/react";
+import { RiCheckLine, RiCloseLine, RiErrorWarningLine } from "@remixicon/react";
 import React from "react";
 import { useIntl } from "react-intl";
 
 import { WorkViewSkeleton } from "@/components/Features/Work";
 import { TopNav } from "@/components/Navigation";
 import { pwaSheetStyles } from "@/components/Pwa/sheetStyles";
+import { WorkDecisionUploadFooter } from "./WorkDecisionUploadFooter";
 import { WorkFulfills } from "./WorkFulfills";
 import { WorkUploadFooter } from "./WorkUploadFooter";
 import { WorkViewSection } from "./WorkViewSection";
@@ -337,65 +337,7 @@ export const GardenWork: React.FC = () => {
 
   const decisionFooter =
     viewingMode === "steward" && queuedDecision ? (
-      <div className="fixed left-0 right-0 bottom-0 z-sticky rounded-t-[var(--radius-lg)] border-t border-stroke-soft-200 bg-bg-white-0 p-4 pb-[calc(1.5rem+env(safe-area-inset-bottom))]">
-        <div className="mx-auto flex max-w-screen-sm flex-col gap-2">
-          <p className="text-sm text-text-sub-600" role="status">
-            {queuedDecision.status.state === "sent"
-              ? intl.formatMessage({ id: "app.uploads.sendUnconfirmedTitle" })
-              : queuedDecision.status.state === "ready"
-                ? intl.formatMessage({ id: "app.uploads.state.waiting" })
-                : queuedDecision.status.state === "preparing"
-                  ? intl.formatMessage({ id: "app.uploads.state.preparing" })
-                  : intl.formatMessage({ id: "app.uploads.notUploadedTitle" })}
-          </p>
-          <Button
-            type="button"
-            size="lg"
-            className="w-full"
-            leadingIcon={<RiUploadCloud2Line className="h-5 w-5" aria-hidden="true" />}
-            disabled={
-              !isOnline ||
-              uploads.isUploading ||
-              (queuedDecision.status.state === "preparing" && !uploads.pausedForDataSaver)
-            }
-            loading={uploads.isUploading}
-            onClick={() => {
-              const { jobId, status } = queuedDecision;
-              const action =
-                status.state === "sent"
-                  ? uploads.checkOne(jobId)
-                  : status.state === "ready"
-                    ? uploads.uploadOne(jobId)
-                    : status.state === "preparing" && uploads.pausedForDataSaver
-                      ? Promise.resolve(uploads.prepareNow())
-                      : uploads.retryOne(jobId);
-              void action.catch((error) => {
-                // uploadOne already reports its mutation error with a toast.
-                if (status.state === "ready") return;
-                toastService.error({
-                  title: intl.formatMessage({ id: "app.uploads.failedTitle" }),
-                  message: intl.formatMessage({ id: "app.uploads.failedMessage" }),
-                  context: "work decision upload",
-                  error,
-                });
-              });
-            }}
-            data-testid="decision-upload-now"
-          >
-            {queuedDecision.status.state === "sent"
-              ? intl.formatMessage({ id: "app.uploads.checkAgain" })
-              : queuedDecision.status.state === "ready"
-                ? intl.formatMessage({ id: "app.home.work.uploadNow" })
-                : queuedDecision.status.state === "preparing"
-                  ? intl.formatMessage({
-                      id: uploads.pausedForDataSaver
-                        ? "app.uploads.prepareNow"
-                        : "app.uploads.state.preparing",
-                    })
-                  : intl.formatMessage({ id: "app.common.tryAgain" })}
-          </Button>
-        </div>
-      </div>
+      <WorkDecisionUploadFooter decision={queuedDecision} isOnline={isOnline} uploads={uploads} />
     ) : null;
 
   // Success footer shows when work has been approved/rejected (on-chain resolved only)

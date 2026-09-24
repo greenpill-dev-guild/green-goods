@@ -28,12 +28,12 @@ import { scrollAppToTop } from "../../app/useScrollToTop";
 import { useUser } from "../../auth/useUser";
 import { useCommitmentJobs } from "../../commitment-pooling/useCommitmentJobs";
 import { useWorkLinkChoices } from "../../commitment-pooling/useWorkLinkChoices";
-import { useJoinGarden } from "../../garden/useJoinGarden";
 import { useWorkAudioRecording } from "../../work/useWorkAudioRecording";
 import { useDeferredHeicConversion } from "../../work/useDeferredHeicConversion";
 import { useTimeout } from "../../utils/useTimeout";
 import { useDraftAutoSave, useDraftSaveStatus } from "../../work/useDraftAutoSave";
 import { useDraftResume } from "../../work/useDraftResume";
+import { useCommunityGardenOnramp } from "./useCommunityGardenOnramp";
 import { useWorkMediaLifecycle } from "./useWorkMediaLifecycle";
 import { useWorkSubmissionPresentationModel } from "./useWorkSubmissionPresentationModel";
 
@@ -83,7 +83,11 @@ export function useWorkSubmissionFlowController({
   const selection = useWorkSelection();
   const form = useWorkFormContext();
   const { authMode, primaryAddress } = useUser();
-  const join = useJoinGarden();
+  const { joinCommunityGarden, isJoiningCommunityGarden } = useCommunityGardenOnramp({
+    garden: selection.joinableCommunityGarden,
+    selectGarden: selection.setGardenAddress,
+    profileRoute,
+  });
   const submissionCompleted = useWorkFlowStore((state) => state.submissionCompleted);
   const workSubmissionJourneyId = useWorkFlowStore((state) => state.workSubmissionJourneyId);
   const ensureWorkSubmissionJourneyId = useWorkFlowStore(
@@ -103,7 +107,6 @@ export function useWorkSubmissionFlowController({
     selectedDomain,
     actionUID,
     gardenAddress,
-    setGardenAddress,
   } = selection;
   const { workMutation, images, setImages, setValue, feedback, timeSpentMinutes } = form;
   const {
@@ -259,48 +262,6 @@ export function useWorkSubmissionFlowController({
         files.map((file) => (getWorkMediaId(file) === mediaId ? converted : file))
       ),
   });
-  const joinCommunityGarden = useCallback(async () => {
-    if (!joinableCommunityGarden?.id) return;
-    try {
-      const result = await join.joinGarden(joinableCommunityGarden.id);
-      if (result === "already-joining") return;
-      setGardenAddress(joinableCommunityGarden.id as Address);
-      toastService.success({
-        title:
-          result === "already-member"
-            ? intl.formatMessage({
-                id: "app.garden.alreadyMember",
-                defaultMessage: "You are already a member of this garden",
-              })
-            : intl.formatMessage({
-                id: "app.garden.joinSuccess",
-                defaultMessage: "Successfully joined garden",
-              }),
-      });
-    } catch (error) {
-      logger.error("Community Garden join failed", {
-        error,
-        source: "GardenFlow",
-        gardenAddress: joinableCommunityGarden.id,
-      });
-      toastService.error({
-        title: intl.formatMessage({
-          id: "app.garden.joinError",
-          defaultMessage: "Failed to join garden",
-        }),
-        message: intl.formatMessage({
-          id: "app.garden.communityOnramp.errorMessage",
-          defaultMessage: "Try again here, or open Profile to join from your garden list.",
-        }),
-        action: {
-          label: intl.formatMessage({ id: "app.profile", defaultMessage: "Profile" }),
-          onClick: () => navigate(profileRoute),
-          dismissOnClick: true,
-        },
-      });
-    }
-  }, [intl, join, joinableCommunityGarden, navigate, profileRoute, setGardenAddress]);
-
   const changeTab = async (tab: WorkTab) => {
     try {
       await saveOnExit();
@@ -468,9 +429,7 @@ export function useWorkSubmissionFlowController({
       navigate(homeRoute, { viewTransition: true });
       saveDraftInBackground();
     },
-    isJoiningCommunityGarden:
-      join.isJoining &&
-      (!join.joiningGardenId || join.joiningGardenId === joinableCommunityGarden?.id),
+    isJoiningCommunityGarden,
     isRecording: audio.isRecording,
     isWalletRequestExpired,
     joinCommunityGarden,
