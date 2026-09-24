@@ -4,6 +4,8 @@ import { QueryClient } from "@tanstack/react-query";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { createQueryPersistence } from "../../config/query-persistence";
+import { attachQueryPersistence } from "../../providers/QueryPersistence";
+import { createTestQueryClient } from "../test-utils/query-client";
 
 const originalLocalStorage = Object.getOwnPropertyDescriptor(window, "localStorage");
 const originalIndexedDB = globalThis.indexedDB;
@@ -50,11 +52,11 @@ function setIndexedDB(value: IDBFactory | undefined) {
   Object.defineProperty(globalThis, "indexedDB", { configurable: true, writable: true, value });
 }
 
-/** A client whose queries read the reading cache before they fetch, as the apps attach it. */
-function clientWithPersister(persister: ReturnType<typeof createQueryPersistence>["persister"]) {
-  return new QueryClient({
-    defaultOptions: { queries: { persister, retry: false, staleTime: Number.POSITIVE_INFINITY } },
-  });
+/** A client that reads the reading cache before it fetches, wired as the apps wire theirs. */
+function clientWithPersistence(persistence: ReturnType<typeof createQueryPersistence>) {
+  const client = createTestQueryClient();
+  attachQueryPersistence(client, persistence);
+  return client;
 }
 
 function memoryStorage(): Storage {
@@ -95,7 +97,7 @@ describe("query persistence resilience", () => {
       dbName: `gg-stalled-idb-${crypto.randomUUID()}`,
       storage: memoryStorage(),
     });
-    const client = clientWithPersister(persistence.persister);
+    const client = clientWithPersistence(persistence);
     const gardensFn = vi.fn(async () => [{ id: "garden-1" }]);
 
     const gardens = client.fetchQuery({ queryKey: gardensKey, queryFn: gardensFn });
@@ -131,7 +133,7 @@ describe("query persistence resilience", () => {
       dbName: `gg-stalled-burst-${crypto.randomUUID()}`,
       storage,
     });
-    const client = clientWithPersister(persistence.persister);
+    const client = clientWithPersistence(persistence);
     const fetched: string[] = [];
     // The five reads the admin's access check starts together at boot, gardens last.
     const keys = [
