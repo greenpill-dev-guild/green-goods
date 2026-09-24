@@ -74,6 +74,7 @@ export interface CreateQueryPersistenceOptions {
   preserveQuery?: (queryKey: readonly unknown[]) => boolean;
   shouldRestoreQuery?: (stored: StoredQuery) => boolean;
   transformRestoredQuery?: (stored: StoredQuery) => StoredQuery;
+  /** Called when a write was not kept durably: every tier refused it, or only memory holds it. */
   onPersistenceError?: () => void;
   /** How long boot waits for the restore before rendering; the restore continues after. */
   restoreTimeoutMs?: number;
@@ -221,10 +222,15 @@ function withDeadline<T>(operation: Promise<T>, timeoutMs: number): Promise<T> {
  * the first asynchronous operation instead, and a stalled open may never
  * settle at all. Demoting for the rest of this session makes the documented
  * IDB -> web storage -> memory chain real.
+ *
+ * A tier failing is not itself a persistence error: a read that falls back, or
+ * a write that web storage keeps, lost nothing. `onLostWrite` hears only about
+ * writes that no durable tier kept, which is what the installed app reports as
+ * offline storage being full.
  */
 function createFailoverQueryStore(
   stores: QueryStore[],
-  onError: (error: unknown) => void
+  onLostWrite: (error: unknown) => void
 ): QueryStore {
   let active = 0;
   const run = async <T>(operation: (store: QueryStore) => Promise<T>): Promise<T> => {
@@ -232,7 +238,7 @@ function createFailoverQueryStore(
     try {
       return await withDeadline(operation(stores[tier]), STORE_OPERATION_TIMEOUT_MS);
     } catch (error) {
-      onError(error);
+      debugWarn("[Persister] Reading cache tier failed; using the next one", { error });
       // Boot starts many reads at once, and a stalled tier fails them together.
       // Only the first failure demotes it; the rest retry wherever it now points,
       // so a burst cannot skip a tier that still works.
@@ -243,10 +249,21 @@ function createFailoverQueryStore(
       return run(operation);
     }
   };
+  const write = async (operation: (store: QueryStore) => Promise<void>): Promise<void> => {
+    try {
+      await run(operation);
+    } catch (error) {
+      onLostWrite(error);
+      throw error;
+    }
+    if (!stores[active].isDurable()) {
+      onLostWrite(new Error("Reading cache is keeping this write in memory only"));
+    }
+  };
   return {
     isDurable: () => stores[active].isDurable(),
     get: (key) => run((store) => store.get(key)),
-    set: (key, value) => run((store) => store.set(key, value)),
+    set: (key, value) => write((store) => store.set(key, value)),
     remove: (key) => run((store) => store.remove(key)),
     entries: () => run((store) => store.entries()),
     clear: () => run((store) => store.clear()),
@@ -327,15 +344,13 @@ export function createQueryPersistence(options: CreateQueryPersistenceOptions): 
       // The persister writes after every settled fetch without awaiting, and it
       // decides what to write before the fetch has data, so the policy runs
       // here on the settled record. A refused write must never surface as an
-      // unhandled rejection.
+      // unhandled rejection; the store has already reported it.
       setItem: (key, value) => {
         if (!shouldPersistQuery(value)) return Promise.resolve();
         const prepared = transformRestoredQuery ? transformRestoredQuery(value) : value;
         const preparedKey =
           prepared.queryHash === value.queryHash ? key : storageKey(prepared.queryHash);
-        return store.set(preparedKey, prepared).catch((error) => {
-          reportError(error);
-        });
+        return store.set(preparedKey, prepared).catch(() => undefined);
       },
       removeItem: (key) => store.remove(key),
       entries: () => store.entries(),
@@ -387,9 +402,8 @@ export function createQueryPersistence(options: CreateQueryPersistenceOptions): 
           .then(() => {
             if (!store.isDurable()) rewritten = false;
           })
-          .catch((error: unknown) => {
+          .catch(() => {
             rewritten = false;
-            reportError(error);
           });
       }
     }
@@ -412,7 +426,7 @@ export function createQueryPersistence(options: CreateQueryPersistenceOptions): 
       const restored = transformRestoredQuery ? transformRestoredQuery(stored) : stored;
       if (restored.queryHash !== stored.queryHash) {
         await store.remove(key);
-        await store.set(storageKey(restored.queryHash), restored).catch(reportError);
+        await store.set(storageKey(restored.queryHash), restored).catch(() => undefined);
       }
       // A screen that already fetched this read while boot waited keeps its data.
       if (client.getQueryState(restored.queryKey)?.data !== undefined) continue;

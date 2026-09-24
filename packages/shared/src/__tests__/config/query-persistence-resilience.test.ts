@@ -119,6 +119,32 @@ describe("query persistence resilience", () => {
     client.clear();
   });
 
+  it("does not report storage as full when web storage keeps the write after a stall", async () => {
+    vi.useFakeTimers();
+    setIndexedDB(stalledIndexedDB());
+    const storage = memoryStorage();
+    const onPersistenceError = vi.fn();
+    const persistence = createQueryPersistence({
+      dbName: `gg-stalled-report-${crypto.randomUUID()}`,
+      storage,
+      onPersistenceError,
+    });
+    const client = clientWithPersistence(persistence);
+
+    const gardens = client.fetchQuery({
+      queryKey: gardensKey,
+      queryFn: async () => [{ id: "garden-1" }],
+    });
+    await vi.advanceTimersByTimeAsync(3_000);
+    await expect(gardens).resolves.toEqual([{ id: "garden-1" }]);
+    // The persister writes the settled read on a later tick.
+    await vi.advanceTimersByTimeAsync(10);
+
+    expect(storage.length).toBe(1);
+    expect(onPersistenceError).not.toHaveBeenCalled();
+    client.clear();
+  });
+
   it("sends a burst of stalled reads to web storage without skipping past it", async () => {
     vi.useFakeTimers();
     const storage = memoryStorage();
