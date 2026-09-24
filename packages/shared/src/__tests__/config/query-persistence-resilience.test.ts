@@ -41,6 +41,22 @@ function throwingStorage(): Storage {
   } as unknown as Storage;
 }
 
+/** An IndexedDB whose open request never fires success, error or blocked. */
+function stalledIndexedDB(): IDBFactory {
+  return { open: () => ({}) as IDBOpenDBRequest } as unknown as IDBFactory;
+}
+
+function setIndexedDB(value: IDBFactory | undefined) {
+  Object.defineProperty(globalThis, "indexedDB", { configurable: true, writable: true, value });
+}
+
+/** A client whose queries read the reading cache before they fetch, as the apps attach it. */
+function clientWithPersister(persister: ReturnType<typeof createQueryPersistence>["persister"]) {
+  return new QueryClient({
+    defaultOptions: { queries: { persister, retry: false, staleTime: Number.POSITIVE_INFINITY } },
+  });
+}
+
 function memoryStorage(): Storage {
   const memory = new Map<string, string>();
   return {
@@ -68,7 +84,81 @@ describe("query persistence resilience", () => {
       writable: true,
       value: originalIndexedDB,
     });
+    vi.useRealTimers();
     vi.restoreAllMocks();
+  });
+
+  it("still runs a query when IndexedDB never answers its open", async () => {
+    vi.useFakeTimers();
+    setIndexedDB(stalledIndexedDB());
+    const persistence = createQueryPersistence({
+      dbName: `gg-stalled-idb-${crypto.randomUUID()}`,
+      storage: memoryStorage(),
+    });
+    const client = clientWithPersister(persistence.persister);
+    const gardensFn = vi.fn(async () => [{ id: "garden-1" }]);
+
+    const gardens = client.fetchQuery({ queryKey: gardensKey, queryFn: gardensFn });
+    await vi.advanceTimersByTimeAsync(3_000);
+    await expect(gardens).resolves.toEqual([{ id: "garden-1" }]);
+    expect(gardensFn).toHaveBeenCalledTimes(1);
+
+    // The stalled tier stays demoted for the session, so a later read does not wait again.
+    let settled = false;
+    const actions = client
+      .fetchQuery({ queryKey: ["greengoods", "actions", 42161], queryFn: async () => [] })
+      .then((value) => {
+        settled = true;
+        return value;
+      });
+    await vi.advanceTimersByTimeAsync(10);
+    expect(settled).toBe(true);
+    await expect(actions).resolves.toEqual([]);
+    client.clear();
+  });
+
+  it("sends a burst of stalled reads to web storage without skipping past it", async () => {
+    vi.useFakeTimers();
+    const storage = memoryStorage();
+    setIndexedDB(undefined);
+    const seed = createQueryPersistence({ dbName: `gg-seed-${crypto.randomUUID()}`, storage });
+    const source = clientWithGardens();
+    await seed.persistQuery(source, gardensKey);
+    expect(storage.length).toBe(1);
+
+    setIndexedDB(stalledIndexedDB());
+    const persistence = createQueryPersistence({
+      dbName: `gg-stalled-burst-${crypto.randomUUID()}`,
+      storage,
+    });
+    const client = clientWithPersister(persistence.persister);
+    const fetched: string[] = [];
+    // The five reads the admin's access check starts together at boot, gardens last.
+    const keys = [
+      ["greengoods", "actions", 42161],
+      ["greengoods", "gardeners"],
+      ["greengoods", "role", "stewardGardens", "0xabc", 42161],
+      ["greengoods", "role", "deploymentPermissions", "0xabc", 42161],
+      gardensKey,
+    ] as const;
+    const reads = keys.map((queryKey) =>
+      client.fetchQuery({
+        queryKey,
+        queryFn: async () => {
+          fetched.push(queryKey.join("/"));
+          return [];
+        },
+      })
+    );
+    await vi.advanceTimersByTimeAsync(3_000);
+    const values = await Promise.all(reads);
+
+    // Web storage still answers after the stall, so the stored gardens read comes from it.
+    expect(values.at(-1)).toEqual([{ id: "garden-1" }]);
+    expect(fetched).not.toContain(gardensKey.join("/"));
+    expect(fetched).toHaveLength(4);
+    source.clear();
+    client.clear();
   });
 
   it("builds a working reading cache when merely reading window.localStorage throws", async () => {

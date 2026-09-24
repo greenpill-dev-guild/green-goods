@@ -49,6 +49,15 @@ export const LEGACY_CLIENT_QUERY_CACHE = { dbName: "gg-react-query", storeName: 
 const DEFAULT_STORE_NAME = "queries";
 const DEFAULT_PREFIX = "gg";
 const DEFAULT_RESTORE_TIMEOUT_MS = 1_500;
+/**
+ * How long one reading-cache operation may run before its storage tier counts
+ * as unusable. IndexedDB can stall without ever failing: an open queued behind
+ * a blocked delete, or a wedged origin, fires no success, error or blocked
+ * event. Every query reads the cache before it fetches, so without a deadline
+ * one stalled open holds the whole app on its loading state. Matches the job
+ * queue's database open timeout.
+ */
+const STORE_OPERATION_TIMEOUT_MS = 3_000;
 const LEGACY_BUSTER = /^(?:dev|[a-f0-9]{7,40})$/i;
 
 export interface CreateQueryPersistenceOptions {
@@ -191,13 +200,27 @@ function createMemoryQueryStore(): QueryStore {
   };
 }
 
+/** Settle with the operation, or reject once it has run past the deadline. */
+function withDeadline<T>(operation: Promise<T>, timeoutMs: number): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const deadline = new Promise<never>((_, reject) => {
+    timer = setTimeout(
+      () => reject(new Error(`Reading cache storage did not answer within ${timeoutMs}ms`)),
+      timeoutMs
+    );
+  });
+  return Promise.race([operation, deadline]).finally(() => clearTimeout(timer));
+}
+
 /**
- * Use the next storage tier when the current one refuses an operation.
+ * Use the next storage tier when the current one refuses an operation or
+ * never answers it.
  *
  * IndexedDB opens lazily, so merely constructing its store does not prove it
  * is usable. Safari private mode and storage policy failures can arrive from
- * the first asynchronous operation instead. Demoting for the rest of this
- * session makes the documented IDB -> web storage -> memory chain real.
+ * the first asynchronous operation instead, and a stalled open may never
+ * settle at all. Demoting for the rest of this session makes the documented
+ * IDB -> web storage -> memory chain real.
  */
 function createFailoverQueryStore(
   stores: QueryStore[],
@@ -205,12 +228,18 @@ function createFailoverQueryStore(
 ): QueryStore {
   let active = 0;
   const run = async <T>(operation: (store: QueryStore) => Promise<T>): Promise<T> => {
+    const tier = active;
     try {
-      return await operation(stores[active]);
+      return await withDeadline(operation(stores[tier]), STORE_OPERATION_TIMEOUT_MS);
     } catch (error) {
       onError(error);
-      if (active >= stores.length - 1) throw error;
-      active += 1;
+      // Boot starts many reads at once, and a stalled tier fails them together.
+      // Only the first failure demotes it; the rest retry wherever it now points,
+      // so a burst cannot skip a tier that still works.
+      if (tier === active) {
+        if (tier >= stores.length - 1) throw error;
+        active = tier + 1;
+      }
       return run(operation);
     }
   };
