@@ -38,6 +38,14 @@ export const roleKeys = {
     ["greengoods", "role", "gardenRoles", gardenId, address] as const,
   hasRole: (gardenId?: string, address?: Address, role?: string) =>
     ["greengoods", "role", "hasRole", gardenId, address, role] as const,
+  /**
+   * Prefix of every exact-hat answer cached for one person in one garden.
+   * Both exact-hat keys take lowercased addresses, so they type them as strings.
+   */
+  roleHatsOf: (gardenId?: string, address?: string) =>
+    ["greengoods", "role", "roleHat", gardenId, address] as const,
+  roleHat: (gardenId?: string, address?: string, role?: string, chainId?: number) =>
+    ["greengoods", "role", "roleHat", gardenId, address, role, chainId] as const,
   evaluatorGardens: (address?: Address, gardenIds: string[] = []) =>
     [
       "greengoods",

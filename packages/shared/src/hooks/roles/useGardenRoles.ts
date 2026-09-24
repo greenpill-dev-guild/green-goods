@@ -6,12 +6,10 @@
  */
 
 import { useQuery } from "@tanstack/react-query";
-import { readContract } from "@wagmi/core";
 import type { Address } from "viem";
-import { getWagmiConfig } from "../../config/appkit";
 import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
 import { isZeroAddress } from "../../utils/blockchain/address";
-import { GardenAccountABI } from "../../utils/blockchain/contracts";
+import { readGardenRole } from "../../utils/blockchain/garden-role-reads";
 import { GARDEN_ROLE_FUNCTIONS, type GardenRole } from "../../utils/blockchain/garden-roles";
 import { STALE_TIME_MEDIUM } from "../../config/query-keys/constants";
 import { roleKeys } from "../../config/query-keys/identity";
@@ -27,21 +25,13 @@ async function fetchGardenRoles(
   userAddress: Address,
   chainId: number
 ): Promise<GardenRole[]> {
-  const entries = Object.entries(GARDEN_ROLE_FUNCTIONS) as Array<
-    [GardenRole, (typeof GARDEN_ROLE_FUNCTIONS)[GardenRole]]
-  >;
+  const roles = Object.keys(GARDEN_ROLE_FUNCTIONS) as GardenRole[];
 
   const results = await Promise.all(
-    entries.map(async ([role, fn]) => {
+    roles.map(async (role) => {
       try {
-        const hasRole = await readContract(getWagmiConfig(), {
-          address: gardenAddress,
-          abi: GardenAccountABI,
-          functionName: fn,
-          args: [userAddress],
-          chainId,
-        });
-        return { role, hasRole: Boolean(hasRole) };
+        const hasRole = await readGardenRole(gardenAddress, userAddress, role, chainId);
+        return { role, hasRole };
       } catch {
         return { role, hasRole: false };
       }
