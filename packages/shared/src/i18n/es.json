@@ -1570,8 +1570,6 @@
   "app.errors.blockchain.unknown.message": "Error inesperado. Por favor, inténtalo de nuevo.",
   "app.errors.blockchain.userRejected.message": "Transacción cancelada. Por favor, inténtalo de nuevo cuando estés listo.",
   "app.errors.blockchain.wrongChain.message": "Tu billetera está en la red incorrecta. Cambia a la red de Green Goods e inténtalo de nuevo.",
-  "app.errors.contract.nameTooLong.action": "Acórtalo: las letras con tilde cuentan como dos, y algunos símbolos como más",
-  "app.errors.contract.nameTooLong.message": "Este nombre de jardín es demasiado largo para guardarlo",
   "app.errors.contract.selfAttestation.action": "Pide a otro responsable del jardín que apruebe o rechace este trabajo",
   "app.errors.contract.selfAttestation.message": "No puedes revisar tu propio trabajo enviado",
   "app.errors.network": "Error de red. Verifica tu conexión.",

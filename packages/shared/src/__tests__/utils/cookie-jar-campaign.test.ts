@@ -157,7 +157,7 @@ describe("cookie jar campaign utilities", () => {
     const words = (length: number) => "x".repeat(length);
 
     expect(build(`  ${words(480)}  `).description).toBe(words(480));
-    expect(() => build(words(481))).toThrow("at most 480 characters");
+    expect(() => build(words(481))).toThrow("past 480 characters");
   });
 
   it("drops unsafe optional metadata URLs", () => {

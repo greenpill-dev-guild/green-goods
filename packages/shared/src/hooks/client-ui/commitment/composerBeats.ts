@@ -27,7 +27,7 @@ export type ComposerBlockedReason =
   | null;
 
 /** Which answers each beat owns; later answers never block an earlier screen. */
-export const BEAT_FIELDS = {
+const BEAT_FIELDS = {
   what: ["title", "kind", "cycleId"],
   howMuch: ["unitLabel", "targetUnits", "dueInDays", "requirements", "claimMode"],
   details: ["note", "links", "openTeam", "protocolFallbackEnabled"],

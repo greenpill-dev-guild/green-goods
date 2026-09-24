@@ -15,11 +15,15 @@ const LOCALIZED_ERROR_FALLBACKS = {
     message: "You cannot review your own work submission",
     action: "Ask another garden steward to approve or reject this work",
   },
-  NameTooLong: {
-    message: "This garden name is too long to save",
-    action: "Shorten it: accented letters count as two, and some symbols as more",
-  },
 } as const;
+
+const NOT_GARDEN_MEMBER: ErrorInfo = {
+  name: "NotGardenMember",
+  message: "You are not a member of this garden",
+  action: "Please join the garden before submitting work",
+  recoverable: false,
+  suggestedAction: "join-garden",
+};
 
 const ERROR_SIGNATURES: Record<string, ErrorInfo> = {
   // ============================================================================
@@ -99,11 +103,10 @@ const ERROR_SIGNATURES: Record<string, ErrorInfo> = {
     recoverable: false,
     suggestedAction: "contact-support",
   },
-  // A name past 72 UTF-8 bytes, on create (initialize) or rename (updateName).
   "0x680b6caf": {
     name: "NameTooLong",
-    messageKey: "app.errors.contract.nameTooLong.message",
-    actionKey: "app.errors.contract.nameTooLong.action",
+    message: "This garden name is too long to save",
+    action: "Shorten it: accented letters count as two, and some symbols as more",
     recoverable: false,
   },
 
@@ -172,22 +175,9 @@ const ERROR_SIGNATURES: Record<string, ErrorInfo> = {
   // ============================================================================
   // WorkResolver.sol errors
   // ============================================================================
-  // Current selector for NotGardenMember()
-  "0xfdb31dd5": {
-    name: "NotGardenMember",
-    message: "You are not a member of this garden",
-    action: "Please join the garden before submitting work",
-    recoverable: false,
-    suggestedAction: "join-garden",
-  },
+  "0xfdb31dd5": NOT_GARDEN_MEMBER,
   // Legacy selector (NotGardenerAccount) - kept for backward compatibility
-  "0x8cb4ae3b": {
-    name: "NotGardenMember",
-    message: "You are not a member of this garden",
-    action: "Please join the garden before submitting work",
-    recoverable: false,
-    suggestedAction: "join-garden",
-  },
+  "0x8cb4ae3b": NOT_GARDEN_MEMBER,
   "0x2ff9aed3": {
     name: "NotActiveAction",
     message: "This action has expired and is no longer accepting work submissions",

@@ -1570,8 +1570,6 @@
   "app.errors.blockchain.unknown.message": "An unexpected error occurred. Please try again.",
   "app.errors.blockchain.userRejected.message": "Transaction was cancelled. Please try again when ready.",
   "app.errors.blockchain.wrongChain.message": "Your wallet is on the wrong network. Switch to the Green Goods network and try again.",
-  "app.errors.contract.nameTooLong.action": "Shorten it: accented letters count as two, and some symbols as more",
-  "app.errors.contract.nameTooLong.message": "This garden name is too long to save",
   "app.errors.contract.selfAttestation.action": "Ask another garden steward to approve or reject this work",
   "app.errors.contract.selfAttestation.message": "You cannot review your own work submission",
   "app.errors.network": "Network error. Please check your connection.",

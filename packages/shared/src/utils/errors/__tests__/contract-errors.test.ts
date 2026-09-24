@@ -65,8 +65,7 @@ describe("parseContractError", () => {
     expect(result).toMatchObject({
       name: "NameTooLong",
       message: "This garden name is too long to save",
-      messageKey: "app.errors.contract.nameTooLong.message",
-      actionKey: "app.errors.contract.nameTooLong.action",
+      action: "Shorten it: accented letters count as two, and some symbols as more",
       isKnown: true,
       recoverable: false,
     });

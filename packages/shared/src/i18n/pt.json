@@ -1570,8 +1570,6 @@
   "app.errors.blockchain.unknown.message": "Erro inesperado. Por favor, tente novamente.",
   "app.errors.blockchain.userRejected.message": "Transação cancelada. Por favor, tente novamente quando estiver pronto.",
   "app.errors.blockchain.wrongChain.message": "Sua carteira está na rede incorreta. Mude para a rede Green Goods e tente novamente.",
-  "app.errors.contract.nameTooLong.action": "Encurte: letras com acento contam como duas, e alguns símbolos como mais",
-  "app.errors.contract.nameTooLong.message": "Este nome de jardim é longo demais para salvar",
   "app.errors.contract.selfAttestation.action": "Peça a outro responsável do jardim para aprovar ou rejeitar este trabalho",
   "app.errors.contract.selfAttestation.message": "Você não pode revisar seu próprio trabalho enviado",
   "app.errors.network": "Erro de rede. Por favor, verifique sua conexão.",
