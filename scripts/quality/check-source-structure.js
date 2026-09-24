@@ -103,7 +103,8 @@ function isDeclarationOnlySolidityInterface(filePath) {
 // the gate was adopted. An entry may never grow; touching a file above its ceiling
 // fails until it is brought back down. When a file shrinks, lower its entry to the
 // new count. When a file drops below MODIFIED_FILE_MAX_LINES, delete its entry so
-// the normal cap governs it again.
+// the normal cap governs it again. Entries are keyed by path, so a file keeps its
+// ceiling through a move only when its entry moves with it, unchanged.
 //
 // Re-baselined 2026-07-30: the original ceilings were captured months before the
 // check was wired into CI, and 17 entries had drifted above them in the meantime —
@@ -111,7 +112,7 @@ function isDeclarationOnlySolidityInterface(filePath) {
 // could merge. Ceilings now reflect measured reality, and every oversized file is
 // listed (the previous list covered 32 of 63, so 31 oversized files had no ceiling
 // at all and would have tripped the blanket cap on first touch).
-const FROZEN_ALLOWLIST = {
+export const FROZEN_ALLOWLIST = {
   "packages/admin/src/components/Action/ActionTranslationEditor.tsx": 746,
   "packages/admin/src/components/Assessment/CreateAssessmentSteps/StrategyKernelStep.tsx": 545,
   "packages/admin/src/components/Garden/GardenSettingsEditor.tsx": 626,
@@ -622,19 +623,51 @@ function mergeBaseWith(baseRef) {
   return runGit(["merge-base", "HEAD", baseRef], { allowFailure: true }) || baseRef;
 }
 
+// Added, modified and moved files as `git diff --name-status -z` reports them. Rename detection is
+// pinned on, as CI's git has it, so personal git config cannot change which files are judged.
+function diffEntries(revisions) {
+  const fields = runGit([
+    "-c",
+    "diff.renames=true",
+    "diff",
+    "--name-status",
+    "-z",
+    "--diff-filter=AMR",
+    ...revisions,
+  ]).split("\0");
+  const entries = [];
+  for (let index = 0; index + 1 < fields.length; ) {
+    const status = fields[index];
+    if (status.startsWith("R")) {
+      entries.push({ status: "R", from: fields[index + 1], path: fields[index + 2] });
+      index += 3;
+    } else {
+      entries.push({ status, path: fields[index + 1] });
+      index += 2;
+    }
+  }
+  return entries;
+}
+
 // Judge committed work against the base, as CI judges the pushed head, and uncommitted and
 // untracked work as well. Judging only the working tree let a committed violation pass the local
-// push gate and fail CI on the same head (PR #898).
+// push gate and fail CI on the same head (PR #898). A moved file is judged at its new path as a
+// modified file: dropping renames let a file moved and grown in one change pass unchecked, and
+// judging them as added would hold every move to the new-file cap.
 function resolveChangedFiles(baseRef) {
   const changed = new Set();
   const added = new Set();
+  const movedFrom = new Map();
   const collect = (revisions) => {
-    for (const filePath of listFromGit(["diff", "--name-only", "--diff-filter=AM", ...revisions])) {
-      changed.add(filePath);
-    }
-
-    for (const filePath of listFromGit(["diff", "--name-only", "--diff-filter=A", ...revisions])) {
-      added.add(filePath);
+    for (const { status, path, from } of diffEntries(revisions)) {
+      changed.add(path);
+      if (status === "A") added.add(path);
+      if (status === "R") {
+        // A committed move followed by an uncommitted one traces back to the original path, and
+        // a file this branch added stays new wherever it moves.
+        movedFrom.set(path, movedFrom.get(from) ?? from);
+        if (added.has(from)) added.add(path);
+      }
     }
   };
 
@@ -650,6 +683,7 @@ function resolveChangedFiles(baseRef) {
   return {
     changed: Array.from(changed).sort(),
     added,
+    movedFrom,
   };
 }
 
@@ -749,7 +783,7 @@ function printDisallowedJavaScriptFailure(filePaths) {
 
 function run() {
   const base = resolveStructureBase(process.argv.slice(2));
-  const { changed, added } = resolveChangedFiles(base);
+  const { changed, added, movedFrom } = resolveChangedFiles(base);
   const allFiles = resolveAllFiles();
   const disallowedJavaScriptFiles = changed
     .filter(isDisallowedJavaScriptSourceFile)
@@ -817,6 +851,20 @@ function run() {
     if (added.has(filePath) && lineCount > NEW_FILE_MAX_LINES) {
       failures.push(
         `- ${filePath}: new file at ${lineCount} lines (limit ${NEW_FILE_MAX_LINES}). Split the new implementation into smaller files; new files do not get allowlist entries.`,
+      );
+      continue;
+    }
+
+    const originalPath = movedFrom.get(filePath);
+    const originalCeiling =
+      originalPath === undefined ? undefined : FROZEN_ALLOWLIST[originalPath];
+    if (originalCeiling !== undefined && lineCount > MODIFIED_FILE_MAX_LINES) {
+      const grown =
+        lineCount > originalCeiling
+          ? `, and bring the file back to ${originalCeiling} lines or below`
+          : "";
+      failures.push(
+        `- ${filePath}: ${lineCount} lines, moved from ${originalPath}, which has a frozen ceiling of ${originalCeiling}. Rename its FROZEN_ALLOWLIST entry to the new path and keep the ceiling at ${originalCeiling}${grown}.`,
       );
       continue;
     }
