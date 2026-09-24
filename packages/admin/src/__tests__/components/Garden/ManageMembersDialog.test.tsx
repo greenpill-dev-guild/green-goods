@@ -197,6 +197,16 @@ describe("components/Garden/ManageMembersDialog", () => {
 
     await user.click(screen.getByRole("button", { name: "Add Members" }));
     expect(defaultProps.onAddMembers).toHaveBeenCalledTimes(1);
+    expect(defaultProps.onAddMembers).toHaveBeenCalledWith(undefined);
+  });
+
+  it("hands the member it was opened for to Add Members", async () => {
+    const user = userEvent.setup();
+    // The Manage Roles link opens the roster searched by one exact address.
+    render(createElement(ManageMembersDialog, { ...defaultProps, initialSearch: GARDENER_A }));
+
+    await user.click(screen.getByRole("button", { name: "Add Members" }));
+    expect(defaultProps.onAddMembers).toHaveBeenCalledWith(GARDENER_A);
   });
 
   it("locks close and add-member affordances while a member write is loading", async () => {
