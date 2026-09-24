@@ -742,7 +742,7 @@
       "id": "source-structure",
       "command": "node scripts/quality/check-source-structure.js",
       "risk": "changed package source violates repository structure policy",
-      "expectedSignal": "changed source structure is accepted",
+      "expectedSignal": "package source changed since the comparison base, committed or not, passes structure policy",
       "freshness": "exact-inputs",
       "budgetSeconds": 20,
       "stopRule": "stop-dependent-checks",
