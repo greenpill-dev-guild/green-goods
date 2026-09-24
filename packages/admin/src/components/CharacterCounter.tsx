@@ -1,5 +1,33 @@
+import { utf8ByteLength } from "@green-goods/shared/utils/app/text";
 import { cn } from "@green-goods/shared/utils/styles/cn";
-import { useIntl } from "react-intl";
+import { type IntlShape, useIntl } from "react-intl";
+
+/** The text's length as the counter counts it: characters, or UTF-8 bytes. */
+export const countedLength = (text: string, bytes: boolean) =>
+  bytes ? utf8ByteLength(text) : text.length;
+
+/**
+ * What a field past its limit says: how to bring the text back under it. Past
+ * a byte limit the count runs ahead of the characters, so it says why.
+ */
+export function overLimitMessage(
+  formatMessage: IntlShape["formatMessage"],
+  max: number,
+  bytes: boolean
+): string {
+  return bytes
+    ? formatMessage({
+        id: "cockpit.textField.overByteLimit",
+        defaultMessage: "Shorten this: accented letters count as two, and some symbols as more",
+      })
+    : formatMessage(
+        {
+          id: "cockpit.textField.overLimit",
+          defaultMessage: "Shorten this to {max, number} characters or fewer",
+        },
+        { max }
+      );
+}
 
 export interface CharacterCounterProps {
   /** The id the control's `aria-describedby` points at: the count in words. */
@@ -11,6 +39,8 @@ export interface CharacterCounterProps {
   /** The field shows an error, so the counter turns the error color with it. */
   error?: boolean;
   disabled?: boolean;
+  /** The steward has edited the control. Until then the limit is not announced. */
+  edited?: boolean;
 }
 
 /**
@@ -21,12 +51,12 @@ export interface CharacterCounterProps {
  * - The visible numbers are hidden from assistive tech. The control's
  *   description reads the count in words instead, and a description is read
  *   when the control takes focus, not on every keystroke.
- * - A polite status says the limit is reached once, as it is reached. It
- *   clears when the text drops below the limit, so reaching it again says so
- *   again.
- * - A count past the limit only happens when older text, written before the
- *   limit, is loaded into the field. It turns the error color, because that
- *   text has to be shortened before it can be saved.
+ * - A polite status says the limit is reached once, as an edit reaches it. It
+ *   clears when the text leaves the limit, so reaching it again says so again.
+ *   Text loaded at the limit stays quiet: nobody has typed yet.
+ * - Past the limit, the count turns the error color and the field shows an
+ *   error saying how to shorten it. Loaded text written before the limit can
+ *   be there, and so can bytes, which a character `maxLength` cannot stop.
  */
 export function CharacterCounter({
   id,
@@ -34,6 +64,7 @@ export function CharacterCounter({
   max,
   error = false,
   disabled = false,
+  edited = false,
 }: CharacterCounterProps) {
   const { formatMessage, formatNumber } = useIntl();
   return (
@@ -58,7 +89,7 @@ export function CharacterCounter({
         )}
       </span>
       <span role="status" aria-live="polite" aria-atomic="true" className="sr-only">
-        {count >= max
+        {edited && count === max
           ? formatMessage({
               id: "cockpit.textField.characterLimitReached",
               defaultMessage: "Character limit reached",

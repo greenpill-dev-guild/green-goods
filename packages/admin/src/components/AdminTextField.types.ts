@@ -23,9 +23,17 @@ interface AdminTextFieldCommonProps {
   /**
    * Count the text toward the control's own `maxLength`, shown as M3's
    * "324 / 420" at the end of the supporting row. Without a `maxLength` there
-   * is nothing to count toward, and no counter shows.
+   * is nothing to count toward, and no counter shows. Past the limit the field
+   * shows an error saying how to bring the text back under it.
    */
   showCount?: boolean;
+  /**
+   * With `showCount`, count UTF-8 bytes rather than characters, for text a
+   * contract measures in bytes: an accented letter counts as two. `maxLength`
+   * still stops the characters at that number, which never cuts text that
+   * fits the bytes, but typing can now pass the limit, so the error says why.
+   */
+  countBytes?: boolean;
 }
 
 export interface AdminTextFieldProps extends AdminTextFieldCommonProps {
@@ -45,7 +53,8 @@ export interface AdminTextAreaProps extends AdminTextFieldCommonProps {
   };
 }
 
-export interface AdminSelectProps extends Omit<AdminTextFieldCommonProps, "showCount"> {
+export interface AdminSelectProps
+  extends Omit<AdminTextFieldCommonProps, "showCount" | "countBytes"> {
   onChange?: (e: React.ChangeEvent<HTMLSelectElement>) => void;
   onBlur?: (e: React.FocusEvent<HTMLSelectElement>) => void;
   /** The `<option>` elements. An empty-value option acts as the placeholder row. */

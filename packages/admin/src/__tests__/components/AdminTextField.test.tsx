@@ -102,6 +102,49 @@ describe("the character counter", () => {
     expect(status).toBeEmptyDOMElement();
   });
 
+  it("describes loaded text at or past the limit, and announces none of it", () => {
+    const loaded = (text: string) => (
+      <AdminTextArea
+        label="What this pool is for"
+        value={text}
+        onChange={() => {}}
+        showCount
+        textareaProps={{ maxLength: 12 }}
+      />
+    );
+    const { rerender } = render(loaded("Rides, tools"));
+    const field = screen.getByRole("textbox", { name: "What this pool is for" });
+    expect(screen.getByText("12 / 12")).toBeInTheDocument();
+    expect(screen.getByRole("status")).toBeEmptyDOMElement();
+
+    // Written before the limit: an error that says how to fix it, read on focus.
+    rerender(loaded("Rides, tools, workshops"));
+    expect(screen.getByText("23 / 12")).toBeInTheDocument();
+    expect(field).toHaveAttribute("aria-invalid", "true");
+    expect(field).toHaveAccessibleDescription(
+      "Shorten this to 12 characters or fewer 23 of 12 characters used"
+    );
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    expect(screen.getByRole("status")).toBeEmptyDOMElement();
+  });
+
+  it("counts bytes when a contract does, and says why the text no longer fits", async () => {
+    const user = userEvent.setup();
+    render(
+      <AdminTextField label="Garden name" showCount countBytes inputProps={{ maxLength: 12 }} />
+    );
+    const field = screen.getByRole("textbox", { name: "Garden name" });
+
+    // 11 characters, 14 bytes: ç, í and é take two each.
+    await user.type(field, "Açaí e café");
+    expect(field).toHaveValue("Açaí e café");
+    expect(screen.getByText("14 / 12")).toBeInTheDocument();
+    expect(field).toHaveAttribute("aria-invalid", "true");
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "Shorten this: accented letters count as two, and some symbols as more"
+    );
+  });
+
   it("shows no counter unless the field opts in", () => {
     render(<AdminTextArea label="Reason" textareaProps={{ maxLength: 12 }} />);
     expect(screen.queryByText("0 / 12")).not.toBeInTheDocument();

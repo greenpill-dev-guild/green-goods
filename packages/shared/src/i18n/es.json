@@ -4651,6 +4651,8 @@
   "cockpit.tabRail.itemCount": "{count, plural, one {# elemento} other {# elementos}}",
   "cockpit.textField.characterCount": "{count, number} de {max, number} caracteres usados",
   "cockpit.textField.characterLimitReached": "Límite de caracteres alcanzado",
+  "cockpit.textField.overByteLimit": "Acórtalo: las letras con tilde cuentan como dos, y algunos símbolos como más",
+  "cockpit.textField.overLimit": "Acórtalo a {max, number} caracteres o menos",
   "cockpit.topBar.back": "Volver",
   "cockpit.topBar.notifications": "Notificaciones",
   "cockpit.topBar.openProfile": "Perfil",

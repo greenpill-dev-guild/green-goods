@@ -4651,6 +4651,8 @@
   "cockpit.tabRail.itemCount": "{count, plural, one {# item} other {# items}}",
   "cockpit.textField.characterCount": "{count, number} of {max, number} characters used",
   "cockpit.textField.characterLimitReached": "Character limit reached",
+  "cockpit.textField.overByteLimit": "Shorten this: accented letters count as two, and some symbols as more",
+  "cockpit.textField.overLimit": "Shorten this to {max, number} characters or fewer",
   "cockpit.topBar.back": "Back",
   "cockpit.topBar.notifications": "Notifications",
   "cockpit.topBar.openProfile": "Profile",

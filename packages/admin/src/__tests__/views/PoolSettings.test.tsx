@@ -237,6 +237,9 @@ describe("PoolSettingsDialog", () => {
     const save = screen.getByRole("button", { name: /save settings/i });
     expect(agreement).toHaveValue(older);
     expect(screen.getByText("1,500 / 420")).toBeInTheDocument();
+    // The field says why, not only the red count.
+    expect(agreement).toHaveAttribute("aria-invalid", "true");
+    expect(agreement).toHaveAccessibleDescription(/shorten this to 420 characters or fewer/i);
 
     // Only the limit changes, so the older agreement is not written again.
     fireEvent.change(screen.getByLabelText(/how many commitments one person/i), {
