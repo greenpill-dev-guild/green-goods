@@ -1,5 +1,6 @@
 import { useDirtyClose } from "@green-goods/shared/hooks/admin-ui/useDirtyClose";
 import { useEnsAddress } from "@green-goods/shared/hooks/blockchain/useEnsAddress";
+import { useGardenRoleHat } from "@green-goods/shared/hooks/roles/useGardenRoleHat";
 import { logger } from "@green-goods/shared/modules/app/logger";
 import type { Address } from "@green-goods/shared/types/domain";
 import { resolveEnsAddress } from "@green-goods/shared/utils/blockchain/ens";
@@ -37,9 +38,12 @@ export interface AddMembersDialogProps {
    * retry. Wire this to `useGardenOperations` in the hosting view.
    */
   onAdd: (role: GardenRole, address: Address) => Promise<{ success: boolean }>;
+  /** The garden being written to; the chain confirms held roles against it. */
+  gardenAddress: Address;
   /**
-   * Who holds which role today. The dialog uses it to refuse a role someone
-   * already has and to show what adding a role changes for an existing member.
+   * Who holds which role today (the indexed roster). The dialog uses it to
+   * refuse a role someone already has, confirmed on chain first because the
+   * roster can lag, and to show what adding a role changes for an existing member.
    */
   roleMembers: Record<GardenRole, Address[]>;
   /** Starts the field with this person (the Manage Roles path into promotion). */
@@ -61,6 +65,7 @@ export function AddMembersDialog({
   open,
   onClose,
   onAdd,
+  gardenAddress,
   roleMembers,
   initialAddress,
   isLoading = false,
@@ -104,8 +109,19 @@ export function AddMembersDialog({
       ? (resolvedEnsAddress as Address)
       : null;
   }, [isHexAddress, resolvedEnsAddress, trimmed]);
-  const typedCheck = typedResolvedAddress
+  // The indexed roster can lag a revoke, so a "held" it proposes is confirmed
+  // on chain. Until the chain answers, or if the read fails, the roster stands.
+  const typedRosterCheck = typedResolvedAddress
     ? checkEntry(typedResolvedAddress, selectedRole, pending, rolesByAddress)
+    : null;
+  const { wearsHat: typedHeldOnChain } = useGardenRoleHat(
+    gardenAddress,
+    typedResolvedAddress,
+    selectedRole,
+    { enabled: typedRosterCheck?.kind === "held" }
+  );
+  const typedCheck = typedResolvedAddress
+    ? checkEntry(typedResolvedAddress, selectedRole, pending, rolesByAddress, typedHeldOnChain)
     : null;
   const typedEntryCommitReady = typedCheck !== null && canStage(typedCheck);
   const typedInputInvalid = Boolean(trimmed) && !resolvingEns && !typedResolvedAddress;
@@ -133,8 +149,18 @@ export function AddMembersDialog({
     }
   };
 
-  const stageable = (address: Address) =>
-    canStage(checkEntry(address, selectedRole, pending, rolesByAddress));
+  const stageable = (address: Address) => {
+    const isTyped = address.toLowerCase() === typedResolvedAddress?.toLowerCase();
+    return canStage(
+      checkEntry(
+        address,
+        selectedRole,
+        pending,
+        rolesByAddress,
+        isTyped ? typedHeldOnChain : undefined
+      )
+    );
+  };
 
   const handleAddToList = async () => {
     setError("");

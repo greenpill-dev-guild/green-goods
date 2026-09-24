@@ -22,9 +22,9 @@ vi.mock("../../../utils/blockchain/simulation", () => ({
   simulateTransaction: (...args: unknown[]) => mockSimulateTransaction(...args),
 }));
 
-const mockReadGardenRole = vi.fn();
+const mockReadGardenRoleHat = vi.fn();
 vi.mock("../../../utils/blockchain/garden-role-reads", () => ({
-  readGardenRole: (...args: unknown[]) => mockReadGardenRole(...args),
+  readGardenRoleHat: (...args: unknown[]) => mockReadGardenRoleHat(...args),
 }));
 
 const mockParseContractError = vi.fn();
@@ -130,7 +130,7 @@ describe("createGardenOperation", () => {
     vi.clearAllMocks();
     mockFetchHatsModuleAddress.mockResolvedValue(HATS_MODULE);
     mockSimulateTransaction.mockResolvedValue({ success: true });
-    mockReadGardenRole.mockResolvedValue(false);
+    mockReadGardenRoleHat.mockResolvedValue(false);
     mockParseContractError.mockReturnValue({
       name: "ContractError",
       message: "Something went wrong",
@@ -303,7 +303,7 @@ describe("createGardenOperation", () => {
         CHAIN_ID
       );
       // Only adds can be no-ops worth guarding; removals skip the role read.
-      expect(mockReadGardenRole).not.toHaveBeenCalled();
+      expect(mockReadGardenRoleHat).not.toHaveBeenCalled();
     });
   });
 
@@ -313,7 +313,7 @@ describe("createGardenOperation", () => {
 
   describe("role pre-flight", () => {
     it("never asks the wallet when the target already holds the role", async () => {
-      mockReadGardenRole.mockResolvedValue(true);
+      mockReadGardenRoleHat.mockResolvedValue(true);
       const sender = createMockSender();
       const onOptimisticUpdate = vi.fn();
       const config = createConfig();
@@ -333,11 +333,13 @@ describe("createGardenOperation", () => {
       const result = await operation(TARGET_ADDRESS);
 
       expect(result).toEqual({ success: true, alreadyHeld: true });
-      expect(mockReadGardenRole).toHaveBeenCalledWith(
+      // Exact hat membership, read from the module the grant would call.
+      expect(mockReadGardenRoleHat).toHaveBeenCalledWith(
         GARDEN_ID,
         TARGET_ADDRESS,
         "gardener",
-        CHAIN_ID
+        CHAIN_ID,
+        HATS_MODULE
       );
       expect(mockSimulateTransaction).not.toHaveBeenCalled();
       expect(sender.sendContractCall).not.toHaveBeenCalled();
@@ -356,7 +358,7 @@ describe("createGardenOperation", () => {
     });
 
     it("fails open to the normal add when the role read errors", async () => {
-      mockReadGardenRole.mockRejectedValue(new Error("RPC unavailable"));
+      mockReadGardenRoleHat.mockRejectedValue(new Error("RPC unavailable"));
       const sender = createMockSender();
 
       const operation = createGardenOperation(

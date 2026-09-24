@@ -433,6 +433,7 @@
     "./hooks/public/usePublicStats": "./src/hooks/public/usePublicStats.ts",
     "./hooks/public/usePublicVaultSummary": "./src/hooks/public/usePublicVaultSummary.ts",
     "./hooks/public/usePublicVaultCatalogSummary": "./src/hooks/public/usePublicVaultCatalogSummary.ts",
+    "./hooks/roles/useGardenRoleHat": "./src/hooks/roles/useGardenRoleHat.ts",
     "./hooks/roles/useHasRole": "./src/hooks/roles/useHasRole.ts",
     "./hooks/ui/useInViewReveal": "./src/hooks/ui/useInViewReveal.ts",
     "./hooks/ui/useIsDarkMode": "./src/hooks/ui/useIsDarkMode.ts",

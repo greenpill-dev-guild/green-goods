@@ -21,7 +21,7 @@ import type { TransactionSender } from "../../modules/transactions/types";
 import type { Address } from "../../types/domain";
 import { HATS_MODULE_ABI } from "../../utils/blockchain/abis/hats";
 import { fetchHatsModuleAddress } from "../../utils/blockchain/garden-hats";
-import { readGardenRole } from "../../utils/blockchain/garden-role-reads";
+import { readGardenRoleHat } from "../../utils/blockchain/garden-role-reads";
 import { GARDEN_ROLE_IDS, type GardenRole } from "../../utils/blockchain/garden-roles";
 import { simulateTransaction } from "../../utils/blockchain/simulation";
 import { parseContractError } from "../../utils/errors/contract-errors";
@@ -68,17 +68,20 @@ function trackOperationFailed(
 /**
  * Pre-flight for adds. Granting a role the target already holds is a valid
  * transaction that changes nothing on chain, so the wallet must never be asked
- * for it. Fails open: when the read itself fails, the add continues exactly as
- * it would without this check (simulation, then the wallet prompt).
+ * for it. "Holds" means wears that exact hat, the test `grantRole` itself uses:
+ * a steward without the gardener hat still gets one. Fails open: when the read
+ * itself fails, the add continues exactly as it would without this check
+ * (simulation, then the wallet prompt).
  */
 async function targetAlreadyHoldsRole(
+  hatsModuleAddress: Address,
   gardenId: Address,
   targetAddress: Address,
   role: GardenRole,
   chainId: number
 ): Promise<boolean> {
   try {
-    return await readGardenRole(gardenId, targetAddress, role, chainId);
+    return await readGardenRoleHat(gardenId, targetAddress, role, chainId, hatsModuleAddress);
   } catch (error) {
     logger.warn("Role pre-flight read failed; continuing with the add", {
       error,
@@ -264,9 +267,27 @@ export function createGardenOperation(
     setIsLoading(true);
 
     try {
+      const hatsModuleAddress = await fetchHatsModuleAddress(gardenId, chainId);
+      if (!hatsModuleAddress) {
+        setIsLoading(false);
+        return {
+          success: false,
+          error: {
+            name: "HatsModuleNotConfigured",
+            message: "Hats module is not configured for this garden",
+          },
+        };
+      }
+
       if (
         config.operationType === "add" &&
-        (await targetAlreadyHoldsRole(gardenId, targetAddress, config.memberType, chainId))
+        (await targetAlreadyHoldsRole(
+          hatsModuleAddress,
+          gardenId,
+          targetAddress,
+          config.memberType,
+          chainId
+        ))
       ) {
         // Nothing to sign. Record the membership the chain already has so a
         // lagging roster catches up, and say why no wallet prompt appeared.
@@ -283,18 +304,6 @@ export function createGardenOperation(
       // Track operation started
       if (shouldTrackMemberAnalytics) {
         trackOperationStarted(gardenId, config.memberType, config.operationType, targetAddress);
-      }
-
-      const hatsModuleAddress = await fetchHatsModuleAddress(gardenId, chainId);
-      if (!hatsModuleAddress) {
-        setIsLoading(false);
-        return {
-          success: false,
-          error: {
-            name: "HatsModuleNotConfigured",
-            message: "Hats module is not configured for this garden",
-          },
-        };
       }
 
       const roleId = GARDEN_ROLE_IDS[config.memberType];

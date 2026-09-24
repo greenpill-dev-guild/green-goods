@@ -12,6 +12,7 @@ const ROSA = "0x18c4a9f3b2d1e0f9a8b7c6d5e4f3a2b1c0d9ea67" as Address;
 const KOFI = "0xa5e1f0c2b3d4e5f60718293a4b5c6d7e8f901ee0" as Address;
 const NEW_A = "0xc2d4e6f8a0b1c3d5e7f9a1b2c3d4e5f6a7b8f0c1" as Address;
 const NEW_B = "0x7f3e2d1c0b9a8f7e6d5c4b3a29181716151413f2" as Address;
+const GARDEN = "0x0a1b2c3d4e5f60718293a4b5c6d7e8f901234567" as Address;
 
 const roleMembers: Record<GardenRole, Address[]> = {
   owner: [],
@@ -52,6 +53,8 @@ const meta: Meta<typeof AddMembersDialog> = {
       [queryKeys.ens.name(KOFI.toLowerCase()), "kofi.eth"],
       [queryKeys.ens.name(NEW_A.toLowerCase()), null],
       [queryKeys.ens.name(NEW_B.toLowerCase()), null],
+      // The chain confirms the roster: Rosa wears the gardener hat.
+      [queryKeys.role.roleHat(GARDEN.toLowerCase(), ROSA.toLowerCase(), "gardener"), true],
     ]),
   ],
   parameters: {
@@ -66,6 +69,7 @@ const meta: Meta<typeof AddMembersDialog> = {
     open: true,
     onClose: fn(),
     onAdd: fn(async () => ({ success: true })),
+    gardenAddress: GARDEN,
     roleMembers,
     isLoading: false,
     tone: "community",

@@ -38,6 +38,8 @@ export const roleKeys = {
     ["greengoods", "role", "gardenRoles", gardenId, address] as const,
   hasRole: (gardenId?: string, address?: Address, role?: string) =>
     ["greengoods", "role", "hasRole", gardenId, address, role] as const,
+  roleHat: (gardenId?: string, address?: Address, role?: string) =>
+    ["greengoods", "role", "roleHat", gardenId, address, role] as const,
   evaluatorGardens: (address?: Address, gardenIds: string[] = []) =>
     [
       "greengoods",

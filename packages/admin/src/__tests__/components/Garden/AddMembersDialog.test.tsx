@@ -48,6 +48,13 @@ vi.mock("@green-goods/shared/utils/blockchain/ens", () => ({
   resolveEnsAddress: vi.fn(async () => null),
 }));
 
+// The chain's answer to "does this person wear the role's hat". Default: it
+// confirms whatever the roster claims.
+const mockUseGardenRoleHat = vi.fn();
+vi.mock("@green-goods/shared/hooks/roles/useGardenRoleHat", () => ({
+  useGardenRoleHat: (...args: unknown[]) => mockUseGardenRoleHat(...args),
+}));
+
 vi.mock("@/components/EnsAddressText", () => ({
   EnsAddressText: ({ address }: { address: string }) =>
     createElement("span", { "data-testid": "staged-address" }, address.slice(0, 10)),
@@ -78,6 +85,7 @@ import { AddMembersDialog } from "../../../components/Garden/AddMembersDialog";
 
 const ADDRESS_A = "0x1111111111111111111111111111111111111111" as Address;
 const ADDRESS_B = "0x2222222222222222222222222222222222222222" as Address;
+const GARDEN = "0x9999999999999999999999999999999999999999" as Address;
 
 const NO_MEMBERS: Record<GardenRole, Address[]> = {
   owner: [],
@@ -95,12 +103,21 @@ describe("components/Garden/AddMembersDialog", () => {
     open: true,
     onClose: vi.fn(),
     onAdd: vi.fn(async () => ({ success: true })),
+    gardenAddress: GARDEN,
     roleMembers: NO_MEMBERS,
     isLoading: false,
   };
 
   beforeEach(() => {
     vi.clearAllMocks();
+    mockUseGardenRoleHat.mockImplementation(
+      (
+        _garden: Address,
+        _account: Address,
+        _role: GardenRole,
+        { enabled }: { enabled: boolean }
+      ) => ({ wearsHat: enabled ? true : undefined, isLoading: false, isError: false })
+    );
   });
 
   it("stages resolved addresses into the reserved list and clears the input", async () => {
@@ -223,6 +240,27 @@ describe("components/Garden/AddMembersDialog", () => {
     await user.click(screen.getByRole("button", { name: "Add 1 Steward" }));
     await waitFor(() => {
       expect(defaultProps.onAdd).toHaveBeenCalledWith("steward", ADDRESS_A);
+    });
+  });
+
+  it("lets the chain overrule a roster that has not caught up with a revoke", async () => {
+    const user = userEvent.setup({ delay: null });
+    // The roster still lists ADDRESS_A as a gardener, but the hat is gone on chain.
+    mockUseGardenRoleHat.mockReturnValue({ wearsHat: false, isLoading: false, isError: false });
+    render(createElement(AddMembersDialog, { ...defaultProps, roleMembers: WITH_GARDENER_A }));
+
+    const input = screen.getByLabelText(/Ethereum Address or ENS Name/);
+    await user.click(input);
+    await user.paste(ADDRESS_A);
+
+    expect(mockUseGardenRoleHat).toHaveBeenLastCalledWith(GARDEN, ADDRESS_A, "gardener", {
+      enabled: true,
+    });
+    expect(screen.queryByText(/is already a Gardener/)).not.toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Add" }));
+    await user.click(screen.getByRole("button", { name: "Add 1 Gardener" }));
+    await waitFor(() => {
+      expect(defaultProps.onAdd).toHaveBeenCalledWith("gardener", ADDRESS_A);
     });
   });
 

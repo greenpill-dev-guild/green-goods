@@ -105,6 +105,7 @@ export function CommunityMembersDialogs({
         open={addMembersOpen}
         onClose={closeAddMembers}
         tone="community"
+        gardenAddress={garden.id}
         roleMembers={roleMembers}
         initialAddress={addMembersPrefill}
         isLoading={operations.isLoading}
