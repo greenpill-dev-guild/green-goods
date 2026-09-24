@@ -3652,6 +3652,31 @@
       "source": "qa-readiness-catalog-2026-09-21"
     },
     {
+      "id": "PWA-122",
+      "tab": "PWA",
+      "platform": "Desktop Browser (PWA shell)",
+      "priority": "P2",
+      "kind": "content",
+      "area": "Commitments",
+      "scenario": "A new commitment's name, unit and details stop at their limits",
+      "preconditions": [
+        "Signed in, in a garden with commitment pooling",
+        "A passage longer than 280 characters, copied to paste"
+      ],
+      "steps": [
+        "Start an offer, choose A service, paste the passage into Name it, read the field, and press Next",
+        "Paste the passage into the box under Of what, read the field, and go on",
+        "Paste the passage into Add any detail, and read the field and Next"
+      ],
+      "expected": "Name it stops at 60 characters, the unit box at 24 and the detail at 280, and each step still goes on with Next; nothing is sent",
+      "evidence": "Screenshots of the three fields at their limits",
+      "role": "gardener",
+      "tags": ["commitments", "validation"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "prd-971"
+    },
+    {
       "id": "PWA-070",
       "tab": "PWA",
       "platform": "Desktop Browser (PWA shell)",
@@ -5666,10 +5691,86 @@
         "Delete one character and read the count, then go on to The Season, paste the passage into Name, and read the field and its count",
         "Close the flow and discard it, then on the garden with a pool press Edit Pool and read the count under What this pool is for"
       ],
-      "expected": "The description's count sits at the end of the row under the field, starts at 0 / 420, and rises as you type; the pasted passage stops at 420 characters and reads 420 / 420, then 419 / 420 after the deletion; Name stops at 120 characters and reads 120 / 120; Edit Pool counts the saved description the same way, out of 420 (one saved before the limit loads in full with its count past 420 in red, and a change to it saves only once it fits); nothing is sent",
+      "expected": "The description's count sits at the end of the row under the field, starts at 0 / 420, and rises as you type; the pasted passage stops at 420 characters and reads 420 / 420, then 419 / 420 after the deletion; Name stops at 120 characters and reads 120 / 120; Edit Pool counts the saved description the same way, out of 420 (one saved before the limit loads in full with its count past 420 in red and the message Shorten this to 420 characters or fewer under it, and a change to it saves only once it fits); nothing is sent",
       "evidence": "Screenshots of both setup fields at their limits and of the count in Edit Pool",
       "role": "steward",
       "tags": ["garden-pool", "cycle", "validation"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "prd-971"
+    },
+    {
+      "id": "ADM-168",
+      "tab": "Admin Dashboard",
+      "platform": "Chromium Desktop",
+      "priority": "P2",
+      "kind": "content",
+      "area": "Garden · Settings",
+      "scenario": "A garden's name is counted the way the contract counts it, so an accented letter counts as two",
+      "preconditions": [
+        "Owner of an existing garden, able to start a new garden",
+        "This name copied to paste: Jardim Agroecológico da Associação de Moradores da Rocinha — Cachopa"
+      ],
+      "steps": [
+        "Start a new garden, read the count under Garden name, then type Horta and read it again",
+        "Replace the name with the copied one, read the field, its count and the message under it, then press Next",
+        "Delete a word so the message goes, then leave the new garden without creating it",
+        "On the existing garden, press Edit Garden from the garden workspace, paste the copied name into Name, and read the count, the message and Save Changes"
+      ],
+      "expected": "The count sits at the end of the row under the name and starts at 0 / 72, and Horta reads 5 / 72; the copied name has 68 characters but reads 73 / 72 in red with the message \"Shorten this: accented letters count as two, and some symbols as more\", and Next stays on the step until the count fits; settings show the same count and message, and Save Changes stays unavailable; nothing is sent",
+      "evidence": "Screenshots of both name fields past the limit",
+      "role": "steward",
+      "tags": ["garden-settings", "garden-create", "validation"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "prd-971"
+    },
+    {
+      "id": "ADM-169",
+      "tab": "Admin Dashboard",
+      "platform": "Chromium Desktop",
+      "priority": "P2",
+      "kind": "content",
+      "area": "Cookies",
+      "scenario": "A campaign's description stops at 480 characters, counted as you type",
+      "preconditions": [
+        "Deployer identity, and the owner of a deployed campaign jar",
+        "A passage longer than 480 characters, copied to paste"
+      ],
+      "steps": [
+        "Open /cookies, press Create Cookie Jar, read the count under Campaign description, then paste the passage and read the field and its count",
+        "Leave without creating, open the deployed jar's panel, paste the passage into Campaign description, and read the field and its count"
+      ],
+      "expected": "Each count sits at the end of the row under the field and starts from the description's length out of 480; the pasted passage stops at 480 characters and reads 480 / 480; nothing is sent",
+      "evidence": "Screenshots of both fields at the limit",
+      "role": "steward",
+      "tags": ["cookies", "validation"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "prd-971"
+    },
+    {
+      "id": "ADM-170",
+      "tab": "Admin Dashboard",
+      "platform": "Chromium Desktop",
+      "priority": "P2",
+      "kind": "content",
+      "area": "Garden · Commitment",
+      "scenario": "Seeding a commitment stops the title at 60 characters, the unit at 24 and the note at 280, and says what is missing in your language",
+      "preconditions": [
+        "Steward of a garden with a pool",
+        "A passage longer than 280 characters, copied to paste"
+      ],
+      "steps": [
+        "Open the pool, press Seed Commitment, press Next with Title empty, and read the message under Title",
+        "Paste the passage into Title and into Note, and read each field and its count",
+        "Go on to the next step, paste the passage into Unit, and read the field and its count",
+        "Close the console and discard it, switch the admin to Español, and repeat the first step"
+      ],
+      "expected": "An empty Title says Give it a name.; Title stops at 60 characters and reads 60 / 60, Note at 280 and reads 280 / 280, and Unit at 24 and reads 24 / 24, each count at the end of the row under its field; in Español the empty Title says Ponle un nombre., not English; nothing is sent",
+      "evidence": "Screenshots of the three fields at their limits and of the Spanish message",
+      "role": "steward",
+      "tags": ["commitment", "garden-pool", "validation", "i18n"],
       "requiresProduction": false,
       "status": "active",
       "source": "prd-971"

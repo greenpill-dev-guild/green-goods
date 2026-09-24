@@ -15,7 +15,7 @@ generated_from:
   - playwright.config.ts
   - scripts/data/qa-test-catalog.json
   - scripts/data/validation-policy.json
-source_digest: "sha256:30715704949f905b28f92f8e1a06133f0194bdbe5478162db03443f4601c5926"
+source_digest: "sha256:29e089820edafd146b545fc55dd06010aedf95b967503ace1744d8e4f451051f"
 source_of_truth:
   - package.json
   - packages/admin/vitest.config.ts
@@ -327,7 +327,7 @@ The catalog contract test enforces all of this, and [retired cases](#retired-cas
 | `PWA-ROLE-006` | Journey | Work | Insufficient-role user cannot approve or reject on Android | Screenshot plus account role |
 | `XPLAT-005` | Journey | Install | Website-to-install handoff keeps browser and PWA shells separate | Screen recording across the handoff |
 
-### P2 (7) {#pwa-p2}
+### P2 (8) {#pwa-p2}
 
 | ID | Kind | Area | Scenario | Evidence requested |
 |---|---|---|---|---|
@@ -338,6 +338,7 @@ The catalog contract test enforces all of this, and [retired cases](#retired-cas
 | `PWA-096` | Journey | Home | AppBar badge counts pending work and the bar hides during flows and drawers | Screenshots with and without the bar |
 | `PWA-107` | Content & vocabulary | Profile | Profile passkey note reads plainly and names the sign-in link a second device shows | Profile screenshots in all three locales beside the second browser's sign-in screen |
 | `PWA-117` | Journey | Commitments | Whoever took up a request that ran out of time is offered no again act | Screenshot of the band with no action bar |
+| `PWA-122` | Content & vocabulary | Commitments | A new commitment's name, unit and details stop at their limits | Screenshots of the three fields at their limits |
 
 ## Admin Dashboard
 
@@ -479,7 +480,7 @@ The catalog contract test enforces all of this, and [retired cases](#retired-cas
 | `ADM-165` | Transaction | Garden · Commitment | Send for Confirmation says where it stands and stays closed once sent | Screenshots of the inspector while confirming and once sent |
 | `ADM-166` | Transaction | Garden · Pool | Send Now on a queued row says where the send stands | Screenshots of the row after the rejection and while it sends |
 
-### P2 (19) {#admin-dashboard-p2}
+### P2 (22) {#admin-dashboard-p2}
 
 | ID | Kind | Area | Scenario | Evidence requested |
 |---|---|---|---|---|
@@ -501,6 +502,9 @@ The catalog contract test enforces all of this, and [retired cases](#retired-cas
 | `ADM-162` | Resilience | Garden · Pool | Offline, Set Up Commitments says why it waits | Screenshots of the card offline and online |
 | `ADM-163` | Content & vocabulary | Garden · Pool | Setting up says how many times the wallet will ask, and that the split is fixed once the season opens | Screenshots of the note, The Split, and the last step |
 | `ADM-167` | Content & vocabulary | Garden · Pool | The pool's description stops at 420 characters and a season's name at 120, each counted as you type | Screenshots of both setup fields at their limits and of the count in Edit Pool |
+| `ADM-168` | Content & vocabulary | Garden · Settings | A garden's name is counted the way the contract counts it, so an accented letter counts as two | Screenshots of both name fields past the limit |
+| `ADM-169` | Content & vocabulary | Cookies | A campaign's description stops at 480 characters, counted as you type | Screenshots of both fields at the limit |
+| `ADM-170` | Content & vocabulary | Garden · Commitment | Seeding a commitment stops the title at 60 characters, the unit at 24 and the note at 280, and says what is missing in your language | Screenshots of the three fields at their limits and of the Spanish message |
 | `XPLAT-007` | Transaction | Hub · Work | Two stewards acting on the same submission converge on one state | Screenshots from both sessions |
 
 ## Docs
