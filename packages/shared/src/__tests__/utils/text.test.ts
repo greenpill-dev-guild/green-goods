@@ -4,7 +4,14 @@ import {
   chosenPasskeyUsername,
   formatAddress,
   formatEnsNameForDisplay,
+  utf8ByteLength,
 } from "../../utils/app/text";
+
+describe("utf8ByteLength", () => {
+  it("measures text as a contract's bytes(text).length does", () => {
+    expect(["g", "é", "—", "🌱"].map(utf8ByteLength)).toEqual([1, 2, 3, 4]);
+  });
+});
 
 describe("ENS display formatting", () => {
   it("shows Green Goods ENS names as usernames", () => {

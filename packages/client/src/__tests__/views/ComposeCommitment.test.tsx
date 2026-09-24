@@ -193,6 +193,34 @@ describe("ComposeCommitment", () => {
     );
   });
 
+  it("says to shorten a unit copied from an older commitment, written before the limit", async () => {
+    mockUseCommitment.mockReturnValue({
+      detail: {
+        commitment: {
+          poolId: 7n,
+          creator: VIEWER,
+          direction: "OFFER",
+          commitmentType: "SUPPORT_SERVICE",
+          // 32 characters: the composer allowed 40 before the 24-character limit.
+          unitLabel: "full-day workshops in the garden",
+          targetUnits: 3n,
+          claimMode: "OPEN",
+          contributorPolicy: "OPEN",
+          confirmers: [],
+          metadataCID: null,
+        },
+        requirements: [],
+      },
+    });
+    const user = userEvent.setup();
+    render("offer", "9");
+
+    await user.type(screen.getByLabelText("Name it"), "Compost workshop");
+    await user.click(next());
+    expect(next()).toBeDisabled();
+    expect(screen.getByText("Shorten the label to 24 characters or fewer.")).toBeInTheDocument();
+  });
+
   it("leaves the flow when no door opened it, rather than guessing a direction", () => {
     render(null);
     expect(screen.getByText("Back on the pool")).toBeInTheDocument();

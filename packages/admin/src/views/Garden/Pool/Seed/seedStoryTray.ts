@@ -21,7 +21,7 @@ const row = (
 /**
  * Three commitments from one sitting of the seeding console. The middle one was
  * sent and nothing was created for it; the last one has a title long enough to
- * need its ellipsis.
+ * need its ellipsis, and still inside the 60-character title limit.
  */
 export const SEED_STORY_TRAY_ROWS: SeedTrayRow[] = [
   row("story-market", { title: "Market rides for the co-op" }),
@@ -31,7 +31,7 @@ export const SEED_STORY_TRAY_ROWS: SeedTrayRow[] = [
     true
   ),
   row("story-school", {
-    title: "Someone to walk the school group to the garden and back, every weekday morning",
+    title: "Someone to walk the school group to the garden each weekday",
     direction: "REQUEST",
     unitLabel: "mornings",
     targetUnits: 1,

@@ -42,8 +42,8 @@ import { rewardUnitsFor } from "./seedRewardAmount";
 import {
   buildSeedCycleOptions,
   buildSeedStepConfigs,
-  SEED_ERROR_DESCRIPTOR_BY_ID,
   type SeedFieldError,
+  seedErrorText,
   STEP_FIELDS,
   STEPS,
   withConfirmer,
@@ -254,13 +254,9 @@ export function SeedCommitmentDialog({
     setConfirmerDraft("");
   };
 
-  // The composer says its newer rules as message ids so they can be read in any
-  // language; its older ones are English prose and are shown as they are.
   const errorOf: SeedFieldError = (field) => {
     const message = form.formState.errors[field]?.message as string | undefined;
-    if (message === undefined) return undefined;
-    const descriptor = SEED_ERROR_DESCRIPTOR_BY_ID.get(message);
-    return descriptor ? formatMessage(descriptor) : message;
+    return message === undefined ? undefined : seedErrorText(message, formatMessage);
   };
 
   let body: ReactNode;

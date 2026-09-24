@@ -2,6 +2,7 @@ import { Chip } from "@green-goods/shared/components/Chip";
 import { TextInput } from "@green-goods/shared/components/Form/ControlPrimitives";
 import type { Action } from "@green-goods/shared/types/domain";
 import { type CommitmentComposerValues } from "@green-goods/shared/commitment-pooling";
+import { COMMITMENT_UNIT_LABEL_MAX_LENGTH } from "@green-goods/shared/modules/commitment-pooling/metadata";
 import { type UseFormReturn, useWatch } from "react-hook-form";
 import { useIntl } from "react-intl";
 
@@ -96,7 +97,7 @@ export function ComposeHowMuch({ form, chainId, actions }: ComposeHowMuchProps) 
             id="compose-label"
             type="text"
             value={unitLabel}
-            maxLength={40}
+            maxLength={COMMITMENT_UNIT_LABEL_MAX_LENGTH}
             placeholder={formatMessage({ id: "app.compose.what.unitPlaceholder" })}
             onChange={(event) =>
               form.setValue("unitLabel", event.target.value, {

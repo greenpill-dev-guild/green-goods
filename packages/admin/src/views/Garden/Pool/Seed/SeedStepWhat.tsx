@@ -1,4 +1,8 @@
 import type { CommitmentComposerValues } from "@green-goods/shared/hooks/commitment-pooling/useCommitmentComposerForm";
+import {
+  COMMITMENT_NOTE_MAX_LENGTH,
+  COMMITMENT_TITLE_MAX_LENGTH,
+} from "@green-goods/shared/modules/commitment-pooling/metadata";
 import { Controller, type UseFormReturn } from "react-hook-form";
 import { useIntl } from "react-intl";
 import { AdminChoiceGroup } from "@/components/AdminChoiceGroup";
@@ -140,15 +144,19 @@ export function SeedStepWhat({
         error={errorOf("title")}
         disabled={busy}
         required
+        showCount
+        inputProps={{ maxLength: COMMITMENT_TITLE_MAX_LENGTH }}
       />
       <AdminTextArea
         id={noteId}
         label={formatMessage({ id: "cockpit.garden.pool.seed.note", defaultMessage: "Note" })}
         value={values.note ?? ""}
         onChange={(event) => form.setValue("note", event.target.value, { shouldDirty: true })}
+        error={errorOf("note")}
         rows={3}
         disabled={busy}
-        textareaProps={{ maxLength: 2000 }}
+        showCount
+        textareaProps={{ maxLength: COMMITMENT_NOTE_MAX_LENGTH }}
       />
     </div>
   );

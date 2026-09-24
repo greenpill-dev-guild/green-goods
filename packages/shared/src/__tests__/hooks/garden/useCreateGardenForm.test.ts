@@ -83,6 +83,22 @@ describe("createGardenSchema", () => {
       expect(result.success).toBe(false);
     });
 
+    // GardenAccount reverts NameTooLong past 72 UTF-8 bytes, not 72 characters.
+    it.each([
+      ["72 plain letters", "g".repeat(72), true],
+      ["36 accented letters, 72 bytes", "é".repeat(36), true],
+      ["37 accented letters, 74 bytes", "é".repeat(37), false],
+      // Create and rename send the name trimmed, so an edge space costs nothing.
+      ["36 accented letters and a trailing space", `${"é".repeat(36)} `, true],
+      [
+        "68 characters that take 73 bytes",
+        "Jardim Agroecológico da Associação de Moradores da Rocinha — Cachopa",
+        false,
+      ],
+    ])("counts the name as the contract does: %s", (_label, name, fits) => {
+      expect(createGardenSchema.safeParse(createValidForm({ name })).success).toBe(fits);
+    });
+
     it("rejects empty description", () => {
       const result = createGardenSchema.safeParse(createValidForm({ description: "" }));
       expect(result.success).toBe(false);

@@ -3,6 +3,11 @@ import {
   type CommitmentComposerValues,
 } from "@green-goods/shared/hooks/commitment-pooling/useCommitmentComposerForm";
 import type { CycleMetadataNameResolution } from "@green-goods/shared/modules/commitment-pooling/cycle-metadata";
+import {
+  COMMITMENT_NOTE_MAX_LENGTH,
+  COMMITMENT_TITLE_MAX_LENGTH,
+  COMMITMENT_UNIT_LABEL_MAX_LENGTH,
+} from "@green-goods/shared/modules/commitment-pooling/metadata";
 import type { CommitmentCycleRecord } from "@green-goods/shared/modules/commitment-pooling/types-core";
 import type { ActionFlowStep } from "@/components/Layout/ActionFlowStepper";
 import { cycleName } from "../poolPresentation";
@@ -59,12 +64,43 @@ type FormatMessage = (
   values?: Record<string, string | number>
 ) => string;
 
+/** A translated message, with the numbers it names taken from their constants. */
+interface SeedErrorMessage {
+  id: string;
+  defaultMessage: string;
+  values?: Record<string, number>;
+}
+
 /**
- * The composer's messages for the rules this console added are message ids, so
- * a steward reads them in their own language rather than the schema's
- * developer English. Anything else the schema says is passed through as it is.
+ * The composer's messages for the text fields and the rules this console added
+ * are message ids, so a steward reads them in their own language rather than
+ * the schema's developer English. Anything else the schema says is passed
+ * through as it is.
  */
 const SEED_ERROR_MESSAGES = {
+  titleRequired: {
+    id: "cockpit.garden.pool.seed.error.titleRequired",
+    defaultMessage: "Give it a name.",
+  },
+  titleTooLong: {
+    id: "cockpit.garden.pool.seed.error.titleTooLong",
+    defaultMessage: "Shorten the title to {max, number} characters or fewer.",
+    values: { max: COMMITMENT_TITLE_MAX_LENGTH },
+  },
+  unitRequired: {
+    id: "cockpit.garden.pool.seed.error.unitRequired",
+    defaultMessage: "Say what you are counting.",
+  },
+  unitTooLong: {
+    id: "cockpit.garden.pool.seed.error.unitTooLong",
+    defaultMessage: "Shorten the unit to {max, number} characters or fewer.",
+    values: { max: COMMITMENT_UNIT_LABEL_MAX_LENGTH },
+  },
+  noteTooLong: {
+    id: "cockpit.garden.pool.seed.error.noteTooLong",
+    defaultMessage: "Shorten the note to {max, number} characters or fewer.",
+    values: { max: COMMITMENT_NOTE_MAX_LENGTH },
+  },
   confirmersTooMany: {
     id: "cockpit.garden.pool.seed.error.confirmersTooMany",
     defaultMessage: "That is more confirmers than one commitment can name.",
@@ -89,18 +125,27 @@ const SEED_ERROR_MESSAGES = {
     id: "cockpit.garden.pool.seed.error.considerationAmount",
     defaultMessage: "Enter an amount above zero.",
   },
-} satisfies Record<
-  keyof typeof COMMITMENT_COMPOSER_ERROR_IDS,
-  { id: string; defaultMessage: string }
->;
+} satisfies Record<keyof typeof COMMITMENT_COMPOSER_ERROR_IDS, SeedErrorMessage>;
 
 /** What the schema said, keyed by the id it said it with. */
-export const SEED_ERROR_DESCRIPTOR_BY_ID = new Map(
+const SEED_ERROR_DESCRIPTOR_BY_ID = new Map<string, SeedErrorMessage>(
   Object.entries(COMMITMENT_COMPOSER_ERROR_IDS).map(([rule, id]) => [
-    id as string,
+    id,
     SEED_ERROR_MESSAGES[rule as keyof typeof SEED_ERROR_MESSAGES],
   ])
 );
+
+/**
+ * What the composer said, in the steward's words: an id is translated, with
+ * any limit it names; the composer's remaining messages are English prose and
+ * are shown as they are.
+ */
+export function seedErrorText(message: string, formatMessage: FormatMessage): string {
+  const descriptor = SEED_ERROR_DESCRIPTOR_BY_ID.get(message);
+  if (!descriptor) return message;
+  const { values, ...messageDescriptor } = descriptor;
+  return formatMessage(messageDescriptor, values);
+}
 
 /**
  * The seeding console's cycle selector: the one season, then the campaigns
