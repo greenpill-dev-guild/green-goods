@@ -4656,6 +4656,8 @@
   "cockpit.settings.userProfile": "Perfil",
   "cockpit.settings.version": "Versão",
   "cockpit.tabRail.itemCount": "{count, plural, one {# item} other {# itens}}",
+  "cockpit.textField.byteCount": "{count, number} de {max, number} bytes usados",
+  "cockpit.textField.byteLimitReached": "Limite de bytes atingido",
   "cockpit.textField.characterCount": "{count, number} de {max, number} caracteres usados",
   "cockpit.textField.characterLimitReached": "Limite de caracteres atingido",
   "cockpit.textField.overByteLimit": "Encurte: letras com acento contam como duas, e alguns símbolos como mais",

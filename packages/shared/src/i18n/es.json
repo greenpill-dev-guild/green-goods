@@ -4656,6 +4656,8 @@
   "cockpit.settings.userProfile": "Perfil",
   "cockpit.settings.version": "Versión",
   "cockpit.tabRail.itemCount": "{count, plural, one {# elemento} other {# elementos}}",
+  "cockpit.textField.byteCount": "{count, number} de {max, number} bytes usados",
+  "cockpit.textField.byteLimitReached": "Límite de bytes alcanzado",
   "cockpit.textField.characterCount": "{count, number} de {max, number} caracteres usados",
   "cockpit.textField.characterLimitReached": "Límite de caracteres alcanzado",
   "cockpit.textField.overByteLimit": "Acórtalo: las letras con tilde cuentan como dos, y algunos símbolos como más",

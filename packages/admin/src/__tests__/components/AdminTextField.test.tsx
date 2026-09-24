@@ -143,6 +143,8 @@ describe("the character counter", () => {
     expect(screen.getByRole("alert")).toHaveTextContent(
       "Shorten this: accented letters count as two, and some symbols as more"
     );
+    // A screen reader hears the unit the count is in.
+    expect(field).toHaveAccessibleDescription(/14 of 12 bytes used$/);
   });
 
   it("shows no counter unless the field opts in", () => {

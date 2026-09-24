@@ -32,7 +32,7 @@ export function overLimitMessage(
 export interface CharacterCounterProps {
   /** The id the control's `aria-describedby` points at: the count in words. */
   id: string;
-  /** Characters in the control, as its `maxLength` counts them. */
+  /** Characters in the control, as its `maxLength` counts them, or UTF-8 bytes. */
   count: number;
   /** The control's `maxLength`. */
   max: number;
@@ -41,6 +41,8 @@ export interface CharacterCounterProps {
   disabled?: boolean;
   /** The steward has edited the control. Until then the limit is not announced. */
   edited?: boolean;
+  /** The count is UTF-8 bytes (`countBytes`), so its words say bytes, not characters. */
+  bytes?: boolean;
 }
 
 /**
@@ -65,6 +67,7 @@ export function CharacterCounter({
   error = false,
   disabled = false,
   edited = false,
+  bytes = false,
 }: CharacterCounterProps) {
   const { formatMessage, formatNumber } = useIntl();
   return (
@@ -80,20 +83,33 @@ export function CharacterCounter({
     >
       <span aria-hidden="true">{`${formatNumber(count)} / ${formatNumber(max)}`}</span>
       <span id={id} className="sr-only">
-        {formatMessage(
-          {
-            id: "cockpit.textField.characterCount",
-            defaultMessage: "{count, number} of {max, number} characters used",
-          },
-          { count, max }
-        )}
+        {bytes
+          ? formatMessage(
+              {
+                id: "cockpit.textField.byteCount",
+                defaultMessage: "{count, number} of {max, number} bytes used",
+              },
+              { count, max }
+            )
+          : formatMessage(
+              {
+                id: "cockpit.textField.characterCount",
+                defaultMessage: "{count, number} of {max, number} characters used",
+              },
+              { count, max }
+            )}
       </span>
       <span role="status" aria-live="polite" aria-atomic="true" className="sr-only">
         {edited && count === max
-          ? formatMessage({
-              id: "cockpit.textField.characterLimitReached",
-              defaultMessage: "Character limit reached",
-            })
+          ? bytes
+            ? formatMessage({
+                id: "cockpit.textField.byteLimitReached",
+                defaultMessage: "Byte limit reached",
+              })
+            : formatMessage({
+                id: "cockpit.textField.characterLimitReached",
+                defaultMessage: "Character limit reached",
+              })
           : null}
       </span>
     </span>

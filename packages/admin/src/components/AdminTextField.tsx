@@ -276,6 +276,7 @@ const AdminTextFieldBase = React.forwardRef<AdminTextFieldControl, AdminTextFiel
               error={hasError}
               disabled={disabled}
               edited={edited}
+              bytes={countBytes}
             />
           ) : null}
         </div>

@@ -4656,6 +4656,8 @@
   "cockpit.settings.userProfile": "Profile",
   "cockpit.settings.version": "Version",
   "cockpit.tabRail.itemCount": "{count, plural, one {# item} other {# items}}",
+  "cockpit.textField.byteCount": "{count, number} of {max, number} bytes used",
+  "cockpit.textField.byteLimitReached": "Byte limit reached",
   "cockpit.textField.characterCount": "{count, number} of {max, number} characters used",
   "cockpit.textField.characterLimitReached": "Character limit reached",
   "cockpit.textField.overByteLimit": "Shorten this: accented letters count as two, and some symbols as more",
