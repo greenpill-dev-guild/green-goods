@@ -1,3 +1,4 @@
+import { CAMPAIGN_DESCRIPTION_MAX_LENGTH } from "@green-goods/shared/utils/cookie-jar-campaign";
 import { RiExternalLinkLine, RiRefreshLine } from "@remixicon/react";
 import { AdminButton } from "@/components/AdminButton";
 import { AdminCard } from "@/components/AdminCard";
@@ -170,6 +171,8 @@ export function CampaignCookieJarPanelView(props: CampaignCookieJarPanelViewProp
                 })}
                 value={syncCampaignDescription}
                 onChange={(event) => setSyncCampaignDescription(event.target.value)}
+                showCount
+                textareaProps={{ maxLength: CAMPAIGN_DESCRIPTION_MAX_LENGTH }}
               />
               <CampaignImageInput
                 value={syncCampaignImage}

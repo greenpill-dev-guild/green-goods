@@ -11,7 +11,13 @@ import type {
 } from "../types/cookie-jar";
 
 export const CAMPAIGN_COOKIE_JAR_METADATA_KIND = "green-goods.campaign-cookie-jar";
-const MAX_CAMPAIGN_DESCRIPTION_LENGTH = 480;
+/**
+ * The longest campaign description, in characters. The admin fields stop there
+ * and count toward it; `buildCampaignCookieJarMetadata` refuses anything longer
+ * rather than cutting it. Readers cut at the same length, which nothing the app
+ * wrote ever passed.
+ */
+export const CAMPAIGN_DESCRIPTION_MAX_LENGTH = 480;
 const MAX_CAMPAIGN_METADATA_URL_LENGTH = 2048;
 const ALLOWED_CAMPAIGN_METADATA_PROTOCOLS = new Set(["http:", "https:", "ipfs:"]);
 export const CAMPAIGN_COOKIE_JAR_PAYOUT_ASSET_IDS = ["gooddollar", "usdc", "dai", "weth"] as const;
@@ -279,10 +285,12 @@ export function buildCampaignCookieJarMetadata(params: {
   chainId: number;
   createdAt?: number;
 }): CampaignCookieJarMetadata {
-  const description = normalizeOptionalMetadataText(
-    params.description,
-    MAX_CAMPAIGN_DESCRIPTION_LENGTH
-  );
+  const description = params.description?.trim() || undefined;
+  if (description && description.length > CAMPAIGN_DESCRIPTION_MAX_LENGTH) {
+    throw new Error(
+      `A campaign's description can be at most ${CAMPAIGN_DESCRIPTION_MAX_LENGTH} characters; this one has ${description.length}`
+    );
+  }
   const image = normalizeCampaignMetadataUrl(params.image);
   const externalUrl = normalizeCampaignMetadataUrl(params.externalUrl);
 
@@ -362,7 +370,7 @@ export function parseCampaignCookieJarMetadata(
     if (!slug || !title) return null;
     const description = normalizeOptionalMetadataText(
       parsed.description,
-      MAX_CAMPAIGN_DESCRIPTION_LENGTH
+      CAMPAIGN_DESCRIPTION_MAX_LENGTH
     );
     const image = normalizeCampaignMetadataUrl(parsed.image);
     const externalUrl =

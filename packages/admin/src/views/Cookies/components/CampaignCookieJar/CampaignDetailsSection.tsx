@@ -1,3 +1,4 @@
+import { CAMPAIGN_DESCRIPTION_MAX_LENGTH } from "@green-goods/shared/utils/cookie-jar-campaign";
 import { AdminTextArea, AdminTextField } from "@/components/AdminTextField";
 import type { CampaignCookieJarCreateFormProps } from "./CampaignCookieJarCreateForm";
 import { CampaignImageInput } from "./CampaignImageInput";
@@ -45,6 +46,8 @@ export function CampaignDetailsSection(props: CampaignCookieJarCreateFormProps) 
           })}
           value={campaignDescription}
           onChange={(event) => setCampaignDescription(event.target.value)}
+          showCount
+          textareaProps={{ maxLength: CAMPAIGN_DESCRIPTION_MAX_LENGTH }}
         />
         <CampaignImageInput
           value={campaignImage}
