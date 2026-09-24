@@ -16,6 +16,7 @@ persona_context: "New gardeners discovering and joining garden communities for t
 source_of_truth:
   - packages/client/src/views/Public/GardenDetail.tsx
   - packages/client/src/views/Profile/GardensList.tsx
+  - packages/client/src/views/Home/GardenFilters/index.tsx
   - packages/client/src/views/Home/Garden/index.tsx
   - packages/shared/src/hooks/garden/useJoinGarden.ts
 keywords:
@@ -53,8 +54,8 @@ Open gardens can be joined directly. Restricted gardens need a steward to add yo
 <StepFlow
   steps={[
     {
-      title: "Open your gardens list",
-      detail: "In the app, open Profile and find the Gardens section. It lists gardens you already belong to and open gardens you can join.",
+      title: "Find the garden",
+      detail: "In the app, Home lists every garden. To see only the gardens you can join right away, tap Filters and choose Open gardens.",
     },
     {
       title: "Pick the right garden",
@@ -62,7 +63,7 @@ Open gardens can be joined directly. Restricted gardens need a steward to add yo
     },
     {
       title: "Join or ask to be added",
-      detail: "For an open garden, tap Join and follow the confirmation. If someone sent you a public garden link, use Join this Garden and sign in when prompted. For a restricted garden, send the steward the address shown in your Profile and wait for them to add you.",
+      detail: "For an open garden, open it, tap Join Garden, and confirm. If someone sent you a public garden link, use Join this Garden and sign in when prompted. For a restricted garden, send the steward the address shown in your Profile and wait for them to add you.",
     },
     {
       title: "Wait for the app to catch up",

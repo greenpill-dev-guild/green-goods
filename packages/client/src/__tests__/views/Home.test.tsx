@@ -50,6 +50,7 @@ vi.mock("@green-goods/shared/hooks/garden/useFilteredGardens", () => ({
     return {
       filteredGardens: gardens,
       myGardensCount: 1,
+      openGardensCount: 0,
       isFilterActive: false,
       activeFilterCount: 0,
     };

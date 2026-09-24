@@ -2160,6 +2160,8 @@
   "app.home.filters.scope.mine": "My gardens ({count})",
   "app.home.filters.scope.mineDisabled": "Sign in to filter by your gardens.",
   "app.home.filters.scope.mineEmpty": "No gardens assigned yet.",
+  "app.home.filters.scope.open": "Open gardens ({count})",
+  "app.home.filters.scope.openDescription": "Anyone can join without an invitation.",
   "app.home.filters.scopeTitle": "Show",
   "app.home.filters.sort.name": "Name (A-Z)",
   "app.home.filters.sort.recent": "Newest first",
