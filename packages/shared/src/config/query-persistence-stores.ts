@@ -17,7 +17,7 @@ import {
   del as idbDel,
   entries as idbEntries,
   get as idbGet,
-  set as idbSet,
+  promisifyRequest,
 } from "idb-keyval";
 import { debugWarn } from "../utils/debug";
 
@@ -35,7 +35,8 @@ interface QueryStore {
   /** Whether this tier survives a page restart. */
   isDurable(): boolean;
   get(key: string): Promise<StoredQuery | undefined>;
-  set(key: string, value: StoredQuery): Promise<void>;
+  /** `isStale` is asked again when a write that waited on the tier finally runs. */
+  set(key: string, value: StoredQuery, isStale?: () => boolean): Promise<void>;
   remove(key: string): Promise<void>;
   entries(): Promise<Array<[string, StoredQuery]>>;
   clear(): Promise<void>;
@@ -43,8 +44,8 @@ interface QueryStore {
 
 /** Every tier behind one store. */
 export interface ReadingCacheStore extends QueryStore {
-  /** Fold the newer answers a lower tier kept back into the preferred tier. Never throws. */
-  reconcile(): Promise<void>;
+  /** Fold newer answers a lower tier kept into the preferred tier. Never throws. */
+  reconcile(isRestorable: (record: StoredQuery) => boolean): Promise<void>;
 }
 
 function createIdbQueryStore(dbName: string, storeName: string): QueryStore | undefined {
@@ -54,7 +55,14 @@ function createIdbQueryStore(dbName: string, storeName: string): QueryStore | un
     return {
       isDurable: () => true,
       get: (key) => idbGet<StoredQuery>(key, store),
-      set: (key, value) => idbSet(key, value, store),
+      // A stalled open runs every write queued on it once it succeeds, which
+      // can be long after the store moved on; a stale one then stays out.
+      set: (key, value, isStale) =>
+        store("readwrite", (objectStore) => {
+          if (isStale?.()) return;
+          objectStore.put(value, key);
+          return promisifyRequest(objectStore.transaction);
+        }),
       remove: (key) => idbDel(key, store),
       entries: async () =>
         (await idbEntries<string, StoredQuery>(store)).filter(
@@ -140,6 +148,17 @@ function withDeadline<T>(operation: Promise<T>, timeoutMs: number): Promise<T> {
 /** When a stored answer was fetched; a record without that time counts as oldest. */
 const answeredAt = (record: StoredQuery | undefined) => Number(record?.state?.dataUpdatedAt) || 0;
 
+/** The newer of a late answer and the active tier's; a tie keeps the active one. */
+const newerAnswer = (late: StoredQuery | undefined, current: StoredQuery | undefined) =>
+  answeredAt(late) > answeredAt(current) ? late : current;
+
+/** Every key either listing holds, each with its newer answer. */
+function newerEntries(late: Array<[string, StoredQuery]>, current: Array<[string, StoredQuery]>) {
+  const merged = new Map(current);
+  for (const [key, record] of late) merged.set(key, newerAnswer(record, merged.get(key)) ?? record);
+  return [...merged];
+}
+
 /**
  * Use the next storage tier when the current one refuses an operation or
  * never answers it.
@@ -152,8 +171,9 @@ const answeredAt = (record: StoredQuery | undefined) => Number(record?.state?.da
  *
  * A deadline cannot cancel what it abandons: once the stall clears, IndexedDB
  * still runs every operation that was waiting on it. The store therefore
- * never assumes the tiers agree. A retried mutation stands down for a newer
- * one of the same key, and `reconcile` sorts out the copies at the next boot.
+ * never assumes the tiers agree. A read answered late by a demoted tier keeps
+ * the newer of its answer and the active tier's, a mutation stands down for a
+ * newer one of the same key, and `reconcile` sorts out the copies at boot.
  *
  * A tier failing is not itself a persistence error: a read that falls back, or
  * a write that web storage keeps, lost nothing. `onLostWrite` hears only about
@@ -167,10 +187,14 @@ function createFailoverQueryStore(
   let active = 0;
   const newestMutation = new Map<string, symbol>();
 
-  const run = async <T>(operation: (tier: QueryStore) => Promise<T>): Promise<T> => {
+  const run = async <T>(
+    operation: (tier: QueryStore) => Promise<T>,
+    keepNewer?: (late: T, current: T) => T
+  ): Promise<T> => {
     const tier = active;
+    let answer: T;
     try {
-      return await withDeadline(operation(tiers[tier]), STORE_OPERATION_TIMEOUT_MS);
+      answer = await withDeadline(operation(tiers[tier]), STORE_OPERATION_TIMEOUT_MS);
     } catch (error) {
       debugWarn("[Persister] Reading cache tier failed; using the next one", { error });
       // Boot starts many reads at once, and a stalled tier fails them together.
@@ -180,75 +204,80 @@ function createFailoverQueryStore(
         if (tier >= tiers.length - 1) throw error;
         active = tier + 1;
       }
-      return run(operation);
+      return run(operation, keepNewer);
     }
+    if (!keepNewer || tier === active) return answer;
+    // Another operation demoted this tier while it answered, and the active
+    // tier may hold answers written since. Dropping the late answer instead
+    // would lose the only copy of a read the active tier never had.
+    return keepNewer(answer, await run(operation, keepNewer));
   };
 
-  /** Record a mutation of `key` as its newest; every older one is then stale. */
+  /**
+   * Record a mutation of `key` as its newest, returning whether it still is.
+   * Entries stay after the mutation settles, so a write IndexedDB runs late
+   * can still tell whether something newer replaced it.
+   */
   const claim = (key: string) => {
     const mine = Symbol(key);
     newestMutation.set(key, mine);
-    return {
-      isNewest: () => newestMutation.get(key) === mine,
-      release: () => {
-        if (newestMutation.get(key) === mine) newestMutation.delete(key);
-      },
-    };
+    return () => newestMutation.get(key) === mine;
   };
 
   /**
    * Run a claimed mutation, resolving with whether it landed. A retry starts
    * only after the failed tier's deadline, by which time a newer mutation of
    * the same key may have landed on the next tier; the older one then stands
-   * down rather than write its answer over the newer one.
+   * down rather than write its answer over the newer one. An attempt the
+   * deadline abandoned may still run later, and is stale by then if a newer
+   * mutation started or a durable tier kept this one.
    */
   const runMutation = (
-    claimed: ReturnType<typeof claim>,
-    operation: (tier: QueryStore) => Promise<void>
+    isNewest: () => boolean,
+    operation: (tier: QueryStore, isStale: () => boolean) => Promise<void>
   ) => {
     let attempt = 0;
+    let keptDurably = false;
+    const isStale = () => keptDurably || !isNewest();
     return run(async (tier) => {
-      if (attempt++ > 0 && !claimed.isNewest()) return false;
-      await operation(tier);
+      if (attempt++ > 0 && !isNewest()) return false;
+      await operation(tier, isStale);
+      if (tier.isDurable()) keptDurably = true;
       return true;
     });
   };
 
-  const mutate = async (key: string, operation: (tier: QueryStore) => Promise<void>) => {
-    const claimed = claim(key);
-    try {
-      return await runMutation(claimed, operation);
-    } finally {
-      claimed.release();
-    }
-  };
-
   /**
-   * A session that left IndexedDB wrote to web storage only, and a write it
-   * abandoned there can land later with an older answer. Boot prefers
-   * IndexedDB again, so without this it would restore the older copies and
-   * never read the newer ones. The newest answer per key wins, a tie keeps
-   * the preferred copy, and a lower copy is dropped only once the preferred
-   * tier holds an answer at least as new.
+   * A session that left IndexedDB wrote to web storage only. Boot prefers
+   * IndexedDB again, so without this it would restore IndexedDB's older
+   * copies and never read the newer ones. The newest answer per key wins and
+   * a tie keeps the preferred copy. A record this build would not restore,
+   * such as one an older build wrote under another schema, replaces nothing.
+   * A lower copy is dropped once the preferred tier holds an answer at least
+   * as new, unless something rewrote it after it was listed.
    */
-  const reconcile = async () => {
+  const reconcile = async (isRestorable: (record: StoredQuery) => boolean) => {
     try {
       for (const lower of tiers.slice(1).filter((tier) => tier.isDurable())) {
         for (const [key, record] of await lower.entries()) {
           if (active !== 0) return;
-          const claimed = claim(key);
-          try {
+          if (isRestorable(record)) {
+            // Only watched while reading: claiming now would make a write
+            // already in flight stand down even if nothing replaces it.
+            const newestBefore = newestMutation.get(key);
             const held = await run((tier) => tier.get(key));
-            if (active === 0 && claimed.isNewest() && answeredAt(record) > answeredAt(held)) {
-              await runMutation(claimed, (tier) => tier.set(key, record));
+            const untouched = newestMutation.get(key) === newestBefore;
+            if (active === 0 && untouched && answeredAt(record) > answeredAt(held)) {
+              await runMutation(claim(key), (tier, isStale) => tier.set(key, record, isStale));
             }
-            // Checked with no await before the removal: once IndexedDB is
-            // demoted, the lower copy is what this session reads and writes.
-            if (active !== 0) return;
-            await lower.remove(key);
-          } finally {
-            claimed.release();
           }
+          // Another tab still on web storage may have rewritten the key since
+          // it was listed; that newer copy waits for the next reconcile.
+          const current = await lower.get(key);
+          // Checked with no await before the removal: once IndexedDB is
+          // demoted, the lower copy is what this session reads and writes.
+          if (active !== 0) return;
+          if (answeredAt(current) <= answeredAt(record)) await lower.remove(key);
         }
       }
     } catch (error) {
@@ -258,11 +287,11 @@ function createFailoverQueryStore(
 
   return {
     isDurable: () => tiers[active].isDurable(),
-    get: (key) => run((tier) => tier.get(key)),
+    get: (key) => run((tier) => tier.get(key), newerAnswer),
     set: async (key, value) => {
       let landed: boolean;
       try {
-        landed = await mutate(key, (tier) => tier.set(key, value));
+        landed = await runMutation(claim(key), (tier, isStale) => tier.set(key, value, isStale));
       } catch (error) {
         onLostWrite(error);
         throw error;
@@ -272,9 +301,9 @@ function createFailoverQueryStore(
       }
     },
     remove: async (key) => {
-      await mutate(key, (tier) => tier.remove(key));
+      await runMutation(claim(key), (tier) => tier.remove(key));
     },
-    entries: () => run((tier) => tier.entries()),
+    entries: () => run((tier) => tier.entries(), newerEntries),
     clear: async () => {
       await run((tier) => tier.clear());
       // A copy left in a lower tier would come back at the next reconcile.
