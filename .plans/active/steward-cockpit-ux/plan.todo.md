@@ -78,13 +78,13 @@ PR1's branch already carries this hub as its first commit.
 
 ### PR4 — Shell, cookies, tone
 
-- [ ] Outlined Hub trio (DEC-A), codify DL-043
-- [ ] Phone app bar and nav (D16); FAB icon (D17), codify DL-050; tab rail cue (D18)
-- [ ] Phone alert order (D36), codify DL-051
-- [ ] Purple Actions tone (D21, DEC-C), codify DL-045, bump `token_version`
-- [ ] Campaign cookie jars home and flow dialog (D19, D20, D22, D31, D34, DEC-D), codify DL-046
-- [ ] Profile name (D8)
-- [ ] Stories, en/es/pt, QA catalog, before/after pairs sent to Afo
+- [x] Outlined Hub trio (DEC-A), codify DL-043
+- [x] Phone app bar and nav (D16); FAB icon (D17), codify DL-050; tab rail cue (D18)
+- [x] Phone alert order (D36), codify DL-051
+- [x] Purple Actions tone (D21, DEC-C), codify DL-045, bump `token_version`
+- [x] Campaign cookie jars home and flow dialog (D19, D20, D22, D31, D34, DEC-D), codify DL-046
+- [x] Profile name (D8)
+- [x] Stories, en/es/pt, QA catalog, before/after pairs sent to Afo
 - [ ] Afo's yes, CI green, bot reviews resolved, merged; sub-lane and Linear child updated
 
 ### PR5 — Copy, Storybook, polish

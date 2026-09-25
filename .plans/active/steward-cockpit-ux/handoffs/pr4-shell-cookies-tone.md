@@ -151,9 +151,33 @@ Label engine and session.
 
 ## TDD Proof
 
-- RED: pending
-- GREEN: pending
-- Proof limit: none recorded
+RED on the code before each change, then GREEN on the same command (2026-09-25; admin and shared
+suites through `bun run --filter @green-goods/<pkg> test -- <file>`, stories through the storybook-ci
+Vitest project):
+
+- Outlined Hub trio (16:31Z): shared `view-actions.test.ts` 2 failed (Submit Work and an
+  evaluator's Create Assessment rendered filled); GREEN 20 passed.
+- Profile name (16:34Z): the `Profile` route stories, now in storybook-ci, 2 failed (heading and
+  tab read Account); GREEN 2 passed.
+- Phone app bar and nav (16:47Z): the `AppBar` phone story failed (chip right edge 328 past the
+  actions at 255) and the `NavigationBar` phone stories failed at 360 in en, es, and pt (Community
+  71, Comunidad 72, Comunidade 80 px against 68 px tabs); GREEN 14 passed.
+- FAB icon (16:51Z): `FabButton.test.tsx` 1 failed (the closed dial drew a plus, not the primary's
+  icon); GREEN 4 passed.
+- Tab rail cue (16:53Z): the `OverflowOnAPhone` rail story failed (no overflow state); GREEN 3
+  passed.
+- Alerts on phones (17:13Z): `OverviewTab.test.tsx` 1 failed (Attention Needed followed the health
+  card at phone width); GREEN 60 passed across the Garden tests.
+- Purple Actions (17:15Z): the `ActionsTone` rail story failed (active tab rgb(208, 37, 51), the
+  error red); GREEN rgb(91, 44, 201).
+- Campaign cookie jars (17:19Z–17:31Z): shared `useProtocolPool.test.ts` 3 failed (no
+  `isProtocolGarden`); `admin-routes.test.ts` 1 and `runtime-navigation.test.tsx` 2 failed (no
+  redirect to Payouts); `CommunityPayoutsTab.test.tsx` 2 failed (no card, no flow); GREEN 3, 8, 16,
+  and 6 passed.
+- Arrival scroll (17:43Z): `PageTransition.test.tsx` 1 failed (a workspace switch reset to the top
+  instead of the `data-route-item` target); GREEN 19 passed.
+- Proof limit: the flow dialog's step-navigation story was written with the flow; its storybook-ci
+  play passes. The QA catalog cases are the manual proof.
 
 ## Validation Receipt
 
