@@ -199,35 +199,21 @@ describe("buildHubHeaderStats", () => {
   it("returns an empty array when no garden is selected", () => {
     const items = buildHubHeaderStats({
       hasSelectedGarden: false,
-      overdueCount: 3,
-      waitingCount: 1,
+      waitingOverWeekCount: 3,
       formatMessage: makeFormatMessage(),
     });
     expect(items).toEqual([]);
   });
 
-  it("emits overdue / waiting aging counts in order (stage depth lives on the tabs)", () => {
+  it("counts work waiting over a week in plain ink (stage depth lives on the tabs)", () => {
     const items = buildHubHeaderStats({
       hasSelectedGarden: true,
-      overdueCount: 3,
-      waitingCount: 1,
+      waitingOverWeekCount: 3,
       formatMessage: makeFormatMessage(),
     });
-    expect(items.map((item) => item.id)).toEqual(["overdue", "waiting"]);
-    expect(items.map((item) => item.value)).toEqual(["3", "1"]);
-  });
-
-  it("calls formatMessage with the canonical i18n ids", () => {
-    const formatMessage = makeFormatMessage();
-    buildHubHeaderStats({
-      hasSelectedGarden: true,
-      overdueCount: 0,
-      waitingCount: 0,
-      formatMessage,
-    });
-    expect(formatMessage.mock.calls.map((call) => call[0].id)).toEqual([
-      "cockpit.hub.stats.overdue",
-      "cockpit.hub.stats.waiting",
+    // No valueTone: work age never takes the critical pair.
+    expect(items).toEqual([
+      { id: "waiting-over-week", value: "3", label: "cockpit.hub.stats.waitingOverWeek" },
     ]);
   });
 });

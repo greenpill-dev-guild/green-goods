@@ -414,6 +414,11 @@ export interface WorkCard {
 /** On-chain work record with approval status and display state */
 export interface Work extends WorkCard {
   status: WorkDisplayStatus;
+  /**
+   * When the decision was indexed (seconds). Unset while undecided, and for a
+   * decision only this device knows about yet.
+   */
+  reviewedAt?: number;
 }
 
 /**

@@ -198,17 +198,32 @@ export function resolveGardenWorkRows({
 
   const unknownIds = new Set<string>();
   const rows = collection.map((work): OverlayWork => {
-    const indexedStatus = indexedStatusOf(remoteById.get(work.id));
+    const remoteRow = remoteById.get(work.id);
+    const indexedStatus = indexedStatusOf(remoteRow);
     const cached = known.get(work.id);
     if (indexedStatus === null && !cached) unknownIds.add(work.id);
     const reference = cached ?? (work as OverlayWork);
     return {
       ...work,
       status: resolveWorkStatus(indexedStatus, reference, now),
+      ...reviewTimeOf(remoteRow, reference),
       ...carryOverlayMarkers(reference, indexedStatus, now),
     };
   });
   return { rows, unknownIds };
+}
+
+/**
+ * When the decision a row shows was indexed: the indexed approval's time, else
+ * the time the row already carried. A decision made on this device has none
+ * until the indexer reports it.
+ */
+function reviewTimeOf(
+  row: EASWorkListRow | undefined,
+  reference: OverlayWork
+): Pick<OverlayWork, "reviewedAt"> {
+  const reviewedAt = row?.approval ? row.approval.createdAt : reference.reviewedAt;
+  return typeof reviewedAt === "number" && reviewedAt > 0 ? { reviewedAt } : {};
 }
 
 /**

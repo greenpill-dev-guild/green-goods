@@ -82,7 +82,7 @@ const meta: Meta<typeof OverviewTab> = {
     gardenHealthLabel: "Healthy",
     approvedInRangeCount: 14,
     impactVelocityDelta: 12,
-    medianReviewAgeHours: 18,
+    medianReviewLatencyMs: 2.4 * 24 * 60 * 60 * 1000,
     activityFilter: "all" as ActivityFilter,
     setActivityFilter: fn(),
     filteredActivityEvents: MOCK_ACTIVITY,

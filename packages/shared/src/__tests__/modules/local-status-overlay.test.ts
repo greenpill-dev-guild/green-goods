@@ -169,7 +169,10 @@ describe("local-status-overlay", () => {
   });
 
   describe("resolveGardenWorkRows", () => {
-    function row(id: string, approval?: { approved: boolean } | null): EASWorkListRow {
+    function row(
+      id: string,
+      approval?: { approved: boolean; createdAt?: number } | null
+    ): EASWorkListRow {
       const base = {
         id,
         title: id,
@@ -184,7 +187,7 @@ describe("local-status-overlay", () => {
       if (approval === undefined) return base;
       return {
         ...base,
-        approval: approval === null ? null : ({ approved: approval.approved } as EASWorkApproval),
+        approval: approval === null ? null : (approval as EASWorkApproval),
       };
     }
 
@@ -246,6 +249,26 @@ describe("local-status-overlay", () => {
         ["missing", "approved"],
         ["returned", "pending"],
       ]);
+    });
+
+    it("carries an indexed decision's time as its review time, never one made only here", () => {
+      const { rows } = resolveGardenWorkRows({
+        remote: [
+          row("indexed", { approved: false, createdAt: 1_700_000_500 }),
+          row("undecided", null),
+          row("decided-here", null),
+        ],
+        saved: [overlay({ id: "left-out", status: "approved", reviewedAt: 1_699_999_000 })],
+        overlay: [overlay({ id: "decided-here", status: "approved", _txHash: "0xabc" })],
+        now: NOW,
+      });
+      const reviewedAt = Object.fromEntries(rows.map((work) => [work.id, work.reviewedAt]));
+      expect(reviewedAt).toEqual({
+        indexed: 1_700_000_500,
+        undecided: undefined,
+        "decided-here": undefined,
+        "left-out": 1_699_999_000,
+      });
     });
 
     it("shows only saved rows before the first read, and skips work that exists only on this device", () => {

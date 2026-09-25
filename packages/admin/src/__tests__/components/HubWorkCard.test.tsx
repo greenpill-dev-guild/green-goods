@@ -117,9 +117,24 @@ describe("HubWorkCard", () => {
     expect(container.querySelectorAll("img")).toHaveLength(0);
   });
 
-  it("renders the work state without duplicating the stage action label", () => {
-    renderCard({ statusLabel: "Pending" });
+  it("shows long-waiting work as a neutral Pending with its age, never an alarm", () => {
+    renderCard({
+      work: {
+        id: "0xwaiting",
+        title: "Planted 50 native saplings",
+        actionUID: 1,
+        gardenerAddress: "0x1234567890abcdef1234567890abcdef12345678" as `0x${string}`,
+        gardenAddress: "0xabcdefabcdefabcdefabcdefabcdefabcdefabcd" as `0x${string}`,
+        feedback: "",
+        metadata: "{}",
+        media: [],
+        createdAt: Date.now() / 1000 - 200 * 24 * 60 * 60,
+        status: "pending",
+      },
+    });
     expect(screen.getByText("Pending")).toBeInTheDocument();
+    expect(screen.getByText(/^submitted 6 months ago$/)).toBeInTheDocument();
+    expect(screen.queryByText("Overdue")).not.toBeInTheDocument();
     expect(screen.queryByText("Review")).not.toBeInTheDocument();
   });
 

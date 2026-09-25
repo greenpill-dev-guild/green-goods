@@ -132,9 +132,13 @@ export function HubWorkCard({
   // `numeric: "always"` keeps "1 day ago" rather than "yesterday" — the queue
   // reads as a uniform age column, not prose.
   const submittedAgeParts = getRelativeTimeParts(work.createdAt);
-  const submittedAgoText = submittedAgeParts
+  const submittedAge = submittedAgeParts
     ? formatRelativeTime(submittedAgeParts.value, submittedAgeParts.unit, { numeric: "always" })
     : formatMessage({ id: "cockpit.hub.workCard.justNow", defaultMessage: "just now" });
+  const submittedAgoText = formatMessage(
+    { id: "cockpit.hub.workCard.submittedAgo", defaultMessage: "submitted {age}" },
+    { age: submittedAge }
+  );
   const submittedAtMs = normalizeTimestamp(work.createdAt);
   const submittedAtIso = Number.isNaN(submittedAtMs)
     ? undefined

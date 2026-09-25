@@ -27,6 +27,25 @@ import {
 } from "./gardenDetail.constants";
 import { KarmaIntegrationPanel } from "./KarmaIntegrationPanel";
 
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+/** Review time reads in days, then weeks past two weeks (DL-044). */
+function formatReviewTime(
+  latencyMs: number | null,
+  formatMessage: ReturnType<typeof useIntl>["formatMessage"]
+): string {
+  if (latencyMs === null) return formatMessage({ id: "app.garden.detail.metric.notAvailable" });
+  const days = latencyMs / DAY_MS;
+  if (days < 1) return formatMessage({ id: "app.garden.detail.metric.underADay" });
+  if (days <= 14) {
+    return formatMessage({ id: "app.garden.detail.metric.daysValue" }, { days: Math.round(days) });
+  }
+  return formatMessage(
+    { id: "app.garden.detail.metric.weeksValue" },
+    { weeks: Math.round(days / 7) }
+  );
+}
+
 export interface OverviewTabProps {
   mode: "health" | "activity";
   section: string | undefined;
@@ -52,7 +71,8 @@ export interface OverviewTabProps {
   gardenHealthLabel: string;
   approvedInRangeCount: number;
   impactVelocityDelta: number;
-  medianReviewAgeHours: number;
+  /** Median time from submission to decision; null before any decision has a known time. */
+  medianReviewLatencyMs: number | null;
   activityFilter: ActivityFilter;
   setActivityFilter: (filter: ActivityFilter) => void;
   filteredActivityEvents: GardenActivityEvent[];
@@ -76,7 +96,7 @@ export function OverviewTab({
   gardenHealthLabel,
   approvedInRangeCount,
   impactVelocityDelta,
-  medianReviewAgeHours,
+  medianReviewLatencyMs,
   activityFilter,
   setActivityFilter,
   filteredActivityEvents,
@@ -212,12 +232,7 @@ export function OverviewTab({
                       {formatMessage({ id: "app.garden.detail.metric.executionThroughput" })}
                     </p>
                     <p className="mt-1 font-heading text-lg font-semibold text-text-strong">
-                      {medianReviewAgeHours > 0
-                        ? formatMessage(
-                            { id: "app.garden.detail.metric.hoursValue" },
-                            { hours: Math.round(medianReviewAgeHours) }
-                          )
-                        : formatMessage({ id: "app.garden.detail.metric.notAvailable" })}
+                      {formatReviewTime(medianReviewLatencyMs, formatMessage)}
                     </p>
                   </AdminCard>
                 </div>
