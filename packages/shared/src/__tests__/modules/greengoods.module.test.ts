@@ -51,10 +51,10 @@ import {
   getActions,
   getGardeners,
   getGardens,
-  parseIndexerCapital,
   parseIndexerDomain,
 } from "../../modules/data/greengoods";
 import type { GraphQLReader } from "../../modules/data/graphql-client";
+import { parseIndexerCapital } from "../../modules/data/indexer-capitals";
 import { Capital, Domain } from "../../types/domain";
 import { instructionTemplates } from "../../utils/action/templates";
 

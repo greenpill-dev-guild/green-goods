@@ -6,7 +6,6 @@ import {
   type ActionInstructionConfig,
   type ActionTranslationMap,
   type Address,
-  Capital,
   Domain,
   type Garden,
   type GardenerCard,
@@ -20,6 +19,7 @@ import { defaultTemplate, instructionTemplates } from "../../utils/action/templa
 import { logger } from "../app/logger";
 import { greenGoodsGraphQL } from "./graphql";
 import { greenGoodsIndexer, type GraphQLReader } from "./graphql-client";
+import { parseIndexerCapital } from "./indexer-capitals";
 import { getFileByHash, resolveIPFSUrl } from "./ipfs/resolve";
 
 const ACTION_INSTRUCTIONS_TIMEOUT_MS = 5_000;
@@ -34,18 +34,6 @@ export function parseIndexerDomain(domain: string | undefined | null): Domain | 
     WASTE: Domain.WASTE,
   };
   return map[domain] ?? null;
-}
-
-/**
- * Maps an indexer capital to a known capital. The hosted indexer returns enum
- * names ("MATERIAL"); fixtures and older deployments return numbers. Anything
- * else, including the indexer's UNKNOWN sentinel, is null.
- */
-export function parseIndexerCapital(value: unknown): Capital | null {
-  const index = typeof value === "string" && /^\d+$/.test(value) ? Number(value) : value;
-  // A numeric enum maps each name to its number and each number back to its name.
-  const capital = typeof index === "string" ? Capital[index as keyof typeof Capital] : index;
-  return typeof capital === "number" && Capital[capital] !== undefined ? capital : null;
 }
 
 function cloneInstructionConfig(config: ActionInstructionConfig): ActionInstructionConfig {
