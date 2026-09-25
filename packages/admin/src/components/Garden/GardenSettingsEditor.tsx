@@ -28,6 +28,7 @@ import { AdminSelectableCard } from "@/components/AdminSelectableCard";
 import { AdminSettingRow } from "@/components/AdminSettingRow";
 import { AdminTextArea, AdminTextField } from "@/components/AdminTextField";
 import {
+  adoptRefreshedGarden,
   DOMAIN_OPTIONS,
   dirtyFieldsOf,
   draftFromGarden,
@@ -155,7 +156,8 @@ export const GardenSettingsEditor = forwardRef<
   }, [draft.bannerFile]);
 
   // Adopt refreshed garden values (post-save invalidation, garden switch)
-  // whenever the steward has no pending edits — never clobber a dirty draft.
+  // whenever the steward has no pending edits — never clobber a dirty draft,
+  // and never a landed value the refresh has yet to report.
   const gardenSnapshot = JSON.stringify([
     garden.name,
     garden.description,
@@ -176,12 +178,12 @@ export const GardenSettingsEditor = forwardRef<
     lastSnapshotRef.current = gardenSnapshot;
     setLanded((current) => withoutReportedValues(current, garden));
     if (!isDirty && !isSaving) {
-      setDraft(draftFromGarden(garden));
+      setDraft((current) => adoptRefreshedGarden(current, garden, landed));
     }
     // The snapshot-equality guard above is the real trigger; isDirty/isSaving/
-    // garden are listed so the guard always reads current values (no stale
-    // closure) and the effect no longer needs an exhaustive-deps suppression.
-  }, [gardenSnapshot, isDirty, isSaving, garden]);
+    // garden/landed are listed so the guard always reads current values (no
+    // stale closure) and the effect needs no exhaustive-deps suppression.
+  }, [gardenSnapshot, isDirty, isSaving, garden, landed]);
 
   const canEditProfile = canManage;
   const canEditName = isOwner;

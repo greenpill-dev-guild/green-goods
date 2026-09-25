@@ -133,6 +133,43 @@ export function withoutReportedValues(
   return pending.length === entries.length ? landed : Object.fromEntries(pending);
 }
 
+/**
+ * The refreshed garden as a clean draft, except where a value landed this
+ * session and the garden has yet to report it: there the current draft,
+ * which holds that value, stays.
+ */
+export function adoptRefreshedGarden(
+  current: SettingsDraft,
+  garden: GardenSettingsValues,
+  landed: LandedValues
+): SettingsDraft {
+  const next = draftFromGarden(garden);
+  for (const field of Object.keys(withoutReportedValues(landed, garden))) {
+    switch (field as keyof LandedValues) {
+      case "name":
+        next.name = current.name;
+        break;
+      case "description":
+        next.description = current.description;
+        break;
+      case "location":
+        next.location = current.location;
+        break;
+      case "openJoining":
+        next.openJoining = current.openJoining;
+        break;
+      case "maxGardeners":
+        next.limitGardeners = current.limitGardeners;
+        next.maxGardeners = current.maxGardeners;
+        break;
+      case "domains":
+        next.domains = current.domains;
+        break;
+    }
+  }
+  return next;
+}
+
 /** What a field writes, as text: the form `LandedValues` remembers it in. */
 export function fieldValueKey(
   draft: SettingsDraft,

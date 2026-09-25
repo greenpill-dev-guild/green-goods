@@ -296,6 +296,30 @@ describe("GardenSettingsEditor explicit save", () => {
     expect(mockUpdateName).toHaveBeenLastCalledWith({ gardenAddress, value: GARDEN.name });
   });
 
+  it("keeps a landed value through a refresh that has yet to report it", async () => {
+    const user = userEvent.setup();
+    const view = renderEditor();
+
+    const nameInput = screen.getByLabelText(/Name/);
+    await user.clear(nameInput);
+    await user.type(nameInput, "Renamed Garden");
+    const locationInput = screen.getByLabelText("Location");
+    await user.clear(locationInput);
+    await user.type(locationInput, "Lisbon, Portugal");
+    await user.click(screen.getByRole("button", { name: "Save Changes" }));
+    expect(await screen.findByText("All changes saved")).toBeInTheDocument();
+
+    // The refreshed garden reports the new location but not the rename yet.
+    view.rerender(
+      <EditorHarness overrides={{ garden: { ...GARDEN, location: "Lisbon, Portugal" } }} />
+    );
+
+    expect(screen.getByLabelText(/Name/, { selector: "input" })).toHaveValue("Renamed Garden");
+    expect(screen.getByLabelText("Location")).toHaveValue("Lisbon, Portugal");
+    // Nothing reads as unsaved, so nothing would be sent again or reverted.
+    expect(screen.getByRole("button", { name: "Save Changes" })).toBeDisabled();
+  });
+
   it("shows a change a Safe must still execute as sent, not confirmed, and does not send it again", async () => {
     const user = userEvent.setup();
     // Safe-style wallets return a proposal identifier, not a transaction hash.
