@@ -17,6 +17,7 @@ import { useQuery } from "@tanstack/react-query";
 import { readContract } from "@wagmi/core";
 
 import { getWagmiConfig } from "../../config/appkit";
+import { getNetworkConfig } from "../../config/blockchain";
 import { STALE_TIME_MEDIUM } from "../../config/query-keys/constants";
 import { commitmentPoolingKeys } from "../../config/query-keys/commitment-pooling";
 import type { Address } from "../../types/domain";
@@ -76,18 +77,23 @@ export function useProtocolPool(input: { chainId: number }) {
 
 /**
  * Whether a garden is the Green Goods Community Garden, whose pool is the
- * protocol pool. The chain names the root garden and the index names the
- * pool's type; either is enough, so a failed chain read does not hide the
- * protocol's surfaces from the one garden that owns them.
+ * protocol pool. The deployment configures the root garden, the chain names it
+ * through the protocol pool, and the index names the pool's type; any one is
+ * enough, so a network without pooling or a failed chain read does not hide
+ * the protocol's surfaces from the one garden that owns them.
  */
 export function isProtocolGarden(input: {
   gardenId: string | null | undefined;
   rootGarden: Address | null;
   ownPoolType: string | null | undefined;
+  configuredRootGarden?: string | null;
 }): boolean {
   if (!input.gardenId) return false;
+  const gardenId = input.gardenId.toLowerCase();
   return (
-    (input.rootGarden !== null && input.rootGarden === input.gardenId.toLowerCase()) ||
+    (input.rootGarden !== null && input.rootGarden.toLowerCase() === gardenId) ||
+    (Boolean(input.configuredRootGarden) &&
+      input.configuredRootGarden?.toLowerCase() === gardenId) ||
     input.ownPoolType === "PROTOCOL"
   );
 }
@@ -106,6 +112,7 @@ export function useIsProtocolGarden(input: { chainId: number; gardenId: Address 
       gardenId: input.gardenId,
       rootGarden: protocolPool.rootGarden,
       ownPoolType: ownPool?.poolType,
+      configuredRootGarden: getNetworkConfig(input.chainId).rootGarden?.address ?? null,
     }),
     protocolPool,
     ownPool,

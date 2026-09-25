@@ -20,6 +20,19 @@ describe("isProtocolGarden", () => {
     );
   });
 
+  it("is the root garden the deployment configures, where pooling is not deployed", () => {
+    // Sepolia configures a root garden and cookie jars but no pooling module, so
+    // neither the chain read nor the index can name the protocol garden there.
+    expect(
+      isProtocolGarden({
+        gardenId: ROOT,
+        rootGarden: null,
+        ownPoolType: null,
+        configuredRootGarden: "0xF401F34378384713222D1D21F63359CC4E8A858A",
+      })
+    ).toBe(true);
+  });
+
   it("is no other garden, and no garden at all before one is selected", () => {
     expect(
       isProtocolGarden({
