@@ -212,6 +212,22 @@
       "status": "in_progress",
       "branch": "fix/garden-community-clarity",
       "note": "PR3 (pr3_garden_community) implemented on PR2's branch; opens once PR2 merges"
+    },
+    {
+      "timestamp": "2026-09-25T13:23:46.000Z",
+      "actor": "claude",
+      "lane": "ui",
+      "status": "completed",
+      "branch": "fix/hub-review-and-queue-health",
+      "note": "PR2 (pr2_hub_review_queue) merged into develop as #905; PRD-983 Done"
+    },
+    {
+      "timestamp": "2026-09-25T13:26:00.000Z",
+      "actor": "claude",
+      "lane": "ui",
+      "status": "in_progress",
+      "branch": "fix/garden-community-clarity",
+      "note": "PR3 (pr3_garden_community) rebased onto develop after PR2 merged"
     }
   ],
   "execution_sub_lanes": {
@@ -232,7 +248,7 @@
     "pr2_hub_review_queue": {
       "machine_lane": "ui",
       "owner": "claude",
-      "status": "in_progress",
+      "status": "completed",
       "branch": "fix/hub-review-and-queue-health",
       "depends_on": ["pr1_actions_crash"],
       "handoff": "handoffs/pr2-hub-review-queue.md",
