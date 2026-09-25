@@ -31,6 +31,16 @@ describe("ConfidenceSelector", () => {
     expect(onChange).toHaveBeenCalledWith(Confidence.MEDIUM);
   });
 
+  it("moves on from the focused chip when an arrow is pressed with nothing chosen", () => {
+    const { onChange } = renderSelector({ required: true });
+    const low = screen.getByRole("radio", { name: "Low confidence" });
+    low.focus();
+
+    fireEvent.keyDown(low, { key: "ArrowRight" });
+
+    expect(onChange).toHaveBeenCalledWith(Confidence.MEDIUM);
+  });
+
   it("shows the chosen level's hint once a level is chosen", () => {
     renderSelector({ required: true, value: Confidence.MEDIUM });
 

@@ -74,7 +74,10 @@ export function ConfidenceSelector({
     (e: KeyboardEvent<HTMLDivElement>) => {
       if (disabled) return;
 
-      const currentIndex = CONFIDENCE_OPTIONS.findIndex((o) => o.value === value);
+      const selectedIndex = CONFIDENCE_OPTIONS.findIndex((o) => o.value === value);
+      // With nothing chosen, focus sits on the first chip (the tab stop), so
+      // the first arrow moves on from there instead of choosing it.
+      const currentIndex = selectedIndex === -1 ? 0 : selectedIndex;
       let nextIndex = currentIndex;
 
       if (e.key === "ArrowRight" || e.key === "ArrowDown") {
