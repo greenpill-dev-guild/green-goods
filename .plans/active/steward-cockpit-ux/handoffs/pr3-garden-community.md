@@ -179,6 +179,9 @@ Garden; nothing was saved or sent):
   changes…"; Stopped reads "Stopped at Description. 1 of 3 saved. Your other edits are still
   here."; StewardNotOwner renders the real dialog with the locked name and its helper. A live
   save with a wallet was not run, since it writes to the chain.
+- The third review round's FAB changes (a disabled sole action stays inert and says why; a dial
+  with every action disabled still focuses its first action) were not rechecked in the browser;
+  the FAB tests in both packages and the storybook-ci FAB stories cover them.
 
 ## TDD Proof
 
@@ -194,21 +197,21 @@ Garden; nothing was saved or sent):
   - Fund Cookie Jar (08:44Z): `view-actions.test.ts` (shared) failed (no disabled state or
     reason) and `AdminViewActions.test.tsx` failed (no title or description).
 - GREEN: the same files pass after each change; see the receipt for the final run.
-- After review (RED on the code before each fix): first round, `gardenSettingsSave` 2 and `GardenSettingsEditor` 1 failed (a Safe proposal read as Confirmed with an explorer link), `useGardenCookieJars` 4 failed (no signal that the jar list was read), and `vaults` 2 failed (an empty endowment read a bare "0"). Second round: `AdminViewActions` 1, `FabButton` 1, and shared `NavigationBar` 2 failed (a disabled action's reason was unreachable by keyboard and hover, and the shared dial did not show it), `speedDialNavigation` failed (no shared rule yet), and `vaults` 1 failed (USDC read as 18 decimals).
+- After review (RED on the code before each fix): first round, `gardenSettingsSave` 2 and `GardenSettingsEditor` 1 failed (a Safe proposal read as Confirmed with an explorer link), `useGardenCookieJars` 4 failed (no signal that the jar list was read), and `vaults` 2 failed (an empty endowment read a bare "0"). Second round: `AdminViewActions` 1, `FabButton` 1, and shared `NavigationBar` 2 failed (a disabled action's reason was unreachable by keyboard and hover, and the shared dial did not show it), `speedDialNavigation` failed (no shared rule yet), and `vaults` 1 failed (USDC read as 18 decimals). Third round: `FabButton` 2 and shared `NavigationBar` 2 failed (a disabled sole action still fired and gave no reason, and a dial with every action disabled left focus on the FAB).
 - Proof limit: the table tests for `summarizeNetDepositsByAsset`, `formatAssetAmounts`, and
   `buildGardenSettingsSaveRows`, and the Impact and Karma tests, were written with their code;
   the Karma test moved with its copy.
 
 ## Validation Receipt
 
-- Tested implementation commit SHA: `d9fb2906a997f1ebf0655e2ab26159c9d95af68e` (after the second review round, on `develop` with PR2 merged; the receipts on `59ca04ac0` and `2d1db069b` are superseded)
-- Run at (UTC): push gate `2026-09-25T14:49:09Z` to `2026-09-25T14:52:16Z`
-- Exact command(s): `PATH="$PWD/node_modules/.bin:$PATH" node scripts/dev/ci-local.js --intent push --reuse-passing-receipts --test-path admin:src/components/Garden/GardenSettingsEditor.test.tsx`
-- Result: push gate exit 0 on the critical plan, 26 automated checks passed (shared 5812, client 1399, admin 1019, and agent 316 tests passing, with docs-authority, source-structure, design-guardrails, agent-guidance, qa-id-ledger, supply-chain, story-quality, and agent-tools-test; the storybook-ci story suite passed locally, 93 files and 328 tests);
+- Tested implementation commit SHA: `2b344c8ebb14c596e9edb12960fdb668ac8fee7d` (after the third review round, on `develop` with PR2 merged; the receipts on `59ca04ac0`, `2d1db069b`, and `d9fb2906a` are superseded)
+- Run at (UTC): push gate `2026-09-25T16:02:22Z` to `2026-09-25T16:05:40Z`
+- Exact command(s): `PATH="$PWD/node_modules/.bin:$PATH" node scripts/dev/ci-local.js --intent push --reuse-passing-receipts --test-path admin:src/components/Shell/FabButton.test.tsx --test-path shared:src/__tests__/components/NavigationBar.test.tsx --test-path shared:src/__tests__/components/speedDialNavigation.test.ts`
+- Result: push gate exit 0 on the critical plan, 26 automated checks passed (shared 5814, client 1399, admin 1021, and agent 316 tests passing, with docs-authority, source-structure, design-guardrails, agent-guidance, qa-id-ledger, supply-chain, story-quality, and agent-tools-test; the storybook-ci story suite passed locally on the same commit, 93 files and 328 tests);
   browser-proof stays the manual proof recorded under Rendered Proof
 - Validated paths: `packages/shared/src`, `packages/admin/src`, `packages/qa/locales`, `scripts/data`, `scripts/quality`, `docs/docs`, `.claude/skills`, `DESIGN.md`
 - Worktree identity command and result: `git status --porcelain=v1 --untracked-files=all -- packages/shared/src packages/admin/src packages/qa/locales scripts/data scripts/quality docs/docs .claude/skills DESIGN.md` → empty
-- Evidence-only diff command and result (if applicable): `git diff --exit-code d9fb2906a997f1ebf0655e2ab26159c9d95af68e..HEAD -- packages/shared/src packages/admin/src packages/qa/locales scripts/data scripts/quality docs/docs .claude/skills DESIGN.md` → empty (exit 0); the receipt commit changes only `.plans/`
+- Evidence-only diff command and result (if applicable): `git diff --exit-code 2b344c8ebb14c596e9edb12960fdb668ac8fee7d..HEAD -- packages/shared/src packages/admin/src packages/qa/locales scripts/data scripts/quality docs/docs .claude/skills DESIGN.md` → empty (exit 0); the receipt commit changes only `.plans/`
 - Evidence-only worktree-status command and result (if applicable): `git status --porcelain=v1 --untracked-files=all -- packages/shared/src packages/admin/src packages/qa/locales scripts/data scripts/quality docs/docs .claude/skills DESIGN.md` → empty
 
 ## Risks / Blockers
