@@ -113,7 +113,6 @@ const NON_VISUAL_ADMIN_VIEWS = new Set<string>([
   // params, and workflow components. They are reviewed through their
   // composed children — we do not render a whole route inside a single
   // story.
-  "Actions/ActionDetail.tsx",
   "Actions/CreateAction.tsx",
   "Actions/EditAction.tsx",
   "Actions/GreenWillPanel.tsx",
