@@ -1,6 +1,7 @@
 import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
 import type { Address } from "../../types/domain";
 import { formatAddress } from "../app/text";
+import { getCampaignCookieJarPayoutAssets } from "../cookie-jar-campaign";
 // Re-export for backward compatibility (canonical source is address.ts)
 export { ZERO_ADDRESS } from "./address-constants";
 export { isZeroBytes32 } from "./bytes";
@@ -53,9 +54,20 @@ export function getVaultAssetSymbol(
   chainId: number = DEFAULT_CHAIN_ID
 ): string {
   const normalized = assetAddress.toLowerCase();
-  const symbol = ASSET_SYMBOLS_BY_CHAIN[chainId]?.[normalized];
+  const symbol =
+    ASSET_SYMBOLS_BY_CHAIN[chainId]?.[normalized] ?? registeredToken(normalized, chainId)?.symbol;
   if (symbol) return symbol;
   return formatAddress(assetAddress, { variant: "card" });
+}
+
+/**
+ * A vault asset outside the tables above, such as USDC with its six decimals,
+ * as the stablecoin registry lists it: guessing 18 would misread its amounts.
+ */
+function registeredToken(normalizedAddress: string, chainId: number) {
+  return getCampaignCookieJarPayoutAssets(chainId).find(
+    (asset) => asset.address?.toLowerCase() === normalizedAddress
+  );
 }
 
 export function getVaultAssetDecimals(
@@ -63,7 +75,11 @@ export function getVaultAssetDecimals(
   chainId: number = DEFAULT_CHAIN_ID
 ): number {
   const normalized = assetAddress.toLowerCase();
-  return ASSET_DECIMALS_BY_CHAIN[chainId]?.[normalized] ?? 18;
+  return (
+    ASSET_DECIMALS_BY_CHAIN[chainId]?.[normalized] ??
+    registeredToken(normalized, chainId)?.decimals ??
+    18
+  );
 }
 
 export function hasVaultAssetDecimals(
@@ -71,7 +87,10 @@ export function hasVaultAssetDecimals(
   chainId: number = DEFAULT_CHAIN_ID
 ): boolean {
   const normalized = assetAddress.toLowerCase();
-  return typeof ASSET_DECIMALS_BY_CHAIN[chainId]?.[normalized] === "number";
+  const decimals =
+    ASSET_DECIMALS_BY_CHAIN[chainId]?.[normalized] ??
+    registeredToken(normalized, chainId)?.decimals;
+  return typeof decimals === "number";
 }
 
 /**

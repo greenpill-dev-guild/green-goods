@@ -47,6 +47,15 @@ describe("summarizeNetDepositsByAsset", () => {
   });
 });
 
+describe("vault asset metadata", () => {
+  it("reads a stablecoin's symbol and decimals from the token registry", () => {
+    // USDC keeps 6 decimals; reading it as 18 would shrink a balance 10^12 times.
+    const usdc = "0xaf88d065e77c8cC2239327C5EDb3A432268e5831";
+    expect(getVaultAssetDecimals(usdc, 42161)).toBe(6);
+    expect(getVaultAssetSymbol(usdc, 42161)).toBe("USDC");
+  });
+});
+
 describe("formatAssetAmounts", () => {
   const amount = (symbol: string, value: bigint) => ({
     asset: ARB_WETH.toLowerCase() as `0x${string}`,
