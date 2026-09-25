@@ -200,14 +200,15 @@ Garden; nothing was saved or sent):
 
 ## Validation Receipt
 
-- Tested implementation commit SHA: pending
-- Run at (UTC): pending
-- Exact command(s): pending
-- Result: pending
-- Validated paths: pending
-- Worktree identity command and result: pending
-- Evidence-only diff command and result (if applicable): not applicable
-- Evidence-only worktree-status command and result (if applicable): not applicable
+- Tested implementation commit SHA: `59ca04ac0668d059a7ae1e90d8ada505fb02d591` (the branch rebased onto `develop` after PR2 merged; the gate reused its package receipts from `3a49e1ed1`, the same tree on PR2's last tip)
+- Run at (UTC): push gate `2026-09-25T13:25:12Z` to `2026-09-25T13:26:06Z`
+- Exact command(s): `PATH="$PWD/node_modules/.bin:$PATH" node scripts/dev/ci-local.js --intent push --reuse-passing-receipts --test-path admin:src/components/Garden/GardenSettingsEditor.test.tsx`
+- Result: push gate exit 0 on the critical plan, 26 automated checks passed (shared 5801, client 1399, admin 1015, and agent 316 tests, whose receipts this run reused from the `3a49e1ed1` run on an identical tree, with docs-authority, source-structure, design-guardrails, agent-guidance, qa-id-ledger, supply-chain, story-quality, and agent-tools-test run fresh; the storybook-ci story suite passed locally on that tree, 93 files and 328 tests);
+  browser-proof stays the manual proof recorded under Rendered Proof
+- Validated paths: `packages/shared/src`, `packages/admin/src`, `packages/qa/locales`, `scripts/data`, `scripts/quality`, `docs/docs`, `.claude/skills`, `DESIGN.md`
+- Worktree identity command and result: `git status --porcelain=v1 --untracked-files=all -- packages/shared/src packages/admin/src packages/qa/locales scripts/data scripts/quality docs/docs .claude/skills DESIGN.md` → empty
+- Evidence-only diff command and result (if applicable): `git diff --exit-code 59ca04ac0668d059a7ae1e90d8ada505fb02d591..HEAD -- packages/shared/src packages/admin/src packages/qa/locales scripts/data scripts/quality docs/docs .claude/skills DESIGN.md` → empty (exit 0); the receipt commit changes only `.plans/`
+- Evidence-only worktree-status command and result (if applicable): `git status --porcelain=v1 --untracked-files=all -- packages/shared/src packages/admin/src packages/qa/locales scripts/data scripts/quality docs/docs .claude/skills DESIGN.md` → empty
 
 ## Risks / Blockers
 
