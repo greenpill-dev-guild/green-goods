@@ -19,7 +19,7 @@ describe("useGardenDerivedState", () => {
     cookieJars = [],
     canAccessCommunity = true,
     allocations = [],
-    vaultNetDeposited = 1n,
+    hasEndowment = true,
     works,
   }: {
     domainMask?: number;
@@ -33,7 +33,7 @@ describe("useGardenDerivedState", () => {
       fractionsAmount: bigint;
       juiceboxAmount: bigint;
     }>;
-    vaultNetDeposited?: bigint;
+    hasEndowment?: boolean;
     works?: Parameters<typeof useGardenDerivedState>[0]["works"];
   } = {}) {
     const now = Date.now();
@@ -58,7 +58,7 @@ describe("useGardenDerivedState", () => {
         hypercerts: [],
         allocations,
         gardenVaults: [{}],
-        vaultNetDeposited,
+        hasEndowment,
         roleMembers,
         selectedRange: "30d",
         activityFilter: "all",
@@ -152,7 +152,7 @@ describe("useGardenDerivedState", () => {
     const communitySignals = {
       cookieJars: [daiJar({})],
       allocations: [allocation],
-      vaultNetDeposited: 0n,
+      hasEndowment: false,
     };
     const { result } = renderDerivedState({ ...communitySignals, canAccessCommunity: false });
 

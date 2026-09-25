@@ -1,7 +1,7 @@
 import { useViewActions } from "../../../components/Canvas/useViewActions";
 import { useGardenStateStore } from "../../../stores/useGardenStateStore";
 import type { Address } from "../../../types/domain";
-import { formatTokenAmount } from "../../../utils/blockchain/vaults";
+import { formatAssetAmounts } from "../../../utils/blockchain/vaults";
 import { parseGardenRange } from "../../../utils/garden-detail";
 import { adminRoutes } from "../../../utils/navigation/admin-routes";
 import { useAdminGardenWorkspaceSelection } from "../../garden/useAdminGardenWorkspaceSelection";
@@ -28,7 +28,7 @@ function parseActivityFilter(value: string): ActivityFilter {
 }
 
 export function useGardenWorkspaceController() {
-  const { formatMessage } = useIntl();
+  const { formatMessage, locale } = useIntl();
   const navigate = useNavigate();
   const location = useLocation();
   const { hypercertId, commitmentId: poolCommitmentId } = useParams<{
@@ -98,7 +98,8 @@ export function useGardenWorkspaceController() {
     community,
     gardenVaults,
     cookieJars,
-    vaultNetDeposited,
+    endowmentByAsset,
+    hasEndowment,
     allocations,
     works,
     worksComplete,
@@ -145,7 +146,7 @@ export function useGardenWorkspaceController() {
     hypercerts,
     allocations,
     gardenVaults,
-    vaultNetDeposited,
+    hasEndowment,
     cookieJars,
     roleMembers,
     selectedRange: range,
@@ -304,7 +305,7 @@ export function useGardenWorkspaceController() {
     selectedItem,
     setActivityFilter,
     settingsOpen,
-    treasuryBalance: formatTokenAmount(vaultNetDeposited),
+    treasuryBalance: formatAssetAmounts(endowmentByAsset, locale),
     updateOverviewQueryState,
     view,
     gardenAddress: garden?.id as Address | undefined,

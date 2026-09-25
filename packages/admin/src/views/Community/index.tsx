@@ -12,7 +12,7 @@ import { CommunityWorkspaceContent } from "./components/CommunityWorkspaceConten
 import { useIntl } from "react-intl";
 
 export default function CommunityView() {
-  const { formatMessage } = useIntl();
+  const { formatMessage, locale } = useIntl();
   const community = useCommunityWorkspaceController();
   const isDesktop = useMediaQuery("(min-width: 1024px)");
 
@@ -42,15 +42,17 @@ export default function CommunityView() {
     () =>
       buildCommunityHeaderStats({
         hasSelectedGarden: Boolean(community.selectedGarden),
-        vaultNetDeposited: community.vaultNetDeposited,
+        endowmentByAsset: community.endowmentByAsset,
         distributedAmounts: community.allocationsLoading ? null : distributedAmountsByAsset,
+        locale,
         formatMessage,
       }),
     [
       community.selectedGarden,
       community.allocationsLoading,
-      community.vaultNetDeposited,
+      community.endowmentByAsset,
       distributedAmountsByAsset,
+      locale,
       formatMessage,
     ]
   );

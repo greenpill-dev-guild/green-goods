@@ -112,7 +112,7 @@ export function CommunityWorkspaceContent({ workspace }: CommunityWorkspaceConte
         garden={workspace.garden}
         hasVaults={workspace.hasVaults}
         treasurySeverity={workspace.treasurySeverity}
-        vaultNetDeposited={workspace.vaultNetDeposited}
+        endowmentByAsset={workspace.endowmentByAsset}
       />
     ) : (
       <CommunityPayoutsTab

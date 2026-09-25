@@ -117,7 +117,7 @@ export function useHubWorkbenchController() {
     allocations,
     allocationsLoading,
     gardenVaults,
-    vaultNetDeposited,
+    hasEndowment,
     roleMembers,
   } = useGardenDetailData(selectedGarden?.id);
 
@@ -180,7 +180,7 @@ export function useHubWorkbenchController() {
     hypercerts,
     allocations,
     gardenVaults,
-    vaultNetDeposited,
+    hasEndowment,
     roleMembers,
     selectedRange: "30d",
     activityFilter: "all",

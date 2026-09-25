@@ -180,3 +180,49 @@ export function formatTokenAmount(
   const formatted = `${wholeText}${decimalSeparator}${trimmed}`;
   return negative ? `-${formatted}` : formatted;
 }
+
+/** An amount of one asset, with what it takes to show it. */
+export interface AssetAmount {
+  /** Lowercased asset address. */
+  asset: Address;
+  symbol: string;
+  decimals: number;
+  amount: bigint;
+}
+
+/**
+ * Net deposits per asset, in the order each asset first appears. Base units of
+ * different assets never add up, so a garden with WETH and DAI vaults keeps
+ * one amount for each.
+ */
+export function summarizeNetDepositsByAsset(
+  vaults: ReadonlyArray<{ asset: string; totalDeposited: bigint; totalWithdrawn: bigint }>,
+  chainId: number = DEFAULT_CHAIN_ID
+): AssetAmount[] {
+  const byAsset = new Map<string, AssetAmount>();
+  for (const vault of vaults) {
+    const asset = vault.asset.toLowerCase() as Address;
+    const net = getNetDeposited(vault.totalDeposited, vault.totalWithdrawn);
+    const held = byAsset.get(asset);
+    if (held) {
+      held.amount += net;
+    } else {
+      byAsset.set(asset, {
+        asset,
+        symbol: getVaultAssetSymbol(asset, chainId),
+        decimals: getVaultAssetDecimals(asset, chainId),
+        amount: net,
+      });
+    }
+  }
+  return [...byAsset.values()];
+}
+
+/** "0.0005 WETH · 12 DAI": each held asset with its symbol, or "0" when nothing is held. */
+export function formatAssetAmounts(amounts: readonly AssetAmount[], locale?: string): string {
+  const held = amounts.filter((entry) => entry.amount > 0n);
+  if (held.length === 0) return "0";
+  return held
+    .map((entry) => `${formatTokenAmount(entry.amount, entry.decimals, 4, locale)} ${entry.symbol}`)
+    .join(" · ");
+}

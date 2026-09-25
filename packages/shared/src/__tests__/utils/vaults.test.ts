@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { isZeroAddress, ZERO_ADDRESS } from "../../utils/blockchain/address";
 import { getEthUsdFeedAddress } from "../../utils/blockchain/price-feeds";
 import {
+  formatAssetAmounts,
   formatTokenAmount,
   getNetDeposited,
   getVaultAssetDecimals,
@@ -9,8 +10,65 @@ import {
   isUnlimitedVaultLimit,
   MAX_UINT256,
   normalizeDecimalInput,
+  summarizeNetDepositsByAsset,
   validateDecimalInput,
 } from "../../utils/blockchain/vaults";
+
+const ARB_WETH = "0x82aF49447D8a07e3bd95BD0d56f35241523fBab1";
+const ARB_DAI = "0xDA10009cBd5D07dd0CeCc66161FC93D7c9000da1";
+const ETHER = 10n ** 18n;
+const vault = (asset: string, deposited: bigint, withdrawn = 0n) => ({
+  asset: asset as `0x${string}`,
+  totalDeposited: deposited,
+  totalWithdrawn: withdrawn,
+});
+
+describe("summarizeNetDepositsByAsset", () => {
+  it("keeps each asset's net deposits apart, never adding WETH to DAI", () => {
+    const summary = summarizeNetDepositsByAsset(
+      [
+        vault(ARB_WETH, 5n * 10n ** 14n),
+        vault(ARB_DAI, 15n * ETHER, 3n * ETHER),
+        vault(ARB_WETH.toLowerCase(), 2n * 10n ** 14n),
+      ],
+      42161
+    );
+
+    expect(summary).toEqual([
+      { asset: ARB_WETH.toLowerCase(), symbol: "WETH", decimals: 18, amount: 7n * 10n ** 14n },
+      { asset: ARB_DAI.toLowerCase(), symbol: "DAI", decimals: 18, amount: 12n * ETHER },
+    ]);
+  });
+
+  it("counts a vault that paid out more than it took in as zero", () => {
+    expect(summarizeNetDepositsByAsset([vault(ARB_DAI, ETHER, 2n * ETHER)], 42161)).toEqual([
+      { asset: ARB_DAI.toLowerCase(), symbol: "DAI", decimals: 18, amount: 0n },
+    ]);
+  });
+});
+
+describe("formatAssetAmounts", () => {
+  const amount = (symbol: string, value: bigint) => ({
+    asset: ARB_WETH.toLowerCase() as `0x${string}`,
+    symbol,
+    decimals: 18,
+    amount: value,
+  });
+
+  it.each([
+    [
+      "two assets",
+      [amount("WETH", 5n * 10n ** 14n), amount("DAI", 12n * ETHER)],
+      "0.0005 WETH · 12 DAI",
+    ],
+    ["one asset", [amount("DAI", 12n * ETHER)], "12 DAI"],
+    ["an empty vault beside a held asset", [amount("WETH", 0n), amount("DAI", ETHER)], "1 DAI"],
+    ["nothing held", [amount("WETH", 0n)], "0"],
+    ["no vaults", [], "0"],
+  ])("formats %s", (_case, amounts, expected) => {
+    expect(formatAssetAmounts(amounts, "en")).toBe(expected);
+  });
+});
 
 describe("Vault Utilities", () => {
   describe("getEthUsdFeedAddress", () => {

@@ -5,7 +5,7 @@ import type { Address } from "../../types/domain";
 import { WeightScheme } from "../../types/gardens-community";
 import { compareAddresses } from "../../utils/blockchain/address";
 import type { GardenRole } from "../../utils/blockchain/garden-roles";
-import { getNetDeposited } from "../../utils/blockchain/vaults";
+import { summarizeNetDepositsByAsset } from "../../utils/blockchain/vaults";
 import { useGardenAssessments } from "../assessment/useGardenAssessments";
 import { useGardens } from "../blockchain/useBaseLists";
 import { useConvictionStrategies } from "../conviction/useConvictionStrategies";
@@ -99,21 +99,22 @@ export function useGardenDetailData(id: string | undefined) {
 
   const weightSchemeLabel = community ? WeightScheme[community.weightScheme] : undefined;
 
-  const { vaultNetDeposited, vaultHarvestCount, vaultDepositorCount } = useMemo(() => {
-    let netDeposited = 0n;
+  // Endowment amounts stay per asset: WETH and DAI base units never add up.
+  const { endowmentByAsset, hasEndowment, vaultHarvestCount, vaultDepositorCount } = useMemo(() => {
     let harvestCount = 0;
     let depositorCount = 0;
     for (const vault of gardenVaults) {
-      netDeposited += getNetDeposited(vault.totalDeposited, vault.totalWithdrawn);
       harvestCount += vault.totalHarvestCount;
       depositorCount += vault.depositorCount;
     }
+    const byAsset = summarizeNetDepositsByAsset(gardenVaults, garden?.chainId ?? DEFAULT_CHAIN_ID);
     return {
-      vaultNetDeposited: netDeposited,
+      endowmentByAsset: byAsset,
+      hasEndowment: byAsset.some((entry) => entry.amount > 0n),
       vaultHarvestCount: harvestCount,
       vaultDepositorCount: depositorCount,
     };
-  }, [gardenVaults]);
+  }, [gardenVaults, garden?.chainId]);
 
   const {
     works,
@@ -182,7 +183,8 @@ export function useGardenDetailData(id: string | undefined) {
     gardenVaults,
     vaultsLoading,
     cookieJars,
-    vaultNetDeposited,
+    endowmentByAsset,
+    hasEndowment,
     vaultHarvestCount,
     vaultDepositorCount,
     allocations,

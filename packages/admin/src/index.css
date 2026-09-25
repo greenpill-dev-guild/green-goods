@@ -636,20 +636,24 @@
   gap: 1rem;
 }
 
+/* A plain label and value row: the card around it is the one container (D33). */
 .garden-stat-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 0.5rem;
-  padding: 0.5rem 0.75rem;
-  border-radius: var(--m3-shape-sm);
-  border: 1px solid var(--color-stroke-soft);
-  background: var(--color-bg-weak);
+  padding: 0.5rem 0;
   font-size: var(--type-body-md, 0.875rem);
+}
+
+/* A row that opens something keeps a hit area and a hover layer. */
+button.garden-stat-row {
+  padding-inline: 0.5rem;
+  border-radius: var(--m3-shape-sm);
   transition: background-color var(--spring-effects-fast);
 }
 
-.garden-stat-row:hover {
+button.garden-stat-row:hover {
   background: var(--color-bg-soft);
 }
 

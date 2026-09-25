@@ -33,7 +33,7 @@ vi.mock("@green-goods/shared/hooks/garden/useGardenDetailData", () => ({
       },
     ],
     gardenVaults: [{}],
-    vaultNetDeposited: 0n,
+    hasEndowment: false,
     cookieJars: [],
     roleMembers: {
       owner: [],

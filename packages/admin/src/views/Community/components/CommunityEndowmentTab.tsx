@@ -9,7 +9,7 @@ import GardenVaultView from "@/views/Garden/Vault";
 
 export type CommunityEndowmentTabProps = Pick<
   CommunityWorkspace,
-  "hasVaults" | "treasurySeverity" | "vaultNetDeposited"
+  "hasVaults" | "treasurySeverity" | "endowmentByAsset"
 > & {
   garden: NonNullable<CommunityWorkspace["garden"]>;
 };
@@ -18,9 +18,10 @@ export function CommunityEndowmentTab({
   garden,
   hasVaults,
   treasurySeverity,
-  vaultNetDeposited,
+  endowmentByAsset,
 }: CommunityEndowmentTabProps) {
-  const { formatMessage } = useIntl();
+  const { formatMessage, locale } = useIntl();
+  const heldAssets = endowmentByAsset.filter((entry) => entry.amount > 0n);
 
   return (
     <div className="garden-tab-shell">
@@ -34,16 +35,31 @@ export function CommunityEndowmentTab({
               <AdminCardTitle>
                 {formatMessage({ id: "cockpit.community.endowment.status" })}
               </AdminCardTitle>
-              <AdminCard variant="outlined" density="compact">
+              {/* A plain label and value, one line per asset held: amounts of
+                  different assets never add up (D14). */}
+              <div>
                 <p className="text-label-sm text-text-sub">
                   {formatMessage({ id: "app.treasury.totalValueLocked" })}
                 </p>
-                <p className="mt-1 text-title-sm font-semibold text-text-strong">
-                  {hasVaults
-                    ? formatTokenAmount(vaultNetDeposited)
-                    : formatMessage({ id: "app.garden.detail.community.noVault" })}
-                </p>
-              </AdminCard>
+                {!hasVaults ? (
+                  <p className="mt-1 text-title-sm font-semibold text-text-strong">
+                    {formatMessage({ id: "app.garden.detail.community.noVault" })}
+                  </p>
+                ) : heldAssets.length === 0 ? (
+                  <p className="mt-1 text-title-sm font-semibold text-text-strong">0</p>
+                ) : (
+                  <ul className="mt-1 space-y-0.5">
+                    {heldAssets.map((entry) => (
+                      <li
+                        key={entry.asset}
+                        className="text-title-sm font-semibold tabular-nums text-text-strong"
+                      >
+                        {formatTokenAmount(entry.amount, entry.decimals, 4, locale)} {entry.symbol}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
               {treasurySeverity !== "none" ? (
                 <Alert
                   variant={treasurySeverity === "critical" ? "error" : "warning"}

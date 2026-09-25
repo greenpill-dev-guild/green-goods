@@ -69,7 +69,8 @@ interface DerivedStateInput {
     juiceboxAmount: bigint;
   }>;
   gardenVaults: Array<unknown>;
-  vaultNetDeposited: bigint;
+  /** Whether any vault holds a net deposit, in any asset. */
+  hasEndowment: boolean;
   /** The garden's cookie jars. Omit where the surface shows no alerts. */
   cookieJars?: CookieJar[];
   roleMembers: Record<GardenRole, Address[]>;
@@ -90,7 +91,7 @@ export function useGardenDerivedState({
   hypercerts,
   allocations,
   gardenVaults,
-  vaultNetDeposited,
+  hasEndowment,
   cookieJars = [],
   roleMembers,
   selectedRange,
@@ -129,7 +130,7 @@ export function useGardenDerivedState({
   const hasVaults = gardenVaults.length > 0;
   const treasurySeverity: TabBadgeSeverity = !hasVaults
     ? "warn"
-    : vaultNetDeposited === 0n
+    : !hasEndowment
       ? "critical"
       : "none";
   // The treasury's alert opens Community, so a viewer without Community access
