@@ -199,6 +199,7 @@ describe("useGardenDetailData eligible garden fallback", () => {
     { name: "a paused refresh", works: { isPaused: true }, complete: false },
     { name: "older work", works: { hasOlderWork: true }, complete: false },
     { name: "unread approvals", works: { hasUnknownStatuses: true }, complete: false },
+    { name: "a restored read", works: { readThisSession: false }, complete: false },
   ])("treats work after $name as complete queue evidence: $complete", ({ works, complete }) => {
     mockUseGardens.mockReturnValue({
       data: [recoveredGarden],
@@ -211,6 +212,7 @@ describe("useGardenDetailData eligible garden fallback", () => {
       isPaused: false,
       hasOlderWork: false,
       hasUnknownStatuses: false,
+      readThisSession: true,
       ...works,
     });
 

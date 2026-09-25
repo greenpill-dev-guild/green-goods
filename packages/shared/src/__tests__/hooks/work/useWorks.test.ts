@@ -185,6 +185,44 @@ describe("hooks/work/useWorks", () => {
     });
   });
 
+  it("tells rows restored from an earlier session from rows read in this one", async () => {
+    const restored = [
+      {
+        id: "work-1",
+        title: "Restored Work",
+        actionUID: 1,
+        gardenerAddress: "0xgardener",
+        gardenAddress: TEST_GARDEN,
+        feedback: "",
+        metadata: "{}",
+        media: [],
+        createdAt: 1000,
+        approval: null,
+      },
+    ];
+    let finishRead!: (rows: unknown[]) => void;
+    mockGetWorkListPage.mockReturnValue(
+      new Promise((resolve) => {
+        finishRead = resolve;
+      })
+    );
+    // A restored snapshot keeps the time it was read in an earlier session.
+    queryClient.setQueryData(["works", "online", TEST_GARDEN, TEST_CHAIN_ID], restored, {
+      updatedAt: 1,
+    });
+
+    const { result } = renderHook(() => useWorks(TEST_GARDEN), {
+      wrapper: createWrapper(queryClient),
+    });
+
+    expect(result.current.works).toHaveLength(1);
+    expect(result.current.readThisSession).toBe(false);
+    await act(async () => {
+      finishRead(restored);
+    });
+    await waitFor(() => expect(result.current.readThisSession).toBe(true));
+  });
+
   it("reads one lookahead row, offers older work, and widens the shared window", async () => {
     const page = (count: number, offset = 0) =>
       Array.from({ length: count }, (_, index) => ({

@@ -125,6 +125,7 @@ export function useGardenDetailData(id: string | undefined) {
     refetch: refreshWorks,
     hasOlderWork,
     hasUnknownStatuses,
+    readThisSession: worksReadThisSession,
   } = useWorks(gardenId);
   const { hypercerts, isLoading: hypercertsLoading } = useHypercerts({ gardenId: id });
 
@@ -188,9 +189,16 @@ export function useGardenDetailData(id: string | undefined) {
     allocationsLoading,
     works,
     // The list holds only the newest page, a row whose approval could not be
-    // read shows a cached or fallback status, and a failed or paused refresh
-    // leaves the last rows read: none of these can prove a stall.
-    worksComplete: !hasOlderWork && !hasUnknownStatuses && !isWorksError && !isWorksPaused,
+    // read shows a cached or fallback status, a failed or paused refresh leaves
+    // the last rows read, and rows restored from an earlier session may be days
+    // old: none of these can prove a stall. A refresh in flight can: the rows
+    // are as current as they were a moment before it started.
+    worksComplete:
+      !hasOlderWork &&
+      !hasUnknownStatuses &&
+      !isWorksError &&
+      !isWorksPaused &&
+      worksReadThisSession,
     worksLoading,
     worksFetching,
     isWorksError,

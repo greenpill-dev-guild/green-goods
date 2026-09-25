@@ -100,6 +100,9 @@ export function jobToWork(job: Job<WorkJobPayload>): Work {
 export type WorkAvailability = "available" | "partial" | "unavailable" | "empty";
 const NO_QUEUED_JOBS: Job<WorkJobPayload>[] = [];
 
+/** When this app session began: rows read before it were restored from storage. */
+const SESSION_STARTED_AT = Date.now();
+
 export function useWorks(gardenId: string, options: UseWorksOptions = {}) {
   const { offline = false } = options;
   const chainId = DEFAULT_CHAIN_ID;
@@ -311,6 +314,11 @@ export function useWorks(gardenId: string, options: UseWorksOptions = {}) {
      * fallback: queue health must not treat it as current.
      */
     hasUnknownStatuses: remoteData?.some((row) => row.approval === undefined) ?? false,
+    /**
+     * Whether this session has read the garden's rows. Until then they are a
+     * copy restored from an earlier session, however old.
+     */
+    readThisSession: online.dataUpdatedAt >= SESSION_STARTED_AT,
     /** Widen the window by one page and read it; a no-op offline. */
     loadOlderWork,
     isLoadingOlder: online.isFetching && take > WORK_LIST_PAGE_SIZE,
