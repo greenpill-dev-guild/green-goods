@@ -208,31 +208,30 @@ Garden):
   Reject Work dialog); `ConfidenceSelector.test.tsx` 1 failed (None still offered);
   `useCreateAssessmentForm.test.ts` 1 failed (the default domain was 0, Solar).
 - GREEN: the same files pass after each change; see the receipt for the final run.
+- After review (RED on the code before each fix): `garden-detail` 1 failed (a partial page proved
+  a stall), `AssessmentDomainContextStep` 1 failed (a restored retired domain raised no message),
+  `CreateHypercertDialog` 1 failed (stale restored picks blocked Next silently), and the old stamp
+  pattern took 1,258 ms on 50,000 spaces against the new test's 250 ms bound.
 - Proof limit: none. Tests that only moved with the new behaviour (header stats, derived state,
   Overview, Hub card, Hub detail, attestation selector, assessment steps and dialog, hypercert
   wizard) are updated or added beside them.
 
 ## Validation Receipt
 
-- Tested implementation commit SHA: `ecfccdda70463b828145fe953ceeacd476e8f6e7` (PR2 rebased onto
-  `develop` at `3613eaf77`, after PR1 merged)
-- Run at (UTC): targeted suites `2026-09-25T07:59:17Z`; push gate `2026-09-25T07:59:41Z` to
-  `2026-09-25T08:03:40Z`
-- Exact command(s): `bun run --filter @green-goods/shared test -- src/__tests__/utils/workTitles.test.ts src/__tests__/utils/garden-detail.test.ts src/__tests__/hooks/admin-ui/header-stats.test.ts src/__tests__/hooks/garden/useGardenDerivedState.test.ts src/__tests__/modules/local-status-overlay.test.ts src/__tests__/hooks/assessment/useCreateAssessmentForm.test.ts src/__tests__/components/ConfidenceSelector.test.tsx i18n/locale-coverage`;
-  `bun run --filter @green-goods/admin test -- src/__tests__/components/ReviewForm.test.tsx src/views/Garden/components/OverviewTab.test.tsx src/views/Garden/garden-domain-ui.test.tsx src/__tests__/components/AssessmentStrategyKernelStep.test.tsx src/__tests__/components/AssessmentDomainContextStep.test.tsx`;
-  `PATH="$PWD/node_modules/.bin:$PATH" node scripts/dev/ci-local.js --intent push --reuse-passing-receipts --test-path shared:src/__tests__/utils/workTitles.test.ts`;
-  `node packages/qa/build.mjs`; `node scripts/docs/generate.mjs`
-- Result: targeted shared 98 passed (8 files) and admin 23 passed (5 files); push gate exit 0 on the
-  critical plan (76 changed paths), 27 automated checks passed (format, lint, shared, client, admin,
-  and agent typechecks, suites, and builds, with shared 5770, client 1397, admin 981, and agent 316
-  tests passing; docs, source-structure, design-guardrails, ontology, agent-guidance,
-  qa-id-ledger against `3613eaf77`, supply-chain, story-quality, agent-tools-test), and
-  browser-proof left as the manual proof recorded under Rendered Proof; QA build 340 active cases
-  and docs generation left the tree unchanged
-- Validated paths: `packages/shared/src`, `packages/admin/src`, `packages/qa/locales`, `scripts/data`, `docs/docs`, `.claude/skills`, `DESIGN.md`
-- Worktree identity command and result: `git status --porcelain=v1 --untracked-files=all -- packages/shared/src packages/admin/src packages/qa/locales scripts/data docs/docs .claude/skills DESIGN.md` → empty
-- Evidence-only diff command and result (if applicable): `git diff --exit-code ecfccdda70463b828145fe953ceeacd476e8f6e7..HEAD -- packages/shared/src packages/admin/src packages/qa/locales scripts/data docs/docs .claude/skills DESIGN.md` → empty (exit 0); the receipt commit changes only `.plans/`
-- Evidence-only worktree-status command and result (if applicable): `git status --porcelain=v1 --untracked-files=all -- packages/shared/src packages/admin/src packages/qa/locales scripts/data docs/docs .claude/skills DESIGN.md` → empty
+- Tested implementation commit SHA: `ff2bb49a57837535f5f7e9e50e62f0abeace047e` (after the Codex and CodeQL review fixes; the
+  earlier receipt on `ecfccdda7` is superseded)
+- Run at (UTC): push gate `2026-09-25T08:32:29Z` to `2026-09-25T08:37:13Z`
+- Exact command(s): `PATH="$PWD/node_modules/.bin:$PATH" node scripts/dev/ci-local.js --intent push --reuse-passing-receipts --test-path shared:src/__tests__/utils/garden-detail.test.ts`;
+  targeted `bun run --filter @green-goods/shared test -- src/__tests__/utils/garden-detail.test.ts src/__tests__/hooks/garden/useGardenDerivedState.test.ts src/__tests__/modules/local-status-overlay.test.ts src/__tests__/hooks/admin-ui/header-stats.test.ts src/__tests__/utils/workTitles.test.ts i18n/locale-coverage`
+  and `bun run --filter @green-goods/admin test -- src/views/Garden/WorkDetail/helpers.test.tsx src/__tests__/components/CreateHypercertDialog.test.tsx src/__tests__/components/AssessmentDomainContextStep.test.tsx src/components/Layout/AdminNotificationPanel.test.tsx src/__tests__/components/CanvasLayout.test.tsx src/__tests__/components/ReviewForm.test.tsx src/views/Garden/garden-domain-ui.test.tsx`;
+  the notification panel story in Chromium via `node ../../scripts/dev/node-cli.js vitest run --config vitest.storybook.config.ts --project=storybook ../admin/src/components/Layout/AdminNotificationPanel.stories.tsx` from `packages/shared`
+- Result: push gate exit 0 on the critical plan, 27 automated checks passed (shared 5773, client 1397, admin 985, and agent 316 tests passing, with source-structure, design-guardrails, ontology, agent-guidance, qa-id-ledger, supply-chain, story-quality, and agent-tools-test); targeted
+  shared 95 passed (6 files) and admin 52 passed (7 files); the story passed (1 test); browser-proof
+  stays the manual proof recorded under Rendered Proof
+- Validated paths: `packages/shared/src`, `packages/admin/src`, `packages/qa/locales`, `scripts/data`, `scripts/quality`, `docs/docs`, `.claude/skills`, `DESIGN.md`
+- Worktree identity command and result: `git status --porcelain=v1 --untracked-files=all -- packages/shared/src packages/admin/src packages/qa/locales scripts/data scripts/quality docs/docs .claude/skills DESIGN.md` → empty
+- Evidence-only diff command and result (if applicable): `git diff --exit-code ff2bb49a57837535f5f7e9e50e62f0abeace047e..HEAD -- packages/shared/src packages/admin/src packages/qa/locales scripts/data scripts/quality docs/docs .claude/skills DESIGN.md` → empty (exit 0); the receipt commit changes only `.plans/`
+- Evidence-only worktree-status command and result (if applicable): `git status --porcelain=v1 --untracked-files=all -- packages/shared/src packages/admin/src packages/qa/locales scripts/data scripts/quality docs/docs .claude/skills DESIGN.md` → empty
 
 ## Risks / Blockers
 
