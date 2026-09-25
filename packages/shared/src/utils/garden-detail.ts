@@ -62,7 +62,11 @@ export interface ReviewQueueSummary {
    * never reviewed anything can stall; an unknown review time never does.
    */
   stalled: boolean;
-  /** Median time from submission to decision (ms) over decisions with a known time. */
+  /**
+   * Median time from submission to decision (ms) over the loaded decisions
+   * with a known time. The list is the newest page, so this describes recent
+   * review practice; unlike a stall, it claims nothing about older work.
+   */
   medianReviewLatencyMs: number | null;
 }
 
