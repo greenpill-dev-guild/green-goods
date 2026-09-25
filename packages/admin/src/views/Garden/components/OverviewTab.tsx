@@ -1,6 +1,9 @@
 import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
 import type { AdminWorkspaceSectionTab } from "@green-goods/shared/hooks/admin-ui/navigation/workspaceNavigation";
-import { useLocalizedRelativeTime } from "@green-goods/shared/hooks/app/useLocalizedRelativeTime";
+import {
+  useLocalizedEventTime,
+  useLocalizedRelativeTime,
+} from "@green-goods/shared/hooks/app/useLocalizedRelativeTime";
 import type { KarmaIntegrationController } from "@green-goods/shared/hooks/garden/useKarmaIntegration";
 import type {
   ActivityFilter,
@@ -86,6 +89,7 @@ export function OverviewTab({
 }: OverviewTabProps) {
   const { formatMessage } = useIntl();
   const formatActivityTime = useLocalizedRelativeTime();
+  const formatEventTime = useLocalizedEventTime();
   const isHealthMode = mode === "health";
   const isActivityMode = mode === "activity";
   const activityEventLimit = isActivityMode ? Number.POSITIVE_INFINITY : 8;
@@ -338,7 +342,7 @@ export function OverviewTab({
                                 </p>
                               </div>
                               <span className="body-xs text-text-soft">
-                                {formatActivityTime(event.timestamp)}
+                                {formatEventTime(event.timestamp)}
                               </span>
                             </div>
                             {event.href ? (
@@ -470,7 +474,7 @@ export function OverviewTab({
                             {activityTitle}
                           </span>
                           <span className="shrink-0 garden-stat-row-value">
-                            {formatActivityTime(event.timestamp)}
+                            {formatEventTime(event.timestamp)}
                           </span>
                         </button>
                       );

@@ -64,6 +64,27 @@ export function resolveKnownWorkTitle({
   return undefined;
 }
 
+/** A generated timestamp at the end of a title; older submissions appended one or two. */
+const TRAILING_GENERATED_TIMESTAMP_RE =
+  /(?:^|\s+)[-–—]\s+\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z$/;
+/** The name `resolveWorkSubmissionTitle` gives work whose action it could not find. */
+const GENERATED_ACTION_NAME_RE = /^Action \d+$/;
+
+/**
+ * The title to show for a work: every generated timestamp stripped, and
+ * `fallback` when nothing real is left. Display only; submission paths keep
+ * `resolveWorkSubmissionTitle`, which never drops a title it cannot match.
+ */
+export function toWorkDisplayTitle(title: string | null | undefined, fallback: string): string {
+  let display = title?.trim() ?? "";
+  while (TRAILING_GENERATED_TIMESTAMP_RE.test(display)) {
+    display = display.replace(TRAILING_GENERATED_TIMESTAMP_RE, "").trim();
+  }
+  const generated =
+    !display || isPlaceholderWorkTitle(display) || GENERATED_ACTION_NAME_RE.test(display);
+  return generated ? fallback : display;
+}
+
 export function resolveWorkSubmissionTitle(input: ResolveWorkSubmissionTitleInput): string {
   const known = resolveKnownWorkTitle(input);
   if (known) return known;

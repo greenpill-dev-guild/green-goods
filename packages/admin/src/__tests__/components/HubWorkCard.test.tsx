@@ -247,12 +247,9 @@ describe("HubWorkCard", () => {
       "pt"
     );
 
-    expect(
-      screen.getByRole("heading", {
-        name: `Marco de infraestrutura - ${actionTimestamp}`,
-      })
-    ).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Marco de infraestrutura" })).toBeInTheDocument();
     expect(container.textContent).not.toContain("Infrastructure Milestone");
+    expect(container.textContent).not.toContain(actionTimestamp);
     expect(container.textContent).not.toContain(workTimestamp);
   });
 

@@ -4,6 +4,7 @@ import {
   resolveKnownWorkTitle,
   resolveWorkSubmissionTitle,
   stripGeneratedWorkTitleTimestamp,
+  toWorkDisplayTitle,
 } from "../../utils/work/workTitles";
 
 describe("work title utilities", () => {
@@ -76,5 +77,22 @@ describe("work title utilities", () => {
         actionUID: 12,
       })
     ).toBe("Action 12");
+  });
+
+  it.each([
+    ["one stamp", "Planting Event - 2026-03-19T23:56:54.981Z", "Planting Event"],
+    [
+      "two stamps",
+      "Maintenance Activity - 2026-03-19T23:56:54.981Z - 2026-03-19T23:56:55.093Z",
+      "Maintenance Activity",
+    ],
+    ["en dashes", "Maintenance Activity – 2026-03-21T04:55:23.886Z", "Maintenance Activity"],
+    ["no stamp", "Planted shade trees", "Planted shade trees"],
+    ["only stamps", " - 2026-03-19T23:56:54.981Z - 2026-03-19T23:56:55.093Z", "Untitled Work"],
+    ["its own dash", "Pre-planting survey - north plot", "Pre-planting survey - north plot"],
+    ["a placeholder", "Unknown Action - 2026-03-19T23:56:54.981Z", "Untitled Work"],
+    ["a generated action name", "Action 12", "Untitled Work"],
+  ])("displays a title with %s", (_case, title, expected) => {
+    expect(toWorkDisplayTitle(title, "Untitled Work")).toBe(expected);
   });
 });

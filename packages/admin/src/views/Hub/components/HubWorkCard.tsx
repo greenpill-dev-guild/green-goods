@@ -3,7 +3,7 @@ import { resolveIPFSUrl } from "@green-goods/shared/modules/data/ipfs/resolve";
 import type { Domain, Work } from "@green-goods/shared/types/domain";
 import { cn } from "@green-goods/shared/utils/styles/cn";
 import { formatDateTime, normalizeTimestamp } from "@green-goods/shared/utils/time";
-import { stripGeneratedWorkTitleTimestamp } from "@green-goods/shared/utils/work/workTitles";
+import { toWorkDisplayTitle } from "@green-goods/shared/utils/work/workTitles";
 import { getRelativeTimeParts } from "@green-goods/shared/utils/relativeTime";
 import { useState, type CSSProperties } from "react";
 import { useIntl } from "react-intl";
@@ -151,16 +151,20 @@ export function HubWorkCard({
   const resolvedStatusTone: HubWorkCardStatusTone =
     statusTone ?? (work.status === "approved" ? "success" : "neutral");
   const domainConfig = actionDomain !== undefined ? DOMAIN_CONFIG[actionDomain] : undefined;
-  const localizedActionTitle = actionTitle
-    ? localizeCanonicalActionTitle(actionTitle, formatMessage)
+  // Action titles can carry generated stamps too, so both go through the display title.
+  const actionDisplayTitle = toWorkDisplayTitle(actionTitle, "");
+  const localizedActionTitle = actionDisplayTitle
+    ? localizeCanonicalActionTitle(actionDisplayTitle, formatMessage)
     : undefined;
-
-  const rawTitle = localizeCanonicalActionTitle(
-    work.title ||
-      formatMessage({ id: "app.admin.work.untitledWork", defaultMessage: "Untitled Work" }),
+  // A work whose own title is generated or missing reads as its action.
+  const title = localizeCanonicalActionTitle(
+    toWorkDisplayTitle(
+      work.title,
+      actionDisplayTitle ||
+        formatMessage({ id: "app.admin.work.untitledWork", defaultMessage: "Untitled Work" })
+    ),
     formatMessage
   );
-  const title = stripGeneratedWorkTitleTimestamp(rawTitle, localizedActionTitle) || rawTitle;
   const visibleActionTitle =
     localizedActionTitle && localizedActionTitle.trim().toLowerCase() !== title.trim().toLowerCase()
       ? localizedActionTitle
@@ -259,7 +263,7 @@ export function HubWorkCard({
         <div className="flex items-start justify-between gap-2.5">
           <h3
             className="min-w-0 flex-1 text-title-sm font-semibold leading-5 text-text-strong line-clamp-2"
-            title={title}
+            title={work.title?.trim() || title}
           >
             {title}
           </h3>

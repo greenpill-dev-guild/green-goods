@@ -9,6 +9,7 @@ import {
 } from "@green-goods/shared/types/hypercerts";
 import { cn } from "@green-goods/shared/utils/styles/cn";
 import { formatDateTime } from "@green-goods/shared/utils/time";
+import { toWorkDisplayTitle } from "@green-goods/shared/utils/work/workTitles";
 import { RiCheckboxCircleLine, RiCheckboxMultipleLine, RiCloseCircleLine } from "@remixicon/react";
 import { useCallback, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
@@ -55,6 +56,7 @@ export function AttestationSelector({
   const { formatMessage } = useIntl();
   const [searchQuery, setSearchQuery] = useState("");
   const [domainFilter, setDomainFilter] = useState<DomainOption | "">("");
+  const untitledWorkLabel = formatMessage({ id: "app.admin.work.untitledWork" });
 
   const selectedAssessment = useMemo(
     () => assessments?.find((a) => a.id === selectedAssessmentId) ?? null,
@@ -280,7 +282,11 @@ export function AttestationSelector({
                 if (isBundled) return;
                 onToggle(attestation.id);
               }}
-              title={attestation.title}
+              title={
+                <span title={attestation.title}>
+                  {toWorkDisplayTitle(attestation.title, untitledWorkLabel)}
+                </span>
+              }
               description={
                 <EnsAddressText
                   address={attestation.gardenerAddress}

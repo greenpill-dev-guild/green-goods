@@ -240,15 +240,17 @@ describe("components/Hypercerts/AttestationSelector", () => {
         })
       );
 
-      const title = screen.getByText(longTitle);
-      const titleColumn = title.parentElement;
+      // The card shows the title without its generated stamps and keeps the raw one as a tooltip.
+      const title = screen.getByText("Maintenance Activity");
+      expect(title).toHaveAttribute("title", longTitle);
+      const titleBlock = title.parentElement;
       const card = title.closest("button");
       const selectionBadge = within(card!).getByText(/^select$/i);
 
-      expect(titleColumn).toHaveClass("min-w-0", "flex-1");
+      expect(titleBlock?.parentElement).toHaveClass("min-w-0", "flex-1");
       // AdminSelectableCard owns the title anatomy: a block span with pr-7
       // reserving the selected-check corner so long titles never overlap it.
-      expect(title).toHaveClass("block", "pr-7");
+      expect(titleBlock).toHaveClass("block", "pr-7");
       expect(selectionBadge).toHaveClass("shrink-0");
     });
 

@@ -76,7 +76,13 @@ describe("OverviewTab", () => {
 
     expect(screen.getByText(/^Registro de colheita/)).toBeInTheDocument();
     expect(screen.queryByText(/^Harvest & Yield Record/)).not.toBeInTheDocument();
-    expect(screen.getAllByText("há 1 mês")).toHaveLength(2);
+    // Last Activity reads as an age; an activity row older than a week reads as its date.
+    expect(screen.getAllByText("há 1 mês")).toHaveLength(1);
+    expect(
+      screen.getByText(
+        new Intl.DateTimeFormat("pt", { dateStyle: "medium" }).format(activity[0].timestamp)
+      )
+    ).toBeInTheDocument();
     expect(screen.queryByText("1 month ago")).not.toBeInTheDocument();
   });
 });

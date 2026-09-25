@@ -1,6 +1,6 @@
 import { AddressDisplay } from "@green-goods/shared/components/AddressDisplay";
 import type { Work, WorkMetadata } from "@green-goods/shared/types/domain";
-import { formatDate } from "@green-goods/shared/utils/time";
+import { formatDateTime } from "@green-goods/shared/utils/time";
 import { RiFileList3Line, RiTimeLine, RiUserLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
 import { DetailRow, renderMetadataDetails } from "./helpers";
@@ -59,7 +59,7 @@ export function SubmissionDetails({
         <DetailRow
           icon={<RiTimeLine className="h-4 w-4" />}
           label={formatMessage({ id: "app.work.detail.submitted" })}
-          value={formatDate(work.createdAt)}
+          value={formatDateTime(work.createdAt)}
         />
 
         {/* Metadata details (v2) */}

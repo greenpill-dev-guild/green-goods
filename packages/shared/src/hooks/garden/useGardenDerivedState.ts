@@ -8,13 +8,12 @@ import {
   getRoleLabel,
 } from "../../utils/blockchain/garden-roles";
 import { expandDomainMask } from "../../utils/domain";
-import { formatDate } from "../../utils/time";
 import { formatTokenAmount, getVaultAssetSymbol } from "../../utils/blockchain/vaults";
 import {
   isJarClaimLimitLow,
   JAR_LIMIT_ROUTE_ITEM_PREFIX,
 } from "../../utils/cookie-jar-claim-limit";
-import { stripGeneratedWorkTitleTimestamp } from "../../utils/work/workTitles";
+import { toWorkDisplayTitle } from "../../utils/work/workTitles";
 import type {
   ActivityFilter,
   GardenActivityEvent,
@@ -282,15 +281,11 @@ export function useGardenDerivedState({
     ...works.map((work) => ({
       id: `work-${work.id}`,
       category: "work" as const,
-      title:
-        stripGeneratedWorkTitleTimestamp(work.title ?? "") ||
-        formatMessage({ id: "app.admin.work.untitledWork" }),
+      title: toWorkDisplayTitle(work.title, formatMessage({ id: "app.admin.work.untitledWork" })),
+      // Descriptions carry no date: each row shows its time once, beside the title.
       description: formatMessage(
         { id: "app.garden.detail.activity.workStatus" },
-        {
-          status: formatMessage({ id: `app.admin.work.filter.${work.status}` }),
-          date: formatDate(work.createdAt, { dateStyle: "medium" }),
-        }
+        { status: formatMessage({ id: `app.admin.work.filter.${work.status}` }) }
       ),
       timestamp: toMs(work.createdAt),
       href: adminRoutes.hubWorkDetail(work.id, { gardenId: gardenAddress }),
@@ -303,10 +298,7 @@ export function useGardenDerivedState({
         assessment.title ||
         assessment.assessmentType ||
         formatMessage({ id: "app.garden.admin.assessmentFallback" }),
-      description: formatMessage(
-        { id: "app.garden.detail.activity.assessmentCreated" },
-        { date: formatDate(assessment.createdAt, { dateStyle: "medium" }) }
-      ),
+      description: formatMessage({ id: "app.garden.detail.activity.assessmentCreated" }),
       timestamp: toMs(assessment.createdAt),
       href: adminRoutes.gardenImpact({
         gardenAddress,
@@ -319,14 +311,7 @@ export function useGardenDerivedState({
       id: `hypercert-${hypercert.id}`,
       category: "impact" as const,
       title: hypercert.title?.trim() || formatMessage({ id: "app.hypercerts.list.fallbackTitle" }),
-      description: formatMessage(
-        { id: "app.garden.detail.activity.hypercertMinted" },
-        {
-          date: hypercert.mintedAt
-            ? formatDate(hypercert.mintedAt * 1000, { dateStyle: "medium" })
-            : formatMessage({ id: "app.hypercerts.list.dateUnknown" }),
-        }
-      ),
+      description: formatMessage({ id: "app.garden.detail.activity.hypercertMinted" }),
       timestamp: hypercert.mintedAt ? toMs(hypercert.mintedAt) : 0,
       href: adminRoutes.gardenHypercertDetail(hypercert.id, { gardenId: gardenAddress }),
       itemId: hypercert.id,
