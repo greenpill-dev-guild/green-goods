@@ -4649,7 +4649,6 @@
   "cockpit.hub.viewSwitcher": "Pipeline stages",
   "cockpit.hub.workCard.justNow": "just now",
   "cockpit.hub.workCard.submittedAgo": "submitted {age}",
-  "cockpit.nav.account": "Account",
   "cockpit.nav.community": "Community",
   "cockpit.nav.garden": "Garden",
   "cockpit.nav.hub": "Hub",
