@@ -356,7 +356,7 @@ export function MetadataEditor({
               }
               title={sdgName}
               leadingVisual={
-                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[rgb(var(--m3-surface-container-high))] text-label-sm font-bold text-[rgb(var(--m3-on-surface-variant))]">
+                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-bg-sub text-label-sm font-bold text-text-sub">
                   {value}
                 </span>
               }

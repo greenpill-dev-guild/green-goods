@@ -115,9 +115,7 @@ const ToneGrid = ({ theme }: { theme: "light" | "dark" }) => (
     data-theme={theme}
     className="admin-m3 space-y-3 rounded-[var(--m3-shape-lg)] bg-[rgb(var(--m3-surface))] p-4"
   >
-    <div className="text-label-md font-semibold uppercase text-[rgb(var(--m3-on-surface-variant))]">
-      {theme}
-    </div>
+    <div className="text-label-md font-semibold uppercase text-text-sub">{theme}</div>
     <div className="grid gap-4 md:grid-cols-2">
       <ToneCell tone="hub" name="Hub" />
       <ToneCell tone="garden" name="Garden" />

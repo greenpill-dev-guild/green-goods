@@ -387,11 +387,10 @@ export function ReviewForm({
                 <div className="flex flex-wrap items-center justify-end gap-2 pt-2">
                   <AdminButton
                     type="button"
-                    variant="outlined"
+                    variant="outlinedDanger"
                     onClick={() => setRejectDialogOpen(true)}
                     disabled={isSubmitting}
                     loading={isSubmitting && submittingAction === "reject"}
-                    className="border-[rgb(var(--m3-error))] [color:rgb(var(--m3-error))] [--state-layer-color:var(--m3-error)] focus-visible:ring-[rgb(var(--m3-error))]"
                     data-action="reject"
                   >
                     {formatMessage({ id: "app.work.detail.reject" })}

@@ -157,7 +157,7 @@ export function AccountProfilePanel({ controller, className }: AccountProfilePan
           onClick={() => signOut()}
           className={cn(
             "flex min-h-11 w-full items-center justify-between rounded-full px-4 py-3",
-            "label-lg font-medium text-error-dark transition-colors hover:bg-[rgb(var(--m3-on-surface)/0.08)]"
+            "body-sm font-medium text-error-dark transition-colors hover:bg-[rgb(var(--text-strong-950)/0.08)]"
           )}
         >
           <span>

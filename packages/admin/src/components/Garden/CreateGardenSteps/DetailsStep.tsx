@@ -421,5 +421,5 @@ function SlugAvailableIcon({ className }: { className?: string }) {
   return <RiCheckLine className={cn(className, "text-success-dark")} />;
 }
 function SlugTakenIcon({ className }: { className?: string }) {
-  return <RiCloseLine className={cn(className, "[color:rgb(var(--m3-error))]")} />;
+  return <RiCloseLine className={cn(className, "text-error-dark")} />;
 }

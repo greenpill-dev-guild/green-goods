@@ -13,6 +13,7 @@ import {
 import type { Meta, StoryObj } from "@storybook/react";
 import { useCallback, useState } from "react";
 import { expect, userEvent, waitFor, within } from "storybook/test";
+import { AdminButton } from "@/components/AdminButton";
 import { AdminSideSheet } from "@/components/AdminSideSheet";
 import { STORYBOOK_ADMIN_SHELL_SEEDS } from "../../../../shared/.storybook/adminFixtures";
 import {
@@ -104,14 +105,13 @@ function RightSheetRegistryHarness({ initialContentId }: RightSheetRegistryHarne
 
           <div className="flex flex-wrap gap-2">
             {SHEET_OPTIONS.map((option) => (
-              <button
+              <AdminButton
                 key={option.id}
                 type="button"
                 onClick={() => openRegisteredContent(option.id)}
-                className="rounded-lg bg-[rgb(var(--m3-primary))] px-4 py-2 body-sm font-medium text-[rgb(var(--m3-on-primary))] transition-opacity hover:opacity-90"
               >
                 Open {option.label}
-              </button>
+              </AdminButton>
             ))}
             <button
               type="button"

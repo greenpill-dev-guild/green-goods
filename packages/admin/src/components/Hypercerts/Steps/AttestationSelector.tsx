@@ -301,7 +301,7 @@ export function AttestationSelector({
                         "inline-flex shrink-0 items-center gap-1 rounded-full border px-2 py-0.5 body-sm",
                         isBundled
                           ? "border-warning-light bg-warning-lighter text-warning-dark"
-                          : "border-transparent bg-[rgb(var(--m3-secondary-container))] text-[rgb(var(--m3-on-secondary-container))]"
+                          : "border-transparent bg-bg-sub text-text-strong"
                       )}
                     >
                       {!isBundled && <RiCheckboxCircleLine className="h-3.5 w-3.5" />}

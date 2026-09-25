@@ -56,10 +56,7 @@ export function CampaignCookieJarPanelView(props: CampaignCookieJarPanelViewProp
   return (
     <div className="flex flex-col gap-5">
       {!moduleConfigured ? (
-        <AdminCard
-          variant="outlined"
-          className="text-body-sm text-[rgb(var(--m3-on-surface-variant))]"
-        >
+        <AdminCard variant="outlined" className="text-body-sm text-text-sub">
           {formatMessage({
             id: "cockpit.community.cookies.factoryMissing",
             defaultMessage: "Cookie Jar factory discovery is not configured on this network yet.",
@@ -67,10 +64,7 @@ export function CampaignCookieJarPanelView(props: CampaignCookieJarPanelViewProp
         </AdminCard>
       ) : null}
       {!isDeployer && !roleLoading ? (
-        <AdminCard
-          variant="outlined"
-          className="text-body-sm text-[rgb(var(--m3-on-surface-variant))]"
-        >
+        <AdminCard variant="outlined" className="text-body-sm text-text-sub">
           {formatMessage({
             id: "cockpit.community.cookies.deployerOnly",
             defaultMessage:
@@ -140,21 +134,21 @@ export function CampaignCookieJarPanelView(props: CampaignCookieJarPanelViewProp
       >
         {selectedCampaign ? (
           <div className="space-y-5">
-            <div className="rounded-[var(--m3-shape-md)] border border-[rgb(var(--m3-outline-variant))] p-3">
-              <p className="text-label-md text-[rgb(var(--m3-on-surface))]">
+            <div className="rounded-[var(--m3-shape-md)] border border-stroke-soft p-3">
+              <p className="text-label-md text-text-strong">
                 {formatMessage({
                   id: "cockpit.community.cookies.jarAddress",
                   defaultMessage: "Jar address",
                 })}
               </p>
-              <p className="mt-1 break-all text-body-sm text-[rgb(var(--m3-on-surface-variant))]">
+              <p className="mt-1 break-all text-body-sm text-text-sub">
                 <EnsAddressText address={selectedCampaign.address} />
               </p>
               <a
                 href={publicJarLink(selectedCampaign.address)}
                 target="_blank"
                 rel="noreferrer"
-                className="mt-2 inline-flex items-center gap-1 text-label-md text-[rgb(var(--m3-primary))] underline-offset-4 hover:underline"
+                className="mt-2 inline-flex items-center gap-1 text-label-md text-primary-dark underline-offset-4 hover:underline"
               >
                 {formatMessage({
                   id: "cockpit.community.cookies.openPublicLink",
@@ -184,14 +178,14 @@ export function CampaignCookieJarPanelView(props: CampaignCookieJarPanelViewProp
                 disabled={syncAllowlist.isPending || updateMetadata.isPending}
                 source="campaign-cookie-jar-manage-image"
               />
-              <div className="rounded-[var(--m3-shape-md)] border border-[rgb(var(--m3-outline-variant))] bg-[rgb(var(--m3-surface))] p-3">
-                <p className="text-label-md text-[rgb(var(--m3-on-surface))]">
+              <div className="rounded-[var(--m3-shape-md)] border border-stroke-soft bg-bg-white p-3">
+                <p className="text-label-md text-text-strong">
                   {formatMessage({
                     id: "cockpit.community.cookies.generatedCampaignLink",
                     defaultMessage: "Campaign page",
                   })}
                 </p>
-                <p className="mt-1 break-all text-body-sm text-[rgb(var(--m3-on-surface-variant))]">
+                <p className="mt-1 break-all text-body-sm text-text-sub">
                   {selectedCampaignPublicUrl}
                 </p>
               </div>
@@ -238,7 +232,7 @@ export function CampaignCookieJarPanelView(props: CampaignCookieJarPanelViewProp
               />
             </div>
             {syncAggregation.invalidAddresses.length > 0 ? (
-              <p className="text-body-sm text-[rgb(var(--m3-error))]">
+              <p className="text-body-sm text-error-dark">
                 {formatMessage(
                   {
                     id: "cockpit.community.cookies.invalidExtras",
@@ -249,7 +243,7 @@ export function CampaignCookieJarPanelView(props: CampaignCookieJarPanelViewProp
               </p>
             ) : null}
             {selectedJarAddress && syncJar.jar && !syncJar.jar.isOwner ? (
-              <p className="text-body-sm text-[rgb(var(--m3-error))]">
+              <p className="text-body-sm text-error-dark">
                 {formatMessage({
                   id: "cockpit.community.cookies.jarOwnerRequired",
                   defaultMessage:
@@ -265,9 +259,9 @@ export function CampaignCookieJarPanelView(props: CampaignCookieJarPanelViewProp
 }
 function DiffStat({ label, value }: { label: string; value: number }) {
   return (
-    <div className="rounded-[var(--m3-shape-md)] border border-[rgb(var(--m3-outline-variant))] px-3 py-2">
-      <p className="text-label-sm text-[rgb(var(--m3-on-surface-variant))]">{label}</p>
-      <p className="mt-1 text-title-md font-semibold text-[rgb(var(--m3-on-surface))]">{value}</p>
+    <div className="rounded-[var(--m3-shape-md)] border border-stroke-soft px-3 py-2">
+      <p className="text-label-sm text-text-sub">{label}</p>
+      <p className="mt-1 text-title-md font-semibold text-text-strong">{value}</p>
     </div>
   );
 }
