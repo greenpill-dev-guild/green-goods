@@ -259,6 +259,8 @@ export function AttestationSelector({
           const isSelected = selectedIds.includes(attestation.id);
           const bundled = bundledInfo?.[attestation.id];
           const isBundled = Boolean(bundled);
+          // The card and its tooltip read the title without its generated stamps.
+          const displayTitle = toWorkDisplayTitle(attestation.title, untitledWorkLabel);
           const approvedAt = attestation.approvedAt || attestation.createdAt;
           const formattedDate = approvedAt
             ? formatDateTime(approvedAt * 1000, { dateStyle: "medium" })
@@ -282,11 +284,7 @@ export function AttestationSelector({
                 if (isBundled) return;
                 onToggle(attestation.id);
               }}
-              title={
-                <span title={attestation.title}>
-                  {toWorkDisplayTitle(attestation.title, untitledWorkLabel)}
-                </span>
-              }
+              title={<span title={displayTitle}>{displayTitle}</span>}
               description={
                 <EnsAddressText
                   address={attestation.gardenerAddress}

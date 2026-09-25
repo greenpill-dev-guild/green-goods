@@ -52,6 +52,28 @@ describe("HubWorkCard", () => {
     expect(screen.getByText("Planted 50 native saplings")).toBeInTheDocument();
   });
 
+  it("shows and hovers the title without its generated stamps", () => {
+    renderCard({
+      work: {
+        id: "0x456",
+        title: "Maintenance Activity - 2026-03-19T23:56:54.981Z",
+        actionUID: 1,
+        gardenerAddress: "0x1234567890abcdef1234567890abcdef12345678",
+        gardenAddress: "0xabcdefabcdefabcdefabcdefabcdefabcdefabcd",
+        feedback: "",
+        metadata: "{}",
+        media: [],
+        createdAt: Date.now() / 1000 - 3600,
+        status: "pending",
+      },
+    });
+
+    expect(screen.getByRole("heading", { name: "Maintenance Activity" })).toHaveAttribute(
+      "title",
+      "Maintenance Activity"
+    );
+  });
+
   it("renders gardener name in metadata, garden name only in hover-title", () => {
     // Per Rule 17, garden name is declared by AppBar GardenChip — the card body
     // does not redeclare it. The hover-title preserves the gardener+garden context

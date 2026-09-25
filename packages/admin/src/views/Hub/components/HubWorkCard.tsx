@@ -267,7 +267,8 @@ export function HubWorkCard({
         <div className="flex items-start justify-between gap-2.5">
           <h3
             className="min-w-0 flex-1 text-title-sm font-semibold leading-5 text-text-strong line-clamp-2"
-            title={work.title?.trim() || title}
+            // The hover reveals a clamped title, so it reads the same clean title.
+            title={title}
           >
             {title}
           </h3>

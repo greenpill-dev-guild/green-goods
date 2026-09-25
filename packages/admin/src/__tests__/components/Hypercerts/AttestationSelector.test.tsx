@@ -244,9 +244,9 @@ describe("components/Hypercerts/AttestationSelector", () => {
         })
       );
 
-      // The card shows the title without its generated stamps and keeps the raw one as a tooltip.
+      // The card and its tooltip show the title without its generated stamps.
       const title = screen.getByText("Maintenance Activity");
-      expect(title).toHaveAttribute("title", longTitle);
+      expect(title).toHaveAttribute("title", "Maintenance Activity");
       const titleBlock = title.parentElement;
       const card = title.closest("button");
       const selectionBadge = within(card!).getByText(/^selected$/i);
