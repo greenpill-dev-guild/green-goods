@@ -24,7 +24,7 @@ const GARDEN = {
   bannerImage: "",
   domainMask: 3,
   openJoining: true,
-} as EditGardenDialogProps["garden"];
+} as unknown as EditGardenDialogProps["garden"];
 
 const HASH = `0x${"3f".repeat(32)}` as const;
 const FIELDS = ["name", "description", "location"] as const;
