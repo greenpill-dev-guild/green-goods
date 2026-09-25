@@ -6,7 +6,7 @@ import { useMemo } from "react";
 import { type IntlShape, useIntl } from "react-intl";
 import { AdminButton, AdminIconButton } from "../../AdminButton";
 import { AdminSelect, AdminTextArea, AdminTextField } from "../../AdminTextField";
-import { DOMAIN_GUIDANCE, domainKey, Section } from "./shared";
+import { formatDomainGuidance, knownDomain, Section } from "./shared";
 
 const CYNEFIN_SLUGS: Record<CynefinPhase, string> = {
   [CynefinPhase.CLEAR]: "clear",
@@ -170,9 +170,9 @@ const UNIT_DEFAULTS: Record<string, string> = {
   "app.admin.assessment.strategyKernel.unit.m2": "m\u00B2",
 };
 
-/** Resolve domain metrics with i18n labels */
-function resolveDomainMetrics(intl: IntlShape, domain: Domain) {
-  const keys = DOMAIN_METRIC_KEYS[domain] ?? DOMAIN_METRIC_KEYS[Domain.SOLAR];
+/** Resolve domain metrics with i18n labels; none until a known domain is chosen. */
+function resolveDomainMetrics(intl: IntlShape, domain: Domain | null) {
+  const keys = domain === null ? [] : DOMAIN_METRIC_KEYS[domain];
   return keys.map((m) => ({
     key: m.key,
     label: intl.formatMessage({
@@ -253,10 +253,15 @@ export function StrategyKernelStep({ showValidation, isSubmitting }: StrategyKer
   const removeSmartOutcome = useCreateAssessmentStore((s) => s.removeSmartOutcome);
   const updateSmartOutcome = useCreateAssessmentStore((s) => s.updateSmartOutcome);
 
-  const domainEnum = form.domain;
-  // Fallback so an unset/out-of-range persisted domain can't crash the step
-  // (mirrors resolveDomainMetrics' `?? Domain.SOLAR` guard below).
-  const guidance = DOMAIN_GUIDANCE[domainEnum] ?? DOMAIN_GUIDANCE[Domain.SOLAR];
+  // Step 1 requires a domain, but a restored draft can carry a stale one; an
+  // unknown domain reads as none (neutral text), never as Solar (DL-047).
+  const domainEnum = knownDomain(form.domain);
+  const smartOutcomeExample = formatDomainGuidance(
+    intl,
+    "app.admin.assessment.strategyKernel.smartOutcomeExample",
+    domainEnum,
+    (guidance) => guidance.smartOutcomeExample
+  );
   const metrics = resolveDomainMetrics(intl, domainEnum);
   const cynefinOptions = resolveCynefinOptions(intl);
   const selectedMetricCounts = useMemo(() => {
@@ -277,7 +282,7 @@ export function StrategyKernelStep({ showValidation, isSubmitting }: StrategyKer
           ? null
           : formatMessage({
               id: "app.admin.assessment.strategyKernel.diagnosisRequired",
-              defaultMessage: "Diagnosis is required",
+              defaultMessage: "The challenge is required",
             }),
       smartOutcomes:
         form.smartOutcomes.length > 0 &&
@@ -323,57 +328,51 @@ export function StrategyKernelStep({ showValidation, isSubmitting }: StrategyKer
 
   return (
     <div className="space-y-6">
-      <Section
-        title={formatMessage({
-          id: "app.admin.assessment.strategyKernel.sectionTitle",
-          defaultMessage: "Strategy Kernel",
+      {/* The step title already names this part, so the field stands alone. */}
+      <AdminTextArea
+        label={formatMessage({
+          id: "app.admin.assessment.strategyKernel.diagnosisLabel",
+          defaultMessage: "The challenge",
         })}
-        description={formatMessage({
-          id: "app.admin.assessment.strategyKernel.sectionDescription",
+        required
+        rows={4}
+        disabled={isSubmitting}
+        value={form.diagnosis}
+        onChange={(e) => setField("diagnosis", e.target.value)}
+        error={(showValidation && fieldErrors.diagnosis) || undefined}
+        helperText={formatMessage({
+          id: "app.admin.assessment.strategyKernel.diagnosisHelp",
           defaultMessage:
-            "Define the challenge, outcomes, and complexity context for this assessment.",
+            "What problem is this work addressing, and why does it exist? (the diagnosis)",
         })}
-      >
-        <AdminTextArea
-          label={formatMessage({
-            id: "app.admin.assessment.strategyKernel.diagnosisLabel",
-            defaultMessage: "Diagnosis",
-          })}
-          required
-          rows={4}
-          disabled={isSubmitting}
-          value={form.diagnosis}
-          onChange={(e) => setField("diagnosis", e.target.value)}
-          error={(showValidation && fieldErrors.diagnosis) || undefined}
-          helperText={formatMessage({
-            id: domainKey("app.admin.assessment.strategyKernel.diagnosisHelp", domainEnum),
-            defaultMessage: guidance.diagnosisHelp,
-          })}
-          placeholder={formatMessage({
-            id: domainKey("app.admin.assessment.strategyKernel.diagnosisPlaceholder", domainEnum),
-            defaultMessage: guidance.diagnosisPlaceholder,
-          })}
-        />
-      </Section>
+        placeholder={
+          formatDomainGuidance(
+            intl,
+            "app.admin.assessment.strategyKernel.diagnosisPlaceholder",
+            domainEnum,
+            (guidance) => guidance.diagnosisPlaceholder
+          ) ??
+          formatMessage({
+            id: "app.admin.assessment.strategyKernel.diagnosisPlaceholder",
+            defaultMessage: "Describe the core challenge and its root causes...",
+          })
+        }
+      />
 
       {/* SMART Outcomes Repeater */}
       <Section
         title={formatMessage({
           id: "app.admin.assessment.strategyKernel.smartOutcomesTitle",
-          defaultMessage: "SMART Outcomes",
+          defaultMessage: "What You'll Measure",
         })}
         description={formatMessage({
           id: "app.admin.assessment.strategyKernel.smartOutcomesDescription",
-          defaultMessage:
-            "Define measurable targets. Each outcome needs a description, metric, and target value.",
+          defaultMessage: "Each target needs a metric and a number (SMART outcomes)",
         })}
       >
-        <p className="text-xs text-text-soft">
-          {formatMessage({
-            id: domainKey("app.admin.assessment.strategyKernel.smartOutcomeExample", domainEnum),
-            defaultMessage: guidance.smartOutcomeExample,
-          })}
-        </p>
+        {smartOutcomeExample ? (
+          <p className="text-xs text-text-soft">{smartOutcomeExample}</p>
+        ) : null}
         <div className="space-y-3">
           {form.smartOutcomes.map((outcome, index) => (
             <div
@@ -484,16 +483,22 @@ export function StrategyKernelStep({ showValidation, isSubmitting }: StrategyKer
       <Section
         title={formatMessage({
           id: "app.admin.assessment.strategyKernel.cynefinTitle",
-          defaultMessage: "Cynefin Phase",
+          defaultMessage: "How Predictable Is This Work?",
         })}
         description={formatMessage({
           id: "app.admin.assessment.strategyKernel.cynefinDescription",
-          defaultMessage: "Classify the complexity of the operating environment.",
+          defaultMessage: "Pick the closest fit (Cynefin)",
         })}
       >
         <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
           {cynefinOptions.map((option) => {
             const isSelected = form.cynefinPhase === option.value;
+            const cynefinExample = formatDomainGuidance(
+              intl,
+              `app.admin.assessment.strategyKernel.cynefinExample.${CYNEFIN_SLUGS[option.value]}`,
+              domainEnum,
+              (guidance) => guidance.cynefinExamples[option.value]
+            );
             return (
               <label
                 key={option.value}
@@ -524,15 +529,9 @@ export function StrategyKernelStep({ showValidation, isSubmitting }: StrategyKer
                 <div>
                   <span className="label-md font-medium">{option.label}</span>
                   <p className="mt-0.5 body-sm text-text-soft">{option.description}</p>
-                  <p className="mt-0.5 body-sm italic text-text-soft/70">
-                    {formatMessage({
-                      id: domainKey(
-                        `app.admin.assessment.strategyKernel.cynefinExample.${CYNEFIN_SLUGS[option.value]}`,
-                        domainEnum
-                      ),
-                      defaultMessage: guidance.cynefinExamples[option.value],
-                    })}
-                  </p>
+                  {cynefinExample ? (
+                    <p className="mt-0.5 body-sm italic text-text-soft/70">{cynefinExample}</p>
+                  ) : null}
                 </div>
               </label>
             );

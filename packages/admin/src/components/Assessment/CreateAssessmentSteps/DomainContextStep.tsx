@@ -8,9 +8,8 @@ import { AdminChoiceGroup } from "../../AdminChoiceGroup";
 import { AdminTextArea, AdminTextField } from "../../AdminTextField";
 import {
   ALL_DOMAINS,
-  DOMAIN_GUIDANCE,
   DOMAIN_ICON_CONFIG,
-  domainKey,
+  formatDomainGuidance,
   resolveDomainLabel,
   Section,
 } from "./shared";
@@ -46,12 +45,9 @@ export function DomainContextStep({
     [gardenDomainMask]
   );
 
+  // Null until the steward chooses (DL-047). Placeholders and examples follow a
+  // known domain; before one is chosen the fields show neutral text.
   const selectedDomain = form.domain;
-  // Fallback so an unset/out-of-range persisted domain can't crash the step.
-  // A restored draft can carry a stale `domain`; without this guard the later
-  // `guidance.titlePlaceholder` deref throws on first render and the whole
-  // Create Assessment dialog fails to open. Mirrors resolveDomainMetrics.
-  const guidance = DOMAIN_GUIDANCE[selectedDomain] ?? DOMAIN_GUIDANCE[Domain.SOLAR];
 
   // Auto-select domain when garden mask has exactly 1 domain
   useEffect(() => {
@@ -68,6 +64,13 @@ export function DomainContextStep({
   // Local validation errors, computed from store data
   const fieldErrors = useMemo(
     () => ({
+      domain:
+        form.domain !== null
+          ? null
+          : formatMessage({
+              id: "app.admin.assessment.domainContext.domainRequired",
+              defaultMessage: "Choose a domain",
+            }),
       title:
         form.title.trim().length > 0
           ? null
@@ -90,7 +93,7 @@ export function DomainContextStep({
               defaultMessage: "Location is required",
             }),
     }),
-    [form.title, form.description, form.location, formatMessage]
+    [form.domain, form.title, form.description, form.location, formatMessage]
   );
 
   return (
@@ -112,7 +115,7 @@ export function DomainContextStep({
             defaultMessage: "Domain",
           })}
           columns={4}
-          value={String(selectedDomain)}
+          value={selectedDomain === null ? null : String(selectedDomain)}
           onChange={(next) => {
             if (!isSubmitting) handleDomainChange(Number(next) as Domain);
           }}
@@ -125,6 +128,11 @@ export function DomainContextStep({
             disabled: isSubmitting,
           }))}
         />
+        {showValidation && fieldErrors.domain ? (
+          <p role="alert" className="body-sm text-error-dark">
+            {fieldErrors.domain}
+          </p>
+        ) : null}
       </Section>
 
       {/* Context Fields */}
@@ -148,10 +156,12 @@ export function DomainContextStep({
             disabled={isSubmitting}
             value={form.title}
             onChange={(e) => setField("title", e.target.value)}
-            placeholder={formatMessage({
-              id: domainKey("app.admin.assessment.domainContext.titlePlaceholder", selectedDomain),
-              defaultMessage: guidance.titlePlaceholder,
-            })}
+            placeholder={formatDomainGuidance(
+              intl,
+              "app.admin.assessment.domainContext.titlePlaceholder",
+              selectedDomain,
+              (guidance) => guidance.titlePlaceholder
+            )}
             error={(showValidation && fieldErrors.title) || undefined}
             helperText={formatMessage({
               id: "app.admin.assessment.strategyKernel.titleHelp",
@@ -167,13 +177,12 @@ export function DomainContextStep({
             disabled={isSubmitting}
             value={form.location}
             onChange={(e) => setField("location", e.target.value)}
-            placeholder={formatMessage({
-              id: domainKey(
-                "app.admin.assessment.domainContext.locationPlaceholder",
-                selectedDomain
-              ),
-              defaultMessage: guidance.locationPlaceholder,
-            })}
+            placeholder={formatDomainGuidance(
+              intl,
+              "app.admin.assessment.domainContext.locationPlaceholder",
+              selectedDomain,
+              (guidance) => guidance.locationPlaceholder
+            )}
             error={(showValidation && fieldErrors.location) || undefined}
             helperText={formatMessage({
               id: "app.admin.assessment.strategyKernel.locationHelp",
@@ -192,18 +201,25 @@ export function DomainContextStep({
           disabled={isSubmitting}
           value={form.description}
           onChange={(e) => setField("description", e.target.value)}
-          placeholder={formatMessage({
-            id: domainKey(
-              "app.admin.assessment.domainContext.descriptionPlaceholder",
-              selectedDomain
-            ),
-            defaultMessage: guidance.descriptionPlaceholder,
-          })}
+          placeholder={formatDomainGuidance(
+            intl,
+            "app.admin.assessment.domainContext.descriptionPlaceholder",
+            selectedDomain,
+            (guidance) => guidance.descriptionPlaceholder
+          )}
           error={(showValidation && fieldErrors.description) || undefined}
-          helperText={formatMessage({
-            id: domainKey("app.admin.assessment.domainContext.descriptionHelp", selectedDomain),
-            defaultMessage: guidance.descriptionHelp,
-          })}
+          helperText={
+            formatDomainGuidance(
+              intl,
+              "app.admin.assessment.domainContext.descriptionHelp",
+              selectedDomain,
+              (guidance) => guidance.descriptionHelp
+            ) ??
+            formatMessage({
+              id: "app.admin.assessment.domainContext.descriptionHelp",
+              defaultMessage: "Describe the work, where it happens, and who it serves.",
+            })
+          }
         />
       </Section>
     </div>

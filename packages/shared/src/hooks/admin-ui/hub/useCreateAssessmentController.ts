@@ -45,18 +45,18 @@ function useCreateAssessmentStepConfigs(): Step[] {
       id: "strategy",
       title: formatMessage({
         id: "app.admin.assessment.create.stepStrategy.title",
-        defaultMessage: "Strategy Kernel",
+        defaultMessage: "Challenge & Goals",
       }),
       description: formatMessage({
         id: "app.admin.assessment.create.stepStrategy.description",
-        defaultMessage: "Diagnosis, outcomes, and complexity",
+        defaultMessage: "The challenge, what you'll measure, and how predictable the work is",
       }),
     },
     {
       id: "actionsHarvest",
       title: formatMessage({
         id: "app.admin.assessment.create.stepActionsHarvest.title",
-        defaultMessage: "Actions & Harvest",
+        defaultMessage: "Actions & Reporting Period",
       }),
       description: formatMessage({
         id: "app.admin.assessment.create.stepActionsHarvest.description",
@@ -223,7 +223,8 @@ export function useCreateAssessmentController() {
 
   const buildWorkflowPayload = useCallback(
     (formData: CreateAssessmentFormData): WorkflowAssessmentForm | null => {
-      if (!gardenId || !isAddress(gardenId)) return null;
+      // Validation requires a domain; a missing one is never sent as "domain-null".
+      if (!gardenId || !isAddress(gardenId) || formData.domain === null) return null;
 
       return {
         title: formData.title.trim(),

@@ -35,11 +35,12 @@ export default function CreateAssessment() {
     onDiscard: createAssessment.handleDiscard,
   });
 
-  // Dialog title (Title Case) — distinct from the sentence-case submit button
-  // label (app.assessment.submitAssessment) the footer keeps.
+  // The dialog takes the name of the Hub action that opens it (Create
+  // Assessment); the final button still reads Submit Assessment
+  // (app.assessment.submitAssessment), the act it performs.
   const title = formatMessage({
     id: "cockpit.assessment.createTitle",
-    defaultMessage: "Submit Assessment",
+    defaultMessage: "Create Assessment",
   });
 
   const stepRegistry = {

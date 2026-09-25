@@ -34,7 +34,10 @@ export function ActionsHarvestStep({ showValidation, isSubmitting }: ActionsHarv
   const chainId = useCurrentChain();
   const { data: allActions = [] } = useActions(chainId);
   const domainActions = useMemo(
-    () => allActions.filter((action) => action.domain === selectedDomain),
+    () =>
+      selectedDomain === null
+        ? []
+        : allActions.filter((action) => action.domain === selectedDomain),
     [allActions, selectedDomain]
   );
 
@@ -95,7 +98,7 @@ export function ActionsHarvestStep({ showValidation, isSubmitting }: ActionsHarv
       <Section
         title={formatMessage({
           id: "app.admin.assessment.domainAction.actionsTitle",
-          defaultMessage: "Coherent Actions",
+          defaultMessage: "Which Actions Count",
         })}
         description={formatMessage({
           id: "app.admin.assessment.domainAction.actionsDescription",
@@ -110,7 +113,9 @@ export function ActionsHarvestStep({ showValidation, isSubmitting }: ActionsHarv
                   id: "app.admin.assessment.domainAction.noActions",
                   defaultMessage: "No actions registered for {domain}.",
                 },
-                { domain: resolveDomainLabel(intl, selectedDomain) }
+                {
+                  domain: selectedDomain === null ? "" : resolveDomainLabel(intl, selectedDomain),
+                }
               )}
             </p>
           </div>
