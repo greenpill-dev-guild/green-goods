@@ -19,32 +19,13 @@ import { Link } from "react-router-dom";
 import { AdminButton } from "@/components/AdminButton";
 import { AdminCard, AdminCardBody, AdminCardHeader, AdminCardTitle } from "@/components/AdminCard";
 import { localizeCanonicalActionTitle } from "@/views/Hub/actionDisplay";
-import { AlertRow, SectionStateCard } from "./GardenDetailHelpers";
+import { AlertRow, formatReviewTime, SectionStateCard } from "./GardenDetailHelpers";
 import {
   ACTIVITY_CARD_CLASS,
   RANGE_OPTIONS,
   SECTION_CARD_MIN_HEIGHT,
 } from "./gardenDetail.constants";
 import { KarmaIntegrationPanel } from "./KarmaIntegrationPanel";
-
-const DAY_MS = 24 * 60 * 60 * 1000;
-
-/** Review time reads in days, then weeks past two weeks (DL-044). */
-function formatReviewTime(
-  latencyMs: number | null,
-  formatMessage: ReturnType<typeof useIntl>["formatMessage"]
-): string {
-  if (latencyMs === null) return formatMessage({ id: "app.garden.detail.metric.notAvailable" });
-  const days = latencyMs / DAY_MS;
-  if (days < 1) return formatMessage({ id: "app.garden.detail.metric.underADay" });
-  if (days <= 14) {
-    return formatMessage({ id: "app.garden.detail.metric.daysValue" }, { days: Math.round(days) });
-  }
-  return formatMessage(
-    { id: "app.garden.detail.metric.weeksValue" },
-    { weeks: Math.round(days / 7) }
-  );
-}
 
 export interface OverviewTabProps {
   mode: "health" | "activity";

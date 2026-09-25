@@ -20,6 +20,25 @@ import { AdminCard, AdminCardBody, AdminCardTitle } from "@/components/AdminCard
 import { AdminTooltip } from "@/components/AdminTooltip";
 import { ALERT_LABEL_CLASSES, BADGE_TONE_CLASSES } from "./gardenDetail.constants";
 
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+/** Review time reads in days, then weeks past two weeks (DL-044). */
+export function formatReviewTime(
+  latencyMs: number | null,
+  formatMessage: ReturnType<typeof useIntl>["formatMessage"]
+): string {
+  if (latencyMs === null) return formatMessage({ id: "app.garden.detail.metric.notAvailable" });
+  const days = latencyMs / DAY_MS;
+  if (days < 1) return formatMessage({ id: "app.garden.detail.metric.underADay" });
+  if (days <= 14) {
+    return formatMessage({ id: "app.garden.detail.metric.daysValue" }, { days: Math.round(days) });
+  }
+  return formatMessage(
+    { id: "app.garden.detail.metric.weeksValue" },
+    { weeks: Math.round(days / 7) }
+  );
+}
+
 export function TabBadge({ badge }: { badge: TabBadgeState }) {
   if (badge.severity === "none" || !badge.count) {
     return null;
