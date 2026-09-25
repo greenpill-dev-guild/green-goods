@@ -442,19 +442,19 @@
   --tone-surface-tint-color: rgb(var(--yellow-500) / 5%);
 }
 
-/* Actions — Red */
+/* Actions — Purple (DL-045). Off the error red, so the workspace no longer
+ * reads as an alarm; purple-700 is dual-safe at 7.93:1 as a white-text fill
+ * and as accent text on white. */
 [data-tone="actions"] {
-  /* red-500 (handoff 224 56 53) measured 4.39 as a white-text fill and as
-   * accent text on white — red-700 is dual-safe at 6.4 both directions. */
-  --tone-primary: var(--red-700);
+  --tone-primary: var(--purple-700);
   --tone-on-primary: 255 255 255;
-  --tone-action: var(--red-700);
-  --tone-action-hover: var(--red-800);
+  --tone-action: var(--purple-700);
+  --tone-action-hover: var(--purple-800);
   --tone-on-action: 255 255 255;
-  --tone-primary-container: var(--red-100);
-  --tone-on-primary-container: var(--red-900);
-  --tone-on-surface-accent: var(--red-700);
-  --tone-surface-tint-color: rgb(var(--red-500) / 5%);
+  --tone-primary-container: var(--purple-100);
+  --tone-on-primary-container: var(--purple-900);
+  --tone-on-surface-accent: var(--purple-700);
+  --tone-surface-tint-color: rgb(var(--purple-500) / 5%);
 }
 
 /* Home — Stone/Neutral (unauthenticated) */
@@ -552,16 +552,16 @@
 
 [data-theme="dark"][data-tone="actions"],
 [data-theme="dark"] [data-tone="actions"] {
-  --tone-primary: var(--red-200);
-  --tone-on-primary: var(--red-900);
-  /* DL-009 tonal: fill 6.04:1 · hover 7.00:1 */
-  --tone-action: var(--red-200);
-  --tone-action-hover: var(--red-100);
-  --tone-on-action: var(--red-900);
-  --tone-primary-container: var(--red-900);
-  --tone-on-primary-container: var(--red-100);
-  --tone-on-surface-accent: var(--red-200);
-  --tone-surface-tint-color: rgb(var(--red-200) / 10%);
+  --tone-primary: var(--purple-200);
+  --tone-on-primary: var(--purple-900);
+  /* DL-009 tonal: fill 7.27:1 · hover 8.73:1 (DL-045) */
+  --tone-action: var(--purple-200);
+  --tone-action-hover: var(--purple-100);
+  --tone-on-action: var(--purple-900);
+  --tone-primary-container: var(--purple-900);
+  --tone-on-primary-container: var(--purple-100);
+  --tone-on-surface-accent: var(--purple-200);
+  --tone-surface-tint-color: rgb(var(--purple-200) / 10%);
 }
 
 [data-theme="dark"][data-tone="home"],

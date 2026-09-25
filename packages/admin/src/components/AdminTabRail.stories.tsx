@@ -352,12 +352,18 @@ export const CommunityTone: Story = {
 };
 
 /** Actions tone — clay accent. */
+/** The Actions workspace is purple, off the error red (DL-045): purple-700 in light. */
 export const ActionsTone: Story = {
+  tags: ["storybook-ci"],
   render: () => (
     <ToneFrame tone="actions">
       <StagesDemo ariaLabel="Actions tabs" />
     </ToneFrame>
   ),
+  play: async ({ canvasElement }) => {
+    const active = await within(canvasElement).findByRole("tab", { selected: true });
+    await expect(getComputedStyle(active).color).toBe("rgb(91, 44, 201)");
+  },
 };
 
 // --- reduced motion ---------------------------------------------------------
