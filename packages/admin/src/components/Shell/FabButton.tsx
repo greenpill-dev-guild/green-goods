@@ -151,7 +151,9 @@ export function FabButton({ config, mobileFloating = false }: FabButtonProps) {
       {/* Speed dial items — animate upward from FAB */}
       {speedDialOpen && !isSingleAction && (
         <div // eslint-disable-line jsx-a11y/interactive-supports-focus -- menu items are focusable <button role="menuitem"> children; focus moves to the first on open
-          className="speed-dial-list absolute bottom-full right-0 mb-2 flex flex-col-reverse items-end gap-2 overflow-y-auto overflow-x-hidden overscroll-contain py-0.5"
+          // w-max: an absolute list inside the FAB's 56px box would otherwise
+          // shrink to its narrowest word and wrap every label.
+          className="speed-dial-list absolute bottom-full right-0 mb-2 flex w-max flex-col-reverse items-end gap-2 overflow-y-auto overflow-x-hidden overscroll-contain py-0.5"
           style={{
             maxHeight:
               "calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 9.5rem)",

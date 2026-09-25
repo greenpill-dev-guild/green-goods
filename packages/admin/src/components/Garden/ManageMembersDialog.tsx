@@ -255,9 +255,11 @@ export function ManageMembersDialog({
                 {visiblePeople.map(({ address, roles }) => (
                   <li
                     key={address}
-                    className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2 rounded-[var(--m3-shape-md)] bg-bg-weak px-3 py-2.5"
+                    className="space-y-2 rounded-[var(--m3-shape-md)] bg-bg-weak px-3 py-2.5"
                   >
-                    <AddressDisplay address={address} className="min-w-0 flex-1" />
+                    {/* The person, then their roles beneath, as the directory rows read,
+                        so a long address and three roles never crowd one line. */}
+                    <AddressDisplay address={address} className="min-w-0" />
                     {/* Each role keeps its own remove, named for the role it takes away. */}
                     <div className="flex flex-wrap items-center gap-2">
                       {roles.map((role) => {
