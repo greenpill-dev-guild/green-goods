@@ -172,13 +172,29 @@
       "status": "tdd_recorded",
       "branch": null,
       "note": "Recorded RED/GREEN TDD proof"
+    },
+    {
+      "timestamp": "2026-09-25T07:58:53.000Z",
+      "actor": "claude",
+      "lane": "state_api",
+      "status": "completed",
+      "branch": "fix/actions-capitals-crash",
+      "note": "PR1 (pr1_actions_crash) merged into develop as #904; PRD-982 Done"
+    },
+    {
+      "timestamp": "2026-09-25T07:58:53.000Z",
+      "actor": "claude",
+      "lane": "ui",
+      "status": "in_progress",
+      "branch": "fix/hub-review-and-queue-health",
+      "note": "PR2 (pr2_hub_review_queue) rebased onto develop after PR1 merged"
     }
   ],
   "execution_sub_lanes": {
     "pr1_actions_crash": {
       "machine_lane": "state_api",
       "owner": "claude",
-      "status": "in_progress",
+      "status": "completed",
       "branch": "fix/actions-capitals-crash",
       "depends_on": [],
       "handoff": "handoffs/pr1-actions-crash.md",
@@ -192,7 +208,7 @@
     "pr2_hub_review_queue": {
       "machine_lane": "ui",
       "owner": "claude",
-      "status": "blocked",
+      "status": "in_progress",
       "branch": "fix/hub-review-and-queue-health",
       "depends_on": ["pr1_actions_crash"],
       "handoff": "handoffs/pr2-hub-review-queue.md",
@@ -201,7 +217,6 @@
         "issue": "PRD-983",
         "parentIssue": "PRD-981"
       },
-      "blocked_reason": "Starts from develop after PR1 merges.",
       "linear_issues": ["PRD-983", "PRD-981"]
     },
     "pr3_garden_community": {

@@ -53,17 +53,17 @@ PR1's branch already carries this hub as its first commit.
 
 - [x] RED table test for capital parsing, then the fix
 - [x] Rendered `/actions` proof
-- [ ] PR opened, CI green, bot reviews resolved, merged
-- [ ] Sub-lane and Linear child updated
+- [x] PR opened, CI green, bot reviews resolved, merged
+- [x] Sub-lane and Linear child updated
 
 ### PR2 — Hub
 
-- [ ] Work titles, repeats, and dates (D2, D28, D29)
-- [ ] Reject reason dialog (D3, DEC-G), codify DL-048
-- [ ] Confidence selector and early warnings (D12, D13)
-- [ ] Queue health and review time (D5, DEC-B), codify DL-044
-- [ ] Assessment language (D23, DEC-E, D8), codify DL-047
-- [ ] Certify polish (D31, D35)
+- [x] Work titles, repeats, and dates (D2, D28, D29)
+- [x] Reject reason dialog (D3, DEC-G), codify DL-048
+- [x] Confidence selector and early warnings (D12, D13)
+- [x] Queue health and review time (D5, DEC-B), codify DL-044
+- [x] Assessment language (D23, DEC-E, D8), codify DL-047
+- [x] Certify polish (D31, D35)
 - [ ] Stories, en/es/pt, QA catalog, rendered proof, critical gate
 - [ ] PR opened, CI green, bot reviews resolved, merged; sub-lane and Linear child updated
 
