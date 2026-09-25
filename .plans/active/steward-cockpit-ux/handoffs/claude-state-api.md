@@ -19,8 +19,11 @@
 
 ## TDD Proof
 
-- RED: pending
-- GREEN: pending
+- RED: PR1 — `greengoods.module.test.ts` → 7 failed (the capital parser did not exist;
+  `getActions` returned the indexer's names), and `useBaseLists.test.ts` with the list `select`
+  removed → 1 failed (a cached list kept its names). PR2, PR3, and PR5: pending.
+- GREEN: PR1 — those files plus `useSuspenseBaseLists.test.ts` → 48 passed at 2095e6662; details
+  in [PR1](pr1-actions-crash.md). PR2, PR3, and PR5: pending.
 - Proof limit: none recorded
 
 ## Validation

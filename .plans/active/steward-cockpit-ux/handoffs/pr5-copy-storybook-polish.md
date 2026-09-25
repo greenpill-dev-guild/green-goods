@@ -97,8 +97,8 @@ after; mock-auth localhost captures of any view whose census moved.
 
 ## TDD Proof
 
-- RED: not applicable for the styling moves; the ratchet's first run against a seeded raw size is
-  its proof
+- RED: not applicable for the styling moves; seed one raw type-size violation and one view-level
+  `--m3-*` colour violation, and record that each collector reports its own violation
 - GREEN: pending
 - Proof limit: record the census as the fallback evidence for the migration
 

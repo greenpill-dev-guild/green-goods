@@ -11,7 +11,7 @@
 | # | Decision | Rationale |
 |---|---|---|
 | 1 | Five grouped PRs, in order: PR1 Actions crash, PR2 Hub, PR3 Garden and Community, PR4 Shell, cookies, tone and every visual-rule change, PR5 Copy, Storybook and polish. | Reviewable surfaces; PR2 and PR3 share `useGardenDerivedState`, so they run one after the other. |
-| 2 | The implementing agent merges PR1, PR2, PR3, and PR5 with `gh pr merge <n> --repo greenpill-dev-guild/green-goods --merge` once CI Gate is green and bot reviews are resolved. PR4 waits for Afo's yes. | Afo delegated routine merges; visual-rule changes need a rendered look first. |
+| 2 | The implementing agent merges PR1, PR2, PR3, and PR5 with `gh pr merge <n> --repo greenpill-dev-guild/green-goods --merge` once CI Gate is green and bot reviews are resolved. PR4 waits for Afo's yes, and PR5 starts and merges only after PR4 has merged. | Afo delegated routine merges; visual-rule changes need a rendered look first. |
 | 3 | One Linear parent plus one child issue per PR, mirrored as execution sub-lanes (`lane_issues`). | Visibility per PR for the implementing agent. |
 | 4 | D7 dropped (fixed by #894); D26 dropped (loading join requests signs a proof); D36 kept as an amendment to DL-008 for phones. | Re-verification on 2026-09-25. |
 | 5 | D32 migrates every raw type size (339 uses in 78 admin files) and every view-level raw `--m3-*` colour, plus a ratchet in `scripts/design/check-tokens.sh`. | Afo chose the full migration over touched-files-only. |
@@ -43,8 +43,9 @@
 | PR4 | `pr4_shell_cookies_tone` | `feature/shell-cookies-and-actions-tone` | DEC-A, D8, D16, D17, D18, D19, D20, D21, D22, D31, D34, D36 | [handoff](handoffs/pr4-shell-cookies-tone.md) | after Afo's yes |
 | PR5 | `pr5_copy_storybook_polish` | `refactor/admin-type-scale-and-stories` | D24, D25, D30, D32, D33 | [handoff](handoffs/pr5-copy-storybook-polish.md) | agent, on green |
 
-Each PR starts from a fresh `origin/develop` after the previous one merges. PR1's branch already
-carries this hub as its first commit.
+Each PR starts from a fresh `origin/develop` after the previous one merges, in the implementing
+session's own worktree (never the shared primary checkout, so no other session's branch moves).
+PR1's branch already carries this hub as its first commit.
 
 ## Lane Checklists
 

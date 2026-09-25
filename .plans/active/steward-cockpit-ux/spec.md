@@ -28,7 +28,7 @@ carry file-level instructions, tests, and validation.
 
 Execution decisions (2026-09-25): five grouped PRs in order PR1 → PR5; the implementing agent
 merges PR1, PR2, PR3, and PR5 with `--merge` once CI Gate is green and bot reviews are resolved;
-PR4 waits for Afo's yes on before/after screenshots; one Linear parent plus one child per PR; the
+PR4 waits for Afo's yes on before/after screenshots, and PR5 merges only after PR4 has merged; one Linear parent plus one child per PR; the
 QA catalog changes in the PR that changes the behaviour (new IDs from ADM-177); each PR adds
 in-between-state stories for the write surfaces it changes; D13 is fixed in the shared
 `ConfidenceSelector`, so the client review sheet changes too; D32 migrates every raw type size and

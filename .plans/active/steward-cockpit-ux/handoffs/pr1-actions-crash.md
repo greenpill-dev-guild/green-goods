@@ -31,6 +31,17 @@
    This is the only unsafe `as Capital` cast in the repository.
 3. No UI change is needed once only known capitals reach the views.
 
+## Implementation Notes
+
+- The source-structure cap (500 lines) and the need below moved the parser into
+  `packages/shared/src/modules/data/indexer-capitals.ts`. It derives names from the numeric enum
+  instead of restating them. `parseIndexerDomain` stays in `greengoods.ts`, which the ontology's
+  `parsedomain-unknown-coercion` watch reads.
+- Codex's review of 608bc9957 found that the reading cache (kept for days) already holds rows with
+  the indexer's names for every deployer who met the crash, and restoring it skips the fetch that
+  parses. `useActions` and `useSuspenseActions` now pass data through `withKnownCapitals` as a query
+  `select`, so fetched and restored lists reach components with known capitals only.
+
 ## Tests
 
 - RED first: an `it.each` table in
@@ -72,20 +83,24 @@ detail dialog opened with Material, Social, and Experiential chips.
   on 768bb0b0c plus the new tests → 7 failed | 14 passed: the six table rows failed because
   `parseIndexerCapital` did not exist, and `getActions` returned
   `["MATERIAL", "UNKNOWN", "SOCIAL"]` unparsed where `[1, 0]` was expected.
-- GREEN: the same command on d0040ec53 → 22 passed (the table gained a `"toString"` row, which
+- RED (restored cache): `bun run --filter @green-goods/shared test -- src/__tests__/hooks/blockchain/useBaseLists.test.ts`
+  with the list hook's `select` removed → 1 failed | 14 passed: a list seeded into the cache with
+  `["MATERIAL", "UNKNOWN", "SOCIAL"]` came back unparsed.
+- GREEN: on 2095e6662, `greengoods.module.test.ts`, `useBaseLists.test.ts`, and
+  `useSuspenseBaseLists.test.ts` → 48 passed (the capital table gained a `"toString"` row, which
   guards the enum lookup against prototype keys).
 - Proof limit: none
 
 ## Validation Receipt
 
-- Tested implementation commit SHA: `d0040ec53cfa161562588dc566a28448ab5fcb6c`
-- Run at (UTC): `2026-09-25T06:40:38Z`
-- Exact command(s): `bun run --filter @green-goods/shared test -- src/__tests__/modules/greengoods.module.test.ts`; `bun run --filter @green-goods/shared typecheck`; `node scripts/dev/ci-local.js --intent push --reuse-passing-receipts --test-path shared:src/__tests__/modules/greengoods.module.test.ts`
-- Result: 22 passed (1 file); shared typecheck exit 0; push gate "Selected validation plan passed" (format, lint, shared-test, source-structure, ontology, agent-guidance)
-- Validated paths: `packages/shared/src/modules/data/greengoods.ts`, `packages/shared/src/__tests__/modules/greengoods.module.test.ts`
-- Worktree identity command and result: `git status --porcelain=v1 --untracked-files=all -- packages/shared/src/modules/data/greengoods.ts packages/shared/src/__tests__/modules/greengoods.module.test.ts` → empty
-- Evidence-only diff command and result (if applicable): not applicable
-- Evidence-only worktree-status command and result (if applicable): not applicable
+- Tested implementation commit SHA: `2095e6662d896e2eca3a482be16dae53cf9d76d6`
+- Run at (UTC): `2026-09-25T06:58:55Z`
+- Exact command(s): `bun run --filter @green-goods/shared test -- src/__tests__/modules/greengoods.module.test.ts src/__tests__/hooks/blockchain/useBaseLists.test.ts src/__tests__/hooks/blockchain/useSuspenseBaseLists.test.ts`; `bun run --filter @green-goods/shared typecheck`; `PATH="$PWD/node_modules/.bin:$PATH" node scripts/dev/ci-local.js --intent push --reuse-passing-receipts --test-path shared:src/__tests__/hooks/blockchain/useBaseLists.test.ts`
+- Result: 48 passed (3 files); shared typecheck exit 0; push gate (critical plan, 23 checks: format, lint, shared/client/admin/agent typechecks, suites, and builds, source-structure, design-guardrails, ontology, agent-guidance, supply-chain) "Selected validation plan passed"
+- Validated paths: `packages/shared/src/modules/data/indexer-capitals.ts`, `packages/shared/src/modules/data/greengoods.ts`, `packages/shared/src/hooks/blockchain/useBaseLists.ts`, `packages/shared/src/hooks/blockchain/useSuspenseBaseLists.ts`, `packages/shared/src/__tests__/modules/greengoods.module.test.ts`, `packages/shared/src/__tests__/hooks/blockchain/useBaseLists.test.ts`
+- Worktree identity command and result: `git status --porcelain=v1 --untracked-files=all -- packages/shared/src/modules/data/indexer-capitals.ts packages/shared/src/modules/data/greengoods.ts packages/shared/src/hooks/blockchain/useBaseLists.ts packages/shared/src/hooks/blockchain/useSuspenseBaseLists.ts packages/shared/src/__tests__/modules/greengoods.module.test.ts packages/shared/src/__tests__/hooks/blockchain/useBaseLists.test.ts` → empty
+- Evidence-only diff command and result (if applicable): `git diff --exit-code 2095e6662d896e2eca3a482be16dae53cf9d76d6..HEAD -- packages/shared/src/modules/data/indexer-capitals.ts packages/shared/src/modules/data/greengoods.ts packages/shared/src/hooks/blockchain/useBaseLists.ts packages/shared/src/hooks/blockchain/useSuspenseBaseLists.ts packages/shared/src/__tests__/modules/greengoods.module.test.ts packages/shared/src/__tests__/hooks/blockchain/useBaseLists.test.ts` → empty (exit 0); the later commit changes only `.plans/`
+- Evidence-only worktree-status command and result (if applicable): `git status --porcelain=v1 --untracked-files=all -- packages/shared/src/modules/data/indexer-capitals.ts packages/shared/src/modules/data/greengoods.ts packages/shared/src/hooks/blockchain/useBaseLists.ts packages/shared/src/hooks/blockchain/useSuspenseBaseLists.ts packages/shared/src/__tests__/modules/greengoods.module.test.ts packages/shared/src/__tests__/hooks/blockchain/useBaseLists.test.ts` → empty
 
 ## Risks / Blockers
 
