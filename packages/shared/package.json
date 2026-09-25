@@ -242,6 +242,7 @@
     "./hooks/vault/useVaultWithdraw": "./src/hooks/vault/useVaultWithdraw.ts",
     "./hooks/work/useWorkApproval": "./src/hooks/work/useWorkApproval.ts",
     "./hooks/work/useWorkForm": "./src/hooks/work/useWorkForm.ts",
+    "./hooks/work/useWorkMetadata": "./src/hooks/work/useWorkMetadata.ts",
     "./hooks/work/useWorkMutation": "./src/hooks/work/useWorkMutation.ts",
     "./hooks/work/useWorks": "./src/hooks/work/useWorks.ts",
     "./hooks/yield/useGardenYieldWiringState": "./src/hooks/yield/useGardenYieldWiringState.ts",

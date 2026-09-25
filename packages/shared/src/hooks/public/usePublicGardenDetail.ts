@@ -50,6 +50,7 @@ export interface PublicFieldNote {
   id: string;
   title: string;
   feedback: string;
+  metadata: string;
   media: string[];
   gardenerAddress: Address;
   gardenAddress: Address;
@@ -101,6 +102,7 @@ function adaptWorkToFieldNote(work: EASWork): PublicFieldNote {
     id: work.id,
     title: work.title,
     feedback: work.feedback,
+    metadata: work.metadata,
     media: work.media,
     gardenerAddress: work.gardenerAddress,
     gardenAddress: work.gardenAddress,
