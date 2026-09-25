@@ -91,6 +91,7 @@ CSS Grid with named areas:
 
 - **Plus Jakarta Sans** across everything — titles (600), body (400), labels (500)
 - Compressed cockpit scale: 22px/28px title-large for dialog and flow titles and the app bar · 16px/24px title-medium (weight 600) for the route header, every card title, and section titles via `AdminCardTitle` · 14px body and labels (every AdminButton size, DL-030) · 12px meta and floating field labels · 11px inside chips only · 16px field text on touch widths. The chrome already declares the workspace, so the route header is a waypoint, not a headline. No display or headline ramp — nothing in the cockpit takes a display size.
+- Every size comes from this scale: the named classes (`body-sm` 14px body, `body-xs` 12px meta, `label-xs` 12px label, `label-sm` 11px chips) and the `text-title-*` aliases. `check:design-tokens` fails on a raw Tailwind size anywhere in `src/`, stories included (frontend-design Rule 9).
 - Utility copy, status language, task framing — not marketing copy
 - Labels and timestamps are the most important typographic element (stewards scan metadata)
 
