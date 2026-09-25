@@ -184,8 +184,8 @@ Vitest project):
   icon); GREEN 4 passed.
 - Tab rail cue (16:53Z): the `OverflowOnAPhone` rail story failed (no overflow state); GREEN 3
   passed.
-- Alerts on phones (17:13Z): `OverviewTab.test.tsx` 1 failed (Attention Needed followed the health
-  card at phone width); GREEN 60 passed across the Garden tests.
+- Alerts on phones (17:13Z): `OverviewTab.test.tsx` 1 failed (the Attention Needed card followed the
+  health card at phone width); GREEN 60 passed across the Garden tests.
 - Purple Actions (17:15Z): the `ActionsTone` rail story failed (active tab rgb(208, 37, 51), the
   error red); GREEN rgb(91, 44, 201).
 - Campaign cookie jars (17:19Z–17:31Z): shared `useProtocolPool.test.ts` 3 failed (no
@@ -194,18 +194,35 @@ Vitest project):
   and 6 passed.
 - Arrival scroll (17:43Z): `PageTransition.test.tsx` 1 failed (a workspace switch reset to the top
   instead of the `data-route-item` target); GREEN 19 passed.
+- Codex's first review (20:03Z–20:08Z): `campaignCookieJarDraft.test.ts` 3 failed (a changed payout
+  asset, withdrawal interval, or jar owner did not count as an edit to discard); GREEN 13 passed.
+  `AdminTabRail.test.tsx` 1 failed (a tab that widened inside an unchanged rail left no fade); GREEN 4
+  passed. Shared `NavigationBarFab.test.tsx` 1 failed (the dial still drew the rotating plus); GREEN
+  passed. `useProtocolPool.test.ts` 1 failed (the deployment's root garden was not the protocol garden
+  where pooling is not deployed); GREEN 4 passed. `useEligibleAdminGardens.test.ts` 1 failed (a
+  deployer without a role there could not select the protocol garden); GREEN 14 passed.
+- Codex's second review (20:31Z): `FabButton.test.tsx` and shared `NavigationBarFab.test.tsx` both
+  failed (an open dial was still named Open Actions); GREEN both passed.
+- CodeRabbit's review (20:44Z): `AdminTabRail.test.tsx` 1 failed (a selected tab landed flush with
+  the rail's edge, under its fade: scrollLeft 14 where the first tab start that clears it is 56);
+  GREEN 5 passed, with the two older cases moved from the flush-edge offset (100) to the tab's own
+  snap position (120). In Chromium the rail snaps even a programmatic scroll, so the flush offset
+  never held: on the 283px phone story Work landed at 0–122 under the start fade and Assess at
+  126–258 under the end fade; after the fix they land at 40–162 and 45–178, clear of both.
 - Proof limit: the flow dialog's step-navigation story was written with the flow; its storybook-ci
-  play passes. The QA catalog cases are the manual proof.
+  play passes. The QA catalog cases are the manual proof. The phone tabs' large-text wrap
+  (Codex's second review) needs layout jsdom lacks; Chromium at 360px with 20px labels measured
+  Profile ending at 374 before (the nav overflowed) and the five tabs ending at 355 after.
 
 ## Validation Receipt
 
-- Tested implementation commit SHA: `1d2f9584effc6ec136d4c004ba1242bc472f2937` (on `develop` with PR3, #906, merged, after Codex's first review of #908; the receipts on `e2a85abd5` and `a6f43eb1b` are superseded)
-- Run at (UTC): full suites `2026-09-25T20:09:07Z` to `2026-09-25T20:11:46Z`; push gate `2026-09-25T20:11:59Z` to `2026-09-25T20:16:14Z`
-- Exact command(s): `bun run --filter @green-goods/{admin,shared,client} test`; `bun run --filter @green-goods/shared test:stories:ci`; `PATH="$PWD/node_modules/.bin:$PATH" node scripts/dev/ci-local.js --intent push --reuse-passing-receipts --check ontology --check docs-generated --check design-guardrails --test-path shared:src/__tests__/hooks/garden/useEligibleAdminGardens.test.ts`
-- Result: admin 1052, shared 5824 (17 skipped), and client 1399 tests passed, and the storybook-ci story suite passed (96 files, 340 tests); the push gate exited 0 on the critical plan with 29 automated checks passed: format, lint, the shared, client, admin, and agent typechecks, test typechecks, suites, and builds, docs-authority, docs-test, docs-build, source-structure, design-guardrails, ontology, agent-guidance, qa-id-ledger, supply-chain, story-quality, storybook-build, agent-tools-test, and docs-generated. Earlier failures on this branch, all fixed: docs-authority on `31703f66f` (the Funding and Governance source of truth), Build Docs on `f891e3d70` (ADM-187 and ADM-188 named a non-persona role), and the admin Playwright smoke test on `f70febbca` (the old Account heading). Browser-proof stays the manual proof under Rendered Proof
+- Tested implementation commit SHA: `b07aed27e56d8bb8367c004314705dfac8a3ebd4` (after Codex's second review and CodeRabbit's review of #908; the receipts on `1d2f9584e`, `e2a85abd5`, and `a6f43eb1b` are superseded)
+- Run at (UTC): full suites `2026-09-25T20:48:06Z` to `2026-09-25T20:50:57Z`; push gate `2026-09-25T20:50:57Z` to `2026-09-25T20:54:48Z`
+- Exact command(s): `bun run --filter @green-goods/{admin,shared,client} test`; `bun run --filter @green-goods/shared test:stories:ci`; `PATH="$PWD/node_modules/.bin:$PATH" node scripts/dev/ci-local.js --intent push --reuse-passing-receipts --check ontology --check docs-generated --check design-guardrails --test-path admin:src/__tests__/components/AdminTabRail.test.tsx`
+- Result: admin 1053, shared 5824 (17 skipped), and client 1399 tests passed, and the storybook-ci story suite passed (96 files, 340 tests); the push gate exited 0 on the critical plan with 29 automated checks passed: format, lint, the shared, client, admin, and agent typechecks, test typechecks, suites, and builds, docs-authority, docs-test, docs-build, source-structure, design-guardrails, ontology, agent-guidance, qa-id-ledger, supply-chain, story-quality, storybook-build, agent-tools-test, and docs-generated. Earlier failures on this branch, all fixed: docs-authority on `31703f66f` (the Funding and Governance source of truth), Build Docs on `f891e3d70` (ADM-187 and ADM-188 named a non-persona role), and the admin Playwright smoke test on `f70febbca` (the old Account heading). Browser-proof stays the manual proof under Rendered Proof
 - Validated paths: `packages/admin/src` `packages/shared/src` `packages/shared/.storybook` `packages/admin/DESIGN.md` `packages/admin/AGENTS.md` `scripts/data` `docs/docs` `tests/specs` `.claude/skills` `.claude/rules`
 - Worktree identity command and result: `git status --porcelain=v1 --untracked-files=all -- packages/admin/src packages/shared/src packages/shared/.storybook packages/admin/DESIGN.md packages/admin/AGENTS.md scripts/data docs/docs tests/specs .claude/skills .claude/rules` → empty
-- Evidence-only diff command and result (if applicable): `git diff --exit-code 1d2f9584effc6ec136d4c004ba1242bc472f2937..HEAD -- packages/admin/src packages/shared/src packages/shared/.storybook packages/admin/DESIGN.md packages/admin/AGENTS.md scripts/data docs/docs tests/specs .claude/skills .claude/rules` → empty (exit 0); the receipt commit changes only `.plans/`
+- Evidence-only diff command and result (if applicable): `git diff --exit-code b07aed27e56d8bb8367c004314705dfac8a3ebd4..HEAD -- packages/admin/src packages/shared/src packages/shared/.storybook packages/admin/DESIGN.md packages/admin/AGENTS.md scripts/data docs/docs tests/specs .claude/skills .claude/rules` → empty (exit 0); the receipt commit changes only `.plans/`
 - Evidence-only worktree-status command and result (if applicable): `git status --porcelain=v1 --untracked-files=all -- packages/admin/src packages/shared/src packages/shared/.storybook packages/admin/DESIGN.md packages/admin/AGENTS.md scripts/data docs/docs tests/specs .claude/skills .claude/rules` → empty
 
 ## Risks / Blockers

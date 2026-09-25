@@ -10,7 +10,7 @@
     "overall_status": "active",
     "priority": "p1",
     "created_at": "2026-09-25T05:02:27.261Z",
-    "updated_at": "2026-09-25T13:26:39.143Z"
+    "updated_at": "2026-09-25T20:55:42.492Z"
   },
   "links": {
     "brief": "brief.md",
@@ -58,12 +58,12 @@
         "mode": "required",
         "status": "green_recorded",
         "red": {
-          "command": "bun run --filter @green-goods/admin test -- src/__tests__/views/GardenVaultView.test.tsx src/__tests__/components/PositionCard.test.tsx src/components/Garden/GardenSettingsEditor.test.tsx src/views/Community/components/CommunityMembersTab.test.tsx src/__tests__/components/Garden/ManageMembersDialog.test.tsx src/__tests__/components/AdminViewActions.test.tsx",
-          "evidence": "PR3: GardenVaultView and PositionCard failed (summed base units; repeated yield explanation); GardenSettingsEditor 2 failed (a declined write left no stop, Try Again re-sent the saved name, no helper on the locked Name); CommunityMembersTab and ManageMembersDialog failed (role seats counted as people); AdminViewActions failed (Fund Cookie Jar had no disabled state or reason)"
+          "command": "bun run --filter @green-goods/shared test -- src/__tests__/hooks/admin-ui/view-actions.test.ts src/__tests__/hooks/commitment-pooling/useProtocolPool.test.ts src/__tests__/hooks/garden/useEligibleAdminGardens.test.ts src/__tests__/components/NavigationBarFab.test.tsx src/__tests__/utils/admin-routes.test.ts; bun run --filter @green-goods/admin test -- src/components/Shell/FabButton.test.tsx src/views/Garden/components/OverviewTab.test.tsx src/__tests__/components/AdminTabRail.test.tsx src/__tests__/components/PageTransition.test.tsx src/__tests__/routing/runtime-navigation.test.tsx src/views/Community/components/CommunityPayoutsTab.test.tsx src/views/Cookies/components/CampaignCookieJar/campaignCookieJarDraft.test.ts; the Profile, AppBar, NavigationBar, and AdminTabRail stories through the storybook-ci Vitest project",
+          "evidence": "PR4: the Hub trio rendered filled; the FAB drew a plus, not its primary's icon; Attention Needed followed the health card on phones; there was no isProtocolGarden and no Payouts redirect; the Payouts tab had no Campaign Cookie Jars card or flow; a workspace switch reset to the top; the phone Profile page read Account; the phone chip and nav labels overflowed; the rail had no overflow state; the Actions tab was the error red. Review fixes: a changed payout asset, withdrawal interval, or jar owner was not an edit to discard; a widened tab left no fade; the shared FAB rotated a plus; the deployment's root garden was not the protocol garden without pooling; a deployer could not select it; an open dial was named Open Actions; a selected tab landed under the rail's edge fade"
         },
         "green": {
-          "command": "bun run --filter @green-goods/admin test -- src/__tests__/views/GardenVaultView.test.tsx src/__tests__/components/PositionCard.test.tsx src/components/Garden/GardenSettingsEditor.test.tsx src/views/Community/components/CommunityMembersTab.test.tsx src/__tests__/components/Garden/ManageMembersDialog.test.tsx src/__tests__/components/AdminViewActions.test.tsx",
-          "evidence": "PR3: the same files pass; the admin suite passed 1015 in the critical push gate reused on 59ca04ac0"
+          "command": "bun run --filter @green-goods/{admin,shared,client} test; bun run --filter @green-goods/shared test:stories:ci",
+          "evidence": "PR4: the same files and stories pass; on b07aed27e the admin (1053), shared (5824), and client (1399) suites and storybook-ci (340) passed, and the critical push gate passed"
         },
         "note": ""
       },
@@ -260,6 +260,14 @@
       "status": "in_progress",
       "branch": "feature/shell-cookies-and-actions-tone",
       "note": "PR4 (pr4_shell_cookies_tone) rebased onto develop after PR3 merged"
+    },
+    {
+      "timestamp": "2026-09-25T20:55:42.493Z",
+      "actor": "claude",
+      "lane": "ui",
+      "status": "tdd_recorded",
+      "branch": null,
+      "note": "Recorded RED/GREEN TDD proof"
     }
   ],
   "execution_sub_lanes": {
