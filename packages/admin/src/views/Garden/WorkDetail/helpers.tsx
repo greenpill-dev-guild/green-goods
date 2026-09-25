@@ -80,6 +80,19 @@ export function ReviewSummary({ work }: { work: Work }) {
             : formatMessage({ id: "app.work.status.rejected" })}
         </p>
       </div>
+      {work.reviewFeedback ? (
+        <div className="rounded-md bg-bg-weak p-3">
+          <p className="text-xs font-medium text-text-soft">
+            {formatMessage({
+              id: "app.work.detail.reviewFeedback",
+              defaultMessage: "Feedback to the gardener",
+            })}
+          </p>
+          <p className="mt-0.5 whitespace-pre-line break-words text-sm text-text-strong">
+            {work.reviewFeedback}
+          </p>
+        </div>
+      ) : null}
       <p className="text-xs text-text-soft">
         {formatMessage({ id: "app.work.detail.alreadyReviewed" })}
       </p>

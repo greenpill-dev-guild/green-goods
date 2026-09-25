@@ -34,9 +34,9 @@
         "Open /hub/work",
         "Open a pending submission",
         "Inspect evidence media",
-        "Choose confidence and enter feedback",
+        "Choose a confidence level (none is chosen at first) and enter feedback",
         "Verify Approve and Reject are visible in the pinned dialog action region without scrolling",
-        "Reject or approve",
+        "Approve, or press Reject and give a reason in the Reject Work dialog",
         "Confirm the queue updates"
       ],
       "expected": "The complete decision path works and commit/cancel actions are never hidden inside a clipped scrolling region",

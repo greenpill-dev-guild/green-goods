@@ -169,7 +169,10 @@ describe("local-status-overlay", () => {
   });
 
   describe("resolveGardenWorkRows", () => {
-    function row(id: string, approval?: { approved: boolean } | null): EASWorkListRow {
+    function row(
+      id: string,
+      approval?: { approved: boolean; createdAt?: number; feedback?: string } | null
+    ): EASWorkListRow {
       const base = {
         id,
         title: id,
@@ -184,7 +187,7 @@ describe("local-status-overlay", () => {
       if (approval === undefined) return base;
       return {
         ...base,
-        approval: approval === null ? null : ({ approved: approval.approved } as EASWorkApproval),
+        approval: approval === null ? null : (approval as EASWorkApproval),
       };
     }
 
@@ -235,8 +238,34 @@ describe("local-status-overlay", () => {
       expect(rows[0]?.status).toBe("pending");
     });
 
-    it("keeps saved rows a partial read left out", () => {
+    it("keeps a local decision's feedback only while the decision shows", () => {
+      const decision = {
+        status: "rejected" as const,
+        reviewFeedback: "Wrong site",
+        _isPending: true,
+      };
       const { rows } = resolveGardenWorkRows({
+        remote: [row("live", null), row("lapsed-pending", null), row("lapsed-unread")],
+        saved: undefined,
+        overlay: [
+          overlay({ id: "live", ...decision, _pendingUntilMs: NOW + 1_000 }),
+          overlay({ id: "lapsed-pending", ...decision, _pendingUntilMs: NOW - 1 }),
+          overlay({ id: "lapsed-unread", ...decision, _pendingUntilMs: NOW - 1 }),
+        ],
+        now: NOW,
+      });
+      const shown = Object.fromEntries(
+        rows.map((work) => [work.id, [work.status, work.reviewFeedback]])
+      );
+      expect(shown).toEqual({
+        live: ["rejected", "Wrong site"],
+        "lapsed-pending": ["pending", undefined],
+        "lapsed-unread": ["pending", undefined],
+      });
+    });
+
+    it("keeps saved rows a partial read left out, and names them", () => {
+      const { rows, retainedIds } = resolveGardenWorkRows({
         remote: [row("returned", null)],
         saved: [overlay({ id: "missing", status: "approved" })],
         overlay: undefined,
@@ -246,6 +275,42 @@ describe("local-status-overlay", () => {
         ["missing", "approved"],
         ["returned", "pending"],
       ]);
+      // Their status comes from an earlier read, not this one.
+      expect([...retainedIds]).toEqual(["missing"]);
+    });
+
+    it("carries an indexed decision's time as its review time, never one made only here", () => {
+      const { rows } = resolveGardenWorkRows({
+        remote: [
+          row("indexed", { approved: false, createdAt: 1_700_000_500 }),
+          row("undecided", null),
+          row("decided-here", null),
+        ],
+        saved: [overlay({ id: "left-out", status: "approved", reviewedAt: 1_699_999_000 })],
+        overlay: [overlay({ id: "decided-here", status: "approved", _txHash: "0xabc" })],
+        now: NOW,
+      });
+      const reviewedAt = Object.fromEntries(rows.map((work) => [work.id, work.reviewedAt]));
+      expect(reviewedAt).toEqual({
+        indexed: 1_700_000_500,
+        undecided: undefined,
+        "decided-here": undefined,
+        "left-out": 1_699_999_000,
+      });
+    });
+
+    it("carries the indexed decision's feedback, so a rejection keeps its reason", () => {
+      const { rows } = resolveGardenWorkRows({
+        remote: [
+          row("rejected", { approved: false, createdAt: 1_700_000_500, feedback: "Wrong site " }),
+          row("approved-quietly", { approved: true, createdAt: 1_700_000_600, feedback: "" }),
+        ],
+        saved: undefined,
+        overlay: undefined,
+        now: NOW,
+      });
+      const feedback = Object.fromEntries(rows.map((work) => [work.id, work.reviewFeedback]));
+      expect(feedback).toEqual({ rejected: "Wrong site", "approved-quietly": undefined });
     });
 
     it("shows only saved rows before the first read, and skips work that exists only on this device", () => {

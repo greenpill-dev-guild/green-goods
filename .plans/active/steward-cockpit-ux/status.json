@@ -10,7 +10,7 @@
     "overall_status": "active",
     "priority": "p1",
     "created_at": "2026-09-25T05:02:27.261Z",
-    "updated_at": "2026-09-25T07:06:21.637Z"
+    "updated_at": "2026-09-25T08:04:39.702Z"
   },
   "links": {
     "brief": "brief.md",
@@ -56,14 +56,14 @@
       "handoff": "handoffs/claude-ui.md",
       "tdd": {
         "mode": "required",
-        "status": "pending",
+        "status": "green_recorded",
         "red": {
-          "command": "",
-          "evidence": ""
+          "command": "bun run --filter @green-goods/admin test -- src/__tests__/components/ReviewForm.test.tsx; bun run --filter @green-goods/shared test -- src/__tests__/components/ConfidenceSelector.test.tsx",
+          "evidence": "PR2: ReviewForm.test.tsx 1 failed (Reject sent at once, no Reject Work dialog); ConfidenceSelector.test.tsx 1 failed (None still offered to a required choice)"
         },
         "green": {
-          "command": "",
-          "evidence": ""
+          "command": "bun run --filter @green-goods/admin test -- src/__tests__/components/ReviewForm.test.tsx src/views/Garden/components/OverviewTab.test.tsx src/views/Garden/garden-domain-ui.test.tsx src/__tests__/components/AssessmentStrategyKernelStep.test.tsx src/__tests__/components/AssessmentDomainContextStep.test.tsx",
+          "evidence": "PR2: 23 passed (5 files) at ecfccdda7; the admin suite passed 981 in the critical push gate"
         },
         "note": ""
       },
@@ -79,12 +79,12 @@
         "mode": "required",
         "status": "green_recorded",
         "red": {
-          "command": "bun run --filter @green-goods/shared test -- src/__tests__/modules/greengoods.module.test.ts src/__tests__/hooks/blockchain/useBaseLists.test.ts",
-          "evidence": "PR1: 7 failed (capital parser missing; getActions returned the indexer's names) and, with the list select removed, 1 failed (a cached list kept its names)"
+          "command": "bun run --filter @green-goods/shared test -- src/__tests__/utils/workTitles.test.ts src/__tests__/utils/garden-detail.test.ts src/__tests__/modules/local-status-overlay.test.ts src/__tests__/hooks/assessment/useCreateAssessmentForm.test.ts",
+          "evidence": "PR2: workTitles 7 failed (toWorkDisplayTitle missing); garden-detail 8 failed (summarizeReviewQueue missing); local-status-overlay 1 failed (the indexed decision time came back undefined); useCreateAssessmentForm 1 failed (the default domain was Solar)"
         },
         "green": {
-          "command": "bun run --filter @green-goods/shared test -- src/__tests__/modules/greengoods.module.test.ts src/__tests__/hooks/blockchain/useBaseLists.test.ts src/__tests__/hooks/blockchain/useSuspenseBaseLists.test.ts",
-          "evidence": "PR1: 48 passed at 2095e6662"
+          "command": "bun run --filter @green-goods/shared test -- src/__tests__/utils/workTitles.test.ts src/__tests__/utils/garden-detail.test.ts src/__tests__/hooks/admin-ui/header-stats.test.ts src/__tests__/hooks/garden/useGardenDerivedState.test.ts src/__tests__/modules/local-status-overlay.test.ts src/__tests__/hooks/assessment/useCreateAssessmentForm.test.ts src/__tests__/components/ConfidenceSelector.test.tsx i18n/locale-coverage",
+          "evidence": "PR2: 98 passed (8 files) at ecfccdda7; the shared suite passed 5770 in the critical push gate"
         },
         "note": ""
       },
@@ -172,13 +172,45 @@
       "status": "tdd_recorded",
       "branch": null,
       "note": "Recorded RED/GREEN TDD proof"
+    },
+    {
+      "timestamp": "2026-09-25T07:58:53.000Z",
+      "actor": "claude",
+      "lane": "state_api",
+      "status": "completed",
+      "branch": "fix/actions-capitals-crash",
+      "note": "PR1 (pr1_actions_crash) merged into develop as #904; PRD-982 Done"
+    },
+    {
+      "timestamp": "2026-09-25T07:58:53.000Z",
+      "actor": "claude",
+      "lane": "ui",
+      "status": "in_progress",
+      "branch": "fix/hub-review-and-queue-health",
+      "note": "PR2 (pr2_hub_review_queue) rebased onto develop after PR1 merged"
+    },
+    {
+      "timestamp": "2026-09-25T08:04:39.272Z",
+      "actor": "claude",
+      "lane": "ui",
+      "status": "tdd_recorded",
+      "branch": null,
+      "note": "Recorded RED/GREEN TDD proof"
+    },
+    {
+      "timestamp": "2026-09-25T08:04:39.702Z",
+      "actor": "claude",
+      "lane": "state_api",
+      "status": "tdd_recorded",
+      "branch": null,
+      "note": "Recorded RED/GREEN TDD proof"
     }
   ],
   "execution_sub_lanes": {
     "pr1_actions_crash": {
       "machine_lane": "state_api",
       "owner": "claude",
-      "status": "in_progress",
+      "status": "completed",
       "branch": "fix/actions-capitals-crash",
       "depends_on": [],
       "handoff": "handoffs/pr1-actions-crash.md",
@@ -192,7 +224,7 @@
     "pr2_hub_review_queue": {
       "machine_lane": "ui",
       "owner": "claude",
-      "status": "blocked",
+      "status": "in_progress",
       "branch": "fix/hub-review-and-queue-health",
       "depends_on": ["pr1_actions_crash"],
       "handoff": "handoffs/pr2-hub-review-queue.md",
@@ -201,7 +233,6 @@
         "issue": "PRD-983",
         "parentIssue": "PRD-981"
       },
-      "blocked_reason": "Starts from develop after PR1 merges.",
       "linear_issues": ["PRD-983", "PRD-981"]
     },
     "pr3_garden_community": {

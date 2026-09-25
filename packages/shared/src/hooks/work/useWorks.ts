@@ -16,7 +16,7 @@ import { extractClientWorkId } from "../../utils/work/deduplication";
 import { useOnlineStatus } from "../app/useOnlineStatus";
 import { usePrimaryAddress } from "../auth/usePrimaryAddress";
 import { useLiveQuery } from "../utils/useLiveQuery";
-import { gardenWorkListQuery } from "./gardenWorkListQuery";
+import { gardenWorkListQuery, workSessionStartedAt } from "./gardenWorkListQuery";
 import { useQueuedWorkPreviews } from "./useQueuedWorkPreviews";
 import { useSendingWorkIds } from "./useSendingWorkIds";
 
@@ -177,7 +177,7 @@ export function useWorks(gardenId: string, options: UseWorksOptions = {}) {
     combine: (results) =>
       results.map((result) => result.data as { clientWorkId?: string } | undefined),
   });
-  const { works, unknownIds } = useMemo(() => {
+  const { works, unknownIds, retainedIds } = useMemo(() => {
     const metadataByKey = new Map(
       (remoteData ?? []).map((work, index) => [work.metadata.trim(), metadataByWork[index]])
     );
@@ -222,6 +222,7 @@ export function useWorks(gardenId: string, options: UseWorksOptions = {}) {
     return {
       works: rows.sort((a, b) => b.createdAt - a.createdAt),
       unknownIds: resolved.unknownIds,
+      retainedIds: resolved.retainedIds,
     };
   }, [
     remoteData,
@@ -306,6 +307,19 @@ export function useWorks(gardenId: string, options: UseWorksOptions = {}) {
     onlineCount: remoteData?.length ?? 0,
     /** Whether the garden may have work older than the loaded window. */
     hasOlderWork,
+    /**
+     * Some rows' approvals could not be read, so their status is cached or a
+     * fallback, or a pending row the read left out may have been reviewed
+     * since: queue health must not treat these as current.
+     */
+    hasUnknownStatuses:
+      (remoteData?.some((row) => row.approval === undefined) ?? false) ||
+      works.some((work) => retainedIds.has(work.id) && work.status === "pending"),
+    /**
+     * Whether this session has read the garden's rows. Until then they are a
+     * copy restored from an earlier session, however old.
+     */
+    readThisSession: online.dataUpdatedAt >= workSessionStartedAt(),
     /** Widen the window by one page and read it; a no-op offline. */
     loadOlderWork,
     isLoadingOlder: online.isFetching && take > WORK_LIST_PAGE_SIZE,

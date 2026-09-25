@@ -101,6 +101,7 @@ export function useGardenWorkspaceController() {
     vaultNetDeposited,
     allocations,
     works,
+    worksComplete,
     hypercerts,
     hypercertsLoading,
     roleMembers,
@@ -139,6 +140,7 @@ export function useGardenWorkspaceController() {
   const derived = useGardenDerivedState({
     garden: garden ?? { id: selectedGarden?.id ?? "", domainMask: 0, name: "", chainId: 0 },
     works,
+    worksComplete,
     assessments,
     hypercerts,
     allocations,

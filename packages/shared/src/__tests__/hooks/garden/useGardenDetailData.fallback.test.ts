@@ -191,4 +191,33 @@ describe("useGardenDetailData eligible garden fallback", () => {
     expect(result.current.isWorksError).toBe(true);
     expect(result.current.worksError).toBe(worksError);
   });
+
+  // Rows left from the last good read cannot show that no review landed since.
+  it.each([
+    { name: "a current read", works: {}, complete: true },
+    { name: "a failed refresh", works: { isError: true }, complete: false },
+    { name: "a paused refresh", works: { isPaused: true }, complete: false },
+    { name: "older work", works: { hasOlderWork: true }, complete: false },
+    { name: "unread approvals", works: { hasUnknownStatuses: true }, complete: false },
+    { name: "a restored read", works: { readThisSession: false }, complete: false },
+  ])("treats work after $name as complete queue evidence: $complete", ({ works, complete }) => {
+    mockUseGardens.mockReturnValue({
+      data: [recoveredGarden],
+      isLoading: false,
+      error: null,
+      isError: false,
+    });
+    mockUseWorks.mockReturnValue({
+      ...defaultWorksResult(),
+      isPaused: false,
+      hasOlderWork: false,
+      hasUnknownStatuses: false,
+      readThisSession: true,
+      ...works,
+    });
+
+    const { result } = renderHook(() => useGardenDetailData(recoveredGarden.id));
+
+    expect(result.current.worksComplete).toBe(complete);
+  });
 });

@@ -229,26 +229,35 @@ describe("components/Hypercerts/AttestationSelector", () => {
       expect(screen.getByText("Carbon Sequestration Project")).toBeInTheDocument();
     });
 
-    it("contains long titles beside the selection badge", () => {
+    it("contains long titles beside the Selected badge, and badges no unselected card", () => {
       const longTitle =
         "Maintenance Activity – 2026-03-21T04:55:23.886Z – 2026-03-21T04:55:24.125Z";
 
       render(
         createElement(AttestationSelector, {
           ...defaultProps,
-          attestations: [createMockAttestation({ id: "0xlong", title: longTitle })],
+          attestations: [
+            createMockAttestation({ id: "0xlong", title: longTitle }),
+            createMockAttestation({ id: "0xother", title: "Compost turning" }),
+          ],
+          selectedIds: ["0xlong"],
         })
       );
 
-      const title = screen.getByText(longTitle);
-      const titleColumn = title.parentElement;
+      // The card and its tooltip show the title without its generated stamps.
+      const title = screen.getByText("Maintenance Activity");
+      expect(title).toHaveAttribute("title", "Maintenance Activity");
+      const titleBlock = title.parentElement;
       const card = title.closest("button");
-      const selectionBadge = within(card!).getByText(/^select$/i);
+      const selectionBadge = within(card!).getByText(/^selected$/i);
+      // Only a state earns a badge: the unselected card has none.
+      const unselectedCard = screen.getByText("Compost turning").closest("button");
+      expect(within(unselectedCard!).queryByText(/^select(ed)?$/i)).not.toBeInTheDocument();
 
-      expect(titleColumn).toHaveClass("min-w-0", "flex-1");
+      expect(titleBlock?.parentElement).toHaveClass("min-w-0", "flex-1");
       // AdminSelectableCard owns the title anatomy: a block span with pr-7
       // reserving the selected-check corner so long titles never overlap it.
-      expect(title).toHaveClass("block", "pr-7");
+      expect(titleBlock).toHaveClass("block", "pr-7");
       expect(selectionBadge).toHaveClass("shrink-0");
     });
 

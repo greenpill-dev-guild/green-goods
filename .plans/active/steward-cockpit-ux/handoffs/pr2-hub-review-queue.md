@@ -179,22 +179,56 @@ Mock-auth localhost at 1280 and 375: the Hub queue (neutral cards, header count)
 (title without stamps, Reject reason dialog), Garden Health (stalled vs needs attention, review
 time in days), and Create Assessment steps 1 and 2. Label engine and session in the PR.
 
+Recorded 2026-09-25 (engine: Claude Browser pane, Chromium; session: mock-auth localhost,
+`?mockAuth=deployer`, admin dev server reading the hosted indexer `e6edffd`, Green Goods Community
+Garden):
+
+- Hub queue at 1280 and 375: cards read "Maintenance Activity", "Survival Check", and "Planting
+  Event" without their stamps, each a neutral Pending with "submitted 6 months ago"; the header
+  reads "5 waiting over a week" in plain ink.
+- Review dialog at 1280: titled "Maintenance Activity"; the topline carries only Pending;
+  Submitted reads "Mar 19, 2026, 4:57 PM"; Low, Medium, and High with none chosen and the quiet
+  "Choose a confidence level to approve." (no warning box). Reject opened Reject Work, targeted
+  "Maintenance Activity · 0x68...207", with the typed feedback carried into the reason and the
+  three suggestions; nothing was sent.
+- Garden Health at 1280 and 375: Critical, "No reviews in 7 days, and 6 works are waiting.",
+  Median review time "14 weeks"; activity rows older than a week read their calendar date.
+- Create Assessment at 1280: titled Create Assessment with "Describe the work, its goals, and the
+  period it covers."; step 1 has no domain chosen and no Solar placeholders, and Next showed
+  "Choose a domain" beside the other required fields; step 2 reads "The challenge" with "(the
+  diagnosis)", "What You'll Measure", and "How Predictable Is This Work?" with Agroforestry
+  examples once that domain was chosen.
+
 ## TDD Proof
 
-- RED: pending
-- GREEN: pending
-- Proof limit: none recorded
+- RED, each before its change (`bun run --filter @green-goods/<pkg> test -- <file>`):
+  `workTitles.test.ts` 7 failed (`toWorkDisplayTitle` missing); `garden-detail.test.ts` 8 failed
+  (`summarizeReviewQueue` missing); `local-status-overlay.test.ts` 1 failed (the indexed
+  decision's time came back `undefined`); `ReviewForm.test.tsx` 1 failed (Reject sent at once, no
+  Reject Work dialog); `ConfidenceSelector.test.tsx` 1 failed (None still offered);
+  `useCreateAssessmentForm.test.ts` 1 failed (the default domain was 0, Solar).
+- GREEN: the same files pass after each change; see the receipt for the final run.
+- After review (RED on the code before each fix): `garden-detail` 1 failed (a partial page proved
+  a stall), `AssessmentDomainContextStep` 1 failed (a restored retired domain raised no message),
+  `CreateHypercertDialog` 1 failed (stale restored picks blocked Next silently), and the old stamp
+  pattern took 1,258 ms on 50,000 spaces against the new test's 250 ms bound. Second round: `useWorks`
+  2 failed (no signal that an approval read failed). Third round: the cached-status `useWorks` test failed (a failed read of a cached row left the flag false), `AssessmentDomainContextStep` 2 failed (a single-domain garden came preselected; an undocumented restored domain stayed), and `CreateHypercertDialog` 1 failed (Next stayed pressable while attestations loaded). Fourth round: `useWorkApproval` 2 and `useBatchWorkApproval` 1 failed (a decision's feedback never reached the local overlay), `store-transitions` 1 failed (a new domain kept the old one's actions and metrics), `wizard-transitions` 1 failed (choosing only a domain read as pristine), and `AssessmentDomainContextStep` 1 failed (clearing an undocumented domain kept its actions). Fifth round: `useCreateAssessmentController` 1 failed (a restored undocumented domain was submitted from the last step), and `useWorkApproval` 1 and `useBatchWorkApproval` 1 failed (an empty new feedback left an older reason on the work). Sixth round: `useGardenDetailData.fallback` 2 failed (a failed or paused refresh still counted as complete queue evidence). Seventh round: client `WorkViewSection` 1 failed (the work detail never showed the review's feedback), `CreateHypercertDialog` 1 failed (Next stayed disabled over loaded attestations after a failed refresh), and `ConfidenceSelector` 1 failed (the first arrow chose Low instead of moving to Medium). Eighth round: `local-status-overlay` 1 failed (a lapsed local rejection kept its feedback), client `WorkViewSection` 1 failed (feedback showed on pending work), `useWorks` 1 and `useGardenDetailData.fallback` 1 failed (a restored read counted as complete), and `useCreateAssessmentController` 1 failed (Submit went ahead without the garden's domains). Ninth round: `useCreateAssessmentController` 1 failed (a retired domain on the last step was left for schema validation to reject). Tenth round: `useFormWizardStepValidation` 1 and `useCreateAssessmentController` 2 failed (validation hid again on arrival at the domain step), and `AssessmentActionsHarvestStep` 1 failed (a retired domain crashed the actions step, found in the rendered check). Eleventh round: `HubWorkCard` 1 and `AttestationSelector` 1 failed (hover titles still carried generated stamps). Twelfth round: `local-status-overlay` 1 and `useWorks` 1 failed (rows a read left out were not named, and a kept pending row still proved a stall), `gardenWorkListQuery` 1 failed (rows restored within the stale window were not read again, found in the rendered check), `AdminReasonDialog` 1 failed (a prefilled over-limit reason could be confirmed), and `AssessmentActionsHarvestStep` 1 failed (no known domain read "No actions registered for ."). Then CI: the notification panel story failed in Chromium, locally too (its waiting work lived only in a saved row the read left out, and the session start was taken before Storybook's frozen clock).
+- Proof limit: none. Tests that only moved with the new behaviour (header stats, derived state,
+  Overview, Hub card, Hub detail, attestation selector, assessment steps and dialog, hypercert
+  wizard) are updated or added beside them.
 
 ## Validation Receipt
 
-- Tested implementation commit SHA: pending
-- Run at (UTC): pending
-- Exact command(s): pending
-- Result: pending
-- Validated paths: pending
-- Worktree identity command and result: pending
-- Evidence-only diff command and result (if applicable): not applicable
-- Evidence-only worktree-status command and result (if applicable): not applicable
+- Tested implementation commit SHA: `d026cacbd1c91234ae546a6f713326733ac82121` (after every review round so far; the receipts on
+  `ecfccdda7`, `ff2bb49a5`, `97f880177`, `6298d269a`, `ae95cd08a`, `3be7b872a`, `325cc3af3`, `d7794223e`, `bdb0a6151`, `114e7d93b`, `ad77f598c`, `0b8211985`, and `d03bd38ce` are superseded)
+- Run at (UTC): push gate `2026-09-25T13:12:48Z` to `2026-09-25T13:16:07Z`
+- Exact command(s): `PATH="$PWD/node_modules/.bin:$PATH" node scripts/dev/ci-local.js --intent push --reuse-passing-receipts --test-path shared:src/__tests__/hooks/work/useWorks.test.ts`
+- Result: push gate exit 0 on the critical plan, 28 automated checks passed (shared 5792, client 1399, admin 992, and agent 316 tests passing, with docs-authority, staged-modules, source-structure, design-guardrails, ontology, agent-guidance, qa-id-ledger, supply-chain, story-quality, and agent-tools-test; the storybook-ci story suite passed locally, 93 files and 327 tests);
+  browser-proof stays the manual proof recorded under Rendered Proof
+- Validated paths: `packages/shared/src`, `packages/admin/src`, `packages/client/src`, `packages/qa/locales`, `scripts/data`, `scripts/quality`, `docs/docs`, `.claude/skills`, `DESIGN.md`
+- Worktree identity command and result: `git status --porcelain=v1 --untracked-files=all -- packages/shared/src packages/admin/src packages/client/src packages/qa/locales scripts/data scripts/quality docs/docs .claude/skills DESIGN.md` → empty
+- Evidence-only diff command and result (if applicable): `git diff --exit-code d026cacbd1c91234ae546a6f713326733ac82121..HEAD -- packages/shared/src packages/admin/src packages/client/src packages/qa/locales scripts/data scripts/quality docs/docs .claude/skills DESIGN.md` → empty (exit 0); the receipt commit changes only `.plans/`
+- Evidence-only worktree-status command and result (if applicable): `git status --porcelain=v1 --untracked-files=all -- packages/shared/src packages/admin/src packages/client/src packages/qa/locales scripts/data scripts/quality docs/docs .claude/skills DESIGN.md` → empty
 
 ## Risks / Blockers
 

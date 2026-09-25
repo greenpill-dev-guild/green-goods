@@ -34,9 +34,9 @@
         "Abra /hub/work",
         "Abra uma entrega pendente",
         "Confira as evidências em mídia",
-        "Escolha o nível de confiança e escreva o feedback",
+        "Escolha o nível de confiança (nenhum vem escolhido) e escreva o feedback",
         "Confirme que Aprovar e Rejeitar aparecem na área fixa de ações do diálogo sem rolar a página",
-        "Rejeite ou aprove",
+        "Aprove, ou toque em Rejeitar e escreva um motivo no diálogo Rejeitar trabalho",
         "Confirme que a fila foi atualizada"
       ],
       "expected": "O fluxo completo de decisão funciona e as ações de confirmar ou cancelar nunca ficam ocultas em uma área de rolagem cortada",

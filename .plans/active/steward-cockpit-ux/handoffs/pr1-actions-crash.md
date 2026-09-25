@@ -102,6 +102,16 @@ detail dialog opened with Material, Social, and Experiential chips.
 - Evidence-only diff command and result (if applicable): `git diff --exit-code 2095e6662d896e2eca3a482be16dae53cf9d76d6..HEAD -- packages/shared/src/modules/data/indexer-capitals.ts packages/shared/src/modules/data/greengoods.ts packages/shared/src/hooks/blockchain/useBaseLists.ts packages/shared/src/hooks/blockchain/useSuspenseBaseLists.ts packages/shared/src/__tests__/modules/greengoods.module.test.ts packages/shared/src/__tests__/hooks/blockchain/useBaseLists.test.ts` → empty (exit 0); the later commit changes only `.plans/`
 - Evidence-only worktree-status command and result (if applicable): `git status --porcelain=v1 --untracked-files=all -- packages/shared/src/modules/data/indexer-capitals.ts packages/shared/src/modules/data/greengoods.ts packages/shared/src/hooks/blockchain/useBaseLists.ts packages/shared/src/hooks/blockchain/useSuspenseBaseLists.ts packages/shared/src/__tests__/modules/greengoods.module.test.ts packages/shared/src/__tests__/hooks/blockchain/useBaseLists.test.ts` → empty
 
+## Merge
+
+- PR: https://github.com/greenpill-dev-guild/green-goods/pull/904, merged into `develop` with
+  `gh pr merge 904 --repo greenpill-dev-guild/green-goods --merge` at `2026-09-25T07:54:14Z`
+  (merge commit `3613eaf77`).
+- At merge: CI Gate green on head `3cb23f230`; CodeRabbit approved `3cb23f230` after its earlier
+  change request was answered by the cache fix; Codex reacted 👍 to `3cb23f2`; no unresolved
+  review threads.
+- Linear: PRD-982 moved to Done with a comment on what shipped.
+
 ## Risks / Blockers
 
 - Production may run a different indexer deployment that returns numbers; the parser accepts

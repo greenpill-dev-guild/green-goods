@@ -56,6 +56,13 @@ Four shells, one job each ([AdminDialog.tsx](../../../packages/admin/src/compone
 - **Dirty flows confirm before discarding** (`useDirtyClose` + `DiscardChangesDialog`);
   in-flight async hard-blocks close. Recoverable errors preserve input. (NN/g user control,
   error prevention.)
+- **Rejecting a gardener's work always asks why (DL-048).** Reject opens `AdminReasonDialog`
+  (danger) with a required reason, starting from any text already typed in Feedback, and the
+  reason is sent as the review feedback the gardener reads; approval keeps its optional feedback.
+  A failed rejection keeps the dialog open with the words intact. Proof:
+  [ReviewForm.tsx](../../../packages/admin/src/views/Garden/WorkDetail/ReviewForm.tsx). The app's
+  review sheet already required feedback to reject; the console now matches it. (NN/g error
+  prevention; the decision reaches a person, so it carries its reason.)
 
 ## 3. Flow anatomy
 
@@ -135,6 +142,15 @@ Four shells, one job each ([AdminDialog.tsx](../../../packages/admin/src/compone
   when a title-shaped i18n key holds them; es/pt keep their native casing throughout. A card
   title also never repeats its container's name — the Pool tab's status card is "Pool Status",
   not "Pool — the container".
+- **Work age is metadata, never an alarm (DL-044).** A waiting card shows a neutral Pending chip
+  with its age ("submitted 6 months ago"), and the Hub header counts work waiting over a week in
+  plain ink. A garden's health turns Critical only when work has waited 7 days or more *and* no
+  review landed in the last 7 days; work waiting over a week while reviews still land reads Needs
+  attention. An unknown review time (a decision only this device knows, a row restored from an
+  older cache) never counts as stalled. Review time means submission to decision, in days, then
+  weeks past two weeks. Proof: `summarizeReviewQueue` in
+  [garden-detail.ts](../../../packages/shared/src/utils/garden-detail.ts). An alarm on every card
+  stops meaning anything. (Refactoring UI: emphasize by de-emphasizing.)
 - **Banners teach once; chips carry state.** Repeating per-row conditions (past due, expired,
   lapsed) as info banners is a defect — encode them in chips + meta. Reserve banners for one-time
   context the user genuinely lacks. (Refactoring UI: emphasis is a budget.)

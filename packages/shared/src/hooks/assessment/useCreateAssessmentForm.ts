@@ -38,7 +38,11 @@ export const createAssessmentFormSchema = z
     diagnosis: z.string().trim().min(1, "Diagnosis is required"),
     smartOutcomes: z.array(smartOutcomeSchema).min(1, "At least one SMART outcome is required"),
     cynefinPhase: z.nativeEnum(CynefinPhase),
-    domain: z.nativeEnum(Domain),
+    // Starts null (nothing preselected) and must be chosen before step 1 passes.
+    domain: z
+      .nativeEnum(Domain)
+      .nullable()
+      .refine((domain) => domain !== null, "Domain is required"),
     selectedActionUIDs: z.array(z.string()),
     sdgTargets: z.array(z.number()),
     reportingPeriodStart: z.string().trim().min(1, "Start date is required"),
@@ -115,7 +119,8 @@ const baseAssessmentSchema = z.object({
   diagnosis: z.string(),
   smartOutcomes: z.array(smartOutcomeSchema),
   cynefinPhase: z.nativeEnum(CynefinPhase),
-  domain: z.nativeEnum(Domain),
+  // Null until the steward chooses; the validating schema above requires a domain.
+  domain: z.nativeEnum(Domain).nullable(),
   selectedActionUIDs: z.array(z.string()),
   sdgTargets: z.array(z.number()),
   reportingPeriodStart: z.string(),
@@ -155,7 +160,8 @@ export function createDefaultAssessmentForm(): CreateAssessmentFormInput {
     diagnosis: "",
     smartOutcomes: [{ description: "", metric: "", target: 0 }],
     cynefinPhase: CynefinPhase.CLEAR,
-    domain: Domain.SOLAR,
+    // No domain is preselected (DL-047): the steward chooses one on step 1.
+    domain: null,
     selectedActionUIDs: [],
     sdgTargets: [],
     reportingPeriodStart: "",
