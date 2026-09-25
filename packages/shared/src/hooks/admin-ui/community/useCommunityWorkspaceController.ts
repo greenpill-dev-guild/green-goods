@@ -110,6 +110,8 @@ export function useCommunityWorkspaceController() {
     hasEndowment,
     allocations,
     allocationsLoading,
+    payoutJarCount,
+    payoutJarsLoading,
     roleMembers,
     works,
     worksComplete,
@@ -117,14 +119,22 @@ export function useCommunityWorkspaceController() {
     hypercerts,
     scheduleBackgroundRefetch,
   } = useGardenDetailData(selectedGarden?.id);
+  // Only a finished read can say the garden has no jar; until then the action stays live.
+  const hasPayoutJar = payoutJarsLoading || payoutJarCount > 0;
 
   const isDesktop = useMediaQuery("(min-width: 1024px)");
   const viewActions = useMemo(
     () =>
-      buildCommunityViewActions(mode, canManage, isOwner, Boolean(selectedGarden), navigate, {
-        gardenAddress: selectedGardenAddress,
-      }),
-    [canManage, isOwner, mode, navigate, selectedGarden, selectedGardenAddress]
+      buildCommunityViewActions(
+        mode,
+        canManage,
+        isOwner,
+        Boolean(selectedGarden),
+        navigate,
+        { gardenAddress: selectedGardenAddress },
+        hasPayoutJar
+      ),
+    [canManage, hasPayoutJar, isOwner, mode, navigate, selectedGarden, selectedGardenAddress]
   );
   const { desktopActions } = useViewActions({
     actions: viewActions,

@@ -73,10 +73,6 @@ export default function CommunityView() {
 
       <CanvasRouteHeader
         title={formatMessage({ id: "cockpit.community.title", defaultMessage: "Community" })}
-        description={formatMessage({
-          id: "cockpit.community.description",
-          defaultMessage: "Members, coordination, endowment, and payouts for the garden community.",
-        })}
         metadata={
           headerStats.length > 0 ? <MetaStrip items={headerStats} density="inline" /> : undefined
         }

@@ -11,13 +11,14 @@ import { AdminCard, AdminCardBody, AdminCardHeader, AdminCardTitle } from "@/com
 import { GardenAssessmentsPanel } from "@/components/Garden/GardenAssessmentsPanel";
 import { GardenHypercertsPanel } from "@/components/Garden/GardenHypercertsPanel";
 import { SectionStateCard } from "./GardenDetailHelpers";
-import { IMPACT_HYPERCERT_CARD_CLASS } from "./gardenDetail.constants";
 
 export interface ImpactTabProps {
   garden: { id: string; chainId: number; tokenAddress?: string | null };
   gardenId: string;
   canManage: boolean;
   canReview: boolean;
+  /** Whether the viewer may create a hypercert in the Hub, where the empty state points. */
+  canCertify?: boolean;
   section: string | undefined;
   selectedItem: string | undefined;
   clearSection: () => void;
@@ -35,7 +36,8 @@ export function ImpactTab({
   garden,
   gardenId,
   canManage,
-  canReview: _canReview,
+  canReview,
+  canCertify = false,
   section,
   selectedItem,
   clearSection,
@@ -53,6 +55,9 @@ export function ImpactTab({
   const recentAssessments = assessments.slice(0, 5);
   const recentHypercerts = hypercerts.slice(0, 8);
   const gardenRouteContext = { gardenId: garden.id };
+  // An empty list offers no View All and points to where its items are made (D19).
+  const hasHypercerts = hypercerts.length > 0;
+  const hasAssessments = assessments.length > 0;
 
   return (
     <div className="garden-tab-shell">
@@ -70,7 +75,7 @@ export function ImpactTab({
           ) : null}
 
           {(section === undefined || section === "hypercerts") && (
-            <AdminCard density="none" className={`${IMPACT_HYPERCERT_CARD_CLASS} flex flex-col`}>
+            <AdminCard density="none" className="flex flex-1 flex-col">
               <AdminCardHeader className="flex-wrap gap-3">
                 <div>
                   <AdminCardTitle>
@@ -82,13 +87,18 @@ export function ImpactTab({
                     })}
                   </p>
                 </div>
-                <AdminButton size="sm" variant="tonal" asChild>
-                  <Link
-                    to={adminRoutes.gardenImpact({ ...gardenRouteContext, section: "hypercerts" })}
-                  >
-                    {formatMessage({ id: "app.garden.admin.viewAll" })}
-                  </Link>
-                </AdminButton>
+                {hasHypercerts ? (
+                  <AdminButton size="sm" variant="tonal" asChild>
+                    <Link
+                      to={adminRoutes.gardenImpact({
+                        ...gardenRouteContext,
+                        section: "hypercerts",
+                      })}
+                    >
+                      {formatMessage({ id: "app.garden.admin.viewAll" })}
+                    </Link>
+                  </AdminButton>
+                ) : null}
               </AdminCardHeader>
               <AdminCardBody className="flex flex-1 flex-col">
                 {hypercertsLoading ? (
@@ -112,6 +122,19 @@ export function ImpactTab({
                   <EmptyState
                     icon={<RiFileList3Line className="h-6 w-6" />}
                     title={formatMessage({ id: "app.hypercerts.list.empty.title" })}
+                    description={formatMessage({
+                      id: "app.garden.detail.impact.noHypercertsHint",
+                      defaultMessage: "Hypercerts are created in the Hub from approved work.",
+                    })}
+                    action={
+                      canCertify ? (
+                        <AdminButton size="sm" variant="tonal" asChild>
+                          <Link to={adminRoutes.hubCertifyCreate(gardenRouteContext)}>
+                            {formatMessage({ id: "cockpit.hub.action.createHypercert" })}
+                          </Link>
+                        </AdminButton>
+                      ) : undefined
+                    }
                   />
                 ) : (
                   <div className="grid flex-1 content-start gap-2 xl:grid-cols-2">
@@ -182,13 +205,18 @@ export function ImpactTab({
                 <AdminCardTitle>
                   {formatMessage({ id: "app.garden.admin.recentAssessments" })}
                 </AdminCardTitle>
-                <AdminButton size="sm" variant="tonal" asChild>
-                  <Link
-                    to={adminRoutes.gardenImpact({ ...gardenRouteContext, section: "assessments" })}
-                  >
-                    {formatMessage({ id: "app.garden.admin.viewAll" })}
-                  </Link>
-                </AdminButton>
+                {hasAssessments ? (
+                  <AdminButton size="sm" variant="tonal" asChild>
+                    <Link
+                      to={adminRoutes.gardenImpact({
+                        ...gardenRouteContext,
+                        section: "assessments",
+                      })}
+                    >
+                      {formatMessage({ id: "app.garden.admin.viewAll" })}
+                    </Link>
+                  </AdminButton>
+                ) : null}
               </AdminCardHeader>
               <AdminCardBody>
                 {fetchingAssessments ? (
@@ -202,9 +230,18 @@ export function ImpactTab({
                     ))}
                   </div>
                 ) : recentAssessments.length === 0 ? (
-                  <p className="body-sm text-text-soft">
-                    {formatMessage({ id: "app.garden.admin.noAssessments" })}
-                  </p>
+                  <div className="space-y-2">
+                    <p className="body-sm text-text-soft">
+                      {formatMessage({ id: "app.garden.admin.noAssessments" })}
+                    </p>
+                    {canReview ? (
+                      <AdminButton size="sm" variant="tonal" asChild>
+                        <Link to={adminRoutes.hubAssessCreate(gardenRouteContext)}>
+                          {formatMessage({ id: "cockpit.hub.action.createAssessment" })}
+                        </Link>
+                      </AdminButton>
+                    ) : null}
+                  </div>
                 ) : (
                   <div className="space-y-2">
                     {recentAssessments.map((assessment) => (

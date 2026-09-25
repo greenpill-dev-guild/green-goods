@@ -78,7 +78,11 @@ export function useGardenDetailData(id: string | undefined) {
     enabled: Boolean(id),
   });
   // Steward alerts read the jars' claim limits; stewards are the only ones shown alerts.
-  const { jars: cookieJars } = useGardenCookieJars(id, { enabled: Boolean(id) && canManage });
+  const {
+    jars: cookieJars,
+    jarCount: payoutJarCount,
+    isLoading: payoutJarsLoading,
+  } = useGardenCookieJars(id, { enabled: Boolean(id) && canManage });
 
   const { strategies: convictionStrategies } = useConvictionStrategies(
     (id as `0x${string}`) ?? undefined,
@@ -183,6 +187,8 @@ export function useGardenDetailData(id: string | undefined) {
     gardenVaults,
     vaultsLoading,
     cookieJars,
+    payoutJarCount,
+    payoutJarsLoading,
     endowmentByAsset,
     hasEndowment,
     vaultHarvestCount,

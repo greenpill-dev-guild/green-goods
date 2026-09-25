@@ -43,17 +43,16 @@ export function CommunityPayoutsTab({
                   defaultMessage: "Payout readiness",
                 })}
               </AdminCardTitle>
-              <AdminCard variant="outlined" density="compact">
-                <p className="text-label-sm text-text-sub">
+              {/* A plain row inside the card, not a card of its own (D33). */}
+              <div className="garden-stat-row">
+                <span className="garden-stat-row-label">
                   {formatMessage({
                     id: "cockpit.community.payouts.historyCount",
-                    defaultMessage: "Allocation events",
+                    defaultMessage: "Payouts so far",
                   })}
-                </p>
-                <p className="mt-1 text-title-sm font-semibold text-text-strong">
-                  {allocations.length}
-                </p>
-              </AdminCard>
+                </span>
+                <span className="garden-stat-row-value">{allocations.length}</span>
+              </div>
               {allocationSplits ? (
                 <div className="space-y-1.5 border-t border-stroke-soft pt-3">
                   <p className="mb-1.5 text-label-sm font-medium text-text-sub">

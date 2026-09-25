@@ -128,7 +128,8 @@ export const CookieJarPayoutPanel: React.FC<CookieJarPayoutPanelProps> = ({
           <EmptyState
             icon={<RiCupLine className="h-6 w-6" />}
             title={formatMessage({ id: "app.cookieJar.noJars" })}
-            description={formatMessage({ id: "app.cookieJar.noJarsDescription" })}
+            // Says how a jar appears, since funding one is impossible without it (D10).
+            description={formatMessage({ id: "cockpit.community.payouts.noJarHow" })}
           />
         </AdminCardBody>
       </AdminCard>

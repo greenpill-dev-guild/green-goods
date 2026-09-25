@@ -1,4 +1,5 @@
 import type { ViewAction } from "@green-goods/shared/components/Canvas/viewActions.types";
+import { useId } from "react";
 import { useIntl } from "react-intl";
 import { AdminButton } from "./AdminButton";
 
@@ -45,20 +46,36 @@ export function AdminViewActions({ items }: AdminViewActionsProps) {
 
 function AdminViewActionButton({ action }: { action: ViewAction }) {
   const { formatMessage } = useIntl();
+  const reasonId = useId();
   const adminVariant = VARIANT_TO_ADMIN_BUTTON[action.variant ?? "secondary"];
   const Icon = action.icon;
+  // A disabled button fires no hover or focus events, so its reason rides the
+  // native title for pointers and a description for screen readers.
+  const reason =
+    action.disabled && action.disabledReasonId
+      ? formatMessage({ id: action.disabledReasonId, defaultMessage: action.disabledReason })
+      : undefined;
   return (
-    <AdminButton
-      type="button"
-      variant={adminVariant}
-      size="md"
-      onClick={action.onClick}
-      disabled={action.disabled}
-      leadingIcon={<Icon />}
-      data-action-id={action.id}
-      data-action-variant={action.variant ?? "secondary"}
-    >
-      {formatMessage({ id: action.labelId, defaultMessage: action.shortLabel ?? action.label })}
-    </AdminButton>
+    <>
+      <AdminButton
+        type="button"
+        variant={adminVariant}
+        size="md"
+        onClick={action.onClick}
+        disabled={action.disabled}
+        title={reason}
+        aria-describedby={reason ? reasonId : undefined}
+        leadingIcon={<Icon />}
+        data-action-id={action.id}
+        data-action-variant={action.variant ?? "secondary"}
+      >
+        {formatMessage({ id: action.labelId, defaultMessage: action.shortLabel ?? action.label })}
+      </AdminButton>
+      {reason ? (
+        <span id={reasonId} className="sr-only">
+          {reason}
+        </span>
+      ) : null}
+    </>
   );
 }

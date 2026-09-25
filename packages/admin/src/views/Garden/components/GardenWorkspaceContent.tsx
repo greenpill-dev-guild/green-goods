@@ -87,6 +87,7 @@ export function GardenWorkspaceContent({ workspace }: GardenWorkspaceContentProp
           gardenId={workspace.garden.id}
           canManage={false}
           canReview={workspace.canReview}
+          canCertify={workspace.canManage}
           section={workspace.section}
           selectedItem={workspace.selectedItem}
           clearSection={workspace.clearSection}

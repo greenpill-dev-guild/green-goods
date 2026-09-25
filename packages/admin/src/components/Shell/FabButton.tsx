@@ -210,6 +210,15 @@ export function FabButton({ config, mobileFloating = false }: FabButtonProps) {
                 <ActionIcon className="h-4 w-4" />
                 <span className="min-w-0 whitespace-normal text-left leading-snug">
                   {formatMessage({ id: action.labelId })}
+                  {/* Touch has no hover, so a disabled action says why in place. */}
+                  {action.disabled && action.disabledReasonId ? (
+                    <span className="block text-body-sm font-normal text-text-sub">
+                      {formatMessage({
+                        id: action.disabledReasonId,
+                        defaultMessage: action.disabledReason,
+                      })}
+                    </span>
+                  ) : null}
                 </span>
               </button>
             );

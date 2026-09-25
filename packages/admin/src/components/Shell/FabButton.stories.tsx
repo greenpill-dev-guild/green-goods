@@ -1,4 +1,10 @@
-import { RiCheckboxCircleLine, RiFileList3Line, RiSeedlingLine } from "@remixicon/react";
+import {
+  RiCheckboxCircleLine,
+  RiFileList3Line,
+  RiHandCoinLine,
+  RiSeedlingLine,
+  RiUserAddLine,
+} from "@remixicon/react";
 import type { Meta, StoryObj } from "@storybook/react";
 import { expect, fn, userEvent, within } from "storybook/test";
 import { withCanvasFrame } from "../../../../shared/.storybook/decorators";
@@ -68,6 +74,42 @@ export const SpeedDial: Story = {
     // The chosen item unmounts with the dial; focus returns to the FAB rather
     // than falling to <body>.
     await expect(fab).toHaveFocus();
+  },
+};
+
+/** A disabled action stays in the dial and says why, since touch has no hover (D10). */
+export const DisabledActionSaysWhy: Story = {
+  args: {
+    config: {
+      icon: RiUserAddLine,
+      label: "Community actions",
+      actions: [
+        {
+          id: "add-member",
+          icon: RiUserAddLine,
+          label: "Add Member",
+          labelId: "cockpit.community.action.addMember",
+        },
+        {
+          id: "fund-payout-jar",
+          icon: RiHandCoinLine,
+          label: "Fund Cookie Jar",
+          labelId: "cockpit.community.action.fundPayoutJar",
+          disabled: true,
+          disabledReasonId: "cockpit.community.action.fundPayoutJarNoJar",
+          disabledReason: "This garden has no payout jar yet.",
+        },
+      ],
+      onAction: fn(),
+    },
+  },
+  play: async ({ args, canvasElement }) => {
+    const canvas = within(canvasElement);
+    await userEvent.click(canvas.getByRole("button", { name: /open/i }));
+    const fund = await canvas.findByRole("menuitem", { name: "Fund Cookie Jar" });
+    await expect(fund).toBeDisabled();
+    await expect(fund).toHaveTextContent("This garden has no payout jar yet.");
+    await expect(args.config.onAction).not.toHaveBeenCalled();
   },
 };
 

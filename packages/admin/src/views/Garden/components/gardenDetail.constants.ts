@@ -14,4 +14,3 @@ export const ALERT_LABEL_CLASSES: Record<Exclude<TabBadgeSeverity, "none">, stri
 
 export const SECTION_CARD_MIN_HEIGHT = "min-h-[14rem]";
 export const ACTIVITY_CARD_CLASS = "min-h-[24rem] flex-1";
-export const IMPACT_HYPERCERT_CARD_CLASS = "min-h-[24rem] lg:min-h-[calc(100svh-22rem)] flex-1";

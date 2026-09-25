@@ -3,6 +3,7 @@ import { type CSSProperties, useCallback, useEffect, useMemo, useRef, useState }
 import { useIntl } from "react-intl";
 import { cn } from "../../utils/styles/cn";
 import { selectNavigationBarModel } from "./NavigationBar.model";
+import type { ViewAction } from "./viewActions.types";
 import { useCanvasMobileChromeHidden } from "./useCanvasMobileChromeHidden";
 
 // ----------------------------------------------------------------------------
@@ -20,13 +21,11 @@ export interface ToolbarSlot {
   desktopOnly?: boolean;
 }
 
-export interface FabAction {
-  id: string;
-  icon: React.ComponentType<{ className?: string }>;
-  label: string;
-  labelId: string;
-  disabled?: boolean;
-}
+/** A view action as the speed dial shows it, disabled reason included. */
+export type FabAction = Pick<
+  ViewAction,
+  "id" | "icon" | "label" | "labelId" | "disabled" | "disabledReasonId" | "disabledReason"
+>;
 
 export interface FabConfig {
   icon: React.ComponentType<{ className?: string }>;

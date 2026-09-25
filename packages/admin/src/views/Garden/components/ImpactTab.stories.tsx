@@ -90,10 +90,12 @@ export const Loading: Story = {
   },
 };
 
+/** Nothing yet: no View All, and each list points to where its items are made in the Hub. */
 export const Empty: Story = {
   args: {
     assessments: [],
     hypercerts: [],
+    canCertify: true,
   },
 };
 

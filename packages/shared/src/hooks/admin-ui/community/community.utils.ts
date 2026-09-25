@@ -140,7 +140,9 @@ export function buildCommunityViewActions(
   isOwner: boolean,
   hasSelectedGarden: boolean,
   navigate: (path: string) => void,
-  routeContext?: AdminCommunityRouteContext
+  routeContext?: AdminCommunityRouteContext,
+  /** False once the garden is known to have no payout jar to fund. */
+  hasPayoutJar = true
 ): ViewAction[] {
   const gardenAddress = routeContext?.gardenAddress;
   // "View public" lives once, on the Garden workspace — not duplicated here.
@@ -174,6 +176,14 @@ export function buildCommunityViewActions(
         navigate(adminRoutes.communityPayouts({ gardenId: gardenAddress, item: "fund-jar" })),
       variant: "secondary",
       visible: hasSelectedGarden && canManage,
+      // Stays in place, disabled and saying why, rather than doing nothing (D10).
+      disabled: !hasPayoutJar,
+      ...(hasPayoutJar
+        ? {}
+        : {
+            disabledReasonId: "cockpit.community.action.fundPayoutJarNoJar",
+            disabledReason: "This garden has no payout jar yet.",
+          }),
     },
   ];
 
