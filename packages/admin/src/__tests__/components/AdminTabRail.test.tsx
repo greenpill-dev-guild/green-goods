@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import { useState } from "react";
 import { IntlProvider } from "react-intl";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -47,7 +47,36 @@ function StatefulRail() {
   );
 }
 
-afterEach(() => vi.restoreAllMocks());
+/** A ResizeObserver whose callbacks a test fires for one element at a time. */
+class ElementResizeObserver {
+  static instances: ElementResizeObserver[] = [];
+  private readonly observed = new Set<Element>();
+  constructor(private readonly callback: ResizeObserverCallback) {
+    ElementResizeObserver.instances.push(this);
+  }
+  observe(element: Element) {
+    this.observed.add(element);
+  }
+  unobserve(element: Element) {
+    this.observed.delete(element);
+  }
+  disconnect() {
+    this.observed.clear();
+  }
+  static resize(element: Element) {
+    for (const observer of ElementResizeObserver.instances) {
+      if (observer.observed.has(element)) {
+        observer.callback([], observer as unknown as ResizeObserver);
+      }
+    }
+  }
+}
+
+afterEach(() => {
+  vi.restoreAllMocks();
+  vi.unstubAllGlobals();
+  ElementResizeObserver.instances = [];
+});
 
 describe("AdminTabRail", () => {
   it("keeps translated label descenders outside clipping containers", () => {
@@ -110,5 +139,23 @@ describe("AdminTabRail", () => {
     fireEvent.keyDown(screen.getByRole("tab", { name: "Community" }), { key: "Home" });
     expect(screen.getByRole("tab", { name: "Overview" })).toHaveAttribute("aria-selected", "true");
     expect(screen.getByRole("tab", { name: "Overview" })).toHaveFocus();
+  });
+
+  it("fades the clipped edge when a tab widens without the rail resizing (a new locale's labels)", () => {
+    vi.stubGlobal("ResizeObserver", ElementResizeObserver);
+    render(
+      <IntlProvider locale="en" messages={{}}>
+        <StatefulRail />
+      </IntlProvider>
+    );
+    const rail = screen.getByRole("tablist");
+    expect(rail).toHaveAttribute("data-overflow", "none");
+
+    // Longer labels land: the tabs grow, the rail's own box does not.
+    Object.defineProperty(rail, "clientWidth", { configurable: true, value: 100 });
+    Object.defineProperty(rail, "scrollWidth", { configurable: true, value: 180 });
+    act(() => ElementResizeObserver.resize(screen.getByRole("tab", { name: "Community" })));
+
+    expect(rail).toHaveAttribute("data-overflow", "end");
   });
 });

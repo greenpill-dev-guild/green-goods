@@ -94,14 +94,18 @@ export function AdminTabRail({
     syncOverflow();
   }, [activeId, tabs.length, syncOverflow]);
 
-  // The rail's box changes with the viewport and its tabs with the locale.
+  // The rail's box changes with the viewport, and its tabs with the locale: a
+  // translated label can widen a tab while the rail's own box stays the same,
+  // so the tabs are observed as well as the rail.
+  const tabKey = tabs.map((tab) => tab.id).join("|");
   useEffect(() => {
     const rail = railRef.current;
-    if (!rail || typeof ResizeObserver === "undefined") return;
+    if (!rail || typeof ResizeObserver === "undefined" || !tabKey) return;
     const observer = new ResizeObserver(syncOverflow);
     observer.observe(rail);
+    for (const tab of tabRefs.current.values()) observer.observe(tab);
     return () => observer.disconnect();
-  }, [syncOverflow]);
+  }, [syncOverflow, tabKey]);
 
   // Roving tabindex + WAI-ARIA tabs keyboard pattern
   // (https://www.w3.org/WAI/ARIA/apg/patterns/tabs/). Activation follows focus
