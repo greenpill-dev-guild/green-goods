@@ -43,6 +43,8 @@ export function HypercertWizard({
   // The gate and its message read the same resolved selection, so saved picks
   // that match no loaded attestation still explain why Next did not advance.
   const needsAttestation = wizard.currentStep === 1 && wizard.selectedAttestations.length === 0;
+  // Nothing to pick while attestations load or failed to load, so Next waits.
+  const attestationsUnavailable = wizard.currentStep === 1 && (wizard.isLoading || wizard.hasError);
   const validationMessage =
     nextTriedEmpty && needsAttestation
       ? formatMessage({ id: "app.hypercerts.wizard.validation.selectAttestation" })
@@ -207,7 +209,11 @@ export function HypercertWizard({
                   type="button"
                   variant="filled"
                   onClick={handleNext}
-                  disabled={(wizard.nextDisabled && !needsAttestation) || wizard.isSubmitting}
+                  disabled={
+                    (wizard.nextDisabled && !needsAttestation) ||
+                    attestationsUnavailable ||
+                    wizard.isSubmitting
+                  }
                   className="w-full sm:w-auto"
                 >
                   {formatMessage({ id: "app.common.next", defaultMessage: "Next" })}

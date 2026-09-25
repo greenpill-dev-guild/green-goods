@@ -42,6 +42,18 @@ const SELECTED_GARDEN: Garden = {
   createdAt: 1,
 };
 
+// The wizard's attestations: loaded and empty unless a test says otherwise.
+const attestationsState = vi.hoisted(() => ({ isLoading: false, hasError: false }));
+vi.mock("@green-goods/shared/hooks/hypercerts/useAttestations", () => ({
+  useAttestations: () => ({
+    attestations: [],
+    isLoading: attestationsState.isLoading,
+    error: null,
+    hasError: attestationsState.hasError,
+    refetch: async () => [],
+  }),
+}));
+
 vi.mock("wagmi", () => ({
   useAccount: () => ({ address: OPERATOR, isConnected: true, isConnecting: false }),
   useReadContract: () => ({ data: 1 }),
@@ -121,6 +133,7 @@ function renderCreateHypercert({ seedGarden = true }: { seedGarden?: boolean } =
 
 describe("CreateHypercert dialog", () => {
   beforeEach(() => {
+    Object.assign(attestationsState, { isLoading: false, hasError: false });
     useAdminStore.setState({
       selectedChainId: DEFAULT_CHAIN_ID,
       selectedGarden: null,
@@ -179,6 +192,22 @@ describe("CreateHypercert dialog", () => {
     expect(
       screen.getByRole("heading", { name: "app.hypercerts.wizard.step.attestations.title" })
     ).toBeInTheDocument();
+  });
+
+  it("keeps Next waiting while attestations load or fail to load", async () => {
+    for (const state of [
+      { isLoading: true, hasError: false },
+      { isLoading: false, hasError: true },
+    ]) {
+      Object.assign(attestationsState, state);
+      await act(async () => {
+        renderCreateHypercert();
+        await Promise.resolve();
+      });
+      // Nothing to pick yet, so Next cannot claim nothing was picked.
+      expect(await screen.findByRole("button", { name: "Next" })).toBeDisabled();
+      cleanup();
+    }
   });
 
   it("asks for an attestation when a restored draft's picks no longer exist", async () => {
