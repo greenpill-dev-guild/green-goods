@@ -294,7 +294,7 @@
     "pr3_garden_community": {
       "machine_lane": "ui",
       "owner": "claude",
-      "status": "in_progress",
+      "status": "completed",
       "branch": "fix/garden-community-clarity",
       "depends_on": ["pr2_hub_review_queue"],
       "handoff": "handoffs/pr3-garden-community.md",
@@ -317,7 +317,7 @@
         "issue": "PRD-985",
         "parentIssue": "PRD-981"
       },
-      "blocked_reason": "Starts after PR3 merges; merge waits for Afo's yes on before/after screenshots.",
+      "blocked_reason": "Merge waits for Afo's yes on the before/after screenshots.",
       "linear_issues": ["PRD-985", "PRD-981"]
     },
     "pr5_copy_storybook_polish": {
