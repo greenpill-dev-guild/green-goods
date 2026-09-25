@@ -179,11 +179,38 @@ Mock-auth localhost at 1280 and 375: the Hub queue (neutral cards, header count)
 (title without stamps, Reject reason dialog), Garden Health (stalled vs needs attention, review
 time in days), and Create Assessment steps 1 and 2. Label engine and session in the PR.
 
+Recorded 2026-09-25 (engine: Claude Browser pane, Chromium; session: mock-auth localhost,
+`?mockAuth=deployer`, admin dev server reading the hosted indexer `e6edffd`, Green Goods Community
+Garden):
+
+- Hub queue at 1280 and 375: cards read "Maintenance Activity", "Survival Check", and "Planting
+  Event" without their stamps, each a neutral Pending with "submitted 6 months ago"; the header
+  reads "5 waiting over a week" in plain ink.
+- Review dialog at 1280: titled "Maintenance Activity"; the topline carries only Pending;
+  Submitted reads "Mar 19, 2026, 4:57 PM"; Low, Medium, and High with none chosen and the quiet
+  "Choose a confidence level to approve." (no warning box). Reject opened Reject Work, targeted
+  "Maintenance Activity · 0x68...207", with the typed feedback carried into the reason and the
+  three suggestions; nothing was sent.
+- Garden Health at 1280 and 375: Critical, "No reviews in 7 days, and 6 works are waiting.",
+  Median review time "14 weeks"; activity rows older than a week read their calendar date.
+- Create Assessment at 1280: titled Create Assessment with "Describe the work, its goals, and the
+  period it covers."; step 1 has no domain chosen and no Solar placeholders, and Next showed
+  "Choose a domain" beside the other required fields; step 2 reads "The challenge" with "(the
+  diagnosis)", "What You'll Measure", and "How Predictable Is This Work?" with Agroforestry
+  examples once that domain was chosen.
+
 ## TDD Proof
 
-- RED: pending
-- GREEN: pending
-- Proof limit: none recorded
+- RED, each before its change (`bun run --filter @green-goods/<pkg> test -- <file>`):
+  `workTitles.test.ts` 7 failed (`toWorkDisplayTitle` missing); `garden-detail.test.ts` 8 failed
+  (`summarizeReviewQueue` missing); `local-status-overlay.test.ts` 1 failed (the indexed
+  decision's time came back `undefined`); `ReviewForm.test.tsx` 1 failed (Reject sent at once, no
+  Reject Work dialog); `ConfidenceSelector.test.tsx` 1 failed (None still offered);
+  `useCreateAssessmentForm.test.ts` 1 failed (the default domain was 0, Solar).
+- GREEN: the same files pass after each change; see the receipt for the final run.
+- Proof limit: none. Tests that only moved with the new behaviour (header stats, derived state,
+  Overview, Hub card, Hub detail, attestation selector, assessment steps and dialog, hypercert
+  wizard) are updated or added beside them.
 
 ## Validation Receipt
 
