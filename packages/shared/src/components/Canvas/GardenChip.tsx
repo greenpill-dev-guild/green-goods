@@ -46,8 +46,10 @@ export function GardenChip({
     formatMessage({ id: "cockpit.gardenChip.selectGarden", defaultMessage: "Select Garden" });
 
   const hasMultiple = gardens.length >= 2;
+  // Bounded by the slot the app bar gives it, so a long name truncates before
+  // the bar's actions rather than running under them.
   const chipTriggerStyle: CSSProperties = {
-    maxWidth: "calc(100vw - 2rem)",
+    maxWidth: "100%",
   };
   const menuSizingStyle: CSSProperties = {
     width: "max-content",
