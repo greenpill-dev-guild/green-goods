@@ -44,7 +44,7 @@ export function PoolStatsCard({ stats, label }: { stats: readonly PoolStat[]; la
                 <button
                   type="button"
                   onClick={stat.onOpen}
-                  className="m3-state-layer block h-full w-full px-3 py-2 text-left [--state-layer-color:var(--m3-on-surface)]"
+                  className="m3-state-layer block h-full w-full px-3 py-2 text-left [--state-layer-color:var(--text-strong-950)]"
                 >
                   {body}
                 </button>

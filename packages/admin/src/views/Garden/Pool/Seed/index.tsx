@@ -8,7 +8,7 @@ import {
 } from "@green-goods/shared/hooks/admin-ui/pool/useSeedTray";
 import { useDirtyClose } from "@green-goods/shared/hooks/admin-ui/useDirtyClose";
 import { useActions } from "@green-goods/shared/hooks/blockchain/useBaseLists";
-import { useErc20Metadata } from "@green-goods/shared/hooks/blockchain/useErc20Metadata";
+import { useErc20MetadataMany } from "@green-goods/shared/hooks/blockchain/useErc20Metadata";
 import { useStepFocus } from "@green-goods/shared/hooks/utils/useStepFocus";
 import type { Address } from "@green-goods/shared/types/domain";
 import {
@@ -38,7 +38,7 @@ import { SeedStepHowMuch } from "./SeedStepHowMuch";
 import { SeedStepProof } from "./SeedStepProof";
 import { SeedStepReview } from "./SeedStepReview";
 import { SeedStepWhat } from "./SeedStepWhat";
-import { rewardUnitsFor } from "./seedRewardAmount";
+import { rewardUnitsFor, seedRowRewardReady } from "./seedRewardAmount";
 import {
   buildSeedCycleOptions,
   buildSeedStepConfigs,
@@ -131,20 +131,14 @@ export function SeedCommitmentDialog({
   // onto the untouched fields of the row still in the form; a parked one is a
   // snapshot nothing revisits.
   const poolDefaultsPending = pool.isLoading || protocolPool.isLoading;
-  // The declared reward is typed in its token's units, read once for every step.
-  // Until they are known, nothing with a reward can be seeded.
-  const rewardToken = useErc20Metadata(
-    chainId,
-    values.considerationRail === "ARBITRUM_EXTERNAL" ? values.considerationToken : null
-  );
-  const rewardUnits = rewardUnitsFor(values.considerationRail, rewardToken);
-  const rewardUnitsUnknown = values.considerationRail !== "NONE" && rewardUnits.status !== "ready";
   const settlementActive = Boolean(settlement.detail?.account?.active);
 
   // One creation per tray row, under the id the row was given when it joined
   // the tray: a row sent twice is the same creation to the queue and the chain.
   const createRow = async (row: SeedTrayRow, report: (event: CommitmentSendReport) => void) => {
     if (pool.poolId === undefined || !jobs.viewer) throw new Error("No pool or viewer to seed as");
+    if (!seedRowRewardReady(row.values, tokenMetadata))
+      throw new Error("Reward token units are not known for this seed row");
     const payload = buildCommitmentCreationPayload({
       // The fallback choice cannot stand without a registered protocol pool.
       values: protocolRegistered ? row.values : { ...row.values, protocolFallbackEnabled: false },
@@ -158,6 +152,25 @@ export function SeedCommitmentDialog({
     await jobs.enqueue({ act: "create", payload, report });
   };
   const tray = useSeedTray({ form, createRow });
+  // Keep the metadata query scoped to every parked row and the current form.
+  // A retry has the same guard as its first pass, even after the form changes.
+  const tokenMetadata = useErc20MetadataMany(
+    chainId,
+    [values, ...tray.others.map((row) => row.values)]
+      .filter((row) => row.considerationRail === "ARBITRUM_EXTERNAL")
+      .map((row) => row.considerationToken)
+  );
+  const rewardUnits = rewardUnitsFor(
+    values.considerationRail,
+    tokenMetadata.get(values.considerationToken.trim().toLowerCase()) ?? { status: "idle" }
+  );
+  const rewardUnitsUnknown = !seedRowRewardReady(values, tokenMetadata);
+  const unreadableParkedRow = tray.others.find(
+    (row) => !seedRowRewardReady(row.values, tokenMetadata)
+  );
+  const trayRewardUnknown = rewardUnitsUnknown || Boolean(unreadableParkedRow);
+  const blockedRewardTitle =
+    unreadableParkedRow?.values.title ?? (rewardUnitsUnknown ? values.title : null);
   const room = useSeedTrayRoom({
     chainId,
     poolId: pool.poolId,
@@ -225,6 +238,7 @@ export function SeedCommitmentDialog({
 
   const seed = async () => {
     setSubmitError(null);
+    if (trayRewardUnknown) return;
     if (pool.poolId === undefined || !jobs.viewer) {
       setSubmitError(
         formatMessage({
@@ -313,7 +327,19 @@ export function SeedCommitmentDialog({
           cycleOptions={cycleOptions}
           protocolRegistered={protocolRegistered}
           rewardUnits={rewardUnits}
-          submitError={submitError}
+          submitError={
+            submitError ??
+            (blockedRewardTitle
+              ? formatMessage(
+                  {
+                    id: "cockpit.garden.pool.seed.parkedRewardUnknown",
+                    defaultMessage:
+                      "Review “{title}”: its reward token units are unavailable. Wait for the read or check the token address before sending the tray.",
+                  },
+                  { title: blockedRewardTitle }
+                )
+              : null)
+          }
           queueUnavailable={pool.queueUnavailable}
           tray={{
             others: tray.others,
@@ -365,10 +391,12 @@ export function SeedCommitmentDialog({
         pool.poolId === undefined ||
         pool.model.status !== "open" ||
         capacity.over ||
-        rewardUnitsUnknown
+        trayRewardUnknown
       }
       count={tray.size}
-      addAnotherDisabled={poolDefaultsPending || (capacity.full && values.direction === "OFFER")}
+      addAnotherDisabled={
+        poolDefaultsPending || rewardUnitsUnknown || (capacity.full && values.direction === "OFFER")
+      }
       onCancel={() => dirtyClose.onOpenChange(false)}
       onBack={() => setStepIndex((index) => index - 1)}
       onNext={() => void goNext()}

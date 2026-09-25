@@ -10,7 +10,7 @@ import {
 } from "@remixicon/react";
 import { useIntl } from "react-intl";
 import { AdminButton } from "@/components/AdminButton";
-import { AdminCard } from "@/components/AdminCard";
+import { AdminCard, AdminCardTitle } from "@/components/AdminCard";
 import { AdminTextField } from "@/components/AdminTextField";
 import { EnsAddressText } from "@/components/EnsAddressText";
 import { publicJarLink } from "./helpers";
@@ -34,23 +34,23 @@ export function CampaignCookieJarCreatedState({
       <div className="flex flex-col gap-6 lg:grid lg:grid-cols-[minmax(0,1fr)_20rem] lg:items-start">
         <div className="space-y-5">
           <div className="flex items-start gap-4">
-            <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[rgb(var(--m3-primary-container))] text-[rgb(var(--m3-on-primary-container))]">
+            <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-primary-alpha-10 text-primary-dark">
               <RiCheckboxCircleLine className="h-6 w-6" aria-hidden />
             </span>
             <div className="min-w-0">
-              <p className="text-label-sm text-[rgb(var(--m3-on-surface-variant))]">
+              <p className="text-label-sm text-text-sub">
                 {formatMessage({
                   id: "cockpit.community.cookies.createCompleteEyebrow",
                   defaultMessage: "Transaction confirmed",
                 })}
               </p>
-              <h2 className="mt-1 text-headline-sm font-semibold text-[rgb(var(--m3-on-surface))]">
+              <h2 className="mt-1 text-headline-sm font-semibold text-text-strong">
                 {formatMessage({
                   id: "cockpit.community.cookies.createCompleteTitle",
                   defaultMessage: "Cookie jar created",
                 })}
               </h2>
-              <p className="mt-2 max-w-2xl text-body-md text-[rgb(var(--m3-on-surface-variant))]">
+              <p className="mt-2 max-w-2xl text-body-md text-text-sub">
                 {formatMessage({
                   id: "cockpit.community.cookies.createCompleteDescription",
                   defaultMessage:
@@ -60,21 +60,21 @@ export function CampaignCookieJarCreatedState({
             </div>
           </div>
 
-          <div className="rounded-[var(--m3-shape-md)] border border-[rgb(var(--m3-outline-variant))] bg-[rgb(var(--m3-surface))] p-4">
-            <p className="text-label-md text-[rgb(var(--m3-on-surface))]">
+          <div className="rounded-[var(--m3-shape-md)] border border-stroke-soft bg-bg-white-0 p-4">
+            <p className="text-label-md text-text-strong">
               {formatMessage({
                 id: "cockpit.community.cookies.jarAddress",
                 defaultMessage: "Jar address",
               })}
             </p>
-            <p className="mt-1 break-all text-body-sm text-[rgb(var(--m3-on-surface-variant))]">
+            <p className="mt-1 break-all text-body-sm text-text-sub">
               <EnsAddressText address={jarAddress} />
             </p>
             <a
               href={publicUrl}
               target="_blank"
               rel="noreferrer"
-              className="mt-2 inline-flex items-center gap-1 break-all text-label-md text-[rgb(var(--m3-primary))] underline-offset-4 hover:underline"
+              className="mt-2 inline-flex items-center gap-1 break-all text-label-md text-primary-dark underline-offset-4 hover:underline"
             >
               {publicUrl}
               <RiExternalLinkLine className="h-4 w-4 shrink-0" aria-hidden />
@@ -111,14 +111,14 @@ export function CampaignCookieJarCreatedState({
         </div>
 
         <AdminCard variant="outlined" className="space-y-3">
-          <h3 className="text-title-sm font-semibold text-[rgb(var(--m3-on-surface))]">
+          <AdminCardTitle>
             {formatMessage({
               id: "cockpit.community.cookies.onchainReadTitle",
               defaultMessage: "Onchain read",
             })}
-          </h3>
+          </AdminCardTitle>
           {isLoading ? (
-            <p className="text-body-sm text-[rgb(var(--m3-on-surface-variant))]">
+            <p className="text-body-sm text-text-sub">
               {formatMessage({
                 id: "cockpit.community.cookies.onchainReadLoading",
                 defaultMessage: "Reading jar details...",
@@ -149,7 +149,7 @@ export function CampaignCookieJarCreatedState({
               />
             </div>
           ) : (
-            <p className="text-body-sm text-[rgb(var(--m3-error))]">
+            <p className="text-body-sm text-error-dark">
               {formatMessage({
                 id: "cockpit.community.cookies.onchainReadUnavailable",
                 defaultMessage:
@@ -158,7 +158,7 @@ export function CampaignCookieJarCreatedState({
             </p>
           )}
           {hasDetailReadFailure ? (
-            <p className="text-body-sm text-[rgb(var(--m3-on-surface-variant))]">
+            <p className="text-body-sm text-text-sub">
               {formatMessage({
                 id: "cockpit.community.cookies.onchainReadPartial",
                 defaultMessage:
@@ -193,23 +193,23 @@ export function CampaignCookieJarSubmittedState({
     <section className="surface-section">
       <div className="space-y-6">
         <div className="flex items-start gap-4">
-          <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[rgb(var(--m3-secondary-container))] text-[rgb(var(--m3-on-secondary-container))]">
+          <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-bg-soft text-text-strong">
             <RiTimeLine className="h-6 w-6" aria-hidden />
           </span>
           <div className="min-w-0">
-            <p className="text-label-sm text-[rgb(var(--m3-on-surface-variant))]">
+            <p className="text-label-sm text-text-sub">
               {formatMessage({
                 id: "cockpit.community.cookies.createSubmittedEyebrow",
                 defaultMessage: "Submitted",
               })}
             </p>
-            <h2 className="mt-1 text-headline-sm font-semibold text-[rgb(var(--m3-on-surface))]">
+            <h2 className="mt-1 text-headline-sm font-semibold text-text-strong">
               {formatMessage({
                 id: "cockpit.community.cookies.createSubmitted",
                 defaultMessage: "Creation submitted",
               })}
             </h2>
-            <p className="mt-2 max-w-2xl text-body-md text-[rgb(var(--m3-on-surface-variant))]">
+            <p className="mt-2 max-w-2xl text-body-md text-text-sub">
               {formatMessage({
                 id: "cockpit.community.cookies.createSubmittedDescription",
                 defaultMessage:
@@ -219,16 +219,14 @@ export function CampaignCookieJarSubmittedState({
           </div>
         </div>
 
-        <div className="rounded-[var(--m3-shape-md)] border border-[rgb(var(--m3-outline-variant))] bg-[rgb(var(--m3-surface))] p-4">
-          <p className="text-label-md text-[rgb(var(--m3-on-surface))]">
+        <div className="rounded-[var(--m3-shape-md)] border border-stroke-soft bg-bg-white-0 p-4">
+          <p className="text-label-md text-text-strong">
             {formatMessage({
               id: "cockpit.community.cookies.submittedTransaction",
               defaultMessage: "Submitted transaction",
             })}
           </p>
-          <p className="mt-1 break-all text-body-sm text-[rgb(var(--m3-on-surface-variant))]">
-            {hash}
-          </p>
+          <p className="mt-1 break-all text-body-sm text-text-sub">{hash}</p>
         </div>
 
         <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_auto] md:items-end">

@@ -4,7 +4,7 @@ import { selectCycleEndAct } from "@green-goods/shared/modules/commitment-poolin
 import type { CommitmentCycleRecord } from "@green-goods/shared/modules/commitment-pooling/types-core";
 import { useIntl } from "react-intl";
 import { AdminButton } from "@/components/AdminButton";
-import { AdminCard } from "@/components/AdminCard";
+import { AdminCard, AdminCardTitle } from "@/components/AdminCard";
 import { cycleName, cycleStateChip, formatUnixDate } from "./poolPresentation";
 
 export interface PoolCyclesCardProps {
@@ -66,7 +66,7 @@ export function PoolCyclesCard({
     const act = selectCycleEndAct(cycle);
     if (act?.kind !== "end-blocked") return null;
     return (
-      <p className="text-xs text-text-soft">
+      <p className="text-body-sm text-text-soft">
         {formatMessage(
           {
             id: "cockpit.garden.pool.cycle.endBlocked",
@@ -86,16 +86,23 @@ export function PoolCyclesCard({
         size="sm"
         onClick={() => onEndCycle(cycle)}
         disabled={actDisabled}
+        aria-labelledby={
+          cycle.cycleType === "CAMPAIGN"
+            ? `pool-cycle-end-${cycle.cycleId.toString()} pool-cycle-name-${cycle.cycleId.toString()}`
+            : undefined
+        }
       >
-        {cycle.cycleType === "CAMPAIGN"
-          ? formatMessage({
-              id: "cockpit.garden.pool.cycle.act.end",
-              defaultMessage: "End Campaign…",
-            })
-          : formatMessage({
-              id: "cockpit.garden.pool.cycle.act.endSeason",
-              defaultMessage: "End Season…",
-            })}
+        <span id={`pool-cycle-end-${cycle.cycleId.toString()}`}>
+          {cycle.cycleType === "CAMPAIGN"
+            ? formatMessage({
+                id: "cockpit.garden.pool.cycle.act.end",
+                defaultMessage: "End Campaign…",
+              })
+            : formatMessage({
+                id: "cockpit.garden.pool.cycle.act.endSeason",
+                defaultMessage: "End Season…",
+              })}
+        </span>
       </AdminButton>
     ) : null;
 
@@ -112,7 +119,11 @@ export function PoolCyclesCard({
       >
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
-            <span className="truncate text-body-md text-text-strong" title={name}>
+            <span
+              id={`pool-cycle-name-${cycle.cycleId.toString()}`}
+              className="truncate text-body-md text-text-strong"
+              title={name}
+            >
               {name}
             </span>
             <StatusBadge variant="neutral" size="sm">
@@ -169,12 +180,12 @@ export function PoolCyclesCard({
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
-              <h3
-                className="truncate label-md text-text-strong"
+              <AdminCardTitle
+                className="truncate"
                 title={cycleName(season, cycleNames, formatMessage)}
               >
                 {cycleName(season, cycleNames, formatMessage)}
-              </h3>
+              </AdminCardTitle>
               <StatusBadge variant="neutral" size="sm">
                 {formatMessage({
                   id: "cockpit.garden.pool.cycle.season",
@@ -242,12 +253,12 @@ export function PoolCyclesCard({
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <div className="flex flex-wrap items-center gap-2">
-              <h3 className="label-md text-text-strong">
+              <AdminCardTitle>
                 {formatMessage({
                   id: "cockpit.garden.pool.cycle.noSeason",
                   defaultMessage: "No season running",
                 })}
-              </h3>
+              </AdminCardTitle>
               <StatusBadge variant="neutral" size="sm">
                 {formatMessage({
                   id: "cockpit.garden.pool.cycle.season",
@@ -288,7 +299,7 @@ export function PoolCyclesCard({
         </p>
       ) : null}
 
-      <div className="border-t border-[rgb(var(--m3-outline-variant))] pt-3">
+      <div className="border-t border-stroke-soft pt-3">
         <div className="flex items-center justify-between gap-2">
           <p className="label-xs text-text-soft">
             {model.campaigns.length === 0
@@ -321,9 +332,7 @@ export function PoolCyclesCard({
           </AdminButton>
         </div>
         {model.campaigns.length > 0 ? (
-          <ul className="mt-1 divide-y divide-[rgb(var(--m3-outline-variant))]">
-            {model.campaigns.map(cycleRow)}
-          </ul>
+          <ul className="mt-1 divide-y divide-stroke-soft">{model.campaigns.map(cycleRow)}</ul>
         ) : (
           <p className="mt-1 text-xs text-text-soft">
             {formatMessage({
@@ -336,14 +345,14 @@ export function PoolCyclesCard({
       </div>
 
       {model.finishedCycles.length > 0 ? (
-        <div className="border-t border-[rgb(var(--m3-outline-variant))] pt-3">
+        <div className="border-t border-stroke-soft pt-3">
           <p className="label-xs text-text-soft">
             {formatMessage({
               id: "cockpit.garden.pool.cycle.finished",
               defaultMessage: "Finished",
             })}
           </p>
-          <ul className="mt-1 divide-y divide-[rgb(var(--m3-outline-variant))]">
+          <ul className="mt-1 divide-y divide-stroke-soft">
             {model.finishedCycles.map((cycle) => {
               const chip = cycleStateChip(cycle, false, formatMessage);
               const name = cycleName(cycle, cycleNames, formatMessage);
@@ -353,7 +362,11 @@ export function PoolCyclesCard({
                   className="flex flex-wrap items-center gap-2 py-2"
                   data-testid={`pool-cycle-${cycle.cycleId.toString()}`}
                 >
-                  <span className="truncate text-body-md text-text-strong" title={name}>
+                  <span
+                    id={`pool-cycle-name-${cycle.cycleId.toString()}`}
+                    className="truncate text-body-md text-text-strong"
+                    title={name}
+                  >
                     {name}
                   </span>
                   <StatusBadge variant="neutral" size="sm">
@@ -378,11 +391,14 @@ export function PoolCyclesCard({
                       className="ml-auto"
                       onClick={() => onArchiveCycle(cycle)}
                       disabled={actDisabled}
+                      aria-labelledby={`pool-cycle-archive-${cycle.cycleId.toString()} pool-cycle-name-${cycle.cycleId.toString()}`}
                     >
-                      {formatMessage({
-                        id: "cockpit.garden.pool.cycle.act.archive",
-                        defaultMessage: "Archive…",
-                      })}
+                      <span id={`pool-cycle-archive-${cycle.cycleId.toString()}`}>
+                        {formatMessage({
+                          id: "cockpit.garden.pool.cycle.act.archive",
+                          defaultMessage: "Archive…",
+                        })}
+                      </span>
                     </AdminButton>
                   ) : null}
                 </li>

@@ -10,7 +10,7 @@
     "overall_status": "active",
     "priority": "p1",
     "created_at": "2026-07-03",
-    "updated_at": "2026-09-23T08:29:37.938Z"
+    "updated_at": "2026-09-24T16:18:36.754Z"
   },
   "links": {
     "brief": "external-brief.md",
@@ -260,12 +260,12 @@
         "mode": "required",
         "status": "green_recorded",
         "red": {
-          "command": "packages/shared: bun run test -- useTxActPhase (a silent send reads as landed); packages/admin: bun run test -- GardenPool (Resume reopens before the pool reads open); packages/admin: bun run test -- CommitmentDialog (Send for Confirmation reopens once sent)",
-          "evidence": "1 failed | 3 passed; 1 failed | 22 passed; 1 failed | 27 passed: a job-queue send never claims to have landed, and a single-signature act stays closed until its record moves on (A11)"
+          "command": "cd packages/admin && bun run test -- src/__tests__/views/seedStepModel.test.ts",
+          "evidence": "2026-09-24 controlled mutation: making seedRowRewardReady return true caused 3 unreadable-token cases to fail; original source restored afterward."
         },
         "green": {
-          "command": "packages/shared: bun run test -- act-phase, useTxActPhase, commitment-pool-mutations, commitment-jobs-hook, usePoolConsoleController; packages/admin: bun run test -- GardenPool, CommitmentDialog, PoolSetupFlow, SettlementOperationsCard",
-          "evidence": "shared 5 files, 58 passed; admin 4 files, 75 passed at f349f3ea7: Resume, Send for Confirmation and queued sends say where they stand; the split says it is fixed at open; the first run counts its prompts; delivery names its reach and reads its state back"
+          "command": "cd packages/admin && bun run test -- src/__tests__/views/seedStepModel.test.ts src/__tests__/views/SeedCommitment.test.tsx",
+          "evidence": "2026-09-24 restored implementation: 2 files and 46 tests passed, including parked-row Create All and retry guards."
         },
         "note": ""
       },
@@ -1401,6 +1401,22 @@
     },
     {
       "timestamp": "2026-09-23T08:29:37.938Z",
+      "actor": "human",
+      "lane": "ui",
+      "status": "tdd_recorded",
+      "branch": "feature/commitment-pooling-client-loop",
+      "note": "Recorded RED/GREEN TDD proof"
+    },
+    {
+      "timestamp": "2026-09-24T09:52:26.642Z",
+      "actor": "codex",
+      "lane": "ui",
+      "status": "tdd_recorded",
+      "branch": "develop",
+      "note": "Recorded post-stack RED/GREEN TDD proof on local develop"
+    },
+    {
+      "timestamp": "2026-09-24T16:18:36.754Z",
       "actor": "human",
       "lane": "ui",
       "status": "tdd_recorded",

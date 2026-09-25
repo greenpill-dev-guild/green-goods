@@ -44,7 +44,7 @@ Decided with Afo on 2026-09-20 over four question rounds.
 | 23 | The open-commitment guard counts offers only, and unknown never refuses. Room is the pool's commitment limit, less the steward's open commitments as the indexer mirrors the registry's own count, less offers still queued on this device. At the limit, Add Another Like This is held for an offer; over it, seeding is held, and both say why. Decided by Claude while building; Afo may overrule. | `CommitmentRegistry.commitUnits` charges the cap to whoever provides. An offer's creator provides, so it is charged at creation; a request is charged to whoever takes it up, later, so a tray of requests uses none of the steward's room. The registry enforces the cap whatever the wizard says, so a read that has not arrived must not block anyone. |
 | 24 | Hub → Confirm follows the garden in the header, like the Hub's other stages. When the selected garden confirms a commitment that lives in another garden's pool, the row names that pool. Decided with Afo on 2026-09-22, after the design audit in § 4b. | Root `DESIGN.md` § Interface Principles, principle 4: a page never acts outside the garden it shows. The queue spanned every garden the steward stewards, and each row confirmed in one click. |
 | 25 | Confirm Kept opens a review dialog, the same one in the Hub and the commitment inspector. It names the commitment, who kept it, the garden's pool, and that it is final. | The act that closes a commitment for good went straight to the wallet, while Expire had a full confirmation. Spec C.48 already said the Hub's acts open a dialog. |
-| 26 | Admin card and section titles become 16px semibold across the whole admin, after Afo approves a rendered before/after pair. | They render at 12px, the size of their own descriptions. Storybook showed them at 16px because it never loaded the admin's type classes, so reviews there saw a hierarchy the product lacks. |
+| 26 | Afo approved D3 on 2026-09-24: admin card and section titles become 16px semibold across the whole admin. | The rendered 12px/500 and 16px/600 pair exposed the old product/Storybook hierarchy mismatch; W2-3 is implemented locally, with A27 colours in the same pass. |
 | 27 | G$ settlement is enabled for every garden, so a pool's funding rail reads ready. | Every rail read "Funding unavailable" and "Settlement unavailable": ledger freshness used the indexer's caught-up timestamp, which is written once. Freshness now comes from each chain's processed block, timed on that chain. |
 | 28 | The seed wizard ends on a done screen that lists each commitment as created (with its transaction), sends later, or not sent. | Create All sent one wallet prompt per commitment with an unlabelled bar between them, then closed. |
 | 29 | Ending a season is built in this queue as two acts: End (`closeCycle`) frees the slot, and Archive (`compostCycle`) is final and says no certificate can be made for that season afterwards. | Builds decision 14. The certificate step is not built yet, and a pool closes only once its seasons are archived. |
@@ -54,6 +54,10 @@ Decided with Afo on 2026-09-20 over four question rounds.
 | 33 | Every PR in the § 4b queue stacks on PR #873, the money fixes included, and the chain rebases onto `develop` once #873 merges. | One chain to review. |
 | 34 | Protocol confirmations live only in Community → Coordination. Hub → Confirm never lists protocol fallback rows. | One home per organism, as `packages/admin/DESIGN.md` § Workspace Scope records. |
 | 35 | § 4b lands in two waves. Wave 1 (the P0 and P1 fixes, the ledger fix and ending a season) lands before the QA call, and the call waits for all of it. Wave 2 lands before the Oct 2 cut. | Afo chose that nothing slips to after the call. |
+
+Decision 33 closed differently from its planned rebase: PRs #873–#892 merged as one stack into
+`develop` at `2596642cb9bd04ceba2f4f4db2865a04f0eee2b7`. The post-stack corrections are
+being made on `develop` at Afo's direction; they are not part of that merge receipt.
 
 ## 2. Verified ground truth (2026-09-20)
 
@@ -115,16 +119,37 @@ Each line was checked against the source or the chain in this session.
 
 | Requirement | Where | Status |
 |-------------|-------|--------|
-| Fix clear issues that would slow the walk | § 4 Builds 1–3 | ⏳ |
-| The admin can actually send a seeded or confirmed commitment | § 4 Build 1 part A | Built; live proof pending Stage A |
-| A landed act updates the screen without a reload | § 4 Build 1 part B | Built; live proof pending Stage A |
-| Reuse a commitment instead of retyping it | § 4 Build 2 | Built; rendered proof pending |
-| Create several commitments in one sitting | § 4 Build 3 (sequential; atomic later, § 7) | ✅ built, unreviewed |
-| Catalog is correct, coherent, and one outcome per case | § 5 | ✅ built, unreviewed |
-| Strong cases for every reachable pooling act | § 5.3, § 5.5, § 5.6 | ✅ built, unreviewed |
-| A QA plan Afo can run on a call | § 6 | ⏳ |
-| Issues come back to an AI session and get fixed | § 6.5, § 6.6 | ⏳ |
-| Payouts can be recorded; a season can end | § 6.6 fix-window builds | ⏳ |
+| Fix clear issues that would slow the walk | § 4 Builds 1–3 and § 4b | Merged; bounded post-stack corrections built and tested locally, commit blocked; rehearsal and § 7 gaps pending |
+| The admin can actually send a seeded or confirmed commitment | § 4 Build 1 part A | Merged; live proof pending Stage A |
+| A landed act updates the screen without a reload | § 4 Build 1 part B | Merged; live proof pending Stage A |
+| Reuse a commitment instead of retyping it | § 4 Build 2 | Merged; rendered rehearsal proof pending (ADM-135) |
+| Create several commitments in one sitting | § 4 Build 3 (sequential; atomic later, § 7) | Merged; Create All rehearsal pending (ADM-150) |
+| Catalog is correct, coherent, and one outcome per case | § 5 | Merged; post-stack case corrections built locally (ADM-171–ADM-174, ADM-176). Unreachable ADM-175 retired; rehearsal pending |
+| Strong cases for every reachable pooling act | § 5.3, § 5.5, § 5.6 | Merged; proof gaps and corrections recorded below |
+| A QA plan Afo can run on a call | § 6 | Written; authenticated rehearsal pending |
+| Issues come back to an AI session and get fixed | § 6.5, § 6.6 | Process written; first run pending |
+| Payouts can be recorded; a season can end | § 6.6 fix-window builds | End and Archive merged; external-payout recording remains a gap (§ 7) |
+
+### Rehearsal ledger (Afo-owned; no wallet result recorded here)
+
+Every item below remains pending until Afo walks it on staging with the merged build. A rendered
+Storybook state is not a substitute for a wallet send or its indexed readback.
+
+| Obligation | Catalog case | Proof still owed |
+|---|---|---|
+| W1-1 funding rails | ADM-154 | Staging rail reads Settlement ready with a fresh, readable ledger. |
+| W1-2 reward units | ADM-125, ADM-157 | Seed an on-chain commitment with a G$ reward and compare the typed, reviewed, and landed amount. ADM-157 alone cancels before send. |
+| W1-4 Confirm Kept | ADM-145 | Review names the commitment, pool, performer, and threshold; Afo confirms and reads back the result. |
+| W1-5 settings | ADM-147, ADM-148 | Save two settings in two writes, refuse the second prompt, then retry only the remaining write. |
+| W1-6 lifecycle | ADM-151, ADM-153 | End and Archive a season with the finality warning and indexed readback. |
+| W1-7 claim | ADM-159 | Accept a claim through signing, confirming, and the accepted readback. |
+| W1-7 transfer | ADM-156 plus ADM-089 or ADM-120 | Review and cancel first; separately dispatch the applicable protocol transfer or prepared disbursement and read back the result. ADM-156 alone proves no dispatch. |
+| W1-8 tray | ADM-150 | Create All on several rows, observing each prompt, per-row outcome, transaction link, and Done. |
+| W2-2 Resume | ADM-164 | Observe wallet, chain, and readback phases, then a later pause/resume cycle. |
+| W2-2 Send for Confirmation | ADM-165 with ADM-075 | Send, observe the intermediate state, and read the indexed ready band. |
+| W2-2 queued Send Now | ADM-166 with ADM-127 | Refuse a prompt, retain the row, explicitly send later, and read it back. |
+| § 3 Build 1 Stage A send and refresh | ADM-125, ADM-127, ADM-145, ADM-165, ADM-166 | Seed and confirmation sends reach the wallet and update without a reload; queued retry is included. |
+| § 3 Build 2 reuse | ADM-135 | Render Seed Another Like This prefill and its review in the rehearsal context. |
 
 ## 4. Pre-QA builds
 
@@ -475,7 +500,7 @@ This section holds the finding index, the queue that fixes them, and each PR's r
 | W2-1 Pool console hierarchy | A22, A19 (the rest), A14 (marker), A28, A31, A23 (reader view) | Built |
 | W2-2 Flow clarity | A11 (the rest), A16, A17, A20 (the rest) | Built |
 | W2-4 Copy and Title Case | A25, A26 | Built |
-| W2-3 Titles, with A27's colours | The title rollout and the raw `--m3-*` colours, in one pass per file | Waits on the D3 check |
+| W2-3 Titles, with A27's colours | The title rollout and the raw `--m3-*` colours, in one pass per file | D3 approved by Afo; implemented in the local `develop` working tree; commit blocked by Git metadata permissions (receipt below) |
 | W2-5 Catalog pass | The labels Wave 2 renamed | Built |
 
 ### W1-1: ledger freshness
@@ -487,7 +512,7 @@ This section holds the finding index, the queue that fixes them, and each PR's r
 
 ### Validation receipt, W1-1
 
-- **Tested implementation commit SHA:** `fd5060697f97a3d442ae0b587c9c8dfeaefd64bd`.
+- **Implementation commit SHA:** `fd5060697f97a3d442ae0b587c9c8dfeaefd64bd` (the successful gate tested its pre-commit working tree, not this commit object).
   - The gate ran on the working tree immediately before the two implementation commits.
   - Biome had already formatted every file, so the pre-commit formatter changed nothing.
   - `git status --porcelain=v1 --untracked-files=all -- packages/` is empty at that SHA.
@@ -551,7 +576,7 @@ This section holds the finding index, the queue that fixes them, and each PR's r
 - **`GardenPoolTarget`:** builds the line from a garden's address alone. It reads the name from the gardens list and recognises the protocol pool by the protocol's root garden.
 - **Protocol copy:** it now says the pool is the Green Goods Community Garden's own.
 - **Storybook:** the admin's named type classes moved to `packages/admin/src/styles/admin-type.css`, imported by both the admin entry and Storybook, so the two render the same way (titles 12px/500).
-- **D3 check:** the before/after pairs (12px/500 against 16px/600, the same colour and Plus Jakarta Sans) went to Afo. W2-3 waits for his yes.
+- **D3 check at this historical receipt:** the before/after pairs (12px/500 against 16px/600, the same colour and Plus Jakarta Sans) went to Afo. He approved W2-3 on 2026-09-24; the local implementation is recorded in the queue above.
 
 ### Validation receipt, W1-3
 
@@ -848,6 +873,7 @@ This section holds the finding index, the queue that fixes them, and each PR's r
 - **Tested commit SHA:** `76b1c78fd8916d78bfe112a4ff769e000acd20ac`.
   - The gate is the pre-push hook on that commit.
   - `git status --porcelain=v1 --untracked-files=all` is empty at that SHA.
+  - A later plan-only wording edit on #888 changed this hub after the gate. This receipt attests the tested commit, not that later hub text; the current hub is validated in the post-stack receipt below.
 - **Run finished (UTC):** `2026-09-23T07:26:40Z`.
 - **Command:** `bun run check -- --intent push` (the pre-push hook, `critical · 178 changed path(s)`).
 - **Result:** all 30 runnable checks passed:
@@ -980,7 +1006,7 @@ This section holds the finding index, the queue that fixes them, and each PR's r
   - three lines are cut: the status card's "container" line, the split's basis-points note, and the setup step's starting-assessment note;
   - a write is a "change" in the setup copy;
   - Retry Command… reads Resend….
-- **Order:** A27, the raw `--m3-*` colours, moves into W2-3, so each file gets one pass for its title and its colours. W2-3 waits on the D3 check.
+- **Order:** A27, the raw `--m3-*` colours, moves into W2-3, so each file gets one pass for its title and its colours. Afo approved D3 on 2026-09-24, and the local pass follows that order.
 - **For W2-5:** ADM-059, 061, 062, 064, 077, 079, 081, 082, 088, 089, 110, 111 and 121 quote a renamed label.
 
 ### Validation receipt, W2-4
@@ -1054,6 +1080,55 @@ This section holds the finding index, the queue that fixes them, and each PR's r
   - `bun run check --only` for docs-generated, qa-id-ledger, agent-tools-test, docs-authority and ontology.
 - **TDD:** not applicable. The PR changes catalog data and generated docs, not behaviour.
 - **PR:** #892, stacked on #891.
+
+### Post-stack correction receipt (local `develop`, 2026-09-24)
+
+- **Base HEAD:** `f91c76fb68a2aa5860d59f30a2281b4a69d24163`. No post-stack commit SHA exists: this workspace denies writing `.git/index.lock`, including an escalated `git add`. The 117 changed non-hub files have content-manifest SHA-256 `4b3ba9ee1195cce1e1bf83c398a31f5e5603afd5c46c13f4c1c88ff34de14ca5` (sorted path, NUL, file SHA-256 bytes). This identifies the tested working tree without claiming a commit.
+- **Evidence recorded (UTC):** `2026-09-24T09:56:13Z`.
+- **Behavior proof:** `cd packages/shared && bun run test -- src/__tests__/commitment-pool-console.test.ts src/__tests__/commitment-pooling-pool-funding-data.test.ts src/__tests__/commitment-pooling-confirm-queue.test.ts src/__tests__/i18n/locale-coverage.test.ts` — 4 files, 56 passed. `cd packages/admin && bun run test -- src/__tests__/views/PoolCycles.test.tsx src/__tests__/views/poolCommitmentRows.test.ts src/__tests__/views/GardenPoolFunding.test.tsx src/__tests__/views/seedStepModel.test.ts src/__tests__/views/PoolSettings.test.tsx` — 5 files, 63 passed. Shared and admin `bun run typecheck -- --scope source` and `--scope tests` passed.
+- **Catalog and docs:** `node packages/qa/build.mjs` — 333 active cases. `node scripts/quality/check-qa-id-ledger.mjs --base HEAD` — 398 IDs, append-only. `node scripts/docs/generate.mjs`, `bun run check --only docs-generated`, `bun run check --only docs-authority`, and `bun run --cwd docs build` passed.
+- **Design and package proof:** `bun run check --only format`, `lint`, `design-tokens`, `design-md`, `design-generated`, `vocabulary`, `source-structure`, `story-quality`, `react-patterns`, `ontology`, `agent-tools-test`, and `qa-id-ledger` passed. `node scripts/quality/check-direct-tested-seams.mjs` found zero drift. `VITE_CHAIN_ID=11155111 bun run --cwd packages/admin build` and `bun run --cwd packages/shared build-storybook` passed.
+- **Rendered proof:** Storybook, headless Chromium, 344/344 selected pool, community and Hub stories finished without a crash before the last colour-only pass. Measured Pool Status and a non-pool Assessments Detail heading at 16px/600, rgb(12, 10, 9), with screenshots in `/tmp/commitment-post-stack/render-proof.json`. The final static Storybook build passed; a repeat Chromium launch was denied by the host's Mach-port permission, so the last colour-only pass has no fresh screenshot. Authenticated staging and wallet proofs remain in the rehearsal ledger.
+- **TDD and hub:** `node scripts/harness/plan-hub.mjs record-tdd --feature commitment-pooling --lane ui --red-command 'cd packages/shared && bun run test -- src/__tests__/commitment-pool-console.test.ts' --red-evidence 'Before the season selector fix, one focused assertion failed because the displayed open season came from the first seeded row instead of openSeasonCycleId.' --green-command 'cd packages/shared && bun run test -- src/__tests__/commitment-pool-console.test.ts src/__tests__/commitment-pooling-pool-funding-data.test.ts src/__tests__/commitment-pooling-confirm-queue.test.ts src/__tests__/i18n/locale-coverage.test.ts' --green-evidence '2026-09-24: four files, 56 tests passed; season target, funding-read distinction, pool-name search, and locale/defaultMessage coverage.'` recorded the red/green proof. `node_modules/.bin/biome check --write .plans/active/commitment-pooling/status.json` and `node scripts/harness/plan-hub.mjs validate` passed. No PR, push, merge, deploy, Linear write, review-thread reply, or wallet transaction was made.
+
+### Merged-stack review-thread ledger (2026-09-24)
+
+The live GitHub snapshot has **79 unresolved bot threads** on #873, #874, #875, #881 and #883–#892, not the 57 in the pre-merge note. All 79 are accounted for below by PR number and one-based thread position in that PR's live `reviewThreads` connection: 41 have local corrections or clarified historical receipts, and 38 remain valid gaps. “Fixed locally” means the correction is in the current `develop` working tree and has targeted proof; it does **not** mean a commit, staging deploy, GitHub thread resolution, or wallet proof. The source anchors name the owning code at merged HEAD; the local edits may shift line numbers. The valid gaps remain open by design under § 7, so this ledger does not claim production readiness.
+
+| Assessment | Threads | Merged-HEAD owner and disposition |
+|---|---|---|
+| Fixed locally: copy, localization and transfer-review facts | #873.6; #881.6; #884.4; #886.6; #890.4 | `packages/shared/src/i18n/{en,es,pt}.json`, `packages/admin/src/views/Garden/Pool/TransferReviewDialog.tsx:56`, `packages/admin/src/components/ActPhaseLine.tsx:39`; ownership and permissionless-expiry wording, localized toast context, amount/recipient on Retry and Requeue, and honest queued copy. |
+| Fixed locally: dialog targets and story isolation | #873.10; #881.1, .3, .7 | `packages/admin/src/views/Garden/Pool/Seed/index.tsx:460`, `CommitmentDialog/CommitmentSettlement.tsx:48`, `packages/shared/.storybook/storybook.css:35`, `PoolTarget.tsx:17`; settlement and child transfer reviews now receive the inspector's target, admin story typography is surface-scoped, and unused prop interfaces are private. |
+| Fixed locally: progress presentation | #873.8, .14; #887.1; #891.1 | `packages/admin/src/components/TxStepMarker.tsx:45`, `TxProgressList.tsx:53`, `Seed/SeedFlowFooter.tsx:74`, `SetupFlow/SetupFlow.stories.tsx:49`; reduced-motion stops spinning, only one step has `aria-current`, retry rechecks seed guards, and story names match current headings. |
+| Fixed locally: funding read | #874.1, .2 | `packages/shared/src/modules/commitment-pooling/data-pool-funding.ts:74`, `packages/admin/src/views/Garden/Pool/PoolFundingSection.tsx:49`; failed timestamp and cached refresh reads now surface unavailable with a read-specific reason. |
+| Fixed locally: seed rewards | #875.1–.3 | `packages/admin/src/views/Garden/Pool/Seed/index.tsx:354`, `Seed/seedRewardAmount.ts:84`, `packages/shared/src/hooks/blockchain/useErc20Metadata.ts:31`; all tray rows need readable token units, review keeps exact amount, and token address is trimmed. |
+| Fixed locally: Hub pool-name search | #883.2 | `packages/shared/src/modules/commitment-pooling/confirm-queue.ts:70` includes the displayed pool garden name. |
+| Fixed locally: settings reconnect | #884.5 | `packages/shared/src/modules/commitment-pooling/pool-setup.ts:128` makes `no-sender` retryable, preserving the open dialog's draft. |
+| Fixed locally: cycle acts | #885.1–.4 | `packages/admin/src/views/Garden/Pool/PoolCyclesCard.tsx:80`, `PoolCycleDialogs.tsx:83`, `packages/shared/src/modules/commitment-pooling/pool-console.ts:113`; campaign actions include the cycle name for assistive tech, the new note uses a type alias, offline confirmation is held, and the open season wins over a newer seeded row. |
+| Fixed locally: catalog fixtures and steps | #888.1–.5, .8–.13, .15; #892.1–.2 | `scripts/data/qa-test-catalog.json` and locale projections: retired-case inheritance, funding prerequisites, reachable Confirm fixtures, signing and Done steps, dispatch authority, zero-count garden, registered not-ready pool, and terminal-cycle closure are corrected. |
+| Clarified historical receipts | #874.3; #881.8; #888.7 | `qa-readiness-plan.md:515,873` and `status.json:267` distinguish a pre-commit gate from its resulting commit, scope a later plan-only edit outside an earlier receipt, and record an actual green command. These are historical attribution corrections; no old SHA has been relabeled as freshly tested. |
+| Valid procedural gap | #873.1 | `packages/admin/DESIGN.md:153` and the as-touched UI code need separate reviewable commits; the current workspace denies `.git/index.lock`, so the local design guidance and implementation cannot yet be separated. |
+| Valid atomic-wallet gap | #873.2, .3, .12 | `packages/shared/src/modules/transactions/wallet-sender.ts:257,298,327` still assumes an unscoped capability and object-shaped bundle ID, and a receipt-less failed batch is not typed as a proven no-write. Requires sender-contract proof before an atomic prompt is trusted (§ 7). |
+| Valid batch-outcome gap | #873.4–.5, .7, .9, .11, .13; #884.1–.3 | `packages/shared/src/hooks/commitment-pooling/useCommitmentPoolSetupSequence.ts:264–449` and `packages/admin/src/views/Garden/Pool/SetupFlow/setupWrites.ts:76` can diverge between preview/run, leave accepted siblings confirming, or count a possibly landed write as a retry. The capped hook needs the explicit group-result seam in § 7. |
+| Valid target and accessible-dialog gap | #881.2, .4–.5; #883.3 | `packages/admin/src/components/AdminDialog.tsx:325`, `Garden/Pool/PoolTarget.tsx:118`, `Seed/index.tsx:89`, `CommitmentDialog/ConfirmKeptDialog.tsx:65`; target text is not reliably associated with the dialog description, and protocol identity can be premature or misapplied. § 7 owns the presentation policy. |
+| Valid Confirm query-scope gap | #883.1, .4 | `packages/shared/src/hooks/admin-ui/hub/useHubConfirmStage.ts:31` and `hub.filters.ts:101`; recovered eligible gardens and selected-garden loading/error do not share one query boundary (§ 7). |
+| Valid act-phase and sibling-claim gap | #886.1–.5, .7–.10; #890.1, .3 | `packages/shared/src/hooks/blockchain/useTxActPhase.ts:37`, `modules/transactions/act-phase.ts:34`, `packages/admin/src/views/Garden/Pool/PoolClaimsCard.tsx:71`, `PoolStatusCard.tsx:82`; Safe proposals, receipt-read failures, passkey broadcasts, sibling claims and old Resume phases need record-keyed, readback-aware outcomes (§ 7). |
+| Valid queue-recovery gap | #887.2–.3; #890.2 | `packages/shared/src/modules/commitment-pooling/seed-tray.ts:94`, `hooks/commitment-pooling/useCommitmentJobs.ts:246`, `packages/admin/src/views/Garden/Pool/PoolCommitmentsCard.tsx:248`; attempted, submitted and unsent rows need separate recovery states (§ 7). |
+| Valid catalog coverage gap | #888.6, .14; #892.3 | `scripts/data/qa-test-catalog.json` ADM-056/057, ADM-138 and ADM-163: stopped setup/season retry counts, second-season refusal, and independently passable copy/field-hint cases still need distinct IDs and proof (§ 7). |
+| Valid count-navigation gap | #889.1–.2 | `packages/admin/src/views/Garden/Pool/index.tsx:50,165` and `PoolCommitmentsCard.tsx:59`; count focus can retain a conflicting search or previous garden (§ 7). |
+
+No thread reply or resolution was posted on Afo's behalf. The review snapshot is a read-only classification of merged code plus the local corrections, not a statement that GitHub has accepted them.
+
+### Review-completion receipt (local `develop` working tree)
+
+- **Base SHA:** `f91c76fb68a2aa5860d59f30a2281b4a69d24163`; **manifest reread UTC:** `2026-09-25T02:04:53Z`. The 138 changed non-hub files have content-manifest SHA-256 `22fe1f3ee8a510cb3c6246cb2a3a9568cc39390f52a7c04dc1943f36c068c7c3` (sorted path, NUL, file SHA-256 bytes). This identifies local content, not a tested commit or staging deploy.
+- **Focused behavior:** `cd packages/admin && bun run test -- src/__tests__/views/seedStepModel.test.ts src/__tests__/views/SeedCommitment.test.tsx` — 46 passed; `bun run test -- src/__tests__/views/CommitmentSettlement.test.tsx src/__tests__/views/PoolCycles.test.tsx` — 17 passed. `cd packages/shared && bun run test -- src/__tests__/commitment-pool-setup-sequence.test.tsx` — 30 passed; `bun run test -- src/__tests__/i18n/locale-coverage.test.ts` — 15 passed. A controlled mutation of `seedRowRewardReady` made three unreadable-token assertions fail, then the restored implementation passed all 46 focused seed tests. This is retrospective mutation proof, not a claim that tests preceded implementation.
+- **Selected review gate:** `bun run check --plan -- --intent review` selected shared-test, admin-test, qa-id-ledger and agent-tools-test at criticality. `bun run check -- --intent review` passed: 79 shared, 133 admin and 260 agent-tool tests; 399 ledger IDs append-only. Earlier full package runs passed 5,668 shared and 945 admin tests. Shared/admin source and admin test typechecks passed.
+- **Ready-for-CI gate:** `bun run check -- --intent push --reuse-passing-receipts` passed every automated check on this local tree, including format, lint, shared/client/admin/agent tests and builds, docs, design, catalog, supply-chain, ontology, Storybook quality and agent tools. The gate reports `browser-proof` as advisory; authenticated rehearsal remains pending with Afo.
+- **Catalog, docs and design:** `node packages/qa/build.mjs` — 333 active cases; `node scripts/quality/check-qa-id-ledger.mjs --base HEAD` — 399 IDs, no drift; `node scripts/docs/generate.mjs` — 20 projections; `bun run check --only` for design-tokens, design-md, design-generated, vocabulary, source-structure, story-quality, react-patterns, ontology, docs-authority, docs-generated and agentic-readiness all passed. `node scripts/quality/check-direct-tested-seams.mjs` found zero drift. `bun run format --check` and `bun run lint` passed; lint reported 261 existing warnings and no errors. `VITE_CHAIN_ID=11155111 bun run --cwd packages/admin build` and `bun run --cwd packages/shared build-storybook` passed; the static Storybook gallery contains 1,702 stories.
+- **Rendered proof:** Storybook, headless Chromium, 2026-09-24: the final `bun run --cwd packages/shared test:stories:ci` passed 322 interactions (92 files, 275 skipped); final screenshots in ignored `output/playwright/` include `transfer-review-retry.png`, `transfer-review-requeue.png`, `transfer-review-commitment-payout.png`, `cycles-ready-to-end.png`, `cycles-reconciled-season.png`, and the earlier seed, pool, community, Hub and D3 examples. This is isolated Storybook proof only. Afo still owns every authenticated rehearsal line above.
+- **Full test gate:** root `bun run test` passed on this local tree: contracts 2,091 tests and 3 release-gas checks; QA 260; docs 59; shared 5,668 (17 skipped); agent 316 plus 9; client 1,385; admin 945. An earlier attempt was blocked by an externally owned Vite process on port 3013; the successful rerun did not stop that process.
+- **Remaining gates:** the workspace denies `.git/index.lock`, so no commit or push can attest this local tree. A fresh `git add -- packages/admin/DESIGN.md` returned `Operation not permitted` after the full gate; `git config user.name` read `Afolabi`. No deploy, Linear write, thread reply, or wallet transaction occurred. Authenticated rehearsal and § 7 gaps remain open.
 
 ## 5. Catalog PR
 
@@ -1458,6 +1533,7 @@ Stage C rehearsal cycles are cancelled with no live commitments left behind.
 | Gap | State today | Destination |
 |-----|-------------|-------------|
 | Atomic single-transaction batch creation | Every sender's `sendBatch` is sequential; the module exposes only singular `createCommitment` | Own plan after QA. Settle atomicity, wallet capability, row limits, and retry. Paginate the commitment list first. |
+| Atomic wallet integration for setup | The EIP-5792 adapter still reads atomic support without selecting the requested chain entry, expects an object-shaped `sendCalls` result, and does not classify a receipt-less failed bundle as proven no-write | Correct the Wagmi boundary with direct wallet-sender tests before relying on any atomic setup prompt. Keep disabled or unclaimed until proven. |
 | Offer over time (series): once or ongoing, places, rest, resume, retire | Contract, job kind, and wrappers exist; nothing enqueues them | `standing-commitments-spec.md` remains the design. Schedule after the pilot's first cycle. |
 | "How this is completed" explainer | Copy is spread across review, progress, status, and the action bar | Design pass after the first run, informed by where testers hesitated. |
 | Exchange pairs (`acceptExchange`, `counterCommitmentId`) | Wrapper only | Unscheduled. |
@@ -1469,6 +1545,16 @@ Stage C rehearsal cycles are cancelled with no live commitments left behind.
 | Commitment list pagination | One unpaginated list query | Before atomic batch ships. |
 | PWA composer cannot name confirmers | Admin only | Decide after the pilot. |
 | Expiring a due commitment as someone who is not a steward | Permissionless on chain, but the admin opens a garden's console only to its stewards and owners, and the app has no expire act | Unscheduled. The steward walk is ADM-064. |
+| Honest transaction outcomes after broadcast and Safe submission | Receipt timeouts, submitted proposals, and failed seed rows can collapse into a generic failed or unsent phase | Split by confirmed, submitted, and unknown outcome at the owning mutation/queue boundary with direct recovery tests before changing copy. |
+| Per-record act phases and indexed retirement | A newer claim can replace an older claim's phase; an acknowledged Resume can remain held after the pool reads open | Key phases by record and retire only on authoritative readback. Keep the three Safe settlement status lines distinct from `ActPhaseLine`. |
+| Seed tray reward readiness for every row | Per-row eligibility and a batched token read are built locally on `develop`; Add Another, Create All, and Try Again now hold when any relevant token units are unavailable | Rehearse a multi-row rewarded tray after this work is committed and deployed; no wallet send is claimed here. |
+| Batch group outcome and prompt plan | Preview and run can choose different batching; a stopped group can leave sibling rows confirming or miscount retry prompts | Extract group-result handling from the capped setup hook, reconcile attempted writes, and preserve unknown outcomes. |
+| Hub Confirm query scope and count navigation | Garden eligibility/recovery, errors, and loading do not all share the selected-garden boundary; a stats count can retain conflicting search and filter state | Align query inputs with recovered eligible gardens and make count focus, search, and garden reset one controlled filter model. |
+| Pool write-target and dialog associations | Settlement reviews now receive the target locally, but dialog descriptions do not reliably announce it; protocol identity can be unknown while loading or misapplied to an ordinary confirmer | Extract the capped dialog's presentation policy before changing its accessible association, and preserve unknown protocol state until readback. |
+| Queue send recovery | Attempted, submitted, and unsent queue states can read alike, and a queued Send for Confirmation lacks a complete recovery path | Preserve submission reference and attempt history before promising a next action. |
+| PoolStatsCard raw-button baseline | Its count rows need native button layout without `AdminButton` chrome; the design-token checker explicitly retains row/card buttons until a dedicated primitive exists | Retire this audited baseline only when a sanctioned row primitive preserves geometry and focus in rendered proof. |
+| Builder and community flow guide rehearsal | A focused steward pooling guide now covers Confirm scope, settings, seeding, lifecycle, transfer review, and Resume/Send states, with a builder boundary link | Recheck its workflow claims against Afo's authenticated rehearsal before release. |
+| Initial and second-season stopped-run retry catalog coverage | ADM-148 covers settings only; ADM-176 checks the reachable running-season card but not a stopped-run retry count. ADM-175 was retired because Start Season is absent while a season runs | Add new IDs for the distinct retry outcomes with the batch-group fix; do not inherit prior case results. |
 
 ## 8. Compliance
 

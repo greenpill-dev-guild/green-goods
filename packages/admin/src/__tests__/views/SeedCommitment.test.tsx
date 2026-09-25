@@ -50,6 +50,15 @@ vi.mock("@green-goods/shared/hooks/blockchain/useErc20Metadata", () => ({
       : mocks.rewardTokenReadable
         ? { status: "ready", metadata: { decimals: 6, symbol: "USDC" } }
         : { status: "unreadable" },
+  useErc20MetadataMany: (_chainId: number, tokens: readonly string[]) =>
+    new Map(
+      tokens.map((token) => [
+        token.trim().toLowerCase(),
+        mocks.rewardTokenReadable
+          ? { status: "ready", metadata: { decimals: 6, symbol: "USDC" } }
+          : { status: "unreadable" },
+      ])
+    ),
 }));
 
 // The tray itself is the real one; only its read of the steward's open count is
@@ -592,6 +601,73 @@ describe("SeedCommitmentDialog (W8)", () => {
     // Guessing 18 decimals would record the amount wrong by orders of magnitude.
     expect(within(dialog()).getByLabelText(/^amount/i)).toBeDisabled();
     expect(within(dialog()).getByText(/units could not be read/i)).toBeInTheDocument();
+  });
+
+  it("holds Create All when a parked row's reward units become unreadable", async () => {
+    const { settleQueries } = renderMounted();
+    fillWhat("Rewarded row");
+    next();
+    await waitFor(() => expect(within(dialog()).getByLabelText(/^unit/i)).toBeInTheDocument());
+    fillHowMuch();
+    next();
+    await waitFor(() => expect(within(dialog()).getByText(/^confirmers$/i)).toBeInTheDocument());
+    fireEvent.click(within(dialog()).getByRole("radio", { name: /external payout record/i }));
+    fireEvent.change(within(dialog()).getByLabelText(/paid from/i), {
+      target: { value: GARDEN },
+    });
+    fireEvent.change(within(dialog()).getByLabelText(/token \(address\)/i), {
+      target: { value: REWARD_TOKEN },
+    });
+    fireEvent.change(await within(dialog()).findByLabelText(/^amount \(usdc\)/i), {
+      target: { value: "2.5" },
+    });
+    next();
+    await waitFor(() => expect(screen.getByTestId("seed-review")).toBeInTheDocument());
+    fireEvent.click(within(dialog()).getByRole("button", { name: /add another like this/i }));
+    await waitFor(() => expect(within(dialog()).getByLabelText(/^title/i)).toBeInTheDocument());
+    fillWhat("Unrewarded row");
+    next();
+    await waitFor(() => expect(within(dialog()).getByLabelText(/^unit/i)).toBeInTheDocument());
+    next();
+    await waitFor(() => expect(within(dialog()).getByText(/^confirmers$/i)).toBeInTheDocument());
+    fireEvent.click(within(dialog()).getByText(/advanced: declared reward/i));
+    fireEvent.click(within(dialog()).getByRole("radio", { name: /none/i }));
+    mocks.rewardTokenReadable = false;
+    settleQueries();
+    next();
+    await waitFor(() => expect(screen.getByTestId("seed-review")).toBeInTheDocument());
+    expect(within(dialog()).getByText(/Review “Rewarded row”/i)).toBeInTheDocument();
+    expect(within(dialog()).getByRole("button", { name: /create all \(2\)/i })).toBeDisabled();
+    expect(mocks.enqueue).not.toHaveBeenCalled();
+  });
+
+  it("holds Try Again after an unsent rewarded row loses token units", async () => {
+    mocks.enqueue.mockRejectedValueOnce(new Error("execution reverted"));
+    const { settleQueries } = renderMounted();
+    fillWhat("Rewarded retry");
+    next();
+    await waitFor(() => expect(within(dialog()).getByLabelText(/^unit/i)).toBeInTheDocument());
+    fillHowMuch();
+    next();
+    await waitFor(() => expect(within(dialog()).getByText(/^confirmers$/i)).toBeInTheDocument());
+    fireEvent.click(within(dialog()).getByRole("radio", { name: /external payout record/i }));
+    fireEvent.change(within(dialog()).getByLabelText(/paid from/i), {
+      target: { value: GARDEN },
+    });
+    fireEvent.change(within(dialog()).getByLabelText(/token \(address\)/i), {
+      target: { value: REWARD_TOKEN },
+    });
+    fireEvent.change(await within(dialog()).findByLabelText(/^amount \(usdc\)/i), {
+      target: { value: "2.5" },
+    });
+    next();
+    await waitFor(() => expect(screen.getByTestId("seed-review")).toBeInTheDocument());
+    fireEvent.click(within(dialog()).getByRole("button", { name: /seed this commitment/i }));
+    await waitFor(() => expect(screen.getByTestId("seed-done")).toBeInTheDocument());
+    mocks.rewardTokenReadable = false;
+    settleQueries();
+    expect(within(dialog()).getByRole("button", { name: /try again/i })).toBeDisabled();
+    expect(mocks.enqueue).toHaveBeenCalledTimes(1);
   });
 
   it("starts a fresh draft each time the mounted dialog reopens", async () => {

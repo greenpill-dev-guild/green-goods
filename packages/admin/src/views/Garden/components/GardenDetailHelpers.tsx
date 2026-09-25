@@ -16,7 +16,7 @@ import { type ReactNode, useState } from "react";
 import { useIntl } from "react-intl";
 import { Link } from "react-router-dom";
 import { AdminButton } from "@/components/AdminButton";
-import { AdminCard, AdminCardBody } from "@/components/AdminCard";
+import { AdminCard, AdminCardBody, AdminCardTitle } from "@/components/AdminCard";
 import { AdminTooltip } from "@/components/AdminTooltip";
 import { ALERT_LABEL_CLASSES, BADGE_TONE_CLASSES } from "./gardenDetail.constants";
 
@@ -171,7 +171,7 @@ export function SectionStateCard({ title, description, closeLabel, onClose }: Se
     <AdminCard density="none" className="border-l-2 border-l-information-dark">
       <AdminCardBody className="flex items-start justify-between gap-3">
         <div>
-          <h3 className="label-md text-text-strong">{title}</h3>
+          <AdminCardTitle>{title}</AdminCardTitle>
           <p className="mt-1 text-sm text-text-sub">{description}</p>
         </div>
         <AdminButton variant="text" size="sm" onClick={onClose} aria-label={closeLabel}>

@@ -34,7 +34,7 @@ export function SeedRewardSection({
   const { formatMessage } = useIntl();
 
   return (
-    <details className="rounded-[var(--m3-shape-md)] bg-[rgb(var(--m3-surface-container-highest))] p-3">
+    <details className="rounded-[var(--m3-shape-md)] bg-bg-soft p-3">
       <summary className="label-md cursor-pointer text-text-strong">
         {formatMessage({
           id: "cockpit.garden.pool.seed.reward",

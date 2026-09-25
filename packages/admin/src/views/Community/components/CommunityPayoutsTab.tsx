@@ -3,7 +3,7 @@ import type { CommunityWorkspace } from "@green-goods/shared/hooks/admin-ui/comm
 import type { Address } from "@green-goods/shared/types/domain";
 import { JAR_LIMIT_ROUTE_ITEM_PREFIX } from "@green-goods/shared/utils/cookie-jar-claim-limit";
 import { useIntl } from "react-intl";
-import { AdminCard } from "@/components/AdminCard";
+import { AdminCard, AdminCardTitle } from "@/components/AdminCard";
 import { CookieJarPayoutPanel } from "@/views/Hub/components/CookieJarPayoutPanel";
 
 export type CommunityPayoutsTabProps = Pick<CommunityWorkspace, "allocations" | "selectedItem"> & {
@@ -37,26 +37,26 @@ export function CommunityPayoutsTab({
         <aside className="garden-tab-rail">
           <div className="garden-tab-rail-sticky">
             <AdminCard variant="filled" className="space-y-3">
-              <h3 className="text-title-sm font-semibold text-[rgb(var(--m3-on-surface))]">
+              <AdminCardTitle>
                 {formatMessage({
                   id: "cockpit.community.payouts.readiness",
                   defaultMessage: "Payout readiness",
                 })}
-              </h3>
+              </AdminCardTitle>
               <AdminCard variant="outlined" density="compact">
-                <p className="text-label-sm text-[rgb(var(--m3-on-surface-variant))]">
+                <p className="text-label-sm text-text-sub">
                   {formatMessage({
                     id: "cockpit.community.payouts.historyCount",
                     defaultMessage: "Allocation events",
                   })}
                 </p>
-                <p className="mt-1 text-title-sm font-semibold text-[rgb(var(--m3-on-surface))]">
+                <p className="mt-1 text-title-sm font-semibold text-text-strong">
                   {allocations.length}
                 </p>
               </AdminCard>
               {allocationSplits ? (
                 <div className="space-y-1.5 border-t border-stroke-soft pt-3">
-                  <p className="mb-1.5 text-label-sm font-medium text-[rgb(var(--m3-on-surface-variant))]">
+                  <p className="mb-1.5 text-label-sm font-medium text-text-sub">
                     {formatMessage({
                       id: "app.garden.detail.community.yieldAllocationHint",
                       defaultMessage: "How yield is distributed",
@@ -68,10 +68,8 @@ export function CommunityPayoutsTab({
                     ["app.garden.detail.community.endowment", allocationSplits.endowment],
                   ].map(([id, value]) => (
                     <div key={id} className="flex items-center justify-between text-body-sm">
-                      <span className="text-[rgb(var(--m3-on-surface-variant))]">
-                        {formatMessage({ id: id as string })}
-                      </span>
-                      <span className="font-medium text-[rgb(var(--m3-on-surface))]">{value}%</span>
+                      <span className="text-text-sub">{formatMessage({ id: id as string })}</span>
+                      <span className="font-medium text-text-strong">{value}%</span>
                     </div>
                   ))}
                 </div>

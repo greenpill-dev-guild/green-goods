@@ -166,8 +166,24 @@ describe("PoolFundingSection", () => {
     renderSection(fundingView({ isError: true }));
     expect(screen.getByText(/last read/i)).toBeInTheDocument();
     expect(screen.getByText("Funding unavailable")).toBeInTheDocument();
+    expect(
+      screen.getByText("The latest funding read failed. Refresh to check current availability.")
+    ).toBeInTheDocument();
     expect(screen.queryByText("Healthy")).not.toBeInTheDocument();
     expect(screen.getAllByText("—").length).toBeGreaterThan(0);
+  });
+
+  it("names a stale cached balance in both the rail and its details", () => {
+    const funding = fundingView({ hasStaleBalance: true });
+    renderWithProviders(
+      <>
+        <PoolFundingSection funding={funding} onOpenDetails={() => undefined} />
+        <PoolFundingDialog open onOpenChange={() => undefined} funding={funding} tone="garden" />
+      </>
+    );
+    expect(
+      screen.getAllByText("The balance read is out of date. Refresh to check current availability.")
+    ).toHaveLength(2);
   });
 
   it.each<[PoolFundingState, string]>([
@@ -299,11 +315,17 @@ describe("PoolFundingDialog", () => {
   it.each([
     ["missing", fundingView({ snapshot: null })],
     ["stale", fundingView({ isError: true })],
-  ])("does not report %s funding data as settlement ready", (_state, funding) => {
+  ])("does not report %s funding data as settlement ready", (state, funding) => {
     renderWithProviders(
       <PoolFundingDialog open onOpenChange={() => undefined} funding={funding} tone="garden" />
     );
-    expect(screen.getByText("Settlement unavailable")).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        state === "missing"
+          ? "Settlement unavailable"
+          : "The latest funding read failed. Refresh to check current availability."
+      )
+    ).toBeInTheDocument();
     expect(
       screen.queryByText("Account, route, token, fees, and limits are ready.")
     ).not.toBeInTheDocument();

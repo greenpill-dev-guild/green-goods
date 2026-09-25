@@ -46,7 +46,7 @@
       "scenario": "Confirmar cumplido… revisa el compromiso antes de confirmarlo",
       "preconditions": [
         "Steward con el Garden que confirma el compromiso seleccionado en el encabezado",
-        "Un compromiso que espera la confirmación de ese Garden y marcado como Lista para confirmar"
+        "Un compromiso que espera la confirmación de ese Garden y marcado como Listo para confirmar; la cuenta que confirma no ha contribuido"
       ],
       "steps": [
         "Abre Hub → Confirmar y pulsa Confirmar cumplido… en la fila del compromiso",
@@ -72,11 +72,13 @@
     },
     "ADM-140": {
       "scenario": "Crea un compromiso: asistente de 4 pasos, confirmadores identificados y revisión antes de enviar",
-      "preconditions": ["El pool del Garden está abierto"],
+      "preconditions": [
+        "El pool del Garden está abierto; el compromiso local del Garden designa como confirmador a un steward o evaluador independiente, nunca a quien contribuyó"
+      ],
       "steps": [
         "Completa el asistente de creación de 4 pasos",
         "Añade confirmadores identificados, incluida una dirección incorrecta",
-        "Revisa, pulsa Sembrar este compromiso y confirma en la wallet"
+        "Revisa, pulsa Sembrar este compromiso y confirma en la wallet; después pulsa Listo y comprueba que se cierra el asistente"
       ],
       "expected": "Cada paso valida antes de Siguiente; una dirección de confirmador incorrecta o duplicada se rechaza de forma visible; la revisión muestra todas las respuestas antes de enviar nada; al sembrar, la wallet pide confirmar una sola creación, y el asistente la muestra como Creado hasta que Listo lo cierra",
       "role": "Steward"

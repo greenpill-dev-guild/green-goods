@@ -7,21 +7,19 @@ import { useMemo, useState } from "react";
 import { FormattedMessage, useIntl } from "react-intl";
 import { ActPhaseLine } from "@/components/ActPhaseLine";
 import { AdminButton } from "@/components/AdminButton";
-import { AdminCard } from "@/components/AdminCard";
+import { AdminCard, AdminCardTitle } from "@/components/AdminCard";
 import { AdminFilterChip } from "@/components/AdminFilterChip";
 import { AdminSearchToolbar } from "@/components/AdminSearchToolbar";
 import { CommitmentExpireDialog } from "./CommitmentExpireDialog";
 import { GardenPoolTarget } from "./PoolTarget";
+import {
+  type PoolCommitmentFocus,
+  type PoolCommitmentScope,
+  selectPoolCommitmentRows,
+} from "./poolCommitmentRows";
 import { commitmentStateChip, directionLabel, formatUnixDate } from "./poolPresentation";
 
-export type PoolCommitmentScope = "open" | "confirmed" | "past";
-
-/**
- * A count's own list, reached from the stats card: the live rows past their
- * due, or every row that needs recovery (disputed or past due). Null is the
- * scope chips' ordinary list.
- */
-export type PoolCommitmentFocus = "pastDue" | "recovery" | null;
+export type { PoolCommitmentFocus, PoolCommitmentScope } from "./poolCommitmentRows";
 
 export interface PoolCommitmentsCardProps {
   console: PoolConsoleController;
@@ -81,19 +79,7 @@ export function PoolCommitmentsCard({
       { id: commitment.commitmentId.toString() }
     );
 
-  const rows = useMemo(() => {
-    const base =
-      focus === "pastDue"
-        ? model.dueLive
-        : focus === "recovery"
-          ? model.needsRecovery
-          : model.groups[scope];
-    const needle = search.trim().toLowerCase();
-    if (!needle) return base;
-    return base.filter((row) => titleOf(row).toLowerCase().includes(needle));
-    // titleOf reads from `titles`, listed below.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [focus, model.dueLive, model.needsRecovery, model.groups, scope, search, titles]);
+  const rows = selectPoolCommitmentRows({ model, scope, focus, search, titleOf });
 
   const actDisabled = !isOnline || isActing;
   const total = model.groups.open.length + model.groups.confirmed.length + model.groups.past.length;
@@ -108,12 +94,12 @@ export function PoolCommitmentsCard({
         className="space-y-3"
       >
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <h3 className="label-md text-text-strong">
+          <AdminCardTitle>
             {formatMessage({
               id: "cockpit.garden.pool.commitments.title",
               defaultMessage: "Commitments",
             })}
-          </h3>
+          </AdminCardTitle>
           <AdminButton
             type="button"
             variant="outlined"
@@ -208,10 +194,7 @@ export function PoolCommitmentsCard({
         </AdminSearchToolbar>
 
         {pendingCreates.length > 0 && scope === "open" && focus === null ? (
-          <ul
-            className="divide-y divide-[rgb(var(--m3-outline-variant))]"
-            data-testid="pool-queued"
-          >
+          <ul className="divide-y divide-stroke-soft" data-testid="pool-queued">
             {pendingCreates.map((row) => (
               <li key={row.jobId} className="flex flex-wrap items-center gap-2 py-2">
                 <span className="truncate text-body-md text-text-strong" title={row.title ?? ""}>
@@ -293,12 +276,12 @@ export function PoolCommitmentsCard({
         {total === 0 && pendingCreates.length === 0 ? (
           <div className="flex min-h-40 flex-col items-center justify-center gap-2 text-center">
             <RiSeedlingLine className="h-6 w-6 text-text-soft" aria-hidden />
-            <p className="label-md text-text-strong">
+            <AdminCardTitle>
               {formatMessage({
                 id: "cockpit.garden.pool.commitments.emptyTitle",
                 defaultMessage: "No commitments yet",
               })}
-            </p>
+            </AdminCardTitle>
             <p className="max-w-sm text-sm text-text-soft">
               {formatMessage({
                 id: "cockpit.garden.pool.commitments.emptyBody",
@@ -320,7 +303,7 @@ export function PoolCommitmentsCard({
                 })}
           </p>
         ) : (
-          <ul className="divide-y divide-[rgb(var(--m3-outline-variant))]">
+          <ul className="divide-y divide-stroke-soft">
             {rows.map((commitment) => {
               const chip = commitmentStateChip(commitment, formatMessage);
               const title = titleOf(commitment);
@@ -350,7 +333,7 @@ export function PoolCommitmentsCard({
                 >
                   <button
                     type="button"
-                    className="m3-state-layer flex min-w-0 flex-1 items-center gap-3 rounded-[var(--m3-shape-sm)] py-1 text-left [--state-layer-color:var(--m3-on-surface)]"
+                    className="m3-state-layer flex min-w-0 flex-1 items-center gap-3 rounded-[var(--m3-shape-sm)] py-1 text-left [--state-layer-color:var(--text-strong-950)]"
                     onClick={() => onOpenCommitment(commitment)}
                   >
                     <span className="min-w-0 flex-1">

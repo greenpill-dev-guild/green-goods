@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react";
-import { CampaignCookieJarCreateWorkspace } from "./CampaignCookieJarCreateWorkspace";
 import { campaignCookieJarStoryDecorators } from "./CampaignCookieJar.stories.fixtures";
+import { CampaignCookieJarCreateWorkspace } from "./CampaignCookieJarCreateWorkspace";
 
 const meta: Meta<typeof CampaignCookieJarCreateWorkspace> = {
   title: "Admin/Workspaces/Cookies/CampaignCookieJar/CreateWorkspace",

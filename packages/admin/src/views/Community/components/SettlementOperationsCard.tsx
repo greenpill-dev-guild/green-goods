@@ -6,7 +6,7 @@ import { useSettlementOperationsController } from "@green-goods/shared/hooks/adm
 import { useState } from "react";
 import { useIntl } from "react-intl";
 import { AdminButton } from "@/components/AdminButton";
-import { AdminCard } from "@/components/AdminCard";
+import { AdminCard, AdminCardTitle } from "@/components/AdminCard";
 import { AdminConfirmDialog } from "@/components/AdminDialog";
 import { AdminSettingRow } from "@/components/AdminSettingRow";
 
@@ -71,12 +71,12 @@ export function SettlementOperationsCard({
       data-delivery={enabled === null ? "unread" : enabled ? "on" : "off"}
     >
       <div>
-        <h3 className="label-md text-text-strong">
+        <AdminCardTitle>
           {formatMessage({
             id: "cockpit.community.settlementOps.title",
             defaultMessage: "Settlement Operations",
           })}
-        </h3>
+        </AdminCardTitle>
         <p className="mt-1 text-xs text-text-soft">
           {formatMessage({
             id: "cockpit.community.settlementOps.description",

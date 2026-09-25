@@ -6,6 +6,7 @@ import { RiExternalLinkLine, RiFileList3Line } from "@remixicon/react";
 import { useIntl } from "react-intl";
 import { Link } from "react-router-dom";
 import { AdminButton } from "@/components/AdminButton";
+import { AdminCardTitle } from "@/components/AdminCard";
 import { AdminCard, AdminCardBody, AdminCardHeader } from "../AdminCard";
 
 interface Assessment {
@@ -35,9 +36,9 @@ export const GardenAssessmentsPanel: React.FC<GardenAssessmentsPanelProps> = ({
   return (
     <AdminCard density="none">
       <AdminCardHeader className="gap-2">
-        <h3 className="min-w-0 truncate label-md text-text-strong sm:text-lg">
+        <AdminCardTitle className="min-w-0 truncate">
           {formatMessage({ id: "app.garden.admin.recentAssessments" })}
-        </h3>
+        </AdminCardTitle>
         <AdminButton variant="outlined" size="sm" asChild>
           <Link
             to={adminRoutes.gardenImpact({ gardenId, section: "assessments" })}
@@ -89,7 +90,7 @@ export const GardenAssessmentsPanel: React.FC<GardenAssessmentsPanelProps> = ({
                   href={getEASExplorerUrl(chainId, assessment.id)}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center rounded text-sm text-primary-dark transition hover:text-primary-darker focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--tone-focus-ring,var(--m3-primary)))]"
+                  className="inline-flex items-center rounded text-sm text-primary-dark transition hover:text-primary-darker focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--tone-focus-ring,var(--primary-base)))]"
                   aria-label={formatMessage({
                     id: "app.admin.assessments.viewOnEas",
                     defaultMessage: "View Assessment on EAS Explorer",

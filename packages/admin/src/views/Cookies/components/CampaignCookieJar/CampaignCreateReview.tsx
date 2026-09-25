@@ -1,7 +1,7 @@
 import { AdminButton } from "@/components/AdminButton";
-import { AdminCard } from "@/components/AdminCard";
-import { ReviewLine } from "./ReviewLine";
+import { AdminCard, AdminCardTitle } from "@/components/AdminCard";
 import type { CampaignCookieJarCreateFormProps } from "./CampaignCookieJarCreateForm";
+import { ReviewLine } from "./ReviewLine";
 
 export function CampaignCreateReview(props: CampaignCookieJarCreateFormProps) {
   const {
@@ -21,12 +21,12 @@ export function CampaignCreateReview(props: CampaignCookieJarCreateFormProps) {
     <>
       <aside className="sticky top-20 hidden space-y-4 lg:block">
         <AdminCard variant="outlined" className="space-y-2">
-          <h2 className="text-title-md font-semibold text-[rgb(var(--m3-on-surface))]">
+          <AdminCardTitle as="h2">
             {formatMessage({
               id: "cockpit.community.cookies.review",
               defaultMessage: "Review",
             })}
-          </h2>
+          </AdminCardTitle>
           <ReviewLine
             label={formatMessage({
               id: "cockpit.community.cookies.reviewPayout",
@@ -80,18 +80,16 @@ export function CampaignCreateReview(props: CampaignCookieJarCreateFormProps) {
             </AdminButton>
           </div>
           {createError ? (
-            <p className="text-body-sm text-[rgb(var(--m3-error))]">{createError.message}</p>
+            <p className="text-body-sm text-error-dark">{createError.message}</p>
           ) : null}
         </AdminCard>
       </aside>
 
-      <div className="fixed inset-x-0 bottom-[calc(80px+env(safe-area-inset-bottom))] z-sticky border-t border-[rgb(var(--m3-outline-variant))] bg-[rgb(var(--m3-surface-container-high))] p-3 shadow-[var(--m3-elevation-2)] lg:hidden">
+      <div className="fixed inset-x-0 bottom-[calc(80px+env(safe-area-inset-bottom))] z-sticky border-t border-stroke-soft bg-bg-sub p-3 shadow-[var(--m3-elevation-2)] lg:hidden">
         <div className="mx-auto flex max-w-[1400px] items-center justify-between gap-3">
           <div className="min-w-0">
-            <p className="truncate text-label-md font-semibold text-[rgb(var(--m3-on-surface))]">
-              {payoutLabel}
-            </p>
-            <p className="text-label-sm text-[rgb(var(--m3-on-surface-variant))]">
+            <p className="truncate text-label-md font-semibold text-text-strong">{payoutLabel}</p>
+            <p className="text-label-sm text-text-sub">
               {formatMessage(
                 {
                   id: "cockpit.community.cookies.mobileReviewSummary",

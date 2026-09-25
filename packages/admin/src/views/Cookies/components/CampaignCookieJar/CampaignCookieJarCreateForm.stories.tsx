@@ -1,9 +1,9 @@
 import type { Meta, StoryObj } from "@storybook/react";
-import { CampaignCookieJarCreateForm } from "./CampaignCookieJarCreateForm";
 import {
   campaignCookieJarCreateFormProps,
   campaignCookieJarStoryDecorators,
 } from "./CampaignCookieJar.stories.fixtures";
+import { CampaignCookieJarCreateForm } from "./CampaignCookieJarCreateForm";
 
 const meta: Meta<typeof CampaignCookieJarCreateForm> = {
   title: "Admin/Workspaces/Cookies/CampaignCookieJar/CreateForm",

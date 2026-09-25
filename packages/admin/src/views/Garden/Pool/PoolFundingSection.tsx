@@ -11,8 +11,10 @@ import {
 import { type RefObject, useState } from "react";
 import { useIntl } from "react-intl";
 import { AdminButton, AdminIconButton } from "@/components/AdminButton";
+import { AdminCardTitle } from "@/components/AdminCard";
 import {
   formatGdollar,
+  fundingReadIssueMessage,
   fundingStateMessage,
   primaryUnavailableReason,
   readinessReasonMessage,
@@ -44,6 +46,7 @@ export function PoolFundingSection({
   const [manualRefresh, setManualRefresh] = useState<"idle" | "running" | "done">("idle");
   const snapshot = funding.snapshot;
   const stale = (funding.isError || funding.hasStaleBalance) && snapshot !== null;
+  const readIssue = fundingReadIssueMessage(funding, intl);
   const derivedUnavailable = stale || snapshot?.fundingState === "unavailable";
   // A chip that only says "unavailable" is a dead end; the rail names what is
   // in the way, the same words the details dialog lists in full.
@@ -65,12 +68,12 @@ export function PoolFundingSection({
     >
       <div className="flex items-start justify-between gap-2">
         <div>
-          <h4 id="pool-funding-title" className="label-md text-text-strong">
+          <AdminCardTitle as="h4" id="pool-funding-title">
             {formatMessage({
               id: "cockpit.garden.pool.funding.title",
               defaultMessage: "Pool Funding",
             })}
-          </h4>
+          </AdminCardTitle>
           <p className="mt-1 text-xs text-text-soft">
             {formatMessage({
               id: "cockpit.garden.pool.funding.description",
@@ -116,7 +119,7 @@ export function PoolFundingSection({
               <dd className="mt-0.5 font-medium text-text-strong">
                 {snapshot?.safe ? (
                   <a
-                    className="inline-flex min-h-11 items-center gap-1 underline decoration-stroke-soft underline-offset-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--tone-focus-ring,var(--m3-primary)))]"
+                    className="inline-flex min-h-11 items-center gap-1 underline decoration-stroke-soft underline-offset-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--tone-focus-ring,var(--primary-base)))]"
                     href={`${getBlockExplorer(42220)}/address/${snapshot.safe}`}
                     target="_blank"
                     rel="noreferrer"
@@ -162,7 +165,7 @@ export function PoolFundingSection({
                 {formatGdollar(derivedUnavailable ? null : (snapshot?.committed ?? null), locale)}
               </dd>
             </div>
-            <div className="col-span-2 rounded-[var(--m3-shape-sm)] bg-[rgb(var(--m3-surface-container))] p-3">
+            <div className="col-span-2 rounded-[var(--m3-shape-sm)] bg-bg-soft p-3">
               <dt className="text-xs text-text-soft">
                 {formatMessage({
                   id: "cockpit.garden.pool.funding.available",
@@ -213,9 +216,9 @@ export function PoolFundingSection({
             </StatusBadge>
           </div>
 
-          {blockedBy ? (
+          {readIssue || blockedBy ? (
             <p className="text-xs text-text-sub" data-slot="funding-blocked-by">
-              {readinessReasonMessage(blockedBy, intl)}
+              {readIssue ?? (blockedBy ? readinessReasonMessage(blockedBy, intl) : null)}
             </p>
           ) : null}
 

@@ -1,3 +1,4 @@
+import { AdminCardTitle } from "@/components/AdminCard";
 import { AdminTextField } from "@/components/AdminTextField";
 import { CampaignCookieJarAssetPicker } from "./CampaignCookieJarAssetPicker";
 import type { CampaignCookieJarCreateFormProps } from "./CampaignCookieJarCreateForm";
@@ -15,13 +16,13 @@ export function CampaignPayoutSection(props: CampaignCookieJarCreateFormProps) {
   return (
     <section className="surface-section overflow-visible">
       <div className="mb-4">
-        <p className="text-label-sm text-[rgb(var(--m3-on-surface-variant))]">02</p>
-        <h2 className="text-title-md font-semibold text-[rgb(var(--m3-on-surface))]">
+        <p className="text-label-sm text-text-sub">02</p>
+        <AdminCardTitle as="h2">
           {formatMessage({
             id: "cockpit.community.cookies.createPayoutSection",
             defaultMessage: "Payout",
           })}
-        </h2>
+        </AdminCardTitle>
       </div>
       <div className="space-y-4">
         <CampaignCookieJarAssetPicker
@@ -42,7 +43,7 @@ export function CampaignPayoutSection(props: CampaignCookieJarCreateFormProps) {
             placeholder="0.00"
             inputProps={{ inputMode: "decimal" }}
           />
-          <span className="inline-flex min-h-11 items-center rounded-[var(--m3-shape-full)] border border-[rgb(var(--m3-outline-variant))] px-3 text-label-md text-[rgb(var(--m3-on-surface-variant))]">
+          <span className="inline-flex min-h-11 items-center rounded-[var(--m3-shape-full)] border border-stroke-soft px-3 text-label-md text-text-sub">
             {tokenSymbol || "TOKEN"}
           </span>
         </div>

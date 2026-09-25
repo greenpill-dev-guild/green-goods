@@ -265,9 +265,7 @@ export function PositionCard({
     <AdminCard>
       <div className="mb-4">
         <div className="flex items-center justify-between">
-          <h3 className="text-title-sm font-semibold text-text-strong sm:text-title-md">
-            {assetSymbol}
-          </h3>
+          <h3 className="text-title-md font-semibold text-text-strong">{assetSymbol}</h3>
           {!vaultAcceptingDeposits && (
             <span className="rounded-full bg-warning-lighter px-2 py-1 text-label-sm font-medium text-warning-dark">
               {formatMessage({ id: "app.treasury.depositsDisabled" })}

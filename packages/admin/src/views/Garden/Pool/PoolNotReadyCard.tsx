@@ -1,7 +1,7 @@
 import { RiSeedlingLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
 import { AdminButton } from "@/components/AdminButton";
-import { AdminCard } from "@/components/AdminCard";
+import { AdminCard, AdminCardTitle } from "@/components/AdminCard";
 
 /**
  * The pool tab before the pool takes commitments: what setting up gives the
@@ -23,12 +23,12 @@ export function PoolNotReadyCard({
       data-component="PoolNotReadyCard"
     >
       <RiSeedlingLine className="h-6 w-6 text-text-soft" aria-hidden />
-      <p className="label-md text-text-strong">
+      <AdminCardTitle>
         {formatMessage({
           id: "cockpit.garden.pool.notReady.title",
           defaultMessage: "This garden isn’t taking commitments yet",
         })}
-      </p>
+      </AdminCardTitle>
       <p className="max-w-md text-sm text-text-soft">
         {formatMessage({
           id: "cockpit.garden.pool.notReady.body",

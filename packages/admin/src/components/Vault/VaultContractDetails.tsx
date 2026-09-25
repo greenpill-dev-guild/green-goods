@@ -7,6 +7,7 @@ import { AAVE_V3_POOL, getVaultAssetSymbol } from "@green-goods/shared/utils/blo
 import { getBlockExplorerAddressUrl } from "@green-goods/shared/utils/eas/explorers";
 import { RiExternalLinkLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
+import { AdminCardTitle } from "@/components/AdminCard";
 import { EnsAddressText } from "@/components/EnsAddressText";
 import { AdminCard, AdminCardBody, AdminCardHeader } from "../AdminCard";
 
@@ -36,9 +37,7 @@ export function VaultContractDetails({ gardenAddress }: VaultContractDetailsProp
   return (
     <AdminCard density="none">
       <AdminCardHeader>
-        <h3 className="label-md text-text-strong">
-          {formatMessage({ id: "app.explorer.contractDetails" })}
-        </h3>
+        <AdminCardTitle>{formatMessage({ id: "app.explorer.contractDetails" })}</AdminCardTitle>
       </AdminCardHeader>
       <AdminCardBody className="space-y-2">
         {vaults.map((vault) => (

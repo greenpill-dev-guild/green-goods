@@ -3,7 +3,7 @@ import type { CommunityWorkspace } from "@green-goods/shared/hooks/admin-ui/comm
 import type { Address } from "@green-goods/shared/types/domain";
 import { formatTokenAmount } from "@green-goods/shared/utils/blockchain/vaults";
 import { useIntl } from "react-intl";
-import { AdminCard } from "@/components/AdminCard";
+import { AdminCard, AdminCardTitle } from "@/components/AdminCard";
 import { VaultContractDetails } from "@/components/Vault";
 import GardenVaultView from "@/views/Garden/Vault";
 
@@ -31,14 +31,14 @@ export function CommunityEndowmentTab({
         <aside className="garden-tab-rail">
           <div className="garden-tab-rail-sticky space-y-4">
             <AdminCard variant="filled" className="space-y-3">
-              <h3 className="text-title-sm font-semibold text-[rgb(var(--m3-on-surface))]">
+              <AdminCardTitle>
                 {formatMessage({ id: "cockpit.community.endowment.status" })}
-              </h3>
+              </AdminCardTitle>
               <AdminCard variant="outlined" density="compact">
-                <p className="text-label-sm text-[rgb(var(--m3-on-surface-variant))]">
+                <p className="text-label-sm text-text-sub">
                   {formatMessage({ id: "app.treasury.totalValueLocked" })}
                 </p>
-                <p className="mt-1 text-title-sm font-semibold text-[rgb(var(--m3-on-surface))]">
+                <p className="mt-1 text-title-sm font-semibold text-text-strong">
                   {hasVaults
                     ? formatTokenAmount(vaultNetDeposited)
                     : formatMessage({ id: "app.garden.detail.community.noVault" })}

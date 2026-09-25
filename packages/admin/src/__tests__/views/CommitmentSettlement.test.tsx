@@ -96,10 +96,17 @@ describe("CommitmentSettlement", () => {
     const settlement = commitmentSettlementControllerFixture({
       acts: { ...commitmentSettlementControllerFixture().acts, createPlan },
     });
-    renderWithProviders(<CommitmentSettlement settlement={settlement} tone="garden" />);
+    renderWithProviders(
+      <CommitmentSettlement
+        settlement={settlement}
+        tone="garden"
+        target={<p>Rocinha pool · commitment #12</p>}
+      />
+    );
 
     fireEvent.click(screen.getByRole("button", { name: "Create Payout Plan…" }));
     const dialog = await screen.findByRole("alertdialog");
+    expect(within(dialog).getByText("Rocinha pool · commitment #12")).toBeInTheDocument();
     expect(within(dialog).getByText(/Create payout plan for 250 G\$/)).toBeInTheDocument();
     expect(createPlan).not.toHaveBeenCalled();
 

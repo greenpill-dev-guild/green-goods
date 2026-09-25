@@ -11,7 +11,7 @@ import { useMemo } from "react";
 import { useIntl } from "react-intl";
 import { Link, useLocation, useParams } from "react-router-dom";
 import { AdminButton } from "@/components/AdminButton";
-import { AdminCard } from "@/components/AdminCard";
+import { AdminCard, AdminCardTitle } from "@/components/AdminCard";
 import {
   CanvasRouteContent,
   CanvasRouteFrame,
@@ -150,9 +150,9 @@ export default function ActionDetail() {
             <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1.4fr)_minmax(18rem,1fr)]">
               <div className="space-y-4">
                 <div>
-                  <h2 className="label-md text-text-strong sm:text-title-md">
+                  <AdminCardTitle as="h2">
                     {formatMessage({ id: "app.actions.detail.details" })}
-                  </h2>
+                  </AdminCardTitle>
                   <p className="mt-1 text-body-md text-text-sub">
                     {formatMessage({
                       id: "cockpit.actions.detailDescription",

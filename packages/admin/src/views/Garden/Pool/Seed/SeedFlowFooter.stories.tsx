@@ -68,3 +68,8 @@ export const Done: Story = { args: { phase: "done", stepIndex: 3, isLast: true }
 export const DoneWithUnsent: Story = {
   args: { phase: "done", stepIndex: 3, isLast: true, unsent: true },
 };
+
+/** A parked reward token must be readable again before the unsent row can retry. */
+export const DoneWithUnsentUnknownReward: Story = {
+  args: { phase: "done", stepIndex: 3, isLast: true, unsent: true, seedDisabled: true },
+};

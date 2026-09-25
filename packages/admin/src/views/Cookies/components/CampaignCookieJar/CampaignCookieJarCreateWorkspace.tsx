@@ -28,11 +28,11 @@ import {
   isValidCampaignCookieJarMetadataUrl,
   resolveCampaignCookieJarCreateFollowUp,
 } from "../../campaignCookieJarPanel.model";
+import { CampaignCookieJarCreateForm } from "./CampaignCookieJarCreateForm";
 import {
   CampaignCookieJarCreatedState,
   CampaignCookieJarSubmittedState,
 } from "./CampaignCookieJarCreateStates";
-import { CampaignCookieJarCreateForm } from "./CampaignCookieJarCreateForm";
 import type { CampaignCookieJarCreateWorkspaceProps } from "./CampaignCookieJarCreateWorkspace.types";
 import { gardensForAggregation, parseAmountInput } from "./helpers";
 

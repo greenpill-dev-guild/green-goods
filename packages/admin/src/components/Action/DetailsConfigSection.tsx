@@ -9,6 +9,7 @@ import {
 import { useState } from "react";
 import { useIntl } from "react-intl";
 import { AdminButton, AdminIconButton } from "../AdminButton";
+import { AdminCardTitle } from "../AdminCard";
 import { AdminCheckbox } from "../AdminCheckbox";
 import { AdminFieldGroup } from "../AdminFieldGroup";
 import { AdminSelect, AdminTextArea, AdminTextField } from "../AdminTextField";
@@ -108,12 +109,12 @@ export function DetailsConfigSection({ config, onChange }: DetailsConfigSectionP
       {/* Dynamic Form Inputs */}
       <div>
         <div className="flex items-center justify-between mb-3">
-          <h3 className="label-lg font-semibold text-text-strong">
+          <AdminCardTitle>
             {formatMessage({
               id: "app.admin.actions.detailsConfig.formInputs",
               defaultMessage: "Form inputs",
             })}
-          </h3>
+          </AdminCardTitle>
           <AdminButton type="button" size="sm" onClick={addInput} leadingIcon={<RiAddLine />}>
             {formatMessage({
               id: "app.admin.actions.detailsConfig.addInput",

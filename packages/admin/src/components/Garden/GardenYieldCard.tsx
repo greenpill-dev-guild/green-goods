@@ -12,6 +12,7 @@ import { useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { Link } from "react-router-dom";
 import { AdminButton } from "@/components/AdminButton";
+import { AdminCardTitle } from "@/components/AdminCard";
 
 interface GardenYieldCardProps {
   allocations: YieldAllocation[];
@@ -72,7 +73,7 @@ export const GardenYieldCard: React.FC<GardenYieldCardProps> = ({
             <RiPieChart2Line className="h-5 w-5 text-primary-dark" />
           </div>
           <div>
-            <h3 className="admin-section-title">{formatMessage({ id: "app.yield.title" })}</h3>
+            <AdminCardTitle>{formatMessage({ id: "app.yield.title" })}</AdminCardTitle>
             <p className="mt-0.5 text-body-md text-text-sub">
               {formatMessage({ id: "app.yield.splitConfig" })}
             </p>
@@ -177,9 +178,7 @@ export const GardenYieldCard: React.FC<GardenYieldCardProps> = ({
       </div>
 
       <div className="mt-4 border-t border-stroke-soft pt-4">
-        <h4 className="admin-section-title admin-section-title--compact">
-          {formatMessage({ id: "app.yield.history" })}
-        </h4>
+        <AdminCardTitle as="h4">{formatMessage({ id: "app.yield.history" })}</AdminCardTitle>
         {allocationsLoading ? (
           <div className="mt-2 space-y-2" role="status" aria-live="polite">
             <span className="sr-only">{formatMessage({ id: "app.yield.history" })}</span>

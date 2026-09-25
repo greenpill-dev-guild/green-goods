@@ -1,9 +1,9 @@
 import type { Meta, StoryObj } from "@storybook/react";
-import { CampaignDetailsSection } from "./CampaignDetailsSection";
 import {
   campaignCookieJarCreateFormProps,
   campaignCookieJarStoryDecorators,
 } from "./CampaignCookieJar.stories.fixtures";
+import { CampaignDetailsSection } from "./CampaignDetailsSection";
 
 const meta: Meta<typeof CampaignDetailsSection> = {
   title: "Admin/Workspaces/Cookies/CampaignCookieJar/DetailsSection",

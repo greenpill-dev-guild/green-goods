@@ -1,5 +1,5 @@
-import type { TxActPhase } from "@green-goods/shared/hooks/admin-ui/pool/controller.types";
 import { getChainName } from "@green-goods/shared/config/chains";
+import type { TxActPhase } from "@green-goods/shared/hooks/admin-ui/pool/controller.types";
 import { cn } from "@green-goods/shared/utils/styles/cn";
 import { useIntl } from "react-intl";
 
@@ -36,7 +36,7 @@ export function ActPhaseLine({ phase, chainId, confirmed }: ActPhaseLineProps) {
           : phase.status === "queued"
             ? formatMessage({
                 id: "app.admin.actPhase.queued",
-                defaultMessage: "Queued on this device. It sends once it can.",
+                defaultMessage: "Queued on this device. Check its status before trying again.",
               })
             : formatMessage({
                 id: "app.admin.actPhase.failed",

@@ -1,9 +1,9 @@
 import type { Meta, StoryObj } from "@storybook/react";
-import { CampaignCookieJarSubmittedState } from "./CampaignCookieJarCreateStates";
 import {
   campaignCookieJarStoryDecorators,
   STORYBOOK_CAMPAIGN_JAR,
 } from "./CampaignCookieJar.stories.fixtures";
+import { CampaignCookieJarSubmittedState } from "./CampaignCookieJarCreateStates";
 
 const meta: Meta<typeof CampaignCookieJarSubmittedState> = {
   title: "Admin/Workspaces/Cookies/CampaignCookieJar/CreateStates",

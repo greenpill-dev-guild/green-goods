@@ -1,6 +1,6 @@
 import { RiExternalLinkLine } from "@remixicon/react";
 import type { Meta, StoryObj } from "@storybook/react";
-import { AdminCard, AdminCardBody, AdminCardHeader } from "@/components/AdminCard";
+import { AdminCard, AdminCardBody, AdminCardHeader, AdminCardTitle } from "@/components/AdminCard";
 
 // ⚠ VISUAL HARNESS — not the real VaultContractDetails.
 // The real component self-fetches through `useGardenVaults` (React Query +
@@ -29,7 +29,7 @@ function VaultContractDetailsHarness({ rows }: VaultContractDetailsHarnessProps)
   return (
     <AdminCard density="none">
       <AdminCardHeader>
-        <h3 className="label-md text-text-strong">Contract Details</h3>
+        <AdminCardTitle>Contract Details</AdminCardTitle>
       </AdminCardHeader>
       <AdminCardBody className="space-y-2">
         {rows.map((row) => (

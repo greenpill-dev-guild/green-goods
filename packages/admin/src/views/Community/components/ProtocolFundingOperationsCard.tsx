@@ -11,7 +11,7 @@ import { useState } from "react";
 import { useIntl } from "react-intl";
 import { parseUnits } from "viem";
 import { AdminButton } from "@/components/AdminButton";
-import { AdminCard } from "@/components/AdminCard";
+import { AdminCard, AdminCardTitle } from "@/components/AdminCard";
 import { AdminConfirmDialog } from "@/components/AdminDialog";
 import { AdminReasonDialog } from "@/components/AdminReasonDialog";
 import { AdminSelect, AdminTextField } from "@/components/AdminTextField";
@@ -77,12 +77,12 @@ export function ProtocolFundingOperationsCard({
     >
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div>
-          <h3 className="label-md text-text-strong">
+          <AdminCardTitle>
             {formatMessage({
               id: "cockpit.community.protocolFunding.title",
               defaultMessage: "Protocol Funding",
             })}
-          </h3>
+          </AdminCardTitle>
           <p className="mt-1 max-w-2xl text-xs text-text-soft">
             {formatMessage({
               id: "cockpit.community.protocolFunding.description",
@@ -158,7 +158,7 @@ export function ProtocolFundingOperationsCard({
               }
             />
           </div>
-          <dl className="grid gap-3 rounded-[var(--m3-shape-sm)] bg-[rgb(var(--m3-surface-container))] p-3 text-sm sm:grid-cols-2">
+          <dl className="grid gap-3 rounded-[var(--m3-shape-sm)] bg-bg-soft p-3 text-sm sm:grid-cols-2">
             <div>
               <dt className="text-xs text-text-soft">
                 {formatMessage({

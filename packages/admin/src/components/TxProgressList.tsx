@@ -52,13 +52,14 @@ export function TxProgressList({
   testId?: string;
 }) {
   const { formatMessage } = useIntl();
+  const currentIndex = rows.findIndex((row) => row.current);
   return (
     <ol className="space-y-1" data-testid={testId} aria-label={label}>
-      {rows.map((row) => (
+      {rows.map((row, index) => (
         <li
           key={row.id}
           data-status={row.status}
-          aria-current={row.current ? "step" : undefined}
+          aria-current={index === currentIndex ? "step" : undefined}
           className={cn(
             "flex items-start gap-3 rounded-lg px-3 py-2 transition-colors",
             row.current && "bg-primary-alpha-10"

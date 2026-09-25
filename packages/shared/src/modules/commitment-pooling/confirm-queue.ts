@@ -100,6 +100,7 @@ export function selectConfirmQueueRows(input: {
   return rows.filter(
     (row) =>
       (row.title ?? "").toLowerCase().includes(needle) ||
-      row.gardenName.toLowerCase().includes(needle)
+      row.gardenName.toLowerCase().includes(needle) ||
+      (row.poolGardenName ?? "").toLowerCase().includes(needle)
   );
 }

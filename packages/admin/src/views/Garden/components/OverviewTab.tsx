@@ -14,7 +14,7 @@ import { useIntl } from "react-intl";
 import { Link } from "react-router-dom";
 
 import { AdminButton } from "@/components/AdminButton";
-import { AdminCard, AdminCardBody, AdminCardHeader } from "@/components/AdminCard";
+import { AdminCard, AdminCardBody, AdminCardHeader, AdminCardTitle } from "@/components/AdminCard";
 import { localizeCanonicalActionTitle } from "@/views/Hub/actionDisplay";
 import { AlertRow, SectionStateCard } from "./GardenDetailHelpers";
 import {
@@ -144,9 +144,9 @@ export function OverviewTab({
             <AdminCard density="none" className={SECTION_CARD_MIN_HEIGHT}>
               <AdminCardHeader className="flex-wrap gap-3">
                 <div>
-                  <h3 className="admin-section-title">
+                  <AdminCardTitle>
                     {formatMessage({ id: "app.garden.detail.health.title" })}
-                  </h3>
+                  </AdminCardTitle>
                   <p className="mt-1 body-sm text-text-sub">{gardenHealthLabel}</p>
                 </div>
                 <div className="flex items-center gap-2">
@@ -251,9 +251,9 @@ export function OverviewTab({
             <AdminCard density="none" className={ACTIVITY_CARD_CLASS}>
               <AdminCardHeader className="flex-wrap gap-3">
                 <div>
-                  <h3 className="admin-section-title">
+                  <AdminCardTitle>
                     {formatMessage({ id: "app.garden.detail.activity.title" })}
-                  </h3>
+                  </AdminCardTitle>
                   <p className="mt-1 body-sm text-text-sub">
                     {formatMessage({ id: "app.garden.detail.activity.description" })}
                   </p>
@@ -394,9 +394,9 @@ export function OverviewTab({
 
             <AdminCard density="none">
               <AdminCardHeader>
-                <h3 className="admin-section-title admin-section-title--compact">
+                <AdminCardTitle>
                   {formatMessage({ id: "app.garden.detail.alerts.title" })}
-                </h3>
+                </AdminCardTitle>
               </AdminCardHeader>
               <AdminCardBody>
                 {overviewAlerts.length === 0 ? (
@@ -421,11 +421,11 @@ export function OverviewTab({
 
             <AdminCard density="none">
               <AdminCardHeader>
-                <h3 className="admin-section-title admin-section-title--compact">
+                <AdminCardTitle>
                   {isActivityMode
                     ? formatMessage({ id: "app.garden.detail.keyMetrics" })
                     : formatMessage({ id: "app.garden.detail.activity.title" })}
-                </h3>
+                </AdminCardTitle>
               </AdminCardHeader>
               <AdminCardBody className="space-y-2">
                 {isActivityMode ? (

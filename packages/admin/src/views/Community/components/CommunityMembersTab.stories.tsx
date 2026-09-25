@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react";
 import { fn } from "storybook/test";
-import { withAdminIdentity, withRouter } from "../../../../../shared/.storybook/decorators";
+import { withAdminIdentity, withDataRouter } from "../../../../../shared/.storybook/decorators";
 import { CommunityMembersTab } from "./CommunityMembersTab";
 import {
   storyDirectory,
@@ -13,7 +13,7 @@ const meta = {
   title: "Admin/Workflows/Community/Members",
   component: CommunityMembersTab,
   tags: ["autodocs"],
-  decorators: [withAdminIdentity, withRouter(["/community/members"])],
+  decorators: [withAdminIdentity, withDataRouter("/community/members")],
   parameters: { layout: "padded" },
   args: {
     garden: storyGarden,

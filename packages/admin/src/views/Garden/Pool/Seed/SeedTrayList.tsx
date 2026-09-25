@@ -29,7 +29,7 @@ export function SeedTrayList({ rows, busy, onEdit, onRemove }: SeedTrayListProps
           defaultMessage: "Added so far",
         })}
       </p>
-      <ul className="divide-y divide-[rgb(var(--m3-outline-variant))]">
+      <ul className="divide-y divide-stroke-soft">
         {rows.map((row) => {
           const { values } = row;
           const facts = [

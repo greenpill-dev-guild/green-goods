@@ -127,6 +127,7 @@ export type PoolSetupFailure =
  * no repeat of the run can ever store the planned ones.
  */
 const RETRIABLE_FAILURES = new Set<PoolSetupFailure>([
+  "no-sender",
   "send-failed",
   "not-confirmed",
   "cycle-id-unknown",

@@ -2,9 +2,9 @@ import type { PoolConsoleController } from "@green-goods/shared/hooks/admin-ui/p
 import type { Dispatch, SetStateAction } from "react";
 import { useIntl } from "react-intl";
 import { AdminConfirmDialog } from "@/components/AdminDialog";
+import { PoolTarget, type PoolWriteTarget } from "./PoolTarget";
 import type { CycleDialog } from "./poolDialogState";
 import { cycleName } from "./poolPresentation";
-import { PoolTarget, type PoolWriteTarget } from "./PoolTarget";
 
 /**
  * How a season or campaign ends (hub decision 29): End reconciles an Open cycle
@@ -81,6 +81,7 @@ export function PoolCycleDialogs({
           defaultMessage: "Keep Running",
         })}
         isLoading={pool.isActing}
+        confirmDisabled={!pool.isOnline}
         onConfirm={async () => {
           if (!cycle) return;
           await pool.acts.closeCycle(cycle.cycleId);
@@ -134,6 +135,7 @@ export function PoolCycleDialogs({
           defaultMessage: "Not Now",
         })}
         isLoading={pool.isActing}
+        confirmDisabled={!pool.isOnline}
         onConfirm={async () => {
           if (!cycle) return;
           await pool.acts.compostCycle(cycle.cycleId);

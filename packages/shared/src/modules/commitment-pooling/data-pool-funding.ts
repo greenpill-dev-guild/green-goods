@@ -71,7 +71,11 @@ export async function getPoolFundingSnapshot(
     balance: routeMatches ? direct.balance : null,
     ledgerReadAt: ledger.readAt,
     ledgerFresh: ledgerAge !== null && ledgerAge <= LEDGER_MAX_AGE_SECONDS,
-    ledgerAvailable: ledger.coherent && ledger.processedBlocks !== null,
+    ledgerAvailable:
+      ledger.coherent &&
+      ledger.processedBlocks !== null &&
+      processedTimestamps !== null &&
+      processedTimestamps.every((timestamp) => timestamp !== null),
     feePolicy: direct.feePolicy,
     feeQuotes: direct.feeQuotes,
     commitments: ledger.commitments,
