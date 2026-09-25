@@ -51,9 +51,10 @@ export function CampaignCookieJarPanelView(props: CampaignCookieJarPanelViewProp
     syncDiff,
     selectedJarAddress,
     syncJar,
+    headerAction,
   } = props;
   return (
-    <div className="flex min-h-[calc(100dvh-16rem)] flex-col gap-5">
+    <div className="flex flex-col gap-5">
       {!moduleConfigured ? (
         <AdminCard
           variant="outlined"
@@ -87,6 +88,7 @@ export function CampaignCookieJarPanelView(props: CampaignCookieJarPanelViewProp
         visibleCampaigns={visibleCampaigns}
         gardensByAddress={gardensByAddress}
         onSelectCampaign={setSelectedCampaign}
+        headerAction={headerAction}
       />
       <AdminDialog
         open={Boolean(selectedCampaign)}

@@ -6,7 +6,7 @@ import {
 import { CampaignGardenSection } from "./CampaignGardenSection";
 
 const meta: Meta<typeof CampaignGardenSection> = {
-  title: "Admin/Workspaces/Cookies/CampaignCookieJar/GardenSection",
+  title: "Admin/Workflows/Community/Payouts/CampaignCookieJar/GardenSection",
   component: CampaignGardenSection,
   tags: ["autodocs"],
   decorators: campaignCookieJarStoryDecorators,

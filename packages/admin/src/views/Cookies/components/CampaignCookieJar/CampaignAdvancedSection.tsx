@@ -1,6 +1,6 @@
 import { AdminButton } from "@/components/AdminButton";
 import { AdminTextArea, AdminTextField } from "@/components/AdminTextField";
-import type { CampaignCookieJarCreateFormProps } from "./CampaignCookieJarCreateForm";
+import type { CampaignCookieJarCreateFormProps } from "./CampaignCookieJarCreateForm.types";
 
 export function CampaignAdvancedSection(props: CampaignCookieJarCreateFormProps) {
   const {

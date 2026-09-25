@@ -6,7 +6,7 @@ import {
 import { CampaignCreateReview } from "./CampaignCreateReview";
 
 const meta: Meta<typeof CampaignCreateReview> = {
-  title: "Admin/Workspaces/Cookies/CampaignCookieJar/CreateReview",
+  title: "Admin/Workflows/Community/Payouts/CampaignCookieJar/CreateReview",
   component: CampaignCreateReview,
   tags: ["autodocs"],
   decorators: campaignCookieJarStoryDecorators,

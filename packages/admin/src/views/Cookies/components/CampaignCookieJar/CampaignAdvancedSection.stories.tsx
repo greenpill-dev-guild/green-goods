@@ -6,7 +6,7 @@ import {
 } from "./CampaignCookieJar.stories.fixtures";
 
 const meta: Meta<typeof CampaignAdvancedSection> = {
-  title: "Admin/Workspaces/Cookies/CampaignCookieJar/AdvancedSection",
+  title: "Admin/Workflows/Community/Payouts/CampaignCookieJar/AdvancedSection",
   component: CampaignAdvancedSection,
   tags: ["autodocs"],
   decorators: campaignCookieJarStoryDecorators,
