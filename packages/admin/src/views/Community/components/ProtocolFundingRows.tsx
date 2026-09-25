@@ -6,6 +6,7 @@ import type {
 import type { Address } from "@green-goods/shared/types/domain";
 import { useIntl } from "react-intl";
 import { AdminButton } from "@/components/AdminButton";
+import { AdminCardTitle } from "@/components/AdminCard";
 import { formatGdollar, shortAddress } from "@/views/Garden/Pool/poolFundingPresentation";
 import type { TransferAct } from "@/views/Garden/Pool/TransferReviewDialog";
 
@@ -71,12 +72,12 @@ export function ProtocolFundingRows({
 
   return (
     <section className="space-y-2" aria-labelledby="protocol-funding-rows-title">
-      <h4 id="protocol-funding-rows-title" className="label-md text-text-strong">
+      <AdminCardTitle as="h4" id="protocol-funding-rows-title">
         {formatMessage({
           id: "cockpit.community.protocolFunding.rows",
           defaultMessage: "Protocol-to-Garden Transfers",
         })}
-      </h4>
+      </AdminCardTitle>
       {operations.rows.length === 0 ? (
         <p className="text-xs text-text-soft">
           {formatMessage({
@@ -85,7 +86,7 @@ export function ProtocolFundingRows({
           })}
         </p>
       ) : (
-        <ul className="divide-y divide-stroke-soft rounded-[var(--m3-shape-sm)] bg-[rgb(var(--m3-surface-container))] px-3">
+        <ul className="divide-y divide-stroke-soft rounded-[var(--m3-shape-sm)] bg-bg-soft px-3">
           {operations.rows.map((row) => {
             const to = gardenName(row.garden) ?? shortAddress(row.recipient);
             return (

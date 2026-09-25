@@ -10,7 +10,7 @@ import { RiArrowRightSLine, RiCheckLine, RiQuestionLine } from "@remixicon/react
 import { useIntl } from "react-intl";
 import { Link } from "react-router-dom";
 import { AdminButton } from "@/components/AdminButton";
-import { AdminCard } from "@/components/AdminCard";
+import { AdminCard, AdminCardTitle } from "@/components/AdminCard";
 import { GovernancePanel } from "./GovernancePanel";
 
 export type CommunityCoordinationTabProps = Pick<
@@ -51,10 +51,10 @@ export function CommunityCoordinationTab({
         <div className="garden-tab-main">
           <AdminCard variant="elevated" className="space-y-4">
             <div>
-              <h3 className="text-title-md font-semibold text-[rgb(var(--m3-on-surface))]">
+              <AdminCardTitle>
                 {formatMessage({ id: "cockpit.community.coordination.proposals" })}
-              </h3>
-              <p className="mt-1 text-body-sm text-[rgb(var(--m3-on-surface-variant))]">
+              </AdminCardTitle>
+              <p className="mt-1 text-body-sm text-text-sub">
                 {formatMessage({ id: "cockpit.community.coordination.proposalsDescription" })}
               </p>
             </div>
@@ -65,18 +65,18 @@ export function CommunityCoordinationTab({
         <aside className="garden-tab-rail">
           <div className="garden-tab-rail-sticky">
             <AdminCard variant="filled" className="space-y-3">
-              <h3 className="text-title-sm font-semibold text-[rgb(var(--m3-on-surface))]">
+              <AdminCardTitle>
                 {formatMessage({ id: "cockpit.community.coordination.status" })}
-              </h3>
+              </AdminCardTitle>
               <div className="garden-stat-row">
                 <span className="garden-stat-row-label">
                   {formatMessage({ id: "cockpit.community.coordination.community" })}
                 </span>
-                <span className="inline-flex items-center gap-1 text-body-sm font-medium text-[rgb(var(--m3-on-surface))]">
+                <span className="inline-flex items-center gap-1 text-body-sm font-medium text-text-strong">
                   {communityConfig ? (
                     <RiCheckLine className="h-4 w-4 text-success-dark" />
                   ) : (
-                    <RiQuestionLine className="h-4 w-4 text-[rgb(var(--m3-on-surface-variant))]" />
+                    <RiQuestionLine className="h-4 w-4 text-text-sub" />
                   )}
                   {communityConfig
                     ? formatMessage({ id: "app.community.statusConnected" })
@@ -86,13 +86,13 @@ export function CommunityCoordinationTab({
 
               {weightScheme !== undefined && weightSchemeLabel && weightSchemeValues ? (
                 <AdminCard variant="outlined" density="compact">
-                  <p className="text-label-sm text-[rgb(var(--m3-on-surface-variant))]">
+                  <p className="text-label-sm text-text-sub">
                     {formatMessage({ id: "app.community.weightScheme" })}
                   </p>
-                  <p className="mt-1 text-title-sm font-semibold text-[rgb(var(--m3-on-surface))]">
+                  <p className="mt-1 text-title-sm font-semibold text-text-strong">
                     {formatMessage({ id: `app.community.weightScheme.${weightSchemeLabel}` })}
                   </p>
-                  <p className="mt-1 text-body-sm text-[rgb(var(--m3-on-surface-variant))]">
+                  <p className="mt-1 text-body-sm text-text-sub">
                     {formatMessage(
                       { id: "cockpit.community.coordination.weightSummary" },
                       {
@@ -119,10 +119,10 @@ export function CommunityCoordinationTab({
                     <AdminCard key={labelId} variant="outlined" density="compact">
                       <div className="flex items-start justify-between gap-2">
                         <div className="min-w-0">
-                          <p className="text-label-sm text-[rgb(var(--m3-on-surface-variant))]">
+                          <p className="text-label-sm text-text-sub">
                             {formatMessage({ id: labelId })}
                           </p>
-                          <div className="mt-1 text-body-sm text-[rgb(var(--m3-on-surface))]">
+                          <div className="mt-1 text-body-sm text-text-strong">
                             {pool ? (
                               <AddressDisplay address={pool.poolAddress} className="text-sm" />
                             ) : (
@@ -134,7 +134,7 @@ export function CommunityCoordinationTab({
                           <Link
                             to={linkTarget}
                             aria-label={formatMessage({ id: "app.actions.view" })}
-                            className="mt-0.5 text-[rgb(var(--tone-on-surface-accent,var(--m3-primary)))]"
+                            className="mt-0.5 text-[rgb(var(--tone-on-surface-accent,var(--primary-base)))]"
                           >
                             <RiArrowRightSLine className="h-4 w-4" />
                           </Link>

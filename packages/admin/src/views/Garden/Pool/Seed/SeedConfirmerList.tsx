@@ -3,6 +3,7 @@ import { RiAddLine, RiCloseLine } from "@remixicon/react";
 import type { UseFormReturn } from "react-hook-form";
 import { useIntl } from "react-intl";
 import { AdminButton } from "@/components/AdminButton";
+import { AdminCardTitle } from "@/components/AdminCard";
 import { AdminTextField } from "@/components/AdminTextField";
 import { CONFIRMER_ADDRESS_PATTERN, type SeedFieldError } from "./seedStepModel";
 
@@ -34,12 +35,12 @@ export function SeedConfirmerList({
 
   return (
     <div className="space-y-2" data-testid="seed-confirmers">
-      <p className="label-md text-text-strong">
+      <AdminCardTitle as="h4">
         {formatMessage({
           id: "cockpit.garden.pool.seed.confirmers",
           defaultMessage: "Confirmers",
         })}
-      </p>
+      </AdminCardTitle>
       <p className="text-xs text-text-soft">
         {values.confirmers.length === 0
           ? values.direction === "REQUEST"
@@ -58,7 +59,7 @@ export function SeedConfirmerList({
             })}
       </p>
       {values.confirmers.length > 0 ? (
-        <ul className="divide-y divide-[rgb(var(--m3-outline-variant))]">
+        <ul className="divide-y divide-stroke-soft">
           {values.confirmers.map((address) => (
             <li key={address} className="flex items-center justify-between gap-2 py-1.5">
               <span className="truncate font-mono text-xs text-text-strong" title={address}>
@@ -114,7 +115,7 @@ export function SeedConfirmerList({
         </AdminButton>
       </div>
       {errorOf("confirmers") ? (
-        <p className="text-xs text-[rgb(var(--m3-error))]">{errorOf("confirmers")}</p>
+        <p className="text-xs text-error-dark">{errorOf("confirmers")}</p>
       ) : null}
       {values.confirmers.length > 0 ? (
         <AdminTextField

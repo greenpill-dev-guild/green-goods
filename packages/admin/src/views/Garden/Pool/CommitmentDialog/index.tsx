@@ -146,6 +146,7 @@ function CommitmentRecord({
           commitment={commitment}
           detail={detail}
           tone={tone}
+          target={target}
         />
       ) : null}
 

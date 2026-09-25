@@ -19,11 +19,17 @@ const mocks = vi.hoisted(() => ({
   normalizeWorkMediaFiles: vi.fn(),
   saveOnExit: vi.fn(),
   toastError: vi.fn(),
+  toastSuccess: vi.fn(),
   setImages: vi.fn(),
   setValue: vi.fn(),
+  loggerError: vi.fn(),
   loggerWarn: vi.fn(),
   outcome: null as null | Record<string, unknown>,
   choices: [] as Array<Record<string, unknown>>,
+  communityGarden: null as null | { id: string },
+  selectGarden: vi.fn(),
+  joinGarden: vi.fn(),
+  joinState: { isJoining: false, joiningGardenId: null as string | null },
 }));
 
 vi.mock("../../../stores/workFlowTypes", () => ({
@@ -35,7 +41,7 @@ vi.mock("../../../utils/action/parsers", () => ({
 }));
 
 vi.mock("../../../modules/app/logger", () => ({
-  logger: { error: vi.fn(), warn: mocks.loggerWarn },
+  logger: { error: mocks.loggerError, warn: mocks.loggerWarn },
   createLogger: () => ({ error: vi.fn(), warn: vi.fn(), debug: vi.fn(), info: vi.fn() }),
 }));
 
@@ -63,7 +69,7 @@ vi.mock("../../../utils/errors/contract-errors", () => ({
 }));
 
 vi.mock("../../../components/Toast/toast.service", () => ({
-  toastService: { error: mocks.toastError, success: vi.fn() },
+  toastService: { error: mocks.toastError, success: mocks.toastSuccess },
 }));
 
 vi.mock("../../../modules/app/posthog", () => ({
@@ -105,7 +111,7 @@ vi.mock("../../../hooks/work/useDraftResume", () => ({
 }));
 
 vi.mock("../../../hooks/garden/useJoinGarden", () => ({
-  useJoinGarden: () => ({ joinGarden: vi.fn(), isJoining: false, joiningGardenId: null }),
+  useJoinGarden: () => ({ joinGarden: mocks.joinGarden, ...mocks.joinState }),
 }));
 
 vi.mock("../../../hooks/app/useOffline", () => ({
@@ -163,7 +169,7 @@ vi.mock("../../../providers/Work", () => ({
     actions: [],
     gardens: [],
     hasJoinedGardens: false,
-    joinableCommunityGarden: null,
+    joinableCommunityGarden: mocks.communityGarden,
     isLoading: false,
     activeTab: "Intro",
     setActiveTab: mocks.setActiveTab,
@@ -172,7 +178,7 @@ vi.mock("../../../providers/Work", () => ({
     actionUID: mocks.actionUID,
     setActionUID: vi.fn(),
     gardenAddress: mocks.gardenAddress,
-    setGardenAddress: vi.fn(),
+    setGardenAddress: mocks.selectGarden,
   }),
 }));
 
@@ -276,6 +282,8 @@ describe("useWorkSubmissionFlowController", () => {
     mocks.gardenAddress = null;
     mocks.outcome = null;
     mocks.choices = [];
+    mocks.communityGarden = null;
+    mocks.joinState = { isJoining: false, joiningGardenId: null };
     mocks.enqueue.mockResolvedValue("link-job");
     mocks.consumeShareTarget.mockResolvedValue(undefined);
     mocks.loadShareTarget.mockReset();
@@ -607,6 +615,80 @@ describe("useWorkSubmissionFlowController", () => {
     else expect(firstPayload).not.toHaveProperty("sourceWorkJobId");
   });
 
+  const communityGarden = "0x3333333333333333333333333333333333333333";
+  const renderFlow = (wrapper = Wrapper) =>
+    renderHook(
+      () =>
+        useWorkSubmissionFlowController({
+          homeRoute: "/home",
+          profileRoute: "/home/profile",
+          trackMediaJourneyEvent: vi.fn(),
+        }),
+      { wrapper }
+    );
+
+  it.each([
+    ["0xjoin", "Successfully joined garden"],
+    ["already-member", "You are already a member of this garden"],
+    ["already-joining", null],
+  ] as const)("answers a Community Garden join that returns %s", async (joinResult, title) => {
+    mocks.communityGarden = { id: communityGarden };
+    mocks.joinGarden.mockResolvedValueOnce(joinResult);
+    const { result } = renderFlow();
+
+    await act(async () => {
+      await result.current.joinCommunityGarden();
+    });
+
+    expect(mocks.joinGarden).toHaveBeenCalledWith(communityGarden);
+    if (title) {
+      expect(mocks.selectGarden).toHaveBeenCalledWith(communityGarden);
+      expect(mocks.toastSuccess).toHaveBeenCalledWith({ title });
+    } else {
+      expect(mocks.selectGarden).not.toHaveBeenCalled();
+      expect(mocks.toastSuccess).not.toHaveBeenCalled();
+    }
+  });
+
+  it("offers Profile when the Community Garden join fails", async () => {
+    const error = new Error("join reverted");
+    mocks.communityGarden = { id: communityGarden };
+    mocks.joinGarden.mockRejectedValueOnce(error);
+    const { result } = renderFlow(ExitWrapper);
+
+    await act(async () => {
+      await result.current.joinCommunityGarden();
+    });
+
+    expect(mocks.selectGarden).not.toHaveBeenCalled();
+    expect(mocks.loggerError).toHaveBeenCalledWith("Community Garden join failed", {
+      error,
+      source: "GardenFlow",
+      gardenAddress: communityGarden,
+    });
+    const descriptor = mocks.toastError.mock.calls[0][0];
+    expect(descriptor).toEqual(
+      expect.objectContaining({
+        title: "Failed to join garden",
+        message: "Try again here, or open Profile to join from your garden list.",
+        action: expect.objectContaining({ label: "Profile", dismissOnClick: true }),
+      })
+    );
+    act(() => descriptor.action.onClick());
+    expect(exitPath).toBe("/home/profile");
+  });
+
+  it.each([
+    [null, true],
+    [communityGarden, true],
+    ["0x2222222222222222222222222222222222222222", false],
+  ] as const)("reports a join of %s as the Community Garden join: %s", (joiningGardenId, joining) => {
+    mocks.communityGarden = { id: communityGarden };
+    mocks.joinState = { isJoining: true, joiningGardenId };
+
+    expect(renderFlow().result.current.isJoiningCommunityGarden).toBe(joining);
+  });
+
   it("releases dependent-link scheduling when validation stops the Work submission", async () => {
     const intent = commitmentLinkIntent;
     mocks.actionUID = 1;
@@ -614,15 +696,7 @@ describe("useWorkSubmissionFlowController", () => {
     mocks.choices = [intent];
     mocks.outcome = null;
     mocks.uploadWork.mockResolvedValue(undefined);
-    const view = renderHook(
-      () =>
-        useWorkSubmissionFlowController({
-          homeRoute: "/home",
-          profileRoute: "/home/profile",
-          trackMediaJourneyEvent: vi.fn(),
-        }),
-      { wrapper: Wrapper }
-    );
+    const view = renderFlow();
 
     act(() => view.result.current.selectLinkIntent(intent));
     await waitFor(() => expect(view.result.current.linkIntentStatus).toBe("valid"));

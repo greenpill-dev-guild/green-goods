@@ -1,5 +1,6 @@
-import { GardenSelector } from "./GardenSelector";
+import { AdminCardTitle } from "@/components/AdminCard";
 import type { CampaignCookieJarCreateFormProps } from "./CampaignCookieJarCreateForm";
+import { GardenSelector } from "./GardenSelector";
 
 export function CampaignGardenSection(props: CampaignCookieJarCreateFormProps) {
   const {
@@ -16,13 +17,13 @@ export function CampaignGardenSection(props: CampaignCookieJarCreateFormProps) {
   return (
     <section className="surface-section overflow-visible">
       <div className="mb-4">
-        <p className="text-label-sm text-[rgb(var(--m3-on-surface-variant))]">03</p>
-        <h2 className="text-title-md font-semibold text-[rgb(var(--m3-on-surface))]">
+        <p className="text-label-sm text-text-sub">03</p>
+        <AdminCardTitle as="h2">
           {formatMessage({
             id: "cockpit.community.cookies.createGardensSection",
             defaultMessage: "Eligible gardens",
           })}
-        </h2>
+        </AdminCardTitle>
       </div>
       <GardenSelector
         gardens={gardens}
@@ -35,7 +36,7 @@ export function CampaignGardenSection(props: CampaignCookieJarCreateFormProps) {
         listClassName="overflow-visible"
       />
       {aggregation.missingStewardGardens.length > 0 ? (
-        <p className="mt-3 text-body-sm text-[rgb(var(--m3-error))]">
+        <p className="mt-3 text-body-sm text-error-dark">
           {formatMessage(
             {
               id: "cockpit.community.cookies.missingStewardsSummary",

@@ -1,4 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react";
+import { expect, screen } from "storybook/test";
 import { PoolFundingSection } from "./PoolFundingSection";
 import { storyPoolFunding } from "./poolStoryControllers";
 
@@ -20,10 +21,7 @@ const meta: Meta<typeof PoolFundingSection> = {
   },
   decorators: [
     (Story) => (
-      <div
-        className="max-w-sm rounded-[var(--m3-shape-lg)] bg-[rgb(var(--m3-surface-container-lowest))] p-4"
-        data-tone="garden"
-      >
+      <div className="max-w-sm rounded-[var(--m3-shape-lg)] bg-bg-white-0 p-4" data-tone="garden">
         <Story />
       </div>
     ),
@@ -48,6 +46,11 @@ export const Loading: Story = {
 export const LastKnownBalance: Story = {
   args: {
     funding: storyPoolFunding({ isError: true, hasStaleBalance: true }),
+  },
+  play: async () => {
+    await expect(
+      screen.getByText("The latest funding read failed. Refresh to check current availability.")
+    ).toBeInTheDocument();
   },
 };
 

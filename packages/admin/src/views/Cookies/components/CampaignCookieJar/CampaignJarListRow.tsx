@@ -5,6 +5,7 @@ import type { Garden } from "@green-goods/shared/types/domain";
 import { formatTokenAmount } from "@green-goods/shared/utils/blockchain/vaults";
 import { RiImageLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
+import { AdminCardTitle } from "@/components/AdminCard";
 import { EnsAddressText } from "@/components/EnsAddressText";
 import { formatCampaignDate, formatSourceGardens } from "./helpers";
 
@@ -40,7 +41,7 @@ export function CampaignJarListRow({
   return (
     <button
       type="button"
-      className="grid w-full gap-4 border-b border-[rgb(var(--m3-outline-variant))] px-4 py-4 text-left transition-colors last:border-b-0 hover:bg-[rgb(var(--m3-on-surface)/0.04)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--tone-focus-ring,var(--m3-primary)))] sm:grid-cols-[4rem_minmax(0,1fr)_auto]"
+      className="grid w-full gap-4 border-b border-stroke-soft px-4 py-4 text-left transition-colors last:border-b-0 hover:bg-[rgb(var(--text-strong-950)/0.04)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--tone-focus-ring,var(--primary-base)))] sm:grid-cols-[4rem_minmax(0,1fr)_auto]"
       onClick={() => onSelect(campaign)}
       aria-label={formatMessage(
         {
@@ -50,7 +51,7 @@ export function CampaignJarListRow({
         { title }
       )}
     >
-      <div className="flex h-16 w-16 items-center justify-center overflow-hidden rounded-[var(--m3-shape-md)] bg-[rgb(var(--m3-surface-container-high))] text-[rgb(var(--m3-on-surface-variant))]">
+      <div className="flex h-16 w-16 items-center justify-center overflow-hidden rounded-[var(--m3-shape-md)] bg-bg-sub text-text-sub">
         {image ? (
           <img src={image} alt="" className="h-full w-full object-cover" loading="lazy" />
         ) : (
@@ -59,11 +60,9 @@ export function CampaignJarListRow({
       </div>
       <div className="min-w-0 space-y-1">
         <div className="flex flex-wrap items-center gap-2">
-          <h3 className="truncate text-title-md font-semibold text-[rgb(var(--m3-on-surface))]">
-            {title}
-          </h3>
+          <AdminCardTitle className="truncate">{title}</AdminCardTitle>
           {hasDetailReadFailure ? (
-            <span className="rounded-full bg-[rgb(var(--m3-error-container))] px-2 py-0.5 text-label-sm text-[rgb(var(--m3-on-error-container))]">
+            <span className="rounded-full bg-error-lighter px-2 py-0.5 text-label-sm text-error-dark">
               {formatMessage({
                 id: "cockpit.community.cookies.needsReview",
                 defaultMessage: "Needs review",
@@ -72,11 +71,9 @@ export function CampaignJarListRow({
           ) : null}
         </div>
         {description ? (
-          <p className="line-clamp-2 text-body-sm text-[rgb(var(--m3-on-surface-variant))]">
-            {description}
-          </p>
+          <p className="line-clamp-2 text-body-sm text-text-sub">{description}</p>
         ) : null}
-        <p className="flex flex-wrap gap-x-2 gap-y-1 text-label-sm text-[rgb(var(--m3-on-surface-variant))]">
+        <p className="flex flex-wrap gap-x-2 gap-y-1 text-label-sm text-text-sub">
           <span>
             <EnsAddressText address={campaign.address} />
           </span>
@@ -85,10 +82,8 @@ export function CampaignJarListRow({
         </p>
       </div>
       <div className="flex flex-col justify-center gap-1 text-left sm:text-right">
-        <p className="text-title-sm font-semibold text-[rgb(var(--m3-on-surface))]">
-          {balanceLabel}
-        </p>
-        <p className="text-label-sm text-[rgb(var(--m3-on-surface-variant))]">
+        <p className="text-title-sm font-semibold text-text-strong">{balanceLabel}</p>
+        <p className="text-label-sm text-text-sub">
           {formatMessage({
             id: "cockpit.community.cookies.rowBalance",
             defaultMessage: "Jar balance",

@@ -1,5 +1,5 @@
-import type { Meta, StoryObj } from "@storybook/react";
 import { queryKeys } from "@green-goods/shared/config/query-keys/registry";
+import type { Meta, StoryObj } from "@storybook/react";
 import {
   withAdminIdentity,
   withSeededQueryClient,

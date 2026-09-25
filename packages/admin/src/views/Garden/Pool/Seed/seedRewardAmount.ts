@@ -4,9 +4,10 @@
  * conversion between the two lives here, so the field, the review, and the
  * Seed button agree on what a typed amount means.
  */
-import type { CommitmentComposerValues } from "@green-goods/shared/hooks/commitment-pooling/useCommitmentComposerForm";
-import type { Erc20MetadataRead } from "@green-goods/shared/hooks/blockchain/useErc20Metadata";
+
 import { CELO_G_DOLLAR_TOKEN } from "@green-goods/shared/config/tokens";
+import type { Erc20MetadataRead } from "@green-goods/shared/hooks/blockchain/useErc20Metadata";
+import type { CommitmentComposerValues } from "@green-goods/shared/hooks/commitment-pooling/useCommitmentComposerForm";
 import {
   formatTokenAmount,
   normalizeDecimalInput,
@@ -49,6 +50,17 @@ export function rewardUnitsFor(
   }
 }
 
+/** A row may be parked or sent only when its reward has known token units. */
+export function seedRowRewardReady(
+  values: Pick<CommitmentComposerValues, "considerationRail" | "considerationToken">,
+  externalTokens: ReadonlyMap<string, Erc20MetadataRead>
+): boolean {
+  const token = externalTokens.get(values.considerationToken.trim().toLowerCase()) ?? {
+    status: "idle" as const,
+  };
+  return rewardUnitsFor(values.considerationRail, token).status !== "waiting";
+}
+
 /** What the steward typed, as the base units the form stores; an i18n id when it cannot be. */
 export function rewardAmountToBaseUnits(
   text: string,
@@ -78,11 +90,6 @@ export function rewardAmountFromBaseUnits(baseUnits: string, decimals: number): 
 export function formatRewardAmount(baseUnits: string, units: RewardUnits, locale: string): string {
   const trimmed = baseUnits.trim();
   if (units.status !== "ready" || !/^\d+$/.test(trimmed)) return "—";
-  const amount = formatTokenAmount(
-    BigInt(trimmed),
-    units.decimals,
-    Math.min(units.decimals, 8),
-    locale
-  );
+  const amount = formatTokenAmount(BigInt(trimmed), units.decimals, units.decimals, locale);
   return units.symbol ? `${amount} ${units.symbol}` : amount;
 }

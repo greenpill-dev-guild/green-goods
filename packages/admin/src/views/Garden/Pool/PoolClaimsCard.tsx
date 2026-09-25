@@ -3,9 +3,9 @@ import { StatusBadge } from "@green-goods/shared/components/StatusBadge";
 import type { PoolConsoleController } from "@green-goods/shared/hooks/admin-ui/pool/controller.types";
 import type { PoolClaimRequestRow } from "@green-goods/shared/modules/commitment-pooling/types-core";
 import { useIntl } from "react-intl";
-import { AdminButton } from "@/components/AdminButton";
 import { ActPhaseLine } from "@/components/ActPhaseLine";
-import { AdminCard } from "@/components/AdminCard";
+import { AdminButton } from "@/components/AdminButton";
+import { AdminCard, AdminCardTitle } from "@/components/AdminCard";
 import { ClaimantName } from "./ClaimantName";
 import { directionLabel, formatUnixDate } from "./poolPresentation";
 
@@ -41,9 +41,9 @@ export function PoolClaimsCard({ console: pool, onDecline }: PoolClaimsCardProps
       className="space-y-3"
     >
       <div>
-        <h3 className="label-md text-text-strong">
+        <AdminCardTitle>
           {formatMessage({ id: "cockpit.garden.pool.claims.title", defaultMessage: "Claims" })}
-        </h3>
+        </AdminCardTitle>
         <p className="mt-1 text-xs text-text-soft">
           {model.isPaused
             ? formatMessage({
@@ -57,7 +57,7 @@ export function PoolClaimsCard({ console: pool, onDecline }: PoolClaimsCardProps
               })}
         </p>
       </div>
-      <ul className="divide-y divide-[rgb(var(--m3-outline-variant))]">
+      <ul className="divide-y divide-stroke-soft">
         {claims.map((row) => {
           const title =
             (row.commitment.metadataCID && titles.get(row.commitment.metadataCID.trim())?.title) ??

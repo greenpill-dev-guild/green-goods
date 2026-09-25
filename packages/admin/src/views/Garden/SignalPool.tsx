@@ -301,7 +301,7 @@ export default function GardenSignalPoolView({
           {/* Conviction weights */}
           <section className="surface-inset p-0">
             <div className="border-b border-stroke-soft p-4 sm:p-6">
-              <h3 className="text-title-sm font-medium text-text-strong sm:text-title-md">
+              <h3 className="text-title-md font-semibold text-text-strong">
                 {formatMessage({ id: "app.signal.conviction" })}
               </h3>
               <p className="mt-1 text-body-md text-text-sub">

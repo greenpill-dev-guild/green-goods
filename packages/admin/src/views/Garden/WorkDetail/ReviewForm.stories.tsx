@@ -1,6 +1,6 @@
 import type { Address, Work } from "@green-goods/shared/types/domain";
 import type { Meta, StoryObj } from "@storybook/react";
-import { fn } from "storybook/test";
+import { expect, fn, userEvent, within } from "storybook/test";
 import { FIXTURE_IMAGE_AGROFORESTRY, daysAgo } from "../../../../../shared/.storybook/fixtures";
 import { withAdminIdentity } from "../../../../../shared/.storybook/decorators";
 import { ReviewForm } from "./ReviewForm";
@@ -89,5 +89,18 @@ export const AlreadyReviewed: Story = {
   args: {
     work: APPROVED_WORK,
     isReviewed: true,
+  },
+};
+
+/** Reject never sends in one click: it asks why, and the reason becomes the gardener's feedback. */
+export const RejectAsksForAReason: Story = {
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await userEvent.click(await canvas.findByRole("button", { name: "Reject" }));
+    const page = within(document.body);
+    const confirm = await page.findByRole("button", { name: "Reject Work" });
+    await expect(confirm).toBeDisabled();
+    await userEvent.click(await page.findByRole("button", { name: "Details are missing" }));
+    await expect(confirm).toBeEnabled();
   },
 };

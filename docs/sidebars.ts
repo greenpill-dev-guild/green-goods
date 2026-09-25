@@ -26,6 +26,7 @@ const sidebars: SidebarsConfig = {
         {type: 'doc', id: 'community/steward-guide/managing-actions', label: 'Manage Actions'},
         {type: 'doc', id: 'community/steward-guide/making-an-assessment', label: 'Create an Assessment'},
         {type: 'doc', id: 'community/steward-guide/reviewing-work', label: 'Review Work'},
+        {type: 'doc', id: 'community/steward-guide/commitment-pooling', label: 'Commitment Pool'},
         {type: 'doc', id: 'community/steward-guide/creating-impact-certificates', label: 'Mint Impact Certificate'},
         {type: 'doc', id: 'community/steward-guide/funding-and-governance', label: 'Funding and Governance'},
       ],

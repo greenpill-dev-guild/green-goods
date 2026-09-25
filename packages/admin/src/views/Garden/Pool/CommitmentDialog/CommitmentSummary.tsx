@@ -94,8 +94,8 @@ export function CommitmentSummary({
               aria-current={index === stage ? "step" : undefined}
               className={
                 index <= stage
-                  ? "rounded-full bg-[rgb(var(--m3-secondary-container))] px-2 py-0.5 text-[rgb(var(--m3-on-secondary-container))]"
-                  : "rounded-full bg-[rgb(var(--m3-surface-container-highest))] px-2 py-0.5 text-text-soft"
+                  ? "rounded-full bg-primary-lighter px-2 py-0.5 text-primary-dark"
+                  : "rounded-full bg-bg-soft px-2 py-0.5 text-text-soft"
               }
             >
               {labels[key]}

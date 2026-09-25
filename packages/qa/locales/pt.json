@@ -34,9 +34,9 @@
         "Abra /hub/work",
         "Abra uma entrega pendente",
         "Confira as evidências em mídia",
-        "Escolha o nível de confiança e escreva o feedback",
+        "Escolha o nível de confiança (nenhum vem escolhido) e escreva o feedback",
         "Confirme que Aprovar e Rejeitar aparecem na área fixa de ações do diálogo sem rolar a página",
-        "Rejeite ou aprove",
+        "Aprove, ou toque em Rejeitar e escreva um motivo no diálogo Rejeitar trabalho",
         "Confirme que a fila foi atualizada"
       ],
       "expected": "O fluxo completo de decisão funciona e as ações de confirmar ou cancelar nunca ficam ocultas em uma área de rolagem cortada",
@@ -46,7 +46,7 @@
       "scenario": "Confirmar cumprido… revisa o compromisso antes de confirmá-lo",
       "preconditions": [
         "Steward com o Garden que confirma o compromisso selecionado no cabeçalho",
-        "Um compromisso que aguarda a confirmação desse Garden e marcado como Pronta para confirmar"
+        "Um compromisso que aguarda a confirmação desse Garden e marcado como Pronto para confirmar; a conta que confirma não contribuiu"
       ],
       "steps": [
         "Abra Hub → Confirmar e pressione Confirmar cumprido… na linha do compromisso",
@@ -72,11 +72,13 @@
     },
     "ADM-140": {
       "scenario": "Crie um compromisso: assistente de 4 etapas, confirmadores identificados e revisão antes de enviar",
-      "preconditions": ["O pool do Garden está aberto"],
+      "preconditions": [
+        "O pool do Garden está aberto; o compromisso local do Garden indica um steward ou avaliador independente como confirmador, nunca quem contribuiu"
+      ],
       "steps": [
         "Conclua o assistente de criação de 4 etapas",
         "Adicione confirmadores identificados, incluindo um endereço incorreto",
-        "Revise, pressione Semear este compromisso e confirme na wallet"
+        "Revise, pressione Semear este compromisso e confirme na wallet; depois pressione Concluir e verifique se o assistente fecha"
       ],
       "expected": "Cada etapa valida antes de Próximo; um endereço de confirmador incorreto ou duplicado é rejeitado de forma visível; a revisão mostra todas as respostas antes de qualquer envio; ao semear, a wallet pede para confirmar uma única criação, e o assistente a mostra como Criado até que Concluir o feche",
       "role": "Steward"

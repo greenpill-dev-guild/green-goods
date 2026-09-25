@@ -43,7 +43,9 @@ export function TxStepMarker({ state, label, size = "md" }: TxStepMarkerProps) {
       )}
     >
       {state === "complete" ? <RiCheckLine className={icon} /> : null}
-      {state === "active" ? <RiLoader4Line className={cn(icon, "animate-spin")} /> : null}
+      {state === "active" ? (
+        <RiLoader4Line className={cn(icon, "animate-spin motion-reduce:animate-none")} />
+      ) : null}
       {state === "queued" ? <RiTimeLine className={icon} /> : null}
       {state === "failed" || state === "warning" ? <RiCloseLine className={icon} /> : null}
       {state === "pending" ? <span>{label}</span> : null}

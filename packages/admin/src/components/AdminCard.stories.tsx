@@ -1,7 +1,7 @@
 import { RiArrowRightSLine, RiLeafLine } from "@remixicon/react";
 import type { Meta, StoryObj } from "@storybook/react";
 import { withAdminPrimitiveFrame } from "../../../shared/.storybook/decorators";
-import { AdminCard } from "./AdminCard";
+import { AdminCard, AdminCardTitle } from "./AdminCard";
 
 const meta: Meta<typeof AdminCard> = {
   title: "Admin/Primitives/AdminCard",
@@ -63,6 +63,15 @@ export const Elevated: Story = {
   render: (args) => (
     <AdminCard {...args} className="max-w-sm">
       <SampleContent />
+    </AdminCard>
+  ),
+};
+
+export const CardTitle: Story = {
+  render: () => (
+    <AdminCard className="max-w-sm">
+      <AdminCardTitle>Pool Status</AdminCardTitle>
+      <p className="mt-2 text-body-md text-text-sub">A card title shares one scale across admin.</p>
     </AdminCard>
   ),
 };

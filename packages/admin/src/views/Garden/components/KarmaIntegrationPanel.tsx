@@ -7,7 +7,7 @@ import { RiExternalLinkLine } from "@remixicon/react";
 import { useId } from "react";
 import { useIntl } from "react-intl";
 import { AdminButton } from "@/components/AdminButton";
-import { AdminCard } from "@/components/AdminCard";
+import { AdminCard, AdminCardTitle } from "@/components/AdminCard";
 
 interface KarmaStatusPresentation {
   badgeId: string;
@@ -132,12 +132,12 @@ export function KarmaIntegrationPanel({ integration }: KarmaIntegrationPanelProp
     >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <h3 id={titleId} className="label-md text-text-strong">
+          <AdminCardTitle id={titleId}>
             {formatMessage({
               id: "cockpit.garden.karma.title",
               defaultMessage: "Karma integration",
             })}
-          </h3>
+          </AdminCardTitle>
           <p className="mt-1 text-xs text-text-soft">
             {formatMessage({
               id: "cockpit.garden.karma.description",
@@ -196,7 +196,7 @@ export function KarmaIntegrationPanel({ integration }: KarmaIntegrationPanelProp
             href={integration.profileUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="admin-hit-target inline-flex h-8 items-center gap-1 rounded-[var(--m3-shape-full)] px-2 text-label-sm font-medium text-[rgb(var(--tone-on-surface-accent,var(--m3-primary)))] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--tone-focus-ring,var(--m3-primary)))] focus-visible:ring-offset-2"
+            className="admin-hit-target inline-flex h-8 items-center gap-1 rounded-[var(--m3-shape-full)] px-2 text-label-sm font-medium text-[rgb(var(--tone-on-surface-accent,var(--primary-base)))] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--tone-focus-ring,var(--primary-base)))] focus-visible:ring-offset-2"
             aria-label={formatMessage({
               id: "cockpit.garden.karma.profileLinkLabel",
               defaultMessage: "Open This Garden's Karma Profile",

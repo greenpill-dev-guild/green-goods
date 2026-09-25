@@ -11,12 +11,12 @@
  * `selectCycleEndAct`'s to decide (commitment-pool-console.test.ts).
  */
 
-import type { PoolConsoleController } from "@green-goods/shared/hooks/admin-ui/pool/controller.types";
 import {
   cycleFixture,
   poolFixture,
 } from "@green-goods/shared/__tests__/test-utils/commitment-pooling-fixtures";
 import { poolConsoleControllerFixture } from "@green-goods/shared/__tests__/test-utils/controller-fixtures";
+import type { PoolConsoleController } from "@green-goods/shared/hooks/admin-ui/pool/controller.types";
 import type { CommitmentCycleRecord } from "@green-goods/shared/modules/commitment-pooling/types-core";
 import { useState } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -130,7 +130,9 @@ describe("ending a season or campaign", () => {
     renderWithProviders(<Harness pool={pool} />);
 
     fireEvent.click(
-      within(screen.getByTestId("pool-cycle-13")).getByRole("button", { name: "End Campaign…" })
+      within(screen.getByTestId("pool-cycle-13")).getByRole("button", {
+        name: "End Campaign… Market rides",
+      })
     );
     const dialog = screen.getByRole("dialog", { name: "End This Campaign" });
     expect(dialog).toHaveTextContent("“Market rides” in Rocinha’s pool");
@@ -150,7 +152,9 @@ describe("ending a season or campaign", () => {
     renderWithProviders(<Harness pool={pool} />);
 
     fireEvent.click(
-      within(screen.getByTestId("pool-cycle-12")).getByRole("button", { name: "Archive…" })
+      within(screen.getByTestId("pool-cycle-12")).getByRole("button", {
+        name: "Archive… Season of First Rains",
+      })
     );
     const dialog = screen.getByRole("alertdialog", { name: "Archive This Season" });
     expect(dialog).toHaveTextContent("“Season of First Rains” in Rocinha’s pool");
@@ -160,5 +164,35 @@ describe("ending a season or campaign", () => {
     fireEvent.click(within(dialog).getByRole("button", { name: "Archive Season" }));
     await waitFor(() => expect(pool.acts.compostCycle).toHaveBeenCalledWith(SEASON));
     expect(pool.acts.closeCycle).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    { kind: "end" as const, name: "End Season…", confirm: "End Season" },
+    {
+      kind: "archive" as const,
+      name: "Archive… Season of First Rains",
+      confirm: "Archive Season",
+    },
+  ])("disables $kind confirmation if the connection drops during review", ({
+    kind,
+    name,
+    confirm,
+  }) => {
+    const pool = controller([
+      cycleFixture({
+        id: "42161-12",
+        cycleId: SEASON,
+        state: kind === "end" ? "OPEN" : "RECONCILED",
+        liveCommitmentCount: 0n,
+      }),
+    ]);
+    const view = renderWithProviders(<Harness pool={pool} />);
+    fireEvent.click(screen.getByRole("button", { name }));
+
+    view.rerender(<Harness pool={{ ...pool, isOnline: false }} />);
+    const dialog = screen.getByRole(kind === "end" ? "dialog" : "alertdialog");
+    expect(within(dialog).getByRole("button", { name: confirm })).toBeDisabled();
+    expect(pool.acts.closeCycle).not.toHaveBeenCalled();
+    expect(pool.acts.compostCycle).not.toHaveBeenCalled();
   });
 });

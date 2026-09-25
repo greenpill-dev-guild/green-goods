@@ -612,6 +612,7 @@ export function selectValidation(input = {}, options = {}) {
         intent,
         risk,
         ci,
+        base: planIdentity.base,
         changedPaths,
         deletedPaths,
         checkpointScope: checkpointScope.effective,
@@ -795,6 +796,11 @@ function materializeCheck(check, environment, mandatory, testPaths, context) {
         : existingChangedPaths.length > 0
           ? `bunx @biomejs/biome lint --no-errors-on-unmatched ${existingChangedPaths.map(shellQuote).join(" ")}`
           : `node -e "console.log('lint: no existing changed paths')"`;
+  }
+  if (check.id === "source-structure" && context.base) {
+    // Judge the plan's own comparison scope, as CI judges the PR base. A structure run with no
+    // base of its own falls back to origin/develop, which is not the base of a stacked branch.
+    command = `${check.command} --base ${shellQuote(context.base)}`;
   }
   let budgetSeconds =
     focusedPaths.length > 0

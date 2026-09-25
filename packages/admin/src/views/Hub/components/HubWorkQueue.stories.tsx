@@ -119,3 +119,14 @@ export const WithSelection: Story = {
     selectedWorkId: "w2",
   },
 };
+
+/** Work age is metadata, never an alarm: months-old work still reads as a neutral Pending. */
+export const LongWaiting: Story = {
+  args: {
+    items: [
+      work("w-old-1", "Planted 50 native saplings", 10, 1, 3),
+      work("w-old-2", "Cleared 40kg of debris", 45, 2, 1),
+      work("w-old-3", "Led composting workshop", 200, 3, 0),
+    ],
+  },
+};

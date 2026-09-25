@@ -6,7 +6,7 @@ import type { RefObject } from "react";
 import { useIntl } from "react-intl";
 import { ActPhaseLine } from "@/components/ActPhaseLine";
 import { AdminButton } from "@/components/AdminButton";
-import { AdminCard } from "@/components/AdminCard";
+import { AdminCard, AdminCardTitle } from "@/components/AdminCard";
 import { PoolFundingSection } from "./PoolFundingSection";
 import { poolStatusChip } from "./poolPresentation";
 
@@ -26,12 +26,12 @@ export interface PoolStatusCardProps {
 function Checkline({ done, label }: { done: boolean; label: string }) {
   const Icon = done ? RiCheckLine : RiCloseLine;
   return (
-    <li className="flex items-center gap-2 text-body-md text-[rgb(var(--m3-on-surface))]">
+    <li className="flex items-center gap-2 text-body-md text-text-strong">
       <Icon
         className={
           done
             ? "h-4 w-4 shrink-0 text-[rgb(var(--tone-on-surface-accent))]"
-            : "h-4 w-4 shrink-0 text-[rgb(var(--m3-on-surface-variant))]"
+            : "h-4 w-4 shrink-0 text-text-sub"
         }
         aria-hidden
       />
@@ -85,12 +85,12 @@ export function PoolStatusCard({
     <AdminCard variant="elevated" data-component="PoolStatusCard" className="space-y-4">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <h3 className="label-md text-text-strong">
+          <AdminCardTitle>
             {formatMessage({
               id: "cockpit.garden.pool.status.title",
               defaultMessage: "Pool Status",
             })}
-          </h3>
+          </AdminCardTitle>
         </div>
         <div className="flex flex-wrap items-center justify-end gap-1.5">
           {/* The protocol pool is managed from its garden like any pool; the

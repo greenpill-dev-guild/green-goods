@@ -2,8 +2,13 @@ import type { PoolFundingControllerView } from "@green-goods/shared/hooks/admin-
 import type { Address } from "@green-goods/shared/types/domain";
 import { formatTokenAmount } from "@green-goods/shared/utils/blockchain/vaults";
 import { useIntl } from "react-intl";
+import { AdminCardTitle } from "@/components/AdminCard";
 import { PoolFundingDialogFact as Fact } from "./PoolFundingDialogFinancialSections";
-import { readinessReasonMessage, shortAddress } from "./poolFundingPresentation";
+import {
+  fundingReadIssueMessage,
+  readinessReasonMessage,
+  shortAddress,
+} from "./poolFundingPresentation";
 
 export interface PoolFundingDialogReadinessSectionsProps {
   funding: PoolFundingControllerView;
@@ -16,6 +21,7 @@ export function PoolFundingDialogReadinessSections({
   const { formatMessage, locale } = intl;
   const snapshot = funding.snapshot;
   const stale = (funding.isError || funding.hasStaleBalance) && snapshot !== null;
+  const readIssue = fundingReadIssueMessage(funding, intl);
   const settlementReady = snapshot?.settlementReadiness === "ready" && !stale;
   const settlementUnavailableReasons = snapshot?.settlementUnavailableReasons ?? [];
   const address = (value: Address | null) => (value ? `${shortAddress(value)} · ${value}` : "—");
@@ -26,12 +32,12 @@ export function PoolFundingDialogReadinessSections({
         aria-labelledby="funding-route-title"
         className="space-y-3 border-t border-stroke-soft pt-5"
       >
-        <h3 id="funding-route-title" className="label-lg text-text-strong">
+        <AdminCardTitle id="funding-route-title">
           {formatMessage({
             id: "cockpit.garden.pool.funding.dialog.route",
             defaultMessage: "Account and Route Readiness",
           })}
-        </h3>
+        </AdminCardTitle>
         <dl className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           <Fact
             label={formatMessage({
@@ -62,8 +68,9 @@ export function PoolFundingDialogReadinessSections({
               defaultMessage: "Account, route, token, fees, and limits are ready.",
             })}
           </p>
-        ) : settlementUnavailableReasons.length ? (
+        ) : readIssue || settlementUnavailableReasons.length ? (
           <ul className="list-disc space-y-1 pl-5 text-sm text-text-sub">
+            {readIssue ? <li>{readIssue}</li> : null}
             {settlementUnavailableReasons.map((reason) => (
               <li key={reason}>{readinessReasonMessage(reason, intl)}</li>
             ))}
@@ -82,12 +89,12 @@ export function PoolFundingDialogReadinessSections({
         aria-labelledby="funding-network-title"
         className="space-y-3 border-t border-stroke-soft pt-5"
       >
-        <h3 id="funding-network-title" className="label-lg text-text-strong">
+        <AdminCardTitle id="funding-network-title">
           {formatMessage({
             id: "cockpit.garden.pool.funding.dialog.networkFees",
             defaultMessage: "Network Fees",
           })}
-        </h3>
+        </AdminCardTitle>
         <Fact
           label={formatMessage({
             id: "cockpit.garden.pool.funding.nativeReserve",

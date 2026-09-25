@@ -16,13 +16,22 @@ import {
 } from "@green-goods/shared/types/domain";
 import { compareAddresses } from "@green-goods/shared/utils/blockchain/address";
 import { parseAndFormatError } from "@green-goods/shared/utils/errors/contract-errors";
+import { toWorkDisplayTitle } from "@green-goods/shared/utils/work/workTitles";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { useIntl } from "react-intl";
 import { AdminButton } from "@/components/AdminButton";
+import { AdminReasonDialog } from "@/components/AdminReasonDialog";
 import { formatEnsAddressName } from "@/components/EnsAddressText";
+import { localizeCanonicalActionTitle } from "@/views/Hub/actionDisplay";
 import { ReviewSummary, workApprovalSchema, type WorkApprovalFormData } from "./helpers";
+
+const REJECT_REASON_SUGGESTION_IDS = [
+  "app.work.detail.rejectDialog.suggestion.photos",
+  "app.work.detail.rejectDialog.suggestion.details",
+  "app.work.detail.rejectDialog.suggestion.action",
+];
 
 interface ReviewFormProps {
   work: Work;
@@ -51,6 +60,11 @@ export function ReviewForm({
   const { data: gardenerEnsName } = useEnsName(work.gardenerAddress);
   const gardenerDisplayName = formatEnsAddressName(work.gardenerAddress, gardenerEnsName);
 
+  const workTitle = localizeCanonicalActionTitle(
+    toWorkDisplayTitle(work.title, formatMessage({ id: "app.admin.work.untitledWork" })),
+    formatMessage
+  );
+
   const isActionExpired = typeof actionEndTime === "number" && actionEndTime < Date.now();
   const isOwnSubmission = compareAddresses(primaryAddress, work.gardenerAddress);
 
@@ -64,31 +78,32 @@ export function ReviewForm({
   });
 
   const confidence = watch("confidence");
-  const hasLowConfidenceHint = confidence < Confidence.LOW;
-  const hasApprovalValidationHints = hasLowConfidenceHint;
+  // Approve waits for a confidence level; nothing is chosen until the steward picks one.
+  const needsConfidence = confidence < Confidence.LOW;
 
   // Audio recording state
   const [reviewAudioFile, setReviewAudioFile] = useState<File | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submittingAction, setSubmittingAction] = useState<"approve" | "reject" | null>(null);
+  const [isRejectDialogOpen, setRejectDialogOpen] = useState(false);
 
   const approvalMutation = useWorkApproval();
 
-  const handleApprovalSubmit = async (approved: boolean) => {
+  /**
+   * Sends the decision. A rejection always carries the steward's reason as its
+   * feedback (DL-048); an approval keeps the optional Feedback field. Resolves
+   * false when nothing was sent, so the reason dialog stays open for a retry.
+   */
+  const handleApprovalSubmit = async (approved: boolean, reason?: string): Promise<boolean> => {
     // Validate form data manually since approval/rejection isn't a form field
     const formData = {
       confidence: approved ? confidence : Confidence.NONE,
       verificationMethod: approved ? VerificationMethod.HUMAN : 0,
-      feedback: getValues("feedback"),
+      feedback: approved ? getValues("feedback") : reason,
     };
 
-    // Validation for approvals
-    if (approved) {
-      if (formData.confidence < Confidence.LOW) {
-        // Can't approve with NONE confidence
-        return;
-      }
-    }
+    // An approval needs a confidence level; a rejection needs a reason.
+    if (approved ? formData.confidence < Confidence.LOW : !formData.feedback) return false;
 
     setSubmittingAction(approved ? "approve" : "reject");
     setIsSubmitting(true);
@@ -128,7 +143,7 @@ export function ReviewForm({
           });
           setIsSubmitting(false);
           setSubmittingAction(null);
-          return;
+          return false;
         }
       }
 
@@ -145,6 +160,7 @@ export function ReviewForm({
       await approvalMutation.mutateAsync({ draft, work });
 
       onSuccess?.(approved);
+      return true;
     } catch (error) {
       const { message: formattedMessage, parsed } = parseAndFormatError(error);
 
@@ -172,6 +188,7 @@ export function ReviewForm({
           ? localizedKnownMessage
           : formatMessage({ id: "app.toast.approval.errorWallet.message" }),
       });
+      return false;
     } finally {
       setIsSubmitting(false);
       setSubmittingAction(null);
@@ -276,6 +293,11 @@ export function ReviewForm({
                       />
                     )}
                   />
+                  {needsConfidence ? (
+                    <p className="mt-1.5 text-xs text-text-soft" data-slot="approval-hint">
+                      {formatMessage({ id: "app.work.detail.hint.lowConfidence" })}
+                    </p>
+                  ) : null}
                 </div>
 
                 {/* Feedback textarea */}
@@ -359,23 +381,6 @@ export function ReviewForm({
                   </p>
                 </div>
 
-                {/* Validation hints — stable block above the decision row so
-                    the disabled Approve state is explained before the actions
-                    and the buttons never shift as hints resolve. */}
-                {hasApprovalValidationHints ? (
-                  <div
-                    className="space-y-1 rounded-md border border-warning-light bg-warning-lighter/60 p-3"
-                    data-slot="approval-hints"
-                    aria-live="polite"
-                  >
-                    {hasLowConfidenceHint && (
-                      <p className="text-xs text-warning-dark">
-                        {formatMessage({ id: "app.work.detail.hint.lowConfidence" })}
-                      </p>
-                    )}
-                  </div>
-                ) : null}
-
                 {/* Decision row — M3 button hierarchy: Reject reads clearly
                     destructive but secondary (outlined, error color role);
                     Approve is the filled primary and sits rightmost. */}
@@ -383,7 +388,7 @@ export function ReviewForm({
                   <AdminButton
                     type="button"
                     variant="outlined"
-                    onClick={() => handleApprovalSubmit(false)}
+                    onClick={() => setRejectDialogOpen(true)}
                     disabled={isSubmitting}
                     loading={isSubmitting && submittingAction === "reject"}
                     className="border-[rgb(var(--m3-error))] [color:rgb(var(--m3-error))] [--state-layer-color:var(--m3-error)] focus-visible:ring-[rgb(var(--m3-error))]"
@@ -394,14 +399,37 @@ export function ReviewForm({
                   <AdminButton
                     type="button"
                     variant="filled"
-                    onClick={() => handleApprovalSubmit(true)}
-                    disabled={isSubmitting || hasApprovalValidationHints}
+                    onClick={() => void handleApprovalSubmit(true)}
+                    disabled={isSubmitting || needsConfidence}
                     loading={isSubmitting && submittingAction === "approve"}
                     data-action="approve"
                   >
                     {formatMessage({ id: "app.work.detail.approve" })}
                   </AdminButton>
                 </div>
+
+                <AdminReasonDialog
+                  isOpen={isRejectDialogOpen}
+                  onClose={() => setRejectDialogOpen(false)}
+                  onConfirm={async (reason) => {
+                    if (await handleApprovalSubmit(false, reason)) setRejectDialogOpen(false);
+                  }}
+                  title={formatMessage({ id: "app.work.detail.rejectDialog.title" })}
+                  target={`${workTitle} · ${gardenerDisplayName}`}
+                  description={formatMessage(
+                    { id: "app.work.detail.rejectDialog.description" },
+                    { garden: gardenName }
+                  )}
+                  reasonLabel={formatMessage({ id: "app.work.detail.rejectDialog.reasonLabel" })}
+                  reasonPlaceholder={formatMessage({
+                    id: "app.work.detail.rejectDialog.reasonPlaceholder",
+                  })}
+                  suggestions={REJECT_REASON_SUGGESTION_IDS.map((id) => formatMessage({ id }))}
+                  initialReason={getValues("feedback")}
+                  confirmLabel={formatMessage({ id: "app.work.detail.rejectDialog.confirm" })}
+                  variant="danger"
+                  isLoading={isSubmitting && submittingAction === "reject"}
+                />
               </form>
             ) : (
               <p className="mt-4 text-sm text-text-soft">

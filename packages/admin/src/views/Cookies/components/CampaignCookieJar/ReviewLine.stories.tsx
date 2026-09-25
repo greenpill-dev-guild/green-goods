@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react";
-import { ReviewLine } from "./ReviewLine";
 import { campaignCookieJarStoryDecorators } from "./CampaignCookieJar.stories.fixtures";
+import { ReviewLine } from "./ReviewLine";
 
 const meta: Meta<typeof ReviewLine> = {
   title: "Admin/Workspaces/Cookies/CampaignCookieJar/ReviewLine",

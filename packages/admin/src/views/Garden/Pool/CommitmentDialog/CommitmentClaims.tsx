@@ -7,6 +7,7 @@ import type {
 import { useIntl } from "react-intl";
 import { ActPhaseLine } from "@/components/ActPhaseLine";
 import { AdminButton } from "@/components/AdminButton";
+import { AdminCardTitle } from "@/components/AdminCard";
 import { ClaimantName } from "../ClaimantName";
 import type { OpenDialog } from "./commitmentDialogPresentation";
 
@@ -46,10 +47,10 @@ export function CommitmentClaims({
         defaultMessage: "Claims",
       })}
     >
-      <p className="label-md text-text-strong">
+      <AdminCardTitle as="h4">
         {formatMessage({ id: "cockpit.garden.pool.claims.title", defaultMessage: "Claims" })}
-      </p>
-      <ul className="divide-y divide-[rgb(var(--m3-outline-variant))]">
+      </AdminCardTitle>
+      <ul className="divide-y divide-stroke-soft">
         {claims.map((claim) => {
           const phase = phaseFor(claim.claimant);
           const inFlight = phase.status !== "idle" && phase.status !== "failed";
@@ -136,9 +137,9 @@ export function CommitmentRoster({
         defaultMessage: "Team",
       })}
     >
-      <p className="label-md text-text-strong">
+      <AdminCardTitle as="h4">
         {formatMessage({ id: "cockpit.garden.pool.commitment.team", defaultMessage: "Team" })}
-      </p>
+      </AdminCardTitle>
       <ul className="text-sm text-text-sub">
         {contributors.map((row) => (
           <li key={row.id} className="flex justify-between gap-2">

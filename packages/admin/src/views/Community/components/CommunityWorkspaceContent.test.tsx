@@ -1,10 +1,10 @@
 import type { CommunityWorkspace } from "@green-goods/shared/hooks/admin-ui/community/useCommunityWorkspaceController";
-import messages from "@green-goods/shared/i18n/en.json";
 import { useGardenYieldWiringState } from "@green-goods/shared/hooks/yield/useGardenYieldWiringState";
+import messages from "@green-goods/shared/i18n/en.json";
+import { render, screen } from "@testing-library/react";
 import { IntlProvider } from "react-intl";
 import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
 import { CommunityWorkspaceContent } from "./CommunityWorkspaceContent";
 
 vi.mock("@/components/Layout/CanvasRouteState", () => ({

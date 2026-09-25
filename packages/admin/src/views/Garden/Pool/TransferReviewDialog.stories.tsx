@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react";
 import { expect, screen } from "storybook/test";
+import { PoolTarget } from "./PoolTarget";
 import { TransferReviewDialog } from "./TransferReviewDialog";
 
 const G = 10n ** 18n;
@@ -47,10 +48,31 @@ export const Dispatch: Story = {
 
 export const RetryCommand: Story = {
   args: { review: { act: "retry", disbursementId: 40n } },
+  play: async () => {
+    const review = await screen.findByRole("alertdialog", { name: "Review Before Sending" });
+    await expect(review).toHaveTextContent(/disbursement #40: 2 G\$ to Aiyeloja/);
+  },
 };
 
 export const Requeue: Story = {
   args: { review: { act: "requeue", disbursementId: 40n } },
+  play: async () => {
+    const review = await screen.findByRole("alertdialog", { name: "Review Before Sending" });
+    await expect(review).toHaveTextContent(/disbursement #40: 2 G\$ to Aiyeloja/);
+  },
+};
+
+/** A commitment payout carries its pool and record into the transfer review. */
+export const CommitmentPayout: Story = {
+  args: {
+    target: (
+      <PoolTarget target={{ gardenName: "Rocinha", isProtocol: false }} record="Community meal" />
+    ),
+  },
+  play: async () => {
+    const review = await screen.findByRole("alertdialog", { name: "Review Before Sending" });
+    await expect(review).toHaveTextContent("“Community meal” in Rocinha’s pool");
+  },
 };
 
 export const Sending: Story = {

@@ -14,7 +14,7 @@ export interface PoolWriteTarget {
   isProtocol: boolean;
 }
 
-export interface PoolTargetProps {
+interface PoolTargetProps {
   target: PoolWriteTarget;
   /** The one record inside the pool the act changes, such as a commitment's title. */
   record?: string;
@@ -54,14 +54,14 @@ export function PoolTarget({ target, record, party }: PoolTargetProps) {
                 {
                   id: "cockpit.garden.pool.target.protocolRecord",
                   defaultMessage:
-                    "“{record}”, in the Green Goods Community Garden’s own pool, where the protocol’s commitments live. Only protocol stewards can change it.",
+                    "“{record}”, in the Green Goods Community Garden’s own pool, where the protocol’s commitments live. Changes here can affect commitments across gardens.",
                 },
                 { record }
               )
             : formatMessage({
                 id: "cockpit.garden.pool.target.protocolNote",
                 defaultMessage:
-                  "The Green Goods Community Garden’s own pool, where the protocol’s commitments live. Only protocol stewards can change it.",
+                  "The Green Goods Community Garden’s own pool, where the protocol’s commitments live. Changes here can affect commitments across gardens.",
               })}
         </Alert>
         {partyRow ? <dl>{partyRow}</dl> : null}
@@ -94,7 +94,7 @@ export function PoolTarget({ target, record, party }: PoolTargetProps) {
   );
 }
 
-export interface GardenPoolTargetProps extends Omit<PoolTargetProps, "target"> {
+interface GardenPoolTargetProps extends Omit<PoolTargetProps, "target"> {
   chainId: number;
   /** The garden whose pool the act writes to, as the surface was handed it. */
   garden: Address;

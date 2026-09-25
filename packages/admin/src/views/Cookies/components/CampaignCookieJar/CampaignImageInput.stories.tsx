@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react";
-import { CampaignImageInput } from "./CampaignImageInput";
 import { campaignCookieJarStoryDecorators } from "./CampaignCookieJar.stories.fixtures";
+import { CampaignImageInput } from "./CampaignImageInput";
 
 const meta: Meta<typeof CampaignImageInput> = {
   title: "Admin/Workspaces/Cookies/CampaignCookieJar/ImageInput",

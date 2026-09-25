@@ -1,6 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/react";
+import { expect, within } from "storybook/test";
 import { withAdminPrimitiveFrame } from "../../../shared/.storybook/decorators";
-import { type TxProgressRow, TxProgressList } from "./TxProgressList";
+import { TxProgressList, type TxProgressRow } from "./TxProgressList";
 
 const HASH = `0x${"3f".repeat(32)}` as const;
 
@@ -93,6 +94,37 @@ export const Running: Story = {
         current: true,
       },
     ],
+  },
+};
+
+/** One wallet prompt can move two rows together, but only one is announced as current. */
+export const GroupedPrompt: Story = {
+  args: {
+    rows: [
+      {
+        ...charter,
+        status: "signing",
+        marker: "active",
+        label: "Confirm in your wallet",
+        tone: "active",
+        current: true,
+      },
+      {
+        ...cap,
+        status: "signing",
+        marker: "active",
+        label: "Confirm in your wallet",
+        tone: "active",
+        current: true,
+      },
+      open,
+    ],
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const list = canvas.getByRole("list", { name: "What your wallet will sign" });
+    expect(list.querySelectorAll('[aria-current="step"]')).toHaveLength(1);
+    expect(list.querySelectorAll('[data-status="signing"]')).toHaveLength(2);
   },
 };
 

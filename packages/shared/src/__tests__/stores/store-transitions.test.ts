@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   addSmartOutcomeTransition,
   moveAssessmentStepTransition,
+  setAssessmentFieldTransition,
   updateSmartOutcomeTransition,
 } from "../../stores/transitions/create-assessment";
 import {
@@ -19,11 +20,15 @@ import {
   resetWorkFlowTransition,
   revokeWorkImageUrlTransition,
 } from "../../stores/transitions/work-flow";
-import type { CreateAssessmentStore } from "../../stores/useCreateAssessmentStore";
+import {
+  type CreateAssessmentStore,
+  createEmptyAssessmentForm,
+} from "../../stores/useCreateAssessmentStore";
 import { createEmptyGardenForm, type CreateGardenStore } from "../../stores/useCreateGardenStore";
 import type { HypercertWizardStore } from "../../stores/useHypercertWizardStore";
 import type { WorkDraftState, WorkFlowState } from "../../stores/useWorkFlowStore";
 import { WorkTab } from "../../stores/workFlowTypes";
+import { Domain } from "../../types/domain";
 
 describe("store domain transitions", () => {
   it("clamps hypercert steps and toggles attestations without mutating state", () => {
@@ -70,6 +75,29 @@ describe("store domain transitions", () => {
     expect(moveAssessmentStepTransition(state, { direction: 1, totalSteps: 2 })).toEqual({
       currentStep: 1,
     });
+  });
+
+  it("drops the old domain's actions and metrics when the domain changes", () => {
+    const state = {
+      form: {
+        ...createEmptyAssessmentForm(),
+        domain: Domain.AGRO,
+        selectedActionUIDs: ["action-1"],
+        smartOutcomes: [{ description: "Canopy cover", metric: "trees", target: 40 }],
+      },
+      currentStep: 0,
+    } as CreateAssessmentStore;
+    const choose = (domain: Domain | null) =>
+      setAssessmentFieldTransition(state, { field: "domain", value: domain }).form;
+
+    // The steward's own words stay; picks from the old domain's lists go.
+    expect(choose(Domain.SOLAR)).toMatchObject({
+      domain: Domain.SOLAR,
+      selectedActionUIDs: [],
+      smartOutcomes: [{ description: "Canopy cover", metric: "", target: 40 }],
+    });
+    expect(choose(null)?.selectedActionUIDs).toEqual([]);
+    expect(choose(Domain.AGRO)).toEqual(state.form);
   });
 
   it("owns work-flow URL and reset patches without browser side effects", () => {

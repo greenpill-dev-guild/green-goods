@@ -3,6 +3,13 @@ import { COMMITMENT_COMPOSER_ERROR_IDS } from "@green-goods/shared/hooks/commitm
 import { createIntl } from "react-intl";
 import { describe, expect, it } from "vitest";
 import {
+  formatRewardAmount,
+  rewardAmountFromBaseUnits,
+  rewardAmountToBaseUnits,
+  rewardUnitsFor,
+  seedRowRewardReady,
+} from "@/views/Garden/Pool/Seed/seedRewardAmount";
+import {
   actionUIDOf,
   buildSeedCycleOptions,
   buildSeedStepConfigs,
@@ -12,12 +19,6 @@ import {
   seedErrorText,
   withConfirmer,
 } from "@/views/Garden/Pool/Seed/seedStepModel";
-import {
-  formatRewardAmount,
-  rewardAmountFromBaseUnits,
-  rewardAmountToBaseUnits,
-  rewardUnitsFor,
-} from "@/views/Garden/Pool/Seed/seedRewardAmount";
 
 const ADDRESS = "0x1111111111111111111111111111111111111111";
 const OTHER = "0x2222222222222222222222222222222222222222";
@@ -139,8 +140,31 @@ describe("declared reward units", () => {
     ).toEqual(usdc);
   });
 
+  it.each([
+    { rail: "NONE", token: "", status: "idle", ready: true },
+    { rail: "CELO_SETTLEMENT", token: "", status: "idle", ready: true },
+    { rail: "ARBITRUM_EXTERNAL", token: ADDRESS, status: "idle", ready: false },
+    { rail: "ARBITRUM_EXTERNAL", token: ADDRESS, status: "loading", ready: false },
+    { rail: "ARBITRUM_EXTERNAL", token: ADDRESS, status: "unreadable", ready: false },
+    { rail: "ARBITRUM_EXTERNAL", token: ADDRESS, status: "ready", ready: true },
+  ] as const)("allows $rail with $status token units: $ready", ({ rail, token, status, ready }) => {
+    const metadata =
+      status === "ready"
+        ? ({ status, metadata: { decimals: 6, symbol: "USDC" } } as const)
+        : ({ status } as const);
+    expect(
+      seedRowRewardReady(
+        { considerationRail: rail, considerationToken: token.toUpperCase() },
+        new Map([[token.toLowerCase(), metadata]])
+      )
+    ).toBe(ready);
+  });
+
   it("reviews an amount in token units, and never in units it does not know", () => {
     expect(formatRewardAmount("2500000", usdc, "en")).toBe("2.5 USDC");
+    expect(
+      formatRewardAmount("12345678901", { status: "ready", decimals: 18, symbol: "G$" }, "en")
+    ).toBe("0.000000012345678901 G$");
     expect(formatRewardAmount("2500000", { status: "waiting", reason: "loading" }, "en")).toBe("—");
   });
 });

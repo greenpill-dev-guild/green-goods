@@ -1,9 +1,13 @@
 import assert from "node:assert/strict";
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { execFileSync } from "node:child_process";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import test from "node:test";
 
+import { clearRepositoryLocalGitVariables, fixtureGitEnvironment } from "../lib/dev-shared.js";
+import { FROZEN_ALLOWLIST } from "../quality/check-source-structure.js";
+import { resolveGitInputs } from "../quality/select-validation.mjs";
 import {
   applyCompatibilityFilters,
   arbitrumForkAvailable,
@@ -15,9 +19,14 @@ import {
   loadPassingReceiptStore,
   parseArguments,
   resolveVitestBatchEnvironment,
+  runCommandCheck,
   savePassingReceiptStore,
   validateAttestation,
 } from "./ci-local.js";
+
+// A hook's GIT_DIR outranks `cwd`, and checks inherit this environment, so without this a check
+// run against a fixture would read the repository being pushed instead.
+clearRepositoryLocalGitVariables();
 
 const GIBIBYTE = 1024 ** 3;
 
@@ -696,6 +705,111 @@ test("ci-local passes explicit lane checkpoint scope into the selector", () => {
     localPlan.checks.find((check) => check.id === "lint").command,
     "bun --bun run oxlint 'packages/client/src/components/Panel.tsx' --deny-warnings",
   );
+});
+
+// The structure checker finds its repository from its own location, so a fixture carries copies.
+const STRUCTURE_CHECKER_FILES = [
+  "scripts/quality/check-source-structure.js",
+  "scripts/quality/check-staged-modules.mjs",
+  "scripts/lib/git-guardrails.mjs",
+];
+
+function writeFixtureFile(root, path, contents) {
+  mkdirSync(dirname(join(root, path)), { recursive: true });
+  writeFileSync(join(root, path), contents);
+}
+
+// A distinct name per file keeps git from pairing one fixture file with another in a move.
+function sourceLines(count, name = "line") {
+  return Array.from({ length: count }, (_, index) => `const ${name}${index} = ${index};\n`).join("");
+}
+
+// A repository holding a copy of the structure checker plus `files`, committed as the base.
+function structureFixture(t, files) {
+  const root = mkdtempSync(join(tmpdir(), "push-gate-structure-"));
+  t.after(() => rmSync(root, { recursive: true, force: true }));
+  const environment = fixtureGitEnvironment();
+  const git = (...args) =>
+    execFileSync("git", args, {
+      cwd: root,
+      env: environment,
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "ignore"],
+    }).trim();
+  for (const path of STRUCTURE_CHECKER_FILES) {
+    writeFixtureFile(root, path, readFileSync(new URL(`../../${path}`, import.meta.url), "utf8"));
+  }
+  writeFixtureFile(root, "package.json", '{ "type": "module" }\n');
+  writeFixtureFile(root, "packages/shared/package.json", '{ "exports": { ".": "./src/index.ts" } }\n');
+  for (const [path, contents] of Object.entries(files)) writeFixtureFile(root, path, contents);
+  git("init");
+  git("add", ".");
+  git("commit", "-m", "seed the base");
+  return { root, git, base: git("rev-parse", "HEAD") };
+}
+
+// Runs the push plan's own structure command inside the fixture, as the gate would.
+async function runPushStructureCheck(root, base) {
+  const options = parseArguments(["--intent", "push", "--base", base]);
+  const pushPlan = buildLocalValidationPlan(options, resolveGitInputs(options, { cwd: root }), {
+    profile: "test",
+    toolchain: {},
+    capabilities: {},
+  });
+  const structure = pushPlan.checks.find((check) => check.id === "source-structure");
+  assert.ok(structure, "changed package source selects the structure check");
+  // An absolute cwd runs the plan's command inside the fixture.
+  return runCommandCheck({ ...structure, cwd: root }, { captureOutput: true });
+}
+
+test("the push gate fails structure violations in committed work, not only uncommitted work", async (t) => {
+  const path = "packages/shared/src/config/query-persistence.ts";
+  const { root, git, base } = structureFixture(t, { [path]: sourceLines(480) });
+  // Committed, so the working tree no longer shows it; CI judges it against the base (PR #898).
+  writeFixtureFile(root, path, sourceLines(513));
+  git("commit", "-am", "grow the reading cache past the modified-file cap");
+  // Not committed yet, so only the working tree shows it.
+  writeFixtureFile(root, "packages/shared/src/config/query-snapshot.ts", sourceLines(351));
+
+  const result = await runPushStructureCheck(root, base);
+
+  assert.equal(result.exitCode, 1, result.output);
+  assert.match(result.output, /query-persistence\.ts: modified file at 513 lines/);
+  assert.match(result.output, /query-snapshot\.ts: new file at 351 lines/);
+});
+
+test("the push gate judges a moved file at its new path as a modified file", async (t) => {
+  // Take a real frozen ceiling so the fixture follows the checker's own list.
+  const [allowlisted, ceiling] = Object.entries(FROZEN_ALLOWLIST).find(([path]) =>
+    path.startsWith("packages/shared/src/utils/"),
+  );
+  const utilities = "packages/shared/src/utils";
+  const { root, git, base } = structureFixture(t, {
+    [`${utilities}/growing.ts`]: sourceLines(480, "growing"),
+    [`${utilities}/steady.ts`]: sourceLines(400, "steady"),
+    [allowlisted]: sourceLines(ceiling, "frozen"),
+  });
+  const move = (from, to, contents) => {
+    git("mv", from, to);
+    writeFixtureFile(root, to, contents);
+  };
+  // Moved and grown past the modified-file cap in one commit: CI's rename detection reports R.
+  move(`${utilities}/growing.ts`, `${utilities}/grown.ts`, sourceLines(513, "growing"));
+  // Moved unchanged: longer than the new-file cap allows, but not a new file.
+  move(`${utilities}/steady.ts`, `${utilities}/settled.ts`, sourceLines(400, "steady"));
+  // Moved unchanged, while its frozen ceiling stays keyed to the old path.
+  move(allowlisted, `${utilities}/relocated.ts`, sourceLines(ceiling, "frozen"));
+  git("commit", "-am", "move three utilities");
+
+  const result = await runPushStructureCheck(root, base);
+
+  assert.equal(result.exitCode, 1, result.output);
+  assert.match(result.output, /grown\.ts: modified file at 513 lines/);
+  assert.ok(
+    result.output.includes(`relocated.ts: ${ceiling} lines, moved from ${allowlisted}`),
+    result.output,
+  );
+  assert.doesNotMatch(result.output, /settled\.ts/);
 });
 
 // Independent package suites declare a concurrency group in the policy. Only

@@ -1,23 +1,23 @@
 import { StatusBadge } from "@green-goods/shared/components/StatusBadge";
 import { useUser } from "@green-goods/shared/hooks/auth/useUser";
-import type { Address } from "@green-goods/shared/types/domain";
-import { adminRoutes } from "@green-goods/shared/utils/navigation/admin-routes";
 import { useCommitmentPools } from "@green-goods/shared/hooks/commitment-pooling/useCommitmentPooling";
 import {
   type CommitmentsToConfirm,
   useCommitmentsToConfirm,
 } from "@green-goods/shared/hooks/commitment-pooling/useCommitmentsToConfirm";
 import { useProtocolPool } from "@green-goods/shared/hooks/commitment-pooling/useProtocolPool";
+import type { Address } from "@green-goods/shared/types/domain";
+import { adminRoutes } from "@green-goods/shared/utils/navigation/admin-routes";
 import { RiArrowRightLine, RiRefreshLine } from "@remixicon/react";
 import { useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { useNavigate } from "react-router-dom";
 import { AdminButton } from "@/components/AdminButton";
-import { AdminCard } from "@/components/AdminCard";
+import { AdminCard, AdminCardTitle } from "@/components/AdminCard";
 import { poolStatusChip } from "@/views/Garden/Pool/poolPresentation";
 import { HubConfirmQueue } from "@/views/Hub/components/HubConfirmQueue";
-import { SettlementOperationsPanel } from "./SettlementOperationsCard";
 import { ProtocolFundingOperationsPanel } from "./ProtocolFundingOperationsPanel";
+import { SettlementOperationsPanel } from "./SettlementOperationsCard";
 
 export interface CommunityPoolsProps {
   chainId: number;
@@ -88,9 +88,9 @@ function GardenPoolCard({
     <AdminCard variant="elevated" className="space-y-3" data-testid="current-garden-pool">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="min-w-0">
-          <h3 className="label-md truncate text-text-strong" title={garden.name}>
+          <AdminCardTitle className="truncate" title={garden.name}>
             {garden.name}
-          </h3>
+          </AdminCardTitle>
           <p className="mt-1 text-xs text-text-soft">
             {formatMessage({
               id: "cockpit.community.pools.currentGardenHint",
@@ -185,12 +185,12 @@ function ProtocolOperations({
         variant="elevated"
         className="flex min-h-40 flex-col items-center justify-center gap-3 text-center"
       >
-        <p className="label-md text-text-strong">
+        <AdminCardTitle>
           {formatMessage({
             id: "cockpit.community.pools.readError.title",
             defaultMessage: "Couldn’t read the protocol pool",
           })}
-        </p>
+        </AdminCardTitle>
         <p className="max-w-md text-sm text-text-soft">
           {formatMessage({
             id: "cockpit.community.pools.readError.body",
@@ -215,12 +215,12 @@ function ProtocolOperations({
   if (!protocolPool.isRegistered || !protocolPool.rootGarden) {
     return (
       <AdminCard variant="elevated" className="space-y-2" data-testid="protocol-pool-unregistered">
-        <p className="label-md text-text-strong">
+        <AdminCardTitle>
           {formatMessage({
             id: "cockpit.community.pools.unregistered.title",
             defaultMessage: "No protocol pool is registered yet",
           })}
-        </p>
+        </AdminCardTitle>
         <p className="text-sm text-text-soft">
           {formatMessage({
             id: "cockpit.community.pools.unregistered.body",
@@ -243,12 +243,12 @@ function ProtocolOperations({
             defaultMessage: "Protocol Confirmations",
           })}
         >
-          <h3 className="label-md text-text-strong">
+          <AdminCardTitle>
             {formatMessage({
               id: "cockpit.community.pools.confirmations",
               defaultMessage: "Protocol Confirmations",
             })}
-          </h3>
+          </AdminCardTitle>
           <p className="text-xs text-text-soft">
             {formatMessage({
               id: "cockpit.community.pools.confirmationsHint",

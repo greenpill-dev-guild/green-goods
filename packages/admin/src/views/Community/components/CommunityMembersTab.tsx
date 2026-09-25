@@ -9,14 +9,14 @@ import { useIntl } from "react-intl";
 import { Link } from "react-router-dom";
 import { isAddress } from "viem";
 import { AdminButton } from "@/components/AdminButton";
-import { AdminCard } from "@/components/AdminCard";
+import { AdminCard, AdminCardTitle } from "@/components/AdminCard";
 import { AdminFilterChip } from "@/components/AdminFilterChip";
 import { AdminSearchToolbar } from "@/components/AdminSearchToolbar";
 import { EnsAddressText } from "@/components/EnsAddressText";
 import { getRoleLabel } from "@/components/Garden/gardenUtils";
+import { CommunityJoinRequests } from "./CommunityJoinRequests";
 import { CommunityMembersDialogs } from "./CommunityMembersDialogs";
 import { communityRoleIcons } from "./communityRoleIcons";
-import { CommunityJoinRequests } from "./CommunityJoinRequests";
 
 export type CommunityMembersTabProps = Pick<
   CommunityWorkspace,
@@ -77,10 +77,10 @@ export function CommunityMembersTab({
           <AdminCard variant="elevated" className="space-y-4">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
-                <h3 className="text-title-md font-semibold text-[rgb(var(--m3-on-surface))]">
+                <AdminCardTitle>
                   {formatMessage({ id: "cockpit.community.members.directory" })}
-                </h3>
-                <p className="mt-1 text-body-sm text-[rgb(var(--m3-on-surface-variant))]">
+                </AdminCardTitle>
+                <p className="mt-1 text-body-sm text-text-sub">
                   {formatMessage({ id: "cockpit.community.members.directoryDescription" })}
                 </p>
               </div>
@@ -156,7 +156,7 @@ export function CommunityMembersTab({
                         {entry.roles.map((role) => (
                           <span
                             key={`${entry.address}-${role}`}
-                            className="rounded-full bg-[rgb(var(--m3-surface-container-high))] px-2 py-0.5 text-label-sm font-medium text-[rgb(var(--m3-on-surface-variant))]"
+                            className="rounded-full bg-bg-sub px-2 py-0.5 text-label-sm font-medium text-text-sub"
                           >
                             {getRoleLabel(role, formatMessage).singular}
                           </span>
@@ -192,9 +192,9 @@ export function CommunityMembersTab({
         <aside className="garden-tab-rail">
           <div className="garden-tab-rail-sticky">
             <AdminCard variant="filled" className="space-y-3">
-              <h3 className="text-title-sm font-semibold text-[rgb(var(--m3-on-surface))]">
+              <AdminCardTitle>
                 {formatMessage({ id: "cockpit.community.members.coverage" })}
-              </h3>
+              </AdminCardTitle>
               <div className="garden-stat-row">
                 <span className="garden-stat-row-label">
                   {formatMessage({ id: "cockpit.community.members.total" })}
@@ -238,7 +238,7 @@ export function CommunityMembersTab({
                     </span>
                     <span className="inline-flex items-center gap-1">
                       <span className="garden-stat-row-value">{entry.count}</span>
-                      <RiArrowRightSLine className="h-4 w-4 text-[rgb(var(--m3-on-surface-variant))]" />
+                      <RiArrowRightSLine className="h-4 w-4 text-text-sub" />
                     </span>
                   </Link>
                 );

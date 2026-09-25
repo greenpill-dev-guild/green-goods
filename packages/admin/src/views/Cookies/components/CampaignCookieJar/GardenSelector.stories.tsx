@@ -1,9 +1,9 @@
 import type { Meta, StoryObj } from "@storybook/react";
-import { GardenSelector } from "./GardenSelector";
 import {
   campaignCookieJarCreateFormProps,
   campaignCookieJarStoryDecorators,
 } from "./CampaignCookieJar.stories.fixtures";
+import { GardenSelector } from "./GardenSelector";
 
 const meta: Meta<typeof GardenSelector> = {
   title: "Admin/Workspaces/Cookies/CampaignCookieJar/GardenSelector",

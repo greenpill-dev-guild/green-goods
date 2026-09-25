@@ -19,6 +19,7 @@ const input = toConfirmFixture({
           seat: "confirmer",
           needsYou: true,
           poolGarden: MARIA,
+          poolGardenName: "Meadow Pool",
           canDispute: false,
         },
       ],
@@ -68,6 +69,7 @@ describe("selectConfirmQueueRows", () => {
   it.each([
     ["repair", [41n]],
     [" ORCHARD ", [43n]],
+    ["meadow pool", [41n]],
     ["missing", []],
   ])("filters %s by title or garden name", (search, ids) => {
     expect(

@@ -1,11 +1,11 @@
 import type { Meta, StoryObj } from "@storybook/react";
 import { STORYBOOK_ADMIN_GARDENS } from "../../../../../../shared/.storybook/adminFixtures";
-import { CampaignCookieJarPanelList } from "./CampaignCookieJarPanelList";
 import {
   campaignCookieJarCreateFormProps,
   campaignCookieJarStoryDecorators,
   storybookCampaign,
 } from "./CampaignCookieJar.stories.fixtures";
+import { CampaignCookieJarPanelList } from "./CampaignCookieJarPanelList";
 
 const meta: Meta<typeof CampaignCookieJarPanelList> = {
   title: "Admin/Workspaces/Cookies/CampaignCookieJar/PanelList",

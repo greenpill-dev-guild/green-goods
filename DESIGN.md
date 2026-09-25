@@ -244,6 +244,12 @@ The names that carry the work. Domain entities, personas, relationships, and lif
 | Impact | Output, result, metric | Bridges community and chain. |
 | Document | Log, record, capture | Gardeners document their work. |
 
+**Plain titles, methods in helper text (DL-047).** Step, section, and field titles use plain
+questions and nouns ("How Predictable Is This Work?", "What You'll Measure"); a framework or
+method name (strategy kernel, Cynefin, SMART) appears only as helper text, in parentheses after the
+plain question. A flow never preselects a choice the person has to make, such as an assessment's
+domain.
+
 ### Writing Checklist
 
 Before shipping copy:

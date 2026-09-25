@@ -10,7 +10,7 @@ import {
 import { useAdminGardenWorkspaceSelection } from "@green-goods/shared/hooks/garden/useAdminGardenWorkspaceSelection";
 import { useGardenDerivedState } from "@green-goods/shared/hooks/garden/useGardenDerivedState";
 import { useGardenDetailData } from "@green-goods/shared/hooks/garden/useGardenDetailData";
-import { useLocalizedRelativeTime } from "@green-goods/shared/hooks/app/useLocalizedRelativeTime";
+import { useLocalizedEventTime } from "@green-goods/shared/hooks/app/useLocalizedRelativeTime";
 import { useEffectiveToolbarPermissions } from "@green-goods/shared/hooks/roles/useEffectiveToolbarPermissions";
 import { useCallback, useMemo } from "react";
 import { useIntl } from "react-intl";
@@ -18,7 +18,7 @@ import { useNavigate } from "react-router-dom";
 
 export function AdminNotificationPanel({ onCloseSheet }: { onCloseSheet: () => void }) {
   const { formatMessage } = useIntl();
-  const formatEventAge = useLocalizedRelativeTime();
+  const formatEventTime = useLocalizedEventTime();
   const navigate = useNavigate();
   const { selectedGarden } = useAdminGardenWorkspaceSelection();
   const selectedGardenAddress = selectedGarden?.id;
@@ -55,6 +55,7 @@ export function AdminNotificationPanel({ onCloseSheet }: { onCloseSheet: () => v
       chainId: selectedGarden?.chainId ?? 0,
     },
     works: workspace.works,
+    worksComplete: workspace.worksComplete,
     assessments: workspace.assessments,
     hypercerts: workspace.hypercerts,
     allocations: workspace.allocations,
@@ -90,7 +91,7 @@ export function AdminNotificationPanel({ onCloseSheet }: { onCloseSheet: () => v
           id: event.id,
           title: event.title,
           description: event.description,
-          meta: formatEventAge(event.timestamp),
+          meta: formatEventTime(event.timestamp),
           tone: "info" as const,
           onSelect: href ? () => navigateFromNotification(href) : undefined,
         };
@@ -117,7 +118,7 @@ export function AdminNotificationPanel({ onCloseSheet }: { onCloseSheet: () => v
   }, [
     derived.activityEvents,
     derived.overviewAlerts,
-    formatEventAge,
+    formatEventTime,
     formatMessage,
     navigateFromNotification,
     workspace.garden,

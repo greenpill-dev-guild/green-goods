@@ -56,9 +56,7 @@ function PositionCardHarness({
     <AdminCard>
       <div className="mb-4">
         <div className="flex items-center justify-between">
-          <h3 className="text-title-sm font-semibold text-text-strong sm:text-title-md">
-            {symbol}
-          </h3>
+          <h3 className="text-title-md font-semibold text-text-strong">{symbol}</h3>
           {!vaultAcceptingDeposits && (
             <span className="rounded-full bg-warning-lighter px-2 py-1 text-label-sm font-medium text-warning-dark">
               Deposits disabled

@@ -110,7 +110,7 @@ export function GardenWorkspaceContent({ workspace }: GardenWorkspaceContentProp
           gardenHealthLabel={workspace.derived.gardenHealthLabel}
           approvedInRangeCount={workspace.derived.approvedInRangeCount}
           impactVelocityDelta={workspace.derived.impactVelocityDelta}
-          medianReviewAgeHours={workspace.derived.medianReviewAgeHours}
+          medianReviewLatencyMs={workspace.derived.reviewQueue.medianReviewLatencyMs}
           activityFilter={workspace.activityFilter}
           setActivityFilter={workspace.setActivityFilter}
           filteredActivityEvents={workspace.canvasActivityEvents}

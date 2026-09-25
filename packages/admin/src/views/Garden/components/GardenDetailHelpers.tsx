@@ -16,9 +16,28 @@ import { type ReactNode, useState } from "react";
 import { useIntl } from "react-intl";
 import { Link } from "react-router-dom";
 import { AdminButton } from "@/components/AdminButton";
-import { AdminCard, AdminCardBody } from "@/components/AdminCard";
+import { AdminCard, AdminCardBody, AdminCardTitle } from "@/components/AdminCard";
 import { AdminTooltip } from "@/components/AdminTooltip";
 import { ALERT_LABEL_CLASSES, BADGE_TONE_CLASSES } from "./gardenDetail.constants";
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+/** Review time reads in days, then weeks past two weeks (DL-044). */
+export function formatReviewTime(
+  latencyMs: number | null,
+  formatMessage: ReturnType<typeof useIntl>["formatMessage"]
+): string {
+  if (latencyMs === null) return formatMessage({ id: "app.garden.detail.metric.notAvailable" });
+  const days = latencyMs / DAY_MS;
+  if (days < 1) return formatMessage({ id: "app.garden.detail.metric.underADay" });
+  if (days <= 14) {
+    return formatMessage({ id: "app.garden.detail.metric.daysValue" }, { days: Math.round(days) });
+  }
+  return formatMessage(
+    { id: "app.garden.detail.metric.weeksValue" },
+    { weeks: Math.round(days / 7) }
+  );
+}
 
 export function TabBadge({ badge }: { badge: TabBadgeState }) {
   if (badge.severity === "none" || !badge.count) {
@@ -171,7 +190,7 @@ export function SectionStateCard({ title, description, closeLabel, onClose }: Se
     <AdminCard density="none" className="border-l-2 border-l-information-dark">
       <AdminCardBody className="flex items-start justify-between gap-3">
         <div>
-          <h3 className="label-md text-text-strong">{title}</h3>
+          <AdminCardTitle>{title}</AdminCardTitle>
           <p className="mt-1 text-sm text-text-sub">{description}</p>
         </div>
         <AdminButton variant="text" size="sm" onClick={onClose} aria-label={closeLabel}>

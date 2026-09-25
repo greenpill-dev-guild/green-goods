@@ -22,6 +22,7 @@ import { RiCheckboxCircleLine, RiRefreshLine, RiTranslate2 } from "@remixicon/re
 import { useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { AdminButton } from "@/components/AdminButton";
+import { AdminCardTitle } from "@/components/AdminCard";
 import { AdminFilterChip } from "@/components/AdminFilterChip";
 import { AdminTextArea, AdminTextField } from "@/components/AdminTextField";
 
@@ -358,16 +359,11 @@ export function ActionTranslationEditor({
     return (
       <div
         key={prefix}
-        className={cn(
-          "space-y-3 border-l border-[rgb(var(--m3-outline-variant))] pl-3",
-          depth > 0 && "ml-3"
-        )}
+        className={cn("space-y-3 border-l border-stroke-soft pl-3", depth > 0 && "ml-3")}
       >
         <div>
-          <p className="text-label-md font-semibold text-[rgb(var(--m3-on-surface))]">
-            {input.title}
-          </p>
-          <p className="text-body-sm text-[rgb(var(--m3-on-surface-variant))]">
+          <p className="text-label-md font-semibold text-text-strong">{input.title}</p>
+          <p className="text-body-sm text-text-sub">
             {input.key} / {input.type}
           </p>
         </div>
@@ -449,19 +445,19 @@ export function ActionTranslationEditor({
   };
 
   return (
-    <section className="mt-6 space-y-4 rounded-[var(--m3-shape-sm)] border border-[rgb(var(--m3-outline-variant))] p-4">
+    <section className="mt-6 space-y-4 rounded-[var(--m3-shape-sm)] border border-stroke-soft p-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <div className="flex items-center gap-2">
-            <RiTranslate2 className="h-4 w-4 text-[rgb(var(--m3-on-surface-variant))]" />
-            <h3 className="text-title-sm font-semibold text-[rgb(var(--m3-on-surface))]">
+            <RiTranslate2 className="h-4 w-4 text-text-sub" />
+            <AdminCardTitle>
               {formatMessage({
                 id: "app.admin.actions.translations.title",
                 defaultMessage: "Translations",
               })}
-            </h3>
+            </AdminCardTitle>
           </div>
-          <p className="mt-1 text-body-sm text-[rgb(var(--m3-on-surface-variant))]">
+          <p className="mt-1 text-body-sm text-text-sub">
             {formatMessage({
               id: "app.admin.actions.translations.description",
               defaultMessage:
@@ -485,7 +481,7 @@ export function ActionTranslationEditor({
       </div>
 
       {hasUnreviewedTranslations ? (
-        <p className="rounded-[var(--m3-shape-xs)] bg-[rgb(var(--m3-tertiary-container))] px-3 py-2 text-body-sm text-[rgb(var(--m3-on-tertiary-container))]">
+        <p className="rounded-[var(--m3-shape-xs)] bg-warning-lighter px-3 py-2 text-body-sm text-warning-dark">
           {formatMessage({
             id: "app.admin.actions.translations.publishWarning",
             defaultMessage:
@@ -495,7 +491,7 @@ export function ActionTranslationEditor({
       ) : null}
 
       {activeRecord?.status === "stale" ? (
-        <p className="rounded-[var(--m3-shape-xs)] bg-[rgb(var(--m3-error-container))] px-3 py-2 text-body-sm text-[rgb(var(--m3-on-error-container))]">
+        <p className="rounded-[var(--m3-shape-xs)] bg-error-lighter px-3 py-2 text-body-sm text-error-dark">
           {formatMessage({
             id: "app.admin.actions.translations.sourceChanged",
             defaultMessage:
@@ -540,9 +536,7 @@ export function ActionTranslationEditor({
         </AdminButton>
       </div>
 
-      {message ? (
-        <p className="text-body-sm text-[rgb(var(--m3-on-surface-variant))]">{message}</p>
-      ) : null}
+      {message ? <p className="text-body-sm text-text-sub">{message}</p> : null}
 
       <div className="space-y-5">
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
@@ -570,12 +564,12 @@ export function ActionTranslationEditor({
         </div>
 
         <div className="space-y-3">
-          <h4 className="text-label-lg font-semibold text-[rgb(var(--m3-on-surface))]">
+          <AdminCardTitle as="h4">
             {formatMessage({
               id: "app.admin.actions.translations.mediaSection",
               defaultMessage: "Media guidance",
             })}
-          </h4>
+          </AdminCardTitle>
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
             <TranslationTextControl
               id={`${activeLocale}-media-title`}
@@ -646,12 +640,12 @@ export function ActionTranslationEditor({
         </div>
 
         <div className="space-y-3">
-          <h4 className="text-label-lg font-semibold text-[rgb(var(--m3-on-surface))]">
+          <AdminCardTitle as="h4">
             {formatMessage({
               id: "app.admin.actions.translations.detailsSection",
               defaultMessage: "Details form",
             })}
-          </h4>
+          </AdminCardTitle>
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
             <TranslationTextControl
               id={`${activeLocale}-details-title`}
@@ -695,12 +689,12 @@ export function ActionTranslationEditor({
         </div>
 
         <div className="space-y-3">
-          <h4 className="text-label-lg font-semibold text-[rgb(var(--m3-on-surface))]">
+          <AdminCardTitle as="h4">
             {formatMessage({
               id: "app.admin.actions.translations.reviewSection",
               defaultMessage: "Review copy",
             })}
-          </h4>
+          </AdminCardTitle>
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
             <TranslationTextControl
               id={`${activeLocale}-review-title`}

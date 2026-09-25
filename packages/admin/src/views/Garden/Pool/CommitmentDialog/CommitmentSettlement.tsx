@@ -9,9 +9,10 @@ import { useCommitmentSettlementController } from "@green-goods/shared/hooks/adm
 import type { SettlementNextAction } from "@green-goods/shared/modules/commitment-pooling/settlement-workflow";
 import type { CommitmentReadModel } from "@green-goods/shared/modules/commitment-pooling/types-core";
 import { RiRefreshLine } from "@remixicon/react";
-import { useState } from "react";
+import { type ReactNode, useState } from "react";
 import { useIntl } from "react-intl";
 import { AdminButton } from "@/components/AdminButton";
+import { AdminCardTitle } from "@/components/AdminCard";
 import { AdminConfirmDialog } from "@/components/AdminDialog";
 import { formatGdollar, shortAddress } from "../poolFundingPresentation";
 import { CommitmentSettlementDisbursements } from "./CommitmentSettlementDisbursements";
@@ -30,6 +31,7 @@ type Tone = "garden" | "hub" | "community";
 export interface CommitmentSettlementProps {
   settlement: CommitmentSettlementController;
   tone: Tone;
+  target?: ReactNode;
 }
 
 /** Whether the inspector shows the payout section for this record at all. */
@@ -49,14 +51,16 @@ export function CommitmentSettlementSection({
   commitment,
   detail,
   tone,
+  target,
 }: {
   chainId: number;
   commitment: CommitmentReadModel;
   detail: CommitmentDialogController["detail"];
   tone: Tone;
+  target?: ReactNode;
 }) {
   const settlement = useCommitmentSettlementController({ chainId, commitment, detail });
-  return <CommitmentSettlement settlement={settlement} tone={tone} />;
+  return <CommitmentSettlement settlement={settlement} tone={tone} target={target} />;
 }
 
 /**
@@ -66,7 +70,7 @@ export function CommitmentSettlementSection({
  * accepts next behind an explicit review. Every fact and every step comes from
  * the chain read the controller performs before and after each transaction.
  */
-export function CommitmentSettlement({ settlement, tone }: CommitmentSettlementProps) {
+export function CommitmentSettlement({ settlement, tone, target }: CommitmentSettlementProps) {
   const intl = useIntl();
   const { formatMessage, locale } = intl;
   const [review, setReview] = useState<SettlementNextAction | null>(null);
@@ -111,19 +115,19 @@ export function CommitmentSettlement({ settlement, tone }: CommitmentSettlementP
 
   return (
     <section
-      className="space-y-3 border-t border-[rgb(var(--m3-outline-variant))] pt-4"
+      className="space-y-3 border-t border-stroke-soft pt-4"
       aria-labelledby="commitment-settlement-title"
       data-component="CommitmentSettlement"
       data-state={workflow.complete ? "complete" : (workflow.currentStep ?? "idle")}
     >
       <div className="flex items-start justify-between gap-2">
         <div>
-          <h4 id="commitment-settlement-title" className="label-md text-text-strong">
+          <AdminCardTitle as="h4" id="commitment-settlement-title">
             {formatMessage({
               id: "cockpit.garden.pool.settlement.title",
               defaultMessage: "G$ Payout",
             })}
-          </h4>
+          </AdminCardTitle>
           <p className="mt-1 text-xs text-text-soft">
             {formatMessage({
               id: "cockpit.garden.pool.settlement.description",
@@ -265,7 +269,7 @@ export function CommitmentSettlement({ settlement, tone }: CommitmentSettlementP
             </div>
           ) : null}
 
-          <CommitmentSettlementDisbursements settlement={settlement} tone={tone} />
+          <CommitmentSettlementDisbursements settlement={settlement} tone={tone} target={target} />
         </>
       )}
 
@@ -278,6 +282,7 @@ export function CommitmentSettlement({ settlement, tone }: CommitmentSettlementP
           id: "cockpit.garden.pool.settlement.review.title",
           defaultMessage: "Review Before Sending",
         })}
+        target={target}
         description={
           review
             ? formatMessage(

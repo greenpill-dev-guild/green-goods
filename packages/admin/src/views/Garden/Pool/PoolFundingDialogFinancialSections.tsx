@@ -1,5 +1,6 @@
 import type { PoolFundingSnapshot } from "@green-goods/shared/modules/commitment-pooling/pool-funding";
 import { useIntl } from "react-intl";
+import { AdminCardTitle } from "@/components/AdminCard";
 import { formatGdollar, shortAddress } from "./poolFundingPresentation";
 
 export interface PoolFundingDialogFactProps {
@@ -30,12 +31,12 @@ export function PoolFundingDialogFinancialSections({
   return (
     <>
       <section aria-labelledby="funding-composition-title" className="space-y-3">
-        <h3 id="funding-composition-title" className="label-lg text-text-strong">
+        <AdminCardTitle id="funding-composition-title">
           {formatMessage({
             id: "cockpit.garden.pool.funding.dialog.composition",
             defaultMessage: "Balance Composition",
           })}
-        </h3>
+        </AdminCardTitle>
         <dl className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           <Fact
             label={formatMessage({
@@ -89,13 +90,13 @@ export function PoolFundingDialogFinancialSections({
         </p>
         {snapshot?.obligations.length ? (
           <div className="space-y-2">
-            <h4 className="label-md text-text-strong">
+            <AdminCardTitle as="h4">
               {formatMessage({
                 id: "cockpit.garden.pool.funding.dialog.obligations",
                 defaultMessage: "Obligation Breakdown",
               })}
-            </h4>
-            <ul className="divide-y divide-stroke-soft rounded-[var(--m3-shape-sm)] bg-[rgb(var(--m3-surface-container))] px-3">
+            </AdminCardTitle>
+            <ul className="divide-y divide-stroke-soft rounded-[var(--m3-shape-sm)] bg-bg-soft px-3">
               {snapshot.obligations.map((row) => (
                 <li
                   key={row.id}
@@ -134,12 +135,12 @@ export function PoolFundingDialogFinancialSections({
         aria-labelledby="funding-transit-title"
         className="space-y-3 border-t border-stroke-soft pt-5"
       >
-        <h3 id="funding-transit-title" className="label-lg text-text-strong">
+        <AdminCardTitle id="funding-transit-title">
           {formatMessage({
             id: "cockpit.garden.pool.funding.dialog.transit",
             defaultMessage: "Funds in Transit",
           })}
-        </h3>
+        </AdminCardTitle>
         <dl className="grid gap-3 sm:grid-cols-3">
           <Fact
             label={formatMessage({
@@ -176,12 +177,12 @@ export function PoolFundingDialogFinancialSections({
         aria-labelledby="funding-fees-title"
         className="space-y-3 border-t border-stroke-soft pt-5"
       >
-        <h3 id="funding-fees-title" className="label-lg text-text-strong">
+        <AdminCardTitle id="funding-fees-title">
           {formatMessage({
             id: "cockpit.garden.pool.funding.dialog.fees",
             defaultMessage: "GoodDollar Fees",
           })}
-        </h3>
+        </AdminCardTitle>
         <dl className="grid gap-3 sm:grid-cols-2">
           <Fact
             label={formatMessage({
@@ -199,7 +200,7 @@ export function PoolFundingDialogFinancialSections({
           />
         </dl>
         {snapshot?.feeQuotes.length ? (
-          <ul className="divide-y divide-stroke-soft rounded-[var(--m3-shape-sm)] bg-[rgb(var(--m3-surface-container))] px-3">
+          <ul className="divide-y divide-stroke-soft rounded-[var(--m3-shape-sm)] bg-bg-soft px-3">
             {snapshot.feeQuotes.map((quote) => (
               <li
                 key={quote.id}
@@ -243,12 +244,12 @@ export function PoolFundingDialogFinancialSections({
         aria-labelledby="funding-limits-title"
         className="space-y-3 border-t border-stroke-soft pt-5"
       >
-        <h3 id="funding-limits-title" className="label-lg text-text-strong">
+        <AdminCardTitle id="funding-limits-title">
           {formatMessage({
             id: "cockpit.garden.pool.funding.dialog.limits",
             defaultMessage: "Settlement Limits",
           })}
-        </h3>
+        </AdminCardTitle>
         <dl className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           <Fact
             label={formatMessage({

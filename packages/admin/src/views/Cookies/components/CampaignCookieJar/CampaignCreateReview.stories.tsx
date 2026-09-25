@@ -1,9 +1,9 @@
 import type { Meta, StoryObj } from "@storybook/react";
-import { CampaignCreateReview } from "./CampaignCreateReview";
 import {
   campaignCookieJarCreateFormProps,
   campaignCookieJarStoryDecorators,
 } from "./CampaignCookieJar.stories.fixtures";
+import { CampaignCreateReview } from "./CampaignCreateReview";
 
 const meta: Meta<typeof CampaignCreateReview> = {
   title: "Admin/Workspaces/Cookies/CampaignCookieJar/CreateReview",

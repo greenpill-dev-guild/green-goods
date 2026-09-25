@@ -34,9 +34,9 @@
         "Open /hub/work",
         "Open a pending submission",
         "Inspect evidence media",
-        "Choose confidence and enter feedback",
+        "Choose a confidence level (none is chosen at first) and enter feedback",
         "Verify Approve and Reject are visible in the pinned dialog action region without scrolling",
-        "Reject or approve",
+        "Approve, or press Reject and give a reason in the Reject Work dialog",
         "Confirm the queue updates"
       ],
       "expected": "The complete decision path works and commit/cancel actions are never hidden inside a clipped scrolling region",
@@ -46,7 +46,7 @@
       "scenario": "Confirm Kept… reviews the commitment before confirming it",
       "preconditions": [
         "Steward with the garden that confirms the commitment selected in the header",
-        "A commitment waiting for that garden's confirmation and marked Ready to confirm"
+        "A commitment waiting for that garden's confirmation and marked Ready to confirm; the confirming account is not a contributor"
       ],
       "steps": [
         "Open Hub → Confirm and press Confirm Kept… on the commitment's row",
@@ -72,11 +72,13 @@
     },
     "ADM-140": {
       "scenario": "Seed a commitment: 4-step wizard, named confirmers, review before sending",
-      "preconditions": ["Garden pool open"],
+      "preconditions": [
+        "Garden pool open; the separate local Garden commitment names an independent Garden steward or evaluator as confirmer, never its contributor"
+      ],
       "steps": [
         "Run the 4-step seed wizard",
         "Add named confirmers incl. one bad address",
-        "Review, press Seed This Commitment, and confirm in the wallet"
+        "Review, press Seed This Commitment, and confirm in the wallet, then press Done and verify the wizard closes"
       ],
       "expected": "Each step validates before Next; a bad or duplicate confirmer address is rejected visibly; the review reads every answer back before anything is sent; seeding asks the wallet to confirm one creation, and the wizard shows it as Created until Done closes it",
       "role": "steward"

@@ -17,9 +17,9 @@ import { AdminButton } from "@/components/AdminButton";
 import { AdminDialog } from "@/components/AdminDialog";
 import { AdminTextArea, AdminTextField } from "@/components/AdminTextField";
 import { DiscardChangesDialog } from "@/components/DiscardChangesDialog";
-import { changedSettings, planSettingsSteps, settingsActions } from "./poolSettingsPlan";
 import { PoolSettingsProgress } from "./PoolSettingsProgress";
 import { PoolTarget, type PoolWriteTarget } from "./PoolTarget";
+import { changedSettings, planSettingsSteps, settingsActions } from "./poolSettingsPlan";
 import { promptCount, promptNumbers } from "./SetupFlow/setupWrites";
 
 export interface PoolSettingsDialogProps {
@@ -54,7 +54,10 @@ export function PoolSettingsDialog({
   const [lastAct, setLastAct] = useState<"save" | "retry">("save");
   const sequence = useCommitmentPoolSetupSequence({
     chainId: pool.chainId,
-    toastContext: "pool settings",
+    toastContext: formatMessage({
+      id: "cockpit.garden.pool.settings.title",
+      defaultMessage: "Pool Settings",
+    }),
   });
   const status = sequence.state.status;
   const editing = status === "idle";

@@ -1,6 +1,9 @@
 import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
 import type { AdminWorkspaceSectionTab } from "@green-goods/shared/hooks/admin-ui/navigation/workspaceNavigation";
-import { useLocalizedRelativeTime } from "@green-goods/shared/hooks/app/useLocalizedRelativeTime";
+import {
+  useLocalizedEventTime,
+  useLocalizedRelativeTime,
+} from "@green-goods/shared/hooks/app/useLocalizedRelativeTime";
 import type { KarmaIntegrationController } from "@green-goods/shared/hooks/garden/useKarmaIntegration";
 import type {
   ActivityFilter,
@@ -14,9 +17,9 @@ import { useIntl } from "react-intl";
 import { Link } from "react-router-dom";
 
 import { AdminButton } from "@/components/AdminButton";
-import { AdminCard, AdminCardBody, AdminCardHeader } from "@/components/AdminCard";
+import { AdminCard, AdminCardBody, AdminCardHeader, AdminCardTitle } from "@/components/AdminCard";
 import { localizeCanonicalActionTitle } from "@/views/Hub/actionDisplay";
-import { AlertRow, SectionStateCard } from "./GardenDetailHelpers";
+import { AlertRow, formatReviewTime, SectionStateCard } from "./GardenDetailHelpers";
 import {
   ACTIVITY_CARD_CLASS,
   RANGE_OPTIONS,
@@ -49,7 +52,8 @@ export interface OverviewTabProps {
   gardenHealthLabel: string;
   approvedInRangeCount: number;
   impactVelocityDelta: number;
-  medianReviewAgeHours: number;
+  /** Median time from submission to decision; null before any decision has a known time. */
+  medianReviewLatencyMs: number | null;
   activityFilter: ActivityFilter;
   setActivityFilter: (filter: ActivityFilter) => void;
   filteredActivityEvents: GardenActivityEvent[];
@@ -73,7 +77,7 @@ export function OverviewTab({
   gardenHealthLabel,
   approvedInRangeCount,
   impactVelocityDelta,
-  medianReviewAgeHours,
+  medianReviewLatencyMs,
   activityFilter,
   setActivityFilter,
   filteredActivityEvents,
@@ -86,6 +90,7 @@ export function OverviewTab({
 }: OverviewTabProps) {
   const { formatMessage } = useIntl();
   const formatActivityTime = useLocalizedRelativeTime();
+  const formatEventTime = useLocalizedEventTime();
   const isHealthMode = mode === "health";
   const isActivityMode = mode === "activity";
   const activityEventLimit = isActivityMode ? Number.POSITIVE_INFINITY : 8;
@@ -144,9 +149,9 @@ export function OverviewTab({
             <AdminCard density="none" className={SECTION_CARD_MIN_HEIGHT}>
               <AdminCardHeader className="flex-wrap gap-3">
                 <div>
-                  <h3 className="admin-section-title">
+                  <AdminCardTitle>
                     {formatMessage({ id: "app.garden.detail.health.title" })}
-                  </h3>
+                  </AdminCardTitle>
                   <p className="mt-1 body-sm text-text-sub">{gardenHealthLabel}</p>
                 </div>
                 <div className="flex items-center gap-2">
@@ -208,12 +213,7 @@ export function OverviewTab({
                       {formatMessage({ id: "app.garden.detail.metric.executionThroughput" })}
                     </p>
                     <p className="mt-1 font-heading text-lg font-semibold text-text-strong">
-                      {medianReviewAgeHours > 0
-                        ? formatMessage(
-                            { id: "app.garden.detail.metric.hoursValue" },
-                            { hours: Math.round(medianReviewAgeHours) }
-                          )
-                        : formatMessage({ id: "app.garden.detail.metric.notAvailable" })}
+                      {formatReviewTime(medianReviewLatencyMs, formatMessage)}
                     </p>
                   </AdminCard>
                 </div>
@@ -251,9 +251,9 @@ export function OverviewTab({
             <AdminCard density="none" className={ACTIVITY_CARD_CLASS}>
               <AdminCardHeader className="flex-wrap gap-3">
                 <div>
-                  <h3 className="admin-section-title">
+                  <AdminCardTitle>
                     {formatMessage({ id: "app.garden.detail.activity.title" })}
-                  </h3>
+                  </AdminCardTitle>
                   <p className="mt-1 body-sm text-text-sub">
                     {formatMessage({ id: "app.garden.detail.activity.description" })}
                   </p>
@@ -338,7 +338,7 @@ export function OverviewTab({
                                 </p>
                               </div>
                               <span className="body-xs text-text-soft">
-                                {formatActivityTime(event.timestamp)}
+                                {formatEventTime(event.timestamp)}
                               </span>
                             </div>
                             {event.href ? (
@@ -394,9 +394,9 @@ export function OverviewTab({
 
             <AdminCard density="none">
               <AdminCardHeader>
-                <h3 className="admin-section-title admin-section-title--compact">
+                <AdminCardTitle>
                   {formatMessage({ id: "app.garden.detail.alerts.title" })}
-                </h3>
+                </AdminCardTitle>
               </AdminCardHeader>
               <AdminCardBody>
                 {overviewAlerts.length === 0 ? (
@@ -421,11 +421,11 @@ export function OverviewTab({
 
             <AdminCard density="none">
               <AdminCardHeader>
-                <h3 className="admin-section-title admin-section-title--compact">
+                <AdminCardTitle>
                   {isActivityMode
                     ? formatMessage({ id: "app.garden.detail.keyMetrics" })
                     : formatMessage({ id: "app.garden.detail.activity.title" })}
-                </h3>
+                </AdminCardTitle>
               </AdminCardHeader>
               <AdminCardBody className="space-y-2">
                 {isActivityMode ? (
@@ -470,7 +470,7 @@ export function OverviewTab({
                             {activityTitle}
                           </span>
                           <span className="shrink-0 garden-stat-row-value">
-                            {formatActivityTime(event.timestamp)}
+                            {formatEventTime(event.timestamp)}
                           </span>
                         </button>
                       );

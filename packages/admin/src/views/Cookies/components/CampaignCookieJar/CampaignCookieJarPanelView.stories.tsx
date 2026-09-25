@@ -1,9 +1,9 @@
 import type { Meta, StoryObj } from "@storybook/react";
-import { CampaignCookieJarPanelView } from "./CampaignCookieJarPanelView";
 import {
   campaignCookieJarPanelViewProps,
   campaignCookieJarStoryDecorators,
 } from "./CampaignCookieJar.stories.fixtures";
+import { CampaignCookieJarPanelView } from "./CampaignCookieJarPanelView";
 
 const meta: Meta<typeof CampaignCookieJarPanelView> = {
   title: "Admin/Workspaces/Cookies/CampaignCookieJar/PanelView",

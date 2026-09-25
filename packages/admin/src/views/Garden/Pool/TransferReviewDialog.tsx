@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { useIntl } from "react-intl";
 import { AdminConfirmDialog } from "@/components/AdminDialog";
 import { formatGdollar } from "./poolFundingPresentation";
@@ -11,6 +12,8 @@ export interface TransferReviewDialogProps {
   amount: bigint | null;
   /** Who receives it, as the steward knows them: a garden's name, or its account. */
   recipient: string;
+  /** The pool and record this disbursement belongs to, when opened from an inspector. */
+  target?: ReactNode;
   tone: "garden" | "hub" | "community";
   isLoading: boolean;
   onClose: () => void;
@@ -29,6 +32,7 @@ export function TransferReviewDialog({
   review,
   amount,
   recipient,
+  target,
   tone,
   isLoading,
   onClose,
@@ -53,17 +57,18 @@ export function TransferReviewDialog({
       return formatMessage(
         {
           id: "cockpit.garden.pool.settlement.review.retryBody",
-          defaultMessage: "Resend the same command for disbursement {id}.",
+          defaultMessage: "Resend the same command for disbursement {id}: {amount} to {recipient}.",
         },
-        { id }
+        { id, amount: formatGdollar(amount, locale), recipient }
       );
     }
     return formatMessage(
       {
         id: "cockpit.garden.pool.settlement.review.requeueBody",
-        defaultMessage: "Start a new attempt for failed disbursement {id}.",
+        defaultMessage:
+          "Start a new attempt for failed disbursement {id}: {amount} to {recipient}.",
       },
-      { id }
+      { id, amount: formatGdollar(amount, locale), recipient }
     );
   };
 
@@ -77,6 +82,7 @@ export function TransferReviewDialog({
         id: "cockpit.garden.pool.settlement.review.title",
         defaultMessage: "Review Before Sending",
       })}
+      target={target}
       description={body()}
       confirmLabel={formatMessage({
         id: "cockpit.garden.pool.settlement.review.confirm",

@@ -71,6 +71,7 @@ export function SeedFlowFooter({
               type="button"
               variant="filled"
               onClick={onSeed}
+              disabled={seedDisabled}
               className="w-full sm:w-auto"
             >
               {formatMessage({

@@ -4,6 +4,7 @@ import { RiArrowRightSLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
 import { Link } from "react-router-dom";
 import { AdminButton } from "@/components/AdminButton";
+import { AdminCardTitle } from "@/components/AdminCard";
 import { AdminCard, AdminCardBody, AdminCardHeader } from "../AdminCard";
 import { SeedlingIllustration } from "./SeedlingIllustration";
 
@@ -65,12 +66,12 @@ export function CanvasWorkspaceSelectionState({
       <AdminCard density="none" className="mx-auto max-w-3xl">
         <AdminCardHeader>
           <div>
-            <h2 className="label-md text-text-strong sm:text-lg">
+            <AdminCardTitle as="h2">
               {formatMessage({
                 id: "cockpit.workspace.chooseGardenTitle",
                 defaultMessage: "Choose a Garden",
               })}
-            </h2>
+            </AdminCardTitle>
             <p className="mt-1 text-sm text-text-sub">
               {formatMessage(
                 {
@@ -96,7 +97,7 @@ export function CanvasWorkspaceSelectionState({
                 key={garden.id}
                 type="button"
                 onClick={() => onSelectGarden(garden)}
-                className="flex items-center justify-between gap-3 rounded-xl border border-stroke-soft bg-bg-white px-4 py-3 text-left transition hover:bg-[rgb(var(--m3-on-surface)/0.08)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--tone-focus-ring,var(--m3-primary)))]"
+                className="flex items-center justify-between gap-3 rounded-xl border border-stroke-soft bg-bg-white px-4 py-3 text-left transition hover:bg-[rgb(var(--text-strong-950)/0.08)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--tone-focus-ring,var(--primary-base)))]"
                 aria-label={formatMessage(
                   {
                     id: "cockpit.workspace.openGarden",

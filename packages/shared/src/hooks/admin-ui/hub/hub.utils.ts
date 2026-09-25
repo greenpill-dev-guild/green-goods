@@ -46,8 +46,8 @@ export const HUB_CERTIFY_STATUS_CLASSNAME =
 
 export interface HubHeaderStatsInput {
   hasSelectedGarden: boolean;
-  overdueCount: number;
-  waitingCount: number;
+  /** Pending work submitted a week ago or earlier, before any search narrows the queue. */
+  waitingOverWeekCount: number;
   formatMessage: (
     descriptor: { id: string; defaultMessage?: string },
     values?: Record<string, string | number | boolean | Date | null | undefined>
@@ -56,39 +56,25 @@ export interface HubHeaderStatsInput {
 
 /**
  * Inline MetaStrip items for the Hub header. The stage tab rail already shows
- * queue *depth* per stage, so the header complements it with queue *aging* —
- * the pending work a steward should triage first — rather than re-stating the
- * same per-stage counts. Returns [] before a garden is selected so the slot
- * stays clean on the selection gate. Stat shape (2 items): overdue (pending
- * work older than 72h) · waiting (older than 24h). Both are unfiltered (search
- * never narrows them), so they stay stable while results filter.
+ * queue depth per stage, so the header adds how long work has waited: one
+ * plain-ink count of work waiting over a week. Age is metadata, never an alarm
+ * (DL-044), so the count takes no critical tone. Returns [] before a garden is
+ * selected so the slot stays clean on the selection gate.
  */
 export function buildHubHeaderStats({
   hasSelectedGarden,
-  overdueCount,
-  waitingCount,
+  waitingOverWeekCount,
   formatMessage,
 }: HubHeaderStatsInput): MetaStripItem[] {
   if (!hasSelectedGarden) return [];
 
   return [
     {
-      id: "overdue",
-      value: String(overdueCount),
-      // Overdue count reads in the error pair when anything is overdue
-      // (Cockpit M3 1a status line); zero stays quiet ink.
-      valueTone: overdueCount > 0 ? "critical" : undefined,
+      id: "waiting-over-week",
+      value: String(waitingOverWeekCount),
       label: formatMessage({
-        id: "cockpit.hub.stats.overdue",
-        defaultMessage: "overdue",
-      }),
-    },
-    {
-      id: "waiting",
-      value: String(waitingCount),
-      label: formatMessage({
-        id: "cockpit.hub.stats.waiting",
-        defaultMessage: "waiting",
+        id: "cockpit.hub.stats.waitingOverWeek",
+        defaultMessage: "waiting over a week",
       }),
     },
   ];

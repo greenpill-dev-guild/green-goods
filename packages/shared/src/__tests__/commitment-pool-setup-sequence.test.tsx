@@ -25,6 +25,10 @@ import { createTestQueryClient, renderHookWithProviders } from "./test-utils";
 
 const POOL_ID = 7n;
 
+it("keeps a missing sender retryable so a settings draft survives reconnection", () => {
+  expect(isRetriablePoolSetupFailure("no-sender")).toBe(true);
+});
+
 const mocks = await vi.hoisted(async () => ({
   capability: {
     deployment: "deployed",

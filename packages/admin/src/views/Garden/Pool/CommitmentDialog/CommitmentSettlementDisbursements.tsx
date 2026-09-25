@@ -2,7 +2,7 @@ import { StatusBadge } from "@green-goods/shared/components/StatusBadge";
 import { toastService } from "@green-goods/shared/components/Toast/toast.service";
 import type { CommitmentSettlementController } from "@green-goods/shared/hooks/admin-ui/pool/controller.types";
 import type { SettlementDisbursementView } from "@green-goods/shared/modules/commitment-pooling/settlement-workflow";
-import { useState } from "react";
+import { type ReactNode, useState } from "react";
 import { useIntl } from "react-intl";
 import { AdminButton } from "@/components/AdminButton";
 import { AdminReasonDialog } from "@/components/AdminReasonDialog";
@@ -23,9 +23,11 @@ type OpenDialog = { act: RowAct | "cancel"; disbursementId: bigint } | null;
 export function CommitmentSettlementDisbursements({
   settlement,
   tone,
+  target,
 }: {
   settlement: CommitmentSettlementController;
   tone: "garden" | "hub" | "community";
+  target?: ReactNode;
 }) {
   const intl = useIntl();
   const { formatMessage, locale } = intl;
@@ -134,7 +136,7 @@ export function CommitmentSettlementDisbursements({
           return (
             <li
               key={disbursement.disbursementId.toString()}
-              className="space-y-1 rounded-[var(--m3-shape-sm)] bg-[rgb(var(--m3-surface-container))] p-3"
+              className="space-y-1 rounded-[var(--m3-shape-sm)] bg-bg-soft p-3"
               data-disbursement={disbursement.disbursementId.toString()}
               data-display={view.display}
             >
@@ -171,6 +173,7 @@ export function CommitmentSettlementDisbursements({
         amount={openView?.disbursement.amount ?? null}
         recipient={openView ? who(openView.disbursement.recipient) : "—"}
         tone={tone}
+        target={target}
         isLoading={settlement.isActing}
         onClose={() => setOpen(null)}
         onConfirm={async () => {

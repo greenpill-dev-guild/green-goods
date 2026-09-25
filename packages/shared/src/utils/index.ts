@@ -349,14 +349,14 @@ export {
 export {
   aggregateBadges,
   DOMAIN_LABEL_IDS,
-  getMedian,
   getSeverityRank,
-  hoursSince,
   parseGardenDetailTab,
   parseGardenRange,
   RANGE_TO_MS,
+  summarizeReviewQueue,
   toMs,
 } from "./garden-detail";
+export type { ReviewQueueSummary, ReviewQueueWork } from "./garden-detail";
 export type {
   AdminCommunityRouteContext,
   AdminGardenRouteContext,

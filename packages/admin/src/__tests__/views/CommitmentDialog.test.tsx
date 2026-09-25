@@ -361,7 +361,9 @@ describe("CommitmentDialogPanel (W10)", () => {
       sendPhase: { status: "queued", key: "send-for-confirmation:9" },
     });
     renderPanel();
-    expect(screen.getByText("Queued on this device. It sends once it can.")).toBeInTheDocument();
+    expect(
+      screen.getByText("Queued on this device. Check its status before trying again.")
+    ).toBeInTheDocument();
   });
 
   it("shows the fallback banner and act only when the ordinary path is unreachable, naming the garden's authority", async () => {

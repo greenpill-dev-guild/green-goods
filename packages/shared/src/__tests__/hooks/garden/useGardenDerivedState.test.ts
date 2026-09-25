@@ -20,6 +20,7 @@ describe("useGardenDerivedState", () => {
     canAccessCommunity = true,
     allocations = [],
     vaultNetDeposited = 1n,
+    works,
   }: {
     domainMask?: number;
     openSection?: Parameters<typeof useGardenDerivedState>[0]["openSection"];
@@ -33,6 +34,7 @@ describe("useGardenDerivedState", () => {
       juiceboxAmount: bigint;
     }>;
     vaultNetDeposited?: bigint;
+    works?: Parameters<typeof useGardenDerivedState>[0]["works"];
   } = {}) {
     const now = Date.now();
 
@@ -44,7 +46,7 @@ describe("useGardenDerivedState", () => {
           name: "No Domain Garden",
           chainId: 11155111,
         },
-        works: [
+        works: works ?? [
           {
             id: "approved-work",
             title: "Recent approved work",
@@ -178,6 +180,38 @@ describe("useGardenDerivedState", () => {
     expect(
       permitted.result.current.activityEvents.find((event) => event.category === "community")?.href
     ).toContain("/community/payouts");
+  });
+
+  it("reads Critical only when review has stalled, and Needs Attention for work waiting a week", () => {
+    const daysAgo = (days: number) => Math.floor((Date.now() - days * 86_400_000) / 1000);
+    const waiting = [
+      { id: "old", status: "pending", createdAt: daysAgo(10) },
+      { id: "new", status: "pending", createdAt: daysAgo(1) },
+    ];
+    const stalled = renderDerivedState({
+      works: [
+        ...waiting,
+        { id: "done", status: "approved", createdAt: daysAgo(20), reviewedAt: daysAgo(9) },
+      ],
+    });
+    expect(stalled.result.current.gardenHealthSeverity).toBe("critical");
+    expect(stalled.result.current.tabBadges.work).toEqual({ severity: "critical", count: 2 });
+    expect(stalled.result.current.overviewAlerts[0]).toMatchObject({
+      key: "work-critical",
+      label: 'app.garden.detail.alert.workCritical {"count":2}',
+    });
+
+    const reviewing = renderDerivedState({
+      works: [
+        ...waiting,
+        { id: "done", status: "approved", createdAt: daysAgo(3), reviewedAt: daysAgo(2) },
+      ],
+    });
+    expect(reviewing.result.current.gardenHealthSeverity).toBe("warn");
+    expect(reviewing.result.current.overviewAlerts[0]).toMatchObject({
+      key: "work-warning",
+      label: 'app.garden.detail.alert.workWarning {"count":1}',
+    });
   });
 
   it("does not surface the domain recovery alert while domain state is unknown", () => {

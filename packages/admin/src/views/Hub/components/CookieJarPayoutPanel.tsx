@@ -7,7 +7,7 @@ import { compareAddresses } from "@green-goods/shared/utils/blockchain/address";
 import { RiCupLine } from "@remixicon/react";
 import { useEffect, useRef, useState } from "react";
 import { useIntl } from "react-intl";
-import { AdminCard, AdminCardBody, AdminCardHeader } from "@/components/AdminCard";
+import { AdminCard, AdminCardBody, AdminCardHeader, AdminCardTitle } from "@/components/AdminCard";
 import { CookieJarDepositModal } from "./CookieJarDepositModal";
 import { CookieJarPayoutCard, type JarSettingField } from "./CookieJarPayoutCard";
 import { CookieJarWithdrawModal } from "./CookieJarWithdrawModal";
@@ -140,12 +140,12 @@ export const CookieJarPayoutPanel: React.FC<CookieJarPayoutPanelProps> = ({
       <AdminCard density="none" className="overflow-hidden">
         <AdminCardHeader>
           <div>
-            <h3 className="label-md text-text-strong sm:text-title-md">
+            <AdminCardTitle>
               {formatMessage({
                 id: "app.cookieJar.payoutTitle",
                 defaultMessage: "Cookie Jars",
               })}
-            </h3>
+            </AdminCardTitle>
             <p className="mt-1 body-sm text-text-sub">
               {formatMessage({
                 id: "app.cookieJar.payoutDescription",

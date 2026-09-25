@@ -7,7 +7,7 @@ import { RiArrowRightSLine, RiFileList3Line } from "@remixicon/react";
 import { useIntl } from "react-intl";
 import { Link } from "react-router-dom";
 import { AdminButton } from "@/components/AdminButton";
-import { AdminCard, AdminCardBody, AdminCardHeader } from "@/components/AdminCard";
+import { AdminCard, AdminCardBody, AdminCardHeader, AdminCardTitle } from "@/components/AdminCard";
 import { GardenAssessmentsPanel } from "@/components/Garden/GardenAssessmentsPanel";
 import { GardenHypercertsPanel } from "@/components/Garden/GardenHypercertsPanel";
 import { SectionStateCard } from "./GardenDetailHelpers";
@@ -73,9 +73,9 @@ export function ImpactTab({
             <AdminCard density="none" className={`${IMPACT_HYPERCERT_CARD_CLASS} flex flex-col`}>
               <AdminCardHeader className="flex-wrap gap-3">
                 <div>
-                  <h3 className="admin-section-title">
+                  <AdminCardTitle>
                     {formatMessage({ id: "app.garden.detail.impact.hypercertHighlights" })}
-                  </h3>
+                  </AdminCardTitle>
                   <p className="mt-1 body-sm text-text-sub">
                     {formatMessage({
                       id: "app.garden.detail.impact.hypercertHighlightsDescription",
@@ -179,9 +179,9 @@ export function ImpactTab({
           <div className="garden-tab-rail-sticky">
             <AdminCard density="none">
               <AdminCardHeader className="flex-wrap gap-3">
-                <h3 className="admin-section-title admin-section-title--compact">
+                <AdminCardTitle>
                   {formatMessage({ id: "app.garden.admin.recentAssessments" })}
-                </h3>
+                </AdminCardTitle>
                 <AdminButton size="sm" variant="tonal" asChild>
                   <Link
                     to={adminRoutes.gardenImpact({ ...gardenRouteContext, section: "assessments" })}
@@ -245,9 +245,9 @@ export function ImpactTab({
 
             <AdminCard density="none">
               <AdminCardHeader>
-                <h3 className="admin-section-title admin-section-title--compact">
+                <AdminCardTitle>
                   {formatMessage({ id: "app.garden.detail.impactSummary" })}
-                </h3>
+                </AdminCardTitle>
               </AdminCardHeader>
               <AdminCardBody className="space-y-3">
                 <div className="space-y-2">

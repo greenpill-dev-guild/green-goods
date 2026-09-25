@@ -54,7 +54,8 @@ import {
   parseIndexerDomain,
 } from "../../modules/data/greengoods";
 import type { GraphQLReader } from "../../modules/data/graphql-client";
-import { Domain } from "../../types/domain";
+import { parseIndexerCapital } from "../../modules/data/indexer-capitals";
+import { Capital, Domain } from "../../types/domain";
 import { instructionTemplates } from "../../utils/action/templates";
 
 const reader = { query: mockQuery } as GraphQLReader;
@@ -240,6 +241,44 @@ describe("modules/data/greengoods", () => {
       expect(parseIndexerDomain("SOLAR")).toBe(Domain.SOLAR);
       expect(parseIndexerDomain("UNKNOWN")).toBeNull();
       expect(parseIndexerDomain(undefined)).toBeNull();
+    });
+
+    it.each([
+      ["MATERIAL", Capital.MATERIAL],
+      ["SOCIAL", Capital.SOCIAL],
+      [3, Capital.LIVING],
+      ["3", Capital.LIVING],
+      ["UNKNOWN", null],
+      ["toString", null],
+      [9, null],
+    ])("parses the indexer capital %j as %j", (value, expected) => {
+      expect(parseIndexerCapital(value)).toBe(expected);
+    });
+
+    it("keeps the known capitals the hosted indexer names and drops the rest", async () => {
+      mockQuery.mockResolvedValue({
+        data: {
+          Action: [
+            {
+              id: "42161-3",
+              chainId: 42161,
+              startTime: "1700000000",
+              endTime: "1800000000",
+              title: "Compost Drive",
+              slug: "waste.compost_drive",
+              instructions: null,
+              capitals: ["MATERIAL", "UNKNOWN", "SOCIAL"],
+              media: [],
+              domain: "WASTE",
+              createdAt: "1700000000",
+            },
+          ],
+        },
+      });
+
+      const [action] = await getActions(reader);
+
+      expect(action.capitals).toEqual([Capital.MATERIAL, Capital.SOCIAL]);
     });
 
     it("returns parsed action list on success", async () => {
