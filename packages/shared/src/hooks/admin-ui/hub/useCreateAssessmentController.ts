@@ -365,13 +365,30 @@ export function useCreateAssessmentController() {
       return;
     }
 
+    // Which domain an assessment may carry is the garden's to say, so Submit
+    // waits while its domains load or after their read failed.
+    if (normalizedGardenDomainMask === undefined) {
+      toastService.error({
+        title: formatMessage({
+          id: "app.assessment.domainsUnavailable",
+          defaultMessage: "Couldn't check the domain",
+        }),
+        message: formatMessage({
+          id: "app.assessment.domainsUnavailableMessage",
+          defaultMessage: "This garden's domains have not loaded yet. Try again in a moment.",
+        }),
+        context: "assessment submission",
+        suppressLogging: true,
+      });
+      return;
+    }
+
     // The domain step clears a domain this garden does not document, but a
     // restored draft can reopen on a later step and never show it. Such a
     // domain is cleared here, with its actions and metrics, and the steward
     // chooses again.
     if (
       form.domain !== null &&
-      normalizedGardenDomainMask !== undefined &&
       !expandDomainMask(normalizedGardenDomainMask).includes(form.domain)
     ) {
       setField("domain", null);

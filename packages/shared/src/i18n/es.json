@@ -773,6 +773,8 @@
   "app.assessment.confirmSubmit.title": "¿Enviar evaluación?",
   "app.assessment.continue": "Continuar",
   "app.assessment.couldNotSubmit": "No pudimos enviar la evaluación",
+  "app.assessment.domainsUnavailable": "No se pudo comprobar el dominio",
+  "app.assessment.domainsUnavailableMessage": "Los dominios de este jardín aún no se han cargado. Inténtalo de nuevo en un momento.",
   "app.assessment.draftPersistence.clearFailed.message": "La evaluación se envió correctamente, pero no se pudo eliminar el borrador local.",
   "app.assessment.draftPersistence.clearFailed.title": "Limpieza del borrador incompleta",
   "app.assessment.draftPersistence.saveFailed.message": "El envío de la evaluación continuará, pero no se pudo guardar tu borrador.",

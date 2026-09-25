@@ -11,6 +11,8 @@ import { useCreateAssessmentStore } from "../../../stores/useCreateAssessmentSto
 import { Domain } from "../../../types/domain";
 
 const GARDEN_ID = "0x1111111111111111111111111111111111111111";
+// The garden documents Agroforestry only (bit 1), unless a test unsets it.
+const domainsState = vi.hoisted(() => ({ data: 2 as number | undefined }));
 const mockStartCreation = vi.fn((_payload: unknown) => true);
 const mockSubmitCreation = vi.fn();
 const mockToastError = vi.fn();
@@ -40,9 +42,8 @@ vi.mock("../../../hooks/blockchain/useBaseLists", () => ({
   useGardens: () => ({ data: [] }),
 }));
 
-// The garden documents Agroforestry only.
 vi.mock("../../../hooks/garden/useGardenDomains", () => ({
-  useGardenDomains: () => ({ data: 1 << Domain.AGRO }),
+  useGardenDomains: () => ({ data: domainsState.data }),
 }));
 
 vi.mock("../../../hooks/garden/useGardenPermissions", () => ({
@@ -89,6 +90,7 @@ function renderController() {
 describe("useCreateAssessmentController submit", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    domainsState.data = 1 << Domain.AGRO;
     useCreateAssessmentStore.getState().reset();
   });
 
@@ -111,6 +113,23 @@ describe("useCreateAssessmentController submit", () => {
     expect(currentStep).toBe(0);
     expect(mockToastError).toHaveBeenCalledWith(
       expect.objectContaining({ title: "Incomplete form" })
+    );
+  });
+
+  it("waits for the garden's domains before submitting", async () => {
+    // The domains are still loading, or their read failed.
+    domainsState.data = undefined;
+    useCreateAssessmentStore.getState().setField("domain", Domain.AGRO);
+    const { result } = renderController();
+
+    await act(async () => {
+      await result.current.handleSubmit();
+    });
+
+    expect(mockStartCreation).not.toHaveBeenCalled();
+    expect(useCreateAssessmentStore.getState().form.domain).toBe(Domain.AGRO);
+    expect(mockToastError).toHaveBeenCalledWith(
+      expect.objectContaining({ title: "Couldn't check the domain" })
     );
   });
 

@@ -773,6 +773,8 @@
   "app.assessment.confirmSubmit.title": "Enviar avaliação?",
   "app.assessment.continue": "Continuar",
   "app.assessment.couldNotSubmit": "Não conseguimos enviar a avaliação",
+  "app.assessment.domainsUnavailable": "Não foi possível verificar o domínio",
+  "app.assessment.domainsUnavailableMessage": "Os domínios deste jardim ainda não carregaram. Tente novamente em instantes.",
   "app.assessment.draftPersistence.clearFailed.message": "A avaliação foi enviada com sucesso, mas o rascunho local não pôde ser removido.",
   "app.assessment.draftPersistence.clearFailed.title": "Limpeza de rascunho incompleta",
   "app.assessment.draftPersistence.saveFailed.message": "O envio da avaliação continuará, mas seu rascunho não pôde ser salvo.",

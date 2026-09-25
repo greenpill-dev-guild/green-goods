@@ -773,6 +773,8 @@
   "app.assessment.confirmSubmit.title": "Submit Assessment?",
   "app.assessment.continue": "Continue",
   "app.assessment.couldNotSubmit": "We could not submit the assessment",
+  "app.assessment.domainsUnavailable": "Couldn't check the domain",
+  "app.assessment.domainsUnavailableMessage": "This garden's domains have not loaded yet. Try again in a moment.",
   "app.assessment.draftPersistence.clearFailed.message": "Assessment submission succeeded, but the local draft could not be cleared.",
   "app.assessment.draftPersistence.clearFailed.title": "Draft cleanup incomplete",
   "app.assessment.draftPersistence.saveFailed.message": "Assessment submission will continue, but your draft could not be saved.",
