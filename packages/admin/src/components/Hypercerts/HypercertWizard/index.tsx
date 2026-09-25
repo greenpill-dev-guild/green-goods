@@ -44,7 +44,11 @@ export function HypercertWizard({
   // that match no loaded attestation still explain why Next did not advance.
   const needsAttestation = wizard.currentStep === 1 && wizard.selectedAttestations.length === 0;
   // Nothing to pick while attestations load or failed to load, so Next waits.
-  const attestationsUnavailable = wizard.currentStep === 1 && (wizard.isLoading || wizard.hasError);
+  // A failed refresh that keeps the loaded attestations leaves them usable.
+  const attestationsUnavailable =
+    wizard.currentStep === 1 &&
+    wizard.attestations.length === 0 &&
+    (wizard.isLoading || wizard.hasError);
   const validationMessage =
     nextTriedEmpty && needsAttestation
       ? formatMessage({ id: "app.hypercerts.wizard.validation.selectAttestation" })
