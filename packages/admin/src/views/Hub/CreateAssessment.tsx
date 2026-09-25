@@ -212,8 +212,7 @@ export default function CreateAssessment() {
         title={title}
         description={formatMessage({
           id: "cockpit.assessment.createDescription",
-          defaultMessage:
-            "Capture the context, strategy kernel, and harvest window for a new assessment.",
+          defaultMessage: "Describe the work, its goals, and the period it covers.",
         })}
         bodyClassName="flex min-h-0 flex-col !overflow-hidden"
       >
