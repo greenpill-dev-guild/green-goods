@@ -194,20 +194,21 @@ Garden; nothing was saved or sent):
   - Fund Cookie Jar (08:44Z): `view-actions.test.ts` (shared) failed (no disabled state or
     reason) and `AdminViewActions.test.tsx` failed (no title or description).
 - GREEN: the same files pass after each change; see the receipt for the final run.
+- After review (RED on the code before each fix): first round, `gardenSettingsSave` 2 and `GardenSettingsEditor` 1 failed (a Safe proposal read as Confirmed with an explorer link), `useGardenCookieJars` 4 failed (no signal that the jar list was read), and `vaults` 2 failed (an empty endowment read a bare "0").
 - Proof limit: the table tests for `summarizeNetDepositsByAsset`, `formatAssetAmounts`, and
   `buildGardenSettingsSaveRows`, and the Impact and Karma tests, were written with their code;
   the Karma test moved with its copy.
 
 ## Validation Receipt
 
-- Tested implementation commit SHA: `59ca04ac0668d059a7ae1e90d8ada505fb02d591` (the branch rebased onto `develop` after PR2 merged; the gate reused its package receipts from `3a49e1ed1`, the same tree on PR2's last tip)
-- Run at (UTC): push gate `2026-09-25T13:25:12Z` to `2026-09-25T13:26:06Z`
+- Tested implementation commit SHA: `2d1db069b34955fca577cf3a2df4d4fda4aa9513` (after the first review round, on `develop` with PR2 merged; the receipt on `59ca04ac0` is superseded)
+- Run at (UTC): push gate `2026-09-25T14:18:22Z` to `2026-09-25T14:21:29Z`
 - Exact command(s): `PATH="$PWD/node_modules/.bin:$PATH" node scripts/dev/ci-local.js --intent push --reuse-passing-receipts --test-path admin:src/components/Garden/GardenSettingsEditor.test.tsx`
-- Result: push gate exit 0 on the critical plan, 26 automated checks passed (shared 5801, client 1399, admin 1015, and agent 316 tests, whose receipts this run reused from the `3a49e1ed1` run on an identical tree, with docs-authority, source-structure, design-guardrails, agent-guidance, qa-id-ledger, supply-chain, story-quality, and agent-tools-test run fresh; the storybook-ci story suite passed locally on that tree, 93 files and 328 tests);
+- Result: push gate exit 0 on the critical plan, 26 automated checks passed (shared 5802, client 1399, admin 1018, and agent 316 tests passing, with docs-authority, source-structure, design-guardrails, agent-guidance, qa-id-ledger, supply-chain, story-quality, and agent-tools-test; the storybook-ci story suite passed locally, 93 files and 328 tests);
   browser-proof stays the manual proof recorded under Rendered Proof
 - Validated paths: `packages/shared/src`, `packages/admin/src`, `packages/qa/locales`, `scripts/data`, `scripts/quality`, `docs/docs`, `.claude/skills`, `DESIGN.md`
 - Worktree identity command and result: `git status --porcelain=v1 --untracked-files=all -- packages/shared/src packages/admin/src packages/qa/locales scripts/data scripts/quality docs/docs .claude/skills DESIGN.md` → empty
-- Evidence-only diff command and result (if applicable): `git diff --exit-code 59ca04ac0668d059a7ae1e90d8ada505fb02d591..HEAD -- packages/shared/src packages/admin/src packages/qa/locales scripts/data scripts/quality docs/docs .claude/skills DESIGN.md` → empty (exit 0); the receipt commit changes only `.plans/`
+- Evidence-only diff command and result (if applicable): `git diff --exit-code 2d1db069b34955fca577cf3a2df4d4fda4aa9513..HEAD -- packages/shared/src packages/admin/src packages/qa/locales scripts/data scripts/quality docs/docs .claude/skills DESIGN.md` → empty (exit 0); the receipt commit changes only `.plans/`
 - Evidence-only worktree-status command and result (if applicable): `git status --porcelain=v1 --untracked-files=all -- packages/shared/src packages/admin/src packages/qa/locales scripts/data scripts/quality docs/docs .claude/skills DESIGN.md` → empty
 
 ## Risks / Blockers
