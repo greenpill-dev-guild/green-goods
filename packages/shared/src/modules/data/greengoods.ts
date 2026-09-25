@@ -36,6 +36,18 @@ export function parseIndexerDomain(domain: string | undefined | null): Domain | 
   return map[domain] ?? null;
 }
 
+/**
+ * Maps an indexer capital to a known capital. The hosted indexer returns enum
+ * names ("MATERIAL"); fixtures and older deployments return numbers. Anything
+ * else, including the indexer's UNKNOWN sentinel, is null.
+ */
+export function parseIndexerCapital(value: unknown): Capital | null {
+  const index = typeof value === "string" && /^\d+$/.test(value) ? Number(value) : value;
+  // A numeric enum maps each name to its number and each number back to its name.
+  const capital = typeof index === "string" ? Capital[index as keyof typeof Capital] : index;
+  return typeof capital === "number" && Capital[capital] !== undefined ? capital : null;
+}
+
 function cloneInstructionConfig(config: ActionInstructionConfig): ActionInstructionConfig {
   return {
     description: config.description,
@@ -285,7 +297,9 @@ export async function getActions(reader: GraphQLReader = greenGoodsIndexer): Pro
             domain: parsedDomain,
             startTime: startTime ? Number(startTime) * 1000 : Date.now(),
             endTime: endTime ? Number(endTime) * 1000 : Date.now() + 365 * 24 * 60 * 60 * 1000, // Default to 1 year from now
-            capitals: Array.isArray(capitals) ? capitals.map((c: unknown) => c as Capital) : [],
+            capitals: Array.isArray(capitals)
+              ? capitals.map(parseIndexerCapital).filter((capital) => capital !== null)
+              : [],
             media: resolvedMedia,
             description: actionConfig.description,
             inputs: actionConfig.uiConfig.details.inputs as WorkInput[],
