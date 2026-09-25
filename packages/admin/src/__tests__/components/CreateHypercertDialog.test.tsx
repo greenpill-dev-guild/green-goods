@@ -160,6 +160,27 @@ describe("CreateHypercert dialog", () => {
     expect(screen.queryByText("app.hypercerts.create.notFound")).not.toBeInTheDocument();
   });
 
+  it("asks for an attestation only after Next is pressed with none selected", async () => {
+    await act(async () => {
+      renderCreateHypercert();
+      await Promise.resolve();
+    });
+
+    const next = await screen.findByRole("button", { name: "Next" });
+    expect(
+      screen.queryByText("app.hypercerts.wizard.validation.selectAttestation")
+    ).not.toBeInTheDocument();
+
+    fireEvent.click(next);
+
+    expect(
+      await screen.findByText("app.hypercerts.wizard.validation.selectAttestation")
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: "app.hypercerts.wizard.step.attestations.title" })
+    ).toBeInTheDocument();
+  });
+
   it("closes straight back to the Hub while the hypercert wizard is pristine", async () => {
     let router: ReturnType<typeof renderCreateHypercert> | undefined;
     await act(async () => {

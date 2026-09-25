@@ -17,7 +17,9 @@ export interface ConfidenceSelectorProps {
  * takes the surface's capsule, label, and 44px hit area (DL-031).
  *
  * When `disabled` (e.g., for rejections), defaults to None and disables interaction.
- * When `required` (e.g., for approvals), the user must select Low or higher.
+ * When `required` (e.g., for approvals), None is not a choice: nothing is
+ * selected until the reviewer picks Low or higher, the first chip holds the
+ * tab stop meanwhile, and the hint appears only for a chosen level.
  */
 export function ConfidenceSelector({
   value,
@@ -30,41 +32,42 @@ export function ConfidenceSelector({
   const groupId = useId();
 
   const CONFIDENCE_OPTIONS = useMemo(
-    () => [
-      {
-        value: Confidence.NONE,
-        label: formatMessage({ id: "app.form.confidence.none", defaultMessage: "None" }),
-        hint: formatMessage({
-          id: "app.form.confidence.none.hint",
-          defaultMessage: "No confidence in outcome",
-        }),
-      },
-      {
-        value: Confidence.LOW,
-        label: formatMessage({ id: "app.form.confidence.low", defaultMessage: "Low" }),
-        hint: formatMessage({
-          id: "app.form.confidence.low.hint",
-          defaultMessage: "Uncertain about accuracy",
-        }),
-      },
-      {
-        value: Confidence.MEDIUM,
-        label: formatMessage({ id: "app.form.confidence.medium", defaultMessage: "Medium" }),
-        hint: formatMessage({
-          id: "app.form.confidence.medium.hint",
-          defaultMessage: "Reasonably confident",
-        }),
-      },
-      {
-        value: Confidence.HIGH,
-        label: formatMessage({ id: "app.form.confidence.high", defaultMessage: "High" }),
-        hint: formatMessage({
-          id: "app.form.confidence.high.hint",
-          defaultMessage: "Very confident in outcome",
-        }),
-      },
-    ],
-    [formatMessage]
+    () =>
+      [
+        {
+          value: Confidence.NONE,
+          label: formatMessage({ id: "app.form.confidence.none", defaultMessage: "None" }),
+          hint: formatMessage({
+            id: "app.form.confidence.none.hint",
+            defaultMessage: "No confidence in outcome",
+          }),
+        },
+        {
+          value: Confidence.LOW,
+          label: formatMessage({ id: "app.form.confidence.low", defaultMessage: "Low" }),
+          hint: formatMessage({
+            id: "app.form.confidence.low.hint",
+            defaultMessage: "Uncertain about accuracy",
+          }),
+        },
+        {
+          value: Confidence.MEDIUM,
+          label: formatMessage({ id: "app.form.confidence.medium", defaultMessage: "Medium" }),
+          hint: formatMessage({
+            id: "app.form.confidence.medium.hint",
+            defaultMessage: "Reasonably confident",
+          }),
+        },
+        {
+          value: Confidence.HIGH,
+          label: formatMessage({ id: "app.form.confidence.high", defaultMessage: "High" }),
+          hint: formatMessage({
+            id: "app.form.confidence.high.hint",
+            defaultMessage: "Very confident in outcome",
+          }),
+        },
+      ].filter((option) => !required || option.value !== Confidence.NONE),
+    [formatMessage, required]
   );
 
   const handleKeyDown = useCallback(
@@ -94,6 +97,8 @@ export function ConfidenceSelector({
   );
 
   const selectedOption = CONFIDENCE_OPTIONS.find((o) => o.value === value);
+  // With nothing chosen, the first chip takes the group's tab stop.
+  const tabStopValue = selectedOption?.value ?? CONFIDENCE_OPTIONS[0]?.value;
 
   return (
     <div className={className}>
@@ -121,7 +126,7 @@ export function ConfidenceSelector({
                 { id: "app.form.confidence.ariaLabel", defaultMessage: "{level} confidence" },
                 { level: option.label }
               )}
-              tabIndex={isSelected ? 0 : -1}
+              tabIndex={option.value === tabStopValue ? 0 : -1}
               disabled={disabled}
               onClick={() => onChange(option.value)}
             >

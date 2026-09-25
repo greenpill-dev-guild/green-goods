@@ -3272,7 +3272,7 @@
   "app.work.detail.garden": "Jardim",
   "app.work.detail.gardener": "Jardineiro",
   "app.work.detail.gardenerNotes": "Notas do jardineiro",
-  "app.work.detail.hint.lowConfidence": "Selecione um nível de confiança para aprovar este trabalho.",
+  "app.work.detail.hint.lowConfidence": "Escolha um nível de confiança para aprovar.",
   "app.work.detail.hint.missingMethod": "Selecione pelo menos um método de verificação para aprovar.",
   "app.work.detail.loading": "Carregando trabalho...",
   "app.work.detail.loadingDescription": "Buscando detalhes do trabalho.",

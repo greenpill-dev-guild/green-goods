@@ -126,7 +126,7 @@ const messages = {
   "app.work.detail.confidenceLevel": "Confidence level",
   "app.work.detail.feedback": "Feedback",
   "app.work.detail.feedbackPlaceholder": "Add feedback for the gardener...",
-  "app.work.detail.hint.lowConfidence": "Select a confidence level to approve this work.",
+  "app.work.detail.hint.lowConfidence": "Choose a confidence level to approve.",
   "app.work.detail.stewardReview": "Steward Review",
   "app.work.detail.reject": "Reject",
   "app.work.detail.rejecting": "Rejecting...",
@@ -287,6 +287,19 @@ describe("ReviewForm", () => {
     fireEvent.click(screen.getByRole("button", { name: "Approve" }));
 
     await waitFor(() => expect(onSuccess).toHaveBeenCalledTimes(1));
+  });
+
+  it("explains a disabled Approve quietly, without a warning before any choice", () => {
+    renderReviewForm();
+
+    expect(screen.getByText("Choose a confidence level to approve.")).toBeInTheDocument();
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Approve" })).toBeDisabled();
+
+    fireEvent.click(screen.getByRole("button", { name: "Set medium confidence" }));
+
+    expect(screen.queryByText("Choose a confidence level to approve.")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Approve" })).toBeEnabled();
   });
 
   it("asks why before rejecting, starting from the feedback, and sends the reason as feedback", async () => {

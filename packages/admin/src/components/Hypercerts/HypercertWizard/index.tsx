@@ -9,6 +9,7 @@ import { useWizardData } from "@green-goods/shared/hooks/admin-ui/hypercerts/use
 import { useStepFocus } from "@green-goods/shared/hooks/utils/useStepFocus";
 import { TOTAL_UNITS } from "@green-goods/shared/lib/hypercerts/constants";
 import { logger } from "@green-goods/shared/modules/app/logger";
+import { useState } from "react";
 import { useIntl } from "react-intl";
 import { AdminButton } from "@/components/AdminButton";
 import { AdminConfirmDialog } from "@/components/AdminDialog";
@@ -36,8 +37,19 @@ export function HypercertWizard({
   const wizard = useWizardData({ gardenId, gardenName, onComplete });
   const stepRef = useStepFocus<HTMLDivElement>(wizard.currentStep);
   const mintDisabled = wizard.isSubmitting || wizard.selectedAttestations.length === 0;
+  // Step 1 explains itself only after Next is pressed with no work selected,
+  // so the steward is not warned before doing anything.
+  const [nextTriedEmpty, setNextTriedEmpty] = useState(false);
+  const needsAttestation = wizard.currentStep === 1 && wizard.selectedAttestations.length === 0;
   const validationMessage =
-    wizard.selectedAttestations.length === 0 ? wizard.validationMessage : undefined;
+    nextTriedEmpty && needsAttestation ? wizard.validationMessage : undefined;
+  const handleNext = () => {
+    if (needsAttestation) {
+      setNextTriedEmpty(true);
+      return;
+    }
+    wizard.nextStep();
+  };
   const isFirstStep = wizard.currentStep === 1;
   const isLastStep = wizard.currentStep === wizard.steps.length;
   const activeStep = wizard.steps[wizard.currentStep - 1];
@@ -190,8 +202,8 @@ export function HypercertWizard({
                 <AdminButton
                   type="button"
                   variant="filled"
-                  onClick={wizard.nextStep}
-                  disabled={wizard.nextDisabled || wizard.isSubmitting}
+                  onClick={handleNext}
+                  disabled={(wizard.nextDisabled && !needsAttestation) || wizard.isSubmitting}
                   className="w-full sm:w-auto"
                 >
                   {formatMessage({ id: "app.common.next", defaultMessage: "Next" })}

@@ -78,8 +78,8 @@ export function ReviewForm({
   });
 
   const confidence = watch("confidence");
-  const hasLowConfidenceHint = confidence < Confidence.LOW;
-  const hasApprovalValidationHints = hasLowConfidenceHint;
+  // Approve waits for a confidence level; nothing is chosen until the steward picks one.
+  const needsConfidence = confidence < Confidence.LOW;
 
   // Audio recording state
   const [reviewAudioFile, setReviewAudioFile] = useState<File | null>(null);
@@ -293,6 +293,11 @@ export function ReviewForm({
                       />
                     )}
                   />
+                  {needsConfidence ? (
+                    <p className="mt-1.5 text-xs text-text-soft" data-slot="approval-hint">
+                      {formatMessage({ id: "app.work.detail.hint.lowConfidence" })}
+                    </p>
+                  ) : null}
                 </div>
 
                 {/* Feedback textarea */}
@@ -376,23 +381,6 @@ export function ReviewForm({
                   </p>
                 </div>
 
-                {/* Validation hints — stable block above the decision row so
-                    the disabled Approve state is explained before the actions
-                    and the buttons never shift as hints resolve. */}
-                {hasApprovalValidationHints ? (
-                  <div
-                    className="space-y-1 rounded-md border border-warning-light bg-warning-lighter/60 p-3"
-                    data-slot="approval-hints"
-                    aria-live="polite"
-                  >
-                    {hasLowConfidenceHint && (
-                      <p className="text-xs text-warning-dark">
-                        {formatMessage({ id: "app.work.detail.hint.lowConfidence" })}
-                      </p>
-                    )}
-                  </div>
-                ) : null}
-
                 {/* Decision row — M3 button hierarchy: Reject reads clearly
                     destructive but secondary (outlined, error color role);
                     Approve is the filled primary and sits rightmost. */}
@@ -412,7 +400,7 @@ export function ReviewForm({
                     type="button"
                     variant="filled"
                     onClick={() => void handleApprovalSubmit(true)}
-                    disabled={isSubmitting || hasApprovalValidationHints}
+                    disabled={isSubmitting || needsConfidence}
                     loading={isSubmitting && submittingAction === "approve"}
                     data-action="approve"
                   >
