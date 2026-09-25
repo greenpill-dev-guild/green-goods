@@ -75,6 +75,7 @@ export function CommunityWorkspaceContent({ workspace }: CommunityWorkspaceConte
         garden={workspace.garden}
         canManage={workspace.canManage}
         closeMembersModal={workspace.closeMembersModal}
+        memberCount={workspace.memberCount}
         memberSearch={workspace.memberSearch}
         roleMembers={workspace.roleMembers}
         roleSummary={workspace.roleSummary}

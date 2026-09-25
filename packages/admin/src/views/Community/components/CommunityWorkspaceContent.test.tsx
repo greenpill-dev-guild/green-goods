@@ -69,6 +69,7 @@ const baseWorkspace = {
   handleSelectGarden: noop,
   hasVaults: false,
   isCreatingPools: false,
+  memberCount: 0,
   memberSearch: "",
   mode: "members",
   pools: [],

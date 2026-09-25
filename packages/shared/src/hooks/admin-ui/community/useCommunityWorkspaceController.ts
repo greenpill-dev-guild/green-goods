@@ -243,6 +243,7 @@ export function useCommunityWorkspaceController() {
     isSignalPoolRoute,
     isStrategiesRoute,
     vaultAction,
+    memberCount: derived.memberCount,
     memberSearch,
     mode,
     openMembersModal,

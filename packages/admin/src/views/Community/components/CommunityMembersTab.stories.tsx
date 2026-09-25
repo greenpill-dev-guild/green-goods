@@ -19,6 +19,7 @@ const meta = {
     garden: storyGarden,
     canManage: true,
     closeMembersModal: fn(),
+    memberCount: storyDirectory.length,
     memberSearch: "",
     roleMembers: storyRoleMembers,
     roleSummary: storyRoleSummary,
@@ -34,3 +35,19 @@ type Story = StoryObj<typeof meta>;
 
 export const Populated: Story = {};
 export const ReadOnly: Story = { args: { canManage: false } };
+
+/**
+ * The steward also evaluates: the filter counts two roles for one person, and
+ * the total counts people, so it still reads 2 (DL-049).
+ */
+export const PersonWithSeveralRoles: Story = {
+  args: {
+    memberCount: storyDirectory.length,
+    roleSummary: storyRoleSummary.map((entry) =>
+      entry.role === "evaluator" ? { ...entry, count: 1 } : entry
+    ),
+    visibleDirectory: storyDirectory.map((entry) =>
+      entry.roles.includes("steward") ? { ...entry, roles: ["steward", "evaluator"] } : entry
+    ),
+  },
+};

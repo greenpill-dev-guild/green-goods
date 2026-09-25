@@ -2021,7 +2021,7 @@
   "app.garden.review.timeSpent": "Time Spent",
   "app.garden.review.title": "Review Work",
   "app.garden.review.video": "Video",
-  "app.garden.roles.modal.description": "{count} members across all roles",
+  "app.garden.roles.modal.description": "{count, plural, one {# member} other {# members}}",
   "app.garden.roles.modal.title": "Manage Members",
   "app.garden.selectYourAction": "Select Your Action",
   "app.garden.selectYourGarden": "Select Your Garden",
