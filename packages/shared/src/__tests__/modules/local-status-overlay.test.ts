@@ -238,6 +238,32 @@ describe("local-status-overlay", () => {
       expect(rows[0]?.status).toBe("pending");
     });
 
+    it("keeps a local decision's feedback only while the decision shows", () => {
+      const decision = {
+        status: "rejected" as const,
+        reviewFeedback: "Wrong site",
+        _isPending: true,
+      };
+      const { rows } = resolveGardenWorkRows({
+        remote: [row("live", null), row("lapsed-pending", null), row("lapsed-unread")],
+        saved: undefined,
+        overlay: [
+          overlay({ id: "live", ...decision, _pendingUntilMs: NOW + 1_000 }),
+          overlay({ id: "lapsed-pending", ...decision, _pendingUntilMs: NOW - 1 }),
+          overlay({ id: "lapsed-unread", ...decision, _pendingUntilMs: NOW - 1 }),
+        ],
+        now: NOW,
+      });
+      const shown = Object.fromEntries(
+        rows.map((work) => [work.id, [work.status, work.reviewFeedback]])
+      );
+      expect(shown).toEqual({
+        live: ["rejected", "Wrong site"],
+        "lapsed-pending": ["pending", undefined],
+        "lapsed-unread": ["pending", undefined],
+      });
+    });
+
     it("keeps saved rows a partial read left out", () => {
       const { rows } = resolveGardenWorkRows({
         remote: [row("returned", null)],

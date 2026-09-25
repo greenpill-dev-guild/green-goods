@@ -203,10 +203,11 @@ export function resolveGardenWorkRows({
     const cached = known.get(work.id);
     if (indexedStatus === null && !cached) unknownIds.add(work.id);
     const reference = cached ?? (work as OverlayWork);
+    const status = resolveWorkStatus(indexedStatus, reference, now);
     return {
       ...work,
-      status: resolveWorkStatus(indexedStatus, reference, now),
-      ...reviewOf(remoteRow, reference),
+      status,
+      ...reviewOf(remoteRow, reference, status),
       ...carryOverlayMarkers(reference, indexedStatus, now),
     };
   });
@@ -216,12 +217,16 @@ export function resolveGardenWorkRows({
 /**
  * The indexed decision a row shows: when it was indexed and the feedback the
  * gardener reads, else what the row already carried. A decision made on this
- * device has neither until the indexer reports it.
+ * device has no indexed time until the indexer reports it, and a row that
+ * shows no decision, such as a local one that lapsed back to pending, carries
+ * no review at all.
  */
 function reviewOf(
   row: EASWorkListRow | undefined,
-  reference: OverlayWork
+  reference: OverlayWork,
+  status: WorkDisplayStatus
 ): Pick<OverlayWork, "reviewedAt" | "reviewFeedback"> {
+  if (status !== "approved" && status !== "rejected") return {};
   const reviewedAt = row?.approval ? row.approval.createdAt : reference.reviewedAt;
   const reviewFeedback = row?.approval ? row.approval.feedback?.trim() : reference.reviewFeedback;
   return {

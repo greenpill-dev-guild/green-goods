@@ -379,7 +379,8 @@ export const WorkViewSection: React.FC<WorkViewSectionProps> = ({
   // then the work's own description.
   const allDetails = useMemo(() => {
     const items = [...metadataDetails];
-    if (reviewFeedback) {
+    const decided = effectiveStatus === "approved" || effectiveStatus === "rejected";
+    if (reviewFeedback && decided) {
       items.unshift({
         label: intl.formatMessage({
           id: "app.home.work.reviewFeedback",
@@ -400,7 +401,7 @@ export const WorkViewSection: React.FC<WorkViewSectionProps> = ({
       });
     }
     return items;
-  }, [metadataDetails, reviewFeedback, workFeedback, intl]);
+  }, [metadataDetails, reviewFeedback, effectiveStatus, workFeedback, intl]);
 
   const isDetailsLoading = metadataStatus === "loading" || metadataStatus === "idle";
 

@@ -205,6 +205,18 @@ describe("WorkViewSection — all WorkDisplayStatus values (#405)", () => {
     expect(screen.getByText("Review feedback: Photos show a different site")).toBeInTheDocument();
   });
 
+  it("shows review feedback only on decided work", () => {
+    render(
+      createElement(WorkViewSection, {
+        ...baseProps,
+        work: { ...mockWork, reviewFeedback: "An expired reason" } as any,
+        viewingMode: "gardener",
+        effectiveStatus: "pending" as WorkDisplayStatus,
+      })
+    );
+    expect(screen.queryByText(/Review feedback/)).not.toBeInTheDocument();
+  });
+
   it("shows gardener-specific info for pending status", () => {
     render(
       createElement(WorkViewSection, {
