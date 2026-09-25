@@ -211,7 +211,10 @@ export function FabButton({ config, mobileFloating = false }: FabButtonProps) {
                   {formatMessage({ id: action.labelId })}
                   {reasonId && action.disabledReasonId ? (
                     <span id={reasonId} className="block text-xs font-normal text-text-sub">
-                      {formatMessage({ id: action.disabledReasonId })}
+                      {formatMessage({
+                        id: action.disabledReasonId,
+                        defaultMessage: action.disabledReason,
+                      })}
                     </span>
                   ) : null}
                 </span>
