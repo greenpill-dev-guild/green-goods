@@ -29,10 +29,21 @@ vi.mock("@green-goods/shared/utils/form/normalizers", async (importOriginal) => 
 });
 
 vi.mock("@/components/Features/Work", () => ({
-  WorkView: ({ title, info }: { title: string; info: string }) =>
+  WorkView: ({
+    title,
+    info,
+    details = [],
+  }: {
+    title: string;
+    info: string;
+    details?: { label: string; value: unknown }[];
+  }) =>
     createElement("div", { "data-testid": "work-view" }, [
       createElement("span", { key: "title", "data-testid": "work-title" }, title),
       createElement("span", { key: "info", "data-testid": "work-info" }, info),
+      ...details.map((detail) =>
+        createElement("p", { key: detail.label }, `${detail.label}: ${String(detail.value)}`)
+      ),
     ]),
   WorkViewSkeleton: () => createElement("div", { "data-testid": "skeleton" }),
 }));
@@ -176,6 +187,22 @@ describe("WorkViewSection — all WorkDisplayStatus values (#405)", () => {
       })
     );
     expect(screen.getByTestId("work-title")).toHaveTextContent("Work approved");
+  });
+
+  it("shows the review's feedback on a decided work", () => {
+    render(
+      createElement(WorkViewSection, {
+        ...baseProps,
+        work: {
+          ...mockWork,
+          status: "rejected",
+          reviewFeedback: "Photos show a different site",
+        } as any,
+        viewingMode: "gardener",
+        effectiveStatus: "rejected" as WorkDisplayStatus,
+      })
+    );
+    expect(screen.getByText("Review feedback: Photos show a different site")).toBeInTheDocument();
   });
 
   it("shows gardener-specific info for pending status", () => {

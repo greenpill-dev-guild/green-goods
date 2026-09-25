@@ -11,6 +11,7 @@ import {
   RiCheckDoubleFill,
   RiDownloadLine,
   RiExternalLinkLine,
+  RiFeedbackFill,
   RiFileFill,
   RiLeafFill,
   RiPencilFill,
@@ -193,7 +194,7 @@ export const WorkViewSection: React.FC<WorkViewSectionProps> = ({
   const queuedState = readQueuedWorkState(work.metadata);
   const { submissionState } = queuedState;
 
-  const { feedback: workFeedback, media } = work;
+  const { feedback: workFeedback, media, reviewFeedback } = work;
 
   const isOfflineStatus =
     effectiveStatus === "syncing" ||
@@ -374,9 +375,20 @@ export const WorkViewSection: React.FC<WorkViewSectionProps> = ({
     [workMetadata, metadataUnavailable, intl]
   );
 
-  // Add feedback to details if present
+  // The review's feedback leads, so a gardener reads why before the rest;
+  // then the work's own description.
   const allDetails = useMemo(() => {
     const items = [...metadataDetails];
+    if (reviewFeedback) {
+      items.unshift({
+        label: intl.formatMessage({
+          id: "app.home.work.reviewFeedback",
+          defaultMessage: "Review feedback",
+        }),
+        value: reviewFeedback,
+        icon: RiFeedbackFill,
+      });
+    }
     if (workFeedback) {
       items.push({
         label: intl.formatMessage({
@@ -388,7 +400,7 @@ export const WorkViewSection: React.FC<WorkViewSectionProps> = ({
       });
     }
     return items;
-  }, [metadataDetails, workFeedback, intl]);
+  }, [metadataDetails, reviewFeedback, workFeedback, intl]);
 
   const isDetailsLoading = metadataStatus === "loading" || metadataStatus === "idle";
 

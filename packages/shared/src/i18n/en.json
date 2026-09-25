@@ -2204,6 +2204,7 @@
   "app.home.work.metadataFallbackNotice": "We couldn't load all of this work's details. Some fields may be unavailable.",
   "app.home.work.metadataFallbackNotice.detail": "Details: {message}",
   "app.home.work.notApproved": "Not yet approved",
+  "app.home.work.reviewFeedback": "Review feedback",
   "app.home.work.notFound": "Work submission not found.",
   "app.home.work.loadError": "Couldn't load this work. Check your connection and try again.",
   "app.home.work.offlineInfo": "Saved on your device. Upload it here when you're connected.",

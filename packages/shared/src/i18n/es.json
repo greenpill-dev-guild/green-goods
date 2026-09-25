@@ -2204,6 +2204,7 @@
   "app.home.work.metadataFallbackNotice": "No pudimos cargar todos los detalles del trabajo desde el almacenamiento. Es posible que algunos campos no estén disponibles.",
   "app.home.work.metadataFallbackNotice.detail": "Detalles: {message}",
   "app.home.work.notApproved": "Aún no aprobado",
+  "app.home.work.reviewFeedback": "Comentarios de la revisión",
   "app.home.work.notFound": "Envío de trabajo no encontrado.",
   "app.home.work.loadError": "No se pudo cargar este trabajo. Comprueba tu conexión e inténtalo de nuevo.",
   "app.home.work.offlineInfo": "Guardado en tu dispositivo. Súbelo aquí cuando tengas conexión.",
