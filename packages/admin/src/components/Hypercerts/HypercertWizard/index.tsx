@@ -40,9 +40,13 @@ export function HypercertWizard({
   // Step 1 explains itself only after Next is pressed with no work selected,
   // so the steward is not warned before doing anything.
   const [nextTriedEmpty, setNextTriedEmpty] = useState(false);
+  // The gate and its message read the same resolved selection, so saved picks
+  // that match no loaded attestation still explain why Next did not advance.
   const needsAttestation = wizard.currentStep === 1 && wizard.selectedAttestations.length === 0;
   const validationMessage =
-    nextTriedEmpty && needsAttestation ? wizard.validationMessage : undefined;
+    nextTriedEmpty && needsAttestation
+      ? formatMessage({ id: "app.hypercerts.wizard.validation.selectAttestation" })
+      : undefined;
   const handleNext = () => {
     if (needsAttestation) {
       setNextTriedEmpty(true);

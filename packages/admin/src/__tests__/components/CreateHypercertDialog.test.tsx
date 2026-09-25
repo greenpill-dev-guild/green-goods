@@ -181,6 +181,23 @@ describe("CreateHypercert dialog", () => {
     ).toBeInTheDocument();
   });
 
+  it("asks for an attestation when a restored draft's picks no longer exist", async () => {
+    await act(async () => {
+      renderCreateHypercert();
+      await Promise.resolve();
+    });
+    const next = await screen.findByRole("button", { name: "Next" });
+    // A restored draft loads its picks after the wizard resets; picks that match
+    // no loaded attestation select nothing.
+    act(() => useHypercertWizardStore.setState({ selectedAttestationIds: ["0xattestation-gone"] }));
+
+    fireEvent.click(next);
+
+    expect(
+      await screen.findByText("app.hypercerts.wizard.validation.selectAttestation")
+    ).toBeInTheDocument();
+  });
+
   it("closes straight back to the Hub while the hypercert wizard is pristine", async () => {
     let router: ReturnType<typeof renderCreateHypercert> | undefined;
     await act(async () => {

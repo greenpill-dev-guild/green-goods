@@ -59,7 +59,8 @@ export function SubmissionDetails({
         <DetailRow
           icon={<RiTimeLine className="h-4 w-4" />}
           label={formatMessage({ id: "app.work.detail.submitted" })}
-          value={formatDateTime(work.createdAt)}
+          // Explicit, so the fallback without Temporal also drops seconds.
+          value={formatDateTime(work.createdAt, { dateStyle: "medium", timeStyle: "short" })}
         />
 
         {/* Metadata details (v2) */}
