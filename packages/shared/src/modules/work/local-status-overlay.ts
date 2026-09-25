@@ -170,6 +170,8 @@ export interface GardenWorkRows {
   rows: OverlayWork[];
   /** Rows whose review status is unknown: approvals unread, and nothing saved or decided here. */
   unknownIds: Set<string>;
+  /** Saved rows the latest read left out: kept on screen, with an earlier read's status. */
+  retainedIds: Set<string>;
 }
 
 /**
@@ -197,6 +199,11 @@ export function resolveGardenWorkRows({
     remote === undefined ? savedRows : reconcileIndexedWorkCollection(indexedRows, savedRows);
 
   const unknownIds = new Set<string>();
+  const retainedIds = new Set(
+    remote === undefined
+      ? []
+      : collection.filter((work) => !remoteById.has(work.id)).map((work) => work.id)
+  );
   const rows = collection.map((work): OverlayWork => {
     const remoteRow = remoteById.get(work.id);
     const indexedStatus = indexedStatusOf(remoteRow);
@@ -211,7 +218,7 @@ export function resolveGardenWorkRows({
       ...carryOverlayMarkers(reference, indexedStatus, now),
     };
   });
-  return { rows, unknownIds };
+  return { rows, unknownIds, retainedIds };
 }
 
 /**

@@ -491,6 +491,9 @@ describe("hooks/work/useWorks", () => {
     expect(mockGetWorkApprovalsForWorks).not.toHaveBeenCalled();
 
     expect(result.current.works).toEqual([reviewed, unrelated]);
+    // Rows the read left out keep an earlier read's status, so queue health
+    // must not treat them as current.
+    expect(result.current.hasUnknownStatuses).toBe(true);
   });
 
   it("retains the last authoritative work collection after the decision overlay expires", async () => {

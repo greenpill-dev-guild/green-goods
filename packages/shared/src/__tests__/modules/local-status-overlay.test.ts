@@ -264,8 +264,8 @@ describe("local-status-overlay", () => {
       });
     });
 
-    it("keeps saved rows a partial read left out", () => {
-      const { rows } = resolveGardenWorkRows({
+    it("keeps saved rows a partial read left out, and names them", () => {
+      const { rows, retainedIds } = resolveGardenWorkRows({
         remote: [row("returned", null)],
         saved: [overlay({ id: "missing", status: "approved" })],
         overlay: undefined,
@@ -275,6 +275,8 @@ describe("local-status-overlay", () => {
         ["missing", "approved"],
         ["returned", "pending"],
       ]);
+      // Their status comes from an earlier read, not this one.
+      expect([...retainedIds]).toEqual(["missing"]);
     });
 
     it("carries an indexed decision's time as its review time, never one made only here", () => {
