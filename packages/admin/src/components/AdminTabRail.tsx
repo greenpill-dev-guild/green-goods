@@ -4,8 +4,10 @@ import {
   type KeyboardEvent,
   type ReactNode,
   useCallback,
+  useEffect,
   useLayoutEffect,
   useRef,
+  useState,
 } from "react";
 import { useIntl } from "react-intl";
 
@@ -34,6 +36,17 @@ export interface AdminTabRailProps {
 // Component
 // ============================================================================
 
+/** Which edges of the rail clip tabs; admin-m3-components.css fades them. */
+type RailOverflow = "none" | "start" | "end" | "both";
+
+function railOverflow(rail: HTMLElement): RailOverflow {
+  const start = rail.scrollLeft > 1;
+  const end = rail.scrollLeft + rail.clientWidth < rail.scrollWidth - 1;
+  if (start && end) return "both";
+  if (start) return "start";
+  return end ? "end" : "none";
+}
+
 /**
  * AdminTabRail — underline tabs (Cockpit M3 1a).
  *
@@ -45,6 +58,8 @@ export interface AdminTabRailProps {
  *   weight 500 sub ink; hover darkens the text only (never a hue or bg shift).
  * - Count badge: 1px 8px pill, 12px/600. Active rides tone-primary-container /
  *   on-primary-container; inactive is the neutral chip pair.
+ * - Overflow: a rail wider than its box fades the edge that clips tabs and
+ *   snaps tabs as it scrolls, so it reads as scrollable (D18).
  */
 export function AdminTabRail({
   tabs,
@@ -58,6 +73,11 @@ export function AdminTabRail({
   const railRef = useRef<HTMLDivElement>(null);
   const tabRefs = useRef<Map<string, HTMLButtonElement>>(new Map());
   const enabledTabs = tabs.filter((tab) => !tab.disabled);
+  const [overflow, setOverflow] = useState<RailOverflow>("none");
+  const syncOverflow = useCallback(() => {
+    const rail = railRef.current;
+    if (rail) setOverflow(railOverflow(rail));
+  }, []);
 
   useLayoutEffect(() => {
     const rail = railRef.current;
@@ -71,7 +91,17 @@ export function AdminTabRail({
     } else if (activeRect.right > railRect.right) {
       rail.scrollLeft += activeRect.right - railRect.right;
     }
-  }, [activeId, tabs.length]);
+    syncOverflow();
+  }, [activeId, tabs.length, syncOverflow]);
+
+  // The rail's box changes with the viewport and its tabs with the locale.
+  useEffect(() => {
+    const rail = railRef.current;
+    if (!rail || typeof ResizeObserver === "undefined") return;
+    const observer = new ResizeObserver(syncOverflow);
+    observer.observe(rail);
+    return () => observer.disconnect();
+  }, [syncOverflow]);
 
   // Roving tabindex + WAI-ARIA tabs keyboard pattern
   // (https://www.w3.org/WAI/ARIA/apg/patterns/tabs/). Activation follows focus
@@ -117,6 +147,8 @@ export function AdminTabRail({
       data-component="AdminTabRail"
       role="tablist"
       aria-label={ariaLabel}
+      data-overflow={overflow}
+      onScroll={syncOverflow}
       className={cn(
         "flex w-full min-w-0 gap-1 overflow-x-auto",
         "border-b border-[color:rgb(var(--stroke-sub-300))]",
