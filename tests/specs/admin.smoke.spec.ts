@@ -228,10 +228,10 @@ test.describe("Admin Cockpit", () => {
     await page.goto(helper.buildMockAuthPath("/profile"));
     await helper.waitForPageLoad();
 
-    // Profile workspace renders an "Account" heading at the canvas root with
-    // Account/Settings as secondary navigation.
-    await expect(page.getByRole("heading", { name: "Account" })).toBeVisible({ timeout: 15000 });
-    await expect(page.getByRole("tab", { name: "Account" })).toHaveAttribute(
+    // Profile workspace renders a "Profile" heading at the canvas root with
+    // Profile/Settings as secondary navigation.
+    await expect(page.getByRole("heading", { name: "Profile" })).toBeVisible({ timeout: 15000 });
+    await expect(page.getByRole("tab", { name: "Profile" })).toHaveAttribute(
       "aria-selected",
       "true"
     );
@@ -244,8 +244,8 @@ test.describe("Admin Cockpit", () => {
     await expect(page.getByRole("heading", { name: "Theme" })).toBeVisible({ timeout: 15000 });
     await expect.poll(() => new URL(page.url()).searchParams.get("tab")).toBe("settings");
 
-    await page.getByRole("tab", { name: "Account" }).click();
-    await expect(page.getByRole("tab", { name: "Account" })).toHaveAttribute(
+    await page.getByRole("tab", { name: "Profile" }).click();
+    await expect(page.getByRole("tab", { name: "Profile" })).toHaveAttribute(
       "aria-selected",
       "true"
     );
