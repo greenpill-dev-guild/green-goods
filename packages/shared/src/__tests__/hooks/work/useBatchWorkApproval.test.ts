@@ -347,12 +347,22 @@ describe("useBatchWorkApproval", () => {
       await mutationPromise;
     });
 
-    it("keeps each decision's feedback on its work once the batch lands", async () => {
-      const [item] = createBatchItems(1, false);
-      item.draft.feedback = "  Photos show a different site  ";
+    it("gives each work its own decision's feedback once the batch lands", async () => {
+      const [rejected, silent] = createBatchItems(2, false);
+      rejected.draft.feedback = "  Photos show a different site  ";
+      silent.draft.feedback = "";
       const mergedKey = queryKeys.works.merged(TEST_GARDEN, TEST_CHAIN_ID);
       queryClient.setQueryData(mergedKey, [
-        createMockWork({ id: item.draft.workUID, gardenAddress: TEST_GARDEN, status: "pending" }),
+        createMockWork({
+          id: rejected.draft.workUID,
+          gardenAddress: TEST_GARDEN,
+          status: "pending",
+        }),
+        // A cached reason from an earlier decision must not outlive this one.
+        {
+          ...createMockWork({ id: silent.draft.workUID, gardenAddress: TEST_GARDEN }),
+          reviewFeedback: "An older reason",
+        },
       ]);
 
       const { result } = renderHook(() => useBatchWorkApproval(), {
@@ -360,12 +370,14 @@ describe("useBatchWorkApproval", () => {
       });
 
       await act(async () => {
-        await result.current.mutateAsync([item]);
+        await result.current.mutateAsync([rejected, silent]);
       });
 
-      const cached = queryClient.getQueryData<Work[]>(mergedKey)?.[0];
-      expect(cached?.status).toBe("rejected");
-      expect(cached?.reviewFeedback).toBe("Photos show a different site");
+      const [first, second] = queryClient.getQueryData<Work[]>(mergedKey) ?? [];
+      expect(first?.status).toBe("rejected");
+      expect(first?.reviewFeedback).toBe("Photos show a different site");
+      expect(second?.status).toBe("rejected");
+      expect(second?.reviewFeedback).toBeUndefined();
     });
   });
 

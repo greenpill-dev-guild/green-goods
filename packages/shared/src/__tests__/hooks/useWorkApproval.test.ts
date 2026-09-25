@@ -707,14 +707,25 @@ describe("hooks/work/useWorkApproval", () => {
         wrapper: createWrapper(),
       });
 
-      const work = createMockWork();
+      // A cached reason from an earlier decision must not outlive this one.
+      const work = { ...createMockWork({ status: "pending" }), reviewFeedback: "An older reason" };
       const draft = createMockWorkApprovalDraft({
+        actionUID: work.actionUID,
+        workUID: work.id,
         approved: true,
         feedback: "", // Empty feedback
       });
+      const mergedKey = queryKeys.works.merged(work.gardenAddress, 11155111);
+      queryClient.setQueryData(mergedKey, [work]);
 
       await act(async () => {
         await result.current.mutateAsync({ draft, work });
+      });
+
+      await waitFor(() => {
+        const cached = queryClient.getQueryData<OverlayWork[]>(mergedKey)?.[0];
+        expect(cached?.status).toBe("approved");
+        expect(cached?.reviewFeedback).toBeUndefined();
       });
 
       expect(submitApprovalDirectly).toHaveBeenCalledWith(

@@ -190,7 +190,7 @@ export function useBatchWorkApproval() {
       // survives indexer lag without outliving a transaction that never landed.
       for (const { draft, work } of items) {
         const confirmedStatus = draft.approved ? ("approved" as const) : ("rejected" as const);
-        const reviewFeedback = draft.feedback?.trim();
+        const reviewFeedback = draft.feedback?.trim() || undefined;
 
         const recordDecision = (old: OverlayWork[] = []): OverlayWork[] =>
           old.map((w) =>
@@ -201,7 +201,8 @@ export function useBatchWorkApproval() {
                   _isPending: false,
                   _txHash: result.hash,
                   _pendingUntilMs: overlayDeadline(),
-                  ...(reviewFeedback ? { reviewFeedback } : {}),
+                  // Replaces a cached reason even when this decision has none.
+                  reviewFeedback,
                 }
               : w
           );
