@@ -149,6 +149,24 @@ closed and open, tab rail, alert order); the Actions workspace; Community → Pa
 Green Goods Community Garden with the campaign card; the create flow's first step and Review.
 Label engine and session.
 
+Recorded 2026-09-25 (engine: headless Chromium through Playwright; session: mock-auth localhost,
+`?mockAuth=deployer`, the admin dev server on the branch reading the hosted indexer, Green Goods
+Community Garden; nothing was saved or sent). Before is PR3's head (`06cacf819`, develop once PR3
+merged), after is this branch; 1280 and 375 in light and dark, plus 360 in es and pt; the contact
+sheets went to Afo in the session on 2026-09-25.
+
+- Hub at 1280: the trio is outlined with Submit Work rightmost. At 375 the chip reads "Green Goods
+  Comm…" and ends before the refresh and bell, and the nav reads Community whole.
+- Garden Health at 375: Attention Needed leads above Garden Health; the FAB shows a gear and, open,
+  a close icon; the tab rail fades its clipped edge.
+- Nav at 360 in es and pt: Comunidad and Comunidade show whole; the chip ends before the bell.
+- Actions at 1280 and 375, light and dark: the fill, tab, and nav pill are purple.
+- Profile at 375: the page and its first tab read Profile.
+- `/cookies` lands on the Green Goods Community Garden's Payouts with Campaign Cookie Jars in view at
+  1280 and 375, after PageTransition learned to land on a `data-route-item` target (the first capture
+  showed the reset to the top). `/cookies/deploy` opens Create Cookie Jar on Campaign; three Nexts
+  reach Review, where Create stays disabled until the jar is complete.
+
 ## TDD Proof
 
 RED on the code before each change, then GREEN on the same command (2026-09-25; admin and shared
