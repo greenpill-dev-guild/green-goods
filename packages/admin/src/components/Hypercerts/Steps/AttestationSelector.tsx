@@ -295,23 +295,23 @@ export function AttestationSelector({
               }
               meta={
                 <>
-                  <span
-                    className={cn(
-                      "inline-flex shrink-0 items-center gap-1 rounded-full border px-2 py-0.5 body-sm",
-                      isBundled
-                        ? "border-warning-light bg-warning-lighter text-warning-dark"
-                        : isSelected
-                          ? "border-transparent bg-[rgb(var(--m3-secondary-container))] text-[rgb(var(--m3-on-secondary-container))]"
-                          : "border-stroke-sub text-text-sub"
-                    )}
-                  >
-                    {!isBundled && isSelected && <RiCheckboxCircleLine className="h-3.5 w-3.5" />}
-                    {isBundled
-                      ? formatMessage({ id: "app.hypercerts.attestations.bundledBadge" })
-                      : isSelected
-                        ? formatMessage({ id: "app.hypercerts.attestations.selectedBadge" })
-                        : formatMessage({ id: "app.hypercerts.attestations.select" })}
-                  </span>
+                  {/* Only a state earns a badge; an unselected card is just a card
+                      (a "Select" badge read as a second button). */}
+                  {isBundled || isSelected ? (
+                    <span
+                      className={cn(
+                        "inline-flex shrink-0 items-center gap-1 rounded-full border px-2 py-0.5 body-sm",
+                        isBundled
+                          ? "border-warning-light bg-warning-lighter text-warning-dark"
+                          : "border-transparent bg-[rgb(var(--m3-secondary-container))] text-[rgb(var(--m3-on-secondary-container))]"
+                      )}
+                    >
+                      {!isBundled && <RiCheckboxCircleLine className="h-3.5 w-3.5" />}
+                      {isBundled
+                        ? formatMessage({ id: "app.hypercerts.attestations.bundledBadge" })
+                        : formatMessage({ id: "app.hypercerts.attestations.selectedBadge" })}
+                    </span>
+                  ) : null}
                   {attestation.domain && (
                     <span className="rounded-full bg-bg-weak px-2 py-0.5 body-sm text-text-sub">
                       {formatMessage({ id: `app.hypercerts.domain.${attestation.domain}` })}

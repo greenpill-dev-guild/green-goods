@@ -93,12 +93,11 @@ export function HubCertificationQueue({
                   ? formatMessage({
                       id: "cockpit.hub.certify.queueDescription",
                       defaultMessage:
-                        "Open the certification inspector to validate the package before minting.",
+                        "Open an assessment to check it before it becomes a hypercert.",
                     })
                   : formatMessage({
                       id: "cockpit.hub.certify.readOnlyDescription",
-                      defaultMessage:
-                        "You can review the certification handoff here, but only garden owners or stewards can mint the hypercert.",
+                      defaultMessage: "Only garden owners and stewards can create the hypercert.",
                     })
               }
               meta={[
@@ -114,7 +113,7 @@ export function HubCertificationQueue({
                     })
                   : formatMessage({
                       id: "cockpit.hub.certify.readOnlyLabel",
-                      defaultMessage: "Read-only handoff",
+                      defaultMessage: "View only",
                     })
               }
               statusTone="certify"
