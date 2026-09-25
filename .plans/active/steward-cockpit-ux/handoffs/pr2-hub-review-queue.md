@@ -212,23 +212,22 @@ Garden):
   a stall), `AssessmentDomainContextStep` 1 failed (a restored retired domain raised no message),
   `CreateHypercertDialog` 1 failed (stale restored picks blocked Next silently), and the old stamp
   pattern took 1,258 ms on 50,000 spaces against the new test's 250 ms bound. Second round: `useWorks`
-  2 failed (no signal that an approval read failed).
+  2 failed (no signal that an approval read failed). Third round: the cached-status `useWorks` test failed (a failed read of a cached row left the flag false), `AssessmentDomainContextStep` 2 failed (a single-domain garden came preselected; an undocumented restored domain stayed), and `CreateHypercertDialog` 1 failed (Next stayed pressable while attestations loaded).
 - Proof limit: none. Tests that only moved with the new behaviour (header stats, derived state,
   Overview, Hub card, Hub detail, attestation selector, assessment steps and dialog, hypercert
   wizard) are updated or added beside them.
 
 ## Validation Receipt
 
-- Tested implementation commit SHA: `97f88017725f0c68d9d7a72594b2e4912ef38b56` (after both rounds of review fixes; the receipts on
-  `ecfccdda7` and `ff2bb49a5` are superseded)
-- Run at (UTC): push gate `2026-09-25T08:53:33Z` to `2026-09-25T08:57:59Z`
-- Exact command(s): `PATH="$PWD/node_modules/.bin:$PATH" node scripts/dev/ci-local.js --intent push --reuse-passing-receipts --test-path shared:src/__tests__/hooks/work/useWorks.test.ts`;
-  targeted `bun run --filter @green-goods/shared test -- src/__tests__/hooks/work/useWorks.test.ts src/__tests__/hooks/garden/useGardenDerivedState.test.ts src/__tests__/utils/garden-detail.test.ts`
-- Result: push gate exit 0 on the critical plan, 27 automated checks passed (shared 5773, client 1397, admin 985, and agent 316 tests passing, with source-structure, design-guardrails, ontology, agent-guidance, qa-id-ledger, supply-chain, story-quality, and agent-tools-test); targeted
-  shared 47 passed (3 files); browser-proof stays the manual proof recorded under Rendered Proof
+- Tested implementation commit SHA: `6298d269ac54d87361e66e2d66b0f1bda0ccdddc` (after every review round so far; the receipts on
+  `ecfccdda7`, `ff2bb49a5`, and `97f880177` are superseded)
+- Run at (UTC): push gate `2026-09-25T09:20:39Z` to `2026-09-25T09:24:38Z`
+- Exact command(s): `PATH="$PWD/node_modules/.bin:$PATH" node scripts/dev/ci-local.js --intent push --reuse-passing-receipts --test-path shared:src/__tests__/hooks/work/useWorks.test.ts`
+- Result: push gate exit 0 on the critical plan, 27 automated checks passed (shared 5773, client 1397, admin 988, and agent 316 tests passing, with source-structure, design-guardrails, ontology, agent-guidance, qa-id-ledger, supply-chain, story-quality, and agent-tools-test);
+  browser-proof stays the manual proof recorded under Rendered Proof
 - Validated paths: `packages/shared/src`, `packages/admin/src`, `packages/qa/locales`, `scripts/data`, `scripts/quality`, `docs/docs`, `.claude/skills`, `DESIGN.md`
 - Worktree identity command and result: `git status --porcelain=v1 --untracked-files=all -- packages/shared/src packages/admin/src packages/qa/locales scripts/data scripts/quality docs/docs .claude/skills DESIGN.md` → empty
-- Evidence-only diff command and result (if applicable): `git diff --exit-code 97f88017725f0c68d9d7a72594b2e4912ef38b56..HEAD -- packages/shared/src packages/admin/src packages/qa/locales scripts/data scripts/quality docs/docs .claude/skills DESIGN.md` → empty (exit 0); the receipt commit changes only `.plans/`
+- Evidence-only diff command and result (if applicable): `git diff --exit-code 6298d269ac54d87361e66e2d66b0f1bda0ccdddc..HEAD -- packages/shared/src packages/admin/src packages/qa/locales scripts/data scripts/quality docs/docs .claude/skills DESIGN.md` → empty (exit 0); the receipt commit changes only `.plans/`
 - Evidence-only worktree-status command and result (if applicable): `git status --porcelain=v1 --untracked-files=all -- packages/shared/src packages/admin/src packages/qa/locales scripts/data scripts/quality docs/docs .claude/skills DESIGN.md` → empty
 
 ## Risks / Blockers
