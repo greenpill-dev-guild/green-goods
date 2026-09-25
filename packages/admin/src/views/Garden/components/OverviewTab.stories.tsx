@@ -103,8 +103,45 @@ export const Healthy: Story = {};
 export const WithAlerts: Story = {
   args: {
     overviewAlerts: [
-      { key: "pending-work", severity: "warn", label: "5 pending work items", onAction: fn() },
+      {
+        key: "work-warning",
+        severity: "warn",
+        label: "2 works have waited over a week.",
+        onAction: fn(),
+      },
       { key: "vault-paused", severity: "critical", label: "USDC vault paused", onAction: fn() },
+    ],
+  },
+};
+
+/** Critical only when review has stalled: work waited a week and no review landed in the last one. */
+export const StalledQueue: Story = {
+  args: {
+    gardenHealthLabel: "Critical",
+    medianReviewLatencyMs: 23 * 24 * 60 * 60 * 1000,
+    overviewAlerts: [
+      {
+        key: "work-critical",
+        severity: "critical",
+        label: "No reviews in 7 days, and 5 works are waiting.",
+        onAction: fn(),
+      },
+    ],
+  },
+};
+
+/** Work waiting over a week while reviews still land reads Needs attention, not Critical. */
+export const WorkWaitingOverAWeek: Story = {
+  args: {
+    gardenHealthLabel: "Needs attention",
+    medianReviewLatencyMs: 3 * 24 * 60 * 60 * 1000,
+    overviewAlerts: [
+      {
+        key: "work-warning",
+        severity: "warn",
+        label: "1 work has waited over a week.",
+        onAction: fn(),
+      },
     ],
   },
 };
