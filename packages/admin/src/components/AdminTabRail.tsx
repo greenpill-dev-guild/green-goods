@@ -59,7 +59,8 @@ function railOverflow(rail: HTMLElement): RailOverflow {
  * - Count badge: 1px 8px pill, 12px/600. Active rides tone-primary-container /
  *   on-primary-container; inactive is the neutral chip pair.
  * - Overflow: a rail wider than its box fades the edge that clips tabs and
- *   snaps tabs as it scrolls, so it reads as scrollable (D18).
+ *   snaps tabs as it scrolls, so it reads as scrollable (D18). A selected tab
+ *   lands clear of the fades.
  */
 export function AdminTabRail({
   tabs,
@@ -79,17 +80,35 @@ export function AdminTabRail({
     if (rail) setOverflow(railOverflow(rail));
   }, []);
 
+  // The rail's scroll padding reserves its edge fades, and the rail snaps every
+  // scroll, a programmatic one included, to a tab start just past the start
+  // fade (admin-m3-components.css). So a selected tab under a fade moves to the
+  // first tab start that clears it; any other offset would snap elsewhere.
   useLayoutEffect(() => {
     const rail = railRef.current;
     const activeTab = tabRefs.current.get(activeId);
     if (!rail || !activeTab) return;
 
     const railRect = rail.getBoundingClientRect();
+    const railStyle = getComputedStyle(rail);
+    const clearStart = railRect.left + (Number.parseFloat(railStyle.scrollPaddingLeft) || 0);
+    const clearEnd = railRect.right - (Number.parseFloat(railStyle.scrollPaddingRight) || 0);
     const activeRect = activeTab.getBoundingClientRect();
-    if (activeRect.left < railRect.left) {
-      rail.scrollLeft -= railRect.left - activeRect.left;
-    } else if (activeRect.right > railRect.right) {
-      rail.scrollLeft += activeRect.right - railRect.right;
+    const ownSnap = activeRect.left - clearStart;
+    if (ownSnap < 0) {
+      rail.scrollLeft += ownSnap;
+    } else if (activeRect.right > clearEnd) {
+      const needed = activeRect.right - clearEnd;
+      let snap = ownSnap;
+      for (const tab of rail.querySelectorAll<HTMLElement>('[role="tab"]')) {
+        if (tab === activeTab) break;
+        const tabSnap = tab.getBoundingClientRect().left - clearStart;
+        if (tabSnap >= needed) {
+          snap = tabSnap;
+          break;
+        }
+      }
+      rail.scrollLeft += snap;
     }
     syncOverflow();
   }, [activeId, tabs.length, syncOverflow]);

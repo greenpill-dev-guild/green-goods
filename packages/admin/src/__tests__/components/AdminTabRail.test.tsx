@@ -35,14 +35,27 @@ function mockNarrowRailGeometry() {
   });
 }
 
-function StatefulRail() {
+/** Lays tabs out at fixed content offsets in a rail, moved by its scroll. */
+function mockScrollingRailGeometry(railWidth: number, offsets: Record<string, [number, number]>) {
+  return vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockImplementation(function (
+    this: HTMLElement
+  ) {
+    if (this.getAttribute("role") === "tablist") return rect(0, railWidth);
+    const scroll = this.closest<HTMLElement>('[role="tablist"]')?.scrollLeft ?? 0;
+    const name = Object.keys(offsets).find((label) => this.textContent?.includes(label));
+    const [left, right] = name ? offsets[name] : [0, 0];
+    return rect(left - scroll, right - scroll);
+  });
+}
+
+function StatefulRail({ railTabs = tabs }: { railTabs?: typeof tabs }) {
   const [activeId, setActiveId] = useState("overview");
   return (
     <AdminTabRail
       ariaLabel="Pool sections"
       activeId={activeId}
       onChange={setActiveId}
-      tabs={tabs}
+      tabs={railTabs}
     />
   );
 }
@@ -116,7 +129,8 @@ describe("AdminTabRail", () => {
       </IntlProvider>
     );
 
-    expect(screen.getByRole("tablist")).toHaveProperty("scrollLeft", 100);
+    // No earlier tab start clears Community, so it lands on its own.
+    expect(screen.getByRole("tablist")).toHaveProperty("scrollLeft", 120);
   });
 
   it("scrolls on selection changes and keeps keyboard activation and focus", () => {
@@ -134,11 +148,45 @@ describe("AdminTabRail", () => {
 
     fireEvent.click(screen.getByRole("tab", { name: "Community" }));
     expect(screen.getByRole("tab", { name: "Community" })).toHaveAttribute("aria-selected", "true");
-    expect(screen.getByRole("tablist")).toHaveProperty("scrollLeft", 100);
+    expect(screen.getByRole("tablist")).toHaveProperty("scrollLeft", 120);
 
     fireEvent.keyDown(screen.getByRole("tab", { name: "Community" }), { key: "Home" });
     expect(screen.getByRole("tab", { name: "Overview" })).toHaveAttribute("aria-selected", "true");
     expect(screen.getByRole("tab", { name: "Overview" })).toHaveFocus();
+  });
+
+  it("lands a selected tab clear of the edge fades, on a tab's snap position", () => {
+    // Five tabs need 340px in a 200px rail, so it scrolls up to 140px.
+    mockScrollingRailGeometry(200, {
+      Overview: [0, 92],
+      Impact: [96, 150],
+      Community: [154, 214],
+      Payouts: [218, 280],
+      Vault: [284, 340],
+    });
+    render(
+      <IntlProvider locale="en" messages={{}}>
+        <StatefulRail
+          railTabs={[...tabs, { id: "payouts", label: "Payouts" }, { id: "vault", label: "Vault" }]}
+        />
+      </IntlProvider>
+    );
+    const rail = screen.getByRole("tablist");
+    // admin-m3-components.css pads the rail's scrollport by its 40px fades.
+    rail.style.scrollPaddingLeft = "40px";
+    rail.style.scrollPaddingRight = "40px";
+
+    // Community runs under the end fade. The rail snaps to tab starts, so it
+    // lands on the first one that clears it: Impact's, 40px in, which ends
+    // Community at 158, clear of the fade at 160.
+    fireEvent.click(screen.getByRole("tab", { name: "Community" }));
+    expect(rail.scrollLeft).toBe(56);
+
+    // Swiped on to 120px, Impact starts under the start fade and lands on its
+    // own snap position, 40px in.
+    rail.scrollLeft = 120;
+    fireEvent.click(screen.getByRole("tab", { name: "Impact" }));
+    expect(rail.scrollLeft).toBe(56);
   });
 
   it("fades the clipped edge when a tab widens without the rail resizing (a new locale's labels)", () => {
