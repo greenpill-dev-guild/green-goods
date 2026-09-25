@@ -4,7 +4,7 @@ import type {
 } from "@green-goods/shared/components/Canvas/NavigationBar";
 import { useCanvasMobileChromeHidden } from "@green-goods/shared/components/Canvas/useCanvasMobileChromeHidden";
 import { cn } from "@green-goods/shared/utils/styles/cn";
-import { type CSSProperties, useEffect, useMemo, useState } from "react";
+import { type CSSProperties, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useIntl } from "react-intl";
 import { FabButton } from "./FabButton";
 
@@ -127,6 +127,26 @@ export function NavigationBar({ slots, activePath, onNavigate, fab }: Navigation
     [visibleSlots]
   );
   const hideMobileChrome = useCanvasMobileChromeHidden();
+  const showMobileNav = !isDesktop && mobileSlots.length > 1 && !hideMobileChrome;
+
+  // A large text size can wrap the phone bar's labels and make the bar taller
+  // than its 80px, so the floating FAB sits above the bar's measured height
+  // rather than a fixed offset.
+  const mobileNavRef = useRef<HTMLElement>(null);
+  const [mobileNavHeight, setMobileNavHeight] = useState(0);
+  useLayoutEffect(() => {
+    const nav = mobileNavRef.current;
+    if (!showMobileNav || !nav) {
+      setMobileNavHeight(0);
+      return;
+    }
+    const measure = () => setMobileNavHeight(nav.getBoundingClientRect().height);
+    measure();
+    if (typeof ResizeObserver === "undefined") return;
+    const observer = new ResizeObserver(measure);
+    observer.observe(nav);
+    return () => observer.disconnect();
+  }, [showMobileNav]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -180,7 +200,12 @@ export function NavigationBar({ slots, activePath, onNavigate, fab }: Navigation
         // desktop puts inline header actions in the page header instead.
         <div
           className="pointer-events-none fixed inset-x-0 z-nav px-4"
-          style={{ bottom: "calc(env(safe-area-inset-bottom) + 5.5rem)" }}
+          style={{
+            bottom:
+              mobileNavHeight > 0
+                ? `calc(${mobileNavHeight}px + 0.375rem)`
+                : "calc(env(safe-area-inset-bottom) + 5.5rem)",
+          }}
           data-component="NavigationBar"
           data-slot="mobile-fab-layer"
         >
@@ -217,8 +242,9 @@ export function NavigationBar({ slots, activePath, onNavigate, fab }: Navigation
         </nav>
       )}
 
-      {!isDesktop && mobileSlots.length > 1 && !hideMobileChrome && (
+      {showMobileNav && (
         <nav
+          ref={mobileNavRef}
           aria-label={navLabel}
           data-component="NavigationBar"
           data-slot="mobile"
