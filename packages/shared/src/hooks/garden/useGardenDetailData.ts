@@ -120,6 +120,7 @@ export function useGardenDetailData(id: string | undefined) {
     isLoading: worksLoading,
     isFetching: worksFetching,
     isError: isWorksError,
+    isPaused: isWorksPaused,
     error: worksError,
     refetch: refreshWorks,
     hasOlderWork,
@@ -186,9 +187,10 @@ export function useGardenDetailData(id: string | undefined) {
     allocations,
     allocationsLoading,
     works,
-    // The list holds only the newest page, and a row whose approval could not
-    // be read shows a fallback status: either way it cannot prove a stall.
-    worksComplete: !hasOlderWork && !hasUnknownStatuses,
+    // The list holds only the newest page, a row whose approval could not be
+    // read shows a cached or fallback status, and a failed or paused refresh
+    // leaves the last rows read: none of these can prove a stall.
+    worksComplete: !hasOlderWork && !hasUnknownStatuses && !isWorksError && !isWorksPaused,
     worksLoading,
     worksFetching,
     isWorksError,
