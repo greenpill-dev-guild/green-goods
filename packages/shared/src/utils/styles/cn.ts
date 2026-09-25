@@ -46,10 +46,27 @@ const FONT_SIZE_UTILITIES = [
   "doc-paragraph",
 ];
 
+/**
+ * The admin's named type classes (`packages/admin/src/styles/admin-type.css`).
+ * Each sets a font size, so a raw size and a named class on one element resolve
+ * to the last one: a shared `text-sm` default overridden with `className="body-xs"`
+ * renders 12px instead of keeping both and losing the override in the cascade.
+ */
+const NAMED_TYPE_CLASSES = [
+  "label-md",
+  "label-sm",
+  "label-xs",
+  "body-md",
+  "body-sm",
+  "body-xs",
+  "subheading-sm",
+  "subheading-xs",
+];
+
 const twMerge = extendTailwindMerge({
   extend: {
     classGroups: {
-      "font-size": [{ text: FONT_SIZE_UTILITIES }],
+      "font-size": [{ text: FONT_SIZE_UTILITIES }, ...NAMED_TYPE_CLASSES],
     },
   },
 });
