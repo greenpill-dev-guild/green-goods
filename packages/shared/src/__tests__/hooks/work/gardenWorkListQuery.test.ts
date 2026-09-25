@@ -1,12 +1,12 @@
-import { QueryClient } from "@tanstack/react-query";
 import { describe, expect, it } from "vitest";
 import { STALE_TIMES } from "../../../config/react-query";
 import { gardenWorkListQuery, SESSION_STARTED_AT } from "../../../hooks/work/gardenWorkListQuery";
+import { createTestQueryClient } from "../../test-utils/query-client";
 
 const GARDEN = "0x1111111111111111111111111111111111111111";
 
 function staleTimeFor(dataUpdatedAt: number) {
-  const { staleTime } = gardenWorkListQuery(new QueryClient(), GARDEN, 11155111);
+  const { staleTime } = gardenWorkListQuery(createTestQueryClient(), GARDEN, 11155111);
   const query = { state: { dataUpdatedAt } } as Parameters<typeof staleTime>[0];
   return staleTime(query);
 }
