@@ -123,6 +123,7 @@ export function useGardenDetailData(id: string | undefined) {
     error: worksError,
     refetch: refreshWorks,
     hasOlderWork,
+    hasUnknownStatuses,
   } = useWorks(gardenId);
   const { hypercerts, isLoading: hypercertsLoading } = useHypercerts({ gardenId: id });
 
@@ -185,8 +186,9 @@ export function useGardenDetailData(id: string | undefined) {
     allocations,
     allocationsLoading,
     works,
-    // The list holds the newest page; older submissions are not in `works`.
-    worksComplete: !hasOlderWork,
+    // The list holds only the newest page, and a row whose approval could not
+    // be read shows a fallback status: either way it cannot prove a stall.
+    worksComplete: !hasOlderWork && !hasUnknownStatuses,
     worksLoading,
     worksFetching,
     isWorksError,

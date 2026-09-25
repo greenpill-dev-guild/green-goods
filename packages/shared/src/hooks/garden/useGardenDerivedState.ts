@@ -48,7 +48,7 @@ interface DerivedStateInput {
     createdAt: number;
     reviewedAt?: number;
   }>;
-  /** False when `works` is only the newest page of the garden's submissions. */
+  /** False when `works` may miss a true status: only the newest page, or unread approvals. */
   worksComplete?: boolean;
   assessments: Array<{
     id: string;

@@ -347,6 +347,7 @@ describe("hooks/work/useWorks", () => {
     expect(statusMap.get("w1")).toBe("approved");
     expect(statusMap.get("w2")).toBe("rejected");
     expect(statusMap.get("w3")).toBe("pending");
+    expect(result.current.hasUnknownStatuses).toBe(false);
   });
 
   it("handles approval fetch failure gracefully", async () => {
@@ -376,6 +377,8 @@ describe("hooks/work/useWorks", () => {
     });
     // Should still return works even if approvals fail
     expect(result.current.works[0].status).toBe("pending");
+    // That pending is a fallback, and the hook says so: queue health must not read it as settled.
+    expect(result.current.hasUnknownStatuses).toBe(true);
   });
 
   it("marks work as rejected when approval.approved is false", async () => {
