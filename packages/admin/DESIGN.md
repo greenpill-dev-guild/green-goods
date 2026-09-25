@@ -82,7 +82,7 @@ CSS Grid with named areas:
 └──────────────────────────────────────────┘
 ```
 
-- **Overlays:** every workspace action and detail/inspection flow is a centered `AdminDialog` (the old side-sheet renderers are deleted). Creation flows and inspectors keep the left-inspector channel: views publish a descriptor through `useLeftSheetConfig`, and `LeftInspectorDialog` renders it as an `AdminDialog` carrying the workspace tone. The three global AppBar surfaces (profile/settings/notifications) route through the right-sheet registry into the `AdminSideSheet` inspector — right-docked within the canvas chrome bounds on desktop, bottom sheet on mobile. Profile and settings are separate sheet contents on desktop; the tabbed account surface (Account | Settings) is reserved for the mobile account route.
+- **Overlays:** every workspace action and detail/inspection flow is a centered `AdminDialog` (the old side-sheet renderers are deleted). Creation flows and inspectors keep the left-inspector channel: views publish a descriptor through `useLeftSheetConfig`, and `LeftInspectorDialog` renders it as an `AdminDialog` carrying the workspace tone. The three global AppBar surfaces (profile/settings/notifications) route through the right-sheet registry into the `AdminSideSheet` inspector — right-docked within the canvas chrome bounds on desktop, bottom sheet on mobile. Profile and settings are separate sheet contents on desktop; the tabbed account surface (Profile | Settings) is reserved for the mobile account route.
 - **MainSheet recession:** retired — the canvas stays at rest; depth comes from the dialog's own scrim (the `isReceded` prop is no longer passed).
 
 ---
