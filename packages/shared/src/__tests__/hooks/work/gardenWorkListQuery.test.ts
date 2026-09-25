@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { STALE_TIMES } from "../../../config/react-query";
-import { gardenWorkListQuery, SESSION_STARTED_AT } from "../../../hooks/work/gardenWorkListQuery";
+import { gardenWorkListQuery, workSessionStartedAt } from "../../../hooks/work/gardenWorkListQuery";
 import { createTestQueryClient } from "../../test-utils/query-client";
 
 const GARDEN = "0x1111111111111111111111111111111111111111";
@@ -15,7 +15,8 @@ describe("gardenWorkListQuery", () => {
   it("reads a garden again when its rows were restored from an earlier session", () => {
     // Restored a moment before this session began, the rows are still within
     // the usual stale window, yet only a read in this session can prove a stall.
-    expect(staleTimeFor(SESSION_STARTED_AT - 1)).toBe(0);
-    expect(staleTimeFor(SESSION_STARTED_AT + 1)).toBe(STALE_TIMES.works);
+    const sessionStart = workSessionStartedAt();
+    expect(staleTimeFor(sessionStart - 1)).toBe(0);
+    expect(staleTimeFor(sessionStart + 1)).toBe(STALE_TIMES.works);
   });
 });

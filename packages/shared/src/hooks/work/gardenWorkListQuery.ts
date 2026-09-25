@@ -5,8 +5,17 @@ import { readWorkList, WORK_LIST_PAGE_SIZE } from "../../modules/work/work-list"
 import type { EASWorkListRow } from "../../types/eas-responses";
 import { reportConnectivityFailure } from "../app/useOnlineStatus";
 
-/** When this app session began: rows read before it were restored from storage. */
-export const SESSION_STARTED_AT = Date.now();
+let sessionStartedAt: number | undefined;
+
+/**
+ * When this app session first read garden work: rows read before it were
+ * restored from storage. Taken at first use rather than at module load, so a
+ * clock installed after load, such as Storybook's frozen one, agrees with it.
+ */
+export function workSessionStartedAt(): number {
+  sessionStartedAt ??= Date.now();
+  return sessionStartedAt;
+}
 
 /**
  * The query every screen uses to read a garden's work list. The garden Work
@@ -42,7 +51,7 @@ export function gardenWorkListQuery(queryClient: QueryClient, gardenId: string, 
     // so a screen that opens on them reads the garden again: queue health can
     // prove a stall only from a read in this session.
     staleTime: (query: Query<EASWorkListRow[]>) =>
-      query.state.dataUpdatedAt < SESSION_STARTED_AT ? 0 : STALE_TIMES.works,
+      query.state.dataUpdatedAt < workSessionStartedAt() ? 0 : STALE_TIMES.works,
     gcTime: GC_TIMES.works,
   };
 }

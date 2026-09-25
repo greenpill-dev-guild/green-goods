@@ -16,7 +16,7 @@ import { extractClientWorkId } from "../../utils/work/deduplication";
 import { useOnlineStatus } from "../app/useOnlineStatus";
 import { usePrimaryAddress } from "../auth/usePrimaryAddress";
 import { useLiveQuery } from "../utils/useLiveQuery";
-import { gardenWorkListQuery, SESSION_STARTED_AT } from "./gardenWorkListQuery";
+import { gardenWorkListQuery, workSessionStartedAt } from "./gardenWorkListQuery";
 import { useQueuedWorkPreviews } from "./useQueuedWorkPreviews";
 import { useSendingWorkIds } from "./useSendingWorkIds";
 
@@ -319,7 +319,7 @@ export function useWorks(gardenId: string, options: UseWorksOptions = {}) {
      * Whether this session has read the garden's rows. Until then they are a
      * copy restored from an earlier session, however old.
      */
-    readThisSession: online.dataUpdatedAt >= SESSION_STARTED_AT,
+    readThisSession: online.dataUpdatedAt >= workSessionStartedAt(),
     /** Widen the window by one page and read it; a no-op offline. */
     loadOlderWork,
     isLoadingOlder: online.isFetching && take > WORK_LIST_PAGE_SIZE,
