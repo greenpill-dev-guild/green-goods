@@ -1,7 +1,7 @@
 import type { FabAction, FabConfig } from "@green-goods/shared/components/Canvas/NavigationBar";
 import { cn } from "@green-goods/shared/utils/styles/cn";
 import { RiAddLine } from "@remixicon/react";
-import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { useIntl } from "react-intl";
 
 // ----------------------------------------------------------------------------
@@ -30,10 +30,6 @@ export function FabButton({ config, mobileFloating = false }: FabButtonProps) {
   const reasonIdBase = useId();
   const speedDialShadow = "var(--admin-speed-dial-shadow, var(--m3-elevation-2))";
   const isSingleAction = config.actions.length <= 1;
-  const enabledSpeedDialActions = useMemo(
-    () => config.actions.filter((action) => !action.disabled),
-    [config.actions]
-  );
   // Multi-action FABs present a neutral "+" opener (rotates to "×" on open), not
   // any one action's glyph — so the collapsed button reads as "open the menu",
   // never as a duplicate of the primary action inside the dial. Single-action
@@ -45,12 +41,19 @@ export function FabButton({ config, mobileFloating = false }: FabButtonProps) {
       : config.label;
 
   const handleClick = useCallback(() => {
-    if (isSingleAction && config.actions[0]) {
-      config.onAction(config.actions[0].id);
-    } else {
+    if (!isSingleAction) {
       setSpeedDialOpen((prev) => !prev);
+      return;
     }
+    // A disabled sole action fires nothing; the FAB says why instead.
+    const sole = config.actions[0];
+    if (sole && !sole.disabled) config.onAction(sole.id);
   }, [isSingleAction, config]);
+  const sole = isSingleAction ? config.actions[0] : undefined;
+  const soleReason =
+    sole?.disabled && sole.disabledReasonId
+      ? formatMessage({ id: sole.disabledReasonId, defaultMessage: sole.disabledReason })
+      : null;
 
   const closeSpeedDial = useCallback(() => {
     setSpeedDialOpen(false);
@@ -123,11 +126,11 @@ export function FabButton({ config, mobileFloating = false }: FabButtonProps) {
   useEffect(() => {
     if (!speedDialOpen || isSingleAction) return;
 
-    const firstEnabledAction = enabledSpeedDialActions[0];
-    if (!firstEnabledAction) return;
-
-    focusSpeedDialAction(firstEnabledAction.id);
-  }, [enabledSpeedDialActions, focusSpeedDialAction, isSingleAction, speedDialOpen]);
+    // With every action disabled, focus still lands in the dial, so a keyboard
+    // reaches the reasons.
+    const first = config.actions.find((action) => !action.disabled) ?? config.actions[0];
+    if (first) focusSpeedDialAction(first.id);
+  }, [config.actions, focusSpeedDialAction, isSingleAction, speedDialOpen]);
 
   return (
     <div
@@ -257,10 +260,13 @@ export function FabButton({ config, mobileFloating = false }: FabButtonProps) {
         // Explicit false while collapsed: a menu control that drops the
         // attribute reads as non-expandable.
         aria-expanded={isSingleAction ? undefined : speedDialOpen}
+        aria-disabled={sole?.disabled || undefined}
+        aria-describedby={soleReason ? `${reasonIdBase}-fab` : undefined}
         data-slot="fab-button"
         data-state={speedDialOpen ? "open" : "closed"}
         className={cn(
           "flex cursor-pointer items-center justify-center rounded-full",
+          "aria-disabled:cursor-not-allowed aria-disabled:opacity-55",
           mobileFloating ? "h-14 gap-2 px-5" : "h-12 w-12",
           "bg-[rgb(var(--tone-action,var(--primary-action)))] text-[rgb(var(--tone-on-action,var(--primary-action-foreground)))]",
           "shadow-[var(--admin-chrome-shadow)]",
@@ -275,8 +281,21 @@ export function FabButton({ config, mobileFloating = false }: FabButtonProps) {
           )}
         />
         {mobileFloating && isSingleAction && (
-          <span className="text-body-md font-semibold">{floatingActionLabel}</span>
+          <span className="text-left text-body-md font-semibold">
+            {floatingActionLabel}
+            {/* Touch has no hover, so a disabled sole action says why in place. */}
+            {soleReason ? (
+              <span id={`${reasonIdBase}-fab`} className="block text-body-sm font-normal">
+                {soleReason}
+              </span>
+            ) : null}
+          </span>
         )}
+        {!mobileFloating && soleReason ? (
+          <span id={`${reasonIdBase}-fab`} className="sr-only">
+            {soleReason}
+          </span>
+        ) : null}
       </button>
 
       {/* Dismiss backdrop when speed dial is open */}

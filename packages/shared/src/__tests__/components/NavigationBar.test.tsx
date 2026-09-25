@@ -442,6 +442,87 @@ describe("NavigationBar", () => {
     expect(onAction).toHaveBeenCalledWith("submit-work");
   });
 
+  it("focuses the first action when every action is disabled, and fires none", async () => {
+    setDesktopViewport(false);
+    const onAction = vi.fn();
+    const fab: FabConfig = {
+      icon: StubIcon,
+      label: "Actions",
+      actions: [
+        {
+          id: "submit-work",
+          icon: StubIcon,
+          label: "Submit Work",
+          labelId: "actions.submit",
+          disabled: true,
+          disabledReasonId: "actions.disabledReason",
+          disabledReason: "Nothing to fund yet.",
+        },
+        {
+          id: "disabled-action",
+          icon: StubIcon,
+          label: "Disabled action",
+          labelId: "actions.disabled",
+          disabled: true,
+        },
+      ],
+      onAction,
+    };
+
+    render(
+      <NavigationBar
+        slots={createSlots()}
+        activePath="/dashboard"
+        onNavigate={() => {}}
+        fab={fab}
+      />
+    );
+    await user.click(screen.getByRole("button", { name: /open actions/i }));
+
+    const first = screen.getByRole("menuitem", { name: /submit work/i });
+    expect(first).toHaveFocus();
+    // The inert look rides inline style, which no consumer's CSS scan can drop.
+    expect(first).toHaveStyle({ opacity: "0.55" });
+    await user.click(first);
+    expect(onAction).not.toHaveBeenCalled();
+  });
+
+  it("keeps a disabled sole action inert and says why", async () => {
+    setDesktopViewport(false);
+    const onAction = vi.fn();
+    const fab: FabConfig = {
+      icon: StubIcon,
+      label: "Actions",
+      actions: [
+        {
+          id: "submit-work",
+          icon: StubIcon,
+          label: "Submit Work",
+          labelId: "actions.submit",
+          disabled: true,
+          disabledReasonId: "actions.disabledReason",
+          disabledReason: "Nothing to fund yet.",
+        },
+      ],
+      onAction,
+    };
+
+    render(
+      <NavigationBar
+        slots={createSlots()}
+        activePath="/dashboard"
+        onNavigate={() => {}}
+        fab={fab}
+      />
+    );
+
+    const sole = screen.getByRole("button", { name: /submit work/i });
+    expect(sole).toHaveAttribute("aria-disabled", "true");
+    expect(sole).toHaveAccessibleDescription("Nothing to fund yet.");
+    await user.click(sole);
+    expect(onAction).not.toHaveBeenCalled();
+  });
+
   it("moves focus into the opened FAB launcher and restores it on Escape", async () => {
     setDesktopViewport(false);
     const onAction = vi.fn();

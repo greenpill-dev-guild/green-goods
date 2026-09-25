@@ -63,4 +63,78 @@ describe("FabButton", () => {
     await user.click(fund);
     expect(onAction).not.toHaveBeenCalled();
   });
+
+  it("focuses the first action when every action is disabled", async () => {
+    const user = userEvent.setup();
+    const onAction = vi.fn();
+    render(
+      <IntlProvider locale="en" messages={enMessages}>
+        <FabButton
+          config={{
+            icon: RiUserAddLine,
+            label: "Community actions",
+            actions: [
+              {
+                id: "fund-payout-jar",
+                icon: RiHandCoinLine,
+                label: "Fund Cookie Jar",
+                labelId: "cockpit.community.action.fundPayoutJar",
+                disabled: true,
+                disabledReasonId: "cockpit.community.action.fundPayoutJarNoJar",
+                disabledReason: "This garden has no payout jar yet.",
+              },
+              {
+                id: "add-member",
+                icon: RiUserAddLine,
+                label: "Add Member",
+                labelId: "cockpit.community.action.addMember",
+                disabled: true,
+              },
+            ],
+            onAction,
+          }}
+          mobileFloating
+        />
+      </IntlProvider>
+    );
+
+    await user.click(screen.getByRole("button", { name: "Open Actions" }));
+    expect(screen.getByRole("menuitem", { name: "Fund Cookie Jar" })).toHaveFocus();
+  });
+
+  it("keeps a disabled sole action inert and says why", async () => {
+    const user = userEvent.setup();
+    const onAction = vi.fn();
+    render(
+      <IntlProvider locale="en" messages={enMessages}>
+        <FabButton
+          config={{
+            icon: RiHandCoinLine,
+            label: "Community actions",
+            actions: [
+              {
+                id: "fund-payout-jar",
+                icon: RiHandCoinLine,
+                label: "Fund Cookie Jar",
+                labelId: "cockpit.community.action.fundPayoutJar",
+                disabled: true,
+                disabledReasonId: "cockpit.community.action.fundPayoutJarNoJar",
+                disabledReason: "This garden has no payout jar yet.",
+              },
+            ],
+            onAction,
+          }}
+          mobileFloating
+        />
+      </IntlProvider>
+    );
+
+    const sole = screen.getByRole("button", { name: "Fund Cookie Jar" });
+    expect(sole).toHaveAttribute("aria-disabled", "true");
+    expect(sole).toHaveAccessibleDescription("This garden has no payout jar yet.");
+    // Touch has no hover, so the pill says why in place.
+    expect(within(sole).getByText("This garden has no payout jar yet.")).toBeInTheDocument();
+    await user.click(sole);
+    expect(onAction).not.toHaveBeenCalled();
+  });
 });
