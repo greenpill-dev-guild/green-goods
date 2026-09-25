@@ -64,11 +64,35 @@ export function resolveKnownWorkTitle({
   return undefined;
 }
 
-/** A generated timestamp at the end of a title; older submissions appended one or two. */
-const TRAILING_GENERATED_TIMESTAMP_RE =
-  /(?:^|\s+)[-–—]\s+\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z$/;
+/** A generated timestamp, as older submissions appended it, once or twice. */
+const GENERATED_TIMESTAMP_RE = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z$/;
+/** The dashes a generated timestamp follows, each as a word of its own. */
+const STAMP_DASHES = new Set(["-", "–", "—"]);
 /** The name `resolveWorkSubmissionTitle` gives work whose action it could not find. */
 const GENERATED_ACTION_NAME_RE = /^Action \d+$/;
+
+const isSpace = (char: string) => char.trim() === "";
+
+/** The last whitespace-separated word of `text`, and everything before it. */
+function lastWord(text: string): { word: string; before: string } {
+  let end = text.length;
+  while (end > 0 && isSpace(text[end - 1])) end--;
+  let start = end;
+  while (start > 0 && !isSpace(text[start - 1])) start--;
+  return { word: text.slice(start, end), before: text.slice(0, start) };
+}
+
+/**
+ * `title` without one trailing "- <timestamp>", or null when it ends in none.
+ * Read word by word from the end, so a long run of spaces costs one pass.
+ */
+function withoutTrailingStamp(title: string): string | null {
+  const stamp = lastWord(title);
+  if (!GENERATED_TIMESTAMP_RE.test(stamp.word)) return null;
+  const dash = lastWord(stamp.before);
+  if (!STAMP_DASHES.has(dash.word)) return null;
+  return dash.before.trim();
+}
 
 /**
  * The title to show for a work: every generated timestamp stripped, and
@@ -77,8 +101,9 @@ const GENERATED_ACTION_NAME_RE = /^Action \d+$/;
  */
 export function toWorkDisplayTitle(title: string | null | undefined, fallback: string): string {
   let display = title?.trim() ?? "";
-  while (TRAILING_GENERATED_TIMESTAMP_RE.test(display)) {
-    display = display.replace(TRAILING_GENERATED_TIMESTAMP_RE, "").trim();
+  for (let stripped = withoutTrailingStamp(display); stripped !== null; ) {
+    display = stripped;
+    stripped = withoutTrailingStamp(display);
   }
   const generated =
     !display || isPlaceholderWorkTitle(display) || GENERATED_ACTION_NAME_RE.test(display);

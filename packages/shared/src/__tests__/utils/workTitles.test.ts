@@ -95,4 +95,12 @@ describe("work title utilities", () => {
   ])("displays a title with %s", (_case, title, expected) => {
     expect(toWorkDisplayTitle(title, "Untitled Work")).toBe(expected);
   });
+
+  it("reads a title with a long run of spaces in one pass", () => {
+    const title = `Survey${" ".repeat(50_000)}- north plot`;
+    const started = performance.now();
+    expect(toWorkDisplayTitle(title, "Untitled Work")).toBe(title);
+    // A backtracking pattern takes seconds here; the word scan takes a few milliseconds.
+    expect(performance.now() - started).toBeLessThan(250);
+  });
 });
