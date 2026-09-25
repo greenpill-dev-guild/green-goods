@@ -5020,9 +5020,9 @@
         "Open /hub/work",
         "Open a pending submission",
         "Inspect evidence media",
-        "Choose confidence and enter feedback",
+        "Choose a confidence level (none is chosen at first) and enter feedback",
         "Verify Approve and Reject are visible in the pinned dialog action region without scrolling",
-        "Reject or approve",
+        "Approve, or press Reject and give a reason in the Reject Work dialog",
         "Confirm the queue updates"
       ],
       "expected": "The complete decision path works and commit/cancel actions are never hidden inside a clipped scrolling region",
@@ -5253,7 +5253,7 @@
         "A garden with approved work attestations and an assessment"
       ],
       "steps": [
-        "Open /hub/certify, open the assessment, and press Open Mint Flow",
+        "Open /hub/certify, open the assessment, and press Create Hypercert",
         "Select attestations, fill the metadata, and set the distribution",
         "Press Mint Hypercert and keep the tab open",
         "Read the hypercert on /garden/impact"
@@ -5900,6 +5900,54 @@
       "requiresProduction": false,
       "status": "active",
       "source": "qa-post-stack-review-2026-09-24"
+    },
+    {
+      "id": "ADM-177",
+      "tab": "Admin Dashboard",
+      "platform": "Chromium Desktop",
+      "priority": "P1",
+      "kind": "transaction",
+      "area": "Hub · Work",
+      "scenario": "Rejecting work asks for a reason and sends it as the gardener's feedback",
+      "preconditions": ["Steward session; a pending submission it is safe to reject"],
+      "steps": [
+        "Open the submission from /hub/work and type a note in Feedback",
+        "Press Reject and read the Reject Work dialog",
+        "Clear the reason, then choose a suggested reason or write one",
+        "Press Reject Work and approve the wallet prompt",
+        "Reopen the work and read its review summary"
+      ],
+      "expected": "Reject opens Reject Work instead of sending; the dialog names the work and the gardener and starts from the typed note; Reject Work stays disabled while the reason is empty; the review summary shows the reason as the feedback the gardener reads",
+      "evidence": "Screenshots of the Reject Work dialog and the review summary",
+      "role": "steward",
+      "tags": ["review", "tx"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "steward-cockpit-ux-2026-09-25"
+    },
+    {
+      "id": "ADM-178",
+      "tab": "Admin Dashboard",
+      "platform": "Chromium Desktop",
+      "priority": "P1",
+      "kind": "data-integrity",
+      "area": "Hub · Work",
+      "scenario": "Waiting work reads as its age, and a garden reads Critical only when review has stalled",
+      "preconditions": [
+        "Steward session; a garden with pending work submitted more than a week ago"
+      ],
+      "steps": [
+        "Open /hub/work and read the cards and the header",
+        "Open the garden's Overview and read Garden Health: its status, its alert, and Median review time",
+        "Compare them with when the garden's last review landed"
+      ],
+      "expected": "Cards read a neutral Pending with 'submitted <age>'; the header counts work waiting over a week in plain ink; the garden reads Critical with 'No reviews in 7 days' only when no review landed in the last week, and otherwise Needs attention with the count of work waiting over a week; Median review time reads in days, or weeks past two weeks",
+      "evidence": "Screenshots of the Hub queue and Garden Health",
+      "role": "steward",
+      "tags": ["review"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "steward-cockpit-ux-2026-09-25"
     },
     {
       "id": "ADM-057",
