@@ -5915,10 +5915,11 @@
         "Press Reject and read the Reject Work dialog",
         "Clear the reason, then choose a suggested reason or write one",
         "Press Reject Work and approve the wallet prompt",
-        "Reopen the work and read its review summary"
+        "Reopen the work and read its review summary",
+        "As the gardener, open the work in the app and read its details"
       ],
-      "expected": "Reject opens Reject Work instead of sending; the dialog names the work and the gardener and starts from the typed note; Reject Work stays disabled while the reason is empty; the review summary shows the reason as the feedback the gardener reads",
-      "evidence": "Screenshots of the Reject Work dialog and the review summary",
+      "expected": "Reject opens Reject Work instead of sending; the dialog names the work and the gardener and starts from the typed note; Reject Work stays disabled while the reason is empty; the review summary shows the reason as the feedback the gardener reads; in the app, the gardener's work detail leads with Review feedback showing the same reason",
+      "evidence": "Screenshots of the Reject Work dialog, the review summary, and the gardener's work detail",
       "role": "steward",
       "tags": ["review", "tx"],
       "requiresProduction": false,
