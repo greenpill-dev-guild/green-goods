@@ -33,6 +33,7 @@ import {
 import { AdminDialog, ADMIN_FLOW_DIALOG_CLASS } from "@/components/AdminDialog";
 import { DiscardChangesDialog } from "@/components/DiscardChangesDialog";
 import { ActionFlowShell } from "@/components/Layout/ActionFlowShell";
+import { isCampaignCookieJarDraftDirty } from "./campaignCookieJarDraft";
 import {
   CampaignCookieJarCreatedState,
   CampaignCookieJarSubmittedState,
@@ -301,15 +302,21 @@ export function CampaignCookieJarCreateWorkspace({
   const done = Boolean(createdJarAddress || createdJarPendingHash);
   const isDirty =
     !done &&
-    Boolean(
-      campaignTitle.trim() ||
-        campaignDescription.trim() ||
-        campaignImage.trim() ||
-        campaignImageFile ||
-        claimAmount.trim() ||
-        selectedGardenIds.length > 0 ||
-        extraAddresses.trim() ||
-        customTokenAddress.trim()
+    isCampaignCookieJarDraftDirty(
+      {
+        campaignTitle,
+        campaignDescription,
+        campaignImage,
+        hasImageFile: Boolean(campaignImageFile),
+        selectedAssetId,
+        customTokenAddress,
+        claimAmount,
+        withdrawalIntervalDays,
+        jarOwner,
+        selectedGardenIds,
+        extraAddresses,
+      },
+      { selectedAssetId: defaultPayoutAsset?.id ?? "usdc", jarOwner: primaryAddress ?? "" }
     );
   // Route mode: the flow closes by navigating, so the blocker is the one
   // confirm, and a pending create keeps the flow open.
