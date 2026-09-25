@@ -194,21 +194,21 @@ Garden; nothing was saved or sent):
   - Fund Cookie Jar (08:44Z): `view-actions.test.ts` (shared) failed (no disabled state or
     reason) and `AdminViewActions.test.tsx` failed (no title or description).
 - GREEN: the same files pass after each change; see the receipt for the final run.
-- After review (RED on the code before each fix): first round, `gardenSettingsSave` 2 and `GardenSettingsEditor` 1 failed (a Safe proposal read as Confirmed with an explorer link), `useGardenCookieJars` 4 failed (no signal that the jar list was read), and `vaults` 2 failed (an empty endowment read a bare "0").
+- After review (RED on the code before each fix): first round, `gardenSettingsSave` 2 and `GardenSettingsEditor` 1 failed (a Safe proposal read as Confirmed with an explorer link), `useGardenCookieJars` 4 failed (no signal that the jar list was read), and `vaults` 2 failed (an empty endowment read a bare "0"). Second round: `AdminViewActions` 1, `FabButton` 1, and shared `NavigationBar` 2 failed (a disabled action's reason was unreachable by keyboard and hover, and the shared dial did not show it), `speedDialNavigation` failed (no shared rule yet), and `vaults` 1 failed (USDC read as 18 decimals).
 - Proof limit: the table tests for `summarizeNetDepositsByAsset`, `formatAssetAmounts`, and
   `buildGardenSettingsSaveRows`, and the Impact and Karma tests, were written with their code;
   the Karma test moved with its copy.
 
 ## Validation Receipt
 
-- Tested implementation commit SHA: `2d1db069b34955fca577cf3a2df4d4fda4aa9513` (after the first review round, on `develop` with PR2 merged; the receipt on `59ca04ac0` is superseded)
-- Run at (UTC): push gate `2026-09-25T14:18:22Z` to `2026-09-25T14:21:29Z`
+- Tested implementation commit SHA: `d9fb2906a997f1ebf0655e2ab26159c9d95af68e` (after the second review round, on `develop` with PR2 merged; the receipts on `59ca04ac0` and `2d1db069b` are superseded)
+- Run at (UTC): push gate `2026-09-25T14:49:09Z` to `2026-09-25T14:52:16Z`
 - Exact command(s): `PATH="$PWD/node_modules/.bin:$PATH" node scripts/dev/ci-local.js --intent push --reuse-passing-receipts --test-path admin:src/components/Garden/GardenSettingsEditor.test.tsx`
-- Result: push gate exit 0 on the critical plan, 26 automated checks passed (shared 5802, client 1399, admin 1018, and agent 316 tests passing, with docs-authority, source-structure, design-guardrails, agent-guidance, qa-id-ledger, supply-chain, story-quality, and agent-tools-test; the storybook-ci story suite passed locally, 93 files and 328 tests);
+- Result: push gate exit 0 on the critical plan, 26 automated checks passed (shared 5812, client 1399, admin 1019, and agent 316 tests passing, with docs-authority, source-structure, design-guardrails, agent-guidance, qa-id-ledger, supply-chain, story-quality, and agent-tools-test; the storybook-ci story suite passed locally, 93 files and 328 tests);
   browser-proof stays the manual proof recorded under Rendered Proof
 - Validated paths: `packages/shared/src`, `packages/admin/src`, `packages/qa/locales`, `scripts/data`, `scripts/quality`, `docs/docs`, `.claude/skills`, `DESIGN.md`
 - Worktree identity command and result: `git status --porcelain=v1 --untracked-files=all -- packages/shared/src packages/admin/src packages/qa/locales scripts/data scripts/quality docs/docs .claude/skills DESIGN.md` → empty
-- Evidence-only diff command and result (if applicable): `git diff --exit-code 2d1db069b34955fca577cf3a2df4d4fda4aa9513..HEAD -- packages/shared/src packages/admin/src packages/qa/locales scripts/data scripts/quality docs/docs .claude/skills DESIGN.md` → empty (exit 0); the receipt commit changes only `.plans/`
+- Evidence-only diff command and result (if applicable): `git diff --exit-code d9fb2906a997f1ebf0655e2ab26159c9d95af68e..HEAD -- packages/shared/src packages/admin/src packages/qa/locales scripts/data scripts/quality docs/docs .claude/skills DESIGN.md` → empty (exit 0); the receipt commit changes only `.plans/`
 - Evidence-only worktree-status command and result (if applicable): `git status --porcelain=v1 --untracked-files=all -- packages/shared/src packages/admin/src packages/qa/locales scripts/data scripts/quality docs/docs .claude/skills DESIGN.md` → empty
 
 ## Risks / Blockers
