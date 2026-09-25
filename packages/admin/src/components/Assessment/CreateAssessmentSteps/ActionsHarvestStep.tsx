@@ -4,7 +4,7 @@ import { useCurrentChain } from "@green-goods/shared/hooks/blockchain/useChainCo
 import { useCreateAssessmentStore } from "@green-goods/shared/stores/useCreateAssessmentStore";
 import { cn } from "@green-goods/shared/utils/styles/cn";
 import { fromCalendarDateKey, toCalendarDateKey } from "@green-goods/shared/utils/time";
-import { useEffect, useMemo, useRef } from "react";
+import { useMemo } from "react";
 import { useIntl } from "react-intl";
 import { AdminButton } from "@/components/AdminButton";
 import { AdminCheckbox } from "@/components/AdminCheckbox";
@@ -40,14 +40,6 @@ export function ActionsHarvestStep({ showValidation, isSubmitting }: ActionsHarv
         : allActions.filter((action) => action.domain === selectedDomain),
     [allActions, selectedDomain]
   );
-
-  // Clear selected actions when domain changes
-  const prevDomainRef = useRef(selectedDomain);
-  useEffect(() => {
-    if (prevDomainRef.current === selectedDomain) return;
-    prevDomainRef.current = selectedDomain;
-    setField("selectedActionUIDs", []);
-  }, [selectedDomain, setField]);
 
   const handleToggleAction = (actionId: string) => {
     if (isSubmitting) return;

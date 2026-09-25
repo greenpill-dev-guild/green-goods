@@ -6,6 +6,7 @@ import {
   type WizardNavigationEvent,
 } from "../../stores/transitions/wizard-navigation";
 import { createEmptyAssessmentForm } from "../../stores/useCreateAssessmentStore";
+import { Domain } from "../../types/domain";
 
 describe("wizard navigation transitions", () => {
   it.each<{
@@ -80,6 +81,12 @@ describe("wizard dirty-state projections", () => {
       name: "edited assessment",
       currentStep: 0,
       form: { ...pristineAssessment, title: "Watershed review" },
+      expected: true,
+    },
+    {
+      name: "assessment with a chosen domain",
+      currentStep: 0,
+      form: { ...pristineAssessment, domain: Domain.AGRO },
       expected: true,
     },
   ])("marks $name", ({ currentStep, form, expected }) => {
